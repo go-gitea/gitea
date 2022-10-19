@@ -119,5 +119,5 @@ func (h *MultiHasher) Sums() (hashMD5, hashSHA1, hashSHA256, hashSHA512 []byte) 
 	hashSHA1 = h.sha1.Sum(nil)
 	hashSHA256 = h.sha256.Sum(nil)
 	hashSHA512 = h.sha512.Sum(nil)
-	return
+	return hashMD5, hashSHA1, hashSHA256, hashSHA512
 }

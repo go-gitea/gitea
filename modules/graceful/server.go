@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/proxyprotocol"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -79,16 +80,27 @@ func NewServer(network, address, name string) *Server {
 
 // ListenAndServe listens on the provided network address and then calls Serve
 // to handle requests on incoming connections.
-func (srv *Server) ListenAndServe(serve ServeFunction) error {
+func (srv *Server) ListenAndServe(serve ServeFunction, useProxyProtocol bool) error {
 	go srv.awaitShutdown()
 
-	l, err := GetListener(srv.network, srv.address)
+	listener, err := GetListener(srv.network, srv.address)
 	if err != nil {
 		log.Error("Unable to GetListener: %v", err)
 		return err
 	}
 
-	srv.listener = newWrappedListener(l, srv)
+	// we need to wrap the listener to take account of our lifecycle
+	listener = newWrappedListener(listener, srv)
+
+	// Now we need to take account of ProxyProtocol settings...
+	if useProxyProtocol {
+		listener = &proxyprotocol.Listener{
+			Listener:           listener,
+			ProxyHeaderTimeout: setting.ProxyProtocolHeaderTimeout,
+			AcceptUnknown:      setting.ProxyProtocolAcceptUnknown,
+		}
+	}
+	srv.listener = listener
 
 	srv.BeforeBegin(srv.network, srv.address)
 
@@ -97,22 +109,44 @@ func (srv *Server) ListenAndServe(serve ServeFunction) error {
 
 // ListenAndServeTLSConfig listens on the provided network address and then calls
 // Serve to handle requests on incoming TLS connections.
-func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFunction) error {
+func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFunction, useProxyProtocol, proxyProtocolTLSBridging bool) error {
 	go srv.awaitShutdown()
 
 	if tlsConfig.MinVersion == 0 {
 		tlsConfig.MinVersion = tls.VersionTLS12
 	}
 
-	l, err := GetListener(srv.network, srv.address)
+	listener, err := GetListener(srv.network, srv.address)
 	if err != nil {
 		log.Error("Unable to get Listener: %v", err)
 		return err
 	}
 
-	wl := newWrappedListener(l, srv)
-	srv.listener = tls.NewListener(wl, tlsConfig)
+	// we need to wrap the listener to take account of our lifecycle
+	listener = newWrappedListener(listener, srv)
 
+	// Now we need to take account of ProxyProtocol settings... If we're not bridging then we expect that the proxy will forward the connection to us
+	if useProxyProtocol && !proxyProtocolTLSBridging {
+		listener = &proxyprotocol.Listener{
+			Listener:           listener,
+			ProxyHeaderTimeout: setting.ProxyProtocolHeaderTimeout,
+			AcceptUnknown:      setting.ProxyProtocolAcceptUnknown,
+		}
+	}
+
+	// Now handle the tls protocol
+	listener = tls.NewListener(listener, tlsConfig)
+
+	// Now if we're bridging then we need the proxy to tell us who we're bridging for...
+	if useProxyProtocol && proxyProtocolTLSBridging {
+		listener = &proxyprotocol.Listener{
+			Listener:           listener,
+			ProxyHeaderTimeout: setting.ProxyProtocolHeaderTimeout,
+			AcceptUnknown:      setting.ProxyProtocolAcceptUnknown,
+		}
+	}
+
+	srv.listener = listener
 	srv.BeforeBegin(srv.network, srv.address)
 
 	return srv.Serve(serve)

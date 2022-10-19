@@ -267,15 +267,16 @@ func (p *ReleasePayload) JSONPayload() ([]byte, error) {
 
 // PushPayload represents a payload information of push event.
 type PushPayload struct {
-	Ref        string           `json:"ref"`
-	Before     string           `json:"before"`
-	After      string           `json:"after"`
-	CompareURL string           `json:"compare_url"`
-	Commits    []*PayloadCommit `json:"commits"`
-	HeadCommit *PayloadCommit   `json:"head_commit"`
-	Repo       *Repository      `json:"repository"`
-	Pusher     *User            `json:"pusher"`
-	Sender     *User            `json:"sender"`
+	Ref          string           `json:"ref"`
+	Before       string           `json:"before"`
+	After        string           `json:"after"`
+	CompareURL   string           `json:"compare_url"`
+	Commits      []*PayloadCommit `json:"commits"`
+	TotalCommits int              `json:"total_commits"`
+	HeadCommit   *PayloadCommit   `json:"head_commit"`
+	Repo         *Repository      `json:"repository"`
+	Pusher       *User            `json:"pusher"`
+	Sender       *User            `json:"sender"`
 }
 
 // JSONPayload FIXME
@@ -395,6 +396,39 @@ func (p *PullRequestPayload) JSONPayload() ([]byte, error) {
 type ReviewPayload struct {
 	Type    string `json:"type"`
 	Content string `json:"content"`
+}
+
+//  __      __.__ __   .__
+// /  \    /  \__|  | _|__|
+// \   \/\/   /  |  |/ /  |
+//  \        /|  |    <|  |
+//   \__/\  / |__|__|_ \__|
+//        \/          \/
+
+// HookWikiAction an action that happens to a wiki page
+type HookWikiAction string
+
+const (
+	// HookWikiCreated created
+	HookWikiCreated HookWikiAction = "created"
+	// HookWikiEdited edited
+	HookWikiEdited HookWikiAction = "edited"
+	// HookWikiDeleted deleted
+	HookWikiDeleted HookWikiAction = "deleted"
+)
+
+// WikiPayload payload for repository webhooks
+type WikiPayload struct {
+	Action     HookWikiAction `json:"action"`
+	Repository *Repository    `json:"repository"`
+	Sender     *User          `json:"sender"`
+	Page       string         `json:"page"`
+	Comment    string         `json:"comment"`
+}
+
+// JSONPayload JSON representation of the payload
+func (p *WikiPayload) JSONPayload() ([]byte, error) {
+	return json.MarshalIndent(p, "", " ")
 }
 
 //__________                           .__  __

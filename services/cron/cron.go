@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/sync"
+	"code.gitea.io/gitea/modules/translation"
 
 	"github.com/gogs/cron"
 )
@@ -63,7 +64,7 @@ type TaskTableRow struct {
 	task        *Task
 }
 
-func (t *TaskTableRow) FormatLastMessage(locale string) string {
+func (t *TaskTableRow) FormatLastMessage(locale translation.Locale) string {
 	if t.Status == "finished" {
 		return t.task.GetConfig().FormatMessage(locale, t.Name, t.Status, t.LastDoer)
 	}

@@ -10,12 +10,12 @@ import (
 	"regexp"
 	"strings"
 
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/common"
 	"code.gitea.io/gitea/modules/setting"
 	giteautil "code.gitea.io/gitea/modules/util"
 
-	meta "github.com/yuin/goldmark-meta"
 	"github.com/yuin/goldmark/ast"
 	east "github.com/yuin/goldmark/extension/ast"
 	"github.com/yuin/goldmark/parser"
@@ -27,36 +27,22 @@ import (
 
 var byteMailto = []byte("mailto:")
 
-// Header holds the data about a header.
-type Header struct {
-	Level int
-	Text  string
-	ID    string
-}
-
 // ASTTransformer is a default transformer of the goldmark tree.
 type ASTTransformer struct{}
 
 // Transform transforms the given AST tree.
 func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc parser.Context) {
-	metaData := meta.GetItems(pc)
 	firstChild := node.FirstChild()
 	createTOC := false
-	toc := []Header{}
-	rc := &RenderConfig{
-		Meta: "table",
-		Icon: "table",
-		Lang: "",
-	}
-	if metaData != nil {
-		rc.ToRenderConfig(metaData)
-
-		metaNode := rc.toMetaNode(metaData)
+	ctx := pc.Get(renderContextKey).(*markup.RenderContext)
+	rc := pc.Get(renderConfigKey).(*RenderConfig)
+	if rc.yamlNode != nil {
+		metaNode := rc.toMetaNode()
 		if metaNode != nil {
 			node.InsertBefore(node, firstChild, metaNode)
 		}
 		createTOC = rc.TOC
-		toc = make([]Header, 0, 100)
+		ctx.TableOfContents = make([]markup.Header, 0, 100)
 	}
 
 	_ = ast.Walk(node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
@@ -66,23 +52,20 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 
 		switch v := n.(type) {
 		case *ast.Heading:
-			if createTOC {
-				text := n.Text(reader.Source())
-				header := Header{
-					Text:  util.BytesToReadOnlyString(text),
-					Level: v.Level,
-				}
-				if id, found := v.AttributeString("id"); found {
-					header.ID = util.BytesToReadOnlyString(id.([]byte))
-				}
-				toc = append(toc, header)
-			} else {
-				for _, attr := range v.Attributes() {
-					if _, ok := attr.Value.([]byte); !ok {
-						v.SetAttribute(attr.Name, []byte(fmt.Sprintf("%v", attr.Value)))
-					}
+			for _, attr := range v.Attributes() {
+				if _, ok := attr.Value.([]byte); !ok {
+					v.SetAttribute(attr.Name, []byte(fmt.Sprintf("%v", attr.Value)))
 				}
 			}
+			text := n.Text(reader.Source())
+			header := markup.Header{
+				Text:  util.BytesToReadOnlyString(text),
+				Level: v.Level,
+			}
+			if id, found := v.AttributeString("id"); found {
+				header.ID = util.BytesToReadOnlyString(id.([]byte))
+			}
+			ctx.TableOfContents = append(ctx.TableOfContents, header)
 		case *ast.Image:
 			// Images need two things:
 			//
@@ -199,12 +182,12 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 		return ast.WalkContinue, nil
 	})
 
-	if createTOC && len(toc) > 0 {
+	if createTOC && len(ctx.TableOfContents) > 0 {
 		lang := rc.Lang
 		if len(lang) == 0 {
 			lang = setting.Langs[0]
 		}
-		tocNode := createTOCNode(toc, lang)
+		tocNode := createTOCNode(ctx.TableOfContents, lang)
 		if tocNode != nil {
 			node.InsertBefore(node, firstChild, tocNode)
 		}
@@ -216,7 +199,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 }
 
 type prefixedIDs struct {
-	values map[string]bool
+	values container.Set[string]
 }
 
 // Generate generates a new element id.
@@ -237,14 +220,12 @@ func (p *prefixedIDs) GenerateWithDefault(value, dft []byte) []byte {
 	if !bytes.HasPrefix(result, []byte("user-content-")) {
 		result = append([]byte("user-content-"), result...)
 	}
-	if _, ok := p.values[util.BytesToReadOnlyString(result)]; !ok {
-		p.values[util.BytesToReadOnlyString(result)] = true
+	if p.values.Add(util.BytesToReadOnlyString(result)) {
 		return result
 	}
 	for i := 1; ; i++ {
 		newResult := fmt.Sprintf("%s-%d", result, i)
-		if _, ok := p.values[newResult]; !ok {
-			p.values[newResult] = true
+		if p.values.Add(newResult) {
 			return []byte(newResult)
 		}
 	}
@@ -252,12 +233,12 @@ func (p *prefixedIDs) GenerateWithDefault(value, dft []byte) []byte {
 
 // Put puts a given element id to the used ids table.
 func (p *prefixedIDs) Put(value []byte) {
-	p.values[util.BytesToReadOnlyString(value)] = true
+	p.values.Add(util.BytesToReadOnlyString(value))
 }
 
 func newPrefixedIDs() *prefixedIDs {
 	return &prefixedIDs{
-		values: map[string]bool{},
+		values: make(container.Set[string]),
 	}
 }
 

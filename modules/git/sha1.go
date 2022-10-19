@@ -19,7 +19,12 @@ const EmptySHA = "0000000000000000000000000000000000000000"
 const EmptyTreeSHA = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 
 // SHAPattern can be used to determine if a string is an valid sha
-var SHAPattern = regexp.MustCompile(`^[0-9a-f]{4,40}$`)
+var shaPattern = regexp.MustCompile(`^[0-9a-f]{4,40}$`)
+
+// IsValidSHAPattern will check if the provided string matches the SHA Pattern
+func IsValidSHAPattern(sha string) bool {
+	return shaPattern.MatchString(sha)
+}
 
 // MustID always creates a new SHA1 from a [20]byte array with no validation of input.
 func MustID(b []byte) SHA1 {

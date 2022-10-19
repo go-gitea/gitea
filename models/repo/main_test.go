@@ -2,31 +2,22 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package repo
+package repo_test
 
 import (
 	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
+
+	_ "code.gitea.io/gitea/models"             // register table model
+	_ "code.gitea.io/gitea/models/perm/access" // register table model
+	_ "code.gitea.io/gitea/models/repo"        // register table model
+	_ "code.gitea.io/gitea/models/user"        // register table model
 )
 
 func TestMain(m *testing.M) {
 	unittest.MainTest(m, &unittest.TestOptions{
 		GiteaRootPath: filepath.Join("..", ".."),
-		FixtureFiles: []string{
-			"attachment.yml",
-			"repo_archiver.yml",
-			"repository.yml",
-			"repo_unit.yml",
-			"repo_indexer_status.yml",
-			"repo_redirect.yml",
-			"watch.yml",
-			"star.yml",
-			"topic.yml",
-			"repo_topic.yml",
-			"user.yml",
-			"collaboration.yml",
-		},
 	})
 }

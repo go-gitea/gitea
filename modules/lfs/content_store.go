@@ -8,7 +8,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"hash"
 	"io"
 	"os"
@@ -23,21 +22,6 @@ var (
 	// ErrSizeMismatch occurs if the content size does not match
 	ErrSizeMismatch = errors.New("Content size does not match")
 )
-
-// ErrRangeNotSatisfiable represents an error which request range is not satisfiable.
-type ErrRangeNotSatisfiable struct {
-	FromByte int64
-}
-
-// IsErrRangeNotSatisfiable returns true if the error is an ErrRangeNotSatisfiable
-func IsErrRangeNotSatisfiable(err error) bool {
-	_, ok := err.(ErrRangeNotSatisfiable)
-	return ok
-}
-
-func (err ErrRangeNotSatisfiable) Error() string {
-	return fmt.Sprintf("Requested range %d is not satisfiable", err.FromByte)
-}
 
 // ContentStore provides a simple file system based storage.
 type ContentStore struct {
@@ -113,7 +97,7 @@ func (s *ContentStore) Verify(pointer Pointer) (bool, error) {
 	return true, nil
 }
 
-// ReadMetaObject will read a models.LFSMetaObject and return a reader
+// ReadMetaObject will read a git_model.LFSMetaObject and return a reader
 func ReadMetaObject(pointer Pointer) (io.ReadCloser, error) {
 	contentStore := NewContentStore()
 	return contentStore.Get(pointer)

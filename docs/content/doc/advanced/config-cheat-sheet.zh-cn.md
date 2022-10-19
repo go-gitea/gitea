@@ -15,7 +15,14 @@ menu:
 
 # 配置说明
 
-这是针对Gitea配置文件的说明，你可以了解Gitea的强大配置。需要说明的是，你的所有改变请修改 `custom/conf/app.ini` 文件而不是源文件。所有默认值可以通过 [app.example.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini) 查看到。如果你发现 `%(X)s` 这样的内容，请查看 [ini](https://github.com/go-ini/ini/#recursive-values) 这里的说明。标注了 :exclamation: 的配置项表明除非你真的理解这个配置项的意义，否则最好使用默认值。
+这是针对Gitea配置文件的说明，你可以了解Gitea的强大配置。需要说明的是，你的所有改变请修改 `custom/conf/app.ini` 文件而不是源文件。
+所有默认值可以通过 [app.example.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini) 查看到。
+如果你发现 `%(X)s` 这样的内容，请查看 [ini](https://github.com/go-ini/ini/#recursive-values) 这里的说明。
+标注了 :exclamation: 的配置项表明除非你真的理解这个配置项的意义，否则最好使用默认值。
+
+## ⚠️时效性警告⚠️
+
+此文档的内容可能过于陈旧或者错误，请参考英文文档。
 
 {{< toc >}}
 
@@ -173,8 +180,8 @@ menu:
 - `ADAPTER`: **memory**: 缓存引擎，可以为 `memory`, `redis` 或 `memcache`。
 - `INTERVAL`: **60**: 只对内存缓存有效，GC间隔，单位秒。
 - `HOST`: **\<empty\>**: 针对redis和memcache有效，主机地址和端口。
-    - Redis: `network=tcp,addr=127.0.0.1:6379,password=macaron,db=0,pool_size=100,idle_timeout=180`
-    - Memache: `127.0.0.1:9090;127.0.0.1:9091`
+  - Redis: `network=tcp,addr=127.0.0.1:6379,password=macaron,db=0,pool_size=100,idle_timeout=180`
+  - Memache: `127.0.0.1:9090;127.0.0.1:9091`
 - `ITEM_TTL`: **16h**: 缓存项目失效时间，设置为 -1 则禁用缓存。
 
 ## Cache - LastCommitCache settings (`cache.last_commit`)
@@ -239,7 +246,6 @@ file -I test01.xls
 test01.xls: application/vnd.ms-excel; charset=binary
 ```
 
-
 ## Log (`log`)
 
 - `ROOT_PATH`: 日志文件根目录。
@@ -251,10 +257,9 @@ test01.xls: application/vnd.ms-excel; charset=binary
 - `ENABLED`: 是否在后台运行定期任务。
 - `RUN_AT_START`: 是否启动时自动运行。
 - `SCHEDULE` 所接受的格式
-   - 完整 crontab 控制, 例如 `* * * * * ?`
-   - 描述符, 例如 `@midnight`, `@every 1h30m` ...
-   - 更多细节参见 [cron api文档](https://pkg.go.dev/github.com/gogs/cron@v0.0.0-20171120032916-9f6c956d3e14)
-
+  - 完整 crontab 控制, 例如 `* * * * * ?`
+  - 描述符, 例如 `@midnight`, `@every 1h30m` ...
+  - 更多细节参见 [cron api文档](https://pkg.go.dev/github.com/gogs/cron@v0.0.0-20171120032916-9f6c956d3e14)
 
 ### Cron - Update Mirrors (`cron.update_mirrors`)
 
@@ -294,7 +299,7 @@ test01.xls: application/vnd.ms-excel; charset=binary
 
 ## API (`api`)
 
-- `ENABLE_SWAGGER`: **true**: 是否启用swagger路由 /api/swagger, /api/v1/swagger etc. endpoints. True 或 false; 默认是  true.
+- `ENABLE_SWAGGER`: **true**: 是否启用swagger路由 /api/swagger, /api/v1/swagger etc. endpoints. True 或 false.
 - `MAX_RESPONSE_ITEMS`: **50**: 一个页面最大的项目数。
 - `DEFAULT_PAGING_NUM`: **30**: API中默认分页条数。
 - `DEFAULT_GIT_TREES_PER_PAGE`: **1000**: GIT TREES API每页的默认最大项数.
@@ -318,14 +323,17 @@ IS_INPUT_FILE = false
 - FILE_EXTENSIONS: 关联的文档的扩展名，多个扩展名用都好分隔。
 - RENDER_COMMAND: 工具的命令行命令及参数。
 - IS_INPUT_FILE: 输入方式是最后一个参数为文件路径还是从标准输入读取。
-- DISABLE_SANITIZER: **false** 如果为 true 则不过滤 HTML 标签和属性。除非你知道这意味着什么，否则不要设置为 true。
+- RENDER_CONTENT_MODE: **sanitized** 内容如何被渲染。
+  - sanitized: 对内容进行净化并渲染到当前页面中，仅有一部分 HTML 标签和属性是被允许的。
+  - no-sanitizer: 禁用净化器，把内容渲染到当前页面中。此模式是**不安全**的，如果内容中含有恶意代码，可能会导致 XSS 攻击。
+  - iframe: 把内容渲染在一个独立的页面中并使用 iframe 嵌入到当前页面中。使用的 iframe 工作在沙箱模式并禁用了同源请求，JS 代码被安全的从父页面中隔离出去。
 
 以下两个环境变量将会被传递给渲染命令：
 
 - `GITEA_PREFIX_SRC`：包含当前的`src`路径的URL前缀，可以被用于链接的前缀。
 - `GITEA_PREFIX_RAW`：包含当前的`raw`路径的URL前缀，可以被用于图片的前缀。
 
-如果 `DISABLE_SANITIZER` 为 false，则 Gitea 支持自定义渲染 HTML 的净化策略。以下例子将用 pandoc 支持 KaTeX 输出。
+如果 `RENDER_CONTENT_MODE` 为 `sanitized`，则 Gitea 支持自定义渲染 HTML 的净化策略。以下例子将用 pandoc 支持 KaTeX 输出。
 
 ```ini
 [markup.sanitizer.TeX]
@@ -343,7 +351,7 @@ ALLOW_DATA_URI_IMAGES = true
 - `ALLOW_DATA_URI_IMAGES`: **false** 允许 data uri 图片 (`<img src="data:image/png;base64,..."/>`)。
 
 多个净化规则可以被同时定义，只要section名称最后一位不重复即可。如： `[markup.sanitizer.TeX-2]`。
-为了针对一种渲染类型进行一个特殊的净化策略，必须使用形如 `[markup.sanitizer.asciidoc.rule-1]` 的方式来命名 seciton。
+为了针对一种渲染类型进行一个特殊的净化策略，必须使用形如 `[markup.sanitizer.asciidoc.rule-1]` 的方式来命名 section。
 如果此规则没有匹配到任何渲染类型，它将会被应用到所有的渲染类型。
 
 ## Time (`time`)
@@ -437,6 +445,7 @@ Repository archive 的存储配置。 如果 `STORAGE_TYPE` 为空，则此配�
 - `PROXY_HOSTS`: **\<empty\>**: 逗号分隔的多个需要代理的网址，支持 * 号匹配符号， ** 表示匹配所有网站
 
 i.e.
+
 ```ini
 PROXY_ENABLED = true
 PROXY_URL = socks://127.0.0.1:1080

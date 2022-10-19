@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/models/db"
+	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -26,12 +27,7 @@ func (u *User) CustomAvatarRelativePath() string {
 }
 
 // GenerateRandomAvatar generates a random avatar for user.
-func GenerateRandomAvatar(u *User) error {
-	return GenerateRandomAvatarCtx(db.DefaultContext, u)
-}
-
-// GenerateRandomAvatarCtx generates a random avatar for user.
-func GenerateRandomAvatarCtx(ctx context.Context, u *User) error {
+func GenerateRandomAvatar(ctx context.Context, u *User) error {
 	seed := u.Email
 	if len(seed) == 0 {
 		seed = u.Name
@@ -72,17 +68,23 @@ func (u *User) AvatarLinkWithSize(size int) string {
 	useLocalAvatar := false
 	autoGenerateAvatar := false
 
+	var disableGravatar bool
+	disableGravatarSetting, _ := system_model.GetSetting(system_model.KeyPictureDisableGravatar)
+	if disableGravatarSetting != nil {
+		disableGravatar = disableGravatarSetting.GetValueBool()
+	}
+
 	switch {
 	case u.UseCustomAvatar:
 		useLocalAvatar = true
-	case setting.DisableGravatar, setting.OfflineMode:
+	case disableGravatar, setting.OfflineMode:
 		useLocalAvatar = true
 		autoGenerateAvatar = true
 	}
 
 	if useLocalAvatar {
 		if u.Avatar == "" && autoGenerateAvatar {
-			if err := GenerateRandomAvatar(u); err != nil {
+			if err := GenerateRandomAvatar(db.DefaultContext, u); err != nil {
 				log.Error("GenerateRandomAvatar: %v", err)
 			}
 		}

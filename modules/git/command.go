@@ -8,6 +8,7 @@ package git
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -39,6 +40,7 @@ type Command struct {
 	parentContext    context.Context
 	desc             string
 	globalArgsLength int
+	brokenArgs       []string
 }
 
 func (c *Command) String() string {
@@ -49,6 +51,7 @@ func (c *Command) String() string {
 }
 
 // NewCommand creates and returns a new Git Command based on given command and arguments.
+// Each argument should be safe to be trusted. User-provided arguments should be passed to AddDynamicArguments instead.
 func NewCommand(ctx context.Context, args ...string) *Command {
 	// Make an explicit copy of globalCommandArgs, otherwise append might overwrite it
 	cargs := make([]string, len(globalCommandArgs))
@@ -62,11 +65,13 @@ func NewCommand(ctx context.Context, args ...string) *Command {
 }
 
 // NewCommandNoGlobals creates and returns a new Git Command based on given command and arguments only with the specify args and don't care global command args
+// Each argument should be safe to be trusted. User-provided arguments should be passed to AddDynamicArguments instead.
 func NewCommandNoGlobals(args ...string) *Command {
 	return NewCommandContextNoGlobals(DefaultContext, args...)
 }
 
 // NewCommandContextNoGlobals creates and returns a new Git Command based on given command and arguments only with the specify args and don't care global command args
+// Each argument should be safe to be trusted. User-provided arguments should be passed to AddDynamicArguments instead.
 func NewCommandContextNoGlobals(ctx context.Context, args ...string) *Command {
 	return &Command{
 		name:          GitExecutable,
@@ -88,24 +93,79 @@ func (c *Command) SetDescription(desc string) *Command {
 	return c
 }
 
-// AddArguments adds new argument(s) to the command.
+// AddArguments adds new argument(s) to the command. Each argument must be safe to be trusted.
+// User-provided arguments should be passed to AddDynamicArguments instead.
 func (c *Command) AddArguments(args ...string) *Command {
 	c.args = append(c.args, args...)
 	return c
 }
 
-// RunOpts represents parameters to run the command
-type RunOpts struct {
-	Env            []string
-	Timeout        time.Duration
-	Dir            string
-	Stdout, Stderr io.Writer
-	Stdin          io.Reader
-	PipelineFunc   func(context.Context, context.CancelFunc) error
+// AddDynamicArguments adds new dynamic argument(s) to the command.
+// The arguments may come from user input and can not be trusted, so no leading '-' is allowed to avoid passing options
+func (c *Command) AddDynamicArguments(args ...string) *Command {
+	for _, arg := range args {
+		if arg != "" && arg[0] == '-' {
+			c.brokenArgs = append(c.brokenArgs, arg)
+		}
+	}
+	if len(c.brokenArgs) != 0 {
+		return c
+	}
+	c.args = append(c.args, args...)
+	return c
 }
+
+// RunOpts represents parameters to run the command. If UseContextTimeout is specified, then Timeout is ignored.
+type RunOpts struct {
+	Env               []string
+	Timeout           time.Duration
+	UseContextTimeout bool
+	Dir               string
+	Stdout, Stderr    io.Writer
+	Stdin             io.Reader
+	PipelineFunc      func(context.Context, context.CancelFunc) error
+}
+
+func commonBaseEnvs() []string {
+	// at the moment, do not set "GIT_CONFIG_NOSYSTEM", users may have put some configs like "receive.certNonceSeed" in it
+	envs := []string{
+		"HOME=" + HomeDir(),        // make Gitea use internal git config only, to prevent conflicts with user's git config
+		"GIT_NO_REPLACE_OBJECTS=1", // ignore replace references (https://git-scm.com/docs/git-replace)
+	}
+
+	// some environment variables should be passed to git command
+	passThroughEnvKeys := []string{
+		"GNUPGHOME", // git may call gnupg to do commit signing
+	}
+	for _, key := range passThroughEnvKeys {
+		if val, ok := os.LookupEnv(key); ok {
+			envs = append(envs, key+"="+val)
+		}
+	}
+	return envs
+}
+
+// CommonGitCmdEnvs returns the common environment variables for a "git" command.
+func CommonGitCmdEnvs() []string {
+	return append(commonBaseEnvs(), []string{
+		"LC_ALL=" + DefaultLocale,
+		"GIT_TERMINAL_PROMPT=0", // avoid prompting for credentials interactively, supported since git v2.3
+	}...)
+}
+
+// CommonCmdServEnvs is like CommonGitCmdEnvs but it only returns minimal required environment variables for the "gitea serv" command
+func CommonCmdServEnvs() []string {
+	return commonBaseEnvs()
+}
+
+var ErrBrokenCommand = errors.New("git command is broken")
 
 // Run runs the command with the RunOpts
 func (c *Command) Run(opts *RunOpts) error {
+	if len(c.brokenArgs) != 0 {
+		log.Error("git command is broken: %s, broken args: %s", c.String(), strings.Join(c.brokenArgs, " "))
+		return ErrBrokenCommand
+	}
 	if opts == nil {
 		opts = &RunOpts{}
 	}
@@ -138,7 +198,15 @@ func (c *Command) Run(opts *RunOpts) error {
 		desc = fmt.Sprintf("%s %s [repo_path: %s]", c.name, strings.Join(args, " "), opts.Dir)
 	}
 
-	ctx, cancel, finished := process.GetManager().AddContextTimeout(c.parentContext, opts.Timeout, desc)
+	var ctx context.Context
+	var cancel context.CancelFunc
+	var finished context.CancelFunc
+
+	if opts.UseContextTimeout {
+		ctx, cancel, finished = process.GetManager().AddContext(c.parentContext, desc)
+	} else {
+		ctx, cancel, finished = process.GetManager().AddContextTimeout(c.parentContext, opts.Timeout, desc)
+	}
 	defer finished()
 
 	cmd := exec.CommandContext(ctx, c.name, c.args...)
@@ -148,15 +216,8 @@ func (c *Command) Run(opts *RunOpts) error {
 		cmd.Env = opts.Env
 	}
 
-	cmd.Env = append(
-		cmd.Env,
-		fmt.Sprintf("LC_ALL=%s", DefaultLocale),
-		// avoid prompting for credentials interactively, supported since git v2.3
-		"GIT_TERMINAL_PROMPT=0",
-		// ignore replace references (https://git-scm.com/docs/git-replace)
-		"GIT_NO_REPLACE_OBJECTS=1",
-	)
-
+	process.SetSysProcAttribute(cmd)
+	cmd.Env = append(cmd.Env, CommonGitCmdEnvs()...)
 	cmd.Dir = opts.Dir
 	cmd.Stdout = opts.Stdout
 	cmd.Stderr = opts.Stderr
@@ -183,7 +244,9 @@ func (c *Command) Run(opts *RunOpts) error {
 
 type RunStdError interface {
 	error
+	Unwrap() error
 	Stderr() string
+	IsExitCode(code int) bool
 }
 
 type runStdError struct {
@@ -206,6 +269,14 @@ func (r *runStdError) Unwrap() error {
 
 func (r *runStdError) Stderr() string {
 	return r.stderr
+}
+
+func (r *runStdError) IsExitCode(code int) bool {
+	var exitError *exec.ExitError
+	if errors.As(r.err, &exitError) {
+		return exitError.ExitCode() == code
+	}
+	return false
 }
 
 func bytesToString(b []byte) string {

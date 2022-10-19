@@ -65,7 +65,7 @@ func Migrate(ctx *context.APIContext) {
 		err       error
 	)
 	if len(form.RepoOwner) != 0 {
-		repoOwner, err = user_model.GetUserByName(form.RepoOwner)
+		repoOwner, err = user_model.GetUserByName(ctx, form.RepoOwner)
 	} else if form.RepoOwnerID != 0 {
 		repoOwner, err = user_model.GetUserByID(form.RepoOwnerID)
 	} else {
@@ -170,7 +170,7 @@ func Migrate(ctx *context.APIContext) {
 		opts.Releases = false
 	}
 
-	repo, err := repo_module.CreateRepository(ctx.Doer, repoOwner, models.CreateRepoOptions{
+	repo, err := repo_module.CreateRepository(ctx.Doer, repoOwner, repo_module.CreateRepoOptions{
 		Name:           opts.RepoName,
 		Description:    opts.Description,
 		OriginalURL:    form.CloneAddr,

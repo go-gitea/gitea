@@ -31,10 +31,9 @@ func AddPrincipalKey(ownerID int64, content string, authSourceID int64) (*Public
 		return nil, err
 	}
 	defer committer.Close()
-	sess := db.GetEngine(ctx)
 
 	// Principals cannot be duplicated.
-	has, err := sess.
+	has, err := db.GetEngine(ctx).
 		Where("content = ? AND type = ?", content, KeyTypePrincipal).
 		Get(new(PublicKey))
 	if err != nil {
@@ -51,7 +50,7 @@ func AddPrincipalKey(ownerID int64, content string, authSourceID int64) (*Public
 		Type:          KeyTypePrincipal,
 		LoginSourceID: authSourceID,
 	}
-	if err = addPrincipalKey(sess, key); err != nil {
+	if err = db.Insert(ctx, key); err != nil {
 		return nil, fmt.Errorf("addKey: %v", err)
 	}
 
@@ -61,16 +60,7 @@ func AddPrincipalKey(ownerID int64, content string, authSourceID int64) (*Public
 
 	committer.Close()
 
-	return key, RewriteAllPrincipalKeys()
-}
-
-func addPrincipalKey(e db.Engine, key *PublicKey) (err error) {
-	// Save Key representing a principal.
-	if _, err = e.Insert(key); err != nil {
-		return err
-	}
-
-	return nil
+	return key, RewriteAllPrincipalKeys(db.DefaultContext)
 }
 
 // CheckPrincipalKeyString strips spaces and returns an error if the given principal contains newlines

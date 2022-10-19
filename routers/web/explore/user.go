@@ -12,7 +12,9 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/sitemap"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -33,9 +35,18 @@ func isKeywordValid(keyword string) bool {
 
 // RenderUserSearch render user search page
 func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, tplName base.TplName) {
-	opts.Page = ctx.FormInt("page")
+	// Sitemap index for sitemap paths
+	opts.Page = int(ctx.ParamsInt64("idx"))
+	isSitemap := ctx.Params("idx") != ""
+	if opts.Page <= 1 {
+		opts.Page = ctx.FormInt("page")
+	}
 	if opts.Page <= 1 {
 		opts.Page = 1
+	}
+
+	if isSitemap {
+		opts.PageSize = setting.UI.SitemapPagingNum
 	}
 
 	var (
@@ -73,6 +84,18 @@ func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, 
 			return
 		}
 	}
+	if isSitemap {
+		m := sitemap.NewSitemap()
+		for _, item := range users {
+			m.Add(sitemap.URL{URL: item.HTMLURL(), LastMod: item.UpdatedUnix.AsTimePtr()})
+		}
+		ctx.Resp.Header().Set("Content-Type", "text/xml")
+		if _, err := m.WriteTo(ctx.Resp); err != nil {
+			log.Error("Failed writing sitemap: %v", err)
+		}
+		return
+	}
+
 	ctx.Data["Keyword"] = opts.Keyword
 	ctx.Data["Total"] = count
 	ctx.Data["Users"] = users

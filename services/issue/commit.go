@@ -13,11 +13,13 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/repository"
 )
@@ -76,22 +78,22 @@ func timeLogToAmount(str string) int64 {
 	return a
 }
 
-func issueAddTime(issue *models.Issue, doer *user_model.User, time time.Time, timeLog string) error {
+func issueAddTime(issue *issues_model.Issue, doer *user_model.User, time time.Time, timeLog string) error {
 	amount := timeLogToAmount(timeLog)
 	if amount == 0 {
 		return nil
 	}
 
-	_, err := models.AddTime(doer, issue, amount, time)
+	_, err := issues_model.AddTime(doer, issue, amount, time)
 	return err
 }
 
 // getIssueFromRef returns the issue referenced by a ref. Returns a nil *Issue
 // if the provided ref references a non-existent issue.
-func getIssueFromRef(repo *repo_model.Repository, index int64) (*models.Issue, error) {
-	issue, err := models.GetIssueByIndex(repo.ID, index)
+func getIssueFromRef(repo *repo_model.Repository, index int64) (*issues_model.Issue, error) {
+	issue, err := issues_model.GetIssueByIndex(repo.ID, index)
 	if err != nil {
-		if models.IsErrIssueNotExist(err) {
+		if issues_model.IsErrIssueNotExist(err) {
 			return nil, nil
 		}
 		return nil, err
@@ -110,16 +112,21 @@ func UpdateIssuesCommit(doer *user_model.User, repo *repo_model.Repository, comm
 			Action references.XRefAction
 		}
 
-		refMarked := make(map[markKey]bool)
+		refMarked := make(container.Set[markKey])
 		var refRepo *repo_model.Repository
-		var refIssue *models.Issue
+		var refIssue *issues_model.Issue
 		var err error
 		for _, ref := range references.FindAllIssueReferences(c.Message) {
 
 			// issue is from another repo
 			if len(ref.Owner) > 0 && len(ref.Name) > 0 {
-				refRepo, err = models.GetRepositoryFromMatch(ref.Owner, ref.Name)
+				refRepo, err = repo_model.GetRepositoryByOwnerAndName(ref.Owner, ref.Name)
 				if err != nil {
+					if repo_model.IsErrRepoNotExist(err) {
+						log.Warn("Repository referenced in commit but does not exist: %v", err)
+					} else {
+						log.Error("repo_model.GetRepositoryByOwnerAndName: %v", err)
+					}
 					continue
 				}
 			} else {
@@ -138,10 +145,9 @@ func UpdateIssuesCommit(doer *user_model.User, repo *repo_model.Repository, comm
 			}
 
 			key := markKey{ID: refIssue.ID, Action: ref.Action}
-			if refMarked[key] {
+			if !refMarked.Add(key) {
 				continue
 			}
-			refMarked[key] = true
 
 			// FIXME: this kind of condition is all over the code, it should be consolidated in a single place
 			canclose := perm.IsAdmin() || perm.IsOwner() || perm.CanWriteIssuesOrPulls(refIssue.IsPull) || refIssue.PosterID == doer.ID
@@ -153,7 +159,7 @@ func UpdateIssuesCommit(doer *user_model.User, repo *repo_model.Repository, comm
 			}
 
 			message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, html.EscapeString(repo.Link()), html.EscapeString(url.PathEscape(c.Sha1)), html.EscapeString(strings.SplitN(c.Message, "\n", 2)[0]))
-			if err = models.CreateRefComment(doer, refRepo, refIssue, message, c.Sha1); err != nil {
+			if err = issues_model.CreateRefComment(doer, refRepo, refIssue, message, c.Sha1); err != nil {
 				return err
 			}
 

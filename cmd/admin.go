@@ -13,10 +13,10 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/auth"
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
@@ -155,6 +155,10 @@ var (
 			cli.StringFlag{
 				Name:  "email,e",
 				Usage: "Email of the user to delete",
+			},
+			cli.BoolFlag{
+				Name:  "purge",
+				Usage: "Purge user, all their repositories, organizations and comments",
 			},
 		},
 		Action: runDeleteUser,
@@ -409,9 +413,9 @@ var (
 			Usage: "SMTP Authentication Type (PLAIN/LOGIN/CRAM-MD5) default PLAIN",
 		},
 		cli.StringFlag{
-			Name:  "host",
+			Name:  "addr",
 			Value: "",
-			Usage: "SMTP Host",
+			Usage: "SMTP Addr",
 		},
 		cli.IntFlag{
 			Name:  "port",
@@ -490,7 +494,7 @@ func runChangePassword(c *cli.Context) error {
 		return errors.New("The password you chose is on a list of stolen passwords previously exposed in public data breaches. Please try again with a different password.\nFor more details, see https://haveibeenpwned.com/Passwords")
 	}
 	uname := c.String("username")
-	user, err := user_model.GetUserByName(uname)
+	user, err := user_model.GetUserByName(ctx, uname)
 	if err != nil {
 		return err
 	}
@@ -588,12 +592,12 @@ func runCreateUser(c *cli.Context) error {
 	}
 
 	if c.Bool("access-token") {
-		t := &models.AccessToken{
+		t := &auth_model.AccessToken{
 			Name: "gitea-admin",
 			UID:  u.ID,
 		}
 
-		if err := models.NewAccessToken(t); err != nil {
+		if err := auth_model.NewAccessToken(t); err != nil {
 			return err
 		}
 
@@ -627,9 +631,10 @@ func runListUsers(c *cli.Context) error {
 			}
 		}
 	} else {
-		fmt.Fprintf(w, "ID\tUsername\tEmail\tIsActive\tIsAdmin\n")
+		twofa := user_model.UserList(users).GetTwoFaStatus()
+		fmt.Fprintf(w, "ID\tUsername\tEmail\tIsActive\tIsAdmin\t2FA\n")
 		for _, u := range users {
-			fmt.Fprintf(w, "%d\t%s\t%s\t%t\t%t\n", u.ID, u.Name, u.Email, u.IsActive, u.IsAdmin)
+			fmt.Fprintf(w, "%d\t%s\t%s\t%t\t%t\t%t\n", u.ID, u.Name, u.Email, u.IsActive, u.IsAdmin, twofa[u.ID])
 		}
 
 	}
@@ -659,7 +664,7 @@ func runDeleteUser(c *cli.Context) error {
 	if c.IsSet("email") {
 		user, err = user_model.GetUserByEmail(c.String("email"))
 	} else if c.IsSet("username") {
-		user, err = user_model.GetUserByName(c.String("username"))
+		user, err = user_model.GetUserByName(ctx, c.String("username"))
 	} else {
 		user, err = user_model.GetUserByID(c.Int64("id"))
 	}
@@ -674,7 +679,7 @@ func runDeleteUser(c *cli.Context) error {
 		return fmt.Errorf("The user %s does not match the provided id %d", user.Name, c.Int64("id"))
 	}
 
-	return user_service.DeleteUser(user)
+	return user_service.DeleteUser(ctx, user, c.Bool("purge"))
 }
 
 func runGenerateAccessToken(c *cli.Context) error {
@@ -689,17 +694,17 @@ func runGenerateAccessToken(c *cli.Context) error {
 		return err
 	}
 
-	user, err := user_model.GetUserByName(c.String("username"))
+	user, err := user_model.GetUserByName(ctx, c.String("username"))
 	if err != nil {
 		return err
 	}
 
-	t := &models.AccessToken{
+	t := &auth_model.AccessToken{
 		Name: c.String("token-name"),
 		UID:  user.ID,
 	}
 
-	if err := models.NewAccessToken(t); err != nil {
+	if err := auth_model.NewAccessToken(t); err != nil {
 		return err
 	}
 
@@ -722,9 +727,9 @@ func runRepoSyncReleases(_ *cli.Context) error {
 
 	log.Trace("Synchronizing repository releases (this may take a while)")
 	for page := 1; ; page++ {
-		repos, count, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
+		repos, count, err := repo_model.SearchRepositoryByName(&repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
-				PageSize: models.RepositoryListDefaultPageSize,
+				PageSize: repo_model.RepositoryListDefaultPageSize,
 				Page:     page,
 			},
 			Private: true,
@@ -773,9 +778,9 @@ func runRepoSyncReleases(_ *cli.Context) error {
 }
 
 func getReleaseCount(id int64) (int64, error) {
-	return models.GetReleaseCountByRepoID(
+	return repo_model.GetReleaseCountByRepoID(
 		id,
-		models.FindReleasesOptions{
+		repo_model.FindReleasesOptions{
 			IncludeTags: true,
 		},
 	)
@@ -838,8 +843,8 @@ func runAddOauth(c *cli.Context) error {
 		return err
 	}
 
-	return auth.CreateSource(&auth.Source{
-		Type:     auth.OAuth2,
+	return auth_model.CreateSource(&auth_model.Source{
+		Type:     auth_model.OAuth2,
 		Name:     c.String("name"),
 		IsActive: true,
 		Cfg:      parseOAuth2Config(c),
@@ -858,7 +863,7 @@ func runUpdateOauth(c *cli.Context) error {
 		return err
 	}
 
-	source, err := auth.GetSourceByID(c.Int64("id"))
+	source, err := auth_model.GetSourceByID(c.Int64("id"))
 	if err != nil {
 		return err
 	}
@@ -938,7 +943,7 @@ func runUpdateOauth(c *cli.Context) error {
 	oAuth2Config.CustomURLMapping = customURLMapping
 	source.Cfg = oAuth2Config
 
-	return auth.UpdateSource(source)
+	return auth_model.UpdateSource(source)
 }
 
 func parseSMTPConfig(c *cli.Context, conf *smtp.Source) error {
@@ -950,8 +955,8 @@ func parseSMTPConfig(c *cli.Context, conf *smtp.Source) error {
 		}
 		conf.Auth = c.String("auth-type")
 	}
-	if c.IsSet("host") {
-		conf.Host = c.String("host")
+	if c.IsSet("addr") {
+		conf.Addr = c.String("addr")
 	}
 	if c.IsSet("port") {
 		conf.Port = c.Int("port")
@@ -1009,8 +1014,8 @@ func runAddSMTP(c *cli.Context) error {
 		smtpConfig.Auth = "PLAIN"
 	}
 
-	return auth.CreateSource(&auth.Source{
-		Type:     auth.SMTP,
+	return auth_model.CreateSource(&auth_model.Source{
+		Type:     auth_model.SMTP,
 		Name:     c.String("name"),
 		IsActive: active,
 		Cfg:      &smtpConfig,
@@ -1029,7 +1034,7 @@ func runUpdateSMTP(c *cli.Context) error {
 		return err
 	}
 
-	source, err := auth.GetSourceByID(c.Int64("id"))
+	source, err := auth_model.GetSourceByID(c.Int64("id"))
 	if err != nil {
 		return err
 	}
@@ -1050,7 +1055,7 @@ func runUpdateSMTP(c *cli.Context) error {
 
 	source.Cfg = smtpConfig
 
-	return auth.UpdateSource(source)
+	return auth_model.UpdateSource(source)
 }
 
 func runListAuth(c *cli.Context) error {
@@ -1061,7 +1066,7 @@ func runListAuth(c *cli.Context) error {
 		return err
 	}
 
-	authSources, err := auth.Sources()
+	authSources, err := auth_model.Sources()
 	if err != nil {
 		return err
 	}
@@ -1099,7 +1104,7 @@ func runDeleteAuth(c *cli.Context) error {
 		return err
 	}
 
-	source, err := auth.GetSourceByID(c.Int64("id"))
+	source, err := auth_model.GetSourceByID(c.Int64("id"))
 	if err != nil {
 		return err
 	}

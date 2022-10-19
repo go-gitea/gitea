@@ -4,46 +4,46 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "settings.public_profile"}}
+			{{.locale.Tr "settings.public_profile"}}
 		</h4>
 		<div class="ui attached segment">
-			<p>{{.i18n.Tr "settings.profile_desc"}}</p>
+			<p>{{.locale.Tr "settings.profile_desc"}}</p>
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<div class="required field {{if .Err_Name}}error{{end}}">
-					<label for="username">{{.i18n.Tr "username"}}
-						<span class="text red hide" id="name-change-prompt"> {{.i18n.Tr "settings.change_username_prompt"}}</span>
-						<span class="text red hide" id="name-change-redirect-prompt"> {{.i18n.Tr "settings.change_username_redirect_prompt"}}</span>
+					<label for="username">{{.locale.Tr "username"}}
+						<span class="text red hide" id="name-change-prompt"> {{.locale.Tr "settings.change_username_prompt"}}</span>
+						<span class="text red hide" id="name-change-redirect-prompt"> {{.locale.Tr "settings.change_username_redirect_prompt"}}</span>
 					</label>
 					<input id="username" name="name" value="{{.SignedUser.Name}}" data-name="{{.SignedUser.Name}}" autofocus required {{if or (not .SignedUser.IsLocal) .IsReverseProxy}}disabled{{end}}>
 					{{if or (not .SignedUser.IsLocal) .IsReverseProxy}}
-					<p class="help text blue">{{$.i18n.Tr "settings.password_username_disabled"}}</p>
+					<p class="help text blue">{{$.locale.Tr "settings.password_username_disabled"}}</p>
 					{{end}}
 				</div>
 				<div class="field {{if .Err_FullName}}error{{end}}">
-					<label for="full_name">{{.i18n.Tr "settings.full_name"}}</label>
+					<label for="full_name">{{.locale.Tr "settings.full_name"}}</label>
 					<input id="full_name" name="full_name" value="{{.SignedUser.FullName}}">
 				</div>
 				<div class="field {{if .Err_Email}}error{{end}}">
-					<label for="email">{{.i18n.Tr "email"}}</label>
+					<label for="email">{{.locale.Tr "email"}}</label>
 					<p>{{.SignedUser.Email}}</p>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox" id="keep-email-private">
-						<label class="tooltip" data-content="{{.i18n.Tr "settings.keep_email_private_popup"}}"><strong>{{.i18n.Tr "settings.keep_email_private"}}</strong></label>
+						<label class="tooltip" data-content="{{.locale.Tr "settings.keep_email_private_popup"}}"><strong>{{.locale.Tr "settings.keep_email_private"}}</strong></label>
 						<input name="keep_email_private" type="checkbox" {{if .SignedUser.KeepEmailPrivate}}checked{{end}}>
 					</div>
 				</div>
 				<div class="field {{if .Err_Description}}error{{end}}">
-					<label for="description">{{$.i18n.Tr "user.user_bio"}}</label>
-					<textarea id="description" name="description" rows="2" placeholder="{{.i18n.Tr "settings.biography_placeholder"}}">{{.SignedUser.Description}}</textarea>
+					<label for="description">{{$.locale.Tr "user.user_bio"}}</label>
+					<textarea id="description" name="description" rows="2" placeholder="{{.locale.Tr "settings.biography_placeholder"}}">{{.SignedUser.Description}}</textarea>
 				</div>
 				<div class="field {{if .Err_Website}}error{{end}}">
-					<label for="website">{{.i18n.Tr "settings.website"}}</label>
+					<label for="website">{{.locale.Tr "settings.website"}}</label>
 					<input id="website" name="website" type="url" value="{{.SignedUser.Website}}">
 				</div>
 				<div class="field">
-					<label for="location">{{.i18n.Tr "settings.location"}}</label>
+					<label for="location">{{.locale.Tr "settings.location"}}</label>
 					<input id="location" name="location"  value="{{.SignedUser.Location}}">
 				</div>
 
@@ -51,29 +51,29 @@
 				<!-- private block -->
 
 				<div class="field">
-					<label for="security-private"><strong>{{.i18n.Tr "settings.privacy"}}</strong></label>
+					<label for="security-private"><strong>{{.locale.Tr "settings.privacy"}}</strong></label>
 				</div>
 
 				<div class="inline field {{if .Err_Visibility}}error{{end}}">
-					<span class="inline required field"><label for="visibility">{{.i18n.Tr "settings.visibility"}}</label></span>
+					<span class="inline required field"><label for="visibility">{{.locale.Tr "settings.visibility"}}</label></span>
 					<div class="ui selection type dropdown">
 						{{if .SignedUser.Visibility.IsPublic}}<input type="hidden" id="visibility" name="visibility" value="0">{{end}}
 						{{if .SignedUser.Visibility.IsLimited}}<input type="hidden" id="visibility" name="visibility" value="1">{{end}}
 						{{if .SignedUser.Visibility.IsPrivate}}<input type="hidden" id="visibility" name="visibility" value="2">{{end}}
 						<div class="text">
-							{{if .SignedUser.Visibility.IsPublic}}{{.i18n.Tr "settings.visibility.public"}}{{end}}
-							{{if .SignedUser.Visibility.IsLimited}}{{.i18n.Tr "settings.visibility.limited"}}{{end}}
-							{{if .SignedUser.Visibility.IsPrivate}}{{.i18n.Tr "settings.visibility.private"}}{{end}}
+							{{if .SignedUser.Visibility.IsPublic}}{{.locale.Tr "settings.visibility.public"}}{{end}}
+							{{if .SignedUser.Visibility.IsLimited}}{{.locale.Tr "settings.visibility.limited"}}{{end}}
+							{{if .SignedUser.Visibility.IsPrivate}}{{.locale.Tr "settings.visibility.private"}}{{end}}
 						</div>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							{{range $mode := .AllowedUserVisibilityModes}}
 								{{if $mode.IsPublic}}
-									<div class="item tooltip" data-content="{{$.i18n.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{$.i18n.Tr "settings.visibility.public"}}</div>
+									<div class="item tooltip" data-content="{{$.locale.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{$.locale.Tr "settings.visibility.public"}}</div>
 								{{else if $mode.IsLimited}}
-									<div class="item tooltip" data-content="{{$.i18n.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{$.i18n.Tr "settings.visibility.limited"}}</div>
+									<div class="item tooltip" data-content="{{$.locale.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{$.locale.Tr "settings.visibility.limited"}}</div>
 								{{else if $mode.IsPrivate}}
-									<div class="item tooltip" data-content="{{$.i18n.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{$.i18n.Tr "settings.visibility.private"}}</div>
+									<div class="item tooltip" data-content="{{$.locale.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{$.locale.Tr "settings.visibility.private"}}</div>
 								{{end}}
 							{{end}}
 						</div>
@@ -82,7 +82,7 @@
 
 				<div class="field">
 					<div class="ui checkbox" id="keep-activity-private">
-						<label class="tooltip" data-content="{{.i18n.Tr "settings.keep_activity_private_popup"}}"><strong>{{.i18n.Tr "settings.keep_activity_private"}}</strong></label>
+						<label class="tooltip" data-content="{{.locale.Tr "settings.keep_activity_private_popup"}}"><strong>{{.locale.Tr "settings.keep_activity_private"}}</strong></label>
 						<input name="keep_activity_private" type="checkbox" {{if .SignedUser.KeepActivityPrivate}}checked{{end}}>
 					</div>
 				</div>
@@ -90,13 +90,13 @@
 				<div class="ui divider"></div>
 
 				<div class="field">
-					<button class="ui green button">{{$.i18n.Tr "settings.update_profile"}}</button>
+					<button class="ui green button">{{$.locale.Tr "settings.update_profile"}}</button>
 				</div>
 			</form>
 		</div>
 
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "settings.avatar"}}
+			{{.locale.Tr "settings.avatar"}}
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
@@ -105,11 +105,11 @@
 				<div class="inline field">
 					<div class="ui radio checkbox">
 						<input name="source" value="lookup" type="radio" {{if not .SignedUser.UseCustomAvatar}}checked{{end}}>
-						<label>{{.i18n.Tr "settings.lookup_avatar_by_mail"}}</label>
+						<label>{{.locale.Tr "settings.lookup_avatar_by_mail"}}</label>
 					</div>
 				</div>
 				<div class="field {{if .Err_Gravatar}}error{{end}}">
-					<label for="gravatar">Avatar {{.i18n.Tr "email"}}</label>
+					<label for="gravatar">Avatar {{.locale.Tr "email"}}</label>
 					<input id="gravatar" name="gravatar" value="{{.SignedUser.AvatarEmail}}" />
 				</div>
 				{{end}}
@@ -117,18 +117,18 @@
 				<div class="inline field">
 					<div class="ui radio checkbox">
 						<input name="source" value="local" type="radio" {{if .SignedUser.UseCustomAvatar}}checked{{end}}>
-						<label>{{.i18n.Tr "settings.enable_custom_avatar"}}</label>
+						<label>{{.locale.Tr "settings.enable_custom_avatar"}}</label>
 					</div>
 				</div>
 
 				<div class="inline field">
-					<label for="avatar">{{.i18n.Tr "settings.choose_new_avatar"}}</label>
+					<label for="avatar">{{.locale.Tr "settings.choose_new_avatar"}}</label>
 					<input name="avatar" type="file" >
 				</div>
 
 				<div class="field">
-					<button class="ui green button">{{$.i18n.Tr "settings.update_avatar"}}</button>
-					<a class="ui red button delete-post" data-request-url="{{.Link}}/avatar/delete" data-done-url="{{.Link}}">{{$.i18n.Tr "settings.delete_current_avatar"}}</a>
+					<button class="ui green button">{{$.locale.Tr "settings.update_avatar"}}</button>
+					<a class="ui red button delete-post" data-request-url="{{.Link}}/avatar/delete" data-done-url="{{.Link}}">{{$.locale.Tr "settings.delete_current_avatar"}}</a>
 				</div>
 			</form>
 		</div>

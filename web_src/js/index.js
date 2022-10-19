@@ -16,12 +16,15 @@ import initRepoMigration from './features/repo-migration.js';
 import initRepoProject from './features/repo-projects.js';
 import initServiceWorker from './features/serviceworker.js';
 import initTableSort from './features/tablesort.js';
-import {initAdminUserListSearchForm} from './features/admin-users.js';
+import {initAdminUserListSearchForm} from './features/admin/users.js';
+import {initAdminConfigs} from './features/admin/config.js';
 import {initMarkupAnchors} from './markup/anchors.js';
 import {initNotificationCount, initNotificationsTable} from './features/notification.js';
 import {initRepoIssueContentHistory} from './features/repo-issue-content.js';
 import {initStopwatch} from './features/stopwatch.js';
+import {initFindFileInRepo} from './features/repo-findfile.js';
 import {initCommentContent, initMarkupContent} from './markup/content.js';
+import initDiffFileTree from './features/repo-diff-filetree.js';
 
 import {initUserAuthLinkAccountView, initUserAuthOauth2} from './features/user-auth.js';
 import {
@@ -55,10 +58,11 @@ import {
   initGlobalFormDirtyLeaveConfirm,
   initGlobalLinkActions,
   initHeadNavbarContentToggle,
+  initGlobalTooltips,
 } from './features/common-global.js';
 import {initRepoTopicBar} from './features/repo-home.js';
-import {initAdminEmails} from './features/admin-emails.js';
-import {initAdminCommon} from './features/admin-common.js';
+import {initAdminEmails} from './features/admin/emails.js';
+import {initAdminCommon} from './features/admin/common.js';
 import {initRepoTemplateSearch} from './features/repo-template.js';
 import {initRepoCodeView} from './features/repo-code.js';
 import {initSshKeyFormParser} from './features/sshkey-helper.js';
@@ -83,6 +87,12 @@ import {initRepoBranchButton} from './features/repo-branch.js';
 import {initCommonOrganization} from './features/common-organization.js';
 import {initRepoWikiForm} from './features/repo-wiki.js';
 import {initRepoCommentForm, initRepository} from './features/repo-legacy.js';
+import {initFormattingReplacements} from './features/formatting.js';
+import {initMcaptcha} from './features/mcaptcha.js';
+
+// Run time-critical code as soon as possible. This is safe to do because this
+// script appears at the end of <body> and rendered HTML is accessible at that point.
+initFormattingReplacements();
 
 // Silence fomantic's error logging when tabs are used without a target content element
 $.fn.tab.settings.silent = true;
@@ -93,6 +103,7 @@ initVueEnv();
 $(document).ready(() => {
   initGlobalCommon();
 
+  initGlobalTooltips();
   initGlobalButtonClickOnEnter();
   initGlobalButtons();
   initGlobalCopyToClipboardListener();
@@ -124,10 +135,12 @@ $(document).ready(() => {
   initSshKeyFormParser();
   initStopwatch();
   initTableSort();
+  initFindFileInRepo();
 
   initAdminCommon();
   initAdminEmails();
   initAdminUserListSearchForm();
+  initAdminConfigs();
 
   initDashboardRepoList();
 
@@ -148,6 +161,7 @@ $(document).ready(() => {
   initRepoDiffFileViewToggle();
   initRepoDiffReviewButton();
   initRepoDiffShowMore();
+  initDiffFileTree();
   initRepoEditor();
   initRepoGraphGit();
   initRepoIssueContentHistory();
@@ -173,6 +187,7 @@ $(document).ready(() => {
   initRepository();
 
   initCommitStatuses();
+  initMcaptcha();
 
   initUserAuthLinkAccountView();
   initUserAuthOauth2();

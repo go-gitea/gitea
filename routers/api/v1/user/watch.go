@@ -156,7 +156,7 @@ func Watch(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/WatchInfo"
 
-	err := repo_model.WatchRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, true)
+	err := repo_model.WatchRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "WatchRepo", err)
 		return
@@ -191,7 +191,7 @@ func Unwatch(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	err := repo_model.WatchRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, false)
+	err := repo_model.WatchRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, false)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "UnwatchRepo", err)
 		return

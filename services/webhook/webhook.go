@@ -5,9 +5,11 @@
 package webhook
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	webhook_model "code.gitea.io/gitea/models/webhook"
@@ -68,7 +70,7 @@ var webhooks = map[webhook_model.HookType]*webhook{
 
 // RegisterWebhook registers a webhook
 func RegisterWebhook(name string, webhook *webhook) {
-	webhooks[webhook_model.HookType(name)] = webhook
+	webhooks[name] = webhook
 }
 
 // IsValidHookTaskType returns true if a webhook registered
@@ -76,7 +78,7 @@ func IsValidHookTaskType(name string) bool {
 	if name == webhook_model.GITEA || name == webhook_model.GOGS {
 		return true
 	}
-	_, ok := webhooks[webhook_model.HookType(name)]
+	_, ok := webhooks[name]
 	return ok
 }
 
@@ -212,20 +214,20 @@ func prepareWebhook(source EventSource, w *webhook_model.Webhook, event webhook_
 
 // PrepareWebhooks adds new webhooks to task queue for given payload.
 func PrepareWebhooks(source EventSource, event webhook_model.HookEventType, p api.Payloader) error {
-	if err := prepareWebhooks(source, event, p); err != nil {
+	if err := prepareWebhooks(db.DefaultContext, source, event, p); err != nil {
 		return err
 	}
 
 	return triggerTaskProcessing()
 }
 
-func prepareWebhooks(source EventSource, event webhook_model.HookEventType, p api.Payloader) error {
+func prepareWebhooks(ctx context.Context, source EventSource, event webhook_model.HookEventType, p api.Payloader) error {
 	owner := source.Owner
 
 	var ws []*webhook_model.Webhook
 
 	if source.Repository != nil {
-		repoHooks, err := webhook_model.ListWebhooksByOpts(&webhook_model.ListWebhookOptions{
+		repoHooks, err := webhook_model.ListWebhooksByOpts(ctx, &webhook_model.ListWebhookOptions{
 			RepoID:   source.Repository.ID,
 			IsActive: util.OptionalBoolTrue,
 		})
@@ -239,7 +241,7 @@ func prepareWebhooks(source EventSource, event webhook_model.HookEventType, p ap
 
 	// check if owner is an org and append additional webhooks
 	if owner.IsOrganization() {
-		orgHooks, err := webhook_model.ListWebhooksByOpts(&webhook_model.ListWebhookOptions{
+		orgHooks, err := webhook_model.ListWebhooksByOpts(ctx, &webhook_model.ListWebhookOptions{
 			OrgID:    owner.ID,
 			IsActive: util.OptionalBoolTrue,
 		})
@@ -250,7 +252,7 @@ func prepareWebhooks(source EventSource, event webhook_model.HookEventType, p ap
 	}
 
 	// Add any admin-defined system webhooks
-	systemHooks, err := webhook_model.GetSystemWebhooks(util.OptionalBoolTrue)
+	systemHooks, err := webhook_model.GetSystemWebhooks(ctx, util.OptionalBoolTrue)
 	if err != nil {
 		return fmt.Errorf("GetSystemWebhooks: %v", err)
 	}

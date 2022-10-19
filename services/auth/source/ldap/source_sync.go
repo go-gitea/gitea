@@ -118,7 +118,6 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			}
 
 			err = user_model.CreateUser(usr, overwriteDefault)
-
 			if err != nil {
 				log.Error("SyncExternalUsers[%s]: Error creating user %s: %v", source.authSource.Name, su.Username, err)
 			}
@@ -161,7 +160,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				}
 				usr.IsActive = true
 
-				err = user_model.UpdateUser(usr, emailChanged, "full_name", "email", "is_admin", "is_restricted", "is_active")
+				err = user_model.UpdateUser(ctx, usr, emailChanged, "full_name", "email", "is_admin", "is_restricted", "is_active")
 				if err != nil {
 					log.Error("SyncExternalUsers[%s]: Error updating user %s: %v", source.authSource.Name, usr.Name, err)
 				}

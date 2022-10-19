@@ -7,10 +7,13 @@ package git
 
 import (
 	"bytes"
+	"encoding/hex"
+	"fmt"
 	"io"
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -151,14 +154,14 @@ func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) ([]*Co
 	// then let's iterate over them
 	if len(opts.Keywords) > 0 {
 		for _, v := range opts.Keywords {
-			// ignore anything below 4 characters as too unspecific
-			if len(v) >= 4 {
+			// ignore anything not matching a valid sha pattern
+			if IsValidSHAPattern(v) {
 				// create new git log command with 1 commit limit
 				hashCmd := NewCommand(repo.Ctx, "log", "-1", prettyLogFormat)
 				// add previous arguments except for --grep and --all
 				hashCmd.AddArguments(args...)
 				// add keyword as <commit>
-				hashCmd.AddArguments(v)
+				hashCmd.AddDynamicArguments(v)
 
 				// search with given constraints for commit matching sha hash of v
 				hashMatching, _, err := hashCmd.RunStdBytes(&RunOpts{Dir: repo.Path})
@@ -208,14 +211,17 @@ func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) (
 	}()
 	go func() {
 		stderr := strings.Builder{}
-		err := NewCommand(repo.Ctx, "log", revision, "--follow",
+		gitCmd := NewCommand(repo.Ctx, "rev-list",
 			"--max-count="+strconv.Itoa(setting.Git.CommitsRangeSize*page),
-			prettyLogFormat, "--", file).
-			Run(&RunOpts{
-				Dir:    repo.Path,
-				Stdout: stdoutWriter,
-				Stderr: &stderr,
-			})
+			"--skip="+strconv.Itoa(skip),
+		)
+		gitCmd.AddDynamicArguments(revision)
+		gitCmd.AddArguments("--", file)
+		err := gitCmd.Run(&RunOpts{
+			Dir:    repo.Path,
+			Stdout: stdoutWriter,
+			Stderr: &stderr,
+		})
 		if err != nil {
 			_ = stdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
 		} else {
@@ -223,32 +229,30 @@ func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) (
 		}
 	}()
 
-	if skip > 0 {
-		_, err := io.CopyN(io.Discard, stdoutReader, int64(skip*41))
-		if err != nil {
+	commits := []*Commit{}
+	shaline := [41]byte{}
+	var sha1 SHA1
+	for {
+		n, err := io.ReadFull(stdoutReader, shaline[:])
+		if err != nil || n < 40 {
 			if err == io.EOF {
-				return []*Commit{}, nil
+				err = nil
 			}
-			_ = stdoutReader.CloseWithError(err)
+			return commits, err
+		}
+		n, err = hex.Decode(sha1[:], shaline[0:40])
+		if n != 20 {
+			err = fmt.Errorf("invalid sha %q", string(shaline[:40]))
+		}
+		if err != nil {
 			return nil, err
 		}
+		commit, err := repo.getCommit(sha1)
+		if err != nil {
+			return nil, err
+		}
+		commits = append(commits, commit)
 	}
-
-	stdout, err := io.ReadAll(stdoutReader)
-	if err != nil {
-		return nil, err
-	}
-	return repo.parsePrettyFormatLogToList(stdout)
-}
-
-// CommitsByFileAndRangeNoFollow return the commits according revision file and the page
-func (repo *Repository) CommitsByFileAndRangeNoFollow(revision, file string, page int) ([]*Commit, error) {
-	stdout, _, err := NewCommand(repo.Ctx, "log", revision, "--skip="+strconv.Itoa((page-1)*50),
-		"--max-count="+strconv.Itoa(setting.Git.CommitsRangeSize), prettyLogFormat, "--", file).RunStdBytes(&RunOpts{Dir: repo.Path})
-	if err != nil {
-		return nil, err
-	}
-	return repo.parsePrettyFormatLogToList(stdout)
 }
 
 // FilesCountBetween return the number of files changed between two commits
@@ -433,4 +437,21 @@ func (repo *Repository) IsCommitInBranch(commitID, branch string) (r bool, err e
 		return false, err
 	}
 	return len(stdout) > 0, err
+}
+
+func (repo *Repository) AddLastCommitCache(cacheKey, fullName, sha string) error {
+	if repo.LastCommitCache == nil {
+		commitsCount, err := cache.GetInt64(cacheKey, func() (int64, error) {
+			commit, err := repo.GetCommit(sha)
+			if err != nil {
+				return 0, err
+			}
+			return commit.CommitsCount()
+		})
+		if err != nil {
+			return err
+		}
+		repo.LastCommitCache = NewLastCommitCache(commitsCount, fullName, repo, cache.GetCache())
+	}
+	return nil
 }

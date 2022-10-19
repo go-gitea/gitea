@@ -30,11 +30,11 @@ type Issue struct {
 }
 
 // GetExternalName ExternalUserMigrated interface
-func (i *Issue) GetExternalName() string { return i.PosterName }
+func (issue *Issue) GetExternalName() string { return issue.PosterName }
 
 // GetExternalID ExternalUserMigrated interface
-func (i *Issue) GetExternalID() int64 { return i.PosterID }
+func (issue *Issue) GetExternalID() int64 { return issue.PosterID }
 
-func (i *Issue) GetLocalIndex() int64          { return i.Number }
-func (i *Issue) GetForeignIndex() int64        { return i.ForeignIndex }
-func (i *Issue) GetContext() DownloaderContext { return i.Context }
+func (issue *Issue) GetLocalIndex() int64          { return issue.Number }
+func (issue *Issue) GetForeignIndex() int64        { return issue.ForeignIndex }
+func (issue *Issue) GetContext() DownloaderContext { return issue.Context }

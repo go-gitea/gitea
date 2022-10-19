@@ -16,6 +16,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -103,7 +104,7 @@ func IsCollaborator(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	user, err := user_model.GetUserByName(ctx.Params(":collaborator"))
+	user, err := user_model.GetUserByName(ctx, ctx.Params(":collaborator"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
@@ -159,7 +160,7 @@ func AddCollaborator(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.AddCollaboratorOption)
 
-	collaborator, err := user_model.GetUserByName(ctx.Params(":collaborator"))
+	collaborator, err := user_model.GetUserByName(ctx, ctx.Params(":collaborator"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
@@ -174,7 +175,7 @@ func AddCollaborator(ctx *context.APIContext) {
 		return
 	}
 
-	if err := models.AddCollaborator(ctx.Repo.Repository, collaborator); err != nil {
+	if err := repo_module.AddCollaborator(ctx.Repo.Repository, collaborator); err != nil {
 		ctx.Error(http.StatusInternalServerError, "AddCollaborator", err)
 		return
 	}
@@ -218,7 +219,7 @@ func DeleteCollaborator(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	collaborator, err := user_model.GetUserByName(ctx.Params(":collaborator"))
+	collaborator, err := user_model.GetUserByName(ctx, ctx.Params(":collaborator"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
@@ -271,7 +272,7 @@ func GetRepoPermissions(ctx *context.APIContext) {
 		return
 	}
 
-	collaborator, err := user_model.GetUserByName(ctx.Params(":collaborator"))
+	collaborator, err := user_model.GetUserByName(ctx, ctx.Params(":collaborator"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusNotFound, "GetUserByName", err)
@@ -312,7 +313,7 @@ func GetReviewers(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/UserList"
 
-	reviewers, err := models.GetReviewers(ctx.Repo.Repository, ctx.Doer.ID, 0)
+	reviewers, err := repo_model.GetReviewers(ctx, ctx.Repo.Repository, ctx.Doer.ID, 0)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListCollaborators", err)
 		return
@@ -342,7 +343,7 @@ func GetAssignees(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/UserList"
 
-	assignees, err := models.GetRepoAssignees(ctx.Repo.Repository)
+	assignees, err := repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListCollaborators", err)
 		return

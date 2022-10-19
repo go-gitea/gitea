@@ -174,6 +174,18 @@ var (
 						Action: runAddSMTPLogger,
 					},
 				},
+			}, {
+				Name:  "log-sql",
+				Usage: "Set LogSQL",
+				Flags: []cli.Flag{
+					cli.BoolFlag{
+						Name: "debug",
+					}, cli.BoolFlag{
+						Name:  "off",
+						Usage: "Switch off SQL logging",
+					},
+				},
+				Action: runSetLogSQL,
 			},
 		},
 	}
@@ -373,6 +385,21 @@ func runReleaseReopenLogging(c *cli.Context) error {
 
 	setup("manager", c.Bool("debug"))
 	statusCode, msg := private.ReleaseReopenLogging(ctx)
+	switch statusCode {
+	case http.StatusInternalServerError:
+		return fail("InternalServerError", msg)
+	}
+
+	fmt.Fprintln(os.Stdout, msg)
+	return nil
+}
+
+func runSetLogSQL(c *cli.Context) error {
+	ctx, cancel := installSignals()
+	defer cancel()
+	setup("manager", c.Bool("debug"))
+
+	statusCode, msg := private.SetLogSQL(ctx, !c.Bool("off"))
 	switch statusCode {
 	case http.StatusInternalServerError:
 		return fail("InternalServerError", msg)

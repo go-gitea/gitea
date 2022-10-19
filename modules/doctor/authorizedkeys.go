@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -40,7 +41,7 @@ func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) e
 	}
 	defer f.Close()
 
-	linesInAuthorizedKeys := map[string]bool{}
+	linesInAuthorizedKeys := make(container.Set[string])
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
@@ -48,13 +49,13 @@ func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) e
 		if strings.HasPrefix(line, tplCommentPrefix) {
 			continue
 		}
-		linesInAuthorizedKeys[line] = true
+		linesInAuthorizedKeys.Add(line)
 	}
 	f.Close()
 
 	// now we regenerate and check if there are any lines missing
 	regenerated := &bytes.Buffer{}
-	if err := asymkey_model.RegeneratePublicKeys(regenerated); err != nil {
+	if err := asymkey_model.RegeneratePublicKeys(ctx, regenerated); err != nil {
 		logger.Critical("Unable to regenerate authorized_keys file. ERROR: %v", err)
 		return fmt.Errorf("Unable to regenerate authorized_keys file. ERROR: %v", err)
 	}
@@ -64,7 +65,7 @@ func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) e
 		if strings.HasPrefix(line, tplCommentPrefix) {
 			continue
 		}
-		if ok := linesInAuthorizedKeys[line]; ok {
+		if linesInAuthorizedKeys.Contains(line) {
 			continue
 		}
 		if !autofix {

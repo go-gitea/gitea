@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -113,7 +113,7 @@ func GetLabelTemplateFile(name string) ([][3]string, error) {
 		if len(color) == 6 {
 			color = "#" + color
 		}
-		if !models.LabelColorPattern.MatchString(color) {
+		if !issues_model.LabelColorPattern.MatchString(color) {
 			return nil, ErrIssueLabelTemplateLoad{name, fmt.Errorf("bad HTML color code in line: %s", line)}
 		}
 
@@ -213,7 +213,7 @@ func LoadRepoConfig() {
 	Licenses = sortedLicenses
 }
 
-func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir, repoPath string, opts models.CreateRepoOptions) error {
+func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir, repoPath string, opts CreateRepoOptions) error {
 	commitTimeStr := time.Now().Format(time.RFC3339)
 	authorSig := repo.Owner.NewGitSig()
 
@@ -317,29 +317,22 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 		return fmt.Errorf("git add --all: %v", err)
 	}
 
-	err = git.LoadGitVersion()
-	if err != nil {
-		return fmt.Errorf("Unable to get git version: %v", err)
-	}
-
 	args := []string{
 		"commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email),
 		"-m", "Initial commit",
 	}
 
-	if git.CheckGitVersionAtLeast("1.7.9") == nil {
-		sign, keyID, signer, _ := asymkey_service.SignInitialCommit(ctx, tmpPath, u)
-		if sign {
-			args = append(args, "-S"+keyID)
+	sign, keyID, signer, _ := asymkey_service.SignInitialCommit(ctx, tmpPath, u)
+	if sign {
+		args = append(args, "-S"+keyID)
 
-			if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
-				// need to set the committer to the KeyID owner
-				committerName = signer.Name
-				committerEmail = signer.Email
-			}
-		} else if git.CheckGitVersionAtLeast("2.0.0") == nil {
-			args = append(args, "--no-gpg-sign")
+		if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
+			// need to set the committer to the KeyID owner
+			committerName = signer.Name
+			committerEmail = signer.Email
 		}
+	} else {
+		args = append(args, "--no-gpg-sign")
 	}
 
 	env = append(env,
@@ -393,7 +386,7 @@ func checkInitRepository(ctx context.Context, owner, name string) (err error) {
 }
 
 // InitRepository initializes README and .gitignore if needed.
-func initRepository(ctx context.Context, repoPath string, u *user_model.User, repo *repo_model.Repository, opts models.CreateRepoOptions) (err error) {
+func initRepository(ctx context.Context, repoPath string, u *user_model.User, repo *repo_model.Repository, opts CreateRepoOptions) (err error) {
 	if err = checkInitRepository(ctx, repo.OwnerName, repo.Name); err != nil {
 		return err
 	}
@@ -444,7 +437,7 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 		}
 	}
 
-	if err = models.UpdateRepositoryCtx(ctx, repo, false); err != nil {
+	if err = UpdateRepository(ctx, repo, false); err != nil {
 		return fmt.Errorf("updateRepository: %v", err)
 	}
 
@@ -458,9 +451,9 @@ func InitializeLabels(ctx context.Context, id int64, labelTemplate string, isOrg
 		return err
 	}
 
-	labels := make([]*models.Label, len(list))
+	labels := make([]*issues_model.Label, len(list))
 	for i := 0; i < len(list); i++ {
-		labels[i] = &models.Label{
+		labels[i] = &issues_model.Label{
 			Name:        list[i][0],
 			Description: list[i][2],
 			Color:       list[i][1],
@@ -472,7 +465,7 @@ func InitializeLabels(ctx context.Context, id int64, labelTemplate string, isOrg
 		}
 	}
 	for _, label := range labels {
-		if err = models.NewLabel(ctx, label); err != nil {
+		if err = issues_model.NewLabel(ctx, label); err != nil {
 			return err
 		}
 	}

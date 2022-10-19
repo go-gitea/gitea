@@ -7,6 +7,7 @@ package webhook
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	webhook_model "code.gitea.io/gitea/models/webhook"
@@ -156,6 +157,13 @@ func (s *SlackPayload) IssueComment(p *api.IssueCommentPayload) (api.Payloader, 
 	}}), nil
 }
 
+// Wiki implements PayloadConvertor Wiki method
+func (s *SlackPayload) Wiki(p *api.WikiPayload) (api.Payloader, error) {
+	text, _, _ := getWikiPayloadInfo(p, SlackLinkFormatter, true)
+
+	return s.createPayload(text, nil), nil
+}
+
 // Release implements PayloadConvertor Release method
 func (s *SlackPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 	text, _ := getReleasePayloadInfo(p, SlackLinkFormatter, true)
@@ -171,10 +179,10 @@ func (s *SlackPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 		commitString string
 	)
 
-	if len(p.Commits) == 1 {
+	if p.TotalCommits == 1 {
 		commitDesc = "1 new commit"
 	} else {
-		commitDesc = fmt.Sprintf("%d new commits", len(p.Commits))
+		commitDesc = fmt.Sprintf("%d new commits", p.TotalCommits)
 	}
 	if len(p.CompareURL) > 0 {
 		commitString = SlackLinkFormatter(p.CompareURL, commitDesc)
@@ -285,4 +293,14 @@ func GetSlackPayload(p api.Payloader, event webhook_model.HookEventType, meta st
 	s.Color = slack.Color
 
 	return convertPayloader(s, p, event)
+}
+
+var slackChannel = regexp.MustCompile(`^#?[a-z0-9_-]{1,80}$`)
+
+// IsValidSlackChannel validates a channel name conforms to what slack expects:
+// https://api.slack.com/methods/conversations.rename#naming
+// Conversation names can only contain lowercase letters, numbers, hyphens, and underscores, and must be 80 characters or less.
+// Gitea accepts if it starts with a #.
+func IsValidSlackChannel(name string) bool {
+	return slackChannel.MatchString(name)
 }

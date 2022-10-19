@@ -12,6 +12,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
@@ -253,9 +255,9 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 		// This is where we handle all the errors thrown by files_service.CreateOrUpdateRepoFile
 		if git.IsErrNotExist(err) {
 			ctx.RenderWithErr(ctx.Tr("repo.editor.file_editing_no_longer_exists", ctx.Repo.TreePath), tplEditFile, &form)
-		} else if models.IsErrLFSFileLocked(err) {
+		} else if git_model.IsErrLFSFileLocked(err) {
 			ctx.Data["Err_TreePath"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.editor.upload_file_is_locked", err.(models.ErrLFSFileLocked).Path, err.(models.ErrLFSFileLocked).UserName), tplEditFile, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.editor.upload_file_is_locked", err.(git_model.ErrLFSFileLocked).Path, err.(git_model.ErrLFSFileLocked).UserName), tplEditFile, &form)
 		} else if models.IsErrFilenameInvalid(err) {
 			ctx.Data["Err_TreePath"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.editor.filename_is_invalid", form.TreePath), tplEditFile, &form)
@@ -660,9 +662,9 @@ func UploadFilePost(ctx *context.Context) {
 		Files:        form.Files,
 		Signoff:      form.Signoff,
 	}); err != nil {
-		if models.IsErrLFSFileLocked(err) {
+		if git_model.IsErrLFSFileLocked(err) {
 			ctx.Data["Err_TreePath"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.editor.upload_file_is_locked", err.(models.ErrLFSFileLocked).Path, err.(models.ErrLFSFileLocked).UserName), tplUploadFile, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.editor.upload_file_is_locked", err.(git_model.ErrLFSFileLocked).Path, err.(git_model.ErrLFSFileLocked).UserName), tplUploadFile, &form)
 		} else if models.IsErrFilenameInvalid(err) {
 			ctx.Data["Err_TreePath"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.editor.filename_is_invalid", form.TreePath), tplUploadFile, &form)
@@ -762,7 +764,7 @@ func UploadFileToServer(ctx *context.Context) {
 		return
 	}
 
-	upload, err := models.NewUpload(name, buf, file)
+	upload, err := repo_model.NewUpload(name, buf, file)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("NewUpload: %v", err))
 		return
@@ -782,7 +784,7 @@ func RemoveUploadFileFromServer(ctx *context.Context) {
 		return
 	}
 
-	if err := models.DeleteUploadByUUID(form.File); err != nil {
+	if err := repo_model.DeleteUploadByUUID(form.File); err != nil {
 		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("DeleteUploadByUUID: %v", err))
 		return
 	}

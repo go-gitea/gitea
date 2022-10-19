@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	org_service "code.gitea.io/gitea/services/org"
 )
 
 // ListTeams list all the teams of an organization
@@ -58,14 +59,10 @@ func ListTeams(ctx *context.APIContext) {
 		return
 	}
 
-	apiTeams := make([]*api.Team, len(teams))
-	for i := range teams {
-		if err := teams[i].GetUnits(); err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetUnits", err)
-			return
-		}
-
-		apiTeams[i] = convert.ToTeam(teams[i])
+	apiTeams, err := convert.ToTeams(teams, false)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "ConvertToTeams", err)
+		return
 	}
 
 	ctx.SetTotalCountHeader(count)
@@ -101,25 +98,10 @@ func ListUserTeams(ctx *context.APIContext) {
 		return
 	}
 
-	cache := make(map[int64]*api.Organization)
-	apiTeams := make([]*api.Team, len(teams))
-	for i := range teams {
-		apiOrg, ok := cache[teams[i].OrgID]
-		if !ok {
-			org, err := organization.GetOrgByID(teams[i].OrgID)
-			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "GetUserByID", err)
-				return
-			}
-			apiOrg = convert.ToOrganization(org)
-			cache[teams[i].OrgID] = apiOrg
-		}
-		if err := teams[i].GetUnits(); err != nil {
-			ctx.Error(http.StatusInternalServerError, "teams[i].GetUnits()", err)
-			return
-		}
-		apiTeams[i] = convert.ToTeam(teams[i])
-		apiTeams[i].Organization = apiOrg
+	apiTeams, err := convert.ToTeams(teams, true)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "ConvertToTeams", err)
+		return
 	}
 
 	ctx.SetTotalCountHeader(count)
@@ -144,12 +126,13 @@ func GetTeam(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Team"
 
-	if err := ctx.Org.Team.GetUnits(); err != nil {
-		ctx.Error(http.StatusInternalServerError, "team.GetUnits", err)
+	apiTeam, err := convert.ToTeam(ctx.Org.Team)
+	if err != nil {
+		ctx.InternalServerError(err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToTeam(ctx.Org.Team))
+	ctx.JSON(http.StatusOK, apiTeam)
 }
 
 func attachTeamUnits(team *organization.Team, units []string) {
@@ -241,7 +224,12 @@ func CreateTeam(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToTeam(team))
+	apiTeam, err := convert.ToTeam(team)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	ctx.JSON(http.StatusCreated, apiTeam)
 }
 
 // EditTeam api for edit a team
@@ -275,7 +263,7 @@ func EditTeam(ctx *context.APIContext) {
 	}
 
 	if form.CanCreateOrgRepo != nil {
-		team.CanCreateOrgRepo = *form.CanCreateOrgRepo
+		team.CanCreateOrgRepo = team.IsOwnerTeam() || *form.CanCreateOrgRepo
 	}
 
 	if len(form.Name) > 0 {
@@ -318,7 +306,13 @@ func EditTeam(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "EditTeam", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToTeam(team))
+
+	apiTeam, err := convert.ToTeam(team)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, apiTeam)
 }
 
 // DeleteTeam api for delete a team
@@ -663,8 +657,8 @@ func AddTeamRepository(ctx *context.APIContext) {
 		ctx.Error(http.StatusForbidden, "", "Must have admin-level access to the repository")
 		return
 	}
-	if err := models.AddRepository(ctx.Org.Team, repo); err != nil {
-		ctx.Error(http.StatusInternalServerError, "AddRepository", err)
+	if err := org_service.TeamAddRepository(ctx.Org.Team, repo); err != nil {
+		ctx.Error(http.StatusInternalServerError, "TeamAddRepository", err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
@@ -765,11 +759,15 @@ func SearchTeam(ctx *context.APIContext) {
 	listOptions := utils.GetListOptions(ctx)
 
 	opts := &organization.SearchTeamOptions{
-		UserID:      ctx.Doer.ID,
 		Keyword:     ctx.FormTrim("q"),
 		OrgID:       ctx.Org.Organization.ID,
 		IncludeDesc: ctx.FormString("include_desc") == "" || ctx.FormBool("include_desc"),
 		ListOptions: listOptions,
+	}
+
+	// Only admin is allowd to search for all teams
+	if !ctx.Doer.IsAdmin {
+		opts.UserID = ctx.Doer.ID
 	}
 
 	teams, maxResults, err := organization.SearchTeam(opts)
@@ -782,17 +780,10 @@ func SearchTeam(ctx *context.APIContext) {
 		return
 	}
 
-	apiTeams := make([]*api.Team, len(teams))
-	for i := range teams {
-		if err := teams[i].GetUnits(); err != nil {
-			log.Error("Team GetUnits failed: %v", err)
-			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-				"ok":    false,
-				"error": "SearchTeam failed to get units",
-			})
-			return
-		}
-		apiTeams[i] = convert.ToTeam(teams[i])
+	apiTeams, err := convert.ToTeams(teams, false)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)

@@ -25,7 +25,6 @@ create a file called `robots.txt` in the [`custom` folder or `CustomPath`]({{< r
 
 Examples on how to configure the `robots.txt` can be found at [https://moz.com/learn/seo/robotstxt](https://moz.com/learn/seo/robotstxt).
 
-
 ```txt
 User-agent: *
 Disallow: /

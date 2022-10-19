@@ -5,7 +5,7 @@
 package metrics
 
 import (
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -225,7 +225,7 @@ func (c Collector) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect returns the metrics with values
 func (c Collector) Collect(ch chan<- prometheus.Metric) {
-	stats := models.GetStatistic()
+	stats := activities_model.GetStatistic()
 
 	ch <- prometheus.MustNewConstMetric(
 		c.Accesses,

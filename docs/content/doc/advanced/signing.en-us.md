@@ -83,8 +83,7 @@ The first option to discuss is the `SIGNING_KEY`. There are three main
 options:
 
 - `none` - this prevents Gitea from signing any commits
-- `default` - Gitea will default to the key configured within
-  `git config`
+- `default` - Gitea will default to the key configured within `git config`
 - `KEYID` - Gitea will sign commits with the gpg key with the ID
   `KEYID`. In this case you should provide a `SIGNING_NAME` and
   `SIGNING_EMAIL` to be displayed for this key.
@@ -97,6 +96,13 @@ Please note: by adjusting Git's `config` file within Gitea's
 repositories, `SIGNING_KEY=default` could be used to provide different
 signing keys on a per-repository basis. However, this is clearly not an
 ideal UI and therefore subject to change.
+
+**Since 1.17**, Gitea runs git in its own home directory `[git].HOME_PATH` (default to `%(APP_DATA_PATH)/home`)
+and uses its own config `{[git].HOME_PATH}/.gitconfig`.
+If you have your own customized git config for Gitea, you should set these configs in system git config (aka `/etc/gitconfig`)
+or the Gitea internal git config `{[git].HOME_PATH}/.gitconfig`.
+Related home files for git command (like `.gnupg`) should also be put in Gitea's git home directory `[git].HOME_PATH`.
+If you like to keep the `.gnupg` directory outside of `{[git].HOME_PATH}/`, consider setting the `$GNUPGHOME` environment variable to your preferred location.
 
 ### `INITIAL_COMMIT`
 
@@ -118,7 +124,7 @@ The possible values are:
 
 - `never`: Never sign
 - `pubkey`: Only sign if the user has a public key
-- `twofa`: Only sign if the user logs in with two factor authentication
+- `twofa`: Only sign if the user logs in with two-factor authentication
 - `parentsigned`: Only sign if the parent commit is signed.
 - `always`: Always sign
 
@@ -132,7 +138,7 @@ editor or API CRUD actions. The possible values are:
 
 - `never`: Never sign
 - `pubkey`: Only sign if the user has a public key
-- `twofa`: Only sign if the user logs in with two factor authentication
+- `twofa`: Only sign if the user logs in with two-factor authentication
 - `parentsigned`: Only sign if the parent commit is signed.
 - `always`: Always sign
 
@@ -146,7 +152,7 @@ The possible options are:
 
 - `never`: Never sign
 - `pubkey`: Only sign if the user has a public key
-- `twofa`: Only sign if the user logs in with two factor authentication
+- `twofa`: Only sign if the user logs in with two-factor authentication
 - `basesigned`: Only sign if the parent commit in the base repo is signed.
 - `headsigned`: Only sign if the head commit in the head branch is signed.
 - `commitssigned`: Only sign if all the commits in the head branch to the merge point are signed.

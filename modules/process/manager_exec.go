@@ -58,6 +58,7 @@ func (pm *Manager) ExecDirEnvStdIn(ctx context.Context, timeout time.Duration, d
 	if stdIn != nil {
 		cmd.Stdin = stdIn
 	}
+	SetSysProcAttribute(cmd)
 
 	if err := cmd.Start(); err != nil {
 		return "", "", err

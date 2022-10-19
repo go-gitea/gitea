@@ -7,9 +7,9 @@ package user
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -21,7 +21,7 @@ import (
 func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 	opts := utils.GetListOptions(ctx)
 
-	repos, count, err := models.GetUserRepositories(&models.SearchRepoOptions{
+	repos, count, err := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
 		Actor:       u,
 		Private:     private,
 		ListOptions: opts,
@@ -103,7 +103,7 @@ func ListMyRepos(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	opts := &models.SearchRepoOptions{
+	opts := &repo_model.SearchRepoOptions{
 		ListOptions:        utils.GetListOptions(ctx),
 		Actor:              ctx.Doer,
 		OwnerID:            ctx.Doer.ID,
@@ -112,7 +112,7 @@ func ListMyRepos(ctx *context.APIContext) {
 	}
 
 	var err error
-	repos, count, err := models.SearchRepository(opts)
+	repos, count, err := repo_model.SearchRepository(opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "SearchRepository", err)
 		return

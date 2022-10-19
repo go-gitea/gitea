@@ -1,26 +1,26 @@
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
 		{{svg "octicon-trash"}}
-		{{.i18n.Tr "repo.issues.label_deletion"}}
+		{{.locale.Tr "repo.issues.label_deletion"}}
 	</div>
 	<div class="content">
-		<p>{{.i18n.Tr "repo.issues.label_deletion_desc"}}</p>
+		<p>{{.locale.Tr "repo.issues.label_deletion_desc"}}</p>
 	</div>
 	<div class="actions">
 		<div class="ui red basic inverted cancel button">
 			<i class="remove icon"></i>
-			{{.i18n.Tr "modal.no"}}
+			{{.locale.Tr "modal.no"}}
 		</div>
 		<div class="ui green basic inverted ok button">
 			<i class="checkmark icon"></i>
-			{{.i18n.Tr "modal.yes"}}
+			{{.locale.Tr "modal.yes"}}
 		</div>
 	</div>
 </div>
 
 <div class="ui small edit-label modal">
 	<div class="header">
-		{{.i18n.Tr "repo.issues.label_modify"}}
+		{{.locale.Tr "repo.issues.label_modify"}}
 	</div>
 	<div class="content">
 		<form class="ui edit-label form ignore-dirty" action="{{$.Link}}/edit" method="post">
@@ -29,12 +29,12 @@
 			<div class="ui grid">
 				<div class="three wide column">
 					<div class="ui small input">
-						<input class="new-label-input emoji-input" name="title" placeholder="{{.i18n.Tr "repo.issues.new_label_placeholder"}}" autofocus required maxlength="50">
+						<input class="new-label-input emoji-input" name="title" placeholder="{{.locale.Tr "repo.issues.new_label_placeholder"}}" autofocus required maxlength="50">
 					</div>
 				</div>
 				<div class="five wide column">
 					<div class="ui small fluid input">
-						<input class="new-label-desc-input" name="description" placeholder="{{.i18n.Tr "repo.issues.new_label_desc_placeholder"}}" maxlength="200">
+						<input class="new-label-desc-input" name="description" placeholder="{{.locale.Tr "repo.issues.new_label_desc_placeholder"}}" maxlength="200">
 					</div>
 				</div>
 				<div class="color picker column">
@@ -48,10 +48,10 @@
 	</div>
 	<div class="actions">
 		<div class="ui negative button">
-			{{.i18n.Tr "cancel"}}
+			{{.locale.Tr "cancel"}}
 		</div>
 		<div class="ui positive button">
-			{{.i18n.Tr "save"}}
+			{{.locale.Tr "save"}}
 		</div>
 	</div>
 </div>

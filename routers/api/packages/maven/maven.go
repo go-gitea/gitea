@@ -177,7 +177,7 @@ func servePackageFile(ctx *context.Context, params parameters) {
 		}
 	}
 
-	ctx.ServeStream(s, pf.Name)
+	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
 }
 
 // UploadPackageFile adds a file to the package. If the package does not exist, it gets created.
@@ -266,8 +266,9 @@ func UploadPackageFile(ctx *context.Context) {
 		PackageFileInfo: packages_service.PackageFileInfo{
 			Filename: params.Filename,
 		},
-		Data:   buf,
-		IsLead: false,
+		Data:              buf,
+		IsLead:            false,
+		OverwriteExisting: params.IsMeta,
 	}
 
 	// If it's the package pom file extract the metadata

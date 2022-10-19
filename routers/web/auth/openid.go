@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/hcaptcha"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/mcaptcha"
 	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
@@ -217,7 +218,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 	}
 
 	if u == nil && nickname != "" {
-		u, _ = user_model.GetUserByName(nickname)
+		u, _ = user_model.GetUserByName(ctx, nickname)
 		if err != nil {
 			if !user_model.IsErrUserNotExist(err) {
 				ctx.RenderWithErr(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
@@ -307,7 +308,7 @@ func ConnectOpenIDPost(ctx *context.Context) {
 
 	// add OpenID for the user
 	userOID := &user_model.UserOpenID{UID: u.ID, URI: oid}
-	if err = user_model.AddUserOpenID(userOID); err != nil {
+	if err = user_model.AddUserOpenID(ctx, userOID); err != nil {
 		if user_model.IsErrOpenIDAlreadyUsed(err) {
 			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", oid), tplConnectOID, &form)
 			return
@@ -341,6 +342,8 @@ func RegisterOpenID(ctx *context.Context) {
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
 	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
+	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
+	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
 	ctx.Data["OpenID"] = oid
 	userName, _ := ctx.Session.Get("openid_determined_username").(string)
 	if userName != "" {
@@ -372,6 +375,8 @@ func RegisterOpenIDPost(ctx *context.Context) {
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
+	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
+	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
 	ctx.Data["OpenID"] = oid
 
 	if setting.Service.AllowOnlyInternalRegistration {
@@ -397,6 +402,12 @@ func RegisterOpenIDPost(ctx *context.Context) {
 				return
 			}
 			valid, err = hcaptcha.Verify(ctx, form.HcaptchaResponse)
+		case setting.MCaptcha:
+			if err := ctx.Req.ParseForm(); err != nil {
+				ctx.ServerError("", err)
+				return
+			}
+			valid, err = mcaptcha.Verify(ctx, form.McaptchaResponse)
 		default:
 			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
 			return
@@ -434,7 +445,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 
 	// add OpenID for the user
 	userOID := &user_model.UserOpenID{UID: u.ID, URI: oid}
-	if err = user_model.AddUserOpenID(userOID); err != nil {
+	if err = user_model.AddUserOpenID(ctx, userOID); err != nil {
 		if user_model.IsErrOpenIDAlreadyUsed(err) {
 			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", oid), tplSignUpOID, &form)
 			return

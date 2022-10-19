@@ -62,7 +62,7 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 				failed = append(failed, fail)
 			}
 		}
-		return
+		return failed
 	}
 
 	channelQueue, err := NewChannelQueue(wrappedHandle, ChannelQueueConfiguration{

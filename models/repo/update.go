@@ -42,15 +42,10 @@ func UpdateRepositoryUpdatedTime(repoID int64, updateTime time.Time) error {
 	return err
 }
 
-// UpdateRepositoryColsCtx updates repository's columns
-func UpdateRepositoryColsCtx(ctx context.Context, repo *Repository, cols ...string) error {
+// UpdateRepositoryCols updates repository's columns
+func UpdateRepositoryCols(ctx context.Context, repo *Repository, cols ...string) error {
 	_, err := db.GetEngine(ctx).ID(repo.ID).Cols(cols...).Update(repo)
 	return err
-}
-
-// UpdateRepositoryCols updates repository's columns
-func UpdateRepositoryCols(repo *Repository, cols ...string) error {
-	return UpdateRepositoryColsCtx(db.DefaultContext, repo, cols...)
 }
 
 // ErrReachLimitOfRepo represents a "ReachLimitOfRepo" kind of error.
@@ -66,6 +61,10 @@ func IsErrReachLimitOfRepo(err error) bool {
 
 func (err ErrReachLimitOfRepo) Error() string {
 	return fmt.Sprintf("user has reached maximum limit of repositories [limit: %d]", err.Limit)
+}
+
+func (err ErrReachLimitOfRepo) Unwrap() error {
+	return util.ErrPermissionDenied
 }
 
 // ErrRepoAlreadyExist represents a "RepoAlreadyExist" kind of error.
@@ -84,6 +83,10 @@ func (err ErrRepoAlreadyExist) Error() string {
 	return fmt.Sprintf("repository already exists [uname: %s, name: %s]", err.Uname, err.Name)
 }
 
+func (err ErrRepoAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
 // ErrRepoFilesAlreadyExist represents a "RepoFilesAlreadyExist" kind of error.
 type ErrRepoFilesAlreadyExist struct {
 	Uname string
@@ -100,6 +103,10 @@ func (err ErrRepoFilesAlreadyExist) Error() string {
 	return fmt.Sprintf("repository files already exist [uname: %s, name: %s]", err.Uname, err.Name)
 }
 
+func (err ErrRepoFilesAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
 // CheckCreateRepository check if could created a repository
 func CheckCreateRepository(doer, u *user_model.User, name string, overwriteOrAdopt bool) error {
 	if !doer.CanCreateRepo() {
@@ -110,7 +117,7 @@ func CheckCreateRepository(doer, u *user_model.User, name string, overwriteOrAdo
 		return err
 	}
 
-	has, err := IsRepositoryExist(u, name)
+	has, err := IsRepositoryExist(db.DefaultContext, u, name)
 	if err != nil {
 		return fmt.Errorf("IsRepositoryExist: %v", err)
 	} else if has {
@@ -141,7 +148,7 @@ func ChangeRepositoryName(doer *user_model.User, repo *Repository, newRepoName s
 		return err
 	}
 
-	has, err := IsRepositoryExist(repo.Owner, newRepoName)
+	has, err := IsRepositoryExist(db.DefaultContext, repo.Owner, newRepoName)
 	if err != nil {
 		return fmt.Errorf("IsRepositoryExist: %v", err)
 	} else if has {
@@ -176,4 +183,12 @@ func ChangeRepositoryName(doer *user_model.User, repo *Repository, newRepoName s
 	}
 
 	return committer.Commit()
+}
+
+// UpdateRepoSize updates the repository size, calculating it using util.GetDirectorySize
+func UpdateRepoSize(ctx context.Context, repoID, size int64) error {
+	_, err := db.GetEngine(ctx).ID(repoID).Cols("size").NoAutoTime().Update(&Repository{
+		Size: size,
+	})
+	return err
 }

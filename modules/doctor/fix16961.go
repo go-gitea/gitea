@@ -216,7 +216,7 @@ func fixBrokenRepoUnit16961(repoUnit *repo_model.RepoUnit, bs []byte) (fixed boo
 		return false, nil
 	}
 
-	switch unit.Type(repoUnit.Type) {
+	switch repoUnit.Type {
 	case unit.TypeCode, unit.TypeReleases, unit.TypeWiki, unit.TypeProjects:
 		cfg := &repo_model.UnitConfig{}
 		repoUnit.Config = cfg
@@ -302,7 +302,11 @@ func fixBrokenRepoUnits16961(ctx context.Context, logger log.Logger, autofix boo
 	}
 
 	if !autofix {
-		logger.Warn("Found %d broken repo_units", count)
+		if count == 0 {
+			logger.Info("Found no broken repo_units")
+		} else {
+			logger.Warn("Found %d broken repo_units", count)
+		}
 		return nil
 	}
 	logger.Info("Fixed %d broken repo_units", count)

@@ -8,16 +8,17 @@ import (
 	"fmt"
 	"net/url"
 
-	"code.gitea.io/gitea/modules/translation/i18n"
+	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/translation"
 
 	"github.com/yuin/goldmark/ast"
 )
 
-func createTOCNode(toc []Header, lang string) ast.Node {
+func createTOCNode(toc []markup.Header, lang string) ast.Node {
 	details := NewDetails()
 	summary := NewSummary()
 
-	summary.AppendChild(summary, ast.NewString([]byte(i18n.Tr(lang, "toc"))))
+	summary.AppendChild(summary, ast.NewString([]byte(translation.NewLocale(lang).Tr("toc"))))
 	details.AppendChild(details, summary)
 	ul := ast.NewList('-')
 	details.AppendChild(details, ul)

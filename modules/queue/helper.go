@@ -74,7 +74,7 @@ func unmarshalAs(bs []byte, exemplar interface{}) (data Data, err error) {
 	} else {
 		err = json.Unmarshal(bs, &data)
 	}
-	return
+	return data, err
 }
 
 // assignableTo will check if provided data is assignable to the same type as the exemplar

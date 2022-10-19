@@ -8,7 +8,7 @@ menu:
   sidebar:
     parent: "packages"
     name: "PyPI"
-    weight: 90
+    weight: 100
     identifier: "pypi"
 ---
 
@@ -42,7 +42,7 @@ password = {password}
 | ------------ | ----------- |
 | `owner`      | The owner of the package. |
 | `username`   | Your Gitea username. |
-| `password`   | Your Gitea password or a [personal access token]({{< relref "doc/developers/api-usage.en-us.md#authentication" >}}). |
+| `password`   | Your Gitea password. If you are using 2FA or OAuth use a [personal access token]({{< relref "doc/developers/api-usage.en-us.md#authentication" >}}) instead of the password. |
 
 ## Publish a package
 

@@ -115,7 +115,7 @@ func ParseDiffHunkString(diffhunk string) (leftLine, leftHunk, rightLine, righHu
 		rightLine = leftLine
 		righHunk = leftHunk
 	}
-	return
+	return leftLine, leftHunk, rightLine, righHunk
 }
 
 // Example: @@ -1,8 +1,9 @@ => [..., 1, 8, 1, 9]

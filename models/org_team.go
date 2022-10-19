@@ -12,6 +12,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -23,12 +25,12 @@ import (
 	"xorm.io/builder"
 )
 
-func addRepository(ctx context.Context, t *organization.Team, repo *repo_model.Repository) (err error) {
+func AddRepository(ctx context.Context, t *organization.Team, repo *repo_model.Repository) (err error) {
 	if err = organization.AddTeamRepo(ctx, t.OrgID, t.ID, repo.ID); err != nil {
 		return err
 	}
 
-	if _, err = db.GetEngine(ctx).Incr("num_repos").ID(t.ID).Update(new(organization.Team)); err != nil {
+	if err = organization.IncrTeamRepoNum(ctx, t.ID); err != nil {
 		return fmt.Errorf("update team: %v", err)
 	}
 
@@ -44,7 +46,7 @@ func addRepository(ctx context.Context, t *organization.Team, repo *repo_model.R
 			return fmt.Errorf("getMembers: %v", err)
 		}
 		for _, u := range t.Members {
-			if err = repo_model.WatchRepoCtx(ctx, u.ID, repo.ID, true); err != nil {
+			if err = repo_model.WatchRepo(ctx, u.ID, repo.ID, true); err != nil {
 				return fmt.Errorf("watchRepo: %v", err)
 			}
 		}
@@ -56,16 +58,15 @@ func addRepository(ctx context.Context, t *organization.Team, repo *repo_model.R
 // addAllRepositories adds all repositories to the team.
 // If the team already has some repositories they will be left unchanged.
 func addAllRepositories(ctx context.Context, t *organization.Team) error {
-	var orgRepos []repo_model.Repository
-	e := db.GetEngine(ctx)
-	if err := e.Where("owner_id = ?", t.OrgID).Find(&orgRepos); err != nil {
+	orgRepos, err := organization.GetOrgRepositories(ctx, t.OrgID)
+	if err != nil {
 		return fmt.Errorf("get org repos: %v", err)
 	}
 
 	for _, repo := range orgRepos {
 		if !organization.HasTeamRepo(ctx, t.OrgID, t.ID, repo.ID) {
-			if err := addRepository(ctx, t, &repo); err != nil {
-				return fmt.Errorf("addRepository: %v", err)
+			if err := AddRepository(ctx, t, repo); err != nil {
+				return fmt.Errorf("AddRepository: %v", err)
 			}
 		}
 	}
@@ -82,27 +83,6 @@ func AddAllRepositories(t *organization.Team) (err error) {
 	defer committer.Close()
 
 	if err = addAllRepositories(ctx, t); err != nil {
-		return err
-	}
-
-	return committer.Commit()
-}
-
-// AddRepository adds new repository to team of organization.
-func AddRepository(t *organization.Team, repo *repo_model.Repository) (err error) {
-	if repo.OwnerID != t.OrgID {
-		return errors.New("Repository does not belong to organization")
-	} else if HasRepository(t, repo.ID) {
-		return nil
-	}
-
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err = addRepository(ctx, t, repo); err != nil {
 		return err
 	}
 
@@ -147,12 +127,12 @@ func removeAllRepositories(ctx context.Context, t *organization.Team) (err error
 				continue
 			}
 
-			if err = repo_model.WatchRepoCtx(ctx, user.ID, repo.ID, false); err != nil {
+			if err = repo_model.WatchRepo(ctx, user.ID, repo.ID, false); err != nil {
 				return err
 			}
 
 			// Remove all IssueWatches a user has subscribed to in the repositories
-			if err = removeIssueWatchersByRepoID(e, user.ID, repo.ID); err != nil {
+			if err = issues_model.RemoveIssueWatchersByRepoID(ctx, user.ID, repo.ID); err != nil {
 				return err
 			}
 		}
@@ -210,12 +190,12 @@ func removeRepository(ctx context.Context, t *organization.Team, repo *repo_mode
 			continue
 		}
 
-		if err = repo_model.WatchRepoCtx(ctx, teamUser.UID, repo.ID, false); err != nil {
+		if err = repo_model.WatchRepo(ctx, teamUser.UID, repo.ID, false); err != nil {
 			return err
 		}
 
 		// Remove all IssueWatches a user has subscribed to in the repositories
-		if err := removeIssueWatchersByRepoID(e, teamUser.UID, repo.ID); err != nil {
+		if err := issues_model.RemoveIssueWatchersByRepoID(ctx, teamUser.UID, repo.ID); err != nil {
 			return err
 		}
 	}
@@ -412,7 +392,7 @@ func DeleteTeam(t *organization.Team) error {
 
 	// update branch protections
 	{
-		protections := make([]*ProtectedBranch, 0, 10)
+		protections := make([]*git_model.ProtectedBranch, 0, 10)
 		err := sess.In("repo_id",
 			builder.Select("id").From("repository").Where(builder.Eq{"owner_id": t.OrgID})).
 			Find(&protections)
@@ -496,6 +476,12 @@ func AddTeamMember(team *organization.Team, userID int64) error {
 	}
 	defer committer.Close()
 
+	// check in transaction
+	isAlreadyMember, err = organization.IsTeamMember(ctx, team.OrgID, team.ID, userID)
+	if err != nil || isAlreadyMember {
+		return err
+	}
+
 	sess := db.GetEngine(ctx)
 
 	if err := db.Insert(ctx, &organization.TeamUser{
@@ -549,7 +535,7 @@ func AddTeamMember(team *organization.Team, userID int64) error {
 		}
 		go func(repos []*repo_model.Repository) {
 			for _, repo := range repos {
-				if err = repo_model.WatchRepoCtx(db.DefaultContext, userID, repo.ID, true); err != nil {
+				if err = repo_model.WatchRepo(db.DefaultContext, userID, repo.ID, true); err != nil {
 					log.Error("watch repo failed: %v", err)
 				}
 			}

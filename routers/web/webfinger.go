@@ -33,7 +33,7 @@ type webfingerLink struct {
 	Properties map[string]interface{} `json:"properties,omitempty"`
 }
 
-// WebfingerQuery returns informations about a resource
+// WebfingerQuery returns information about a resource
 // https://datatracker.ietf.org/doc/html/rfc7565
 func WebfingerQuery(ctx *context.Context) {
 	appURL, _ := url.Parse(setting.AppURL)
@@ -59,7 +59,7 @@ func WebfingerQuery(ctx *context.Context) {
 			return
 		}
 
-		u, err = user_model.GetUserByNameCtx(ctx, parts[0])
+		u, err = user_model.GetUserByName(ctx, parts[0])
 	case "mailto":
 		u, err = user_model.GetUserByEmailContext(ctx, resource.Opaque)
 		if u != nil && u.KeepEmailPrivate {
@@ -79,13 +79,14 @@ func WebfingerQuery(ctx *context.Context) {
 		return
 	}
 
-	if !user_model.IsUserVisibleToViewer(u, ctx.Doer) {
+	if !user_model.IsUserVisibleToViewer(ctx, u, ctx.Doer) {
 		ctx.Error(http.StatusNotFound)
 		return
 	}
 
 	aliases := []string{
 		u.HTMLURL(),
+		appURL.String() + "api/v1/activitypub/user/" + url.PathEscape(u.Name),
 	}
 	if !u.KeepEmailPrivate {
 		aliases = append(aliases, fmt.Sprintf("mailto:%s", u.Email))
@@ -101,8 +102,14 @@ func WebfingerQuery(ctx *context.Context) {
 			Rel:  "http://webfinger.net/rel/avatar",
 			Href: u.AvatarLink(),
 		},
+		{
+			Rel:  "self",
+			Type: "application/activity+json",
+			Href: appURL.String() + "api/v1/activitypub/user/" + url.PathEscape(u.Name),
+		},
 	}
 
+	ctx.Resp.Header().Add("Access-Control-Allow-Origin", "*")
 	ctx.JSON(http.StatusOK, &webfingerJRD{
 		Subject: fmt.Sprintf("acct:%s@%s", url.QueryEscape(u.Name), appURL.Host),
 		Aliases: aliases,

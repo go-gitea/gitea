@@ -67,22 +67,6 @@
     min-width: 40% !important;
   }
 
-  #file-buttons {
-    /* The reason for the !important is that Semantic itself has
-    margin-left: 0 !important on right items on mobile, which is mostly
-    to make sure elements which on menus would otherwise be on the right
-    align correctly with other elements when stacked.
-    Unfortunately, this brings some weird alignment on this particular
-    element, so we need to override it. */
-    margin-left: auto !important;
-    font-weight: normal;
-
-    .ui.button {
-      padding: 8px 10px;
-      font-weight: normal;
-    }
-  }
-
   .unicode-escaped .escaped-code-point {
     &[data-escaped]::before {
       visibility: visible;
@@ -98,7 +82,11 @@
 
   .broken-code-point {
     font-family: var(--fonts-monospace);
-    color: blue;
+    color: var(--color-blue);
+  }
+
+  .unicode-escaped .ambiguous-code-point {
+    border: 1px var(--color-yellow) solid;
   }
 
   .metas {
@@ -223,22 +211,15 @@
   }
 
   #clone-panel {
-    width: 350px;
+    #repo-clone-url {
+      width: 320px;
 
-    @media @mediaSm {
-      width: 100%;
-    }
-
-    input {
-      border-radius: 0;
-      padding: 5px 10px;
-      width: 50%;
-      line-height: 1.4;
-    }
-
-    .clone.button {
-      font-size: 13px;
-      padding: 7.5px 5px;
+      @media @mediaMd {
+        width: 200px;
+      }
+      @media @mediaSm {
+        width: 200px;
+      }
     }
 
     #repo-clone-https,
@@ -256,10 +237,6 @@
 
     button:last-of-type {
       border-radius: 0 var(--border-radius) var(--border-radius) 0 !important;
-    }
-
-    .icon.button {
-      padding: 0 10px;
     }
 
     .dropdown .menu {
@@ -290,25 +267,6 @@
       .section,
       .divider {
         display: inline;
-      }
-    }
-
-    #file-buttons {
-      font-weight: normal;
-
-      .ui.button {
-        padding: 8px 10px;
-        font-weight: normal;
-      }
-
-      .ui.tiny.blue.buttons {
-        @media @mediaSm {
-          width: 100%;
-        }
-      }
-
-      .button + .button {
-        border-left: none;
       }
     }
 
@@ -352,15 +310,38 @@
         overflow: initial;
 
         &.name {
-          max-width: 150px;
+          @media @mediaXl {
+            max-width: 150px;
+          }
+          @media @mediaLg {
+            max-width: 200px;
+          }
+          @media @mediaMd {
+            max-width: 300px;
+          }
+          width: 33%;
+
+          max-width: calc(100vw - 140px);
         }
 
         &.message {
-          max-width: 400px;
+          color: var(--color-text-light-1);
+
+          @media @mediaXl {
+            max-width: 400px;
+          }
+          @media @mediaLg {
+            max-width: 350px;
+          }
+          @media @mediaMd {
+            max-width: 250px;
+          }
+          width: 66%;
         }
 
         &.age {
           width: 120px;
+          color: var(--color-text-light-1);
         }
 
         .truncate {
@@ -403,7 +384,7 @@
       }
 
       tr:hover {
-        background-color: #ffffee;
+        background-color: var(--color-hover);
       }
 
       tr.has-parent a {
@@ -411,10 +392,6 @@
         padding-top: 8px;
         padding-bottom: 8px;
         width: calc(100% - 1.25rem);
-      }
-
-      .jumpable-path {
-        color: var(--color-text-light-2);
       }
     }
 
@@ -430,10 +407,6 @@
 
         .tiny.icon {
           font-size: .5em;
-        }
-
-        .file-info {
-          font-size: 13px;
         }
 
         .file-actions {
@@ -474,7 +447,10 @@
           object-fit: contain;
         }
 
-        /* also see misc.css for one more related rule */
+        img[src$='.svg' i] {
+          max-height: 600px !important;
+          max-width: 600px !important;
+        }
       }
 
       .plain-text {
@@ -866,8 +842,8 @@
           display: none;
         }
 
-        .avatar.image,
-        .avatar.image img {
+        img.avatar,
+        .avatar img {
           width: 20px;
           height: 20px;
           margin: 0 .25rem;
@@ -926,9 +902,10 @@
 
           .singular-commit {
             line-height: 34px; /* this must be same as .badge height, to avoid overflow */
+            clear: both; // reset the "float right shabox", in the future, use flexbox instead
 
-            > .avatar.image,
-            > .avatar.image img {
+            > img.avatar,
+            > .avatar img {
               position: relative;
               top: -2px;
             }
@@ -1011,6 +988,12 @@
         .comment-form-reply .footer {
           padding-bottom: 1em;
         }
+
+        @media @mediaSm {
+          .ui.segments {
+            margin-left: -2rem;
+          }
+        }
       }
 
       .ui.comments {
@@ -1054,10 +1037,6 @@
 
         .merge-section {
           background-color: var(--color-box-body);
-
-          .item {
-            padding: .25rem 0;
-          }
 
           .item-section {
             display: flex;
@@ -1148,7 +1127,7 @@
           margin-left: 36px;
         }
 
-        .avatar.image {
+        img.avatar {
           width: 28px;
           height: 28px;
         }
@@ -1168,7 +1147,7 @@
             border-color: var(--color-secondary-dark-1) !important;
           }
 
-          .ui.label.basic.blue {
+          .ui.label.basic.primary {
             background-color: var(--color-reaction-active-bg) !important;
             border-color: var(--color-primary-alpha-80) !important;
           }
@@ -1191,6 +1170,10 @@
         .segments {
           box-shadow: none;
         }
+      }
+
+      @media @mediaSm {
+        padding: 1rem 0 !important; // Important is required here to override existing fomantic styles.
       }
     }
 
@@ -1226,6 +1209,10 @@
         height: 200px;
         font-family: var(--fonts-monospace);
       }
+
+      .CodeMirror-scroll {
+        max-height: 85vh;
+      }
     }
   }
 
@@ -1238,26 +1225,9 @@
       padding-bottom: 10px;
       border-bottom: 1px dashed var(--color-secondary);
 
-      > a {
-        padding-top: 5px;
-        padding-right: 10px;
-        font-size: 1.5rem;
-        color: var(--color-text);
-
-        &:hover {
-          color: var(--color-primary);
-        }
-      }
-
-      .ui.progress {
-        width: 40%;
-        padding: 0;
-        border: 0;
-        margin: 0;
-
-        .bar {
-          height: 20px;
-        }
+      progress {
+        width: 200px;
+        height: 16px;
       }
 
       .meta {
@@ -1974,16 +1944,16 @@
           }
 
           .dot {
-            width: 9px;
-            height: 9px;
-            background-color: #ddd;
+            width: 10px;
+            height: 10px;
+            background-color: var(--color-secondary-dark-3);
             z-index: 9;
             position: absolute;
             display: block;
-            left: -5px;
+            left: -6px;
             top: 40px;
-            border-radius: 6px;
-            border: 1px solid #ffffff;
+            border-radius: 100%;
+            border: 2.5px solid var(--color-body);
           }
         }
       }
@@ -2104,10 +2074,6 @@
     }
 
     &.view {
-      .choose.page {
-        margin-top: -5px;
-      }
-
       > .markup {
         padding: 15px 30px;
 
@@ -2124,10 +2090,20 @@
       }
     }
 
+    .form .CodeMirror-scroll {
+      max-height: 85vh;
+    }
+
     @media @mediaSm {
       .dividing.header .stackable.grid .button {
         margin-top: 2px;
         margin-bottom: 2px;
+      }
+    }
+
+    @media @mediaSm {
+      #clone-panel #repo-clone-url {
+        width: 160px;
       }
     }
   }
@@ -2411,7 +2387,7 @@
       color: var(--color-primary) !important;
     }
 
-    .ui.label.basic.blue {
+    .ui.label.basic.primary {
       background-color: var(--color-reaction-active-bg) !important;
       border-color: var(--color-secondary) !important;
     }
@@ -2527,7 +2503,7 @@
 #search-user-box {
   .results {
     .result {
-      .image {
+      img {
         float: left;
         margin-right: 8px;
         width: 2em;
@@ -2820,6 +2796,31 @@
   line-height: 1.3em; // there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly
 }
 
+.repo-button-row {
+  margin-bottom: 10px;
+}
+
+.repo-button-row > * {
+  margin-top: 10px;
+}
+
+.wiki .repo-button-row {
+  margin-bottom: 0;
+}
+
+.wiki .repo-button-row > * {
+  margin-top: 0;
+}
+
+.repo-button-row .button {
+  padding: 6px 10px !important;
+  height: 30px;
+}
+
+.repo-button-row input {
+  height: 30px;
+}
+
 tbody.commit-list {
   vertical-align: baseline;
 }
@@ -2830,6 +2831,11 @@ tbody.commit-list {
   max-width: calc(100% - 50px);
   display: inline-block;
   vertical-align: middle;
+}
+
+// in the commit list, messages can wrap so we can use inline
+.commit-list .message-wrapper {
+  display: inline;
 }
 
 @media @mediaSm {
@@ -2895,20 +2901,6 @@ tbody.commit-list {
 
 .git-notes.top {
   text-align: left;
-}
-
-@media @mediaSm {
-  .ui.stackable.menu {
-    &.mobile--margin-between-items > .item {
-      margin-top: 5px;
-      margin-bottom: 5px;
-    }
-
-    &.mobile--no-negative-margins {
-      margin-left: 0;
-      margin-right: 0;
-    }
-  }
 }
 
 #topic_edit {
@@ -3031,9 +3023,9 @@ tbody.commit-list {
 }
 
 .tag-code,
-.tag-code td {
-  background-color: #f0f9ff;
-  border-color: #f1f8ff !important;
+.tag-code td,
+.tag-code .blob-excerpt {
+  background-color: var(--color-box-body-highlight);
   vertical-align: middle;
 }
 
@@ -3049,7 +3041,7 @@ tbody.commit-list {
 }
 
 td.blob-excerpt {
-  background-color: #fafafa;
+  background-color: var(--color-secondary-alpha-30);
 }
 
 .issue-keyword {
@@ -3061,10 +3053,12 @@ td.blob-excerpt {
 }
 
 .file-header {
+  align-items: center;
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px !important;
+  overflow-x: auto;
+  padding: 6px 12px !important;
+  font-size: 13px !important;
 }
 
 .file-info {
@@ -3075,12 +3069,42 @@ td.blob-excerpt {
 .file-info-entry {
   display: flex;
   align-items: center;
+  width: max-content;
 }
 
 .file-info-entry + .file-info-entry {
   border-left: 1px solid currentcolor;
   margin-left: 8px;
   padding-left: 8px;
+}
+
+#diff-container {
+  display: flex;
+}
+#diff-file-boxes {
+  flex: 1;
+}
+
+#diff-file-tree {
+  width: 20%;
+  max-width: 380px;
+  line-height: inherit;
+  position: sticky;
+  padding-top: 0;
+  top: 47px;
+  max-height: calc(100vh - 50px);
+  height: 100%;
+  overflow-y: auto;
+}
+
+@media @mediaMdAndDown {
+  #diff-file-tree {
+    display: none !important;
+  }
+
+  .diff-toggle-file-tree-button {
+    display: none !important;
+  }
 }
 
 .ui.message.unicode-escape-prompt {
@@ -3094,6 +3118,18 @@ td.blob-excerpt {
 .wiki-content-footer .ui.message.unicode-escape-prompt {
   p {
     display: none;
+  }
+}
+
+.wiki-content-toc {
+  > ul > li {
+    margin-bottom: 4px;
+  }
+
+  ul {
+    margin: 0;
+    list-style: none;
+    padding-left: 1em;
   }
 }
 
@@ -3305,7 +3341,7 @@ td.blob-excerpt {
         display: flex;
         margin-bottom: auto;
 
-        img.avatar.image {
+        img.avatar {
           height: 24px;
           width: 24px;
         }
@@ -3327,5 +3363,108 @@ td.blob-excerpt {
         display: none;
       }
     }
+  }
+  .commit-header-row {
+    .ui.horizontal.list {
+      width: 100%;
+      overflow-x: auto;
+      margin-top: 2px;
+
+      .item {
+        align-items: center;
+        display: flex;
+      }
+    }
+
+    .author {
+      padding: 3px 0;
+    }
+  }
+
+  .commit-header h3 {
+    flex-basis: auto !important;
+    margin-bottom: .5rem !important;
+  }
+
+  .commits-table {
+    flex-direction: column;
+
+    .commits-table-left {
+      align-items: initial !important;
+      margin-bottom: 6px;
+    }
+
+    .commits-table-right form {
+      display: flex;
+      flex-wrap: wrap;
+
+      > div:nth-child(1) {
+        order: 1;
+      }
+
+      > div:nth-child(2) {
+        order: 3;
+        margin-left: .5rem;
+        margin-top: .5rem;
+      }
+
+      > button:nth-child(3) {
+        order: 2;
+        margin-left: .25rem;
+      }
+    }
+  }
+
+  .commit-table {
+    overflow-x: auto;
+
+    td.sha,
+    th.sha {
+      display: none !important;
+    }
+
+    .commit-list {
+      span.message-wrapper {
+        max-width: none;
+      }
+
+      tr td:last-child {
+        display: block;
+        width: max-content;
+      }
+
+      td.author {
+        display: block;
+        width: calc(100% + .5rem);
+      }
+
+      .copy-commit-sha {
+        display: none !important;
+      }
+    }
+  }
+
+  .comment-header {
+    flex-wrap: wrap;
+
+    .comment-header-left {
+      flex-wrap: wrap;
+    }
+
+    .comment-header-right {
+      margin-left: auto;
+    }
+  }
+}
+
+.branch-dropdown-button {
+  max-width: 340px;
+  vertical-align: bottom !important;
+
+  @media @mediaMd {
+    max-width: 185px;
+  }
+  @media @mediaSm {
+    max-width: 165px;
   }
 }

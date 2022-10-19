@@ -6,31 +6,22 @@ package issues
 
 import (
 	"context"
-	"os"
 	"testing"
-
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestBleveIndexAndSearch(t *testing.T) {
-	dir, err := os.MkdirTemp("", "bleve.index")
-	assert.NoError(t, err)
-	if err != nil {
-		assert.Fail(t, "Unable to create temporary directory")
-		return
-	}
-	defer util.RemoveAll(dir)
+	dir := t.TempDir()
 	indexer := NewBleveIndexer(dir)
 	defer indexer.Close()
 
 	if _, err := indexer.Init(); err != nil {
-		assert.Fail(t, "Unable to initialise bleve indexer: %v", err)
+		assert.Fail(t, "Unable to initialize bleve indexer: %v", err)
 		return
 	}
 
-	err = indexer.Index([]*IndexerData{
+	err := indexer.Index([]*IndexerData{
 		{
 			ID:      1,
 			RepoID:  2,

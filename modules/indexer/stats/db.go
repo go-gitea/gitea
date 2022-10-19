@@ -30,7 +30,7 @@ func (db *DBIndexer) Index(id int64) error {
 		return nil
 	}
 
-	status, err := repo_model.GetIndexerStatus(repo, repo_model.RepoIndexerTypeStats)
+	status, err := repo_model.GetIndexerStatus(ctx, repo, repo_model.RepoIndexerTypeStats)
 	if err != nil {
 		return err
 	}
