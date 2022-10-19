@@ -13,7 +13,6 @@ import (
 	"strconv"
 	"strings"
 
-	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/foreignreference"
 	"code.gitea.io/gitea/models/organization"
@@ -21,6 +20,7 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -50,6 +50,10 @@ func IsErrIssueNotExist(err error) bool {
 
 func (err ErrIssueNotExist) Error() string {
 	return fmt.Sprintf("issue does not exist [id: %d, repo_id: %d, index: %d]", err.ID, err.RepoID, err.Index)
+}
+
+func (err ErrIssueNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // ErrIssueIsClosed represents a "IssueIsClosed" kind of error.
@@ -1492,7 +1496,8 @@ func applySubscribedCondition(sess *xorm.Session, subscriberID int64) *xorm.Sess
 			builder.In("issue.repo_id", builder.
 				Select("id").
 				From("watch").
-				Where(builder.Eq{"user_id": subscriberID, "mode": true}),
+				Where(builder.And(builder.Eq{"user_id": subscriberID},
+					builder.In("mode", repo_model.WatchModeNormal, repo_model.WatchModeAuto))),
 			),
 		),
 	)
@@ -2470,7 +2475,7 @@ func DeleteOrphanedIssues() error {
 
 	// Remove issue attachment files.
 	for i := range attachmentPaths {
-		admin_model.RemoveAllWithNotice(db.DefaultContext, "Delete issue attachment", attachmentPaths[i])
+		system_model.RemoveAllWithNotice(db.DefaultContext, "Delete issue attachment", attachmentPaths[i])
 	}
 	return nil
 }

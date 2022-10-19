@@ -30,6 +30,10 @@ func (err ErrTeamInviteAlreadyExist) Error() string {
 	return fmt.Sprintf("team invite already exists [team_id: %d, email: %s]", err.TeamID, err.Email)
 }
 
+func (err ErrTeamInviteAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
 type ErrTeamInviteNotFound struct {
 	Token string
 }
@@ -41,6 +45,10 @@ func IsErrTeamInviteNotFound(err error) bool {
 
 func (err ErrTeamInviteNotFound) Error() string {
 	return fmt.Sprintf("team invite was not found [token: %s]", err.Token)
+}
+
+func (err ErrTeamInviteNotFound) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // ErrUserEmailAlreadyAdded represents a "user by email already added to team" error.
@@ -58,14 +66,18 @@ func (err ErrUserEmailAlreadyAdded) Error() string {
 	return fmt.Sprintf("user with email already added [email: %s]", err.Email)
 }
 
+func (err ErrUserEmailAlreadyAdded) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
 // TeamInvite represents an invite to a team
 type TeamInvite struct {
 	ID          int64              `xorm:"pk autoincr"`
-	Token       string             `xorm:"UNIQUE(token) INDEX"`
-	InviterID   int64              `xorm:"NOT NULL"`
-	OrgID       int64              `xorm:"INDEX"`
-	TeamID      int64              `xorm:"UNIQUE(team_mail) INDEX NOT NULL"`
-	Email       string             `xorm:"UNIQUE(team_mail) NOT NULL"`
+	Token       string             `xorm:"UNIQUE(token) INDEX NOT NULL DEFAULT ''"`
+	InviterID   int64              `xorm:"NOT NULL DEFAULT 0"`
+	OrgID       int64              `xorm:"INDEX NOT NULL DEFAULT 0"`
+	TeamID      int64              `xorm:"UNIQUE(team_mail) INDEX NOT NULL DEFAULT 0"`
+	Email       string             `xorm:"UNIQUE(team_mail) NOT NULL DEFAULT ''"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }

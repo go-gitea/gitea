@@ -167,6 +167,33 @@ func TestAPICreateUserInvalidEmail(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 }
 
+func TestAPICreateAndDeleteUser(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	adminUsername := "user1"
+	session := loginUser(t, adminUsername)
+	token := getTokenForLoggedInUser(t, session)
+
+	req := NewRequestWithValues(
+		t,
+		"POST",
+		fmt.Sprintf("/api/v1/admin/users?token=%s", token),
+		map[string]string{
+			"email":                "deleteme@domain.com",
+			"full_name":            "delete me",
+			"login_name":           "deleteme",
+			"must_change_password": "true",
+			"password":             "password",
+			"send_notify":          "true",
+			"source_id":            "0",
+			"username":             "deleteme",
+		},
+	)
+	MakeRequest(t, req, http.StatusCreated)
+
+	req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/admin/users/deleteme?token=%s", token))
+	MakeRequest(t, req, http.StatusNoContent)
+}
+
 func TestAPIEditUser(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
@@ -208,4 +235,21 @@ func TestAPIEditUser(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 	user2 = unittest.AssertExistsAndLoadBean(t, &user_model.User{LoginName: "user2"})
 	assert.True(t, user2.IsRestricted)
+}
+
+func TestAPICreateRepoForUser(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	adminUsername := "user1"
+	session := loginUser(t, adminUsername)
+	token := getTokenForLoggedInUser(t, session)
+
+	req := NewRequestWithJSON(
+		t,
+		"POST",
+		fmt.Sprintf("/api/v1/admin/users/%s/repos?token=%s", adminUsername, token),
+		&api.CreateRepoOption{
+			Name: "admincreatedrepo",
+		},
+	)
+	MakeRequest(t, req, http.StatusCreated)
 }
