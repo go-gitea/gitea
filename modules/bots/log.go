@@ -25,7 +25,7 @@ const (
 	MaxLineSize = 64 * 1024
 	DBFSPrefix  = "bots_tasks/"
 
-	timeFormat     = time.RFC3339Nano
+	timeFormat     = "2006-01-02T15:04:05.0000000Z07:00"
 	defaultBufSize = 64 * 1024
 )
 
