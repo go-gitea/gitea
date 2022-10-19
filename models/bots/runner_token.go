@@ -91,7 +91,7 @@ func NewRunnerToken(ownerID, repoID int64) (*RunnerToken, error) {
 // GetUnactivatedRunnerToken returns a unactivated runner token
 func GetUnactivatedRunnerToken(ownerID, repoID int64) (*RunnerToken, error) {
 	var runnerToken RunnerToken
-	has, err := db.GetEngine(db.DefaultContext).Where("owner_id=? AND repo_id=? AND is_active=0", ownerID, repoID).OrderBy("id DESC").Get(&runnerToken)
+	has, err := db.GetEngine(db.DefaultContext).Where("owner_id=? AND repo_id=? AND is_active=?", ownerID, repoID, false).OrderBy("id DESC").Get(&runnerToken)
 	if err != nil {
 		return nil, err
 	} else if !has {
