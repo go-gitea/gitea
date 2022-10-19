@@ -104,7 +104,10 @@ const sfc = {
     // TODO: the parent element's full height doesn't work well now
     const elBodyDiv = document.querySelector('body > div.full.height');
     elBodyDiv.style.height = '100%';
+
+    // load job data and then auto-reload periodically
     this.loadJobData();
+    setInterval(() => this.loadJobData(), 1000);
   },
 
   methods: {
@@ -140,7 +143,7 @@ const sfc = {
     toggleStepLogs(idx) {
       this.currentJobStepsStates[idx].expanded = !this.currentJobStepsStates[idx].expanded;
       if (this.currentJobStepsStates[idx].expanded) {
-        this.loadJobData(true);
+        this.loadJobData(); // try to load the data immediately instead of waiting for next timer interval
       }
     },
 
@@ -260,7 +263,7 @@ const sfc = {
       return await resp.json();
     },
 
-    async loadJobData(once) {
+    async loadJobData() {
       if (this.loading) return;
       try {
         this.loading = true;
@@ -297,9 +300,6 @@ const sfc = {
         }
       } finally {
         this.loading = false;
-        if (!once) {
-          setTimeout(() => this.loadJobData(), 1000);
-        }
       }
     }
   },
