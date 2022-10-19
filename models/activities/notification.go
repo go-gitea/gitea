@@ -806,7 +806,7 @@ func getNotificationByID(ctx context.Context, notificationID int64) (*Notificati
 	}
 
 	if !ok {
-		return nil, db.ErrNotExist{ID: notificationID}
+		return nil, db.ErrNotExist{Resource: "notification", ID: notificationID}
 	}
 
 	return notification, nil
