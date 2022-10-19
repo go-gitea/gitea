@@ -370,8 +370,9 @@ func DeleteOrganization(ctx context.Context, org *Organization) error {
 		&OrgUser{OrgID: org.ID},
 		&TeamUser{OrgID: org.ID},
 		&TeamUnit{OrgID: org.ID},
+		&TeamInvite{OrgID: org.ID},
 	); err != nil {
-		return fmt.Errorf("deleteBeans: %v", err)
+		return fmt.Errorf("DeleteBeans: %v", err)
 	}
 
 	if _, err := db.GetEngine(ctx).ID(org.ID).Delete(new(user_model.User)); err != nil {
