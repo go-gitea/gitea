@@ -15,6 +15,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -182,10 +183,11 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 		if err != nil {
 			return nil, nil, 0, 0
 		}
-		labelIDMark := base.Int64sToMap(labelIDs)
+		labelIDMark := make(container.Set[int64])
+		labelIDMark.AddMultiple(labelIDs...)
 
 		for i := range labels {
-			if labelIDMark[labels[i].ID] {
+			if labelIDMark.Contains(labels[i].ID) {
 				labels[i].IsChecked = true
 				hasSelected = true
 			}

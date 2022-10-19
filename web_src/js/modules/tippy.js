@@ -6,6 +6,8 @@ export function createTippy(target, opts = {}) {
     placement: target.getAttribute('data-placement') || 'top-start',
     animation: false,
     allowHTML: false,
+    interactiveBorder: 30,
+    ignoreAttributes: true,
     maxWidth: 500, // increase over default 350px
     arrow: `<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`,
     ...(opts?.role && {theme: opts.role}),

@@ -42,7 +42,7 @@ Possible file names for issue templates:
 - `.gitea/ISSUE_TEMPLATE.yml`
 - `.gitea/issue_template.md`
 - `.gitea/issue_template.yaml`
-- `.gitea/issue_template.md`
+- `.gitea/issue_template.yml`
 - `.github/ISSUE_TEMPLATE.md`
 - `.github/ISSUE_TEMPLATE.yaml`
 - `.github/ISSUE_TEMPLATE.yml`

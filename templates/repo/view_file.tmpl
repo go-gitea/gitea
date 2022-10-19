@@ -1,4 +1,11 @@
 <div class="{{TabSizeClass .Editorconfig .FileName}} non-diff-file-content">
+	{{- if .FileError}}
+		<div class="ui warning message">
+			<div class="text left">
+				<div>{{.FileError}}</div>
+			</div>
+		</div>
+	{{end}}
 	<h4 class="file-header ui top attached header df ac sb">
 		<div class="file-header-left df ac pr-4">
 			{{if .ReadmeInList}}

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -19,7 +18,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -389,9 +387,6 @@ func testAPIRepoMigrateConflict(t *testing.T, u *url.URL) {
 		httpContext := baseAPITestContext
 
 		httpContext.Reponame = "repo-tmp-17"
-		dstPath, err := os.MkdirTemp("", httpContext.Reponame)
-		assert.NoError(t, err)
-		defer util.RemoveAll(dstPath)
 		t.Run("CreateRepo", doAPICreateRepository(httpContext, false))
 
 		user, err := user_model.GetUserByName(db.DefaultContext, httpContext.Username)
@@ -473,9 +468,6 @@ func testAPIRepoCreateConflict(t *testing.T, u *url.URL) {
 		httpContext := baseAPITestContext
 
 		httpContext.Reponame = "repo-tmp-17"
-		dstPath, err := os.MkdirTemp("", httpContext.Reponame)
-		assert.NoError(t, err)
-		defer util.RemoveAll(dstPath)
 		t.Run("CreateRepo", doAPICreateRepository(httpContext, false))
 
 		req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos?token="+httpContext.Token,

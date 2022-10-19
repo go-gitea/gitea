@@ -98,7 +98,14 @@ func (a *Action) TableIndices() []*schemas.Index {
 	actUserIndex := schemas.NewIndex("au_r_c_u_d", schemas.IndexType)
 	actUserIndex.AddColumn("act_user_id", "repo_id", "created_unix", "user_id", "is_deleted")
 
-	return []*schemas.Index{actUserIndex, repoIndex}
+	indices := []*schemas.Index{actUserIndex, repoIndex}
+	if setting.Database.UsePostgreSQL {
+		cudIndex := schemas.NewIndex("c_u_d", schemas.IndexType)
+		cudIndex.AddColumn("created_unix", "user_id", "is_deleted")
+		indices = append(indices, cudIndex)
+	}
+
+	return indices
 }
 
 // GetOpType gets the ActionType of this action.
@@ -211,6 +218,11 @@ func (a *Action) GetRepoLink() string {
 	return path.Join(setting.AppSubURL, "/", url.PathEscape(a.GetRepoUserName()), url.PathEscape(a.GetRepoName()))
 }
 
+// GetRepoAbsoluteLink returns the absolute link to action repository.
+func (a *Action) GetRepoAbsoluteLink() string {
+	return setting.AppURL + url.PathEscape(a.GetRepoUserName()) + "/" + url.PathEscape(a.GetRepoName())
+}
+
 // GetCommentLink returns link to action comment.
 func (a *Action) GetCommentLink() string {
 	return a.getCommentLink(db.DefaultContext)
@@ -260,7 +272,7 @@ func (a *Action) GetRefLink() string {
 		return a.GetRepoLink() + "/src/branch/" + util.PathEscapeSegments(strings.TrimPrefix(a.RefName, git.BranchPrefix))
 	case strings.HasPrefix(a.RefName, git.TagPrefix):
 		return a.GetRepoLink() + "/src/tag/" + util.PathEscapeSegments(strings.TrimPrefix(a.RefName, git.TagPrefix))
-	case len(a.RefName) == 40 && git.SHAPattern.MatchString(a.RefName):
+	case len(a.RefName) == 40 && git.IsValidSHAPattern(a.RefName):
 		return a.GetRepoLink() + "/src/commit/" + a.RefName
 	default:
 		// FIXME: we will just assume it's a branch - this was the old way - at some point we may want to enforce that there is always a ref here.

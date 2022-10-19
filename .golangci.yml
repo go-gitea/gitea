@@ -12,7 +12,6 @@ linters:
     - dupl
     #- gocyclo # The cyclomatic complexety of a lot of functions is too high, we should refactor those another time.
     - gofmt
-    - misspell
     - gocritic
     - bidichk
     - ineffassign
@@ -40,7 +39,7 @@ linters-settings:
   stylecheck:
     checks: ["all", "-ST1005", "-ST1003"]
   nakedret:
-    max-func-lines: 0 
+    max-func-lines: 0
   gocritic:
     disabled-checks:
       - ifElseChain
@@ -86,6 +85,8 @@ linters-settings:
       - github.com/unknwon/com: "use gitea's util and replacements"
 
 issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
   exclude-rules:
     # Exclude some linters from running on tests files.
     - path: _test\.go
@@ -146,9 +147,6 @@ issues:
     - path: models/issue_comment_list.go
       linters:
         - dupl
-    - linters:
-        - misspell
-      text: '`Unknwon` is a misspelling of `Unknown`'
     - path: models/update.go
       linters:
         - unused

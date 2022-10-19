@@ -1,3 +1,4 @@
+{{if and (not .HideRepoInfo) (not .IsBlame)}}
 <div class="ui segments repository-summary{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo) .LanguageStats}} repository-summary-language-stats{{end}} mt-2 mb-0">
 	<div class="ui segment sub-menu repository-menu">
 		<div class="ui two horizontal center link list">
@@ -39,8 +40,9 @@
 	</div>
 	<a class="ui segment language-stats">
 		{{range .LanguageStats}}
-		<div class="bar tooltip" style="width: {{.Percentage}}%; background-color: {{.Color}}" data-placement="top" data-content={{ .Language }}>&nbsp;</div>
+		<div class="bar tooltip" style="width: {{.Percentage}}%; background-color: {{.Color}}" data-placement="top" data-content={{.Language}}>&nbsp;</div>
 		{{end}}
 	</a>
 	{{end}}
 </div>
+{{end}}

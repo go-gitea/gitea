@@ -185,11 +185,6 @@ func InitFull(ctx context.Context) (err error) {
 		globalCommandArgs = append(globalCommandArgs, "-c", "protocol.version=2")
 	}
 
-	// By default partial clones are disabled, enable them from git v2.22
-	if !setting.Git.DisablePartialClone && CheckGitVersionAtLeast("2.22") == nil {
-		globalCommandArgs = append(globalCommandArgs, "-c", "uploadpack.allowfilter=true", "-c", "uploadpack.allowAnySHA1InWant=true")
-	}
-
 	// Explicitly disable credential helper, otherwise Git credentials might leak
 	if CheckGitVersionAtLeast("2.9") == nil {
 		globalCommandArgs = append(globalCommandArgs, "-c", "credential.helper=")
@@ -286,7 +281,20 @@ func syncGitConfig() (err error) {
 		}
 	}
 
-	return nil
+	// By default partial clones are disabled, enable them from git v2.22
+	if !setting.Git.DisablePartialClone && CheckGitVersionAtLeast("2.22") == nil {
+		if err = configSet("uploadpack.allowfilter", "true"); err != nil {
+			return err
+		}
+		err = configSet("uploadpack.allowAnySHA1InWant", "true")
+	} else {
+		if err = configUnsetAll("uploadpack.allowfilter", "true"); err != nil {
+			return err
+		}
+		err = configUnsetAll("uploadpack.allowAnySHA1InWant", "true")
+	}
+
+	return err
 }
 
 // CheckGitVersionAtLeast check git version is at least the constraint version

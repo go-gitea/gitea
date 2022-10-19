@@ -182,11 +182,11 @@
 					<span class="text grey">
 						{{template "shared/user/authorlink" .Poster}}
 						{{if and .AddedLabels (not .RemovedLabels)}}
-							{{$.locale.TrN (len .AddedLabels) "repo.issues.add_label" "repo.issues.add_labels" (RenderLabels .AddedLabels) $createdStr | Safe}}
+							{{$.locale.TrN (len .AddedLabels) "repo.issues.add_label" "repo.issues.add_labels" (RenderLabels .AddedLabels $.RepoLink) $createdStr | Safe}}
 						{{else if and (not .AddedLabels) .RemovedLabels}}
-							{{$.locale.TrN (len .RemovedLabels) "repo.issues.remove_label" "repo.issues.remove_labels" (RenderLabels .RemovedLabels) $createdStr | Safe}}
+							{{$.locale.TrN (len .RemovedLabels) "repo.issues.remove_label" "repo.issues.remove_labels" (RenderLabels .RemovedLabels $.RepoLink) $createdStr | Safe}}
 						{{else}}
-							{{$.locale.Tr "repo.issues.add_remove_labels" (RenderLabels .AddedLabels) (RenderLabels .RemovedLabels) $createdStr | Safe}}
+							{{$.locale.Tr "repo.issues.add_remove_labels" (RenderLabels .AddedLabels $.RepoLink) (RenderLabels .RemovedLabels $.RepoLink) $createdStr | Safe}}
 						{{end}}
 					</span>
 				</div>

@@ -31,6 +31,10 @@ func AvatarByUserName(ctx *context.Context) {
 	if strings.ToLower(userName) != "ghost" {
 		var err error
 		if user, err = user_model.GetUserByName(ctx, userName); err != nil {
+			if user_model.IsErrUserNotExist(err) {
+				ctx.NotFound("GetUserByName", err)
+				return
+			}
 			ctx.ServerError("Invalid user: "+userName, err)
 			return
 		}

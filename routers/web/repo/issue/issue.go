@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
@@ -81,7 +82,7 @@ var IssueTemplateCandidates = []string{
 	".gitea/ISSUE_TEMPLATE.yml",
 	".gitea/issue_template.md",
 	".gitea/issue_template.yaml",
-	".gitea/issue_template.md",
+	".gitea/issue_template.yml",
 	".github/ISSUE_TEMPLATE.md",
 	".github/ISSUE_TEMPLATE.yaml",
 	".github/ISSUE_TEMPLATE.yml",
@@ -997,9 +998,9 @@ func ViewIssue(ctx *context.Context) {
 
 	// Metas.
 	// Check labels.
-	labelIDMark := make(map[int64]bool)
-	for i := range issue.Labels {
-		labelIDMark[issue.Labels[i].ID] = true
+	labelIDMark := make(container.Set[int64])
+	for _, label := range issue.Labels {
+		labelIDMark.Add(label.ID)
 	}
 	labels, err := issues_model.GetLabelsByRepoID(ctx, repo.ID, "", db.ListOptions{})
 	if err != nil {
@@ -1021,7 +1022,7 @@ func ViewIssue(ctx *context.Context) {
 
 	hasSelected := false
 	for i := range labels {
-		if labelIDMark[labels[i].ID] {
+		if labelIDMark.Contains(labels[i].ID) {
 			labels[i].IsChecked = true
 			hasSelected = true
 		}
@@ -1040,11 +1041,16 @@ func ViewIssue(ctx *context.Context) {
 
 	if issue.IsPull {
 		canChooseReviewer := ctx.Repo.CanWrite(unit.TypePullRequests)
-		if !canChooseReviewer && ctx.Doer != nil && ctx.IsSigned {
-			canChooseReviewer, err = issues_model.IsOfficialReviewer(ctx, issue, ctx.Doer)
-			if err != nil {
-				ctx.ServerError("IsOfficialReviewer", err)
-				return
+		if ctx.Doer != nil && ctx.IsSigned {
+			if !canChooseReviewer {
+				canChooseReviewer = ctx.Doer.ID == issue.PosterID
+			}
+			if !canChooseReviewer {
+				canChooseReviewer, err = issues_model.IsOfficialReviewer(ctx, issue, ctx.Doer)
+				if err != nil {
+					ctx.ServerError("IsOfficialReviewer", err)
+					return
+				}
 			}
 		}
 

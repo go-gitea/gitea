@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -29,11 +28,9 @@ func TestGPGGit(t *testing.T) {
 	username := "user2"
 
 	// OK Set a new GPG home
-	tmpDir, err := os.MkdirTemp("", "temp-gpg")
-	assert.NoError(t, err)
-	defer util.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
-	err = os.Chmod(tmpDir, 0o700)
+	err := os.Chmod(tmpDir, 0o700)
 	assert.NoError(t, err)
 
 	oldGNUPGHome := os.Getenv("GNUPGHOME")

@@ -7,11 +7,9 @@ package integration
 import (
 	"net/http"
 	"net/url"
-	"os"
 	"testing"
 
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -30,18 +28,14 @@ func TestAPIGetRawFileOrLFS(t *testing.T) {
 		httpContext := NewAPITestContext(t, "user2", "repo-lfs-test")
 		doAPICreateRepository(httpContext, false, func(t *testing.T, repository api.Repository) {
 			u.Path = httpContext.GitPath()
-			dstPath, err := os.MkdirTemp("", httpContext.Reponame)
-			assert.NoError(t, err)
-			defer util.RemoveAll(dstPath)
+			dstPath := t.TempDir()
 
 			u.Path = httpContext.GitPath()
 			u.User = url.UserPassword("user2", userPassword)
 
 			t.Run("Clone", doGitClone(dstPath, u))
 
-			dstPath2, err := os.MkdirTemp("", httpContext.Reponame)
-			assert.NoError(t, err)
-			defer util.RemoveAll(dstPath2)
+			dstPath2 := t.TempDir()
 
 			t.Run("Partial Clone", doPartialGitClone(dstPath2, u))
 

@@ -34,6 +34,8 @@ GXZ_PAGAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.10
 MISSPELL_PACKAGE ?= github.com/client9/misspell/cmd/misspell@v0.3.4
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.30.0
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
+GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1.3.0
+GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@latest
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -110,9 +112,14 @@ WEBPACK_DEST_ENTRIES := public/js public/css public/fonts public/img/webpack pub
 BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
 BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
 
+GENERATED_GO_DEST := modules/charset/invisible_gen.go modules/charset/ambiguous_gen.go
+
 SVG_DEST_DIR := public/img/svg
 
 AIR_TMP_DIR := .air
+
+GO_LICENSE_TMP_DIR := .go-licenses
+GO_LICENSE_FILE := assets/go-licenses.json
 
 TAGS ?=
 TAGS_SPLIT := $(subst $(COMMA), ,$(TAGS))
@@ -120,15 +127,19 @@ TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
 
 TEST_TAGS ?= sqlite sqlite_unlock_notify
 
-TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(FOMANTIC_WORK_DIR)/node_modules $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR)
+TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(FOMANTIC_WORK_DIR)/node_modules $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR) $(GO_LICENSE_TMP_DIR)
 
 GO_DIRS := cmd tests models modules routers build services tools
+WEB_DIRS := web_src/js web_src/less
 
 GO_SOURCES := $(wildcard *.go)
 GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go" -not -path modules/options/bindata.go -not -path modules/public/bindata.go -not -path modules/templates/bindata.go)
+GO_SOURCES += $(GENERATED_GO_DEST)
+GO_SOURCES_NO_BINDATA := $(GO_SOURCES)
 
 ifeq ($(filter $(TAGS_SPLIT),bindata),bindata)
 	GO_SOURCES += $(BINDATA_DEST)
+	GENERATED_GO_DEST += $(BINDATA_DEST)
 endif
 
 # Force installation of playwright dependencies by setting this flag
@@ -199,6 +210,7 @@ help:
 	@echo " - generate-swagger                 generate the swagger spec from code comments"
 	@echo " - swagger-validate                 check if the swagger spec is valid"
 	@echo " - golangci-lint                    run golangci-lint linter"
+	@echo " - go-licenses                      regenerate go licenses"
 	@echo " - vet                              examines Go source code and reports suspicious constructs"
 	@echo " - tidy                             run go mod tidy"
 	@echo " - test[\#TestSpecificName]    	    run unit test"
@@ -252,10 +264,23 @@ clean:
 
 .PHONY: fmt
 fmt:
-	@MISSPELL_PACKAGE=$(MISSPELL_PACKAGE) GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run build/code-batch-process.go gitea-fmt -w '{file-list}'
+	GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run build/code-batch-process.go gitea-fmt -w '{file-list}'
 	$(eval TEMPLATES := $(shell find templates -type f -name '*.tmpl'))
-	@# strip whitespace after '{{' and before `}}` unless there is only whitespace before it 
+	@# strip whitespace after '{{' and before `}}` unless there is only whitespace before it
 	@$(SED_INPLACE) -e 's/{{[ 	]\{1,\}/{{/g' -e '/^[ 	]\{1,\}}}/! s/[ 	]\{1,\}}}/}}/g' $(TEMPLATES)
+
+.PHONY: fmt-check
+fmt-check: fmt
+	@diff=$$(git diff $(GO_SOURCES) templates $(WEB_DIRS)); \
+	if [ -n "$$diff" ]; then \
+	  echo "Please run 'make fmt' and commit the result:"; \
+	  echo "$${diff}"; \
+	  exit 1; \
+	fi
+
+.PHONY: misspell-check
+misspell-check:
+	go run $(MISSPELL_PACKAGE) -error $(GO_DIRS) $(WEB_DIRS)
 
 .PHONY: vet
 vet:
@@ -273,7 +298,9 @@ TAGS_PREREQ := $(TAGS_EVIDENCE)
 endif
 
 .PHONY: generate-swagger
-generate-swagger:
+generate-swagger: $(SWAGGER_SPEC)
+
+$(SWAGGER_SPEC): $(GO_SOURCES_NO_BINDATA)
 	$(GO) run $(SWAGGER_PACKAGE) generate spec -x "$(SWAGGER_EXCLUDE)" -o './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) $(SWAGGER_NEWLINE_COMMAND) './$(SWAGGER_SPEC)'
@@ -298,22 +325,6 @@ errcheck:
 	@echo "Running errcheck..."
 	$(GO) run $(ERRCHECK_PACKAGE) $(GO_PACKAGES)
 
-.PHONY: fmt-check
-fmt-check:
-	@# get all go files and run gitea-fmt (with gofmt) on them
-	@diff=$$(MISSPELL_PACKAGE=$(MISSPELL_PACKAGE) GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run build/code-batch-process.go gitea-fmt -l '{file-list}'); \
-	if [ -n "$$diff" ]; then \
-		echo "Please run 'make fmt' and commit the result:"; \
-		echo "$${diff}"; \
-		exit 1; \
-	fi
-	@diff2=$$(git diff templates); \
-	if [ -n "$$diff2" ]; then \
-		echo "Please run 'make fmt' and commit the result:"; \
-		echo "$${diff2}"; \
-		exit 1; \
-	fi
-
 .PHONY: checks
 checks: checks-frontend checks-backend
 
@@ -321,14 +332,14 @@ checks: checks-frontend checks-backend
 checks-frontend: lockfile-check svg-check
 
 .PHONY: checks-backend
-checks-backend: tidy-check swagger-check swagger-validate
+checks-backend: tidy-check swagger-check fmt-check misspell-check swagger-validate
 
 .PHONY: lint
 lint: lint-frontend lint-backend
 
 .PHONY: lint-frontend
 lint-frontend: node_modules
-	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js docs/assets/js tests/e2e/*.test.e2e.js tests/e2e/utils_e2e.js
+	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js docs/assets/js tests/e2e
 	npx stylelint --color --max-warnings=0 web_src/less
 	npx spectral lint -q -F hint $(SWAGGER_SPEC)
 	npx markdownlint docs *.md
@@ -359,7 +370,7 @@ test-backend:
 
 .PHONY: test-frontend
 test-frontend: node_modules
-	@NODE_OPTIONS="--experimental-vm-modules --no-warnings" npx jest --color
+	npx vitest
 
 .PHONY: test-check
 test-check:
@@ -393,19 +404,28 @@ unit-test-coverage:
 tidy:
 	$(eval MIN_GO_VERSION := $(shell grep -Eo '^go\s+[0-9]+\.[0-9.]+' go.mod | cut -d' ' -f2))
 	$(GO) mod tidy -compat=$(MIN_GO_VERSION)
+	@$(MAKE) --no-print-directory $(GO_LICENSE_FILE)
 
-.PHONY: vendor
-vendor: tidy
+vendor: go.mod go.sum
 	$(GO) mod vendor
+	@touch vendor
 
 .PHONY: tidy-check
 tidy-check: tidy
-	@diff=$$(git diff go.mod go.sum); \
+	@diff=$$(git diff go.mod go.sum $(GO_LICENSE_FILE)); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make tidy' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
 	fi
+
+.PHONY: go-licenses
+go-licenses: $(GO_LICENSE_FILE)
+
+$(GO_LICENSE_FILE): go.mod go.sum
+	-$(GO) run $(GO_LICENSES_PACKAGE) save . --force --save_path=$(GO_LICENSE_TMP_DIR) 2>/dev/null
+	$(GO) run build/generate-go-licenses.go $(GO_LICENSE_TMP_DIR) $(GO_LICENSE_FILE)
+	@rm -rf $(GO_LICENSE_TMP_DIR)
 
 generate-ini-sqlite:
 	sed -e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
@@ -691,12 +711,23 @@ build: frontend backend
 frontend: $(WEBPACK_DEST)
 
 .PHONY: backend
-backend: go-check generate $(EXECUTABLE)
+backend: go-check generate-backend $(EXECUTABLE)
 
+# We generate the backend before the frontend in case we in future we want to generate things in the frontend from generated files in backend
 .PHONY: generate
-generate: $(TAGS_PREREQ)
+generate: generate-backend
+
+.PHONY: generate-backend
+generate-backend: $(TAGS_PREREQ) generate-go
+
+.PHONY: generate-go
+generate-go: $(TAGS_PREREQ)
 	@echo "Running go generate..."
 	@CC= GOOS= GOARCH= $(GO) generate -tags '$(TAGS)' $(GO_PACKAGES)
+
+.PHONY: security-check
+security-check:
+	govulncheck -v ./...
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
@@ -782,6 +813,8 @@ deps-backend:
 	$(GO) install $(MISSPELL_PACKAGE)
 	$(GO) install $(SWAGGER_PACKAGE)
 	$(GO) install $(XGO_PACKAGE)
+	$(GO) install $(GO_LICENSES_PACKAGE)
+	$(GO) install $(GOVULNCHECK_PACKAGE)
 
 node_modules: package-lock.json
 	npm install --no-save

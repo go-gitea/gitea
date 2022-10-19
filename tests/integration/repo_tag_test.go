@@ -6,7 +6,6 @@ package integration
 
 import (
 	"net/url"
-	"os"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -15,7 +14,6 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/release"
 	"code.gitea.io/gitea/tests"
 
@@ -59,16 +57,14 @@ func TestCreateNewTagProtected(t *testing.T) {
 			username := "user2"
 			httpContext := NewAPITestContext(t, username, "repo1")
 
-			dstPath, err := os.MkdirTemp("", httpContext.Reponame)
-			assert.NoError(t, err)
-			defer util.RemoveAll(dstPath)
+			dstPath := t.TempDir()
 
 			u.Path = httpContext.GitPath()
 			u.User = url.UserPassword(username, userPassword)
 
 			doGitClone(dstPath, u)(t)
 
-			_, _, err = git.NewCommand(git.DefaultContext, "tag", "v-2").RunStdString(&git.RunOpts{Dir: dstPath})
+			_, _, err := git.NewCommand(git.DefaultContext, "tag", "v-2").RunStdString(&git.RunOpts{Dir: dstPath})
 			assert.NoError(t, err)
 
 			_, _, err = git.NewCommand(git.DefaultContext, "push", "--tags").RunStdString(&git.RunOpts{Dir: dstPath})

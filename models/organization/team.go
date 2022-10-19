@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -43,6 +44,10 @@ func (err ErrTeamAlreadyExist) Error() string {
 	return fmt.Sprintf("team already exists [org_id: %d, name: %s]", err.OrgID, err.Name)
 }
 
+func (err ErrTeamAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
 // ErrTeamNotExist represents a "TeamNotExist" error
 type ErrTeamNotExist struct {
 	OrgID  int64
@@ -58,6 +63,10 @@ func IsErrTeamNotExist(err error) bool {
 
 func (err ErrTeamNotExist) Error() string {
 	return fmt.Sprintf("team does not exist [org_id %d, team_id %d, name: %s]", err.OrgID, err.TeamID, err.Name)
+}
+
+func (err ErrTeamNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // OwnerTeamName return the owner team name
@@ -129,29 +138,11 @@ func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 	if opts.UserID > 0 {
 		sess = sess.Join("INNER", "team_user", "team_user.team_id = team.id")
 	}
-
-	count, err := sess.
-		Where(cond).
-		Count(new(Team))
-	if err != nil {
-		return nil, 0, err
-	}
-
-	if opts.UserID > 0 {
-		sess = sess.Join("INNER", "team_user", "team_user.team_id = team.id")
-	}
-
-	if opts.PageSize == -1 {
-		opts.PageSize = int(count)
-	} else {
-		sess = sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
-	}
+	sess = db.SetSessionPagination(sess, opts)
 
 	teams := make([]*Team, 0, opts.PageSize)
-	if err = sess.
-		Where(cond).
-		OrderBy("lower_name").
-		Find(&teams); err != nil {
+	count, err := sess.Where(cond).OrderBy("lower_name").FindAndCount(&teams)
+	if err != nil {
 		return nil, 0, err
 	}
 

@@ -52,8 +52,8 @@ export async function save_visual(page) {
       fullPage: true,
       timeout: 20000,
       mask: [
-        page.locator('.dashboard-navbar span>img.ui.avatar.image'),
-        page.locator('.ui.dropdown.jump.item.tooltip span>img.ui.avatar.image'),
+        page.locator('.dashboard-navbar span>img.ui.avatar'),
+        page.locator('.ui.dropdown.jump.item.tooltip span>img.ui.avatar'),
       ],
     });
   }

@@ -27,7 +27,7 @@ import (
 	"xorm.io/builder"
 )
 
-// ErrUserDoesNotHaveAccessToRepo represets an error where the user doesn't has access to a given repo.
+// ErrUserDoesNotHaveAccessToRepo represents an error where the user doesn't has access to a given repo.
 type ErrUserDoesNotHaveAccessToRepo struct {
 	UserID   int64
 	RepoName string
@@ -41,6 +41,10 @@ func IsErrUserDoesNotHaveAccessToRepo(err error) bool {
 
 func (err ErrUserDoesNotHaveAccessToRepo) Error() string {
 	return fmt.Sprintf("user doesn't have access to repo [user_id: %d, repo_name: %s]", err.UserID, err.RepoName)
+}
+
+func (err ErrUserDoesNotHaveAccessToRepo) Unwrap() error {
+	return util.ErrPermissionDenied
 }
 
 var (
@@ -641,6 +645,11 @@ func IsErrRepoNotExist(err error) bool {
 func (err ErrRepoNotExist) Error() string {
 	return fmt.Sprintf("repository does not exist [id: %d, uid: %d, owner_name: %s, name: %s]",
 		err.ID, err.UID, err.OwnerName, err.Name)
+}
+
+// Unwrap unwraps this error as a ErrNotExist error
+func (err ErrRepoNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // GetRepositoryByOwnerAndNameCtx returns the repository by given owner name and repo name
