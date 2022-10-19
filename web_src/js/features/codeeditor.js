@@ -112,10 +112,6 @@ export async function createMonaco(textarea, filename, editorOpts) {
     textarea.dispatchEvent(new Event('change')); // seems to be needed for jquery-are-you-sure
   });
 
-  window.addEventListener('resize', () => {
-    editor.layout();
-  });
-
   exportEditor(editor);
 
   const loading = document.querySelector('.editor-loading');
