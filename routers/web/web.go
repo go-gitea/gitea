@@ -809,7 +809,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Get("/", repo.ProtectedBranchRules)
 				m.Combo("/new").Get(repo.SettingsProtectedBranch).
 					Post(bindIgnErr(forms.ProtectBranchForm{}), context.RepoMustNotBeArchived(), repo.SettingsProtectedBranchPost)
-				m.Get("/{id}/delete", repo.DeleteProtectedBranchRulePost)
+				m.Post("/{id}/delete", repo.DeleteProtectedBranchRulePost)
 				m.Combo("/{id}").Get(repo.SettingsProtectedBranch).
 					Post(bindIgnErr(forms.ProtectBranchForm{}), context.RepoMustNotBeArchived(), repo.SettingsProtectedBranchPost)
 			}, repo.MustBeNotEmpty)

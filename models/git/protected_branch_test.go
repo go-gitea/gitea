@@ -18,9 +18,24 @@ func TestBranchRuleMatch(t *testing.T) {
 		ExpectedMatch bool
 	}{
 		{
-			Rule:          "release/**",
+			Rule:          "release/*",
 			BranchName:    "release/v1.17",
 			ExpectedMatch: true,
+		},
+		{
+			Rule:          "release/**/v1.17",
+			BranchName:    "release/test/v1.17",
+			ExpectedMatch: true,
+		},
+		{
+			Rule:          "release/**/v1.17",
+			BranchName:    "release/test/1/v1.17",
+			ExpectedMatch: true,
+		},
+		{
+			Rule:          "release/*/v1.17",
+			BranchName:    "release/test/1/v1.17",
+			ExpectedMatch: false,
 		},
 		{
 			Rule:          "release/v*",
@@ -31,6 +46,11 @@ func TestBranchRuleMatch(t *testing.T) {
 			Rule:          "*",
 			BranchName:    "release/v1.16",
 			ExpectedMatch: false,
+		},
+		{
+			Rule:          "**",
+			BranchName:    "release/v1.16",
+			ExpectedMatch: true,
 		},
 	}
 

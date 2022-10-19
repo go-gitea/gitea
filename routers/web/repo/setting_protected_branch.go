@@ -291,7 +291,9 @@ func DeleteProtectedBranchRulePost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.remove_protected_branch_success", rule.BranchName))
-	ctx.Redirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
+	ctx.JSON(http.StatusOK, map[string]interface{}{
+		"redirect": fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink),
+	})
 }
 
 // RenameBranchPost responses for rename a branch

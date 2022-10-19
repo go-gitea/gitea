@@ -26,11 +26,11 @@ import (
 
 // ProtectedBranch struct
 type ProtectedBranch struct {
-	ID                            int64       `xorm:"pk autoincr"`
-	RepoID                        int64       `xorm:"UNIQUE(s)"`
-	BranchName                    string      `xorm:"UNIQUE(s)"` // a branch name or a glob match to branch name
-	globRule                      []glob.Glob `xorm:"-"`
-	CanPush                       bool        `xorm:"NOT NULL DEFAULT false"`
+	ID                            int64     `xorm:"pk autoincr"`
+	RepoID                        int64     `xorm:"UNIQUE(s)"`
+	BranchName                    string    `xorm:"UNIQUE(s)"` // a branch name or a glob match to branch name
+	globRule                      glob.Glob `xorm:"-"`
+	CanPush                       bool      `xorm:"NOT NULL DEFAULT false"`
 	EnableWhitelist               bool
 	WhitelistUserIDs              []int64  `xorm:"JSON TEXT"`
 	WhitelistTeamIDs              []int64  `xorm:"JSON TEXT"`
@@ -66,21 +66,10 @@ func (protectBranch *ProtectedBranch) Match(branchName string) bool {
 		return true
 	}
 	if protectBranch.globRule == nil {
-		parts := strings.Split(protectBranch.BranchName, "/")
-		for _, part := range parts {
-			protectBranch.globRule = append(protectBranch.globRule, glob.MustCompile(part))
-		}
+		protectBranch.globRule = glob.MustCompile(protectBranch.BranchName, '/')
 	}
-	fields := strings.Split(branchName, "/")
-	if len(fields) != len(protectBranch.globRule) {
-		return false
-	}
-	for i := 0; i < len(fields); i++ {
-		if !protectBranch.globRule[i].Match(fields[i]) {
-			return false
-		}
-	}
-	return true
+
+	return protectBranch.globRule.Match(branchName)
 }
 
 // CanUserPush returns if some user could push to this protected branch
