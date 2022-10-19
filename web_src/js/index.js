@@ -16,7 +16,8 @@ import initRepoMigration from './features/repo-migration.js';
 import initRepoProject from './features/repo-projects.js';
 import initServiceWorker from './features/serviceworker.js';
 import initTableSort from './features/tablesort.js';
-import {initAdminUserListSearchForm} from './features/admin-users.js';
+import {initAdminUserListSearchForm} from './features/admin/users.js';
+import {initAdminConfigs} from './features/admin/config.js';
 import {initMarkupAnchors} from './markup/anchors.js';
 import {initNotificationCount, initNotificationsTable} from './features/notification.js';
 import {initRepoIssueContentHistory} from './features/repo-issue-content.js';
@@ -60,8 +61,8 @@ import {
   initGlobalTooltips,
 } from './features/common-global.js';
 import {initRepoTopicBar} from './features/repo-home.js';
-import {initAdminEmails} from './features/admin-emails.js';
-import {initAdminCommon} from './features/admin-common.js';
+import {initAdminEmails} from './features/admin/emails.js';
+import {initAdminCommon} from './features/admin/common.js';
 import {initRepoTemplateSearch} from './features/repo-template.js';
 import {initRepoCodeView} from './features/repo-code.js';
 import {initSshKeyFormParser} from './features/sshkey-helper.js';
@@ -139,6 +140,7 @@ $(document).ready(() => {
   initAdminCommon();
   initAdminEmails();
   initAdminUserListSearchForm();
+  initAdminConfigs();
 
   initDashboardRepoList();
 

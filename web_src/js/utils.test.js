@@ -1,3 +1,4 @@
+import {expect, test} from 'vitest';
 import {
   basename, extname, isObject, uniq, stripTags, joinPaths, parseIssueHref,
   prettyNumber, parseUrl,

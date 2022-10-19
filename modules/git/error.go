@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrExecTimeout error when exec timed out
@@ -39,6 +41,10 @@ func IsErrNotExist(err error) bool {
 
 func (err ErrNotExist) Error() string {
 	return fmt.Sprintf("object does not exist [id: %s, rel_path: %s]", err.ID, err.RelPath)
+}
+
+func (err ErrNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // ErrBadLink entry.FollowLink error
@@ -85,6 +91,10 @@ func IsErrBranchNotExist(err error) bool {
 
 func (err ErrBranchNotExist) Error() string {
 	return fmt.Sprintf("branch does not exist [name: %s]", err.Name)
+}
+
+func (err ErrBranchNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // ErrPushOutOfDate represents an error if merging fails due to unrelated histories

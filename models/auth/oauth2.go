@@ -486,7 +486,7 @@ type ErrOAuthClientIDInvalid struct {
 	ClientID string
 }
 
-// IsErrOauthClientIDInvalid checks if an error is a ErrReviewNotExist.
+// IsErrOauthClientIDInvalid checks if an error is a ErrOAuthClientIDInvalid.
 func IsErrOauthClientIDInvalid(err error) bool {
 	_, ok := err.(ErrOAuthClientIDInvalid)
 	return ok
@@ -495,6 +495,11 @@ func IsErrOauthClientIDInvalid(err error) bool {
 // Error returns the error message
 func (err ErrOAuthClientIDInvalid) Error() string {
 	return fmt.Sprintf("Client ID invalid [Client ID: %s]", err.ClientID)
+}
+
+// Unwrap unwraps this as a ErrNotExist err
+func (err ErrOAuthClientIDInvalid) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // ErrOAuthApplicationNotFound will be thrown if id cannot be found
@@ -511,6 +516,11 @@ func IsErrOAuthApplicationNotFound(err error) bool {
 // Error returns the error message
 func (err ErrOAuthApplicationNotFound) Error() string {
 	return fmt.Sprintf("OAuth application not found [ID: %d]", err.ID)
+}
+
+// Unwrap unwraps this as a ErrNotExist err
+func (err ErrOAuthApplicationNotFound) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // GetActiveOAuth2ProviderSources returns all actived LoginOAuth2 sources

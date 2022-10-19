@@ -167,6 +167,10 @@ func (err ErrTaskDoesNotExist) Error() string {
 		err.ID, err.RepoID, err.Type)
 }
 
+func (err ErrTaskDoesNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // GetMigratingTask returns the migrating task by repo's id
 func GetMigratingTask(repoID int64) (*Task, error) {
 	task := Task{

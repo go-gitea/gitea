@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrUserRedirectNotExist represents a "UserRedirectNotExist" kind of error.
@@ -25,6 +26,10 @@ func IsErrUserRedirectNotExist(err error) bool {
 
 func (err ErrUserRedirectNotExist) Error() string {
 	return fmt.Sprintf("user redirect does not exist [name: %s]", err.Name)
+}
+
+func (err ErrUserRedirectNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // Redirect represents that a user name should be redirected to another
