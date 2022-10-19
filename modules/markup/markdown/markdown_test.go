@@ -480,7 +480,7 @@ func TestColorPreview(t *testing.T) {
 	for _, test := range negativeTests {
 		res, err := RenderString(&markup.RenderContext{}, test)
 		assert.NoError(t, err, "Unexpected error in testcase: %q", test)
-		assert.NotContains(t, res, `<span class="repo-icon rounded color-preview" style="background-color: `, "Unexpected result in testcase %q", test)
+		assert.NotContains(t, res, `<span class="color-preview dib" style="background-color: `, "Unexpected result in testcase %q", test)
 	}
 }
 
