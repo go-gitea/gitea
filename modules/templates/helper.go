@@ -459,7 +459,7 @@ func NewFuncMap() []template.FuncMap {
 			return items
 		},
 		"HasPrefix": strings.HasPrefix,
-		"CompareLink": func(baseRepo *repo_model.Repository, repo *repo_model.Repository, branchName string) string {
+		"CompareLink": func(baseRepo, repo *repo_model.Repository, branchName string) string {
 			var curBranch string
 			if repo.ID != baseRepo.ID {
 				curBranch += fmt.Sprintf("%s/%s:", url.PathEscape(repo.Owner.Name), url.PathEscape(repo.Name))
