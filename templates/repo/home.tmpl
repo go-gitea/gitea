@@ -77,25 +77,23 @@
 					<a href="{{.Repository.Link}}/find/{{.BranchNameSubURL}}" class="ui compact basic button tooltip" data-content="{{.locale.Tr "repo.find_file.go_to_file"}}">{{svg "octicon-file-moved" 15}}</a>
 				{{end}}
 				{{if or .CanAddFile .CanUploadFile}}
-					<button class="ui basic small compact dropdown jump icon button mr-2">
+					<button class="ui basic small compact dropdown jump icon button mr-2"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
 						<span class="text">{{.locale.Tr "repo.editor.add_file"}}</span>
 						<div class="menu">
-							{{if .Repository.CanEnableEditor}}
-								{{if .CanAddFile}}
-									<a class="item" href="{{.RepoLink}}/_new/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
-										{{.locale.Tr "repo.editor.new_file"}}
-									</a>
-								{{end}}
-								{{if .CanUploadFile}}
-									<a class="item" href="{{.RepoLink}}/_upload/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
-										{{.locale.Tr "repo.editor.upload_file"}}
-									</a>
-								{{end}}
-								{{if .CanAddFile}}
-									<a class="item" href="{{.RepoLink}}/_diffpatch/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
-										{{.locale.Tr "repo.editor.patch"}}
-									</a>
-								{{end}}
+							{{if .CanAddFile}}
+								<a class="item" href="{{.RepoLink}}/_new/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
+									{{.locale.Tr "repo.editor.new_file"}}
+								</a>
+							{{end}}
+							{{if .CanUploadFile}}
+								<a class="item" href="{{.RepoLink}}/_upload/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
+									{{.locale.Tr "repo.editor.upload_file"}}
+								</a>
+							{{end}}
+							{{if .CanAddFile}}
+								<a class="item" href="{{.RepoLink}}/_diffpatch/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
+									{{.locale.Tr "repo.editor.patch"}}
+								</a>
 							{{end}}
 						</div>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
