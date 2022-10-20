@@ -123,7 +123,7 @@
 					</a>
 					<span class="text grey">
 						<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-						{{if .Issue.IsPull }}
+						{{if .Issue.IsPull}}
 							{{$.locale.Tr "repo.pulls.closed_at" .EventTag $createdStr | Safe}}
 						{{else}}
 							{{$.locale.Tr "repo.issues.closed_at" .EventTag $createdStr | Safe}}
@@ -440,7 +440,7 @@
 							<div class="ui small label">{{$.locale.Tr "repo.issues.review.dismissed_label"}}</div>
 						{{end}}
 						{{if $.Repository.OriginalURL}}
-							<span class="text migrate">({{$.locale.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe }})</span>
+							<span class="text migrate">({{$.locale.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe}})</span>
 						{{end}}
 					</span>
 				</div>

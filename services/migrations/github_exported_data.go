@@ -27,7 +27,7 @@ import (
 )
 
 /*
-	{"version":"1.0.1","github_sha":"8de0984858fd99a8dcd2d756cf0f128b9161e3b5"}
+{"version":"1.0.1","github_sha":"8de0984858fd99a8dcd2d756cf0f128b9161e3b5"}
 */
 type githubSchema struct {
 	Version   string
@@ -35,26 +35,26 @@ type githubSchema struct {
 }
 
 /*
-{
-    "type": "user",
-    "url": "https://github.com/sunvim",
-    "avatar_url": "https://avatars.githubusercontent.com/u/859692?v=4",
-    "login": "sunvim",
-    "name": "mobus",
-    "bio": "code happy ",
-    "company": "Ankr",
-    "website": null,
-    "location": "Shanghai",
-    "emails": [
-      {
-        "address": "sv0220@163.com",
-        "primary": true,
-        "verified": true
-      }
-    ],
-    "billing_plan": null,
-    "created_at": "2011-06-19T11:25:35Z"
-  },
+	{
+	    "type": "user",
+	    "url": "https://github.com/sunvim",
+	    "avatar_url": "https://avatars.githubusercontent.com/u/859692?v=4",
+	    "login": "sunvim",
+	    "name": "mobus",
+	    "bio": "code happy ",
+	    "company": "Ankr",
+	    "website": null,
+	    "location": "Shanghai",
+	    "emails": [
+	      {
+	        "address": "sv0220@163.com",
+	        "primary": true,
+	        "verified": true
+	      }
+	    ],
+	    "billing_plan": null,
+	    "created_at": "2011-06-19T11:25:35Z"
+	  },
 */
 type githubUser struct {
 	URL       string
@@ -117,17 +117,18 @@ func (g *githubUser) Email() string {
 	return ""
 }
 
-/*{
-    "type": "attachment",
-    "url": "https://user-images.githubusercontent.com/1595118/2923824-63a167ce-d721-11e3-91b6-74b83dc345bb.png",
-		"issue": "https://github.com/go-xorm/xorm/issues/205",
-    "issue_comment": "https://github.com/go-xorm/xorm/issues/115#issuecomment-42628488",
-    "user": "https://github.com/mintzhao",
-    "asset_name": "QQ20140509-1.2x.png",
-    "asset_content_type": "image/png",
-    "asset_url": "tarball://root/attachments/63a167ce-d721-11e3-91b6-74b83dc345bb/QQ20140509-1.2x.png",
-    "created_at": "2014-05-09T02:38:54Z"
-  },
+/*
+	{
+	    "type": "attachment",
+	    "url": "https://user-images.githubusercontent.com/1595118/2923824-63a167ce-d721-11e3-91b6-74b83dc345bb.png",
+			"issue": "https://github.com/go-xorm/xorm/issues/205",
+	    "issue_comment": "https://github.com/go-xorm/xorm/issues/115#issuecomment-42628488",
+	    "user": "https://github.com/mintzhao",
+	    "asset_name": "QQ20140509-1.2x.png",
+	    "asset_content_type": "image/png",
+	    "asset_url": "tarball://root/attachments/63a167ce-d721-11e3-91b6-74b83dc345bb/QQ20140509-1.2x.png",
+	    "created_at": "2014-05-09T02:38:54Z"
+	  },
 */
 type githubAttachment struct {
 	URL              string `json:"url"`
@@ -184,12 +185,13 @@ func (r *GithubExportedDataRestorer) convertAttachments(ls []githubAttachment) [
 }
 
 /*
-{
-        "user": "https://github.com/mrsdizzie",
-        "content": "+1",
-        "subject_type": "Issue",
-        "created_at": "2019-11-13T04:22:13.000+08:00"
-      }*/
+	{
+	        "user": "https://github.com/mrsdizzie",
+	        "content": "+1",
+	        "subject_type": "Issue",
+	        "created_at": "2019-11-13T04:22:13.000+08:00"
+	      }
+*/
 type githubReaction struct {
 	User        string
 	Content     string
@@ -501,19 +503,21 @@ func (r *GithubExportedDataRestorer) getAttachments() error {
 	})
 }
 
-/* {
-   "type": "milestone",
-   "url": "https://github.com/go-gitea/test_repo/milestones/1",
-   "repository": "https://github.com/go-gitea/test_repo",
-   "user": "https://github.com/mrsdizzie",
-   "title": "1.0.0",
-   "description": "Milestone 1.0.0",
-   "state": "closed",
-   "due_on": "2019-11-11T00:00:00Z",
-   "created_at": "2019-11-12T19:37:08Z",
-   "updated_at": "2019-11-12T21:56:17Z",
-   "closed_at": "2019-11-12T19:45:49Z"
- },*/
+/*
+	{
+	  "type": "milestone",
+	  "url": "https://github.com/go-gitea/test_repo/milestones/1",
+	  "repository": "https://github.com/go-gitea/test_repo",
+	  "user": "https://github.com/mrsdizzie",
+	  "title": "1.0.0",
+	  "description": "Milestone 1.0.0",
+	  "state": "closed",
+	  "due_on": "2019-11-11T00:00:00Z",
+	  "created_at": "2019-11-12T19:37:08Z",
+	  "updated_at": "2019-11-12T21:56:17Z",
+	  "closed_at": "2019-11-12T19:45:49Z"
+	},
+*/
 type githubMilestone struct {
 	URL         string
 	User        string
@@ -554,24 +558,24 @@ func (r *GithubExportedDataRestorer) GetMilestones() ([]*base.Milestone, error) 
 }
 
 /*
-{
-    "type": "release",
-    "url": "https://github.com/go-xorm/xorm/releases/tag/v0.3.1",
-    "repository": "https://github.com/go-xorm/xorm",
-    "user": "https://github.com/lunny",
-    "name": "",
-    "tag_name": "v0.3.1",
-    "body": "- Features:\n  - Support MSSQL DB via ODBC driver ([github.com/lunny/godbc](https://github.com/lunny/godbc));\n  - Composite Key, using multiple pk xorm tag \n  - Added Row() API as alternative to Iterate() API for traversing result set, provide similar usages to sql.Rows type\n  - ORM struct allowed declaration of pointer builtin type as members to allow null DB fields \n  - Before and After Event processors\n- Improvements:\n  - Allowed int/int32/int64/uint/uint32/uint64/string as Primary Key type\n  - Performance improvement for Get()/Find()/Iterate()\n",
-    "state": "published",
-    "pending_tag": "v0.3.1",
-    "prerelease": false,
-    "target_commitish": "master",
-    "release_assets": [
+	{
+	    "type": "release",
+	    "url": "https://github.com/go-xorm/xorm/releases/tag/v0.3.1",
+	    "repository": "https://github.com/go-xorm/xorm",
+	    "user": "https://github.com/lunny",
+	    "name": "",
+	    "tag_name": "v0.3.1",
+	    "body": "- Features:\n  - Support MSSQL DB via ODBC driver ([github.com/lunny/godbc](https://github.com/lunny/godbc));\n  - Composite Key, using multiple pk xorm tag \n  - Added Row() API as alternative to Iterate() API for traversing result set, provide similar usages to sql.Rows type\n  - ORM struct allowed declaration of pointer builtin type as members to allow null DB fields \n  - Before and After Event processors\n- Improvements:\n  - Allowed int/int32/int64/uint/uint32/uint64/string as Primary Key type\n  - Performance improvement for Get()/Find()/Iterate()\n",
+	    "state": "published",
+	    "pending_tag": "v0.3.1",
+	    "prerelease": false,
+	    "target_commitish": "master",
+	    "release_assets": [
 
-    ],
-    "published_at": "2014-01-02T09:51:34Z",
-    "created_at": "2014-01-02T09:48:57Z"
-  },
+	    ],
+	    "published_at": "2014-01-02T09:51:34Z",
+	    "created_at": "2014-01-02T09:48:57Z"
+	  },
 */
 type githubRelease struct {
 	User            string
@@ -631,29 +635,30 @@ func (r *GithubExportedDataRestorer) GetLabels() ([]*base.Label, error) {
 }
 
 /*
-		{
-	    "type": "issue",
-	    "url": "https://github.com/go-xorm/xorm/issues/1",
-	    "repository": "https://github.com/go-xorm/xorm",
-	    "user": "https://github.com/zakzou",
-	    "title": "建表功能已经强大了，不过希望添加上自定义mysql engine和charset",
-	    "body": "如题\n",
-	    "assignee": "https://github.com/lunny",
-	    "assignees": [
-	      "https://github.com/lunny"
-	    ],
-	    "milestone": null,
-	    "labels": [
-				"https://github.com/go-gitea/test_repo/labels/bug",
-				"https://github.com/go-gitea/test_repo/labels/good%20first%20issue"
-    	],
-	    "reactions": [
+			{
+		    "type": "issue",
+		    "url": "https://github.com/go-xorm/xorm/issues/1",
+		    "repository": "https://github.com/go-xorm/xorm",
+		    "user": "https://github.com/zakzou",
+		    "title": "建表功能已经强大了，不过希望添加上自定义mysql engine和charset",
+		    "body": "如题\n",
+		    "assignee": "https://github.com/lunny",
+		    "assignees": [
+		      "https://github.com/lunny"
+		    ],
+		    "milestone": null,
+		    "labels": [
+					"https://github.com/go-gitea/test_repo/labels/bug",
+					"https://github.com/go-gitea/test_repo/labels/good%20first%20issue"
+	    	],
+		    "reactions": [
 
-	    ],
-	    "closed_at": "2013-08-08T05:26:00Z",
-	    "created_at": "2013-07-04T08:08:39Z",
-	    "updated_at": "2013-08-08T05:26:00Z"
-	  },*/
+		    ],
+		    "closed_at": "2013-08-08T05:26:00Z",
+		    "created_at": "2013-07-04T08:08:39Z",
+		    "updated_at": "2013-08-08T05:26:00Z"
+		  },
+*/
 type githubIssue struct {
 	URL       string
 	User      string
@@ -793,32 +798,33 @@ func (g *githubComment) GetIssueIndex() int64 {
 }
 
 /*
-{
-    "type": "issue_event",
-    "url": "https://github.com/go-xorm/xorm/issues/1#event-55275262",
-    "issue": "https://github.com/go-xorm/xorm/issues/1",
-    "actor": "https://github.com/lunny",
-    "event": "assigned",
-    "created_at": "2013-07-04T14:27:53Z"
-  },
-  {
-    "type": "issue_event",
-    "url": "https://github.com/go-xorm/xorm/pull/2#event-56230828",
-    "pull_request": "https://github.com/go-xorm/xorm/pull/2",
-    "actor": "https://github.com/lunny",
-    "event": "referenced",
-    "commit_id": "1be80583b0fa18e7b478fa12e129c95e9a06a62f",
-    "commit_repository": "https://github.com/go-xorm/xorm",
-    "created_at": "2013-07-12T02:10:52Z"
+	{
+	    "type": "issue_event",
+	    "url": "https://github.com/go-xorm/xorm/issues/1#event-55275262",
+	    "issue": "https://github.com/go-xorm/xorm/issues/1",
+	    "actor": "https://github.com/lunny",
+	    "event": "assigned",
+	    "created_at": "2013-07-04T14:27:53Z"
+	  },
+	  {
+	    "type": "issue_event",
+	    "url": "https://github.com/go-xorm/xorm/pull/2#event-56230828",
+	    "pull_request": "https://github.com/go-xorm/xorm/pull/2",
+	    "actor": "https://github.com/lunny",
+	    "event": "referenced",
+	    "commit_id": "1be80583b0fa18e7b478fa12e129c95e9a06a62f",
+	    "commit_repository": "https://github.com/go-xorm/xorm",
+	    "created_at": "2013-07-12T02:10:52Z"
 
-    "label": "https://github.com/go-xorm/xorm/labels/wip",
-		"label_name": "New Feature",
-    "label_color": "5319e7",
-    "label_text_color": "fff",
-		"milestone_title": "v0.4",
-		"title_was": "自动读写分离",
-    "title_is": "Automatical Read/Write seperatelly.",
-  },*/
+	    "label": "https://github.com/go-xorm/xorm/labels/wip",
+			"label_name": "New Feature",
+	    "label_color": "5319e7",
+	    "label_text_color": "fff",
+			"milestone_title": "v0.4",
+			"title_was": "自动读写分离",
+	    "title_is": "Automatical Read/Write seperatelly.",
+	  },
+*/
 type githubIssueEvent struct {
 	URL              string
 	Issue            string
@@ -1266,27 +1272,28 @@ func (p *pullrequestReview) GetState() string {
 }
 
 /*
-{
-    "type": "pull_request_review_thread",
-    "url": "https://github.com/go-xorm/xorm/pull/1445/files#pullrequestreviewthread-203253693",
-    "pull_request": "https://github.com/go-xorm/xorm/pull/1445",
-    "pull_request_review": "https://github.com/go-xorm/xorm/pull/1445/files#pullrequestreview-295977501",
-    "diff_hunk": "@@ -245,12 +245,17 @@ func (session *Session) Sync2(beans ...interface{}) error {\n \t\tif err != nil {\n \t\t\treturn err\n \t\t}\n-\t\ttbName := engine.TableName(bean)\n-\t\ttbNameWithSchema := engine.TableName(tbName, true)\n+\t\tvar tbName string\n+\t\tif len(session.statement.AltTableName) > 0 {\n+\t\t\ttbName = session.statement.AltTableName\n+\t\t} else {\n+\t\t\ttbName = engine.TableName(bean)\n+\t\t}\n+\t\ttbNameWithSchema := engine.tbNameWithSchema(tbName)\n \n \t\tvar oriTable *core.Table\n \t\tfor _, tb := range tables {\n-\t\t\tif strings.EqualFold(tb.Name, tbName) {\n+\t\t\tif strings.EqualFold(engine.tbNameWithSchema(tb.Name), engine.tbNameWithSchema(tbName)) {",
-    "path": "session_schema.go",
-    "position": 17,
-    "original_position": 17,
-    "commit_id": "f6b642c82aab95178a4551a1ff65dc2a631a08cf",
-    "original_commit_id": "f6b642c82aab95178a4551a1ff65dc2a631a08cf",
-    "start_line": null,
-    "line": 258,
-    "start_side": null,
-    "side": "right",
-    "original_start_line": null,
-    "original_line": 258,
-    "created_at": "2019-10-02T01:40:41Z",
-    "resolved_at": null,
-    "resolver": null
-  },*/
+	{
+	    "type": "pull_request_review_thread",
+	    "url": "https://github.com/go-xorm/xorm/pull/1445/files#pullrequestreviewthread-203253693",
+	    "pull_request": "https://github.com/go-xorm/xorm/pull/1445",
+	    "pull_request_review": "https://github.com/go-xorm/xorm/pull/1445/files#pullrequestreview-295977501",
+	    "diff_hunk": "@@ -245,12 +245,17 @@ func (session *Session) Sync2(beans ...interface{}) error {\n \t\tif err != nil {\n \t\t\treturn err\n \t\t}\n-\t\ttbName := engine.TableName(bean)\n-\t\ttbNameWithSchema := engine.TableName(tbName, true)\n+\t\tvar tbName string\n+\t\tif len(session.statement.AltTableName) > 0 {\n+\t\t\ttbName = session.statement.AltTableName\n+\t\t} else {\n+\t\t\ttbName = engine.TableName(bean)\n+\t\t}\n+\t\ttbNameWithSchema := engine.tbNameWithSchema(tbName)\n \n \t\tvar oriTable *core.Table\n \t\tfor _, tb := range tables {\n-\t\t\tif strings.EqualFold(tb.Name, tbName) {\n+\t\t\tif strings.EqualFold(engine.tbNameWithSchema(tb.Name), engine.tbNameWithSchema(tbName)) {",
+	    "path": "session_schema.go",
+	    "position": 17,
+	    "original_position": 17,
+	    "commit_id": "f6b642c82aab95178a4551a1ff65dc2a631a08cf",
+	    "original_commit_id": "f6b642c82aab95178a4551a1ff65dc2a631a08cf",
+	    "start_line": null,
+	    "line": 258,
+	    "start_side": null,
+	    "side": "right",
+	    "original_start_line": null,
+	    "original_line": 258,
+	    "created_at": "2019-10-02T01:40:41Z",
+	    "resolved_at": null,
+	    "resolver": null
+	  },
+*/
 type pullrequestReviewThread struct {
 	URL               string
 	PullRequest       string `json:"pull_request"`
@@ -1311,28 +1318,30 @@ func (p *pullrequestReviewThread) Index() int64 {
 	return idx
 }
 
-/*{
-  "type": "pull_request_review_comment",
-  "url": "https://github.com/go-gitea/test_repo/pull/4/files#r363017488",
-  "pull_request": "https://github.com/go-gitea/test_repo/pull/4",
-  "pull_request_review": "https://github.com/go-gitea/test_repo/pull/4/files#pullrequestreview-338338740",
-  "pull_request_review_thread": "https://github.com/go-gitea/test_repo/pull/4/files#pullrequestreviewthread-224172719",
-  "user": "https://github.com/lunny",
-  "body": "This is a good pull request.",
-  "formatter": "markdown",
-  "diff_hunk": "@@ -1,2 +1,4 @@\n # test_repo\n Test repository for testing migration from github to gitea\n+",
-  "path": "README.md",
-  "position": 3,
-  "original_position": 3,
-  "commit_id": "2be9101c543658591222acbee3eb799edfc3853d",
-  "original_commit_id": "2be9101c543658591222acbee3eb799edfc3853d",
-  "state": 1,
-  "in_reply_to": null,
-  "reactions": [
+/*
+	{
+	  "type": "pull_request_review_comment",
+	  "url": "https://github.com/go-gitea/test_repo/pull/4/files#r363017488",
+	  "pull_request": "https://github.com/go-gitea/test_repo/pull/4",
+	  "pull_request_review": "https://github.com/go-gitea/test_repo/pull/4/files#pullrequestreview-338338740",
+	  "pull_request_review_thread": "https://github.com/go-gitea/test_repo/pull/4/files#pullrequestreviewthread-224172719",
+	  "user": "https://github.com/lunny",
+	  "body": "This is a good pull request.",
+	  "formatter": "markdown",
+	  "diff_hunk": "@@ -1,2 +1,4 @@\n # test_repo\n Test repository for testing migration from github to gitea\n+",
+	  "path": "README.md",
+	  "position": 3,
+	  "original_position": 3,
+	  "commit_id": "2be9101c543658591222acbee3eb799edfc3853d",
+	  "original_commit_id": "2be9101c543658591222acbee3eb799edfc3853d",
+	  "state": 1,
+	  "in_reply_to": null,
+	  "reactions": [
 
-  ],
-  "created_at": "2020-01-04T05:33:06Z"
-},*/
+	  ],
+	  "created_at": "2020-01-04T05:33:06Z"
+	},
+*/
 type pullrequestReviewComment struct {
 	PullRequest             string `json:"pull_request"`
 	PullRequestReview       string `json:"pull_request_review"`
