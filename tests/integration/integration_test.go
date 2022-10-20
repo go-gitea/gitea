@@ -18,6 +18,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -260,9 +261,12 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 
 // token has to be unique this counter take care of
 var tokenCounter int64
+var tokenCounterMutex sync.Mutex
 
 func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
 	t.Helper()
+	tokenCounterMutex.Lock()
+	defer tokenCounterMutex.Unlock()
 	tokenCounter++
 	req := NewRequest(t, "GET", "/user/settings/applications")
 	resp := session.MakeRequest(t, req, http.StatusOK)
