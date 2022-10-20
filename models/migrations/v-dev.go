@@ -7,7 +7,6 @@ package migrations
 import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
-
 	"xorm.io/xorm"
 )
 
@@ -61,9 +60,9 @@ func addBotTables(x *xorm.Engine) error {
 		Token         string // token for this task
 		Grant         string // permissions for this task
 		EventPayload  string `xorm:"LONGTEXT"`
-		Status        int32  `xorm:"index"`
-		StartTime     timeutil.TimeStamp
-		EndTime       timeutil.TimeStamp
+		Status        int    `xorm:"index"`
+		Started       timeutil.TimeStamp
+		Stopped       timeutil.TimeStamp
 		Created       timeutil.TimeStamp `xorm:"created"`
 		Updated       timeutil.TimeStamp `xorm:"updated"`
 	}
@@ -79,7 +78,7 @@ func addBotTables(x *xorm.Engine) error {
 		Needs           []int64  `xorm:"JSON TEXT"`
 		RunsOn          []string `xorm:"JSON TEXT"`
 		TaskID          int64    // the latest task of the job
-		Status          int32    `xorm:"index"`
+		Status          int      `xorm:"index"`
 		Started         timeutil.TimeStamp
 		Stopped         timeutil.TimeStamp
 		Created         timeutil.TimeStamp `xorm:"created"`
@@ -99,6 +98,7 @@ func addBotTables(x *xorm.Engine) error {
 		Attempt      int64
 		RunnerID     int64 `xorm:"index"`
 		Result       int32
+		Status       int `xorm:"index"`
 		Started      timeutil.TimeStamp
 		Stopped      timeutil.TimeStamp
 		LogFilename  string   // file name of log
@@ -117,6 +117,7 @@ func addBotTables(x *xorm.Engine) error {
 		TaskID    int64 `xorm:"index unique(task_number)"`
 		Number    int64 `xorm:"index unique(task_number)"`
 		Result    int32
+		Status    int `xorm:"index"`
 		LogIndex  int64
 		LogLength int64
 		Started   timeutil.TimeStamp

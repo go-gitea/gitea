@@ -33,12 +33,12 @@ type Run struct {
 	Ref           string
 	CommitSHA     string
 	Event         webhook.HookEventType
-	Token         string           // token for this task
-	Grant         string           // permissions for this task
-	EventPayload  string           `xorm:"LONGTEXT"`
-	Status        core.BuildStatus `xorm:"index"`
-	StartTime     timeutil.TimeStamp
-	EndTime       timeutil.TimeStamp
+	Token         string // token for this task
+	Grant         string // permissions for this task
+	EventPayload  string `xorm:"LONGTEXT"`
+	Status        Status `xorm:"index"`
+	Started       timeutil.TimeStamp
+	Stopped       timeutil.TimeStamp
 	Created       timeutil.TimeStamp `xorm:"created"`
 	Updated       timeutil.TimeStamp `xorm:"updated"`
 }
@@ -85,7 +85,7 @@ func (r *Run) LoadAttributes(ctx context.Context) error {
 }
 
 func (run *Run) TakeTime() time.Duration {
-	return run.EndTime.AsTime().Sub(run.StartTime.AsTime())
+	return run.Started.AsTime().Sub(run.Stopped.AsTime())
 }
 
 func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) error {
@@ -154,8 +154,7 @@ func InsertRun(run *Run, jobs []*jobparser.SingleWorkflow) error {
 			JobID:           id,
 			Needs:           nil, // TODO: analyse needs
 			RunsOn:          job.RunsOn(),
-			TaskID:          0,
-			Status:          core.StatusPending,
+			Status:          StatusWaiting,
 		})
 	}
 	if err := db.Insert(ctx, runJobs); err != nil {
@@ -186,6 +185,15 @@ func GetRunByID(ctx context.Context, id int64) (*Run, error) {
 	}
 
 	return &run, nil
+}
+
+func UpdateRun(ctx context.Context, run *Run, cols ...string) error {
+	sess := db.GetEngine(ctx).ID(run.ID)
+	if len(cols) > 0 {
+		sess.Cols(cols...)
+	}
+	_, err := sess.Update(run)
+	return err
 }
 
 type RunIndex db.ResourceIndex

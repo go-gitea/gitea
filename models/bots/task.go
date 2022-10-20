@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"io"
 
-	"code.gitea.io/gitea/core"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -30,6 +29,7 @@ type Task struct {
 	Attempt  int64
 	RunnerID int64 `xorm:"index"`
 	Result   runnerv1.Result
+	Status   Status `xorm:"index"`
 	Started  timeutil.TimeStamp
 	Stopped  timeutil.TimeStamp
 
@@ -82,6 +82,9 @@ func (task *Task) LoadAttributes(ctx context.Context) error {
 
 // FullSteps returns steps with "Set up job" and "Complete job"
 func (task *Task) FullSteps() []*TaskStep {
+
+	// TODO: The logic here is too complex and tricky, may need to be rewritten
+
 	var firstStep, lastStep *TaskStep
 	if l := len(task.Steps); l > 0 {
 		firstStep = task.Steps[0]
@@ -93,10 +96,15 @@ func (task *Task) FullSteps() []*TaskStep {
 		Name:      "Set up job",
 		LogLength: task.LogLength,
 		Started:   task.Started,
+		Status:    StatusWaiting,
+	}
+	if task.LogLength > 0 {
+		headStep.Status = StatusRunning
 	}
 	if firstStep != nil && firstStep.LogLength > 0 {
 		headStep.LogLength = firstStep.LogIndex
 		headStep.Stopped = firstStep.Started
+		headStep.Status = StatusSuccess
 	}
 	index += headStep.LogLength
 
@@ -107,11 +115,13 @@ func (task *Task) FullSteps() []*TaskStep {
 	tailStep := &TaskStep{
 		Name:    "Complete job",
 		Stopped: task.Stopped,
+		Status:  StatusWaiting,
 	}
 	if lastStep != nil && lastStep.Result != runnerv1.Result_RESULT_UNSPECIFIED {
 		tailStep.LogIndex = index
 		tailStep.LogLength = task.LogLength - tailStep.LogIndex
 		tailStep.Started = lastStep.Stopped
+		tailStep.Status = StatusSuccess
 	}
 	steps := make([]*TaskStep, 0, len(task.Steps)+2)
 	steps = append(steps, headStep)
@@ -202,13 +212,14 @@ func CreateTaskForRunner(runner *Runner) (*Task, bool, error) {
 	now := timeutil.TimeStampNow()
 	job.Attempt++
 	job.Started = now
-	job.Status = core.StatusRunning
+	job.Status = StatusRunning
 
 	task := &Task{
 		JobID:    job.ID,
 		Attempt:  job.Attempt,
 		RunnerID: runner.ID,
 		Started:  now,
+		Status:   StatusRunning,
 	}
 
 	var wolkflowJob *jobparser.Job
@@ -235,6 +246,7 @@ func CreateTaskForRunner(runner *Runner) (*Task, bool, error) {
 			Name:   v.String(),
 			TaskID: task.ID,
 			Number: int64(i),
+			Status: StatusWaiting,
 		}
 	}
 	if _, err := e.Insert(steps); err != nil {
@@ -243,7 +255,7 @@ func CreateTaskForRunner(runner *Runner) (*Task, bool, error) {
 	task.Steps = steps
 
 	job.TaskID = task.ID
-	if _, err := e.ID(job.ID).Update(job); err != nil {
+	if err := UpdateRunJob(ctx, job); err != nil {
 		return nil, false, err
 	}
 
@@ -277,15 +289,27 @@ func UpdateTaskByState(state *runnerv1.TaskState) error {
 	}
 	defer commiter.Close()
 
+	e := db.GetEngine(ctx)
+
 	task := &Task{}
-	if _, err := db.GetEngine(ctx).ID(state.Id).Get(task); err != nil {
+	if _, err := e.ID(state.Id).Get(task); err != nil {
 		return err
 	}
 
 	task.Result = state.Result
-	task.Stopped = timeutil.TimeStamp(state.StoppedAt.AsTime().Unix())
+	if task.Result != runnerv1.Result_RESULT_UNSPECIFIED {
+		task.Status = Status(task.Result)
+		task.Stopped = timeutil.TimeStamp(state.StoppedAt.AsTime().Unix())
+		if err := UpdateRunJob(ctx, &RunJob{
+			ID:      task.JobID,
+			Status:  task.Status,
+			Stopped: task.Stopped,
+		}); err != nil {
+			return err
+		}
+	}
 
-	if _, err := db.GetEngine(ctx).ID(task.ID).Update(task); err != nil {
+	if _, err := e.ID(task.ID).Update(task); err != nil {
 		return err
 	}
 
@@ -293,14 +317,22 @@ func UpdateTaskByState(state *runnerv1.TaskState) error {
 		return err
 	}
 
+	prevStepDone := true
 	for _, step := range task.Steps {
 		if v, ok := stepStates[step.Number]; ok {
 			step.Result = v.Result
 			step.LogIndex = v.LogIndex
 			step.LogLength = v.LogLength
-			if _, err := db.GetEngine(ctx).ID(step.ID).Update(step); err != nil {
-				return err
-			}
+		}
+		if step.Result != runnerv1.Result_RESULT_UNSPECIFIED {
+			step.Status = Status(step.Result)
+			prevStepDone = true
+		} else if prevStepDone {
+			step.Status = StatusRunning
+			prevStepDone = false
+		}
+		if _, err := e.ID(step.ID).Update(step); err != nil {
+			return err
 		}
 	}
 

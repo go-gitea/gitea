@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"code.gitea.io/gitea/core"
 	bots_model "code.gitea.io/gitea/models/bots"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
@@ -94,7 +93,7 @@ func notify(repo *repo_model.Repository, doer *user_model.User, payload, ref str
 			CommitSHA:     commit.ID.String(),
 			Event:         evt,
 			EventPayload:  payload,
-			Status:        core.StatusPending,
+			Status:        bots_model.StatusWaiting,
 		}
 		if len(run.Title) > 255 {
 			run.Title = run.Title[:255]

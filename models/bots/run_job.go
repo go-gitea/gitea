@@ -8,9 +8,10 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/core"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
+
+	"golang.org/x/exp/slices"
 )
 
 // RunJob represents a job of a run
@@ -22,11 +23,11 @@ type RunJob struct {
 	Ready           bool // ready to be executed
 	Attempt         int64
 	WorkflowPayload []byte
-	JobID           string           // job id in workflow, not job's id
-	Needs           []int64          `xorm:"JSON TEXT"`
-	RunsOn          []string         `xorm:"JSON TEXT"`
-	TaskID          int64            // the latest task of the job
-	Status          core.BuildStatus `xorm:"index"`
+	JobID           string   // job id in workflow, not job's id
+	Needs           []int64  `xorm:"JSON TEXT"`
+	RunsOn          []string `xorm:"JSON TEXT"`
+	TaskID          int64    // the latest task of the job
+	Status          Status   `xorm:"index"`
 	Started         timeutil.TimeStamp
 	Stopped         timeutil.TimeStamp
 	Created         timeutil.TimeStamp `xorm:"created"`
@@ -87,4 +88,62 @@ func GetRunJobsByRunID(ctx context.Context, runID int64) ([]*RunJob, error) {
 		return nil, err
 	}
 	return jobs, nil
+}
+
+func UpdateRunJob(ctx context.Context, job *RunJob, cols ...string) error {
+	e := db.GetEngine(ctx)
+
+	sess := e.ID(job.ID)
+	if len(cols) > 0 {
+		sess.Cols(cols...)
+	}
+	if _, err := sess.Update(job); err != nil {
+		return err
+	}
+
+	if !(slices.Contains(cols, "status") || job.Status != 0) {
+		return nil
+	}
+
+	jobs, err := GetRunJobsByRunID(ctx, job.RunID)
+	if err != nil {
+		return err
+	}
+
+	runStatus := aggregateJobStatus(jobs)
+	run := &Run{
+		ID:     job.RunID,
+		Status: runStatus,
+	}
+	if runStatus.IsDone() {
+		run.Stopped = timeutil.TimeStampNow()
+	}
+	return UpdateRun(ctx, run)
+}
+
+func aggregateJobStatus(jobs []*RunJob) Status {
+	allDone := true
+	allWaiting := true
+	hasFailure := false
+	for _, job := range jobs {
+		if !job.Status.IsDone() {
+			allDone = false
+		}
+		if job.Status != StatusWaiting {
+			allWaiting = false
+		}
+		if job.Status == StatusFailure {
+			hasFailure = true
+		}
+	}
+	if allDone {
+		if hasFailure {
+			return StatusFailure
+		}
+		return StatusSuccess
+	}
+	if allWaiting {
+		return StatusWaiting
+	}
+	return StatusRunning
 }

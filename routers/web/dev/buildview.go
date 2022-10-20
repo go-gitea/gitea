@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"code.gitea.io/gitea/core"
 	bots_model "code.gitea.io/gitea/models/bots"
 	"code.gitea.io/gitea/modules/bots"
 	"code.gitea.io/gitea/modules/context"
@@ -63,15 +62,15 @@ type BuildViewGroup struct {
 }
 
 type BuildViewJob struct {
-	Id     int64            `json:"id"`
-	Name   string           `json:"name"`
-	Status core.BuildStatus `json:"status"`
+	Id     int64  `json:"id"`
+	Name   string `json:"name"`
+	Status string `json:"status"`
 }
 
 type BuildViewJobStep struct {
-	Summary  string           `json:"summary"`
-	Duration float64          `json:"duration"`
-	Status   core.BuildStatus `json:"status"`
+	Summary  string  `json:"summary"`
+	Duration float64 `json:"duration"`
+	Status   string  `json:"status"`
 }
 
 type BuildViewStepLog struct {
@@ -128,7 +127,7 @@ func BuildViewPost(ctx *context.Context) {
 		respJobs[i] = &BuildViewJob{
 			Id:     v.ID,
 			Name:   v.Name,
-			Status: v.Status,
+			Status: v.Status.String(),
 		}
 	}
 
@@ -168,7 +167,7 @@ func BuildViewPost(ctx *context.Context) {
 				resp.StateData.CurrentJobSteps[i] = BuildViewJobStep{
 					Summary:  v.Name,
 					Duration: float64(v.Stopped - v.Started),
-					Status:   core.StatusRunning, // TODO: add status to step,
+					Status:   v.Status.String(),
 				}
 			}
 
