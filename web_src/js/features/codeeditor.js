@@ -17,6 +17,7 @@ const baseOptions = {
   rulers: false,
   scrollbar: {horizontalScrollbarSize: 6, verticalScrollbarSize: 6},
   scrollBeyondLastLine: false,
+  automaticLayout: true,
 };
 
 function getEditorconfig(input) {
@@ -109,10 +110,6 @@ export async function createMonaco(textarea, filename, editorOpts) {
   model.onDidChangeContent(() => {
     textarea.value = editor.getValue();
     textarea.dispatchEvent(new Event('change')); // seems to be needed for jquery-are-you-sure
-  });
-
-  window.addEventListener('resize', () => {
-    editor.layout();
   });
 
   exportEditor(editor);
