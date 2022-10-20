@@ -7,7 +7,6 @@ package bots
 import (
 	"context"
 	"fmt"
-	"hash/fnv"
 	"time"
 
 	"code.gitea.io/gitea/core"
@@ -25,10 +24,10 @@ import (
 type Run struct {
 	ID            int64
 	Title         string
-	RepoID        int64                  `xorm:"index unique(repo_workflow_index)"`
+	RepoID        int64                  `xorm:"index unique(repo_index)"`
 	Repo          *repo_model.Repository `xorm:"-"`
-	WorkflowID    string                 `xorm:"index unique(repo_workflow_index)"` // the name of workflow file
-	Index         int64                  `xorm:"index unique(repo_workflow_index)"` // a unique number for each run of a particular workflow in a repository
+	WorkflowID    string                 `xorm:"index"`                    // the name of workflow file
+	Index         int64                  `xorm:"index unique(repo_index)"` // a unique number for each run of a repository
 	TriggerUserID int64
 	TriggerUser   *user_model.User `xorm:"-"`
 	Ref           string
@@ -115,15 +114,7 @@ func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) err
 
 // InsertRun inserts a bot run
 func InsertRun(run *Run, jobs []*jobparser.SingleWorkflow) error {
-	var groupID int64
-	{
-		// tricky way to get resource group id
-		h := fnv.New64()
-		_, _ = h.Write([]byte(fmt.Sprintf("%d_%s", run.RepoID, run.WorkflowID)))
-		groupID = int64(h.Sum64())
-	}
-
-	index, err := db.GetNextResourceIndex("bots_run_index", groupID)
+	index, err := db.GetNextResourceIndex("bots_run_index", run.RepoID)
 	if err != nil {
 		return err
 	}
