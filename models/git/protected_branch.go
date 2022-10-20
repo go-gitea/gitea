@@ -30,6 +30,7 @@ type ProtectedBranch struct {
 	RepoID                        int64     `xorm:"UNIQUE(s)"`
 	BranchName                    string    `xorm:"UNIQUE(s)"` // a branch name or a glob match to branch name
 	globRule                      glob.Glob `xorm:"-"`
+	isPlainName                   bool      `xorm:"-"`
 	CanPush                       bool      `xorm:"NOT NULL DEFAULT false"`
 	EnableWhitelist               bool
 	WhitelistUserIDs              []int64  `xorm:"JSON TEXT"`
@@ -60,14 +61,19 @@ func init() {
 	db.RegisterModel(new(ProtectedBranch))
 }
 
+func (protectBranch *ProtectedBranch) loadGlob() {
+	if protectBranch.globRule == nil {
+		protectBranch.globRule = glob.MustCompile(protectBranch.BranchName, '/')
+		protectBranch.isPlainName = protectBranch.globRule.Match(protectBranch.BranchName)
+	}
+}
+
 // Match tests if branchName matches the rule
 func (protectBranch *ProtectedBranch) Match(branchName string) bool {
 	if strings.EqualFold(protectBranch.BranchName, branchName) {
 		return true
 	}
-	if protectBranch.globRule == nil {
-		protectBranch.globRule = glob.MustCompile(protectBranch.BranchName, '/')
-	}
+	protectBranch.loadGlob()
 
 	return protectBranch.globRule.Match(branchName)
 }

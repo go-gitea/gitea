@@ -6,6 +6,7 @@ package git
 
 import (
 	"context"
+	"sort"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
@@ -24,11 +25,30 @@ func (rules ProtectedBranchRules) GetFirstMatched(branchName string) *ProtectedB
 	return nil
 }
 
+func (rules ProtectedBranchRules) Sort() {
+	sort.Slice(rules, func(i, j int) bool {
+		rules[i].loadGlob()
+		rules[j].loadGlob()
+		if rules[i].isPlainName {
+			if !rules[j].isPlainName {
+				return true
+			}
+		} else if rules[j].isPlainName {
+			return true
+		}
+		return rules[i].CreatedUnix < rules[j].CreatedUnix
+	})
+}
+
 // FindRepoProtectedBranchRules load all repository's protected rules
 func FindRepoProtectedBranchRules(ctx context.Context, repoID int64) (ProtectedBranchRules, error) {
-	var rules []*ProtectedBranch
+	var rules ProtectedBranchRules
 	err := db.GetEngine(ctx).Where("repo_id = ?", repoID).Asc("created_unix").Find(&rules)
-	return rules, err
+	if err != nil {
+		return nil, err
+	}
+	rules.Sort()
+	return rules, nil
 }
 
 // FindAllMatchedBranches find all matched branches
