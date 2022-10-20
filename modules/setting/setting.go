@@ -6,6 +6,7 @@
 package setting
 
 import (
+	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
 	"math"
@@ -27,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
 
+	"golang.org/x/crypto/pbkdf2"
 	gossh "golang.org/x/crypto/ssh"
 	ini "gopkg.in/ini.v1"
 )
@@ -967,10 +969,9 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	MasterKeyProvider = sec.Key("MASTER_KEY_PROVIDER").MustString("plain")
 	switch MasterKeyProvider {
 	case "plain":
+		tempSalt := []byte{'g', 'i', 't', 'e', 'a'}
 		MasterKey = []byte(sec.Key("MASTER_KEY").MustString(SecretKey))
-		if len(MasterKey) > 32 {
-			MasterKey = MasterKey[:32]
-		}
+		MasterKey = pbkdf2.Key(MasterKey, tempSalt, 4096, 32, sha1.New)
 	case "none":
 	default:
 		log.Fatal("invalid master key provider type: %v", MasterKeyProvider)
