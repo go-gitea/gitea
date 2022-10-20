@@ -22,6 +22,8 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
+
+	"github.com/gobwas/glob"
 )
 
 // GetBranch get a branch of a repository
@@ -409,11 +411,15 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.CreateBranchProtectionOption)
 	repo := ctx.Repo.Repository
 
-	// Currently protection must match an actual branch
-	// FIXME: we should allow glob match
-	if !git.IsBranchExist(ctx.Req.Context(), ctx.Repo.Repository.RepoPath(), form.RuleName) {
-		ctx.NotFound()
+	g, err := glob.Compile(form.RuleName, '/')
+	if err != nil {
+		ctx.Error(http.StatusBadRequest, "Create branch protection", "Branch protection rule name is not right")
 		return
+	}
+	isPlainRule := g.Match(form.RuleName)
+	isBranchName := isPlainRule
+	if isBranchName {
+		isBranchName = git.IsBranchExist(ctx.Req.Context(), ctx.Repo.Repository.RepoPath(), form.RuleName)
 	}
 
 	protectBranch, err := git_model.GetProtectedBranchRuleByName(ctx, repo.ID, form.RuleName)
@@ -521,17 +527,37 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		return
 	}
 
-	// FIXME: since we only need to recheck files protected rules, we could improve this
-	matchedBranches, err := git_model.FindAllMatchedBranches(ctx, ctx.Repo.GitRepo, form.RuleName)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "FindAllMatchedBranches", err)
-		return
-	}
-
-	for _, branchName := range matchedBranches {
-		if err = pull_service.CheckPRsForBaseBranch(ctx.Repo.Repository, branchName); err != nil {
+	if isBranchName {
+		if err = pull_service.CheckPRsForBaseBranch(ctx.Repo.Repository, form.RuleName); err != nil {
 			ctx.Error(http.StatusInternalServerError, "CheckPRsForBaseBranch", err)
 			return
+		}
+	} else {
+		if !isPlainRule {
+			if ctx.Repo.GitRepo == nil {
+				ctx.Repo.GitRepo, err = git.OpenRepository(ctx, ctx.Repo.Repository.RepoPath())
+				if err != nil {
+					ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
+					return
+				}
+				defer func() {
+					ctx.Repo.GitRepo.Close()
+					ctx.Repo.GitRepo = nil
+				}()
+			}
+			// FIXME: since we only need to recheck files protected rules, we could improve this
+			matchedBranches, err := git_model.FindAllMatchedBranches(ctx, ctx.Repo.GitRepo, form.RuleName)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "FindAllMatchedBranches", err)
+				return
+			}
+
+			for _, branchName := range matchedBranches {
+				if err = pull_service.CheckPRsForBaseBranch(ctx.Repo.Repository, branchName); err != nil {
+					ctx.Error(http.StatusInternalServerError, "CheckPRsForBaseBranch", err)
+					return
+				}
+			}
 		}
 	}
 
@@ -765,17 +791,49 @@ func EditBranchProtection(ctx *context.APIContext) {
 		return
 	}
 
-	// FIXME: since we only need to recheck files protected rules, we could improve this
-	matchedBranches, err := git_model.FindAllMatchedBranches(ctx, ctx.Repo.GitRepo, protectBranch.BranchName)
+	g, err := glob.Compile(bpName, '/')
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "FindAllMatchedBranches", err)
+		ctx.Error(http.StatusBadRequest, "Create branch protection", "Branch protection rule name is not right")
 		return
 	}
+	isPlainRule := g.Match(bpName)
+	isBranchName := isPlainRule
+	if isBranchName {
+		isBranchName = git.IsBranchExist(ctx.Req.Context(), ctx.Repo.Repository.RepoPath(), bpName)
+	}
 
-	for _, branchName := range matchedBranches {
-		if err = pull_service.CheckPRsForBaseBranch(ctx.Repo.Repository, branchName); err != nil {
+	if isBranchName {
+		if err = pull_service.CheckPRsForBaseBranch(ctx.Repo.Repository, bpName); err != nil {
 			ctx.Error(http.StatusInternalServerError, "CheckPrsForBaseBranch", err)
 			return
+		}
+	} else {
+		if !isPlainRule {
+			if ctx.Repo.GitRepo == nil {
+				ctx.Repo.GitRepo, err = git.OpenRepository(ctx, ctx.Repo.Repository.RepoPath())
+				if err != nil {
+					ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
+					return
+				}
+				defer func() {
+					ctx.Repo.GitRepo.Close()
+					ctx.Repo.GitRepo = nil
+				}()
+			}
+
+			// FIXME: since we only need to recheck files protected rules, we could improve this
+			matchedBranches, err := git_model.FindAllMatchedBranches(ctx, ctx.Repo.GitRepo, protectBranch.BranchName)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "FindAllMatchedBranches", err)
+				return
+			}
+
+			for _, branchName := range matchedBranches {
+				if err = pull_service.CheckPRsForBaseBranch(ctx.Repo.Repository, branchName); err != nil {
+					ctx.Error(http.StatusInternalServerError, "CheckPrsForBaseBranch", err)
+					return
+				}
+			}
 		}
 	}
 

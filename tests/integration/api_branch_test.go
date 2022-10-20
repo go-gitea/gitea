@@ -176,8 +176,8 @@ func testAPICreateBranch(t testing.TB, session *TestSession, user, repo, oldBran
 func TestAPIBranchProtection(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	// Branch protection only on branch that exist
-	testAPICreateBranchProtection(t, "master/doesnotexist", http.StatusNotFound)
+	// Branch protection  on branch that not exist
+	testAPICreateBranchProtection(t, "master/doesnotexist", http.StatusCreated)
 	// Get branch protection on branch that exist but not branch protection
 	testAPIGetBranchProtection(t, "master", http.StatusNotFound)
 
