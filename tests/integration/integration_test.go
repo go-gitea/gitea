@@ -11,7 +11,6 @@ import (
 	"hash"
 	"hash/fnv"
 	"io"
-	"math/rand"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -259,9 +258,12 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 	return session
 }
 
+// token has to be unique this counter take care of
+var tokenCounter int64
+
 func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
 	t.Helper()
-	tokenCounter := rand.Int()
+	tokenCounter++
 	req := NewRequest(t, "GET", "/user/settings/applications")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
