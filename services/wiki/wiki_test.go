@@ -5,7 +5,6 @@
 package wiki
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -13,7 +12,6 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -142,7 +140,7 @@ func TestRepository_AddWikiPage(t *testing.T) {
 			gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
 			assert.NoError(t, err)
 			defer gitRepo.Close()
-			masterTree, err := gitRepo.GetTree("master")
+			masterTree, err := gitRepo.GetTree(DefaultBranch)
 			assert.NoError(t, err)
 			wikiPath := NameToFilename(wikiName)
 			entry, err := masterTree.GetTreeEntryByPath(wikiPath)
@@ -186,7 +184,7 @@ func TestRepository_EditWikiPage(t *testing.T) {
 		// Now need to show that the page has been added:
 		gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
 		assert.NoError(t, err)
-		masterTree, err := gitRepo.GetTree("master")
+		masterTree, err := gitRepo.GetTree(DefaultBranch)
 		assert.NoError(t, err)
 		wikiPath := NameToFilename(newWikiName)
 		entry, err := masterTree.GetTreeEntryByPath(wikiPath)
@@ -211,7 +209,7 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 	gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
 	assert.NoError(t, err)
 	defer gitRepo.Close()
-	masterTree, err := gitRepo.GetTree("master")
+	masterTree, err := gitRepo.GetTree(DefaultBranch)
 	assert.NoError(t, err)
 	wikiPath := NameToFilename("Home")
 	_, err = masterTree.GetTreeEntryByPath(wikiPath)
@@ -273,15 +271,9 @@ func TestPrepareWikiFileName_FirstPage(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
 	// Now create a temporaryDirectory
-	tmpDir, err := os.MkdirTemp("", "empty-wiki")
-	assert.NoError(t, err)
-	defer func() {
-		if _, err := os.Stat(tmpDir); !os.IsNotExist(err) {
-			_ = util.RemoveAll(tmpDir)
-		}
-	}()
+	tmpDir := t.TempDir()
 
-	err = git.InitRepository(git.DefaultContext, tmpDir, true)
+	err := git.InitRepository(git.DefaultContext, tmpDir, true)
 	assert.NoError(t, err)
 
 	gitRepo, err := git.OpenRepository(git.DefaultContext, tmpDir)

@@ -112,11 +112,8 @@ func migrateRepoAvatars(ctx context.Context, dstStorage storage.ObjectStorage) e
 
 func migrateRepoArchivers(ctx context.Context, dstStorage storage.ObjectStorage) error {
 	return db.IterateObjects(ctx, func(archiver *repo_model.RepoArchiver) error {
-		p, err := archiver.RelativePath()
-		if err != nil {
-			return err
-		}
-		_, err = storage.Copy(dstStorage, p, storage.RepoArchives, p)
+		p := archiver.RelativePath()
+		_, err := storage.Copy(dstStorage, p, storage.RepoArchives, p)
 		return err
 	})
 }

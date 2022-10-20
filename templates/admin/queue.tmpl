@@ -30,12 +30,12 @@
 				</tbody>
 			</table>
 		</div>
-		{{if lt $sum 0 }}
+		{{if lt $sum 0}}
 		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.monitor.queue.nopool.title"}}
 		</h4>
 		<div class="ui attached segment">
-			{{if eq .Queue.Type "wrapped" }}
+			{{if eq .Queue.Type "wrapped"}}
 			<p>{{.locale.Tr "admin.monitor.queue.wrapped.desc"}}</p>
 			{{else if eq .Queue.Type "persistable-channel"}}
 			<p>{{.locale.Tr "admin.monitor.queue.persistable-channel.desc"}}</p>
@@ -58,7 +58,7 @@
 					</div>
 					<div class="inline field">
 						<label for="timeout">{{.locale.Tr "admin.monitor.queue.settings.timeout"}}</label>
-						<input name="timeout" type="text" placeholder="{{.locale.Tr "admin.monitor.queue.settings.timeout.placeholder" .Queue.BoostTimeout }}">
+						<input name="timeout" type="text" placeholder="{{.locale.Tr "admin.monitor.queue.settings.timeout.placeholder" .Queue.BoostTimeout}}">
 					</div>
 					<div class="inline field">
 						<label for="number">{{.locale.Tr "admin.monitor.queue.settings.numberworkers"}}</label>
@@ -157,7 +157,7 @@
 				<tbody>
 					{{range .Queue.Workers}}
 					<tr>
-						<td>{{.Workers}}{{if .IsFlusher}}<span title="{{.locale.Tr "admin.monitor.queue.flush"}}">{{svg "octicon-sync"}}</span>{{end}}</td>
+						<td>{{.Workers}}{{if .IsFlusher}}<span title="{{$.locale.Tr "admin.monitor.queue.flush"}}">{{svg "octicon-sync"}}</span>{{end}}</td>
 						<td>{{DateFmtLong .Start}}</td>
 						<td>{{if .HasTimeout}}{{DateFmtLong .Timeout}}{{else}}-{{end}}</td>
 						<td>
@@ -166,7 +166,7 @@
 					</tr>
 					{{else}}
 						<tr>
-							<td colspan="4">{{.locale.Tr "admin.monitor.queue.pool.workers.none" }}
+							<td colspan="4">{{.locale.Tr "admin.monitor.queue.pool.workers.none"}}
 						</tr>
 					{{end}}
 				</tbody>

@@ -126,13 +126,13 @@ A "login prohibited" user is a user that is not allowed to log in to Gitea anymo
 
 ## What is Swagger?
 
-[Swagger](https://swagger.io/) is what Gitea uses for its API.
+[Swagger](https://swagger.io/) is what Gitea uses for its API documentation.
 
-All Gitea instances have the built-in API, though it can be disabled by setting `ENABLE_SWAGGER` to `false` in the `api` section of your `app.ini`
+All Gitea instances have the built-in API and there is no way to disable it completely.
+You can, however, disable showing its documentation by setting `ENABLE_SWAGGER` to `false` in the `api` section of your `app.ini`.
+For more information, refer to Gitea's [API docs]({{< relref "doc/developers/api-usage.en-us.md" >}}).
 
-For more information, refer to Gitea's [API docs]({{< relref "doc/developers/api-usage.en-us.md" >}})
-
-[Swagger Example](https://try.gitea.io/api/swagger)
+You can see the latest API (for example) on <https://try.gitea.io/api/swagger>.
 
 ## Adjusting your server for public/private use
 
@@ -214,13 +214,13 @@ Our translations are currently crowd-sourced on our [Crowdin project](https://cr
 
 Whether you want to change a translation or add a new one, it will need to be there as all translations are overwritten in our CI via the Crowdin integration.
 
-## Hooks aren't running
+## Push Hook / Webhook aren't running
 
-If Gitea is not running hooks, a common cause is incorrect setup of SSH keys.
+If you can push but can't see push activities on the home dashboard, or the push doesn't trigger webhook, there are a few possibilities:
 
-See [SSH Issues](#ssh-issues) for more information.
-
-You can also try logging into the administration panel and running the `Resynchronize pre-receive, update and post-receive hooks of all repositories.` option.
+1. The git hooks are out of sync: run "Resynchronize pre-receive, update and post-receive hooks of all repositories" on the site admin panel
+2. The git repositories (and hooks) are stored on some filesystems (ex: mounted by NAS) which don't support script execution, make sure the filesystem supports `chmod a+x any-script`
+3. If you are using docker, make sure Docker Server (not the client) >= 20.10.6
 
 ## SSH issues
 
@@ -392,7 +392,9 @@ Gitea requires the system or browser to have one of the supported Emoji fonts in
 
 Stdout on systemd goes to the journal by default. Try using `journalctl`, `journalctl  -u gitea`, or `journalctl <path-to-gitea-binary>`.
 
-Similarly stdout on docker can be viewed using `docker logs <container>`
+Similarly, stdout on docker can be viewed using `docker logs <container>`.
+
+To collect logs for help and issue report, see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}}).
 
 ## Initial logging
 
@@ -413,7 +415,7 @@ unchanged in the database schema. This may lead to warning such as:
 2020/08/02 11:32:29 ...rm/session_schema.go:360:Sync2() [W] Table user Column keep_activity_private db default is , struct default is 0
 ```
 
-These can safely be ignored but you may able to stop these warnings by getting Gitea to recreate these tables using:
+These can safely be ignored, but you are able to stop these warnings by getting Gitea to recreate these tables using:
 
 ```
 gitea doctor recreate-table user

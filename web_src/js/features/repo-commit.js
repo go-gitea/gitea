@@ -61,7 +61,6 @@ export function initCommitStatuses() {
     const top = $('.repository.file.list').length > 0 || $('.repository.diff').length > 0;
 
     createTippy(this, {
-      trigger: 'click',
       content: this.nextElementSibling,
       placement: top ? 'top-start' : 'bottom-start',
       interactive: true,

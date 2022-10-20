@@ -6,12 +6,12 @@
 			<tr class="{{DiffLineTypeToStr .GetType}}-code nl-{{$k}} ol-{{$k}}" data-line-type="{{DiffLineTypeToStr .GetType}}">
 				{{if eq .GetType 4}}
 					<td class="lines-num lines-num-old">
-						{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5) }}
+						{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5)}}
 							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=down&wiki={{$.root.PageIsWiki}}" data-anchor="diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
 								{{svg "octicon-fold-down"}}
 							</a>
 						{{end}}
-						{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4) }}
+						{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4)}}
 							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=up&wiki={{$.root.PageIsWiki}}" data-anchor="diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
 								{{svg "octicon-fold-up"}}
 							</a>

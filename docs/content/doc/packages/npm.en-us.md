@@ -127,6 +127,10 @@ npm dist-tag add test_package@1.0.2 release
 
 The tag name must not be a valid version. All tag names which are parsable as a version are rejected.
 
+## Search packages
+
+The registry supports [searching](https://docs.npmjs.com/cli/v7/commands/npm-search/) but does not support special search qualifiers like `author:gitea`.
+
 ## Supported commands
 
 ```
@@ -136,4 +140,5 @@ npm publish
 npm unpublish
 npm dist-tag
 npm view
+npm search
 ```

@@ -15,6 +15,7 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
@@ -37,6 +38,9 @@ func createTag(gitRepo *git.Repository, rel *repo_model.Release, msg string) (bo
 			if err != nil {
 				return false, fmt.Errorf("GetProtectedTags: %v", err)
 			}
+
+			// Trim '--' prefix to prevent command line argument vulnerability.
+			rel.TagName = strings.TrimPrefix(rel.TagName, "--")
 			isAllowed, err := git_model.IsUserAllowedToControlTag(protectedTags, rel.TagName, rel.PublisherID)
 			if err != nil {
 				return false, err
@@ -52,8 +56,6 @@ func createTag(gitRepo *git.Repository, rel *repo_model.Release, msg string) (bo
 				return false, fmt.Errorf("createTag::GetCommit[%v]: %v", rel.Target, err)
 			}
 
-			// Trim '--' prefix to prevent command line argument vulnerability.
-			rel.TagName = strings.TrimPrefix(rel.TagName, "--")
 			if len(msg) > 0 {
 				if err = gitRepo.CreateAnnotatedTag(rel.TagName, msg, commit.ID.String()); err != nil {
 					if strings.Contains(err.Error(), "is not a valid tag name") {
@@ -208,7 +210,7 @@ func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *repo_mod
 		return fmt.Errorf("AddReleaseAttachments: %v", err)
 	}
 
-	deletedUUIDsMap := make(map[string]bool)
+	deletedUUIDs := make(container.Set[string])
 	if len(delAttachmentUUIDs) > 0 {
 		// Check attachments
 		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, delAttachmentUUIDs)
@@ -219,7 +221,7 @@ func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *repo_mod
 			if attach.ReleaseID != rel.ID {
 				return errors.New("delete attachement of release permission denied")
 			}
-			deletedUUIDsMap[attach.UUID] = true
+			deletedUUIDs.Add(attach.UUID)
 		}
 
 		if _, err := repo_model.DeleteAttachments(ctx, attachments, false); err != nil {
@@ -244,7 +246,7 @@ func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *repo_mod
 		}
 
 		for uuid, newName := range editAttachments {
-			if !deletedUUIDsMap[uuid] {
+			if !deletedUUIDs.Contains(uuid) {
 				if err = repo_model.UpdateAttachmentByUUID(ctx, &repo_model.Attachment{
 					UUID: uuid,
 					Name: newName,
@@ -269,13 +271,12 @@ func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *repo_mod
 		}
 	}
 
-	if !isCreated {
-		notification.NotifyUpdateRelease(doer, rel)
-		return
-	}
-
 	if !rel.IsDraft {
-		notification.NotifyNewRelease(rel)
+		if isCreated {
+			notification.NotifyNewRelease(rel)
+		} else {
+			notification.NotifyUpdateRelease(doer, rel)
+		}
 	}
 
 	return err
@@ -308,7 +309,7 @@ func DeleteReleaseByID(ctx context.Context, id int64, doer *user_model.User, del
 			}
 		}
 
-		if stdout, _, err := git.NewCommand(ctx, "tag", "-d", rel.TagName).
+		if stdout, _, err := git.NewCommand(ctx, "tag", "-d", "--", rel.TagName).
 			SetDescription(fmt.Sprintf("DeleteReleaseByID (git tag -d): %d", rel.ID)).
 			RunStdString(&git.RunOpts{Dir: repo.RepoPath()}); err != nil && !strings.Contains(err.Error(), "not found") {
 			log.Error("DeleteReleaseByID (git tag -d): %d in %v Failed:\nStdout: %s\nError: %v", rel.ID, repo, stdout, err)
@@ -351,7 +352,9 @@ func DeleteReleaseByID(ctx context.Context, id int64, doer *user_model.User, del
 		}
 	}
 
-	notification.NotifyDeleteRelease(doer, rel)
+	if !rel.IsDraft {
+		notification.NotifyDeleteRelease(doer, rel)
+	}
 
 	return nil
 }

@@ -14,7 +14,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"os/user"
@@ -27,6 +26,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	gitea_git "code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -61,11 +61,7 @@ func runPR() {
 	}
 	setting.AppWorkPath = curDir
 	setting.StaticRootPath = curDir
-	setting.GravatarSourceURL, err = url.Parse("https://secure.gravatar.com/avatar/")
-	if err != nil {
-		log.Fatalf("url.Parse: %v\n", err)
-	}
-
+	setting.GravatarSource = "https://secure.gravatar.com/avatar/"
 	setting.AppURL = "http://localhost:8080/"
 	setting.HTTPPort = "8080"
 	setting.SSH.Domain = "localhost"
@@ -111,13 +107,13 @@ func runPR() {
 	unittest.LoadFixtures()
 	util.RemoveAll(setting.RepoRootPath)
 	util.RemoveAll(repo_module.LocalCopyPath())
-	unittest.CopyDir(path.Join(curDir, "integrations/gitea-repositories-meta"), setting.RepoRootPath)
+	unittest.CopyDir(path.Join(curDir, "tests/gitea-repositories-meta"), setting.RepoRootPath)
 
 	log.Printf("[PR] Setting up router\n")
 	// routers.GlobalInit()
 	external.RegisterRenderers()
 	markup.Init()
-	c := routers.NormalRoutes()
+	c := routers.NormalRoutes(graceful.GetManager().HammerContext())
 
 	log.Printf("[PR] Ready for testing !\n")
 	log.Printf("[PR] Login with user1, user2, user3, ... with pass: password\n")

@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	issue_template "code.gitea.io/gitea/modules/issue/template"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
@@ -58,11 +59,23 @@ const (
 
 var pullRequestTemplateCandidates = []string{
 	"PULL_REQUEST_TEMPLATE.md",
+	"PULL_REQUEST_TEMPLATE.yaml",
+	"PULL_REQUEST_TEMPLATE.yml",
 	"pull_request_template.md",
+	"pull_request_template.yaml",
+	"pull_request_template.yml",
 	".gitea/PULL_REQUEST_TEMPLATE.md",
+	".gitea/PULL_REQUEST_TEMPLATE.yaml",
+	".gitea/PULL_REQUEST_TEMPLATE.yml",
 	".gitea/pull_request_template.md",
+	".gitea/pull_request_template.yaml",
+	".gitea/pull_request_template.yml",
 	".github/PULL_REQUEST_TEMPLATE.md",
+	".github/PULL_REQUEST_TEMPLATE.yaml",
+	".github/PULL_REQUEST_TEMPLATE.yml",
 	".github/pull_request_template.md",
+	".github/pull_request_template.yaml",
+	".github/pull_request_template.yml",
 }
 
 func getRepository(ctx *context.Context, repoID int64) *repo_model.Repository {
@@ -1194,6 +1207,13 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		return
 	}
 
+	content := form.Content
+	if filename := ctx.Req.Form.Get("template-file"); filename != "" {
+		if template, err := issue_template.UnmarshalFromRepo(ctx.Repo.GitRepo, ctx.Repo.Repository.DefaultBranch, filename); err == nil {
+			content = issue_template.RenderToMarkdown(template, ctx.Req.Form)
+		}
+	}
+
 	pullIssue := &issues_model.Issue{
 		RepoID:      repo.ID,
 		Repo:        repo,
@@ -1202,7 +1222,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		Poster:      ctx.Doer,
 		MilestoneID: milestoneID,
 		IsPull:      true,
-		Content:     form.Content,
+		Content:     content,
 	}
 	pullRequest := &issues_model.PullRequest{
 		HeadRepoID:          ci.HeadRepo.ID,

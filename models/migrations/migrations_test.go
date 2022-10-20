@@ -46,7 +46,7 @@ func TestMain(m *testing.M) {
 
 	giteaConf := os.Getenv("GITEA_CONF")
 	if giteaConf == "" {
-		giteaConf = path.Join(filepath.Dir(setting.AppPath), "integrations/sqlite.ini")
+		giteaConf = path.Join(filepath.Dir(setting.AppPath), "tests/sqlite.ini")
 		fmt.Printf("Environment variable $GITEA_CONF not set - defaulting to %s\n", giteaConf)
 	}
 
@@ -205,7 +205,7 @@ func prepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 	ourSkip += skip
 	deferFn := PrintCurrentTest(t, ourSkip)
 	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
-	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
+	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {
 		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
