@@ -418,6 +418,8 @@ var migrations = []Migration{
 	// v227 -> v228
 	NewMigration("Create key/value table for system settings", createSystemSettingsTable),
 	// v228 -> v229
+	NewMigration("Add TeamInvite table", addTeamInviteTable),
+	// v229 -> v230
 	NewMigration("Update counts of all open milestones", updateOpenMilestoneCounts),
 }
 
