@@ -651,6 +651,11 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/create", bindIgnErr(forms.CreateOrgForm{}), org.CreatePost)
 		})
 
+		m.Group("/invite/{token}", func() {
+			m.Get("", org.TeamInvite)
+			m.Post("", org.TeamInvitePost)
+		})
+
 		m.Group("/{org}", func() {
 			m.Get("/dashboard", user.Dashboard)
 			m.Get("/dashboard/{team}", user.Dashboard)

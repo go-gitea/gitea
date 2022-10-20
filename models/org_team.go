@@ -431,25 +431,15 @@ func DeleteTeam(t *organization.Team) error {
 		}
 	}
 
-	// Delete team-user.
-	if _, err := sess.
-		Where("org_id=?", t.OrgID).
-		Where("team_id=?", t.ID).
-		Delete(new(organization.TeamUser)); err != nil {
+	if err := db.DeleteBeans(ctx,
+		&organization.Team{ID: t.ID},
+		&organization.TeamUser{OrgID: t.OrgID, TeamID: t.ID},
+		&organization.TeamUnit{TeamID: t.ID},
+		&organization.TeamInvite{TeamID: t.ID},
+	); err != nil {
 		return err
 	}
 
-	// Delete team-unit.
-	if _, err := sess.
-		Where("team_id=?", t.ID).
-		Delete(new(organization.TeamUnit)); err != nil {
-		return err
-	}
-
-	// Delete team.
-	if _, err := sess.ID(t.ID).Delete(new(organization.Team)); err != nil {
-		return err
-	}
 	// Update organization number of teams.
 	if _, err := sess.Exec("UPDATE `user` SET num_teams=num_teams-1 WHERE id=?", t.OrgID); err != nil {
 		return err
