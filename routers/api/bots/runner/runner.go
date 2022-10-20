@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"time"
 
-	"code.gitea.io/gitea/core"
 	bots_model "code.gitea.io/gitea/models/bots"
 	"code.gitea.io/gitea/modules/bots"
 	"code.gitea.io/gitea/modules/json"
@@ -28,8 +27,6 @@ import (
 var _ runnerv1connect.RunnerServiceClient = (*Service)(nil)
 
 type Service struct {
-	Scheduler core.Scheduler
-
 	runnerv1connect.UnimplementedRunnerServiceHandler
 }
 

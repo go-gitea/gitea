@@ -7,7 +7,6 @@ package bots
 import (
 	"context"
 
-	"code.gitea.io/gitea/core"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/util"
@@ -54,13 +53,12 @@ func (opts FindRunOptions) toConds() builder.Cond {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
 	}
 	if opts.IsClosed.IsFalse() {
-		cond = cond.And(builder.Eq{"status": core.StatusPending}.Or(
-			builder.Eq{"status": core.StatusWaiting}.Or(
-				builder.Eq{"status": core.StatusRunning})))
+		cond = cond.And(builder.Eq{"status": StatusWaiting}.Or(
+			builder.Eq{"status": StatusRunning}))
 	} else if opts.IsClosed.IsTrue() {
-		cond = cond.And(builder.Neq{"status": core.StatusPending}.And(
-			builder.Neq{"status": core.StatusWaiting}.And(
-				builder.Neq{"status": core.StatusRunning})))
+		cond = cond.And(
+			builder.Neq{"status": StatusWaiting}.And(
+				builder.Neq{"status": StatusRunning}))
 	}
 	if opts.WorkflowFileName != "" {
 		cond = cond.And(builder.Eq{"workflow_id": opts.WorkflowFileName})
