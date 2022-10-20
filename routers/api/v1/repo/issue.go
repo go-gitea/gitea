@@ -1008,6 +1008,18 @@ func GetIssueDependencies(ctx *context.APIContext) {
 		return
 	}
 
+	if issue.IsPull {
+		if !ctx.Repo.CanRead(unit.TypePullRequests) {
+			ctx.NotFound()
+			return
+		}
+	} else {
+		if !ctx.Repo.CanRead(unit.TypeIssues) {
+			ctx.NotFound()
+			return
+		}
+	}
+
 	deps, err := issue.BlockedByDependencies(ctx)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "BlockedByDependencies", err)
@@ -1174,6 +1186,18 @@ func GetIssueBlocks(ctx *context.APIContext) {
 		return
 	}
 
+	if issue.IsPull {
+		if !ctx.Repo.CanRead(unit.TypePullRequests) {
+			ctx.NotFound()
+			return
+		}
+	} else {
+		if !ctx.Repo.CanRead(unit.TypeIssues) {
+			ctx.NotFound()
+			return
+		}
+	}
+
 	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
@@ -1306,6 +1330,18 @@ func createIssueDependency(ctx *context.APIContext, t issues_model.DependencyTyp
 		return
 	}
 
+	if dep.IsPull {
+		if !ctx.Repo.CanWrite(unit.TypePullRequests) {
+			ctx.NotFound()
+			return
+		}
+	} else {
+		if !ctx.Repo.CanWrite(unit.TypeIssues) {
+			ctx.NotFound()
+			return
+		}
+	}
+
 	form := web.GetForm(ctx).(*api.IssueMeta)
 	repo, err := repo_model.GetRepositoryByOwnerAndName(form.Owner, form.Name)
 	if err != nil {
@@ -1392,6 +1428,18 @@ func removeIssueDependency(ctx *context.APIContext, t issues_model.DependencyTyp
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
 		return
+	}
+
+	if issue.IsPull {
+		if !ctx.Repo.CanWrite(unit.TypePullRequests) {
+			ctx.NotFound()
+			return
+		}
+	} else {
+		if !ctx.Repo.CanWrite(unit.TypeIssues) {
+			ctx.NotFound()
+			return
+		}
 	}
 
 	form := web.GetForm(ctx).(*api.IssueMeta)
