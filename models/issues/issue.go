@@ -1288,11 +1288,8 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 		sess.And("issue.is_closed=?", opts.IsClosed.IsTrue())
 	}
 
-	if opts.AssigneeID > 0 {
+	if opts.AssigneeID != 0 {
 		applyAssigneeCondition(sess, opts.AssigneeID)
-	} else if opts.AssigneeID == -1 {
-		sess.NotIn("issue.id", builder.Select("issue.id").From("issue").Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
-			And(builder.Eq{"repo_id": opts.RepoID}))
 	}
 
 	if opts.PosterID > 0 {
@@ -1465,6 +1462,10 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organizati
 }
 
 func applyAssigneeCondition(sess *xorm.Session, assigneeID int64) *xorm.Session {
+	if assigneeID == -1 {
+		return sess.NotIn("issue.id", builder.Select("issue.id").From("issue").Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id"))
+	}
+
 	return sess.Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
 		And("issue_assignees.assignee_id = ?", assigneeID)
 }
@@ -1747,11 +1748,8 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 			sess.And("issue.milestone_id = 0")
 		}
 
-		if opts.AssigneeID > 0 {
+		if opts.AssigneeID != 0 {
 			applyAssigneeCondition(sess, opts.AssigneeID)
-		} else if opts.AssigneeID == -1 {
-			sess.NotIn("issue.id", builder.Select("issue.id").From("issue").Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
-				And(builder.Eq{"repo_id": opts.RepoID}))
 		}
 
 		if opts.PosterID > 0 {
