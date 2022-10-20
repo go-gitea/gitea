@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"time"
 
-	"code.gitea.io/gitea/core"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -98,14 +97,8 @@ func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) err
 			builder.Select("count(*)").From("bots_run").
 				Where(builder.Eq{
 					"repo_id": repo.ID,
-				}.And(
-					builder.In("status",
-						core.StatusFailing,
-						core.StatusKilled,
-						core.StatusPassing,
-						core.StatusError,
-					),
-				),
+					"status":  StatusFailure,
+				},
 				),
 		).
 		Update(repo)
