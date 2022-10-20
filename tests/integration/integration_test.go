@@ -266,6 +266,7 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
 	tokenCounter++
 	req := NewRequest(t, "GET", "/user/settings/applications")
 	resp := session.MakeRequest(t, req, http.StatusOK)
+	assert.EqualValues(t, resp.Result().StatusCode, 200)
 	doc := NewHTMLParser(t, resp.Body)
 	req = NewRequestWithValues(t, "POST", "/user/settings/applications", map[string]string{
 		"_csrf": doc.GetCSRF(),
@@ -274,8 +275,10 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
 	session.MakeRequest(t, req, http.StatusSeeOther)
 	req = NewRequest(t, "GET", "/user/settings/applications")
 	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.EqualValues(t, resp.Result().StatusCode, 200)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	token := htmlDoc.doc.Find(".ui.info p").Text()
+	assert.NotEmpty(t, token)
 	return token
 }
 
