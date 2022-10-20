@@ -18,7 +18,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -261,19 +261,15 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 
 // token has to be unique this counter take care of
 var tokenCounter int64
-var tokenCounterMutex sync.Mutex
 
 func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
 	t.Helper()
-	tokenCounterMutex.Lock()
-	defer tokenCounterMutex.Unlock()
-	tokenCounter++
 	req := NewRequest(t, "GET", "/user/settings/applications")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
 	req = NewRequestWithValues(t, "POST", "/user/settings/applications", map[string]string{
 		"_csrf": doc.GetCSRF(),
-		"name":  fmt.Sprintf("api-testing-token-%d", tokenCounter),
+		"name":  fmt.Sprintf("api-testing-token-%d", atomic.AddInt64(&tokenCounter, 1)),
 	})
 	session.MakeRequest(t, req, http.StatusSeeOther)
 	req = NewRequest(t, "GET", "/user/settings/applications")
