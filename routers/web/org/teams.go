@@ -27,7 +27,6 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/forms"
-	"code.gitea.io/gitea/services/mailer"
 	org_service "code.gitea.io/gitea/services/org"
 )
 
@@ -132,8 +131,7 @@ func TeamsAction(ctx *context.Context) {
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				if setting.MailService != nil && user_model.ValidateEmail(uname) == nil {
-					invite, err := org_model.CreateTeamInvite(ctx, ctx.Doer, ctx.Org.Team, uname)
-					if err != nil {
+					if err := org_service.CreateTeamInvite(ctx, ctx.Doer, ctx.Org.Team, uname); err != nil {
 						if org_model.IsErrTeamInviteAlreadyExist(err) {
 							ctx.Flash.Error(ctx.Tr("form.duplicate_invite_to_team"))
 						} else if org_model.IsErrUserEmailAlreadyAdded(err) {
@@ -142,9 +140,6 @@ func TeamsAction(ctx *context.Context) {
 							ctx.ServerError("CreateTeamInvite", err)
 							return
 						}
-					} else if err := mailer.MailTeamInvite(ctx, ctx.Doer, ctx.Org.Team, invite); err != nil {
-						ctx.ServerError("MailTeamInvite", err)
-						return
 					}
 				} else {
 					ctx.Flash.Error(ctx.Tr("form.user_not_exist"))
