@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	bots_model "code.gitea.io/gitea/models/bots"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
@@ -71,6 +72,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		log.Trace("Basic Authorization: Attempting login with username as token")
 	}
 
+	// check oauth2 token
 	uid := CheckOAuthAccessToken(authToken)
 	if uid != 0 {
 		log.Trace("Basic Authorization: Valid OAuthAccessToken for user[%d]", uid)
@@ -85,6 +87,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		return u
 	}
 
+	// check personal access token
 	token, err := auth_model.GetAccessTokenBySHA(authToken)
 	if err == nil {
 		log.Trace("Basic Authorization: Valid AccessToken for user[%d]", uid)
@@ -103,6 +106,31 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		return u
 	} else if !auth_model.IsErrAccessTokenNotExist(err) && !auth_model.IsErrAccessTokenEmpty(err) {
 		log.Error("GetAccessTokenBySha: %v", err)
+	}
+
+	// check runner token
+	runner, err := bots_model.GetRunnerByToken(authToken)
+	if err == nil {
+		log.Trace("Basic Authorization: Valid AccessToken for runner[%d]", runner.ID)
+
+		if runner.OwnerID > 0 {
+			u, err := user_model.GetUserByID(runner.OwnerID)
+			if err != nil {
+				log.Error("GetUserByID:  %v", err)
+				return nil
+			}
+			return u
+		}
+
+		// FIXME: for a system wide runner, runner act as admin?? Or we should have a bot account
+		u, err := user_model.GetAdminUser()
+		if err != nil {
+			log.Error("GetUserByID:  %v", err)
+			return nil
+		}
+		return u
+	} else {
+		log.Error("GetRunnerByToken: %v", err)
 	}
 
 	if !setting.Service.EnableBasicAuth {
