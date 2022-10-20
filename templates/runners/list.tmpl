@@ -1,92 +1,91 @@
-{{template "base/head" .}}
-<div class="page-content admin runners">
-	{{template "admin/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
-		<h4 class="ui top attached header">
-			{{.locale.Tr "admin.runners.runner_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
-			<div class="ui right">
-				<!--<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/runners/new">{{.locale.Tr "admin.runners.new"}}</a>-->
+<div class="runner-container">
+	{{template "base/alert" .}}
 
-				<div class="ui top right pointing dropdown">
-					<button class="ui button primary">
-						{{.locale.Tr "admin.runners.new"}}
-						<i class="dropdown icon"></i>
-					</button>
-					<div class="menu">
-						<div class="item">
-							<a href="#">{{.locale.Tr "admin.runners.new_notice"}}</a>
-						</div>
-						<div class="divider"></div>
-						<div class="header">
-							Registration Token
-						</div>
-						<div class="ui input">
-							<input type="text" value="{{.RegistrationToken}}">
-							<div class="ui basic label button" data-clipboard-text="{{.RegistrationToken}}">
-								{{svg "octicon-copy" 14}}
-							</div>
-						</div>
-						<div class="divider"></div>
-						<div class="item">
-							<a href="{{$.Link}}/reset_registration_token">Reset registration token</a>
+	<h4 class="ui top attached header">
+		{{.locale.Tr "admin.runners.runner_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
+		<div class="ui right">
+			<!--<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/runners/new">{{.locale.Tr "admin.runners.new"}}</a>-->
+
+			<div class="ui top right pointing dropdown">
+				<button class="ui button primary">
+					{{.locale.Tr "admin.runners.new"}}
+					<i class="dropdown icon"></i>
+				</button>
+				<div class="menu">
+					<div class="item">
+						<a href="#">{{.locale.Tr "admin.runners.new_notice"}}</a>
+					</div>
+					<div class="divider"></div>
+					<div class="header">
+						Registration Token
+					</div>
+					<div class="ui input">
+						<input type="text" value="{{.RegistrationToken}}">
+						<div class="ui basic label button" data-clipboard-text="{{.RegistrationToken}}">
+							{{svg "octicon-copy" 14}}
 						</div>
 					</div>
+					<div class="divider"></div>
+					<div class="item">
+						<a href="{{$.Link}}/reset_registration_token">Reset registration token</a>
+					</div>
 				</div>
-
 			</div>
-		</h4>
-		<div class="ui attached segment">
-			<form class="ui form ignore-dirty" id="user-list-search-form" action="{{$.Link}}">
-				<!-- Search Text -->
-				<div class="ui fluid action input" style="max-width: 70%;">
-					<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}..." autofocus>
-					<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
-				</div>
-			</form>
-		</div>
-		<div class="ui attached table segment">
-			<table class="ui very basic striped table unstackable">
-				<thead>
-					<tr>
-						<th data-sortt-asc="online" data-sortt-desc="offline">{{.locale.Tr "admin.runners.status"}}</th>
-						<th data-sortt-asc="alphabetically">
-							{{.locale.Tr "admin.runners.id"}}
-						</th>
-						<th>{{.locale.Tr "admin.runners.owner_type"}}</th>
-						<th>{{.locale.Tr "admin.runners.labels"}}</th>
-						<th>{{.locale.Tr "admin.runners.latest_online"}}</th>
-						<th></th>
-					</tr>
-				</thead>
-				<tbody>
-					{{range .Runners}}
-					<tr>
-						<td><span class="runner-status-{{.StatusType}}">{{.StatusType}}</span></td>
-						<td>
-							<a href="{{$.Link}}/{{.ID}}" class="tooltip" data-content="{{.Description}}">
-								<span class="runner-id">#{{.ID}}</span>
-								<span class="runner-name">{{.Name}}</span>
-							</a>
-						</td>
-						<td>{{.OwnType}}</td>
-						<td class="runner-tags">
-							{{range .AllLabels}}
-							<span class="ui label">{{.}}</span>
-							{{end}}
-						</td>
-						<td>{{TimeSinceUnix .LastOnline $.locale}}</td>
-						<td class="runner-ops">
-							<a href="{{$.Link}}/{{.ID}}">{{svg "octicon-pencil"}}</a>
-							<!--<a class="runner-ops-delete show-modal" data-modal="#runner-delete-modal">{{svg "octicon-x-circle"}}</a>-->
-						</td>
-					</tr>
-					{{end}}
-				</tbody>
-			</table>
-		</div>
 
-		{{template "base/paginate" .}}
+		</div>
+	</h4>
+	<div class="ui attached segment">
+		<form class="ui form ignore-dirty" id="user-list-search-form" action="{{$.Link}}">
+			<!-- Search Text -->
+			<div class="ui fluid action input" style="max-width: 70%;">
+				<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}..." autofocus>
+				<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
+			</div>
+		</form>
 	</div>
+	<div class="ui attached table segment">
+		<table class="ui very basic striped table unstackable">
+			<thead>
+				<tr>
+					<th data-sortt-asc="online" data-sortt-desc="offline">{{.locale.Tr "admin.runners.status"}}</th>
+					<th data-sortt-asc="alphabetically">
+						{{.locale.Tr "admin.runners.id"}}
+					</th>
+					<th>{{.locale.Tr "admin.runners.owner_type"}}</th>
+					<th>{{.locale.Tr "admin.runners.labels"}}</th>
+					<th>{{.locale.Tr "admin.runners.latest_online"}}</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody>
+				{{range .Runners}}
+				<tr>
+					<td><span class="runner-status-{{.StatusType}}">{{.StatusType}}</span></td>
+					<td>
+						<a href="{{$.Link}}/{{.ID}}" class="tooltip" data-content="{{.Description}}">
+							<span class="runner-id">#{{.ID}}</span>
+							<span class="runner-name">{{.Name}}</span>
+						</a>
+					</td>
+					<td>{{.OwnType}}</td>
+					<td class="runner-tags">
+						{{range .AllLabels}}
+						<span class="ui label">{{.}}</span>
+						{{end}}
+					</td>
+					<td>{{TimeSinceUnix .LastOnline $.locale}}</td>
+					<td class="runner-ops">
+						{{if .Editable $.RunnerOnwerID $.RunnerRepoID}}
+						<a href="{{$.Link}}/{{.ID}}">{{svg "octicon-pencil"}}</a>
+						<!--<a class="runner-ops-delete show-modal" data-modal="#runner-delete-modal">{{svg "octicon-x-circle"}}</a>-->
+						{{end}}
+					</td>
+				</tr>
+				{{end}}
+			</tbody>
+		</table>
+	</div>
+
+	{{template "base/paginate" .}}
+
 </div>
-{{template "base/footer" .}}

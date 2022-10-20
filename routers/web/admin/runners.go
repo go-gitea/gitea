@@ -6,9 +6,7 @@
 package admin
 
 import (
-	"net/http"
 	"net/url"
-	"strings"
 
 	bots_model "code.gitea.io/gitea/models/bots"
 	"code.gitea.io/gitea/models/db"
@@ -16,14 +14,13 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/forms"
+	"code.gitea.io/gitea/routers/common"
 )
 
 const (
-	tplRunners    base.TplName = "runners/list"
-	tplRunnerNew  base.TplName = "runners/new"
-	tplRunnerEdit base.TplName = "runners/edit"
+	tplRunners    base.TplName = "admin/runners/base"
+	tplRunnerNew  base.TplName = "admin/runners/new"
+	tplRunnerEdit base.TplName = "admin/runners/edit"
 )
 
 // Runners show all the runners
@@ -45,49 +42,11 @@ func Runners(ctx *context.Context) {
 		Sort:        ctx.Req.URL.Query().Get("sort"),
 		Filter:      ctx.Req.URL.Query().Get("q"),
 		WithDeleted: false,
+		RepoID:      0,
+		OwnerID:     0,
 	}
 
-	count, err := bots_model.CountRunners(opts)
-	if err != nil {
-		ctx.ServerError("AdminRunners", err)
-		return
-	}
-
-	runners, err := bots_model.FindRunners(opts)
-	if err != nil {
-		ctx.ServerError("AdminRunners", err)
-		return
-	}
-	if err := runners.LoadAttributes(ctx); err != nil {
-		ctx.ServerError("LoadAttributes", err)
-		return
-	}
-
-	// ownid=0,repo_id=0,means this token is used for global
-	var token *bots_model.RunnerToken
-	token, err = bots_model.GetUnactivatedRunnerToken(0, 0)
-	if _, ok := err.(bots_model.ErrRunnerTokenNotExist); ok {
-		token, err = bots_model.NewRunnerToken(0, 0)
-		if err != nil {
-			ctx.ServerError("CreateRunnerToken", err)
-			return
-		}
-	} else {
-		if err != nil {
-			ctx.ServerError("GetUnactivatedRunnerToken", err)
-			return
-		}
-	}
-
-	ctx.Data["Keyword"] = opts.Filter
-	ctx.Data["Runners"] = runners
-	ctx.Data["Total"] = count
-	ctx.Data["RegistrationToken"] = token.Token
-
-	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
-	ctx.Data["Page"] = pager
-
-	ctx.HTML(http.StatusOK, tplRunners)
+	common.RunnersList(ctx, tplRunners, opts)
 }
 
 // EditRunner show editing runner page
@@ -96,47 +55,16 @@ func EditRunner(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminRunners"] = true
 
-	runner, err := bots_model.GetRunnerByID(ctx.ParamsInt64(":runnerid"))
-	if err != nil {
-		ctx.ServerError("GetRunnerByID", err)
-		return
-	}
-	ctx.Data["Runner"] = runner
-
-	// TODO: get task list for this runner
-
-	ctx.HTML(http.StatusOK, tplRunnerEdit)
+	common.RunnerDetails(ctx, tplRunnerEdit, ctx.ParamsInt64(":runnerid"))
 }
 
 // EditRunnerPost response for editing runner
 func EditRunnerPost(ctx *context.Context) {
-	runner, err := bots_model.GetRunnerByID(ctx.ParamsInt64(":runnerid"))
-	if err != nil {
-		log.Warn("EditRunnerPost.GetRunnerByID failed: %v, url: %s", err, ctx.Req.URL)
-		ctx.ServerError("EditRunnerPost.GetRunnerByID", err)
-		return
-	}
-
-	form := web.GetForm(ctx).(*forms.AdminEditRunnerForm)
-	runner.Description = form.Description
-	runner.CustomLabels = strings.Split(form.CustomLabels, ",")
-
-	err = bots_model.UpdateRunner(ctx, runner, "description", "custom_labels")
-	if err != nil {
-		log.Warn("EditRunnerPost.UpdateRunner failed: %v, url: %s", err, ctx.Req.URL)
-		ctx.Flash.Warning(ctx.Tr("admin.runners.update_runner_failed"))
-		ctx.Redirect(setting.AppSubURL + "/admin/runners/" + url.PathEscape(ctx.Params(":runnerid")))
-		return
-	}
-
 	ctx.Data["Title"] = ctx.Tr("admin.runners.edit")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminRunners"] = true
-
-	log.Debug("EditRunnerPost success: %s", ctx.Req.URL)
-
-	ctx.Flash.Success(ctx.Tr("admin.runners.update_runner_success"))
-	ctx.Redirect(setting.AppSubURL + "/admin/runners/" + url.PathEscape(ctx.Params(":runnerid")))
+	common.RunnerDetailsEditPost(ctx, ctx.ParamsInt64(":runnerid"),
+		setting.AppSubURL+"/admin/runners/"+url.PathEscape(ctx.Params(":runnerid")))
 }
 
 // DeleteRunner response for deleting a runner
@@ -163,14 +91,7 @@ func DeleteRunnerPost(ctx *context.Context) {
 }
 
 func ResetRunnerRegistrationToken(ctx *context.Context) {
-	_, err := bots_model.NewRunnerToken(0, 0)
-	if err != nil {
-		ctx.ServerError("ResetRunnerRegistrationToken", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("admin.runners.reset_registration_token_success"))
-	ctx.Redirect(setting.AppSubURL + "/admin/runners/")
+	common.RunnerResetRegistrationToken(ctx, 0, 0, setting.AppSubURL+"/admin/runners/")
 }
 
 /**

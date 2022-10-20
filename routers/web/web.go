@@ -628,7 +628,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/runners", func() {
 			m.Get("", admin.Runners)
 			m.Get("/reset_registration_token", admin.ResetRunnerRegistrationToken)
-			m.Combo("/{runnerid}").Get(admin.EditRunner).Post(bindIgnErr(forms.AdminEditRunnerForm{}), admin.EditRunnerPost)
+			m.Combo("/{runnerid}").Get(admin.EditRunner).Post(bindIgnErr(forms.EditRunnerForm{}), admin.EditRunnerPost)
 			m.Post("/{runnerid}/delete", admin.DeleteRunnerPost)
 		})
 	}, func(ctx *context.Context) {
@@ -799,6 +799,7 @@ func RegisterRoutes(m *web.Route) {
 
 				m.Group("/runners", func() {
 					m.Get("", org.Runners)
+					m.Get("/reset_registration_token", org.ResetRunnerRegistrationToken)
 				})
 
 				m.Route("/delete", "GET,POST", org.SettingsDelete)

@@ -1,26 +1,41 @@
 package org
 
 import (
-	"net/http"
-
-	"code.gitea.io/gitea/models/webhook"
+	bots_model "code.gitea.io/gitea/models/bots"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/routers/common"
 )
 
 // Runners render runners page
 func Runners(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("org.settings")
+	ctx.Data["Title"] = ctx.Tr("org.runners")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsOrgSettingsRunners"] = true
-	ctx.Data["BaseLink"] = ctx.Org.OrgLink + "/settings/runners"
-	ctx.Data["Description"] = ctx.Tr("org.settings.runners_desc")
 
-	ws, err := webhook.ListWebhooksByOpts(ctx, &webhook.ListWebhookOptions{OrgID: ctx.Org.Organization.ID})
-	if err != nil {
-		ctx.ServerError("GetWebhooksByOrgId", err)
-		return
+	page := ctx.FormInt("page")
+	if page <= 1 {
+		page = 1
 	}
 
-	ctx.Data["Webhooks"] = ws
-	ctx.HTML(http.StatusOK, tplSettingsRunners)
+	opts := bots_model.FindRunnerOptions{
+		ListOptions: db.ListOptions{
+			Page:     page,
+			PageSize: 100,
+		},
+		Sort:        ctx.Req.URL.Query().Get("sort"),
+		Filter:      ctx.Req.URL.Query().Get("q"),
+		WithDeleted: false,
+		RepoID:      0,
+		OwnerID:     ctx.Org.Organization.ID,
+	}
+
+	common.RunnersList(ctx, tplSettingsRunners, opts)
+}
+
+// ResetRunnerRegistrationToken reset runner registration token
+func ResetRunnerRegistrationToken(ctx *context.Context) {
+	common.RunnerResetRegistrationToken(ctx,
+		ctx.Org.Organization.ID, 0,
+		ctx.Org.OrgLink+"/settings/runners")
 }

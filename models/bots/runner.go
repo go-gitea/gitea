@@ -65,7 +65,7 @@ func (Runner) TableName() string {
 
 func (r *Runner) OwnType() string {
 	if r.OwnerID == 0 {
-		return "Global Type"
+		return "Global"
 	}
 	if r.RepoID == 0 {
 		return r.Owner.Name
@@ -91,6 +91,42 @@ func (r *Runner) AllLabels() []string {
 	return append(r.AgentLabels, r.CustomLabels...)
 }
 
+// Editable checks if the runner is editable by the user
+func (r *Runner) Editable(ownerID, repoID int64) bool {
+	if ownerID == 0 && repoID == 0 {
+		return true
+	}
+	if ownerID > 0 && r.OwnerID == ownerID {
+		return true
+	}
+	return repoID > 0 && r.RepoID == repoID
+}
+
+// LoadAttributes loads the attributes of the runner
+func (r *Runner) LoadAttributes(ctx context.Context) error {
+	if r.OwnerID > 0 {
+		var user user_model.User
+		has, err := db.GetEngine(ctx).ID(r.OwnerID).Get(&user)
+		if err != nil {
+			return err
+		}
+		if has {
+			r.Owner = &user
+		}
+	}
+	if r.RepoID > 0 {
+		var repo repo_model.Repository
+		has, err := db.GetEngine(ctx).ID(r.RepoID).Get(&repo)
+		if err != nil {
+			return err
+		}
+		if has {
+			r.Repo = &repo
+		}
+	}
+	return nil
+}
+
 func init() {
 	db.RegisterModel(&Runner{})
 }
@@ -106,13 +142,20 @@ type FindRunnerOptions struct {
 
 func (opts FindRunnerOptions) toCond() builder.Cond {
 	cond := builder.NewCond()
+
+	withGlobal := false
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+		withGlobal = true
 	}
 	if opts.OwnerID > 0 {
 		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
+		withGlobal = true
 	}
-	cond = cond.Or(builder.Eq{"repo_id": 0, "owner_id": 0})
+	if withGlobal {
+		cond = cond.Or(builder.Eq{"repo_id": 0, "owner_id": 0})
+	}
+
 	if opts.Filter != "" {
 		cond = cond.And(builder.Like{"name", opts.Filter})
 	}
@@ -223,6 +266,7 @@ func UpdateRunner(ctx context.Context, r *Runner, cols ...string) error {
 	return err
 }
 
+// DeleteRunner deletes a runner by given ID.
 func DeleteRunner(ctx context.Context, r *Runner) error {
 	e := db.GetEngine(ctx)
 	_, err := e.Delete(r)
