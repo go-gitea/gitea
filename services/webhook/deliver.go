@@ -251,11 +251,23 @@ func Init() error {
 		},
 	}
 
-	hookQueue = queue.CreateUniqueQueue("webhook_sender", handle, "")
+	hookQueue = queue.CreateUniqueQueue("webhook_sender", handle, int64(0))
 	if hookQueue == nil {
 		return fmt.Errorf("Unable to create webhook_sender Queue")
 	}
 	go graceful.GetManager().RunWithShutdownFns(hookQueue.Run)
 
-	return triggerTaskProcessing()
+	tasks, err := webhook_model.FindUndeliveredHookTasks(graceful.GetManager().HammerContext())
+	if err != nil {
+		log.Error("FindUndeliveredHookTasks failed: %v", err)
+		return err
+	}
+
+	for _, task := range tasks {
+		if err := enqueueHookTask(task); err != nil {
+			log.Error("enqueueHookTask failed: %v", err)
+		}
+	}
+
+	return nil
 }

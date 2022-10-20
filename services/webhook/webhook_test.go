@@ -7,6 +7,7 @@ package webhook
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	webhook_model "code.gitea.io/gitea/models/webhook"
@@ -37,7 +38,7 @@ func TestPrepareWebhooks(t *testing.T) {
 	for _, hookTask := range hookTasks {
 		unittest.AssertNotExistsBean(t, hookTask)
 	}
-	assert.NoError(t, PrepareWebhooks(EventSource{Repository: repo}, webhook_model.HookEventPush, &api.PushPayload{Commits: []*api.PayloadCommit{{}}}))
+	assert.NoError(t, PrepareWebhooks(db.DefaultContext, EventSource{Repository: repo}, webhook_model.HookEventPush, &api.PushPayload{Commits: []*api.PayloadCommit{{}}}))
 	for _, hookTask := range hookTasks {
 		unittest.AssertExistsAndLoadBean(t, hookTask)
 	}
@@ -54,7 +55,7 @@ func TestPrepareWebhooksBranchFilterMatch(t *testing.T) {
 		unittest.AssertNotExistsBean(t, hookTask)
 	}
 	// this test also ensures that * doesn't handle / in any special way (like shell would)
-	assert.NoError(t, PrepareWebhooks(EventSource{Repository: repo}, webhook_model.HookEventPush, &api.PushPayload{Ref: "refs/heads/feature/7791", Commits: []*api.PayloadCommit{{}}}))
+	assert.NoError(t, PrepareWebhooks(db.DefaultContext, EventSource{Repository: repo}, webhook_model.HookEventPush, &api.PushPayload{Ref: "refs/heads/feature/7791", Commits: []*api.PayloadCommit{{}}}))
 	for _, hookTask := range hookTasks {
 		unittest.AssertExistsAndLoadBean(t, hookTask)
 	}
@@ -70,7 +71,7 @@ func TestPrepareWebhooksBranchFilterNoMatch(t *testing.T) {
 	for _, hookTask := range hookTasks {
 		unittest.AssertNotExistsBean(t, hookTask)
 	}
-	assert.NoError(t, PrepareWebhooks(EventSource{Repository: repo}, webhook_model.HookEventPush, &api.PushPayload{Ref: "refs/heads/fix_weird_bug"}))
+	assert.NoError(t, PrepareWebhooks(db.DefaultContext, EventSource{Repository: repo}, webhook_model.HookEventPush, &api.PushPayload{Ref: "refs/heads/fix_weird_bug"}))
 
 	for _, hookTask := range hookTasks {
 		unittest.AssertNotExistsBean(t, hookTask)

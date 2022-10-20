@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	webhook_model "code.gitea.io/gitea/models/webhook"
@@ -110,36 +109,30 @@ type EventSource struct {
 	Owner      *user_model.User
 }
 
-// handle delivers all undelivered tasks
+// handle delivers hook tasks
 func handle(data ...queue.Data) []queue.Data {
-	tasks, err := webhook_model.FindUndeliveredHookTasks()
-	if err != nil {
-		log.Error("Get undelivered hook tasks: %v", err)
-		return nil
-	}
-	for _, t := range tasks {
-		if err = Deliver(graceful.GetManager().HammerContext(), t); err != nil {
-			log.Error("deliver: %v", err)
+	ctx := graceful.GetManager().HammerContext()
+
+	for _, taskID := range data {
+		task, err := webhook_model.GetHookTaskByID(ctx, taskID.(int64))
+		if err != nil {
+			log.Error("GetHookTaskByID failed: %v", err)
+		} else {
+			if err := Deliver(ctx, task); err != nil {
+				log.Error("webhook.Deliver failed: %v", err)
+			}
 		}
 	}
+
 	return nil
 }
 
-func triggerTaskProcessing() error {
-	err := hookQueue.PushFunc("dummy", nil)
+func enqueueHookTask(task *webhook_model.HookTask) error {
+	err := hookQueue.PushFunc(task.ID, nil)
 	if err != nil && err != queue.ErrAlreadyInQueue {
 		return err
 	}
 	return nil
-}
-
-// PrepareWebhook adds special webhook to task queue for given payload.
-func PrepareWebhook(source EventSource, w *webhook_model.Webhook, event webhook_model.HookEventType, p api.Payloader) error {
-	if err := prepareWebhook(source, w, event, p); err != nil {
-		return err
-	}
-
-	return triggerTaskProcessing()
 }
 
 func checkBranch(w *webhook_model.Webhook, branch string) bool {
@@ -157,7 +150,8 @@ func checkBranch(w *webhook_model.Webhook, branch string) bool {
 	return g.Match(branch)
 }
 
-func prepareWebhook(source EventSource, w *webhook_model.Webhook, event webhook_model.HookEventType, p api.Payloader) error {
+// PrepareWebhook creates a hook task and enqueues it for processing
+func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook_model.HookEventType, p api.Payloader) error {
 	// Skip sending if webhooks are disabled.
 	if setting.DisableWebhooks {
 		return nil
@@ -202,26 +196,20 @@ func prepareWebhook(source EventSource, w *webhook_model.Webhook, event webhook_
 		payloader = p
 	}
 
-	if err = webhook_model.CreateHookTask(&webhook_model.HookTask{
+	task, err := webhook_model.CreateHookTask(ctx, &webhook_model.HookTask{
 		HookID:    w.ID,
 		Payloader: payloader,
 		EventType: event,
-	}); err != nil {
+	})
+	if err != nil {
 		return fmt.Errorf("CreateHookTask: %v", err)
 	}
-	return nil
+
+	return enqueueHookTask(task)
 }
 
 // PrepareWebhooks adds new webhooks to task queue for given payload.
-func PrepareWebhooks(source EventSource, event webhook_model.HookEventType, p api.Payloader) error {
-	if err := prepareWebhooks(db.DefaultContext, source, event, p); err != nil {
-		return err
-	}
-
-	return triggerTaskProcessing()
-}
-
-func prepareWebhooks(ctx context.Context, source EventSource, event webhook_model.HookEventType, p api.Payloader) error {
+func PrepareWebhooks(ctx context.Context, source EventSource, event webhook_model.HookEventType, p api.Payloader) error {
 	owner := source.Owner
 
 	var ws []*webhook_model.Webhook
@@ -240,7 +228,7 @@ func prepareWebhooks(ctx context.Context, source EventSource, event webhook_mode
 	}
 
 	// check if owner is an org and append additional webhooks
-	if owner.IsOrganization() {
+	if owner != nil && owner.IsOrganization() {
 		orgHooks, err := webhook_model.ListWebhooksByOpts(ctx, &webhook_model.ListWebhookOptions{
 			OrgID:    owner.ID,
 			IsActive: util.OptionalBoolTrue,
@@ -263,7 +251,7 @@ func prepareWebhooks(ctx context.Context, source EventSource, event webhook_mode
 	}
 
 	for _, w := range ws {
-		if err = prepareWebhook(source, w, event, p); err != nil {
+		if err := PrepareWebhook(ctx, w, event, p); err != nil {
 			return err
 		}
 	}
@@ -271,10 +259,11 @@ func prepareWebhooks(ctx context.Context, source EventSource, event webhook_mode
 }
 
 // ReplayHookTask replays a webhook task
-func ReplayHookTask(w *webhook_model.Webhook, uuid string) error {
-	if err := webhook_model.ReplayHookTask(w.ID, uuid); err != nil {
+func ReplayHookTask(ctx context.Context, w *webhook_model.Webhook, uuid string) error {
+	task, err := webhook_model.ReplayHookTask(ctx, w.ID, uuid)
+	if err != nil {
 		return err
 	}
 
-	return triggerTaskProcessing()
+	return enqueueHookTask(task)
 }
