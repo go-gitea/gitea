@@ -6,6 +6,7 @@ package integration
 
 import (
 	"net/http"
+	"os"
 	"testing"
 
 	issues_model "code.gitea.io/gitea/models/issues"
