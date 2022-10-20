@@ -1463,7 +1463,8 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organizati
 
 func applyAssigneeCondition(sess *xorm.Session, assigneeID int64) *xorm.Session {
 	if assigneeID == -1 {
-		return sess.NotIn("issue.id", builder.Select("issue.id").From("issue").Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id"))
+		return sess.Join("LEFT", "issue_assignees", "issue.id = issue_assignees.issue_id").
+			And(builder.IsNull{"issue_assignees.issue_id"})
 	}
 
 	return sess.Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
