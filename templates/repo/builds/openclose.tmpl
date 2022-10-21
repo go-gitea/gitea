@@ -3,7 +3,7 @@
 		{{svg "octicon-issue-opened" 16 "mr-3"}}
 		{{.locale.Tr "repo.builds.open_tab" $.NumOpenRuns}}
 	</a>
-	<a class="{{if .IsShowClosed}}active{{end}} item" href="{{$.Link}}?workflow={{.CurWorkflow}}&&state=closed">
+	<a class="{{if .IsShowClosed}}active{{end}} item" href="{{$.Link}}?workflow={{.CurWorkflow}}&state=closed">
 		{{svg "octicon-issue-closed" 16 "mr-3"}}
 		{{.locale.Tr "repo.builds.closed_tab" $.NumClosedRuns}}
 	</a>

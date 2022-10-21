@@ -99,6 +99,7 @@ func List(ctx *context.Context) {
 	opts.IsClosed = util.OptionalBoolNone
 	if ctx.FormString("state") == "closed" {
 		opts.IsClosed = util.OptionalBoolTrue
+		ctx.Data["IsShowClosed"] = true
 	} else {
 		opts.IsClosed = util.OptionalBoolFalse
 	}

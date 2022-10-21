@@ -105,8 +105,14 @@ func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) err
 			builder.Select("count(*)").From("bots_run").
 				Where(builder.Eq{
 					"repo_id": repo.ID,
-					"status":  StatusFailure,
-				},
+				}.And(
+					builder.In("status",
+						StatusSuccess,
+						StatusFailure,
+						StatusCancelled,
+						StatusSkipped,
+					),
+				),
 				),
 		).
 		Update(repo)
