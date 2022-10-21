@@ -103,10 +103,6 @@ const sfc = {
   },
 
   mounted() {
-    // TODO: the parent element's full height doesn't work well now
-    const elBodyDiv = document.querySelector('body > div.full.height');
-    elBodyDiv.style.height = '100%';
-
     // load job data and then auto-reload periodically
     this.loadJobData();
     setInterval(() => this.loadJobData(), 1000);
@@ -239,7 +235,7 @@ const sfc = {
       // prepare mock data for logs
       for (const reqCursor of reqData.stepLogCursors) {
         if (!reqCursor.expanded) continue; // backend can decide whether send logs for a step
-        // if (reqCursor.cursor > 100) continue;
+        if (reqCursor.cursor > 100) continue;
         let cursor = reqCursor.cursor; // use cursor to send remaining logs
         const lines = [];
         for (let i = 0; i < 110; i++) {
@@ -317,8 +313,8 @@ export function initRepositoryBuildView() {
   if (!el) return;
 
   const view = createApp(sfc, {
-    jobIndex: el.getAttribute("job-index"),
-    runIndex: el.getAttribute("run-index"),
+    jobIndex: el.getAttribute("data-job-index"),
+    runIndex: el.getAttribute("data-run-index"),
   });
   view.mount(el);
 }
@@ -329,7 +325,7 @@ export function initRepositoryBuildView() {
 
 .build-view-container {
   display: flex;
-  height: 100%;
+  height: calc(100vh - 286px); // fine tune this value to make the main view has full height
 }
 
 
@@ -416,6 +412,12 @@ export function initRepositoryBuildView() {
 
 <style lang="less">
 // some elements are not managed by vue, so we need to use global style
+
+// TODO: the parent element's full height doesn't work well now
+body > div.full.height {
+  padding-bottom: 0;
+}
+
 .job-status-rotate {
   animation: job-status-rotate-keyframes 1s linear infinite;
 }

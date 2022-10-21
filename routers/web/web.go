@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/metrics"
 	"code.gitea.io/gitea/modules/public"
-	_ "code.gitea.io/gitea/modules/session" // to registers all internal adapters
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
@@ -45,6 +44,8 @@ import (
 	context_service "code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/lfs"
+
+	_ "code.gitea.io/gitea/modules/session" // to registers all internal adapters
 
 	"gitea.com/go-chi/captcha"
 	"gitea.com/go-chi/session"
@@ -661,6 +662,7 @@ func RegisterRoutes(m *web.Route) {
 
 	if !setting.IsProd {
 		m.Any("/dev/termdemo", dev.TermDemo)
+		m.Get("/template/*", dev.TemplatePreview)
 	}
 
 	reqRepoAdmin := context.RequireRepoAdmin()

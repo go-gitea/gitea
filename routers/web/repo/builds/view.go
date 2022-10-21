@@ -25,6 +25,7 @@ func View(ctx *context.Context) {
 	run := job.Run
 	ctx.Data["Build"] = run
 
+	// ctx.Data["Build"] = &bots_model.Run{Title: "test", Index: 123, Status: bots_model.StatusRunning}
 	ctx.HTML(http.StatusOK, tplViewBuild)
 }
 

@@ -1,17 +1,17 @@
 {{template "base/head" .}}
+
 <div class="page-content repository">
 	{{template "repo/header" .}}
-	<div class="ui container">
-		<div class="sixteen wide column title">
-			<div class="issue-title" id="issue-title-wrapper">
-				<h1>
-					<span id="issue-title">{{template "repo/builds/status" .Build.Status}}{{RenderIssueTitle $.Context .Build.Title $.RepoLink $.Repository.ComposeMetas}}</span>
-					<span class="index">#{{.Build.Index}}</span>
-				</h1>
-			</div>
-		</div>
+	<div class="build-view-header">
+		<h1>
+			<span class="title">{{template "repo/builds/status" .Build.Status}}{{RenderIssueTitle $.Context .Build.Title $.RepoLink $.Repository.ComposeMetas}}</span>
+			<span class="index">#{{.Build.Index}}</span>
+		</h1>
 	</div>
-	<div id="repo-build-view" run-index="{{.RunIndex}}" job-index="{{.JobIndex}}" class="h-100">
+
+	<div id="repo-build-view" data-run-index="{{.RunIndex}}" data-job-index="{{.JobIndex}}">
 	</div>
+
 </div>
+
 {{template "base/footer" .}}
