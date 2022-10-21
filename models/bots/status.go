@@ -27,6 +27,30 @@ func (s Status) IsDone() bool {
 	return s > StatusUnknown && s <= StatusSkipped
 }
 
+func (s Status) IsSuccess() bool {
+	return s == StatusSuccess
+}
+
+func (s Status) IsFailure() bool {
+	return s == StatusFailure
+}
+
+func (s Status) IsCancelled() bool {
+	return s == StatusCancelled
+}
+
+func (s Status) IsSkipped() bool {
+	return s == StatusSkipped
+}
+
+func (s Status) IsWaiting() bool {
+	return s == StatusWaiting
+}
+
+func (s Status) IsRunning() bool {
+	return s == StatusRunning
+}
+
 var statusNames = map[Status]string{
 	StatusUnknown:   "unknown",
 	StatusWaiting:   "waiting",

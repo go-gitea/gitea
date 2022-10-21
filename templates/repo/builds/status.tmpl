@@ -1,4 +1,4 @@
-{{if .IsPending}}
+{{if .IsWaiting}}
 	<i class="commit-status circle icon gray"></i>
 {{end}}
 {{if .IsRunning}}
@@ -7,6 +7,6 @@
 {{if .IsSuccess}}
 	<i class="commit-status check icon green"></i>
 {{end}}
-{{if .IsFailed}}
+{{if .IsFailure}}
 	<i class="commit-status warning icon red"></i>
 {{end}}
