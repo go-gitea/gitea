@@ -105,12 +105,20 @@ func UpdateRunJob(ctx context.Context, job *RunJob, cols ...string) error {
 		return nil
 	}
 
+	if job.RunID == 0 {
+		var err error
+		if job, err = GetRunJobByID(ctx, job.ID); err != nil {
+			return err
+		}
+	}
+
 	jobs, err := GetRunJobsByRunID(ctx, job.RunID)
 	if err != nil {
 		return err
 	}
 
 	runStatus := aggregateJobStatus(jobs)
+
 	run := &Run{
 		ID:     job.RunID,
 		Status: runStatus,
