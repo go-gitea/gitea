@@ -14,6 +14,8 @@ import (
 	"strings"
 	"sync"
 
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
@@ -603,8 +605,20 @@ func mentionProcessor(ctx *RenderContext, node *html.Node) {
 			start = loc.End
 			continue
 		}
-		replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, mention[1:]), mention, "mention"))
-		node = node.NextSibling.NextSibling
+		mentionedUsername := mention[1:]
+
+		// Only link if the user actually exists
+		userExists, err := user.IsUserExist(db.DefaultContext, 0, mentionedUsername)
+		if err != nil {
+			log.Error("Failed to validate user in mention %v exists, assuming it does", mention)
+			userExists = true
+		}
+		if userExists {
+			replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, mentionedUsername), mention, "mention"))
+			node = node.NextSibling.NextSibling
+		} else {
+			node = node.NextSibling
+		}
 		start = 0
 	}
 }
