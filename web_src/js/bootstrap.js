@@ -25,6 +25,10 @@ function processWindowErrorEvent(e) {
     // If a script inserts a newly created (and content changed) element into DOM, there will be a nonsense error event reporting: Script error: line 0, col 0.
     return; // ignore such nonsense error event
   }
+
+  // Wait for upstream fix: https://github.com/microsoft/monaco-editor/issues/2962
+  if (e.message.includes('Language id "vs.editor.nullLanguage" is not configured nor known')) return;
+
   showGlobalErrorMessage(`JavaScript error: ${e.message} (${e.filename} @ ${e.lineno}:${e.colno}). Open browser console to see more details.`);
 }
 

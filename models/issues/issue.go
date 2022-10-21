@@ -13,7 +13,6 @@ import (
 	"strconv"
 	"strings"
 
-	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/foreignreference"
 	"code.gitea.io/gitea/models/organization"
@@ -21,6 +20,7 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -50,6 +50,10 @@ func IsErrIssueNotExist(err error) bool {
 
 func (err ErrIssueNotExist) Error() string {
 	return fmt.Sprintf("issue does not exist [id: %d, repo_id: %d, index: %d]", err.ID, err.RepoID, err.Index)
+}
+
+func (err ErrIssueNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // ErrIssueIsClosed represents a "IssueIsClosed" kind of error.
@@ -1064,18 +1068,18 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 
 // NewIssue creates new issue with labels for repository.
 func NewIssue(repo *repo_model.Repository, issue *Issue, labelIDs []int64, uuids []string) (err error) {
-	idx, err := db.GetNextResourceIndex("issue_index", repo.ID)
-	if err != nil {
-		return fmt.Errorf("generate issue index failed: %v", err)
-	}
-
-	issue.Index = idx
-
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
+
+	idx, err := db.GetNextResourceIndex(ctx, "issue_index", repo.ID)
+	if err != nil {
+		return fmt.Errorf("generate issue index failed: %w", err)
+	}
+
+	issue.Index = idx
 
 	if err = NewIssueWithIndex(ctx, issue.Poster, NewIssueOptions{
 		Repo:        repo,
@@ -1492,7 +1496,8 @@ func applySubscribedCondition(sess *xorm.Session, subscriberID int64) *xorm.Sess
 			builder.In("issue.repo_id", builder.
 				Select("id").
 				From("watch").
-				Where(builder.Eq{"user_id": subscriberID, "mode": true}),
+				Where(builder.And(builder.Eq{"user_id": subscriberID},
+					builder.In("mode", repo_model.WatchModeNormal, repo_model.WatchModeAuto))),
 			),
 		),
 	)
@@ -2470,7 +2475,7 @@ func DeleteOrphanedIssues() error {
 
 	// Remove issue attachment files.
 	for i := range attachmentPaths {
-		admin_model.RemoveAllWithNotice(db.DefaultContext, "Delete issue attachment", attachmentPaths[i])
+		system_model.RemoveAllWithNotice(db.DefaultContext, "Delete issue attachment", attachmentPaths[i])
 	}
 	return nil
 }
