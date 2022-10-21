@@ -429,6 +429,61 @@ func TestRenderEmojiInLinks_Issue12331(t *testing.T) {
 	assert.Equal(t, expected, res)
 }
 
+func TestColorPreview(t *testing.T) {
+	const nl = "\n"
+	positiveTests := []struct {
+		testcase string
+		expected string
+	}{
+		{ // hex
+			"`#FF0000`",
+			`<p><code>#FF0000<span class="color-preview" style="background-color: #FF0000"></span></code></p>` + nl,
+		},
+		{ // rgb
+			"`rgb(16, 32, 64)`",
+			`<p><code>rgb(16, 32, 64)<span class="color-preview" style="background-color: rgb(16, 32, 64)"></span></code></p>` + nl,
+		},
+		{ // short hex
+			"This is the color white `#000`",
+			`<p>This is the color white <code>#000<span class="color-preview" style="background-color: #000"></span></code></p>` + nl,
+		},
+		{ // hsl
+			"HSL stands for hue, saturation, and lightness. An example: `hsl(0, 100%, 50%)`.",
+			`<p>HSL stands for hue, saturation, and lightness. An example: <code>hsl(0, 100%, 50%)<span class="color-preview" style="background-color: hsl(0, 100%, 50%)"></span></code>.</p>` + nl,
+		},
+		{ // uppercase hsl
+			"HSL stands for hue, saturation, and lightness. An example: `HSL(0, 100%, 50%)`.",
+			`<p>HSL stands for hue, saturation, and lightness. An example: <code>HSL(0, 100%, 50%)<span class="color-preview" style="background-color: HSL(0, 100%, 50%)"></span></code>.</p>` + nl,
+		},
+	}
+
+	for _, test := range positiveTests {
+		res, err := RenderString(&markup.RenderContext{}, test.testcase)
+		assert.NoError(t, err, "Unexpected error in testcase: %q", test.testcase)
+		assert.Equal(t, test.expected, res, "Unexpected result in testcase %q", test.testcase)
+
+	}
+
+	negativeTests := []string{
+		// not a color code
+		"`FF0000`",
+		// inside a code block
+		"```javascript" + nl + `const red = "#FF0000";` + nl + "```",
+		// no backticks
+		"rgb(166, 32, 64)",
+		// typo
+		"`hsI(0, 100%, 50%)`",
+		// looks like a color but not really
+		"`hsl(40, 60, 80)`",
+	}
+
+	for _, test := range negativeTests {
+		res, err := RenderString(&markup.RenderContext{}, test)
+		assert.NoError(t, err, "Unexpected error in testcase: %q", test)
+		assert.NotContains(t, res, `<span class="color-preview" style="background-color: `, "Unexpected result in testcase %q", test)
+	}
+}
+
 func TestMathBlock(t *testing.T) {
 	const nl = "\n"
 	testcases := []struct {
