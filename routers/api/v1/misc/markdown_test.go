@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -50,6 +51,8 @@ func wrap(ctx *context.Context) *context.APIContext {
 
 func TestAPI_RenderGFM(t *testing.T) {
 	setting.AppURL = AppURL
+
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	options := api.MarkdownOption{
 		Mode:    "gfm",
