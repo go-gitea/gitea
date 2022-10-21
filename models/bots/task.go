@@ -259,6 +259,14 @@ func CreateTaskForRunner(runner *Runner) (*Task, bool, error) {
 		return nil, false, err
 	}
 
+	if job.Run.Status.IsWaiting() {
+		job.Run.Status = StatusRunning
+		job.Run.Started = now
+		if err := UpdateRun(ctx, job.Run, "status", "started"); err != nil {
+			return nil, false, err
+		}
+	}
+
 	task.Job = job
 
 	if err := commiter.Commit(); err != nil {

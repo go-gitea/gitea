@@ -1,4 +1,4 @@
-package dev
+package builds
 
 import (
 	"fmt"
@@ -12,14 +12,23 @@ import (
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 )
 
-func BuildView(ctx *context.Context) {
-	ctx.Data["RunIndex"] = ctx.ParamsInt64("run")
-	ctx.Data["JobIndex"] = ctx.ParamsInt64("job")
+func View(ctx *context.Context) {
+	runIndex := ctx.ParamsInt64("run")
+	jobIndex := ctx.ParamsInt64("job")
+	ctx.Data["RunIndex"] = runIndex
+	ctx.Data["JobIndex"] = jobIndex
 
-	ctx.HTML(http.StatusOK, "dev/buildview")
+	job, _ := getRunJobs(ctx, runIndex, jobIndex)
+	if ctx.Written() {
+		return
+	}
+	run := job.Run
+	ctx.Data["Build"] = run
+
+	ctx.HTML(http.StatusOK, tplViewBuild)
 }
 
-type BuildViewRequest struct {
+type ViewRequest struct {
 	StepLogCursors []struct {
 		StepIndex int   `json:"stepIndex"`
 		Cursor    int64 `json:"cursor"`
@@ -27,130 +36,112 @@ type BuildViewRequest struct {
 	} `json:"stepLogCursors"`
 }
 
-type BuildViewResponse struct {
+type ViewResponse struct {
 	StateData struct {
 		BuildInfo struct {
 			HTMLURL string `json:"htmlurl"`
 			Title   string `json:"title"`
 		} `json:"buildInfo"`
-		AllJobGroups   []BuildViewGroup `json:"allJobGroups"`
+		AllJobGroups   []ViewGroup `json:"allJobGroups"`
 		CurrentJobInfo struct {
 			Title  string `json:"title"`
 			Detail string `json:"detail"`
 		} `json:"currentJobInfo"`
-		CurrentJobSteps []BuildViewJobStep `json:"currentJobSteps"`
+		CurrentJobSteps []ViewJobStep `json:"currentJobSteps"`
 	} `json:"stateData"`
 	LogsData struct {
-		StreamingLogs []BuildViewStepLog `json:"streamingLogs"`
+		StreamingLogs []ViewStepLog `json:"streamingLogs"`
 	} `json:"logsData"`
 }
 
-type BuildViewGroup struct {
-	Summary string          `json:"summary"`
-	Jobs    []*BuildViewJob `json:"jobs"`
+type ViewGroup struct {
+	Summary string     `json:"summary"`
+	Jobs    []*ViewJob `json:"jobs"`
 }
 
-type BuildViewJob struct {
+type ViewJob struct {
 	Id     int64  `json:"id"`
 	Name   string `json:"name"`
 	Status string `json:"status"`
 }
 
-type BuildViewJobStep struct {
+type ViewJobStep struct {
 	Summary  string  `json:"summary"`
 	Duration float64 `json:"duration"`
 	Status   string  `json:"status"`
 }
 
-type BuildViewStepLog struct {
-	StepIndex int                    `json:"stepIndex"`
-	Cursor    int64                  `json:"cursor"`
-	Lines     []BuildViewStepLogLine `json:"lines"`
+type ViewStepLog struct {
+	StepIndex int               `json:"stepIndex"`
+	Cursor    int64             `json:"cursor"`
+	Lines     []ViewStepLogLine `json:"lines"`
 }
 
-type BuildViewStepLogLine struct {
+type ViewStepLogLine struct {
 	Ln int64   `json:"ln"`
 	M  string  `json:"m"`
 	T  float64 `json:"t"`
 }
 
-func BuildViewPost(ctx *context.Context) {
-	req := web.GetForm(ctx).(*BuildViewRequest)
+func ViewPost(ctx *context.Context) {
+	req := web.GetForm(ctx).(*ViewRequest)
 	runIndex := ctx.ParamsInt64("run")
 	jobIndex := ctx.ParamsInt64("job")
 
-	run, err := bots_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
-	if err != nil {
-		if _, ok := err.(bots_model.ErrRunNotExist); ok {
-			ctx.Error(http.StatusNotFound, err.Error())
-			return
-		}
-		ctx.Error(http.StatusInternalServerError, err.Error())
+	current, jobs := getRunJobs(ctx, runIndex, jobIndex)
+	if ctx.Written() {
 		return
 	}
-	run.Repo = ctx.Repo.Repository
+	run := current.Run
 
-	jobs, err := bots_model.GetRunJobsByRunID(ctx, run.ID)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	if jobIndex < 0 || jobIndex >= int64(len(jobs)) {
-		if len(jobs) == 0 {
-			ctx.Error(http.StatusNotFound, fmt.Sprintf("run %v has no job %v", runIndex, jobIndex))
-			return
-		}
-	}
-	job := jobs[jobIndex]
-
-	resp := &BuildViewResponse{}
+	resp := &ViewResponse{}
 	resp.StateData.BuildInfo.Title = run.Title
 	resp.StateData.BuildInfo.HTMLURL = run.HTMLURL()
 
-	respJobs := make([]*BuildViewJob, len(jobs))
+	respJobs := make([]*ViewJob, len(jobs))
 	for i, v := range jobs {
-		respJobs[i] = &BuildViewJob{
+		respJobs[i] = &ViewJob{
 			Id:     v.ID,
 			Name:   v.Name,
 			Status: v.Status.String(),
 		}
 	}
 
-	resp.StateData.AllJobGroups = []BuildViewGroup{
+	resp.StateData.AllJobGroups = []ViewGroup{
 		{
 			Summary: "Only One Group", // TODO: maybe we don't need job group
 			Jobs:    respJobs,
 		},
 	}
 
-	if job != nil {
+	if current != nil {
 		var task *bots_model.Task
-		if job.TaskID > 0 {
-			task, err = bots_model.GetTaskByID(ctx, job.TaskID)
+		if current.TaskID > 0 {
+			var err error
+			task, err = bots_model.GetTaskByID(ctx, current.TaskID)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, err.Error())
 				return
 			}
-			task.Job = job
+			task.Job = current
 			if err := task.LoadAttributes(ctx); err != nil {
 				ctx.Error(http.StatusInternalServerError, err.Error())
 				return
 			}
 		}
 
-		resp.StateData.CurrentJobInfo.Title = job.Name
-		resp.LogsData.StreamingLogs = make([]BuildViewStepLog, 0, len(req.StepLogCursors))
-		if job.TaskID == 0 {
+		resp.StateData.CurrentJobInfo.Title = current.Name
+		resp.LogsData.StreamingLogs = make([]ViewStepLog, 0, len(req.StepLogCursors))
+		if current.TaskID == 0 {
 			resp.StateData.CurrentJobInfo.Detail = "wait to be pick up by a runner"
 		} else {
 			resp.StateData.CurrentJobInfo.Detail = "TODO: more detail info" // TODO: more detail info
 
 			steps := task.FullSteps()
 
-			resp.StateData.CurrentJobSteps = make([]BuildViewJobStep, len(steps))
+			resp.StateData.CurrentJobSteps = make([]ViewJobStep, len(steps))
 			for i, v := range steps {
-				resp.StateData.CurrentJobSteps[i] = BuildViewJobStep{
+				resp.StateData.CurrentJobSteps[i] = ViewJobStep{
 					Summary:  v.Name,
 					Duration: float64(v.Stopped - v.Started),
 					Status:   v.Status.String(),
@@ -165,21 +156,22 @@ func BuildViewPost(ctx *context.Context) {
 						index := step.LogIndex + cursor.Cursor
 						length := step.LogLength - cursor.Cursor
 						offset := (*task.LogIndexes)[index]
+						var err error
 						logRows, err = bots.ReadLogs(ctx, task.LogInStorage, task.LogFilename, offset, length)
 						if err != nil {
 							ctx.Error(http.StatusInternalServerError, err.Error())
 							return
 						}
 					}
-					logLines := make([]BuildViewStepLogLine, len(logRows))
+					logLines := make([]ViewStepLogLine, len(logRows))
 					for i, row := range logRows {
-						logLines[i] = BuildViewStepLogLine{
+						logLines[i] = ViewStepLogLine{
 							Ln: cursor.Cursor + int64(i),
 							M:  row.Content,
 							T:  float64(row.Time.AsTime().UnixNano()) / float64(time.Second),
 						}
 					}
-					resp.LogsData.StreamingLogs = append(resp.LogsData.StreamingLogs, BuildViewStepLog{
+					resp.LogsData.StreamingLogs = append(resp.LogsData.StreamingLogs, ViewStepLog{
 						StepIndex: cursor.StepIndex,
 						Cursor:    cursor.Cursor + int64(len(logLines)),
 						Lines:     logLines,
@@ -190,4 +182,35 @@ func BuildViewPost(ctx *context.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, resp)
+}
+
+func getRunJobs(ctx *context.Context, runIndex, jobIndex int64) (current *bots_model.RunJob, jobs []*bots_model.RunJob) {
+	run, err := bots_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
+	if err != nil {
+		if _, ok := err.(bots_model.ErrRunNotExist); ok {
+			ctx.Error(http.StatusNotFound, err.Error())
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+	run.Repo = ctx.Repo.Repository
+
+	jobs, err = bots_model.GetRunJobsByRunID(ctx, run.ID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return nil, nil
+	}
+	for _, v := range jobs {
+		v.Run = run
+	}
+
+	if jobIndex < 0 || jobIndex >= int64(len(jobs)) {
+		if len(jobs) == 0 {
+			ctx.Error(http.StatusNotFound, fmt.Sprintf("run %v has no job %v", runIndex, jobIndex))
+			return nil, nil
+		}
+	}
+	current = jobs[jobIndex]
+	return
 }

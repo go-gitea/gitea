@@ -25,7 +25,6 @@ import (
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/nektos/act/pkg/jobparser"
 )
@@ -95,7 +94,6 @@ func notify(repo *repo_model.Repository, doer *user_model.User, payload, ref str
 			Event:         evt,
 			EventPayload:  payload,
 			Status:        bots_model.StatusWaiting,
-			Started:       timeutil.TimeStampNow(),
 		}
 		if len(run.Title) > 255 {
 			run.Title = run.Title[:255]

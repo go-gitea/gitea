@@ -84,11 +84,15 @@ func (run *Run) LoadAttributes(ctx context.Context) error {
 }
 
 func (run *Run) TakeTime() time.Duration {
+	if run.Started == 0 {
+		return 0
+	}
 	started := run.Started.AsTime()
 	if run.Status.IsDone() {
 		return run.Stopped.AsTime().Sub(started)
 	}
-	return time.Since(started)
+	run.Stopped.AsTime().Sub(started)
+	return time.Since(started).Truncate(time.Second)
 }
 
 func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) error {

@@ -661,12 +661,6 @@ func RegisterRoutes(m *web.Route) {
 
 	if !setting.IsProd {
 		m.Any("/dev/termdemo", dev.TermDemo)
-		m.Combo("/dev/buildview/runs/{runid}").
-			Get(dev.BuildView).
-			Post(bindIgnErr(dev.BuildViewRequest{}), dev.BuildViewPost)
-		m.Combo("/dev/buildview/runs/{runid}/jobs/{jobid}").
-			Get(dev.BuildView).
-			Post(bindIgnErr(dev.BuildViewRequest{}), dev.BuildViewPost)
 	}
 
 	reqRepoAdmin := context.RequireRepoAdmin()
@@ -1203,11 +1197,11 @@ func RegisterRoutes(m *web.Route) {
 
 			m.Group("/runs/{run}", func() {
 				m.Combo("").
-					Get(dev.BuildView).
-					Post(bindIgnErr(dev.BuildViewRequest{}), dev.BuildViewPost)
+					Get(builds.View).
+					Post(bindIgnErr(builds.ViewRequest{}), builds.ViewPost)
 				m.Combo("/jobs/{job}").
-					Get(dev.BuildView).
-					Post(bindIgnErr(dev.BuildViewRequest{}), dev.BuildViewPost)
+					Get(builds.View).
+					Post(bindIgnErr(builds.ViewRequest{}), builds.ViewPost)
 			})
 		}, reqRepoBuildsReader, builds.MustEnableBuilds)
 
