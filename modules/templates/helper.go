@@ -462,7 +462,7 @@ func NewFuncMap() []template.FuncMap {
 		"CompareLink": func(baseRepo, repo *repo_model.Repository, branchName string) string {
 			var curBranch string
 			if repo.ID != baseRepo.ID {
-				curBranch += fmt.Sprintf("%s/%s:", url.PathEscape(repo.Owner.Name), url.PathEscape(repo.Name))
+				curBranch += fmt.Sprintf("%s/%s:", url.PathEscape(repo.OwnerName), url.PathEscape(repo.Name))
 			}
 			curBranch += util.PathEscapeSegments(branchName)
 
