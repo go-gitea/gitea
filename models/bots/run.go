@@ -17,6 +17,7 @@ import (
 	"xorm.io/builder"
 
 	"github.com/nektos/act/pkg/jobparser"
+	"golang.org/x/exp/slices"
 )
 
 // Run represents a run of a workflow file
@@ -223,6 +224,26 @@ func UpdateRun(ctx context.Context, run *Run, cols ...string) error {
 		sess.Cols(cols...)
 	}
 	_, err := sess.Update(run)
+
+	if run.Status != 0 || slices.Contains(cols, "status") {
+		if run.RepoID == 0 {
+			run, err = GetRunByID(ctx, run.ID)
+			if err != nil {
+				return err
+			}
+		}
+		if run.Repo == nil {
+			repo, err := repo_model.GetRepositoryByIDCtx(ctx, run.RepoID)
+			if err != nil {
+				return err
+			}
+			run.Repo = repo
+		}
+		if err := updateRepoRunsNumbers(ctx, run.Repo); err != nil {
+			return err
+		}
+	}
+
 	return err
 }
 
