@@ -13,20 +13,8 @@ import (
 )
 
 func BuildView(ctx *context.Context) {
-	runID := ctx.ParamsInt64("runid")
-	ctx.Data["RunID"] = runID
-	jobID := ctx.ParamsInt64("jobid")
-	if jobID <= 0 {
-		runJobs, err := bots_model.GetRunJobsByRunID(ctx, runID)
-		if err != nil {
-			return
-		}
-		if len(runJobs) <= 0 {
-			return
-		}
-		jobID = runJobs[0].ID
-	}
-	ctx.Data["JobID"] = jobID
+	ctx.Data["RunIndex"] = ctx.ParamsInt64("run")
+	ctx.Data["JobIndex"] = ctx.ParamsInt64("job")
 
 	ctx.HTML(http.StatusOK, "dev/buildview")
 }
@@ -42,7 +30,8 @@ type BuildViewRequest struct {
 type BuildViewResponse struct {
 	StateData struct {
 		BuildInfo struct {
-			Title string `json:"title"`
+			HTMLURL string `json:"htmlurl"`
+			Title   string `json:"title"`
 		} `json:"buildInfo"`
 		AllJobGroups   []BuildViewGroup `json:"allJobGroups"`
 		CurrentJobInfo struct {
@@ -87,10 +76,10 @@ type BuildViewStepLogLine struct {
 
 func BuildViewPost(ctx *context.Context) {
 	req := web.GetForm(ctx).(*BuildViewRequest)
-	runID := ctx.ParamsInt64("runid")
-	jobID := ctx.ParamsInt64("jobid")
+	runIndex := ctx.ParamsInt64("run")
+	jobIndex := ctx.ParamsInt64("job")
 
-	run, err := bots_model.GetRunByID(ctx, runID)
+	run, err := bots_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
 	if err != nil {
 		if _, ok := err.(bots_model.ErrRunNotExist); ok {
 			ctx.Error(http.StatusNotFound, err.Error())
@@ -99,28 +88,25 @@ func BuildViewPost(ctx *context.Context) {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
+	run.Repo = ctx.Repo.Repository
+
 	jobs, err := bots_model.GetRunJobsByRunID(ctx, run.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	var job *bots_model.RunJob
-	if jobID != 0 {
-		for _, v := range jobs {
-			if v.ID == jobID {
-				job = v
-				break
-			}
-		}
-		if job == nil {
-			ctx.Error(http.StatusNotFound, fmt.Sprintf("run %v has no job %v", runID, jobID))
+	if jobIndex < 0 || jobIndex >= int64(len(jobs)) {
+		if len(jobs) == 0 {
+			ctx.Error(http.StatusNotFound, fmt.Sprintf("run %v has no job %v", runIndex, jobIndex))
 			return
 		}
 	}
+	job := jobs[jobIndex]
 
 	resp := &BuildViewResponse{}
 	resp.StateData.BuildInfo.Title = run.Title
+	resp.StateData.BuildInfo.HTMLURL = run.HTMLURL()
 
 	respJobs := make([]*BuildViewJob, len(jobs))
 	for i, v := range jobs {

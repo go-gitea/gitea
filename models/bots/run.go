@@ -52,32 +52,32 @@ func (Run) TableName() string {
 }
 
 func (run *Run) HTMLURL() string {
-	return fmt.Sprintf("%s/builds/run/%d", run.Repo.HTMLURL(), run.Index)
+	return fmt.Sprintf("%s/builds/runs/%d", run.Repo.HTMLURL(), run.Index)
 }
 
 // LoadAttributes load Repo TriggerUser if not loaded
-func (r *Run) LoadAttributes(ctx context.Context) error {
-	if r == nil {
+func (run *Run) LoadAttributes(ctx context.Context) error {
+	if run == nil {
 		return nil
 	}
 
-	if r.Repo == nil {
-		repo, err := repo_model.GetRepositoryByIDCtx(ctx, r.RepoID)
+	if run.Repo == nil {
+		repo, err := repo_model.GetRepositoryByIDCtx(ctx, run.RepoID)
 		if err != nil {
 			return err
 		}
-		r.Repo = repo
+		run.Repo = repo
 	}
-	if err := r.Repo.LoadAttributes(ctx); err != nil {
+	if err := run.Repo.LoadAttributes(ctx); err != nil {
 		return err
 	}
 
-	if r.TriggerUser == nil {
-		u, err := user_model.GetUserByIDCtx(ctx, r.TriggerUserID)
+	if run.TriggerUser == nil {
+		u, err := user_model.GetUserByIDCtx(ctx, run.TriggerUserID)
 		if err != nil {
 			return err
 		}
-		r.TriggerUser = u
+		run.TriggerUser = u
 	}
 
 	return nil
@@ -159,10 +159,15 @@ func InsertRun(run *Run, jobs []*jobparser.SingleWorkflow) error {
 
 // ErrRunNotExist represents an error for bot run not exist
 type ErrRunNotExist struct {
-	ID int64
+	ID     int64
+	RepoID int64
+	Index  int64
 }
 
 func (err ErrRunNotExist) Error() string {
+	if err.RepoID > 0 {
+		return fmt.Sprintf("run repe_id [%d] index [%d] is not exist", err.RepoID, err.Index)
+	}
 	return fmt.Sprintf("run [%d] is not exist", err.ID)
 }
 
@@ -178,6 +183,24 @@ func GetRunByID(ctx context.Context, id int64) (*Run, error) {
 	}
 
 	return &run, nil
+}
+
+func GetRunByIndex(ctx context.Context, repoID, index int64) (*Run, error) {
+	run := &Run{
+		RepoID: repoID,
+		Index:  index,
+	}
+	has, err := db.GetEngine(ctx).Get(run)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrRunNotExist{
+			RepoID: repoID,
+			Index:  index,
+		}
+	}
+
+	return run, nil
 }
 
 func UpdateRun(ctx context.Context, run *Run, cols ...string) error {

@@ -10,7 +10,7 @@
           {{ jobGroup.summary }}
         </div>
         <div class="job-brief-list">
-          <a class="job-brief-item" v-for="job in jobGroup.jobs" :key="job.id" v-bind:href="'/dev/buildview/runs/'+runId+'/jobs/'+job.id">
+          <a class="job-brief-item" v-for="(job, index) in jobGroup.jobs" :key="job.id" v-bind:href="buildInfo.htmlurl+'/jobs/'+index">
             <SvgIcon name="octicon-check-circle-fill" class="green" v-if="job.status === 'success'"/>
             <SvgIcon name="octicon-skip" class="ui text grey" v-else-if="job.status === 'skipped'"/>
             <SvgIcon name="octicon-clock" class="ui text yellow" v-else-if="job.status === 'waiting'"/>
@@ -72,14 +72,16 @@ import {SvgIcon} from '../svg.js';
 import Vue, {createApp} from 'vue';
 import AnsiToHTML from `ansi-to-html`;
 
+const {csrfToken} = window.config;
+
 const sfc = {
   name: 'RepoBuildView',
   components: {
     SvgIcon,
   },
   props: {
-    runId: Number,
-    jobId: Number,
+    runIndex: Number,
+    jobIndex: Number,
   },
 
   data() {
@@ -255,9 +257,12 @@ const sfc = {
     },
 
     async fetchJobData(reqData) {
-      const resp = await fetch(`/dev/buildview/runs/${this.runId}/jobs/${this.jobId}`, { // FIXME: hard code path
+      const resp = await fetch(``, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Csrf-Token': csrfToken,
+        },
         body: JSON.stringify(reqData),
       });
       return await resp.json();
@@ -312,8 +317,8 @@ export function initRepositoryBuildView() {
   if (!el) return;
 
   const view = createApp(sfc, {
-    jobId: el.getAttribute("job-id"),
-    runId: el.getAttribute("run-id"),
+    jobIndex: el.getAttribute("job-index"),
+    runIndex: el.getAttribute("run-index"),
   });
   view.mount(el);
 }
