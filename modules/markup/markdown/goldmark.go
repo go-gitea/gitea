@@ -300,7 +300,7 @@ func (r *HTMLRenderer) renderCodeSpan(w util.BufWriter, source []byte, n ast.Nod
 					r.Writer.RawWrite(w, value)
 				}
 			case *ColorPreview:
-				_, _ = w.WriteString(fmt.Sprintf(`<span class="color-preview dib" style="background-color: %v"></span>`, string(v.Color)))
+				_, _ = w.WriteString(fmt.Sprintf(`<span class="color-preview" style="background-color: %v"></span>`, string(v.Color)))
 			}
 		}
 		return ast.WalkSkipChildren, nil
