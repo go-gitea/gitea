@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/activitypub"
 	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	user_service "code.gitea.io/gitea/services/user"
 
 	ap "github.com/go-ap/activitypub"
 	"github.com/go-fed/httpsig"
@@ -84,7 +85,7 @@ func verifyHTTPSignatures(ctx *gitea_context.APIContext) (authenticated bool, er
 		return
 	}
 
-	err = activitypub.FederatedUserNew(ctx, &person)
+	err = user_service.FederatedUserNew(ctx, &person)
 	return authenticated, err
 }
 

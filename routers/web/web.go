@@ -12,7 +12,6 @@ import (
 
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/activitypub"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -1317,7 +1316,7 @@ func RegisterRoutes(m *web.Route) {
 	}, reqSignIn)
 
 	if setting.Federation.Enabled {
-		m.Get("/authorize_interaction", activitypub.AuthorizeInteraction)
+		m.Get("/authorize_interaction", AuthorizeInteraction)
 	}
 
 	if setting.API.EnableSwagger {

@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 func responseAPIUsers(ctx *context.APIContext, users []*user_model.User) {
@@ -219,7 +220,7 @@ func Follow(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	if err := user_model.FollowUser(ctx.Doer.ID, ctx.ContextUser.ID); err != nil {
+	if err := user_service.FollowUser(ctx.Doer.ID, ctx.ContextUser.ID); err != nil {
 		ctx.Error(http.StatusInternalServerError, "FollowUser", err)
 		return
 	}
@@ -241,7 +242,7 @@ func Unfollow(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	if err := user_model.UnfollowUser(ctx.Doer.ID, ctx.ContextUser.ID); err != nil {
+	if err := user_service.UnfollowUser(ctx.Doer.ID, ctx.ContextUser.ID); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UnfollowUser", err)
 		return
 	}

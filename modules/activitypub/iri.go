@@ -17,7 +17,7 @@ import (
 )
 
 // Returns the username corresponding to a Person actor IRI
-func personIRIToName(personIRI ap.IRI) (string, error) {
+func PersonIRIToName(personIRI ap.IRI) (string, error) {
 	personIRISplit := strings.Split(personIRI.String(), "/")
 	if len(personIRISplit) < 3 {
 		return "", errors.New("Not a Person actor IRI")
@@ -35,8 +35,8 @@ func personIRIToName(personIRI ap.IRI) (string, error) {
 }
 
 // Returns the user corresponding to a Person actor IRI
-func personIRIToUser(ctx context.Context, personIRI ap.IRI) (*user_model.User, error) {
-	name, err := personIRIToName(personIRI)
+func PersonIRIToUser(ctx context.Context, personIRI ap.IRI) (*user_model.User, error) {
+	name, err := PersonIRIToName(personIRI)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func personIRIToUser(ctx context.Context, personIRI ap.IRI) (*user_model.User, e
 }
 
 // Returns the owner and name corresponding to a Repository actor IRI
-func repositoryIRIToName(repoIRI ap.IRI) (string, string, error) {
+func RepositoryIRIToName(repoIRI ap.IRI) (string, string, error) {
 	repoIRISplit := strings.Split(repoIRI.String(), "/")
 	if len(repoIRISplit) < 5 {
 		return "", "", errors.New("Not a Repository actor IRI")
@@ -68,8 +68,8 @@ func repositoryIRIToName(repoIRI ap.IRI) (string, string, error) {
 }
 
 // Returns the repository corresponding to a Repository actor IRI
-func repositoryIRIToRepository(ctx context.Context, repoIRI ap.IRI) (*repo_model.Repository, error) {
-	username, reponame, err := repositoryIRIToName(repoIRI)
+func RepositoryIRIToRepository(ctx context.Context, repoIRI ap.IRI) (*repo_model.Repository, error) {
+	username, reponame, err := RepositoryIRIToName(repoIRI)
 	if err != nil {
 		return nil, err
 	}

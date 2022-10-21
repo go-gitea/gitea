@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
 	"code.gitea.io/gitea/routers/web/org"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 // Profile render user's profile page
@@ -302,9 +303,9 @@ func Action(ctx *context.Context) {
 	var err error
 	switch ctx.FormString("action") {
 	case "follow":
-		err = user_model.FollowUser(ctx.Doer.ID, ctx.ContextUser.ID)
+		err = user_service.FollowUser(ctx.Doer.ID, ctx.ContextUser.ID)
 	case "unfollow":
-		err = user_model.UnfollowUser(ctx.Doer.ID, ctx.ContextUser.ID)
+		err = user_service.UnfollowUser(ctx.Doer.ID, ctx.ContextUser.ID)
 	}
 
 	if err != nil {

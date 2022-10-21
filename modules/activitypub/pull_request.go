@@ -18,7 +18,7 @@ import (
 func PullRequest(ctx context.Context, ticket *forgefed.Ticket) error {
 	// TODO: Clean this up
 
-	actorUser, err := personIRIToUser(ctx, ticket.AttributedTo.GetLink())
+	actorUser, err := PersonIRIToUser(ctx, ticket.AttributedTo.GetLink())
 	if err != nil {
 		log.Warn("Couldn't find ticket actor user", err)
 	}

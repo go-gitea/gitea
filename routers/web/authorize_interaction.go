@@ -2,14 +2,16 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package activitypub
+package web
 
 import (
 	"net/http"
 	"net/url"
 
+	"code.gitea.io/gitea/modules/activitypub"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/forgefed"
+	user_service "code.gitea.io/gitea/services/user"
 
 	ap "github.com/go-ap/activitypub"
 )
@@ -20,7 +22,7 @@ func AuthorizeInteraction(ctx *context.Context) {
 		ctx.ServerError("Could not parse URI", err)
 		return
 	}
-	resp, err := Fetch(uri)
+	resp, err := activitypub.Fetch(uri)
 	if err != nil {
 		ctx.ServerError("Fetch", err)
 		return
@@ -40,12 +42,12 @@ func AuthorizeInteraction(ctx *context.Context) {
 			ctx.ServerError("UnmarshalJSON", err)
 			return
 		}
-		err = FederatedUserNew(ctx, object.(*ap.Person))
+		err = user_service.FederatedUserNew(ctx, object.(*ap.Person))
 		if err != nil {
 			ctx.ServerError("FederatedUserNew", err)
 			return
 		}
-		name, err := personIRIToName(object.GetLink())
+		name, err := activitypub.PersonIRIToName(object.GetLink())
 		if err != nil {
 			ctx.ServerError("personIRIToName", err)
 			return
@@ -53,13 +55,13 @@ func AuthorizeInteraction(ctx *context.Context) {
 		ctx.Redirect(name)
 	case forgefed.RepositoryType:
 		err = forgefed.OnRepository(object, func(r *forgefed.Repository) error {
-			return FederatedRepoNew(ctx, r)
+			return activitypub.FederatedRepoNew(ctx, r)
 		})
 		if err != nil {
 			ctx.ServerError("FederatedRepoNew", err)
 			return
 		}
-		username, reponame, err := repositoryIRIToName(object.GetLink())
+		username, reponame, err := activitypub.RepositoryIRIToName(object.GetLink())
 		if err != nil {
 			ctx.ServerError("repositoryIRIToName", err)
 			return
@@ -67,7 +69,7 @@ func AuthorizeInteraction(ctx *context.Context) {
 		ctx.Redirect(username + "/" + reponame)
 	case forgefed.TicketType:
 		err = forgefed.OnTicket(object, func(t *forgefed.Ticket) error {
-			return ReceiveIssue(ctx, t)
+			return activitypub.ReceiveIssue(ctx, t)
 		})
 		if err != nil {
 			ctx.ServerError("ReceiveIssue", err)

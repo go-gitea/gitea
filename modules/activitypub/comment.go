@@ -17,7 +17,7 @@ import (
 
 // Create a comment
 func Comment(ctx context.Context, note *ap.Note) error {
-	actorUser, err := personIRIToUser(ctx, note.AttributedTo.GetLink())
+	actorUser, err := PersonIRIToUser(ctx, note.AttributedTo.GetLink())
 	if err != nil {
 		return err
 	}

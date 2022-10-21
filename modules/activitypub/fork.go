@@ -52,7 +52,7 @@ func ReceiveFork(ctx context.Context, create ap.Create) error {
 
 	repository := create.Object.(*forgefed.Repository)
 
-	actor, err := personIRIToUser(ctx, create.Actor.GetLink())
+	actor, err := PersonIRIToUser(ctx, create.Actor.GetLink())
 	if err != nil {
 		return err
 	}
@@ -62,7 +62,7 @@ func ReceiveFork(ctx context.Context, create ap.Create) error {
 
 	// Create the fork
 	repoIRI := repository.GetLink()
-	username, reponame, err := repositoryIRIToName(repoIRI)
+	username, reponame, err := RepositoryIRIToName(repoIRI)
 	if err != nil {
 		return err
 	}

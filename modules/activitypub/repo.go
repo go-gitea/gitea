@@ -16,7 +16,7 @@ import (
 // Create a new federated repo from a Repository object
 func FederatedRepoNew(ctx context.Context, repository *forgefed.Repository) error {
 	ownerIRI := repository.AttributedTo.GetLink()
-	user, err := personIRIToUser(ctx, ownerIRI)
+	user, err := PersonIRIToUser(ctx, ownerIRI)
 	if err != nil {
 		return err
 	}
@@ -25,7 +25,6 @@ func FederatedRepoNew(ctx context.Context, repository *forgefed.Repository) erro
 	if err == nil {
 		return nil
 	}
-	
 
 	repo, err := repo_service.CreateRepository(user, user, repo_module.CreateRepoOptions{
 		Name: repository.Name.String(),
@@ -36,7 +35,7 @@ func FederatedRepoNew(ctx context.Context, repository *forgefed.Repository) erro
 
 	if repository.ForkedFrom != nil {
 		repo.IsFork = true
-		forkedFrom, err := repositoryIRIToRepository(ctx, repository.ForkedFrom.GetLink())
+		forkedFrom, err := RepositoryIRIToRepository(ctx, repository.ForkedFrom.GetLink())
 		if err != nil {
 			return err
 		}

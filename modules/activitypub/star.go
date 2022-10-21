@@ -15,11 +15,11 @@ import (
 
 // Process a Like activity to star a repository
 func ReceiveStar(ctx context.Context, like ap.Like) (err error) {
-	user, err := personIRIToUser(ctx, like.Actor.GetLink())
+	user, err := PersonIRIToUser(ctx, like.Actor.GetLink())
 	if err != nil {
 		return
 	}
-	repo, err := repositoryIRIToRepository(ctx, like.Object.GetLink())
+	repo, err := RepositoryIRIToRepository(ctx, like.Object.GetLink())
 	if err != nil || strings.Contains(repo.Name, "@") || repo.IsPrivate {
 		return
 	}

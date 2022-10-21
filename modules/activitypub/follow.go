@@ -17,14 +17,14 @@ import (
 func Follow(ctx context.Context, follow ap.Follow) error {
 	// Actor is the user performing the follow
 	actorIRI := follow.Actor.GetLink()
-	actorUser, err := personIRIToUser(ctx, actorIRI)
+	actorUser, err := PersonIRIToUser(ctx, actorIRI)
 	if err != nil {
 		return err
 	}
 
 	// Object is the user being followed
 	objectIRI := follow.Object.GetLink()
-	objectUser, err := personIRIToUser(ctx, objectIRI)
+	objectUser, err := PersonIRIToUser(ctx, objectIRI)
 	// Must be a local user
 	if err != nil || strings.Contains(objectUser.Name, "@") {
 		return err
@@ -48,14 +48,14 @@ func Unfollow(ctx context.Context, unfollow ap.Undo) error {
 	follow := unfollow.Object.(*ap.Follow)
 	// Actor is the user performing the undo follow
 	actorIRI := follow.Actor.GetLink()
-	actorUser, err := personIRIToUser(ctx, actorIRI)
+	actorUser, err := PersonIRIToUser(ctx, actorIRI)
 	if err != nil {
 		return err
 	}
 
 	// Object is the user being unfollowed
 	objectIRI := follow.Object.GetLink()
-	objectUser, err := personIRIToUser(ctx, objectIRI)
+	objectUser, err := PersonIRIToUser(ctx, objectIRI)
 	// Must be a local user
 	if err != nil || strings.Contains(objectUser.Name, "@") {
 		return err
