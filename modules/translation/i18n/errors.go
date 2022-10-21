@@ -4,9 +4,11 @@
 
 package i18n
 
-import "errors"
+import (
+	"code.gitea.io/gitea/modules/util"
+)
 
 var (
-	ErrLocaleAlreadyExist = errors.New("lang already exists")
-	ErrUncertainArguments = errors.New("arguments to i18n should not contain uncertain slices")
+	ErrLocaleAlreadyExist = util.SilentWrap{Message: "lang already exists", Err: util.ErrAlreadyExist}
+	ErrUncertainArguments = util.SilentWrap{Message: "arguments to i18n should not contain uncertain slices", Err: util.ErrInvalidArgument}
 )

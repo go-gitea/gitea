@@ -15,16 +15,12 @@ func RecalculateIssueIndexForRepo(repoID int64) error {
 	}
 	defer committer.Close()
 
-	if err := db.UpsertResourceIndex(ctx, "issue_index", repoID); err != nil {
-		return err
-	}
-
 	var max int64
-	if _, err := db.GetEngine(ctx).Select(" MAX(`index`)").Table("issue").Where("repo_id=?", repoID).Get(&max); err != nil {
+	if _, err = db.GetEngine(ctx).Select(" MAX(`index`)").Table("issue").Where("repo_id=?", repoID).Get(&max); err != nil {
 		return err
 	}
 
-	if _, err := db.GetEngine(ctx).Exec("UPDATE `issue_index` SET max_index=? WHERE group_id=?", max, repoID); err != nil {
+	if err = db.SyncMaxResourceIndex(ctx, "issue_index", repoID, max); err != nil {
 		return err
 	}
 
