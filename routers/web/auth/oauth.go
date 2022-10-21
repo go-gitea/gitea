@@ -672,7 +672,7 @@ func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, server
 	if err != nil {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeInvalidClient,
-			ErrorDescription: fmt.Sprintf("cannot load client with client id: '%s'", form.ClientID),
+			ErrorDescription: fmt.Sprintf("cannot load client with client id: %q", form.ClientID),
 		})
 		return
 	}
