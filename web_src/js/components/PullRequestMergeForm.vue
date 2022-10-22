@@ -178,7 +178,7 @@ export default {
       this.autoMergeWhenSucceed = autoMerge;
     },
     clearMergeMessage() {
-      this.mergeMessageFieldValue = this.mergeForm.defaultMergeMessage
+      this.mergeMessageFieldValue = this.mergeForm.defaultMergeMessage;
     },
   },
 };
