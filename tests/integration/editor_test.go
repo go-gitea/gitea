@@ -5,12 +5,13 @@
 package integration
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"path"
 	"testing"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"github.com/stretchr/testify/assert"
 )

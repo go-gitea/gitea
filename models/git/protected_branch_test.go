@@ -55,7 +55,7 @@ func TestBranchRuleMatch(t *testing.T) {
 	}
 
 	for _, kase := range kases {
-		pb := ProtectedBranch{BranchName: kase.Rule}
+		pb := ProtectedBranch{RuleName: kase.Rule}
 		var should, infact string
 		if !kase.ExpectedMatch {
 			should = " not"
