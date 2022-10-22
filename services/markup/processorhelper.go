@@ -23,7 +23,7 @@ func ProcessorHelper() *markup.ProcessorHelper {
 
 			moduleCtx, ok := ctx.(*module_context.Context)
 			if !ok {
-				log.Error("couldn't cast context, assuming user should be visible based on their visibility")
+				log.Warn("couldn't cast context, assuming user should be visible based on their visibility")
 				return mentionedUser.Visibility.IsPublic()
 			}
 
