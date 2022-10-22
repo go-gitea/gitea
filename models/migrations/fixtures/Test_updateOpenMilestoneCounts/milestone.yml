@@ -1,0 +1,19 @@
+# type Milestone struct {
+#   ID              int64                  `xorm:"pk autoincr"`
+#   IsClosed        bool
+#   NumIssues       int
+#   NumClosedIssues int
+#   Completeness    int  // Percentage(1-100).
+# }
+-
+  id: 1
+  is_closed: false
+  num_issues: 4
+  num_closed_issues: 2
+  completeness: 50
+-
+  id: 2
+  is_closed: true
+  num_issues: 5
+  num_closed_issues: 5
+  completeness: 100
