@@ -33,6 +33,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
+	markup_service "code.gitea.io/gitea/services/markup"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
@@ -112,7 +113,7 @@ func runPR() {
 	log.Printf("[PR] Setting up router\n")
 	// routers.GlobalInit()
 	external.RegisterRenderers()
-	markup.Init()
+	markup.Init(markup_service.ProcessorHelper())
 	c := routers.NormalRoutes(graceful.GetManager().HammerContext())
 
 	log.Printf("[PR] Ready for testing !\n")
