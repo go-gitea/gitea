@@ -41,7 +41,7 @@ func (l *MultiChannelledLogger) SetLogger(name, provider, config string) error {
 	err = l.MultiChannelledLog.AddLogger(eventLogger)
 	if err != nil {
 		if IsErrDuplicateName(err) {
-			return fmt.Errorf("%w other names: %w", err, l.MultiChannelledLog.GetEventLoggerNames())
+			return fmt.Errorf("%w other names: %v", err, l.MultiChannelledLog.GetEventLoggerNames())
 		}
 		return fmt.Errorf("failed to add sublogger (%s): %w", name, err)
 	}
