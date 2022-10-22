@@ -62,7 +62,7 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string, 
 		// Add a temporary remote
 		tmpRemote = strconv.FormatInt(time.Now().UnixNano(), 10)
 		if err = repo.AddRemote(tmpRemote, basePath, false); err != nil {
-			return nil, fmt.Errorf("AddRemote: %v", err)
+			return nil, fmt.Errorf("AddRemote: %w", err)
 		}
 		defer func() {
 			if err := repo.RemoveRemote(tmpRemote); err != nil {
@@ -100,7 +100,7 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string, 
 			}
 			compareInfo.Commits, err = repo.parsePrettyFormatLogToList(logs)
 			if err != nil {
-				return nil, fmt.Errorf("parsePrettyFormatLogToList: %v", err)
+				return nil, fmt.Errorf("parsePrettyFormatLogToList: %w", err)
 			}
 		} else {
 			compareInfo.Commits = []*Commit{}
@@ -166,7 +166,7 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 				return w.numLines, nil
 			}
 		}
-		return 0, fmt.Errorf("%v: Stderr: %s", err, stderr)
+		return 0, fmt.Errorf("%w: Stderr: %s", err, stderr)
 	}
 	return w.numLines, nil
 }
@@ -215,20 +215,20 @@ func parseDiffStat(stdout string) (numFiles, totalAdditions, totalDeletions int,
 
 	numFiles, err = strconv.Atoi(groups[1])
 	if err != nil {
-		return 0, 0, 0, fmt.Errorf("unable to parse shortstat: %s. Error parsing NumFiles %v", stdout, err)
+		return 0, 0, 0, fmt.Errorf("unable to parse shortstat: %s. Error parsing NumFiles %w", stdout, err)
 	}
 
 	if len(groups[2]) != 0 {
 		totalAdditions, err = strconv.Atoi(groups[2])
 		if err != nil {
-			return 0, 0, 0, fmt.Errorf("unable to parse shortstat: %s. Error parsing NumAdditions %v", stdout, err)
+			return 0, 0, 0, fmt.Errorf("unable to parse shortstat: %s. Error parsing NumAdditions %w", stdout, err)
 		}
 	}
 
 	if len(groups[3]) != 0 {
 		totalDeletions, err = strconv.Atoi(groups[3])
 		if err != nil {
-			return 0, 0, 0, fmt.Errorf("unable to parse shortstat: %s. Error parsing NumDeletions %v", stdout, err)
+			return 0, 0, 0, fmt.Errorf("unable to parse shortstat: %s. Error parsing NumDeletions %w", stdout, err)
 		}
 	}
 	return numFiles, totalAdditions, totalDeletions, err

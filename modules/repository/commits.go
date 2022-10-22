@@ -78,7 +78,7 @@ func (pc *PushCommits) toAPIPayloadCommit(ctx context.Context, repoPath, repoLin
 
 	fileStatus, err := git.GetCommitFileStatus(ctx, repoPath, commit.Sha1)
 	if err != nil {
-		return nil, fmt.Errorf("FileStatus [commit_sha1: %s]: %v", commit.Sha1, err)
+		return nil, fmt.Errorf("FileStatus [commit_sha1: %s]: %w", commit.Sha1, err)
 	}
 
 	return &api.PayloadCommit{

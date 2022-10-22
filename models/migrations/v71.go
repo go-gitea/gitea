@@ -30,7 +30,7 @@ func addScratchHash(x *xorm.Engine) error {
 	}
 
 	if err := x.Sync2(new(TwoFactor)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
+		return fmt.Errorf("Sync2: %w", err)
 	}
 
 	sess := x.NewSession()
@@ -61,7 +61,7 @@ func addScratchHash(x *xorm.Engine) error {
 			tfa.ScratchHash = hashToken(tfa.ScratchToken, salt)
 
 			if _, err := sess.ID(tfa.ID).Cols("scratch_salt, scratch_hash").Update(tfa); err != nil {
-				return fmt.Errorf("couldn't add in scratch_hash and scratch_salt: %v", err)
+				return fmt.Errorf("couldn't add in scratch_hash and scratch_salt: %w", err)
 			}
 
 		}

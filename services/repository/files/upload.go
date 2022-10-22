@@ -42,7 +42,7 @@ func cleanUpAfterFailure(infos *[]uploadInfo, t *TemporaryUploadRepository, orig
 		}
 		if !info.lfsMetaObject.Existing {
 			if _, err := git_model.RemoveLFSMetaObjectByOid(t.repo.ID, info.lfsMetaObject.Oid); err != nil {
-				original = fmt.Errorf("%v, %v", original, err)
+				original = fmt.Errorf("%v, %w", original, err) // TODO: Do we wrap the parameter (original) here, or the new error?
 			}
 		}
 	}
@@ -57,7 +57,7 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 
 	uploads, err := repo_model.GetUploadsByUUIDs(opts.Files)
 	if err != nil {
-		return fmt.Errorf("GetUploadsByUUIDs [uuids: %v]: %v", opts.Files, err)
+		return fmt.Errorf("GetUploadsByUUIDs [uuids: %v]: %w", opts.Files, err)
 	}
 
 	names := make([]string, len(uploads))

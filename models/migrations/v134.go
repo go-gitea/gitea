@@ -58,7 +58,7 @@ func refixMergeBase(x *xorm.Engine) error {
 	for {
 		prs := make([]PullRequest, 0, 50)
 		if err := x.Limit(limit, start).Asc("id").Where("has_merged = ?", true).Find(&prs); err != nil {
-			return fmt.Errorf("Find: %v", err)
+			return fmt.Errorf("Find: %w", err)
 		}
 		if len(prs) == 0 {
 			break
@@ -69,7 +69,7 @@ func refixMergeBase(x *xorm.Engine) error {
 			baseRepo := &Repository{ID: pr.BaseRepoID}
 			has, err := x.Table("repository").Get(baseRepo)
 			if err != nil {
-				return fmt.Errorf("Unable to get base repo %d %v", pr.BaseRepoID, err)
+				return fmt.Errorf("Unable to get base repo %d %w", pr.BaseRepoID, err)
 			}
 			if !has {
 				log.Error("Missing base repo with id %d for PR ID %d", pr.BaseRepoID, pr.ID)

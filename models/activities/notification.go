@@ -403,7 +403,7 @@ func (n *Notification) loadRepo(ctx context.Context) (err error) {
 	if n.Repository == nil {
 		n.Repository, err = repo_model.GetRepositoryByIDCtx(ctx, n.RepoID)
 		if err != nil {
-			return fmt.Errorf("getRepositoryByID [%d]: %v", n.RepoID, err)
+			return fmt.Errorf("getRepositoryByID [%d]: %w", n.RepoID, err)
 		}
 	}
 	return nil
@@ -413,7 +413,7 @@ func (n *Notification) loadIssue(ctx context.Context) (err error) {
 	if n.Issue == nil && n.IssueID != 0 {
 		n.Issue, err = issues_model.GetIssueByID(ctx, n.IssueID)
 		if err != nil {
-			return fmt.Errorf("getIssueByID [%d]: %v", n.IssueID, err)
+			return fmt.Errorf("getIssueByID [%d]: %w", n.IssueID, err)
 		}
 		return n.Issue.LoadAttributes(ctx)
 	}
@@ -440,7 +440,7 @@ func (n *Notification) loadUser(ctx context.Context) (err error) {
 	if n.User == nil {
 		n.User, err = user_model.GetUserByIDCtx(ctx, n.UserID)
 		if err != nil {
-			return fmt.Errorf("getUserByID [%d]: %v", n.UserID, err)
+			return fmt.Errorf("getUserByID [%d]: %w", n.UserID, err)
 		}
 	}
 	return nil

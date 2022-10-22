@@ -45,7 +45,7 @@ func insertSettingsIfNotExist(x *xorm.Engine, sysSettings []*SystemSetting) erro
 
 func createSystemSettingsTable(x *xorm.Engine) error {
 	if err := x.Sync2(new(SystemSetting)); err != nil {
-		return fmt.Errorf("sync2: %v", err)
+		return fmt.Errorf("sync2: %w", err)
 	}
 
 	// migrate xx to database

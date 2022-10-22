@@ -228,7 +228,7 @@ func (b *ElasticSearchIndexer) addUpdate(ctx context.Context, batchWriter git.Wr
 			return nil, err
 		}
 		if size, err = strconv.ParseInt(strings.TrimSpace(stdout), 10, 64); err != nil {
-			return nil, fmt.Errorf("misformatted git cat-file output: %v", err)
+			return nil, fmt.Errorf("misformatted git cat-file output: %w", err)
 		}
 	}
 

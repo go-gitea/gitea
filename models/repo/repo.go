@@ -760,7 +760,7 @@ func CountRepositories(ctx context.Context, opts CountRepositoryOptions) (int64,
 
 	count, err := sess.Count(new(Repository))
 	if err != nil {
-		return 0, fmt.Errorf("countRepositories: %v", err)
+		return 0, fmt.Errorf("countRepositories: %w", err)
 	}
 	return count, nil
 }

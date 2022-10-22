@@ -166,7 +166,7 @@ func parseTagRef(ref map[string]string) (tag *Tag, err error) {
 
 	tag.ID, err = NewIDFromString(ref["objectname"])
 	if err != nil {
-		return nil, fmt.Errorf("parse objectname '%s': %v", ref["objectname"], err)
+		return nil, fmt.Errorf("parse objectname '%s': %w", ref["objectname"], err)
 	}
 
 	if tag.Type == "commit" {
@@ -176,7 +176,7 @@ func parseTagRef(ref map[string]string) (tag *Tag, err error) {
 		// annotated tag
 		tag.Object, err = NewIDFromString(ref["object"])
 		if err != nil {
-			return nil, fmt.Errorf("parse object '%s': %v", ref["object"], err)
+			return nil, fmt.Errorf("parse object '%s': %w", ref["object"], err)
 		}
 	}
 

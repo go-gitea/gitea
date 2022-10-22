@@ -224,7 +224,7 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 		NewRef: targetBranch,
 	}
 	if _, err = issues_model.CreateComment(options); err != nil {
-		return fmt.Errorf("CreateChangeTargetBranchComment: %v", err)
+		return fmt.Errorf("CreateChangeTargetBranchComment: %w", err)
 	}
 
 	return nil
@@ -233,11 +233,11 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 func checkForInvalidation(ctx context.Context, requests issues_model.PullRequestList, repoID int64, doer *user_model.User, branch string) error {
 	repo, err := repo_model.GetRepositoryByID(repoID)
 	if err != nil {
-		return fmt.Errorf("GetRepositoryByID: %v", err)
+		return fmt.Errorf("GetRepositoryByID: %w", err)
 	}
 	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 	if err != nil {
-		return fmt.Errorf("git.OpenRepository: %v", err)
+		return fmt.Errorf("git.OpenRepository: %w", err)
 	}
 	go func() {
 		// FIXME: graceful: We need to tell the manager we're doing something...
@@ -353,26 +353,26 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 // A commit can be considered to leave the PR untouched if the patch/diff with its merge base is unchanged
 func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, oldCommitID, newCommitID string) (hasChanged bool, err error) {
 	if err = pr.LoadHeadRepoCtx(ctx); err != nil {
-		return false, fmt.Errorf("LoadHeadRepo: %v", err)
+		return false, fmt.Errorf("LoadHeadRepo: %w", err)
 	} else if pr.HeadRepo == nil {
 		// corrupt data assumed changed
 		return true, nil
 	}
 
 	if err = pr.LoadBaseRepoCtx(ctx); err != nil {
-		return false, fmt.Errorf("LoadBaseRepo: %v", err)
+		return false, fmt.Errorf("LoadBaseRepo: %w", err)
 	}
 
 	headGitRepo, err := git.OpenRepository(ctx, pr.HeadRepo.RepoPath())
 	if err != nil {
-		return false, fmt.Errorf("OpenRepository: %v", err)
+		return false, fmt.Errorf("OpenRepository: %w", err)
 	}
 	defer headGitRepo.Close()
 
 	// Add a temporary remote.
 	tmpRemote := "checkIfPRContentChanged-" + fmt.Sprint(time.Now().UnixNano())
 	if err = headGitRepo.AddRemote(tmpRemote, pr.BaseRepo.RepoPath(), true); err != nil {
-		return false, fmt.Errorf("AddRemote: %s/%s-%s: %v", pr.HeadRepo.OwnerName, pr.HeadRepo.Name, tmpRemote, err)
+		return false, fmt.Errorf("AddRemote: %s/%s-%s: %w", pr.HeadRepo.OwnerName, pr.HeadRepo.Name, tmpRemote, err)
 	}
 	defer func() {
 		if err := headGitRepo.RemoveRemote(tmpRemote); err != nil {
@@ -382,7 +382,7 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 	// To synchronize repo and get a base ref
 	_, base, err := headGitRepo.GetMergeBase(tmpRemote, pr.BaseBranch, pr.HeadBranch)
 	if err != nil {
-		return false, fmt.Errorf("GetMergeBase: %v", err)
+		return false, fmt.Errorf("GetMergeBase: %w", err)
 	}
 
 	diffBefore := &bytes.Buffer{}
@@ -394,7 +394,7 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 	}
 	if err := headGitRepo.GetDiffFromMergeBase(base, newCommitID, diffAfter); err != nil {
 		// New commit should be found
-		return false, fmt.Errorf("GetDiffFromMergeBase: %v", err)
+		return false, fmt.Errorf("GetDiffFromMergeBase: %w", err)
 	}
 
 	diffBeforeLines := bufio.NewScanner(diffBefore)
@@ -443,10 +443,10 @@ func pushToBaseRepoHelper(ctx context.Context, pr *issues_model.PullRequest, pre
 	baseRepoPath := pr.BaseRepo.RepoPath()
 
 	if err = pr.LoadIssue(); err != nil {
-		return fmt.Errorf("unable to load issue %d for pr %d: %v", pr.IssueID, pr.ID, err)
+		return fmt.Errorf("unable to load issue %d for pr %d: %w", pr.IssueID, pr.ID, err)
 	}
 	if err = pr.Issue.LoadPoster(); err != nil {
-		return fmt.Errorf("unable to load poster %d for pr %d: %v", pr.Issue.PosterID, pr.ID, err)
+		return fmt.Errorf("unable to load poster %d for pr %d: %w", pr.Issue.PosterID, pr.ID, err)
 	}
 
 	gitRefName := pr.GetGitRefName()
@@ -476,7 +476,7 @@ func pushToBaseRepoHelper(ctx context.Context, pr *issues_model.PullRequest, pre
 			return err
 		}
 		log.Error("Unable to push PR head for %s#%d (%-v:%s) due to Error: %v", pr.BaseRepo.FullName(), pr.Index, pr.BaseRepo, gitRefName, err)
-		return fmt.Errorf("Push: %s:%s %s:%s %v", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), gitRefName, err)
+		return fmt.Errorf("Push: %s:%s %s:%s %w", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), gitRefName, err)
 	}
 
 	return nil

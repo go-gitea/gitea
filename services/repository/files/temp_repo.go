@@ -67,7 +67,7 @@ func (t *TemporaryUploadRepository) Clone(branch string) error {
 				Name:      t.repo.Name,
 			}
 		} else {
-			return fmt.Errorf("Clone: %v %s", err, stderr)
+			return fmt.Errorf("Clone: %w %s", err, stderr)
 		}
 	}
 	gitRepo, err := git.OpenRepository(t.ctx, t.basePath)
@@ -94,7 +94,7 @@ func (t *TemporaryUploadRepository) Init() error {
 // SetDefaultIndex sets the git index to our HEAD
 func (t *TemporaryUploadRepository) SetDefaultIndex() error {
 	if _, _, err := git.NewCommand(t.ctx, "read-tree", "HEAD").RunStdString(&git.RunOpts{Dir: t.basePath}); err != nil {
-		return fmt.Errorf("SetDefaultIndex: %v", err)
+		return fmt.Errorf("SetDefaultIndex: %w", err)
 	}
 	return nil
 }
@@ -118,7 +118,7 @@ func (t *TemporaryUploadRepository) LsFiles(filenames ...string) ([]string, erro
 			Stderr: stdErr,
 		}); err != nil {
 		log.Error("Unable to run git ls-files for temporary repo: %s (%s) Error: %v\nstdout: %s\nstderr: %s", t.repo.FullName(), t.basePath, err, stdOut.String(), stdErr.String())
-		err = fmt.Errorf("Unable to run git ls-files for temporary repo of: %s Error: %v\nstdout: %s\nstderr: %s", t.repo.FullName(), err, stdOut.String(), stdErr.String())
+		err = fmt.Errorf("Unable to run git ls-files for temporary repo of: %s Error: %w\nstdout: %s\nstderr: %s", t.repo.FullName(), err, stdOut.String(), stdErr.String())
 		return nil, err
 	}
 
@@ -151,7 +151,7 @@ func (t *TemporaryUploadRepository) RemoveFilesFromIndex(filenames ...string) er
 			Stderr: stdErr,
 		}); err != nil {
 		log.Error("Unable to update-index for temporary repo: %s (%s) Error: %v\nstdout: %s\nstderr: %s", t.repo.FullName(), t.basePath, err, stdOut.String(), stdErr.String())
-		return fmt.Errorf("Unable to update-index for temporary repo: %s Error: %v\nstdout: %s\nstderr: %s", t.repo.FullName(), err, stdOut.String(), stdErr.String())
+		return fmt.Errorf("Unable to update-index for temporary repo: %s Error: %w\nstdout: %s\nstderr: %s", t.repo.FullName(), err, stdOut.String(), stdErr.String())
 	}
 	return nil
 }
@@ -169,7 +169,7 @@ func (t *TemporaryUploadRepository) HashObject(content io.Reader) (string, error
 			Stderr: stdErr,
 		}); err != nil {
 		log.Error("Unable to hash-object to temporary repo: %s (%s) Error: %v\nstdout: %s\nstderr: %s", t.repo.FullName(), t.basePath, err, stdOut.String(), stdErr.String())
-		return "", fmt.Errorf("Unable to hash-object to temporary repo: %s Error: %v\nstdout: %s\nstderr: %s", t.repo.FullName(), err, stdOut.String(), stdErr.String())
+		return "", fmt.Errorf("Unable to hash-object to temporary repo: %s Error: %w\nstdout: %s\nstderr: %s", t.repo.FullName(), err, stdOut.String(), stdErr.String())
 	}
 
 	return strings.TrimSpace(stdOut.String()), nil
@@ -186,7 +186,7 @@ func (t *TemporaryUploadRepository) AddObjectToIndex(mode, objectHash, objectPat
 			}
 		}
 		log.Error("Unable to add object to index: %s %s %s in temporary repo %s(%s) Error: %v", mode, objectHash, objectPath, t.repo.FullName(), t.basePath, err)
-		return fmt.Errorf("Unable to add object to index at %s in temporary repo %s Error: %v", objectPath, t.repo.FullName(), err)
+		return fmt.Errorf("Unable to add object to index at %s in temporary repo %s Error: %w", objectPath, t.repo.FullName(), err)
 	}
 	return nil
 }
@@ -196,7 +196,7 @@ func (t *TemporaryUploadRepository) WriteTree() (string, error) {
 	stdout, _, err := git.NewCommand(t.ctx, "write-tree").RunStdString(&git.RunOpts{Dir: t.basePath})
 	if err != nil {
 		log.Error("Unable to write tree in temporary repo: %s(%s): Error: %v", t.repo.FullName(), t.basePath, err)
-		return "", fmt.Errorf("Unable to write-tree in temporary repo for: %s Error: %v", t.repo.FullName(), err)
+		return "", fmt.Errorf("Unable to write-tree in temporary repo for: %s Error: %w", t.repo.FullName(), err)
 	}
 	return strings.TrimSpace(stdout), nil
 }
@@ -214,7 +214,7 @@ func (t *TemporaryUploadRepository) GetLastCommitByRef(ref string) (string, erro
 	stdout, _, err := git.NewCommand(t.ctx, "rev-parse", ref).RunStdString(&git.RunOpts{Dir: t.basePath})
 	if err != nil {
 		log.Error("Unable to get last ref for %s in temporary repo: %s(%s): Error: %v", ref, t.repo.FullName(), t.basePath, err)
-		return "", fmt.Errorf("Unable to rev-parse %s in temporary repo for: %s Error: %v", ref, t.repo.FullName(), err)
+		return "", fmt.Errorf("Unable to rev-parse %s in temporary repo for: %s Error: %w", ref, t.repo.FullName(), err)
 	}
 	return strings.TrimSpace(stdout), nil
 }
@@ -299,7 +299,7 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(parent string, author, co
 		}); err != nil {
 		log.Error("Unable to commit-tree in temporary repo: %s (%s) Error: %v\nStdout: %s\nStderr: %s",
 			t.repo.FullName(), t.basePath, err, stdout, stderr)
-		return "", fmt.Errorf("Unable to commit-tree in temporary repo: %s Error: %v\nStdout: %s\nStderr: %s",
+		return "", fmt.Errorf("Unable to commit-tree in temporary repo: %s Error: %w\nStdout: %s\nStderr: %s",
 			t.repo.FullName(), err, stdout, stderr)
 	}
 	return strings.TrimSpace(stdout.String()), nil
@@ -335,7 +335,7 @@ func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
 		log.Error("Unable to open stdout pipe: %v", err)
-		return nil, fmt.Errorf("Unable to open stdout pipe: %v", err)
+		return nil, fmt.Errorf("Unable to open stdout pipe: %w", err)
 	}
 	defer func() {
 		_ = stdoutReader.Close()
@@ -368,7 +368,7 @@ func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
 		}
 		log.Error("Unable to run diff-index pipeline in temporary repo %s (%s). Error: %v\nStderr: %s",
 			t.repo.FullName(), t.basePath, err, stderr)
-		return nil, fmt.Errorf("Unable to run diff-index pipeline in temporary repo %s. Error: %v\nStderr: %s",
+		return nil, fmt.Errorf("Unable to run diff-index pipeline in temporary repo %s. Error: %w\nStderr: %s",
 			t.repo.FullName(), err, stderr)
 	}
 

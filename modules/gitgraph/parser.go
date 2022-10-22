@@ -83,7 +83,7 @@ func (parser *Parser) AddLineToGraph(graph *Graph, row int, line []byte) error {
 			}
 			err2 := graph.AddCommit(row, column, flowID, line[idx+5:])
 			if err != nil && err2 != nil {
-				err = fmt.Errorf("%v %w", err2, err)
+				err = fmt.Errorf("%w %w", err2, err)
 				continue
 			} else if err2 != nil {
 				err = err2

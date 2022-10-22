@@ -90,7 +90,7 @@ func (repo *Repository) IsEmpty() (bool, error) {
 		if err.Error() == "exit status 1" && errbuf.String() == "" {
 			return true, nil
 		}
-		return true, fmt.Errorf("check empty: %v - %s", err, errbuf.String())
+		return true, fmt.Errorf("check empty: %w - %s", err, errbuf.String())
 	}
 
 	return strings.TrimSpace(output.String()) == "", nil
@@ -251,7 +251,7 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	}
 
 	if errbuf.Len() > 0 && err != nil {
-		return fmt.Errorf("%v - %s", err, errbuf.String())
+		return fmt.Errorf("%w - %s", err, errbuf.String())
 	}
 
 	return err
