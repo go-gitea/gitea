@@ -5,6 +5,7 @@
 package misc
 
 import (
+	go_context "context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -12,8 +13,8 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates"
@@ -51,8 +52,11 @@ func wrap(ctx *context.Context) *context.APIContext {
 
 func TestAPI_RenderGFM(t *testing.T) {
 	setting.AppURL = AppURL
-
-	assert.NoError(t, unittest.PrepareTestDatabase())
+	markup.Init(&markup.ProcessorHelper{
+		IsUsernameMentionable: func(ctx go_context.Context, username string) bool {
+			return username == "r-lyeh"
+		},
+	})
 
 	options := api.MarkdownOption{
 		Mode:    "gfm",
@@ -73,13 +77,13 @@ func TestAPI_RenderGFM(t *testing.T) {
 		`Wiki! Enjoy :)
 - [[Links, Language bindings, Engine bindings|Links]]
 - [[Tips]]
-- Bezier widget (by @user10) https://github.com/ocornut/imgui/issues/786`,
+- Bezier widget (by @r-lyeh) https://github.com/ocornut/imgui/issues/786`,
 		// rendered
 		`<p>Wiki! Enjoy :)</p>
 <ul>
 <li><a href="` + AppSubURL + `wiki/Links" rel="nofollow">Links, Language bindings, Engine bindings</a></li>
 <li><a href="` + AppSubURL + `wiki/Tips" rel="nofollow">Tips</a></li>
-<li>Bezier widget (by <a href="` + AppURL + `user10" rel="nofollow">@user10</a>) <a href="https://github.com/ocornut/imgui/issues/786" rel="nofollow">https://github.com/ocornut/imgui/issues/786</a></li>
+<li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="https://github.com/ocornut/imgui/issues/786" rel="nofollow">https://github.com/ocornut/imgui/issues/786</a></li>
 </ul>
 `,
 		// wine-staging wiki home extract: special wiki syntax, images

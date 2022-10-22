@@ -38,6 +38,11 @@ func TestMain(m *testing.M) {
 	if err := git.InitSimple(context.Background()); err != nil {
 		log.Fatal("git init failed, err: %v", err)
 	}
+	markup.Init(&markup.ProcessorHelper{
+		IsUsernameMentionable: func(ctx context.Context, username string) bool {
+			return username == "r-lyeh"
+		},
+	})
 	os.Exit(m.Run())
 }
 
@@ -144,8 +149,8 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 <p>See commit <a href="http://localhost:3000/gogits/gogs/commit/65f1bf27bc" rel="nofollow"><code>65f1bf27bc</code></a></p>
 <p>Ideas and codes</p>
 <ul>
-<li>Bezier widget (by <a href="` + AppURL + `user10" rel="nofollow">@user10</a>) <a href="http://localhost:3000/ocornut/imgui/issues/786" class="ref-issue" rel="nofollow">ocornut/imgui#786</a></li>
-<li>Bezier widget (by <a href="` + AppURL + `user10" rel="nofollow">@user10</a>) <a href="http://localhost:3000/gogits/gogs/issues/786" class="ref-issue" rel="nofollow">#786</a></li>
+<li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="http://localhost:3000/ocornut/imgui/issues/786" class="ref-issue" rel="nofollow">ocornut/imgui#786</a></li>
+<li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="http://localhost:3000/gogits/gogs/issues/786" class="ref-issue" rel="nofollow">#786</a></li>
 <li>Node graph editors <a href="https://github.com/ocornut/imgui/issues/306" rel="nofollow">https://github.com/ocornut/imgui/issues/306</a></li>
 <li><a href="` + baseURLContent + `/memory_editor_example" rel="nofollow">Memory Editor</a></li>
 <li><a href="` + baseURLContent + `/plot_var_example" rel="nofollow">Plot var helper</a></li>
@@ -229,8 +234,8 @@ See commit 65f1bf27bc
 
 Ideas and codes
 
-- Bezier widget (by @user10) ` + AppURL + `ocornut/imgui/issues/786
-- Bezier widget (by @user10) ` + AppURL + `gogits/gogs/issues/786
+- Bezier widget (by @r-lyeh) ` + AppURL + `ocornut/imgui/issues/786
+- Bezier widget (by @r-lyeh) ` + AppURL + `gogits/gogs/issues/786
 - Node graph editors https://github.com/ocornut/imgui/issues/306
 - [[Memory Editor|memory_editor_example]]
 - [[Plot var helper|plot_var_example]]`,
