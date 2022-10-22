@@ -11,7 +11,8 @@ import (
 func ProcessorHelper() *markup.ProcessorHelper {
 	return &markup.ProcessorHelper{
 		IsUsernameMentionable: func(ctx context.Context, username string) bool {
-			// here, you  could also try to cast the ctx to a modules/context.Context
+			// TODO: cast ctx to modules/context.Context and use IsUserVisibleToViewer
+
 			// Only link if the user actually exists
 			userExists, err := user.IsUserExist(ctx, 0, username)
 			if err != nil {
