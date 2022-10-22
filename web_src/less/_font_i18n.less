@@ -1,35 +1,35 @@
 /* global */
 :root[lang^="ja"] {
-  --fonts-proportional: var(--fonts-default-override-ja), var(--fonts-emoji);
+  --fonts-proportional: var(--fonts-default-override-ja), sans-serif, var(--fonts-emoji);
 }
 :root[lang^="ko"] {
-  --fonts-proportional: var(--fonts-default-override-ko), var(--fonts-emoji);
+  --fonts-proportional: var(--fonts-default-override-ko), sans-serif, var(--fonts-emoji);
 }
 :root[lang="zh-CN"] {
-  --fonts-proportional: var(--fonts-default-override-zh-cn), var(--fonts-emoji);
+  --fonts-proportional: var(--fonts-default-override-zh-cn), sans-serif, var(--fonts-emoji);
 }
 :root[lang="zh-TW"] {
-  --fonts-proportional: var(--fonts-default-override-zh-tw), var(--fonts-emoji);
+  --fonts-proportional: var(--fonts-default-override-zh-tw), sans-serif, var(--fonts-emoji);
 }
 :root[lang="zh-HK"] {
-  --fonts-proportional: var(--fonts-default-override-zh-hk), var(--fonts-emoji);
+  --fonts-proportional: var(--fonts-default-override-zh-hk), sans-serif, var(--fonts-emoji);
 }
 
 /* element-specific */
 :lang(ja) {
-  font-family: var(--fonts-default-override-ja), var(--fonts-emoji);
+  font-family: var(--fonts-default-override-ja), sans-serif, var(--fonts-emoji);
 }
 :lang(ko) {
-  font-family: var(--fonts-default-override-ko), var(--fonts-emoji);
+  font-family: var(--fonts-default-override-ko), sans-serif, var(--fonts-emoji);
 }
 :lang(zh-CN) {
-  font-family: var(--fonts-default-override-zh-cn), var(--fonts-emoji);
+  font-family: var(--fonts-default-override-zh-cn), sans-serif, var(--fonts-emoji);
 }
 :lang(zh-TW) {
-  font-family: var(--fonts-default-override-zh-tw), var(--fonts-emoji);
+  font-family: var(--fonts-default-override-zh-tw), sans-serif, var(--fonts-emoji);
 }
 :lang(zh-HK) {
-  font-family: var(--fonts-default-override-zh-hk), var(--fonts-emoji);
+  font-family: var(--fonts-default-override-zh-hk), sans-serif, var(--fonts-emoji);
 }
 
 each(@fonts, {
