@@ -28,7 +28,6 @@ func TestTestHook(t *testing.T) {
 	assert.EqualValues(t, http.StatusNoContent, ctx.Resp.Status())
 
 	unittest.AssertExistsAndLoadBean(t, &webhook.HookTask{
-		RepoID: 1,
 		HookID: 1,
 	}, unittest.Cond("is_delivered=?", false))
 }

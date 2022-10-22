@@ -123,6 +123,11 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		return err
 	}
 
+	if _, err := db.GetEngine(ctx).In("hook_id", builder.Select("id").From("webhook").Where(builder.Eq{"webhook.repo_id": repo.ID})).
+		Delete(&webhook.HookTask{}); err != nil {
+		return err
+	}
+
 	if err := db.DeleteBeans(ctx,
 		&access_model.Access{RepoID: repo.ID},
 		&activities_model.Action{RepoID: repo.ID},
@@ -130,7 +135,6 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		&issues_model.Comment{RefRepoID: repoID},
 		&git_model.CommitStatus{RepoID: repoID},
 		&git_model.DeletedBranch{RepoID: repoID},
-		&webhook.HookTask{RepoID: repoID},
 		&git_model.LFSLock{RepoID: repoID},
 		&repo_model.LanguageStat{RepoID: repoID},
 		&issues_model.Milestone{RepoID: repoID},

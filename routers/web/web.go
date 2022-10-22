@@ -591,6 +591,7 @@ func RegisterRoutes(m *web.Route) {
 		})
 	}, func(ctx *context.Context) {
 		ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
+		ctx.Data["EnablePackages"] = setting.Packages.Enabled
 	}, adminReq)
 	// ***** END: Admin *****
 
