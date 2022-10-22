@@ -73,6 +73,14 @@
         width: 100%;
       }
     }
+
+    .ui.buttons {
+      width: 100%;
+
+      .button {
+        flex: 1;
+      }
+    }
   }
 
   .comments .comment {
@@ -80,6 +88,7 @@
 
     @media @mediaSm {
       padding: 0;
+      display: flex;
 
       .comment-header-right.actions .ui.basic.label {
         display: none;
@@ -90,6 +99,10 @@
         float: none;
         margin: 0 .5rem 0 0;
         flex-shrink: 0;
+
+        ~ .content {
+          margin-left: 1em;
+        }
       }
 
       img.avatar {
@@ -291,10 +304,4 @@ a.blob-excerpt:hover {
 #viewed-files-summary {
   width: 72px;
   height: 10px;
-}
-
-@media @mediaSm {
-  .comment-code-cloud .ui.comments .comment .text {
-    flex: 1;
-  }
 }
