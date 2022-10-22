@@ -205,7 +205,7 @@ func loadBranches(ctx *context.Context, skip, limit int) (*Branch, []*Branch, in
 			continue
 		}
 
-		branch := loadOneBranch(ctx, rawBranches[i], defaultBranch, rules, repoIDToRepo, repoIDToGitRepo)
+		branch := loadOneBranch(ctx, rawBranches[i], defaultBranch, &rules, repoIDToRepo, repoIDToGitRepo)
 		if branch == nil {
 			return nil, nil, 0
 		}
@@ -217,7 +217,7 @@ func loadBranches(ctx *context.Context, skip, limit int) (*Branch, []*Branch, in
 	if defaultBranch != nil {
 		// Always add the default branch
 		log.Debug("loadOneBranch: load default: '%s'", defaultBranch.Name)
-		defaultBranchBranch = loadOneBranch(ctx, defaultBranch, defaultBranch, rules, repoIDToRepo, repoIDToGitRepo)
+		defaultBranchBranch = loadOneBranch(ctx, defaultBranch, defaultBranch, &rules, repoIDToRepo, repoIDToGitRepo)
 		branches = append(branches, defaultBranchBranch)
 	}
 
@@ -233,7 +233,7 @@ func loadBranches(ctx *context.Context, skip, limit int) (*Branch, []*Branch, in
 	return defaultBranchBranch, branches, totalNumOfBranches
 }
 
-func loadOneBranch(ctx *context.Context, rawBranch, defaultBranch *git.Branch, protectedBranches []*git_model.ProtectedBranch,
+func loadOneBranch(ctx *context.Context, rawBranch, defaultBranch *git.Branch, protectedBranches *git_model.ProtectedBranchRules,
 	repoIDToRepo map[int64]*repo_model.Repository,
 	repoIDToGitRepo map[int64]*git.Repository,
 ) *Branch {
@@ -246,13 +246,8 @@ func loadOneBranch(ctx *context.Context, rawBranch, defaultBranch *git.Branch, p
 	}
 
 	branchName := rawBranch.Name
-	var isProtected bool
-	for _, b := range protectedBranches {
-		if b.BranchName == branchName {
-			isProtected = true
-			break
-		}
-	}
+	p := protectedBranches.GetFirstMatched(branchName)
+	isProtected := p != nil
 
 	divergence := &git.DivergeObject{
 		Ahead:  -1,

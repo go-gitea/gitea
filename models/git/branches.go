@@ -158,7 +158,7 @@ func RenameBranch(repo *repo_model.Repository, from, to string, gitAction func(i
 	}
 
 	if protectedBranch != nil {
-		protectedBranch.BranchName = to
+		protectedBranch.RuleName = to
 		_, err = sess.ID(protectedBranch.ID).Cols("branch_name").Update(protectedBranch)
 		if err != nil {
 			return err

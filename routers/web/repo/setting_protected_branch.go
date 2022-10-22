@@ -105,7 +105,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	}
 
 	c.Data["PageIsSettingsBranches"] = true
-	c.Data["Title"] = c.Tr("repo.settings.protected_branch") + " - " + rule.BranchName
+	c.Data["Title"] = c.Tr("repo.settings.protected_branch") + " - " + rule.RuleName
 
 	users, err := access_model.GetRepoReaders(c.Repo.Repository)
 	if err != nil {
@@ -171,13 +171,13 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	} else {
 		// No options found, create defaults.
 		protectBranch = &git_model.ProtectedBranch{
-			RepoID:     ctx.Repo.Repository.ID,
-			BranchName: f.RuleName,
+			RepoID:   ctx.Repo.Repository.ID,
+			RuleName: f.RuleName,
 		}
 	}
 
 	var whitelistUsers, whitelistTeams, mergeWhitelistUsers, mergeWhitelistTeams, approvalsWhitelistUsers, approvalsWhitelistTeams []int64
-	protectBranch.BranchName = f.RuleName
+	protectBranch.RuleName = f.RuleName
 	if f.RequiredApprovals < 0 {
 		ctx.Flash.Error(ctx.Tr("repo.settings.protected_branch_required_approvals_min"))
 		ctx.Redirect(fmt.Sprintf("%s/settings/branches/%d", ctx.Repo.RepoLink, ruleID))
@@ -254,7 +254,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	}
 
 	// FIXME: since we only need to recheck files protected rules, we could improve this
-	matchedBranches, err := git_model.FindAllMatchedBranches(ctx, ctx.Repo.GitRepo, protectBranch.BranchName)
+	matchedBranches, err := git_model.FindAllMatchedBranches(ctx, ctx.Repo.GitRepo, protectBranch.RuleName)
 	if err != nil {
 		ctx.ServerError("FindAllMatchedBranches", err)
 		return
@@ -266,7 +266,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 		}
 	}
 
-	ctx.Flash.Success(ctx.Tr("repo.settings.update_protect_branch_success", protectBranch.BranchName))
+	ctx.Flash.Success(ctx.Tr("repo.settings.update_protect_branch_success", protectBranch.RuleName))
 	ctx.Redirect(fmt.Sprintf("%s/settings/branches/%d", ctx.Repo.RepoLink, protectBranch.ID))
 }
 
@@ -274,23 +274,39 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 func DeleteProtectedBranchRulePost(ctx *context.Context) {
 	ruleID := ctx.ParamsInt64("id")
 	if ruleID <= 0 {
+		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", fmt.Sprintf("%d", ruleID)))
+		ctx.JSON(http.StatusOK, map[string]interface{}{
+			"redirect": fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink),
+		})
 		return
 	}
+
 	rule, err := git_model.GetProtectedBranchRuleByID(ctx, ctx.Repo.Repository.ID, ruleID)
 	if err != nil {
+		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", fmt.Sprintf("%d", ruleID)))
+		ctx.JSON(http.StatusOK, map[string]interface{}{
+			"redirect": fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink),
+		})
 		return
 	}
 
 	if rule == nil {
+		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", fmt.Sprintf("%d", ruleID)))
+		ctx.JSON(http.StatusOK, map[string]interface{}{
+			"redirect": fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink),
+		})
 		return
 	}
 
 	if err := git_model.DeleteProtectedBranch(ctx.Repo.Repository.ID, ruleID); err != nil {
-		ctx.ServerError("DeleteProtectedBranch", err)
+		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", rule.RuleName))
+		ctx.JSON(http.StatusOK, map[string]interface{}{
+			"redirect": fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink),
+		})
 		return
 	}
 
-	ctx.Flash.Success(ctx.Tr("repo.settings.remove_protected_branch_success", rule.BranchName))
+	ctx.Flash.Success(ctx.Tr("repo.settings.remove_protected_branch_success", rule.RuleName))
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink),
 	})

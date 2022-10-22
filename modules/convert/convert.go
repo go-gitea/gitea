@@ -81,7 +81,7 @@ func ToBranch(repo *repo_model.Repository, b *git.Branch, c *git.Commit, bp *git
 	}
 
 	if isRepoAdmin {
-		branch.EffectiveBranchProtectionName = bp.BranchName
+		branch.EffectiveBranchProtectionName = bp.RuleName
 	}
 
 	if user != nil {
@@ -124,7 +124,7 @@ func ToBranchProtection(bp *git_model.ProtectedBranch) *api.BranchProtection {
 	}
 
 	return &api.BranchProtection{
-		BranchName:                    bp.BranchName,
+		RuleName:                      bp.RuleName,
 		EnablePush:                    bp.CanPush,
 		EnablePushWhitelist:           bp.EnableWhitelist,
 		PushWhitelistUsernames:        pushWhitelistUsernames,

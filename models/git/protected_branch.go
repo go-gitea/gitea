@@ -28,7 +28,7 @@ import (
 type ProtectedBranch struct {
 	ID                            int64     `xorm:"pk autoincr"`
 	RepoID                        int64     `xorm:"UNIQUE(s)"`
-	BranchName                    string    `xorm:"UNIQUE(s)"` // a branch name or a glob match to branch name
+	RuleName                      string    `xorm:"'branch_name' UNIQUE(s)"` // a branch name or a glob match to branch name
 	globRule                      glob.Glob `xorm:"-"`
 	isPlainName                   bool      `xorm:"-"`
 	CanPush                       bool      `xorm:"NOT NULL DEFAULT false"`
@@ -63,17 +63,17 @@ func init() {
 
 func (protectBranch *ProtectedBranch) loadGlob() {
 	if protectBranch.globRule == nil {
-		protectBranch.globRule = glob.MustCompile(protectBranch.BranchName, '/')
-		protectBranch.isPlainName = protectBranch.globRule.Match(protectBranch.BranchName)
+		protectBranch.globRule = glob.MustCompile(protectBranch.RuleName, '/')
+		protectBranch.isPlainName = protectBranch.globRule.Match(protectBranch.RuleName)
 	}
 }
 
 // Match tests if branchName matches the rule
 func (protectBranch *ProtectedBranch) Match(branchName string) bool {
-	if strings.EqualFold(protectBranch.BranchName, branchName) {
-		return true
-	}
 	protectBranch.loadGlob()
+	if protectBranch.isPlainName {
+		return strings.EqualFold(protectBranch.RuleName, branchName)
+	}
 
 	return protectBranch.globRule.Match(branchName)
 }
@@ -247,7 +247,7 @@ func (protectBranch *ProtectedBranch) IsUnprotectedFile(patterns []glob.Glob, pa
 
 // GetProtectedBranchRuleByName getting protected branch rule by name
 func GetProtectedBranchRuleByName(ctx context.Context, repoID int64, ruleName string) (*ProtectedBranch, error) {
-	rel := &ProtectedBranch{RepoID: repoID, BranchName: ruleName}
+	rel := &ProtectedBranch{RepoID: repoID, RuleName: ruleName}
 	has, err := db.GetByBean(ctx, rel)
 	if err != nil {
 		return nil, err
@@ -430,5 +430,59 @@ func DeleteProtectedBranch(repoID, id int64) (err error) {
 		return fmt.Errorf("delete protected branch ID(%v) failed", id)
 	}
 
+	return nil
+}
+
+// RemoveUserIDFromProtectedBranch remove all user ids from protected branch options
+func RemoveUserIDFromProtectedBranch(ctx context.Context, p *ProtectedBranch, userID int64) error {
+	var matched1, matched2, matched3 bool
+	if len(p.WhitelistUserIDs) != 0 {
+		p.WhitelistUserIDs, matched1 = util.RemoveIDFromList(
+			p.WhitelistUserIDs, userID)
+	}
+	if len(p.ApprovalsWhitelistUserIDs) != 0 {
+		p.ApprovalsWhitelistUserIDs, matched2 = util.RemoveIDFromList(
+			p.ApprovalsWhitelistUserIDs, userID)
+	}
+	if len(p.MergeWhitelistUserIDs) != 0 {
+		p.MergeWhitelistUserIDs, matched3 = util.RemoveIDFromList(
+			p.MergeWhitelistUserIDs, userID)
+	}
+	if matched1 || matched2 || matched3 {
+		if _, err := db.GetEngine(ctx).ID(p.ID).Cols(
+			"whitelist_user_i_ds",
+			"merge_whitelist_user_i_ds",
+			"approvals_whitelist_user_i_ds",
+		).Update(p); err != nil {
+			return fmt.Errorf("updateProtectedBranches: %v", err)
+		}
+	}
+	return nil
+}
+
+// RemoveTeamIDFromProtectedBranch remove all team ids from protected branch options
+func RemoveTeamIDFromProtectedBranch(ctx context.Context, p *ProtectedBranch, teamID int64) error {
+	var matched1, matched2, matched3 bool
+	if len(p.WhitelistTeamIDs) != 0 {
+		p.WhitelistTeamIDs, matched1 = util.RemoveIDFromList(
+			p.WhitelistTeamIDs, teamID)
+	}
+	if len(p.ApprovalsWhitelistTeamIDs) != 0 {
+		p.ApprovalsWhitelistTeamIDs, matched2 = util.RemoveIDFromList(
+			p.ApprovalsWhitelistTeamIDs, teamID)
+	}
+	if len(p.MergeWhitelistTeamIDs) != 0 {
+		p.MergeWhitelistTeamIDs, matched3 = util.RemoveIDFromList(
+			p.MergeWhitelistTeamIDs, teamID)
+	}
+	if matched1 || matched2 || matched3 {
+		if _, err := db.GetEngine(ctx).ID(p.ID).Cols(
+			"whitelist_team_i_ds",
+			"merge_whitelist_team_i_ds",
+			"approvals_whitelist_team_i_ds",
+		).Update(p); err != nil {
+			return fmt.Errorf("updateProtectedBranches: %v", err)
+		}
+	}
 	return nil
 }

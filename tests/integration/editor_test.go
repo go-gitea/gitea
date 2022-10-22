@@ -5,6 +5,7 @@
 package integration
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -53,7 +54,7 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 		// Check if master branch has been locked successfully
 		flashCookie := session.GetCookie("macaron_flash")
 		assert.NotNil(t, flashCookie)
-		assert.EqualValues(t, "success%3DBranch%2Bprotection%2Bfor%2Bbranch%2B%2527master%2527%2Bhas%2Bbeen%2Bupdated.", flashCookie.Value)
+		assert.EqualValues(t, "success%3DBranch%2Bprotection%2Bfor%2Brule%2B%2527master%2527%2Bhas%2Bbeen%2Bupdated.", flashCookie.Value)
 
 		// Request editor page
 		req = NewRequest(t, "GET", "/user2/repo1/_new/master/")
@@ -84,11 +85,16 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 			"_csrf": csrf,
 		})
 
-		session.MakeRequest(t, req, http.StatusSeeOther)
+		resp = session.MakeRequest(t, req, http.StatusOK)
+
+		res := make(map[string]string)
+		assert.NoError(t, json.NewDecoder(resp.Body).Decode(&res))
+		assert.EqualValues(t, "/user2/repo1/settings/branches", res["redirect"])
+
 		// Check if master branch has been locked successfully
 		flashCookie = session.GetCookie("macaron_flash")
 		assert.NotNil(t, flashCookie)
-		assert.EqualValues(t, "success%3DBranch%2Bprotection%2Bfor%2Bbranch%2B%2527master%2527%2Bhas%2Bbeen%2Bdisabled.", flashCookie.Value)
+		assert.EqualValues(t, "error%3DRemoving%2Bbranch%2Bprotection%2Brule%2B%25271%2527%2Bfailed.", flashCookie.Value)
 	})
 }
 
