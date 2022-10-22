@@ -436,6 +436,7 @@ var (
 	// Highlight settings are loaded in modules/template/highlight.go
 
 	// Other settings
+	ShowLicense                bool
 	ShowFooterBranding         bool
 	ShowFooterVersion          bool
 	ShowFooterTemplateLoadTime bool
@@ -1091,6 +1092,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		Names = defaultI18nNames()
 	}
 
+	ShowLicense = Cfg.Section("other").Key("SHOW_LICENSE").MustBool(false)
 	ShowFooterBranding = Cfg.Section("other").Key("SHOW_FOOTER_BRANDING").MustBool(false)
 	ShowFooterVersion = Cfg.Section("other").Key("SHOW_FOOTER_VERSION").MustBool(true)
 	ShowFooterTemplateLoadTime = Cfg.Section("other").Key("SHOW_FOOTER_TEMPLATE_LOAD_TIME").MustBool(true)
