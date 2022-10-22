@@ -15,5 +15,5 @@ func addIndexForHookTask(x *xorm.Engine) error {
 		UUID   string `xorm:"unique"`
 	}
 
-	return x.Sync2(new(HookTask))
+	return x.Sync(new(HookTask))
 }
