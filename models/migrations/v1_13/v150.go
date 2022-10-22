@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package v1_13
+package v1_13 //nolint
 
 import (
 	"code.gitea.io/gitea/models/migrations/base"
