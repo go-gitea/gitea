@@ -92,9 +92,9 @@ func NotifyDeleteIssue(doer *user_model.User, issue *issues_model.Issue) {
 }
 
 // NotifyMergePullRequest notifies merge pull request to notifiers
-func NotifyMergePullRequest(pr *issues_model.PullRequest, doer *user_model.User) {
+func NotifyMergePullRequest(pr *issues_model.PullRequest, doer *user_model.User, wasAutoMerged bool) {
 	for _, notifier := range notifiers {
-		notifier.NotifyMergePullRequest(pr, doer)
+		notifier.NotifyMergePullRequest(pr, doer, wasAutoMerged)
 	}
 }
 

@@ -54,7 +54,7 @@ func (m *mailNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *rep
 }
 
 func (m *mailNotifier) NotifyNewIssue(issue *issues_model.Issue, mentions []*user_model.User) {
-	if err := mailer.MailParticipants(issue, issue.Poster, activities_model.ActionCreateIssue, mentions); err != nil {
+	if err := mailer.MailParticipants(issue, issue.Poster, activities_model.ActionCreateIssue, mentions, false); err != nil {
 		log.Error("MailParticipants: %v", err)
 	}
 }
@@ -75,7 +75,7 @@ func (m *mailNotifier) NotifyIssueChangeStatus(doer *user_model.User, issue *iss
 		}
 	}
 
-	if err := mailer.MailParticipants(issue, doer, actionType, nil); err != nil {
+	if err := mailer.MailParticipants(issue, doer, actionType, nil, false); err != nil {
 		log.Error("MailParticipants: %v", err)
 	}
 }
@@ -86,14 +86,14 @@ func (m *mailNotifier) NotifyIssueChangeTitle(doer *user_model.User, issue *issu
 		return
 	}
 	if issue.IsPull && issues_model.HasWorkInProgressPrefix(oldTitle) && !issue.PullRequest.IsWorkInProgress() {
-		if err := mailer.MailParticipants(issue, doer, activities_model.ActionPullRequestReadyForReview, nil); err != nil {
+		if err := mailer.MailParticipants(issue, doer, activities_model.ActionPullRequestReadyForReview, nil, false); err != nil {
 			log.Error("MailParticipants: %v", err)
 		}
 	}
 }
 
 func (m *mailNotifier) NotifyNewPullRequest(pr *issues_model.PullRequest, mentions []*user_model.User) {
-	if err := mailer.MailParticipants(pr.Issue, pr.Issue.Poster, activities_model.ActionCreatePullRequest, mentions); err != nil {
+	if err := mailer.MailParticipants(pr.Issue, pr.Issue.Poster, activities_model.ActionCreatePullRequest, mentions, false); err != nil {
 		log.Error("MailParticipants: %v", err)
 	}
 }
@@ -143,12 +143,12 @@ func (m *mailNotifier) NotifyPullReviewRequest(doer *user_model.User, issue *iss
 	}
 }
 
-func (m *mailNotifier) NotifyMergePullRequest(pr *issues_model.PullRequest, doer *user_model.User) {
+func (m *mailNotifier) NotifyMergePullRequest(pr *issues_model.PullRequest, doer *user_model.User, wasAutoMerged bool) {
 	if err := pr.LoadIssue(); err != nil {
 		log.Error("pr.LoadIssue: %v", err)
 		return
 	}
-	if err := mailer.MailParticipants(pr.Issue, doer, activities_model.ActionMergePullRequest, nil); err != nil {
+	if err := mailer.MailParticipants(pr.Issue, doer, activities_model.ActionMergePullRequest, nil, wasAutoMerged); err != nil {
 		log.Error("MailParticipants: %v", err)
 	}
 }

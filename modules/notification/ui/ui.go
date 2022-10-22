@@ -112,7 +112,7 @@ func (ns *notificationService) NotifyIssueChangeTitle(doer *user_model.User, iss
 	}
 }
 
-func (ns *notificationService) NotifyMergePullRequest(pr *issues_model.PullRequest, doer *user_model.User) {
+func (ns *notificationService) NotifyMergePullRequest(pr *issues_model.PullRequest, doer *user_model.User, wasAutoMerged bool) {
 	_ = ns.issueQueue.Push(issueNotificationOpts{
 		IssueID:              pr.Issue.ID,
 		NotificationAuthorID: doer.ID,

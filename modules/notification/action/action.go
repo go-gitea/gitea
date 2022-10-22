@@ -269,7 +269,7 @@ func (a *actionNotifier) NotifyPullRequestReview(pr *issues_model.PullRequest, r
 	}
 }
 
-func (*actionNotifier) NotifyMergePullRequest(pr *issues_model.PullRequest, doer *user_model.User) {
+func (*actionNotifier) NotifyMergePullRequest(pr *issues_model.PullRequest, doer *user_model.User, wasAutoMerged bool) {
 	if err := activities_model.NotifyWatchers(&activities_model.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,

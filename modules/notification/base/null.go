@@ -51,7 +51,7 @@ func (*NullNotifier) NotifyPullRequestCodeComment(pr *issues_model.PullRequest, 
 }
 
 // NotifyMergePullRequest places a place holder function
-func (*NullNotifier) NotifyMergePullRequest(pr *issues_model.PullRequest, doer *user_model.User) {
+func (*NullNotifier) NotifyMergePullRequest(pr *issues_model.PullRequest, doer *user_model.User, b bool) {
 }
 
 // NotifyPullRequestSynchronized places a place holder function

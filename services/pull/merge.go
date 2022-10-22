@@ -133,7 +133,7 @@ func GetDefaultMergeMessage(baseGitRepo *git.Repository, pr *issues_model.PullRe
 
 // Merge merges pull request to base repository.
 // Caller should check PR is ready to be merged (review and status checks)
-func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string) error {
+func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, wasAutoMerged bool) error {
 	if err := pr.LoadHeadRepo(); err != nil {
 		log.Error("LoadHeadRepo: %v", err)
 		return fmt.Errorf("LoadHeadRepo: %v", err)
@@ -193,7 +193,7 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 		log.Error("GetOwner for issue repo [%d]: %v", pr.ID, err)
 	}
 
-	notification.NotifyMergePullRequest(pr, doer)
+	notification.NotifyMergePullRequest(pr, doer, wasAutoMerged)
 
 	// Reset cached commit count
 	cache.Remove(pr.Issue.Repo.GetCommitsCountCacheKey(pr.BaseBranch, true))
@@ -871,7 +871,7 @@ func MergedManually(pr *issues_model.PullRequest, doer *user_model.User, baseGit
 		return err
 	}
 
-	notification.NotifyMergePullRequest(pr, doer)
+	notification.NotifyMergePullRequest(pr, doer, false)
 	log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commitID)
 	return nil
 }

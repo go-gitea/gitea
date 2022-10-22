@@ -25,11 +25,12 @@ func fallbackMailSubject(issue *issues_model.Issue) string {
 
 type mailCommentContext struct {
 	context.Context
-	Issue      *issues_model.Issue
-	Doer       *user_model.User
-	ActionType activities_model.ActionType
-	Content    string
-	Comment    *issues_model.Comment
+	Issue                 *issues_model.Issue
+	Doer                  *user_model.User
+	ActionType            activities_model.ActionType
+	Content               string
+	Comment               *issues_model.Comment
+	ForceDoerNotification bool
 }
 
 const (
@@ -93,7 +94,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 	visited := make(container.Set[int64], len(unfiltered)+len(mentions)+1)
 
 	// Avoid mailing the doer
-	if ctx.Doer.EmailNotificationsPreference != user_model.EmailNotificationsAndYourOwn {
+	if ctx.Doer.EmailNotificationsPreference != user_model.EmailNotificationsAndYourOwn && !ctx.ForceDoerNotification {
 		visited.Add(ctx.Doer.ID)
 	}
 
@@ -172,7 +173,7 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, vi
 
 // MailParticipants sends new issue thread created emails to repository watchers
 // and mentioned people.
-func MailParticipants(issue *issues_model.Issue, doer *user_model.User, opType activities_model.ActionType, mentions []*user_model.User) error {
+func MailParticipants(issue *issues_model.Issue, doer *user_model.User, opType activities_model.ActionType, mentions []*user_model.User, forceDoerNotification bool) error {
 	if setting.MailService == nil {
 		// No mail service configured
 		return nil
@@ -186,12 +187,13 @@ func MailParticipants(issue *issues_model.Issue, doer *user_model.User, opType a
 	}
 	if err := mailIssueCommentToParticipants(
 		&mailCommentContext{
-			Context:    context.TODO(), // TODO: use a correct context
-			Issue:      issue,
-			Doer:       doer,
-			ActionType: opType,
-			Content:    content,
-			Comment:    nil,
+			Context:               context.TODO(), // TODO: use a correct context
+			Issue:                 issue,
+			Doer:                  doer,
+			ActionType:            opType,
+			Content:               content,
+			Comment:               nil,
+			ForceDoerNotification: forceDoerNotification,
 		}, mentions); err != nil {
 		log.Error("mailIssueCommentToParticipants: %v", err)
 	}
