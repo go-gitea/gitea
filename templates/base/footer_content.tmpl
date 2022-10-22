@@ -1,7 +1,9 @@
 <footer>
 	<div class="ui container">
 		<div class="ui left">
-			<a target="_blank" rel="noopener noreferrer" href="https://gitea.io">{{.locale.Tr "powered_by" "Gitea"}}</a>
+			{{if .ShowFooterBranding}}
+				<a target="_blank" rel="noopener noreferrer" href="https://gitea.io">{{.locale.Tr "powered_by" "Gitea"}}</a>
+			{{end}}
 			{{if (or .ShowFooterVersion .PageIsAdmin)}}
 				{{.locale.Tr "version"}}:
 				{{if .IsAdmin}}
