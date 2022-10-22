@@ -773,6 +773,44 @@
           padding: 1em 0 1em 3.8em;
         }
       }
+
+      .pr-status {
+        padding: 0;
+        display: flex;
+        align-items: center;
+
+        .commit-status {
+          margin: 1em;
+          flex-shrink: 0;
+        }
+
+        .status-context {
+          display: flex;
+          justify-content: space-between;
+          width: 100%;
+
+          > span {
+            padding: 1em 0;
+          }
+        }
+
+        .status-details {
+          display: flex;
+          padding-right: .5em;
+          align-items: center;
+          justify-content: flex-end;
+
+          @media @mediaSm {
+            flex-direction: column;
+            align-items: flex-end;
+            justify-content: center;
+          }
+
+          > span {
+            padding-right: .5em; // To match the alignment with the "required" label
+          }
+        }
+      }
     }
 
     .comment-list {
