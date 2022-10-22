@@ -633,7 +633,7 @@ func TestWebhook(ctx *context.Context) {
 	hookID := ctx.ParamsInt64(":id")
 	w, err := webhook.GetWebhookByRepoID(ctx.Repo.Repository.ID, hookID)
 	if err != nil {
-		ctx.Flash.Error("GetWebhookByID: " + err.Error())
+		ctx.Flash.Error("GetWebhookByRepoID: " + err.Error())
 		ctx.Status(http.StatusInternalServerError)
 		return
 	}
@@ -668,17 +668,18 @@ func TestWebhook(ctx *context.Context) {
 
 	commitID := commit.ID.String()
 	p := &api.PushPayload{
-		Ref:        git.BranchPrefix + ctx.Repo.Repository.DefaultBranch,
-		Before:     commitID,
-		After:      commitID,
-		CompareURL: setting.AppURL + ctx.Repo.Repository.ComposeCompareURL(commitID, commitID),
-		Commits:    []*api.PayloadCommit{apiCommit},
-		HeadCommit: apiCommit,
-		Repo:       convert.ToRepo(ctx.Repo.Repository, perm.AccessModeNone),
-		Pusher:     apiUser,
-		Sender:     apiUser,
+		Ref:          git.BranchPrefix + ctx.Repo.Repository.DefaultBranch,
+		Before:       commitID,
+		After:        commitID,
+		CompareURL:   setting.AppURL + ctx.Repo.Repository.ComposeCompareURL(commitID, commitID),
+		Commits:      []*api.PayloadCommit{apiCommit},
+		TotalCommits: 1,
+		HeadCommit:   apiCommit,
+		Repo:         convert.ToRepo(ctx.Repo.Repository, perm.AccessModeNone),
+		Pusher:       apiUser,
+		Sender:       apiUser,
 	}
-	if err := webhook_service.PrepareWebhook(w, ctx.Repo.Repository, webhook.HookEventPush, p); err != nil {
+	if err := webhook_service.PrepareWebhook(ctx, w, webhook.HookEventPush, p); err != nil {
 		ctx.Flash.Error("PrepareWebhook: " + err.Error())
 		ctx.Status(http.StatusInternalServerError)
 	} else {
@@ -696,7 +697,7 @@ func ReplayWebhook(ctx *context.Context) {
 		return
 	}
 
-	if err := webhook_service.ReplayHookTask(w, hookTaskUUID); err != nil {
+	if err := webhook_service.ReplayHookTask(ctx, w, hookTaskUUID); err != nil {
 		if webhook.IsErrHookTaskNotExist(err) {
 			ctx.NotFound("ReplayHookTask", nil)
 		} else {

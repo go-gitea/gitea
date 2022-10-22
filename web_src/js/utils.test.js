@@ -1,3 +1,4 @@
+import {expect, test} from 'vitest';
 import {
   basename, extname, isObject, uniq, stripTags, joinPaths, parseIssueHref,
   prettyNumber, parseUrl,
@@ -56,8 +57,8 @@ test('joinPaths', () => {
 });
 
 test('isObject', () => {
-  expect(isObject({})).toBeTrue();
-  expect(isObject([])).toBeFalse();
+  expect(isObject({})).toBeTruthy();
+  expect(isObject([])).toBeFalsy();
 });
 
 test('uniq', () => {

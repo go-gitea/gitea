@@ -36,6 +36,10 @@ func (err ErrUploadNotExist) Error() string {
 	return fmt.Sprintf("attachment does not exist [id: %d, uuid: %s]", err.ID, err.UUID)
 }
 
+func (err ErrUploadNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // Upload represent a uploaded file to a repo to be deleted when moved
 type Upload struct {
 	ID   int64  `xorm:"pk autoincr"`

@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/duo-labs/webauthn/webauthn"
 	"xorm.io/xorm"
@@ -27,6 +28,11 @@ func (err ErrWebAuthnCredentialNotExist) Error() string {
 		return fmt.Sprintf("WebAuthn credential does not exist [id: %d]", err.ID)
 	}
 	return fmt.Sprintf("WebAuthn credential does not exist [credential_id: %x]", err.CredentialID)
+}
+
+// Unwrap unwraps this as a ErrNotExist err
+func (err ErrWebAuthnCredentialNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // IsErrWebAuthnCredentialNotExist checks if an error is a ErrWebAuthnCredentialNotExist.
