@@ -30,3 +30,4 @@ rules:
   shorthand-property-no-redundant-values: true
   string-quotes: null
   value-no-vendor-prefix: null
+  value-keyword-case: [lower, ignoreProperties: /^--/]

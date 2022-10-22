@@ -176,7 +176,7 @@
   vertical-align: baseline;
   background: #E0E1E2 none;
   color: rgba(0, 0, 0, 0.6);
-  font-family: var(--fonts-regular);
+  font-family: var(--fonts-proportional);
   margin: 0 0.25em 0 0;
   padding: 0.78571429em 1.5em 0.78571429em;
   text-transform: none;
@@ -4932,7 +4932,7 @@
 .ui.card > .content > .header {
   display: block;
   margin: '';
-  font-family: var(--fonts-regular);
+  font-family: var(--fonts-proportional);
   color: rgba(0, 0, 0, 0.85);
 }
 
@@ -7372,7 +7372,7 @@ a.inverted.ui.card:hover,
 /* Text Container */
 
 .ui.text.container {
-  font-family: var(--fonts-regular);
+  font-family: var(--fonts-proportional);
   max-width: 700px;
   line-height: 1.5;
   font-size: 1.14285714rem;
@@ -10460,7 +10460,7 @@ select.ui.dropdown {
 .ui.form input[type="text"],
 .ui.form input[type="file"],
 .ui.form input[type="url"] {
-  font-family: var(--fonts-regular);
+  font-family: var(--fonts-proportional);
   margin: 0;
   outline: none;
   -webkit-appearance: none;
@@ -10492,7 +10492,7 @@ select.ui.dropdown {
   box-shadow: 0 0 0 0 transparent inset;
   transition: color 0.1s ease, border-color 0.1s ease;
   font-size: 1em;
-  font-family: var(--fonts-regular);
+  font-family: var(--fonts-proportional);
   line-height: 1.2857;
   resize: vertical;
 }
@@ -14521,7 +14521,7 @@ select.ui.dropdown {
   border: none;
   margin: calc(2rem - 0.1428571428571429em) 0 1rem;
   padding: 0 0;
-  font-family: var(--fonts-regular);
+  font-family: var(--fonts-proportional);
   font-weight: 500;
   line-height: 1.28571429em;
   text-transform: none;
@@ -24381,7 +24381,7 @@ i.icon.youtube.play:before {
   -webkit-tap-highlight-color: rgba(255, 255, 255, 0);
   text-align: left;
   line-height: 1.21428571em;
-  font-family: var(--fonts-regular);
+  font-family: var(--fonts-proportional);
   padding: 0.67857143em 1em;
   background: #FFFFFF;
   border: 1px solid rgba(34, 36, 38, 0.15);
@@ -25263,7 +25263,7 @@ i.icon.youtube.play:before {
 .ui.items > .item > .content > .header {
   display: inline-block;
   margin: -0.21425em 0 0;
-  font-family: var(--fonts-regular);
+  font-family: var(--fonts-proportional);
   font-weight: 500;
   color: rgba(0, 0, 0, 0.85);
 }
@@ -28300,7 +28300,7 @@ ol.ui.list ol li,
 .ui.list > .item .header {
   display: block;
   margin: 0;
-  font-family: var(--fonts-regular);
+  font-family: var(--fonts-proportional);
   font-weight: 500;
   color: rgba(0, 0, 0, 0.87);
 }
@@ -30174,7 +30174,7 @@ ol.ui.suffixed.list li:before,
 .ui.menu {
   display: flex;
   margin: 1rem 0;
-  font-family: var(--fonts-regular);
+  font-family: var(--fonts-proportional);
   background: #FFFFFF;
   font-weight: normal;
   border: 1px solid rgba(34, 36, 38, 0.15);
@@ -32627,7 +32627,7 @@ Floated Menu / Item
 
 .ui.message .header {
   display: block;
-  font-family: var(--fonts-regular);
+  font-family: var(--fonts-proportional);
   font-weight: 500;
   margin: -0.14285714em 0 0 0;
 }
@@ -33353,7 +33353,7 @@ Floated Menu / Item
 
 .ui.modal > .header {
   display: block;
-  font-family: var(--fonts-regular);
+  font-family: var(--fonts-proportional);
   background: #FFFFFF;
   margin: 0;
   padding: 1.25rem 1.5rem;
@@ -34649,7 +34649,7 @@ template {
 
 .ui.search > .results .result .title {
   margin: -0.14285714em 0 0;
-  font-family: var(--fonts-regular);
+  font-family: var(--fonts-proportional);
   font-weight: 500;
   font-size: 1em;
   color: rgba(0, 0, 0, 0.85);
@@ -34675,7 +34675,7 @@ template {
 }
 
 .ui.search > .results > .message .header {
-  font-family: var(--fonts-regular);
+  font-family: var(--fonts-proportional);
   font-size: 1rem;
   font-weight: 500;
   color: rgba(0, 0, 0, 0.87);
@@ -34883,7 +34883,7 @@ template {
   width: 100px;
   white-space: nowrap;
   background: transparent;
-  font-family: var(--fonts-regular);
+  font-family: var(--fonts-proportional);
   font-size: 1em;
   padding: 0.4em 1em;
   font-weight: 500;
@@ -36032,7 +36032,7 @@ body {
   overflow-x: hidden;
   min-width: 320px;
   background: #FFFFFF;
-  font-family: var(--fonts-regular);
+  font-family: var(--fonts-proportional);
   font-size: 14px;
   line-height: 1.4285em;
   color: rgba(0, 0, 0, 0.87);
@@ -36047,7 +36047,7 @@ h2,
 h3,
 h4,
 h5 {
-  font-family: var(--fonts-regular);
+  font-family: var(--fonts-proportional);
   line-height: 1.28571429em;
   margin: calc(2rem - 0.1428571428571429em) 0 1rem;
   font-weight: 500;

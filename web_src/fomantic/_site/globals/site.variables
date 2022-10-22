@@ -1,7 +1,7 @@
 /* https://github.com/fomantic/Fomantic-UI/blob/develop/src/themes/default/globals/site.variables */
 
-@headerFont: var(--fonts-regular);
-@pageFont: var(--fonts-regular);
+@headerFont: var(--fonts-proportional);
+@pageFont: var(--fonts-proportional);
 @bold: 500;
 @useCustomScrollbars: false;
 @disabledOpacity: var(--opacity-disabled);
