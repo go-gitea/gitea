@@ -1,7 +1,7 @@
 {{template "base/head" .}}
 <div class="page-content repository diff {{if .PageIsComparePull}}compare pull{{end}}">
 	{{template "repo/header" .}}
-	<div class="ui container fluid padded">
+	<div class="ui container {{if .IsSplitStyle}}fluid padded{{end}}">
 
 	<h2 class="ui header">
 		{{if and $.PageIsComparePull $.IsSigned (not .Repository.IsArchived)}}

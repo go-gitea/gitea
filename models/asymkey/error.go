@@ -4,7 +4,11 @@
 
 package asymkey
 
-import "fmt"
+import (
+	"fmt"
+
+	"code.gitea.io/gitea/modules/util"
+)
 
 // ErrKeyUnableVerify represents a "KeyUnableVerify" kind of error.
 type ErrKeyUnableVerify struct {
@@ -36,6 +40,10 @@ func (err ErrKeyNotExist) Error() string {
 	return fmt.Sprintf("public key does not exist [id: %d]", err.ID)
 }
 
+func (err ErrKeyNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrKeyAlreadyExist represents a "KeyAlreadyExist" kind of error.
 type ErrKeyAlreadyExist struct {
 	OwnerID     int64
@@ -54,6 +62,10 @@ func (err ErrKeyAlreadyExist) Error() string {
 		err.OwnerID, err.Fingerprint, err.Content)
 }
 
+func (err ErrKeyAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
 // ErrKeyNameAlreadyUsed represents a "KeyNameAlreadyUsed" kind of error.
 type ErrKeyNameAlreadyUsed struct {
 	OwnerID int64
@@ -68,6 +80,10 @@ func IsErrKeyNameAlreadyUsed(err error) bool {
 
 func (err ErrKeyNameAlreadyUsed) Error() string {
 	return fmt.Sprintf("public key already exists [owner_id: %d, name: %s]", err.OwnerID, err.Name)
+}
+
+func (err ErrKeyNameAlreadyUsed) Unwrap() error {
+	return util.ErrAlreadyExist
 }
 
 // ErrGPGNoEmailFound represents a "ErrGPGNoEmailFound" kind of error.
@@ -132,6 +148,10 @@ func (err ErrGPGKeyNotExist) Error() string {
 	return fmt.Sprintf("public gpg key does not exist [id: %d]", err.ID)
 }
 
+func (err ErrGPGKeyNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrGPGKeyImportNotExist represents a "GPGKeyImportNotExist" kind of error.
 type ErrGPGKeyImportNotExist struct {
 	ID string
@@ -147,6 +167,10 @@ func (err ErrGPGKeyImportNotExist) Error() string {
 	return fmt.Sprintf("public gpg key import does not exist [id: %s]", err.ID)
 }
 
+func (err ErrGPGKeyImportNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrGPGKeyIDAlreadyUsed represents a "GPGKeyIDAlreadyUsed" kind of error.
 type ErrGPGKeyIDAlreadyUsed struct {
 	KeyID string
@@ -160,6 +184,10 @@ func IsErrGPGKeyIDAlreadyUsed(err error) bool {
 
 func (err ErrGPGKeyIDAlreadyUsed) Error() string {
 	return fmt.Sprintf("public key already exists [key_id: %s]", err.KeyID)
+}
+
+func (err ErrGPGKeyIDAlreadyUsed) Unwrap() error {
+	return util.ErrAlreadyExist
 }
 
 // ErrGPGKeyAccessDenied represents a "GPGKeyAccessDenied" kind of Error.
@@ -180,6 +208,10 @@ func (err ErrGPGKeyAccessDenied) Error() string {
 		err.UserID, err.KeyID)
 }
 
+func (err ErrGPGKeyAccessDenied) Unwrap() error {
+	return util.ErrPermissionDenied
+}
+
 // ErrKeyAccessDenied represents a "KeyAccessDenied" kind of error.
 type ErrKeyAccessDenied struct {
 	UserID int64
@@ -196,6 +228,10 @@ func IsErrKeyAccessDenied(err error) bool {
 func (err ErrKeyAccessDenied) Error() string {
 	return fmt.Sprintf("user does not have access to the key [user_id: %d, key_id: %d, note: %s]",
 		err.UserID, err.KeyID, err.Note)
+}
+
+func (err ErrKeyAccessDenied) Unwrap() error {
+	return util.ErrPermissionDenied
 }
 
 // ErrDeployKeyNotExist represents a "DeployKeyNotExist" kind of error.
@@ -215,6 +251,10 @@ func (err ErrDeployKeyNotExist) Error() string {
 	return fmt.Sprintf("Deploy key does not exist [id: %d, key_id: %d, repo_id: %d]", err.ID, err.KeyID, err.RepoID)
 }
 
+func (err ErrDeployKeyNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrDeployKeyAlreadyExist represents a "DeployKeyAlreadyExist" kind of error.
 type ErrDeployKeyAlreadyExist struct {
 	KeyID  int64
@@ -229,6 +269,10 @@ func IsErrDeployKeyAlreadyExist(err error) bool {
 
 func (err ErrDeployKeyAlreadyExist) Error() string {
 	return fmt.Sprintf("public key already exists [key_id: %d, repo_id: %d]", err.KeyID, err.RepoID)
+}
+
+func (err ErrDeployKeyAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
 }
 
 // ErrDeployKeyNameAlreadyUsed represents a "DeployKeyNameAlreadyUsed" kind of error.
@@ -247,6 +291,10 @@ func (err ErrDeployKeyNameAlreadyUsed) Error() string {
 	return fmt.Sprintf("public key with name already exists [repo_id: %d, name: %s]", err.RepoID, err.Name)
 }
 
+func (err ErrDeployKeyNameAlreadyUsed) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrSSHInvalidTokenSignature represents a "ErrSSHInvalidTokenSignature" kind of error.
 type ErrSSHInvalidTokenSignature struct {
 	Wrapped     error
@@ -261,4 +309,8 @@ func IsErrSSHInvalidTokenSignature(err error) bool {
 
 func (err ErrSSHInvalidTokenSignature) Error() string {
 	return "the provided signature does not sign the token with the provided key"
+}
+
+func (err ErrSSHInvalidTokenSignature) Unwrap() error {
+	return util.ErrInvalidArgument
 }

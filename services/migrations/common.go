@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	admin_model "code.gitea.io/gitea/models/admin"
+	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
@@ -17,7 +17,7 @@ import (
 // WarnAndNotice will log the provided message and send a repository notice
 func WarnAndNotice(fmtStr string, args ...interface{}) {
 	log.Warn(fmtStr, args...)
-	if err := admin_model.CreateRepositoryNotice(fmt.Sprintf(fmtStr, args...)); err != nil {
+	if err := system_model.CreateRepositoryNotice(fmt.Sprintf(fmtStr, args...)); err != nil {
 		log.Error("create repository notice failed: ", err)
 	}
 }
