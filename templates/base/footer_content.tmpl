@@ -30,7 +30,7 @@
 					{{end}}
 				</div>
 			</div>
-			{{if .ShowLicense}}
+			{{if not .ShowLicense}}
 				<a href="{{AssetUrlPrefix}}/js/licenses.txt">{{.locale.Tr "licenses"}}</a>
 			{{end}}
 			{{if .EnableSwagger}}
