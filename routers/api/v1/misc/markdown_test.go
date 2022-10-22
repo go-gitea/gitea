@@ -73,13 +73,13 @@ func TestAPI_RenderGFM(t *testing.T) {
 		`Wiki! Enjoy :)
 - [[Links, Language bindings, Engine bindings|Links]]
 - [[Tips]]
-- Bezier widget (by @r-lyeh) https://github.com/ocornut/imgui/issues/786`,
+- Bezier widget (by @user10) https://github.com/ocornut/imgui/issues/786`,
 		// rendered
 		`<p>Wiki! Enjoy :)</p>
 <ul>
 <li><a href="` + AppSubURL + `wiki/Links" rel="nofollow">Links, Language bindings, Engine bindings</a></li>
 <li><a href="` + AppSubURL + `wiki/Tips" rel="nofollow">Tips</a></li>
-<li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="https://github.com/ocornut/imgui/issues/786" rel="nofollow">https://github.com/ocornut/imgui/issues/786</a></li>
+<li>Bezier widget (by <a href="` + AppURL + `user10" rel="nofollow">@user10</a>) <a href="https://github.com/ocornut/imgui/issues/786" rel="nofollow">https://github.com/ocornut/imgui/issues/786</a></li>
 </ul>
 `,
 		// wine-staging wiki home extract: special wiki syntax, images
