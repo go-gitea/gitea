@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/user"
 	module_context "code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 )
 
@@ -22,7 +23,8 @@ func ProcessorHelper() *markup.ProcessorHelper {
 
 			moduleCtx, ok := ctx.(*module_context.Context)
 			if !ok {
-				return false
+				log.Error("couldn't cast context, assuming user should be visible based on their visibility")
+				return mentionedUser.Visibility.IsPublic()
 			}
 
 			return user.IsUserVisibleToViewer(moduleCtx, mentionedUser, moduleCtx.Doer)
