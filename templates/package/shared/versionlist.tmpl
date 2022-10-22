@@ -6,8 +6,8 @@
 			<select class="ui dropdown" name="sort">
 				<option value="version_asc" {{if eq .Sort "version_asc"}}selected="selected"{{end}}>{{.locale.Tr "filter.string.asc"}}</option>
 				<option value="version_desc" {{if eq .Sort "version_desc"}}selected="selected"{{end}}>{{.locale.Tr "filter.string.desc"}}</option>
-				<option value="created_asc" {{if eq .Sort "created_asc"}}selected="selected"{{end}}>{{.locale.Tr "filter.created.asc"}}</option>
-				<option value="created_desc" {{if or (eq .Sort "") (eq .Sort "created_desc")}}selected="selected"{{end}}>{{.locale.Tr "filter.created.desc"}}</option>
+				<option value="created_asc" {{if eq .Sort "created_asc"}}selected="selected"{{end}}>{{.locale.Tr "repo.issues.filter_sort.oldest"}}</option>
+				<option value="created_desc" {{if or (eq .Sort "") (eq .Sort "created_desc")}}selected="selected"{{end}}>{{.locale.Tr "repo.issues.filter_sort.latest"}}</option>
 			</select>
 			{{if eq .PackageDescriptor.Package.Type "container"}}
 			<select class="ui dropdown" name="tagged">
