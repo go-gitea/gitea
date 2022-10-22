@@ -48,9 +48,10 @@ func (issue *Issue) LoadAssignees(ctx context.Context) (err error) {
 // GetAssigneeIDsByIssue returns the IDs of users assigned to an issue
 // but skips joining with `user` for performance reasons.
 // User permissions must be verified elsewhere if required.
-func GetAssigneeIDsByIssue(issueID int64) ([]int64, error) {
+func GetAssigneeIDsByIssue(ctx context.Context, issueID int64) ([]int64, error) {
 	userIDs := make([]int64, 0, 5)
-	return userIDs, db.GetEngine(db.DefaultContext).Table("issue_assignees").
+	return userIDs, db.GetEngine(ctx).
+		Table("issue_assignees").
 		Cols("assignee_id").
 		Where("issue_id = ?", issueID).
 		Distinct("assignee_id").
@@ -151,7 +152,7 @@ func toggleUserAssignee(ctx context.Context, issue *Issue, assigneeID int64) (re
 }
 
 // MakeIDsFromAPIAssigneesToAdd returns an array with all assignee IDs
-func MakeIDsFromAPIAssigneesToAdd(oneAssignee string, multipleAssignees []string) (assigneeIDs []int64, err error) {
+func MakeIDsFromAPIAssigneesToAdd(ctx context.Context, oneAssignee string, multipleAssignees []string) (assigneeIDs []int64, err error) {
 	var requestAssignees []string
 
 	// Keeping the old assigning method for compatibility reasons
@@ -165,7 +166,7 @@ func MakeIDsFromAPIAssigneesToAdd(oneAssignee string, multipleAssignees []string
 	}
 
 	// Get the IDs of all assignees
-	assigneeIDs, err = user_model.GetUserIDsByNames(requestAssignees, false)
+	assigneeIDs, err = user_model.GetUserIDsByNames(ctx, requestAssignees, false)
 
 	return assigneeIDs, err
 }

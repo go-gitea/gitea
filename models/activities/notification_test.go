@@ -82,14 +82,14 @@ func TestSetNotificationStatus(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	notf := unittest.AssertExistsAndLoadBean(t,
 		&activities_model.Notification{UserID: user.ID, Status: activities_model.NotificationStatusRead})
-	_, err := activities_model.SetNotificationStatus(notf.ID, user, activities_model.NotificationStatusPinned)
+	_, err := activities_model.SetNotificationStatus(db.DefaultContext, notf.ID, user, activities_model.NotificationStatusPinned)
 	assert.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t,
 		&activities_model.Notification{ID: notf.ID, Status: activities_model.NotificationStatusPinned})
 
-	_, err = activities_model.SetNotificationStatus(1, user, activities_model.NotificationStatusRead)
+	_, err = activities_model.SetNotificationStatus(db.DefaultContext, 1, user, activities_model.NotificationStatusRead)
 	assert.Error(t, err)
-	_, err = activities_model.SetNotificationStatus(unittest.NonexistentID, user, activities_model.NotificationStatusRead)
+	_, err = activities_model.SetNotificationStatus(db.DefaultContext, unittest.NonexistentID, user, activities_model.NotificationStatusRead)
 	assert.Error(t, err)
 }
 

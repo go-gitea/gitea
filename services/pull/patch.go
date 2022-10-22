@@ -30,7 +30,7 @@ import (
 
 // DownloadDiffOrPatch will write the patch for the pr to the writer
 func DownloadDiffOrPatch(ctx context.Context, pr *issues_model.PullRequest, w io.Writer, patch, binary bool) error {
-	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
+	if err := pr.LoadBaseRepo(ctx); err != nil {
 		log.Error("Unable to load base repository ID %d for pr #%d [%d]", pr.BaseRepoID, pr.Index, pr.ID)
 		return err
 	}

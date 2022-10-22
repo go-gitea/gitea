@@ -48,7 +48,7 @@ var (
 func AddToTaskQueue(pr *issues_model.PullRequest) {
 	err := prPatchCheckerQueue.PushFunc(strconv.FormatInt(pr.ID, 10), func() error {
 		pr.Status = issues_model.PullRequestStatusChecking
-		err := pr.UpdateColsIfNotMerged("status")
+		err := pr.UpdateColsIfNotMerged(db.DefaultContext, "status")
 		if err != nil {
 			log.Error("AddToTaskQueue.UpdateCols[%d].(add to queue): %v", pr.ID, err)
 		} else {
@@ -68,7 +68,7 @@ func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *acce
 			return ErrHasMerged
 		}
 
-		if err := pr.LoadIssueCtx(ctx); err != nil {
+		if err := pr.LoadIssue(ctx); err != nil {
 			return err
 		} else if pr.Issue.IsClosed {
 			return ErrIsClosed
@@ -142,7 +142,7 @@ func isSignedIfRequired(ctx context.Context, pr *issues_model.PullRequest, doer 
 
 // checkAndUpdateStatus checks if pull request is possible to leaving checking status,
 // and set to be either conflict or mergeable.
-func checkAndUpdateStatus(pr *issues_model.PullRequest) {
+func checkAndUpdateStatus(ctx context.Context, pr *issues_model.PullRequest) {
 	// Status is not changed to conflict means mergeable.
 	if pr.Status == issues_model.PullRequestStatusChecking {
 		pr.Status = issues_model.PullRequestStatusMergeable
@@ -155,7 +155,7 @@ func checkAndUpdateStatus(pr *issues_model.PullRequest) {
 	}
 
 	if !has {
-		if err := pr.UpdateColsIfNotMerged("merge_base", "status", "conflicted_files", "changed_protected_files"); err != nil {
+		if err := pr.UpdateColsIfNotMerged(ctx, "merge_base", "status", "conflicted_files", "changed_protected_files"); err != nil {
 			log.Error("Update[%d]: %v", pr.ID, err)
 		}
 	}
@@ -232,7 +232,7 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 // manuallyMerged checks if a pull request got manually merged
 // When a pull request got manually merged mark the pull request as merged
 func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
-	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
+	if err := pr.LoadBaseRepo(ctx); err != nil {
 		log.Error("PullRequest[%d].LoadBaseRepo: %v", pr.ID, err)
 		return false
 	}
@@ -278,7 +278,7 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 			return false
 		}
 
-		notification.NotifyMergePullRequest(pr, merger)
+		notification.NotifyMergePullRequest(ctx, merger, pr)
 
 		log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commit.ID.String())
 		return true
@@ -346,7 +346,7 @@ func testPR(id int64) {
 		}
 		return
 	}
-	checkAndUpdateStatus(pr)
+	checkAndUpdateStatus(ctx, pr)
 }
 
 // CheckPrsForBaseBranch check all pulls with bseBrannch

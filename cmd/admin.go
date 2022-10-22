@@ -727,7 +727,7 @@ func runRepoSyncReleases(_ *cli.Context) error {
 
 	log.Trace("Synchronizing repository releases (this may take a while)")
 	for page := 1; ; page++ {
-		repos, count, err := repo_model.SearchRepositoryByName(&repo_model.SearchRepoOptions{
+		repos, count, err := repo_model.SearchRepositoryByName(ctx, &repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
 				PageSize: repo_model.RepositoryListDefaultPageSize,
 				Page:     page,

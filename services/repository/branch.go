@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -141,8 +142,8 @@ func RenameBranch(repo *repo_model.Repository, doer *user_model.User, gitRepo *g
 		return "", err
 	}
 
-	notification.NotifyDeleteRef(doer, repo, "branch", git.BranchPrefix+from)
-	notification.NotifyCreateRef(doer, repo, "branch", git.BranchPrefix+to, refID)
+	notification.NotifyDeleteRef(db.DefaultContext, doer, repo, "branch", git.BranchPrefix+from)
+	notification.NotifyCreateRef(db.DefaultContext, doer, repo, "branch", git.BranchPrefix+to, refID)
 
 	return "", nil
 }
