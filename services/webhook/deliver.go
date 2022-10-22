@@ -23,7 +23,6 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/hostmatcher"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
@@ -44,7 +43,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 			return
 		}
 		// There was a panic whilst delivering a hook...
-		log.Error("PANIC whilst trying to deliver webhook[%d] for repo[%d] to %s Panic: %v\nStacktrace: %s", t.ID, t.RepoID, w.URL, err, log.Stack(2))
+		log.Error("PANIC whilst trying to deliver webhook[%d] to %s Panic: %v\nStacktrace: %s", t.ID, w.URL, err, log.Stack(2))
 	}()
 
 	t.IsDelivered = true
@@ -202,35 +201,6 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 	return nil
 }
 
-// populateDeliverHooks checks and delivers undelivered hooks.
-func populateDeliverHooks(ctx context.Context) {
-	select {
-	case <-ctx.Done():
-		return
-	default:
-	}
-	ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Service: DeliverHooks", process.SystemProcessType, true)
-	defer finished()
-	tasks, err := webhook_model.FindUndeliveredHookTasks()
-	if err != nil {
-		log.Error("DeliverHooks: %v", err)
-		return
-	}
-
-	// Update hook task status.
-	for _, t := range tasks {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-
-		if err := addToTask(t.RepoID); err != nil {
-			log.Error("DeliverHook failed [%d]: %v", t.RepoID, err)
-		}
-	}
-}
-
 var (
 	webhookHTTPClient *http.Client
 	once              sync.Once
@@ -281,13 +251,23 @@ func Init() error {
 		},
 	}
 
-	hookQueue = queue.CreateUniqueQueue("webhook_sender", handle, "")
+	hookQueue = queue.CreateUniqueQueue("webhook_sender", handle, int64(0))
 	if hookQueue == nil {
 		return fmt.Errorf("Unable to create webhook_sender Queue")
 	}
 	go graceful.GetManager().RunWithShutdownFns(hookQueue.Run)
 
-	populateDeliverHooks(graceful.GetManager().HammerContext())
+	tasks, err := webhook_model.FindUndeliveredHookTasks(graceful.GetManager().HammerContext())
+	if err != nil {
+		log.Error("FindUndeliveredHookTasks failed: %v", err)
+		return err
+	}
+
+	for _, task := range tasks {
+		if err := enqueueHookTask(task); err != nil {
+			log.Error("enqueueHookTask failed: %v", err)
+		}
+	}
 
 	return nil
 }
