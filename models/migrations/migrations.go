@@ -426,6 +426,8 @@ var migrations = []Migration{
 	NewMigration("Create key/value table for system settings", v1_18.CreateSystemSettingsTable),
 	// v228 -> v229
 	NewMigration("Add TeamInvite table", v1_18.AddTeamInviteTable),
+	// v229 -> v230
+	NewMigration("Update counts of all open milestones", v1_18.UpdateOpenMilestoneCounts),
 }
 
 // GetCurrentDBVersion returns the current db version
