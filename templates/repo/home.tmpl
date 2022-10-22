@@ -68,7 +68,7 @@
 				<!-- If home page, show new PR. If not, show breadcrumb -->
 				{{if eq $n 0}}
 					{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
-						<a href="{{.BaseRepo.Link}}/compare/{{PathEscapeSegments .BaseRepo.DefaultBranch}}...{{if ne .Repository.Owner.Name .BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}{{if .BaseRepo.IsFork}}/{{PathEscape .Repository.Name}}{{end}}:{{end}}{{PathEscapeSegments .BranchName}}">
+						<a href="{{CompareLink .BaseRepo .Repository .BranchName}}">
 							<button id="new-pull-request" class="ui compact basic button tooltip" data-content="{{if .PullRequestCtx.Allowed}}{{.i18n.Tr "repo.pulls.compare_changes"}}{{else}}{{.i18n.Tr "action.compare_branch"}}{{end}}"><span class="text">{{svg "octicon-git-pull-request"}}</span></button>
 						</a>
 					{{end}}
