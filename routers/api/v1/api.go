@@ -7,64 +7,65 @@
 //
 // This documentation describes the Gitea API.
 //
-//     Schemes: http, https
-//     BasePath: /api/v1
-//     Version: {{AppVer | JSEscape | Safe}}
-//     License: MIT http://opensource.org/licenses/MIT
+//	Schemes: http, https
+//	BasePath: /api/v1
+//	Version: {{AppVer | JSEscape | Safe}}
+//	License: MIT http://opensource.org/licenses/MIT
 //
-//     Consumes:
-//     - application/json
-//     - text/plain
+//	Consumes:
+//	- application/json
+//	- text/plain
 //
-//     Produces:
-//     - application/json
-//     - text/html
+//	Produces:
+//	- application/json
+//	- text/html
 //
-//     Security:
-//     - BasicAuth :
-//     - Token :
-//     - AccessToken :
-//     - AuthorizationHeaderToken :
-//     - SudoParam :
-//     - SudoHeader :
-//     - TOTPHeader :
+//	Security:
+//	- BasicAuth :
+//	- Token :
+//	- AccessToken :
+//	- AuthorizationHeaderToken :
+//	- SudoParam :
+//	- SudoHeader :
+//	- TOTPHeader :
 //
-//     SecurityDefinitions:
-//     BasicAuth:
-//          type: basic
-//     Token:
-//          type: apiKey
-//          name: token
-//          in: query
-//     AccessToken:
-//          type: apiKey
-//          name: access_token
-//          in: query
-//     AuthorizationHeaderToken:
-//          type: apiKey
-//          name: Authorization
-//          in: header
-//          description: API tokens must be prepended with "token" followed by a space.
-//     SudoParam:
-//          type: apiKey
-//          name: sudo
-//          in: query
-//          description: Sudo API request as the user provided as the key. Admin privileges are required.
-//     SudoHeader:
-//          type: apiKey
-//          name: Sudo
-//          in: header
-//          description: Sudo API request as the user provided as the key. Admin privileges are required.
-//     TOTPHeader:
-//          type: apiKey
-//          name: X-GITEA-OTP
-//          in: header
-//          description: Must be used in combination with BasicAuth if two-factor authentication is enabled.
+//	SecurityDefinitions:
+//	BasicAuth:
+//	     type: basic
+//	Token:
+//	     type: apiKey
+//	     name: token
+//	     in: query
+//	AccessToken:
+//	     type: apiKey
+//	     name: access_token
+//	     in: query
+//	AuthorizationHeaderToken:
+//	     type: apiKey
+//	     name: Authorization
+//	     in: header
+//	     description: API tokens must be prepended with "token" followed by a space.
+//	SudoParam:
+//	     type: apiKey
+//	     name: sudo
+//	     in: query
+//	     description: Sudo API request as the user provided as the key. Admin privileges are required.
+//	SudoHeader:
+//	     type: apiKey
+//	     name: Sudo
+//	     in: header
+//	     description: Sudo API request as the user provided as the key. Admin privileges are required.
+//	TOTPHeader:
+//	     type: apiKey
+//	     name: X-GITEA-OTP
+//	     in: header
+//	     description: Must be used in combination with BasicAuth if two-factor authentication is enabled.
 //
 // swagger:meta
 package v1
 
 import (
+	gocontext "context"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -81,6 +82,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/api/v1/activitypub"
 	"code.gitea.io/gitea/routers/api/v1/admin"
 	"code.gitea.io/gitea/routers/api/v1/misc"
 	"code.gitea.io/gitea/routers/api/v1/notify"
@@ -604,7 +606,7 @@ func buildAuthGroup() *auth.Group {
 }
 
 // Routes registers all v1 APIs routes to web application.
-func Routes() *web.Route {
+func Routes(ctx gocontext.Context) *web.Route {
 	m := web.NewRoute()
 
 	m.Use(securityHeaders())
@@ -622,7 +624,7 @@ func Routes() *web.Route {
 	m.Use(context.APIContexter())
 
 	group := buildAuthGroup()
-	if err := group.Init(); err != nil {
+	if err := group.Init(ctx); err != nil {
 		log.Error("Could not initialize '%s' auth method, error: %s", group.Name(), err)
 	}
 
@@ -643,6 +645,12 @@ func Routes() *web.Route {
 		m.Get("/version", misc.Version)
 		if setting.Federation.Enabled {
 			m.Get("/nodeinfo", misc.NodeInfo)
+			m.Group("/activitypub", func() {
+				m.Group("/user/{username}", func() {
+					m.Get("", activitypub.Person)
+					m.Post("/inbox", activitypub.ReqHTTPSignature(), activitypub.PersonInbox)
+				}, context_service.UserAssignmentAPI())
+			})
 		}
 		m.Get("/signing-key.gpg", misc.SigningKey)
 		m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)
@@ -975,6 +983,15 @@ func Routes() *web.Route {
 					})
 				}, reqRepoReader(unit.TypeReleases))
 				m.Post("/mirror-sync", reqToken(), reqRepoWriter(unit.TypeCode), repo.MirrorSync)
+				m.Post("/push_mirrors-sync", reqAdmin(), repo.PushMirrorSync)
+				m.Group("/push_mirrors", func() {
+					m.Combo("").Get(repo.ListPushMirrors).
+						Post(bind(api.CreatePushMirrorOption{}), repo.AddPushMirror)
+					m.Combo("/{name}").
+						Delete(repo.DeletePushMirrorByRemoteName).
+						Get(repo.GetPushMirrorByName)
+				}, reqAdmin())
+
 				m.Get("/editorconfig/{filename}", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetEditorconfig)
 				m.Group("/pulls", func() {
 					m.Combo("").Get(repo.ListPullRequests).
@@ -985,6 +1002,7 @@ func Routes() *web.Route {
 						m.Get(".{diffType:diff|patch}", repo.DownloadPullDiffOrPatch)
 						m.Post("/update", reqToken(), repo.UpdatePullRequest)
 						m.Get("/commits", repo.GetPullRequestCommits)
+						m.Get("/files", repo.GetPullRequestFiles)
 						m.Combo("/merge").Get(repo.IsPullRequestMerged).
 							Post(reqToken(), mustNotBeArchived, bind(forms.MergePullRequestForm{}), repo.MergePullRequest).
 							Delete(reqToken(), mustNotBeArchived, repo.CancelScheduledAutoMerge)
@@ -1010,7 +1028,7 @@ func Routes() *web.Route {
 				}, mustAllowPulls, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
 				m.Group("/statuses", func() {
 					m.Combo("/{sha}").Get(repo.GetCommitStatuses).
-						Post(reqToken(), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
+						Post(reqToken(), reqRepoWriter(unit.TypeCode), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
 				}, reqRepoReader(unit.TypeCode))
 				m.Group("/commits", func() {
 					m.Get("", context.ReferencesGitRepo(), repo.GetAllCommits)

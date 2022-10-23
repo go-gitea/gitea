@@ -25,6 +25,10 @@ func (err ErrIssueStopwatchNotExist) Error() string {
 	return fmt.Sprintf("issue stopwatch doesn't exist[uid: %d, issue_id: %d", err.UserID, err.IssueID)
 }
 
+func (err ErrIssueStopwatchNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrIssueStopwatchAlreadyExist represents an error that stopwatch is already exist
 type ErrIssueStopwatchAlreadyExist struct {
 	UserID  int64
@@ -33,6 +37,10 @@ type ErrIssueStopwatchAlreadyExist struct {
 
 func (err ErrIssueStopwatchAlreadyExist) Error() string {
 	return fmt.Sprintf("issue stopwatch already exists[uid: %d, issue_id: %d", err.UserID, err.IssueID)
+}
+
+func (err ErrIssueStopwatchAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
 }
 
 // Stopwatch represents a stopwatch for time tracking.
@@ -63,7 +71,7 @@ func getStopwatch(ctx context.Context, userID, issueID int64) (sw *Stopwatch, ex
 		Where("user_id = ?", userID).
 		And("issue_id = ?", issueID).
 		Get(sw)
-	return
+	return sw, exists, err
 }
 
 // UserIDCount is a simple coalition of UserID and Count
@@ -130,7 +138,7 @@ func HasUserStopwatch(ctx context.Context, userID int64) (exists bool, sw *Stopw
 	exists, err = db.GetEngine(ctx).
 		Where("user_id = ?", userID).
 		Get(sw)
-	return
+	return exists, sw, err
 }
 
 // FinishIssueStopwatchIfPossible if stopwatch exist then finish it otherwise ignore

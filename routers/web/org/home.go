@@ -39,11 +39,6 @@ func Home(ctx *context.Context) {
 
 	org := ctx.Org.Organization
 
-	if !organization.HasOrgOrUserVisible(ctx, org.AsUser(), ctx.Doer) {
-		ctx.NotFound("HasOrgOrUserVisible", nil)
-		return
-	}
-
 	ctx.Data["PageIsUserProfile"] = true
 	ctx.Data["Title"] = org.DisplayName()
 	if len(org.Description) != 0 {

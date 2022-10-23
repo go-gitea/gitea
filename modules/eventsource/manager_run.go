@@ -8,7 +8,7 @@ import (
 	"context"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/graceful"
@@ -72,7 +72,7 @@ loop:
 
 			now := timeutil.TimeStampNow().Add(-2)
 
-			uidCounts, err := models.GetUIDsAndNotificationCounts(then, now)
+			uidCounts, err := activities_model.GetUIDsAndNotificationCounts(then, now)
 			if err != nil {
 				log.Error("Unable to get UIDcounts: %v", err)
 			}
@@ -94,7 +94,9 @@ loop:
 				for _, userStopwatches := range usersStopwatches {
 					apiSWs, err := convert.ToStopWatches(userStopwatches.StopWatches)
 					if err != nil {
-						log.Error("Unable to APIFormat stopwatches: %v", err)
+						if !issues_model.IsErrIssueNotExist(err) {
+							log.Error("Unable to APIFormat stopwatches: %v", err)
+						}
 						continue
 					}
 					dataBs, err := json.Marshal(apiSWs)

@@ -4,19 +4,5 @@
 
 package migrations
 
-import (
-	"fmt"
-
-	"xorm.io/xorm"
-)
-
-func addTagComment(x *xorm.Engine) error {
-	type Comment struct {
-		Tag string
-	}
-
-	if err := x.Sync2(new(Comment)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
-	}
-	return nil
-}
+// This migration added non-ideal indices to the action table which on larger datasets slowed things down
+// it has been superceded by v218.go

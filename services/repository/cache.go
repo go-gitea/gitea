@@ -34,15 +34,13 @@ func CacheRef(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 		return err
 	}
 
-	commitsCount, err := cache.GetInt64(repo.GetCommitsCountCacheKey(getRefName(fullRefName), true), commit.CommitsCount)
-	if err != nil {
-		return err
-	}
-	if commitsCount < setting.CacheService.LastCommit.CommitsCount {
-		return nil
+	if gitRepo.LastCommitCache == nil {
+		commitsCount, err := cache.GetInt64(repo.GetCommitsCountCacheKey(getRefName(fullRefName), true), commit.CommitsCount)
+		if err != nil {
+			return err
+		}
+		gitRepo.LastCommitCache = git.NewLastCommitCache(commitsCount, repo.FullName(), gitRepo, cache.GetCache())
 	}
 
-	commitCache := git.NewLastCommitCache(repo.FullName(), gitRepo, setting.LastCommitCacheTTLSeconds, cache.GetCache())
-
-	return commitCache.CacheCommit(ctx, commit)
+	return commit.CacheCommit(ctx)
 }

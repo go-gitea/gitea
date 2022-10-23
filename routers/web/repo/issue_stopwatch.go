@@ -99,7 +99,9 @@ func GetActiveStopwatch(ctx *context.Context) {
 
 	issue, err := issues_model.GetIssueByID(ctx, sw.IssueID)
 	if err != nil || issue == nil {
-		ctx.ServerError("GetIssueByID", err)
+		if !issues_model.IsErrIssueNotExist(err) {
+			ctx.ServerError("GetIssueByID", err)
+		}
 		return
 	}
 	if err = issue.LoadRepo(ctx); err != nil {

@@ -120,7 +120,7 @@ func (pm *Manager) ProcessStacktraces(flat, noSystem bool) ([]*Process, int, int
 
 	// We cannot use the pm.ProcessMap here because we will release the mutex ...
 	processMap := map[IDType]*Process{}
-	processCount := 0
+	var processCount int
 
 	// Lock the manager
 	pm.mutex.Lock()

@@ -4,19 +4,29 @@
   owner_name: user2
   lower_name: repo1
   name: repo1
-  is_archived: false
-  is_empty: false
-  is_private: false
+  num_watches: 4
+  num_stars: 0
+  num_forks: 0
   num_issues: 2
   num_closed_issues: 1
   num_pulls: 3
   num_closed_pulls: 0
   num_milestones: 3
   num_closed_milestones: 1
-  num_watches: 4
   num_projects: 1
   num_closed_projects: 0
+  is_private: false
+  is_empty: false
+  is_archived: false
+  is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 2
@@ -24,16 +34,29 @@
   owner_name: user2
   lower_name: repo2
   name: repo2
-  is_empty: false
-  is_archived: false
-  is_private: true
+  num_watches: 0
+  num_stars: 1
+  num_forks: 0
   num_issues: 2
   num_closed_issues: 1
   num_pulls: 0
   num_closed_pulls: 0
-  num_stars: 1
-  close_issues_via_commit_in_any_branch: true
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: true
+  is_empty: false
+  is_archived: false
+  is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: true
 
 -
   id: 3
@@ -41,16 +64,29 @@
   owner_name: user3
   lower_name: repo3
   name: repo3
-  is_empty: false
-  is_private: true
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
   num_issues: 1
   num_closed_issues: 0
   num_pulls: 1
   num_closed_pulls: 0
-  num_watches: 0
+  num_milestones: 0
+  num_closed_milestones: 0
   num_projects: 1
   num_closed_projects: 0
+  is_private: true
+  is_empty: false
+  is_archived: false
+  is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 4
@@ -58,16 +94,29 @@
   owner_name: user5
   lower_name: repo4
   name: repo4
-  is_empty: false
-  is_private: false
+  num_watches: 0
+  num_stars: 1
+  num_forks: 0
   num_issues: 0
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
-  num_stars: 1
+  num_milestones: 0
+  num_closed_milestones: 0
   num_projects: 0
   num_closed_projects: 1
+  is_private: false
+  is_empty: false
+  is_archived: false
+  is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 5
@@ -75,14 +124,29 @@
   owner_name: user3
   lower_name: repo5
   name: repo5
-  is_private: true
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
   num_issues: 1
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
-  num_watches: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: true
+  is_empty: true
+  is_archived: false
   is_mirror: true
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 6
@@ -90,13 +154,29 @@
   owner_name: user10
   lower_name: repo6
   name: repo6
-  is_private: true
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
   num_issues: 0
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: true
+  is_empty: true
+  is_archived: false
   is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 7
@@ -104,13 +184,29 @@
   owner_name: user10
   lower_name: repo7
   name: repo7
-  is_private: true
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
   num_issues: 0
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: true
+  is_empty: true
+  is_archived: false
   is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 8
@@ -118,13 +214,29 @@
   owner_name: user10
   lower_name: repo8
   name: repo8
-  is_private: false
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
   num_issues: 0
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: true
+  is_archived: false
   is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 9
@@ -132,13 +244,29 @@
   owner_name: user11
   lower_name: repo9
   name: repo9
-  is_private: false
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
   num_issues: 0
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: true
+  is_archived: false
   is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 10
@@ -146,32 +274,59 @@
   owner_name: user12
   lower_name: repo10
   name: repo10
-  is_empty: false
-  is_private: false
+  num_watches: 0
+  num_stars: 0
+  num_forks: 1
   num_issues: 0
   num_closed_issues: 0
   num_pulls: 1
   num_closed_pulls: 0
   num_milestones: 1
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: false
+  is_archived: false
   is_mirror: false
-  num_forks: 1
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 11
-  fork_id: 10
   owner_id: 13
   owner_name: user13
   lower_name: repo11
   name: repo11
-  is_empty: false
-  is_private: false
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
   num_issues: 0
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: false
+  is_archived: false
   is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 10
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 12
@@ -179,13 +334,29 @@
   owner_name: user14
   lower_name: test_repo_12
   name: test_repo_12
-  is_private: false
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
   num_issues: 0
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: true
+  is_archived: false
   is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 13
@@ -193,13 +364,29 @@
   owner_name: user14
   lower_name: test_repo_13
   name: test_repo_13
-  is_private: true
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
   num_issues: 0
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: true
+  is_empty: true
+  is_archived: false
   is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 14
@@ -208,13 +395,29 @@
   lower_name: test_repo_14
   name: test_repo_14
   description: test_description_14
-  is_private: false
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
   num_issues: 0
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: true
+  is_archived: false
   is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 15
@@ -222,9 +425,29 @@
   owner_name: user2
   lower_name: repo15
   name: repo15
-  is_empty: false
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
   is_private: true
+  is_empty: false
+  is_archived: false
+  is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 16
@@ -232,14 +455,29 @@
   owner_name: user2
   lower_name: repo16
   name: repo16
-  is_empty: false
-  is_private: true
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
   num_issues: 0
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
-  num_watches: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: true
+  is_empty: false
+  is_archived: false
+  is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 17
@@ -247,15 +485,29 @@
   owner_name: user15
   lower_name: big_test_public_1
   name: big_test_public_1
-  is_private: false
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
   num_issues: 0
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
-  num_watches: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: true
+  is_archived: false
   is_mirror: false
-  is_fork: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 18
@@ -263,14 +515,29 @@
   owner_name: user15
   lower_name: big_test_public_2
   name: big_test_public_2
-  is_private: false
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
   num_issues: 0
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: true
+  is_archived: false
   is_mirror: false
-  is_fork: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 19
@@ -278,14 +545,29 @@
   owner_name: user15
   lower_name: big_test_private_1
   name: big_test_private_1
-  is_private: true
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
   num_issues: 0
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: true
+  is_empty: true
+  is_archived: false
   is_mirror: false
-  is_fork: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 20
@@ -293,14 +575,29 @@
   owner_name: user15
   lower_name: big_test_private_2
   name: big_test_private_2
-  is_private: true
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
   num_issues: 0
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: true
+  is_empty: true
+  is_archived: false
   is_mirror: false
-  is_fork: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 21
@@ -308,14 +605,29 @@
   owner_name: user16
   lower_name: big_test_public_3
   name: big_test_public_3
-  is_private: false
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
   num_issues: 0
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: true
+  is_archived: false
   is_mirror: false
-  is_fork: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 22
@@ -323,14 +635,29 @@
   owner_name: user16
   lower_name: big_test_private_3
   name: big_test_private_3
-  is_private: true
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
   num_issues: 0
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: true
+  is_empty: true
+  is_archived: false
   is_mirror: false
-  is_fork: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 23
@@ -338,14 +665,29 @@
   owner_name: user17
   lower_name: big_test_public_4
   name: big_test_public_4
-  is_private: false
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
   num_issues: 0
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: true
+  is_archived: false
   is_mirror: false
-  is_fork: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 24
@@ -353,14 +695,29 @@
   owner_name: user17
   lower_name: big_test_private_4
   name: big_test_private_4
-  is_private: true
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
   num_issues: 0
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: true
+  is_empty: true
+  is_archived: false
   is_mirror: false
-  is_fork: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 25
@@ -368,15 +725,29 @@
   owner_name: user20
   lower_name: big_test_public_mirror_5
   name: big_test_public_mirror_5
-  is_private: false
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
   num_issues: 0
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
-  num_watches: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: true
+  is_archived: false
   is_mirror: true
-  is_fork: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 26
@@ -384,15 +755,29 @@
   owner_name: user20
   lower_name: big_test_private_mirror_5
   name: big_test_private_mirror_5
-  is_private: true
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
   num_issues: 0
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
-  num_watches: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: true
+  is_empty: true
+  is_archived: false
   is_mirror: true
-  is_fork: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 27
@@ -400,16 +785,29 @@
   owner_name: user19
   lower_name: big_test_public_mirror_6
   name: big_test_public_mirror_6
-  is_private: false
+  num_watches: 0
+  num_stars: 0
+  num_forks: 1
   num_issues: 0
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
-  num_watches: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: true
+  is_archived: false
   is_mirror: true
-  num_forks: 1
-  is_fork: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 28
@@ -417,48 +815,89 @@
   owner_name: user19
   lower_name: big_test_private_mirror_6
   name: big_test_private_mirror_6
-  is_private: true
+  num_watches: 0
+  num_stars: 0
+  num_forks: 1
   num_issues: 0
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
-  num_watches: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: true
+  is_empty: true
+  is_archived: false
   is_mirror: true
-  num_forks: 1
-  is_fork: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 29
-  fork_id: 27
   owner_id: 20
   owner_name: user20
   lower_name: big_test_public_fork_7
   name: big_test_public_fork_7
-  is_private: false
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
   num_issues: 0
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: true
+  is_archived: false
   is_mirror: false
-  is_fork: true
   status: 0
+  is_fork: true
+  fork_id: 27
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 30
-  fork_id: 28
   owner_id: 20
   owner_name: user20
   lower_name: big_test_private_fork_7
   name: big_test_private_fork_7
-  is_private: true
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
   num_issues: 0
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: true
+  is_empty: true
+  is_archived: false
   is_mirror: false
-  is_fork: true
   status: 0
+  is_fork: true
+  fork_id: 28
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 31
@@ -466,13 +905,29 @@
   owner_name: user2
   lower_name: repo20
   name: repo20
-  is_empty: false
-  is_private: true
+  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: true
+  is_empty: false
+  is_archived: false
   is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 32 # org public repo
@@ -480,12 +935,29 @@
   owner_name: user3
   lower_name: repo21
   name: repo21
-  is_private: false
+  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 2
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: true
+  is_archived: false
   is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 33
@@ -493,9 +965,29 @@
   owner_name: user2
   lower_name: utf8
   name: utf8
-  is_empty: false
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
   is_private: false
+  is_empty: false
+  is_archived: false
+  is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 34
@@ -503,12 +995,29 @@
   owner_name: user21
   lower_name: golang
   name: golang
-  is_private: false
+  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: true
+  is_archived: false
   is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 35
@@ -516,12 +1025,29 @@
   owner_name: user21
   lower_name: graphql
   name: graphql
-  is_private: false
+  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: true
+  is_archived: false
   is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 36
@@ -529,13 +1055,29 @@
   owner_name: user2
   lower_name: commits_search_test
   name: commits_search_test
-  is_empty: false
-  is_private: false
+  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: false
+  is_archived: false
   is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 37
@@ -543,13 +1085,29 @@
   owner_name: user2
   lower_name: git_hooks_test
   name: git_hooks_test
-  is_empty: false
-  is_private: false
+  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: false
+  is_archived: false
   is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 38
@@ -557,13 +1115,29 @@
   owner_name: limited_org
   lower_name: public_repo_on_limited_org
   name: public_repo_on_limited_org
-  is_empty: false
-  is_private: false
+  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: false
+  is_archived: false
   is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 39
@@ -571,13 +1145,29 @@
   owner_name: limited_org
   lower_name: private_repo_on_limited_org
   name: private_repo_on_limited_org
-  is_empty: false
-  is_private: true
+  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: true
+  is_empty: false
+  is_archived: false
   is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 40
@@ -585,13 +1175,29 @@
   owner_name: privated_org
   lower_name: public_repo_on_private_org
   name: public_repo_on_private_org
-  is_empty: false
-  is_private: false
+  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: false
+  is_archived: false
   is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 41
@@ -599,12 +1205,29 @@
   owner_name: privated_org
   lower_name: private_repo_on_private_org
   name: private_repo_on_private_org
-  is_empty: false
-  is_private: true
+  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: true
+  is_empty: false
+  is_archived: false
   is_mirror: false
+  status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 42
@@ -612,14 +1235,29 @@
   owner_name: user2
   lower_name: glob
   name: glob
-  is_empty: false
-  is_private: false
+  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 1
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
   num_milestones: 1
-  is_mirror:
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: false
   is_archived: false
+  is_mirror: false
+  status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 43
@@ -627,12 +1265,29 @@
   owner_name: org26
   lower_name: repo26
   name: repo26
-  is_private: true
+  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: true
+  is_empty: true
+  is_archived: false
   is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 44
@@ -640,14 +1295,29 @@
   owner_name: user27
   lower_name: template1
   name: template1
-  is_empty: false
-  is_private: false
-  is_template: true
+  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: false
+  is_archived: false
   is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: true
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 45
@@ -655,13 +1325,29 @@
   owner_name: user27
   lower_name: template2
   name: template2
-  is_private: false
-  is_template: true
+  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: true
+  is_archived: false
   is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: true
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 46
@@ -669,13 +1355,29 @@
   owner_name: org26
   lower_name: repo_external_tracker
   name: repo_external_tracker
-  is_empty: false
-  is_private: false
+  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: false
+  is_archived: false
   is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 47
@@ -683,13 +1385,29 @@
   owner_name: org26
   lower_name: repo_external_tracker_numeric
   name: repo_external_tracker_numeric
-  is_empty: false
-  is_private: false
+  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: false
+  is_archived: false
   is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 48
@@ -697,14 +1415,29 @@
   owner_name: org26
   lower_name: repo_external_tracker_alpha
   name: repo_external_tracker_alpha
-  is_empty: false
-  is_private: false
+  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
+  num_closed_issues: 0
   num_pulls: 1
+  num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: false
+  is_archived: false
   is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 49
@@ -712,13 +1445,29 @@
   owner_name: user27
   lower_name: repo49
   name: repo49
-  is_empty: false
-  is_private: false
+  num_watches: 0
   num_stars: 0
   num_forks: 0
   num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: false
+  is_archived: false
   is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 50
@@ -726,19 +1475,29 @@
   owner_name: user30
   lower_name: repo50
   name: repo50
-  is_archived: false
-  is_empty: false
-  is_private: false
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
   num_issues: 1
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
   num_milestones: 0
   num_closed_milestones: 0
-  num_watches: 0
   num_projects: 0
   num_closed_projects: 0
+  is_private: false
+  is_empty: false
+  is_archived: false
+  is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 51
@@ -746,19 +1505,29 @@
   owner_name: user30
   lower_name: repo51
   name: repo51
-  is_archived: true
-  is_empty: false
-  is_private: false
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
   num_issues: 1
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
   num_milestones: 0
   num_closed_milestones: 0
-  num_watches: 0
   num_projects: 0
   num_closed_projects: 0
+  is_private: false
+  is_empty: false
+  is_archived: true
+  is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
 
 -
   id: 52
@@ -766,6 +1535,26 @@
   owner_name: user30
   lower_name: empty
   name: empty
-  is_empty: true
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
   is_private: true
+  is_empty: true
+  is_archived: false
+  is_mirror: false
   status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false

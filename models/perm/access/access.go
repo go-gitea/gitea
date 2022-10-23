@@ -86,7 +86,13 @@ func updateUserAccess(accessMap map[int64]*userAccess, user *user_model.User, mo
 // FIXME: do cross-comparison so reduce deletions and additions to the minimum?
 func refreshAccesses(ctx context.Context, repo *repo_model.Repository, accessMap map[int64]*userAccess) (err error) {
 	minMode := perm.AccessModeRead
-	if !repo.IsPrivate {
+	if err := repo.GetOwner(ctx); err != nil {
+		return fmt.Errorf("GetOwner: %v", err)
+	}
+
+	// If the repo isn't private and isn't owned by a organization,
+	// increase the minMode to Write.
+	if !repo.IsPrivate && !repo.Owner.IsOrganization() {
 		minMode = perm.AccessModeWrite
 	}
 

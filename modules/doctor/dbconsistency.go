@@ -7,7 +7,7 @@ package doctor
 import (
 	"context"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/migrations"
@@ -121,8 +121,8 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 		// find null archived repositories
 		{
 			Name:         "Repositories with is_archived IS NULL",
-			Counter:      models.CountNullArchivedRepository,
-			Fixer:        models.FixNullArchivedRepository,
+			Counter:      repo_model.CountNullArchivedRepository,
+			Fixer:        repo_model.FixNullArchivedRepository,
 			FixedMessage: "Fixed",
 		},
 		// find label comments with empty labels
@@ -148,8 +148,8 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 		},
 		{
 			Name:         "Action with created_unix set as an empty string",
-			Counter:      models.CountActionCreatedUnixString,
-			Fixer:        models.FixActionCreatedUnixString,
+			Counter:      activities_model.CountActionCreatedUnixString,
+			Fixer:        activities_model.FixActionCreatedUnixString,
 			FixedMessage: "Set to zero",
 		},
 	}
@@ -199,6 +199,12 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 		// find OAuth2AuthorizationCode without existing OAuth2Grant
 		genericOrphanCheck("Orphaned OAuth2AuthorizationCode without existing OAuth2Grant",
 			"oauth2_authorization_code", "oauth2_grant", "oauth2_authorization_code.grant_id=oauth2_grant.id"),
+		// find stopwatches without existing user
+		genericOrphanCheck("Orphaned Stopwatches without existing User",
+			"stopwatch", "user", "stopwatch.user_id=`user`.id"),
+		// find stopwatches without existing issue
+		genericOrphanCheck("Orphaned Stopwatches without existing Issue",
+			"stopwatch", "issue", "stopwatch.issue_id=`issue`.id"),
 	)
 
 	for _, c := range consistencyChecks {

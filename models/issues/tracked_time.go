@@ -63,7 +63,7 @@ func (t *TrackedTime) loadAttributes(ctx context.Context) (err error) {
 			return
 		}
 	}
-	return
+	return err
 }
 
 // LoadAttributes load Issue, User
@@ -73,7 +73,7 @@ func (tl TrackedTimeList) LoadAttributes() (err error) {
 			return err
 		}
 	}
-	return
+	return err
 }
 
 // FindTrackedTimesOptions represent the filters for tracked times. If an ID is 0 it will be ignored.
@@ -130,7 +130,7 @@ func (opts *FindTrackedTimesOptions) toSession(e db.Engine) db.Engine {
 // GetTrackedTimes returns all tracked times that fit to the given options.
 func GetTrackedTimes(ctx context.Context, options *FindTrackedTimesOptions) (trackedTimes TrackedTimeList, err error) {
 	err = options.toSession(db.GetEngine(ctx)).Find(&trackedTimes)
-	return
+	return trackedTimes, err
 }
 
 // CountTrackedTimes returns count of tracked times that fit to the given options.
@@ -236,7 +236,7 @@ func DeleteIssueUserTimes(issue *Issue, user *user_model.User) error {
 		return err
 	}
 	if removedTime == 0 {
-		return db.ErrNotExist{}
+		return db.ErrNotExist{Resource: "tracked_time"}
 	}
 
 	if err := issue.LoadRepo(ctx); err != nil {
@@ -291,12 +291,12 @@ func deleteTimes(ctx context.Context, opts FindTrackedTimesOptions) (removedTime
 	}
 
 	_, err = opts.toSession(db.GetEngine(ctx)).Table("tracked_time").Cols("deleted").Update(&TrackedTime{Deleted: true})
-	return
+	return removedTime, err
 }
 
 func deleteTime(ctx context.Context, t *TrackedTime) error {
 	if t.Deleted {
-		return db.ErrNotExist{ID: t.ID}
+		return db.ErrNotExist{Resource: "tracked_time", ID: t.ID}
 	}
 	t.Deleted = true
 	_, err := db.GetEngine(ctx).ID(t.ID).Cols("deleted").Update(t)
@@ -310,7 +310,7 @@ func GetTrackedTimeByID(id int64) (*TrackedTime, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, db.ErrNotExist{ID: id}
+		return nil, db.ErrNotExist{Resource: "tracked_time", ID: id}
 	}
 	return time, nil
 }

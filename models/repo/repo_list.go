@@ -6,6 +6,7 @@ package repo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -14,35 +15,11 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
-
-// IterateRepository iterate repositories
-func IterateRepository(f func(repo *Repository) error) error {
-	var start int
-	batchSize := setting.Database.IterateBufferSize
-	sess := db.GetEngine(db.DefaultContext)
-	for {
-		repos := make([]*Repository, 0, batchSize)
-		if err := sess.Limit(batchSize, start).Find(&repos); err != nil {
-			return err
-		}
-		if len(repos) == 0 {
-			return nil
-		}
-		start += len(repos)
-
-		for _, repo := range repos {
-			if err := f(repo); err != nil {
-				return err
-			}
-		}
-	}
-}
 
 // FindReposMapByIDs find repos as map
 func FindReposMapByIDs(repoIDs []int64, res map[int64]*Repository) error {
@@ -91,10 +68,10 @@ func (repos RepositoryList) loadAttributes(ctx context.Context) error {
 		return nil
 	}
 
-	set := make(map[int64]struct{})
+	set := make(container.Set[int64])
 	repoIDs := make([]int64, len(repos))
 	for i := range repos {
-		set[repos[i].OwnerID] = struct{}{}
+		set.Add(repos[i].OwnerID)
 		repoIDs[i] = repos[i].ID
 	}
 
@@ -102,7 +79,7 @@ func (repos RepositoryList) loadAttributes(ctx context.Context) error {
 	users := make(map[int64]*user_model.User, len(set))
 	if err := db.GetEngine(ctx).
 		Where("id > 0").
-		In("id", container.KeysInt64(set)).
+		In("id", set.Values()).
 		Find(&users); err != nil {
 		return fmt.Errorf("find users: %v", err)
 	}
@@ -186,6 +163,10 @@ type SearchRepoOptions struct {
 	HasMilestones util.OptionalBool
 	// LowerNames represents valid lower names to restrict to
 	LowerNames []string
+	// When specified true, apply some filters over the conditions:
+	// - Don't show forks, when opts.Fork is OptionalBoolNone.
+	// - Do not display repositories that don't have a description, an icon and topics.
+	OnlyShowRelevant bool
 }
 
 // SearchOrderBy is used to sort the result
@@ -269,8 +250,8 @@ func UserMentionedRepoCond(id string, userID int64) builder.Cond {
 	)
 }
 
-// UserCollaborationRepoCond returns user as collabrators repositories list
-func UserCollaborationRepoCond(idStr string, userID int64) builder.Cond {
+// UserAccessRepoCond returns a condition for selecting all repositories a user has unit independent access to
+func UserAccessRepoCond(idStr string, userID int64) builder.Cond {
 	return builder.In(idStr, builder.Select("repo_id").
 		From("`access`").
 		Where(builder.And(
@@ -280,8 +261,18 @@ func UserCollaborationRepoCond(idStr string, userID int64) builder.Cond {
 	)
 }
 
-// userOrgTeamRepoCond selects repos that the given user has access to through team membership
-func userOrgTeamRepoCond(idStr string, userID int64) builder.Cond {
+// userCollaborationRepoCond returns a condition for selecting all repositories a user is collaborator in
+func UserCollaborationRepoCond(idStr string, userID int64) builder.Cond {
+	return builder.In(idStr, builder.Select("repo_id").
+		From("`collaboration`").
+		Where(builder.And(
+			builder.Eq{"`collaboration`.user_id": userID},
+		)),
+	)
+}
+
+// UserOrgTeamRepoCond selects repos that the given user has access to through team membership
+func UserOrgTeamRepoCond(idStr string, userID int64) builder.Cond {
 	return builder.In(idStr, userOrgTeamRepoBuilder(userID))
 }
 
@@ -297,7 +288,13 @@ func userOrgTeamRepoBuilder(userID int64) *builder.Builder {
 func userOrgTeamUnitRepoBuilder(userID int64, unitType unit.Type) *builder.Builder {
 	return userOrgTeamRepoBuilder(userID).
 		Join("INNER", "team_unit", "`team_unit`.team_id = `team_repo`.team_id").
-		Where(builder.Eq{"`team_unit`.`type`": unitType})
+		Where(builder.Eq{"`team_unit`.`type`": unitType}).
+		And(builder.Gt{"`team_unit`.`access_mode`": int(perm.AccessModeNone)})
+}
+
+// userOrgTeamUnitRepoCond returns a condition to select repo ids where user's teams can access the special unit.
+func userOrgTeamUnitRepoCond(idStr string, userID int64, unitType unit.Type) builder.Cond {
+	return builder.In(idStr, userOrgTeamUnitRepoBuilder(userID, unitType))
 }
 
 // UserOrgUnitRepoCond selects repos that the given user has access to through org and the special unit
@@ -350,7 +347,7 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 	if opts.Private {
 		if opts.Actor != nil && !opts.Actor.IsAdmin && opts.Actor.ID != opts.OwnerID {
 			// OK we're in the context of a User
-			cond = cond.And(AccessibleRepositoryCondition(opts.Actor))
+			cond = cond.And(AccessibleRepositoryCondition(opts.Actor, unit.TypeInvalid))
 		}
 	} else {
 		// Not looking at private organisations and users
@@ -395,10 +392,10 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 				builder.Neq{"owner_id": opts.OwnerID},
 				// 2. But we can see because of:
 				builder.Or(
-					// A. We have access
-					UserCollaborationRepoCond("`repository`.id", opts.OwnerID),
+					// A. We have unit independent access
+					UserAccessRepoCond("`repository`.id", opts.OwnerID),
 					// B. We are in a team for
-					userOrgTeamRepoCond("`repository`.id", opts.OwnerID),
+					UserOrgTeamRepoCond("`repository`.id", opts.OwnerID),
 					// C. Public repositories in organizations that we are member of
 					userOrgPublicRepoCondPrivate(opts.OwnerID),
 				),
@@ -470,8 +467,12 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 			Where(builder.Eq{"language": opts.Language}).And(builder.Eq{"is_primary": true})))
 	}
 
-	if opts.Fork != util.OptionalBoolNone {
-		cond = cond.And(builder.Eq{"is_fork": opts.Fork == util.OptionalBoolTrue})
+	if opts.Fork != util.OptionalBoolNone || opts.OnlyShowRelevant {
+		if opts.OnlyShowRelevant && opts.Fork == util.OptionalBoolNone {
+			cond = cond.And(builder.Eq{"is_fork": false})
+		} else {
+			cond = cond.And(builder.Eq{"is_fork": opts.Fork == util.OptionalBoolTrue})
+		}
 	}
 
 	if opts.Mirror != util.OptionalBoolNone {
@@ -479,7 +480,7 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 	}
 
 	if opts.Actor != nil && opts.Actor.IsRestricted {
-		cond = cond.And(AccessibleRepositoryCondition(opts.Actor))
+		cond = cond.And(AccessibleRepositoryCondition(opts.Actor, unit.TypeInvalid))
 	}
 
 	if opts.Archived != util.OptionalBoolNone {
@@ -491,6 +492,25 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 		cond = cond.And(builder.Gt{"num_milestones": 0})
 	case util.OptionalBoolFalse:
 		cond = cond.And(builder.Eq{"num_milestones": 0}.Or(builder.IsNull{"num_milestones"}))
+	}
+
+	if opts.OnlyShowRelevant {
+		// Only show a repo that either has a topic or description.
+		subQueryCond := builder.NewCond()
+
+		// Topic checking. Topics is non-null.
+		subQueryCond = subQueryCond.Or(builder.And(builder.Neq{"topics": "null"}, builder.Neq{"topics": "[]"}))
+
+		// Description checking. Description not empty.
+		subQueryCond = subQueryCond.Or(builder.Neq{"description": ""})
+
+		// Repo has a avatar.
+		subQueryCond = subQueryCond.Or(builder.Neq{"avatar": ""})
+
+		// Always hide repo's that are empty.
+		subQueryCond = subQueryCond.And(builder.Eq{"is_empty": false})
+
+		cond = cond.And(subQueryCond)
 	}
 
 	return cond
@@ -573,8 +593,18 @@ func searchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, c
 	return sess, count, nil
 }
 
+// SearchRepositoryIDsByCondition search repository IDs by given condition.
+func SearchRepositoryIDsByCondition(ctx context.Context, cond builder.Cond) ([]int64, error) {
+	repoIDs := make([]int64, 0, 10)
+	return repoIDs, db.GetEngine(ctx).
+		Table("repository").
+		Cols("id").
+		Where(cond).
+		Find(&repoIDs)
+}
+
 // AccessibleRepositoryCondition takes a user a returns a condition for checking if a repository is accessible
-func AccessibleRepositoryCondition(user *user_model.User) builder.Cond {
+func AccessibleRepositoryCondition(user *user_model.User, unitType unit.Type) builder.Cond {
 	cond := builder.NewCond()
 
 	if user == nil || !user.IsRestricted || user.ID <= 0 {
@@ -594,13 +624,24 @@ func AccessibleRepositoryCondition(user *user_model.User) builder.Cond {
 	}
 
 	if user != nil {
+		// 2. Be able to see all repositories that we have unit independent access to
+		// 3. Be able to see all repositories through team membership(s)
+		if unitType == unit.TypeInvalid {
+			// Regardless of UnitType
+			cond = cond.Or(
+				UserAccessRepoCond("`repository`.id", user.ID),
+				UserOrgTeamRepoCond("`repository`.id", user.ID),
+			)
+		} else {
+			// For a specific UnitType
+			cond = cond.Or(
+				UserCollaborationRepoCond("`repository`.id", user.ID),
+				userOrgTeamUnitRepoCond("`repository`.id", user.ID, unitType),
+			)
+		}
 		cond = cond.Or(
-			// 2. Be able to see all repositories that we have access to
-			UserCollaborationRepoCond("`repository`.id", user.ID),
-			// 3. Repositories that we directly own
+			// 4. Repositories that we directly own
 			builder.Eq{"`repository`.owner_id": user.ID},
-			// 4. Be able to see all repositories that we are in a team
-			userOrgTeamRepoCond("`repository`.id", user.ID),
 			// 5. Be able to see all public repos in private organizations that we are an org_user of
 			userOrgPublicRepoCond(user.ID),
 		)
@@ -645,20 +686,20 @@ func SearchRepositoryIDs(opts *SearchRepoOptions) ([]int64, int64, error) {
 // AccessibleRepoIDsQuery queries accessible repository ids. Usable as a subquery wherever repo ids need to be filtered.
 func AccessibleRepoIDsQuery(user *user_model.User) *builder.Builder {
 	// NB: Please note this code needs to still work if user is nil
-	return builder.Select("id").From("repository").Where(AccessibleRepositoryCondition(user))
+	return builder.Select("id").From("repository").Where(AccessibleRepositoryCondition(user, unit.TypeInvalid))
 }
 
-// FindUserAccessibleRepoIDs find all accessible repositories' ID by user's id
-func FindUserAccessibleRepoIDs(user *user_model.User) ([]int64, error) {
-	repoIDs := make([]int64, 0, 10)
-	if err := db.GetEngine(db.DefaultContext).
-		Table("repository").
-		Cols("id").
-		Where(AccessibleRepositoryCondition(user)).
-		Find(&repoIDs); err != nil {
-		return nil, fmt.Errorf("FindUserAccesibleRepoIDs: %v", err)
-	}
-	return repoIDs, nil
+// FindUserCodeAccessibleRepoIDs finds all at Code level accessible repositories' ID by the user's id
+func FindUserCodeAccessibleRepoIDs(ctx context.Context, user *user_model.User) ([]int64, error) {
+	return SearchRepositoryIDsByCondition(ctx, AccessibleRepositoryCondition(user, unit.TypeCode))
+}
+
+// FindUserCodeAccessibleOwnerRepoIDs finds all repository IDs for the given owner whose code the user can see.
+func FindUserCodeAccessibleOwnerRepoIDs(ctx context.Context, ownerID int64, user *user_model.User) ([]int64, error) {
+	return SearchRepositoryIDsByCondition(ctx, builder.NewCond().And(
+		builder.Eq{"owner_id": ownerID},
+		AccessibleRepositoryCondition(user, unit.TypeCode),
+	))
 }
 
 // GetUserRepositories returns a list of repositories of given user.
@@ -668,6 +709,9 @@ func GetUserRepositories(opts *SearchRepoOptions) (RepositoryList, int64, error)
 	}
 
 	cond := builder.NewCond()
+	if opts.Actor == nil {
+		return nil, 0, errors.New("GetUserRepositories: Actor is needed but not given")
+	}
 	cond = cond.And(builder.Eq{"owner_id": opts.Actor.ID})
 	if !opts.Private {
 		cond = cond.And(builder.Eq{"is_private": false})

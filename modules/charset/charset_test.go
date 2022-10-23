@@ -296,11 +296,11 @@ func TestDetectEncoding(t *testing.T) {
 }
 
 func stringMustStartWith(t *testing.T, expected, value string) {
-	assert.Equal(t, expected, string(value[:len(expected)]))
+	assert.Equal(t, expected, value[:len(expected)])
 }
 
 func stringMustEndWith(t *testing.T, expected, value string) {
-	assert.Equal(t, expected, string(value[len(value)-len(expected):]))
+	assert.Equal(t, expected, value[len(value)-len(expected):])
 }
 
 func bytesMustStartWith(t *testing.T, expected, value []byte) {

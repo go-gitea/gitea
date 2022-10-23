@@ -163,7 +163,7 @@ func (l *LimitedReaderCloser) Read(p []byte) (n int, err error) {
 	}
 	n, err = l.R.Read(p)
 	l.N -= int64(n)
-	return
+	return n, err
 }
 
 // Close implements io.Closer

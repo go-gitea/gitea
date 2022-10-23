@@ -28,7 +28,7 @@ func convertHandler(handler interface{}) wrappedHandlerFunc {
 			if r, ok := resp.(context.ResponseWriter); ok && r.Status() > 0 {
 				done = true
 			}
-			return
+			return done, deferrable
 		}
 	case func(http.ResponseWriter, *http.Request):
 		return func(resp http.ResponseWriter, req *http.Request, others ...wrappedHandlerFunc) (done bool, deferrable func()) {
@@ -37,7 +37,7 @@ func convertHandler(handler interface{}) wrappedHandlerFunc {
 			if r, ok := resp.(context.ResponseWriter); ok && r.Status() > 0 {
 				done = true
 			}
-			return
+			return done, deferrable
 		}
 
 	case func(ctx *context.Context):
@@ -46,7 +46,7 @@ func convertHandler(handler interface{}) wrappedHandlerFunc {
 			ctx := context.GetContext(req)
 			t(ctx)
 			done = ctx.Written()
-			return
+			return done, deferrable
 		}
 	case func(ctx *context.Context) goctx.CancelFunc:
 		return func(resp http.ResponseWriter, req *http.Request, others ...wrappedHandlerFunc) (done bool, deferrable func()) {
@@ -54,7 +54,7 @@ func convertHandler(handler interface{}) wrappedHandlerFunc {
 			ctx := context.GetContext(req)
 			deferrable = t(ctx)
 			done = ctx.Written()
-			return
+			return done, deferrable
 		}
 	case func(*context.APIContext):
 		return func(resp http.ResponseWriter, req *http.Request, others ...wrappedHandlerFunc) (done bool, deferrable func()) {
@@ -62,7 +62,7 @@ func convertHandler(handler interface{}) wrappedHandlerFunc {
 			ctx := context.GetAPIContext(req)
 			t(ctx)
 			done = ctx.Written()
-			return
+			return done, deferrable
 		}
 	case func(*context.APIContext) goctx.CancelFunc:
 		return func(resp http.ResponseWriter, req *http.Request, others ...wrappedHandlerFunc) (done bool, deferrable func()) {
@@ -70,7 +70,7 @@ func convertHandler(handler interface{}) wrappedHandlerFunc {
 			ctx := context.GetAPIContext(req)
 			deferrable = t(ctx)
 			done = ctx.Written()
-			return
+			return done, deferrable
 		}
 	case func(*context.PrivateContext):
 		return func(resp http.ResponseWriter, req *http.Request, others ...wrappedHandlerFunc) (done bool, deferrable func()) {
@@ -78,7 +78,7 @@ func convertHandler(handler interface{}) wrappedHandlerFunc {
 			ctx := context.GetPrivateContext(req)
 			t(ctx)
 			done = ctx.Written()
-			return
+			return done, deferrable
 		}
 	case func(*context.PrivateContext) goctx.CancelFunc:
 		return func(resp http.ResponseWriter, req *http.Request, others ...wrappedHandlerFunc) (done bool, deferrable func()) {
@@ -86,7 +86,7 @@ func convertHandler(handler interface{}) wrappedHandlerFunc {
 			ctx := context.GetPrivateContext(req)
 			deferrable = t(ctx)
 			done = ctx.Written()
-			return
+			return done, deferrable
 		}
 	case func(http.Handler) http.Handler:
 		return func(resp http.ResponseWriter, req *http.Request, others ...wrappedHandlerFunc) (done bool, deferrable func()) {
@@ -102,7 +102,7 @@ func convertHandler(handler interface{}) wrappedHandlerFunc {
 			if r, ok := resp.(context.ResponseWriter); ok && r.Status() > 0 {
 				done = true
 			}
-			return
+			return done, deferrable
 		}
 	default:
 		panic(fmt.Sprintf("Unsupported handler type: %#v", t))

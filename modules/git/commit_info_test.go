@@ -6,12 +6,9 @@ package git
 
 import (
 	"context"
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
-
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -20,18 +17,14 @@ const (
 	testReposDir = "tests/repos/"
 )
 
-func cloneRepo(url, name string) (string, error) {
-	repoDir, err := os.MkdirTemp("", name)
-	if err != nil {
-		return "", err
-	}
+func cloneRepo(tb testing.TB, url string) (string, error) {
+	repoDir := tb.TempDir()
 	if err := Clone(DefaultContext, url, repoDir, CloneRepoOptions{
 		Mirror:  false,
 		Bare:    false,
 		Quiet:   true,
 		Timeout: 5 * time.Minute,
 	}); err != nil {
-		_ = util.RemoveAll(repoDir)
 		return "", err
 	}
 	return repoDir, nil
@@ -91,7 +84,7 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 		}
 
 		// FIXME: Context.TODO() - if graceful has started we should use its Shutdown context otherwise use install signals in TestMain.
-		commitsInfo, treeCommit, err := entries.GetCommitsInfo(context.TODO(), commit, testCase.Path, nil)
+		commitsInfo, treeCommit, err := entries.GetCommitsInfo(context.TODO(), commit, testCase.Path)
 		assert.NoError(t, err, "Unable to get commit information for entries of subtree: %s in commit: %s from testcase due to error: %v", testCase.Path, testCase.CommitID, err)
 		if err != nil {
 			t.FailNow()
@@ -118,11 +111,10 @@ func TestEntries_GetCommitsInfo(t *testing.T) {
 
 	testGetCommitsInfo(t, bareRepo1)
 
-	clonedPath, err := cloneRepo(bareRepo1Path, "repo1_TestEntries_GetCommitsInfo")
+	clonedPath, err := cloneRepo(t, bareRepo1Path)
 	if err != nil {
 		assert.NoError(t, err)
 	}
-	defer util.RemoveAll(clonedPath)
 	clonedRepo1, err := openRepositoryWithDefaultContext(clonedPath)
 	if err != nil {
 		assert.NoError(t, err)
@@ -150,11 +142,10 @@ func BenchmarkEntries_GetCommitsInfo(b *testing.B) {
 		var commit *Commit
 		var entries Entries
 		var repo *Repository
-		repoPath, err := cloneRepo(benchmark.url, benchmark.name)
+		repoPath, err := cloneRepo(b, benchmark.url)
 		if err != nil {
 			b.Fatal(err)
 		}
-		defer util.RemoveAll(repoPath)
 
 		if repo, err = openRepositoryWithDefaultContext(repoPath); err != nil {
 			b.Fatal(err)
@@ -170,7 +161,7 @@ func BenchmarkEntries_GetCommitsInfo(b *testing.B) {
 		b.ResetTimer()
 		b.Run(benchmark.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				_, _, err := entries.GetCommitsInfo(context.Background(), commit, "", nil)
+				_, _, err := entries.GetCommitsInfo(context.Background(), commit, "")
 				if err != nil {
 					b.Fatal(err)
 				}

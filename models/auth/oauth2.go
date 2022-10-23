@@ -10,6 +10,7 @@ import (
 	"encoding/base32"
 	"encoding/base64"
 	"fmt"
+	"net"
 	"net/url"
 	"strings"
 
@@ -56,6 +57,18 @@ func (app *OAuth2Application) PrimaryRedirectURI() string {
 
 // ContainsRedirectURI checks if redirectURI is allowed for app
 func (app *OAuth2Application) ContainsRedirectURI(redirectURI string) bool {
+	uri, err := url.Parse(redirectURI)
+	// ignore port for http loopback uris following https://datatracker.ietf.org/doc/html/rfc8252#section-7.3
+	if err == nil && uri.Scheme == "http" && uri.Port() != "" {
+		ip := net.ParseIP(uri.Hostname())
+		if ip != nil && ip.IsLoopback() {
+			// strip port
+			uri.Host = uri.Hostname()
+			if util.IsStringInSlice(uri.String(), app.RedirectURIs, true) {
+				return true
+			}
+		}
+	}
 	return util.IsStringInSlice(redirectURI, app.RedirectURIs, true)
 }
 
@@ -123,7 +136,7 @@ func GetOAuth2ApplicationByClientID(ctx context.Context, clientID string) (app *
 	if !has {
 		return nil, ErrOAuthClientIDInvalid{ClientID: clientID}
 	}
-	return
+	return app, err
 }
 
 // GetOAuth2ApplicationByID returns the oauth2 application with the given id. Returns an error if not found.
@@ -143,7 +156,7 @@ func GetOAuth2ApplicationByID(ctx context.Context, id int64) (app *OAuth2Applica
 func GetOAuth2ApplicationsByUserID(ctx context.Context, userID int64) (apps []*OAuth2Application, err error) {
 	apps = make([]*OAuth2Application, 0)
 	err = db.GetEngine(ctx).Where("uid = ?", userID).Find(&apps)
-	return
+	return apps, err
 }
 
 // CreateOAuth2ApplicationOptions holds options to create an oauth2 application
@@ -212,7 +225,8 @@ func updateOAuth2Application(ctx context.Context, app *OAuth2Application) error 
 
 func deleteOAuth2Application(ctx context.Context, id, userid int64) error {
 	sess := db.GetEngine(ctx)
-	if deleted, err := sess.Delete(&OAuth2Application{ID: id, UID: userid}); err != nil {
+	// the userid could be 0 if the app is instance-wide
+	if deleted, err := sess.Where(builder.Eq{"id": id, "uid": userid}).Delete(&OAuth2Application{}); err != nil {
 		return err
 	} else if deleted == 0 {
 		return ErrOAuthApplicationNotFound{ID: id}
@@ -300,7 +314,7 @@ func (code *OAuth2AuthorizationCode) GenerateRedirectURI(state string) (redirect
 	}
 	q.Set("code", code.Code)
 	redirect.RawQuery = q.Encode()
-	return
+	return redirect, err
 }
 
 // Invalidate deletes the auth code from the database to invalidate this code
@@ -430,7 +444,7 @@ func GetOAuth2GrantByID(ctx context.Context, id int64) (grant *OAuth2Grant, err 
 	} else if !has {
 		return nil, nil
 	}
-	return
+	return grant, err
 }
 
 // GetOAuth2GrantsByUserID lists all grants of a certain user
@@ -463,7 +477,7 @@ func GetOAuth2GrantsByUserID(ctx context.Context, uid int64) ([]*OAuth2Grant, er
 
 // RevokeOAuth2Grant deletes the grant with grantID and userID
 func RevokeOAuth2Grant(ctx context.Context, grantID, userID int64) error {
-	_, err := db.DeleteByBean(ctx, &OAuth2Grant{ID: grantID, UserID: userID})
+	_, err := db.GetEngine(ctx).Where(builder.Eq{"id": grantID, "user_id": userID}).Delete(&OAuth2Grant{})
 	return err
 }
 
@@ -472,7 +486,7 @@ type ErrOAuthClientIDInvalid struct {
 	ClientID string
 }
 
-// IsErrOauthClientIDInvalid checks if an error is a ErrReviewNotExist.
+// IsErrOauthClientIDInvalid checks if an error is a ErrOAuthClientIDInvalid.
 func IsErrOauthClientIDInvalid(err error) bool {
 	_, ok := err.(ErrOAuthClientIDInvalid)
 	return ok
@@ -481,6 +495,11 @@ func IsErrOauthClientIDInvalid(err error) bool {
 // Error returns the error message
 func (err ErrOAuthClientIDInvalid) Error() string {
 	return fmt.Sprintf("Client ID invalid [Client ID: %s]", err.ClientID)
+}
+
+// Unwrap unwraps this as a ErrNotExist err
+func (err ErrOAuthClientIDInvalid) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // ErrOAuthApplicationNotFound will be thrown if id cannot be found
@@ -499,6 +518,11 @@ func (err ErrOAuthApplicationNotFound) Error() string {
 	return fmt.Sprintf("OAuth application not found [ID: %d]", err.ID)
 }
 
+// Unwrap unwraps this as a ErrNotExist err
+func (err ErrOAuthApplicationNotFound) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // GetActiveOAuth2ProviderSources returns all actived LoginOAuth2 sources
 func GetActiveOAuth2ProviderSources() ([]*Source, error) {
 	sources := make([]*Source, 0, 1)
@@ -512,8 +536,12 @@ func GetActiveOAuth2ProviderSources() ([]*Source, error) {
 func GetActiveOAuth2SourceByName(name string) (*Source, error) {
 	authSource := new(Source)
 	has, err := db.GetEngine(db.DefaultContext).Where("name = ? and type = ? and is_active = ?", name, OAuth2, true).Get(authSource)
-	if !has || err != nil {
+	if err != nil {
 		return nil, err
+	}
+
+	if !has {
+		return nil, fmt.Errorf("oauth2 source not found, name: %q", name)
 	}
 
 	return authSource, nil

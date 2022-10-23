@@ -4,12 +4,12 @@
 		<div class="ui grid">
 			<div class="three wide column">
 				<div class="ui small input">
-					<input class="new-label-input emoji-input" name="title" placeholder="{{.i18n.Tr "repo.issues.new_label_placeholder"}}" autofocus required maxlength="50">
+					<input class="new-label-input emoji-input" name="title" placeholder="{{.locale.Tr "repo.issues.new_label_placeholder"}}" autofocus required maxlength="50">
 				</div>
 			</div>
 			<div class="three wide column">
 				<div class="ui small fluid input">
-					<input class="new-label-desc-input" name="description" placeholder="{{.i18n.Tr "repo.issues.new_label_desc_placeholder"}}" maxlength="200">
+					<input class="new-label-desc-input" name="description" placeholder="{{.locale.Tr "repo.issues.new_label_desc_placeholder"}}" maxlength="200">
 				</div>
 			</div>
 			<div class="color picker column">
@@ -19,8 +19,8 @@
 				{{template "repo/issue/label_precolors"}}
 			</div>
 			<div class="buttons">
-				<div class="ui secondary small basic cancel button">{{.i18n.Tr "repo.milestones.cancel"}}</div>
-				<button class="ui primary small button">{{.i18n.Tr "repo.issues.create_label"}}</button>
+				<div class="ui secondary small basic cancel button">{{.locale.Tr "repo.milestones.cancel"}}</div>
+				<button class="ui primary small button">{{.locale.Tr "repo.issues.create_label"}}</button>
 			</div>
 		</div>
 	</form>

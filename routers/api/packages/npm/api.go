@@ -25,7 +25,7 @@ func createPackageMetadataResponse(registryURL string, pds []*packages_model.Pac
 	for _, pd := range pds {
 		versions[pd.SemVer.String()] = createPackageMetadataVersion(registryURL, pd)
 
-		for _, pvp := range pd.Properties {
+		for _, pvp := range pd.VersionProperties {
 			if pvp.Name == npm_module.TagProperty {
 				distTags[pvp.Value] = pd.Version.Version
 			}
@@ -55,19 +55,58 @@ func createPackageMetadataVersion(registryURL string, pd *packages_model.Package
 	metadata := pd.Metadata.(*npm_module.Metadata)
 
 	return &npm_module.PackageMetadataVersion{
-		ID:           fmt.Sprintf("%s@%s", pd.Package.Name, pd.Version.Version),
-		Name:         pd.Package.Name,
-		Version:      pd.Version.Version,
-		Description:  metadata.Description,
-		Author:       npm_module.User{Name: metadata.Author},
-		Homepage:     metadata.ProjectURL,
-		License:      metadata.License,
-		Dependencies: metadata.Dependencies,
-		Readme:       metadata.Readme,
+		ID:                   fmt.Sprintf("%s@%s", pd.Package.Name, pd.Version.Version),
+		Name:                 pd.Package.Name,
+		Version:              pd.Version.Version,
+		Description:          metadata.Description,
+		Author:               npm_module.User{Name: metadata.Author},
+		Homepage:             metadata.ProjectURL,
+		License:              metadata.License,
+		Dependencies:         metadata.Dependencies,
+		DevDependencies:      metadata.DevelopmentDependencies,
+		PeerDependencies:     metadata.PeerDependencies,
+		OptionalDependencies: metadata.OptionalDependencies,
+		Readme:               metadata.Readme,
+		Bin:                  metadata.Bin,
 		Dist: npm_module.PackageDistribution{
 			Shasum:    pd.Files[0].Blob.HashSHA1,
 			Integrity: "sha512-" + base64.StdEncoding.EncodeToString(hashBytes),
 			Tarball:   fmt.Sprintf("%s/%s/-/%s/%s", registryURL, url.QueryEscape(pd.Package.Name), url.PathEscape(pd.Version.Version), url.PathEscape(pd.Files[0].File.LowerName)),
 		},
+	}
+}
+
+func createPackageSearchResponse(pds []*packages_model.PackageDescriptor, total int64) *npm_module.PackageSearch {
+	objects := make([]*npm_module.PackageSearchObject, 0, len(pds))
+	for _, pd := range pds {
+		metadata := pd.Metadata.(*npm_module.Metadata)
+
+		scope := metadata.Scope
+		if scope == "" {
+			scope = "unscoped"
+		}
+
+		objects = append(objects, &npm_module.PackageSearchObject{
+			Package: &npm_module.PackageSearchPackage{
+				Scope:       scope,
+				Name:        metadata.Name,
+				Version:     pd.Version.Version,
+				Date:        pd.Version.CreatedUnix.AsLocalTime(),
+				Description: metadata.Description,
+				Author:      npm_module.User{Name: metadata.Author},
+				Publisher:   npm_module.User{Name: pd.Owner.Name},
+				Maintainers: []npm_module.User{}, // npm cli needs this field
+				Keywords:    metadata.Keywords,
+				Links: &npm_module.PackageSearchPackageLinks{
+					Registry: pd.FullWebLink(),
+					Homepage: metadata.ProjectURL,
+				},
+			},
+		})
+	}
+
+	return &npm_module.PackageSearch{
+		Objects: objects,
+		Total:   total,
 	}
 }

@@ -14,32 +14,32 @@ import (
 )
 
 // LoadProject load the project the issue was assigned to
-func (i *Issue) LoadProject() (err error) {
-	return i.loadProject(db.DefaultContext)
+func (issue *Issue) LoadProject() (err error) {
+	return issue.loadProject(db.DefaultContext)
 }
 
-func (i *Issue) loadProject(ctx context.Context) (err error) {
-	if i.Project == nil {
+func (issue *Issue) loadProject(ctx context.Context) (err error) {
+	if issue.Project == nil {
 		var p project_model.Project
 		if _, err = db.GetEngine(ctx).Table("project").
 			Join("INNER", "project_issue", "project.id=project_issue.project_id").
-			Where("project_issue.issue_id = ?", i.ID).
+			Where("project_issue.issue_id = ?", issue.ID).
 			Get(&p); err != nil {
 			return err
 		}
-		i.Project = &p
+		issue.Project = &p
 	}
-	return
+	return err
 }
 
 // ProjectID return project id if issue was assigned to one
-func (i *Issue) ProjectID() int64 {
-	return i.projectID(db.DefaultContext)
+func (issue *Issue) ProjectID() int64 {
+	return issue.projectID(db.DefaultContext)
 }
 
-func (i *Issue) projectID(ctx context.Context) int64 {
+func (issue *Issue) projectID(ctx context.Context) int64 {
 	var ip project_model.ProjectIssue
-	has, err := db.GetEngine(ctx).Where("issue_id=?", i.ID).Get(&ip)
+	has, err := db.GetEngine(ctx).Where("issue_id=?", issue.ID).Get(&ip)
 	if err != nil || !has {
 		return 0
 	}
@@ -47,13 +47,13 @@ func (i *Issue) projectID(ctx context.Context) int64 {
 }
 
 // ProjectBoardID return project board id if issue was assigned to one
-func (i *Issue) ProjectBoardID() int64 {
-	return i.projectBoardID(db.DefaultContext)
+func (issue *Issue) ProjectBoardID() int64 {
+	return issue.projectBoardID(db.DefaultContext)
 }
 
-func (i *Issue) projectBoardID(ctx context.Context) int64 {
+func (issue *Issue) projectBoardID(ctx context.Context) int64 {
 	var ip project_model.ProjectIssue
-	has, err := db.GetEngine(ctx).Where("issue_id=?", i.ID).Get(&ip)
+	has, err := db.GetEngine(ctx).Where("issue_id=?", issue.ID).Get(&ip)
 	if err != nil || !has {
 		return 0
 	}
@@ -68,6 +68,7 @@ func LoadIssuesFromBoard(b *project_model.Board) (IssueList, error) {
 		issues, err := Issues(&IssuesOptions{
 			ProjectBoardID: b.ID,
 			ProjectID:      b.ProjectID,
+			SortType:       "project-column-sorting",
 		})
 		if err != nil {
 			return nil, err
@@ -79,6 +80,7 @@ func LoadIssuesFromBoard(b *project_model.Board) (IssueList, error) {
 		issues, err := Issues(&IssuesOptions{
 			ProjectBoardID: -1, // Issues without ProjectBoardID
 			ProjectID:      b.ProjectID,
+			SortType:       "project-column-sorting",
 		})
 		if err != nil {
 			return nil, err
@@ -123,6 +125,17 @@ func ChangeProjectAssign(issue *Issue, doer *user_model.User, newProjectID int64
 
 func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectID int64) error {
 	oldProjectID := issue.projectID(ctx)
+
+	// Only check if we add a new project and not remove it.
+	if newProjectID > 0 {
+		newProject, err := project_model.GetProjectByID(ctx, newProjectID)
+		if err != nil {
+			return err
+		}
+		if newProject.RepoID != issue.RepoID {
+			return fmt.Errorf("issue's repository is not the same as project's repository")
+		}
+	}
 
 	if _, err := db.GetEngine(ctx).Where("project_issue.issue_id=?", issue.ID).Delete(&project_model.ProjectIssue{}); err != nil {
 		return err

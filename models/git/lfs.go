@@ -6,16 +6,17 @@ package git
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -35,6 +36,10 @@ func IsErrLFSLockNotExist(err error) bool {
 
 func (err ErrLFSLockNotExist) Error() string {
 	return fmt.Sprintf("lfs lock does not exist [id: %d, rid: %d, path: %s]", err.ID, err.RepoID, err.Path)
+}
+
+func (err ErrLFSLockNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // ErrLFSUnauthorizedAction represents a "LFSUnauthorizedAction" kind of error.
@@ -57,6 +62,10 @@ func (err ErrLFSUnauthorizedAction) Error() string {
 	return fmt.Sprintf("User %s doesn't have read access for lfs lock [rid: %d]", err.UserName, err.RepoID)
 }
 
+func (err ErrLFSUnauthorizedAction) Unwrap() error {
+	return util.ErrPermissionDenied
+}
+
 // ErrLFSLockAlreadyExist represents a "LFSLockAlreadyExist" kind of error.
 type ErrLFSLockAlreadyExist struct {
 	RepoID int64
@@ -71,6 +80,10 @@ func IsErrLFSLockAlreadyExist(err error) bool {
 
 func (err ErrLFSLockAlreadyExist) Error() string {
 	return fmt.Sprintf("lfs lock already exists [rid: %d, path: %s]", err.RepoID, err.Path)
+}
+
+func (err ErrLFSLockAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
 }
 
 // ErrLFSFileLocked represents a "LFSFileLocked" kind of error.
@@ -88,6 +101,10 @@ func IsErrLFSFileLocked(err error) bool {
 
 func (err ErrLFSFileLocked) Error() string {
 	return fmt.Sprintf("File is lfs locked [repo: %d, locked by: %s, path: %s]", err.RepoID, err.UserName, err.Path)
+}
+
+func (err ErrLFSFileLocked) Unwrap() error {
+	return util.ErrPermissionDenied
 }
 
 // LFSMetaObject stores metadata for LFS tracked files.
@@ -113,7 +130,7 @@ type LFSTokenResponse struct {
 
 // ErrLFSObjectNotExist is returned from lfs models functions in order
 // to differentiate between database and missing object errors.
-var ErrLFSObjectNotExist = errors.New("LFS Meta object does not exist")
+var ErrLFSObjectNotExist = db.ErrNotExist{Resource: "LFS Meta object"}
 
 // NewLFSMetaObject stores a given populated LFSMetaObject structure in the database
 // if it is not already present.
@@ -213,7 +230,7 @@ func LFSObjectAccessible(user *user_model.User, oid string) (bool, error) {
 		count, err := db.GetEngine(db.DefaultContext).Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
 		return count > 0, err
 	}
-	cond := repo_model.AccessibleRepositoryCondition(user)
+	cond := repo_model.AccessibleRepositoryCondition(user, unit.TypeInvalid)
 	count, err := db.GetEngine(db.DefaultContext).Where(cond).Join("INNER", "repository", "`lfs_meta_object`.repository_id = `repository`.id").Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
 	return count > 0, err
 }
@@ -244,7 +261,7 @@ func LFSAutoAssociate(metas []*LFSMetaObject, user *user_model.User, repoID int6
 		newMetas := make([]*LFSMetaObject, 0, len(metas))
 		cond := builder.In(
 			"`lfs_meta_object`.repository_id",
-			builder.Select("`repository`.id").From("repository").Where(repo_model.AccessibleRepositoryCondition(user)),
+			builder.Select("`repository`.id").From("repository").Where(repo_model.AccessibleRepositoryCondition(user, unit.TypeInvalid)),
 		)
 		err = sess.Cols("oid").Where(cond).In("oid", oids...).GroupBy("oid").Find(&newMetas)
 		if err != nil {
@@ -275,29 +292,6 @@ func LFSAutoAssociate(metas []*LFSMetaObject, user *user_model.User, repoID int6
 		}
 	}
 	return committer.Commit()
-}
-
-// IterateLFS iterates lfs object
-func IterateLFS(f func(mo *LFSMetaObject) error) error {
-	var start int
-	const batchSize = 100
-	e := db.GetEngine(db.DefaultContext)
-	for {
-		mos := make([]*LFSMetaObject, 0, batchSize)
-		if err := e.Limit(batchSize, start).Find(&mos); err != nil {
-			return err
-		}
-		if len(mos) == 0 {
-			return nil
-		}
-		start += len(mos)
-
-		for _, mo := range mos {
-			if err := f(mo); err != nil {
-				return err
-			}
-		}
-	}
 }
 
 // CopyLFS copies LFS data from one repo to another

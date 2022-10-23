@@ -231,46 +231,46 @@ func (issue *Issue) verifyReferencedIssue(stdCtx context.Context, ctx *crossRefe
 }
 
 // AddCrossReferences add cross references
-func (comment *Comment) AddCrossReferences(stdCtx context.Context, doer *user_model.User, removeOld bool) error {
-	if comment.Type != CommentTypeCode && comment.Type != CommentTypeComment {
+func (c *Comment) AddCrossReferences(stdCtx context.Context, doer *user_model.User, removeOld bool) error {
+	if c.Type != CommentTypeCode && c.Type != CommentTypeComment {
 		return nil
 	}
-	if err := comment.LoadIssueCtx(stdCtx); err != nil {
+	if err := c.LoadIssueCtx(stdCtx); err != nil {
 		return err
 	}
 	ctx := &crossReferencesContext{
 		Type:        CommentTypeCommentRef,
 		Doer:        doer,
-		OrigIssue:   comment.Issue,
-		OrigComment: comment,
+		OrigIssue:   c.Issue,
+		OrigComment: c,
 		RemoveOld:   removeOld,
 	}
-	return comment.Issue.createCrossReferences(stdCtx, ctx, "", comment.Content)
+	return c.Issue.createCrossReferences(stdCtx, ctx, "", c.Content)
 }
 
-func (comment *Comment) neuterCrossReferences(ctx context.Context) error {
-	return neuterCrossReferences(ctx, comment.IssueID, comment.ID)
+func (c *Comment) neuterCrossReferences(ctx context.Context) error {
+	return neuterCrossReferences(ctx, c.IssueID, c.ID)
 }
 
 // LoadRefComment loads comment that created this reference from database
-func (comment *Comment) LoadRefComment() (err error) {
-	if comment.RefComment != nil {
+func (c *Comment) LoadRefComment() (err error) {
+	if c.RefComment != nil {
 		return nil
 	}
-	comment.RefComment, err = GetCommentByID(db.DefaultContext, comment.RefCommentID)
-	return
+	c.RefComment, err = GetCommentByID(db.DefaultContext, c.RefCommentID)
+	return err
 }
 
 // LoadRefIssue loads comment that created this reference from database
-func (comment *Comment) LoadRefIssue() (err error) {
-	if comment.RefIssue != nil {
+func (c *Comment) LoadRefIssue() (err error) {
+	if c.RefIssue != nil {
 		return nil
 	}
-	comment.RefIssue, err = GetIssueByID(db.DefaultContext, comment.RefIssueID)
+	c.RefIssue, err = GetIssueByID(db.DefaultContext, c.RefIssueID)
 	if err == nil {
-		err = comment.RefIssue.LoadRepo(db.DefaultContext)
+		err = c.RefIssue.LoadRepo(db.DefaultContext)
 	}
-	return
+	return err
 }
 
 // CommentTypeIsRef returns true if CommentType is a reference from another issue
@@ -279,44 +279,44 @@ func CommentTypeIsRef(t CommentType) bool {
 }
 
 // RefCommentHTMLURL returns the HTML URL for the comment that created this reference
-func (comment *Comment) RefCommentHTMLURL() string {
+func (c *Comment) RefCommentHTMLURL() string {
 	// Edge case for when the reference is inside the title or the description of the referring issue
-	if comment.RefCommentID == 0 {
-		return comment.RefIssueHTMLURL()
+	if c.RefCommentID == 0 {
+		return c.RefIssueHTMLURL()
 	}
-	if err := comment.LoadRefComment(); err != nil { // Silently dropping errors :unamused:
-		log.Error("LoadRefComment(%d): %v", comment.RefCommentID, err)
+	if err := c.LoadRefComment(); err != nil { // Silently dropping errors :unamused:
+		log.Error("LoadRefComment(%d): %v", c.RefCommentID, err)
 		return ""
 	}
-	return comment.RefComment.HTMLURL()
+	return c.RefComment.HTMLURL()
 }
 
 // RefIssueHTMLURL returns the HTML URL of the issue where this reference was created
-func (comment *Comment) RefIssueHTMLURL() string {
-	if err := comment.LoadRefIssue(); err != nil { // Silently dropping errors :unamused:
-		log.Error("LoadRefIssue(%d): %v", comment.RefCommentID, err)
+func (c *Comment) RefIssueHTMLURL() string {
+	if err := c.LoadRefIssue(); err != nil { // Silently dropping errors :unamused:
+		log.Error("LoadRefIssue(%d): %v", c.RefCommentID, err)
 		return ""
 	}
-	return comment.RefIssue.HTMLURL()
+	return c.RefIssue.HTMLURL()
 }
 
 // RefIssueTitle returns the title of the issue where this reference was created
-func (comment *Comment) RefIssueTitle() string {
-	if err := comment.LoadRefIssue(); err != nil { // Silently dropping errors :unamused:
-		log.Error("LoadRefIssue(%d): %v", comment.RefCommentID, err)
+func (c *Comment) RefIssueTitle() string {
+	if err := c.LoadRefIssue(); err != nil { // Silently dropping errors :unamused:
+		log.Error("LoadRefIssue(%d): %v", c.RefCommentID, err)
 		return ""
 	}
-	return comment.RefIssue.Title
+	return c.RefIssue.Title
 }
 
 // RefIssueIdent returns the user friendly identity (e.g. "#1234") of the issue where this reference was created
-func (comment *Comment) RefIssueIdent() string {
-	if err := comment.LoadRefIssue(); err != nil { // Silently dropping errors :unamused:
-		log.Error("LoadRefIssue(%d): %v", comment.RefCommentID, err)
+func (c *Comment) RefIssueIdent() string {
+	if err := c.LoadRefIssue(); err != nil { // Silently dropping errors :unamused:
+		log.Error("LoadRefIssue(%d): %v", c.RefCommentID, err)
 		return ""
 	}
 	// FIXME: check this name for cross-repository references (#7901 if it gets merged)
-	return fmt.Sprintf("#%d", comment.RefIssue.Index)
+	return fmt.Sprintf("#%d", c.RefIssue.Index)
 }
 
 // __________      .__  .__ __________                                     __

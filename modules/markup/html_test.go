@@ -5,12 +5,15 @@
 package markup_test
 
 import (
+	"context"
 	"io"
+	"os"
 	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	. "code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -22,17 +25,25 @@ import (
 var localMetas = map[string]string{
 	"user":     "gogits",
 	"repo":     "gogs",
-	"repoPath": "../../integrations/gitea-repositories-meta/user13/repo11.git/",
+	"repoPath": "../../tests/gitea-repositories-meta/user13/repo11.git/",
+}
+
+func TestMain(m *testing.M) {
+	setting.LoadAllowEmpty()
+	if err := git.InitSimple(context.Background()); err != nil {
+		log.Fatal("git init failed, err: %v", err)
+	}
+	os.Exit(m.Run())
 }
 
 func TestRender_Commits(t *testing.T) {
 	setting.AppURL = TestAppURL
 	test := func(input, expected string) {
 		buffer, err := RenderString(&RenderContext{
-			Ctx:       git.DefaultContext,
-			Filename:  ".md",
-			URLPrefix: TestRepoURL,
-			Metas:     localMetas,
+			Ctx:          git.DefaultContext,
+			RelativePath: ".md",
+			URLPrefix:    TestRepoURL,
+			Metas:        localMetas,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
@@ -80,9 +91,9 @@ func TestRender_CrossReferences(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer, err := RenderString(&RenderContext{
-			Filename:  "a.md",
-			URLPrefix: setting.AppSubURL,
-			Metas:     localMetas,
+			RelativePath: "a.md",
+			URLPrefix:    setting.AppSubURL,
+			Metas:        localMetas,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
@@ -124,8 +135,8 @@ func TestRender_links(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer, err := RenderString(&RenderContext{
-			Filename:  "a.md",
-			URLPrefix: TestRepoURL,
+			RelativePath: "a.md",
+			URLPrefix:    TestRepoURL,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
@@ -223,8 +234,8 @@ func TestRender_email(t *testing.T) {
 
 	test := func(input, expected string) {
 		res, err := RenderString(&RenderContext{
-			Filename:  "a.md",
-			URLPrefix: TestRepoURL,
+			RelativePath: "a.md",
+			URLPrefix:    TestRepoURL,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(res))
@@ -281,8 +292,8 @@ func TestRender_emoji(t *testing.T) {
 	test := func(input, expected string) {
 		expected = strings.ReplaceAll(expected, "&", "&amp;")
 		buffer, err := RenderString(&RenderContext{
-			Filename:  "a.md",
-			URLPrefix: TestRepoURL,
+			RelativePath: "a.md",
+			URLPrefix:    TestRepoURL,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
@@ -327,7 +338,7 @@ func TestRender_emoji(t *testing.T) {
 		`<p>Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span><span class="emoji" aria-label="grinning face with smiling eyes">😄</span> 2 emoji next to each other</p>`)
 	test(
 		"😎🤪🔐🤑❓",
-		`<p><span class="emoji" aria-label="smiling face with sunglasses">😎</span><span class="emoji" aria-label="zany face">🤪</span><span class="emoji" aria-label="locked with key">🔐</span><span class="emoji" aria-label="money-mouth face">🤑</span><span class="emoji" aria-label="question mark">❓</span></p>`)
+		`<p><span class="emoji" aria-label="smiling face with sunglasses">😎</span><span class="emoji" aria-label="zany face">🤪</span><span class="emoji" aria-label="locked with key">🔐</span><span class="emoji" aria-label="money-mouth face">🤑</span><span class="emoji" aria-label="red question mark">❓</span></p>`)
 
 	// should match nothing
 	test(

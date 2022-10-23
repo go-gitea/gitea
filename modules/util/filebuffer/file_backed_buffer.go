@@ -103,35 +103,45 @@ func (b *FileBackedBuffer) Size() int64 {
 	return b.size
 }
 
-func (b *FileBackedBuffer) switchToReader() {
+func (b *FileBackedBuffer) switchToReader() error {
 	if b.reader != nil {
-		return
+		return nil
 	}
 
 	if b.file != nil {
+		if _, err := b.file.Seek(0, io.SeekStart); err != nil {
+			return err
+		}
 		b.reader = b.file
 	} else {
 		b.reader = bytes.NewReader(b.buffer.Bytes())
 	}
+	return nil
 }
 
 // Read implements io.Reader
 func (b *FileBackedBuffer) Read(p []byte) (int, error) {
-	b.switchToReader()
+	if err := b.switchToReader(); err != nil {
+		return 0, err
+	}
 
 	return b.reader.Read(p)
 }
 
 // ReadAt implements io.ReaderAt
 func (b *FileBackedBuffer) ReadAt(p []byte, off int64) (int, error) {
-	b.switchToReader()
+	if err := b.switchToReader(); err != nil {
+		return 0, err
+	}
 
 	return b.reader.ReadAt(p, off)
 }
 
 // Seek implements io.Seeker
 func (b *FileBackedBuffer) Seek(offset int64, whence int) (int64, error) {
-	b.switchToReader()
+	if err := b.switchToReader(); err != nil {
+		return 0, err
+	}
 
 	return b.reader.Seek(offset, whence)
 }

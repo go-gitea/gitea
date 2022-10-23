@@ -18,7 +18,7 @@ func wrapNewlines(w io.Writer, prefix, value []byte) (sum int64, err error) {
 	if len(value) == 0 {
 		return
 	}
-	n := 0
+	var n int
 	last := 0
 	for j := bytes.IndexByte(value, '\n'); j > -1; j = bytes.IndexByte(value[last:], '\n') {
 		n, err = w.Write(prefix)
@@ -45,7 +45,7 @@ func wrapNewlines(w io.Writer, prefix, value []byte) (sum int64, err error) {
 	}
 	n, err = w.Write([]byte("\n"))
 	sum += int64(n)
-	return
+	return sum, err
 }
 
 // Event is an eventsource event, not all fields need to be set
@@ -64,7 +64,7 @@ type Event struct {
 // The return value n is the number of bytes written. Any error encountered during the write is also returned.
 func (e *Event) WriteTo(w io.Writer) (int64, error) {
 	sum := int64(0)
-	nint := 0
+	var nint int
 	n, err := wrapNewlines(w, []byte("event: "), []byte(e.Name))
 	sum += n
 	if err != nil {

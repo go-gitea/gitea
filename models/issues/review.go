@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -36,6 +37,10 @@ func IsErrReviewNotExist(err error) bool {
 
 func (err ErrReviewNotExist) Error() string {
 	return fmt.Sprintf("review does not exist [id: %d]", err.ID)
+}
+
+func (err ErrReviewNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // ErrNotValidReviewRequest an not allowed review request modify
@@ -56,6 +61,10 @@ func (err ErrNotValidReviewRequest) Error() string {
 		err.Reason,
 		err.UserID,
 		err.RepoID)
+}
+
+func (err ErrNotValidReviewRequest) Unwrap() error {
+	return util.ErrInvalidArgument
 }
 
 // ReviewType defines the sort of feedback a review gives
@@ -134,7 +143,7 @@ func (r *Review) LoadCodeComments(ctx context.Context) (err error) {
 		return
 	}
 	r.CodeComments, err = fetchCodeCommentsByReview(ctx, r.Issue, nil, r)
-	return
+	return err
 }
 
 func (r *Review) loadIssue(ctx context.Context) (err error) {
@@ -142,7 +151,7 @@ func (r *Review) loadIssue(ctx context.Context) (err error) {
 		return
 	}
 	r.Issue, err = GetIssueByID(ctx, r.IssueID)
-	return
+	return err
 }
 
 func (r *Review) loadReviewer(ctx context.Context) (err error) {
@@ -150,7 +159,7 @@ func (r *Review) loadReviewer(ctx context.Context) (err error) {
 		return
 	}
 	r.Reviewer, err = user_model.GetUserByIDCtx(ctx, r.ReviewerID)
-	return
+	return err
 }
 
 func (r *Review) loadReviewerTeam(ctx context.Context) (err error) {
@@ -159,7 +168,7 @@ func (r *Review) loadReviewerTeam(ctx context.Context) (err error) {
 	}
 
 	r.ReviewerTeam, err = organization.GetTeamByID(ctx, r.ReviewerTeamID)
-	return
+	return err
 }
 
 // LoadReviewer loads reviewer
@@ -186,7 +195,7 @@ func (r *Review) LoadAttributes(ctx context.Context) (err error) {
 	if err = r.loadReviewerTeam(ctx); err != nil {
 		return
 	}
-	return
+	return err
 }
 
 // GetReviewByID returns the review by the given ID
@@ -474,6 +483,35 @@ func SubmitReview(doer *user_model.User, issue *Issue, reviewType ReviewType, co
 	return review, comm, committer.Commit()
 }
 
+// GetReviewOptions represent filter options for GetReviews
+type GetReviewOptions struct {
+	IssueID    int64
+	ReviewerID int64
+	Dismissed  util.OptionalBool
+}
+
+// GetReviews return reviews based on GetReviewOptions
+func GetReviews(ctx context.Context, opts *GetReviewOptions) ([]*Review, error) {
+	if opts == nil {
+		return nil, fmt.Errorf("opts are nil")
+	}
+
+	sess := db.GetEngine(ctx)
+
+	if opts.IssueID != 0 {
+		sess = sess.Where("issue_id=?", opts.IssueID)
+	}
+	if opts.ReviewerID != 0 {
+		sess = sess.Where("reviewer_id=?", opts.ReviewerID)
+	}
+	if !opts.Dismissed.IsNone() {
+		sess = sess.Where("dismissed=?", opts.Dismissed.IsTrue())
+	}
+
+	reviews := make([]*Review, 0, 4)
+	return reviews, sess.Find(&reviews)
+}
+
 // GetReviewersByIssueID gets the latest review of each reviewer for a pull request
 func GetReviewersByIssueID(issueID int64) ([]*Review, error) {
 	reviews := make([]*Review, 0, 10)
@@ -537,7 +575,7 @@ func GetReviewByIssueIDAndUserID(ctx context.Context, issueID, userID int64) (*R
 func GetTeamReviewerByIssueIDAndTeamID(ctx context.Context, issueID, teamID int64) (review *Review, err error) {
 	review = new(Review)
 
-	has := false
+	var has bool
 	if has, err = db.GetEngine(ctx).SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = ?)",
 		issueID, teamID).
 		Get(review); err != nil {
@@ -548,21 +586,21 @@ func GetTeamReviewerByIssueIDAndTeamID(ctx context.Context, issueID, teamID int6
 		return nil, ErrReviewNotExist{0}
 	}
 
-	return
+	return review, err
 }
 
 // MarkReviewsAsStale marks existing reviews as stale
 func MarkReviewsAsStale(issueID int64) (err error) {
 	_, err = db.GetEngine(db.DefaultContext).Exec("UPDATE `review` SET stale=? WHERE issue_id=?", true, issueID)
 
-	return
+	return err
 }
 
 // MarkReviewsAsNotStale marks existing reviews as not stale for a giving commit SHA
 func MarkReviewsAsNotStale(issueID int64, commitID string) (err error) {
 	_, err = db.GetEngine(db.DefaultContext).Exec("UPDATE `review` SET stale=? WHERE issue_id=? AND commit_id=?", false, issueID, commitID)
 
-	return
+	return err
 }
 
 // DismissReview change the dismiss status of a review
@@ -579,7 +617,7 @@ func DismissReview(review *Review, isDismiss bool) (err error) {
 
 	_, err = db.GetEngine(db.DefaultContext).ID(review.ID).Cols("dismissed").Update(review)
 
-	return
+	return err
 }
 
 // InsertReviews inserts review and review comments

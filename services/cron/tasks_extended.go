@@ -8,10 +8,10 @@ import (
 	"context"
 	"time"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/admin"
+	activities_model "code.gitea.io/gitea/models/activities"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/updatechecker"
@@ -134,7 +134,7 @@ func registerDeleteOldActions() {
 		OlderThan: 365 * 24 * time.Hour,
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		olderThanConfig := config.(*OlderThanConfig)
-		return models.DeleteOldActions(olderThanConfig.OlderThan)
+		return activities_model.DeleteOldActions(olderThanConfig.OlderThan)
 	})
 }
 
@@ -166,7 +166,7 @@ func registerDeleteOldSystemNotices() {
 		OlderThan: 365 * 24 * time.Hour,
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		olderThanConfig := config.(*OlderThanConfig)
-		return admin.DeleteOldSystemNotices(olderThanConfig.OlderThan)
+		return system.DeleteOldSystemNotices(olderThanConfig.OlderThan)
 	})
 }
 

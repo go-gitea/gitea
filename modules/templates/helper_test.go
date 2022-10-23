@@ -17,8 +17,8 @@ func TestSubjectBodySeparator(t *testing.T) {
 			assert.Empty(t, subject, "no subject found, but one expected")
 			assert.Equal(t, body, input)
 		} else {
-			assert.Equal(t, subject, string(input[0:loc[0]]))
-			assert.Equal(t, body, string(input[loc[1]:]))
+			assert.Equal(t, subject, input[0:loc[0]])
+			assert.Equal(t, body, input[loc[1]:])
 		}
 	}
 

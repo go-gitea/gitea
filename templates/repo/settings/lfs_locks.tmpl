@@ -6,14 +6,14 @@
 		{{template "base/alert" .}}
 		<div class="tab-size-8 non-diff-file-content">
 			<h4 class="ui top attached header">
-				<a href="{{.LFSFilesLink}}">{{.i18n.Tr "repo.settings.lfs"}}</a> / {{.i18n.Tr "repo.settings.lfs_locks"}} ({{.i18n.Tr "admin.total" .Total}})
+				<a href="{{.LFSFilesLink}}">{{.locale.Tr "repo.settings.lfs"}}</a> / {{.locale.Tr "repo.settings.lfs_locks"}} ({{.locale.Tr "admin.total" .Total}})
 			</h4>
 			<div class="ui attached segment">
 				<form class="ui form ignore-dirty" method="POST">
 					{{$.CsrfTokenHtml}}
 					<div class="ui fluid action input">
-						<input name="path" value="" placeholder="{{.i18n.Tr "repo.settings.lfs_lock_path"}}" autofocus>
-						<button class="ui primary button">{{.i18n.Tr "repo.settings.lfs_lock"}}</button>
+						<input name="path" value="" placeholder="{{.locale.Tr "repo.settings.lfs_lock_path"}}" autofocus>
+						<button class="ui primary button">{{.locale.Tr "repo.settings.lfs_lock"}}</button>
 					</div>
 				</form>
 			</div>
@@ -27,10 +27,10 @@
 								<a href="{{$.RepoLink}}/src/branch/{{PathEscapeSegments $.Repository.DefaultBranch}}/{{PathEscapeSegments $lock.Path}}" title="{{$lock.Path}}">{{$lock.Path}}</a>
 								{{else}}
 									{{svg "octicon-diff"}}
-								<span class="tooltip" title="{{$.i18n.Tr "repo.settings.lfs_lock_file_no_exist"}}">{{$lock.Path}}</span>
+								<span class="tooltip" title="{{$.locale.Tr "repo.settings.lfs_lock_file_no_exist"}}">{{$lock.Path}}</span>
 								{{end}}
 								{{if not (index $.Lockables $index)}}
-									<span class="tooltip" title="{{$.i18n.Tr "repo.settings.lfs_noattribute"}}">{{svg "octicon-alert"}}</span>
+									<span class="tooltip" title="{{$.locale.Tr "repo.settings.lfs_noattribute"}}">{{svg "octicon-alert"}}</span>
 								{{end}}
 							</td>
 							<td>
@@ -39,17 +39,17 @@
 									{{$.Owner.DisplayName}}
 								</a>
 							</td>
-							<td>{{TimeSince .Created $.i18n.Lang}}</td>
+							<td>{{TimeSince .Created $.locale}}</td>
 							<td class="right aligned">
 								<form action="{{$.LFSFilesLink}}/locks/{{$lock.ID}}/unlock" method="POST">
 									{{$.CsrfTokenHtml}}
-									<button class="ui primary button"><span class="btn-octicon">{{svg "octicon-lock"}}</span>{{$.i18n.Tr "repo.settings.lfs_force_unlock"}}</button>
+									<button class="ui primary button"><span class="btn-octicon">{{svg "octicon-lock"}}</span>{{$.locale.Tr "repo.settings.lfs_force_unlock"}}</button>
 								</form>
 							</td>
 						</tr>
 					{{else}}
 						<tr>
-							<td colspan="4">{{.i18n.Tr "repo.settings.lfs_locks_no_locks"}}</td>
+							<td colspan="4">{{.locale.Tr "repo.settings.lfs_locks_no_locks"}}</td>
 						</tr>
 					{{end}}
 				</tbody>

@@ -65,7 +65,7 @@ func GetIssueWatch(ctx context.Context, userID, issueID int64) (iw *IssueWatch, 
 		Where("user_id = ?", userID).
 		And("issue_id = ?", issueID).
 		Get(iw)
-	return
+	return iw, exists, err
 }
 
 // CheckIssueWatch check if an user is watching an issue

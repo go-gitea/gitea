@@ -67,6 +67,26 @@ npm publish
 
 You cannot publish a package if a package of the same name and version already exists. You must delete the existing package first.
 
+## Unpublish a package
+
+Delete a package by running the following command:
+
+```shell
+npm unpublish {package_name}[@{package_version}]
+```
+
+| Parameter         | Description |
+| ----------------- | ----------- |
+| `package_name`    | The package name. |
+| `package_version` | The package version. |
+
+For example:
+
+```shell
+npm unpublish @test/test_package
+npm unpublish @test/test_package@1.0.0
+```
+
 ## Install a package
 
 To install a package from the package registry, execute the following command:
@@ -107,12 +127,18 @@ npm dist-tag add test_package@1.0.2 release
 
 The tag name must not be a valid version. All tag names which are parsable as a version are rejected.
 
+## Search packages
+
+The registry supports [searching](https://docs.npmjs.com/cli/v7/commands/npm-search/) but does not support special search qualifiers like `author:gitea`.
+
 ## Supported commands
 
 ```
 npm install
 npm ci
 npm publish
+npm unpublish
 npm dist-tag
 npm view
+npm search
 ```

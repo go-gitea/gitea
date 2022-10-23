@@ -15,8 +15,8 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/auth"
+	org_model "code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -37,6 +37,7 @@ import (
 	"gitea.com/go-chi/binding"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/markbates/goth"
+	"github.com/markbates/goth/gothic"
 )
 
 const (
@@ -47,6 +48,7 @@ const (
 // TODO move error and responses to SDK or models
 
 // AuthorizeErrorCode represents an error code specified in RFC 6749
+// https://datatracker.ietf.org/doc/html/rfc6749#section-4.2.2.1
 type AuthorizeErrorCode string
 
 const (
@@ -67,6 +69,7 @@ const (
 )
 
 // AuthorizeError represents an error type specified in RFC 6749
+// https://datatracker.ietf.org/doc/html/rfc6749#section-4.2.2.1
 type AuthorizeError struct {
 	ErrorCode        AuthorizeErrorCode `json:"error" form:"error"`
 	ErrorDescription string
@@ -79,6 +82,7 @@ func (err AuthorizeError) Error() string {
 }
 
 // AccessTokenErrorCode represents an error code specified in RFC 6749
+// https://datatracker.ietf.org/doc/html/rfc6749#section-5.2
 type AccessTokenErrorCode string
 
 const (
@@ -97,6 +101,7 @@ const (
 )
 
 // AccessTokenError represents an error response specified in RFC 6749
+// https://datatracker.ietf.org/doc/html/rfc6749#section-5.2
 type AccessTokenError struct {
 	ErrorCode        AccessTokenErrorCode `json:"error" form:"error"`
 	ErrorDescription string               `json:"error_description"`
@@ -128,6 +133,7 @@ const (
 )
 
 // AccessTokenResponse represents a successful access token response
+// https://datatracker.ietf.org/doc/html/rfc6749#section-4.2.2
 type AccessTokenResponse struct {
 	AccessToken  string    `json:"access_token"`
 	TokenType    TokenType `json:"token_type"`
@@ -168,7 +174,7 @@ func newAccessTokenResponse(ctx stdContext.Context, grant *auth.OAuth2Grant, ser
 		GrantID: grant.ID,
 		Counter: grant.Counter,
 		Type:    oauth2.TypeRefreshToken,
-		RegisteredClaims: jwt.RegisteredClaims{ // nolint
+		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(refreshExpirationDate),
 		},
 	}
@@ -215,7 +221,7 @@ func newAccessTokenResponse(ctx stdContext.Context, grant *auth.OAuth2Grant, ser
 			Nonce: grant.Nonce,
 		}
 		if grant.ScopeContains("profile") {
-			idToken.Name = user.FullName
+			idToken.Name = user.GetDisplayName()
 			idToken.PreferredUsername = user.Name
 			idToken.Profile = user.HTMLURL()
 			idToken.Picture = user.AvatarLink()
@@ -295,7 +301,7 @@ func InfoOAuth(ctx *context.Context) {
 // returns a list of "org" and "org:team" strings,
 // that the given user is a part of.
 func getOAuthGroupsForUser(user *user_model.User) ([]string, error) {
-	orgs, err := models.GetUserOrgsList(user)
+	orgs, err := org_model.GetUserOrgsList(user)
 	if err != nil {
 		return nil, fmt.Errorf("GetUserOrgList: %v", err)
 	}
@@ -379,10 +385,13 @@ func AuthorizeOAuth(ctx *context.Context) {
 		return
 	}
 
-	user, err := user_model.GetUserByID(app.UID)
-	if err != nil {
-		ctx.ServerError("GetUserByID", err)
-		return
+	var user *user_model.User
+	if app.UID != 0 {
+		user, err = user_model.GetUserByID(app.UID)
+		if err != nil {
+			ctx.ServerError("GetUserByID", err)
+			return
+		}
 	}
 
 	if !app.ContainsRedirectURI(form.RedirectURI) {
@@ -474,7 +483,11 @@ func AuthorizeOAuth(ctx *context.Context) {
 	ctx.Data["State"] = form.State
 	ctx.Data["Scope"] = form.Scope
 	ctx.Data["Nonce"] = form.Nonce
-	ctx.Data["ApplicationUserLinkHTML"] = "<a href=\"" + html.EscapeString(user.HTMLURL()) + "\">@" + html.EscapeString(user.Name) + "</a>"
+	if user != nil {
+		ctx.Data["ApplicationCreatorLinkHTML"] = fmt.Sprintf(`<a href="%s">@%s</a>`, html.EscapeString(user.HomeLink()), html.EscapeString(user.Name))
+	} else {
+		ctx.Data["ApplicationCreatorLinkHTML"] = fmt.Sprintf(`<a href="%s">%s</a>`, html.EscapeString(setting.AppSubURL+"/"), html.EscapeString(setting.AppName))
+	}
 	ctx.Data["ApplicationRedirectDomainHTML"] = "<strong>" + html.EscapeString(form.RedirectURI) + "</strong>"
 	// TODO document SESSION <=> FORM
 	err = ctx.Session.Set("client_id", app.ClientID)
@@ -587,7 +600,8 @@ func OIDCKeys(ctx *context.Context) {
 // AccessTokenOAuth manages all access token requests by the client
 func AccessTokenOAuth(ctx *context.Context) {
 	form := *web.GetForm(ctx).(*forms.AccessTokenForm)
-	if form.ClientID == "" {
+	// if there is no ClientID or ClientSecret in the request body, fill these fields by the Authorization header and ensure the provided field matches the Authorization header
+	if form.ClientID == "" || form.ClientSecret == "" {
 		authHeader := ctx.Req.Header.Get("Authorization")
 		authContent := strings.SplitN(authHeader, " ", 2)
 		if len(authContent) == 2 && authContent[0] == "Basic" {
@@ -607,7 +621,21 @@ func AccessTokenOAuth(ctx *context.Context) {
 				})
 				return
 			}
+			if form.ClientID != "" && form.ClientID != pair[0] {
+				handleAccessTokenError(ctx, AccessTokenError{
+					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
+					ErrorDescription: "client_id in request body inconsistent with Authorization header",
+				})
+				return
+			}
 			form.ClientID = pair[0]
+			if form.ClientSecret != "" && form.ClientSecret != pair[1] {
+				handleAccessTokenError(ctx, AccessTokenError{
+					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
+					ErrorDescription: "client_secret in request body inconsistent with Authorization header",
+				})
+				return
+			}
 			form.ClientSecret = pair[1]
 		}
 	}
@@ -640,11 +668,35 @@ func AccessTokenOAuth(ctx *context.Context) {
 }
 
 func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, serverKey, clientKey oauth2.JWTSigningKey) {
+	app, err := auth.GetOAuth2ApplicationByClientID(ctx, form.ClientID)
+	if err != nil {
+		handleAccessTokenError(ctx, AccessTokenError{
+			ErrorCode:        AccessTokenErrorCodeInvalidClient,
+			ErrorDescription: fmt.Sprintf("cannot load client with client id: %q", form.ClientID),
+		})
+		return
+	}
+	// "The authorization server MUST ... require client authentication for confidential clients"
+	// https://datatracker.ietf.org/doc/html/rfc6749#section-6
+	if !app.ValidateClientSecret([]byte(form.ClientSecret)) {
+		errorDescription := "invalid client secret"
+		if form.ClientSecret == "" {
+			errorDescription = "invalid empty client secret"
+		}
+		// "invalid_client ... Client authentication failed"
+		// https://datatracker.ietf.org/doc/html/rfc6749#section-5.2
+		handleAccessTokenError(ctx, AccessTokenError{
+			ErrorCode:        AccessTokenErrorCodeInvalidClient,
+			ErrorDescription: errorDescription,
+		})
+		return
+	}
+
 	token, err := oauth2.ParseToken(form.RefreshToken, serverKey)
 	if err != nil {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
-			ErrorDescription: "client is not authorized",
+			ErrorDescription: "unable to parse refresh token",
 		})
 		return
 	}
@@ -685,16 +737,20 @@ func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, s
 		return
 	}
 	if !app.ValidateClientSecret([]byte(form.ClientSecret)) {
+		errorDescription := "invalid client secret"
+		if form.ClientSecret == "" {
+			errorDescription = "invalid empty client secret"
+		}
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
-			ErrorDescription: "client is not authorized",
+			ErrorDescription: errorDescription,
 		})
 		return
 	}
 	if form.RedirectURI != "" && !app.ContainsRedirectURI(form.RedirectURI) {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
-			ErrorDescription: "client is not authorized",
+			ErrorDescription: "unexpected redirect URI",
 		})
 		return
 	}
@@ -710,7 +766,7 @@ func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, s
 	if !authorizationCode.ValidateCodeChallenge(form.CodeVerifier) {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
-			ErrorDescription: "client is not authorized",
+			ErrorDescription: "failed PKCE code challenge",
 		})
 		return
 	}
@@ -1041,7 +1097,9 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 
 		// update external user information
 		if err := externalaccount.UpdateExternalUser(u, gothUser); err != nil {
-			log.Error("UpdateExternalUser failed: %v", err)
+			if !errors.Is(err, util.ErrNotExist) {
+				log.Error("UpdateExternalUser failed: %v", err)
+			}
 		}
 
 		if err := resetLocale(ctx, u); err != nil {
@@ -1098,23 +1156,30 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 func oAuth2UserLoginCallback(authSource *auth.Source, request *http.Request, response http.ResponseWriter) (*user_model.User, goth.User, error) {
 	oauth2Source := authSource.Cfg.(*oauth2.Source)
 
+	// Make sure that the response is not an error response.
+	errorName := request.FormValue("error")
+
+	if len(errorName) > 0 {
+		errorDescription := request.FormValue("error_description")
+
+		// Delete the goth session
+		err := gothic.Logout(response, request)
+		if err != nil {
+			return nil, goth.User{}, err
+		}
+
+		return nil, goth.User{}, errCallback{
+			Code:        errorName,
+			Description: errorDescription,
+		}
+	}
+
+	// Proceed to authenticate through goth.
 	gothUser, err := oauth2Source.Callback(request, response)
 	if err != nil {
 		if err.Error() == "securecookie: the value is too long" || strings.Contains(err.Error(), "Data too long") {
 			log.Error("OAuth2 Provider %s returned too long a token. Current max: %d. Either increase the [OAuth2] MAX_TOKEN_LENGTH or reduce the information returned from the OAuth2 provider", authSource.Name, setting.OAuth2.MaxTokenLength)
 			err = fmt.Errorf("OAuth2 Provider %s returned too long a token. Current max: %d. Either increase the [OAuth2] MAX_TOKEN_LENGTH or reduce the information returned from the OAuth2 provider", authSource.Name, setting.OAuth2.MaxTokenLength)
-		}
-		// goth does not provide the original error message
-		// https://github.com/markbates/goth/issues/348
-		if strings.Contains(err.Error(), "server response missing access_token") || strings.Contains(err.Error(), "could not find a matching session for this request") {
-			errorCode := request.FormValue("error")
-			errorDescription := request.FormValue("error_description")
-			if errorCode != "" || errorDescription != "" {
-				return nil, goth.User{}, errCallback{
-					Code:        errorCode,
-					Description: errorDescription,
-				}
-			}
 		}
 		return nil, goth.User{}, err
 	}

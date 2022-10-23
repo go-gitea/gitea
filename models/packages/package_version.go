@@ -107,7 +107,7 @@ func getVersionByNameAndVersion(ctx context.Context, ownerID int64, packageType 
 			ExactMatch: true,
 			Value:      version,
 		},
-		IsInternal: isInternal,
+		IsInternal: util.OptionalBoolOf(isInternal),
 		Paginator:  db.NewAbsoluteListOptions(0, 1),
 	})
 	if err != nil {
@@ -122,8 +122,9 @@ func getVersionByNameAndVersion(ctx context.Context, ownerID int64, packageType 
 // GetVersionsByPackageType gets all versions of a specific type
 func GetVersionsByPackageType(ctx context.Context, ownerID int64, packageType Type) ([]*PackageVersion, error) {
 	pvs, _, err := SearchVersions(ctx, &PackageSearchOptions{
-		OwnerID: ownerID,
-		Type:    packageType,
+		OwnerID:    ownerID,
+		Type:       packageType,
+		IsInternal: util.OptionalBoolFalse,
 	})
 	return pvs, err
 }
@@ -137,6 +138,7 @@ func GetVersionsByPackageName(ctx context.Context, ownerID int64, packageType Ty
 			ExactMatch: true,
 			Value:      name,
 		},
+		IsInternal: util.OptionalBoolFalse,
 	})
 	return pvs, err
 }
@@ -161,6 +163,17 @@ type SearchValue struct {
 	ExactMatch bool
 }
 
+type VersionSort = string
+
+const (
+	SortNameAsc     VersionSort = "name_asc"
+	SortNameDesc    VersionSort = "name_desc"
+	SortVersionAsc  VersionSort = "version_asc"
+	SortVersionDesc VersionSort = "version_desc"
+	SortCreatedAsc  VersionSort = "created_asc"
+	SortCreatedDesc VersionSort = "created_desc"
+)
+
 // PackageSearchOptions are options for SearchXXX methods
 // Besides IsInternal are all fields optional and are not used if they have their default value (nil, "", 0)
 type PackageSearchOptions struct {
@@ -171,15 +184,18 @@ type PackageSearchOptions struct {
 	Name            SearchValue       // only results with the specific name are found
 	Version         SearchValue       // only results with the specific version are found
 	Properties      map[string]string // only results are found which contain all listed version properties with the specific value
-	IsInternal      bool
+	IsInternal      util.OptionalBool
 	HasFileWithName string            // only results are found which are associated with a file with the specific name
 	HasFiles        util.OptionalBool // only results are found which have associated files
-	Sort            string
+	Sort            VersionSort
 	db.Paginator
 }
 
 func (opts *PackageSearchOptions) toConds() builder.Cond {
-	var cond builder.Cond = builder.Eq{"package_version.is_internal": opts.IsInternal}
+	cond := builder.NewCond()
+	if !opts.IsInternal.IsNone() {
+		cond = builder.Eq{"package_version.is_internal": opts.IsInternal.IsTrue()}
+	}
 
 	if opts.OwnerID != 0 {
 		cond = cond.And(builder.Eq{"package.owner_id": opts.OwnerID})
@@ -235,7 +251,7 @@ func (opts *PackageSearchOptions) toConds() builder.Cond {
 	}
 
 	if !opts.HasFiles.IsNone() {
-		var filesCond builder.Cond = builder.Exists(builder.Select("package_file.id").From("package_file").Where(builder.Expr("package_file.version_id = package_version.id")))
+		filesCond := builder.Exists(builder.Select("package_file.id").From("package_file").Where(builder.Expr("package_file.version_id = package_version.id")))
 
 		if opts.HasFiles.IsFalse() {
 			filesCond = builder.Not{filesCond}
@@ -249,15 +265,15 @@ func (opts *PackageSearchOptions) toConds() builder.Cond {
 
 func (opts *PackageSearchOptions) configureOrderBy(e db.Engine) {
 	switch opts.Sort {
-	case "alphabetically":
+	case SortNameAsc:
 		e.Asc("package.name")
-	case "reversealphabetically":
+	case SortNameDesc:
 		e.Desc("package.name")
-	case "highestversion":
+	case SortVersionDesc:
 		e.Desc("package_version.version")
-	case "lowestversion":
+	case SortVersionAsc:
 		e.Asc("package_version.version")
-	case "oldest":
+	case SortCreatedAsc:
 		e.Asc("package_version.created_unix")
 	default:
 		e.Desc("package_version.created_unix")

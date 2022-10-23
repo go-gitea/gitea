@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"code.gitea.io/gitea/modules/json"
@@ -137,6 +138,24 @@ func ReleaseReopenLogging(ctx context.Context) (int, string) {
 	}
 
 	return http.StatusOK, "Logging Restarted"
+}
+
+// SetLogSQL sets database logging
+func SetLogSQL(ctx context.Context, on bool) (int, string) {
+	reqURL := setting.LocalURL + "api/internal/manager/set-log-sql?on=" + strconv.FormatBool(on)
+
+	req := newInternalRequest(ctx, reqURL, "POST")
+	resp, err := req.Response()
+	if err != nil {
+		return http.StatusInternalServerError, fmt.Sprintf("Unable to contact gitea: %v", err.Error())
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return resp.StatusCode, decodeJSONError(resp).Err
+	}
+
+	return http.StatusOK, "Log SQL setting set"
 }
 
 // LoggerOptions represents the options for the add logger call

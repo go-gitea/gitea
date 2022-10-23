@@ -7,6 +7,7 @@ package cmd
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
@@ -55,13 +56,16 @@ func runRestoreRepository(c *cli.Context) error {
 	defer cancel()
 
 	setting.LoadFromExisting()
-
+	var units []string
+	if s := c.String("units"); s != "" {
+		units = strings.Split(s, ",")
+	}
 	statusCode, errStr := private.RestoreRepo(
 		ctx,
 		c.String("repo_dir"),
 		c.String("owner_name"),
 		c.String("repo_name"),
-		c.StringSlice("units"),
+		units,
 		c.Bool("validation"),
 	)
 	if statusCode == http.StatusOK {

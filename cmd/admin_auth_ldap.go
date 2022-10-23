@@ -34,6 +34,10 @@ var (
 			Name:  "not-active",
 			Usage: "Deactivate the authentication source.",
 		},
+		cli.BoolFlag{
+			Name:  "active",
+			Usage: "Activate the authentication source.",
+		},
 		cli.StringFlag{
 			Name:  "security-protocol",
 			Usage: "Security protocol name.",
@@ -117,6 +121,10 @@ var (
 			Name:  "synchronize-users",
 			Usage: "Enable user synchronization.",
 		},
+		cli.BoolFlag{
+			Name:  "disable-synchronize-users",
+			Usage: "Disable user synchronization.",
+		},
 		cli.UintFlag{
 			Name:  "page-size",
 			Usage: "Search page size.",
@@ -183,8 +191,14 @@ func parseAuthSource(c *cli.Context, authSource *auth.Source) {
 	if c.IsSet("not-active") {
 		authSource.IsActive = !c.Bool("not-active")
 	}
+	if c.IsSet("active") {
+		authSource.IsActive = c.Bool("active")
+	}
 	if c.IsSet("synchronize-users") {
 		authSource.IsSyncEnabled = c.Bool("synchronize-users")
+	}
+	if c.IsSet("disable-synchronize-users") {
+		authSource.IsSyncEnabled = !c.Bool("disable-synchronize-users")
 	}
 }
 

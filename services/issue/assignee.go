@@ -59,7 +59,7 @@ func ToggleAssignee(issue *issues_model.Issue, doer *user_model.User, assigneeID
 
 	notification.NotifyIssueChangeAssignee(doer, issue, assignee, removed, comment)
 
-	return
+	return removed, comment, err
 }
 
 // ReviewRequest add or remove a review request from a user for this PR, and make comment for it.
@@ -78,7 +78,7 @@ func ReviewRequest(issue *issues_model.Issue, doer, reviewer *user_model.User, i
 		notification.NotifyPullReviewRequest(doer, issue, reviewer, isAdd, comment)
 	}
 
-	return
+	return comment, err
 }
 
 // IsValidReviewRequest Check permission for ReviewRequest
@@ -131,7 +131,10 @@ func IsValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 			return nil
 		}
 
-		pemResult = permDoer.CanAccessAny(perm.AccessModeWrite, unit.TypePullRequests)
+		pemResult = doer.ID == issue.PosterID
+		if !pemResult {
+			pemResult = permDoer.CanAccessAny(perm.AccessModeWrite, unit.TypePullRequests)
+		}
 		if !pemResult {
 			pemResult, err = issues_model.IsOfficialReviewer(ctx, issue, doer)
 			if err != nil {
@@ -201,7 +204,7 @@ func IsValidTeamReviewRequest(ctx context.Context, reviewer *organization.Team, 
 		}
 
 		doerCanWrite := permission.CanAccessAny(perm.AccessModeWrite, unit.TypePullRequests)
-		if !doerCanWrite {
+		if !doerCanWrite && doer.ID != issue.PosterID {
 			official, err := issues_model.IsOfficialReviewer(ctx, issue, doer)
 			if err != nil {
 				log.Error("Unable to Check if IsOfficialReviewer for %-v in %-v#%d", doer, issue.Repo, issue.Index)
@@ -262,5 +265,5 @@ func TeamReviewRequest(issue *issues_model.Issue, doer *user_model.User, reviewe
 		notification.NotifyPullReviewRequest(doer, issue, member, isAdd, comment)
 	}
 
-	return
+	return comment, err
 }

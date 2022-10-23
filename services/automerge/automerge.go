@@ -82,7 +82,7 @@ func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_
 		_, err = issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRScheduledToAutoMerge, pull, doer)
 		return err
 	}, ctx)
-	return
+	return scheduled, err
 }
 
 // RemoveScheduledAutoMerge cancels a previously scheduled pull request

@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -43,6 +44,10 @@ func IsErrOrgNotExist(err error) bool {
 
 func (err ErrOrgNotExist) Error() string {
 	return fmt.Sprintf("org does not exist [id: %d, name: %s]", err.ID, err.Name)
+}
+
+func (err ErrOrgNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // ErrLastOrgOwner represents a "LastOrgOwner" kind of error.
@@ -71,6 +76,10 @@ func IsErrUserNotAllowedCreateOrg(err error) bool {
 
 func (err ErrUserNotAllowedCreateOrg) Error() string {
 	return "user is not allowed to create organizations"
+}
+
+func (err ErrUserNotAllowedCreateOrg) Unwrap() error {
+	return util.ErrPermissionDenied
 }
 
 // Organization represents an organization
@@ -361,8 +370,9 @@ func DeleteOrganization(ctx context.Context, org *Organization) error {
 		&OrgUser{OrgID: org.ID},
 		&TeamUser{OrgID: org.ID},
 		&TeamUnit{OrgID: org.ID},
+		&TeamInvite{OrgID: org.ID},
 	); err != nil {
-		return fmt.Errorf("deleteBeans: %v", err)
+		return fmt.Errorf("DeleteBeans: %v", err)
 	}
 
 	if _, err := db.GetEngine(ctx).ID(org.ID).Delete(new(user_model.User)); err != nil {
@@ -680,7 +690,7 @@ type accessibleReposEnv struct {
 	user    *user_model.User
 	team    *Team
 	teamIDs []int64
-	e       db.Engine
+	ctx     context.Context
 	keyword string
 	orderBy db.SearchOrderBy
 }
@@ -706,7 +716,7 @@ func AccessibleReposEnv(ctx context.Context, org *Organization, userID int64) (A
 		org:     org,
 		user:    user,
 		teamIDs: teamIDs,
-		e:       db.GetEngine(ctx),
+		ctx:     ctx,
 		orderBy: db.SearchOrderByRecentUpdated,
 	}, nil
 }
@@ -717,7 +727,7 @@ func (org *Organization) AccessibleTeamReposEnv(team *Team) AccessibleReposEnvir
 	return &accessibleReposEnv{
 		org:     org,
 		team:    team,
-		e:       db.GetEngine(db.DefaultContext),
+		ctx:     db.DefaultContext,
 		orderBy: db.SearchOrderByRecentUpdated,
 	}
 }
@@ -744,7 +754,7 @@ func (env *accessibleReposEnv) cond() builder.Cond {
 }
 
 func (env *accessibleReposEnv) CountRepos() (int64, error) {
-	repoCount, err := env.e.
+	repoCount, err := db.GetEngine(env.ctx).
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id").
 		Where(env.cond()).
 		Distinct("`repository`.id").
@@ -761,7 +771,7 @@ func (env *accessibleReposEnv) RepoIDs(page, pageSize int) ([]int64, error) {
 	}
 
 	repoIDs := make([]int64, 0, pageSize)
-	return repoIDs, env.e.
+	return repoIDs, db.GetEngine(env.ctx).
 		Table("repository").
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id").
 		Where(env.cond()).
@@ -783,7 +793,7 @@ func (env *accessibleReposEnv) Repos(page, pageSize int) ([]*repo_model.Reposito
 		return repos, nil
 	}
 
-	return repos, env.e.
+	return repos, db.GetEngine(env.ctx).
 		In("`repository`.id", repoIDs).
 		OrderBy(string(env.orderBy)).
 		Find(&repos)
@@ -791,7 +801,7 @@ func (env *accessibleReposEnv) Repos(page, pageSize int) ([]*repo_model.Reposito
 
 func (env *accessibleReposEnv) MirrorRepoIDs() ([]int64, error) {
 	repoIDs := make([]int64, 0, 10)
-	return repoIDs, env.e.
+	return repoIDs, db.GetEngine(env.ctx).
 		Table("repository").
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id AND `repository`.is_mirror=?", true).
 		Where(env.cond()).
@@ -812,7 +822,7 @@ func (env *accessibleReposEnv) MirrorRepos() ([]*repo_model.Repository, error) {
 		return repos, nil
 	}
 
-	return repos, env.e.
+	return repos, db.GetEngine(env.ctx).
 		In("`repository`.id", repoIDs).
 		Find(&repos)
 }

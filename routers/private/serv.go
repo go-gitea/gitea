@@ -142,7 +142,7 @@ func ServCommand(ctx *context.PrivateContext) {
 		if repo_model.IsErrRepoNotExist(err) {
 			repoExist = false
 			for _, verb := range ctx.FormStrings("verb") {
-				if "git-upload-pack" == verb {
+				if verb == "git-upload-pack" {
 					// User is fetching/cloning a non-existent repository
 					log.Warn("Failed authentication attempt (cannot find repository: %s/%s) from %s", results.OwnerName, results.RepoName, ctx.RemoteAddr())
 					ctx.JSON(http.StatusNotFound, private.ErrServCommand{

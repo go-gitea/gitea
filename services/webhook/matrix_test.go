@@ -140,7 +140,7 @@ func TestMatrixPayload(t *testing.T) {
 		require.IsType(t, &MatrixPayloadUnsafe{}, pl)
 
 		assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] Pull request review approved: [#12 Fix bug](http://localhost:3000/test/repo/pulls/12) by [user1](https://try.gitea.io/user1)", pl.(*MatrixPayloadUnsafe).Body)
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Pull request review approved: [#12 Fix bug](http://localhost:3000/test/repo/pulls/12) by <a href="https://try.gitea.io/user1">user1</a>`, pl.(*MatrixPayloadUnsafe).FormattedBody)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Pull request review approved: <a href="http://localhost:3000/test/repo/pulls/12">#12 Fix bug</a> by <a href="https://try.gitea.io/user1">user1</a>`, pl.(*MatrixPayloadUnsafe).FormattedBody)
 	})
 
 	t.Run("Repository", func(t *testing.T) {
@@ -154,6 +154,38 @@ func TestMatrixPayload(t *testing.T) {
 
 		assert.Equal(t, `[[test/repo](http://localhost:3000/test/repo)] Repository created by [user1](https://try.gitea.io/user1)`, pl.(*MatrixPayloadUnsafe).Body)
 		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Repository created by <a href="https://try.gitea.io/user1">user1</a>`, pl.(*MatrixPayloadUnsafe).FormattedBody)
+	})
+
+	t.Run("Wiki", func(t *testing.T) {
+		p := wikiTestPayload()
+
+		d := new(MatrixPayloadUnsafe)
+		p.Action = api.HookWikiCreated
+		pl, err := d.Wiki(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &MatrixPayloadUnsafe{}, pl)
+
+		assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] New wiki page '[index](http://localhost:3000/test/repo/wiki/index)' (Wiki change comment) by [user1](https://try.gitea.io/user1)", pl.(*MatrixPayloadUnsafe).Body)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] New wiki page '<a href="http://localhost:3000/test/repo/wiki/index">index</a>' (Wiki change comment) by <a href="https://try.gitea.io/user1">user1</a>`, pl.(*MatrixPayloadUnsafe).FormattedBody)
+
+		p.Action = api.HookWikiEdited
+		pl, err = d.Wiki(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &MatrixPayloadUnsafe{}, pl)
+
+		assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] Wiki page '[index](http://localhost:3000/test/repo/wiki/index)' edited (Wiki change comment) by [user1](https://try.gitea.io/user1)", pl.(*MatrixPayloadUnsafe).Body)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Wiki page '<a href="http://localhost:3000/test/repo/wiki/index">index</a>' edited (Wiki change comment) by <a href="https://try.gitea.io/user1">user1</a>`, pl.(*MatrixPayloadUnsafe).FormattedBody)
+
+		p.Action = api.HookWikiDeleted
+		pl, err = d.Wiki(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &MatrixPayloadUnsafe{}, pl)
+
+		assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] Wiki page '[index](http://localhost:3000/test/repo/wiki/index)' deleted by [user1](https://try.gitea.io/user1)", pl.(*MatrixPayloadUnsafe).Body)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Wiki page '<a href="http://localhost:3000/test/repo/wiki/index">index</a>' deleted by <a href="https://try.gitea.io/user1">user1</a>`, pl.(*MatrixPayloadUnsafe).FormattedBody)
 	})
 
 	t.Run("Release", func(t *testing.T) {

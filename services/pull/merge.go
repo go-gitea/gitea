@@ -28,6 +28,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/references"
@@ -165,9 +166,10 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 		go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false, "", "")
 	}()
 
-	// TODO: make it able to do this in a database session
-	mergeCtx := context.Background()
-	pr.MergedCommitID, err = rawMerge(mergeCtx, pr, doer, mergeStyle, expectedHeadCommitID, message)
+	// Run the merge in the hammer context to prevent cancellation
+	hammerCtx := graceful.GetManager().HammerContext()
+
+	pr.MergedCommitID, err = rawMerge(hammerCtx, pr, doer, mergeStyle, expectedHeadCommitID, message)
 	if err != nil {
 		return err
 	}
@@ -176,18 +178,18 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	pr.Merger = doer
 	pr.MergerID = doer.ID
 
-	if _, err := pr.SetMerged(ctx); err != nil {
+	if _, err := pr.SetMerged(hammerCtx); err != nil {
 		log.Error("setMerged [%d]: %v", pr.ID, err)
 	}
 
-	if err := pr.LoadIssueCtx(ctx); err != nil {
+	if err := pr.LoadIssueCtx(hammerCtx); err != nil {
 		log.Error("loadIssue [%d]: %v", pr.ID, err)
 	}
 
-	if err := pr.Issue.LoadRepo(ctx); err != nil {
+	if err := pr.Issue.LoadRepo(hammerCtx); err != nil {
 		log.Error("loadRepo for issue [%d]: %v", pr.ID, err)
 	}
-	if err := pr.Issue.Repo.GetOwner(ctx); err != nil {
+	if err := pr.Issue.Repo.GetOwner(hammerCtx); err != nil {
 		log.Error("GetOwner for issue repo [%d]: %v", pr.ID, err)
 	}
 
@@ -197,17 +199,17 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	cache.Remove(pr.Issue.Repo.GetCommitsCountCacheKey(pr.BaseBranch, true))
 
 	// Resolve cross references
-	refs, err := pr.ResolveCrossReferences(ctx)
+	refs, err := pr.ResolveCrossReferences(hammerCtx)
 	if err != nil {
 		log.Error("ResolveCrossReferences: %v", err)
 		return nil
 	}
 
 	for _, ref := range refs {
-		if err = ref.LoadIssueCtx(ctx); err != nil {
+		if err = ref.LoadIssueCtx(hammerCtx); err != nil {
 			return err
 		}
-		if err = ref.Issue.LoadRepo(ctx); err != nil {
+		if err = ref.Issue.LoadRepo(hammerCtx); err != nil {
 			return err
 		}
 		close := ref.RefAction == references.XRefActionCloses
@@ -276,15 +278,8 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 		return "", fmt.Errorf("Unable to write .git/info/sparse-checkout file in tmpBasePath: %v", err)
 	}
 
-	var gitConfigCommand func() *git.Command
-	if git.CheckGitVersionAtLeast("1.8.0") == nil {
-		gitConfigCommand = func() *git.Command {
-			return git.NewCommand(ctx, "config", "--local")
-		}
-	} else {
-		gitConfigCommand = func() *git.Command {
-			return git.NewCommand(ctx, "config")
-		}
+	gitConfigCommand := func() *git.Command {
+		return git.NewCommand(ctx, "config", "--local")
 	}
 
 	// Switch off LFS process (set required, clean and smudge here also)
@@ -365,17 +360,15 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 	committer := sig
 
 	// Determine if we should sign
-	signArg := ""
-	if git.CheckGitVersionAtLeast("1.7.9") == nil {
-		sign, keyID, signer, _ := asymkey_service.SignMerge(ctx, pr, doer, tmpBasePath, "HEAD", trackingBranch)
-		if sign {
-			signArg = "-S" + keyID
-			if pr.BaseRepo.GetTrustModel() == repo_model.CommitterTrustModel || pr.BaseRepo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
-				committer = signer
-			}
-		} else if git.CheckGitVersionAtLeast("2.0.0") == nil {
-			signArg = "--no-gpg-sign"
+	var signArg string
+	sign, keyID, signer, _ := asymkey_service.SignMerge(ctx, pr, doer, tmpBasePath, "HEAD", trackingBranch)
+	if sign {
+		signArg = "-S" + keyID
+		if pr.BaseRepo.GetTrustModel() == repo_model.CommitterTrustModel || pr.BaseRepo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
+			committer = signer
 		}
+	} else {
+		signArg = "--no-gpg-sign"
 	}
 
 	commitTimeStr := time.Now().Format(time.RFC3339)
@@ -867,7 +860,7 @@ func MergedManually(pr *issues_model.PullRequest, doer *user_model.User, baseGit
 		pr.Merger = doer
 		pr.MergerID = doer.ID
 
-		merged := false
+		var merged bool
 		if merged, err = pr.SetMerged(ctx); err != nil {
 			return err
 		} else if !merged {

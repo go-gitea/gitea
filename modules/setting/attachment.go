@@ -27,7 +27,7 @@ func newAttachmentService() {
 
 	Attachment.Storage = getStorage("attachments", storageType, sec)
 
-	Attachment.AllowedTypes = sec.Key("ALLOWED_TYPES").MustString(".docx,.gif,.gz,.jpeg,.jpg,.mp4,.log,.pdf,.png,.pptx,.txt,.xlsx,.zip")
+	Attachment.AllowedTypes = sec.Key("ALLOWED_TYPES").MustString(".csv,.docx,.fodg,.fodp,.fods,.fodt,.gif,.gz,.jpeg,.jpg,.log,.md,.mov,.mp4,.odf,.odg,.odp,.ods,.odt,.pdf,.png,.pptx,.svg,.tgz,.txt,.webm,.xls,.xlsx,.zip")
 	Attachment.MaxSize = sec.Key("MAX_SIZE").MustInt64(4)
 	Attachment.MaxFiles = sec.Key("MAX_FILES").MustInt(5)
 	Attachment.Enabled = sec.Key("ENABLED").MustBool(true)

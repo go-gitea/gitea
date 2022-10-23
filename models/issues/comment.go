@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -47,6 +48,10 @@ func IsErrCommentNotExist(err error) bool {
 
 func (err ErrCommentNotExist) Error() string {
 	return fmt.Sprintf("comment does not exist [id: %d, issue_id: %d]", err.ID, err.IssueID)
+}
+
+func (err ErrCommentNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // CommentType defines whether a comment is just a simple comment, an action (like close) or a reference.
@@ -318,7 +323,7 @@ func (c *Comment) LoadIssueCtx(ctx context.Context) (err error) {
 		return nil
 	}
 	c.Issue, err = GetIssueByID(ctx, c.IssueID)
-	return
+	return err
 }
 
 // BeforeInsert will be invoked by XORM before inserting a record
@@ -630,7 +635,7 @@ func (c *Comment) LoadResolveDoer() (err error) {
 			err = nil
 		}
 	}
-	return
+	return err
 }
 
 // IsResolved check if an code comment is resolved
@@ -959,7 +964,7 @@ func createIssueDependencyComment(ctx context.Context, doer *user_model.User, is
 		DependentIssueID: issue.ID,
 	}
 	_, err = CreateCommentCtx(ctx, opts)
-	return
+	return err
 }
 
 // CreateCommentOptions defines options for creating comment
@@ -1355,7 +1360,7 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *Pul
 
 	comment, err = CreateComment(ops)
 
-	return
+	return comment, err
 }
 
 // CreateAutoMergeComment is a internal function, only use it for CommentTypePRScheduledToAutoMerge and CommentTypePRUnScheduledToAutoMerge CommentTypes
@@ -1377,7 +1382,7 @@ func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullReques
 		Repo:  pr.BaseRepo,
 		Issue: pr.Issue,
 	})
-	return
+	return comment, err
 }
 
 // getCommitsFromRepo get commit IDs from repo in between oldCommitID and newCommitID
@@ -1439,7 +1444,7 @@ func getCommitIDsFromRepo(ctx context.Context, repo *repo_model.Repository, oldC
 		}
 	}
 
-	return
+	return commitIDs, isForcePush, err
 }
 
 type commitBranchCheckItem struct {

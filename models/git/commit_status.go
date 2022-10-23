@@ -74,7 +74,7 @@ func upsertCommitStatusIndex(ctx context.Context, repoID int64, sha string) (err
 	default:
 		return fmt.Errorf("database type not supported")
 	}
-	return
+	return err
 }
 
 // GetNextCommitStatusIndex retried 3 times to generate a resource index

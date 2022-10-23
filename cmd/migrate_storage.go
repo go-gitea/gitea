@@ -12,9 +12,11 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/migrations"
+	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	packages_module "code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 
@@ -25,13 +27,13 @@ import (
 var CmdMigrateStorage = cli.Command{
 	Name:        "migrate-storage",
 	Usage:       "Migrate the storage",
-	Description: "This is a command for migrating storage.",
+	Description: "Copies stored files from storage configured in app.ini to parameter-configured storage",
 	Action:      runMigrateStorage,
 	Flags: []cli.Flag{
 		cli.StringFlag{
 			Name:  "type, t",
 			Value: "",
-			Usage: "Kinds of files to migrate, currently only 'attachments' is supported",
+			Usage: "Type of stored files to copy.  Allowed types: 'attachments', 'lfs', 'avatars', 'repo-avatars', 'repo-archivers', 'packages'",
 		},
 		cli.StringFlag{
 			Name:  "storage, s",
@@ -80,30 +82,46 @@ var CmdMigrateStorage = cli.Command{
 	},
 }
 
-func migrateAttachments(dstStorage storage.ObjectStorage) error {
-	return repo_model.IterateAttachment(func(attach *repo_model.Attachment) error {
+func migrateAttachments(ctx context.Context, dstStorage storage.ObjectStorage) error {
+	return db.IterateObjects(ctx, func(attach *repo_model.Attachment) error {
 		_, err := storage.Copy(dstStorage, attach.RelativePath(), storage.Attachments, attach.RelativePath())
 		return err
 	})
 }
 
-func migrateLFS(dstStorage storage.ObjectStorage) error {
-	return git_model.IterateLFS(func(mo *git_model.LFSMetaObject) error {
+func migrateLFS(ctx context.Context, dstStorage storage.ObjectStorage) error {
+	return db.IterateObjects(ctx, func(mo *git_model.LFSMetaObject) error {
 		_, err := storage.Copy(dstStorage, mo.RelativePath(), storage.LFS, mo.RelativePath())
 		return err
 	})
 }
 
-func migrateAvatars(dstStorage storage.ObjectStorage) error {
-	return user_model.IterateUser(func(user *user_model.User) error {
+func migrateAvatars(ctx context.Context, dstStorage storage.ObjectStorage) error {
+	return db.IterateObjects(ctx, func(user *user_model.User) error {
 		_, err := storage.Copy(dstStorage, user.CustomAvatarRelativePath(), storage.Avatars, user.CustomAvatarRelativePath())
 		return err
 	})
 }
 
-func migrateRepoAvatars(dstStorage storage.ObjectStorage) error {
-	return repo_model.IterateRepository(func(repo *repo_model.Repository) error {
+func migrateRepoAvatars(ctx context.Context, dstStorage storage.ObjectStorage) error {
+	return db.IterateObjects(ctx, func(repo *repo_model.Repository) error {
 		_, err := storage.Copy(dstStorage, repo.CustomAvatarRelativePath(), storage.RepoAvatars, repo.CustomAvatarRelativePath())
+		return err
+	})
+}
+
+func migrateRepoArchivers(ctx context.Context, dstStorage storage.ObjectStorage) error {
+	return db.IterateObjects(ctx, func(archiver *repo_model.RepoArchiver) error {
+		p := archiver.RelativePath()
+		_, err := storage.Copy(dstStorage, p, storage.RepoArchives, p)
+		return err
+	})
+}
+
+func migratePackages(ctx context.Context, dstStorage storage.ObjectStorage) error {
+	return db.IterateObjects(ctx, func(pb *packages_model.PackageBlob) error {
+		p := packages_module.KeyToRelativePath(packages_module.BlobHash256Key(pb.HashSHA256))
+		_, err := storage.Copy(dstStorage, p, storage.Packages, p)
 		return err
 	})
 }
@@ -127,8 +145,6 @@ func runMigrateStorage(ctx *cli.Context) error {
 		return err
 	}
 
-	goCtx := context.Background()
-
 	if err := storage.Init(); err != nil {
 		return err
 	}
@@ -145,13 +161,13 @@ func runMigrateStorage(ctx *cli.Context) error {
 			return nil
 		}
 		dstStorage, err = storage.NewLocalStorage(
-			goCtx,
+			stdCtx,
 			storage.LocalStorageConfig{
 				Path: p,
 			})
 	case string(storage.MinioStorageType):
 		dstStorage, err = storage.NewMinioStorage(
-			goCtx,
+			stdCtx,
 			storage.MinioStorageConfig{
 				Endpoint:        ctx.String("minio-endpoint"),
 				AccessKeyID:     ctx.String("minio-access-key-id"),
@@ -162,35 +178,29 @@ func runMigrateStorage(ctx *cli.Context) error {
 				UseSSL:          ctx.Bool("minio-use-ssl"),
 			})
 	default:
-		return fmt.Errorf("Unsupported storage type: %s", ctx.String("storage"))
+		return fmt.Errorf("unsupported storage type: %s", ctx.String("storage"))
 	}
 	if err != nil {
 		return err
 	}
 
-	tp := strings.ToLower(ctx.String("type"))
-	switch tp {
-	case "attachments":
-		if err := migrateAttachments(dstStorage); err != nil {
-			return err
-		}
-	case "lfs":
-		if err := migrateLFS(dstStorage); err != nil {
-			return err
-		}
-	case "avatars":
-		if err := migrateAvatars(dstStorage); err != nil {
-			return err
-		}
-	case "repo-avatars":
-		if err := migrateRepoAvatars(dstStorage); err != nil {
-			return err
-		}
-	default:
-		return fmt.Errorf("Unsupported storage: %s", ctx.String("type"))
+	migratedMethods := map[string]func(context.Context, storage.ObjectStorage) error{
+		"attachments":    migrateAttachments,
+		"lfs":            migrateLFS,
+		"avatars":        migrateAvatars,
+		"repo-avatars":   migrateRepoAvatars,
+		"repo-archivers": migrateRepoArchivers,
+		"packages":       migratePackages,
 	}
 
-	log.Warn("All files have been copied to the new placement but old files are still on the original placement.")
+	tp := strings.ToLower(ctx.String("type"))
+	if m, ok := migratedMethods[tp]; ok {
+		if err := m(stdCtx, dstStorage); err != nil {
+			return err
+		}
+		log.Info("%s files have successfully been copied to the new storage.", tp)
+		return nil
+	}
 
-	return nil
+	return fmt.Errorf("unsupported storage: %s", ctx.String("type"))
 }
