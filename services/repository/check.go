@@ -24,7 +24,7 @@ import (
 )
 
 // GitFsck calls 'git fsck' to check repository health.
-func GitFsck(ctx context.Context, timeout time.Duration, args []string) error {
+func GitFsck(ctx context.Context, timeout time.Duration, args []git.CmdArg) error {
 	log.Trace("Doing: GitFsck")
 
 	if err := db.Iterate(
@@ -58,9 +58,9 @@ func GitFsck(ctx context.Context, timeout time.Duration, args []string) error {
 }
 
 // GitGcRepos calls 'git gc' to remove unnecessary files and optimize the local repository
-func GitGcRepos(ctx context.Context, timeout time.Duration, args ...string) error {
+func GitGcRepos(ctx context.Context, timeout time.Duration, args ...git.CmdArg) error {
 	log.Trace("Doing: GitGcRepos")
-	args = append([]string{"gc"}, args...)
+	args = append([]git.CmdArg{"gc"}, args...)
 
 	if err := db.Iterate(
 		ctx,
