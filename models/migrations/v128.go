@@ -83,7 +83,7 @@ func fixMergeBase(x *xorm.Engine) error {
 
 			if !pr.HasMerged {
 				var err error
-				pr.MergeBase, _, err = git.NewCommand(git.DefaultContext, "merge-base").AddSlashedArguments(pr.BaseBranch, gitRefName).RunStdString(&git.RunOpts{Dir: repoPath})
+				pr.MergeBase, _, err = git.NewCommand(git.DefaultContext, "merge-base").AddDashesAndList(pr.BaseBranch, gitRefName).RunStdString(&git.RunOpts{Dir: repoPath})
 				if err != nil {
 					var err2 error
 					pr.MergeBase, _, err2 = git.NewCommand(git.DefaultContext, "rev-parse").AddDynamicArguments(git.BranchPrefix + pr.BaseBranch).RunStdString(&git.RunOpts{Dir: repoPath})
@@ -105,7 +105,7 @@ func fixMergeBase(x *xorm.Engine) error {
 
 				refs := append([]string{}, parents[1:]...)
 				refs = append(refs, gitRefName)
-				cmd := git.NewCommand(git.DefaultContext, "merge-base").AddSlashedArguments(refs...)
+				cmd := git.NewCommand(git.DefaultContext, "merge-base").AddDashesAndList(refs...)
 
 				pr.MergeBase, _, err = cmd.RunStdString(&git.RunOpts{Dir: repoPath})
 				if err != nil {

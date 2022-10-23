@@ -8,7 +8,7 @@ import "fmt"
 
 // FileBlame return the Blame object of file
 func (repo *Repository) FileBlame(revision, path, file string) ([]byte, error) {
-	stdout, _, err := NewCommand(repo.Ctx, "blame", "--root").AddSlashedArguments(file).RunStdBytes(&RunOpts{Dir: path})
+	stdout, _, err := NewCommand(repo.Ctx, "blame", "--root").AddDashesAndList(file).RunStdBytes(&RunOpts{Dir: path})
 	return stdout, err
 }
 
@@ -17,7 +17,7 @@ func (repo *Repository) LineBlame(revision, path, file string, line uint) (*Comm
 	res, _, err := NewCommand(repo.Ctx, "blame").
 		AddArguments(CmdArg(fmt.Sprintf("-L %d,%d", line, line))).
 		AddArguments("-p").AddDynamicArguments(revision).
-		AddSlashedArguments(file).RunStdString(&RunOpts{Dir: path})
+		AddDashesAndList(file).RunStdString(&RunOpts{Dir: path})
 	if err != nil {
 		return nil, err
 	}

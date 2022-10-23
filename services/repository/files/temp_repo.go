@@ -104,7 +104,7 @@ func (t *TemporaryUploadRepository) LsFiles(filenames ...string) ([]string, erro
 	stdOut := new(bytes.Buffer)
 	stdErr := new(bytes.Buffer)
 
-	if err := git.NewCommand(t.ctx, "ls-files", "-z").AddSlashedArguments(filenames...).
+	if err := git.NewCommand(t.ctx, "ls-files", "-z").AddDashesAndList(filenames...).
 		Run(&git.RunOpts{
 			Dir:    t.basePath,
 			Stdout: stdOut,

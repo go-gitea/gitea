@@ -25,7 +25,7 @@ const PullRequestPrefix = "refs/for/"
 
 // IsReferenceExist returns true if given reference exists in the repository.
 func IsReferenceExist(ctx context.Context, repoPath, name string) bool {
-	_, _, err := NewCommand(ctx, "show-ref", "--verify").AddSlashedArguments(name).RunStdString(&RunOpts{Dir: repoPath})
+	_, _, err := NewCommand(ctx, "show-ref", "--verify").AddDashesAndList(name).RunStdString(&RunOpts{Dir: repoPath})
 	return err == nil
 }
 
@@ -141,7 +141,7 @@ func (repo *Repository) DeleteBranch(name string, opts DeleteBranchOptions) erro
 		cmd.AddArguments("-d")
 	}
 
-	cmd.AddSlashedArguments(name)
+	cmd.AddDashesAndList(name)
 	_, _, err := cmd.RunStdString(&RunOpts{Dir: repo.Path})
 
 	return err
@@ -150,7 +150,7 @@ func (repo *Repository) DeleteBranch(name string, opts DeleteBranchOptions) erro
 // CreateBranch create a new branch
 func (repo *Repository) CreateBranch(branch, oldbranchOrCommit string) error {
 	cmd := NewCommand(repo.Ctx, "branch")
-	cmd.AddSlashedArguments(branch, oldbranchOrCommit)
+	cmd.AddDashesAndList(branch, oldbranchOrCommit)
 
 	_, _, err := cmd.RunStdString(&RunOpts{Dir: repo.Path})
 

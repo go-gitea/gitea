@@ -60,7 +60,7 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 		cmd.AddArguments("--cached")
 	}
 
-	cmd.AddSlashedArguments(opts.Filenames...)
+	cmd.AddDashesAndList(opts.Filenames...)
 
 	if err := cmd.Run(&RunOpts{
 		Env:    env,

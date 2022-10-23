@@ -170,7 +170,7 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revisio
 	}
 
 	cmd := git.NewCommand(ctx, "ls-tree", "--full-tree", "-l").AddDynamicArguments(revision).
-		AddSlashedArguments(updatedFilenames...)
+		AddDashesAndList(updatedFilenames...)
 	lsTreeStdout, _, err := cmd.RunStdBytes(&git.RunOpts{Dir: repo.RepoPath()})
 	if err != nil {
 		return nil, err

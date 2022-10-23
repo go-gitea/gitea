@@ -75,7 +75,7 @@ func (repo *Repository) EmptyIndex() error {
 
 // LsFiles checks if the given filenames are in the index
 func (repo *Repository) LsFiles(filenames ...string) ([]string, error) {
-	cmd := NewCommand(repo.Ctx, "ls-files", "-z").AddSlashedArguments(filenames...)
+	cmd := NewCommand(repo.Ctx, "ls-files", "-z").AddDashesAndList(filenames...)
 	res, _, err := cmd.RunStdBytes(&RunOpts{Dir: repo.Path})
 	if err != nil {
 		return nil, err

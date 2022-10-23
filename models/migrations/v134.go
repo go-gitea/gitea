@@ -93,7 +93,7 @@ func refixMergeBase(x *xorm.Engine) error {
 			// we should recalculate
 			refs := append([]string{}, parents[1:]...)
 			refs = append(refs, gitRefName)
-			cmd := git.NewCommand(git.DefaultContext, "merge-base").AddSlashedArguments(refs...)
+			cmd := git.NewCommand(git.DefaultContext, "merge-base").AddDashesAndList(refs...)
 
 			pr.MergeBase, _, err = cmd.RunStdString(&git.RunOpts{Dir: repoPath})
 			if err != nil {

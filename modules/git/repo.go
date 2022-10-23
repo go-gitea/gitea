@@ -150,7 +150,7 @@ func CloneWithArgs(ctx context.Context, args []CmdArg, from, to string, opts Clo
 	if len(opts.Branch) > 0 {
 		cmd.AddArguments("-b").AddDynamicArguments(opts.Branch)
 	}
-	cmd.AddSlashedArguments(from, to)
+	cmd.AddDashesAndList(from, to)
 
 	if strings.Contains(from, "://") && strings.Contains(from, "@") {
 		cmd.SetDescription(fmt.Sprintf("clone branch %s from %s to %s (shared: %t, mirror: %t, depth: %d)", opts.Branch, util.SanitizeCredentialURLs(from), to, opts.Shared, opts.Mirror, opts.Depth))
@@ -205,7 +205,7 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	if len(opts.Branch) > 0 {
 		remoteBranchArgs = append(remoteBranchArgs, opts.Branch)
 	}
-	cmd.AddSlashedArguments(remoteBranchArgs...)
+	cmd.AddDashesAndList(remoteBranchArgs...)
 
 	if strings.Contains(opts.Remote, "://") && strings.Contains(opts.Remote, "@") {
 		cmd.SetDescription(fmt.Sprintf("push branch %s to %s (force: %t, mirror: %t)", opts.Branch, util.SanitizeCredentialURLs(opts.Remote), opts.Force, opts.Mirror))

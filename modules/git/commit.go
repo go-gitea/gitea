@@ -97,7 +97,7 @@ func AddChangesWithArgs(repoPath string, globalArgs []CmdArg, all bool, files ..
 	if all {
 		cmd.AddArguments("--all")
 	}
-	cmd.AddSlashedArguments(files...)
+	cmd.AddDashesAndList(files...)
 	_, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
 	return err
 }
@@ -150,7 +150,7 @@ func AllCommitsCount(ctx context.Context, repoPath string, hidePRRefs bool, file
 	}
 	cmd.AddArguments("--all", "--count")
 	if len(files) > 0 {
-		cmd.AddSlashedArguments(files...)
+		cmd.AddDashesAndList(files...)
 	}
 
 	stdout, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
@@ -166,7 +166,7 @@ func CommitsCountFiles(ctx context.Context, repoPath string, revision, relpath [
 	cmd := NewCommand(ctx, "rev-list", "--count")
 	cmd.AddDynamicArguments(revision...)
 	if len(relpath) > 0 {
-		cmd.AddSlashedArguments(relpath...)
+		cmd.AddDashesAndList(relpath...)
 	}
 
 	stdout, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})

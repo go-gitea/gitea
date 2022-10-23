@@ -61,7 +61,7 @@ func (repo *Repository) getCommitByPathWithID(id SHA1, relpath string) (*Commit,
 		relpath = `\` + relpath
 	}
 
-	stdout, _, runErr := NewCommand(repo.Ctx, "log", "-1", prettyLogFormat).AddDynamicArguments(id.String()).AddSlashedArguments(relpath).RunStdString(&RunOpts{Dir: repo.Path})
+	stdout, _, runErr := NewCommand(repo.Ctx, "log", "-1", prettyLogFormat).AddDynamicArguments(id.String()).AddDashesAndList(relpath).RunStdString(&RunOpts{Dir: repo.Path})
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -76,7 +76,7 @@ func (repo *Repository) getCommitByPathWithID(id SHA1, relpath string) (*Commit,
 
 // GetCommitByPath returns the last commit of relative path.
 func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
-	stdout, _, runErr := NewCommand(repo.Ctx, "log", "-1", prettyLogFormat).AddSlashedArguments(relpath).RunStdBytes(&RunOpts{Dir: repo.Path})
+	stdout, _, runErr := NewCommand(repo.Ctx, "log", "-1", prettyLogFormat).AddDashesAndList(relpath).RunStdBytes(&RunOpts{Dir: repo.Path})
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -190,7 +190,7 @@ func (repo *Repository) getFilesChanged(id1, id2 string) ([]string, error) {
 // FileChangedBetweenCommits Returns true if the file changed between commit IDs id1 and id2
 // You must ensure that id1 and id2 are valid commit ids.
 func (repo *Repository) FileChangedBetweenCommits(filename, id1, id2 string) (bool, error) {
-	stdout, _, err := NewCommand(repo.Ctx, "diff", "--name-only", "-z").AddDynamicArguments(id1, id2).AddSlashedArguments(filename).RunStdBytes(&RunOpts{Dir: repo.Path})
+	stdout, _, err := NewCommand(repo.Ctx, "diff", "--name-only", "-z").AddDynamicArguments(id1, id2).AddDashesAndList(filename).RunStdBytes(&RunOpts{Dir: repo.Path})
 	if err != nil {
 		return false, err
 	}
@@ -217,7 +217,7 @@ func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) (
 			AddArguments(CmdArg("--max-count=" + strconv.Itoa(setting.Git.CommitsRangeSize*page))).
 			AddArguments(CmdArg("--skip=" + strconv.Itoa(skip)))
 		gitCmd.AddDynamicArguments(revision)
-		gitCmd.AddSlashedArguments(file)
+		gitCmd.AddDashesAndList(file)
 		err := gitCmd.Run(&RunOpts{
 			Dir:    repo.Path,
 			Stdout: stdoutWriter,

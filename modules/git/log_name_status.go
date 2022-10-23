@@ -57,7 +57,7 @@ func LogNameStatusRepo(ctx context.Context, repository, head, treepath string, p
 	} else if treepath != "" {
 		files = append(files, treepath)
 	}
-	cmd.AddSlashedArguments(files...)
+	cmd.AddDashesAndList(files...)
 
 	go func() {
 		stderr := strings.Builder{}

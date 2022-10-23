@@ -109,7 +109,7 @@ func createTemporaryRepo(ctx context.Context, pr *issues_model.PullRequest) (str
 	outbuf.Reset()
 	errbuf.Reset()
 
-	if err := git.NewCommand(ctx, "fetch", "origin", "--no-tags").AddSlashedArguments(pr.BaseBranch+":"+baseBranch, pr.BaseBranch+":original_"+baseBranch).
+	if err := git.NewCommand(ctx, "fetch", "origin", "--no-tags").AddDashesAndList(pr.BaseBranch+":"+baseBranch, pr.BaseBranch+":original_"+baseBranch).
 		Run(&git.RunOpts{
 			Dir:    tmpBasePath,
 			Stdout: &outbuf,

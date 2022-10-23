@@ -45,7 +45,7 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 		graphCmd.AddDynamicArguments(branches...)
 	}
 	if len(files) > 0 {
-		graphCmd.AddSlashedArguments(files...)
+		graphCmd.AddDashesAndList(files...)
 	}
 	graph := NewGraph()
 

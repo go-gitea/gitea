@@ -128,8 +128,9 @@ func (c *Command) AddDynamicArguments(args ...string) *Command {
 	return c
 }
 
-// AddSlashedArguments adds the "--" and then add the arguments
-func (c *Command) AddSlashedArguments(list ...string) *Command {
+// AddDashesAndList adds the "--" and then add the list as arguments, it's usually for adding file list
+// At the moment, this function can be only called once, maybe in future it can be refactored to support multiple calls (if necessary)
+func (c *Command) AddDashesAndList(list ...string) *Command {
 	c.args = append(c.args, "--")
 	// Some old code also checks `arg != ""`, IMO it's not necessary.
 	// If the check is needed, the list should be prepared before the call to this function

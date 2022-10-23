@@ -556,7 +556,7 @@ func (g *RepositoryDumper) handlePullRequest(pr *base.PullRequest) error {
 			fetchArg = git.BranchPrefix + fetchArg
 		}
 
-		_, _, err = git.NewCommand(g.ctx, "fetch", "--no-tags").AddSlashedArguments(remote, fetchArg).RunStdString(&git.RunOpts{Dir: g.gitPath()})
+		_, _, err = git.NewCommand(g.ctx, "fetch", "--no-tags").AddDashesAndList(remote, fetchArg).RunStdString(&git.RunOpts{Dir: g.gitPath()})
 		if err != nil {
 			log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
 			// We need to continue here so that the Head.Ref is reset and we attempt to set the gitref for the PR
