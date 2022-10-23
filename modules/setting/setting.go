@@ -436,8 +436,8 @@ var (
 	// Highlight settings are loaded in modules/template/highlight.go
 
 	// Show settings
-	ShowFooterGitHub                 bool
-	ShowFooterLicense                bool
+	ShowFooterGitHub           bool
+	ShowFooterLicense          bool
 	ShowFooterBranding         bool
 	ShowFooterVersion          bool
 	ShowFooterTemplateLoadTime bool
