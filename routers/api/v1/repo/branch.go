@@ -22,8 +22,6 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
-
-	"github.com/gobwas/glob"
 )
 
 // GetBranch get a branch of a repository
@@ -411,15 +409,10 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.CreateBranchProtectionOption)
 	repo := ctx.Repo.Repository
 
-	g, err := glob.Compile(form.RuleName, '/')
-	if err != nil {
-		ctx.Error(http.StatusBadRequest, "Create branch protection", "Branch protection rule name is not right")
-		return
-	}
-	isPlainRule := g.Match(form.RuleName)
-	isBranchName := isPlainRule
-	if isBranchName {
-		isBranchName = git.IsBranchExist(ctx.Req.Context(), ctx.Repo.Repository.RepoPath(), form.RuleName)
+	isPlainRule := !git_model.IsRuleNameSpecial(form.RuleName)
+	var isBranchExist bool
+	if isPlainRule {
+		isBranchExist = git.IsBranchExist(ctx.Req.Context(), ctx.Repo.Repository.RepoPath(), form.RuleName)
 	}
 
 	protectBranch, err := git_model.GetProtectedBranchRuleByName(ctx, repo.ID, form.RuleName)
@@ -527,7 +520,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		return
 	}
 
-	if isBranchName {
+	if isBranchExist {
 		if err = pull_service.CheckPRsForBaseBranch(ctx.Repo.Repository, form.RuleName); err != nil {
 			ctx.Error(http.StatusInternalServerError, "CheckPRsForBaseBranch", err)
 			return
@@ -791,18 +784,13 @@ func EditBranchProtection(ctx *context.APIContext) {
 		return
 	}
 
-	g, err := glob.Compile(bpName, '/')
-	if err != nil {
-		ctx.Error(http.StatusBadRequest, "Create branch protection", "Branch protection rule name is not right")
-		return
-	}
-	isPlainRule := g.Match(bpName)
-	isBranchName := isPlainRule
-	if isBranchName {
-		isBranchName = git.IsBranchExist(ctx.Req.Context(), ctx.Repo.Repository.RepoPath(), bpName)
+	isPlainRule := !git_model.IsRuleNameSpecial(bpName)
+	var isBranchExist bool
+	if isPlainRule {
+		isBranchExist = git.IsBranchExist(ctx.Req.Context(), ctx.Repo.Repository.RepoPath(), bpName)
 	}
 
-	if isBranchName {
+	if isBranchExist {
 		if err = pull_service.CheckPRsForBaseBranch(ctx.Repo.Repository, bpName); err != nil {
 			ctx.Error(http.StatusInternalServerError, "CheckPrsForBaseBranch", err)
 			return

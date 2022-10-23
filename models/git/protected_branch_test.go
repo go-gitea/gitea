@@ -52,6 +52,16 @@ func TestBranchRuleMatch(t *testing.T) {
 			BranchName:    "release/v1.16",
 			ExpectedMatch: true,
 		},
+		{
+			Rule:          "main",
+			BranchName:    "main",
+			ExpectedMatch: true,
+		},
+		{
+			Rule:          "master",
+			BranchName:    "main",
+			ExpectedMatch: false,
+		},
 	}
 
 	for _, kase := range kases {

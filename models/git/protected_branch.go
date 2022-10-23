@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gobwas/glob"
+	"github.com/gobwas/glob/syntax"
 )
 
 // ProtectedBranch struct
@@ -61,10 +62,20 @@ func init() {
 	db.RegisterModel(new(ProtectedBranch))
 }
 
+// IsRuleNameSpecial return true if it contains special charactor
+func IsRuleNameSpecial(ruleName string) bool {
+	for i := 0; i < len(ruleName); i++ {
+		if syntax.Special(ruleName[i]) {
+			return true
+		}
+	}
+	return false
+}
+
 func (protectBranch *ProtectedBranch) loadGlob() {
 	if protectBranch.globRule == nil {
 		protectBranch.globRule = glob.MustCompile(protectBranch.RuleName, '/')
-		protectBranch.isPlainName = protectBranch.globRule.Match(protectBranch.RuleName)
+		protectBranch.isPlainName = !IsRuleNameSpecial(protectBranch.RuleName)
 	}
 }
 
