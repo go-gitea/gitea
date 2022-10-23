@@ -247,6 +247,7 @@ files; for named volumes, this is done through another container or by direct ac
 :exclamation::exclamation: **Make sure you have volumed data to somewhere outside Docker container** :exclamation::exclamation:
 
 To upgrade your installation to the latest release:
+
 ```
 # Edit `docker-compose.yml` to update the version, if you have one specified
 # Pull new images

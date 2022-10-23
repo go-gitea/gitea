@@ -93,6 +93,7 @@ func NewFileLogger() LoggerProvider {
 
 // Init file logger with json config.
 // config like:
+//
 //	{
 //	"filename":"log/gogs.log",
 //	"maxsize":1<<30,

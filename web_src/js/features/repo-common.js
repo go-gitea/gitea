@@ -44,8 +44,6 @@ export function initRepoArchiveLinks() {
 }
 
 export function initRepoCloneLink() {
-  const defaultGitProtocol = 'https'; // ssh or https
-
   const $repoCloneSsh = $('#repo-clone-ssh');
   const $repoCloneHttps = $('#repo-clone-https');
   const $inputLink = $('#repo-clone-url');
@@ -54,44 +52,22 @@ export function initRepoCloneLink() {
     return;
   }
 
-  const updateUi = () => {
-    let isSSH = (localStorage.getItem('repo-clone-protocol') || defaultGitProtocol) === 'ssh';
-    // there must be at least one clone button (by context/repo.go). if no ssh, then there must be https.
-    if (isSSH && $repoCloneSsh.length === 0) {
-      isSSH = false;
-    } else if (!isSSH && $repoCloneHttps.length === 0) {
-      isSSH = true;
-    }
-    const cloneLink = (isSSH ? $repoCloneSsh : $repoCloneHttps).attr('data-link');
-    $inputLink.val(cloneLink);
-    if (isSSH) {
-      $repoCloneSsh.addClass('primary');
-      $repoCloneHttps.removeClass('primary');
-    } else {
-      $repoCloneSsh.removeClass('primary');
-      $repoCloneHttps.addClass('primary');
-    }
-    // the empty repo guide
-    $('.quickstart .empty-repo-guide .clone-url').text(cloneLink);
-  };
-  updateUi();
-
+  // restore animation after first init
   setTimeout(() => {
-    // restore animation after first init
     $repoCloneSsh.removeClass('no-transition');
     $repoCloneHttps.removeClass('no-transition');
   }, 100);
 
   $repoCloneSsh.on('click', () => {
     localStorage.setItem('repo-clone-protocol', 'ssh');
-    updateUi();
+    window.updateCloneStates();
   });
   $repoCloneHttps.on('click', () => {
     localStorage.setItem('repo-clone-protocol', 'https');
-    updateUi();
+    window.updateCloneStates();
   });
 
-  $inputLink.on('click', () => {
+  $inputLink.on('focus', () => {
     $inputLink.select();
   });
 }

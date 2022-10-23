@@ -10,12 +10,13 @@ import (
 	"regexp"
 	"strings"
 
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/common"
 	"code.gitea.io/gitea/modules/setting"
 	giteautil "code.gitea.io/gitea/modules/util"
 
-	meta "github.com/yuin/goldmark-meta"
+	"github.com/microcosm-cc/bluemonday/css"
 	"github.com/yuin/goldmark/ast"
 	east "github.com/yuin/goldmark/extension/ast"
 	"github.com/yuin/goldmark/parser"
@@ -32,20 +33,12 @@ type ASTTransformer struct{}
 
 // Transform transforms the given AST tree.
 func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc parser.Context) {
-	metaData := meta.GetItems(pc)
 	firstChild := node.FirstChild()
 	createTOC := false
 	ctx := pc.Get(renderContextKey).(*markup.RenderContext)
-	rc := &RenderConfig{
-		Meta: "table",
-		Icon: "table",
-		Lang: "",
-	}
-
-	if metaData != nil {
-		rc.ToRenderConfig(metaData)
-
-		metaNode := rc.toMetaNode(metaData)
+	rc := pc.Get(renderConfigKey).(*RenderConfig)
+	if rc.yamlNode != nil {
+		metaNode := rc.toMetaNode()
 		if metaNode != nil {
 			node.InsertBefore(node, firstChild, metaNode)
 		}
@@ -186,6 +179,11 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 					v.SetHardLineBreak(setting.Markdown.EnableHardLineBreakInDocuments)
 				}
 			}
+		case *ast.CodeSpan:
+			colorContent := n.Text(reader.Source())
+			if css.ColorHandler(strings.ToLower(string(colorContent))) {
+				v.AppendChild(v, NewColorPreview(colorContent))
+			}
 		}
 		return ast.WalkContinue, nil
 	})
@@ -207,7 +205,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 }
 
 type prefixedIDs struct {
-	values map[string]bool
+	values container.Set[string]
 }
 
 // Generate generates a new element id.
@@ -228,14 +226,12 @@ func (p *prefixedIDs) GenerateWithDefault(value, dft []byte) []byte {
 	if !bytes.HasPrefix(result, []byte("user-content-")) {
 		result = append([]byte("user-content-"), result...)
 	}
-	if _, ok := p.values[util.BytesToReadOnlyString(result)]; !ok {
-		p.values[util.BytesToReadOnlyString(result)] = true
+	if p.values.Add(util.BytesToReadOnlyString(result)) {
 		return result
 	}
 	for i := 1; ; i++ {
 		newResult := fmt.Sprintf("%s-%d", result, i)
-		if _, ok := p.values[newResult]; !ok {
-			p.values[newResult] = true
+		if p.values.Add(newResult) {
 			return []byte(newResult)
 		}
 	}
@@ -243,12 +239,12 @@ func (p *prefixedIDs) GenerateWithDefault(value, dft []byte) []byte {
 
 // Put puts a given element id to the used ids table.
 func (p *prefixedIDs) Put(value []byte) {
-	p.values[util.BytesToReadOnlyString(value)] = true
+	p.values.Add(util.BytesToReadOnlyString(value))
 }
 
 func newPrefixedIDs() *prefixedIDs {
 	return &prefixedIDs{
-		values: map[string]bool{},
+		values: make(container.Set[string]),
 	}
 }
 
@@ -276,8 +272,41 @@ func (r *HTMLRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(KindDetails, r.renderDetails)
 	reg.Register(KindSummary, r.renderSummary)
 	reg.Register(KindIcon, r.renderIcon)
+	reg.Register(ast.KindCodeSpan, r.renderCodeSpan)
 	reg.Register(KindTaskCheckBoxListItem, r.renderTaskCheckBoxListItem)
 	reg.Register(east.KindTaskCheckBox, r.renderTaskCheckBox)
+}
+
+// renderCodeSpan renders CodeSpan elements (like goldmark upstream does) but also renders ColorPreview elements.
+// See #21474 for reference
+func (r *HTMLRenderer) renderCodeSpan(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
+	if entering {
+		if n.Attributes() != nil {
+			_, _ = w.WriteString("<code")
+			html.RenderAttributes(w, n, html.CodeAttributeFilter)
+			_ = w.WriteByte('>')
+		} else {
+			_, _ = w.WriteString("<code>")
+		}
+		for c := n.FirstChild(); c != nil; c = c.NextSibling() {
+			switch v := c.(type) {
+			case *ast.Text:
+				segment := v.Segment
+				value := segment.Value(source)
+				if bytes.HasSuffix(value, []byte("\n")) {
+					r.Writer.RawWrite(w, value[:len(value)-1])
+					r.Writer.RawWrite(w, []byte(" "))
+				} else {
+					r.Writer.RawWrite(w, value)
+				}
+			case *ColorPreview:
+				_, _ = w.WriteString(fmt.Sprintf(`<span class="color-preview" style="background-color: %v"></span>`, string(v.Color)))
+			}
+		}
+		return ast.WalkSkipChildren, nil
+	}
+	_, _ = w.WriteString("</code>")
+	return ast.WalkContinue, nil
 }
 
 func (r *HTMLRenderer) renderDocument(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {

@@ -26,7 +26,6 @@ var defaultI18nLangNames = []string{
 	"fi-FI", "Suomi",
 	"tr-TR", "Türkçe",
 	"cs-CZ", "Čeština",
-	"sr-SP", "Српски",
 	"sv-SE", "Svenska",
 	"ko-KR", "한국어",
 	"el-GR", "Ελληνικά",

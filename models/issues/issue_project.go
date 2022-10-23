@@ -68,6 +68,7 @@ func LoadIssuesFromBoard(b *project_model.Board) (IssueList, error) {
 		issues, err := Issues(&IssuesOptions{
 			ProjectBoardID: b.ID,
 			ProjectID:      b.ProjectID,
+			SortType:       "project-column-sorting",
 		})
 		if err != nil {
 			return nil, err
@@ -79,6 +80,7 @@ func LoadIssuesFromBoard(b *project_model.Board) (IssueList, error) {
 		issues, err := Issues(&IssuesOptions{
 			ProjectBoardID: -1, // Issues without ProjectBoardID
 			ProjectID:      b.ProjectID,
+			SortType:       "project-column-sorting",
 		})
 		if err != nil {
 			return nil, err
@@ -123,6 +125,17 @@ func ChangeProjectAssign(issue *Issue, doer *user_model.User, newProjectID int64
 
 func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectID int64) error {
 	oldProjectID := issue.projectID(ctx)
+
+	// Only check if we add a new project and not remove it.
+	if newProjectID > 0 {
+		newProject, err := project_model.GetProjectByID(ctx, newProjectID)
+		if err != nil {
+			return err
+		}
+		if newProject.RepoID != issue.RepoID {
+			return fmt.Errorf("issue's repository is not the same as project's repository")
+		}
+	}
 
 	if _, err := db.GetEngine(ctx).Where("project_issue.issue_id=?", issue.ID).Delete(&project_model.ProjectIssue{}); err != nil {
 		return err

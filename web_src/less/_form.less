@@ -113,7 +113,7 @@ textarea:focus,
 }
 
 .ui.toggle.checkbox label::before {
-  background: var(--color-input-background);
+  background: var(--color-input-toggle-background);
 }
 
 .ui.toggle.checkbox label,
@@ -134,7 +134,7 @@ textarea:focus,
 
 .form {
   .help {
-    color: #999999;
+    color: var(--color-secondary-dark-5);
     padding-bottom: .6em;
     display: inline-block;
   }
@@ -156,7 +156,8 @@ textarea:focus,
         padding-left: @create-page-form-input-padding+30px;
       }
 
-      .inline.field > label {
+      .inline.field > label,
+      .inline.field.captcha-field > span {
         text-align: right;
         width: @create-page-form-input-padding;
         word-wrap: break-word;

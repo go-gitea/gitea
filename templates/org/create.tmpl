@@ -5,40 +5,40 @@
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<h3 class="ui top attached header">
-					{{.i18n.Tr "new_org"}}
+					{{.locale.Tr "new_org"}}
 				</h3>
 				<div class="ui attached segment">
 					{{template "base/alert" .}}
 					<div class="inline required field {{if .Err_OrgName}}error{{end}}">
-						<label for="org_name">{{.i18n.Tr "org.org_name_holder"}}</label>
+						<label for="org_name">{{.locale.Tr "org.org_name_holder"}}</label>
 						<input id="org_name" name="org_name" value="{{.org_name}}" autofocus required>
-						<span class="help">{{.i18n.Tr "org.org_name_helper"}}</span>
+						<span class="help">{{.locale.Tr "org.org_name_helper"}}</span>
 					</div>
 
 					<div class="inline field {{if .Err_OrgVisibility}}error{{end}}">
-						<span class="inline required field"><label for="visibility">{{.i18n.Tr "org.settings.visibility"}}</label></span>
+						<span class="inline required field"><label for="visibility">{{.locale.Tr "org.settings.visibility"}}</label></span>
 						<div class="inline-grouped-list">
 							<div class="ui radio checkbox">
 								<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="0" {{if .DefaultOrgVisibilityMode.IsPublic}}checked{{end}}/>
-								<label>{{.i18n.Tr "org.settings.visibility.public"}}</label>
+								<label>{{.locale.Tr "org.settings.visibility.public"}}</label>
 							</div>
 							<div class="ui radio checkbox">
 								<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="1" {{if .DefaultOrgVisibilityMode.IsLimited}}checked{{end}}/>
-								<label>{{.i18n.Tr "org.settings.visibility.limited"}}</label>
+								<label>{{.locale.Tr "org.settings.visibility.limited"}}</label>
 							</div>
 							<div class="ui radio checkbox">
 								<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="2" {{if .DefaultOrgVisibilityMode.IsPrivate}}checked{{end}}/>
-								<label>{{.i18n.Tr "org.settings.visibility.private"}}</label>
+								<label>{{.locale.Tr "org.settings.visibility.private"}}</label>
 							</div>
 						</div>
 					</div>
 
 					<div class="inline field" id="permission_box">
-						<label>{{.i18n.Tr "org.settings.permission"}}</label>
+						<label>{{.locale.Tr "org.settings.permission"}}</label>
 						<div class="inline-grouped-list">
 							<div class="ui checkbox">
 								<input class="hidden" type="checkbox" name="repo_admin_change_team_access" checked/>
-								<label>{{.i18n.Tr "org.settings.repoadminchangeteam"}}</label>
+								<label>{{.locale.Tr "org.settings.repoadminchangeteam"}}</label>
 							</div>
 						</div>
 					</div>
@@ -46,9 +46,9 @@
 					<div class="inline field">
 						<label></label>
 						<button class="ui green button">
-							{{.i18n.Tr "org.create_org"}}
+							{{.locale.Tr "org.create_org"}}
 						</button>
-						<a class="ui button" href="{{AppSubUrl}}/">{{.i18n.Tr "cancel"}}</a>
+						<a class="ui button" href="{{AppSubUrl}}/">{{.locale.Tr "cancel"}}</a>
 					</div>
 				</div>
 			</form>

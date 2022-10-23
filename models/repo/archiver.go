@@ -39,9 +39,9 @@ func init() {
 	db.RegisterModel(new(RepoArchiver))
 }
 
-// RelativePath returns relative path
-func (archiver *RepoArchiver) RelativePath() (string, error) {
-	return fmt.Sprintf("%d/%s/%s.%s", archiver.RepoID, archiver.CommitID[:2], archiver.CommitID, archiver.Type.String()), nil
+// RelativePath returns the archive path relative to the archive storage root.
+func (archiver *RepoArchiver) RelativePath() string {
+	return fmt.Sprintf("%d/%s/%s.%s", archiver.RepoID, archiver.CommitID[:2], archiver.CommitID, archiver.Type.String())
 }
 
 var delRepoArchiver = new(RepoArchiver)

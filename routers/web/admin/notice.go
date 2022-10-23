@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strconv"
 
-	admin_model "code.gitea.io/gitea/models/admin"
+	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -26,13 +26,13 @@ func Notices(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminNotices"] = true
 
-	total := admin_model.CountNotices()
+	total := system_model.CountNotices()
 	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
 	}
 
-	notices, err := admin_model.Notices(page, setting.UI.Admin.NoticePagingNum)
+	notices, err := system_model.Notices(page, setting.UI.Admin.NoticePagingNum)
 	if err != nil {
 		ctx.ServerError("Notices", err)
 		return
@@ -57,7 +57,7 @@ func DeleteNotices(ctx *context.Context) {
 		}
 	}
 
-	if err := admin_model.DeleteNoticesByIDs(ids); err != nil {
+	if err := system_model.DeleteNoticesByIDs(ids); err != nil {
 		ctx.Flash.Error("DeleteNoticesByIDs: " + err.Error())
 		ctx.Status(http.StatusInternalServerError)
 	} else {
@@ -68,7 +68,7 @@ func DeleteNotices(ctx *context.Context) {
 
 // EmptyNotices delete all the notices
 func EmptyNotices(ctx *context.Context) {
-	if err := admin_model.DeleteNotices(0, 0); err != nil {
+	if err := system_model.DeleteNotices(0, 0); err != nil {
 		ctx.ServerError("DeleteNotices", err)
 		return
 	}

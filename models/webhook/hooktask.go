@@ -47,6 +47,7 @@ const (
 	HookEventPullRequestReviewRejected HookEventType = "pull_request_review_rejected"
 	HookEventPullRequestReviewComment  HookEventType = "pull_request_review_comment"
 	HookEventPullRequestSync           HookEventType = "pull_request_sync"
+	HookEventWiki                      HookEventType = "wiki"
 	HookEventRepository                HookEventType = "repository"
 	HookEventRelease                   HookEventType = "release"
 	HookEventPackage                   HookEventType = "package"
@@ -76,6 +77,8 @@ func (h HookEventType) Event() string {
 		return "pull_request_rejected"
 	case HookEventPullRequestReviewComment:
 		return "pull_request_comment"
+	case HookEventWiki:
+		return "wiki"
 	case HookEventRepository:
 		return "repository"
 	case HookEventRelease:
@@ -101,7 +104,6 @@ type HookResponse struct {
 // HookTask represents a hook task.
 type HookTask struct {
 	ID              int64 `xorm:"pk autoincr"`
-	RepoID          int64 `xorm:"INDEX"`
 	HookID          int64
 	UUID            string
 	api.Payloader   `xorm:"-"`
@@ -175,14 +177,29 @@ func HookTasks(hookID int64, page int) ([]*HookTask, error) {
 
 // CreateHookTask creates a new hook task,
 // it handles conversion from Payload to PayloadContent.
-func CreateHookTask(t *HookTask) error {
+func CreateHookTask(ctx context.Context, t *HookTask) (*HookTask, error) {
 	data, err := t.Payloader.JSONPayload()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	t.UUID = gouuid.New().String()
 	t.PayloadContent = string(data)
-	return db.Insert(db.DefaultContext, t)
+	return t, db.Insert(ctx, t)
+}
+
+func GetHookTaskByID(ctx context.Context, id int64) (*HookTask, error) {
+	t := &HookTask{}
+
+	has, err := db.GetEngine(ctx).ID(id).Get(t)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, ErrHookTaskNotExist{
+			TaskID: id,
+		}
+	}
+	return t, nil
 }
 
 // UpdateHookTask updates information of hook task.
@@ -192,53 +209,36 @@ func UpdateHookTask(t *HookTask) error {
 }
 
 // ReplayHookTask copies a hook task to get re-delivered
-func ReplayHookTask(hookID int64, uuid string) (*HookTask, error) {
-	var newTask *HookTask
-
-	err := db.WithTx(func(ctx context.Context) error {
-		task := &HookTask{
+func ReplayHookTask(ctx context.Context, hookID int64, uuid string) (*HookTask, error) {
+	task := &HookTask{
+		HookID: hookID,
+		UUID:   uuid,
+	}
+	has, err := db.GetByBean(ctx, task)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrHookTaskNotExist{
 			HookID: hookID,
 			UUID:   uuid,
 		}
-		has, err := db.GetByBean(ctx, task)
-		if err != nil {
-			return err
-		} else if !has {
-			return ErrHookTaskNotExist{
-				HookID: hookID,
-				UUID:   uuid,
-			}
-		}
+	}
 
-		newTask = &HookTask{
-			UUID:           gouuid.New().String(),
-			RepoID:         task.RepoID,
-			HookID:         task.HookID,
-			PayloadContent: task.PayloadContent,
-			EventType:      task.EventType,
-		}
-		return db.Insert(ctx, newTask)
-	})
-
-	return newTask, err
+	newTask := &HookTask{
+		UUID:           gouuid.New().String(),
+		HookID:         task.HookID,
+		PayloadContent: task.PayloadContent,
+		EventType:      task.EventType,
+	}
+	return newTask, db.Insert(ctx, newTask)
 }
 
 // FindUndeliveredHookTasks represents find the undelivered hook tasks
-func FindUndeliveredHookTasks() ([]*HookTask, error) {
+func FindUndeliveredHookTasks(ctx context.Context) ([]*HookTask, error) {
 	tasks := make([]*HookTask, 0, 10)
-	if err := db.GetEngine(db.DefaultContext).Where("is_delivered=?", false).Find(&tasks); err != nil {
-		return nil, err
-	}
-	return tasks, nil
-}
-
-// FindRepoUndeliveredHookTasks represents find the undelivered hook tasks of one repository
-func FindRepoUndeliveredHookTasks(repoID int64) ([]*HookTask, error) {
-	tasks := make([]*HookTask, 0, 5)
-	if err := db.GetEngine(db.DefaultContext).Where("repo_id=? AND is_delivered=?", repoID, false).Find(&tasks); err != nil {
-		return nil, err
-	}
-	return tasks, nil
+	return tasks, db.GetEngine(ctx).
+		Where("is_delivered=?", false).
+		Find(&tasks)
 }
 
 // CleanupHookTaskTable deletes rows from hook_task as needed.
@@ -247,7 +247,7 @@ func CleanupHookTaskTable(ctx context.Context, cleanupType HookTaskCleanupType, 
 
 	if cleanupType == OlderThan {
 		deleteOlderThan := time.Now().Add(-olderThan).UnixNano()
-		deletes, err := db.GetEngine(db.DefaultContext).
+		deletes, err := db.GetEngine(ctx).
 			Where("is_delivered = ? and delivered < ?", true, deleteOlderThan).
 			Delete(new(HookTask))
 		if err != nil {
@@ -256,7 +256,8 @@ func CleanupHookTaskTable(ctx context.Context, cleanupType HookTaskCleanupType, 
 		log.Trace("Deleted %d rows from hook_task", deletes)
 	} else if cleanupType == PerWebhook {
 		hookIDs := make([]int64, 0, 10)
-		err := db.GetEngine(db.DefaultContext).Table("webhook").
+		err := db.GetEngine(ctx).
+			Table("webhook").
 			Where("id > 0").
 			Cols("id").
 			Find(&hookIDs)

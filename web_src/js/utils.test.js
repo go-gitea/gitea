@@ -1,5 +1,7 @@
+import {expect, test} from 'vitest';
 import {
-  basename, extname, isObject, uniq, stripTags, joinPaths, parseIssueHref, strSubMatch, prettyNumber,
+  basename, extname, isObject, uniq, stripTags, joinPaths, parseIssueHref,
+  prettyNumber, parseUrl,
 } from './utils.js';
 
 test('basename', () => {
@@ -55,8 +57,8 @@ test('joinPaths', () => {
 });
 
 test('isObject', () => {
-  expect(isObject({})).toBeTrue();
-  expect(isObject([])).toBeFalse();
+  expect(isObject({})).toBeTruthy();
+  expect(isObject([])).toBeFalsy();
 });
 
 test('uniq', () => {
@@ -85,19 +87,6 @@ test('parseIssueHref', () => {
   expect(parseIssueHref('')).toEqual({owner: undefined, repo: undefined, type: undefined, index: undefined});
 });
 
-test('strSubMatch', () => {
-  expect(strSubMatch('abc', '')).toEqual(['abc']);
-  expect(strSubMatch('abc', 'a')).toEqual(['', 'a', 'bc']);
-  expect(strSubMatch('abc', 'b')).toEqual(['a', 'b', 'c']);
-  expect(strSubMatch('abc', 'c')).toEqual(['ab', 'c']);
-  expect(strSubMatch('abc', 'ac')).toEqual(['', 'a', 'b', 'c']);
-  expect(strSubMatch('abc', 'z')).toEqual(['abc']);
-  expect(strSubMatch('abc', 'az')).toEqual(['abc']);
-
-  expect(strSubMatch('aabbcc', 'abc')).toEqual(['', 'a', 'a', 'b', 'b', 'c', 'c']);
-  expect(strSubMatch('the/directory', 'hedir')).toEqual(['t', 'he', '/', 'dir', 'ectory']);
-});
-
 test('prettyNumber', () => {
   expect(prettyNumber()).toEqual('');
   expect(prettyNumber(null)).toEqual('');
@@ -107,4 +96,16 @@ test('prettyNumber', () => {
   expect(prettyNumber(12345678, 'de-DE')).toEqual('12.345.678');
   expect(prettyNumber(12345678, 'be-BE')).toEqual('12 345 678');
   expect(prettyNumber(12345678, 'hi-IN')).toEqual('1,23,45,678');
+});
+
+test('parseUrl', () => {
+  expect(parseUrl('').pathname).toEqual('/');
+  expect(parseUrl('/path').pathname).toEqual('/path');
+  expect(parseUrl('/path?search').pathname).toEqual('/path');
+  expect(parseUrl('/path?search').search).toEqual('?search');
+  expect(parseUrl('/path?search#hash').hash).toEqual('#hash');
+  expect(parseUrl('https://localhost/path').pathname).toEqual('/path');
+  expect(parseUrl('https://localhost/path?search').pathname).toEqual('/path');
+  expect(parseUrl('https://localhost/path?search').search).toEqual('?search');
+  expect(parseUrl('https://localhost/path?search#hash').hash).toEqual('#hash');
 });

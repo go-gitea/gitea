@@ -20,8 +20,10 @@ Gitea 從 `1.13` 版開始支援某些 [push options](https://git-scm.com/docs/g
 
 ## 支援的 Options
 
-- `repo.private` (true|false) - 修改儲存庫的可見性。  
+- `repo.private` (true|false) - 修改儲存庫的可見性。
+
   與 push-to-create 一起使用時特別有用。
+
 - `repo.template` (true|false) - 修改儲存庫是否為範本儲存庫。
 
 以下範例修改儲存庫的可見性為公開：

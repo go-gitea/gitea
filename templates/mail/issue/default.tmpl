@@ -16,7 +16,7 @@
 </head>
 
 <body>
-	{{if .IsMention}}<p>{{.i18n.Tr "mail.issue.x_mentioned_you" .Doer.Name | Str2html}}</p>{{end}}
+	{{if .IsMention}}<p>{{.locale.Tr "mail.issue.x_mentioned_you" .Doer.Name | Str2html}}</p>{{end}}
 	{{if eq .ActionName "push"}}
 		<p>
 			{{if .Comment.IsForcePush}}
@@ -28,41 +28,41 @@
 				{{$newShortSha := ShortSha .Comment.NewCommit}}
 				{{$newCommitLink := printf "<a href='%[1]s'><b>%[2]s</b></a>" (Escape $newCommitUrl) (Escape $newShortSha)}}
 
-				{{.i18n.Tr "mail.issue.action.force_push" .Doer.Name .Comment.Issue.PullRequest.HeadBranch $oldCommitLink $newCommitLink | Str2html}}
+				{{.locale.Tr "mail.issue.action.force_push" .Doer.Name .Comment.Issue.PullRequest.HeadBranch $oldCommitLink $newCommitLink | Str2html}}
 			{{else}}
-				{{.i18n.TrN (len .Comment.Commits) "mail.issue.action.push_1" "mail.issue.action.push_n" .Doer.Name .Comment.Issue.PullRequest.HeadBranch (len .Comment.Commits) | Str2html}}
+				{{.locale.TrN (len .Comment.Commits) "mail.issue.action.push_1" "mail.issue.action.push_n" .Doer.Name .Comment.Issue.PullRequest.HeadBranch (len .Comment.Commits) | Str2html}}
 			{{end}}
 		</p>
 	{{end}}
 	<p>
 		{{if eq .ActionName "close"}}
-			{{.i18n.Tr "mail.issue.action.close" (Escape .Doer.Name) .Issue.Index | Str2html}}
+			{{.locale.Tr "mail.issue.action.close" (Escape .Doer.Name) .Issue.Index | Str2html}}
 		{{else if eq .ActionName "reopen"}}
-			{{.i18n.Tr "mail.issue.action.reopen" (Escape .Doer.Name) .Issue.Index | Str2html}}
+			{{.locale.Tr "mail.issue.action.reopen" (Escape .Doer.Name) .Issue.Index | Str2html}}
 		{{else if eq .ActionName "merge"}}
-			{{.i18n.Tr "mail.issue.action.merge" (Escape .Doer.Name) .Issue.Index (Escape .Issue.PullRequest.BaseBranch) | Str2html}}
+			{{.locale.Tr "mail.issue.action.merge" (Escape .Doer.Name) .Issue.Index (Escape .Issue.PullRequest.BaseBranch) | Str2html}}
 		{{else if eq .ActionName "approve"}}
-			{{.i18n.Tr "mail.issue.action.approve" (Escape .Doer.Name) | Str2html}}
+			{{.locale.Tr "mail.issue.action.approve" (Escape .Doer.Name) | Str2html}}
 		{{else if eq .ActionName "reject"}}
-			{{.i18n.Tr "mail.issue.action.reject" (Escape .Doer.Name) | Str2html}}
+			{{.locale.Tr "mail.issue.action.reject" (Escape .Doer.Name) | Str2html}}
 		{{else if eq .ActionName "review"}}
-			{{.i18n.Tr "mail.issue.action.review" (Escape .Doer.Name) | Str2html}}
+			{{.locale.Tr "mail.issue.action.review" (Escape .Doer.Name) | Str2html}}
 		{{else if eq .ActionName "review_dismissed"}}
-			{{.i18n.Tr "mail.issue.action.review_dismissed" (Escape .Doer.Name) (Escape .Comment.Review.Reviewer.Name) | Str2html}}
+			{{.locale.Tr "mail.issue.action.review_dismissed" (Escape .Doer.Name) (Escape .Comment.Review.Reviewer.Name) | Str2html}}
 		{{else if eq .ActionName "ready_for_review"}}
-			{{.i18n.Tr "mail.issue.action.ready_for_review" (Escape .Doer.Name) | Str2html}}
+			{{.locale.Tr "mail.issue.action.ready_for_review" (Escape .Doer.Name) | Str2html}}
 		{{end}}
 
 		{{- if eq .Body ""}}
 			{{if eq .ActionName "new"}}
-				{{.i18n.Tr "mail.issue.action.new" (Escape .Doer.Name) .Issue.Index | Str2html}}
+				{{.locale.Tr "mail.issue.action.new" (Escape .Doer.Name) .Issue.Index | Str2html}}
 			{{end}}
 		{{else}}
 			{{.Body | Str2html}}
 		{{end -}}
 		{{- range .ReviewComments}}
 			<hr>
-			{{$.i18n.Tr "mail.issue.in_tree_path" .TreePath}}
+			{{$.locale.Tr "mail.issue.in_tree_path" .TreePath}}
 			<div class="review">
 				<pre>{{.Patch}}</pre>
 				<div>{{.RenderedContent | Safe}}</div>
@@ -84,7 +84,7 @@
 	<p>
 		---
 		<br>
-		<a href="{{.Link}}">{{.i18n.Tr "mail.view_it_on" AppName}}</a>.
+		<a href="{{.Link}}">{{.locale.Tr "mail.view_it_on" AppName}}</a>.
 	</p>
 	</div>
 </body>

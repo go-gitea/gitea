@@ -45,6 +45,14 @@ func Test_Sanitizer(t *testing.T) {
 		`<input type="checkbox" disabled=""/>unchecked`, `<input type="checkbox" disabled=""/>unchecked`,
 		`<span class="emoji dropdown">NAUGHTY</span>`, `<span>NAUGHTY</span>`,
 		`<span class="emoji">contents</span>`, `<span class="emoji">contents</span>`,
+
+		// Color property
+		`<span style="color: red">Hello World</span>`, `<span style="color: red">Hello World</span>`,
+		`<p style="color: red">Hello World</p>`, `<p style="color: red">Hello World</p>`,
+		`<code style="color: red">Hello World</code>`, `<code>Hello World</code>`,
+		`<span style="bad-color: red">Hello World</span>`, `<span>Hello World</span>`,
+		`<p style="bad-color: red">Hello World</p>`, `<p>Hello World</p>`,
+		`<code style="bad-color: red">Hello World</code>`, `<code>Hello World</code>`,
 	}
 
 	for i := 0; i < len(testCases); i += 2 {

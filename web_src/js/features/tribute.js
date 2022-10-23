@@ -1,5 +1,6 @@
 import {emojiKeys, emojiHTML, emojiString} from './emoji.js';
 import {uniq} from '../utils.js';
+import {htmlEscape} from 'escape-goat';
 
 function makeCollections({mentions, emoji}) {
   const collections = [];
@@ -24,7 +25,7 @@ function makeCollections({mentions, emoji}) {
         return emojiString(item.original);
       },
       menuItemTemplate: (item) => {
-        return `<div class="tribute-item">${emojiHTML(item.original)}<span>${item.original}</span></div>`;
+        return `<div class="tribute-item">${emojiHTML(item.original)}<span>${htmlEscape(item.original)}</span></div>`;
       }
     });
   }
@@ -36,9 +37,9 @@ function makeCollections({mentions, emoji}) {
       menuItemTemplate: (item) => {
         return `
           <div class="tribute-item">
-            <img src="${item.original.avatar}"/>
-            <span class="name">${item.original.name}</span>
-            ${item.original.fullname && item.original.fullname !== '' ? `<span class="fullname">${item.original.fullname}</span>` : ''}
+            <img src="${htmlEscape(item.original.avatar)}"/>
+            <span class="name">${htmlEscape(item.original.name)}</span>
+            ${item.original.fullname && item.original.fullname !== '' ? `<span class="fullname">${htmlEscape(item.original.fullname)}</span>` : ''}
           </div>
         `;
       }

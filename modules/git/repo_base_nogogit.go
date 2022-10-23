@@ -32,7 +32,8 @@ type Repository struct {
 	checkReader *bufio.Reader
 	checkWriter WriteCloserError
 
-	Ctx context.Context
+	Ctx             context.Context
+	LastCommitCache *LastCommitCache
 }
 
 // openRepositoryWithDefaultContext opens the repository at the given path with DefaultContext.
@@ -101,5 +102,7 @@ func (repo *Repository) Close() (err error) {
 		repo.checkReader = nil
 		repo.checkWriter = nil
 	}
+	repo.LastCommitCache = nil
+	repo.tagCache = nil
 	return err
 }

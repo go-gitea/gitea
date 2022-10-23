@@ -1,0 +1,19 @@
+{{if eq .PackageDescriptor.Package.Type "pub"}}
+	<h4 class="ui top attached header">{{.locale.Tr "packages.installation"}}</h4>
+	<div class="ui attached segment">
+		<div class="ui form">
+			<div class="field">
+				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.pub.install"}}</label>
+				<div class="markup"><pre class="code-block"><code>dart pub add {{.PackageDescriptor.Package.Name}}:{{.PackageDescriptor.Version.Version}} --hosted-url={{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/pub/</code></pre></div>
+			</div>
+			<div class="field">
+				<label>{{.locale.Tr "packages.pub.documentation" | Safe}}</label>
+			</div>
+		</div>
+	</div>
+	{{if or .PackageDescriptor.Metadata.Description .PackageDescriptor.Metadata.Readme}}
+		<h4 class="ui top attached header">{{.locale.Tr "packages.about"}}</h4>
+		{{if .PackageDescriptor.Metadata.Description}}<div class="ui attached segment">{{.PackageDescriptor.Metadata.Description}}</div>{{end}}
+		{{if .PackageDescriptor.Metadata.Readme}}<div class="ui attached segment">{{RenderMarkdownToHtml .PackageDescriptor.Metadata.Readme}}</div>{{end}}
+	{{end}}
+{{end}}

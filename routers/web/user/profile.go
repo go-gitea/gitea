@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	project_model "code.gitea.io/gitea/models/project"
@@ -69,7 +69,7 @@ func Profile(ctx *context.Context) {
 	ctx.Data["IsFollowing"] = isFollowing
 
 	if setting.Service.EnableUserHeatmap {
-		data, err := models.GetUserHeatmapDataByUser(ctx.ContextUser, ctx.Doer)
+		data, err := activities_model.GetUserHeatmapDataByUser(ctx.ContextUser, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("GetUserHeatmapDataByUser", err)
 			return
@@ -104,6 +104,13 @@ func Profile(ctx *context.Context) {
 
 	ctx.Data["Orgs"] = orgs
 	ctx.Data["HasOrgsVisible"] = organization.HasOrgsVisible(orgs, ctx.Doer)
+
+	badges, _, err := user_model.GetUserBadges(ctx, ctx.ContextUser)
+	if err != nil {
+		ctx.ServerError("GetUserBadges", err)
+		return
+	}
+	ctx.Data["Badges"] = badges
 
 	tab := ctx.FormString("tab")
 	ctx.Data["TabName"] = tab
@@ -157,7 +164,7 @@ func Profile(ctx *context.Context) {
 
 	switch tab {
 	case "followers":
-		items, err := user_model.GetUserFollowers(ctx.ContextUser, db.ListOptions{
+		items, count, err := user_model.GetUserFollowers(ctx, ctx.ContextUser, ctx.Doer, db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
 		})
@@ -167,9 +174,9 @@ func Profile(ctx *context.Context) {
 		}
 		ctx.Data["Cards"] = items
 
-		total = ctx.ContextUser.NumFollowers
+		total = int(count)
 	case "following":
-		items, err := user_model.GetUserFollowing(ctx.ContextUser, db.ListOptions{
+		items, count, err := user_model.GetUserFollowing(ctx, ctx.ContextUser, ctx.Doer, db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
 		})
@@ -179,15 +186,16 @@ func Profile(ctx *context.Context) {
 		}
 		ctx.Data["Cards"] = items
 
-		total = ctx.ContextUser.NumFollowing
+		total = int(count)
 	case "activity":
-		ctx.Data["Feeds"], err = models.GetFeeds(ctx, models.GetFeedsOptions{
+		ctx.Data["Feeds"], err = activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
 			RequestedUser:   ctx.ContextUser,
 			Actor:           ctx.Doer,
 			IncludePrivate:  showPrivate,
 			OnlyPerformedBy: true,
 			IncludeDeleted:  false,
 			Date:            ctx.FormString("date"),
+			ListOptions:     db.ListOptions{PageSize: setting.UI.FeedPagingNum},
 		})
 		if err != nil {
 			ctx.ServerError("GetFeeds", err)
@@ -282,6 +290,7 @@ func Profile(ctx *context.Context) {
 	}
 	ctx.Data["Page"] = pager
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	ctx.Data["ShowUserEmail"] = len(ctx.ContextUser.Email) > 0 && ctx.IsSigned && (!ctx.ContextUser.KeepEmailPrivate || ctx.ContextUser.ID == ctx.Doer.ID)
 

@@ -1,35 +1,35 @@
 <div class="ui secondary pointing tabular top attached borderless menu stackable new-menu navbar shadow-body">
 	<div class="new-menu-inner">
 		<a class="{{if .PageIsSettingsOptions}}active{{end}} item" href="{{.RepoLink}}/settings">
-			{{.i18n.Tr "repo.settings.options"}}
+			{{.locale.Tr "repo.settings.options"}}
 		</a>
 		<a class="{{if .PageIsSettingsCollaboration}}active{{end}} item" href="{{.RepoLink}}/settings/collaboration">
-			{{.i18n.Tr "repo.settings.collaboration"}}
+			{{.locale.Tr "repo.settings.collaboration"}}
 		</a>
 		{{if not .Repository.IsEmpty}}
 			<a class="{{if .PageIsSettingsBranches}}active{{end}} item" href="{{.RepoLink}}/settings/branches">
-				{{.i18n.Tr "repo.settings.branches"}}
+				{{.locale.Tr "repo.settings.branches"}}
 			</a>
 		{{end}}
 		<a class="{{if .PageIsSettingsTags}}active{{end}} item" href="{{.RepoLink}}/settings/tags">
-			{{.i18n.Tr "repo.settings.tags"}}
+			{{.locale.Tr "repo.settings.tags"}}
 		</a>
 		{{if not DisableWebhooks}}
 			<a class="{{if .PageIsSettingsHooks}}active{{end}} item" href="{{.RepoLink}}/settings/hooks">
-				{{.i18n.Tr "repo.settings.hooks"}}
+				{{.locale.Tr "repo.settings.hooks"}}
 			</a>
 		{{end}}
 		{{if .SignedUser.CanEditGitHook}}
 			<a class="{{if .PageIsSettingsGitHooks}}active{{end}} item" href="{{.RepoLink}}/settings/hooks/git">
-				{{.i18n.Tr "repo.settings.githooks"}}
+				{{.locale.Tr "repo.settings.githooks"}}
 			</a>
 		{{end}}
 		<a class="{{if .PageIsSettingsKeys}}active{{end}} item" href="{{.RepoLink}}/settings/keys">
-			{{.i18n.Tr "repo.settings.deploy_keys"}}
+			{{.locale.Tr "repo.settings.deploy_keys"}}
 		</a>
 		{{if .LFSStartServer}}
 			<a class="{{if .PageIsSettingsLFS}}active{{end}} item" href="{{.RepoLink}}/settings/lfs">
-				{{.i18n.Tr "repo.settings.lfs"}}
+				{{.locale.Tr "repo.settings.lfs"}}
 			</a>
 		{{end}}
 	</div>

@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/modules/context"
 
 	"github.com/gorilla/feeds"
@@ -26,10 +26,12 @@ func ShowUserFeedAtom(ctx *context.Context) {
 
 // showUserFeed show user activity as RSS / Atom feed
 func showUserFeed(ctx *context.Context, formatType string) {
-	actions, err := models.GetFeeds(ctx, models.GetFeedsOptions{
+	includePrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
+
+	actions, err := activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
 		RequestedUser:   ctx.ContextUser,
 		Actor:           ctx.Doer,
-		IncludePrivate:  false,
+		IncludePrivate:  includePrivate,
 		OnlyPerformedBy: !ctx.ContextUser.IsOrganization(),
 		IncludeDeleted:  false,
 		Date:            ctx.FormString("date"),

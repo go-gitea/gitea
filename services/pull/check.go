@@ -89,7 +89,7 @@ func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *acce
 			return ErrIsWorkInProgress
 		}
 
-		if !pr.CanAutoMerge() {
+		if !pr.CanAutoMerge() && !pr.IsEmpty() {
 			return ErrNotMergableState
 		}
 

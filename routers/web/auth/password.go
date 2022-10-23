@@ -63,7 +63,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 	u, err := user_model.GetUserByEmail(email)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale.Language())
+			ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale)
 			ctx.Data["IsResetSent"] = true
 			ctx.HTML(http.StatusOK, tplForgotPassword)
 			return
@@ -93,7 +93,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 		}
 	}
 
-	ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale.Language())
+	ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale)
 	ctx.Data["IsResetSent"] = true
 	ctx.HTML(http.StatusOK, tplForgotPassword)
 }
@@ -274,7 +274,7 @@ func MustChangePassword(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplMustChangePassword)
 }
 
-// MustChangePasswordPost response for updating a user's password after his/her
+// MustChangePasswordPost response for updating a user's password after their
 // account was created by an admin
 func MustChangePasswordPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.MustChangePasswordForm)

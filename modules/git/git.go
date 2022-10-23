@@ -11,10 +11,10 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
-	"sync"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -23,8 +23,8 @@ import (
 	"github.com/hashicorp/go-version"
 )
 
-// GitVersionRequired is the minimum Git version required
-const GitVersionRequired = "2.0.0"
+// RequiredVersion is the minimum Git version required
+const RequiredVersion = "2.0.0"
 
 var (
 	// GitExecutable is the command name of git
@@ -42,7 +42,7 @@ var (
 
 // loadGitVersion returns current Git version from shell. Internal usage only.
 func loadGitVersion() (*version.Version, error) {
-	// doesn't need RWMutex because its exec by Init()
+	// doesn't need RWMutex because it's executed by Init()
 	if gitVersion != nil {
 		return gitVersion, nil
 	}
@@ -89,7 +89,7 @@ func SetExecutablePath(path string) error {
 		return fmt.Errorf("unable to load git version: %w", err)
 	}
 
-	versionRequired, err := version.NewVersion(GitVersionRequired)
+	versionRequired, err := version.NewVersion(RequiredVersion)
 	if err != nil {
 		return err
 	}
@@ -103,7 +103,7 @@ func SetExecutablePath(path string) error {
 				moreHint = "get git: https://git-scm.com/download/linux and https://ius.io"
 			}
 		}
-		return fmt.Errorf("installed git version %q is not supported, Gitea requires git version >= %q, %s", gitVersion.Original(), GitVersionRequired, moreHint)
+		return fmt.Errorf("installed git version %q is not supported, Gitea requires git version >= %q, %s", gitVersion.Original(), RequiredVersion, moreHint)
 	}
 
 	return nil
@@ -126,36 +126,36 @@ func VersionInfo() string {
 }
 
 func checkInit() error {
-	if setting.RepoRootPath == "" {
-		return errors.New("can not init Git's HomeDir (RepoRootPath is empty), the setting and git modules are not initialized correctly")
+	if setting.Git.HomePath == "" {
+		return errors.New("unable to init Git's HomeDir, incorrect initialization of the setting and git modules")
 	}
 	if DefaultContext != nil {
-		log.Warn("git module has been initialized already, duplicate init should be fixed")
+		log.Warn("git module has been initialized already, duplicate init may work but it's better to fix it")
 	}
 	return nil
 }
 
 // HomeDir is the home dir for git to store the global config file used by Gitea internally
 func HomeDir() string {
-	if setting.RepoRootPath == "" {
+	if setting.Git.HomePath == "" {
 		// strict check, make sure the git module is initialized correctly.
-		// attention: when the git module is called in gitea sub-command (serv/hook), the log module is not able to show messages to users.
+		// attention: when the git module is called in gitea sub-command (serv/hook), the log module might not obviously show messages to users/developers.
 		// for example: if there is gitea git hook code calling git.NewCommand before git.InitXxx, the integration test won't show the real failure reasons.
-		log.Fatal("can not get Git's HomeDir (RepoRootPath is empty), the setting and git modules are not initialized correctly")
+		log.Fatal("Unable to init Git's HomeDir, incorrect initialization of the setting and git modules")
 		return ""
 	}
-	return setting.RepoRootPath
+	return setting.Git.HomePath
 }
 
 // InitSimple initializes git module with a very simple step, no config changes, no global command arguments.
-// This method doesn't change anything to filesystem. At the moment, it is only used by "git serv" sub-command, no data-race
-// However, in integration test, the sub-command function may be called in the current process, so the InitSimple would be called multiple times, too
+// This method doesn't change anything to filesystem. At the moment, it is only used by some Gitea sub-commands.
 func InitSimple(ctx context.Context) error {
 	if err := checkInit(); err != nil {
 		return err
 	}
 
 	DefaultContext = ctx
+	globalCommandArgs = nil
 
 	if setting.Git.Timeout.Default > 0 {
 		defaultCommandExecutionTimeout = time.Duration(setting.Git.Timeout.Default) * time.Second
@@ -164,49 +164,48 @@ func InitSimple(ctx context.Context) error {
 	return SetExecutablePath(setting.Git.Path)
 }
 
-var initOnce sync.Once
-
-// InitOnceWithSync initializes git module with version check and change global variables, sync gitconfig.
-// This method will update the global variables ONLY ONCE (just like git.CheckLFSVersion -- which is not ideal too),
-// otherwise there will be data-race problem at the moment.
-func InitOnceWithSync(ctx context.Context) (err error) {
+// InitFull initializes git module with version check and change global variables, sync gitconfig.
+// It should only be called once at the beginning of the program initialization (TestMain/GlobalInitInstalled) as this code makes unsynchronized changes to variables.
+func InitFull(ctx context.Context) (err error) {
 	if err = checkInit(); err != nil {
 		return err
 	}
 
-	initOnce.Do(func() {
-		err = InitSimple(ctx)
-		if err != nil {
-			return
-		}
-
-		// Since git wire protocol has been released from git v2.18
-		if setting.Git.EnableAutoGitWireProtocol && CheckGitVersionAtLeast("2.18") == nil {
-			globalCommandArgs = append(globalCommandArgs, "-c", "protocol.version=2")
-		}
-
-		// By default partial clones are disabled, enable them from git v2.22
-		if !setting.Git.DisablePartialClone && CheckGitVersionAtLeast("2.22") == nil {
-			globalCommandArgs = append(globalCommandArgs, "-c", "uploadpack.allowfilter=true", "-c", "uploadpack.allowAnySHA1InWant=true")
-		}
-
-		// Explicitly disable credential helper, otherwise Git credentials might leak
-		if CheckGitVersionAtLeast("2.9") == nil {
-			globalCommandArgs = append(globalCommandArgs, "-c", "credential.helper=")
-		}
-
-		SupportProcReceive = CheckGitVersionAtLeast("2.29") == nil
-	})
-	if err != nil {
-		return err
+	if err = InitSimple(ctx); err != nil {
+		return
 	}
+
+	// when git works with gnupg (commit signing), there should be a stable home for gnupg commands
+	if _, ok := os.LookupEnv("GNUPGHOME"); !ok {
+		_ = os.Setenv("GNUPGHOME", filepath.Join(HomeDir(), ".gnupg"))
+	}
+
+	// Since git wire protocol has been released from git v2.18
+	if setting.Git.EnableAutoGitWireProtocol && CheckGitVersionAtLeast("2.18") == nil {
+		globalCommandArgs = append(globalCommandArgs, "-c", "protocol.version=2")
+	}
+
+	// Explicitly disable credential helper, otherwise Git credentials might leak
+	if CheckGitVersionAtLeast("2.9") == nil {
+		globalCommandArgs = append(globalCommandArgs, "-c", "credential.helper=")
+	}
+
+	SupportProcReceive = CheckGitVersionAtLeast("2.29") == nil
+
+	if setting.LFS.StartServer {
+		if CheckGitVersionAtLeast("2.1.2") != nil {
+			return errors.New("LFS server support requires Git >= 2.1.2")
+		}
+		globalCommandArgs = append(globalCommandArgs, "-c", "filter.lfs.required=", "-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=")
+	}
+
 	return syncGitConfig()
 }
 
 // syncGitConfig only modifies gitconfig, won't change global variables (otherwise there will be data-race problem)
 func syncGitConfig() (err error) {
 	if err = os.MkdirAll(HomeDir(), os.ModePerm); err != nil {
-		return fmt.Errorf("unable to create directory %s, err: %w", setting.RepoRootPath, err)
+		return fmt.Errorf("unable to prepare git home directory %s, err: %w", HomeDir(), err)
 	}
 
 	// Git requires setting user.name and user.email in order to commit changes - old comment: "if they're not set just add some defaults"
@@ -282,7 +281,20 @@ func syncGitConfig() (err error) {
 		}
 	}
 
-	return nil
+	// By default partial clones are disabled, enable them from git v2.22
+	if !setting.Git.DisablePartialClone && CheckGitVersionAtLeast("2.22") == nil {
+		if err = configSet("uploadpack.allowfilter", "true"); err != nil {
+			return err
+		}
+		err = configSet("uploadpack.allowAnySHA1InWant", "true")
+	} else {
+		if err = configUnsetAll("uploadpack.allowfilter", "true"); err != nil {
+			return err
+		}
+		err = configUnsetAll("uploadpack.allowAnySHA1InWant", "true")
+	}
+
+	return err
 }
 
 // CheckGitVersionAtLeast check git version is at least the constraint version

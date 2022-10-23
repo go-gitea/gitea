@@ -81,6 +81,16 @@ To publish a package simply run:
 mvn deploy
 ```
 
+If you want to publish a prebuild package to the registry, you can use [`mvn deploy:deploy-file`](https://maven.apache.org/plugins/maven-deploy-plugin/deploy-file-mojo.html):
+
+```shell
+mvn deploy:deploy-file -Durl=https://gitea.example.com/api/packages/{owner}/maven -DrepositoryId=gitea -Dfile=/path/to/package.jar
+```
+
+| Parameter      | Description |
+| -------------- | ----------- |
+| `owner`        | The owner of the package. |
+
 You cannot publish a package if a package of the same name and version already exists. You must delete the existing package first.
 
 ## Install a package

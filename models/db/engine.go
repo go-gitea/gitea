@@ -225,7 +225,7 @@ func NamesToBean(names ...string) ([]interface{}, error) {
 	for _, name := range names {
 		bean, ok := beanMap[strings.ToLower(strings.TrimSpace(name))]
 		if !ok {
-			return nil, fmt.Errorf("No table found that matches: %s", name)
+			return nil, fmt.Errorf("no table found that matches: %s", name)
 		}
 		if !gotBean[bean] {
 			beans = append(beans, bean)
@@ -286,4 +286,13 @@ func DeleteAllRecords(tableName string) error {
 func GetMaxID(beanOrTableName interface{}) (maxID int64, err error) {
 	_, err = x.Select("MAX(id)").Table(beanOrTableName).Get(&maxID)
 	return maxID, err
+}
+
+func SetLogSQL(ctx context.Context, on bool) {
+	e := GetEngine(ctx)
+	if x, ok := e.(*xorm.Engine); ok {
+		x.ShowSQL(on)
+	} else if sess, ok := e.(*xorm.Session); ok {
+		sess.Engine().ShowSQL(on)
+	}
 }

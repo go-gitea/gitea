@@ -1,5 +1,5 @@
 <div class="issue list">
-	{{ $approvalCounts := .ApprovalCounts}}
+	{{$approvalCounts := .ApprovalCounts}}
 	{{range .Issues}}
 		<li class="item df py-3">
 			<div class="issue-item-left df">
@@ -17,7 +17,11 @@
 							{{if .IsClosed}}
 								{{svg "octicon-git-pull-request" 16 "text red"}}
 							{{else}}
-								{{svg "octicon-git-pull-request" 16 "text green"}}
+								{{if .PullRequest.IsWorkInProgress}}
+									{{svg "octicon-git-pull-request-draft" 16 "text grey"}}
+								{{else}}
+									{{svg "octicon-git-pull-request" 16 "text green"}}
+								{{end}}
 							{{end}}
 						{{end}}
 					{{else}}
@@ -31,7 +35,7 @@
 			</div>
 			<div class="issue-item-main f1 fc df">
 				<div class="issue-item-top-row">
-					<a class="title tdn" href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{RenderEmoji .Title}}</a>
+					<a class="title tdn issue-title" href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{RenderEmoji .Title | RenderCodeBlock}}</a>
 					{{if .IsPull}}
 						{{if (index $.CommitStatuses .PullRequest.ID)}}
 							{{template "repo/commit_statuses" dict "Status" (index $.CommitLastStatus .PullRequest.ID) "Statuses" (index $.CommitStatuses .PullRequest.ID) "root" $}}
@@ -39,7 +43,7 @@
 					{{end}}
 					<span class="labels-list ml-2">
 						{{range .Labels}}
-							<a class="ui label" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
+							<a class="ui label" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
 						{{end}}
 					</span>
 				</div>
@@ -51,28 +55,26 @@
 							#{{.Index}}
 						{{end}}
 					</a>
-					{{ $timeStr := TimeSinceUnix .GetLastEventTimestamp $.i18n.Lang }}
-					{{if .OriginalAuthor }}
-						{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.OriginalAuthor|Escape) | Safe}}
+					{{$timeStr := TimeSinceUnix .GetLastEventTimestamp $.locale}}
+					{{if .OriginalAuthor}}
+						{{$.locale.Tr .GetLastEventLabelFake $timeStr (.OriginalAuthor|Escape) | Safe}}
 					{{else if gt .Poster.ID 0}}
-						{{$.i18n.Tr .GetLastEventLabel $timeStr (.Poster.HomeLink|Escape) (.Poster.GetDisplayName | Escape) | Safe}}
+						{{$.locale.Tr .GetLastEventLabel $timeStr (.Poster.HomeLink|Escape) (.Poster.GetDisplayName | Escape) | Safe}}
 					{{else}}
-						{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
+						{{$.locale.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
 					{{end}}
 					{{if .IsPull}}
-						<div class="branches">
+						<div class="branches df ac">
 							<div class="branch">
-								<a class="bold" href="{{.PullRequest.BaseRepo.HTMLURL}}/src/branch/{{PathEscapeSegments .PullRequest.BaseBranch}}">
+								<a href="{{.PullRequest.BaseRepo.HTMLURL}}/src/branch/{{PathEscapeSegments .PullRequest.BaseBranch}}">
 									{{/* inline to remove the spaces between spans */}}
 									{{if ne .RepoID .PullRequest.BaseRepoID}}<span class="truncated-name">{{.PullRequest.BaseRepo.OwnerName}}</span>:{{end}}<span class="truncated-name">{{.PullRequest.BaseBranch}}</span>
 								</a>
 							</div>
-
-							&laquo;
-
+							{{svg "gitea-double-chevron-left" 12 "mx-1"}}
 							{{if .PullRequest.HeadRepo}}
 							<div class="branch">
-								<a class="bold" href="{{.PullRequest.HeadRepo.HTMLURL}}/src/branch/{{PathEscapeSegments .PullRequest.HeadBranch}}">
+								<a href="{{.PullRequest.HeadRepo.HTMLURL}}/src/branch/{{PathEscapeSegments .PullRequest.HeadBranch}}">
 									{{/* inline to remove the spaces between spans */}}
 									{{if ne .RepoID .PullRequest.HeadRepoID}}<span class="truncated-name">{{.PullRequest.HeadRepo.OwnerName}}</span>:{{end}}<span class="truncated-name">{{.PullRequest.HeadBranch}}</span>
 								</a>
@@ -83,6 +85,11 @@
 					{{if and .Milestone (ne $.listType "milestone")}}
 						<a class="milestone" {{if $.RepoLink}}href="{{$.RepoLink}}/milestone/{{.Milestone.ID}}"{{else}}href="{{.Repo.Link}}/milestone/{{.Milestone.ID}}"{{end}}>
 							{{svg "octicon-milestone" 14 "mr-2"}}{{.Milestone.Name}}
+						</a>
+					{{end}}
+					{{if .Project}}
+						<a class="project" {{if $.RepoLink}}href="{{$.RepoLink}}/projects/{{.Project.ID}}"{{else}}href="{{.Repo.Link}}/projects/{{.Project.ID}}"{{end}}>
+							{{svg "octicon-project" 14 "mr-2"}}{{.Project.Title}}
 						</a>
 					{{end}}
 					{{if .Ref}}
@@ -99,10 +106,10 @@
 						</span>
 					{{end}}
 					{{if ne .DeadlineUnix 0}}
-						<span class="due-date tooltip" data-content="{{$.i18n.Tr "repo.issues.due_date"}}" data-position="right center">
+						<span class="due-date tooltip" data-content="{{$.locale.Tr "repo.issues.due_date"}}" data-position="right center">
 							<span{{if .IsOverdue}} class="overdue"{{end}}>
 								{{svg "octicon-calendar" 14 "mr-2"}}
-								{{.DeadlineUnix.FormatShort}}
+								<time data-format="short-date" datetime="{{.DeadlineUnix.FormatLong}}">{{.DeadlineUnix.FormatShort}}</time>
 							</span>
 						</span>
 					{{end}}
@@ -113,25 +120,25 @@
 						{{if gt $approveOfficial 0}}
 							<span class="approvals df ac">
 								{{svg "octicon-check" 14 "mr-1"}}
-								{{$.i18n.TrN $approveOfficial "repo.pulls.approve_count_1" "repo.pulls.approve_count_n" $approveOfficial}}
+								{{$.locale.TrN $approveOfficial "repo.pulls.approve_count_1" "repo.pulls.approve_count_n" $approveOfficial}}
 							</span>
 						{{end}}
 						{{if gt $rejectOfficial 0}}
 							<span class="rejects df ac">
 								{{svg "octicon-diff" 14 "mr-2"}}
-								{{$.i18n.TrN $rejectOfficial "repo.pulls.reject_count_1" "repo.pulls.reject_count_n" $rejectOfficial}}
+								{{$.locale.TrN $rejectOfficial "repo.pulls.reject_count_1" "repo.pulls.reject_count_n" $rejectOfficial}}
 							</span>
 						{{end}}
 						{{if gt $waitingOfficial 0}}
 							<span class="waiting df ac">
 								{{svg "octicon-eye" 14 "mr-2"}}
-								{{$.i18n.TrN $waitingOfficial "repo.pulls.waiting_count_1" "repo.pulls.waiting_count_n" $waitingOfficial}}
+								{{$.locale.TrN $waitingOfficial "repo.pulls.waiting_count_1" "repo.pulls.waiting_count_n" $waitingOfficial}}
 							</span>
 						{{end}}
 						{{if and (not .PullRequest.HasMerged) (gt (len .PullRequest.ConflictedFiles) 0)}}
 							<span class="conflicting df ac">
 								{{svg "octicon-x" 14}}
-								{{$.i18n.TrN (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n" (len .PullRequest.ConflictedFiles)}}
+								{{$.locale.TrN (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n" (len .PullRequest.ConflictedFiles)}}
 							</span>
 						{{end}}
 					{{end}}
@@ -163,7 +170,7 @@
 	{{end}}
 	{{if .IssueIndexerUnavailable}}
 		<div class="ui error message">
-			<p>{{$.i18n.Tr "repo.issues.keyword_search_unavailable"}}</p>
+			<p>{{$.locale.Tr "repo.issues.keyword_search_unavailable"}}</p>
 		</div>
 	{{end}}
 </div>

@@ -30,7 +30,6 @@ see Git version of the server.
 By default, clone filters are enabled, unless `DISABLE_PARTIAL_CLONE` under
 `[git]` is set to `true`.
 
-
 See [GitHub blog post: Get up to speed with partial clone](https://github.blog/2020-12-21-get-up-to-speed-with-partial-clone-and-shallow-clone/)
 for common use cases of clone filters (blobless and treeless clones), and
 [GitLab docs for partial clone](https://docs.gitlab.com/ee/topics/git/partial_clone.html)

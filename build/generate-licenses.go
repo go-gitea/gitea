@@ -39,6 +39,14 @@ func main() {
 
 	defer util.Remove(file.Name())
 
+	if err := os.RemoveAll(destination); err != nil {
+		log.Fatalf("Cannot clean destination folder: %v", err)
+	}
+
+	if err := os.MkdirAll(destination, 0o755); err != nil {
+		log.Fatalf("Cannot create destination: %v", err)
+	}
+
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Fatalf("Failed to download archive. %s", err)

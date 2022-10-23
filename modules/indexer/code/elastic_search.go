@@ -284,7 +284,7 @@ func (b *ElasticSearchIndexer) Index(ctx context.Context, repo *repo_model.Repos
 	reqs := make([]elastic.BulkableRequest, 0)
 	if len(changes.Updates) > 0 {
 		// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
-		if err := git.EnsureValidGitRepository(git.DefaultContext, repo.RepoPath()); err != nil {
+		if err := git.EnsureValidGitRepository(ctx, repo.RepoPath()); err != nil {
 			log.Error("Unable to open git repo: %s for %-v: %v", repo.RepoPath(), repo, err)
 			return err
 		}

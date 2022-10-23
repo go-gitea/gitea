@@ -103,7 +103,7 @@ func (m *Manager) getLevelDB(connection string) (*leveldb.DB, error) {
 	db, ok = m.LevelDBConnections[dataDir]
 	if ok {
 		db.count++
-		log.Warn("Duplicate connnection to level db: %s with different connection strings. Initial connection: %s. This connection: %s", dataDir, db.name[0], connection)
+		log.Warn("Duplicate connection to level db: %s with different connection strings. Initial connection: %s. This connection: %s", dataDir, db.name[0], connection)
 		db.name = append(db.name, connection)
 		m.LevelDBConnections[connection] = db
 		return db.db, nil

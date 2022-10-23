@@ -56,6 +56,9 @@ type Version struct {
 	Version int64
 }
 
+// Use noopMigration when there is a migration that has been no-oped
+var noopMigration = func(_ *xorm.Engine) error { return nil }
+
 // This is a sequence of migrations. Add new migrations to the bottom of the list.
 // If you want to "retire" a migration, remove it from the top of the list and
 // update minDBVersion accordingly
@@ -351,7 +354,7 @@ var migrations = []Migration{
 	// v198 -> v199
 	NewMigration("Add issue content history table", addTableIssueContentHistory),
 	// v199 -> v200
-	NewMigration("No-op (remote version is using AppState now)", addRemoteVersionTableNoop),
+	NewMigration("No-op (remote version is using AppState now)", noopMigration),
 	// v200 -> v201
 	NewMigration("Add table app_state", addTableAppState),
 	// v201 -> v202
@@ -388,9 +391,36 @@ var migrations = []Migration{
 	// v215 -> v216
 	NewMigration("allow to view files in PRs", addReviewViewedFiles),
 	// v216 -> v217
-	NewMigration("Improve Action table indices", improveActionTableIndices),
+	NewMigration("No-op (Improve Action table indices v1)", noopMigration),
 	// v217 -> v218
 	NewMigration("Alter hook_task table TEXT fields to LONGTEXT", alterHookTaskTextFieldsToLongText),
+	// v218 -> v219
+	NewMigration("Improve Action table indices v2", improveActionTableIndices),
+	// v219 -> v220
+	NewMigration("Add sync_on_commit column to push_mirror table", addSyncOnCommitColForPushMirror),
+	// v220 -> v221
+	NewMigration("Add container repository property", addContainerRepositoryProperty),
+	// v221 -> v222
+	NewMigration("Store WebAuthentication CredentialID as bytes and increase size to at least 1024", storeWebauthnCredentialIDAsBytes),
+	// v222 -> v223
+	NewMigration("Drop old CredentialID column", dropOldCredentialIDColumn),
+	// v223 -> v224
+	NewMigration("Rename CredentialIDBytes column to CredentialID", renameCredentialIDBytes),
+
+	// Gitea 1.17.0 ends at v224
+
+	// v224 -> v225
+	NewMigration("Add badges to users", createUserBadgesTable),
+	// v225 -> v226
+	NewMigration("Alter gpg_key/public_key content TEXT fields to MEDIUMTEXT", alterPublicGPGKeyContentFieldsToMediumText),
+	// v226 -> v227
+	NewMigration("Conan and generic packages do not need to be semantically versioned", fixPackageSemverField),
+	// v227 -> v228
+	NewMigration("Create key/value table for system settings", createSystemSettingsTable),
+	// v228 -> v229
+	NewMigration("Add TeamInvite table", addTeamInviteTable),
+	// v229 -> v230
+	NewMigration("Update counts of all open milestones", updateOpenMilestoneCounts),
 }
 
 // GetCurrentDBVersion returns the current db version

@@ -212,6 +212,53 @@ func TestDiscordPayload(t *testing.T) {
 		assert.Equal(t, p.Sender.AvatarURL, pl.(*DiscordPayload).Embeds[0].Author.IconURL)
 	})
 
+	t.Run("Wiki", func(t *testing.T) {
+		p := wikiTestPayload()
+
+		d := new(DiscordPayload)
+		p.Action = api.HookWikiCreated
+		pl, err := d.Wiki(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &DiscordPayload{}, pl)
+
+		assert.Len(t, pl.(*DiscordPayload).Embeds, 1)
+		assert.Equal(t, "[test/repo] New wiki page 'index' (Wiki change comment)", pl.(*DiscordPayload).Embeds[0].Title)
+		assert.Equal(t, "Wiki change comment", pl.(*DiscordPayload).Embeds[0].Description)
+		assert.Equal(t, "http://localhost:3000/test/repo/wiki/index", pl.(*DiscordPayload).Embeds[0].URL)
+		assert.Equal(t, p.Sender.UserName, pl.(*DiscordPayload).Embeds[0].Author.Name)
+		assert.Equal(t, setting.AppURL+p.Sender.UserName, pl.(*DiscordPayload).Embeds[0].Author.URL)
+		assert.Equal(t, p.Sender.AvatarURL, pl.(*DiscordPayload).Embeds[0].Author.IconURL)
+
+		p.Action = api.HookWikiEdited
+		pl, err = d.Wiki(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &DiscordPayload{}, pl)
+
+		assert.Len(t, pl.(*DiscordPayload).Embeds, 1)
+		assert.Equal(t, "[test/repo] Wiki page 'index' edited (Wiki change comment)", pl.(*DiscordPayload).Embeds[0].Title)
+		assert.Equal(t, "Wiki change comment", pl.(*DiscordPayload).Embeds[0].Description)
+		assert.Equal(t, "http://localhost:3000/test/repo/wiki/index", pl.(*DiscordPayload).Embeds[0].URL)
+		assert.Equal(t, p.Sender.UserName, pl.(*DiscordPayload).Embeds[0].Author.Name)
+		assert.Equal(t, setting.AppURL+p.Sender.UserName, pl.(*DiscordPayload).Embeds[0].Author.URL)
+		assert.Equal(t, p.Sender.AvatarURL, pl.(*DiscordPayload).Embeds[0].Author.IconURL)
+
+		p.Action = api.HookWikiDeleted
+		pl, err = d.Wiki(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &DiscordPayload{}, pl)
+
+		assert.Len(t, pl.(*DiscordPayload).Embeds, 1)
+		assert.Equal(t, "[test/repo] Wiki page 'index' deleted", pl.(*DiscordPayload).Embeds[0].Title)
+		assert.Empty(t, pl.(*DiscordPayload).Embeds[0].Description)
+		assert.Equal(t, "http://localhost:3000/test/repo/wiki/index", pl.(*DiscordPayload).Embeds[0].URL)
+		assert.Equal(t, p.Sender.UserName, pl.(*DiscordPayload).Embeds[0].Author.Name)
+		assert.Equal(t, setting.AppURL+p.Sender.UserName, pl.(*DiscordPayload).Embeds[0].Author.URL)
+		assert.Equal(t, p.Sender.AvatarURL, pl.(*DiscordPayload).Embeds[0].Author.IconURL)
+	})
+
 	t.Run("Release", func(t *testing.T) {
 		p := pullReleaseTestPayload()
 

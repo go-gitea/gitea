@@ -17,16 +17,23 @@ import (
 )
 
 // AddCacheControlToHeader adds suitable cache-control headers to response
-func AddCacheControlToHeader(h http.Header, d time.Duration) {
+func AddCacheControlToHeader(h http.Header, maxAge time.Duration, additionalDirectives ...string) {
+	directives := make([]string, 0, 2+len(additionalDirectives))
+
 	if setting.IsProd {
-		h.Set("Cache-Control", "private, max-age="+strconv.Itoa(int(d.Seconds())))
+		if maxAge == 0 {
+			directives = append(directives, "no-store")
+		} else {
+			directives = append(directives, "private", "max-age="+strconv.Itoa(int(maxAge.Seconds())))
+		}
 	} else {
-		h.Set("Cache-Control", "no-store")
+		directives = append(directives, "no-store")
+
 		// to remind users they are using non-prod setting.
-		// some users may be confused by "Cache-Control: no-store" in their setup if they did wrong to `RUN_MODE` in `app.ini`.
 		h.Add("X-Gitea-Debug", "RUN_MODE="+setting.RunMode)
-		h.Add("X-Gitea-Debug", "CacheControl=no-store")
 	}
+
+	h.Set("Cache-Control", strings.Join(append(directives, additionalDirectives...), ", "))
 }
 
 // generateETag generates an ETag based on size, filename and file modification time

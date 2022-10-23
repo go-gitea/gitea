@@ -80,6 +80,9 @@ func (c *Commit) ParentCount() int {
 
 // GetCommitByPath return the commit of relative path object.
 func (c *Commit) GetCommitByPath(relpath string) (*Commit, error) {
+	if c.repo.LastCommitCache != nil {
+		return c.repo.LastCommitCache.GetCommitByPath(c.ID.String(), relpath)
+	}
 	return c.repo.getCommitByPathWithID(c.ID, relpath)
 }
 
@@ -163,7 +166,7 @@ func AllCommitsCount(ctx context.Context, repoPath string, hidePRRefs bool, file
 // CommitsCountFiles returns number of total commits of until given revision.
 func CommitsCountFiles(ctx context.Context, repoPath string, revision, relpath []string) (int64, error) {
 	cmd := NewCommand(ctx, "rev-list", "--count")
-	cmd.AddArguments(revision...)
+	cmd.AddDynamicArguments(revision...)
 	if len(relpath) > 0 {
 		cmd.AddArguments("--")
 		cmd.AddArguments(relpath...)

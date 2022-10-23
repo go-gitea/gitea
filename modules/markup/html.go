@@ -603,8 +603,14 @@ func mentionProcessor(ctx *RenderContext, node *html.Node) {
 			start = loc.End
 			continue
 		}
-		replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, mention[1:]), mention, "mention"))
-		node = node.NextSibling.NextSibling
+		mentionedUsername := mention[1:]
+
+		if processorHelper.IsUsernameMentionable != nil && processorHelper.IsUsernameMentionable(ctx.Ctx, mentionedUsername) {
+			replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, mentionedUsername), mention, "mention"))
+			node = node.NextSibling.NextSibling
+		} else {
+			node = node.NextSibling
+		}
 		start = 0
 	}
 }
@@ -841,9 +847,10 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 
 		// Repos with external issue trackers might still need to reference local PRs
 		// We need to concern with the first one that shows up in the text, whichever it is
-		if hasExtTrackFormat && !isNumericStyle {
+		if hasExtTrackFormat && !isNumericStyle && refNumeric != nil {
 			// If numeric (PR) was found, and it was BEFORE the non-numeric pattern, use that
-			if foundNumeric && refNumeric.RefLocation.Start < ref.RefLocation.Start {
+			// Allow a free-pass when non-numeric pattern wasn't found.
+			if found && (ref == nil || refNumeric.RefLocation.Start < ref.RefLocation.Start) {
 				found = foundNumeric
 				ref = refNumeric
 			}
@@ -1175,7 +1182,7 @@ func genDefaultLinkProcessor(defaultLink string) processor {
 		node.DataAtom = atom.A
 		node.Attr = []html.Attribute{
 			{Key: "href", Val: defaultLink},
-			{Key: "class", Val: "default-link"},
+			{Key: "class", Val: "default-link muted"},
 		}
 		node.FirstChild, node.LastChild = ch, ch
 	}
