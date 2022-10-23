@@ -163,7 +163,7 @@ func HookProcReceive(ctx context.Context, ownerName, repoName string, opts HookO
 	req.Body(jsonBytes)
 	resp, err := req.Response()
 	if err != nil {
-		return nil, fmt.Errorf("Unable to contact gitea: %w", err.Error())
+		return nil, fmt.Errorf("Unable to contact gitea: %w", err)
 	}
 	defer resp.Body.Close()
 

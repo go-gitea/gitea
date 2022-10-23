@@ -973,7 +973,7 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 		}
 		for _, constraint := range constraints {
 			if _, err := sess.Exec(fmt.Sprintf("DROP INDEX `%[2]s` ON `%[1]s`", tableName, constraint)); err != nil {
-				return fmt.Errorf("Drop index `%[2]s` on `%[1]s`: %w", tableName, constraint, err)
+				return fmt.Errorf("Drop index `%s` on `%s`: %w", constraint,  tableName, err)
 			}
 		}
 
