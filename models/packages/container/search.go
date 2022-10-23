@@ -165,6 +165,7 @@ type ImageTagsSearchOptions struct {
 	PackageID int64
 	Query     string
 	IsTagged  bool
+	Sort      packages.VersionSort
 	db.Paginator
 }
 
@@ -195,12 +196,26 @@ func (opts *ImageTagsSearchOptions) toConds() builder.Cond {
 	return cond
 }
 
+func (opts *ImageTagsSearchOptions) configureOrderBy(e db.Engine) {
+	switch opts.Sort {
+	case packages.SortVersionDesc:
+		e.Desc("package_version.version")
+	case packages.SortVersionAsc:
+		e.Asc("package_version.version")
+	case packages.SortCreatedAsc:
+		e.Asc("package_version.created_unix")
+	default:
+		e.Desc("package_version.created_unix")
+	}
+}
+
 // SearchImageTags gets a sorted list of the tags of an image
 func SearchImageTags(ctx context.Context, opts *ImageTagsSearchOptions) ([]*packages.PackageVersion, int64, error) {
 	sess := db.GetEngine(ctx).
 		Join("INNER", "package", "package.id = package_version.package_id").
-		Where(opts.toConds()).
-		Desc("package_version.created_unix")
+		Where(opts.toConds())
+
+	opts.configureOrderBy(sess)
 
 	if opts.Paginator != nil {
 		sess = db.SetSessionPagination(sess, opts)
