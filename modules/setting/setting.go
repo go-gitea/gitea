@@ -435,7 +435,13 @@ var (
 
 	// Highlight settings are loaded in modules/template/highlight.go
 
-	// Other settings
+	// Show settings
+	ShowFooter                 bool
+	ShowFooterAPI              bool
+	ShowFooterLocaleSwitcher   bool
+	ShowFooterLocale           bool
+	ShowFooterGitHub           bool
+	ShowFooterLicense          bool
 	ShowFooterBranding         bool
 	ShowFooterVersion          bool
 	ShowFooterTemplateLoadTime bool
@@ -1091,9 +1097,15 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		Names = defaultI18nNames()
 	}
 
-	ShowFooterBranding = Cfg.Section("other").Key("SHOW_FOOTER_BRANDING").MustBool(false)
-	ShowFooterVersion = Cfg.Section("other").Key("SHOW_FOOTER_VERSION").MustBool(true)
-	ShowFooterTemplateLoadTime = Cfg.Section("other").Key("SHOW_FOOTER_TEMPLATE_LOAD_TIME").MustBool(true)
+	ShowFooter = Cfg.Section("show.footer").Key("SHOW_FOOTER").MustBool(false)
+	ShowFooterAPI = Cfg.Section("show.footer").Key("SHOW_FOOTER_API").MustBool(false)
+	ShowFooterLocale = Cfg.Section("show.footer.locale").Key("SHOW_FOOTER_LOCALE").MustBool(false)
+	ShowFooterLocaleSwitcher = Cfg.Section("show.footer.locale").Key("SHOW_FOOTER_LOCALE_SWITCHER").MustBool(false)
+	ShowFooterGitHub = Cfg.Section("show.footer").Key("SHOW_FOOTER_GITHUB").MustBool(false)
+	ShowFooterLicense = Cfg.Section("show.footer").Key("SHOW_FOOTER_LICENSE").MustBool(false)
+	ShowFooterBranding = Cfg.Section("show.footer").Key("SHOW_FOOTER_BRANDING").MustBool(false)
+	ShowFooterVersion = Cfg.Section("show.footer").Key("SHOW_FOOTER_VERSION").MustBool(true)
+	ShowFooterTemplateLoadTime = Cfg.Section("show.footer").Key("SHOW_FOOTER_TEMPLATE_LOAD_TIME").MustBool(true)
 
 	UI.ShowUserEmail = Cfg.Section("ui").Key("SHOW_USER_EMAIL").MustBool(true)
 	UI.DefaultShowFullName = Cfg.Section("ui").Key("DEFAULT_SHOW_FULL_NAME").MustBool(false)
