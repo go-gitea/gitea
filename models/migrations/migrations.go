@@ -413,6 +413,14 @@ var migrations = []Migration{
 	NewMigration("Add badges to users", createUserBadgesTable),
 	// v225 -> v226
 	NewMigration("Alter gpg_key/public_key content TEXT fields to MEDIUMTEXT", alterPublicGPGKeyContentFieldsToMediumText),
+	// v226 -> v227
+	NewMigration("Conan and generic packages do not need to be semantically versioned", fixPackageSemverField),
+	// v227 -> v228
+	NewMigration("Create key/value table for system settings", createSystemSettingsTable),
+	// v228 -> v229
+	NewMigration("Add TeamInvite table", addTeamInviteTable),
+	// v229 -> v230
+	NewMigration("Update counts of all open milestones", updateOpenMilestoneCounts),
 }
 
 // GetCurrentDBVersion returns the current db version

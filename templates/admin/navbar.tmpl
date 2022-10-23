@@ -12,9 +12,11 @@
 		<a class="{{if .PageIsAdminRepositories}}active{{end}} item" href="{{AppSubUrl}}/admin/repos">
 			{{.locale.Tr "admin.repositories"}}
 		</a>
-		<a class="{{if .PageIsAdminPackages}}active{{end}} item" href="{{AppSubUrl}}/admin/packages">
-			{{.locale.Tr "packages.title"}}
-		</a>
+		{{if .EnablePackages}}
+			<a class="{{if .PageIsAdminPackages}}active{{end}} item" href="{{AppSubUrl}}/admin/packages">
+				{{.locale.Tr "packages.title"}}
+			</a>
+		{{end}}
 		{{if not DisableWebhooks}}
 			<a class="{{if or .PageIsAdminDefaultHooks .PageIsAdminSystemHooks}}active{{end}} item" href="{{AppSubUrl}}/admin/hooks">
 				{{.locale.Tr "admin.hooks"}}
@@ -26,6 +28,11 @@
 		<a class="{{if .PageIsAdminEmails}}active{{end}} item" href="{{AppSubUrl}}/admin/emails">
 			{{.locale.Tr "admin.emails"}}
 		</a>
+		{{if .EnableOAuth2}}
+			<a class="{{if .PageIsAdminApplications}}active{{end}} item" href="{{AppSubUrl}}/admin/applications">
+				{{.locale.Tr "settings.applications"}}
+			</a>
+		{{end}}
 		<a class="{{if .PageIsAdminConfig}}active{{end}} item" href="{{AppSubUrl}}/admin/config">
 			{{.locale.Tr "admin.config"}}
 		</a>

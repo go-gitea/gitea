@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -34,6 +35,10 @@ func (err ErrForbiddenIssueReaction) Error() string {
 	return fmt.Sprintf("'%s' is not an allowed reaction", err.Reaction)
 }
 
+func (err ErrForbiddenIssueReaction) Unwrap() error {
+	return util.ErrPermissionDenied
+}
+
 // ErrReactionAlreadyExist is used when a existing reaction was try to created
 type ErrReactionAlreadyExist struct {
 	Reaction string
@@ -47,6 +52,10 @@ func IsErrReactionAlreadyExist(err error) bool {
 
 func (err ErrReactionAlreadyExist) Error() string {
 	return fmt.Sprintf("reaction '%s' already exists", err.Reaction)
+}
+
+func (err ErrReactionAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
 }
 
 // Reaction represents a reactions on issues and comments.
@@ -211,7 +220,7 @@ type ReactionOptions struct {
 
 // CreateReaction creates reaction for issue or comment.
 func CreateReaction(opts *ReactionOptions) (*Reaction, error) {
-	if !setting.UI.ReactionsMap[opts.Type] {
+	if !setting.UI.ReactionsLookup.Contains(opts.Type) {
 		return nil, ErrForbiddenIssueReaction{opts.Type}
 	}
 
@@ -316,16 +325,14 @@ func (list ReactionList) GroupByType() map[string]ReactionList {
 }
 
 func (list ReactionList) getUserIDs() []int64 {
-	userIDs := make(map[int64]struct{}, len(list))
+	userIDs := make(container.Set[int64], len(list))
 	for _, reaction := range list {
 		if reaction.OriginalAuthor != "" {
 			continue
 		}
-		if _, ok := userIDs[reaction.UserID]; !ok {
-			userIDs[reaction.UserID] = struct{}{}
-		}
+		userIDs.Add(reaction.UserID)
 	}
-	return container.KeysInt64(userIDs)
+	return userIDs.Values()
 }
 
 func valuesUser(m map[int64]*user_model.User) []*user_model.User {

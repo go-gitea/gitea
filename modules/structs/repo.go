@@ -34,8 +34,10 @@ type ExternalTracker struct {
 	ExternalTrackerURL string `json:"external_tracker_url"`
 	// External Issue Tracker URL Format. Use the placeholders {user}, {repo} and {index} for the username, repository name and issue index.
 	ExternalTrackerFormat string `json:"external_tracker_format"`
-	// External Issue Tracker Number Format, either `numeric` or `alphanumeric`
+	// External Issue Tracker Number Format, either `numeric`, `alphanumeric`, or `regexp`
 	ExternalTrackerStyle string `json:"external_tracker_style"`
+	// External Issue Tracker issue regular expression
+	ExternalTrackerRegexpPattern string `json:"external_tracker_regexp_pattern"`
 }
 
 // ExternalWiki represents setting for external wiki

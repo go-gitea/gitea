@@ -380,10 +380,13 @@ func AuthorizeOAuth(ctx *context.Context) {
 		return
 	}
 
-	user, err := user_model.GetUserByID(app.UID)
-	if err != nil {
-		ctx.ServerError("GetUserByID", err)
-		return
+	var user *user_model.User
+	if app.UID != 0 {
+		user, err = user_model.GetUserByID(app.UID)
+		if err != nil {
+			ctx.ServerError("GetUserByID", err)
+			return
+		}
 	}
 
 	if !app.ContainsRedirectURI(form.RedirectURI) {
@@ -475,7 +478,11 @@ func AuthorizeOAuth(ctx *context.Context) {
 	ctx.Data["State"] = form.State
 	ctx.Data["Scope"] = form.Scope
 	ctx.Data["Nonce"] = form.Nonce
-	ctx.Data["ApplicationUserLinkHTML"] = "<a href=\"" + html.EscapeString(user.HTMLURL()) + "\">@" + html.EscapeString(user.Name) + "</a>"
+	if user != nil {
+		ctx.Data["ApplicationCreatorLinkHTML"] = fmt.Sprintf(`<a href="%s">@%s</a>`, html.EscapeString(user.HomeLink()), html.EscapeString(user.Name))
+	} else {
+		ctx.Data["ApplicationCreatorLinkHTML"] = fmt.Sprintf(`<a href="%s">%s</a>`, html.EscapeString(setting.AppSubURL+"/"), html.EscapeString(setting.AppName))
+	}
 	ctx.Data["ApplicationRedirectDomainHTML"] = "<strong>" + html.EscapeString(form.RedirectURI) + "</strong>"
 	// TODO document SESSION <=> FORM
 	err = ctx.Session.Set("client_id", app.ClientID)
@@ -588,7 +595,8 @@ func OIDCKeys(ctx *context.Context) {
 // AccessTokenOAuth manages all access token requests by the client
 func AccessTokenOAuth(ctx *context.Context) {
 	form := *web.GetForm(ctx).(*forms.AccessTokenForm)
-	if form.ClientID == "" {
+	// if there is no ClientID or ClientSecret in the request body, fill these fields by the Authorization header and ensure the provided field matches the Authorization header
+	if form.ClientID == "" || form.ClientSecret == "" {
 		authHeader := ctx.Req.Header.Get("Authorization")
 		authContent := strings.SplitN(authHeader, " ", 2)
 		if len(authContent) == 2 && authContent[0] == "Basic" {
@@ -608,7 +616,21 @@ func AccessTokenOAuth(ctx *context.Context) {
 				})
 				return
 			}
+			if form.ClientID != "" && form.ClientID != pair[0] {
+				handleAccessTokenError(ctx, AccessTokenError{
+					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
+					ErrorDescription: "client_id in request body inconsistent with Authorization header",
+				})
+				return
+			}
 			form.ClientID = pair[0]
+			if form.ClientSecret != "" && form.ClientSecret != pair[1] {
+				handleAccessTokenError(ctx, AccessTokenError{
+					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
+					ErrorDescription: "client_secret in request body inconsistent with Authorization header",
+				})
+				return
+			}
 			form.ClientSecret = pair[1]
 		}
 	}
@@ -686,9 +708,13 @@ func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, s
 		return
 	}
 	if !app.ValidateClientSecret([]byte(form.ClientSecret)) {
+		errorDescription := "invalid client secret"
+		if form.ClientSecret == "" {
+			errorDescription = "invalid empty client secret"
+		}
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
-			ErrorDescription: "invalid client secret",
+			ErrorDescription: errorDescription,
 		})
 		return
 	}
@@ -1042,7 +1068,9 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 
 		// update external user information
 		if err := externalaccount.UpdateExternalUser(u, gothUser); err != nil {
-			log.Error("UpdateExternalUser failed: %v", err)
+			if !errors.Is(err, util.ErrNotExist) {
+				log.Error("UpdateExternalUser failed: %v", err)
+			}
 		}
 
 		if err := resetLocale(ctx, u); err != nil {

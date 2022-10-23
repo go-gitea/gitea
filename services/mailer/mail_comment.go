@@ -10,6 +10,7 @@ import (
 	activities_model "code.gitea.io/gitea/models/activities"
 	issues_model "code.gitea.io/gitea/models/issues"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -46,8 +47,8 @@ func MailMentionsComment(ctx context.Context, pr *issues_model.PullRequest, c *i
 		return nil
 	}
 
-	visited := make(map[int64]bool, len(mentions)+1)
-	visited[c.Poster.ID] = true
+	visited := make(container.Set[int64], len(mentions)+1)
+	visited.Add(c.Poster.ID)
 	if err = mailIssueCommentBatch(
 		&mailCommentContext{
 			Context:    ctx,

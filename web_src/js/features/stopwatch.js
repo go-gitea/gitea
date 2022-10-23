@@ -135,7 +135,7 @@ function updateStopwatchData(data) {
     updateStopwatchTime(seconds);
     btnEl.removeClass('hidden');
   }
-  return !!data.length;
+  return Boolean(data.length);
 }
 
 let updateTimeIntervalId = null; // holds setInterval id when active
