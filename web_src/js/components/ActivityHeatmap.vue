@@ -16,6 +16,7 @@
 </template>
 <script>
 import {CalendarHeatmap} from 'vue3-calendar-heatmap';
+import heatmapLocale from '../features/heatmap-locale.js';
 
 export default {
   name: 'ActivityHeatmap',
@@ -39,7 +40,7 @@ export default {
     locale: {
       contributions: 'contributions',
       no_contributions: 'No contributions',
-    },
+      ...heatmapLocale},
   }),
   computed: {
     sum() {
