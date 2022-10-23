@@ -215,6 +215,10 @@ func Routes(ctx gocontext.Context) *web.Route {
 					r.Get("", npm.DownloadPackageFile)
 					r.Delete("/-rev/{revision}", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
 				})
+				r.Group("/-/{filename}", func() {
+					r.Get("", npm.DownloadPackageFile)
+					r.Delete("/-rev/{revision}", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
+				})
 				r.Group("/-rev/{revision}", func() {
 					r.Delete("", npm.DeletePackage)
 					r.Put("", npm.DeletePreview)
@@ -224,6 +228,10 @@ func Routes(ctx gocontext.Context) *web.Route {
 				r.Get("", npm.PackageMetadata)
 				r.Put("", reqPackageAccess(perm.AccessModeWrite), npm.UploadPackage)
 				r.Group("/-/{version}/{filename}", func() {
+					r.Get("", npm.DownloadPackageFile)
+					r.Delete("/-rev/{revision}", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
+				})
+				r.Group("/-/{filename}", func() {
 					r.Get("", npm.DownloadPackageFile)
 					r.Delete("/-rev/{revision}", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
 				})
