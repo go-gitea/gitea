@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_updateOpenMilestoneCounts(t *testing.T) {
+func Test_UpdateOpenMilestoneCounts(t *testing.T) {
 	type ExpectedMilestone issues.Milestone
 
 	// Prepare and load the testing database
