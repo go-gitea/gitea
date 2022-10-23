@@ -2,7 +2,7 @@
 
 {{$createdStr:= TimeSinceUnix .CreatedUnix $.root.locale}}
 <div class="comment" id="{{.HashTag}}">
-  {{if .OriginalAuthor}}
+	{{if .OriginalAuthor}}
 		<span class="avatar"><img src="{{AppSubUrl}}/assets/img/avatar_default.png"></span>
 	{{else}}
 		{{template "shared/user/avatarlink" .Poster}}

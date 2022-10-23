@@ -438,14 +438,21 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 		}
 
 		if download {
-			rep.Actions["download"] = &lfs_module.Link{Href: rc.DownloadLink(pointer), Header: header}
+			var link *lfs_module.Link
 			if setting.LFS.ServeDirect {
 				// If we have a signed url (S3, object storage), redirect to this directly.
 				u, err := storage.LFS.URL(pointer.RelativePath(), pointer.Oid)
 				if u != nil && err == nil {
-					rep.Actions["download"] = &lfs_module.Link{Href: u.String(), Header: header}
+					// Presigned url does not need the Authorization header
+					// https://github.com/go-gitea/gitea/issues/21525
+					delete(header, "Authorization")
+					link = &lfs_module.Link{Href: u.String(), Header: header}
 				}
 			}
+			if link == nil {
+				link = &lfs_module.Link{Href: rc.DownloadLink(pointer), Header: header}
+			}
+			rep.Actions["download"] = link
 		}
 		if upload {
 			rep.Actions["upload"] = &lfs_module.Link{Href: rc.UploadLink(pointer), Header: header}
