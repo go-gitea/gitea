@@ -48,6 +48,7 @@ const (
 // TODO move error and responses to SDK or models
 
 // AuthorizeErrorCode represents an error code specified in RFC 6749
+// https://datatracker.ietf.org/doc/html/rfc6749#section-4.2.2.1
 type AuthorizeErrorCode string
 
 const (
@@ -68,6 +69,7 @@ const (
 )
 
 // AuthorizeError represents an error type specified in RFC 6749
+// https://datatracker.ietf.org/doc/html/rfc6749#section-4.2.2.1
 type AuthorizeError struct {
 	ErrorCode        AuthorizeErrorCode `json:"error" form:"error"`
 	ErrorDescription string
@@ -80,6 +82,7 @@ func (err AuthorizeError) Error() string {
 }
 
 // AccessTokenErrorCode represents an error code specified in RFC 6749
+// https://datatracker.ietf.org/doc/html/rfc6749#section-5.2
 type AccessTokenErrorCode string
 
 const (
@@ -98,6 +101,7 @@ const (
 )
 
 // AccessTokenError represents an error response specified in RFC 6749
+// https://datatracker.ietf.org/doc/html/rfc6749#section-5.2
 type AccessTokenError struct {
 	ErrorCode        AccessTokenErrorCode `json:"error" form:"error"`
 	ErrorDescription string               `json:"error_description"`
@@ -129,6 +133,7 @@ const (
 )
 
 // AccessTokenResponse represents a successful access token response
+// https://datatracker.ietf.org/doc/html/rfc6749#section-4.2.2
 type AccessTokenResponse struct {
 	AccessToken  string    `json:"access_token"`
 	TokenType    TokenType `json:"token_type"`
@@ -663,6 +668,30 @@ func AccessTokenOAuth(ctx *context.Context) {
 }
 
 func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, serverKey, clientKey oauth2.JWTSigningKey) {
+	app, err := auth.GetOAuth2ApplicationByClientID(ctx, form.ClientID)
+	if err != nil {
+		handleAccessTokenError(ctx, AccessTokenError{
+			ErrorCode:        AccessTokenErrorCodeInvalidClient,
+			ErrorDescription: fmt.Sprintf("cannot load client with client id: %q", form.ClientID),
+		})
+		return
+	}
+	// "The authorization server MUST ... require client authentication for confidential clients"
+	// https://datatracker.ietf.org/doc/html/rfc6749#section-6
+	if !app.ValidateClientSecret([]byte(form.ClientSecret)) {
+		errorDescription := "invalid client secret"
+		if form.ClientSecret == "" {
+			errorDescription = "invalid empty client secret"
+		}
+		// "invalid_client ... Client authentication failed"
+		// https://datatracker.ietf.org/doc/html/rfc6749#section-5.2
+		handleAccessTokenError(ctx, AccessTokenError{
+			ErrorCode:        AccessTokenErrorCodeInvalidClient,
+			ErrorDescription: errorDescription,
+		})
+		return
+	}
+
 	token, err := oauth2.ParseToken(form.RefreshToken, serverKey)
 	if err != nil {
 		handleAccessTokenError(ctx, AccessTokenError{
