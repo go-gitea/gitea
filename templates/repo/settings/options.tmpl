@@ -487,7 +487,7 @@
 						<div class="field">
 							<div class="ui checkbox">
 								<input name="pulls_allow_create_tag" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowCreateTag)}}checked{{end}}>
-								<label>{{.i18n.Tr "repo.settings.pulls.allow_create_tag"}}</label>
+								<label>{{.locale.Tr "repo.settings.pulls.allow_create_tag"}}</label>
 							</div>
 						</div>
 						<div class="field">
