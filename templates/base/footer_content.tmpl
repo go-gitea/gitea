@@ -21,15 +21,19 @@
 			{{if .ShowFooterGitHub}}
 				<a target="_blank" rel="noopener noreferrer" href="https://github.com/go-gitea/gitea">{{svg "octicon-mark-github"}}<span class="sr-only">GitHub</span></a>
 			{{end}}
-			<div class="ui language bottom floating slide up dropdown link item">
-				{{svg "octicon-globe"}}
-				<div class="text">{{.locale.LangName}}</div>
-				<div class="menu language-menu">
-					{{range .AllLangs}}
-						<a lang="{{.Lang}}" data-url="{{AppSubUrl}}/?lang={{.Lang}}" class="item {{if eq $.locale.Lang .Lang}}active selected{{end}}">{{.Name}}</a>
+			{{if .ShowFooterLocale}}
+				<div class="ui language bottom floating slide up dropdown link item">
+					{{svg "octicon-globe"}}
+					<div class="text">{{.locale.LangName}}</div>
+					{{if .ShowFooterLocaleSwitcher}}
+						<div class="menu language-menu">
+							{{range .AllLangs}}
+								<a lang="{{.Lang}}" data-url="{{AppSubUrl}}/?lang={{.Lang}}" class="item {{if eq $.locale.Lang .Lang}}active selected{{end}}">{{.Name}}</a>
+							{{end}}
+						</div>
 					{{end}}
 				</div>
-			</div>
+			{{end}}
 			{{if .ShowFooterLicense}}
 				<a href="{{AssetUrlPrefix}}/js/licenses.txt">{{.locale.Tr "licenses"}}</a>
 			{{end}}
