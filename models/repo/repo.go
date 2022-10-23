@@ -789,7 +789,7 @@ func UpdateRepoIssueNumbers(ctx context.Context, repoID int64, isPull, isClosed 
 	}
 	subQuery := builder.Select("count(*)").From("issue").Where(cond)
 
-	query := builder.Update(builder.Expr(field, subQuery)).
+	query := builder.Update(builder.Eq{field: subQuery}).
 		From("repository").
 		Where(builder.Eq{"id": repoID})
 	_, err := db.Exec(ctx, query)
