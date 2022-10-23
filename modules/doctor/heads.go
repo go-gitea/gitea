@@ -21,7 +21,7 @@ func synchronizeRepoHeads(ctx context.Context, logger log.Logger, autofix bool) 
 		numRepos++
 		runOpts := &git.RunOpts{Dir: repo.RepoPath()}
 
-		_, _, defaultBranchErr := git.NewCommand(ctx, "rev-parse", "--", repo.DefaultBranch).RunStdString(runOpts)
+		_, _, defaultBranchErr := git.NewCommand(ctx, "rev-parse").AddDashesAndList(repo.DefaultBranch).RunStdString(runOpts)
 
 		head, _, headErr := git.NewCommand(ctx, "symbolic-ref", "--short", "HEAD").RunStdString(runOpts)
 
@@ -49,7 +49,7 @@ func synchronizeRepoHeads(ctx context.Context, logger log.Logger, autofix bool) 
 		}
 
 		// otherwise, let's try fixing HEAD
-		err := git.NewCommand(ctx, "symbolic-ref", "--", "HEAD", repo.DefaultBranch).Run(runOpts)
+		err := git.NewCommand(ctx, "symbolic-ref").AddDashesAndList("HEAD", repo.DefaultBranch).Run(runOpts)
 		if err != nil {
 			logger.Warn("Failed to fix HEAD for %s/%s: %v", repo.OwnerName, repo.Name, err)
 			return nil

@@ -244,7 +244,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 	stagingBranch := "staging"
 
 	if expectedHeadCommitID != "" {
-		trackingCommitID, _, err := git.NewCommand(ctx, "show-ref", "--hash", git.BranchPrefix+trackingBranch).RunStdString(&git.RunOpts{Dir: tmpBasePath})
+		trackingCommitID, _, err := git.NewCommand(ctx, "show-ref", "--hash").AddDynamicArguments(git.BranchPrefix + trackingBranch).RunStdString(&git.RunOpts{Dir: tmpBasePath})
 		if err != nil {
 			log.Error("show-ref[%s] --hash refs/heads/trackingn: %v", tmpBasePath, git.BranchPrefix+trackingBranch, err)
 			return "", fmt.Errorf("getDiffTree: %v", err)
@@ -360,15 +360,15 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 	committer := sig
 
 	// Determine if we should sign
-	var signArg string
+	var signArg git.CmdArg
 	sign, keyID, signer, _ := asymkey_service.SignMerge(ctx, pr, doer, tmpBasePath, "HEAD", trackingBranch)
 	if sign {
-		signArg = "-S" + keyID
+		signArg = git.CmdArg("-S" + keyID)
 		if pr.BaseRepo.GetTrustModel() == repo_model.CommitterTrustModel || pr.BaseRepo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			committer = signer
 		}
 	} else {
-		signArg = "--no-gpg-sign"
+		signArg = git.CmdArg("--no-gpg-sign")
 	}
 
 	commitTimeStr := time.Now().Format(time.RFC3339)
@@ -386,7 +386,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 	// Merge commits.
 	switch mergeStyle {
 	case repo_model.MergeStyleMerge:
-		cmd := git.NewCommand(ctx, "merge", "--no-ff", "--no-commit", trackingBranch)
+		cmd := git.NewCommand(ctx, "merge", "--no-ff", "--no-commit").AddDynamicArguments(trackingBranch)
 		if err := runMergeCommand(pr, mergeStyle, cmd, tmpBasePath); err != nil {
 			log.Error("Unable to merge tracking into base: %v", err)
 			return "", err
@@ -402,7 +402,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 		fallthrough
 	case repo_model.MergeStyleRebaseMerge:
 		// Checkout head branch
-		if err := git.NewCommand(ctx, "checkout", "-b", stagingBranch, trackingBranch).
+		if err := git.NewCommand(ctx, "checkout", "-b").AddDynamicArguments(stagingBranch, trackingBranch).
 			Run(&git.RunOpts{
 				Dir:    tmpBasePath,
 				Stdout: &outbuf,
@@ -415,7 +415,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 		errbuf.Reset()
 
 		// Rebase before merging
-		if err := git.NewCommand(ctx, "rebase", baseBranch).
+		if err := git.NewCommand(ctx, "rebase").AddDynamicArguments(baseBranch).
 			Run(&git.RunOpts{
 				Dir:    tmpBasePath,
 				Stdout: &outbuf,
@@ -468,7 +468,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 		}
 
 		// Checkout base branch again
-		if err := git.NewCommand(ctx, "checkout", baseBranch).
+		if err := git.NewCommand(ctx, "checkout").AddDynamicArguments(baseBranch).
 			Run(&git.RunOpts{
 				Dir:    tmpBasePath,
 				Stdout: &outbuf,
@@ -486,7 +486,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 		} else {
 			cmd.AddArguments("--no-ff", "--no-commit")
 		}
-		cmd.AddArguments(stagingBranch)
+		cmd.AddDynamicArguments(stagingBranch)
 
 		// Prepare merge with commit
 		if err := runMergeCommand(pr, mergeStyle, cmd, tmpBasePath); err != nil {
@@ -501,7 +501,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 		}
 	case repo_model.MergeStyleSquash:
 		// Merge with squash
-		cmd := git.NewCommand(ctx, "merge", "--squash", trackingBranch)
+		cmd := git.NewCommand(ctx, "merge", "--squash").AddDynamicArguments(trackingBranch)
 		if err := runMergeCommand(pr, mergeStyle, cmd, tmpBasePath); err != nil {
 			log.Error("Unable to merge --squash tracking into base: %v", err)
 			return "", err
@@ -513,7 +513,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 		}
 		sig := pr.Issue.Poster.NewGitSig()
 		if signArg == "" {
-			if err := git.NewCommand(ctx, "commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email), "-m", message).
+			if err := git.NewCommand(ctx, "commit", git.CmdArg(fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email)), "-m").AddDynamicArguments(message).
 				Run(&git.RunOpts{
 					Env:    env,
 					Dir:    tmpBasePath,
@@ -528,7 +528,10 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 				// add trailer
 				message += fmt.Sprintf("\nCo-authored-by: %s\nCo-committed-by: %s\n", sig.String(), sig.String())
 			}
-			if err := git.NewCommand(ctx, "commit", signArg, fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email), "-m", message).
+			if err := git.NewCommand(ctx, "commit").
+				AddArguments(signArg).
+				AddArguments(git.CmdArg(fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email))).
+				AddArguments("-m").AddDynamicArguments(message).
 				Run(&git.RunOpts{
 					Env:    env,
 					Dir:    tmpBasePath,
@@ -592,9 +595,9 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 	var pushCmd *git.Command
 	if mergeStyle == repo_model.MergeStyleRebaseUpdate {
 		// force push the rebase result to head branch
-		pushCmd = git.NewCommand(ctx, "push", "-f", "head_repo", stagingBranch+":"+git.BranchPrefix+pr.HeadBranch)
+		pushCmd = git.NewCommand(ctx, "push", "-f", "head_repo").AddDynamicArguments(stagingBranch + ":" + git.BranchPrefix + pr.HeadBranch)
 	} else {
-		pushCmd = git.NewCommand(ctx, "push", "origin", baseBranch+":"+git.BranchPrefix+pr.BaseBranch)
+		pushCmd = git.NewCommand(ctx, "push", "origin").AddDynamicArguments(baseBranch + ":" + git.BranchPrefix + pr.BaseBranch)
 	}
 
 	// Push back to upstream.
@@ -629,10 +632,10 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 	return mergeCommitID, nil
 }
 
-func commitAndSignNoAuthor(ctx context.Context, pr *issues_model.PullRequest, message, signArg, tmpBasePath string, env []string) error {
+func commitAndSignNoAuthor(ctx context.Context, pr *issues_model.PullRequest, message string, signArg git.CmdArg, tmpBasePath string, env []string) error {
 	var outbuf, errbuf strings.Builder
 	if signArg == "" {
-		if err := git.NewCommand(ctx, "commit", "-m", message).
+		if err := git.NewCommand(ctx, "commit", "-m").AddDynamicArguments(message).
 			Run(&git.RunOpts{
 				Env:    env,
 				Dir:    tmpBasePath,
@@ -643,7 +646,7 @@ func commitAndSignNoAuthor(ctx context.Context, pr *issues_model.PullRequest, me
 			return fmt.Errorf("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
 		}
 	} else {
-		if err := git.NewCommand(ctx, "commit", signArg, "-m", message).
+		if err := git.NewCommand(ctx, "commit").AddArguments(signArg).AddArguments("-m").AddDynamicArguments(message).
 			Run(&git.RunOpts{
 				Env:    env,
 				Dir:    tmpBasePath,
@@ -696,7 +699,7 @@ func getDiffTree(ctx context.Context, repoPath, baseBranch, headBranch string) (
 	getDiffTreeFromBranch := func(repoPath, baseBranch, headBranch string) (string, error) {
 		var outbuf, errbuf strings.Builder
 		// Compute the diff-tree for sparse-checkout
-		if err := git.NewCommand(ctx, "diff-tree", "--no-commit-id", "--name-only", "-r", "-z", "--root", baseBranch, headBranch, "--").
+		if err := git.NewCommand(ctx, "diff-tree", "--no-commit-id", "--name-only", "-r", "-z", "--root").AddDynamicArguments(baseBranch, headBranch).
 			Run(&git.RunOpts{
 				Dir:    repoPath,
 				Stdout: &outbuf,

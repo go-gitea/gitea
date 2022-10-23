@@ -228,7 +228,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 	)
 
 	// Clone to temporary path and do the init commit.
-	if stdout, _, err := git.NewCommand(ctx, "clone", repoPath, tmpDir).
+	if stdout, _, err := git.NewCommand(ctx, "clone").AddDynamicArguments(repoPath, tmpDir).
 		SetDescription(fmt.Sprintf("prepareRepoCommit (git clone): %s to %s", repoPath, tmpDir)).
 		RunStdString(&git.RunOpts{Dir: "", Env: env}); err != nil {
 		log.Error("Failed to clone from %v into %s: stdout: %s\nError: %v", repo, tmpDir, stdout, err)
@@ -317,14 +317,14 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 		return fmt.Errorf("git add --all: %v", err)
 	}
 
-	args := []string{
-		"commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email),
+	cmd := git.NewCommand(ctx,
+		"commit", git.CmdArg(fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email)),
 		"-m", "Initial commit",
-	}
+	)
 
 	sign, keyID, signer, _ := asymkey_service.SignInitialCommit(ctx, tmpPath, u)
 	if sign {
-		args = append(args, "-S"+keyID)
+		cmd.AddArguments(git.CmdArg("-S" + keyID))
 
 		if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			// need to set the committer to the KeyID owner
@@ -332,7 +332,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 			committerEmail = signer.Email
 		}
 	} else {
-		args = append(args, "--no-gpg-sign")
+		cmd.AddArguments("--no-gpg-sign")
 	}
 
 	env = append(env,
@@ -340,10 +340,10 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 		"GIT_COMMITTER_EMAIL="+committerEmail,
 	)
 
-	if stdout, _, err := git.NewCommand(ctx, args...).
+	if stdout, _, err := cmd.
 		SetDescription(fmt.Sprintf("initRepoCommit (git commit): %s", tmpPath)).
 		RunStdString(&git.RunOpts{Dir: tmpPath, Env: env}); err != nil {
-		log.Error("Failed to commit: %v: Stdout: %s\nError: %v", args, stdout, err)
+		log.Error("Failed to commit: %v: Stdout: %s\nError: %v", cmd.String(), stdout, err)
 		return fmt.Errorf("git commit: %v", err)
 	}
 
@@ -351,7 +351,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 		defaultBranch = setting.Repository.DefaultBranch
 	}
 
-	if stdout, _, err := git.NewCommand(ctx, "push", "origin", "HEAD:"+defaultBranch).
+	if stdout, _, err := git.NewCommand(ctx, "push", "origin").AddDynamicArguments("HEAD:" + defaultBranch).
 		SetDescription(fmt.Sprintf("initRepoCommit (git push): %s", tmpPath)).
 		RunStdString(&git.RunOpts{Dir: tmpPath, Env: InternalPushingEnvironment(u, repo)}); err != nil {
 		log.Error("Failed to push back to HEAD: Stdout: %s\nError: %v", stdout, err)
