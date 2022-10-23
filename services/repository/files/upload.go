@@ -42,7 +42,7 @@ func cleanUpAfterFailure(infos *[]uploadInfo, t *TemporaryUploadRepository, orig
 		}
 		if !info.lfsMetaObject.Existing {
 			if _, err := git_model.RemoveLFSMetaObjectByOid(t.repo.ID, info.lfsMetaObject.Oid); err != nil {
-				original = fmt.Errorf("%v, %w", original, err) // TODO: Do we wrap the parameter (original) here, or the new error?
+				original = fmt.Errorf("%w, %v", original, err) // We wrap the original error - as this is the underlying error that required the fallback
 			}
 		}
 	}
