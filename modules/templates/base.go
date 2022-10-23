@@ -38,6 +38,7 @@ func BaseVars() Vars {
 
 		"ShowRegistrationButton":        setting.Service.ShowRegistrationButton,
 		"ShowMilestonesDashboardPage":   setting.Service.ShowMilestonesDashboardPage,
+		"ShowFooter":                    setting.ShowFooter,
 		"ShowFooterApi":                 setting.ShowFooterApi,
 		"ShowFooterLocale":              setting.ShowFooterLocale,
 		"ShowFooterLocaleSwitcher":      setting.ShowFooterLocaleSwitcher,

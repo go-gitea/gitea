@@ -436,6 +436,7 @@ var (
 	// Highlight settings are loaded in modules/template/highlight.go
 
 	// Show settings
+	ShowFooter                 bool
 	ShowFooterApi              bool
 	ShowFooterLocaleSwitcher   bool
 	ShowFooterLocale           bool
@@ -1097,6 +1098,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	}
 
 	ShowFooterLicense = Cfg.Section("show.footer").Key("SHOW_FOOTER_LICENSE").MustBool(false)
+	ShowFooter = Cfg.Section("show.footer").Key("SHOW_FOOTER").MustBool(false)
 	ShowFooterApi = Cfg.Section("show.footer").Key("SHOW_FOOTER_API").MustBool(false)
 	ShowFooterLocale = Cfg.Section("show.footer.locale").Key("SHOW_FOOTER_LOCALE").MustBool(false)
 	ShowFooterLocaleSwitcher = Cfg.Section("show.footer.locale").Key("SHOW_FOOTER_LOCALE_SWITCHER").MustBool(false)
