@@ -420,6 +420,8 @@ var migrations = []Migration{
 	// v228 -> v229
 	NewMigration("Add TeamInvite table", addTeamInviteTable),
 	// v229 -> v230
+	NewMigration("Update counts of all open milestones", updateOpenMilestoneCounts),
+	// v230 -> v231
 	NewMigration("Add index for hook_task", addIndexForHookTask),
 }
 
