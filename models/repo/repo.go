@@ -765,35 +765,35 @@ func CountRepositories(ctx context.Context, opts CountRepositoryOptions) (int64,
 	return count, nil
 }
 
-// StatsCorrectNumClosed update repository's issue related numbers
-func StatsCorrectNumClosed(ctx context.Context, id int64, isPull bool, field string) error {
-	_, err := db.Exec(ctx, "UPDATE `repository` SET "+field+"=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, isPull, id)
-	return err
-}
-
-// UpdateRepoIssueNumbers update repository issue numbers
+// UpdateRepoIssueNumbers update repository's issue closed numbers
 func UpdateRepoIssueNumbers(ctx context.Context, repoID int64, isPull, isClosed bool) error {
-	e := db.GetEngine(ctx)
-	if isPull {
-		if _, err := e.ID(repoID).Decr("num_pulls").Update(new(Repository)); err != nil {
-			return err
-		}
-		if isClosed {
-			if _, err := e.ID(repoID).Decr("num_closed_pulls").Update(new(Repository)); err != nil {
-				return err
-			}
+	var field string
+	if isClosed {
+		field = "num_closed_issues"
+		if isPull {
+			field = "num_closed_pulls"
 		}
 	} else {
-		if _, err := e.ID(repoID).Decr("num_issues").Update(new(Repository)); err != nil {
-			return err
-		}
-		if isClosed {
-			if _, err := e.ID(repoID).Decr("num_closed_issues").Update(new(Repository)); err != nil {
-				return err
-			}
+		field = "num_issues"
+		if isPull {
+			field = "num_pulls"
 		}
 	}
-	return nil
+
+	var cond builder.Cond = builder.Eq{
+		"repo_id": repoID,
+		"is_pull": isPull,
+	}
+	if isClosed {
+		cond = cond.And(builder.Eq{"is_closed": isClosed})
+	}
+	subQuery := builder.Select("count(*)").From("issue").Where(cond)
+
+	query := builder.Update(builder.Expr(field, subQuery)).
+		From("repository").
+		Where(builder.Eq{"id": repoID})
+	_, err := db.Exec(ctx, query)
+	return err
 }
 
 // CountNullArchivedRepository counts the number of repositories with is_archived is null
