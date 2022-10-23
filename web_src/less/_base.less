@@ -12,6 +12,7 @@
   --height-loading: 12rem;
   /* base colors */
   --color-primary: #4183c4;
+  --color-primary-contrast: #ffffff;
   --color-primary-dark-1: #3876b3;
   --color-primary-dark-2: #31699f;
   --color-primary-dark-3: #2b5c8b;
@@ -163,9 +164,11 @@
   --color-tooltip-text: #ffffff;
   --color-header-bar: #ffffff;
   --color-label-active-bg: #d0d0d0;
+  --color-accent: var(--color-primary-light-1);
   --color-small-accent: var(--color-primary-light-6);
-  --color-accent: var(--color-primary-light-4);
   --color-active-line: #fffbdd;
+
+  accent-color: var(--color-accent);
 }
 
 :root * {
@@ -230,10 +233,10 @@ progress::-webkit-progress-bar {
   background: var(--color-secondary-dark-1);
 }
 progress::-webkit-progress-value {
-  background-color: var(--color-secondary-dark-4);
+  background-color: var(--color-accent);
 }
 progress::-moz-progress-bar {
-  background: var(--color-secondary-dark-4);
+  background-color: var(--color-accent);
 }
 
 * {
@@ -258,6 +261,17 @@ progress::-moz-progress-bar {
 }
 ::-webkit-scrollbar-corner {
   background: transparent;
+}
+
+::file-selector-button {
+  border: 1px solid var(--color-light-border);
+  color: var(--color-text-light);
+  background: var(--color-light);
+  border-radius: var(--border-radius);
+}
+::file-selector-button:hover {
+  color: var(--color-text);
+  background: var(--color-hover);
 }
 
 ::selection {
@@ -1598,11 +1612,11 @@ footer {
 
 .activity-bar-graph {
   background-color: var(--color-primary);
-  color: #fff;
+  color: var(--color-primary-contrast);
 }
 
 .activity-bar-graph-alt {
-  color: #fff;
+  color: var(--color-primary-contrast);
 }
 
 .archived-icon {
@@ -1899,6 +1913,7 @@ a.ui.label:hover {
 .ui.primary.button,
 .ui.primary.buttons .button {
   background-color: var(--color-primary) !important;
+  color: var(--color-primary-contrast) !important;
 }
 
 .ui.primary.button:hover,
@@ -1914,7 +1929,7 @@ a.ui.label:hover {
 .ui.basic.primary.button,
 .ui.basic.primary.buttons .button {
   box-shadow: inset 0 0 0 1px var(--color-primary) !important;
-  color: #fff !important;
+  color: var(--color-primary-contrast) !important;
 }
 
 .ui.basic.primary.button:hover,
