@@ -435,8 +435,9 @@ var (
 
 	// Highlight settings are loaded in modules/template/highlight.go
 
-	// Other settings
-	ShowLicense                bool
+	// Show settings
+	ShowFooterGitHub                 bool
+	ShowFooterLicense                bool
 	ShowFooterBranding         bool
 	ShowFooterVersion          bool
 	ShowFooterTemplateLoadTime bool
@@ -1092,10 +1093,11 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		Names = defaultI18nNames()
 	}
 
-	ShowLicense = Cfg.Section("other").Key("SHOW_LICENSE").MustBool(false)
-	ShowFooterBranding = Cfg.Section("other").Key("SHOW_FOOTER_BRANDING").MustBool(false)
-	ShowFooterVersion = Cfg.Section("other").Key("SHOW_FOOTER_VERSION").MustBool(true)
-	ShowFooterTemplateLoadTime = Cfg.Section("other").Key("SHOW_FOOTER_TEMPLATE_LOAD_TIME").MustBool(true)
+	ShowFooterLicense = Cfg.Section("show.footer").Key("SHOW_FOOTER_LICENSE").MustBool(false)
+	ShowFooterGitHub = Cfg.Section("show.footer").Key("SHOW_FOOTER_GITHUB").MustBool(false)
+	ShowFooterBranding = Cfg.Section("show.footer").Key("SHOW_FOOTER_BRANDING").MustBool(false)
+	ShowFooterVersion = Cfg.Section("show.footer").Key("SHOW_FOOTER_VERSION").MustBool(true)
+	ShowFooterTemplateLoadTime = Cfg.Section("show.footer").Key("SHOW_FOOTER_TEMPLATE_LOAD_TIME").MustBool(true)
 
 	UI.ShowUserEmail = Cfg.Section("ui").Key("SHOW_USER_EMAIL").MustBool(true)
 	UI.DefaultShowFullName = Cfg.Section("ui").Key("DEFAULT_SHOW_FULL_NAME").MustBool(false)

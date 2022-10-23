@@ -38,7 +38,8 @@ func BaseVars() Vars {
 
 		"ShowRegistrationButton":        setting.Service.ShowRegistrationButton,
 		"ShowMilestonesDashboardPage":   setting.Service.ShowMilestonesDashboardPage,
-		"ShowLicense":                   setting.ShowLicense,
+		"ShowFooterGitHub":              setting.ShowFooterGitHub,
+		"ShowFooterLicense":             setting.ShowFooterLicense,
 		"ShowFooterBranding":            setting.ShowFooterBranding,
 		"ShowFooterVersion":             setting.ShowFooterVersion,
 		"DisableDownloadSourceArchives": setting.Repository.DisableDownloadSourceArchives,

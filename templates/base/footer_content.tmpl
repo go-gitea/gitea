@@ -18,7 +18,7 @@
 			{{end}}
 		</div>
 		<div class="ui right links">
-			{{if .ShowFooterBranding}}
+			{{if .ShowFooterGitHub}}
 				<a target="_blank" rel="noopener noreferrer" href="https://github.com/go-gitea/gitea">{{svg "octicon-mark-github"}}<span class="sr-only">GitHub</span></a>
 			{{end}}
 			<div class="ui language bottom floating slide up dropdown link item">
@@ -30,7 +30,7 @@
 					{{end}}
 				</div>
 			</div>
-			{{if not .ShowLicense}}
+			{{if .ShowFooterLicense}}
 				<a href="{{AssetUrlPrefix}}/js/licenses.txt">{{.locale.Tr "licenses"}}</a>
 			{{end}}
 			{{if .EnableSwagger}}
