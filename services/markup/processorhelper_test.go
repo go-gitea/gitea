@@ -36,7 +36,7 @@ func TestProcessorHelper(t *testing.T) {
 	assert.False(t, ProcessorHelper().IsUsernameMentionable(context.Background(), userPrivate))
 	assert.False(t, ProcessorHelper().IsUsernameMentionable(context.Background(), userNoSuch))
 
-	// when using web context, use user's visibility to check
+	// when using web context, use user.IsUserVisibleToViewer to check
 	var err error
 	giteaCtx := &gitea_context.Context{}
 	giteaCtx.Req, err = http.NewRequest("GET", "/", nil)
