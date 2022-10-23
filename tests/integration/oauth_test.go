@@ -299,10 +299,11 @@ func TestAccessTokenExchangeWithBasicAuth(t *testing.T) {
 		"client_secret": "inconsistent",
 	})
 	req.Header.Add("Authorization", "Basic ZGE3ZGEzYmEtOWExMy00MTY3LTg1NmYtMzg5OWRlMGIwMTM4OjRNSzhOYTZSNTVzbWRDWTBXdUNDdW1aNmhqUlBuR1k1c2FXVlJISGpKaUE9")
+	resp = MakeRequest(t, req, http.StatusBadRequest)
 	parsedError = new(auth.AccessTokenError)
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsedError))
 	assert.Equal(t, "invalid_request", string(parsedError.ErrorCode))
-	assert.Equal(t, "client_id in request body inconsistent with Authorization header", parsedError.ErrorDescription)
+	assert.Equal(t, "client_secret in request body inconsistent with Authorization header", parsedError.ErrorDescription)
 }
 
 func TestRefreshTokenInvalidation(t *testing.T) {
@@ -329,7 +330,33 @@ func TestRefreshTokenInvalidation(t *testing.T) {
 	// test without invalidation
 	setting.OAuth2.InvalidateRefreshTokens = false
 
-	refreshReq := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+	req = NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+		"grant_type": "refresh_token",
+		"client_id":  "da7da3ba-9a13-4167-856f-3899de0b0138",
+		// omit secret
+		"redirect_uri":  "a",
+		"refresh_token": parsed.RefreshToken,
+	})
+	resp = MakeRequest(t, req, http.StatusBadRequest)
+	parsedError := new(auth.AccessTokenError)
+	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsedError))
+	assert.Equal(t, "invalid_client", string(parsedError.ErrorCode))
+	assert.Equal(t, "invalid empty client secret", parsedError.ErrorDescription)
+
+	req = NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+		"grant_type":    "refresh_token",
+		"client_id":     "da7da3ba-9a13-4167-856f-3899de0b0138",
+		"client_secret": "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=",
+		"redirect_uri":  "a",
+		"refresh_token": "UNEXPECTED",
+	})
+	resp = MakeRequest(t, req, http.StatusBadRequest)
+	parsedError = new(auth.AccessTokenError)
+	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsedError))
+	assert.Equal(t, "unauthorized_client", string(parsedError.ErrorCode))
+	assert.Equal(t, "unable to parse refresh token", parsedError.ErrorDescription)
+
+	req = NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
 		"grant_type":    "refresh_token",
 		"client_id":     "da7da3ba-9a13-4167-856f-3899de0b0138",
 		"client_secret": "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=",
@@ -337,24 +364,24 @@ func TestRefreshTokenInvalidation(t *testing.T) {
 		"refresh_token": parsed.RefreshToken,
 	})
 
-	bs, err := io.ReadAll(refreshReq.Body)
+	bs, err := io.ReadAll(req.Body)
 	assert.NoError(t, err)
 
-	refreshReq.Body = io.NopCloser(bytes.NewReader(bs))
-	MakeRequest(t, refreshReq, http.StatusOK)
+	req.Body = io.NopCloser(bytes.NewReader(bs))
+	MakeRequest(t, req, http.StatusOK)
 
-	refreshReq.Body = io.NopCloser(bytes.NewReader(bs))
-	MakeRequest(t, refreshReq, http.StatusOK)
+	req.Body = io.NopCloser(bytes.NewReader(bs))
+	MakeRequest(t, req, http.StatusOK)
 
 	// test with invalidation
 	setting.OAuth2.InvalidateRefreshTokens = true
-	refreshReq.Body = io.NopCloser(bytes.NewReader(bs))
-	MakeRequest(t, refreshReq, http.StatusOK)
+	req.Body = io.NopCloser(bytes.NewReader(bs))
+	MakeRequest(t, req, http.StatusOK)
 
 	// repeat request should fail
-	refreshReq.Body = io.NopCloser(bytes.NewReader(bs))
-	resp = MakeRequest(t, refreshReq, http.StatusBadRequest)
-	parsedError := new(auth.AccessTokenError)
+	req.Body = io.NopCloser(bytes.NewReader(bs))
+	resp = MakeRequest(t, req, http.StatusBadRequest)
+	parsedError = new(auth.AccessTokenError)
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsedError))
 	assert.Equal(t, "unauthorized_client", string(parsedError.ErrorCode))
 	assert.Equal(t, "token was already used", parsedError.ErrorDescription)
