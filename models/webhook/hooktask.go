@@ -249,7 +249,7 @@ func FindUndeliveredHookTaskIDs(ctx context.Context, lowerID int64) ([]int64, er
 }
 
 func MarkTaskDelivered(ctx context.Context, task *HookTask) (bool, error) {
-	count, err := db.GetEngine(ctx).ID(task.ID).SetExpr("is_delivered = ?", true).Update(&HookTask{
+	count, err := db.GetEngine(ctx).ID(task.ID).Where("is_delivered = ?", false).SetExpr("is_delivered = ?", true).Update(&HookTask{
 		ID:          task.ID,
 		IsDelivered: true,
 	})
