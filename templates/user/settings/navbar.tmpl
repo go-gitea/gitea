@@ -18,6 +18,9 @@
 		<a class="{{if .PageIsSettingsKeys}}active{{end}} item" href="{{AppSubUrl}}/user/settings/keys">
 			{{.locale.Tr "settings.ssh_gpg_keys"}}
 		</a>
+		<a class="{{if .PageIsSettingsHooks}}active{{end}} item" href="{{AppSubUrl}}/user/settings/hooks">
+			{{.locale.Tr "repo.settings.hooks"}}
+		</a>
 		<a class="{{if .PageIsSettingsOrganization}}active{{end}} item" href="{{AppSubUrl}}/user/settings/organization">
 			{{.locale.Tr "settings.organization"}}
 		</a>

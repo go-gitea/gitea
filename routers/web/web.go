@@ -439,6 +439,40 @@ func RegisterRoutes(m *web.Route) {
 		m.Get("/organization", user_setting.Organization)
 		m.Get("/repos", user_setting.Repos)
 		m.Post("/repos/unadopted", user_setting.AdoptOrDeleteRepository)
+
+		m.Group("/hooks", func() {
+			m.Get("", user_setting.Webhooks)
+			m.Post("/delete", user_setting.DeleteWebhook)
+			m.Get("/{type}/new", repo.WebhooksNew)
+			m.Post("/gitea/new", bindIgnErr(forms.NewWebhookForm{}), repo.GiteaHooksNewPost)
+			m.Post("/gogs/new", bindIgnErr(forms.NewGogshookForm{}), repo.GogsHooksNewPost)
+			m.Post("/slack/new", bindIgnErr(forms.NewSlackHookForm{}), repo.SlackHooksNewPost)
+			m.Post("/discord/new", bindIgnErr(forms.NewDiscordHookForm{}), repo.DiscordHooksNewPost)
+			m.Post("/dingtalk/new", bindIgnErr(forms.NewDingtalkHookForm{}), repo.DingtalkHooksNewPost)
+			m.Post("/telegram/new", bindIgnErr(forms.NewTelegramHookForm{}), repo.TelegramHooksNewPost)
+			m.Post("/matrix/new", bindIgnErr(forms.NewMatrixHookForm{}), repo.MatrixHooksNewPost)
+			m.Post("/msteams/new", bindIgnErr(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
+			m.Post("/feishu/new", bindIgnErr(forms.NewFeishuHookForm{}), repo.FeishuHooksNewPost)
+			m.Post("/wechatwork/new", bindIgnErr(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksNewPost)
+			m.Post("/packagist/new", bindIgnErr(forms.NewPackagistHookForm{}), repo.PackagistHooksNewPost)
+			m.Group("/{id}", func() {
+				m.Get("", repo.WebHooksEdit)
+				m.Post("/replay/{uuid}", repo.ReplayWebhook)
+			})
+			m.Post("/gitea/{id}", bindIgnErr(forms.NewWebhookForm{}), repo.GiteaHooksEditPost)
+			m.Post("/gogs/{id}", bindIgnErr(forms.NewGogshookForm{}), repo.GogsHooksEditPost)
+			m.Post("/slack/{id}", bindIgnErr(forms.NewSlackHookForm{}), repo.SlackHooksEditPost)
+			m.Post("/discord/{id}", bindIgnErr(forms.NewDiscordHookForm{}), repo.DiscordHooksEditPost)
+			m.Post("/dingtalk/{id}", bindIgnErr(forms.NewDingtalkHookForm{}), repo.DingtalkHooksEditPost)
+			m.Post("/telegram/{id}", bindIgnErr(forms.NewTelegramHookForm{}), repo.TelegramHooksEditPost)
+			m.Post("/matrix/{id}", bindIgnErr(forms.NewMatrixHookForm{}), repo.MatrixHooksEditPost)
+			m.Post("/msteams/{id}", bindIgnErr(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksEditPost)
+			m.Post("/feishu/{id}", bindIgnErr(forms.NewFeishuHookForm{}), repo.FeishuHooksEditPost)
+			m.Post("/wechatwork/{id}", bindIgnErr(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksEditPost)
+			m.Post("/packagist/{id}", bindIgnErr(forms.NewPackagistHookForm{}), repo.PackagistHooksEditPost)
+		}, webhooksEnabled, func(ctx *context.Context) {
+			ctx.Data["IsUserWebhook"] = true
+		})
 	}, reqSignIn, func(ctx *context.Context) {
 		ctx.Data["PageIsUserSettings"] = true
 		ctx.Data["AllThemes"] = setting.UI.Themes
@@ -719,6 +753,7 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/msteams/new", bindIgnErr(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
 					m.Post("/feishu/new", bindIgnErr(forms.NewFeishuHookForm{}), repo.FeishuHooksNewPost)
 					m.Post("/wechatwork/new", bindIgnErr(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksNewPost)
+					m.Post("/packagist/new", bindIgnErr(forms.NewPackagistHookForm{}), repo.PackagistHooksNewPost)
 					m.Group("/{id}", func() {
 						m.Get("", repo.WebHooksEdit)
 						m.Post("/replay/{uuid}", repo.ReplayWebhook)
@@ -733,7 +768,10 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/msteams/{id}", bindIgnErr(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksEditPost)
 					m.Post("/feishu/{id}", bindIgnErr(forms.NewFeishuHookForm{}), repo.FeishuHooksEditPost)
 					m.Post("/wechatwork/{id}", bindIgnErr(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksEditPost)
-				}, webhooksEnabled)
+					m.Post("/packagist/{id}", bindIgnErr(forms.NewPackagistHookForm{}), repo.PackagistHooksEditPost)
+				}, webhooksEnabled, webhooksEnabled, func(ctx *context.Context) {
+					ctx.Data["IsOrganizationWebhook"] = true
+				})
 
 				m.Group("/labels", func() {
 					m.Get("", org.RetrieveLabels, org.Labels)
@@ -859,7 +897,9 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/feishu/{id}", bindIgnErr(forms.NewFeishuHookForm{}), repo.FeishuHooksEditPost)
 				m.Post("/wechatwork/{id}", bindIgnErr(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksEditPost)
 				m.Post("/packagist/{id}", bindIgnErr(forms.NewPackagistHookForm{}), repo.PackagistHooksEditPost)
-			}, webhooksEnabled)
+			}, webhooksEnabled, webhooksEnabled, func(ctx *context.Context) {
+				ctx.Data["IsRepositoryWebhook"] = true
+			})
 
 			m.Group("/keys", func() {
 				m.Combo("").Get(repo.DeployKeys).

@@ -104,7 +104,7 @@ func GenerateWebhooks(ctx context.Context, templateRepo, generateRepo *repo_mode
 			HookEvent:   templateWebhook.HookEvent,
 			IsActive:    templateWebhook.IsActive,
 			Type:        templateWebhook.Type,
-			OrgID:       templateWebhook.OrgID,
+			OwnerID:     templateWebhook.OwnerID,
 			Events:      templateWebhook.Events,
 			Meta:        templateWebhook.Meta,
 		})

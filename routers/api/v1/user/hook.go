@@ -1,8 +1,8 @@
-// Copyright 2016 The Gitea Authors. All rights reserved.
+// Copyright 2022 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package org
+package user
 
 import (
 	"net/http"
@@ -14,19 +14,14 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
-// ListHooks list an organziation's webhooks
+// ListHooks list the authenticated user's webhooks
 func ListHooks(ctx *context.APIContext) {
-	// swagger:operation GET /orgs/{org}/hooks organization orgListHooks
+	// swagger:operation GET /user/hooks user userListHooks
 	// ---
-	// summary: List an organization's webhooks
+	// summary: List the authenticated user's webhooks
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: org
-	//   in: path
-	//   description: name of the organization
-	//   type: string
-	//   required: true
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -41,23 +36,18 @@ func ListHooks(ctx *context.APIContext) {
 
 	utils.ListOwnerHooks(
 		ctx,
-		ctx.ContextUser,
+		ctx.Doer,
 	)
 }
 
-// GetHook get an organization's hook by id
+// GetHook get the authenticated user's hook by id
 func GetHook(ctx *context.APIContext) {
-	// swagger:operation GET /orgs/{org}/hooks/{id} organization orgGetHook
+	// swagger:operation GET /user/hooks/{id} user userGetHook
 	// ---
 	// summary: Get a hook
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: org
-	//   in: path
-	//   description: name of the organization
-	//   type: string
-	//   required: true
 	// - name: id
 	//   in: path
 	//   description: id of the hook to get
@@ -68,16 +58,16 @@ func GetHook(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Hook"
 
-	hook, err := utils.GetOwnerHook(ctx, ctx.ContextUser.ID, ctx.ParamsInt64("id"))
+	hook, err := utils.GetOwnerHook(ctx, ctx.Doer.ID, ctx.ParamsInt64("id"))
 	if err != nil {
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToHook(ctx.ContextUser.HomeLink(), hook))
+	ctx.JSON(http.StatusOK, convert.ToHook(ctx.Doer.HomeLink(), hook))
 }
 
-// CreateHook create a hook for an organization
+// CreateHook create a hook for the authenticated user
 func CreateHook(ctx *context.APIContext) {
-	// swagger:operation POST /orgs/{org}/hooks organization orgCreateHook
+	// swagger:operation POST /user/hooks user userCreateHook
 	// ---
 	// summary: Create a hook
 	// consumes:
@@ -85,11 +75,6 @@ func CreateHook(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: org
-	//   in: path
-	//   description: name of the organization
-	//   type: string
-	//   required: true
 	// - name: body
 	//   in: body
 	//   required: true
@@ -101,14 +86,14 @@ func CreateHook(ctx *context.APIContext) {
 
 	utils.AddOwnerHook(
 		ctx,
-		ctx.ContextUser,
+		ctx.Doer,
 		web.GetForm(ctx).(*api.CreateHookOption),
 	)
 }
 
-// EditHook modify a hook of an organization
+// EditHook modify a hook of the authenticated user
 func EditHook(ctx *context.APIContext) {
-	// swagger:operation PATCH /orgs/{org}/hooks/{id} organization orgEditHook
+	// swagger:operation PATCH /user/hooks/{id} user userEditHook
 	// ---
 	// summary: Update a hook
 	// consumes:
@@ -116,11 +101,6 @@ func EditHook(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: org
-	//   in: path
-	//   description: name of the organization
-	//   type: string
-	//   required: true
 	// - name: id
 	//   in: path
 	//   description: id of the hook to update
@@ -137,25 +117,20 @@ func EditHook(ctx *context.APIContext) {
 
 	utils.EditOwnerHook(
 		ctx,
-		ctx.ContextUser,
+		ctx.Doer,
 		web.GetForm(ctx).(*api.EditHookOption),
 		ctx.ParamsInt64("id"),
 	)
 }
 
-// DeleteHook delete a hook of an organization
+// DeleteHook delete a hook of the authenticated user
 func DeleteHook(ctx *context.APIContext) {
-	// swagger:operation DELETE /orgs/{org}/hooks/{id} organization orgDeleteHook
+	// swagger:operation DELETE /user/hooks/{id} user userDeleteHook
 	// ---
 	// summary: Delete a hook
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: org
-	//   in: path
-	//   description: name of the organization
-	//   type: string
-	//   required: true
 	// - name: id
 	//   in: path
 	//   description: id of the hook to delete
@@ -168,7 +143,7 @@ func DeleteHook(ctx *context.APIContext) {
 
 	utils.DeleteOwnerHook(
 		ctx,
-		ctx.ContextUser,
+		ctx.Doer,
 		ctx.ParamsInt64("id"),
 	)
 }

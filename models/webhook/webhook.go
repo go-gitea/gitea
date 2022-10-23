@@ -182,7 +182,7 @@ const (
 type Webhook struct {
 	ID              int64 `xorm:"pk autoincr"`
 	RepoID          int64 `xorm:"INDEX"` // An ID of 0 indicates either a default or system webhook
-	OrgID           int64 `xorm:"INDEX"`
+	OwnerID         int64 `xorm:"INDEX"`
 	IsSystemWebhook bool
 	URL             string `xorm:"url TEXT"`
 	HTTPMethod      string `xorm:"http_method"`
@@ -446,11 +446,11 @@ func GetWebhookByRepoID(repoID, id int64) (*Webhook, error) {
 	})
 }
 
-// GetWebhookByOrgID returns webhook of organization by given ID.
-func GetWebhookByOrgID(orgID, id int64) (*Webhook, error) {
+// GetWebhookByOwnerID returns webhook of a user or organization by given ID.
+func GetWebhookByOwnerID(ownerID, id int64) (*Webhook, error) {
 	return getWebhook(&Webhook{
-		ID:    id,
-		OrgID: orgID,
+		ID:      id,
+		OwnerID: ownerID,
 	})
 }
 
@@ -458,7 +458,7 @@ func GetWebhookByOrgID(orgID, id int64) (*Webhook, error) {
 type ListWebhookOptions struct {
 	db.ListOptions
 	RepoID   int64
-	OrgID    int64
+	OwnerID  int64
 	IsActive util.OptionalBool
 }
 
@@ -467,8 +467,8 @@ func (opts *ListWebhookOptions) toCond() builder.Cond {
 	if opts.RepoID != 0 {
 		cond = cond.And(builder.Eq{"webhook.repo_id": opts.RepoID})
 	}
-	if opts.OrgID != 0 {
-		cond = cond.And(builder.Eq{"webhook.org_id": opts.OrgID})
+	if opts.OwnerID != 0 {
+		cond = cond.And(builder.Eq{"webhook.owner_id": opts.OwnerID})
 	}
 	if !opts.IsActive.IsNone() {
 		cond = cond.And(builder.Eq{"webhook.is_active": opts.IsActive.IsTrue()})
@@ -501,7 +501,7 @@ func CountWebhooksByOpts(opts *ListWebhookOptions) (int64, error) {
 func GetDefaultWebhooks(ctx context.Context) ([]*Webhook, error) {
 	webhooks := make([]*Webhook, 0, 5)
 	return webhooks, db.GetEngine(ctx).
-		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, false).
+		Where("repo_id=? AND owner_id=? AND is_system_webhook=?", 0, 0, false).
 		Find(&webhooks)
 }
 
@@ -509,7 +509,7 @@ func GetDefaultWebhooks(ctx context.Context) ([]*Webhook, error) {
 func GetSystemOrDefaultWebhook(id int64) (*Webhook, error) {
 	webhook := &Webhook{ID: id}
 	has, err := db.GetEngine(db.DefaultContext).
-		Where("repo_id=? AND org_id=?", 0, 0).
+		Where("repo_id=? AND owner_id=?", 0, 0).
 		Get(webhook)
 	if err != nil {
 		return nil, err
@@ -524,11 +524,11 @@ func GetSystemWebhooks(ctx context.Context, isActive util.OptionalBool) ([]*Webh
 	webhooks := make([]*Webhook, 0, 5)
 	if isActive.IsNone() {
 		return webhooks, db.GetEngine(ctx).
-			Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, true).
+			Where("repo_id=? AND owner_id=? AND is_system_webhook=?", 0, 0, true).
 			Find(&webhooks)
 	}
 	return webhooks, db.GetEngine(ctx).
-		Where("repo_id=? AND org_id=? AND is_system_webhook=? AND is_active = ?", 0, 0, true, isActive.IsTrue()).
+		Where("repo_id=? AND owner_id=? AND is_system_webhook=? AND is_active = ?", 0, 0, true, isActive.IsTrue()).
 		Find(&webhooks)
 }
 
@@ -572,11 +572,11 @@ func DeleteWebhookByRepoID(repoID, id int64) error {
 	})
 }
 
-// DeleteWebhookByOrgID deletes webhook of organization by given ID.
-func DeleteWebhookByOrgID(orgID, id int64) error {
+// DeleteWebhookByOwnerID deletes webhook of a user or organization by given ID.
+func DeleteWebhookByOwnerID(ownerID, id int64) error {
 	return deleteWebhook(&Webhook{
-		ID:    id,
-		OrgID: orgID,
+		ID:      id,
+		OwnerID: ownerID,
 	})
 }
 
@@ -589,7 +589,7 @@ func DeleteDefaultSystemWebhook(id int64) error {
 	defer committer.Close()
 
 	count, err := db.GetEngine(ctx).
-		Where("repo_id=? AND org_id=?", 0, 0).
+		Where("repo_id=? AND owner_id=?", 0, 0).
 		Delete(&Webhook{ID: id})
 	if err != nil {
 		return err

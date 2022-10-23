@@ -40,7 +40,7 @@
 									<span class="ui label">N/A</span>
 								{{end}}
 							</a>
-							{{if or $.Permission.IsAdmin $.IsOrganizationOwner $.PageIsAdmin}}
+							{{if or $.Permission.IsAdmin $.IsOrganizationOwner $.PageIsAdmin $.PageIsUserSettings}}
 							<div class="right menu">
 								<form class="item" action="{{$.Link}}/replay/{{.UUID}}" method="post">
 									{{$.CsrfTokenHtml}}

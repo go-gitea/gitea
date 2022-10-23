@@ -774,6 +774,14 @@ func Routes(ctx gocontext.Context) *web.Route {
 			m.Get("/subscriptions", user.GetMyWatchedRepos)
 
 			m.Get("/teams", org.ListUserTeams)
+
+			m.Group("/hooks", func() {
+				m.Combo("").Get(user.ListHooks).
+					Post(bind(api.CreateHookOption{}), user.CreateHook)
+				m.Combo("/{id}").Get(user.GetHook).
+					Patch(bind(api.EditHookOption{}), user.EditHook).
+					Delete(user.DeleteHook)
+			}, reqWebhooksEnabled())
 		}, reqToken())
 
 		// Repositories

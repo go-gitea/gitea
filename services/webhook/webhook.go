@@ -227,16 +227,16 @@ func PrepareWebhooks(ctx context.Context, source EventSource, event webhook_mode
 		owner = source.Repository.MustOwner()
 	}
 
-	// check if owner is an org and append additional webhooks
-	if owner != nil && owner.IsOrganization() {
-		orgHooks, err := webhook_model.ListWebhooksByOpts(ctx, &webhook_model.ListWebhookOptions{
-			OrgID:    owner.ID,
+	// append additional webhooks of a user or organization
+	if owner != nil {
+		ownerHooks, err := webhook_model.ListWebhooksByOpts(ctx, &webhook_model.ListWebhookOptions{
+			OwnerID:  owner.ID,
 			IsActive: util.OptionalBoolTrue,
 		})
 		if err != nil {
 			return fmt.Errorf("ListWebhooksByOpts: %v", err)
 		}
-		ws = append(ws, orgHooks...)
+		ws = append(ws, ownerHooks...)
 	}
 
 	// Add any admin-defined system webhooks
