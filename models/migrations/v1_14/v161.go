@@ -8,6 +8,7 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/migrations/base"
+
 	"xorm.io/xorm"
 )
 

@@ -6,6 +6,7 @@ package v1_8 // nolint
 
 import (
 	"code.gitea.io/gitea/models/migrations/base"
+
 	"xorm.io/xorm"
 )
 

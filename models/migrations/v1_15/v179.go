@@ -6,6 +6,7 @@ package v1_15 //nolint
 
 import (
 	"code.gitea.io/gitea/models/migrations/base"
+
 	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
