@@ -20,7 +20,7 @@ import (
 type CheckAttributeOpts struct {
 	CachedOnly    bool
 	AllAttributes bool
-	Attributes    []string
+	Attributes    []CmdArg
 	Filenames     []string
 	IndexFile     string
 	WorkTree      string
@@ -44,31 +44,23 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 	stdOut := new(bytes.Buffer)
 	stdErr := new(bytes.Buffer)
 
-	cmdArgs := []string{"check-attr", "-z"}
+	cmd := NewCommand(repo.Ctx, "check-attr", "-z")
 
 	if opts.AllAttributes {
-		cmdArgs = append(cmdArgs, "-a")
+		cmd.AddArguments("-a")
 	} else {
 		for _, attribute := range opts.Attributes {
 			if attribute != "" {
-				cmdArgs = append(cmdArgs, attribute)
+				cmd.AddArguments(attribute)
 			}
 		}
 	}
 
 	if opts.CachedOnly {
-		cmdArgs = append(cmdArgs, "--cached")
+		cmd.AddArguments("--cached")
 	}
 
-	cmdArgs = append(cmdArgs, "--")
-
-	for _, arg := range opts.Filenames {
-		if arg != "" {
-			cmdArgs = append(cmdArgs, arg)
-		}
-	}
-
-	cmd := NewCommand(repo.Ctx, cmdArgs...)
+	cmd.AddDashesAndList(opts.Filenames...)
 
 	if err := cmd.Run(&RunOpts{
 		Env:    env,
@@ -106,7 +98,7 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 // CheckAttributeReader provides a reader for check-attribute content that can be long running
 type CheckAttributeReader struct {
 	// params
-	Attributes []string
+	Attributes []CmdArg
 	Repo       *Repository
 	IndexFile  string
 	WorkTree   string
@@ -122,7 +114,7 @@ type CheckAttributeReader struct {
 
 // Init initializes the CheckAttributeReader
 func (c *CheckAttributeReader) Init(ctx context.Context) error {
-	cmdArgs := []string{"check-attr", "--stdin", "-z"}
+	cmdArgs := []CmdArg{"check-attr", "--stdin", "-z"}
 
 	if len(c.IndexFile) > 0 {
 		cmdArgs = append(cmdArgs, "--cached")
@@ -401,7 +393,7 @@ func (repo *Repository) CheckAttributeReader(commitID string) (*CheckAttributeRe
 	}
 
 	checker := &CheckAttributeReader{
-		Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language", "gitlab-language"},
+		Attributes: []CmdArg{"linguist-vendored", "linguist-generated", "linguist-language", "gitlab-language"},
 		Repo:       repo,
 		IndexFile:  indexFilename,
 		WorkTree:   worktree,
