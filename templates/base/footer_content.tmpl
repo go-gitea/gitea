@@ -37,7 +37,7 @@
 			{{if .ShowFooterLicense}}
 				<a href="{{AssetUrlPrefix}}/js/licenses.txt">{{.locale.Tr "licenses"}}</a>
 			{{end}}
-			{{if and .EnableSwagger .ShowFooterApi}}
+			{{if and .EnableSwagger .ShowFooterAPI}}
 				<a href="{{AppSubUrl}}/api/swagger">API</a>
 			{{end}}
 			{{template "custom/extra_links_footer" .}}

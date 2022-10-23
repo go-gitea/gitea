@@ -766,7 +766,7 @@ func Contexter(ctx context.Context) func(next http.Handler) http.Handler {
 			ctx.Data["ShowRegistrationButton"] = setting.Service.ShowRegistrationButton
 			ctx.Data["ShowMilestonesDashboardPage"] = setting.Service.ShowMilestonesDashboardPage
 			ctx.Data["ShowFooter"] = setting.ShowFooter
-			ctx.Data["ShowFooterApi"] = setting.ShowFooterApi
+			ctx.Data["ShowFooterAPI"] = setting.ShowFooterAPI
 			ctx.Data["ShowFooterLocaleSwitcher"] = setting.ShowFooterLocaleSwitcher
 			ctx.Data["ShowFooterLocale"] = setting.ShowFooterLocale
 			ctx.Data["ShowFooterGitHub"] = setting.ShowFooterGitHub
