@@ -62,7 +62,7 @@ func init() {
 	db.RegisterModel(new(ProtectedBranch))
 }
 
-// IsRuleNameSpecial return true if it contains special charactor
+// IsRuleNameSpecial return true if it contains special character
 func IsRuleNameSpecial(ruleName string) bool {
 	for i := 0; i < len(ruleName); i++ {
 		if syntax.Special(ruleName[i]) {
