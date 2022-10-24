@@ -179,7 +179,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 		return fmt.Errorf("unable to mark task[%d] delivered in the db: %w", t.ID, err)
 	}
 	if !updated {
-		// This webhook task has already been delivered
+		// This webhook task has already been attempted to be delivered or is in the process of being delivered 
 		log.Trace("Webhook Task[%d] already delivered", t.ID)
 		return nil
 	}
