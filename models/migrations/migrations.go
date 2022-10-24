@@ -419,7 +419,8 @@ var migrations = []Migration{
 	NewMigration("Create key/value table for system settings", createSystemSettingsTable),
 	// v228 -> v229
 	NewMigration("Add TeamInvite table", addTeamInviteTable),
-
+	// v229 -> v230
+	NewMigration("Update counts of all open milestones", updateOpenMilestoneCounts),
 	// v230 -> v231
 	NewMigration("Add header_authorization_encrypted column to webhook table", addHeaderAuthorizationEncryptedColWebhook),
 }

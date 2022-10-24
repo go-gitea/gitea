@@ -80,7 +80,7 @@ func (t *Tree) ListEntries() (Entries, error) {
 		}
 	}
 
-	stdout, _, runErr := NewCommand(t.repo.Ctx, "ls-tree", "-l", t.ID.String()).RunStdBytes(&RunOpts{Dir: t.repo.Path})
+	stdout, _, runErr := NewCommand(t.repo.Ctx, "ls-tree", "-l").AddDynamicArguments(t.ID.String()).RunStdBytes(&RunOpts{Dir: t.repo.Path})
 	if runErr != nil {
 		if strings.Contains(runErr.Error(), "fatal: Not a valid object name") || strings.Contains(runErr.Error(), "fatal: not a tree object") {
 			return nil, ErrNotExist{
@@ -101,13 +101,13 @@ func (t *Tree) ListEntries() (Entries, error) {
 
 // listEntriesRecursive returns all entries of current tree recursively including all subtrees
 // extraArgs could be "-l" to get the size, which is slower
-func (t *Tree) listEntriesRecursive(extraArgs ...string) (Entries, error) {
+func (t *Tree) listEntriesRecursive(extraArgs ...CmdArg) (Entries, error) {
 	if t.entriesRecursiveParsed {
 		return t.entriesRecursive, nil
 	}
 
-	args := append([]string{"ls-tree", "-t", "-r"}, extraArgs...)
-	args = append(args, t.ID.String())
+	args := append([]CmdArg{"ls-tree", "-t", "-r"}, extraArgs...)
+	args = append(args, CmdArg(t.ID.String()))
 	stdout, _, runErr := NewCommand(t.repo.Ctx, args...).RunStdBytes(&RunOpts{Dir: t.repo.Path})
 	if runErr != nil {
 		return nil, runErr
