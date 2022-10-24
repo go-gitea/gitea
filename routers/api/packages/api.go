@@ -199,11 +199,13 @@ func Routes() *web.Route {
 				r.Get("", npm.PackageMetadata)
 				r.Put("", reqPackageAccess(perm.AccessModeWrite), npm.UploadPackage)
 				r.Get("/-/{version}/{filename}", npm.DownloadPackageFile)
+				r.Get("/-/{filename}", npm.DownloadPackageFileByName)
 			})
 			r.Group("/{id}", func() {
 				r.Get("", npm.PackageMetadata)
 				r.Put("", reqPackageAccess(perm.AccessModeWrite), npm.UploadPackage)
 				r.Get("/-/{version}/{filename}", npm.DownloadPackageFile)
+				r.Get("/-/{filename}", npm.DownloadPackageFileByName)
 			})
 			r.Group("/-/package/@{scope}/{id}/dist-tags", func() {
 				r.Get("", npm.ListPackageTags)
