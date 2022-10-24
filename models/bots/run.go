@@ -6,6 +6,7 @@ package bots
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -14,8 +15,9 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/timeutil"
-	"xorm.io/builder"
+	api "code.gitea.io/gitea/modules/structs"
 
+	"xorm.io/builder"
 	"github.com/nektos/act/pkg/jobparser"
 	"golang.org/x/exp/slices"
 )
@@ -94,6 +96,17 @@ func (run *Run) TakeTime() time.Duration {
 	}
 	run.Stopped.AsTime().Sub(started)
 	return time.Since(started).Truncate(time.Second)
+}
+
+func (run *Run) GetPushEventPayload() (*api.PushPayload, error) {
+	if run.Event == webhook.HookEventPush {
+		var payload api.PushPayload
+		if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
+			return nil, err
+		}
+		return &payload, nil
+	}
+	return nil, fmt.Errorf("event %s is not a push event", run.Event)
 }
 
 func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) error {

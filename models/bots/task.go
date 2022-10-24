@@ -53,12 +53,7 @@ func (Task) TableName() string {
 	return "bots_task"
 }
 
-// LoadAttributes load Job Steps if not loaded
-func (task *Task) LoadAttributes(ctx context.Context) error {
-	if task == nil {
-		return nil
-	}
-
+func (task *Task) LoadJob(ctx context.Context) error {
 	if task.Job == nil {
 		job, err := GetRunJobByID(ctx, task.JobID)
 		if err != nil {
@@ -66,6 +61,18 @@ func (task *Task) LoadAttributes(ctx context.Context) error {
 		}
 		task.Job = job
 	}
+	return nil
+}
+
+// LoadAttributes load Job Steps if not loaded
+func (task *Task) LoadAttributes(ctx context.Context) error {
+	if task == nil {
+		return nil
+	}
+	if err := task.LoadJob(ctx); err != nil {
+		return err
+	}
+
 	if err := task.Job.LoadAttributes(ctx); err != nil {
 		return err
 	}
@@ -83,7 +90,6 @@ func (task *Task) LoadAttributes(ctx context.Context) error {
 
 // FullSteps returns steps with "Set up job" and "Complete job"
 func (task *Task) FullSteps() []*TaskStep {
-
 	// TODO: The logic here is too complex and tricky, may need to be rewritten
 
 	var firstStep, lastStep *TaskStep
@@ -299,7 +305,7 @@ func UpdateTask(ctx context.Context, task *Task, cols ...string) error {
 	return err
 }
 
-func UpdateTaskByState(state *runnerv1.TaskState) error {
+func UpdateTaskByState(state *runnerv1.TaskState) (*Task, error) {
 	stepStates := map[int64]*runnerv1.StepState{}
 	for _, v := range state.Steps {
 		stepStates[v.Id] = v
@@ -307,7 +313,7 @@ func UpdateTaskByState(state *runnerv1.TaskState) error {
 
 	ctx, commiter, err := db.TxContext()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer commiter.Close()
 
@@ -315,7 +321,7 @@ func UpdateTaskByState(state *runnerv1.TaskState) error {
 
 	task := &Task{}
 	if _, err := e.ID(state.Id).Get(task); err != nil {
-		return err
+		return nil, err
 	}
 
 	task.Result = state.Result
@@ -327,16 +333,16 @@ func UpdateTaskByState(state *runnerv1.TaskState) error {
 			Status:  task.Status,
 			Stopped: task.Stopped,
 		}, nil); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	if _, err := e.ID(task.ID).Update(task); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := task.LoadAttributes(ctx); err != nil {
-		return err
+		return nil, err
 	}
 
 	prevStepDone := true
@@ -354,15 +360,15 @@ func UpdateTaskByState(state *runnerv1.TaskState) error {
 			prevStepDone = false
 		}
 		if _, err := e.ID(step.ID).Update(step); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	if err := commiter.Commit(); err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return task, nil
 }
 
 func isSubset(set, subset []string) bool {

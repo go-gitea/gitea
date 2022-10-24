@@ -43,18 +43,25 @@ func (RunJob) TableName() string {
 	return "bots_run_job"
 }
 
-// LoadAttributes load Run if not loaded
-func (job *RunJob) LoadAttributes(ctx context.Context) error {
-	if job == nil {
-		return nil
-	}
-
+func (job *RunJob) LoadRun(ctx context.Context) error {
 	if job.Run == nil {
 		run, err := GetRunByID(ctx, job.RunID)
 		if err != nil {
 			return err
 		}
 		job.Run = run
+	}
+	return nil
+}
+
+// LoadAttributes load Run if not loaded
+func (job *RunJob) LoadAttributes(ctx context.Context) error {
+	if job == nil {
+		return nil
+	}
+
+	if err := job.LoadRun(ctx);err != nil {
+		return err
 	}
 
 	return job.Run.LoadAttributes(ctx)

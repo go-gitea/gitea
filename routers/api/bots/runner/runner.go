@@ -11,10 +11,13 @@ import (
 	"time"
 
 	bots_model "code.gitea.io/gitea/models/bots"
+	git_model "code.gitea.io/gitea/models/git"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/bots"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	api "code.gitea.io/gitea/modules/structs"
 	secret_service "code.gitea.io/gitea/services/secrets"
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 	"gitea.com/gitea/proto-go/runner/v1/runnerv1connect"
@@ -141,6 +144,21 @@ func (s *Service) FetchTask(
 	return res, nil
 }
 
+func toCommitStatus(status bots_model.Status) api.CommitStatusState {
+	switch status {
+	case bots_model.StatusSuccess:
+		return api.CommitStatusSuccess
+	case bots_model.StatusFailure, bots_model.StatusCancelled, bots_model.StatusSkipped:
+		return api.CommitStatusFailure
+	case bots_model.StatusWaiting:
+		return api.CommitStatusPending
+	case bots_model.StatusRunning:
+		return api.CommitStatusRunning
+	default:
+		return api.CommitStatusError
+	}
+}
+
 // UpdateTask updates the task status.
 func (s *Service) UpdateTask(
 	ctx context.Context,
@@ -148,8 +166,44 @@ func (s *Service) UpdateTask(
 ) (*connect.Response[runnerv1.UpdateTaskResponse], error) {
 	res := connect.NewResponse(&runnerv1.UpdateTaskResponse{})
 
-	if err := bots_model.UpdateTaskByState(req.Msg.State); err != nil {
+	task, err := bots_model.UpdateTaskByState(req.Msg.State)
+	if err != nil {
 		return nil, status.Errorf(codes.Internal, "update task: %v", err)
+	}
+
+	if err := task.LoadJob(ctx); err != nil {
+		return nil, status.Errorf(codes.Internal, "load job: %v", err)
+	}
+	if err := task.Job.LoadAttributes(ctx); err != nil {
+		return nil, status.Errorf(codes.Internal, "load run: %v", err)
+	}
+
+	if task.Job.Run.Event == webhook.HookEventPush {
+		payload, err := task.Job.Run.GetPushEventPayload()
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "GetPushEventPayload: %v", err)
+		}
+
+		creator, err := user_model.GetUserByID(payload.Pusher.ID)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "GetUserByID: %v", err)
+		}
+
+		if err := git_model.NewCommitStatus(git_model.NewCommitStatusOptions{
+			Repo:    task.Job.Run.Repo,
+			SHA:     payload.HeadCommit.ID,
+			Creator: creator,
+			CommitStatus: &git_model.CommitStatus{
+				SHA:         payload.HeadCommit.ID,
+				TargetURL:   fmt.Sprintf("%s/builds/runs/%d", task.Job.Run.Repo.HTMLURL(), task.Job.Run.ID),
+				Description: "",
+				Context:     task.Job.Name,
+				CreatorID:   payload.Pusher.ID,
+				State:       toCommitStatus(bots_model.Status(req.Msg.State.Result)),
+			},
+		}); err != nil {
+			log.Error("Update commit status failed: %v", err)
+		}
 	}
 
 	return res, nil
