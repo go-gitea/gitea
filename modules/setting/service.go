@@ -115,7 +115,7 @@ func BuildEmailGlobs(list []string) []glob.Glob {
 		if g, err := glob.Compile(s); err == nil {
 			emaillist = append(emaillist, g)
 		} else {
-			log.Error("glob.Compile %s failed: %v", s, err)
+			log.Warn("Invalid glob expression %q (skipped): %v", s, err)
 		}
 	}
 
