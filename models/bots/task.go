@@ -179,17 +179,28 @@ func GetTaskByID(ctx context.Context, id int64) (*Task, error) {
 	return &task, nil
 }
 
-func CreateTaskForRunner(runner *Runner) (*Task, bool, error) {
-	ctx, commiter, err := db.TxContext()
+func CreateTaskForRunner(ctx context.Context, runner *Runner) (*Task, bool, error) {
+	dbCtx, commiter, err := db.TxContext()
 	if err != nil {
 		return nil, false, err
 	}
 	defer commiter.Close()
+	ctx = dbCtx.WithContext(ctx)
 
 	e := db.GetEngine(ctx)
 
+	jobCond := builder.NewCond()
+	if runner.RepoID != 0 {
+		jobCond = builder.Eq{"repo_id": runner.RepoID}
+	} else if runner.OwnerID != 0 {
+		jobCond = builder.In("repo_id", builder.Select("id").From("repository").Where(builder.Eq{"owner_id": runner.OwnerID}))
+	}
+	if jobCond.IsValid() {
+		jobCond = builder.In("run_id", builder.Select("id").From(Run{}.TableName()).Where(jobCond))
+	}
+
 	var jobs []*RunJob
-	if err := e.Where("task_id=? AND ready=?", 0, true).OrderBy("id").Find(&jobs); err != nil {
+	if err := e.Where("task_id=? AND ready=?", 0, true).And(jobCond).OrderBy("id").Find(&jobs); err != nil {
 		return nil, false, err
 	}
 

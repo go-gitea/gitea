@@ -211,7 +211,7 @@ func (s *Service) UpdateLog(
 }
 
 func (s *Service) pickTask(ctx context.Context, runner *bots_model.Runner) (*runnerv1.Task, bool, error) {
-	t, ok, err := bots_model.CreateTaskForRunner(runner)
+	t, ok, err := bots_model.CreateTaskForRunner(ctx, runner)
 	if err != nil {
 		return nil, false, fmt.Errorf("CreateTaskForRunner: %w", err)
 	}
