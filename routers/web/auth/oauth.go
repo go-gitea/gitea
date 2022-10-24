@@ -438,8 +438,21 @@ func AuthorizeOAuth(ctx *context.Context) {
 			log.Error("Unable to save changes to the session: %v", err)
 		}
 	case "":
-		break
+		// "Authorization servers SHOULD reject authorization requests from native apps that don't use PKCE by returning an error message"
+		// https://datatracker.ietf.org/doc/html/rfc8252#section-8.1
+		if !app.ConfidentialClient {
+			// "the authorization endpoint MUST return the authorization error response with the "error" value set to "invalid_request""
+			// https://datatracker.ietf.org/doc/html/rfc7636#section-4.4.1
+			handleAuthorizeError(ctx, AuthorizeError{
+				ErrorCode:        ErrorCodeInvalidRequest,
+				ErrorDescription: "PKCE is required for public clients",
+				State:            form.State,
+			}, form.RedirectURI)
+			return
+		}
 	default:
+		// "If the server supporting PKCE does not support the requested transformation, the authorization endpoint MUST return the authorization error response with "error" value set to "invalid_request"."
+		// https://www.rfc-editor.org/rfc/rfc7636#section-4.4.1
 		handleAuthorizeError(ctx, AuthorizeError{
 			ErrorCode:        ErrorCodeInvalidRequest,
 			ErrorDescription: "unsupported code challenge method",
