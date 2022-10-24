@@ -7,12 +7,10 @@ package migrations
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -58,26 +56,11 @@ func batchProcess[T any](x *xorm.Engine, query func() *xorm.Session, buf []T, pr
 func addHeaderAuthorizationEncryptedColWebhook(x *xorm.Engine) error {
 	// Add the column to the table
 	type Webhook struct {
-		ID                 int64 `xorm:"pk autoincr"`
-		RepoID             int64 `xorm:"INDEX"` // An ID of 0 indicates either a default or system webhook
-		OrgID              int64 `xorm:"INDEX"`
-		IsSystemWebhook    bool
-		URL                string `xorm:"url TEXT"`
-		HTTPMethod         string `xorm:"http_method"`
-		ContentType        webhook.HookContentType
-		Secret             string `xorm:"TEXT"`
-		Events             string `xorm:"TEXT"`
-		*webhook.HookEvent `xorm:"-"`
-		IsActive           bool               `xorm:"INDEX"`
-		Type               webhook.HookType   `xorm:"VARCHAR(16) 'type'"`
-		Meta               string             `xorm:"TEXT"` // store hook-specific attributes
-		LastStatus         webhook.HookStatus // Last delivery status
+		ID   int64  `xorm:"pk autoincr"`
+		Meta string `xorm:"TEXT"` // store hook-specific attributes
 
 		// HeaderAuthorizationEncrypted should be accessed using HeaderAuthorization() and SetHeaderAuthorization()
 		HeaderAuthorizationEncrypted string `xorm:"TEXT"`
-
-		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
 	err := x.Sync2(new(Webhook))
 	if err != nil {
