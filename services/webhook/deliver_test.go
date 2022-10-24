@@ -68,7 +68,7 @@ func TestWebhookDeliverAuthorizationHeader(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, webhook_model.CreateWebhook(db.DefaultContext, hook))
 
-	hookTask := &webhook_model.HookTask{RepoID: hook.RepoID, HookID: hook.ID, EventType: webhook_model.HookEventPush}
+	hookTask := &webhook_model.HookTask{HookID: hook.ID, EventType: webhook_model.HookEventPush}
 
 	assert.NoError(t, Deliver(context.Background(), hookTask))
 	select {
