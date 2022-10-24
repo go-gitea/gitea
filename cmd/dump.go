@@ -146,6 +146,10 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 			Name:  "skip-package-data",
 			Usage: "Skip package data",
 		},
+		cli.BoolFlag{
+			Name:  "skip-index",
+			Usage: "Skip bleve index data",
+		},
 		cli.GenericFlag{
 			Name:  "type",
 			Value: outputTypeEnum,
@@ -325,6 +329,11 @@ func runDump(ctx *cli.Context) error {
 				return err
 			}
 			excludes = append(excludes, opts.ProviderConfig)
+		}
+
+		if ctx.IsSet("skip-index") && ctx.Bool("skip-index") {
+			excludes = append(excludes, setting.Indexer.RepoPath)
+			excludes = append(excludes, setting.Indexer.IssuePath)
 		}
 
 		excludes = append(excludes, setting.RepoRootPath)
