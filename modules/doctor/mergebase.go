@@ -78,7 +78,7 @@ func checkPRMergeBase(ctx context.Context, logger log.Logger, autofix bool) erro
 				if autofix {
 					if err := pr.UpdateCols("merge_base"); err != nil {
 						logger.Critical("Failed to update merge_base. ERROR: %v", err)
-						return fmt.Errorf("Failed to update merge_base. ERROR: %v", err)
+						return fmt.Errorf("Failed to update merge_base. ERROR: %w", err)
 					}
 				} else {
 					logger.Info("#%d onto %s in %s/%s: MergeBase should be %s but is %s", pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, oldMergeBase, pr.MergeBase)

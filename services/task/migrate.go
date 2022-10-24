@@ -133,9 +133,9 @@ func runMigrateTask(t *admin_model.Task) (err error) {
 	err = util.SanitizeErrorCredentialURLs(err)
 	if strings.Contains(err.Error(), "Authentication failed") ||
 		strings.Contains(err.Error(), "could not read Username") {
-		return fmt.Errorf("Authentication failed: %v", err.Error())
+		return fmt.Errorf("Authentication failed: %w", err)
 	} else if strings.Contains(err.Error(), "fatal:") {
-		return fmt.Errorf("Migration failed: %v", err.Error())
+		return fmt.Errorf("Migration failed: %w", err)
 	}
 
 	// do not be tempted to coalesce this line with the return

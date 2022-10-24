@@ -118,7 +118,7 @@ func loadOrganizationOwners(ctx context.Context, users user_model.UserList, orgI
 		And("team_id=?", ownerTeam.ID).
 		Find(&ownerMaps)
 	if err != nil {
-		return nil, fmt.Errorf("find team users: %v", err)
+		return nil, fmt.Errorf("find team users: %w", err)
 	}
 	return ownerMaps, nil
 }

@@ -316,7 +316,7 @@ func CopyLFS(ctx context.Context, newRepo, oldRepo *repo_model.Repository) error
 func GetRepoLFSSize(ctx context.Context, repoID int64) (int64, error) {
 	lfsSize, err := db.GetEngine(ctx).Where("repository_id = ?", repoID).SumInt(new(LFSMetaObject), "size")
 	if err != nil {
-		return 0, fmt.Errorf("updateSize: GetLFSMetaObjects: %v", err)
+		return 0, fmt.Errorf("updateSize: GetLFSMetaObjects: %w", err)
 	}
 	return lfsSize, nil
 }
