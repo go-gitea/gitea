@@ -138,22 +138,8 @@ func addHeaderAuthorizationEncryptedColWebhook(x *xorm.Engine) error {
 	// Remove access_token from HookTask
 
 	type HookTask struct {
-		ID              int64 `xorm:"pk autoincr"`
-		RepoID          int64 `xorm:"INDEX"`
-		HookID          int64
-		UUID            string
-		PayloadContent  string `xorm:"LONGTEXT"`
-		EventType       string
-		IsDelivered     bool
-		Delivered       int64
-		DeliveredString string `xorm:"-"`
-
-		// History info.
-		IsSucceed      bool
-		RequestContent string `xorm:"LONGTEXT"`
-		// RequestInfo     *HookRequest  `xorm:"-"`
-		ResponseContent string `xorm:"LONGTEXT"`
-		// ResponseInfo    *HookResponse `xorm:"-"`
+		ID             int64  `xorm:"pk autoincr"`
+		PayloadContent string `xorm:"LONGTEXT"`
 	}
 
 	type MatrixPayloadSafe struct {
