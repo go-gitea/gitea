@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
+	"xorm.io/builder"
 
 	"github.com/nektos/act/pkg/jobparser"
 )
@@ -255,8 +256,10 @@ func CreateTaskForRunner(runner *Runner) (*Task, bool, error) {
 	task.Steps = steps
 
 	job.TaskID = task.ID
-	if err := UpdateRunJob(ctx, job); err != nil {
+	if n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}); err != nil {
 		return nil, false, err
+	} else if n != 1 {
+		return nil, false, nil
 	}
 
 	if job.Run.Status.IsWaiting() {
@@ -308,11 +311,11 @@ func UpdateTaskByState(state *runnerv1.TaskState) error {
 	if task.Result != runnerv1.Result_RESULT_UNSPECIFIED {
 		task.Status = Status(task.Result)
 		task.Stopped = timeutil.TimeStamp(state.StoppedAt.AsTime().Unix())
-		if err := UpdateRunJob(ctx, &RunJob{
+		if _, err := UpdateRunJob(ctx, &RunJob{
 			ID:      task.JobID,
 			Status:  task.Status,
 			Stopped: task.Stopped,
-		}); err != nil {
+		}, nil); err != nil {
 			return err
 		}
 	}

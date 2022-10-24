@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
+	"xorm.io/builder"
 
 	"golang.org/x/exp/slices"
 )
@@ -90,31 +91,37 @@ func GetRunJobsByRunID(ctx context.Context, runID int64) ([]*RunJob, error) {
 	return jobs, nil
 }
 
-func UpdateRunJob(ctx context.Context, job *RunJob, cols ...string) error {
+func UpdateRunJob(ctx context.Context, job *RunJob, cond builder.Cond, cols ...string) (int64, error) {
 	e := db.GetEngine(ctx)
 
 	sess := e.ID(job.ID)
 	if len(cols) > 0 {
 		sess.Cols(cols...)
 	}
-	if _, err := sess.Update(job); err != nil {
-		return err
+
+	if cond != nil {
+		sess.Where(cond)
 	}
 
-	if !(slices.Contains(cols, "status") || job.Status != 0) {
-		return nil
+	affected, err := sess.Update(job)
+	if err != nil {
+		return 0, err
+	}
+
+	if affected == 0 || (!slices.Contains(cols, "status") && job.Status == 0) {
+		return affected, nil
 	}
 
 	if job.RunID == 0 {
 		var err error
 		if job, err = GetRunJobByID(ctx, job.ID); err != nil {
-			return err
+			return affected, err
 		}
 	}
 
 	jobs, err := GetRunJobsByRunID(ctx, job.RunID)
 	if err != nil {
-		return err
+		return affected, err
 	}
 
 	runStatus := aggregateJobStatus(jobs)
@@ -126,7 +133,7 @@ func UpdateRunJob(ctx context.Context, job *RunJob, cols ...string) error {
 	if runStatus.IsDone() {
 		run.Stopped = timeutil.TimeStampNow()
 	}
-	return UpdateRun(ctx, run)
+	return affected, UpdateRun(ctx, run)
 }
 
 func aggregateJobStatus(jobs []*RunJob) Status {
