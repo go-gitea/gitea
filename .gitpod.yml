@@ -1,6 +1,7 @@
 tasks:
   - name: Setup
     init: |
+      cp -r contrib/ide/vscode .vscode
       make deps
       make build
     command: |

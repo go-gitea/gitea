@@ -104,7 +104,7 @@ func IsForcePush(ctx context.Context, opts *PushUpdateOptions) (bool, error) {
 		return false, nil
 	}
 
-	output, _, err := git.NewCommand(ctx, "rev-list", "--max-count=1", opts.OldCommitID, "^"+opts.NewCommitID).
+	output, _, err := git.NewCommand(ctx, "rev-list", "--max-count=1").AddDynamicArguments(opts.OldCommitID, "^"+opts.NewCommitID).
 		RunStdString(&git.RunOpts{Dir: repo_model.RepoPath(opts.RepoUserName, opts.RepoName)})
 	if err != nil {
 		return false, err
