@@ -32,7 +32,7 @@ func createPushMirrorTable(x *xorm.Engine) error {
 	}
 
 	if err := sess.Sync2(new(PushMirror)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
+		return fmt.Errorf("Sync2: %w", err)
 	}
 
 	return sess.Commit()

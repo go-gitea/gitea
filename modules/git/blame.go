@@ -106,7 +106,7 @@ func (r *BlameReader) Close() error {
 	_ = r.output.Close()
 
 	if err := r.cmd.Wait(); err != nil {
-		return fmt.Errorf("Wait: %v", err)
+		return fmt.Errorf("Wait: %w", err)
 	}
 
 	return nil
@@ -129,13 +129,13 @@ func createBlameReader(ctx context.Context, dir string, command ...string) (*Bla
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		defer finished()
-		return nil, fmt.Errorf("StdoutPipe: %v", err)
+		return nil, fmt.Errorf("StdoutPipe: %w", err)
 	}
 
 	if err = cmd.Start(); err != nil {
 		defer finished()
 		_ = stdout.Close()
-		return nil, fmt.Errorf("Start: %v", err)
+		return nil, fmt.Errorf("Start: %w", err)
 	}
 
 	reader := bufio.NewReader(stdout)

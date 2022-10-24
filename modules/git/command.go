@@ -24,7 +24,7 @@ import (
 
 var (
 	// globalCommandArgs global command args for external package setting
-	globalCommandArgs []string
+	globalCommandArgs []CmdArg
 
 	// defaultCommandExecutionTimeout default command execution timeout duration
 	defaultCommandExecutionTimeout = 360 * time.Second
@@ -43,6 +43,8 @@ type Command struct {
 	brokenArgs       []string
 }
 
+type CmdArg string
+
 func (c *Command) String() string {
 	if len(c.args) == 0 {
 		return c.name
@@ -52,13 +54,18 @@ func (c *Command) String() string {
 
 // NewCommand creates and returns a new Git Command based on given command and arguments.
 // Each argument should be safe to be trusted. User-provided arguments should be passed to AddDynamicArguments instead.
-func NewCommand(ctx context.Context, args ...string) *Command {
+func NewCommand(ctx context.Context, args ...CmdArg) *Command {
 	// Make an explicit copy of globalCommandArgs, otherwise append might overwrite it
-	cargs := make([]string, len(globalCommandArgs))
-	copy(cargs, globalCommandArgs)
+	cargs := make([]string, 0, len(globalCommandArgs)+len(args))
+	for _, arg := range globalCommandArgs {
+		cargs = append(cargs, string(arg))
+	}
+	for _, arg := range args {
+		cargs = append(cargs, string(arg))
+	}
 	return &Command{
 		name:             GitExecutable,
-		args:             append(cargs, args...),
+		args:             cargs,
 		parentContext:    ctx,
 		globalArgsLength: len(globalCommandArgs),
 	}
@@ -66,16 +73,20 @@ func NewCommand(ctx context.Context, args ...string) *Command {
 
 // NewCommandNoGlobals creates and returns a new Git Command based on given command and arguments only with the specify args and don't care global command args
 // Each argument should be safe to be trusted. User-provided arguments should be passed to AddDynamicArguments instead.
-func NewCommandNoGlobals(args ...string) *Command {
+func NewCommandNoGlobals(args ...CmdArg) *Command {
 	return NewCommandContextNoGlobals(DefaultContext, args...)
 }
 
 // NewCommandContextNoGlobals creates and returns a new Git Command based on given command and arguments only with the specify args and don't care global command args
 // Each argument should be safe to be trusted. User-provided arguments should be passed to AddDynamicArguments instead.
-func NewCommandContextNoGlobals(ctx context.Context, args ...string) *Command {
+func NewCommandContextNoGlobals(ctx context.Context, args ...CmdArg) *Command {
+	cargs := make([]string, 0, len(args))
+	for _, arg := range args {
+		cargs = append(cargs, string(arg))
+	}
 	return &Command{
 		name:          GitExecutable,
-		args:          args,
+		args:          cargs,
 		parentContext: ctx,
 	}
 }
@@ -93,10 +104,12 @@ func (c *Command) SetDescription(desc string) *Command {
 	return c
 }
 
-// AddArguments adds new argument(s) to the command. Each argument must be safe to be trusted.
+// AddArguments adds new git argument(s) to the command. Each argument must be safe to be trusted.
 // User-provided arguments should be passed to AddDynamicArguments instead.
-func (c *Command) AddArguments(args ...string) *Command {
-	c.args = append(c.args, args...)
+func (c *Command) AddArguments(args ...CmdArg) *Command {
+	for _, arg := range args {
+		c.args = append(c.args, string(arg))
+	}
 	return c
 }
 
@@ -113,6 +126,26 @@ func (c *Command) AddDynamicArguments(args ...string) *Command {
 	}
 	c.args = append(c.args, args...)
 	return c
+}
+
+// AddDashesAndList adds the "--" and then add the list as arguments, it's usually for adding file list
+// At the moment, this function can be only called once, maybe in future it can be refactored to support multiple calls (if necessary)
+func (c *Command) AddDashesAndList(list ...string) *Command {
+	c.args = append(c.args, "--")
+	// Some old code also checks `arg != ""`, IMO it's not necessary.
+	// If the check is needed, the list should be prepared before the call to this function
+	c.args = append(c.args, list...)
+	return c
+}
+
+// CmdArgCheck checks whether the string is safe to be used as a dynamic argument.
+// It panics if the check fails. Usually it should not be used, it's just for refactoring purpose
+// deprecated
+func CmdArgCheck(s string) CmdArg {
+	if s != "" && s[0] == '-' {
+		panic("invalid git cmd argument: " + s)
+	}
+	return CmdArg(s)
 }
 
 // RunOpts represents parameters to run the command. If UseContextTimeout is specified, then Timeout is ignored.
@@ -153,7 +186,7 @@ func CommonGitCmdEnvs() []string {
 	}...)
 }
 
-// CommonCmdServEnvs is like CommonGitCmdEnvs but it only returns minimal required environment variables for the "gitea serv" command
+// CommonCmdServEnvs is like CommonGitCmdEnvs, but it only returns minimal required environment variables for the "gitea serv" command
 func CommonCmdServEnvs() []string {
 	return commonBaseEnvs()
 }
@@ -318,12 +351,12 @@ func (c *Command) RunStdBytes(opts *RunOpts) (stdout, stderr []byte, runErr RunS
 }
 
 // AllowLFSFiltersArgs return globalCommandArgs with lfs filter, it should only be used for tests
-func AllowLFSFiltersArgs() []string {
+func AllowLFSFiltersArgs() []CmdArg {
 	// Now here we should explicitly allow lfs filters to run
-	filteredLFSGlobalArgs := make([]string, len(globalCommandArgs))
+	filteredLFSGlobalArgs := make([]CmdArg, len(globalCommandArgs))
 	j := 0
 	for _, arg := range globalCommandArgs {
-		if strings.Contains(arg, "lfs") {
+		if strings.Contains(string(arg), "lfs") {
 			j--
 		} else {
 			filteredLFSGlobalArgs[j] = arg

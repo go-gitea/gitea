@@ -151,7 +151,7 @@ func lfsCommitAndPushTest(t *testing.T, dstPath string) (littleLFS, bigLFS strin
 		prefix := "lfs-data-file-"
 		err := git.NewCommand(git.DefaultContext, "lfs").AddArguments("install").Run(&git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
-		_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("track", prefix+"*").RunStdString(&git.RunOpts{Dir: dstPath})
+		_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("track").AddDynamicArguments(prefix + "*").RunStdString(&git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 		err = git.AddChanges(dstPath, false, ".gitattributes")
 		assert.NoError(t, err)
@@ -279,11 +279,11 @@ func lockTest(t *testing.T, repoPath string) {
 func lockFileTest(t *testing.T, filename, repoPath string) {
 	_, _, err := git.NewCommand(git.DefaultContext, "lfs").AddArguments("locks").RunStdString(&git.RunOpts{Dir: repoPath})
 	assert.NoError(t, err)
-	_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("lock", filename).RunStdString(&git.RunOpts{Dir: repoPath})
+	_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("lock").AddDynamicArguments(filename).RunStdString(&git.RunOpts{Dir: repoPath})
 	assert.NoError(t, err)
 	_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("locks").RunStdString(&git.RunOpts{Dir: repoPath})
 	assert.NoError(t, err)
-	_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("unlock", filename).RunStdString(&git.RunOpts{Dir: repoPath})
+	_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("unlock").AddDynamicArguments(filename).RunStdString(&git.RunOpts{Dir: repoPath})
 	assert.NoError(t, err)
 }
 
@@ -509,7 +509,7 @@ func doCreatePRAndSetManuallyMerged(ctx, baseCtx APITestContext, dstPath, baseBr
 		}))
 
 		t.Run("CreateHeadBranch", doGitCreateBranch(dstPath, headBranch))
-		t.Run("PushToHeadBranch", doGitPushTestRepository(dstPath, "origin", headBranch))
+		t.Run("PushToHeadBranch", doGitPushTestRepository(dstPath, "origin", git.CmdArgCheck(headBranch)))
 		t.Run("CreateEmptyPullRequest", func(t *testing.T) {
 			pr, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, baseBranch, headBranch)(t)
 			assert.NoError(t, err)
@@ -736,7 +736,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 		})
 
 		t.Run("Push", func(t *testing.T) {
-			err := git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o", "topic="+headBranch).Run(&git.RunOpts{Dir: dstPath})
+			err := git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o").AddDynamicArguments("topic=" + headBranch).Run(&git.RunOpts{Dir: dstPath})
 			if !assert.NoError(t, err) {
 				return
 			}
@@ -757,7 +757,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			assert.Contains(t, "Testing commit 1", prMsg.Body)
 			assert.Equal(t, commit, prMsg.Head.Sha)
 
-			_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test/"+headBranch).RunStdString(&git.RunOpts{Dir: dstPath})
+			_, _, err = git.NewCommand(git.DefaultContext, "push", "origin").AddDynamicArguments("HEAD:refs/for/master/test/" + headBranch).RunStdString(&git.RunOpts{Dir: dstPath})
 			if !assert.NoError(t, err) {
 				return
 			}
@@ -810,7 +810,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 		})
 
 		t.Run("Push2", func(t *testing.T) {
-			err := git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o", "topic="+headBranch).Run(&git.RunOpts{Dir: dstPath})
+			err := git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o").AddDynamicArguments("topic=" + headBranch).Run(&git.RunOpts{Dir: dstPath})
 			if !assert.NoError(t, err) {
 				return
 			}
@@ -822,7 +822,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			assert.Equal(t, false, prMsg.HasMerged)
 			assert.Equal(t, commit, prMsg.Head.Sha)
 
-			_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test/"+headBranch).RunStdString(&git.RunOpts{Dir: dstPath})
+			_, _, err = git.NewCommand(git.DefaultContext, "push", "origin").AddDynamicArguments("HEAD:refs/for/master/test/" + headBranch).RunStdString(&git.RunOpts{Dir: dstPath})
 			if !assert.NoError(t, err) {
 				return
 			}
