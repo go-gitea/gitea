@@ -178,7 +178,7 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, g
 		}
 
 		// Need to get the objects from the object db to attempt to merge
-		root, _, err := git.NewCommand(ctx, "unpack-file", file.stage1.sha).RunStdString(&git.RunOpts{Dir: tmpBasePath})
+		root, _, err := git.NewCommand(ctx, "unpack-file").AddDynamicArguments(file.stage1.sha).RunStdString(&git.RunOpts{Dir: tmpBasePath})
 		if err != nil {
 			return fmt.Errorf("unable to get root object: %s at path: %s for merging. Error: %w", file.stage1.sha, file.stage1.path, err)
 		}
@@ -187,7 +187,7 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, g
 			_ = util.Remove(filepath.Join(tmpBasePath, root))
 		}()
 
-		base, _, err := git.NewCommand(ctx, "unpack-file", file.stage2.sha).RunStdString(&git.RunOpts{Dir: tmpBasePath})
+		base, _, err := git.NewCommand(ctx, "unpack-file").AddDynamicArguments(file.stage2.sha).RunStdString(&git.RunOpts{Dir: tmpBasePath})
 		if err != nil {
 			return fmt.Errorf("unable to get base object: %s at path: %s for merging. Error: %w", file.stage2.sha, file.stage2.path, err)
 		}
@@ -195,7 +195,7 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, g
 		defer func() {
 			_ = util.Remove(base)
 		}()
-		head, _, err := git.NewCommand(ctx, "unpack-file", file.stage3.sha).RunStdString(&git.RunOpts{Dir: tmpBasePath})
+		head, _, err := git.NewCommand(ctx, "unpack-file").AddDynamicArguments(file.stage3.sha).RunStdString(&git.RunOpts{Dir: tmpBasePath})
 		if err != nil {
 			return fmt.Errorf("unable to get head object:%s at path: %s for merging. Error: %w", file.stage3.sha, file.stage3.path, err)
 		}
@@ -205,13 +205,13 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, g
 		}()
 
 		// now git merge-file annoyingly takes a different order to the merge-tree ...
-		_, _, conflictErr := git.NewCommand(ctx, "merge-file", base, root, head).RunStdString(&git.RunOpts{Dir: tmpBasePath})
+		_, _, conflictErr := git.NewCommand(ctx, "merge-file").AddDynamicArguments(base, root, head).RunStdString(&git.RunOpts{Dir: tmpBasePath})
 		if conflictErr != nil {
 			return &errMergeConflict{file.stage2.path}
 		}
 
 		// base now contains the merged data
-		hash, _, err := git.NewCommand(ctx, "hash-object", "-w", "--path", file.stage2.path, base).RunStdString(&git.RunOpts{Dir: tmpBasePath})
+		hash, _, err := git.NewCommand(ctx, "hash-object", "-w", "--path").AddDynamicArguments(file.stage2.path, base).RunStdString(&git.RunOpts{Dir: tmpBasePath})
 		if err != nil {
 			return err
 		}
@@ -235,7 +235,7 @@ func AttemptThreeWayMerge(ctx context.Context, gitPath string, gitRepo *git.Repo
 	defer cancel()
 
 	// First we use read-tree to do a simple three-way merge
-	if _, _, err := git.NewCommand(ctx, "read-tree", "-m", base, ours, theirs).RunStdString(&git.RunOpts{Dir: gitPath}); err != nil {
+	if _, _, err := git.NewCommand(ctx, "read-tree", "-m").AddDynamicArguments(base, ours, theirs).RunStdString(&git.RunOpts{Dir: gitPath}); err != nil {
 		log.Error("Unable to run read-tree -m! Error: %v", err)
 		return false, nil, fmt.Errorf("unable to run read-tree -m! Error: %v", err)
 	}
@@ -361,7 +361,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 	prConfig := prUnit.PullRequestsConfig()
 
 	// 6. Prepare the arguments to apply the patch against the index
-	args := []string{"apply", "--check", "--cached"}
+	args := []git.CmdArg{"apply", "--check", "--cached"}
 	if prConfig.IgnoreWhitespaceConflicts {
 		args = append(args, "--ignore-whitespace")
 	}
@@ -370,7 +370,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 		args = append(args, "--3way")
 		is3way = true
 	}
-	args = append(args, patchPath)
+	args = append(args, git.CmdArgCheck(patchPath))
 
 	// 7. Prep the pipe:
 	//   - Here we could do the equivalent of:

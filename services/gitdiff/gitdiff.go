@@ -1056,7 +1056,7 @@ type DiffOptions struct {
 	MaxLines           int
 	MaxLineCharacters  int
 	MaxFiles           int
-	WhitespaceBehavior string
+	WhitespaceBehavior git.CmdArg
 	DirectComparison   bool
 }
 
@@ -1082,7 +1082,7 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 		argsLength += len(files) + 1
 	}
 
-	diffArgs := make([]string, 0, argsLength)
+	diffArgs := make([]git.CmdArg, 0, argsLength)
 	if (len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == git.EmptySHA) && commit.ParentCount() == 0 {
 		diffArgs = append(diffArgs, "diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M")
 		if len(opts.WhitespaceBehavior) != 0 {
@@ -1090,7 +1090,7 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 		}
 		// append empty tree ref
 		diffArgs = append(diffArgs, "4b825dc642cb6eb9a060e54bf8d69288fbee4904")
-		diffArgs = append(diffArgs, opts.AfterCommitID)
+		diffArgs = append(diffArgs, git.CmdArgCheck(opts.AfterCommitID))
 	} else {
 		actualBeforeCommitID := opts.BeforeCommitID
 		if len(actualBeforeCommitID) == 0 {
@@ -1101,8 +1101,8 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 		if len(opts.WhitespaceBehavior) != 0 {
 			diffArgs = append(diffArgs, opts.WhitespaceBehavior)
 		}
-		diffArgs = append(diffArgs, actualBeforeCommitID)
-		diffArgs = append(diffArgs, opts.AfterCommitID)
+		diffArgs = append(diffArgs, git.CmdArgCheck(actualBeforeCommitID))
+		diffArgs = append(diffArgs, git.CmdArgCheck(opts.AfterCommitID))
 		opts.BeforeCommitID = actualBeforeCommitID
 	}
 
@@ -1111,13 +1111,15 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 	// the skipping for us
 	parsePatchSkipToFile := opts.SkipTo
 	if opts.SkipTo != "" && git.CheckGitVersionAtLeast("2.31") == nil {
-		diffArgs = append(diffArgs, "--skip-to="+opts.SkipTo)
+		diffArgs = append(diffArgs, git.CmdArg("--skip-to="+opts.SkipTo))
 		parsePatchSkipToFile = ""
 	}
 
 	if len(files) > 0 {
 		diffArgs = append(diffArgs, "--")
-		diffArgs = append(diffArgs, files...)
+		for _, file := range files {
+			diffArgs = append(diffArgs, git.CmdArg(file)) // it's safe to cast it to CmdArg because there is a "--" before
+		}
 	}
 
 	reader, writer := io.Pipe()
@@ -1126,7 +1128,7 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 		_ = writer.Close()
 	}()
 
-	go func(ctx context.Context, diffArgs []string, repoPath string, writer *io.PipeWriter) {
+	go func(ctx context.Context, diffArgs []git.CmdArg, repoPath string, writer *io.PipeWriter) {
 		cmd := git.NewCommand(ctx, diffArgs...)
 		cmd.SetDescription(fmt.Sprintf("GetDiffRange [repo_path: %s]", repoPath))
 		if err := cmd.Run(&git.RunOpts{
@@ -1199,15 +1201,15 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 		separator = ".."
 	}
 
-	shortstatArgs := []string{opts.BeforeCommitID + separator + opts.AfterCommitID}
+	shortstatArgs := []git.CmdArg{git.CmdArgCheck(opts.BeforeCommitID + separator + opts.AfterCommitID)}
 	if len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == git.EmptySHA {
-		shortstatArgs = []string{git.EmptyTreeSHA, opts.AfterCommitID}
+		shortstatArgs = []git.CmdArg{git.EmptyTreeSHA, git.CmdArgCheck(opts.AfterCommitID)}
 	}
 	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(gitRepo.Ctx, repoPath, shortstatArgs...)
 	if err != nil && strings.Contains(err.Error(), "no merge base") {
 		// git >= 2.28 now returns an error if base and head have become unrelated.
 		// previously it would return the results of git diff --shortstat base head so let's try that...
-		shortstatArgs = []string{opts.BeforeCommitID, opts.AfterCommitID}
+		shortstatArgs = []git.CmdArg{git.CmdArgCheck(opts.BeforeCommitID), git.CmdArgCheck(opts.AfterCommitID)}
 		diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(gitRepo.Ctx, repoPath, shortstatArgs...)
 	}
 	if err != nil {
@@ -1322,7 +1324,7 @@ func CommentMustAsDiff(c *issues_model.Comment) *Diff {
 }
 
 // GetWhitespaceFlag returns git diff flag for treating whitespaces
-func GetWhitespaceFlag(whitespaceBehavior string) string {
+func GetWhitespaceFlag(whitespaceBehavior string) git.CmdArg {
 	whitespaceFlags := map[string]string{
 		"ignore-all":    "-w",
 		"ignore-change": "-b",
@@ -1331,7 +1333,7 @@ func GetWhitespaceFlag(whitespaceBehavior string) string {
 	}
 
 	if flag, ok := whitespaceFlags[whitespaceBehavior]; ok {
-		return flag
+		return git.CmdArg(flag)
 	}
 	log.Warn("unknown whitespace behavior: %q, default to 'show-all'", whitespaceBehavior)
 	return ""
