@@ -7,6 +7,7 @@ package migrations
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
@@ -56,8 +57,9 @@ func batchProcess[T any](x *xorm.Engine, query func() *xorm.Session, buf []T, pr
 func addHeaderAuthorizationEncryptedColWebhook(x *xorm.Engine) error {
 	// Add the column to the table
 	type Webhook struct {
-		ID   int64  `xorm:"pk autoincr"`
-		Meta string `xorm:"TEXT"` // store hook-specific attributes
+		ID   int64            `xorm:"pk autoincr"`
+		Type webhook.HookType `xorm:"VARCHAR(16) 'type'"`
+		Meta string           `xorm:"TEXT"` // store hook-specific attributes
 
 		// HeaderAuthorizationEncrypted should be accessed using HeaderAuthorization() and SetHeaderAuthorization()
 		HeaderAuthorizationEncrypted string `xorm:"TEXT"`
@@ -121,7 +123,8 @@ func addHeaderAuthorizationEncryptedColWebhook(x *xorm.Engine) error {
 	// Remove access_token from HookTask
 
 	type HookTask struct {
-		ID             int64  `xorm:"pk autoincr"`
+		ID             int64 `xorm:"pk autoincr"`
+		HookID         int64
 		PayloadContent string `xorm:"LONGTEXT"`
 	}
 
@@ -138,7 +141,12 @@ func addHeaderAuthorizationEncryptedColWebhook(x *xorm.Engine) error {
 	}
 
 	err = batchProcess(x,
-		func() *xorm.Session { return x.Where(builder.Like{"payload_content", "access_token"}).OrderBy("id") },
+		func() *xorm.Session {
+			return x.Where(builder.And(
+				builder.In("hook_id", builder.Select("id").From("webhook").Where(builder.Eq{"type": "matrix"})),
+				builder.Like{"payload_content", "access_token"},
+			)).OrderBy("id")
+		},
 		make([]*HookTask, 0, 50),
 		func(sess *xorm.Session, hookTask *HookTask) error {
 			// retrieve token from payload_content

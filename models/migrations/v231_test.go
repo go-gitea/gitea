@@ -11,7 +11,6 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -19,26 +18,12 @@ import (
 func Test_addHeaderAuthorizationEncryptedColWebhook(t *testing.T) {
 	// Create Webhook table
 	type Webhook struct {
-		ID                 int64 `xorm:"pk autoincr"`
-		RepoID             int64 `xorm:"INDEX"` // An ID of 0 indicates either a default or system webhook
-		OrgID              int64 `xorm:"INDEX"`
-		IsSystemWebhook    bool
-		URL                string `xorm:"url TEXT"`
-		HTTPMethod         string `xorm:"http_method"`
-		ContentType        webhook.HookContentType
-		Secret             string `xorm:"TEXT"`
-		Events             string `xorm:"TEXT"`
-		*webhook.HookEvent `xorm:"-"`
-		IsActive           bool               `xorm:"INDEX"`
-		Type               webhook.HookType   `xorm:"VARCHAR(16) 'type'"`
-		Meta               string             `xorm:"TEXT"` // store hook-specific attributes
-		LastStatus         webhook.HookStatus // Last delivery status
+		ID   int64            `xorm:"pk autoincr"`
+		Type webhook.HookType `xorm:"VARCHAR(16) 'type'"`
+		Meta string           `xorm:"TEXT"` // store hook-specific attributes
 
 		// HeaderAuthorizationEncrypted should be accessed using HeaderAuthorization() and SetHeaderAuthorization()
 		HeaderAuthorizationEncrypted string `xorm:"TEXT"`
-
-		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
 
 	type ExpectedWebhook struct {
@@ -48,22 +33,9 @@ func Test_addHeaderAuthorizationEncryptedColWebhook(t *testing.T) {
 	}
 
 	type HookTask struct {
-		ID              int64 `xorm:"pk autoincr"`
-		RepoID          int64 `xorm:"INDEX"`
-		HookID          int64
-		UUID            string
-		PayloadContent  string `xorm:"LONGTEXT"`
-		EventType       string
-		IsDelivered     bool
-		Delivered       int64
-		DeliveredString string `xorm:"-"`
-
-		// History info.
-		IsSucceed      bool
-		RequestContent string `xorm:"LONGTEXT"`
-		// RequestInfo     *HookRequest  `xorm:"-"`
-		ResponseContent string `xorm:"LONGTEXT"`
-		// ResponseInfo    *HookResponse `xorm:"-"`
+		ID             int64 `xorm:"pk autoincr"`
+		HookID         int64
+		PayloadContent string `xorm:"LONGTEXT"`
 	}
 
 	// Prepare and load the testing database
