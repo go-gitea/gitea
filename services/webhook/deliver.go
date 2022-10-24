@@ -145,6 +145,20 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 		Headers: map[string]string{},
 	}
 
+	// OK We're now ready to attempt to deliver the task - we must double check that it
+	// has not been delivered in the meantime
+	updated, err := webhook_model.MarkTaskDelivered(ctx, t)
+	if err != nil {
+		log.Error("MarkTaskDelivered[%d]: %v", err)
+		return fmt.Errorf("unable to mark task[%d] delivered in the db: %w", t.ID, err)
+	}
+	if !updated {
+		// This webhook task has already been attempted to be delivered or is in the process of being delivered
+		log.Trace("Webhook Task[%d] already delivered", t.ID)
+		return nil
+	}
+
+	// All code from this point will update the hook task
 	defer func() {
 		t.Delivered = time.Now().UnixNano()
 		if t.IsSucceed {
@@ -170,19 +184,6 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 			return
 		}
 	}()
-
-	// OK We're now ready to attempt to deliver the task - we must double check that it
-	// has not been delivered in the meantime
-	updated, err := webhook_model.MarkTaskDelivered(ctx, t)
-	if err != nil {
-		log.Error("MarkTaskDelivered[%d]: %v", err)
-		return fmt.Errorf("unable to mark task[%d] delivered in the db: %w", t.ID, err)
-	}
-	if !updated {
-		// This webhook task has already been attempted to be delivered or is in the process of being delivered 
-		log.Trace("Webhook Task[%d] already delivered", t.ID)
-		return nil
-	}
 
 	if setting.DisableWebhooks {
 		return fmt.Errorf("webhook task skipped (webhooks disabled): [%d]", t.ID)
