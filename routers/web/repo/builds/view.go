@@ -13,6 +13,7 @@ import (
 )
 
 func View(ctx *context.Context) {
+	ctx.Data["PageIsBuilds"] = true
 	runIndex := ctx.ParamsInt64("run")
 	jobIndex := ctx.ParamsInt64("job")
 	ctx.Data["RunIndex"] = runIndex

@@ -184,7 +184,7 @@
 				{{end}}
 
 				{{ if and (not .UnitBuildsGlobalDisabled) (.Permission.CanRead $.UnitTypeBuilds)}}
-					<a class="{{if .PageIsBuildList}}active{{end}} item" href="{{.RepoLink}}/builds">
+					<a class="{{if .PageIsBuilds}}active{{end}} item" href="{{.RepoLink}}/builds">
 						{{svg "octicon-play"}} {{.locale.Tr "repo.builds"}}
 						{{if .Repository.NumOpenRuns}}
 							<span class="ui blue small label">{{CountFmt .Repository.NumOpenRuns}}</span>

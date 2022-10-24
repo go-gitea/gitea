@@ -39,7 +39,7 @@ func MustEnableBuilds(ctx *context.Context) {
 
 func List(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.builds")
-	ctx.Data["PageIsBuildList"] = true
+	ctx.Data["PageIsBuilds"] = true
 
 	defaultBranch, err := ctx.Repo.GitRepo.GetDefaultBranch()
 	if err != nil {
