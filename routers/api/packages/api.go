@@ -58,6 +58,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 	authGroup := auth.NewGroup(authMethods...)
 	r.Use(func(ctx *context.Context) {
 		ctx.Doer = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		ctx.IsSigned = ctx.Doer != nil
 	})
 
 	r.Group("/{username}", func() {
@@ -316,6 +317,7 @@ func ContainerRoutes(ctx gocontext.Context) *web.Route {
 	authGroup := auth.NewGroup(authMethods...)
 	r.Use(func(ctx *context.Context) {
 		ctx.Doer = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		ctx.IsSigned = ctx.Doer != nil
 	})
 
 	r.Get("", container.ReqContainerAccess, container.DetermineSupport)
