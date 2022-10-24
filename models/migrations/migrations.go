@@ -417,6 +417,10 @@ var migrations = []Migration{
 	NewMigration("Conan and generic packages do not need to be semantically versioned", fixPackageSemverField),
 	// v227 -> v228
 	NewMigration("Create key/value table for system settings", createSystemSettingsTable),
+	// v228 -> v229
+	NewMigration("Add TeamInvite table", addTeamInviteTable),
+	// v229 -> v230
+	NewMigration("Update counts of all open milestones", updateOpenMilestoneCounts),
 }
 
 // GetCurrentDBVersion returns the current db version
