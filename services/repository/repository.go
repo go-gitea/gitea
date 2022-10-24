@@ -97,7 +97,7 @@ func UpdateRepository(repo *repo_model.Repository, visibilityChanged bool) (err 
 	defer committer.Close()
 
 	if err = repo_module.UpdateRepository(ctx, repo, visibilityChanged); err != nil {
-		return fmt.Errorf("updateRepository: %v", err)
+		return fmt.Errorf("updateRepository: %w", err)
 	}
 
 	return committer.Commit()

@@ -68,7 +68,7 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 		Stdout: stdOut,
 		Stderr: stdErr,
 	}); err != nil {
-		return nil, fmt.Errorf("failed to run check-attr: %v\n%s\n%s", err, stdOut.String(), stdErr.String())
+		return nil, fmt.Errorf("failed to run check-attr: %w\n%s\n%s", err, stdOut.String(), stdErr.String())
 	}
 
 	// FIXME: This is incorrect on versions < 1.8.5

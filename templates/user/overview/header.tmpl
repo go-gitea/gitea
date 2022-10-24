@@ -56,6 +56,22 @@
 						</a>
 					</div>
 				{{end}}
+			{{else}}
+				<a class='{{if eq .TabName "activity"}}active {{end}}item' href="{{.ContextUser.HomeLink}}?tab=activity">
+					{{svg "octicon-rss"}} {{.locale.Tr "user.activity"}}
+				</a>
+				{{if not .DisableStars}}
+					<a class='{{if eq .TabName "stars"}}active {{end}}item' href="{{.ContextUser.HomeLink}}?tab=stars">
+						{{svg "octicon-star"}} {{.locale.Tr "user.starred"}}
+						{{if .Owner.NumStars}}
+							<div class="ui primary label">{{.Owner.NumStars}}</div>
+						{{end}}
+					</a>
+				{{else}}
+					<a class='{{if eq .TabName "watching"}}active {{end}}item' href="{{.ContextUser.HomeLink}}?tab=watching">
+						{{svg "octicon-eye"}} {{.locale.Tr "user.watched"}}
+					</a>
+				{{end}}
 			{{end}}
 
 		</div>

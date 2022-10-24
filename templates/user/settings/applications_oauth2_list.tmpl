@@ -37,6 +37,10 @@
 			<label for="redirect-uri">{{.locale.Tr "settings.oauth2_redirect_uri"}}</label>
 			<input type="url" name="redirect_uri" id="redirect-uri">
 		</div>
+		<div class="field ui checkbox {{if .Err_ConfidentialClient}}error{{end}}">
+			<label>{{.locale.Tr "settings.oauth2_confidential_client"}}</label>
+			<input type="checkbox" name="confidential_client" checked>
+		</div>
 		<button class="ui green button">
 			{{.locale.Tr "settings.create_oauth2_application_button"}}
 		</button>
