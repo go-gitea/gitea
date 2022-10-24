@@ -151,8 +151,8 @@ func localizedExtensions(ext, languageCode string) (localizedExts []string) {
 	if strings.Contains(lowerLangCode, "-") {
 		underscoreLangCode := strings.ReplaceAll(lowerLangCode, "-", "_")
 		indexOfDash := strings.Index(lowerLangCode, "-")
-		// e.g. [.zh-cn.md, .zh_cn.md, .zh.md, .md]
-		return []string{lowerLangCode + ext, underscoreLangCode + ext, lowerLangCode[:indexOfDash] + ext, ext}
+		// e.g. [.zh-cn.md, .zh_cn.md, .zh.md, _zh.md, .md]
+		return []string{lowerLangCode + ext, underscoreLangCode + ext, lowerLangCode[:indexOfDash] + ext, "_" + lowerLangCode[1:indexOfDash] + ext, ext}
 	}
 
 	// e.g. [.en.md, .md]
@@ -551,7 +551,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 				filename2attribute2info, err := ctx.Repo.GitRepo.CheckAttribute(git.CheckAttributeOpts{
 					CachedOnly: true,
-					Attributes: []string{"linguist-language", "gitlab-language"},
+					Attributes: []git.CmdArg{"linguist-language", "gitlab-language"},
 					Filenames:  []string{ctx.Repo.TreePath},
 					IndexFile:  indexFilename,
 					WorkTree:   worktree,
