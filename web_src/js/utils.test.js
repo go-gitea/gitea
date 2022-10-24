@@ -1,7 +1,7 @@
 import {expect, test} from 'vitest';
 import {
   basename, extname, isObject, uniq, stripTags, joinPaths, parseIssueHref,
-  prettyNumber, parseUrl,
+  prettyNumber, parseUrl, formatMonth, formatDay
 } from './utils.js';
 
 test('basename', () => {
@@ -108,4 +108,22 @@ test('parseUrl', () => {
   expect(parseUrl('https://localhost/path?search').pathname).toEqual('/path');
   expect(parseUrl('https://localhost/path?search').search).toEqual('?search');
   expect(parseUrl('https://localhost/path?search#hash').hash).toEqual('#hash');
+});
+
+test('formatMonth', () => {
+  document.documentElement.lang = 'en-US';
+  expect(formatMonth(0)).toEqual('Jan');
+  expect(formatMonth(4)).toEqual('May');
+  document.documentElement.lang = 'es-ES';
+  expect(formatMonth(5)).toEqual('jun');
+  expect(formatMonth(6)).toEqual('jul');
+});
+
+test('formatDay', () => {
+  document.documentElement.lang = 'fr-FR';
+  expect(formatDay(1)).toEqual('lun.');
+  expect(formatDay(5)).toEqual('ven.');
+  document.documentElement.lang = 'pl-PL';
+  expect(formatDay(1)).toEqual('pon.');
+  expect(formatDay(5)).toEqual('pt.');
 });
