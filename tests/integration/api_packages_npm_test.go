@@ -131,7 +131,6 @@ func TestPackageNpm(t *testing.T) {
 		req = addTokenAuthHeader(req, token)
 		resp = MakeRequest(t, req, http.StatusOK)
 
-		b, _ = base64.StdEncoding.DecodeString(data)
 		assert.Equal(t, b, resp.Body.Bytes())
 
 		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNpm)

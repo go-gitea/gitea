@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -28,11 +27,6 @@ import (
 
 // errInvalidTagName indicates an invalid tag name
 var errInvalidTagName = errors.New("The tag name is invalid")
-
-// npmFileNameRegex is used to fuzzily extract an npm package version from a filename.
-// It was expanded from http://json.schemastore.org/package, https://github.com/Masterminds/semver, and https://docs.npmjs.com/cli/v6/using-npm/semver
-// To test it see: https://regex101.com/r/OydBJq/5
-var npmFileNameRegex = regexp.MustCompile(`^(?P<name>[\w\-\.]+)-(?P<version>v?\d+(\.\d+)?(\.\d+)?(-[\w\-]+(\.[\w\-]+)*)?(\+[\w\-]+(\.[\w\-]+)*)?)(?P<ext>\.[\w\-]+)$`)
 
 func apiError(ctx *context.Context, status int, obj interface{}) {
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
@@ -88,9 +82,25 @@ func DownloadPackageFile(ctx *context.Context) {
 	filename := ctx.Params("filename")
 
 	if packageVersion == "" {
-		matches := npmFileNameRegex.FindStringSubmatch(filename)
-		idx := npmFileNameRegex.SubexpIndex
-		packageVersion = matches[idx("version")]
+		pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
+			OwnerID: ctx.Package.Owner.ID,
+			Type:    packages_model.TypeNpm,
+			Name: packages_model.SearchValue{
+				ExactMatch: true,
+				Value:      packageNameFromParams(ctx),
+			},
+			HasFileWithName: filename,
+			IsInternal:      util.OptionalBoolFalse,
+		})
+		if err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		if len(pvs) != 1 {
+			apiError(ctx, http.StatusNotFound, nil)
+			return
+		}
+		packageVersion = pvs[0].Version
 	}
 
 	s, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
