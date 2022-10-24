@@ -44,7 +44,7 @@ const ssh2keyStart = "---- BEGIN SSH2 PUBLIC KEY ----"
 func extractTypeFromBase64Key(key string) (string, error) {
 	b, err := base64.StdEncoding.DecodeString(key)
 	if err != nil || len(b) < 4 {
-		return "", fmt.Errorf("invalid key format: %v", err)
+		return "", fmt.Errorf("invalid key format: %w", err)
 	}
 
 	keyLength := int(binary.BigEndian.Uint32(b))
@@ -85,7 +85,7 @@ func parseKeyString(content string) (string, error) {
 
 		t, err := extractTypeFromBase64Key(keyContent)
 		if err != nil {
-			return "", fmt.Errorf("extractTypeFromBase64Key: %v", err)
+			return "", fmt.Errorf("extractTypeFromBase64Key: %w", err)
 		}
 		keyType = t
 	} else {
@@ -104,14 +104,14 @@ func parseKeyString(content string) (string, error) {
 				var pk rsa.PublicKey
 				_, err2 := asn1.Unmarshal(block.Bytes, &pk)
 				if err2 != nil {
-					return "", fmt.Errorf("failed to parse DER encoded public key as either PKIX or PEM RSA Key: %v %v", err, err2)
+					return "", fmt.Errorf("failed to parse DER encoded public key as either PKIX or PEM RSA Key: %v %w", err, err2)
 				}
 				pub = &pk
 			}
 
 			sshKey, err := ssh.NewPublicKey(pub)
 			if err != nil {
-				return "", fmt.Errorf("unable to convert to ssh public key: %v", err)
+				return "", fmt.Errorf("unable to convert to ssh public key: %w", err)
 			}
 			content = string(ssh.MarshalAuthorizedKey(sshKey))
 		}
@@ -138,7 +138,7 @@ func parseKeyString(content string) (string, error) {
 		// If keyType is not given, extract it from content. If given, validate it.
 		t, err := extractTypeFromBase64Key(keyContent)
 		if err != nil {
-			return "", fmt.Errorf("extractTypeFromBase64Key: %v", err)
+			return "", fmt.Errorf("extractTypeFromBase64Key: %w", err)
 		}
 		if len(keyType) == 0 {
 			keyType = t
@@ -149,7 +149,7 @@ func parseKeyString(content string) (string, error) {
 	// Finally we need to check whether we can actually read the proposed key:
 	_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(keyType + " " + keyContent + " " + keyComment))
 	if err != nil {
-		return "", fmt.Errorf("invalid ssh public key: %v", err)
+		return "", fmt.Errorf("invalid ssh public key: %w", err)
 	}
 	return keyType + " " + keyContent + " " + keyComment, nil
 }
@@ -191,7 +191,7 @@ func CheckPublicKeyString(content string) (_ string, err error) {
 		keyType, length, err = SSHKeyGenParsePublicKey(content)
 	}
 	if err != nil {
-		return "", fmt.Errorf("%s: %v", fnName, err)
+		return "", fmt.Errorf("%s: %w", fnName, err)
 	}
 	log.Trace("Key info [native: %v]: %s-%d", setting.SSH.StartBuiltinServer, keyType, length)
 
@@ -220,7 +220,7 @@ func SSHNativeParsePublicKey(keyLine string) (string, int, error) {
 		if strings.Contains(err.Error(), "ssh: unknown key algorithm") {
 			return "", 0, ErrKeyUnableVerify{err.Error()}
 		}
-		return "", 0, fmt.Errorf("ParsePublicKey: %v", err)
+		return "", 0, fmt.Errorf("ParsePublicKey: %w", err)
 	}
 
 	// The ssh library can parse the key, so next we find out what key exactly we have.
@@ -267,12 +267,12 @@ func SSHNativeParsePublicKey(keyLine string) (string, int, error) {
 func writeTmpKeyFile(content string) (string, error) {
 	tmpFile, err := os.CreateTemp(setting.SSH.KeyTestPath, "gitea_keytest")
 	if err != nil {
-		return "", fmt.Errorf("TempFile: %v", err)
+		return "", fmt.Errorf("TempFile: %w", err)
 	}
 	defer tmpFile.Close()
 
 	if _, err = tmpFile.WriteString(content); err != nil {
-		return "", fmt.Errorf("WriteString: %v", err)
+		return "", fmt.Errorf("WriteString: %w", err)
 	}
 	return tmpFile.Name(), nil
 }
@@ -281,7 +281,7 @@ func writeTmpKeyFile(content string) (string, error) {
 func SSHKeyGenParsePublicKey(key string) (string, int, error) {
 	tmpName, err := writeTmpKeyFile(key)
 	if err != nil {
-		return "", 0, fmt.Errorf("writeTmpKeyFile: %v", err)
+		return "", 0, fmt.Errorf("writeTmpKeyFile: %w", err)
 	}
 	defer func() {
 		if err := util.Remove(tmpName); err != nil {

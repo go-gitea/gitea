@@ -25,14 +25,14 @@ func removeOrgUser(ctx context.Context, orgID, userID int64) error {
 		And("org_id=?", orgID).
 		Get(ou)
 	if err != nil {
-		return fmt.Errorf("get org-user: %v", err)
+		return fmt.Errorf("get org-user: %w", err)
 	} else if !has {
 		return nil
 	}
 
 	org, err := organization.GetOrgByID(ctx, orgID)
 	if err != nil {
-		return fmt.Errorf("GetUserByID [%d]: %v", orgID, err)
+		return fmt.Errorf("GetUserByID [%d]: %w", orgID, err)
 	}
 
 	// Check if the user to delete is the last member in owner team.
@@ -62,11 +62,11 @@ func removeOrgUser(ctx context.Context, orgID, userID int64) error {
 	// Delete all repository accesses and unwatch them.
 	env, err := organization.AccessibleReposEnv(ctx, org, userID)
 	if err != nil {
-		return fmt.Errorf("AccessibleReposEnv: %v", err)
+		return fmt.Errorf("AccessibleReposEnv: %w", err)
 	}
 	repoIDs, err := env.RepoIDs(1, org.NumRepos)
 	if err != nil {
-		return fmt.Errorf("GetUserRepositories [%d]: %v", userID, err)
+		return fmt.Errorf("GetUserRepositories [%d]: %w", userID, err)
 	}
 	for _, repoID := range repoIDs {
 		if err = repo_model.WatchRepo(ctx, userID, repoID, false); err != nil {

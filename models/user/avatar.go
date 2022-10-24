@@ -35,7 +35,7 @@ func GenerateRandomAvatar(ctx context.Context, u *User) error {
 
 	img, err := avatar.RandomImage([]byte(seed))
 	if err != nil {
-		return fmt.Errorf("RandomImage: %v", err)
+		return fmt.Errorf("RandomImage: %w", err)
 	}
 
 	u.Avatar = avatars.HashEmail(seed)
@@ -47,7 +47,7 @@ func GenerateRandomAvatar(ctx context.Context, u *User) error {
 		}
 		return err
 	}); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %v", u.CustomAvatarRelativePath(), err)
+		return fmt.Errorf("Failed to create dir %s: %w", u.CustomAvatarRelativePath(), err)
 	}
 
 	if _, err := db.GetEngine(ctx).ID(u.ID).Cols("avatar").Update(u); err != nil {
