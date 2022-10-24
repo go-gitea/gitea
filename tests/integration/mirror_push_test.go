@@ -43,7 +43,7 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	})
 	assert.NoError(t, err)
 
-	ctx := NewAPITestContext(t, user.LowerName, srcRepo.Name)
+	ctx := NewTestContext(t, user.LowerName, srcRepo.Name)
 
 	doCreatePushMirror(ctx, fmt.Sprintf("%s%s/%s", u.String(), url.PathEscape(ctx.Username), url.PathEscape(mirrorRepo.Name)), user.LowerName, userPassword)(t)
 
@@ -77,7 +77,7 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	assert.Len(t, mirrors, 0)
 }
 
-func doCreatePushMirror(ctx APITestContext, address, username, password string) func(t *testing.T) {
+func doCreatePushMirror(ctx *TestContext, address, username, password string) func(t *testing.T) {
 	return func(t *testing.T) {
 		csrf := GetCSRF(t, ctx.Session, fmt.Sprintf("/%s/%s/settings", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)))
 
@@ -97,7 +97,7 @@ func doCreatePushMirror(ctx APITestContext, address, username, password string) 
 	}
 }
 
-func doRemovePushMirror(ctx APITestContext, address, username, password string, pushMirrorID int) func(t *testing.T) {
+func doRemovePushMirror(ctx *TestContext, address, username, password string, pushMirrorID int) func(t *testing.T) {
 	return func(t *testing.T) {
 		csrf := GetCSRF(t, ctx.Session, fmt.Sprintf("/%s/%s/settings", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)))
 
@@ -110,7 +110,7 @@ func doRemovePushMirror(ctx APITestContext, address, username, password string, 
 			"push_mirror_password": password,
 			"push_mirror_interval": "0",
 		})
-		ctx.Session.MakeRequest(t, req, http.StatusSeeOther)
+		ctx.MakeRequest(t, req, http.StatusSeeOther)
 
 		flashCookie := ctx.Session.GetCookie("macaron_flash")
 		assert.NotNil(t, flashCookie)

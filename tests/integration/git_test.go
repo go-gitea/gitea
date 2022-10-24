@@ -73,18 +73,18 @@ func testGit(t *testing.T, u *url.URL) {
 
 		little, big := standardCommitAndPushTest(t, dstPath)
 		littleLFS, bigLFS := lfsCommitAndPushTest(t, dstPath)
-		rawTest(t, &httpContext, little, big, littleLFS, bigLFS)
-		mediaTest(t, &httpContext, little, big, littleLFS, bigLFS)
+		rawTest(t, httpContext, little, big, littleLFS, bigLFS)
+		mediaTest(t, httpContext, little, big, littleLFS, bigLFS)
 
-		t.Run("CreateAgitFlowPull", doCreateAgitFlowPull(dstPath, &httpContext, "master", "test/head"))
-		t.Run("BranchProtectMerge", doBranchProtectPRMerge(&httpContext, dstPath))
-		t.Run("AutoMerge", doAutoPRMerge(&httpContext, dstPath))
+		t.Run("CreateAgitFlowPull", doCreateAgitFlowPull(dstPath, httpContext, "master", "test/head"))
+		t.Run("BranchProtectMerge", doBranchProtectPRMerge(httpContext, dstPath))
+		t.Run("AutoMerge", doAutoPRMerge(httpContext, dstPath))
 		t.Run("CreatePRAndSetManuallyMerged", doCreatePRAndSetManuallyMerged(httpContext, httpContext, dstPath, "master", "test-manually-merge"))
 		t.Run("MergeFork", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 			t.Run("CreatePRAndMerge", doMergeFork(httpContext, forkedUserCtx, "master", httpContext.Username+":master"))
-			rawTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
-			mediaTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
+			rawTest(t, forkedUserCtx, little, big, littleLFS, bigLFS)
+			mediaTest(t, forkedUserCtx, little, big, littleLFS, bigLFS)
 		})
 
 		t.Run("PushCreate", doPushCreate(httpContext, u))
@@ -114,16 +114,16 @@ func testGit(t *testing.T, u *url.URL) {
 
 			little, big := standardCommitAndPushTest(t, dstPath)
 			littleLFS, bigLFS := lfsCommitAndPushTest(t, dstPath)
-			rawTest(t, &sshContext, little, big, littleLFS, bigLFS)
-			mediaTest(t, &sshContext, little, big, littleLFS, bigLFS)
+			rawTest(t, sshContext, little, big, littleLFS, bigLFS)
+			mediaTest(t, sshContext, little, big, littleLFS, bigLFS)
 
-			t.Run("CreateAgitFlowPull", doCreateAgitFlowPull(dstPath, &sshContext, "master", "test/head2"))
-			t.Run("BranchProtectMerge", doBranchProtectPRMerge(&sshContext, dstPath))
+			t.Run("CreateAgitFlowPull", doCreateAgitFlowPull(dstPath, sshContext, "master", "test/head2"))
+			t.Run("BranchProtectMerge", doBranchProtectPRMerge(sshContext, dstPath))
 			t.Run("MergeFork", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 				t.Run("CreatePRAndMerge", doMergeFork(sshContext, forkedUserCtx, "master", sshContext.Username+":master"))
-				rawTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
-				mediaTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
+				rawTest(t, forkedUserCtx, little, big, littleLFS, bigLFS)
+				mediaTest(t, forkedUserCtx, little, big, littleLFS, bigLFS)
 			})
 
 			t.Run("PushCreate", doPushCreate(sshContext, sshURL))
@@ -357,8 +357,8 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 		t.Run("CreateBranchProtected", doGitCreateBranch(dstPath, "protected"))
 		t.Run("PushProtectedBranch", doGitPushTestRepository(dstPath, "origin", "protected"))
 
-		ctx := NewAPITestContext(t, baseCtx.Username, baseCtx.Reponame)
-		t.Run("ProtectProtectedBranchNoWhitelist", doProtectBranch(ctx, "protected", "", ""))
+		webCtx := NewTestContext(t, baseCtx.Username, baseCtx.Reponame)
+		t.Run("ProtectProtectedBranchNoWhitelist", doProtectBranch(webCtx, "protected", "", ""))
 		t.Run("GenerateCommit", func(t *testing.T) {
 			_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-")
 			assert.NoError(t, err)
@@ -368,7 +368,7 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 		var pr api.PullRequest
 		var err error
 		t.Run("CreatePullRequest", func(t *testing.T) {
-			pr, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, "protected", "unprotected")(t)
+			pr, err = doAPICreatePullRequest(baseCtx, baseCtx.Username, baseCtx.Reponame, "protected", "unprotected")(t)
 			assert.NoError(t, err)
 		})
 		t.Run("GenerateCommit", func(t *testing.T) {
@@ -378,21 +378,21 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 		t.Run("PushToUnprotectedBranch", doGitPushTestRepository(dstPath, "origin", "protected:unprotected-2"))
 		var pr2 api.PullRequest
 		t.Run("CreatePullRequest", func(t *testing.T) {
-			pr2, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, "unprotected", "unprotected-2")(t)
+			pr2, err = doAPICreatePullRequest(baseCtx, baseCtx.Username, baseCtx.Reponame, "unprotected", "unprotected-2")(t)
 			assert.NoError(t, err)
 		})
-		t.Run("MergePR2", doAPIMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr2.Index))
-		t.Run("MergePR", doAPIMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+		t.Run("MergePR2", doAPIMergePullRequest(baseCtx, baseCtx.Username, baseCtx.Reponame, pr2.Index))
+		t.Run("MergePR", doAPIMergePullRequest(baseCtx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 		t.Run("PullProtected", doGitPull(dstPath, "origin", "protected"))
 
-		t.Run("ProtectProtectedBranchUnprotectedFilePaths", doProtectBranch(ctx, "protected", "", "unprotected-file-*"))
+		t.Run("ProtectProtectedBranchUnprotectedFilePaths", doProtectBranch(webCtx, "protected", "", "unprotected-file-*"))
 		t.Run("GenerateCommit", func(t *testing.T) {
 			_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "unprotected-file-")
 			assert.NoError(t, err)
 		})
 		t.Run("PushUnprotectedFilesToProtectedBranch", doGitPushTestRepository(dstPath, "origin", "protected"))
 
-		t.Run("ProtectProtectedBranchWhitelist", doProtectBranch(ctx, "protected", baseCtx.Username, ""))
+		t.Run("ProtectProtectedBranchWhitelist", doProtectBranch(webCtx, "protected", baseCtx.Username, ""))
 
 		t.Run("CheckoutMaster", doGitCheckoutBranch(dstPath, "master"))
 		t.Run("CreateBranchForced", doGitCreateBranch(dstPath, "toforce"))
@@ -407,7 +407,7 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 	}
 }
 
-func doProtectBranch(ctx APITestContext, branch, userToWhitelist, unprotectedFilePatterns string) func(t *testing.T) {
+func doProtectBranch(ctx *TestContext, branch, userToWhitelist, unprotectedFilePatterns string) func(t *testing.T) {
 	// We are going to just use the owner to set the protection.
 	return func(t *testing.T) {
 		csrf := GetCSRF(t, ctx.Session, fmt.Sprintf("/%s/%s/settings/branches", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)))
@@ -441,7 +441,7 @@ func doProtectBranch(ctx APITestContext, branch, userToWhitelist, unprotectedFil
 	}
 }
 
-func doMergeFork(ctx, baseCtx APITestContext, baseBranch, headBranch string) func(t *testing.T) {
+func doMergeFork(baseCtx, forkedCtx *APITestContext, baseBranch, headBranch string) func(t *testing.T) {
 	return func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 		var pr api.PullRequest
@@ -449,47 +449,50 @@ func doMergeFork(ctx, baseCtx APITestContext, baseBranch, headBranch string) fun
 
 		// Create a test pullrequest
 		t.Run("CreatePullRequest", func(t *testing.T) {
-			pr, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, baseBranch, headBranch)(t)
+			pr, err = doAPICreatePullRequest(baseCtx, forkedCtx.Username, forkedCtx.Reponame, baseBranch, headBranch)(t)
 			assert.NoError(t, err)
 		})
 
 		// Ensure the PR page works
-		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
+		forkedWebCtx := forkedCtx.CreateTestContext(t)
+		t.Run("EnsureCanSeePull", doEnsureCanSeePull(forkedWebCtx, pr))
 
 		// Then get the diff string
 		var diffHash string
 		var diffLength int
 		t.Run("GetDiff", func(t *testing.T) {
-			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
-			resp := ctx.Session.MakeRequestNilResponseHashSumRecorder(t, req, http.StatusOK)
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(forkedWebCtx.Username), url.PathEscape(forkedWebCtx.Reponame), pr.Index))
+			resp := forkedWebCtx.Session.MakeRequestNilResponseHashSumRecorder(t, req, http.StatusOK)
 			diffHash = string(resp.Hash.Sum(nil))
 			diffLength = resp.Length
 		})
 
+		baseWebCtx := baseCtx.CreateTestContext(t)
+
 		// Now: Merge the PR & make sure that doesn't break the PR page or change its diff
 		t.Run("MergePR", doAPIMergePullRequest(baseCtx, baseCtx.Username, baseCtx.Reponame, pr.Index))
-		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
+		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseWebCtx, pr))
 		t.Run("CheckPR", func(t *testing.T) {
 			oldMergeBase := pr.MergeBase
 			pr2, err := doAPIGetPullRequest(baseCtx, baseCtx.Username, baseCtx.Reponame, pr.Index)(t)
 			assert.NoError(t, err)
 			assert.Equal(t, oldMergeBase, pr2.MergeBase)
 		})
-		t.Run("EnsurDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffHash, diffLength))
+		t.Run("EnsurDiffNoChange", doEnsureDiffNoChange(baseWebCtx, pr, diffHash, diffLength))
 
 		// Then: Delete the head branch & make sure that doesn't break the PR page or change its diff
-		t.Run("DeleteHeadBranch", doBranchDelete(baseCtx, baseCtx.Username, baseCtx.Reponame, headBranch))
-		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
-		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffHash, diffLength))
+		t.Run("DeleteHeadBranch", doBranchDelete(baseWebCtx, baseCtx.Username, baseCtx.Reponame, headBranch))
+		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseWebCtx, pr))
+		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseWebCtx, pr, diffHash, diffLength))
 
 		// Delete the head repository & make sure that doesn't break the PR page or change its diff
-		t.Run("DeleteHeadRepository", doAPIDeleteRepository(ctx))
-		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
-		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffHash, diffLength))
+		t.Run("DeleteHeadRepository", doAPIDeleteRepository(baseCtx))
+		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseWebCtx, pr))
+		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseWebCtx, pr, diffHash, diffLength))
 	}
 }
 
-func doCreatePRAndSetManuallyMerged(ctx, baseCtx APITestContext, dstPath, baseBranch, headBranch string) func(t *testing.T) {
+func doCreatePRAndSetManuallyMerged(ctx, baseCtx *APITestContext, dstPath, baseBranch, headBranch string) func(t *testing.T) {
 	return func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 		var (
@@ -518,7 +521,7 @@ func doCreatePRAndSetManuallyMerged(ctx, baseCtx APITestContext, dstPath, baseBr
 	}
 }
 
-func doEnsureCanSeePull(ctx APITestContext, pr api.PullRequest) func(t *testing.T) {
+func doEnsureCanSeePull(ctx *TestContext, pr api.PullRequest) func(t *testing.T) {
 	return func(t *testing.T) {
 		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), pr.Index))
 		ctx.Session.MakeRequest(t, req, http.StatusOK)
@@ -529,7 +532,7 @@ func doEnsureCanSeePull(ctx APITestContext, pr api.PullRequest) func(t *testing.
 	}
 }
 
-func doEnsureDiffNoChange(ctx APITestContext, pr api.PullRequest, diffHash string, diffLength int) func(t *testing.T) {
+func doEnsureDiffNoChange(ctx *TestContext, pr api.PullRequest, diffHash string, diffLength int) func(t *testing.T) {
 	return func(t *testing.T) {
 		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), pr.Index))
 		resp := ctx.Session.MakeRequestNilResponseHashSumRecorder(t, req, http.StatusOK)
@@ -541,7 +544,7 @@ func doEnsureDiffNoChange(ctx APITestContext, pr api.PullRequest, diffHash strin
 	}
 }
 
-func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
+func doPushCreate(ctx *APITestContext, u *url.URL) func(t *testing.T) {
 	return func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
@@ -586,22 +589,20 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 	}
 }
 
-func doBranchDelete(ctx APITestContext, owner, repo, branch string) func(*testing.T) {
+func doBranchDelete(ctx *TestContext, owner, repo, branch string) func(*testing.T) {
 	return func(t *testing.T) {
 		csrf := GetCSRF(t, ctx.Session, fmt.Sprintf("/%s/%s/branches", url.PathEscape(owner), url.PathEscape(repo)))
 
 		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/branches/delete?name=%s", url.PathEscape(owner), url.PathEscape(repo), url.QueryEscape(branch)), map[string]string{
 			"_csrf": csrf,
 		})
-		ctx.Session.MakeRequest(t, req, http.StatusOK)
+		ctx.MakeRequest(t, req, http.StatusOK)
 	}
 }
 
 func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 	return func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-
-		ctx := NewAPITestContext(t, baseCtx.Username, baseCtx.Reponame)
 
 		t.Run("CheckoutProtected", doGitCheckoutBranch(dstPath, "protected"))
 		t.Run("PullProtected", doGitPull(dstPath, "origin", "protected"))
@@ -613,13 +614,14 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 		var pr api.PullRequest
 		var err error
 		t.Run("CreatePullRequest", func(t *testing.T) {
-			pr, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, "protected", "unprotected3")(t)
+			pr, err = doAPICreatePullRequest(baseCtx, baseCtx.Username, baseCtx.Reponame, "protected", "unprotected3")(t)
 			assert.NoError(t, err)
 		})
 
 		// Request repository commits page
+		webCtx := baseCtx.CreateTestContext(t)
 		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/commits", baseCtx.Username, baseCtx.Reponame, pr.Index))
-		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+		resp := webCtx.MakeRequest(t, req, http.StatusOK)
 		doc := NewHTMLParser(t, resp.Body)
 
 		// Get first commit URL
@@ -630,50 +632,50 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 		commitID := path.Base(commitURL)
 
 		// Call API to add Pending status for commit
-		t.Run("CreateStatus", doAPICreateCommitStatus(ctx, commitID, api.CommitStatusPending))
+		t.Run("CreateStatus", doAPICreateCommitStatus(baseCtx, commitID, api.CommitStatusPending))
 
 		// Cancel not existing auto merge
-		ctx.ExpectedCode = http.StatusNotFound
-		t.Run("CancelAutoMergePR", doAPICancelAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+		baseCtx.ExpectedCode = http.StatusNotFound
+		t.Run("CancelAutoMergePR", doAPICancelAutoMergePullRequest(baseCtx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 
 		// Add auto merge request
-		ctx.ExpectedCode = http.StatusCreated
-		t.Run("AutoMergePR", doAPIAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+		baseCtx.ExpectedCode = http.StatusCreated
+		t.Run("AutoMergePR", doAPIAutoMergePullRequest(baseCtx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 
 		// Can not create schedule twice
-		ctx.ExpectedCode = http.StatusConflict
-		t.Run("AutoMergePRTwice", doAPIAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+		baseCtx.ExpectedCode = http.StatusConflict
+		t.Run("AutoMergePRTwice", doAPIAutoMergePullRequest(baseCtx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 
 		// Cancel auto merge request
-		ctx.ExpectedCode = http.StatusNoContent
-		t.Run("CancelAutoMergePR", doAPICancelAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+		baseCtx.ExpectedCode = http.StatusNoContent
+		t.Run("CancelAutoMergePR", doAPICancelAutoMergePullRequest(baseCtx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 
 		// Add auto merge request
-		ctx.ExpectedCode = http.StatusCreated
-		t.Run("AutoMergePR", doAPIAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+		baseCtx.ExpectedCode = http.StatusCreated
+		t.Run("AutoMergePR", doAPIAutoMergePullRequest(baseCtx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 
 		// Check pr status
-		ctx.ExpectedCode = 0
-		pr, err = doAPIGetPullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index)(t)
+		baseCtx.ExpectedCode = 0
+		pr, err = doAPIGetPullRequest(baseCtx, baseCtx.Username, baseCtx.Reponame, pr.Index)(t)
 		assert.NoError(t, err)
 		assert.False(t, pr.HasMerged)
 
 		// Call API to add Failure status for commit
-		t.Run("CreateStatus", doAPICreateCommitStatus(ctx, commitID, api.CommitStatusFailure))
+		t.Run("CreateStatus", doAPICreateCommitStatus(baseCtx, commitID, api.CommitStatusFailure))
 
 		// Check pr status
-		pr, err = doAPIGetPullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index)(t)
+		pr, err = doAPIGetPullRequest(baseCtx, baseCtx.Username, baseCtx.Reponame, pr.Index)(t)
 		assert.NoError(t, err)
 		assert.False(t, pr.HasMerged)
 
 		// Call API to add Success status for commit
-		t.Run("CreateStatus", doAPICreateCommitStatus(ctx, commitID, api.CommitStatusSuccess))
+		t.Run("CreateStatus", doAPICreateCommitStatus(baseCtx, commitID, api.CommitStatusSuccess))
 
 		// wait to let gitea merge stuff
 		time.Sleep(time.Second)
 
 		// test pr status
-		pr, err = doAPIGetPullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index)(t)
+		pr, err = doAPIGetPullRequest(baseCtx, baseCtx.Username, baseCtx.Reponame, pr.Index)(t)
 		assert.NoError(t, err)
 		assert.True(t, pr.HasMerged)
 	}
@@ -747,7 +749,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			if !assert.NotEmpty(t, pr1) {
 				return
 			}
-			prMsg, err := doAPIGetPullRequest(*ctx, ctx.Username, ctx.Reponame, pr1.Index)(t)
+			prMsg, err := doAPIGetPullRequest(ctx, ctx.Username, ctx.Reponame, pr1.Index)(t)
 			if !assert.NoError(t, err) {
 				return
 			}
@@ -769,7 +771,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			if !assert.NotEmpty(t, pr2) {
 				return
 			}
-			prMsg, err = doAPIGetPullRequest(*ctx, ctx.Username, ctx.Reponame, pr2.Index)(t)
+			prMsg, err = doAPIGetPullRequest(ctx, ctx.Username, ctx.Reponame, pr2.Index)(t)
 			if !assert.NoError(t, err) {
 				return
 			}
@@ -814,7 +816,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 				return
 			}
 			unittest.AssertCount(t, &issues_model.PullRequest{}, pullNum+2)
-			prMsg, err := doAPIGetPullRequest(*ctx, ctx.Username, ctx.Reponame, pr1.Index)(t)
+			prMsg, err := doAPIGetPullRequest(ctx, ctx.Username, ctx.Reponame, pr1.Index)(t)
 			if !assert.NoError(t, err) {
 				return
 			}
@@ -826,14 +828,14 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 				return
 			}
 			unittest.AssertCount(t, &issues_model.PullRequest{}, pullNum+2)
-			prMsg, err = doAPIGetPullRequest(*ctx, ctx.Username, ctx.Reponame, pr2.Index)(t)
+			prMsg, err = doAPIGetPullRequest(ctx, ctx.Username, ctx.Reponame, pr2.Index)(t)
 			if !assert.NoError(t, err) {
 				return
 			}
 			assert.Equal(t, false, prMsg.HasMerged)
 			assert.Equal(t, commit, prMsg.Head.Sha)
 		})
-		t.Run("Merge", doAPIMergePullRequest(*ctx, ctx.Username, ctx.Reponame, pr1.Index))
+		t.Run("Merge", doAPIMergePullRequest(ctx, ctx.Username, ctx.Reponame, pr1.Index))
 		t.Run("CheckoutMasterAgain", doGitCheckoutBranch(dstPath, "master"))
 	}
 }

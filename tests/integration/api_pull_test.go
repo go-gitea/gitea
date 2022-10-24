@@ -31,7 +31,7 @@ func TestAPIViewPulls(t *testing.T) {
 	ctx := NewAPITestContext(t, "user2", repo.Name)
 
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls?state=all&token="+ctx.Token, owner.Name, repo.Name)
-	resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+	resp := ctx.MakeRequest(t, req, http.StatusOK)
 
 	var pulls []*api.PullRequest
 	DecodeJSON(t, resp, &pulls)
@@ -40,7 +40,7 @@ func TestAPIViewPulls(t *testing.T) {
 
 	pull := pulls[0]
 	if assert.EqualValues(t, 5, pull.ID) {
-		resp = ctx.Session.MakeRequest(t, NewRequest(t, "GET", pull.DiffURL), http.StatusOK)
+		resp = ctx.MakeRequest(t, NewRequest(t, "GET", pull.DiffURL), http.StatusOK)
 		_, err := io.ReadAll(resp.Body)
 		assert.NoError(t, err)
 		// TODO: use diff to generate stats to test against
@@ -205,7 +205,7 @@ func TestAPIEditPull(t *testing.T) {
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
-func doAPIGetPullFiles(ctx APITestContext, pr *api.PullRequest, callback func(*testing.T, []*api.ChangedFile)) func(*testing.T) {
+func doAPIGetPullFiles(ctx *APITestContext, pr *api.PullRequest, callback func(*testing.T, []*api.ChangedFile)) func(*testing.T) {
 	return func(t *testing.T) {
 		url := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/files?token=%s", ctx.Username, ctx.Reponame, pr.Index, ctx.Token)
 
@@ -213,7 +213,7 @@ func doAPIGetPullFiles(ctx APITestContext, pr *api.PullRequest, callback func(*t
 		if ctx.ExpectedCode == 0 {
 			ctx.ExpectedCode = http.StatusOK
 		}
-		resp := ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+		resp := ctx.MakeRequest(t, req, ctx.ExpectedCode)
 
 		files := make([]*api.ChangedFile, 0, 1)
 		DecodeJSON(t, resp, &files)

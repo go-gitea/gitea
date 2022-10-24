@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func doCheckRepositoryEmptyStatus(ctx APITestContext, isEmpty bool) func(*testing.T) {
+func doCheckRepositoryEmptyStatus(ctx *APITestContext, isEmpty bool) func(*testing.T) {
 	return doAPIGetRepository(ctx, func(t *testing.T, repository api.Repository) {
 		assert.Equal(t, isEmpty, repository.Empty)
 	})

@@ -11,13 +11,11 @@ import (
 	"hash/fnv"
 	"io"
 	"net/http"
-	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -137,148 +135,6 @@ func TestMain(m *testing.M) {
 	os.Exit(exitCode)
 }
 
-type TestSession struct {
-	jar http.CookieJar
-}
-
-func (s *TestSession) GetCookie(name string) *http.Cookie {
-	baseURL, err := url.Parse(setting.AppURL)
-	if err != nil {
-		return nil
-	}
-
-	for _, c := range s.jar.Cookies(baseURL) {
-		if c.Name == name {
-			return c
-		}
-	}
-	return nil
-}
-
-func (s *TestSession) MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.ResponseRecorder {
-	t.Helper()
-	baseURL, err := url.Parse(setting.AppURL)
-	assert.NoError(t, err)
-	for _, c := range s.jar.Cookies(baseURL) {
-		req.AddCookie(c)
-	}
-	resp := MakeRequest(t, req, expectedStatus)
-
-	ch := http.Header{}
-	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
-	cr := http.Request{Header: ch}
-	s.jar.SetCookies(baseURL, cr.Cookies())
-
-	return resp
-}
-
-func (s *TestSession) MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseRecorder {
-	t.Helper()
-	baseURL, err := url.Parse(setting.AppURL)
-	assert.NoError(t, err)
-	for _, c := range s.jar.Cookies(baseURL) {
-		req.AddCookie(c)
-	}
-	resp := MakeRequestNilResponseRecorder(t, req, expectedStatus)
-
-	ch := http.Header{}
-	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
-	cr := http.Request{Header: ch}
-	s.jar.SetCookies(baseURL, cr.Cookies())
-
-	return resp
-}
-
-func (s *TestSession) MakeRequestNilResponseHashSumRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseHashSumRecorder {
-	t.Helper()
-	baseURL, err := url.Parse(setting.AppURL)
-	assert.NoError(t, err)
-	for _, c := range s.jar.Cookies(baseURL) {
-		req.AddCookie(c)
-	}
-	resp := MakeRequestNilResponseHashSumRecorder(t, req, expectedStatus)
-
-	ch := http.Header{}
-	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
-	cr := http.Request{Header: ch}
-	s.jar.SetCookies(baseURL, cr.Cookies())
-
-	return resp
-}
-
-const userPassword = "password"
-
-var loginSessionCache = make(map[string]*TestSession, 10)
-
-func emptyTestSession(t testing.TB) *TestSession {
-	t.Helper()
-	jar, err := cookiejar.New(nil)
-	assert.NoError(t, err)
-
-	return &TestSession{jar: jar}
-}
-
-func getUserToken(t testing.TB, userName string) string {
-	return getTokenForLoggedInUser(t, loginUser(t, userName))
-}
-
-func loginUser(t testing.TB, userName string) *TestSession {
-	t.Helper()
-	if session, ok := loginSessionCache[userName]; ok {
-		return session
-	}
-	session := loginUserWithPassword(t, userName, userPassword)
-	loginSessionCache[userName] = session
-	return session
-}
-
-func loginUserWithPassword(t testing.TB, userName, password string) *TestSession {
-	t.Helper()
-	req := NewRequest(t, "GET", "/user/login")
-	resp := MakeRequest(t, req, http.StatusOK)
-
-	doc := NewHTMLParser(t, resp.Body)
-	req = NewRequestWithValues(t, "POST", "/user/login", map[string]string{
-		"_csrf":     doc.GetCSRF(),
-		"user_name": userName,
-		"password":  password,
-	})
-	resp = MakeRequest(t, req, http.StatusSeeOther)
-
-	ch := http.Header{}
-	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
-	cr := http.Request{Header: ch}
-
-	session := emptyTestSession(t)
-
-	baseURL, err := url.Parse(setting.AppURL)
-	assert.NoError(t, err)
-	session.jar.SetCookies(baseURL, cr.Cookies())
-
-	return session
-}
-
-// token has to be unique this counter take care of
-var tokenCounter int64
-
-func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
-	t.Helper()
-	req := NewRequest(t, "GET", "/user/settings/applications")
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	doc := NewHTMLParser(t, resp.Body)
-	req = NewRequestWithValues(t, "POST", "/user/settings/applications", map[string]string{
-		"_csrf": doc.GetCSRF(),
-		"name":  fmt.Sprintf("api-testing-token-%d", atomic.AddInt64(&tokenCounter, 1)),
-	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
-	req = NewRequest(t, "GET", "/user/settings/applications")
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc := NewHTMLParser(t, resp.Body)
-	token := htmlDoc.doc.Find(".ui.info p").Text()
-	assert.NotEmpty(t, token)
-	return token
-}
-
 func NewRequest(t testing.TB, method, urlStr string) *http.Request {
 	t.Helper()
 	return NewRequestWithBody(t, method, urlStr, nil)
@@ -396,12 +252,4 @@ func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v interface{}) {
 
 	decoder := json.NewDecoder(resp.Body)
 	assert.NoError(t, decoder.Decode(v))
-}
-
-func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
-	t.Helper()
-	req := NewRequest(t, "GET", urlStr)
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	doc := NewHTMLParser(t, resp.Body)
-	return doc.GetCSRF()
 }

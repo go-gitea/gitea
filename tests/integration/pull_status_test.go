@@ -87,7 +87,7 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 	})
 }
 
-func doAPICreateCommitStatus(ctx APITestContext, commitID string, status api.CommitStatusState) func(*testing.T) {
+func doAPICreateCommitStatus(ctx *APITestContext, commitID string, status api.CommitStatusState) func(*testing.T) {
 	return func(t *testing.T) {
 		req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/statuses/%s?token=%s", ctx.Username, ctx.Reponame, commitID, ctx.Token),
 			api.CreateStatusOption{
@@ -98,10 +98,10 @@ func doAPICreateCommitStatus(ctx APITestContext, commitID string, status api.Com
 			},
 		)
 		if ctx.ExpectedCode != 0 {
-			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			ctx.MakeRequest(t, req, ctx.ExpectedCode)
 			return
 		}
-		ctx.Session.MakeRequest(t, req, http.StatusCreated)
+		ctx.MakeRequest(t, req, http.StatusCreated)
 	}
 }
 

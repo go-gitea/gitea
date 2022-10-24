@@ -143,18 +143,16 @@ func testAPICreateBranches(t *testing.T, giteaURL *url.URL) {
 	}
 	for _, test := range testCases {
 		defer tests.ResetFixtures(t)
-		session := ctx.Session
-		testAPICreateBranch(t, session, "user2", "my-noo-repo", test.OldBranch, test.NewBranch, test.ExpectedHTTPStatus)
+		testAPICreateBranch(t, ctx, "user2", "my-noo-repo", test.OldBranch, test.NewBranch, test.ExpectedHTTPStatus)
 	}
 }
 
-func testAPICreateBranch(t testing.TB, session *TestSession, user, repo, oldBranch, newBranch string, status int) bool {
-	token := getTokenForLoggedInUser(t, session)
-	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/"+user+"/"+repo+"/branches?token="+token, &api.CreateBranchRepoOption{
+func testAPICreateBranch(t testing.TB, ctx *APITestContext, user, repo, oldBranch, newBranch string, status int) bool {
+	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/"+user+"/"+repo+"/branches?token="+ctx.Token, &api.CreateBranchRepoOption{
 		BranchName:    newBranch,
 		OldBranchName: oldBranch,
 	})
-	resp := MakeRequest(t, req, status)
+	resp := ctx.MakeRequest(t, req, status)
 
 	var branch api.Branch
 	DecodeJSON(t, resp, &branch)
