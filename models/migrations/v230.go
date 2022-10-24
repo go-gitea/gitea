@@ -5,18 +5,14 @@
 package migrations
 
 import (
-	"fmt"
-
 	"xorm.io/xorm"
 )
 
-func addTagComment(x *xorm.Engine) error {
-	type Comment struct {
-		Tag string
+// addConfidentialColumnToOAuth2ApplicationTable: add ConfidentialClient column, setting existing rows to true
+func addConfidentialClientColumnToOAuth2ApplicationTable(x *xorm.Engine) error {
+	type OAuth2Application struct {
+		ConfidentialClient bool `xorm:"NOT NULL DEFAULT TRUE"`
 	}
 
-	if err := x.Sync2(new(Comment)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
-	}
-	return nil
+	return x.Sync(new(OAuth2Application))
 }

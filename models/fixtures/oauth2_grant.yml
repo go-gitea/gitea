@@ -21,3 +21,11 @@
   scope: "openid profile email"
   created_unix: 1546869730
   updated_unix: 1546869730
+
+- id: 4
+  user_id: 99
+  application_id: 2
+  counter: 1
+  scope: "whatever"
+  created_unix: 1546869730
+  updated_unix: 1546869730

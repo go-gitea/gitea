@@ -355,7 +355,7 @@ func (list ReactionList) LoadUsers(ctx context.Context, repo *repo_model.Reposit
 		In("id", userIDs).
 		Find(&userMaps)
 	if err != nil {
-		return nil, fmt.Errorf("find user: %v", err)
+		return nil, fmt.Errorf("find user: %w", err)
 	}
 
 	for _, reaction := range list {

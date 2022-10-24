@@ -26,7 +26,7 @@ func getPublicKeyFromResponse(b []byte, keyID *url.URL) (p crypto.PublicKey, err
 	person := ap.PersonNew(ap.IRI(keyID.String()))
 	err = person.UnmarshalJSON(b)
 	if err != nil {
-		err = fmt.Errorf("ActivityStreams type cannot be converted to one known to have publicKey property: %v", err)
+		err = fmt.Errorf("ActivityStreams type cannot be converted to one known to have publicKey property: %w", err)
 		return
 	}
 	pubKey := person.PublicKey

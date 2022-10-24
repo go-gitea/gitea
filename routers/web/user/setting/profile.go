@@ -162,7 +162,7 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 	if form.Avatar != nil && form.Avatar.Filename != "" {
 		fr, err := form.Avatar.Open()
 		if err != nil {
-			return fmt.Errorf("Avatar.Open: %v", err)
+			return fmt.Errorf("Avatar.Open: %w", err)
 		}
 		defer fr.Close()
 
@@ -172,7 +172,7 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 
 		data, err := io.ReadAll(fr)
 		if err != nil {
-			return fmt.Errorf("io.ReadAll: %v", err)
+			return fmt.Errorf("io.ReadAll: %w", err)
 		}
 
 		st := typesniffer.DetectContentType(data)
@@ -180,7 +180,7 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 			return errors.New(ctx.Tr("settings.uploaded_avatar_not_a_image"))
 		}
 		if err = user_service.UploadAvatar(ctxUser, data); err != nil {
-			return fmt.Errorf("UploadAvatar: %v", err)
+			return fmt.Errorf("UploadAvatar: %w", err)
 		}
 	} else if ctxUser.UseCustomAvatar && ctxUser.Avatar == "" {
 		// No avatar is uploaded but setting has been changed to enable,
@@ -191,7 +191,7 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 	}
 
 	if err := user_model.UpdateUserCols(ctx, ctxUser, "avatar", "avatar_email", "use_custom_avatar"); err != nil {
-		return fmt.Errorf("UpdateUser: %v", err)
+		return fmt.Errorf("UpdateUser: %w", err)
 	}
 
 	return nil
