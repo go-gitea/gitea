@@ -11,9 +11,11 @@ import (
 	"time"
 
 	bots_model "code.gitea.io/gitea/models/bots"
+	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/bots"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	secret_service "code.gitea.io/gitea/services/secrets"
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 	"gitea.com/gitea/proto-go/runner/v1/runnerv1connect"
 
@@ -115,7 +117,7 @@ func (s *Service) FetchTask(
 	runner := GetRunner(ctx)
 
 	var task *runnerv1.Task
-	if t, ok, err := s.pickTask(ctx, runner); err != nil {
+	if t, ok, err := pickTask(ctx, runner); err != nil {
 		log.Error("pick task failed: %v", err)
 		return nil, status.Errorf(codes.Internal, "pick task: %v", err)
 	} else if ok {
@@ -210,7 +212,7 @@ func (s *Service) UpdateLog(
 	return res, nil
 }
 
-func (s *Service) pickTask(ctx context.Context, runner *bots_model.Runner) (*runnerv1.Task, bool, error) {
+func pickTask(ctx context.Context, runner *bots_model.Runner) (*runnerv1.Task, bool, error) {
 	t, ok, err := bots_model.CreateTaskForRunner(ctx, runner)
 	if err != nil {
 		return nil, false, fmt.Errorf("CreateTaskForRunner: %w", err)
@@ -246,7 +248,39 @@ func (s *Service) pickTask(ctx context.Context, runner *bots_model.Runner) (*run
 		Id:              t.ID,
 		WorkflowPayload: t.Job.WorkflowPayload,
 		Context:         taskContext,
-		Secrets:         nil, // TODO: query secrets
+		Secrets:         getSecretsOfTask(ctx, t),
 	}
 	return task, true, nil
+}
+
+func getSecretsOfTask(ctx context.Context, task *bots_model.Task) map[string]string {
+	// Returning an error is worse than returning empty secrets.
+
+	secrets := map[string]string{}
+
+	userSecrets, err := secret_service.FindUserSecrets(ctx, task.Job.Run.Repo.OwnerID)
+	if err != nil {
+		log.Error("find user secrets of %v: %v", task.Job.Run.Repo.OwnerID, err)
+		// go on
+	}
+	repoSecrets, err := secret_service.FindRepoSecrets(ctx, task.Job.Run.RepoID)
+	if err != nil {
+		log.Error("find repo secrets of %v: %v", task.Job.Run.RepoID, err)
+		// go on
+	}
+
+	// FIXME: Not sure if it's the exact meaning of secret.PullRequest
+	pullRequest := task.Job.Run.Event == webhook.HookEventPullRequest
+
+	for _, secret := range append(userSecrets, repoSecrets...) {
+		if !pullRequest || secret.PullRequest {
+			if v, err := secret_service.DecryptString(secret.Data); err != nil {
+				log.Error("decrypt secret %v %q: %v", secret.ID, secret.Name, err)
+				// go on
+			} else {
+				secrets[secret.Name] = v
+			}
+		}
+	}
+	return secrets
 }
