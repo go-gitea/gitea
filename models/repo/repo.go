@@ -765,20 +765,19 @@ func CountRepositories(ctx context.Context, opts CountRepositoryOptions) (int64,
 	return count, nil
 }
 
-// UpdateRepoIssueNumbers update repository's issue closed numbers
+// UpdateRepoIssueNumbers updates one of a repositories amount of (open|closed) (issues|PRs) with the current count 
 func UpdateRepoIssueNumbers(ctx context.Context, repoID int64, isPull, isClosed bool) error {
-	var field string
+	field := "num_"
 	if isClosed {
-		field = "num_closed_issues"
-		if isPull {
-			field = "num_closed_pulls"
+		field += "closed_"
+	}
+	if isPull {
+		field += "pulls"
+	} else {
+		field += "issues"
+	}
 		}
 	} else {
-		field = "num_issues"
-		if isPull {
-			field = "num_pulls"
-		}
-	}
 
 	var cond builder.Cond = builder.Eq{
 		"repo_id": repoID,
