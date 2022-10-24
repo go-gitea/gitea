@@ -48,6 +48,12 @@
   }
 }
 
+.add-comment .lines-num,
+.add-comment .lines-escape,
+.add-comment .lines-type-marker {
+  display: none;
+}
+
 .show-outdated,
 .hide-outdated {
   &:extend(.unselectable);
@@ -59,11 +65,13 @@
 }
 
 .comment-code-cloud {
-  padding: .5rem !important;
+  padding: .5rem 1rem !important;
   position: relative;
   margin: 0 auto;
+  max-width: 1000px;
 
   @media @mediaSm {
+    max-width: auto;
     padding: .75rem !important;
 
     .code-comment-buttons {
@@ -111,6 +119,10 @@
 
       .comment-content {
         margin-left: 0 !important;
+      }
+
+      .comment-container {
+        width: 100%;
       }
 
       &.code-comment {
