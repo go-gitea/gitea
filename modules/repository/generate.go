@@ -211,7 +211,7 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 	}
 
 	repoPath := repo.RepoPath()
-	if stdout, _, err := git.NewCommand(ctx, "remote", "add", "origin", repoPath).
+	if stdout, _, err := git.NewCommand(ctx, "remote", "add", "origin").AddDynamicArguments(repoPath).
 		SetDescription(fmt.Sprintf("generateRepoCommit (git remote add): %s to %s", templateRepoPath, tmpDir)).
 		RunStdString(&git.RunOpts{Dir: tmpDir, Env: env}); err != nil {
 		log.Error("Unable to add %v as remote origin to temporary repo to %s: stdout %s\nError: %v", repo, tmpDir, stdout, err)
