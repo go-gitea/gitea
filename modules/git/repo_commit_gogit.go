@@ -49,7 +49,7 @@ func (repo *Repository) ConvertToSHA1(commitID string) (SHA1, error) {
 		}
 	}
 
-	actualCommitID, _, err := NewCommand(repo.Ctx, "rev-parse", "--verify", commitID).RunStdString(&RunOpts{Dir: repo.Path})
+	actualCommitID, _, err := NewCommand(repo.Ctx, "rev-parse", "--verify").AddDynamicArguments(commitID).RunStdString(&RunOpts{Dir: repo.Path})
 	if err != nil {
 		if strings.Contains(err.Error(), "unknown revision or path") ||
 			strings.Contains(err.Error(), "fatal: Needed a single revision") {

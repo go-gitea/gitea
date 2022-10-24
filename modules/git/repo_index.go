@@ -18,7 +18,7 @@ import (
 // ReadTreeToIndex reads a treeish to the index
 func (repo *Repository) ReadTreeToIndex(treeish string, indexFilename ...string) error {
 	if len(treeish) != 40 {
-		res, _, err := NewCommand(repo.Ctx, "rev-parse", "--verify", treeish).RunStdString(&RunOpts{Dir: repo.Path})
+		res, _, err := NewCommand(repo.Ctx, "rev-parse", "--verify").AddDynamicArguments(treeish).RunStdString(&RunOpts{Dir: repo.Path})
 		if err != nil {
 			return err
 		}
@@ -38,7 +38,7 @@ func (repo *Repository) readTreeToIndex(id SHA1, indexFilename ...string) error 
 	if len(indexFilename) > 0 {
 		env = append(os.Environ(), "GIT_INDEX_FILE="+indexFilename[0])
 	}
-	_, _, err := NewCommand(repo.Ctx, "read-tree", id.String()).RunStdString(&RunOpts{Dir: repo.Path, Env: env})
+	_, _, err := NewCommand(repo.Ctx, "read-tree").AddDynamicArguments(id.String()).RunStdString(&RunOpts{Dir: repo.Path, Env: env})
 	if err != nil {
 		return err
 	}
@@ -75,12 +75,7 @@ func (repo *Repository) EmptyIndex() error {
 
 // LsFiles checks if the given filenames are in the index
 func (repo *Repository) LsFiles(filenames ...string) ([]string, error) {
-	cmd := NewCommand(repo.Ctx, "ls-files", "-z", "--")
-	for _, arg := range filenames {
-		if arg != "" {
-			cmd.AddArguments(arg)
-		}
-	}
+	cmd := NewCommand(repo.Ctx, "ls-files", "-z").AddDashesAndList(filenames...)
 	res, _, err := cmd.RunStdBytes(&RunOpts{Dir: repo.Path})
 	if err != nil {
 		return nil, err
@@ -116,7 +111,7 @@ func (repo *Repository) RemoveFilesFromIndex(filenames ...string) error {
 
 // AddObjectToIndex adds the provided object hash to the index at the provided filename
 func (repo *Repository) AddObjectToIndex(mode string, object SHA1, filename string) error {
-	cmd := NewCommand(repo.Ctx, "update-index", "--add", "--replace", "--cacheinfo", mode, object.String(), filename)
+	cmd := NewCommand(repo.Ctx, "update-index", "--add", "--replace", "--cacheinfo").AddDynamicArguments(mode, object.String(), filename)
 	_, _, err := cmd.RunStdString(&RunOpts{Dir: repo.Path})
 	return err
 }

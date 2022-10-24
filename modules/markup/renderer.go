@@ -19,8 +19,18 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
+type ProcessorHelper struct {
+	IsUsernameMentionable func(ctx context.Context, username string) bool
+}
+
+var processorHelper ProcessorHelper
+
 // Init initialize regexps for markdown parsing
-func Init() {
+func Init(ph *ProcessorHelper) {
+	if ph != nil {
+		processorHelper = *ph
+	}
+
 	NewSanitizer()
 	if len(setting.Markdown.CustomURLSchemes) > 0 {
 		CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
