@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
+
 	"github.com/gobwas/glob"
 )
 
@@ -108,17 +109,17 @@ func (a AllowedVisibility) ToVisibleTypeSlice() (result []structs.VisibleType) {
 // builds an array of compiled globs used to do
 // pattern matching in IsEmailDomainAllowed. A compiled list
 func BuildEmailGlobs(list []string) []glob.Glob {
-	var EmailList []glob.Glob
+	var emaillist []glob.Glob
 
 	for _, s := range list {
 		if g, err := glob.Compile(s); err == nil {
-			EmailList = append(EmailList, g)
+			emaillist = append(emaillist, g)
 		} else {
 			log.Error("glob.Compile %s failed: %v", s, err)
 		}
 	}
 
-	return EmailList
+	return emaillist
 }
 
 func newService() {
