@@ -62,7 +62,7 @@ func addHeaderAuthorizationEncryptedColWebhook(x *xorm.Engine) error {
 		// HeaderAuthorizationEncrypted should be accessed using HeaderAuthorization() and SetHeaderAuthorization()
 		HeaderAuthorizationEncrypted string `xorm:"TEXT"`
 	}
-	err := x.Sync2(new(Webhook))
+	err := x.Sync(new(Webhook))
 	if err != nil {
 		return err
 	}
