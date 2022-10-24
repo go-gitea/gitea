@@ -18,6 +18,8 @@
 import {CalendarHeatmap} from 'vue3-calendar-heatmap';
 import {formatMonth, formatDay, getCurrentLocale} from '../utils.js';
 
+const {i18n} = window.config;
+
 export default {
   name: 'ActivityHeatmap',
   components: {CalendarHeatmap},
@@ -40,12 +42,12 @@ export default {
     locale: {
       months: new Array(12).fill().map((_, idx) => formatMonth(idx)),
       days: new Array(7).fill().map((_, idx) => formatDay(idx)),
-      contributions: window.config.i18n.contributions.toLocaleLowerCase(getCurrentLocale()),
-      no_contributions: window.config.i18n.no_contributions,
-      contributions_in_the_last_12_months: window.config.i18n.contributions_in_the_last_12_months.toLocaleLowerCase(getCurrentLocale()),
-      on: window.config.i18n.on.toLocaleLowerCase(getCurrentLocale()),
-      less: window.config.i18n.less,
-      more: window.config.i18n.more,
+      contributions: i18n.contributions.toLocaleLowerCase(getCurrentLocale()),
+      no_contributions: i18n.no_contributions,
+      contributions_in_the_last_12_months: i18n.contributions_in_the_last_12_months.toLocaleLowerCase(getCurrentLocale()),
+      on: i18n.on.toLocaleLowerCase(getCurrentLocale()),
+      less: i18n.less,
+      more: i18n.more,
     },
   }),
   computed: {
