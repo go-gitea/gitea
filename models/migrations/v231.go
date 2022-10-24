@@ -17,7 +17,7 @@ import (
 	"xorm.io/xorm"
 )
 
-func batchProcess[T any](x *xorm.Engine, query func() *xorm.Session, buf []T, process func(*xorm.Session, T) error) error {
+func batchProcess[T any](x *xorm.Engine, buf []T, query func() *xorm.Session, process func(*xorm.Session, T) error) error {
 	size := cap(buf)
 	start := 0
 	for {
@@ -82,8 +82,8 @@ func addHeaderAuthorizationEncryptedColWebhook(x *xorm.Engine) error {
 	}
 
 	err = batchProcess(x,
-		func() *xorm.Session { return x.Where("type=?", "matrix").OrderBy("id") },
 		make([]*Webhook, 0, 50),
+		func() *xorm.Session { return x.Where("type=?", "matrix").OrderBy("id") },
 		func(sess *xorm.Session, hook *Webhook) error {
 			// retrieve token from meta
 			var withToken MatrixMetaWithAccessToken
@@ -141,13 +141,13 @@ func addHeaderAuthorizationEncryptedColWebhook(x *xorm.Engine) error {
 	}
 
 	err = batchProcess(x,
+		make([]*HookTask, 0, 50),
 		func() *xorm.Session {
 			return x.Where(builder.And(
 				builder.In("hook_id", builder.Select("id").From("webhook").Where(builder.Eq{"type": "matrix"})),
 				builder.Like{"payload_content", "access_token"},
 			)).OrderBy("id")
 		},
-		make([]*HookTask, 0, 50),
 		func(sess *xorm.Session, hookTask *HookTask) error {
 			// retrieve token from payload_content
 			var withToken MatrixPayloadUnsafe
