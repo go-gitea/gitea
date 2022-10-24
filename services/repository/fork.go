@@ -39,6 +39,10 @@ func (err ErrForkAlreadyExist) Error() string {
 	return fmt.Sprintf("repository is already forked by user [uname: %s, repo path: %s, fork path: %s]", err.Uname, err.RepoName, err.ForkName)
 }
 
+func (err ErrForkAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
 // ForkRepoOptions contains the fork repository options
 type ForkRepoOptions struct {
 	BaseRepo    *repo_model.Repository
@@ -126,7 +130,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 
 		repoPath := repo_model.RepoPath(owner.Name, repo.Name)
 		if stdout, _, err := git.NewCommand(txCtx,
-			"clone", "--bare", oldRepoPath, repoPath).
+			"clone", "--bare").AddDynamicArguments(oldRepoPath, repoPath).
 			SetDescription(fmt.Sprintf("ForkRepository(git clone): %s to %s", opts.BaseRepo.FullName(), repo.FullName())).
 			RunStdBytes(&git.RunOpts{Timeout: 10 * time.Minute}); err != nil {
 			log.Error("Fork Repository (git clone) Failed for %v (from %v):\nStdout: %s\nError: %v", repo, opts.BaseRepo, stdout, err)

@@ -119,6 +119,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	}
 
 	if ctx.Repo.TreePath != "" {
+		ctx.Data["HideRepoInfo"] = true
 		ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefName)
 	}
 
@@ -150,8 +151,8 @@ func localizedExtensions(ext, languageCode string) (localizedExts []string) {
 	if strings.Contains(lowerLangCode, "-") {
 		underscoreLangCode := strings.ReplaceAll(lowerLangCode, "-", "_")
 		indexOfDash := strings.Index(lowerLangCode, "-")
-		// e.g. [.zh-cn.md, .zh_cn.md, .zh.md, .md]
-		return []string{lowerLangCode + ext, underscoreLangCode + ext, lowerLangCode[:indexOfDash] + ext, ext}
+		// e.g. [.zh-cn.md, .zh_cn.md, .zh.md, _zh.md, .md]
+		return []string{lowerLangCode + ext, underscoreLangCode + ext, lowerLangCode[:indexOfDash] + ext, "_" + lowerLangCode[1:indexOfDash] + ext, ext}
 	}
 
 	// e.g. [.en.md, .md]
@@ -360,6 +361,7 @@ func renderReadmeFile(ctx *context.Context, readmeFile *namedBlob, readmeTreelin
 
 func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink string) {
 	ctx.Data["IsViewFile"] = true
+	ctx.Data["HideRepoInfo"] = true
 	blob := entry.Blob()
 	dataRc, err := blob.DataAsync()
 	if err != nil {
@@ -549,7 +551,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 				filename2attribute2info, err := ctx.Repo.GitRepo.CheckAttribute(git.CheckAttributeOpts{
 					CachedOnly: true,
-					Attributes: []string{"linguist-language", "gitlab-language"},
+					Attributes: []git.CmdArg{"linguist-language", "gitlab-language"},
 					Filenames:  []string{ctx.Repo.TreePath},
 					IndexFile:  indexFilename,
 					WorkTree:   worktree,

@@ -271,13 +271,12 @@ func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *repo_mod
 		}
 	}
 
-	if !isCreated {
-		notification.NotifyUpdateRelease(doer, rel)
-		return
-	}
-
 	if !rel.IsDraft {
-		notification.NotifyNewRelease(rel)
+		if isCreated {
+			notification.NotifyNewRelease(rel)
+		} else {
+			notification.NotifyUpdateRelease(doer, rel)
+		}
 	}
 
 	return err
@@ -310,7 +309,7 @@ func DeleteReleaseByID(ctx context.Context, id int64, doer *user_model.User, del
 			}
 		}
 
-		if stdout, _, err := git.NewCommand(ctx, "tag", "-d", "--", rel.TagName).
+		if stdout, _, err := git.NewCommand(ctx, "tag", "-d").AddDashesAndList(rel.TagName).
 			SetDescription(fmt.Sprintf("DeleteReleaseByID (git tag -d): %d", rel.ID)).
 			RunStdString(&git.RunOpts{Dir: repo.RepoPath()}); err != nil && !strings.Contains(err.Error(), "not found") {
 			log.Error("DeleteReleaseByID (git tag -d): %d in %v Failed:\nStdout: %s\nError: %v", rel.ID, repo, stdout, err)
@@ -353,7 +352,9 @@ func DeleteReleaseByID(ctx context.Context, id int64, doer *user_model.User, del
 		}
 	}
 
-	notification.NotifyDeleteRelease(doer, rel)
+	if !rel.IsDraft {
+		notification.NotifyDeleteRelease(doer, rel)
+	}
 
 	return nil
 }

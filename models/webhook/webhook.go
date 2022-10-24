@@ -19,13 +19,6 @@ import (
 	"xorm.io/builder"
 )
 
-//  __      __      ___.   .__                   __
-// /  \    /  \ ____\_ |__ |  |__   ____   ____ |  | __
-// \   \/\/   // __ \| __ \|  |  \ /  _ \ /  _ \|  |/ /
-//  \        /\  ___/| \_\ \   Y  (  <_> |  <_> )    <
-//   \__/\  /  \___  >___  /___|  /\____/ \____/|__|_ \
-//        \/       \/    \/     \/                   \/
-
 // ErrWebhookNotExist represents a "WebhookNotExist" kind of error.
 type ErrWebhookNotExist struct {
 	ID int64
@@ -41,8 +34,13 @@ func (err ErrWebhookNotExist) Error() string {
 	return fmt.Sprintf("webhook does not exist [id: %d]", err.ID)
 }
 
+func (err ErrWebhookNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrHookTaskNotExist represents a "HookTaskNotExist" kind of error.
 type ErrHookTaskNotExist struct {
+	TaskID int64
 	HookID int64
 	UUID   string
 }
@@ -54,7 +52,11 @@ func IsErrHookTaskNotExist(err error) bool {
 }
 
 func (err ErrHookTaskNotExist) Error() string {
-	return fmt.Sprintf("hook task does not exist [hook: %d, uuid: %s]", err.HookID, err.UUID)
+	return fmt.Sprintf("hook task does not exist [task: %d, hook: %d, uuid: %s]", err.TaskID, err.HookID, err.UUID)
+}
+
+func (err ErrHookTaskNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // HookContentType is the content type of a web hook

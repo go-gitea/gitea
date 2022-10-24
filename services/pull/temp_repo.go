@@ -94,7 +94,7 @@ func createTemporaryRepo(ctx context.Context, pr *issues_model.PullRequest) (str
 	}
 
 	var outbuf, errbuf strings.Builder
-	if err := git.NewCommand(ctx, "remote", "add", "-t", pr.BaseBranch, "-m", pr.BaseBranch, "origin", baseRepoPath).
+	if err := git.NewCommand(ctx, "remote", "add", "-t").AddDynamicArguments(pr.BaseBranch).AddArguments("-m").AddDynamicArguments(pr.BaseBranch).AddDynamicArguments("origin", baseRepoPath).
 		Run(&git.RunOpts{
 			Dir:    tmpBasePath,
 			Stdout: &outbuf,
@@ -109,7 +109,7 @@ func createTemporaryRepo(ctx context.Context, pr *issues_model.PullRequest) (str
 	outbuf.Reset()
 	errbuf.Reset()
 
-	if err := git.NewCommand(ctx, "fetch", "origin", "--no-tags", "--", pr.BaseBranch+":"+baseBranch, pr.BaseBranch+":original_"+baseBranch).
+	if err := git.NewCommand(ctx, "fetch", "origin", "--no-tags").AddDashesAndList(pr.BaseBranch+":"+baseBranch, pr.BaseBranch+":original_"+baseBranch).
 		Run(&git.RunOpts{
 			Dir:    tmpBasePath,
 			Stdout: &outbuf,
@@ -124,7 +124,7 @@ func createTemporaryRepo(ctx context.Context, pr *issues_model.PullRequest) (str
 	outbuf.Reset()
 	errbuf.Reset()
 
-	if err := git.NewCommand(ctx, "symbolic-ref", "HEAD", git.BranchPrefix+baseBranch).
+	if err := git.NewCommand(ctx, "symbolic-ref").AddDynamicArguments("HEAD", git.BranchPrefix+baseBranch).
 		Run(&git.RunOpts{
 			Dir:    tmpBasePath,
 			Stdout: &outbuf,
@@ -147,7 +147,7 @@ func createTemporaryRepo(ctx context.Context, pr *issues_model.PullRequest) (str
 		return "", fmt.Errorf("Unable to head base repository to temporary repo [%s -> tmpBasePath]: %v", pr.HeadRepo.FullName(), err)
 	}
 
-	if err := git.NewCommand(ctx, "remote", "add", remoteRepoName, headRepoPath).
+	if err := git.NewCommand(ctx, "remote", "add").AddDynamicArguments(remoteRepoName, headRepoPath).
 		Run(&git.RunOpts{
 			Dir:    tmpBasePath,
 			Stdout: &outbuf,
@@ -172,7 +172,7 @@ func createTemporaryRepo(ctx context.Context, pr *issues_model.PullRequest) (str
 	} else {
 		headBranch = pr.GetGitRefName()
 	}
-	if err := git.NewCommand(ctx, "fetch", "--no-tags", remoteRepoName, headBranch+":"+trackingBranch).
+	if err := git.NewCommand(ctx, "fetch", "--no-tags").AddDynamicArguments(remoteRepoName, headBranch+":"+trackingBranch).
 		Run(&git.RunOpts{
 			Dir:    tmpBasePath,
 			Stdout: &outbuf,

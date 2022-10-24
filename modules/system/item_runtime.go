@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package appstate
+package system
 
 // RuntimeState contains app state for runtime, and we can save remote version for update checker here in future
 type RuntimeState struct {

@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrDependencyExists represents a "DependencyAlreadyExists" kind of error.
@@ -29,6 +30,10 @@ func (err ErrDependencyExists) Error() string {
 	return fmt.Sprintf("issue dependency does already exist [issue id: %d, dependency id: %d]", err.IssueID, err.DependencyID)
 }
 
+func (err ErrDependencyExists) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
 // ErrDependencyNotExists represents a "DependencyAlreadyExists" kind of error.
 type ErrDependencyNotExists struct {
 	IssueID      int64
@@ -43,6 +48,10 @@ func IsErrDependencyNotExists(err error) bool {
 
 func (err ErrDependencyNotExists) Error() string {
 	return fmt.Sprintf("issue dependency does not exist [issue id: %d, dependency id: %d]", err.IssueID, err.DependencyID)
+}
+
+func (err ErrDependencyNotExists) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // ErrCircularDependency represents a "DependencyCircular" kind of error.
@@ -89,6 +98,10 @@ func IsErrUnknownDependencyType(err error) bool {
 
 func (err ErrUnknownDependencyType) Error() string {
 	return fmt.Sprintf("unknown dependency type [type: %d]", err.Type)
+}
+
+func (err ErrUnknownDependencyType) Unwrap() error {
+	return util.ErrInvalidArgument
 }
 
 // IssueDependency represents an issue dependency

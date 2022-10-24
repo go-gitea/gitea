@@ -626,6 +626,8 @@ steps:
       commit_message: "[skip ci] Updated translations via Crowdin"
       remote: "git@github.com:go-gitea/gitea.git"
     environment:
+      DRONE_COMMIT_AUTHOR_EMAIL: "teabot@gitea.io"
+      DRONE_COMMIT_AUTHOR: GiteaBot
       GIT_PUSH_SSH_KEY:
         from_secret: git_push_ssh_key
 
@@ -670,12 +672,14 @@ steps:
     pull: always
     settings:
       author_email: "teabot@gitea.io"
-      author_name: GiteaBot
+      author_name: "GiteaBot"
       branch: main
       commit: true
-      commit_message: "[skip ci] Updated licenses and gitignores "
+      commit_message: "[skip ci] Updated licenses and gitignores"
       remote: "git@github.com:go-gitea/gitea.git"
     environment:
+      DRONE_COMMIT_AUTHOR_EMAIL: "teabot@gitea.io"
+      DRONE_COMMIT_AUTHOR: "GiteaBot"
       GIT_PUSH_SSH_KEY:
         from_secret: git_push_ssh_key
 

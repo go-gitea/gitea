@@ -43,6 +43,10 @@ func (err ErrUserDoesNotHaveAccessToRepo) Error() string {
 	return fmt.Sprintf("user doesn't have access to repo [user_id: %d, repo_name: %s]", err.UserID, err.RepoName)
 }
 
+func (err ErrUserDoesNotHaveAccessToRepo) Unwrap() error {
+	return util.ErrPermissionDenied
+}
+
 var (
 	reservedRepoNames    = []string{".", "..", "-"}
 	reservedRepoPatterns = []string{"*.git", "*.wiki", "*.rss", "*.atom"}
@@ -641,6 +645,11 @@ func IsErrRepoNotExist(err error) bool {
 func (err ErrRepoNotExist) Error() string {
 	return fmt.Sprintf("repository does not exist [id: %d, uid: %d, owner_name: %s, name: %s]",
 		err.ID, err.UID, err.OwnerName, err.Name)
+}
+
+// Unwrap unwraps this error as a ErrNotExist error
+func (err ErrRepoNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // GetRepositoryByOwnerAndNameCtx returns the repository by given owner name and repo name
