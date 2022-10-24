@@ -81,28 +81,6 @@ func DownloadPackageFile(ctx *context.Context) {
 	packageVersion := ctx.Params("version")
 	filename := ctx.Params("filename")
 
-	if packageVersion == "" {
-		pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
-			OwnerID: ctx.Package.Owner.ID,
-			Type:    packages_model.TypeNpm,
-			Name: packages_model.SearchValue{
-				ExactMatch: true,
-				Value:      packageNameFromParams(ctx),
-			},
-			HasFileWithName: filename,
-			IsInternal:      util.OptionalBoolFalse,
-		})
-		if err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
-		if len(pvs) != 1 {
-			apiError(ctx, http.StatusNotFound, nil)
-			return
-		}
-		packageVersion = pvs[0].Version
-	}
-
 	s, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
 		ctx,
 		&packages_service.PackageInfo{
@@ -117,6 +95,49 @@ func DownloadPackageFile(ctx *context.Context) {
 	)
 	if err != nil {
 		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
+			apiError(ctx, http.StatusNotFound, err)
+			return
+		}
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	defer s.Close()
+
+	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
+}
+
+// DownloadPackageFileByName finds the version and serves the contents of a package
+func DownloadPackageFileByName(ctx *context.Context) {
+	filename := ctx.Params("filename")
+
+	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
+		OwnerID: ctx.Package.Owner.ID,
+		Type:    packages_model.TypeNpm,
+		Name: packages_model.SearchValue{
+			ExactMatch: true,
+			Value:      packageNameFromParams(ctx),
+		},
+		HasFileWithName: filename,
+		IsInternal:      util.OptionalBoolFalse,
+	})
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if len(pvs) != 1 {
+		apiError(ctx, http.StatusNotFound, nil)
+		return
+	}
+
+	s, pf, err := packages_service.GetFileStreamByPackageVersion(
+		ctx,
+		pvs[0],
+		&packages_service.PackageFileInfo{
+			Filename: filename,
+		},
+	)
+	if err != nil {
+		if err == packages_model.ErrPackageFileNotExist {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
