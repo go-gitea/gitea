@@ -421,6 +421,8 @@ var migrations = []Migration{
 	NewMigration("Add TeamInvite table", addTeamInviteTable),
 	// v229 -> v230
 	NewMigration("Update counts of all open milestones", updateOpenMilestoneCounts),
+	// v230 -> v231
+	NewMigration("Add ConfidentialClient column (default true) to OAuth2Application table", addConfidentialClientColumnToOAuth2ApplicationTable),
 }
 
 // GetCurrentDBVersion returns the current db version
