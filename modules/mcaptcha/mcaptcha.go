@@ -21,7 +21,7 @@ func Verify(ctx context.Context, token string) (bool, error) {
 		Token:       token,
 	})
 	if err != nil {
-		return false, fmt.Errorf("wasn't able to verify mCaptcha: %v", err)
+		return false, fmt.Errorf("wasn't able to verify mCaptcha: %w", err)
 	}
 	return valid, nil
 }
