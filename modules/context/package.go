@@ -83,12 +83,15 @@ func packageAssignment(ctx *Context, errCb func(int, string, interface{})) {
 }
 
 func determineAccessMode(ctx *Context) (perm.AccessMode, error) {
-	accessMode := perm.AccessModeNone
-
 	if setting.Service.RequireSignInView && ctx.Doer == nil {
-		return accessMode, nil
+		return perm.AccessModeNone, nil
 	}
 
+	if ctx.Doer != nil && !ctx.Doer.IsGhost() && (!ctx.Doer.IsActive || ctx.Doer.ProhibitLogin) {
+		return perm.AccessModeNone, nil
+	}
+
+	accessMode := perm.AccessModeNone
 	if ctx.Package.Owner.IsOrganization() {
 		org := organization.OrgFromUser(ctx.Package.Owner)
 
