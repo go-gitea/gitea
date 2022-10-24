@@ -30,10 +30,6 @@ func (s *Session) Name() string {
 // object for that uid.
 // Returns nil if there is no user uid stored in the session.
 func (s *Session) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *user_model.User {
-	if sess == nil {
-		return nil
-	}
-
 	user := SessionUser(sess)
 	if user != nil {
 		return user
@@ -43,6 +39,10 @@ func (s *Session) Verify(req *http.Request, w http.ResponseWriter, store DataSto
 
 // SessionUser returns the user object corresponding to the "uid" session variable.
 func SessionUser(sess SessionStore) *user_model.User {
+	if sess == nil {
+		return nil
+	}
+
 	// Get user ID
 	uid := sess.Get("uid")
 	if uid == nil {
