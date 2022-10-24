@@ -1,6 +1,7 @@
 package common
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -60,7 +61,7 @@ func RunnersList(ctx *context.Context, tplName base.TplName, opts bots_model.Fin
 	ctx.HTML(http.StatusOK, tplName)
 }
 
-func RunnerDetails(ctx *context.Context, tplName base.TplName, runnerID int64) {
+func RunnerDetails(ctx *context.Context, tplName base.TplName, runnerID int64, ownerID int64, repoID int64) {
 	runner, err := bots_model.GetRunnerByID(runnerID)
 	if err != nil {
 		ctx.ServerError("GetRunnerByID", err)
@@ -68,6 +69,11 @@ func RunnerDetails(ctx *context.Context, tplName base.TplName, runnerID int64) {
 	}
 	if err := runner.LoadAttributes(ctx); err != nil {
 		ctx.ServerError("LoadAttributes", err)
+		return
+	}
+	if !runner.Editable(ownerID, repoID) {
+		err = errors.New("no permission to edit this runner")
+		ctx.NotFound("RunnerDetails", err)
 		return
 	}
 
@@ -79,11 +85,16 @@ func RunnerDetails(ctx *context.Context, tplName base.TplName, runnerID int64) {
 }
 
 // RunnerDetailsEditPost response for edit runner details
-func RunnerDetailsEditPost(ctx *context.Context, runnerID int64, redirectTo string) {
+func RunnerDetailsEditPost(ctx *context.Context, runnerID int64, ownerID int64, repoID int64, redirectTo string) {
 	runner, err := bots_model.GetRunnerByID(runnerID)
 	if err != nil {
 		log.Warn("RunnerDetailsEditPost.GetRunnerByID failed: %v, url: %s", err, ctx.Req.URL)
 		ctx.ServerError("RunnerDetailsEditPost.GetRunnerByID", err)
+		return
+	}
+	if !runner.Editable(ownerID, repoID) {
+		err = errors.New("no permission to edit this runner")
+		ctx.NotFound("RunnerDetailsEditPost.Editable", err)
 		return
 	}
 

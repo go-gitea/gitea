@@ -793,6 +793,13 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/initialize", bindIgnErr(forms.InitializeLabelsForm{}), org.InitializeLabels)
 				})
 
+				m.Group("/runners", func() {
+					m.Get("", org.Runners)
+					m.Combo("/{runnerid}").Get(org.RunnersEdit).
+						Post(bindIgnErr(forms.EditRunnerForm{}), org.RunnersEditPost)
+					m.Get("/reset_registration_token", org.ResetRunnerRegistrationToken)
+				})
+
 				m.Group("/secrets", func() {
 					m.Get("", org.Secrets)
 					m.Post("", bindIgnErr(forms.AddSecretForm{}), org.SecretsPost)

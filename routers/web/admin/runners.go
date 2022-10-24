@@ -55,7 +55,7 @@ func EditRunner(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminRunners"] = true
 
-	common.RunnerDetails(ctx, tplRunnerEdit, ctx.ParamsInt64(":runnerid"))
+	common.RunnerDetails(ctx, tplRunnerEdit, ctx.ParamsInt64(":runnerid"), 0, 0)
 }
 
 // EditRunnerPost response for editing runner
@@ -63,7 +63,7 @@ func EditRunnerPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.runners.edit")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminRunners"] = true
-	common.RunnerDetailsEditPost(ctx, ctx.ParamsInt64(":runnerid"),
+	common.RunnerDetailsEditPost(ctx, ctx.ParamsInt64(":runnerid"), 0, 0,
 		setting.AppSubURL+"/admin/runners/"+url.PathEscape(ctx.Params(":runnerid")))
 }
 

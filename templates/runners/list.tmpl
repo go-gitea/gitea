@@ -62,10 +62,17 @@
 				<tr>
 					<td><span class="runner-status-{{.StatusType}}">{{.StatusType}}</span></td>
 					<td>
+						{{if .Editable $.RunnerOnwerID $.RunnerRepoID}}
 						<a href="{{$.Link}}/{{.ID}}" class="tooltip" data-content="{{.Description}}">
 							<span class="runner-id">#{{.ID}}</span>
 							<span class="runner-name">{{.Name}}</span>
 						</a>
+						{{else}}
+						<p class="tooltip" data-content="{{.Description}}">
+							<span class="runner-id">#{{.ID}}</span>
+							<span class="runner-name">{{.Name}}</span>
+						</p>
+						{{end}}
 					</td>
 					<td>{{.OwnType}}</td>
 					<td class="runner-tags">
