@@ -190,7 +190,7 @@ func CreateTag(ctx *context.APIContext) {
 
 	commit, err := ctx.Repo.GitRepo.GetCommit(form.Target)
 	if err != nil {
-		ctx.Error(http.StatusNotFound, "target not found", fmt.Errorf("target not found: %v", err))
+		ctx.Error(http.StatusNotFound, "target not found", fmt.Errorf("target not found: %w", err))
 		return
 	}
 

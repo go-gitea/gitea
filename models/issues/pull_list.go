@@ -168,7 +168,7 @@ func (prs PullRequestList) loadAttributes(ctx context.Context) error {
 		Where("id > 0").
 		In("id", issueIDs).
 		Find(&issues); err != nil {
-		return fmt.Errorf("find issues: %v", err)
+		return fmt.Errorf("find issues: %w", err)
 	}
 
 	set := make(map[int64]*Issue)
@@ -205,7 +205,7 @@ func (prs PullRequestList) InvalidateCodeComments(ctx context.Context, doer *use
 		Where("type = ? and invalidated = ?", CommentTypeCode, false).
 		In("issue_id", issueIDs).
 		Find(&codeComments); err != nil {
-		return fmt.Errorf("find code comments: %v", err)
+		return fmt.Errorf("find code comments: %w", err)
 	}
 	for _, comment := range codeComments {
 		if err := comment.CheckInvalidation(repo, doer, branch); err != nil {

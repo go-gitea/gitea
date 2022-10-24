@@ -47,7 +47,7 @@ func checkUserEmail(ctx context.Context, logger log.Logger, _ bool) error {
 		}
 		return nil
 	}); err != nil {
-		return fmt.Errorf("iterateUserAccounts: %v", err)
+		return fmt.Errorf("iterateUserAccounts: %w", err)
 	}
 
 	if invalidUserCount == 0 {
@@ -70,7 +70,7 @@ func checkUserName(ctx context.Context, logger log.Logger, _ bool) error {
 		}
 		return nil
 	}); err != nil {
-		return fmt.Errorf("iterateUserAccounts: %v", err)
+		return fmt.Errorf("iterateUserAccounts: %w", err)
 	}
 
 	if invalidUserCount == 0 {

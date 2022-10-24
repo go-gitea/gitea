@@ -23,13 +23,13 @@ func PrepareAppDataPath() error {
 	if os.IsNotExist(err) {
 		err = os.MkdirAll(AppDataPath, os.ModePerm)
 		if err != nil {
-			return fmt.Errorf("unable to create the APP_DATA_PATH directory: %q, Error: %v", AppDataPath, err)
+			return fmt.Errorf("unable to create the APP_DATA_PATH directory: %q, Error: %w", AppDataPath, err)
 		}
 		return nil
 	}
 
 	if err != nil {
-		return fmt.Errorf("unable to use APP_DATA_PATH %q. Error: %v", AppDataPath, err)
+		return fmt.Errorf("unable to use APP_DATA_PATH %q. Error: %w", AppDataPath, err)
 	}
 
 	if !st.IsDir() /* also works for symlink */ {
