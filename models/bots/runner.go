@@ -13,7 +13,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
-
 	"xorm.io/builder"
 )
 
@@ -36,7 +35,7 @@ func (err ErrRunnerNotExist) Error() string {
 type Runner struct {
 	ID          int64
 	UUID        string                 `xorm:"CHAR(36) UNIQUE"`
-	Name        string                 `xorm:"VARCHAR(32) UNIQUE"`
+	Name        string                 `xorm:"VARCHAR(32)"`
 	OwnerID     int64                  `xorm:"index"` // org level runner, 0 means system
 	Owner       *user_model.User       `xorm:"-"`
 	RepoID      int64                  `xorm:"index"` // repo level runner, if orgid also is zero, then it's a global

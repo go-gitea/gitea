@@ -14,7 +14,7 @@ func addBotTables(x *xorm.Engine) error {
 	type BotsRunner struct {
 		ID          int64
 		UUID        string `xorm:"CHAR(36) UNIQUE"`
-		Name        string `xorm:"VARCHAR(32) UNIQUE"`
+		Name        string `xorm:"VARCHAR(32)"`
 		OwnerID     int64  `xorm:"index"` // org level runner, 0 means system
 		RepoID      int64  `xorm:"index"` // repo level runner, if orgid also is zero, then it's a global
 		Description string `xorm:"TEXT"`
