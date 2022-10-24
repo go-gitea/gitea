@@ -91,6 +91,10 @@ func determineAccessMode(ctx *Context) (perm.AccessMode, error) {
 		return accessMode, nil
 	}
 
+	if ctx.Doer != nil && (!ctx.Doer.IsActive || ctx.Doer.ProhibitLogin) {
+		return accessMode, nil
+	}
+
 	if ctx.Package.Owner.IsOrganization() {
 		org := organization.OrgFromUser(ctx.Package.Owner)
 
