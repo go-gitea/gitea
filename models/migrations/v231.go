@@ -89,7 +89,7 @@ func addHeaderAuthorizationEncryptedColWebhook(x *xorm.Engine) error {
 			var withToken MatrixMetaWithAccessToken
 			err := json.Unmarshal([]byte(hook.Meta), &withToken)
 			if err != nil {
-				return fmt.Errorf("unable to unmarshal matrix meta for webhook[%d]: %w", hook.ID, err)
+				return fmt.Errorf("unable to unmarshal matrix meta for webhook[id=%d]: %w", hook.ID, err)
 			}
 			if withToken.AccessToken == "" {
 				return nil
@@ -99,20 +99,20 @@ func addHeaderAuthorizationEncryptedColWebhook(x *xorm.Engine) error {
 			authorization := "Bearer " + withToken.AccessToken
 			hook.HeaderAuthorizationEncrypted, err = secret.EncryptSecret(setting.SecretKey, authorization)
 			if err != nil {
-				return fmt.Errorf("unable to encrypt access token for webhook[%d]: %w", hook.ID, err)
+				return fmt.Errorf("unable to encrypt access token for webhook[id=%d]: %w", hook.ID, err)
 			}
 
 			// remove token from meta
 			withoutToken, err := json.Marshal(withToken.MatrixMeta)
 			if err != nil {
-				return fmt.Errorf("unable to marshal matrix meta for webhook[%d]: %w", hook.ID, err)
+				return fmt.Errorf("unable to marshal matrix meta for webhook[id=%d]: %w", hook.ID, err)
 			}
 			hook.Meta = string(withoutToken)
 
 			// save in database
 			count, err := sess.ID(hook.ID).Cols("meta", "header_authorization_encrypted").Update(hook)
 			if count != 1 || err != nil {
-				return fmt.Errorf("unable to update header_authorization_encrypted for webhook[%d]: %d,%w", hook.ID, count, err)
+				return fmt.Errorf("unable to update header_authorization_encrypted for webhook[id=%d]: %d,%w", hook.ID, count, err)
 			}
 			return nil
 		})
@@ -153,7 +153,7 @@ func addHeaderAuthorizationEncryptedColWebhook(x *xorm.Engine) error {
 			var withToken MatrixPayloadUnsafe
 			err := json.Unmarshal([]byte(hookTask.PayloadContent), &withToken)
 			if err != nil {
-				return fmt.Errorf("unable to unmarshal payload_content for hook_task[%d]: %w", hookTask.ID, err)
+				return fmt.Errorf("unable to unmarshal payload_content for hook_task[id=%d]: %w", hookTask.ID, err)
 			}
 			if withToken.AccessToken == "" {
 				return nil
@@ -162,14 +162,14 @@ func addHeaderAuthorizationEncryptedColWebhook(x *xorm.Engine) error {
 			// remove token from payload_content
 			withoutToken, err := json.Marshal(withToken.MatrixPayloadSafe)
 			if err != nil {
-				return fmt.Errorf("unable to marshal payload_content for hook_task[%d]: %w", hookTask.ID, err)
+				return fmt.Errorf("unable to marshal payload_content for hook_task[id=%d]: %w", hookTask.ID, err)
 			}
 			hookTask.PayloadContent = string(withoutToken)
 
 			// save in database
 			count, err := sess.ID(hookTask.ID).Cols("payload_content").Update(hookTask)
 			if count != 1 || err != nil {
-				return fmt.Errorf("unable to update payload_content for hook_task[%d]: %d,%w", hookTask.ID, count, err)
+				return fmt.Errorf("unable to update payload_content for hook_task[id=%d]: %d,%w", hookTask.ID, count, err)
 			}
 			return nil
 		})
