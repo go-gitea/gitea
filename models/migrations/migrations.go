@@ -422,6 +422,8 @@ var migrations = []Migration{
 	// v229 -> v230
 	NewMigration("Update counts of all open milestones", updateOpenMilestoneCounts),
 	// v230 -> v231
+	NewMigration("Add ConfidentialClient column (default true) to OAuth2Application table", addConfidentialClientColumnToOAuth2ApplicationTable),
+	// v231 -> v232
 	NewMigration("Add header_authorization_encrypted column to webhook table", addHeaderAuthorizationEncryptedColWebhook),
 }
 
