@@ -1,7 +1,7 @@
 <template>
   <div id="user-heatmap">
     <div class="total-contributions">
-      {{ sum }} contributions in the last 12 months
+      {{ sum }} {{ locale.contributions_in_the_last_12_months }}
     </div>
     <calendar-heatmap
       :locale="locale"
@@ -16,7 +16,7 @@
 </template>
 <script>
 import {CalendarHeatmap} from 'vue3-calendar-heatmap';
-import heatmapLocale from '../features/heatmap-locale.js';
+import {formatMonth, formatDay, getCurrentLocale} from '../utils.js';
 
 export default {
   name: 'ActivityHeatmap',
@@ -38,9 +38,15 @@ export default {
     ],
     endDate: new Date(),
     locale: {
-      contributions: 'contributions',
-      no_contributions: 'No contributions',
-      ...heatmapLocale},
+      months: new Array(12).fill().map((_, idx) => formatMonth(idx)),
+      days: new Array(7).fill().map((_, idx) => formatDay(idx)),
+      contributions: window.config.i18n.contributions.toLocaleLowerCase(getCurrentLocale()),
+      no_contributions: window.config.i18n.no_contributions,
+      contributions_in_the_last_12_months: window.config.i18n.contributions_in_the_last_12_months.toLocaleLowerCase(getCurrentLocale()),
+      on: window.config.i18n.on.toLocaleLowerCase(getCurrentLocale()),
+      less: window.config.i18n.less,
+      more: window.config.i18n.more,
+    },
   }),
   computed: {
     sum() {

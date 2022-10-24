@@ -70,3 +70,19 @@ export function prettyNumber(num, locale = 'en-US') {
 export function parseUrl(str) {
   return new URL(str, str.startsWith('http') ? undefined : window.location.origin);
 }
+
+// return current locale chosen by user
+export function getCurrentLocale() {
+  const {lang} = document.documentElement;
+  return lang;
+}
+
+// given a month (0-11), returns it in the documents language
+export function formatMonth(month) {
+  return new Date(Date.UTC(2022, month, 12)).toLocaleString(getCurrentLocale(), {month: 'short'});
+}
+
+// given a weekday (0-6, Sunday to Saturday), returns it in the documents language
+export function formatDay(day) {
+  return new Date(Date.UTC(2022, 7, day)).toLocaleString(getCurrentLocale(), {weekday: 'short'});
+}
