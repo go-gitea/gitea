@@ -17,11 +17,11 @@ import (
 	"xorm.io/xorm"
 )
 
-func batchProcess[T any](x *xorm.Engine, buf []T, query func() *xorm.Session, process func(*xorm.Session, T) error) error {
+func batchProcess[T any](x *xorm.Engine, buf []T, query func(limit, start int) *xorm.Session, process func(*xorm.Session, T) error) error {
 	size := cap(buf)
 	start := 0
 	for {
-		err := query().Limit(size, start).Find(&buf)
+		err := query(size, start).Find(&buf)
 		if err != nil {
 			return err
 		}
@@ -83,7 +83,9 @@ func addHeaderAuthorizationEncryptedColWebhook(x *xorm.Engine) error {
 
 	err = batchProcess(x,
 		make([]*Webhook, 0, 50),
-		func() *xorm.Session { return x.Where("type=?", "matrix").OrderBy("id") },
+		func(limit, start int) *xorm.Session {
+			return x.Where("type=?", "matrix").OrderBy("id").Limit(limit, start)
+		},
 		func(sess *xorm.Session, hook *Webhook) error {
 			// retrieve token from meta
 			var withToken MatrixMetaWithAccessToken
@@ -142,11 +144,11 @@ func addHeaderAuthorizationEncryptedColWebhook(x *xorm.Engine) error {
 
 	err = batchProcess(x,
 		make([]*HookTask, 0, 50),
-		func() *xorm.Session {
+		func(limit, start int) *xorm.Session {
 			return x.Where(builder.And(
 				builder.In("hook_id", builder.Select("id").From("webhook").Where(builder.Eq{"type": "matrix"})),
 				builder.Like{"payload_content", "access_token"},
-			)).OrderBy("id")
+			)).OrderBy("id").Limit(limit, 0) // ignore the provided "start", since other payload were already converted and don't contain 'payload_content' anymore
 		},
 		func(sess *xorm.Session, hookTask *HookTask) error {
 			// retrieve token from payload_content
