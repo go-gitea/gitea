@@ -35,30 +35,33 @@ func LogNameStatusRepo(ctx context.Context, repository, head, treepath string, p
 		_ = stdoutWriter.Close()
 	}
 
-	args := make([]string, 0, 8+len(paths))
-	args = append(args, "log", "--name-status", "-c", "--format=commit%x00%H %P%x00", "--parents", "--no-renames", "-t", "-z", head, "--")
+	cmd := NewCommand(ctx)
+	cmd.AddArguments("log", "--name-status", "-c", "--format=commit%x00%H %P%x00", "--parents", "--no-renames", "-t", "-z").AddDynamicArguments(head)
+
+	var files []string
 	if len(paths) < 70 {
 		if treepath != "" {
-			args = append(args, treepath)
+			files = append(files, treepath)
 			for _, pth := range paths {
 				if pth != "" {
-					args = append(args, path.Join(treepath, pth))
+					files = append(files, path.Join(treepath, pth))
 				}
 			}
 		} else {
 			for _, pth := range paths {
 				if pth != "" {
-					args = append(args, pth)
+					files = append(files, pth)
 				}
 			}
 		}
 	} else if treepath != "" {
-		args = append(args, treepath)
+		files = append(files, treepath)
 	}
+	cmd.AddDashesAndList(files...)
 
 	go func() {
 		stderr := strings.Builder{}
-		err := NewCommand(ctx, args...).Run(&RunOpts{
+		err := cmd.Run(&RunOpts{
 			Dir:    repository,
 			Stdout: stdoutWriter,
 			Stderr: &stderr,

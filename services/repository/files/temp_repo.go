@@ -53,7 +53,7 @@ func (t *TemporaryUploadRepository) Close() {
 
 // Clone the base repository to our path and set branch as the HEAD
 func (t *TemporaryUploadRepository) Clone(branch string) error {
-	if _, _, err := git.NewCommand(t.ctx, "clone", "-s", "--bare", "-b", branch, t.repo.RepoPath(), t.basePath).RunStdString(nil); err != nil {
+	if _, _, err := git.NewCommand(t.ctx, "clone", "-s", "--bare", "-b").AddDynamicArguments(branch, t.repo.RepoPath(), t.basePath).RunStdString(nil); err != nil {
 		stderr := err.Error()
 		if matched, _ := regexp.MatchString(".*Remote branch .* not found in upstream origin.*", stderr); matched {
 			return git.ErrBranchNotExist{
@@ -104,14 +104,7 @@ func (t *TemporaryUploadRepository) LsFiles(filenames ...string) ([]string, erro
 	stdOut := new(bytes.Buffer)
 	stdErr := new(bytes.Buffer)
 
-	cmdArgs := []string{"ls-files", "-z", "--"}
-	for _, arg := range filenames {
-		if arg != "" {
-			cmdArgs = append(cmdArgs, arg)
-		}
-	}
-
-	if err := git.NewCommand(t.ctx, cmdArgs...).
+	if err := git.NewCommand(t.ctx, "ls-files", "-z").AddDashesAndList(filenames...).
 		Run(&git.RunOpts{
 			Dir:    t.basePath,
 			Stdout: stdOut,
@@ -177,7 +170,7 @@ func (t *TemporaryUploadRepository) HashObject(content io.Reader) (string, error
 
 // AddObjectToIndex adds the provided object hash to the index with the provided mode and path
 func (t *TemporaryUploadRepository) AddObjectToIndex(mode, objectHash, objectPath string) error {
-	if _, _, err := git.NewCommand(t.ctx, "update-index", "--add", "--replace", "--cacheinfo", mode, objectHash, objectPath).RunStdString(&git.RunOpts{Dir: t.basePath}); err != nil {
+	if _, _, err := git.NewCommand(t.ctx, "update-index", "--add", "--replace", "--cacheinfo").AddDynamicArguments(mode, objectHash, objectPath).RunStdString(&git.RunOpts{Dir: t.basePath}); err != nil {
 		stderr := err.Error()
 		if matched, _ := regexp.MatchString(".*Invalid path '.*", stderr); matched {
 			return models.ErrFilePathInvalid{
@@ -211,7 +204,7 @@ func (t *TemporaryUploadRepository) GetLastCommitByRef(ref string) (string, erro
 	if ref == "" {
 		ref = "HEAD"
 	}
-	stdout, _, err := git.NewCommand(t.ctx, "rev-parse", ref).RunStdString(&git.RunOpts{Dir: t.basePath})
+	stdout, _, err := git.NewCommand(t.ctx, "rev-parse").AddDynamicArguments(ref).RunStdString(&git.RunOpts{Dir: t.basePath})
 	if err != nil {
 		log.Error("Unable to get last ref for %s in temporary repo: %s(%s): Error: %v", ref, t.repo.FullName(), t.basePath, err)
 		return "", fmt.Errorf("Unable to rev-parse %s in temporary repo for: %s Error: %v", ref, t.repo.FullName(), err)
@@ -241,11 +234,11 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(parent string, author, co
 	_, _ = messageBytes.WriteString(message)
 	_, _ = messageBytes.WriteString("\n")
 
-	var args []string
+	var args []git.CmdArg
 	if parent != "" {
-		args = []string{"commit-tree", treeHash, "-p", parent}
+		args = []git.CmdArg{"commit-tree", git.CmdArgCheck(treeHash), "-p", git.CmdArgCheck(parent)}
 	} else {
-		args = []string{"commit-tree", treeHash}
+		args = []git.CmdArg{"commit-tree", git.CmdArgCheck(treeHash)}
 	}
 
 	var sign bool
@@ -257,7 +250,7 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(parent string, author, co
 		sign, keyID, signer, _ = asymkey_service.SignInitialCommit(t.ctx, t.repo.RepoPath(), author)
 	}
 	if sign {
-		args = append(args, "-S"+keyID)
+		args = append(args, git.CmdArg("-S"+keyID))
 		if t.repo.GetTrustModel() == repo_model.CommitterTrustModel || t.repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			if committerSig.Name != authorSig.Name || committerSig.Email != authorSig.Email {
 				// Add trailers

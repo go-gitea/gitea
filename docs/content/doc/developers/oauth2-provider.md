@@ -44,6 +44,12 @@ To use the Authorization Code Grant as a third party application it is required 
 
 Currently Gitea does not support scopes (see [#4300](https://github.com/go-gitea/gitea/issues/4300)) and all third party applications will be granted access to all resources of the user and their organizations.
 
+## Client types
+
+Gitea supports both confidential and public client types, [as defined by RFC 6749](https://datatracker.ietf.org/doc/html/rfc6749#section-2.1).
+
+For public clients, a redirect URI of a loopback IP address such as `http://127.0.0.1/` allows any port. Avoid using `localhost`, [as recommended by RFC 8252](https://datatracker.ietf.org/doc/html/rfc8252#section-8.3).
+
 ## Example
 
 **Note:** This example does not use PKCE.
