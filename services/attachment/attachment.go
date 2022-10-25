@@ -29,7 +29,7 @@ func NewAttachment(attach *repo_model.Attachment, file io.Reader) (*repo_model.A
 		attach.UUID = uuid.New().String()
 		size, err := storage.Attachments.Save(attach.RelativePath(), file, -1)
 		if err != nil {
-			return fmt.Errorf("Create: %v", err)
+			return fmt.Errorf("Create: %w", err)
 		}
 		attach.Size = size
 

@@ -74,7 +74,7 @@
 							<button id="new-pull-request" class="ui compact basic button tooltip" data-content="{{if .PullRequestCtx.Allowed}}{{.locale.Tr "repo.pulls.compare_changes"}}{{else}}{{.locale.Tr "action.compare_branch"}}{{end}}"><span class="text">{{svg "octicon-git-pull-request"}}</span></button>
 						</a>
 					{{end}}
-					<a href="{{.Repository.Link}}/find/{{.BranchNameSubURL}}" class="ui compact basic button tooltip" data-content="{{.locale.Tr "repo.find_file.go_to_file"}}">{{svg "octicon-file-moved" 15}}</a>
+					<a href="{{.Repository.Link}}/find/{{.BranchNameSubURL}}" class="ui compact basic button">{{.locale.Tr "repo.find_file.go_to_file"}}</a>
 				{{end}}
 				{{if or .CanAddFile .CanUploadFile}}
 					<button class="ui basic small compact dropdown jump icon button mr-2"{{if not .Repository.CanEnableEditor}} disabled{{end}}>

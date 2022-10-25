@@ -123,7 +123,7 @@ func fixPublisherIDforTagReleases(x *xorm.Engine) error {
 					continue
 				}
 				log.Error("Error whilst getting commit for Tag: %s in [%d]%s/%s. Error: %v", release.TagName, repo.ID, repo.OwnerName, repo.Name, err)
-				return fmt.Errorf("GetTagCommit: %v", err)
+				return fmt.Errorf("GetTagCommit: %w", err)
 			}
 
 			if commit.Author.Email == "" {
@@ -135,7 +135,7 @@ func fixPublisherIDforTagReleases(x *xorm.Engine) error {
 						continue
 					}
 					log.Error("Error whilst getting commit for Tag: %s in [%d]%s/%s. Error: %v", release.TagName, repo.ID, repo.OwnerName, repo.Name, err)
-					return fmt.Errorf("GetCommit: %v", err)
+					return fmt.Errorf("GetCommit: %w", err)
 				}
 			}
 
