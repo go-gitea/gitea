@@ -16,9 +16,6 @@
 </template>
 <script>
 import {CalendarHeatmap} from 'vue3-calendar-heatmap';
-import {translateMonth, translateDay, getCurrentLocale} from '../utils.js';
-
-const {i18n} = window.config;
 
 export default {
   name: 'ActivityHeatmap',
@@ -28,6 +25,10 @@ export default {
       type: Array,
       default: () => [],
     },
+    locale: {
+      type: Object,
+      default: () => {},
+    }
   },
   data: () => ({
     colorRange: [
@@ -39,16 +40,6 @@ export default {
       'var(--color-primary-dark-4)',
     ],
     endDate: new Date(),
-    locale: {
-      months: new Array(12).fill().map((_, idx) => translateMonth(idx)),
-      days: new Array(7).fill().map((_, idx) => translateDay(idx)),
-      contributions: i18n.contributions.toLocaleLowerCase(getCurrentLocale()),
-      no_contributions: i18n.no_contributions,
-      contributions_in_the_last_12_months: i18n.contributions_in_the_last_12_months.toLocaleLowerCase(getCurrentLocale()),
-      on: i18n.on.toLocaleLowerCase(getCurrentLocale()),
-      less: i18n.less,
-      more: i18n.more,
-    },
   }),
   computed: {
     sum() {

@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest';
+import {expect, test} from 'vitest';
 import {
   basename, extname, isObject, uniq, stripTags, joinPaths, parseIssueHref,
   prettyNumber, parseUrl, translateMonth, translateDay
@@ -70,21 +70,21 @@ test('stripTags', () => {
 });
 
 test('parseIssueHref', () => {
-  expect(parseIssueHref('/owner/repo/issues/1')).toEqual({ owner: 'owner', repo: 'repo', type: 'issues', index: '1' });
-  expect(parseIssueHref('/owner/repo/pulls/1?query')).toEqual({ owner: 'owner', repo: 'repo', type: 'pulls', index: '1' });
-  expect(parseIssueHref('/owner/repo/issues/1#hash')).toEqual({ owner: 'owner', repo: 'repo', type: 'issues', index: '1' });
-  expect(parseIssueHref('/sub/owner/repo/issues/1')).toEqual({ owner: 'owner', repo: 'repo', type: 'issues', index: '1' });
-  expect(parseIssueHref('/sub/sub2/owner/repo/pulls/1')).toEqual({ owner: 'owner', repo: 'repo', type: 'pulls', index: '1' });
-  expect(parseIssueHref('/sub/sub2/owner/repo/issues/1?query')).toEqual({ owner: 'owner', repo: 'repo', type: 'issues', index: '1' });
-  expect(parseIssueHref('/sub/sub2/owner/repo/issues/1#hash')).toEqual({ owner: 'owner', repo: 'repo', type: 'issues', index: '1' });
-  expect(parseIssueHref('https://example.com/owner/repo/issues/1')).toEqual({ owner: 'owner', repo: 'repo', type: 'issues', index: '1' });
-  expect(parseIssueHref('https://example.com/owner/repo/pulls/1?query')).toEqual({ owner: 'owner', repo: 'repo', type: 'pulls', index: '1' });
-  expect(parseIssueHref('https://example.com/owner/repo/issues/1#hash')).toEqual({ owner: 'owner', repo: 'repo', type: 'issues', index: '1' });
-  expect(parseIssueHref('https://example.com/sub/owner/repo/issues/1')).toEqual({ owner: 'owner', repo: 'repo', type: 'issues', index: '1' });
-  expect(parseIssueHref('https://example.com/sub/sub2/owner/repo/pulls/1')).toEqual({ owner: 'owner', repo: 'repo', type: 'pulls', index: '1' });
-  expect(parseIssueHref('https://example.com/sub/sub2/owner/repo/issues/1?query')).toEqual({ owner: 'owner', repo: 'repo', type: 'issues', index: '1' });
-  expect(parseIssueHref('https://example.com/sub/sub2/owner/repo/issues/1#hash')).toEqual({ owner: 'owner', repo: 'repo', type: 'issues', index: '1' });
-  expect(parseIssueHref('')).toEqual({ owner: undefined, repo: undefined, type: undefined, index: undefined });
+  expect(parseIssueHref('/owner/repo/issues/1')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
+  expect(parseIssueHref('/owner/repo/pulls/1?query')).toEqual({owner: 'owner', repo: 'repo', type: 'pulls', index: '1'});
+  expect(parseIssueHref('/owner/repo/issues/1#hash')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
+  expect(parseIssueHref('/sub/owner/repo/issues/1')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
+  expect(parseIssueHref('/sub/sub2/owner/repo/pulls/1')).toEqual({owner: 'owner', repo: 'repo', type: 'pulls', index: '1'});
+  expect(parseIssueHref('/sub/sub2/owner/repo/issues/1?query')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
+  expect(parseIssueHref('/sub/sub2/owner/repo/issues/1#hash')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
+  expect(parseIssueHref('https://example.com/owner/repo/issues/1')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
+  expect(parseIssueHref('https://example.com/owner/repo/pulls/1?query')).toEqual({owner: 'owner', repo: 'repo', type: 'pulls', index: '1'});
+  expect(parseIssueHref('https://example.com/owner/repo/issues/1#hash')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
+  expect(parseIssueHref('https://example.com/sub/owner/repo/issues/1')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
+  expect(parseIssueHref('https://example.com/sub/sub2/owner/repo/pulls/1')).toEqual({owner: 'owner', repo: 'repo', type: 'pulls', index: '1'});
+  expect(parseIssueHref('https://example.com/sub/sub2/owner/repo/issues/1?query')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
+  expect(parseIssueHref('https://example.com/sub/sub2/owner/repo/issues/1#hash')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
+  expect(parseIssueHref('')).toEqual({owner: undefined, repo: undefined, type: undefined, index: undefined});
 });
 
 test('prettyNumber', () => {

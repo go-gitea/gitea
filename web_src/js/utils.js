@@ -56,13 +56,13 @@ export function mqBinarySearch(feature, minValue, maxValue, step, unit) {
 export function parseIssueHref(href) {
   const path = (href || '').replace(/[#?].*$/, '');
   const [_, owner, repo, type, index] = /([^/]+)\/([^/]+)\/(issues|pulls)\/([0-9]+)/.exec(path) || [];
-  return { owner, repo, type, index };
+  return {owner, repo, type, index};
 }
 
 // pretty-print a number using locale-specific separators, e.g. 1200 -> 1,200
 export function prettyNumber(num, locale = 'en-US') {
   if (typeof num !== 'number') return '';
-  const { format } = new Intl.NumberFormat(locale);
+  const {format} = new Intl.NumberFormat(locale);
   return format(num);
 }
 
@@ -73,16 +73,16 @@ export function parseUrl(str) {
 
 // return current locale chosen by user
 export function getCurrentLocale() {
-  const { lang } = document.documentElement;
+  const {lang} = document.documentElement;
   return lang;
 }
 
 // given a month (0-11), returns it in the documents language
 export function translateMonth(month) {
-  return new Date(Date.UTC(2022, month, 12)).toLocaleString(getCurrentLocale(), { month: 'short' });
+  return new Date(Date.UTC(2022, month, 12)).toLocaleString(getCurrentLocale(), {month: 'short'});
 }
 
 // given a weekday (0-6, Sunday to Saturday), returns it in the documents language
 export function translateDay(day) {
-  return new Date(Date.UTC(2022, 7, day)).toLocaleString(getCurrentLocale(), { weekday: 'short' });
+  return new Date(Date.UTC(2022, 7, day)).toLocaleString(getCurrentLocale(), {weekday: 'short'});
 }
