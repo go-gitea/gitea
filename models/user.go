@@ -35,10 +35,10 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 	watchedRepoIDs := make([]int64, 0, 10)
 	if err = e.Table("watch").Cols("watch.repo_id").
 		Where("watch.user_id = ?", u.ID).And("watch.mode <>?", repo_model.WatchModeDont).Find(&watchedRepoIDs); err != nil {
-		return fmt.Errorf("get all watches: %v", err)
+		return fmt.Errorf("get all watches: %w", err)
 	}
 	if _, err = e.Decr("num_watches").In("id", watchedRepoIDs).NoAutoTime().Update(new(repo_model.Repository)); err != nil {
-		return fmt.Errorf("decrease repository num_watches: %v", err)
+		return fmt.Errorf("decrease repository num_watches: %w", err)
 	}
 	// ***** END: Watch *****
 
@@ -46,9 +46,9 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 	starredRepoIDs := make([]int64, 0, 10)
 	if err = e.Table("star").Cols("star.repo_id").
 		Where("star.uid = ?", u.ID).Find(&starredRepoIDs); err != nil {
-		return fmt.Errorf("get all stars: %v", err)
+		return fmt.Errorf("get all stars: %w", err)
 	} else if _, err = e.Decr("num_stars").In("id", starredRepoIDs).NoAutoTime().Update(new(repo_model.Repository)); err != nil {
-		return fmt.Errorf("decrease repository num_stars: %v", err)
+		return fmt.Errorf("decrease repository num_stars: %w", err)
 	}
 	// ***** END: Star *****
 
@@ -56,17 +56,17 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 	followeeIDs := make([]int64, 0, 10)
 	if err = e.Table("follow").Cols("follow.follow_id").
 		Where("follow.user_id = ?", u.ID).Find(&followeeIDs); err != nil {
-		return fmt.Errorf("get all followees: %v", err)
+		return fmt.Errorf("get all followees: %w", err)
 	} else if _, err = e.Decr("num_followers").In("id", followeeIDs).Update(new(user_model.User)); err != nil {
-		return fmt.Errorf("decrease user num_followers: %v", err)
+		return fmt.Errorf("decrease user num_followers: %w", err)
 	}
 
 	followerIDs := make([]int64, 0, 10)
 	if err = e.Table("follow").Cols("follow.user_id").
 		Where("follow.follow_id = ?", u.ID).Find(&followerIDs); err != nil {
-		return fmt.Errorf("get all followers: %v", err)
+		return fmt.Errorf("get all followers: %w", err)
 	} else if _, err = e.Decr("num_following").In("id", followerIDs).Update(new(user_model.User)); err != nil {
-		return fmt.Errorf("decrease user num_following: %v", err)
+		return fmt.Errorf("decrease user num_following: %w", err)
 	}
 	// ***** END: Follow *****
 
@@ -90,7 +90,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 		&pull_model.AutoMerge{DoerID: u.ID},
 		&pull_model.ReviewState{UserID: u.ID},
 	); err != nil {
-		return fmt.Errorf("deleteBeans: %v", err)
+		return fmt.Errorf("deleteBeans: %w", err)
 	}
 
 	if err := auth_model.DeleteOAuth2RelictsByUserID(ctx, u.ID); err != nil {
@@ -135,7 +135,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 			// Also, as we didn't update branch protections when removing entries from `access` table,
 			//   it's safer to iterate all protected branches.
 			if err = e.Limit(batchSize, start).Find(&protections); err != nil {
-				return fmt.Errorf("findProtectedBranches: %v", err)
+				return fmt.Errorf("findProtectedBranches: %w", err)
 			}
 			if len(protections) == 0 {
 				break
@@ -160,7 +160,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 						"merge_whitelist_user_i_ds",
 						"approvals_whitelist_user_i_ds",
 					).Update(p); err != nil {
-						return fmt.Errorf("updateProtectedBranches: %v", err)
+						return fmt.Errorf("updateProtectedBranches: %w", err)
 					}
 				}
 			}
@@ -170,39 +170,39 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 
 	// ***** START: PublicKey *****
 	if _, err = db.DeleteByBean(ctx, &asymkey_model.PublicKey{OwnerID: u.ID}); err != nil {
-		return fmt.Errorf("deletePublicKeys: %v", err)
+		return fmt.Errorf("deletePublicKeys: %w", err)
 	}
 	// ***** END: PublicKey *****
 
 	// ***** START: GPGPublicKey *****
 	keys, err := asymkey_model.ListGPGKeys(ctx, u.ID, db.ListOptions{})
 	if err != nil {
-		return fmt.Errorf("ListGPGKeys: %v", err)
+		return fmt.Errorf("ListGPGKeys: %w", err)
 	}
 	// Delete GPGKeyImport(s).
 	for _, key := range keys {
 		if _, err = db.DeleteByBean(ctx, &asymkey_model.GPGKeyImport{KeyID: key.KeyID}); err != nil {
-			return fmt.Errorf("deleteGPGKeyImports: %v", err)
+			return fmt.Errorf("deleteGPGKeyImports: %w", err)
 		}
 	}
 	if _, err = db.DeleteByBean(ctx, &asymkey_model.GPGKey{OwnerID: u.ID}); err != nil {
-		return fmt.Errorf("deleteGPGKeys: %v", err)
+		return fmt.Errorf("deleteGPGKeys: %w", err)
 	}
 	// ***** END: GPGPublicKey *****
 
 	// Clear assignee.
 	if _, err = db.DeleteByBean(ctx, &issues_model.IssueAssignees{AssigneeID: u.ID}); err != nil {
-		return fmt.Errorf("clear assignee: %v", err)
+		return fmt.Errorf("clear assignee: %w", err)
 	}
 
 	// ***** START: ExternalLoginUser *****
 	if err = user_model.RemoveAllAccountLinks(ctx, u); err != nil {
-		return fmt.Errorf("ExternalLoginUser: %v", err)
+		return fmt.Errorf("ExternalLoginUser: %w", err)
 	}
 	// ***** END: ExternalLoginUser *****
 
 	if _, err = e.ID(u.ID).Delete(new(user_model.User)); err != nil {
-		return fmt.Errorf("delete: %v", err)
+		return fmt.Errorf("delete: %w", err)
 	}
 
 	return nil

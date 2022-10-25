@@ -56,18 +56,32 @@
   --color-secondary-alpha-80: #454a57cc;
   --color-secondary-alpha-90: #454a57e1;
   /* colors */
-  --color-red: #db2828;
-  --color-orange: #f2711c;
-  --color-yellow: #fbbd08;
-  --color-olive: #b5cc18;
-  --color-green: #21ba45;
-  --color-teal: #00b5ad;
-  --color-blue: #2185d0;
-  --color-violet: #6435c9;
-  --color-purple: #a333c8;
-  --color-pink: #e03997;
-  --color-brown: #a5673f;
-  --color-grey: #767a85;
+  --color-red: #7d3434;
+  --color-orange: #cc580c;
+  --color-yellow: #cc9903;
+  --color-olive: #91a313;
+  --color-green: #87ab63;
+  --color-teal: #00918a;
+  --color-blue: #1a6aa6;
+  --color-violet: #502aa1;
+  --color-purple: #8229a0;
+  --color-pink: #c21e7b;
+  --color-brown: #845232;
+  --color-grey: #5e626a;
+  /* light variants */
+  --color-red-light: #984646;
+  --color-orange-light: #e6630d;
+  --color-yellow-light: #e5ac04;
+  --color-olive-light: #a3b816;
+  --color-green-light: #9fbc82;
+  --color-teal-light: #00a39c;
+  --color-blue-light: #1e78bb;
+  --color-violet-light: #5a30b5;
+  --color-purple-light: #932eb4;
+  --color-pink-light: #db228a;
+  --color-brown-light: #955d39;
+  --color-grey-light: #6a6e78;
+  /* other colors */
   --color-black: #1e222e;
   --color-gold: #a1882b;
   --color-white: #ffffff;
@@ -80,9 +94,9 @@
   --color-diff-moved-row-border: #bcca6f;
   --color-diff-added-row-border: #314a37;
   --color-diff-inactive: #353846;
-  --color-error-border: #a53a37;
-  --color-error-bg: #482c2c;
-  --color-error-text: #ff4433;
+  --color-error-border: #a04141;
+  --color-error-bg: #522;
+  --color-error-text: #f9cbcb;
   --color-success-border: #458a57;
   --color-success-bg: #284034;
   --color-success-text: #6cc664;
@@ -145,105 +159,6 @@
   filter: invert(.8);
 }
 
-.ui.red.label,
-.ui.red.labels .label {
-  background-color: #7d3434 !important;
-  border-color: #8a2121 !important;
-}
-
-.ui.yellow.label,
-.ui.yellow.labels .label {
-  border-color: #664d02 !important;
-  background-color: #936e00 !important;
-}
-
-.ui.green.label,
-.ui.green.labels .label,
-.ui.basic.green.label {
-  background-color: #2d693b !important;
-  border-color: #2d693b !important;
-}
-
-.ui.green.labels a.label:hover,
-.ui.basic.green.labels a.label:hover,
-a.ui.ui.ui.green.label:hover,
-a.ui.basic.green.label:hover {
-  background-color: #3d794b !important;
-  border-color: #3d794b !important;
-  color: #fff !important;
-}
-
-.ui.form .fields.error .field textarea,
-.ui.form .fields.error .field select,
-.ui.form .fields.error .field input:not([type]),
-.ui.form .fields.error .field input[type="date"],
-.ui.form .fields.error .field input[type="datetime-local"],
-.ui.form .fields.error .field input[type="email"],
-.ui.form .fields.error .field input[type="number"],
-.ui.form .fields.error .field input[type="password"],
-.ui.form .fields.error .field input[type="search"],
-.ui.form .fields.error .field input[type="tel"],
-.ui.form .fields.error .field input[type="time"],
-.ui.form .fields.error .field input[type="text"],
-.ui.form .fields.error .field input[type="file"],
-.ui.form .fields.error .field input[type="url"],
-.ui.form .field.error textarea,
-.ui.form .field.error select,
-.ui.form .field.error input:not([type]),
-.ui.form .field.error input[type="date"],
-.ui.form .field.error input[type="datetime-local"],
-.ui.form .field.error input[type="email"],
-.ui.form .field.error input[type="number"],
-.ui.form .field.error input[type="password"],
-.ui.form .field.error input[type="search"],
-.ui.form .field.error input[type="tel"],
-.ui.form .field.error input[type="time"],
-.ui.form .field.error input[type="text"],
-.ui.form .field.error input[type="file"],
-.ui.form .field.error input[type="url"] {
-  background-color: #522;
-  border: 1px solid #7d3434;
-  color: #f9cbcb;
-}
-
-.ui.form .field.error select:focus,
-.ui.form .field.error input:not([type]):focus,
-.ui.form .field.error input[type="date"]:focus,
-.ui.form .field.error input[type="datetime-local"]:focus,
-.ui.form .field.error input[type="email"]:focus,
-.ui.form .field.error input[type="number"]:focus,
-.ui.form .field.error input[type="password"]:focus,
-.ui.form .field.error input[type="search"]:focus,
-.ui.form .field.error input[type="tel"]:focus,
-.ui.form .field.error input[type="time"]:focus,
-.ui.form .field.error input[type="text"]:focus,
-.ui.form .field.error input[type="file"]:focus,
-.ui.form .field.error input[type="url"]:focus {
-  background-color: #522;
-  border: 1px solid #a04141;
-  color: #f9cbcb;
-}
-
-.ui.green.button,
-.ui.green.buttons .button {
-  background-color: #87ab63;
-}
-
-.ui.green.button:hover,
-.ui.green.buttons .button:hover {
-  background-color: #a0cc75;
-}
-
-.ui.red.button,
-.ui.red.buttons .button {
-  background-color: #7d3434;
-}
-
-.ui.red.button:hover,
-.ui.red.buttons .button:hover {
-  background-color: #984646;
-}
-
 /* invert emojis that are hard to read otherwise */
 .emoji[aria-label="check mark"],
 .emoji[aria-label="currency exchange"],
@@ -270,9 +185,4 @@ a.ui.basic.green.label:hover {
 
 img[src$="/img/matrix.svg"] {
   filter: invert(80%);
-}
-
-.markup-block-error {
-  border: 1px solid rgba(121, 71, 66, .5) !important;
-  border-bottom: none !important;
 }

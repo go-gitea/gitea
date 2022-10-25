@@ -428,18 +428,20 @@ var migrations = []Migration{
 	NewMigration("Add TeamInvite table", v1_18.AddTeamInviteTable),
 	// v229 -> v230
 	NewMigration("Update counts of all open milestones", v1_18.UpdateOpenMilestoneCounts),
+	// v230 -> v231
+	NewMigration("Add ConfidentialClient column (default true) to OAuth2Application table", v1_18.AddConfidentialClientColumnToOAuth2ApplicationTable),
 }
 
 // GetCurrentDBVersion returns the current db version
 func GetCurrentDBVersion(x *xorm.Engine) (int64, error) {
 	if err := x.Sync(new(Version)); err != nil {
-		return -1, fmt.Errorf("sync: %v", err)
+		return -1, fmt.Errorf("sync: %w", err)
 	}
 
 	currentVersion := &Version{ID: 1}
 	has, err := x.Get(currentVersion)
 	if err != nil {
-		return -1, fmt.Errorf("get: %v", err)
+		return -1, fmt.Errorf("get: %w", err)
 	}
 	if !has {
 		return -1, nil
@@ -481,13 +483,13 @@ func Migrate(x *xorm.Engine) error {
 	// Set a new clean the default mapper to GonicMapper as that is the default for Gitea.
 	x.SetMapper(names.GonicMapper{})
 	if err := x.Sync(new(Version)); err != nil {
-		return fmt.Errorf("sync: %v", err)
+		return fmt.Errorf("sync: %w", err)
 	}
 
 	currentVersion := &Version{ID: 1}
 	has, err := x.Get(currentVersion)
 	if err != nil {
-		return fmt.Errorf("get: %v", err)
+		return fmt.Errorf("get: %w", err)
 	} else if !has {
 		// If the version record does not exist we think
 		// it is a fresh installation and we can skip all migrations.
@@ -495,7 +497,7 @@ func Migrate(x *xorm.Engine) error {
 		currentVersion.Version = int64(minDBVersion + len(migrations))
 
 		if _, err = x.InsertOne(currentVersion); err != nil {
-			return fmt.Errorf("insert: %v", err)
+			return fmt.Errorf("insert: %w", err)
 		}
 	}
 
@@ -524,7 +526,7 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 		// Reset the mapper between each migration - migrations are not supposed to depend on each other
 		x.SetMapper(names.GonicMapper{})
 		if err = m.Migrate(x); err != nil {
-			return fmt.Errorf("migration[%d]: %s failed: %v", v+int64(i), m.Description(), err)
+			return fmt.Errorf("migration[%d]: %s failed: %w", v+int64(i), m.Description(), err)
 		}
 		currentVersion.Version = v + int64(i) + 1
 		if _, err = x.ID(1).Update(currentVersion); err != nil {

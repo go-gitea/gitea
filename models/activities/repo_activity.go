@@ -49,32 +49,32 @@ func GetActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom
 	stats := &ActivityStats{Code: &git.CodeActivityStats{}}
 	if releases {
 		if err := stats.FillReleases(repo.ID, timeFrom); err != nil {
-			return nil, fmt.Errorf("FillReleases: %v", err)
+			return nil, fmt.Errorf("FillReleases: %w", err)
 		}
 	}
 	if prs {
 		if err := stats.FillPullRequests(repo.ID, timeFrom); err != nil {
-			return nil, fmt.Errorf("FillPullRequests: %v", err)
+			return nil, fmt.Errorf("FillPullRequests: %w", err)
 		}
 	}
 	if issues {
 		if err := stats.FillIssues(repo.ID, timeFrom); err != nil {
-			return nil, fmt.Errorf("FillIssues: %v", err)
+			return nil, fmt.Errorf("FillIssues: %w", err)
 		}
 	}
 	if err := stats.FillUnresolvedIssues(repo.ID, timeFrom, issues, prs); err != nil {
-		return nil, fmt.Errorf("FillUnresolvedIssues: %v", err)
+		return nil, fmt.Errorf("FillUnresolvedIssues: %w", err)
 	}
 	if code {
 		gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
 		if err != nil {
-			return nil, fmt.Errorf("OpenRepository: %v", err)
+			return nil, fmt.Errorf("OpenRepository: %w", err)
 		}
 		defer closer.Close()
 
 		code, err := gitRepo.GetCodeActivityStats(timeFrom, repo.DefaultBranch)
 		if err != nil {
-			return nil, fmt.Errorf("FillFromGit: %v", err)
+			return nil, fmt.Errorf("FillFromGit: %w", err)
 		}
 		stats.Code = code
 	}
@@ -85,13 +85,13 @@ func GetActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom
 func GetActivityStatsTopAuthors(ctx context.Context, repo *repo_model.Repository, timeFrom time.Time, count int) ([]*ActivityAuthorData, error) {
 	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
 	if err != nil {
-		return nil, fmt.Errorf("OpenRepository: %v", err)
+		return nil, fmt.Errorf("OpenRepository: %w", err)
 	}
 	defer closer.Close()
 
 	code, err := gitRepo.GetCodeActivityStats(timeFrom, "")
 	if err != nil {
-		return nil, fmt.Errorf("FillFromGit: %v", err)
+		return nil, fmt.Errorf("FillFromGit: %w", err)
 	}
 	if code.Authors == nil {
 		return nil, nil

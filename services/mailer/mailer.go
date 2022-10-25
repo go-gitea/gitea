@@ -161,7 +161,7 @@ func (s *smtpSender) Send(from string, to []string, msg io.WriterTo) error {
 
 	conn, err := net.Dial(network, address)
 	if err != nil {
-		return fmt.Errorf("failed to establish network connection to SMTP server: %v", err)
+		return fmt.Errorf("failed to establish network connection to SMTP server: %w", err)
 	}
 	defer conn.Close()
 
@@ -175,7 +175,7 @@ func (s *smtpSender) Send(from string, to []string, msg io.WriterTo) error {
 		if opts.UseClientCert {
 			cert, err := tls.LoadX509KeyPair(opts.ClientCertFile, opts.ClientKeyFile)
 			if err != nil {
-				return fmt.Errorf("could not load SMTP client certificate: %v", err)
+				return fmt.Errorf("could not load SMTP client certificate: %w", err)
 			}
 			tlsconfig.Certificates = []tls.Certificate{cert}
 		}
@@ -191,7 +191,7 @@ func (s *smtpSender) Send(from string, to []string, msg io.WriterTo) error {
 	}
 	client, err := smtp.NewClient(conn, host)
 	if err != nil {
-		return fmt.Errorf("could not initiate SMTP session: %v", err)
+		return fmt.Errorf("could not initiate SMTP session: %w", err)
 	}
 
 	if opts.EnableHelo {
@@ -199,12 +199,12 @@ func (s *smtpSender) Send(from string, to []string, msg io.WriterTo) error {
 		if len(hostname) == 0 {
 			hostname, err = os.Hostname()
 			if err != nil {
-				return fmt.Errorf("could not retrieve system hostname: %v", err)
+				return fmt.Errorf("could not retrieve system hostname: %w", err)
 			}
 		}
 
 		if err = client.Hello(hostname); err != nil {
-			return fmt.Errorf("failed to issue HELO command: %v", err)
+			return fmt.Errorf("failed to issue HELO command: %w", err)
 		}
 	}
 
@@ -212,7 +212,7 @@ func (s *smtpSender) Send(from string, to []string, msg io.WriterTo) error {
 		hasStartTLS, _ := client.Extension("STARTTLS")
 		if hasStartTLS {
 			if err = client.StartTLS(tlsconfig); err != nil {
-				return fmt.Errorf("failed to start TLS connection: %v", err)
+				return fmt.Errorf("failed to start TLS connection: %w", err)
 			}
 		} else {
 			log.Warn("StartTLS requested, but SMTP server does not support it; falling back to regular SMTP")
@@ -238,34 +238,34 @@ func (s *smtpSender) Send(from string, to []string, msg io.WriterTo) error {
 
 		if auth != nil {
 			if err = client.Auth(auth); err != nil {
-				return fmt.Errorf("failed to authenticate SMTP: %v", err)
+				return fmt.Errorf("failed to authenticate SMTP: %w", err)
 			}
 		}
 	}
 
 	if opts.OverrideEnvelopeFrom {
 		if err = client.Mail(opts.EnvelopeFrom); err != nil {
-			return fmt.Errorf("failed to issue MAIL command: %v", err)
+			return fmt.Errorf("failed to issue MAIL command: %w", err)
 		}
 	} else {
 		if err = client.Mail(from); err != nil {
-			return fmt.Errorf("failed to issue MAIL command: %v", err)
+			return fmt.Errorf("failed to issue MAIL command: %w", err)
 		}
 	}
 
 	for _, rec := range to {
 		if err = client.Rcpt(rec); err != nil {
-			return fmt.Errorf("failed to issue RCPT command: %v", err)
+			return fmt.Errorf("failed to issue RCPT command: %w", err)
 		}
 	}
 
 	w, err := client.Data()
 	if err != nil {
-		return fmt.Errorf("failed to issue DATA command: %v", err)
+		return fmt.Errorf("failed to issue DATA command: %w", err)
 	} else if _, err = msg.WriteTo(w); err != nil {
-		return fmt.Errorf("SMTP write failed: %v", err)
+		return fmt.Errorf("SMTP write failed: %w", err)
 	} else if err = w.Close(); err != nil {
-		return fmt.Errorf("SMTP close failed: %v", err)
+		return fmt.Errorf("SMTP close failed: %w", err)
 	}
 
 	return client.Quit()

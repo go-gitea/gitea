@@ -58,11 +58,11 @@ func IncreaseLanguageField(x *xorm.Engine) error {
 			INNER JOIN sys.columns c
 				ON t.object_id = c.object_id AND ic.column_id = c.column_id
 			WHERE t.name = 'language_stat' AND c.name = 'language'`).Find(&constraints); err != nil {
-			return fmt.Errorf("Find constraints: %v", err)
+			return fmt.Errorf("Find constraints: %w", err)
 		}
 		for _, constraint := range constraints {
 			if _, err := sess.Exec(fmt.Sprintf("DROP INDEX [%s] ON `language_stat`", constraint)); err != nil {
-				return fmt.Errorf("Drop table `language_stat` constraint `%s`: %v", constraint, err)
+				return fmt.Errorf("Drop table `language_stat` constraint `%s`: %w", constraint, err)
 			}
 		}
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE language_stat ALTER COLUMN language %s", sqlType)); err != nil {

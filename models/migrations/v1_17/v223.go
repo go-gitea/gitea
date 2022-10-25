@@ -55,7 +55,7 @@ func RenameCredentialIDBytes(x *xorm.Engine) error {
 		}
 
 		if err := sess.Sync2(new(webauthnCredential)); err != nil {
-			return fmt.Errorf("error on Sync2: %v", err)
+			return fmt.Errorf("error on Sync2: %w", err)
 		}
 
 		if credentialIDExist {

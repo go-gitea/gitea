@@ -70,7 +70,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 
 	var err error
 	if err = util.RemoveAll(repoPath); err != nil {
-		return repo, fmt.Errorf("Failed to remove %s: %v", repoPath, err)
+		return repo, fmt.Errorf("Failed to remove %s: %w", repoPath, err)
 	}
 
 	if err = git.Clone(ctx, opts.CloneAddr, repoPath, git.CloneRepoOptions{
@@ -79,7 +79,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		Timeout:       migrateTimeout,
 		SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 	}); err != nil {
-		return repo, fmt.Errorf("Clone: %v", err)
+		return repo, fmt.Errorf("Clone: %w", err)
 	}
 
 	if err := git.WriteCommitGraph(ctx, repoPath); err != nil {
@@ -91,7 +91,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		wikiRemotePath := WikiRemoteURL(ctx, opts.CloneAddr)
 		if len(wikiRemotePath) > 0 {
 			if err := util.RemoveAll(wikiPath); err != nil {
-				return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
+				return repo, fmt.Errorf("Failed to remove %s: %w", wikiPath, err)
 			}
 
 			if err := git.Clone(ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
@@ -103,7 +103,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			}); err != nil {
 				log.Warn("Clone wiki: %v", err)
 				if err := util.RemoveAll(wikiPath); err != nil {
-					return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
+					return repo, fmt.Errorf("Failed to remove %s: %w", wikiPath, err)
 				}
 			} else {
 				if err := git.WriteCommitGraph(ctx, wikiPath); err != nil {
@@ -118,25 +118,25 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	}
 
 	if err = CheckDaemonExportOK(ctx, repo); err != nil {
-		return repo, fmt.Errorf("checkDaemonExportOK: %v", err)
+		return repo, fmt.Errorf("checkDaemonExportOK: %w", err)
 	}
 
 	if stdout, _, err := git.NewCommand(ctx, "update-server-info").
 		SetDescription(fmt.Sprintf("MigrateRepositoryGitData(git update-server-info): %s", repoPath)).
 		RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
 		log.Error("MigrateRepositoryGitData(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
-		return repo, fmt.Errorf("error in MigrateRepositoryGitData(git update-server-info): %v", err)
+		return repo, fmt.Errorf("error in MigrateRepositoryGitData(git update-server-info): %w", err)
 	}
 
 	gitRepo, err := git.OpenRepository(ctx, repoPath)
 	if err != nil {
-		return repo, fmt.Errorf("OpenRepository: %v", err)
+		return repo, fmt.Errorf("OpenRepository: %w", err)
 	}
 	defer gitRepo.Close()
 
 	repo.IsEmpty, err = gitRepo.IsEmpty()
 	if err != nil {
-		return repo, fmt.Errorf("git.IsEmpty: %v", err)
+		return repo, fmt.Errorf("git.IsEmpty: %w", err)
 	}
 
 	if !repo.IsEmpty {
@@ -144,7 +144,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			// Try to get HEAD branch and set it as default branch.
 			headBranch, err := gitRepo.GetHEADBranch()
 			if err != nil {
-				return repo, fmt.Errorf("GetHEADBranch: %v", err)
+				return repo, fmt.Errorf("GetHEADBranch: %w", err)
 			}
 			if headBranch != nil {
 				repo.DefaultBranch = headBranch.Name
@@ -207,7 +207,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		}
 
 		if err = repo_model.InsertMirror(ctx, &mirrorModel); err != nil {
-			return repo, fmt.Errorf("InsertOne: %v", err)
+			return repo, fmt.Errorf("InsertOne: %w", err)
 		}
 
 		repo.IsMirror = true
@@ -231,11 +231,11 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 func cleanUpMigrateGitConfig(configPath string) error {
 	cfg, err := ini.Load(configPath)
 	if err != nil {
-		return fmt.Errorf("open config file: %v", err)
+		return fmt.Errorf("open config file: %w", err)
 	}
 	cfg.DeleteSection("remote \"origin\"")
 	if err = cfg.SaveToIndent(configPath, "\t"); err != nil {
-		return fmt.Errorf("save config file: %v", err)
+		return fmt.Errorf("save config file: %w", err)
 	}
 	return nil
 }
@@ -244,22 +244,22 @@ func cleanUpMigrateGitConfig(configPath string) error {
 func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo_model.Repository, error) {
 	repoPath := repo.RepoPath()
 	if err := createDelegateHooks(repoPath); err != nil {
-		return repo, fmt.Errorf("createDelegateHooks: %v", err)
+		return repo, fmt.Errorf("createDelegateHooks: %w", err)
 	}
 	if repo.HasWiki() {
 		if err := createDelegateHooks(repo.WikiPath()); err != nil {
-			return repo, fmt.Errorf("createDelegateHooks.(wiki): %v", err)
+			return repo, fmt.Errorf("createDelegateHooks.(wiki): %w", err)
 		}
 	}
 
 	_, _, err := git.NewCommand(ctx, "remote", "rm", "origin").RunStdString(&git.RunOpts{Dir: repoPath})
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
-		return repo, fmt.Errorf("CleanUpMigrateInfo: %v", err)
+		return repo, fmt.Errorf("CleanUpMigrateInfo: %w", err)
 	}
 
 	if repo.HasWiki() {
 		if err := cleanUpMigrateGitConfig(path.Join(repo.WikiPath(), "config")); err != nil {
-			return repo, fmt.Errorf("cleanUpMigrateGitConfig (wiki): %v", err)
+			return repo, fmt.Errorf("cleanUpMigrateGitConfig (wiki): %w", err)
 		}
 	}
 
