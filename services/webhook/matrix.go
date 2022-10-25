@@ -154,10 +154,10 @@ func (m *MatrixPayloadUnsafe) Release(p *api.ReleasePayload) (api.Payloader, err
 func (m *MatrixPayloadUnsafe) Push(p *api.PushPayload) (api.Payloader, error) {
 	var commitDesc string
 
-	if len(p.Commits) == 1 {
+	if p.TotalCommits == 1 {
 		commitDesc = "1 commit"
 	} else {
-		commitDesc = fmt.Sprintf("%d commits", len(p.Commits))
+		commitDesc = fmt.Sprintf("%d commits", p.TotalCommits)
 	}
 
 	repoLink := MatrixLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)

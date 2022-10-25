@@ -67,14 +67,14 @@ func (d *DingtalkPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 	)
 
 	var titleLink, linkText string
-	if len(p.Commits) == 1 {
+	if p.TotalCommits == 1 {
 		commitDesc = "1 new commit"
 		titleLink = p.Commits[0].URL
-		linkText = fmt.Sprintf("view commit %s", p.Commits[0].ID[:7])
+		linkText = "view commit"
 	} else {
-		commitDesc = fmt.Sprintf("%d new commits", len(p.Commits))
+		commitDesc = fmt.Sprintf("%d new commits", p.TotalCommits)
 		titleLink = p.CompareURL
-		linkText = fmt.Sprintf("view commit %s...%s", p.Commits[0].ID[:7], p.Commits[len(p.Commits)-1].ID[:7])
+		linkText = "view commits"
 	}
 	if titleLink == "" {
 		titleLink = p.Repo.HTMLURL + "/src/" + util.PathEscapeSegments(branchName)

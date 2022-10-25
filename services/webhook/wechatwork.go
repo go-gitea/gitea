@@ -93,7 +93,7 @@ func (f *WechatworkPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 	for i, commit := range p.Commits {
 		var authorName string
 		if commit.Author != nil {
-			authorName = "Author：" + commit.Author.Name
+			authorName = "Author: " + commit.Author.Name
 		}
 
 		message := strings.ReplaceAll(commit.Message, "\n\n", "\r\n")
