@@ -1061,7 +1061,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 
 		// update external user information
 		if err := externalaccount.UpdateExternalUser(u, gothUser); err != nil {
-			if !errors.Is(err, util.ErrNotExist) {
+			if !user_model.IsErrExternalLoginUserNotExist(err) {
 				log.Error("UpdateExternalUser failed: %v", err)
 			}
 		}
