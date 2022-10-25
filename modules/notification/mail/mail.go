@@ -135,7 +135,7 @@ func (m *mailNotifier) NotifyPullReviewRequest(ctx context.Context, doer *user_m
 
 func (m *mailNotifier) NotifyMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
 	if err := pr.LoadIssue(ctx); err != nil {
-		log.Error("pr.LoadIssue: %v", err)
+		log.Error("LoadIssue: %v", err)
 		return
 	}
 	if err := mailer.MailParticipants(ctx, pr.Issue, doer, activities_model.ActionMergePullRequest, nil); err != nil {
@@ -167,7 +167,7 @@ func (m *mailNotifier) NotifyPullRequestPushCommits(ctx context.Context, doer *u
 	m.NotifyCreateIssueComment(ctx, doer, comment.Issue.Repo, comment.Issue, comment, nil)
 }
 
-func (m *mailNotifier) NotifyPullRevieweDismiss(ctx context.Context, doer *user_model.User, review *issues_model.Review, comment *issues_model.Comment) {
+func (m *mailNotifier) NotifyPullReviewDismiss(ctx context.Context, doer *user_model.User, review *issues_model.Review, comment *issues_model.Comment) {
 	if err := mailer.MailParticipantsComment(ctx, comment, activities_model.ActionPullReviewDismissed, review.Issue, nil); err != nil {
 		log.Error("MailParticipantsComment: %v", err)
 	}

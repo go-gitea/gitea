@@ -339,7 +339,7 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 	comment.Poster = doer
 	comment.Issue = review.Issue
 
-	notification.NotifyPullRevieweDismiss(ctx, doer, review, comment)
+	notification.NotifyPullReviewDismiss(ctx, doer, review, comment)
 
 	return comment, err
 }

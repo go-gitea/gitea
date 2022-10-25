@@ -42,7 +42,7 @@ type Notifier interface {
 	NotifyPullRequestCodeComment(ctx context.Context, pr *issues_model.PullRequest, comment *issues_model.Comment, mentions []*user_model.User)
 	NotifyPullRequestChangeTargetBranch(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, oldBranch string)
 	NotifyPullRequestPushCommits(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, comment *issues_model.Comment)
-	NotifyPullRevieweDismiss(ctx context.Context, doer *user_model.User, review *issues_model.Review, comment *issues_model.Comment)
+	NotifyPullReviewDismiss(ctx context.Context, doer *user_model.User, review *issues_model.Review, comment *issues_model.Comment)
 	NotifyCreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,
 		issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User)
 	NotifyUpdateComment(ctx context.Context, doer *user_model.User, c *issues_model.Comment, oldContent string)

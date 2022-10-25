@@ -679,7 +679,7 @@ func (m *webhookNotifier) NotifyPullRequestReview(ctx context.Context, pr *issue
 	}
 
 	if err := pr.LoadIssue(ctx); err != nil {
-		log.Error("pr.LoadIssue: %v", err)
+		log.Error("LoadIssue: %v", err)
 		return
 	}
 
@@ -721,7 +721,7 @@ func (m *webhookNotifier) NotifyCreateRef(ctx context.Context, pusher *user_mode
 
 func (m *webhookNotifier) NotifyPullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
 	if err := pr.LoadIssue(ctx); err != nil {
-		log.Error("pr.LoadIssue: %v", err)
+		log.Error("LoadIssue: %v", err)
 		return
 	}
 	if err := pr.Issue.LoadAttributes(ctx); err != nil {

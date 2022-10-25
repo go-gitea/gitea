@@ -653,8 +653,9 @@ func (pr *PullRequest) UpdateColsIfNotMerged(ctx context.Context, cols ...string
 // IsWorkInProgress determine if the Pull Request is a Work In Progress by its title
 // Issue must be set before this method can be called.
 func (pr *PullRequest) IsWorkInProgress() bool {
-	if pr.Issue == nil {
-		panic("Issue == nil")
+	if err := pr.LoadIssue(db.DefaultContext); err != nil {
+		log.Error("LoadIssue: %v", err)
+		return false
 	}
 	return HasWorkInProgressPrefix(pr.Issue.Title)
 }

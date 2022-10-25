@@ -68,8 +68,8 @@ func (*NullNotifier) NotifyPullRequestChangeTargetBranch(ctx context.Context, do
 func (*NullNotifier) NotifyPullRequestPushCommits(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, comment *issues_model.Comment) {
 }
 
-// NotifyPullRevieweDismiss notifies when a review was dismissed by repo admin
-func (*NullNotifier) NotifyPullRevieweDismiss(ctx context.Context, doer *user_model.User, review *issues_model.Review, comment *issues_model.Comment) {
+// NotifyPullReviewDismiss notifies when a review was dismissed by repo admin
+func (*NullNotifier) NotifyPullReviewDismiss(ctx context.Context, doer *user_model.User, review *issues_model.Review, comment *issues_model.Comment) {
 }
 
 // NotifyUpdateComment places a place holder function

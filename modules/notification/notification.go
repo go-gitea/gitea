@@ -142,10 +142,10 @@ func NotifyPullRequestPushCommits(ctx context.Context, doer *user_model.User, pr
 	}
 }
 
-// NotifyPullRevieweDismiss notifies when a review was dismissed by repo admin
-func NotifyPullRevieweDismiss(ctx context.Context, doer *user_model.User, review *issues_model.Review, comment *issues_model.Comment) {
+// NotifyPullReviewDismiss notifies when a review was dismissed by repo admin
+func NotifyPullReviewDismiss(ctx context.Context, doer *user_model.User, review *issues_model.Review, comment *issues_model.Comment) {
 	for _, notifier := range notifiers {
-		notifier.NotifyPullRevieweDismiss(ctx, doer, review, comment)
+		notifier.NotifyPullReviewDismiss(ctx, doer, review, comment)
 	}
 }
 

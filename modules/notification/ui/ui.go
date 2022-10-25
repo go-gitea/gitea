@@ -198,7 +198,7 @@ func (ns *notificationService) NotifyPullRequestPushCommits(ctx context.Context,
 	_ = ns.issueQueue.Push(opts)
 }
 
-func (ns *notificationService) NotifyPullRevieweDismiss(ctx context.Context, doer *user_model.User, review *issues_model.Review, comment *issues_model.Comment) {
+func (ns *notificationService) NotifyPullReviewDismiss(ctx context.Context, doer *user_model.User, review *issues_model.Review, comment *issues_model.Comment) {
 	opts := issueNotificationOpts{
 		IssueID:              review.IssueID,
 		NotificationAuthorID: doer.ID,
@@ -244,6 +244,6 @@ func (ns *notificationService) NotifyRepoPendingTransfer(_ context.Context, doer
 		return activities_model.CreateRepoTransferNotification(ctx, doer, newOwner, repo)
 	})
 	if err != nil {
-		log.Error("NotifyRepoPendingTransfer: %v", err)
+		log.Error("CreateRepoTransferNotification: %v", err)
 	}
 }

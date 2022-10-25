@@ -276,13 +276,13 @@ func loadOneBranch(ctx *context.Context, rawBranch, defaultBranch *git.Branch, p
 	if pr != nil {
 		pr.HeadRepo = ctx.Repo.Repository
 		if err := pr.LoadIssue(ctx); err != nil {
-			ctx.ServerError("pr.LoadIssue", err)
+			ctx.ServerError("LoadIssue", err)
 			return nil
 		}
 		if repo, ok := repoIDToRepo[pr.BaseRepoID]; ok {
 			pr.BaseRepo = repo
 		} else if err := pr.LoadBaseRepo(ctx); err != nil {
-			ctx.ServerError("pr.LoadBaseRepo", err)
+			ctx.ServerError("LoadBaseRepo", err)
 			return nil
 		} else {
 			repoIDToRepo[pr.BaseRepoID] = pr.BaseRepo
