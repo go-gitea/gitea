@@ -827,12 +827,12 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 	}
 
 	if _, err = db.GetEngine(ctx).Exec("UPDATE `repository` SET owner_name=? WHERE owner_name=?", newUserName, oldUserName); err != nil {
-		return fmt.Errorf("Change repo owner name: %v", err)
+		return fmt.Errorf("Change repo owner name: %w", err)
 	}
 
 	// Do not fail if directory does not exist
 	if err = util.Rename(UserPath(oldUserName), UserPath(newUserName)); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("Rename user directory: %v", err)
+		return fmt.Errorf("Rename user directory: %w", err)
 	}
 
 	if err = NewUserRedirect(ctx, u.ID, oldUserName, newUserName); err != nil {

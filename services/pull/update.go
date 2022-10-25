@@ -50,10 +50,10 @@ func Update(ctx context.Context, pull *issues_model.PullRequest, doer *user_mode
 
 	if err := pr.LoadHeadRepo(ctx); err != nil {
 		log.Error("LoadHeadRepo: %v", err)
-		return fmt.Errorf("LoadHeadRepo: %v", err)
+		return fmt.Errorf("LoadHeadRepo: %w", err)
 	} else if err = pr.LoadBaseRepo(ctx); err != nil {
 		log.Error("LoadBaseRepo: %v", err)
-		return fmt.Errorf("LoadBaseRepo: %v", err)
+		return fmt.Errorf("LoadBaseRepo: %w", err)
 	}
 
 	diffCount, err := GetDiverging(ctx, pull)

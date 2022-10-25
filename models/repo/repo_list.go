@@ -81,7 +81,7 @@ func (repos RepositoryList) loadAttributes(ctx context.Context) error {
 		Where("id > 0").
 		In("id", set.Values()).
 		Find(&users); err != nil {
-		return fmt.Errorf("find users: %v", err)
+		return fmt.Errorf("find users: %w", err)
 	}
 	for i := range repos {
 		repos[i].Owner = users[repos[i].OwnerID]
@@ -93,7 +93,7 @@ func (repos RepositoryList) loadAttributes(ctx context.Context) error {
 		Where("`is_primary` = ? AND `language` != ?", true, "other").
 		In("`repo_id`", repoIDs).
 		Find(&stats); err != nil {
-		return fmt.Errorf("find primary languages: %v", err)
+		return fmt.Errorf("find primary languages: %w", err)
 	}
 	stats.LoadAttributes()
 	for i := range repos {
@@ -536,7 +536,7 @@ func SearchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, c
 	}
 	repos := make(RepositoryList, 0, defaultSize)
 	if err := sess.Find(&repos); err != nil {
-		return nil, 0, fmt.Errorf("Repo: %v", err)
+		return nil, 0, fmt.Errorf("Repo: %w", err)
 	}
 
 	if opts.PageSize <= 0 {
@@ -545,7 +545,7 @@ func SearchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, c
 
 	if loadAttributes {
 		if err := repos.loadAttributes(ctx); err != nil {
-			return nil, 0, fmt.Errorf("LoadAttributes: %v", err)
+			return nil, 0, fmt.Errorf("LoadAttributes: %w", err)
 		}
 	}
 
@@ -581,7 +581,7 @@ func searchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, c
 			Where(cond).
 			Count(new(Repository))
 		if err != nil {
-			return nil, 0, fmt.Errorf("Count: %v", err)
+			return nil, 0, fmt.Errorf("Count: %w", err)
 		}
 	}
 
@@ -724,7 +724,7 @@ func GetUserRepositories(opts *SearchRepoOptions) (RepositoryList, int64, error)
 
 	count, err := sess.Where(cond).Count(new(Repository))
 	if err != nil {
-		return nil, 0, fmt.Errorf("Count: %v", err)
+		return nil, 0, fmt.Errorf("Count: %w", err)
 	}
 
 	sess = sess.Where(cond).OrderBy(opts.OrderBy.String())

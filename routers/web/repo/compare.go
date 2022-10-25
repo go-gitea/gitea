@@ -560,7 +560,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 func PrepareCompareDiff(
 	ctx *context.Context,
 	ci *CompareInfo,
-	whitespaceBehavior string,
+	whitespaceBehavior git.CmdArg,
 ) bool {
 	var (
 		repo  = ctx.Repo.Repository

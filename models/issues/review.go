@@ -782,10 +782,10 @@ func AddTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *user_
 
 	official, err := IsOfficialReviewerTeam(ctx, issue, reviewer)
 	if err != nil {
-		return nil, fmt.Errorf("isOfficialReviewerTeam(): %v", err)
+		return nil, fmt.Errorf("isOfficialReviewerTeam(): %w", err)
 	} else if !official {
 		if official, err = IsOfficialReviewer(ctx, issue, doer); err != nil {
-			return nil, fmt.Errorf("isOfficialReviewer(): %v", err)
+			return nil, fmt.Errorf("isOfficialReviewer(): %w", err)
 		}
 	}
 
@@ -815,7 +815,7 @@ func AddTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *user_
 		ReviewID:        review.ID,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("CreateCommentCtx(): %v", err)
+		return nil, fmt.Errorf("CreateCommentCtx(): %w", err)
 	}
 
 	return comment, committer.Commit()
@@ -844,7 +844,7 @@ func RemoveTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *us
 
 	official, err := IsOfficialReviewerTeam(ctx, issue, reviewer)
 	if err != nil {
-		return nil, fmt.Errorf("isOfficialReviewerTeam(): %v", err)
+		return nil, fmt.Errorf("isOfficialReviewerTeam(): %w", err)
 	}
 
 	if official {
@@ -874,7 +874,7 @@ func RemoveTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *us
 		AssigneeTeamID:  reviewer.ID, // Use AssigneeTeamID as reviewer team ID
 	})
 	if err != nil {
-		return nil, fmt.Errorf("CreateCommentCtx(): %v", err)
+		return nil, fmt.Errorf("CreateCommentCtx(): %w", err)
 	}
 
 	return comment, committer.Commit()

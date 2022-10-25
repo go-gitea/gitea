@@ -190,7 +190,7 @@ func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook
 	if ok {
 		payloader, err = webhook.payloadCreator(p, event, w.Meta)
 		if err != nil {
-			return fmt.Errorf("create payload for %s[%s]: %v", w.Type, event, err)
+			return fmt.Errorf("create payload for %s[%s]: %w", w.Type, event, err)
 		}
 	} else {
 		payloader = p
@@ -202,7 +202,7 @@ func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook
 		EventType: event,
 	})
 	if err != nil {
-		return fmt.Errorf("CreateHookTask: %v", err)
+		return fmt.Errorf("CreateHookTask: %w", err)
 	}
 
 	return enqueueHookTask(task)
@@ -220,7 +220,7 @@ func PrepareWebhooks(ctx context.Context, source EventSource, event webhook_mode
 			IsActive: util.OptionalBoolTrue,
 		})
 		if err != nil {
-			return fmt.Errorf("ListWebhooksByOpts: %v", err)
+			return fmt.Errorf("ListWebhooksByOpts: %w", err)
 		}
 		ws = append(ws, repoHooks...)
 
@@ -234,7 +234,7 @@ func PrepareWebhooks(ctx context.Context, source EventSource, event webhook_mode
 			IsActive: util.OptionalBoolTrue,
 		})
 		if err != nil {
-			return fmt.Errorf("ListWebhooksByOpts: %v", err)
+			return fmt.Errorf("ListWebhooksByOpts: %w", err)
 		}
 		ws = append(ws, orgHooks...)
 	}
@@ -242,7 +242,7 @@ func PrepareWebhooks(ctx context.Context, source EventSource, event webhook_mode
 	// Add any admin-defined system webhooks
 	systemHooks, err := webhook_model.GetSystemWebhooks(ctx, util.OptionalBoolTrue)
 	if err != nil {
-		return fmt.Errorf("GetSystemWebhooks: %v", err)
+		return fmt.Errorf("GetSystemWebhooks: %w", err)
 	}
 	ws = append(ws, systemHooks...)
 

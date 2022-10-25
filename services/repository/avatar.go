@@ -45,7 +45,7 @@ func UploadAvatar(repo *repo_model.Repository, data []byte) error {
 	// Then repo will be removed - only it avatar file will be removed
 	repo.Avatar = newAvatar
 	if err := repo_model.UpdateRepositoryCols(ctx, repo, "avatar"); err != nil {
-		return fmt.Errorf("UploadAvatar: Update repository avatar: %v", err)
+		return fmt.Errorf("UploadAvatar: Update repository avatar: %w", err)
 	}
 
 	if err := storage.SaveFrom(storage.RepoAvatars, repo.CustomAvatarRelativePath(), func(w io.Writer) error {
@@ -54,12 +54,12 @@ func UploadAvatar(repo *repo_model.Repository, data []byte) error {
 		}
 		return err
 	}); err != nil {
-		return fmt.Errorf("UploadAvatar %s failed: Failed to remove old repo avatar %s: %v", repo.RepoPath(), newAvatar, err)
+		return fmt.Errorf("UploadAvatar %s failed: Failed to remove old repo avatar %s: %w", repo.RepoPath(), newAvatar, err)
 	}
 
 	if len(oldAvatarPath) > 0 {
 		if err := storage.RepoAvatars.Delete(oldAvatarPath); err != nil {
-			return fmt.Errorf("UploadAvatar: Failed to remove old repo avatar %s: %v", oldAvatarPath, err)
+			return fmt.Errorf("UploadAvatar: Failed to remove old repo avatar %s: %w", oldAvatarPath, err)
 		}
 	}
 
@@ -84,11 +84,11 @@ func DeleteAvatar(repo *repo_model.Repository) error {
 
 	repo.Avatar = ""
 	if err := repo_model.UpdateRepositoryCols(ctx, repo, "avatar"); err != nil {
-		return fmt.Errorf("DeleteAvatar: Update repository avatar: %v", err)
+		return fmt.Errorf("DeleteAvatar: Update repository avatar: %w", err)
 	}
 
 	if err := storage.RepoAvatars.Delete(avatarPath); err != nil {
-		return fmt.Errorf("DeleteAvatar: Failed to remove %s: %v", avatarPath, err)
+		return fmt.Errorf("DeleteAvatar: Failed to remove %s: %w", avatarPath, err)
 	}
 
 	return committer.Commit()

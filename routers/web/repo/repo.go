@@ -90,7 +90,7 @@ func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
 	}
 
 	if err != nil {
-		ctx.ServerError("GetUserByID", fmt.Errorf("[%d]: %v", uid, err))
+		ctx.ServerError("GetUserByID", fmt.Errorf("[%d]: %w", uid, err))
 		return nil
 	}
 

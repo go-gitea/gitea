@@ -226,7 +226,7 @@ func CreateOrUpdateRepoFile(ctx context.Context, repo *repo_model.Repository, do
 		} else {
 			lastCommitID, err := t.gitRepo.ConvertToSHA1(opts.LastCommitID)
 			if err != nil {
-				return nil, fmt.Errorf("ConvertToSHA1: Invalid last commit ID: %v", err)
+				return nil, fmt.Errorf("ConvertToSHA1: Invalid last commit ID: %w", err)
 			}
 			opts.LastCommitID = lastCommitID.String()
 
@@ -321,7 +321,7 @@ func CreateOrUpdateRepoFile(ctx context.Context, repo *repo_model.Repository, do
 	// Get the two paths (might be the same if not moving) from the index if they exist
 	filesInIndex, err := t.LsFiles(opts.TreePath, opts.FromTreePath)
 	if err != nil {
-		return nil, fmt.Errorf("UpdateRepoFile: %v", err)
+		return nil, fmt.Errorf("UpdateRepoFile: %w", err)
 	}
 	// If is a new file (not updating) then the given path shouldn't exist
 	if opts.IsNewFile {
@@ -370,7 +370,7 @@ func CreateOrUpdateRepoFile(ctx context.Context, repo *repo_model.Repository, do
 	if setting.LFS.StartServer && hasOldBranch {
 		// Check there is no way this can return multiple infos
 		filename2attribute2info, err := t.gitRepo.CheckAttribute(git.CheckAttributeOpts{
-			Attributes: []string{"filter"},
+			Attributes: []git.CmdArg{"filter"},
 			Filenames:  []string{treePath},
 			CachedOnly: true,
 		})
@@ -436,7 +436,7 @@ func CreateOrUpdateRepoFile(ctx context.Context, repo *repo_model.Repository, do
 		if !exist {
 			if err := contentStore.Put(lfsMetaObject.Pointer, strings.NewReader(opts.Content)); err != nil {
 				if _, err2 := git_model.RemoveLFSMetaObjectByOid(repo.ID, lfsMetaObject.Oid); err2 != nil {
-					return nil, fmt.Errorf("Error whilst removing failed inserted LFS object %s: %v (Prev Error: %v)", lfsMetaObject.Oid, err2, err)
+					return nil, fmt.Errorf("Error whilst removing failed inserted LFS object %s: %v (Prev Error: %w)", lfsMetaObject.Oid, err2, err)
 				}
 				return nil, err
 			}

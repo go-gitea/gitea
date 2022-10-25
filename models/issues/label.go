@@ -667,7 +667,7 @@ func newIssueLabels(ctx context.Context, issue *Issue, labels []*Label, doer *us
 		}
 
 		if err = newIssueLabel(ctx, issue, label, doer); err != nil {
-			return fmt.Errorf("newIssueLabel: %v", err)
+			return fmt.Errorf("newIssueLabel: %w", err)
 		}
 	}
 
