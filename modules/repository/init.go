@@ -91,7 +91,7 @@ func GetRepoInitFile(tp, name string) ([]byte, error) {
 func GetLabelTemplateFile(name string) ([][3]string, error) {
 	data, err := GetRepoInitFile("label", name)
 	if err != nil {
-		return nil, ErrIssueLabelTemplateLoad{name, fmt.Errorf("GetRepoInitFile: %v", err)}
+		return nil, ErrIssueLabelTemplateLoad{name, fmt.Errorf("GetRepoInitFile: %w", err)}
 	}
 
 	lines := strings.Split(string(data), "\n")
@@ -232,13 +232,13 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 		SetDescription(fmt.Sprintf("prepareRepoCommit (git clone): %s to %s", repoPath, tmpDir)).
 		RunStdString(&git.RunOpts{Dir: "", Env: env}); err != nil {
 		log.Error("Failed to clone from %v into %s: stdout: %s\nError: %v", repo, tmpDir, stdout, err)
-		return fmt.Errorf("git clone: %v", err)
+		return fmt.Errorf("git clone: %w", err)
 	}
 
 	// README
 	data, err := GetRepoInitFile("readme", opts.Readme)
 	if err != nil {
-		return fmt.Errorf("GetRepoInitFile[%s]: %v", opts.Readme, err)
+		return fmt.Errorf("GetRepoInitFile[%s]: %w", opts.Readme, err)
 	}
 
 	cloneLink := repo.CloneLink()
@@ -256,7 +256,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 	}
 	if err = os.WriteFile(filepath.Join(tmpDir, "README.md"),
 		[]byte(res), 0o644); err != nil {
-		return fmt.Errorf("write README.md: %v", err)
+		return fmt.Errorf("write README.md: %w", err)
 	}
 
 	// .gitignore
@@ -266,7 +266,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 		for _, name := range names {
 			data, err = GetRepoInitFile("gitignore", name)
 			if err != nil {
-				return fmt.Errorf("GetRepoInitFile[%s]: %v", name, err)
+				return fmt.Errorf("GetRepoInitFile[%s]: %w", name, err)
 			}
 			buf.WriteString("# ---> " + name + "\n")
 			buf.Write(data)
@@ -275,7 +275,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 
 		if buf.Len() > 0 {
 			if err = os.WriteFile(filepath.Join(tmpDir, ".gitignore"), buf.Bytes(), 0o644); err != nil {
-				return fmt.Errorf("write .gitignore: %v", err)
+				return fmt.Errorf("write .gitignore: %w", err)
 			}
 		}
 	}
@@ -284,11 +284,11 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 	if len(opts.License) > 0 {
 		data, err = GetRepoInitFile("license", opts.License)
 		if err != nil {
-			return fmt.Errorf("GetRepoInitFile[%s]: %v", opts.License, err)
+			return fmt.Errorf("GetRepoInitFile[%s]: %w", opts.License, err)
 		}
 
 		if err = os.WriteFile(filepath.Join(tmpDir, "LICENSE"), data, 0o644); err != nil {
-			return fmt.Errorf("write LICENSE: %v", err)
+			return fmt.Errorf("write LICENSE: %w", err)
 		}
 	}
 
@@ -314,7 +314,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 		SetDescription(fmt.Sprintf("initRepoCommit (git add): %s", tmpPath)).
 		RunStdString(&git.RunOpts{Dir: tmpPath}); err != nil {
 		log.Error("git add --all failed: Stdout: %s\nError: %v", stdout, err)
-		return fmt.Errorf("git add --all: %v", err)
+		return fmt.Errorf("git add --all: %w", err)
 	}
 
 	cmd := git.NewCommand(ctx,
@@ -344,7 +344,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 		SetDescription(fmt.Sprintf("initRepoCommit (git commit): %s", tmpPath)).
 		RunStdString(&git.RunOpts{Dir: tmpPath, Env: env}); err != nil {
 		log.Error("Failed to commit: %v: Stdout: %s\nError: %v", cmd.String(), stdout, err)
-		return fmt.Errorf("git commit: %v", err)
+		return fmt.Errorf("git commit: %w", err)
 	}
 
 	if len(defaultBranch) == 0 {
@@ -355,7 +355,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 		SetDescription(fmt.Sprintf("initRepoCommit (git push): %s", tmpPath)).
 		RunStdString(&git.RunOpts{Dir: tmpPath, Env: InternalPushingEnvironment(u, repo)}); err != nil {
 		log.Error("Failed to push back to HEAD: Stdout: %s\nError: %v", stdout, err)
-		return fmt.Errorf("git push: %v", err)
+		return fmt.Errorf("git push: %w", err)
 	}
 
 	return nil
@@ -378,9 +378,9 @@ func checkInitRepository(ctx context.Context, owner, name string) (err error) {
 
 	// Init git bare new repository.
 	if err = git.InitRepository(ctx, repoPath, true); err != nil {
-		return fmt.Errorf("git.InitRepository: %v", err)
+		return fmt.Errorf("git.InitRepository: %w", err)
 	} else if err = createDelegateHooks(repoPath); err != nil {
-		return fmt.Errorf("createDelegateHooks: %v", err)
+		return fmt.Errorf("createDelegateHooks: %w", err)
 	}
 	return nil
 }
@@ -395,7 +395,7 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 	if opts.AutoInit {
 		tmpDir, err := os.MkdirTemp(os.TempDir(), "gitea-"+repo.Name)
 		if err != nil {
-			return fmt.Errorf("Failed to create temp dir for repository %s: %v", repo.RepoPath(), err)
+			return fmt.Errorf("Failed to create temp dir for repository %s: %w", repo.RepoPath(), err)
 		}
 		defer func() {
 			if err := util.RemoveAll(tmpDir); err != nil {
@@ -404,19 +404,19 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 		}()
 
 		if err = prepareRepoCommit(ctx, repo, tmpDir, repoPath, opts); err != nil {
-			return fmt.Errorf("prepareRepoCommit: %v", err)
+			return fmt.Errorf("prepareRepoCommit: %w", err)
 		}
 
 		// Apply changes and commit.
 		if err = initRepoCommit(ctx, tmpDir, repo, u, opts.DefaultBranch); err != nil {
-			return fmt.Errorf("initRepoCommit: %v", err)
+			return fmt.Errorf("initRepoCommit: %w", err)
 		}
 	}
 
 	// Re-fetch the repository from database before updating it (else it would
 	// override changes that were done earlier with sql)
 	if repo, err = repo_model.GetRepositoryByIDCtx(ctx, repo.ID); err != nil {
-		return fmt.Errorf("getRepositoryByID: %v", err)
+		return fmt.Errorf("getRepositoryByID: %w", err)
 	}
 
 	if !opts.AutoInit {
@@ -429,16 +429,16 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 		repo.DefaultBranch = opts.DefaultBranch
 		gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 		if err != nil {
-			return fmt.Errorf("openRepository: %v", err)
+			return fmt.Errorf("openRepository: %w", err)
 		}
 		defer gitRepo.Close()
 		if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
-			return fmt.Errorf("setDefaultBranch: %v", err)
+			return fmt.Errorf("setDefaultBranch: %w", err)
 		}
 	}
 
 	if err = UpdateRepository(ctx, repo, false); err != nil {
-		return fmt.Errorf("updateRepository: %v", err)
+		return fmt.Errorf("updateRepository: %w", err)
 	}
 
 	return nil

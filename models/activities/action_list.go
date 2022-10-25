@@ -36,7 +36,7 @@ func (actions ActionList) loadUsers(ctx context.Context) (map[int64]*user_model.
 		In("id", userIDs).
 		Find(&userMaps)
 	if err != nil {
-		return nil, fmt.Errorf("find user: %v", err)
+		return nil, fmt.Errorf("find user: %w", err)
 	}
 
 	for _, action := range actions {
@@ -62,7 +62,7 @@ func (actions ActionList) loadRepositories(ctx context.Context) error {
 	repoMaps := make(map[int64]*repo_model.Repository, len(repoIDs))
 	err := db.GetEngine(ctx).In("id", repoIDs).Find(&repoMaps)
 	if err != nil {
-		return fmt.Errorf("find repository: %v", err)
+		return fmt.Errorf("find repository: %w", err)
 	}
 
 	for _, action := range actions {
