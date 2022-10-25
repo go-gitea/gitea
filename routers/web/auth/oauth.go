@@ -1061,7 +1061,9 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 
 		// update external user information
 		if err := externalaccount.UpdateExternalUser(u, gothUser); err != nil {
-			log.Error("UpdateExternalUser failed: %v", err)
+			if !user_model.IsErrExternalLoginUserNotExist(err) {
+				log.Error("UpdateExternalUser failed: %v", err)
+			}
 		}
 
 		if err := resetLocale(ctx, u); err != nil {

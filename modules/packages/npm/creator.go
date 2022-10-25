@@ -66,7 +66,8 @@ type PackageMetadata struct {
 	License        string                             `json:"license,omitempty"`
 }
 
-// PackageMetadataVersion https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md#version
+// PackageMetadataVersion documentation: https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md#version
+// PackageMetadataVersion response: https://github.com/npm/registry/blob/master/docs/responses/package-metadata.md#abbreviated-version-object
 type PackageMetadataVersion struct {
 	ID                   string              `json:"_id"`
 	Name                 string              `json:"name"`
@@ -80,6 +81,7 @@ type PackageMetadataVersion struct {
 	Dependencies         map[string]string   `json:"dependencies,omitempty"`
 	DevDependencies      map[string]string   `json:"devDependencies,omitempty"`
 	PeerDependencies     map[string]string   `json:"peerDependencies,omitempty"`
+	Bin                  map[string]string   `json:"bin,omitempty"`
 	OptionalDependencies map[string]string   `json:"optionalDependencies,omitempty"`
 	Readme               string              `json:"readme,omitempty"`
 	Dist                 PackageDistribution `json:"dist"`
@@ -192,6 +194,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 				DevelopmentDependencies: meta.DevDependencies,
 				PeerDependencies:        meta.PeerDependencies,
 				OptionalDependencies:    meta.OptionalDependencies,
+				Bin:                     meta.Bin,
 				Readme:                  meta.Readme,
 			},
 		}
