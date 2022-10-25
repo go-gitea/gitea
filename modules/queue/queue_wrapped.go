@@ -76,9 +76,9 @@ func (q *delayedStarter) setInternal(atShutdown func(func()), handle HandlerFunc
 			i++
 			if q.maxAttempts > 0 && i > q.maxAttempts {
 				if bs, ok := q.cfg.([]byte); ok {
-					return fmt.Errorf("unable to create queue %v for %s with cfg %s by max attempts: error: %v", q.underlying, q.name, string(bs), err)
+					return fmt.Errorf("unable to create queue %v for %s with cfg %s by max attempts: error: %w", q.underlying, q.name, string(bs), err)
 				}
-				return fmt.Errorf("unable to create queue %v for %s with cfg %#v by max attempts: error: %v", q.underlying, q.name, q.cfg, err)
+				return fmt.Errorf("unable to create queue %v for %s with cfg %#v by max attempts: error: %w", q.underlying, q.name, q.cfg, err)
 			}
 			sleepTime := 100 * time.Millisecond
 			if q.timeout > 0 && q.maxAttempts > 0 {
