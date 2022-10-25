@@ -29,6 +29,6 @@ func NameRevStdin(ctx context.Context, shasToNameReader *io.PipeReader, nameRevS
 		Stdin:  shasToNameReader,
 		Stderr: stderr,
 	}); err != nil {
-		_ = shasToNameReader.CloseWithError(fmt.Errorf("git name-rev [%s]: %v - %s", tmpBasePath, err, errbuf.String()))
+		_ = shasToNameReader.CloseWithError(fmt.Errorf("git name-rev [%s]: %w - %s", tmpBasePath, err, errbuf.String()))
 	}
 }

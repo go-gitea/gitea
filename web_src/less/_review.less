@@ -48,6 +48,12 @@
   }
 }
 
+.add-comment .lines-num,
+.add-comment .lines-escape,
+.add-comment .lines-type-marker {
+  display: none;
+}
+
 .show-outdated,
 .hide-outdated {
   &:extend(.unselectable);
@@ -59,11 +65,13 @@
 }
 
 .comment-code-cloud {
-  padding: .5rem !important;
+  padding: .5rem 1rem !important;
   position: relative;
   margin: 0 auto;
+  max-width: 1000px;
 
   @media @mediaSm {
+    max-width: auto;
     padding: .75rem !important;
 
     .code-comment-buttons {
@@ -73,13 +81,22 @@
         width: 100%;
       }
     }
+
+    .ui.buttons {
+      width: 100%;
+      margin: 0 !important;
+
+      .button {
+        flex: 1;
+      }
+    }
   }
 
   .comments .comment {
-    margin: 0;
+    padding: 0;
 
     @media @mediaSm {
-      padding: 0;
+      display: flex;
 
       .comment-header-right.actions .ui.basic.label {
         display: none;
@@ -90,6 +107,10 @@
         float: none;
         margin: 0 .5rem 0 0;
         flex-shrink: 0;
+
+        ~ .content {
+          margin-left: 1em;
+        }
       }
 
       img.avatar {
@@ -98,6 +119,10 @@
 
       .comment-content {
         margin-left: 0 !important;
+      }
+
+      .comment-container {
+        width: 100%;
       }
 
       &.code-comment {
@@ -166,10 +191,7 @@
     .button {
       width: 100%;
       margin: 0 !important;
-
-      &:not(:last-child) {
-        margin-bottom: .75rem !important;
-      }
+      margin-bottom: .75rem !important;
     }
   }
 }

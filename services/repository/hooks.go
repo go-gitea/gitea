@@ -36,11 +36,11 @@ func SyncRepositoryHooks(ctx context.Context) error {
 			}
 
 			if err := repo_module.CreateDelegateHooks(repo.RepoPath()); err != nil {
-				return fmt.Errorf("SyncRepositoryHook: %v", err)
+				return fmt.Errorf("SyncRepositoryHook: %w", err)
 			}
 			if repo.HasWiki() {
 				if err := repo_module.CreateDelegateHooks(repo.WikiPath()); err != nil {
-					return fmt.Errorf("SyncRepositoryHook: %v", err)
+					return fmt.Errorf("SyncRepositoryHook: %w", err)
 				}
 			}
 			return nil
