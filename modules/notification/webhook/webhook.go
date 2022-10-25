@@ -658,7 +658,7 @@ func (m *webhookNotifier) NotifyPullRequestChangeTargetBranch(ctx context.Contex
 		Repository:  convert.ToRepo(issue.Repo, mode),
 		Sender:      convert.ToUser(doer, nil),
 	}); err != nil {
-		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
+		log.Error("PrepareWebhooks [pr: %d]: %v", pr.ID, err)
 	}
 }
 
