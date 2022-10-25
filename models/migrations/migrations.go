@@ -428,13 +428,13 @@ var migrations = []Migration{
 // GetCurrentDBVersion returns the current db version
 func GetCurrentDBVersion(x *xorm.Engine) (int64, error) {
 	if err := x.Sync(new(Version)); err != nil {
-		return -1, fmt.Errorf("sync: %v", err)
+		return -1, fmt.Errorf("sync: %w", err)
 	}
 
 	currentVersion := &Version{ID: 1}
 	has, err := x.Get(currentVersion)
 	if err != nil {
-		return -1, fmt.Errorf("get: %v", err)
+		return -1, fmt.Errorf("get: %w", err)
 	}
 	if !has {
 		return -1, nil
@@ -476,13 +476,13 @@ func Migrate(x *xorm.Engine) error {
 	// Set a new clean the default mapper to GonicMapper as that is the default for Gitea.
 	x.SetMapper(names.GonicMapper{})
 	if err := x.Sync(new(Version)); err != nil {
-		return fmt.Errorf("sync: %v", err)
+		return fmt.Errorf("sync: %w", err)
 	}
 
 	currentVersion := &Version{ID: 1}
 	has, err := x.Get(currentVersion)
 	if err != nil {
-		return fmt.Errorf("get: %v", err)
+		return fmt.Errorf("get: %w", err)
 	} else if !has {
 		// If the version record does not exist we think
 		// it is a fresh installation and we can skip all migrations.
@@ -490,7 +490,7 @@ func Migrate(x *xorm.Engine) error {
 		currentVersion.Version = int64(minDBVersion + len(migrations))
 
 		if _, err = x.InsertOne(currentVersion); err != nil {
-			return fmt.Errorf("insert: %v", err)
+			return fmt.Errorf("insert: %w", err)
 		}
 	}
 
@@ -519,7 +519,7 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 		// Reset the mapper between each migration - migrations are not supposed to depend on each other
 		x.SetMapper(names.GonicMapper{})
 		if err = m.Migrate(x); err != nil {
-			return fmt.Errorf("migration[%d]: %s failed: %v", v+int64(i), m.Description(), err)
+			return fmt.Errorf("migration[%d]: %s failed: %w", v+int64(i), m.Description(), err)
 		}
 		currentVersion.Version = v + int64(i) + 1
 		if _, err = x.ID(1).Update(currentVersion); err != nil {
@@ -918,7 +918,7 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 			cols += "DROP COLUMN `" + col + "` CASCADE"
 		}
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` %s", tableName, cols)); err != nil {
-			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
+			return fmt.Errorf("Drop table `%s` columns %v: %w", tableName, columnNames, err)
 		}
 	case setting.Database.UseMySQL:
 		// Drop indexes on columns first
@@ -946,7 +946,7 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 			cols += "DROP COLUMN `" + col + "`"
 		}
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` %s", tableName, cols)); err != nil {
-			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
+			return fmt.Errorf("Drop table `%s` columns %v: %w", tableName, columnNames, err)
 		}
 	case setting.Database.UseMSSQL:
 		cols := ""
@@ -960,27 +960,27 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 			tableName, strings.ReplaceAll(cols, "`", "'"))
 		constraints := make([]string, 0)
 		if err := sess.SQL(sql).Find(&constraints); err != nil {
-			return fmt.Errorf("Find constraints: %v", err)
+			return fmt.Errorf("Find constraints: %w", err)
 		}
 		for _, constraint := range constraints {
 			if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` DROP CONSTRAINT `%s`", tableName, constraint)); err != nil {
-				return fmt.Errorf("Drop table `%s` default constraint `%s`: %v", tableName, constraint, err)
+				return fmt.Errorf("Drop table `%s` default constraint `%s`: %w", tableName, constraint, err)
 			}
 		}
 		sql = fmt.Sprintf("SELECT DISTINCT Name FROM sys.indexes INNER JOIN sys.index_columns ON indexes.index_id = index_columns.index_id AND indexes.object_id = index_columns.object_id WHERE indexes.object_id = OBJECT_ID('%[1]s') AND index_columns.column_id IN (SELECT column_id FROM sys.columns WHERE LOWER(name) IN (%[2]s) AND object_id = OBJECT_ID('%[1]s'))",
 			tableName, strings.ReplaceAll(cols, "`", "'"))
 		constraints = make([]string, 0)
 		if err := sess.SQL(sql).Find(&constraints); err != nil {
-			return fmt.Errorf("Find constraints: %v", err)
+			return fmt.Errorf("Find constraints: %w", err)
 		}
 		for _, constraint := range constraints {
 			if _, err := sess.Exec(fmt.Sprintf("DROP INDEX `%[2]s` ON `%[1]s`", tableName, constraint)); err != nil {
-				return fmt.Errorf("Drop index `%[2]s` on `%[1]s`: %v", tableName, constraint, err)
+				return fmt.Errorf("Drop index `%s` on `%s`: %w", constraint, tableName, err)
 			}
 		}
 
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` DROP COLUMN %s", tableName, cols)); err != nil {
-			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
+			return fmt.Errorf("Drop table `%s` columns %v: %w", tableName, columnNames, err)
 		}
 	default:
 		log.Fatal("Unrecognized DB")

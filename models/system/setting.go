@@ -243,7 +243,7 @@ func Init() error {
 		var err error
 		GravatarSourceURL, err = url.Parse(setting.GravatarSource)
 		if err != nil {
-			return fmt.Errorf("Failed to parse Gravatar URL(%s): %v", setting.GravatarSource, err)
+			return fmt.Errorf("Failed to parse Gravatar URL(%s): %w", setting.GravatarSource, err)
 		}
 	}
 

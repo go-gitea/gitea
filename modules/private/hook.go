@@ -163,7 +163,7 @@ func HookProcReceive(ctx context.Context, ownerName, repoName string, opts HookO
 	req.Body(jsonBytes)
 	resp, err := req.Response()
 	if err != nil {
-		return nil, fmt.Errorf("Unable to contact gitea: %v", err.Error())
+		return nil, fmt.Errorf("Unable to contact gitea: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -189,7 +189,7 @@ func SetDefaultBranch(ctx context.Context, ownerName, repoName, branch string) e
 	req.SetTimeout(60*time.Second, 60*time.Second)
 	resp, err := req.Response()
 	if err != nil {
-		return fmt.Errorf("Unable to contact gitea: %v", err)
+		return fmt.Errorf("Unable to contact gitea: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
@@ -213,7 +213,7 @@ func SSHLog(ctx context.Context, isErr bool, msg string) error {
 	req.SetTimeout(60*time.Second, 60*time.Second)
 	resp, err := req.Response()
 	if err != nil {
-		return fmt.Errorf("unable to contact gitea: %v", err)
+		return fmt.Errorf("unable to contact gitea: %w", err)
 	}
 
 	defer resp.Body.Close()

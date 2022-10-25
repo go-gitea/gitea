@@ -29,7 +29,7 @@ func checkConfigurationFile(logger log.Logger, autofix bool, fileOpts configurat
 		if os.IsNotExist(err) && autofix && fileOpts.IsDirectory {
 			if err := os.MkdirAll(fileOpts.Path, 0o777); err != nil {
 				logger.Error("    Directory does not exist and could not be created. ERROR: %v", err)
-				return fmt.Errorf("Configuration directory: \"%q\" does not exist and could not be created. ERROR: %v", fileOpts.Path, err)
+				return fmt.Errorf("Configuration directory: \"%q\" does not exist and could not be created. ERROR: %w", fileOpts.Path, err)
 			}
 			fi, err = os.Stat(fileOpts.Path)
 		}
@@ -37,7 +37,7 @@ func checkConfigurationFile(logger log.Logger, autofix bool, fileOpts configurat
 	if err != nil {
 		if fileOpts.Required {
 			logger.Error("    Is REQUIRED but is not accessible. ERROR: %v", err)
-			return fmt.Errorf("Configuration file \"%q\" is not accessible but is required. Error: %v", fileOpts.Path, err)
+			return fmt.Errorf("Configuration file \"%q\" is not accessible but is required. Error: %w", fileOpts.Path, err)
 		}
 		logger.Warn("    NOTICE: is not accessible (Error: %v)", err)
 		// this is a non-critical error
@@ -46,14 +46,14 @@ func checkConfigurationFile(logger log.Logger, autofix bool, fileOpts configurat
 
 	if fileOpts.IsDirectory && !fi.IsDir() {
 		logger.Error("    ERROR: not a directory")
-		return fmt.Errorf("Configuration directory \"%q\" is not a directory. Error: %v", fileOpts.Path, err)
+		return fmt.Errorf("Configuration directory \"%q\" is not a directory. Error: %w", fileOpts.Path, err)
 	} else if !fileOpts.IsDirectory && !fi.Mode().IsRegular() {
 		logger.Error("    ERROR: not a regular file")
-		return fmt.Errorf("Configuration file \"%q\" is not a regular file. Error: %v", fileOpts.Path, err)
+		return fmt.Errorf("Configuration file \"%q\" is not a regular file. Error: %w", fileOpts.Path, err)
 	} else if fileOpts.Writable {
 		if err := isWritableDir(fileOpts.Path); err != nil {
 			logger.Error("    ERROR: is required to be writable but is not writable: %v", err)
-			return fmt.Errorf("Configuration file \"%q\" is required to be writable but is not. Error: %v", fileOpts.Path, err)
+			return fmt.Errorf("Configuration file \"%q\" is required to be writable but is not. Error: %w", fileOpts.Path, err)
 		}
 	}
 	return nil
