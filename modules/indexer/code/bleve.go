@@ -199,7 +199,7 @@ func (b *BleveIndexer) addUpdate(ctx context.Context, batchWriter git.WriteClose
 			return err
 		}
 		if size, err = strconv.ParseInt(strings.TrimSpace(stdout), 10, 64); err != nil {
-			return fmt.Errorf("Misformatted git cat-file output: %v", err)
+			return fmt.Errorf("Misformatted git cat-file output: %w", err)
 		}
 	}
 

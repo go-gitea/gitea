@@ -59,6 +59,6 @@ func SigningKey(ctx *context.APIContext) {
 	}
 	_, err = ctx.Write([]byte(content))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "gpg export", fmt.Errorf("Error writing key content %v", err))
+		ctx.Error(http.StatusInternalServerError, "gpg export", fmt.Errorf("Error writing key content %w", err))
 	}
 }

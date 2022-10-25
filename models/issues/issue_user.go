@@ -29,7 +29,7 @@ func init() {
 func NewIssueUsers(ctx context.Context, repo *repo_model.Repository, issue *Issue) error {
 	assignees, err := repo_model.GetRepoAssignees(ctx, repo)
 	if err != nil {
-		return fmt.Errorf("getAssignees: %v", err)
+		return fmt.Errorf("getAssignees: %w", err)
 	}
 
 	// Poster can be anyone, append later if not one of assignees.

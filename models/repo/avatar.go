@@ -36,7 +36,7 @@ func generateRandomAvatar(ctx context.Context, repo *Repository) error {
 	seed := idToString
 	img, err := avatar.RandomImage([]byte(seed))
 	if err != nil {
-		return fmt.Errorf("RandomImage: %v", err)
+		return fmt.Errorf("RandomImage: %w", err)
 	}
 
 	repo.Avatar = idToString
@@ -47,7 +47,7 @@ func generateRandomAvatar(ctx context.Context, repo *Repository) error {
 		}
 		return err
 	}); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %v", repo.CustomAvatarRelativePath(), err)
+		return fmt.Errorf("Failed to create dir %s: %w", repo.CustomAvatarRelativePath(), err)
 	}
 
 	log.Info("New random avatar created for repository: %d", repo.ID)
