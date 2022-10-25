@@ -73,8 +73,7 @@ export function parseUrl(str) {
 
 // return current locale chosen by user
 export function getCurrentLocale() {
-  const {lang} = document.documentElement;
-  return lang;
+  return document.documentElement.lang;
 }
 
 // given a month (0-11), returns it in the documents language
