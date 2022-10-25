@@ -130,7 +130,7 @@ func AddPublicKey(ownerID int64, name, content string, authSourceID int64) (*Pub
 		LoginSourceID: authSourceID,
 	}
 	if err = addKey(ctx, key); err != nil {
-		return nil, fmt.Errorf("addKey: %v", err)
+		return nil, fmt.Errorf("addKey: %w", err)
 	}
 
 	return key, committer.Commit()

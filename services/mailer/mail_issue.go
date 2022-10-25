@@ -44,13 +44,13 @@ const (
 func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_model.User) error {
 	// Required by the mail composer; make sure to load these before calling the async function
 	if err := ctx.Issue.LoadRepo(ctx); err != nil {
-		return fmt.Errorf("LoadRepo(): %v", err)
+		return fmt.Errorf("LoadRepo(): %w", err)
 	}
 	if err := ctx.Issue.LoadPoster(); err != nil {
-		return fmt.Errorf("LoadPoster(): %v", err)
+		return fmt.Errorf("LoadPoster(): %w", err)
 	}
 	if err := ctx.Issue.LoadPullRequest(); err != nil {
-		return fmt.Errorf("LoadPullRequest(): %v", err)
+		return fmt.Errorf("LoadPullRequest(): %w", err)
 	}
 
 	// Enough room to avoid reallocations
@@ -62,21 +62,21 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 	// =========== Assignees ===========
 	ids, err := issues_model.GetAssigneeIDsByIssue(ctx.Issue.ID)
 	if err != nil {
-		return fmt.Errorf("GetAssigneeIDsByIssue(%d): %v", ctx.Issue.ID, err)
+		return fmt.Errorf("GetAssigneeIDsByIssue(%d): %w", ctx.Issue.ID, err)
 	}
 	unfiltered = append(unfiltered, ids...)
 
 	// =========== Participants (i.e. commenters, reviewers) ===========
 	ids, err = issues_model.GetParticipantsIDsByIssueID(ctx.Issue.ID)
 	if err != nil {
-		return fmt.Errorf("GetParticipantsIDsByIssueID(%d): %v", ctx.Issue.ID, err)
+		return fmt.Errorf("GetParticipantsIDsByIssueID(%d): %w", ctx.Issue.ID, err)
 	}
 	unfiltered = append(unfiltered, ids...)
 
 	// =========== Issue watchers ===========
 	ids, err = issues_model.GetIssueWatchersIDs(ctx, ctx.Issue.ID, true)
 	if err != nil {
-		return fmt.Errorf("GetIssueWatchersIDs(%d): %v", ctx.Issue.ID, err)
+		return fmt.Errorf("GetIssueWatchersIDs(%d): %w", ctx.Issue.ID, err)
 	}
 	unfiltered = append(unfiltered, ids...)
 
@@ -85,7 +85,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 	if !(ctx.Issue.IsPull && ctx.Issue.PullRequest.IsWorkInProgress() && ctx.ActionType != activities_model.ActionCreatePullRequest) {
 		ids, err = repo_model.GetRepoWatchersIDs(ctx, ctx.Issue.RepoID)
 		if err != nil {
-			return fmt.Errorf("GetRepoWatchersIDs(%d): %v", ctx.Issue.RepoID, err)
+			return fmt.Errorf("GetRepoWatchersIDs(%d): %w", ctx.Issue.RepoID, err)
 		}
 		unfiltered = append(ids, unfiltered...)
 	}
@@ -99,13 +99,13 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 
 	// =========== Mentions ===========
 	if err = mailIssueCommentBatch(ctx, mentions, visited, true); err != nil {
-		return fmt.Errorf("mailIssueCommentBatch() mentions: %v", err)
+		return fmt.Errorf("mailIssueCommentBatch() mentions: %w", err)
 	}
 
 	// Avoid mailing explicit unwatched
 	ids, err = issues_model.GetIssueWatchersIDs(ctx, ctx.Issue.ID, false)
 	if err != nil {
-		return fmt.Errorf("GetIssueWatchersIDs(%d): %v", ctx.Issue.ID, err)
+		return fmt.Errorf("GetIssueWatchersIDs(%d): %w", ctx.Issue.ID, err)
 	}
 	visited.AddMultiple(ids...)
 
@@ -114,7 +114,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 		return err
 	}
 	if err = mailIssueCommentBatch(ctx, unfilteredUsers, visited, false); err != nil {
-		return fmt.Errorf("mailIssueCommentBatch(): %v", err)
+		return fmt.Errorf("mailIssueCommentBatch(): %w", err)
 	}
 
 	return nil

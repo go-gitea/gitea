@@ -53,16 +53,16 @@ func increaseLanguageField(x *xorm.Engine) error {
 		if err := sess.SQL(`SELECT i.name AS Name
 			FROM sys.indexes i INNER JOIN sys.index_columns ic
       			ON i.index_id = ic.index_id AND i.object_id = ic.object_id
-   			INNER JOIN sys.tables AS t 
+   			INNER JOIN sys.tables AS t
       			ON t.object_id = i.object_id
 			INNER JOIN sys.columns c
 				ON t.object_id = c.object_id AND ic.column_id = c.column_id
 			WHERE t.name = 'language_stat' AND c.name = 'language'`).Find(&constraints); err != nil {
-			return fmt.Errorf("Find constraints: %v", err)
+			return fmt.Errorf("Find constraints: %w", err)
 		}
 		for _, constraint := range constraints {
 			if _, err := sess.Exec(fmt.Sprintf("DROP INDEX [%s] ON `language_stat`", constraint)); err != nil {
-				return fmt.Errorf("Drop table `language_stat` constraint `%s`: %v", constraint, err)
+				return fmt.Errorf("Drop table `language_stat` constraint `%s`: %w", constraint, err)
 			}
 		}
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE language_stat ALTER COLUMN language %s", sqlType)); err != nil {
