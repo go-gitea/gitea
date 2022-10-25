@@ -34,6 +34,8 @@ func TestPackageNpm(t *testing.T) {
 	packageTag2 := "release"
 	packageAuthor := "KN4CK3R"
 	packageDescription := "Test Description"
+	packageBinName := "cli"
+	packageBinPath := "./cli.sh"
 
 	data := "H4sIAAAAAAAA/ytITM5OTE/VL4DQelnF+XkMVAYGBgZmJiYK2MRBwNDcSIHB2NTMwNDQzMwAqA7IMDUxA9LUdgg2UFpcklgEdAql5kD8ogCnhwio5lJQUMpLzE1VslJQcihOzi9I1S9JLS7RhSYIJR2QgrLUouLM/DyQGkM9Az1D3YIiqExKanFyUWZBCVQ2BKhVwQVJDKwosbQkI78IJO/tZ+LsbRykxFXLNdA+HwWjYBSMgpENACgAbtAACAAA"
 	upload := `{
@@ -51,6 +53,9 @@ func TestPackageNpm(t *testing.T) {
 			"author": {
 			  "name": "` + packageAuthor + `"
 			},
+      "bin": {
+          "` + packageBinName + `": "` + packageBinPath + `"
+      },
 			"dist": {
 			  "integrity": "sha512-yA4FJsVhetynGfOC1jFf79BuS+jrHbm0fhh+aHzCQkOaOBXKf9oBnC4a6DnLLnEsHQDRLYd00cwj8sCXpC+wIg==",
 			  "shasum": "aaa7eaf852a948b0aa05afeda35b1badca155d90"
@@ -150,6 +155,7 @@ func TestPackageNpm(t *testing.T) {
 		assert.Equal(t, packageName, pmv.Name)
 		assert.Equal(t, packageDescription, pmv.Description)
 		assert.Equal(t, packageAuthor, pmv.Author.Name)
+		assert.Equal(t, packageBinPath, pmv.Bin[packageBinName])
 		assert.Equal(t, "sha512-yA4FJsVhetynGfOC1jFf79BuS+jrHbm0fhh+aHzCQkOaOBXKf9oBnC4a6DnLLnEsHQDRLYd00cwj8sCXpC+wIg==", pmv.Dist.Integrity)
 		assert.Equal(t, "aaa7eaf852a948b0aa05afeda35b1badca155d90", pmv.Dist.Shasum)
 		assert.Equal(t, fmt.Sprintf("%s%s/-/%s/%s", setting.AppURL, root[1:], packageVersion, filename), pmv.Dist.Tarball)
