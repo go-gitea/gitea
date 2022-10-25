@@ -33,7 +33,7 @@ func CatFileBatchCheck(ctx context.Context, shasToCheckReader *io.PipeReader, ca
 		Stdout: catFileCheckWriter,
 		Stderr: stderr,
 	}); err != nil {
-		_ = catFileCheckWriter.CloseWithError(fmt.Errorf("git cat-file --batch-check [%s]: %v - %s", tmpBasePath, err, errbuf.String()))
+		_ = catFileCheckWriter.CloseWithError(fmt.Errorf("git cat-file --batch-check [%s]: %w - %s", tmpBasePath, err, errbuf.String()))
 	}
 }
 
@@ -51,7 +51,7 @@ func CatFileBatchCheckAllObjects(ctx context.Context, catFileCheckWriter *io.Pip
 		Stderr: stderr,
 	}); err != nil {
 		log.Error("git cat-file --batch-check --batch-all-object [%s]: %v - %s", tmpBasePath, err, errbuf.String())
-		err = fmt.Errorf("git cat-file --batch-check --batch-all-object [%s]: %v - %s", tmpBasePath, err, errbuf.String())
+		err = fmt.Errorf("git cat-file --batch-check --batch-all-object [%s]: %w - %s", tmpBasePath, err, errbuf.String())
 		_ = catFileCheckWriter.CloseWithError(err)
 		errChan <- err
 	}
@@ -71,7 +71,7 @@ func CatFileBatch(ctx context.Context, shasToBatchReader *io.PipeReader, catFile
 		Stdin:  shasToBatchReader,
 		Stderr: stderr,
 	}); err != nil {
-		_ = shasToBatchReader.CloseWithError(fmt.Errorf("git rev-list [%s]: %v - %s", tmpBasePath, err, errbuf.String()))
+		_ = shasToBatchReader.CloseWithError(fmt.Errorf("git rev-list [%s]: %w - %s", tmpBasePath, err, errbuf.String()))
 	}
 }
 
