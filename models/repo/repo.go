@@ -777,15 +777,13 @@ func UpdateRepoIssueNumbers(ctx context.Context, repoID int64, isPull, isClosed 
 		field += "issues"
 	}
 
-	var cond builder.Cond = builder.Eq{
+	subQuery := builder.Select("count(*)").
+		From("issue").Where(builder.Eq{
 		"repo_id": repoID,
 		"is_pull": isPull,
-	}
-	if isClosed {
-		cond = cond.And(builder.Eq{"is_closed": isClosed})
-	}
-	subQuery := builder.Select("count(*)").From("issue").Where(cond)
+	}.And(builder.If(isClosed, builder.Eq{"is_closed": isClosed})))
 
+	// builder.Update(cond) will generate SQL like UPDATE ... SET cond
 	query := builder.Update(builder.Eq{field: subQuery}).
 		From("repository").
 		Where(builder.Eq{"id": repoID})
