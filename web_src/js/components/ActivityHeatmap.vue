@@ -16,7 +16,7 @@
 </template>
 <script>
 import {CalendarHeatmap} from 'vue3-calendar-heatmap';
-import {formatMonth, formatDay, getCurrentLocale} from '../utils.js';
+import {translateMonth, translateDay, getCurrentLocale} from '../utils.js';
 
 const {i18n} = window.config;
 
@@ -40,8 +40,8 @@ export default {
     ],
     endDate: new Date(),
     locale: {
-      months: new Array(12).fill().map((_, idx) => formatMonth(idx)),
-      days: new Array(7).fill().map((_, idx) => formatDay(idx)),
+      months: new Array(12).fill().map((_, idx) => translateMonth(idx)),
+      days: new Array(7).fill().map((_, idx) => translateDay(idx)),
       contributions: i18n.contributions.toLocaleLowerCase(getCurrentLocale()),
       no_contributions: i18n.no_contributions,
       contributions_in_the_last_12_months: i18n.contributions_in_the_last_12_months.toLocaleLowerCase(getCurrentLocale()),

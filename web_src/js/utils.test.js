@@ -1,7 +1,7 @@
-import {expect, test} from 'vitest';
+import { expect, test } from 'vitest';
 import {
   basename, extname, isObject, uniq, stripTags, joinPaths, parseIssueHref,
-  prettyNumber, parseUrl, formatMonth, formatDay
+  prettyNumber, parseUrl, translateMonth, translateDay
 } from './utils.js';
 
 test('basename', () => {
@@ -70,21 +70,21 @@ test('stripTags', () => {
 });
 
 test('parseIssueHref', () => {
-  expect(parseIssueHref('/owner/repo/issues/1')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
-  expect(parseIssueHref('/owner/repo/pulls/1?query')).toEqual({owner: 'owner', repo: 'repo', type: 'pulls', index: '1'});
-  expect(parseIssueHref('/owner/repo/issues/1#hash')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
-  expect(parseIssueHref('/sub/owner/repo/issues/1')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
-  expect(parseIssueHref('/sub/sub2/owner/repo/pulls/1')).toEqual({owner: 'owner', repo: 'repo', type: 'pulls', index: '1'});
-  expect(parseIssueHref('/sub/sub2/owner/repo/issues/1?query')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
-  expect(parseIssueHref('/sub/sub2/owner/repo/issues/1#hash')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
-  expect(parseIssueHref('https://example.com/owner/repo/issues/1')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
-  expect(parseIssueHref('https://example.com/owner/repo/pulls/1?query')).toEqual({owner: 'owner', repo: 'repo', type: 'pulls', index: '1'});
-  expect(parseIssueHref('https://example.com/owner/repo/issues/1#hash')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
-  expect(parseIssueHref('https://example.com/sub/owner/repo/issues/1')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
-  expect(parseIssueHref('https://example.com/sub/sub2/owner/repo/pulls/1')).toEqual({owner: 'owner', repo: 'repo', type: 'pulls', index: '1'});
-  expect(parseIssueHref('https://example.com/sub/sub2/owner/repo/issues/1?query')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
-  expect(parseIssueHref('https://example.com/sub/sub2/owner/repo/issues/1#hash')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
-  expect(parseIssueHref('')).toEqual({owner: undefined, repo: undefined, type: undefined, index: undefined});
+  expect(parseIssueHref('/owner/repo/issues/1')).toEqual({ owner: 'owner', repo: 'repo', type: 'issues', index: '1' });
+  expect(parseIssueHref('/owner/repo/pulls/1?query')).toEqual({ owner: 'owner', repo: 'repo', type: 'pulls', index: '1' });
+  expect(parseIssueHref('/owner/repo/issues/1#hash')).toEqual({ owner: 'owner', repo: 'repo', type: 'issues', index: '1' });
+  expect(parseIssueHref('/sub/owner/repo/issues/1')).toEqual({ owner: 'owner', repo: 'repo', type: 'issues', index: '1' });
+  expect(parseIssueHref('/sub/sub2/owner/repo/pulls/1')).toEqual({ owner: 'owner', repo: 'repo', type: 'pulls', index: '1' });
+  expect(parseIssueHref('/sub/sub2/owner/repo/issues/1?query')).toEqual({ owner: 'owner', repo: 'repo', type: 'issues', index: '1' });
+  expect(parseIssueHref('/sub/sub2/owner/repo/issues/1#hash')).toEqual({ owner: 'owner', repo: 'repo', type: 'issues', index: '1' });
+  expect(parseIssueHref('https://example.com/owner/repo/issues/1')).toEqual({ owner: 'owner', repo: 'repo', type: 'issues', index: '1' });
+  expect(parseIssueHref('https://example.com/owner/repo/pulls/1?query')).toEqual({ owner: 'owner', repo: 'repo', type: 'pulls', index: '1' });
+  expect(parseIssueHref('https://example.com/owner/repo/issues/1#hash')).toEqual({ owner: 'owner', repo: 'repo', type: 'issues', index: '1' });
+  expect(parseIssueHref('https://example.com/sub/owner/repo/issues/1')).toEqual({ owner: 'owner', repo: 'repo', type: 'issues', index: '1' });
+  expect(parseIssueHref('https://example.com/sub/sub2/owner/repo/pulls/1')).toEqual({ owner: 'owner', repo: 'repo', type: 'pulls', index: '1' });
+  expect(parseIssueHref('https://example.com/sub/sub2/owner/repo/issues/1?query')).toEqual({ owner: 'owner', repo: 'repo', type: 'issues', index: '1' });
+  expect(parseIssueHref('https://example.com/sub/sub2/owner/repo/issues/1#hash')).toEqual({ owner: 'owner', repo: 'repo', type: 'issues', index: '1' });
+  expect(parseIssueHref('')).toEqual({ owner: undefined, repo: undefined, type: undefined, index: undefined });
 });
 
 test('prettyNumber', () => {
@@ -110,20 +110,20 @@ test('parseUrl', () => {
   expect(parseUrl('https://localhost/path?search#hash').hash).toEqual('#hash');
 });
 
-test('formatMonth', () => {
+test('translateMonth', () => {
   document.documentElement.lang = 'en-US';
-  expect(formatMonth(0)).toEqual('Jan');
-  expect(formatMonth(4)).toEqual('May');
+  expect(translateMonth(0)).toEqual('Jan');
+  expect(translateMonth(4)).toEqual('May');
   document.documentElement.lang = 'es-ES';
-  expect(formatMonth(5)).toEqual('jun');
-  expect(formatMonth(6)).toEqual('jul');
+  expect(translateMonth(5)).toEqual('jun');
+  expect(translateMonth(6)).toEqual('jul');
 });
 
-test('formatDay', () => {
+test('translateDay', () => {
   document.documentElement.lang = 'fr-FR';
-  expect(formatDay(1)).toEqual('lun.');
-  expect(formatDay(5)).toEqual('ven.');
+  expect(translateDay(1)).toEqual('lun.');
+  expect(translateDay(5)).toEqual('ven.');
   document.documentElement.lang = 'pl-PL';
-  expect(formatDay(1)).toEqual('pon.');
-  expect(formatDay(5)).toEqual('pt.');
+  expect(translateDay(1)).toEqual('pon.');
+  expect(translateDay(5)).toEqual('pt.');
 });
