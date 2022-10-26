@@ -166,7 +166,7 @@ func runDumpRepository(ctx *cli.Context) error {
 	// make sure the directory doesn't exist or is empty, prevent from deleting user files
 	repoDir := ctx.String("repo_dir")
 	if exists, err := util.IsExist(repoDir); err != nil {
-		return fmt.Errorf("unable to stat repo_dir %q: %v", repoDir, err)
+		return fmt.Errorf("unable to stat repo_dir %q: %w", repoDir, err)
 	} else if exists {
 		if isDir, _ := util.IsDir(repoDir); !isDir {
 			return fmt.Errorf("repo_dir %q already exists but it's not a directory", repoDir)
