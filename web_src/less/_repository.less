@@ -1126,7 +1126,10 @@
         .comment-content {
           margin-left: 36px;
         }
+      }
 
+      .code-comment,
+      .comment {
         img.avatar {
           width: 28px;
           height: 28px;
@@ -3266,7 +3269,8 @@ td.blob-excerpt {
   background: var(--color-diff-inactive);
 }
 
-.code-diff-split tbody tr td:nth-child(5) {
+.code-diff-split tbody tr td:nth-child(5),
+.code-diff-split tbody tr td.add-comment-right {
   border-left: 1px solid var(--color-secondary);
 }
 
