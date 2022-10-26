@@ -562,24 +562,19 @@ func repoStatsCorrectIssueNumComments(ctx context.Context, id int64) error {
 }
 
 func repoStatsCorrectNumIssues(ctx context.Context, id int64) error {
-	return repoStatsCorrectNum(ctx, id, false, "num_issues")
+	return repo_model.UpdateRepoIssueNumbers(ctx, id, false, false)
 }
 
 func repoStatsCorrectNumPulls(ctx context.Context, id int64) error {
-	return repoStatsCorrectNum(ctx, id, true, "num_pulls")
-}
-
-func repoStatsCorrectNum(ctx context.Context, id int64, isPull bool, field string) error {
-	_, err := db.GetEngine(ctx).Exec("UPDATE `repository` SET "+field+"=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_pull=?) WHERE id=?", id, isPull, id)
-	return err
+	return repo_model.UpdateRepoIssueNumbers(ctx, id, true, false)
 }
 
 func repoStatsCorrectNumClosedIssues(ctx context.Context, id int64) error {
-	return repo_model.StatsCorrectNumClosed(ctx, id, false, "num_closed_issues")
+	return repo_model.UpdateRepoIssueNumbers(ctx, id, false, true)
 }
 
 func repoStatsCorrectNumClosedPulls(ctx context.Context, id int64) error {
-	return repo_model.StatsCorrectNumClosed(ctx, id, true, "num_closed_pulls")
+	return repo_model.UpdateRepoIssueNumbers(ctx, id, true, true)
 }
 
 func statsQuery(args ...interface{}) func(context.Context) ([]map[string][]byte, error) {

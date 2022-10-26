@@ -722,7 +722,8 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 		}
 	}
 
-	if err := updateIssueClosedNum(ctx, issue); err != nil {
+	// update repository's issue closed number
+	if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, true); err != nil {
 		return nil, err
 	}
 
@@ -2102,15 +2103,6 @@ func (issue *Issue) BlockingDependencies(ctx context.Context) (issueDeps []*Depe
 	}
 
 	return issueDeps, err
-}
-
-func updateIssueClosedNum(ctx context.Context, issue *Issue) (err error) {
-	if issue.IsPull {
-		err = repo_model.StatsCorrectNumClosed(ctx, issue.RepoID, true, "num_closed_pulls")
-	} else {
-		err = repo_model.StatsCorrectNumClosed(ctx, issue.RepoID, false, "num_closed_issues")
-	}
-	return
 }
 
 // FindAndUpdateIssueMentions finds users mentioned in the given content string, and saves them in the database.
