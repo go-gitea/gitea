@@ -967,6 +967,9 @@ func RegisterRoutes(m *web.Route) {
 
 			m.Group("/runners", func() {
 				m.Get("", repo.Runners)
+				m.Combo("/{runnerid}").Get(repo.RunnersEdit).
+					Post(bindIgnErr(forms.EditRunnerForm{}), repo.RunnersEditPost)
+				m.Get("/reset_registration_token", repo.ResetRunnerRegistrationToken)
 			})
 
 		}, func(ctx *context.Context) {
