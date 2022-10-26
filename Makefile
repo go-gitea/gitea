@@ -665,23 +665,23 @@ migrations.sqlite.test: $(GO_SOURCES)
 
 .PHONY: migrations.individual.mysql.test
 migrations.individual.mysql.test: $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/models/migrations -o migrations.individual.mysql.test
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/models/migrations/... -o migrations.individual.mysql.test
 
 .PHONY: migrations.individual.mysql8.test
 migrations.individual.mysql8.test: $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/models/migrations -o migrations.individual.mysql8.test
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/models/migrations/... -o migrations.individual.mysql8.test
 
 .PHONY: migrations.individual.pgsql.test
 migrations.individual.pgsql.test: $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/models/migrations -o migrations.individual.pgsql.test
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/models/migrations/... -o migrations.individual.pgsql.test
 
 .PHONY: migrations.individual.mssql.test
 migrations.individual.mssql.test: $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/models/migrations -o migrations.individual.mssql.test
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/models/migrations/... -o migrations.individual.mssql.test
 
 .PHONY: migrations.individual.sqlite.test
 migrations.individual.sqlite.test: $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/models/migrations -o migrations.individual.sqlite.test -tags '$(TEST_TAGS)'
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/models/migrations/... -o migrations.individual.sqlite.test -tags '$(TEST_TAGS)'
 
 e2e.mysql.test: $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/e2e -o e2e.mysql.test
