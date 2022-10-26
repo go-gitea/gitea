@@ -98,6 +98,39 @@ services:
 
 ## Databases
 
+### SQLite database
+
+To start Gitea with a SQLite database, apply these changes to the
+`docker-compose.yml` file created above.
+
+```diff
+version: "3"
+
+networks:
+  gitea:
+    external: false
+
+services:
+  server:
+    image: gitea/gitea:{{< version >}}
+    container_name: gitea
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
++     - GITEA__database__DB_TYPE=sqlite3
+    restart: always
+    networks:
+      - gitea
+    volumes:
+      - ./gitea:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "3000:3000"
+      - "222:22"
+```
+
+
 ### MySQL database
 
 To start Gitea in combination with a MySQL database, apply these changes to the
