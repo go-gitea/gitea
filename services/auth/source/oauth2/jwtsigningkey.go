@@ -339,7 +339,7 @@ func InitSigningKey() error {
 	}
 
 	if err != nil {
-		return fmt.Errorf("Error while loading or creating JWT key: %v", err)
+		return fmt.Errorf("Error while loading or creating JWT key: %w", err)
 	}
 
 	signingKey, err := CreateJWTSigningKey(setting.OAuth2.JWTSigningAlgorithm, key)

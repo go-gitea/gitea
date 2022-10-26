@@ -8,12 +8,11 @@ import (
 	"xorm.io/xorm"
 )
 
-func addIndexForHookTask(x *xorm.Engine) error {
-	type HookTask struct {
-		ID     int64  `xorm:"pk autoincr"`
-		HookID int64  `xorm:"index"`
-		UUID   string `xorm:"unique"`
+// addConfidentialColumnToOAuth2ApplicationTable: add ConfidentialClient column, setting existing rows to true
+func addConfidentialClientColumnToOAuth2ApplicationTable(x *xorm.Engine) error {
+	type OAuth2Application struct {
+		ConfidentialClient bool `xorm:"NOT NULL DEFAULT TRUE"`
 	}
 
-	return x.Sync(new(HookTask))
+	return x.Sync(new(OAuth2Application))
 }

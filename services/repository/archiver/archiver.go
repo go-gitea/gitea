@@ -139,7 +139,7 @@ func (aReq *ArchiveRequest) GetArchiveName() string {
 func (aReq *ArchiveRequest) Await(ctx context.Context) (*repo_model.RepoArchiver, error) {
 	archiver, err := repo_model.GetRepoArchiver(ctx, aReq.RepoID, aReq.Type, aReq.CommitID)
 	if err != nil {
-		return nil, fmt.Errorf("models.GetRepoArchiver: %v", err)
+		return nil, fmt.Errorf("models.GetRepoArchiver: %w", err)
 	}
 
 	if archiver != nil && archiver.Status == repo_model.ArchiverReady {
@@ -148,7 +148,7 @@ func (aReq *ArchiveRequest) Await(ctx context.Context) (*repo_model.RepoArchiver
 	}
 
 	if err := StartArchive(aReq); err != nil {
-		return nil, fmt.Errorf("archiver.StartArchive: %v", err)
+		return nil, fmt.Errorf("archiver.StartArchive: %w", err)
 	}
 
 	poll := time.NewTicker(time.Second * 1)
@@ -164,7 +164,7 @@ func (aReq *ArchiveRequest) Await(ctx context.Context) (*repo_model.RepoArchiver
 		case <-poll.C:
 			archiver, err = repo_model.GetRepoArchiver(ctx, aReq.RepoID, aReq.Type, aReq.CommitID)
 			if err != nil {
-				return nil, fmt.Errorf("repo_model.GetRepoArchiver: %v", err)
+				return nil, fmt.Errorf("repo_model.GetRepoArchiver: %w", err)
 			}
 			if archiver != nil && archiver.Status == repo_model.ArchiverReady {
 				return archiver, nil
@@ -218,7 +218,7 @@ func doArchive(r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
 	}
 
 	if !errors.Is(err, os.ErrNotExist) {
-		return nil, fmt.Errorf("unable to stat archive: %v", err)
+		return nil, fmt.Errorf("unable to stat archive: %w", err)
 	}
 
 	rd, w := io.Pipe()
@@ -229,7 +229,7 @@ func doArchive(r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
 	done := make(chan error, 1) // Ensure that there is some capacity which will ensure that the goroutine below can always finish
 	repo, err := repo_model.GetRepositoryByID(archiver.RepoID)
 	if err != nil {
-		return nil, fmt.Errorf("archiver.LoadRepo failed: %v", err)
+		return nil, fmt.Errorf("archiver.LoadRepo failed: %w", err)
 	}
 
 	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
@@ -268,7 +268,7 @@ func doArchive(r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
 	// TODO: add submodule data to zip
 
 	if _, err := storage.RepoArchives.Save(rPath, rd, -1); err != nil {
-		return nil, fmt.Errorf("unable to write archive: %v", err)
+		return nil, fmt.Errorf("unable to write archive: %w", err)
 	}
 
 	err = <-done

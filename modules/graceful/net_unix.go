@@ -52,7 +52,7 @@ func getProvidedFDs() (savedErr error) {
 		}
 		n, err := strconv.Atoi(numFDs)
 		if err != nil {
-			savedErr = fmt.Errorf("%s is not a number: %s. Err: %v", listenFDs, numFDs, err)
+			savedErr = fmt.Errorf("%s is not a number: %s. Err: %w", listenFDs, numFDs, err)
 			return
 		}
 
@@ -81,7 +81,7 @@ func getProvidedFDs() (savedErr error) {
 			}
 
 			// If needed we can handle packetconns here.
-			savedErr = fmt.Errorf("Error getting provided socket fd %d: %v", i, err)
+			savedErr = fmt.Errorf("Error getting provided socket fd %d: %w", i, err)
 			return
 		}
 	})
@@ -98,7 +98,7 @@ func CloseProvidedListeners() error {
 		if err != nil {
 			log.Error("Error in closing unused provided listener: %v", err)
 			if returnableError != nil {
-				returnableError = fmt.Errorf("%v & %v", returnableError, err)
+				returnableError = fmt.Errorf("%v & %w", returnableError, err)
 			} else {
 				returnableError = err
 			}
@@ -198,7 +198,7 @@ func GetListenerUnix(network string, address *net.UnixAddr) (*net.UnixListener, 
 
 	// make a fresh listener
 	if err := util.Remove(address.Name); err != nil && !os.IsNotExist(err) {
-		return nil, fmt.Errorf("Failed to remove unix socket %s: %v", address.Name, err)
+		return nil, fmt.Errorf("Failed to remove unix socket %s: %w", address.Name, err)
 	}
 
 	l, err := net.ListenUnix(network, address)
@@ -208,7 +208,7 @@ func GetListenerUnix(network string, address *net.UnixAddr) (*net.UnixListener, 
 
 	fileMode := os.FileMode(setting.UnixSocketPermission)
 	if err = os.Chmod(address.Name, fileMode); err != nil {
-		return nil, fmt.Errorf("Failed to set permission of unix socket to %s: %v", fileMode.String(), err)
+		return nil, fmt.Errorf("Failed to set permission of unix socket to %s: %w", fileMode.String(), err)
 	}
 
 	activeListeners = append(activeListeners, l)

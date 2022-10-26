@@ -108,7 +108,7 @@ func NewConn() LoggerProvider {
 func (log *ConnLogger) Init(jsonconfig string) error {
 	err := json.Unmarshal([]byte(jsonconfig), log)
 	if err != nil {
-		return fmt.Errorf("Unable to parse JSON: %v", err)
+		return fmt.Errorf("Unable to parse JSON: %w", err)
 	}
 	log.NewWriterLogger(&connWriter{
 		ReconnectOnMsg: log.ReconnectOnMsg,

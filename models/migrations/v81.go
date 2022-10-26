@@ -24,7 +24,7 @@ func changeU2FCounterType(x *xorm.Engine) error {
 	}
 
 	if err != nil {
-		return fmt.Errorf("Error changing u2f_registration counter column type: %v", err)
+		return fmt.Errorf("Error changing u2f_registration counter column type: %w", err)
 	}
 
 	return nil

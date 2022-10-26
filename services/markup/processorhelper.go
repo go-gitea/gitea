@@ -8,22 +8,26 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
+	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup"
 )
 
 func ProcessorHelper() *markup.ProcessorHelper {
 	return &markup.ProcessorHelper{
 		IsUsernameMentionable: func(ctx context.Context, username string) bool {
-			// TODO: cast ctx to modules/context.Context and use IsUserVisibleToViewer
-
-			// Only link if the user actually exists
-			userExists, err := user.IsUserExist(ctx, 0, username)
+			mentionedUser, err := user.GetUserByName(ctx, username)
 			if err != nil {
-				log.Error("Failed to validate user in mention %q exists, assuming it does", username)
-				userExists = true
+				return false
 			}
-			return userExists
+
+			giteaCtx, ok := ctx.(*gitea_context.Context)
+			if !ok {
+				// when using general context, use user's visibility to check
+				return mentionedUser.Visibility.IsPublic()
+			}
+
+			// when using gitea context (web context), use user's visibility and user's permission to check
+			return user.IsUserVisibleToViewer(giteaCtx, mentionedUser, giteaCtx.Doer)
 		},
 	}
 }
