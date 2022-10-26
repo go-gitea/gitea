@@ -113,7 +113,7 @@ func Install(ctx *context.Context) {
 		}
 	}
 	if !isCurDBTypeSupported {
-		curDBType = "mysql"
+		curDBType = setting.SupportedDatabaseTypes[0]
 	}
 	ctx.Data["CurDbType"] = curDBType
 

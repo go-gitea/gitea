@@ -98,6 +98,13 @@ services:
 
 ## Databases
 
+### SQLite3 database
+
+Use the above "basic" docker-compose config, set "Database Type" to SQLite3 on the installation page.
+
+SQLite3 is only suitable for small instance and for only a few users.
+It's recommended to use other database servers for production instances.
+
 ### MySQL database
 
 To start Gitea in combination with a MySQL database, apply these changes to the
