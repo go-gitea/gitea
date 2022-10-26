@@ -130,7 +130,6 @@ services:
       - "222:22"
 ```
 
-
 ### MySQL database
 
 To start Gitea in combination with a MySQL database, apply these changes to the
