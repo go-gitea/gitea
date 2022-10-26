@@ -37,13 +37,13 @@ func DownloadDiffOrPatch(ctx context.Context, pr *issues_model.PullRequest, w io
 
 	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo.RepoPath())
 	if err != nil {
-		return fmt.Errorf("OpenRepository: %v", err)
+		return fmt.Errorf("OpenRepository: %w", err)
 	}
 	defer closer.Close()
 
 	if err := gitRepo.GetDiffOrPatch(pr.MergeBase, pr.GetGitRefName(), w, patch, binary); err != nil {
 		log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
-		return fmt.Errorf("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
+		return fmt.Errorf("Unable to get patch file from %s to %s in %s Error: %w", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 	}
 	return nil
 }
@@ -74,7 +74,7 @@ func TestPatch(pr *issues_model.PullRequest) error {
 
 	gitRepo, err := git.OpenRepository(ctx, tmpBasePath)
 	if err != nil {
-		return fmt.Errorf("OpenRepository: %v", err)
+		return fmt.Errorf("OpenRepository: %w", err)
 	}
 	defer gitRepo.Close()
 
@@ -84,7 +84,7 @@ func TestPatch(pr *issues_model.PullRequest) error {
 		var err2 error
 		pr.MergeBase, err2 = gitRepo.GetRefCommitID(git.BranchPrefix + "base")
 		if err2 != nil {
-			return fmt.Errorf("GetMergeBase: %v and can't find commit ID for base: %v", err, err2)
+			return fmt.Errorf("GetMergeBase: %v and can't find commit ID for base: %w", err, err2)
 		}
 	}
 	pr.MergeBase = strings.TrimSpace(pr.MergeBase)
@@ -104,7 +104,7 @@ func TestPatch(pr *issues_model.PullRequest) error {
 
 	// 3. Check for protected files changes
 	if err = checkPullFilesProtection(pr, gitRepo); err != nil {
-		return fmt.Errorf("pr.CheckPullFilesProtection(): %v", err)
+		return fmt.Errorf("pr.CheckPullFilesProtection(): %w", err)
 	}
 
 	if len(pr.ChangedProtectedFiles) > 0 {
@@ -237,7 +237,7 @@ func AttemptThreeWayMerge(ctx context.Context, gitPath string, gitRepo *git.Repo
 	// First we use read-tree to do a simple three-way merge
 	if _, _, err := git.NewCommand(ctx, "read-tree", "-m").AddDynamicArguments(base, ours, theirs).RunStdString(&git.RunOpts{Dir: gitPath}); err != nil {
 		log.Error("Unable to run read-tree -m! Error: %v", err)
-		return false, nil, fmt.Errorf("unable to run read-tree -m! Error: %v", err)
+		return false, nil, fmt.Errorf("unable to run read-tree -m! Error: %w", err)
 	}
 
 	// Then we use git ls-files -u to list the unmerged files and collate the triples in unmergedfiles
@@ -319,7 +319,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 	tmpPatchFile, err := os.CreateTemp("", "patch")
 	if err != nil {
 		log.Error("Unable to create temporary patch file! Error: %v", err)
-		return false, fmt.Errorf("unable to create temporary patch file! Error: %v", err)
+		return false, fmt.Errorf("unable to create temporary patch file! Error: %w", err)
 	}
 	defer func() {
 		_ = util.Remove(tmpPatchFile.Name())
@@ -328,12 +328,12 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 	if err := gitRepo.GetDiffBinary(pr.MergeBase, "tracking", tmpPatchFile); err != nil {
 		tmpPatchFile.Close()
 		log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
-		return false, fmt.Errorf("unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
+		return false, fmt.Errorf("unable to get patch file from %s to %s in %s Error: %w", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 	}
 	stat, err := tmpPatchFile.Stat()
 	if err != nil {
 		tmpPatchFile.Close()
-		return false, fmt.Errorf("unable to stat patch file: %v", err)
+		return false, fmt.Errorf("unable to stat patch file: %w", err)
 	}
 	patchPath := tmpPatchFile.Name()
 	tmpPatchFile.Close()
@@ -350,7 +350,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 	// 4. Read the base branch in to the index of the temporary repository
 	_, _, err = git.NewCommand(gitRepo.Ctx, "read-tree", "base").RunStdString(&git.RunOpts{Dir: tmpBasePath})
 	if err != nil {
-		return false, fmt.Errorf("git read-tree %s: %v", pr.BaseBranch, err)
+		return false, fmt.Errorf("git read-tree %s: %w", pr.BaseBranch, err)
 	}
 
 	// 5. Now get the pull request configuration to check if we need to ignore whitespace
@@ -383,7 +383,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 	stderrReader, stderrWriter, err := os.Pipe()
 	if err != nil {
 		log.Error("Unable to open stderr pipe: %v", err)
-		return false, fmt.Errorf("unable to open stderr pipe: %v", err)
+		return false, fmt.Errorf("unable to open stderr pipe: %w", err)
 	}
 	defer func() {
 		_ = stderrReader.Close()
@@ -467,7 +467,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 			return true, nil
 		}
 	} else if err != nil {
-		return false, fmt.Errorf("git apply --check: %v", err)
+		return false, fmt.Errorf("git apply --check: %w", err)
 	}
 	return false, nil
 }

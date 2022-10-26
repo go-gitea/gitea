@@ -94,7 +94,7 @@ func updateUserAccess(accessMap map[int64]*userAccess, user *user_model.User, mo
 func refreshAccesses(ctx context.Context, repo *repo_model.Repository, accessMap map[int64]*userAccess) (err error) {
 	minMode := perm.AccessModeRead
 	if err := repo.GetOwner(ctx); err != nil {
-		return fmt.Errorf("GetOwner: %v", err)
+		return fmt.Errorf("GetOwner: %w", err)
 	}
 
 	// If the repo isn't private and isn't owned by a organization,
@@ -118,14 +118,14 @@ func refreshAccesses(ctx context.Context, repo *repo_model.Repository, accessMap
 
 	// Delete old accesses and insert new ones for repository.
 	if _, err = db.DeleteByBean(ctx, &Access{RepoID: repo.ID}); err != nil {
-		return fmt.Errorf("delete old accesses: %v", err)
+		return fmt.Errorf("delete old accesses: %w", err)
 	}
 	if len(newAccesses) == 0 {
 		return nil
 	}
 
 	if err = db.Insert(ctx, newAccesses); err != nil {
-		return fmt.Errorf("insert new accesses: %v", err)
+		return fmt.Errorf("insert new accesses: %w", err)
 	}
 	return nil
 }
@@ -134,7 +134,7 @@ func refreshAccesses(ctx context.Context, repo *repo_model.Repository, accessMap
 func refreshCollaboratorAccesses(ctx context.Context, repoID int64, accessMap map[int64]*userAccess) error {
 	collaborators, err := repo_model.GetCollaborators(ctx, repoID, db.ListOptions{})
 	if err != nil {
-		return fmt.Errorf("getCollaborations: %v", err)
+		return fmt.Errorf("getCollaborations: %w", err)
 	}
 	for _, c := range collaborators {
 		if c.User.IsGhost() {
@@ -158,7 +158,7 @@ func RecalculateTeamAccesses(ctx context.Context, repo *repo_model.Repository, i
 	}
 
 	if err = refreshCollaboratorAccesses(ctx, repo.ID, accessMap); err != nil {
-		return fmt.Errorf("refreshCollaboratorAccesses: %v", err)
+		return fmt.Errorf("refreshCollaboratorAccesses: %w", err)
 	}
 
 	teams, err := organization.FindOrgTeams(ctx, repo.Owner.ID)
@@ -180,7 +180,7 @@ func RecalculateTeamAccesses(ctx context.Context, repo *repo_model.Repository, i
 		}
 
 		if err = t.GetMembersCtx(ctx); err != nil {
-			return fmt.Errorf("getMembers '%d': %v", t.ID, err)
+			return fmt.Errorf("getMembers '%d': %w", t.ID, err)
 		}
 		for _, m := range t.Members {
 			updateUserAccess(accessMap, m, t.AccessMode)
@@ -231,10 +231,10 @@ func RecalculateUserAccess(ctx context.Context, repo *repo_model.Repository, uid
 
 	// Delete old user accesses and insert new one for repository.
 	if _, err = e.Delete(&Access{RepoID: repo.ID, UserID: uid}); err != nil {
-		return fmt.Errorf("delete old user accesses: %v", err)
+		return fmt.Errorf("delete old user accesses: %w", err)
 	} else if accessMode >= minMode {
 		if err = db.Insert(ctx, &Access{RepoID: repo.ID, UserID: uid, Mode: accessMode}); err != nil {
-			return fmt.Errorf("insert new user accesses: %v", err)
+			return fmt.Errorf("insert new user accesses: %w", err)
 		}
 	}
 	return nil
@@ -248,7 +248,7 @@ func RecalculateAccesses(ctx context.Context, repo *repo_model.Repository) error
 
 	accessMap := make(map[int64]*userAccess, 20)
 	if err := refreshCollaboratorAccesses(ctx, repo.ID, accessMap); err != nil {
-		return fmt.Errorf("refreshCollaboratorAccesses: %v", err)
+		return fmt.Errorf("refreshCollaboratorAccesses: %w", err)
 	}
 	return refreshAccesses(ctx, repo, accessMap)
 }

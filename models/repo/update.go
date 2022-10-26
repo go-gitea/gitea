@@ -119,7 +119,7 @@ func CheckCreateRepository(doer, u *user_model.User, name string, overwriteOrAdo
 
 	has, err := IsRepositoryExist(db.DefaultContext, u, name)
 	if err != nil {
-		return fmt.Errorf("IsRepositoryExist: %v", err)
+		return fmt.Errorf("IsRepositoryExist: %w", err)
 	} else if has {
 		return ErrRepoAlreadyExist{u.Name, name}
 	}
@@ -150,14 +150,14 @@ func ChangeRepositoryName(doer *user_model.User, repo *Repository, newRepoName s
 
 	has, err := IsRepositoryExist(db.DefaultContext, repo.Owner, newRepoName)
 	if err != nil {
-		return fmt.Errorf("IsRepositoryExist: %v", err)
+		return fmt.Errorf("IsRepositoryExist: %w", err)
 	} else if has {
 		return ErrRepoAlreadyExist{repo.Owner.Name, newRepoName}
 	}
 
 	newRepoPath := RepoPath(repo.Owner.Name, newRepoName)
 	if err = util.Rename(repo.RepoPath(), newRepoPath); err != nil {
-		return fmt.Errorf("rename repository directory: %v", err)
+		return fmt.Errorf("rename repository directory: %w", err)
 	}
 
 	wikiPath := repo.WikiPath()
@@ -168,7 +168,7 @@ func ChangeRepositoryName(doer *user_model.User, repo *Repository, newRepoName s
 	}
 	if isExist {
 		if err = util.Rename(wikiPath, WikiPath(repo.Owner.Name, newRepoName)); err != nil {
-			return fmt.Errorf("rename repository wiki: %v", err)
+			return fmt.Errorf("rename repository wiki: %w", err)
 		}
 	}
 

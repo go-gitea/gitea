@@ -70,7 +70,7 @@ func AutoSignIn(ctx *context.Context) (bool, error) {
 	u, err := user_model.GetUserByName(ctx, uname)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
-			return false, fmt.Errorf("GetUserByName: %v", err)
+			return false, fmt.Errorf("GetUserByName: %w", err)
 		}
 		return false, nil
 	}
