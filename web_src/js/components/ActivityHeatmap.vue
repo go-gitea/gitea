@@ -1,7 +1,7 @@
 <template>
   <div id="user-heatmap">
     <div class="total-contributions">
-      {{ sum }} {{ locale.contributions_in_the_last_12_months }}
+      {{ sum }} contributions in the last 12 months
     </div>
     <calendar-heatmap
       :locale="locale"

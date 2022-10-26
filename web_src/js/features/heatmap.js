@@ -1,6 +1,6 @@
 import {createApp} from 'vue';
 import ActivityHeatmap from '../components/ActivityHeatmap.vue';
-import {translateMonth, translateDay, getCurrentLocale} from '../utils.js';
+import {translateMonth, translateDay} from '../utils.js';
 export default function initHeatmap() {
   const el = document.getElementById('user-heatmap');
   if (!el) return;
@@ -20,12 +20,8 @@ export default function initHeatmap() {
     const locale = {
       months: new Array(12).fill().map((_, idx) => translateMonth(idx)),
       days: new Array(7).fill().map((_, idx) => translateDay(idx)),
-      contributions: el.getAttribute('data-locale-contributions').toLocaleLowerCase(getCurrentLocale()),
-      no_contributions: el.getAttribute('data-locale-no_contributions'),
-      contributions_in_the_last_12_months: el.getAttribute('data-locale-contributions_in_the_last_12_months').toLocaleLowerCase(getCurrentLocale()),
-      on: el.getAttribute('data-locale-on').toLocaleLowerCase(getCurrentLocale()),
-      less: el.getAttribute('data-locale-less'),
-      more: el.getAttribute('data-locale-more'),
+      contributions: 'contributions',
+      no_contributions: 'No contributions',
     };
 
     const View = createApp(ActivityHeatmap, {values, locale});

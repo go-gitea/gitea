@@ -1,13 +1,5 @@
 {{if .HeatmapData}}
-	<div id="user-heatmap"
-		data-locale-contributions="{{.locale.Tr "contributions"}}"
-		data-locale-no_contributions="{{.locale.Tr "no_contributions"}}"
-		data-locale-contributions_in_the_last_12_months="{{.locale.Tr "contributions_in_the_last_12_months"}}"
-		data-locale-on="{{.locale.Tr "on"}}"
-		data-locale-more="{{.locale.Tr "more"}}"
-		data-locale-less="{{.locale.Tr "less"}}"
-		data-heatmap-data="{{Json .HeatmapData}}"
-	>
+	<div id="user-heatmap" data-heatmap-data="{{Json .HeatmapData}}">
 		<div slot="loading">
 			<div class="ui active centered inline indeterminate text loader" id="loading-heatmap">{{.locale.Tr "user.heatmap.loading"}}</div>
 		</div>
