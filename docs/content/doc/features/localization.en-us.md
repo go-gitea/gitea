@@ -34,10 +34,10 @@ If you use a bleeding edge build, it should appear as soon as you update after t
 
 ## Plurals
 
-Prior to version 1.18, Gitea handled plurals using the .TrN function which has some
+Prior to version 1.19, Gitea handled plurals using the .TrN function which has some
 built in rules for managing plurals but is unable to properly all languages.
 
-From 1.18 we will migrate to use the CLDR formulation.
+From 1.19 we will migrate to use the CLDR formulation.
 
 Translation keys which handle plurals should be marked with a `_plural` suffix. This
 will allow autogeneration of the various forms using go templates, e.g.
@@ -89,7 +89,9 @@ Ordinal forms, e.g. 1st, 2nd, 3rd and so on can be handled with `.TrOrdinal`. Th
 have the same forms as the plural forms, and we will use `_ordinal` as a base suffix
 in future.
 
-If the provided key does not have the `_plural` suffix or its format template is invalid, the specific per plural forms must be provided explicitly. The plural key fallback hierarchy is as follows:
+### Technical details
+
+The following is technical and is provided to aid understanding in cases of problems only. Only use `.TrPlural` (and `.TrOrdinal`) with translation keys that have the suffix `_plural` (or `_ordinal`.) If you do not the specific per plural forms must be provided explicitly in the locale file. In this case keys for plural forms will be searched for in the following hierarchy:
 
 1. `${key}_${form}` in the locale.
 2. `${key}_other` in the locale.
@@ -97,4 +99,6 @@ If the provided key does not have the `_plural` suffix or its format template is
 4. `${key}_${form}` in the default locale.
 5. `${key}_other` in the default locale.
 6. `${key}` in the default locale.
-7. Use the `${key}_${form}` directly as the format.
+7. Use the string `${key}_${form}` directly as the format.
+
+You do not have to worry about this if the key has the `_plural` (or `_ordinal`) suffix as the correct keys will be created automatically.
