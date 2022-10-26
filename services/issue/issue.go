@@ -224,6 +224,11 @@ func deleteIssue(issue *issues_model.Issue) error {
 		return err
 	}
 
+	if err := issues_model.UpdateMilestoneCounters(ctx, issue.MilestoneID); err != nil {
+		return fmt.Errorf("error updating counters for milestone id %d: %w",
+			issue.MilestoneID, err)
+	}
+
 	if err := models.DeleteIssueActions(ctx, issue.RepoID, issue.ID); err != nil {
 		return err
 	}
