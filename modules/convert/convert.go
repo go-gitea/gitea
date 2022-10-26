@@ -392,12 +392,13 @@ func ToTopicResponse(topic *repo_model.Topic) *api.TopicResponse {
 // ToOAuth2Application convert from auth.OAuth2Application to api.OAuth2Application
 func ToOAuth2Application(app *auth.OAuth2Application) *api.OAuth2Application {
 	return &api.OAuth2Application{
-		ID:           app.ID,
-		Name:         app.Name,
-		ClientID:     app.ClientID,
-		ClientSecret: app.ClientSecret,
-		RedirectURIs: app.RedirectURIs,
-		Created:      app.CreatedUnix.AsTime(),
+		ID:                 app.ID,
+		Name:               app.Name,
+		ClientID:           app.ClientID,
+		ClientSecret:       app.ClientSecret,
+		ConfidentialClient: app.ConfidentialClient,
+		RedirectURIs:       app.RedirectURIs,
+		Created:            app.CreatedUnix.AsTime(),
 	}
 }
 
@@ -412,7 +413,7 @@ func ToLFSLock(l *git_model.LFSLock) *api.LFSLock {
 		Path:     l.Path,
 		LockedAt: l.Created.Round(time.Second),
 		Owner: &api.LFSLockOwner{
-			Name: u.DisplayName(),
+			Name: u.Name,
 		},
 	}
 }

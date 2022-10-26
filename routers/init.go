@@ -11,7 +11,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/modules/appstate"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/git"
@@ -27,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/svg"
+	"code.gitea.io/gitea/modules/system"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
@@ -41,6 +41,7 @@ import (
 	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/cron"
 	"code.gitea.io/gitea/services/mailer"
+	markup_service "code.gitea.io/gitea/services/markup"
 	repo_migrations "code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -76,8 +77,8 @@ func InitGitServices() {
 }
 
 func syncAppPathForGit(ctx context.Context) error {
-	runtimeState := new(appstate.RuntimeState)
-	if err := appstate.AppState.Get(runtimeState); err != nil {
+	runtimeState := new(system.RuntimeState)
+	if err := system.AppState.Get(runtimeState); err != nil {
 		return err
 	}
 	if runtimeState.LastAppPath != setting.AppPath {
@@ -90,7 +91,7 @@ func syncAppPathForGit(ctx context.Context) error {
 		mustInit(asymkey_model.RewriteAllPublicKeys)
 
 		runtimeState.LastAppPath = setting.AppPath
-		return appstate.AppState.Set(runtimeState)
+		return system.AppState.Set(runtimeState)
 	}
 	return nil
 }
@@ -123,7 +124,7 @@ func GlobalInitInstalled(ctx context.Context) {
 
 	highlight.NewContext()
 	external.RegisterRenderers()
-	markup.Init()
+	markup.Init(markup_service.ProcessorHelper())
 
 	if setting.EnableSQLite3 {
 		log.Info("SQLite3 support is enabled")
@@ -133,10 +134,10 @@ func GlobalInitInstalled(ctx context.Context) {
 
 	mustInitCtx(ctx, common.InitDBEngine)
 	log.Info("ORM engine initialization successful!")
-	mustInit(appstate.Init)
+	mustInit(system.Init)
 	mustInit(oauth2.Init)
 
-	models.NewRepoContext()
+	mustInit(models.Init)
 	mustInit(repo_service.Init)
 
 	// Booting long running goroutines.

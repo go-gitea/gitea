@@ -51,7 +51,7 @@ func AddPrincipalKey(ownerID int64, content string, authSourceID int64) (*Public
 		LoginSourceID: authSourceID,
 	}
 	if err = db.Insert(ctx, key); err != nil {
-		return nil, fmt.Errorf("addKey: %v", err)
+		return nil, fmt.Errorf("addKey: %w", err)
 	}
 
 	if err = committer.Commit(); err != nil {

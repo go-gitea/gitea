@@ -1197,7 +1197,7 @@ func UpdateAvatarSetting(ctx *context.Context, form forms.AvatarForm) error {
 
 	r, err := form.Avatar.Open()
 	if err != nil {
-		return fmt.Errorf("Avatar.Open: %v", err)
+		return fmt.Errorf("Avatar.Open: %w", err)
 	}
 	defer r.Close()
 
@@ -1207,14 +1207,14 @@ func UpdateAvatarSetting(ctx *context.Context, form forms.AvatarForm) error {
 
 	data, err := io.ReadAll(r)
 	if err != nil {
-		return fmt.Errorf("io.ReadAll: %v", err)
+		return fmt.Errorf("io.ReadAll: %w", err)
 	}
 	st := typesniffer.DetectContentType(data)
 	if !(st.IsImage() && !st.IsSvgImage()) {
 		return errors.New(ctx.Tr("settings.uploaded_avatar_not_a_image"))
 	}
 	if err = repo_service.UploadAvatar(ctxRepo, data); err != nil {
-		return fmt.Errorf("UploadAvatar: %v", err)
+		return fmt.Errorf("UploadAvatar: %w", err)
 	}
 	return nil
 }

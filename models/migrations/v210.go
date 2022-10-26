@@ -144,7 +144,7 @@ func remigrateU2FCredentials(x *xorm.Engine) error {
 				if !has {
 					has, err := sess.Where("`lower_name`=?", remigrated.LowerName).And("`user_id`=?", remigrated.UserID).Exist(new(webauthnCredential))
 					if err != nil {
-						return fmt.Errorf("unable to check webauthn_credential[lower_name: %s, user_id:%v]. Error: %w", remigrated.LowerName, remigrated.UserID, err)
+						return fmt.Errorf("unable to check webauthn_credential[lower_name: %s, user_id: %d]. Error: %w", remigrated.LowerName, remigrated.UserID, err)
 					}
 					if !has {
 						_, err = sess.Insert(remigrated)

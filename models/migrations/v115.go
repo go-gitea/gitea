@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -39,16 +40,16 @@ func renameExistingUserAvatarName(x *xorm.Engine) error {
 	}
 	log.Info("%d User Avatar(s) to migrate ...", count)
 
-	deleteList := make(map[string]struct{})
+	deleteList := make(container.Set[string])
 	start := 0
 	migrated := 0
 	for {
 		if err := sess.Begin(); err != nil {
-			return fmt.Errorf("session.Begin: %v", err)
+			return fmt.Errorf("session.Begin: %w", err)
 		}
 		users := make([]*User, 0, 50)
 		if err := sess.Table("user").Asc("id").Limit(50, start).Find(&users); err != nil {
-			return fmt.Errorf("select users from id [%d]: %v", start, err)
+			return fmt.Errorf("select users from id [%d]: %w", start, err)
 		}
 		if len(users) == 0 {
 			_ = sess.Rollback()
@@ -75,7 +76,7 @@ func renameExistingUserAvatarName(x *xorm.Engine) error {
 			newAvatar, err := copyOldAvatarToNewLocation(user.ID, oldAvatar)
 			if err != nil {
 				_ = sess.Rollback()
-				return fmt.Errorf("[user: %s] %v", user.LowerName, err)
+				return fmt.Errorf("[user: %s] %w", user.LowerName, err)
 			} else if newAvatar == oldAvatar {
 				continue
 			}
@@ -83,10 +84,10 @@ func renameExistingUserAvatarName(x *xorm.Engine) error {
 			user.Avatar = newAvatar
 			if _, err := sess.ID(user.ID).Cols("avatar").Update(user); err != nil {
 				_ = sess.Rollback()
-				return fmt.Errorf("[user: %s] user table update: %v", user.LowerName, err)
+				return fmt.Errorf("[user: %s] user table update: %w", user.LowerName, err)
 			}
 
-			deleteList[filepath.Join(setting.Avatar.Path, oldAvatar)] = struct{}{}
+			deleteList.Add(filepath.Join(setting.Avatar.Path, oldAvatar))
 			migrated++
 			select {
 			case <-ticker.C:
@@ -103,7 +104,7 @@ func renameExistingUserAvatarName(x *xorm.Engine) error {
 		}
 		if err := sess.Commit(); err != nil {
 			_ = sess.Rollback()
-			return fmt.Errorf("commit session: %v", err)
+			return fmt.Errorf("commit session: %w", err)
 		}
 	}
 
@@ -137,13 +138,13 @@ func renameExistingUserAvatarName(x *xorm.Engine) error {
 func copyOldAvatarToNewLocation(userID int64, oldAvatar string) (string, error) {
 	fr, err := os.Open(filepath.Join(setting.Avatar.Path, oldAvatar))
 	if err != nil {
-		return "", fmt.Errorf("os.Open: %v", err)
+		return "", fmt.Errorf("os.Open: %w", err)
 	}
 	defer fr.Close()
 
 	data, err := io.ReadAll(fr)
 	if err != nil {
-		return "", fmt.Errorf("io.ReadAll: %v", err)
+		return "", fmt.Errorf("io.ReadAll: %w", err)
 	}
 
 	newAvatar := fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%d-%x", userID, md5.Sum(data)))))
@@ -152,7 +153,7 @@ func copyOldAvatarToNewLocation(userID int64, oldAvatar string) (string, error) 
 	}
 
 	if err := os.WriteFile(filepath.Join(setting.Avatar.Path, newAvatar), data, 0o666); err != nil {
-		return "", fmt.Errorf("os.WriteFile: %v", err)
+		return "", fmt.Errorf("os.WriteFile: %w", err)
 	}
 
 	return newAvatar, nil

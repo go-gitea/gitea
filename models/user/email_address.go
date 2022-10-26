@@ -40,7 +40,12 @@ func (err ErrEmailCharIsNotSupported) Error() string {
 	return fmt.Sprintf("e-mail address contains unsupported character [email: %s]", err.Email)
 }
 
+func (err ErrEmailCharIsNotSupported) Unwrap() error {
+	return util.ErrInvalidArgument
+}
+
 // ErrEmailInvalid represents an error where the email address does not comply with RFC 5322
+// or has a leading '-' character
 type ErrEmailInvalid struct {
 	Email string
 }
@@ -53,6 +58,10 @@ func IsErrEmailInvalid(err error) bool {
 
 func (err ErrEmailInvalid) Error() string {
 	return fmt.Sprintf("e-mail invalid [email: %s]", err.Email)
+}
+
+func (err ErrEmailInvalid) Unwrap() error {
+	return util.ErrInvalidArgument
 }
 
 // ErrEmailAlreadyUsed represents a "EmailAlreadyUsed" kind of error.
@@ -70,6 +79,10 @@ func (err ErrEmailAlreadyUsed) Error() string {
 	return fmt.Sprintf("e-mail already in use [email: %s]", err.Email)
 }
 
+func (err ErrEmailAlreadyUsed) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
 // ErrEmailAddressNotExist email address not exist
 type ErrEmailAddressNotExist struct {
 	Email string
@@ -85,6 +98,10 @@ func (err ErrEmailAddressNotExist) Error() string {
 	return fmt.Sprintf("Email address does not exist [email: %s]", err.Email)
 }
 
+func (err ErrEmailAddressNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrPrimaryEmailCannotDelete primary email address cannot be deleted
 type ErrPrimaryEmailCannotDelete struct {
 	Email string
@@ -98,6 +115,10 @@ func IsErrPrimaryEmailCannotDelete(err error) bool {
 
 func (err ErrPrimaryEmailCannotDelete) Error() string {
 	return fmt.Sprintf("Primary email address cannot be deleted [email: %s]", err.Email)
+}
+
+func (err ErrPrimaryEmailCannotDelete) Unwrap() error {
+	return util.ErrInvalidArgument
 }
 
 // EmailAddress is the list of all email addresses of a user. It also contains the
@@ -134,9 +155,7 @@ func ValidateEmail(email string) error {
 		return ErrEmailCharIsNotSupported{email}
 	}
 
-	if !(email[0] >= 'a' && email[0] <= 'z') &&
-		!(email[0] >= 'A' && email[0] <= 'Z') &&
-		!(email[0] >= '0' && email[0] <= '9') {
+	if email[0] == '-' {
 		return ErrEmailInvalid{email}
 	}
 
@@ -245,7 +264,7 @@ func AddEmailAddresses(emails []*EmailAddress) error {
 	}
 
 	if err := db.Insert(db.DefaultContext, emails); err != nil {
-		return fmt.Errorf("Insert: %v", err)
+		return fmt.Errorf("Insert: %w", err)
 	}
 
 	return nil
@@ -466,7 +485,7 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 	count, err := db.GetEngine(db.DefaultContext).Join("INNER", "`user`", "`user`.ID = email_address.uid").
 		Where(cond).Count(new(EmailAddress))
 	if err != nil {
-		return nil, 0, fmt.Errorf("Count: %v", err)
+		return nil, 0, fmt.Errorf("Count: %w", err)
 	}
 
 	orderby := opts.SortType.String()
@@ -511,7 +530,7 @@ func ActivateUserEmail(userID int64, email string, activate bool) (err error) {
 	}
 	if activate {
 		if used, err := IsEmailActive(ctx, email, addr.ID); err != nil {
-			return fmt.Errorf("unable to check isEmailActive() for %s: %v", email, err)
+			return fmt.Errorf("unable to check isEmailActive() for %s: %w", email, err)
 		} else if used {
 			return ErrEmailAlreadyUsed{Email: email}
 		}
@@ -532,10 +551,10 @@ func ActivateUserEmail(userID int64, email string, activate bool) (err error) {
 		if user.IsActive != activate {
 			user.IsActive = activate
 			if user.Rands, err = GetUserSalt(); err != nil {
-				return fmt.Errorf("unable to generate salt: %v", err)
+				return fmt.Errorf("unable to generate salt: %w", err)
 			}
 			if err = UpdateUserCols(ctx, &user, "is_active", "rands"); err != nil {
-				return fmt.Errorf("unable to updateUserCols() for user ID: %d: %v", userID, err)
+				return fmt.Errorf("unable to updateUserCols() for user ID: %d: %w", userID, err)
 			}
 		}
 	}

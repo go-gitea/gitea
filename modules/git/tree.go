@@ -49,12 +49,9 @@ func (t *Tree) SubTree(rpath string) (*Tree, error) {
 
 // LsTree checks if the given filenames are in the tree
 func (repo *Repository) LsTree(ref string, filenames ...string) ([]string, error) {
-	cmd := NewCommand(repo.Ctx, "ls-tree", "-z", "--name-only", "--", ref)
-	for _, arg := range filenames {
-		if arg != "" {
-			cmd.AddArguments(arg)
-		}
-	}
+	cmd := NewCommand(repo.Ctx, "ls-tree", "-z", "--name-only").
+		AddDashesAndList(append([]string{ref}, filenames...)...)
+
 	res, _, err := cmd.RunStdBytes(&RunOpts{Dir: repo.Path})
 	if err != nil {
 		return nil, err

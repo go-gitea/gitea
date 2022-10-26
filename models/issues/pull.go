@@ -46,6 +46,10 @@ func (err ErrPullRequestNotExist) Error() string {
 		err.ID, err.IssueID, err.HeadRepoID, err.BaseRepoID, err.HeadBranch, err.BaseBranch)
 }
 
+func (err ErrPullRequestNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrPullRequestAlreadyExists represents a "PullRequestAlreadyExists"-error
 type ErrPullRequestAlreadyExists struct {
 	ID         int64
@@ -66,6 +70,10 @@ func IsErrPullRequestAlreadyExists(err error) bool {
 func (err ErrPullRequestAlreadyExists) Error() string {
 	return fmt.Sprintf("pull request already exists for these targets [id: %d, issue_id: %d, head_repo_id: %d, base_repo_id: %d, head_branch: %s, base_branch: %s]",
 		err.ID, err.IssueID, err.HeadRepoID, err.BaseRepoID, err.HeadBranch, err.BaseBranch)
+}
+
+func (err ErrPullRequestAlreadyExists) Unwrap() error {
+	return util.ErrAlreadyExist
 }
 
 // ErrPullRequestHeadRepoMissing represents a "ErrPullRequestHeadRepoMissing" error
@@ -220,7 +228,7 @@ func (pr *PullRequest) loadAttributes(ctx context.Context) (err error) {
 			pr.MergerID = -1
 			pr.Merger = user_model.NewGhostUser()
 		} else if err != nil {
-			return fmt.Errorf("getUserByID [%d]: %v", pr.MergerID, err)
+			return fmt.Errorf("getUserByID [%d]: %w", pr.MergerID, err)
 		}
 	}
 
@@ -247,7 +255,7 @@ func (pr *PullRequest) LoadHeadRepoCtx(ctx context.Context) (err error) {
 
 		pr.HeadRepo, err = repo_model.GetRepositoryByIDCtx(ctx, pr.HeadRepoID)
 		if err != nil && !repo_model.IsErrRepoNotExist(err) { // Head repo maybe deleted, but it should still work
-			return fmt.Errorf("getRepositoryByID(head): %v", err)
+			return fmt.Errorf("getRepositoryByID(head): %w", err)
 		}
 		pr.isHeadRepoLoaded = true
 	}
@@ -282,7 +290,7 @@ func (pr *PullRequest) LoadBaseRepoCtx(ctx context.Context) (err error) {
 
 	pr.BaseRepo, err = repo_model.GetRepositoryByIDCtx(ctx, pr.BaseRepoID)
 	if err != nil {
-		return fmt.Errorf("repo_model.GetRepositoryByID(base): %v", err)
+		return fmt.Errorf("repo_model.GetRepositoryByID(base): %w", err)
 	}
 	return nil
 }
@@ -474,7 +482,7 @@ func (pr *PullRequest) SetMerged(ctx context.Context) (bool, error) {
 	}
 
 	if _, err := changeIssueStatus(ctx, pr.Issue, pr.Merger, true, true); err != nil {
-		return false, fmt.Errorf("Issue.changeStatus: %v", err)
+		return false, fmt.Errorf("Issue.changeStatus: %w", err)
 	}
 
 	// reset the conflicted files as there cannot be any if we're merged
@@ -482,7 +490,7 @@ func (pr *PullRequest) SetMerged(ctx context.Context) (bool, error) {
 
 	// We need to save all of the data used to compute this merge as it may have already been changed by TestPatch. FIXME: need to set some state to prevent TestPatch from running whilst we are merging.
 	if _, err := sess.Where("id = ?", pr.ID).Cols("has_merged, status, merge_base, merged_commit_id, merger_id, merged_unix, conflicted_files").Update(pr); err != nil {
-		return false, fmt.Errorf("Failed to update pr[%d]: %v", pr.ID, err)
+		return false, fmt.Errorf("Failed to update pr[%d]: %w", pr.ID, err)
 	}
 
 	return true, nil
@@ -490,19 +498,19 @@ func (pr *PullRequest) SetMerged(ctx context.Context) (bool, error) {
 
 // NewPullRequest creates new pull request with labels for repository.
 func NewPullRequest(outerCtx context.Context, repo *repo_model.Repository, issue *Issue, labelIDs []int64, uuids []string, pr *PullRequest) (err error) {
-	idx, err := db.GetNextResourceIndex("issue_index", repo.ID)
-	if err != nil {
-		return fmt.Errorf("generate pull request index failed: %v", err)
-	}
-
-	issue.Index = idx
-
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 	ctx.WithContext(outerCtx)
+
+	idx, err := db.GetNextResourceIndex(ctx, "issue_index", repo.ID)
+	if err != nil {
+		return fmt.Errorf("generate pull request index failed: %w", err)
+	}
+
+	issue.Index = idx
 
 	if err = NewIssueWithIndex(ctx, issue.Poster, NewIssueOptions{
 		Repo:        repo,
@@ -514,18 +522,18 @@ func NewPullRequest(outerCtx context.Context, repo *repo_model.Repository, issue
 		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) || IsErrNewIssueInsert(err) {
 			return err
 		}
-		return fmt.Errorf("newIssue: %v", err)
+		return fmt.Errorf("newIssue: %w", err)
 	}
 
 	pr.Index = issue.Index
 	pr.BaseRepo = repo
 	pr.IssueID = issue.ID
 	if err = db.Insert(ctx, pr); err != nil {
-		return fmt.Errorf("insert pull repo: %v", err)
+		return fmt.Errorf("insert pull repo: %w", err)
 	}
 
 	if err = committer.Commit(); err != nil {
-		return fmt.Errorf("Commit: %v", err)
+		return fmt.Errorf("Commit: %w", err)
 	}
 
 	return nil

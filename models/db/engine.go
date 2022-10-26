@@ -130,7 +130,7 @@ func SyncAllTables() error {
 func InitEngine(ctx context.Context) error {
 	xormEngine, err := newXORMEngine()
 	if err != nil {
-		return fmt.Errorf("failed to connect to database: %v", err)
+		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 
 	xormEngine.SetMapper(names.GonicMapper{})
@@ -189,16 +189,16 @@ func InitEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.Engine)
 	// However, we should think carefully about should we support re-install on an installed instance,
 	// as there may be other problems due to secret reinitialization.
 	if err = migrateFunc(x); err != nil {
-		return fmt.Errorf("migrate: %v", err)
+		return fmt.Errorf("migrate: %w", err)
 	}
 
 	if err = SyncAllTables(); err != nil {
-		return fmt.Errorf("sync database struct error: %v", err)
+		return fmt.Errorf("sync database struct error: %w", err)
 	}
 
 	for _, initFunc := range initFuncs {
 		if err := initFunc(); err != nil {
-			return fmt.Errorf("initFunc failed: %v", err)
+			return fmt.Errorf("initFunc failed: %w", err)
 		}
 	}
 
@@ -225,7 +225,7 @@ func NamesToBean(names ...string) ([]interface{}, error) {
 	for _, name := range names {
 		bean, ok := beanMap[strings.ToLower(strings.TrimSpace(name))]
 		if !ok {
-			return nil, fmt.Errorf("No table found that matches: %s", name)
+			return nil, fmt.Errorf("no table found that matches: %s", name)
 		}
 		if !gotBean[bean] {
 			beans = append(beans, bean)
