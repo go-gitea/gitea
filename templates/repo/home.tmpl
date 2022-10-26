@@ -70,11 +70,11 @@
 				<!-- If home page, show new PR. If not, show breadcrumb -->
 				{{if eq $n 0}}
 					{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
-						<a href="{{.BaseRepo.Link}}/compare/{{PathEscapeSegments .BaseRepo.DefaultBranch}}...{{if ne .Repository.Owner.Name .BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}{{if .BaseRepo.IsFork}}/{{PathEscape .Repository.Name}}{{end}}:{{end}}{{PathEscapeSegments .BranchName}}">
+						<a href="{{CompareLink .BaseRepo .Repository .BranchName}}">
 							<button id="new-pull-request" class="ui compact basic button tooltip" data-content="{{if .PullRequestCtx.Allowed}}{{.locale.Tr "repo.pulls.compare_changes"}}{{else}}{{.locale.Tr "action.compare_branch"}}{{end}}"><span class="text">{{svg "octicon-git-pull-request"}}</span></button>
 						</a>
 					{{end}}
-					<a href="{{.Repository.Link}}/find/{{.BranchNameSubURL}}" class="ui compact basic button tooltip" data-content="{{.locale.Tr "repo.find_file.go_to_file"}}">{{svg "octicon-file-moved" 15}}</a>
+					<a href="{{.Repository.Link}}/find/{{.BranchNameSubURL}}" class="ui compact basic button">{{.locale.Tr "repo.find_file.go_to_file"}}</a>
 				{{end}}
 				{{if or .CanAddFile .CanUploadFile}}
 					<button class="ui basic small compact dropdown jump icon button mr-2"{{if not .Repository.CanEnableEditor}} disabled{{end}}>

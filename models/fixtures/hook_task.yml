@@ -1,6 +1,5 @@
 -
   id: 1
-  repo_id: 1
   hook_id: 1
   uuid: uuid1
   is_delivered: true

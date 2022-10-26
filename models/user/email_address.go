@@ -264,7 +264,7 @@ func AddEmailAddresses(emails []*EmailAddress) error {
 	}
 
 	if err := db.Insert(db.DefaultContext, emails); err != nil {
-		return fmt.Errorf("Insert: %v", err)
+		return fmt.Errorf("Insert: %w", err)
 	}
 
 	return nil
@@ -485,7 +485,7 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 	count, err := db.GetEngine(db.DefaultContext).Join("INNER", "`user`", "`user`.ID = email_address.uid").
 		Where(cond).Count(new(EmailAddress))
 	if err != nil {
-		return nil, 0, fmt.Errorf("Count: %v", err)
+		return nil, 0, fmt.Errorf("Count: %w", err)
 	}
 
 	orderby := opts.SortType.String()
@@ -530,7 +530,7 @@ func ActivateUserEmail(userID int64, email string, activate bool) (err error) {
 	}
 	if activate {
 		if used, err := IsEmailActive(ctx, email, addr.ID); err != nil {
-			return fmt.Errorf("unable to check isEmailActive() for %s: %v", email, err)
+			return fmt.Errorf("unable to check isEmailActive() for %s: %w", email, err)
 		} else if used {
 			return ErrEmailAlreadyUsed{Email: email}
 		}
@@ -551,10 +551,10 @@ func ActivateUserEmail(userID int64, email string, activate bool) (err error) {
 		if user.IsActive != activate {
 			user.IsActive = activate
 			if user.Rands, err = GetUserSalt(); err != nil {
-				return fmt.Errorf("unable to generate salt: %v", err)
+				return fmt.Errorf("unable to generate salt: %w", err)
 			}
 			if err = UpdateUserCols(ctx, &user, "is_active", "rands"); err != nil {
-				return fmt.Errorf("unable to updateUserCols() for user ID: %d: %v", userID, err)
+				return fmt.Errorf("unable to updateUserCols() for user ID: %d: %w", userID, err)
 			}
 		}
 	}

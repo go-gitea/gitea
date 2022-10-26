@@ -1443,7 +1443,11 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 		end = totalNumberOfFiles
 	}
 
-	apiFiles := make([]*api.ChangedFile, 0, end-start)
+	lenFiles := end - start
+	if lenFiles < 0 {
+		lenFiles = 0
+	}
+	apiFiles := make([]*api.ChangedFile, 0, lenFiles)
 	for i := start; i < end; i++ {
 		apiFiles = append(apiFiles, convert.ToChangedFile(diff.Files[i], pr.HeadRepo, endCommitID))
 	}

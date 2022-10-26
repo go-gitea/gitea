@@ -61,7 +61,6 @@ func getProvidedFDs() (savedErr error) {
 				log.Warn("Unable to Unset the NOTIFY_SOCKET environment variable: %v", savedErr)
 				return
 			}
-
 			// FIXME: We don't handle WATCHDOG_PID
 			timeoutStr := os.Getenv(watchdogTimeoutEnv)
 			if timeoutStr != "" {
@@ -88,41 +87,43 @@ func getProvidedFDs() (savedErr error) {
 			log.Trace("No Systemd Notify Socket provided")
 		}
 
-		if numFDs := os.Getenv(listenFDsEnv); numFDs != "" {
-			n, err := strconv.Atoi(numFDs)
-			if err != nil {
-				savedErr = fmt.Errorf("%s is not a number: %s. Err: %v", listenFDsEnv, numFDs, err)
-				return
-			}
+		numFDs := os.Getenv(listenFDsEnv)
+		if numFDs == "" {
+			return
+		}
+		n, err := strconv.Atoi(numFDs)
+		if err != nil {
+			savedErr = fmt.Errorf("%s is not a number: %s. Err: %w", listenFDsEnv, numFDs, err)
+			return
+		}
 
-			fdsToUnlinkStr := strings.Split(os.Getenv(unlinkFDsEnv), ",")
-			providedListenersToUnlink = make([]bool, n)
-			for _, fdStr := range fdsToUnlinkStr {
-				i, err := strconv.Atoi(fdStr)
-				if err != nil || i < 0 || i >= n {
-					continue
+		fdsToUnlinkStr := strings.Split(os.Getenv(unlinkFDsEnv), ",")
+		providedListenersToUnlink = make([]bool, n)
+		for _, fdStr := range fdsToUnlinkStr {
+			i, err := strconv.Atoi(fdStr)
+			if err != nil || i < 0 || i >= n {
+				continue
+			}
+			providedListenersToUnlink[i] = true
+		}
+
+		for i := startFD; i < n+startFD; i++ {
+			file := os.NewFile(uintptr(i), fmt.Sprintf("listener_FD%d", i))
+
+			l, err := net.FileListener(file)
+			if err == nil {
+				// Close the inherited file if it's a listener
+				if err = file.Close(); err != nil {
+					savedErr = fmt.Errorf("error closing provided socket fd %d: %w", i, err)
+					return
 				}
-				providedListenersToUnlink[i] = true
+				providedListeners = append(providedListeners, l)
+				continue
 			}
 
-			for i := startFD; i < n+startFD; i++ {
-				file := os.NewFile(uintptr(i), fmt.Sprintf("listener_FD%d", i))
-
-				l, err := net.FileListener(file)
-				if err == nil {
-					// Close the inherited file if it's a listener
-					if err = file.Close(); err != nil {
-						savedErr = fmt.Errorf("error closing provided socket fd %d: %s", i, err)
-						return
-					}
-					providedListeners = append(providedListeners, l)
-					continue
-				}
-
-				// If needed we can handle packetconns here.
-				savedErr = fmt.Errorf("Error getting provided socket fd %d: %v", i, err)
-				return
-			}
+			// If needed we can handle packetconns here.
+			savedErr = fmt.Errorf("Error getting provided socket fd %d: %w", i, err)
+			return
 		}
 	})
 	return savedErr
@@ -138,7 +139,7 @@ func CloseProvidedListeners() error {
 		if err != nil {
 			log.Error("Error in closing unused provided listener: %v", err)
 			if returnableError != nil {
-				returnableError = fmt.Errorf("%v & %v", returnableError, err)
+				returnableError = fmt.Errorf("%v & %w", returnableError, err)
 			} else {
 				returnableError = err
 			}
@@ -238,7 +239,7 @@ func GetListenerUnix(network string, address *net.UnixAddr) (*net.UnixListener, 
 
 	// make a fresh listener
 	if err := util.Remove(address.Name); err != nil && !os.IsNotExist(err) {
-		return nil, fmt.Errorf("Failed to remove unix socket %s: %v", address.Name, err)
+		return nil, fmt.Errorf("Failed to remove unix socket %s: %w", address.Name, err)
 	}
 
 	l, err := net.ListenUnix(network, address)
@@ -248,7 +249,7 @@ func GetListenerUnix(network string, address *net.UnixAddr) (*net.UnixListener, 
 
 	fileMode := os.FileMode(setting.UnixSocketPermission)
 	if err = os.Chmod(address.Name, fileMode); err != nil {
-		return nil, fmt.Errorf("Failed to set permission of unix socket to %s: %v", fileMode.String(), err)
+		return nil, fmt.Errorf("Failed to set permission of unix socket to %s: %w", fileMode.String(), err)
 	}
 
 	activeListeners = append(activeListeners, l)
