@@ -56,7 +56,7 @@ func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 		}
 		id, err := NewIDFromString(string(data[pos : pos+40]))
 		if err != nil {
-			return nil, fmt.Errorf("Invalid ls-tree output: %v", err)
+			return nil, fmt.Errorf("Invalid ls-tree output: %w", err)
 		}
 		entry.ID = id
 		entry.gogitTreeEntry.Hash = id
@@ -80,7 +80,7 @@ func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 		if data[pos] == '"' {
 			entry.gogitTreeEntry.Name, err = strconv.Unquote(string(data[pos:end]))
 			if err != nil {
-				return nil, fmt.Errorf("Invalid ls-tree output: %v", err)
+				return nil, fmt.Errorf("Invalid ls-tree output: %w", err)
 			}
 		} else {
 			entry.gogitTreeEntry.Name = string(data[pos:end])

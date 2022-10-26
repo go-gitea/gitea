@@ -144,3 +144,39 @@ func IsIcon(node ast.Node) bool {
 	_, ok := node.(*Icon)
 	return ok
 }
+
+// ColorPreview is an inline for a color preview
+type ColorPreview struct {
+	ast.BaseInline
+	Color []byte
+}
+
+// Dump implements Node.Dump.
+func (n *ColorPreview) Dump(source []byte, level int) {
+	m := map[string]string{}
+	m["Color"] = string(n.Color)
+	ast.DumpHelper(n, source, level, m, nil)
+}
+
+// KindColorPreview is the NodeKind for ColorPreview
+var KindColorPreview = ast.NewNodeKind("ColorPreview")
+
+// Kind implements Node.Kind.
+func (n *ColorPreview) Kind() ast.NodeKind {
+	return KindColorPreview
+}
+
+// NewColorPreview returns a new Span node.
+func NewColorPreview(color []byte) *ColorPreview {
+	return &ColorPreview{
+		BaseInline: ast.BaseInline{},
+		Color:      color,
+	}
+}
+
+// IsColorPreview returns true if the given node implements the ColorPreview interface,
+// otherwise false.
+func IsColorPreview(node ast.Node) bool {
+	_, ok := node.(*ColorPreview)
+	return ok
+}

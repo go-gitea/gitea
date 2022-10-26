@@ -39,6 +39,10 @@ func (err ErrReviewNotExist) Error() string {
 	return fmt.Sprintf("review does not exist [id: %d]", err.ID)
 }
 
+func (err ErrReviewNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrNotValidReviewRequest an not allowed review request modify
 type ErrNotValidReviewRequest struct {
 	Reason string
@@ -57,6 +61,10 @@ func (err ErrNotValidReviewRequest) Error() string {
 		err.Reason,
 		err.UserID,
 		err.RepoID)
+}
+
+func (err ErrNotValidReviewRequest) Unwrap() error {
+	return util.ErrInvalidArgument
 }
 
 // ReviewType defines the sort of feedback a review gives
@@ -782,10 +790,10 @@ func AddTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *user_
 
 	official, err := IsOfficialReviewerTeam(ctx, issue, reviewer)
 	if err != nil {
-		return nil, fmt.Errorf("isOfficialReviewerTeam(): %v", err)
+		return nil, fmt.Errorf("isOfficialReviewerTeam(): %w", err)
 	} else if !official {
 		if official, err = IsOfficialReviewer(ctx, issue, doer); err != nil {
-			return nil, fmt.Errorf("isOfficialReviewer(): %v", err)
+			return nil, fmt.Errorf("isOfficialReviewer(): %w", err)
 		}
 	}
 
@@ -815,7 +823,7 @@ func AddTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *user_
 		ReviewID:        review.ID,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("CreateCommentCtx(): %v", err)
+		return nil, fmt.Errorf("CreateCommentCtx(): %w", err)
 	}
 
 	return comment, committer.Commit()
@@ -844,7 +852,7 @@ func RemoveTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *us
 
 	official, err := IsOfficialReviewerTeam(ctx, issue, reviewer)
 	if err != nil {
-		return nil, fmt.Errorf("isOfficialReviewerTeam(): %v", err)
+		return nil, fmt.Errorf("isOfficialReviewerTeam(): %w", err)
 	}
 
 	if official {
@@ -874,7 +882,7 @@ func RemoveTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *us
 		AssigneeTeamID:  reviewer.ID, // Use AssigneeTeamID as reviewer team ID
 	})
 	if err != nil {
-		return nil, fmt.Errorf("CreateCommentCtx(): %v", err)
+		return nil, fmt.Errorf("CreateCommentCtx(): %w", err)
 	}
 
 	return comment, committer.Commit()

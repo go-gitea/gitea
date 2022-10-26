@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -53,6 +54,10 @@ func IsErrTopicNotExist(err error) bool {
 // Error implements error interface
 func (err ErrTopicNotExist) Error() string {
 	return fmt.Sprintf("topic is not exist [name: %s]", err.Name)
+}
+
+func (err ErrTopicNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // ValidateTopic checks a topic by length and match pattern rules

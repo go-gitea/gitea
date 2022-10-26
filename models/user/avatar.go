@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/models/db"
+	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -34,7 +35,7 @@ func GenerateRandomAvatar(ctx context.Context, u *User) error {
 
 	img, err := avatar.RandomImage([]byte(seed))
 	if err != nil {
-		return fmt.Errorf("RandomImage: %v", err)
+		return fmt.Errorf("RandomImage: %w", err)
 	}
 
 	u.Avatar = avatars.HashEmail(seed)
@@ -46,7 +47,7 @@ func GenerateRandomAvatar(ctx context.Context, u *User) error {
 		}
 		return err
 	}); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %v", u.CustomAvatarRelativePath(), err)
+		return fmt.Errorf("Failed to create dir %s: %w", u.CustomAvatarRelativePath(), err)
 	}
 
 	if _, err := db.GetEngine(ctx).ID(u.ID).Cols("avatar").Update(u); err != nil {
@@ -67,10 +68,16 @@ func (u *User) AvatarLinkWithSize(size int) string {
 	useLocalAvatar := false
 	autoGenerateAvatar := false
 
+	var disableGravatar bool
+	disableGravatarSetting, _ := system_model.GetSetting(system_model.KeyPictureDisableGravatar)
+	if disableGravatarSetting != nil {
+		disableGravatar = disableGravatarSetting.GetValueBool()
+	}
+
 	switch {
 	case u.UseCustomAvatar:
 		useLocalAvatar = true
-	case setting.DisableGravatar, setting.OfflineMode:
+	case disableGravatar, setting.OfflineMode:
 		useLocalAvatar = true
 		autoGenerateAvatar = true
 	}

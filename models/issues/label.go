@@ -38,6 +38,10 @@ func (err ErrRepoLabelNotExist) Error() string {
 	return fmt.Sprintf("label does not exist [label_id: %d, repo_id: %d]", err.LabelID, err.RepoID)
 }
 
+func (err ErrRepoLabelNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrOrgLabelNotExist represents a "OrgLabelNotExist" kind of error.
 type ErrOrgLabelNotExist struct {
 	LabelID int64
@@ -54,6 +58,10 @@ func (err ErrOrgLabelNotExist) Error() string {
 	return fmt.Sprintf("label does not exist [label_id: %d, org_id: %d]", err.LabelID, err.OrgID)
 }
 
+func (err ErrOrgLabelNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrLabelNotExist represents a "LabelNotExist" kind of error.
 type ErrLabelNotExist struct {
 	LabelID int64
@@ -67,6 +75,10 @@ func IsErrLabelNotExist(err error) bool {
 
 func (err ErrLabelNotExist) Error() string {
 	return fmt.Sprintf("label does not exist [label_id: %d]", err.LabelID)
+}
+
+func (err ErrLabelNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // LabelColorPattern is a regexp witch can validate LabelColor
@@ -655,7 +667,7 @@ func newIssueLabels(ctx context.Context, issue *Issue, labels []*Label, doer *us
 		}
 
 		if err = newIssueLabel(ctx, issue, label, doer); err != nil {
-			return fmt.Errorf("newIssueLabel: %v", err)
+			return fmt.Errorf("newIssueLabel: %w", err)
 		}
 	}
 

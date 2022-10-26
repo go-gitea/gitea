@@ -606,6 +606,13 @@ func deprecatedSetting(oldSection, oldKey, newSection, newKey string) {
 	}
 }
 
+// deprecatedSettingDB add a hint that the configuration has been moved to database but still kept in app.ini
+func deprecatedSettingDB(oldSection, oldKey string) {
+	if Cfg.Section(oldSection).HasKey(oldKey) {
+		log.Error("Deprecated `[%s]` `%s` present which has been copied to database table sys_setting", oldSection, oldKey)
+	}
+}
+
 // loadFromConf initializes configuration context.
 // NOTE: do not print any log except error.
 func loadFromConf(allowEmpty bool, extraConfig string) {

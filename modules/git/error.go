@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrExecTimeout error when exec timed out
@@ -39,6 +41,10 @@ func IsErrNotExist(err error) bool {
 
 func (err ErrNotExist) Error() string {
 	return fmt.Sprintf("object does not exist [id: %s, rel_path: %s]", err.ID, err.RelPath)
+}
+
+func (err ErrNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // ErrBadLink entry.FollowLink error
@@ -87,6 +93,10 @@ func (err ErrBranchNotExist) Error() string {
 	return fmt.Sprintf("branch does not exist [name: %s]", err.Name)
 }
 
+func (err ErrBranchNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrPushOutOfDate represents an error if merging fails due to unrelated histories
 type ErrPushOutOfDate struct {
 	StdOut string
@@ -106,7 +116,7 @@ func (err *ErrPushOutOfDate) Error() string {
 
 // Unwrap unwraps the underlying error
 func (err *ErrPushOutOfDate) Unwrap() error {
-	return fmt.Errorf("%v - %s", err.Err, err.StdErr)
+	return fmt.Errorf("%w - %s", err.Err, err.StdErr)
 }
 
 // ErrPushRejected represents an error if merging fails due to rejection from a hook
@@ -129,7 +139,7 @@ func (err *ErrPushRejected) Error() string {
 
 // Unwrap unwraps the underlying error
 func (err *ErrPushRejected) Unwrap() error {
-	return fmt.Errorf("%v - %s", err.Err, err.StdErr)
+	return fmt.Errorf("%w - %s", err.Err, err.StdErr)
 }
 
 // GenerateMessage generates the remote message from the stderr
