@@ -191,4 +191,4 @@ There is a Test Delivery button in the webhook settings that allows to test the 
 
 ### Authorization header
 
-**With 1.18**, Gitea hooks can be configured to send an [authorization header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Authorization) to the webhook target.
+**With 1.19**, Gitea hooks can be configured to send an [authorization header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Authorization) to the webhook target.
