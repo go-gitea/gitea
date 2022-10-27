@@ -102,7 +102,7 @@ services:
 
 Use the above "basic" docker-compose config, set "Database Type" to SQLite3 on the installation page.
 
-SQLite3 is only suitable for small instance and for only a few users.
+SQLite3 is only suitable for small instances with few users.
 It's recommended to use other database servers for production instances.
 
 ### MySQL database
