@@ -133,10 +133,27 @@ func DetermineSupport(ctx *context.Context) {
 }
 
 // Authenticate creates a token for the current user
-// If the current user is anonymous, the ghost user is used
+// If the current user is anonymous, the ghost user is used, except for
+// authentication requests.
 func Authenticate(ctx *context.Context) {
 	u := ctx.Doer
 	if u == nil {
+		// If the current user is anonymous, we want to fall back to the ghost user
+		// (to support anonymous pulls, among other things). However, we do not want
+		// to do so during login. Fortunately, during login, there is no "scope"
+		// query parameter, so if there isn't one, and the current user is
+		// anonymous, that'd be an anonymous login, and we can safely return an
+		// unauthorized error.
+		//
+		// If there are no query parameters, then we're creating a token for a
+		// future anonymous request, and should let it pass through successfully.
+		if ctx.FormTrim("scope") == "" {
+			apiErrorDefined(ctx, errUnauthorized)
+			return
+		}
+
+		// We do not need to parse scope, as we only care about its presence. If it
+		// is present, we fall back to the ghost user.
 		u = user_model.NewGhostUser()
 	}
 
