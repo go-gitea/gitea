@@ -566,6 +566,8 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/delete", admin.DeleteNotices)
 			m.Post("/empty", admin.EmptyNotices)
 		})
+	}, func(ctx *context.Context) {
+		ctx.Data["EnablePackages"] = setting.Packages.Enabled
 	}, adminReq)
 	// ***** END: Admin *****
 
