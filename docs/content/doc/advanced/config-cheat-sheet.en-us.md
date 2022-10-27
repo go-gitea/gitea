@@ -810,9 +810,9 @@ Default templates for project boards:
 - `STACKTRACE_LEVEL`: **log.STACKTRACE_LEVEL**: Sets the log level at which to log stack traces.
 - `MODE`: **name**: Sets the mode of this sublogger - Defaults to the provided subsection name. This allows you to have two different file loggers at different levels.
 - `EXPRESSION`: **""**: A regular expression to match either the function name, file or message. Defaults to empty. Only log messages that match the expression will be saved in the logger.
-- `FLAGS`: **stdflags**: A comma separated string representing the log flags. Defaults to `stdflags` which represents the prefix: `2009/01/23 01:23:23 ...a/b/c/d.go:23:runtime.Caller() [I]: message`. `none` means don't prefix log lines. See `modules/log/base.go` for more information.
+- `FLAGS`: **stdflags**: A comma separated string representing the log flags. Defaults to `stdflags` which represents the prefix: `2009/01/23 01:23:23 ...a/b/c/d.go:23:runtime.Caller() [I]: message`. `none` means don't prefix log lines. See `modules/log/flags.go` for more information.
 - `PREFIX`: **""**: An additional prefix for every log line in this logger. Defaults to empty.
-- `COLORIZE`: **false**: Colorize the log lines by default
+- `COLORIZE`: **false**: Whether to colorize the log lines
 
 ### Console log mode (`log.console`, `log.console.*`, or `MODE=console`)
 
