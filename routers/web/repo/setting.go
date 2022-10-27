@@ -386,6 +386,7 @@ func SettingsPost(ctx *context.Context) {
 
 	case "advanced":
 		var repoChanged bool
+		var codeIndexingChanged bool
 		var units []repo_model.RepoUnit
 		var deleteUnitTypes []unit_model.Type
 
@@ -396,6 +397,11 @@ func SettingsPost(ctx *context.Context) {
 		if repo.CloseIssuesViaCommitInAnyBranch != form.EnableCloseIssuesViaCommitInAnyBranch {
 			repo.CloseIssuesViaCommitInAnyBranch = form.EnableCloseIssuesViaCommitInAnyBranch
 			repoChanged = true
+		}
+
+		if repo.IsCodeIndexingEnabled != form.EnableCodeIndexing {
+			repo.IsCodeIndexingEnabled = form.EnableCodeIndexing
+			codeIndexingChanged = true
 		}
 
 		if form.EnableWiki && form.EnableExternalWiki && !unit_model.TypeExternalWiki.UnitGlobalDisabled() {
@@ -518,6 +524,13 @@ func SettingsPost(ctx *context.Context) {
 			if err := repo_service.UpdateRepository(repo, false); err != nil {
 				ctx.ServerError("UpdateRepository", err)
 				return
+			}
+
+			if codeIndexingChanged {
+				// Whether we enabled or disabled indexing, trigger a repo indexer
+				// update. If we enabled, this will reindex the repo; if we disabled, it
+				// will delete the repo from the index.
+				code.UpdateRepoIndexer(ctx.Repo.Repository)
 			}
 		}
 		log.Trace("Repository advanced settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)

@@ -168,6 +168,7 @@ type RepoSettingForm struct {
 
 	// Admin settings
 	EnableHealthCheck  bool
+	EnableCodeIndexing bool
 	RequestReindexType string
 }
 

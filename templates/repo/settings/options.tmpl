@@ -420,6 +420,16 @@
 					</div>
 				</div>
 
+				{{if .CodeIndexerEnabled}}
+					<div class="inline field">
+						<label>{{.locale.Tr "repo.settings.code_search_indexing"}}</label>
+						<div class="ui checkbox">
+							<input class="enable-system" name="enable_code_indexing" type="checkbox" {{if .Repository.IsCodeIndexingEnabled}}checked{{end}}>
+							<label>{{.locale.Tr "repo.settings.code_search_indexing_desc"}}</label>
+						</div>
+					</div>
+				{{end}}
+
 				{{if not .IsMirror}}
 					<div class="ui divider"></div>
 					{{$pullRequestEnabled := .Repository.UnitEnabled $.UnitTypePullRequests}}
@@ -600,10 +610,11 @@
 			</form>
 
 			<div class="ui divider"></div>
+
 			<form class="ui form" method="post">
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="admin_index">
-				{{if .CodeIndexerEnabled}}
+				{{if and .CodeIndexerEnabled .Repository.IsCodeIndexingEnabled}}
 					<h4 class="ui header">{{.locale.Tr "repo.settings.admin_code_indexer"}}</h4>
 					<div class="inline fields">
 						<label>{{.locale.Tr "repo.settings.admin_indexer_commit_sha"}}</label>

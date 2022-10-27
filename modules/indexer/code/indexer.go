@@ -93,6 +93,10 @@ func index(ctx context.Context, indexer Indexer, repoID int64) error {
 		return err
 	}
 
+	if !repo.IsCodeIndexingEnabled {
+		return indexer.Delete(repoID)
+	}
+
 	sha, err := getDefaultBranchSha(ctx, repo)
 	if err != nil {
 		return err
