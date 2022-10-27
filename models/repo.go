@@ -74,12 +74,12 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	// Delete Deploy Keys
 	deployKeys, err := asymkey_model.ListDeployKeys(ctx, &asymkey_model.ListDeployKeysOptions{RepoID: repoID})
 	if err != nil {
-		return fmt.Errorf("listDeployKeys: %v", err)
+		return fmt.Errorf("listDeployKeys: %w", err)
 	}
 	needRewriteKeysFile := len(deployKeys) > 0
 	for _, dKey := range deployKeys {
 		if err := DeleteDeployKey(ctx, doer, dKey.ID); err != nil {
-			return fmt.Errorf("deleteDeployKeys: %v", err)
+			return fmt.Errorf("deleteDeployKeys: %w", err)
 		}
 	}
 
@@ -152,7 +152,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		&repo_model.Watch{RepoID: repoID},
 		&webhook.Webhook{RepoID: repoID},
 	); err != nil {
-		return fmt.Errorf("deleteBeans: %v", err)
+		return fmt.Errorf("deleteBeans: %w", err)
 	}
 
 	// Delete Labels and related objects
@@ -178,7 +178,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 
 	if repo.IsFork {
 		if _, err := db.Exec(ctx, "UPDATE `repository` SET num_forks=num_forks-1 WHERE id=?", repo.ForkID); err != nil {
-			return fmt.Errorf("decrease fork count: %v", err)
+			return fmt.Errorf("decrease fork count: %w", err)
 		}
 	}
 
@@ -193,7 +193,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	}
 
 	if err := project_model.DeleteProjectByRepoIDCtx(ctx, repoID); err != nil {
-		return fmt.Errorf("unable to delete projects for repo[%d]: %v", repoID, err)
+		return fmt.Errorf("unable to delete projects for repo[%d]: %w", repoID, err)
 	}
 
 	// Remove LFS objects
@@ -310,7 +310,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 
 	if len(repo.Avatar) > 0 {
 		if err := storage.RepoAvatars.Delete(repo.CustomAvatarRelativePath()); err != nil {
-			return fmt.Errorf("Failed to remove %s: %v", repo.Avatar, err)
+			return fmt.Errorf("Failed to remove %s: %w", repo.Avatar, err)
 		}
 	}
 
@@ -404,24 +404,19 @@ func repoStatsCorrectIssueNumComments(ctx context.Context, id int64) error {
 }
 
 func repoStatsCorrectNumIssues(ctx context.Context, id int64) error {
-	return repoStatsCorrectNum(ctx, id, false, "num_issues")
+	return repo_model.UpdateRepoIssueNumbers(ctx, id, false, false)
 }
 
 func repoStatsCorrectNumPulls(ctx context.Context, id int64) error {
-	return repoStatsCorrectNum(ctx, id, true, "num_pulls")
-}
-
-func repoStatsCorrectNum(ctx context.Context, id int64, isPull bool, field string) error {
-	_, err := db.GetEngine(ctx).Exec("UPDATE `repository` SET "+field+"=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_pull=?) WHERE id=?", id, isPull, id)
-	return err
+	return repo_model.UpdateRepoIssueNumbers(ctx, id, true, false)
 }
 
 func repoStatsCorrectNumClosedIssues(ctx context.Context, id int64) error {
-	return repo_model.StatsCorrectNumClosed(ctx, id, false, "num_closed_issues")
+	return repo_model.UpdateRepoIssueNumbers(ctx, id, false, true)
 }
 
 func repoStatsCorrectNumClosedPulls(ctx context.Context, id int64) error {
-	return repo_model.StatsCorrectNumClosed(ctx, id, true, "num_closed_pulls")
+	return repo_model.UpdateRepoIssueNumbers(ctx, id, true, true)
 }
 
 func statsQuery(args ...interface{}) func(context.Context) ([]map[string][]byte, error) {
@@ -619,18 +614,18 @@ func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error
 		if asymkey_model.IsErrDeployKeyNotExist(err) {
 			return nil
 		}
-		return fmt.Errorf("GetDeployKeyByID: %v", err)
+		return fmt.Errorf("GetDeployKeyByID: %w", err)
 	}
 
 	// Check if user has access to delete this key.
 	if !doer.IsAdmin {
 		repo, err := repo_model.GetRepositoryByIDCtx(ctx, key.RepoID)
 		if err != nil {
-			return fmt.Errorf("GetRepositoryByID: %v", err)
+			return fmt.Errorf("GetRepositoryByID: %w", err)
 		}
 		has, err := access_model.IsUserRepoAdmin(ctx, repo, doer)
 		if err != nil {
-			return fmt.Errorf("GetUserRepoPermission: %v", err)
+			return fmt.Errorf("GetUserRepoPermission: %w", err)
 		} else if !has {
 			return asymkey_model.ErrKeyAccessDenied{
 				UserID: doer.ID,
@@ -643,7 +638,7 @@ func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error
 	if _, err := db.DeleteByBean(ctx, &asymkey_model.DeployKey{
 		ID: key.ID,
 	}); err != nil {
-		return fmt.Errorf("delete deploy key [%d]: %v", key.ID, err)
+		return fmt.Errorf("delete deploy key [%d]: %w", key.ID, err)
 	}
 
 	// Check if this is the last reference to same key content.

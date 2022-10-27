@@ -122,14 +122,14 @@ func LFSLocks(ctx *context.Context) {
 		Shared: true,
 	}); err != nil {
 		log.Error("Failed to clone repository: %s (%v)", ctx.Repo.Repository.FullName(), err)
-		ctx.ServerError("LFSLocks", fmt.Errorf("failed to clone repository: %s (%v)", ctx.Repo.Repository.FullName(), err))
+		ctx.ServerError("LFSLocks", fmt.Errorf("failed to clone repository: %s (%w)", ctx.Repo.Repository.FullName(), err))
 		return
 	}
 
 	gitRepo, err := git.OpenRepository(ctx, tmpBasePath)
 	if err != nil {
 		log.Error("Unable to open temporary repository: %s (%v)", tmpBasePath, err)
-		ctx.ServerError("LFSLocks", fmt.Errorf("failed to open new temporary repository in: %s %v", tmpBasePath, err))
+		ctx.ServerError("LFSLocks", fmt.Errorf("failed to open new temporary repository in: %s %w", tmpBasePath, err))
 		return
 	}
 	defer gitRepo.Close()
@@ -142,7 +142,7 @@ func LFSLocks(ctx *context.Context) {
 
 	if err := gitRepo.ReadTreeToIndex(ctx.Repo.Repository.DefaultBranch); err != nil {
 		log.Error("Unable to read the default branch to the index: %s (%v)", ctx.Repo.Repository.DefaultBranch, err)
-		ctx.ServerError("LFSLocks", fmt.Errorf("unable to read the default branch to the index: %s (%v)", ctx.Repo.Repository.DefaultBranch, err))
+		ctx.ServerError("LFSLocks", fmt.Errorf("unable to read the default branch to the index: %s (%w)", ctx.Repo.Repository.DefaultBranch, err))
 		return
 	}
 
@@ -542,7 +542,7 @@ func LFSAutoAssociate(ctx *context.Context) {
 		metas[i] = &git_model.LFSMetaObject{}
 		metas[i].Size, err = strconv.ParseInt(oid[idx+1:], 10, 64)
 		if err != nil {
-			ctx.ServerError("LFSAutoAssociate", fmt.Errorf("illegal oid input: %s %v", oid, err))
+			ctx.ServerError("LFSAutoAssociate", fmt.Errorf("illegal oid input: %s %w", oid, err))
 			return
 		}
 		metas[i].Oid = oid[:idx]

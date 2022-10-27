@@ -17,7 +17,7 @@ func addTableAppState(x *xorm.Engine) error {
 		Content  string `xorm:"LONGTEXT"`
 	}
 	if err := x.Sync2(new(AppState)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
+		return fmt.Errorf("Sync2: %w", err)
 	}
 	return nil
 }

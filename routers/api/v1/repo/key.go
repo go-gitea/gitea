@@ -174,7 +174,7 @@ func HandleCheckKeyStringError(ctx *context.APIContext, err error) {
 	} else if asymkey_model.IsErrKeyUnableVerify(err) {
 		ctx.Error(http.StatusUnprocessableEntity, "", "Unable to verify key content")
 	} else {
-		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("Invalid key content: %v", err))
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("Invalid key content: %w", err))
 	}
 }
 

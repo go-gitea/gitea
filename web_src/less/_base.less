@@ -79,7 +79,6 @@
   --color-pink: #e03997;
   --color-brown: #a5673f;
   --color-grey: #888888;
-  --color-gold: #a1882b;
   /* light variants - produced via Sass scale-color(color, $lightness: +25%) */
   --color-red-light: #e45e5e;
   --color-orange-light: #f59555;
@@ -93,8 +92,8 @@
   --color-pink-light: #e86bb1;
   --color-brown-light: #c58b66;
   --color-grey-light: #a6a6a6;
-  --color-gold-light: #cfb34a;
   /* other colors */
+  --color-gold: #a1882b;
   --color-black: #1b1c1d;
   --color-white: #ffffff;
   --color-diff-removed-word-bg: #fdb8c0;
@@ -312,6 +311,299 @@ a.label,
 .issue-keyword a,
 a.commit-statuses-trigger {
   text-decoration: none !important;
+}
+
+.ui.red.labels .label,
+.ui.ui.ui.red.label,
+.ui.red.button,
+.ui.red.buttons .button {
+  background: var(--color-red);
+}
+.ui.red.button:hover,
+.ui.red.buttons .button:hover {
+  background: var(--color-red-light);
+}
+.ui.basic.red.buttons .button,
+.ui.basic.red.button {
+  color: var(--color-red);
+  border-color: var(--color-red);
+}
+.ui.basic.red.buttons .button:hover,
+.ui.basic.red.button:hover {
+  color: var(--color-red-light);
+  border-color: var(--color-red-light);
+}
+
+.ui.orange.labels .label,
+.ui.ui.ui.orange.label,
+.ui.orange.button,
+.ui.orange.buttons .button {
+  background: var(--color-orange);
+}
+.ui.orange.button:hover,
+.ui.orange.buttons .button:hover {
+  background: var(--color-orange-light);
+}
+.ui.basic.orange.buttons .button,
+.ui.basic.orange.button {
+  color: var(--color-orange);
+  border-color: var(--color-orange);
+}
+.ui.basic.orange.buttons .button:hover,
+.ui.basic.orange.button:hover {
+  color: var(--color-orange-light);
+  border-color: var(--color-orange-light);
+}
+
+.ui.yellow.labels .label,
+.ui.ui.ui.yellow.label,
+.ui.yellow.button,
+.ui.yellow.buttons .button {
+  background: var(--color-yellow);
+}
+.ui.yellow.button:hover,
+.ui.yellow.buttons .button:hover {
+  background: var(--color-yellow-light);
+}
+.ui.basic.yellow.buttons .button,
+.ui.basic.yellow.button {
+  color: var(--color-yellow);
+  border-color: var(--color-yellow);
+}
+.ui.basic.yellow.buttons .button:hover,
+.ui.basic.yellow.button:hover {
+  color: var(--color-yellow-light);
+  border-color: var(--color-yellow-light);
+}
+
+.ui.olive.labels .label,
+.ui.ui.ui.olive.label,
+.ui.olive.button,
+.ui.olive.buttons .button {
+  background: var(--color-olive);
+}
+.ui.olive.button:hover,
+.ui.olive.buttons .button:hover {
+  background: var(--color-olive-light);
+}
+.ui.basic.olive.buttons .button,
+.ui.basic.olive.button {
+  color: var(--color-olive);
+  border-color: var(--color-olive);
+}
+.ui.basic.olive.buttons .button:hover,
+.ui.basic.olive.button:hover {
+  color: var(--color-olive-light);
+  border-color: var(--color-olive-light);
+}
+
+.ui.green.labels .label,
+.ui.ui.ui.green.label,
+.ui.green.button,
+.ui.green.buttons .button {
+  background: var(--color-green);
+}
+.ui.green.button:hover,
+.ui.green.buttons .button:hover {
+  background: var(--color-green-light);
+}
+.ui.basic.green.buttons .button,
+.ui.basic.green.button {
+  color: var(--color-green);
+  border-color: var(--color-green);
+}
+.ui.basic.green.buttons .button:hover,
+.ui.basic.green.button:hover {
+  color: var(--color-green-light);
+  border-color: var(--color-green-light);
+}
+
+.ui.teal.labels .label,
+.ui.ui.ui.teal.label,
+.ui.teal.button,
+.ui.teal.buttons .button {
+  background: var(--color-teal);
+}
+.ui.teal.button:hover,
+.ui.teal.buttons .button:hover {
+  background: var(--color-teal-light);
+}
+.ui.basic.teal.buttons .button,
+.ui.basic.teal.button {
+  color: var(--color-teal);
+  border-color: var(--color-teal);
+}
+.ui.basic.teal.buttons .button:hover,
+.ui.basic.teal.button:hover {
+  color: var(--color-teal-light);
+  border-color: var(--color-teal-light);
+}
+
+.ui.blue.labels .label,
+.ui.ui.ui.blue.label,
+.ui.blue.button,
+.ui.blue.buttons .button {
+  background: var(--color-blue);
+}
+.ui.blue.button:hover,
+.ui.blue.buttons .button:hover {
+  background: var(--color-blue-light);
+}
+.ui.basic.blue.buttons .button,
+.ui.basic.blue.button {
+  color: var(--color-blue);
+  border-color: var(--color-blue);
+}
+.ui.basic.blue.buttons .button:hover,
+.ui.basic.blue.button:hover {
+  color: var(--color-blue-light);
+  border-color: var(--color-blue-light);
+}
+
+.ui.violet.labels .label,
+.ui.ui.ui.violet.label,
+.ui.violet.button,
+.ui.violet.buttons .button {
+  background: var(--color-violet);
+}
+.ui.violet.button:hover,
+.ui.violet.buttons .button:hover {
+  background: var(--color-violet-light);
+}
+.ui.basic.violet.buttons .button,
+.ui.basic.violet.button {
+  color: var(--color-violet);
+  border-color: var(--color-violet);
+}
+.ui.basic.violet.buttons .button:hover,
+.ui.basic.violet.button:hover {
+  color: var(--color-violet-light);
+  border-color: var(--color-violet-light);
+}
+
+.ui.purple.labels .label,
+.ui.ui.ui.purple.label,
+.ui.purple.button,
+.ui.purple.buttons .button {
+  background: var(--color-purple);
+}
+.ui.purple.button:hover,
+.ui.purple.buttons .button:hover {
+  background: var(--color-purple-light);
+}
+.ui.basic.purple.buttons .button,
+.ui.basic.purple.button {
+  color: var(--color-purple);
+  border-color: var(--color-purple);
+}
+.ui.basic.purple.buttons .button:hover,
+.ui.basic.purple.button:hover {
+  color: var(--color-purple-light);
+  border-color: var(--color-purple-light);
+}
+
+.ui.pink.labels .label,
+.ui.ui.ui.pink.label,
+.ui.pink.button,
+.ui.pink.buttons .button {
+  background: var(--color-pink);
+}
+.ui.pink.button:hover,
+.ui.pink.buttons .button:hover {
+  background: var(--color-pink-light);
+}
+.ui.basic.pink.buttons .button,
+.ui.basic.pink.button {
+  color: var(--color-pink);
+  border-color: var(--color-pink);
+}
+.ui.basic.pink.buttons .button:hover,
+.ui.basic.pink.button:hover {
+  color: var(--color-pink-light);
+  border-color: var(--color-pink-light);
+}
+
+.ui.brown.labels .label,
+.ui.ui.ui.brown.label,
+.ui.brown.button,
+.ui.brown.buttons .button {
+  background: var(--color-brown);
+}
+.ui.brown.button:hover,
+.ui.brown.buttons .button:hover {
+  background: var(--color-brown-light);
+}
+.ui.basic.brown.buttons .button,
+.ui.basic.brown.button {
+  color: var(--color-brown);
+  border-color: var(--color-brown);
+}
+.ui.basic.brown.buttons .button:hover,
+.ui.basic.brown.button:hover {
+  color: var(--color-brown-light);
+  border-color: var(--color-brown-light);
+}
+
+.ui.grey.labels .label,
+.ui.ui.ui.grey.label,
+.ui.grey.button,
+.ui.grey.buttons .button {
+  background: var(--color-grey);
+}
+.ui.grey.button:hover,
+.ui.grey.buttons .button:hover {
+  background: var(--color-grey-light);
+}
+.ui.basic.grey.buttons .button,
+.ui.basic.grey.button {
+  color: var(--color-grey);
+  border-color: var(--color-grey);
+}
+.ui.basic.grey.buttons .button:hover,
+.ui.basic.grey.button:hover {
+  color: var(--color-grey-light);
+  border-color: var(--color-grey-light);
+}
+
+.ui.black.labels .label,
+.ui.ui.ui.black.label,
+.ui.black.button,
+.ui.black.buttons .button {
+  background: var(--color-black);
+}
+.ui.black.button:hover,
+.ui.black.buttons .button:hover {
+  background: var(--color-black-light);
+}
+.ui.basic.black.buttons .button,
+.ui.basic.black.button {
+  color: var(--color-black);
+  border-color: var(--color-black);
+}
+.ui.basic.black.buttons .button:hover,
+.ui.basic.black.button:hover {
+  color: var(--color-black-light);
+  border-color: var(--color-black-light);
+}
+
+.ui.negative.buttons .button,
+.ui.negative.button {
+  background: var(--color-red);
+}
+
+.ui.negative.buttons .button:hover,
+.ui.negative.button:hover {
+  background: var(--color-red-light);
+}
+
+.ui.positive.buttons .button,
+.ui.positive.button {
+  background: var(--color-green);
+}
+
+.ui.positive.buttons .button:hover,
+.ui.positive.button:hover {
+  background: var(--color-green-light);
 }
 
 .ui.search > .results {
@@ -956,6 +1248,52 @@ a.ui.card:hover,
 .ui.loading.form > *,
 .ui.loading.segment > * {
   opacity: .35;
+}
+
+.ui.form .fields.error .field textarea,
+.ui.form .fields.error .field select,
+.ui.form .fields.error .field input:not([type]),
+.ui.form .fields.error .field input[type="date"],
+.ui.form .fields.error .field input[type="datetime-local"],
+.ui.form .fields.error .field input[type="email"],
+.ui.form .fields.error .field input[type="number"],
+.ui.form .fields.error .field input[type="password"],
+.ui.form .fields.error .field input[type="search"],
+.ui.form .fields.error .field input[type="tel"],
+.ui.form .fields.error .field input[type="time"],
+.ui.form .fields.error .field input[type="text"],
+.ui.form .fields.error .field input[type="file"],
+.ui.form .fields.error .field input[type="url"],
+.ui.form .field.error textarea,
+.ui.form .field.error select,
+.ui.form .field.error input:not([type]),
+.ui.form .field.error input[type="date"],
+.ui.form .field.error input[type="datetime-local"],
+.ui.form .field.error input[type="email"],
+.ui.form .field.error input[type="number"],
+.ui.form .field.error input[type="password"],
+.ui.form .field.error input[type="search"],
+.ui.form .field.error input[type="tel"],
+.ui.form .field.error input[type="time"],
+.ui.form .field.error input[type="text"],
+.ui.form .field.error input[type="file"],
+.ui.form .field.error input[type="url"],
+.ui.form .field.error select:focus,
+.ui.form .field.error input:not([type]):focus,
+.ui.form .field.error input[type="date"]:focus,
+.ui.form .field.error input[type="datetime-local"]:focus,
+.ui.form .field.error input[type="email"]:focus,
+.ui.form .field.error input[type="number"]:focus,
+.ui.form .field.error input[type="password"]:focus,
+.ui.form .field.error input[type="search"]:focus,
+.ui.form .field.error input[type="tel"]:focus,
+.ui.form .field.error input[type="time"]:focus,
+.ui.form .field.error input[type="text"]:focus,
+.ui.form .field.error input[type="file"]:focus,
+.ui.form .field.error input[type="url"]:focus {
+  background-color: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
+  color: var(--color-error-text);
 }
 
 .ui.loading.loading.input > i.icon svg {

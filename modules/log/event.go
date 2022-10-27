@@ -293,9 +293,9 @@ func (m *MultiChannelledLog) ReleaseReopen() error {
 	for _, logger := range m.loggers {
 		if err := logger.ReleaseReopen(); err != nil {
 			if accumulatedErr == nil {
-				accumulatedErr = fmt.Errorf("Error whilst reopening: %s Error: %v", logger.GetName(), err)
+				accumulatedErr = fmt.Errorf("Error whilst reopening: %s Error: %w", logger.GetName(), err)
 			} else {
-				accumulatedErr = fmt.Errorf("Error whilst reopening: %s Error: %v & %v", logger.GetName(), err, accumulatedErr)
+				accumulatedErr = fmt.Errorf("Error whilst reopening: %s Error: %v & %w", logger.GetName(), err, accumulatedErr)
 			}
 		}
 	}

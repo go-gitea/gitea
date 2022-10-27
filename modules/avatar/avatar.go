@@ -30,7 +30,7 @@ func RandomImageSize(size int, data []byte) (image.Image, error) {
 	// we use white as background, and use dark colors to draw blocks
 	imgMaker, err := identicon.New(size, color.White, identicon.DarkColors...)
 	if err != nil {
-		return nil, fmt.Errorf("identicon.New: %v", err)
+		return nil, fmt.Errorf("identicon.New: %w", err)
 	}
 	return imgMaker.Make(data), nil
 }
@@ -46,7 +46,7 @@ func RandomImage(data []byte) (image.Image, error) {
 func Prepare(data []byte) (*image.Image, error) {
 	imgCfg, _, err := image.DecodeConfig(bytes.NewReader(data))
 	if err != nil {
-		return nil, fmt.Errorf("DecodeConfig: %v", err)
+		return nil, fmt.Errorf("DecodeConfig: %w", err)
 	}
 	if imgCfg.Width > setting.Avatar.MaxWidth {
 		return nil, fmt.Errorf("Image width is too large: %d > %d", imgCfg.Width, setting.Avatar.MaxWidth)
@@ -57,7 +57,7 @@ func Prepare(data []byte) (*image.Image, error) {
 
 	img, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
-		return nil, fmt.Errorf("Decode: %v", err)
+		return nil, fmt.Errorf("Decode: %w", err)
 	}
 
 	if imgCfg.Width != imgCfg.Height {
