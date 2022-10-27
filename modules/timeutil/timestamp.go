@@ -103,5 +103,5 @@ func (ts TimeStamp) FormatDate() string {
 
 // IsZero is zero time
 func (ts TimeStamp) IsZero() bool {
-	return ts.AsTimeInLocation(time.Local).IsZero()
+	return int64(ts) == 0
 }
