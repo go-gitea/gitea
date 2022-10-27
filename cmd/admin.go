@@ -588,7 +588,7 @@ func runCreateUser(c *cli.Context) error {
 	}
 
 	if err := user_model.CreateUser(u, overwriteDefault); err != nil {
-		return fmt.Errorf("CreateUser: %v", err)
+		return fmt.Errorf("CreateUser: %w", err)
 	}
 
 	if c.Bool("access-token") {
@@ -735,7 +735,7 @@ func runRepoSyncReleases(_ *cli.Context) error {
 			Private: true,
 		})
 		if err != nil {
-			return fmt.Errorf("SearchRepositoryByName: %v", err)
+			return fmt.Errorf("SearchRepositoryByName: %w", err)
 		}
 		if len(repos) == 0 {
 			break

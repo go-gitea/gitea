@@ -18,7 +18,7 @@ func createUserSettingsTable(x *xorm.Engine) error {
 		SettingValue string `xorm:"text"`
 	}
 	if err := x.Sync2(new(UserSetting)); err != nil {
-		return fmt.Errorf("sync2: %v", err)
+		return fmt.Errorf("sync2: %w", err)
 	}
 	return nil
 }

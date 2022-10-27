@@ -81,8 +81,8 @@ contrib.go.opencensus.io/resource v0.1.1/go.mod h1:F361eGI91LCmW1I/Saf+rX0+OFcig
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
 git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078 h1:cliQ4HHsCo6xi2oWZYKWW4bly/Ory9FuTpFPRxj/mAg=
 git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078/go.mod h1:g/V2Hjas6Z1UHUp4yIx6bATpNzJ7DYtD0FG3+xARWxs=
-gitea.com/go-chi/binding v0.0.0-20220309004920-114340dabecb h1:Yy0Bxzc8R2wxiwXoG/rECGplJUSpXqCsog9PuJFgiHs=
-gitea.com/go-chi/binding v0.0.0-20220309004920-114340dabecb/go.mod h1:77TZu701zMXWJFvB8gvTbQ92zQ3DQq/H7l5wAEjQRKc=
+gitea.com/go-chi/binding v0.0.0-20221013104517-b29891619681 h1:MMSPgnVULVwV9kEBgvyEUhC9v/uviZ55hPJEMjpbNR4=
+gitea.com/go-chi/binding v0.0.0-20221013104517-b29891619681/go.mod h1:77TZu701zMXWJFvB8gvTbQ92zQ3DQq/H7l5wAEjQRKc=
 gitea.com/go-chi/cache v0.0.0-20210110083709-82c4c9ce2d5e/go.mod h1:k2V/gPDEtXGjjMGuBJiapffAXTv76H4snSmlJRLUhH0=
 gitea.com/go-chi/cache v0.2.0 h1:E0npuTfDW6CT1yD8NMDVc1SK6IeRjfmRL2zlEsCEd7w=
 gitea.com/go-chi/cache v0.2.0/go.mod h1:iQlVK2aKTZ/rE9UcHyz9pQWGvdP9i1eI2spOpzgCrtE=

@@ -70,19 +70,19 @@ func NewUpload(name string, buf []byte, file multipart.File) (_ *Upload, err err
 
 	localPath := upload.LocalPath()
 	if err = os.MkdirAll(path.Dir(localPath), os.ModePerm); err != nil {
-		return nil, fmt.Errorf("MkdirAll: %v", err)
+		return nil, fmt.Errorf("MkdirAll: %w", err)
 	}
 
 	fw, err := os.Create(localPath)
 	if err != nil {
-		return nil, fmt.Errorf("Create: %v", err)
+		return nil, fmt.Errorf("Create: %w", err)
 	}
 	defer fw.Close()
 
 	if _, err = fw.Write(buf); err != nil {
-		return nil, fmt.Errorf("Write: %v", err)
+		return nil, fmt.Errorf("Write: %w", err)
 	} else if _, err = io.Copy(fw, file); err != nil {
-		return nil, fmt.Errorf("Copy: %v", err)
+		return nil, fmt.Errorf("Copy: %w", err)
 	}
 
 	if _, err := db.GetEngine(db.DefaultContext).Insert(upload); err != nil {
@@ -134,7 +134,7 @@ func DeleteUploads(uploads ...*Upload) (err error) {
 	if _, err = db.GetEngine(ctx).
 		In("id", ids).
 		Delete(new(Upload)); err != nil {
-		return fmt.Errorf("delete uploads: %v", err)
+		return fmt.Errorf("delete uploads: %w", err)
 	}
 
 	if err = committer.Commit(); err != nil {
@@ -152,7 +152,7 @@ func DeleteUploads(uploads ...*Upload) (err error) {
 		}
 
 		if err := util.Remove(localPath); err != nil {
-			return fmt.Errorf("remove upload: %v", err)
+			return fmt.Errorf("remove upload: %w", err)
 		}
 	}
 
@@ -166,11 +166,11 @@ func DeleteUploadByUUID(uuid string) error {
 		if IsErrUploadNotExist(err) {
 			return nil
 		}
-		return fmt.Errorf("GetUploadByUUID: %v", err)
+		return fmt.Errorf("GetUploadByUUID: %w", err)
 	}
 
 	if err := DeleteUploads(upload); err != nil {
-		return fmt.Errorf("DeleteUpload: %v", err)
+		return fmt.Errorf("DeleteUpload: %w", err)
 	}
 
 	return nil
