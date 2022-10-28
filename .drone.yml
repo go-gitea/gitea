@@ -561,7 +561,7 @@ steps:
 
   # TODO: We should probably build all dependencies into a test image
   - name: test-e2e
-    image: mcr.microsoft.com/playwright:v1.27.0-focal
+    image: mcr.microsoft.com/playwright:v1.27.1-focal
     commands:
       - curl -sLO https://go.dev/dl/go1.19.linux-amd64.tar.gz && tar -C /usr/local -xzf go1.19.linux-amd64.tar.gz
       - groupadd --gid 1001 gitea && useradd -m --gid 1001 --uid 1001 gitea
