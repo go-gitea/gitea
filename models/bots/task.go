@@ -13,6 +13,7 @@ import (
 	"io"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/bots"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
@@ -253,7 +254,7 @@ func CreateTaskForRunner(ctx context.Context, runner *Runner) (*Task, bool, erro
 		return nil, false, err
 	}
 
-	task.LogFilename = fmt.Sprintf("%s/%d.log", job.Run.Repo.FullName(), task.ID)
+	task.LogFilename = bots.LogFileName(job.Run.Repo.FullName(), task.ID)
 	if _, err := e.ID(task.ID).Cols("log_filename").Update(task); err != nil {
 		return nil, false, err
 	}
