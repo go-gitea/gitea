@@ -423,6 +423,8 @@ var migrations = []Migration{
 	NewMigration("Update counts of all open milestones", updateOpenMilestoneCounts),
 	// v230 -> v231
 	NewMigration("Add ConfidentialClient column (default true) to OAuth2Application table", addConfidentialClientColumnToOAuth2ApplicationTable),
+	// v231 -> v232
+	NewMigration("Add index for hook_task", addIndexForHookTask),
 }
 
 // GetCurrentDBVersion returns the current db version
