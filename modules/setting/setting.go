@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/user"
@@ -962,6 +963,11 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
 
 	InternalToken = loadSecret(sec, "INTERNAL_TOKEN_URI", "INTERNAL_TOKEN")
+	if InstallLock && InternalToken == "" {
+		// if Gitea has been installed but the InternalToken hasn't been generated (upgrade from an old release), we should generate
+		// some users do cluster deployment, they still depend on this auto-generating behavior.
+		generateSaveInternalToken()
+	}
 
 	cfgdata := sec.Key("PASSWORD_COMPLEXITY").Strings(",")
 	if len(cfgdata) == 0 {
@@ -1180,6 +1186,19 @@ func loadSecret(sec *ini.Section, uriKey, verbatimKey string) string {
 		log.Fatal("Unsupported URI-Scheme %q (INTERNAL_TOKEN_URI = %q)", tempURI.Scheme, uri)
 		return ""
 	}
+}
+
+// generateSaveInternalToken generates and saves the internal token to app.ini
+func generateSaveInternalToken() {
+	token, err := generate.NewInternalToken()
+	if err != nil {
+		log.Fatal("Error generate internal token: %v", err)
+	}
+
+	InternalToken = token
+	CreateOrAppendToCustomConf("security.INTERNAL_TOKEN", func(cfg *ini.File) {
+		cfg.Section("security").Key("INTERNAL_TOKEN").SetValue(token)
+	})
 }
 
 // MakeAbsoluteAssetURL returns the absolute asset url prefix without a trailing slash
