@@ -10,8 +10,6 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"code.gitea.io/gitea/modules/log"
-
 	"gopkg.in/yaml.v3"
 )
 
@@ -98,8 +96,6 @@ func ExtractMetadataBytes(contents []byte, out interface{}) ([]byte, error) {
 	if len(front) == 0 {
 		return contents, errors.New("could not determine metadata")
 	}
-
-	log.Info("%s", string(front))
 
 	if err := yaml.Unmarshal(front, out); err != nil {
 		return contents, err

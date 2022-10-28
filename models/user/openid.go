@@ -10,6 +10,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrOpenIDNotExist openid is not known
@@ -63,6 +64,10 @@ func IsErrOpenIDAlreadyUsed(err error) bool {
 
 func (err ErrOpenIDAlreadyUsed) Error() string {
 	return fmt.Sprintf("OpenID already in use [oid: %s]", err.OpenID)
+}
+
+func (err ErrOpenIDAlreadyUsed) Unwrap() error {
+	return util.ErrAlreadyExist
 }
 
 // AddUserOpenID adds an pre-verified/normalized OpenID URI to given user.

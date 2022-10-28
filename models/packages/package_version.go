@@ -163,6 +163,17 @@ type SearchValue struct {
 	ExactMatch bool
 }
 
+type VersionSort = string
+
+const (
+	SortNameAsc     VersionSort = "name_asc"
+	SortNameDesc    VersionSort = "name_desc"
+	SortVersionAsc  VersionSort = "version_asc"
+	SortVersionDesc VersionSort = "version_desc"
+	SortCreatedAsc  VersionSort = "created_asc"
+	SortCreatedDesc VersionSort = "created_desc"
+)
+
 // PackageSearchOptions are options for SearchXXX methods
 // Besides IsInternal are all fields optional and are not used if they have their default value (nil, "", 0)
 type PackageSearchOptions struct {
@@ -176,7 +187,7 @@ type PackageSearchOptions struct {
 	IsInternal      util.OptionalBool
 	HasFileWithName string            // only results are found which are associated with a file with the specific name
 	HasFiles        util.OptionalBool // only results are found which have associated files
-	Sort            string
+	Sort            VersionSort
 	db.Paginator
 }
 
@@ -254,15 +265,15 @@ func (opts *PackageSearchOptions) toConds() builder.Cond {
 
 func (opts *PackageSearchOptions) configureOrderBy(e db.Engine) {
 	switch opts.Sort {
-	case "alphabetically":
+	case SortNameAsc:
 		e.Asc("package.name")
-	case "reversealphabetically":
+	case SortNameDesc:
 		e.Desc("package.name")
-	case "highestversion":
+	case SortVersionDesc:
 		e.Desc("package_version.version")
-	case "lowestversion":
+	case SortVersionAsc:
 		e.Asc("package_version.version")
-	case "oldest":
+	case SortCreatedAsc:
 		e.Asc("package_version.created_unix")
 	default:
 		e.Desc("package_version.created_unix")

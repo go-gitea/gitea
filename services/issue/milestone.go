@@ -19,7 +19,7 @@ func changeMilestoneAssign(ctx context.Context, doer *user_model.User, issue *is
 	if issue.MilestoneID > 0 {
 		has, err := issues_model.HasMilestoneByRepoID(ctx, issue.RepoID, issue.MilestoneID)
 		if err != nil {
-			return fmt.Errorf("HasMilestoneByRepoID: %v", err)
+			return fmt.Errorf("HasMilestoneByRepoID: %w", err)
 		}
 		if !has {
 			return fmt.Errorf("HasMilestoneByRepoID: issue doesn't exist")
@@ -76,7 +76,7 @@ func ChangeMilestoneAssign(issue *issues_model.Issue, doer *user_model.User, old
 	}
 
 	if err = committer.Commit(); err != nil {
-		return fmt.Errorf("Commit: %v", err)
+		return fmt.Errorf("Commit: %w", err)
 	}
 
 	notification.NotifyIssueChangeMilestone(doer, issue, oldMilestoneID)

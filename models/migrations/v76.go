@@ -43,7 +43,7 @@ func addPullRequestRebaseWithMerge(x *xorm.Engine) error {
 	// Updating existing issue units
 	units := make([]*RepoUnit, 0, 100)
 	if err := sess.Where("`type` = ?", v16UnitTypePRs).Find(&units); err != nil {
-		return fmt.Errorf("Query repo units: %v", err)
+		return fmt.Errorf("Query repo units: %w", err)
 	}
 	for _, unit := range units {
 		if unit.Config == nil {
