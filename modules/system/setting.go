@@ -11,13 +11,9 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 )
 
-func genKey(key string) string {
-	return "system.setting." + key
-}
-
 // GetSetting returns the setting value via the key
 func GetSetting(key string) (string, error) {
-	return cache.GetString(genKey(key), func() (string, error) {
+	return cache.GetString(system.GenCacheKey(key), func() (string, error) {
 		res, err := system.GetSetting(key)
 		if err != nil {
 			return "", err
@@ -36,7 +32,7 @@ func GetSettingBool(key string) bool {
 
 // SetSetting sets the setting value
 func SetSetting(key, value string, version int) error {
-	cache.Remove(genKey(key))
+	cache.Remove(system.GenCacheKey(key))
 
 	return system.SetSetting(&system.Setting{
 		SettingKey:   key,
