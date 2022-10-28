@@ -24,6 +24,7 @@ import (
 
 func TestPackageAPI(t *testing.T) {
 	defer prepareTestEnv(t)()
+
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -141,6 +142,27 @@ func TestPackageAPI(t *testing.T) {
 		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s?token=%s", user.Name, packageName, packageVersion, token))
 		MakeRequest(t, req, http.StatusNoContent)
 	})
+}
+
+func TestPackageAccess(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
+	inactive := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 9}).(*user_model.User)
+
+	uploadPackage := func(doer, owner *user_model.User, expectedStatus int) {
+		url := fmt.Sprintf("/api/packages/%s/generic/test-package/1.0/file.bin", owner.Name)
+		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1}))
+		AddBasicAuthHeader(req, doer.Name)
+		MakeRequest(t, req, expectedStatus)
+	}
+
+	uploadPackage(user, inactive, http.StatusUnauthorized)
+	uploadPackage(inactive, inactive, http.StatusUnauthorized)
+	uploadPackage(inactive, user, http.StatusUnauthorized)
+	uploadPackage(admin, inactive, http.StatusCreated)
+	uploadPackage(admin, user, http.StatusCreated)
 }
 
 func TestPackageCleanup(t *testing.T) {
