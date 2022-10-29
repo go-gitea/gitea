@@ -303,7 +303,7 @@ func InfoOAuth(ctx *context.Context) {
 func getOAuthGroupsForUser(user *user_model.User) ([]string, error) {
 	orgs, err := org_model.GetUserOrgsList(user)
 	if err != nil {
-		return nil, fmt.Errorf("GetUserOrgList: %v", err)
+		return nil, fmt.Errorf("GetUserOrgList: %w", err)
 	}
 
 	var groups []string
@@ -311,7 +311,7 @@ func getOAuthGroupsForUser(user *user_model.User) ([]string, error) {
 		groups = append(groups, org.Name)
 		teams, err := org.LoadTeams()
 		if err != nil {
-			return nil, fmt.Errorf("LoadTeams: %v", err)
+			return nil, fmt.Errorf("LoadTeams: %w", err)
 		}
 		for _, team := range teams {
 			if team.IsMember(user.ID) {
