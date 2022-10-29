@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_16"
 	"code.gitea.io/gitea/models/migrations/v1_17"
 	"code.gitea.io/gitea/models/migrations/v1_18"
+	"code.gitea.io/gitea/models/migrations/v1_19"
 	"code.gitea.io/gitea/models/migrations/v1_6"
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
@@ -430,6 +431,8 @@ var migrations = []Migration{
 	NewMigration("Update counts of all open milestones", v1_18.UpdateOpenMilestoneCounts),
 	// v230 -> v231
 	NewMigration("Add ConfidentialClient column (default true) to OAuth2Application table", v1_18.AddConfidentialClientColumnToOAuth2ApplicationTable),
+	// v231 -> v232
+	NewMigration("Add index for hook_task", v1_19.AddIndexForHookTask),
 }
 
 // GetCurrentDBVersion returns the current db version
