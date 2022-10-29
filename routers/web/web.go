@@ -296,12 +296,19 @@ func RegisterRoutes(m *web.Route) {
 		}
 	}
 
+	sitemapEnabled := func(ctx *context.Context) {
+		if !setting.EnableSitemap {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+	}
+
 	// FIXME: not all routes need go through same middleware.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 	// Routers.
 	// for health check
 	m.Get("/", Home)
-	m.Get("/sitemap.xml", ignExploreSignIn, HomeSitemap)
+	m.Get("/sitemap.xml", sitemapEnabled, ignExploreSignIn, HomeSitemap)
 	m.Group("/.well-known", func() {
 		m.Get("/openid-configuration", auth.OIDCWellKnown)
 		m.Group("", func() {
@@ -318,9 +325,9 @@ func RegisterRoutes(m *web.Route) {
 			ctx.Redirect(setting.AppSubURL + "/explore/repos")
 		})
 		m.Get("/repos", explore.Repos)
-		m.Get("/repos/sitemap-{idx}.xml", explore.Repos)
+		m.Get("/repos/sitemap-{idx}.xml", sitemapEnabled, explore.Repos)
 		m.Get("/users", explore.Users)
-		m.Get("/users/sitemap-{idx}.xml", explore.Users)
+		m.Get("/users/sitemap-{idx}.xml", sitemapEnabled, explore.Users)
 		m.Get("/organizations", explore.Organizations)
 		m.Get("/code", explore.Code)
 		m.Get("/topics/search", explore.TopicSearch)
@@ -427,8 +434,8 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/{id}", bindIgnErr(forms.EditOAuth2ApplicationForm{}), user_setting.OAuthApplicationsEdit)
 			m.Post("/{id}/regenerate_secret", user_setting.OAuthApplicationsRegenerateSecret)
 			m.Post("", bindIgnErr(forms.EditOAuth2ApplicationForm{}), user_setting.OAuthApplicationsPost)
-			m.Post("/delete", user_setting.DeleteOAuth2Application)
-			m.Post("/revoke", user_setting.RevokeOAuth2Grant)
+			m.Post("/{id}/delete", user_setting.DeleteOAuth2Application)
+			m.Post("/{id}/revoke/{grantId}", user_setting.RevokeOAuth2Grant)
 		})
 		m.Combo("/applications").Get(user_setting.Applications).
 			Post(bindIgnErr(forms.NewAccessTokenForm{}), user_setting.ApplicationsPost)
@@ -473,8 +480,13 @@ func RegisterRoutes(m *web.Route) {
 	m.Group("/admin", func() {
 		m.Get("", adminReq, admin.Dashboard)
 		m.Post("", adminReq, bindIgnErr(forms.AdminDashboardForm{}), admin.DashboardPost)
-		m.Get("/config", admin.Config)
-		m.Post("/config/test_mail", admin.SendTestMail)
+
+		m.Group("/config", func() {
+			m.Get("", admin.Config)
+			m.Post("", admin.ChangeConfig)
+			m.Post("/test_mail", admin.SendTestMail)
+		})
+
 		m.Group("/monitor", func() {
 			m.Get("", admin.Monitor)
 			m.Get("/stacktrace", admin.GoroutineStacktrace)
@@ -569,6 +581,24 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/delete", admin.DeleteNotices)
 			m.Post("/empty", admin.EmptyNotices)
 		})
+
+		m.Group("/applications", func() {
+			m.Get("", admin.Applications)
+			m.Post("/oauth2", bindIgnErr(forms.EditOAuth2ApplicationForm{}), admin.ApplicationsPost)
+			m.Group("/oauth2/{id}", func() {
+				m.Combo("").Get(admin.EditApplication).Post(bindIgnErr(forms.EditOAuth2ApplicationForm{}), admin.EditApplicationPost)
+				m.Post("/regenerate_secret", admin.ApplicationsRegenerateSecret)
+				m.Post("/delete", admin.DeleteApplication)
+			})
+		}, func(ctx *context.Context) {
+			if !setting.OAuth2.Enable {
+				ctx.Error(http.StatusForbidden)
+				return
+			}
+		})
+	}, func(ctx *context.Context) {
+		ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
+		ctx.Data["EnablePackages"] = setting.Packages.Enabled
 	}, adminReq)
 	// ***** END: Admin *****
 
@@ -629,6 +659,11 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/create", bindIgnErr(forms.CreateOrgForm{}), org.CreatePost)
 		})
 
+		m.Group("/invite/{token}", func() {
+			m.Get("", org.TeamInvite)
+			m.Post("", org.TeamInvitePost)
+		})
+
 		m.Group("/{org}", func() {
 			m.Get("/dashboard", user.Dashboard)
 			m.Get("/dashboard/{team}", user.Dashboard)
@@ -662,6 +697,20 @@ func RegisterRoutes(m *web.Route) {
 					Post(bindIgnErr(forms.UpdateOrgSettingForm{}), org.SettingsPost)
 				m.Post("/avatar", bindIgnErr(forms.AvatarForm{}), org.SettingsAvatar)
 				m.Post("/avatar/delete", org.SettingsDeleteAvatar)
+				m.Group("/applications", func() {
+					m.Get("", org.Applications)
+					m.Post("/oauth2", bindIgnErr(forms.EditOAuth2ApplicationForm{}), org.OAuthApplicationsPost)
+					m.Group("/oauth2/{id}", func() {
+						m.Combo("").Get(org.OAuth2ApplicationShow).Post(bindIgnErr(forms.EditOAuth2ApplicationForm{}), org.OAuth2ApplicationEdit)
+						m.Post("/regenerate_secret", org.OAuthApplicationsRegenerateSecret)
+						m.Post("/delete", org.DeleteOAuth2Application)
+					})
+				}, func(ctx *context.Context) {
+					if !setting.OAuth2.Enable {
+						ctx.Error(http.StatusForbidden)
+						return
+					}
+				})
 
 				m.Group("/hooks", func() {
 					m.Get("", org.Webhooks)
@@ -702,6 +751,8 @@ func RegisterRoutes(m *web.Route) {
 				})
 
 				m.Route("/delete", "GET,POST", org.SettingsDelete)
+			}, func(ctx *context.Context) {
+				ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
 			})
 		}, context.OrgAssignment(true, true))
 	}, reqSignIn)
@@ -738,6 +789,7 @@ func RegisterRoutes(m *web.Route) {
 				})
 			}, ignSignIn, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 		}
+		m.Get("/code", user.CodeSearch)
 	}, context_service.UserAssignmentWeb())
 
 	// ***** Release Attachment Download without Signin

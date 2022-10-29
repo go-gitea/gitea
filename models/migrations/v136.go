@@ -44,7 +44,7 @@ func addCommitDivergenceToPulls(x *xorm.Engine) error {
 	}
 
 	if err := x.Sync2(new(PullRequest)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
+		return fmt.Errorf("Sync2: %w", err)
 	}
 
 	last := 0
@@ -80,7 +80,7 @@ func addCommitDivergenceToPulls(x *xorm.Engine) error {
 			baseRepo := &Repository{ID: pr.BaseRepoID}
 			has, err := x.Table("repository").Get(baseRepo)
 			if err != nil {
-				return fmt.Errorf("Unable to get base repo %d %v", pr.BaseRepoID, err)
+				return fmt.Errorf("Unable to get base repo %d %w", pr.BaseRepoID, err)
 			}
 			if !has {
 				log.Error("Missing base repo with id %d for PR ID %d", pr.BaseRepoID, pr.ID)
@@ -101,7 +101,7 @@ func addCommitDivergenceToPulls(x *xorm.Engine) error {
 			pr.CommitsBehind = divergence.Behind
 
 			if _, err = sess.ID(pr.ID).Cols("commits_ahead", "commits_behind").Update(pr); err != nil {
-				return fmt.Errorf("Update Cols: %v", err)
+				return fmt.Errorf("Update Cols: %w", err)
 			}
 			migrated++
 		}

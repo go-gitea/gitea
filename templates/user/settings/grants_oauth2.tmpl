@@ -10,8 +10,7 @@
 			<div class="item">
 				<div class="right floated content">
 					<button class="ui red tiny button delete-button" data-modal-id="revoke-gitea-oauth2-grant"
-							data-url="{{AppSubUrl}}/user/settings/applications/oauth2/revoke"
-							data-id="{{$grant.ID}}">
+							data-url="{{AppSubUrl}}/user/settings/applications/oauth2/{{$grant.ApplicationID}}/revoke/{{$grant.ID}}">
 						{{$.locale.Tr "settings.revoke_key"}}
 					</button>
 				</div>
@@ -21,7 +20,7 @@
 				<div class="content">
 					<strong>{{$grant.Application.Name}}</strong>
 					<div class="activity meta">
-						<i>{{$.locale.Tr "settings.add_on"}} <span>{{$grant.CreatedUnix.FormatShort}}</span></i>
+						<i>{{$.locale.Tr "settings.add_on"}} <span><time data-format="short-date" datetime="{{$grant.CreatedUnix.FormatLong}}">{{$grant.CreatedUnix.FormatShort}}</time></span></i>
 					</div>
 				</div>
 			</div>

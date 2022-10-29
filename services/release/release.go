@@ -15,6 +15,7 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
@@ -35,7 +36,7 @@ func createTag(gitRepo *git.Repository, rel *repo_model.Release, msg string) (bo
 
 			protectedTags, err := git_model.GetProtectedTags(rel.Repo.ID)
 			if err != nil {
-				return false, fmt.Errorf("GetProtectedTags: %v", err)
+				return false, fmt.Errorf("GetProtectedTags: %w", err)
 			}
 
 			// Trim '--' prefix to prevent command line argument vulnerability.
@@ -52,7 +53,7 @@ func createTag(gitRepo *git.Repository, rel *repo_model.Release, msg string) (bo
 
 			commit, err := gitRepo.GetCommit(rel.Target)
 			if err != nil {
-				return false, fmt.Errorf("createTag::GetCommit[%v]: %v", rel.Target, err)
+				return false, fmt.Errorf("createTag::GetCommit[%v]: %w", rel.Target, err)
 			}
 
 			if len(msg) > 0 {
@@ -91,13 +92,13 @@ func createTag(gitRepo *git.Repository, rel *repo_model.Release, msg string) (bo
 		}
 		commit, err := gitRepo.GetTagCommit(rel.TagName)
 		if err != nil {
-			return false, fmt.Errorf("GetTagCommit: %v", err)
+			return false, fmt.Errorf("GetTagCommit: %w", err)
 		}
 
 		rel.Sha1 = commit.ID.String()
 		rel.NumCommits, err = commit.CommitsCount()
 		if err != nil {
-			return false, fmt.Errorf("CommitsCount: %v", err)
+			return false, fmt.Errorf("CommitsCount: %w", err)
 		}
 
 		if rel.PublisherID <= 0 {
@@ -206,25 +207,25 @@ func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *repo_mod
 	}
 
 	if err = repo_model.AddReleaseAttachments(ctx, rel.ID, addAttachmentUUIDs); err != nil {
-		return fmt.Errorf("AddReleaseAttachments: %v", err)
+		return fmt.Errorf("AddReleaseAttachments: %w", err)
 	}
 
-	deletedUUIDsMap := make(map[string]bool)
+	deletedUUIDs := make(container.Set[string])
 	if len(delAttachmentUUIDs) > 0 {
 		// Check attachments
 		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, delAttachmentUUIDs)
 		if err != nil {
-			return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %v", delAttachmentUUIDs, err)
+			return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %w", delAttachmentUUIDs, err)
 		}
 		for _, attach := range attachments {
 			if attach.ReleaseID != rel.ID {
 				return errors.New("delete attachement of release permission denied")
 			}
-			deletedUUIDsMap[attach.UUID] = true
+			deletedUUIDs.Add(attach.UUID)
 		}
 
 		if _, err := repo_model.DeleteAttachments(ctx, attachments, false); err != nil {
-			return fmt.Errorf("DeleteAttachments [uuids: %v]: %v", delAttachmentUUIDs, err)
+			return fmt.Errorf("DeleteAttachments [uuids: %v]: %w", delAttachmentUUIDs, err)
 		}
 	}
 
@@ -236,7 +237,7 @@ func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *repo_mod
 		// Check attachments
 		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, updateAttachmentsList)
 		if err != nil {
-			return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %v", updateAttachmentsList, err)
+			return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %w", updateAttachmentsList, err)
 		}
 		for _, attach := range attachments {
 			if attach.ReleaseID != rel.ID {
@@ -245,7 +246,7 @@ func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *repo_mod
 		}
 
 		for uuid, newName := range editAttachments {
-			if !deletedUUIDsMap[uuid] {
+			if !deletedUUIDs.Contains(uuid) {
 				if err = repo_model.UpdateAttachmentByUUID(ctx, &repo_model.Attachment{
 					UUID: uuid,
 					Name: newName,
@@ -286,18 +287,18 @@ func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *repo_mod
 func DeleteReleaseByID(ctx context.Context, id int64, doer *user_model.User, delTag bool) error {
 	rel, err := repo_model.GetReleaseByID(ctx, id)
 	if err != nil {
-		return fmt.Errorf("GetReleaseByID: %v", err)
+		return fmt.Errorf("GetReleaseByID: %w", err)
 	}
 
 	repo, err := repo_model.GetRepositoryByIDCtx(ctx, rel.RepoID)
 	if err != nil {
-		return fmt.Errorf("GetRepositoryByID: %v", err)
+		return fmt.Errorf("GetRepositoryByID: %w", err)
 	}
 
 	if delTag {
 		protectedTags, err := git_model.GetProtectedTags(rel.RepoID)
 		if err != nil {
-			return fmt.Errorf("GetProtectedTags: %v", err)
+			return fmt.Errorf("GetProtectedTags: %w", err)
 		}
 		isAllowed, err := git_model.IsUserAllowedToControlTag(protectedTags, rel.TagName, rel.PublisherID)
 		if err != nil {
@@ -309,11 +310,11 @@ func DeleteReleaseByID(ctx context.Context, id int64, doer *user_model.User, del
 			}
 		}
 
-		if stdout, _, err := git.NewCommand(ctx, "tag", "-d", "--", rel.TagName).
+		if stdout, _, err := git.NewCommand(ctx, "tag", "-d").AddDashesAndList(rel.TagName).
 			SetDescription(fmt.Sprintf("DeleteReleaseByID (git tag -d): %d", rel.ID)).
 			RunStdString(&git.RunOpts{Dir: repo.RepoPath()}); err != nil && !strings.Contains(err.Error(), "not found") {
 			log.Error("DeleteReleaseByID (git tag -d): %d in %v Failed:\nStdout: %s\nError: %v", rel.ID, repo, stdout, err)
-			return fmt.Errorf("git tag -d: %v", err)
+			return fmt.Errorf("git tag -d: %w", err)
 		}
 
 		notification.NotifyPushCommits(
@@ -326,23 +327,23 @@ func DeleteReleaseByID(ctx context.Context, id int64, doer *user_model.User, del
 		notification.NotifyDeleteRef(doer, repo, "tag", git.TagPrefix+rel.TagName)
 
 		if err := repo_model.DeleteReleaseByID(id); err != nil {
-			return fmt.Errorf("DeleteReleaseByID: %v", err)
+			return fmt.Errorf("DeleteReleaseByID: %w", err)
 		}
 	} else {
 		rel.IsTag = true
 
 		if err = repo_model.UpdateRelease(ctx, rel); err != nil {
-			return fmt.Errorf("Update: %v", err)
+			return fmt.Errorf("Update: %w", err)
 		}
 	}
 
 	rel.Repo = repo
 	if err = rel.LoadAttributes(); err != nil {
-		return fmt.Errorf("LoadAttributes: %v", err)
+		return fmt.Errorf("LoadAttributes: %w", err)
 	}
 
 	if err := repo_model.DeleteAttachmentsByRelease(rel.ID); err != nil {
-		return fmt.Errorf("DeleteAttachments: %v", err)
+		return fmt.Errorf("DeleteAttachments: %w", err)
 	}
 
 	for i := range rel.Attachments {

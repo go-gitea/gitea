@@ -1,6 +1,7 @@
+import {expect, test} from 'vitest';
 import {
-  basename, extname, isObject, uniq, stripTags, joinPaths, parseIssueHref, strSubMatch,
-  prettyNumber, parseUrl,
+  basename, extname, isObject, uniq, stripTags, joinPaths, parseIssueHref,
+  prettyNumber, parseUrl, translateMonth, translateDay
 } from './utils.js';
 
 test('basename', () => {
@@ -56,8 +57,8 @@ test('joinPaths', () => {
 });
 
 test('isObject', () => {
-  expect(isObject({})).toBeTrue();
-  expect(isObject([])).toBeFalse();
+  expect(isObject({})).toBeTruthy();
+  expect(isObject([])).toBeFalsy();
 });
 
 test('uniq', () => {
@@ -86,22 +87,6 @@ test('parseIssueHref', () => {
   expect(parseIssueHref('')).toEqual({owner: undefined, repo: undefined, type: undefined, index: undefined});
 });
 
-test('strSubMatch', () => {
-  expect(strSubMatch('abc', '')).toEqual(['abc']);
-  expect(strSubMatch('abc', 'a')).toEqual(['', 'a', 'bc']);
-  expect(strSubMatch('abc', 'b')).toEqual(['a', 'b', 'c']);
-  expect(strSubMatch('abc', 'c')).toEqual(['ab', 'c']);
-  expect(strSubMatch('abc', 'ac')).toEqual(['', 'a', 'b', 'c']);
-  expect(strSubMatch('abc', 'z')).toEqual(['abc']);
-  expect(strSubMatch('abc', 'az')).toEqual(['abc']);
-
-  expect(strSubMatch('abc', 'aC')).toEqual(['', 'a', 'b', 'c']);
-  expect(strSubMatch('abC', 'ac')).toEqual(['', 'a', 'b', 'C']);
-
-  expect(strSubMatch('aabbcc', 'abc')).toEqual(['', 'a', 'a', 'b', 'b', 'c', 'c']);
-  expect(strSubMatch('the/directory', 'hedir')).toEqual(['t', 'he', '/', 'dir', 'ectory']);
-});
-
 test('prettyNumber', () => {
   expect(prettyNumber()).toEqual('');
   expect(prettyNumber(null)).toEqual('');
@@ -123,4 +108,26 @@ test('parseUrl', () => {
   expect(parseUrl('https://localhost/path?search').pathname).toEqual('/path');
   expect(parseUrl('https://localhost/path?search').search).toEqual('?search');
   expect(parseUrl('https://localhost/path?search#hash').hash).toEqual('#hash');
+});
+
+test('translateMonth', () => {
+  const originalLang = document.documentElement.lang;
+  document.documentElement.lang = 'en-US';
+  expect(translateMonth(0)).toEqual('Jan');
+  expect(translateMonth(4)).toEqual('May');
+  document.documentElement.lang = 'es-ES';
+  expect(translateMonth(5)).toEqual('jun');
+  expect(translateMonth(6)).toEqual('jul');
+  document.documentElement.lang = originalLang;
+});
+
+test('translateDay', () => {
+  const originalLang = document.documentElement.lang;
+  document.documentElement.lang = 'fr-FR';
+  expect(translateDay(1)).toEqual('lun.');
+  expect(translateDay(5)).toEqual('ven.');
+  document.documentElement.lang = 'pl-PL';
+  expect(translateDay(1)).toEqual('pon.');
+  expect(translateDay(5)).toEqual('pt.');
+  document.documentElement.lang = originalLang;
 });

@@ -11,7 +11,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -54,6 +56,10 @@ func (err ErrTopicNotExist) Error() string {
 	return fmt.Sprintf("topic is not exist [name: %s]", err.Name)
 }
 
+func (err ErrTopicNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ValidateTopic checks a topic by length and match pattern rules
 func ValidateTopic(topic string) bool {
 	return len(topic) <= 35 && topicPattern.MatchString(topic)
@@ -62,7 +68,7 @@ func ValidateTopic(topic string) bool {
 // SanitizeAndValidateTopics sanitizes and checks an array or topics
 func SanitizeAndValidateTopics(topics []string) (validTopics, invalidTopics []string) {
 	validTopics = make([]string, 0)
-	mValidTopics := make(map[string]struct{})
+	mValidTopics := make(container.Set[string])
 	invalidTopics = make([]string, 0)
 
 	for _, topic := range topics {
@@ -72,12 +78,12 @@ func SanitizeAndValidateTopics(topics []string) (validTopics, invalidTopics []st
 			continue
 		}
 		// ignore same topic twice
-		if _, ok := mValidTopics[topic]; ok {
+		if mValidTopics.Contains(topic) {
 			continue
 		}
 		if ValidateTopic(topic) {
 			validTopics = append(validTopics, topic)
-			mValidTopics[topic] = struct{}{}
+			mValidTopics.Add(topic)
 		} else {
 			invalidTopics = append(invalidTopics, topic)
 		}

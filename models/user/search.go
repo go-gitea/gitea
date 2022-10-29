@@ -105,7 +105,7 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 	defer sessCount.Close()
 	count, err := sessCount.Count(new(User))
 	if err != nil {
-		return nil, 0, fmt.Errorf("Count: %v", err)
+		return nil, 0, fmt.Errorf("Count: %w", err)
 	}
 
 	if len(opts.OrderBy) == 0 {

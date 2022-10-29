@@ -77,14 +77,12 @@
 								<span class="ui green label">{{$.locale.Tr "repo.release.stable"}}</span>
 							{{end}}
 							<span class="tag text blue">
-								<a class="df ac je" href="{{if .IsDraft}}#{{else}}{{$.RepoLink}}/src/tag/{{.TagName | PathEscapeSegments}}{{end}}" rel="nofollow">{{svg "octicon-tag" 16 "mr-2"}}{{.TagName}}</a>
+								<a class="df ac je" href="{{if not .Sha1}}#{{else}}{{$.RepoLink}}/src/tag/{{.TagName | PathEscapeSegments}}{{end}}" rel="nofollow">{{svg "octicon-tag" 16 "mr-2"}}{{.TagName}}</a>
 							</span>
-							{{if not .IsDraft}}
+							{{if .Sha1}}
 								<span class="commit">
 									<a class="mono" href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "mr-2"}}{{ShortSha .Sha1}}</a>
 								</span>
-							{{end}}
-							{{if .Sha1}}
 								{{template "repo/branch_dropdown" dict "root" $ "release" .}}
 							{{end}}
 						{{end}}

@@ -18,6 +18,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -266,23 +267,19 @@ var tokenCounter int64
 // but without the "scope_" prefix.
 func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...string) string {
 	t.Helper()
-	tokenCounter++
 	req := NewRequest(t, "GET", "/user/settings/applications")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
 	values := map[string]string{
 		"_csrf": doc.GetCSRF(),
-		"name":  fmt.Sprintf("api-testing-token-%d", tokenCounter),
-	}
-	for _, scope := range scopes {
-		values[fmt.Sprintf("scope_%s", scope)] = "on"
-	}
-	req = NewRequestWithValues(t, "POST", "/user/settings/applications", values)
+		"name":  fmt.Sprintf("api-testing-token-%d", atomic.AddInt64(&tokenCounter, 1)),
+	})
 	session.MakeRequest(t, req, http.StatusSeeOther)
 	req = NewRequest(t, "GET", "/user/settings/applications")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	token := htmlDoc.doc.Find(".ui.info p").Text()
+	assert.NotEmpty(t, token)
 	return token
 }
 

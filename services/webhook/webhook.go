@@ -7,11 +7,10 @@ package webhook
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
@@ -104,47 +103,36 @@ func getPayloadBranch(p api.Payloader) string {
 	return ""
 }
 
-// handle passed PR IDs and test the PRs
+// EventSource represents the source of a webhook action. Repository and/or Owner must be set.
+type EventSource struct {
+	Repository *repo_model.Repository
+	Owner      *user_model.User
+}
+
+// handle delivers hook tasks
 func handle(data ...queue.Data) []queue.Data {
-	for _, datum := range data {
-		repoIDStr := datum.(string)
-		log.Trace("DeliverHooks [repo_id: %v]", repoIDStr)
+	ctx := graceful.GetManager().HammerContext()
 
-		repoID, err := strconv.ParseInt(repoIDStr, 10, 64)
+	for _, taskID := range data {
+		task, err := webhook_model.GetHookTaskByID(ctx, taskID.(int64))
 		if err != nil {
-			log.Error("Invalid repo ID: %s", repoIDStr)
-			continue
-		}
-
-		tasks, err := webhook_model.FindRepoUndeliveredHookTasks(repoID)
-		if err != nil {
-			log.Error("Get repository [%d] hook tasks: %v", repoID, err)
-			continue
-		}
-		for _, t := range tasks {
-			if err = Deliver(graceful.GetManager().HammerContext(), t); err != nil {
-				log.Error("deliver: %v", err)
+			log.Error("GetHookTaskByID failed: %v", err)
+		} else {
+			if err := Deliver(ctx, task); err != nil {
+				log.Error("webhook.Deliver failed: %v", err)
 			}
 		}
 	}
+
 	return nil
 }
 
-func addToTask(repoID int64) error {
-	err := hookQueue.PushFunc(strconv.FormatInt(repoID, 10), nil)
+func enqueueHookTask(task *webhook_model.HookTask) error {
+	err := hookQueue.PushFunc(task.ID, nil)
 	if err != nil && err != queue.ErrAlreadyInQueue {
 		return err
 	}
 	return nil
-}
-
-// PrepareWebhook adds special webhook to task queue for given payload.
-func PrepareWebhook(w *webhook_model.Webhook, repo *repo_model.Repository, event webhook_model.HookEventType, p api.Payloader) error {
-	if err := prepareWebhook(w, repo, event, p); err != nil {
-		return err
-	}
-
-	return addToTask(repo.ID)
 }
 
 func checkBranch(w *webhook_model.Webhook, branch string) bool {
@@ -162,7 +150,8 @@ func checkBranch(w *webhook_model.Webhook, branch string) bool {
 	return g.Match(branch)
 }
 
-func prepareWebhook(w *webhook_model.Webhook, repo *repo_model.Repository, event webhook_model.HookEventType, p api.Payloader) error {
+// PrepareWebhook creates a hook task and enqueues it for processing
+func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook_model.HookEventType, p api.Payloader) error {
 	// Skip sending if webhooks are disabled.
 	if setting.DisableWebhooks {
 		return nil
@@ -201,50 +190,51 @@ func prepareWebhook(w *webhook_model.Webhook, repo *repo_model.Repository, event
 	if ok {
 		payloader, err = webhook.payloadCreator(p, event, w.Meta)
 		if err != nil {
-			return fmt.Errorf("create payload for %s[%s]: %v", w.Type, event, err)
+			return fmt.Errorf("create payload for %s[%s]: %w", w.Type, event, err)
 		}
 	} else {
 		payloader = p
 	}
 
-	if err = webhook_model.CreateHookTask(&webhook_model.HookTask{
-		RepoID:    repo.ID,
+	task, err := webhook_model.CreateHookTask(ctx, &webhook_model.HookTask{
 		HookID:    w.ID,
 		Payloader: payloader,
 		EventType: event,
-	}); err != nil {
-		return fmt.Errorf("CreateHookTask: %v", err)
+	})
+	if err != nil {
+		return fmt.Errorf("CreateHookTask: %w", err)
 	}
-	return nil
+
+	return enqueueHookTask(task)
 }
 
 // PrepareWebhooks adds new webhooks to task queue for given payload.
-func PrepareWebhooks(repo *repo_model.Repository, event webhook_model.HookEventType, p api.Payloader) error {
-	if err := prepareWebhooks(db.DefaultContext, repo, event, p); err != nil {
-		return err
-	}
+func PrepareWebhooks(ctx context.Context, source EventSource, event webhook_model.HookEventType, p api.Payloader) error {
+	owner := source.Owner
 
-	return addToTask(repo.ID)
-}
+	var ws []*webhook_model.Webhook
 
-func prepareWebhooks(ctx context.Context, repo *repo_model.Repository, event webhook_model.HookEventType, p api.Payloader) error {
-	ws, err := webhook_model.ListWebhooksByOpts(ctx, &webhook_model.ListWebhookOptions{
-		RepoID:   repo.ID,
-		IsActive: util.OptionalBoolTrue,
-	})
-	if err != nil {
-		return fmt.Errorf("GetActiveWebhooksByRepoID: %v", err)
-	}
-
-	// check if repo belongs to org and append additional webhooks
-	if repo.MustOwner().IsOrganization() {
-		// get hooks for org
-		orgHooks, err := webhook_model.ListWebhooksByOpts(ctx, &webhook_model.ListWebhookOptions{
-			OrgID:    repo.OwnerID,
+	if source.Repository != nil {
+		repoHooks, err := webhook_model.ListWebhooksByOpts(ctx, &webhook_model.ListWebhookOptions{
+			RepoID:   source.Repository.ID,
 			IsActive: util.OptionalBoolTrue,
 		})
 		if err != nil {
-			return fmt.Errorf("GetActiveWebhooksByOrgID: %v", err)
+			return fmt.Errorf("ListWebhooksByOpts: %w", err)
+		}
+		ws = append(ws, repoHooks...)
+
+		owner = source.Repository.MustOwner()
+	}
+
+	// check if owner is an org and append additional webhooks
+	if owner != nil && owner.IsOrganization() {
+		orgHooks, err := webhook_model.ListWebhooksByOpts(ctx, &webhook_model.ListWebhookOptions{
+			OrgID:    owner.ID,
+			IsActive: util.OptionalBoolTrue,
+		})
+		if err != nil {
+			return fmt.Errorf("ListWebhooksByOpts: %w", err)
 		}
 		ws = append(ws, orgHooks...)
 	}
@@ -252,7 +242,7 @@ func prepareWebhooks(ctx context.Context, repo *repo_model.Repository, event web
 	// Add any admin-defined system webhooks
 	systemHooks, err := webhook_model.GetSystemWebhooks(ctx, util.OptionalBoolTrue)
 	if err != nil {
-		return fmt.Errorf("GetSystemWebhooks: %v", err)
+		return fmt.Errorf("GetSystemWebhooks: %w", err)
 	}
 	ws = append(ws, systemHooks...)
 
@@ -261,7 +251,7 @@ func prepareWebhooks(ctx context.Context, repo *repo_model.Repository, event web
 	}
 
 	for _, w := range ws {
-		if err = prepareWebhook(w, repo, event, p); err != nil {
+		if err := PrepareWebhook(ctx, w, event, p); err != nil {
 			return err
 		}
 	}
@@ -269,11 +259,11 @@ func prepareWebhooks(ctx context.Context, repo *repo_model.Repository, event web
 }
 
 // ReplayHookTask replays a webhook task
-func ReplayHookTask(w *webhook_model.Webhook, uuid string) error {
-	t, err := webhook_model.ReplayHookTask(w.ID, uuid)
+func ReplayHookTask(ctx context.Context, w *webhook_model.Webhook, uuid string) error {
+	task, err := webhook_model.ReplayHookTask(ctx, w.ID, uuid)
 	if err != nil {
 		return err
 	}
 
-	return addToTask(t.RepoID)
+	return enqueueHookTask(task)
 }

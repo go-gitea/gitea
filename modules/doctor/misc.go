@@ -43,7 +43,7 @@ func checkScriptType(ctx context.Context, logger log.Logger, autofix bool) error
 	path, err := exec.LookPath(setting.ScriptType)
 	if err != nil {
 		logger.Critical("ScriptType \"%q\" is not on the current PATH. Error: %v", setting.ScriptType, err)
-		return fmt.Errorf("ScriptType \"%q\" is not on the current PATH. Error: %v", setting.ScriptType, err)
+		return fmt.Errorf("ScriptType \"%q\" is not on the current PATH. Error: %w", setting.ScriptType, err)
 	}
 	logger.Info("ScriptType %s is on the current PATH at %s", setting.ScriptType, path)
 	return nil
@@ -54,13 +54,13 @@ func checkHooks(ctx context.Context, logger log.Logger, autofix bool) error {
 		results, err := repository.CheckDelegateHooks(repo.RepoPath())
 		if err != nil {
 			logger.Critical("Unable to check delegate hooks for repo %-v. ERROR: %v", repo, err)
-			return fmt.Errorf("Unable to check delegate hooks for repo %-v. ERROR: %v", repo, err)
+			return fmt.Errorf("Unable to check delegate hooks for repo %-v. ERROR: %w", repo, err)
 		}
 		if len(results) > 0 && autofix {
 			logger.Warn("Regenerated hooks for %s", repo.FullName())
 			if err := repository.CreateDelegateHooks(repo.RepoPath()); err != nil {
 				logger.Critical("Unable to recreate delegate hooks for %-v. ERROR: %v", repo, err)
-				return fmt.Errorf("Unable to recreate delegate hooks for %-v. ERROR: %v", repo, err)
+				return fmt.Errorf("Unable to recreate delegate hooks for %-v. ERROR: %w", repo, err)
 			}
 		}
 		for _, result := range results {

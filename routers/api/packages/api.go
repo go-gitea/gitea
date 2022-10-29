@@ -58,6 +58,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 	authGroup := auth.NewGroup(authMethods...)
 	r.Use(func(ctx *context.Context) {
 		ctx.Doer = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		ctx.IsSigned = ctx.Doer != nil
 	})
 
 	r.Group("/{username}", func() {
@@ -180,15 +181,19 @@ func Routes(ctx gocontext.Context) *web.Route {
 			r.Get("/*", maven.DownloadPackageFile)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/nuget", func() {
-			r.Get("/index.json", nuget.ServiceIndex) // Needs to be unauthenticated for the NuGet client.
+			r.Group("", func() { // Needs to be unauthenticated for the NuGet client.
+				r.Get("/", nuget.ServiceIndexV2)
+				r.Get("/index.json", nuget.ServiceIndexV3)
+				r.Get("/$metadata", nuget.FeedCapabilityResource)
+			})
 			r.Group("", func() {
-				r.Get("/query", nuget.SearchService)
+				r.Get("/query", nuget.SearchServiceV3)
 				r.Group("/registration/{id}", func() {
 					r.Get("/index.json", nuget.RegistrationIndex)
-					r.Get("/{version}", nuget.RegistrationLeaf)
+					r.Get("/{version}", nuget.RegistrationLeafV3)
 				})
 				r.Group("/package/{id}", func() {
-					r.Get("/index.json", nuget.EnumeratePackageVersions)
+					r.Get("/index.json", nuget.EnumeratePackageVersionsV3)
 					r.Get("/{version}/{filename}", nuget.DownloadPackageFile)
 				})
 				r.Group("", func() {
@@ -196,7 +201,11 @@ func Routes(ctx gocontext.Context) *web.Route {
 					r.Put("/symbolpackage", nuget.UploadSymbolPackage)
 					r.Delete("/{id}/{version}", nuget.DeletePackage)
 				}, reqPackageAccess(perm.AccessModeWrite))
-				r.Get("/symbols/{filename}/{guid:[0-9a-f]{32}}FFFFFFFF/{filename2}", nuget.DownloadSymbolFile)
+				r.Get("/symbols/{filename}/{guid:[0-9a-fA-F]{32}[fF]{8}}/{filename2}", nuget.DownloadSymbolFile)
+				r.Get("/Packages(Id='{id:[^']+}',Version='{version:[^']+}')", nuget.RegistrationLeafV2)
+				r.Get("/Packages()", nuget.SearchServiceV2)
+				r.Get("/FindPackagesById()", nuget.EnumeratePackageVersionsV2)
+				r.Get("/Search()", nuget.SearchServiceV2)
 			}, reqPackageAccess(perm.AccessModeRead))
 		})
 		r.Group("/npm", func() {
@@ -207,6 +216,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 					r.Get("", npm.DownloadPackageFile)
 					r.Delete("/-rev/{revision}", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
 				})
+				r.Get("/-/{filename}", npm.DownloadPackageFileByName)
 				r.Group("/-rev/{revision}", func() {
 					r.Delete("", npm.DeletePackage)
 					r.Put("", npm.DeletePreview)
@@ -219,6 +229,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 					r.Get("", npm.DownloadPackageFile)
 					r.Delete("/-rev/{revision}", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
 				})
+				r.Get("/-/{filename}", npm.DownloadPackageFileByName)
 				r.Group("/-rev/{revision}", func() {
 					r.Delete("", npm.DeletePackage)
 					r.Put("", npm.DeletePreview)
@@ -306,6 +317,7 @@ func ContainerRoutes(ctx gocontext.Context) *web.Route {
 	authGroup := auth.NewGroup(authMethods...)
 	r.Use(func(ctx *context.Context) {
 		ctx.Doer = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		ctx.IsSigned = ctx.Doer != nil
 	})
 
 	r.Get("", container.ReqContainerAccess, container.DetermineSupport)
@@ -316,8 +328,10 @@ func ContainerRoutes(ctx gocontext.Context) *web.Route {
 			r.Group("/blobs/uploads", func() {
 				r.Post("", container.InitiateUploadBlob)
 				r.Group("/{uuid}", func() {
+					r.Get("", container.GetUploadBlob)
 					r.Patch("", container.UploadBlob)
 					r.Put("", container.EndUploadBlob)
+					r.Delete("", container.CancelUploadBlob)
 				})
 			}, reqPackageAccess(perm.AccessModeWrite))
 			r.Group("/blobs/{digest}", func() {
@@ -377,7 +391,7 @@ func ContainerRoutes(ctx gocontext.Context) *web.Route {
 			}
 
 			m := blobsUploadsPattern.FindStringSubmatch(path)
-			if len(m) == 3 && (isPut || isPatch) {
+			if len(m) == 3 && (isGet || isPut || isPatch || isDelete) {
 				reqPackageAccess(perm.AccessModeWrite)(ctx)
 				if ctx.Written() {
 					return
@@ -391,10 +405,14 @@ func ContainerRoutes(ctx gocontext.Context) *web.Route {
 
 				ctx.SetParams("uuid", m[2])
 
-				if isPatch {
+				if isGet {
+					container.GetUploadBlob(ctx)
+				} else if isPatch {
 					container.UploadBlob(ctx)
-				} else {
+				} else if isPut {
 					container.EndUploadBlob(ctx)
+				} else {
+					container.CancelUploadBlob(ctx)
 				}
 				return
 			}

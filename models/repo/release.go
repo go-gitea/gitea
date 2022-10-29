@@ -37,6 +37,10 @@ func (err ErrReleaseAlreadyExist) Error() string {
 	return fmt.Sprintf("release tag already exist [tag_name: %s]", err.TagName)
 }
 
+func (err ErrReleaseAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
 // ErrReleaseNotExist represents a "ReleaseNotExist" kind of error.
 type ErrReleaseNotExist struct {
 	ID      int64
@@ -51,6 +55,10 @@ func IsErrReleaseNotExist(err error) bool {
 
 func (err ErrReleaseNotExist) Error() string {
 	return fmt.Sprintf("release tag does not exist [id: %d, tag_name: %s]", err.ID, err.TagName)
+}
+
+func (err ErrReleaseNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // Release represents a release of repository.
@@ -148,7 +156,7 @@ func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs
 	// Check attachments
 	attachments, err := GetAttachmentsByUUIDs(ctx, attachmentUUIDs)
 	if err != nil {
-		return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %v", attachmentUUIDs, err)
+		return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %w", attachmentUUIDs, err)
 	}
 
 	for i := range attachments {
@@ -158,7 +166,7 @@ func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs
 		attachments[i].ReleaseID = releaseID
 		// No assign value could be 0, so ignore AllCols().
 		if _, err = db.GetEngine(ctx).ID(attachments[i].ID).Update(attachments[i]); err != nil {
-			return fmt.Errorf("update attachment [%d]: %v", attachments[i].ID, err)
+			return fmt.Errorf("update attachment [%d]: %w", attachments[i].ID, err)
 		}
 	}
 
@@ -200,6 +208,7 @@ type FindReleasesOptions struct {
 	IsPreRelease  util.OptionalBool
 	IsDraft       util.OptionalBool
 	TagNames      []string
+	HasSha1       util.OptionalBool // useful to find draft releases which are created with existing tags
 }
 
 func (opts *FindReleasesOptions) toConds(repoID int64) builder.Cond {
@@ -220,6 +229,13 @@ func (opts *FindReleasesOptions) toConds(repoID int64) builder.Cond {
 	}
 	if !opts.IsDraft.IsNone() {
 		cond = cond.And(builder.Eq{"is_draft": opts.IsDraft.IsTrue()})
+	}
+	if !opts.HasSha1.IsNone() {
+		if opts.HasSha1.IsTrue() {
+			cond = cond.And(builder.Neq{"sha1": ""})
+		} else {
+			cond = cond.And(builder.Eq{"sha1": ""})
+		}
 	}
 	return cond
 }
@@ -397,7 +413,7 @@ func PushUpdateDeleteTagsContext(ctx context.Context, repo *Repository, tags []s
 		Where("repo_id = ? AND is_tag = ?", repo.ID, true).
 		In("lower_tag_name", lowerTags).
 		Delete(new(Release)); err != nil {
-		return fmt.Errorf("Delete: %v", err)
+		return fmt.Errorf("Delete: %w", err)
 	}
 
 	if _, err := db.GetEngine(ctx).
@@ -407,7 +423,7 @@ func PushUpdateDeleteTagsContext(ctx context.Context, repo *Repository, tags []s
 		Update(&Release{
 			IsDraft: true,
 		}); err != nil {
-		return fmt.Errorf("Update: %v", err)
+		return fmt.Errorf("Update: %w", err)
 	}
 
 	return nil
@@ -420,18 +436,18 @@ func PushUpdateDeleteTag(repo *Repository, tagName string) error {
 		if IsErrReleaseNotExist(err) {
 			return nil
 		}
-		return fmt.Errorf("GetRelease: %v", err)
+		return fmt.Errorf("GetRelease: %w", err)
 	}
 	if rel.IsTag {
 		if _, err = db.GetEngine(db.DefaultContext).ID(rel.ID).Delete(new(Release)); err != nil {
-			return fmt.Errorf("Delete: %v", err)
+			return fmt.Errorf("Delete: %w", err)
 		}
 	} else {
 		rel.IsDraft = true
 		rel.NumCommits = 0
 		rel.Sha1 = ""
 		if _, err = db.GetEngine(db.DefaultContext).ID(rel.ID).AllCols().Update(rel); err != nil {
-			return fmt.Errorf("Update: %v", err)
+			return fmt.Errorf("Update: %w", err)
 		}
 	}
 
@@ -442,13 +458,13 @@ func PushUpdateDeleteTag(repo *Repository, tagName string) error {
 func SaveOrUpdateTag(repo *Repository, newRel *Release) error {
 	rel, err := GetRelease(repo.ID, newRel.TagName)
 	if err != nil && !IsErrReleaseNotExist(err) {
-		return fmt.Errorf("GetRelease: %v", err)
+		return fmt.Errorf("GetRelease: %w", err)
 	}
 
 	if rel == nil {
 		rel = newRel
 		if _, err = db.GetEngine(db.DefaultContext).Insert(rel); err != nil {
-			return fmt.Errorf("InsertOne: %v", err)
+			return fmt.Errorf("InsertOne: %w", err)
 		}
 	} else {
 		rel.Sha1 = newRel.Sha1
@@ -459,7 +475,7 @@ func SaveOrUpdateTag(repo *Repository, newRel *Release) error {
 			rel.PublisherID = newRel.PublisherID
 		}
 		if _, err = db.GetEngine(db.DefaultContext).ID(rel.ID).AllCols().Update(rel); err != nil {
-			return fmt.Errorf("Update: %v", err)
+			return fmt.Errorf("Update: %w", err)
 		}
 	}
 	return nil
