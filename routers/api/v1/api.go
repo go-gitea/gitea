@@ -685,7 +685,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 			m.Combo("/threads/{id}").
 				Get(notify.GetThread).
 				Patch(notify.ReadThread)
-		}, reqToken(""))
+		}, reqToken(auth_model.AccessTokenScopeNotification))
 
 		// Users
 		m.Group("/users", func() {
