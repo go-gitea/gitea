@@ -115,6 +115,12 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 				link.Href = pullLink
 			}
 			title += ctx.TrHTMLEscapeArgs("action.merge_pull_request", pullLink, act.GetIssueInfos()[0], act.ShortRepoPath())
+		case activities_model.ActionAutoMergePullRequest:
+			pullLink := toPullLink(act)
+			if link.Href == "#" {
+				link.Href = pullLink
+			}
+			title += ctx.TrHTMLEscapeArgs("action.auto_merge_pull_request", pullLink, act.GetIssueInfos()[0], act.ShortRepoPath())
 		case activities_model.ActionCloseIssue:
 			issueLink := toIssueLink(act)
 			if link.Href == "#" {
@@ -221,7 +227,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 				if len(comment) != 0 {
 					desc += "\n\n" + renderMarkdown(ctx, act, comment)
 				}
-			case activities_model.ActionMergePullRequest:
+			case activities_model.ActionMergePullRequest, activities_model.ActionAutoMergePullRequest:
 				desc = act.GetIssueInfos()[1]
 			case activities_model.ActionCloseIssue, activities_model.ActionReopenIssue, activities_model.ActionClosePullRequest, activities_model.ActionReopenPullRequest:
 				desc = act.GetIssueTitle()

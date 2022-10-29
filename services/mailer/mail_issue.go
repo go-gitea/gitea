@@ -173,7 +173,7 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, vi
 
 // MailParticipants sends new issue thread created emails to repository watchers
 // and mentioned people.
-func MailParticipants(issue *issues_model.Issue, doer *user_model.User, opType activities_model.ActionType, mentions []*user_model.User, forceDoerNotification bool) error {
+func MailParticipants(issue *issues_model.Issue, doer *user_model.User, opType activities_model.ActionType, mentions []*user_model.User) error {
 	if setting.MailService == nil {
 		// No mail service configured
 		return nil
@@ -182,9 +182,10 @@ func MailParticipants(issue *issues_model.Issue, doer *user_model.User, opType a
 	content := issue.Content
 	if opType == activities_model.ActionCloseIssue || opType == activities_model.ActionClosePullRequest ||
 		opType == activities_model.ActionReopenIssue || opType == activities_model.ActionReopenPullRequest ||
-		opType == activities_model.ActionMergePullRequest {
+		opType == activities_model.ActionMergePullRequest || opType == activities_model.ActionAutoMergePullRequest {
 		content = ""
 	}
+	forceDoerNotification := opType == activities_model.ActionAutoMergePullRequest
 	if err := mailIssueCommentToParticipants(
 		&mailCommentContext{
 			Context:               context.TODO(), // TODO: use a correct context

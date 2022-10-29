@@ -269,11 +269,25 @@ func (a *actionNotifier) NotifyPullRequestReview(pr *issues_model.PullRequest, r
 	}
 }
 
-func (*actionNotifier) NotifyMergePullRequest(pr *issues_model.PullRequest, doer *user_model.User, wasAutoMerged bool) {
+func (*actionNotifier) NotifyMergePullRequest(pr *issues_model.PullRequest, doer *user_model.User) {
 	if err := activities_model.NotifyWatchers(&activities_model.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
 		OpType:    activities_model.ActionMergePullRequest,
+		Content:   fmt.Sprintf("%d|%s", pr.Issue.Index, pr.Issue.Title),
+		RepoID:    pr.Issue.Repo.ID,
+		Repo:      pr.Issue.Repo,
+		IsPrivate: pr.Issue.Repo.IsPrivate,
+	}); err != nil {
+		log.Error("NotifyWatchers [%d]: %v", pr.ID, err)
+	}
+}
+
+func (*actionNotifier) NotifyAutoMergePullRequest(pr *issues_model.PullRequest, doer *user_model.User) {
+	if err := activities_model.NotifyWatchers(&activities_model.Action{
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		OpType:    activities_model.ActionAutoMergePullRequest,
 		Content:   fmt.Sprintf("%d|%s", pr.Issue.Index, pr.Issue.Title),
 		RepoID:    pr.Issue.Repo.ID,
 		Repo:      pr.Issue.Repo,
