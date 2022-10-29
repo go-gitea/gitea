@@ -59,7 +59,7 @@ func TestAPILFSMediaType(t *testing.T) {
 }
 
 func createLFSTestRepository(t *testing.T, name string) *repo_model.Repository {
-	ctx := NewAPITestContext(t, "user2", "lfs-"+name+"-repo")
+	ctx := NewAPITestContext(t, "user2", "lfs-"+name+"-repo", "repo")
 	t.Run("CreateRepo", doAPICreateRepository(ctx, false))
 
 	repo, err := repo_model.GetRepositoryByOwnerAndName("user2", "lfs-"+name+"-repo")

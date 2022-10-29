@@ -22,6 +22,7 @@ func TestGPGKeys(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session)
+	tokenWithGPGKeyScope := getTokenForLoggedInUser(t, session, "admin_gpg_key")
 
 	tt := []struct {
 		name        string
@@ -35,6 +36,10 @@ func TestGPGKeys(t *testing.T) {
 		},
 		{
 			name: "LoggedAsUser2", makeRequest: session.MakeRequest, token: token,
+			results: []int{http.StatusUnauthorized, http.StatusOK, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized},
+		},
+		{
+			name: "LoggedAsUser2WithScope", makeRequest: session.MakeRequest, token: tokenWithGPGKeyScope,
 			results: []int{http.StatusOK, http.StatusOK, http.StatusNotFound, http.StatusNoContent, http.StatusUnprocessableEntity, http.StatusNotFound, http.StatusCreated, http.StatusNotFound, http.StatusCreated},
 		},
 	}

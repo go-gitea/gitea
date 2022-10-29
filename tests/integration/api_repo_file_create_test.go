@@ -281,7 +281,7 @@ func TestAPICreateFile(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusForbidden)
 
 		// Test creating a file in an empty repository
-		doAPICreateRepository(NewAPITestContext(t, "user2", "empty-repo"), true)(t)
+		doAPICreateRepository(NewAPITestContext(t, "user2", "empty-repo", "repo"), true)(t)
 		createFileOptions = getCreateFileOptions()
 		fileID++
 		treePath = fmt.Sprintf("new/file%d.txt", fileID)

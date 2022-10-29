@@ -23,6 +23,7 @@ func TestAPIWatch(t *testing.T) {
 
 	session := loginUser(t, user)
 	token := getTokenForLoggedInUser(t, session)
+	tokenWithRepoScope := getTokenForLoggedInUser(t, session, "repo")
 
 	t.Run("Watch", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
@@ -48,7 +49,7 @@ func TestAPIWatch(t *testing.T) {
 	t.Run("GetMyWatchedRepos", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/subscriptions?token=%s", token))
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/subscriptions?token=%s", tokenWithRepoScope))
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		assert.Equal(t, "1", resp.Header().Get("X-Total-Count"))

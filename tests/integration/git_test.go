@@ -47,7 +47,7 @@ func testGit(t *testing.T, u *url.URL) {
 
 	u.Path = baseAPITestContext.GitPath()
 
-	forkedUserCtx := NewAPITestContext(t, "user4", "repo1")
+	forkedUserCtx := NewAPITestContext(t, "user4", "repo1", "repo")
 
 	t.Run("HTTP", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()

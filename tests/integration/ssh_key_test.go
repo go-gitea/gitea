@@ -48,7 +48,7 @@ func TestPushDeployKeyOnEmptyRepo(t *testing.T) {
 
 func testPushDeployKeyOnEmptyRepo(t *testing.T, u *url.URL) {
 	// OK login
-	ctx := NewAPITestContext(t, "user2", "deploy-key-empty-repo-1")
+	ctx := NewAPITestContext(t, "user2", "deploy-key-empty-repo-1", "repo")
 	keyname := fmt.Sprintf("%s-push", ctx.Reponame)
 	u.Path = ctx.GitPath()
 
@@ -90,7 +90,7 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 	keyname := fmt.Sprintf("%s-push", reponame)
 
 	// OK login
-	ctx := NewAPITestContext(t, username, reponame)
+	ctx := NewAPITestContext(t, username, reponame, "repo", "admin_public_key")
 
 	otherCtx := ctx
 	otherCtx.Reponame = "ssh-key-test-repo-2"

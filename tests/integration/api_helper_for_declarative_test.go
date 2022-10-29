@@ -32,9 +32,9 @@ type APITestContext struct {
 	ExpectedCode int
 }
 
-func NewAPITestContext(t *testing.T, username, reponame string) APITestContext {
+func NewAPITestContext(t *testing.T, username, reponame string, scope ...string) APITestContext {
 	session := loginUser(t, username)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, scope...)
 	return APITestContext{
 		Session:  session,
 		Token:    token,

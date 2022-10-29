@@ -650,7 +650,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 	}))
 
 	m.Group("", func() {
-		// Miscellaneous
+		// Miscellaneous (no scope required)
 		if setting.API.EnableSwagger {
 			m.Get("/swagger", func(ctx *context.APIContext) {
 				ctx.Redirect(setting.AppSubURL + "/api/swagger")
@@ -676,7 +676,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 			m.Get("/repository", settings.GetGeneralRepoSettings)
 		})
 
-		// Notifications
+		// Notifications (requires 'notification' scope)
 		m.Group("/notifications", func() {
 			m.Combo("").
 				Get(notify.ListNotifications).
@@ -687,7 +687,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 				Patch(notify.ReadThread)
 		}, reqToken(auth_model.AccessTokenScopeNotification))
 
-		// Users
+		// Users (no scope required)
 		m.Group("/users", func() {
 			m.Get("/search", reqExploreSignIn(), user.Search)
 
@@ -707,6 +707,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 			}, context_service.UserAssignmentAPI())
 		})
 
+		// (no scope required)
 		m.Group("/users", func() {
 			m.Group("/{username}", func() {
 				m.Get("/keys", user.ListPublicKeys)
@@ -727,29 +728,32 @@ func Routes(ctx gocontext.Context) *web.Route {
 		m.Group("/user", func() {
 			m.Get("", user.GetAuthenticatedUser)
 			m.Group("/settings", func() {
-				m.Get("", user.GetUserSettings)
-				m.Patch("", bind(api.UserSettingsOptions{}), user.UpdateUserSettings)
-			}, reqToken(""))
-			m.Combo("/emails").Get(user.ListEmails).
-				Post(bind(api.CreateEmailOption{}), user.AddEmail).
-				Delete(bind(api.DeleteEmailOption{}), user.DeleteEmail)
+				m.Get("", reqToken(auth_model.AccessTokenScopeReadUser), user.GetUserSettings)
+				m.Patch("", reqToken(auth_model.AccessTokenScopeUser), bind(api.UserSettingsOptions{}), user.UpdateUserSettings)
+			})
+			m.Combo("/emails").Get(reqToken(auth_model.AccessTokenScopeReadUser), user.ListEmails).
+				Post(reqToken(auth_model.AccessTokenScopeUser), bind(api.CreateEmailOption{}), user.AddEmail).
+				Delete(reqToken(auth_model.AccessTokenScopeUser), bind(api.DeleteEmailOption{}), user.DeleteEmail)
 
 			m.Get("/followers", user.ListMyFollowers)
 			m.Group("/following", func() {
 				m.Get("", user.ListMyFollowing)
 				m.Group("/{username}", func() {
 					m.Get("", user.CheckMyFollowing)
-					m.Put("", user.Follow)
-					m.Delete("", user.Unfollow)
+					m.Put("", reqToken(auth_model.AccessTokenScopeUserFollow), user.Follow)      // requires 'user:follow' scope
+					m.Delete("", reqToken(auth_model.AccessTokenScopeUserFollow), user.Unfollow) // requires 'user:follow' scope
 				}, context_service.UserAssignmentAPI())
 			})
 
+			// (admin:public_key scope)
 			m.Group("/keys", func() {
-				m.Combo("").Get(user.ListMyPublicKeys).
-					Post(bind(api.CreateKeyOption{}), user.CreatePublicKey)
-				m.Combo("/{id}").Get(user.GetPublicKey).
-					Delete(user.DeletePublicKey)
+				m.Combo("").Get(reqToken(auth_model.AccessTokenScopeReadPublicKey), user.ListMyPublicKeys).
+					Post(reqToken(auth_model.AccessTokenScopeWritePublicKey), bind(api.CreateKeyOption{}), user.CreatePublicKey)
+				m.Combo("/{id}").Get(reqToken(auth_model.AccessTokenScopeReadPublicKey), user.GetPublicKey).
+					Delete(reqToken(auth_model.AccessTokenScopeWritePublicKey), user.DeletePublicKey)
 			})
+
+			// (repo scope)
 			m.Group("/applications", func() {
 				m.Combo("/oauth2").
 					Get(user.ListOauth2Applications).
@@ -758,21 +762,23 @@ func Routes(ctx gocontext.Context) *web.Route {
 					Delete(user.DeleteOauth2Application).
 					Patch(bind(api.CreateOAuth2ApplicationOptions{}), user.UpdateOauth2Application).
 					Get(user.GetOauth2Application)
-			}, reqToken(""))
+			}, reqToken(auth_model.AccessTokenScopeRepo))
 
+			// (admin:gpg_key scope)
 			m.Group("/gpg_keys", func() {
-				m.Combo("").Get(user.ListMyGPGKeys).
-					Post(bind(api.CreateGPGKeyOption{}), user.CreateGPGKey)
-				m.Combo("/{id}").Get(user.GetGPGKey).
-					Delete(user.DeleteGPGKey)
+				m.Combo("").Get(reqToken(auth_model.AccessTokenScopeReadGPGKey), user.ListMyGPGKeys).
+					Post(reqToken(auth_model.AccessTokenScopeWriteGPGKey), bind(api.CreateGPGKeyOption{}), user.CreateGPGKey)
+				m.Combo("/{id}").Get(reqToken(auth_model.AccessTokenScopeReadGPGKey), user.GetGPGKey).
+					Delete(reqToken(auth_model.AccessTokenScopeWriteGPGKey), user.DeleteGPGKey)
 			})
+			m.Get("/gpg_key_token", reqToken(auth_model.AccessTokenScopeReadGPGKey), user.GetVerificationToken)
+			m.Post("/gpg_key_verify", reqToken(auth_model.AccessTokenScopeReadGPGKey), bind(api.VerifyGPGKeyOption{}), user.VerifyUserGPGKey)
 
-			m.Get("/gpg_key_token", user.GetVerificationToken)
-			m.Post("/gpg_key_verify", bind(api.VerifyGPGKeyOption{}), user.VerifyUserGPGKey)
-
-			m.Combo("/repos").Get(user.ListMyRepos).
+			// (repo scope)
+			m.Combo("/repos", reqToken(auth_model.AccessTokenScopeRepo)).Get(user.ListMyRepos).
 				Post(bind(api.CreateRepoOption{}), repo.Create)
 
+			// (repo scope)
 			m.Group("/starred", func() {
 				m.Get("", user.GetMyStarredRepos)
 				m.Group("/{username}/{reponame}", func() {
@@ -780,14 +786,11 @@ func Routes(ctx gocontext.Context) *web.Route {
 					m.Put("", user.Star)
 					m.Delete("", user.Unstar)
 				}, repoAssignment())
-			})
-			m.Get("/times", repo.ListMyTrackedTimes)
-
-			m.Get("/stopwatches", repo.GetStopwatches)
-
-			m.Get("/subscriptions", user.GetMyWatchedRepos)
-
-			m.Get("/teams", org.ListUserTeams)
+			}, reqToken(auth_model.AccessTokenScopeRepo))
+			m.Get("/times", reqToken(auth_model.AccessTokenScopeRepo), repo.ListMyTrackedTimes)
+			m.Get("/stopwatches", reqToken(auth_model.AccessTokenScopeRepo), repo.GetStopwatches)
+			m.Get("/subscriptions", reqToken(auth_model.AccessTokenScopeRepo), user.GetMyWatchedRepos)
+			m.Get("/teams", reqToken(auth_model.AccessTokenScopeRepo), org.ListUserTeams)
 		}, reqToken(""))
 
 		// Repositories
