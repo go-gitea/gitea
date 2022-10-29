@@ -23,7 +23,7 @@ func TestAPITeamUser(t *testing.T) {
 
 	normalUsername := "user2"
 	session := loginUser(t, normalUsername)
-	token := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
+	token := getTokenForLoggedInUser(t, session)
 	req := NewRequest(t, "GET", "/api/v1/teams/1/members/user1?token="+token)
 	session.MakeRequest(t, req, http.StatusNotFound)
 

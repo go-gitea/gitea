@@ -30,7 +30,7 @@ func TestAPIListIssues(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
+	token := getTokenForLoggedInUser(t, session)
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/issues", owner.Name, repo.Name))
 
 	link.RawQuery = url.Values{"token": {token}, "state": {"all"}}.Encode()
@@ -81,7 +81,7 @@ func TestAPICreateIssue(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID})
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
+	token := getTokenForLoggedInUser(t, session)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues?state=all&token=%s", owner.Name, repoBefore.Name, token)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{
 		Body:     body,
@@ -117,7 +117,7 @@ func TestAPIEditIssue(t *testing.T) {
 	assert.Equal(t, api.StateOpen, issueBefore.State())
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
+	token := getTokenForLoggedInUser(t, session)
 
 	// update values of issue
 	issueState := "closed"

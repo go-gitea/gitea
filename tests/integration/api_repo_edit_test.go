@@ -146,10 +146,10 @@ func TestAPIRepoEdit(t *testing.T) {
 
 		// Get user2's token
 		session := loginUser(t, user2.Name)
-		token2 := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
+		token2 := getTokenForLoggedInUser(t, session)
 		// Get user4's token
 		session = loginUser(t, user4.Name)
-		token4 := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
+		token4 := getTokenForLoggedInUser(t, session)
 		session = emptyTestSession(t)
 
 		// Test editing a repo1 which user2 owns, changing name and many properties

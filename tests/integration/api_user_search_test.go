@@ -27,7 +27,7 @@ func TestAPIUserSearchLoggedIn(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
 	session := loginUser(t, adminUsername)
-	token := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
+	token := getTokenForLoggedInUser(t, session)
 	query := "user2"
 	req := NewRequestf(t, "GET", "/api/v1/users/search?token=%s&q=%s", token, query)
 	resp := session.MakeRequest(t, req, http.StatusOK)
@@ -66,7 +66,7 @@ func TestAPIUserSearchAdminLoggedInUserHidden(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
 	session := loginUser(t, adminUsername)
-	token := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
+	token := getTokenForLoggedInUser(t, session)
 	query := "user31"
 	req := NewRequestf(t, "GET", "/api/v1/users/search?token=%s&q=%s", token, query)
 	req.SetBasicAuth(token, "x-oauth-basic")

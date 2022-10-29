@@ -31,9 +31,7 @@ func TestAPIListRepoComments(t *testing.T) {
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, repoOwner.Name)
-	token := getTokenForLoggedInUser(t, session, "repo")
-	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments?token="+token, repoOwner.Name, repo.Name))
-	fmt.Println(36, link.String())
+	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments", repoOwner.Name, repo.Name))
 	req := NewRequest(t, "GET", link.String())
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
@@ -52,7 +50,6 @@ func TestAPIListRepoComments(t *testing.T) {
 	before := "2000-01-01T00:00:11+00:00" // unix: 946684811
 	since := "2000-01-01T00:00:12+00:00"  // unix: 946684812
 	query.Add("before", before)
-	query.Add("token", token)
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -62,7 +59,6 @@ func TestAPIListRepoComments(t *testing.T) {
 
 	query.Del("before")
 	query.Add("since", since)
-	query.Add("token", token)
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -81,8 +77,7 @@ func TestAPIListIssueComments(t *testing.T) {
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, repoOwner.Name)
-	token := getTokenForLoggedInUser(t, session, "repo")
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/comments?token="+token,
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/comments",
 		repoOwner.Name, repo.Name, issue.Index)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
@@ -102,7 +97,7 @@ func TestAPICreateComment(t *testing.T) {
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, repoOwner.Name)
-	token := getTokenForLoggedInUser(t, session, "repo")
+	token := getTokenForLoggedInUser(t, session)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/comments?token=%s",
 		repoOwner.Name, repo.Name, issue.Index, token)
 	req := NewRequestWithValues(t, "POST", urlStr, map[string]string{
@@ -125,11 +120,10 @@ func TestAPIGetComment(t *testing.T) {
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, repoOwner.Name)
-	token := getTokenForLoggedInUser(t, session, "repo")
-	// TODO: check if it should be allowed
-	// req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d", repoOwner.Name, repo.Name, comment.ID)
-	// session.MakeRequest(t, req, http.StatusOK)
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d?token=%s", repoOwner.Name, repo.Name, comment.ID, token)
+	token := getTokenForLoggedInUser(t, session)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d", repoOwner.Name, repo.Name, comment.ID)
+	session.MakeRequest(t, req, http.StatusOK)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d?token=%s", repoOwner.Name, repo.Name, comment.ID, token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	var apiComment api.Comment
@@ -155,7 +149,7 @@ func TestAPIEditComment(t *testing.T) {
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, repoOwner.Name)
-	token := getTokenForLoggedInUser(t, session, "repo")
+	token := getTokenForLoggedInUser(t, session)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d?token=%s",
 		repoOwner.Name, repo.Name, comment.ID, token)
 	req := NewRequestWithValues(t, "PATCH", urlStr, map[string]string{
@@ -180,7 +174,7 @@ func TestAPIDeleteComment(t *testing.T) {
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, repoOwner.Name)
-	token := getTokenForLoggedInUser(t, session, "repo")
+	token := getTokenForLoggedInUser(t, session)
 	req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/comments/%d?token=%s",
 		repoOwner.Name, repo.Name, comment.ID, token)
 	session.MakeRequest(t, req, http.StatusNoContent)
@@ -198,8 +192,7 @@ func TestAPIListIssueTimeline(t *testing.T) {
 
 	// make request
 	session := loginUser(t, repoOwner.Name)
-	token := getTokenForLoggedInUser(t, session, "repo")
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/timeline&token="+token,
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/timeline",
 		repoOwner.Name, repo.Name, issue.Index)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 

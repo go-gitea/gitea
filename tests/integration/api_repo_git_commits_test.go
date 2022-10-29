@@ -29,7 +29,7 @@ func TestAPIReposGitCommits(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	// Login as User2.
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
+	token := getTokenForLoggedInUser(t, session)
 
 	// check invalid requests
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/commits/12345?token="+token, user.Name)
@@ -57,7 +57,7 @@ func TestAPIReposGitCommitList(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	// Login as User2.
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
+	token := getTokenForLoggedInUser(t, session)
 
 	// Test getting commits (Page 1)
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo16/commits?token="+token, user.Name)
@@ -80,7 +80,7 @@ func TestAPIReposGitCommitListPage2Empty(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	// Login as User2.
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
+	token := getTokenForLoggedInUser(t, session)
 
 	// Test getting commits (Page=2)
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo16/commits?token="+token+"&page=2", user.Name)
@@ -97,7 +97,7 @@ func TestAPIReposGitCommitListDifferentBranch(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	// Login as User2.
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
+	token := getTokenForLoggedInUser(t, session)
 
 	// Test getting commits (Page=1, Branch=good-sign)
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo16/commits?token="+token+"&sha=good-sign", user.Name)
@@ -116,7 +116,7 @@ func TestDownloadCommitDiffOrPatch(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	// Login as User2.
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
+	token := getTokenForLoggedInUser(t, session)
 
 	// Test getting diff
 	reqDiff := NewRequestf(t, "GET", "/api/v1/repos/%s/repo16/git/commits/f27c2b2b03dcab38beaf89b0ab4ff61f6de63441.diff?token="+token, user.Name)
@@ -138,7 +138,7 @@ func TestGetFileHistory(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	// Login as User2.
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
+	token := getTokenForLoggedInUser(t, session)
 
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo16/commits?path=readme.md&token="+token+"&sha=good-sign", user.Name)
 	resp := session.MakeRequest(t, req, http.StatusOK)

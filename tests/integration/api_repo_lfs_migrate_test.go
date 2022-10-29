@@ -31,7 +31,7 @@ func TestAPIRepoLFSMigrateLocal(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
+	token := getTokenForLoggedInUser(t, session)
 
 	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate?token="+token, &api.MigrateRepoOptions{
 		CloneAddr:   path.Join(setting.RepoRootPath, "migration/lfs-test.git"),

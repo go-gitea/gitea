@@ -34,7 +34,7 @@ type APITestContext struct {
 
 func NewAPITestContext(t *testing.T, username, reponame string) APITestContext {
 	session := loginUser(t, username)
-	token := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
+	token := getTokenForLoggedInUser(t, session)
 	return APITestContext{
 		Session:  session,
 		Token:    token,

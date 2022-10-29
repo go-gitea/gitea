@@ -101,7 +101,7 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	session := loginUser(t, owner.LowerName)
-	token := getTokenForLoggedInUser(t, session, "repo")
+	token := getTokenForLoggedInUser(t, session)
 
 	gitRepo, err := git.OpenRepository(git.DefaultContext, repo.RepoPath())
 	assert.NoError(t, err)
@@ -153,7 +153,7 @@ func TestAPICreateReleaseToDefaultBranch(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	session := loginUser(t, owner.LowerName)
-	token := getTokenForLoggedInUser(t, session, "repo")
+	token := getTokenForLoggedInUser(t, session)
 
 	createNewReleaseUsingAPI(t, session, token, owner, repo, "v0.0.1", "", "v0.0.1", "test")
 }
@@ -164,7 +164,7 @@ func TestAPICreateReleaseToDefaultBranchOnExistingTag(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	session := loginUser(t, owner.LowerName)
-	token := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
+	token := getTokenForLoggedInUser(t, session)
 
 	gitRepo, err := git.OpenRepository(git.DefaultContext, repo.RepoPath())
 	assert.NoError(t, err)
@@ -182,12 +182,11 @@ func TestAPIGetReleaseByTag(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	session := loginUser(t, owner.LowerName)
-	token := getTokenForLoggedInUser(t, session, "repo")
 
 	tag := "v1.1"
 
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s?token=%s",
-		owner.Name, repo.Name, tag, token)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s",
+		owner.Name, repo.Name, tag)
 
 	req := NewRequestf(t, "GET", urlStr)
 	resp := session.MakeRequest(t, req, http.StatusOK)
@@ -199,8 +198,8 @@ func TestAPIGetReleaseByTag(t *testing.T) {
 
 	nonexistingtag := "nonexistingtag"
 
-	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s?token=%s",
-		owner.Name, repo.Name, nonexistingtag, token)
+	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s",
+		owner.Name, repo.Name, nonexistingtag)
 
 	req = NewRequestf(t, "GET", urlStr)
 	resp = session.MakeRequest(t, req, http.StatusNotFound)
@@ -216,7 +215,7 @@ func TestAPIDeleteReleaseByTagName(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	session := loginUser(t, owner.LowerName)
-	token := getTokenForLoggedInUser(t, session, "repo")
+	token := getTokenForLoggedInUser(t, session)
 
 	createNewReleaseUsingAPI(t, session, token, owner, repo, "release-tag", "", "Release Tag", "test")
 

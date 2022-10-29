@@ -39,7 +39,7 @@ func TestAPIPullUpdate(t *testing.T) {
 		assert.NoError(t, pr.LoadIssue())
 
 		session := loginUser(t, "user2")
-		token := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
+		token := getTokenForLoggedInUser(t, session)
 		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?token="+token, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index)
 		session.MakeRequest(t, req, http.StatusOK)
 
@@ -67,7 +67,7 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 		assert.NoError(t, pr.LoadIssue())
 
 		session := loginUser(t, "user2")
-		token := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
+		token := getTokenForLoggedInUser(t, session)
 		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?style=rebase&token="+token, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index)
 		session.MakeRequest(t, req, http.StatusOK)
 

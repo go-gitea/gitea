@@ -219,8 +219,8 @@ func emptyTestSession(t testing.TB) *TestSession {
 	return &TestSession{jar: jar}
 }
 
-func getUserToken(t testing.TB, userName string, scope ...string) string {
-	return getTokenForLoggedInUser(t, loginUser(t, userName), scope...)
+func getUserToken(t testing.TB, userName string) string {
+	return getTokenForLoggedInUser(t, loginUser(t, userName))
 }
 
 func loginUser(t testing.TB, userName string) *TestSession {
@@ -262,15 +262,12 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 // token has to be unique this counter take care of
 var tokenCounter int64
 
-// getTokenForLoggedInUser returns a token for a logged in user.
-// The scope is an optional list of snake_case strings like the frontend form fields,
-// but without the "scope_" prefix.
-func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...string) string {
+func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
 	t.Helper()
 	req := NewRequest(t, "GET", "/user/settings/applications")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
-	values := map[string]string{
+	req = NewRequestWithValues(t, "POST", "/user/settings/applications", map[string]string{
 		"_csrf": doc.GetCSRF(),
 		"name":  fmt.Sprintf("api-testing-token-%d", atomic.AddInt64(&tokenCounter, 1)),
 	})

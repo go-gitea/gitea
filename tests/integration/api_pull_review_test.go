@@ -28,7 +28,7 @@ func TestAPIPullReview(t *testing.T) {
 
 	// test ListPullReviews
 	session := loginUser(t, "user2")
-	token := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
+	token := getTokenForLoggedInUser(t, session)
 	req := NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
@@ -231,7 +231,7 @@ func TestAPIPullReviewRequest(t *testing.T) {
 
 	// Test add Review Request
 	session := loginUser(t, "user2")
-	token := getTokenForLoggedInUser(t, session, "repo")
+	token := getTokenForLoggedInUser(t, session)
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.PullReviewRequestOptions{
 		Reviewers: []string{"user4@example.com", "user8"},
 	})
@@ -251,7 +251,7 @@ func TestAPIPullReviewRequest(t *testing.T) {
 
 	// Test Remove Review Request
 	session2 := loginUser(t, "user4")
-	token2 := getTokenForLoggedInUser(t, session2, "repo")
+	token2 := getTokenForLoggedInUser(t, session2)
 
 	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token2), &api.PullReviewRequestOptions{
 		Reviewers: []string{"user4"},

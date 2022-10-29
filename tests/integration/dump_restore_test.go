@@ -51,7 +51,7 @@ func TestDumpRestore(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: reponame})
 		repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 		session := loginUser(t, repoOwner.Name)
-		token := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
+		token := getTokenForLoggedInUser(t, session)
 
 		//
 		// Phase 1: dump repo1 from the Gitea instance to the filesystem

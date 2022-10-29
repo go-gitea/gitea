@@ -71,7 +71,6 @@ import (
 	"reflect"
 	"strings"
 
-	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -209,22 +208,9 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.APIContext) 
 }
 
 // Contexter middleware already checks token for user sign in process.
-func reqToken(requiredScope string) func(ctx *context.APIContext) {
+func reqToken() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if true == ctx.Data["IsApiToken"] {
-			if requiredScope == "" {
-				return
-			}
-			scope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
-			allow, err := scope.HasScope(requiredScope)
-			if err != nil {
-				ctx.Error(http.StatusUnauthorized, "reqToken", "parsing token failed")
-				return
-			}
-			if !allow {
-				ctx.Error(http.StatusUnauthorized, "reqToken", "token does not have required scope: "+requiredScope)
-				return
-			}
 			return
 		}
 		if ctx.Context.IsBasicAuth {
@@ -650,7 +636,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 	}))
 
 	m.Group("", func() {
-		// Miscellaneous (no scope required)
+		// Miscellaneous
 		if setting.API.EnableSwagger {
 			m.Get("/swagger", func(ctx *context.APIContext) {
 				ctx.Redirect(setting.AppSubURL + "/api/swagger")
@@ -676,7 +662,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 			m.Get("/repository", settings.GetGeneralRepoSettings)
 		})
 
-		// Notifications (requires 'notification' scope)
+		// Notifications
 		m.Group("/notifications", func() {
 			m.Combo("").
 				Get(notify.ListNotifications).
@@ -685,9 +671,9 @@ func Routes(ctx gocontext.Context) *web.Route {
 			m.Combo("/threads/{id}").
 				Get(notify.GetThread).
 				Patch(notify.ReadThread)
-		}, reqToken(auth_model.AccessTokenScopeNotification))
+		}, reqToken())
 
-		// Users (no scope required)
+		// Users
 		m.Group("/users", func() {
 			m.Get("/search", reqExploreSignIn(), user.Search)
 
@@ -703,11 +689,10 @@ func Routes(ctx gocontext.Context) *web.Route {
 					m.Combo("").Get(user.ListAccessTokens).
 						Post(bind(api.CreateAccessTokenOption{}), user.CreateAccessToken)
 					m.Combo("/{id}").Delete(user.DeleteAccessToken)
-				}, reqBasicOrRevProxyAuth()) // basic auth or reverse proxy auth required
+				}, reqBasicOrRevProxyAuth())
 			}, context_service.UserAssignmentAPI())
 		})
 
-		// (no scope required)
 		m.Group("/users", func() {
 			m.Group("/{username}", func() {
 				m.Get("/keys", user.ListPublicKeys)
@@ -723,37 +708,34 @@ func Routes(ctx gocontext.Context) *web.Route {
 
 				m.Get("/subscriptions", user.GetWatchedRepos)
 			}, context_service.UserAssignmentAPI())
-		}, reqToken(""))
+		}, reqToken())
 
 		m.Group("/user", func() {
 			m.Get("", user.GetAuthenticatedUser)
 			m.Group("/settings", func() {
-				m.Get("", reqToken(auth_model.AccessTokenScopeReadUser), user.GetUserSettings)
-				m.Patch("", reqToken(auth_model.AccessTokenScopeUser), bind(api.UserSettingsOptions{}), user.UpdateUserSettings)
-			}, reqToken(""))
-			m.Combo("/emails").Get(reqToken(auth_model.AccessTokenScopeReadUser), user.ListEmails).
-				Post(reqToken(auth_model.AccessTokenScopeUser), bind(api.CreateEmailOption{}), user.AddEmail).
-				Delete(reqToken(auth_model.AccessTokenScopeUser), bind(api.DeleteEmailOption{}), user.DeleteEmail)
+				m.Get("", user.GetUserSettings)
+				m.Patch("", bind(api.UserSettingsOptions{}), user.UpdateUserSettings)
+			}, reqToken())
+			m.Combo("/emails").Get(user.ListEmails).
+				Post(bind(api.CreateEmailOption{}), user.AddEmail).
+				Delete(bind(api.DeleteEmailOption{}), user.DeleteEmail)
 
 			m.Get("/followers", user.ListMyFollowers)
 			m.Group("/following", func() {
 				m.Get("", user.ListMyFollowing)
 				m.Group("/{username}", func() {
 					m.Get("", user.CheckMyFollowing)
-					m.Put("", reqToken(auth_model.AccessTokenScopeUserFollow), user.Follow)      // requires 'user:follow' scope
-					m.Delete("", reqToken(auth_model.AccessTokenScopeUserFollow), user.Unfollow) // requires 'user:follow' scope
+					m.Put("", user.Follow)
+					m.Delete("", user.Unfollow)
 				}, context_service.UserAssignmentAPI())
 			})
 
-			// (admin:public_key scope)
 			m.Group("/keys", func() {
-				m.Combo("").Get(reqToken(auth_model.AccessTokenScopeReadPublicKey), user.ListMyPublicKeys).
-					Post(reqToken(auth_model.AccessTokenScopeWritePublicKey), bind(api.CreateKeyOption{}), user.CreatePublicKey)
-				m.Combo("/{id}").Get(reqToken(auth_model.AccessTokenScopeReadPublicKey), user.GetPublicKey).
-					Delete(reqToken(auth_model.AccessTokenScopeWritePublicKey), user.DeletePublicKey)
+				m.Combo("").Get(user.ListMyPublicKeys).
+					Post(bind(api.CreateKeyOption{}), user.CreatePublicKey)
+				m.Combo("/{id}").Get(user.GetPublicKey).
+					Delete(user.DeletePublicKey)
 			})
-
-			// (repo scope)
 			m.Group("/applications", func() {
 				m.Combo("/oauth2").
 					Get(user.ListOauth2Applications).
@@ -762,25 +744,21 @@ func Routes(ctx gocontext.Context) *web.Route {
 					Delete(user.DeleteOauth2Application).
 					Patch(bind(api.CreateOAuth2ApplicationOptions{}), user.UpdateOauth2Application).
 					Get(user.GetOauth2Application)
-			}, reqToken(auth_model.AccessTokenScopeRepo))
+			}, reqToken())
 
-			// (admin:gpg_key scope)
 			m.Group("/gpg_keys", func() {
-				m.Combo("").Get(reqToken(auth_model.AccessTokenScopeReadGPGKey), user.ListMyGPGKeys).
-					Post(reqToken(auth_model.AccessTokenScopeWriteGPGKey), bind(api.CreateGPGKeyOption{}), user.CreateGPGKey)
-				m.Combo("/{id}").Get(reqToken(auth_model.AccessTokenScopeReadGPGKey), user.GetGPGKey).
-					Delete(reqToken(auth_model.AccessTokenScopeWriteGPGKey), user.DeleteGPGKey)
+				m.Combo("").Get(user.ListMyGPGKeys).
+					Post(bind(api.CreateGPGKeyOption{}), user.CreateGPGKey)
+				m.Combo("/{id}").Get(user.GetGPGKey).
+					Delete(user.DeleteGPGKey)
 			})
 
-			// (read:gpg_key scope)
-			m.Get("/gpg_key_token", reqToken(auth_model.AccessTokenScopeReadGPGKey), user.GetVerificationToken)
-			m.Post("/gpg_key_verify", reqToken(auth_model.AccessTokenScopeReadGPGKey), bind(api.VerifyGPGKeyOption{}), user.VerifyUserGPGKey)
+			m.Get("/gpg_key_token", user.GetVerificationToken)
+			m.Post("/gpg_key_verify", bind(api.VerifyGPGKeyOption{}), user.VerifyUserGPGKey)
 
-			// (repo scope)
-			m.Combo("/repos", reqToken(auth_model.AccessTokenScopeRepo)).Get(user.ListMyRepos).
+			m.Combo("/repos").Get(user.ListMyRepos).
 				Post(bind(api.CreateRepoOption{}), repo.Create)
 
-			// (repo scope)
 			m.Group("/starred", func() {
 				m.Get("", user.GetMyStarredRepos)
 				m.Group("/{username}/{reponame}", func() {
@@ -788,58 +766,57 @@ func Routes(ctx gocontext.Context) *web.Route {
 					m.Put("", user.Star)
 					m.Delete("", user.Unstar)
 				}, repoAssignment())
-			}, reqToken(auth_model.AccessTokenScopeRepo))
-			m.Get("/times", reqToken(auth_model.AccessTokenScopeRepo), repo.ListMyTrackedTimes)
-			m.Get("/stopwatches", reqToken(auth_model.AccessTokenScopeRepo), repo.GetStopwatches)
-			m.Get("/subscriptions", reqToken(auth_model.AccessTokenScopeRepo), user.GetMyWatchedRepos)
-			m.Get("/teams", reqToken(auth_model.AccessTokenScopeRepo), org.ListUserTeams)
-		}, reqToken(""))
+			})
+			m.Get("/times", repo.ListMyTrackedTimes)
 
-		// Repositories (admin:org scope)
-		m.Post("/org/{org}/repos", reqToken(auth_model.AccessTokenScopeAdminOrg), bind(api.CreateRepoOption{}), repo.CreateOrgRepoDeprecated)
+			m.Get("/stopwatches", repo.GetStopwatches)
 
-		// (repo scope)
-		m.Combo("/repositories/{id}", reqToken(auth_model.AccessTokenScopeRepo)).Get(repo.GetByID)
+			m.Get("/subscriptions", user.GetMyWatchedRepos)
+
+			m.Get("/teams", org.ListUserTeams)
+		}, reqToken())
+
+		// Repositories
+		m.Post("/org/{org}/repos", reqToken(), bind(api.CreateRepoOption{}), repo.CreateOrgRepoDeprecated)
+
+		m.Combo("/repositories/{id}", reqToken()).Get(repo.GetByID)
 
 		m.Group("/repos", func() {
 			m.Get("/search", repo.Search)
 
 			m.Get("/issues/search", repo.SearchIssues)
 
-			// (repo scope)
-			m.Post("/migrate", reqToken(auth_model.AccessTokenScopeRepo), bind(api.MigrateRepoOptions{}), repo.Migrate)
+			m.Post("/migrate", reqToken(), bind(api.MigrateRepoOptions{}), repo.Migrate)
 
 			m.Group("/{username}/{reponame}", func() {
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
-					Delete(reqToken(auth_model.AccessTokenScopeDeleteRepo), reqOwner(), repo.Delete).
-					Patch(reqToken(auth_model.AccessTokenScopeRepo), reqAdmin(), bind(api.EditRepoOption{}), repo.Edit)
-				m.Post("/generate", reqToken(auth_model.AccessTokenScopeRepo), reqRepoReader(unit.TypeCode), bind(api.GenerateRepoOption{}), repo.Generate)
-				m.Group("/transfer", func() {
-					m.Post("", reqOwner(), bind(api.TransferRepoOption{}), repo.Transfer)
-					m.Post("/accept", repo.AcceptTransfer)
-					m.Post("/reject", repo.RejectTransfer)
-				}, reqToken(auth_model.AccessTokenScopeRepo))
-				m.Combo("/notifications", reqToken(auth_model.AccessTokenScopeNotification)).
-					Get(notify.ListRepoNotifications).
-					Put(notify.ReadRepoNotifications)
+					Delete(reqToken(), reqOwner(), repo.Delete).
+					Patch(reqToken(), reqAdmin(), bind(api.EditRepoOption{}), repo.Edit)
+				m.Post("/generate", reqToken(), reqRepoReader(unit.TypeCode), bind(api.GenerateRepoOption{}), repo.Generate)
+				m.Post("/transfer", reqOwner(), bind(api.TransferRepoOption{}), repo.Transfer)
+				m.Post("/transfer/accept", reqToken(), repo.AcceptTransfer)
+				m.Post("/transfer/reject", reqToken(), repo.RejectTransfer)
+				m.Combo("/notifications").
+					Get(reqToken(), notify.ListRepoNotifications).
+					Put(reqToken(), notify.ReadRepoNotifications)
 				m.Group("/hooks/git", func() {
-					m.Get("", reqToken(auth_model.AccessTokenScopeReadRepoHook), repo.ListGitHooks)
+					m.Combo("").Get(repo.ListGitHooks)
 					m.Group("/{id}", func() {
-						m.Combo("").Get(reqToken(auth_model.AccessTokenScopeReadRepoHook), repo.GetGitHook).
-							Patch(reqToken(auth_model.AccessTokenScopeWriteRepoHook), bind(api.EditGitHookOption{}), repo.EditGitHook).
-							Delete(reqToken(auth_model.AccessTokenScopeWriteRepoHook), repo.DeleteGitHook)
+						m.Combo("").Get(repo.GetGitHook).
+							Patch(bind(api.EditGitHookOption{}), repo.EditGitHook).
+							Delete(repo.DeleteGitHook)
 					})
-				}, reqAdmin(), reqGitHook(), context.ReferencesGitRepo(true))
+				}, reqToken(), reqAdmin(), reqGitHook(), context.ReferencesGitRepo(true))
 				m.Group("/hooks", func() {
-					m.Combo("").Get(reqToken(auth_model.AccessTokenScopeReadRepoHook), repo.ListHooks).
-						Post(reqToken(auth_model.AccessTokenScopeWriteRepoHook), bind(api.CreateHookOption{}), repo.CreateHook)
+					m.Combo("").Get(repo.ListHooks).
+						Post(bind(api.CreateHookOption{}), repo.CreateHook)
 					m.Group("/{id}", func() {
-						m.Combo("").Get(reqToken(auth_model.AccessTokenScopeReadRepoHook), repo.GetHook).
-							Patch(reqToken(auth_model.AccessTokenScopeWriteRepoHook), bind(api.EditHookOption{}), repo.EditHook).
-							Delete(reqToken(auth_model.AccessTokenScopeWriteRepoHook), repo.DeleteHook)
-						m.Post("/tests", reqToken(auth_model.AccessTokenScopeReadRepoHook), context.ReferencesGitRepo(), context.RepoRefForAPI, repo.TestHook)
+						m.Combo("").Get(repo.GetHook).
+							Patch(bind(api.EditHookOption{}), repo.EditHook).
+							Delete(repo.DeleteHook)
+						m.Post("/tests", context.ReferencesGitRepo(), context.RepoRefForAPI, repo.TestHook)
 					})
-				}, reqAdmin(), reqWebhooksEnabled())
+				}, reqToken(), reqAdmin(), reqWebhooksEnabled())
 				m.Group("/collaborators", func() {
 					m.Get("", reqAnyRepoReader(), repo.ListCollaborators)
 					m.Group("/{collaborator}", func() {
@@ -847,27 +824,27 @@ func Routes(ctx gocontext.Context) *web.Route {
 							Put(reqAdmin(), bind(api.AddCollaboratorOption{}), repo.AddCollaborator).
 							Delete(reqAdmin(), repo.DeleteCollaborator)
 						m.Get("/permission", repo.GetRepoPermissions)
-					}, reqToken(""))
-				}, reqToken(auth_model.AccessTokenScopeRepo))
-				m.Get("/assignees", reqToken(auth_model.AccessTokenScopeRepo), reqAnyRepoReader(), repo.GetAssignees)
-				m.Get("/reviewers", reqToken(auth_model.AccessTokenScopeRepo), reqAnyRepoReader(), repo.GetReviewers)
+					}, reqToken())
+				}, reqToken())
+				m.Get("/assignees", reqToken(), reqAnyRepoReader(), repo.GetAssignees)
+				m.Get("/reviewers", reqToken(), reqAnyRepoReader(), repo.GetReviewers)
 				m.Group("/teams", func() {
 					m.Get("", reqAnyRepoReader(), repo.ListTeams)
 					m.Combo("/{team}").Get(reqAnyRepoReader(), repo.IsTeam).
 						Put(reqAdmin(), repo.AddTeam).
 						Delete(reqAdmin(), repo.DeleteTeam)
-				}, reqToken(auth_model.AccessTokenScopeRepo))
-				m.Get("/raw/*", reqToken(auth_model.AccessTokenScopeRepo), context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFile)
-				m.Get("/media/*", reqToken(auth_model.AccessTokenScopeRepo), context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFileOrLFS)
-				m.Get("/archive/*", reqToken(auth_model.AccessTokenScopeRepo), reqRepoReader(unit.TypeCode), repo.GetArchive)
-				m.Combo("/forks", reqToken(auth_model.AccessTokenScopeRepo)).Get(repo.ListForks).
-					Post(reqToken(""), reqRepoReader(unit.TypeCode), bind(api.CreateForkOption{}), repo.CreateFork)
+				}, reqToken())
+				m.Get("/raw/*", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFile)
+				m.Get("/media/*", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFileOrLFS)
+				m.Get("/archive/*", reqRepoReader(unit.TypeCode), repo.GetArchive)
+				m.Combo("/forks").Get(repo.ListForks).
+					Post(reqToken(), reqRepoReader(unit.TypeCode), bind(api.CreateForkOption{}), repo.CreateFork)
 				m.Group("/branches", func() {
 					m.Get("", repo.ListBranches)
 					m.Get("/*", repo.GetBranch)
 					m.Delete("/*", reqRepoWriter(unit.TypeCode), repo.DeleteBranch)
 					m.Post("", reqRepoWriter(unit.TypeCode), bind(api.CreateBranchRepoOption{}), repo.CreateBranch)
-				}, reqToken(auth_model.AccessTokenScopeRepo), context.ReferencesGitRepo(), reqRepoReader(unit.TypeCode))
+				}, context.ReferencesGitRepo(), reqRepoReader(unit.TypeCode))
 				m.Group("/branch_protections", func() {
 					m.Get("", repo.ListBranchProtections)
 					m.Post("", bind(api.CreateBranchProtectionOption{}), repo.CreateBranchProtection)
@@ -876,23 +853,23 @@ func Routes(ctx gocontext.Context) *web.Route {
 						m.Patch("", bind(api.EditBranchProtectionOption{}), repo.EditBranchProtection)
 						m.Delete("", repo.DeleteBranchProtection)
 					})
-				}, reqToken(auth_model.AccessTokenScopeRepo), reqAdmin())
+				}, reqToken(), reqAdmin())
 				m.Group("/tags", func() {
 					m.Get("", repo.ListTags)
 					m.Get("/*", repo.GetTag)
 					m.Post("", reqRepoWriter(unit.TypeCode), bind(api.CreateTagOption{}), repo.CreateTag)
 					m.Delete("/*", repo.DeleteTag)
-				}, reqToken(auth_model.AccessTokenScopeRepo), reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true))
+				}, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true))
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).
 						Post(bind(api.CreateKeyOption{}), repo.CreateDeployKey)
 					m.Combo("/{id}").Get(repo.GetDeployKey).
 						Delete(repo.DeleteDeploykey)
-				}, reqToken(auth_model.AccessTokenScopeRepo), reqAdmin())
+				}, reqToken(), reqAdmin())
 				m.Group("/times", func() {
 					m.Combo("").Get(repo.ListTrackedTimesByRepository)
 					m.Combo("/{timetrackingusername}").Get(repo.ListTrackedTimesByUser)
-				}, reqToken(auth_model.AccessTokenScopeRepo), mustEnableIssues, reqToken(""))
+				}, mustEnableIssues, reqToken())
 				m.Group("/wiki", func() {
 					m.Combo("/page/{pageName}").
 						Get(repo.GetWikiPage).
@@ -901,40 +878,40 @@ func Routes(ctx gocontext.Context) *web.Route {
 					m.Get("/revisions/{pageName}", repo.ListPageRevisions)
 					m.Post("/new", mustNotBeArchived, reqRepoWriter(unit.TypeWiki), bind(api.CreateWikiPageOptions{}), repo.NewWikiPage)
 					m.Get("/pages", repo.ListWikiPages)
-				}, reqToken(auth_model.AccessTokenScopeRepo), mustEnableWiki)
+				}, mustEnableWiki)
 				m.Group("/issues", func() {
 					m.Combo("").Get(repo.ListIssues).
-						Post(reqToken(""), mustNotBeArchived, bind(api.CreateIssueOption{}), repo.CreateIssue)
+						Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueOption{}), repo.CreateIssue)
 					m.Group("/comments", func() {
 						m.Get("", repo.ListRepoIssueComments)
 						m.Group("/{id}", func() {
 							m.Combo("").
 								Get(repo.GetIssueComment).
-								Patch(mustNotBeArchived, reqToken(""), bind(api.EditIssueCommentOption{}), repo.EditIssueComment).
-								Delete(reqToken(""), repo.DeleteIssueComment)
+								Patch(mustNotBeArchived, reqToken(), bind(api.EditIssueCommentOption{}), repo.EditIssueComment).
+								Delete(reqToken(), repo.DeleteIssueComment)
 							m.Combo("/reactions").
 								Get(repo.GetIssueCommentReactions).
-								Post(reqToken(""), bind(api.EditReactionOption{}), repo.PostIssueCommentReaction).
-								Delete(reqToken(""), bind(api.EditReactionOption{}), repo.DeleteIssueCommentReaction)
+								Post(reqToken(), bind(api.EditReactionOption{}), repo.PostIssueCommentReaction).
+								Delete(reqToken(), bind(api.EditReactionOption{}), repo.DeleteIssueCommentReaction)
 						})
 					})
 					m.Group("/{index}", func() {
 						m.Combo("").Get(repo.GetIssue).
-							Patch(reqToken(""), bind(api.EditIssueOption{}), repo.EditIssue).
-							Delete(reqToken(""), reqAdmin(), repo.DeleteIssue)
+							Patch(reqToken(), bind(api.EditIssueOption{}), repo.EditIssue).
+							Delete(reqToken(), reqAdmin(), repo.DeleteIssue)
 						m.Group("/comments", func() {
 							m.Combo("").Get(repo.ListIssueComments).
-								Post(reqToken(""), mustNotBeArchived, bind(api.CreateIssueCommentOption{}), repo.CreateIssueComment)
-							m.Combo("/{id}", reqToken("")).Patch(bind(api.EditIssueCommentOption{}), repo.EditIssueCommentDeprecated).
+								Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueCommentOption{}), repo.CreateIssueComment)
+							m.Combo("/{id}", reqToken()).Patch(bind(api.EditIssueCommentOption{}), repo.EditIssueCommentDeprecated).
 								Delete(repo.DeleteIssueCommentDeprecated)
 						})
 						m.Get("/timeline", repo.ListIssueCommentsAndTimeline)
 						m.Group("/labels", func() {
 							m.Combo("").Get(repo.ListIssueLabels).
-								Post(reqToken(""), bind(api.IssueLabelsOption{}), repo.AddIssueLabels).
-								Put(reqToken(""), bind(api.IssueLabelsOption{}), repo.ReplaceIssueLabels).
-								Delete(reqToken(""), repo.ClearIssueLabels)
-							m.Delete("/{id}", reqToken(""), repo.DeleteIssueLabel)
+								Post(reqToken(), bind(api.IssueLabelsOption{}), repo.AddIssueLabels).
+								Put(reqToken(), bind(api.IssueLabelsOption{}), repo.ReplaceIssueLabels).
+								Delete(reqToken(), repo.ClearIssueLabels)
+							m.Delete("/{id}", reqToken(), repo.DeleteIssueLabel)
 						})
 						m.Group("/times", func() {
 							m.Combo("").
@@ -942,124 +919,124 @@ func Routes(ctx gocontext.Context) *web.Route {
 								Post(bind(api.AddTimeOption{}), repo.AddTime).
 								Delete(repo.ResetIssueTime)
 							m.Delete("/{id}", repo.DeleteTime)
-						}, reqToken(""))
-						m.Combo("/deadline").Post(reqToken(""), bind(api.EditDeadlineOption{}), repo.UpdateIssueDeadline)
+						}, reqToken())
+						m.Combo("/deadline").Post(reqToken(), bind(api.EditDeadlineOption{}), repo.UpdateIssueDeadline)
 						m.Group("/stopwatch", func() {
-							m.Post("/start", reqToken(""), repo.StartIssueStopwatch)
-							m.Post("/stop", reqToken(""), repo.StopIssueStopwatch)
-							m.Delete("/delete", reqToken(""), repo.DeleteIssueStopwatch)
+							m.Post("/start", reqToken(), repo.StartIssueStopwatch)
+							m.Post("/stop", reqToken(), repo.StopIssueStopwatch)
+							m.Delete("/delete", reqToken(), repo.DeleteIssueStopwatch)
 						})
 						m.Group("/subscriptions", func() {
 							m.Get("", repo.GetIssueSubscribers)
-							m.Get("/check", reqToken(""), repo.CheckIssueSubscription)
-							m.Put("/{user}", reqToken(""), repo.AddIssueSubscription)
-							m.Delete("/{user}", reqToken(""), repo.DelIssueSubscription)
+							m.Get("/check", reqToken(), repo.CheckIssueSubscription)
+							m.Put("/{user}", reqToken(), repo.AddIssueSubscription)
+							m.Delete("/{user}", reqToken(), repo.DelIssueSubscription)
 						})
 						m.Combo("/reactions").
 							Get(repo.GetIssueReactions).
-							Post(reqToken(""), bind(api.EditReactionOption{}), repo.PostIssueReaction).
-							Delete(reqToken(""), bind(api.EditReactionOption{}), repo.DeleteIssueReaction)
+							Post(reqToken(), bind(api.EditReactionOption{}), repo.PostIssueReaction).
+							Delete(reqToken(), bind(api.EditReactionOption{}), repo.DeleteIssueReaction)
 					})
-				}, reqToken(auth_model.AccessTokenScopeRepo), mustEnableIssuesOrPulls)
+				}, mustEnableIssuesOrPulls)
 				m.Group("/labels", func() {
 					m.Combo("").Get(repo.ListLabels).
-						Post(reqToken(""), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.CreateLabelOption{}), repo.CreateLabel)
+						Post(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.CreateLabelOption{}), repo.CreateLabel)
 					m.Combo("/{id}").Get(repo.GetLabel).
-						Patch(reqToken(""), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.EditLabelOption{}), repo.EditLabel).
-						Delete(reqToken(""), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), repo.DeleteLabel)
-				}, reqToken(auth_model.AccessTokenScopeRepo))
-				m.Post("/markdown", reqToken(auth_model.AccessTokenScopeRepo), bind(api.MarkdownOption{}), misc.Markdown)
-				m.Post("/markdown/raw", reqToken(auth_model.AccessTokenScopeRepo), misc.MarkdownRaw)
+						Patch(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.EditLabelOption{}), repo.EditLabel).
+						Delete(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), repo.DeleteLabel)
+				})
+				m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)
+				m.Post("/markdown/raw", misc.MarkdownRaw)
 				m.Group("/milestones", func() {
 					m.Combo("").Get(repo.ListMilestones).
-						Post(reqToken(""), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.CreateMilestoneOption{}), repo.CreateMilestone)
+						Post(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.CreateMilestoneOption{}), repo.CreateMilestone)
 					m.Combo("/{id}").Get(repo.GetMilestone).
-						Patch(reqToken(""), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.EditMilestoneOption{}), repo.EditMilestone).
-						Delete(reqToken(""), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), repo.DeleteMilestone)
-				}, reqToken(auth_model.AccessTokenScopeRepo))
-				m.Get("/stargazers", reqToken(auth_model.AccessTokenScopeRepo), repo.ListStargazers)
-				m.Get("/subscribers", reqToken(auth_model.AccessTokenScopeRepo), repo.ListSubscribers)
+						Patch(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.EditMilestoneOption{}), repo.EditMilestone).
+						Delete(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), repo.DeleteMilestone)
+				})
+				m.Get("/stargazers", repo.ListStargazers)
+				m.Get("/subscribers", repo.ListSubscribers)
 				m.Group("/subscription", func() {
 					m.Get("", user.IsWatching)
-					m.Put("", reqToken(""), user.Watch)
-					m.Delete("", reqToken(""), user.Unwatch)
-				}, reqToken(auth_model.AccessTokenScopeRepo))
+					m.Put("", reqToken(), user.Watch)
+					m.Delete("", reqToken(), user.Unwatch)
+				})
 				m.Group("/releases", func() {
 					m.Combo("").Get(repo.ListReleases).
-						Post(reqToken(""), reqRepoWriter(unit.TypeReleases), context.ReferencesGitRepo(), bind(api.CreateReleaseOption{}), repo.CreateRelease)
+						Post(reqToken(), reqRepoWriter(unit.TypeReleases), context.ReferencesGitRepo(), bind(api.CreateReleaseOption{}), repo.CreateRelease)
 					m.Group("/{id}", func() {
 						m.Combo("").Get(repo.GetRelease).
-							Patch(reqToken(""), reqRepoWriter(unit.TypeReleases), context.ReferencesGitRepo(), bind(api.EditReleaseOption{}), repo.EditRelease).
-							Delete(reqToken(""), reqRepoWriter(unit.TypeReleases), repo.DeleteRelease)
+							Patch(reqToken(), reqRepoWriter(unit.TypeReleases), context.ReferencesGitRepo(), bind(api.EditReleaseOption{}), repo.EditRelease).
+							Delete(reqToken(), reqRepoWriter(unit.TypeReleases), repo.DeleteRelease)
 						m.Group("/assets", func() {
 							m.Combo("").Get(repo.ListReleaseAttachments).
-								Post(reqToken(""), reqRepoWriter(unit.TypeReleases), repo.CreateReleaseAttachment)
+								Post(reqToken(), reqRepoWriter(unit.TypeReleases), repo.CreateReleaseAttachment)
 							m.Combo("/{asset}").Get(repo.GetReleaseAttachment).
-								Patch(reqToken(""), reqRepoWriter(unit.TypeReleases), bind(api.EditAttachmentOptions{}), repo.EditReleaseAttachment).
-								Delete(reqToken(""), reqRepoWriter(unit.TypeReleases), repo.DeleteReleaseAttachment)
+								Patch(reqToken(), reqRepoWriter(unit.TypeReleases), bind(api.EditAttachmentOptions{}), repo.EditReleaseAttachment).
+								Delete(reqToken(), reqRepoWriter(unit.TypeReleases), repo.DeleteReleaseAttachment)
 						})
-					}, reqToken(auth_model.AccessTokenScopeRepo))
+					})
 					m.Group("/tags", func() {
 						m.Combo("/{tag}").
 							Get(repo.GetReleaseByTag).
-							Delete(reqToken(""), reqRepoWriter(unit.TypeReleases), repo.DeleteReleaseByTag)
-					}, reqToken(auth_model.AccessTokenScopeRepo))
+							Delete(reqToken(), reqRepoWriter(unit.TypeReleases), repo.DeleteReleaseByTag)
+					})
 				}, reqRepoReader(unit.TypeReleases))
-				m.Post("/mirror-sync", reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeCode), repo.MirrorSync)
-				m.Post("/push_mirrors-sync", reqToken(auth_model.AccessTokenScopeRepo), reqAdmin(), repo.PushMirrorSync)
+				m.Post("/mirror-sync", reqToken(), reqRepoWriter(unit.TypeCode), repo.MirrorSync)
+				m.Post("/push_mirrors-sync", reqAdmin(), repo.PushMirrorSync)
 				m.Group("/push_mirrors", func() {
 					m.Combo("").Get(repo.ListPushMirrors).
 						Post(bind(api.CreatePushMirrorOption{}), repo.AddPushMirror)
 					m.Combo("/{name}").
 						Delete(repo.DeletePushMirrorByRemoteName).
 						Get(repo.GetPushMirrorByName)
-				}, reqToken(auth_model.AccessTokenScopeRepo), reqAdmin())
+				}, reqAdmin())
 
-				m.Get("/editorconfig/{filename}", reqToken(auth_model.AccessTokenScopeRepo), context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetEditorconfig)
+				m.Get("/editorconfig/{filename}", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetEditorconfig)
 				m.Group("/pulls", func() {
 					m.Combo("").Get(repo.ListPullRequests).
-						Post(reqToken(""), mustNotBeArchived, bind(api.CreatePullRequestOption{}), repo.CreatePullRequest)
+						Post(reqToken(), mustNotBeArchived, bind(api.CreatePullRequestOption{}), repo.CreatePullRequest)
 					m.Group("/{index}", func() {
 						m.Combo("").Get(repo.GetPullRequest).
-							Patch(reqToken(""), bind(api.EditPullRequestOption{}), repo.EditPullRequest)
+							Patch(reqToken(), bind(api.EditPullRequestOption{}), repo.EditPullRequest)
 						m.Get(".{diffType:diff|patch}", repo.DownloadPullDiffOrPatch)
-						m.Post("/update", reqToken(""), repo.UpdatePullRequest)
+						m.Post("/update", reqToken(), repo.UpdatePullRequest)
 						m.Get("/commits", repo.GetPullRequestCommits)
 						m.Get("/files", repo.GetPullRequestFiles)
 						m.Combo("/merge").Get(repo.IsPullRequestMerged).
-							Post(reqToken(""), mustNotBeArchived, bind(forms.MergePullRequestForm{}), repo.MergePullRequest).
-							Delete(reqToken(""), mustNotBeArchived, repo.CancelScheduledAutoMerge)
+							Post(reqToken(), mustNotBeArchived, bind(forms.MergePullRequestForm{}), repo.MergePullRequest).
+							Delete(reqToken(), mustNotBeArchived, repo.CancelScheduledAutoMerge)
 						m.Group("/reviews", func() {
 							m.Combo("").
 								Get(repo.ListPullReviews).
-								Post(reqToken(""), bind(api.CreatePullReviewOptions{}), repo.CreatePullReview)
+								Post(reqToken(), bind(api.CreatePullReviewOptions{}), repo.CreatePullReview)
 							m.Group("/{id}", func() {
 								m.Combo("").
 									Get(repo.GetPullReview).
-									Delete(reqToken(""), repo.DeletePullReview).
-									Post(reqToken(""), bind(api.SubmitPullReviewOptions{}), repo.SubmitPullReview)
+									Delete(reqToken(), repo.DeletePullReview).
+									Post(reqToken(), bind(api.SubmitPullReviewOptions{}), repo.SubmitPullReview)
 								m.Combo("/comments").
 									Get(repo.GetPullReviewComments)
-								m.Post("/dismissals", reqToken(""), bind(api.DismissPullReviewOptions{}), repo.DismissPullReview)
-								m.Post("/undismissals", reqToken(""), repo.UnDismissPullReview)
+								m.Post("/dismissals", reqToken(), bind(api.DismissPullReviewOptions{}), repo.DismissPullReview)
+								m.Post("/undismissals", reqToken(), repo.UnDismissPullReview)
 							})
 						})
 						m.Combo("/requested_reviewers").
-							Delete(reqToken(""), bind(api.PullReviewRequestOptions{}), repo.DeleteReviewRequests).
-							Post(reqToken(""), bind(api.PullReviewRequestOptions{}), repo.CreateReviewRequests)
+							Delete(reqToken(), bind(api.PullReviewRequestOptions{}), repo.DeleteReviewRequests).
+							Post(reqToken(), bind(api.PullReviewRequestOptions{}), repo.CreateReviewRequests)
 					})
-				}, reqToken(auth_model.AccessTokenScopeRepo), mustAllowPulls, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
+				}, mustAllowPulls, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
 				m.Group("/statuses", func() {
 					m.Combo("/{sha}").Get(repo.GetCommitStatuses).
-						Post(reqToken(""), reqRepoWriter(unit.TypeCode), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
-				}, reqToken(auth_model.AccessTokenScopeRepo), reqRepoReader(unit.TypeCode))
+						Post(reqToken(), reqRepoWriter(unit.TypeCode), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
+				}, reqRepoReader(unit.TypeCode))
 				m.Group("/commits", func() {
 					m.Get("", context.ReferencesGitRepo(), repo.GetAllCommits)
 					m.Group("/{ref}", func() {
 						m.Get("/status", repo.GetCombinedCommitStatusByRef)
 						m.Get("/statuses", repo.GetCommitStatusesByRef)
 					}, context.ReferencesGitRepo())
-				}, reqToken(auth_model.AccessTokenScopeRepo), reqRepoReader(unit.TypeCode))
+				}, reqRepoReader(unit.TypeCode))
 				m.Group("/git", func() {
 					m.Group("/commits", func() {
 						m.Get("/{sha}", repo.GetSingleCommit)
@@ -1071,8 +1048,8 @@ func Routes(ctx gocontext.Context) *web.Route {
 					m.Get("/blobs/{sha}", repo.GetBlob)
 					m.Get("/tags/{sha}", repo.GetAnnotatedTag)
 					m.Get("/notes/{sha}", repo.GetNote)
-				}, reqToken(auth_model.AccessTokenScopeRepo), context.ReferencesGitRepo(), reqRepoReader(unit.TypeCode))
-				m.Post("/diffpatch", reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeCode), bind(api.ApplyDiffPatchFileOptions{}), repo.ApplyDiffPatch)
+				}, context.ReferencesGitRepo(), reqRepoReader(unit.TypeCode))
+				m.Post("/diffpatch", reqRepoWriter(unit.TypeCode), reqToken(), bind(api.ApplyDiffPatchFileOptions{}), repo.ApplyDiffPatch)
 				m.Group("/contents", func() {
 					m.Get("", repo.GetContentsList)
 					m.Get("/*", repo.GetContents)
@@ -1080,17 +1057,17 @@ func Routes(ctx gocontext.Context) *web.Route {
 						m.Post("", bind(api.CreateFileOptions{}), reqRepoBranchWriter, repo.CreateFile)
 						m.Put("", bind(api.UpdateFileOptions{}), reqRepoBranchWriter, repo.UpdateFile)
 						m.Delete("", bind(api.DeleteFileOptions{}), reqRepoBranchWriter, repo.DeleteFile)
-					}, reqToken(auth_model.AccessTokenScopeRepo))
+					}, reqToken())
 				}, reqRepoReader(unit.TypeCode))
 				m.Get("/signing-key.gpg", misc.SigningKey)
 				m.Group("/topics", func() {
 					m.Combo("").Get(repo.ListTopics).
-						Put(reqToken(""), reqAdmin(), bind(api.RepoTopicOptions{}), repo.UpdateTopics)
+						Put(reqToken(), reqAdmin(), bind(api.RepoTopicOptions{}), repo.UpdateTopics)
 					m.Group("/{topic}", func() {
-						m.Combo("").Put(reqToken(""), repo.AddTopic).
-							Delete(reqToken(""), repo.DeleteTopic)
+						m.Combo("").Put(reqToken(), repo.AddTopic).
+							Delete(reqToken(), repo.DeleteTopic)
 					}, reqAdmin())
-				}, reqToken(auth_model.AccessTokenScopeRepo), reqAnyRepoReader())
+				}, reqAnyRepoReader())
 				m.Get("/issue_templates", context.ReferencesGitRepo(), repo.GetIssueTemplates)
 				m.Get("/languages", reqRepoReader(unit.TypeCode), repo.GetLanguages)
 			}, repoAssignment())
@@ -1098,49 +1075,49 @@ func Routes(ctx gocontext.Context) *web.Route {
 
 		m.Group("/packages/{username}", func() {
 			m.Group("/{type}/{name}/{version}", func() {
-				m.Get("", reqToken(auth_model.AccessTokenScopeReadPackage), packages.GetPackage)
-				m.Delete("", reqToken(auth_model.AccessTokenScopeDeletePackage), reqPackageAccess(perm.AccessModeWrite), packages.DeletePackage)
-				m.Get("/files", reqToken(auth_model.AccessTokenScopeReadPackage), packages.ListPackageFiles)
+				m.Get("", packages.GetPackage)
+				m.Delete("", reqPackageAccess(perm.AccessModeWrite), packages.DeletePackage)
+				m.Get("/files", packages.ListPackageFiles)
 			})
-			m.Get("/", reqToken(auth_model.AccessTokenScopeReadPackage), packages.ListPackages)
+			m.Get("/", packages.ListPackages)
 		}, context_service.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead))
 
 		// Organizations
-		m.Get("/user/orgs", reqToken(auth_model.AccessTokenScopeReadOrg), org.ListMyOrgs)
+		m.Get("/user/orgs", reqToken(), org.ListMyOrgs)
 		m.Group("/users/{username}/orgs", func() {
-			m.Get("", reqToken(auth_model.AccessTokenScopeReadOrg), org.ListUserOrgs)
-			m.Get("/{org}/permissions", reqToken(auth_model.AccessTokenScopeReadOrg), org.GetUserOrgsPermissions)
+			m.Get("", org.ListUserOrgs)
+			m.Get("/{org}/permissions", reqToken(), org.GetUserOrgsPermissions)
 		}, context_service.UserAssignmentAPI())
-		m.Post("/orgs", reqToken(auth_model.AccessTokenScopeWriteOrg), bind(api.CreateOrgOption{}), org.Create)
+		m.Post("/orgs", reqToken(), bind(api.CreateOrgOption{}), org.Create)
 		m.Get("/orgs", org.GetAll)
 		m.Group("/orgs/{org}", func() {
-			m.Combo("").Get(reqToken(auth_model.AccessTokenScopeReadOrg), org.Get).
-				Patch(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), bind(api.EditOrgOption{}), org.Edit).
-				Delete(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), org.Delete)
-			m.Combo("/repos").Get(reqToken(auth_model.AccessTokenScopeReadOrg), user.ListOrgRepos).
-				Post(reqToken(auth_model.AccessTokenScopeWriteOrg), bind(api.CreateRepoOption{}), repo.CreateOrgRepo)
+			m.Combo("").Get(org.Get).
+				Patch(reqToken(), reqOrgOwnership(), bind(api.EditOrgOption{}), org.Edit).
+				Delete(reqToken(), reqOrgOwnership(), org.Delete)
+			m.Combo("/repos").Get(user.ListOrgRepos).
+				Post(reqToken(), bind(api.CreateRepoOption{}), repo.CreateOrgRepo)
 			m.Group("/members", func() {
-				m.Get("", reqToken(auth_model.AccessTokenScopeReadOrg), org.ListMembers)
+				m.Get("", org.ListMembers)
 				m.Combo("/{username}").Get(org.IsMember).
-					Delete(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), org.DeleteMember)
+					Delete(reqToken(), reqOrgOwnership(), org.DeleteMember)
 			})
 			m.Group("/public_members", func() {
-				m.Get("", reqToken(auth_model.AccessTokenScopeReadOrg), org.ListPublicMembers)
-				m.Combo("/{username}").Get(reqToken(auth_model.AccessTokenScopeReadOrg), org.IsPublicMember).
-					Put(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgMembership(), org.PublicizeMember).
-					Delete(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgMembership(), org.ConcealMember)
+				m.Get("", org.ListPublicMembers)
+				m.Combo("/{username}").Get(org.IsPublicMember).
+					Put(reqToken(), reqOrgMembership(), org.PublicizeMember).
+					Delete(reqToken(), reqOrgMembership(), org.ConcealMember)
 			})
 			m.Group("/teams", func() {
-				m.Get("", reqToken(auth_model.AccessTokenScopeReadOrg), org.ListTeams)
-				m.Post("", reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
-				m.Get("/search", reqToken(auth_model.AccessTokenScopeReadOrg), org.SearchTeam)
-			}, reqOrgMembership())
+				m.Get("", org.ListTeams)
+				m.Post("", reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
+				m.Get("/search", org.SearchTeam)
+			}, reqToken(), reqOrgMembership())
 			m.Group("/labels", func() {
-				m.Get("", reqToken(auth_model.AccessTokenScopeReadOrg), org.ListLabels)
-				m.Post("", reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), bind(api.CreateLabelOption{}), org.CreateLabel)
-				m.Combo("/{id}").Get(reqToken(auth_model.AccessTokenScopeReadOrg), org.GetLabel).
-					Patch(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), bind(api.EditLabelOption{}), org.EditLabel).
-					Delete(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), org.DeleteLabel)
+				m.Get("", org.ListLabels)
+				m.Post("", reqToken(), reqOrgOwnership(), bind(api.CreateLabelOption{}), org.CreateLabel)
+				m.Combo("/{id}").Get(org.GetLabel).
+					Patch(reqToken(), reqOrgOwnership(), bind(api.EditLabelOption{}), org.EditLabel).
+					Delete(reqToken(), reqOrgOwnership(), org.DeleteLabel)
 			})
 			m.Group("/hooks", func() {
 				m.Combo("").Get(org.ListHooks).
@@ -1148,27 +1125,27 @@ func Routes(ctx gocontext.Context) *web.Route {
 				m.Combo("/{id}").Get(org.GetHook).
 					Patch(bind(api.EditHookOption{}), org.EditHook).
 					Delete(org.DeleteHook)
-			}, reqToken(auth_model.AccessTokenScopeAdminOrgHook), reqOrgOwnership(), reqWebhooksEnabled())
+			}, reqToken(), reqOrgOwnership(), reqWebhooksEnabled())
 		}, orgAssignment(true))
 		m.Group("/teams/{teamid}", func() {
-			m.Combo("").Get(reqToken(auth_model.AccessTokenScopeReadOrg), org.GetTeam).
-				Patch(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), bind(api.EditTeamOption{}), org.EditTeam).
-				Delete(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), org.DeleteTeam)
+			m.Combo("").Get(org.GetTeam).
+				Patch(reqOrgOwnership(), bind(api.EditTeamOption{}), org.EditTeam).
+				Delete(reqOrgOwnership(), org.DeleteTeam)
 			m.Group("/members", func() {
-				m.Get("", reqToken(auth_model.AccessTokenScopeReadOrg), org.GetTeamMembers)
+				m.Get("", org.GetTeamMembers)
 				m.Combo("/{username}").
-					Get(reqToken(auth_model.AccessTokenScopeReadOrg), org.GetTeamMember).
-					Put(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), org.AddTeamMember).
-					Delete(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), org.RemoveTeamMember)
+					Get(org.GetTeamMember).
+					Put(reqOrgOwnership(), org.AddTeamMember).
+					Delete(reqOrgOwnership(), org.RemoveTeamMember)
 			})
 			m.Group("/repos", func() {
-				m.Get("", reqToken(auth_model.AccessTokenScopeReadOrg), org.GetTeamRepos)
+				m.Get("", org.GetTeamRepos)
 				m.Combo("/{org}/{reponame}").
-					Put(reqToken(auth_model.AccessTokenScopeWriteOrg), org.AddTeamRepository).
-					Delete(reqToken(auth_model.AccessTokenScopeWriteOrg), org.RemoveTeamRepository).
-					Get(reqToken(auth_model.AccessTokenScopeReadOrg), org.GetTeamRepo)
+					Put(org.AddTeamRepository).
+					Delete(org.RemoveTeamRepository).
+					Get(org.GetTeamRepo)
 			})
-		}, orgAssignment(false, true), reqTeamMembership())
+		}, orgAssignment(false, true), reqToken(), reqTeamMembership())
 
 		m.Group("/admin", func() {
 			m.Group("/cron", func() {
@@ -1196,7 +1173,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 				m.Post("/{username}/{reponame}", admin.AdoptRepository)
 				m.Delete("/{username}/{reponame}", admin.DeleteUnadoptedRepository)
 			})
-		}, reqToken(auth_model.AccessTokenScopeSudo), reqSiteAdmin())
+		}, reqToken(), reqSiteAdmin())
 
 		m.Group("/topics", func() {
 			m.Get("/search", repo.TopicSearch)

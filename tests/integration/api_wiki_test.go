@@ -182,7 +182,7 @@ func TestAPINewWikiPage(t *testing.T) {
 		defer tests.PrepareTestEnv(t)()
 		username := "user2"
 		session := loginUser(t, username)
-		token := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
+		token := getTokenForLoggedInUser(t, session)
 
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/new?token=%s", username, "repo1", token)
 
@@ -199,7 +199,7 @@ func TestAPIEditWikiPage(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	username := "user2"
 	session := loginUser(t, username)
-	token := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
+	token := getTokenForLoggedInUser(t, session)
 
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/page/Page-With-Spaced-Name?token=%s", username, "repo1", token)
 

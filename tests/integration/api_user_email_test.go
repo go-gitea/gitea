@@ -19,7 +19,7 @@ func TestAPIListEmails(t *testing.T) {
 
 	normalUsername := "user2"
 	session := loginUser(t, normalUsername)
-	token := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
+	token := getTokenForLoggedInUser(t, session)
 
 	req := NewRequest(t, "GET", "/api/v1/user/emails?token="+token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
@@ -46,7 +46,7 @@ func TestAPIAddEmail(t *testing.T) {
 
 	normalUsername := "user2"
 	session := loginUser(t, normalUsername)
-	token := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
+	token := getTokenForLoggedInUser(t, session)
 
 	opts := api.CreateEmailOption{
 		Emails: []string{"user101@example.com"},
@@ -83,7 +83,7 @@ func TestAPIDeleteEmail(t *testing.T) {
 
 	normalUsername := "user2"
 	session := loginUser(t, normalUsername)
-	token := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
+	token := getTokenForLoggedInUser(t, session)
 
 	opts := api.DeleteEmailOption{
 		Emails: []string{"user2-3@example.com"},
