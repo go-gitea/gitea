@@ -22,7 +22,7 @@ func TestGPGKeys(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session)
-	tokenWithGPGKeyScope := getTokenForLoggedInUser(t, session, "admin_gpg_key")
+	tokenWithGPGKeyScope := getTokenForLoggedInUser(t, session, "admin_gpg_key", "repo")
 
 	tt := []struct {
 		name        string
