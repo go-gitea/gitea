@@ -345,8 +345,10 @@ export function initGlobalButtons() {
   });
 
   // get raw text for copy content button
+  const copyContentButtons = document.querySelectorAll('button.copy-content');
+  if (copyContentButtons.length == 0) return;
   const text = Array.from(document.querySelectorAll('.lines-code')).map((el) => el.textContent).join('');
-  for (const copyContentButton of document.querySelectorAll('button.copy-content')) {
+  for (const copyContentButton of copyContentButtons) {
     copyContentButton.setAttribute('data-clipboard-text', text);
   }
 }
