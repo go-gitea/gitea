@@ -28,7 +28,7 @@ func TestAPIWatch(t *testing.T) {
 	t.Run("Watch", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/subscription?token=%s", repo, token))
+		req := NewRequest(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/subscription?token=%s", repo, tokenWithRepoScope))
 		MakeRequest(t, req, http.StatusOK)
 	})
 
@@ -63,17 +63,17 @@ func TestAPIWatch(t *testing.T) {
 	t.Run("IsWatching", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/subscription?token=%s", repo, token))
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/subscription?token=%s", repo, tokenWithRepoScope))
 		MakeRequest(t, req, http.StatusOK)
 
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/subscription?token=%s", repo+"notexisting", token))
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/subscription?token=%s", repo+"notexisting", tokenWithRepoScope))
 		MakeRequest(t, req, http.StatusNotFound)
 	})
 
 	t.Run("Unwatch", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/subscription?token=%s", repo, token))
+		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/subscription?token=%s", repo, tokenWithRepoScope))
 		MakeRequest(t, req, http.StatusNoContent)
 	})
 }

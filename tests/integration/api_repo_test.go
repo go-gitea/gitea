@@ -414,7 +414,7 @@ func TestAPIMirrorSyncNonMirrorRepo(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, "repo")
 
 	var repo api.Repository
 	req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1")
