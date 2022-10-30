@@ -152,7 +152,7 @@ Note: This user hasn't uploaded any GPG keys.
 	// Import key
 	// User1 <user1@example.com>
 	session := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, "write_gpg_key")
 	testCreateGPGKey(t, session.MakeRequest, token, http.StatusCreated, `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 mQENBFyy/VUBCADJ7zbM20Z1RWmFoVgp5WkQfI2rU1Vj9cQHes9i42wVLLtcbPeo
