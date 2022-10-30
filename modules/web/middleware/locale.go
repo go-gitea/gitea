@@ -19,6 +19,8 @@ func Locale(resp http.ResponseWriter, req *http.Request) translation.Locale {
 	// 1. Check URL arguments.
 	lang := req.URL.Query().Get("lang")
 	changeLang := lang != ""
+	// If the request is sent from language menu by AJAX, then it should  only set the language but not run the real handler. 
+	// Otherwise the irrelevant code might be executed.
 	skipHandler := req.URL.Query().Get("lang_skip_handler") != ""
 
 	// 2. Get language information from cookies.
