@@ -46,7 +46,11 @@
 			{{end}}
 			{{if not .ReadmeInList}}
 				<div class="ui buttons mr-2">
-					<button class="ui mini basic button small compact tooltip copy-content" id="clipboard-btn" data-content="{{.locale.Tr "copy_content"}}" aria-label="{{.locale.Tr "copy_content"}}">
+					<button class="ui mini basic button small compact tooltip copy-content" id="clipboard-btn" data-content="{{.locale.Tr "copy_content"}}" aria-label="{{.locale.Tr "copy_content"}}"
+					{{if or (.IsMarkup) (.IsRenderedHTML) (not .IsTextSource)}}
+					disabled
+					{{end}}
+					>
 						{{svg "octicon-copy" 14}}
 					</button>
 					<a class="ui mini basic button" href="{{$.RawFileLink}}">{{.locale.Tr "repo.file_raw"}}</a>
