@@ -7,6 +7,8 @@ package auth
 import (
 	"fmt"
 	"strings"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 // AccessTokenScope represents the scope for an access token.
@@ -90,7 +92,7 @@ func (s AccessTokenScope) Parse() (AccessTokenScopeBitmap, error) {
 			continue
 		}
 
-		idx := sliceIndex(AllAccessTokenScopes, v)
+		idx := util.FindStringInSlice(v, AllAccessTokenScopes)
 		if idx < 0 {
 			return 0, fmt.Errorf("invalid access token scope: %s", v)
 		}
@@ -99,32 +101,32 @@ func (s AccessTokenScope) Parse() (AccessTokenScopeBitmap, error) {
 		// take care of child scopes
 		switch v {
 		case AccessTokenScopeRepo:
-			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeRepoStatus))
-			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopePublicRepo))
+			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeRepoStatus, AllAccessTokenScopes))
+			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopePublicRepo, AllAccessTokenScopes))
 			// admin:repo_hook, write:repo_hook, read:repo_hook
-			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeAdminRepoHook))
-			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeWriteRepoHook))
-			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeReadRepoHook))
+			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeAdminRepoHook, AllAccessTokenScopes))
+			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeWriteRepoHook, AllAccessTokenScopes))
+			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeReadRepoHook, AllAccessTokenScopes))
 		case AccessTokenScopeAdminOrg:
-			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeWriteOrg))
-			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeReadOrg))
+			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeWriteOrg, AllAccessTokenScopes))
+			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeReadOrg, AllAccessTokenScopes))
 		case AccessTokenScopeAdminPublicKey:
-			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeWritePublicKey))
-			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeReadPublicKey))
+			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeWritePublicKey, AllAccessTokenScopes))
+			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeReadPublicKey, AllAccessTokenScopes))
 		case AccessTokenScopeAdminRepoHook:
-			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeWriteRepoHook))
-			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeReadRepoHook))
+			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeWriteRepoHook, AllAccessTokenScopes))
+			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeReadRepoHook, AllAccessTokenScopes))
 		case AccessTokenScopeUser:
-			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeReadUser))
-			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeUserEmail))
-			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeUserFollow))
+			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeReadUser, AllAccessTokenScopes))
+			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeUserEmail, AllAccessTokenScopes))
+			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeUserFollow, AllAccessTokenScopes))
 		case AccessTokenScopePackage:
-			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeWritePackage))
-			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeReadPackage))
-			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeDeletePackage))
+			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeWritePackage, AllAccessTokenScopes))
+			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeReadPackage, AllAccessTokenScopes))
+			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeDeletePackage, AllAccessTokenScopes))
 		case AccessTokenScopeAdminGPGKey:
-			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeWriteGPGKey))
-			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeReadGPGKey))
+			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeWriteGPGKey, AllAccessTokenScopes))
+			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeReadGPGKey, AllAccessTokenScopes))
 		}
 	}
 	return bitmap, nil
@@ -142,7 +144,7 @@ func (s AccessTokenScope) Normalize() (AccessTokenScope, error) {
 
 // HasScope returns true if the string has the given scope
 func (s AccessTokenScope) HasScope(scope string) (bool, error) {
-	index := sliceIndex(AllAccessTokenScopes, scope)
+	index := util.FindStringInSlice(scope, AllAccessTokenScopes)
 	if index == -1 {
 		return false, fmt.Errorf("invalid access token scope: %s", scope)
 	}
@@ -217,14 +219,4 @@ func (bitmap AccessTokenScopeBitmap) ToScope() AccessTokenScope {
 		"all",
 	))
 	return scope
-}
-
-// sliceIndex returns the index of the first instance of str in slice, or -1 if str is not present in slice.
-func sliceIndex(slice []string, element string) int {
-	for i, v := range slice {
-		if v == element {
-			return i
-		}
-	}
-	return -1
 }

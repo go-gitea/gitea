@@ -38,26 +38,32 @@ func ExistsInSlice(target string, slice []string) bool {
 	return i < len(slice)
 }
 
-// IsStringInSlice sequential searches if string exists in slice.
-func IsStringInSlice(target string, slice []string, insensitive ...bool) bool {
+// FindStringInSlice returns the index of the first instance of target in slice.
+// If target is not present in slice, -1 is returned.
+func FindStringInSlice(target string, slice []string, insensitive ...bool) int {
 	caseInsensitive := false
 	if len(insensitive) != 0 && insensitive[0] {
 		caseInsensitive = true
 		target = strings.ToLower(target)
 	}
 
-	for i := 0; i < len(slice); i++ {
+	for i, s := range slice {
 		if caseInsensitive {
-			if strings.ToLower(slice[i]) == target {
-				return true
+			if strings.ToLower(s) == target {
+				return i
 			}
 		} else {
-			if slice[i] == target {
-				return true
+			if s == target {
+				return i
 			}
 		}
 	}
-	return false
+	return -1
+}
+
+// IsStringInSlice sequential searches if string exists in slice.
+func IsStringInSlice(target string, slice []string, insensitive ...bool) bool {
+	return FindStringInSlice(target, slice, insensitive...) >= 0
 }
 
 // IsInt64InSlice sequential searches if int64 exists in slice.
