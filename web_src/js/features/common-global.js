@@ -343,6 +343,12 @@ export function initGlobalButtons() {
       window.location.href = $this.attr('data-done-url');
     });
   });
+
+  // get raw text for copy content button
+  const text = Array.from(document.querySelectorAll('.lines-code')).map((el) => el.textContent).join('');
+  for (const copyContentButton of document.querySelectorAll('button.copy-content')) {
+    copyContentButton.setAttribute('data-clipboard-text', text);
+  }
 }
 
 /**
