@@ -33,7 +33,9 @@ To maintain understandable code and avoid circular dependencies it is important 
 
 - `build`: Scripts to help build Gitea.
 - `cmd`: All Gitea actual sub commands includes web, doctor, serv, hooks, admin and etc. `web` will start the web service. `serv` and `hooks` will be invoked by Git or OpenSSH. Other sub commands could help to maintain Gitea.
-- `integrations`: Integration tests
+- `tests`: Common test utility functions
+  - `tests/integration`: Integration tests, to test back-end regressions
+  - `tests/e2e`: E2e tests, to test test front-end <> back-end compatibility and visual regressions.
 - `models`: Contains the data structures used by xorm to construct database tables. It also contains functions to query and update the database. Dependencies to other Gitea code should be avoided. You can make exceptions in cases such as logging.
   - `models/db`: Basic database operations. All other `models/xxx` packages should depend on this package. The `GetEngine` function should only be invoked from `models/`.
   - `models/fixtures`: Sample data used in unit tests and integration tests. One `yml` file means one table which will be loaded into database when beginning the tests.
@@ -65,22 +67,18 @@ Some actions should allow for rollback when database record insertion/update/del
 So services must be allowed to create a database transaction. Here is some example,
 
 ```go
-// servcies/repository/repo.go
-func CreateXXXX() error {\
-  ctx, committer, err := db.TxContext()
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-  // do something, if return err, it will rollback automatically when `committer.Close()` is invoked.
-  if err := issues.UpdateIssue(ctx, repoID); err != nil {
-      // ...
-  }
-
-  // ......
-
-  return committer.Commit()
+// services/repository/repository.go
+func CreateXXXX() error {
+    return db.WithTx(func(ctx context.Context) error {
+        e := db.GetEngine(ctx)
+        // do something, if err is returned, it will rollback automatically
+        if err := issues.UpdateIssue(ctx, repoID); err != nil {
+            // ...
+            return err
+        }
+        // ...
+        return nil
+    })
 }
 ```
 
@@ -92,14 +90,14 @@ If the function will be used in the transaction, just let `context.Context` as t
 func UpdateIssue(ctx context.Context, repoID int64) error {
     e := db.GetEngine(ctx)
 
-    // ......
+    // ...
 }
 ```
 
 ### Package Name
 
 For the top level package, use a plural as package name, i.e. `services`, `models`, for sub packages, use singular,
-i.e. `servcies/user`, `models/repository`.
+i.e. `services/user`, `models/repository`.
 
 ### Import Alias
 

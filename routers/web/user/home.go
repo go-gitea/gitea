@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -56,7 +56,7 @@ func getDashboardContextUser(ctx *context.Context) *user_model.User {
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
-	orgs, err := models.GetUserOrgsList(ctx.Doer)
+	orgs, err := organization.GetUserOrgsList(ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserOrgsList", err)
 		return nil
@@ -91,7 +91,7 @@ func Dashboard(ctx *context.Context) {
 	}
 
 	if setting.Service.EnableUserHeatmap {
-		data, err := models.GetUserHeatmapDataByUserTeam(ctxUser, ctx.Org.Team, ctx.Doer)
+		data, err := activities_model.GetUserHeatmapDataByUserTeam(ctxUser, ctx.Org.Team, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("GetUserHeatmapDataByUserTeam", err)
 			return
@@ -100,7 +100,7 @@ func Dashboard(ctx *context.Context) {
 	}
 
 	var err error
-	ctx.Data["Feeds"], err = models.GetFeeds(ctx, models.GetFeedsOptions{
+	ctx.Data["Feeds"], err = activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
 		RequestedUser:   ctxUser,
 		RequestedTeam:   ctx.Org.Team,
 		Actor:           ctx.Doer,
@@ -301,6 +301,7 @@ func Pulls(ctx *context.Context) {
 
 	ctx.Data["Title"] = ctx.Tr("pull_requests")
 	ctx.Data["PageIsPulls"] = true
+	ctx.Data["SingleRepoAction"] = "pull"
 	buildIssueOverview(ctx, unit.TypePullRequests)
 }
 
@@ -314,6 +315,7 @@ func Issues(ctx *context.Context) {
 
 	ctx.Data["Title"] = ctx.Tr("issues")
 	ctx.Data["PageIsIssues"] = true
+	ctx.Data["SingleRepoAction"] = "issue"
 	buildIssueOverview(ctx, unit.TypeIssues)
 }
 
@@ -695,11 +697,11 @@ func issueIDsFromSearch(ctx *context.Context, ctxUser *user_model.User, keyword 
 
 	searchRepoIDs, err := issues_model.GetRepoIDsForIssuesOptions(opts, ctxUser)
 	if err != nil {
-		return nil, fmt.Errorf("GetRepoIDsForIssuesOptions: %v", err)
+		return nil, fmt.Errorf("GetRepoIDsForIssuesOptions: %w", err)
 	}
 	issueIDsFromSearch, err := issue_indexer.SearchIssuesByKeyword(ctx, searchRepoIDs, keyword)
 	if err != nil {
-		return nil, fmt.Errorf("SearchIssuesByKeyword: %v", err)
+		return nil, fmt.Errorf("SearchIssuesByKeyword: %w", err)
 	}
 
 	return issueIDsFromSearch, nil

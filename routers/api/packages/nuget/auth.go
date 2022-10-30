@@ -7,7 +7,7 @@ package nuget
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -22,9 +22,9 @@ func (a *Auth) Name() string {
 
 // https://docs.microsoft.com/en-us/nuget/api/package-publish-resource#request-parameters
 func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataStore, sess auth.SessionStore) *user_model.User {
-	token, err := models.GetAccessTokenBySHA(req.Header.Get("X-NuGet-ApiKey"))
+	token, err := auth_model.GetAccessTokenBySHA(req.Header.Get("X-NuGet-ApiKey"))
 	if err != nil {
-		if !(models.IsErrAccessTokenNotExist(err) || models.IsErrAccessTokenEmpty(err)) {
+		if !(auth_model.IsErrAccessTokenNotExist(err) || auth_model.IsErrAccessTokenEmpty(err)) {
 			log.Error("GetAccessTokenBySHA: %v", err)
 		}
 		return nil
@@ -37,7 +37,7 @@ func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataS
 	}
 
 	token.UpdatedUnix = timeutil.TimeStampNow()
-	if err := models.UpdateAccessToken(token); err != nil {
+	if err := auth_model.UpdateAccessToken(token); err != nil {
 		log.Error("UpdateAccessToken:  %v", err)
 	}
 

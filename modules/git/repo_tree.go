@@ -35,10 +35,10 @@ func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opt
 		"GIT_COMMITTER_EMAIL="+committer.Email,
 		"GIT_COMMITTER_DATE="+commitTimeStr,
 	)
-	cmd := NewCommand(repo.Ctx, "commit-tree", tree.ID.String())
+	cmd := NewCommand(repo.Ctx, "commit-tree").AddDynamicArguments(tree.ID.String())
 
 	for _, parent := range opts.Parents {
-		cmd.AddArguments("-p", parent)
+		cmd.AddArguments("-p").AddDynamicArguments(parent)
 	}
 
 	messageBytes := new(bytes.Buffer)
@@ -46,7 +46,7 @@ func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opt
 	_, _ = messageBytes.WriteString("\n")
 
 	if opts.KeyID != "" || opts.AlwaysSign {
-		cmd.AddArguments(fmt.Sprintf("-S%s", opts.KeyID))
+		cmd.AddArguments(CmdArg(fmt.Sprintf("-S%s", opts.KeyID)))
 	}
 
 	if opts.NoGPGSign {

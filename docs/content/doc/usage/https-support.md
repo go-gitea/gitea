@@ -72,7 +72,7 @@ ACME_DIRECTORY=https
 ACME_EMAIL=email@example.com
 ```
 
-Minimumg setup using a [smallstep CA](https://github.com/smallstep/certificates), refer to [their tutorial](https://smallstep.com/docs/tutorials/acme-challenge) for more information.
+Minimum setup using a [smallstep CA](https://github.com/smallstep/certificates), refer to [their tutorial](https://smallstep.com/docs/tutorials/acme-challenge) for more information.
 
 ```ini
 [server]

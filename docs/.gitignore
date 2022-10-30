@@ -2,3 +2,6 @@ public/
 templates/swagger/v1_json.tmpl
 themes/
 resources/
+
+# Temporary lock file while building
+/.hugo_build.lock

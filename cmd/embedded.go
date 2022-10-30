@@ -123,7 +123,7 @@ func initEmbeddedExtractor(c *cli.Context) error {
 
 	sections["public"] = &section{Path: "public", Names: public.AssetNames, IsDir: public.AssetIsDir, Asset: public.Asset}
 	sections["options"] = &section{Path: "options", Names: options.AssetNames, IsDir: options.AssetIsDir, Asset: options.Asset}
-	sections["templates"] = &section{Path: "templates", Names: templates.AssetNames, IsDir: templates.AssetIsDir, Asset: templates.Asset}
+	sections["templates"] = &section{Path: "templates", Names: templates.BuiltinAssetNames, IsDir: templates.BuiltinAssetIsDir, Asset: templates.BuiltinAsset}
 
 	for _, sec := range sections {
 		assets = append(assets, buildAssetList(sec, pats, c)...)
@@ -186,11 +186,11 @@ func runViewDo(c *cli.Context) error {
 
 	data, err := assets[0].Section.Asset(assets[0].Name)
 	if err != nil {
-		return fmt.Errorf("%s: %v", assets[0].Path, err)
+		return fmt.Errorf("%s: %w", assets[0].Path, err)
 	}
 
 	if _, err = os.Stdout.Write(data); err != nil {
-		return fmt.Errorf("%s: %v", assets[0].Path, err)
+		return fmt.Errorf("%s: %w", assets[0].Path, err)
 	}
 
 	return nil
@@ -251,11 +251,11 @@ func extractAsset(d string, a asset, overwrite, rename bool) error {
 
 	data, err := a.Section.Asset(a.Name)
 	if err != nil {
-		return fmt.Errorf("%s: %v", a.Path, err)
+		return fmt.Errorf("%s: %w", a.Path, err)
 	}
 
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-		return fmt.Errorf("%s: %v", dir, err)
+		return fmt.Errorf("%s: %w", dir, err)
 	}
 
 	perms := os.ModePerm & 0o666
@@ -263,7 +263,7 @@ func extractAsset(d string, a asset, overwrite, rename bool) error {
 	fi, err := os.Lstat(dest)
 	if err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
-			return fmt.Errorf("%s: %v", dest, err)
+			return fmt.Errorf("%s: %w", dest, err)
 		}
 	} else if !overwrite && !rename {
 		fmt.Printf("%s already exists; skipped.\n", dest)
@@ -272,7 +272,7 @@ func extractAsset(d string, a asset, overwrite, rename bool) error {
 		return fmt.Errorf("%s already exists, but it's not a regular file", dest)
 	} else if rename {
 		if err := util.Rename(dest, dest+".bak"); err != nil {
-			return fmt.Errorf("Error creating backup for %s: %v", dest, err)
+			return fmt.Errorf("Error creating backup for %s: %w", dest, err)
 		}
 		// Attempt to respect file permissions mask (even if user:group will be set anew)
 		perms = fi.Mode()
@@ -280,12 +280,12 @@ func extractAsset(d string, a asset, overwrite, rename bool) error {
 
 	file, err := os.OpenFile(dest, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, perms)
 	if err != nil {
-		return fmt.Errorf("%s: %v", dest, err)
+		return fmt.Errorf("%s: %w", dest, err)
 	}
 	defer file.Close()
 
 	if _, err = file.Write(data); err != nil {
-		return fmt.Errorf("%s: %v", dest, err)
+		return fmt.Errorf("%s: %w", dest, err)
 	}
 
 	fmt.Println(dest)
@@ -325,7 +325,7 @@ func getPatterns(args []string) ([]glob.Glob, error) {
 	pat := make([]glob.Glob, len(args))
 	for i := range args {
 		if g, err := glob.Compile(args[i], '/'); err != nil {
-			return nil, fmt.Errorf("'%s': Invalid glob pattern: %v", args[i], err)
+			return nil, fmt.Errorf("'%s': Invalid glob pattern: %w", args[i], err)
 		} else {
 			pat[i] = g
 		}

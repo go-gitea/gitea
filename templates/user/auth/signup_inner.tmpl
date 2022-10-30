@@ -46,19 +46,19 @@
 				{{end}}
 				{{if and .EnableCaptcha (eq .CaptchaType "recaptcha")}}
 					<div class="inline field required">
-						<div class="g-recaptcha" data-sitekey="{{ .RecaptchaSitekey }}"></div>
+						<div class="g-recaptcha" data-sitekey="{{.RecaptchaSitekey}}"></div>
 					</div>
 				{{end}}
 				{{if and .EnableCaptcha (eq .CaptchaType "hcaptcha")}}
 					<div class="inline field required">
-						<div class="h-captcha" data-sitekey="{{ .HcaptchaSitekey }}"></div>
+						<div class="h-captcha" data-sitekey="{{.HcaptchaSitekey}}"></div>
 					</div>
 				{{end}}
 				{{if and .EnableCaptcha (eq .CaptchaType "mcaptcha")}}
 					<div class="inline field df ac db-small captcha-field">
 						<span>{{.locale.Tr "captcha"}}</span>
 						<div class="border-secondary w-100-small" id="mcaptcha__widget-container" style="width: 50%; height: 5em"></div>
-						<div class="m-captcha" data-sitekey="{{ .McaptchaSitekey }}" data-instance-url="{{ .McaptchaURL }}"></div>
+						<div class="m-captcha" data-sitekey="{{.McaptchaSitekey}}" data-instance-url="{{.McaptchaURL}}"></div>
 					</div>
 				{{end}}
 

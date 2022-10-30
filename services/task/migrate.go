@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -40,7 +41,7 @@ func handleCreateError(owner *user_model.User, err error) error {
 	}
 }
 
-func runMigrateTask(t *models.Task) (err error) {
+func runMigrateTask(t *admin_model.Task) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("PANIC whilst trying to do migrate task: %v", e)
@@ -48,7 +49,7 @@ func runMigrateTask(t *models.Task) (err error) {
 		}
 
 		if err == nil {
-			err = models.FinishMigrateTask(t)
+			err = admin_model.FinishMigrateTask(t)
 			if err == nil {
 				notification.NotifyMigrateRepository(t.Doer, t.Owner, t.Repo)
 				return
@@ -110,7 +111,7 @@ func runMigrateTask(t *models.Task) (err error) {
 	}
 
 	t.Repo, err = migrations.MigrateRepository(ctx, t.Doer, t.Owner.Name, *opts, func(format string, args ...interface{}) {
-		message := models.TranslatableMessage{
+		message := admin_model.TranslatableMessage{
 			Format: format,
 			Args:   args,
 		}
@@ -132,9 +133,9 @@ func runMigrateTask(t *models.Task) (err error) {
 	err = util.SanitizeErrorCredentialURLs(err)
 	if strings.Contains(err.Error(), "Authentication failed") ||
 		strings.Contains(err.Error(), "could not read Username") {
-		return fmt.Errorf("Authentication failed: %v", err.Error())
+		return fmt.Errorf("Authentication failed: %w", err)
 	} else if strings.Contains(err.Error(), "fatal:") {
-		return fmt.Errorf("Migration failed: %v", err.Error())
+		return fmt.Errorf("Migration failed: %w", err)
 	}
 
 	// do not be tempted to coalesce this line with the return

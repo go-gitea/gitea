@@ -86,6 +86,7 @@ func ListPackages(ctx *context.Context) {
 
 	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["IsPackagesPage"] = true
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["Query"] = query
 	ctx.Data["PackageType"] = packageType
@@ -157,6 +158,7 @@ func ViewPackageVersion(ctx *context.Context) {
 
 	ctx.Data["Title"] = pd.Package.Name
 	ctx.Data["IsPackagesPage"] = true
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["PackageDescriptor"] = pd
 
@@ -231,18 +233,22 @@ func ListPackageVersions(ctx *context.Context) {
 	}
 
 	query := ctx.FormTrim("q")
+	sort := ctx.FormTrim("sort")
 
 	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["IsPackagesPage"] = true
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["PackageDescriptor"] = &packages_model.PackageDescriptor{
 		Package: p,
 		Owner:   ctx.Package.Owner,
 	}
 	ctx.Data["Query"] = query
+	ctx.Data["Sort"] = sort
 
 	pagerParams := map[string]string{
-		"q": query,
+		"q":    query,
+		"sort": sort,
 	}
 
 	var (
@@ -261,6 +267,7 @@ func ListPackageVersions(ctx *context.Context) {
 			PackageID: p.ID,
 			Query:     query,
 			IsTagged:  tagged == "" || tagged == "tagged",
+			Sort:      sort,
 		})
 		if err != nil {
 			ctx.ServerError("SearchImageTags", err)
@@ -275,6 +282,7 @@ func ListPackageVersions(ctx *context.Context) {
 				Value:      query,
 			},
 			IsInternal: util.OptionalBoolFalse,
+			Sort:       sort,
 		})
 		if err != nil {
 			ctx.ServerError("SearchVersions", err)
@@ -305,6 +313,7 @@ func PackageSettings(ctx *context.Context) {
 
 	ctx.Data["Title"] = pd.Package.Name
 	ctx.Data["IsPackagesPage"] = true
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["PackageDescriptor"] = pd
 
@@ -393,5 +402,5 @@ func DownloadPackageFile(ctx *context.Context) {
 	}
 	defer s.Close()
 
-	ctx.ServeStream(s, pf.Name)
+	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
 }

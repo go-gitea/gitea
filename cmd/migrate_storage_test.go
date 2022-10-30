@@ -53,8 +53,7 @@ func TestMigratePackages(t *testing.T) {
 
 	ctx := context.Background()
 
-	p, err := os.MkdirTemp(os.TempDir(), "migrated_packages")
-	assert.NoError(t, err)
+	p := t.TempDir()
 
 	dstStorage, err := storage.NewLocalStorage(
 		ctx,

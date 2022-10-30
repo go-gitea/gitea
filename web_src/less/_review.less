@@ -48,6 +48,12 @@
   }
 }
 
+.add-comment .lines-num,
+.add-comment .lines-escape,
+.add-comment .lines-type-marker {
+  display: none;
+}
+
 .show-outdated,
 .hide-outdated {
   &:extend(.unselectable);
@@ -59,11 +65,13 @@
 }
 
 .comment-code-cloud {
-  padding: .5rem !important;
+  padding: .5rem 1rem !important;
   position: relative;
   margin: 0 auto;
+  max-width: 1000px;
 
   @media @mediaSm {
+    max-width: auto;
     padding: .75rem !important;
 
     .code-comment-buttons {
@@ -73,13 +81,22 @@
         width: 100%;
       }
     }
+
+    .ui.buttons {
+      width: 100%;
+      margin: 0 !important;
+
+      .button {
+        flex: 1;
+      }
+    }
   }
 
   .comments .comment {
-    margin: 0;
+    padding: 0;
 
     @media @mediaSm {
-      padding: 0;
+      display: flex;
 
       .comment-header-right.actions .ui.basic.label {
         display: none;
@@ -91,13 +108,21 @@
         margin: 0 .5rem 0 0;
         flex-shrink: 0;
 
-        &.image {
-          margin: 0 !important;
+        ~ .content {
+          margin-left: 1em;
         }
+      }
+
+      img.avatar {
+        margin: 0 !important;
       }
 
       .comment-content {
         margin-left: 0 !important;
+      }
+
+      .comment-container {
+        width: 100%;
       }
 
       &.code-comment {
@@ -166,10 +191,7 @@
     .button {
       width: 100%;
       margin: 0 !important;
-
-      &:not(:last-child) {
-        margin-bottom: .75rem !important;
-      }
+      margin-bottom: .75rem !important;
     }
   }
 }
@@ -194,7 +216,7 @@ a.blob-excerpt {
 
 a.blob-excerpt:hover {
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-primary-contrast);
 }
 
 // See the comment of createCommentEasyMDE() for the review editor
@@ -244,7 +266,7 @@ a.blob-excerpt:hover {
 
 #review-box .review-comments-counter {
   background-color: var(--color-primary-light-4);
-  color: #fff;
+  color: var(--color-primary-contrast);
 }
 
 #review-box:hover .review-comments-counter {
@@ -264,21 +286,31 @@ a.blob-excerpt:hover {
 }
 
 .changed-since-last-review {
-  margin: 0 5px;
-  padding: 0 3px;
-  border: 2px var(--color-primary-light-3) solid;
-  background-color: var(--color-primary-alpha-30);
-  border-radius: 7px;
+  border: 1px var(--color-accent) solid;
+  background-color: var(--color-small-accent);
+  border-radius: 15px;
+  padding: 4px 8px;
+  margin: -8px 0; // just like other buttons in the diff box header
+  font-size: .857rem; // just like .ui.tiny.button
 }
 
 .viewed-file-form {
-  margin: 0 3px;
-  padding: 0 3px;
-  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  border: 1px solid transparent;
+  padding: 4px 8px;
+  margin: -8px 0; // just like other buttons in the diff box header
+  border-radius: .285rem; // just like .ui.tiny.button
+  font-size: .857rem; // just like .ui.tiny.button
+}
+
+.viewed-file-form input {
+  margin-right: 4px;
 }
 
 .viewed-file-checked-form {
-  background-color: var(--color-primary-light-4);
+  background-color: var(--color-small-accent);
+  border-color: var(--color-accent);
 }
 
 #viewed-files-summary {

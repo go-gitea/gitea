@@ -131,7 +131,10 @@ func IsValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 			return nil
 		}
 
-		pemResult = permDoer.CanAccessAny(perm.AccessModeWrite, unit.TypePullRequests)
+		pemResult = doer.ID == issue.PosterID
+		if !pemResult {
+			pemResult = permDoer.CanAccessAny(perm.AccessModeWrite, unit.TypePullRequests)
+		}
 		if !pemResult {
 			pemResult, err = issues_model.IsOfficialReviewer(ctx, issue, doer)
 			if err != nil {
@@ -201,7 +204,7 @@ func IsValidTeamReviewRequest(ctx context.Context, reviewer *organization.Team, 
 		}
 
 		doerCanWrite := permission.CanAccessAny(perm.AccessModeWrite, unit.TypePullRequests)
-		if !doerCanWrite {
+		if !doerCanWrite && doer.ID != issue.PosterID {
 			official, err := issues_model.IsOfficialReviewer(ctx, issue, doer)
 			if err != nil {
 				log.Error("Unable to Check if IsOfficialReviewer for %-v in %-v#%d", doer, issue.Repo, issue.Index)

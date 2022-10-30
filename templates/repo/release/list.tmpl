@@ -77,14 +77,12 @@
 								<span class="ui green label">{{$.locale.Tr "repo.release.stable"}}</span>
 							{{end}}
 							<span class="tag text blue">
-								<a class="df ac je" href="{{if .IsDraft}}#{{else}}{{$.RepoLink}}/src/tag/{{.TagName | PathEscapeSegments}}{{end}}" rel="nofollow">{{svg "octicon-tag" 16 "mr-2"}}{{.TagName}}</a>
+								<a class="df ac je" href="{{if not .Sha1}}#{{else}}{{$.RepoLink}}/src/tag/{{.TagName | PathEscapeSegments}}{{end}}" rel="nofollow">{{svg "octicon-tag" 16 "mr-2"}}{{.TagName}}</a>
 							</span>
-							{{if not .IsDraft}}
+							{{if .Sha1}}
 								<span class="commit">
 									<a class="mono" href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "mr-2"}}{{ShortSha .Sha1}}</a>
 								</span>
-							{{end}}
-							{{if .Sha1 }}
 								{{template "repo/branch_dropdown" dict "root" $ "release" .}}
 							{{end}}
 						{{end}}
@@ -95,12 +93,12 @@
 								<a href="{{$.RepoLink}}/src/tag/{{.TagName | PathEscapeSegments}}" rel="nofollow">{{svg "octicon-tag" 16 "mr-2"}}{{.TagName}}</a>
 							</h4>
 							<p class="text grey">
-								{{ if gt .Publisher.ID 0 }}
+								{{if gt .Publisher.ID 0}}
 								<span class="author">
 									{{avatar .Publisher 20}}
 									<a href="{{.Publisher.HomeLink}}">{{.Publisher.Name}}</a>
 								</span>
-								{{ end }}
+								{{end}}
 								<span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | PathEscapeSegments}}{{if .Target}}...{{.Target | PathEscapeSegments}}{{end}}">{{$.locale.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{$.locale.Tr "repo.release.ahead.target" $.DefaultBranch}}</span>
 							</p>
 							<div class="download">
@@ -168,7 +166,7 @@
 													</span>
 												</span>
 												<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}">
-													<strong><span class="ui image" title='{{.Name}}'>{{svg "octicon-package" 16 "mr-2"}}</span>{{.Name}}</strong>
+													<strong>{{svg "octicon-package" 16 "mr-2"}}{{.Name}}</strong>
 												</a>
 											</li>
 										{{end}}

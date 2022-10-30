@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/packages/pub"
 	"code.gitea.io/gitea/modules/packages/pypi"
 	"code.gitea.io/gitea/modules/packages/rubygems"
+	"code.gitea.io/gitea/modules/packages/vagrant"
 
 	"github.com/hashicorp/go-version"
 )
@@ -150,6 +151,8 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 		metadata = &pypi.Metadata{}
 	case TypeRubyGems:
 		metadata = &rubygems.Metadata{}
+	case TypeVagrant:
+		metadata = &vagrant.Metadata{}
 	default:
 		panic(fmt.Sprintf("unknown package type: %s", string(p.Type)))
 	}

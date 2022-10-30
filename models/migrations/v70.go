@@ -38,7 +38,7 @@ func addIssueDependencies(x *xorm.Engine) (err error) {
 	)
 
 	if err = x.Sync(new(IssueDependency)); err != nil {
-		return fmt.Errorf("Error creating issue_dependency_table column definition: %v", err)
+		return fmt.Errorf("Error creating issue_dependency_table column definition: %w", err)
 	}
 
 	// Update Comment definition
@@ -76,7 +76,7 @@ func addIssueDependencies(x *xorm.Engine) (err error) {
 	}
 
 	if err = x.Sync(new(Comment)); err != nil {
-		return fmt.Errorf("Error updating issue_comment table column definition: %v", err)
+		return fmt.Errorf("Error updating issue_comment table column definition: %w", err)
 	}
 
 	// RepoUnit describes all units of a repository
@@ -93,7 +93,7 @@ func addIssueDependencies(x *xorm.Engine) (err error) {
 	units := make([]*RepoUnit, 0, 100)
 	err = x.Where("`type` = ?", v16UnitTypeIssues).Find(&units)
 	if err != nil {
-		return fmt.Errorf("Query repo units: %v", err)
+		return fmt.Errorf("Query repo units: %w", err)
 	}
 	for _, unit := range units {
 		if unit.Config == nil {

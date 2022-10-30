@@ -9,58 +9,53 @@ import (
 	"strings"
 
 	"github.com/yuin/goldmark/ast"
-	east "github.com/yuin/goldmark/extension/ast"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // RenderConfig represents rendering configuration for this file
 type RenderConfig struct {
-	Meta string
-	Icon string
-	TOC  bool
-	Lang string
+	Meta     string
+	Icon     string
+	TOC      bool
+	Lang     string
+	yamlNode *yaml.Node
 }
 
-// ToRenderConfig converts a yaml.MapSlice to a RenderConfig
-func (rc *RenderConfig) ToRenderConfig(meta yaml.MapSlice) {
-	if meta == nil {
-		return
+// UnmarshalYAML implement yaml.v3 UnmarshalYAML
+func (rc *RenderConfig) UnmarshalYAML(value *yaml.Node) error {
+	if rc == nil {
+		rc = &RenderConfig{
+			Meta: "table",
+			Icon: "table",
+			Lang: "",
+		}
 	}
-	found := false
-	var giteaMetaControl yaml.MapItem
-	for _, item := range meta {
-		strKey, ok := item.Key.(string)
-		if !ok {
-			continue
-		}
-		strKey = strings.TrimSpace(strings.ToLower(strKey))
-		switch strKey {
-		case "gitea":
-			giteaMetaControl = item
-			found = true
-		case "include_toc":
-			val, ok := item.Value.(bool)
-			if !ok {
-				continue
-			}
-			rc.TOC = val
-		case "lang":
-			val, ok := item.Value.(string)
-			if !ok {
-				continue
-			}
-			val = strings.TrimSpace(val)
-			if len(val) == 0 {
-				continue
-			}
-			rc.Lang = val
-		}
+	rc.yamlNode = value
+
+	type commonRenderConfig struct {
+		TOC  bool   `yaml:"include_toc"`
+		Lang string `yaml:"lang"`
+	}
+	var basic commonRenderConfig
+	if err := value.Decode(&basic); err != nil {
+		return fmt.Errorf("unable to decode into commonRenderConfig %w", err)
 	}
 
-	if found {
-		switch v := giteaMetaControl.Value.(type) {
-		case string:
-			switch v {
+	if basic.Lang != "" {
+		rc.Lang = basic.Lang
+	}
+
+	rc.TOC = basic.TOC
+
+	type controlStringRenderConfig struct {
+		Gitea string `yaml:"gitea"`
+	}
+
+	var stringBasic controlStringRenderConfig
+
+	if err := value.Decode(&stringBasic); err == nil {
+		if stringBasic.Gitea != "" {
+			switch strings.TrimSpace(strings.ToLower(stringBasic.Gitea)) {
 			case "none":
 				rc.Meta = "none"
 			case "table":
@@ -68,96 +63,65 @@ func (rc *RenderConfig) ToRenderConfig(meta yaml.MapSlice) {
 			default: // "details"
 				rc.Meta = "details"
 			}
-		case yaml.MapSlice:
-			for _, item := range v {
-				strKey, ok := item.Key.(string)
-				if !ok {
-					continue
-				}
-				strKey = strings.TrimSpace(strings.ToLower(strKey))
-				switch strKey {
-				case "meta":
-					val, ok := item.Value.(string)
-					if !ok {
-						continue
-					}
-					switch strings.TrimSpace(strings.ToLower(val)) {
-					case "none":
-						rc.Meta = "none"
-					case "table":
-						rc.Meta = "table"
-					default: // "details"
-						rc.Meta = "details"
-					}
-				case "details_icon":
-					val, ok := item.Value.(string)
-					if !ok {
-						continue
-					}
-					rc.Icon = strings.TrimSpace(strings.ToLower(val))
-				case "include_toc":
-					val, ok := item.Value.(bool)
-					if !ok {
-						continue
-					}
-					rc.TOC = val
-				case "lang":
-					val, ok := item.Value.(string)
-					if !ok {
-						continue
-					}
-					val = strings.TrimSpace(val)
-					if len(val) == 0 {
-						continue
-					}
-					rc.Lang = val
-				}
-			}
+		}
+		return nil
+	}
+
+	type giteaControl struct {
+		Meta *string `yaml:"meta"`
+		Icon *string `yaml:"details_icon"`
+		TOC  *bool   `yaml:"include_toc"`
+		Lang *string `yaml:"lang"`
+	}
+
+	type complexGiteaConfig struct {
+		Gitea *giteaControl `yaml:"gitea"`
+	}
+	var complex complexGiteaConfig
+	if err := value.Decode(&complex); err != nil {
+		return fmt.Errorf("unable to decode into complexRenderConfig %w", err)
+	}
+
+	if complex.Gitea == nil {
+		return nil
+	}
+
+	if complex.Gitea.Meta != nil {
+		switch strings.TrimSpace(strings.ToLower(*complex.Gitea.Meta)) {
+		case "none":
+			rc.Meta = "none"
+		case "table":
+			rc.Meta = "table"
+		default: // "details"
+			rc.Meta = "details"
 		}
 	}
+
+	if complex.Gitea.Icon != nil {
+		rc.Icon = strings.TrimSpace(strings.ToLower(*complex.Gitea.Icon))
+	}
+
+	if complex.Gitea.Lang != nil && *complex.Gitea.Lang != "" {
+		rc.Lang = *complex.Gitea.Lang
+	}
+
+	if complex.Gitea.TOC != nil {
+		rc.TOC = *complex.Gitea.TOC
+	}
+
+	return nil
 }
 
-func (rc *RenderConfig) toMetaNode(meta yaml.MapSlice) ast.Node {
+func (rc *RenderConfig) toMetaNode() ast.Node {
+	if rc.yamlNode == nil {
+		return nil
+	}
 	switch rc.Meta {
 	case "table":
-		return metaToTable(meta)
+		return nodeToTable(rc.yamlNode)
 	case "details":
-		return metaToDetails(meta, rc.Icon)
+		return nodeToDetails(rc.yamlNode, rc.Icon)
 	default:
 		return nil
 	}
-}
-
-func metaToTable(meta yaml.MapSlice) ast.Node {
-	table := east.NewTable()
-	alignments := []east.Alignment{}
-	for range meta {
-		alignments = append(alignments, east.AlignNone)
-	}
-	row := east.NewTableRow(alignments)
-	for _, item := range meta {
-		cell := east.NewTableCell()
-		cell.AppendChild(cell, ast.NewString([]byte(fmt.Sprintf("%v", item.Key))))
-		row.AppendChild(row, cell)
-	}
-	table.AppendChild(table, east.NewTableHeader(row))
-
-	row = east.NewTableRow(alignments)
-	for _, item := range meta {
-		cell := east.NewTableCell()
-		cell.AppendChild(cell, ast.NewString([]byte(fmt.Sprintf("%v", item.Value))))
-		row.AppendChild(row, cell)
-	}
-	table.AppendChild(table, row)
-	return table
-}
-
-func metaToDetails(meta yaml.MapSlice, icon string) ast.Node {
-	details := NewDetails()
-	summary := NewSummary()
-	summary.AppendChild(summary, NewIcon(icon))
-	details.AppendChild(details, summary)
-	details.AppendChild(details, metaToTable(meta))
-
-	return details
 }

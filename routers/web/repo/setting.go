@@ -30,7 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	mirror_module "code.gitea.io/gitea/modules/mirror"
-	"code.gitea.io/gitea/modules/repository"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/typesniffer"
@@ -43,6 +43,7 @@ import (
 	"code.gitea.io/gitea/services/mailer"
 	"code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
+	org_service "code.gitea.io/gitea/services/org"
 	repo_service "code.gitea.io/gitea/services/repository"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 )
@@ -607,7 +608,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 		repo.IsMirror = false
 
-		if _, err := repository.CleanUpMigrateInfo(ctx, repo); err != nil {
+		if _, err := repo_module.CleanUpMigrateInfo(ctx, repo); err != nil {
 			ctx.ServerError("CleanUpMigrateInfo", err)
 			return
 		} else if err = repo_model.DeleteMirrorByRepoID(ctx.Repo.Repository.ID); err != nil {
@@ -916,7 +917,20 @@ func CollaborationPost(ctx *context.Context) {
 		return
 	}
 
-	if err = models.AddCollaborator(ctx.Repo.Repository, u); err != nil {
+	// find the owner team of the organization the repo belongs too and
+	// check if the user we're trying to add is an owner.
+	if ctx.Repo.Repository.Owner.IsOrganization() {
+		if isOwner, err := organization.IsOrganizationOwner(ctx, ctx.Repo.Repository.Owner.ID, u.ID); err != nil {
+			ctx.ServerError("IsOrganizationOwner", err)
+			return
+		} else if isOwner {
+			ctx.Flash.Error(ctx.Tr("repo.settings.add_collaborator_owner"))
+			ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
+			return
+		}
+	}
+
+	if err = repo_module.AddCollaborator(ctx.Repo.Repository, u); err != nil {
 		ctx.ServerError("AddCollaborator", err)
 		return
 	}
@@ -989,8 +1003,8 @@ func AddTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if err = models.AddRepository(team, ctx.Repo.Repository); err != nil {
-		ctx.ServerError("team.AddRepository", err)
+	if err = org_service.TeamAddRepository(team, ctx.Repo.Repository); err != nil {
+		ctx.ServerError("TeamAddRepository", err)
 		return
 	}
 
@@ -1183,7 +1197,7 @@ func UpdateAvatarSetting(ctx *context.Context, form forms.AvatarForm) error {
 
 	r, err := form.Avatar.Open()
 	if err != nil {
-		return fmt.Errorf("Avatar.Open: %v", err)
+		return fmt.Errorf("Avatar.Open: %w", err)
 	}
 	defer r.Close()
 
@@ -1193,14 +1207,14 @@ func UpdateAvatarSetting(ctx *context.Context, form forms.AvatarForm) error {
 
 	data, err := io.ReadAll(r)
 	if err != nil {
-		return fmt.Errorf("io.ReadAll: %v", err)
+		return fmt.Errorf("io.ReadAll: %w", err)
 	}
 	st := typesniffer.DetectContentType(data)
 	if !(st.IsImage() && !st.IsSvgImage()) {
 		return errors.New(ctx.Tr("settings.uploaded_avatar_not_a_image"))
 	}
 	if err = repo_service.UploadAvatar(ctxRepo, data); err != nil {
-		return fmt.Errorf("UploadAvatar: %v", err)
+		return fmt.Errorf("UploadAvatar: %w", err)
 	}
 	return nil
 }

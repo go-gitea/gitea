@@ -7,13 +7,13 @@ package issue
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/models"
-	admin_model "code.gitea.io/gitea/models/admin"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/notification"
@@ -224,7 +224,12 @@ func deleteIssue(issue *issues_model.Issue) error {
 		return err
 	}
 
-	if err := models.DeleteIssueActions(ctx, issue.RepoID, issue.ID); err != nil {
+	if err := issues_model.UpdateMilestoneCounters(ctx, issue.MilestoneID); err != nil {
+		return fmt.Errorf("error updating counters for milestone id %d: %w",
+			issue.MilestoneID, err)
+	}
+
+	if err := activities_model.DeleteIssueActions(ctx, issue.RepoID, issue.ID); err != nil {
 		return err
 	}
 
@@ -234,7 +239,7 @@ func deleteIssue(issue *issues_model.Issue) error {
 	}
 
 	for i := range issue.Attachments {
-		admin_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete issue attachment", issue.Attachments[i].RelativePath())
+		system_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete issue attachment", issue.Attachments[i].RelativePath())
 	}
 
 	// delete all database data still assigned to this issue
@@ -245,7 +250,7 @@ func deleteIssue(issue *issues_model.Issue) error {
 		&issues_model.IssueDependency{},
 		&issues_model.IssueAssignees{},
 		&issues_model.IssueUser{},
-		&models.Notification{},
+		&activities_model.Notification{},
 		&issues_model.Reaction{},
 		&issues_model.IssueWatch{},
 		&issues_model.Stopwatch{},

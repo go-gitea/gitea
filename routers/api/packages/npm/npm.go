@@ -103,7 +103,50 @@ func DownloadPackageFile(ctx *context.Context) {
 	}
 	defer s.Close()
 
-	ctx.ServeStream(s, pf.Name)
+	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
+}
+
+// DownloadPackageFileByName finds the version and serves the contents of a package
+func DownloadPackageFileByName(ctx *context.Context) {
+	filename := ctx.Params("filename")
+
+	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
+		OwnerID: ctx.Package.Owner.ID,
+		Type:    packages_model.TypeNpm,
+		Name: packages_model.SearchValue{
+			ExactMatch: true,
+			Value:      packageNameFromParams(ctx),
+		},
+		HasFileWithName: filename,
+		IsInternal:      util.OptionalBoolFalse,
+	})
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if len(pvs) != 1 {
+		apiError(ctx, http.StatusNotFound, nil)
+		return
+	}
+
+	s, pf, err := packages_service.GetFileStreamByPackageVersion(
+		ctx,
+		pvs[0],
+		&packages_service.PackageFileInfo{
+			Filename: filename,
+		},
+	)
+	if err != nil {
+		if err == packages_model.ErrPackageFileNotExist {
+			apiError(ctx, http.StatusNotFound, err)
+			return
+		}
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	defer s.Close()
+
+	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
 }
 
 // UploadPackage creates a new package
@@ -349,4 +392,36 @@ func setPackageTag(tag string, pv *packages_model.PackageVersion, deleteOnly boo
 	}
 
 	return committer.Commit()
+}
+
+func PackageSearch(ctx *context.Context) {
+	pvs, total, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
+		OwnerID: ctx.Package.Owner.ID,
+		Type:    packages_model.TypeNpm,
+		Name: packages_model.SearchValue{
+			ExactMatch: false,
+			Value:      ctx.FormTrim("text"),
+		},
+		Paginator: db.NewAbsoluteListOptions(
+			ctx.FormInt("from"),
+			ctx.FormInt("size"),
+		),
+	})
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	resp := createPackageSearchResponse(
+		pds,
+		total,
+	)
+
+	ctx.JSON(http.StatusOK, resp)
 }

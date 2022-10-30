@@ -33,7 +33,7 @@ type GPGKey struct {
 	OwnerID           int64              `xorm:"INDEX NOT NULL"`
 	KeyID             string             `xorm:"INDEX CHAR(16) NOT NULL"`
 	PrimaryKeyID      string             `xorm:"CHAR(16)"`
-	Content           string             `xorm:"TEXT NOT NULL"`
+	Content           string             `xorm:"MEDIUMTEXT NOT NULL"`
 	CreatedUnix       timeutil.TimeStamp `xorm:"created"`
 	ExpiredUnix       timeutil.TimeStamp
 	AddedUnix         timeutil.TimeStamp
@@ -226,7 +226,7 @@ func DeleteGPGKey(doer *user_model.User, id int64) (err error) {
 		if IsErrGPGKeyNotExist(err) {
 			return nil
 		}
-		return fmt.Errorf("GetPublicKeyByID: %v", err)
+		return fmt.Errorf("GetPublicKeyByID: %w", err)
 	}
 
 	// Check if user has access to delete this key.
