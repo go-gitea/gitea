@@ -74,21 +74,31 @@ func InitGitServices() {
 	mustInit(repo_service.Init)
 }
 
-func syncAppPathForGit(ctx context.Context) error {
+func syncAppConfForGit(ctx context.Context) error {
 	runtimeState := new(appstate.RuntimeState)
 	if err := appstate.AppState.Get(runtimeState); err != nil {
 		return err
 	}
+
+	updated := false
 	if runtimeState.LastAppPath != setting.AppPath {
 		log.Info("AppPath changed from '%s' to '%s'", runtimeState.LastAppPath, setting.AppPath)
+		runtimeState.LastAppPath = setting.AppPath
+		updated = true
+	}
+	if runtimeState.LastCustomConf != setting.CustomConf {
+		log.Info("CustomConf changed from '%s' to '%s'", runtimeState.LastCustomConf, setting.CustomConf)
+		runtimeState.LastCustomConf = setting.CustomConf
+		updated = true
+	}
 
+	if updated {
 		log.Info("re-sync repository hooks ...")
 		mustInitCtx(ctx, repo_service.SyncRepositoryHooks)
 
 		log.Info("re-write ssh public keys ...")
 		mustInit(asymkey_model.RewriteAllPublicKeys)
 
-		runtimeState.LastAppPath = setting.AppPath
 		return appstate.AppState.Set(runtimeState)
 	}
 	return nil
@@ -153,7 +163,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	mustInit(repo_migrations.Init)
 	eventsource.GetManager().Init()
 
-	mustInitCtx(ctx, syncAppPathForGit)
+	mustInitCtx(ctx, syncAppConfForGit)
 
 	mustInit(ssh.Init)
 
