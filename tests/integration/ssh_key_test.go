@@ -166,7 +166,7 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 			otherSSHURL := createSSHUrl(otherCtx.GitPath(), u)
 			dstOtherPath := t.TempDir()
 
-			t.Run("DeleteRepository", doAPIDeleteRepository(ctx))
+			t.Run("DeleteRepository", doAPIDeleteRepository(ctxWithDeleteRepo))
 
 			t.Run("FailToCreateUserKeyAsStillDeploy", doAPICreateUserKey(failCtx, keyname, keyFile))
 

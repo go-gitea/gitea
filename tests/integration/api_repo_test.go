@@ -446,7 +446,7 @@ func TestAPIOrgRepoCreate(t *testing.T) {
 	for _, testCase := range testCases {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: testCase.ctxUserID})
 		session := loginUser(t, user.Name)
-		token := getTokenForLoggedInUser(t, session, "repo")
+		token := getTokenForLoggedInUser(t, session, "admin_org")
 		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/org/%s/repos?token="+token, testCase.orgName), &api.CreateRepoOption{
 			Name: testCase.repoName,
 		})
