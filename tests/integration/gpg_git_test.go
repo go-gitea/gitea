@@ -264,7 +264,7 @@ func TestGPGGit(t *testing.T) {
 
 		t.Run("UnsignedMerging", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-unsigned")
+			testCtx := NewAPITestContext(t, username, "initial-unsigned", "repo")
 			var err error
 			t.Run("CreatePullRequest", func(t *testing.T) {
 				pr, err = doAPICreatePullRequest(testCtx, testCtx.Username, testCtx.Reponame, "master", "never2")(t)
@@ -285,7 +285,7 @@ func TestGPGGit(t *testing.T) {
 
 		t.Run("BaseSignedMerging", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-unsigned")
+			testCtx := NewAPITestContext(t, username, "initial-unsigned", "repo")
 			var err error
 			t.Run("CreatePullRequest", func(t *testing.T) {
 				pr, err = doAPICreatePullRequest(testCtx, testCtx.Username, testCtx.Reponame, "master", "parentsigned2")(t)
@@ -306,7 +306,7 @@ func TestGPGGit(t *testing.T) {
 
 		t.Run("CommitsSignedMerging", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-unsigned")
+			testCtx := NewAPITestContext(t, username, "initial-unsigned", "repo")
 			var err error
 			t.Run("CreatePullRequest", func(t *testing.T) {
 				pr, err = doAPICreatePullRequest(testCtx, testCtx.Username, testCtx.Reponame, "master", "always-parentsigned")(t)

@@ -43,7 +43,7 @@ func TestGit(t *testing.T) {
 
 func testGit(t *testing.T, u *url.URL) {
 	username := "user2"
-	baseAPITestContext := NewAPITestContext(t, username, "repo1", "write_public_key")
+	baseAPITestContext := NewAPITestContext(t, username, "repo1", "repo", "write_public_key")
 
 	u.Path = baseAPITestContext.GitPath()
 
