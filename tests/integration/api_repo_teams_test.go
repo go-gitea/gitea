@@ -68,7 +68,7 @@ func TestAPIRepoTeams(t *testing.T) {
 	// AddTeam with user2
 	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session = loginUser(t, user.Name)
-	token = getTokenForLoggedInUser(t, session)
+	token = getTokenForLoggedInUser(t, session, "repo")
 	url = fmt.Sprintf("/api/v1/repos/%s/teams/%s?token=%s", publicOrgRepo.FullName(), "team1", token)
 	req = NewRequest(t, "PUT", url)
 	session.MakeRequest(t, req, http.StatusNoContent)

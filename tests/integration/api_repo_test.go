@@ -325,7 +325,7 @@ func TestAPIGetRepoByIDUnauthorized(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, "repo")
 	req := NewRequestf(t, "GET", "/api/v1/repositories/2?token="+token)
 	session.MakeRequest(t, req, http.StatusNotFound)
 }
@@ -585,7 +585,7 @@ func TestAPIAcceptTransfer(t *testing.T) {
 
 	// accept transfer
 	session = loginUser(t, "user4")
-	token = getTokenForLoggedInUser(t, session)
+	token = getTokenForLoggedInUser(t, session, "repo")
 
 	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/accept?token=%s", repo.OwnerName, repo.Name, token))
 	resp := session.MakeRequest(t, req, http.StatusAccepted)
