@@ -2,15 +2,7 @@ import {showTemporaryTooltip} from '../modules/tippy.js';
 
 const {copy_success, copy_error} = window.config.i18n;
 
-export async function copyToClipboard(text, shouldFetchForText) {
-  if (shouldFetchForText) {
-    try {
-      const response = await fetch(text, {method: 'GET', redirect: 'follow'});
-      text = await response.text();
-    } catch {
-      console.error(`failed to fetch text from ${text}`);
-    }
-  }
+export async function copyToClipboard(text) {
   try {
     await navigator.clipboard.writeText(text);
   } catch {
@@ -47,27 +39,19 @@ function fallbackCopyToClipboard(text) {
 
 // For all DOM elements with [data-clipboard-target] or [data-clipboard-text],
 // this copy-to-clipboard will work for them
-// If the target has the attribute [data-fetch-text] set to true, a fetch call happens to get the content
 export default function initGlobalCopyToClipboardListener() {
   document.addEventListener('click', (e) => {
     let target = e.target;
     // in case <button data-clipboard-text><svg></button>, so we just search
     // up to 3 levels for performance
     for (let i = 0; i < 3 && target; i++) {
-      const shouldFetchForText = target.getAttribute('data-fetch-text') === 'true';
-      let text;
-      const {clipboardTarget} = target.dataset;
-      if (shouldFetchForText) {
-        text = document.querySelector(clipboardTarget)?.href;
-      } else {
-        text = target.getAttribute('data-clipboard-text') || document.querySelector(clipboardTarget)?.value;
-      }
+      const text = target.getAttribute('data-clipboard-text') || document.querySelector(target.getAttribute('data-clipboard-target'))?.value;
 
       if (text) {
         e.preventDefault();
 
         (async() => {
-          const success = await copyToClipboard(text, shouldFetchForText);
+          const success = await copyToClipboard(text);
           showTemporaryTooltip(target, success ? copy_success : copy_error);
         })();
 
