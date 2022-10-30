@@ -122,7 +122,7 @@ func TestAPIEditGitHook(t *testing.T) {
 
 	// user1 is an admin user
 	session := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, session, "write_repo_hook")
+	token := getTokenForLoggedInUser(t, session, "admin_repo_hook")
 
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/hooks/git/pre-receive?token=%s",
 		owner.Name, repo.Name, token)
@@ -168,7 +168,7 @@ func TestAPIDeleteGitHook(t *testing.T) {
 
 	// user1 is an admin user
 	session := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, session, "write_repo_hook")
+	token := getTokenForLoggedInUser(t, session, "admin_repo_hook")
 
 	req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/hooks/git/pre-receive?token=%s",
 		owner.Name, repo.Name, token)
