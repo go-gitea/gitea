@@ -218,7 +218,7 @@ func reqToken(requiredScope string) func(ctx *context.APIContext) {
 			scope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
 			allow, err := scope.HasScope(requiredScope)
 			if err != nil {
-				ctx.Error(http.StatusUnauthorized, "reqToken", "parsing token failed")
+				ctx.Error(http.StatusUnauthorized, "reqToken", "parsing token failed: "+err.Error())
 				return
 			}
 			if !allow {
@@ -794,7 +794,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 		}, reqToken(""))
 
 		// Repositories
-		m.Post("/org/{org}/repos", reqToken("auth_model.AccessTokenScopeAdminOrg"), bind(api.CreateRepoOption{}), repo.CreateOrgRepoDeprecated)
+		m.Post("/org/{org}/repos", reqToken(auth_model.AccessTokenScopeAdminOrg), bind(api.CreateRepoOption{}), repo.CreateOrgRepoDeprecated)
 
 		m.Combo("/repositories/{id}", reqToken(auth_model.AccessTokenScopeRepo)).Get(repo.GetByID)
 

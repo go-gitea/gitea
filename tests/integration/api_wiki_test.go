@@ -219,7 +219,7 @@ func TestAPIListPageRevisions(t *testing.T) {
 	session := loginUser(t, username)
 	token := getTokenForLoggedInUser(t, session, "repo")
 
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/revisions/Home>token=%s", username, "repo1", token)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/revisions/Home?token=%s", username, "repo1", token)
 
 	req := NewRequest(t, "GET", urlStr)
 	resp := session.MakeRequest(t, req, http.StatusOK)
