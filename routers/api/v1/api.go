@@ -900,40 +900,39 @@ func Routes(ctx gocontext.Context) *web.Route {
 					m.Get("/pages", repo.ListWikiPages)
 				}, mustEnableWiki, reqToken(auth_model.AccessTokenScopeRepo))
 
-				// TODO: continue here
 				m.Group("/issues", func() {
 					m.Combo("").Get(repo.ListIssues).
-						Post(reqToken(""), mustNotBeArchived, bind(api.CreateIssueOption{}), repo.CreateIssue)
+						Post(mustNotBeArchived, bind(api.CreateIssueOption{}), repo.CreateIssue)
 					m.Group("/comments", func() {
 						m.Get("", repo.ListRepoIssueComments)
 						m.Group("/{id}", func() {
 							m.Combo("").
 								Get(repo.GetIssueComment).
-								Patch(mustNotBeArchived, reqToken(""), bind(api.EditIssueCommentOption{}), repo.EditIssueComment).
-								Delete(reqToken(""), repo.DeleteIssueComment)
+								Patch(mustNotBeArchived, bind(api.EditIssueCommentOption{}), repo.EditIssueComment).
+								Delete(repo.DeleteIssueComment)
 							m.Combo("/reactions").
 								Get(repo.GetIssueCommentReactions).
-								Post(reqToken(""), bind(api.EditReactionOption{}), repo.PostIssueCommentReaction).
-								Delete(reqToken(""), bind(api.EditReactionOption{}), repo.DeleteIssueCommentReaction)
+								Post(bind(api.EditReactionOption{}), repo.PostIssueCommentReaction).
+								Delete(bind(api.EditReactionOption{}), repo.DeleteIssueCommentReaction)
 						})
 					})
 					m.Group("/{index}", func() {
 						m.Combo("").Get(repo.GetIssue).
-							Patch(reqToken(""), bind(api.EditIssueOption{}), repo.EditIssue).
-							Delete(reqToken(""), reqAdmin(), repo.DeleteIssue)
+							Patch(bind(api.EditIssueOption{}), repo.EditIssue).
+							Delete(reqAdmin(), repo.DeleteIssue)
 						m.Group("/comments", func() {
 							m.Combo("").Get(repo.ListIssueComments).
-								Post(reqToken(""), mustNotBeArchived, bind(api.CreateIssueCommentOption{}), repo.CreateIssueComment)
+								Post(mustNotBeArchived, bind(api.CreateIssueCommentOption{}), repo.CreateIssueComment)
 							m.Combo("/{id}", reqToken("")).Patch(bind(api.EditIssueCommentOption{}), repo.EditIssueCommentDeprecated).
 								Delete(repo.DeleteIssueCommentDeprecated)
 						})
 						m.Get("/timeline", repo.ListIssueCommentsAndTimeline)
 						m.Group("/labels", func() {
 							m.Combo("").Get(repo.ListIssueLabels).
-								Post(reqToken(""), bind(api.IssueLabelsOption{}), repo.AddIssueLabels).
-								Put(reqToken(""), bind(api.IssueLabelsOption{}), repo.ReplaceIssueLabels).
-								Delete(reqToken(""), repo.ClearIssueLabels)
-							m.Delete("/{id}", reqToken(""), repo.DeleteIssueLabel)
+								Post(bind(api.IssueLabelsOption{}), repo.AddIssueLabels).
+								Put(bind(api.IssueLabelsOption{}), repo.ReplaceIssueLabels).
+								Delete(repo.ClearIssueLabels)
+							m.Delete("/{id}", repo.DeleteIssueLabel)
 						})
 						m.Group("/times", func() {
 							m.Combo("").
@@ -942,24 +941,24 @@ func Routes(ctx gocontext.Context) *web.Route {
 								Delete(repo.ResetIssueTime)
 							m.Delete("/{id}", repo.DeleteTime)
 						}, reqToken(""))
-						m.Combo("/deadline").Post(reqToken(""), bind(api.EditDeadlineOption{}), repo.UpdateIssueDeadline)
+						m.Combo("/deadline").Post(bind(api.EditDeadlineOption{}), repo.UpdateIssueDeadline)
 						m.Group("/stopwatch", func() {
-							m.Post("/start", reqToken(""), repo.StartIssueStopwatch)
-							m.Post("/stop", reqToken(""), repo.StopIssueStopwatch)
-							m.Delete("/delete", reqToken(""), repo.DeleteIssueStopwatch)
+							m.Post("/start", repo.StartIssueStopwatch)
+							m.Post("/stop", repo.StopIssueStopwatch)
+							m.Delete("/delete", repo.DeleteIssueStopwatch)
 						})
 						m.Group("/subscriptions", func() {
 							m.Get("", repo.GetIssueSubscribers)
-							m.Get("/check", reqToken(""), repo.CheckIssueSubscription)
-							m.Put("/{user}", reqToken(""), repo.AddIssueSubscription)
-							m.Delete("/{user}", reqToken(""), repo.DelIssueSubscription)
+							m.Get("/check", repo.CheckIssueSubscription)
+							m.Put("/{user}", repo.AddIssueSubscription)
+							m.Delete("/{user}", repo.DelIssueSubscription)
 						})
 						m.Combo("/reactions").
 							Get(repo.GetIssueReactions).
-							Post(reqToken(""), bind(api.EditReactionOption{}), repo.PostIssueReaction).
-							Delete(reqToken(""), bind(api.EditReactionOption{}), repo.DeleteIssueReaction)
+							Post(bind(api.EditReactionOption{}), repo.PostIssueReaction).
+							Delete(bind(api.EditReactionOption{}), repo.DeleteIssueReaction)
 					})
-				}, mustEnableIssuesOrPulls)
+				}, mustEnableIssuesOrPulls, reqToken(auth_model.AccessTokenScopeRepo))
 				m.Group("/labels", func() {
 					m.Combo("").Get(repo.ListLabels).
 						Post(reqToken(""), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.CreateLabelOption{}), repo.CreateLabel)

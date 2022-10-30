@@ -97,7 +97,7 @@ func TestAPIAddIssueLabels(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, "repo")
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels?token=%s",
 		repo.OwnerName, repo.Name, issue.Index, token)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.IssueLabelsOption{
@@ -120,7 +120,7 @@ func TestAPIReplaceIssueLabels(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, "repo")
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels?token=%s",
 		owner.Name, repo.Name, issue.Index, token)
 	req := NewRequestWithJSON(t, "PUT", urlStr, &api.IssueLabelsOption{
@@ -144,7 +144,7 @@ func TestAPIModifyOrgLabels(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	user := "user1"
 	session := loginUser(t, user)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, "repo")
 	urlStr := fmt.Sprintf("/api/v1/orgs/%s/labels?token=%s", owner.Name, token)
 
 	// CreateLabel
