@@ -43,6 +43,10 @@ func (err ErrUserDoesNotHaveAccessToRepo) Error() string {
 	return fmt.Sprintf("user doesn't have access to repo [user_id: %d, repo_name: %s]", err.UserID, err.RepoName)
 }
 
+func (err ErrUserDoesNotHaveAccessToRepo) Unwrap() error {
+	return util.ErrPermissionDenied
+}
+
 var (
 	reservedRepoNames    = []string{".", "..", "-"}
 	reservedRepoPatterns = []string{"*.git", "*.wiki", "*.rss", "*.atom"}
@@ -643,6 +647,11 @@ func (err ErrRepoNotExist) Error() string {
 		err.ID, err.UID, err.OwnerName, err.Name)
 }
 
+// Unwrap unwraps this error as a ErrNotExist error
+func (err ErrRepoNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // GetRepositoryByOwnerAndNameCtx returns the repository by given owner name and repo name
 func GetRepositoryByOwnerAndNameCtx(ctx context.Context, ownerName, repoName string) (*Repository, error) {
 	var repo Repository
@@ -751,40 +760,35 @@ func CountRepositories(ctx context.Context, opts CountRepositoryOptions) (int64,
 
 	count, err := sess.Count(new(Repository))
 	if err != nil {
-		return 0, fmt.Errorf("countRepositories: %v", err)
+		return 0, fmt.Errorf("countRepositories: %w", err)
 	}
 	return count, nil
 }
 
-// StatsCorrectNumClosed update repository's issue related numbers
-func StatsCorrectNumClosed(ctx context.Context, id int64, isPull bool, field string) error {
-	_, err := db.Exec(ctx, "UPDATE `repository` SET "+field+"=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, isPull, id)
-	return err
-}
-
-// UpdateRepoIssueNumbers update repository issue numbers
+// UpdateRepoIssueNumbers updates one of a repositories amount of (open|closed) (issues|PRs) with the current count
 func UpdateRepoIssueNumbers(ctx context.Context, repoID int64, isPull, isClosed bool) error {
-	e := db.GetEngine(ctx)
-	if isPull {
-		if _, err := e.ID(repoID).Decr("num_pulls").Update(new(Repository)); err != nil {
-			return err
-		}
-		if isClosed {
-			if _, err := e.ID(repoID).Decr("num_closed_pulls").Update(new(Repository)); err != nil {
-				return err
-			}
-		}
-	} else {
-		if _, err := e.ID(repoID).Decr("num_issues").Update(new(Repository)); err != nil {
-			return err
-		}
-		if isClosed {
-			if _, err := e.ID(repoID).Decr("num_closed_issues").Update(new(Repository)); err != nil {
-				return err
-			}
-		}
+	field := "num_"
+	if isClosed {
+		field += "closed_"
 	}
-	return nil
+	if isPull {
+		field += "pulls"
+	} else {
+		field += "issues"
+	}
+
+	subQuery := builder.Select("count(*)").
+		From("issue").Where(builder.Eq{
+		"repo_id": repoID,
+		"is_pull": isPull,
+	}.And(builder.If(isClosed, builder.Eq{"is_closed": isClosed})))
+
+	// builder.Update(cond) will generate SQL like UPDATE ... SET cond
+	query := builder.Update(builder.Eq{field: subQuery}).
+		From("repository").
+		Where(builder.Eq{"id": repoID})
+	_, err := db.Exec(ctx, query)
+	return err
 }
 
 // CountNullArchivedRepository counts the number of repositories with is_archived is null

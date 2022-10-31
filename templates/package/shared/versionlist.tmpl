@@ -3,11 +3,17 @@
 	<form class="ui form ignore-dirty">
 		<div class="ui fluid action input">
 			<input name="q" value="{{.Query}}" placeholder="{{.locale.Tr "explore.search"}}..." autofocus>
+			<select class="ui dropdown" name="sort">
+				<option value="version_asc"{{if eq .Sort "version_asc"}} selected="selected"{{end}}>{{.locale.Tr "filter.string.asc"}}</option>
+				<option value="version_desc"{{if eq .Sort "version_desc"}} selected="selected"{{end}}>{{.locale.Tr "filter.string.desc"}}</option>
+				<option value="created_asc"{{if eq .Sort "created_asc"}} selected="selected"{{end}}>{{.locale.Tr "repo.issues.filter_sort.oldest"}}</option>
+				<option value="created_desc"{{if or (eq .Sort "") (eq .Sort "created_desc")}} selected="selected"{{end}}>{{.locale.Tr "repo.issues.filter_sort.latest"}}</option>
+			</select>
 			{{if eq .PackageDescriptor.Package.Type "container"}}
 			<select class="ui dropdown" name="tagged">
 				{{$isTagged := or (eq .Tagged "") (eq .Tagged "tagged")}}
-				<option value="tagged" {{if $isTagged}}selected="selected"{{end}}>{{.locale.Tr "packages.filter.container.tagged"}}</option>
-				<option value="untagged" {{if not $isTagged}}selected="selected"{{end}}>{{.locale.Tr "packages.filter.container.untagged"}}</option>
+				<option value="tagged"{{if $isTagged}} selected="selected"{{end}}>{{.locale.Tr "packages.filter.container.tagged"}}</option>
+				<option value="untagged"{{if not $isTagged}} selected="selected"{{end}}>{{.locale.Tr "packages.filter.container.untagged"}}</option>
 			</select>
 			{{end}}
 			<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>

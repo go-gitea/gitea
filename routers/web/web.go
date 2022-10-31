@@ -296,12 +296,19 @@ func RegisterRoutes(m *web.Route) {
 		}
 	}
 
+	sitemapEnabled := func(ctx *context.Context) {
+		if !setting.EnableSitemap {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+	}
+
 	// FIXME: not all routes need go through same middleware.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 	// Routers.
 	// for health check
 	m.Get("/", Home)
-	m.Get("/sitemap.xml", ignExploreSignIn, HomeSitemap)
+	m.Get("/sitemap.xml", sitemapEnabled, ignExploreSignIn, HomeSitemap)
 	m.Group("/.well-known", func() {
 		m.Get("/openid-configuration", auth.OIDCWellKnown)
 		m.Group("", func() {
@@ -318,9 +325,9 @@ func RegisterRoutes(m *web.Route) {
 			ctx.Redirect(setting.AppSubURL + "/explore/repos")
 		})
 		m.Get("/repos", explore.Repos)
-		m.Get("/repos/sitemap-{idx}.xml", explore.Repos)
+		m.Get("/repos/sitemap-{idx}.xml", sitemapEnabled, explore.Repos)
 		m.Get("/users", explore.Users)
-		m.Get("/users/sitemap-{idx}.xml", explore.Users)
+		m.Get("/users/sitemap-{idx}.xml", sitemapEnabled, explore.Users)
 		m.Get("/organizations", explore.Organizations)
 		m.Get("/code", explore.Code)
 		m.Get("/topics/search", explore.TopicSearch)
@@ -473,8 +480,13 @@ func RegisterRoutes(m *web.Route) {
 	m.Group("/admin", func() {
 		m.Get("", adminReq, admin.Dashboard)
 		m.Post("", adminReq, bindIgnErr(forms.AdminDashboardForm{}), admin.DashboardPost)
-		m.Get("/config", admin.Config)
-		m.Post("/config/test_mail", admin.SendTestMail)
+
+		m.Group("/config", func() {
+			m.Get("", admin.Config)
+			m.Post("", admin.ChangeConfig)
+			m.Post("/test_mail", admin.SendTestMail)
+		})
+
 		m.Group("/monitor", func() {
 			m.Get("", admin.Monitor)
 			m.Get("/stacktrace", admin.GoroutineStacktrace)
@@ -586,6 +598,7 @@ func RegisterRoutes(m *web.Route) {
 		})
 	}, func(ctx *context.Context) {
 		ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
+		ctx.Data["EnablePackages"] = setting.Packages.Enabled
 	}, adminReq)
 	// ***** END: Admin *****
 
@@ -644,6 +657,11 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("", func() {
 			m.Get("/create", org.Create)
 			m.Post("/create", bindIgnErr(forms.CreateOrgForm{}), org.CreatePost)
+		})
+
+		m.Group("/invite/{token}", func() {
+			m.Get("", org.TeamInvite)
+			m.Post("", org.TeamInvitePost)
 		})
 
 		m.Group("/{org}", func() {

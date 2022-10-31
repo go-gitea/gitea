@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/user"
@@ -451,6 +452,7 @@ var (
 	RunUser       string
 	IsWindows     bool
 	HasRobotsTxt  bool
+	EnableSitemap bool
 	InternalToken string // internal access token
 )
 
@@ -603,6 +605,13 @@ func LoadForTest(extraConfigs ...string) {
 func deprecatedSetting(oldSection, oldKey, newSection, newKey string) {
 	if Cfg.Section(oldSection).HasKey(oldKey) {
 		log.Error("Deprecated fallback `[%s]` `%s` present. Use `[%s]` `%s` instead. This fallback will be removed in v1.18.0", oldSection, oldKey, newSection, newKey)
+	}
+}
+
+// deprecatedSettingDB add a hint that the configuration has been moved to database but still kept in app.ini
+func deprecatedSettingDB(oldSection, oldKey string) {
+	if Cfg.Section(oldSection).HasKey(oldKey) {
+		log.Error("Deprecated `[%s]` `%s` present which has been copied to database table sys_setting", oldSection, oldKey)
 	}
 }
 
@@ -955,6 +964,11 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
 
 	InternalToken = loadSecret(sec, "INTERNAL_TOKEN_URI", "INTERNAL_TOKEN")
+	if InstallLock && InternalToken == "" {
+		// if Gitea has been installed but the InternalToken hasn't been generated (upgrade from an old release), we should generate
+		// some users do cluster deployment, they still depend on this auto-generating behavior.
+		generateSaveInternalToken()
+	}
 
 	cfgdata := sec.Key("PASSWORD_COMPLEXITY").Strings(",")
 	if len(cfgdata) == 0 {
@@ -1087,6 +1101,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	ShowFooterBranding = Cfg.Section("other").Key("SHOW_FOOTER_BRANDING").MustBool(false)
 	ShowFooterVersion = Cfg.Section("other").Key("SHOW_FOOTER_VERSION").MustBool(true)
 	ShowFooterTemplateLoadTime = Cfg.Section("other").Key("SHOW_FOOTER_TEMPLATE_LOAD_TIME").MustBool(true)
+	EnableSitemap = Cfg.Section("other").Key("ENABLE_SITEMAP").MustBool(true)
 
 	UI.ShowUserEmail = Cfg.Section("ui").Key("SHOW_USER_EMAIL").MustBool(true)
 	UI.DefaultShowFullName = Cfg.Section("ui").Key("DEFAULT_SHOW_FULL_NAME").MustBool(false)
@@ -1173,6 +1188,19 @@ func loadSecret(sec *ini.Section, uriKey, verbatimKey string) string {
 		log.Fatal("Unsupported URI-Scheme %q (INTERNAL_TOKEN_URI = %q)", tempURI.Scheme, uri)
 		return ""
 	}
+}
+
+// generateSaveInternalToken generates and saves the internal token to app.ini
+func generateSaveInternalToken() {
+	token, err := generate.NewInternalToken()
+	if err != nil {
+		log.Fatal("Error generate internal token: %v", err)
+	}
+
+	InternalToken = token
+	CreateOrAppendToCustomConf("security.INTERNAL_TOKEN", func(cfg *ini.File) {
+		cfg.Section("security").Key("INTERNAL_TOKEN").SetValue(token)
+	})
 }
 
 // MakeAbsoluteAssetURL returns the absolute asset url prefix without a trailing slash

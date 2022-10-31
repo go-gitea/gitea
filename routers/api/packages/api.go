@@ -58,6 +58,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 	authGroup := auth.NewGroup(authMethods...)
 	r.Use(func(ctx *context.Context) {
 		ctx.Doer = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		ctx.IsSigned = ctx.Doer != nil
 	})
 
 	r.Group("/{username}", func() {
@@ -215,6 +216,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 					r.Get("", npm.DownloadPackageFile)
 					r.Delete("/-rev/{revision}", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
 				})
+				r.Get("/-/{filename}", npm.DownloadPackageFileByName)
 				r.Group("/-rev/{revision}", func() {
 					r.Delete("", npm.DeletePackage)
 					r.Put("", npm.DeletePreview)
@@ -227,6 +229,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 					r.Get("", npm.DownloadPackageFile)
 					r.Delete("/-rev/{revision}", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
 				})
+				r.Get("/-/{filename}", npm.DownloadPackageFileByName)
 				r.Group("/-rev/{revision}", func() {
 					r.Delete("", npm.DeletePackage)
 					r.Put("", npm.DeletePreview)
@@ -314,6 +317,7 @@ func ContainerRoutes(ctx gocontext.Context) *web.Route {
 	authGroup := auth.NewGroup(authMethods...)
 	r.Use(func(ctx *context.Context) {
 		ctx.Doer = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		ctx.IsSigned = ctx.Doer != nil
 	})
 
 	r.Get("", container.ReqContainerAccess, container.DetermineSupport)
