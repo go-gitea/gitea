@@ -21,10 +21,9 @@ import (
 func iteratePRs(ctx context.Context, repo *repo_model.Repository, each func(*repo_model.Repository, *issues_model.PullRequest) error) error {
 	return db.Iterate(
 		ctx,
-		new(issues_model.PullRequest),
 		builder.Eq{"base_repo_id": repo.ID},
-		func(idx int, bean interface{}) error {
-			return each(repo, bean.(*issues_model.PullRequest))
+		func(ctx context.Context, bean *issues_model.PullRequest) error {
+			return each(repo, bean)
 		},
 	)
 }
