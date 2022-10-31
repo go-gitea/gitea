@@ -94,7 +94,7 @@ func TestGPGGit(t *testing.T) {
 
 		t.Run("Unsigned-Initial-CRUD-ParentSigned", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-unsigned")
+			testCtx := NewAPITestContext(t, username, "initial-unsigned", "repo")
 			t.Run("CreateCRUDFile-ParentSigned", crudActionCreateFile(
 				t, testCtx, user, "master", "parentsigned", "signed-parent.txt", func(t *testing.T, response api.FileResponse) {
 					assert.False(t, response.Verification.Verified)
@@ -111,7 +111,7 @@ func TestGPGGit(t *testing.T) {
 
 		t.Run("Unsigned-Initial-CRUD-Never", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-unsigned")
+			testCtx := NewAPITestContext(t, username, "initial-unsigned", "repo")
 			t.Run("CreateCRUDFile-Never", crudActionCreateFile(
 				t, testCtx, user, "parentsigned", "parentsigned-never", "unsigned-never2.txt", func(t *testing.T, response api.FileResponse) {
 					assert.False(t, response.Verification.Verified)
@@ -124,7 +124,7 @@ func TestGPGGit(t *testing.T) {
 
 		t.Run("Unsigned-Initial-CRUD-Always", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-unsigned")
+			testCtx := NewAPITestContext(t, username, "initial-unsigned", "repo")
 			t.Run("CreateCRUDFile-Always", crudActionCreateFile(
 				t, testCtx, user, "master", "always", "signed-always.txt", func(t *testing.T, response api.FileResponse) {
 					assert.NotNil(t, response.Verification)
@@ -161,7 +161,7 @@ func TestGPGGit(t *testing.T) {
 
 		t.Run("Unsigned-Initial-CRUD-ParentSigned", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-unsigned")
+			testCtx := NewAPITestContext(t, username, "initial-unsigned", "repo")
 			t.Run("CreateCRUDFile-Always-ParentSigned", crudActionCreateFile(
 				t, testCtx, user, "always", "always-parentsigned", "signed-always-parentsigned.txt", func(t *testing.T, response api.FileResponse) {
 					assert.NotNil(t, response.Verification)

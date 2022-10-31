@@ -358,7 +358,7 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 		t.Run("CreateBranchProtected", doGitCreateBranch(dstPath, "protected"))
 		t.Run("PushProtectedBranch", doGitPushTestRepository(dstPath, "origin", "protected"))
 
-		ctx := NewAPITestContext(t, baseCtx.Username, baseCtx.Reponame)
+		ctx := NewAPITestContext(t, baseCtx.Username, baseCtx.Reponame, "repo")
 		t.Run("ProtectProtectedBranchNoWhitelist", doProtectBranch(ctx, "protected", "", ""))
 		t.Run("GenerateCommit", func(t *testing.T) {
 			_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-")
@@ -602,7 +602,7 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 	return func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		ctx := NewAPITestContext(t, baseCtx.Username, baseCtx.Reponame)
+		ctx := NewAPITestContext(t, baseCtx.Username, baseCtx.Reponame, "repo")
 
 		t.Run("CheckoutProtected", doGitCheckoutBranch(dstPath, "protected"))
 		t.Run("PullProtected", doGitPull(dstPath, "origin", "protected"))

@@ -49,7 +49,8 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 	assert.NotEmpty(t, commitURL)
 
 	// Call API to add status for commit
-	t.Run("CreateStatus", doAPICreateCommitStatus(NewAPITestContext(t, "user2", "repo1"), path.Base(commitURL), api.CommitStatusState(state)))
+	ctx := NewAPITestContext(t, "user2", "repo1", "repo")
+	t.Run("CreateStatus", doAPICreateCommitStatus(ctx, path.Base(commitURL), api.CommitStatusState(state)))
 
 	req = NewRequest(t, "GET", "/user2/repo1/commits/branch/master")
 	resp = session.MakeRequest(t, req, http.StatusOK)

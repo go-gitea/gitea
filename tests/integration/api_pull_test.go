@@ -28,7 +28,7 @@ func TestAPIViewPulls(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-	ctx := NewAPITestContext(t, "user2", repo.Name)
+	ctx := NewAPITestContext(t, "user2", repo.Name, "repo")
 
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls?state=all&token="+ctx.Token, owner.Name, repo.Name)
 	resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
@@ -74,7 +74,7 @@ func TestAPIMergePullWIP(t *testing.T) {
 	assert.Contains(t, pr.Issue.Title, setting.Repository.PullRequest.WorkInProgressPrefixes[0])
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, "repo")
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s", owner.Name, repo.Name, pr.Index, token), &forms.MergePullRequestForm{
 		MergeMessageField: pr.Issue.Title,
 		Do:                string(repo_model.MergeStyleMerge),
@@ -93,7 +93,7 @@ func TestAPICreatePullSuccess(t *testing.T) {
 	owner11 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo11.OwnerID})
 
 	session := loginUser(t, owner11.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, "repo")
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls?token=%s", owner10.Name, repo10.Name, token), &api.CreatePullRequestOption{
 		Head:  fmt.Sprintf("%s:master", owner11.Name),
 		Base:  "master",
@@ -113,7 +113,7 @@ func TestAPICreatePullWithFieldsSuccess(t *testing.T) {
 	owner11 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo11.OwnerID})
 
 	session := loginUser(t, owner11.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, "repo")
 
 	opts := &api.CreatePullRequestOption{
 		Head:      fmt.Sprintf("%s:master", owner11.Name),
@@ -150,7 +150,7 @@ func TestAPICreatePullWithFieldsFailure(t *testing.T) {
 	owner11 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo11.OwnerID})
 
 	session := loginUser(t, owner11.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, "repo")
 
 	opts := &api.CreatePullRequestOption{
 		Head: fmt.Sprintf("%s:master", owner11.Name),
@@ -180,7 +180,7 @@ func TestAPIEditPull(t *testing.T) {
 	owner10 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo10.OwnerID})
 
 	session := loginUser(t, owner10.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, "repo")
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls?token=%s", owner10.Name, repo10.Name, token), &api.CreatePullRequestOption{
 		Head:  "develop",
 		Base:  "master",
