@@ -6,6 +6,7 @@ package git
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -24,6 +25,8 @@ import (
 	"github.com/gobwas/glob"
 	"github.com/gobwas/glob/syntax"
 )
+
+var ErrBranchIsProtected = errors.New("branch is protected")
 
 // ProtectedBranch struct
 type ProtectedBranch struct {

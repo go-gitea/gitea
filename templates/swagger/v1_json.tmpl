@@ -14645,6 +14645,10 @@
       "description": "CreateOAuth2ApplicationOptions holds options to create an oauth2 application",
       "type": "object",
       "properties": {
+        "confidential_client": {
+          "type": "boolean",
+          "x-go-name": "ConfidentialClient"
+        },
         "name": {
           "type": "string",
           "x-go-name": "Name"
@@ -17305,6 +17309,10 @@
         "client_secret": {
           "type": "string",
           "x-go-name": "ClientSecret"
+        },
+        "confidential_client": {
+          "type": "boolean",
+          "x-go-name": "ConfidentialClient"
         },
         "created": {
           "type": "string",

@@ -6,7 +6,6 @@ package git
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -16,8 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 )
-
-var ErrBranchIsProtected = errors.New("branch is protected")
 
 // DeletedBranch struct
 type DeletedBranch struct {

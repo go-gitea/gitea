@@ -42,7 +42,7 @@ func CreateNewBranch(ctx context.Context, doer *user_model.User, repo *repo_mode
 		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
 			return err
 		}
-		return fmt.Errorf("Push: %v", err)
+		return fmt.Errorf("Push: %w", err)
 	}
 
 	return nil
@@ -99,7 +99,7 @@ func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo 
 		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
 			return err
 		}
-		return fmt.Errorf("Push: %v", err)
+		return fmt.Errorf("Push: %w", err)
 	}
 
 	return nil
