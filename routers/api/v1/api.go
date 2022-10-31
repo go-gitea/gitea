@@ -1095,11 +1095,11 @@ func Routes(ctx gocontext.Context) *web.Route {
 
 		m.Group("/packages/{username}", func() {
 			m.Group("/{type}/{name}/{version}", func() {
-				m.Get("", packages.GetPackage)
-				m.Delete("", reqPackageAccess(perm.AccessModeWrite), packages.DeletePackage)
-				m.Get("/files", packages.ListPackageFiles)
+				m.Get("", reqToken(auth_model.AccessTokenScopeReadPackage), packages.GetPackage)
+				m.Delete("", reqToken(auth_model.AccessTokenScopeDeletePackage), reqPackageAccess(perm.AccessModeWrite), packages.DeletePackage)
+				m.Get("/files", reqToken(auth_model.AccessTokenScopeReadPackage), packages.ListPackageFiles)
 			})
-			m.Get("/", packages.ListPackages)
+			m.Get("/", reqToken(auth_model.AccessTokenScopeReadPackage), packages.ListPackages)
 		}, context_service.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead))
 
 		// Organizations

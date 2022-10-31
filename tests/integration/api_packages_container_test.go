@@ -30,6 +30,8 @@ func TestPackageContainer(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, "read_package")
 
 	has := func(l packages_model.PackagePropertyList, name string) bool {
 		for _, pp := range l {
@@ -546,7 +548,7 @@ func TestPackageContainer(t *testing.T) {
 					assert.Equal(t, c.ExpectedLink, resp.Header().Get("Link"))
 				}
 
-				req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s?type=container&q=%s", user.Name, image))
+				req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s?type=container&q=%s&token=%s", user.Name, image, token))
 				resp := MakeRequest(t, req, http.StatusOK)
 
 				var apiPackages []*api.Package
