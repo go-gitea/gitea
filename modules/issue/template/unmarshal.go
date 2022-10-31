@@ -95,14 +95,20 @@ func unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 	}{}
 
 	if typ := it.Type(); typ == api.IssueTemplateTypeMarkdown {
-		templateBody, err := markdown.ExtractMetadata(string(content), it)
-		if err != nil {
-			return nil, err
-		}
-		it.Content = templateBody
-		if it.About == "" {
-			if _, err := markdown.ExtractMetadata(string(content), compatibleTemplate); err == nil && compatibleTemplate.About != "" {
-				it.About = compatibleTemplate.About
+		if templateBody, err := markdown.ExtractMetadata(string(content), it); err != nil {
+			// can't extract metadata, so it could be a pure markdown.
+			it.Content = string(content)
+			it.Name = filepath.Base(it.FileName)
+			it.About = it.Content
+			if max := 80; len(it.About) > max {
+				it.About = it.About[:max] + "..."
+			}
+		} else {
+			it.Content = templateBody
+			if it.About == "" {
+				if _, err := markdown.ExtractMetadata(string(content), compatibleTemplate); err == nil && compatibleTemplate.About != "" {
+					it.About = compatibleTemplate.About
+				}
 			}
 		}
 	} else if typ == api.IssueTemplateTypeYaml {
