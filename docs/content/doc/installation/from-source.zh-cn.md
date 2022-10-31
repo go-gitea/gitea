@@ -54,7 +54,7 @@ git checkout v{{< version >}}
 
 - `go` {{< min-go-version >}} 或以上版本, 详见[这里](https://golang.google.cn/doc/install)
 - `node` {{< min-node-version >}} 或以上版本，并且安装 `npm`, 详见[这里](https://nodejs.org/zh-cn/download/)
-- `make`, 详见[这里]({{< relref "make.zh-cn.md" >}})</a>
+- `make`, 详见[这里]({{< relref "doc/developers/hacking-on-gitea.zh-cn.md" >}})</a>
 
 各种可用的 [make 任务](https://github.com/go-gitea/gitea/blob/main/Makefile)
 可以用来使编译过程更方便。
