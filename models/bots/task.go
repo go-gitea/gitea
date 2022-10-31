@@ -12,13 +12,17 @@ import (
 	"fmt"
 	"io"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/bots"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 	"xorm.io/builder"
 
+	gouuid "github.com/google/uuid"
 	"github.com/nektos/act/pkg/jobparser"
 )
 
@@ -34,6 +38,11 @@ type Task struct {
 	Status   Status `xorm:"index"`
 	Started  timeutil.TimeStamp
 	Stopped  timeutil.TimeStamp
+
+	Token          string `xorm:"-"`
+	TokenHash      string `xorm:"UNIQUE"` // sha256 of token
+	TokenSalt      string
+	TokenLastEight string `xorm:"token_last_eight"`
 
 	LogFilename  string      // file name of log
 	LogInStorage bool        // read log from database or from storage
@@ -139,6 +148,18 @@ func (task *Task) FullSteps() []*TaskStep {
 	return steps
 }
 
+func (task *Task) GenerateToken() error {
+	salt, err := util.CryptoRandomString(10)
+	if err != nil {
+		return err
+	}
+	task.TokenSalt = salt
+	task.Token = base.EncodeSha1(gouuid.New().String())
+	task.TokenHash = auth_model.HashToken(task.Token, task.TokenSalt)
+	task.TokenLastEight = task.Token[len(task.Token)-8:]
+	return nil
+}
+
 type LogIndexes []int64
 
 func (i *LogIndexes) FromDB(b []byte) error {
@@ -240,14 +261,17 @@ func CreateTaskForRunner(ctx context.Context, runner *Runner) (*Task, bool, erro
 		Started:  now,
 		Status:   StatusRunning,
 	}
+	if err := task.GenerateToken(); err != nil {
+		return nil, false, err
+	}
 
-	var wolkflowJob *jobparser.Job
+	var workflowJob *jobparser.Job
 	if gots, err := jobparser.Parse(job.WorkflowPayload); err != nil {
 		return nil, false, fmt.Errorf("parse workflow of job %d: %w", job.ID, err)
 	} else if len(gots) != 1 {
 		return nil, false, fmt.Errorf("workflow of job %d: not signle workflow", job.ID)
 	} else {
-		_, wolkflowJob = gots[0].Job()
+		_, workflowJob = gots[0].Job()
 	}
 
 	if _, err := e.Insert(task); err != nil {
@@ -259,8 +283,8 @@ func CreateTaskForRunner(ctx context.Context, runner *Runner) (*Task, bool, erro
 		return nil, false, err
 	}
 
-	steps := make([]*TaskStep, len(wolkflowJob.Steps))
-	for i, v := range wolkflowJob.Steps {
+	steps := make([]*TaskStep, len(workflowJob.Steps))
+	for i, v := range workflowJob.Steps {
 		steps[i] = &TaskStep{
 			Name:   v.String(),
 			TaskID: task.ID,

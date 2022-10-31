@@ -294,16 +294,23 @@ func pickTask(ctx context.Context, runner *bots_model.Runner) (*runnerv1.Task, b
 		"ref_type":         "",
 		"head_ref":         "",
 		"base_ref":         "",
-		"token":            "",
+		"token":            t.Token,
 		"repository_owner": fmt.Sprint(t.Job.Run.Repo.OwnerName),
 		"retention_days":   "",
 	})
+	secrets := getSecretsOfTask(ctx, t)
+	if _, ok := secrets["GITHUB_TOKEN"]; !ok {
+		secrets["GITHUB_TOKEN"] = t.Token
+	}
+	if _, ok := secrets["GITEA_TOKEN"]; !ok {
+		secrets["GITEA_TOKEN"] = t.Token
+	}
 
 	task := &runnerv1.Task{
 		Id:              t.ID,
 		WorkflowPayload: t.Job.WorkflowPayload,
 		Context:         taskContext,
-		Secrets:         getSecretsOfTask(ctx, t),
+		Secrets:         secrets,
 	}
 	return task, true, nil
 }
