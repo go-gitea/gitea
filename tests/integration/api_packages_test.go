@@ -29,7 +29,7 @@ func TestPackageAPI(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 	session := loginUser(t, user.Name)
 	tokenReadPackage := getTokenForLoggedInUser(t, session, "read_package")
-	tokenWritePackage := getTokenForLoggedInUser(t, session, "write_package")
+	tokenDeletePackage := getTokenForLoggedInUser(t, session, "delete_package")
 
 	packageName := "test-package"
 	packageVersion := "1.0.3"
@@ -138,10 +138,10 @@ func TestPackageAPI(t *testing.T) {
 	t.Run("DeletePackage", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/dummy/%s/%s?token=%s", user.Name, packageName, packageVersion, tokenWritePackage))
+		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/dummy/%s/%s?token=%s", user.Name, packageName, packageVersion, tokenDeletePackage))
 		MakeRequest(t, req, http.StatusNotFound)
 
-		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s?token=%s", user.Name, packageName, packageVersion, tokenWritePackage))
+		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s?token=%s", user.Name, packageName, packageVersion, tokenDeletePackage))
 		MakeRequest(t, req, http.StatusNoContent)
 	})
 }
@@ -153,11 +153,8 @@ func TestPackageAccess(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 	inactive := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 9})
 
-	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, "write_package")
-
 	uploadPackage := func(doer, owner *user_model.User, expectedStatus int) {
-		url := fmt.Sprintf("/api/packages/%s/generic/test-package/1.0/file.bin?token=%s", owner.Name, token)
+		url := fmt.Sprintf("/api/packages/%s/generic/test-package/1.0/file.bin", owner.Name)
 		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1}))
 		AddBasicAuthHeader(req, doer.Name)
 		MakeRequest(t, req, expectedStatus)
