@@ -64,7 +64,7 @@ func readUnmergedLsFileLines(ctx context.Context, tmpBasePath string, outputChan
 	lsFilesReader, lsFilesWriter, err := os.Pipe()
 	if err != nil {
 		log.Error("Unable to open stderr pipe: %v", err)
-		outputChan <- &lsFileLine{err: fmt.Errorf("unable to open stderr pipe: %v", err)}
+		outputChan <- &lsFileLine{err: fmt.Errorf("unable to open stderr pipe: %w", err)}
 		return
 	}
 	defer func() {
@@ -117,7 +117,7 @@ func readUnmergedLsFileLines(ctx context.Context, tmpBasePath string, outputChan
 			},
 		})
 	if err != nil {
-		outputChan <- &lsFileLine{err: fmt.Errorf("git ls-files -u -z: %v", git.ConcatenateError(err, stderr.String()))}
+		outputChan <- &lsFileLine{err: fmt.Errorf("git ls-files -u -z: %w", git.ConcatenateError(err, stderr.String()))}
 	}
 }
 
@@ -163,7 +163,7 @@ func unmergedFiles(ctx context.Context, tmpBasePath string, unmerged chan *unmer
 		log.Trace("Got line: %v Current State:\n%v", line, next)
 		if line.err != nil {
 			log.Error("Unable to run ls-files -u -z! Error: %v", line.err)
-			unmerged <- &unmergedFile{err: fmt.Errorf("unable to run ls-files -u -z! Error: %v", line.err)}
+			unmerged <- &unmergedFile{err: fmt.Errorf("unable to run ls-files -u -z! Error: %w", line.err)}
 			return
 		}
 

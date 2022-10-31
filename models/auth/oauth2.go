@@ -570,7 +570,7 @@ func DeleteOAuth2RelictsByUserID(ctx context.Context, userID int64) error {
 		&OAuth2Application{UID: userID},
 		&OAuth2Grant{UserID: userID},
 	); err != nil {
-		return fmt.Errorf("DeleteBeans: %v", err)
+		return fmt.Errorf("DeleteBeans: %w", err)
 	}
 
 	return nil
