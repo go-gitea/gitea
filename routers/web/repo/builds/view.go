@@ -62,7 +62,7 @@ type ViewGroup struct {
 }
 
 type ViewJob struct {
-	Id     int64  `json:"id"`
+	ID     int64  `json:"id"`
 	Name   string `json:"name"`
 	Status string `json:"status"`
 }
@@ -103,7 +103,7 @@ func ViewPost(ctx *context.Context) {
 	respJobs := make([]*ViewJob, len(jobs))
 	for i, v := range jobs {
 		respJobs[i] = &ViewJob{
-			Id:     v.ID,
+			ID:     v.ID,
 			Name:   v.Name,
 			Status: v.Status.String(),
 		}
@@ -168,7 +168,7 @@ func ViewPost(ctx *context.Context) {
 					logLines := make([]ViewStepLogLine, len(logRows))
 					for i, row := range logRows {
 						logLines[i] = ViewStepLogLine{
-							Ln: cursor.Cursor + int64(i),
+							Ln: cursor.Cursor + int64(i) + 1, // start at 1
 							M:  row.Content,
 							T:  float64(row.Time.AsTime().UnixNano()) / float64(time.Second),
 						}
