@@ -25,9 +25,14 @@
           </div>
           <div class="field">
             <textarea name="merge_message_field" rows="5" :placeholder="mergeForm.mergeMessageFieldPlaceHolder" v-model="mergeMessageFieldValue"/>
-            <button v-if="mergeMessageFieldValue !== mergeForm.defaultMergeMessage" @click.prevent="clearMergeMessage" class="ui tertiary button">
-              {{ mergeForm.textClearMergeMessage }}
-            </button>
+            <template v-if="mergeMessageFieldValue !== mergeForm.defaultMergeMessage">
+              <button @click.prevent="clearMergeMessage" class="ui tertiary button">
+                {{ mergeForm.textClearMergeMessage }}
+              </button>
+              <div class="ui label">
+                {{ mergeForm.textClearMergeMessageHint }}
+              </div>
+            </template>
           </div>
         </template>
 
