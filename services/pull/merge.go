@@ -193,7 +193,11 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 		log.Error("GetOwner for issue repo [%d]: %v", pr.ID, err)
 	}
 
-	notification.NotifyMergePullRequest(pr, doer, wasAutoMerged)
+	if wasAutoMerged {
+		notification.NotifyAutoMergePullRequest(pr, doer)
+	} else {
+		notification.NotifyMergePullRequest(pr, doer)
+	}
 
 	// Reset cached commit count
 	cache.Remove(pr.Issue.Repo.GetCommitsCountCacheKey(pr.BaseBranch, true))
@@ -874,7 +878,7 @@ func MergedManually(pr *issues_model.PullRequest, doer *user_model.User, baseGit
 		return err
 	}
 
-	notification.NotifyMergePullRequest(pr, doer, false)
+	notification.NotifyMergePullRequest(pr, doer)
 	log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commitID)
 	return nil
 }
