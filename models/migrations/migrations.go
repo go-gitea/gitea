@@ -425,6 +425,8 @@ var migrations = []Migration{
 	NewMigration("Add ConfidentialClient column (default true) to OAuth2Application table", addConfidentialClientColumnToOAuth2ApplicationTable),
 	// v231 -> v232
 	NewMigration("Add index for hook_task", addIndexForHookTask),
+	// v232 -> v233
+	NewMigration("Add package cleanup rule table", createPackageCleanupRuleTable),
 }
 
 // GetCurrentDBVersion returns the current db version

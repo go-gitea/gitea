@@ -82,6 +82,10 @@ func cleanupExpiredUploadedBlobs(ctx context.Context, olderThan time.Duration) e
 	return nil
 }
 
+func ShouldBeSkipped(pcr *packages_model.PackageCleanupRule, p *packages_model.Package, pv *packages_model.PackageVersion) (bool, error) {
+	return pv.LowerVersion == "latest", nil
+}
+
 // UpdateRepositoryNames updates the repository name property for all packages of the specific owner
 func UpdateRepositoryNames(ctx context.Context, owner *user_model.User, newOwnerName string) error {
 	ps, err := packages_model.GetPackagesByType(ctx, owner.ID, packages_model.TypeContainer)

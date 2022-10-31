@@ -17,6 +17,9 @@
 			{{.locale.Tr "settings.applications"}}
 		</a>
 		{{end}}
+		<a class="{{if .PageIsSettingsPackages}}active{{end}} item" href="{{.OrgLink}}/settings/packages">
+			{{.locale.Tr "packages.title"}}
+		</a>
 		<a class="{{if .PageIsSettingsDelete}}active{{end}} item" href="{{.OrgLink}}/settings/delete">
 			{{.locale.Tr "org.settings.delete"}}
 		</a>
