@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -220,21 +221,21 @@ func DeleteUnadoptedRepository(doer, u *user_model.User, repoName string) error 
 	return util.RemoveAll(repoPath)
 }
 
-type unadoptedRrepositories struct {
+type unadoptedRepositories struct {
 	repositories []string
 	index        int
 	start        int
 	end          int
 }
 
-func (unadopted *unadoptedRrepositories) add(repository string) {
+func (unadopted *unadoptedRepositories) add(repository string) {
 	if unadopted.index >= unadopted.start && unadopted.index < unadopted.end {
 		unadopted.repositories = append(unadopted.repositories, repository)
 	}
 	unadopted.index++
 }
 
-func checkUnadoptedRepositories(userName string, repoNamesToCheck []string, unadopted *unadoptedRrepositories) error {
+func checkUnadoptedRepositories(userName string, repoNamesToCheck []string, unadopted *unadoptedRepositories) error {
 	if len(repoNamesToCheck) == 0 {
 		return nil
 	}
@@ -266,7 +267,7 @@ func checkUnadoptedRepositories(userName string, repoNamesToCheck []string, unad
 	}
 	for _, repoName := range repoNamesToCheck {
 		if _, ok := repoNames[repoName]; !ok {
-			unadopted.add(filepath.Join(userName, repoName))
+			unadopted.add(path.Join(userName, repoName)) // These are not used as filepaths - but as reponames - therefore use path.Join not filepath.Join
 		}
 	}
 	return nil
@@ -294,7 +295,7 @@ func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, in
 	var repoNamesToCheck []string
 
 	start := (opts.Page - 1) * opts.PageSize
-	unadopted := &unadoptedRrepositories{
+	unadopted := &unadoptedRepositories{
 		repositories: make([]string, 0, opts.PageSize),
 		start:        start,
 		end:          start + opts.PageSize,
