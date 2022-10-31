@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
 	"gopkg.in/yaml.v2"
 )
@@ -96,13 +97,20 @@ func unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 
 	if typ := it.Type(); typ == api.IssueTemplateTypeMarkdown {
 		if templateBody, err := markdown.ExtractMetadata(string(content), it); err != nil {
-			// can't extract metadata, so it could be a pure markdown.
+			// The only thing we know here is that we can't extract metadata from the content,
+			// it's hard to tell if metadata doesn't exist or metadata isn't valid.
+			// There's an example template:
+			//
+			//    ---
+			//    # Title
+			//    ---
+			//    Content
+			//
+			// It could be a valid markdown with two horizontal lines, or an invalid markdown with wrong metadata.
+
 			it.Content = string(content)
 			it.Name = filepath.Base(it.FileName)
-			it.About = it.Content
-			if max, runes := 80, []rune(it.About); len(runes) > max {
-				it.About = string(runes[:max]) + "..."
-			}
+			it.About, _ = util.SplitStringAtByteN(it.Content, 80)
 		} else {
 			it.Content = templateBody
 			if it.About == "" {
