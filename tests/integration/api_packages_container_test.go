@@ -205,11 +205,18 @@ func TestPackageContainer(t *testing.T) {
 				assert.Equal(t, uuid, resp.Header().Get("Docker-Upload-Uuid"))
 				assert.Equal(t, contentRange, resp.Header().Get("Range"))
 
+				uploadURL = resp.Header().Get("Location")
+
+				req = NewRequest(t, "GET", setting.AppURL+uploadURL[1:])
+				addTokenAuthHeader(req, userToken)
+				resp = MakeRequest(t, req, http.StatusNoContent)
+
+				assert.Equal(t, uuid, resp.Header().Get("Docker-Upload-Uuid"))
+				assert.Equal(t, fmt.Sprintf("0-%d", len(blobContent)), resp.Header().Get("Range"))
+
 				pbu, err = packages_model.GetBlobUploadByID(db.DefaultContext, uuid)
 				assert.NoError(t, err)
 				assert.EqualValues(t, len(blobContent), pbu.BytesReceived)
-
-				uploadURL = resp.Header().Get("Location")
 
 				req = NewRequest(t, "PUT", fmt.Sprintf("%s?digest=%s", setting.AppURL+uploadURL[1:], blobDigest))
 				addTokenAuthHeader(req, userToken)
@@ -217,6 +224,35 @@ func TestPackageContainer(t *testing.T) {
 
 				assert.Equal(t, fmt.Sprintf("/v2/%s/%s/blobs/%s", user.Name, image, blobDigest), resp.Header().Get("Location"))
 				assert.Equal(t, blobDigest, resp.Header().Get("Docker-Content-Digest"))
+
+				t.Run("Cancel", func(t *testing.T) {
+					defer tests.PrintCurrentTest(t)()
+
+					req := NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads", url))
+					addTokenAuthHeader(req, userToken)
+					resp := MakeRequest(t, req, http.StatusAccepted)
+
+					uuid := resp.Header().Get("Docker-Upload-Uuid")
+					assert.NotEmpty(t, uuid)
+
+					uploadURL := resp.Header().Get("Location")
+					assert.NotEmpty(t, uploadURL)
+
+					req = NewRequest(t, "GET", setting.AppURL+uploadURL[1:])
+					addTokenAuthHeader(req, userToken)
+					resp = MakeRequest(t, req, http.StatusNoContent)
+
+					assert.Equal(t, uuid, resp.Header().Get("Docker-Upload-Uuid"))
+					assert.Equal(t, "0-0", resp.Header().Get("Range"))
+
+					req = NewRequest(t, "DELETE", setting.AppURL+uploadURL[1:])
+					addTokenAuthHeader(req, userToken)
+					MakeRequest(t, req, http.StatusNoContent)
+
+					req = NewRequest(t, "GET", setting.AppURL+uploadURL[1:])
+					addTokenAuthHeader(req, userToken)
+					MakeRequest(t, req, http.StatusNotFound)
+				})
 			})
 
 			for _, tag := range tags {
@@ -435,6 +471,10 @@ func TestPackageContainer(t *testing.T) {
 
 				assert.Equal(t, fmt.Sprintf("%d", len(blobContent)), resp.Header().Get("Content-Length"))
 				assert.Equal(t, blobDigest, resp.Header().Get("Docker-Content-Digest"))
+
+				req = NewRequest(t, "HEAD", fmt.Sprintf("%s/blobs/%s", url, blobDigest))
+				addTokenAuthHeader(req, anonymousToken)
+				MakeRequest(t, req, http.StatusOK)
 			})
 
 			t.Run("GetBlob", func(t *testing.T) {

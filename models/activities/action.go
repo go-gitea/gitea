@@ -218,6 +218,11 @@ func (a *Action) GetRepoLink() string {
 	return path.Join(setting.AppSubURL, "/", url.PathEscape(a.GetRepoUserName()), url.PathEscape(a.GetRepoName()))
 }
 
+// GetRepoAbsoluteLink returns the absolute link to action repository.
+func (a *Action) GetRepoAbsoluteLink() string {
+	return setting.AppURL + url.PathEscape(a.GetRepoUserName()) + "/" + url.PathEscape(a.GetRepoName())
+}
+
 // GetCommentLink returns link to action comment.
 func (a *Action) GetCommentLink() string {
 	return a.getCommentLink(db.DefaultContext)
@@ -354,11 +359,11 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, error) {
 	actions := make([]*Action, 0, opts.PageSize)
 
 	if err := sess.Desc("`action`.created_unix").Find(&actions); err != nil {
-		return nil, fmt.Errorf("Find: %v", err)
+		return nil, fmt.Errorf("Find: %w", err)
 	}
 
 	if err := ActionList(actions).loadAttributes(ctx); err != nil {
-		return nil, fmt.Errorf("LoadAttributes: %v", err)
+		return nil, fmt.Errorf("LoadAttributes: %w", err)
 	}
 
 	return actions, nil
@@ -410,7 +415,7 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 		env := organization.OrgFromUser(opts.RequestedUser).AccessibleTeamReposEnv(opts.RequestedTeam)
 		teamRepoIDs, err := env.RepoIDs(1, opts.RequestedUser.NumRepos)
 		if err != nil {
-			return nil, fmt.Errorf("GetTeamRepositories: %v", err)
+			return nil, fmt.Errorf("GetTeamRepositories: %w", err)
 		}
 		cond = cond.And(builder.In("repo_id", teamRepoIDs))
 	}
@@ -472,14 +477,14 @@ func notifyWatchers(ctx context.Context, actions ...*Action) error {
 			// Add feeds for user self and all watchers.
 			watchers, err = repo_model.GetWatchers(ctx, act.RepoID)
 			if err != nil {
-				return fmt.Errorf("get watchers: %v", err)
+				return fmt.Errorf("get watchers: %w", err)
 			}
 		}
 
 		// Add feed for actioner.
 		act.UserID = act.ActUserID
 		if _, err = e.Insert(act); err != nil {
-			return fmt.Errorf("insert new actioner: %v", err)
+			return fmt.Errorf("insert new actioner: %w", err)
 		}
 
 		if repoChanged {
@@ -488,7 +493,7 @@ func notifyWatchers(ctx context.Context, actions ...*Action) error {
 
 			// check repo owner exist.
 			if err := act.Repo.GetOwner(ctx); err != nil {
-				return fmt.Errorf("can't get repo owner: %v", err)
+				return fmt.Errorf("can't get repo owner: %w", err)
 			}
 		} else if act.Repo == nil {
 			act.Repo = repo
@@ -499,7 +504,7 @@ func notifyWatchers(ctx context.Context, actions ...*Action) error {
 			act.ID = 0
 			act.UserID = act.Repo.Owner.ID
 			if err = db.Insert(ctx, act); err != nil {
-				return fmt.Errorf("insert new actioner: %v", err)
+				return fmt.Errorf("insert new actioner: %w", err)
 			}
 		}
 
@@ -552,7 +557,7 @@ func notifyWatchers(ctx context.Context, actions ...*Action) error {
 			}
 
 			if err = db.Insert(ctx, act); err != nil {
-				return fmt.Errorf("insert new action: %v", err)
+				return fmt.Errorf("insert new action: %w", err)
 			}
 		}
 	}

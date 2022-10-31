@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
@@ -33,12 +33,12 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 	remoteName := m.GetRemoteName()
 	repoPath := m.GetRepository().RepoPath()
 	// Remove old remote
-	_, _, err := git.NewCommand(ctx, "remote", "rm", remoteName).RunStdString(&git.RunOpts{Dir: repoPath})
+	_, _, err := git.NewCommand(ctx, "remote", "rm").AddDynamicArguments(remoteName).RunStdString(&git.RunOpts{Dir: repoPath})
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 		return err
 	}
 
-	cmd := git.NewCommand(ctx, "remote", "add", remoteName, "--mirror=fetch", addr)
+	cmd := git.NewCommand(ctx, "remote", "add").AddDynamicArguments(remoteName).AddArguments("--mirror=fetch").AddDynamicArguments(addr)
 	if strings.Contains(addr, "://") && strings.Contains(addr, "@") {
 		cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=fetch %s [repo_path: %s]", remoteName, util.SanitizeCredentialURLs(addr), repoPath))
 	} else {
@@ -53,12 +53,12 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 		wikiPath := m.Repo.WikiPath()
 		wikiRemotePath := repo_module.WikiRemoteURL(ctx, addr)
 		// Remove old remote of wiki
-		_, _, err = git.NewCommand(ctx, "remote", "rm", remoteName).RunStdString(&git.RunOpts{Dir: wikiPath})
+		_, _, err = git.NewCommand(ctx, "remote", "rm").AddDynamicArguments(remoteName).RunStdString(&git.RunOpts{Dir: wikiPath})
 		if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 			return err
 		}
 
-		cmd = git.NewCommand(ctx, "remote", "add", remoteName, "--mirror=fetch", wikiRemotePath)
+		cmd = git.NewCommand(ctx, "remote", "add").AddDynamicArguments(remoteName).AddArguments("--mirror=fetch").AddDynamicArguments(wikiRemotePath)
 		if strings.Contains(wikiRemotePath, "://") && strings.Contains(wikiRemotePath, "@") {
 			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=fetch %s [repo_path: %s]", remoteName, util.SanitizeCredentialURLs(wikiRemotePath), wikiPath))
 		} else {
@@ -169,7 +169,7 @@ func pruneBrokenReferences(ctx context.Context,
 
 	stderrBuilder.Reset()
 	stdoutBuilder.Reset()
-	pruneErr := git.NewCommand(ctx, "remote", "prune", m.GetRemoteName()).
+	pruneErr := git.NewCommand(ctx, "remote", "prune").AddDynamicArguments(m.GetRemoteName()).
 		SetDescription(fmt.Sprintf("Mirror.runSync %ssPrune references: %s ", wiki, m.Repo.FullName())).
 		Run(&git.RunOpts{
 			Timeout: timeout,
@@ -188,7 +188,7 @@ func pruneBrokenReferences(ctx context.Context,
 
 		log.Error("Failed to prune mirror repository %s%-v references:\nStdout: %s\nStderr: %s\nErr: %v", wiki, m.Repo, stdoutMessage, stderrMessage, pruneErr)
 		desc := fmt.Sprintf("Failed to prune mirror repository %s'%s' references: %s", wiki, repoPath, stderrMessage)
-		if err := admin_model.CreateRepositoryNotice(desc); err != nil {
+		if err := system_model.CreateRepositoryNotice(desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
 		// this if will only be reached on a successful prune so try to get the mirror again
@@ -204,11 +204,11 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 
 	log.Trace("SyncMirrors [repo: %-v]: running git remote update...", m.Repo)
 
-	gitArgs := []string{"remote", "update"}
+	gitArgs := []git.CmdArg{"remote", "update"}
 	if m.EnablePrune {
 		gitArgs = append(gitArgs, "--prune")
 	}
-	gitArgs = append(gitArgs, m.GetRemoteName())
+	gitArgs = append(gitArgs, git.CmdArgCheck(m.GetRemoteName()))
 
 	remoteURL, remoteErr := git.GetRemoteURL(ctx, repoPath, m.GetRemoteName())
 	if remoteErr != nil {
@@ -267,7 +267,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		if err != nil {
 			log.Error("SyncMirrors [repo: %-v]: failed to update mirror repository:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdoutMessage, stderrMessage, err)
 			desc := fmt.Sprintf("Failed to update mirror repository '%s': %s", repoPath, stderrMessage)
-			if err = admin_model.CreateRepositoryNotice(desc); err != nil {
+			if err = system_model.CreateRepositoryNotice(desc); err != nil {
 				log.Error("CreateRepositoryNotice: %v", err)
 			}
 			return nil, false
@@ -309,7 +309,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		log.Trace("SyncMirrors [repo: %-v Wiki]: running git remote update...", m.Repo)
 		stderrBuilder.Reset()
 		stdoutBuilder.Reset()
-		if err := git.NewCommand(ctx, "remote", "update", "--prune", m.GetRemoteName()).
+		if err := git.NewCommand(ctx, "remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).
 			SetDescription(fmt.Sprintf("Mirror.runSync Wiki: %s ", m.Repo.FullName())).
 			Run(&git.RunOpts{
 				Timeout: timeout,
@@ -336,7 +336,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 					stderrBuilder.Reset()
 					stdoutBuilder.Reset()
 
-					if err = git.NewCommand(ctx, "remote", "update", "--prune", m.GetRemoteName()).
+					if err = git.NewCommand(ctx, "remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).
 						SetDescription(fmt.Sprintf("Mirror.runSync Wiki: %s ", m.Repo.FullName())).
 						Run(&git.RunOpts{
 							Timeout: timeout,
@@ -356,7 +356,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 			if err != nil {
 				log.Error("SyncMirrors [repo: %-v Wiki]: failed to update mirror repository wiki:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdoutMessage, stderrMessage, err)
 				desc := fmt.Sprintf("Failed to update mirror repository wiki '%s': %s", wikiPath, stderrMessage)
-				if err = admin_model.CreateRepositoryNotice(desc); err != nil {
+				if err = system_model.CreateRepositoryNotice(desc); err != nil {
 					log.Error("CreateRepositoryNotice: %v", err)
 				}
 				return nil, false
@@ -568,7 +568,7 @@ func checkAndUpdateEmptyRepository(m *repo_model.Mirror, gitRepo *git.Repository
 			if !git.IsErrUnsupportedVersion(err) {
 				log.Error("Failed to update default branch of underlying git repository %-v. Error: %v", m.Repo, err)
 				desc := fmt.Sprintf("Failed to uupdate default branch of underlying git repository '%s': %v", m.Repo.RepoPath(), err)
-				if err = admin_model.CreateRepositoryNotice(desc); err != nil {
+				if err = system_model.CreateRepositoryNotice(desc); err != nil {
 					log.Error("CreateRepositoryNotice: %v", err)
 				}
 				return false
@@ -579,7 +579,7 @@ func checkAndUpdateEmptyRepository(m *repo_model.Mirror, gitRepo *git.Repository
 		if err := repo_model.UpdateRepositoryCols(db.DefaultContext, m.Repo, "default_branch", "is_empty"); err != nil {
 			log.Error("Failed to update default branch of repository %-v. Error: %v", m.Repo, err)
 			desc := fmt.Sprintf("Failed to uupdate default branch of repository '%s': %v", m.Repo.RepoPath(), err)
-			if err = admin_model.CreateRepositoryNotice(desc); err != nil {
+			if err = system_model.CreateRepositoryNotice(desc); err != nil {
 				log.Error("CreateRepositoryNotice: %v", err)
 			}
 			return false

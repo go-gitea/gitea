@@ -334,7 +334,7 @@ func (pr *PullRequest) ResolveCrossReferences(ctx context.Context) ([]*Comment, 
 		In("ref_action", []references.XRefAction{references.XRefActionCloses, references.XRefActionReopens}).
 		OrderBy("id").
 		Find(&unfiltered); err != nil {
-		return nil, fmt.Errorf("get reference: %v", err)
+		return nil, fmt.Errorf("get reference: %w", err)
 	}
 
 	refs := make([]*Comment, 0, len(unfiltered))

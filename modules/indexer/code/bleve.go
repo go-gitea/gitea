@@ -194,12 +194,12 @@ func (b *BleveIndexer) addUpdate(ctx context.Context, batchWriter git.WriteClose
 	var err error
 	if !update.Sized {
 		var stdout string
-		stdout, _, err = git.NewCommand(ctx, "cat-file", "-s", update.BlobSha).RunStdString(&git.RunOpts{Dir: repo.RepoPath()})
+		stdout, _, err = git.NewCommand(ctx, "cat-file", "-s").AddDynamicArguments(update.BlobSha).RunStdString(&git.RunOpts{Dir: repo.RepoPath()})
 		if err != nil {
 			return err
 		}
 		if size, err = strconv.ParseInt(strings.TrimSpace(stdout), 10, 64); err != nil {
-			return fmt.Errorf("Misformatted git cat-file output: %v", err)
+			return fmt.Errorf("Misformatted git cat-file output: %w", err)
 		}
 	}
 

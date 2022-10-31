@@ -917,6 +917,19 @@ func CollaborationPost(ctx *context.Context) {
 		return
 	}
 
+	// find the owner team of the organization the repo belongs too and
+	// check if the user we're trying to add is an owner.
+	if ctx.Repo.Repository.Owner.IsOrganization() {
+		if isOwner, err := organization.IsOrganizationOwner(ctx, ctx.Repo.Repository.Owner.ID, u.ID); err != nil {
+			ctx.ServerError("IsOrganizationOwner", err)
+			return
+		} else if isOwner {
+			ctx.Flash.Error(ctx.Tr("repo.settings.add_collaborator_owner"))
+			ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
+			return
+		}
+	}
+
 	if err = repo_module.AddCollaborator(ctx.Repo.Repository, u); err != nil {
 		ctx.ServerError("AddCollaborator", err)
 		return
@@ -1184,7 +1197,7 @@ func UpdateAvatarSetting(ctx *context.Context, form forms.AvatarForm) error {
 
 	r, err := form.Avatar.Open()
 	if err != nil {
-		return fmt.Errorf("Avatar.Open: %v", err)
+		return fmt.Errorf("Avatar.Open: %w", err)
 	}
 	defer r.Close()
 
@@ -1194,14 +1207,14 @@ func UpdateAvatarSetting(ctx *context.Context, form forms.AvatarForm) error {
 
 	data, err := io.ReadAll(r)
 	if err != nil {
-		return fmt.Errorf("io.ReadAll: %v", err)
+		return fmt.Errorf("io.ReadAll: %w", err)
 	}
 	st := typesniffer.DetectContentType(data)
 	if !(st.IsImage() && !st.IsSvgImage()) {
 		return errors.New(ctx.Tr("settings.uploaded_avatar_not_a_image"))
 	}
 	if err = repo_service.UploadAvatar(ctxRepo, data); err != nil {
-		return fmt.Errorf("UploadAvatar: %v", err)
+		return fmt.Errorf("UploadAvatar: %w", err)
 	}
 	return nil
 }

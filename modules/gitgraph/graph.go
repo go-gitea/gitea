@@ -24,35 +24,29 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 		page = 1
 	}
 
-	args := make([]string, 0, 12+len(branches)+len(files))
-
-	args = append(args, "--graph", "--date-order", "--decorate=full")
+	graphCmd := git.NewCommand(r.Ctx, "log", "--graph", "--date-order", "--decorate=full")
 
 	if hidePRRefs {
-		args = append(args, "--exclude="+git.PullPrefix+"*")
+		graphCmd.AddArguments("--exclude=" + git.PullPrefix + "*")
 	}
 
 	if len(branches) == 0 {
-		args = append(args, "--all")
+		graphCmd.AddArguments("--all")
 	}
 
-	args = append(args,
+	graphCmd.AddArguments(
 		"-C",
 		"-M",
-		fmt.Sprintf("-n %d", setting.UI.GraphMaxCommitNum*page),
+		git.CmdArg(fmt.Sprintf("-n %d", setting.UI.GraphMaxCommitNum*page)),
 		"--date=iso",
-		fmt.Sprintf("--pretty=format:%s", format))
+		git.CmdArg(fmt.Sprintf("--pretty=format:%s", format)))
 
 	if len(branches) > 0 {
-		args = append(args, branches...)
+		graphCmd.AddDynamicArguments(branches...)
 	}
-	args = append(args, "--")
 	if len(files) > 0 {
-		args = append(args, files...)
+		graphCmd.AddDashesAndList(files...)
 	}
-
-	graphCmd := git.NewCommand(r.Ctx, "log")
-	graphCmd.AddArguments(args...)
 	graph := NewGraph()
 
 	stderr := new(strings.Builder)

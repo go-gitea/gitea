@@ -31,6 +31,18 @@ func GlobalModTime(filename string) time.Time {
 	return timeutil.GetExecutableModTime()
 }
 
+// GetAssetFilename returns the filename of the provided asset
+func GetAssetFilename(name string) (string, error) {
+	filename := filepath.Join(setting.CustomPath, name)
+	_, err := os.Stat(filename)
+	if err != nil && !os.IsNotExist(err) {
+		return name, err
+	} else if err == nil {
+		return filename, nil
+	}
+	return "(builtin) " + name, nil
+}
+
 // GetAsset get a special asset, only for chi
 func GetAsset(name string) ([]byte, error) {
 	bs, err := os.ReadFile(filepath.Join(setting.CustomPath, name))

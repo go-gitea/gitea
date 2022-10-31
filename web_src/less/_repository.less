@@ -384,7 +384,7 @@
       }
 
       tr:hover {
-        background-color: #ffffee;
+        background-color: var(--color-hover);
       }
 
       tr.has-parent a {
@@ -407,10 +407,6 @@
 
         .tiny.icon {
           font-size: .5em;
-        }
-
-        .file-info {
-          font-size: 13px;
         }
 
         .file-actions {
@@ -992,6 +988,12 @@
         .comment-form-reply .footer {
           padding-bottom: 1em;
         }
+
+        @media @mediaSm {
+          .ui.segments {
+            margin-left: -2rem;
+          }
+        }
       }
 
       .ui.comments {
@@ -1124,7 +1126,10 @@
         .comment-content {
           margin-left: 36px;
         }
+      }
 
+      .code-comment,
+      .comment {
         img.avatar {
           width: 28px;
           height: 28px;
@@ -1168,6 +1173,10 @@
         .segments {
           box-shadow: none;
         }
+      }
+
+      @media @mediaSm {
+        padding: 1rem 0 !important; // Important is required here to override existing fomantic styles.
       }
     }
 
@@ -1938,16 +1947,16 @@
           }
 
           .dot {
-            width: 9px;
-            height: 9px;
-            background-color: #ddd;
+            width: 10px;
+            height: 10px;
+            background-color: var(--color-secondary-dark-3);
             z-index: 9;
             position: absolute;
             display: block;
-            left: -5px;
+            left: -6px;
             top: 40px;
-            border-radius: 6px;
-            border: 1px solid #ffffff;
+            border-radius: 100%;
+            border: 2.5px solid var(--color-body);
           }
         }
       }
@@ -2798,6 +2807,11 @@
   margin-top: 10px;
 }
 
+.repo-button-row .dropdown > .dropdown.icon {
+  margin-left: .25rem !important;
+  margin-right: 0 !important;
+}
+
 .wiki .repo-button-row {
   margin-bottom: 0;
 }
@@ -3017,9 +3031,9 @@ tbody.commit-list {
 }
 
 .tag-code,
-.tag-code td {
-  background-color: #f0f9ff;
-  border-color: #f1f8ff !important;
+.tag-code td,
+.tag-code .blob-excerpt {
+  background-color: var(--color-box-body-highlight);
   vertical-align: middle;
 }
 
@@ -3035,7 +3049,7 @@ tbody.commit-list {
 }
 
 td.blob-excerpt {
-  background-color: #fafafa;
+  background-color: var(--color-secondary-alpha-30);
 }
 
 .issue-keyword {
@@ -3051,7 +3065,8 @@ td.blob-excerpt {
   display: flex;
   justify-content: space-between;
   overflow-x: auto;
-  padding: 8px 12px !important;
+  padding: 6px 12px !important;
+  font-size: 13px !important;
 }
 
 .file-info {
@@ -3069,6 +3084,35 @@ td.blob-excerpt {
   border-left: 1px solid currentcolor;
   margin-left: 8px;
   padding-left: 8px;
+}
+
+#diff-container {
+  display: flex;
+}
+#diff-file-boxes {
+  flex: 1;
+}
+
+#diff-file-tree {
+  width: 20%;
+  max-width: 380px;
+  line-height: inherit;
+  position: sticky;
+  padding-top: 0;
+  top: 47px;
+  max-height: calc(100vh - 50px);
+  height: 100%;
+  overflow-y: auto;
+}
+
+@media @mediaMdAndDown {
+  #diff-file-tree {
+    display: none !important;
+  }
+
+  .diff-toggle-file-tree-button {
+    display: none !important;
+  }
 }
 
 .ui.message.unicode-escape-prompt {
@@ -3225,7 +3269,8 @@ td.blob-excerpt {
   background: var(--color-diff-inactive);
 }
 
-.code-diff-split tbody tr td:nth-child(5) {
+.code-diff-split tbody tr td:nth-child(5),
+.code-diff-split tbody tr td.add-comment-right {
   border-left: 1px solid var(--color-secondary);
 }
 
@@ -3430,5 +3475,43 @@ td.blob-excerpt {
   }
   @media @mediaSm {
     max-width: 165px;
+  }
+}
+
+.pr-status {
+  padding: 0 !important; // To clear fomantic's padding on .ui.segment elements
+  display: flex;
+  align-items: center;
+
+  .commit-status {
+    margin: 1em;
+    flex-shrink: 0;
+  }
+
+  .status-context {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+
+    > span {
+      padding: 1em 0;
+    }
+  }
+
+  .status-details {
+    display: flex;
+    padding-right: .5em;
+    align-items: center;
+    justify-content: flex-end;
+
+    @media @mediaSm {
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    > span {
+      padding-right: .5em; // To match the alignment with the "required" label
+    }
   }
 }

@@ -46,11 +46,11 @@ func calReleaseNumCommitsBehind(repoCtx *context.Repository, release *repo_model
 		if repoCtx.GitRepo.IsBranchExist(release.Target) {
 			commit, err := repoCtx.GitRepo.GetBranchCommit(release.Target)
 			if err != nil {
-				return fmt.Errorf("GetBranchCommit: %v", err)
+				return fmt.Errorf("GetBranchCommit: %w", err)
 			}
 			countCache[release.Target], err = commit.CommitsCount()
 			if err != nil {
-				return fmt.Errorf("CommitsCount: %v", err)
+				return fmt.Errorf("CommitsCount: %w", err)
 			}
 		} else {
 			// Use NumCommits of the newest release on that target
@@ -117,9 +117,17 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
 
 	opts := repo_model.FindReleasesOptions{
-		ListOptions:   listOptions,
-		IncludeDrafts: writeAccess && !isTagList,
-		IncludeTags:   isTagList,
+		ListOptions: listOptions,
+	}
+	if isTagList {
+		// for the tags list page, show all releases with real tags (having real commit-id),
+		// the drafts should also be included because a real tag might be used as a draft.
+		opts.IncludeDrafts = true
+		opts.IncludeTags = true
+		opts.HasSha1 = util.OptionalBoolTrue
+	} else {
+		// only show draft releases for users who can write, read-only users shouldn't see draft releases.
+		opts.IncludeDrafts = writeAccess
 	}
 
 	releases, err := repo_model.GetReleasesByRepoID(ctx.Repo.Repository.ID, opts)
