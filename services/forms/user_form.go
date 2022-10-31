@@ -90,13 +90,10 @@ func (f *InstallForm) Validate(req *http.Request, errs binding.Errors) binding.E
 
 // RegisterForm form for registering
 type RegisterForm struct {
-	UserName           string `binding:"Required;AlphaDashDot;MaxSize(40)"`
-	Email              string `binding:"Required;MaxSize(254)"`
-	Password           string `binding:"MaxSize(255)"`
-	Retype             string
-	GRecaptchaResponse string `form:"g-recaptcha-response"`
-	HcaptchaResponse   string `form:"h-captcha-response"`
-	McaptchaResponse   string `form:"m-captcha-response"`
+	UserName string `binding:"Required;AlphaDashDot;MaxSize(40)"`
+	Email    string `binding:"Required;MaxSize(254)"`
+	Password string `binding:"MaxSize(255)"`
+	Retype   string
 }
 
 // Validate validates the fields
@@ -160,10 +157,6 @@ type SignInForm struct {
 	// TODO remove required from password for SecondFactorAuthentication
 	Password string `binding:"Required;MaxSize(255)"`
 	Remember bool
-	// Captcha
-	GRecaptchaResponse string `form:"g-recaptcha-response"`
-	HcaptchaResponse   string `form:"h-captcha-response"`
-	McaptchaResponse   string `form:"m-captcha-response"`
 }
 
 // Validate validates the fields
