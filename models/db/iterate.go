@@ -8,15 +8,20 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/modules/setting"
+
+	"xorm.io/builder"
 )
 
-// IterateObjects iterate all the Bean object
-func IterateObjects[Object any](ctx context.Context, f func(repo *Object) error) error {
+// Iterate iterate all the Bean object
+func Iterate[Object any](ctx context.Context, cond builder.Cond, f func(ctx context.Context, repo *Object) error) error {
 	var start int
 	batchSize := setting.Database.IterateBufferSize
 	sess := GetEngine(ctx)
 	for {
 		repos := make([]*Object, 0, batchSize)
+		if cond != nil {
+			sess = sess.Where(cond)
+		}
 		if err := sess.Limit(batchSize, start).Find(&repos); err != nil {
 			return err
 		}
@@ -26,7 +31,7 @@ func IterateObjects[Object any](ctx context.Context, f func(repo *Object) error)
 		start += len(repos)
 
 		for _, repo := range repos {
-			if err := f(repo); err != nil {
+			if err := f(ctx, repo); err != nil {
 				return err
 			}
 		}
