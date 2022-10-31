@@ -18,11 +18,8 @@ import (
 func TestAPIGetRawFileOrLFS(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	session := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, session, "repo")
-
 	// Test with raw file
-	req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/media/README.md?token="+token)
+	req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/media/README.md")
 	resp := MakeRequest(t, req, http.StatusOK)
 	assert.Equal(t, "# repo1\n\nDescription for repo1", resp.Body.String())
 

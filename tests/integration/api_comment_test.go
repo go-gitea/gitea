@@ -31,8 +31,7 @@ func TestAPIListRepoComments(t *testing.T) {
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, repoOwner.Name)
-	token := getTokenForLoggedInUser(t, session, "repo")
-	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments?token=%s", repoOwner.Name, repo.Name, token))
+	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments", repoOwner.Name, repo.Name))
 	req := NewRequest(t, "GET", link.String())
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
@@ -51,7 +50,6 @@ func TestAPIListRepoComments(t *testing.T) {
 	before := "2000-01-01T00:00:11+00:00" // unix: 946684811
 	since := "2000-01-01T00:00:12+00:00"  // unix: 946684812
 	query.Add("before", before)
-	query.Add("token", token)
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -193,9 +191,8 @@ func TestAPIListIssueTimeline(t *testing.T) {
 
 	// make request
 	session := loginUser(t, repoOwner.Name)
-	token := getTokenForLoggedInUser(t, session, "repo")
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/timeline?token=%s",
-		repoOwner.Name, repo.Name, issue.Index, token)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/timeline",
+		repoOwner.Name, repo.Name, issue.Index)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	// check if lens of list returned by API and

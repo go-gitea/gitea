@@ -21,9 +21,8 @@ func TestAPIGetWikiPage(t *testing.T) {
 
 	username := "user2"
 	session := loginUser(t, username)
-	token := getTokenForLoggedInUser(t, session, "repo")
 
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/page/Home?token=%s", username, "repo1", token)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/page/Home", username, "repo1")
 
 	req := NewRequest(t, "GET", urlStr)
 	resp := session.MakeRequest(t, req, http.StatusOK)
@@ -68,9 +67,8 @@ func TestAPIListWikiPages(t *testing.T) {
 
 	username := "user2"
 	session := loginUser(t, username)
-	token := getTokenForLoggedInUser(t, session, "repo")
 
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/pages?token=%s", username, "repo1", token)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/pages", username, "repo1")
 
 	req := NewRequest(t, "GET", urlStr)
 	resp := session.MakeRequest(t, req, http.StatusOK)
@@ -217,9 +215,8 @@ func TestAPIListPageRevisions(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	username := "user2"
 	session := loginUser(t, username)
-	token := getTokenForLoggedInUser(t, session, "repo")
 
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/revisions/Home?token=%s", username, "repo1", token)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/revisions/Home", username, "repo1")
 
 	req := NewRequest(t, "GET", urlStr)
 	resp := session.MakeRequest(t, req, http.StatusOK)
