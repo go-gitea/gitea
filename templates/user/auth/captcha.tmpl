@@ -1,4 +1,4 @@
-{{if and .EnableCaptcha (eq .CaptchaType "image")}}
+{{if .EnableCaptcha}}{{if eq .CaptchaType "image"}}
 	<div class="inline field">
 		<label></label>
 		{{.Captcha.CreateHTML}}
@@ -7,21 +7,18 @@
 		<label for="captcha">{{.locale.Tr "captcha"}}</label>
 		<input id="captcha" name="captcha" value="{{.captcha}}" autocomplete="off">
 	</div>
-{{end}}
-{{if and .EnableCaptcha (eq .CaptchaType "recaptcha")}}
+{{else if eq .CaptchaType "recaptcha"}}
 	<div class="inline field required">
 		<div class="g-recaptcha" data-sitekey="{{.RecaptchaSitekey}}"></div>
 	</div>
-{{end}}
-{{if and .EnableCaptcha (eq .CaptchaType "hcaptcha")}}
+{{else if eq .CaptchaType "hcaptcha"}}
 	<div class="inline field required">
 		<div class="h-captcha" data-sitekey="{{.HcaptchaSitekey}}"></div>
 	</div>
-{{end}}
-{{if and .EnableCaptcha (eq .CaptchaType "mcaptcha")}}
+{{else if eq .CaptchaType "mcaptcha"}}
 	<div class="inline field df ac db-small captcha-field">
 		<span>{{.locale.Tr "captcha"}}</span>
 		<div class="border-secondary w-100-small" id="mcaptcha__widget-container" style="width: 50%; height: 5em"></div>
 		<div class="m-captcha" data-sitekey="{{.McaptchaSitekey}}" data-instance-url="{{.McaptchaURL}}"></div>
 	</div>
-{{end}}
+{{end}}{{end}}
