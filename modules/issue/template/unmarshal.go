@@ -100,8 +100,8 @@ func unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 			it.Content = string(content)
 			it.Name = filepath.Base(it.FileName)
 			it.About = it.Content
-			if max := 80; len(it.About) > max {
-				it.About = it.About[:max] + "..."
+			if max, runes := 80, []rune(it.About); len(runes) > max {
+				it.About = string(runes[:max]) + "..."
 			}
 		} else {
 			it.Content = templateBody
