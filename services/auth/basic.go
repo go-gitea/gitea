@@ -109,26 +109,12 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	}
 
 	// check runner token
+	// FIXME: the token should be a task token and return a task
 	runner, err := bots_model.GetRunnerByToken(authToken)
-	if err == nil {
+	if err == nil && runner != nil {
 		log.Trace("Basic Authorization: Valid AccessToken for runner[%d]", runner.ID)
 
-		if runner.OwnerID > 0 {
-			u, err := user_model.GetUserByID(runner.OwnerID)
-			if err != nil {
-				log.Error("GetUserByID:  %v", err)
-				return nil
-			}
-			return u
-		}
-
-		// FIXME: for a system wide runner, runner act as admin?? Or we should have a bot account
-		u, err := user_model.GetAdminUser()
-		if err != nil {
-			log.Error("GetUserByID:  %v", err)
-			return nil
-		}
-		return u
+		return bots_model.NewBotUser()
 	} else {
 		log.Error("GetRunnerByToken: %v", err)
 	}

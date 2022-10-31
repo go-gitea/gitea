@@ -577,6 +577,13 @@ func (u *User) IsGhost() bool {
 	return u.ID == -1 && u.Name == "Ghost"
 }
 
+func (u *User) IsBots() bool {
+	if u == nil {
+		return false
+	}
+	return u.ID == -2 && u.Name == "gitea-bots"
+}
+
 var (
 	reservedUsernames = []string{
 		".",
