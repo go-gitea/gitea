@@ -13,25 +13,25 @@ import (
 )
 
 // Iterate iterate all the Bean object
-func Iterate[Object any](ctx context.Context, cond builder.Cond, f func(ctx context.Context, repo *Object) error) error {
+func Iterate[Bean any](ctx context.Context, cond builder.Cond, f func(ctx context.Context, bean *Bean) error) error {
 	var start int
 	batchSize := setting.Database.IterateBufferSize
 	sess := GetEngine(ctx)
 	for {
-		repos := make([]*Object, 0, batchSize)
+		beans := make([]*Bean, 0, batchSize)
 		if cond != nil {
 			sess = sess.Where(cond)
 		}
-		if err := sess.Limit(batchSize, start).Find(&repos); err != nil {
+		if err := sess.Limit(batchSize, start).Find(&beans); err != nil {
 			return err
 		}
-		if len(repos) == 0 {
+		if len(beans) == 0 {
 			return nil
 		}
-		start += len(repos)
+		start += len(beans)
 
-		for _, repo := range repos {
-			if err := f(ctx, repo); err != nil {
+		for _, bean := range beans {
+			if err := f(ctx, bean); err != nil {
 				return err
 			}
 		}
