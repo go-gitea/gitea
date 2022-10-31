@@ -25,10 +25,8 @@ func SyncRepositoryHooks(ctx context.Context) error {
 
 	if err := db.Iterate(
 		ctx,
-		new(repo_model.Repository),
 		builder.Gt{"id": 0},
-		func(idx int, bean interface{}) error {
-			repo := bean.(*repo_model.Repository)
+		func(ctx context.Context, repo *repo_model.Repository) error {
 			select {
 			case <-ctx.Done():
 				return db.ErrCancelledf("before sync repository hooks for %s", repo.FullName())

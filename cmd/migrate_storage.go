@@ -83,35 +83,35 @@ var CmdMigrateStorage = cli.Command{
 }
 
 func migrateAttachments(ctx context.Context, dstStorage storage.ObjectStorage) error {
-	return db.IterateObjects(ctx, func(attach *repo_model.Attachment) error {
+	return db.Iterate(ctx, nil, func(ctx context.Context, attach *repo_model.Attachment) error {
 		_, err := storage.Copy(dstStorage, attach.RelativePath(), storage.Attachments, attach.RelativePath())
 		return err
 	})
 }
 
 func migrateLFS(ctx context.Context, dstStorage storage.ObjectStorage) error {
-	return db.IterateObjects(ctx, func(mo *git_model.LFSMetaObject) error {
+	return db.Iterate(ctx, nil, func(ctx context.Context, mo *git_model.LFSMetaObject) error {
 		_, err := storage.Copy(dstStorage, mo.RelativePath(), storage.LFS, mo.RelativePath())
 		return err
 	})
 }
 
 func migrateAvatars(ctx context.Context, dstStorage storage.ObjectStorage) error {
-	return db.IterateObjects(ctx, func(user *user_model.User) error {
+	return db.Iterate(ctx, nil, func(ctx context.Context, user *user_model.User) error {
 		_, err := storage.Copy(dstStorage, user.CustomAvatarRelativePath(), storage.Avatars, user.CustomAvatarRelativePath())
 		return err
 	})
 }
 
 func migrateRepoAvatars(ctx context.Context, dstStorage storage.ObjectStorage) error {
-	return db.IterateObjects(ctx, func(repo *repo_model.Repository) error {
+	return db.Iterate(ctx, nil, func(ctx context.Context, repo *repo_model.Repository) error {
 		_, err := storage.Copy(dstStorage, repo.CustomAvatarRelativePath(), storage.RepoAvatars, repo.CustomAvatarRelativePath())
 		return err
 	})
 }
 
 func migrateRepoArchivers(ctx context.Context, dstStorage storage.ObjectStorage) error {
-	return db.IterateObjects(ctx, func(archiver *repo_model.RepoArchiver) error {
+	return db.Iterate(ctx, nil, func(ctx context.Context, archiver *repo_model.RepoArchiver) error {
 		p := archiver.RelativePath()
 		_, err := storage.Copy(dstStorage, p, storage.RepoArchives, p)
 		return err
@@ -119,7 +119,7 @@ func migrateRepoArchivers(ctx context.Context, dstStorage storage.ObjectStorage)
 }
 
 func migratePackages(ctx context.Context, dstStorage storage.ObjectStorage) error {
-	return db.IterateObjects(ctx, func(pb *packages_model.PackageBlob) error {
+	return db.Iterate(ctx, nil, func(ctx context.Context, pb *packages_model.PackageBlob) error {
 		p := packages_module.KeyToRelativePath(packages_module.BlobHash256Key(pb.HashSHA256))
 		_, err := storage.Copy(dstStorage, p, storage.Packages, p)
 		return err
