@@ -170,7 +170,7 @@ func SignIn(ctx *context.Context) {
 	ctx.Data["PageIsLogin"] = true
 	ctx.Data["EnableSSPI"] = auth.IsSSPIEnabled()
 
-	if setting.Service.RequireCaptchaForLogin {
+	if setting.Service.EnableCaptcha && setting.Service.RequireCaptchaForLogin {
 		ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
 		ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
 		ctx.Data["Captcha"] = context.GetImageCaptcha()
@@ -201,17 +201,6 @@ func SignInPost(ctx *context.Context) {
 	ctx.Data["PageIsLogin"] = true
 	ctx.Data["EnableSSPI"] = auth.IsSSPIEnabled()
 
-	if setting.Service.RequireCaptchaForLogin {
-		ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
-		ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
-		ctx.Data["Captcha"] = context.GetImageCaptcha()
-		ctx.Data["CaptchaType"] = setting.Service.CaptchaType
-		ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
-		ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
-		ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
-		ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
-	}
-
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplSignIn)
 		return
@@ -220,6 +209,15 @@ func SignInPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.SignInForm)
 
 	if setting.Service.EnableCaptcha && setting.Service.RequireCaptchaForLogin {
+		ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
+		ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
+		ctx.Data["Captcha"] = context.GetImageCaptcha()
+		ctx.Data["CaptchaType"] = setting.Service.CaptchaType
+		ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
+		ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
+		ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
+		ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
+
 		var valid bool
 		var err error
 		switch setting.Service.CaptchaType {
