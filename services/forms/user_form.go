@@ -160,6 +160,10 @@ type SignInForm struct {
 	// TODO remove required from password for SecondFactorAuthentication
 	Password string `binding:"Required;MaxSize(255)"`
 	Remember bool
+	// Captcha
+	GRecaptchaResponse string `form:"g-recaptcha-response"`
+	HcaptchaResponse   string `form:"h-captcha-response"`
+	McaptchaResponse   string `form:"m-captcha-response"`
 }
 
 // Validate validates the fields
