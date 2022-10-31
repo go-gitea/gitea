@@ -817,8 +817,8 @@ func Routes(ctx gocontext.Context) *web.Route {
 					m.Post("/reject", repo.RejectTransfer)
 				}, reqToken(auth_model.AccessTokenScopeRepo))
 				m.Combo("/notifications", reqToken(auth_model.AccessTokenScopeNotification)).
-					Get(reqToken(""), notify.ListRepoNotifications).
-					Put(reqToken(""), notify.ReadRepoNotifications)
+					Get(notify.ListRepoNotifications).
+					Put(notify.ReadRepoNotifications)
 				m.Group("/hooks/git", func() {
 					m.Combo("").Get(reqToken(auth_model.AccessTokenScopeReadRepoHook), repo.ListGitHooks)
 					m.Group("/{id}", func() {
