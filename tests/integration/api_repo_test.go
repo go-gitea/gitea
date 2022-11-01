@@ -287,24 +287,17 @@ func TestAPIOrgRepos(t *testing.T) {
 		count           int
 		includesPrivate bool
 	}{
-		nil:   {count: 1},
+		user:  {count: 1},
 		user:  {count: 3, includesPrivate: true},
 		user2: {count: 3, includesPrivate: true},
 		user3: {count: 1},
 	}
 
 	for userToLogin, expected := range expectedResults {
-		var session *TestSession
-		var testName string
-		var token string
-		if userToLogin != nil && userToLogin.ID > 0 {
-			testName = fmt.Sprintf("LoggedUser%d", userToLogin.ID)
-			session = loginUser(t, userToLogin.Name)
-			token = getTokenForLoggedInUser(t, session, "read_org")
-		} else {
-			testName = "AnonymousUser"
-			session = emptyTestSession(t)
-		}
+		testName := fmt.Sprintf("LoggedUser%d", userToLogin.ID)
+		session := loginUser(t, userToLogin.Name)
+		token := getTokenForLoggedInUser(t, session, "read_org")
+
 		t.Run(testName, func(t *testing.T) {
 			req := NewRequestf(t, "GET", "/api/v1/orgs/%s/repos?token="+token, sourceOrg.Name)
 			resp := session.MakeRequest(t, req, http.StatusOK)

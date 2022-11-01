@@ -54,7 +54,7 @@ func TestAPITeam(t *testing.T) {
 	// Get an admin user able to create, update and delete teams.
 	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	session = loginUser(t, user.Name)
-	token = getTokenForLoggedInUser(t, session)
+	token = getTokenForLoggedInUser(t, session, "admin_org")
 
 	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 6})
 
