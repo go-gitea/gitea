@@ -303,6 +303,13 @@ func RegisterRoutes(m *web.Route) {
 		}
 	}
 
+	packagesEnabled := func(ctx *context.Context) {
+		if !setting.Packages.Enabled {
+			ctx.Error(http.StatusForbidden)
+			return
+		}
+	}
+
 	// FIXME: not all routes need go through same middleware.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 	// Routers.
@@ -456,13 +463,14 @@ func RegisterRoutes(m *web.Route) {
 					m.Get("/preview", user_setting.PackagesRulePreview)
 				})
 			})
-		})
+		}, packagesEnabled)
 		m.Get("/organization", user_setting.Organization)
 		m.Get("/repos", user_setting.Repos)
 		m.Post("/repos/unadopted", user_setting.AdoptOrDeleteRepository)
 	}, reqSignIn, func(ctx *context.Context) {
 		ctx.Data["PageIsUserSettings"] = true
 		ctx.Data["AllThemes"] = setting.UI.Themes
+		ctx.Data["EnablePackages"] = setting.Packages.Enabled
 	})
 
 	m.Group("/user", func() {
@@ -540,12 +548,10 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/delete", admin.DeleteRepo)
 		})
 
-		if setting.Packages.Enabled {
-			m.Group("/packages", func() {
-				m.Get("", admin.Packages)
-				m.Post("/delete", admin.DeletePackageVersion)
-			})
-		}
+		m.Group("/packages", func() {
+			m.Get("", admin.Packages)
+			m.Post("/delete", admin.DeletePackageVersion)
+		}, packagesEnabled)
 
 		m.Group("/hooks", func() {
 			m.Get("", admin.DefaultOrSystemWebhooks)
@@ -779,9 +785,10 @@ func RegisterRoutes(m *web.Route) {
 							m.Get("/preview", org.PackagesRulePreview)
 						})
 					})
-				})
+				}, packagesEnabled)
 			}, func(ctx *context.Context) {
 				ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
+				ctx.Data["EnablePackages"] = setting.Packages.Enabled
 			})
 		}, context.OrgAssignment(true, true))
 	}, reqSignIn)
