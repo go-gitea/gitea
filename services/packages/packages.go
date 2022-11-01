@@ -352,7 +352,7 @@ func DeletePackageFile(ctx context.Context, pf *packages_model.PackageFile) erro
 }
 
 // Cleanup removes expired package data
-func Cleanup(_ context.Context, olderThan time.Duration) error {
+func Cleanup(taskCtx context.Context, olderThan time.Duration) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -360,6 +360,12 @@ func Cleanup(_ context.Context, olderThan time.Duration) error {
 	defer committer.Close()
 
 	err = packages_model.IterateEnabledCleanupRules(ctx, func(ctx context.Context, pcr *packages_model.PackageCleanupRule) error {
+		select {
+		case <-taskCtx.Done():
+			return db.ErrCancelled{"While processing package cleanup rules"}
+		default:
+		}
+
 		if err := pcr.CompiledPattern(); err != nil {
 			return fmt.Errorf("CleanupRule [%d]: CompilePattern failed: %w", pcr.ID, err)
 		}
@@ -403,7 +409,7 @@ func Cleanup(_ context.Context, olderThan time.Duration) error {
 					continue
 				}
 				if pcr.RemovePatternMatcher != nil && !pcr.RemovePatternMatcher.MatchString(toMatch) {
-					log.Debug("Rule[%d]: do not remove '%s/%s'", pcr.ID, p.Name, pv.Version)
+					log.Debug("Rule[%d]: keep '%s/%s' (remove pattern)", pcr.ID, p.Name, pv.Version)
 					continue
 				}
 
@@ -417,7 +423,6 @@ func Cleanup(_ context.Context, olderThan time.Duration) error {
 		return nil
 	})
 	if err != nil {
-		log.Error("%#v", err)
 		return err
 	}
 
