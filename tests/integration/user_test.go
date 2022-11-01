@@ -53,6 +53,18 @@ func TestRenameInvalidUsername(t *testing.T) {
 		"%00",
 		"thisHas ASpace",
 		"p<A>tho>lo<gical",
+		".",
+		"..",
+		".well-known",
+		".abc",
+		"abc.",
+		"a..bc",
+		"a...bc",
+		"a.-bc",
+		"a._bc",
+		"a_-bc",
+		"a/bc",
+		"☁️",
 	}
 
 	session := loginUser(t, "user2")
@@ -79,9 +91,7 @@ func TestRenameReservedUsername(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	reservedUsernames := []string{
-		".",
-		"..",
-		".well-known",
+		// ".", "..", ".well-known", // The names are not only reserved but also invalid
 		"admin",
 		"api",
 		"assets",
