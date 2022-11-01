@@ -62,23 +62,24 @@ func TestUserOrgs(t *testing.T) {
 	orgs = getUserOrgs(t, unrelatedUsername, privateMemberUsername)
 	assert.Len(t, orgs, 0)
 
-	// not authenticated call also should hide org membership
-	orgs = getUserOrgs(t, "", privateMemberUsername)
-	assert.Len(t, orgs, 0)
+	// not authenticated call should not be allowed
+	testUserOrgsUnauthenticated(t, privateMemberUsername)
 }
 
 func getUserOrgs(t *testing.T, userDoer, userCheck string) (orgs []*api.Organization) {
-	token := ""
-	session := emptyTestSession(t)
-	if len(userDoer) != 0 {
-		session = loginUser(t, userDoer)
-		token = getTokenForLoggedInUser(t, session, "read_org")
-	}
+	session := loginUser(t, userDoer)
+	token := getTokenForLoggedInUser(t, session, "read_org")
 	urlStr := fmt.Sprintf("/api/v1/users/%s/orgs?token=%s", userCheck, token)
 	req := NewRequest(t, "GET", urlStr)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &orgs)
 	return orgs
+}
+
+func testUserOrgsUnauthenticated(t *testing.T, userCheck string) {
+	session := emptyTestSession(t)
+	req := NewRequestf(t, "GET", "/api/v1/users/%s/orgs", userCheck)
+	session.MakeRequest(t, req, http.StatusUnauthorized)
 }
 
 func TestMyOrgs(t *testing.T) {
