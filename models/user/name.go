@@ -4,11 +4,18 @@
 
 package user
 
-import "regexp"
+import (
+	"regexp"
+)
 
-var validUsernamePattern = regexp.MustCompile(`^[\da-zA-Z][-.\w]*$`)
+var (
+	validUsernamePattern   = regexp.MustCompile(`^[\da-zA-Z][-.\w]*$`)
+	invalidUsernamePattern = regexp.MustCompile(`[-._]{2,}|[-._]$`)
+)
 
 // IsValidUsername checks if name is valid
 func IsValidUsername(name string) bool {
-	return validUsernamePattern.MatchString(name)
+	// It is difficult to find a single pattern that is both readable and effective,
+	// but it's easier to use positive and negative checks.
+	return validUsernamePattern.MatchString(name) && !invalidUsernamePattern.MatchString(name)
 }
