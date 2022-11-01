@@ -152,9 +152,10 @@ func TestAPIGetAll(t *testing.T) {
 	var apiOrgList []*api.Organization
 	DecodeJSON(t, resp, &apiOrgList)
 
-	assert.Len(t, apiOrgList, 7)
-	assert.Equal(t, "org25", apiOrgList[0].FullName)
-	assert.Equal(t, "public", apiOrgList[0].Visibility)
+	// accessing with a token will return all orgs
+	assert.Len(t, apiOrgList, 9)
+	assert.Equal(t, "org25", apiOrgList[1].FullName)
+	assert.Equal(t, "public", apiOrgList[1].Visibility)
 }
 
 func TestAPIOrgSearchEmptyTeam(t *testing.T) {
