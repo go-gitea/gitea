@@ -37,16 +37,15 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 	graphCmd.AddArguments(
 		"-C",
 		"-M",
-		fmt.Sprintf("-n %d", setting.UI.GraphMaxCommitNum*page),
+		git.CmdArg(fmt.Sprintf("-n %d", setting.UI.GraphMaxCommitNum*page)),
 		"--date=iso",
-		fmt.Sprintf("--pretty=format:%s", format))
+		git.CmdArg(fmt.Sprintf("--pretty=format:%s", format)))
 
 	if len(branches) > 0 {
 		graphCmd.AddDynamicArguments(branches...)
 	}
 	if len(files) > 0 {
-		graphCmd.AddArguments("--")
-		graphCmd.AddArguments(files...)
+		graphCmd.AddDashesAndList(files...)
 	}
 	graph := NewGraph()
 

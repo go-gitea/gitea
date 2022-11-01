@@ -16,6 +16,7 @@ rules:
   declaration-empty-line-before: null
   function-no-unknown: null
   hue-degree-notation: null
+  import-notation: string
   indentation: 2
   max-line-length: null
   no-descending-specificity: null

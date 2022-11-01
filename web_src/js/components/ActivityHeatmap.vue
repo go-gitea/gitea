@@ -25,6 +25,10 @@ export default {
       type: Array,
       default: () => [],
     },
+    locale: {
+      type: Object,
+      default: () => {},
+    }
   },
   data: () => ({
     colorRange: [
@@ -36,10 +40,6 @@ export default {
       'var(--color-primary-dark-4)',
     ],
     endDate: new Date(),
-    locale: {
-      contributions: 'contributions',
-      no_contributions: 'No contributions',
-    },
   }),
   computed: {
     sum() {
