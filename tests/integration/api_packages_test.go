@@ -169,19 +169,19 @@ func TestPackageAccess(t *testing.T) {
 func TestPackageCleanup(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	time.Sleep(time.Second)
+	duration, _ := time.ParseDuration("-1h")
 
-	pbs, err := packages_model.FindExpiredUnreferencedBlobs(db.DefaultContext, time.Duration(0))
+	pbs, err := packages_model.FindExpiredUnreferencedBlobs(db.DefaultContext, duration)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, pbs)
 
 	_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, 2, packages_model.TypeContainer, "test", container_model.UploadVersion)
 	assert.NoError(t, err)
 
-	err = packages_service.Cleanup(nil, time.Duration(0))
+	err = packages_service.Cleanup(nil, duration)
 	assert.NoError(t, err)
 
-	pbs, err = packages_model.FindExpiredUnreferencedBlobs(db.DefaultContext, time.Duration(0))
+	pbs, err = packages_model.FindExpiredUnreferencedBlobs(db.DefaultContext, duration)
 	assert.NoError(t, err)
 	assert.Empty(t, pbs)
 
