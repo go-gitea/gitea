@@ -19,13 +19,6 @@ import (
 	"xorm.io/builder"
 )
 
-//  __      __      ___.   .__                   __
-// /  \    /  \ ____\_ |__ |  |__   ____   ____ |  | __
-// \   \/\/   // __ \| __ \|  |  \ /  _ \ /  _ \|  |/ /
-//  \        /\  ___/| \_\ \   Y  (  <_> |  <_> )    <
-//   \__/\  /  \___  >___  /___|  /\____/ \____/|__|_ \
-//        \/       \/    \/     \/                   \/
-
 // ErrWebhookNotExist represents a "WebhookNotExist" kind of error.
 type ErrWebhookNotExist struct {
 	ID int64
@@ -41,8 +34,13 @@ func (err ErrWebhookNotExist) Error() string {
 	return fmt.Sprintf("webhook does not exist [id: %d]", err.ID)
 }
 
+func (err ErrWebhookNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrHookTaskNotExist represents a "HookTaskNotExist" kind of error.
 type ErrHookTaskNotExist struct {
+	TaskID int64
 	HookID int64
 	UUID   string
 }
@@ -54,7 +52,11 @@ func IsErrHookTaskNotExist(err error) bool {
 }
 
 func (err ErrHookTaskNotExist) Error() string {
-	return fmt.Sprintf("hook task does not exist [hook: %d, uuid: %s]", err.HookID, err.UUID)
+	return fmt.Sprintf("hook task does not exist [task: %d, hook: %d, uuid: %s]", err.TaskID, err.HookID, err.UUID)
+}
+
+func (err ErrHookTaskNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // HookContentType is the content type of a web hook
@@ -132,6 +134,7 @@ type HookEvents struct {
 	PullRequestComment   bool `json:"pull_request_comment"`
 	PullRequestReview    bool `json:"pull_request_review"`
 	PullRequestSync      bool `json:"pull_request_sync"`
+	Wiki                 bool `json:"wiki"`
 	Repository           bool `json:"repository"`
 	Release              bool `json:"release"`
 	Package              bool `json:"package"`
@@ -328,6 +331,12 @@ func (w *Webhook) HasPullRequestSyncEvent() bool {
 		(w.ChooseEvents && w.HookEvents.PullRequestSync)
 }
 
+// HasWikiEvent returns true if hook enabled wiki event.
+func (w *Webhook) HasWikiEvent() bool {
+	return w.SendEverything ||
+		(w.ChooseEvents && w.HookEvent.Wiki)
+}
+
 // HasReleaseEvent returns if hook enabled release event.
 func (w *Webhook) HasReleaseEvent() bool {
 	return w.SendEverything ||
@@ -373,6 +382,7 @@ func (w *Webhook) EventCheckers() []struct {
 		{w.HasPullRequestRejectedEvent, HookEventPullRequestReviewRejected},
 		{w.HasPullRequestCommentEvent, HookEventPullRequestReviewComment},
 		{w.HasPullRequestSyncEvent, HookEventPullRequestSync},
+		{w.HasWikiEvent, HookEventWiki},
 		{w.HasRepositoryEvent, HookEventRepository},
 		{w.HasReleaseEvent, HookEventRelease},
 		{w.HasPackageEvent, HookEventPackage},
@@ -399,6 +409,10 @@ func CreateWebhook(ctx context.Context, w *Webhook) error {
 
 // CreateWebhooks creates multiple web hooks
 func CreateWebhooks(ctx context.Context, ws []*Webhook) error {
+	// xorm returns err "no element on slice when insert" for empty slices.
+	if len(ws) == 0 {
+		return nil
+	}
 	for i := 0; i < len(ws); i++ {
 		ws[i].Type = strings.TrimSpace(ws[i].Type)
 	}
@@ -594,14 +608,14 @@ func DeleteDefaultSystemWebhook(id int64) error {
 func CopyDefaultWebhooksToRepo(ctx context.Context, repoID int64) error {
 	ws, err := GetDefaultWebhooks(ctx)
 	if err != nil {
-		return fmt.Errorf("GetDefaultWebhooks: %v", err)
+		return fmt.Errorf("GetDefaultWebhooks: %w", err)
 	}
 
 	for _, w := range ws {
 		w.ID = 0
 		w.RepoID = repoID
 		if err := CreateWebhook(ctx, w); err != nil {
-			return fmt.Errorf("CreateWebhook: %v", err)
+			return fmt.Errorf("CreateWebhook: %w", err)
 		}
 	}
 	return nil

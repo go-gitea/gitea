@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -115,6 +116,11 @@ func UpdateResolveConversation(ctx *context.Context) {
 
 	if err = comment.LoadIssue(); err != nil {
 		ctx.ServerError("comment.LoadIssue", err)
+		return
+	}
+
+	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
+		ctx.NotFound("comment's repoID is incorrect", errors.New("comment's repoID is incorrect"))
 		return
 	}
 
@@ -236,7 +242,7 @@ func SubmitReview(ctx *context.Context) {
 // DismissReview dismissing stale review by repo admin
 func DismissReview(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.DismissReviewForm)
-	comm, err := pull_service.DismissReview(ctx, form.ReviewID, form.Message, ctx.Doer, true)
+	comm, err := pull_service.DismissReview(ctx, form.ReviewID, ctx.Repo.Repository.ID, form.Message, ctx.Doer, true, true)
 	if err != nil {
 		ctx.ServerError("pull_service.DismissReview", err)
 		return

@@ -101,6 +101,12 @@ func ToTimelineComment(c *issues_model.Comment, doer *user_model.User) *api.Time
 	}
 
 	if c.Time != nil {
+		err = c.Time.LoadAttributes()
+		if err != nil {
+			log.Error("Time.LoadAttributes: %v", err)
+			return nil
+		}
+
 		comment.TrackedTime = ToTrackedTime(c.Time)
 	}
 

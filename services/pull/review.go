@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // CreateCodeComment creates a comment on the code line
@@ -119,15 +120,15 @@ var notEnoughLines = regexp.MustCompile(`exit status 128 - fatal: file .* has on
 func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content, treePath string, line, reviewID int64) (*issues_model.Comment, error) {
 	var commitID, patch string
 	if err := issue.LoadPullRequest(); err != nil {
-		return nil, fmt.Errorf("GetPullRequestByIssueID: %v", err)
+		return nil, fmt.Errorf("GetPullRequestByIssueID: %w", err)
 	}
 	pr := issue.PullRequest
 	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
-		return nil, fmt.Errorf("LoadHeadRepo: %v", err)
+		return nil, fmt.Errorf("LoadHeadRepo: %w", err)
 	}
 	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo.RepoPath())
 	if err != nil {
-		return nil, fmt.Errorf("RepositoryFromContextOrOpen: %v", err)
+		return nil, fmt.Errorf("RepositoryFromContextOrOpen: %w", err)
 	}
 	defer closer.Close()
 
@@ -150,13 +151,13 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 				invalidated = first[0].Invalidated
 				patch = first[0].Patch
 			} else if err != nil && !issues_model.IsErrCommentNotExist(err) {
-				return nil, fmt.Errorf("Find first comment for %d line %d path %s. Error: %v", reviewID, line, treePath, err)
+				return nil, fmt.Errorf("Find first comment for %d line %d path %s. Error: %w", reviewID, line, treePath, err)
 			} else {
 				review, err := issues_model.GetReviewByID(ctx, reviewID)
 				if err == nil && len(review.CommitID) > 0 {
 					head = review.CommitID
 				} else if err != nil && !issues_model.IsErrReviewNotExist(err) {
-					return nil, fmt.Errorf("GetReviewByID %d. Error: %v", reviewID, err)
+					return nil, fmt.Errorf("GetReviewByID %d. Error: %w", reviewID, err)
 				}
 			}
 		}
@@ -169,7 +170,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 			if err == nil {
 				commitID = commit.ID.String()
 			} else if !(strings.Contains(err.Error(), "exit status 128 - fatal: no such path") || notEnoughLines.MatchString(err.Error())) {
-				return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %v", pr.GetGitRefName(), gitRepo.Path, treePath, line, err)
+				return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %w", pr.GetGitRefName(), gitRepo.Path, treePath, line, err)
 			}
 		}
 	}
@@ -178,7 +179,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 	if len(patch) == 0 && reviewID != 0 {
 		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
 		if err != nil {
-			return nil, fmt.Errorf("GetRefCommitID[%s]: %v", pr.GetGitRefName(), err)
+			return nil, fmt.Errorf("GetRefCommitID[%s]: %w", pr.GetGitRefName(), err)
 		}
 		if len(commitID) == 0 {
 			commitID = headCommitID
@@ -190,7 +191,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 		}()
 		go func() {
 			if err := git.GetRepoRawDiffForFile(gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, treePath, writer); err != nil {
-				_ = writer.CloseWithError(fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %v", gitRepo.Path, pr.MergeBase, headCommitID, treePath, err))
+				_ = writer.CloseWithError(fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %w", gitRepo.Path, pr.MergeBase, headCommitID, treePath, err))
 				return
 			}
 			_ = writer.Close()
@@ -271,7 +272,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 }
 
 // DismissReview dismissing stale review by repo admin
-func DismissReview(ctx context.Context, reviewID int64, message string, doer *user_model.User, isDismiss bool) (comment *issues_model.Comment, err error) {
+func DismissReview(ctx context.Context, reviewID, repoID int64, message string, doer *user_model.User, isDismiss, dismissPriors bool) (comment *issues_model.Comment, err error) {
 	review, err := issues_model.GetReviewByID(ctx, reviewID)
 	if err != nil {
 		return
@@ -281,18 +282,40 @@ func DismissReview(ctx context.Context, reviewID int64, message string, doer *us
 		return nil, fmt.Errorf("not need to dismiss this review because it's type is not Approve or change request")
 	}
 
+	// load data for notify
+	if err = review.LoadAttributes(ctx); err != nil {
+		return nil, err
+	}
+
+	// Check if the review's repoID is the one we're currently expecting.
+	if review.Issue.RepoID != repoID {
+		return nil, fmt.Errorf("reviews's repository is not the same as the one we expect")
+	}
+
 	if err = issues_model.DismissReview(review, isDismiss); err != nil {
 		return
+	}
+
+	if dismissPriors {
+		reviews, err := issues_model.GetReviews(ctx, &issues_model.GetReviewOptions{
+			IssueID:    review.IssueID,
+			ReviewerID: review.ReviewerID,
+			Dismissed:  util.OptionalBoolFalse,
+		})
+		if err != nil {
+			return nil, err
+		}
+		for _, oldReview := range reviews {
+			if err = issues_model.DismissReview(oldReview, true); err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	if !isDismiss {
 		return nil, nil
 	}
 
-	// load data for notify
-	if err = review.LoadAttributes(ctx); err != nil {
-		return
-	}
 	if err = review.Issue.LoadPullRequest(); err != nil {
 		return
 	}

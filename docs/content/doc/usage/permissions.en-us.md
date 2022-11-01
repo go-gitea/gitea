@@ -55,7 +55,7 @@ And there are some differences for permissions between individual repositories a
 
 ## Individual Repository
 
-For individual repositories, the creators are the only owners of repositories and have no limit to change anything of this 
+For individual repositories, the creators are the only owners of repositories and have no limit to change anything of this
 repository or delete it. Repositories owners could add collaborators to help maintain the repositories. Collaborators could have `Read`, `Write` and `Admin` permissions.
 
 ## Organization Repository

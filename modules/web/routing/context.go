@@ -25,7 +25,7 @@ func UpdateFuncInfo(ctx context.Context, funcInfo *FuncInfo) {
 	record.lock.Unlock()
 }
 
-// MarkLongPolling marks the reuqest is a long-polling request, and the logger may output different message for it
+// MarkLongPolling marks the request is a long-polling request, and the logger may output different message for it
 func MarkLongPolling(resp http.ResponseWriter, req *http.Request) {
 	record, ok := req.Context().Value(contextKey).(*requestRecord)
 	if !ok {

@@ -23,6 +23,7 @@ func TestParsePackage(t *testing.T) {
 	packageVersion := "1.0.1-pre"
 	packageTag := "latest"
 	packageAuthor := "KN4CK3R"
+	packageBin := "gitea"
 	packageDescription := "Test Description"
 	data := "H4sIAAAAAAAA/ytITM5OTE/VL4DQelnF+XkMVAYGBgZmJiYK2MRBwNDcSIHB2NTMwNDQzMwAqA7IMDUxA9LUdgg2UFpcklgEdAql5kD8ogCnhwio5lJQUMpLzE1VslJQcihOzi9I1S9JLS7RhSYIJR2QgrLUouLM/DyQGkM9Az1D3YIiqExKanFyUWZBCVQ2BKhVwQVJDKwosbQkI78IJO/tZ+LsbRykxFXLNdA+HwWjYBSMgpENACgAbtAACAAA"
 	integrity := "sha512-yA4FJsVhetynGfOC1jFf79BuS+jrHbm0fhh+aHzCQkOaOBXKf9oBnC4a6DnLLnEsHQDRLYd00cwj8sCXpC+wIg=="
@@ -236,6 +237,9 @@ func TestParsePackage(t *testing.T) {
 						Dependencies: map[string]string{
 							"package": "1.2.0",
 						},
+						Bin: map[string]string{
+							"bin": packageBin,
+						},
 						Dist: PackageDistribution{
 							Integrity: integrity,
 						},
@@ -264,6 +268,7 @@ func TestParsePackage(t *testing.T) {
 		assert.Equal(t, packageDescription, p.Metadata.Description)
 		assert.Equal(t, packageDescription, p.Metadata.Readme)
 		assert.Equal(t, packageAuthor, p.Metadata.Author)
+		assert.Equal(t, packageBin, p.Metadata.Bin["bin"])
 		assert.Equal(t, "MIT", p.Metadata.License)
 		assert.Equal(t, "https://gitea.io/", p.Metadata.ProjectURL)
 		assert.Contains(t, p.Metadata.Dependencies, "package")

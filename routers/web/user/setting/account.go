@@ -34,6 +34,7 @@ func Account(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 	ctx.Data["Email"] = ctx.Doer.Email
+	ctx.Data["EnableNotifyMail"] = setting.Service.EnableNotifyMail
 
 	loadAccountData(ctx)
 
@@ -155,7 +156,8 @@ func EmailPost(ctx *context.Context) {
 		preference := ctx.FormString("preference")
 		if !(preference == user_model.EmailNotificationsEnabled ||
 			preference == user_model.EmailNotificationsOnMention ||
-			preference == user_model.EmailNotificationsDisabled) {
+			preference == user_model.EmailNotificationsDisabled ||
+			preference == user_model.EmailNotificationsAndYourOwn) {
 			log.Error("Email notifications preference change returned unrecognized option %s: %s", preference, ctx.Doer.Name)
 			ctx.ServerError("SetEmailPreference", errors.New("option unrecognized"))
 			return
@@ -247,7 +249,7 @@ func DeleteAccount(ctx *context.Context) {
 		return
 	}
 
-	if err := user.DeleteUser(ctx.Doer); err != nil {
+	if err := user.DeleteUser(ctx, ctx.Doer, false); err != nil {
 		switch {
 		case models.IsErrUserOwnRepos(err):
 			ctx.Flash.Error(ctx.Tr("form.still_own_repo"))

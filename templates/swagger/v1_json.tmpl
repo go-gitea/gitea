@@ -1131,9 +1131,7 @@
             "$ref": "#/responses/HookList"
           }
         }
-      }
-    },
-    "/orgs/{org}/hooks/": {
+      },
       "post": {
         "consumes": [
           "application/json"
@@ -1962,8 +1960,10 @@
               "maven",
               "npm",
               "nuget",
+              "pub",
               "pypi",
-              "rubygems"
+              "rubygems",
+              "vagrant"
             ],
             "type": "string",
             "description": "package type filter",
@@ -3262,6 +3262,12 @@
             "type": "string",
             "description": "filepath of a file/dir",
             "name": "path",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include diff stats for every commit (disable for speedup, default 'true')",
+            "name": "stat",
             "in": "query"
           },
           {
@@ -4666,7 +4672,7 @@
           },
           {
             "type": "string",
-            "description": "The name of the commit/branch/tag. Default the repository’s default branch (usually master)",
+            "description": "The name of the commit/branch/tag, indicates which commit will be loaded to the webhook payload.",
             "name": "ref",
             "in": "query"
           }
@@ -8019,6 +8025,80 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/pulls/{index}/files": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get changed files for a pull request",
+        "operationId": "repoGetPullRequestFiles",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request to get",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "skip to given file",
+            "name": "skip-to",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "ignore-all",
+              "ignore-change",
+              "ignore-eol",
+              "show-all"
+            ],
+            "type": "string",
+            "description": "whitespace behavior",
+            "name": "whitespace",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ChangedFileList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/pulls/{index}/merge": {
       "get": {
         "produces": [
@@ -8772,6 +8852,233 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/push_mirrors": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get all push mirrors of the repository",
+        "operationId": "repoListPushMirrors",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PushMirrorList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "add a push mirror to the repository",
+        "operationId": "repoAddPushMirror",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreatePushMirrorOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/PushMirror"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/push_mirrors-sync": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Sync all push mirrored repository",
+        "operationId": "repoPushMirrorSync",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo to sync",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo to sync",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/empty"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/push_mirrors/{name}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get push mirror of the repository by remoteName",
+        "operationId": "repoGetPushMirrorByRemoteName",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "remote name of push mirror",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PushMirror"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "deletes a push mirror from a repository by remoteName",
+        "operationId": "repoDeletePushMirror",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "remote name of the pushMirror",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -12473,6 +12780,18 @@
         "operationId": "userCurrentTrackedTimes",
         "parameters": [
           {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          },
+          {
             "type": "string",
             "format": "date-time",
             "description": "Only show times updated after the given time. This is a timestamp in RFC 3339 format",
@@ -13476,6 +13795,52 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ChangedFile": {
+      "description": "ChangedFile store information about files affected by the pull request",
+      "type": "object",
+      "properties": {
+        "additions": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Additions"
+        },
+        "changes": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Changes"
+        },
+        "contents_url": {
+          "type": "string",
+          "x-go-name": "ContentsURL"
+        },
+        "deletions": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Deletions"
+        },
+        "filename": {
+          "type": "string",
+          "x-go-name": "Filename"
+        },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "previous_filename": {
+          "type": "string",
+          "x-go-name": "PreviousFilename"
+        },
+        "raw_url": {
+          "type": "string",
+          "x-go-name": "RawURL"
+        },
+        "status": {
+          "type": "string",
+          "x-go-name": "Status"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "CombinedStatus": {
       "description": "CombinedStatus holds the combined state of several statuses for a single commit",
       "type": "object",
@@ -13780,6 +14145,10 @@
         "html_url": {
           "type": "string",
           "x-go-name": "HTMLURL"
+        },
+        "last_commit_sha": {
+          "type": "string",
+          "x-go-name": "LastCommitSHA"
         },
         "name": {
           "type": "string",
@@ -14276,6 +14645,10 @@
       "description": "CreateOAuth2ApplicationOptions holds options to create an oauth2 application",
       "type": "object",
       "properties": {
+        "confidential_client": {
+          "type": "boolean",
+          "x-go-name": "ConfidentialClient"
+        },
         "name": {
           "type": "string",
           "x-go-name": "Name"
@@ -14435,6 +14808,29 @@
         },
         "event": {
           "$ref": "#/definitions/ReviewStateType"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CreatePushMirrorOption": {
+      "type": "object",
+      "title": "CreatePushMirrorOption represents need information to create a push mirror of a repository.",
+      "properties": {
+        "interval": {
+          "type": "string",
+          "x-go-name": "Interval"
+        },
+        "remote_address": {
+          "type": "string",
+          "x-go-name": "RemoteAddress"
+        },
+        "remote_password": {
+          "type": "string",
+          "x-go-name": "RemotePassword"
+        },
+        "remote_username": {
+          "type": "string",
+          "x-go-name": "RemoteUsername"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -14644,7 +15040,16 @@
             "type": "string"
           },
           "x-go-name": "UnitsMap",
-          "example": "{\"repo.code\":\"read\",\"repo.issues\":\"write\",\"repo.ext_issues\":\"none\",\"repo.wiki\":\"admin\",\"repo.pulls\":\"owner\",\"repo.releases\":\"none\",\"repo.projects\":\"none\",\"repo.ext_wiki\":\"none\"]"
+          "example": {
+            "repo.code": "read",
+            "repo.ext_issues": "none",
+            "repo.ext_wiki": "none",
+            "repo.issues": "write",
+            "repo.projects": "none",
+            "repo.pulls": "owner",
+            "repo.releases": "none",
+            "repo.wiki": "admin"
+          }
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -14866,6 +15271,10 @@
         "message": {
           "type": "string",
           "x-go-name": "Message"
+        },
+        "priors": {
+          "type": "boolean",
+          "x-go-name": "Priors"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -15299,32 +15708,32 @@
       "type": "object",
       "properties": {
         "allow_manual_merge": {
-          "description": "either `true` to allow mark pr as merged manually, or `false` to prevent it. `has_pull_requests` must be `true`.",
+          "description": "either `true` to allow mark pr as merged manually, or `false` to prevent it.",
           "type": "boolean",
           "x-go-name": "AllowManualMerge"
         },
         "allow_merge_commits": {
-          "description": "either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits. `has_pull_requests` must be `true`.",
+          "description": "either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits.",
           "type": "boolean",
           "x-go-name": "AllowMerge"
         },
         "allow_rebase": {
-          "description": "either `true` to allow rebase-merging pull requests, or `false` to prevent rebase-merging. `has_pull_requests` must be `true`.",
+          "description": "either `true` to allow rebase-merging pull requests, or `false` to prevent rebase-merging.",
           "type": "boolean",
           "x-go-name": "AllowRebase"
         },
         "allow_rebase_explicit": {
-          "description": "either `true` to allow rebase with explicit merge commits (--no-ff), or `false` to prevent rebase with explicit merge commits. `has_pull_requests` must be `true`.",
+          "description": "either `true` to allow rebase with explicit merge commits (--no-ff), or `false` to prevent rebase with explicit merge commits.",
           "type": "boolean",
           "x-go-name": "AllowRebaseMerge"
         },
         "allow_rebase_update": {
-          "description": "either `true` to allow updating pull request branch by rebase, or `false` to prevent it. `has_pull_requests` must be `true`.",
+          "description": "either `true` to allow updating pull request branch by rebase, or `false` to prevent it.",
           "type": "boolean",
           "x-go-name": "AllowRebaseUpdate"
         },
         "allow_squash_merge": {
-          "description": "either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging. `has_pull_requests` must be `true`.",
+          "description": "either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging.",
           "type": "boolean",
           "x-go-name": "AllowSquash"
         },
@@ -15334,7 +15743,7 @@
           "x-go-name": "Archived"
         },
         "autodetect_manual_merge": {
-          "description": "either `true` to enable AutodetectManualMerge, or `false` to prevent it. `has_pull_requests` must be `true`, Note: In some special cases, misjudgments can occur.",
+          "description": "either `true` to enable AutodetectManualMerge, or `false` to prevent it. Note: In some special cases, misjudgments can occur.",
           "type": "boolean",
           "x-go-name": "AutodetectManualMerge"
         },
@@ -15349,7 +15758,7 @@
           "x-go-name": "DefaultDeleteBranchAfterMerge"
         },
         "default_merge_style": {
-          "description": "set to a merge style to be used by this repository: \"merge\", \"rebase\", \"rebase-merge\", or \"squash\". `has_pull_requests` must be `true`.",
+          "description": "set to a merge style to be used by this repository: \"merge\", \"rebase\", \"rebase-merge\", or \"squash\".",
           "type": "string",
           "x-go-name": "DefaultMergeStyle"
         },
@@ -15390,7 +15799,7 @@
           "x-go-name": "HasWiki"
         },
         "ignore_whitespace_conflicts": {
-          "description": "either `true` to ignore whitespace for conflicts, or `false` to not ignore whitespace. `has_pull_requests` must be `true`.",
+          "description": "either `true` to ignore whitespace for conflicts, or `false` to not ignore whitespace.",
           "type": "boolean",
           "x-go-name": "IgnoreWhitespaceConflicts"
         },
@@ -15481,7 +15890,16 @@
             "type": "string"
           },
           "x-go-name": "UnitsMap",
-          "example": "{\"repo.code\":\"read\",\"repo.issues\":\"write\",\"repo.ext_issues\":\"none\",\"repo.wiki\":\"admin\",\"repo.pulls\":\"owner\",\"repo.releases\":\"none\",\"repo.projects\":\"none\",\"repo.ext_wiki\":\"none\"]"
+          "example": {
+            "repo.code": "read",
+            "repo.ext_issues": "none",
+            "repo.ext_wiki": "none",
+            "repo.issues": "write",
+            "repo.projects": "none",
+            "repo.pulls": "owner",
+            "repo.releases": "none",
+            "repo.wiki": "admin"
+          }
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -15601,8 +16019,13 @@
           "type": "string",
           "x-go-name": "ExternalTrackerFormat"
         },
+        "external_tracker_regexp_pattern": {
+          "description": "External Issue Tracker issue regular expression",
+          "type": "string",
+          "x-go-name": "ExternalTrackerRegexpPattern"
+        },
         "external_tracker_style": {
-          "description": "External Issue Tracker Number Format, either `numeric` or `alphanumeric`",
+          "description": "External Issue Tracker Number Format, either `numeric`, `alphanumeric`, or `regexp`",
           "type": "string",
           "x-go-name": "ExternalTrackerStyle"
         },
@@ -15678,7 +16101,6 @@
           "$ref": "#/definitions/FileCommitResponse"
         },
         "content": {
-          "type": "object",
           "x-go-name": "Content"
         },
         "verification": {
@@ -16078,12 +16500,6 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "GitServiceType": {
-      "description": "GitServiceType represents a git service",
-      "type": "integer",
-      "format": "int64",
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
     "GitTreeResponse": {
       "description": "GitTreeResponse returns a git tree",
       "type": "object",
@@ -16321,6 +16737,35 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "IssueFormField": {
+      "description": "IssueFormField represents a form field",
+      "type": "object",
+      "properties": {
+        "attributes": {
+          "type": "object",
+          "additionalProperties": {},
+          "x-go-name": "Attributes"
+        },
+        "id": {
+          "type": "string",
+          "x-go-name": "ID"
+        },
+        "type": {
+          "$ref": "#/definitions/IssueFormFieldType"
+        },
+        "validations": {
+          "type": "object",
+          "additionalProperties": {},
+          "x-go-name": "Validations"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "IssueFormFieldType": {
+      "type": "string",
+      "title": "IssueFormFieldType defines issue form field type, can be \"markdown\", \"textarea\", \"input\", \"dropdown\" or \"checkboxes\"",
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "IssueLabelsOption": {
       "description": "IssueLabelsOption a collection of labels",
       "type": "object",
@@ -16344,6 +16789,13 @@
         "about": {
           "type": "string",
           "x-go-name": "About"
+        },
+        "body": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/IssueFormField"
+          },
+          "x-go-name": "Fields"
         },
         "content": {
           "type": "string",
@@ -16471,94 +16923,6 @@
         }
       },
       "x-go-name": "MergePullRequestForm",
-      "x-go-package": "code.gitea.io/gitea/services/forms"
-    },
-    "MigrateRepoForm": {
-      "description": "MigrateRepoForm form for migrating repository\nthis is used to interact with web ui",
-      "type": "object",
-      "required": [
-        "clone_addr",
-        "uid",
-        "repo_name"
-      ],
-      "properties": {
-        "auth_password": {
-          "type": "string",
-          "x-go-name": "AuthPassword"
-        },
-        "auth_token": {
-          "type": "string",
-          "x-go-name": "AuthToken"
-        },
-        "auth_username": {
-          "type": "string",
-          "x-go-name": "AuthUsername"
-        },
-        "clone_addr": {
-          "type": "string",
-          "x-go-name": "CloneAddr"
-        },
-        "description": {
-          "type": "string",
-          "x-go-name": "Description"
-        },
-        "issues": {
-          "type": "boolean",
-          "x-go-name": "Issues"
-        },
-        "labels": {
-          "type": "boolean",
-          "x-go-name": "Labels"
-        },
-        "lfs": {
-          "type": "boolean",
-          "x-go-name": "LFS"
-        },
-        "lfs_endpoint": {
-          "type": "string",
-          "x-go-name": "LFSEndpoint"
-        },
-        "milestones": {
-          "type": "boolean",
-          "x-go-name": "Milestones"
-        },
-        "mirror": {
-          "type": "boolean",
-          "x-go-name": "Mirror"
-        },
-        "mirror_interval": {
-          "type": "string",
-          "x-go-name": "MirrorInterval"
-        },
-        "private": {
-          "type": "boolean",
-          "x-go-name": "Private"
-        },
-        "pull_requests": {
-          "type": "boolean",
-          "x-go-name": "PullRequests"
-        },
-        "releases": {
-          "type": "boolean",
-          "x-go-name": "Releases"
-        },
-        "repo_name": {
-          "type": "string",
-          "x-go-name": "RepoName"
-        },
-        "service": {
-          "$ref": "#/definitions/GitServiceType"
-        },
-        "uid": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "UID"
-        },
-        "wiki": {
-          "type": "boolean",
-          "x-go-name": "Wiki"
-        }
-      },
       "x-go-package": "code.gitea.io/gitea/services/forms"
     },
     "MigrateRepoOptions": {
@@ -16946,6 +17310,10 @@
           "type": "string",
           "x-go-name": "ClientSecret"
         },
+        "confidential_client": {
+          "type": "boolean",
+          "x-go-name": "ConfidentialClient"
+        },
         "created": {
           "type": "string",
           "format": "date-time",
@@ -16995,11 +17363,16 @@
           "type": "string",
           "x-go-name": "Location"
         },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
         "repo_admin_change_team_access": {
           "type": "boolean",
           "x-go-name": "RepoAdminChangeTeamAccess"
         },
         "username": {
+          "description": "deprecated",
           "type": "string",
           "x-go-name": "UserName"
         },
@@ -17604,6 +17977,41 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "PushMirror": {
+      "description": "PushMirror represents information of a push mirror",
+      "type": "object",
+      "properties": {
+        "created": {
+          "type": "string",
+          "x-go-name": "CreatedUnix"
+        },
+        "interval": {
+          "type": "string",
+          "x-go-name": "Interval"
+        },
+        "last_error": {
+          "type": "string",
+          "x-go-name": "LastError"
+        },
+        "last_update": {
+          "type": "string",
+          "x-go-name": "LastUpdateUnix"
+        },
+        "remote_address": {
+          "type": "string",
+          "x-go-name": "RemoteAddress"
+        },
+        "remote_name": {
+          "type": "string",
+          "x-go-name": "RemoteName"
+        },
+        "repo_name": {
+          "type": "string",
+          "x-go-name": "RepoName"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "Reaction": {
       "description": "Reaction contain one reaction",
       "type": "object",
@@ -17809,6 +18217,10 @@
           "type": "boolean",
           "x-go-name": "AllowRebaseMerge"
         },
+        "allow_rebase_update": {
+          "type": "boolean",
+          "x-go-name": "AllowRebaseUpdate"
+        },
         "allow_squash_merge": {
           "type": "boolean",
           "x-go-name": "AllowSquash"
@@ -17833,6 +18245,10 @@
         "default_branch": {
           "type": "string",
           "x-go-name": "DefaultBranch"
+        },
+        "default_delete_branch_after_merge": {
+          "type": "boolean",
+          "x-go-name": "DefaultDeleteBranchAfterMerge"
         },
         "default_merge_style": {
           "type": "string",
@@ -18203,7 +18619,16 @@
             "type": "string"
           },
           "x-go-name": "UnitsMap",
-          "example": "{\"repo.code\":\"read\",\"repo.issues\":\"write\",\"repo.ext_issues\":\"none\",\"repo.wiki\":\"admin\",\"repo.pulls\":\"owner\",\"repo.releases\":\"none\",\"repo.projects\":\"none\",\"repo.ext_wiki\":\"none\"]"
+          "example": {
+            "repo.code": "read",
+            "repo.ext_issues": "none",
+            "repo.ext_wiki": "none",
+            "repo.issues": "write",
+            "repo.projects": "none",
+            "repo.pulls": "owner",
+            "repo.releases": "none",
+            "repo.wiki": "admin"
+          }
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -18575,6 +19000,12 @@
           "type": "string",
           "x-go-name": "UserName"
         },
+        "login_name": {
+          "description": "the user's authentication sign-in name.",
+          "type": "string",
+          "default": "empty",
+          "x-go-name": "LoginName"
+        },
         "prohibit_login": {
           "description": "Is user login prohibited",
           "type": "boolean",
@@ -18616,7 +19047,7 @@
           "$ref": "#/definitions/TimeStamp"
         }
       },
-      "x-go-package": "code.gitea.io/gitea/models"
+      "x-go-package": "code.gitea.io/gitea/models/activities"
     },
     "UserSettings": {
       "description": "UserSettings represents user settings",
@@ -18720,7 +19151,6 @@
           "x-go-name": "Ignored"
         },
         "reason": {
-          "type": "object",
           "x-go-name": "Reason"
         },
         "repository_url": {
@@ -18911,6 +19341,41 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/BranchProtection"
+        }
+      }
+    },
+    "ChangedFileList": {
+      "description": "ChangedFileList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/ChangedFile"
+        }
+      },
+      "headers": {
+        "X-HasMore": {
+          "type": "boolean",
+          "description": "True if there is another page"
+        },
+        "X-Page": {
+          "type": "integer",
+          "format": "int64",
+          "description": "The current page"
+        },
+        "X-PageCount": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Total number of pages"
+        },
+        "X-PerPage": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Commits per page"
+        },
+        "X-Total": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Total commit count"
         }
       }
     },
@@ -19367,6 +19832,21 @@
         }
       }
     },
+    "PushMirror": {
+      "description": "PushMirror",
+      "schema": {
+        "$ref": "#/definitions/PushMirror"
+      }
+    },
+    "PushMirrorList": {
+      "description": "PushMirrorList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/PushMirror"
+        }
+      }
+    },
     "Reaction": {
       "description": "Reaction",
       "schema": {
@@ -19646,7 +20126,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/CreateWikiPageOptions"
+        "$ref": "#/definitions/CreatePushMirrorOption"
       }
     },
     "redirect": {

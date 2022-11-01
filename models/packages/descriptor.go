@@ -19,8 +19,10 @@ import (
 	"code.gitea.io/gitea/modules/packages/maven"
 	"code.gitea.io/gitea/modules/packages/npm"
 	"code.gitea.io/gitea/modules/packages/nuget"
+	"code.gitea.io/gitea/modules/packages/pub"
 	"code.gitea.io/gitea/modules/packages/pypi"
 	"code.gitea.io/gitea/modules/packages/rubygems"
+	"code.gitea.io/gitea/modules/packages/vagrant"
 
 	"github.com/hashicorp/go-version"
 )
@@ -40,15 +42,16 @@ func (l PackagePropertyList) GetByName(name string) string {
 
 // PackageDescriptor describes a package
 type PackageDescriptor struct {
-	Package    *Package
-	Owner      *user_model.User
-	Repository *repo_model.Repository
-	Version    *PackageVersion
-	SemVer     *version.Version
-	Creator    *user_model.User
-	Properties PackagePropertyList
-	Metadata   interface{}
-	Files      []*PackageFileDescriptor
+	Package           *Package
+	Owner             *user_model.User
+	Repository        *repo_model.Repository
+	Version           *PackageVersion
+	SemVer            *version.Version
+	Creator           *user_model.User
+	PackageProperties PackagePropertyList
+	VersionProperties PackagePropertyList
+	Metadata          interface{}
+	Files             []*PackageFileDescriptor
 }
 
 // PackageFileDescriptor describes a package file
@@ -102,6 +105,10 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 			return nil, err
 		}
 	}
+	pps, err := GetProperties(ctx, PropertyTypePackage, p.ID)
+	if err != nil {
+		return nil, err
+	}
 	pvps, err := GetProperties(ctx, PropertyTypeVersion, pv.ID)
 	if err != nil {
 		return nil, err
@@ -138,10 +145,14 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 		metadata = &npm.Metadata{}
 	case TypeMaven:
 		metadata = &maven.Metadata{}
+	case TypePub:
+		metadata = &pub.Metadata{}
 	case TypePyPI:
 		metadata = &pypi.Metadata{}
 	case TypeRubyGems:
 		metadata = &rubygems.Metadata{}
+	case TypeVagrant:
+		metadata = &vagrant.Metadata{}
 	default:
 		panic(fmt.Sprintf("unknown package type: %s", string(p.Type)))
 	}
@@ -152,15 +163,16 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 	}
 
 	return &PackageDescriptor{
-		Package:    p,
-		Owner:      o,
-		Repository: repository,
-		Version:    pv,
-		SemVer:     semVer,
-		Creator:    creator,
-		Properties: PackagePropertyList(pvps),
-		Metadata:   metadata,
-		Files:      pfds,
+		Package:           p,
+		Owner:             o,
+		Repository:        repository,
+		Version:           pv,
+		SemVer:            semVer,
+		Creator:           creator,
+		PackageProperties: PackagePropertyList(pps),
+		VersionProperties: PackagePropertyList(pvps),
+		Metadata:          metadata,
+		Files:             pfds,
 	}, nil
 }
 

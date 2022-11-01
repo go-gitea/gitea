@@ -6,6 +6,8 @@ package foreignreference
 
 import (
 	"fmt"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrLocalIndexNotExist represents a "LocalIndexNotExist" kind of error.
@@ -25,6 +27,10 @@ func (err ErrLocalIndexNotExist) Error() string {
 	return fmt.Sprintf("repository %d has no LocalIndex for ForeignIndex %d of type %s", err.RepoID, err.ForeignIndex, err.Type)
 }
 
+func (err ErrLocalIndexNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrForeignIndexNotExist represents a "ForeignIndexNotExist" kind of error.
 type ErrForeignIndexNotExist struct {
 	RepoID     int64
@@ -40,4 +46,8 @@ func IsErrForeignIndexNotExist(err error) bool {
 
 func (err ErrForeignIndexNotExist) Error() string {
 	return fmt.Sprintf("repository %d has no ForeignIndex for LocalIndex %d of type %s", err.RepoID, err.LocalIndex, err.Type)
+}
+
+func (err ErrForeignIndexNotExist) Unwrap() error {
+	return util.ErrNotExist
 }

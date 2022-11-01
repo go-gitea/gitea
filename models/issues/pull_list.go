@@ -62,7 +62,7 @@ func GetUnmergedPullRequestsByHeadInfo(repoID int64, branch string) ([]*PullRequ
 		Find(&prs)
 }
 
-// CanMaintainerWriteToBranch check whether user is a matainer and could write to the branch
+// CanMaintainerWriteToBranch check whether user is a maintainer and could write to the branch
 func CanMaintainerWriteToBranch(p access_model.Permission, branch string, user *user_model.User) bool {
 	if p.CanWrite(unit.TypeCode) {
 		return true
@@ -168,7 +168,7 @@ func (prs PullRequestList) loadAttributes(ctx context.Context) error {
 		Where("id > 0").
 		In("id", issueIDs).
 		Find(&issues); err != nil {
-		return fmt.Errorf("find issues: %v", err)
+		return fmt.Errorf("find issues: %w", err)
 	}
 
 	set := make(map[int64]*Issue)
@@ -205,7 +205,7 @@ func (prs PullRequestList) InvalidateCodeComments(ctx context.Context, doer *use
 		Where("type = ? and invalidated = ?", CommentTypeCode, false).
 		In("issue_id", issueIDs).
 		Find(&codeComments); err != nil {
-		return fmt.Errorf("find code comments: %v", err)
+		return fmt.Errorf("find code comments: %w", err)
 	}
 	for _, comment := range codeComments {
 		if err := comment.CheckInvalidation(repo, doer, branch); err != nil {

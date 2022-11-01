@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -633,8 +634,15 @@ func MoveIssues(ctx *context.Context) {
 	}
 
 	if len(movedIssues) != len(form.Issues) {
-		ctx.ServerError("IssuesNotFound", err)
+		ctx.ServerError("some issues do not exist", errors.New("some issues do not exist"))
 		return
+	}
+
+	for _, issue := range movedIssues {
+		if issue.RepoID != project.RepoID {
+			ctx.ServerError("Some issue's repoID is not equal to project's repoID", errors.New("Some issue's repoID is not equal to project's repoID"))
+			return
+		}
 	}
 
 	if err = project_model.MoveIssuesOnProjectBoard(board, sortedIssueIDs); err != nil {

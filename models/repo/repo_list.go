@@ -6,6 +6,7 @@ package repo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -14,35 +15,11 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
-
-// IterateRepository iterate repositories
-func IterateRepository(f func(repo *Repository) error) error {
-	var start int
-	batchSize := setting.Database.IterateBufferSize
-	sess := db.GetEngine(db.DefaultContext)
-	for {
-		repos := make([]*Repository, 0, batchSize)
-		if err := sess.Limit(batchSize, start).Find(&repos); err != nil {
-			return err
-		}
-		if len(repos) == 0 {
-			return nil
-		}
-		start += len(repos)
-
-		for _, repo := range repos {
-			if err := f(repo); err != nil {
-				return err
-			}
-		}
-	}
-}
 
 // FindReposMapByIDs find repos as map
 func FindReposMapByIDs(repoIDs []int64, res map[int64]*Repository) error {
@@ -91,10 +68,10 @@ func (repos RepositoryList) loadAttributes(ctx context.Context) error {
 		return nil
 	}
 
-	set := make(map[int64]struct{})
+	set := make(container.Set[int64])
 	repoIDs := make([]int64, len(repos))
 	for i := range repos {
-		set[repos[i].OwnerID] = struct{}{}
+		set.Add(repos[i].OwnerID)
 		repoIDs[i] = repos[i].ID
 	}
 
@@ -102,9 +79,9 @@ func (repos RepositoryList) loadAttributes(ctx context.Context) error {
 	users := make(map[int64]*user_model.User, len(set))
 	if err := db.GetEngine(ctx).
 		Where("id > 0").
-		In("id", container.KeysInt64(set)).
+		In("id", set.Values()).
 		Find(&users); err != nil {
-		return fmt.Errorf("find users: %v", err)
+		return fmt.Errorf("find users: %w", err)
 	}
 	for i := range repos {
 		repos[i].Owner = users[repos[i].OwnerID]
@@ -116,7 +93,7 @@ func (repos RepositoryList) loadAttributes(ctx context.Context) error {
 		Where("`is_primary` = ? AND `language` != ?", true, "other").
 		In("`repo_id`", repoIDs).
 		Find(&stats); err != nil {
-		return fmt.Errorf("find primary languages: %v", err)
+		return fmt.Errorf("find primary languages: %w", err)
 	}
 	stats.LoadAttributes()
 	for i := range repos {
@@ -186,6 +163,10 @@ type SearchRepoOptions struct {
 	HasMilestones util.OptionalBool
 	// LowerNames represents valid lower names to restrict to
 	LowerNames []string
+	// When specified true, apply some filters over the conditions:
+	// - Don't show forks, when opts.Fork is OptionalBoolNone.
+	// - Do not display repositories that don't have a description, an icon and topics.
+	OnlyShowRelevant bool
 }
 
 // SearchOrderBy is used to sort the result
@@ -486,8 +467,12 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 			Where(builder.Eq{"language": opts.Language}).And(builder.Eq{"is_primary": true})))
 	}
 
-	if opts.Fork != util.OptionalBoolNone {
-		cond = cond.And(builder.Eq{"is_fork": opts.Fork == util.OptionalBoolTrue})
+	if opts.Fork != util.OptionalBoolNone || opts.OnlyShowRelevant {
+		if opts.OnlyShowRelevant && opts.Fork == util.OptionalBoolNone {
+			cond = cond.And(builder.Eq{"is_fork": false})
+		} else {
+			cond = cond.And(builder.Eq{"is_fork": opts.Fork == util.OptionalBoolTrue})
+		}
 	}
 
 	if opts.Mirror != util.OptionalBoolNone {
@@ -507,6 +492,25 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 		cond = cond.And(builder.Gt{"num_milestones": 0})
 	case util.OptionalBoolFalse:
 		cond = cond.And(builder.Eq{"num_milestones": 0}.Or(builder.IsNull{"num_milestones"}))
+	}
+
+	if opts.OnlyShowRelevant {
+		// Only show a repo that either has a topic or description.
+		subQueryCond := builder.NewCond()
+
+		// Topic checking. Topics is non-null.
+		subQueryCond = subQueryCond.Or(builder.And(builder.Neq{"topics": "null"}, builder.Neq{"topics": "[]"}))
+
+		// Description checking. Description not empty.
+		subQueryCond = subQueryCond.Or(builder.Neq{"description": ""})
+
+		// Repo has a avatar.
+		subQueryCond = subQueryCond.Or(builder.Neq{"avatar": ""})
+
+		// Always hide repo's that are empty.
+		subQueryCond = subQueryCond.And(builder.Eq{"is_empty": false})
+
+		cond = cond.And(subQueryCond)
 	}
 
 	return cond
@@ -533,7 +537,7 @@ func SearchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond, loa
 	}
 	repos := make(RepositoryList, 0, defaultSize)
 	if err := sess.Find(&repos); err != nil {
-		return nil, 0, fmt.Errorf("Repo: %v", err)
+		return nil, 0, fmt.Errorf("Repo: %w", err)
 	}
 
 	if opts.PageSize <= 0 {
@@ -542,7 +546,7 @@ func SearchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond, loa
 
 	if loadAttributes {
 		if err := repos.loadAttributes(ctx); err != nil {
-			return nil, 0, fmt.Errorf("LoadAttributes: %v", err)
+			return nil, 0, fmt.Errorf("LoadAttributes: %w", err)
 		}
 	}
 
@@ -578,7 +582,7 @@ func searchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, c
 			Where(cond).
 			Count(new(Repository))
 		if err != nil {
-			return nil, 0, fmt.Errorf("Count: %v", err)
+			return nil, 0, fmt.Errorf("Count: %w", err)
 		}
 	}
 
@@ -587,6 +591,16 @@ func searchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, c
 		sess = sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 	}
 	return sess, count, nil
+}
+
+// SearchRepositoryIDsByCondition search repository IDs by given condition.
+func SearchRepositoryIDsByCondition(ctx context.Context, cond builder.Cond) ([]int64, error) {
+	repoIDs := make([]int64, 0, 10)
+	return repoIDs, db.GetEngine(ctx).
+		Table("repository").
+		Cols("id").
+		Where(cond).
+		Find(&repoIDs)
 }
 
 // AccessibleRepositoryCondition takes a user a returns a condition for checking if a repository is accessible
@@ -676,16 +690,16 @@ func AccessibleRepoIDsQuery(user *user_model.User) *builder.Builder {
 }
 
 // FindUserCodeAccessibleRepoIDs finds all at Code level accessible repositories' ID by the user's id
-func FindUserCodeAccessibleRepoIDs(user *user_model.User) ([]int64, error) {
-	repoIDs := make([]int64, 0, 10)
-	if err := db.GetEngine(db.DefaultContext).
-		Table("repository").
-		Cols("id").
-		Where(AccessibleRepositoryCondition(user, unit.TypeCode)).
-		Find(&repoIDs); err != nil {
-		return nil, fmt.Errorf("FindUserCodeAccesibleRepoIDs: %v", err)
-	}
-	return repoIDs, nil
+func FindUserCodeAccessibleRepoIDs(ctx context.Context, user *user_model.User) ([]int64, error) {
+	return SearchRepositoryIDsByCondition(ctx, AccessibleRepositoryCondition(user, unit.TypeCode))
+}
+
+// FindUserCodeAccessibleOwnerRepoIDs finds all repository IDs for the given owner whose code the user can see.
+func FindUserCodeAccessibleOwnerRepoIDs(ctx context.Context, ownerID int64, user *user_model.User) ([]int64, error) {
+	return SearchRepositoryIDsByCondition(ctx, builder.NewCond().And(
+		builder.Eq{"owner_id": ownerID},
+		AccessibleRepositoryCondition(user, unit.TypeCode),
+	))
 }
 
 // GetUserRepositories returns a list of repositories of given user.
@@ -695,6 +709,9 @@ func GetUserRepositories(opts *SearchRepoOptions) (RepositoryList, int64, error)
 	}
 
 	cond := builder.NewCond()
+	if opts.Actor == nil {
+		return nil, 0, errors.New("GetUserRepositories: Actor is needed but not given")
+	}
 	cond = cond.And(builder.Eq{"owner_id": opts.Actor.ID})
 	if !opts.Private {
 		cond = cond.And(builder.Eq{"is_private": false})
@@ -708,7 +725,7 @@ func GetUserRepositories(opts *SearchRepoOptions) (RepositoryList, int64, error)
 
 	count, err := sess.Where(cond).Count(new(Repository))
 	if err != nil {
-		return nil, 0, fmt.Errorf("Count: %v", err)
+		return nil, 0, fmt.Errorf("Count: %w", err)
 	}
 
 	sess = sess.Where(cond).OrderBy(opts.OrderBy.String())

@@ -23,6 +23,7 @@ import (
 const (
 	listenFDs = "LISTEN_FDS"
 	startFD   = 3
+	unlinkFDs = "GITEA_UNLINK_FDS"
 )
 
 // In order to keep the working directory the same as when we started we record
@@ -33,8 +34,10 @@ var (
 	once  = sync.Once{}
 	mutex = sync.Mutex{}
 
-	providedListeners = []net.Listener{}
-	activeListeners   = []net.Listener{}
+	providedListenersToUnlink = []bool{}
+	activeListenersToUnlink   = []bool{}
+	providedListeners         = []net.Listener{}
+	activeListeners           = []net.Listener{}
 )
 
 func getProvidedFDs() (savedErr error) {
@@ -49,8 +52,18 @@ func getProvidedFDs() (savedErr error) {
 		}
 		n, err := strconv.Atoi(numFDs)
 		if err != nil {
-			savedErr = fmt.Errorf("%s is not a number: %s. Err: %v", listenFDs, numFDs, err)
+			savedErr = fmt.Errorf("%s is not a number: %s. Err: %w", listenFDs, numFDs, err)
 			return
+		}
+
+		fdsToUnlinkStr := strings.Split(os.Getenv(unlinkFDs), ",")
+		providedListenersToUnlink = make([]bool, n)
+		for _, fdStr := range fdsToUnlinkStr {
+			i, err := strconv.Atoi(fdStr)
+			if err != nil || i < 0 || i >= n {
+				continue
+			}
+			providedListenersToUnlink[i] = true
 		}
 
 		for i := startFD; i < n+startFD; i++ {
@@ -68,7 +81,7 @@ func getProvidedFDs() (savedErr error) {
 			}
 
 			// If needed we can handle packetconns here.
-			savedErr = fmt.Errorf("Error getting provided socket fd %d: %v", i, err)
+			savedErr = fmt.Errorf("Error getting provided socket fd %d: %w", i, err)
 			return
 		}
 	})
@@ -85,7 +98,7 @@ func CloseProvidedListeners() error {
 		if err != nil {
 			log.Error("Error in closing unused provided listener: %v", err)
 			if returnableError != nil {
-				returnableError = fmt.Errorf("%v & %v", returnableError, err)
+				returnableError = fmt.Errorf("%v & %w", returnableError, err)
 			} else {
 				returnableError = err
 			}
@@ -136,8 +149,11 @@ func GetListenerTCP(network string, address *net.TCPAddr) (*net.TCPListener, err
 	for i, l := range providedListeners {
 		if isSameAddr(l.Addr(), address) {
 			providedListeners = append(providedListeners[:i], providedListeners[i+1:]...)
+			needsUnlink := providedListenersToUnlink[i]
+			providedListenersToUnlink = append(providedListenersToUnlink[:i], providedListenersToUnlink[i+1:]...)
 
 			activeListeners = append(activeListeners, l)
+			activeListenersToUnlink = append(activeListenersToUnlink, needsUnlink)
 			return l.(*net.TCPListener), nil
 		}
 	}
@@ -148,6 +164,7 @@ func GetListenerTCP(network string, address *net.TCPAddr) (*net.TCPListener, err
 		return nil, err
 	}
 	activeListeners = append(activeListeners, l)
+	activeListenersToUnlink = append(activeListenersToUnlink, false)
 	return l, nil
 }
 
@@ -166,16 +183,22 @@ func GetListenerUnix(network string, address *net.UnixAddr) (*net.UnixListener, 
 	for i, l := range providedListeners {
 		if isSameAddr(l.Addr(), address) {
 			providedListeners = append(providedListeners[:i], providedListeners[i+1:]...)
+			needsUnlink := providedListenersToUnlink[i]
+			providedListenersToUnlink = append(providedListenersToUnlink[:i], providedListenersToUnlink[i+1:]...)
+
+			activeListenersToUnlink = append(activeListenersToUnlink, needsUnlink)
 			activeListeners = append(activeListeners, l)
 			unixListener := l.(*net.UnixListener)
-			unixListener.SetUnlinkOnClose(true)
+			if needsUnlink {
+				unixListener.SetUnlinkOnClose(true)
+			}
 			return unixListener, nil
 		}
 	}
 
 	// make a fresh listener
 	if err := util.Remove(address.Name); err != nil && !os.IsNotExist(err) {
-		return nil, fmt.Errorf("Failed to remove unix socket %s: %v", address.Name, err)
+		return nil, fmt.Errorf("Failed to remove unix socket %s: %w", address.Name, err)
 	}
 
 	l, err := net.ListenUnix(network, address)
@@ -185,10 +208,11 @@ func GetListenerUnix(network string, address *net.UnixAddr) (*net.UnixListener, 
 
 	fileMode := os.FileMode(setting.UnixSocketPermission)
 	if err = os.Chmod(address.Name, fileMode); err != nil {
-		return nil, fmt.Errorf("Failed to set permission of unix socket to %s: %v", fileMode.String(), err)
+		return nil, fmt.Errorf("Failed to set permission of unix socket to %s: %w", fileMode.String(), err)
 	}
 
 	activeListeners = append(activeListeners, l)
+	activeListenersToUnlink = append(activeListenersToUnlink, true)
 	return l, nil
 }
 
@@ -222,4 +246,12 @@ func getActiveListeners() []net.Listener {
 	listeners := make([]net.Listener, len(activeListeners))
 	copy(listeners, activeListeners)
 	return listeners
+}
+
+func getActiveListenersToUnlink() []bool {
+	mutex.Lock()
+	defer mutex.Unlock()
+	listenersToUnlink := make([]bool, len(activeListenersToUnlink))
+	copy(listenersToUnlink, activeListenersToUnlink)
+	return listenersToUnlink
 }

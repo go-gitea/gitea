@@ -87,7 +87,7 @@ To build from source, the following programs must be present on the system:
 
 - `go` {{< min-go-version >}} or higher, see [here](https://golang.org/dl/)
 - `node` {{< min-node-version >}} or higher with `npm`, see [here](https://nodejs.org/en/download/)
-- `make`, see <a href='{{< relref "doc/developers/hacking-on-gitea.en-us.md" >}}#installing-make'>here</a>
+- `make`, see [here]({{< relref "doc/developers/hacking-on-gitea.en-us.md" >}}#installing-make)
 
 Various [make tasks](https://github.com/go-gitea/gitea/blob/main/Makefile)
 are provided to keep the build process as simple as possible.
@@ -101,7 +101,7 @@ Depending on requirements, the following build tags can be included.
 - `pam`: Enable support for PAM (Linux Pluggable Authentication Modules). Can
   be used to authenticate local users or extend authentication to methods
   available to PAM.
-* `gogit`: (EXPERIMENTAL) Use go-git variants of Git commands.
+- `gogit`: (EXPERIMENTAL) Use go-git variants of Git commands.
 
 Bundling assets into the binary using the `bindata` build tag is recommended for
 production deployments. It is possible to serve the static assets directly via a reverse proxy,

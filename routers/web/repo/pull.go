@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -29,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	issue_template "code.gitea.io/gitea/modules/issue/template"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
@@ -57,11 +59,23 @@ const (
 
 var pullRequestTemplateCandidates = []string{
 	"PULL_REQUEST_TEMPLATE.md",
+	"PULL_REQUEST_TEMPLATE.yaml",
+	"PULL_REQUEST_TEMPLATE.yml",
 	"pull_request_template.md",
+	"pull_request_template.yaml",
+	"pull_request_template.yml",
 	".gitea/PULL_REQUEST_TEMPLATE.md",
+	".gitea/PULL_REQUEST_TEMPLATE.yaml",
+	".gitea/PULL_REQUEST_TEMPLATE.yml",
 	".gitea/pull_request_template.md",
+	".gitea/pull_request_template.yaml",
+	".gitea/pull_request_template.yml",
 	".github/PULL_REQUEST_TEMPLATE.md",
+	".github/PULL_REQUEST_TEMPLATE.yaml",
+	".github/PULL_REQUEST_TEMPLATE.yml",
 	".github/pull_request_template.md",
+	".github/pull_request_template.yaml",
+	".github/pull_request_template.yml",
 }
 
 func getRepository(ctx *context.Context, repoID int64) *repo_model.Repository {
@@ -295,7 +309,7 @@ func checkPullInfo(ctx *context.Context) *issues_model.Issue {
 
 	if ctx.IsSigned {
 		// Update issue-user.
-		if err = models.SetIssueReadBy(ctx, issue.ID, ctx.Doer.ID); err != nil {
+		if err = activities_model.SetIssueReadBy(ctx, issue.ID, ctx.Doer.ID); err != nil {
 			ctx.ServerError("ReadBy", err)
 			return nil
 		}
@@ -345,7 +359,7 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *issues_model.Issue) 
 		}
 		if commitSHA != "" {
 			// Get immediate parent of the first commit in the patch, grab history back
-			parentCommit, _, err = git.NewCommand(ctx, "rev-list", "-1", "--skip=1", commitSHA).RunStdString(&git.RunOpts{Dir: ctx.Repo.GitRepo.Path})
+			parentCommit, _, err = git.NewCommand(ctx, "rev-list", "-1", "--skip=1").AddDynamicArguments(commitSHA).RunStdString(&git.RunOpts{Dir: ctx.Repo.GitRepo.Path})
 			if err == nil {
 				parentCommit = strings.TrimSpace(parentCommit)
 			}
@@ -510,6 +524,8 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 			return nil
 		}
 		ctx.Data["GetCommitMessages"] = pull_service.GetSquashMergeCommitMessages(ctx, pull)
+	} else {
+		ctx.Data["GetCommitMessages"] = ""
 	}
 
 	sha, err := baseGitRepo.GetRefCommitID(pull.GetGitRefName())
@@ -1191,6 +1207,13 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		return
 	}
 
+	content := form.Content
+	if filename := ctx.Req.Form.Get("template-file"); filename != "" {
+		if template, err := issue_template.UnmarshalFromRepo(ctx.Repo.GitRepo, ctx.Repo.Repository.DefaultBranch, filename); err == nil {
+			content = issue_template.RenderToMarkdown(template, ctx.Req.Form)
+		}
+	}
+
 	pullIssue := &issues_model.Issue{
 		RepoID:      repo.ID,
 		Repo:        repo,
@@ -1199,7 +1222,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		Poster:      ctx.Doer,
 		MilestoneID: milestoneID,
 		IsPull:      true,
-		Content:     form.Content,
+		Content:     content,
 	}
 	pullRequest := &issues_model.PullRequest{
 		HeadRepoID:          ci.HeadRepo.ID,
@@ -1440,7 +1463,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 			err := err.(issues_model.ErrPullRequestAlreadyExists)
 
 			RepoRelPath := ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name
-			errorMessage := ctx.Tr("repo.pulls.has_pull_request", html.EscapeString(ctx.Repo.RepoLink+"/pulls/"+strconv.FormatInt(err.IssueID, 10)), html.EscapeString(RepoRelPath), err.IssueID) // FIXME: Creates url insidde locale string
+			errorMessage := ctx.Tr("repo.pulls.has_pull_request", html.EscapeString(ctx.Repo.RepoLink+"/pulls/"+strconv.FormatInt(err.IssueID, 10)), html.EscapeString(RepoRelPath), err.IssueID) // FIXME: Creates url inside locale string
 
 			ctx.Flash.Error(errorMessage)
 			ctx.JSON(http.StatusConflict, map[string]interface{}{

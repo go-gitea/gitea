@@ -1,23 +1,23 @@
 {{if eq .PackageDescriptor.Package.Type "nuget"}}
-	<h4 class="ui top attached header">{{.i18n.Tr "packages.installation"}}</h4>
+	<h4 class="ui top attached header">{{.locale.Tr "packages.installation"}}</h4>
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label>{{svg "octicon-terminal"}} {{.i18n.Tr "packages.nuget.registry"}}</label>
+				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.nuget.registry"}}</label>
 				<div class="markup"><pre class="code-block"><code>dotnet nuget add source --name Gitea --username your_username --password your_token {{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/nuget/index.json</code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{svg "octicon-terminal"}} {{.i18n.Tr "packages.nuget.install"}}</label>
+				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.nuget.install"}}</label>
 				<div class="markup"><pre class="code-block"><code>dotnet add package --source Gitea --version {{.PackageDescriptor.Version.Version}} {{.PackageDescriptor.Package.Name}}</code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{.i18n.Tr "packages.nuget.documentation" | Safe}}</label>
+				<label>{{.locale.Tr "packages.nuget.documentation" | Safe}}</label>
 			</div>
 		</div>
 	</div>
 
 	{{if or .PackageDescriptor.Metadata.Description .PackageDescriptor.Metadata.ReleaseNotes}}
-		<h4 class="ui top attached header">{{.i18n.Tr "packages.about"}}</h4>
+		<h4 class="ui top attached header">{{.locale.Tr "packages.about"}}</h4>
 		<div class="ui attached segment">
 			{{if .PackageDescriptor.Metadata.Description}}{{.PackageDescriptor.Metadata.Description}}{{end}}
 			{{if .PackageDescriptor.Metadata.ReleaseNotes}}{{Str2html .PackageDescriptor.Metadata.ReleaseNotes}}{{end}}
@@ -25,14 +25,14 @@
 	{{end}}
 
 	{{if .PackageDescriptor.Metadata.Dependencies}}
-		<h4 class="ui top attached header">{{.i18n.Tr "packages.dependencies"}}</h4>
+		<h4 class="ui top attached header">{{.locale.Tr "packages.dependencies"}}</h4>
 		<div class="ui attached segment">
 			<table class="ui single line very basic table">
 				<thead>
 					<tr>
-						<th class="ten wide">{{.i18n.Tr "packages.dependency.id"}}</th>
-						<th class="three wide">{{.i18n.Tr "packages.dependency.version"}}</th>
-						<th class="three wide">{{.i18n.Tr "packages.nuget.dependency.framework"}}</th>
+						<th class="ten wide">{{.locale.Tr "packages.dependency.id"}}</th>
+						<th class="three wide">{{.locale.Tr "packages.dependency.version"}}</th>
+						<th class="three wide">{{.locale.Tr "packages.nuget.dependency.framework"}}</th>
 					</tr>
 				</thead>
 				<tbody>

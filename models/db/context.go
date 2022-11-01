@@ -8,9 +8,6 @@ import (
 	"context"
 	"database/sql"
 
-	"code.gitea.io/gitea/modules/setting"
-
-	"xorm.io/builder"
 	"xorm.io/xorm/schemas"
 )
 
@@ -100,7 +97,7 @@ func TxContext() (*Context, Committer, error) {
 }
 
 // WithTx represents executing database operations on a transaction
-// you can optionally change the context to a parrent one
+// you can optionally change the context to a parent one
 func WithTx(f func(ctx context.Context) error, stdCtx ...context.Context) error {
 	parentCtx := DefaultContext
 	if len(stdCtx) != 0 && stdCtx[0] != nil {
@@ -119,13 +116,6 @@ func WithTx(f func(ctx context.Context) error, stdCtx ...context.Context) error 
 	}
 
 	return sess.Commit()
-}
-
-// Iterate iterates the databases and doing something
-func Iterate(ctx context.Context, tableBean interface{}, cond builder.Cond, fun func(idx int, bean interface{}) error) error {
-	return GetEngine(ctx).Where(cond).
-		BufferSize(setting.Database.IterateBufferSize).
-		Iterate(tableBean, fun)
 }
 
 // Insert inserts records into database

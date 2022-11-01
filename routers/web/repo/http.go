@@ -398,7 +398,7 @@ func (h *serviceHandler) sendFile(contentType, file string) {
 var safeGitProtocolHeader = regexp.MustCompile(`^[0-9a-zA-Z]+=[0-9a-zA-Z]+(:[0-9a-zA-Z]+=[0-9a-zA-Z]+)*$`)
 
 func getGitConfig(ctx gocontext.Context, option, dir string) string {
-	out, _, err := git.NewCommand(ctx, "config", option).RunStdString(&git.RunOpts{Dir: dir})
+	out, _, err := git.NewCommand(ctx, "config").AddDynamicArguments(option).RunStdString(&git.RunOpts{Dir: dir})
 	if err != nil {
 		log.Error("%v - %s", err, out)
 	}
@@ -471,14 +471,15 @@ func serviceRPC(ctx gocontext.Context, h serviceHandler, service string) {
 	}
 
 	var stderr bytes.Buffer
-	cmd := git.NewCommand(h.r.Context(), service, "--stateless-rpc", h.dir)
+	cmd := git.NewCommand(h.r.Context(), git.CmdArgCheck(service), "--stateless-rpc").AddDynamicArguments(h.dir)
 	cmd.SetDescription(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir))
 	if err := cmd.Run(&git.RunOpts{
-		Dir:    h.dir,
-		Env:    append(os.Environ(), h.environ...),
-		Stdout: h.w,
-		Stdin:  reqBody,
-		Stderr: &stderr,
+		Dir:               h.dir,
+		Env:               append(os.Environ(), h.environ...),
+		Stdout:            h.w,
+		Stdin:             reqBody,
+		Stderr:            &stderr,
+		UseContextTimeout: true,
 	}); err != nil {
 		if err.Error() != "signal: killed" {
 			log.Error("Fail to serve RPC(%s) in %s: %v - %s", service, h.dir, err, stderr.String())
@@ -542,7 +543,7 @@ func GetInfoRefs(ctx *context.Context) {
 		}
 		h.environ = append(os.Environ(), h.environ...)
 
-		refs, _, err := git.NewCommand(ctx, service, "--stateless-rpc", "--advertise-refs", ".").RunStdBytes(&git.RunOpts{Env: h.environ, Dir: h.dir})
+		refs, _, err := git.NewCommand(ctx, git.CmdArgCheck(service), "--stateless-rpc", "--advertise-refs", ".").RunStdBytes(&git.RunOpts{Env: h.environ, Dir: h.dir})
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}

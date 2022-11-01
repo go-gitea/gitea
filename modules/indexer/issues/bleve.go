@@ -40,7 +40,7 @@ func indexerID(id int64) string {
 func idOfIndexerID(indexerID string) (int64, error) {
 	id, err := strconv.ParseInt(indexerID, 36, 64)
 	if err != nil {
-		return 0, fmt.Errorf("Unexpected indexer ID %s: %v", indexerID, err)
+		return 0, fmt.Errorf("Unexpected indexer ID %s: %w", indexerID, err)
 	}
 	return id, nil
 }

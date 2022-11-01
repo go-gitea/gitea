@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models/db"
+	org_model "code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
 	"code.gitea.io/gitea/models/perm"
@@ -17,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
 	packages_service "code.gitea.io/gitea/services/packages"
@@ -43,9 +45,10 @@ func ListPackages(ctx *context.Context) {
 			PageSize: setting.UI.PackagesPagingNum,
 			Page:     page,
 		},
-		OwnerID: ctx.ContextUser.ID,
-		Type:    packages_model.Type(packageType),
-		Name:    packages_model.SearchValue{Value: query},
+		OwnerID:    ctx.ContextUser.ID,
+		Type:       packages_model.Type(packageType),
+		Name:       packages_model.SearchValue{Value: query},
+		IsInternal: util.OptionalBoolFalse,
 	})
 	if err != nil {
 		ctx.ServerError("SearchLatestVersions", err)
@@ -83,6 +86,7 @@ func ListPackages(ctx *context.Context) {
 
 	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["IsPackagesPage"] = true
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["Query"] = query
 	ctx.Data["PackageType"] = packageType
@@ -90,6 +94,21 @@ func ListPackages(ctx *context.Context) {
 	ctx.Data["PackageDescriptors"] = pds
 	ctx.Data["Total"] = total
 	ctx.Data["RepositoryAccessMap"] = repositoryAccessMap
+
+	// TODO: context/org -> HandleOrgAssignment() can not be used
+	if ctx.ContextUser.IsOrganization() {
+		org := org_model.OrgFromUser(ctx.ContextUser)
+		ctx.Data["Org"] = org
+		ctx.Data["OrgLink"] = ctx.ContextUser.OrganisationLink()
+
+		if ctx.Doer != nil {
+			ctx.Data["IsOrganizationMember"], _ = org_model.IsOrganizationMember(ctx, org.ID, ctx.Doer.ID)
+			ctx.Data["IsOrganizationOwner"], _ = org_model.IsOrganizationOwner(ctx, org.ID, ctx.Doer.ID)
+		} else {
+			ctx.Data["IsOrganizationMember"] = false
+			ctx.Data["IsOrganizationOwner"] = false
+		}
+	}
 
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
 	pager.AddParam(ctx, "q", "Query")
@@ -112,7 +131,8 @@ func RedirectToLastVersion(ctx *context.Context) {
 	}
 
 	pvs, _, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
-		PackageID: p.ID,
+		PackageID:  p.ID,
+		IsInternal: util.OptionalBoolFalse,
 	})
 	if err != nil {
 		ctx.ServerError("GetPackageByName", err)
@@ -138,6 +158,7 @@ func ViewPackageVersion(ctx *context.Context) {
 
 	ctx.Data["Title"] = pd.Package.Name
 	ctx.Data["IsPackagesPage"] = true
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["PackageDescriptor"] = pd
 
@@ -157,8 +178,9 @@ func ViewPackageVersion(ctx *context.Context) {
 		})
 	default:
 		pvs, total, err = packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
-			Paginator: db.NewAbsoluteListOptions(0, 5),
-			PackageID: pd.Package.ID,
+			Paginator:  db.NewAbsoluteListOptions(0, 5),
+			PackageID:  pd.Package.ID,
+			IsInternal: util.OptionalBoolFalse,
 		})
 		if err != nil {
 			ctx.ServerError("SearchVersions", err)
@@ -211,18 +233,22 @@ func ListPackageVersions(ctx *context.Context) {
 	}
 
 	query := ctx.FormTrim("q")
+	sort := ctx.FormTrim("sort")
 
 	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["IsPackagesPage"] = true
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["PackageDescriptor"] = &packages_model.PackageDescriptor{
 		Package: p,
 		Owner:   ctx.Package.Owner,
 	}
 	ctx.Data["Query"] = query
+	ctx.Data["Sort"] = sort
 
 	pagerParams := map[string]string{
-		"q": query,
+		"q":    query,
+		"sort": sort,
 	}
 
 	var (
@@ -241,6 +267,7 @@ func ListPackageVersions(ctx *context.Context) {
 			PackageID: p.ID,
 			Query:     query,
 			IsTagged:  tagged == "" || tagged == "tagged",
+			Sort:      sort,
 		})
 		if err != nil {
 			ctx.ServerError("SearchImageTags", err)
@@ -254,6 +281,8 @@ func ListPackageVersions(ctx *context.Context) {
 				ExactMatch: false,
 				Value:      query,
 			},
+			IsInternal: util.OptionalBoolFalse,
+			Sort:       sort,
 		})
 		if err != nil {
 			ctx.ServerError("SearchVersions", err)
@@ -284,6 +313,7 @@ func PackageSettings(ctx *context.Context) {
 
 	ctx.Data["Title"] = pd.Package.Name
 	ctx.Data["IsPackagesPage"] = true
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["PackageDescriptor"] = pd
 
@@ -372,5 +402,5 @@ func DownloadPackageFile(ctx *context.Context) {
 	}
 	defer s.Close()
 
-	ctx.ServeStream(s, pf.Name)
+	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
 }

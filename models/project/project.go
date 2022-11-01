@@ -55,6 +55,10 @@ func (err ErrProjectNotExist) Error() string {
 	return fmt.Sprintf("projects does not exist [id: %d]", err.ID)
 }
 
+func (err ErrProjectNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrProjectBoardNotExist represents a "ProjectBoardNotExist" kind of error.
 type ErrProjectBoardNotExist struct {
 	BoardID int64
@@ -68,6 +72,10 @@ func IsErrProjectBoardNotExist(err error) bool {
 
 func (err ErrProjectBoardNotExist) Error() string {
 	return fmt.Sprintf("project board does not exist [id: %d]", err.BoardID)
+}
+
+func (err ErrProjectBoardNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // Project represents a project board
@@ -139,7 +147,7 @@ func GetProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, er
 
 	count, err := e.Where(cond).Count(new(Project))
 	if err != nil {
-		return nil, 0, fmt.Errorf("Count: %v", err)
+		return nil, 0, fmt.Errorf("Count: %w", err)
 	}
 
 	e = e.Where(cond)
@@ -329,4 +337,41 @@ func DeleteProjectByIDCtx(ctx context.Context, id int64) error {
 	}
 
 	return updateRepositoryProjectCount(ctx, p.RepoID)
+}
+
+func DeleteProjectByRepoIDCtx(ctx context.Context, repoID int64) error {
+	switch {
+	case setting.Database.UseSQLite3:
+		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_issue WHERE project_issue.id IN (SELECT project_issue.id FROM project_issue INNER JOIN project WHERE project.id = project_issue.project_id AND project.repo_id = ?)", repoID); err != nil {
+			return err
+		}
+		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_board WHERE project_board.id IN (SELECT project_board.id FROM project_board INNER JOIN project WHERE project.id = project_board.project_id AND project.repo_id = ?)", repoID); err != nil {
+			return err
+		}
+		if _, err := db.GetEngine(ctx).Table("project").Where("repo_id = ? ", repoID).Delete(&Project{}); err != nil {
+			return err
+		}
+	case setting.Database.UsePostgreSQL:
+		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_issue USING project WHERE project.id = project_issue.project_id AND project.repo_id = ? ", repoID); err != nil {
+			return err
+		}
+		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_board USING project WHERE project.id = project_board.project_id AND project.repo_id = ? ", repoID); err != nil {
+			return err
+		}
+		if _, err := db.GetEngine(ctx).Table("project").Where("repo_id = ? ", repoID).Delete(&Project{}); err != nil {
+			return err
+		}
+	default:
+		if _, err := db.GetEngine(ctx).Exec("DELETE project_issue FROM project_issue INNER JOIN project ON project.id = project_issue.project_id WHERE project.repo_id = ? ", repoID); err != nil {
+			return err
+		}
+		if _, err := db.GetEngine(ctx).Exec("DELETE project_board FROM project_board INNER JOIN project ON project.id = project_board.project_id WHERE project.repo_id = ? ", repoID); err != nil {
+			return err
+		}
+		if _, err := db.GetEngine(ctx).Table("project").Where("repo_id = ? ", repoID).Delete(&Project{}); err != nil {
+			return err
+		}
+	}
+
+	return updateRepositoryProjectCount(ctx, repoID)
 }

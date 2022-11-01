@@ -64,12 +64,14 @@ var AvailableHashAlgorithms = []string{
 }
 
 const (
-	// EmailNotificationsEnabled indicates that the user would like to receive all email notifications
+	// EmailNotificationsEnabled indicates that the user would like to receive all email notifications except your own
 	EmailNotificationsEnabled = "enabled"
 	// EmailNotificationsOnMention indicates that the user would like to be notified via email when mentioned.
 	EmailNotificationsOnMention = "onmention"
 	// EmailNotificationsDisabled indicates that the user would not like to be notified via email.
 	EmailNotificationsDisabled = "disabled"
+	// EmailNotificationsEnabled indicates that the user would like to receive all email notifications and your own
+	EmailNotificationsAndYourOwn = "andyourown"
 )
 
 // User represents the object of individual and member of organization.
@@ -316,37 +318,45 @@ func (u *User) GenerateEmailActivateCode(email string) string {
 }
 
 // GetUserFollowers returns range of user's followers.
-func GetUserFollowers(u *User, listOptions db.ListOptions) ([]*User, error) {
-	sess := db.GetEngine(db.DefaultContext).
+func GetUserFollowers(ctx context.Context, u, viewer *User, listOptions db.ListOptions) ([]*User, int64, error) {
+	sess := db.GetEngine(ctx).
+		Select("`user`.*").
+		Join("LEFT", "follow", "`user`.id=follow.user_id").
 		Where("follow.follow_id=?", u.ID).
-		Join("LEFT", "follow", "`user`.id=follow.user_id")
+		And(isUserVisibleToViewerCond(viewer))
 
 	if listOptions.Page != 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
 
 		users := make([]*User, 0, listOptions.PageSize)
-		return users, sess.Find(&users)
+		count, err := sess.FindAndCount(&users)
+		return users, count, err
 	}
 
 	users := make([]*User, 0, 8)
-	return users, sess.Find(&users)
+	count, err := sess.FindAndCount(&users)
+	return users, count, err
 }
 
 // GetUserFollowing returns range of user's following.
-func GetUserFollowing(u *User, listOptions db.ListOptions) ([]*User, error) {
+func GetUserFollowing(ctx context.Context, u, viewer *User, listOptions db.ListOptions) ([]*User, int64, error) {
 	sess := db.GetEngine(db.DefaultContext).
+		Select("`user`.*").
+		Join("LEFT", "follow", "`user`.id=follow.follow_id").
 		Where("follow.user_id=?", u.ID).
-		Join("LEFT", "follow", "`user`.id=follow.follow_id")
+		And(isUserVisibleToViewerCond(viewer))
 
 	if listOptions.Page != 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
 
 		users := make([]*User, 0, listOptions.PageSize)
-		return users, sess.Find(&users)
+		count, err := sess.FindAndCount(&users)
+		return users, count, err
 	}
 
 	users := make([]*User, 0, 8)
-	return users, sess.Find(&users)
+	count, err := sess.FindAndCount(&users)
+	return users, count, err
 }
 
 // NewGitSig generates and returns the signature of given user.
@@ -485,6 +495,9 @@ func (u *User) GitName() string {
 
 // ShortName ellipses username to length
 func (u *User) ShortName(length int) string {
+	if setting.UI.DefaultShowFullName && len(u.FullName) > 0 {
+		return base.EllipsisString(u.FullName, length)
+	}
 	return base.EllipsisString(u.Name, length)
 }
 
@@ -814,12 +827,12 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 	}
 
 	if _, err = db.GetEngine(ctx).Exec("UPDATE `repository` SET owner_name=? WHERE owner_name=?", newUserName, oldUserName); err != nil {
-		return fmt.Errorf("Change repo owner name: %v", err)
+		return fmt.Errorf("Change repo owner name: %w", err)
 	}
 
 	// Do not fail if directory does not exist
 	if err = util.Rename(UserPath(oldUserName), UserPath(newUserName)); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("Rename user directory: %v", err)
+		return fmt.Errorf("Rename user directory: %w", err)
 	}
 
 	if err = NewUserRedirect(ctx, u.ID, oldUserName, newUserName); err != nil {
@@ -880,14 +893,19 @@ func UpdateUser(ctx context.Context, u *User, changePrimaryEmail bool, cols ...s
 		if err != nil {
 			return err
 		}
-		if !has {
-			// 1. Update old primary email
-			if _, err = e.Where("uid=? AND is_primary=?", u.ID, true).Cols("is_primary").Update(&EmailAddress{
-				IsPrimary: false,
-			}); err != nil {
-				return err
+		if has && emailAddress.UID != u.ID {
+			return ErrEmailAlreadyUsed{
+				Email: u.Email,
 			}
+		}
+		// 1. Update old primary email
+		if _, err = e.Where("uid=? AND is_primary=?", u.ID, true).Cols("is_primary").Update(&EmailAddress{
+			IsPrimary: false,
+		}); err != nil {
+			return err
+		}
 
+		if !has {
 			emailAddress.Email = u.Email
 			emailAddress.UID = u.ID
 			emailAddress.IsActivated = true
@@ -1034,7 +1052,7 @@ func GetMaileableUsersByIDs(ids []int64, isMention bool) ([]*User, error) {
 			Where("`type` = ?", UserTypeIndividual).
 			And("`prohibit_login` = ?", false).
 			And("`is_active` = ?", true).
-			And("`email_notifications_preference` IN ( ?, ?)", EmailNotificationsEnabled, EmailNotificationsOnMention).
+			In("`email_notifications_preference`", EmailNotificationsEnabled, EmailNotificationsOnMention, EmailNotificationsAndYourOwn).
 			Find(&ous)
 	}
 
@@ -1042,7 +1060,7 @@ func GetMaileableUsersByIDs(ids []int64, isMention bool) ([]*User, error) {
 		Where("`type` = ?", UserTypeIndividual).
 		And("`prohibit_login` = ?", false).
 		And("`is_active` = ?", true).
-		And("`email_notifications_preference` = ?", EmailNotificationsEnabled).
+		In("`email_notifications_preference`", EmailNotificationsEnabled, EmailNotificationsAndYourOwn).
 		Find(&ous)
 }
 
@@ -1219,9 +1237,42 @@ func GetAdminUser() (*User, error) {
 	return &admin, nil
 }
 
+func isUserVisibleToViewerCond(viewer *User) builder.Cond {
+	if viewer != nil && viewer.IsAdmin {
+		return builder.NewCond()
+	}
+
+	if viewer == nil || viewer.IsRestricted {
+		return builder.Eq{
+			"`user`.visibility": structs.VisibleTypePublic,
+		}
+	}
+
+	return builder.Neq{
+		"`user`.visibility": structs.VisibleTypePrivate,
+	}.Or(
+		builder.In("`user`.id",
+			builder.
+				Select("`follow`.user_id").
+				From("follow").
+				Where(builder.Eq{"`follow`.follow_id": viewer.ID})),
+		builder.In("`user`.id",
+			builder.
+				Select("`team_user`.uid").
+				From("team_user").
+				Join("INNER", "`team_user` AS t2", "`team_user`.id = `t2`.id").
+				Where(builder.Eq{"`t2`.uid": viewer.ID})),
+		builder.In("`user`.id",
+			builder.
+				Select("`team_user`.uid").
+				From("team_user").
+				Join("INNER", "`team_user` AS t2", "`team_user`.org_id = `t2`.org_id").
+				Where(builder.Eq{"`t2`.uid": viewer.ID})))
+}
+
 // IsUserVisibleToViewer check if viewer is able to see user profile
 func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
-	if viewer != nil && viewer.IsAdmin {
+	if viewer != nil && (viewer.IsAdmin || viewer.ID == u.ID) {
 		return true
 	}
 
@@ -1260,7 +1311,7 @@ func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
 			return false
 		}
 
-		if count < 0 {
+		if count == 0 {
 			// No common organization
 			return false
 		}
@@ -1269,4 +1320,21 @@ func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
 		return true
 	}
 	return false
+}
+
+// CountWrongUserType count OrgUser who have wrong type
+func CountWrongUserType() (int64, error) {
+	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Count(new(User))
+}
+
+// FixWrongUserType fix OrgUser who have wrong type
+func FixWrongUserType() (int64, error) {
+	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Cols("type").NoAutoTime().Update(&User{Type: 1})
+}
+
+func GetOrderByName() string {
+	if setting.UI.DefaultShowFullName {
+		return "full_name, name"
+	}
+	return "name"
 }

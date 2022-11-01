@@ -48,6 +48,7 @@ func NewSMTPLogger() LoggerProvider {
 
 // Init smtp writer with json config.
 // config like:
+//
 //	{
 //		"Username":"example@gmail.com",
 //		"password:"password",
@@ -59,7 +60,7 @@ func NewSMTPLogger() LoggerProvider {
 func (log *SMTPLogger) Init(jsonconfig string) error {
 	err := json.Unmarshal([]byte(jsonconfig), log)
 	if err != nil {
-		return fmt.Errorf("Unable to parse JSON: %v", err)
+		return fmt.Errorf("Unable to parse JSON: %w", err)
 	}
 	log.NewWriterLogger(&smtpWriter{
 		owner: log,

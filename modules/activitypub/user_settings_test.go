@@ -17,7 +17,7 @@ import (
 
 func TestUserSettings(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	pub, priv, err := GetKeyPair(user1)
 	assert.NoError(t, err)
 	pub1, err := GetPublicKey(user1)

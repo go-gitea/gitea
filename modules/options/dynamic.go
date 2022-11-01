@@ -8,8 +8,10 @@ package options
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path"
+	"path/filepath"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -30,12 +32,12 @@ func Dir(name string) ([]string, error) {
 
 	isDir, err := util.IsDir(customDir)
 	if err != nil {
-		return []string{}, fmt.Errorf("Unabe to check if custom directory %s is a directory. %v", customDir, err)
+		return []string{}, fmt.Errorf("Unabe to check if custom directory %s is a directory. %w", customDir, err)
 	}
 	if isDir {
 		files, err := util.StatDir(customDir, true)
 		if err != nil {
-			return []string{}, fmt.Errorf("Failed to read custom directory. %v", err)
+			return []string{}, fmt.Errorf("Failed to read custom directory. %w", err)
 		}
 
 		result = append(result, files...)
@@ -45,12 +47,12 @@ func Dir(name string) ([]string, error) {
 
 	isDir, err = util.IsDir(staticDir)
 	if err != nil {
-		return []string{}, fmt.Errorf("Unabe to check if static directory %s is a directory. %v", staticDir, err)
+		return []string{}, fmt.Errorf("unable to check if static directory %s is a directory. %w", staticDir, err)
 	}
 	if isDir {
 		files, err := util.StatDir(staticDir, true)
 		if err != nil {
-			return []string{}, fmt.Errorf("Failed to read static directory. %v", err)
+			return []string{}, fmt.Errorf("Failed to read static directory. %w", err)
 		}
 
 		result = append(result, files...)
@@ -62,6 +64,18 @@ func Dir(name string) ([]string, error) {
 // Locale reads the content of a specific locale from static or custom path.
 func Locale(name string) ([]byte, error) {
 	return fileFromDir(path.Join("locale", name))
+}
+
+// WalkLocales reads the content of a specific locale from static or custom path.
+func WalkLocales(callback func(path, name string, d fs.DirEntry, err error) error) error {
+	if err := walkAssetDir(filepath.Join(setting.StaticRootPath, "options", "locale"), callback); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to walk locales. Error: %w", err)
+	}
+
+	if err := walkAssetDir(filepath.Join(setting.CustomPath, "options", "locale"), callback); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to walk locales. Error: %w", err)
+	}
+	return nil
 }
 
 // Readme reads the content of a specific readme from static or custom path.

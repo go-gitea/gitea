@@ -67,22 +67,6 @@
     min-width: 40% !important;
   }
 
-  #file-buttons {
-    /* The reason for the !important is that Semantic itself has
-    margin-left: 0 !important on right items on mobile, which is mostly
-    to make sure elements which on menus would otherwise be on the right
-    align correctly with other elements when stacked.
-    Unfortunately, this brings some weird alignment on this particular
-    element, so we need to override it. */
-    margin-left: auto !important;
-    font-weight: normal;
-
-    .ui.button {
-      padding: 8px 10px;
-      font-weight: normal;
-    }
-  }
-
   .unicode-escaped .escaped-code-point {
     &[data-escaped]::before {
       visibility: visible;
@@ -98,7 +82,11 @@
 
   .broken-code-point {
     font-family: var(--fonts-monospace);
-    color: blue;
+    color: var(--color-blue);
+  }
+
+  .unicode-escaped .ambiguous-code-point {
+    border: 1px var(--color-yellow) solid;
   }
 
   .metas {
@@ -223,22 +211,15 @@
   }
 
   #clone-panel {
-    width: 350px;
+    #repo-clone-url {
+      width: 320px;
 
-    @media @mediaSm {
-      width: 100%;
-    }
-
-    input {
-      border-radius: 0;
-      padding: 5px 10px;
-      width: 50%;
-      line-height: 1.4;
-    }
-
-    .clone.button {
-      font-size: 13px;
-      padding: 7.5px 5px;
+      @media @mediaMd {
+        width: 200px;
+      }
+      @media @mediaSm {
+        width: 200px;
+      }
     }
 
     #repo-clone-https,
@@ -256,10 +237,6 @@
 
     button:last-of-type {
       border-radius: 0 var(--border-radius) var(--border-radius) 0 !important;
-    }
-
-    .icon.button {
-      padding: 0 10px;
     }
 
     .dropdown .menu {
@@ -290,25 +267,6 @@
       .section,
       .divider {
         display: inline;
-      }
-    }
-
-    #file-buttons {
-      font-weight: normal;
-
-      .ui.button {
-        padding: 8px 10px;
-        font-weight: normal;
-      }
-
-      .ui.tiny.primary.buttons {
-        @media @mediaSm {
-          width: 100%;
-        }
-      }
-
-      .button + .button {
-        border-left: none;
       }
     }
 
@@ -352,15 +310,38 @@
         overflow: initial;
 
         &.name {
-          max-width: 150px;
+          @media @mediaXl {
+            max-width: 150px;
+          }
+          @media @mediaLg {
+            max-width: 200px;
+          }
+          @media @mediaMd {
+            max-width: 300px;
+          }
+          width: 33%;
+
+          max-width: calc(100vw - 140px);
         }
 
         &.message {
-          max-width: 400px;
+          color: var(--color-text-light-1);
+
+          @media @mediaXl {
+            max-width: 400px;
+          }
+          @media @mediaLg {
+            max-width: 350px;
+          }
+          @media @mediaMd {
+            max-width: 250px;
+          }
+          width: 66%;
         }
 
         &.age {
           width: 120px;
+          color: var(--color-text-light-1);
         }
 
         .truncate {
@@ -403,7 +384,7 @@
       }
 
       tr:hover {
-        background-color: #ffffee;
+        background-color: var(--color-hover);
       }
 
       tr.has-parent a {
@@ -411,10 +392,6 @@
         padding-top: 8px;
         padding-bottom: 8px;
         width: calc(100% - 1.25rem);
-      }
-
-      .jumpable-path {
-        color: var(--color-text-light-2);
       }
     }
 
@@ -430,10 +407,6 @@
 
         .tiny.icon {
           font-size: .5em;
-        }
-
-        .file-info {
-          font-size: 13px;
         }
 
         .file-actions {
@@ -474,7 +447,10 @@
           object-fit: contain;
         }
 
-        /* also see misc.css for one more related rule */
+        img[src$='.svg' i] {
+          max-height: 600px !important;
+          max-width: 600px !important;
+        }
       }
 
       .plain-text {
@@ -866,8 +842,8 @@
           display: none;
         }
 
-        .avatar.image,
-        .avatar.image img {
+        img.avatar,
+        .avatar img {
           width: 20px;
           height: 20px;
           margin: 0 .25rem;
@@ -926,9 +902,10 @@
 
           .singular-commit {
             line-height: 34px; /* this must be same as .badge height, to avoid overflow */
+            clear: both; // reset the "float right shabox", in the future, use flexbox instead
 
-            > .avatar.image,
-            > .avatar.image img {
+            > img.avatar,
+            > .avatar img {
               position: relative;
               top: -2px;
             }
@@ -1010,6 +987,12 @@
 
         .comment-form-reply .footer {
           padding-bottom: 1em;
+        }
+
+        @media @mediaSm {
+          .ui.segments {
+            margin-left: -2rem;
+          }
         }
       }
 
@@ -1143,8 +1126,11 @@
         .comment-content {
           margin-left: 36px;
         }
+      }
 
-        .avatar.image {
+      .code-comment,
+      .comment {
+        img.avatar {
           width: 28px;
           height: 28px;
         }
@@ -1187,6 +1173,10 @@
         .segments {
           box-shadow: none;
         }
+      }
+
+      @media @mediaSm {
+        padding: 1rem 0 !important; // Important is required here to override existing fomantic styles.
       }
     }
 
@@ -1957,16 +1947,16 @@
           }
 
           .dot {
-            width: 9px;
-            height: 9px;
-            background-color: #ddd;
+            width: 10px;
+            height: 10px;
+            background-color: var(--color-secondary-dark-3);
             z-index: 9;
             position: absolute;
             display: block;
-            left: -5px;
+            left: -6px;
             top: 40px;
-            border-radius: 6px;
-            border: 1px solid #ffffff;
+            border-radius: 100%;
+            border: 2.5px solid var(--color-body);
           }
         }
       }
@@ -2087,10 +2077,6 @@
     }
 
     &.view {
-      .choose.page {
-        margin-top: -5px;
-      }
-
       > .markup {
         padding: 15px 30px;
 
@@ -2115,6 +2101,12 @@
       .dividing.header .stackable.grid .button {
         margin-top: 2px;
         margin-bottom: 2px;
+      }
+    }
+
+    @media @mediaSm {
+      #clone-panel #repo-clone-url {
+        width: 160px;
       }
     }
   }
@@ -2514,7 +2506,7 @@
 #search-user-box {
   .results {
     .result {
-      .image {
+      img {
         float: left;
         margin-right: 8px;
         width: 2em;
@@ -2807,6 +2799,36 @@
   line-height: 1.3em; // there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly
 }
 
+.repo-button-row {
+  margin-bottom: 10px;
+}
+
+.repo-button-row > * {
+  margin-top: 10px;
+}
+
+.repo-button-row .dropdown > .dropdown.icon {
+  margin-left: .25rem !important;
+  margin-right: 0 !important;
+}
+
+.wiki .repo-button-row {
+  margin-bottom: 0;
+}
+
+.wiki .repo-button-row > * {
+  margin-top: 0;
+}
+
+.repo-button-row .button {
+  padding: 6px 10px !important;
+  height: 30px;
+}
+
+.repo-button-row input {
+  height: 30px;
+}
+
 tbody.commit-list {
   vertical-align: baseline;
 }
@@ -2817,6 +2839,11 @@ tbody.commit-list {
   max-width: calc(100% - 50px);
   display: inline-block;
   vertical-align: middle;
+}
+
+// in the commit list, messages can wrap so we can use inline
+.commit-list .message-wrapper {
+  display: inline;
 }
 
 @media @mediaSm {
@@ -2882,20 +2909,6 @@ tbody.commit-list {
 
 .git-notes.top {
   text-align: left;
-}
-
-@media @mediaSm {
-  .ui.stackable.menu {
-    &.mobile--margin-between-items > .item {
-      margin-top: 5px;
-      margin-bottom: 5px;
-    }
-
-    &.mobile--no-negative-margins {
-      margin-left: 0;
-      margin-right: 0;
-    }
-  }
 }
 
 #topic_edit {
@@ -3018,9 +3031,9 @@ tbody.commit-list {
 }
 
 .tag-code,
-.tag-code td {
-  background-color: #f0f9ff;
-  border-color: #f1f8ff !important;
+.tag-code td,
+.tag-code .blob-excerpt {
+  background-color: var(--color-box-body-highlight);
   vertical-align: middle;
 }
 
@@ -3036,7 +3049,7 @@ tbody.commit-list {
 }
 
 td.blob-excerpt {
-  background-color: #fafafa;
+  background-color: var(--color-secondary-alpha-30);
 }
 
 .issue-keyword {
@@ -3051,8 +3064,9 @@ td.blob-excerpt {
   align-items: center;
   display: flex;
   justify-content: space-between;
-  overflow-x: scroll;
-  padding: 8px 12px !important;
+  overflow-x: auto;
+  padding: 6px 12px !important;
+  font-size: 13px !important;
 }
 
 .file-info {
@@ -3070,6 +3084,35 @@ td.blob-excerpt {
   border-left: 1px solid currentcolor;
   margin-left: 8px;
   padding-left: 8px;
+}
+
+#diff-container {
+  display: flex;
+}
+#diff-file-boxes {
+  flex: 1;
+}
+
+#diff-file-tree {
+  width: 20%;
+  max-width: 380px;
+  line-height: inherit;
+  position: sticky;
+  padding-top: 0;
+  top: 47px;
+  max-height: calc(100vh - 50px);
+  height: 100%;
+  overflow-y: auto;
+}
+
+@media @mediaMdAndDown {
+  #diff-file-tree {
+    display: none !important;
+  }
+
+  .diff-toggle-file-tree-button {
+    display: none !important;
+  }
 }
 
 .ui.message.unicode-escape-prompt {
@@ -3226,7 +3269,8 @@ td.blob-excerpt {
   background: var(--color-diff-inactive);
 }
 
-.code-diff-split tbody tr td:nth-child(5) {
+.code-diff-split tbody tr td:nth-child(5),
+.code-diff-split tbody tr td.add-comment-right {
   border-left: 1px solid var(--color-secondary);
 }
 
@@ -3306,7 +3350,7 @@ td.blob-excerpt {
         display: flex;
         margin-bottom: auto;
 
-        img.avatar.image {
+        img.avatar {
           height: 24px;
           width: 24px;
         }
@@ -3332,7 +3376,7 @@ td.blob-excerpt {
   .commit-header-row {
     .ui.horizontal.list {
       width: 100%;
-      overflow-x: scroll;
+      overflow-x: auto;
       margin-top: 2px;
 
       .item {
@@ -3381,7 +3425,7 @@ td.blob-excerpt {
   }
 
   .commit-table {
-    overflow-x: scroll;
+    overflow-x: auto;
 
     td.sha,
     th.sha {
@@ -3406,6 +3450,68 @@ td.blob-excerpt {
       .copy-commit-sha {
         display: none !important;
       }
+    }
+  }
+
+  .comment-header {
+    flex-wrap: wrap;
+
+    .comment-header-left {
+      flex-wrap: wrap;
+    }
+
+    .comment-header-right {
+      margin-left: auto;
+    }
+  }
+}
+
+.branch-dropdown-button {
+  max-width: 340px;
+  vertical-align: bottom !important;
+
+  @media @mediaMd {
+    max-width: 185px;
+  }
+  @media @mediaSm {
+    max-width: 165px;
+  }
+}
+
+.pr-status {
+  padding: 0 !important; // To clear fomantic's padding on .ui.segment elements
+  display: flex;
+  align-items: center;
+
+  .commit-status {
+    margin: 1em;
+    flex-shrink: 0;
+  }
+
+  .status-context {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+
+    > span {
+      padding: 1em 0;
+    }
+  }
+
+  .status-details {
+    display: flex;
+    padding-right: .5em;
+    align-items: center;
+    justify-content: flex-end;
+
+    @media @mediaSm {
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    > span {
+      padding-right: .5em; // To match the alignment with the "required" label
     }
   }
 }

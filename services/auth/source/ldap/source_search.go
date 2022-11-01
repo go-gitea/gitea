@@ -125,13 +125,13 @@ func dial(source *Source) (*ldap.Conn, error) {
 
 	conn, err := ldap.Dial("tcp", net.JoinHostPort(source.Host, strconv.Itoa(source.Port)))
 	if err != nil {
-		return nil, fmt.Errorf("error during Dial: %v", err)
+		return nil, fmt.Errorf("error during Dial: %w", err)
 	}
 
 	if source.SecurityProtocol == SecurityProtocolStartTLS {
 		if err = conn.StartTLS(tlsConfig); err != nil {
 			conn.Close()
-			return nil, fmt.Errorf("error during StartTLS: %v", err)
+			return nil, fmt.Errorf("error during StartTLS: %w", err)
 		}
 	}
 
@@ -199,7 +199,7 @@ func checkRestricted(l *ldap.Conn, ls *Source, userDN string) bool {
 // List all group memberships of a user
 func (source *Source) listLdapGroupMemberships(l *ldap.Conn, uid string) []string {
 	var ldapGroups []string
-	groupFilter := fmt.Sprintf("(%s=%s)", source.GroupMemberUID, uid)
+	groupFilter := fmt.Sprintf("(%s=%s)", source.GroupMemberUID, ldap.EscapeFilter(uid))
 	result, err := l.Search(ldap.NewSearchRequest(
 		source.GroupDN,
 		ldap.ScopeWholeSubtree,

@@ -19,8 +19,18 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
+type ProcessorHelper struct {
+	IsUsernameMentionable func(ctx context.Context, username string) bool
+}
+
+var processorHelper ProcessorHelper
+
 // Init initialize regexps for markdown parsing
-func Init() {
+func Init(ph *ProcessorHelper) {
+	if ph != nil {
+		processorHelper = *ph
+	}
+
 	NewSanitizer()
 	if len(setting.Markdown.CustomURLSchemes) > 0 {
 		CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
@@ -310,18 +320,39 @@ func IsMarkupFile(name, markup string) bool {
 }
 
 // IsReadmeFile reports whether name looks like a README file
-// based on its name. If an extension is provided, it will strictly
-// match that extension.
-// Note that the '.' should be provided in ext, e.g ".md"
-func IsReadmeFile(name string, ext ...string) bool {
+// based on its name.
+func IsReadmeFile(name string) bool {
 	name = strings.ToLower(name)
-	if len(ext) > 0 {
-		return name == "readme"+ext[0]
-	}
 	if len(name) < 6 {
 		return false
 	} else if len(name) == 6 {
 		return name == "readme"
 	}
 	return name[:7] == "readme."
+}
+
+// IsReadmeFileExtension reports whether name looks like a README file
+// based on its name. It will look through the provided extensions and check if the file matches
+// one of the extensions and provide the index in the extension list.
+// If the filename is `readme.` with an unmatched extension it will match with the index equaling
+// the length of the provided extension list.
+// Note that the '.' should be provided in ext, e.g ".md"
+func IsReadmeFileExtension(name string, ext ...string) (int, bool) {
+	name = strings.ToLower(name)
+	if len(name) < 6 || name[:6] != "readme" {
+		return 0, false
+	}
+
+	for i, extension := range ext {
+		extension = strings.ToLower(extension)
+		if name[6:] == extension {
+			return i, true
+		}
+	}
+
+	if name[6] == '.' {
+		return len(ext), true
+	}
+
+	return 0, false
 }

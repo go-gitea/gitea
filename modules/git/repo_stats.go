@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"code.gitea.io/gitea/modules/container"
 )
 
 // CodeActivityStats represents git statistics data
@@ -39,7 +41,7 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 
 	since := fromTime.Format(time.RFC3339)
 
-	stdout, _, runErr := NewCommand(repo.Ctx, "rev-list", "--count", "--no-merges", "--branches=*", "--date=iso", fmt.Sprintf("--since='%s'", since)).RunStdString(&RunOpts{Dir: repo.Path})
+	stdout, _, runErr := NewCommand(repo.Ctx, "rev-list", "--count", "--no-merges", "--branches=*", "--date=iso", CmdArg(fmt.Sprintf("--since='%s'", since))).RunStdString(&RunOpts{Dir: repo.Path})
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -59,15 +61,15 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 		_ = stdoutWriter.Close()
 	}()
 
-	args := []string{"log", "--numstat", "--no-merges", "--pretty=format:---%n%h%n%aN%n%aE%n", "--date=iso", fmt.Sprintf("--since='%s'", since)}
+	gitCmd := NewCommand(repo.Ctx, "log", "--numstat", "--no-merges", "--pretty=format:---%n%h%n%aN%n%aE%n", "--date=iso", CmdArg(fmt.Sprintf("--since='%s'", since)))
 	if len(branch) == 0 {
-		args = append(args, "--branches=*")
+		gitCmd.AddArguments("--branches=*")
 	} else {
-		args = append(args, "--first-parent", branch)
+		gitCmd.AddArguments("--first-parent").AddDynamicArguments(branch)
 	}
 
 	stderr := new(strings.Builder)
-	err = NewCommand(repo.Ctx, args...).Run(&RunOpts{
+	err = gitCmd.Run(&RunOpts{
 		Env:    []string{},
 		Dir:    repo.Path,
 		Stdout: stdoutWriter,
@@ -80,7 +82,7 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 			stats.Additions = 0
 			stats.Deletions = 0
 			authors := make(map[string]*CodeActivityAuthor)
-			files := make(map[string]bool)
+			files := make(container.Set[string])
 			var author string
 			p := 0
 			for scanner.Scan() {
@@ -119,9 +121,7 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 								stats.Deletions += c
 							}
 						}
-						if _, ok := files[parts[2]]; !ok {
-							files[parts[2]] = true
-						}
+						files.Add(parts[2])
 					}
 				}
 			}

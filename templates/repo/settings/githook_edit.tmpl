@@ -5,24 +5,24 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "repo.settings.githooks"}}
+			{{.locale.Tr "repo.settings.githooks"}}
 		</h4>
 		<div class="ui attached segment">
-			<p>{{.i18n.Tr "repo.settings.githook_edit_desc"}}</p>
+			<p>{{.locale.Tr "repo.settings.githook_edit_desc"}}</p>
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				{{with .Hook}}
 					<div class="inline field">
-						<label>{{$.i18n.Tr "repo.settings.githook_name"}}</label>
+						<label>{{$.locale.Tr "repo.settings.githook_name"}}</label>
 						<span class="hook-filename">{{.Name}}</span>
 					</div>
 					<div class="field">
-						<label for="content">{{$.i18n.Tr "repo.settings.githook_content"}}</label>
+						<label for="content">{{$.locale.Tr "repo.settings.githook_content"}}</label>
 						<textarea id="content" name="content" class="hide">{{if .IsActive}}{{.Content}}{{else}}{{.Sample}}{{end}}</textarea>
 						<div class="editor-loading is-loading"></div>
 					</div>
 					<div class="inline field">
-						<button class="ui green button">{{$.i18n.Tr "repo.settings.update_githook"}}</button>
+						<button class="ui green button">{{$.locale.Tr "repo.settings.update_githook"}}</button>
 					</div>
 				{{end}}
 			</form>

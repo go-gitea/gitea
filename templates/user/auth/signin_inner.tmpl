@@ -3,21 +3,21 @@
 		{{end}}
 		<h4 class="ui top attached header center">
 			{{if .LinkAccountMode}}
-				{{.i18n.Tr "auth.oauth_signin_title"}}
+				{{.locale.Tr "auth.oauth_signin_title"}}
 			{{else}}
-				{{.i18n.Tr "auth.login_userpass"}}
+				{{.locale.Tr "auth.login_userpass"}}
 			{{end}}
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.SignInLink}}" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="required inline field {{if and (.Err_UserName) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
-				<label for="user_name">{{.i18n.Tr "home.uname_holder"}}</label>
+				<label for="user_name">{{.locale.Tr "home.uname_holder"}}</label>
 				<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required>
 			</div>
 			{{if or (not .DisablePassword) .LinkAccountMode}}
 			<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
-				<label for="password">{{.i18n.Tr "password"}}</label>
+				<label for="password">{{.locale.Tr "password"}}</label>
 				<input id="password" name="password" type="password" value="{{.password}}" autocomplete="current-password" required>
 			</div>
 			{{end}}
@@ -25,7 +25,7 @@
 			<div class="inline field">
 				<label></label>
 				<div class="ui checkbox">
-					<label>{{.i18n.Tr "auth.remember_me"}}</label>
+					<label>{{.locale.Tr "auth.remember_me"}}</label>
 					<input name="remember" type="checkbox">
 				</div>
 			</div>
@@ -35,18 +35,18 @@
 				<label></label>
 				<button class="ui green button">
 					{{if .LinkAccountMode}}
-						{{.i18n.Tr "auth.oauth_signin_submit"}}
+						{{.locale.Tr "auth.oauth_signin_submit"}}
 					{{else}}
-						{{.i18n.Tr "sign_in"}}
+						{{.locale.Tr "sign_in"}}
 					{{end}}
 				</button>
-				<a href="{{AppSubUrl}}/user/forgot_password">{{.i18n.Tr "auth.forgot_password"}}</a>
+				<a href="{{AppSubUrl}}/user/forgot_password">{{.locale.Tr "auth.forgot_password"}}</a>
 			</div>
 
 			{{if .ShowRegistrationButton}}
 				<div class="inline field">
 					<label></label>
-					<a href="{{AppSubUrl}}/user/sign_up">{{.i18n.Tr "auth.sign_up_now" | Str2html}}</a>
+					<a href="{{AppSubUrl}}/user/sign_up">{{.locale.Tr "auth.sign_up_now" | Str2html}}</a>
 				</div>
 			{{end}}
 
@@ -56,7 +56,7 @@
 					<div id="oauth2-login-loader" class="ui disabled centered loader"></div>
 					<div>
 						<div id="oauth2-login-navigator">
-							<p>{{.i18n.Tr "sign_in_with"}}</p>
+							<p>{{.locale.Tr "sign_in_with"}}</p>
 							{{range $key := .OrderedOAuth2Names}}
 								{{$provider := index $.OAuth2Providers $key}}
 								<a href="{{AppSubUrl}}/user/oauth2/{{$key}}">

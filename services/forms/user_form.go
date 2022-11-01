@@ -40,7 +40,8 @@ type InstallForm struct {
 	AppURL       string `binding:"Required"`
 	LogRootPath  string `binding:"Required"`
 
-	SMTPHost        string
+	SMTPAddr        string
+	SMTPPort        string
 	SMTPFrom        string
 	SMTPUser        string `binding:"OmitEmpty;MaxSize(254)" locale:"install.mailer_user"`
 	SMTPPasswd      string
@@ -95,6 +96,7 @@ type RegisterForm struct {
 	Retype             string
 	GRecaptchaResponse string `form:"g-recaptcha-response"`
 	HcaptchaResponse   string `form:"h-captcha-response"`
+	McaptchaResponse   string `form:"m-captcha-response"`
 }
 
 // Validate validates the fields
@@ -377,8 +379,9 @@ func (f *NewAccessTokenForm) Validate(req *http.Request, errs binding.Errors) bi
 
 // EditOAuth2ApplicationForm form for editing oauth2 applications
 type EditOAuth2ApplicationForm struct {
-	Name        string `binding:"Required;MaxSize(255)" form:"application_name"`
-	RedirectURI string `binding:"Required" form:"redirect_uri"`
+	Name               string `binding:"Required;MaxSize(255)" form:"application_name"`
+	RedirectURI        string `binding:"Required" form:"redirect_uri"`
+	ConfidentialClient bool   `form:"confidential_client"`
 }
 
 // Validate validates the fields

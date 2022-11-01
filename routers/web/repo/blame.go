@@ -40,7 +40,7 @@ type blameRow struct {
 	CommitMessage  string
 	CommitSince    gotemplate.HTML
 	Code           gotemplate.HTML
-	EscapeStatus   charset.EscapeStatus
+	EscapeStatus   *charset.EscapeStatus
 }
 
 // RefBlame render blame page
@@ -216,7 +216,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 
 		filename2attribute2info, err := ctx.Repo.GitRepo.CheckAttribute(git.CheckAttributeOpts{
 			CachedOnly: true,
-			Attributes: []string{"linguist-language", "gitlab-language"},
+			Attributes: []git.CmdArg{"linguist-language", "gitlab-language"},
 			Filenames:  []string{ctx.Repo.TreePath},
 			IndexFile:  indexFilename,
 			WorkTree:   worktree,
@@ -235,7 +235,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 	}
 	lines := make([]string, 0)
 	rows := make([]*blameRow, 0)
-	escapeStatus := charset.EscapeStatus{}
+	escapeStatus := &charset.EscapeStatus{}
 
 	i := 0
 	commitCnt := 0
@@ -280,7 +280,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 			fileName := fmt.Sprintf("%v", ctx.Data["FileName"])
 			line = highlight.Code(fileName, language, line)
 
-			br.EscapeStatus, line = charset.EscapeControlString(line)
+			br.EscapeStatus, line = charset.EscapeControlHTML(line, ctx.Locale)
 			br.Code = gotemplate.HTML(line)
 			rows = append(rows, br)
 			escapeStatus = escapeStatus.Or(br.EscapeStatus)
