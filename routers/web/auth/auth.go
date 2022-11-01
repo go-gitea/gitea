@@ -17,11 +17,8 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/eventsource"
-	"code.gitea.io/gitea/modules/hcaptcha"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/mcaptcha"
 	"code.gitea.io/gitea/modules/password"
-	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -171,14 +168,7 @@ func SignIn(ctx *context.Context) {
 	ctx.Data["EnableSSPI"] = auth.IsSSPIEnabled()
 
 	if setting.Service.EnableCaptcha && setting.Service.RequireCaptchaForLogin {
-		ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
-		ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
-		ctx.Data["Captcha"] = context.GetImageCaptcha()
-		ctx.Data["CaptchaType"] = setting.Service.CaptchaType
-		ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
-		ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
-		ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
-		ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
+		context.SetCaptchaData(ctx)
 	}
 
 	ctx.HTML(http.StatusOK, tplSignIn)
@@ -209,37 +199,10 @@ func SignInPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.SignInForm)
 
 	if setting.Service.EnableCaptcha && setting.Service.RequireCaptchaForLogin {
-		ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
-		ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
-		ctx.Data["Captcha"] = context.GetImageCaptcha()
-		ctx.Data["CaptchaType"] = setting.Service.CaptchaType
-		ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
-		ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
-		ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
-		ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
+		context.SetCaptchaData(ctx)
 
-		var valid bool
-		var err error
-		switch setting.Service.CaptchaType {
-		case setting.ImageCaptcha:
-			valid = context.GetImageCaptcha().VerifyReq(ctx.Req)
-		case setting.ReCaptcha:
-			valid, err = recaptcha.Verify(ctx, form.GRecaptchaResponse)
-		case setting.HCaptcha:
-			valid, err = hcaptcha.Verify(ctx, form.HcaptchaResponse)
-		case setting.MCaptcha:
-			valid, err = mcaptcha.Verify(ctx, form.McaptchaResponse)
-		default:
-			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
-			return
-		}
-		if err != nil {
-			log.Debug("%s", err.Error())
-		}
-
-		if !valid {
-			ctx.Data["Err_Captcha"] = true
-			ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplSignIn, &form)
+		context.VerifyCaptcha(ctx, tplSignIn, form)
+		if ctx.Written() {
 			return
 		}
 	}
@@ -459,14 +422,7 @@ func SignUp(ctx *context.Context) {
 
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 
-	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
-	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
-	ctx.Data["Captcha"] = context.GetImageCaptcha()
-	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
-	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
-	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
-	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
-	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
+	context.SetCaptchaData(ctx)
 	ctx.Data["PageIsSignUp"] = true
 
 	// Show Disabled Registration message if DisableRegistration or AllowOnlyExternalRegistration options are true
@@ -482,14 +438,7 @@ func SignUpPost(ctx *context.Context) {
 
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 
-	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
-	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
-	ctx.Data["Captcha"] = context.GetImageCaptcha()
-	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
-	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
-	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
-	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
-	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
+	context.SetCaptchaData(ctx)
 	ctx.Data["PageIsSignUp"] = true
 
 	// Permission denied if DisableRegistration or AllowOnlyExternalRegistration options are true
@@ -503,31 +452,9 @@ func SignUpPost(ctx *context.Context) {
 		return
 	}
 
-	if setting.Service.EnableCaptcha {
-		var valid bool
-		var err error
-		switch setting.Service.CaptchaType {
-		case setting.ImageCaptcha:
-			valid = context.GetImageCaptcha().VerifyReq(ctx.Req)
-		case setting.ReCaptcha:
-			valid, err = recaptcha.Verify(ctx, form.GRecaptchaResponse)
-		case setting.HCaptcha:
-			valid, err = hcaptcha.Verify(ctx, form.HcaptchaResponse)
-		case setting.MCaptcha:
-			valid, err = mcaptcha.Verify(ctx, form.McaptchaResponse)
-		default:
-			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
-			return
-		}
-		if err != nil {
-			log.Debug("%s", err.Error())
-		}
-
-		if !valid {
-			ctx.Data["Err_Captcha"] = true
-			ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplSignUp, &form)
-			return
-		}
+	context.VerifyCaptcha(ctx, tplSignUp, form)
+	if ctx.Written() {
+		return
 	}
 
 	if !form.IsEmailDomainAllowed() {
