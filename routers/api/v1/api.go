@@ -1129,9 +1129,9 @@ func Routes(ctx gocontext.Context) *web.Route {
 			})
 			m.Group("/teams", func() {
 				m.Get("", reqToken(auth_model.AccessTokenScopeReadOrg), org.ListTeams)
-				m.Post("", reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
-				m.Get("/search", org.SearchTeam)
-			}, reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgMembership())
+				m.Post("", reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
+				m.Get("/search", reqToken(auth_model.AccessTokenScopeReadOrg), org.SearchTeam)
+			}, reqOrgMembership())
 			m.Group("/labels", func() {
 				m.Get("", reqToken(auth_model.AccessTokenScopeReadOrg), org.ListLabels)
 				m.Post("", reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), bind(api.CreateLabelOption{}), org.CreateLabel)
