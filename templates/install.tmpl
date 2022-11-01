@@ -163,7 +163,6 @@
 						<span class="help">{{.locale.Tr "install.log_root_path_helper"}}</span>
 					</div>
 
-
 					<!-- Optional Settings -->
 					<h4 class="ui dividing header">{{.locale.Tr "install.optional_title"}}</h4>
 
@@ -282,6 +281,12 @@
 							<div class="ui checkbox">
 								<label class="tooltip" data-content="{{.locale.Tr "install.default_enable_timetracking_popup"}}"><strong>{{.locale.Tr "install.default_enable_timetracking"}}</strong></label>
 								<input name="default_enable_timetracking" type="checkbox" {{if .default_enable_timetracking}}checked{{end}}>
+							</div>
+						</div>
+						<div class="inline field">
+							<div class="ui checkbox">
+								<label class="tooltip" data-content="{{.locale.Tr "install.enable_update_checker_helper"}}"><strong>{{.locale.Tr "install.enable_update_checker"}}</strong></label>
+								<input name="enable_update_checker" type="checkbox" {{if .enable_update_checker}}checked{{end}}>
 							</div>
 						</div>
 						<div class="inline field">
