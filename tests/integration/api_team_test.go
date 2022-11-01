@@ -238,7 +238,7 @@ func TestAPITeamSearch(t *testing.T) {
 
 	// no access if not organization member
 	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
-	token5 := getUserToken(t, user5.Name)
+	token5 := getUserToken(t, user5.Name, "read_org")
 
 	req = NewRequestf(t, "GET", "/api/v1/orgs/%s/teams/search?q=%s&token=%s", org.Name, "team", token5)
 	MakeRequest(t, req, http.StatusForbidden)
