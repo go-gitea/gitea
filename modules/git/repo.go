@@ -59,7 +59,7 @@ func (repo *Repository) parsePrettyFormatLogToList(logs []byte) ([]*Commit, erro
 
 // IsRepoURLAccessible checks if given repository URL is accessible.
 func IsRepoURLAccessible(ctx context.Context, url string) bool {
-	_, _, err := NewCommand(ctx, "ls-remote", "-q", "-h", url, "HEAD").RunStdString(nil)
+	_, _, err := NewCommand(ctx, "ls-remote", "-q", "-h").AddDynamicArguments(url, "HEAD").RunStdString(nil)
 	return err == nil
 }
 
@@ -90,7 +90,7 @@ func (repo *Repository) IsEmpty() (bool, error) {
 		if err.Error() == "exit status 1" && errbuf.String() == "" {
 			return true, nil
 		}
-		return true, fmt.Errorf("check empty: %v - %s", err, errbuf.String())
+		return true, fmt.Errorf("check empty: %w - %s", err, errbuf.String())
 	}
 
 	return strings.TrimSpace(output.String()) == "", nil
@@ -112,13 +112,11 @@ type CloneRepoOptions struct {
 
 // Clone clones original repository to target path.
 func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
-	cargs := make([]string, len(globalCommandArgs))
-	copy(cargs, globalCommandArgs)
-	return CloneWithArgs(ctx, from, to, cargs, opts)
+	return CloneWithArgs(ctx, globalCommandArgs, from, to, opts)
 }
 
 // CloneWithArgs original repository to target path.
-func CloneWithArgs(ctx context.Context, from, to string, args []string, opts CloneRepoOptions) (err error) {
+func CloneWithArgs(ctx context.Context, args []CmdArg, from, to string, opts CloneRepoOptions) (err error) {
 	toDir := path.Dir(to)
 	if err = os.MkdirAll(toDir, os.ModePerm); err != nil {
 		return err
@@ -144,15 +142,15 @@ func CloneWithArgs(ctx context.Context, from, to string, args []string, opts Clo
 		cmd.AddArguments("--no-checkout")
 	}
 	if opts.Depth > 0 {
-		cmd.AddArguments("--depth", strconv.Itoa(opts.Depth))
+		cmd.AddArguments("--depth").AddDynamicArguments(strconv.Itoa(opts.Depth))
 	}
 	if opts.Filter != "" {
-		cmd.AddArguments("--filter", opts.Filter)
+		cmd.AddArguments("--filter").AddDynamicArguments(opts.Filter)
 	}
 	if len(opts.Branch) > 0 {
-		cmd.AddArguments("-b", opts.Branch)
+		cmd.AddArguments("-b").AddDynamicArguments(opts.Branch)
 	}
-	cmd.AddArguments("--", from, to)
+	cmd.AddDashesAndList(from, to)
 
 	if strings.Contains(from, "://") && strings.Contains(from, "@") {
 		cmd.SetDescription(fmt.Sprintf("clone branch %s from %s to %s (shared: %t, mirror: %t, depth: %d)", opts.Branch, util.SanitizeCredentialURLs(from), to, opts.Shared, opts.Mirror, opts.Depth))
@@ -203,10 +201,12 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	if opts.Mirror {
 		cmd.AddArguments("--mirror")
 	}
-	cmd.AddArguments("--", opts.Remote)
+	remoteBranchArgs := []string{opts.Remote}
 	if len(opts.Branch) > 0 {
-		cmd.AddArguments(opts.Branch)
+		remoteBranchArgs = append(remoteBranchArgs, opts.Branch)
 	}
+	cmd.AddDashesAndList(remoteBranchArgs...)
+
 	if strings.Contains(opts.Remote, "://") && strings.Contains(opts.Remote, "@") {
 		cmd.SetDescription(fmt.Sprintf("push branch %s to %s (force: %t, mirror: %t)", opts.Branch, util.SanitizeCredentialURLs(opts.Remote), opts.Force, opts.Mirror))
 	} else {
@@ -251,7 +251,7 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	}
 
 	if errbuf.Len() > 0 && err != nil {
-		return fmt.Errorf("%v - %s", err, errbuf.String())
+		return fmt.Errorf("%w - %s", err, errbuf.String())
 	}
 
 	return err
@@ -276,7 +276,7 @@ type DivergeObject struct {
 
 func checkDivergence(ctx context.Context, repoPath, baseBranch, targetBranch string) (int, error) {
 	branches := fmt.Sprintf("%s..%s", baseBranch, targetBranch)
-	cmd := NewCommand(ctx, "rev-list", "--count", branches)
+	cmd := NewCommand(ctx, "rev-list", "--count").AddDynamicArguments(branches)
 	stdout, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
 	if err != nil {
 		return -1, err
@@ -319,7 +319,7 @@ func (repo *Repository) CreateBundle(ctx context.Context, commit string, out io.
 		return err
 	}
 
-	_, _, err = NewCommand(ctx, "reset", "--soft", commit).RunStdString(&RunOpts{Dir: tmp, Env: env})
+	_, _, err = NewCommand(ctx, "reset", "--soft").AddDynamicArguments(commit).RunStdString(&RunOpts{Dir: tmp, Env: env})
 	if err != nil {
 		return err
 	}
@@ -330,7 +330,7 @@ func (repo *Repository) CreateBundle(ctx context.Context, commit string, out io.
 	}
 
 	tmpFile := filepath.Join(tmp, "bundle")
-	_, _, err = NewCommand(ctx, "bundle", "create", tmpFile, "bundle", "HEAD").RunStdString(&RunOpts{Dir: tmp, Env: env})
+	_, _, err = NewCommand(ctx, "bundle", "create").AddDynamicArguments(tmpFile, "bundle", "HEAD").RunStdString(&RunOpts{Dir: tmp, Env: env})
 	if err != nil {
 		return err
 	}

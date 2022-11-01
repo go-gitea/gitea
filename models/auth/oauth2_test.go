@@ -45,7 +45,8 @@ func TestOAuth2Application_ContainsRedirectURI(t *testing.T) {
 
 func TestOAuth2Application_ContainsRedirectURI_WithPort(t *testing.T) {
 	app := &auth_model.OAuth2Application{
-		RedirectURIs: []string{"http://127.0.0.1/", "http://::1/", "http://192.168.0.1/", "http://intranet/", "https://127.0.0.1/"},
+		RedirectURIs:       []string{"http://127.0.0.1/", "http://::1/", "http://192.168.0.1/", "http://intranet/", "https://127.0.0.1/"},
+		ConfidentialClient: false,
 	}
 
 	// http loopback uris should ignore port

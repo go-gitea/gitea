@@ -125,7 +125,7 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 	} else {
 		lastCommitID, err := t.gitRepo.ConvertToSHA1(opts.LastCommitID)
 		if err != nil {
-			return nil, fmt.Errorf("ApplyPatch: Invalid last commit ID: %v", err)
+			return nil, fmt.Errorf("ApplyPatch: Invalid last commit ID: %w", err)
 		}
 		opts.LastCommitID = lastCommitID.String()
 		if commit.ID.String() != opts.LastCommitID {
@@ -139,7 +139,7 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 	stdout := &strings.Builder{}
 	stderr := &strings.Builder{}
 
-	args := []string{"apply", "--index", "--recount", "--cached", "--ignore-whitespace", "--whitespace=fix", "--binary"}
+	args := []git.CmdArg{"apply", "--index", "--recount", "--cached", "--ignore-whitespace", "--whitespace=fix", "--binary"}
 
 	if git.CheckGitVersionAtLeast("2.32") == nil {
 		args = append(args, "-3")
@@ -152,7 +152,7 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 		Stderr: stderr,
 		Stdin:  strings.NewReader(opts.Content),
 	}); err != nil {
-		return nil, fmt.Errorf("Error: Stdout: %s\nStderr: %s\nErr: %v", stdout.String(), stderr.String(), err)
+		return nil, fmt.Errorf("Error: Stdout: %s\nStderr: %s\nErr: %w", stdout.String(), stderr.String(), err)
 	}
 
 	// Now write the tree
