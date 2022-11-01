@@ -58,15 +58,15 @@ https://github.com/loganinak/MigrateGitlabToGogs
 
 ## Where does Gitea store what file
 
-- AppWorkPath
+- _`AppWorkPath`_
   - The `--work-path` flag
   - Else Environment variable `GITEA_WORK_DIR`
   - Else a built-in value set at build time
   - Else the directory that contains the Gitea binary
-- AppDataPath (default for database, indexers, etc.)
+- `%(APP_DATA_PATH)` (default for database, indexers, etc.)
   - `APP_DATA_PATH` from `app.ini`
   - Else _`AppWorkPath`_`/data`
-- CustomPath (custom templates)
+- _`CustomPath`_ (custom templates)
   - The `--custom-path` flag
   - Else Environment variable `GITEA_CUSTOM`
   - Else a built-in value set at build time
