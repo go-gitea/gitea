@@ -83,6 +83,6 @@ func VerifyCaptcha(ctx *Context, tpl base.TplName, form interface{}) {
 
 	if !valid {
 		ctx.Data["Err_Captcha"] = true
-		ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tpl, &form)
+		ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tpl, form)
 	}
 }
