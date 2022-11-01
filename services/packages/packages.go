@@ -362,7 +362,7 @@ func Cleanup(taskCtx context.Context, olderThan time.Duration) error {
 	err = packages_model.IterateEnabledCleanupRules(ctx, func(ctx context.Context, pcr *packages_model.PackageCleanupRule) error {
 		select {
 		case <-taskCtx.Done():
-			return db.ErrCancelled{"While processing package cleanup rules"}
+			return db.ErrCancelledf("While processing package cleanup rules")
 		default:
 		}
 

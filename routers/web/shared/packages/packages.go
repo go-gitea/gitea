@@ -20,12 +20,6 @@ import (
 	container_service "code.gitea.io/gitea/services/packages/container"
 )
 
-const (
-	tplSettingsPackages            base.TplName = "user/settings/packages"
-	tplSettingsPackagesRuleEdit    base.TplName = "user/settings/packages_cleanup_rules_edit"
-	tplSettingsPackagesRulePreview base.TplName = "user/settings/packages_cleanup_rules_preview"
-)
-
 func SetPackagesContext(ctx *context.Context, owner *user_model.User) {
 	pcrs, err := packages_model.GetCleanupRulesByOwner(ctx, owner.ID)
 	if err != nil {
