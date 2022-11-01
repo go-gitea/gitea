@@ -145,7 +145,7 @@ func ViewPost(ctx *context.Context) {
 			for i, v := range steps {
 				resp.StateData.CurrentJobSteps[i] = ViewJobStep{
 					Summary:  v.Name,
-					Duration: float64(v.Stopped - v.Started),
+					Duration: float64(v.TakeTime() / time.Second),
 					Status:   v.Status.String(),
 				}
 			}

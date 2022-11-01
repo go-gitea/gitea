@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
@@ -24,6 +25,7 @@ import (
 
 	gouuid "github.com/google/uuid"
 	"github.com/nektos/act/pkg/jobparser"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // Task represents a distribution of job
@@ -61,6 +63,18 @@ func init() {
 
 func (Task) TableName() string {
 	return "bots_task"
+}
+
+func (task *Task) TakeTime() time.Duration {
+	if task.Started == 0 {
+		return 0
+	}
+	started := task.Started.AsTime()
+	if task.Status.IsDone() {
+		return task.Stopped.AsTime().Sub(started)
+	}
+	task.Stopped.AsTime().Sub(started)
+	return time.Since(started).Truncate(time.Second)
 }
 
 func (task *Task) LoadJob(ctx context.Context) error {
@@ -376,6 +390,8 @@ func UpdateTaskByState(state *runnerv1.TaskState) (*Task, error) {
 			step.Result = v.Result
 			step.LogIndex = v.LogIndex
 			step.LogLength = v.LogLength
+			step.Started = convertTimestamp(v.StartedAt)
+			step.Stopped = convertTimestamp(v.StoppedAt)
 		}
 		if step.Result != runnerv1.Result_RESULT_UNSPECIFIED {
 			step.Status = Status(step.Result)
@@ -407,4 +423,11 @@ func isSubset(set, subset []string) bool {
 		}
 	}
 	return true
+}
+
+func convertTimestamp(timestamp *timestamppb.Timestamp) timeutil.TimeStamp {
+	if timestamp.GetSeconds() == 0 && timestamp.GetNanos() == 0 {
+		return timeutil.TimeStamp(0)
+	}
+	return timeutil.TimeStamp(timestamp.AsTime().Unix())
 }

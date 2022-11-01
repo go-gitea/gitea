@@ -7,6 +7,7 @@ package bots
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -43,6 +44,18 @@ func (RunJob) TableName() string {
 	return "bots_run_job"
 }
 
+func (job *RunJob) TakeTime() time.Duration {
+	if job.Started == 0 {
+		return 0
+	}
+	started := job.Started.AsTime()
+	if job.Status.IsDone() {
+		return job.Stopped.AsTime().Sub(started)
+	}
+	job.Stopped.AsTime().Sub(started)
+	return time.Since(started).Truncate(time.Second)
+}
+
 func (job *RunJob) LoadRun(ctx context.Context) error {
 	if job.Run == nil {
 		run, err := GetRunByID(ctx, job.RunID)
@@ -60,7 +73,7 @@ func (job *RunJob) LoadAttributes(ctx context.Context) error {
 		return nil
 	}
 
-	if err := job.LoadRun(ctx);err != nil {
+	if err := job.LoadRun(ctx); err != nil {
 		return err
 	}
 

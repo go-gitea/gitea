@@ -6,6 +6,7 @@ package bots
 
 import (
 	"context"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -30,6 +31,18 @@ type TaskStep struct {
 
 func (TaskStep) TableName() string {
 	return "bots_task_step"
+}
+
+func (step *TaskStep) TakeTime() time.Duration {
+	if step.Started == 0 {
+		return 0
+	}
+	started := step.Started.AsTime()
+	if step.Status.IsDone() {
+		return step.Stopped.AsTime().Sub(started)
+	}
+	step.Stopped.AsTime().Sub(started)
+	return time.Since(started).Truncate(time.Second)
 }
 
 func init() {
