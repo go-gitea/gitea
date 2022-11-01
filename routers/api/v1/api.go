@@ -1103,41 +1103,41 @@ func Routes(ctx gocontext.Context) *web.Route {
 		}, context_service.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead))
 
 		// Organizations
-		m.Get("/user/orgs", reqToken(""), org.ListMyOrgs)
+		m.Get("/user/orgs", reqToken(auth_model.AccessTokenScopeReadOrg), org.ListMyOrgs)
 		m.Group("/users/{username}/orgs", func() {
-			m.Get("", org.ListUserOrgs)
-			m.Get("/{org}/permissions", reqToken(""), org.GetUserOrgsPermissions)
+			m.Get("", reqToken(auth_model.AccessTokenScopeReadOrg), org.ListUserOrgs)
+			m.Get("/{org}/permissions", reqToken(auth_model.AccessTokenScopeReadOrg), org.GetUserOrgsPermissions)
 		}, context_service.UserAssignmentAPI())
-		m.Post("/orgs", reqToken(""), bind(api.CreateOrgOption{}), org.Create)
-		m.Get("/orgs", org.GetAll)
+		m.Post("/orgs", reqToken(auth_model.AccessTokenScopeWriteOrg), bind(api.CreateOrgOption{}), org.Create)
+		m.Get("/orgs", reqToken(auth_model.AccessTokenScopeReadOrg), org.GetAll)
 		m.Group("/orgs/{org}", func() {
-			m.Combo("").Get(org.Get).
-				Patch(reqToken(""), reqOrgOwnership(), bind(api.EditOrgOption{}), org.Edit).
-				Delete(reqToken(""), reqOrgOwnership(), org.Delete)
-			m.Combo("/repos").Get(user.ListOrgRepos).
-				Post(reqToken(""), bind(api.CreateRepoOption{}), repo.CreateOrgRepo)
+			m.Combo("").Get(reqToken(auth_model.AccessTokenScopeReadOrg), org.Get).
+				Patch(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), bind(api.EditOrgOption{}), org.Edit).
+				Delete(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), org.Delete)
+			m.Combo("/repos").Get(reqToken(auth_model.AccessTokenScopeReadOrg), user.ListOrgRepos).
+				Post(reqToken(auth_model.AccessTokenScopeWriteOrg), bind(api.CreateRepoOption{}), repo.CreateOrgRepo)
 			m.Group("/members", func() {
-				m.Get("", org.ListMembers)
-				m.Combo("/{username}").Get(org.IsMember).
-					Delete(reqToken(""), reqOrgOwnership(), org.DeleteMember)
+				m.Get("", reqToken(auth_model.AccessTokenScopeReadOrg), org.ListMembers)
+				m.Combo("/{username}").Get(reqToken(auth_model.AccessTokenScopeReadOrg), org.IsMember).
+					Delete(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), org.DeleteMember)
 			})
 			m.Group("/public_members", func() {
-				m.Get("", org.ListPublicMembers)
-				m.Combo("/{username}").Get(org.IsPublicMember).
-					Put(reqToken(""), reqOrgMembership(), org.PublicizeMember).
-					Delete(reqToken(""), reqOrgMembership(), org.ConcealMember)
+				m.Get("", reqToken(auth_model.AccessTokenScopeReadOrg), org.ListPublicMembers)
+				m.Combo("/{username}").Get(reqToken(auth_model.AccessTokenScopeReadOrg), org.IsPublicMember).
+					Put(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgMembership(), org.PublicizeMember).
+					Delete(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgMembership(), org.ConcealMember)
 			})
 			m.Group("/teams", func() {
-				m.Get("", org.ListTeams)
+				m.Get("", reqToken(auth_model.AccessTokenScopeReadOrg), org.ListTeams)
 				m.Post("", reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
 				m.Get("/search", org.SearchTeam)
-			}, reqToken(""), reqOrgMembership())
+			}, reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgMembership())
 			m.Group("/labels", func() {
-				m.Get("", org.ListLabels)
-				m.Post("", reqToken(""), reqOrgOwnership(), bind(api.CreateLabelOption{}), org.CreateLabel)
-				m.Combo("/{id}").Get(org.GetLabel).
-					Patch(reqToken(""), reqOrgOwnership(), bind(api.EditLabelOption{}), org.EditLabel).
-					Delete(reqToken(""), reqOrgOwnership(), org.DeleteLabel)
+				m.Get("", reqToken(auth_model.AccessTokenScopeReadOrg), org.ListLabels)
+				m.Post("", reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), bind(api.CreateLabelOption{}), org.CreateLabel)
+				m.Combo("/{id}").Get(reqToken(auth_model.AccessTokenScopeReadOrg), org.GetLabel).
+					Patch(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), bind(api.EditLabelOption{}), org.EditLabel).
+					Delete(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), org.DeleteLabel)
 			})
 			m.Group("/hooks", func() {
 				m.Combo("").Get(org.ListHooks).
@@ -1145,7 +1145,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 				m.Combo("/{id}").Get(org.GetHook).
 					Patch(bind(api.EditHookOption{}), org.EditHook).
 					Delete(org.DeleteHook)
-			}, reqToken(""), reqOrgOwnership(), reqWebhooksEnabled())
+			}, reqToken(auth_model.AccessTokenScopeAdminOrgHook), reqOrgOwnership(), reqWebhooksEnabled())
 		}, orgAssignment(true))
 		m.Group("/teams/{teamid}", func() {
 			m.Combo("").Get(org.GetTeam).

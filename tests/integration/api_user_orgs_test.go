@@ -72,7 +72,7 @@ func getUserOrgs(t *testing.T, userDoer, userCheck string) (orgs []*api.Organiza
 	session := emptyTestSession(t)
 	if len(userDoer) != 0 {
 		session = loginUser(t, userDoer)
-		token = getTokenForLoggedInUser(t, session)
+		token = getTokenForLoggedInUser(t, session, "read_org")
 	}
 	urlStr := fmt.Sprintf("/api/v1/users/%s/orgs?token=%s", userCheck, token)
 	req := NewRequest(t, "GET", urlStr)
@@ -90,7 +90,7 @@ func TestMyOrgs(t *testing.T) {
 
 	normalUsername := "user2"
 	session = loginUser(t, normalUsername)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, "read_org")
 	req = NewRequest(t, "GET", "/api/v1/user/orgs?token="+token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var orgs []*api.Organization

@@ -22,7 +22,7 @@ import (
 
 func TestAPIOrgCreate(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
-		token := getUserToken(t, "user1")
+		token := getUserToken(t, "user1", "write_org", "read_org")
 
 		org := api.CreateOrgOption{
 			UserName:    "user1_org",
@@ -80,7 +80,7 @@ func TestAPIOrgEdit(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
 		session := loginUser(t, "user1")
 
-		token := getTokenForLoggedInUser(t, session)
+		token := getTokenForLoggedInUser(t, session, "write_org")
 		org := api.EditOrgOption{
 			FullName:    "User3 organization new full name",
 			Description: "A new description",
@@ -107,7 +107,7 @@ func TestAPIOrgEditBadVisibility(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
 		session := loginUser(t, "user1")
 
-		token := getTokenForLoggedInUser(t, session)
+		token := getTokenForLoggedInUser(t, session, "write_org")
 		org := api.EditOrgOption{
 			FullName:    "User3 organization new full name",
 			Description: "A new description",
@@ -127,14 +127,16 @@ func TestAPIOrgDeny(t *testing.T) {
 			setting.Service.RequireSignInView = false
 		}()
 
+		token := getUserToken(t, "user1", "read_org")
+
 		orgName := "user1_org"
-		req := NewRequestf(t, "GET", "/api/v1/orgs/%s", orgName)
+		req := NewRequestf(t, "GET", "/api/v1/orgs/%s?token=%s", orgName, token)
 		MakeRequest(t, req, http.StatusNotFound)
 
-		req = NewRequestf(t, "GET", "/api/v1/orgs/%s/repos", orgName)
+		req = NewRequestf(t, "GET", "/api/v1/orgs/%s/repos?token=%s", orgName, token)
 		MakeRequest(t, req, http.StatusNotFound)
 
-		req = NewRequestf(t, "GET", "/api/v1/orgs/%s/members", orgName)
+		req = NewRequestf(t, "GET", "/api/v1/orgs/%s/members?token=%s", orgName, token)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
 }
@@ -142,7 +144,9 @@ func TestAPIOrgDeny(t *testing.T) {
 func TestAPIGetAll(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	req := NewRequestf(t, "GET", "/api/v1/orgs")
+	token := getUserToken(t, "user1", "read_org")
+
+	req := NewRequestf(t, "GET", "/api/v1/orgs?token=%s", token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var apiOrgList []*api.Organization
@@ -155,7 +159,7 @@ func TestAPIGetAll(t *testing.T) {
 
 func TestAPIOrgSearchEmptyTeam(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
-		token := getUserToken(t, "user1")
+		token := getUserToken(t, "user1", "admin_org")
 		orgName := "org_with_empty_team"
 
 		// create org

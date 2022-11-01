@@ -144,7 +144,7 @@ func TestAPIModifyOrgLabels(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	user := "user1"
 	session := loginUser(t, user)
-	token := getTokenForLoggedInUser(t, session, "repo")
+	token := getTokenForLoggedInUser(t, session, "repo", "admin_org")
 	urlStr := fmt.Sprintf("/api/v1/orgs/%s/labels?token=%s", owner.Name, token)
 
 	// CreateLabel

@@ -25,7 +25,7 @@ func testOrgCounts(t *testing.T, u *url.URL) {
 	orgOwner := "user2"
 	orgName := "testOrg"
 	orgCollaborator := "user4"
-	ctx := NewAPITestContext(t, orgOwner, "repo1")
+	ctx := NewAPITestContext(t, orgOwner, "repo1", "admin_org")
 
 	var ownerCountRepos map[string]int
 	var collabCountRepos map[string]int

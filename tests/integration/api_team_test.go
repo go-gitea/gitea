@@ -30,7 +30,7 @@ func TestAPITeam(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: teamUser.UID})
 
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, "admin_org")
 	req := NewRequestf(t, "GET", "/api/v1/teams/%d?token="+token, teamUser.TeamID)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
@@ -228,7 +228,7 @@ func TestAPITeamSearch(t *testing.T) {
 
 	var results TeamSearchResults
 
-	token := getUserToken(t, user.Name)
+	token := getUserToken(t, user.Name, "read_org")
 	req := NewRequestf(t, "GET", "/api/v1/orgs/%s/teams/search?q=%s&token=%s", org.Name, "_team", token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &results)
@@ -253,7 +253,7 @@ func TestAPIGetTeamRepo(t *testing.T) {
 
 	var results api.Repository
 
-	token := getUserToken(t, user.Name)
+	token := getUserToken(t, user.Name, "read_org")
 	req := NewRequestf(t, "GET", "/api/v1/teams/%d/repos/%s/?token=%s", team.ID, teamRepo.FullName(), token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &results)
@@ -261,7 +261,7 @@ func TestAPIGetTeamRepo(t *testing.T) {
 
 	// no access if not organization member
 	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
-	token5 := getUserToken(t, user5.Name)
+	token5 := getUserToken(t, user5.Name, "read_org")
 
 	req = NewRequestf(t, "GET", "/api/v1/teams/%d/repos/%s/?token=%s", team.ID, teamRepo.FullName(), token5)
 	MakeRequest(t, req, http.StatusNotFound)

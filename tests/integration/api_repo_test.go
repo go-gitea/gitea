@@ -300,7 +300,7 @@ func TestAPIOrgRepos(t *testing.T) {
 		if userToLogin != nil && userToLogin.ID > 0 {
 			testName = fmt.Sprintf("LoggedUser%d", userToLogin.ID)
 			session = loginUser(t, userToLogin.Name)
-			token = getTokenForLoggedInUser(t, session)
+			token = getTokenForLoggedInUser(t, session, "read_org")
 		} else {
 			testName = "AnonymousUser"
 			session = emptyTestSession(t)
