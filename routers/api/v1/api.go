@@ -1193,7 +1193,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 				m.Post("/{username}/{reponame}", admin.AdoptRepository)
 				m.Delete("/{username}/{reponame}", admin.DeleteUnadoptedRepository)
 			})
-		}, reqToken(""), reqSiteAdmin())
+		}, reqToken(auth_model.AccessTokenScopeSudo), reqSiteAdmin())
 
 		m.Group("/topics", func() {
 			m.Get("/search", repo.TopicSearch)

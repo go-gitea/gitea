@@ -25,7 +25,7 @@ func TestAPIAdminCreateAndDeleteSSHKey(t *testing.T) {
 	session := loginUser(t, "user1")
 	keyOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
 
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, "sudo")
 	urlStr := fmt.Sprintf("/api/v1/admin/users/%s/keys?token=%s", keyOwner.Name, token)
 	req := NewRequestWithValues(t, "POST", urlStr, map[string]string{
 		"key":   "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC4cn+iXnA4KvcQYSV88vGn0Yi91vG47t1P7okprVmhNTkipNRIHWr6WdCO4VDr/cvsRkuVJAsLO2enwjGWWueOO6BodiBgyAOZ/5t5nJNMCNuLGT5UIo/RI1b0WRQwxEZTRjt6mFNw6lH14wRd8ulsr9toSWBPMOGWoYs1PDeDL0JuTjL+tr1SZi/EyxCngpYszKdXllJEHyI79KQgeD0Vt3pTrkbNVTOEcCNqZePSVmUH8X8Vhugz3bnE0/iE9Pb5fkWO9c4AnM1FgI/8Bvp27Fw2ShryIXuR6kKvUqhVMTuOSDHwu6A8jLE5Owt3GAYugDpDYuwTVNGrHLXKpPzrGGPE/jPmaLCMZcsdkec95dYeU3zKODEm8UQZFhmJmDeWVJ36nGrGZHL4J5aTTaeFUJmmXDaJYiJ+K2/ioKgXqnXvltu0A9R8/LGy4nrTJRr4JMLuJFoUXvGm1gXQ70w2LSpk6yl71RNC0hCtsBe8BP8IhYCM0EP5jh7eCMQZNvM= nocomment\n",
@@ -53,7 +53,7 @@ func TestAPIAdminDeleteMissingSSHKey(t *testing.T) {
 	// user1 is an admin user
 	session := loginUser(t, "user1")
 
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, "sudo")
 	req := NewRequestf(t, "DELETE", "/api/v1/admin/users/user1/keys/%d?token=%s", unittest.NonexistentID, token)
 	session.MakeRequest(t, req, http.StatusNotFound)
 }
@@ -64,7 +64,7 @@ func TestAPIAdminDeleteUnauthorizedKey(t *testing.T) {
 	normalUsername := "user2"
 	session := loginUser(t, adminUsername)
 
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, "sudo")
 	urlStr := fmt.Sprintf("/api/v1/admin/users/%s/keys?token=%s", adminUsername, token)
 	req := NewRequestWithValues(t, "POST", urlStr, map[string]string{
 		"key":   "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC4cn+iXnA4KvcQYSV88vGn0Yi91vG47t1P7okprVmhNTkipNRIHWr6WdCO4VDr/cvsRkuVJAsLO2enwjGWWueOO6BodiBgyAOZ/5t5nJNMCNuLGT5UIo/RI1b0WRQwxEZTRjt6mFNw6lH14wRd8ulsr9toSWBPMOGWoYs1PDeDL0JuTjL+tr1SZi/EyxCngpYszKdXllJEHyI79KQgeD0Vt3pTrkbNVTOEcCNqZePSVmUH8X8Vhugz3bnE0/iE9Pb5fkWO9c4AnM1FgI/8Bvp27Fw2ShryIXuR6kKvUqhVMTuOSDHwu6A8jLE5Owt3GAYugDpDYuwTVNGrHLXKpPzrGGPE/jPmaLCMZcsdkec95dYeU3zKODEm8UQZFhmJmDeWVJ36nGrGZHL4J5aTTaeFUJmmXDaJYiJ+K2/ioKgXqnXvltu0A9R8/LGy4nrTJRr4JMLuJFoUXvGm1gXQ70w2LSpk6yl71RNC0hCtsBe8BP8IhYCM0EP5jh7eCMQZNvM= nocomment\n",
@@ -75,7 +75,7 @@ func TestAPIAdminDeleteUnauthorizedKey(t *testing.T) {
 	DecodeJSON(t, resp, &newPublicKey)
 
 	session = loginUser(t, normalUsername)
-	token = getTokenForLoggedInUser(t, session)
+	token = getTokenForLoggedInUser(t, session, "sudo")
 	req = NewRequestf(t, "DELETE", "/api/v1/admin/users/%s/keys/%d?token=%s",
 		adminUsername, newPublicKey.ID, token)
 	session.MakeRequest(t, req, http.StatusForbidden)
@@ -86,7 +86,7 @@ func TestAPISudoUser(t *testing.T) {
 	adminUsername := "user1"
 	normalUsername := "user2"
 	session := loginUser(t, adminUsername)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, "sudo")
 
 	urlStr := fmt.Sprintf("/api/v1/user?sudo=%s&token=%s", normalUsername, token)
 	req := NewRequest(t, "GET", urlStr)
@@ -103,7 +103,7 @@ func TestAPISudoUserForbidden(t *testing.T) {
 	normalUsername := "user2"
 
 	session := loginUser(t, normalUsername)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, "sudo")
 
 	urlStr := fmt.Sprintf("/api/v1/user?sudo=%s&token=%s", adminUsername, token)
 	req := NewRequest(t, "GET", urlStr)
@@ -114,7 +114,7 @@ func TestAPIListUsers(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
 	session := loginUser(t, adminUsername)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, "sudo")
 
 	urlStr := fmt.Sprintf("/api/v1/admin/users?token=%s", token)
 	req := NewRequest(t, "GET", urlStr)
@@ -143,7 +143,7 @@ func TestAPIListUsersNonAdmin(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	nonAdminUsername := "user2"
 	session := loginUser(t, nonAdminUsername)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, "sudo")
 	req := NewRequestf(t, "GET", "/api/v1/admin/users?token=%s", token)
 	session.MakeRequest(t, req, http.StatusForbidden)
 }
@@ -152,7 +152,7 @@ func TestAPICreateUserInvalidEmail(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
 	session := loginUser(t, adminUsername)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, "sudo")
 	urlStr := fmt.Sprintf("/api/v1/admin/users?token=%s", token)
 	req := NewRequestWithValues(t, "POST", urlStr, map[string]string{
 		"email":                "invalid_email@domain.com\r\n",
@@ -171,7 +171,7 @@ func TestAPICreateAndDeleteUser(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
 	session := loginUser(t, adminUsername)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, "sudo")
 
 	req := NewRequestWithValues(
 		t,
@@ -198,7 +198,7 @@ func TestAPIEditUser(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
 	session := loginUser(t, adminUsername)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, "sudo")
 	urlStr := fmt.Sprintf("/api/v1/admin/users/%s?token=%s", "user2", token)
 
 	req := NewRequestWithValues(t, "PATCH", urlStr, map[string]string{
@@ -241,7 +241,7 @@ func TestAPICreateRepoForUser(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
 	session := loginUser(t, adminUsername)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, "sudo")
 
 	req := NewRequestWithJSON(
 		t,
