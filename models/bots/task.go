@@ -37,8 +37,8 @@ type Task struct {
 	Attempt  int64
 	RunnerID int64 `xorm:"index"`
 	Result   runnerv1.Result
-	Status   Status `xorm:"index"`
-	Started  timeutil.TimeStamp
+	Status   Status             `xorm:"index"`
+	Started  timeutil.TimeStamp `xorm:"index"`
 	Stopped  timeutil.TimeStamp
 
 	Token          string `xorm:"-"`
@@ -54,7 +54,7 @@ type Task struct {
 	LogExpired   bool        // files that are too old will be deleted
 
 	Created timeutil.TimeStamp `xorm:"created"`
-	Updated timeutil.TimeStamp `xorm:"updated"`
+	Updated timeutil.TimeStamp `xorm:"updated index"`
 }
 
 func init() {
@@ -399,6 +399,57 @@ func UpdateTaskByState(state *runnerv1.TaskState) (*Task, error) {
 		} else if prevStepDone {
 			step.Status = StatusRunning
 			prevStepDone = false
+		}
+		if _, err := e.ID(step.ID).Update(step); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := commiter.Commit(); err != nil {
+		return nil, err
+	}
+
+	return task, nil
+}
+
+func StopTask(ctx context.Context, task *Task, result runnerv1.Result) (*Task, error) {
+	ctx, commiter, err := db.TxContext()
+	if err != nil {
+		return nil, err
+	}
+	defer commiter.Close()
+
+	e := db.GetEngine(ctx)
+
+	now := timeutil.TimeStampNow()
+	task.Result = result
+	if task.Result != runnerv1.Result_RESULT_UNSPECIFIED {
+		task.Status = Status(task.Result)
+		task.Stopped = now
+		if _, err := UpdateRunJob(ctx, &RunJob{
+			ID:      task.JobID,
+			Status:  task.Status,
+			Stopped: task.Stopped,
+		}, nil); err != nil {
+			return nil, err
+		}
+	}
+
+	if _, err := e.ID(task.ID).Update(task); err != nil {
+		return nil, err
+	}
+
+	if err := task.LoadAttributes(ctx); err != nil {
+		return nil, err
+	}
+
+	for _, step := range task.Steps {
+		if step.Result == runnerv1.Result_RESULT_UNSPECIFIED {
+			step.Result = result
+			if step.Started == 0 {
+				step.Started = now
+			}
+			step.Stopped = now
 		}
 		if _, err := e.ID(step.ID).Update(step); err != nil {
 			return nil, err
