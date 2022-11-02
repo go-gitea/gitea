@@ -7,6 +7,7 @@ package migrations
 import (
 	auth_models "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/timeutil"
+
 	"xorm.io/xorm"
 )
 
