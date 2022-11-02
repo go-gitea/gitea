@@ -446,6 +446,7 @@ func StopTask(ctx context.Context, task *Task, result runnerv1.Result) (*Task, e
 	for _, step := range task.Steps {
 		if step.Result == runnerv1.Result_RESULT_UNSPECIFIED {
 			step.Result = result
+			step.Status = Status(result)
 			if step.Started == 0 {
 				step.Started = now
 			}
