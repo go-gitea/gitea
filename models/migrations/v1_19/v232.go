@@ -33,6 +33,22 @@ func AddScopeForAccessTokens(x *xorm.Engine) error {
 		return err
 	}
 
-	// remove default 'all'
-	return x.Sync(new(auth_models.AccessToken))
+	// remove default 'all' for scope
+	type AccessToken struct {
+		ID             int64 `xorm:"pk autoincr"`
+		UID            int64 `xorm:"INDEX"`
+		Name           string
+		Token          string `xorm:"-"`
+		TokenHash      string `xorm:"UNIQUE"` // sha256 of token
+		TokenSalt      string
+		TokenLastEight string `xorm:"token_last_eight"`
+		Scope          auth_models.AccessTokenScope
+
+		CreatedUnix       timeutil.TimeStamp `xorm:"INDEX created"`
+		UpdatedUnix       timeutil.TimeStamp `xorm:"INDEX updated"`
+		HasRecentActivity bool               `xorm:"-"`
+		HasUsed           bool               `xorm:"-"`
+	}
+
+	return x.Sync(new(AccessToken))
 }
