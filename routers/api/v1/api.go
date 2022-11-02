@@ -1148,24 +1148,24 @@ func Routes(ctx gocontext.Context) *web.Route {
 			}, reqToken(auth_model.AccessTokenScopeAdminOrgHook), reqOrgOwnership(), reqWebhooksEnabled())
 		}, orgAssignment(true))
 		m.Group("/teams/{teamid}", func() {
-			m.Combo("").Get(org.GetTeam).
-				Patch(reqOrgOwnership(), bind(api.EditTeamOption{}), org.EditTeam).
-				Delete(reqOrgOwnership(), org.DeleteTeam)
+			m.Combo("").Get(reqToken(auth_model.AccessTokenScopeReadOrg), org.GetTeam).
+				Patch(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), bind(api.EditTeamOption{}), org.EditTeam).
+				Delete(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), org.DeleteTeam)
 			m.Group("/members", func() {
-				m.Get("", org.GetTeamMembers)
+				m.Get("", reqToken(auth_model.AccessTokenScopeReadOrg), org.GetTeamMembers)
 				m.Combo("/{username}").
-					Get(org.GetTeamMember).
-					Put(reqOrgOwnership(), org.AddTeamMember).
-					Delete(reqOrgOwnership(), org.RemoveTeamMember)
+					Get(reqToken(auth_model.AccessTokenScopeReadOrg), org.GetTeamMember).
+					Put(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), org.AddTeamMember).
+					Delete(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), org.RemoveTeamMember)
 			})
 			m.Group("/repos", func() {
-				m.Get("", org.GetTeamRepos)
+				m.Get("", reqToken(auth_model.AccessTokenScopeReadOrg), org.GetTeamRepos)
 				m.Combo("/{org}/{reponame}").
-					Put(org.AddTeamRepository).
-					Delete(org.RemoveTeamRepository).
-					Get(org.GetTeamRepo)
+					Put(reqToken(auth_model.AccessTokenScopeWriteOrg), org.AddTeamRepository).
+					Delete(reqToken(auth_model.AccessTokenScopeWriteOrg), org.RemoveTeamRepository).
+					Get(reqToken(auth_model.AccessTokenScopeReadOrg), org.GetTeamRepo)
 			})
-		}, orgAssignment(false, true), reqToken(""), reqTeamMembership())
+		}, orgAssignment(false, true), reqTeamMembership())
 
 		m.Group("/admin", func() {
 			m.Group("/cron", func() {

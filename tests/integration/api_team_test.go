@@ -44,7 +44,7 @@ func TestAPITeam(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: teamUser2.UID})
 
 	session = loginUser(t, user2.Name)
-	token = getTokenForLoggedInUser(t, session)
+	token = getTokenForLoggedInUser(t, session, "read_org")
 	req = NewRequestf(t, "GET", "/api/v1/teams/%d?token="+token, teamUser.TeamID)
 	_ = session.MakeRequest(t, req, http.StatusForbidden)
 
