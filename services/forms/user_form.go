@@ -62,6 +62,7 @@ type InstallForm struct {
 	DefaultKeepEmailPrivate        bool
 	DefaultAllowCreateOrganization bool
 	DefaultEnableTimetracking      bool
+	EnableUpdateChecker            bool
 	NoReplyAddress                 string
 
 	PasswordAlgorithm string

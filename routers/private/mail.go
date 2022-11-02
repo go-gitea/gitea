@@ -5,6 +5,7 @@
 package private
 
 import (
+	stdCtx "context"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -60,7 +61,7 @@ func SendEmail(ctx *context.PrivateContext) {
 			}
 		}
 	} else {
-		err := db.IterateObjects(ctx, func(user *user_model.User) error {
+		err := db.Iterate(ctx, nil, func(ctx stdCtx.Context, user *user_model.User) error {
 			if len(user.Email) > 0 && user.IsActive {
 				emails = append(emails, user.Email)
 			}
