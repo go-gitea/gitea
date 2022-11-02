@@ -249,7 +249,7 @@ on windows, or the windows terminal can be set into ANSI mode or is a
 cygwin or Msys pipe.
 
 Settings:
-- `STDERR`: **false**: Whether the logger should print to `stderr` instead of `stdout`.|
+- `STDERR`: **false**: Whether the logger should print to `stderr` instead of `stdout`.
 
 ### File mode
 
@@ -261,12 +261,12 @@ If set it will be relative to the provided `ROOT_PATH` in the master `[log]` sec
 
 Settings:
 - `FILE_NAME`: The file to write the log events to. For details see above.
-- `MAX_SIZE_SHIFT`: **28**: Maximum size shift of a single file, 28 represents 256Mb.
-- `LOG_ROTATE`: **true**: Rotate the log files.
-- `DAILY_ROTATE`: **true**: Rotate logs daily.
-- `MAX_DAYS`: **7**: Delete the log file after n days
-- `COMPRESS`: **true**: Compress old log files by default with gzip
-- `COMPRESSION_LEVEL`: **-1**: Compression level
+- `MAX_SIZE_SHIFT`: **28**: Maximum size shift of a single file. 28 represents 256Mb. For details see here: TODO.
+- `LOG_ROTATE` **true**: Whether to rotate the log files. TODO: if false, will it delete instead on daily rotate, or do nothing?.
+- `DAILY_ROTATE`: **true**: Whether to rotate logs daily.
+- `MAX_DAYS`: **7**: Delete rotated log files after this number of days.
+- `COMPRESS`: **true**: Whether to compress old log files by default with gzip.
+- `COMPRESSION_LEVEL`: **-1**: Compression level.
 
 ### Conn mode
 
@@ -290,7 +290,7 @@ Settings:
 - `USER`: User email address to send from.
 - `PASSWD`: Password for the smtp server.
 - `RECEIVERS`: Email addresses to send to.
-- `SUBJECT`: **Diagnostic message from Gitea**
+- `SUBJECT`: **Diagnostic message from Gitea**. The content of the email's subject field.
 
 ## Debugging problems
 
