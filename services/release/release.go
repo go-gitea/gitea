@@ -271,12 +271,13 @@ func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *repo_mod
 		}
 	}
 
+	if !isCreated {
+		notification.NotifyUpdateRelease(gitRepo.Ctx, doer, rel)
+		return
+	}
+
 	if !rel.IsDraft {
-		if isCreated {
-			notification.NotifyNewRelease(gitRepo.Ctx, rel)
-		} else {
-			notification.NotifyUpdateRelease(gitRepo.Ctx, doer, rel)
-		}
+		notification.NotifyNewRelease(gitRepo.Ctx, rel)
 	}
 
 	return err
@@ -352,9 +353,7 @@ func DeleteReleaseByID(ctx context.Context, id int64, doer *user_model.User, del
 		}
 	}
 
-	if !rel.IsDraft {
-		notification.NotifyDeleteRelease(ctx, doer, rel)
-	}
+	notification.NotifyDeleteRelease(ctx, doer, rel)
 
 	return nil
 }

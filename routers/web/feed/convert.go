@@ -241,7 +241,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 				Name:  act.ActUser.DisplayName(),
 				Email: act.ActUser.GetEmail(),
 			},
-			Id:      strconv.FormatInt(act.ID, 10),
+			Id:      fmt.Sprintf("%v: %v", strconv.FormatInt(act.ID, 10), link.Href),
 			Created: act.CreatedUnix.AsTime(),
 			Content: content,
 		})
