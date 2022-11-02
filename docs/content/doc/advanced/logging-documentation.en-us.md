@@ -174,12 +174,19 @@ which will not be inherited from the `[log]` or relevant
 
 ## Log outputs
 
+Log outputs are the targets to which log messages will be sent.
+The content and the format of the log messages to be saved can be configured in these.
+
+Log outputs are also called subloggers.
+
 Gitea provides 4 possible log outputs:
 
 - `console` - Log to `os.Stdout` or `os.Stderr`
 - `file` - Log to a file
-- `conn` - Log to a keep-alive TCP connection
+- `conn` - Log to a socket (network or unix)
 - `smtp` - Log via email
+
+### Common configuration
 
 Certain configuration is common to all modes of log output:
 
@@ -233,6 +240,9 @@ Possible values are:
 
 ### Console mode
 
+In this mode the logger will forward log messages to the stdout and
+stderr streams attached to the Gitea process.
+
 For loggers in console mode, `COLORIZE` will default to `true` if not
 on windows, or the windows terminal can be set into ANSI mode or is a
 cygwin or Msys pipe.
@@ -242,8 +252,11 @@ If `STDERR` is set to `true` the logger will use `os.Stderr` instead of
 
 ### File mode
 
-The `FILE_NAME` defaults as described above. If set it will be relative
-to the provided `ROOT_PATH` in the master `[log]` section.
+In this mode the logger will save log messages to a file.
+
+The `FILE_NAME` defaults as described in the respective logger facilities.
+If unset, their own default will be used.
+If set it will be relative to the provided `ROOT_PATH` in the master `[log]` section.
 
 Other values:
 
@@ -256,12 +269,16 @@ Other values:
 
 ### Conn mode
 
+In this mode the logger will send log messages over a network socket.
+
 - `RECONNECT_ON_MSG`: **false**: Reconnect host for every single message.
 - `RECONNECT`: **false**: Try to reconnect when connection is lost.
 - `PROTOCOL`: **tcp**: Set the protocol, either "tcp", "unix" or "udp".
 - `ADDR`: **:7020**: Sets the address to connect to.
 
 ### SMTP mode
+
+In this mode the logger will send log messages in email.
 
 It is not recommended to use this logger to send general logging
 messages. However, you could perhaps set this logger to work on `FATAL`.
