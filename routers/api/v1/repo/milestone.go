@@ -60,7 +60,6 @@ func ListMilestones(ctx *context.APIContext) {
 	milestones, total, err := issues_model.GetMilestones(issues_model.GetMilestonesOption{
 		ListOptions: utils.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
-		Repo:        ctx.Repo.Repository,
 		State:       api.StateType(ctx.FormString("state")),
 		Name:        ctx.FormString("name"),
 	})

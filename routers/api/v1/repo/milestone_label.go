@@ -45,6 +45,9 @@ func ListMilestoneLabels(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	m := getMilestoneByIDOrName(ctx)
+	if err := m.LoadLabels(); err != nil {
+		return
+	}
 	if ctx.Written() {
 		return
 	}

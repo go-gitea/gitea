@@ -124,19 +124,8 @@ func NewMilestone(m *Milestone) (err error) {
 		return err
 	}
 
-	sess := db.GetEngine(db.DefaultContext)
-
 	if len(m.Labels) > 0 {
-		// During the session, SQLite3 driver cannot handle retrieve objects after update something.
-		// So we have to get all needed labels first.
 		labels := m.Labels
-		labelsIDs := make([]int64, len(labels))
-		for i, label := range labels {
-			labelsIDs[i] = label.ID
-		}
-		if err = sess.In("id", labelsIDs).Find(&m.Labels); err != nil {
-			return fmt.Errorf("find all labels [label_ids: %v]: %v", m.Labels, err)
-		}
 
 		for _, label := range labels {
 			// Silently drop invalid labels.
@@ -170,12 +159,6 @@ func GetMilestoneByRepoID(ctx context.Context, repoID, id int64) (*Milestone, er
 	} else if !has {
 		return nil, ErrMilestoneNotExist{ID: id, RepoID: repoID}
 	}
-	var labels []*Label
-	labels, err = GetLabelsByMilestoneID(ctx, m.ID)
-	m.Labels = labels
-	if err != nil {
-		return nil, err
-	}
 	return m, nil
 }
 
@@ -188,12 +171,6 @@ func GetMilestoneByRepoIDANDName(repoID int64, name string) (*Milestone, error) 
 	}
 	if !has {
 		return nil, ErrMilestoneNotExist{Name: name, RepoID: repoID}
-	}
-	var labels []*Label
-	labels, err = GetLabelsByMilestoneID(db.DefaultContext, m.ID)
-	m.Labels = labels
-	if err != nil {
-		return nil, err
 	}
 	return &m, nil
 }
@@ -221,6 +198,9 @@ func UpdateMilestone(m *Milestone, oldIsClosed bool) error {
 		}
 	}
 
+	if err = m.LoadLabels(); err != nil {
+		return err
+	}
 	dbLabels, err := GetLabelsByMilestoneID(ctx, m.ID)
 	if err != nil {
 		return err
@@ -401,6 +381,9 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 		return err
 	}
 
+	if err = m.LoadLabels(); err != nil {
+		return err
+	}
 	for _, label := range m.Labels {
 		if err = deleteMilestoneLabel(ctx, m, label, nil); err != nil {
 			return err
@@ -424,7 +407,6 @@ func (milestones MilestoneList) getMilestoneIDs() []int64 {
 type GetMilestonesOption struct {
 	db.ListOptions
 	RepoID   int64
-	Repo     *repo_model.Repository
 	State    api.StateType
 	Name     string
 	SortType string
@@ -480,15 +462,6 @@ func GetMilestones(opts GetMilestonesOption) (MilestoneList, int64, error) {
 
 	miles := make([]*Milestone, 0, opts.PageSize)
 	total, err := sess.FindAndCount(&miles)
-
-	for _, m := range miles {
-		var labels []*Label
-		labels, err = GetLabelsByMilestoneID(db.DefaultContext, m.ID)
-		m.Labels = labels
-		if opts.Repo != nil {
-			m.Repo = opts.Repo
-		}
-	}
 
 	return miles, total, err
 }

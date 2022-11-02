@@ -25,13 +25,16 @@ func init() {
 	db.RegisterModel(new(MilestoneLabel))
 }
 
-func hasMilestoneLabel(ctx context.Context, milestoneID, labelID int64) bool {
-	has, _ := db.GetEngine(ctx).Where("milestone_id = ? AND label_id = ?", milestoneID, labelID).Get(new(MilestoneLabel))
-	return has
+func hasMilestoneLabel(ctx context.Context, milestoneID, labelID int64) (bool, error) {
+	has, err := db.GetEngine(ctx).Where("milestone_id = ? AND label_id = ?", milestoneID, labelID).Exist(new(MilestoneLabel))
+	if err != nil {
+		return false, err
+	}
+	return has, nil
 }
 
 // HasMilestoneLabel returns true if milestone has been labeled.
-func HasMilestoneLabel(milestoneID, labelID int64) bool {
+func HasMilestoneLabel(milestoneID, labelID int64) (bool, error) {
 	return hasMilestoneLabel(db.DefaultContext, milestoneID, labelID)
 }
 
@@ -59,8 +62,12 @@ func newMilestoneLabel(ctx context.Context, m *Milestone, label *Label, doer *us
 
 // NewMilestoneLabel creates a new milestone-label relation.
 func NewMilestoneLabel(m *Milestone, label *Label, doer *user_model.User) (err error) {
-	if HasMilestoneLabel(m.ID, label.ID) {
+	hasLabel, err := HasMilestoneLabel(m.ID, label.ID)
+	if hasLabel {
 		return nil
+	}
+	if err != nil {
+		return err
 	}
 
 	ctx, committer, err := db.TxContext()
@@ -89,8 +96,12 @@ func NewMilestoneLabel(m *Milestone, label *Label, doer *user_model.User) (err e
 // newMilestoneLabels add labels to an milestone. It will check if the labels are valid for the milestone
 func newMilestoneLabels(ctx context.Context, m *Milestone, labels []*Label, doer *user_model.User) (err error) {
 	for _, label := range labels {
+		hasLabel, err := hasMilestoneLabel(ctx, m.ID, label.ID)
+		if err != nil {
+			return err
+		}
 		// Don't add already present labels and invalid labels
-		if hasMilestoneLabel(ctx, m.ID, label.ID) ||
+		if hasLabel ||
 			(label.RepoID != m.RepoID && label.OrgID != m.Repo.OwnerID) {
 			continue
 		}
@@ -166,13 +177,18 @@ func (m *Milestone) loadLabels(ctx context.Context) (err error) {
 	return nil
 }
 
-func (m *Milestone) hasLabel(ctx context.Context, labelID int64) bool {
-	return hasMilestoneLabel(ctx, m.ID, labelID)
+func (m *Milestone) hasLabel(ctx context.Context, labelID int64) (bool, error) {
+	hasLabel, err := hasMilestoneLabel(ctx, m.ID, labelID)
+	if err != nil {
+		return false, err
+	}
+	return hasLabel, nil
 }
 
 // HasLabel returns true if milestone has been labeled by given ID.
-func (m *Milestone) HasLabel(labelID int64) bool {
-	return m.hasLabel(db.DefaultContext, labelID)
+func (m *Milestone) HasLabel(labelID int64) (bool, error) {
+	hasLabel, err := m.hasLabel(db.DefaultContext, labelID)
+	return hasLabel, err
 }
 
 func (m *Milestone) addLabel(ctx context.Context, label *Label, doer *user_model.User) error {
