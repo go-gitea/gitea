@@ -6,20 +6,28 @@
 package migrations
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"os"
-	"reflect"
-	"regexp"
-	"strings"
 
+	"code.gitea.io/gitea/models/migrations/v1_10"
+	"code.gitea.io/gitea/models/migrations/v1_11"
+	"code.gitea.io/gitea/models/migrations/v1_12"
+	"code.gitea.io/gitea/models/migrations/v1_13"
+	"code.gitea.io/gitea/models/migrations/v1_14"
+	"code.gitea.io/gitea/models/migrations/v1_15"
+	"code.gitea.io/gitea/models/migrations/v1_16"
+	"code.gitea.io/gitea/models/migrations/v1_17"
+	"code.gitea.io/gitea/models/migrations/v1_18"
+	"code.gitea.io/gitea/models/migrations/v1_19"
+	"code.gitea.io/gitea/models/migrations/v1_6"
+	"code.gitea.io/gitea/models/migrations/v1_7"
+	"code.gitea.io/gitea/models/migrations/v1_8"
+	"code.gitea.io/gitea/models/migrations/v1_9"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
 	"xorm.io/xorm/names"
-	"xorm.io/xorm/schemas"
 )
 
 const minDBVersion = 70 // Gitea 1.5.3
@@ -66,365 +74,365 @@ var migrations = []Migration{
 	// Gitea 1.5.0 ends at v69
 
 	// v70 -> v71
-	NewMigration("add issue_dependencies", addIssueDependencies),
+	NewMigration("add issue_dependencies", v1_6.AddIssueDependencies),
 	// v71 -> v72
-	NewMigration("protect each scratch token", addScratchHash),
+	NewMigration("protect each scratch token", v1_6.AddScratchHash),
 	// v72 -> v73
-	NewMigration("add review", addReview),
+	NewMigration("add review", v1_6.AddReview),
 
 	// Gitea 1.6.0 ends at v73
 
 	// v73 -> v74
-	NewMigration("add must_change_password column for users table", addMustChangePassword),
+	NewMigration("add must_change_password column for users table", v1_7.AddMustChangePassword),
 	// v74 -> v75
-	NewMigration("add approval whitelists to protected branches", addApprovalWhitelistsToProtectedBranches),
+	NewMigration("add approval whitelists to protected branches", v1_7.AddApprovalWhitelistsToProtectedBranches),
 	// v75 -> v76
-	NewMigration("clear nonused data which not deleted when user was deleted", clearNonusedData),
+	NewMigration("clear nonused data which not deleted when user was deleted", v1_7.ClearNonusedData),
 
 	// Gitea 1.7.0 ends at v76
 
 	// v76 -> v77
-	NewMigration("add pull request rebase with merge commit", addPullRequestRebaseWithMerge),
+	NewMigration("add pull request rebase with merge commit", v1_8.AddPullRequestRebaseWithMerge),
 	// v77 -> v78
-	NewMigration("add theme to users", addUserDefaultTheme),
+	NewMigration("add theme to users", v1_8.AddUserDefaultTheme),
 	// v78 -> v79
-	NewMigration("rename repo is_bare to repo is_empty", renameRepoIsBareToIsEmpty),
+	NewMigration("rename repo is_bare to repo is_empty", v1_8.RenameRepoIsBareToIsEmpty),
 	// v79 -> v80
-	NewMigration("add can close issues via commit in any branch", addCanCloseIssuesViaCommitInAnyBranch),
+	NewMigration("add can close issues via commit in any branch", v1_8.AddCanCloseIssuesViaCommitInAnyBranch),
 	// v80 -> v81
-	NewMigration("add is locked to issues", addIsLockedToIssues),
+	NewMigration("add is locked to issues", v1_8.AddIsLockedToIssues),
 	// v81 -> v82
-	NewMigration("update U2F counter type", changeU2FCounterType),
+	NewMigration("update U2F counter type", v1_8.ChangeU2FCounterType),
 
 	// Gitea 1.8.0 ends at v82
 
 	// v82 -> v83
-	NewMigration("hot fix for wrong release sha1 on release table", fixReleaseSha1OnReleaseTable),
+	NewMigration("hot fix for wrong release sha1 on release table", v1_9.FixReleaseSha1OnReleaseTable),
 	// v83 -> v84
-	NewMigration("add uploader id for table attachment", addUploaderIDForAttachment),
+	NewMigration("add uploader id for table attachment", v1_9.AddUploaderIDForAttachment),
 	// v84 -> v85
-	NewMigration("add table to store original imported gpg keys", addGPGKeyImport),
+	NewMigration("add table to store original imported gpg keys", v1_9.AddGPGKeyImport),
 	// v85 -> v86
-	NewMigration("hash application token", hashAppToken),
+	NewMigration("hash application token", v1_9.HashAppToken),
 	// v86 -> v87
-	NewMigration("add http method to webhook", addHTTPMethodToWebhook),
+	NewMigration("add http method to webhook", v1_9.AddHTTPMethodToWebhook),
 	// v87 -> v88
-	NewMigration("add avatar field to repository", addAvatarFieldToRepository),
+	NewMigration("add avatar field to repository", v1_9.AddAvatarFieldToRepository),
 
 	// Gitea 1.9.0 ends at v88
 
 	// v88 -> v89
-	NewMigration("add commit status context field to commit_status", addCommitStatusContext),
+	NewMigration("add commit status context field to commit_status", v1_10.AddCommitStatusContext),
 	// v89 -> v90
-	NewMigration("add original author/url migration info to issues, comments, and repo ", addOriginalMigrationInfo),
+	NewMigration("add original author/url migration info to issues, comments, and repo ", v1_10.AddOriginalMigrationInfo),
 	// v90 -> v91
-	NewMigration("change length of some repository columns", changeSomeColumnsLengthOfRepo),
+	NewMigration("change length of some repository columns", v1_10.ChangeSomeColumnsLengthOfRepo),
 	// v91 -> v92
-	NewMigration("add index on owner_id of repository and type, review_id of comment", addIndexOnRepositoryAndComment),
+	NewMigration("add index on owner_id of repository and type, review_id of comment", v1_10.AddIndexOnRepositoryAndComment),
 	// v92 -> v93
-	NewMigration("remove orphaned repository index statuses", removeLingeringIndexStatus),
+	NewMigration("remove orphaned repository index statuses", v1_10.RemoveLingeringIndexStatus),
 	// v93 -> v94
-	NewMigration("add email notification enabled preference to user", addEmailNotificationEnabledToUser),
+	NewMigration("add email notification enabled preference to user", v1_10.AddEmailNotificationEnabledToUser),
 	// v94 -> v95
-	NewMigration("add enable_status_check, status_check_contexts to protected_branch", addStatusCheckColumnsForProtectedBranches),
+	NewMigration("add enable_status_check, status_check_contexts to protected_branch", v1_10.AddStatusCheckColumnsForProtectedBranches),
 	// v95 -> v96
-	NewMigration("add table columns for cross referencing issues", addCrossReferenceColumns),
+	NewMigration("add table columns for cross referencing issues", v1_10.AddCrossReferenceColumns),
 	// v96 -> v97
-	NewMigration("delete orphaned attachments", deleteOrphanedAttachments),
+	NewMigration("delete orphaned attachments", v1_10.DeleteOrphanedAttachments),
 	// v97 -> v98
-	NewMigration("add repo_admin_change_team_access to user", addRepoAdminChangeTeamAccessColumnForUser),
+	NewMigration("add repo_admin_change_team_access to user", v1_10.AddRepoAdminChangeTeamAccessColumnForUser),
 	// v98 -> v99
-	NewMigration("add original author name and id on migrated release", addOriginalAuthorOnMigratedReleases),
+	NewMigration("add original author name and id on migrated release", v1_10.AddOriginalAuthorOnMigratedReleases),
 	// v99 -> v100
-	NewMigration("add task table and status column for repository table", addTaskTable),
+	NewMigration("add task table and status column for repository table", v1_10.AddTaskTable),
 	// v100 -> v101
-	NewMigration("update migration repositories' service type", updateMigrationServiceTypes),
+	NewMigration("update migration repositories' service type", v1_10.UpdateMigrationServiceTypes),
 	// v101 -> v102
-	NewMigration("change length of some external login users columns", changeSomeColumnsLengthOfExternalLoginUser),
+	NewMigration("change length of some external login users columns", v1_10.ChangeSomeColumnsLengthOfExternalLoginUser),
 
 	// Gitea 1.10.0 ends at v102
 
 	// v102 -> v103
-	NewMigration("update migration repositories' service type", dropColumnHeadUserNameOnPullRequest),
+	NewMigration("update migration repositories' service type", v1_11.DropColumnHeadUserNameOnPullRequest),
 	// v103 -> v104
-	NewMigration("Add WhitelistDeployKeys to protected branch", addWhitelistDeployKeysToBranches),
+	NewMigration("Add WhitelistDeployKeys to protected branch", v1_11.AddWhitelistDeployKeysToBranches),
 	// v104 -> v105
-	NewMigration("remove unnecessary columns from label", removeLabelUneededCols),
+	NewMigration("remove unnecessary columns from label", v1_11.RemoveLabelUneededCols),
 	// v105 -> v106
-	NewMigration("add includes_all_repositories to teams", addTeamIncludesAllRepositories),
+	NewMigration("add includes_all_repositories to teams", v1_11.AddTeamIncludesAllRepositories),
 	// v106 -> v107
-	NewMigration("add column `mode` to table watch", addModeColumnToWatch),
+	NewMigration("add column `mode` to table watch", v1_11.AddModeColumnToWatch),
 	// v107 -> v108
-	NewMigration("Add template options to repository", addTemplateToRepo),
+	NewMigration("Add template options to repository", v1_11.AddTemplateToRepo),
 	// v108 -> v109
-	NewMigration("Add comment_id on table notification", addCommentIDOnNotification),
+	NewMigration("Add comment_id on table notification", v1_11.AddCommentIDOnNotification),
 	// v109 -> v110
-	NewMigration("add can_create_org_repo to team", addCanCreateOrgRepoColumnForTeam),
+	NewMigration("add can_create_org_repo to team", v1_11.AddCanCreateOrgRepoColumnForTeam),
 	// v110 -> v111
-	NewMigration("change review content type to text", changeReviewContentToText),
+	NewMigration("change review content type to text", v1_11.ChangeReviewContentToText),
 	// v111 -> v112
-	NewMigration("update branch protection for can push and whitelist enable", addBranchProtectionCanPushAndEnableWhitelist),
+	NewMigration("update branch protection for can push and whitelist enable", v1_11.AddBranchProtectionCanPushAndEnableWhitelist),
 	// v112 -> v113
-	NewMigration("remove release attachments which repository deleted", removeAttachmentMissedRepo),
+	NewMigration("remove release attachments which repository deleted", v1_11.RemoveAttachmentMissedRepo),
 	// v113 -> v114
-	NewMigration("new feature: change target branch of pull requests", featureChangeTargetBranch),
+	NewMigration("new feature: change target branch of pull requests", v1_11.FeatureChangeTargetBranch),
 	// v114 -> v115
-	NewMigration("Remove authentication credentials from stored URL", sanitizeOriginalURL),
+	NewMigration("Remove authentication credentials from stored URL", v1_11.SanitizeOriginalURL),
 	// v115 -> v116
-	NewMigration("add user_id prefix to existing user avatar name", renameExistingUserAvatarName),
+	NewMigration("add user_id prefix to existing user avatar name", v1_11.RenameExistingUserAvatarName),
 	// v116 -> v117
-	NewMigration("Extend TrackedTimes", extendTrackedTimes),
+	NewMigration("Extend TrackedTimes", v1_11.ExtendTrackedTimes),
 
 	// Gitea 1.11.0 ends at v117
 
 	// v117 -> v118
-	NewMigration("Add block on rejected reviews branch protection", addBlockOnRejectedReviews),
+	NewMigration("Add block on rejected reviews branch protection", v1_12.AddBlockOnRejectedReviews),
 	// v118 -> v119
-	NewMigration("Add commit id and stale to reviews", addReviewCommitAndStale),
+	NewMigration("Add commit id and stale to reviews", v1_12.AddReviewCommitAndStale),
 	// v119 -> v120
-	NewMigration("Fix migrated repositories' git service type", fixMigratedRepositoryServiceType),
+	NewMigration("Fix migrated repositories' git service type", v1_12.FixMigratedRepositoryServiceType),
 	// v120 -> v121
-	NewMigration("Add owner_name on table repository", addOwnerNameOnRepository),
+	NewMigration("Add owner_name on table repository", v1_12.AddOwnerNameOnRepository),
 	// v121 -> v122
-	NewMigration("add is_restricted column for users table", addIsRestricted),
+	NewMigration("add is_restricted column for users table", v1_12.AddIsRestricted),
 	// v122 -> v123
-	NewMigration("Add Require Signed Commits to ProtectedBranch", addRequireSignedCommits),
+	NewMigration("Add Require Signed Commits to ProtectedBranch", v1_12.AddRequireSignedCommits),
 	// v123 -> v124
-	NewMigration("Add original information for reactions", addReactionOriginals),
+	NewMigration("Add original information for reactions", v1_12.AddReactionOriginals),
 	// v124 -> v125
-	NewMigration("Add columns to user and repository", addUserRepoMissingColumns),
+	NewMigration("Add columns to user and repository", v1_12.AddUserRepoMissingColumns),
 	// v125 -> v126
-	NewMigration("Add some columns on review for migration", addReviewMigrateInfo),
+	NewMigration("Add some columns on review for migration", v1_12.AddReviewMigrateInfo),
 	// v126 -> v127
-	NewMigration("Fix topic repository count", fixTopicRepositoryCount),
+	NewMigration("Fix topic repository count", v1_12.FixTopicRepositoryCount),
 	// v127 -> v128
-	NewMigration("add repository code language statistics", addLanguageStats),
+	NewMigration("add repository code language statistics", v1_12.AddLanguageStats),
 	// v128 -> v129
-	NewMigration("fix merge base for pull requests", fixMergeBase),
+	NewMigration("fix merge base for pull requests", v1_12.FixMergeBase),
 	// v129 -> v130
-	NewMigration("remove dependencies from deleted repositories", purgeUnusedDependencies),
+	NewMigration("remove dependencies from deleted repositories", v1_12.PurgeUnusedDependencies),
 	// v130 -> v131
-	NewMigration("Expand webhooks for more granularity", expandWebhooks),
+	NewMigration("Expand webhooks for more granularity", v1_12.ExpandWebhooks),
 	// v131 -> v132
-	NewMigration("Add IsSystemWebhook column to webhooks table", addSystemWebhookColumn),
+	NewMigration("Add IsSystemWebhook column to webhooks table", v1_12.AddSystemWebhookColumn),
 	// v132 -> v133
-	NewMigration("Add Branch Protection Protected Files Column", addBranchProtectionProtectedFilesColumn),
+	NewMigration("Add Branch Protection Protected Files Column", v1_12.AddBranchProtectionProtectedFilesColumn),
 	// v133 -> v134
-	NewMigration("Add EmailHash Table", addEmailHashTable),
+	NewMigration("Add EmailHash Table", v1_12.AddEmailHashTable),
 	// v134 -> v135
-	NewMigration("Refix merge base for merged pull requests", refixMergeBase),
+	NewMigration("Refix merge base for merged pull requests", v1_12.RefixMergeBase),
 	// v135 -> v136
-	NewMigration("Add OrgID column to Labels table", addOrgIDLabelColumn),
+	NewMigration("Add OrgID column to Labels table", v1_12.AddOrgIDLabelColumn),
 	// v136 -> v137
-	NewMigration("Add CommitsAhead and CommitsBehind Column to PullRequest Table", addCommitDivergenceToPulls),
+	NewMigration("Add CommitsAhead and CommitsBehind Column to PullRequest Table", v1_12.AddCommitDivergenceToPulls),
 	// v137 -> v138
-	NewMigration("Add Branch Protection Block Outdated Branch", addBlockOnOutdatedBranch),
+	NewMigration("Add Branch Protection Block Outdated Branch", v1_12.AddBlockOnOutdatedBranch),
 	// v138 -> v139
-	NewMigration("Add ResolveDoerID to Comment table", addResolveDoerIDCommentColumn),
+	NewMigration("Add ResolveDoerID to Comment table", v1_12.AddResolveDoerIDCommentColumn),
 	// v139 -> v140
-	NewMigration("prepend refs/heads/ to issue refs", prependRefsHeadsToIssueRefs),
+	NewMigration("prepend refs/heads/ to issue refs", v1_12.PrependRefsHeadsToIssueRefs),
 
 	// Gitea 1.12.0 ends at v140
 
 	// v140 -> v141
-	NewMigration("Save detected language file size to database instead of percent", fixLanguageStatsToSaveSize),
+	NewMigration("Save detected language file size to database instead of percent", v1_13.FixLanguageStatsToSaveSize),
 	// v141 -> v142
-	NewMigration("Add KeepActivityPrivate to User table", addKeepActivityPrivateUserColumn),
+	NewMigration("Add KeepActivityPrivate to User table", v1_13.AddKeepActivityPrivateUserColumn),
 	// v142 -> v143
-	NewMigration("Ensure Repository.IsArchived is not null", setIsArchivedToFalse),
+	NewMigration("Ensure Repository.IsArchived is not null", v1_13.SetIsArchivedToFalse),
 	// v143 -> v144
-	NewMigration("recalculate Stars number for all user", recalculateStars),
+	NewMigration("recalculate Stars number for all user", v1_13.RecalculateStars),
 	// v144 -> v145
-	NewMigration("update Matrix Webhook http method to 'PUT'", updateMatrixWebhookHTTPMethod),
+	NewMigration("update Matrix Webhook http method to 'PUT'", v1_13.UpdateMatrixWebhookHTTPMethod),
 	// v145 -> v146
-	NewMigration("Increase Language field to 50 in LanguageStats", increaseLanguageField),
+	NewMigration("Increase Language field to 50 in LanguageStats", v1_13.IncreaseLanguageField),
 	// v146 -> v147
-	NewMigration("Add projects info to repository table", addProjectsInfo),
+	NewMigration("Add projects info to repository table", v1_13.AddProjectsInfo),
 	// v147 -> v148
-	NewMigration("create review for 0 review id code comments", createReviewsForCodeComments),
+	NewMigration("create review for 0 review id code comments", v1_13.CreateReviewsForCodeComments),
 	// v148 -> v149
-	NewMigration("remove issue dependency comments who refer to non existing issues", purgeInvalidDependenciesComments),
+	NewMigration("remove issue dependency comments who refer to non existing issues", v1_13.PurgeInvalidDependenciesComments),
 	// v149 -> v150
-	NewMigration("Add Created and Updated to Milestone table", addCreatedAndUpdatedToMilestones),
+	NewMigration("Add Created and Updated to Milestone table", v1_13.AddCreatedAndUpdatedToMilestones),
 	// v150 -> v151
-	NewMigration("add primary key to repo_topic", addPrimaryKeyToRepoTopic),
+	NewMigration("add primary key to repo_topic", v1_13.AddPrimaryKeyToRepoTopic),
 	// v151 -> v152
-	NewMigration("set default password algorithm to Argon2", setDefaultPasswordToArgon2),
+	NewMigration("set default password algorithm to Argon2", v1_13.SetDefaultPasswordToArgon2),
 	// v152 -> v153
-	NewMigration("add TrustModel field to Repository", addTrustModelToRepository),
+	NewMigration("add TrustModel field to Repository", v1_13.AddTrustModelToRepository),
 	// v153 > v154
-	NewMigration("add Team review request support", addTeamReviewRequestSupport),
+	NewMigration("add Team review request support", v1_13.AddTeamReviewRequestSupport),
 	// v154 > v155
-	NewMigration("add timestamps to Star, Label, Follow, Watch and Collaboration", addTimeStamps),
+	NewMigration("add timestamps to Star, Label, Follow, Watch and Collaboration", v1_13.AddTimeStamps),
 
 	// Gitea 1.13.0 ends at v155
 
 	// v155 -> v156
-	NewMigration("add changed_protected_files column for pull_request table", addChangedProtectedFilesPullRequestColumn),
+	NewMigration("add changed_protected_files column for pull_request table", v1_14.AddChangedProtectedFilesPullRequestColumn),
 	// v156 -> v157
-	NewMigration("fix publisher ID for tag releases", fixPublisherIDforTagReleases),
+	NewMigration("fix publisher ID for tag releases", v1_14.FixPublisherIDforTagReleases),
 	// v157 -> v158
-	NewMigration("ensure repo topics are up-to-date", fixRepoTopics),
+	NewMigration("ensure repo topics are up-to-date", v1_14.FixRepoTopics),
 	// v158 -> v159
-	NewMigration("code comment replies should have the commitID of the review they are replying to", updateCodeCommentReplies),
+	NewMigration("code comment replies should have the commitID of the review they are replying to", v1_14.UpdateCodeCommentReplies),
 	// v159 -> v160
-	NewMigration("update reactions constraint", updateReactionConstraint),
+	NewMigration("update reactions constraint", v1_14.UpdateReactionConstraint),
 	// v160 -> v161
-	NewMigration("Add block on official review requests branch protection", addBlockOnOfficialReviewRequests),
+	NewMigration("Add block on official review requests branch protection", v1_14.AddBlockOnOfficialReviewRequests),
 	// v161 -> v162
-	NewMigration("Convert task type from int to string", convertTaskTypeToString),
+	NewMigration("Convert task type from int to string", v1_14.ConvertTaskTypeToString),
 	// v162 -> v163
-	NewMigration("Convert webhook task type from int to string", convertWebhookTaskTypeToString),
+	NewMigration("Convert webhook task type from int to string", v1_14.ConvertWebhookTaskTypeToString),
 	// v163 -> v164
-	NewMigration("Convert topic name from 25 to 50", convertTopicNameFrom25To50),
+	NewMigration("Convert topic name from 25 to 50", v1_14.ConvertTopicNameFrom25To50),
 	// v164 -> v165
-	NewMigration("Add scope and nonce columns to oauth2_grant table", addScopeAndNonceColumnsToOAuth2Grant),
+	NewMigration("Add scope and nonce columns to oauth2_grant table", v1_14.AddScopeAndNonceColumnsToOAuth2Grant),
 	// v165 -> v166
-	NewMigration("Convert hook task type from char(16) to varchar(16) and trim the column", convertHookTaskTypeToVarcharAndTrim),
+	NewMigration("Convert hook task type from char(16) to varchar(16) and trim the column", v1_14.ConvertHookTaskTypeToVarcharAndTrim),
 	// v166 -> v167
-	NewMigration("Where Password is Valid with Empty String delete it", recalculateUserEmptyPWD),
+	NewMigration("Where Password is Valid with Empty String delete it", v1_14.RecalculateUserEmptyPWD),
 	// v167 -> v168
-	NewMigration("Add user redirect", addUserRedirect),
+	NewMigration("Add user redirect", v1_14.AddUserRedirect),
 	// v168 -> v169
-	NewMigration("Recreate user table to fix default values", recreateUserTableToFixDefaultValues),
+	NewMigration("Recreate user table to fix default values", v1_14.RecreateUserTableToFixDefaultValues),
 	// v169 -> v170
-	NewMigration("Update DeleteBranch comments to set the old_ref to the commit_sha", commentTypeDeleteBranchUseOldRef),
+	NewMigration("Update DeleteBranch comments to set the old_ref to the commit_sha", v1_14.CommentTypeDeleteBranchUseOldRef),
 	// v170 -> v171
-	NewMigration("Add Dismissed to Review table", addDismissedReviewColumn),
+	NewMigration("Add Dismissed to Review table", v1_14.AddDismissedReviewColumn),
 	// v171 -> v172
-	NewMigration("Add Sorting to ProjectBoard table", addSortingColToProjectBoard),
+	NewMigration("Add Sorting to ProjectBoard table", v1_14.AddSortingColToProjectBoard),
 	// v172 -> v173
-	NewMigration("Add sessions table for go-chi/session", addSessionTable),
+	NewMigration("Add sessions table for go-chi/session", v1_14.AddSessionTable),
 	// v173 -> v174
-	NewMigration("Add time_id column to Comment", addTimeIDCommentColumn),
+	NewMigration("Add time_id column to Comment", v1_14.AddTimeIDCommentColumn),
 	// v174 -> v175
-	NewMigration("Create repo transfer table", addRepoTransfer),
+	NewMigration("Create repo transfer table", v1_14.AddRepoTransfer),
 	// v175 -> v176
-	NewMigration("Fix Postgres ID Sequences broken by recreate-table", fixPostgresIDSequences),
+	NewMigration("Fix Postgres ID Sequences broken by recreate-table", v1_14.FixPostgresIDSequences),
 	// v176 -> v177
-	NewMigration("Remove invalid labels from comments", removeInvalidLabels),
+	NewMigration("Remove invalid labels from comments", v1_14.RemoveInvalidLabels),
 	// v177 -> v178
-	NewMigration("Delete orphaned IssueLabels", deleteOrphanedIssueLabels),
+	NewMigration("Delete orphaned IssueLabels", v1_14.DeleteOrphanedIssueLabels),
 
 	// Gitea 1.14.0 ends at v178
 
 	// v178 -> v179
-	NewMigration("Add LFS columns to Mirror", addLFSMirrorColumns),
+	NewMigration("Add LFS columns to Mirror", v1_15.AddLFSMirrorColumns),
 	// v179 -> v180
-	NewMigration("Convert avatar url to text", convertAvatarURLToText),
+	NewMigration("Convert avatar url to text", v1_15.ConvertAvatarURLToText),
 	// v180 -> v181
-	NewMigration("Delete credentials from past migrations", deleteMigrationCredentials),
+	NewMigration("Delete credentials from past migrations", v1_15.DeleteMigrationCredentials),
 	// v181 -> v182
-	NewMigration("Always save primary email on email address table", addPrimaryEmail2EmailAddress),
+	NewMigration("Always save primary email on email address table", v1_15.AddPrimaryEmail2EmailAddress),
 	// v182 -> v183
-	NewMigration("Add issue resource index table", addIssueResourceIndexTable),
+	NewMigration("Add issue resource index table", v1_15.AddIssueResourceIndexTable),
 	// v183 -> v184
-	NewMigration("Create PushMirror table", createPushMirrorTable),
+	NewMigration("Create PushMirror table", v1_15.CreatePushMirrorTable),
 	// v184 -> v185
-	NewMigration("Rename Task errors to message", renameTaskErrorsToMessage),
+	NewMigration("Rename Task errors to message", v1_15.RenameTaskErrorsToMessage),
 	// v185 -> v186
-	NewMigration("Add new table repo_archiver", addRepoArchiver),
+	NewMigration("Add new table repo_archiver", v1_15.AddRepoArchiver),
 	// v186 -> v187
-	NewMigration("Create protected tag table", createProtectedTagTable),
+	NewMigration("Create protected tag table", v1_15.CreateProtectedTagTable),
 	// v187 -> v188
-	NewMigration("Drop unneeded webhook related columns", dropWebhookColumns),
+	NewMigration("Drop unneeded webhook related columns", v1_15.DropWebhookColumns),
 	// v188 -> v189
-	NewMigration("Add key is verified to gpg key", addKeyIsVerified),
+	NewMigration("Add key is verified to gpg key", v1_15.AddKeyIsVerified),
 
 	// Gitea 1.15.0 ends at v189
 
 	// v189 -> v190
-	NewMigration("Unwrap ldap.Sources", unwrapLDAPSourceCfg),
+	NewMigration("Unwrap ldap.Sources", v1_16.UnwrapLDAPSourceCfg),
 	// v190 -> v191
-	NewMigration("Add agit flow pull request support", addAgitFlowPullRequest),
+	NewMigration("Add agit flow pull request support", v1_16.AddAgitFlowPullRequest),
 	// v191 -> v192
-	NewMigration("Alter issue/comment table TEXT fields to LONGTEXT", alterIssueAndCommentTextFieldsToLongText),
+	NewMigration("Alter issue/comment table TEXT fields to LONGTEXT", v1_16.AlterIssueAndCommentTextFieldsToLongText),
 	// v192 -> v193
-	NewMigration("RecreateIssueResourceIndexTable to have a primary key instead of an unique index", recreateIssueResourceIndexTable),
+	NewMigration("RecreateIssueResourceIndexTable to have a primary key instead of an unique index", v1_16.RecreateIssueResourceIndexTable),
 	// v193 -> v194
-	NewMigration("Add repo id column for attachment table", addRepoIDForAttachment),
+	NewMigration("Add repo id column for attachment table", v1_16.AddRepoIDForAttachment),
 	// v194 -> v195
-	NewMigration("Add Branch Protection Unprotected Files Column", addBranchProtectionUnprotectedFilesColumn),
+	NewMigration("Add Branch Protection Unprotected Files Column", v1_16.AddBranchProtectionUnprotectedFilesColumn),
 	// v195 -> v196
-	NewMigration("Add table commit_status_index", addTableCommitStatusIndex),
+	NewMigration("Add table commit_status_index", v1_16.AddTableCommitStatusIndex),
 	// v196 -> v197
-	NewMigration("Add Color to ProjectBoard table", addColorColToProjectBoard),
+	NewMigration("Add Color to ProjectBoard table", v1_16.AddColorColToProjectBoard),
 	// v197 -> v198
-	NewMigration("Add renamed_branch table", addRenamedBranchTable),
+	NewMigration("Add renamed_branch table", v1_16.AddRenamedBranchTable),
 	// v198 -> v199
-	NewMigration("Add issue content history table", addTableIssueContentHistory),
+	NewMigration("Add issue content history table", v1_16.AddTableIssueContentHistory),
 	// v199 -> v200
 	NewMigration("No-op (remote version is using AppState now)", noopMigration),
 	// v200 -> v201
-	NewMigration("Add table app_state", addTableAppState),
+	NewMigration("Add table app_state", v1_16.AddTableAppState),
 	// v201 -> v202
-	NewMigration("Drop table remote_version (if exists)", dropTableRemoteVersion),
+	NewMigration("Drop table remote_version (if exists)", v1_16.DropTableRemoteVersion),
 	// v202 -> v203
-	NewMigration("Create key/value table for user settings", createUserSettingsTable),
+	NewMigration("Create key/value table for user settings", v1_16.CreateUserSettingsTable),
 	// v203 -> v204
-	NewMigration("Add Sorting to ProjectIssue table", addProjectIssueSorting),
+	NewMigration("Add Sorting to ProjectIssue table", v1_16.AddProjectIssueSorting),
 	// v204 -> v205
-	NewMigration("Add key is verified to ssh key", addSSHKeyIsVerified),
+	NewMigration("Add key is verified to ssh key", v1_16.AddSSHKeyIsVerified),
 	// v205 -> v206
-	NewMigration("Migrate to higher varchar on user struct", migrateUserPasswordSalt),
+	NewMigration("Migrate to higher varchar on user struct", v1_16.MigrateUserPasswordSalt),
 	// v206 -> v207
-	NewMigration("Add authorize column to team_unit table", addAuthorizeColForTeamUnit),
+	NewMigration("Add authorize column to team_unit table", v1_16.AddAuthorizeColForTeamUnit),
 	// v207 -> v208
-	NewMigration("Add webauthn table and migrate u2f data to webauthn - NO-OPED", addWebAuthnCred),
+	NewMigration("Add webauthn table and migrate u2f data to webauthn - NO-OPED", v1_16.AddWebAuthnCred),
 	// v208 -> v209
-	NewMigration("Use base32.HexEncoding instead of base64 encoding for cred ID as it is case insensitive - NO-OPED", useBase32HexForCredIDInWebAuthnCredential),
+	NewMigration("Use base32.HexEncoding instead of base64 encoding for cred ID as it is case insensitive - NO-OPED", v1_16.UseBase32HexForCredIDInWebAuthnCredential),
 	// v209 -> v210
-	NewMigration("Increase WebAuthentication CredentialID size to 410 - NO-OPED", increaseCredentialIDTo410),
+	NewMigration("Increase WebAuthentication CredentialID size to 410 - NO-OPED", v1_16.IncreaseCredentialIDTo410),
 	// v210 -> v211
-	NewMigration("v208 was completely broken - remigrate", remigrateU2FCredentials),
+	NewMigration("v208 was completely broken - remigrate", v1_16.RemigrateU2FCredentials),
 
 	// Gitea 1.16.2 ends at v211
 
 	// v211 -> v212
-	NewMigration("Create ForeignReference table", createForeignReferenceTable),
+	NewMigration("Create ForeignReference table", v1_17.CreateForeignReferenceTable),
 	// v212 -> v213
-	NewMigration("Add package tables", addPackageTables),
+	NewMigration("Add package tables", v1_17.AddPackageTables),
 	// v213 -> v214
-	NewMigration("Add allow edits from maintainers to PullRequest table", addAllowMaintainerEdit),
+	NewMigration("Add allow edits from maintainers to PullRequest table", v1_17.AddAllowMaintainerEdit),
 	// v214 -> v215
-	NewMigration("Add auto merge table", addAutoMergeTable),
+	NewMigration("Add auto merge table", v1_17.AddAutoMergeTable),
 	// v215 -> v216
-	NewMigration("allow to view files in PRs", addReviewViewedFiles),
+	NewMigration("allow to view files in PRs", v1_17.AddReviewViewedFiles),
 	// v216 -> v217
 	NewMigration("No-op (Improve Action table indices v1)", noopMigration),
 	// v217 -> v218
-	NewMigration("Alter hook_task table TEXT fields to LONGTEXT", alterHookTaskTextFieldsToLongText),
+	NewMigration("Alter hook_task table TEXT fields to LONGTEXT", v1_17.AlterHookTaskTextFieldsToLongText),
 	// v218 -> v219
-	NewMigration("Improve Action table indices v2", improveActionTableIndices),
+	NewMigration("Improve Action table indices v2", v1_17.ImproveActionTableIndices),
 	// v219 -> v220
-	NewMigration("Add sync_on_commit column to push_mirror table", addSyncOnCommitColForPushMirror),
+	NewMigration("Add sync_on_commit column to push_mirror table", v1_17.AddSyncOnCommitColForPushMirror),
 	// v220 -> v221
-	NewMigration("Add container repository property", addContainerRepositoryProperty),
+	NewMigration("Add container repository property", v1_17.AddContainerRepositoryProperty),
 	// v221 -> v222
-	NewMigration("Store WebAuthentication CredentialID as bytes and increase size to at least 1024", storeWebauthnCredentialIDAsBytes),
+	NewMigration("Store WebAuthentication CredentialID as bytes and increase size to at least 1024", v1_17.StoreWebauthnCredentialIDAsBytes),
 	// v222 -> v223
-	NewMigration("Drop old CredentialID column", dropOldCredentialIDColumn),
+	NewMigration("Drop old CredentialID column", v1_17.DropOldCredentialIDColumn),
 	// v223 -> v224
-	NewMigration("Rename CredentialIDBytes column to CredentialID", renameCredentialIDBytes),
+	NewMigration("Rename CredentialIDBytes column to CredentialID", v1_17.RenameCredentialIDBytes),
 
 	// Gitea 1.17.0 ends at v224
 
 	// v224 -> v225
-	NewMigration("Add badges to users", createUserBadgesTable),
+	NewMigration("Add badges to users", v1_18.CreateUserBadgesTable),
 	// v225 -> v226
-	NewMigration("Alter gpg_key/public_key content TEXT fields to MEDIUMTEXT", alterPublicGPGKeyContentFieldsToMediumText),
+	NewMigration("Alter gpg_key/public_key content TEXT fields to MEDIUMTEXT", v1_18.AlterPublicGPGKeyContentFieldsToMediumText),
 	// v226 -> v227
-	NewMigration("Conan and generic packages do not need to be semantically versioned", fixPackageSemverField),
+	NewMigration("Conan and generic packages do not need to be semantically versioned", v1_18.FixPackageSemverField),
 	// v227 -> v228
-	NewMigration("Create key/value table for system settings", createSystemSettingsTable),
+	NewMigration("Create key/value table for system settings", v1_18.CreateSystemSettingsTable),
 	// v228 -> v229
-	NewMigration("Add TeamInvite table", addTeamInviteTable),
+	NewMigration("Add TeamInvite table", v1_18.AddTeamInviteTable),
 	// v229 -> v230
-	NewMigration("Update counts of all open milestones", updateOpenMilestoneCounts),
+	NewMigration("Update counts of all open milestones", v1_18.UpdateOpenMilestoneCounts),
 	// v230 -> v231
-	NewMigration("Add ConfidentialClient column (default true) to OAuth2Application table", addConfidentialClientColumnToOAuth2ApplicationTable),
+	NewMigration("Add ConfidentialClient column (default true) to OAuth2Application table", v1_18.AddConfidentialClientColumnToOAuth2ApplicationTable),
 	// v231 -> v232
-	NewMigration("Add index for hook_task", addIndexForHookTask),
+	NewMigration("Add index for hook_task", v1_19.AddIndexForHookTask),
 }
 
 // GetCurrentDBVersion returns the current db version
@@ -527,502 +535,6 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 		if _, err = x.ID(1).Update(currentVersion); err != nil {
 			return err
 		}
-	}
-	return nil
-}
-
-// RecreateTables will recreate the tables for the provided beans using the newly provided bean definition and move all data to that new table
-// WARNING: YOU MUST PROVIDE THE FULL BEAN DEFINITION
-func RecreateTables(beans ...interface{}) func(*xorm.Engine) error {
-	return func(x *xorm.Engine) error {
-		sess := x.NewSession()
-		defer sess.Close()
-		if err := sess.Begin(); err != nil {
-			return err
-		}
-		sess = sess.StoreEngine("InnoDB")
-		for _, bean := range beans {
-			log.Info("Recreating Table: %s for Bean: %s", x.TableName(bean), reflect.Indirect(reflect.ValueOf(bean)).Type().Name())
-			if err := recreateTable(sess, bean); err != nil {
-				return err
-			}
-		}
-		return sess.Commit()
-	}
-}
-
-// recreateTable will recreate the table using the newly provided bean definition and move all data to that new table
-// WARNING: YOU MUST PROVIDE THE FULL BEAN DEFINITION
-// WARNING: YOU MUST COMMIT THE SESSION AT THE END
-func recreateTable(sess *xorm.Session, bean interface{}) error {
-	// TODO: This will not work if there are foreign keys
-
-	tableName := sess.Engine().TableName(bean)
-	tempTableName := fmt.Sprintf("tmp_recreate__%s", tableName)
-
-	// We need to move the old table away and create a new one with the correct columns
-	// We will need to do this in stages to prevent data loss
-	//
-	// First create the temporary table
-	if err := sess.Table(tempTableName).CreateTable(bean); err != nil {
-		log.Error("Unable to create table %s. Error: %v", tempTableName, err)
-		return err
-	}
-
-	if err := sess.Table(tempTableName).CreateUniques(bean); err != nil {
-		log.Error("Unable to create uniques for table %s. Error: %v", tempTableName, err)
-		return err
-	}
-
-	if err := sess.Table(tempTableName).CreateIndexes(bean); err != nil {
-		log.Error("Unable to create indexes for table %s. Error: %v", tempTableName, err)
-		return err
-	}
-
-	// Work out the column names from the bean - these are the columns to select from the old table and install into the new table
-	table, err := sess.Engine().TableInfo(bean)
-	if err != nil {
-		log.Error("Unable to get table info. Error: %v", err)
-
-		return err
-	}
-	newTableColumns := table.Columns()
-	if len(newTableColumns) == 0 {
-		return fmt.Errorf("no columns in new table")
-	}
-	hasID := false
-	for _, column := range newTableColumns {
-		hasID = hasID || (column.IsPrimaryKey && column.IsAutoIncrement)
-	}
-
-	if hasID && setting.Database.UseMSSQL {
-		if _, err := sess.Exec(fmt.Sprintf("SET IDENTITY_INSERT `%s` ON", tempTableName)); err != nil {
-			log.Error("Unable to set identity insert for table %s. Error: %v", tempTableName, err)
-			return err
-		}
-	}
-
-	sqlStringBuilder := &strings.Builder{}
-	_, _ = sqlStringBuilder.WriteString("INSERT INTO `")
-	_, _ = sqlStringBuilder.WriteString(tempTableName)
-	_, _ = sqlStringBuilder.WriteString("` (`")
-	_, _ = sqlStringBuilder.WriteString(newTableColumns[0].Name)
-	_, _ = sqlStringBuilder.WriteString("`")
-	for _, column := range newTableColumns[1:] {
-		_, _ = sqlStringBuilder.WriteString(", `")
-		_, _ = sqlStringBuilder.WriteString(column.Name)
-		_, _ = sqlStringBuilder.WriteString("`")
-	}
-	_, _ = sqlStringBuilder.WriteString(")")
-	_, _ = sqlStringBuilder.WriteString(" SELECT ")
-	if newTableColumns[0].Default != "" {
-		_, _ = sqlStringBuilder.WriteString("COALESCE(`")
-		_, _ = sqlStringBuilder.WriteString(newTableColumns[0].Name)
-		_, _ = sqlStringBuilder.WriteString("`, ")
-		_, _ = sqlStringBuilder.WriteString(newTableColumns[0].Default)
-		_, _ = sqlStringBuilder.WriteString(")")
-	} else {
-		_, _ = sqlStringBuilder.WriteString("`")
-		_, _ = sqlStringBuilder.WriteString(newTableColumns[0].Name)
-		_, _ = sqlStringBuilder.WriteString("`")
-	}
-
-	for _, column := range newTableColumns[1:] {
-		if column.Default != "" {
-			_, _ = sqlStringBuilder.WriteString(", COALESCE(`")
-			_, _ = sqlStringBuilder.WriteString(column.Name)
-			_, _ = sqlStringBuilder.WriteString("`, ")
-			_, _ = sqlStringBuilder.WriteString(column.Default)
-			_, _ = sqlStringBuilder.WriteString(")")
-		} else {
-			_, _ = sqlStringBuilder.WriteString(", `")
-			_, _ = sqlStringBuilder.WriteString(column.Name)
-			_, _ = sqlStringBuilder.WriteString("`")
-		}
-	}
-	_, _ = sqlStringBuilder.WriteString(" FROM `")
-	_, _ = sqlStringBuilder.WriteString(tableName)
-	_, _ = sqlStringBuilder.WriteString("`")
-
-	if _, err := sess.Exec(sqlStringBuilder.String()); err != nil {
-		log.Error("Unable to set copy data in to temp table %s. Error: %v", tempTableName, err)
-		return err
-	}
-
-	if hasID && setting.Database.UseMSSQL {
-		if _, err := sess.Exec(fmt.Sprintf("SET IDENTITY_INSERT `%s` OFF", tempTableName)); err != nil {
-			log.Error("Unable to switch off identity insert for table %s. Error: %v", tempTableName, err)
-			return err
-		}
-	}
-
-	switch {
-	case setting.Database.UseSQLite3:
-		// SQLite will drop all the constraints on the old table
-		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s`", tableName)); err != nil {
-			log.Error("Unable to drop old table %s. Error: %v", tableName, err)
-			return err
-		}
-
-		if err := sess.Table(tempTableName).DropIndexes(bean); err != nil {
-			log.Error("Unable to drop indexes on temporary table %s. Error: %v", tempTableName, err)
-			return err
-		}
-
-		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` RENAME TO `%s`", tempTableName, tableName)); err != nil {
-			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
-			return err
-		}
-
-		if err := sess.Table(tableName).CreateIndexes(bean); err != nil {
-			log.Error("Unable to recreate indexes on table %s. Error: %v", tableName, err)
-			return err
-		}
-
-		if err := sess.Table(tableName).CreateUniques(bean); err != nil {
-			log.Error("Unable to recreate uniques on table %s. Error: %v", tableName, err)
-			return err
-		}
-
-	case setting.Database.UseMySQL:
-		// MySQL will drop all the constraints on the old table
-		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s`", tableName)); err != nil {
-			log.Error("Unable to drop old table %s. Error: %v", tableName, err)
-			return err
-		}
-
-		if err := sess.Table(tempTableName).DropIndexes(bean); err != nil {
-			log.Error("Unable to drop indexes on temporary table %s. Error: %v", tempTableName, err)
-			return err
-		}
-
-		// SQLite and MySQL will move all the constraints from the temporary table to the new table
-		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` RENAME TO `%s`", tempTableName, tableName)); err != nil {
-			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
-			return err
-		}
-
-		if err := sess.Table(tableName).CreateIndexes(bean); err != nil {
-			log.Error("Unable to recreate indexes on table %s. Error: %v", tableName, err)
-			return err
-		}
-
-		if err := sess.Table(tableName).CreateUniques(bean); err != nil {
-			log.Error("Unable to recreate uniques on table %s. Error: %v", tableName, err)
-			return err
-		}
-	case setting.Database.UsePostgreSQL:
-		var originalSequences []string
-		type sequenceData struct {
-			LastValue int  `xorm:"'last_value'"`
-			IsCalled  bool `xorm:"'is_called'"`
-		}
-		sequenceMap := map[string]sequenceData{}
-
-		schema := sess.Engine().Dialect().URI().Schema
-		sess.Engine().SetSchema("")
-		if err := sess.Table("information_schema.sequences").Cols("sequence_name").Where("sequence_name LIKE ? || '_%' AND sequence_catalog = ?", tableName, setting.Database.Name).Find(&originalSequences); err != nil {
-			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
-			return err
-		}
-		sess.Engine().SetSchema(schema)
-
-		for _, sequence := range originalSequences {
-			sequenceData := sequenceData{}
-			if _, err := sess.Table(sequence).Cols("last_value", "is_called").Get(&sequenceData); err != nil {
-				log.Error("Unable to get last_value and is_called from %s. Error: %v", sequence, err)
-				return err
-			}
-			sequenceMap[sequence] = sequenceData
-
-		}
-
-		// CASCADE causes postgres to drop all the constraints on the old table
-		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s` CASCADE", tableName)); err != nil {
-			log.Error("Unable to drop old table %s. Error: %v", tableName, err)
-			return err
-		}
-
-		// CASCADE causes postgres to move all the constraints from the temporary table to the new table
-		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` RENAME TO `%s`", tempTableName, tableName)); err != nil {
-			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
-			return err
-		}
-
-		var indices []string
-		sess.Engine().SetSchema("")
-		if err := sess.Table("pg_indexes").Cols("indexname").Where("tablename = ? ", tableName).Find(&indices); err != nil {
-			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
-			return err
-		}
-		sess.Engine().SetSchema(schema)
-
-		for _, index := range indices {
-			newIndexName := strings.Replace(index, "tmp_recreate__", "", 1)
-			if _, err := sess.Exec(fmt.Sprintf("ALTER INDEX `%s` RENAME TO `%s`", index, newIndexName)); err != nil {
-				log.Error("Unable to rename %s to %s. Error: %v", index, newIndexName, err)
-				return err
-			}
-		}
-
-		var sequences []string
-		sess.Engine().SetSchema("")
-		if err := sess.Table("information_schema.sequences").Cols("sequence_name").Where("sequence_name LIKE 'tmp_recreate__' || ? || '_%' AND sequence_catalog = ?", tableName, setting.Database.Name).Find(&sequences); err != nil {
-			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
-			return err
-		}
-		sess.Engine().SetSchema(schema)
-
-		for _, sequence := range sequences {
-			newSequenceName := strings.Replace(sequence, "tmp_recreate__", "", 1)
-			if _, err := sess.Exec(fmt.Sprintf("ALTER SEQUENCE `%s` RENAME TO `%s`", sequence, newSequenceName)); err != nil {
-				log.Error("Unable to rename %s sequence to %s. Error: %v", sequence, newSequenceName, err)
-				return err
-			}
-			val, ok := sequenceMap[newSequenceName]
-			if newSequenceName == tableName+"_id_seq" {
-				if ok && val.LastValue != 0 {
-					if _, err := sess.Exec(fmt.Sprintf("SELECT setval('%s', %d, %t)", newSequenceName, val.LastValue, val.IsCalled)); err != nil {
-						log.Error("Unable to reset %s to %d. Error: %v", newSequenceName, val, err)
-						return err
-					}
-				} else {
-					// We're going to try to guess this
-					if _, err := sess.Exec(fmt.Sprintf("SELECT setval('%s', COALESCE((SELECT MAX(id)+1 FROM `%s`), 1), false)", newSequenceName, tableName)); err != nil {
-						log.Error("Unable to reset %s. Error: %v", newSequenceName, err)
-						return err
-					}
-				}
-			} else if ok {
-				if _, err := sess.Exec(fmt.Sprintf("SELECT setval('%s', %d, %t)", newSequenceName, val.LastValue, val.IsCalled)); err != nil {
-					log.Error("Unable to reset %s to %d. Error: %v", newSequenceName, val, err)
-					return err
-				}
-			}
-
-		}
-
-	case setting.Database.UseMSSQL:
-		// MSSQL will drop all the constraints on the old table
-		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s`", tableName)); err != nil {
-			log.Error("Unable to drop old table %s. Error: %v", tableName, err)
-			return err
-		}
-
-		// MSSQL sp_rename will move all the constraints from the temporary table to the new table
-		if _, err := sess.Exec(fmt.Sprintf("sp_rename `%s`,`%s`", tempTableName, tableName)); err != nil {
-			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
-			return err
-		}
-
-	default:
-		log.Fatal("Unrecognized DB")
-	}
-	return nil
-}
-
-// WARNING: YOU MUST COMMIT THE SESSION AT THE END
-func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...string) (err error) {
-	if tableName == "" || len(columnNames) == 0 {
-		return nil
-	}
-	// TODO: This will not work if there are foreign keys
-
-	switch {
-	case setting.Database.UseSQLite3:
-		// First drop the indexes on the columns
-		res, errIndex := sess.Query(fmt.Sprintf("PRAGMA index_list(`%s`)", tableName))
-		if errIndex != nil {
-			return errIndex
-		}
-		for _, row := range res {
-			indexName := row["name"]
-			indexRes, err := sess.Query(fmt.Sprintf("PRAGMA index_info(`%s`)", indexName))
-			if err != nil {
-				return err
-			}
-			if len(indexRes) != 1 {
-				continue
-			}
-			indexColumn := string(indexRes[0]["name"])
-			for _, name := range columnNames {
-				if name == indexColumn {
-					_, err := sess.Exec(fmt.Sprintf("DROP INDEX `%s`", indexName))
-					if err != nil {
-						return err
-					}
-				}
-			}
-		}
-
-		// Here we need to get the columns from the original table
-		sql := fmt.Sprintf("SELECT sql FROM sqlite_master WHERE tbl_name='%s' and type='table'", tableName)
-		res, err := sess.Query(sql)
-		if err != nil {
-			return err
-		}
-		tableSQL := string(res[0]["sql"])
-
-		// Get the string offset for column definitions: `CREATE TABLE ( column-definitions... )`
-		columnDefinitionsIndex := strings.Index(tableSQL, "(")
-		if columnDefinitionsIndex < 0 {
-			return errors.New("couldn't find column definitions")
-		}
-
-		// Separate out the column definitions
-		tableSQL = tableSQL[columnDefinitionsIndex:]
-
-		// Remove the required columnNames
-		for _, name := range columnNames {
-			tableSQL = regexp.MustCompile(regexp.QuoteMeta("`"+name+"`")+"[^`,)]*?[,)]").ReplaceAllString(tableSQL, "")
-		}
-
-		// Ensure the query is ended properly
-		tableSQL = strings.TrimSpace(tableSQL)
-		if tableSQL[len(tableSQL)-1] != ')' {
-			if tableSQL[len(tableSQL)-1] == ',' {
-				tableSQL = tableSQL[:len(tableSQL)-1]
-			}
-			tableSQL += ")"
-		}
-
-		// Find all the columns in the table
-		columns := regexp.MustCompile("`([^`]*)`").FindAllString(tableSQL, -1)
-
-		tableSQL = fmt.Sprintf("CREATE TABLE `new_%s_new` ", tableName) + tableSQL
-		if _, err := sess.Exec(tableSQL); err != nil {
-			return err
-		}
-
-		// Now restore the data
-		columnsSeparated := strings.Join(columns, ",")
-		insertSQL := fmt.Sprintf("INSERT INTO `new_%s_new` (%s) SELECT %s FROM %s", tableName, columnsSeparated, columnsSeparated, tableName)
-		if _, err := sess.Exec(insertSQL); err != nil {
-			return err
-		}
-
-		// Now drop the old table
-		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s`", tableName)); err != nil {
-			return err
-		}
-
-		// Rename the table
-		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `new_%s_new` RENAME TO `%s`", tableName, tableName)); err != nil {
-			return err
-		}
-
-	case setting.Database.UsePostgreSQL:
-		cols := ""
-		for _, col := range columnNames {
-			if cols != "" {
-				cols += ", "
-			}
-			cols += "DROP COLUMN `" + col + "` CASCADE"
-		}
-		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` %s", tableName, cols)); err != nil {
-			return fmt.Errorf("Drop table `%s` columns %v: %w", tableName, columnNames, err)
-		}
-	case setting.Database.UseMySQL:
-		// Drop indexes on columns first
-		sql := fmt.Sprintf("SHOW INDEX FROM %s WHERE column_name IN ('%s')", tableName, strings.Join(columnNames, "','"))
-		res, err := sess.Query(sql)
-		if err != nil {
-			return err
-		}
-		for _, index := range res {
-			indexName := index["column_name"]
-			if len(indexName) > 0 {
-				_, err := sess.Exec(fmt.Sprintf("DROP INDEX `%s` ON `%s`", indexName, tableName))
-				if err != nil {
-					return err
-				}
-			}
-		}
-
-		// Now drop the columns
-		cols := ""
-		for _, col := range columnNames {
-			if cols != "" {
-				cols += ", "
-			}
-			cols += "DROP COLUMN `" + col + "`"
-		}
-		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` %s", tableName, cols)); err != nil {
-			return fmt.Errorf("Drop table `%s` columns %v: %w", tableName, columnNames, err)
-		}
-	case setting.Database.UseMSSQL:
-		cols := ""
-		for _, col := range columnNames {
-			if cols != "" {
-				cols += ", "
-			}
-			cols += "`" + strings.ToLower(col) + "`"
-		}
-		sql := fmt.Sprintf("SELECT Name FROM sys.default_constraints WHERE parent_object_id = OBJECT_ID('%[1]s') AND parent_column_id IN (SELECT column_id FROM sys.columns WHERE LOWER(name) IN (%[2]s) AND object_id = OBJECT_ID('%[1]s'))",
-			tableName, strings.ReplaceAll(cols, "`", "'"))
-		constraints := make([]string, 0)
-		if err := sess.SQL(sql).Find(&constraints); err != nil {
-			return fmt.Errorf("Find constraints: %w", err)
-		}
-		for _, constraint := range constraints {
-			if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` DROP CONSTRAINT `%s`", tableName, constraint)); err != nil {
-				return fmt.Errorf("Drop table `%s` default constraint `%s`: %w", tableName, constraint, err)
-			}
-		}
-		sql = fmt.Sprintf("SELECT DISTINCT Name FROM sys.indexes INNER JOIN sys.index_columns ON indexes.index_id = index_columns.index_id AND indexes.object_id = index_columns.object_id WHERE indexes.object_id = OBJECT_ID('%[1]s') AND index_columns.column_id IN (SELECT column_id FROM sys.columns WHERE LOWER(name) IN (%[2]s) AND object_id = OBJECT_ID('%[1]s'))",
-			tableName, strings.ReplaceAll(cols, "`", "'"))
-		constraints = make([]string, 0)
-		if err := sess.SQL(sql).Find(&constraints); err != nil {
-			return fmt.Errorf("Find constraints: %w", err)
-		}
-		for _, constraint := range constraints {
-			if _, err := sess.Exec(fmt.Sprintf("DROP INDEX `%[2]s` ON `%[1]s`", tableName, constraint)); err != nil {
-				return fmt.Errorf("Drop index `%s` on `%s`: %w", constraint, tableName, err)
-			}
-		}
-
-		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` DROP COLUMN %s", tableName, cols)); err != nil {
-			return fmt.Errorf("Drop table `%s` columns %v: %w", tableName, columnNames, err)
-		}
-	default:
-		log.Fatal("Unrecognized DB")
-	}
-
-	return nil
-}
-
-// modifyColumn will modify column's type or other property. SQLITE is not supported
-func modifyColumn(x *xorm.Engine, tableName string, col *schemas.Column) error {
-	var indexes map[string]*schemas.Index
-	var err error
-	// MSSQL have to remove index at first, otherwise alter column will fail
-	// ref. https://sqlzealots.com/2018/05/09/error-message-the-index-is-dependent-on-column-alter-table-alter-column-failed-because-one-or-more-objects-access-this-column/
-	if x.Dialect().URI().DBType == schemas.MSSQL {
-		indexes, err = x.Dialect().GetIndexes(x.DB(), context.Background(), tableName)
-		if err != nil {
-			return err
-		}
-
-		for _, index := range indexes {
-			_, err = x.Exec(x.Dialect().DropIndexSQL(tableName, index))
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	defer func() {
-		for _, index := range indexes {
-			_, err = x.Exec(x.Dialect().CreateIndexSQL(tableName, index))
-			if err != nil {
-				log.Error("Create index %s on table %s failed: %v", index.Name, tableName, err)
-			}
-		}
-	}()
-
-	alterSQL := x.Dialect().ModifyColumnSQL(tableName, col)
-	if _, err := x.Exec(alterSQL); err != nil {
-		return err
 	}
 	return nil
 }
