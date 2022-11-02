@@ -212,19 +212,32 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.APIContext) 
 func reqToken(requiredScope string) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if true == ctx.Data["IsApiToken"] {
+			// no scope required
 			if requiredScope == "" {
 				return
 			}
+
+			// check scope
 			scope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
 			allow, err := scope.HasScope(requiredScope)
 			if err != nil {
 				ctx.Error(http.StatusUnauthorized, "reqToken", "parsing token failed: "+err.Error())
 				return
 			}
-			if !allow {
-				ctx.Error(http.StatusUnauthorized, "reqToken", "token does not have required scope: "+requiredScope)
+			if allow {
 				return
 			}
+
+			// if requires 'repo' scope, but only has 'public_repo' scope, allow it only if the repo is public
+			if requiredScope == auth_model.AccessTokenScopeRepo {
+				if allowPublicRepo, err := scope.HasScope(auth_model.AccessTokenScopeUser); err == nil && allowPublicRepo {
+					if ctx.Repo.Repository != nil && !ctx.Repo.Repository.IsPrivate {
+						return
+					}
+				}
+			}
+
+			ctx.Error(http.StatusUnauthorized, "reqToken", "token does not have required scope: "+requiredScope)
 			return
 		}
 		if ctx.Context.IsBasicAuth {
