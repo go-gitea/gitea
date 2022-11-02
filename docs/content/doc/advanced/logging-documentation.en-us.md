@@ -190,13 +190,14 @@ Gitea provides 4 possible log outputs:
 
 Certain configuration is common to all modes of log output:
 
+- `MODE` is the mode of the log output. It will default to the sublogger
+  name, thus `[log.console.router]` will default to `MODE = console`.
+  For mode specific confgurations read further.
 - `LEVEL` is the lowest level that this output will log. This value
   is inherited from `[log]` and in the case of the non-default loggers
   from `[log.sublogger]`.
 - `STACKTRACE_LEVEL` is the lowest level that this output will print
   a stacktrace. This value is inherited.
-- `MODE` is the mode of the log output. It will default to the sublogger
-  name. Thus `[log.console.router]` will default to `MODE = console`.
 - `COLORIZE` will default to `true` for `console` as
   described, otherwise it will default to `false`.
 
@@ -247,8 +248,8 @@ For loggers in console mode, `COLORIZE` will default to `true` if not
 on windows, or the windows terminal can be set into ANSI mode or is a
 cygwin or Msys pipe.
 
-If `STDERR` is set to `true` the logger will use `os.Stderr` instead of
-`os.Stdout`.
+Settings:
+- `STDERR`: **false**: Whether the logger should print to `stderr` instead of `stdout`.|
 
 ### File mode
 
@@ -258,10 +259,10 @@ The `FILE_NAME` defaults as described in the respective logger facilities.
 If unset, their own default will be used.
 If set it will be relative to the provided `ROOT_PATH` in the master `[log]` section.
 
-Other values:
-
-- `LOG_ROTATE`: **true**: Rotate the log files.
+Settings:
+- `FILE_NAME`: The file to write the log events to. For details see above.
 - `MAX_SIZE_SHIFT`: **28**: Maximum size shift of a single file, 28 represents 256Mb.
+- `LOG_ROTATE`: **true**: Rotate the log files.
 - `DAILY_ROTATE`: **true**: Rotate logs daily.
 - `MAX_DAYS`: **7**: Delete the log file after n days
 - `COMPRESS`: **true**: Compress old log files by default with gzip
@@ -271,21 +272,23 @@ Other values:
 
 In this mode the logger will send log messages over a network socket.
 
-- `RECONNECT_ON_MSG`: **false**: Reconnect host for every single message.
-- `RECONNECT`: **false**: Try to reconnect when connection is lost.
-- `PROTOCOL`: **tcp**: Set the protocol, either "tcp", "unix" or "udp".
+Settings:
 - `ADDR`: **:7020**: Sets the address to connect to.
+- `PROTOCOL`: **tcp**: Set the protocol, either "tcp", "unix" or "udp".
+- `RECONNECT`: **false**: Try to reconnect when connection is lost.
+- `RECONNECT_ON_MSG`: **false**: Reconnect host for every single message.
 
 ### SMTP mode
 
 In this mode the logger will send log messages in email.
 
 It is not recommended to use this logger to send general logging
-messages. However, you could perhaps set this logger to work on `FATAL`.
+messages. However, you could perhaps set this logger to work on `FATAL` messages only.
 
+Settings:
+- `HOST`: **127.0.0.1:25**: The SMTP host to connect to.
 - `USER`: User email address to send from.
 - `PASSWD`: Password for the smtp server.
-- `HOST`: **127.0.0.1:25**: The SMTP host to connect to.
 - `RECEIVERS`: Email addresses to send to.
 - `SUBJECT`: **Diagnostic message from Gitea**
 
