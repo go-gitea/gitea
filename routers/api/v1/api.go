@@ -1165,7 +1165,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 					Delete(reqToken(auth_model.AccessTokenScopeWriteOrg), org.RemoveTeamRepository).
 					Get(reqToken(auth_model.AccessTokenScopeReadOrg), org.GetTeamRepo)
 			})
-		}, orgAssignment(false, true), reqTeamMembership())
+		}, orgAssignment(false, true), reqToken(""), reqTeamMembership())
 
 		m.Group("/admin", func() {
 			m.Group("/cron", func() {
