@@ -608,14 +608,14 @@ func DeleteDefaultSystemWebhook(id int64) error {
 func CopyDefaultWebhooksToRepo(ctx context.Context, repoID int64) error {
 	ws, err := GetDefaultWebhooks(ctx)
 	if err != nil {
-		return fmt.Errorf("GetDefaultWebhooks: %v", err)
+		return fmt.Errorf("GetDefaultWebhooks: %w", err)
 	}
 
 	for _, w := range ws {
 		w.ID = 0
 		w.RepoID = repoID
 		if err := CreateWebhook(ctx, w); err != nil {
-			return fmt.Errorf("CreateWebhook: %v", err)
+			return fmt.Errorf("CreateWebhook: %w", err)
 		}
 	}
 	return nil

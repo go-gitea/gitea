@@ -168,13 +168,13 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 		var err error
 		pr.BaseRepo, err = repo_model.GetRepositoryByID(pr.BaseRepoID)
 		if err != nil {
-			return nil, fmt.Errorf("GetRepositoryByID: %v", err)
+			return nil, fmt.Errorf("GetRepositoryByID: %w", err)
 		}
 	}
 
 	indexTmpPath, err := os.MkdirTemp(os.TempDir(), "gitea-"+pr.BaseRepo.Name)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create temp dir for repository %s: %v", pr.BaseRepo.RepoPath(), err)
+		return nil, fmt.Errorf("Failed to create temp dir for repository %s: %w", pr.BaseRepo.RepoPath(), err)
 	}
 	defer func() {
 		if err := util.RemoveAll(indexTmpPath); err != nil {
@@ -185,19 +185,19 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 	headFile := pr.GetGitRefName()
 
 	// Check if a pull request is merged into BaseBranch
-	_, _, err = git.NewCommand(ctx, "merge-base", "--is-ancestor", headFile, pr.BaseBranch).
+	_, _, err = git.NewCommand(ctx, "merge-base", "--is-ancestor").AddDynamicArguments(headFile, pr.BaseBranch).
 		RunStdString(&git.RunOpts{Dir: pr.BaseRepo.RepoPath(), Env: []string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()}})
 	if err != nil {
 		// Errors are signaled by a non-zero status that is not 1
 		if strings.Contains(err.Error(), "exit status 1") {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("git merge-base --is-ancestor: %v", err)
+		return nil, fmt.Errorf("git merge-base --is-ancestor: %w", err)
 	}
 
 	commitIDBytes, err := os.ReadFile(pr.BaseRepo.RepoPath() + "/" + headFile)
 	if err != nil {
-		return nil, fmt.Errorf("ReadFile(%s): %v", headFile, err)
+		return nil, fmt.Errorf("ReadFile(%s): %w", headFile, err)
 	}
 	commitID := string(commitIDBytes)
 	if len(commitID) < 40 {
@@ -206,10 +206,10 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 	cmd := commitID[:40] + ".." + pr.BaseBranch
 
 	// Get the commit from BaseBranch where the pull request got merged
-	mergeCommit, _, err := git.NewCommand(ctx, "rev-list", "--ancestry-path", "--merges", "--reverse", cmd).
+	mergeCommit, _, err := git.NewCommand(ctx, "rev-list", "--ancestry-path", "--merges", "--reverse").AddDynamicArguments(cmd).
 		RunStdString(&git.RunOpts{Dir: "", Env: []string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()}})
 	if err != nil {
-		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %v", err)
+		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %w", err)
 	} else if len(mergeCommit) < 40 {
 		// PR was maybe fast-forwarded, so just use last commit of PR
 		mergeCommit = commitID[:40]
@@ -217,13 +217,13 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 
 	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
 	if err != nil {
-		return nil, fmt.Errorf("OpenRepository: %v", err)
+		return nil, fmt.Errorf("OpenRepository: %w", err)
 	}
 	defer gitRepo.Close()
 
 	commit, err := gitRepo.GetCommit(mergeCommit[:40])
 	if err != nil {
-		return nil, fmt.Errorf("GetMergeCommit[%v]: %v", mergeCommit[:40], err)
+		return nil, fmt.Errorf("GetMergeCommit[%v]: %w", mergeCommit[:40], err)
 	}
 
 	return commit, nil
