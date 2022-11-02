@@ -425,6 +425,10 @@ var migrations = []Migration{
 	NewMigration("Add ConfidentialClient column (default true) to OAuth2Application table", addConfidentialClientColumnToOAuth2ApplicationTable),
 	// v231 -> v232
 	NewMigration("Add index for hook_task", addIndexForHookTask),
+
+	// TODO: where does Gitea 1.18.0 end?
+	// v232 -> v233
+	NewMigration("Add index for issue_user", addScopeForAccessTokens),
 }
 
 // GetCurrentDBVersion returns the current db version
