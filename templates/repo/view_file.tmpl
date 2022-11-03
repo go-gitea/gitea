@@ -58,7 +58,7 @@
 						<a class="ui mini basic button unescape-button" style="display: none;">{{.locale.Tr "repo.unescape_control_characters"}}</a>
 						<a class="ui mini basic button escape-button">{{.locale.Tr "repo.escape_control_characters"}}</a>
 					{{end}}
-					<button class="ui mini basic button small compact tooltip copy-content" id="clipboard-btn" data-content="{{.locale.Tr "copy_content"}}" aria-label="{{.locale.Tr "copy_content"}}"
+					<button class="ui mini basic button small compact tooltip" id="copy-file-content" data-content="{{.locale.Tr "copy_content"}}" aria-label="{{.locale.Tr "copy_content"}}"
 					{{if or (.IsMarkup) (.IsRenderedHTML) (not .IsTextSource)}}
 					disabled
 					{{end}}
