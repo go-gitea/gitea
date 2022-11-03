@@ -436,7 +436,7 @@ var migrations = []Migration{
 	// v232 -> v233
 	NewMigration("Alter package_version.metadata_json to LONGTEXT", v1_19.AlterPackageVersionMetadataToLongText),
 	// v233 -> v234
-	NewMigration("Add header_authorization_encrypted column to webhook table", addHeaderAuthorizationEncryptedColWebhook),
+	NewMigration("Add header_authorization_encrypted column to webhook table", v1_19.AddHeaderAuthorizationEncryptedColWebhook),
 }
 
 // GetCurrentDBVersion returns the current db version
