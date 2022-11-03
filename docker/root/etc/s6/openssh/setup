@@ -14,11 +14,6 @@ if [ ! -f /data/ssh/ssh_host_rsa_key ]; then
     ssh-keygen -t rsa -b 2048 -f /data/ssh/ssh_host_rsa_key -N "" > /dev/null
 fi
 
-if [ ! -f /data/ssh/ssh_host_dsa_key ]; then
-    echo "Generating /data/ssh/ssh_host_dsa_key..."
-    ssh-keygen -t dsa -f /data/ssh/ssh_host_dsa_key -N "" > /dev/null
-fi
-
 if [ ! -f /data/ssh/ssh_host_ecdsa_key ]; then
     echo "Generating /data/ssh/ssh_host_ecdsa_key..."
     ssh-keygen -t ecdsa -b 256 -f /data/ssh/ssh_host_ecdsa_key -N "" > /dev/null
@@ -36,17 +31,12 @@ if [ -e /data/ssh/ssh_host_ecdsa_cert ]; then
   SSH_ECDSA_CERT=${SSH_ECDSA_CERT:-"/data/ssh/ssh_host_ecdsa_cert"}
 fi
 
-if [ -e /data/ssh/ssh_host_dsa_cert ]; then
-  SSH_DSA_CERT=${SSH_DSA_CERT:-"/data/ssh/ssh_host_dsa_cert"}
-fi
-
 if [ -d /etc/ssh ]; then
     SSH_PORT=${SSH_PORT:-"22"} \
     SSH_LISTEN_PORT=${SSH_LISTEN_PORT:-"${SSH_PORT}"} \
     SSH_ED25519_CERT="${SSH_ED25519_CERT:+"HostCertificate "}${SSH_ED25519_CERT}" \
     SSH_RSA_CERT="${SSH_RSA_CERT:+"HostCertificate "}${SSH_RSA_CERT}" \
     SSH_ECDSA_CERT="${SSH_ECDSA_CERT:+"HostCertificate "}${SSH_ECDSA_CERT}" \
-    SSH_DSA_CERT="${SSH_DSA_CERT:+"HostCertificate "}${SSH_DSA_CERT}" \
     SSH_MAX_STARTUPS="${SSH_MAX_STARTUPS:+"MaxStartups "}${SSH_MAX_STARTUPS}" \
     SSH_MAX_SESSIONS="${SSH_MAX_SESSIONS:+"MaxSessions "}${SSH_MAX_SESSIONS}" \
     SSH_INCLUDE_FILE="${SSH_INCLUDE_FILE:+"Include "}${SSH_INCLUDE_FILE}" \

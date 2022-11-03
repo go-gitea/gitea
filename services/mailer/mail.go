@@ -340,7 +340,7 @@ func createReference(issue *issues_model.Issue, comment *issues_model.Comment, a
 			extra = fmt.Sprintf("/close/%d", time.Now().UnixNano()/1e6)
 		case activities_model.ActionReopenIssue, activities_model.ActionReopenPullRequest:
 			extra = fmt.Sprintf("/reopen/%d", time.Now().UnixNano()/1e6)
-		case activities_model.ActionMergePullRequest:
+		case activities_model.ActionMergePullRequest, activities_model.ActionAutoMergePullRequest:
 			extra = fmt.Sprintf("/merge/%d", time.Now().UnixNano()/1e6)
 		case activities_model.ActionPullRequestReadyForReview:
 			extra = fmt.Sprintf("/ready/%d", time.Now().UnixNano()/1e6)
@@ -451,7 +451,7 @@ func actionToTemplate(issue *issues_model.Issue, actionType activities_model.Act
 		name = "close"
 	case activities_model.ActionReopenIssue, activities_model.ActionReopenPullRequest:
 		name = "reopen"
-	case activities_model.ActionMergePullRequest:
+	case activities_model.ActionMergePullRequest, activities_model.ActionAutoMergePullRequest:
 		name = "merge"
 	case activities_model.ActionPullReviewDismissed:
 		name = "review_dismissed"
