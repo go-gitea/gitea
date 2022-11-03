@@ -436,7 +436,7 @@ var migrations = []Migration{
 	// v232 -> v233
 	NewMigration("Alter package_version.metadata_json to LONGTEXT", v1_19.AlterPackageVersionMetadataToLongText),
 	// v233 -> v234
-	NewMigration("Add index for issue_user", v1_19.AddScopeForAccessTokens),
+	NewMigration("Add scope for access_token", v1_19.AddScopeForAccessTokens),
 }
 
 // GetCurrentDBVersion returns the current db version
