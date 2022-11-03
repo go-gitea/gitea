@@ -13,6 +13,7 @@ import (
 	container_model "code.gitea.io/gitea/models/packages/container"
 	user_model "code.gitea.io/gitea/models/user"
 	container_module "code.gitea.io/gitea/modules/packages/container"
+	"code.gitea.io/gitea/modules/packages/container/oci"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -82,8 +83,32 @@ func cleanupExpiredUploadedBlobs(ctx context.Context, olderThan time.Duration) e
 	return nil
 }
 
-func ShouldBeSkipped(pcr *packages_model.PackageCleanupRule, p *packages_model.Package, pv *packages_model.PackageVersion) (bool, error) {
-	return pv.LowerVersion == "latest", nil
+func ShouldBeSkipped(ctx context.Context, pcr *packages_model.PackageCleanupRule, p *packages_model.Package, pv *packages_model.PackageVersion) (bool, error) {
+	// Always skip the "latest" tag
+	if pv.LowerVersion == "latest" {
+		return true, nil
+	}
+
+	// Check if the version is a digest (or untagged)
+	if oci.Digest(pv.LowerVersion).Validate() {
+		// Check if there is another manifest referencing this version
+		has, err := packages_model.ExistVersion(ctx, &packages_model.PackageSearchOptions{
+			PackageID: p.ID,
+			Properties: map[string]string{
+				container_module.PropertyManifestReference: pv.LowerVersion,
+			},
+		})
+		if err != nil {
+			return false, err
+		}
+
+		// Skip it if the version is referenced
+		if has {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 // UpdateRepositoryNames updates the repository name property for all packages of the specific owner

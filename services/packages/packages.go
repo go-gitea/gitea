@@ -388,7 +388,7 @@ func Cleanup(taskCtx context.Context, olderThan time.Duration) error {
 				return fmt.Errorf("CleanupRule [%d]: SearchVersions failed: %w", pcr.ID, err)
 			}
 			for _, pv := range pvs {
-				if skip, err := container_service.ShouldBeSkipped(pcr, p, pv); err != nil {
+				if skip, err := container_service.ShouldBeSkipped(ctx, pcr, p, pv); err != nil {
 					return fmt.Errorf("CleanupRule [%d]: container.ShouldBeSkipped failed: %w", pcr.ID, err)
 				} else if skip {
 					log.Debug("Rule[%d]: keep '%s/%s' (container)", pcr.ID, p.Name, pv.Version)

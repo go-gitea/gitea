@@ -165,7 +165,7 @@ func SetRulePreviewContext(ctx *context.Context, owner *user_model.User) {
 			return
 		}
 		for _, pv := range pvs {
-			if skip, err := container_service.ShouldBeSkipped(pcr, p, pv); err != nil {
+			if skip, err := container_service.ShouldBeSkipped(ctx, pcr, p, pv); err != nil {
 				ctx.ServerError("ShouldBeSkipped", err)
 				return
 			} else if skip {
