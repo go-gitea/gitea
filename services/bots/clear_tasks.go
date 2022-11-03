@@ -9,6 +9,7 @@ import (
 	"time"
 
 	bots_model "code.gitea.io/gitea/models/bots"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
@@ -62,6 +63,27 @@ func StopEndlessTasks(ctx context.Context) error {
 
 // CancelAbandonedJobs cancels the jobs which have waiting status, but haven't been picked by a runner for a long time
 func CancelAbandonedJobs(ctx context.Context) error {
-	// TODO
+	jobs, _, err := bots_model.FindRunJobs(ctx, bots_model.FindRunJobOptions{
+		Status:        bots_model.StatusWaiting,
+		StartedBefore: timeutil.TimeStamp(time.Now().Add(-abandonedJobTimeout).Unix()),
+	})
+	if err != nil {
+		log.Warn("find abandoned tasks: %v", err)
+		return err
+	}
+
+	now := timeutil.TimeStampNow()
+	for _, job := range jobs {
+		job.Status = bots_model.StatusCancelled
+		job.Stopped = now
+		if err := db.WithTx(func(ctx context.Context) error {
+			_, err := bots_model.UpdateRunJob(ctx, job, nil, "status", "stopped")
+			return err
+		}, ctx); err != nil {
+			log.Warn("cancel abandoned job %v: %v", job.ID, err)
+			// go on
+		}
+	}
+
 	return nil
 }
