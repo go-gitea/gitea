@@ -167,7 +167,7 @@ func aggregateJobStatus(jobs []*RunJob) Status {
 		if job.Status != StatusWaiting {
 			allWaiting = false
 		}
-		if job.Status == StatusFailure {
+		if job.Status == StatusFailure || job.Status == StatusCancelled {
 			hasFailure = true
 		}
 	}
