@@ -474,12 +474,16 @@ func SubmitInstall(ctx *context.Context) {
 
 	cfg.Section("security").Key("INSTALL_LOCK").SetValue("true")
 
-	var internalToken string
-	if internalToken, err = generate.NewInternalToken(); err != nil {
-		ctx.RenderWithErr(ctx.Tr("install.internal_token_failed", err), tplInstall, &form)
-		return
+	// the internal token could be read from INTERNAL_TOKEN or INTERNAL_TOKEN_URI (the file is guaranteed to be non-empty)
+	// if there is no InternalToken, generate one and save to security.INTERNAL_TOKEN
+	if setting.InternalToken == "" {
+		var internalToken string
+		if internalToken, err = generate.NewInternalToken(); err != nil {
+			ctx.RenderWithErr(ctx.Tr("install.internal_token_failed", err), tplInstall, &form)
+			return
+		}
+		cfg.Section("security").Key("INTERNAL_TOKEN").SetValue(internalToken)
 	}
-	cfg.Section("security").Key("INTERNAL_TOKEN").SetValue(internalToken)
 
 	// if there is already a SECRET_KEY, we should not overwrite it, otherwise the encrypted data will not be able to be decrypted
 	if setting.SecretKey == "" {
