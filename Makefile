@@ -100,7 +100,8 @@ LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(G
 
 LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64
 
-GO_PACKAGES ?= $(filter-out code.gitea.io/gitea/models/migrations code.gitea.io/gitea/tests/integration/migration-test code.gitea.io/gitea/tests code.gitea.io/gitea/tests/integration code.gitea.io/gitea/tests/e2e,$(shell $(GO) list ./... | grep -v /vendor/))
+GO_PACKAGES ?= $(filter-out code.gitea.io/gitea/tests/integration/migration-test code.gitea.io/gitea/tests code.gitea.io/gitea/tests/integration code.gitea.io/gitea/tests/e2e,$(shell $(GO) list ./... | grep -v /vendor/))
+GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list code.gitea.io/gitea/models/migrations/...) code.gitea.io/gitea/tests/integration/migration-test code.gitea.io/gitea/tests code.gitea.io/gitea/tests/integration code.gitea.io/gitea/tests/e2e,$(shell $(GO) list ./... | grep -v /vendor/))
 
 FOMANTIC_WORK_DIR := web_src/fomantic
 
@@ -366,7 +367,7 @@ test: test-frontend test-backend
 .PHONY: test-backend
 test-backend:
 	@echo "Running go test with $(GOTESTFLAGS) -tags '$(TEST_TAGS)'..."
-	@$(GO) test $(GOTESTFLAGS) -tags='$(TEST_TAGS)' $(GO_PACKAGES)
+	@$(GO) test $(GOTESTFLAGS) -tags='$(TEST_TAGS)' $(GO_TEST_PACKAGES)
 
 .PHONY: test-frontend
 test-frontend: node_modules
@@ -387,7 +388,7 @@ test-check:
 .PHONY: test\#%
 test\#%:
 	@echo "Running go test with -tags '$(TEST_TAGS)'..."
-	@$(GO) test $(GOTESTFLAGS) -tags='$(TEST_TAGS)' -run $(subst .,/,$*) $(GO_PACKAGES)
+	@$(GO) test $(GOTESTFLAGS) -tags='$(TEST_TAGS)' -run $(subst .,/,$*) $(GO_TEST_PACKAGES)
 
 .PHONY: coverage
 coverage:
@@ -398,7 +399,7 @@ coverage:
 .PHONY: unit-test-coverage
 unit-test-coverage:
 	@echo "Running unit-test-coverage $(GOTESTFLAGS) -tags '$(TEST_TAGS)'..."
-	@$(GO) test $(GOTESTFLAGS) -timeout=20m -tags='$(TEST_TAGS)' -cover -coverprofile coverage.out $(GO_PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
+	@$(GO) test $(GOTESTFLAGS) -timeout=20m -tags='$(TEST_TAGS)' -cover -coverprofile coverage.out $(GO_TEST_PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
 
 .PHONY: tidy
 tidy:
@@ -442,14 +443,7 @@ test-sqlite\#%: integrations.sqlite.test generate-ini-sqlite
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/sqlite.ini ./integrations.sqlite.test -test.run $(subst .,/,$*)
 
 .PHONY: test-sqlite-migration
-test-sqlite-migration:  migrations.sqlite.test migrations.individual.sqlite.test generate-ini-sqlite
-	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/sqlite.ini ./migrations.sqlite.test
-	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/sqlite.ini ./migrations.individual.sqlite.test
-
-.PHONY: test-sqlite-migration\#%
-test-sqlite-migration\#%:  migrations.sqlite.test migrations.individual.sqlite.test generate-ini-sqlite
-	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/sqlite.ini ./migrations.individual.sqlite.test -test.run $(subst .,/,$*)
-
+test-sqlite-migration:  migrations.sqlite.test migrations.individual.sqlite.test
 
 generate-ini-mysql:
 	sed -e 's|{{TEST_MYSQL_HOST}}|${TEST_MYSQL_HOST}|g' \
@@ -470,9 +464,7 @@ test-mysql\#%: integrations.mysql.test generate-ini-mysql
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql.ini ./integrations.mysql.test -test.run $(subst .,/,$*)
 
 .PHONY: test-mysql-migration
-test-mysql-migration: migrations.mysql.test migrations.individual.mysql.test generate-ini-mysql
-	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql.ini ./migrations.mysql.test
-	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql.ini ./migrations.individual.mysql.test
+test-mysql-migration: migrations.mysql.test migrations.individual.mysql.test
 
 generate-ini-mysql8:
 	sed -e 's|{{TEST_MYSQL8_HOST}}|${TEST_MYSQL8_HOST}|g' \
@@ -493,9 +485,7 @@ test-mysql8\#%: integrations.mysql8.test generate-ini-mysql8
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql8.ini ./integrations.mysql8.test -test.run $(subst .,/,$*)
 
 .PHONY: test-mysql8-migration
-test-mysql8-migration: migrations.mysql8.test migrations.individual.mysql8.test generate-ini-mysql8
-	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql8.ini ./migrations.mysql8.test
-	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql8.ini ./migrations.individual.mysql8.test
+test-mysql8-migration: migrations.mysql8.test migrations.individual.mysql8.test
 
 generate-ini-pgsql:
 	sed -e 's|{{TEST_PGSQL_HOST}}|${TEST_PGSQL_HOST}|g' \
@@ -517,9 +507,7 @@ test-pgsql\#%: integrations.pgsql.test generate-ini-pgsql
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/pgsql.ini ./integrations.pgsql.test -test.run $(subst .,/,$*)
 
 .PHONY: test-pgsql-migration
-test-pgsql-migration: migrations.pgsql.test migrations.individual.pgsql.test generate-ini-pgsql
-	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/pgsql.ini ./migrations.pgsql.test
-	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/pgsql.ini ./migrations.individual.pgsql.test
+test-pgsql-migration: migrations.pgsql.test migrations.individual.pgsql.test
 
 generate-ini-mssql:
 	sed -e 's|{{TEST_MSSQL_HOST}}|${TEST_MSSQL_HOST}|g' \
@@ -540,9 +528,7 @@ test-mssql\#%: integrations.mssql.test generate-ini-mssql
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mssql.ini ./integrations.mssql.test -test.run $(subst .,/,$*)
 
 .PHONY: test-mssql-migration
-test-mssql-migration: migrations.mssql.test migrations.individual.mssql.test generate-ini-mssql
-	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mssql.ini ./migrations.mssql.test -test.failfast
-	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mssql.ini ./migrations.individual.mssql.test -test.failfast
+test-mssql-migration: migrations.mssql.test migrations.individual.mssql.test
 
 .PHONY: playwright
 playwright: $(PLAYWRIGHT_DIR)
@@ -637,50 +623,82 @@ integrations.sqlite.test: git-check $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration -o integrations.sqlite.test -tags '$(TEST_TAGS)'
 
 integrations.cover.test: git-check $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration -coverpkg $(shell echo $(GO_PACKAGES) | tr ' ' ',') -o integrations.cover.test
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration -coverpkg $(shell echo $(GO_TEST_PACKAGES) | tr ' ' ',') -o integrations.cover.test
 
 integrations.cover.sqlite.test: git-check $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration -coverpkg $(shell echo $(GO_PACKAGES) | tr ' ' ',') -o integrations.cover.sqlite.test -tags '$(TEST_TAGS)'
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration -coverpkg $(shell echo $(GO_TEST_PACKAGES) | tr ' ' ',') -o integrations.cover.sqlite.test -tags '$(TEST_TAGS)'
 
 .PHONY: migrations.mysql.test
-migrations.mysql.test: $(GO_SOURCES)
+migrations.mysql.test: $(GO_SOURCES) generate-ini-mysql
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration/migration-test -o migrations.mysql.test
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql.ini ./migrations.mysql.test
 
 .PHONY: migrations.mysql8.test
-migrations.mysql8.test: $(GO_SOURCES)
+migrations.mysql8.test: $(GO_SOURCES) generate-ini-mysql8
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration/migration-test -o migrations.mysql8.test
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql8.ini ./migrations.mysql8.test
 
 .PHONY: migrations.pgsql.test
-migrations.pgsql.test: $(GO_SOURCES)
+migrations.pgsql.test: $(GO_SOURCES) generate-ini-pgsql
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration/migration-test -o migrations.pgsql.test
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/pgsql.ini ./migrations.pgsql.test
 
 .PHONY: migrations.mssql.test
-migrations.mssql.test: $(GO_SOURCES)
+migrations.mssql.test: $(GO_SOURCES) generate-ini-mssql
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration/migration-test -o migrations.mssql.test
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mssql.ini ./migrations.mssql.test
 
 .PHONY: migrations.sqlite.test
-migrations.sqlite.test: $(GO_SOURCES)
+migrations.sqlite.test: $(GO_SOURCES) generate-ini-sqlite
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration/migration-test -o migrations.sqlite.test -tags '$(TEST_TAGS)'
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/sqlite.ini ./migrations.sqlite.test
 
 .PHONY: migrations.individual.mysql.test
 migrations.individual.mysql.test: $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/models/migrations -o migrations.individual.mysql.test
+	for pkg in $(shell $(GO) list code.gitea.io/gitea/models/migrations/...); do \
+		GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql.ini $(GO) test $(GOTESTFLAGS) -tags '$(TEST_TAGS)' $$pkg; \
+	done
 
 .PHONY: migrations.individual.mysql8.test
 migrations.individual.mysql8.test: $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/models/migrations -o migrations.individual.mysql8.test
+	for pkg in $(shell $(GO) list code.gitea.io/gitea/models/migrations/...); do \
+		GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql8.ini $(GO) test $(GOTESTFLAGS) -tags '$(TEST_TAGS)' $$pkg; \
+	done
+
+.PHONY: migrations.individual.mysql8.test\#%
+migrations.individual.sqlite.test\#%: $(GO_SOURCES) generate-ini-sqlite
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/sqlite.ini $(GO) test $(GOTESTFLAGS) -tags '$(TEST_TAGS)' code.gitea.io/gitea/models/migrations/$*
 
 .PHONY: migrations.individual.pgsql.test
 migrations.individual.pgsql.test: $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/models/migrations -o migrations.individual.pgsql.test
+	for pkg in $(shell $(GO) list code.gitea.io/gitea/models/migrations/...); do \
+		GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/pgsql.ini $(GO) test $(GOTESTFLAGS) -tags '$(TEST_TAGS)' $$pkg; \
+	done
+
+.PHONY: migrations.individual.pgsql.test\#%
+migrations.individual.pgsql.test\#%: $(GO_SOURCES) generate-ini-pgsql
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/pgsql.ini $(GO) test $(GOTESTFLAGS) -tags '$(TEST_TAGS)' code.gitea.io/gitea/models/migrations/$*
+
 
 .PHONY: migrations.individual.mssql.test
-migrations.individual.mssql.test: $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/models/migrations -o migrations.individual.mssql.test
+migrations.individual.mssql.test: $(GO_SOURCES) generate-ini-mssql
+	for pkg in $(shell $(GO) list code.gitea.io/gitea/models/migrations/...); do \
+		GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mssql.ini $(GO) test $(GOTESTFLAGS) -tags '$(TEST_TAGS)' $$pkg -test.failfast; \
+	done
+
+.PHONY: migrations.individual.mssql.test\#%
+migrations.individual.mssql.test\#%: $(GO_SOURCES) generate-ini-mssql
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mssql.ini $(GO) test $(GOTESTFLAGS) -tags '$(TEST_TAGS)' code.gitea.io/gitea/models/migrations/$*
 
 .PHONY: migrations.individual.sqlite.test
-migrations.individual.sqlite.test: $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/models/migrations -o migrations.individual.sqlite.test -tags '$(TEST_TAGS)'
+migrations.individual.sqlite.test: $(GO_SOURCES) generate-ini-sqlite
+	for pkg in $(shell $(GO) list code.gitea.io/gitea/models/migrations/...); do \
+		GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/sqlite.ini $(GO) test $(GOTESTFLAGS) -tags '$(TEST_TAGS)' $$pkg; \
+	done
+
+.PHONY: migrations.individual.sqlite.test\#%
+migrations.individual.sqlite.test\#%: $(GO_SOURCES) generate-ini-sqlite
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/sqlite.ini $(GO) test $(GOTESTFLAGS) -tags '$(TEST_TAGS)' code.gitea.io/gitea/models/migrations/$*
 
 e2e.mysql.test: $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/e2e -o e2e.mysql.test
