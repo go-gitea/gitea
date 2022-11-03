@@ -37,6 +37,7 @@ type Notifier interface {
 		addedLabels, removedLabels []*issues_model.Label)
 	NotifyNewPullRequest(ctx context.Context, pr *issues_model.PullRequest, mentions []*user_model.User)
 	NotifyMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest)
+	NotifyAutoMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest)
 	NotifyPullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest)
 	NotifyPullRequestReview(ctx context.Context, pr *issues_model.PullRequest, review *issues_model.Review, comment *issues_model.Comment, mentions []*user_model.User)
 	NotifyPullRequestCodeComment(ctx context.Context, pr *issues_model.PullRequest, comment *issues_model.Comment, mentions []*user_model.User)

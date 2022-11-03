@@ -278,7 +278,21 @@ func (*actionNotifier) NotifyMergePullRequest(ctx context.Context, doer *user_mo
 	}
 }
 
-func (*actionNotifier) NotifyPullReviewDismiss(ctx context.Context, doer *user_model.User, review *issues_model.Review, comment *issues_model.Comment) {
+func (*actionNotifier) NotifyAutoMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
+	if err := activities_model.NotifyWatchers(ctx, &activities_model.Action{
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		OpType:    activities_model.ActionAutoMergePullRequest,
+		Content:   fmt.Sprintf("%d|%s", pr.Issue.Index, pr.Issue.Title),
+		RepoID:    pr.Issue.Repo.ID,
+		Repo:      pr.Issue.Repo,
+		IsPrivate: pr.Issue.Repo.IsPrivate,
+	}); err != nil {
+		log.Error("NotifyWatchers [%d]: %v", pr.ID, err)
+	}
+}
+
+func (*actionNotifier) NotifyPullRevieweDismiss(ctx context.Context, doer *user_model.User, review *issues_model.Review, comment *issues_model.Comment) {
 	reviewerName := review.Reviewer.Name
 	if len(review.OriginalAuthor) > 0 {
 		reviewerName = review.OriginalAuthor

@@ -100,6 +100,13 @@ func NotifyMergePullRequest(ctx context.Context, doer *user_model.User, pr *issu
 	}
 }
 
+// NotifyAutoMergePullRequest notifies merge pull request to notifiers
+func NotifyAutoMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
+	for _, notifier := range notifiers {
+		notifier.NotifyAutoMergePullRequest(ctx, doer, pr)
+	}
+}
+
 // NotifyNewPullRequest notifies new pull request to notifiers
 func NotifyNewPullRequest(ctx context.Context, pr *issues_model.PullRequest, mentions []*user_model.User) {
 	for _, notifier := range notifiers {

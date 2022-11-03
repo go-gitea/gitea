@@ -133,7 +133,7 @@ func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr
 
 // Merge merges pull request to base repository.
 // Caller should check PR is ready to be merged (review and status checks)
-func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string) error {
+func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, wasAutoMerged bool) error {
 	if err := pr.LoadHeadRepo(ctx); err != nil {
 		log.Error("LoadHeadRepo: %v", err)
 		return fmt.Errorf("LoadHeadRepo: %w", err)
@@ -193,7 +193,11 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 		log.Error("GetOwner for issue repo [%d]: %v", pr.ID, err)
 	}
 
-	notification.NotifyMergePullRequest(hammerCtx, doer, pr)
+	if wasAutoMerged {
+		notification.NotifyAutoMergePullRequest(hammerCtx, doer, pr)
+	} else {
+		notification.NotifyMergePullRequest(hammerCtx, doer, pr)
+	}
 
 	// Reset cached commit count
 	cache.Remove(pr.Issue.Repo.GetCommitsCountCacheKey(pr.BaseBranch, true))

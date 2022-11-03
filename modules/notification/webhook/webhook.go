@@ -600,6 +600,11 @@ func (m *webhookNotifier) NotifyPushCommits(ctx context.Context, pusher *user_mo
 	}
 }
 
+func (m *webhookNotifier) NotifyAutoMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
+	// just redirect to the NotifyMergePullRequest
+	m.NotifyMergePullRequest(ctx, doer, pr)
+}
+
 func (*webhookNotifier) NotifyMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
 	// Reload pull request information.
 	if err := pr.LoadAttributes(ctx); err != nil {

@@ -143,6 +143,16 @@ func (m *mailNotifier) NotifyMergePullRequest(ctx context.Context, doer *user_mo
 	}
 }
 
+func (m *mailNotifier) NotifyAutoMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
+	if err := pr.LoadIssue(ctx); err != nil {
+		log.Error("pr.LoadIssue: %v", err)
+		return
+	}
+	if err := mailer.MailParticipants(ctx, pr.Issue, doer, activities_model.ActionAutoMergePullRequest, nil); err != nil {
+		log.Error("MailParticipants: %v", err)
+	}
+}
+
 func (m *mailNotifier) NotifyPullRequestPushCommits(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, comment *issues_model.Comment) {
 	var err error
 	if err = comment.LoadIssue(ctx); err != nil {

@@ -90,7 +90,12 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 	case http.MethodPut:
 		switch w.Type {
 		case webhook_model.MATRIX:
-			req, err = getMatrixHookRequest(w, t)
+			txnID, err := getMatrixTxnID([]byte(t.PayloadContent))
+			if err != nil {
+				return err
+			}
+			url := fmt.Sprintf("%s/%s", w.URL, url.PathEscape(txnID))
+			req, err = http.NewRequest("PUT", url, strings.NewReader(t.PayloadContent))
 			if err != nil {
 				return err
 			}
@@ -129,6 +134,16 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 	req.Header["X-GitHub-Delivery"] = []string{t.UUID}
 	req.Header["X-GitHub-Event"] = []string{event}
 	req.Header["X-GitHub-Event-Type"] = []string{eventType}
+
+	// Add Authorization Header
+	authorization, err := w.HeaderAuthorization()
+	if err != nil {
+		log.Error("Webhook could not get Authorization header [%d]: %v", w.ID, err)
+		return err
+	}
+	if authorization != "" {
+		req.Header["Authorization"] = []string{authorization}
+	}
 
 	// Record delivery information.
 	t.RequestInfo = &webhook_model.HookRequest{
