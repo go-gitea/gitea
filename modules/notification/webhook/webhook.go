@@ -632,6 +632,11 @@ func (m *webhookNotifier) NotifyPushCommits(pusher *user_model.User, repo *repo_
 	}
 }
 
+func (m *webhookNotifier) NotifyAutoMergePullRequest(pr *issues_model.PullRequest, doer *user_model.User) {
+	// just redirect to the NotifyMergePullRequest
+	m.NotifyMergePullRequest(pr, doer)
+}
+
 func (*webhookNotifier) NotifyMergePullRequest(pr *issues_model.PullRequest, doer *user_model.User) {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("webhook.NotifyMergePullRequest Pull[%d] #%d in [%d]", pr.ID, pr.Index, pr.BaseRepoID))
 	defer finished()
