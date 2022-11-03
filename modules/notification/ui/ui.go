@@ -119,6 +119,10 @@ func (ns *notificationService) NotifyMergePullRequest(pr *issues_model.PullReque
 	})
 }
 
+func (ns *notificationService) NotifyAutoMergePullRequest(pr *issues_model.PullRequest, doer *user_model.User) {
+	ns.NotifyMergePullRequest(pr, doer)
+}
+
 func (ns *notificationService) NotifyNewPullRequest(pr *issues_model.PullRequest, mentions []*user_model.User) {
 	if err := pr.LoadIssue(); err != nil {
 		log.Error("Unable to load issue: %d for pr: %d: Error: %v", pr.IssueID, pr.ID, err)

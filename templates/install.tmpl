@@ -162,6 +162,13 @@
 						<input id="log_root_path" name="log_root_path" value="{{.log_root_path}}" placeholder="log" required>
 						<span class="help">{{.locale.Tr "install.log_root_path_helper"}}</span>
 					</div>
+					<div class="inline field">
+						<label for="enable_update_checker">{{.locale.Tr "install.enable_update_checker"}}</label>
+						<div class="ui checkbox">
+							<input name="enable_update_checker" type="checkbox">
+						</div>
+						<span class="help">{{.locale.Tr "install.enable_update_checker_helper"}}</span>
+					</div>
 
 
 					<!-- Optional Settings -->

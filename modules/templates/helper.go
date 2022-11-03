@@ -905,7 +905,7 @@ func ActionIcon(opType activities_model.ActionType) string {
 		return "git-pull-request"
 	case activities_model.ActionCommentIssue, activities_model.ActionCommentPull:
 		return "comment-discussion"
-	case activities_model.ActionMergePullRequest:
+	case activities_model.ActionMergePullRequest, activities_model.ActionAutoMergePullRequest:
 		return "git-merge"
 	case activities_model.ActionCloseIssue, activities_model.ActionClosePullRequest:
 		return "issue-closed"
