@@ -2,28 +2,25 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package v1_19 //nolint
+package v1_19 // nolint
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
 )
 
-func CreatePackageCleanupRuleTable(x *xorm.Engine) error {
-	type PackageCleanupRule struct {
-		ID            int64              `xorm:"pk autoincr"`
-		Enabled       bool               `xorm:"INDEX NOT NULL DEFAULT false"`
-		OwnerID       int64              `xorm:"UNIQUE(s) INDEX NOT NULL DEFAULT 0"`
-		Type          string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		KeepCount     int                `xorm:"NOT NULL DEFAULT 0"`
-		KeepPattern   string             `xorm:"NOT NULL DEFAULT ''"`
-		RemoveDays    int                `xorm:"NOT NULL DEFAULT 0"`
-		RemovePattern string             `xorm:"NOT NULL DEFAULT ''"`
-		MatchFullName bool               `xorm:"NOT NULL DEFAULT false"`
-		CreatedUnix   timeutil.TimeStamp `xorm:"created NOT NULL DEFAULT 0"`
-		UpdatedUnix   timeutil.TimeStamp `xorm:"updated NOT NULL DEFAULT 0"`
+func AlterPackageVersionMetadataToLongText(x *xorm.Engine) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
 	}
 
-	return x.Sync2(new(PackageCleanupRule))
+	if setting.Database.UseMySQL {
+		if _, err := sess.Exec("ALTER TABLE `package_version` MODIFY COLUMN `metadata_json` LONGTEXT"); err != nil {
+			return err
+		}
+	}
+	return sess.Commit()
 }
