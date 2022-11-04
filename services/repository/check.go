@@ -24,15 +24,13 @@ import (
 )
 
 // GitFsck calls 'git fsck' to check repository health.
-func GitFsck(ctx context.Context, timeout time.Duration, args []string) error {
+func GitFsck(ctx context.Context, timeout time.Duration, args []git.CmdArg) error {
 	log.Trace("Doing: GitFsck")
 
 	if err := db.Iterate(
 		ctx,
-		new(repo_model.Repository),
 		builder.Expr("id>0 AND is_fsck_enabled=?", true),
-		func(idx int, bean interface{}) error {
-			repo := bean.(*repo_model.Repository)
+		func(ctx context.Context, repo *repo_model.Repository) error {
 			select {
 			case <-ctx.Done():
 				return db.ErrCancelledf("before fsck of %s", repo.FullName())
@@ -58,16 +56,14 @@ func GitFsck(ctx context.Context, timeout time.Duration, args []string) error {
 }
 
 // GitGcRepos calls 'git gc' to remove unnecessary files and optimize the local repository
-func GitGcRepos(ctx context.Context, timeout time.Duration, args ...string) error {
+func GitGcRepos(ctx context.Context, timeout time.Duration, args ...git.CmdArg) error {
 	log.Trace("Doing: GitGcRepos")
-	args = append([]string{"gc"}, args...)
+	args = append([]git.CmdArg{"gc"}, args...)
 
 	if err := db.Iterate(
 		ctx,
-		new(repo_model.Repository),
 		builder.Gt{"id": 0},
-		func(idx int, bean interface{}) error {
-			repo := bean.(*repo_model.Repository)
+		func(ctx context.Context, repo *repo_model.Repository) error {
 			select {
 			case <-ctx.Done():
 				return db.ErrCancelledf("before GC of %s", repo.FullName())
@@ -86,7 +82,7 @@ func GitGcRepos(ctx context.Context, timeout time.Duration, args ...string) erro
 				if err = system_model.CreateRepositoryNotice(desc); err != nil {
 					log.Error("CreateRepositoryNotice: %v", err)
 				}
-				return fmt.Errorf("Repository garbage collection failed in repo: %s: Error: %v", repo.FullName(), err)
+				return fmt.Errorf("Repository garbage collection failed in repo: %s: Error: %w", repo.FullName(), err)
 			}
 
 			// Now update the size of the repository
@@ -96,7 +92,7 @@ func GitGcRepos(ctx context.Context, timeout time.Duration, args ...string) erro
 				if err = system_model.CreateRepositoryNotice(desc); err != nil {
 					log.Error("CreateRepositoryNotice: %v", err)
 				}
-				return fmt.Errorf("Updating size as part of garbage collection failed in repo: %s: Error: %v", repo.FullName(), err)
+				return fmt.Errorf("Updating size as part of garbage collection failed in repo: %s: Error: %w", repo.FullName(), err)
 			}
 
 			return nil
@@ -113,10 +109,8 @@ func gatherMissingRepoRecords(ctx context.Context) ([]*repo_model.Repository, er
 	repos := make([]*repo_model.Repository, 0, 10)
 	if err := db.Iterate(
 		ctx,
-		new(repo_model.Repository),
 		builder.Gt{"id": 0},
-		func(idx int, bean interface{}) error {
-			repo := bean.(*repo_model.Repository)
+		func(ctx context.Context, repo *repo_model.Repository) error {
 			select {
 			case <-ctx.Done():
 				return db.ErrCancelledf("during gathering missing repo records before checking %s", repo.FullName())

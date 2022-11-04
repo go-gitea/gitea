@@ -14738,6 +14738,10 @@
           "default": false,
           "x-go-name": "Active"
         },
+        "authorization_header": {
+          "type": "string",
+          "x-go-name": "AuthorizationHeader"
+        },
         "branch_filter": {
           "type": "string",
           "x-go-name": "BranchFilter"
@@ -14935,6 +14939,10 @@
       "description": "CreateOAuth2ApplicationOptions holds options to create an oauth2 application",
       "type": "object",
       "properties": {
+        "confidential_client": {
+          "type": "boolean",
+          "x-go-name": "ConfidentialClient"
+        },
         "name": {
           "type": "string",
           "x-go-name": "Name"
@@ -15722,6 +15730,10 @@
         "active": {
           "type": "boolean",
           "x-go-name": "Active"
+        },
+        "authorization_header": {
+          "type": "string",
+          "x-go-name": "AuthorizationHeader"
         },
         "branch_filter": {
           "type": "string",
@@ -16830,6 +16842,10 @@
           "type": "boolean",
           "x-go-name": "Active"
         },
+        "authorization_header": {
+          "type": "string",
+          "x-go-name": "AuthorizationHeader"
+        },
         "config": {
           "type": "object",
           "additionalProperties": {
@@ -17615,6 +17631,10 @@
         "client_secret": {
           "type": "string",
           "x-go-name": "ClientSecret"
+        },
+        "confidential_client": {
+          "type": "boolean",
+          "x-go-name": "ConfidentialClient"
         },
         "created": {
           "type": "string",

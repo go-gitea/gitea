@@ -839,7 +839,7 @@ func MergePullRequest(ctx *context.APIContext) {
 		}
 	}
 
-	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, message); err != nil {
+	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Error(http.StatusMethodNotAllowed, "Invalid merge style", fmt.Errorf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
 		} else if models.IsErrMergeConflicts(err) {
@@ -1443,7 +1443,11 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 		end = totalNumberOfFiles
 	}
 
-	apiFiles := make([]*api.ChangedFile, 0, end-start)
+	lenFiles := end - start
+	if lenFiles < 0 {
+		lenFiles = 0
+	}
+	apiFiles := make([]*api.ChangedFile, 0, lenFiles)
 	for i := start; i < end; i++ {
 		apiFiles = append(apiFiles, convert.ToChangedFile(diff.Files[i], pr.HeadRepo, endCommitID))
 	}

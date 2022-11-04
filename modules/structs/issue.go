@@ -170,9 +170,9 @@ func (it IssueTemplate) Type() IssueTemplateType {
 	if ext := filepath.Ext(it.FileName); ext == ".md" {
 		return IssueTemplateTypeMarkdown
 	} else if ext == ".yaml" || ext == ".yml" {
-		return "yaml"
+		return IssueTemplateTypeYaml
 	}
-	return IssueTemplateTypeYaml
+	return ""
 }
 
 // IssueMeta basic issue information

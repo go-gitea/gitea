@@ -86,7 +86,7 @@ func init() {
 			var err error
 			successfulAccessTokenCache, err = lru.New(setting.SuccessfulTokensCacheSize)
 			if err != nil {
-				return fmt.Errorf("unable to allocate AccessToken cache: %v", err)
+				return fmt.Errorf("unable to allocate AccessToken cache: %w", err)
 			}
 		} else {
 			successfulAccessTokenCache = nil

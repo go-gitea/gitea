@@ -25,13 +25,13 @@ func IsTagExist(ctx context.Context, repoPath, name string) bool {
 
 // CreateTag create one tag in the repository
 func (repo *Repository) CreateTag(name, revision string) error {
-	_, _, err := NewCommand(repo.Ctx, "tag", "--", name, revision).RunStdString(&RunOpts{Dir: repo.Path})
+	_, _, err := NewCommand(repo.Ctx, "tag").AddDashesAndList(name, revision).RunStdString(&RunOpts{Dir: repo.Path})
 	return err
 }
 
 // CreateAnnotatedTag create one annotated tag in the repository
 func (repo *Repository) CreateAnnotatedTag(name, message, revision string) error {
-	_, _, err := NewCommand(repo.Ctx, "tag", "-a", "-m", message, "--", name, revision).RunStdString(&RunOpts{Dir: repo.Path})
+	_, _, err := NewCommand(repo.Ctx, "tag", "-a", "-m").AddDynamicArguments(message).AddDashesAndList(name, revision).RunStdString(&RunOpts{Dir: repo.Path})
 	return err
 }
 
@@ -64,7 +64,7 @@ func (repo *Repository) GetTagNameBySHA(sha string) (string, error) {
 
 // GetTagID returns the object ID for a tag (annotated tags have both an object SHA AND a commit SHA)
 func (repo *Repository) GetTagID(name string) (string, error) {
-	stdout, _, err := NewCommand(repo.Ctx, "show-ref", "--tags", "--", name).RunStdString(&RunOpts{Dir: repo.Path})
+	stdout, _, err := NewCommand(repo.Ctx, "show-ref", "--tags").AddDashesAndList(name).RunStdString(&RunOpts{Dir: repo.Path})
 	if err != nil {
 		return "", err
 	}
@@ -122,7 +122,7 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 	rc := &RunOpts{Dir: repo.Path, Stdout: stdoutWriter, Stderr: &stderr}
 
 	go func() {
-		err := NewCommand(repo.Ctx, "for-each-ref", "--format", forEachRefFmt.Flag(), "--sort", "-*creatordate", "refs/tags").Run(rc)
+		err := NewCommand(repo.Ctx, "for-each-ref", CmdArg("--format="+forEachRefFmt.Flag()), "--sort", "-*creatordate", "refs/tags").Run(rc)
 		if err != nil {
 			_ = stdoutWriter.CloseWithError(ConcatenateError(err, stderr.String()))
 		} else {
@@ -166,7 +166,7 @@ func parseTagRef(ref map[string]string) (tag *Tag, err error) {
 
 	tag.ID, err = NewIDFromString(ref["objectname"])
 	if err != nil {
-		return nil, fmt.Errorf("parse objectname '%s': %v", ref["objectname"], err)
+		return nil, fmt.Errorf("parse objectname '%s': %w", ref["objectname"], err)
 	}
 
 	if tag.Type == "commit" {
@@ -176,7 +176,7 @@ func parseTagRef(ref map[string]string) (tag *Tag, err error) {
 		// annotated tag
 		tag.Object, err = NewIDFromString(ref["object"])
 		if err != nil {
-			return nil, fmt.Errorf("parse object '%s': %v", ref["object"], err)
+			return nil, fmt.Errorf("parse object '%s': %w", ref["object"], err)
 		}
 	}
 
