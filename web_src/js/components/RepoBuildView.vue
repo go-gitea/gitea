@@ -443,10 +443,12 @@ body > div.full.height {
       log-time {
         color: #777;
         margin-left: 10px;
+        white-space: nowrap;
       }
       log-msg {
         flex: 1;
-        white-space: pre;
+        word-break: break-all;
+        white-space: break-spaces;
         margin-left: 10px;
       }
     }
