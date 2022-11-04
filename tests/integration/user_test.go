@@ -53,6 +53,22 @@ func TestRenameInvalidUsername(t *testing.T) {
 		"%00",
 		"thisHas ASpace",
 		"p<A>tho>lo<gical",
+		".",
+		"..",
+		".well-known",
+		".abc",
+		"abc.",
+		"a..bc",
+		"a...bc",
+		"a.-bc",
+		"a._bc",
+		"a_-bc",
+		"a/bc",
+		"☁️",
+		"-",
+		"--diff",
+		"-im-here",
+		"a space",
 	}
 
 	session := loginUser(t, "user2")
@@ -68,7 +84,7 @@ func TestRenameInvalidUsername(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		assert.Contains(t,
 			htmlDoc.doc.Find(".ui.negative.message").Text(),
-			translation.NewLocale("en-US").Tr("form.alpha_dash_dot_error"),
+			translation.NewLocale("en-US").Tr("form.username_error"),
 		)
 
 		unittest.AssertNotExistsBean(t, &user_model.User{Name: invalidUsername})
@@ -79,9 +95,7 @@ func TestRenameReservedUsername(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	reservedUsernames := []string{
-		".",
-		"..",
-		".well-known",
+		// ".", "..", ".well-known", // The names are not only reserved but also invalid
 		"admin",
 		"api",
 		"assets",

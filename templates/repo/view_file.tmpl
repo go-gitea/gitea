@@ -60,6 +60,11 @@
 					{{end}}
 				</div>
 				<a download href="{{$.RawFileLink}}"><span class="btn-octicon tooltip" data-content="{{.locale.Tr "repo.download_file"}}" data-position="bottom center">{{svg "octicon-download"}}</span></a>
+				{{if or .IsMarkup .IsRenderedHTML (not .IsTextSource)}}
+				<span class="btn-octicon tooltip disabled" id="copy-file-content" data-content="{{.locale.Tr "repo.editor.only_copy_raw"}}" aria-label="{{.locale.Tr "repo.editor.only_copy_raw"}}">{{svg "octicon-copy" 14}}</span>
+				{{else}}
+				<a class="btn-octicon tooltip" id="copy-file-content" data-content="{{.locale.Tr "copy_content"}}" aria-label="{{.locale.Tr "copy_content"}}">{{svg "octicon-copy" 14}}</a>
+				{{end}}
 				{{if .Repository.CanEnableEditor}}
 					{{if .CanEditFile}}
 						<a href="{{.RepoLink}}/_edit/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}"><span class="btn-octicon tooltip" data-content="{{.EditFileTooltip}}" data-position="bottom center">{{svg "octicon-pencil"}}</span></a>
