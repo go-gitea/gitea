@@ -133,8 +133,9 @@ func ViewPost(ctx *context.Context) {
 		}
 
 		resp.StateData.CurrentJobInfo.Title = current.Name
+		resp.StateData.CurrentJobSteps = make([]ViewJobStep, 0)
 		resp.LogsData.StreamingLogs = make([]ViewStepLog, 0, len(req.StepLogCursors))
-		if current.TaskID == 0 {
+		if task == nil {
 			resp.StateData.CurrentJobInfo.Detail = "wait to be pick up by a runner"
 		} else {
 			resp.StateData.CurrentJobInfo.Detail = "TODO: more detail info" // TODO: more detail info

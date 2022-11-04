@@ -28,6 +28,7 @@ import octiconCheckCircleFill from '../../public/img/svg/octicon-check-circle-fi
 import octiconXCircleFill from '../../public/img/svg/octicon-x-circle-fill.svg';
 import octiconSkip from '../../public/img/svg/octicon-skip.svg';
 import octiconMeter from '../../public/img/svg/octicon-meter.svg';
+import octiconBlocked from '../../public/img/svg/octicon-blocked.svg';
 
 
 export const svgs = {
@@ -61,6 +62,7 @@ export const svgs = {
   'octicon-x-circle-fill': octiconXCircleFill,
   'octicon-skip': octiconSkip,
   'octicon-meter': octiconMeter,
+  'octicon-blocked': octiconBlocked,
 };
 
 
