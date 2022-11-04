@@ -175,6 +175,10 @@ func TestIsValidUsername(t *testing.T) {
 		{arg: "a_-bc", want: false},
 		{arg: "a/bc", want: false},
 		{arg: "☁️", want: false},
+		{arg: "-", want: false},
+		{arg: "--diff", want: false},
+		{arg: "-im-here", want: false},
+		{arg: "a space", want: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.arg, func(t *testing.T) {
