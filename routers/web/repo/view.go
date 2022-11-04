@@ -745,7 +745,7 @@ func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
 		return
 	}
 	for _, entry := range allEntries {
-		if entry.Name() == "CITATION.cff" {
+		if entry.Name() == "CITATION.cff" || entry.Name() == "CITATION.bib" {
 			ctx.Data["CitiationExist"] = true
 			// Read Citation file contents
 			blob := entry.Blob()
