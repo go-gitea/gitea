@@ -65,6 +65,10 @@ func TestRenameInvalidUsername(t *testing.T) {
 		"a_-bc",
 		"a/bc",
 		"☁️",
+		"-",
+		"--diff",
+		"-im-here",
+		"a space",
 	}
 
 	session := loginUser(t, "user2")
