@@ -101,7 +101,7 @@
 						<td class="lines-num"></td>
 						<td class="lines-escape"></td>
 						<td class="lines-type-marker"></td>
-						<td class="add-comment-left">
+						<td class="add-comment-left" colspan="4">
 							{{if gt (len $line.Comments) 0}}
 								{{if eq $line.GetCommentSide "previous"}}
 									{{template "repo/diff/conversation" mergeinto $.root "comments" $line.Comments}}
@@ -116,7 +116,7 @@
 						<td class="lines-num"></td>
 						<td class="lines-escape"></td>
 						<td class="lines-type-marker"></td>
-						<td class="add-comment-right">
+						<td class="add-comment-right" colspan="4">
 							{{if eq $line.GetCommentSide "proposed"}}
 								{{template "repo/diff/conversation" mergeinto $.root "comments" $line.Comments}}
 							{{end}}
@@ -133,7 +133,7 @@
 					<td class="lines-num"></td>
 					<td class="lines-escape"></td>
 					<td class="lines-type-marker"></td>
-					<td class="add-comment-left">
+					<td class="add-comment-left" colspan="4">
 						{{if gt (len $line.Comments) 0}}
 							{{if eq $line.GetCommentSide "previous"}}
 								{{template "repo/diff/conversation" mergeinto $.root "comments" $line.Comments}}
@@ -143,7 +143,7 @@
 					<td class="lines-num"></td>
 					<td class="lines-escape"></td>
 					<td class="lines-type-marker"></td>
-					<td class="add-comment-right">
+					<td class="add-comment-right" colspan="4">
 						{{if eq $line.GetCommentSide "proposed"}}
 							{{template "repo/diff/conversation" mergeinto $.root "comments" $line.Comments}}
 						{{end}}

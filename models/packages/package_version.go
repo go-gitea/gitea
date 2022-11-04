@@ -33,7 +33,7 @@ type PackageVersion struct {
 	LowerVersion  string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	CreatedUnix   timeutil.TimeStamp `xorm:"created INDEX NOT NULL"`
 	IsInternal    bool               `xorm:"INDEX NOT NULL DEFAULT false"`
-	MetadataJSON  string             `xorm:"metadata_json TEXT"`
+	MetadataJSON  string             `xorm:"metadata_json LONGTEXT"`
 	DownloadCount int64              `xorm:"NOT NULL DEFAULT 0"`
 }
 

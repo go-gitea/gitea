@@ -243,7 +243,7 @@ func ToGPGKeyEmail(email *user_model.EmailAddress) *api.GPGKeyEmail {
 }
 
 // ToHook convert models.Webhook to api.Hook
-func ToHook(repoLink string, w *webhook.Webhook) *api.Hook {
+func ToHook(repoLink string, w *webhook.Webhook) (*api.Hook, error) {
 	config := map[string]string{
 		"url":          w.URL,
 		"content_type": w.ContentType.Name(),
@@ -256,16 +256,22 @@ func ToHook(repoLink string, w *webhook.Webhook) *api.Hook {
 		config["color"] = s.Color
 	}
 
-	return &api.Hook{
-		ID:      w.ID,
-		Type:    w.Type,
-		URL:     fmt.Sprintf("%s/settings/hooks/%d", repoLink, w.ID),
-		Active:  w.IsActive,
-		Config:  config,
-		Events:  w.EventsArray(),
-		Updated: w.UpdatedUnix.AsTime(),
-		Created: w.CreatedUnix.AsTime(),
+	authorizationHeader, err := w.HeaderAuthorization()
+	if err != nil {
+		return nil, err
 	}
+
+	return &api.Hook{
+		ID:                  w.ID,
+		Type:                w.Type,
+		URL:                 fmt.Sprintf("%s/settings/hooks/%d", repoLink, w.ID),
+		Active:              w.IsActive,
+		Config:              config,
+		Events:              w.EventsArray(),
+		AuthorizationHeader: authorizationHeader,
+		Updated:             w.UpdatedUnix.AsTime(),
+		Created:             w.CreatedUnix.AsTime(),
+	}, nil
 }
 
 // ToGitHook convert git.Hook to api.GitHook
