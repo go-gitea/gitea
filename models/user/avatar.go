@@ -10,14 +10,12 @@ import (
 	"fmt"
 	"image/png"
 	"io"
-	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/models/db"
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/avatar"
-	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -70,15 +68,9 @@ func (u *User) AvatarLinkWithSize(size int) string {
 	useLocalAvatar := false
 	autoGenerateAvatar := false
 
-	disableGravatarStr, _ := cache.GetString(system_model.GenCacheKey(system_model.KeyPictureDisableGravatar), func() (string, error) {
-		res, err := system_model.GetSetting(system_model.KeyPictureDisableGravatar)
-		if err != nil {
-			return "", err
-		}
-		return res.SettingValue, nil
-	})
+	disableGravatarSetting, _ := system_model.GetSetting(system_model.KeyPictureDisableGravatar)
 
-	disableGravatar, _ := strconv.ParseBool(disableGravatarStr)
+	disableGravatar := disableGravatarSetting.GetValueBool()
 
 	switch {
 	case u.UseCustomAvatar:
