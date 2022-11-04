@@ -14,10 +14,10 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/timeutil"
 	api "code.gitea.io/gitea/modules/structs"
-
+	"code.gitea.io/gitea/modules/timeutil"
 	"xorm.io/builder"
+
 	"github.com/nektos/act/pkg/jobparser"
 	"golang.org/x/exp/slices"
 )
@@ -167,15 +167,19 @@ func InsertRun(run *Run, jobs []*jobparser.SingleWorkflow) error {
 	for _, v := range jobs {
 		id, job := v.Job()
 		payload, _ := v.Marshal()
+		needs := job.Needs()
+		status := StatusWaiting
+		if len(needs) > 0 {
+			status = StatusBlocked
+		}
 		runJobs = append(runJobs, &RunJob{
 			RunID:           run.ID,
 			Name:            job.Name,
-			Ready:           true, // TODO: should be false if there are needs to satisfy
 			WorkflowPayload: payload,
 			JobID:           id,
-			Needs:           nil, // TODO: analyse needs
+			Needs:           needs,
 			RunsOn:          job.RunsOn(),
-			Status:          StatusWaiting,
+			Status:          status,
 		})
 	}
 	if err := db.Insert(ctx, runJobs); err != nil {

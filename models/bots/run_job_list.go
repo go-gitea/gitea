@@ -16,14 +16,14 @@ type RunJobList []*RunJob
 
 type FindRunJobOptions struct {
 	db.ListOptions
-	Status        Status
+	Statuses      []Status
 	StartedBefore timeutil.TimeStamp
 }
 
 func (opts FindRunJobOptions) toConds() builder.Cond {
 	cond := builder.NewCond()
-	if opts.Status > StatusUnknown {
-		cond = cond.And(builder.Eq{"status": opts.Status})
+	if len(opts.Statuses) > 0 {
+		cond = cond.And(builder.In("status", opts.Statuses))
 	}
 	if opts.StartedBefore > 0 {
 		cond = cond.And(builder.Lt{"started": opts.StartedBefore})

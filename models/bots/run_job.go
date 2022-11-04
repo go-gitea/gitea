@@ -22,11 +22,10 @@ type RunJob struct {
 	RunID           int64 `xorm:"index"`
 	Run             *Run  `xorm:"-"`
 	Name            string
-	Ready           bool // ready to be executed
 	Attempt         int64
 	WorkflowPayload []byte
 	JobID           string             // job id in workflow, not job's id
-	Needs           []int64            `xorm:"JSON TEXT"`
+	Needs           []string           `xorm:"JSON TEXT"`
 	RunsOn          []string           `xorm:"JSON TEXT"`
 	TaskID          int64              // the latest task of the job
 	Status          Status             `xorm:"index"`

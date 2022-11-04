@@ -242,7 +242,7 @@ func CreateTaskForRunner(ctx context.Context, runner *Runner) (*Task, bool, erro
 	}
 
 	var jobs []*RunJob
-	if err := e.Where("task_id=? AND ready=?", 0, true).And(jobCond).OrderBy("id").Find(&jobs); err != nil {
+	if err := e.Where("task_id=? AND status=?", 0, StatusWaiting).And(jobCond).Asc("id").Find(&jobs); err != nil {
 		return nil, false, err
 	}
 

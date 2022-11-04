@@ -15,6 +15,7 @@ const (
 	StatusSkipped                 // 4, consistent with runnerv1.Result_RESULT_SKIPPED
 	StatusWaiting                 // 5
 	StatusRunning                 // 6
+	StatusBlocked                 // 7
 )
 
 // String returns the string name of the Status
