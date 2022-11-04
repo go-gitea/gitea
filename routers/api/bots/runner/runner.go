@@ -165,9 +165,21 @@ func (s *Service) UpdateTask(
 	ctx context.Context,
 	req *connect.Request[runnerv1.UpdateTaskRequest],
 ) (*connect.Response[runnerv1.UpdateTaskResponse], error) {
-	res := connect.NewResponse(&runnerv1.UpdateTaskResponse{})
+	// Get Task first
+	task, err := bots_model.GetTaskByID(ctx, req.Msg.State.Id)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "can't find the task: %v", err)
+	}
+	if task.Result == runnerv1.Result_RESULT_CANCELLED {
+		return connect.NewResponse(&runnerv1.UpdateTaskResponse{
+			State: &runnerv1.TaskState{
+				Id:     req.Msg.State.Id,
+				Result: task.Result,
+			},
+		}), nil
+	}
 
-	task, err := bots_model.UpdateTaskByState(req.Msg.State)
+	task, err = bots_model.UpdateTaskByState(req.Msg.State)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "update task: %v", err)
 	}
@@ -213,7 +225,7 @@ func (s *Service) UpdateTask(
 		}
 	}
 
-	return res, nil
+	return connect.NewResponse(&runnerv1.UpdateTaskResponse{}), nil
 }
 
 // UpdateLog uploads log of the task.
