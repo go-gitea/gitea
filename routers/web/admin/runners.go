@@ -93,30 +93,3 @@ func DeleteRunnerPost(ctx *context.Context) {
 func ResetRunnerRegistrationToken(ctx *context.Context) {
 	common.RunnerResetRegistrationToken(ctx, 0, 0, setting.AppSubURL+"/admin/runners/")
 }
-
-/**
-// NewRunner render adding a new runner page
-func NewRunner(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("admin.runners.new")
-	ctx.Data["PageIsAdmin"] = true
-	ctx.Data["PageIsAdminRunners"] = true
-
-	ctx.HTML(http.StatusOK, tplRunnerNew)
-}
-
-// NewRunnerPost response for adding a new runner
-func NewRunnerPost(ctx *context.Context) {
-	// form := web.GetForm(ctx).(*forms.AdminCreateRunnerForm)
-	ctx.Data["Title"] = ctx.Tr("admin.runners.new")
-	ctx.Data["PageIsAdmin"] = true
-	ctx.Data["PageIsAdminRunners"] = true
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplRunnerNew)
-		return
-	}
-
-	// ctx.Flash.Success(ctx.Tr("admin.runners.new_success", u.Name))
-	// ctx.Redirect(setting.AppSubURL + "/admin/users/" + strconv.FormatInt(u.ID, 10))
-}
-**/

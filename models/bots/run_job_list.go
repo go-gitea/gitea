@@ -14,6 +14,49 @@ import (
 
 type RunJobList []*RunJob
 
+func (jobs RunJobList) GetRunIDs() []int64 {
+	var runIDsMap = make(map[int64]struct{})
+	for _, j := range jobs {
+		if j.RunID == 0 {
+			continue
+		}
+		runIDsMap[j.RunID] = struct{}{}
+	}
+	var runIDs = make([]int64, 0, len(runIDsMap))
+	for runID := range runIDsMap {
+		runIDs = append(runIDs, runID)
+	}
+	return runIDs
+}
+
+func (jobs RunJobList) LoadRuns(ctx context.Context, withRepo bool) error {
+	runIDs := jobs.GetRunIDs()
+	runs := make(map[int64]*Run, len(runIDs))
+	if err := db.GetEngine(ctx).In("id", runIDs).Find(&runs); err != nil {
+		return err
+	}
+	for _, j := range jobs {
+		if j.RunID > 0 && j.Run == nil {
+			j.Run = runs[j.RunID]
+		}
+	}
+	if withRepo {
+		var runsList RunList = make([]*Run, 0, len(runs))
+		for _, r := range runs {
+			runsList = append(runsList, r)
+		}
+		return runsList.LoadRepos()
+	}
+	return nil
+}
+
+func (jobs RunJobList) LoadAttributes(ctx context.Context, withRepo bool) error {
+	if err := jobs.LoadRuns(ctx, withRepo); err != nil {
+		return err
+	}
+	return nil
+}
+
 type FindRunJobOptions struct {
 	db.ListOptions
 	RunID         int64

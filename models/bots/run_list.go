@@ -8,6 +8,7 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/util"
 	"xorm.io/builder"
@@ -28,6 +29,18 @@ func (runs RunList) GetUserIDs() []int64 {
 	return userIDs
 }
 
+func (runs RunList) GetRepoIDs() []int64 {
+	repoIDsMap := make(map[int64]struct{})
+	for _, run := range runs {
+		repoIDsMap[run.RepoID] = struct{}{}
+	}
+	repoIDs := make([]int64, 0, len(repoIDsMap))
+	for repoID := range repoIDsMap {
+		repoIDs = append(repoIDs, repoID)
+	}
+	return repoIDs
+}
+
 func (runs RunList) LoadTriggerUser() error {
 	userIDs := runs.GetUserIDs()
 	users := make(map[int64]*user_model.User, len(userIDs))
@@ -36,6 +49,18 @@ func (runs RunList) LoadTriggerUser() error {
 	}
 	for _, run := range runs {
 		run.TriggerUser = users[run.TriggerUserID]
+	}
+	return nil
+}
+
+func (runs RunList) LoadRepos() error {
+	repoIDs := runs.GetRepoIDs()
+	repos, err := repo_model.GetRepositoriesMapByIDs(repoIDs)
+	if err != nil {
+		return err
+	}
+	for _, run := range runs {
+		run.Repo = repos[run.RepoID]
 	}
 	return nil
 }

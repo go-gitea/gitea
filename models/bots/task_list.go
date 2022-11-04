@@ -14,11 +14,54 @@ import (
 
 type TaskList []*Task
 
+func (tasks TaskList) GetJobIDs() []int64 {
+	var jobIDsMap = make(map[int64]struct{})
+	for _, t := range tasks {
+		if t.JobID == 0 {
+			continue
+		}
+		jobIDsMap[t.JobID] = struct{}{}
+	}
+	var jobIDs = make([]int64, 0, len(jobIDsMap))
+	for jobID := range jobIDsMap {
+		jobIDs = append(jobIDs, jobID)
+	}
+	return jobIDs
+}
+
+func (tasks TaskList) LoadJobs(ctx context.Context) error {
+	jobIDs := tasks.GetJobIDs()
+	jobs := make(map[int64]*RunJob, len(jobIDs))
+	if err := db.GetEngine(ctx).In("id", jobIDs).Find(&jobs); err != nil {
+		return err
+	}
+	for _, t := range tasks {
+		if t.JobID > 0 && t.Job == nil {
+			t.Job = jobs[t.JobID]
+		}
+	}
+
+	var jobsList RunJobList = make([]*RunJob, 0, len(jobs))
+	for _, j := range jobs {
+		jobsList = append(jobsList, j)
+	}
+	return jobsList.LoadAttributes(ctx, true)
+}
+
+func (tasks TaskList) LoadAttributes(ctx context.Context) error {
+	if err := tasks.LoadJobs(ctx); err != nil {
+		return err
+	}
+	return nil
+}
+
 type FindTaskOptions struct {
 	db.ListOptions
 	Status        Status
 	UpdatedBefore timeutil.TimeStamp
 	StartedBefore timeutil.TimeStamp
+	RunnerID      int64
+	IDOrderDesc   bool
 }
 
 func (opts FindTaskOptions) toConds() builder.Cond {
@@ -32,6 +75,9 @@ func (opts FindTaskOptions) toConds() builder.Cond {
 	if opts.StartedBefore > 0 {
 		cond = cond.And(builder.Lt{"started": opts.StartedBefore})
 	}
+	if opts.RunnerID > 0 {
+		cond = cond.And(builder.Eq{"runner_id": opts.RunnerID})
+	}
 	return cond
 }
 
@@ -39,6 +85,9 @@ func FindTasks(ctx context.Context, opts FindTaskOptions) (TaskList, int64, erro
 	e := db.GetEngine(ctx).Where(opts.toConds())
 	if opts.PageSize > 0 && opts.Page >= 1 {
 		e.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
+	}
+	if opts.IDOrderDesc {
+		e.OrderBy("id DESC")
 	}
 	var tasks TaskList
 	total, err := e.FindAndCount(&tasks)

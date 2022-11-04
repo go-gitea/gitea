@@ -80,6 +80,21 @@ func RunnerDetails(ctx *context.Context, tplName base.TplName, runnerID int64, o
 	ctx.Data["Runner"] = runner
 
 	// TODO: get task list for this runner
+	tasks, _, err := bots_model.FindTasks(ctx, bots_model.FindTaskOptions{
+		Status:      bots_model.StatusUnknown, // Unknown means all
+		IDOrderDesc: true,
+		RunnerID:    runner.ID,
+	})
+	if err != nil {
+		ctx.ServerError("FindTasks", err)
+		return
+	}
+	if err = tasks.LoadAttributes(ctx); err != nil {
+		ctx.ServerError("TasksLoadAttributes", err)
+		return
+	}
+
+	ctx.Data["Tasks"] = tasks
 
 	ctx.HTML(http.StatusOK, tplName)
 }

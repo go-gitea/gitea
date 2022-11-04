@@ -56,6 +56,37 @@
 		{{.locale.Tr "admin.runners.task_list"}}
 	</h4>
 	<div class="ui attached segment">
-		Comming soon
+		<table class="ui very basic striped table unstackable">
+			<thead>
+				<tr>
+					<th>{{.locale.Tr "runners.task_list.job"}}</th>
+					<th>{{.locale.Tr "runners.task_list.status"}}</th>
+					<th>{{.locale.Tr "runners.task_list.repository"}}</th>
+					<th>{{.locale.Tr "runners.task_list.commit"}}</th>
+					<th>{{.locale.Tr "runners.task_list.finish_at"}}</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{range .Tasks}}
+				<tr>
+					<td><a href="{{.GetBuildViewLink}}" target="_blank">#{{.ID}}</a></td>
+					<td><span class="ui label task-status-{{.Status.String}}">{{.Status.String}}</span></td>
+					<td>{{.GetRepoName}}</td>
+					<td><strong>
+							<a href="{{.GetCommitLink}}" target="_blank">{{.GetCommitSHAShort}}</a>
+						</strong> </td>
+					<td>{{if .IsStopped}}
+						<span>{{TimeSinceUnix .Stopped $.locale}}</span>
+						{{else}}-{{end}}</td>
+				</tr>
+				{{end}}
+				{{if not .Tasks}}
+				<tr>
+					<td colspan="5">{{.locale.Tr "runners.task_list.no_tasks"}}</td>
+				</tr>
+				{{end}}
+			</tbody>
+		</table>
+		{{template "base/paginate" .}}
 	</div>
 </div>

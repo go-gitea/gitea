@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
 	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -90,6 +91,64 @@ func (task *Task) TakeTime() time.Duration {
 	}
 	task.Stopped.AsTime().Sub(started)
 	return time.Since(started).Truncate(time.Second)
+}
+
+func (task *Task) IsStopped() bool {
+	return task.Stopped > 0
+}
+
+func (task *Task) GetRepo() string {
+	return "xxxx"
+}
+
+func (task *Task) GetCommitSHA() string {
+	if task.Job == nil {
+		return ""
+	}
+	if task.Job.Run == nil {
+		return ""
+	}
+
+	return task.Job.Run.CommitSHA
+}
+
+func (task *Task) GetCommitSHAShort() string {
+	commitSHA := task.GetCommitSHA()
+	if len(commitSHA) > 8 {
+		return commitSHA[:8]
+	}
+	return commitSHA
+}
+
+func (task *Task) GetBuildViewLink() string {
+	if task.Job == nil || task.Job.Run == nil || task.Job.Run.Repo == nil {
+		return ""
+	}
+	return task.Job.Run.Repo.Link() + "/builds/runs/" + strconv.FormatInt(task.ID, 10)
+}
+
+func (task *Task) GetCommitLink() string {
+	if task.Job == nil || task.Job.Run == nil || task.Job.Run.Repo == nil {
+		return ""
+	}
+	if commitSHA := task.GetCommitSHA(); commitSHA != "" {
+		return task.Job.Run.Repo.CommitLink(commitSHA)
+	}
+	return ""
+}
+
+func (task *Task) GetRepoName() string {
+	if task.Job == nil || task.Job.Run == nil || task.Job.Run.Repo == nil {
+		return ""
+	}
+	return task.Job.Run.Repo.FullName()
+}
+
+func (task *Task) GetRepoLink() string {
+	if task.Job == nil || task.Job.Run == nil || task.Job.Run.Repo == nil {
+		return ""
+	}
+	return task.Job.Run.Repo.Link()
 }
 
 func (task *Task) LoadJob(ctx context.Context) error {
