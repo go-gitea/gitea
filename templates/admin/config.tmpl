@@ -50,7 +50,7 @@
 				<dt>{{.locale.Tr "admin.config.reverse_auth_user"}}</dt>
 				<dd>{{.ReverseProxyAuthUser}}</dd>
 
-				{{if .EnvVars }}
+				{{if .EnvVars}}
 				<div class="ui divider"></div>
 				{{range .EnvVars}}
 				<dt>{{.Name}}</dt>
@@ -218,12 +218,7 @@
 				{{if .MailerEnabled}}
 					<dt>{{.locale.Tr "admin.config.mailer_name"}}</dt>
 					<dd>{{.Mailer.Name}}</dd>
-					{{if eq .Mailer.MailerType "smtp"}}
-						<dt>{{.locale.Tr "admin.config.mailer_disable_helo"}}</dt>
-						<dd>{{if .DisableHelo}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
-						<dt>{{.locale.Tr "admin.config.mailer_host"}}</dt>
-						<dd>{{.Mailer.Host}}</dd>
-					{{else if eq .Mailer.MailerType "sendmail"}}
+					{{if eq .Mailer.Protocol "sendmail"}}
 						<dt>{{.locale.Tr "admin.config.mailer_use_sendmail"}}</dt>
 						<dd>{{svg "octicon-check"}}</dd>
 						<dt>{{.locale.Tr "admin.config.mailer_sendmail_path"}}</dt>
@@ -232,6 +227,18 @@
 						<dd>{{.Mailer.SendmailArgs}}</dd>
 						<dt>{{.locale.Tr "admin.config.mailer_sendmail_timeout"}}</dt>
 						<dd>{{.Mailer.SendmailTimeout}} {{.locale.Tr "tool.raw_seconds"}}</dd>
+					{{else if eq .Mailer.Protocol "dummy"}}
+						<dt>{{.locale.Tr "admin.config.mailer_use_dummy"}}</dt>
+						<dd>{{svg "octicon-check"}}</dd>
+					{{else}}{{/* SMTP family */}}
+						<dt>{{.locale.Tr "admin.config.mailer_protocol"}}</dt>
+						<dd>{{.Mailer.Protocol}}</dd>
+						<dt>{{.locale.Tr "admin.config.mailer_enable_helo"}}</dt>
+						<dd>{{if .Mailer.EnableHelo}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
+						<dt>{{.locale.Tr "admin.config.mailer_smtp_addr"}}</dt>
+						<dd>{{.Mailer.SMTPAddr}}</dd>
+						<dt>{{.locale.Tr "admin.config.mailer_smtp_port"}}</dt>
+						<dd>{{.Mailer.SMTPPort}}</dd>
 					{{end}}
 					<dt>{{.locale.Tr "admin.config.mailer_user"}}</dt>
 					<dd>{{if .Mailer.User}}{{.Mailer.User}}{{else}}(empty){{end}}</dd><br>
@@ -294,10 +301,18 @@
 		<div class="ui attached table segment">
 			<dl class="dl-horizontal admin-dl-horizontal">
 				<dt>{{.locale.Tr "admin.config.disable_gravatar"}}</dt>
-				<dd>{{if .DisableGravatar}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
+				<dd>
+					<div class="ui toggle checkbox">
+						<input type="checkbox" name="picture.disable_gravatar" version="{{.SystemSettings.GetVersion "picture.disable_gravatar"}}"{{if .SystemSettings.GetBool "picture.disable_gravatar"}} checked{{end}}>
+					</div>
+				</dd>
 				<div class="ui divider"></div>
 				<dt>{{.locale.Tr "admin.config.enable_federated_avatar"}}</dt>
-				<dd>{{if .EnableFederatedAvatar}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
+				<dd>
+					<div class="ui toggle checkbox">
+						<input type="checkbox" name="picture.enable_federated_avatar" version="{{.SystemSettings.GetVersion "picture.enable_federated_avatar"}}"{{if .SystemSettings.GetBool "picture.enable_federated_avatar"}} checked{{end}}>
+					</div>
+				</dd>
 			</dl>
 		</div>
 

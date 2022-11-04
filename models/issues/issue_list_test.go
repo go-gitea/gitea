@@ -18,9 +18,9 @@ func TestIssueList_LoadRepositories(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	issueList := issues_model.IssueList{
-		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1}).(*issues_model.Issue),
-		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2}).(*issues_model.Issue),
-		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 4}).(*issues_model.Issue),
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1}),
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2}),
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 4}),
 	}
 
 	repos, err := issueList.LoadRepositories()
@@ -35,8 +35,8 @@ func TestIssueList_LoadAttributes(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	setting.Service.EnableTimetracking = true
 	issueList := issues_model.IssueList{
-		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1}).(*issues_model.Issue),
-		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 4}).(*issues_model.Issue),
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1}),
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 4}),
 	}
 
 	assert.NoError(t, issueList.LoadAttributes())

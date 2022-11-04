@@ -21,6 +21,7 @@ import (
 	"text/template"
 	"time"
 
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -59,6 +60,7 @@ const (
 	ImageCaptcha = "image"
 	ReCaptcha    = "recaptcha"
 	HCaptcha     = "hcaptcha"
+	MCaptcha     = "mcaptcha"
 )
 
 // settings
@@ -91,47 +93,56 @@ var (
 	// LocalURL is the url for locally running applications to contact Gitea. It always has a '/' suffix
 	// It maps to ini:"LOCAL_ROOT_URL"
 	LocalURL string
+	// AssetVersion holds a opaque value that is used for cache-busting assets
+	AssetVersion string
 
 	// Server settings
-	Protocol             Scheme
-	Domain               string
-	HTTPAddr             string
-	HTTPPort             string
-	RedirectOtherPort    bool
-	PortToRedirect       string
-	OfflineMode          bool
-	CertFile             string
-	KeyFile              string
-	StaticRootPath       string
-	StaticCacheTime      time.Duration
-	EnableGzip           bool
-	LandingPageURL       LandingPage
-	LandingPageCustom    string
-	UnixSocketPermission uint32
-	EnablePprof          bool
-	PprofDataPath        string
-	EnableAcme           bool
-	AcmeTOS              bool
-	AcmeLiveDirectory    string
-	AcmeEmail            string
-	AcmeURL              string
-	AcmeCARoot           string
-	SSLMinimumVersion    string
-	SSLMaximumVersion    string
-	SSLCurvePreferences  []string
-	SSLCipherSuites      []string
-	GracefulRestartable  bool
-	GracefulHammerTime   time.Duration
-	StartupTimeout       time.Duration
-	PerWriteTimeout      = 30 * time.Second
-	PerWritePerKbTimeout = 10 * time.Second
-	StaticURLPrefix      string
-	AbsoluteAssetURL     string
+	Protocol                   Scheme
+	UseProxyProtocol           bool // `ini:"USE_PROXY_PROTOCOL"`
+	ProxyProtocolTLSBridging   bool //`ini:"PROXY_PROTOCOL_TLS_BRIDGING"`
+	ProxyProtocolHeaderTimeout time.Duration
+	ProxyProtocolAcceptUnknown bool
+	Domain                     string
+	HTTPAddr                   string
+	HTTPPort                   string
+	LocalUseProxyProtocol      bool
+	RedirectOtherPort          bool
+	RedirectorUseProxyProtocol bool
+	PortToRedirect             string
+	OfflineMode                bool
+	CertFile                   string
+	KeyFile                    string
+	StaticRootPath             string
+	StaticCacheTime            time.Duration
+	EnableGzip                 bool
+	LandingPageURL             LandingPage
+	LandingPageCustom          string
+	UnixSocketPermission       uint32
+	EnablePprof                bool
+	PprofDataPath              string
+	EnableAcme                 bool
+	AcmeTOS                    bool
+	AcmeLiveDirectory          string
+	AcmeEmail                  string
+	AcmeURL                    string
+	AcmeCARoot                 string
+	SSLMinimumVersion          string
+	SSLMaximumVersion          string
+	SSLCurvePreferences        []string
+	SSLCipherSuites            []string
+	GracefulRestartable        bool
+	GracefulHammerTime         time.Duration
+	StartupTimeout             time.Duration
+	PerWriteTimeout            = 30 * time.Second
+	PerWritePerKbTimeout       = 10 * time.Second
+	StaticURLPrefix            string
+	AbsoluteAssetURL           string
 
 	SSH = struct {
 		Disabled                              bool               `ini:"DISABLE_SSH"`
 		StartBuiltinServer                    bool               `ini:"START_SSH_SERVER"`
 		BuiltinServerUser                     string             `ini:"BUILTIN_SSH_SERVER_USER"`
+		UseProxyProtocol                      bool               `ini:"SSH_SERVER_USE_PROXY_PROTOCOL"`
 		Domain                                string             `ini:"SSH_DOMAIN"`
 		Port                                  int                `ini:"SSH_PORT"`
 		User                                  string             `ini:"SSH_USER"`
@@ -185,6 +196,7 @@ var (
 	CookieRememberName                 string
 	ReverseProxyAuthUser               string
 	ReverseProxyAuthEmail              string
+	ReverseProxyAuthFullName           string
 	ReverseProxyLimit                  int
 	ReverseProxyTrustedProxies         []string
 	MinPasswordLength                  int
@@ -224,11 +236,12 @@ var (
 		DefaultTheme          string
 		Themes                []string
 		Reactions             []string
-		ReactionsMap          map[string]bool `ini:"-"`
+		ReactionsLookup       container.Set[string] `ini:"-"`
 		CustomEmojis          []string
 		CustomEmojisMap       map[string]string `ini:"-"`
 		SearchRepoDescription bool
 		UseServiceWorker      bool
+		OnlyShowRelevantRepos bool
 
 		Notification struct {
 			MinTimeout            time.Duration
@@ -262,8 +275,8 @@ var (
 	}{
 		ExplorePagingNum:    20,
 		SitemapPagingNum:    20,
-		IssuePagingNum:      10,
-		RepoSearchPagingNum: 10,
+		IssuePagingNum:      20,
+		RepoSearchPagingNum: 20,
 		MembersPagingNum:    20,
 		FeedMaxCommitNum:    5,
 		FeedPagingNum:       20,
@@ -332,10 +345,12 @@ var (
 		EnableHardLineBreakInDocuments bool
 		CustomURLSchemes               []string `ini:"CUSTOM_URL_SCHEMES"`
 		FileExtensions                 []string
+		EnableMath                     bool
 	}{
 		EnableHardLineBreakInComments:  true,
 		EnableHardLineBreakInDocuments: false,
 		FileExtensions:                 strings.Split(".md,.markdown,.mdown,.mkd", ","),
+		EnableMath:                     true,
 	}
 
 	// Admin settings
@@ -437,6 +452,7 @@ var (
 	RunUser       string
 	IsWindows     bool
 	HasRobotsTxt  bool
+	EnableSitemap bool
 	InternalToken string // internal access token
 )
 
@@ -592,6 +608,13 @@ func deprecatedSetting(oldSection, oldKey, newSection, newKey string) {
 	}
 }
 
+// deprecatedSettingDB add a hint that the configuration has been moved to database but still kept in app.ini
+func deprecatedSettingDB(oldSection, oldKey string) {
+	if Cfg.Section(oldSection).HasKey(oldKey) {
+		log.Error("Deprecated `[%s]` `%s` present which has been copied to database table sys_setting", oldSection, oldKey)
+	}
+}
+
 // loadFromConf initializes configuration context.
 // NOTE: do not print any log except error.
 func loadFromConf(allowEmpty bool, extraConfig string) {
@@ -715,6 +738,10 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 			HTTPAddr = filepath.Join(AppWorkPath, HTTPAddr)
 		}
 	}
+	UseProxyProtocol = sec.Key("USE_PROXY_PROTOCOL").MustBool(false)
+	ProxyProtocolTLSBridging = sec.Key("PROXY_PROTOCOL_TLS_BRIDGING").MustBool(false)
+	ProxyProtocolHeaderTimeout = sec.Key("PROXY_PROTOCOL_HEADER_TIMEOUT").MustDuration(5 * time.Second)
+	ProxyProtocolAcceptUnknown = sec.Key("PROXY_PROTOCOL_ACCEPT_UNKNOWN").MustBool(false)
 	GracefulRestartable = sec.Key("ALLOW_GRACEFUL_RESTARTS").MustBool(true)
 	GracefulHammerTime = sec.Key("GRACEFUL_HAMMER_TIME").MustDuration(60 * time.Second)
 	StartupTimeout = sec.Key("STARTUP_TIMEOUT").MustDuration(0 * time.Second)
@@ -746,6 +773,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	}
 
 	AbsoluteAssetURL = MakeAbsoluteAssetURL(AppURL, StaticURLPrefix)
+	AssetVersion = strings.ReplaceAll(AppVer, "+", "~") // make sure the version string is clear (no real escaping is needed)
 
 	manifestBytes := MakeManifestData(AppName, AppURL, AbsoluteAssetURL)
 	ManifestData = `application/json;base64,` + base64.StdEncoding.EncodeToString(manifestBytes)
@@ -768,8 +796,10 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	}
 	LocalURL = sec.Key("LOCAL_ROOT_URL").MustString(defaultLocalURL)
 	LocalURL = strings.TrimRight(LocalURL, "/") + "/"
+	LocalUseProxyProtocol = sec.Key("LOCAL_USE_PROXY_PROTOCOL").MustBool(UseProxyProtocol)
 	RedirectOtherPort = sec.Key("REDIRECT_OTHER_PORT").MustBool(false)
 	PortToRedirect = sec.Key("PORT_TO_REDIRECT").MustString("80")
+	RedirectorUseProxyProtocol = sec.Key("REDIRECTOR_USE_PROXY_PROTOCOL").MustBool(UseProxyProtocol)
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
 	DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool()
 	if len(StaticRootPath) == 0 {
@@ -834,6 +864,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	SSH.KeygenPath = sec.Key("SSH_KEYGEN_PATH").MustString("ssh-keygen")
 	SSH.Port = sec.Key("SSH_PORT").MustInt(22)
 	SSH.ListenPort = sec.Key("SSH_LISTEN_PORT").MustInt(SSH.Port)
+	SSH.UseProxyProtocol = sec.Key("SSH_SERVER_USE_PROXY_PROTOCOL").MustBool(false)
 
 	// When disable SSH, start builtin server value is ignored.
 	if SSH.Disabled {
@@ -901,13 +932,20 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 
 	sec = Cfg.Section("security")
 	InstallLock = sec.Key("INSTALL_LOCK").MustBool(false)
-	SecretKey = sec.Key("SECRET_KEY").MustString("!#@FDEWREWR&*(")
 	LogInRememberDays = sec.Key("LOGIN_REMEMBER_DAYS").MustInt(7)
 	CookieUserName = sec.Key("COOKIE_USERNAME").MustString("gitea_awesome")
+	SecretKey = loadSecret(sec, "SECRET_KEY_URI", "SECRET_KEY")
+	if SecretKey == "" {
+		// FIXME: https://github.com/go-gitea/gitea/issues/16832
+		// Until it supports rotating an existing secret key, we shouldn't move users off of the widely used default value
+		SecretKey = "!#@FDEWREWR&*(" // nolint:gosec
+	}
+
 	CookieRememberName = sec.Key("COOKIE_REMEMBER_NAME").MustString("gitea_incredible")
 
 	ReverseProxyAuthUser = sec.Key("REVERSE_PROXY_AUTHENTICATION_USER").MustString("X-WEBAUTH-USER")
 	ReverseProxyAuthEmail = sec.Key("REVERSE_PROXY_AUTHENTICATION_EMAIL").MustString("X-WEBAUTH-EMAIL")
+	ReverseProxyAuthFullName = sec.Key("REVERSE_PROXY_AUTHENTICATION_FULL_NAME").MustString("X-WEBAUTH-FULLNAME")
 
 	ReverseProxyLimit = sec.Key("REVERSE_PROXY_LIMIT").MustInt(1)
 	ReverseProxyTrustedProxies = sec.Key("REVERSE_PROXY_TRUSTED_PROXIES").Strings(",")
@@ -925,9 +963,10 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
 	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
 
-	InternalToken = loadInternalToken(sec)
+	InternalToken = loadSecret(sec, "INTERNAL_TOKEN_URI", "INTERNAL_TOKEN")
 	if InstallLock && InternalToken == "" {
 		// if Gitea has been installed but the InternalToken hasn't been generated (upgrade from an old release), we should generate
+		// some users do cluster deployment, they still depend on this auto-generating behavior.
 		generateSaveInternalToken()
 	}
 
@@ -1062,11 +1101,13 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	ShowFooterBranding = Cfg.Section("other").Key("SHOW_FOOTER_BRANDING").MustBool(false)
 	ShowFooterVersion = Cfg.Section("other").Key("SHOW_FOOTER_VERSION").MustBool(true)
 	ShowFooterTemplateLoadTime = Cfg.Section("other").Key("SHOW_FOOTER_TEMPLATE_LOAD_TIME").MustBool(true)
+	EnableSitemap = Cfg.Section("other").Key("ENABLE_SITEMAP").MustBool(true)
 
 	UI.ShowUserEmail = Cfg.Section("ui").Key("SHOW_USER_EMAIL").MustBool(true)
 	UI.DefaultShowFullName = Cfg.Section("ui").Key("DEFAULT_SHOW_FULL_NAME").MustBool(false)
 	UI.SearchRepoDescription = Cfg.Section("ui").Key("SEARCH_REPO_DESCRIPTION").MustBool(true)
 	UI.UseServiceWorker = Cfg.Section("ui").Key("USE_SERVICE_WORKER").MustBool(false)
+	UI.OnlyShowRelevantRepos = Cfg.Section("ui").Key("ONLY_SHOW_RELEVANT_REPOS").MustBool(false)
 
 	HasRobotsTxt, err = util.IsFile(path.Join(CustomPath, "robots.txt"))
 	if err != nil {
@@ -1075,9 +1116,9 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 
 	newMarkup()
 
-	UI.ReactionsMap = make(map[string]bool)
+	UI.ReactionsLookup = make(container.Set[string])
 	for _, reaction := range UI.Reactions {
-		UI.ReactionsMap[reaction] = true
+		UI.ReactionsLookup.Add(reaction)
 	}
 	UI.CustomEmojisMap = make(map[string]string)
 	for _, emoji := range UI.CustomEmojis {
@@ -1117,38 +1158,46 @@ func parseAuthorizedPrincipalsAllow(values []string) ([]string, bool) {
 	return authorizedPrincipalsAllow, true
 }
 
-func loadInternalToken(sec *ini.Section) string {
-	uri := sec.Key("INTERNAL_TOKEN_URI").String()
-	if uri == "" {
-		return sec.Key("INTERNAL_TOKEN").String()
+// loadSecret load the secret from ini by uriKey or verbatimKey, only one of them could be set
+// If the secret is loaded from uriKey (file), the file should be non-empty, to guarantee the behavior stable and clear.
+func loadSecret(sec *ini.Section, uriKey, verbatimKey string) string {
+	// don't allow setting both URI and verbatim string
+	uri := sec.Key(uriKey).String()
+	verbatim := sec.Key(verbatimKey).String()
+	if uri != "" && verbatim != "" {
+		log.Fatal("Cannot specify both %s and %s", uriKey, verbatimKey)
 	}
+
+	// if we have no URI, use verbatim
+	if uri == "" {
+		return verbatim
+	}
+
 	tempURI, err := url.Parse(uri)
 	if err != nil {
-		log.Fatal("Failed to parse INTERNAL_TOKEN_URI (%s): %v", uri, err)
+		log.Fatal("Failed to parse %s (%s): %v", uriKey, uri, err)
 	}
 	switch tempURI.Scheme {
 	case "file":
 		buf, err := os.ReadFile(tempURI.RequestURI())
-		if err != nil && !os.IsNotExist(err) {
-			log.Fatal("Failed to open InternalTokenURI (%s): %v", uri, err)
+		if err != nil {
+			log.Fatal("Failed to read %s (%s): %v", uriKey, tempURI.RequestURI(), err)
 		}
-		// No token in the file, generate one and store it.
-		if len(buf) == 0 {
-			token, err := generate.NewInternalToken()
-			if err != nil {
-				log.Fatal("Error generate internal token: %v", err)
-			}
-			err = os.WriteFile(tempURI.RequestURI(), []byte(token), 0o600)
-			if err != nil {
-				log.Fatal("Error writing to InternalTokenURI (%s): %v", uri, err)
-			}
-			return token
+		val := strings.TrimSpace(string(buf))
+		if val == "" {
+			// The file shouldn't be empty, otherwise we can not know whether the user has ever set the KEY or KEY_URI
+			// For example: if INTERNAL_TOKEN_URI=file:///empty-file,
+			// Then if the token is re-generated during installation and saved to INTERNAL_TOKEN
+			// Then INTERNAL_TOKEN and INTERNAL_TOKEN_URI both exist, that's a fatal error (they shouldn't)
+			log.Fatal("Failed to read %s (%s): the file is empty", uriKey, tempURI.RequestURI())
 		}
-		return strings.TrimSpace(string(buf))
+		return val
+
+	// only file URIs are allowed
 	default:
 		log.Fatal("Unsupported URI-Scheme %q (INTERNAL_TOKEN_URI = %q)", tempURI.Scheme, uri)
+		return ""
 	}
-	return ""
 }
 
 // generateSaveInternalToken generates and saves the internal token to app.ini
@@ -1159,7 +1208,7 @@ func generateSaveInternalToken() {
 	}
 
 	InternalToken = token
-	CreateOrAppendToCustomConf(func(cfg *ini.File) {
+	CreateOrAppendToCustomConf("security.INTERNAL_TOKEN", func(cfg *ini.File) {
 		cfg.Section("security").Key("INTERNAL_TOKEN").SetValue(token)
 	})
 }
@@ -1225,7 +1274,12 @@ func MakeManifestData(appName, appURL, absoluteAssetURL string) []byte {
 
 // CreateOrAppendToCustomConf creates or updates the custom config.
 // Use the callback to set individual values.
-func CreateOrAppendToCustomConf(callback func(cfg *ini.File)) {
+func CreateOrAppendToCustomConf(purpose string, callback func(cfg *ini.File)) {
+	if CustomConf == "" {
+		log.Error("Custom config path must not be empty")
+		return
+	}
+
 	cfg := ini.Empty()
 	isFile, err := util.IsFile(CustomConf)
 	if err != nil {
@@ -1240,8 +1294,6 @@ func CreateOrAppendToCustomConf(callback func(cfg *ini.File)) {
 
 	callback(cfg)
 
-	log.Info("Settings saved to: %q", CustomConf)
-
 	if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
 		log.Fatal("failed to create '%s': %v", CustomConf, err)
 		return
@@ -1249,6 +1301,7 @@ func CreateOrAppendToCustomConf(callback func(cfg *ini.File)) {
 	if err := cfg.SaveTo(CustomConf); err != nil {
 		log.Fatal("error saving to custom config: %v", err)
 	}
+	log.Info("Settings for %s saved to: %q", purpose, CustomConf)
 
 	// Change permissions to be more restrictive
 	fi, err := os.Stat(CustomConf)

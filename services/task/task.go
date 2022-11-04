@@ -7,7 +7,7 @@ package task
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/models"
+	admin_model "code.gitea.io/gitea/models/admin"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
@@ -27,7 +27,7 @@ import (
 var taskQueue queue.Queue
 
 // Run a task
-func Run(t *models.Task) error {
+func Run(t *admin_model.Task) error {
 	switch t.Type {
 	case structs.TaskTypeMigrateRepo:
 		return runMigrateTask(t)
@@ -38,7 +38,7 @@ func Run(t *models.Task) error {
 
 // Init will start the service to get all unfinished tasks and run them
 func Init() error {
-	taskQueue = queue.CreateQueue("task", handle, &models.Task{})
+	taskQueue = queue.CreateQueue("task", handle, &admin_model.Task{})
 
 	if taskQueue == nil {
 		return fmt.Errorf("Unable to create Task Queue")
@@ -51,7 +51,7 @@ func Init() error {
 
 func handle(data ...queue.Data) []queue.Data {
 	for _, datum := range data {
-		task := datum.(*models.Task)
+		task := datum.(*admin_model.Task)
 		if err := Run(task); err != nil {
 			log.Error("Run task failed: %v", err)
 		}
@@ -70,7 +70,7 @@ func MigrateRepository(doer, u *user_model.User, opts base.MigrateOptions) error
 }
 
 // CreateMigrateTask creates a migrate task
-func CreateMigrateTask(doer, u *user_model.User, opts base.MigrateOptions) (*models.Task, error) {
+func CreateMigrateTask(doer, u *user_model.User, opts base.MigrateOptions) (*admin_model.Task, error) {
 	// encrypt credentials for persistence
 	var err error
 	opts.CloneAddrEncrypted, err = secret.EncryptSecret(setting.SecretKey, opts.CloneAddr)
@@ -93,7 +93,7 @@ func CreateMigrateTask(doer, u *user_model.User, opts base.MigrateOptions) (*mod
 		return nil, err
 	}
 
-	task := &models.Task{
+	task := &admin_model.Task{
 		DoerID:         doer.ID,
 		OwnerID:        u.ID,
 		Type:           structs.TaskTypeMigrateRepo,
@@ -101,11 +101,11 @@ func CreateMigrateTask(doer, u *user_model.User, opts base.MigrateOptions) (*mod
 		PayloadContent: string(bs),
 	}
 
-	if err := models.CreateTask(task); err != nil {
+	if err := admin_model.CreateTask(task); err != nil {
 		return nil, err
 	}
 
-	repo, err := repo_module.CreateRepository(doer, u, models.CreateRepoOptions{
+	repo, err := repo_module.CreateRepository(doer, u, repo_module.CreateRepoOptions{
 		Name:           opts.RepoName,
 		Description:    opts.Description,
 		OriginalURL:    opts.OriginalURL,

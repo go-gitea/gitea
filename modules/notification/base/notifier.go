@@ -5,7 +5,6 @@
 package base
 
 import (
-	"code.gitea.io/gitea/models"
 	issues_model "code.gitea.io/gitea/models/issues"
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -35,7 +34,8 @@ type Notifier interface {
 	NotifyIssueChangeLabels(doer *user_model.User, issue *issues_model.Issue,
 		addedLabels, removedLabels []*issues_model.Label)
 	NotifyNewPullRequest(pr *issues_model.PullRequest, mentions []*user_model.User)
-	NotifyMergePullRequest(*issues_model.PullRequest, *user_model.User)
+	NotifyMergePullRequest(pr *issues_model.PullRequest, doer *user_model.User)
+	NotifyAutoMergePullRequest(pr *issues_model.PullRequest, doer *user_model.User)
 	NotifyPullRequestSynchronized(doer *user_model.User, pr *issues_model.PullRequest)
 	NotifyPullRequestReview(pr *issues_model.PullRequest, review *issues_model.Review, comment *issues_model.Comment, mentions []*user_model.User)
 	NotifyPullRequestCodeComment(pr *issues_model.PullRequest, comment *issues_model.Comment, mentions []*user_model.User)
@@ -46,9 +46,12 @@ type Notifier interface {
 		issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User)
 	NotifyUpdateComment(*user_model.User, *issues_model.Comment, string)
 	NotifyDeleteComment(*user_model.User, *issues_model.Comment)
-	NotifyNewRelease(rel *models.Release)
-	NotifyUpdateRelease(doer *user_model.User, rel *models.Release)
-	NotifyDeleteRelease(doer *user_model.User, rel *models.Release)
+	NotifyNewWikiPage(doer *user_model.User, repo *repo_model.Repository, page, comment string)
+	NotifyEditWikiPage(doer *user_model.User, repo *repo_model.Repository, page, comment string)
+	NotifyDeleteWikiPage(doer *user_model.User, repo *repo_model.Repository, page string)
+	NotifyNewRelease(rel *repo_model.Release)
+	NotifyUpdateRelease(doer *user_model.User, rel *repo_model.Release)
+	NotifyDeleteRelease(doer *user_model.User, rel *repo_model.Release)
 	NotifyPushCommits(pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits)
 	NotifyCreateRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string)
 	NotifyDeleteRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName string)

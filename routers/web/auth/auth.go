@@ -6,6 +6,7 @@
 package auth
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -18,11 +19,13 @@ import (
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/hcaptcha"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/mcaptcha"
 	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/utils"
@@ -67,7 +70,7 @@ func AutoSignIn(ctx *context.Context) (bool, error) {
 	u, err := user_model.GetUserByName(ctx, uname)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
-			return false, fmt.Errorf("GetUserByName: %v", err)
+			return false, fmt.Errorf("GetUserByName: %w", err)
 		}
 		return false, nil
 	}
@@ -414,6 +417,8 @@ func SignUp(ctx *context.Context) {
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
+	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
+	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
 	ctx.Data["PageIsSignUp"] = true
 
 	// Show Disabled Registration message if DisableRegistration or AllowOnlyExternalRegistration options are true
@@ -435,6 +440,8 @@ func SignUpPost(ctx *context.Context) {
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
+	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
+	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
 	ctx.Data["PageIsSignUp"] = true
 
 	// Permission denied if DisableRegistration or AllowOnlyExternalRegistration options are true
@@ -458,6 +465,8 @@ func SignUpPost(ctx *context.Context) {
 			valid, err = recaptcha.Verify(ctx, form.GRecaptchaResponse)
 		case setting.HCaptcha:
 			valid, err = hcaptcha.Verify(ctx, form.HcaptchaResponse)
+		case setting.MCaptcha:
+			valid, err = mcaptcha.Verify(ctx, form.McaptchaResponse)
 		default:
 			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
 			return
@@ -612,7 +621,9 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.
 	// update external user information
 	if gothUser != nil {
 		if err := externalaccount.UpdateExternalUser(u, *gothUser); err != nil {
-			log.Error("UpdateExternalUser failed: %v", err)
+			if !errors.Is(err, util.ErrNotExist) {
+				log.Error("UpdateExternalUser failed: %v", err)
+			}
 		}
 	}
 

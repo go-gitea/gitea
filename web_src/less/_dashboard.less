@@ -81,6 +81,12 @@
 
     .ui.dropdown {
       max-width: 100%;
+
+      @media @mediaSm {
+        > .menu {
+          position: static;
+        }
+      }
     }
   }
 }
@@ -135,10 +141,9 @@
     }
 
     code {
-      padding: 1px;
-      font-size: 85%;
-      background-color: rgba(0, 0, 0, .04);
+      padding: 2px 4px;
       border-radius: 3px;
+      background-color: var(--color-markup-code-block);
       word-break: break-all;
     }
 
@@ -159,7 +164,7 @@
         }
 
         &.private {
-          background-color: #fcf8e9;
+          background-color: var(--color-box-body-highlight);
         }
 
         .repo-list-link {

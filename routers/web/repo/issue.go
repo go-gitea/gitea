@@ -10,16 +10,15 @@ import (
 	stdCtx "context"
 	"errors"
 	"fmt"
-	"io"
 	"math/big"
 	"net/http"
 	"net/url"
-	"path"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -31,10 +30,12 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
+	issue_template "code.gitea.io/gitea/modules/issue/template"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -45,6 +46,7 @@ import (
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	comment_service "code.gitea.io/gitea/services/comments"
 	"code.gitea.io/gitea/services/forms"
@@ -70,11 +72,23 @@ const (
 // IssueTemplateCandidates issue templates
 var IssueTemplateCandidates = []string{
 	"ISSUE_TEMPLATE.md",
+	"ISSUE_TEMPLATE.yaml",
+	"ISSUE_TEMPLATE.yml",
 	"issue_template.md",
+	"issue_template.yaml",
+	"issue_template.yml",
 	".gitea/ISSUE_TEMPLATE.md",
+	".gitea/ISSUE_TEMPLATE.yaml",
+	".gitea/ISSUE_TEMPLATE.yml",
 	".gitea/issue_template.md",
+	".gitea/issue_template.yaml",
+	".gitea/issue_template.yml",
 	".github/ISSUE_TEMPLATE.md",
+	".github/ISSUE_TEMPLATE.yaml",
+	".github/ISSUE_TEMPLATE.yml",
 	".github/issue_template.md",
+	".github/issue_template.yaml",
+	".github/issue_template.yml",
 }
 
 // MustAllowUserComment checks to make sure if an issue is locked.
@@ -133,7 +147,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 
 	var (
 		assigneeID        = ctx.FormInt64("assignee")
-		posterID          int64
+		posterID          = ctx.FormInt64("poster")
 		mentionedID       int64
 		reviewRequestedID int64
 		forceEmpty        bool
@@ -291,6 +305,12 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		return
 	}
 
+	ctx.Data["Posters"], err = repo_model.GetIssuePosters(ctx, repo, isPullOption.IsTrue())
+	if err != nil {
+		ctx.ServerError("GetIssuePosters", err)
+		return
+	}
+
 	handleTeamMentions(ctx)
 	if ctx.Written() {
 		return
@@ -364,6 +384,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	ctx.Data["SortType"] = sortType
 	ctx.Data["MilestoneID"] = milestoneID
 	ctx.Data["AssigneeID"] = assigneeID
+	ctx.Data["PosterID"] = posterID
 	ctx.Data["IsShowClosed"] = isShowClosed
 	ctx.Data["Keyword"] = keyword
 	if isShowClosed {
@@ -379,6 +400,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	pager.AddParam(ctx, "labels", "SelectLabels")
 	pager.AddParam(ctx, "milestone", "MilestoneID")
 	pager.AddParam(ctx, "assignee", "AssigneeID")
+	pager.AddParam(ctx, "poster", "PosterID")
 	ctx.Data["Page"] = pager
 }
 
@@ -714,81 +736,62 @@ func RetrieveRepoMetas(ctx *context.Context, repo *repo_model.Repository, isPull
 	return labels
 }
 
-func getFileContentFromDefaultBranch(ctx *context.Context, filename string) (string, bool) {
-	if ctx.Repo.Commit == nil {
-		var err error
-		ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
-		if err != nil {
-			return "", false
-		}
+func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles []string) map[string]error {
+	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+	if err != nil {
+		return nil
 	}
 
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(filename)
-	if err != nil {
-		return "", false
-	}
-	if entry.Blob().Size() >= setting.UI.MaxDisplayFileSize {
-		return "", false
-	}
-	r, err := entry.Blob().DataAsync()
-	if err != nil {
-		return "", false
-	}
-	defer r.Close()
-	bytes, err := io.ReadAll(r)
-	if err != nil {
-		return "", false
-	}
-	return string(bytes), true
-}
-
-func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs, possibleFiles []string) {
-	templateCandidates := make([]string, 0, len(possibleFiles))
-	if ctx.FormString("template") != "" {
-		for _, dirName := range possibleDirs {
-			templateCandidates = append(templateCandidates, path.Join(dirName, ctx.FormString("template")))
-		}
+	templateCandidates := make([]string, 0, 1+len(possibleFiles))
+	if t := ctx.FormString("template"); t != "" {
+		templateCandidates = append(templateCandidates, t)
 	}
 	templateCandidates = append(templateCandidates, possibleFiles...) // Append files to the end because they should be fallback
-	for _, filename := range templateCandidates {
-		templateContent, found := getFileContentFromDefaultBranch(ctx, filename)
-		if found {
-			var meta api.IssueTemplate
-			templateBody, err := markdown.ExtractMetadata(templateContent, &meta)
-			if err != nil {
-				log.Debug("could not extract metadata from %s [%s]: %v", filename, ctx.Repo.Repository.FullName(), err)
-				ctx.Data[ctxDataKey] = templateContent
-				return
-			}
-			ctx.Data[issueTemplateTitleKey] = meta.Title
-			ctx.Data[ctxDataKey] = templateBody
-			labelIDs := make([]string, 0, len(meta.Labels))
-			if repoLabels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, "", db.ListOptions{}); err == nil {
-				ctx.Data["Labels"] = repoLabels
-				if ctx.Repo.Owner.IsOrganization() {
-					if orgLabels, err := issues_model.GetLabelsByOrgID(ctx, ctx.Repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{}); err == nil {
-						ctx.Data["OrgLabels"] = orgLabels
-						repoLabels = append(repoLabels, orgLabels...)
-					}
-				}
 
-				for _, metaLabel := range meta.Labels {
-					for _, repoLabel := range repoLabels {
-						if strings.EqualFold(repoLabel.Name, metaLabel) {
-							repoLabel.IsChecked = true
-							labelIDs = append(labelIDs, strconv.FormatInt(repoLabel.ID, 10))
-							break
-						}
+	templateErrs := map[string]error{}
+	for _, filename := range templateCandidates {
+		if ok, _ := commit.HasFile(filename); !ok {
+			continue
+		}
+		template, err := issue_template.UnmarshalFromCommit(commit, filename)
+		if err != nil {
+			templateErrs[filename] = err
+			continue
+		}
+		ctx.Data[issueTemplateTitleKey] = template.Title
+		ctx.Data[ctxDataKey] = template.Content
+
+		if template.Type() == api.IssueTemplateTypeYaml {
+			ctx.Data["Fields"] = template.Fields
+			ctx.Data["TemplateFile"] = template.FileName
+		}
+		labelIDs := make([]string, 0, len(template.Labels))
+		if repoLabels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, "", db.ListOptions{}); err == nil {
+			ctx.Data["Labels"] = repoLabels
+			if ctx.Repo.Owner.IsOrganization() {
+				if orgLabels, err := issues_model.GetLabelsByOrgID(ctx, ctx.Repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{}); err == nil {
+					ctx.Data["OrgLabels"] = orgLabels
+					repoLabels = append(repoLabels, orgLabels...)
+				}
+			}
+
+			for _, metaLabel := range template.Labels {
+				for _, repoLabel := range repoLabels {
+					if strings.EqualFold(repoLabel.Name, metaLabel) {
+						repoLabel.IsChecked = true
+						labelIDs = append(labelIDs, strconv.FormatInt(repoLabel.ID, 10))
+						break
 					}
 				}
 			}
-			ctx.Data["HasSelectedLabel"] = len(labelIDs) > 0
-			ctx.Data["label_ids"] = strings.Join(labelIDs, ",")
-			ctx.Data["Reference"] = meta.Ref
-			ctx.Data["RefEndName"] = git.RefEndName(meta.Ref)
-			return
 		}
+		ctx.Data["HasSelectedLabel"] = len(labelIDs) > 0
+		ctx.Data["label_ids"] = strings.Join(labelIDs, ",")
+		ctx.Data["Reference"] = template.Ref
+		ctx.Data["RefEndName"] = git.RefEndName(template.Ref)
+		return templateErrs
 	}
+	return templateErrs
 }
 
 // NewIssue render creating issue page
@@ -837,9 +840,19 @@ func NewIssue(ctx *context.Context) {
 	}
 
 	RetrieveRepoMetas(ctx, ctx.Repo.Repository, false)
-	setTemplateIfExists(ctx, issueTemplateKey, context.IssueTemplateDirCandidates, IssueTemplateCandidates)
+
+	_, templateErrs := ctx.IssueTemplatesErrorsFromDefaultBranch()
+	if errs := setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates); len(errs) > 0 {
+		for k, v := range errs {
+			templateErrs[k] = v
+		}
+	}
 	if ctx.Written() {
 		return
+	}
+
+	if len(templateErrs) > 0 {
+		ctx.Flash.Warning(renderErrorOfTemplates(ctx, templateErrs), true)
 	}
 
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(unit.TypeIssues)
@@ -847,13 +860,41 @@ func NewIssue(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplIssueNew)
 }
 
+func renderErrorOfTemplates(ctx *context.Context, errs map[string]error) string {
+	var files []string
+	for k := range errs {
+		files = append(files, k)
+	}
+	sort.Strings(files) // keep the output stable
+
+	var lines []string
+	for _, file := range files {
+		lines = append(lines, fmt.Sprintf("%s: %v", file, errs[file]))
+	}
+
+	flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
+		"Message": ctx.Tr("repo.issues.choose.ignore_invalid_templates"),
+		"Summary": ctx.Tr("repo.issues.choose.invalid_templates", len(errs)),
+		"Details": utils.SanitizeFlashErrorString(strings.Join(lines, "\n")),
+	})
+	if err != nil {
+		log.Debug("render flash error: %v", err)
+		flashError = ctx.Tr("repo.issues.choose.ignore_invalid_templates")
+	}
+	return flashError
+}
+
 // NewIssueChooseTemplate render creating issue from template page
 func NewIssueChooseTemplate(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
 
-	issueTemplates := ctx.IssueTemplatesFromDefaultBranch()
+	issueTemplates, errs := ctx.IssueTemplatesErrorsFromDefaultBranch()
 	ctx.Data["IssueTemplates"] = issueTemplates
+
+	if len(errs) > 0 {
+		ctx.Flash.Warning(renderErrorOfTemplates(ctx, errs), true)
+	}
 
 	if len(issueTemplates) == 0 {
 		// The "issues/new" and "issues/new/choose" share the same query parameters "project" and "milestone", if no template here, just redirect to the "issues/new" page with these parameters.
@@ -907,10 +948,11 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 		if err != nil {
 			return nil, nil, 0, 0
 		}
-		labelIDMark := base.Int64sToMap(labelIDs)
+		labelIDMark := make(container.Set[int64])
+		labelIDMark.AddMultiple(labelIDs...)
 
 		for i := range labels {
-			if labelIDMark[labels[i].ID] {
+			if labelIDMark.Contains(labels[i].ID) {
 				labels[i].IsChecked = true
 				hasSelected = true
 			}
@@ -1023,6 +1065,13 @@ func NewIssuePost(ctx *context.Context) {
 		return
 	}
 
+	content := form.Content
+	if filename := ctx.Req.Form.Get("template-file"); filename != "" {
+		if template, err := issue_template.UnmarshalFromRepo(ctx.Repo.GitRepo, ctx.Repo.Repository.DefaultBranch, filename); err == nil {
+			content = issue_template.RenderToMarkdown(template, ctx.Req.Form)
+		}
+	}
+
 	issue := &issues_model.Issue{
 		RepoID:      repo.ID,
 		Repo:        repo,
@@ -1030,7 +1079,7 @@ func NewIssuePost(ctx *context.Context) {
 		PosterID:    ctx.Doer.ID,
 		Poster:      ctx.Doer,
 		MilestoneID: milestoneID,
-		Content:     form.Content,
+		Content:     content,
 		Ref:         form.Ref,
 	}
 
@@ -1246,9 +1295,9 @@ func ViewIssue(ctx *context.Context) {
 
 	// Metas.
 	// Check labels.
-	labelIDMark := make(map[int64]bool)
-	for i := range issue.Labels {
-		labelIDMark[issue.Labels[i].ID] = true
+	labelIDMark := make(container.Set[int64])
+	for _, label := range issue.Labels {
+		labelIDMark.Add(label.ID)
 	}
 	labels, err := issues_model.GetLabelsByRepoID(ctx, repo.ID, "", db.ListOptions{})
 	if err != nil {
@@ -1270,7 +1319,7 @@ func ViewIssue(ctx *context.Context) {
 
 	hasSelected := false
 	for i := range labels {
-		if labelIDMark[labels[i].ID] {
+		if labelIDMark.Contains(labels[i].ID) {
 			labels[i].IsChecked = true
 			hasSelected = true
 		}
@@ -1289,11 +1338,16 @@ func ViewIssue(ctx *context.Context) {
 
 	if issue.IsPull {
 		canChooseReviewer := ctx.Repo.CanWrite(unit.TypePullRequests)
-		if !canChooseReviewer && ctx.Doer != nil && ctx.IsSigned {
-			canChooseReviewer, err = issues_model.IsOfficialReviewer(ctx, issue, ctx.Doer)
-			if err != nil {
-				ctx.ServerError("IsOfficialReviewer", err)
-				return
+		if ctx.Doer != nil && ctx.IsSigned {
+			if !canChooseReviewer {
+				canChooseReviewer = ctx.Doer.ID == issue.PosterID
+			}
+			if !canChooseReviewer {
+				canChooseReviewer, err = issues_model.IsOfficialReviewer(ctx, issue, ctx.Doer)
+				if err != nil {
+					ctx.ServerError("IsOfficialReviewer", err)
+					return
+				}
 			}
 		}
 
@@ -1305,7 +1359,7 @@ func ViewIssue(ctx *context.Context) {
 
 	if ctx.IsSigned {
 		// Update issue-user.
-		if err = models.SetIssueReadBy(ctx, issue.ID, ctx.Doer.ID); err != nil {
+		if err = activities_model.SetIssueReadBy(ctx, issue.ID, ctx.Doer.ID); err != nil {
 			ctx.ServerError("ReadBy", err)
 			return
 		}

@@ -28,7 +28,7 @@ func TestMain(m *testing.M) {
 func TestDeleteUser(t *testing.T) {
 	test := func(userID int64) {
 		assert.NoError(t, unittest.PrepareTestDatabase())
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID}).(*user_model.User)
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID})
 
 		ownedRepos := make([]*repo_model.Repository, 0, 10)
 		assert.NoError(t, db.GetEngine(db.DefaultContext).Find(&ownedRepos, &repo_model.Repository{OwnerID: userID}))
@@ -56,7 +56,27 @@ func TestDeleteUser(t *testing.T) {
 	test(8)
 	test(11)
 
-	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)
+	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	assert.Error(t, DeleteUser(db.DefaultContext, org, false))
+}
+
+func TestPurgeUser(t *testing.T) {
+	test := func(userID int64) {
+		assert.NoError(t, unittest.PrepareTestDatabase())
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID})
+
+		err := DeleteUser(db.DefaultContext, user, true)
+		assert.NoError(t, err)
+
+		unittest.AssertNotExistsBean(t, &user_model.User{ID: userID})
+		unittest.CheckConsistencyFor(t, &user_model.User{}, &repo_model.Repository{})
+	}
+	test(2)
+	test(4)
+	test(8)
+	test(11)
+
+	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 	assert.Error(t, DeleteUser(db.DefaultContext, org, false))
 }
 

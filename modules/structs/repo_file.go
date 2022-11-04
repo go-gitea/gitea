@@ -87,9 +87,10 @@ type FileLinksResponse struct {
 
 // ContentsResponse contains information about a repo's entry's (dir, file, symlink, submodule) metadata and content
 type ContentsResponse struct {
-	Name string `json:"name"`
-	Path string `json:"path"`
-	SHA  string `json:"sha"`
+	Name          string `json:"name"`
+	Path          string `json:"path"`
+	SHA           string `json:"sha"`
+	LastCommitSHA string `json:"last_commit_sha"`
 	// `type` will be `file`, `dir`, `symlink`, or `submodule`
 	Type string `json:"type"`
 	Size int64  `json:"size"`

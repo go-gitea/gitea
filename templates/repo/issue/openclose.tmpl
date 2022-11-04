@@ -1,5 +1,5 @@
 <div class="ui compact tiny menu">
-	<a class="{{if not .IsShowClosed}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state=open&labels={{.SelectLabels}}&milestone={{.MilestoneID}}&assignee={{.AssigneeID}}">
+	<a class="{{if not .IsShowClosed}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state=open&labels={{.SelectLabels}}&milestone={{.MilestoneID}}&assignee={{.AssigneeID}}&poster={{.PosterID}}">
 		{{if .PageIsPullList}}
 			{{svg "octicon-git-pull-request" 16 "mr-3"}}
 		{{else}}
@@ -7,7 +7,7 @@
 		{{end}}
 		{{JsPrettyNumber .IssueStats.OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
 	</a>
-	<a class="{{if .IsShowClosed}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type={{.ViewType}}&sort={{$.SortType}}&state=closed&labels={{.SelectLabels}}&milestone={{.MilestoneID}}&assignee={{.AssigneeID}}">
+	<a class="{{if .IsShowClosed}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type={{.ViewType}}&sort={{$.SortType}}&state=closed&labels={{.SelectLabels}}&milestone={{.MilestoneID}}&assignee={{.AssigneeID}}&poster={{.PosterID}}">
 		{{svg "octicon-check" 16 "mr-3"}}
 		{{JsPrettyNumber .IssueStats.ClosedCount}}&nbsp;{{.locale.Tr "repo.issues.closed_title"}}
 	</a>

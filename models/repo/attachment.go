@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // Attachment represent a attachment of issue/comment/release.
@@ -39,7 +40,7 @@ func init() {
 func (a *Attachment) IncreaseDownloadCount() error {
 	// Update download count.
 	if _, err := db.GetEngine(db.DefaultContext).Exec("UPDATE `attachment` SET download_count=download_count+1 WHERE id=?", a.ID); err != nil {
-		return fmt.Errorf("increase attachment count: %v", err)
+		return fmt.Errorf("increase attachment count: %w", err)
 	}
 
 	return nil
@@ -81,6 +82,10 @@ func IsErrAttachmentNotExist(err error) bool {
 
 func (err ErrAttachmentNotExist) Error() string {
 	return fmt.Sprintf("attachment does not exist [id: %d, uuid: %s]", err.ID, err.UUID)
+}
+
+func (err ErrAttachmentNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // GetAttachmentByID returns attachment by given id
@@ -224,28 +229,6 @@ func UpdateAttachment(ctx context.Context, atta *Attachment) error {
 func DeleteAttachmentsByRelease(releaseID int64) error {
 	_, err := db.GetEngine(db.DefaultContext).Where("release_id = ?", releaseID).Delete(&Attachment{})
 	return err
-}
-
-// IterateAttachment iterates attachments; it should not be used when Gitea is servicing users.
-func IterateAttachment(f func(attach *Attachment) error) error {
-	var start int
-	const batchSize = 100
-	for {
-		attachments := make([]*Attachment, 0, batchSize)
-		if err := db.GetEngine(db.DefaultContext).Limit(batchSize, start).Find(&attachments); err != nil {
-			return err
-		}
-		if len(attachments) == 0 {
-			return nil
-		}
-		start += len(attachments)
-
-		for _, attach := range attachments {
-			if err := f(attach); err != nil {
-				return err
-			}
-		}
-	}
 }
 
 // CountOrphanedAttachments returns the number of bad attachments

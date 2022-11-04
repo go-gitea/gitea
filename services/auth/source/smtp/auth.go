@@ -58,10 +58,10 @@ var ErrUnsupportedLoginType = errors.New("Login source is unknown")
 func Authenticate(a smtp.Auth, source *Source) error {
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: source.SkipVerify,
-		ServerName:         source.Host,
+		ServerName:         source.Addr,
 	}
 
-	conn, err := net.Dial("tcp", net.JoinHostPort(source.Host, strconv.Itoa(source.Port)))
+	conn, err := net.Dial("tcp", net.JoinHostPort(source.Addr, strconv.Itoa(source.Port)))
 	if err != nil {
 		return err
 	}
@@ -71,7 +71,7 @@ func Authenticate(a smtp.Auth, source *Source) error {
 		conn = tls.Client(conn, tlsConfig)
 	}
 
-	client, err := smtp.NewClient(conn, source.Host)
+	client, err := smtp.NewClient(conn, source.Addr)
 	if err != nil {
 		return fmt.Errorf("failed to create NewClient: %w", err)
 	}
@@ -95,7 +95,7 @@ func Authenticate(a smtp.Auth, source *Source) error {
 	hasStartTLS, _ := client.Extension("STARTTLS")
 	if !source.UseTLS() && hasStartTLS {
 		if err = client.StartTLS(tlsConfig); err != nil {
-			return fmt.Errorf("failed to start StartTLS: %v", err)
+			return fmt.Errorf("failed to start StartTLS: %w", err)
 		}
 	}
 

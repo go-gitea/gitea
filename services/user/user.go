@@ -13,12 +13,12 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	admin_model "code.gitea.io/gitea/models/admin"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/eventsource"
@@ -75,16 +75,17 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 				},
 				Private: true,
 				OwnerID: u.ID,
+				Actor:   u,
 			})
 			if err != nil {
-				return fmt.Errorf("SearchRepositoryByName: %v", err)
+				return fmt.Errorf("SearchRepositoryByName: %w", err)
 			}
 			if len(repos) == 0 {
 				break
 			}
 			for _, repo := range repos {
 				if err := models.DeleteRepository(u, u.ID, repo.ID); err != nil {
-					return fmt.Errorf("unable to delete repository %s for %s[%d]. Error: %v", repo.Name, u.Name, u.ID, err)
+					return fmt.Errorf("unable to delete repository %s for %s[%d]. Error: %w", repo.Name, u.Name, u.ID, err)
 				}
 			}
 		}
@@ -106,7 +107,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 				IncludePrivate: true,
 			})
 			if err != nil {
-				return fmt.Errorf("unable to find org list for %s[%d]. Error: %v", u.Name, u.ID, err)
+				return fmt.Errorf("unable to find org list for %s[%d]. Error: %w", u.Name, u.ID, err)
 			}
 			if len(orgs) == 0 {
 				break
@@ -117,7 +118,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 						err = organization.DeleteOrganization(ctx, org)
 					}
 					if err != nil {
-						return fmt.Errorf("unable to remove user %s[%d] from org %s[%d]. Error: %v", u.Name, u.ID, org.Name, org.ID, err)
+						return fmt.Errorf("unable to remove user %s[%d] from org %s[%d]. Error: %w", u.Name, u.ID, org.Name, org.ID, err)
 					}
 				}
 			}
@@ -144,7 +145,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 	// Check ownership of repository.
 	count, err := repo_model.CountRepositories(ctx, repo_model.CountRepositoryOptions{OwnerID: u.ID})
 	if err != nil {
-		return fmt.Errorf("GetRepositoryCount: %v", err)
+		return fmt.Errorf("GetRepositoryCount: %w", err)
 	} else if count > 0 {
 		return models.ErrUserOwnRepos{UID: u.ID}
 	}
@@ -152,20 +153,20 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 	// Check membership of organization.
 	count, err = organization.GetOrganizationCount(ctx, u)
 	if err != nil {
-		return fmt.Errorf("GetOrganizationCount: %v", err)
+		return fmt.Errorf("GetOrganizationCount: %w", err)
 	} else if count > 0 {
 		return models.ErrUserHasOrgs{UID: u.ID}
 	}
 
 	// Check ownership of packages.
 	if ownsPackages, err := packages_model.HasOwnerPackages(ctx, u.ID); err != nil {
-		return fmt.Errorf("HasOwnerPackages: %v", err)
+		return fmt.Errorf("HasOwnerPackages: %w", err)
 	} else if ownsPackages {
 		return models.ErrUserOwnPackages{UID: u.ID}
 	}
 
 	if err := models.DeleteUser(ctx, u, purge); err != nil {
-		return fmt.Errorf("DeleteUser: %v", err)
+		return fmt.Errorf("DeleteUser: %w", err)
 	}
 
 	if err := committer.Commit(); err != nil {
@@ -184,16 +185,16 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 	//	so just keep error logs of those operations.
 	path := user_model.UserPath(u.Name)
 	if err := util.RemoveAll(path); err != nil {
-		err = fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
-		_ = admin_model.CreateNotice(ctx, admin_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
+		err = fmt.Errorf("Failed to RemoveAll %s: %w", path, err)
+		_ = system_model.CreateNotice(ctx, system_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
 		return err
 	}
 
 	if u.Avatar != "" {
 		avatarPath := u.CustomAvatarRelativePath()
 		if err := storage.Avatars.Delete(avatarPath); err != nil {
-			err = fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
-			_ = admin_model.CreateNotice(ctx, admin_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
+			err = fmt.Errorf("Failed to remove %s: %w", avatarPath, err)
+			_ = system_model.CreateNotice(ctx, system_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
 			return err
 		}
 	}
@@ -247,7 +248,7 @@ func UploadAvatar(u *user_model.User, data []byte) error {
 	// Other users will lose their avatars too.
 	u.Avatar = fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%d-%x", u.ID, md5.Sum(data)))))
 	if err = user_model.UpdateUserCols(ctx, u, "use_custom_avatar", "avatar"); err != nil {
-		return fmt.Errorf("updateUser: %v", err)
+		return fmt.Errorf("updateUser: %w", err)
 	}
 
 	if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
@@ -256,7 +257,7 @@ func UploadAvatar(u *user_model.User, data []byte) error {
 		}
 		return err
 	}); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %v", u.CustomAvatarRelativePath(), err)
+		return fmt.Errorf("Failed to create dir %s: %w", u.CustomAvatarRelativePath(), err)
 	}
 
 	return committer.Commit()
@@ -268,14 +269,14 @@ func DeleteAvatar(u *user_model.User) error {
 	log.Trace("DeleteAvatar[%d]: %s", u.ID, aPath)
 	if len(u.Avatar) > 0 {
 		if err := storage.Avatars.Delete(aPath); err != nil {
-			return fmt.Errorf("Failed to remove %s: %v", aPath, err)
+			return fmt.Errorf("Failed to remove %s: %w", aPath, err)
 		}
 	}
 
 	u.UseCustomAvatar = false
 	u.Avatar = ""
 	if _, err := db.GetEngine(db.DefaultContext).ID(u.ID).Cols("avatar, use_custom_avatar").Update(u); err != nil {
-		return fmt.Errorf("UpdateUser: %v", err)
+		return fmt.Errorf("UpdateUser: %w", err)
 	}
 	return nil
 }

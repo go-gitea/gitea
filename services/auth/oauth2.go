@@ -10,8 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/auth"
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -37,8 +36,8 @@ func CheckOAuthAccessToken(accessToken string) int64 {
 		log.Trace("oauth2.ParseToken: %v", err)
 		return 0
 	}
-	var grant *auth.OAuth2Grant
-	if grant, err = auth.GetOAuth2GrantByID(db.DefaultContext, token.GrantID); err != nil || grant == nil {
+	var grant *auth_model.OAuth2Grant
+	if grant, err = auth_model.GetOAuth2GrantByID(db.DefaultContext, token.GrantID); err != nil || grant == nil {
 		return 0
 	}
 	if token.Type != oauth2.TypeAccessToken {
@@ -91,15 +90,15 @@ func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
 		}
 		return uid
 	}
-	t, err := models.GetAccessTokenBySHA(tokenSHA)
+	t, err := auth_model.GetAccessTokenBySHA(tokenSHA)
 	if err != nil {
-		if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
+		if !auth_model.IsErrAccessTokenNotExist(err) && !auth_model.IsErrAccessTokenEmpty(err) {
 			log.Error("GetAccessTokenBySHA: %v", err)
 		}
 		return 0
 	}
 	t.UpdatedUnix = timeutil.TimeStampNow()
-	if err = models.UpdateAccessToken(t); err != nil {
+	if err = auth_model.UpdateAccessToken(t); err != nil {
 		log.Error("UpdateAccessToken: %v", err)
 	}
 	store.GetData()["IsApiToken"] = true

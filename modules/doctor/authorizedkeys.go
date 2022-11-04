@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -30,17 +31,17 @@ func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) e
 	if err != nil {
 		if !autofix {
 			logger.Critical("Unable to open authorized_keys file. ERROR: %v", err)
-			return fmt.Errorf("Unable to open authorized_keys file. ERROR: %v", err)
+			return fmt.Errorf("Unable to open authorized_keys file. ERROR: %w", err)
 		}
 		logger.Warn("Unable to open authorized_keys. (ERROR: %v). Attempting to rewrite...", err)
 		if err = asymkey_model.RewriteAllPublicKeys(); err != nil {
 			logger.Critical("Unable to rewrite authorized_keys file. ERROR: %v", err)
-			return fmt.Errorf("Unable to rewrite authorized_keys file. ERROR: %v", err)
+			return fmt.Errorf("Unable to rewrite authorized_keys file. ERROR: %w", err)
 		}
 	}
 	defer f.Close()
 
-	linesInAuthorizedKeys := map[string]bool{}
+	linesInAuthorizedKeys := make(container.Set[string])
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
@@ -48,7 +49,7 @@ func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) e
 		if strings.HasPrefix(line, tplCommentPrefix) {
 			continue
 		}
-		linesInAuthorizedKeys[line] = true
+		linesInAuthorizedKeys.Add(line)
 	}
 	f.Close()
 
@@ -56,7 +57,7 @@ func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) e
 	regenerated := &bytes.Buffer{}
 	if err := asymkey_model.RegeneratePublicKeys(ctx, regenerated); err != nil {
 		logger.Critical("Unable to regenerate authorized_keys file. ERROR: %v", err)
-		return fmt.Errorf("Unable to regenerate authorized_keys file. ERROR: %v", err)
+		return fmt.Errorf("Unable to regenerate authorized_keys file. ERROR: %w", err)
 	}
 	scanner = bufio.NewScanner(regenerated)
 	for scanner.Scan() {
@@ -64,7 +65,7 @@ func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) e
 		if strings.HasPrefix(line, tplCommentPrefix) {
 			continue
 		}
-		if ok := linesInAuthorizedKeys[line]; ok {
+		if linesInAuthorizedKeys.Contains(line) {
 			continue
 		}
 		if !autofix {
@@ -79,7 +80,7 @@ func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) e
 		err = asymkey_model.RewriteAllPublicKeys()
 		if err != nil {
 			logger.Critical("Unable to rewrite authorized_keys file. ERROR: %v", err)
-			return fmt.Errorf("Unable to rewrite authorized_keys file. ERROR: %v", err)
+			return fmt.Errorf("Unable to rewrite authorized_keys file. ERROR: %w", err)
 		}
 	}
 	return nil

@@ -10,14 +10,18 @@ import (
 	"os"
 	"path"
 	"strings"
-	"unicode/utf8"
 
 	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
+	"code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -25,8 +29,150 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+// CreateRepositoryByExample creates a repository for the user/organization.
+func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository, overwriteOrAdopt bool) (err error) {
+	if err = repo_model.IsUsableRepoName(repo.Name); err != nil {
+		return err
+	}
+
+	has, err := repo_model.IsRepositoryExist(ctx, u, repo.Name)
+	if err != nil {
+		return fmt.Errorf("IsRepositoryExist: %w", err)
+	} else if has {
+		return repo_model.ErrRepoAlreadyExist{
+			Uname: u.Name,
+			Name:  repo.Name,
+		}
+	}
+
+	repoPath := repo_model.RepoPath(u.Name, repo.Name)
+	isExist, err := util.IsExist(repoPath)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+		return err
+	}
+	if !overwriteOrAdopt && isExist {
+		log.Error("Files already exist in %s and we are not going to adopt or delete.", repoPath)
+		return repo_model.ErrRepoFilesAlreadyExist{
+			Uname: u.Name,
+			Name:  repo.Name,
+		}
+	}
+
+	if err = db.Insert(ctx, repo); err != nil {
+		return err
+	}
+	if err = repo_model.DeleteRedirect(ctx, u.ID, repo.Name); err != nil {
+		return err
+	}
+
+	// insert units for repo
+	units := make([]repo_model.RepoUnit, 0, len(unit.DefaultRepoUnits))
+	for _, tp := range unit.DefaultRepoUnits {
+		if tp == unit.TypeIssues {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   tp,
+				Config: &repo_model.IssuesConfig{
+					EnableTimetracker:                setting.Service.DefaultEnableTimetracking,
+					AllowOnlyContributorsToTrackTime: setting.Service.DefaultAllowOnlyContributorsToTrackTime,
+					EnableDependencies:               setting.Service.DefaultEnableDependencies,
+				},
+			})
+		} else if tp == unit.TypePullRequests {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   tp,
+				Config: &repo_model.PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true, DefaultMergeStyle: repo_model.MergeStyle(setting.Repository.PullRequest.DefaultMergeStyle), AllowRebaseUpdate: true},
+			})
+		} else {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   tp,
+			})
+		}
+	}
+
+	if err = db.Insert(ctx, units); err != nil {
+		return err
+	}
+
+	// Remember visibility preference.
+	u.LastRepoVisibility = repo.IsPrivate
+	if err = user_model.UpdateUserCols(ctx, u, "last_repo_visibility"); err != nil {
+		return fmt.Errorf("UpdateUserCols: %w", err)
+	}
+
+	if err = user_model.IncrUserRepoNum(ctx, u.ID); err != nil {
+		return fmt.Errorf("IncrUserRepoNum: %w", err)
+	}
+	u.NumRepos++
+
+	// Give access to all members in teams with access to all repositories.
+	if u.IsOrganization() {
+		teams, err := organization.FindOrgTeams(ctx, u.ID)
+		if err != nil {
+			return fmt.Errorf("FindOrgTeams: %w", err)
+		}
+		for _, t := range teams {
+			if t.IncludesAllRepositories {
+				if err := models.AddRepository(ctx, t, repo); err != nil {
+					return fmt.Errorf("AddRepository: %w", err)
+				}
+			}
+		}
+
+		if isAdmin, err := access_model.IsUserRepoAdmin(ctx, repo, doer); err != nil {
+			return fmt.Errorf("IsUserRepoAdmin: %w", err)
+		} else if !isAdmin {
+			// Make creator repo admin if it wasn't assigned automatically
+			if err = addCollaborator(ctx, repo, doer); err != nil {
+				return fmt.Errorf("addCollaborator: %w", err)
+			}
+			if err = repo_model.ChangeCollaborationAccessModeCtx(ctx, repo, doer.ID, perm.AccessModeAdmin); err != nil {
+				return fmt.Errorf("ChangeCollaborationAccessModeCtx: %w", err)
+			}
+		}
+	} else if err = access_model.RecalculateAccesses(ctx, repo); err != nil {
+		// Organization automatically called this in AddRepository method.
+		return fmt.Errorf("RecalculateAccesses: %w", err)
+	}
+
+	if setting.Service.AutoWatchNewRepos {
+		if err = repo_model.WatchRepo(ctx, doer.ID, repo.ID, true); err != nil {
+			return fmt.Errorf("WatchRepo: %w", err)
+		}
+	}
+
+	if err = webhook.CopyDefaultWebhooksToRepo(ctx, repo.ID); err != nil {
+		return fmt.Errorf("CopyDefaultWebhooksToRepo: %w", err)
+	}
+
+	return nil
+}
+
+// CreateRepoOptions contains the create repository options
+type CreateRepoOptions struct {
+	Name           string
+	Description    string
+	OriginalURL    string
+	GitServiceType api.GitServiceType
+	Gitignores     string
+	IssueLabels    string
+	License        string
+	Readme         string
+	DefaultBranch  string
+	IsPrivate      bool
+	IsMirror       bool
+	IsTemplate     bool
+	AutoInit       bool
+	Status         repo_model.RepositoryStatus
+	TrustModel     repo_model.TrustModelType
+	MirrorInterval string
+}
+
 // CreateRepository creates a repository for the user/organization.
-func CreateRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (*repo_model.Repository, error) {
+func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_model.Repository, error) {
 	if !doer.IsAdmin && !u.CanCreateRepo() {
 		return nil, repo_model.ErrReachLimitOfRepo{
 			Limit: u.MaxRepoCreation,
@@ -66,7 +212,7 @@ func CreateRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (
 	var rollbackRepo *repo_model.Repository
 
 	if err := db.WithTx(func(ctx context.Context) error {
-		if err := models.CreateRepository(ctx, doer, u, repo, false); err != nil {
+		if err := CreateRepositoryByExample(ctx, doer, u, repo, false); err != nil {
 			return err
 		}
 
@@ -102,7 +248,7 @@ func CreateRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (
 				return fmt.Errorf(
 					"delete repo directory %s/%s failed(2): %v", u.Name, repo.Name, err2)
 			}
-			return fmt.Errorf("initRepository: %v", err)
+			return fmt.Errorf("initRepository: %w", err)
 		}
 
 		// Initialize Issue Labels if selected
@@ -110,12 +256,12 @@ func CreateRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (
 			if err = InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
 				rollbackRepo = repo
 				rollbackRepo.OwnerID = u.ID
-				return fmt.Errorf("InitializeLabels: %v", err)
+				return fmt.Errorf("InitializeLabels: %w", err)
 			}
 		}
 
 		if err := CheckDaemonExportOK(ctx, repo); err != nil {
-			return fmt.Errorf("checkDaemonExportOK: %v", err)
+			return fmt.Errorf("checkDaemonExportOK: %w", err)
 		}
 
 		if stdout, _, err := git.NewCommand(ctx, "update-server-info").
@@ -124,7 +270,7 @@ func CreateRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (
 			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 			rollbackRepo = repo
 			rollbackRepo.OwnerID = u.ID
-			return fmt.Errorf("CreateRepository(git update-server-info): %v", err)
+			return fmt.Errorf("CreateRepository(git update-server-info): %w", err)
 		}
 		return nil
 	}); err != nil {
@@ -144,12 +290,12 @@ func CreateRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (
 func UpdateRepoSize(ctx context.Context, repo *repo_model.Repository) error {
 	size, err := util.GetDirectorySize(repo.RepoPath())
 	if err != nil {
-		return fmt.Errorf("updateSize: %v", err)
+		return fmt.Errorf("updateSize: %w", err)
 	}
 
 	lfsSize, err := git_model.GetRepoLFSSize(ctx, repo.ID)
 	if err != nil {
-		return fmt.Errorf("updateSize: GetLFSMetaObjects: %v", err)
+		return fmt.Errorf("updateSize: GetLFSMetaObjects: %w", err)
 	}
 
 	return repo_model.UpdateRepoSize(ctx, repo.ID, size+lfsSize)
@@ -190,17 +336,10 @@ func CheckDaemonExportOK(ctx context.Context, repo *repo_model.Repository) error
 func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibilityChanged bool) (err error) {
 	repo.LowerName = strings.ToLower(repo.Name)
 
-	if utf8.RuneCountInString(repo.Description) > 255 {
-		repo.Description = string([]rune(repo.Description)[:255])
-	}
-	if utf8.RuneCountInString(repo.Website) > 255 {
-		repo.Website = string([]rune(repo.Website)[:255])
-	}
-
 	e := db.GetEngine(ctx)
 
 	if _, err = e.ID(repo.ID).AllCols().Update(repo); err != nil {
-		return fmt.Errorf("update: %v", err)
+		return fmt.Errorf("update: %w", err)
 	}
 
 	if err = UpdateRepoSize(ctx, repo); err != nil {
@@ -209,18 +348,18 @@ func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 
 	if visibilityChanged {
 		if err = repo.GetOwner(ctx); err != nil {
-			return fmt.Errorf("getOwner: %v", err)
+			return fmt.Errorf("getOwner: %w", err)
 		}
 		if repo.Owner.IsOrganization() {
 			// Organization repository need to recalculate access table when visibility is changed.
 			if err = access_model.RecalculateTeamAccesses(ctx, repo, 0); err != nil {
-				return fmt.Errorf("recalculateTeamAccesses: %v", err)
+				return fmt.Errorf("recalculateTeamAccesses: %w", err)
 			}
 		}
 
 		// If repo has become private, we need to set its actions to private.
 		if repo.IsPrivate {
-			_, err = e.Where("repo_id = ?", repo.ID).Cols("is_private").Update(&models.Action{
+			_, err = e.Where("repo_id = ?", repo.ID).Cols("is_private").Update(&activities_model.Action{
 				IsPrivate: true,
 			})
 			if err != nil {
@@ -235,12 +374,12 @@ func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 
 		forkRepos, err := repo_model.GetRepositoriesByForkID(ctx, repo.ID)
 		if err != nil {
-			return fmt.Errorf("getRepositoriesByForkID: %v", err)
+			return fmt.Errorf("getRepositoriesByForkID: %w", err)
 		}
 		for i := range forkRepos {
 			forkRepos[i].IsPrivate = repo.IsPrivate || repo.Owner.Visibility == api.VisibleTypePrivate
 			if err = UpdateRepository(ctx, forkRepos[i], true); err != nil {
-				return fmt.Errorf("updateRepository[%d]: %v", forkRepos[i].ID, err)
+				return fmt.Errorf("updateRepository[%d]: %w", forkRepos[i].ID, err)
 			}
 		}
 	}

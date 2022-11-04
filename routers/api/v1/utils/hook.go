@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/utils"
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
@@ -73,18 +72,39 @@ func CheckCreateHookOption(ctx *context.APIContext, form *api.CreateHookOption) 
 func AddOrgHook(ctx *context.APIContext, form *api.CreateHookOption) {
 	org := ctx.Org.Organization
 	hook, ok := addHook(ctx, form, org.ID, 0)
-	if ok {
-		ctx.JSON(http.StatusCreated, convert.ToHook(org.AsUser().HomeLink(), hook))
+	if !ok {
+		return
 	}
+	apiHook, ok := toAPIHook(ctx, org.AsUser().HomeLink(), hook)
+	if !ok {
+		return
+	}
+	ctx.JSON(http.StatusCreated, apiHook)
 }
 
 // AddRepoHook add a hook to a repo. Writes to `ctx` accordingly
 func AddRepoHook(ctx *context.APIContext, form *api.CreateHookOption) {
 	repo := ctx.Repo
 	hook, ok := addHook(ctx, form, 0, repo.Repository.ID)
-	if ok {
-		ctx.JSON(http.StatusCreated, convert.ToHook(repo.RepoLink, hook))
+	if !ok {
+		return
 	}
+	apiHook, ok := toAPIHook(ctx, repo.RepoLink, hook)
+	if !ok {
+		return
+	}
+	ctx.JSON(http.StatusCreated, apiHook)
+}
+
+// toAPIHook converts the hook to its API representation.
+// If there is an error, write to `ctx` accordingly. Return (hook, ok)
+func toAPIHook(ctx *context.APIContext, repoLink string, hook *webhook.Webhook) (*api.Hook, bool) {
+	apiHook, err := convert.ToHook(repoLink, hook)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "ToHook", err)
+		return nil, false
+	}
+	return apiHook, true
 }
 
 func issuesHook(events []string, event string) bool {
@@ -127,6 +147,7 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 				PullRequestComment:   pullHook(form.Events, string(webhook.HookEventPullRequestComment)),
 				PullRequestReview:    pullHook(form.Events, "pull_request_review"),
 				PullRequestSync:      pullHook(form.Events, string(webhook.HookEventPullRequestSync)),
+				Wiki:                 util.IsStringInSlice(string(webhook.HookEventWiki), form.Events, true),
 				Repository:           util.IsStringInSlice(string(webhook.HookEventRepository), form.Events, true),
 				Release:              util.IsStringInSlice(string(webhook.HookEventRelease), form.Events, true),
 			},
@@ -135,20 +156,26 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 		IsActive: form.Active,
 		Type:     form.Type,
 	}
+	err := w.SetHeaderAuthorization(form.AuthorizationHeader)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "SetHeaderAuthorization", err)
+		return nil, false
+	}
 	if w.Type == webhook.SLACK {
 		channel, ok := form.Config["channel"]
 		if !ok {
 			ctx.Error(http.StatusUnprocessableEntity, "", "Missing config option: channel")
 			return nil, false
 		}
+		channel = strings.TrimSpace(channel)
 
-		if !utils.IsValidSlackChannel(channel) {
+		if !webhook_service.IsValidSlackChannel(channel) {
 			ctx.Error(http.StatusBadRequest, "", "Invalid slack channel name")
 			return nil, false
 		}
 
 		meta, err := json.Marshal(&webhook_service.SlackMeta{
-			Channel:  strings.TrimSpace(channel),
+			Channel:  channel,
 			Username: form.Config["username"],
 			IconURL:  form.Config["icon_url"],
 			Color:    form.Config["color"],
@@ -184,7 +211,11 @@ func EditOrgHook(ctx *context.APIContext, form *api.EditHookOption, hookID int64
 	if err != nil {
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToHook(org.AsUser().HomeLink(), updated))
+	apiHook, ok := toAPIHook(ctx, org.AsUser().HomeLink(), updated)
+	if !ok {
+		return
+	}
+	ctx.JSON(http.StatusOK, apiHook)
 }
 
 // EditRepoHook edit webhook `w` according to `form`. Writes to `ctx` accordingly
@@ -201,7 +232,11 @@ func EditRepoHook(ctx *context.APIContext, form *api.EditHookOption, hookID int6
 	if err != nil {
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToHook(repo.RepoLink, updated))
+	apiHook, ok := toAPIHook(ctx, repo.RepoLink, updated)
+	if !ok {
+		return
+	}
+	ctx.JSON(http.StatusOK, apiHook)
 }
 
 // editHook edit the webhook `w` according to `form`. If an error occurs, write
@@ -249,8 +284,15 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 	w.Delete = util.IsStringInSlice(string(webhook.HookEventDelete), form.Events, true)
 	w.Fork = util.IsStringInSlice(string(webhook.HookEventFork), form.Events, true)
 	w.Repository = util.IsStringInSlice(string(webhook.HookEventRepository), form.Events, true)
+	w.Wiki = util.IsStringInSlice(string(webhook.HookEventWiki), form.Events, true)
 	w.Release = util.IsStringInSlice(string(webhook.HookEventRelease), form.Events, true)
 	w.BranchFilter = form.BranchFilter
+
+	err := w.SetHeaderAuthorization(form.AuthorizationHeader)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "SetHeaderAuthorization", err)
+		return false
+	}
 
 	// Issues
 	w.Issues = issuesHook(form.Events, "issues_only")

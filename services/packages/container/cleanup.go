@@ -6,10 +6,13 @@ package container
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
+	user_model "code.gitea.io/gitea/models/user"
+	container_module "code.gitea.io/gitea/modules/packages/container"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -72,6 +75,28 @@ func cleanupExpiredUploadedBlobs(ctx context.Context, olderThan time.Duration) e
 		}
 
 		if err := packages_model.DeleteVersionByID(ctx, pv.ID); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// UpdateRepositoryNames updates the repository name property for all packages of the specific owner
+func UpdateRepositoryNames(ctx context.Context, owner *user_model.User, newOwnerName string) error {
+	ps, err := packages_model.GetPackagesByType(ctx, owner.ID, packages_model.TypeContainer)
+	if err != nil {
+		return err
+	}
+
+	newOwnerName = strings.ToLower(newOwnerName)
+
+	for _, p := range ps {
+		if err := packages_model.DeletePropertyByName(ctx, packages_model.PropertyTypePackage, p.ID, container_module.PropertyRepository); err != nil {
+			return err
+		}
+
+		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypePackage, p.ID, container_module.PropertyRepository, newOwnerName+"/"+p.LowerName); err != nil {
 			return err
 		}
 	}

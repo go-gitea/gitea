@@ -10,7 +10,7 @@ draft: false
 
 # 關於 Gitea
 
-Gitea 是一個可自行託管的 Git 服務。你可以拿 GitHub、Bitbucket 或 Gitlab 來比較看看。  
+Gitea 是一個可自行託管的 Git 服務。你可以拿 GitHub、Bitbucket 或 Gitlab 來比較看看。
 Gitea 是從 [Gogs](http://gogs.io) Fork 出來的，請閱讀部落格文章 [Gitea 公告](https://blog.gitea.io/2016/12/welcome-to-gitea/)以了解我們 Fork 的理由。
 
 ## 目標
@@ -269,19 +269,18 @@ Gitea 是從 [Gogs](http://gogs.io) Fork 出來的，請閱讀部落格文章 [G
 - Web 框架： [Chi](http://github.com/go-chi/chi)
 - ORM： [XORM](https://xorm.io)
 - UI 元件：
-  * [jQuery](https://jquery.com)
-  * [Fomantic UI](https://fomantic-ui.com)
-  * [Vue2](https://vuejs.org)
-  * [CodeMirror](https://codemirror.net)
-  * [EasyMDE](https://github.com/Ionaru/easy-markdown-editor)
-  * [Monaco Editor](https://microsoft.github.io/monaco-editor)
-  * ... (package.json)
+  - [jQuery](https://jquery.com)
+  - [Fomantic UI](https://fomantic-ui.com)
+  - [Vue3](https://vuejs.org)
+  - [CodeMirror](https://codemirror.net)
+  - [EasyMDE](https://github.com/Ionaru/easy-markdown-editor)
+  - [Monaco Editor](https://microsoft.github.io/monaco-editor)
+  - ... (package.json)
 - 資料庫驅動程式：
-  * [github.com/go-sql-driver/mysql](https://github.com/go-sql-driver/mysql)
-  * [github.com/lib/pq](https://github.com/lib/pq)
-  * [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
-  * [github.com/denisenkom/go-mssqldb](https://github.com/denisenkom/go-mssqldb)
-
+  - [github.com/go-sql-driver/mysql](https://github.com/go-sql-driver/mysql)
+  - [github.com/lib/pq](https://github.com/lib/pq)
+  - [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
+  - [github.com/denisenkom/go-mssqldb](https://github.com/denisenkom/go-mssqldb)
 
 ## 軟體和服務支援
 

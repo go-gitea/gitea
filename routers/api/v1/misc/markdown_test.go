@@ -5,6 +5,7 @@
 package misc
 
 import (
+	go_context "context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +14,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates"
@@ -29,7 +31,7 @@ const (
 )
 
 func createContext(req *http.Request) (*context.Context, *httptest.ResponseRecorder) {
-	rnd := templates.HTMLRenderer()
+	_, rnd := templates.HTMLRenderer(req.Context())
 	resp := httptest.NewRecorder()
 	c := &context.Context{
 		Req:    req,
@@ -50,6 +52,11 @@ func wrap(ctx *context.Context) *context.APIContext {
 
 func TestAPI_RenderGFM(t *testing.T) {
 	setting.AppURL = AppURL
+	markup.Init(&markup.ProcessorHelper{
+		IsUsernameMentionable: func(ctx go_context.Context, username string) bool {
+			return username == "r-lyeh"
+		},
+	})
 
 	options := api.MarkdownOption{
 		Mode:    "gfm",

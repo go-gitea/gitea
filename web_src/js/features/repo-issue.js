@@ -4,6 +4,7 @@ import attachTribute from './tribute.js';
 import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';
 import {initEasyMDEImagePaste} from './comp/ImagePaste.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
+import {initTooltip, showTemporaryTooltip} from '../modules/tippy.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -278,7 +279,8 @@ export function initRepoPullRequestAllowMaintainerEdit() {
 
   const promptTip = $checkbox.attr('data-prompt-tip');
   const promptError = $checkbox.attr('data-prompt-error');
-  $checkbox.popup({content: promptTip});
+
+  initTooltip($checkbox[0], {content: promptTip});
   $checkbox.checkbox({
     'onChange': () => {
       const checked = $checkbox.checkbox('is checked');
@@ -288,14 +290,7 @@ export function initRepoPullRequestAllowMaintainerEdit() {
       $.ajax({url, type: 'POST',
         data: {_csrf: csrfToken, allow_maintainer_edit: checked},
         error: () => {
-          $checkbox.popup({
-            content: promptError,
-            onHidden: () => {
-              // the error popup should be shown only once, then we restore the popup to the default message
-              $checkbox.popup({content: promptTip});
-            },
-          });
-          $checkbox.popup('show');
+          showTemporaryTooltip($checkbox[0], promptError);
         },
         complete: () => {
           $checkbox.checkbox('set enabled');
@@ -518,16 +513,16 @@ export function initRepoPullRequestReview() {
             <td class="lines-num"></td>
             <td class="lines-escape"></td>
             <td class="lines-type-marker"></td>
-            <td class="add-comment-left"></td>
+            <td class="add-comment-left" colspan="4"></td>
             <td class="lines-num"></td>
             <td class="lines-escape"></td>
             <td class="lines-type-marker"></td>
-            <td class="add-comment-right"></td>
+            <td class="add-comment-right" colspan="4"></td>
           ` : `
             <td class="lines-num"></td>
             <td class="lines-num"></td>
             <td class="lines-escape"></td>
-            <td class="add-comment-left add-comment-right" colspan="2"></td>
+            <td class="add-comment-left add-comment-right" colspan="5"></td>
           `}
         </tr>`);
       tr.after(ntr);

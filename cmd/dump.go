@@ -92,7 +92,7 @@ func (o outputType) String() string {
 }
 
 var outputTypeEnum = &outputType{
-	Enum:    []string{"zip", "tar", "tar.sz", "tar.gz", "tar.xz", "tar.bz2", "tar.br", "tar.lz4"},
+	Enum:    []string{"zip", "tar", "tar.sz", "tar.gz", "tar.xz", "tar.bz2", "tar.br", "tar.lz4", "tar.zst"},
 	Default: "zip",
 }
 
@@ -145,6 +145,10 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 		cli.BoolFlag{
 			Name:  "skip-package-data",
 			Usage: "Skip package data",
+		},
+		cli.BoolFlag{
+			Name:  "skip-index",
+			Usage: "Skip bleve index data",
 		},
 		cli.GenericFlag{
 			Name:  "type",
@@ -325,6 +329,11 @@ func runDump(ctx *cli.Context) error {
 				return err
 			}
 			excludes = append(excludes, opts.ProviderConfig)
+		}
+
+		if ctx.IsSet("skip-index") && ctx.Bool("skip-index") {
+			excludes = append(excludes, setting.Indexer.RepoPath)
+			excludes = append(excludes, setting.Indexer.IssuePath)
 		}
 
 		excludes = append(excludes, setting.RepoRootPath)

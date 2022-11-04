@@ -267,6 +267,7 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 }
 
 func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, metadata *container_module.Metadata) (*packages_model.PackageVersion, error) {
+	created := true
 	p := &packages_model.Package{
 		OwnerID:   mci.Owner.ID,
 		Type:      packages_model.TypeContainer,
@@ -275,8 +276,17 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 	}
 	var err error
 	if p, err = packages_model.TryInsertPackage(ctx, p); err != nil {
-		if err != packages_model.ErrDuplicatePackage {
+		if err == packages_model.ErrDuplicatePackage {
+			created = false
+		} else {
 			log.Error("Error inserting package: %v", err)
+			return nil, err
+		}
+	}
+
+	if created {
+		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypePackage, p.ID, container_module.PropertyRepository, strings.ToLower(mci.Owner.LowerName+"/"+mci.Image)); err != nil {
+			log.Error("Error setting package property: %v", err)
 			return nil, err
 		}
 	}
@@ -301,6 +311,9 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 			if err := packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
 				return nil, err
 			}
+
+			// keep download count on overwrite
+			_pv.DownloadCount = pv.DownloadCount
 
 			if pv, err = packages_model.GetOrInsertVersion(ctx, _pv); err != nil {
 				log.Error("Error inserting package: %v", err)

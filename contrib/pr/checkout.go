@@ -14,7 +14,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"os/user"
@@ -27,12 +26,14 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	gitea_git "code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
+	markup_service "code.gitea.io/gitea/services/markup"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
@@ -61,11 +62,7 @@ func runPR() {
 	}
 	setting.AppWorkPath = curDir
 	setting.StaticRootPath = curDir
-	setting.GravatarSourceURL, err = url.Parse("https://secure.gravatar.com/avatar/")
-	if err != nil {
-		log.Fatalf("url.Parse: %v\n", err)
-	}
-
+	setting.GravatarSource = "https://secure.gravatar.com/avatar/"
 	setting.AppURL = "http://localhost:8080/"
 	setting.HTTPPort = "8080"
 	setting.SSH.Domain = "localhost"
@@ -80,7 +77,6 @@ func runPR() {
 	setting.RunUser = curUser.Username
 
 	log.Printf("[PR] Loading fixtures data ...\n")
-	gitea_git.CheckLFSVersion()
 	//models.LoadConfigs()
 	/*
 		setting.Database.Type = "sqlite3"
@@ -112,13 +108,13 @@ func runPR() {
 	unittest.LoadFixtures()
 	util.RemoveAll(setting.RepoRootPath)
 	util.RemoveAll(repo_module.LocalCopyPath())
-	unittest.CopyDir(path.Join(curDir, "integrations/gitea-repositories-meta"), setting.RepoRootPath)
+	unittest.CopyDir(path.Join(curDir, "tests/gitea-repositories-meta"), setting.RepoRootPath)
 
 	log.Printf("[PR] Setting up router\n")
 	// routers.GlobalInit()
 	external.RegisterRenderers()
-	markup.Init()
-	c := routers.NormalRoutes()
+	markup.Init(markup_service.ProcessorHelper())
+	c := routers.NormalRoutes(graceful.GetManager().HammerContext())
 
 	log.Printf("[PR] Ready for testing !\n")
 	log.Printf("[PR] Login with user1, user2, user3, ... with pass: password\n")

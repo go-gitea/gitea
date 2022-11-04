@@ -39,6 +39,7 @@ var (
 		LogSQL            bool
 		Charset           string
 		Timeout           int // seconds
+		SQLiteJournalMode string
 		UseSQLite3        bool
 		UseMySQL          bool
 		UseMSSQL          bool
@@ -91,6 +92,8 @@ func InitDBConfig() {
 
 	Database.Path = sec.Key("PATH").MustString(filepath.Join(AppDataPath, "gitea.db"))
 	Database.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
+	Database.SQLiteJournalMode = sec.Key("SQLITE_JOURNAL_MODE").MustString("")
+
 	Database.MaxIdleConns = sec.Key("MAX_IDLE_CONNS").MustInt(2)
 	if Database.UseMySQL {
 		Database.ConnMaxLifetime = sec.Key("CONN_MAX_LIFETIME").MustDuration(3 * time.Second)
@@ -134,9 +137,14 @@ func DBConnStr() (string, error) {
 			return "", errors.New("this binary version does not build support for SQLite3")
 		}
 		if err := os.MkdirAll(path.Dir(Database.Path), os.ModePerm); err != nil {
-			return "", fmt.Errorf("Failed to create directories: %v", err)
+			return "", fmt.Errorf("Failed to create directories: %w", err)
 		}
-		connStr = fmt.Sprintf("file:%s?cache=shared&mode=rwc&_busy_timeout=%d&_txlock=immediate", Database.Path, Database.Timeout)
+		journalMode := ""
+		if Database.SQLiteJournalMode != "" {
+			journalMode = "&_journal_mode=" + Database.SQLiteJournalMode
+		}
+		connStr = fmt.Sprintf("file:%s?cache=shared&mode=rwc&_busy_timeout=%d&_txlock=immediate%s",
+			Database.Path, Database.Timeout, journalMode)
 	default:
 		return "", fmt.Errorf("Unknown database type: %s", Database.Type)
 	}

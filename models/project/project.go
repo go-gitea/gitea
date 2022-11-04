@@ -55,6 +55,10 @@ func (err ErrProjectNotExist) Error() string {
 	return fmt.Sprintf("projects does not exist [id: %d]", err.ID)
 }
 
+func (err ErrProjectNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrProjectBoardNotExist represents a "ProjectBoardNotExist" kind of error.
 type ErrProjectBoardNotExist struct {
 	BoardID int64
@@ -68,6 +72,10 @@ func IsErrProjectBoardNotExist(err error) bool {
 
 func (err ErrProjectBoardNotExist) Error() string {
 	return fmt.Sprintf("project board does not exist [id: %d]", err.BoardID)
+}
+
+func (err ErrProjectBoardNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // Project represents a project board
@@ -139,7 +147,7 @@ func GetProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, er
 
 	count, err := e.Where(cond).Count(new(Project))
 	if err != nil {
-		return nil, 0, fmt.Errorf("Count: %v", err)
+		return nil, 0, fmt.Errorf("Count: %w", err)
 	}
 
 	e = e.Where(cond)

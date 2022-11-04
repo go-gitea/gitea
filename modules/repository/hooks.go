@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
@@ -122,30 +123,30 @@ func createDelegateHooks(repoPath string) (err error) {
 		newHookPath := filepath.Join(hookDir, hookName+".d", "gitea")
 
 		if err := os.MkdirAll(filepath.Join(hookDir, hookName+".d"), os.ModePerm); err != nil {
-			return fmt.Errorf("create hooks dir '%s': %v", filepath.Join(hookDir, hookName+".d"), err)
+			return fmt.Errorf("create hooks dir '%s': %w", filepath.Join(hookDir, hookName+".d"), err)
 		}
 
 		// WARNING: This will override all old server-side hooks
 		if err = util.Remove(oldHookPath); err != nil && !os.IsNotExist(err) {
-			return fmt.Errorf("unable to pre-remove old hook file '%s' prior to rewriting: %v ", oldHookPath, err)
+			return fmt.Errorf("unable to pre-remove old hook file '%s' prior to rewriting: %w ", oldHookPath, err)
 		}
 		if err = os.WriteFile(oldHookPath, []byte(hookTpls[i]), 0o777); err != nil {
-			return fmt.Errorf("write old hook file '%s': %v", oldHookPath, err)
+			return fmt.Errorf("write old hook file '%s': %w", oldHookPath, err)
 		}
 
 		if err = ensureExecutable(oldHookPath); err != nil {
-			return fmt.Errorf("Unable to set %s executable. Error %v", oldHookPath, err)
+			return fmt.Errorf("Unable to set %s executable. Error %w", oldHookPath, err)
 		}
 
 		if err = util.Remove(newHookPath); err != nil && !os.IsNotExist(err) {
-			return fmt.Errorf("unable to pre-remove new hook file '%s' prior to rewriting: %v", newHookPath, err)
+			return fmt.Errorf("unable to pre-remove new hook file '%s' prior to rewriting: %w", newHookPath, err)
 		}
 		if err = os.WriteFile(newHookPath, []byte(giteaHookTpls[i]), 0o777); err != nil {
-			return fmt.Errorf("write new hook file '%s': %v", newHookPath, err)
+			return fmt.Errorf("write new hook file '%s': %w", newHookPath, err)
 		}
 
 		if err = ensureExecutable(newHookPath); err != nil {
-			return fmt.Errorf("Unable to set %s executable. Error %v", oldHookPath, err)
+			return fmt.Errorf("Unable to set %s executable. Error %w", oldHookPath, err)
 		}
 	}
 
@@ -153,6 +154,10 @@ func createDelegateHooks(repoPath string) (err error) {
 }
 
 func checkExecutable(filename string) bool {
+	// windows has no concept of a executable bit
+	if runtime.GOOS == "windows" {
+		return true
+	}
 	fileInfo, err := os.Stat(filename)
 	if err != nil {
 		return false

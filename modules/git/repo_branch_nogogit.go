@@ -63,34 +63,32 @@ func (repo *Repository) IsBranchExist(name string) bool {
 // GetBranchNames returns branches from the repository, skipping skip initial branches and
 // returning at most limit branches, or all branches if limit is 0.
 func (repo *Repository) GetBranchNames(skip, limit int) ([]string, int, error) {
-	return callShowRef(repo.Ctx, repo.Path, BranchPrefix, "--heads", skip, limit)
+	return callShowRef(repo.Ctx, repo.Path, BranchPrefix, []CmdArg{BranchPrefix, "--sort=-committerdate"}, skip, limit)
 }
 
 // WalkReferences walks all the references from the repository
 func WalkReferences(ctx context.Context, repoPath string, walkfn func(sha1, refname string) error) (int, error) {
-	return walkShowRef(ctx, repoPath, "", 0, 0, walkfn)
+	return walkShowRef(ctx, repoPath, nil, 0, 0, walkfn)
 }
 
 // WalkReferences walks all the references from the repository
 // refType should be empty, ObjectTag or ObjectBranch. All other values are equivalent to empty.
 func (repo *Repository) WalkReferences(refType ObjectType, skip, limit int, walkfn func(sha1, refname string) error) (int, error) {
-	var arg string
+	var args []CmdArg
 	switch refType {
 	case ObjectTag:
-		arg = "--tags"
+		args = []CmdArg{TagPrefix, "--sort=-taggerdate"}
 	case ObjectBranch:
-		arg = "--heads"
-	default:
-		arg = ""
+		args = []CmdArg{BranchPrefix, "--sort=-committerdate"}
 	}
 
-	return walkShowRef(repo.Ctx, repo.Path, arg, skip, limit, walkfn)
+	return walkShowRef(repo.Ctx, repo.Path, args, skip, limit, walkfn)
 }
 
 // callShowRef return refs, if limit = 0 it will not limit
-func callShowRef(ctx context.Context, repoPath, prefix, arg string, skip, limit int) (branchNames []string, countAll int, err error) {
-	countAll, err = walkShowRef(ctx, repoPath, arg, skip, limit, func(_, branchName string) error {
-		branchName = strings.TrimPrefix(branchName, prefix)
+func callShowRef(ctx context.Context, repoPath, trimPrefix string, extraArgs []CmdArg, skip, limit int) (branchNames []string, countAll int, err error) {
+	countAll, err = walkShowRef(ctx, repoPath, extraArgs, skip, limit, func(_, branchName string) error {
+		branchName = strings.TrimPrefix(branchName, trimPrefix)
 		branchNames = append(branchNames, branchName)
 
 		return nil
@@ -98,7 +96,7 @@ func callShowRef(ctx context.Context, repoPath, prefix, arg string, skip, limit 
 	return branchNames, countAll, err
 }
 
-func walkShowRef(ctx context.Context, repoPath, arg string, skip, limit int, walkfn func(sha1, refname string) error) (countAll int, err error) {
+func walkShowRef(ctx context.Context, repoPath string, extraArgs []CmdArg, skip, limit int, walkfn func(sha1, refname string) error) (countAll int, err error) {
 	stdoutReader, stdoutWriter := io.Pipe()
 	defer func() {
 		_ = stdoutReader.Close()
@@ -107,10 +105,8 @@ func walkShowRef(ctx context.Context, repoPath, arg string, skip, limit int, wal
 
 	go func() {
 		stderrBuilder := &strings.Builder{}
-		args := []string{"show-ref"}
-		if arg != "" {
-			args = append(args, arg)
-		}
+		args := []CmdArg{"for-each-ref", "--format=%(objectname) %(refname)"}
+		args = append(args, extraArgs...)
 		err := NewCommand(ctx, args...).Run(&RunOpts{
 			Dir:    repoPath,
 			Stdout: stdoutWriter,
@@ -194,7 +190,7 @@ func walkShowRef(ctx context.Context, repoPath, arg string, skip, limit int, wal
 // GetRefsBySha returns all references filtered with prefix that belong to a sha commit hash
 func (repo *Repository) GetRefsBySha(sha, prefix string) ([]string, error) {
 	var revList []string
-	_, err := walkShowRef(repo.Ctx, repo.Path, "", 0, 0, func(walkSha, refname string) error {
+	_, err := walkShowRef(repo.Ctx, repo.Path, nil, 0, 0, func(walkSha, refname string) error {
 		if walkSha == sha && strings.HasPrefix(refname, prefix) {
 			revList = append(revList, refname)
 		}

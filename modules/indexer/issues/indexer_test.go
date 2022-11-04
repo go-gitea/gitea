@@ -6,7 +6,6 @@ package issues
 
 import (
 	"context"
-	"os"
 	"path"
 	"path/filepath"
 	"testing"
@@ -14,7 +13,6 @@ import (
 
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	_ "code.gitea.io/gitea/models"
 
@@ -32,11 +30,7 @@ func TestBleveSearchIssues(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	setting.Cfg = ini.Empty()
 
-	tmpIndexerDir, err := os.MkdirTemp("", "issues-indexer")
-	if err != nil {
-		assert.Fail(t, "Unable to create temporary directory: %v", err)
-		return
-	}
+	tmpIndexerDir := t.TempDir()
 
 	setting.Cfg.Section("queue.issue_indexer").Key("DATADIR").MustString(path.Join(tmpIndexerDir, "issues.queue"))
 
@@ -44,7 +38,6 @@ func TestBleveSearchIssues(t *testing.T) {
 	setting.Indexer.IssuePath = path.Join(tmpIndexerDir, "issues.queue")
 	defer func() {
 		setting.Indexer.IssuePath = oldIssuePath
-		util.RemoveAll(tmpIndexerDir)
 	}()
 
 	setting.Indexer.IssueType = "bleve"

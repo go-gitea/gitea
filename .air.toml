@@ -7,4 +7,4 @@ bin = "gitea"
 include_ext = ["go", "tmpl"]
 exclude_dir = ["modules/git/tests", "services/gitdiff/testdata", "modules/avatar/testdata"]
 include_dir = ["cmd", "models", "modules", "options", "routers", "services", "templates"]
-exclude_regex = ["_test.go$"]
+exclude_regex = ["_test.go$", "_gen.go$"]

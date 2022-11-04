@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httpcache"
@@ -42,7 +43,6 @@ import (
 	context_service "code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/lfs"
-	"code.gitea.io/gitea/services/mailer"
 
 	_ "code.gitea.io/gitea/modules/session" // to registers all internal adapters
 
@@ -98,7 +98,7 @@ func buildAuthGroup() *auth_service.Group {
 }
 
 // Routes returns all web routes
-func Routes() *web.Route {
+func Routes(ctx gocontext.Context) *web.Route {
 	routes := web.NewRoute()
 
 	routes.Use(web.WrapWithPrefix(public.AssetsURLPathPrefix, public.AssetsHandlerFunc(&public.Options{
@@ -120,7 +120,9 @@ func Routes() *web.Route {
 	})
 	routes.Use(sessioner)
 
-	routes.Use(Recovery())
+	ctx, _ = templates.HTMLRenderer(ctx)
+
+	routes.Use(Recovery(ctx))
 
 	// We use r.Route here over r.Use because this prevents requests that are not for avatars having to go through this additional handler
 	routes.Route("/avatars/*", "GET, HEAD", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
@@ -150,8 +152,6 @@ func Routes() *web.Route {
 		}
 		common = append(common, h)
 	}
-
-	mailer.InitMailRender(templates.Mailer())
 
 	if setting.Service.EnableCaptcha {
 		// The captcha http.Handler should only fire on /captcha/* so we can just mount this on that url
@@ -195,10 +195,10 @@ func Routes() *web.Route {
 	routes.Get("/api/healthz", healthcheck.Check)
 
 	// Removed: toolbox.Toolboxer middleware will provide debug information which seems unnecessary
-	common = append(common, context.Contexter())
+	common = append(common, context.Contexter(ctx))
 
 	group := buildAuthGroup()
-	if err := group.Init(); err != nil {
+	if err := group.Init(ctx); err != nil {
 		log.Error("Could not initialize '%s' auth method, error: %s", group.Name(), err)
 	}
 
@@ -289,12 +289,26 @@ func RegisterRoutes(m *web.Route) {
 		}
 	}
 
+	dlSourceEnabled := func(ctx *context.Context) {
+		if setting.Repository.DisableDownloadSourceArchives {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+	}
+
+	sitemapEnabled := func(ctx *context.Context) {
+		if !setting.EnableSitemap {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+	}
+
 	// FIXME: not all routes need go through same middleware.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 	// Routers.
 	// for health check
 	m.Get("/", Home)
-	m.Get("/sitemap.xml", ignExploreSignIn, HomeSitemap)
+	m.Get("/sitemap.xml", sitemapEnabled, ignExploreSignIn, HomeSitemap)
 	m.Group("/.well-known", func() {
 		m.Get("/openid-configuration", auth.OIDCWellKnown)
 		m.Group("", func() {
@@ -311,9 +325,9 @@ func RegisterRoutes(m *web.Route) {
 			ctx.Redirect(setting.AppSubURL + "/explore/repos")
 		})
 		m.Get("/repos", explore.Repos)
-		m.Get("/repos/sitemap-{idx}.xml", explore.Repos)
+		m.Get("/repos/sitemap-{idx}.xml", sitemapEnabled, explore.Repos)
 		m.Get("/users", explore.Users)
-		m.Get("/users/sitemap-{idx}.xml", explore.Users)
+		m.Get("/users/sitemap-{idx}.xml", sitemapEnabled, explore.Users)
 		m.Get("/organizations", explore.Organizations)
 		m.Get("/code", explore.Code)
 		m.Get("/topics/search", explore.TopicSearch)
@@ -420,8 +434,8 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/{id}", bindIgnErr(forms.EditOAuth2ApplicationForm{}), user_setting.OAuthApplicationsEdit)
 			m.Post("/{id}/regenerate_secret", user_setting.OAuthApplicationsRegenerateSecret)
 			m.Post("", bindIgnErr(forms.EditOAuth2ApplicationForm{}), user_setting.OAuthApplicationsPost)
-			m.Post("/delete", user_setting.DeleteOAuth2Application)
-			m.Post("/revoke", user_setting.RevokeOAuth2Grant)
+			m.Post("/{id}/delete", user_setting.DeleteOAuth2Application)
+			m.Post("/{id}/revoke/{grantId}", user_setting.RevokeOAuth2Grant)
 		})
 		m.Combo("/applications").Get(user_setting.Applications).
 			Post(bindIgnErr(forms.NewAccessTokenForm{}), user_setting.ApplicationsPost)
@@ -466,8 +480,13 @@ func RegisterRoutes(m *web.Route) {
 	m.Group("/admin", func() {
 		m.Get("", adminReq, admin.Dashboard)
 		m.Post("", adminReq, bindIgnErr(forms.AdminDashboardForm{}), admin.DashboardPost)
-		m.Get("/config", admin.Config)
-		m.Post("/config/test_mail", admin.SendTestMail)
+
+		m.Group("/config", func() {
+			m.Get("", admin.Config)
+			m.Post("", admin.ChangeConfig)
+			m.Post("/test_mail", admin.SendTestMail)
+		})
+
 		m.Group("/monitor", func() {
 			m.Get("", admin.Monitor)
 			m.Get("/stacktrace", admin.GoroutineStacktrace)
@@ -521,7 +540,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Get("", repo.WebHooksEdit)
 				m.Post("/replay/{uuid}", repo.ReplayWebhook)
 			})
-			m.Post("/gitea/{id}", bindIgnErr(forms.NewWebhookForm{}), repo.WebHooksEditPost)
+			m.Post("/gitea/{id}", bindIgnErr(forms.NewWebhookForm{}), repo.GiteaHooksEditPost)
 			m.Post("/gogs/{id}", bindIgnErr(forms.NewGogshookForm{}), repo.GogsHooksEditPost)
 			m.Post("/slack/{id}", bindIgnErr(forms.NewSlackHookForm{}), repo.SlackHooksEditPost)
 			m.Post("/discord/{id}", bindIgnErr(forms.NewDiscordHookForm{}), repo.DiscordHooksEditPost)
@@ -562,6 +581,24 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/delete", admin.DeleteNotices)
 			m.Post("/empty", admin.EmptyNotices)
 		})
+
+		m.Group("/applications", func() {
+			m.Get("", admin.Applications)
+			m.Post("/oauth2", bindIgnErr(forms.EditOAuth2ApplicationForm{}), admin.ApplicationsPost)
+			m.Group("/oauth2/{id}", func() {
+				m.Combo("").Get(admin.EditApplication).Post(bindIgnErr(forms.EditOAuth2ApplicationForm{}), admin.EditApplicationPost)
+				m.Post("/regenerate_secret", admin.ApplicationsRegenerateSecret)
+				m.Post("/delete", admin.DeleteApplication)
+			})
+		}, func(ctx *context.Context) {
+			if !setting.OAuth2.Enable {
+				ctx.Error(http.StatusForbidden)
+				return
+			}
+		})
+	}, func(ctx *context.Context) {
+		ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
+		ctx.Data["EnablePackages"] = setting.Packages.Enabled
 	}, adminReq)
 	// ***** END: Admin *****
 
@@ -622,6 +659,11 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/create", bindIgnErr(forms.CreateOrgForm{}), org.CreatePost)
 		})
 
+		m.Group("/invite/{token}", func() {
+			m.Get("", org.TeamInvite)
+			m.Post("", org.TeamInvitePost)
+		})
+
 		m.Group("/{org}", func() {
 			m.Get("/dashboard", user.Dashboard)
 			m.Get("/dashboard/{team}", user.Dashboard)
@@ -655,6 +697,20 @@ func RegisterRoutes(m *web.Route) {
 					Post(bindIgnErr(forms.UpdateOrgSettingForm{}), org.SettingsPost)
 				m.Post("/avatar", bindIgnErr(forms.AvatarForm{}), org.SettingsAvatar)
 				m.Post("/avatar/delete", org.SettingsDeleteAvatar)
+				m.Group("/applications", func() {
+					m.Get("", org.Applications)
+					m.Post("/oauth2", bindIgnErr(forms.EditOAuth2ApplicationForm{}), org.OAuthApplicationsPost)
+					m.Group("/oauth2/{id}", func() {
+						m.Combo("").Get(org.OAuth2ApplicationShow).Post(bindIgnErr(forms.EditOAuth2ApplicationForm{}), org.OAuth2ApplicationEdit)
+						m.Post("/regenerate_secret", org.OAuthApplicationsRegenerateSecret)
+						m.Post("/delete", org.DeleteOAuth2Application)
+					})
+				}, func(ctx *context.Context) {
+					if !setting.OAuth2.Enable {
+						ctx.Error(http.StatusForbidden)
+						return
+					}
+				})
 
 				m.Group("/hooks", func() {
 					m.Get("", org.Webhooks)
@@ -674,7 +730,7 @@ func RegisterRoutes(m *web.Route) {
 						m.Get("", repo.WebHooksEdit)
 						m.Post("/replay/{uuid}", repo.ReplayWebhook)
 					})
-					m.Post("/gitea/{id}", bindIgnErr(forms.NewWebhookForm{}), repo.WebHooksEditPost)
+					m.Post("/gitea/{id}", bindIgnErr(forms.NewWebhookForm{}), repo.GiteaHooksEditPost)
 					m.Post("/gogs/{id}", bindIgnErr(forms.NewGogshookForm{}), repo.GogsHooksEditPost)
 					m.Post("/slack/{id}", bindIgnErr(forms.NewSlackHookForm{}), repo.SlackHooksEditPost)
 					m.Post("/discord/{id}", bindIgnErr(forms.NewDiscordHookForm{}), repo.DiscordHooksEditPost)
@@ -695,6 +751,8 @@ func RegisterRoutes(m *web.Route) {
 				})
 
 				m.Route("/delete", "GET,POST", org.SettingsDelete)
+			}, func(ctx *context.Context) {
+				ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
 			})
 		}, context.OrgAssignment(true, true))
 	}, reqSignIn)
@@ -731,6 +789,7 @@ func RegisterRoutes(m *web.Route) {
 				})
 			}, ignSignIn, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 		}
+		m.Get("/code", user.CodeSearch)
 	}, context_service.UserAssignmentWeb())
 
 	// ***** Release Attachment Download without Signin
@@ -796,7 +855,7 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/test", repo.TestWebhook)
 					m.Post("/replay/{uuid}", repo.ReplayWebhook)
 				})
-				m.Post("/gitea/{id}", bindIgnErr(forms.NewWebhookForm{}), repo.WebHooksEditPost)
+				m.Post("/gitea/{id}", bindIgnErr(forms.NewWebhookForm{}), repo.GiteaHooksEditPost)
 				m.Post("/gogs/{id}", bindIgnErr(forms.NewGogshookForm{}), repo.GogsHooksEditPost)
 				m.Post("/slack/{id}", bindIgnErr(forms.NewSlackHookForm{}), repo.SlackHooksEditPost)
 				m.Post("/discord/{id}", bindIgnErr(forms.NewDiscordHookForm{}), repo.DiscordHooksEditPost)
@@ -1011,6 +1070,7 @@ func RegisterRoutes(m *web.Route) {
 				return
 			}
 			ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
+			ctx.Repo.GitRepo.LastCommitCache = git.NewLastCommitCache(ctx.Repo.CommitsCount, ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, cache.GetCache())
 		})
 	}, ignSignIn, context.RepoAssignment, context.UnitTypes(), reqRepoReleaseReader)
 
@@ -1104,7 +1164,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/archive", func() {
 			m.Get("/*", repo.Download)
 			m.Post("/*", repo.InitiateDownload)
-		}, repo.MustBeNotEmpty, reqRepoCodeReader)
+		}, repo.MustBeNotEmpty, dlSourceEnabled, reqRepoCodeReader)
 
 		m.Group("/branches", func() {
 			m.Get("", repo.Branches)
@@ -1261,6 +1321,8 @@ func RegisterRoutes(m *web.Route) {
 
 	m.Group("/notifications", func() {
 		m.Get("", user.Notifications)
+		m.Get("/subscriptions", user.NotificationSubscriptions)
+		m.Get("/watching", user.NotificationWatching)
 		m.Post("/status", user.NotificationStatusPost)
 		m.Post("/purge", user.NotificationPurgePost)
 		m.Get("/new", user.NewAvailable)

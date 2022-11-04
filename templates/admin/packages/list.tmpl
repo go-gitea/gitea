@@ -21,8 +21,10 @@
 						<option value="maven" {{if eq .PackageType "maven"}}selected="selected"{{end}}>Maven</option>
 						<option value="npm" {{if eq .PackageType "npm"}}selected="selected"{{end}}>npm</option>
 						<option value="nuget" {{if eq .PackageType "nuget"}}selected="selected"{{end}}>NuGet</option>
+						<option value="pub" {{if eq .PackageType "pub"}}selected="selected"{{end}}>Pub</option>
 						<option value="pypi" {{if eq .PackageType "pypi"}}selected="selected"{{end}}>PyPi</option>
 						<option value="rubygems" {{if eq .PackageType "rubygems"}}selected="selected"{{end}}>RubyGems</option>
+						<option value="vagrant" {{if eq .PackageType "vagrant"}}selected="selected"{{end}}>Vagrant</option>
 					</select>
 					<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
 				</div>
@@ -35,20 +37,20 @@
 						<th>ID</th>
 						<th>{{.locale.Tr "admin.packages.owner"}}</th>
 						<th>{{.locale.Tr "admin.packages.type"}}</th>
-						<th data-sortt-asc="alphabetically" data-sortt-desc="reversealphabetically">
+						<th data-sortt-asc="name_asc" data-sortt-desc="name_desc">
 							{{.locale.Tr "admin.packages.name"}}
-							{{SortArrow "alphabetically" "reversealphabetically" .SortType false}}
+							{{SortArrow "name_asc" "name_desc" .SortType false}}
 						</th>
-						<th data-sortt-asc="highestversion" data-sortt-desc="lowestversion">
+						<th data-sortt-asc="version_desc" data-sortt-desc="version_asc">
 							{{.locale.Tr "admin.packages.version"}}
-							{{SortArrow "highestversion" "lowestversion" .SortType false}}
+							{{SortArrow "version_desc" "version_asc" .SortType false}}
 						</th>
 						<th>{{.locale.Tr "admin.packages.creator"}}</th>
 						<th>{{.locale.Tr "admin.packages.repository"}}</th>
 						<th>{{.locale.Tr "admin.packages.size"}}</th>
-						<th data-sortt-asc="oldest" data-sortt-desc="newest">
+						<th data-sortt-asc="created_asc" data-sortt-desc="created_desc">
 							{{.locale.Tr "admin.packages.published"}}
-							{{SortArrow "oldest" "newest" .SortType true}}
+							{{SortArrow "created_asc" "created_desc" .SortType true}}
 						</th>
 						<th>{{.locale.Tr "admin.notices.op"}}</th>
 					</tr>
@@ -73,7 +75,7 @@
 							{{end}}
 							</td>
 							<td>{{FileSize .CalculateBlobSize}}</td>
-							<td><span title="{{.Version.CreatedUnix.FormatLong}}">{{.Version.CreatedUnix.FormatShort}}</span></td>
+							<td><span title="{{.Version.CreatedUnix.FormatLong}}"><time data-format="short-date" datetime="{{.Version.CreatedUnix.FormatLong}}">{{.Version.CreatedUnix.FormatShort}}</time></span></td>
 							<td><a class="delete-button" href="" data-url="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}" data-id="{{.Version.ID}}" data-name="{{.Package.Name}}" data-data-version="{{.Version.Version}}">{{svg "octicon-trash"}}</a></td>
 						</tr>
 					{{end}}

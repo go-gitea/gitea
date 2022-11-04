@@ -59,7 +59,11 @@ func ListHooks(ctx *context.APIContext) {
 
 	hooks := make([]*api.Hook, len(orgHooks))
 	for i, hook := range orgHooks {
-		hooks[i] = convert.ToHook(ctx.Org.Organization.AsUser().HomeLink(), hook)
+		hooks[i], err = convert.ToHook(ctx.Org.Organization.AsUser().HomeLink(), hook)
+		if err != nil {
+			ctx.InternalServerError(err)
+			return
+		}
 	}
 
 	ctx.SetTotalCountHeader(count)
@@ -95,7 +99,13 @@ func GetHook(ctx *context.APIContext) {
 	if err != nil {
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToHook(org.AsUser().HomeLink(), hook))
+
+	apiHook, err := convert.ToHook(org.AsUser().HomeLink(), hook)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, apiHook)
 }
 
 // CreateHook create a hook for an organization

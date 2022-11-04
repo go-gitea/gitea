@@ -22,7 +22,7 @@
 					<input readonly="" value="{{.TokenToSign}}">
 					<div class="help">
 						<p>{{.locale.Tr "settings.gpg_token_help"}}</p>
-						<p><code>{{$.locale.Tr "settings.gpg_token_code" .TokenToSign .KeyID}}</code></p>
+						<p><code>{{$.locale.Tr "settings.gpg_token_code" .TokenToSign .PaddedKeyID}}</code></p>
 					</div>
 				</div>
 				<div class="field">
@@ -64,13 +64,13 @@
 						<span class="tooltip" data-content="{{$.locale.Tr "settings.gpg_key_matched_identities_long"}}">{{svg "octicon-mail"}} {{$.locale.Tr "settings.gpg_key_matched_identities"}} {{range .Emails}}<strong>{{.Email}} </strong>{{end}}</span>
 					{{end}}
 					<div class="print meta">
-						<b>{{$.locale.Tr "settings.key_id"}}:</b> {{.KeyID}}
-						<b>{{$.locale.Tr "settings.subkeys"}}:</b> {{range .SubsKey}} {{.KeyID}} {{end}}
+						<b>{{$.locale.Tr "settings.key_id"}}:</b> {{.PaddedKeyID}}
+						<b>{{$.locale.Tr "settings.subkeys"}}:</b> {{range .SubsKey}} {{.PaddedKeyID}} {{end}}
 					</div>
 					<div class="activity meta">
-						<i>{{$.locale.Tr "settings.add_on"}} <span>{{.AddedUnix.FormatShort}}</span></i>
+						<i>{{$.locale.Tr "settings.add_on"}} <span><time data-format="short-date" datetime="{{.AddedUnix.FormatLong}}">{{.AddedUnix.FormatShort}}</time></span></i>
 						-
-						<i>{{if not .ExpiredUnix.IsZero}}{{$.locale.Tr "settings.valid_until"}} <span>{{.ExpiredUnix.FormatShort}}</span>{{else}}{{$.locale.Tr "settings.valid_forever"}}{{end}}</i>
+						<i>{{if not .ExpiredUnix.IsZero}}{{$.locale.Tr "settings.valid_until"}} <span><time data-format="short-date" datetime="{{.ExpiredUnix.FormatLong}}">{{.ExpiredUnix.FormatShort}}</time></span>{{else}}{{$.locale.Tr "settings.valid_forever"}}{{end}}</i>
 					</div>
 				</div>
 			</div>
@@ -87,7 +87,7 @@
 							<input readonly="" value="{{$.TokenToSign}}">
 							<div class="help">
 								<p>{{$.locale.Tr "settings.gpg_token_help"}}</p>
-								<p><code>{{$.locale.Tr "settings.gpg_token_code" $.TokenToSign .KeyID}}</code></p>
+								<p><code>{{$.locale.Tr "settings.gpg_token_code" $.TokenToSign .PaddedKeyID}}</code></p>
 							</div>
 							<br>
 						</div>

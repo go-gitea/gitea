@@ -128,13 +128,13 @@ func (status *CommitStatus) loadAttributes(ctx context.Context) (err error) {
 	if status.Repo == nil {
 		status.Repo, err = repo_model.GetRepositoryByIDCtx(ctx, status.RepoID)
 		if err != nil {
-			return fmt.Errorf("getRepositoryByID [%d]: %v", status.RepoID, err)
+			return fmt.Errorf("getRepositoryByID [%d]: %w", status.RepoID, err)
 		}
 	}
 	if status.Creator == nil && status.CreatorID > 0 {
 		status.Creator, err = user_model.GetUserByIDCtx(ctx, status.CreatorID)
 		if err != nil {
-			return fmt.Errorf("getUserByID [%d]: %v", status.CreatorID, err)
+			return fmt.Errorf("getUserByID [%d]: %w", status.CreatorID, err)
 		}
 	}
 	return nil
@@ -294,12 +294,12 @@ func NewCommitStatus(opts NewCommitStatusOptions) error {
 	// Get the next Status Index
 	idx, err := GetNextCommitStatusIndex(opts.Repo.ID, opts.SHA)
 	if err != nil {
-		return fmt.Errorf("generate commit status index failed: %v", err)
+		return fmt.Errorf("generate commit status index failed: %w", err)
 	}
 
 	ctx, committer, err := db.TxContext()
 	if err != nil {
-		return fmt.Errorf("NewCommitStatus[repo_id: %d, user_id: %d, sha: %s]: %v", opts.Repo.ID, opts.Creator.ID, opts.SHA, err)
+		return fmt.Errorf("NewCommitStatus[repo_id: %d, user_id: %d, sha: %s]: %w", opts.Repo.ID, opts.Creator.ID, opts.SHA, err)
 	}
 	defer committer.Close()
 
@@ -316,7 +316,7 @@ func NewCommitStatus(opts NewCommitStatusOptions) error {
 
 	// Insert new CommitStatus
 	if _, err = db.GetEngine(ctx).Insert(opts.CommitStatus); err != nil {
-		return fmt.Errorf("Insert CommitStatus[%s, %s]: %v", repoPath, opts.SHA, err)
+		return fmt.Errorf("Insert CommitStatus[%s, %s]: %w", repoPath, opts.SHA, err)
 	}
 
 	return committer.Commit()

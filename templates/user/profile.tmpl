@@ -28,7 +28,7 @@
 							{{if .Owner.Location}}
 								<li>{{svg "octicon-location"}} {{.Owner.Location}}</li>
 							{{end}}
-							{{if .ShowUserEmail }}
+							{{if .ShowUserEmail}}
 								<li>
 									{{svg "octicon-mail"}}
 									<a href="mailto:{{.Owner.Email}}" rel="nofollow">{{.Owner.Email}}</a>
@@ -53,7 +53,7 @@
 									</li>
 								{{end}}
 							{{end}}
-							<li>{{svg "octicon-clock"}} {{.locale.Tr "user.join_on"}} {{.Owner.CreatedUnix.FormatShort}}</li>
+							<li>{{svg "octicon-clock"}} {{.locale.Tr "user.join_on"}} <time data-format="short-date" datetime="{{.Owner.CreatedUnix.FormatLong}}">{{.Owner.CreatedUnix.FormatShort}}</time></li>
 							{{if and .Orgs .HasOrgsVisible}}
 							<li>
 								<ul class="user-orgs">
@@ -65,6 +65,17 @@
 										</a>
 									</li>
 									{{end}}
+								{{end}}
+								</ul>
+							</li>
+							{{end}}
+							{{if .Badges}}
+							<li>
+								<ul class="user-badges">
+								{{range .Badges}}
+									<li>
+										<img width="64" height="64" src="{{.ImageURL}}" alt="{{.Description}}" data-content="{{.Description}}" class="tooltip"/>
+									</li>
 								{{end}}
 								</ul>
 							</li>
@@ -90,12 +101,17 @@
 			</div>
 			<div class="ui eleven wide column">
 				<div class="ui secondary stackable pointing tight menu">
-					<a class='{{if and (ne .TabName "activity") (ne .TabName "following") (ne .TabName "followers") (ne .TabName "stars") (ne .TabName "watching") (ne .TabName "projects")}}active{{end}} item' href="{{.Owner.HomeLink}}">
+					<a class='{{if and (ne .TabName "activity") (ne .TabName "following") (ne .TabName "followers") (ne .TabName "stars") (ne .TabName "watching") (ne .TabName "projects") (ne .TabName "code")}}active{{end}} item' href="{{.Owner.HomeLink}}">
 						{{svg "octicon-repo"}} {{.locale.Tr "user.repositories"}}
 					</a>
 					{{if .IsPackageEnabled}}
 					<a class='{{if eq .TabName "packages"}}active{{end}} item' href="{{.Owner.HomeLink}}/-/packages">
 						{{svg "octicon-package"}} {{.locale.Tr "packages.title"}}
+					</a>
+					{{end}}
+					{{if .IsRepoIndexerEnabled}}
+					<a class='{{if eq .TabName "code"}}active{{end}} item' href="{{.Owner.HomeLink}}/-/code">
+						{{svg "octicon-code"}} {{.locale.Tr "user.code"}}
 					</a>
 					{{end}}
 					<a class='{{if eq .TabName "activity"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=activity">

@@ -23,38 +23,38 @@
 								{{$.locale.Tr "action.create_branch" (.GetRepoLink|Escape) (.GetRefLink|Escape) (Escape .GetBranch) (.ShortRepoPath|Escape) | Str2html}}
 							{{end}}
 						{{else if eq .GetOpType 6}}
-							{{ $index := index .GetIssueInfos 0}}
+							{{$index := index .GetIssueInfos 0}}
 							{{$.locale.Tr "action.create_issue" ((printf "%s/issues/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 7}}
-							{{ $index := index .GetIssueInfos 0}}
+							{{$index := index .GetIssueInfos 0}}
 							{{$.locale.Tr "action.create_pull_request" ((printf "%s/pulls/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 8}}
 							{{$.locale.Tr "action.transfer_repo" .GetContent (.GetRepoLink|Escape) (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 9}}
 							{{$.locale.Tr "action.push_tag" (.GetRepoLink|Escape) (.GetRefLink|Escape) (.GetTag|Escape) (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 10}}
-							{{ $index := index .GetIssueInfos 0}}
+							{{$index := index .GetIssueInfos 0}}
 							{{$.locale.Tr "action.comment_issue" ((printf "%s/issues/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 11}}
-							{{ $index := index .GetIssueInfos 0}}
+							{{$index := index .GetIssueInfos 0}}
 							{{$.locale.Tr "action.merge_pull_request" ((printf "%s/pulls/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 12}}
-							{{ $index := index .GetIssueInfos 0}}
+							{{$index := index .GetIssueInfos 0}}
 							{{$.locale.Tr "action.close_issue" ((printf "%s/issues/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 13}}
-							{{ $index := index .GetIssueInfos 0}}
+							{{$index := index .GetIssueInfos 0}}
 							{{$.locale.Tr "action.reopen_issue" ((printf "%s/issues/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 14}}
-							{{ $index := index .GetIssueInfos 0}}
+							{{$index := index .GetIssueInfos 0}}
 							{{$.locale.Tr "action.close_pull_request" ((printf "%s/pulls/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 15}}
-							{{ $index := index .GetIssueInfos 0}}
+							{{$index := index .GetIssueInfos 0}}
 							{{$.locale.Tr "action.reopen_pull_request" ((printf "%s/pulls/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 16}}
-							{{ $index := index .GetIssueInfos 0}}
+							{{$index := index .GetIssueInfos 0}}
 							{{$.locale.Tr "action.delete_tag" (.GetRepoLink|Escape) (.GetTag|Escape) (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 17}}
-							{{ $index := index .GetIssueInfos 0}}
+							{{$index := index .GetIssueInfos 0}}
 							{{$.locale.Tr "action.delete_branch" (.GetRepoLink|Escape) (.GetBranch|Escape) (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 18}}
 							{{$.locale.Tr "action.mirror_sync_push" (.GetRepoLink|Escape) (.GetRefLink|Escape) (.GetBranch|Escape) (.ShortRepoPath|Escape) | Str2html}}
@@ -63,30 +63,30 @@
 						{{else if eq .GetOpType 20}}
 							{{$.locale.Tr "action.mirror_sync_delete" (.GetRepoLink|Escape) (.GetBranch|Escape) (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 21}}
-							{{ $index := index .GetIssueInfos 0}}
+							{{$index := index .GetIssueInfos 0}}
 							{{$.locale.Tr "action.approve_pull_request" ((printf "%s/pulls/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 22}}
-							{{ $index := index .GetIssueInfos 0}}
+							{{$index := index .GetIssueInfos 0}}
 							{{$.locale.Tr "action.reject_pull_request" ((printf "%s/pulls/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 23}}
-							{{ $index := index .GetIssueInfos 0}}
+							{{$index := index .GetIssueInfos 0}}
 							{{$.locale.Tr "action.comment_pull" ((printf "%s/pulls/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 24}}
-							{{ $linkText := .Content | RenderEmoji }}
+							{{$linkText := .Content | RenderEmoji}}
 							{{$.locale.Tr "action.publish_release" (.GetRepoLink|Escape) ((printf "%s/releases/tag/%s" .GetRepoLink .GetTag)|Escape) (.ShortRepoPath|Escape) $linkText | Str2html}}
 						{{else if eq .GetOpType 25}}
-							{{ $index := index .GetIssueInfos 0}}
-							{{ $reviewer := index .GetIssueInfos 1}}
+							{{$index := index .GetIssueInfos 0}}
+							{{$reviewer := index .GetIssueInfos 1}}
 							{{$.locale.Tr "action.review_dismissed" ((printf "%s/pulls/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) $reviewer | Str2html}}
 						{{end}}
 					</p>
 					{{if or (eq .GetOpType 5) (eq .GetOpType 18)}}
 						<div class="content">
 							<ul>
-								{{ $push := ActionContent2Commits .}}
-								{{ $repoLink := .GetRepoLink}}
+								{{$push := ActionContent2Commits .}}
+								{{$repoLink := .GetRepoLink}}
 								{{range $push.Commits}}
-									{{ $commitLink := printf "%s/commit/%s" $repoLink .Sha1}}
+									{{$commitLink := printf "%s/commit/%s" $repoLink .Sha1}}
 									<li>
 										{{avatarHTML ($push.AvatarLink .AuthorEmail) 16 "mr-2" .AuthorName}}
 										<a class="commit-id mr-2" href="{{$commitLink}}">{{ShortSha .Sha1}}</a>
@@ -99,17 +99,17 @@
 							</ul>
 						</div>
 					{{else if eq .GetOpType 6}}
-						<span class="text truncate issue title">{{index .GetIssueInfos 1 | RenderEmoji}}</span>
+						<span class="text truncate issue title">{{index .GetIssueInfos 1 | RenderEmoji | RenderCodeBlock}}</span>
 					{{else if eq .GetOpType 7}}
-						<span class="text truncate issue title">{{index .GetIssueInfos 1 | RenderEmoji}}</span>
+						<span class="text truncate issue title">{{index .GetIssueInfos 1 | RenderEmoji | RenderCodeBlock}}</span>
 					{{else if or (eq .GetOpType 10) (eq .GetOpType 21) (eq .GetOpType 22) (eq .GetOpType 23)}}
-						<a href="{{.GetCommentLink}}" class="text truncate issue title">{{.GetIssueTitle | RenderEmoji}}</a>
+						<a href="{{.GetCommentLink}}" class="text truncate issue title">{{.GetIssueTitle | RenderEmoji | RenderCodeBlock}}</a>
 						{{$comment := index .GetIssueInfos 1}}
 						{{if gt (len $comment) 0}}<p class="text light grey">{{$comment | RenderEmoji}}</p>{{end}}
 					{{else if eq .GetOpType 11}}
 						<p class="text light grey">{{index .GetIssueInfos 1}}</p>
 					{{else if or (eq .GetOpType 12) (eq .GetOpType 13) (eq .GetOpType 14) (eq .GetOpType 15)}}
-						<span class="text truncate issue title">{{.GetIssueTitle | RenderEmoji}}</span>
+						<span class="text truncate issue title">{{.GetIssueTitle | RenderEmoji | RenderCodeBlock}}</span>
 					{{else if eq .GetOpType 25}}
 					<p class="text light grey">{{$.locale.Tr "action.review_dismissed_reason"}}</p>
 						<p class="text light grey">{{index .GetIssueInfos 2 | RenderEmoji}}</p>
