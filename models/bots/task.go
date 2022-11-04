@@ -7,6 +7,7 @@ package bots
 import (
 	"bytes"
 	"context"
+	"crypto/subtle"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -266,7 +267,7 @@ func GetTaskByToken(ctx context.Context, token string) (*Task, error) {
 
 	for _, t := range tasks {
 		tempHash := auth_model.HashToken(token, t.TokenSalt)
-		if t.TokenHash == tempHash {
+		if subtle.ConstantTimeCompare([]byte(t.TokenHash), []byte(tempHash)) == 1 {
 			if successfulTokenTaskCache != nil {
 				successfulTokenTaskCache.Add(token, t.ID)
 			}
