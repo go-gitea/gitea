@@ -18,12 +18,13 @@ var ErrInvalidReceiveHook = errors.New("Invalid JSON payload received over webho
 
 // Hook a hook is a web hook when one repository changed
 type Hook struct {
-	ID     int64             `json:"id"`
-	Type   string            `json:"type"`
-	URL    string            `json:"-"`
-	Config map[string]string `json:"config"`
-	Events []string          `json:"events"`
-	Active bool              `json:"active"`
+	ID                  int64             `json:"id"`
+	Type                string            `json:"type"`
+	URL                 string            `json:"-"`
+	Config              map[string]string `json:"config"`
+	Events              []string          `json:"events"`
+	AuthorizationHeader string            `json:"authorization_header"`
+	Active              bool              `json:"active"`
 	// swagger:strfmt date-time
 	Updated time.Time `json:"updated_at"`
 	// swagger:strfmt date-time
@@ -43,19 +44,21 @@ type CreateHookOption struct {
 	// enum: dingtalk,discord,gitea,gogs,msteams,slack,telegram,feishu,wechatwork,packagist
 	Type string `json:"type" binding:"Required"`
 	// required: true
-	Config       CreateHookOptionConfig `json:"config" binding:"Required"`
-	Events       []string               `json:"events"`
-	BranchFilter string                 `json:"branch_filter" binding:"GlobPattern"`
+	Config              CreateHookOptionConfig `json:"config" binding:"Required"`
+	Events              []string               `json:"events"`
+	BranchFilter        string                 `json:"branch_filter" binding:"GlobPattern"`
+	AuthorizationHeader string                 `json:"authorization_header"`
 	// default: false
 	Active bool `json:"active"`
 }
 
 // EditHookOption options when modify one hook
 type EditHookOption struct {
-	Config       map[string]string `json:"config"`
-	Events       []string          `json:"events"`
-	BranchFilter string            `json:"branch_filter" binding:"GlobPattern"`
-	Active       *bool             `json:"active"`
+	Config              map[string]string `json:"config"`
+	Events              []string          `json:"events"`
+	BranchFilter        string            `json:"branch_filter" binding:"GlobPattern"`
+	AuthorizationHeader string            `json:"authorization_header"`
+	Active              *bool             `json:"active"`
 }
 
 // Payloader payload is some part of one hook
