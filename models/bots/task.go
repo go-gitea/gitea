@@ -17,12 +17,14 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 	"xorm.io/builder"
 
 	gouuid "github.com/google/uuid"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/nektos/act/pkg/jobparser"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -56,8 +58,21 @@ type Task struct {
 	Updated timeutil.TimeStamp `xorm:"updated index"`
 }
 
+var successfulTokenTaskCache *lru.Cache
+
 func init() {
-	db.RegisterModel(new(Task))
+	db.RegisterModel(new(Task), func() error {
+		if setting.SuccessfulTokensCacheSize > 0 {
+			var err error
+			successfulTokenTaskCache, err = lru.New(setting.SuccessfulTokensCacheSize)
+			if err != nil {
+				return fmt.Errorf("unable to allocate Task cache: %v", err)
+			}
+		} else {
+			successfulTokenTaskCache = nil
+		}
+		return nil
+	})
 }
 
 func (Task) TableName() string {
@@ -197,27 +212,68 @@ func (i *LogIndexes) ToDB() ([]byte, error) {
 	return buf, nil
 }
 
-// ErrTaskNotExist represents an error for bot task not exist
-type ErrTaskNotExist struct {
-	ID int64
-}
-
-func (err ErrTaskNotExist) Error() string {
-	return fmt.Sprintf("task [%d] is not exist", err.ID)
-}
-
 func GetTaskByID(ctx context.Context, id int64) (*Task, error) {
 	var task Task
 	has, err := db.GetEngine(ctx).Where("id=?", id).Get(&task)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrTaskNotExist{
-			ID: id,
-		}
+		return nil, fmt.Errorf("task with id %d: %w", id, util.ErrNotExist)
 	}
 
 	return &task, nil
+}
+
+func GetTaskByToken(ctx context.Context, token string) (*Task, error) {
+	errNotExist := fmt.Errorf("task with token %q: %w", token, util.ErrNotExist)
+	if token == "" {
+		return nil, errNotExist
+	}
+	// A token is defined as being SHA1 sum these are 40 hexadecimal bytes long
+	if len(token) != 40 {
+		return nil, errNotExist
+	}
+	for _, x := range []byte(token) {
+		if x < '0' || (x > '9' && x < 'a') || x > 'f' {
+			return nil, errNotExist
+		}
+	}
+
+	lastEight := token[len(token)-8:]
+
+	if id := getTaskIDFromCache(token); id > 0 {
+		task := &Task{
+			TokenLastEight: lastEight,
+		}
+		// Re-get the task from the db in case it has been deleted in the intervening period
+		has, err := db.GetEngine(db.DefaultContext).ID(id).Get(task)
+		if err != nil {
+			return nil, err
+		}
+		if has {
+			return task, nil
+		}
+		successfulTokenTaskCache.Remove(token)
+	}
+
+	var tasks []*Task
+	err := db.GetEngine(ctx).Where("token_last_eight = ?", lastEight).Find(&tasks)
+	if err != nil {
+		return nil, err
+	} else if len(tasks) == 0 {
+		return nil, errNotExist
+	}
+
+	for _, t := range tasks {
+		tempHash := auth_model.HashToken(token, t.TokenSalt)
+		if t.TokenHash == tempHash {
+			if successfulTokenTaskCache != nil {
+				successfulTokenTaskCache.Add(token, t.ID)
+			}
+			return t, nil
+		}
+	}
+	return nil, errNotExist
 }
 
 func CreateTaskForRunner(ctx context.Context, runner *Runner) (*Task, bool, error) {
@@ -485,4 +541,19 @@ func convertTimestamp(timestamp *timestamppb.Timestamp) timeutil.TimeStamp {
 
 func logFileName(repoFullName string, taskID int64) string {
 	return fmt.Sprintf("%s/%02x/%d.log", repoFullName, taskID%256, taskID)
+}
+
+func getTaskIDFromCache(token string) int64 {
+	if successfulTokenTaskCache == nil {
+		return 0
+	}
+	tInterface, ok := successfulTokenTaskCache.Get(token)
+	if !ok {
+		return 0
+	}
+	t, ok := tInterface.(int64)
+	if !ok {
+		return 0
+	}
+	return t
 }

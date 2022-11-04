@@ -11,6 +11,7 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	bots_model "code.gitea.io/gitea/models/bots"
+	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
@@ -108,11 +109,10 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		log.Error("GetAccessTokenBySha: %v", err)
 	}
 
-	// check runner token
-	// FIXME: the token should be a task token and return a task
-	runner, err := bots_model.GetRunnerByToken(authToken)
-	if err == nil && runner != nil {
-		log.Trace("Basic Authorization: Valid AccessToken for runner[%d]", runner.ID)
+	// check task token
+	task, err := bots_model.GetTaskByToken(db.DefaultContext, authToken)
+	if err == nil && task != nil && task.Status.IsRunning() {
+		log.Trace("Basic Authorization: Valid AccessToken for task[%d]", task.ID)
 
 		return bots_model.NewBotUser()
 	} else {
