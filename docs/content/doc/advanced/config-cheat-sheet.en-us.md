@@ -27,7 +27,7 @@ accurately recorded in [app.example.ini](https://github.com/go-gitea/gitea/blob/
 (s/main/\<tag|release\>). Any string in the format `%(X)s` is a feature powered
 by [ini](https://github.com/go-ini/ini/#recursive-values), for reading values recursively.
 
-In the default values below the form `$XYZ` in this document refer to dependence on an environment variable. (However, also see `environment-to-ini`.) In addtion default values in the form _`XxYyZz`_ refer to values listed as part of the default configuration. You cannot use these notation forms in your own `app.ini` file.
+In the default values below, a value in the form `$XYZ` refers to an environment variable. (However, see `environment-to-ini`.) Values in the form  _`XxYyZz`_ refer to values listed as part of the default configuration. These notation forms will not work in your own `app.ini` file and are only listed here as documentation.
 
 Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
