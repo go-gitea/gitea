@@ -16,7 +16,6 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/bots"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -292,7 +291,7 @@ func CreateTaskForRunner(ctx context.Context, runner *Runner) (*Task, bool, erro
 		return nil, false, err
 	}
 
-	task.LogFilename = bots.LogFileName(job.Run.Repo.FullName(), task.ID)
+	task.LogFilename = logFileName(job.Run.Repo.FullName(), task.ID)
 	if _, err := e.ID(task.ID).Cols("log_filename").Update(task); err != nil {
 		return nil, false, err
 	}
@@ -482,4 +481,8 @@ func convertTimestamp(timestamp *timestamppb.Timestamp) timeutil.TimeStamp {
 		return timeutil.TimeStamp(0)
 	}
 	return timeutil.TimeStamp(timestamp.AsTime().Unix())
+}
+
+func logFileName(repoFullName string, taskID int64) string {
+	return fmt.Sprintf("%s/%02x/%d.log", repoFullName, taskID%256, taskID)
 }

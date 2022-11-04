@@ -151,7 +151,7 @@ func toCommitStatus(status bots_model.Status) api.CommitStatusState {
 		return api.CommitStatusSuccess
 	case bots_model.StatusFailure, bots_model.StatusCancelled, bots_model.StatusSkipped:
 		return api.CommitStatusFailure
-	case bots_model.StatusWaiting:
+	case bots_model.StatusWaiting, bots_model.StatusBlocked:
 		return api.CommitStatusPending
 	case bots_model.StatusRunning:
 		return api.CommitStatusRunning
@@ -200,10 +200,16 @@ func (s *Service) UpdateTask(
 				Description: "",
 				Context:     task.Job.Name,
 				CreatorID:   payload.Pusher.ID,
-				State:       toCommitStatus(bots_model.Status(req.Msg.State.Result)),
+				State:       toCommitStatus(task.Job.Status),
 			},
 		}); err != nil {
 			log.Error("Update commit status failed: %v", err)
+		}
+	}
+
+	if req.Msg.State.Result != runnerv1.Result_RESULT_UNSPECIFIED {
+		if err := bots.EmitJobsIfReady(task.Job.RunID); err != nil {
+			log.Error("Emit ready jobs of run %d: %v", task.Job.RunID, err)
 		}
 	}
 

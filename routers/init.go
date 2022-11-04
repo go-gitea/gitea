@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/modules/bots"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/git"
@@ -173,6 +174,8 @@ func GlobalInitInstalled(ctx context.Context) {
 
 	auth.Init()
 	svg.Init()
+
+	bots.InitJobEmitter()
 
 	// Finally start up the cron
 	cron.NewContext(ctx)

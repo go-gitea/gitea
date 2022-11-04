@@ -148,7 +148,3 @@ func ParseLog(in string) (timestamp time.Time, content string, err error) {
 	content = in[index+1:]
 	return
 }
-
-func LogFileName(repoFullName string, taskID int64) string {
-	return fmt.Sprintf("%s/%02x/%d.log", repoFullName, taskID%256, taskID)
-}

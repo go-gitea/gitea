@@ -52,6 +52,15 @@ func (s Status) IsRunning() bool {
 	return s == StatusRunning
 }
 
+func (s Status) In(statuses ...Status) bool {
+	for _, v := range statuses {
+		if s == v {
+			return true
+		}
+	}
+	return false
+}
+
 var statusNames = map[Status]string{
 	StatusUnknown:   "unknown",
 	StatusWaiting:   "waiting",
@@ -60,4 +69,5 @@ var statusNames = map[Status]string{
 	StatusFailure:   "failure",
 	StatusCancelled: "cancelled",
 	StatusSkipped:   "skipped",
+	StatusBlocked:   "blocked",
 }
