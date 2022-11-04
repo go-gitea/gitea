@@ -45,7 +45,7 @@ reported as part of the default configuration when running `gitea --help` or on 
   - The `--work-path` flag passed to the binary
   - The environment variable `$GITEA_WORK_DIR`
   - A built-in value set at build time (see building from source)
-  - Otherwise default to the directory of the _`AppPath`_
+  - Otherwise it defaults to the directory of the _`AppPath`_
   - If any of the above are relative paths then they are made absolute against the
 the directory of the _`AppPath`_
 - _`CustomPath`_: This is the base directory for custom templates and other options.
@@ -53,13 +53,13 @@ It is determined by using the first set thing in the following hierarchy:
   - The `--custom-path` flag passed to the binary
   - The environment variable `$GITEA_CUSTOM`
   - A built-in value set at build time (see building from source)
-  - Otherwise default to _`AppWorkPath`_`/custom`
+  - Otherwise it defaults to _`AppWorkPath`_`/custom`
   - If any of the above are relative paths then they are made absolute against the
 the directory of the _`AppWorkPath`_
 - _`CustomConf`_: This is the path to the `app.ini` file.
   - The `--config` flag passed to the binary
   - A built-in value set at build time (see building from source)
-  - _`CustomPath`_`/conf/app.ini`
+  - Otherwise it defaults to _`CustomPath`_`/conf/app.ini`
   - If any of the above are relative paths then they are made absolute against the
 the directory of the _`CustomPath`_
 
