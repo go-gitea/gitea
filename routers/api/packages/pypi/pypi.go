@@ -26,7 +26,7 @@ var normalizer = strings.NewReplacer(".", "-", "_", "-")
 var nameMatcher = regexp.MustCompile(`\A[a-zA-Z0-9\.\-_]+\z`)
 
 // https://www.python.org/dev/peps/pep-0440/#appendix-b-parsing-version-strings-with-regular-expressions
-var versionMatcher = regexp.MustCompile(`^([1-9][0-9]*!)?(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))*((a|b|rc)(0|[1-9][0-9]*))?(\.post(0|[1-9][0-9]*))?(\.dev(0|[1-9][0-9]*))?$`)
+var versionMatcher = regexp.MustCompile(`^([1-9][0-9]*!)?(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))*((a|b|rc)(0|[1-9][0-9]*))?(\.post(0|[1-9][0-9]*))?(\.dev(0|[1-9][0-9]*))?(\+[a-z0-9]+([-_\.][a-z0-9]+)*)?$`)
 
 func apiError(ctx *context.Context, status int, obj interface{}) {
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
