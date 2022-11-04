@@ -32,8 +32,7 @@ export function initCitationFileCopyContent() {
   const $citationCopyBibtex = $('#citation-copy-bibtex');
   const $inputContent = $('#citation-copy-content');
 
-  if ((!$citationCopyApa.length && !$citationCopyBibtex.length) || !$inputContent.length)
-    return;
+  if ((!$citationCopyApa.length && !$citationCopyBibtex.length) || !$inputContent.length) return;
   const updateUi = () => {
     const isBibtex = (localStorage.getItem('citation-copy-format') || defaultCitationFormat) === 'bibtex';
     const copyContent = (isBibtex ? $citationCopyBibtex : $citationCopyApa).attr('data-text');
