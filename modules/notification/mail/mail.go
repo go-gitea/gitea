@@ -153,6 +153,16 @@ func (m *mailNotifier) NotifyMergePullRequest(pr *issues_model.PullRequest, doer
 	}
 }
 
+func (m *mailNotifier) NotifyAutoMergePullRequest(pr *issues_model.PullRequest, doer *user_model.User) {
+	if err := pr.LoadIssue(); err != nil {
+		log.Error("pr.LoadIssue: %v", err)
+		return
+	}
+	if err := mailer.MailParticipants(pr.Issue, doer, activities_model.ActionAutoMergePullRequest, nil); err != nil {
+		log.Error("MailParticipants: %v", err)
+	}
+}
+
 func (m *mailNotifier) NotifyPullRequestPushCommits(doer *user_model.User, pr *issues_model.PullRequest, comment *issues_model.Comment) {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("mailNotifier.NotifyPullRequestPushCommits Pull[%d] #%d in [%d]", pr.ID, pr.Index, pr.BaseRepoID))
 	defer finished()
