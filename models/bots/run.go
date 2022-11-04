@@ -166,8 +166,9 @@ func InsertRun(run *Run, jobs []*jobparser.SingleWorkflow) error {
 	runJobs := make([]*RunJob, 0, len(jobs))
 	for _, v := range jobs {
 		id, job := v.Job()
-		payload, _ := v.Marshal()
 		needs := job.Needs()
+		job.EraseNeeds()
+		payload, _ := v.Marshal()
 		status := StatusWaiting
 		if len(needs) > 0 {
 			status = StatusBlocked
