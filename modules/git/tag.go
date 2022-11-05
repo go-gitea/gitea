@@ -57,6 +57,8 @@ l:
 			case "type":
 				// A commit can have one or more parents
 				tag.Type = string(line[spacepos+1:])
+			case "tag":
+				tag.Name = string(line[spacepos+1:])
 			case "tagger":
 				sig, err := newSignatureFromCommitline(line[spacepos+1:])
 				if err != nil {
@@ -83,6 +85,14 @@ l:
 			tag.Message = tag.Message[:idx+1]
 		}
 	}
+
+	tag.Message = strings.TrimSpace(tag.Message)
+	if tag.Message == "" {
+		tag.Message = tag.Name
+	} else if tag.Name != "" {
+		tag.Message = tag.Name + "\n\n" + tag.Message
+	}
+
 	return tag, nil
 }
 

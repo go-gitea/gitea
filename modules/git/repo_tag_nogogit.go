@@ -123,7 +123,6 @@ func (repo *Repository) getTag(tagID SHA1, name string) (*Tag, error) {
 		return nil, err
 	}
 
-	tag.Name = name
 	tag.ID = tagID
 	tag.Type = tp
 
