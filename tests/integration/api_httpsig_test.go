@@ -69,7 +69,7 @@ func TestHTTPSigPubKey(t *testing.T) {
 	keyID := ssh.FingerprintSHA256(sshSigner.PublicKey())
 
 	// create the request
-	req = NewRequest(t, "GET", "/api/v1/admin/users?token="+token)
+	req = NewRequest(t, "GET", "/api/v1/admin/users")
 
 	signer, _, err := httpsig.NewSSHSigner(sshSigner, httpsig.DigestSha512, []string{httpsig.RequestTarget, "(created)", "(expires)"}, httpsig.Signature, 10)
 	if err != nil {
