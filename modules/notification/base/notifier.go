@@ -34,7 +34,8 @@ type Notifier interface {
 	NotifyIssueChangeLabels(doer *user_model.User, issue *issues_model.Issue,
 		addedLabels, removedLabels []*issues_model.Label)
 	NotifyNewPullRequest(pr *issues_model.PullRequest, mentions []*user_model.User)
-	NotifyMergePullRequest(*issues_model.PullRequest, *user_model.User)
+	NotifyMergePullRequest(pr *issues_model.PullRequest, doer *user_model.User)
+	NotifyAutoMergePullRequest(pr *issues_model.PullRequest, doer *user_model.User)
 	NotifyPullRequestSynchronized(doer *user_model.User, pr *issues_model.PullRequest)
 	NotifyPullRequestReview(pr *issues_model.PullRequest, review *issues_model.Review, comment *issues_model.Comment, mentions []*user_model.User)
 	NotifyPullRequestCodeComment(pr *issues_model.PullRequest, comment *issues_model.Comment, mentions []*user_model.User)
