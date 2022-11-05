@@ -25,8 +25,15 @@ import (
 var normalizer = strings.NewReplacer(".", "-", "_", "-")
 var nameMatcher = regexp.MustCompile(`\A[a-zA-Z0-9\.\-_]+\z`)
 
-// https://github.com/pypa/packaging/blob/0031046f7fad649580bc3127d1cef9157da0dd79/packaging/version.py#L113-L142
-var versionMatcher = regexp.MustCompile(`\Av?(?:(?:(?:[0-9]+)!)?(?:[0-9]+(?:\.[0-9]+)*)(?:[-_\.]?(?:a|b|c|rc|alpha|beta|pre|preview)[-_\.]?[0-9]*)?(?:(?:-[0-9]+)|(?:[-_\.]?(?:post|rev|r)[-_\.]?[0-9]*))?(?:[-_\.]?dev[-_\.]?[0-9]*)?)(?:\+(?:[a-z0-9]+(?:[-_\.][a-z0-9]+)*))?\z`)
+// https://peps.python.org/pep-0440/#appendix-b-parsing-version-strings-with-regular-expressions
+var versionMatcher = regexp.MustCompile(`\Av?` +
+	`(?:[0-9]+!)?` + // epoch
+	`[0-9]+(?:\.[0-9]+)*` + // release segment
+	`(?:[-_\.]?(?:a|b|c|rc|alpha|beta|pre|preview)[-_\.]?[0-9]*)?` + // pre-release
+	`(?:-[0-9]+|[-_\.]?(?:post|rev|r)[-_\.]?[0-9]*)?` + // post release
+	`(?:[-_\.]?dev[-_\.]?[0-9]*)?` + // dev release
+	`(?:\+[a-z0-9]+(?:[-_\.][a-z0-9]+)*)?` + // local version
+	`\z`)
 
 func apiError(ctx *context.Context, status int, obj interface{}) {
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
