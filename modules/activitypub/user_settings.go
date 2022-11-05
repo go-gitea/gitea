@@ -11,7 +11,7 @@ import (
 // GetKeyPair function returns a user's private and public keys
 func GetKeyPair(user *user_model.User) (pub, priv string, err error) {
 	var settings map[string]*user_model.Setting
-	settings, err = user_model.GetUserSettings(user.ID, []string{user_model.UserActivityPubPrivPem, user_model.UserActivityPubPubPem})
+	settings, err = user_model.GetSettings(user.ID, []string{user_model.UserActivityPubPrivPem, user_model.UserActivityPubPubPem})
 	if err != nil {
 		return
 	} else if len(settings) == 0 {
