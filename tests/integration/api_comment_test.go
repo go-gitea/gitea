@@ -121,10 +121,9 @@ func TestAPIGetComment(t *testing.T) {
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, repoOwner.Name)
-	token := getTokenForLoggedInUser(t, session)
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d", repoOwner.Name, repo.Name, comment.ID)
 	session.MakeRequest(t, req, http.StatusOK)
-	token = getTokenForLoggedInUser(t, session, "repo")
+	token := getTokenForLoggedInUser(t, session, "repo")
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d?token=%s", repoOwner.Name, repo.Name, comment.ID, token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
