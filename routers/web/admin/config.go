@@ -11,7 +11,6 @@ import (
 	"os"
 	"strings"
 
-	"code.gitea.io/gitea/models/system"
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -203,7 +202,7 @@ func ChangeConfig(ctx *context.Context) {
 	value := ctx.FormString("value")
 	version := ctx.FormInt("version")
 
-	if err := system_model.SetSetting(&system.Setting{
+	if err := system_model.SetSetting(&system_model.Setting{
 		SettingKey:   key,
 		SettingValue: value,
 		Version:      version,
