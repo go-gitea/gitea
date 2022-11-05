@@ -11,25 +11,14 @@ import (
 )
 
 func AddScopeForAccessTokens(x *xorm.Engine) error {
-	err := addScopeField(x)
-	if err != nil {
-		return err
-	}
-
-	// remove default 'all' for scope
-	return removeDefaultAll(x)
-}
-
-func addScopeField(x *xorm.Engine) error {
-	type AccessToken struct {
-		Scope auth_models.AccessTokenScope `xorm:"NOT NULL DEFAULT 'all'"`
-	}
-	return x.Sync(new(AccessToken))
-}
-
-func removeDefaultAll(x *xorm.Engine) error {
 	type AccessToken struct {
 		Scope auth_models.AccessTokenScope
 	}
-	return x.Sync(new(AccessToken))
+
+	if err := x.Sync(new(AccessToken)); err != nil {
+		return err
+	}
+
+	_, err := x.Exec("UPDATE access_token SET scope = ?", auth_models.AccessTokenScopeAll)
+	return err
 }
