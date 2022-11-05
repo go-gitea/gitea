@@ -10,7 +10,7 @@ const (
 	KeyPictureEnableFederatedAvatar = "picture.enable_federated_avatar"
 )
 
-// GenCacheKey returns the cache key for some configuration
-func GenCacheKey(key string) string {
+// genSettingCacheKey returns the cache key for some configuration
+func genSettingCacheKey(key string) string {
 	return "system.setting." + key
 }
