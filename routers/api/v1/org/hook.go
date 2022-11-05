@@ -72,7 +72,13 @@ func GetHook(ctx *context.APIContext) {
 	if err != nil {
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToHook(ctx.ContextUser.HomeLink(), hook))
+
+	apiHook, err := convert.ToHook(ctx.ContextUser.HomeLink(), hook)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, apiHook)
 }
 
 // CreateHook create a hook for an organization

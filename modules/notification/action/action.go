@@ -283,6 +283,20 @@ func (*actionNotifier) NotifyMergePullRequest(pr *issues_model.PullRequest, doer
 	}
 }
 
+func (*actionNotifier) NotifyAutoMergePullRequest(pr *issues_model.PullRequest, doer *user_model.User) {
+	if err := activities_model.NotifyWatchers(&activities_model.Action{
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		OpType:    activities_model.ActionAutoMergePullRequest,
+		Content:   fmt.Sprintf("%d|%s", pr.Issue.Index, pr.Issue.Title),
+		RepoID:    pr.Issue.Repo.ID,
+		Repo:      pr.Issue.Repo,
+		IsPrivate: pr.Issue.Repo.IsPrivate,
+	}); err != nil {
+		log.Error("NotifyWatchers [%d]: %v", pr.ID, err)
+	}
+}
+
 func (*actionNotifier) NotifyPullRevieweDismiss(doer *user_model.User, review *issues_model.Review, comment *issues_model.Comment) {
 	reviewerName := review.Reviewer.Name
 	if len(review.OriginalAuthor) > 0 {

@@ -238,6 +238,11 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 		OwnerID:         orCtx.OwnerID,
 		IsSystemWebhook: orCtx.IsSystemWebhook,
 	}
+	err = w.SetHeaderAuthorization(params.WebhookForm.AuthorizationHeader)
+	if err != nil {
+		ctx.ServerError("SetHeaderAuthorization", err)
+		return
+	}
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
 		return
@@ -283,6 +288,12 @@ func editWebhook(ctx *context.Context, params webhookParams) {
 	w.IsActive = params.WebhookForm.Active
 	w.HTTPMethod = params.HTTPMethod
 	w.Meta = string(meta)
+
+	err = w.SetHeaderAuthorization(params.WebhookForm.AuthorizationHeader)
+	if err != nil {
+		ctx.ServerError("SetHeaderAuthorization", err)
+		return
+	}
 
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
@@ -444,7 +455,6 @@ func matrixHookParams(ctx *context.Context) webhookParams {
 		Meta: &webhook_service.MatrixMeta{
 			HomeserverURL: form.HomeserverURL,
 			Room:          form.RoomID,
-			AccessToken:   form.AccessToken,
 			MessageType:   form.MessageType,
 		},
 	}

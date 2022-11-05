@@ -54,6 +54,10 @@ func (*NullNotifier) NotifyPullRequestCodeComment(pr *issues_model.PullRequest, 
 func (*NullNotifier) NotifyMergePullRequest(pr *issues_model.PullRequest, doer *user_model.User) {
 }
 
+// NotifyAutoMergePullRequest places a place holder function
+func (*NullNotifier) NotifyAutoMergePullRequest(pr *issues_model.PullRequest, doer *user_model.User) {
+}
+
 // NotifyPullRequestSynchronized places a place holder function
 func (*NullNotifier) NotifyPullRequestSynchronized(doer *user_model.User, pr *issues_model.PullRequest) {
 }

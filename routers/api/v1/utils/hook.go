@@ -39,7 +39,11 @@ func ListOwnerHooks(ctx *context.APIContext, owner *user_model.User) {
 
 	apiHooks := make([]*api.Hook, len(hooks))
 	for i, hook := range hooks {
-		apiHooks[i] = convert.ToHook(owner.HomeLink(), hook)
+		apiHooks[i], err = convert.ToHook(owner.HomeLink(), hook)
+		if err != nil {
+			ctx.InternalServerError(err)
+			return
+		}
 	}
 
 	ctx.SetTotalCountHeader(count)
@@ -99,18 +103,39 @@ func checkCreateHookOption(ctx *context.APIContext, form *api.CreateHookOption) 
 // AddOwnerHook add a hook to an user or organization. Writes to `ctx` accordingly
 func AddOwnerHook(ctx *context.APIContext, owner *user_model.User, form *api.CreateHookOption) {
 	hook, ok := addHook(ctx, form, owner.ID, 0)
-	if ok {
-		ctx.JSON(http.StatusCreated, convert.ToHook(owner.HomeLink(), hook))
+	if !ok {
+		return
 	}
+	apiHook, ok := toAPIHook(ctx, owner.HomeLink(), hook)
+	if !ok {
+		return
+	}
+	ctx.JSON(http.StatusCreated, apiHook)
 }
 
 // AddRepoHook add a hook to a repo. Writes to `ctx` accordingly
 func AddRepoHook(ctx *context.APIContext, form *api.CreateHookOption) {
 	repo := ctx.Repo
 	hook, ok := addHook(ctx, form, 0, repo.Repository.ID)
-	if ok {
-		ctx.JSON(http.StatusCreated, convert.ToHook(repo.RepoLink, hook))
+	if !ok {
+		return
 	}
+	apiHook, ok := toAPIHook(ctx, repo.RepoLink, hook)
+	if !ok {
+		return
+	}
+	ctx.JSON(http.StatusCreated, apiHook)
+}
+
+// toAPIHook converts the hook to its API representation.
+// If there is an error, write to `ctx` accordingly. Return (hook, ok)
+func toAPIHook(ctx *context.APIContext, repoLink string, hook *webhook.Webhook) (*api.Hook, bool) {
+	apiHook, err := convert.ToHook(repoLink, hook)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "ToHook", err)
+		return nil, false
+	}
+	return apiHook, true
 }
 
 func issuesHook(events []string, event string) bool {
@@ -166,6 +191,11 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 		IsActive: form.Active,
 		Type:     form.Type,
 	}
+	err := w.SetHeaderAuthorization(form.AuthorizationHeader)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "SetHeaderAuthorization", err)
+		return nil, false
+	}
 	if w.Type == webhook.SLACK {
 		channel, ok := form.Config["channel"]
 		if !ok {
@@ -215,7 +245,11 @@ func EditOwnerHook(ctx *context.APIContext, owner *user_model.User, form *api.Ed
 	if err != nil {
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToHook(owner.HomeLink(), updated))
+	apiHook, ok := toAPIHook(ctx, owner.HomeLink(), updated)
+	if !ok {
+		return
+	}
+	ctx.JSON(http.StatusOK, apiHook)
 }
 
 // EditRepoHook edit webhook `w` according to `form`. Writes to `ctx` accordingly
@@ -232,7 +266,11 @@ func EditRepoHook(ctx *context.APIContext, form *api.EditHookOption, hookID int6
 	if err != nil {
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToHook(repo.RepoLink, updated))
+	apiHook, ok := toAPIHook(ctx, repo.RepoLink, updated)
+	if !ok {
+		return
+	}
+	ctx.JSON(http.StatusOK, apiHook)
 }
 
 // editHook edit the webhook `w` according to `form`. If an error occurs, write
@@ -283,6 +321,12 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 	w.Wiki = util.IsStringInSlice(string(webhook.HookEventWiki), form.Events, true)
 	w.Release = util.IsStringInSlice(string(webhook.HookEventRelease), form.Events, true)
 	w.BranchFilter = form.BranchFilter
+
+	err := w.SetHeaderAuthorization(form.AuthorizationHeader)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "SetHeaderAuthorization", err)
+		return false
+	}
 
 	// Issues
 	w.Issues = issuesHook(form.Events, "issues_only")
