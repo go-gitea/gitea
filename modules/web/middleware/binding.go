@@ -135,6 +135,8 @@ func Validate(errs binding.Errors, data map[string]interface{}, f Form, l transl
 				data["ErrorMsg"] = trName + l.Tr("form.glob_pattern_error", errs[0].Message)
 			case validation.ErrRegexPattern:
 				data["ErrorMsg"] = trName + l.Tr("form.regex_pattern_error", errs[0].Message)
+			case validation.ErrUsername:
+				data["ErrorMsg"] = trName + l.Tr("form.username_error")
 			default:
 				msg := errs[0].Classification
 				if msg != "" && errs[0].Message != "" {
