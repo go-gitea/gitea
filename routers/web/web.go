@@ -1038,10 +1038,10 @@ func RegisterRoutes(m *web.Route) {
 	// Releases
 	m.Group("/{username}/{reponame}", func() {
 		m.Group("/tags", func() {
-			m.Get("/", repo.TagsList)
+			m.Get("", repo.TagsList)
 			m.Get(".rss", repo.TagsListFeedRSS)
 			m.Get(".atom", repo.TagsListFeedAtom)
-		}, repo.MustBeNotEmpty, reqRepoCodeReader, context.RepoRefByType(context.RepoRefTag))
+		}, repo.MustBeNotEmpty, reqRepoCodeReader, context.RepoRefByType(context.RepoRefTag, true))
 		m.Group("/releases", func() {
 			m.Get("/", repo.Releases)
 			m.Get("/tag/*", repo.SingleRelease)
