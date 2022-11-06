@@ -251,6 +251,18 @@ func reqToken(requiredScope string) func(ctx *context.APIContext) {
 	}
 }
 
+func reqTokenOrSiteAdmin(requiredScope string) func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		// if is site admin, allow it
+		if ctx.IsUserSiteAdmin() {
+			return
+		}
+
+		// otherwise, check token
+		reqToken(requiredScope)(ctx)
+	}
+}
+
 func reqExploreSignIn() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if setting.Service.Explore.RequireSigninView && !ctx.IsSigned {
@@ -1206,7 +1218,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 				m.Post("/{username}/{reponame}", admin.AdoptRepository)
 				m.Delete("/{username}/{reponame}", admin.DeleteUnadoptedRepository)
 			})
-		}, reqToken(auth_model.AccessTokenScopeSudo), reqSiteAdmin())
+		}, reqTokenOrSiteAdmin(auth_model.AccessTokenScopeSudo))
 
 		m.Group("/topics", func() {
 			m.Get("/search", repo.TopicSearch)
