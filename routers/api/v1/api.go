@@ -251,7 +251,8 @@ func reqToken(requiredScope string) func(ctx *context.APIContext) {
 	}
 }
 
-func reqTokenOrSiteAdmin(requiredScope string) func(ctx *context.APIContext) {
+// reqSiteAdminOrToken user should be the site admin, or the token should have 'sudo' scope.
+func reqSiteAdminOrToken() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		// if is site admin, allow it
 		if ctx.IsUserSiteAdmin() {
@@ -259,7 +260,7 @@ func reqTokenOrSiteAdmin(requiredScope string) func(ctx *context.APIContext) {
 		}
 
 		// otherwise, check token
-		reqToken(requiredScope)(ctx)
+		reqToken("sudo")(ctx)
 	}
 }
 
@@ -281,16 +282,6 @@ func reqBasicOrRevProxyAuth() func(ctx *context.APIContext) {
 			return
 		}
 		ctx.CheckForOTP()
-	}
-}
-
-// reqSiteAdmin user should be the site admin
-func reqSiteAdmin() func(ctx *context.APIContext) {
-	return func(ctx *context.APIContext) {
-		if !ctx.IsUserSiteAdmin() {
-			ctx.Error(http.StatusForbidden, "reqSiteAdmin", "user should be the site admin")
-			return
-		}
 	}
 }
 
@@ -1218,7 +1209,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 				m.Post("/{username}/{reponame}", admin.AdoptRepository)
 				m.Delete("/{username}/{reponame}", admin.DeleteUnadoptedRepository)
 			})
-		}, reqTokenOrSiteAdmin(auth_model.AccessTokenScopeSudo))
+		}, reqSiteAdminOrToken())
 
 		m.Group("/topics", func() {
 			m.Get("/search", repo.TopicSearch)
