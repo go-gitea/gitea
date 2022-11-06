@@ -1,8 +1,5 @@
 # Gitea: Docs
 
-[![Join the chat at https://img.shields.io/discord/322538954119184384.svg](https://img.shields.io/discord/322538954119184384.svg)](https://discord.gg/Gitea)
-[![](https://images.microbadger.com/badges/image/gitea/docs.svg)](http://microbadger.com/images/gitea/docs "Get your own image badge on microbadger.com")
-
 ## Hosting
 
 These pages are hosted using [netlifycms](https://www.netlifycms.org/) and get
