@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://gitea.io/">
-    <img alt="Gitea" src="https://raw.githubusercontent.com/go-gitea/gitea/main/public/img/gitea.svg" width="220"/>
+    <img alt="Gitea" src="public/img/gitea.svg" width="220"/>
   </a>
 </p>
 <h1 align="center">Gitea - Git with a cup of tea</h1>
@@ -30,7 +30,7 @@
   <a href="https://opencollective.com/gitea" title="Become a backer/sponsor of gitea">
     <img src="https://opencollective.com/gitea/tiers/backers/badge.svg?label=backers&color=brightgreen">
   </a>
-  <a href="https://opensource.org/licenses/MIT" title="License: MIT">
+  <a href="LICENSE" title="License: MIT">
     <img src="https://img.shields.io/badge/License-MIT-blue.svg">
   </a>
   <a href="https://gitpod.io/#https://github.com/go-gitea/gitea">
