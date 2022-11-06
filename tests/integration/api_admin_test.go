@@ -75,10 +75,10 @@ func TestAPIAdminDeleteUnauthorizedKey(t *testing.T) {
 	DecodeJSON(t, resp, &newPublicKey)
 
 	session = loginUser(t, normalUsername)
-	token = getTokenForLoggedInUser(t, session, "sudo")
+	token = getTokenForLoggedInUser(t, session)
 	req = NewRequestf(t, "DELETE", "/api/v1/admin/users/%s/keys/%d?token=%s",
 		adminUsername, newPublicKey.ID, token)
-	session.MakeRequest(t, req, http.StatusForbidden)
+	session.MakeRequest(t, req, http.StatusUnauthorized)
 }
 
 func TestAPISudoUser(t *testing.T) {
@@ -143,9 +143,9 @@ func TestAPIListUsersNonAdmin(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	nonAdminUsername := "user2"
 	session := loginUser(t, nonAdminUsername)
-	token := getTokenForLoggedInUser(t, session, "sudo")
+	token := getTokenForLoggedInUser(t, session)
 	req := NewRequestf(t, "GET", "/api/v1/admin/users?token=%s", token)
-	session.MakeRequest(t, req, http.StatusForbidden)
+	session.MakeRequest(t, req, http.StatusUnauthorized)
 }
 
 func TestAPICreateUserInvalidEmail(t *testing.T) {
