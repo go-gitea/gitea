@@ -1,9 +1,5 @@
 # Gitea: 文档
 
-[![Build Status](http://drone.gitea.io/api/badges/go-gitea/docs/status.svg)](http://drone.gitea.io/go-gitea/docs)
-[![Join the chat at https://img.shields.io/discord/322538954119184384.svg](https://img.shields.io/discord/322538954119184384.svg)](https://discord.gg/Gitea)
-[![](https://images.microbadger.com/badges/image/gitea/docs.svg)](http://microbadger.com/images/gitea/docs "Get your own image badge on microbadger.com")
-
 ## 关于托管方式
 
 本页面托管在我们 Docker 容器内的基础设施上， 它会在每次推送到 `master` 分支的时候自动更新，如果你想自己管理这个页面，你可以从我们的 Docker 镜像 [gitea/docs](https://hub.docker.com/r/gitea/docs/) 中获取它。
