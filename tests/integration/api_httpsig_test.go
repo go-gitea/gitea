@@ -90,7 +90,6 @@ func TestHTTPSigCert(t *testing.T) {
 	// Add our public key to user1
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, session, "sudo")
 
 	csrf := GetCSRF(t, session, "/user/settings/keys")
 	req := NewRequestWithValues(t, "POST", "/user/settings/keys", map[string]string{
@@ -117,7 +116,7 @@ func TestHTTPSigCert(t *testing.T) {
 	}
 
 	// create the request
-	req = NewRequest(t, "GET", "/api/v1/admin/users?token="+token)
+	req = NewRequest(t, "GET", "/api/v1/admin/users")
 
 	// add our cert to the request
 	certString := base64.RawStdEncoding.EncodeToString(pkcert.(*ssh.Certificate).Marshal())
