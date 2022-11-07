@@ -147,7 +147,7 @@ func GetProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, er
 
 	count, err := e.Where(cond).Count(new(Project))
 	if err != nil {
-		return nil, 0, fmt.Errorf("Count: %v", err)
+		return nil, 0, fmt.Errorf("Count: %w", err)
 	}
 
 	e = e.Where(cond)

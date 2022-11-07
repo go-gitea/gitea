@@ -83,11 +83,11 @@ func InitWiki(ctx context.Context, repo *repo_model.Repository) error {
 	}
 
 	if err := git.InitRepository(ctx, repo.WikiPath(), true); err != nil {
-		return fmt.Errorf("InitRepository: %v", err)
+		return fmt.Errorf("InitRepository: %w", err)
 	} else if err = repo_module.CreateDelegateHooks(repo.WikiPath()); err != nil {
-		return fmt.Errorf("createDelegateHooks: %v", err)
+		return fmt.Errorf("createDelegateHooks: %w", err)
 	} else if _, _, err = git.NewCommand(ctx, "symbolic-ref", "HEAD", git.BranchPrefix+DefaultBranch).RunStdString(&git.RunOpts{Dir: repo.WikiPath()}); err != nil {
-		return fmt.Errorf("unable to set default wiki branch to master: %v", err)
+		return fmt.Errorf("unable to set default wiki branch to master: %w", err)
 	}
 	return nil
 }
@@ -132,7 +132,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	defer wikiWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 
 	if err = InitWiki(ctx, repo); err != nil {
-		return fmt.Errorf("InitWiki: %v", err)
+		return fmt.Errorf("InitWiki: %w", err)
 	}
 
 	hasMasterBranch := git.IsBranchExist(ctx, repo.WikiPath(), DefaultBranch)
@@ -158,20 +158,20 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	if err := git.Clone(ctx, repo.WikiPath(), basePath, cloneOpts); err != nil {
 		log.Error("Failed to clone repository: %s (%v)", repo.FullName(), err)
-		return fmt.Errorf("Failed to clone repository: %s (%v)", repo.FullName(), err)
+		return fmt.Errorf("Failed to clone repository: %s (%w)", repo.FullName(), err)
 	}
 
 	gitRepo, err := git.OpenRepository(ctx, basePath)
 	if err != nil {
 		log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
-		return fmt.Errorf("Failed to open new temporary repository in: %s %v", basePath, err)
+		return fmt.Errorf("Failed to open new temporary repository in: %s %w", basePath, err)
 	}
 	defer gitRepo.Close()
 
 	if hasMasterBranch {
 		if err := gitRepo.ReadTreeToIndex("HEAD"); err != nil {
 			log.Error("Unable to read HEAD tree to index in: %s %v", basePath, err)
-			return fmt.Errorf("Unable to read HEAD tree to index in: %s %v", basePath, err)
+			return fmt.Errorf("Unable to read HEAD tree to index in: %s %w", basePath, err)
 		}
 	}
 
@@ -265,7 +265,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
 			return err
 		}
-		return fmt.Errorf("Push: %v", err)
+		return fmt.Errorf("Push: %w", err)
 	}
 
 	return nil
@@ -288,7 +288,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	defer wikiWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 
 	if err = InitWiki(ctx, repo); err != nil {
-		return fmt.Errorf("InitWiki: %v", err)
+		return fmt.Errorf("InitWiki: %w", err)
 	}
 
 	basePath, err := repo_module.CreateTemporaryPath("update-wiki")
@@ -307,19 +307,19 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		Branch: DefaultBranch,
 	}); err != nil {
 		log.Error("Failed to clone repository: %s (%v)", repo.FullName(), err)
-		return fmt.Errorf("Failed to clone repository: %s (%v)", repo.FullName(), err)
+		return fmt.Errorf("Failed to clone repository: %s (%w)", repo.FullName(), err)
 	}
 
 	gitRepo, err := git.OpenRepository(ctx, basePath)
 	if err != nil {
 		log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
-		return fmt.Errorf("Failed to open new temporary repository in: %s %v", basePath, err)
+		return fmt.Errorf("Failed to open new temporary repository in: %s %w", basePath, err)
 	}
 	defer gitRepo.Close()
 
 	if err := gitRepo.ReadTreeToIndex("HEAD"); err != nil {
 		log.Error("Unable to read HEAD tree to index in: %s %v", basePath, err)
-		return fmt.Errorf("Unable to read HEAD tree to index in: %s %v", basePath, err)
+		return fmt.Errorf("Unable to read HEAD tree to index in: %s %w", basePath, err)
 	}
 
 	found, wikiPath, err := prepareWikiFileName(gitRepo, wikiName)
@@ -372,7 +372,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
 			return err
 		}
-		return fmt.Errorf("Push: %v", err)
+		return fmt.Errorf("Push: %w", err)
 	}
 
 	return nil

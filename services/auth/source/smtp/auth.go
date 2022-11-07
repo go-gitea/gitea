@@ -95,7 +95,7 @@ func Authenticate(a smtp.Auth, source *Source) error {
 	hasStartTLS, _ := client.Extension("STARTTLS")
 	if !source.UseTLS() && hasStartTLS {
 		if err = client.StartTLS(tlsConfig); err != nil {
-			return fmt.Errorf("failed to start StartTLS: %v", err)
+			return fmt.Errorf("failed to start StartTLS: %w", err)
 		}
 	}
 

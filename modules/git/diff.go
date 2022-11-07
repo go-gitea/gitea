@@ -41,7 +41,7 @@ func GetReverseRawDiff(ctx context.Context, repoPath, commitID string, writer io
 		Stdout: writer,
 		Stderr: stderr,
 	}); err != nil {
-		return fmt.Errorf("Run: %v - %s", err, stderr)
+		return fmt.Errorf("Run: %w - %s", err, stderr)
 	}
 	return nil
 }
@@ -89,7 +89,7 @@ func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diff
 		Stdout: writer,
 		Stderr: stderr,
 	}); err != nil {
-		return fmt.Errorf("Run: %v - %s", err, stderr)
+		return fmt.Errorf("Run: %w - %s", err, stderr)
 	}
 	return nil
 }

@@ -1,8 +1,10 @@
 import $ from 'jquery';
 import {svg} from '../svg.js';
 import {invertFileFolding} from './file-fold.js';
-import {createTippy} from '../modules/tippy.js';
+import {createTippy, showTemporaryTooltip} from '../modules/tippy.js';
 import {copyToClipboard} from './clipboard.js';
+
+const {i18n} = window.config;
 
 function changeHash(hash) {
   if (window.history.pushState) {
@@ -110,6 +112,18 @@ function showLineButton() {
   });
 }
 
+function initCopyFileContent() {
+  // get raw text for copy content button, at the moment, only one button (and one related file content) is supported.
+  const copyFileContent = document.querySelector('#copy-file-content');
+  if (!copyFileContent) return;
+
+  copyFileContent.addEventListener('click', async () => {
+    const text = Array.from(document.querySelectorAll('.file-view .lines-code')).map((el) => el.textContent).join('');
+    const success = await copyToClipboard(text);
+    showTemporaryTooltip(copyFileContent, success ? i18n.copy_success : i18n.copy_error);
+  });
+}
+
 export function initRepoCodeView() {
   if ($('.code-view .lines-num').length > 0) {
     $(document).on('click', '.lines-num span', function (e) {
@@ -185,4 +199,5 @@ export function initRepoCodeView() {
     if (!success) return;
     document.querySelector('.code-line-button')?._tippy?.hide();
   });
+  initCopyFileContent();
 }
