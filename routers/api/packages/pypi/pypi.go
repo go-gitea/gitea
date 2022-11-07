@@ -128,7 +128,7 @@ func UploadPackageFile(ctx *context.Context) {
 
 	packageName := normalizer.Replace(ctx.Req.FormValue("name"))
 	packageVersion := ctx.Req.FormValue("version")
-	if hasInvalidMetadata(packageName, packageVersion) {
+	if !isValidNameAndVersion(packageName, packageVersion) {
 		apiError(ctx, http.StatusBadRequest, "invalid name or version")
 		return
 	}
@@ -178,6 +178,6 @@ func UploadPackageFile(ctx *context.Context) {
 	ctx.Status(http.StatusCreated)
 }
 
-func hasInvalidMetadata(packageName, packageVersion string) bool {
-	return !nameMatcher.MatchString(packageName) || !versionMatcher.MatchString(packageVersion)
+func isValidNameAndVersion(packageName, packageVersion string) bool {
+	return nameMatcher.MatchString(packageName) && versionMatcher.MatchString(packageVersion)
 }
