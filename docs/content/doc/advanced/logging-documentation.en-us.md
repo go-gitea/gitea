@@ -144,19 +144,26 @@ Settings:
 
 In this mode the logger will save log messages to a file.
 
-The `FILE_NAME` defaults as described in the respective logger facilities.
-If unset, their own default will be used.
-If set it will be relative to the provided `ROOT_PATH` in the master `[log]` section.
-
 Settings:
 
-- `FILE_NAME`: The file to write the log events to. For details see above.
-- `MAX_SIZE_SHIFT`: **28**: Maximum size shift of a single file. 28 represents 256Mb. For details see here: TODO.
+- `FILE_NAME`: The file to write the log events to. For details see below.
+- `MAX_SIZE_SHIFT`: **28**: Maximum size shift of a single file. 28 represents 256Mb. For details see below.
 - `LOG_ROTATE` **true**: Whether to rotate the log files. TODO: if false, will it delete instead on daily rotate, or do nothing?.
 - `DAILY_ROTATE`: **true**: Whether to rotate logs daily.
 - `MAX_DAYS`: **7**: Delete rotated log files after this number of days.
 - `COMPRESS`: **true**: Whether to compress old log files by default with gzip.
-- `COMPRESSION_LEVEL`: **-1**: Compression level.
+- `COMPRESSION_LEVEL`: **-1**: Compression level. For details see below.
+
+The default value of `FILE_NAME` depends on the respective logger facility.
+If unset, their own default will be used.
+If set it will be relative to the provided `ROOT_PATH` in the master `[log]` section.
+
+`MAX_SIZE_SHIFT` defines the maximum size of a file by left shifting 1 the given number of times (`1 << x`).
+The exact behavior at the time of v1.17.3 can be seen [here](https://github.com/go-gitea/gitea/blob/v1.17.3/modules/setting/log.go#L185).
+
+The useful values of `COMPRESSION_LEVEL` are from 1 to (and including) 9, where higher numbers mean better compression.
+Beware that better compression might come with higher resource usage.
+Must be preceded with a `-` sign.
 
 ### Conn mode
 
