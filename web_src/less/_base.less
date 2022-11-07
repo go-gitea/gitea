@@ -1732,6 +1732,20 @@ a.ui.card:hover,
   border-radius: .15em;
 }
 
+.attention() {
+  font-weight: unset;
+}
+
+.attention-note {
+  .attention;
+  color: var(--color-info-text);
+}
+
+.attention-warning {
+  .attention;
+  color: var(--color-warning-text);
+}
+
 footer {
   background-color: var(--color-footer);
   border-top: 1px solid var(--color-secondary);

@@ -28,6 +28,8 @@ import (
 
 var byteMailto = []byte("mailto:")
 
+const hasThisBlockquoteBeenAttentionMarked = "has-this-blockquote-been-attention-marked"
+
 // ASTTransformer is a default transformer of the goldmark tree.
 type ASTTransformer struct{}
 
@@ -184,6 +186,18 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			if css.ColorHandler(strings.ToLower(string(colorContent))) {
 				v.AppendChild(v, NewColorPreview(colorContent))
 			}
+		case *ast.Emphasis:
+			grandparent := n.Parent().Parent()
+			_, isInBlockquote := grandparent.(*ast.Blockquote)
+			_, blockquoteAlreadyAttentionMarked := grandparent.AttributeString(hasThisBlockquoteBeenAttentionMarked)
+			if !blockquoteAlreadyAttentionMarked && isInBlockquote {
+				fullText := strings.ToLower(string(n.Text(reader.Source())))
+				if fullText == AttentionNote || fullText == AttentionWarning {
+					v.SetAttributeString("class", []byte("attention-"+fullText))
+					v.Parent().InsertBefore(v.Parent(), v, NewAttention(fullText))
+					grandparent.SetAttributeString(hasThisBlockquoteBeenAttentionMarked, []byte("yes"))
+				}
+			}
 		}
 		return ast.WalkContinue, nil
 	})
@@ -273,6 +287,7 @@ func (r *HTMLRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(KindSummary, r.renderSummary)
 	reg.Register(KindIcon, r.renderIcon)
 	reg.Register(ast.KindCodeSpan, r.renderCodeSpan)
+	reg.Register(KindAttention, r.renderAttention)
 	reg.Register(KindTaskCheckBoxListItem, r.renderTaskCheckBoxListItem)
 	reg.Register(east.KindTaskCheckBox, r.renderTaskCheckBox)
 }
@@ -306,6 +321,27 @@ func (r *HTMLRenderer) renderCodeSpan(w util.BufWriter, source []byte, n ast.Nod
 		return ast.WalkSkipChildren, nil
 	}
 	_, _ = w.WriteString("</code>")
+	return ast.WalkContinue, nil
+}
+
+func (r *HTMLRenderer) renderAttention(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	if entering {
+		_, _ = w.WriteString(`<span class="attention-`)
+		n := node.(*Attention)
+		_, _ = w.WriteString(n.AttentionType)
+		_, _ = w.WriteString(`">`)
+
+		// TODO: Use code.gitea.io/gitea/modules/templates SVG function instead
+		// @yardenshoham didn't do it because when he tried to import code.gitea.io/gitea/modules/templates he got a cyclical import error
+		switch n.AttentionType {
+		case AttentionNote:
+			_, _ = w.WriteString(`<svg viewBox="0 0 16 16" class="svg octicon-info" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm6.5-.25A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75zM8 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"></path></svg>`)
+		case AttentionWarning:
+			_, _ = w.WriteString(`<svg viewBox="0 0 16 16" class="svg octicon-alert" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M8.22 1.754a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368L8.22 1.754zm-1.763-.707c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575L6.457 1.047zM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-.25-5.25a.75.75 0 0 0-1.5 0v2.5a.75.75 0 0 0 1.5 0v-2.5z"></path></svg>`)
+		}
+	} else {
+		_, _ = w.WriteString("</span>\n")
+	}
 	return ast.WalkContinue, nil
 }
 
