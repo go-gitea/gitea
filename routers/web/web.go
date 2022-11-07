@@ -1217,9 +1217,13 @@ func RegisterRoutes(m *web.Route) {
 				m.Combo("").
 					Get(builds.View).
 					Post(bindIgnErr(builds.ViewRequest{}), builds.ViewPost)
-				m.Combo("/jobs/{job}").
-					Get(builds.View).
-					Post(bindIgnErr(builds.ViewRequest{}), builds.ViewPost)
+				m.Group("/jobs/{job}", func() {
+					m.Combo("").
+						Get(builds.View).
+						Post(bindIgnErr(builds.ViewRequest{}), builds.ViewPost)
+					m.Post("/rerun", builds.Rerun)
+				})
+
 			})
 		}, reqRepoBuildsReader, builds.MustEnableBuilds)
 

@@ -18,6 +18,9 @@
             <SvgIcon name="octicon-meter" class="ui text yellow" class-name="job-status-rotate" v-else-if="job.status === 'running'"/>
             <SvgIcon name="octicon-x-circle-fill" class="red" v-else/>
             {{ job.name }}
+            <button class="job-brief-rerun" @click="rerunJob(index)" v-if="job.status !== 'waiting' && job.status !== 'blocked' && job.status !== 'running'">
+              <SvgIcon name="octicon-sync"/>
+            </button>
           </a>
         </div>
       </div>
@@ -145,6 +148,17 @@ const sfc = {
       if (this.currentJobStepsStates[idx].expanded) {
         this.loadJobData(); // try to load the data immediately instead of waiting for next timer interval
       }
+    },
+    // rerun a job
+    rerunJob(idx) {
+      fetch(this.buildInfo.htmlurl+'/jobs/'+idx+'/rerun', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Csrf-Token': csrfToken,
+        },
+        body: {},
+      });
     },
 
     formatDuration(d) {
@@ -359,6 +373,12 @@ export function initRepositoryBuildView() {
       background: #f8f8f8;
       border-radius: 5px;
       text-decoration: none;
+      button.job-brief-rerun {
+        float: right;
+        border: none;
+        background-color: transparent;
+        outline: none
+      };
     }
   }
 }

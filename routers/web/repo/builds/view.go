@@ -1,18 +1,21 @@
 package builds
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
 
 	bots_model "code.gitea.io/gitea/models/bots"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/bots"
-	"code.gitea.io/gitea/modules/context"
+	context_module "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/web"
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
+	"xorm.io/builder"
 )
 
-func View(ctx *context.Context) {
+func View(ctx *context_module.Context) {
 	ctx.Data["PageIsBuilds"] = true
 	runIndex := ctx.ParamsInt64("run")
 	jobIndex := ctx.ParamsInt64("job")
@@ -85,7 +88,7 @@ type ViewStepLogLine struct {
 	T  float64 `json:"t"`
 }
 
-func ViewPost(ctx *context.Context) {
+func ViewPost(ctx *context_module.Context) {
 	req := web.GetForm(ctx).(*ViewRequest)
 	runIndex := ctx.ParamsInt64("run")
 	jobIndex := ctx.ParamsInt64("job")
@@ -187,7 +190,37 @@ func ViewPost(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-func getRunJobs(ctx *context.Context, runIndex, jobIndex int64) (current *bots_model.RunJob, jobs []*bots_model.RunJob) {
+func Rerun(ctx *context_module.Context) {
+	runIndex := ctx.ParamsInt64("run")
+	jobIndex := ctx.ParamsInt64("job")
+
+	job, _ := getRunJobs(ctx, runIndex, jobIndex)
+	if ctx.Written() {
+		return
+	}
+	status := job.Status
+	if !status.IsDone() {
+		ctx.JSON(http.StatusOK, struct{}{})
+		return
+	}
+
+	job.TaskID = 0
+	job.Status = bots_model.StatusWaiting
+	job.Started = 0
+	job.Stopped = 0
+
+	if err := db.WithTx(func(ctx context.Context) error {
+		_, err := bots_model.UpdateRunJob(ctx, job, builder.Eq{"status": status}, "task_id", "status", "started", "stopped")
+		return err
+	}, ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	ctx.JSON(http.StatusOK, struct{}{})
+}
+
+func getRunJobs(ctx *context_module.Context, runIndex, jobIndex int64) (current *bots_model.RunJob, jobs []*bots_model.RunJob) {
 	run, err := bots_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
 	if err != nil {
 		if _, ok := err.(bots_model.ErrRunNotExist); ok {
