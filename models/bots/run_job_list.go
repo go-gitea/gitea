@@ -61,7 +61,7 @@ type FindRunJobOptions struct {
 	db.ListOptions
 	RunID         int64
 	Statuses      []Status
-	StartedBefore timeutil.TimeStamp
+	UpdatedBefore timeutil.TimeStamp
 }
 
 func (opts FindRunJobOptions) toConds() builder.Cond {
@@ -72,8 +72,8 @@ func (opts FindRunJobOptions) toConds() builder.Cond {
 	if len(opts.Statuses) > 0 {
 		cond = cond.And(builder.In("status", opts.Statuses))
 	}
-	if opts.StartedBefore > 0 {
-		cond = cond.And(builder.Lt{"started": opts.StartedBefore})
+	if opts.UpdatedBefore > 0 {
+		cond = cond.And(builder.Lt{"updated": opts.UpdatedBefore})
 	}
 	return cond
 }

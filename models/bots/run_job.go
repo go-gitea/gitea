@@ -24,15 +24,15 @@ type RunJob struct {
 	Name            string
 	Attempt         int64
 	WorkflowPayload []byte
-	JobID           string             // job id in workflow, not job's id
-	Needs           []string           `xorm:"JSON TEXT"`
-	RunsOn          []string           `xorm:"JSON TEXT"`
-	TaskID          int64              // the latest task of the job
-	Status          Status             `xorm:"index"`
-	Started         timeutil.TimeStamp `xorm:"index"`
+	JobID           string   // job id in workflow, not job's id
+	Needs           []string `xorm:"JSON TEXT"`
+	RunsOn          []string `xorm:"JSON TEXT"`
+	TaskID          int64    // the latest task of the job
+	Status          Status   `xorm:"index"`
+	Started         timeutil.TimeStamp
 	Stopped         timeutil.TimeStamp
 	Created         timeutil.TimeStamp `xorm:"created"`
-	Updated         timeutil.TimeStamp `xorm:"updated"`
+	Updated         timeutil.TimeStamp `xorm:"updated index"`
 }
 
 func init() {

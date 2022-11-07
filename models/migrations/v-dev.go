@@ -81,7 +81,7 @@ func addBotTables(x *xorm.Engine) error {
 		Started         timeutil.TimeStamp
 		Stopped         timeutil.TimeStamp
 		Created         timeutil.TimeStamp `xorm:"created"`
-		Updated         timeutil.TimeStamp `xorm:"updated"`
+		Updated         timeutil.TimeStamp `xorm:"updated index"`
 	}
 
 	type Repository struct {

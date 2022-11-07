@@ -65,7 +65,7 @@ func StopEndlessTasks(ctx context.Context) error {
 func CancelAbandonedJobs(ctx context.Context) error {
 	jobs, _, err := bots_model.FindRunJobs(ctx, bots_model.FindRunJobOptions{
 		Statuses:      []bots_model.Status{bots_model.StatusWaiting, bots_model.StatusBlocked},
-		StartedBefore: timeutil.TimeStamp(time.Now().Add(-abandonedJobTimeout).Unix()),
+		UpdatedBefore: timeutil.TimeStamp(time.Now().Add(-abandonedJobTimeout).Unix()),
 	})
 	if err != nil {
 		log.Warn("find abandoned tasks: %v", err)
