@@ -31,6 +31,8 @@ func TestIsValidNameAndVersion(t *testing.T) {
 	// Invalid Cases
 	assert.False(t, isValidNameAndVersion(".test-name", "1.0.1"))
 	assert.False(t, isValidNameAndVersion("test!name", "1.0.1"))
+	assert.False(t, isValidNameAndVersion("-test-name", "1.0.1"))
+	assert.False(t, isValidNameAndVersion("test-name-", "1.0.1"))
 	assert.False(t, isValidNameAndVersion("test-name", "a1.0.1"))
 	assert.False(t, isValidNameAndVersion("test-name", "1.0.1aa"))
 	assert.False(t, isValidNameAndVersion("test-name", "1.0.0-alpha.beta"))
