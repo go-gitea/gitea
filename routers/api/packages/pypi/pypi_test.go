@@ -16,6 +16,7 @@ func TestHasInvalidMetadata(t *testing.T) {
 	// https://peps.python.org/pep-0440/#appendix-b-parsing-version-strings-with-regular-expressions
 
 	// Valid Cases
+	assert.False(t, hasInvalidMetadata("A", "1.0.1"))
 	assert.False(t, hasInvalidMetadata("Test.Name.1234", "1.0.1"))
 	assert.False(t, hasInvalidMetadata("test_name", "1.0.1"))
 	assert.False(t, hasInvalidMetadata("test-name", "1.0.1"))
