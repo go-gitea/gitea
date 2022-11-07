@@ -23,6 +23,33 @@ menu:
 
 To collect logs for help and issue report, see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}}).
 
+## The `[log]` section
+
+Configuration of logging facilities in Gitea happen in the `[log]` section and it's subsections.
+
+In the top level `[log]` section the following configurations can be placed:
+
+- `ROOT_PATH`: (Default: **%(GITEA_WORK_DIR)/log**): Base path for log files
+- `MODE`: (Default: **console**) List of log outputs to use for the Default logger.
+- `ROUTER`: (Default: **console**): List of log outputs to use for the Router logger.
+- `ACCESS`: List of log outputs to use for the Access logger.
+- `XORM`: (Default: **,**) List of log outputs to use for the XORM logger.
+- `ENABLE_ACCESS_LOG`: (Default: **false**): whether the Access logger is allowed to emit logs
+- `ENABLE_XORM_LOG`: (Default: **true**): whether the XORM logger is allowed to emit logs
+
+For details on the loggers check the "Log Groups" section.
+Important: log outputs won't be used if you don't enable them for the desired loggers in the corresponding list value.
+
+Lists are specified as comma separated values. This format also works in subsection.
+
+This section may be used for defining default values for subsections.
+Examples:
+
+- `LEVEL`: (Default: **Info**) Least severe log events to persist. Case insensitive. The full list of levels as of v1.17.3 can be read [here](https://github.com/go-gitea/gitea/blob/v1.17.3/custom/conf/app.example.ini#L507).
+- `STACKTRACE_LEVEL`: (Default: **None**) For this and more severe events the stacktrace will be printed upon getting logged.
+
+Some values are not inherited by subsections. For details see the "Non-inherited default values" section.
+
 ## Log outputs
 
 Log outputs are the targets to which log messages will be sent.
