@@ -80,24 +80,33 @@
 					</div>
 					<div class="ui twelve wide column detail">
 						{{if .IsTag}}
-							<h4 class="release-list-title df ac">
-								<a class="df ac" href="{{$.RepoLink}}/src/tag/{{.TagName | PathEscapeSegments}}" rel="nofollow">{{svg "octicon-tag" 24 "mr-3"}}{{.TagName}}</a>
-							</h4>
+							<div class="df ac sb fw mb-3">
+								<h4 class="release-list-title df ac">
+									<a class="df ac" href="{{$.RepoLink}}/src/tag/{{.TagName | PathEscapeSegments}}" rel="nofollow">{{svg "octicon-tag" 24 "mr-3"}}{{.TagName}}</a>
+								</h4>
+							</div>
 							<p class="text grey">
 								{{if gt .Publisher.ID 0}}
 								<span class="author">
 									{{avatar .Publisher 20}}
 									<a href="{{.Publisher.HomeLink}}">{{.Publisher.Name}}</a>
 								</span>
+								<span class="released">
+									{{$.locale.Tr "repo.released_this"}}
+								</span>
+								{{if .CreatedUnix}}
+									<span class="time">{{TimeSinceUnix .CreatedUnix $.locale}}</span>
 								{{end}}
-								| <span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | PathEscapeSegments}}{{if .Target}}...{{.Target | PathEscapeSegments}}{{end}}">{{$.locale.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{$.locale.Tr "repo.release.ahead.target" $.DefaultBranch}}</span>
+								|
+								{{end}}
+								<span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | PathEscapeSegments}}{{if .Target}}...{{.Target | PathEscapeSegments}}{{end}}">{{$.locale.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{$.locale.Tr "repo.release.ahead.target" $.DefaultBranch}}</span>
 							</p>
 							<div class="download">
 							{{if $.Permission.CanRead $.UnitTypeCode}}
-								<a class="mono" href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "mr-2"}}{{ShortSha .Sha1}}</a>
+								<a class="mono muted" href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "mr-2"}}{{ShortSha .Sha1}}</a>
 								{{if not $.DisableDownloadSourceArchives}}
-									<a class="archive-link" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
-									<a class="archive-link" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
+									<a class="archive-link muted" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
+									<a class="archive-link muted" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
 								{{end}}
 							{{end}}
 							</div>
