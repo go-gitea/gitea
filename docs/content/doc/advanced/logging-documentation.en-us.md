@@ -249,6 +249,7 @@ on windows, or the windows terminal can be set into ANSI mode or is a
 cygwin or Msys pipe.
 
 Settings:
+
 - `STDERR`: **false**: Whether the logger should print to `stderr` instead of `stdout`.
 
 ### File mode
@@ -260,6 +261,7 @@ If unset, their own default will be used.
 If set it will be relative to the provided `ROOT_PATH` in the master `[log]` section.
 
 Settings:
+
 - `FILE_NAME`: The file to write the log events to. For details see above.
 - `MAX_SIZE_SHIFT`: **28**: Maximum size shift of a single file. 28 represents 256Mb. For details see here: TODO.
 - `LOG_ROTATE` **true**: Whether to rotate the log files. TODO: if false, will it delete instead on daily rotate, or do nothing?.
@@ -273,6 +275,7 @@ Settings:
 In this mode the logger will send log messages over a network socket.
 
 Settings:
+
 - `ADDR`: **:7020**: Sets the address to connect to.
 - `PROTOCOL`: **tcp**: Set the protocol, either "tcp", "unix" or "udp".
 - `RECONNECT`: **false**: Try to reconnect when connection is lost.
@@ -286,6 +289,7 @@ It is not recommended to use this logger to send general logging
 messages. However, you could perhaps set this logger to work on `FATAL` messages only.
 
 Settings:
+
 - `HOST`: **127.0.0.1:25**: The SMTP host to connect to.
 - `USER`: User email address to send from.
 - `PASSWD`: Password for the smtp server.
