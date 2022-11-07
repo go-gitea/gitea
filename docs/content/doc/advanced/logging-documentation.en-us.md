@@ -15,6 +15,14 @@ menu:
 
 # Logging Configuration
 
+The logging configuration of Gitea mainly consists of 3 types of components:
+
+- The `[log]` section for general configuration
+- `[log.<sublogger>]` sections for the configuration of different log outputs
+- `[log.<sublogger>.<group>]` sections for output specific configuration of a log group
+
+As mentioned below, there is a fully functional log output by default, so it is not necessary to define one.
+
 **Table of Contents**
 
 {{< toc >}}
@@ -63,6 +71,8 @@ Gitea provides 4 possible log outputs:
 - `file` - Log to a file
 - `conn` - Log to a socket (network or unix)
 - `smtp` - Log via email
+
+By default, Gitea has a `console` output configured, which is used by the loggers as seen in the section "The log section" above.
 
 ### Common configuration
 
