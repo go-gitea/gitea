@@ -187,6 +187,8 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 				v.AppendChild(v, NewColorPreview(colorContent))
 			}
 		case *ast.Emphasis:
+			// check if inside blockquote for attention, expected hierarchy is
+			// Emphasis < Paragraph < Blockquote
 			grandparent := n.Parent().Parent()
 			_, isInBlockquote := grandparent.(*ast.Blockquote)
 			_, blockquoteAlreadyAttentionMarked := grandparent.AttributeString(hasThisBlockquoteBeenAttentionMarked)
