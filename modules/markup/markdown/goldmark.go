@@ -324,6 +324,7 @@ func (r *HTMLRenderer) renderCodeSpan(w util.BufWriter, source []byte, n ast.Nod
 	return ast.WalkContinue, nil
 }
 
+// renderAttention renders a quote marked with i.e. "> **Note**" or "> **Warning**" with a corresponding svg
 func (r *HTMLRenderer) renderAttention(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
 		_, _ = w.WriteString(`<span class="attention-`)
