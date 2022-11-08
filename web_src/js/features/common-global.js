@@ -36,11 +36,8 @@ export function initHeadNavbarContentToggle() {
 
 export function initFootLanguageMenu() {
   function linkLanguageAction() {
-    let changeLangUrl = $(this).attr('data-url');
-    changeLangUrl += changeLangUrl.includes('?') ? '&' : '?';
-    // Only use "lang_skip_handler" for ajax. Page links should not have this parameter because crawlers need to get the full page
-    changeLangUrl += 'lang_skip_handler=1';
-    $.get(changeLangUrl).always(() => {
+    const $this = $(this);
+    $.get($this.data('url')).always(() => {
       window.location.reload();
     });
   }
