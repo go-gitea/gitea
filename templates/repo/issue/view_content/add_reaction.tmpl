@@ -1,13 +1,13 @@
 {{if .ctx.IsSigned}}
-<div class="item action ui pointing select-reaction dropdown top right" data-action-url="{{.ActionURL}}">
-	<a class="add-reaction">
+<div class="item action ui pointing select-reaction dropdown top right" role="menu" aria-haspopup="menu" aria-expanded="false" aria-label="{{.ctx.locale.Tr "repo.pick_reaction"}}" tabindex="0" data-action-url="{{.ActionURL}}" data-aria-templated="true">
+	<a class="add-reaction" role="none" aria-hidden="true">
 		{{svg "octicon-smiley"}}
 	</a>
 	<div class="menu">
-		<div class="header">{{.ctx.locale.Tr "repo.pick_reaction"}}</div>
-		<div class="divider"></div>
+		<div class="header" role="none">{{.ctx.locale.Tr "repo.pick_reaction"}}</div>
+		<div class="divider" role="none"></div>
 		{{range $value := AllowedReactions}}
-			<div class="item reaction tooltip" data-content="{{$value}}">{{ReactionToEmoji $value}}</div>
+			<div class="item reaction tooltip" role="menuitem" aria-label="{{$value}}" tabindex="-1" data-content="{{$value}}">{{ReactionToEmoji $value}}</div>
 		{{end}}
 	</div>
 </div>

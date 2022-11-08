@@ -95,6 +95,47 @@ function attachOneDropdownAria($dropdown) {
   $dropdown.on('keyup', (e) => { if (e.key.startsWith('Arrow')) deferredRefreshAria(); });
 }
 
+function attachOneDropdownAriaTemplated($dropdown) {
+  window.console && console.log('[attachOneDropdownAriaTemplated] '+$dropdown.prop('id'));
+  if ($dropdown.attr('data-aria-attached')) return;
+  $dropdown.attr('data-aria-attached', 1);
+
+  const $menu = $dropdown.find('> .menu');
+  // update aria attributes according to current active/selected item
+  const refreshAria = () => {
+    const isMenuVisible = !$menu.is('.hidden') && !$menu.is('.animating.out');
+    isMenuVisible ? $dropdown.attr('aria-expanded', 'true') : $dropdown.removeAttr('aria-expanded');
+
+    let $active = $menu.find('> .item.active');
+    //if (!$active.length) $active = $menu.find('> .item.selected'); // it's strange that we need this fallback at the moment
+
+    // if there is an active item, use its id. if no active item, then the empty string is set
+    $dropdown.attr('aria-activedescendant', $active.attr('id'));
+  };
+
+  $dropdown.on('keydown', (e) => {
+    window.console && console.log('keydown:'+e.key);
+    // here it must use keydown event before dropdown's keyup handler, otherwise there is no Enter event in our keyup handler
+    if (e.key === 'Enter') {
+      const $item = $dropdown.dropdown('get item', $dropdown.dropdown('get value'));
+      // if the selected item is clickable, then trigger the click event. in the future there could be a special CSS class for it.
+      if ($item) $item[0].click();
+    }
+    else if (e.key === 'ESC') {
+      $dropdown.dropdown('hide');
+      $dropdown.removeAttr('aria-expanded');
+    }
+  });
+
+  // use setTimeout to run the refreshAria in next tick (to make sure the Fomantic UI code has finished its work)
+  const deferredRefreshAria = () => { setTimeout(refreshAria, 0) }; // do not return any value, jQuery has return-value related behaviors.
+  $dropdown.on('focus', deferredRefreshAria);
+  $dropdown.on('mouseup', deferredRefreshAria);
+  $dropdown.on('blur', deferredRefreshAria);
+  $dropdown.on('keyup', (e) => { if (e.key.startsWith('Arrow')) deferredRefreshAria(); });
+}
+
 export function attachDropdownAria($dropdowns) {
-  $dropdowns.each((_, e) => attachOneDropdownAria($(e)));
+  $dropdowns.filter(':not([data-aria-templated])').each((_, e) => attachOneDropdownAria($(e)));
+  $dropdowns.filter('[data-aria-templated]').each((_, e) => attachOneDropdownAriaTemplated($(e)));
 }
