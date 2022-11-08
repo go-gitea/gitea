@@ -11,15 +11,20 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"strings"
+	"sync"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/stretchr/testify/assert"
 )
 
 const userPassword = "password"
 
-var loginSessionCache = make(map[string]*TestSession, 10)
+var (
+	loginSessionCache = make(map[string]*TestSession, 10)
+	loginSessionLock  sync.RWMutex
+)
 
 func emptyTestSession(t testing.TB) *TestSession {
 	t.Helper()
@@ -31,11 +36,15 @@ func emptyTestSession(t testing.TB) *TestSession {
 
 func loginUser(t testing.TB, userName string) *TestSession {
 	t.Helper()
+	loginSessionLock.RLock()
 	if session, ok := loginSessionCache[userName]; ok {
+		loginSessionLock.RUnlock()
 		return session
 	}
 	session := loginUserWithPassword(t, userName, userPassword)
+	loginSessionLock.Lock()
 	loginSessionCache[userName] = session
+	loginSessionLock.Unlock()
 	return session
 }
 

@@ -23,5 +23,7 @@ func TestSignOut(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusNotFound)
 
 	// invalidate cached cookies for user2, for subsequent tests
+	loginSessionLock.Lock()
 	delete(loginSessionCache, "user2")
+	loginSessionLock.Unlock()
 }
