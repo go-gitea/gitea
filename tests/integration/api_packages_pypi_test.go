@@ -29,7 +29,7 @@ func TestPackagePyPI(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	packageName := "test-package"
-	packageVersion := "1.0.1+r1234"
+	packageVersion := "1!1.0.1+r1234"
 	packageAuthor := "KN4CK3R"
 	packageDescription := "Test Description"
 
@@ -72,7 +72,7 @@ func TestPackagePyPI(t *testing.T) {
 
 		pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
 		assert.NoError(t, err)
-		assert.NotNil(t, pd.SemVer)
+		assert.Nil(t, pd.SemVer)
 		assert.IsType(t, &pypi.Metadata{}, pd.Metadata)
 		assert.Equal(t, packageName, pd.Package.Name)
 		assert.Equal(t, packageVersion, pd.Version.Version)
@@ -100,7 +100,7 @@ func TestPackagePyPI(t *testing.T) {
 
 		pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
 		assert.NoError(t, err)
-		assert.NotNil(t, pd.SemVer)
+		assert.Nil(t, pd.SemVer)
 		assert.IsType(t, &pypi.Metadata{}, pd.Metadata)
 		assert.Equal(t, packageName, pd.Package.Name)
 		assert.Equal(t, packageVersion, pd.Version.Version)
