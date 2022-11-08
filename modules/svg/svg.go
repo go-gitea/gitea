@@ -24,8 +24,9 @@ func Init() {
 	SVGs = Discover()
 }
 
-// ParseOthers get size and class from string with default values
-func ParseOthers(defaultSize int, defaultClass string, others ...interface{}) (int, string) {
+// ParseSizeAndClass get size and class from string with default values
+// If present, "others" expects the new size first and then the classes to use
+func ParseSizeAndClass(defaultSize int, defaultClass string, others ...interface{}) (int, string) {
 	if len(others) == 0 {
 		return defaultSize, defaultClass
 	}
@@ -54,7 +55,7 @@ func ParseOthers(defaultSize int, defaultClass string, others ...interface{}) (i
 
 // Render render icons - arguments icon name (string), size (int), class (string)
 func RenderHTML(icon string, others ...interface{}) template.HTML {
-	size, class := ParseOthers(16, "", others...)
+	size, class := ParseSizeAndClass(16, "", others...)
 
 	if svgStr, ok := SVGs[icon]; ok {
 		if size != 16 {
