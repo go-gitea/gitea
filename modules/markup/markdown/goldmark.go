@@ -194,9 +194,9 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			_, isInBlockquote := grandparent.(*ast.Blockquote)
 			_, blockquoteAlreadyAttentionMarked := grandparent.AttributeString(hasThisBlockquoteBeenAttentionMarked)
 			if !blockquoteAlreadyAttentionMarked && isInBlockquote {
-				fullText := strings.ToLower(string(n.Text(reader.Source())))
+				fullText := string(n.Text(reader.Source()))
 				if fullText == AttentionNote || fullText == AttentionWarning {
-					v.SetAttributeString("class", []byte("attention-"+fullText))
+					v.SetAttributeString("class", []byte("attention-"+strings.ToLower(fullText)))
 					v.Parent().InsertBefore(v.Parent(), v, NewAttention(fullText))
 					grandparent.SetAttributeString(hasThisBlockquoteBeenAttentionMarked, []byte("yes"))
 				}
@@ -332,7 +332,7 @@ func (r *HTMLRenderer) renderAttention(w util.BufWriter, source []byte, node ast
 	if entering {
 		_, _ = w.WriteString(`<span class="attention-`)
 		n := node.(*Attention)
-		_, _ = w.WriteString(n.AttentionType)
+		_, _ = w.WriteString(strings.ToLower(n.AttentionType))
 		_, _ = w.WriteString(`">`)
 
 		var octiconType string

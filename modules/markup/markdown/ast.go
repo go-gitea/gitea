@@ -182,8 +182,8 @@ func IsColorPreview(node ast.Node) bool {
 }
 
 const (
-	AttentionNote    string = "note"
-	AttentionWarning string = "warning"
+	AttentionNote    string = "Note"
+	AttentionWarning string = "Warning"
 )
 
 // Attention is an inline for a color preview
