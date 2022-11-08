@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
+	migrate_base "code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/modules/doctor"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -114,7 +115,7 @@ func runRecreateTable(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	recreateTables := migrations.RecreateTables(beans...)
+	recreateTables := migrate_base.RecreateTables(beans...)
 
 	return db.InitEngineWithMigration(stdCtx, func(x *xorm.Engine) error {
 		if err := migrations.EnsureUpToDate(x); err != nil {

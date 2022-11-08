@@ -16,8 +16,6 @@ HostKey /data/ssh/ssh_host_rsa_key
 ${SSH_RSA_CERT}
 HostKey /data/ssh/ssh_host_ecdsa_key
 ${SSH_ECDSA_CERT}
-HostKey /data/ssh/ssh_host_dsa_key
-${SSH_DSA_CERT}
 
 AuthorizedKeysFile .ssh/authorized_keys
 AuthorizedPrincipalsFile .ssh/authorized_principals
