@@ -8,11 +8,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	_ "code.gitea.io/gitea/cmd" // for TestPrimaryKeys
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
+
+	_ "code.gitea.io/gitea/cmd" // for TestPrimaryKeys
 
 	"github.com/stretchr/testify/assert"
 )
