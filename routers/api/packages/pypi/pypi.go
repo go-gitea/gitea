@@ -25,8 +25,15 @@ import (
 var normalizer = strings.NewReplacer(".", "-", "_", "-")
 var nameMatcher = regexp.MustCompile(`\A[a-zA-Z0-9\.\-_]+\z`)
 
-// https://www.python.org/dev/peps/pep-0440/#appendix-b-parsing-version-strings-with-regular-expressions
-var versionMatcher = regexp.MustCompile(`^([1-9][0-9]*!)?(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))*((a|b|rc)(0|[1-9][0-9]*))?(\.post(0|[1-9][0-9]*))?(\.dev(0|[1-9][0-9]*))?$`)
+// https://peps.python.org/pep-0440/#appendix-b-parsing-version-strings-with-regular-expressions
+var versionMatcher = regexp.MustCompile(`\Av?` +
+	`(?:[0-9]+!)?` + // epoch
+	`[0-9]+(?:\.[0-9]+)*` + // release segment
+	`(?:[-_\.]?(?:a|b|c|rc|alpha|beta|pre|preview)[-_\.]?[0-9]*)?` + // pre-release
+	`(?:-[0-9]+|[-_\.]?(?:post|rev|r)[-_\.]?[0-9]*)?` + // post release
+	`(?:[-_\.]?dev[-_\.]?[0-9]*)?` + // dev release
+	`(?:\+[a-z0-9]+(?:[-_\.][a-z0-9]+)*)?` + // local version
+	`\z`)
 
 func apiError(ctx *context.Context, status int, obj interface{}) {
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
