@@ -340,7 +340,7 @@ func (r *HTMLRenderer) renderAttention(w util.BufWriter, source []byte, node ast
 		case AttentionNote:
 			octiconType = "info"
 		case AttentionWarning:
-			octiconType = "warning"
+			octiconType = "alert"
 		}
 		_, _ = w.WriteString(string(svg.RenderHTML("octicon-" + octiconType)))
 	} else {
