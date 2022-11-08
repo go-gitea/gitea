@@ -29,8 +29,6 @@ import (
 
 var byteMailto = []byte("mailto:")
 
-const hasThisBlockquoteBeenAttentionMarked = "has-this-blockquote-been-attention-marked"
-
 // ASTTransformer is a default transformer of the goldmark tree.
 type ASTTransformer struct{}
 
@@ -49,6 +47,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 		ctx.TableOfContents = make([]markup.Header, 0, 100)
 	}
 
+	attentionMarkedBlockquotes := make(container.Set[*ast.Blockquote])
 	_ = ast.Walk(node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
@@ -190,15 +189,13 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 		case *ast.Emphasis:
 			// check if inside blockquote for attention, expected hierarchy is
 			// Emphasis < Paragraph < Blockquote
-			grandparent := n.Parent().Parent()
-			_, isInBlockquote := grandparent.(*ast.Blockquote)
-			_, blockquoteAlreadyAttentionMarked := grandparent.AttributeString(hasThisBlockquoteBeenAttentionMarked)
-			if !blockquoteAlreadyAttentionMarked && isInBlockquote {
+			blockquote, isInBlockquote := n.Parent().Parent().(*ast.Blockquote)
+			if isInBlockquote && !attentionMarkedBlockquotes.Contains(blockquote) {
 				fullText := string(n.Text(reader.Source()))
 				if fullText == AttentionNote || fullText == AttentionWarning {
 					v.SetAttributeString("class", []byte("attention-"+strings.ToLower(fullText)))
 					v.Parent().InsertBefore(v.Parent(), v, NewAttention(fullText))
-					grandparent.SetAttributeString(hasThisBlockquoteBeenAttentionMarked, []byte("yes"))
+					attentionMarkedBlockquotes.Add(blockquote)
 				}
 			}
 		}
