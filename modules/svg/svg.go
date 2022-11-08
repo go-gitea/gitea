@@ -11,18 +11,18 @@ import (
 	"strings"
 )
 
-// SVGs contains discovered SVGs
-var SVGs map[string]string
+var (
+	// SVGs contains discovered SVGs
+	SVGs map[string]string
+
+	widthRe  = regexp.MustCompile(`width="[0-9]+?"`)
+	heightRe = regexp.MustCompile(`height="[0-9]+?"`)
+)
 
 // Init discovers SVGs and populates the `SVGs` variable
 func Init() {
 	SVGs = Discover()
 }
-
-var (
-	widthRe  = regexp.MustCompile(`width="[0-9]+?"`)
-	heightRe = regexp.MustCompile(`height="[0-9]+?"`)
-)
 
 // ParseOthers get size and class from string with default values
 func ParseOthers(defaultSize int, defaultClass string, others ...interface{}) (int, string) {
