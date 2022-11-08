@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/common"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/svg"
 	giteautil "code.gitea.io/gitea/modules/util"
 
 	"github.com/microcosm-cc/bluemonday/css"
@@ -334,14 +335,14 @@ func (r *HTMLRenderer) renderAttention(w util.BufWriter, source []byte, node ast
 		_, _ = w.WriteString(n.AttentionType)
 		_, _ = w.WriteString(`">`)
 
-		// TODO: Use code.gitea.io/gitea/modules/templates SVG function instead
-		// @yardenshoham didn't do it because when he tried to import code.gitea.io/gitea/modules/templates he got a cyclical import error
+		var octiconType string
 		switch n.AttentionType {
 		case AttentionNote:
-			_, _ = w.WriteString(`<svg viewBox="0 0 16 16" class="svg octicon-info" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm6.5-.25A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75zM8 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"></path></svg>`)
+			octiconType = "info"
 		case AttentionWarning:
-			_, _ = w.WriteString(`<svg viewBox="0 0 16 16" class="svg octicon-alert" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M8.22 1.754a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368L8.22 1.754zm-1.763-.707c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575L6.457 1.047zM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-.25-5.25a.75.75 0 0 0-1.5 0v2.5a.75.75 0 0 0 1.5 0v-2.5z"></path></svg>`)
+			octiconType = "warning"
 		}
+		_, _ = w.WriteString(string(svg.RenderHTML("octicon-" + octiconType)))
 	} else {
 		_, _ = w.WriteString("</span>\n")
 	}
