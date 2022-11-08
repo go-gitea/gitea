@@ -117,7 +117,7 @@ func DownloadPackageFileByName(ctx *context.Context) {
 			Value:      packageNameFromParams(ctx),
 		},
 		HasFileWithName: filename,
-		IsInternal:      util.OptionalBoolFalse,
+		IsInternal:      false,
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -145,7 +145,7 @@ func DownloadPackageFileByName(ctx *context.Context) {
 	}
 	defer s.Close()
 
-	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
+	ctx.ServeStream(s, pf.Name)
 }
 
 // UploadPackage creates a new package
