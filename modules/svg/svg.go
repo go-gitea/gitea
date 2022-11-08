@@ -9,6 +9,8 @@ import (
 	"html/template"
 	"regexp"
 	"strings"
+
+	"code.gitea.io/gitea/modules/html"
 )
 
 var (
@@ -24,38 +26,9 @@ func Init() {
 	SVGs = Discover()
 }
 
-// ParseSizeAndClass get size and class from string with default values
-// If present, "others" expects the new size first and then the classes to use
-func ParseSizeAndClass(defaultSize int, defaultClass string, others ...interface{}) (int, string) {
-	if len(others) == 0 {
-		return defaultSize, defaultClass
-	}
-
-	size := defaultSize
-	_size, ok := others[0].(int)
-	if ok && _size != 0 {
-		size = _size
-	}
-
-	if len(others) == 1 {
-		return size, defaultClass
-	}
-
-	class := defaultClass
-	if _class, ok := others[1].(string); ok && _class != "" {
-		if defaultClass == "" {
-			class = _class
-		} else {
-			class = defaultClass + " " + _class
-		}
-	}
-
-	return size, class
-}
-
 // Render render icons - arguments icon name (string), size (int), class (string)
 func RenderHTML(icon string, others ...interface{}) template.HTML {
-	size, class := ParseSizeAndClass(16, "", others...)
+	size, class := html.ParseSizeAndClass(16, "", others...)
 
 	if svgStr, ok := SVGs[icon]; ok {
 		if size != 16 {
