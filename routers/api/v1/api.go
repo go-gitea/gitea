@@ -230,7 +230,7 @@ func reqToken(requiredScope string) func(ctx *context.APIContext) {
 
 			// if requires 'repo' scope, but only has 'public_repo' scope, allow it only if the repo is public
 			if requiredScope == auth_model.AccessTokenScopeRepo {
-				if allowPublicRepo, err := scope.HasScope(auth_model.AccessTokenScopeUser); err == nil && allowPublicRepo {
+				if allowPublicRepo, err := scope.HasScope(auth_model.AccessTokenScopePublicRepo); err == nil && allowPublicRepo {
 					if ctx.Repo.Repository != nil && !ctx.Repo.Repository.IsPrivate {
 						return
 					}
