@@ -91,14 +91,14 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 	// OK login
 	ctx := NewAPITestContext(t, username, reponame)
 
-	otherCtx := ctx
+	otherCtx := *ctx
 	otherCtx.Reponame = "ssh-key-test-repo-2"
 
-	failCtx := ctx
+	failCtx := *ctx
 	failCtx.ExpectedCode = http.StatusUnprocessableEntity
 
 	t.Run("CreateRepository", doAPICreateRepository(ctx, false))
-	t.Run("CreateOtherRepository", doAPICreateRepository(otherCtx, false))
+	t.Run("CreateOtherRepository", doAPICreateRepository(&otherCtx, false))
 
 	withKeyFile(t, keyname, func(keyFile string) {
 		var userKeyPublicKeyID int64
@@ -113,9 +113,9 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 				userKeyPublicKeyID = publicKey.ID
 			}))
 
-			t.Run("FailToAddReadOnlyDeployKey", doAPICreateDeployKey(failCtx, keyname, keyFile, true))
+			t.Run("FailToAddReadOnlyDeployKey", doAPICreateDeployKey(&failCtx, keyname, keyFile, true))
 
-			t.Run("FailToAddDeployKey", doAPICreateDeployKey(failCtx, keyname, keyFile, false))
+			t.Run("FailToAddDeployKey", doAPICreateDeployKey(&failCtx, keyname, keyFile, false))
 
 			t.Run("Clone", doGitClone(dstPath, sshURL))
 
@@ -145,7 +145,7 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 			otherSSHURL := createSSHUrl(otherCtx.GitPath(), u)
 			dstOtherPath := t.TempDir()
 
-			t.Run("AddWriterDeployKeyToOther", doAPICreateDeployKey(otherCtx, keyname, keyFile, false))
+			t.Run("AddWriterDeployKeyToOther", doAPICreateDeployKey(&otherCtx, keyname, keyFile, false))
 
 			t.Run("CloneOther", doGitClone(dstOtherPath, otherSSHURL))
 
@@ -153,7 +153,7 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 
 			t.Run("PushToOther", doGitPushTestRepository(dstOtherPath, "origin", "master"))
 
-			t.Run("FailToCreateUserKey", doAPICreateUserKey(failCtx, keyname, keyFile))
+			t.Run("FailToCreateUserKey", doAPICreateUserKey(&failCtx, keyname, keyFile))
 		})
 
 		t.Run("DeleteRepositoryShouldReleaseKey", func(t *testing.T) {
@@ -162,7 +162,7 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 
 			t.Run("DeleteRepository", doAPIDeleteRepository(ctx))
 
-			t.Run("FailToCreateUserKeyAsStillDeploy", doAPICreateUserKey(failCtx, keyname, keyFile))
+			t.Run("FailToCreateUserKeyAsStillDeploy", doAPICreateUserKey(&failCtx, keyname, keyFile))
 
 			t.Run("MakeSureCloneOtherStillWorks", doGitClone(dstOtherPath, otherSSHURL))
 
@@ -170,7 +170,7 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 
 			t.Run("PushToOther", doGitPushTestRepository(dstOtherPath, "origin", "master"))
 
-			t.Run("DeleteOtherRepository", doAPIDeleteRepository(otherCtx))
+			t.Run("DeleteOtherRepository", doAPIDeleteRepository(&otherCtx))
 
 			t.Run("RecreateRepository", doAPICreateRepository(ctx, false))
 
