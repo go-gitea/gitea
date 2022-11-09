@@ -36,15 +36,13 @@ func emptyTestSession(t testing.TB) *TestSession {
 
 func loginUser(t testing.TB, userName string) *TestSession {
 	t.Helper()
-	loginSessionLock.RLock()
+	loginSessionLock.Lock()
+	defer loginSessionLock.Unlock()
 	if session, ok := loginSessionCache[userName]; ok {
-		loginSessionLock.RUnlock()
 		return session
 	}
 	session := loginUserWithPassword(t, userName, userPassword)
-	loginSessionLock.Lock()
 	loginSessionCache[userName] = session
-	loginSessionLock.Unlock()
 	return session
 }
 
