@@ -211,7 +211,7 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.APIContext) 
 // Contexter middleware already checks token for user sign in process.
 func reqToken(requiredScope string) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if true == ctx.Data["IsApiToken"] {
+		if ctx.Data["IsApiToken"] == true {
 			// no scope required
 			if requiredScope == "" {
 				return
@@ -251,19 +251,6 @@ func reqToken(requiredScope string) func(ctx *context.APIContext) {
 	}
 }
 
-// reqSiteAdminOrToken user should be the site admin, or the token should have 'sudo' scope.
-func reqSiteAdminOrToken() func(ctx *context.APIContext) {
-	return func(ctx *context.APIContext) {
-		// if is site admin, allow it
-		if ctx.IsUserSiteAdmin() {
-			return
-		}
-
-		// otherwise, check token
-		reqToken("sudo")(ctx)
-	}
-}
-
 func reqExploreSignIn() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if setting.Service.Explore.RequireSigninView && !ctx.IsSigned {
@@ -282,6 +269,16 @@ func reqBasicOrRevProxyAuth() func(ctx *context.APIContext) {
 			return
 		}
 		ctx.CheckForOTP()
+	}
+}
+
+// reqSiteAdmin user should be the site admin
+func reqSiteAdmin() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if !ctx.IsUserSiteAdmin() {
+			ctx.Error(http.StatusForbidden, "reqSiteAdmin", "user should be the site admin")
+			return
+		}
 	}
 }
 
@@ -1209,7 +1206,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 				m.Post("/{username}/{reponame}", admin.AdoptRepository)
 				m.Delete("/{username}/{reponame}", admin.DeleteUnadoptedRepository)
 			})
-		}, reqSiteAdminOrToken())
+		}, reqToken("sudo"), reqSiteAdmin())
 
 		m.Group("/topics", func() {
 			m.Get("/search", repo.TopicSearch)
