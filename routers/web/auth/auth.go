@@ -82,7 +82,7 @@ func AutoSignIn(ctx *context.Context) (bool, error) {
 
 	isSucceed = true
 
-	if err := updateSession(ctx, nil, map[interface{}]interface{}{
+	if err := updateSession(ctx, nil, map[string]interface{}{
 		// Set session IDs
 		"uid":   u.ID,
 		"uname": u.Name,
@@ -245,7 +245,7 @@ func SignInPost(ctx *context.Context) {
 		return
 	}
 
-	updates := map[interface{}]interface{}{
+	updates := map[string]interface{}{
 		// User will need to use 2FA TOTP or WebAuthn, save data
 		"twofaUid":      u.ID,
 		"twofaRemember": form.Remember,
@@ -286,7 +286,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 			setting.CookieRememberName, u.Name, days)
 	}
 
-	if err := updateSession(ctx, []interface{}{
+	if err := updateSession(ctx, []string{
 		// Delete the openid, 2fa and linkaccount data
 		"openid_verified_uri",
 		"openid_signin_remember",
@@ -295,7 +295,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 		"twofaUid",
 		"twofaRemember",
 		"linkAccount",
-	}, map[interface{}]interface{}{
+	}, map[string]interface{}{
 		"uid":   u.ID,
 		"uname": u.Name,
 	}); err != nil {
@@ -734,7 +734,7 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 
 	log.Trace("User activated: %s", user.Name)
 
-	if err := updateSession(ctx, nil, map[interface{}]interface{}{
+	if err := updateSession(ctx, nil, map[string]interface{}{
 		"uid":   user.ID,
 		"uname": user.Name,
 	}); err != nil {
@@ -780,7 +780,7 @@ func ActivateEmail(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 }
 
-func updateSession(ctx *context.Context, deletes []interface{}, updates map[interface{}]interface{}) error {
+func updateSession(ctx *context.Context, deletes []string, updates map[string]interface{}) error {
 	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
 		return fmt.Errorf("regenerate session: %w", err)
 	}

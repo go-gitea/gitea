@@ -1026,7 +1026,7 @@ func setUserGroupClaims(loginSource *auth.Source, u *user_model.User, gothUser *
 }
 
 func showLinkingLogin(ctx *context.Context, gothUser goth.User) {
-	if err := updateSession(ctx, nil, map[interface{}]interface{}{
+	if err := updateSession(ctx, nil, map[string]interface{}{
 		"linkAccountGothUser": gothUser,
 	}); err != nil {
 		ctx.ServerError("RegenerateSession", err)
@@ -1069,7 +1069,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 	// If this user is enrolled in 2FA and this source doesn't override it,
 	// we can't sign the user in just yet. Instead, redirect them to the 2FA authentication page.
 	if !needs2FA {
-		if err := updateSession(ctx, nil, map[interface{}]interface{}{
+		if err := updateSession(ctx, nil, map[string]interface{}{
 			"uid":   u.ID,
 			"uname": u.Name,
 		}); err != nil {
@@ -1125,7 +1125,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		}
 	}
 
-	if err := updateSession(ctx, nil, map[interface{}]interface{}{
+	if err := updateSession(ctx, nil, map[string]interface{}{
 		// User needs to use 2FA, save data and redirect to 2FA page.
 		"twofaUid":      u.ID,
 		"twofaRemember": false,
