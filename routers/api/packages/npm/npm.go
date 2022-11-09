@@ -105,6 +105,49 @@ func DownloadPackageFile(ctx *context.Context) {
 	ctx.ServeStream(s, pf.Name)
 }
 
+// DownloadPackageFileByName finds the version and serves the contents of a package
+func DownloadPackageFileByName(ctx *context.Context) {
+	filename := ctx.Params("filename")
+
+	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
+		OwnerID: ctx.Package.Owner.ID,
+		Type:    packages_model.TypeNpm,
+		Name: packages_model.SearchValue{
+			ExactMatch: true,
+			Value:      packageNameFromParams(ctx),
+		},
+		HasFileWithName: filename,
+		IsInternal:      false,
+	})
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if len(pvs) != 1 {
+		apiError(ctx, http.StatusNotFound, nil)
+		return
+	}
+
+	s, pf, err := packages_service.GetFileStreamByPackageVersion(
+		ctx,
+		pvs[0],
+		&packages_service.PackageFileInfo{
+			Filename: filename,
+		},
+	)
+	if err != nil {
+		if err == packages_model.ErrPackageFileNotExist {
+			apiError(ctx, http.StatusNotFound, err)
+			return
+		}
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	defer s.Close()
+
+	ctx.ServeStream(s, pf.Name)
+}
+
 // UploadPackage creates a new package
 func UploadPackage(ctx *context.Context) {
 	npmPackage, err := npm_module.ParsePackage(ctx.Req.Body)

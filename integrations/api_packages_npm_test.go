@@ -123,10 +123,16 @@ func TestPackageNpm(t *testing.T) {
 		b, _ := base64.StdEncoding.DecodeString(data)
 		assert.Equal(t, b, resp.Body.Bytes())
 
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/-/%s", root, filename))
+		req = addTokenAuthHeader(req, token)
+		resp = MakeRequest(t, req, http.StatusOK)
+
+		assert.Equal(t, b, resp.Body.Bytes())
+
 		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNpm)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
-		assert.Equal(t, int64(1), pvs[0].DownloadCount)
+		assert.Equal(t, int64(2), pvs[0].DownloadCount)
 	})
 
 	t.Run("PackageMetadata", func(t *testing.T) {
