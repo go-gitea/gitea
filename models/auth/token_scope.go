@@ -175,7 +175,7 @@ func (bitmap AccessTokenScopeBitmap) ToScope() AccessTokenScope {
 			switch v {
 			// Parse scopes that contains multiple sub-scopes
 			case AccessTokenScopeRepo, AccessTokenScopeAdminOrg, AccessTokenScopeAdminPublicKey,
-				AccessTokenScopeUser, AccessTokenScopePackage, AccessTokenScopeAdminGPGKey:
+				AccessTokenScopeUser, AccessTokenScopePackage, AccessTokenScopeAdminGPGKey, AccessTokenScopeAdminApplication:
 				groupedScope[v] = struct{}{}
 			case AccessTokenScopeAdminRepoHook:
 				groupedScope[v] = struct{}{}
