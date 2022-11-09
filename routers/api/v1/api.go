@@ -769,7 +769,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 					Delete(reqToken(auth_model.AccessTokenScopeWritePublicKey), user.DeletePublicKey)
 			})
 
-			// (repo scope)
+			// (admin:application scope)
 			m.Group("/applications", func() {
 				m.Combo("/oauth2").
 					Get(reqToken(auth_model.AccessTokenScopeReadApplication), user.ListOauth2Applications).
