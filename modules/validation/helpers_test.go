@@ -155,3 +155,34 @@ func Test_IsValidExternalTrackerURLFormat(t *testing.T) {
 		})
 	}
 }
+
+func TestIsValidUsername(t *testing.T) {
+	tests := []struct {
+		arg  string
+		want bool
+	}{
+		{arg: "a", want: true},
+		{arg: "abc", want: true},
+		{arg: "0.b-c", want: true},
+		{arg: "a.b-c_d", want: true},
+		{arg: "", want: false},
+		{arg: ".abc", want: false},
+		{arg: "abc.", want: false},
+		{arg: "a..bc", want: false},
+		{arg: "a...bc", want: false},
+		{arg: "a.-bc", want: false},
+		{arg: "a._bc", want: false},
+		{arg: "a_-bc", want: false},
+		{arg: "a/bc", want: false},
+		{arg: "☁️", want: false},
+		{arg: "-", want: false},
+		{arg: "--diff", want: false},
+		{arg: "-im-here", want: false},
+		{arg: "a space", want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.arg, func(t *testing.T) {
+			assert.Equalf(t, tt.want, IsValidUsername(tt.arg), "IsValidUsername(%v)", tt.arg)
+		})
+	}
+}

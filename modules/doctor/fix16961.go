@@ -269,13 +269,10 @@ func fixBrokenRepoUnits16961(ctx context.Context, logger log.Logger, autofix boo
 
 	err := db.Iterate(
 		ctx,
-		new(RepoUnit),
 		builder.Gt{
 			"id": 0,
 		},
-		func(idx int, bean interface{}) error {
-			unit := bean.(*RepoUnit)
-
+		func(ctx context.Context, unit *RepoUnit) error {
 			bs := unit.Config
 			repoUnit := &repo_model.RepoUnit{
 				ID:          unit.ID,
