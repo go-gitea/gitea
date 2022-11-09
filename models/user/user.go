@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/validation"
 
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/bcrypt"
@@ -621,7 +622,7 @@ var (
 // IsUsableUsername returns an error when a username is reserved
 func IsUsableUsername(name string) error {
 	// Validate username make sure it satisfies requirement.
-	if db.AlphaDashDotPattern.MatchString(name) {
+	if !validation.IsValidUsername(name) {
 		// Note: usually this error is normally caught up earlier in the UI
 		return db.ErrNameCharsNotAllowed{Name: name}
 	}
