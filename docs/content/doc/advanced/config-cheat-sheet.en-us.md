@@ -37,7 +37,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 ## Default Configuration (non-`app.ini` configuration)
 
-These values are environment dependent but form the basis of a lot values. They will be
+These values are environment-dependent but form the basis of a lot of values. They will be
 reported as part of the default configuration when running `gitea --help` or on start-up. The order they are emitted there is slightly different but we will list them here in the order they are set-up.
 
 - _`AppPath`_: This is the absolute path of the running gitea binary.
@@ -343,7 +343,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `CERT_FILE`: **https/cert.pem**: Cert file path used for HTTPS. When chaining, the server certificate must come first, then intermediate CA certificates (if any). This is ignored if `ENABLE_ACME=true`. Paths are relative to `CUSTOM_PATH`.
 - `KEY_FILE`: **https/key.pem**: Key file path used for HTTPS. This is ignored if `ENABLE_ACME=true`. Paths are relative to `CUSTOM_PATH`.
 - `STATIC_ROOT_PATH`: **_`StaticRootPath`_**: Upper level of template and static files path.
-- `APP_DATA_PATH`: **data** (**/data/gitea** on docker): Default path for application data.  Relative paths will be made absolute against _`AppWorkPath`_.
+- `APP_DATA_PATH`: **data** (**/data/gitea** on docker): Default path for application data. Relative paths will be made absolute against _`AppWorkPath`_.
 - `STATIC_CACHE_TIME`: **6h**: Web browser cache time for static resources on `custom/`, `public/` and all uploaded avatars. Note that this cache is disabled when `RUN_MODE` is "dev".
 - `ENABLE_GZIP`: **false**: Enable gzip compression for runtime-generated content, static resources excluded.
 - `ENABLE_PPROF`: **false**: Application profiling (memory and cpu). For "web" command it listens on `localhost:6060`. For "serv" command it dumps to disk at `PPROF_DATA_PATH` as `(cpuprofile|memprofile)_<username>_<temporary id>`
@@ -756,7 +756,7 @@ and
 ## Session (`session`)
 
 - `PROVIDER`: **memory**: Session engine provider \[memory, file, redis, db, mysql, couchbase, memcache, postgres\]. Setting `db` will reuse the configuration in `[database]`
-- `PROVIDER_CONFIG`: **data/sessions**: For file, the root path; for db, empty (database config will be used); for others, the connection string.  Relative paths will be made absolute against _`AppWorkPath`_.
+- `PROVIDER_CONFIG`: **data/sessions**: For file, the root path; for db, empty (database config will be used); for others, the connection string. Relative paths will be made absolute against _`AppWorkPath`_.
 - `COOKIE_SECURE`: **false**: Enable this to force using HTTPS for all session access.
 - `COOKIE_NAME`: **i\_like\_gitea**: The name of the cookie used for the session ID.
 - `GC_INTERVAL_TIME`: **86400**: GC interval in seconds.
