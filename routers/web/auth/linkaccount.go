@@ -156,6 +156,7 @@ func linkAccount(ctx *context.Context, u *user_model.User, gothUser goth.User, r
 	}
 
 	if err := updateSession(ctx, nil, map[interface{}]interface{}{
+		// User needs to use 2FA, save data and redirect to 2FA page.
 		"twofaUid":      u.ID,
 		"twofaRemember": remember,
 		"linkAccount":   true,

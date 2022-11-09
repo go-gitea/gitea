@@ -83,6 +83,7 @@ func AutoSignIn(ctx *context.Context) (bool, error) {
 	isSucceed = true
 
 	if err := updateSession(ctx, nil, map[interface{}]interface{}{
+		// Set session IDs
 		"uid":   u.ID,
 		"uname": u.Name,
 	}); err != nil {
@@ -245,10 +246,12 @@ func SignInPost(ctx *context.Context) {
 	}
 
 	updates := map[interface{}]interface{}{
+		// User will need to use 2FA TOTP or WebAuthn, save data
 		"twofaUid":      u.ID,
 		"twofaRemember": form.Remember,
 	}
 	if hasTOTPtwofa {
+		// User will need to use WebAuthn, save data
 		updates["totpEnrolled"] = u.ID
 	}
 	if err := updateSession(ctx, nil, updates); err != nil {
