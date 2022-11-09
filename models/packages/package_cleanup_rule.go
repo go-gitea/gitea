@@ -64,8 +64,7 @@ func (pcr *PackageCleanupRule) CompiledPattern() error {
 }
 
 func InsertCleanupRule(ctx context.Context, pcr *PackageCleanupRule) (*PackageCleanupRule, error) {
-	_, err := db.GetEngine(ctx).Insert(pcr)
-	return pcr, err
+	return pcr, db.Insert(ctx, pcr)
 }
 
 func GetCleanupRuleByID(ctx context.Context, id int64) (*PackageCleanupRule, error) {
