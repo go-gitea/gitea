@@ -5,8 +5,8 @@ import {createTippy, showTemporaryTooltip} from '../modules/tippy.js';
 import {copyToClipboard} from './clipboard.js';
 
 const {i18n} = window.config;
-export const singleRe = /^#(L|n)([1-9][0-9]*)$/;
-export const rangeRe = /^#(L[1-9][0-9]*)-(L[1-9][0-9]*)$/;
+export const singleAnchorRegex = /^#(L|n)([1-9][0-9]*)$/;
+export const rangeAnchorRegex = /^#(L[1-9][0-9]*)-(L[1-9][0-9]*)$/;
 
 function changeHash(hash) {
   if (window.history.pushState) {
@@ -151,7 +151,7 @@ export function initRepoCodeView() {
     });
 
     $(window).on('hashchange', () => {
-      let m = window.location.hash.match(rangeRe);
+      let m = window.location.hash.match(rangeAnchorRegex);
       let $list;
       if ($('div.blame').length) {
         $list = $('.code-view td.lines-code.blame-code');
@@ -173,7 +173,7 @@ export function initRepoCodeView() {
           return;
         }
       }
-      m = window.location.hash.match(singleRe);
+      m = window.location.hash.match(singleAnchorRegex);
       if (m) {
         $first = $list.filter(`[rel=L${m[2]}]`);
         if ($first.length) {
