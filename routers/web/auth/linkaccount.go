@@ -155,7 +155,7 @@ func linkAccount(ctx *context.Context, u *user_model.User, gothUser goth.User, r
 		return
 	}
 
-	if err := regenerateSession(ctx, nil, map[interface{}]interface{}{
+	if err := updateSession(ctx, nil, map[interface{}]interface{}{
 		"twofaUid":      u.ID,
 		"twofaRemember": remember,
 		"linkAccount":   true,

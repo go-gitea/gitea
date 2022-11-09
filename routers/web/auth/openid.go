@@ -234,7 +234,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 	if u != nil {
 		nickname = u.LowerName
 	}
-	if err := regenerateSession(ctx, nil, map[interface{}]interface{}{
+	if err := updateSession(ctx, nil, map[interface{}]interface{}{
 		"openid_verified_uri":        id,
 		"openid_determined_email":    email,
 		"openid_determined_username": nickname,

@@ -82,7 +82,7 @@ func AutoSignIn(ctx *context.Context) (bool, error) {
 
 	isSucceed = true
 
-	if err := regenerateSession(ctx, nil, map[interface{}]interface{}{
+	if err := updateSession(ctx, nil, map[interface{}]interface{}{
 		"uid":   u.ID,
 		"uname": u.Name,
 	}); err != nil {
@@ -251,7 +251,7 @@ func SignInPost(ctx *context.Context) {
 	if hasTOTPtwofa {
 		updates["totpEnrolled"] = u.ID
 	}
-	if err := regenerateSession(ctx, nil, updates); err != nil {
+	if err := updateSession(ctx, nil, updates); err != nil {
 		ctx.ServerError("UserSignIn: Unable to set regenerate session", err)
 		return
 	}
@@ -283,7 +283,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 			setting.CookieRememberName, u.Name, days)
 	}
 
-	if err := regenerateSession(ctx, []interface{}{
+	if err := updateSession(ctx, []interface{}{
 		// Delete the openid, 2fa and linkaccount data
 		"openid_verified_uri",
 		"openid_signin_remember",
@@ -731,7 +731,7 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 
 	log.Trace("User activated: %s", user.Name)
 
-	if err := regenerateSession(ctx, nil, map[interface{}]interface{}{
+	if err := updateSession(ctx, nil, map[interface{}]interface{}{
 		"uid":   user.ID,
 		"uname": user.Name,
 	}); err != nil {
@@ -777,14 +777,14 @@ func ActivateEmail(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 }
 
-func regenerateSession(ctx *context.Context, deletes []interface{}, updates map[interface{}]interface{}) error {
+func updateSession(ctx *context.Context, deletes []interface{}, updates map[interface{}]interface{}) error {
 	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
 		return fmt.Errorf("regenerate session: %w", err)
 	}
 	sess := ctx.Session
 	sessID := sess.ID()
-	for _, v := range deletes {
-		if err := sess.Delete(v); err != nil {
+	for _, k := range deletes {
+		if err := sess.Delete(k); err != nil {
 			return fmt.Errorf("delete %v in session[%s]: %v", k, sessID, err)
 		}
 	}
