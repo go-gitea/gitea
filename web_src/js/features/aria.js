@@ -96,7 +96,6 @@ function attachOneDropdownAria($dropdown) {
 }
 
 function attachOneDropdownAriaTemplated($dropdown) {
-  window.console && console.log('[attachOneDropdownAriaTemplated] '+$dropdown.prop('id'));
   if ($dropdown.attr('data-aria-attached')) return;
   $dropdown.attr('data-aria-attached', 1);
 
@@ -104,24 +103,26 @@ function attachOneDropdownAriaTemplated($dropdown) {
   // update aria attributes according to current active/selected item
   const refreshAria = () => {
     const isMenuVisible = !$menu.is('.hidden') && !$menu.is('.animating.out');
-    isMenuVisible ? $dropdown.attr('aria-expanded', 'true') : $dropdown.removeAttr('aria-expanded');
+    if (isMenuVisible) {
+      $dropdown.attr('aria-expanded', 'true');
+    } else {
+      $dropdown.removeAttr('aria-expanded');
+    }
 
     let $active = $menu.find('> .item.active');
-    //if (!$active.length) $active = $menu.find('> .item.selected'); // it's strange that we need this fallback at the moment
+    if (!$active.length) $active = $menu.find('> .item.selected'); // it's strange that we need this fallback at the moment
 
     // if there is an active item, use its id. if no active item, then the empty string is set
     $dropdown.attr('aria-activedescendant', $active.attr('id'));
   };
 
   $dropdown.on('keydown', (e) => {
-    window.console && console.log('keydown:'+e.key);
     // here it must use keydown event before dropdown's keyup handler, otherwise there is no Enter event in our keyup handler
     if (e.key === 'Enter') {
       const $item = $dropdown.dropdown('get item', $dropdown.dropdown('get value'));
       // if the selected item is clickable, then trigger the click event. in the future there could be a special CSS class for it.
       if ($item) $item[0].click();
-    }
-    else if (e.key === 'ESC') {
+    } else if (e.key === 'ESC') {
       $dropdown.dropdown('hide');
       $dropdown.removeAttr('aria-expanded');
     }
