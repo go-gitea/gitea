@@ -1138,6 +1138,20 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 
 - `ENABLED`: **true**: Enable/Disable package registry capabilities
 - `CHUNKED_UPLOAD_PATH`: **tmp/package-upload**: Path for chunked uploads. Defaults to `APP_DATA_PATH` + `tmp/package-upload`
+- `LIMIT_TOTAL_OWNER_COUNT`: **-1**: Maxmimum count of package versions a single owner can have (`-1` means no limits)
+- `LIMIT_TOTAL_OWNER_SIZE`: **-1**: Maxmimum size of packages a single owner can use (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_COMPOSER`: **-1**: Maxmimum size of a Composer upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_CONAN`: **-1**: Maxmimum size of a Conan upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_CONTAINER`: **-1**: Maxmimum size of a Container upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_GENERIC`: **-1**: Maxmimum size of a Generic upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_HELM`: **-1**: Maxmimum size of a Helm upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_MAVEN`: **-1**: Maxmimum size of a Maven upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_NPM`: **-1**: Maxmimum size of a npm upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_NUGET`: **-1**: Maxmimum size of a NuGet upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_PUB`: **-1**: Maxmimum size of a Pub upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_PYPI`: **-1**: Maxmimum size of a PyPI upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_RUBYGEMS`: **-1**: Maxmimum size of a RubyGems upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_VAGRANT`: **-1**: Maxmimum size of a Vagrant upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 
 ## Mirror (`mirror`)
 
