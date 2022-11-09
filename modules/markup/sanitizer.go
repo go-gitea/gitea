@@ -58,6 +58,13 @@ func createDefaultPolicy() *bluemonday.Policy {
 	// For color preview
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^color-preview$`)).OnElements("span")
 
+	// For attention
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^attention-\w+$`)).OnElements("strong")
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^attention-icon attention-\w+$`)).OnElements("span", "strong")
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^svg octicon-\w+$`)).OnElements("svg")
+	policy.AllowAttrs("viewBox", "width", "height", "aria-hidden").OnElements("svg")
+	policy.AllowAttrs("fill-rule", "d").OnElements("path")
+
 	// For Chroma markdown plugin
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^(chroma )?language-[\w-]+( display)?( is-loading)?$`)).OnElements("code")
 
