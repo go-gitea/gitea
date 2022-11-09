@@ -348,8 +348,9 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 			Filename:     strings.ToLower(filename),
 			CompositeKey: fileKey,
 		},
-		Data:   buf,
-		IsLead: isConanfileFile,
+		Creator: ctx.Doer,
+		Data:    buf,
+		IsLead:  isConanfileFile,
 		Properties: map[string]string{
 			conan_module.PropertyRecipeUser:     rref.User,
 			conan_module.PropertyRecipeChannel:  rref.Channel,
@@ -416,11 +417,14 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 		pfci,
 	)
 	if err != nil {
-		if err == packages_model.ErrDuplicatePackageFile {
+		switch err {
+		case packages_model.ErrDuplicatePackageFile:
 			apiError(ctx, http.StatusBadRequest, err)
-			return
+		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+			apiError(ctx, http.StatusForbidden, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
 		}
-		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
