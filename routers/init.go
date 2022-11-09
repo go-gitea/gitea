@@ -192,8 +192,8 @@ func NormalRoutes(ctx context.Context) *web.Route {
 		// This implements package support for most package managers
 		r.Mount("/api/packages", packages_router.CommonRoutes(ctx))
 
-		// This implements Docker HUB API (Note this is not preceded by /api but is instead /v2)
-		r.Mount("/v2", packages_router.DockerContainerRoutes(ctx))
+		// This implements the OCI API (Note this is not preceded by /api but is instead /v2)
+		r.Mount("/v2", packages_router.ContainerRoutes(ctx))
 	}
 	return r
 }

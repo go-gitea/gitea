@@ -40,7 +40,7 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 	}
 }
 
-// CommonRoutes provide endpoints for most package managers (excepting docker HUB - see below)
+// CommonRoutes provide endpoints for most package managers (except containers - see below)
 // These are mounted on `/api/packages` (not `/api/v1/packages`)
 func CommonRoutes(ctx gocontext.Context) *web.Route {
 	r := web.NewRoute()
@@ -303,9 +303,10 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 	return r
 }
 
-// DockerContainerRoutes provides endpoints that match the Docker HUB API in order for facilitate downloading packages a docker packages
-// These have to be mounted on `/v2/...` due to compatibility with the Docker HUB API
-func DockerContainerRoutes(ctx gocontext.Context) *web.Route {
+// ContainerRoutes provides endpoints that implement the OCI API to serve containers
+// These have to be mounted on `/v2/...` to comply with the OCI spec:
+// https://github.com/opencontainers/distribution-spec/blob/main/spec.md
+func ContainerRoutes(ctx gocontext.Context) *web.Route {
 	r := web.NewRoute()
 
 	r.Use(context.PackageContexter(ctx))
