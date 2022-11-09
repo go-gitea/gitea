@@ -53,6 +53,10 @@ const (
 	AccessTokenScopeWriteGPGKey = "write:gpg_key"
 	AccessTokenScopeReadGPGKey  = "read:gpg_key"
 
+	AccessTokenScopeAdminApplication = "admin:application"
+	AccessTokenScopeWriteApplication = "write:application"
+	AccessTokenScopeReadApplication  = "read:application"
+
 	AccessTokenScopeSudo = "sudo"
 )
 
@@ -69,6 +73,7 @@ var AllAccessTokenScopes = []string{
 	AccessTokenScopeDeleteRepo,
 	AccessTokenScopePackage, AccessTokenScopeWritePackage, AccessTokenScopeReadPackage, AccessTokenScopeDeletePackage,
 	AccessTokenScopeAdminGPGKey, AccessTokenScopeWriteGPGKey, AccessTokenScopeReadGPGKey,
+	AccessTokenScopeAdminApplication, AccessTokenScopeWriteApplication, AccessTokenScopeReadApplication,
 	AccessTokenScopeSudo,
 }
 
@@ -127,6 +132,9 @@ func (s AccessTokenScope) Parse() (AccessTokenScopeBitmap, error) {
 		case AccessTokenScopeAdminGPGKey:
 			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeWriteGPGKey, AllAccessTokenScopes))
 			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeReadGPGKey, AllAccessTokenScopes))
+		case AccessTokenScopeAdminApplication:
+			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeWriteApplication, AllAccessTokenScopes))
+			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeReadApplication, AllAccessTokenScopes))
 		}
 	}
 	return bitmap, nil
@@ -207,6 +215,10 @@ func (bitmap AccessTokenScopeBitmap) ToScope() AccessTokenScope {
 				if _, ok := groupedScope[AccessTokenScopeAdminGPGKey]; ok {
 					continue
 				}
+			case AccessTokenScopeWriteApplication, AccessTokenScopeReadApplication:
+				if _, ok := groupedScope[AccessTokenScopeAdminApplication]; ok {
+					continue
+				}
 			}
 			scopes = append(scopes, v)
 		}
@@ -215,7 +227,7 @@ func (bitmap AccessTokenScopeBitmap) ToScope() AccessTokenScope {
 	scope := AccessTokenScope(strings.Join(scopes, ","))
 	scope = AccessTokenScope(strings.ReplaceAll(
 		string(scope),
-		"repo,admin:org,admin:public_key,admin:org_hook,notification,user,delete_repo,package,admin:gpg_key",
+		"repo,admin:org,admin:public_key,admin:org_hook,notification,user,delete_repo,package,admin:gpg_key,admin:application",
 		"all",
 	))
 	return scope
