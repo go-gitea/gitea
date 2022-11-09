@@ -33,7 +33,7 @@ type PackageVersion struct {
 	LowerVersion  string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	CreatedUnix   timeutil.TimeStamp `xorm:"created INDEX NOT NULL"`
 	IsInternal    bool               `xorm:"INDEX NOT NULL DEFAULT false"`
-	MetadataJSON  string             `xorm:"metadata_json TEXT"`
+	MetadataJSON  string             `xorm:"metadata_json LONGTEXT"`
 	DownloadCount int64              `xorm:"NOT NULL DEFAULT 0"`
 }
 
@@ -318,4 +318,13 @@ func SearchLatestVersions(ctx context.Context, opts *PackageSearchOptions) ([]*P
 	pvs := make([]*PackageVersion, 0, 10)
 	count, err := sess.FindAndCount(&pvs)
 	return pvs, count, err
+}
+
+// CountVersions counts all versions of packages matching the search options
+func CountVersions(ctx context.Context, opts *PackageSearchOptions) (int64, error) {
+	return db.GetEngine(ctx).
+		Where(opts.toConds()).
+		Table("package_version").
+		Join("INNER", "package", "package.id = package_version.package_id").
+		Count(new(PackageVersion))
 }

@@ -1158,6 +1158,8 @@ func parseAuthorizedPrincipalsAllow(values []string) ([]string, bool) {
 	return authorizedPrincipalsAllow, true
 }
 
+// loadSecret load the secret from ini by uriKey or verbatimKey, only one of them could be set
+// If the secret is loaded from uriKey (file), the file should be non-empty, to guarantee the behavior stable and clear.
 func loadSecret(sec *ini.Section, uriKey, verbatimKey string) string {
 	// don't allow setting both URI and verbatim string
 	uri := sec.Key(uriKey).String()
@@ -1181,7 +1183,15 @@ func loadSecret(sec *ini.Section, uriKey, verbatimKey string) string {
 		if err != nil {
 			log.Fatal("Failed to read %s (%s): %v", uriKey, tempURI.RequestURI(), err)
 		}
-		return strings.TrimSpace(string(buf))
+		val := strings.TrimSpace(string(buf))
+		if val == "" {
+			// The file shouldn't be empty, otherwise we can not know whether the user has ever set the KEY or KEY_URI
+			// For example: if INTERNAL_TOKEN_URI=file:///empty-file,
+			// Then if the token is re-generated during installation and saved to INTERNAL_TOKEN
+			// Then INTERNAL_TOKEN and INTERNAL_TOKEN_URI both exist, that's a fatal error (they shouldn't)
+			log.Fatal("Failed to read %s (%s): the file is empty", uriKey, tempURI.RequestURI())
+		}
+		return val
 
 	// only file URIs are allowed
 	default:

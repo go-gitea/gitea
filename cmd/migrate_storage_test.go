@@ -44,8 +44,9 @@ func TestMigratePackages(t *testing.T) {
 		PackageFileInfo: packages_service.PackageFileInfo{
 			Filename: "a.go",
 		},
-		Data:   buf,
-		IsLead: true,
+		Creator: creator,
+		Data:    buf,
+		IsLead:  true,
 	})
 	assert.NoError(t, err)
 	assert.NotNil(t, v)
