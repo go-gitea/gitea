@@ -142,33 +142,35 @@ func CountNotifications(ctx context.Context, opts *FindNotificationOptions) (int
 
 // CreateRepoTransferNotification creates  notification for the user a repository was transferred to
 func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) error {
-	var notify []*Notification
+	return db.WithTx(func(ctx context.Context) error {
+		var notify []*Notification
 
-	if newOwner.IsOrganization() {
-		users, err := organization.GetUsersWhoCanCreateOrgRepo(ctx, newOwner.ID)
-		if err != nil || len(users) == 0 {
-			return err
-		}
-		for i := range users {
-			notify = append(notify, &Notification{
-				UserID:    users[i].ID,
+		if newOwner.IsOrganization() {
+			users, err := organization.GetUsersWhoCanCreateOrgRepo(ctx, newOwner.ID)
+			if err != nil || len(users) == 0 {
+				return err
+			}
+			for i := range users {
+				notify = append(notify, &Notification{
+					UserID:    users[i].ID,
+					RepoID:    repo.ID,
+					Status:    NotificationStatusUnread,
+					UpdatedBy: doer.ID,
+					Source:    NotificationSourceRepository,
+				})
+			}
+		} else {
+			notify = []*Notification{{
+				UserID:    newOwner.ID,
 				RepoID:    repo.ID,
 				Status:    NotificationStatusUnread,
 				UpdatedBy: doer.ID,
 				Source:    NotificationSourceRepository,
-			})
+			}}
 		}
-	} else {
-		notify = []*Notification{{
-			UserID:    newOwner.ID,
-			RepoID:    repo.ID,
-			Status:    NotificationStatusUnread,
-			UpdatedBy: doer.ID,
-			Source:    NotificationSourceRepository,
-		}}
-	}
 
-	return db.Insert(ctx, notify)
+		return db.Insert(ctx, notify)
+	}, ctx)
 }
 
 // CreateOrUpdateIssueNotifications creates an issue notification
