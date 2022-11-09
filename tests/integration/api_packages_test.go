@@ -16,6 +16,7 @@ import (
 	container_model "code.gitea.io/gitea/models/packages/container"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	packages_service "code.gitea.io/gitea/services/packages"
 	"code.gitea.io/gitea/tests"
@@ -164,6 +165,39 @@ func TestPackageAccess(t *testing.T) {
 	uploadPackage(inactive, user, http.StatusUnauthorized)
 	uploadPackage(admin, inactive, http.StatusCreated)
 	uploadPackage(admin, user, http.StatusCreated)
+}
+
+func TestPackageQuota(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	limitTotalOwnerCount, limitTotalOwnerSize, limitSizeGeneric := setting.Packages.LimitTotalOwnerCount, setting.Packages.LimitTotalOwnerSize, setting.Packages.LimitSizeGeneric
+
+	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 10})
+
+	uploadPackage := func(doer *user_model.User, version string, expectedStatus int) {
+		url := fmt.Sprintf("/api/packages/%s/generic/test-package/%s/file.bin", user.Name, version)
+		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1}))
+		AddBasicAuthHeader(req, doer.Name)
+		MakeRequest(t, req, expectedStatus)
+	}
+
+	// Exceeded quota result in StatusForbidden for normal users but admins are always allowed to upload.
+
+	setting.Packages.LimitTotalOwnerCount = 0
+	uploadPackage(user, "1.0", http.StatusForbidden)
+	uploadPackage(admin, "1.0", http.StatusCreated)
+	setting.Packages.LimitTotalOwnerCount = limitTotalOwnerCount
+
+	setting.Packages.LimitTotalOwnerSize = 0
+	uploadPackage(user, "1.1", http.StatusForbidden)
+	uploadPackage(admin, "1.1", http.StatusCreated)
+	setting.Packages.LimitTotalOwnerSize = limitTotalOwnerSize
+
+	setting.Packages.LimitSizeGeneric = 0
+	uploadPackage(user, "1.2", http.StatusForbidden)
+	uploadPackage(admin, "1.2", http.StatusCreated)
+	setting.Packages.LimitSizeGeneric = limitSizeGeneric
 }
 
 func TestPackageCleanup(t *testing.T) {

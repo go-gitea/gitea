@@ -328,3 +328,12 @@ func ExistVersion(ctx context.Context, opts *PackageSearchOptions) (bool, error)
 		Join("INNER", "package", "package.id = package_version.package_id").
 		Exist(new(PackageVersion))
 }
+
+// CountVersions counts all versions of packages matching the search options
+func CountVersions(ctx context.Context, opts *PackageSearchOptions) (int64, error) {
+	return db.GetEngine(ctx).
+		Where(opts.toConds()).
+		Table("package_version").
+		Join("INNER", "package", "package.id = package_version.package_id").
+		Count(new(PackageVersion))
+}
