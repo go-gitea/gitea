@@ -6,6 +6,7 @@ package packages
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -19,8 +20,15 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	packages_module "code.gitea.io/gitea/modules/packages"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	container_service "code.gitea.io/gitea/services/packages/container"
+)
+
+var (
+	ErrQuotaTypeSize   = errors.New("maximum allowed package type size exceeded")
+	ErrQuotaTotalSize  = errors.New("maximum allowed package storage quota exceeded")
+	ErrQuotaTotalCount = errors.New("maximum allowed package count exceeded")
 )
 
 // PackageInfo describes a package
@@ -50,6 +58,7 @@ type PackageFileInfo struct {
 // PackageFileCreationInfo describes a package file to create
 type PackageFileCreationInfo struct {
 	PackageFileInfo
+	Creator           *user_model.User
 	Data              packages_module.HashedSizeReader
 	IsLead            bool
 	Properties        map[string]string
@@ -78,7 +87,7 @@ func createPackageAndAddFile(pvci *PackageCreationInfo, pfci *PackageFileCreatio
 		return nil, nil, err
 	}
 
-	pf, pb, blobCreated, err := addFileToPackageVersion(ctx, pv, pfci)
+	pf, pb, blobCreated, err := addFileToPackageVersion(ctx, pv, &pvci.PackageInfo, pfci)
 	removeBlob := false
 	defer func() {
 		if blobCreated && removeBlob {
@@ -164,6 +173,10 @@ func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, all
 	}
 
 	if versionCreated {
+		if err := checkCountQuotaExceeded(ctx, pvci.Creator, pvci.Owner); err != nil {
+			return nil, false, err
+		}
+
 		for name, value := range pvci.VersionProperties {
 			if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, name, value); err != nil {
 				log.Error("Error setting package version property: %v", err)
@@ -188,7 +201,7 @@ func AddFileToExistingPackage(pvi *PackageInfo, pfci *PackageFileCreationInfo) (
 		return nil, nil, err
 	}
 
-	pf, pb, blobCreated, err := addFileToPackageVersion(ctx, pv, pfci)
+	pf, pb, blobCreated, err := addFileToPackageVersion(ctx, pv, pvi, pfci)
 	removeBlob := false
 	defer func() {
 		if removeBlob {
@@ -224,8 +237,12 @@ func NewPackageBlob(hsr packages_module.HashedSizeReader) *packages_model.Packag
 	}
 }
 
-func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVersion, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
+func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVersion, pvi *PackageInfo, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
 	log.Trace("Adding package file: %v, %s", pv.ID, pfci.Filename)
+
+	if err := checkSizeQuotaExceeded(ctx, pfci.Creator, pvi.Owner, pvi.PackageType, pfci.Data.Size()); err != nil {
+		return nil, nil, false, err
+	}
 
 	pb, exists, err := packages_model.GetOrInsertBlob(ctx, NewPackageBlob(pfci.Data))
 	if err != nil {
@@ -283,6 +300,80 @@ func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVers
 	}
 
 	return pf, pb, !exists, nil
+}
+
+func checkCountQuotaExceeded(ctx context.Context, doer, owner *user_model.User) error {
+	if doer.IsAdmin {
+		return nil
+	}
+
+	if setting.Packages.LimitTotalOwnerCount > -1 {
+		totalCount, err := packages_model.CountVersions(ctx, &packages_model.PackageSearchOptions{
+			OwnerID:    owner.ID,
+			IsInternal: util.OptionalBoolFalse,
+		})
+		if err != nil {
+			log.Error("CountVersions failed: %v", err)
+			return err
+		}
+		if totalCount > setting.Packages.LimitTotalOwnerCount {
+			return ErrQuotaTotalCount
+		}
+	}
+
+	return nil
+}
+
+func checkSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, packageType packages_model.Type, uploadSize int64) error {
+	if doer.IsAdmin {
+		return nil
+	}
+
+	var typeSpecificSize int64
+	switch packageType {
+	case packages_model.TypeComposer:
+		typeSpecificSize = setting.Packages.LimitSizeComposer
+	case packages_model.TypeConan:
+		typeSpecificSize = setting.Packages.LimitSizeConan
+	case packages_model.TypeContainer:
+		typeSpecificSize = setting.Packages.LimitSizeContainer
+	case packages_model.TypeGeneric:
+		typeSpecificSize = setting.Packages.LimitSizeGeneric
+	case packages_model.TypeHelm:
+		typeSpecificSize = setting.Packages.LimitSizeHelm
+	case packages_model.TypeMaven:
+		typeSpecificSize = setting.Packages.LimitSizeMaven
+	case packages_model.TypeNpm:
+		typeSpecificSize = setting.Packages.LimitSizeNpm
+	case packages_model.TypeNuGet:
+		typeSpecificSize = setting.Packages.LimitSizeNuGet
+	case packages_model.TypePub:
+		typeSpecificSize = setting.Packages.LimitSizePub
+	case packages_model.TypePyPI:
+		typeSpecificSize = setting.Packages.LimitSizePyPI
+	case packages_model.TypeRubyGems:
+		typeSpecificSize = setting.Packages.LimitSizeRubyGems
+	case packages_model.TypeVagrant:
+		typeSpecificSize = setting.Packages.LimitSizeVagrant
+	}
+	if typeSpecificSize > -1 && typeSpecificSize < uploadSize {
+		return ErrQuotaTypeSize
+	}
+
+	if setting.Packages.LimitTotalOwnerSize > -1 {
+		totalSize, err := packages_model.CalculateBlobSize(ctx, &packages_model.PackageFileSearchOptions{
+			OwnerID: owner.ID,
+		})
+		if err != nil {
+			log.Error("CalculateBlobSize failed: %v", err)
+			return err
+		}
+		if totalSize+uploadSize > setting.Packages.LimitTotalOwnerSize {
+			return ErrQuotaTotalSize
+		}
+	}
+
+	return nil
 }
 
 // RemovePackageVersionByNameAndVersion deletes a package version and all associated files

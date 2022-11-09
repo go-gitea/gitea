@@ -35,6 +35,7 @@ import (
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
 	giturl "code.gitea.io/gitea/modules/git/url"
+	gitea_html "code.gitea.io/gitea/modules/html"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -348,7 +349,7 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return false
 		},
-		"svg":            SVG,
+		"svg":            svg.RenderHTML,
 		"avatar":         Avatar,
 		"avatarHTML":     AvatarHTML,
 		"avatarByAction": AvatarByAction,
@@ -363,17 +364,17 @@ func NewFuncMap() []template.FuncMap {
 			if len(urlSort) == 0 && isDefault {
 				// if sort is sorted as default add arrow tho this table header
 				if isDefault {
-					return SVG("octicon-triangle-down", 16)
+					return svg.RenderHTML("octicon-triangle-down", 16)
 				}
 			} else {
 				// if sort arg is in url test if it correlates with column header sort arguments
 				// the direction of the arrow should indicate the "current sort order", up means ASC(normal), down means DESC(rev)
 				if urlSort == normSort {
 					// the table is sorted with this header normal
-					return SVG("octicon-triangle-up", 16)
+					return svg.RenderHTML("octicon-triangle-up", 16)
 				} else if urlSort == revSort {
 					// the table is sorted with this header reverse
-					return SVG("octicon-triangle-down", 16)
+					return svg.RenderHTML("octicon-triangle-down", 16)
 				}
 			}
 			// the table is NOT sorted with this header
@@ -594,29 +595,6 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 	}}
 }
 
-var (
-	widthRe  = regexp.MustCompile(`width="[0-9]+?"`)
-	heightRe = regexp.MustCompile(`height="[0-9]+?"`)
-)
-
-func parseOthers(defaultSize int, defaultClass string, others ...interface{}) (int, string) {
-	size := defaultSize
-	if len(others) > 0 && others[0].(int) != 0 {
-		size = others[0].(int)
-	}
-
-	class := defaultClass
-	if len(others) > 1 && others[1].(string) != "" {
-		if defaultClass == "" {
-			class = others[1].(string)
-		} else {
-			class = defaultClass + " " + others[1].(string)
-		}
-	}
-
-	return size, class
-}
-
 // AvatarHTML creates the HTML for an avatar
 func AvatarHTML(src string, size int, class, name string) template.HTML {
 	sizeStr := fmt.Sprintf(`%d`, size)
@@ -628,26 +606,9 @@ func AvatarHTML(src string, size int, class, name string) template.HTML {
 	return template.HTML(`<img class="` + class + `" src="` + src + `" title="` + html.EscapeString(name) + `" width="` + sizeStr + `" height="` + sizeStr + `"/>`)
 }
 
-// SVG render icons - arguments icon name (string), size (int), class (string)
-func SVG(icon string, others ...interface{}) template.HTML {
-	size, class := parseOthers(16, "", others...)
-
-	if svgStr, ok := svg.SVGs[icon]; ok {
-		if size != 16 {
-			svgStr = widthRe.ReplaceAllString(svgStr, fmt.Sprintf(`width="%d"`, size))
-			svgStr = heightRe.ReplaceAllString(svgStr, fmt.Sprintf(`height="%d"`, size))
-		}
-		if class != "" {
-			svgStr = strings.Replace(svgStr, `class="`, fmt.Sprintf(`class="%s `, class), 1)
-		}
-		return template.HTML(svgStr)
-	}
-	return template.HTML("")
-}
-
 // Avatar renders user avatars. args: user, size (int), class (string)
 func Avatar(item interface{}, others ...interface{}) template.HTML {
-	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar vm", others...)
+	size, class := gitea_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, "ui avatar vm", others...)
 
 	switch t := item.(type) {
 	case *user_model.User:
@@ -678,7 +639,7 @@ func AvatarByAction(action *activities_model.Action, others ...interface{}) temp
 
 // RepoAvatar renders repo avatars. args: repo, size(int), class (string)
 func RepoAvatar(repo *repo_model.Repository, others ...interface{}) template.HTML {
-	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar", others...)
+	size, class := gitea_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, "ui avatar", others...)
 
 	src := repo.RelAvatarLink()
 	if src != "" {
@@ -689,7 +650,7 @@ func RepoAvatar(repo *repo_model.Repository, others ...interface{}) template.HTM
 
 // AvatarByEmail renders avatars by email address. args: email, name, size (int), class (string)
 func AvatarByEmail(email, name string, others ...interface{}) template.HTML {
-	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar", others...)
+	size, class := gitea_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, "ui avatar", others...)
 	src := avatars.GenerateEmailAvatarFastLink(email, size*setting.Avatar.RenderedSizeFactor)
 
 	if src != "" {
