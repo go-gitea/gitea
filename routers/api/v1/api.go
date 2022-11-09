@@ -772,13 +772,13 @@ func Routes(ctx gocontext.Context) *web.Route {
 			// (repo scope)
 			m.Group("/applications", func() {
 				m.Combo("/oauth2").
-					Get(user.ListOauth2Applications).
-					Post(bind(api.CreateOAuth2ApplicationOptions{}), user.CreateOauth2Application)
+					Get(reqToken(auth_model.AccessTokenScopeReadApplication), user.ListOauth2Applications).
+					Post(reqToken(auth_model.AccessTokenScopeWriteApplication), bind(api.CreateOAuth2ApplicationOptions{}), user.CreateOauth2Application)
 				m.Combo("/oauth2/{id}").
-					Delete(user.DeleteOauth2Application).
-					Patch(bind(api.CreateOAuth2ApplicationOptions{}), user.UpdateOauth2Application).
-					Get(user.GetOauth2Application)
-			}, reqToken(auth_model.AccessTokenScopeRepo))
+					Delete(reqToken(auth_model.AccessTokenScopeWriteApplication), user.DeleteOauth2Application).
+					Patch(reqToken(auth_model.AccessTokenScopeWriteApplication), bind(api.CreateOAuth2ApplicationOptions{}), user.UpdateOauth2Application).
+					Get(reqToken(auth_model.AccessTokenScopeReadApplication), user.GetOauth2Application)
+			})
 
 			// (admin:gpg_key scope)
 			m.Group("/gpg_keys", func() {
