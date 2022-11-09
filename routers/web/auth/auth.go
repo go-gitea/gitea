@@ -775,6 +775,13 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 		return
 	}
 
+	// Register last login
+	user.SetLastLogin()
+	if err := user_model.UpdateUserCols(ctx, user, "last_login_unix"); err != nil {
+		ctx.ServerError("UpdateUserCols", err)
+		return
+	}
+
 	ctx.Flash.Success(ctx.Tr("auth.account_activated"))
 	ctx.Redirect(setting.AppSubURL + "/")
 }
