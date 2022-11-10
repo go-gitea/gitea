@@ -106,7 +106,7 @@
 											{{end}}
 										{{end}}
 									</td>
-									<td class="two wide right aligned overflow-visible">
+									<td class="three wide right aligned overflow-visible">
 										{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
 											<div class="ui basic jump button icon tooltip show-create-branch-modal" data-branch-from="{{.Name}}" data-branch-from-urlcomponent="{{PathEscapeSegments .Name}}" data-content="{{$.locale.Tr "repo.branch.new_branch_from" .Name}}" data-position="top right" data-modal="#create-branch-modal" data-name="{{.Name}}">
 												{{svg "octicon-git-branch"}}

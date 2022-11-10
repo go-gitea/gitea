@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/user"
@@ -87,10 +88,10 @@ var (
 	// AppWorkPath is used as the base path for several other paths.
 	AppWorkPath string
 	// AppDataPath is the default path for storing data.
-	// It maps to ini:"APP_DATA_PATH" and defaults to AppWorkPath + "/data"
+	// It maps to ini:"APP_DATA_PATH" in [server] and defaults to AppWorkPath + "/data"
 	AppDataPath string
 	// LocalURL is the url for locally running applications to contact Gitea. It always has a '/' suffix
-	// It maps to ini:"LOCAL_ROOT_URL"
+	// It maps to ini:"LOCAL_ROOT_URL" in [server]
 	LocalURL string
 	// AssetVersion holds a opaque value that is used for cache-busting assets
 	AssetVersion string
@@ -451,6 +452,7 @@ var (
 	RunUser       string
 	IsWindows     bool
 	HasRobotsTxt  bool
+	EnableSitemap bool
 	InternalToken string // internal access token
 )
 
@@ -962,6 +964,11 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
 
 	InternalToken = loadSecret(sec, "INTERNAL_TOKEN_URI", "INTERNAL_TOKEN")
+	if InstallLock && InternalToken == "" {
+		// if Gitea has been installed but the InternalToken hasn't been generated (upgrade from an old release), we should generate
+		// some users do cluster deployment, they still depend on this auto-generating behavior.
+		generateSaveInternalToken()
+	}
 
 	cfgdata := sec.Key("PASSWORD_COMPLEXITY").Strings(",")
 	if len(cfgdata) == 0 {
@@ -1094,6 +1101,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	ShowFooterBranding = Cfg.Section("other").Key("SHOW_FOOTER_BRANDING").MustBool(false)
 	ShowFooterVersion = Cfg.Section("other").Key("SHOW_FOOTER_VERSION").MustBool(true)
 	ShowFooterTemplateLoadTime = Cfg.Section("other").Key("SHOW_FOOTER_TEMPLATE_LOAD_TIME").MustBool(true)
+	EnableSitemap = Cfg.Section("other").Key("ENABLE_SITEMAP").MustBool(true)
 
 	UI.ShowUserEmail = Cfg.Section("ui").Key("SHOW_USER_EMAIL").MustBool(true)
 	UI.DefaultShowFullName = Cfg.Section("ui").Key("DEFAULT_SHOW_FULL_NAME").MustBool(false)
@@ -1150,6 +1158,8 @@ func parseAuthorizedPrincipalsAllow(values []string) ([]string, bool) {
 	return authorizedPrincipalsAllow, true
 }
 
+// loadSecret load the secret from ini by uriKey or verbatimKey, only one of them could be set
+// If the secret is loaded from uriKey (file), the file should be non-empty, to guarantee the behavior stable and clear.
 func loadSecret(sec *ini.Section, uriKey, verbatimKey string) string {
 	// don't allow setting both URI and verbatim string
 	uri := sec.Key(uriKey).String()
@@ -1173,13 +1183,34 @@ func loadSecret(sec *ini.Section, uriKey, verbatimKey string) string {
 		if err != nil {
 			log.Fatal("Failed to read %s (%s): %v", uriKey, tempURI.RequestURI(), err)
 		}
-		return strings.TrimSpace(string(buf))
+		val := strings.TrimSpace(string(buf))
+		if val == "" {
+			// The file shouldn't be empty, otherwise we can not know whether the user has ever set the KEY or KEY_URI
+			// For example: if INTERNAL_TOKEN_URI=file:///empty-file,
+			// Then if the token is re-generated during installation and saved to INTERNAL_TOKEN
+			// Then INTERNAL_TOKEN and INTERNAL_TOKEN_URI both exist, that's a fatal error (they shouldn't)
+			log.Fatal("Failed to read %s (%s): the file is empty", uriKey, tempURI.RequestURI())
+		}
+		return val
 
 	// only file URIs are allowed
 	default:
 		log.Fatal("Unsupported URI-Scheme %q (INTERNAL_TOKEN_URI = %q)", tempURI.Scheme, uri)
 		return ""
 	}
+}
+
+// generateSaveInternalToken generates and saves the internal token to app.ini
+func generateSaveInternalToken() {
+	token, err := generate.NewInternalToken()
+	if err != nil {
+		log.Fatal("Error generate internal token: %v", err)
+	}
+
+	InternalToken = token
+	CreateOrAppendToCustomConf("security.INTERNAL_TOKEN", func(cfg *ini.File) {
+		cfg.Section("security").Key("INTERNAL_TOKEN").SetValue(token)
+	})
 }
 
 // MakeAbsoluteAssetURL returns the absolute asset url prefix without a trailing slash

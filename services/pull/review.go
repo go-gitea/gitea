@@ -120,15 +120,15 @@ var notEnoughLines = regexp.MustCompile(`exit status 128 - fatal: file .* has on
 func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content, treePath string, line, reviewID int64) (*issues_model.Comment, error) {
 	var commitID, patch string
 	if err := issue.LoadPullRequest(); err != nil {
-		return nil, fmt.Errorf("GetPullRequestByIssueID: %v", err)
+		return nil, fmt.Errorf("GetPullRequestByIssueID: %w", err)
 	}
 	pr := issue.PullRequest
 	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
-		return nil, fmt.Errorf("LoadHeadRepo: %v", err)
+		return nil, fmt.Errorf("LoadHeadRepo: %w", err)
 	}
 	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo.RepoPath())
 	if err != nil {
-		return nil, fmt.Errorf("RepositoryFromContextOrOpen: %v", err)
+		return nil, fmt.Errorf("RepositoryFromContextOrOpen: %w", err)
 	}
 	defer closer.Close()
 
@@ -151,13 +151,13 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 				invalidated = first[0].Invalidated
 				patch = first[0].Patch
 			} else if err != nil && !issues_model.IsErrCommentNotExist(err) {
-				return nil, fmt.Errorf("Find first comment for %d line %d path %s. Error: %v", reviewID, line, treePath, err)
+				return nil, fmt.Errorf("Find first comment for %d line %d path %s. Error: %w", reviewID, line, treePath, err)
 			} else {
 				review, err := issues_model.GetReviewByID(ctx, reviewID)
 				if err == nil && len(review.CommitID) > 0 {
 					head = review.CommitID
 				} else if err != nil && !issues_model.IsErrReviewNotExist(err) {
-					return nil, fmt.Errorf("GetReviewByID %d. Error: %v", reviewID, err)
+					return nil, fmt.Errorf("GetReviewByID %d. Error: %w", reviewID, err)
 				}
 			}
 		}
@@ -170,7 +170,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 			if err == nil {
 				commitID = commit.ID.String()
 			} else if !(strings.Contains(err.Error(), "exit status 128 - fatal: no such path") || notEnoughLines.MatchString(err.Error())) {
-				return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %v", pr.GetGitRefName(), gitRepo.Path, treePath, line, err)
+				return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %w", pr.GetGitRefName(), gitRepo.Path, treePath, line, err)
 			}
 		}
 	}
@@ -179,7 +179,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 	if len(patch) == 0 && reviewID != 0 {
 		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
 		if err != nil {
-			return nil, fmt.Errorf("GetRefCommitID[%s]: %v", pr.GetGitRefName(), err)
+			return nil, fmt.Errorf("GetRefCommitID[%s]: %w", pr.GetGitRefName(), err)
 		}
 		if len(commitID) == 0 {
 			commitID = headCommitID
@@ -191,7 +191,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 		}()
 		go func() {
 			if err := git.GetRepoRawDiffForFile(gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, treePath, writer); err != nil {
-				_ = writer.CloseWithError(fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %v", gitRepo.Path, pr.MergeBase, headCommitID, treePath, err))
+				_ = writer.CloseWithError(fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %w", gitRepo.Path, pr.MergeBase, headCommitID, treePath, err))
 				return
 			}
 			_ = writer.Close()

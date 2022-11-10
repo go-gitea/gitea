@@ -110,7 +110,7 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 
 	res, err := org.New().Silent().Parse(input, "").Write(w)
 	if err != nil {
-		return fmt.Errorf("orgmode.Render failed: %v", err)
+		return fmt.Errorf("orgmode.Render failed: %w", err)
 	}
 	_, err = io.Copy(output, strings.NewReader(res))
 	return err

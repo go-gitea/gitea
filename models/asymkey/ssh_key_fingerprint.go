@@ -95,7 +95,7 @@ func CalcFingerprint(publicKeyContent string) (string, error) {
 			log.Info("%s", publicKeyContent)
 			return "", err
 		}
-		return "", fmt.Errorf("%s: %v", fnName, err)
+		return "", fmt.Errorf("%s: %w", fnName, err)
 	}
 	return fp, nil
 }

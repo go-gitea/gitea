@@ -106,6 +106,49 @@ func DownloadPackageFile(ctx *context.Context) {
 	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
 }
 
+// DownloadPackageFileByName finds the version and serves the contents of a package
+func DownloadPackageFileByName(ctx *context.Context) {
+	filename := ctx.Params("filename")
+
+	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
+		OwnerID: ctx.Package.Owner.ID,
+		Type:    packages_model.TypeNpm,
+		Name: packages_model.SearchValue{
+			ExactMatch: true,
+			Value:      packageNameFromParams(ctx),
+		},
+		HasFileWithName: filename,
+		IsInternal:      util.OptionalBoolFalse,
+	})
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if len(pvs) != 1 {
+		apiError(ctx, http.StatusNotFound, nil)
+		return
+	}
+
+	s, pf, err := packages_service.GetFileStreamByPackageVersion(
+		ctx,
+		pvs[0],
+		&packages_service.PackageFileInfo{
+			Filename: filename,
+		},
+	)
+	if err != nil {
+		if err == packages_model.ErrPackageFileNotExist {
+			apiError(ctx, http.StatusNotFound, err)
+			return
+		}
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	defer s.Close()
+
+	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
+}
+
 // UploadPackage creates a new package
 func UploadPackage(ctx *context.Context) {
 	npmPackage, err := npm_module.ParsePackage(ctx.Req.Body)
@@ -137,16 +180,20 @@ func UploadPackage(ctx *context.Context) {
 			PackageFileInfo: packages_service.PackageFileInfo{
 				Filename: npmPackage.Filename,
 			},
-			Data:   buf,
-			IsLead: true,
+			Creator: ctx.Doer,
+			Data:    buf,
+			IsLead:  true,
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrDuplicatePackageVersion {
+		switch err {
+		case packages_model.ErrDuplicatePackageVersion:
 			apiError(ctx, http.StatusBadRequest, err)
-			return
+		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+			apiError(ctx, http.StatusForbidden, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
 		}
-		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
