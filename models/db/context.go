@@ -8,6 +8,7 @@ import (
 	"context"
 	"database/sql"
 
+	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
 
@@ -179,4 +180,29 @@ func EstimateCount(ctx context.Context, bean interface{}) (int64, error) {
 		return e.Context(ctx).Count(tablename)
 	}
 	return rows, err
+}
+
+// InTransaction returns true if the engine is in a transaction otherwise return false
+func InTransaction(ctx context.Context) bool {
+	var e Engine
+	if engined, ok := ctx.(Engined); ok {
+		e = engined.Engine()
+	} else {
+		enginedInterface := ctx.Value(enginedContextKey)
+		if enginedInterface != nil {
+			e = enginedInterface.(Engined).Engine()
+		}
+	}
+	if e == nil {
+		return false
+	}
+
+	switch t := e.(type) {
+	case *xorm.Engine:
+		return false
+	case *xorm.Session:
+		return t.IsInTx()
+	default:
+		return false
+	}
 }
