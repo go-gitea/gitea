@@ -6,6 +6,7 @@
 package migrations
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -23,6 +24,7 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
 	"code.gitea.io/gitea/models/migrations/v1_9"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -525,6 +527,13 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 		_, _ = fmt.Fprintln(os.Stderr, msg)
 		log.Fatal(msg)
 		return nil
+	}
+
+	// Some migration tasks depend on the git command
+	if git.DefaultContext == nil {
+		if err = git.InitSimple(context.Background()); err != nil {
+			return err
+		}
 	}
 
 	// Migrate
