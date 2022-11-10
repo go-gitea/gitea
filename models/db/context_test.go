@@ -22,7 +22,7 @@ func TestInTransaction(t *testing.T) {
 		return nil
 	}))
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	assert.NoError(t, err)
 	defer committer.Close()
 	assert.True(t, db.InTransaction(ctx))

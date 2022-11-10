@@ -19,7 +19,7 @@ import (
 
 // DeleteOrganization completely and permanently deletes everything of organization.
 func DeleteOrganization(org *organization.Organization) error {
-	ctx, commiter, err := db.TxContext()
+	ctx, commiter, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

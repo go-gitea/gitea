@@ -88,7 +88,11 @@ type Committer interface {
 }
 
 // TxContext represents a transaction Context
-func TxContext() (*Context, Committer, error) {
+func TxContext(parentCtx context.Context) (*Context, Committer, error) {
+	if InTransaction(parentCtx) {
+		return nil, nil, ErrAlreadyInTransaction
+	}
+
 	sess := x.NewSession()
 	if err := sess.Begin(); err != nil {
 		sess.Close()

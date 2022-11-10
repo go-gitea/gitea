@@ -26,7 +26,7 @@ func DeletePublicKey(doer *user_model.User, id int64) (err error) {
 		}
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
