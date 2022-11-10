@@ -27,23 +27,56 @@ accurately recorded in [app.example.ini](https://github.com/go-gitea/gitea/blob/
 (s/main/\<tag|release\>). Any string in the format `%(X)s` is a feature powered
 by [ini](https://github.com/go-ini/ini/#recursive-values), for reading values recursively.
 
+In the default values below, a value in the form `$XYZ` refers to an environment variable. (However, see `environment-to-ini`.) Values in the form  _`XxYyZz`_ refer to values listed as part of the default configuration. These notation forms will not work in your own `app.ini` file and are only listed here as documentation.
+
 Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 **Note:** A full restart is required for Gitea configuration changes to take effect.
 
 {{< toc >}}
 
+## Default Configuration (non-`app.ini` configuration)
+
+These values are environment-dependent but form the basis of a lot of values. They will be
+reported as part of the default configuration when running `gitea --help` or on start-up. The order they are emitted there is slightly different but we will list them here in the order they are set-up.
+
+- _`AppPath`_: This is the absolute path of the running gitea binary.
+- _`AppWorkPath`_: This refers to "working path" of the `gitea` binary. It is determined by using the first set thing in the following hierarchy:
+  - The `--work-path` flag passed to the binary
+  - The environment variable `$GITEA_WORK_DIR`
+  - A built-in value set at build time (see building from source)
+  - Otherwise it defaults to the directory of the _`AppPath`_
+  - If any of the above are relative paths then they are made absolute against the
+the directory of the _`AppPath`_
+- _`CustomPath`_: This is the base directory for custom templates and other options.
+It is determined by using the first set thing in the following hierarchy:
+  - The `--custom-path` flag passed to the binary
+  - The environment variable `$GITEA_CUSTOM`
+  - A built-in value set at build time (see building from source)
+  - Otherwise it defaults to _`AppWorkPath`_`/custom`
+  - If any of the above are relative paths then they are made absolute against the
+the directory of the _`AppWorkPath`_
+- _`CustomConf`_: This is the path to the `app.ini` file.
+  - The `--config` flag passed to the binary
+  - A built-in value set at build time (see building from source)
+  - Otherwise it defaults to _`CustomPath`_`/conf/app.ini`
+  - If any of the above are relative paths then they are made absolute against the
+the directory of the _`CustomPath`_
+
+In addition there is _`StaticRootPath`_ which can be set as a built-in at build time, but will otherwise default to _`AppWorkPath`_
+
 ## Overall (`DEFAULT`)
 
 - `APP_NAME`: **Gitea: Git with a cup of tea**: Application name, used in the page title.
-- `RUN_USER`: **git**: The user Gitea will run as. This should be a dedicated system
-   (non-user) account. Setting this incorrectly will cause Gitea to not start.
+- `RUN_USER`: **_current OS username_/`$USER`/`$USERNAME` e.g. git**: The user Gitea will run as.
+   This should be a dedicated system (non-user) account. Setting this incorrectly will cause Gitea
+   to not start.
 - `RUN_MODE`: **prod**: Application run mode, affects performance and debugging. Either "dev", "prod" or "test".
 
 ## Repository (`repository`)
 
-- `ROOT`: **%(APP_DATA_PATH)/gitea-repositories**: Root path for storing all repository data.
-   A relative path is interpreted as **%(GITEA_WORK_DIR)/%(ROOT)**.
+- `ROOT`: **%(APP_DATA_PATH)s/gitea-repositories**: Root path for storing all repository data.
+   A relative path is interpreted as **_`AppWorkPath`_/%(ROOT)s**.
 - `SCRIPT_TYPE`: **bash**: The script type this server supports. Usually this is `bash`,
    but some users report that only `sh` is available.
 - `DETECTED_CHARSETS_ORDER`: **UTF-8, UTF-16BE, UTF-16LE, UTF-32BE, UTF-32LE, ISO-8859, windows-1252, ISO-8859, windows-1250, ISO-8859, ISO-8859, ISO-8859, windows-1253, ISO-8859, windows-1255, ISO-8859, windows-1251, windows-1256, KOI8-R, ISO-8859, windows-1254, Shift_JIS, GB18030, EUC-JP, EUC-KR, Big5, ISO-2022, ISO-2022, ISO-2022, IBM424_rtl, IBM424_ltr, IBM420_rtl, IBM420_ltr**: Tie-break order of detected charsets - if the detected charsets have equal confidence, charsets earlier in the list will be chosen in preference to those later. Adding `defaults` will place the unnamed charsets at that point.
@@ -240,6 +273,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 
 ## Server (`server`)
 
+- `APP_DATA_PATH`: **_`AppWorkPath`_/data**: This is the default root path for storing data.
 - `PROTOCOL`: **http**: \[http, https, fcgi, http+unix, fcgi+unix\]
 - `USE_PROXY_PROTOCOL`: **false**: Expect PROXY protocol headers on connections
 - `PROXY_PROTOCOL_TLS_BRIDGING`: **false**: When protocol is https, expect PROXY protocol headers after TLS negotiation.
@@ -259,7 +293,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `HTTP_ADDR`: **0.0.0.0**: HTTP listen address.
   - If `PROTOCOL` is set to `fcgi`, Gitea will listen for FastCGI requests on TCP socket
      defined by `HTTP_ADDR` and `HTTP_PORT` configuration settings.
-  - If `PROTOCOL` is set to `http+unix` or `fcgi+unix`, this should be the name of the Unix socket file to use. Relative paths will be made absolute against the AppWorkPath.
+  - If `PROTOCOL` is set to `http+unix` or `fcgi+unix`, this should be the name of the Unix socket file to use. Relative paths will be made absolute against the _`AppWorkPath`_.
 - `HTTP_PORT`: **3000**: HTTP listen port.
   - If `PROTOCOL` is set to `fcgi`, Gitea will listen for FastCGI requests on TCP socket
      defined by `HTTP_ADDR` and `HTTP_PORT` configuration settings.
@@ -269,7 +303,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
    most cases you do not need to change the default value. Alter it only if
    your SSH server node is not the same as HTTP node. Do not set this variable
    if `PROTOCOL` is set to `http+unix`.
-- `LOCAL_USE_PROXY_PROTOCOL`: **%(USE_PROXY_PROTOCOL)**: When making local connections pass the PROXY protocol header.
+- `LOCAL_USE_PROXY_PROTOCOL`: **%(USE_PROXY_PROTOCOL)s**: When making local connections pass the PROXY protocol header.
    This should be set to false if the local connection will go through the proxy.
 - `PER_WRITE_TIMEOUT`: **30s**: Timeout for any write to the connection. (Set to -1 to
    disable all timeouts.)
@@ -279,7 +313,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `START_SSH_SERVER`: **false**: When enabled, use the built-in SSH server.
 - `SSH_SERVER_USE_PROXY_PROTOCOL`: **false**: Expect PROXY protocol header on connections to the built-in SSH Server.
 - `BUILTIN_SSH_SERVER_USER`: **%(RUN_USER)s**: Username to use for the built-in SSH Server.
-- `SSH_USER`: **%(BUILTIN_SSH_SERVER_USER)**: SSH username displayed in clone URLs. This is only for people who configure the SSH server themselves; in most cases, you want to leave this blank and modify the `BUILTIN_SSH_SERVER_USER`.
+- `SSH_USER`: **%(BUILTIN_SSH_SERVER_USER)s**: SSH username displayed in clone URLs. This is only for people who configure the SSH server themselves; in most cases, you want to leave this blank and modify the `BUILTIN_SSH_SERVER_USER`.
 - `SSH_DOMAIN`: **%(DOMAIN)s**: Domain name of this server, used for displayed clone URL.
 - `SSH_PORT`: **22**: SSH port displayed in clone URL.
 - `SSH_LISTEN_HOST`: **0.0.0.0**: Listen address for the built-in SSH server.
@@ -308,22 +342,22 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `OFFLINE_MODE`: **false**: Disables use of CDN for static files and Gravatar for profile pictures.
 - `CERT_FILE`: **https/cert.pem**: Cert file path used for HTTPS. When chaining, the server certificate must come first, then intermediate CA certificates (if any). This is ignored if `ENABLE_ACME=true`. Paths are relative to `CUSTOM_PATH`.
 - `KEY_FILE`: **https/key.pem**: Key file path used for HTTPS. This is ignored if `ENABLE_ACME=true`. Paths are relative to `CUSTOM_PATH`.
-- `STATIC_ROOT_PATH`: **./**: Upper level of template and static files path.
-- `APP_DATA_PATH`: **data** (**/data/gitea** on docker): Default path for application data.
+- `STATIC_ROOT_PATH`: **_`StaticRootPath`_**: Upper level of template and static files path.
+- `APP_DATA_PATH`: **data** (**/data/gitea** on docker): Default path for application data. Relative paths will be made absolute against _`AppWorkPath`_.
 - `STATIC_CACHE_TIME`: **6h**: Web browser cache time for static resources on `custom/`, `public/` and all uploaded avatars. Note that this cache is disabled when `RUN_MODE` is "dev".
 - `ENABLE_GZIP`: **false**: Enable gzip compression for runtime-generated content, static resources excluded.
 - `ENABLE_PPROF`: **false**: Application profiling (memory and cpu). For "web" command it listens on `localhost:6060`. For "serv" command it dumps to disk at `PPROF_DATA_PATH` as `(cpuprofile|memprofile)_<username>_<temporary id>`
-- `PPROF_DATA_PATH`: **data/tmp/pprof**: `PPROF_DATA_PATH`, use an absolute path when you start Gitea as service
+- `PPROF_DATA_PATH`: **_`AppWorkPath`_/data/tmp/pprof**: `PPROF_DATA_PATH`, use an absolute path when you start Gitea as service
 - `LANDING_PAGE`: **home**: Landing page for unauthenticated users \[home, explore, organizations, login, **custom**\]. Where custom would instead be any URL such as "/org/repo" or even `https://anotherwebsite.com`
 - `LFS_START_SERVER`: **false**: Enables Git LFS support.
-- `LFS_CONTENT_PATH`: **%(APP_DATA_PATH)/lfs**: Default LFS content path. (if it is on local storage.) **DEPRECATED** use settings in `[lfs]`.
+- `LFS_CONTENT_PATH`: **%(APP_DATA_PATH)s/lfs**: Default LFS content path. (if it is on local storage.) **DEPRECATED** use settings in `[lfs]`.
 - `LFS_JWT_SECRET`: **\<empty\>**: LFS authentication secret, change this a unique string.
 - `LFS_HTTP_AUTH_EXPIRY`: **20m**: LFS authentication validity period in time.Duration, pushes taking longer than this may fail.
 - `LFS_MAX_FILE_SIZE`: **0**: Maximum allowed LFS file size in bytes (Set to 0 for no limit).
 - `LFS_LOCKS_PAGING_NUM`: **50**: Maximum number of LFS Locks returned per page.
 
 - `REDIRECT_OTHER_PORT`: **false**: If true and `PROTOCOL` is https, allows redirecting http requests on `PORT_TO_REDIRECT` to the https port Gitea listens on.
-- `REDIRECTOR_USE_PROXY_PROTOCOL`: **%(USE_PROXY_PROTOCOL)**: expect PROXY protocol header on connections to https redirector.
+- `REDIRECTOR_USE_PROXY_PROTOCOL`: **%(USE_PROXY_PROTOCOL)s**: expect PROXY protocol header on connections to https redirector.
 - `PORT_TO_REDIRECT`: **80**: Port for the http redirection service to listen on. Used when `REDIRECT_OTHER_PORT` is true.
 - `SSL_MIN_VERSION`: **TLSv1.2**: Set the minimum version of ssl support.
 - `SSL_MAX_VERSION`: **\<empty\>**: Set the maximum version of ssl support.
@@ -413,10 +447,10 @@ relation to port exhaustion.
 - `ISSUE_INDEXER_TYPE`: **bleve**: Issue indexer type, currently supported: `bleve`, `db` or `elasticsearch`.
 - `ISSUE_INDEXER_CONN_STR`: ****: Issue indexer connection string, available when ISSUE_INDEXER_TYPE is elasticsearch. i.e. http://elastic:changeme@localhost:9200
 - `ISSUE_INDEXER_NAME`: **gitea_issues**: Issue indexer name, available when ISSUE_INDEXER_TYPE is elasticsearch
-- `ISSUE_INDEXER_PATH`: **indexers/issues.bleve**: Index file used for issue search; available when ISSUE_INDEXER_TYPE is bleve and elasticsearch.
+- `ISSUE_INDEXER_PATH`: **indexers/issues.bleve**: Index file used for issue search; available when ISSUE_INDEXER_TYPE is bleve and elasticsearch. Relative paths will be made absolute against _`AppWorkPath`_.
 - The next 4 configuration values are deprecated and should be set in `queue.issue_indexer` however are kept for backwards compatibility:
 - `ISSUE_INDEXER_QUEUE_TYPE`: **levelqueue**: Issue indexer queue, currently supports:`channel`, `levelqueue`, `redis`. **DEPRECATED** use settings in `[queue.issue_indexer]`.
-- `ISSUE_INDEXER_QUEUE_DIR`: **queues/common**: When `ISSUE_INDEXER_QUEUE_TYPE` is `levelqueue`, this will be the path where the queue will be saved. **DEPRECATED** use settings in `[queue.issue_indexer]`.
+- `ISSUE_INDEXER_QUEUE_DIR`: **queues/common**: When `ISSUE_INDEXER_QUEUE_TYPE` is `levelqueue`, this will be the path where the queue will be saved. **DEPRECATED** use settings in `[queue.issue_indexer]`. Relative paths will be made absolute against `%(APP_DATA_PATH)s`.
 - `ISSUE_INDEXER_QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: When `ISSUE_INDEXER_QUEUE_TYPE` is `redis`, this will store the redis connection string. When `ISSUE_INDEXER_QUEUE_TYPE` is `levelqueue`, this is a directory or additional options of the form `leveldb://path/to/db?option=value&....`, and overrides `ISSUE_INDEXER_QUEUE_DIR`. **DEPRECATED** use settings in `[queue.issue_indexer]`.
 - `ISSUE_INDEXER_QUEUE_BATCH_NUMBER`: **20**: Batch queue number. **DEPRECATED** use settings in `[queue.issue_indexer]`.
 
@@ -438,7 +472,7 @@ relation to port exhaustion.
 Configuration at `[queue]` will set defaults for queues with overrides for individual queues at `[queue.*]`. (However see below.)
 
 - `TYPE`: **persistable-channel**: General queue type, currently support: `persistable-channel` (uses a LevelDB internally), `channel`, `level`, `redis`, `dummy`
-- `DATADIR`: **queues/**: Base DataDir for storing persistent and level queues. `DATADIR` for individual queues can be set in `queue.name` sections but will default to `DATADIR/`**`common`**. (Previously each queue would default to `DATADIR/`**`name`**.)
+- `DATADIR`: **queues/**: Base DataDir for storing persistent and level queues. `DATADIR` for individual queues can be set in `queue.name` sections but will default to `DATADIR/`**`common`**. (Previously each queue would default to `DATADIR/`**`name`**.) Relative paths will be made absolute against `%(APP_DATA_PATH)s`.
 - `LENGTH`: **20**: Maximal queue size before channel queues block
 - `BATCH_LENGTH`: **20**: Batch data before passing to the handler
 - `CONN_STR`: **redis://127.0.0.1:6379/0**: Connection string for the redis queue type. Options can be set using query params. Similarly LevelDB options can also be set using: **leveldb://relative/path?option=value** or **leveldb:///absolute/path?option=value**, and will override `DATADIR`
@@ -722,7 +756,7 @@ and
 ## Session (`session`)
 
 - `PROVIDER`: **memory**: Session engine provider \[memory, file, redis, db, mysql, couchbase, memcache, postgres\]. Setting `db` will reuse the configuration in `[database]`
-- `PROVIDER_CONFIG`: **data/sessions**: For file, the root path; for db, empty (database config will be used); for others, the connection string.
+- `PROVIDER_CONFIG`: **data/sessions**: For file, the root path; for db, empty (database config will be used); for others, the connection string. Relative paths will be made absolute against _`AppWorkPath`_.
 - `COOKIE_SECURE`: **false**: Enable this to force using HTTPS for all session access.
 - `COOKIE_NAME`: **i\_like\_gitea**: The name of the cookie used for the session ID.
 - `GC_INTERVAL_TIME`: **86400**: GC interval in seconds.
@@ -980,7 +1014,7 @@ Default templates for project boards:
 ## Git (`git`)
 
 - `PATH`: **""**: The path of Git executable. If empty, Gitea searches through the PATH environment.
-- `HOME_PATH`: **%(APP_DATA_PATH)/home**: The HOME directory for Git.
+- `HOME_PATH`: **%(APP_DATA_PATH)s/home**: The HOME directory for Git.
    This directory will be used to contain the `.gitconfig` and possible `.gnupg` directories that Gitea's git calls will use. If you can confirm Gitea is the only application running in this environment, you can set it to the normal home directory for Gitea user.
 - `DISABLE_DIFF_HIGHLIGHT`: **false**: Disables highlight of added and removed changes.
 - `MAX_GIT_DIFF_LINES`: **1000**: Max number of lines allowed of a single file in diff view.
