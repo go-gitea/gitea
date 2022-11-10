@@ -43,7 +43,6 @@ import (
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
-	system_module "code.gitea.io/gitea/modules/system"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -88,7 +87,7 @@ func NewFuncMap() []template.FuncMap {
 			return setting.AssetVersion
 		},
 		"DisableGravatar": func() bool {
-			return system_module.GetSettingBool(system_model.KeyPictureDisableGravatar)
+			return system_model.GetSettingBool(system_model.KeyPictureDisableGravatar)
 		},
 		"DefaultShowFullName": func() bool {
 			return setting.UI.DefaultShowFullName
