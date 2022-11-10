@@ -89,4 +89,22 @@
 		</table>
 		{{template "base/paginate" .}}
 	</div>
+	<div class="ui small modal" id="runner-delete-modal">
+		<div class="header">
+			{{.locale.Tr "admin.runners.delete_header"}}
+		</div>
+		<div class="content">
+			<div class="ui warning message text left">
+				{{.locale.Tr "admin.runnners.delete_notice" | Safe}}
+			</div>
+			<form class="ui form" action="{{.Link}}/delete" method="post">
+				{{.CsrfTokenHtml}}
+				<input type="hidden" name="action" value="delete">
+				<div class="text right actions">
+					<div class="ui cancel button">{{.locale.Tr "settings.cancel"}}</div>
+					<button class="ui red button">{{.locale.Tr "admin.runners.delete_confirm"}}</button>
+				</div>
+			</form>
+		</div>
+	</div>
 </div>

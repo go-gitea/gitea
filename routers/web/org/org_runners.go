@@ -62,3 +62,11 @@ func RunnersEditPost(ctx *context.Context) {
 		ctx.Org.Organization.ID, 0,
 		ctx.Org.OrgLink+"/settings/runners/"+url.PathEscape(ctx.Params(":runnerid")))
 }
+
+// RunnerDeletePost response for deleting runner
+func RunnerDeletePost(ctx *context.Context) {
+	common.RunnerDeletePost(ctx,
+		ctx.ParamsInt64(":runnerid"),
+		ctx.Org.OrgLink+"/settings/runners",
+		ctx.Org.OrgLink+"/settings/runners/"+url.PathEscape(ctx.Params(":runnerid")))
+}

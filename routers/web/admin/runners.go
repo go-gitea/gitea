@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/common"
 )
@@ -67,27 +66,12 @@ func EditRunnerPost(ctx *context.Context) {
 		setting.AppSubURL+"/admin/runners/"+url.PathEscape(ctx.Params(":runnerid")))
 }
 
-// DeleteRunner response for deleting a runner
+// DeleteRunnerPost response for deleting a runner
 func DeleteRunnerPost(ctx *context.Context) {
-	runner, err := bots_model.GetRunnerByID(ctx.ParamsInt64(":runnerid"))
-	if err != nil {
-		log.Warn("DeleteRunnerPost.GetRunnerByID failed: %v, url: %s", err, ctx.Req.URL)
-		ctx.ServerError("DeleteRunnerPost.GetRunnerByID", err)
-		return
-	}
-
-	err = bots_model.DeleteRunner(ctx, runner)
-	if err != nil {
-		log.Warn("DeleteRunnerPost.UpdateRunner failed: %v, url: %s", err, ctx.Req.URL)
-		ctx.Flash.Warning(ctx.Tr("admin.runners.delete_runner_failed"))
-		ctx.Redirect(setting.AppSubURL + "/admin/runners/" + url.PathEscape(ctx.Params(":runnerid")))
-		return
-	}
-
-	log.Info("DeleteRunnerPost success: %s", ctx.Req.URL)
-
-	ctx.Flash.Success(ctx.Tr("admin.runners.delete_runner_success"))
-	ctx.Redirect(setting.AppSubURL + "/admin/runners/")
+	common.RunnerDeletePost(ctx, ctx.ParamsInt64(":runnerid"),
+		setting.AppSubURL+"/admin/runners/",
+		setting.AppSubURL+"/admin/runners/"+url.PathEscape(ctx.Params(":runnerid")),
+	)
 }
 
 func ResetRunnerRegistrationToken(ctx *context.Context) {

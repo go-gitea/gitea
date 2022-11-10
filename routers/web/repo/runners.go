@@ -61,3 +61,10 @@ func ResetRunnerRegistrationToken(ctx *context.Context) {
 		0, ctx.Repo.Repository.ID,
 		ctx.Repo.RepoLink+"/settings/runners")
 }
+
+// RunnerDeletePost response for deleting runner
+func RunnerDeletePost(ctx *context.Context) {
+	common.RunnerDeletePost(ctx, ctx.ParamsInt64(":runnerid"),
+		ctx.Repo.RepoLink+"/settings/runners",
+		ctx.Repo.RepoLink+"/settings/runners/"+url.PathEscape(ctx.Params(":runnerid")))
+}
