@@ -19,7 +19,7 @@
             <SvgIcon name="octicon-x-circle-fill" class="red" v-else/>
             {{ job.name }}
             <button class="job-brief-rerun" @click="rerunJob(index)" v-if="job.status !== 'waiting' && job.status !== 'blocked' && job.status !== 'running'">
-              <SvgIcon name="octicon-sync"/>
+              <SvgIcon name="octicon-sync" class="ui text black"/>
             </button>
           </a>
         </div>
