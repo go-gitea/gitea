@@ -46,32 +46,64 @@ func GetCache() mc.Cache {
 	return conn
 }
 
+// Get returns the key value from cache with callback when no key exists in cache
+func Get[V interface{}](key string, getFunc func() (V, error)) (V, error) {
+	if conn == nil || setting.CacheService.TTL == 0 {
+		return getFunc()
+	}
+
+	cached := conn.Get(key)
+	if value, ok := cached.(V); ok {
+		return value, nil
+	}
+
+	value, err := getFunc()
+	if err != nil {
+		return value, err
+	}
+
+	return value, conn.Put(key, value, setting.CacheService.TTLSeconds())
+}
+
+// Set updates and returns the key value in the cache with callback. The old value is only removed if the updateFunc() is successful
+func Set[V interface{}](key string, valueFunc func() (V, error)) (V, error) {
+	if conn == nil || setting.CacheService.TTL == 0 {
+		return valueFunc()
+	}
+
+	value, err := valueFunc()
+	if err != nil {
+		return value, err
+	}
+
+	return value, conn.Put(key, value, setting.CacheService.TTLSeconds())
+}
+
 // GetString returns the key value from cache with callback when no key exists in cache
 func GetString(key string, getFunc func() (string, error)) (string, error) {
 	if conn == nil || setting.CacheService.TTL == 0 {
 		return getFunc()
 	}
-	if !conn.IsExist(key) {
-		var (
-			value string
-			err   error
-		)
-		if value, err = getFunc(); err != nil {
+
+	cached := conn.Get(key)
+
+	if cached == nil {
+		value, err := getFunc()
+		if err != nil {
 			return value, err
 		}
-		err = conn.Put(key, value, setting.CacheService.TTLSeconds())
-		if err != nil {
-			return "", err
-		}
+		return value, conn.Put(key, value, setting.CacheService.TTLSeconds())
 	}
-	value := conn.Get(key)
-	if v, ok := value.(string); ok {
-		return v, nil
+
+	if value, ok := cached.(string); ok {
+		return value, nil
 	}
-	if v, ok := value.(fmt.Stringer); ok {
-		return v.String(), nil
+
+	if stringer, ok := cached.(fmt.Stringer); ok {
+		return stringer.String(), nil
 	}
-	return fmt.Sprintf("%s", conn.Get(key)), nil
+
+	return fmt.Sprintf("%s", cached), nil
 }
 
 // GetInt returns key value from cache with callback when no key exists in cache
@@ -79,30 +111,33 @@ func GetInt(key string, getFunc func() (int, error)) (int, error) {
 	if conn == nil || setting.CacheService.TTL == 0 {
 		return getFunc()
 	}
-	if !conn.IsExist(key) {
-		var (
-			value int
-			err   error
-		)
-		if value, err = getFunc(); err != nil {
+
+	cached := conn.Get(key)
+
+	if cached == nil {
+		value, err := getFunc()
+		if err != nil {
 			return value, err
 		}
-		err = conn.Put(key, value, setting.CacheService.TTLSeconds())
-		if err != nil {
-			return 0, err
-		}
+
+		return value, conn.Put(key, value, setting.CacheService.TTLSeconds())
 	}
-	switch value := conn.Get(key).(type) {
+
+	switch v := cached.(type) {
 	case int:
-		return value, nil
+		return v, nil
 	case string:
-		v, err := strconv.Atoi(value)
+		value, err := strconv.Atoi(v)
 		if err != nil {
 			return 0, err
 		}
-		return v, nil
+		return value, nil
 	default:
-		return 0, fmt.Errorf("Unsupported cached value type: %v", value)
+		value, err := getFunc()
+		if err != nil {
+			return value, err
+		}
+		return value, conn.Put(key, value, setting.CacheService.TTLSeconds())
 	}
 }
 
@@ -111,30 +146,34 @@ func GetInt64(key string, getFunc func() (int64, error)) (int64, error) {
 	if conn == nil || setting.CacheService.TTL == 0 {
 		return getFunc()
 	}
-	if !conn.IsExist(key) {
-		var (
-			value int64
-			err   error
-		)
-		if value, err = getFunc(); err != nil {
+
+	cached := conn.Get(key)
+
+	if cached == nil {
+		value, err := getFunc()
+		if err != nil {
 			return value, err
 		}
-		err = conn.Put(key, value, setting.CacheService.TTLSeconds())
-		if err != nil {
-			return 0, err
-		}
+
+		return value, conn.Put(key, value, setting.CacheService.TTLSeconds())
 	}
-	switch value := conn.Get(key).(type) {
+
+	switch v := conn.Get(key).(type) {
 	case int64:
-		return value, nil
+		return v, nil
 	case string:
-		v, err := strconv.ParseInt(value, 10, 64)
+		value, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
 			return 0, err
 		}
-		return v, nil
+		return value, nil
 	default:
-		return 0, fmt.Errorf("Unsupported cached value type: %v", value)
+		value, err := getFunc()
+		if err != nil {
+			return value, err
+		}
+
+		return value, conn.Put(key, value, setting.CacheService.TTLSeconds())
 	}
 }
 
