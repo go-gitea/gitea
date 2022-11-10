@@ -27,7 +27,7 @@ func TestSettings(t *testing.T) {
 	assert.NoError(t, err)
 
 	// get specific setting
-	settings, err := user_model.GetUserSettings(99, []string{keyName})
+	settings, err := user_model.GetSettings(99, []string{keyName})
 	assert.NoError(t, err)
 	assert.Len(t, settings, 1)
 	assert.EqualValues(t, newSetting.SettingValue, settings[keyName].SettingValue)

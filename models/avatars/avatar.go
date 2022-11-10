@@ -150,10 +150,11 @@ func generateEmailAvatarLink(email string, size int, final bool) string {
 		return DefaultAvatarLink()
 	}
 
-	enableFederatedAvatar, _ := system_model.GetSetting(system_model.KeyPictureEnableFederatedAvatar)
+	enableFederatedAvatarSetting, _ := system_model.GetSetting(system_model.KeyPictureEnableFederatedAvatar)
+	enableFederatedAvatar := enableFederatedAvatarSetting.GetValueBool()
 
 	var err error
-	if enableFederatedAvatar != nil && enableFederatedAvatar.GetValueBool() && system_model.LibravatarService != nil {
+	if enableFederatedAvatar && system_model.LibravatarService != nil {
 		emailHash := saveEmailHash(email)
 		if final {
 			// for final link, we can spend more time on slow external query
@@ -171,8 +172,10 @@ func generateEmailAvatarLink(email string, size int, final bool) string {
 		return urlStr
 	}
 
-	disableGravatar, _ := system_model.GetSetting(system_model.KeyPictureDisableGravatar)
-	if disableGravatar != nil && !disableGravatar.GetValueBool() {
+	disableGravatarSetting, _ := system_model.GetSetting(system_model.KeyPictureDisableGravatar)
+
+	disableGravatar := disableGravatarSetting.GetValueBool()
+	if !disableGravatar {
 		// copy GravatarSourceURL, because we will modify its Path.
 		avatarURLCopy := *system_model.GravatarSourceURL
 		avatarURLCopy.Path = path.Join(avatarURLCopy.Path, HashEmail(email))

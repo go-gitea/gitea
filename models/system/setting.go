@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -35,6 +36,10 @@ func (s *Setting) TableName() string {
 }
 
 func (s *Setting) GetValueBool() bool {
+	if s == nil {
+		return false
+	}
+
 	b, _ := strconv.ParseBool(s.SettingValue)
 	return b
 }
@@ -75,8 +80,8 @@ func IsErrDataExpired(err error) bool {
 	return ok
 }
 
-// GetSetting returns specific setting
-func GetSetting(key string) (*Setting, error) {
+// GetSettingNoCache returns specific setting without using the cache
+func GetSettingNoCache(key string) (*Setting, error) {
 	v, err := GetSettings([]string{key})
 	if err != nil {
 		return nil, err
@@ -85,6 +90,24 @@ func GetSetting(key string) (*Setting, error) {
 		return nil, ErrSettingIsNotExist{key}
 	}
 	return v[key], nil
+}
+
+// GetSetting returns the setting value via the key
+func GetSetting(key string) (*Setting, error) {
+	return cache.Get(genSettingCacheKey(key), func() (*Setting, error) {
+		res, err := GetSettingNoCache(key)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
+	})
+}
+
+// GetSettingBool return bool value of setting,
+// none existing keys and errors are ignored and result in false
+func GetSettingBool(key string) bool {
+	s, _ := GetSetting(key)
+	return s.GetValueBool()
 }
 
 // GetSettings returns specific settings
@@ -139,12 +162,13 @@ func GetAllSettings() (AllSettings, error) {
 
 // DeleteSetting deletes a specific setting for a user
 func DeleteSetting(setting *Setting) error {
+	cache.Remove(genSettingCacheKey(setting.SettingKey))
 	_, err := db.GetEngine(db.DefaultContext).Delete(setting)
 	return err
 }
 
 func SetSettingNoVersion(key, value string) error {
-	s, err := GetSetting(key)
+	s, err := GetSettingNoCache(key)
 	if IsErrSettingIsNotExist(err) {
 		return SetSetting(&Setting{
 			SettingKey:   key,
@@ -160,9 +184,13 @@ func SetSettingNoVersion(key, value string) error {
 
 // SetSetting updates a users' setting for a specific key
 func SetSetting(setting *Setting) error {
-	if err := upsertSettingValue(strings.ToLower(setting.SettingKey), setting.SettingValue, setting.Version); err != nil {
+	_, err := cache.Set(genSettingCacheKey(setting.SettingKey), func() (*Setting, error) {
+		return setting, upsertSettingValue(strings.ToLower(setting.SettingKey), setting.SettingValue, setting.Version)
+	})
+	if err != nil {
 		return err
 	}
+
 	setting.Version++
 	return nil
 }
@@ -213,7 +241,7 @@ var (
 
 func Init() error {
 	var disableGravatar bool
-	disableGravatarSetting, err := GetSetting(KeyPictureDisableGravatar)
+	disableGravatarSetting, err := GetSettingNoCache(KeyPictureDisableGravatar)
 	if IsErrSettingIsNotExist(err) {
 		disableGravatar = setting.GetDefaultDisableGravatar()
 		disableGravatarSetting = &Setting{SettingValue: strconv.FormatBool(disableGravatar)}
@@ -224,7 +252,7 @@ func Init() error {
 	}
 
 	var enableFederatedAvatar bool
-	enableFederatedAvatarSetting, err := GetSetting(KeyPictureEnableFederatedAvatar)
+	enableFederatedAvatarSetting, err := GetSettingNoCache(KeyPictureEnableFederatedAvatar)
 	if IsErrSettingIsNotExist(err) {
 		enableFederatedAvatar = setting.GetDefaultEnableFederatedAvatar(disableGravatar)
 		enableFederatedAvatarSetting = &Setting{SettingValue: strconv.FormatBool(enableFederatedAvatar)}
