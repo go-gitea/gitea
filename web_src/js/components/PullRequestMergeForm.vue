@@ -29,7 +29,7 @@
               <button @click.prevent="clearMergeMessage" class="ui tertiary button">
                 {{ mergeForm.textClearMergeMessage }}
               </button>
-              <div class="ui label">
+              <div class="ui label"><!-- TODO: Convert to tooltip once we can use tooltips in Vue templates -->
                 {{ mergeForm.textClearMergeMessageHint }}
               </div>
             </template>
