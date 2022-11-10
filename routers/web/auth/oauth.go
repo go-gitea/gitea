@@ -1029,7 +1029,7 @@ func showLinkingLogin(ctx *context.Context, gothUser goth.User) {
 	if err := updateSession(ctx, nil, map[string]interface{}{
 		"linkAccountGothUser": gothUser,
 	}); err != nil {
-		ctx.ServerError("RegenerateSession", err)
+		ctx.ServerError("updateSession", err)
 		return
 	}
 	ctx.Redirect(setting.AppSubURL + "/user/link_account")
@@ -1073,7 +1073,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 			"uid":   u.ID,
 			"uname": u.Name,
 		}); err != nil {
-			ctx.ServerError("RegenerateSession", err)
+			ctx.ServerError("updateSession", err)
 			return
 		}
 
@@ -1130,7 +1130,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		"twofaUid":      u.ID,
 		"twofaRemember": false,
 	}); err != nil {
-		ctx.ServerError("RegenerateSession", err)
+		ctx.ServerError("updateSession", err)
 		return
 	}
 

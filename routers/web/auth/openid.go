@@ -239,7 +239,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 		"openid_determined_email":    email,
 		"openid_determined_username": nickname,
 	}); err != nil {
-		ctx.ServerError("RegenerateSession", err)
+		ctx.ServerError("updateSession", err)
 		return
 	}
 

@@ -87,7 +87,7 @@ func AutoSignIn(ctx *context.Context) (bool, error) {
 		"uid":   u.ID,
 		"uname": u.Name,
 	}); err != nil {
-		return false, fmt.Errorf("unable to RegenerateSession: Error: %w", err)
+		return false, fmt.Errorf("unable to updateSession: %w", err)
 	}
 
 	if err := resetLocale(ctx, u); err != nil {
@@ -255,7 +255,7 @@ func SignInPost(ctx *context.Context) {
 		updates["totpEnrolled"] = u.ID
 	}
 	if err := updateSession(ctx, nil, updates); err != nil {
-		ctx.ServerError("UserSignIn: Unable to set regenerate session", err)
+		ctx.ServerError("UserSignIn: Unable to update session", err)
 		return
 	}
 
@@ -795,12 +795,12 @@ func updateSession(ctx *context.Context, deletes []string, updates map[string]in
 	sessID := sess.ID()
 	for _, k := range deletes {
 		if err := sess.Delete(k); err != nil {
-			return fmt.Errorf("delete %v in session[%s]: %v", k, sessID, err)
+			return fmt.Errorf("delete %v in session[%s]: %w", k, sessID, err)
 		}
 	}
 	for k, v := range updates {
 		if err := sess.Set(k, v); err != nil {
-			return fmt.Errorf("set %v in session[%s]: %v", k, sessID, err)
+			return fmt.Errorf("set %v in session[%s]: %w", k, sessID, err)
 		}
 	}
 	if err := sess.Release(); err != nil {
