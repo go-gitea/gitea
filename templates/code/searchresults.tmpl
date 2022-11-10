@@ -3,7 +3,7 @@
 	<a class="ui text-label df ac mr-1 my-1 {{if eq $.Language $term.Language}}primary {{end}}basic label" href="{{AppSubUrl}}{{if $.ContextUser}}/{{$.ContextUser.Name}}/-/code{{else}}/explore/code{{end}}?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}{{if ne $.queryType ""}}&t={{$.queryType}}{{end}}">
 		<i class="color-icon mr-3" style="background-color: {{$term.Color}}"></i>
 		{{$term.Language}}
-		<div class="detail">{{$term.Count}}</div>
+		<div class="detail">{{RenderNumber $term.Count $.locale.Language}}</div>
 	</a>
 	{{end}}
 </div>
