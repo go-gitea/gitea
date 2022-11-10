@@ -58,29 +58,33 @@ https://github.com/loganinak/MigrateGitlabToGogs
 
 ## Where does Gitea store what file
 
-- WorkPath
-  - Environment variable `GITEA_WORK_DIR`
-  - Else `--work-path` flag
+- _`AppWorkPath`_
+  - The `--work-path` flag
+  - Else Environment variable `GITEA_WORK_DIR`
+  - Else a built-in value set at build time
   - Else the directory that contains the Gitea binary
-- AppDataPath (default for database, indexers, etc.)
+- `%(APP_DATA_PATH)` (default for database, indexers, etc.)
   - `APP_DATA_PATH` from `app.ini`
-  - Else `%(WorkPath)/data`
-- CustomPath (custom templates)
-  - Environment variable `GITEA_CUSTOM`
-  - Else `%(WorkPath)/custom`
+  - Else _`AppWorkPath`_`/data`
+- _`CustomPath`_ (custom templates)
+  - The `--custom-path` flag
+  - Else Environment variable `GITEA_CUSTOM`
+  - Else a built-in value set at build time
+  - Else _`AppWorkPath`_`/custom`
 - HomeDir
   - Unix: Environment variable `HOME`
   - Windows: Environment variable `USERPROFILE`, else environment variables `HOMEDRIVE`+`HOMEPATH`
 - RepoRootPath
   - `ROOT` in the \[repository] section of `app.ini` if absolute
-  - Else `%(AppWorkPath)/ROOT` if `ROOT` in the \[repository] section of `app.ini` if relative
-  - Default `%(AppDataPath)/gitea-repositories`
+  - Else _`AppWorkPath`_`/ROOT` if `ROOT` in the \[repository] section of `app.ini` if relative
+  - Default `%(APP_DATA_PATH)/gitea-repositories`
 - INI (config file)
-  - `-c` flag
-  - Else `%(CustomPath)/conf/app.ini`
+  - `--config` flag
+  - A possible built-in value set a build time
+  - Else _`CustomPath`_`/conf/app.ini`
 - SQLite Database
   - `PATH` in `database` section of `app.ini`
-  - Else `%(AppDataPath)/gitea.db`
+  - Else `%(APP_DATA_PATH)/gitea.db`
 
 ## Not seeing a clone URL or the clone URL being incorrect
 
