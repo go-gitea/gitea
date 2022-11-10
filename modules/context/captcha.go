@@ -51,9 +51,9 @@ func SetCaptchaData(ctx *Context) {
 }
 
 const (
-	GRecaptchaResponseField = "g-recaptcha-response"
-	HcaptchaResponseField   = "h-captcha-response"
-	McaptchaResponseField   = "m-captcha-response"
+	gRecaptchaResponseField = "g-recaptcha-response"
+	hCaptchaResponseField   = "h-captcha-response"
+	mCaptchaResponseField   = "m-captcha-response"
 )
 
 // VerifyCaptcha verifies Captcha data
@@ -68,11 +68,11 @@ func VerifyCaptcha(ctx *Context, tpl base.TplName, form interface{}) {
 	case setting.ImageCaptcha:
 		valid = GetImageCaptcha().VerifyReq(ctx.Req)
 	case setting.ReCaptcha:
-		valid, err = recaptcha.Verify(ctx, ctx.Req.Form.Get(GRecaptchaResponseField))
+		valid, err = recaptcha.Verify(ctx, ctx.Req.Form.Get(gRecaptchaResponseField))
 	case setting.HCaptcha:
-		valid, err = hcaptcha.Verify(ctx, ctx.Req.Form.Get(HcaptchaResponseField))
+		valid, err = hcaptcha.Verify(ctx, ctx.Req.Form.Get(hCaptchaResponseField))
 	case setting.MCaptcha:
-		valid, err = mcaptcha.Verify(ctx, ctx.Req.Form.Get(McaptchaResponseField))
+		valid, err = mcaptcha.Verify(ctx, ctx.Req.Form.Get(mCaptchaResponseField))
 	default:
 		ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
 		return
