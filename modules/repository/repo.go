@@ -485,7 +485,7 @@ func pullMirrorReleaseSync(repo *repo_model.Repository, gitRepo *git.Repository)
 	if err != nil {
 		return fmt.Errorf("unable to GetTagInfos in pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 	}
-	err = db.WithTx(func(ctx context.Context) error {
+	err = db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		//
 		// clear out existing releases
 		//

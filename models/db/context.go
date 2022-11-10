@@ -7,6 +7,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
@@ -97,13 +98,32 @@ func TxContext() (*Context, Committer, error) {
 	return newContext(DefaultContext, sess, true), sess, nil
 }
 
+var ErrAlreadyInTransaction = errors.New("database connection has already been in a transaction")
+
 // WithTx represents executing database operations on a transaction
-// you can optionally change the context to a parent one
-func WithTx(f func(ctx context.Context) error, stdCtx ...context.Context) error {
-	parentCtx := DefaultContext
-	if len(stdCtx) != 0 && stdCtx[0] != nil {
-		// TODO: make sure parent context has no open session
-		parentCtx = stdCtx[0]
+func WithTx(parentCtx context.Context, f func(ctx context.Context) error) error {
+	if InTransaction(parentCtx) {
+		return ErrAlreadyInTransaction
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	if err := f(newContext(parentCtx, sess, true)); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
+// MustTx represents executing database operations on a transaction, if the transaction exist,
+// this function will reuse it otherwise will create a new one and close it when finished.
+func MustTx(parentCtx context.Context, f func(ctx context.Context) error) error {
+	if InTransaction(parentCtx) {
+		return f(newContext(parentCtx, GetEngine(parentCtx), true))
 	}
 
 	sess := x.NewSession()

@@ -17,7 +17,16 @@ import (
 func TestInTransaction(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	assert.False(t, db.InTransaction(db.DefaultContext))
-	assert.NoError(t, db.WithTx(func(ctx context.Context) error {
+	assert.NoError(t, db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+		assert.True(t, db.InTransaction(ctx))
+		return nil
+	}))
+
+	ctx, committer, err := db.TxContext()
+	assert.NoError(t, err)
+	defer committer.Close()
+	assert.True(t, db.InTransaction(ctx))
+	assert.Error(t, db.WithTx(ctx, func(ctx context.Context) error {
 		assert.True(t, db.InTransaction(ctx))
 		return nil
 	}))

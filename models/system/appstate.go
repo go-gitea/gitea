@@ -25,7 +25,7 @@ func init() {
 
 // SaveAppStateContent saves the app state item to database
 func SaveAppStateContent(key, content string) error {
-	return db.WithTx(func(ctx context.Context) error {
+	return db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		eng := db.GetEngine(ctx)
 		// try to update existing row
 		res, err := eng.Exec("UPDATE app_state SET revision=revision+1, content=? WHERE id=?", content, key)
