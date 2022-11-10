@@ -123,9 +123,9 @@ func WithTx(parentCtx context.Context, f func(ctx context.Context) error) error 
 	return sess.Commit()
 }
 
-// MustTx represents executing database operations on a transaction, if the transaction exist,
+// AutoTx represents executing database operations on a transaction, if the transaction exist,
 // this function will reuse it otherwise will create a new one and close it when finished.
-func MustTx(parentCtx context.Context, f func(ctx context.Context) error) error {
+func AutoTx(parentCtx context.Context, f func(ctx context.Context) error) error {
 	if InTransaction(parentCtx) {
 		return f(newContext(parentCtx, GetEngine(parentCtx), true))
 	}
