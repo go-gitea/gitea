@@ -24,7 +24,7 @@ var CORSConfig = struct {
 }{
 	Enabled:       false,
 	MaxAge:        10 * time.Minute,
-	Headers:       []string{"Authorization", "X-Gitea-OTP"},
+	Headers:       []string{"Content-Type", "User-Agent"},
 	XFrameOptions: "SAMEORIGIN",
 }
 

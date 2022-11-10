@@ -617,7 +617,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 			// setting.CORSConfig.AllowSubdomain // FIXME: the cors middleware needs allowSubdomain option
 			AllowedMethods:   setting.CORSConfig.Methods,
 			AllowCredentials: setting.CORSConfig.AllowCredentials,
-			AllowedHeaders:   setting.CORSConfig.Headers,
+			AllowedHeaders:   append(setting.CORSConfig.Headers, "Authorization", "X-Gitea-OTP"),
 			MaxAge:           int(setting.CORSConfig.MaxAge.Seconds()),
 		}))
 	}
