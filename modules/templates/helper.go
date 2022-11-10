@@ -47,6 +47,8 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
 )
@@ -170,6 +172,7 @@ func NewFuncMap() []template.FuncMap {
 		"RenderEmojiPlain":               emoji.ReplaceAliases,
 		"ReactionToEmoji":                ReactionToEmoji,
 		"RenderNote":                     RenderNote,
+		"RenderNumber":                   RenderNumber,
 		"RenderMarkdownToHtml": func(input string) template.HTML {
 			output, err := markdown.RenderString(&markup.RenderContext{
 				URLPrefix: setting.AppSubURL,
@@ -780,6 +783,13 @@ var codeMatcher = regexp.MustCompile("`([^`]+)`")
 func RenderCodeBlock(htmlEscapedTextToRender template.HTML) template.HTML {
 	htmlWithCodeTags := codeMatcher.ReplaceAllString(string(htmlEscapedTextToRender), "<code>$1</code>") // replace with HTML <code> tags
 	return template.HTML(htmlWithCodeTags)
+}
+
+// RenderNumber render any number according to the given language code (e.g. 1234 -> 1,234)
+// Should RenderNumber, JsPrettyNumber, and CountFmt coexist on this codebase? RenderNumber is server-rendered and localized
+func RenderNumber(number int64, languageCode string) template.HTML {
+	formatter := message.NewPrinter(language.MustParse(languageCode))
+	return template.HTML(formatter.Sprintf("%d", number))
 }
 
 // RenderIssueTitle renders issue/pull title with defined post processors
