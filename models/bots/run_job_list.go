@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
+
 	"xorm.io/builder"
 )
 
@@ -60,6 +61,9 @@ func (jobs RunJobList) LoadAttributes(ctx context.Context, withRepo bool) error 
 type FindRunJobOptions struct {
 	db.ListOptions
 	RunID         int64
+	RepoID        int64
+	OwnerID       int64
+	CommitSHA     string
 	Statuses      []Status
 	UpdatedBefore timeutil.TimeStamp
 }
@@ -68,6 +72,15 @@ func (opts FindRunJobOptions) toConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RunID > 0 {
 		cond = cond.And(builder.Eq{"run_id": opts.RunID})
+	}
+	if opts.RepoID > 0 {
+		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	}
+	if opts.OwnerID > 0 {
+		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
+	}
+	if opts.CommitSHA != "" {
+		cond = cond.And(builder.Eq{"commit_sha": opts.CommitSHA})
 	}
 	if len(opts.Statuses) > 0 {
 		cond = cond.And(builder.In("status", opts.Statuses))

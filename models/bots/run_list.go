@@ -11,6 +11,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/util"
+
 	"xorm.io/builder"
 )
 
@@ -68,6 +69,7 @@ func (runs RunList) LoadRepos() error {
 type FindRunOptions struct {
 	db.ListOptions
 	RepoID           int64
+	OwnerID          int64
 	IsClosed         util.OptionalBool
 	WorkflowFileName string
 }
@@ -76,6 +78,9 @@ func (opts FindRunOptions) toConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	}
+	if opts.OwnerID > 0 {
+		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
 	}
 	if opts.IsClosed.IsFalse() {
 		cond = cond.And(builder.Eq{"status": StatusWaiting}.Or(

@@ -7,6 +7,7 @@ package migrations
 import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
+
 	"xorm.io/xorm"
 )
 
@@ -51,6 +52,7 @@ func addBotTables(x *xorm.Engine) error {
 		ID            int64
 		Title         string
 		RepoID        int64  `xorm:"index unique(repo_index)"`
+		OwnerID       int64  `xorm:"index"`
 		WorkflowID    string `xorm:"index"`                    // the name of workflow file
 		Index         int64  `xorm:"index unique(repo_index)"` // a unique number for each run of a repository
 		TriggerUserID int64
@@ -69,7 +71,10 @@ func addBotTables(x *xorm.Engine) error {
 
 	type BotsRunJob struct {
 		ID              int64
-		RunID           int64 `xorm:"index"`
+		RunID           int64  `xorm:"index"`
+		RepoID          int64  `xorm:"index"`
+		OwnerID         int64  `xorm:"index"`
+		CommitSHA       string `xorm:"index"`
 		Name            string
 		Attempt         int64
 		WorkflowPayload []byte

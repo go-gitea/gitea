@@ -11,16 +11,19 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
-	"xorm.io/builder"
 
 	"golang.org/x/exp/slices"
+	"xorm.io/builder"
 )
 
 // RunJob represents a job of a run
 type RunJob struct {
 	ID              int64
-	RunID           int64 `xorm:"index"`
-	Run             *Run  `xorm:"-"`
+	RunID           int64  `xorm:"index"`
+	Run             *Run   `xorm:"-"`
+	RepoID          int64  `xorm:"index"`
+	OwnerID         int64  `xorm:"index"`
+	CommitSHA       string `xorm:"index"`
 	Name            string
 	Attempt         int64
 	WorkflowPayload []byte

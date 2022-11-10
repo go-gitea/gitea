@@ -16,10 +16,10 @@ import (
 	"code.gitea.io/gitea/models/webhook"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
-	"xorm.io/builder"
 
 	"github.com/nektos/act/pkg/jobparser"
 	"golang.org/x/exp/slices"
+	"xorm.io/builder"
 )
 
 // Run represents a run of a workflow file
@@ -28,6 +28,7 @@ type Run struct {
 	Title         string
 	RepoID        int64                  `xorm:"index unique(repo_index)"`
 	Repo          *repo_model.Repository `xorm:"-"`
+	OwnerID       int64                  `xorm:"index"`
 	WorkflowID    string                 `xorm:"index"`                    // the name of workflow file
 	Index         int64                  `xorm:"index unique(repo_index)"` // a unique number for each run of a repository
 	TriggerUserID int64
@@ -175,6 +176,9 @@ func InsertRun(run *Run, jobs []*jobparser.SingleWorkflow) error {
 		}
 		runJobs = append(runJobs, &RunJob{
 			RunID:           run.ID,
+			RepoID:          run.RepoID,
+			OwnerID:         run.OwnerID,
+			CommitSHA:       run.CommitSHA,
 			Name:            job.Name,
 			WorkflowPayload: payload,
 			JobID:           id,

@@ -75,6 +75,7 @@ func notify(repo *repo_model.Repository, doer *user_model.User, ref string, evt 
 		run := bots_model.Run{
 			Title:         commit.Message(),
 			RepoID:        repo.ID,
+			OwnerID:       repo.OwnerID,
 			WorkflowID:    id,
 			TriggerUserID: doer.ID,
 			Ref:           ref,
