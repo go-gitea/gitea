@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	bots_model "code.gitea.io/gitea/models/bots"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -61,7 +62,8 @@ func RunnersList(ctx *context.Context, tplName base.TplName, opts bots_model.Fin
 	ctx.HTML(http.StatusOK, tplName)
 }
 
-func RunnerDetails(ctx *context.Context, tplName base.TplName, runnerID int64, ownerID int64, repoID int64) {
+// RunnerDetails render runner details page
+func RunnerDetails(ctx *context.Context, tplName base.TplName, page int, runnerID int64, ownerID int64, repoID int64) {
 	runner, err := bots_model.GetRunnerByID(runnerID)
 	if err != nil {
 		ctx.ServerError("GetRunnerByID", err)
@@ -79,12 +81,23 @@ func RunnerDetails(ctx *context.Context, tplName base.TplName, runnerID int64, o
 
 	ctx.Data["Runner"] = runner
 
-	// TODO: get task list for this runner
-	tasks, _, err := bots_model.FindTasks(ctx, bots_model.FindTaskOptions{
+	opts := bots_model.FindTaskOptions{
+		ListOptions: db.ListOptions{
+			Page:     page,
+			PageSize: 30,
+		},
 		Status:      bots_model.StatusUnknown, // Unknown means all
 		IDOrderDesc: true,
 		RunnerID:    runner.ID,
-	})
+	}
+
+	count, err := bots_model.CountTasks(ctx, opts)
+	if err != nil {
+		ctx.ServerError("CountTasks", err)
+		return
+	}
+
+	tasks, _, err := bots_model.FindTasks(ctx, opts)
 	if err != nil {
 		ctx.ServerError("FindTasks", err)
 		return
@@ -95,6 +108,8 @@ func RunnerDetails(ctx *context.Context, tplName base.TplName, runnerID int64, o
 	}
 
 	ctx.Data["Tasks"] = tasks
+	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
+	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplName)
 }

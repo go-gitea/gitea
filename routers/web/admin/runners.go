@@ -54,7 +54,12 @@ func EditRunner(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminRunners"] = true
 
-	common.RunnerDetails(ctx, tplRunnerEdit, ctx.ParamsInt64(":runnerid"), 0, 0)
+	page := ctx.FormInt("page")
+	if page <= 1 {
+		page = 1
+	}
+
+	common.RunnerDetails(ctx, tplRunnerEdit, page, ctx.ParamsInt64(":runnerid"), 0, 0)
 }
 
 // EditRunnerPost response for editing runner

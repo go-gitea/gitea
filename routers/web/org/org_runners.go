@@ -47,8 +47,12 @@ func RunnersEdit(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("org.runners.edit")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsOrgSettingsRunners"] = true
+	page := ctx.FormInt("page")
+	if page <= 1 {
+		page = 1
+	}
 
-	common.RunnerDetails(ctx, tplSettingsRunnersEdit,
+	common.RunnerDetails(ctx, tplSettingsRunnersEdit, page,
 		ctx.ParamsInt64(":runnerid"), ctx.Org.Organization.ID, 0,
 	)
 }

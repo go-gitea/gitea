@@ -42,8 +42,12 @@ func Runners(ctx *context.Context) {
 func RunnersEdit(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.runners")
 	ctx.Data["PageIsSettingsRunners"] = true
+	page := ctx.FormInt("page")
+	if page <= 1 {
+		page = 1
+	}
 
-	common.RunnerDetails(ctx, tplRunnerEdit,
+	common.RunnerDetails(ctx, tplRunnerEdit, page,
 		ctx.ParamsInt64(":runnerid"), 0, ctx.Repo.Repository.ID,
 	)
 }
