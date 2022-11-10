@@ -47,10 +47,10 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
-	"golang.org/x/text/language"
-	"golang.org/x/text/message"
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 )
 
 // Used from static.go && dynamic.go
