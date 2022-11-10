@@ -144,11 +144,11 @@ launched manually from command line, it can be killed by pressing `Ctrl + C`.
 
 ## Changing default paths
 
-Gitea will search for a number of things from the `CustomPath`. By default this is
+Gitea will search for a number of things from the _`CustomPath`_. By default this is
 the `custom/` directory in the current working directory when running Gitea. It will also
-look for its configuration file `CustomConf` in `$CustomPath/conf/app.ini`, and will use the
-current working directory as the relative base path `AppWorkPath` for a number configurable
-values. Finally the static files will be served from `StaticRootPath` which defaults to the `AppWorkPath`.
+look for its configuration file _`CustomConf`_ in _`CustomPath`_/conf/app.ini`, and will use the
+current working directory as the relative base path _`AppWorkPath`_ for a number configurable
+values. Finally the static files will be served from _`StaticRootPath`_ which defaults to the _`AppWorkPath`_.
 
 These values, although useful when developing, may conflict with downstream users preferences.
 
@@ -156,10 +156,10 @@ One option is to use a script file to shadow the `gitea` binary and create an ap
 environment before running Gitea. However, when building you can change these defaults
 using the `LDFLAGS` environment variable for `make`. The appropriate settings are as follows
 
-- To set the `CustomPath` use `LDFLAGS="-X \"code.gitea.io/gitea/modules/setting.CustomPath=custom-path\""`
-- For `CustomConf` you should use `-X \"code.gitea.io/gitea/modules/setting.CustomConf=conf.ini\"`
-- For `AppWorkPath` you should use `-X \"code.gitea.io/gitea/modules/setting.AppWorkPath=working-path\"`
-- For `StaticRootPath` you should use `-X \"code.gitea.io/gitea/modules/setting.StaticRootPath=static-root-path\"`
+- To set the _`CustomPath`_ use `LDFLAGS="-X \"code.gitea.io/gitea/modules/setting.CustomPath=custom-path\""`
+- For _`CustomConf`_ you should use `-X \"code.gitea.io/gitea/modules/setting.CustomConf=conf.ini\"`
+- For _`AppWorkPath`_ you should use `-X \"code.gitea.io/gitea/modules/setting.AppWorkPath=working-path\"`
+- For _`StaticRootPath`_ you should use `-X \"code.gitea.io/gitea/modules/setting.StaticRootPath=static-root-path\"`
 - To change the default PID file location use `-X \"code.gitea.io/gitea/modules/setting.PIDFile=/run/gitea.pid\"`
 
 Add as many of the strings with their preceding `-X` to the `LDFLAGS` variable and run `make build`
