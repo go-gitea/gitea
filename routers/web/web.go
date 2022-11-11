@@ -67,6 +67,7 @@ func CorsHandler() func(next http.Handler) http.Handler {
 			// setting.CORSConfig.AllowSubdomain // FIXME: the cors middleware needs allowSubdomain option
 			AllowedMethods:   setting.CORSConfig.Methods,
 			AllowCredentials: setting.CORSConfig.AllowCredentials,
+			AllowedHeaders:   setting.CORSConfig.Headers,
 			MaxAge:           int(setting.CORSConfig.MaxAge.Seconds()),
 		})
 	}
