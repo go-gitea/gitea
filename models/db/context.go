@@ -105,6 +105,7 @@ func TxContext(parentCtx context.Context) (*Context, Committer, error) {
 var ErrAlreadyInTransaction = errors.New("database connection has already been in a transaction")
 
 // WithTx represents executing database operations on a transaction
+// This function will always open a new transaction, if a transaction exist in parentCtx return an error.
 func WithTx(parentCtx context.Context, f func(ctx context.Context) error) error {
 	if InTransaction(parentCtx) {
 		return ErrAlreadyInTransaction
