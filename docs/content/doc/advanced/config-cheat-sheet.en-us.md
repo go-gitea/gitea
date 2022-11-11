@@ -200,6 +200,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `METHODS`: **GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS**: list of methods allowed to request
 - `MAX_AGE`: **10m**: max time to cache response
 - `ALLOW_CREDENTIALS`: **false**: allow request with credentials
+- `HEADERS`: **Content-Type,User-Agent**: additional headers that are permitted in requests
 - `X_FRAME_OPTIONS`: **SAMEORIGIN**: Set the `X-Frame-Options` header value.
 
 ## UI (`ui`)
