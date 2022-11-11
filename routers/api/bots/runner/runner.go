@@ -20,9 +20,9 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	secret_service "code.gitea.io/gitea/services/secrets"
+
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 	"gitea.com/gitea/proto-go/runner/v1/runnerv1connect"
-
 	"github.com/bufbuild/connect-go"
 	gouuid "github.com/google/uuid"
 	"google.golang.org/grpc/codes"
@@ -304,7 +304,7 @@ func pickTask(ctx context.Context, runner *bots_model.Runner) (*runnerv1.Task, b
 		"run_number":       fmt.Sprint(t.Job.Run.Index),
 		"run_attempt":      fmt.Sprint(t.Job.Attempt),
 		"actor":            fmt.Sprint(t.Job.Run.TriggerUser.Name),
-		"repository":       fmt.Sprint(t.Job.Run.Repo.Name),
+		"repository":       fmt.Sprint(t.Job.Run.Repo.OwnerName) + "/" + fmt.Sprint(t.Job.Run.Repo.Name),
 		"event_name":       fmt.Sprint(t.Job.Run.Event.Event()),
 		"sha":              fmt.Sprint(t.Job.Run.CommitSHA),
 		"ref":              fmt.Sprint(t.Job.Run.Ref),
