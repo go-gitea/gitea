@@ -60,6 +60,7 @@ type MinioStorage struct {
 	client   *minio.Client
 	bucket   string
 	basePath string
+	config   *MinioStorageConfig
 }
 
 func convertMinioErr(err error) error {
@@ -115,6 +116,7 @@ func NewMinioStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error
 		client:   minioClient,
 		bucket:   config.Bucket,
 		basePath: config.BasePath,
+		config:   &config,
 	}, nil
 }
 
