@@ -22,7 +22,7 @@ func FollowUser(userID, followID int64) (err error) {
 	if userID == followID || user_model.IsFollowing(userID, followID) {
 		return nil
 	}
-	
+
 	followUser, err := user_model.GetUserByID(followID)
 	if err != nil {
 		return err
@@ -37,8 +37,8 @@ func FollowUser(userID, followID int64) (err error) {
 		object := ap.PersonNew(ap.IRI(followUser.LoginName))
 		follow := ap.FollowNew("", object)
 		follow.Type = ap.FollowType
-		follow.Actor = ap.PersonNew(ap.IRI(setting.AppURL+"api/v1/activitypub/user/"+actorUser.Name))
-		follow.To = ap.ItemCollection{ap.Item(ap.IRI(followUser.LoginName+"/inbox"))}
+		follow.Actor = ap.PersonNew(ap.IRI(setting.AppURL + "api/v1/activitypub/user/" + actorUser.Name))
+		follow.To = ap.ItemCollection{ap.Item(ap.IRI(followUser.LoginName + "/inbox"))}
 		err = activitypub.Send(actorUser, follow)
 		if err != nil {
 			return err
@@ -53,7 +53,7 @@ func UnfollowUser(userID, followID int64) (err error) {
 	if userID == followID || !user_model.IsFollowing(userID, followID) {
 		return nil
 	}
-	
+
 	return user_model.UnfollowUser(userID, followID)
 }
 
