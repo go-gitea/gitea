@@ -42,6 +42,8 @@ func getStorage(name, typ string, targetSec *ini.Section) Storage {
 	sec.Key("MINIO_BUCKET").MustString("gitea")
 	sec.Key("MINIO_LOCATION").MustString("us-east-1")
 	sec.Key("MINIO_USE_SSL").MustBool(false)
+	sec.Key("MINIO_DISABLE_SIGNATURE").MustBool(false)
+	sec.Key("MINIO_DISABLE_MULTIPART").MustBool(false)
 
 	if targetSec == nil {
 		targetSec, _ = Cfg.NewSection(name)

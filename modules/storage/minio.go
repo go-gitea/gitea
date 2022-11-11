@@ -43,13 +43,15 @@ const MinioStorageType Type = "minio"
 
 // MinioStorageConfig represents the configuration for a minio storage
 type MinioStorageConfig struct {
-	Endpoint        string `ini:"MINIO_ENDPOINT"`
-	AccessKeyID     string `ini:"MINIO_ACCESS_KEY_ID"`
-	SecretAccessKey string `ini:"MINIO_SECRET_ACCESS_KEY"`
-	Bucket          string `ini:"MINIO_BUCKET"`
-	Location        string `ini:"MINIO_LOCATION"`
-	BasePath        string `ini:"MINIO_BASE_PATH"`
-	UseSSL          bool   `ini:"MINIO_USE_SSL"`
+	Endpoint         string `ini:"MINIO_ENDPOINT"`
+	AccessKeyID      string `ini:"MINIO_ACCESS_KEY_ID"`
+	SecretAccessKey  string `ini:"MINIO_SECRET_ACCESS_KEY"`
+	Bucket           string `ini:"MINIO_BUCKET"`
+	Location         string `ini:"MINIO_LOCATION"`
+	BasePath         string `ini:"MINIO_BASE_PATH"`
+	UseSSL           bool   `ini:"MINIO_USE_SSL"`
+	DisableSignature bool   `ini:"MINIO_DISABLE_SIGNATURE"`
+	DisableMultipart bool   `ini:"MINIO_DISABLE_MULTIPART"`
 }
 
 // MinioStorage returns a minio bucket storage
