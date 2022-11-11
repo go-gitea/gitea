@@ -69,7 +69,11 @@ func ListHooks(ctx *context.APIContext) {
 
 	apiHooks := make([]*api.Hook, len(hooks))
 	for i := range hooks {
-		apiHooks[i] = convert.ToHook(ctx.Repo.RepoLink, hooks[i])
+		apiHooks[i], err = convert.ToHook(ctx.Repo.RepoLink, hooks[i])
+		if err != nil {
+			ctx.InternalServerError(err)
+			return
+		}
 	}
 
 	ctx.SetTotalCountHeader(count)
@@ -112,7 +116,12 @@ func GetHook(ctx *context.APIContext) {
 	if err != nil {
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToHook(repo.RepoLink, hook))
+	apiHook, err := convert.ToHook(repo.RepoLink, hook)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, apiHook)
 }
 
 // TestHook tests a hook
