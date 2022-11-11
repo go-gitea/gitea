@@ -756,13 +756,13 @@ func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
 			}
 			defer dataRc.Close()
 			buf := make([]byte, 1024)
-			n, _ := util.ReadAtMost(dataRc, buf)
+			n, err := util.ReadAtMost(dataRc, buf)
 			if err != nil {
 				ctx.ServerError("ReadAtMost", err)
 				return
 			}
 			buf = buf[:n]
-			ctx.PageData["citiationFileContent"] = string(buf)
+			ctx.PageData["citationFileContent"] = string(buf)
 			break
 		}
 	}

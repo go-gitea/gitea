@@ -2,20 +2,18 @@ import $ from 'jquery';
 
 const {pageData} = window.config;
 
-const initInputCitationValue = async () => {
+const initInputCitationValue = async ($citationCopyBibtex, $citationCopyApa) => {
   const [{Cite, plugins}] = await Promise.all([
     import(/* webpackChunkName: "citation-js-core" */'@citation-js/core'),
     import(/* webpackChunkName: "citation-js-formats" */'@citation-js/plugin-software-formats'),
     import(/* webpackChunkName: "citation-js-bibtex" */'@citation-js/plugin-bibtex'),
     import(/* webpackChunkName: "citation-js-bibtex" */'@citation-js/plugin-csl'),
   ]);
-  const {citiationFileContent} = pageData;
-  const $citationCopyApa = $('#citation-copy-apa');
-  const $citationCopyBibtex = $('#citation-copy-bibtex');
+  const {citationFileContent} = pageData;
   const config = plugins.config.get('@bibtex');
   config.constants.fieldTypes.doi = ['field', 'literal'];
   config.constants.fieldTypes.version = ['field', 'literal'];
-  const citationFormatter = new Cite(citiationFileContent);
+  const citationFormatter = new Cite(citationFileContent);
   const lang = document.documentElement.lang || 'en-US';
   const apaOutput = citationFormatter.format('bibliography', {template: 'apa', lang});
   const bibtexOutput = citationFormatter.format('bibtex', {lang});
@@ -26,7 +24,7 @@ const initInputCitationValue = async () => {
 export function initCitationFileCopyContent() {
   const defaultCitationFormat = 'apa'; // apa or bibtex
 
-  if (!pageData.citiationFileContent) return;
+  if (!pageData.citationFileContent) return;
 
   const $citationCopyApa = $('#citation-copy-apa');
   const $citationCopyBibtex = $('#citation-copy-bibtex');
@@ -41,7 +39,7 @@ export function initCitationFileCopyContent() {
     $citationCopyBibtex.toggleClass('primary', isBibtex);
     $citationCopyApa.toggleClass('primary', !isBibtex);
   };
-  initInputCitationValue().then(updateUi);
+  initInputCitationValue($citationCopyApa, $citationCopyBibtex).then(updateUi);
 
   $citationCopyApa.on('click', () => {
     localStorage.setItem('citation-copy-format', 'apa');
