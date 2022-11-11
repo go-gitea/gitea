@@ -22,13 +22,13 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
-	"xorm.io/builder"
 
+	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 	gouuid "github.com/google/uuid"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/nektos/act/pkg/jobparser"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"xorm.io/builder"
 )
 
 // Task represents a distribution of job
@@ -43,6 +43,10 @@ type Task struct {
 	Status   Status             `xorm:"index"`
 	Started  timeutil.TimeStamp `xorm:"index"`
 	Stopped  timeutil.TimeStamp
+
+	RepoID    int64  `xorm:"index"`
+	OwnerID   int64  `xorm:"index"`
+	CommitSHA string `xorm:"index"`
 
 	Token          string `xorm:"-"`
 	TokenHash      string `xorm:"UNIQUE"` // sha256 of token
@@ -384,11 +388,14 @@ func CreateTaskForRunner(ctx context.Context, runner *Runner) (*Task, bool, erro
 	job.Status = StatusRunning
 
 	task := &Task{
-		JobID:    job.ID,
-		Attempt:  job.Attempt,
-		RunnerID: runner.ID,
-		Started:  now,
-		Status:   StatusRunning,
+		JobID:     job.ID,
+		Attempt:   job.Attempt,
+		RunnerID:  runner.ID,
+		Started:   now,
+		Status:    StatusRunning,
+		RepoID:    job.RepoID,
+		OwnerID:   job.OwnerID,
+		CommitSHA: job.CommitSHA,
 	}
 	if err := task.GenerateToken(); err != nil {
 		return nil, false, err

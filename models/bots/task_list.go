@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
+
 	"xorm.io/builder"
 )
 
@@ -57,6 +58,9 @@ func (tasks TaskList) LoadAttributes(ctx context.Context) error {
 
 type FindTaskOptions struct {
 	db.ListOptions
+	RepoID        int64
+	OwnerID       int64
+	CommitSHA     string
 	Status        Status
 	UpdatedBefore timeutil.TimeStamp
 	StartedBefore timeutil.TimeStamp
@@ -66,6 +70,15 @@ type FindTaskOptions struct {
 
 func (opts FindTaskOptions) toConds() builder.Cond {
 	cond := builder.NewCond()
+	if opts.RepoID > 0 {
+		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	}
+	if opts.OwnerID > 0 {
+		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
+	}
+	if opts.CommitSHA != "" {
+		cond = cond.And(builder.Eq{"commit_sha": opts.CommitSHA})
+	}
 	if opts.Status > StatusUnknown {
 		cond = cond.And(builder.Eq{"status": opts.Status})
 	}
