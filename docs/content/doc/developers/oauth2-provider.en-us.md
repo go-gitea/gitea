@@ -42,7 +42,41 @@ To use the Authorization Code Grant as a third party application it is required 
 
 ## Scopes
 
-Currently Gitea does not support scopes (see [#4300](https://github.com/go-gitea/gitea/issues/4300)) and all third party applications will be granted access to all resources of the user and their organizations.
+Gitea supports the following scopes for tokens:
+
+| Name | Description |
+| ---- | ----------- |
+| **(no scope)** | Grants read-only access to public user profile and public repositories. |
+| **repo** | Full control over all repositories. |
+| &nbsp;&nbsp;&nbsp;&nbsp;**repo:status** | Grants read/write access to commit status in all repositories. |
+| &nbsp;&nbsp;&nbsp;&nbsp;**public_repo** | Grants read/write access to public repositories only. |
+| **admin:repo_hook** | Grants access to repository hooks of all repositories. This is included in the `repo` scope. |
+| &nbsp;&nbsp;&nbsp;&nbsp;**write:repo_hook** | |
+| &nbsp;&nbsp;&nbsp;&nbsp;**read:repo_hook** | |
+| **admin:org** | |
+| &nbsp;&nbsp;&nbsp;&nbsp;**write:org** | |
+| &nbsp;&nbsp;&nbsp;&nbsp;**read:org** | |
+| **admin:public_key** | |
+| &nbsp;&nbsp;&nbsp;&nbsp;**write:public_key** | |
+| &nbsp;&nbsp;&nbsp;&nbsp;**read:public_key** | |
+| **admin:org_hook** | |
+| **notification** | |
+| **user** | |
+| &nbsp;&nbsp;&nbsp;&nbsp;**read:user** | |
+| &nbsp;&nbsp;&nbsp;&nbsp;**user:email** | |
+| &nbsp;&nbsp;&nbsp;&nbsp;**user:follow** | |
+| **delete_repo** | |
+| **package** | |
+| &nbsp;&nbsp;&nbsp;&nbsp;**write:package** | |
+| &nbsp;&nbsp;&nbsp;&nbsp;**read:package** | |
+| &nbsp;&nbsp;&nbsp;&nbsp;**delete:package** | |
+| **admin:gpg_key** | |
+| &nbsp;&nbsp;&nbsp;&nbsp;**write:gpg_key** | |
+| &nbsp;&nbsp;&nbsp;&nbsp;**read:gpg_key** | |
+| **admin:application** | |
+| &nbsp;&nbsp;&nbsp;&nbsp;**write:application** | |
+| &nbsp;&nbsp;&nbsp;&nbsp;**read:application** | |
+| **sudo** | Allows to perform actions as the site admin. |
 
 ## Client types
 
