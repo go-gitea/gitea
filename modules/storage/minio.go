@@ -148,14 +148,16 @@ func (m *MinioStorage) Save(path string, r io.Reader, size int64) (int64, error)
 		// well, unless we have a better way to estimate the stream size, this would be a workaround
 
 		buf := &bytes.Buffer{}
-		if n, err := io.Copy(buf, r); err != nil {
+		n, err := io.Copy(buf, r)
+
+		if err != nil {
 			// I guess this would likely be EOF or OOM...?
 			return -1, err
-		} else {
-			// Since we read all the data from the source, it might not be usable again,
-			// so we should swap the reader location to our memory buffer
-			r, size = buf, n
 		}
+
+		// Since we read all the data from the source, it might not be usable again,
+		// so we should swap the reader location to our memory buffer
+		r, size = buf, n
 	}
 
 	uploadInfo, err := m.client.PutObject(
