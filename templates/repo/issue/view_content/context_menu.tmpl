@@ -10,16 +10,16 @@
 		{{else}}
 			{{$referenceUrl = Printf "%s/files#%s" .ctx.Issue.HTMLURL .item.HashTag}}
 		{{end}}
-		<div class="item context" role="menuitem" tabindex="-1" data-clipboard-text="{{$referenceUrl}}">{{.ctx.locale.Tr "repo.issues.context.copy_link"}}</div>
-		<div class="item context quote-reply {{if .diff}}quote-reply-diff{{end}}" role="menuitem" tabindex="-1" data-target="{{.item.ID}}">{{.ctx.locale.Tr "repo.issues.context.quote_reply"}}</div>
+		<div id="{{.item.HashTag}}-option-1" class="item context" role="menuitem" tabindex="-1" data-clipboard-text="{{$referenceUrl}}">{{.ctx.locale.Tr "repo.issues.context.copy_link"}}</div>
+		<div id="{{.item.HashTag}}-option-2" class="item context quote-reply {{if .diff}}quote-reply-diff{{end}}" role="menuitem" tabindex="-1" data-target="{{.item.ID}}">{{.ctx.locale.Tr "repo.issues.context.quote_reply"}}</div>
 		{{if not .ctx.UnitIssuesGlobalDisabled}}
-			<div class="item context reference-issue" role="menuitem" tabindex="-1" data-target="{{.item.ID}}" data-modal="#reference-issue-modal" data-poster="{{.item.Poster.GetDisplayName}}" data-poster-username="{{.item.Poster.Name}}" data-reference="{{$referenceUrl}}">{{.ctx.locale.Tr "repo.issues.context.reference_issue"}}</div>
+			<div id="{{.item.HashTag}}-option-3" class="item context reference-issue" role="menuitem" tabindex="-1" data-target="{{.item.ID}}" data-modal="#reference-issue-modal" data-poster="{{.item.Poster.GetDisplayName}}" data-poster-username="{{.item.Poster.Name}}" data-reference="{{$referenceUrl}}">{{.ctx.locale.Tr "repo.issues.context.reference_issue"}}</div>
 		{{end}}
 		{{if or .ctx.Permission.IsAdmin .IsCommentPoster .ctx.HasIssuesOrPullsWritePermission}}
 			<div class="divider" role="none"></div>
-			<div class="item context edit-content" role="menuitem" tabindex="-1">{{.ctx.locale.Tr "repo.issues.context.edit"}}</div>
+			<div id="{{.item.HashTag}}-option-4" class="item context edit-content" role="menuitem" tabindex="-1">{{.ctx.locale.Tr "repo.issues.context.edit"}}</div>
 			{{if .delete}}
-				<div class="item context delete-comment" role="menuitem" tabindex="-1" data-comment-id={{.item.HashTag}} data-url="{{.ctx.RepoLink}}/comments/{{.item.ID}}/delete" data-locale="{{.ctx.locale.Tr "repo.issues.delete_comment_confirm"}}">{{.ctx.locale.Tr "repo.issues.context.delete"}}</div>
+				<div id="{{.item.HashTag}}-option-5" class="item context delete-comment" role="menuitem" tabindex="-1" data-comment-id={{.item.HashTag}} data-url="{{.ctx.RepoLink}}/comments/{{.item.ID}}/delete" data-locale="{{.ctx.locale.Tr "repo.issues.delete_comment_confirm"}}">{{.ctx.locale.Tr "repo.issues.context.delete"}}</div>
 			{{end}}
 		{{end}}
 	</div>

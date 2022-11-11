@@ -6,8 +6,8 @@
 	<div class="menu">
 		<div class="header" role="none">{{.ctx.locale.Tr "repo.pick_reaction"}}</div>
 		<div class="divider" role="none"></div>
-		{{range $value := AllowedReactions}}
-			<div class="item reaction tooltip" role="menuitem" aria-label="{{$value}}" tabindex="-1" data-content="{{$value}}">{{ReactionToEmoji $value}}</div>
+		{{range $index, $value := AllowedReactions}}
+			<div id="{{$.IdPrefix}}-reaction-option-{{$index}}" class="item reaction tooltip" role="menuitem" aria-label="{{$value}}" tabindex="-1" data-content="{{$value}}">{{ReactionToEmoji $value}}</div>
 		{{end}}
 	</div>
 </div>

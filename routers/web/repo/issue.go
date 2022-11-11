@@ -2896,6 +2896,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 		"ctx":       ctx.Data,
 		"ActionURL": fmt.Sprintf("%s/issues/%d/reactions", ctx.Repo.RepoLink, issue.Index),
 		"Reactions": issue.Reactions.GroupByType(),
+		"IdPrefix":  issue.HashTag(),
 	})
 	if err != nil {
 		ctx.ServerError("ChangeIssueReaction.HTMLString", err)
@@ -2998,6 +2999,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 		"ctx":       ctx.Data,
 		"ActionURL": fmt.Sprintf("%s/comments/%d/reactions", ctx.Repo.RepoLink, comment.ID),
 		"Reactions": comment.Reactions.GroupByType(),
+		"IdPrefix":  comment.HashTag(),
 	})
 	if err != nil {
 		ctx.ServerError("ChangeCommentReaction.HTMLString", err)

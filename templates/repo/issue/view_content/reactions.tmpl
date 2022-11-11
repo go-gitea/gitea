@@ -5,5 +5,5 @@
 	</a>
 {{end}}
 {{if AllowedReactions}}
-	{{template "repo/issue/view_content/add_reaction" Dict "ctx" $.ctx "ActionURL" .ActionURL}}
+	{{template "repo/issue/view_content/add_reaction" Dict "ctx" $.ctx "ActionURL" .ActionURL "IdPrefix" (Printf "%s-inline" .IdPrefix)}}
 {{end}}

@@ -33,87 +33,54 @@ function attachOneDropdownAria($dropdown) {
   const $focusable = $textSearch.length ? $textSearch : $dropdown; // see comment below
   if (!$focusable.length) return;
 
-  // prepare menu list
   const $menu = $dropdown.find('> .menu');
-  if (!$menu.attr('id')) $menu.attr('id', generateAriaId());
+  if (!$dropdown.attr('data-aria-templated')) {
+    // prepare menu list
+    if (!$menu.attr('id')) $menu.attr('id', generateAriaId());
 
-  // dropdown has 2 different focusing behaviors
-  // * with search input: the input is focused, and it works perfectly with aria-activedescendant pointing another sibling element.
-  // * without search input (but the readonly text), the dropdown itself is focused. then the aria-activedescendant points to the element inside dropdown
+    // dropdown has 2 different focusing behaviors
+    // * with search input: the input is focused, and it works perfectly with aria-activedescendant pointing another sibling element.
+    // * without search input (but the readonly text), the dropdown itself is focused. then the aria-activedescendant points to the element inside dropdown
 
-  // expected user interactions for dropdown with aria support:
-  // * user can use Tab to focus in the dropdown, then the dropdown menu (list) will be shown
-  // * user presses Tab on the focused dropdown to move focus to next sibling focusable element (but not the menu item)
-  // * user can use arrow key Up/Down to navigate between menu items
-  // * when user presses Enter:
-  //    - if the menu item is clickable (eg: <a>), then trigger the click event
-  //    - otherwise, the dropdown control (low-level code) handles the Enter event, hides the dropdown menu
+    // expected user interactions for dropdown with aria support:
+    // * user can use Tab to focus in the dropdown, then the dropdown menu (list) will be shown
+    // * user presses Tab on the focused dropdown to move focus to next sibling focusable element (but not the menu item)
+    // * user can use arrow key Up/Down to navigate between menu items
+    // * when user presses Enter:
+    //    - if the menu item is clickable (eg: <a>), then trigger the click event
+    //    - otherwise, the dropdown control (low-level code) handles the Enter event, hides the dropdown menu
 
-  // TODO: multiple selection is not supported yet.
+    // TODO: multiple selection is not supported yet.
 
-  $focusable.attr({
-    'role': 'menu',
-    'aria-haspopup': 'menu',
-    'aria-controls': $menu.attr('id'),
-    'aria-expanded': 'false',
-  });
+    $focusable.attr({
+      'role': 'menu',
+      'aria-haspopup': 'menu',
+      'aria-controls': $menu.attr('id'),
+      'aria-expanded': 'false',
+    });
 
-  if ($dropdown.attr('data-content') && !$dropdown.attr('aria-label')) {
-    $dropdown.attr('aria-label', $dropdown.attr('data-content'));
+    if ($dropdown.attr('data-content') && !$dropdown.attr('aria-label')) {
+      $dropdown.attr('aria-label', $dropdown.attr('data-content'));
+    }
+
+    $menu.find('> .item').each((_, item) => {
+      prepareMenuItem($(item));
+    });
   }
-
-  $menu.find('> .item').each((_, item) => {
-    prepareMenuItem($(item));
-  });
-
   // update aria attributes according to current active/selected item
   const refreshAria = () => {
     const isMenuVisible = !$menu.is('.hidden') && !$menu.is('.animating.out');
-    $focusable.attr('aria-expanded', isMenuVisible ? 'true' : 'false');
+    if (isMenuVisible) {
+      $focusable.attr('aria-expanded', 'true');
+    } else {
+      $focusable.removeAttr('aria-expanded');
+    }
 
     let $active = $menu.find('> .item.active');
     if (!$active.length) $active = $menu.find('> .item.selected'); // it's strange that we need this fallback at the moment
 
     // if there is an active item, use its id. if no active item, then the empty string is set
     $focusable.attr('aria-activedescendant', $active.attr('id'));
-  };
-
-  $dropdown.on('keydown', (e) => {
-    // here it must use keydown event before dropdown's keyup handler, otherwise there is no Enter event in our keyup handler
-    if (e.key === 'Enter') {
-      const $item = $dropdown.dropdown('get item', $dropdown.dropdown('get value'));
-      // if the selected item is clickable, then trigger the click event. in the future there could be a special CSS class for it.
-      if ($item && $item.is('a')) $item[0].click();
-    }
-  });
-
-  // use setTimeout to run the refreshAria in next tick (to make sure the Fomantic UI code has finished its work)
-  const deferredRefreshAria = () => { setTimeout(refreshAria, 0) }; // do not return any value, jQuery has return-value related behaviors.
-  $focusable.on('focus', deferredRefreshAria);
-  $focusable.on('mouseup', deferredRefreshAria);
-  $focusable.on('blur', deferredRefreshAria);
-  $dropdown.on('keyup', (e) => { if (e.key.startsWith('Arrow')) deferredRefreshAria(); });
-}
-
-function attachOneDropdownAriaTemplated($dropdown) {
-  if ($dropdown.attr('data-aria-attached')) return;
-  $dropdown.attr('data-aria-attached', 1);
-
-  const $menu = $dropdown.find('> .menu');
-  // update aria attributes according to current active/selected item
-  const refreshAria = () => {
-    const isMenuVisible = !$menu.is('.hidden') && !$menu.is('.animating.out');
-    if (isMenuVisible) {
-      $dropdown.attr('aria-expanded', 'true');
-    } else {
-      $dropdown.removeAttr('aria-expanded');
-    }
-
-    let $active = $menu.find('> .item.active');
-    if (!$active.length) $active = $menu.find('> .item.selected'); // it's strange that we need this fallback at the moment
-
-    // if there is an active item, use its id. if no active item, then the empty string is set
-    $dropdown.attr('aria-activedescendant', $active.attr('id'));
   };
 
   $dropdown.on('keydown', (e) => {
@@ -130,13 +97,12 @@ function attachOneDropdownAriaTemplated($dropdown) {
 
   // use setTimeout to run the refreshAria in next tick (to make sure the Fomantic UI code has finished its work)
   const deferredRefreshAria = () => { setTimeout(refreshAria, 0) }; // do not return any value, jQuery has return-value related behaviors.
-  $dropdown.on('focus', deferredRefreshAria);
-  $dropdown.on('mouseup', deferredRefreshAria);
-  $dropdown.on('blur', deferredRefreshAria);
+  $focusable.on('focus', deferredRefreshAria);
+  $focusable.on('mouseup', deferredRefreshAria);
+  $focusable.on('blur', deferredRefreshAria);
   $dropdown.on('keyup', (e) => { if (e.key.startsWith('Arrow')) deferredRefreshAria(); });
 }
 
 export function attachDropdownAria($dropdowns) {
-  $dropdowns.filter(':not([data-aria-templated])').each((_, e) => attachOneDropdownAria($(e)));
-  $dropdowns.filter('[data-aria-templated]').each((_, e) => attachOneDropdownAriaTemplated($(e)));
+  $dropdowns.each((_, e) => attachOneDropdownAria($(e)));
 }
