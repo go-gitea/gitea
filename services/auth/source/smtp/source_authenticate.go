@@ -32,7 +32,7 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 	var auth smtp.Auth
 	switch source.Auth {
 	case PlainAuthentication:
-		auth = smtp.PlainAuth("", userName, password, source.Addr)
+		auth = smtp.PlainAuth("", userName, password, source.Host)
 	case LoginAuthentication:
 		auth = &loginAuthenticator{userName, password}
 	case CRAMMD5Authentication:
