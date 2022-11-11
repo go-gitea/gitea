@@ -6,8 +6,6 @@ package activitypub
 
 import (
 	"context"
-	"strconv"
-	"strings"
 
 	"code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -22,15 +20,18 @@ func Comment(ctx context.Context, note *ap.Note) error {
 		return err
 	}
 
-	// TODO: Move IRI processing stuff to iri.go
-	context := note.Context.GetLink()
-	contextSplit := strings.Split(context.String(), "/")
-	username := contextSplit[3]
-	reponame := contextSplit[4]
-	repo, _ := repo_model.GetRepositoryByOwnerAndNameCtx(ctx, username, reponame)
-
-	idx, _ := strconv.ParseInt(contextSplit[len(contextSplit)-1], 10, 64)
-	issue, _ := issues.GetIssueByIndex(repo.ID, idx)
+	username, reponame, idx, err := TicketIRIToName(note.Context.GetLink())
+	if err != nil {
+		return err
+	}
+	repo, err := repo_model.GetRepositoryByOwnerAndNameCtx(ctx, username, reponame)
+	if err != nil {
+		return err
+	}
+	issue, err := issues.GetIssueByIndex(repo.ID, idx)
+	if err != nil {
+		return err
+	}
 	_, err = issues.CreateCommentCtx(ctx, &issues.CreateCommentOptions{
 		Doer:    actorUser,
 		Repo:    repo,

@@ -7,6 +7,7 @@ package activitypub
 import (
 	"context"
 	"errors"
+	"strconv"
 	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -19,8 +20,8 @@ import (
 // Returns the username corresponding to a Person actor IRI
 func PersonIRIToName(personIRI ap.IRI) (string, error) {
 	personIRISplit := strings.Split(personIRI.String(), "/")
-	if len(personIRISplit) < 3 {
-		return "", errors.New("Not a Person actor IRI")
+	if len(personIRISplit) < 4 {
+		return "", errors.New("not a Person actor IRI")
 	}
 
 	instance := personIRISplit[2]
@@ -53,7 +54,7 @@ func PersonIRIToUser(ctx context.Context, personIRI ap.IRI) (*user_model.User, e
 func RepositoryIRIToName(repoIRI ap.IRI) (string, string, error) {
 	repoIRISplit := strings.Split(repoIRI.String(), "/")
 	if len(repoIRISplit) < 5 {
-		return "", "", errors.New("Not a Repository actor IRI")
+		return "", "", errors.New("not a Repository actor IRI")
 	}
 
 	instance := repoIRISplit[2]
@@ -76,4 +77,26 @@ func RepositoryIRIToRepository(ctx context.Context, repoIRI ap.IRI) (*repo_model
 
 	// TODO: create remote repo if not exists
 	return repo_model.GetRepositoryByOwnerAndName(username, reponame)
+}
+
+// Returns the owner, repo name, and idx of a Ticket object IRI
+func TicketIRIToName(ticketIRI ap.IRI) (string, string, int64, error) {
+	ticketIRISplit := strings.Split(ticketIRI.String(), "/")
+	if len(ticketIRISplit) < 5 {
+		return "", "", 0, errors.New("not a Ticket actor IRI")
+	}
+
+	instance := ticketIRISplit[2]
+	username := ticketIRISplit[len(ticketIRISplit)-3]
+	reponame := ticketIRISplit[len(ticketIRISplit)-2]
+	idx, err := strconv.ParseInt(ticketIRISplit[len(ticketIRISplit)-1], 10, 64)
+	if err != nil {
+		return "", "", 0, err
+	}
+	if instance == setting.Domain {
+		// Local repo
+		return username, reponame, idx, nil
+	}
+	// Remote repo
+	return username + "@" + instance, reponame, idx, nil
 }
