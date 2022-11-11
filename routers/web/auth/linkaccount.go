@@ -14,8 +14,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	auth_service "code.gitea.io/gitea/services/auth"
@@ -153,23 +151,14 @@ func linkAccount(ctx *context.Context, u *user_model.User, gothUser goth.User, r
 		return
 	}
 
-	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
+	if err := updateSession(ctx, nil, map[string]interface{}{
+		// User needs to use 2FA, save data and redirect to 2FA page.
+		"twofaUid":      u.ID,
+		"twofaRemember": remember,
+		"linkAccount":   true,
+	}); err != nil {
 		ctx.ServerError("RegenerateSession", err)
 		return
-	}
-
-	// User needs to use 2FA, save data and redirect to 2FA page.
-	if err := ctx.Session.Set("twofaUid", u.ID); err != nil {
-		log.Error("Error setting twofaUid in session: %v", err)
-	}
-	if err := ctx.Session.Set("twofaRemember", remember); err != nil {
-		log.Error("Error setting twofaRemember in session: %v", err)
-	}
-	if err := ctx.Session.Set("linkAccount", true); err != nil {
-		log.Error("Error setting linkAccount in session: %v", err)
-	}
-	if err := ctx.Session.Release(); err != nil {
-		log.Error("Error storing session: %v", err)
 	}
 
 	// If WebAuthn is enrolled -> Redirect to WebAuthn instead
