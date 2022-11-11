@@ -110,18 +110,7 @@ func WithTx(parentCtx context.Context, f func(ctx context.Context) error) error 
 	if InTransaction(parentCtx) {
 		return ErrAlreadyInTransaction
 	}
-
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-
-	if err := f(newContext(parentCtx, sess, true)); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return txWithNoCheck(parentCtx, f)
 }
 
 // AutoTx represents executing database operations on a transaction, if the transaction exist,
@@ -130,7 +119,10 @@ func AutoTx(parentCtx context.Context, f func(ctx context.Context) error) error 
 	if InTransaction(parentCtx) {
 		return f(newContext(parentCtx, GetEngine(parentCtx), true))
 	}
+	return txWithNoCheck(parentCtx, f)
+}
 
+func txWithNoCheck(parentCtx context.Context, f func(ctx context.Context) error) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
