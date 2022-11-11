@@ -149,7 +149,6 @@ func (m *MinioStorage) Save(path string, r io.Reader, size int64) (int64, error)
 
 		buf := &bytes.Buffer{}
 		n, err := io.Copy(buf, r)
-
 		if err != nil {
 			// I guess this would likely be EOF or OOM...?
 			return -1, err
