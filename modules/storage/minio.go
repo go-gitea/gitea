@@ -136,13 +136,18 @@ func (m *MinioStorage) Open(path string) (Object, error) {
 
 // Save save a file to minio
 func (m *MinioStorage) Save(path string, r io.Reader, size int64) (int64, error) {
+	disableSignature, disableMultipart := false, false
+	if m.config != nil {
+		disableSignature, disableMultipart = m.config.DisableSignature, m.config.DisableMultipart
+	}
+
 	uploadInfo, err := m.client.PutObject(
 		m.ctx,
 		m.bucket,
 		m.buildMinioPath(path),
 		r,
 		size,
-		minio.PutObjectOptions{ContentType: "application/octet-stream"},
+		minio.PutObjectOptions{ContentType: "application/octet-stream", DisableContentSha256: disableSignature, DisableMultipart: disableMultipart},
 	)
 	if err != nil {
 		return 0, convertMinioErr(err)
