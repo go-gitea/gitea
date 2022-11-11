@@ -88,10 +88,10 @@ var (
 	// AppWorkPath is used as the base path for several other paths.
 	AppWorkPath string
 	// AppDataPath is the default path for storing data.
-	// It maps to ini:"APP_DATA_PATH" and defaults to AppWorkPath + "/data"
+	// It maps to ini:"APP_DATA_PATH" in [server] and defaults to AppWorkPath + "/data"
 	AppDataPath string
 	// LocalURL is the url for locally running applications to contact Gitea. It always has a '/' suffix
-	// It maps to ini:"LOCAL_ROOT_URL"
+	// It maps to ini:"LOCAL_ROOT_URL" in [server]
 	LocalURL string
 	// AssetVersion holds a opaque value that is used for cache-busting assets
 	AssetVersion string
