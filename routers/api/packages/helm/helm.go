@@ -186,17 +186,21 @@ func UploadPackage(ctx *context.Context) {
 			PackageFileInfo: packages_service.PackageFileInfo{
 				Filename: createFilename(metadata),
 			},
+			Creator:           ctx.Doer,
 			Data:              buf,
 			IsLead:            true,
 			OverwriteExisting: true,
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrDuplicatePackageVersion {
+		switch err {
+		case packages_model.ErrDuplicatePackageVersion:
 			apiError(ctx, http.StatusConflict, err)
-			return
+		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+			apiError(ctx, http.StatusForbidden, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
 		}
-		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 

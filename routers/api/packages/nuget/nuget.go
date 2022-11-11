@@ -374,16 +374,20 @@ func UploadPackage(ctx *context.Context) {
 			PackageFileInfo: packages_service.PackageFileInfo{
 				Filename: strings.ToLower(fmt.Sprintf("%s.%s.nupkg", np.ID, np.Version)),
 			},
-			Data:   buf,
-			IsLead: true,
+			Creator: ctx.Doer,
+			Data:    buf,
+			IsLead:  true,
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrDuplicatePackageVersion {
+		switch err {
+		case packages_model.ErrDuplicatePackageVersion:
 			apiError(ctx, http.StatusConflict, err)
-			return
+		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+			apiError(ctx, http.StatusForbidden, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
 		}
-		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -428,8 +432,9 @@ func UploadSymbolPackage(ctx *context.Context) {
 			PackageFileInfo: packages_service.PackageFileInfo{
 				Filename: strings.ToLower(fmt.Sprintf("%s.%s.snupkg", np.ID, np.Version)),
 			},
-			Data:   buf,
-			IsLead: false,
+			Creator: ctx.Doer,
+			Data:    buf,
+			IsLead:  false,
 		},
 	)
 	if err != nil {
@@ -438,6 +443,8 @@ func UploadSymbolPackage(ctx *context.Context) {
 			apiError(ctx, http.StatusNotFound, err)
 		case packages_model.ErrDuplicatePackageFile:
 			apiError(ctx, http.StatusConflict, err)
+		case packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+			apiError(ctx, http.StatusForbidden, err)
 		default:
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
@@ -452,8 +459,9 @@ func UploadSymbolPackage(ctx *context.Context) {
 					Filename:     strings.ToLower(pdb.Name),
 					CompositeKey: strings.ToLower(pdb.ID),
 				},
-				Data:   pdb.Content,
-				IsLead: false,
+				Creator: ctx.Doer,
+				Data:    pdb.Content,
+				IsLead:  false,
 				Properties: map[string]string{
 					nuget_module.PropertySymbolID: strings.ToLower(pdb.ID),
 				},
@@ -463,6 +471,8 @@ func UploadSymbolPackage(ctx *context.Context) {
 			switch err {
 			case packages_model.ErrDuplicatePackageFile:
 				apiError(ctx, http.StatusConflict, err)
+			case packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+				apiError(ctx, http.StatusForbidden, err)
 			default:
 				apiError(ctx, http.StatusInternalServerError, err)
 			}
