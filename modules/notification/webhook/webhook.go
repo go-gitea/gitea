@@ -339,7 +339,7 @@ func (m *webhookNotifier) NotifyIssueChangeContent(doer *user_model.User, issue 
 	defer finished()
 
 	if err := issue.LoadRepo(ctx); err != nil {
-		log.Error("NotifyIssueChangeContent: coulnd't load repo", err)
+		log.Error("LoadRepo: %v", err)
 		return
 	}
 
