@@ -55,5 +55,5 @@ func ExtractKeysFromMapString(in map[string]VisibleType) (keys []string) {
 	for k := range in {
 		keys = append(keys, k)
 	}
-	return
+	return keys
 }

@@ -1,0 +1,35 @@
+# type IssueLabel struct {
+#   ID      int64 `xorm:"pk autoincr"`
+#   IssueID int64 `xorm:"UNIQUE(s)"`
+#   LabelID int64 `xorm:"UNIQUE(s)"`
+# }
+-
+  id: 1 # Should remain - matches comment 2
+  issue_id: 1
+  label_id: 1
+  should_remain: true
+-
+  id: 2 # Should remain
+  issue_id: 2
+  label_id: 2
+  should_remain: true
+-
+  id: 3 # Should be deleted
+  issue_id: 1
+  label_id: 3
+  should_remain: false
+-
+  id: 4 # Should remain
+  issue_id: 3
+  label_id: 1
+  should_remain: true
+-
+  id: 5 # Should be deleted
+  issue_id: 3
+  label_id: 2
+  should_remain: false
+-
+  id: 6 # Should be deleted
+  issue_id: 3
+  label_id: 5
+  should_remain: false

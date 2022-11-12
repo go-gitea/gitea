@@ -1,0 +1,55 @@
+{
+  "version": "2.8.7",
+  "base": "node_modules/fomantic-ui",
+  "paths": {
+    "source": {
+      "config": "src/theme.config",
+      "definitions": "src/definitions/",
+      "site": "src/site/",
+      "themes": "src/themes/"
+    },
+    "output": {
+      "packaged": "../../build/",
+      "uncompressed": "../../build/components/",
+      "compressed": "../../build/components/",
+      "themes": "../../build/themes/"
+    },
+    "clean": "../../build/"
+  },
+  "permission": false,
+  "autoInstall": false,
+  "rtl": false,
+  "admin": false,
+  "components": [
+    "api",
+    "breadcrumb",
+    "button",
+    "card",
+    "checkbox",
+    "comment",
+    "container",
+    "dimmer",
+    "divider",
+    "dropdown",
+    "form",
+    "grid",
+    "header",
+    "icon",
+    "input",
+    "item",
+    "label",
+    "list",
+    "loader",
+    "menu",
+    "message",
+    "modal",
+    "reset",
+    "search",
+    "segment",
+    "site",
+    "tab",
+    "table",
+    "text",
+    "transition"
+  ]
+}

@@ -36,6 +36,13 @@ type swaggerResponseCommentList struct {
 	Body []api.Comment `json:"body"`
 }
 
+// TimelineList
+// swagger:response TimelineList
+type swaggerResponseTimelineList struct {
+	// in:body
+	Body []api.TimelineComment `json:"body"`
+}
+
 // Label
 // swagger:response Label
 type swaggerResponseLabel struct {

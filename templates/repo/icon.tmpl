@@ -1,0 +1,15 @@
+<div class="repo-icon mr-3">
+	{{if $.IsTemplate}}
+		{{svg "octicon-repo-template" 32}}
+	{{else}}
+		{{if $.IsPrivate}}
+			{{svg "octicon-lock" 32}}
+		{{else if $.IsMirror}}
+			{{svg "octicon-mirror" 32}}
+		{{else if $.IsFork}}
+			{{svg "octicon-repo-forked" 32}}
+		{{else}}
+			{{svg "octicon-repo" 32}}
+		{{end}}
+	{{end}}
+</div>

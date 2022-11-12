@@ -1,0 +1,14 @@
+[
+  {
+      "number": 1,
+      "poster_id": 1,
+      "poster_name": "name_a",
+      "title": "title_a",
+      "content": "content_a",
+      "state": "closed",
+      "is_locked": false,
+      "created": "1985-04-12T23:20:50.52Z",
+      "updated": "1986-04-12T23:20:50.52Z",
+      "closed": "1987-04-12T23:20:50.52Z"
+  }
+]

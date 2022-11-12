@@ -5,7 +5,8 @@
 package misc
 
 import (
-	"io/ioutil"
+	go_context "context"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -13,43 +14,49 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 
-	"gitea.com/macaron/inject"
-	"gitea.com/macaron/macaron"
 	"github.com/stretchr/testify/assert"
 )
 
-const AppURL = "http://localhost:3000/"
-const Repo = "gogits/gogs"
-const AppSubURL = AppURL + Repo + "/"
+const (
+	AppURL    = "http://localhost:3000/"
+	Repo      = "gogits/gogs"
+	AppSubURL = AppURL + Repo + "/"
+)
 
-func createContext(req *http.Request) (*macaron.Context, *httptest.ResponseRecorder) {
+func createContext(req *http.Request) (*context.Context, *httptest.ResponseRecorder) {
+	_, rnd := templates.HTMLRenderer(req.Context())
 	resp := httptest.NewRecorder()
-	c := &macaron.Context{
-		Injector: inject.New(),
-		Req:      macaron.Request{Request: req},
-		Resp:     macaron.NewResponseWriter(req.Method, resp),
-		Render:   &macaron.DummyRender{ResponseWriter: resp},
-		Data:     make(map[string]interface{}),
+	c := &context.Context{
+		Req:    req,
+		Resp:   context.NewResponse(resp),
+		Render: rnd,
+		Data:   make(map[string]interface{}),
 	}
-	c.Map(c)
-	c.Map(req)
+	defer c.Close()
+
 	return c, resp
 }
 
-func wrap(ctx *macaron.Context) *context.APIContext {
+func wrap(ctx *context.Context) *context.APIContext {
 	return &context.APIContext{
-		Context: &context.Context{
-			Context: ctx,
-		},
+		Context: ctx,
 	}
 }
 
 func TestAPI_RenderGFM(t *testing.T) {
 	setting.AppURL = AppURL
+	markup.Init(&markup.ProcessorHelper{
+		IsUsernameMentionable: func(ctx go_context.Context, username string) bool {
+			return username == "r-lyeh"
+		},
+	})
 
 	options := api.MarkdownOption{
 		Mode:    "gfm",
@@ -115,7 +122,8 @@ Here are some links to the most important topics. You can find the full list of 
 
 	for i := 0; i < len(testCases); i += 2 {
 		options.Text = testCases[i]
-		Markdown(ctx, options)
+		web.SetForm(ctx, &options)
+		Markdown(ctx)
 		assert.Equal(t, testCases[i+1], resp.Body.String())
 		resp.Body.Reset()
 	}
@@ -156,7 +164,8 @@ func TestAPI_RenderSimple(t *testing.T) {
 
 	for i := 0; i < len(simpleCases); i += 2 {
 		options.Text = simpleCases[i]
-		Markdown(ctx, options)
+		web.SetForm(ctx, &options)
+		Markdown(ctx)
 		assert.Equal(t, simpleCases[i+1], resp.Body.String())
 		resp.Body.Reset()
 	}
@@ -174,7 +183,7 @@ func TestAPI_RenderRaw(t *testing.T) {
 	ctx := wrap(m)
 
 	for i := 0; i < len(simpleCases); i += 2 {
-		ctx.Req.Request.Body = ioutil.NopCloser(strings.NewReader(simpleCases[i]))
+		ctx.Req.Body = io.NopCloser(strings.NewReader(simpleCases[i]))
 		MarkdownRaw(ctx)
 		assert.Equal(t, simpleCases[i+1], resp.Body.String())
 		resp.Body.Reset()

@@ -5,9 +5,10 @@
 package log
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"github.com/stretchr/testify/assert"
 )

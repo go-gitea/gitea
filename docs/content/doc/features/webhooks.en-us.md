@@ -3,7 +3,7 @@ date: "2016-12-01T16:00:00+02:00"
 title: "Webhooks"
 slug: "webhooks"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -15,7 +15,7 @@ menu:
 
 # Webhooks
 
-Gitea supports web hooks for repository events. This can be configured in the settings
+Gitea supports webhooks for repository events. This can be configured in the settings
 page `/:username/:reponame/settings/hooks` by a repository admin. Webhooks can also be configured on a per-organization and whole system basis.
 All event pushes are POST requests. The methods currently supported are:
 
@@ -27,6 +27,8 @@ All event pushes are POST requests. The methods currently supported are:
 - Telegram
 - Microsoft Teams
 - Feishu
+- Wechatwork
+- Packagist
 
 ### Event information
 
@@ -186,3 +188,7 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 ```
 
 There is a Test Delivery button in the webhook settings that allows to test the configuration as well as a list of the most Recent Deliveries.
+
+### Authorization header
+
+**With 1.19**, Gitea hooks can be configured to send an [authorization header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Authorization) to the webhook target.

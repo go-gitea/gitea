@@ -9,19 +9,25 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
-	models.MainTest(m, filepath.Join("..", "..", ".."))
+	unittest.MainTest(m, &unittest.TestOptions{
+		GiteaRootPath: filepath.Join("..", "..", ".."),
+	})
 }
 
 func TestRenameRepoAction(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{OwnerID: user.ID}).(*models.Repository)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user.ID})
 	repo.Owner = user
 
 	oldRepoName := repo.Name
@@ -29,8 +35,8 @@ func TestRenameRepoAction(t *testing.T) {
 	repo.Name = newRepoName
 	repo.LowerName = strings.ToLower(newRepoName)
 
-	actionBean := &models.Action{
-		OpType:    models.ActionRenameRepo,
+	actionBean := &activities_model.Action{
+		OpType:    activities_model.ActionRenameRepo,
 		ActUserID: user.ID,
 		ActUser:   user,
 		RepoID:    repo.ID,
@@ -38,10 +44,10 @@ func TestRenameRepoAction(t *testing.T) {
 		IsPrivate: repo.IsPrivate,
 		Content:   oldRepoName,
 	}
-	models.AssertNotExistsBean(t, actionBean)
+	unittest.AssertNotExistsBean(t, actionBean)
 
 	NewNotifier().NotifyRenameRepository(user, repo, oldRepoName)
 
-	models.AssertExistsAndLoadBean(t, actionBean)
-	models.CheckConsistencyFor(t, &models.Action{})
+	unittest.AssertExistsAndLoadBean(t, actionBean)
+	unittest.CheckConsistencyFor(t, &activities_model.Action{})
 }

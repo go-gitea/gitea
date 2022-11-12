@@ -1,0 +1,53 @@
+<h4 class="ui top attached header">
+	{{.locale.Tr "settings.manage_account_links"}}
+	{{if .OrderedOAuth2Names}}
+		<div class="ui right">
+			<div class="ui dropdown">
+				<div class="ui primary tiny button">{{.locale.Tr "settings.link_account"}}</div>
+				<div class="menu">
+					{{range $key := .OrderedOAuth2Names}}
+						{{$provider := index $.OAuth2Providers $key}}
+						<a class="item" href="{{AppSubUrl}}/user/oauth2/{{$key}}">
+							<img width="20" height="20" src="{{AppSubUrl}}{{$provider.Image}}" alt="{{$provider.DisplayName}}">
+							{{$provider.DisplayName}}
+						</a>
+					{{end}}
+				</div>
+			</div>
+		</div>
+	{{end}}
+</h4>
+
+<div class="ui attached segment">
+	<div class="ui key list">
+		<div class="item">
+			{{.locale.Tr "settings.manage_account_links_desc"}}
+		</div>
+		{{if .AccountLinks}}
+			{{range $loginSource, $provider := .AccountLinks}}
+				<div class="item">
+					<div class="right floated content">
+							<button class="ui red tiny button delete-button" data-modal-id="delete-account-link" data-url="{{AppSubUrl}}/user/settings/security/account_link" data-id="{{$loginSource.ID}}">
+								{{$.locale.Tr "settings.delete_key"}}
+							</button>
+					</div>
+					<div class="content">
+						<strong>{{$provider}}</strong>
+						{{if $loginSource.IsActive}}<span class="text red">{{$.locale.Tr "repo.settings.active"}}</span>{{end}}
+					</div>
+				</div>
+			{{end}}
+		{{end}}
+	</div>
+</div>
+
+<div class="ui small basic delete modal" id="delete-account-link">
+	<div class="ui icon header">
+		{{svg "octicon-trash"}}
+		{{.locale.Tr "settings.remove_account_link"}}
+	</div>
+	<div class="content">
+		<p>{{.locale.Tr "settings.remove_account_link_desc"}}</p>
+	</div>
+	{{template "base/delete_modal_actions" .}}
+</div>

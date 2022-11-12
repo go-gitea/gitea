@@ -7,7 +7,7 @@ package stats
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
@@ -17,17 +17,18 @@ import (
 var statsQueue queue.UniqueQueue
 
 // handle passed PR IDs and test the PRs
-func handle(data ...queue.Data) {
+func handle(data ...queue.Data) []queue.Data {
 	for _, datum := range data {
 		opts := datum.(int64)
 		if err := indexer.Index(opts); err != nil {
 			log.Error("stats queue indexer.Index(%d) failed: %v", opts, err)
 		}
 	}
+	return nil
 }
 
 func initStatsQueue() error {
-	statsQueue = queue.CreateUniqueQueue("repo_stats_update", handle, int64(0)).(queue.UniqueQueue)
+	statsQueue = queue.CreateUniqueQueue("repo_stats_update", handle, int64(0))
 	if statsQueue == nil {
 		return fmt.Errorf("Unable to create repo_stats_update Queue")
 	}
@@ -38,7 +39,7 @@ func initStatsQueue() error {
 }
 
 // UpdateRepoIndexer update a repository's entries in the indexer
-func UpdateRepoIndexer(repo *models.Repository) error {
+func UpdateRepoIndexer(repo *repo_model.Repository) error {
 	if err := statsQueue.Push(repo.ID); err != nil {
 		if err != queue.ErrAlreadyInQueue {
 			return err

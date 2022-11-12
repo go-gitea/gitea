@@ -1,24 +1,24 @@
-// +build !bindata
-
 // Copyright 2016 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
+
+//go:build !bindata
 
 package options
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io/fs"
+	"os"
 	"path"
+	"path/filepath"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/unknwon/com"
+	"code.gitea.io/gitea/modules/util"
 )
 
-var (
-	directories = make(directorySet)
-)
+var directories = make(directorySet)
 
 // Dir returns all files from static or custom directory.
 func Dir(name string) ([]string, error) {
@@ -26,17 +26,18 @@ func Dir(name string) ([]string, error) {
 		return directories.Get(name), nil
 	}
 
-	var (
-		result []string
-	)
+	var result []string
 
 	customDir := path.Join(setting.CustomPath, "options", name)
 
-	if com.IsDir(customDir) {
-		files, err := com.StatDir(customDir, true)
-
+	isDir, err := util.IsDir(customDir)
+	if err != nil {
+		return []string{}, fmt.Errorf("Unabe to check if custom directory %s is a directory. %w", customDir, err)
+	}
+	if isDir {
+		files, err := util.StatDir(customDir, true)
 		if err != nil {
-			return []string{}, fmt.Errorf("Failed to read custom directory. %v", err)
+			return []string{}, fmt.Errorf("Failed to read custom directory. %w", err)
 		}
 
 		result = append(result, files...)
@@ -44,11 +45,14 @@ func Dir(name string) ([]string, error) {
 
 	staticDir := path.Join(setting.StaticRootPath, "options", name)
 
-	if com.IsDir(staticDir) {
-		files, err := com.StatDir(staticDir, true)
-
+	isDir, err = util.IsDir(staticDir)
+	if err != nil {
+		return []string{}, fmt.Errorf("unable to check if static directory %s is a directory. %w", staticDir, err)
+	}
+	if isDir {
+		files, err := util.StatDir(staticDir, true)
 		if err != nil {
-			return []string{}, fmt.Errorf("Failed to read static directory. %v", err)
+			return []string{}, fmt.Errorf("Failed to read static directory. %w", err)
 		}
 
 		result = append(result, files...)
@@ -60,6 +64,18 @@ func Dir(name string) ([]string, error) {
 // Locale reads the content of a specific locale from static or custom path.
 func Locale(name string) ([]byte, error) {
 	return fileFromDir(path.Join("locale", name))
+}
+
+// WalkLocales reads the content of a specific locale from static or custom path.
+func WalkLocales(callback func(path, name string, d fs.DirEntry, err error) error) error {
+	if err := walkAssetDir(filepath.Join(setting.StaticRootPath, "options", "locale"), callback); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to walk locales. Error: %w", err)
+	}
+
+	if err := walkAssetDir(filepath.Join(setting.CustomPath, "options", "locale"), callback); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to walk locales. Error: %w", err)
+	}
+	return nil
 }
 
 // Readme reads the content of a specific readme from static or custom path.
@@ -86,14 +102,22 @@ func Labels(name string) ([]byte, error) {
 func fileFromDir(name string) ([]byte, error) {
 	customPath := path.Join(setting.CustomPath, "options", name)
 
-	if com.IsFile(customPath) {
-		return ioutil.ReadFile(customPath)
+	isFile, err := util.IsFile(customPath)
+	if err != nil {
+		log.Error("Unable to check if %s is a file. Error: %v", customPath, err)
+	}
+	if isFile {
+		return os.ReadFile(customPath)
 	}
 
 	staticPath := path.Join(setting.StaticRootPath, "options", name)
 
-	if com.IsFile(staticPath) {
-		return ioutil.ReadFile(staticPath)
+	isFile, err = util.IsFile(staticPath)
+	if err != nil {
+		log.Error("Unable to check if %s is a file. Error: %v", staticPath, err)
+	}
+	if isFile {
+		return os.ReadFile(staticPath)
 	}
 
 	return []byte{}, fmt.Errorf("Asset file does not exist: %s", name)

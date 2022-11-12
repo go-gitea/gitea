@@ -1,0 +1,143 @@
+.issue.list {
+  list-style: none;
+  margin-top: 1rem;
+
+  a:not(.label):hover {
+    color: var(--color-primary) !important;
+  }
+
+  > .item {
+    .issue-checkbox {
+      margin-top: 1px;
+    }
+
+    .issue-item-icon svg {
+      margin-right: .75rem;
+      margin-top: 1px;
+    }
+
+    .issue-item-icons-right > * + * {
+      margin-left: .5rem;
+    }
+
+    .issue-item-main {
+      width: 100%;
+    }
+
+    .issue-item-top-row {
+      max-width: 100%;
+      color: var(--color-text);
+      font-size: 16px;
+      min-width: 0;
+      font-weight: 600;
+    }
+
+    .labels-list {
+      position: relative;
+      top: -1.5px;
+    }
+
+    .issue-item-bottom-row {
+      font-size: 13px;
+    }
+
+    .title {
+      color: var(--color-text);
+      word-break: break-word;
+    }
+
+    .issue-item-icon-right {
+      min-width: 2rem;
+    }
+
+    .assignee {
+      position: relative;
+      top: -2px;
+    }
+
+    .assignee img {
+      width: 20px;
+      height: 20px;
+      margin-right: 2px;
+    }
+
+    .desc {
+      color: var(--color-text-light-2);
+
+      a {
+        color: inherit;
+      }
+
+      .time-since,
+      a {
+        margin-left: .25rem;
+        margin-right: .25rem;
+      }
+
+      .waiting,
+      .approvals,
+      .rejects {
+        padding-left: 5px;
+      }
+
+      .checklist {
+        padding-left: 5px;
+
+        progress {
+          margin-left: 2px;
+          width: 80px;
+          height: 6px;
+          display: inline-block;
+          border-radius: 3px;
+          vertical-align: 2px !important;
+        }
+      }
+
+      .conflicting {
+        padding-left: 5px;
+      }
+
+      .due-date {
+        padding-left: 5px;
+      }
+
+      a.milestone,
+      a.project {
+        margin-left: 5px;
+      }
+
+      a.ref {
+        margin-left: 8px;
+
+        span {
+          margin-right: -4px;
+        }
+      }
+
+      .overdue {
+        color: var(--color-red);
+      }
+    }
+  }
+
+  .branches {
+    display: inline-flex;
+    padding: 0 4px;
+
+    .branch {
+      background-color: var(--color-secondary);
+      border-radius: 3px;
+    }
+
+    .truncated-name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 10em;
+    }
+  }
+
+  > .item + .item {
+    border-top: 1px solid var(--color-secondary);
+  }
+}

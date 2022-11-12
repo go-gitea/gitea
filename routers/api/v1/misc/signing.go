@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 )
 
 // SigningKey returns the public key of the default signing key if it exists
@@ -52,13 +52,13 @@ func SigningKey(ctx *context.APIContext) {
 		path = ctx.Repo.Repository.RepoPath()
 	}
 
-	content, err := models.PublicSigningKey(path)
+	content, err := asymkey_service.PublicSigningKey(ctx, path)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "gpg export", err)
 		return
 	}
 	_, err = ctx.Write([]byte(content))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "gpg export", fmt.Errorf("Error writing key content %v", err))
+		ctx.Error(http.StatusInternalServerError, "gpg export", fmt.Errorf("Error writing key content %w", err))
 	}
 }

@@ -9,8 +9,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"gitea.com/macaron/binding"
-	"gitea.com/macaron/macaron"
+	"gitea.com/go-chi/binding"
+	chi "github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,17 +26,19 @@ type (
 	}
 
 	TestForm struct {
-		BranchName  string `form:"BranchName" binding:"GitRefName"`
-		URL         string `form:"ValidUrl" binding:"ValidUrl"`
-		GlobPattern string `form:"GlobPattern" binding:"GlobPattern"`
+		BranchName   string `form:"BranchName" binding:"GitRefName"`
+		URL          string `form:"ValidUrl" binding:"ValidUrl"`
+		GlobPattern  string `form:"GlobPattern" binding:"GlobPattern"`
+		RegexPattern string `form:"RegexPattern" binding:"RegexPattern"`
 	}
 )
 
 func performValidationTest(t *testing.T, testCase validationTestCase) {
 	httpRecorder := httptest.NewRecorder()
-	m := macaron.Classic()
+	m := chi.NewRouter()
 
-	m.Post(testRoute, binding.Validate(testCase.data), func(actual binding.Errors) {
+	m.Post(testRoute, func(resp http.ResponseWriter, req *http.Request) {
+		actual := binding.Validate(req, testCase.data)
 		// see https://github.com/stretchr/testify/issues/435
 		if actual == nil {
 			actual = binding.Errors{}
@@ -49,7 +51,7 @@ func performValidationTest(t *testing.T, testCase validationTestCase) {
 	if err != nil {
 		panic(err)
 	}
-
+	req.Header.Add("Content-Type", "x-www-form-urlencoded")
 	m.ServeHTTP(httpRecorder, req)
 
 	switch httpRecorder.Code {

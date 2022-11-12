@@ -1,31 +1,36 @@
 <template>
-  <div class="heatmap-container">
-    <div v-show="isLoading">
-      <slot name="loading"/>
-    </div>
-    <div v-if="!isLoading" class="total-contributions">
-      {{ values.length }} contributions in the last 12 months
+  <div id="user-heatmap">
+    <div class="total-contributions">
+      {{ sum }} contributions in the last 12 months
     </div>
     <calendar-heatmap
-      v-show="!isLoading"
       :locale="locale"
       :no-data-text="locale.no_contributions"
       :tooltip-unit="locale.contributions"
       :end-date="endDate"
       :values="values"
       :range-color="colorRange"
+      @day-click="handleDayClick($event)"
     />
   </div>
 </template>
 <script>
-import {CalendarHeatmap} from 'vue-calendar-heatmap';
-const {AppSubUrl, heatmapUser} = window.config;
+import {CalendarHeatmap} from 'vue3-calendar-heatmap';
 
 export default {
   name: 'ActivityHeatmap',
   components: {CalendarHeatmap},
+  props: {
+    values: {
+      type: Array,
+      default: () => [],
+    },
+    locale: {
+      type: Object,
+      default: () => {},
+    }
+  },
   data: () => ({
-    isLoading: true,
     colorRange: [
       'var(--color-secondary-alpha-70)',
       'var(--color-primary-light-4)',
@@ -35,20 +40,33 @@ export default {
       'var(--color-primary-dark-4)',
     ],
     endDate: new Date(),
-    values: [],
-    locale: {
-      contributions: 'contributions',
-      no_contributions: 'No contributions',
-    },
   }),
-  async mounted() {
-    const res = await fetch(`${AppSubUrl}/api/v1/users/${heatmapUser}/heatmap`);
-    const data = await res.json();
-    this.values = data.map(({contributions, timestamp}) => {
-      return {date: new Date(timestamp * 1000), count: contributions};
-    });
-    this.isLoading = false;
+  computed: {
+    sum() {
+      let s = 0;
+      for (let i = 0; i < this.values.length; i++) {
+        s += this.values[i].count;
+      }
+      return s;
+    }
+  },
+  methods: {
+    handleDayClick(e) {
+      // Reset filter if same date is clicked
+      const params = new URLSearchParams(document.location.search);
+      const queryDate = params.get('date');
+      // Timezone has to be stripped because toISOString() converts to UTC
+      const clickedDate = new Date(e.date - (e.date.getTimezoneOffset() * 60000)).toISOString().substring(0, 10);
+
+      if (queryDate && queryDate === clickedDate) {
+        params.delete('date');
+      } else {
+        params.set('date', clickedDate);
+      }
+
+      const newSearch = params.toString();
+      window.location.search = newSearch.length ? `?${newSearch}` : '';
+    }
   },
 };
 </script>
-<style scoped/>

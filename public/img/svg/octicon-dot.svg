@@ -1,1 +1,1 @@
-<svg viewBox="0 0 16 16" class="svg octicon-dot" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M8 5.5a2.5 2.5 0 100 5 2.5 2.5 0 000-5zM4 8a4 4 0 118 0 4 4 0 01-8 0z"/></svg>
+<svg viewBox="0 0 16 16" class="svg octicon-dot" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4 8a4 4 0 1 1 8 0 4 4 0 0 1-8 0z"/></svg>

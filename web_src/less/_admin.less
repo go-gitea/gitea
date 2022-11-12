@@ -1,11 +1,18 @@
 .admin {
-  &.notice {
-    padding-top: 15px;
+  &.hooks .list {
+    > .item {
+      &:not(:first-child) {
+        border-top: 1px solid var(--color-secondary);
+        padding: 1rem;
+        margin: 15px -1rem -1rem;
+      }
+    }
   }
 
   .table.segment {
     padding: 0;
     font-size: 13px;
+    overflow-x: auto;
 
     &:not(.striped) {
       thead {
@@ -44,11 +51,6 @@
     }
   }
 
-  .ui.header,
-  .ui.segment {
-    box-shadow: 0 1px 2px 0 var(--color-secondary);
-  }
-
   &.user {
     .email {
       max-width: 200px;
@@ -61,16 +63,24 @@
 
     dd {
       margin-left: 275px;
+      @media @mediaSm {
+        margin-left: 5%;
+      }
     }
 
     dt {
-      font-weight: 500;
+      font-weight: 600;
       float: left;
       width: 285px;
       clear: left;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+
+      @media @mediaSm {
+        width: auto;
+        margin-right: .5em;
+      }
     }
   }
 

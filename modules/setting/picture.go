@@ -4,34 +4,26 @@
 
 package setting
 
-import (
-	"net/url"
-
-	"code.gitea.io/gitea/modules/log"
-
-	"strk.kbt.io/projects/go/libravatar"
-)
-
 // settings
 var (
 	// Picture settings
 	Avatar = struct {
 		Storage
 
-		MaxWidth    int
-		MaxHeight   int
-		MaxFileSize int64
+		MaxWidth           int
+		MaxHeight          int
+		MaxFileSize        int64
+		RenderedSizeFactor int
 	}{
-		MaxWidth:    4096,
-		MaxHeight:   3072,
-		MaxFileSize: 1048576,
+		MaxWidth:           4096,
+		MaxHeight:          3072,
+		MaxFileSize:        1048576,
+		RenderedSizeFactor: 3,
 	}
 
 	GravatarSource        string
-	GravatarSourceURL     *url.URL
-	DisableGravatar       bool
-	EnableFederatedAvatar bool
-	LibravatarService     *libravatar.Libravatar
+	DisableGravatar       bool // Depreciated: migrated to database
+	EnableFederatedAvatar bool // Depreciated: migrated to database
 
 	RepoAvatar = struct {
 		Storage
@@ -55,6 +47,7 @@ func newPictureService() {
 	Avatar.MaxWidth = sec.Key("AVATAR_MAX_WIDTH").MustInt(4096)
 	Avatar.MaxHeight = sec.Key("AVATAR_MAX_HEIGHT").MustInt(3072)
 	Avatar.MaxFileSize = sec.Key("AVATAR_MAX_FILE_SIZE").MustInt64(1048576)
+	Avatar.RenderedSizeFactor = sec.Key("AVATAR_RENDERED_SIZE_FACTOR").MustInt(3)
 
 	switch source := sec.Key("GRAVATAR_SOURCE").MustString("gravatar"); source {
 	case "duoshuo":
@@ -66,36 +59,28 @@ func newPictureService() {
 	default:
 		GravatarSource = source
 	}
-	DisableGravatar = sec.Key("DISABLE_GRAVATAR").MustBool()
-	EnableFederatedAvatar = sec.Key("ENABLE_FEDERATED_AVATAR").MustBool(!InstallLock)
-	if OfflineMode {
-		DisableGravatar = true
-		EnableFederatedAvatar = false
-	}
-	if DisableGravatar {
-		EnableFederatedAvatar = false
-	}
-	if EnableFederatedAvatar || !DisableGravatar {
-		var err error
-		GravatarSourceURL, err = url.Parse(GravatarSource)
-		if err != nil {
-			log.Fatal("Failed to parse Gravatar URL(%s): %v",
-				GravatarSource, err)
-		}
-	}
 
-	if EnableFederatedAvatar {
-		LibravatarService = libravatar.New()
-		if GravatarSourceURL.Scheme == "https" {
-			LibravatarService.SetUseHTTPS(true)
-			LibravatarService.SetSecureFallbackHost(GravatarSourceURL.Host)
-		} else {
-			LibravatarService.SetUseHTTPS(false)
-			LibravatarService.SetFallbackHost(GravatarSourceURL.Host)
-		}
-	}
+	DisableGravatar = sec.Key("DISABLE_GRAVATAR").MustBool(GetDefaultDisableGravatar())
+	deprecatedSettingDB("", "DISABLE_GRAVATAR")
+	EnableFederatedAvatar = sec.Key("ENABLE_FEDERATED_AVATAR").MustBool(GetDefaultEnableFederatedAvatar(DisableGravatar))
+	deprecatedSettingDB("", "ENABLE_FEDERATED_AVATAR")
 
 	newRepoAvatarService()
+}
+
+func GetDefaultDisableGravatar() bool {
+	return !OfflineMode
+}
+
+func GetDefaultEnableFederatedAvatar(disableGravatar bool) bool {
+	v := !InstallLock
+	if OfflineMode {
+		v = false
+	}
+	if disableGravatar {
+		v = false
+	}
+	return v
 }
 
 func newRepoAvatarService() {
@@ -110,5 +95,5 @@ func newRepoAvatarService() {
 	RepoAvatar.Storage = getStorage("repo-avatars", storageType, repoAvatarSec)
 
 	RepoAvatar.Fallback = sec.Key("REPOSITORY_AVATAR_FALLBACK").MustString("none")
-	RepoAvatar.FallbackImage = sec.Key("REPOSITORY_AVATAR_FALLBACK_IMAGE").MustString("/img/repo_default.png")
+	RepoAvatar.FallbackImage = sec.Key("REPOSITORY_AVATAR_FALLBACK_IMAGE").MustString("/assets/img/repo_default.png")
 }

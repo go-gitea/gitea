@@ -6,10 +6,11 @@ package log
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
+
+	"code.gitea.io/gitea/modules/json"
 )
 
 // Level is the level of the logger

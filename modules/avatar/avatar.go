@@ -8,16 +8,15 @@ import (
 	"bytes"
 	"fmt"
 	"image"
-	"image/color/palette"
+	"image/color"
 
-	// Enable PNG support:
-	_ "image/png"
-	"math/rand"
-	"time"
+	_ "image/gif"  // for processing gif images
+	_ "image/jpeg" // for processing jpeg images
+	_ "image/png"  // for processing png images
 
+	"code.gitea.io/gitea/modules/avatar/identicon"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/issue9/identicon"
 	"github.com/nfnt/resize"
 	"github.com/oliamb/cutter"
 )
@@ -28,19 +27,10 @@ const AvatarSize = 290
 // RandomImageSize generates and returns a random avatar image unique to input data
 // in custom size (height and width).
 func RandomImageSize(size int, data []byte) (image.Image, error) {
-	randExtent := len(palette.WebSafe) - 32
-	rand.Seed(time.Now().UnixNano())
-	colorIndex := rand.Intn(randExtent)
-	backColorIndex := colorIndex - 1
-	if backColorIndex < 0 {
-		backColorIndex = randExtent - 1
-	}
-
-	// Define size, background, and forecolor
-	imgMaker, err := identicon.New(size,
-		palette.WebSafe[backColorIndex], palette.WebSafe[colorIndex:colorIndex+32]...)
+	// we use white as background, and use dark colors to draw blocks
+	imgMaker, err := identicon.New(size, color.White, identicon.DarkColors...)
 	if err != nil {
-		return nil, fmt.Errorf("identicon.New: %v", err)
+		return nil, fmt.Errorf("identicon.New: %w", err)
 	}
 	return imgMaker.Make(data), nil
 }
@@ -56,7 +46,7 @@ func RandomImage(data []byte) (image.Image, error) {
 func Prepare(data []byte) (*image.Image, error) {
 	imgCfg, _, err := image.DecodeConfig(bytes.NewReader(data))
 	if err != nil {
-		return nil, fmt.Errorf("DecodeConfig: %v", err)
+		return nil, fmt.Errorf("DecodeConfig: %w", err)
 	}
 	if imgCfg.Width > setting.Avatar.MaxWidth {
 		return nil, fmt.Errorf("Image width is too large: %d > %d", imgCfg.Width, setting.Avatar.MaxWidth)
@@ -67,7 +57,7 @@ func Prepare(data []byte) (*image.Image, error) {
 
 	img, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
-		return nil, fmt.Errorf("Decode: %v", err)
+		return nil, fmt.Errorf("Decode: %w", err)
 	}
 
 	if imgCfg.Width != imgCfg.Height {

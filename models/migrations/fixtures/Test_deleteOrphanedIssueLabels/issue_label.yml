@@ -1,0 +1,29 @@
+# Issue_Label 1 should not be deleted
+-
+  id: 1
+  issue_id: 1
+  label_id: 1
+
+# Issue_label 2 should be deleted
+-
+  id: 2
+  issue_id: 5
+  label_id: 99
+
+# Issue_Label 3 should not be deleted
+-
+  id: 3
+  issue_id: 2
+  label_id: 1
+
+# Issue_Label 4 should not be deleted
+-
+  id: 4
+  issue_id: 2
+  label_id: 4
+
+-
+  id: 5
+  issue_id: 2
+  label_id: 87
+

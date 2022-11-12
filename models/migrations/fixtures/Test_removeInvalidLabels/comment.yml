@@ -1,0 +1,52 @@
+# type Comment struct {
+#   ID      int64 `xorm:"pk autoincr"`
+#   Type    int   `xorm:"INDEX"`
+#   IssueID int64 `xorm:"INDEX"`
+#   LabelID int64
+# }
+#
+# we are only interested in type 7
+#
+
+-
+  id: 1 # Should remain
+  type: 6
+  issue_id: 1
+  label_id: 0
+  should_remain: true
+-
+  id: 2 # Should remain
+  type: 7
+  issue_id: 1 # repo_id: 1
+  label_id: 1 # repo_id: 1
+  should_remain: true
+-
+  id: 3 # Should remain
+  type: 7
+  issue_id: 2 # repo_id: 2 owner_id: 1
+  label_id: 2 # org_id: 1
+  should_remain: true
+-
+  id: 4 # Should be DELETED
+  type: 7
+  issue_id: 1 # repo_id: 1
+  label_id: 3 # repo_id: 2
+  should_remain: false
+-
+  id: 5 # Should remain
+  type: 7
+  issue_id: 3 # repo_id: 1
+  label_id: 1 # repo_id: 1
+  should_remain: true
+-
+  id: 6 # Should be DELETED
+  type: 7
+  issue_id: 3 # repo_id: 1 owner_id: 2
+  label_id: 2 # org_id: 1
+  should_remain: false
+-
+  id: 7 # Should be DELETED
+  type: 7
+  issue_id: 3 # repo_id: 1 owner_id: 2
+  label_id: 5 # repo_id: 3
+  should_remain: false

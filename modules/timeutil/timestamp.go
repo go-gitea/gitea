@@ -13,8 +13,24 @@ import (
 // TimeStamp defines a timestamp
 type TimeStamp int64
 
+// mock is NOT concurrency-safe!!
+var mock time.Time
+
+// Set sets the time to a mocked time.Time
+func Set(now time.Time) {
+	mock = now
+}
+
+// Unset will unset the mocked time.Time
+func Unset() {
+	mock = time.Time{}
+}
+
 // TimeStampNow returns now int64
 func TimeStampNow() TimeStamp {
+	if !mock.IsZero() {
+		return TimeStamp(mock.Unix())
+	}
 	return TimeStamp(time.Now().Unix())
 }
 
@@ -38,10 +54,15 @@ func (ts TimeStamp) AsTime() (tm time.Time) {
 	return ts.AsTimeInLocation(setting.DefaultUILocation)
 }
 
+// AsLocalTime convert timestamp as time.Time in local location
+func (ts TimeStamp) AsLocalTime() time.Time {
+	return time.Unix(int64(ts), 0)
+}
+
 // AsTimeInLocation convert timestamp as time.Time in Local locale
 func (ts TimeStamp) AsTimeInLocation(loc *time.Location) (tm time.Time) {
 	tm = time.Unix(int64(ts), 0).In(loc)
-	return
+	return tm
 }
 
 // AsTimePtr convert timestamp as *time.Time in Local locale
@@ -82,5 +103,5 @@ func (ts TimeStamp) FormatDate() string {
 
 // IsZero is zero time
 func (ts TimeStamp) IsZero() bool {
-	return ts.AsTimeInLocation(time.Local).IsZero()
+	return int64(ts) == 0
 }

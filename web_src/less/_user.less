@@ -1,22 +1,19 @@
 @import "variables.less";
 
 .user {
-  &:not(.icon) {
-    padding-top: 15px;
-  }
-
   &.profile {
     .ui.card {
-      .header,
-      .username {
-        display: block;
-      }
-
       .header {
-        font-weight: 500;
+        display: block;
+        font-weight: 600;
         font-size: 1.3rem;
         margin-top: -.2rem;
         line-height: 1.3rem;
+      }
+
+      .profile-avatar-name {
+        border-top: none;
+        text-align: center;
       }
 
       .extra.content {
@@ -34,8 +31,7 @@
               border-bottom: 1px solid var(--color-secondary);
             }
 
-            .svg,
-            .fa {
+            .svg {
               margin-left: 1px;
               margin-right: 5px;
             }
@@ -48,20 +44,20 @@
           }
         }
       }
-
       #profile-avatar {
+        background: none;
+        padding: 1rem 1rem .25rem;
+        justify-content: center;
         img {
           width: 100%;
-        }
-        @media @mediaSm {
-          height: 250px;
-          overflow: hidden;
-
-          img {
-            max-height: 767px;
-            max-width: 767px;
+          height: auto;
+          object-fit: contain;
+          margin: 0;
+          @media @mediaSm {
+            width: 30vw;
           }
         }
+
       }
 
       @media @mediaSm {
@@ -171,4 +167,17 @@
     width: 20%;
     max-width: 60px;
   }
+}
+
+.user-badges {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 64px);
+  gap: 2px;
+}
+
+.user-badges img {
+  object-fit: contain;
+}
+#notification_div .tab.segment {
+  overflow-x: auto;
 }

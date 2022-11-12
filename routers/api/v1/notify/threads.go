@@ -8,8 +8,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
+	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 )
 
 // GetThread get notification by ID
@@ -39,12 +42,12 @@ func GetThread(ctx *context.APIContext) {
 	if n == nil {
 		return
 	}
-	if err := n.LoadAttributes(); err != nil {
+	if err := n.LoadAttributes(); err != nil && !issues_model.IsErrCommentNotExist(err) {
 		ctx.InternalServerError(err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, n.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToNotificationThread(n))
 }
 
 // ReadThread mark notification as read by ID
@@ -70,7 +73,7 @@ func ReadThread(ctx *context.APIContext) {
 	//   required: false
 	// responses:
 	//   "205":
-	//     "$ref": "#/responses/empty"
+	//     "$ref": "#/responses/NotificationThread"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
@@ -81,30 +84,34 @@ func ReadThread(ctx *context.APIContext) {
 		return
 	}
 
-	targetStatus := statusStringToNotificationStatus(ctx.Query("to-status"))
+	targetStatus := statusStringToNotificationStatus(ctx.FormString("to-status"))
 	if targetStatus == 0 {
-		targetStatus = models.NotificationStatusRead
+		targetStatus = activities_model.NotificationStatusRead
 	}
 
-	err := models.SetNotificationStatus(n.ID, ctx.User, targetStatus)
+	notif, err := activities_model.SetNotificationStatus(n.ID, ctx.Doer, targetStatus)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
-	ctx.Status(http.StatusResetContent)
+	if err = notif.LoadAttributes(); err != nil && !issues_model.IsErrCommentNotExist(err) {
+		ctx.InternalServerError(err)
+		return
+	}
+	ctx.JSON(http.StatusResetContent, convert.ToNotificationThread(notif))
 }
 
-func getThread(ctx *context.APIContext) *models.Notification {
-	n, err := models.GetNotificationByID(ctx.ParamsInt64(":id"))
+func getThread(ctx *context.APIContext) *activities_model.Notification {
+	n, err := activities_model.GetNotificationByID(ctx.ParamsInt64(":id"))
 	if err != nil {
-		if models.IsErrNotExist(err) {
+		if db.IsErrNotExist(err) {
 			ctx.Error(http.StatusNotFound, "GetNotificationByID", err)
 		} else {
 			ctx.InternalServerError(err)
 		}
 		return nil
 	}
-	if n.UserID != ctx.User.ID && !ctx.User.IsAdmin {
+	if n.UserID != ctx.Doer.ID && !ctx.Doer.IsAdmin {
 		ctx.Error(http.StatusForbidden, "GetNotificationByID", fmt.Errorf("only user itself and admin are allowed to read/change this thread %d", n.ID))
 		return nil
 	}

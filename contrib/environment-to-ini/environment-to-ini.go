@@ -12,8 +12,8 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
-	"github.com/unknwon/com"
 	"github.com/urfave/cli"
 	ini "gopkg.in/ini.v1"
 )
@@ -97,7 +97,11 @@ func runEnvironmentToIni(c *cli.Context) error {
 	setting.SetCustomPathAndConf(providedCustom, providedConf, providedWorkPath)
 
 	cfg := ini.Empty()
-	if com.IsFile(setting.CustomConf) {
+	isFile, err := util.IsFile(setting.CustomConf)
+	if err != nil {
+		log.Fatal("Unable to check if %s is a file. Error: %v", setting.CustomConf, err)
+	}
+	if isFile {
 		if err := cfg.Append(setting.CustomConf); err != nil {
 			log.Fatal("Failed to load custom conf '%s': %v", setting.CustomConf, err)
 		}
@@ -105,6 +109,8 @@ func runEnvironmentToIni(c *cli.Context) error {
 		log.Warn("Custom config '%s' not found, ignore this if you're running first time", setting.CustomConf)
 	}
 	cfg.NameMapper = ini.SnackCase
+
+	changed := false
 
 	prefix := c.String("prefix") + "__"
 
@@ -139,15 +145,22 @@ func runEnvironmentToIni(c *cli.Context) error {
 				continue
 			}
 		}
+		oldValue := key.Value()
+		if !changed && oldValue != value {
+			changed = true
+		}
 		key.SetValue(value)
 	}
 	destination := c.String("out")
 	if len(destination) == 0 {
 		destination = setting.CustomConf
 	}
-	err := cfg.SaveTo(destination)
-	if err != nil {
-		return err
+	if destination != setting.CustomConf || changed {
+		log.Info("Settings saved to: %q", destination)
+		err = cfg.SaveTo(destination)
+		if err != nil {
+			return err
+		}
 	}
 	if c.Bool("clear") {
 		for _, kv := range os.Environ() {
@@ -212,7 +225,6 @@ func DecodeSectionKey(encoded string) (string, string) {
 	if !inKey {
 		if splitter := strings.Index(remaining, "__"); splitter > -1 {
 			section += remaining[:splitter]
-			inKey = true
 			key += remaining[splitter+2:]
 		} else {
 			section += remaining
@@ -220,5 +232,6 @@ func DecodeSectionKey(encoded string) (string, string) {
 	} else {
 		key += remaining
 	}
+	section = strings.ToLower(section)
 	return section, key
 }

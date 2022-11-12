@@ -2,6 +2,7 @@ input,
 textarea,
 .ui.input > input,
 .ui.form input:not([type]),
+.ui.form select,
 .ui.form textarea,
 .ui.form input[type="date"],
 .ui.form input[type="datetime-local"],
@@ -17,7 +18,7 @@ textarea,
 .ui.selection.dropdown,
 .ui.checkbox label::before,
 .ui.checkbox input:checked ~ label::before,
-.ui.checkbox input:not([type=radio]):indeterminate ~ label::before {
+.ui.checkbox input:not([type="radio"]):indeterminate ~ label::before {
   background: var(--color-input-background);
   border-color: var(--color-input-border);
   color: var(--color-input-text);
@@ -27,6 +28,7 @@ input:hover,
 textarea:hover,
 .ui.input input:hover,
 .ui.form input:not([type]):hover,
+.ui.form select:hover,
 .ui.form textarea:hover,
 .ui.form input[type="date"]:hover,
 .ui.form input[type="datetime-local"]:hover,
@@ -54,6 +56,7 @@ input:focus,
 textarea:focus,
 .ui.input input:focus,
 .ui.form input:not([type]):focus,
+.ui.form select:focus,
 .ui.form textarea:focus,
 .ui.form input[type="date"]:focus,
 .ui.form input[type="datetime-local"]:focus,
@@ -95,8 +98,8 @@ textarea:focus,
 .ui.checkbox input:focus ~ label::after,
 .ui.checkbox input:checked ~ label::after,
 .ui.checkbox label:active::after,
-.ui.checkbox input:not([type=radio]):indeterminate ~ label::after,
-.ui.checkbox input:not([type=radio]):indeterminate:focus ~ label::after,
+.ui.checkbox input:not([type="radio"]):indeterminate ~ label::after,
+.ui.checkbox input:not([type="radio"]):indeterminate:focus ~ label::after,
 .ui.checkbox input:checked:focus ~ label::after,
 .ui.disabled.checkbox label,
 .ui.checkbox input[disabled] ~ label {
@@ -110,7 +113,7 @@ textarea:focus,
 }
 
 .ui.toggle.checkbox label::before {
-  background: var(--color-input-background);
+  background: var(--color-input-toggle-background);
 }
 
 .ui.toggle.checkbox label,
@@ -124,10 +127,14 @@ textarea:focus,
   background: var(--color-primary) !important;
 }
 
+/* match <select> padding to <input> */
+.ui.form select {
+  padding: .67857143em 1em;
+}
+
 .form {
   .help {
-    color: #999999;
-    padding-top: .6em;
+    color: var(--color-secondary-dark-5);
     padding-bottom: .6em;
     display: inline-block;
   }
@@ -149,7 +156,8 @@ textarea:focus,
         padding-left: @create-page-form-input-padding+30px;
       }
 
-      .inline.field > label {
+      .inline.field > label,
+      .inline.field.captcha-field > span {
         text-align: right;
         width: @create-page-form-input-padding;
         word-wrap: break-word;
@@ -163,9 +171,9 @@ textarea:focus,
         margin-left: @create-page-form-input-padding;
       }
 
-      input,
-      textarea {
-        width: 50% !important;
+      .inline.field > input,
+      .inline.field > textarea {
+        width: 50%;
       }
     }
 
@@ -236,7 +244,7 @@ textarea:focus,
 .user.signin,
 .user.signup {
   @input-padding: 200px;
-  #create-page-form;
+  #create-page-form();
 
   form {
     width: 700px !important;
@@ -257,7 +265,7 @@ textarea:focus,
       }
     }
 
-    input[type=number] {
+    input[type="number"] {
       -moz-appearance: textfield;
     }
 
@@ -269,11 +277,15 @@ textarea:focus,
   }
 }
 
+.user.signin.webauthn-prompt {
+  margin-top: 15px;
+}
+
 .repository {
   &.new.repo,
   &.new.migrate,
   &.new.fork {
-    #create-page-form;
+    #create-page-form();
 
     form {
       .dropdown .text {

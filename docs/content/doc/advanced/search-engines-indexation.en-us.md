@@ -3,7 +3,7 @@ date: "2019-12-31T13:55:00+05:00"
 title: "Advanced: Search Engines Indexation"
 slug: "search-engines-indexation"
 weight: 30
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -24,7 +24,6 @@ To make Gitea serve a custom `robots.txt` (default: empty 404) for top level ins
 create a file called `robots.txt` in the [`custom` folder or `CustomPath`]({{< relref "doc/advanced/customizing-gitea.en-us.md" >}})
 
 Examples on how to configure the `robots.txt` can be found at [https://moz.com/learn/seo/robotstxt](https://moz.com/learn/seo/robotstxt).
-
 
 ```txt
 User-agent: *

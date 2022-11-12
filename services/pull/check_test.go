@@ -6,59 +6,58 @@
 package pull
 
 import (
-	"context"
 	"strconv"
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/queue"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/unknwon/com"
 )
 
 func TestPullRequest_AddToTaskQueue(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	idChan := make(chan int64, 10)
 
-	q, err := queue.NewChannelUniqueQueue(func(data ...queue.Data) {
+	q, err := queue.NewChannelUniqueQueue(func(data ...queue.Data) []queue.Data {
 		for _, datum := range data {
-			prID := datum.(string)
-			id := com.StrTo(prID).MustInt64()
+			id, _ := strconv.ParseInt(datum.(string), 10, 64)
 			idChan <- id
 		}
+		return nil
 	}, queue.ChannelUniqueQueueConfiguration{
 		WorkerPoolConfiguration: queue.WorkerPoolConfiguration{
 			QueueLength: 10,
 			BatchLength: 1,
+			Name:        "temporary-queue",
 		},
 		Workers: 1,
-		Name:    "temporary-queue",
 	}, "")
 	assert.NoError(t, err)
 
 	queueShutdown := []func(){}
 	queueTerminate := []func(){}
 
-	prQueue = q.(queue.UniqueQueue)
+	prPatchCheckerQueue = q.(queue.UniqueQueue)
 
-	pr := models.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 2}).(*models.PullRequest)
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	AddToTaskQueue(pr)
 
 	assert.Eventually(t, func() bool {
-		pr = models.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 2}).(*models.PullRequest)
-		return pr.Status == models.PullRequestStatusChecking
+		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+		return pr.Status == issues_model.PullRequestStatusChecking
 	}, 1*time.Second, 100*time.Millisecond)
 
-	has, err := prQueue.Has(strconv.FormatInt(pr.ID, 10))
+	has, err := prPatchCheckerQueue.Has(strconv.FormatInt(pr.ID, 10))
 	assert.True(t, has)
 	assert.NoError(t, err)
 
-	prQueue.Run(func(_ context.Context, shutdown func()) {
+	prPatchCheckerQueue.Run(func(shutdown func()) {
 		queueShutdown = append(queueShutdown, shutdown)
-	}, func(_ context.Context, terminate func()) {
+	}, func(terminate func()) {
 		queueTerminate = append(queueTerminate, terminate)
 	})
 
@@ -69,12 +68,12 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 		assert.Fail(t, "Timeout: nothing was added to pullRequestQueue")
 	}
 
-	has, err = prQueue.Has(strconv.FormatInt(pr.ID, 10))
+	has, err = prPatchCheckerQueue.Has(strconv.FormatInt(pr.ID, 10))
 	assert.False(t, has)
 	assert.NoError(t, err)
 
-	pr = models.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 2}).(*models.PullRequest)
-	assert.Equal(t, models.PullRequestStatusChecking, pr.Status)
+	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	assert.Equal(t, issues_model.PullRequestStatusChecking, pr.Status)
 
 	for _, callback := range queueShutdown {
 		callback()
@@ -83,5 +82,5 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 		callback()
 	}
 
-	prQueue = nil
+	prPatchCheckerQueue = nil
 }

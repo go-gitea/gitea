@@ -34,8 +34,10 @@ type ExternalTracker struct {
 	ExternalTrackerURL string `json:"external_tracker_url"`
 	// External Issue Tracker URL Format. Use the placeholders {user}, {repo} and {index} for the username, repository name and issue index.
 	ExternalTrackerFormat string `json:"external_tracker_format"`
-	// External Issue Tracker Number Format, either `numeric` or `alphanumeric`
+	// External Issue Tracker Number Format, either `numeric`, `alphanumeric`, or `regexp`
 	ExternalTrackerStyle string `json:"external_tracker_style"`
+	// External Issue Tracker issue regular expression
+	ExternalTrackerRegexpPattern string `json:"external_tracker_regexp_pattern"`
 }
 
 // ExternalWiki represents setting for external wiki
@@ -59,6 +61,8 @@ type Repository struct {
 	Parent        *Repository `json:"parent"`
 	Mirror        bool        `json:"mirror"`
 	Size          int         `json:"size"`
+	Language      string      `json:"language"`
+	LanguagesURL  string      `json:"languages_url"`
 	HTMLURL       string      `json:"html_url"`
 	SSHURL        string      `json:"ssh_url"`
 	CloneURL      string      `json:"clone_url"`
@@ -75,22 +79,29 @@ type Repository struct {
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
-	Updated                   time.Time        `json:"updated_at"`
-	Permissions               *Permission      `json:"permissions,omitempty"`
-	HasIssues                 bool             `json:"has_issues"`
-	InternalTracker           *InternalTracker `json:"internal_tracker,omitempty"`
-	ExternalTracker           *ExternalTracker `json:"external_tracker,omitempty"`
-	HasWiki                   bool             `json:"has_wiki"`
-	ExternalWiki              *ExternalWiki    `json:"external_wiki,omitempty"`
-	HasPullRequests           bool             `json:"has_pull_requests"`
-	HasProjects               bool             `json:"has_projects"`
-	IgnoreWhitespaceConflicts bool             `json:"ignore_whitespace_conflicts"`
-	AllowMerge                bool             `json:"allow_merge_commits"`
-	AllowRebase               bool             `json:"allow_rebase"`
-	AllowRebaseMerge          bool             `json:"allow_rebase_explicit"`
-	AllowSquash               bool             `json:"allow_squash_merge"`
-	AvatarURL                 string           `json:"avatar_url"`
-	Internal                  bool             `json:"internal"`
+	Updated                       time.Time        `json:"updated_at"`
+	Permissions                   *Permission      `json:"permissions,omitempty"`
+	HasIssues                     bool             `json:"has_issues"`
+	InternalTracker               *InternalTracker `json:"internal_tracker,omitempty"`
+	ExternalTracker               *ExternalTracker `json:"external_tracker,omitempty"`
+	HasWiki                       bool             `json:"has_wiki"`
+	ExternalWiki                  *ExternalWiki    `json:"external_wiki,omitempty"`
+	HasPullRequests               bool             `json:"has_pull_requests"`
+	HasProjects                   bool             `json:"has_projects"`
+	IgnoreWhitespaceConflicts     bool             `json:"ignore_whitespace_conflicts"`
+	AllowMerge                    bool             `json:"allow_merge_commits"`
+	AllowRebase                   bool             `json:"allow_rebase"`
+	AllowRebaseMerge              bool             `json:"allow_rebase_explicit"`
+	AllowSquash                   bool             `json:"allow_squash_merge"`
+	AllowRebaseUpdate             bool             `json:"allow_rebase_update"`
+	DefaultDeleteBranchAfterMerge bool             `json:"default_delete_branch_after_merge"`
+	DefaultMergeStyle             string           `json:"default_merge_style"`
+	AvatarURL                     string           `json:"avatar_url"`
+	Internal                      bool             `json:"internal"`
+	MirrorInterval                string           `json:"mirror_interval"`
+	// swagger:strfmt date-time
+	MirrorUpdated time.Time     `json:"mirror_updated,omitempty"`
+	RepoTransfer  *RepoTransfer `json:"repo_transfer"`
 }
 
 // CreateRepoOption options when creating repository
@@ -102,12 +113,12 @@ type CreateRepoOption struct {
 	// unique: true
 	Name string `json:"name" binding:"Required;AlphaDashDot;MaxSize(100)"`
 	// Description of the repository to create
-	Description string `json:"description" binding:"MaxSize(255)"`
+	Description string `json:"description" binding:"MaxSize(2048)"`
 	// Whether the repository is private
 	Private bool `json:"private"`
-	// Issue Label set to use
+	// Label-Set to use
 	IssueLabels string `json:"issue_labels"`
-	// Whether the repository should be auto-intialized?
+	// Whether the repository should be auto-initialized?
 	AutoInit bool `json:"auto_init"`
 	// Whether the repository is template
 	Template bool `json:"template"`
@@ -133,9 +144,9 @@ type EditRepoOption struct {
 	// unique: true
 	Name *string `json:"name,omitempty" binding:"OmitEmpty;AlphaDashDot;MaxSize(100);"`
 	// a short description of the repository.
-	Description *string `json:"description,omitempty" binding:"MaxSize(255)"`
+	Description *string `json:"description,omitempty" binding:"MaxSize(2048)"`
 	// a URL with more information about the repository.
-	Website *string `json:"website,omitempty" binding:"MaxSize(255)"`
+	Website *string `json:"website,omitempty" binding:"MaxSize(1024)"`
 	// either `true` to make the repository private or `false` to make it public.
 	// Note: you will get a 422 error if the organization restricts changing repository visibility to organization
 	// owners and a non-owner tries to change the value of private.
@@ -144,13 +155,13 @@ type EditRepoOption struct {
 	Template *bool `json:"template,omitempty"`
 	// either `true` to enable issues for this repository or `false` to disable them.
 	HasIssues *bool `json:"has_issues,omitempty"`
-	// set this structure to configure internal issue tracker (requires has_issues)
+	// set this structure to configure internal issue tracker
 	InternalTracker *InternalTracker `json:"internal_tracker,omitempty"`
-	// set this structure to use external issue tracker (requires has_issues)
+	// set this structure to use external issue tracker
 	ExternalTracker *ExternalTracker `json:"external_tracker,omitempty"`
 	// either `true` to enable the wiki for this repository or `false` to disable it.
 	HasWiki *bool `json:"has_wiki,omitempty"`
-	// set this structure to use external wiki instead of internal (requires has_wiki)
+	// set this structure to use external wiki instead of internal
 	ExternalWiki *ExternalWiki `json:"external_wiki,omitempty"`
 	// sets the default branch for this repository.
 	DefaultBranch *string `json:"default_branch,omitempty"`
@@ -158,26 +169,71 @@ type EditRepoOption struct {
 	HasPullRequests *bool `json:"has_pull_requests,omitempty"`
 	// either `true` to enable project unit, or `false` to disable them.
 	HasProjects *bool `json:"has_projects,omitempty"`
-	// either `true` to ignore whitespace for conflicts, or `false` to not ignore whitespace. `has_pull_requests` must be `true`.
+	// either `true` to ignore whitespace for conflicts, or `false` to not ignore whitespace.
 	IgnoreWhitespaceConflicts *bool `json:"ignore_whitespace_conflicts,omitempty"`
-	// either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits. `has_pull_requests` must be `true`.
+	// either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits.
 	AllowMerge *bool `json:"allow_merge_commits,omitempty"`
-	// either `true` to allow rebase-merging pull requests, or `false` to prevent rebase-merging. `has_pull_requests` must be `true`.
+	// either `true` to allow rebase-merging pull requests, or `false` to prevent rebase-merging.
 	AllowRebase *bool `json:"allow_rebase,omitempty"`
-	// either `true` to allow rebase with explicit merge commits (--no-ff), or `false` to prevent rebase with explicit merge commits. `has_pull_requests` must be `true`.
+	// either `true` to allow rebase with explicit merge commits (--no-ff), or `false` to prevent rebase with explicit merge commits.
 	AllowRebaseMerge *bool `json:"allow_rebase_explicit,omitempty"`
-	// either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging. `has_pull_requests` must be `true`.
+	// either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging.
 	AllowSquash *bool `json:"allow_squash_merge,omitempty"`
+	// either `true` to allow mark pr as merged manually, or `false` to prevent it.
+	AllowManualMerge *bool `json:"allow_manual_merge,omitempty"`
+	// either `true` to enable AutodetectManualMerge, or `false` to prevent it. Note: In some special cases, misjudgments can occur.
+	AutodetectManualMerge *bool `json:"autodetect_manual_merge,omitempty"`
+	// either `true` to allow updating pull request branch by rebase, or `false` to prevent it.
+	AllowRebaseUpdate *bool `json:"allow_rebase_update,omitempty"`
+	// set to `true` to delete pr branch after merge by default
+	DefaultDeleteBranchAfterMerge *bool `json:"default_delete_branch_after_merge,omitempty"`
+	// set to a merge style to be used by this repository: "merge", "rebase", "rebase-merge", or "squash".
+	DefaultMergeStyle *string `json:"default_merge_style,omitempty"`
 	// set to `true` to archive this repository.
 	Archived *bool `json:"archived,omitempty"`
 	// SizeLimit of the repository.
 	SizeLimit *int64 `json:"size_limit,omitempty"`
+	// set to a string like `8h30m0s` to set the mirror interval time
+	MirrorInterval *string `json:"mirror_interval,omitempty"`
+	// enable prune - remove obsolete remote-tracking references
+	EnablePrune *bool `json:"enable_prune,omitempty"`
+}
+
+// GenerateRepoOption options when creating repository using a template
+// swagger:model
+type GenerateRepoOption struct {
+	// The organization or person who will own the new repository
+	//
+	// required: true
+	Owner string `json:"owner"`
+	// Name of the repository to create
+	//
+	// required: true
+	// unique: true
+	Name string `json:"name" binding:"Required;AlphaDashDot;MaxSize(100)"`
+	// Default branch of the new repository
+	DefaultBranch string `json:"default_branch"`
+	// Description of the repository to create
+	Description string `json:"description" binding:"MaxSize(2048)"`
+	// Whether the repository is private
+	Private bool `json:"private"`
+	// include git content of default branch in template repo
+	GitContent bool `json:"git_content"`
+	// include topics in template repo
+	Topics bool `json:"topics"`
+	// include git hooks in template repo
+	GitHooks bool `json:"git_hooks"`
+	// include webhooks in template repo
+	Webhooks bool `json:"webhooks"`
+	// include avatar of the template repo
+	Avatar bool `json:"avatar"`
+	// include labels in template repo
+	Labels bool `json:"labels"`
 }
 
 // CreateBranchRepoOption options when creating a branch in a repository
 // swagger:model
 type CreateBranchRepoOption struct {
-
 	// Name of the branch to create
 	//
 	// required: true
@@ -204,12 +260,15 @@ type GitServiceType int
 
 // enumerate all GitServiceType
 const (
-	NotMigrated     GitServiceType = iota // 0 not migrated from external sites
-	PlainGitService                       // 1 plain git service
-	GithubService                         // 2 github.com
-	GiteaService                          // 3 gitea service
-	GitlabService                         // 4 gitlab service
-	GogsService                           // 5 gogs service
+	NotMigrated      GitServiceType = iota // 0 not migrated from external sites
+	PlainGitService                        // 1 plain git service
+	GithubService                          // 2 github.com
+	GiteaService                           // 3 gitea service
+	GitlabService                          // 4 gitlab service
+	GogsService                            // 5 gogs service
+	OneDevService                          // 6 onedev service
+	GitBucketService                       // 7 gitbucket service
+	CodebaseService                        // 8 codebase service
 )
 
 // Name represents the service type's name
@@ -229,6 +288,12 @@ func (gt GitServiceType) Title() string {
 		return "GitLab"
 	case GogsService:
 		return "Gogs"
+	case OneDevService:
+		return "OneDev"
+	case GitBucketService:
+		return "GitBucket"
+	case CodebaseService:
+		return "Codebase"
 	case PlainGitService:
 		return "Git"
 	}
@@ -253,15 +318,18 @@ type MigrateRepoOptions struct {
 	AuthPassword string `json:"auth_password"`
 	AuthToken    string `json:"auth_token"`
 
-	Mirror       bool   `json:"mirror"`
-	Private      bool   `json:"private"`
-	Description  string `json:"description" binding:"MaxSize(255)"`
-	Wiki         bool   `json:"wiki"`
-	Milestones   bool   `json:"milestones"`
-	Labels       bool   `json:"labels"`
-	Issues       bool   `json:"issues"`
-	PullRequests bool   `json:"pull_requests"`
-	Releases     bool   `json:"releases"`
+	Mirror         bool   `json:"mirror"`
+	LFS            bool   `json:"lfs"`
+	LFSEndpoint    string `json:"lfs_endpoint"`
+	Private        bool   `json:"private"`
+	Description    string `json:"description" binding:"MaxSize(2048)"`
+	Wiki           bool   `json:"wiki"`
+	Milestones     bool   `json:"milestones"`
+	Labels         bool   `json:"labels"`
+	Issues         bool   `json:"issues"`
+	PullRequests   bool   `json:"pull_requests"`
+	Releases       bool   `json:"releases"`
+	MirrorInterval string `json:"mirror_interval"`
 }
 
 // TokenAuth represents whether a service type supports token-based auth
@@ -273,12 +341,21 @@ func (gt GitServiceType) TokenAuth() bool {
 	return false
 }
 
-var (
-	// SupportedFullGitService represents all git services supported to migrate issues/labels/prs and etc.
-	// TODO: add to this list after new git service added
-	SupportedFullGitService = []GitServiceType{
-		GithubService,
-		GitlabService,
-		GiteaService,
-	}
-)
+// SupportedFullGitService represents all git services supported to migrate issues/labels/prs and etc.
+// TODO: add to this list after new git service added
+var SupportedFullGitService = []GitServiceType{
+	GithubService,
+	GitlabService,
+	GiteaService,
+	GogsService,
+	OneDevService,
+	GitBucketService,
+	CodebaseService,
+}
+
+// RepoTransfer represents a pending repo transfer
+type RepoTransfer struct {
+	Doer      *User   `json:"doer"`
+	Recipient *User   `json:"recipient"`
+	Teams     []*Team `json:"teams"`
+}

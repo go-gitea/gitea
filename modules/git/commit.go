@@ -8,19 +8,16 @@ package git
 import (
 	"bufio"
 	"bytes"
-	"container/list"
+	"context"
+	"errors"
 	"fmt"
-	"image"
-	"image/color"
-	_ "image/gif"  // for processing gif images
-	_ "image/jpeg" // for processing jpeg images
-	_ "image/png"  // for processing png images
 	"io"
-	"net/http"
+	"os/exec"
 	"strconv"
 	"strings"
 
-	"github.com/go-git/go-git/v5/plumbing/object"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // Commit represents a git commit.
@@ -40,62 +37,7 @@ type Commit struct {
 // CommitGPGSignature represents a git commit signature part.
 type CommitGPGSignature struct {
 	Signature string
-	Payload   string //TODO check if can be reconstruct from the rest of commit information to not have duplicate data
-}
-
-func convertPGPSignature(c *object.Commit) *CommitGPGSignature {
-	if c.PGPSignature == "" {
-		return nil
-	}
-
-	var w strings.Builder
-	var err error
-
-	if _, err = fmt.Fprintf(&w, "tree %s\n", c.TreeHash.String()); err != nil {
-		return nil
-	}
-
-	for _, parent := range c.ParentHashes {
-		if _, err = fmt.Fprintf(&w, "parent %s\n", parent.String()); err != nil {
-			return nil
-		}
-	}
-
-	if _, err = fmt.Fprint(&w, "author "); err != nil {
-		return nil
-	}
-
-	if err = c.Author.Encode(&w); err != nil {
-		return nil
-	}
-
-	if _, err = fmt.Fprint(&w, "\ncommitter "); err != nil {
-		return nil
-	}
-
-	if err = c.Committer.Encode(&w); err != nil {
-		return nil
-	}
-
-	if _, err = fmt.Fprintf(&w, "\n\n%s", c.Message); err != nil {
-		return nil
-	}
-
-	return &CommitGPGSignature{
-		Signature: c.PGPSignature,
-		Payload:   w.String(),
-	}
-}
-
-func convertCommit(c *object.Commit) *Commit {
-	return &Commit{
-		ID:            c.Hash,
-		CommitMessage: c.Message,
-		Committer:     &c.Committer,
-		Author:        &c.Author,
-		Signature:     convertPGPSignature(c),
-		Parents:       c.ParentHashes,
-	}
+	Payload   string // TODO check if can be reconstruct from the rest of commit information to not have duplicate data
 }
 
 // Message returns the commit message. Same as retrieving CommitMessage directly.
@@ -136,88 +78,27 @@ func (c *Commit) ParentCount() int {
 	return len(c.Parents)
 }
 
-func isImageFile(data []byte) (string, bool) {
-	contentType := http.DetectContentType(data)
-	if strings.Contains(contentType, "image/") {
-		return contentType, true
-	}
-	return contentType, false
-}
-
-// IsImageFile is a file image type
-func (c *Commit) IsImageFile(name string) bool {
-	blob, err := c.GetBlobByPath(name)
-	if err != nil {
-		return false
-	}
-
-	dataRc, err := blob.DataAsync()
-	if err != nil {
-		return false
-	}
-	defer dataRc.Close()
-	buf := make([]byte, 1024)
-	n, _ := dataRc.Read(buf)
-	buf = buf[:n]
-	_, isImage := isImageFile(buf)
-	return isImage
-}
-
-// ImageMetaData represents metadata of an image file
-type ImageMetaData struct {
-	ColorModel color.Model
-	Width      int
-	Height     int
-	ByteSize   int64
-}
-
-// ImageInfo returns information about the dimensions of an image
-func (c *Commit) ImageInfo(name string) (*ImageMetaData, error) {
-	if !c.IsImageFile(name) {
-		return nil, nil
-	}
-
-	blob, err := c.GetBlobByPath(name)
-	if err != nil {
-		return nil, err
-	}
-	reader, err := blob.DataAsync()
-	if err != nil {
-		return nil, err
-	}
-	defer reader.Close()
-	config, _, err := image.DecodeConfig(reader)
-	if err != nil {
-		return nil, err
-	}
-
-	metadata := ImageMetaData{
-		ColorModel: config.ColorModel,
-		Width:      config.Width,
-		Height:     config.Height,
-		ByteSize:   blob.Size(),
-	}
-	return &metadata, nil
-}
-
 // GetCommitByPath return the commit of relative path object.
 func (c *Commit) GetCommitByPath(relpath string) (*Commit, error) {
+	if c.repo.LastCommitCache != nil {
+		return c.repo.LastCommitCache.GetCommitByPath(c.ID.String(), relpath)
+	}
 	return c.repo.getCommitByPathWithID(c.ID, relpath)
 }
 
 // AddChanges marks local changes to be ready for commit.
 func AddChanges(repoPath string, all bool, files ...string) error {
-	return AddChangesWithArgs(repoPath, GlobalCommandArgs, all, files...)
+	return AddChangesWithArgs(repoPath, globalCommandArgs, all, files...)
 }
 
 // AddChangesWithArgs marks local changes to be ready for commit.
-func AddChangesWithArgs(repoPath string, gloablArgs []string, all bool, files ...string) error {
-	cmd := NewCommandNoGlobals(append(gloablArgs, "add")...)
+func AddChangesWithArgs(repoPath string, globalArgs []CmdArg, all bool, files ...string) error {
+	cmd := NewCommandNoGlobals(append(globalArgs, "add")...)
 	if all {
 		cmd.AddArguments("--all")
 	}
-	cmd.AddArguments("--")
-	_, err := cmd.AddArguments(files...).RunInDir(repoPath)
+	cmd.AddDashesAndList(files...)
+	_, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
 	return err
 }
 
@@ -231,17 +112,17 @@ type CommitChangesOptions struct {
 // CommitChanges commits local changes with given committer, author and message.
 // If author is nil, it will be the same as committer.
 func CommitChanges(repoPath string, opts CommitChangesOptions) error {
-	cargs := make([]string, len(GlobalCommandArgs))
-	copy(cargs, GlobalCommandArgs)
+	cargs := make([]CmdArg, len(globalCommandArgs))
+	copy(cargs, globalCommandArgs)
 	return CommitChangesWithArgs(repoPath, cargs, opts)
 }
 
 // CommitChangesWithArgs commits local changes with given committer, author and message.
 // If author is nil, it will be the same as committer.
-func CommitChangesWithArgs(repoPath string, args []string, opts CommitChangesOptions) error {
+func CommitChangesWithArgs(repoPath string, args []CmdArg, opts CommitChangesOptions) error {
 	cmd := NewCommandNoGlobals(args...)
 	if opts.Committer != nil {
-		cmd.AddArguments("-c", "user.name="+opts.Committer.Name, "-c", "user.email="+opts.Committer.Email)
+		cmd.AddArguments("-c", CmdArg("user.name="+opts.Committer.Name), "-c", CmdArg("user.email="+opts.Committer.Email))
 	}
 	cmd.AddArguments("commit")
 
@@ -249,11 +130,11 @@ func CommitChangesWithArgs(repoPath string, args []string, opts CommitChangesOpt
 		opts.Author = opts.Committer
 	}
 	if opts.Author != nil {
-		cmd.AddArguments(fmt.Sprintf("--author='%s <%s>'", opts.Author.Name, opts.Author.Email))
+		cmd.AddArguments(CmdArg(fmt.Sprintf("--author='%s <%s>'", opts.Author.Name, opts.Author.Email)))
 	}
-	cmd.AddArguments("-m", opts.Message)
+	cmd.AddArguments("-m").AddDynamicArguments(opts.Message)
 
-	_, err := cmd.RunInDir(repoPath)
+	_, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
 	// No stderr but exit status 1 means nothing to commit.
 	if err != nil && err.Error() == "exit status 1" {
 		return nil
@@ -262,19 +143,17 @@ func CommitChangesWithArgs(repoPath string, args []string, opts CommitChangesOpt
 }
 
 // AllCommitsCount returns count of all commits in repository
-func AllCommitsCount(repoPath string, hidePRRefs bool, files ...string) (int64, error) {
-	args := []string{"--all", "--count"}
+func AllCommitsCount(ctx context.Context, repoPath string, hidePRRefs bool, files ...string) (int64, error) {
+	cmd := NewCommand(ctx, "rev-list")
 	if hidePRRefs {
-		args = append([]string{"--exclude=refs/pull/*"}, args...)
+		cmd.AddArguments("--exclude=" + PullPrefix + "*")
 	}
-	cmd := NewCommand("rev-list")
-	cmd.AddArguments(args...)
+	cmd.AddArguments("--all", "--count")
 	if len(files) > 0 {
-		cmd.AddArguments("--")
-		cmd.AddArguments(files...)
+		cmd.AddDashesAndList(files...)
 	}
 
-	stdout, err := cmd.RunInDir(repoPath)
+	stdout, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
 	if err != nil {
 		return 0, err
 	}
@@ -283,15 +162,14 @@ func AllCommitsCount(repoPath string, hidePRRefs bool, files ...string) (int64, 
 }
 
 // CommitsCountFiles returns number of total commits of until given revision.
-func CommitsCountFiles(repoPath string, revision, relpath []string) (int64, error) {
-	cmd := NewCommand("rev-list", "--count")
-	cmd.AddArguments(revision...)
+func CommitsCountFiles(ctx context.Context, repoPath string, revision, relpath []string) (int64, error) {
+	cmd := NewCommand(ctx, "rev-list", "--count")
+	cmd.AddDynamicArguments(revision...)
 	if len(relpath) > 0 {
-		cmd.AddArguments("--")
-		cmd.AddArguments(relpath...)
+		cmd.AddDashesAndList(relpath...)
 	}
 
-	stdout, err := cmd.RunInDir(repoPath)
+	stdout, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
 	if err != nil {
 		return 0, err
 	}
@@ -300,53 +178,54 @@ func CommitsCountFiles(repoPath string, revision, relpath []string) (int64, erro
 }
 
 // CommitsCount returns number of total commits of until given revision.
-func CommitsCount(repoPath string, revision ...string) (int64, error) {
-	return CommitsCountFiles(repoPath, revision, []string{})
+func CommitsCount(ctx context.Context, repoPath string, revision ...string) (int64, error) {
+	return CommitsCountFiles(ctx, repoPath, revision, []string{})
 }
 
 // CommitsCount returns number of total commits of until current revision.
 func (c *Commit) CommitsCount() (int64, error) {
-	return CommitsCount(c.repo.Path, c.ID.String())
+	return CommitsCount(c.repo.Ctx, c.repo.Path, c.ID.String())
 }
 
 // CommitsByRange returns the specific page commits before current revision, every page's number default by CommitsRangeSize
-func (c *Commit) CommitsByRange(page, pageSize int) (*list.List, error) {
+func (c *Commit) CommitsByRange(page, pageSize int) ([]*Commit, error) {
 	return c.repo.commitsByRange(c.ID, page, pageSize)
 }
 
 // CommitsBefore returns all the commits before current revision
-func (c *Commit) CommitsBefore() (*list.List, error) {
+func (c *Commit) CommitsBefore() ([]*Commit, error) {
 	return c.repo.getCommitsBefore(c.ID)
 }
 
 // HasPreviousCommit returns true if a given commitHash is contained in commit's parents
 func (c *Commit) HasPreviousCommit(commitHash SHA1) (bool, error) {
-	for i := 0; i < c.ParentCount(); i++ {
-		commit, err := c.Parent(i)
-		if err != nil {
-			return false, err
-		}
-		if commit.ID == commitHash {
-			return true, nil
-		}
-		commitInParentCommit, err := commit.HasPreviousCommit(commitHash)
-		if err != nil {
-			return false, err
-		}
-		if commitInParentCommit {
-			return true, nil
+	this := c.ID.String()
+	that := commitHash.String()
+
+	if this == that {
+		return false, nil
+	}
+
+	_, _, err := NewCommand(c.repo.Ctx, "merge-base", "--is-ancestor").AddDynamicArguments(that, this).RunStdString(&RunOpts{Dir: c.repo.Path})
+	if err == nil {
+		return true, nil
+	}
+	var exitError *exec.ExitError
+	if errors.As(err, &exitError) {
+		if exitError.ProcessState.ExitCode() == 1 && len(exitError.Stderr) == 0 {
+			return false, nil
 		}
 	}
-	return false, nil
+	return false, err
 }
 
 // CommitsBeforeLimit returns num commits before current revision
-func (c *Commit) CommitsBeforeLimit(num int) (*list.List, error) {
+func (c *Commit) CommitsBeforeLimit(num int) ([]*Commit, error) {
 	return c.repo.getCommitsBeforeLimit(c.ID, num)
 }
 
 // CommitsBeforeUntil returns the commits between commitID to current revision
-func (c *Commit) CommitsBeforeUntil(commitID string) (*list.List, error) {
+func (c *Commit) CommitsBeforeUntil(commitID string) ([]*Commit, error) {
 	endCommit, err := c.repo.GetCommit(commitID)
 	if err != nil {
 		return nil, err
@@ -394,7 +273,7 @@ func NewSearchCommitsOptions(searchString string, forAllRefs bool) SearchCommits
 }
 
 // SearchCommits returns the commits match the keyword before current revision
-func (c *Commit) SearchCommits(opts SearchCommitsOptions) (*list.List, error) {
+func (c *Commit) SearchCommits(opts SearchCommitsOptions) ([]*Commit, error) {
 	return c.repo.searchCommits(c.ID, opts)
 }
 
@@ -417,6 +296,35 @@ func (c *Commit) HasFile(filename string) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+// GetFileContent reads a file content as a string or returns false if this was not possible
+func (c *Commit) GetFileContent(filename string, limit int) (string, error) {
+	entry, err := c.GetTreeEntryByPath(filename)
+	if err != nil {
+		return "", err
+	}
+
+	r, err := entry.Blob().DataAsync()
+	if err != nil {
+		return "", err
+	}
+	defer r.Close()
+
+	if limit > 0 {
+		bs := make([]byte, limit)
+		n, err := util.ReadAtMost(r, bs)
+		if err != nil {
+			return "", err
+		}
+		return string(bs[:n]), nil
+	}
+
+	bytes, err := io.ReadAll(r)
+	if err != nil {
+		return "", err
+	}
+	return string(bytes), nil
 }
 
 // GetSubModules get all the sub modules of current revision git tree
@@ -481,20 +389,12 @@ func (c *Commit) GetSubModule(entryname string) (*SubModule, error) {
 
 // GetBranchName gets the closest branch name (as returned by 'git name-rev --name-only')
 func (c *Commit) GetBranchName() (string, error) {
-	err := LoadGitVersion()
-	if err != nil {
-		return "", fmt.Errorf("Git version missing: %v", err)
-	}
-
-	args := []string{
-		"name-rev",
-	}
+	cmd := NewCommand(c.repo.Ctx, "name-rev")
 	if CheckGitVersionAtLeast("2.13.0") == nil {
-		args = append(args, "--exclude", "refs/tags/*")
+		cmd.AddArguments("--exclude", "refs/tags/*")
 	}
-	args = append(args, "--name-only", "--no-undefined", c.ID.String())
-
-	data, err := NewCommand(args...).RunInDir(c.repo.Path)
+	cmd.AddArguments("--name-only", "--no-undefined").AddDynamicArguments(c.ID.String())
+	data, _, err := cmd.RunStdString(&RunOpts{Dir: c.repo.Path})
 	if err != nil {
 		// handle special case where git can not describe commit
 		if strings.Contains(err.Error(), "cannot describe") {
@@ -515,12 +415,12 @@ func (c *Commit) LoadBranchName() (err error) {
 	}
 
 	c.Branch, err = c.GetBranchName()
-	return
+	return err
 }
 
 // GetTagName gets the current tag name for given commit
 func (c *Commit) GetTagName() (string, error) {
-	data, err := NewCommand("describe", "--exact-match", "--tags", "--always", c.ID.String()).RunInDir(c.repo.Path)
+	data, _, err := NewCommand(c.repo.Ctx, "describe", "--exact-match", "--tags", "--always").AddDynamicArguments(c.ID.String()).RunStdString(&RunOpts{Dir: c.repo.Path})
 	if err != nil {
 		// handle special case where there is no tag for this commit
 		if strings.Contains(err.Error(), "no tag exactly matches") {
@@ -547,36 +447,64 @@ func NewCommitFileStatus() *CommitFileStatus {
 	}
 }
 
+func parseCommitFileStatus(fileStatus *CommitFileStatus, stdout io.Reader) {
+	rd := bufio.NewReader(stdout)
+	peek, err := rd.Peek(1)
+	if err != nil {
+		if err != io.EOF {
+			log.Error("Unexpected error whilst reading from git log --name-status. Error: %v", err)
+		}
+		return
+	}
+	if peek[0] == '\n' || peek[0] == '\x00' {
+		_, _ = rd.Discard(1)
+	}
+	for {
+		modifier, err := rd.ReadSlice('\x00')
+		if err != nil {
+			if err != io.EOF {
+				log.Error("Unexpected error whilst reading from git log --name-status. Error: %v", err)
+			}
+			return
+		}
+		file, err := rd.ReadString('\x00')
+		if err != nil {
+			if err != io.EOF {
+				log.Error("Unexpected error whilst reading from git log --name-status. Error: %v", err)
+			}
+			return
+		}
+		file = file[:len(file)-1]
+		switch modifier[0] {
+		case 'A':
+			fileStatus.Added = append(fileStatus.Added, file)
+		case 'D':
+			fileStatus.Removed = append(fileStatus.Removed, file)
+		case 'M':
+			fileStatus.Modified = append(fileStatus.Modified, file)
+		}
+	}
+}
+
 // GetCommitFileStatus returns file status of commit in given repository.
-func GetCommitFileStatus(repoPath, commitID string) (*CommitFileStatus, error) {
+func GetCommitFileStatus(ctx context.Context, repoPath, commitID string) (*CommitFileStatus, error) {
 	stdout, w := io.Pipe()
 	done := make(chan struct{})
 	fileStatus := NewCommitFileStatus()
 	go func() {
-		scanner := bufio.NewScanner(stdout)
-		for scanner.Scan() {
-			fields := strings.Fields(scanner.Text())
-			if len(fields) < 2 {
-				continue
-			}
-
-			switch fields[0][0] {
-			case 'A':
-				fileStatus.Added = append(fileStatus.Added, fields[1])
-			case 'D':
-				fileStatus.Removed = append(fileStatus.Removed, fields[1])
-			case 'M':
-				fileStatus.Modified = append(fileStatus.Modified, fields[1])
-			}
-		}
-		done <- struct{}{}
+		parseCommitFileStatus(fileStatus, stdout)
+		close(done)
 	}()
 
 	stderr := new(bytes.Buffer)
-	err := NewCommand("show", "--name-status", "--pretty=format:''", commitID).RunInDirPipeline(repoPath, w, stderr)
+	err := NewCommand(ctx, "log", "--name-status", "-c", "--pretty=format:", "--parents", "--no-renames", "-z", "-1").AddDynamicArguments(commitID).Run(&RunOpts{
+		Dir:    repoPath,
+		Stdout: w,
+		Stderr: stderr,
+	})
 	w.Close() // Close writer to exit parsing goroutine
 	if err != nil {
-		return nil, concatenateError(err, stderr.String())
+		return nil, ConcatenateError(err, stderr.String())
 	}
 
 	<-done
@@ -584,8 +512,8 @@ func GetCommitFileStatus(repoPath, commitID string) (*CommitFileStatus, error) {
 }
 
 // GetFullCommitID returns full length (40) of commit ID by given short SHA in a repository.
-func GetFullCommitID(repoPath, shortID string) (string, error) {
-	commitID, err := NewCommand("rev-parse", shortID).RunInDir(repoPath)
+func GetFullCommitID(ctx context.Context, repoPath, shortID string) (string, error) {
+	commitID, _, err := NewCommand(ctx, "rev-parse").AddDynamicArguments(shortID).RunStdString(&RunOpts{Dir: repoPath})
 	if err != nil {
 		if strings.Contains(err.Error(), "exit status 128") {
 			return "", ErrNotExist{shortID, ""}

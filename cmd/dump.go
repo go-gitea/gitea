@@ -6,31 +6,41 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 
-	"gitea.com/macaron/session"
-	archiver "github.com/mholt/archiver/v3"
-	"github.com/unknwon/com"
+	"gitea.com/go-chi/session"
+	"github.com/mholt/archiver/v3"
 	"github.com/urfave/cli"
 )
 
-func addFile(w archiver.Writer, filePath string, absPath string, verbose bool) error {
+func addReader(w archiver.Writer, r io.ReadCloser, info os.FileInfo, customName string, verbose bool) error {
 	if verbose {
-		log.Info("Adding file %s\n", filePath)
+		log.Info("Adding file %s", customName)
 	}
+
+	return w.Write(archiver.File{
+		FileInfo: archiver.FileInfo{
+			FileInfo:   info,
+			CustomName: customName,
+		},
+		ReadCloser: r,
+	})
+}
+
+func addFile(w archiver.Writer, filePath, absPath string, verbose bool) error {
 	file, err := os.Open(absPath)
 	if err != nil {
 		return err
@@ -41,48 +51,10 @@ func addFile(w archiver.Writer, filePath string, absPath string, verbose bool) e
 		return err
 	}
 
-	return w.Write(archiver.File{
-		FileInfo: archiver.FileInfo{
-			FileInfo:   fileInfo,
-			CustomName: filePath,
-		},
-		ReadCloser: file,
-	})
+	return addReader(w, file, fileInfo, filePath, verbose)
 }
 
-func addRecursive(w archiver.Writer, dirPath string, absPath string, verbose bool) error {
-	if verbose {
-		log.Info("Adding dir  %s\n", dirPath)
-	}
-	dir, err := os.Open(absPath)
-	if err != nil {
-		return fmt.Errorf("Could not open directory %s: %s", absPath, err)
-	}
-	defer dir.Close()
-
-	files, err := dir.Readdir(0)
-	if err != nil {
-		return fmt.Errorf("Unable to list files in %s: %s", absPath, err)
-	}
-
-	if err := addFile(w, dirPath, absPath, false); err != nil {
-		return err
-	}
-
-	for _, fileInfo := range files {
-		if fileInfo.IsDir() {
-			err = addRecursive(w, filepath.Join(dirPath, fileInfo.Name()), filepath.Join(absPath, fileInfo.Name()), verbose)
-		} else {
-			err = addFile(w, filepath.Join(dirPath, fileInfo.Name()), filepath.Join(absPath, fileInfo.Name()), verbose)
-		}
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func isSubdir(upper string, lower string) (bool, error) {
+func isSubdir(upper, lower string) (bool, error) {
 	if relPath, err := filepath.Rel(upper, lower); err != nil {
 		return false, err
 	} else if relPath == "." || !strings.HasPrefix(relPath, ".") {
@@ -120,7 +92,7 @@ func (o outputType) String() string {
 }
 
 var outputTypeEnum = &outputType{
-	Enum:    []string{"zip", "tar", "tar.gz", "tar.xz", "tar.bz2"},
+	Enum:    []string{"zip", "tar", "tar.sz", "tar.gz", "tar.xz", "tar.bz2", "tar.br", "tar.lz4", "tar.zst"},
 	Default: "zip",
 }
 
@@ -158,6 +130,26 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 			Name:  "skip-log, L",
 			Usage: "Skip the log dumping",
 		},
+		cli.BoolFlag{
+			Name:  "skip-custom-dir",
+			Usage: "Skip custom directory",
+		},
+		cli.BoolFlag{
+			Name:  "skip-lfs-data",
+			Usage: "Skip LFS data",
+		},
+		cli.BoolFlag{
+			Name:  "skip-attachment-data",
+			Usage: "Skip attachment data",
+		},
+		cli.BoolFlag{
+			Name:  "skip-package-data",
+			Usage: "Skip package data",
+		},
+		cli.BoolFlag{
+			Name:  "skip-index",
+			Usage: "Skip bleve index data",
+		},
 		cli.GenericFlag{
 			Name:  "type",
 			Value: outputTypeEnum,
@@ -174,14 +166,24 @@ func fatal(format string, args ...interface{}) {
 func runDump(ctx *cli.Context) error {
 	var file *os.File
 	fileName := ctx.String("file")
+	outType := ctx.String("type")
 	if fileName == "-" {
 		file = os.Stdout
 		err := log.DelLogger("console")
 		if err != nil {
 			fatal("Deleting default logger failed. Can not write to stdout: %v", err)
 		}
+	} else {
+		for _, suffix := range outputTypeEnum.Enum {
+			if strings.HasSuffix(fileName, "."+suffix) {
+				fileName = strings.TrimSuffix(fileName, "."+suffix)
+				break
+			}
+		}
+		fileName += "." + outType
 	}
-	setting.NewContext()
+	setting.LoadFromExisting()
+
 	// make sure we are logging to the console no matter what the configuration tells us do to
 	if _, err := setting.Cfg.Section("log").NewKey("MODE", "console"); err != nil {
 		fatal("Setting logging mode to console failed: %v", err)
@@ -195,7 +197,10 @@ func runDump(ctx *cli.Context) error {
 	}
 	setting.NewServices() // cannot access session settings otherwise
 
-	err := models.SetEngine()
+	stdCtx, cancel := installSignals()
+	defer cancel()
+
+	err := db.InitEngine(stdCtx)
 	if err != nil {
 		return err
 	}
@@ -212,8 +217,12 @@ func runDump(ctx *cli.Context) error {
 	}
 	defer file.Close()
 
+	absFileName, err := filepath.Abs(fileName)
+	if err != nil {
+		return err
+	}
+
 	verbose := ctx.Bool("verbose")
-	outType := ctx.String("type")
 	var iface interface{}
 	if fileName == "-" {
 		iface, err = archiver.ByExtension(fmt.Sprintf(".%s", outType))
@@ -234,23 +243,19 @@ func runDump(ctx *cli.Context) error {
 		log.Info("Skip dumping local repositories")
 	} else {
 		log.Info("Dumping local repositories... %s", setting.RepoRootPath)
-		if err := addRecursive(w, "repos", setting.RepoRootPath, verbose); err != nil {
+		if err := addRecursiveExclude(w, "repos", setting.RepoRootPath, []string{absFileName}, verbose); err != nil {
 			fatal("Failed to include repositories: %v", err)
 		}
 
-		if err := storage.LFS.IterateObjects(func(objPath string, object storage.Object) error {
+		if ctx.IsSet("skip-lfs-data") && ctx.Bool("skip-lfs-data") {
+			log.Info("Skip dumping LFS data")
+		} else if err := storage.LFS.IterateObjects(func(objPath string, object storage.Object) error {
 			info, err := object.Stat()
 			if err != nil {
 				return err
 			}
 
-			return w.Write(archiver.File{
-				FileInfo: archiver.FileInfo{
-					FileInfo:   info,
-					CustomName: path.Join("data", "lfs", objPath),
-				},
-				ReadCloser: object,
-			})
+			return addReader(w, object, info, path.Join("data", "lfs", objPath), verbose)
 		}); err != nil {
 			fatal("Failed to dump LFS objects: %v", err)
 		}
@@ -261,7 +266,7 @@ func runDump(ctx *cli.Context) error {
 		fatal("Path does not exist: %s", tmpDir)
 	}
 
-	dbDump, err := ioutil.TempFile(tmpDir, "gitea-db.sql")
+	dbDump, err := os.CreateTemp(tmpDir, "gitea-db.sql")
 	if err != nil {
 		fatal("Failed to create tmp file: %v", err)
 	}
@@ -278,7 +283,7 @@ func runDump(ctx *cli.Context) error {
 		log.Info("Dumping database...")
 	}
 
-	if err := models.DumpDatabase(dbDump.Name(), targetDBType); err != nil {
+	if err := db.DumpDatabase(dbDump.Name(), targetDBType); err != nil {
 		fatal("Failed to dump database: %v", err)
 	}
 
@@ -293,20 +298,28 @@ func runDump(ctx *cli.Context) error {
 		}
 	}
 
-	customDir, err := os.Stat(setting.CustomPath)
-	if err == nil && customDir.IsDir() {
-		if is, _ := isSubdir(setting.AppDataPath, setting.CustomPath); !is {
-			if err := addRecursive(w, "custom", setting.CustomPath, verbose); err != nil {
-				fatal("Failed to include custom: %v", err)
+	if ctx.IsSet("skip-custom-dir") && ctx.Bool("skip-custom-dir") {
+		log.Info("Skipping custom directory")
+	} else {
+		customDir, err := os.Stat(setting.CustomPath)
+		if err == nil && customDir.IsDir() {
+			if is, _ := isSubdir(setting.AppDataPath, setting.CustomPath); !is {
+				if err := addRecursiveExclude(w, "custom", setting.CustomPath, []string{absFileName}, verbose); err != nil {
+					fatal("Failed to include custom: %v", err)
+				}
+			} else {
+				log.Info("Custom dir %s is inside data dir %s, skipped", setting.CustomPath, setting.AppDataPath)
 			}
 		} else {
-			log.Info("Custom dir %s is inside data dir %s, skipped", setting.CustomPath, setting.AppDataPath)
+			log.Info("Custom dir %s doesn't exist, skipped", setting.CustomPath)
 		}
-	} else {
-		log.Info("Custom dir %s doesn't exist, skipped", setting.CustomPath)
 	}
 
-	if com.IsExist(setting.AppDataPath) {
+	isExist, err := util.IsExist(setting.AppDataPath)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", setting.AppDataPath, err)
+	}
+	if isExist {
 		log.Info("Packing data directory...%s", setting.AppDataPath)
 
 		var excludes []string
@@ -318,30 +331,46 @@ func runDump(ctx *cli.Context) error {
 			excludes = append(excludes, opts.ProviderConfig)
 		}
 
+		if ctx.IsSet("skip-index") && ctx.Bool("skip-index") {
+			excludes = append(excludes, setting.Indexer.RepoPath)
+			excludes = append(excludes, setting.Indexer.IssuePath)
+		}
+
 		excludes = append(excludes, setting.RepoRootPath)
 		excludes = append(excludes, setting.LFS.Path)
 		excludes = append(excludes, setting.Attachment.Path)
+		excludes = append(excludes, setting.Packages.Path)
 		excludes = append(excludes, setting.LogRootPath)
+		excludes = append(excludes, absFileName)
 		if err := addRecursiveExclude(w, "data", setting.AppDataPath, excludes, verbose); err != nil {
 			fatal("Failed to include data directory: %v", err)
 		}
 	}
 
-	if err := storage.Attachments.IterateObjects(func(objPath string, object storage.Object) error {
+	if ctx.IsSet("skip-attachment-data") && ctx.Bool("skip-attachment-data") {
+		log.Info("Skip dumping attachment data")
+	} else if err := storage.Attachments.IterateObjects(func(objPath string, object storage.Object) error {
 		info, err := object.Stat()
 		if err != nil {
 			return err
 		}
 
-		return w.Write(archiver.File{
-			FileInfo: archiver.FileInfo{
-				FileInfo:   info,
-				CustomName: path.Join("data", "attachments", objPath),
-			},
-			ReadCloser: object,
-		})
+		return addReader(w, object, info, path.Join("data", "attachments", objPath), verbose)
 	}); err != nil {
 		fatal("Failed to dump attachments: %v", err)
+	}
+
+	if ctx.IsSet("skip-package-data") && ctx.Bool("skip-package-data") {
+		log.Info("Skip dumping package data")
+	} else if err := storage.Packages.IterateObjects(func(objPath string, object storage.Object) error {
+		info, err := object.Stat()
+		if err != nil {
+			return err
+		}
+
+		return addReader(w, object, info, path.Join("data", "packages", objPath), verbose)
+	}); err != nil {
+		fatal("Failed to dump packages: %v", err)
 	}
 
 	// Doesn't check if LogRootPath exists before processing --skip-log intentionally,
@@ -349,9 +378,15 @@ func runDump(ctx *cli.Context) error {
 	// yet or not.
 	if ctx.IsSet("skip-log") && ctx.Bool("skip-log") {
 		log.Info("Skip dumping log files")
-	} else if com.IsExist(setting.LogRootPath) {
-		if err := addRecursive(w, "log", setting.LogRootPath, verbose); err != nil {
-			fatal("Failed to include log: %v", err)
+	} else {
+		isExist, err := util.IsExist(setting.LogRootPath)
+		if err != nil {
+			log.Error("Unable to check if %s exists. Error: %v", setting.LogRootPath, err)
+		}
+		if isExist {
+			if err := addRecursiveExclude(w, "log", setting.LogRootPath, []string{absFileName}, verbose); err != nil {
+				fatal("Failed to include log: %v", err)
+			}
 		}
 	}
 
@@ -361,7 +396,7 @@ func runDump(ctx *cli.Context) error {
 			fatal("Failed to save %s: %v", fileName, err)
 		}
 
-		if err := os.Chmod(fileName, 0600); err != nil {
+		if err := os.Chmod(fileName, 0o600); err != nil {
 			log.Info("Can't change file access permissions mask to 0600: %v", err)
 		}
 	}
@@ -413,8 +448,23 @@ func addRecursiveExclude(w archiver.Writer, insidePath, absPath string, excludeA
 				}
 			}
 		} else {
-			if err = addFile(w, currentInsidePath, currentAbsPath, verbose); err != nil {
-				return err
+			// only copy regular files and symlink regular files, skip non-regular files like socket/pipe/...
+			shouldAdd := file.Mode().IsRegular()
+			if !shouldAdd && file.Mode()&os.ModeSymlink == os.ModeSymlink {
+				target, err := filepath.EvalSymlinks(currentAbsPath)
+				if err != nil {
+					return err
+				}
+				targetStat, err := os.Stat(target)
+				if err != nil {
+					return err
+				}
+				shouldAdd = targetStat.Mode().IsRegular()
+			}
+			if shouldAdd {
+				if err = addFile(w, currentInsidePath, currentAbsPath, verbose); err != nil {
+					return err
+				}
 			}
 		}
 	}
