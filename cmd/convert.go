@@ -15,7 +15,18 @@ import (
 )
 
 // CmdConvert represents the available convert sub-command.
+//
+// Deprecated: Remove in 1.20
 var CmdConvert = cli.Command{
+	Name:        "convert",
+	Usage:       "Convert the database",
+	Description: "A command to convert an existing MySQL database from utf8 to utf8mb4",
+	Action:      runConvert,
+	Hidden:      true,
+}
+
+// CmdDoctorConvert represents the available convert sub-command.
+var CmdDoctorConvert = cli.Command{
 	Name:        "convert",
 	Usage:       "Convert the database",
 	Description: "A command to convert an existing MySQL database from utf8 to utf8mb4",

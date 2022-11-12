@@ -369,33 +369,23 @@ This command is idempotent.
 
 ### convert
 
-Converts an existing MySQL database from utf8 to utf8mb4.
+(DEPRECATED: moved to doctor convert in 1.19) Converts an existing MySQL database from utf8 to utf8mb4.
+
 
 ### doctor
 
-Diagnose the problems of current Gitea instance according the given configuration.
-Currently there are a check list below:
+Provides sub-commands that can fix problems with the current Gitea instance.
 
-- Check if OpenSSH authorized_keys file id correct
-  When your Gitea instance support OpenSSH, your Gitea instance binary path will be written to `authorized_keys`
-  when there is any public key added or changed on your Gitea instance.
-  Sometimes if you moved or renamed your Gitea binary when upgrade and you haven't run `Update the '.ssh/authorized_keys' file with Gitea SSH keys. (Not needed for the built-in SSH server.)` on your Admin Panel. Then all pull/push via SSH will not be work.
-  This check will help you to check if it works well.
+### doctor check
 
-For contributors, if you want to add more checks, you can wrie ad new function like `func(ctx *cli.Context) ([]string, error)` and
-append it to `doctor.go`.
+Diagnose and potentially fix problems with the current Gitea instance. Several checks are run by default, but additional ones can be run:
 
-```go
-var checklist = []check{
-	{
-		title: "Check if OpenSSH authorized_keys file id correct",
-		f:     runDoctorLocationMoved,
-    },
-    // more checks please append here
-}
-```
+- `gitea doctor check list` - will list all the available checks
+- `gitea doctor check all` - will run all available checks
+- `gitea doctor check default` - will run the default checks
+- `gitea doctor check [check(s)]...` - will run the named checks
 
-This function will receive a command line context and return a list of details about the problems or error.
+Some problems can be automatically fixed by passing the `--fix` option. Extra logging can be set with `--log-file=...` or `--verbose`.
 
 #### doctor recreate-table
 
@@ -426,6 +416,10 @@ gitea doctor recreate-table
 ```
 
 It is highly recommended to back-up your database before running these commands.
+
+### doctor convert
+
+Converts an existing MySQL database from utf8 to utf8mb4.
 
 ### manager
 

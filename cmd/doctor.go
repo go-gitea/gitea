@@ -7,6 +7,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"io"
 	golog "log"
 	"os"
 	"strings"
@@ -27,40 +28,11 @@ import (
 var CmdDoctor = cli.Command{
 	Name:        "doctor",
 	Usage:       "Diagnose and optionally fix problems",
-	Description: "A command to diagnose problems with the current Gitea instance according to the given configuration. Some problems can optionally be fixed by modifying the database or data storage.",
-	Action:      runDoctor,
-	Flags: []cli.Flag{
-		cli.BoolFlag{
-			Name:  "list",
-			Usage: "List the available checks",
-		},
-		cli.BoolFlag{
-			Name:  "default",
-			Usage: "Run the default checks (if neither --run or --all is set, this is the default behaviour)",
-		},
-		cli.StringSliceFlag{
-			Name:  "run",
-			Usage: "Run the provided checks - (if --default is set, the default checks will also run)",
-		},
-		cli.BoolFlag{
-			Name:  "all",
-			Usage: "Run all the available checks",
-		},
-		cli.BoolFlag{
-			Name:  "fix",
-			Usage: "Automatically fix what we can",
-		},
-		cli.StringFlag{
-			Name:  "log-file",
-			Usage: `Name of the log file (default: "doctor.log"). Set to "-" to output to stdout, set to "" to disable`,
-		},
-		cli.BoolFlag{
-			Name:  "color, H",
-			Usage: "Use color for outputted information",
-		},
-	},
+	Description: "Helper commands to diagnose problems with the current Gitea instance according to the given configuration. Some problems can optionally be fixed by modifying the database or data storage.",
 	Subcommands: []cli.Command{
+		cmdDoctorCheck,
 		cmdRecreateTable,
+		CmdConvert,
 	},
 }
 
@@ -80,6 +52,142 @@ This command will cause Xorm to recreate tables, copying over the data and delet
 
 You should back-up your database before doing this and ensure that your database is up-to-date first.`,
 	Action: runRecreateTable,
+}
+
+var cmdDoctorCheck = cli.Command{
+	Name:      "check",
+	Usage:     "Runs doctor check(s)",
+	ArgsUsage: "[check-name]... : check(s) to run - leave blank to just run the default checks.\n\n",
+	Flags: []cli.Flag{
+		cli.BoolFlag{
+			Name:  "fix",
+			Usage: "Automatically fix what we can",
+		},
+		cli.StringFlag{
+			Name:  "log-file",
+			Usage: `Name of the log file (if empty defaults to: "doctor.log"). Set to "-" to output to stdout, leave unset to not run logs`,
+		},
+		cli.BoolFlag{
+			Name:  "color, H",
+			Usage: "Use color for outputted information",
+		},
+		cli.BoolFlag{
+			Name:  "verbose, V",
+			Usage: "log to stdout, (shorthand for --log-file=-",
+		},
+	},
+	Action: runDoctorCheck,
+}
+
+func init() {
+	sb := new(strings.Builder)
+	writeChecks(sb)
+
+	CmdDoctor.Subcommands[0].ArgsUsage += sb.String()
+}
+
+func writeChecks(sb io.Writer) {
+	_, _ = sb.Write([]byte("CHECKS:\n"))
+	w := tabwriter.NewWriter(sb, 0, 8, 1, ' ', 0)
+	_, _ = w.Write([]byte("  \tlist\tPrints list of available checks\n"))
+	_, _ = w.Write([]byte("  \tall\tRuns all available checks\n"))
+	_, _ = w.Write([]byte("  \tdefault\tRuns checks marked with (*) below\n"))
+	for _, check := range doctor.Checks {
+		_, _ = w.Write([]byte("  \t"))
+		_, _ = w.Write([]byte(check.Name))
+		_, _ = w.Write([]byte{'\t'})
+		if check.IsDefault {
+			_, _ = w.Write([]byte("(*) "))
+		}
+		_, _ = w.Write([]byte(check.Title))
+		_, _ = w.Write([]byte{'\n'})
+	}
+	_ = w.Flush()
+}
+
+func runDoctorCheck(ctx *cli.Context) error {
+	stdCtx, cancel := installSignals()
+	defer cancel()
+
+	// Silence the default loggers
+	log.DelNamedLogger("console")
+	log.DelNamedLogger(log.DEFAULT)
+
+	// Now setup our logger
+	setDoctorLogger(ctx)
+
+	colorize := log.CanColorStdout
+	if ctx.IsSet("color") {
+		colorize = ctx.Bool("color")
+	}
+
+	// Finally redirect the default golog to here
+	golog.SetFlags(0)
+	golog.SetPrefix("")
+	golog.SetOutput(log.NewLoggerAsWriter("INFO", log.GetLogger(log.DEFAULT)))
+
+	// Now we can set up our own logger to return information about what the doctor is doing
+	if err := log.NewNamedLogger("doctorouter",
+		0,
+		"console",
+		"console",
+		fmt.Sprintf(`{"level":"INFO","stacktracelevel":"NONE","colorize":%t,"flags":-1}`, colorize)); err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	logger := log.GetLogger("doctorouter")
+	defer logger.Close()
+
+	var checks []*doctor.Check
+	if ctx.NArg() > 0 {
+		names := make([]string, 0, ctx.NArg())
+		args := ctx.Args()
+		for i := 0; i < ctx.NArg(); i++ {
+			names = append(names, args.Get(i))
+		}
+
+		addDefault := false
+		all := false
+		for i, name := range names {
+			names[i] = strings.ToLower(strings.TrimSpace(name))
+			switch names[i] {
+			case "default":
+				addDefault = true
+			case "list":
+				sb := new(strings.Builder)
+				writeChecks(sb)
+				logger.Info("%s", log.NewColoredValue(sb.String(), log.Reset))
+			case "all":
+				all = true
+			}
+		}
+
+		if all {
+			checks = doctor.Checks
+		} else {
+			for _, check := range doctor.Checks {
+				if addDefault && check.IsDefault {
+					checks = append(checks, check)
+					continue
+				}
+				for _, name := range names {
+					if name == check.Name {
+						checks = append(checks, check)
+						break
+					}
+				}
+			}
+		}
+	} else {
+		for _, check := range doctor.Checks {
+			if check.IsDefault {
+				checks = append(checks, check)
+			}
+		}
+	}
+
+	return doctor.RunChecks(stdCtx, logger, ctx.Bool("fix"), checks)
 }
 
 func runRecreateTable(ctx *cli.Context) error {
@@ -127,8 +235,17 @@ func runRecreateTable(ctx *cli.Context) error {
 
 func setDoctorLogger(ctx *cli.Context) {
 	logFile := ctx.String("log-file")
-	if !ctx.IsSet("log-file") {
-		logFile = "doctor.log"
+	if ctx.IsSet("log-file") {
+		if logFile == "" {
+			// verbose is set and log-file="" then assume that we mean --log-file=-
+			if ctx.Bool("verbose") {
+				logFile = "-"
+			} else {
+				logFile = "doctor.log"
+			}
+		}
+	} else if ctx.Bool("verbose") {
+		logFile = "-"
 	}
 	colorize := log.CanColorStdout
 	if ctx.IsSet("color") {
@@ -164,86 +281,4 @@ func setDoctorLogger(ctx *cli.Context) {
 	} else {
 		log.NewLogger(1000, "doctor", "file", fmt.Sprintf(`{"filename":%q,"level":"trace","stacktracelevel":"NONE"}`, logFile))
 	}
-}
-
-func runDoctor(ctx *cli.Context) error {
-	stdCtx, cancel := installSignals()
-	defer cancel()
-
-	// Silence the default loggers
-	log.DelNamedLogger("console")
-	log.DelNamedLogger(log.DEFAULT)
-
-	// Now setup our own
-	setDoctorLogger(ctx)
-
-	colorize := log.CanColorStdout
-	if ctx.IsSet("color") {
-		colorize = ctx.Bool("color")
-	}
-
-	// Finally redirect the default golog to here
-	golog.SetFlags(0)
-	golog.SetPrefix("")
-	golog.SetOutput(log.NewLoggerAsWriter("INFO", log.GetLogger(log.DEFAULT)))
-
-	if ctx.IsSet("list") {
-		w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
-		_, _ = w.Write([]byte("Default\tName\tTitle\n"))
-		for _, check := range doctor.Checks {
-			if check.IsDefault {
-				_, _ = w.Write([]byte{'*'})
-			}
-			_, _ = w.Write([]byte{'\t'})
-			_, _ = w.Write([]byte(check.Name))
-			_, _ = w.Write([]byte{'\t'})
-			_, _ = w.Write([]byte(check.Title))
-			_, _ = w.Write([]byte{'\n'})
-		}
-		return w.Flush()
-	}
-
-	var checks []*doctor.Check
-	if ctx.Bool("all") {
-		checks = doctor.Checks
-	} else if ctx.IsSet("run") {
-		addDefault := ctx.Bool("default")
-		names := ctx.StringSlice("run")
-		for i, name := range names {
-			names[i] = strings.ToLower(strings.TrimSpace(name))
-		}
-
-		for _, check := range doctor.Checks {
-			if addDefault && check.IsDefault {
-				checks = append(checks, check)
-				continue
-			}
-			for _, name := range names {
-				if name == check.Name {
-					checks = append(checks, check)
-					break
-				}
-			}
-		}
-	} else {
-		for _, check := range doctor.Checks {
-			if check.IsDefault {
-				checks = append(checks, check)
-			}
-		}
-	}
-
-	// Now we can set up our own logger to return information about what the doctor is doing
-	if err := log.NewNamedLogger("doctorouter",
-		0,
-		"console",
-		"console",
-		fmt.Sprintf(`{"level":"INFO","stacktracelevel":"NONE","colorize":%t,"flags":-1}`, colorize)); err != nil {
-		fmt.Println(err)
-		return err
-	}
-
-	logger := log.GetLogger("doctorouter")
-	defer logger.Close()
-	return doctor.RunChecks(stdCtx, logger, ctx.Bool("fix"), checks)
 }
