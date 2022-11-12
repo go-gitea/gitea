@@ -60,7 +60,7 @@ func GetIssueCommentAttachment(ctx *context.APIContext) {
 		return
 	}
 	attachment := getIssueCommentAttachmentSafeRead(ctx, comment)
-	if attach == nil {
+	if attachment == nil {
 		return
 	}
 	if attachment.CommentID != comment.ID {
@@ -325,6 +325,10 @@ func getIssueCommentSafe(ctx *context.APIContext) *issues_model.Comment {
 		ctx.Error(http.StatusNotFound, "", "no matching issue comment found")
 		return nil
 	}
+	if !ctx.Repo.CanReadIssuesOrPulls(comment.Issue.IsPull) {
+		ctx.Error(http.StatusForbidden, "", "user should have permission to read issue")
+		return nil
+	}
 	return comment
 }
 
@@ -339,11 +343,11 @@ func getIssueCommentAttachmentSafeWrite(ctx *context.APIContext) *repo_model.Att
 	return getIssueCommentAttachmentSafeRead(ctx, comment)
 }
 
-func canUserWriteIssueCommentAttachment(ctx *context.APIContext, comment *issues_model.Comment) (success bool) {
+func canUserWriteIssueCommentAttachment(ctx *context.APIContext, comment *issues_model.Comment) bool {
 	canEditComment := ctx.IsSigned && (ctx.Doer.ID == comment.PosterID || ctx.IsUserRepoAdmin() || ctx.IsUserSiteAdmin()) && ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)
 	if !canEditComment {
 		ctx.Error(http.StatusForbidden, "", "user should have permission to edit comment")
-		return
+		return false
 	}
 
 	return true
@@ -361,21 +365,21 @@ func getIssueCommentAttachmentSafeRead(ctx *context.APIContext, comment *issues_
 	return attachment
 }
 
-func attachmentBelongsToRepoOrComment(ctx *context.APIContext, attachment *repo_model.Attachment, comment *issues_model.Comment) (success bool) {
+func attachmentBelongsToRepoOrComment(ctx *context.APIContext, attachment *repo_model.Attachment, comment *issues_model.Comment) bool {
 	if attachment.RepoID != ctx.Repo.Repository.ID {
 		log.Debug("Requested attachment[%d] does not belong to repo[%-v].", attachment.ID, ctx.Repo.Repository)
 		ctx.NotFound("no such attachment in repo")
-		return
+		return false
 	}
 	if attachment.IssueID == 0 || attachment.CommentID == 0 {
 		log.Debug("Requested attachment[%d] is not in a comment.", attachment.ID)
 		ctx.NotFound("no such attachment in comment")
-		return
+		return false
 	}
 	if comment != nil && attachment.CommentID != comment.ID {
 		log.Debug("Requested attachment[%d] does not belong to comment[%d].", attachment.ID, comment.ID)
 		ctx.NotFound("no such attachment in comment")
-		return
+		return false
 	}
 	return true
 }

@@ -2747,6 +2747,11 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
+	if err = comment_service.UpdateComment(comment, ctx.Doer, oldContent); err != nil {
+		ctx.ServerError("UpdateComment", err)
+		return
+	}
+
 	if err := comment.LoadAttachments(); err != nil {
 		ctx.ServerError("LoadAttachments", err)
 		return
@@ -2758,11 +2763,6 @@ func UpdateCommentContent(ctx *context.Context) {
 			ctx.ServerError("UpdateAttachments", err)
 			return
 		}
-	}
-
-	if err = comment_service.UpdateComment(comment, ctx.Doer, oldContent); err != nil {
-		ctx.ServerError("UpdateComment", err)
-		return
 	}
 
 	content, err := markdown.RenderString(&markup.RenderContext{
