@@ -25,7 +25,7 @@ func NewAttachment(attach *repo_model.Attachment, file io.Reader) (*repo_model.A
 		return nil, fmt.Errorf("attachment %s should belong to a repository", attach.Name)
 	}
 
-	err := db.WithTx(func(ctx context.Context) error {
+	err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		attach.UUID = uuid.New().String()
 		size, err := storage.Attachments.Save(attach.RelativePath(), file, -1)
 		if err != nil {
