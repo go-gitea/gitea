@@ -325,10 +325,9 @@ func getIssueCommentSafe(ctx *context.APIContext) *issues_model.Comment {
 		ctx.Error(http.StatusNotFound, "", "no matching issue comment found")
 		return nil
 	}
-	if !ctx.Repo.CanReadIssuesOrPulls(comment.Issue.IsPull) {
-		ctx.Error(http.StatusForbidden, "", "user should have permission to read issue")
-		return nil
-	}
+
+	comment.Issue.Repo = ctx.Repo.Repository
+
 	return comment
 }
 

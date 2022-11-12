@@ -19,17 +19,6 @@ import (
 	issue_service "code.gitea.io/gitea/services/issue"
 )
 
-/**
- * NOTE about permissions:
- * - repo access is already checked via middleware on the /repos/{owner}/{name} group
- * - issue/pull *read* access is checked on the ../issues group middleware
- *   ("read" access allows posting issues, so posting attachments is fine too!)
- * - setting.Attachment.Enabled is checked on ../assets group middleware
- * All that is left to be checked is
- * - canUserWriteIssueAttachment()
- * - attachmentBelongsToIssue()
- */
-
 // GetIssueAttachment gets a single attachment of the issue
 func GetIssueAttachment(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/issues/{index}/assets/{attachment_id} issue issueGetIssueAttachment
@@ -326,11 +315,6 @@ func getIssueFromContext(ctx *context.APIContext) *issues_model.Issue {
 	}
 
 	issue.Repo = ctx.Repo.Repository
-
-	if !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull) {
-		ctx.Error(http.StatusForbidden, "", "user should have permission to read issue")
-		return nil
-	}
 
 	return issue
 }
