@@ -189,7 +189,7 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 		filename = query
 	}
 
-	attach, err := attachment.UploadAttachment(file, setting.Attachment.AllowedTypes, &repo_model.Attachment{
+	attachment, err := attachment.UploadAttachment(file, setting.Attachment.AllowedTypes, &repo_model.Attachment{
 		Name:       filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     ctx.Repo.Repository.ID,
@@ -207,7 +207,7 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToAttachment(attach))
+	ctx.JSON(http.StatusCreated, convert.ToAttachment(attachment))
 }
 
 // EditIssueAttachment updates the given attachment
@@ -253,8 +253,8 @@ func EditIssueAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	// get attachment and check permissions
-	attach := getIssueAttachmentSafeWrite(ctx)
-	if attach == nil {
+	attachment := getIssueAttachmentSafeWrite(ctx)
+	if attachment == nil {
 		return
 	}
 	// do changes to attachment. only meaningful change is name.
@@ -262,10 +262,10 @@ func EditIssueAttachment(ctx *context.APIContext) {
 	if form.Name != "" {
 		attach.Name = form.Name
 	}
-	if err := repo_model.UpdateAttachment(ctx, attach); err != nil {
+	if err := repo_model.UpdateAttachment(ctx, attachment); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateAttachment", err)
 	}
-	ctx.JSON(http.StatusCreated, convert.ToAttachment(attach))
+	ctx.JSON(http.StatusCreated, convert.ToAttachment(attachment))
 }
 
 // DeleteIssueAttachment delete a given attachment
@@ -304,11 +304,11 @@ func DeleteIssueAttachment(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/error"
 
-	attach := getIssueAttachmentSafeWrite(ctx)
-	if attach == nil {
+	attachment := getIssueAttachmentSafeWrite(ctx)
+	if attachment == nil {
 		return
 	}
-	if err := repo_model.DeleteAttachment(attach, true); err != nil {
+	if err := repo_model.DeleteAttachment(attachment, true); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteAttachment", err)
 		return
 	}
@@ -341,7 +341,7 @@ func getIssueAttachmentSafeRead(ctx *context.APIContext, issue *issues_model.Iss
 }
 
 func canUserWriteIssueAttachment(ctx *context.APIContext, issue *issues_model.Issue) (success bool) {
-	canEditIssue := ctx.Doer.ID == issue.PosterID || ctx.IsUserRepoAdmin() || ctx.IsUserSiteAdmin()
+	canEditIssue := ctx.IsSigned && (ctx.Doer.ID == issue.PosterID || ctx.IsUserRepoAdmin() || ctx.IsUserSiteAdmin()) && ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
 	if !canEditIssue {
 		ctx.Error(http.StatusForbidden, "IssueEditPerm", "user should have permission to edit issue")
 		return

@@ -1965,12 +1965,6 @@ func UpdateIssueContent(ctx *context.Context) {
 		}
 	}
 
-	content := ctx.FormString("content")
-	if err := issue_service.ChangeContent(issue, ctx.Doer, content); err != nil {
-		ctx.ServerError("ChangeContent", err)
-		return
-	}
-
 	content, err := markdown.RenderString(&markup.RenderContext{
 		URLPrefix: ctx.FormString("context"), // FIXME: <- IS THIS SAFE ?
 		Metas:     ctx.Repo.Repository.ComposeMetas(),
