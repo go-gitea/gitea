@@ -49,7 +49,7 @@ func TestAPIRepoTags(t *testing.T) {
 		if tag.Name != "v1.1" {
 			assert.EqualValues(t, newTag.Name, tag.Name)
 			assert.EqualValues(t, newTag.Message, tag.Message)
-			assert.EqualValues(t, newTag.Name+"\n\nnice!\nand some text", tag.Message)
+			assert.EqualValues(t, "nice!\nand some text", tag.Message)
 			assert.EqualValues(t, newTag.Commit.SHA, tag.Commit.SHA)
 		}
 	}

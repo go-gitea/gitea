@@ -227,7 +227,7 @@
       border-right: none;
     }
 
-    #download-btn {
+    #more-btn {
       border-left: none;
     }
 
@@ -2467,6 +2467,56 @@
 }
 
 // End of .repository
+
+#cite-repo-modal {
+  #citation-panel {
+    width: 500px;
+
+    @media @mediaSm {
+      width: 100%;
+    }
+
+    input {
+      border-radius: 0;
+      padding: 5px 10px;
+      width: 50%;
+      line-height: 1.4;
+    }
+
+    .citation.button {
+      font-size: 13px;
+      padding: 7.5px 5px;
+    }
+
+    #citation-copy-content {
+      border-radius: 0;
+      padding: 5px 10px;
+      font-size: 1.2em;
+      line-height: 1.4;
+    }
+
+    #citation-copy-apa,
+    #citation-copy-bibtex {
+      border-right: none;
+    }
+
+    #goto-citation-btn {
+      border-left: none;
+    }
+
+    >:first-child {
+      border-radius: var(--border-radius) 0 0 var(--border-radius) !important;
+    }
+
+    >:last-child {
+      border-radius: 0 var(--border-radius) var(--border-radius) 0 !important;
+    }
+
+    .icon.button {
+      padding: 0 10px;
+    }
+  }
+}
 
 &.user-cards {
   .list {
