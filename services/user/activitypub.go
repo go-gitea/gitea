@@ -54,6 +54,28 @@ func UnfollowUser(userID, followID int64) (err error) {
 		return nil
 	}
 
+	followUser, err := user_model.GetUserByID(followID)
+	if err != nil {
+		return err
+	}
+	if followUser.LoginType == auth.Federated {
+		// Unfollowing remote user
+		actorUser, err := user_model.GetUserByID(userID)
+		if err != nil {
+			return err
+		}
+
+		object := ap.PersonNew(ap.IRI(followUser.LoginName))
+		follow := ap.FollowNew("", object)
+		follow.Actor = ap.PersonNew(ap.IRI(setting.AppURL + "api/v1/activitypub/user/" + actorUser.Name))
+		follow.To = ap.ItemCollection{ap.Item(ap.IRI(followUser.LoginName + "/inbox"))}
+		unfollow := ap.UndoNew("", follow)
+		err = activitypub.Send(actorUser, unfollow)
+		if err != nil {
+			return err
+		}
+	}
+
 	return user_model.UnfollowUser(userID, followID)
 }
 
