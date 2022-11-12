@@ -22,6 +22,7 @@ func TestAccessTokenScope_Normalize(t *testing.T) {
 		{"repo,public_repo", "repo", nil},
 		{"admin:public_key,write:public_key", "admin:public_key", nil},
 		{"admin:public_key,read:public_key", "admin:public_key", nil},
+		{"write:public_key,read:public_key", "write:public_key", nil}, // read is include in write
 		{"admin:repo_hook,write:repo_hook", "admin:repo_hook", nil},
 		{"admin:repo_hook,read:repo_hook", "admin:repo_hook", nil},
 		{"repo,admin:repo_hook,read:repo_hook", "repo", nil}, // admin:repo_hook is a child scope of repo
@@ -33,6 +34,8 @@ func TestAccessTokenScope_Normalize(t *testing.T) {
 		{"package", "package", nil},
 		{"package,write:package", "package", nil},
 		{"package,write:package,delete:package", "package", nil},
+		{"write:package,read:package", "write:package", nil},                  // read is include in write
+		{"write:package,delete:package", "write:package,delete:package", nil}, // write and delete are not include in each other
 		{"admin:gpg_key", "admin:gpg_key", nil},
 		{"admin:gpg_key,write:gpg_key", "admin:gpg_key", nil},
 		{"admin:gpg_key,write:gpg_key,user", "user,admin:gpg_key", nil},

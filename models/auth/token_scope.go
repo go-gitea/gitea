@@ -60,6 +60,60 @@ const (
 	AccessTokenScopeSudo = "sudo"
 )
 
+// AccessTokenScopeBitmap represents a bitmap of access token scopes.
+type AccessTokenScopeBitmap uint64
+
+// Bitmap of each scope, including the child scopes.
+const (
+	// AccessTokenScopeAllBits is the bitmap of all access token scopes.
+	AccessTokenScopeAllBits = AccessTokenScopeRepoBits |
+		AccessTokenScopeAdminOrgBits | AccessTokenScopeAdminPublicKeyBits | AccessTokenScopeAdminOrgHookBits |
+		AccessTokenScopeNotificationBits | AccessTokenScopeUserBits | AccessTokenScopeDeleteRepoBits |
+		AccessTokenScopePackageBits | AccessTokenScopeAdminGPGKeyBits | AccessTokenScopeAdminApplicationBits
+
+	AccessTokenScopeRepoBits       = 1<<iota | AccessTokenScopeRepoStatusBits | AccessTokenScopePublicRepoBits | AccessTokenScopeAdminRepoHookBits
+	AccessTokenScopeRepoStatusBits = 1 << iota
+	AccessTokenScopePublicRepoBits = 1 << iota
+
+	AccessTokenScopeAdminOrgBits = 1<<iota | AccessTokenScopeWriteOrgBits
+	AccessTokenScopeWriteOrgBits = 1<<iota | AccessTokenScopeReadOrgBits
+	AccessTokenScopeReadOrgBits  = 1 << iota
+
+	AccessTokenScopeAdminPublicKeyBits = 1<<iota | AccessTokenScopeWritePublicKeyBits
+	AccessTokenScopeWritePublicKeyBits = 1<<iota | AccessTokenScopeReadPublicKeyBits
+	AccessTokenScopeReadPublicKeyBits  = 1 << iota
+
+	AccessTokenScopeAdminRepoHookBits = 1<<iota | AccessTokenScopeWriteRepoHookBits
+	AccessTokenScopeWriteRepoHookBits = 1<<iota | AccessTokenScopeReadRepoHookBits
+	AccessTokenScopeReadRepoHookBits  = 1 << iota
+
+	AccessTokenScopeAdminOrgHookBits = 1 << iota
+
+	AccessTokenScopeNotificationBits = 1 << iota
+
+	AccessTokenScopeUserBits       = 1<<iota | AccessTokenScopeReadUserBits | AccessTokenScopeUserEmailBits | AccessTokenScopeUserFollowBits
+	AccessTokenScopeReadUserBits   = 1 << iota
+	AccessTokenScopeUserEmailBits  = 1 << iota
+	AccessTokenScopeUserFollowBits = 1 << iota
+
+	AccessTokenScopeDeleteRepoBits = 1 << iota
+
+	AccessTokenScopePackageBits       = 1<<iota | AccessTokenScopeWritePackageBits | AccessTokenScopeDeletePackageBits
+	AccessTokenScopeWritePackageBits  = 1<<iota | AccessTokenScopeReadPackageBits
+	AccessTokenScopeReadPackageBits   = 1 << iota
+	AccessTokenScopeDeletePackageBits = 1 << iota
+
+	AccessTokenScopeAdminGPGKeyBits = 1<<iota | AccessTokenScopeWriteGPGKeyBits
+	AccessTokenScopeWriteGPGKeyBits = 1<<iota | AccessTokenScopeReadGPGKeyBits
+	AccessTokenScopeReadGPGKeyBits  = 1 << iota
+
+	AccessTokenScopeAdminApplicationBits = 1<<iota | AccessTokenScopeWriteApplicationBits
+	AccessTokenScopeWriteApplicationBits = 1<<iota | AccessTokenScopeReadApplicationBits
+	AccessTokenScopeReadApplicationBits  = 1 << iota
+
+	AccessTokenScopeSudoBits = 1 << iota
+)
+
 // AllAccessTokenScopes contains all access token scopes.
 // The order is important: parent scope must precedes child scopes.
 var AllAccessTokenScopes = []string{
@@ -77,11 +131,22 @@ var AllAccessTokenScopes = []string{
 	AccessTokenScopeSudo,
 }
 
-// AccessTokenScopeBitmap represents a bitmap of access token scopes.
-type AccessTokenScopeBitmap uint64
-
-// AccessTokenScopeAllBitmap is the bitmap of all access token scopes.
-var AccessTokenScopeAllBitmap AccessTokenScopeBitmap = 1<<uint(len(AllAccessTokenScopes)-1) - 1 // sudo is a special scope to be excluded, so -1 from the length
+// AllAccessTokenScopeBits contains all access token scopes.
+// The order must be the same as AllAccessTokenScopeBits.
+var AllAccessTokenScopeBits = []AccessTokenScopeBitmap{
+	AccessTokenScopeRepoBits, AccessTokenScopeRepoStatusBits, AccessTokenScopePublicRepoBits,
+	AccessTokenScopeAdminOrgBits, AccessTokenScopeWriteOrgBits, AccessTokenScopeReadOrgBits,
+	AccessTokenScopeAdminPublicKeyBits, AccessTokenScopeWritePublicKeyBits, AccessTokenScopeReadPublicKeyBits,
+	AccessTokenScopeAdminRepoHookBits, AccessTokenScopeWriteRepoHookBits, AccessTokenScopeReadRepoHookBits,
+	AccessTokenScopeAdminOrgHookBits,
+	AccessTokenScopeNotificationBits,
+	AccessTokenScopeUserBits, AccessTokenScopeReadUserBits, AccessTokenScopeUserEmailBits, AccessTokenScopeUserFollowBits,
+	AccessTokenScopeDeleteRepoBits,
+	AccessTokenScopePackageBits, AccessTokenScopeWritePackageBits, AccessTokenScopeReadPackageBits, AccessTokenScopeDeletePackageBits,
+	AccessTokenScopeAdminGPGKeyBits, AccessTokenScopeWriteGPGKeyBits, AccessTokenScopeReadGPGKeyBits,
+	AccessTokenScopeAdminApplicationBits, AccessTokenScopeWriteApplicationBits, AccessTokenScopeReadApplicationBits,
+	AccessTokenScopeSudoBits,
+}
 
 // Parse parses the scope string into a bitmap, thus removing possible duplicates.
 func (s AccessTokenScope) Parse() (AccessTokenScopeBitmap, error) {
@@ -93,7 +158,7 @@ func (s AccessTokenScope) Parse() (AccessTokenScopeBitmap, error) {
 			continue
 		}
 		if v == AccessTokenScopeAll {
-			bitmap |= AccessTokenScopeAllBitmap
+			bitmap |= AccessTokenScopeAllBits
 			continue
 		}
 
@@ -101,41 +166,7 @@ func (s AccessTokenScope) Parse() (AccessTokenScopeBitmap, error) {
 		if idx < 0 {
 			return 0, fmt.Errorf("invalid access token scope: %s", v)
 		}
-		bitmap |= 1 << uint(idx)
-
-		// take care of child scopes
-		switch v {
-		case AccessTokenScopeRepo:
-			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeRepoStatus, AllAccessTokenScopes))
-			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopePublicRepo, AllAccessTokenScopes))
-			// admin:repo_hook, write:repo_hook, read:repo_hook
-			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeAdminRepoHook, AllAccessTokenScopes))
-			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeWriteRepoHook, AllAccessTokenScopes))
-			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeReadRepoHook, AllAccessTokenScopes))
-		case AccessTokenScopeAdminOrg:
-			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeWriteOrg, AllAccessTokenScopes))
-			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeReadOrg, AllAccessTokenScopes))
-		case AccessTokenScopeAdminPublicKey:
-			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeWritePublicKey, AllAccessTokenScopes))
-			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeReadPublicKey, AllAccessTokenScopes))
-		case AccessTokenScopeAdminRepoHook:
-			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeWriteRepoHook, AllAccessTokenScopes))
-			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeReadRepoHook, AllAccessTokenScopes))
-		case AccessTokenScopeUser:
-			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeReadUser, AllAccessTokenScopes))
-			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeUserEmail, AllAccessTokenScopes))
-			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeUserFollow, AllAccessTokenScopes))
-		case AccessTokenScopePackage:
-			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeWritePackage, AllAccessTokenScopes))
-			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeReadPackage, AllAccessTokenScopes))
-			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeDeletePackage, AllAccessTokenScopes))
-		case AccessTokenScopeAdminGPGKey:
-			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeWriteGPGKey, AllAccessTokenScopes))
-			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeReadGPGKey, AllAccessTokenScopes))
-		case AccessTokenScopeAdminApplication:
-			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeWriteApplication, AllAccessTokenScopes))
-			bitmap |= 1 << uint(util.FindStringInSlice(AccessTokenScopeReadApplication, AllAccessTokenScopes))
-		}
+		bitmap |= AllAccessTokenScopeBits[idx]
 	}
 	return bitmap, nil
 }
@@ -152,74 +183,43 @@ func (s AccessTokenScope) Normalize() (AccessTokenScope, error) {
 
 // HasScope returns true if the string has the given scope
 func (s AccessTokenScope) HasScope(scope string) (bool, error) {
-	index := util.FindStringInSlice(scope, AllAccessTokenScopes)
-	if index == -1 {
-		return false, fmt.Errorf("invalid access token scope: %s", scope)
-	}
-
 	bitmap, err := s.Parse()
 	if err != nil {
 		return false, err
 	}
 
-	return bitmap&(1<<uint(index)) != 0, nil
+	return bitmap.HasScope(scope)
+}
+
+// HasScope returns true if the string has the given scope
+func (bitmap AccessTokenScopeBitmap) HasScope(scope string) (bool, error) {
+	index := util.FindStringInSlice(scope, AllAccessTokenScopes)
+	if index == -1 {
+		return false, fmt.Errorf("invalid access token scope: %s", scope)
+	}
+
+	expectedBitmap := AllAccessTokenScopeBits[index]
+
+	return bitmap&expectedBitmap == expectedBitmap, nil
 }
 
 // ToScope returns a normalized scope string without any duplicates.
 func (bitmap AccessTokenScopeBitmap) ToScope() AccessTokenScope {
 	var scopes []string
 
-	groupedScope := make(map[string]struct{})
-	for i, v := range AllAccessTokenScopes {
-		if bitmap&(1<<uint(i)) != 0 {
-			switch v {
-			// Parse scopes that contains multiple sub-scopes
-			case AccessTokenScopeRepo, AccessTokenScopeAdminOrg, AccessTokenScopeAdminPublicKey,
-				AccessTokenScopeUser, AccessTokenScopePackage, AccessTokenScopeAdminGPGKey, AccessTokenScopeAdminApplication:
-				groupedScope[v] = struct{}{}
-			case AccessTokenScopeAdminRepoHook:
-				groupedScope[v] = struct{}{}
-				if _, ok := groupedScope[AccessTokenScopeRepo]; ok {
-					continue
-				}
+	// iterate over all scopes, and reconstruct the bitmap
+	// if the reconstructed bitmap doesn't change, then the scope is already included
+	var reconstruct AccessTokenScopeBitmap
 
-			// If parent scope is set, all sub-scopes shouldn't be added
-			case AccessTokenScopeRepoStatus, AccessTokenScopePublicRepo:
-				if _, ok := groupedScope[AccessTokenScopeRepo]; ok {
-					continue
-				}
-			case AccessTokenScopeWriteOrg, AccessTokenScopeReadOrg:
-				if _, ok := groupedScope[AccessTokenScopeAdminOrg]; ok {
-					continue
-				}
-			case AccessTokenScopeWritePublicKey, AccessTokenScopeReadPublicKey:
-				if _, ok := groupedScope[AccessTokenScopeAdminPublicKey]; ok {
-					continue
-				}
-			case AccessTokenScopeWriteRepoHook, AccessTokenScopeReadRepoHook:
-				if _, ok := groupedScope[AccessTokenScopeAdminRepoHook]; ok {
-					continue
-				}
-				if _, ok := groupedScope[AccessTokenScopeRepo]; ok {
-					continue
-				}
-			case AccessTokenScopeReadUser, AccessTokenScopeUserEmail, AccessTokenScopeUserFollow:
-				if _, ok := groupedScope[AccessTokenScopeUser]; ok {
-					continue
-				}
-			case AccessTokenScopeWritePackage, AccessTokenScopeReadPackage, AccessTokenScopeDeletePackage:
-				if _, ok := groupedScope[AccessTokenScopePackage]; ok {
-					continue
-				}
-			case AccessTokenScopeWriteGPGKey, AccessTokenScopeReadGPGKey:
-				if _, ok := groupedScope[AccessTokenScopeAdminGPGKey]; ok {
-					continue
-				}
-			case AccessTokenScopeWriteApplication, AccessTokenScopeReadApplication:
-				if _, ok := groupedScope[AccessTokenScopeAdminApplication]; ok {
-					continue
-				}
+	for i, v := range AllAccessTokenScopes {
+		// no need for error checking here, since we know the scope is valid
+		if ok, _ := bitmap.HasScope(v); ok {
+			current := reconstruct | AllAccessTokenScopeBits[i]
+			if current == reconstruct {
+				continue
 			}
+
+			reconstruct = current
 			scopes = append(scopes, v)
 		}
 	}
