@@ -7,7 +7,6 @@ package db
 import (
 	"context"
 	"database/sql"
-	"errors"
 
 	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
@@ -101,8 +100,6 @@ func TxContext(parentCtx context.Context) (*Context, Committer, error) {
 
 	return newContext(DefaultContext, sess, true), sess, nil
 }
-
-var ErrAlreadyInTransaction = errors.New("database connection has already been in a transaction")
 
 // WithTx represents executing database operations on a transaction
 // This function will always open a new transaction, if a transaction exist in parentCtx return an error.
