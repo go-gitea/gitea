@@ -224,7 +224,7 @@ func CreateReaction(opts *ReactionOptions) (*Reaction, error) {
 		return nil, ErrForbiddenIssueReaction{opts.Type}
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}

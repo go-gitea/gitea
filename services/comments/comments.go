@@ -72,7 +72,7 @@ func UpdateComment(c *issues_model.Comment, doer *user_model.User, oldContent st
 
 // DeleteComment deletes the comment
 func DeleteComment(doer *user_model.User, comment *issues_model.Comment) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
