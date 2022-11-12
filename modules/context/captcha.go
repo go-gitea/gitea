@@ -79,7 +79,7 @@ func VerifyCaptcha(ctx *Context, tpl base.TplName, form interface{}) {
 		return
 	}
 	if err != nil {
-		log.Debug("%s", err.Error())
+		log.Debug("%v", err)
 	}
 
 	if !valid {
