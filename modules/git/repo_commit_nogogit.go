@@ -108,6 +108,10 @@ func (repo *Repository) getCommitFromBatchReader(rd *bufio.Reader, id SHA1) (*Co
 			return nil, err
 		}
 
+		commit.CommitMessage = tag.Message
+		commit.Author = tag.Tagger
+		commit.Signature = tag.Signature
+
 		return commit, nil
 	case "commit":
 		commit, err := CommitFromReader(repo, id, io.LimitReader(rd, size))

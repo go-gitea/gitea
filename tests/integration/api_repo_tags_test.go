@@ -35,7 +35,7 @@ func TestAPIRepoTags(t *testing.T) {
 
 	assert.Len(t, tags, 1)
 	assert.Equal(t, "v1.1", tags[0].Name)
-	assert.Equal(t, "Initial commit", tags[0].Message)
+	assert.Equal(t, "v1.1\n\nInitial commit", tags[0].Message)
 	assert.Equal(t, "65f1bf27bc3bf70f64657658635e66094edbcb4d", tags[0].Commit.SHA)
 	assert.Equal(t, setting.AppURL+"api/v1/repos/user2/repo1/git/commits/65f1bf27bc3bf70f64657658635e66094edbcb4d", tags[0].Commit.URL)
 	assert.Equal(t, setting.AppURL+"user2/repo1/archive/v1.1.zip", tags[0].ZipballURL)
@@ -49,7 +49,7 @@ func TestAPIRepoTags(t *testing.T) {
 		if tag.Name != "v1.1" {
 			assert.EqualValues(t, newTag.Name, tag.Name)
 			assert.EqualValues(t, newTag.Message, tag.Message)
-			assert.EqualValues(t, "nice!\nand some text", tag.Message)
+			assert.EqualValues(t, "gitea/22\n\nnice!\nand some text", tag.Message)
 			assert.EqualValues(t, newTag.Commit.SHA, tag.Commit.SHA)
 		}
 	}

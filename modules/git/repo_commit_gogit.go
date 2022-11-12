@@ -79,6 +79,13 @@ func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 			}
 		}
 		if err == nil {
+			tagObject.Message = strings.TrimSpace(tagObject.Message)
+			if tagObject.Message == "" {
+				tagObject.Message = tagObject.Name
+			} else if tagObject.Name != "" {
+				tagObject.Message = tagObject.Name + "\n\n" + tagObject.Message
+			}
+
 			gogitCommit, err = repo.gogitRepo.CommitObject(tagObject.Target)
 		}
 		// if we get a plumbing.ErrObjectNotFound here then the repository is broken and it should be 500
@@ -89,6 +96,12 @@ func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 
 	commit := convertCommit(gogitCommit)
 	commit.repo = repo
+
+	if tagObject != nil {
+		commit.CommitMessage = tagObject.Message
+		commit.Author = &tagObject.Tagger
+		commit.Signature = convertPGPSignatureForTag(tagObject)
+	}
 
 	tree, err := gogitCommit.Tree()
 	if err != nil {

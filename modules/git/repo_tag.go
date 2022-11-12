@@ -202,6 +202,13 @@ func parseTagRef(ref map[string]string) (tag *Tag, err error) {
 		}
 	}
 
+	tag.Message = strings.TrimSpace(tag.Message)
+	if tag.Message == "" {
+		tag.Message = tag.Name
+	} else if tag.Name != "" {
+		tag.Message = tag.Name + "\n\n" + tag.Message
+	}
+
 	return tag, nil
 }
 
