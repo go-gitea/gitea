@@ -257,50 +257,6 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	return err
 }
 
-// CheckoutOptions options when heck out some branch
-type CheckoutOptions struct {
-	Timeout   time.Duration
-	Branch    string
-	OldBranch string
-}
-
-// Checkout checkouts a branch
-func Checkout(repoPath string, opts CheckoutOptions) error {
-	cmd := NewCommand("checkout")
-	if len(opts.OldBranch) > 0 {
-		cmd.AddArguments("-b")
-	}
-
-	if opts.Timeout <= 0 {
-		opts.Timeout = -1
-	}
-
-	cmd.AddArguments(opts.Branch)
-
-	if len(opts.OldBranch) > 0 {
-		cmd.AddArguments(opts.OldBranch)
-	}
-
-	_, err := cmd.RunInDirTimeout(opts.Timeout, repoPath)
-	return err
-}
-
-// ResetHEAD resets HEAD to given revision or head of branch.
-func ResetHEAD(repoPath string, hard bool, revision string) error {
-	cmd := NewCommand("reset")
-	if hard {
-		cmd.AddArguments("--hard")
-	}
-	_, err := cmd.AddArguments(revision).RunInDir(repoPath)
-	return err
-}
-
-// MoveFile moves a file to another file or directory.
-func MoveFile(repoPath, oldTreeName, newTreeName string) error {
-	_, err := NewCommand("mv").AddArguments(oldTreeName, newTreeName).RunInDir(repoPath)
-	return err
-}
-
 // CountObject represents repository count objects report
 type CountObject struct {
 	Count       int64
@@ -325,14 +281,14 @@ const (
 )
 
 // CountObjects returns the results of git count-objects on the repoPath
-func CountObjects(repoPath string) (*CountObject, error) {
-	return CountObjectsWithEnv(repoPath, nil)
+func CountObjects(ctx context.Context, repoPath string) (*CountObject, error) {
+	return CountObjectsWithEnv(ctx, repoPath, nil)
 }
 
 // CountObjectsWithEnv returns the results of git count-objects on the repoPath with custom env setup
-func CountObjectsWithEnv(repoPath string, env []string) (*CountObject, error) {
-	cmd := NewCommand("count-objects", "-v")
-	stdout, err := cmd.RunInDirWithEnv(repoPath, env)
+func CountObjectsWithEnv(ctx context.Context, repoPath string, env []string) (*CountObject, error) {
+	cmd := NewCommand(ctx, "count-objects", "-v")
+	stdout, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath, Env: env})
 	if err != nil {
 		return nil, err
 	}
@@ -346,21 +302,24 @@ func parseSize(objects string) *CountObject {
 	for _, line := range strings.Split(objects, "\n") {
 		switch {
 		case strings.HasPrefix(line, statCount):
-			repoSize.Count = com.StrTo(line[7:]).MustInt64()
+			repoSize.Count, _ = strconv.ParseInt(line[7:], 10, 64)
 		case strings.HasPrefix(line, statSize):
-			repoSize.Size = com.StrTo(line[6:]).MustInt64() * 1024
+			number, _ := strconv.ParseInt(line[6:], 10, 64)
+			repoSize.Size = number * 1024
 		case strings.HasPrefix(line, statInpack):
-			repoSize.InPack = com.StrTo(line[9:]).MustInt64()
+			repoSize.InPack, _ = strconv.ParseInt(line[9:], 10, 64)
 		case strings.HasPrefix(line, statPacks):
-			repoSize.Packs = com.StrTo(line[7:]).MustInt64()
+			repoSize.Packs, _ = strconv.ParseInt(line[7:], 10, 64)
 		case strings.HasPrefix(line, statSizePack):
-			repoSize.SizePack = com.StrTo(line[11:]).MustInt64() * 1024
+			number, _ := strconv.ParseInt(line[11:], 10, 64)
+			repoSize.SizePack = number * 1024
 		case strings.HasPrefix(line, statPrunePackage):
-			repoSize.PrunePack = com.StrTo(line[16:]).MustInt64()
+			repoSize.PrunePack, _ = strconv.ParseInt(line[16:], 10, 64)
 		case strings.HasPrefix(line, statGarbage):
-			repoSize.Garbage = com.StrTo(line[9:]).MustInt64()
+			repoSize.Garbage, _ = strconv.ParseInt(line[9:], 10, 64)
 		case strings.HasPrefix(line, statSizeGarbage):
-			repoSize.SizeGarbage = com.StrTo(line[14:]).MustInt64() * 1024
+			number, _ := strconv.ParseInt(line[14:], 10, 64)
+			repoSize.SizeGarbage = number * 1024
 		}
 	}
 	return repoSize

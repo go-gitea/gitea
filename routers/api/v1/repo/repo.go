@@ -719,7 +719,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	if opts.SizeLimit != nil {
 		repo.SizeLimit = *opts.SizeLimit
 	}
-	if err := models.UpdateRepository(repo, visibilityChanged); err != nil {
+
 	if err := repo_service.UpdateRepository(repo, visibilityChanged); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateRepository", err)
 		return err

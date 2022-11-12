@@ -192,7 +192,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if !ctx.User.IsAdmin && repo.SizeLimit != form.RepoSizeLimit {
+		if !ctx.Doer.IsAdmin && repo.SizeLimit != form.RepoSizeLimit {
 			ctx.Data["Err_RepoSizeLimit"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.form.repo_size_limit_only_by_admins"), tplSettingsOptions, &form)
 			return

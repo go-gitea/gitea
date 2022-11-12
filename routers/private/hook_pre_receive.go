@@ -114,9 +114,11 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		opts:           opts,
 	}
 
-	pushSize, err := git.CountObjectsWithEnv(repo.RepoPath(), env)
+	repo := ourCtx.Repo.Repository
+
+	pushSize, err := git.CountObjectsWithEnv(ctx, repo.RepoPath(), ourCtx.env)
 	if err != nil {
-		log.Error("Unable to get repository size with env %v: %s Error: %v", repo.RepoPath(), env, err)
+		log.Error("Unable to get repository size with env %v: %s Error: %v", repo.RepoPath(), ourCtx.env, err)
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"err": err.Error(),
 		})

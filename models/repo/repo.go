@@ -522,7 +522,7 @@ func (repo *Repository) computeSize() (int64, error) {
 		return 0, fmt.Errorf("computeSize: %v", err)
 	}
 
-	objs, err := repo.GetLFSMetaObjects(-1, 0)
+	objs, err := repo.GetLFSMetaObjects(repo.ID, -1, 0)
 	if err != nil {
 		return 0, fmt.Errorf("computeSize: GetLFSMetaObjects: %v", err)
 	}
