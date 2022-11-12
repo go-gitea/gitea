@@ -371,7 +371,6 @@ This command is idempotent.
 
 (DEPRECATED: moved to doctor convert in 1.19) Converts an existing MySQL database from utf8 to utf8mb4.
 
-
 ### doctor
 
 Provides sub-commands that can fix problems with the current Gitea instance.
