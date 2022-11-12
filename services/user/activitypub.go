@@ -68,8 +68,9 @@ func UnfollowUser(userID, followID int64) (err error) {
 		object := ap.PersonNew(ap.IRI(followUser.LoginName))
 		follow := ap.FollowNew("", object)
 		follow.Actor = ap.PersonNew(ap.IRI(setting.AppURL + "api/v1/activitypub/user/" + actorUser.Name))
-		follow.To = ap.ItemCollection{ap.Item(ap.IRI(followUser.LoginName + "/inbox"))}
 		unfollow := ap.UndoNew("", follow)
+		unfollow.Type = ap.UndoType
+		unfollow.To = ap.ItemCollection{ap.Item(ap.IRI(followUser.LoginName + "/inbox"))}
 		err = activitypub.Send(actorUser, unfollow)
 		if err != nil {
 			return err
