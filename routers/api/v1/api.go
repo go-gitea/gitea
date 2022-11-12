@@ -644,7 +644,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 			// setting.CORSConfig.AllowSubdomain // FIXME: the cors middleware needs allowSubdomain option
 			AllowedMethods:   setting.CORSConfig.Methods,
 			AllowCredentials: setting.CORSConfig.AllowCredentials,
-			AllowedHeaders:   []string{"Authorization", "X-Gitea-OTP"},
+			AllowedHeaders:   append([]string{"Authorization", "X-Gitea-OTP"}, setting.CORSConfig.Headers...),
 			MaxAge:           int(setting.CORSConfig.MaxAge.Seconds()),
 		}))
 	}
@@ -931,7 +931,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 					m.Group("/{index}", func() {
 						m.Combo("").Get(repo.GetIssue).
 							Patch(reqToken(auth_model.AccessTokenScopeRepo), bind(api.EditIssueOption{}), repo.EditIssue).
-							Delete(reqToken(auth_model.AccessTokenScopeRepo), reqAdmin(), repo.DeleteIssue)
+							Delete(reqToken(auth_model.AccessTokenScopeRepo), reqAdmin(), context.ReferencesGitRepo(), repo.DeleteIssue)
 						m.Group("/comments", func() {
 							m.Combo("").Get(repo.ListIssueComments).
 								Post(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, bind(api.CreateIssueCommentOption{}), repo.CreateIssueComment)
