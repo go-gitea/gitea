@@ -898,7 +898,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 					m.Group("/{index}", func() {
 						m.Combo("").Get(repo.GetIssue).
 							Patch(reqToken(), bind(api.EditIssueOption{}), repo.EditIssue).
-							Delete(reqToken(), reqAdmin(), repo.DeleteIssue)
+							Delete(reqToken(), reqAdmin(), context.ReferencesGitRepo(), repo.DeleteIssue)
 						m.Group("/comments", func() {
 							m.Combo("").Get(repo.ListIssueComments).
 								Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueCommentOption{}), repo.CreateIssueComment)

@@ -730,6 +730,44 @@ func checkHomeCodeViewable(ctx *context.Context) {
 	ctx.NotFound("Home", fmt.Errorf(ctx.Tr("units.error.no_unit_allowed_repo")))
 }
 
+func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
+	if entry.Name() != "" {
+		return
+	}
+	tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
+	if err != nil {
+		ctx.NotFoundOrServerError("Repo.Commit.SubTree", git.IsErrNotExist, err)
+		return
+	}
+	allEntries, err := tree.ListEntries()
+	if err != nil {
+		ctx.ServerError("ListEntries", err)
+		return
+	}
+	for _, entry := range allEntries {
+		if entry.Name() == "CITATION.cff" || entry.Name() == "CITATION.bib" {
+			ctx.Data["CitiationExist"] = true
+			// Read Citation file contents
+			blob := entry.Blob()
+			dataRc, err := blob.DataAsync()
+			if err != nil {
+				ctx.ServerError("DataAsync", err)
+				return
+			}
+			defer dataRc.Close()
+			buf := make([]byte, 1024)
+			n, err := util.ReadAtMost(dataRc, buf)
+			if err != nil {
+				ctx.ServerError("ReadAtMost", err)
+				return
+			}
+			buf = buf[:n]
+			ctx.PageData["citationFileContent"] = string(buf)
+			break
+		}
+	}
+}
+
 // Home render repository home page
 func Home(ctx *context.Context) {
 	isFeed, _, showFeedType := feed.GetFeedType(ctx.Params(":reponame"), ctx.Req)
@@ -952,6 +990,13 @@ func renderCode(ctx *context.Context) {
 	if err != nil {
 		ctx.NotFoundOrServerError("Repo.Commit.GetTreeEntryByPath", git.IsErrNotExist, err)
 		return
+	}
+
+	if !ctx.Repo.Repository.IsEmpty {
+		checkCitationFile(ctx, entry)
+		if ctx.Written() {
+			return
+		}
 	}
 
 	renderLanguageStats(ctx)
