@@ -110,7 +110,7 @@ func LoadIssuesFromBoardList(bs project_model.BoardList) (map[int64]IssueList, e
 
 // ChangeProjectAssign changes the project associated with an issue
 func ChangeProjectAssign(issue *Issue, doer *user_model.User, newProjectID int64) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -166,7 +166,7 @@ func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.U
 
 // MoveIssueAcrossProjectBoards move a card from one board to another
 func MoveIssueAcrossProjectBoards(issue *Issue, board *project_model.Board) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

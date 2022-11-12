@@ -76,7 +76,7 @@ func addAllRepositories(ctx context.Context, t *organization.Team) error {
 
 // AddAllRepositories adds all repositories to the team
 func AddAllRepositories(t *organization.Team) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func RemoveAllRepositories(t *organization.Team) (err error) {
 		return nil
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -219,7 +219,7 @@ func RemoveRepository(t *organization.Team, repoID int64) error {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -263,7 +263,7 @@ func NewTeam(t *organization.Team) (err error) {
 		return organization.ErrTeamAlreadyExist{OrgID: t.OrgID, Name: t.LowerName}
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -308,7 +308,7 @@ func UpdateTeam(t *organization.Team, authChanged, includeAllChanged bool) (err 
 		t.Description = t.Description[:255]
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -375,7 +375,7 @@ func UpdateTeam(t *organization.Team, authChanged, includeAllChanged bool) (err 
 // DeleteTeam deletes given team.
 // It's caller's responsibility to assign organization ID.
 func DeleteTeam(t *organization.Team) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -460,7 +460,7 @@ func AddTeamMember(team *organization.Team, userID int64) error {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -598,7 +598,7 @@ func removeTeamMember(ctx context.Context, team *organization.Team, userID int64
 
 // RemoveTeamMember removes member from given team of given organization.
 func RemoveTeamMember(team *organization.Team, userID int64) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

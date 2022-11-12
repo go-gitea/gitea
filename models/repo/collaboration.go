@@ -138,7 +138,7 @@ func ChangeCollaborationAccessModeCtx(ctx context.Context, repo *Repository, uid
 
 // ChangeCollaborationAccessMode sets new access mode for the collaboration.
 func ChangeCollaborationAccessMode(repo *Repository, uid int64, mode perm.AccessMode) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

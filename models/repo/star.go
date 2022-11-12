@@ -26,7 +26,7 @@ func init() {
 
 // StarRepo or unstar repository.
 func StarRepo(userID, repoID int64, star bool) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
