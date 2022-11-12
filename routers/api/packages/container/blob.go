@@ -28,7 +28,7 @@ func saveAsPackageBlob(hsr packages_module.HashedSizeReader, pi *packages_servic
 
 	contentStore := packages_module.NewContentStore()
 
-	err := db.WithTx(func(ctx context.Context) error {
+	err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		created := true
 		p := &packages_model.Package{
 			OwnerID:   pi.Owner.ID,
@@ -117,7 +117,7 @@ func saveAsPackageBlob(hsr packages_module.HashedSizeReader, pi *packages_servic
 }
 
 func deleteBlob(ownerID int64, image, digest string) error {
-	return db.WithTx(func(ctx context.Context) error {
+	return db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		pfds, err := container_model.GetContainerBlobs(ctx, &container_model.BlobSearchOptions{
 			OwnerID: ownerID,
 			Image:   image,
