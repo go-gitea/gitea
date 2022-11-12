@@ -1965,6 +1965,12 @@ func UpdateIssueContent(ctx *context.Context) {
 		}
 	}
 
+	content := ctx.FormString("content")
+	if err := issue_service.ChangeContent(issue, ctx.Doer, content); err != nil {
+		ctx.ServerError("ChangeContent", err)
+		return
+	}
+
 	content, err := markdown.RenderString(&markup.RenderContext{
 		URLPrefix: ctx.FormString("context"), // FIXME: <- IS THIS SAFE ?
 		Metas:     ctx.Repo.Repository.ComposeMetas(),
@@ -2746,10 +2752,6 @@ func UpdateCommentContent(ctx *context.Context) {
 		})
 		return
 	}
-	if err = comment_service.UpdateComment(comment, ctx.Doer, oldContent); err != nil {
-		ctx.ServerError("UpdateComment", err)
-		return
-	}
 
 	if err := comment.LoadAttachments(); err != nil {
 		ctx.ServerError("LoadAttachments", err)
@@ -2762,6 +2764,11 @@ func UpdateCommentContent(ctx *context.Context) {
 			ctx.ServerError("UpdateAttachments", err)
 			return
 		}
+	}
+
+	if err = comment_service.UpdateComment(comment, ctx.Doer, oldContent); err != nil {
+		ctx.ServerError("UpdateComment", err)
+		return
 	}
 
 	content, err := markdown.RenderString(&markup.RenderContext{
@@ -3047,7 +3054,7 @@ func GetIssueAttachments(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
 	attachments := make([]*api.Attachment, len(issue.Attachments))
 	for i := 0; i < len(issue.Attachments); i++ {
-		attachments[i] = convert.ToReleaseAttachment(issue.Attachments[i])
+		attachments[i] = convert.ToAttachment(issue.Attachments[i])
 	}
 	ctx.JSON(http.StatusOK, attachments)
 }
@@ -3066,7 +3073,7 @@ func GetCommentAttachments(ctx *context.Context) {
 			return
 		}
 		for i := 0; i < len(comment.Attachments); i++ {
-			attachments = append(attachments, convert.ToReleaseAttachment(comment.Attachments[i]))
+			attachments = append(attachments, convert.ToAttachment(comment.Attachments[i]))
 		}
 	}
 	ctx.JSON(http.StatusOK, attachments)

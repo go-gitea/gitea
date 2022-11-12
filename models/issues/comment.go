@@ -872,18 +872,21 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 		fallthrough
 	case CommentTypeReview:
 		// Check attachments
-		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, opts.Attachments)
-		if err != nil {
-			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", opts.Attachments, err)
-		}
-
-		for i := range attachments {
-			attachments[i].IssueID = opts.Issue.ID
-			attachments[i].CommentID = comment.ID
-			// No assign value could be 0, so ignore AllCols().
-			if _, err = db.GetEngine(ctx).ID(attachments[i].ID).Update(attachments[i]); err != nil {
-				return fmt.Errorf("update attachment [%d]: %w", attachments[i].ID, err)
+		if len(opts.Attachments) > 0 {
+			attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, opts.Attachments)
+			if err != nil {
+				return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", opts.Attachments, err)
 			}
+
+			for _, attachment := range attachments {
+				attachment.IssueID = opts.Issue.ID
+				attachment.CommentID = comment.ID
+				// No assign value could be 0, so ignore AllCols().
+				if _, err = db.GetEngine(ctx).ID(attachment.ID).Update(attachment); err != nil {
+					return fmt.Errorf("update attachment [%d]: %v", attachment.ID, err)
+				}
+			}
+			comment.Attachments = attachments
 		}
 	case CommentTypeReopen, CommentTypeClose:
 		if err = repo_model.UpdateRepoIssueNumbers(ctx, opts.Issue.RepoID, opts.Issue.IsPull, true); err != nil {
