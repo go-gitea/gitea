@@ -53,7 +53,7 @@ func (repo *Repository) IsReferenceExist(name string) bool {
 
 // IsBranchExist returns true if given branch exists in current repository.
 func (repo *Repository) IsBranchExist(name string) bool {
-	if name == "" {
+	if repo == nil || name == "" {
 		return false
 	}
 
