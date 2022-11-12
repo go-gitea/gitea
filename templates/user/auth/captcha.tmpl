@@ -1,6 +1,6 @@
 {{if .EnableCaptcha}}{{if eq .CaptchaType "image"}}
 	<div class="inline field">
-		<label></label>
+		<label>{{/* This is CAPTCHA field */}}</label>
 		{{.Captcha.CreateHTML}}
 	</div>
 	<div class="required inline field {{if .Err_Captcha}}error{{end}}">
