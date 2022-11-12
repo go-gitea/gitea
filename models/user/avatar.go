@@ -111,3 +111,8 @@ func (u *User) IsUploadAvatarChanged(data []byte) bool {
 	avatarID := fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%d-%x", u.ID, md5.Sum(data)))))
 	return u.Avatar != avatarID
 }
+
+// ExistUserWithAvatar returns true if there is a user with this Avatar
+func ExistUserWithAvatar(ctx context.Context, avatar string) (bool, error) {
+	return db.GetEngine(ctx).Where("`avatar`=?", avatar).Exist(new(User))
+}

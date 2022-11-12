@@ -24,6 +24,11 @@ func (repo *Repository) CustomAvatarRelativePath() string {
 	return repo.Avatar
 }
 
+// ExistRepoWithAvatar returns true if there is a user with this Avatar
+func ExistRepoWithAvatar(ctx context.Context, avatar string) (bool, error) {
+	return db.GetEngine(ctx).Where("`avatar`=?", avatar).Exist(new(Repository))
+}
+
 // RelAvatarLink returns a relative link to the repository's avatar.
 func (repo *Repository) RelAvatarLink() string {
 	return repo.relAvatarLink(db.DefaultContext)
