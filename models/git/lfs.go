@@ -235,8 +235,8 @@ func LFSObjectAccessible(user *user_model.User, oid string) (bool, error) {
 	return count > 0, err
 }
 
-// LFSObjectIsAssociated checks if a provided Oid is associated
-func LFSObjectIsAssociated(ctx context.Context, oid string) (bool, error) {
+// ExistsLFSObject checks if a provided Oid exists within the DB
+func ExistsLFSObject(ctx context.Context, oid string) (bool, error) {
 	return db.GetEngine(ctx).Exist(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
 }
 

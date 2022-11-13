@@ -4,9 +4,7 @@
 
 package util
 
-import (
-	"github.com/yuin/goldmark/util"
-)
+import "github.com/yuin/goldmark/util"
 
 func isSnakeCaseUpper(c byte) bool {
 	return 'A' <= c && c <= 'Z'

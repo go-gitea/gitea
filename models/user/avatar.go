@@ -112,7 +112,9 @@ func (u *User) IsUploadAvatarChanged(data []byte) bool {
 	return u.Avatar != avatarID
 }
 
-// ExistUserWithAvatar returns true if there is a user with this Avatar
-func ExistUserWithAvatar(ctx context.Context, avatar string) (bool, error) {
-	return db.GetEngine(ctx).Where("`avatar`=?", avatar).Exist(new(User))
+// ExistsWithAvatarAtStoragePath returns true if there is a user with this Avatar
+func ExistsWithAvatarAtStoragePath(ctx context.Context, storagePath string) (bool, error) {
+	// See func (u *User) CustomAvatarRelativePath()
+	// u.Avatar is used directly as the storage path - therefore we can check for existence directly using the path
+	return db.GetEngine(ctx).Where("`avatar`=?", storagePath).Exist(new(User))
 }

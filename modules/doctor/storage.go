@@ -13,23 +13,23 @@ import (
 	"code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/repo"
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
+	packages_module "code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 )
 
 type commonStorageCheckOptions struct {
-	storer       storage.ObjectStorage
-	isAssociated func(path string, obj storage.Object, stat fs.FileInfo) (bool, error)
-	name         string
+	storer     storage.ObjectStorage
+	isOrphaned func(path string, obj storage.Object, stat fs.FileInfo) (bool, error)
+	name       string
 }
 
 func commonCheckStorage(ctx context.Context, logger log.Logger, autofix bool, opts *commonStorageCheckOptions) error {
-	totalCount, unassociatedCount := 0, 0
-	totalSize, unassociatedSize := int64(0), int64(0)
+	totalCount, orphanedCount := 0, 0
+	totalSize, orphanedSize := int64(0), int64(0)
 
 	var pathsToDelete []string
 	if err := opts.storer.IterateObjects(func(p string, obj storage.Object) error {
@@ -42,13 +42,13 @@ func commonCheckStorage(ctx context.Context, logger log.Logger, autofix bool, op
 		}
 		totalSize += stat.Size()
 
-		associated, err := opts.isAssociated(p, obj, stat)
+		orphaned, err := opts.isOrphaned(p, obj, stat)
 		if err != nil {
 			return err
 		}
-		if !associated {
-			unassociatedCount++
-			unassociatedSize += stat.Size()
+		if orphaned {
+			orphanedCount++
+			orphanedSize += stat.Size()
 			if autofix {
 				pathsToDelete = append(pathsToDelete, p)
 			}
@@ -59,7 +59,7 @@ func commonCheckStorage(ctx context.Context, logger log.Logger, autofix bool, op
 		return err
 	}
 
-	if unassociatedCount > 0 {
+	if orphanedCount > 0 {
 		if autofix {
 			var deletedNum int
 			for _, p := range pathsToDelete {
@@ -69,9 +69,9 @@ func commonCheckStorage(ctx context.Context, logger log.Logger, autofix bool, op
 					deletedNum++
 				}
 			}
-			logger.Info("Deleted %d/%d unassociated %s(s)", deletedNum, unassociatedCount, opts.name)
+			logger.Info("Deleted %d/%d orphaned %s(s)", deletedNum, orphanedCount, opts.name)
 		} else {
-			logger.Warn("Found %d/%d (%s/%s) unassociated %s(s)", unassociatedCount, totalCount, base.FileSize(unassociatedSize), base.FileSize(totalSize), opts.name)
+			logger.Warn("Found %d/%d (%s/%s) orphaned %s(s)", orphanedCount, totalCount, base.FileSize(orphanedSize), base.FileSize(totalSize), opts.name)
 		}
 	} else {
 		logger.Info("Found %d (%s) %s(s)", totalCount, base.FileSize(totalSize), opts.name)
@@ -79,7 +79,7 @@ func commonCheckStorage(ctx context.Context, logger log.Logger, autofix bool, op
 	return nil
 }
 
-type storageCheckOptions struct {
+type checkStorageOptions struct {
 	All          bool
 	Attachments  bool
 	LFS          bool
@@ -89,7 +89,8 @@ type storageCheckOptions struct {
 	Packages     bool
 }
 
-func checkStorage(opts *storageCheckOptions) func(ctx context.Context, logger log.Logger, autofix bool) error {
+// checkStorage will return a doctor check function to check the requested storage types for "orphaned" stored object/files and optionally delete them
+func checkStorage(opts *checkStorageOptions) func(ctx context.Context, logger log.Logger, autofix bool) error {
 	return func(ctx context.Context, logger log.Logger, autofix bool) error {
 		if err := storage.Init(); err != nil {
 			logger.Error("storage.Init failed: %v", err)
@@ -100,8 +101,9 @@ func checkStorage(opts *storageCheckOptions) func(ctx context.Context, logger lo
 			if err := commonCheckStorage(ctx, logger, autofix,
 				&commonStorageCheckOptions{
 					storer: storage.Attachments,
-					isAssociated: func(path string, obj storage.Object, stat fs.FileInfo) (bool, error) {
-						return repo_model.ExistAttachmentsByUUID(ctx, stat.Name())
+					isOrphaned: func(path string, obj storage.Object, stat fs.FileInfo) (bool, error) {
+						exists, err := repo.ExistAttachmentsByUUID(ctx, stat.Name())
+						return !exists, err
 					},
 					name: "attachment",
 				}); err != nil {
@@ -113,11 +115,11 @@ func checkStorage(opts *storageCheckOptions) func(ctx context.Context, logger lo
 			if err := commonCheckStorage(ctx, logger, autofix,
 				&commonStorageCheckOptions{
 					storer: storage.LFS,
-					isAssociated: func(path string, obj storage.Object, stat fs.FileInfo) (bool, error) {
+					isOrphaned: func(path string, obj storage.Object, stat fs.FileInfo) (bool, error) {
 						// The oid of an LFS stored object is the name but with all the path.Separators removed
 						oid := strings.ReplaceAll(path, "/", "")
-
-						return git.LFSObjectIsAssociated(ctx, oid)
+						exists, err := git.ExistsLFSObject(ctx, oid)
+						return !exists, err
 					},
 					name: "LFS file",
 				}); err != nil {
@@ -129,8 +131,9 @@ func checkStorage(opts *storageCheckOptions) func(ctx context.Context, logger lo
 			if err := commonCheckStorage(ctx, logger, autofix,
 				&commonStorageCheckOptions{
 					storer: storage.Avatars,
-					isAssociated: func(path string, obj storage.Object, stat fs.FileInfo) (bool, error) {
-						return user.ExistUserWithAvatar(ctx, path)
+					isOrphaned: func(path string, obj storage.Object, stat fs.FileInfo) (bool, error) {
+						exists, err := user.ExistsWithAvatarAtStoragePath(ctx, path)
+						return !exists, err
 					},
 					name: "avatar",
 				}); err != nil {
@@ -142,8 +145,9 @@ func checkStorage(opts *storageCheckOptions) func(ctx context.Context, logger lo
 			if err := commonCheckStorage(ctx, logger, autofix,
 				&commonStorageCheckOptions{
 					storer: storage.RepoAvatars,
-					isAssociated: func(path string, obj storage.Object, stat fs.FileInfo) (bool, error) {
-						return repo.ExistRepoWithAvatar(ctx, path)
+					isOrphaned: func(path string, obj storage.Object, stat fs.FileInfo) (bool, error) {
+						exists, err := repo.ExistsWithAvatarAtStoragePath(ctx, path)
+						return !exists, err
 					},
 					name: "repo avatar",
 				}); err != nil {
@@ -155,13 +159,13 @@ func checkStorage(opts *storageCheckOptions) func(ctx context.Context, logger lo
 			if err := commonCheckStorage(ctx, logger, autofix,
 				&commonStorageCheckOptions{
 					storer: storage.RepoAvatars,
-					isAssociated: func(path string, obj storage.Object, stat fs.FileInfo) (bool, error) {
-						has, err := repo.ExistsRepoArchiverWithStoragePath(ctx, path)
+					isOrphaned: func(path string, obj storage.Object, stat fs.FileInfo) (bool, error) {
+						exists, err := repo.ExistsRepoArchiverWithStoragePath(ctx, path)
 						if err == nil || errors.Is(err, util.ErrInvalidArgument) {
 							// invalid arguments mean that the object is not a valid repo archiver and it should be removed
-							return has, nil
+							return !exists, nil
 						}
-						return has, err
+						return !exists, err
 					},
 					name: "repo archive",
 				}); err != nil {
@@ -173,13 +177,17 @@ func checkStorage(opts *storageCheckOptions) func(ctx context.Context, logger lo
 			if err := commonCheckStorage(ctx, logger, autofix,
 				&commonStorageCheckOptions{
 					storer: storage.Packages,
-					isAssociated: func(path string, obj storage.Object, stat fs.FileInfo) (bool, error) {
-						parts := strings.SplitN(path, "/", 3)
-						if len(parts) != 3 || len(parts[0]) != 2 || len(parts[1]) != 2 || len(parts[2]) < 4 || parts[0]+parts[1] != parts[2][0:4] {
-							return false, nil
+					isOrphaned: func(path string, obj storage.Object, stat fs.FileInfo) (bool, error) {
+						key, err := packages_module.RelativePathToKey(path)
+						if err != nil {
+							// If there is an error here then the relative path does not match a valid package
+							// Therefore it is orphaned by default
+							return true, nil
 						}
 
-						return packages.ExistPackageBlobWithSHA(ctx, parts[2])
+						exists, err := packages.ExistPackageBlobWithSHA(ctx, string(key))
+
+						return !exists, err
 					},
 					name: "package blob",
 				}); err != nil {
@@ -196,7 +204,7 @@ func init() {
 		Title:                      "Check if there are unassociated storage files",
 		Name:                       "storages",
 		IsDefault:                  false,
-		Run:                        checkStorage(&storageCheckOptions{All: true}),
+		Run:                        checkStorage(&checkStorageOptions{All: true}),
 		AbortIfFailed:              false,
 		SkipDatabaseInitialization: false,
 		Priority:                   1,
@@ -206,7 +214,7 @@ func init() {
 		Title:                      "Check if there are unassociated attachments in storage",
 		Name:                       "storage-attachments",
 		IsDefault:                  false,
-		Run:                        checkStorage(&storageCheckOptions{Attachments: true}),
+		Run:                        checkStorage(&checkStorageOptions{Attachments: true}),
 		AbortIfFailed:              false,
 		SkipDatabaseInitialization: false,
 		Priority:                   1,
@@ -216,7 +224,7 @@ func init() {
 		Title:                      "Check if there are unassociated lfs files in storage",
 		Name:                       "storage-lfs",
 		IsDefault:                  false,
-		Run:                        checkStorage(&storageCheckOptions{LFS: true}),
+		Run:                        checkStorage(&checkStorageOptions{LFS: true}),
 		AbortIfFailed:              false,
 		SkipDatabaseInitialization: false,
 		Priority:                   1,
@@ -226,7 +234,7 @@ func init() {
 		Title:                      "Check if there are unassociated avatars in storage",
 		Name:                       "storage-avatars",
 		IsDefault:                  false,
-		Run:                        checkStorage(&storageCheckOptions{Avatars: true, RepoAvatars: true}),
+		Run:                        checkStorage(&checkStorageOptions{Avatars: true, RepoAvatars: true}),
 		AbortIfFailed:              false,
 		SkipDatabaseInitialization: false,
 		Priority:                   1,
@@ -236,7 +244,7 @@ func init() {
 		Title:                      "Check if there are unassociated archives in storage",
 		Name:                       "storage-archives",
 		IsDefault:                  false,
-		Run:                        checkStorage(&storageCheckOptions{RepoArchives: true}),
+		Run:                        checkStorage(&checkStorageOptions{RepoArchives: true}),
 		AbortIfFailed:              false,
 		SkipDatabaseInitialization: false,
 		Priority:                   1,
@@ -246,7 +254,7 @@ func init() {
 		Title:                      "Check if there are unassociated package blobs in storage",
 		Name:                       "storage-packages",
 		IsDefault:                  false,
-		Run:                        checkStorage(&storageCheckOptions{Packages: true}),
+		Run:                        checkStorage(&checkStorageOptions{Packages: true}),
 		AbortIfFailed:              false,
 		SkipDatabaseInitialization: false,
 		Priority:                   1,

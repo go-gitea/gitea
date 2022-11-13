@@ -47,6 +47,28 @@ func (archiver *RepoArchiver) RelativePath() string {
 	return fmt.Sprintf("%d/%s/%s.%s", archiver.RepoID, archiver.CommitID[:2], archiver.CommitID, archiver.Type.String())
 }
 
+// repoArchiverForRelativePath takes a relativePath created from (archiver *RepoArchiver) RelativePath() and creates a shell repoArchiver struct representing it
+func repoArchiverForRelativePath(relativePath string) (*RepoArchiver, error) {
+	parts := strings.SplitN(relativePath, "/", 3)
+	if len(parts) != 3 {
+		return nil, util.SilentWrap{Message: fmt.Sprintf("invalid storage path: %s", relativePath), Err: util.ErrInvalidArgument}
+	}
+	repoID, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		return nil, util.SilentWrap{Message: fmt.Sprintf("invalid storage path: %s", relativePath), Err: util.ErrInvalidArgument}
+	}
+	nameExts := strings.SplitN(parts[2], ".", 2)
+	if len(nameExts) != 2 {
+		return nil, util.SilentWrap{Message: fmt.Sprintf("invalid storage path: %s", relativePath), Err: util.ErrInvalidArgument}
+	}
+
+	return &RepoArchiver{
+		RepoID:   repoID,
+		CommitID: parts[1] + nameExts[0],
+		Type:     git.ToArchiveType(nameExts[1]),
+	}, nil
+}
+
 var delRepoArchiver = new(RepoArchiver)
 
 // DeleteRepoArchiver delete archiver
@@ -69,28 +91,14 @@ func GetRepoArchiver(ctx context.Context, repoID int64, tp git.ArchiveType, comm
 }
 
 // ExistsRepoArchiverWithStoragePath checks if there is a RepoArchiver for a given storage path
-func ExistsRepoArchiverWithStoragePath(ctx context.Context, pth string) (bool, error) {
-	// fmt.Sprintf("%d/%s/%s.%s", archiver.RepoID, archiver.CommitID[:2], archiver.CommitID, archiver.Type.String())
-	parts := strings.SplitN(pth, "/", 3)
-	if len(parts) != 3 {
-		return false, util.SilentWrap{Message: fmt.Sprintf("invalid storage path: %s", pth), Err: util.ErrInvalidArgument}
-	}
-	repoID, err := strconv.ParseInt(parts[0], 10, 64)
+func ExistsRepoArchiverWithStoragePath(ctx context.Context, storagePath string) (bool, error) {
+	// We need to invert the path provided func (archiver *RepoArchiver) RelativePath() above
+	archiver, err := repoArchiverForRelativePath(storagePath)
 	if err != nil {
-		return false, util.SilentWrap{Message: fmt.Sprintf("invalid storage path: %s", pth), Err: util.ErrInvalidArgument}
-	}
-	nameExts := strings.SplitN(parts[2], ".", 2)
-	if len(nameExts) != 2 {
-		return false, util.SilentWrap{Message: fmt.Sprintf("invalid storage path: %s", pth), Err: util.ErrInvalidArgument}
+		return false, err
 	}
 
-	archiver := &RepoArchiver{
-		RepoID:   repoID,
-		CommitID: parts[1] + nameExts[0],
-		Type:     git.ToArchiveType(nameExts[1]),
-	}
-
-	return db.GetEngine(ctx).Exist(&archiver)
+	return db.GetEngine(ctx).Exist(archiver)
 }
 
 // AddRepoArchiver adds an archiver
