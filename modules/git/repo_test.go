@@ -18,7 +18,7 @@ func TestGetLatestCommitTime(t *testing.T) {
 	// Time is Sun Jul 21 22:43:13 2019 +0200
 	// which is the time of commit
 	// feaf4ba6bc635fec442f46ddd4512416ec43c2c2 (refs/heads/master)
-	assert.EqualValues(t, 1563741793, lct.Unix())
+	assert.EqualValues(t, 1668354014, lct.Unix())
 }
 
 func TestRepoIsEmpty(t *testing.T) {
