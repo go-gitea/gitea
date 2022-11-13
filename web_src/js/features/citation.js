@@ -7,7 +7,7 @@ const initInputCitationValue = async ($citationCopyBibtex, $citationCopyApa) => 
     import(/* webpackChunkName: "citation-js-core" */'@citation-js/core'),
     import(/* webpackChunkName: "citation-js-formats" */'@citation-js/plugin-software-formats'),
     import(/* webpackChunkName: "citation-js-bibtex" */'@citation-js/plugin-bibtex'),
-    import(/* webpackChunkName: "citation-js-bibtex" */'@citation-js/plugin-csl'),
+    import(/* webpackChunkName: "citation-js-csl" */'@citation-js/plugin-csl'),
   ]);
   const {citationFileContent} = pageData;
   const config = plugins.config.get('@bibtex');
