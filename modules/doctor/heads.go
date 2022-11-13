@@ -19,11 +19,9 @@ func synchronizeRepoHeads(ctx context.Context, logger log.Logger, autofix bool) 
 	numReposUpdated := 0
 	err := iterateRepositories(ctx, func(repo *repo_model.Repository) error {
 		numRepos++
-		runOpts := &git.RunOpts{Dir: repo.RepoPath()}
+		_, _, defaultBranchErr := git.NewCommand(ctx, "rev-parse").AddDashesAndList(repo.DefaultBranch).RunStdString(&git.RunOpts{Dir: repo.RepoPath()})
 
-		_, _, defaultBranchErr := git.NewCommand(ctx, "rev-parse").AddDashesAndList(repo.DefaultBranch).RunStdString(runOpts)
-
-		head, _, headErr := git.NewCommand(ctx, "symbolic-ref", "--short", "HEAD").RunStdString(runOpts)
+		head, _, headErr := git.NewCommand(ctx, "symbolic-ref", "--short", "HEAD").RunStdString(&git.RunOpts{Dir: repo.RepoPath()})
 
 		// what we expect: default branch is valid, and HEAD points to it
 		if headErr == nil && defaultBranchErr == nil && head == repo.DefaultBranch {
@@ -49,7 +47,7 @@ func synchronizeRepoHeads(ctx context.Context, logger log.Logger, autofix bool) 
 		}
 
 		// otherwise, let's try fixing HEAD
-		err := git.NewCommand(ctx, "symbolic-ref").AddDashesAndList("HEAD", repo.DefaultBranch).Run(runOpts)
+		err := git.NewCommand(ctx, "symbolic-ref").AddDashesAndList("HEAD", git.BranchPrefix+repo.DefaultBranch).Run(&git.RunOpts{Dir: repo.RepoPath()})
 		if err != nil {
 			logger.Warn("Failed to fix HEAD for %s/%s: %v", repo.OwnerName, repo.Name, err)
 			return nil
@@ -65,7 +63,7 @@ func synchronizeRepoHeads(ctx context.Context, logger log.Logger, autofix bool) 
 		logger.Info("Out of %d repos, HEADs for %d are now fixed and HEADS for %d are still broken", numRepos, numReposUpdated, numDefaultBranchesBroken+numHeadsBroken-numReposUpdated)
 	} else {
 		if numHeadsBroken == 0 && numDefaultBranchesBroken == 0 {
-			logger.Info("All %d repos have their HEADs in the correct state")
+			logger.Info("All %d repos have their HEADs in the correct state", numRepos)
 		} else {
 			if numHeadsBroken == 0 && numDefaultBranchesBroken != 0 {
 				logger.Critical("Default branches are broken for %d/%d repos", numDefaultBranchesBroken, numRepos)
