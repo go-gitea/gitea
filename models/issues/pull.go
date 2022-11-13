@@ -368,7 +368,7 @@ func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
 		return nil
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -498,7 +498,7 @@ func (pr *PullRequest) SetMerged(ctx context.Context) (bool, error) {
 
 // NewPullRequest creates new pull request with labels for repository.
 func NewPullRequest(outerCtx context.Context, repo *repo_model.Repository, issue *Issue, labelIDs []int64, uuids []string, pr *PullRequest) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(outerCtx)
 	if err != nil {
 		return err
 	}

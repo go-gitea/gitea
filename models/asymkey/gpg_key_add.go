@@ -73,7 +73,7 @@ func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, erro
 		return nil, err
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}

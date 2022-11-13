@@ -234,7 +234,7 @@ func DeleteGPGKey(doer *user_model.User, id int64) (err error) {
 		return ErrGPGKeyAccessDenied{doer.ID, key.ID}
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

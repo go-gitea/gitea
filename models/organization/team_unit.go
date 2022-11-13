@@ -32,7 +32,7 @@ func getUnitsByTeamID(ctx context.Context, teamID int64) (units []*TeamUnit, err
 
 // UpdateTeamUnits updates a teams's units
 func UpdateTeamUnits(team *Team, units []TeamUnit) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
