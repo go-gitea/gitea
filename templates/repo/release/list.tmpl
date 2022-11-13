@@ -165,7 +165,7 @@
 														{{svg "octicon-info"}}
 													</span>
 												</span>
-												<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}">
+												<a target="_blank" rel="noopener noreferrer" href="{{$.RepoLink}}/releases/download/{{$release.TagName | PathEscape}}/{{.Name | PathEscape}}">
 													<strong>{{svg "octicon-package" 16 "mr-2"}}{{.Name}}</strong>
 												</a>
 											</li>
