@@ -68,8 +68,8 @@
 							<div class="item">
 								<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong class="team-name">{{.Name}}</strong></a>
 								<p class="text grey">
-									<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong>{{.NumMembers}}</strong> {{$.locale.Tr "org.lower_members"}}</a> ·
-									<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}/repositories"><strong>{{.NumRepos}}</strong> {{$.locale.Tr "org.lower_repositories"}}</a>
+									<a class="muted" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong>{{.NumMembers}}</strong> {{$.locale.Tr "org.lower_members"}}</a> ·
+									<a class="muted" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}/repositories"><strong>{{.NumRepos}}</strong> {{$.locale.Tr "org.lower_repositories"}}</a>
 								</p>
 							</div>
 						{{end}}
