@@ -102,7 +102,7 @@ func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 	}
 
 	if status == http.StatusInternalServerError {
-		log.ErrorWithSkip(1, "%s: %w", title, foundError)
+		log.ErrorWithSkip(1, "%s: %v", title, foundError)
 	}
 
 	ctx.ErrorHandler.Error(ctx.Context, status, message, foundError)
