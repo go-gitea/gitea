@@ -8,6 +8,8 @@ package context
 import (
 	"context"
 	"fmt"
+	"html/template"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -21,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
 	auth_service "code.gitea.io/gitea/services/auth"
+	"github.com/unrolled/render"
 )
 
 // APIContext is a specific context for API service
@@ -89,25 +92,19 @@ func (ctx *APIContext) ServerError(title string, err error) {
 // Error responds with an error message to client with given obj as the message.
 // If status is 500, also it prints error to log.
 func (ctx *APIContext) Error(status int, title string, obj interface{}) {
-	var message string
+	var foundError error
+	message := title
 	if err, ok := obj.(error); ok {
-		message = err.Error()
+		foundError = err
 	} else {
 		message = fmt.Sprintf("%s", obj)
 	}
 
 	if status == http.StatusInternalServerError {
-		log.ErrorWithSkip(1, "%s: %s", title, message)
-
-		if setting.IsProd && !(ctx.Doer != nil && ctx.Doer.IsAdmin) {
-			message = ""
-		}
+		log.ErrorWithSkip(1, "%s: %w", title, foundError)
 	}
 
-	ctx.JSON(status, APIError{
-		Message: message,
-		URL:     setting.API.SwaggerURL,
-	})
+	ctx.ErrorHandler.Error(ctx.Context, status, message, foundError)
 }
 
 // InternalServerError responds with an error message to the client with the error as a message
@@ -239,6 +236,18 @@ func APIAuth(authMethod auth_service.Method) func(*APIContext) {
 	}
 }
 
+// Implements a stub Render implementation to demonstrate that the API context lacks this feature.
+// Instead of displaying a vague NPE panic when called, it now displays a clear panic message.
+type panicRender struct{}
+
+func (panicRender) TemplateLookup(string) *template.Template {
+	panic("Render.TemplateLookup is not implemented for API context.")
+}
+
+func (panicRender) HTML(w io.Writer, status int, name string, binding interface{}, htmlOpt ...render.HTMLOptions) error {
+	panic("Render.HTML is not implemented for API context.")
+}
+
 // APIContexter returns apicontext as middleware
 func APIContexter() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -246,10 +255,12 @@ func APIContexter() func(http.Handler) http.Handler {
 			locale := middleware.Locale(w, req)
 			ctx := APIContext{
 				Context: &Context{
-					Resp:   NewResponse(w),
-					Data:   map[string]interface{}{},
-					Locale: locale,
-					Cache:  cache.GetCache(),
+					Resp:         NewResponse(w),
+					Render:       panicRender{},
+					ErrorHandler: apiErrorHandler{},
+					Data:         map[string]interface{}{},
+					Locale:       locale,
+					Cache:        cache.GetCache(),
 					Repo: &Repository{
 						PullRequest: &PullRequest{},
 					},
@@ -294,24 +305,64 @@ func APIContexter() func(http.Handler) http.Handler {
 // String will replace message, errors will be added to a slice
 func (ctx *APIContext) NotFound(objs ...interface{}) {
 	message := ctx.Tr("error.not_found")
-	var errors []string
+	var foundError error
 	for _, obj := range objs {
-		// Ignore nil
 		if obj == nil {
 			continue
 		}
 
 		if err, ok := obj.(error); ok {
-			errors = append(errors, err.Error())
+			foundError = err
 		} else {
 			message = obj.(string)
 		}
 	}
 
+	ctx.ErrorHandler.NotFound(ctx.Context, message, foundError)
+}
+
+type apiErrorHandler struct{}
+
+var _ ErrorHandler = apiErrorHandler{}
+
+func (apiErrorHandler) NotFound(ctx *Context, logMessage string, logErr error) {
 	ctx.JSON(http.StatusNotFound, map[string]interface{}{
+		"message": logMessage,
+		"url":     setting.API.SwaggerURL,
+		"error":   logErr,
+	})
+}
+
+func (apiErrorHandler) ServerError(ctx *Context, logMessage string, logErr error) {
+	message := logMessage
+
+	if setting.IsProd && (ctx.Doer == nil || !ctx.Doer.IsAdmin) {
+		message = ""
+		logErr = nil
+	}
+
+	ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 		"message": message,
 		"url":     setting.API.SwaggerURL,
-		"errors":  errors,
+		"error":   logErr,
+	})
+}
+
+func (apiErrorHandler) Error(ctx *Context, status int, logMessage string, logErr error) {
+	message := logMessage
+
+	// Errors are given as message and priority over logMessage.
+	if logErr != nil {
+		message = logErr.Error()
+	}
+
+	if status == http.StatusInternalServerError && setting.IsProd && (ctx.Doer == nil || !ctx.Doer.IsAdmin) {
+		message = ""
+	}
+
+	ctx.JSON(status, map[string]interface{}{
+		"message": message,
+		"url":     setting.API.SwaggerURL,
 	})
 }
 

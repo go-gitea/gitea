@@ -51,13 +51,23 @@ type Render interface {
 	HTML(w io.Writer, status int, name string, binding interface{}, htmlOpt ...render.HTMLOptions) error
 }
 
+type ErrorHandler interface {
+	// Logs and display an 404 error.
+	NotFound(ctx *Context, logMessage string, logErr error)
+	// Logs and display an 500 error.
+	ServerError(ctx *Context, logMessage string, logErr error)
+	// Logs and display the specified status, logErr can be nil.
+	Error(ctx *Context, status int, logMessage string, logErr error)
+}
+
 // Context represents context of a request.
 type Context struct {
-	Resp     ResponseWriter
-	Req      *http.Request
-	Data     map[string]interface{} // data used by MVC templates
-	PageData map[string]interface{} // data used by JavaScript modules in one page, it's `window.config.pageData`
-	Render   Render
+	Resp         ResponseWriter
+	Req          *http.Request
+	Data         map[string]interface{} // data used by MVC templates
+	PageData     map[string]interface{} // data used by JavaScript modules in one page, it's `window.config.pageData`
+	Render       Render
+	ErrorHandler ErrorHandler
 	translation.Locale
 	Cache   cache.Cache
 	csrf    CSRFProtector
@@ -252,57 +262,12 @@ func (ctx *Context) RenderWithErr(msg string, tpl base.TplName, form interface{}
 
 // NotFound displays a 404 (Not Found) page and prints the given error, if any.
 func (ctx *Context) NotFound(logMsg string, logErr error) {
-	ctx.notFoundInternal(logMsg, logErr)
-}
-
-func (ctx *Context) notFoundInternal(logMsg string, logErr error) {
-	if logErr != nil {
-		log.Log(2, log.DEBUG, "%s: %v", logMsg, logErr)
-		if !setting.IsProd {
-			ctx.Data["ErrorMsg"] = logErr
-		}
-	}
-
-	// response simple message if Accept isn't text/html
-	showHTML := false
-	for _, part := range ctx.Req.Header["Accept"] {
-		if strings.Contains(part, "text/html") {
-			showHTML = true
-			break
-		}
-	}
-
-	if !showHTML {
-		ctx.plainTextInternal(3, http.StatusNotFound, []byte("Not found.\n"))
-		return
-	}
-
-	ctx.Data["IsRepo"] = ctx.Repo.Repository != nil
-	ctx.Data["Title"] = "Page Not Found"
-	ctx.HTML(http.StatusNotFound, base.TplName("status/404"))
+	ctx.ErrorHandler.NotFound(ctx, logMsg, logErr)
 }
 
 // ServerError displays a 500 (Internal Server Error) page and prints the given error, if any.
 func (ctx *Context) ServerError(logMsg string, logErr error) {
-	ctx.serverErrorInternal(logMsg, logErr)
-}
-
-func (ctx *Context) serverErrorInternal(logMsg string, logErr error) {
-	if logErr != nil {
-		log.ErrorWithSkip(2, "%s: %v", logMsg, logErr)
-		if _, ok := logErr.(*net.OpError); ok || errors.Is(logErr, &net.OpError{}) {
-			// This is an error within the underlying connection
-			// and further rendering will not work so just return
-			return
-		}
-
-		if !setting.IsProd {
-			ctx.Data["ErrorMsg"] = logErr
-		}
-	}
-
-	ctx.Data["Title"] = "Internal Server Error"
-	ctx.HTML(http.StatusInternalServerError, base.TplName("status/500"))
+	ctx.ErrorHandler.ServerError(ctx, logMsg, logErr)
 }
 
 // NotFoundOrServerError use error check function to determine if the error
@@ -310,10 +275,10 @@ func (ctx *Context) serverErrorInternal(logMsg string, logErr error) {
 // or error context description for logging purpose of 500 server error.
 func (ctx *Context) NotFoundOrServerError(logMsg string, errCheck func(error) bool, err error) {
 	if errCheck(err) {
-		ctx.notFoundInternal(logMsg, err)
+		ctx.NotFound(logMsg, err)
 		return
 	}
-	ctx.serverErrorInternal(logMsg, err)
+	ctx.ServerError(logMsg, err)
 }
 
 // PlainTextBytes renders bytes as plain text
@@ -399,11 +364,11 @@ func (ctx *Context) UploadStream() (rd io.ReadCloser, needToClose bool, err erro
 
 // Error returned an error to web browser
 func (ctx *Context) Error(status int, contents ...string) {
-	v := http.StatusText(status)
+	message := http.StatusText(status)
 	if len(contents) > 0 {
-		v = contents[0]
+		message = contents[0]
 	}
-	http.Error(ctx.Resp, v, status)
+	ctx.ErrorHandler.Error(ctx, status, message, nil)
 }
 
 // JSON render content as JSON
@@ -590,6 +555,59 @@ func (ctx *Context) AppendAccessControlExposeHeaders(names ...string) {
 	}
 }
 
+type webErrorHandler struct{}
+
+var _ ErrorHandler = webErrorHandler{}
+
+func (webErrorHandler) NotFound(ctx *Context, logMsg string, logErr error) {
+	if logErr != nil {
+		log.Log(2, log.DEBUG, "%s: %v", logMsg, logErr)
+		if !setting.IsProd {
+			ctx.Data["ErrorMsg"] = logErr
+		}
+	}
+
+	// response simple message if Accept isn't text/html
+	showHTML := false
+	for _, part := range ctx.Req.Header["Accept"] {
+		if strings.Contains(part, "text/html") {
+			showHTML = true
+			break
+		}
+	}
+
+	if !showHTML {
+		ctx.plainTextInternal(3, http.StatusNotFound, []byte("Not found.\n"))
+		return
+	}
+
+	ctx.Data["IsRepo"] = ctx.Repo.Repository != nil
+	ctx.Data["Title"] = "Page Not Found"
+	ctx.HTML(http.StatusNotFound, base.TplName("status/404"))
+}
+
+func (webErrorHandler) ServerError(ctx *Context, logMsg string, logErr error) {
+	if logErr != nil {
+		log.ErrorWithSkip(2, "%s: %v", logMsg, logErr)
+		if _, ok := logErr.(*net.OpError); ok || errors.Is(logErr, &net.OpError{}) {
+			// This is an error within the underlying connection
+			// and further rendering will not work so just return
+			return
+		}
+
+		if !setting.IsProd {
+			ctx.Data["ErrorMsg"] = logErr
+		}
+	}
+
+	ctx.Data["Title"] = "Internal Server Error"
+	ctx.HTML(http.StatusInternalServerError, base.TplName("status/500"))
+}
+
+func (webErrorHandler) Error(ctx *Context, status int, logMsg string, _ error) {
+	http.Error(ctx.Resp, logMsg, status)
+}
+
 // Handler represents a custom handler
 type Handler func(*Context)
 
@@ -671,12 +689,13 @@ func Contexter(ctx context.Context) func(next http.Handler) http.Handler {
 			link := setting.AppSubURL + strings.TrimSuffix(req.URL.EscapedPath(), "/")
 
 			ctx := Context{
-				Resp:    NewResponse(resp),
-				Cache:   mc.GetCache(),
-				Locale:  locale,
-				Link:    link,
-				Render:  rnd,
-				Session: session.GetSession(req),
+				Resp:         NewResponse(resp),
+				Cache:        mc.GetCache(),
+				Locale:       locale,
+				Link:         link,
+				Render:       rnd,
+				ErrorHandler: webErrorHandler{},
+				Session:      session.GetSession(req),
 				Repo: &Repository{
 					PullRequest: &PullRequest{},
 				},

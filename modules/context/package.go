@@ -144,9 +144,10 @@ func PackageContexter(ctx gocontext.Context) func(next http.Handler) http.Handle
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			ctx := Context{
-				Resp:   NewResponse(resp),
-				Data:   map[string]interface{}{},
-				Render: rnd,
+				Resp:         NewResponse(resp),
+				Data:         map[string]interface{}{},
+				Render:       rnd,
+				ErrorHandler: apiErrorHandler{},
 			}
 			defer ctx.Close()
 
