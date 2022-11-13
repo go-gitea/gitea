@@ -25,7 +25,7 @@
 					<div class="ui top attached header comment-header df ac sb">
 						<div class="comment-header-left df ac">
 							{{if .OriginalAuthor}}
-								<span class="text black mr-2">
+								<span class="text black bold mr-2">
 									{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 									{{.OriginalAuthor}}
 								</span>
@@ -42,9 +42,7 @@
 									</a>
 								{{end}}
 								<span class="text grey">
-									<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
-										{{.Poster.GetDisplayName}}
-									</a>
+									{{template "shared/user/authorlink" .Poster}}
 									{{$.locale.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr | Safe}}
 								</span>
 							{{end}}
@@ -207,7 +205,7 @@
 					{{if .RemovedAssignee}}
 						{{template "shared/user/avatarlink" .Assignee}}
 						<span class="text grey">
-							<a class="author" {{if gt .Assignee.ID 0}}href="{{.Assignee.HomeLink}}"{{end}}>{{.Assignee.GetDisplayName}}</a>
+							{{template "shared/user/authorlink" .Assignee}}
 							{{if eq .Poster.ID .Assignee.ID}}
 								{{$.locale.Tr "repo.issues.remove_self_assignment" $createdStr | Safe}}
 							{{else}}
@@ -408,7 +406,7 @@
 							<div class="comment-header-left df ac">
 								<span class="text grey">
 									{{if .OriginalAuthor}}
-										<span class="text black">
+										<span class="text black bold">
 											{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 											{{.OriginalAuthor}}
 										</span>
@@ -536,7 +534,7 @@
 																{{end}}
 																<span class="text grey">
 																	{{if .OriginalAuthor}}
-																		<span class="text black">
+																		<span class="text black bold">
 																			{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 																			{{.OriginalAuthor}}
 																		</span>
