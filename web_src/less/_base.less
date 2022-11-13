@@ -294,13 +294,15 @@ a,
   text-decoration-skip-ink: all;
 }
 
-a.muted {
+a.muted,
+.muted-links a {
   color: inherit;
 }
 
 a:hover,
 a.muted:hover,
 a.muted:hover [class*="color-text"],
+.muted-links a:hover,
 .ui.breadcrumb a:hover {
   color: var(--color-primary);
 }
