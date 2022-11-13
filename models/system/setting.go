@@ -196,7 +196,7 @@ func SetSetting(setting *Setting) error {
 }
 
 func upsertSettingValue(key, value string, version int) error {
-	return db.WithTx(func(ctx context.Context) error {
+	return db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		e := db.GetEngine(ctx)
 
 		// here we use a general method to do a safe upsert for different databases (and most transaction levels)
