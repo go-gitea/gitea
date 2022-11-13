@@ -1,15 +1,15 @@
 {{if eq .State "pending"}}
-	<i class="commit-status circle icon yellow"></i>
+	{{svg "octicon-dot-fill" 18 "commit-status icon text yellow"}}
 {{end}}
 {{if eq .State "success"}}
-	<i class="commit-status check icon green"></i>
+	{{svg "octicon-check" 18 "commit-status icon text green"}}
 {{end}}
 {{if eq .State "error"}}
-	<i class="commit-status warning icon red"></i>
+	{{svg "gitea-exclamation" 18 "commit-status icon text red"}}
 {{end}}
 {{if eq .State "failure"}}
-	<i class="commit-status remove icon red"></i>
+	{{svg "octicon-x" 18 "commit-status icon text red"}}
 {{end}}
 {{if eq .State "warning"}}
-	<i class="commit-status warning sign icon yellow"></i>
+	{{svg "gitea-exclamation" 18 "commit-status icon text yellow"}}
 {{end}}

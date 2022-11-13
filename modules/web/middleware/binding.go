@@ -135,8 +135,19 @@ func Validate(errs binding.Errors, data map[string]interface{}, f Form, l transl
 				data["ErrorMsg"] = trName + l.Tr("form.glob_pattern_error", errs[0].Message)
 			case validation.ErrRegexPattern:
 				data["ErrorMsg"] = trName + l.Tr("form.regex_pattern_error", errs[0].Message)
+			case validation.ErrUsername:
+				data["ErrorMsg"] = trName + l.Tr("form.username_error")
 			default:
-				data["ErrorMsg"] = l.Tr("form.unknown_error") + " " + errs[0].Classification
+				msg := errs[0].Classification
+				if msg != "" && errs[0].Message != "" {
+					msg += ": "
+				}
+
+				msg += errs[0].Message
+				if msg == "" {
+					msg = l.Tr("form.unknown_error")
+				}
+				data["ErrorMsg"] = trName + ": " + msg
 			}
 			return errs
 		}

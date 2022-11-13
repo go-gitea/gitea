@@ -64,7 +64,7 @@ func IsUserAssignedToIssue(ctx context.Context, issue *Issue, user *user_model.U
 
 // ToggleIssueAssignee changes a user between assigned and not assigned for this issue, and make issue comment for it.
 func ToggleIssueAssignee(issue *Issue, doer *user_model.User, assigneeID int64) (removed bool, comment *Comment, err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return false, nil, err
 	}
@@ -85,12 +85,12 @@ func ToggleIssueAssignee(issue *Issue, doer *user_model.User, assigneeID int64) 
 func toggleIssueAssignee(ctx context.Context, issue *Issue, doer *user_model.User, assigneeID int64, isCreate bool) (removed bool, comment *Comment, err error) {
 	removed, err = toggleUserAssignee(ctx, issue, assigneeID)
 	if err != nil {
-		return false, nil, fmt.Errorf("UpdateIssueUserByAssignee: %v", err)
+		return false, nil, fmt.Errorf("UpdateIssueUserByAssignee: %w", err)
 	}
 
 	// Repo infos
 	if err = issue.LoadRepo(ctx); err != nil {
-		return false, nil, fmt.Errorf("loadRepo: %v", err)
+		return false, nil, fmt.Errorf("loadRepo: %w", err)
 	}
 
 	opts := &CreateCommentOptions{
@@ -104,7 +104,7 @@ func toggleIssueAssignee(ctx context.Context, issue *Issue, doer *user_model.Use
 	// Comment
 	comment, err = CreateCommentCtx(ctx, opts)
 	if err != nil {
-		return false, nil, fmt.Errorf("createComment: %v", err)
+		return false, nil, fmt.Errorf("createComment: %w", err)
 	}
 
 	// if pull request is in the middle of creation - don't call webhook

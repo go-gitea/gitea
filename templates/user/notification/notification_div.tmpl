@@ -2,7 +2,7 @@
 	<div class="ui container">
 		<h1 class="ui dividing header">{{.locale.Tr "notification.notifications"}}</h1>
 		<div class="ui top attached tabular menu">
-			{{ $notificationUnreadCount := call .NotificationUnreadCount}}
+			{{$notificationUnreadCount := call .NotificationUnreadCount}}
 			<a href="{{AppSubUrl}}/notifications?q=unread" class="{{if eq .Status 1}}active{{end}} item">
 				{{.locale.Tr "notification.unread"}}
 				<div class="ui label {{if not $notificationUnreadCount}}hidden{{end}}">{{$notificationUnreadCount}}</div>

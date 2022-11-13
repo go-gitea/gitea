@@ -1,0 +1,18 @@
+{{template "base/head" .}}
+<div class="page-content organization settings options">
+	{{template "org/header" .}}
+	<div class="ui container">
+		<div class="ui grid">
+			{{template "org/settings/navbar" .}}
+			<div class="twelve wide column content">
+				{{template "base/alert" .}}
+				<h4 class="ui top attached header">
+					{{.locale.Tr "settings.applications"}}
+				</h4>
+
+				{{template "user/settings/applications_oauth2_list" .}}
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

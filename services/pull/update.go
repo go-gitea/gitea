@@ -50,10 +50,10 @@ func Update(ctx context.Context, pull *issues_model.PullRequest, doer *user_mode
 
 	if err := pr.LoadHeadRepoCtx(ctx); err != nil {
 		log.Error("LoadHeadRepo: %v", err)
-		return fmt.Errorf("LoadHeadRepo: %v", err)
+		return fmt.Errorf("LoadHeadRepo: %w", err)
 	} else if err = pr.LoadBaseRepoCtx(ctx); err != nil {
 		log.Error("LoadBaseRepo: %v", err)
-		return fmt.Errorf("LoadBaseRepo: %v", err)
+		return fmt.Errorf("LoadBaseRepo: %w", err)
 	}
 
 	diffCount, err := GetDiverging(ctx, pull)
@@ -87,6 +87,9 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 	}
 	headRepoPerm, err := access_model.GetUserRepoPermission(ctx, pull.HeadRepo, user)
 	if err != nil {
+		if repo_model.IsErrUnitTypeNotExist(err) {
+			return false, false, nil
+		}
 		return false, false, err
 	}
 

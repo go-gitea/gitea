@@ -5,12 +5,12 @@
 			<tr class="{{DiffLineTypeToStr .GetType}}-code nl-{{$k}} ol-{{$k}}" data-line-type="{{DiffLineTypeToStr .GetType}}">
 				{{if eq .GetType 4}}
 					<td colspan="2" class="lines-num">
-						{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5) }}
+						{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5)}}
 							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=down&wiki={{$.root.PageIsWiki}}" data-anchor="diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
 								{{svg "octicon-fold-down"}}
 							</a>
 						{{end}}
-						{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4) }}
+						{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4)}}
 							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=up&wiki={{$.root.PageIsWiki}}" data-anchor="diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
 								{{svg "octicon-fold-up"}}
 							</a>
@@ -25,12 +25,12 @@
 					<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{$file.NameHash}}L{{$line.LeftIdx}}{{end}}"></span></td>
 					<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{$file.NameHash}}R{{$line.RightIdx}}{{end}}"></span></td>
 				{{end}}
-				{{$inlineDiff := $section.GetComputedInlineDiffFor $line -}}
-				<td class="lines-escape">{{if $inlineDiff.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{$.locale.Tr "repo.line_unicode"}}"></a>{{end}}</td>
+				{{$inlineDiff := $section.GetComputedInlineDiffFor $line $.root.locale -}}
+				<td class="lines-escape">{{if $inlineDiff.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff "locale" $.root.locale}}"></a>{{end}}</td>
 				<td class="lines-type-marker"><span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
 				{{if eq .GetType 4}}
 					<td class="chroma lines-code blob-hunk">{{/*
-						*/}}<code {{if $inlineDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{$.root.locale.Tr "repo.line_unicode"}}"{{else}}class="code-inner"{{end}}>{{$inlineDiff.Content}}</code>{{/*
+						*/}}{{template "repo/diff/section_code" dict "diff" $inlineDiff "locale" $.root.locale}}{{/*
 					*/}}</td>
 				{{else}}
 					<td class="chroma lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">{{/*
@@ -39,14 +39,14 @@
 								*/}}{{svg "octicon-plus"}}{{/*
 							*/}}</a>{{/*
 						*/}}{{end}}{{/*
-						*/}}<code {{if $inlineDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{$.root.locale.Tr "repo.line_unicode"}}"{{else}}class="code-inner"{{end}}>{{$inlineDiff.Content}}</code>{{/*
+						*/}}{{template "repo/diff/section_code" dict "diff" $inlineDiff "locale" $.root.locale}}{{/*
 					*/}}</td>
 				{{end}}
 			</tr>
 			{{if gt (len $line.Comments) 0}}
 				<tr class="add-comment" data-line-type="{{DiffLineTypeToStr .GetType}}">
 					<td colspan="3" class="lines-num"></td>
-					<td class="add-comment-left add-comment-right" colspan="2">
+					<td class="add-comment-left add-comment-right" colspan="5">
 						{{template "repo/diff/conversation" mergeinto $.root "comments" $line.Comments}}
 					</td>
 				</tr>

@@ -601,8 +601,8 @@ func setupDefaultDiff() *Diff {
 func TestDiff_LoadComments(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2}).(*issues_model.Issue)
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	diff := setupDefaultDiff()
 	assert.NoError(t, diff.LoadComments(db.DefaultContext, issue, user))
 	assert.Len(t, diff.Files[0].Sections[0].Lines[0].Comments, 2)
@@ -627,7 +627,7 @@ func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
 		return
 	}
 	defer gitRepo.Close()
-	for _, behavior := range []string{"-w", "--ignore-space-at-eol", "-b", ""} {
+	for _, behavior := range []git.CmdArg{"-w", "--ignore-space-at-eol", "-b", ""} {
 		diffs, err := GetDiff(gitRepo,
 			&DiffOptions{
 				AfterCommitID:      "bd7063cc7c04689c4d082183d32a604ed27a24f9",

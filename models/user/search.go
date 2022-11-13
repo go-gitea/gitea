@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
@@ -106,7 +105,7 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 	defer sessCount.Close()
 	count, err := sessCount.Count(new(User))
 	if err != nil {
-		return nil, 0, fmt.Errorf("Count: %v", err)
+		return nil, 0, fmt.Errorf("Count: %w", err)
 	}
 
 	if len(opts.OrderBy) == 0 {
@@ -123,28 +122,6 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 	sessQuery = sessQuery.Select("`user`.*")
 	users = make([]*User, 0, opts.PageSize)
 	return users, count, sessQuery.Find(&users)
-}
-
-// IterateUser iterate users
-func IterateUser(f func(user *User) error) error {
-	var start int
-	batchSize := setting.Database.IterateBufferSize
-	for {
-		users := make([]*User, 0, batchSize)
-		if err := db.GetEngine(db.DefaultContext).Limit(batchSize, start).Find(&users); err != nil {
-			return err
-		}
-		if len(users) == 0 {
-			return nil
-		}
-		start += len(users)
-
-		for _, user := range users {
-			if err := f(user); err != nil {
-				return err
-			}
-		}
-	}
 }
 
 // BuildCanSeeUserCondition creates a condition which can be used to restrict results to users/orgs the actor can see

@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -43,6 +44,10 @@ func (err ErrTeamAlreadyExist) Error() string {
 	return fmt.Sprintf("team already exists [org_id: %d, name: %s]", err.OrgID, err.Name)
 }
 
+func (err ErrTeamAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
 // ErrTeamNotExist represents a "TeamNotExist" error
 type ErrTeamNotExist struct {
 	OrgID  int64
@@ -58,6 +63,10 @@ func IsErrTeamNotExist(err error) bool {
 
 func (err ErrTeamNotExist) Error() string {
 	return fmt.Sprintf("team does not exist [org_id %d, team_id %d, name: %s]", err.OrgID, err.TeamID, err.Name)
+}
+
+func (err ErrTeamNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // OwnerTeamName return the owner team name
@@ -85,6 +94,7 @@ func init() {
 	db.RegisterModel(new(TeamUser))
 	db.RegisterModel(new(TeamRepo))
 	db.RegisterModel(new(TeamUnit))
+	db.RegisterModel(new(TeamInvite))
 }
 
 // SearchTeamOptions holds the search options
@@ -96,16 +106,7 @@ type SearchTeamOptions struct {
 	IncludeDesc bool
 }
 
-// SearchTeam search for teams. Caller is responsible to check permissions.
-func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
-	if opts.Page <= 0 {
-		opts.Page = 1
-	}
-	if opts.PageSize == 0 {
-		// Default limit
-		opts.PageSize = 10
-	}
-
+func (opts *SearchTeamOptions) toCond() builder.Cond {
 	cond := builder.NewCond()
 
 	if len(opts.Keyword) > 0 {
@@ -117,28 +118,32 @@ func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 		cond = cond.And(keywordCond)
 	}
 
-	cond = cond.And(builder.Eq{"org_id": opts.OrgID})
+	if opts.OrgID > 0 {
+		cond = cond.And(builder.Eq{"`team`.org_id": opts.OrgID})
+	}
 
+	if opts.UserID > 0 {
+		cond = cond.And(builder.Eq{"team_user.uid": opts.UserID})
+	}
+
+	return cond
+}
+
+// SearchTeam search for teams. Caller is responsible to check permissions.
+func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 	sess := db.GetEngine(db.DefaultContext)
 
-	count, err := sess.
-		Where(cond).
-		Count(new(Team))
-	if err != nil {
-		return nil, 0, err
-	}
+	opts.SetDefaultValues()
+	cond := opts.toCond()
 
-	sess = sess.Where(cond)
-	if opts.PageSize == -1 {
-		opts.PageSize = int(count)
-	} else {
-		sess = sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
+	if opts.UserID > 0 {
+		sess = sess.Join("INNER", "team_user", "team_user.team_id = team.id")
 	}
+	sess = db.SetSessionPagination(sess, opts)
 
 	teams := make([]*Team, 0, opts.PageSize)
-	if err = sess.
-		OrderBy("lower_name").
-		Find(&teams); err != nil {
+	count, err := sess.Where(cond).OrderBy("lower_name").FindAndCount(&teams)
+	if err != nil {
 		return nil, 0, err
 	}
 
@@ -345,4 +350,10 @@ func GetRepoTeams(ctx context.Context, repo *repo_model.Repository) (teams []*Te
 		And("team_repo.repo_id=?", repo.ID).
 		OrderBy("CASE WHEN name LIKE '" + OwnerTeamName + "' THEN '' ELSE name END").
 		Find(&teams)
+}
+
+// IncrTeamRepoNum increases the number of repos for the given team by 1
+func IncrTeamRepoNum(ctx context.Context, teamID int64) error {
+	_, err := db.GetEngine(ctx).Incr("num_repos").ID(teamID).Update(new(Team))
+	return err
 }

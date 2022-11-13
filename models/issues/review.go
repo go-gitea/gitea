@@ -39,6 +39,10 @@ func (err ErrReviewNotExist) Error() string {
 	return fmt.Sprintf("review does not exist [id: %d]", err.ID)
 }
 
+func (err ErrReviewNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrNotValidReviewRequest an not allowed review request modify
 type ErrNotValidReviewRequest struct {
 	Reason string
@@ -57,6 +61,10 @@ func (err ErrNotValidReviewRequest) Error() string {
 		err.Reason,
 		err.UserID,
 		err.RepoID)
+}
+
+func (err ErrNotValidReviewRequest) Unwrap() error {
+	return util.ErrInvalidArgument
 }
 
 // ReviewType defines the sort of feedback a review gives
@@ -366,7 +374,7 @@ func IsContentEmptyErr(err error) bool {
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
 func SubmitReview(doer *user_model.User, issue *Issue, reviewType ReviewType, content, commitID string, stale bool, attachmentUUIDs []string) (*Review, *Comment, error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -614,7 +622,7 @@ func DismissReview(review *Review, isDismiss bool) (err error) {
 
 // InsertReviews inserts review and review comments
 func InsertReviews(reviews []*Review) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -656,7 +664,7 @@ func InsertReviews(reviews []*Review) error {
 
 // AddReviewRequest add a review request from one reviewer
 func AddReviewRequest(issue *Issue, reviewer, doer *user_model.User) (*Comment, error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}
@@ -711,7 +719,7 @@ func AddReviewRequest(issue *Issue, reviewer, doer *user_model.User) (*Comment, 
 
 // RemoveReviewRequest remove a review request from one reviewer
 func RemoveReviewRequest(issue *Issue, reviewer, doer *user_model.User) (*Comment, error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}
@@ -764,7 +772,7 @@ func RemoveReviewRequest(issue *Issue, reviewer, doer *user_model.User) (*Commen
 
 // AddTeamReviewRequest add a review request from one team
 func AddTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *user_model.User) (*Comment, error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}
@@ -782,10 +790,10 @@ func AddTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *user_
 
 	official, err := IsOfficialReviewerTeam(ctx, issue, reviewer)
 	if err != nil {
-		return nil, fmt.Errorf("isOfficialReviewerTeam(): %v", err)
+		return nil, fmt.Errorf("isOfficialReviewerTeam(): %w", err)
 	} else if !official {
 		if official, err = IsOfficialReviewer(ctx, issue, doer); err != nil {
-			return nil, fmt.Errorf("isOfficialReviewer(): %v", err)
+			return nil, fmt.Errorf("isOfficialReviewer(): %w", err)
 		}
 	}
 
@@ -815,7 +823,7 @@ func AddTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *user_
 		ReviewID:        review.ID,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("CreateCommentCtx(): %v", err)
+		return nil, fmt.Errorf("CreateCommentCtx(): %w", err)
 	}
 
 	return comment, committer.Commit()
@@ -823,7 +831,7 @@ func AddTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *user_
 
 // RemoveTeamReviewRequest remove a review request from one team
 func RemoveTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *user_model.User) (*Comment, error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}
@@ -844,7 +852,7 @@ func RemoveTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *us
 
 	official, err := IsOfficialReviewerTeam(ctx, issue, reviewer)
 	if err != nil {
-		return nil, fmt.Errorf("isOfficialReviewerTeam(): %v", err)
+		return nil, fmt.Errorf("isOfficialReviewerTeam(): %w", err)
 	}
 
 	if official {
@@ -874,7 +882,7 @@ func RemoveTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *us
 		AssigneeTeamID:  reviewer.ID, // Use AssigneeTeamID as reviewer team ID
 	})
 	if err != nil {
-		return nil, fmt.Errorf("CreateCommentCtx(): %v", err)
+		return nil, fmt.Errorf("CreateCommentCtx(): %w", err)
 	}
 
 	return comment, committer.Commit()
@@ -941,7 +949,7 @@ func CanMarkConversation(issue *Issue, doer *user_model.User) (permResult bool, 
 
 // DeleteReview delete a review and it's code comments
 func DeleteReview(r *Review) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

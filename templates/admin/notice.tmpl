@@ -29,12 +29,12 @@
 							<td>{{.ID}}</td>
 							<td>{{$.locale.Tr .TrStr}}</td>
 							<td class="view-detail"><span class="notice-description text truncate">{{.Description}}</span></td>
-							<td><span class="notice-created-time tooltip" data-content="{{.CreatedUnix.AsTime}}">{{.CreatedUnix.FormatShort}}</span></td>
+							<td><span class="notice-created-time tooltip" data-content="{{.CreatedUnix.AsTime}}"><time data-format="short-date" datetime="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</time></span></td>
 							<td><a href="#">{{svg "octicon-note" 16 "view-detail"}}</a></td>
 						</tr>
 					{{end}}
 				</tbody>
-				{{ if .Notices }}
+				{{if .Notices}}
 					<tfoot class="full-width">
 							<tr>
 								<th></th>
@@ -65,11 +65,11 @@
 								</th>
 							</tr>
 					</tfoot>
-				{{ end }}
+				{{end}}
 			</table>
 		</div>
 
-		{{ template "base/paginate" . }}
+		{{template "base/paginate" .}}
 	</div>
 </div>
 

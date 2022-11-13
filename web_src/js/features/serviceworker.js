@@ -1,8 +1,8 @@
-import {joinPaths} from '../utils.js';
+import {joinPaths, parseUrl} from '../utils.js';
 
-const {useServiceWorker, assetUrlPrefix, appVer} = window.config;
+const {useServiceWorker, assetUrlPrefix, assetVersionEncoded} = window.config;
 const cachePrefix = 'static-cache-v'; // actual version is set in the service worker script
-const workerAssetPath = joinPaths(assetUrlPrefix, 'serviceworker.js');
+const workerUrl = `${joinPaths(assetUrlPrefix, 'serviceworker.js')}?v=${assetVersionEncoded}`;
 
 async function unregisterAll() {
   for (const registration of await navigator.serviceWorker.getRegistrations()) {
@@ -12,8 +12,9 @@ async function unregisterAll() {
 
 async function unregisterOtherWorkers() {
   for (const registration of await navigator.serviceWorker.getRegistrations()) {
-    const scriptURL = registration.active?.scriptURL || '';
-    if (!scriptURL.endsWith(workerAssetPath)) await registration.unregister();
+    const scriptPath = parseUrl(registration.active?.scriptURL || '').pathname;
+    const workerPath = parseUrl(workerUrl).pathname;
+    if (scriptPath !== workerPath) await registration.unregister();
   }
 }
 
@@ -24,7 +25,7 @@ async function invalidateCache() {
 }
 
 async function checkCacheValidity() {
-  const cacheKey = appVer;
+  const cacheKey = assetVersionEncoded;
   const storedCacheKey = localStorage.getItem('staticCacheKey');
 
   // invalidate cache if it belongs to a different gitea version
@@ -43,7 +44,7 @@ export default async function initServiceWorker() {
     try {
       // the spec strictly requires it to be same-origin so the AssetUrlPrefix should contain AppSubUrl
       await checkCacheValidity();
-      await navigator.serviceWorker.register(workerAssetPath);
+      await navigator.serviceWorker.register(workerUrl);
     } catch (err) {
       console.error(err);
       await invalidateCache();

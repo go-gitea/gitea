@@ -322,7 +322,7 @@ func TestGuessDelimiter(t *testing.T) {
 		},
 		// case 3 - tab delimited
 		{
-			csv: "1	2",
+			csv:               "1\t2",
 			expectedDelimiter: '\t',
 		},
 		// case 4 - pipe delimited

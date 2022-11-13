@@ -32,9 +32,7 @@
 					</div>
 					<div class="ui attached segment members">
 						{{range .Members}}
-							<a href="{{.HomeLink}}" title="{{.Name}}">
-								{{avatar .}}
-							</a>
+							{{template "shared/user/avatarlink" .}}
 						{{end}}
 					</div>
 					<div class="ui bottom attached header">

@@ -55,6 +55,10 @@ func (err ErrProjectNotExist) Error() string {
 	return fmt.Sprintf("projects does not exist [id: %d]", err.ID)
 }
 
+func (err ErrProjectNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrProjectBoardNotExist represents a "ProjectBoardNotExist" kind of error.
 type ErrProjectBoardNotExist struct {
 	BoardID int64
@@ -68,6 +72,10 @@ func IsErrProjectBoardNotExist(err error) bool {
 
 func (err ErrProjectBoardNotExist) Error() string {
 	return fmt.Sprintf("project board does not exist [id: %d]", err.BoardID)
+}
+
+func (err ErrProjectBoardNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // Project represents a project board
@@ -139,7 +147,7 @@ func GetProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, er
 
 	count, err := e.Where(cond).Count(new(Project))
 	if err != nil {
-		return nil, 0, fmt.Errorf("Count: %v", err)
+		return nil, 0, fmt.Errorf("Count: %w", err)
 	}
 
 	e = e.Where(cond)
@@ -172,7 +180,7 @@ func NewProject(p *Project) error {
 		return errors.New("project type is not valid")
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -240,7 +248,7 @@ func updateRepositoryProjectCount(ctx context.Context, repoID int64) error {
 
 // ChangeProjectStatusByRepoIDAndID toggles a project between opened and closed
 func ChangeProjectStatusByRepoIDAndID(repoID, projectID int64, isClosed bool) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -264,7 +272,7 @@ func ChangeProjectStatusByRepoIDAndID(repoID, projectID int64, isClosed bool) er
 
 // ChangeProjectStatus toggle a project between opened and closed
 func ChangeProjectStatus(p *Project, isClosed bool) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -293,7 +301,7 @@ func changeProjectStatus(ctx context.Context, p *Project, isClosed bool) error {
 
 // DeleteProjectByID deletes a project from a repository.
 func DeleteProjectByID(id int64) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

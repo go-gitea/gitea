@@ -27,23 +27,56 @@ accurately recorded in [app.example.ini](https://github.com/go-gitea/gitea/blob/
 (s/main/\<tag|release\>). Any string in the format `%(X)s` is a feature powered
 by [ini](https://github.com/go-ini/ini/#recursive-values), for reading values recursively.
 
+In the default values below, a value in the form `$XYZ` refers to an environment variable. (However, see `environment-to-ini`.) Values in the form  _`XxYyZz`_ refer to values listed as part of the default configuration. These notation forms will not work in your own `app.ini` file and are only listed here as documentation.
+
 Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 **Note:** A full restart is required for Gitea configuration changes to take effect.
 
 {{< toc >}}
 
+## Default Configuration (non-`app.ini` configuration)
+
+These values are environment-dependent but form the basis of a lot of values. They will be
+reported as part of the default configuration when running `gitea --help` or on start-up. The order they are emitted there is slightly different but we will list them here in the order they are set-up.
+
+- _`AppPath`_: This is the absolute path of the running gitea binary.
+- _`AppWorkPath`_: This refers to "working path" of the `gitea` binary. It is determined by using the first set thing in the following hierarchy:
+  - The `--work-path` flag passed to the binary
+  - The environment variable `$GITEA_WORK_DIR`
+  - A built-in value set at build time (see building from source)
+  - Otherwise it defaults to the directory of the _`AppPath`_
+  - If any of the above are relative paths then they are made absolute against the
+the directory of the _`AppPath`_
+- _`CustomPath`_: This is the base directory for custom templates and other options.
+It is determined by using the first set thing in the following hierarchy:
+  - The `--custom-path` flag passed to the binary
+  - The environment variable `$GITEA_CUSTOM`
+  - A built-in value set at build time (see building from source)
+  - Otherwise it defaults to _`AppWorkPath`_`/custom`
+  - If any of the above are relative paths then they are made absolute against the
+the directory of the _`AppWorkPath`_
+- _`CustomConf`_: This is the path to the `app.ini` file.
+  - The `--config` flag passed to the binary
+  - A built-in value set at build time (see building from source)
+  - Otherwise it defaults to _`CustomPath`_`/conf/app.ini`
+  - If any of the above are relative paths then they are made absolute against the
+the directory of the _`CustomPath`_
+
+In addition there is _`StaticRootPath`_ which can be set as a built-in at build time, but will otherwise default to _`AppWorkPath`_
+
 ## Overall (`DEFAULT`)
 
 - `APP_NAME`: **Gitea: Git with a cup of tea**: Application name, used in the page title.
-- `RUN_USER`: **git**: The user Gitea will run as. This should be a dedicated system
-   (non-user) account. Setting this incorrectly will cause Gitea to not start.
+- `RUN_USER`: **_current OS username_/`$USER`/`$USERNAME` e.g. git**: The user Gitea will run as.
+   This should be a dedicated system (non-user) account. Setting this incorrectly will cause Gitea
+   to not start.
 - `RUN_MODE`: **prod**: Application run mode, affects performance and debugging. Either "dev", "prod" or "test".
 
 ## Repository (`repository`)
 
-- `ROOT`: **%(APP_DATA_PATH)/gitea-repositories**: Root path for storing all repository data.
-   A relative path is interpreted as **%(GITEA_WORK_DIR)/%(ROOT)**.
+- `ROOT`: **%(APP_DATA_PATH)s/gitea-repositories**: Root path for storing all repository data.
+   A relative path is interpreted as **_`AppWorkPath`_/%(ROOT)s**.
 - `SCRIPT_TYPE`: **bash**: The script type this server supports. Usually this is `bash`,
    but some users report that only `sh` is available.
 - `DETECTED_CHARSETS_ORDER`: **UTF-8, UTF-16BE, UTF-16LE, UTF-32BE, UTF-32LE, ISO-8859, windows-1252, ISO-8859, windows-1250, ISO-8859, ISO-8859, ISO-8859, windows-1253, ISO-8859, windows-1255, ISO-8859, windows-1251, windows-1256, KOI8-R, ISO-8859, windows-1254, Shift_JIS, GB18030, EUC-JP, EUC-KR, Big5, ISO-2022, ISO-2022, ISO-2022, IBM424_rtl, IBM424_ltr, IBM420_rtl, IBM420_ltr**: Tie-break order of detected charsets - if the detected charsets have equal confidence, charsets earlier in the list will be chosen in preference to those later. Adding `defaults` will place the unnamed charsets at that point.
@@ -167,12 +200,13 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `METHODS`: **GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS**: list of methods allowed to request
 - `MAX_AGE`: **10m**: max time to cache response
 - `ALLOW_CREDENTIALS`: **false**: allow request with credentials
+- `HEADERS`: **Content-Type,User-Agent**: additional headers that are permitted in requests
 - `X_FRAME_OPTIONS`: **SAMEORIGIN**: Set the `X-Frame-Options` header value.
 
 ## UI (`ui`)
 
 - `EXPLORE_PAGING_NUM`: **20**: Number of repositories that are shown in one explore page.
-- `ISSUE_PAGING_NUM`: **10**: Number of issues that are shown in one page (for all pages that list issues).
+- `ISSUE_PAGING_NUM`: **20**: Number of issues that are shown in one page (for all pages that list issues, milestones, projects).
 - `MEMBERS_PAGING_NUM`: **20**: Number of members that are shown in organization members.
 - `FEED_MAX_COMMIT_NUM`: **5**: Number of maximum commits shown in one activity feed.
 - `FEED_PAGING_NUM`: **20**: Number of items that are displayed in home feed.
@@ -194,6 +228,8 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `DEFAULT_SHOW_FULL_NAME`: **false**: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
 - `SEARCH_REPO_DESCRIPTION`: **true**: Whether to search within description at repository search on explore page.
 - `USE_SERVICE_WORKER`: **false**: Whether to enable a Service Worker to cache frontend assets.
+- `ONLY_SHOW_RELEVANT_REPOS`: **false** Whether to only show relevant repos on the explore page when no keyword is specified and default sorting is used.
+    A repo is considered irrelevant if it's a fork or if it has no metadata (no description, no icon, no topic).
 
 ### UI - Admin (`ui.admin`)
 
@@ -234,10 +270,16 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `CUSTOM_URL_SCHEMES`: Use a comma separated list (ftp,git,svn) to indicate additional
   URL hyperlinks to be rendered in Markdown. URLs beginning in http and https are
   always displayed
+- `ENABLE_MATH`: **true**: Enables detection of `\(...\)`, `\[...\]`, `$...$` and `$$...$$` blocks as math blocks.
 
 ## Server (`server`)
 
+- `APP_DATA_PATH`: **_`AppWorkPath`_/data**: This is the default root path for storing data.
 - `PROTOCOL`: **http**: \[http, https, fcgi, http+unix, fcgi+unix\]
+- `USE_PROXY_PROTOCOL`: **false**: Expect PROXY protocol headers on connections
+- `PROXY_PROTOCOL_TLS_BRIDGING`: **false**: When protocol is https, expect PROXY protocol headers after TLS negotiation.
+- `PROXY_PROTOCOL_HEADER_TIMEOUT`: **5s**: Timeout to wait for PROXY protocol header (set to 0 to have no timeout)
+- `PROXY_PROTOCOL_ACCEPT_UNKNOWN`: **false**: Accept PROXY protocol headers with Unknown type.
 - `DOMAIN`: **localhost**: Domain name of this server.
 - `ROOT_URL`: **%(PROTOCOL)s://%(DOMAIN)s:%(HTTP\_PORT)s/**:
    Overwrite the automatically generated public URL.
@@ -252,7 +294,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `HTTP_ADDR`: **0.0.0.0**: HTTP listen address.
   - If `PROTOCOL` is set to `fcgi`, Gitea will listen for FastCGI requests on TCP socket
      defined by `HTTP_ADDR` and `HTTP_PORT` configuration settings.
-  - If `PROTOCOL` is set to `http+unix` or `fcgi+unix`, this should be the name of the Unix socket file to use. Relative paths will be made absolute against the AppWorkPath.
+  - If `PROTOCOL` is set to `http+unix` or `fcgi+unix`, this should be the name of the Unix socket file to use. Relative paths will be made absolute against the _`AppWorkPath`_.
 - `HTTP_PORT`: **3000**: HTTP listen port.
   - If `PROTOCOL` is set to `fcgi`, Gitea will listen for FastCGI requests on TCP socket
      defined by `HTTP_ADDR` and `HTTP_PORT` configuration settings.
@@ -262,14 +304,17 @@ The following configuration set `Content-Type: application/vnd.android.package-a
    most cases you do not need to change the default value. Alter it only if
    your SSH server node is not the same as HTTP node. Do not set this variable
    if `PROTOCOL` is set to `http+unix`.
+- `LOCAL_USE_PROXY_PROTOCOL`: **%(USE_PROXY_PROTOCOL)s**: When making local connections pass the PROXY protocol header.
+   This should be set to false if the local connection will go through the proxy.
 - `PER_WRITE_TIMEOUT`: **30s**: Timeout for any write to the connection. (Set to -1 to
    disable all timeouts.)
 - `PER_WRITE_PER_KB_TIMEOUT`: **10s**: Timeout per Kb written to connections.
 
 - `DISABLE_SSH`: **false**: Disable SSH feature when it's not available.
 - `START_SSH_SERVER`: **false**: When enabled, use the built-in SSH server.
+- `SSH_SERVER_USE_PROXY_PROTOCOL`: **false**: Expect PROXY protocol header on connections to the built-in SSH Server.
 - `BUILTIN_SSH_SERVER_USER`: **%(RUN_USER)s**: Username to use for the built-in SSH Server.
-- `SSH_USER`: **%(BUILTIN_SSH_SERVER_USER)**: SSH username displayed in clone URLs. This is only for people who configure the SSH server themselves; in most cases, you want to leave this blank and modify the `BUILTIN_SSH_SERVER_USER`.
+- `SSH_USER`: **%(BUILTIN_SSH_SERVER_USER)s**: SSH username displayed in clone URLs. This is only for people who configure the SSH server themselves; in most cases, you want to leave this blank and modify the `BUILTIN_SSH_SERVER_USER`.
 - `SSH_DOMAIN`: **%(DOMAIN)s**: Domain name of this server, used for displayed clone URL.
 - `SSH_PORT`: **22**: SSH port displayed in clone URL.
 - `SSH_LISTEN_HOST`: **0.0.0.0**: Listen address for the built-in SSH server.
@@ -296,23 +341,24 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `MINIMUM_KEY_SIZE_CHECK`: **true**: Indicate whether to check minimum key size with corresponding type.
 
 - `OFFLINE_MODE`: **false**: Disables use of CDN for static files and Gravatar for profile pictures.
-- `CERT_FILE`: **https/cert.pem**: Cert file path used for HTTPS. When chaining, the server certificate must come first, then intermediate CA certificates (if any). This is ignored if `ENABLE_ACME=true`. From 1.11 paths are relative to `CUSTOM_PATH`.
-- `KEY_FILE`: **https/key.pem**: Key file path used for HTTPS. This is ignored if `ENABLE_ACME=true`. From 1.11 paths are relative to `CUSTOM_PATH`.
-- `STATIC_ROOT_PATH`: **./**: Upper level of template and static files path.
-- `APP_DATA_PATH`: **data** (**/data/gitea** on docker): Default path for application data.
+- `CERT_FILE`: **https/cert.pem**: Cert file path used for HTTPS. When chaining, the server certificate must come first, then intermediate CA certificates (if any). This is ignored if `ENABLE_ACME=true`. Paths are relative to `CUSTOM_PATH`.
+- `KEY_FILE`: **https/key.pem**: Key file path used for HTTPS. This is ignored if `ENABLE_ACME=true`. Paths are relative to `CUSTOM_PATH`.
+- `STATIC_ROOT_PATH`: **_`StaticRootPath`_**: Upper level of template and static files path.
+- `APP_DATA_PATH`: **data** (**/data/gitea** on docker): Default path for application data. Relative paths will be made absolute against _`AppWorkPath`_.
 - `STATIC_CACHE_TIME`: **6h**: Web browser cache time for static resources on `custom/`, `public/` and all uploaded avatars. Note that this cache is disabled when `RUN_MODE` is "dev".
 - `ENABLE_GZIP`: **false**: Enable gzip compression for runtime-generated content, static resources excluded.
 - `ENABLE_PPROF`: **false**: Application profiling (memory and cpu). For "web" command it listens on `localhost:6060`. For "serv" command it dumps to disk at `PPROF_DATA_PATH` as `(cpuprofile|memprofile)_<username>_<temporary id>`
-- `PPROF_DATA_PATH`: **data/tmp/pprof**: `PPROF_DATA_PATH`, use an absolute path when you start Gitea as service
+- `PPROF_DATA_PATH`: **_`AppWorkPath`_/data/tmp/pprof**: `PPROF_DATA_PATH`, use an absolute path when you start Gitea as service
 - `LANDING_PAGE`: **home**: Landing page for unauthenticated users \[home, explore, organizations, login, **custom**\]. Where custom would instead be any URL such as "/org/repo" or even `https://anotherwebsite.com`
 - `LFS_START_SERVER`: **false**: Enables Git LFS support.
-- `LFS_CONTENT_PATH`: **%(APP_DATA_PATH)/lfs**: Default LFS content path. (if it is on local storage.) **DEPRECATED** use settings in `[lfs]`.
+- `LFS_CONTENT_PATH`: **%(APP_DATA_PATH)s/lfs**: Default LFS content path. (if it is on local storage.) **DEPRECATED** use settings in `[lfs]`.
 - `LFS_JWT_SECRET`: **\<empty\>**: LFS authentication secret, change this a unique string.
 - `LFS_HTTP_AUTH_EXPIRY`: **20m**: LFS authentication validity period in time.Duration, pushes taking longer than this may fail.
 - `LFS_MAX_FILE_SIZE`: **0**: Maximum allowed LFS file size in bytes (Set to 0 for no limit).
 - `LFS_LOCKS_PAGING_NUM`: **50**: Maximum number of LFS Locks returned per page.
 
 - `REDIRECT_OTHER_PORT`: **false**: If true and `PROTOCOL` is https, allows redirecting http requests on `PORT_TO_REDIRECT` to the https port Gitea listens on.
+- `REDIRECTOR_USE_PROXY_PROTOCOL`: **%(USE_PROXY_PROTOCOL)s**: expect PROXY protocol header on connections to https redirector.
 - `PORT_TO_REDIRECT`: **80**: Port for the http redirection service to listen on. Used when `REDIRECT_OTHER_PORT` is true.
 - `SSL_MIN_VERSION`: **TLSv1.2**: Set the minimum version of ssl support.
 - `SSL_MAX_VERSION`: **\<empty\>**: Set the maximum version of ssl support.
@@ -402,10 +448,10 @@ relation to port exhaustion.
 - `ISSUE_INDEXER_TYPE`: **bleve**: Issue indexer type, currently supported: `bleve`, `db` or `elasticsearch`.
 - `ISSUE_INDEXER_CONN_STR`: ****: Issue indexer connection string, available when ISSUE_INDEXER_TYPE is elasticsearch. i.e. http://elastic:changeme@localhost:9200
 - `ISSUE_INDEXER_NAME`: **gitea_issues**: Issue indexer name, available when ISSUE_INDEXER_TYPE is elasticsearch
-- `ISSUE_INDEXER_PATH`: **indexers/issues.bleve**: Index file used for issue search; available when ISSUE_INDEXER_TYPE is bleve and elasticsearch.
+- `ISSUE_INDEXER_PATH`: **indexers/issues.bleve**: Index file used for issue search; available when ISSUE_INDEXER_TYPE is bleve and elasticsearch. Relative paths will be made absolute against _`AppWorkPath`_.
 - The next 4 configuration values are deprecated and should be set in `queue.issue_indexer` however are kept for backwards compatibility:
 - `ISSUE_INDEXER_QUEUE_TYPE`: **levelqueue**: Issue indexer queue, currently supports:`channel`, `levelqueue`, `redis`. **DEPRECATED** use settings in `[queue.issue_indexer]`.
-- `ISSUE_INDEXER_QUEUE_DIR`: **queues/common**: When `ISSUE_INDEXER_QUEUE_TYPE` is `levelqueue`, this will be the path where the queue will be saved. **DEPRECATED** use settings in `[queue.issue_indexer]`.
+- `ISSUE_INDEXER_QUEUE_DIR`: **queues/common**: When `ISSUE_INDEXER_QUEUE_TYPE` is `levelqueue`, this will be the path where the queue will be saved. **DEPRECATED** use settings in `[queue.issue_indexer]`. Relative paths will be made absolute against `%(APP_DATA_PATH)s`.
 - `ISSUE_INDEXER_QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: When `ISSUE_INDEXER_QUEUE_TYPE` is `redis`, this will store the redis connection string. When `ISSUE_INDEXER_QUEUE_TYPE` is `levelqueue`, this is a directory or additional options of the form `leveldb://path/to/db?option=value&....`, and overrides `ISSUE_INDEXER_QUEUE_DIR`. **DEPRECATED** use settings in `[queue.issue_indexer]`.
 - `ISSUE_INDEXER_QUEUE_BATCH_NUMBER`: **20**: Batch queue number. **DEPRECATED** use settings in `[queue.issue_indexer]`.
 
@@ -427,7 +473,7 @@ relation to port exhaustion.
 Configuration at `[queue]` will set defaults for queues with overrides for individual queues at `[queue.*]`. (However see below.)
 
 - `TYPE`: **persistable-channel**: General queue type, currently support: `persistable-channel` (uses a LevelDB internally), `channel`, `level`, `redis`, `dummy`
-- `DATADIR`: **queues/**: Base DataDir for storing persistent and level queues. `DATADIR` for individual queues can be set in `queue.name` sections but will default to `DATADIR/`**`common`**. (Previously each queue would default to `DATADIR/`**`name`**.)
+- `DATADIR`: **queues/**: Base DataDir for storing persistent and level queues. `DATADIR` for individual queues can be set in `queue.name` sections but will default to `DATADIR/`**`common`**. (Previously each queue would default to `DATADIR/`**`name`**.) Relative paths will be made absolute against `%(APP_DATA_PATH)s`.
 - `LENGTH`: **20**: Maximal queue size before channel queues block
 - `BATCH_LENGTH`: **20**: Batch data before passing to the handler
 - `CONN_STR`: **redis://127.0.0.1:6379/0**: Connection string for the redis queue type. Options can be set using query params. Similarly LevelDB options can also be set using: **leveldb://relative/path?option=value** or **leveldb:///absolute/path?option=value**, and will override `DATADIR`
@@ -438,11 +484,11 @@ Configuration at `[queue]` will set defaults for queues with overrides for indiv
 - `MAX_ATTEMPTS`: **10**: Maximum number of attempts to create the wrapped queue
 - `TIMEOUT`: **GRACEFUL_HAMMER_TIME + 30s**: Timeout the creation of the wrapped queue if it takes longer than this to create.
 - Queues by default come with a dynamically scaling worker pool. The following settings configure this:
-- `WORKERS`: **0** (v1.14 and before: **1**): Number of initial workers for the queue.
+- `WORKERS`: **0**: Number of initial workers for the queue.
 - `MAX_WORKERS`: **10**: Maximum number of worker go-routines for the queue.
 - `BLOCK_TIMEOUT`: **1s**: If the queue blocks for this time, boost the number of workers - the `BLOCK_TIMEOUT` will then be doubled before boosting again whilst the boost is ongoing.
 - `BOOST_TIMEOUT`: **5m**: Boost workers will timeout after this long.
-- `BOOST_WORKERS`: **1** (v1.14 and before: **5**): This many workers will be added to the worker pool if there is a boost.
+- `BOOST_WORKERS`: **1**: This many workers will be added to the worker pool if there is a boost.
 
 Gitea creates the following non-unique queues:
 
@@ -483,7 +529,8 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
 ## Security (`security`)
 
 - `INSTALL_LOCK`: **false**: Controls access to the installation page. When set to "true", the installation page is not accessible.
-- `SECRET_KEY`: **\<random at every install\>**: Global secret key. This should be changed.
+- `SECRET_KEY`: **\<random at every install\>**: Global secret key. This key is VERY IMPORTANT, if you lost it, the data encrypted by it (like 2FA secret) can't be decrypted anymore.
+- `SECRET_KEY_URI`: **<empty>**: Instead of defining SECRET_KEY, this option can be used to use the key stored in a file (example value: `file:/etc/gitea/secret_key`). It shouldn't be lost like SECRET_KEY.
 - `LOGIN_REMEMBER_DAYS`: **7**: Cookie lifetime, in days.
 - `COOKIE_USERNAME`: **gitea\_awesome**: Name of the cookie used to store the current username.
 - `COOKIE_REMEMBER_NAME`: **gitea\_incredible**: Name of cookie used to store authentication
@@ -492,6 +539,8 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
    authentication.
 - `REVERSE_PROXY_AUTHENTICATION_EMAIL`: **X-WEBAUTH-EMAIL**: Header name for reverse proxy
    authentication provided email.
+- `REVERSE_PROXY_AUTHENTICATION_FULL_NAME`: **X-WEBAUTH-FULLNAME**: Header name for reverse proxy
+   authentication provided full name.
 - `REVERSE_PROXY_LIMIT`: **1**: Interpret X-Forwarded-For header or the X-Real-IP header and set this as the remote IP for the request.
    Number of trusted proxy count. Set to zero to not use these headers.
 - `REVERSE_PROXY_TRUSTED_PROXIES`: **127.0.0.0/8,::1/128**: List of IP addresses and networks separated by comma of trusted proxy servers. Use `*` to trust all.
@@ -507,7 +556,7 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
 - `ONLY_ALLOW_PUSH_IF_GITEA_ENVIRONMENT_SET`: **true**: Set to `false` to allow local users to push to gitea-repositories without setting up the Gitea environment. This is not recommended and if you want local users to push to Gitea repositories you should set the environment appropriately.
 - `IMPORT_LOCAL_PATHS`: **false**: Set to `false` to prevent all users (including admin) from importing local path on server.
 - `INTERNAL_TOKEN`: **\<random at every install if no uri set\>**: Secret used to validate communication within Gitea binary.
-- `INTERNAL_TOKEN_URI`: **<empty>**: Instead of defining internal token in the configuration, this configuration option can be used to give Gitea a path to a file that contains the internal token (example value: `file:/etc/gitea/internal_token`)
+- `INTERNAL_TOKEN_URI`: **<empty>**: Instead of defining INTERNAL_TOKEN in the configuration, this configuration option can be used to give Gitea a path to a file that contains the internal token (example value: `file:/etc/gitea/internal_token`)
 - `PASSWORD_HASH_ALGO`: **pbkdf2**: The hash algorithm to use \[argon2, pbkdf2, scrypt, bcrypt\], argon2 will spend more memory than others.
 - `CSRF_COOKIE_HTTP_ONLY`: **true**: Set false to allow JavaScript to read CSRF cookie.
 - `MIN_PASSWORD_LENGTH`: **6**: Minimum password length for new users.
@@ -523,9 +572,9 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
 ## Camo (`camo`)
 
 - `ENABLED`: **false**: Enable media proxy, we support images only at the moment.
-- `SERVER_URL`: **<empty>**: url of camo server, it **is required** if camo is enabled.
-- `HMAC_KEY`: **<empty>**: Provide the HMAC key for encoding urls, it **is required** if camo is enabled.
-- `ALLWAYS`: **false**: Set to true to use camo for https too lese only non https urls are proxyed
+- `SERVER_URL`: **<empty>**: URL of camo server, it **is required** if camo is enabled.
+- `HMAC_KEY`: **<empty>**: Provide the HMAC key for encoding URLs, it **is required** if camo is enabled.
+- `ALLWAYS`: **false**: Set to true to use camo for both HTTP and HTTPS content, otherwise only non-HTTPS URLs are proxied
 
 ## OpenID (`openid`)
 
@@ -577,15 +626,20 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
    for reverse authentication.
 - `ENABLE_REVERSE_PROXY_EMAIL`: **false**: Enable this to allow to auto-registration with a
    provided email rather than a generated email.
+- `ENABLE_REVERSE_PROXY_FULL_NAME`: **false**: Enable this to allow to auto-registration with a
+   provided full name for the user.
 - `ENABLE_CAPTCHA`: **false**: Enable this to use captcha validation for registration.
 - `REQUIRE_EXTERNAL_REGISTRATION_CAPTCHA`: **false**: Enable this to force captcha validation
-   even for External Accounts (i.e. GitHub, OpenID Connect, etc). You must `ENABLE_CAPTCHA` also.
-- `CAPTCHA_TYPE`: **image**: \[image, recaptcha, hcaptcha\]
+   even for External Accounts (i.e. GitHub, OpenID Connect, etc). You also must enable `ENABLE_CAPTCHA`.
+- `CAPTCHA_TYPE`: **image**: \[image, recaptcha, hcaptcha, mcaptcha\]
 - `RECAPTCHA_SECRET`: **""**: Go to https://www.google.com/recaptcha/admin to get a secret for recaptcha.
 - `RECAPTCHA_SITEKEY`: **""**: Go to https://www.google.com/recaptcha/admin to get a sitekey for recaptcha.
 - `RECAPTCHA_URL`: **https://www.google.com/recaptcha/**: Set the recaptcha url - allows the use of recaptcha net.
 - `HCAPTCHA_SECRET`: **""**: Sign up at https://www.hcaptcha.com/ to get a secret for hcaptcha.
 - `HCAPTCHA_SITEKEY`: **""**: Sign up at https://www.hcaptcha.com/ to get a sitekey for hcaptcha.
+- `MCAPTCHA_SECRET`: **""**: Go to your mCaptcha instance to get a secret for mCaptcha.
+- `MCAPTCHA_SITEKEY`: **""**: Go to your mCaptcha instance to get a sitekey for mCaptcha.
+- `MCAPTCHA_URL` **https://demo.mcaptcha.org/**: Set the mCaptcha URL.
 - `DEFAULT_KEEP_EMAIL_PRIVATE`: **false**: By default set users to keep their email address private.
 - `DEFAULT_ALLOW_CREATE_ORGANIZATION`: **true**: Allow new users to create organizations by default.
 - `DEFAULT_USER_IS_RESTRICTED`: **false**: Give new users restricted permissions by default
@@ -631,7 +685,7 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 
 - `QUEUE_LENGTH`: **1000**: Hook task queue length. Use caution when editing this value.
 - `DELIVER_TIMEOUT`: **5**: Delivery timeout (sec) for shooting webhooks.
-- `ALLOWED_HOST_LIST`: **external**: Since 1.15.7. Default to `*` for 1.15.x, `external` for 1.16 and later. Webhook can only call allowed hosts for security reasons. Comma separated list.
+- `ALLOWED_HOST_LIST`: **external**: Webhook can only call allowed hosts for security reasons. Comma separated list.
   - Built-in networks:
     - `loopback`: 127.0.0.0/8 for IPv4 and ::1/128 for IPv6, localhost is included.
     - `private`: RFC 1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) and RFC 4193 (FC00::/7). Also called LAN/Intranet.
@@ -645,6 +699,12 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 - `PROXY_HOSTS`: **\<empty\>`**: Comma separated list of host names requiring proxy. Glob patterns (*) are accepted; use ** to match all hosts. If not given, will use global proxy setting.
 
 ## Mailer (`mailer`)
+
+⚠️ This section is for Gitea 1.18 and later. If you are using Gitea 1.17 or older,
+please refer to
+[Gitea 1.17 app.ini example](https://github.com/go-gitea/gitea/blob/release/v1.17/custom/conf/app.example.ini)
+and
+[Gitea 1.17 configuration document](https://github.com/go-gitea/gitea/blob/release/v1.17/docs/content/doc/advanced/config-cheat-sheet.en-us.md)
 
 - `ENABLED`: **false**: Enable to use a mail service.
 - `PROTOCOL`: **\<empty\>**: Mail server protocol. One of "smtp", "smtps", "smtp+startls", "smtp+unix", "sendmail", "dummy". _Before 1.18, this was inferred from a combination of `MAILER_TYPE` and `IS_TLS_ENABLED`._
@@ -697,7 +757,7 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 ## Session (`session`)
 
 - `PROVIDER`: **memory**: Session engine provider \[memory, file, redis, db, mysql, couchbase, memcache, postgres\]. Setting `db` will reuse the configuration in `[database]`
-- `PROVIDER_CONFIG`: **data/sessions**: For file, the root path; for db, empty (database config will be used); for others, the connection string.
+- `PROVIDER_CONFIG`: **data/sessions**: For file, the root path; for db, empty (database config will be used); for others, the connection string. Relative paths will be made absolute against _`AppWorkPath`_.
 - `COOKIE_SECURE`: **false**: Enable this to force using HTTPS for all session access.
 - `COOKIE_NAME`: **i\_like\_gitea**: The name of the cookie used for the session ID.
 - `GC_INTERVAL_TIME`: **86400**: GC interval in seconds.
@@ -785,9 +845,9 @@ Default templates for project boards:
 - `STACKTRACE_LEVEL`: **log.STACKTRACE_LEVEL**: Sets the log level at which to log stack traces.
 - `MODE`: **name**: Sets the mode of this sublogger - Defaults to the provided subsection name. This allows you to have two different file loggers at different levels.
 - `EXPRESSION`: **""**: A regular expression to match either the function name, file or message. Defaults to empty. Only log messages that match the expression will be saved in the logger.
-- `FLAGS`: **stdflags**: A comma separated string representing the log flags. Defaults to `stdflags` which represents the prefix: `2009/01/23 01:23:23 ...a/b/c/d.go:23:runtime.Caller() [I]: message`. `none` means don't prefix log lines. See `modules/log/base.go` for more information.
+- `FLAGS`: **stdflags**: A comma separated string representing the log flags. Defaults to `stdflags` which represents the prefix: `2009/01/23 01:23:23 ...a/b/c/d.go:23:runtime.Caller() [I]: message`. `none` means don't prefix log lines. See `modules/log/flags.go` for more information.
 - `PREFIX`: **""**: An additional prefix for every log line in this logger. Defaults to empty.
-- `COLORIZE`: **false**: Colorize the log lines by default
+- `COLORIZE`: **false**: Whether to colorize the log lines
 
 ### Console log mode (`log.console`, `log.console.*`, or `MODE=console`)
 
@@ -828,7 +888,7 @@ Default templates for project boards:
 - `SCHEDULE` accept formats
   - Full crontab specs, e.g. `* * * * * ?`
   - Descriptors, e.g. `@midnight`, `@every 1h30m` ...
-  - See more: [cron decument](https://pkg.go.dev/github.com/gogs/cron@v0.0.0-20171120032916-9f6c956d3e14)
+  - See more: [cron documentation](https://pkg.go.dev/github.com/gogs/cron@v0.0.0-20171120032916-9f6c956d3e14)
 
 ### Basic cron tasks - enabled by default
 
@@ -955,7 +1015,7 @@ Default templates for project boards:
 ## Git (`git`)
 
 - `PATH`: **""**: The path of Git executable. If empty, Gitea searches through the PATH environment.
-- `HOME_PATH`: **%(APP_DATA_PATH)/home**: The HOME directory for Git.
+- `HOME_PATH`: **%(APP_DATA_PATH)s/home**: The HOME directory for Git.
    This directory will be used to contain the `.gitconfig` and possible `.gnupg` directories that Gitea's git calls will use. If you can confirm Gitea is the only application running in this environment, you can set it to the normal home directory for Gitea user.
 - `DISABLE_DIFF_HIGHLIGHT`: **false**: Disables highlight of added and removed changes.
 - `MAX_GIT_DIFF_LINES`: **1000**: Max number of lines allowed of a single file in diff view.
@@ -964,7 +1024,8 @@ Default templates for project boards:
 - `COMMITS_RANGE_SIZE`: **50**: Set the default commits range size
 - `BRANCHES_RANGE_SIZE`: **20**: Set the default branches range size
 - `GC_ARGS`: **\<empty\>**: Arguments for command `git gc`, e.g. `--aggressive --auto`. See more on http://git-scm.com/docs/git-gc/
-- `ENABLE_AUTO_GIT_WIRE_PROTOCOL`: **true**: If use Git wire protocol version 2 when Git version >= 2.18, default is true, set to false when you always want Git wire protocol version 1
+- `ENABLE_AUTO_GIT_WIRE_PROTOCOL`: **true**: If use Git wire protocol version 2 when Git version >= 2.18, default is true, set to false when you always want Git wire protocol version 1.
+  To enable this for Git over SSH when using a OpenSSH server, add `AcceptEnv GIT_PROTOCOL` to your sshd_config file.
 - `PULL_REQUEST_PUSH_MESSAGE`: **true**: Respond to pushes to a non-default branch with a URL for creating a Pull Request (if the repository has them enabled)
 - `VERBOSE_PUSH`: **true**: Print status information about pushes as they are being processed.
 - `VERBOSE_PUSH_DELAY`: **5s**: Only print verbose information if push takes longer than this delay.
@@ -990,11 +1051,11 @@ Default templates for project boards:
 
 ## API (`api`)
 
-- `ENABLE_SWAGGER`: **true**: Enables /api/swagger, /api/v1/swagger etc. endpoints. True or false; default is true.
+- `ENABLE_SWAGGER`: **true**: Enables the API documentation endpoints (`/api/swagger`, `/api/v1/swagger`, …). True or false.
 - `MAX_RESPONSE_ITEMS`: **50**: Max number of items in a page.
 - `DEFAULT_PAGING_NUM`: **30**: Default paging number of API.
 - `DEFAULT_GIT_TREES_PER_PAGE`: **1000**: Default and maximum number of items per page for Git trees API.
-- `DEFAULT_MAX_BLOB_SIZE`: **10485760**: Default max size of a blob that can be return by the blobs API.
+- `DEFAULT_MAX_BLOB_SIZE`: **10485760** (10MiB): Default max size of a blob that can be returned by the blobs API.
 
 ## OAuth2 (`oauth2`)
 
@@ -1112,6 +1173,20 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 
 - `ENABLED`: **true**: Enable/Disable package registry capabilities
 - `CHUNKED_UPLOAD_PATH`: **tmp/package-upload**: Path for chunked uploads. Defaults to `APP_DATA_PATH` + `tmp/package-upload`
+- `LIMIT_TOTAL_OWNER_COUNT`: **-1**: Maxmimum count of package versions a single owner can have (`-1` means no limits)
+- `LIMIT_TOTAL_OWNER_SIZE`: **-1**: Maxmimum size of packages a single owner can use (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_COMPOSER`: **-1**: Maxmimum size of a Composer upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_CONAN`: **-1**: Maxmimum size of a Conan upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_CONTAINER`: **-1**: Maxmimum size of a Container upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_GENERIC`: **-1**: Maxmimum size of a Generic upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_HELM`: **-1**: Maxmimum size of a Helm upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_MAVEN`: **-1**: Maxmimum size of a Maven upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_NPM`: **-1**: Maxmimum size of a npm upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_NUGET`: **-1**: Maxmimum size of a NuGet upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_PUB`: **-1**: Maxmimum size of a Pub upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_PYPI`: **-1**: Maxmimum size of a PyPI upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_RUBYGEMS`: **-1**: Maxmimum size of a RubyGems upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_VAGRANT`: **-1**: Maxmimum size of a Vagrant upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 
 ## Mirror (`mirror`)
 
@@ -1207,3 +1282,4 @@ PROXY_HOSTS = *.github.com
 - `SHOW_FOOTER_BRANDING`: **false**: Show Gitea branding in the footer.
 - `SHOW_FOOTER_VERSION`: **true**: Show Gitea and Go version information in the footer.
 - `SHOW_FOOTER_TEMPLATE_LOAD_TIME`: **true**: Show time of template execution in the footer.
+- `ENABLE_SITEMAP`: **true**: Generate sitemap.

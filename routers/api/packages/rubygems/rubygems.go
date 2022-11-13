@@ -188,7 +188,7 @@ func DownloadPackageFile(ctx *context.Context) {
 	}
 	defer s.Close()
 
-	ctx.ServeStream(s, pf.Name)
+	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
 }
 
 // UploadPackageFile adds a file to the package. If the package does not exist, it gets created.
@@ -242,16 +242,20 @@ func UploadPackageFile(ctx *context.Context) {
 			PackageFileInfo: packages_service.PackageFileInfo{
 				Filename: filename,
 			},
-			Data:   buf,
-			IsLead: true,
+			Creator: ctx.Doer,
+			Data:    buf,
+			IsLead:  true,
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrDuplicatePackageVersion {
+		switch err {
+		case packages_model.ErrDuplicatePackageVersion:
 			apiError(ctx, http.StatusBadRequest, err)
-			return
+		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+			apiError(ctx, http.StatusForbidden, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
 		}
-		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 

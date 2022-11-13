@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -26,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 
+	"github.com/google/uuid"
 	"gopkg.in/yaml.v2"
 )
 
@@ -47,7 +47,7 @@ type RepositoryDumper struct {
 	reviewFiles     map[int64]*os.File
 
 	gitRepo     *git.Repository
-	prHeadCache map[string]struct{}
+	prHeadCache map[string]string
 }
 
 // NewRepositoryDumper creates an gitea Uploader
@@ -62,7 +62,7 @@ func NewRepositoryDumper(ctx context.Context, baseDir, repoOwner, repoName strin
 		baseDir:      baseDir,
 		repoOwner:    repoOwner,
 		repoName:     repoName,
-		prHeadCache:  make(map[string]struct{}),
+		prHeadCache:  make(map[string]string),
 		commentFiles: make(map[int64]*os.File),
 		reviewFiles:  make(map[int64]*os.File),
 	}, nil
@@ -157,7 +157,7 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 		SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 	})
 	if err != nil {
-		return fmt.Errorf("Clone: %v", err)
+		return fmt.Errorf("Clone: %w", err)
 	}
 	if err := git.WriteCommitGraph(g.ctx, repoPath); err != nil {
 		return err
@@ -168,7 +168,7 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 		wikiRemotePath := repository.WikiRemoteURL(g.ctx, remoteAddr)
 		if len(wikiRemotePath) > 0 {
 			if err := os.MkdirAll(wikiPath, os.ModePerm); err != nil {
-				return fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
+				return fmt.Errorf("Failed to remove %s: %w", wikiPath, err)
 			}
 
 			if err := git.Clone(g.ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
@@ -180,7 +180,7 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 			}); err != nil {
 				log.Warn("Clone wiki: %v", err)
 				if err := os.RemoveAll(wikiPath); err != nil {
-					return fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
+					return fmt.Errorf("Failed to remove %s: %w", wikiPath, err)
 				}
 			} else if err := git.WriteCommitGraph(g.ctx, wikiPath); err != nil {
 				return err
@@ -296,8 +296,10 @@ func (g *RepositoryDumper) CreateReleases(releases ...*base.Release) error {
 			}
 			for _, asset := range release.Assets {
 				attachLocalPath := filepath.Join(attachDir, asset.Name)
-				// download attachment
 
+				// SECURITY: We cannot check the DownloadURL and DownloadFunc are safe here
+				// ... we must assume that they are safe and simply download the attachment
+				// download attachment
 				err := func(attachPath string) error {
 					var rc io.ReadCloser
 					var err error
@@ -317,7 +319,7 @@ func (g *RepositoryDumper) CreateReleases(releases ...*base.Release) error {
 
 					fw, err := os.Create(attachPath)
 					if err != nil {
-						return fmt.Errorf("Create: %v", err)
+						return fmt.Errorf("create: %w", err)
 					}
 					defer fw.Close()
 
@@ -385,27 +387,29 @@ func (g *RepositoryDumper) createItems(dir string, itemFiles map[int64]*os.File,
 	}
 
 	for number, items := range itemsMap {
-		var err error
-		itemFile := itemFiles[number]
-		if itemFile == nil {
-			itemFile, err = os.Create(filepath.Join(dir, fmt.Sprintf("%d.yml", number)))
-			if err != nil {
-				return err
-			}
-			itemFiles[number] = itemFile
-		}
-
-		bs, err := yaml.Marshal(items)
-		if err != nil {
-			return err
-		}
-
-		if _, err := itemFile.Write(bs); err != nil {
+		if err := g.encodeItems(number, items, dir, itemFiles); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func (g *RepositoryDumper) encodeItems(number int64, items []interface{}, dir string, itemFiles map[int64]*os.File) error {
+	itemFile := itemFiles[number]
+	if itemFile == nil {
+		var err error
+		itemFile, err = os.Create(filepath.Join(dir, fmt.Sprintf("%d.yml", number)))
+		if err != nil {
+			return err
+		}
+		itemFiles[number] = itemFile
+	}
+
+	encoder := yaml.NewEncoder(itemFile)
+	defer encoder.Close()
+
+	return encoder.Encode(items)
 }
 
 // CreateComments creates comments of issues
@@ -418,102 +422,175 @@ func (g *RepositoryDumper) CreateComments(comments ...*base.Comment) error {
 	return g.createItems(g.commentDir(), g.commentFiles, commentsMap)
 }
 
-// CreatePullRequests creates pull requests
-func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
-	for _, pr := range prs {
-		// download patch file
-		err := func() error {
-			u, err := g.setURLToken(pr.PatchURL)
-			if err != nil {
-				return err
-			}
-			resp, err := http.Get(u)
-			if err != nil {
-				return err
-			}
-			defer resp.Body.Close()
-			pullDir := filepath.Join(g.gitPath(), "pulls")
-			if err = os.MkdirAll(pullDir, os.ModePerm); err != nil {
-				return err
-			}
-			fPath := filepath.Join(pullDir, fmt.Sprintf("%d.patch", pr.Number))
-			f, err := os.Create(fPath)
-			if err != nil {
-				return err
-			}
-			defer f.Close()
-			if _, err = io.Copy(f, resp.Body); err != nil {
-				return err
-			}
-			pr.PatchURL = "git/pulls/" + fmt.Sprintf("%d.patch", pr.Number)
-
-			return nil
-		}()
-		if err != nil {
-			return err
-		}
-
-		// set head information
-		pullHead := filepath.Join(g.gitPath(), "refs", "pull", fmt.Sprintf("%d", pr.Number))
-		if err := os.MkdirAll(pullHead, os.ModePerm); err != nil {
-			return err
-		}
-		p, err := os.Create(filepath.Join(pullHead, "head"))
-		if err != nil {
-			return err
-		}
-		_, err = p.WriteString(pr.Head.SHA)
-		p.Close()
-		if err != nil {
-			return err
-		}
-
-		if pr.IsForkPullRequest() && pr.State != "closed" {
-			if pr.Head.OwnerName != "" {
-				remote := pr.Head.OwnerName
-				_, ok := g.prHeadCache[remote]
-				if !ok {
-					// git remote add
-					// TODO: how to handle private CloneURL?
-					err := g.gitRepo.AddRemote(remote, pr.Head.CloneURL, true)
-					if err != nil {
-						log.Error("AddRemote failed: %s", err)
-					} else {
-						g.prHeadCache[remote] = struct{}{}
-						ok = true
-					}
-				}
-
-				if ok {
-					_, _, err = git.NewCommand(g.ctx, "fetch", remote, pr.Head.Ref).RunStdString(&git.RunOpts{Dir: g.gitPath()})
-					if err != nil {
-						log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
-					} else {
-						// a new branch name with <original_owner_name/original_branchname> will be created to as new head branch
-						ref := path.Join(pr.Head.OwnerName, pr.Head.Ref)
-						headBranch := filepath.Join(g.gitPath(), "refs", "heads", ref)
-						if err := os.MkdirAll(filepath.Dir(headBranch), os.ModePerm); err != nil {
-							return err
-						}
-						b, err := os.Create(headBranch)
-						if err != nil {
-							return err
-						}
-						_, err = b.WriteString(pr.Head.SHA)
-						b.Close()
-						if err != nil {
-							return err
-						}
-						pr.Head.Ref = ref
-					}
-				}
-			}
-		}
-		// whatever it's a forked repo PR, we have to change head info as the same as the base info
-		pr.Head.OwnerName = pr.Base.OwnerName
-		pr.Head.RepoName = pr.Base.RepoName
+func (g *RepositoryDumper) handlePullRequest(pr *base.PullRequest) error {
+	// SECURITY: this pr must have been ensured safe
+	if !pr.EnsuredSafe {
+		log.Error("PR #%d in %s/%s has not been checked for safety ... We will ignore this.", pr.Number, g.repoOwner, g.repoName)
+		return fmt.Errorf("unsafe PR #%d", pr.Number)
 	}
 
+	// First we download the patch file
+	err := func() error {
+		// if the patchURL is empty there is nothing to download
+		if pr.PatchURL == "" {
+			return nil
+		}
+
+		// SECURITY: We will assume that the pr.PatchURL has been checked
+		// pr.PatchURL maybe a local file - but note EnsureSafe should be asserting that this safe
+		u, err := g.setURLToken(pr.PatchURL)
+		if err != nil {
+			return err
+		}
+
+		// SECURITY: We will assume that the pr.PatchURL has been checked
+		// pr.PatchURL maybe a local file - but note EnsureSafe should be asserting that this safe
+		resp, err := http.Get(u) // TODO: This probably needs to use the downloader as there may be rate limiting issues here
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+		pullDir := filepath.Join(g.gitPath(), "pulls")
+		if err = os.MkdirAll(pullDir, os.ModePerm); err != nil {
+			return err
+		}
+		fPath := filepath.Join(pullDir, fmt.Sprintf("%d.patch", pr.Number))
+		f, err := os.Create(fPath)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		// TODO: Should there be limits on the size of this file?
+		if _, err = io.Copy(f, resp.Body); err != nil {
+			return err
+		}
+		pr.PatchURL = "git/pulls/" + fmt.Sprintf("%d.patch", pr.Number)
+
+		return nil
+	}()
+	if err != nil {
+		log.Error("PR #%d in %s/%s unable to download patch: %v", pr.Number, g.repoOwner, g.repoName, err)
+		return err
+	}
+
+	isFork := pr.IsForkPullRequest()
+
+	// Even if it's a forked repo PR, we have to change head info as the same as the base info
+	oldHeadOwnerName := pr.Head.OwnerName
+	pr.Head.OwnerName, pr.Head.RepoName = pr.Base.OwnerName, pr.Base.RepoName
+
+	if !isFork || pr.State == "closed" {
+		return nil
+	}
+
+	// OK we want to fetch the current head as a branch from its CloneURL
+
+	// 1. Is there a head clone URL available?
+	// 2. Is there a head ref available?
+	if pr.Head.CloneURL == "" || pr.Head.Ref == "" {
+		// Set head information if pr.Head.SHA is available
+		if pr.Head.SHA != "" {
+			_, _, err = git.NewCommand(g.ctx, "update-ref", "--no-deref").AddDynamicArguments(pr.GetGitRefName(), pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.gitPath()})
+			if err != nil {
+				log.Error("PR #%d in %s/%s unable to update-ref for pr HEAD: %v", pr.Number, g.repoOwner, g.repoName, err)
+			}
+		}
+		return nil
+	}
+
+	// 3. We need to create a remote for this clone url
+	// ... maybe we already have a name for this remote
+	remote, ok := g.prHeadCache[pr.Head.CloneURL+":"]
+	if !ok {
+		// ... let's try ownername as a reasonable name
+		remote = oldHeadOwnerName
+		if !git.IsValidRefPattern(remote) {
+			// ... let's try something less nice
+			remote = "head-pr-" + strconv.FormatInt(pr.Number, 10)
+		}
+		// ... now add the remote
+		err := g.gitRepo.AddRemote(remote, pr.Head.CloneURL, true)
+		if err != nil {
+			log.Error("PR #%d in %s/%s AddRemote[%s] failed: %v", pr.Number, g.repoOwner, g.repoName, remote, err)
+		} else {
+			g.prHeadCache[pr.Head.CloneURL+":"] = remote
+			ok = true
+		}
+	}
+	if !ok {
+		// Set head information if pr.Head.SHA is available
+		if pr.Head.SHA != "" {
+			_, _, err = git.NewCommand(g.ctx, "update-ref", "--no-deref").AddDynamicArguments(pr.GetGitRefName(), pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.gitPath()})
+			if err != nil {
+				log.Error("PR #%d in %s/%s unable to update-ref for pr HEAD: %v", pr.Number, g.repoOwner, g.repoName, err)
+			}
+		}
+
+		return nil
+	}
+
+	// 4. Check if we already have this ref?
+	localRef, ok := g.prHeadCache[pr.Head.CloneURL+":"+pr.Head.Ref]
+	if !ok {
+		// ... We would normally name this migrated branch as <OwnerName>/<HeadRef> but we need to ensure that is safe
+		localRef = git.SanitizeRefPattern(oldHeadOwnerName + "/" + pr.Head.Ref)
+
+		// ... Now we must assert that this does not exist
+		if g.gitRepo.IsBranchExist(localRef) {
+			localRef = "head-pr-" + strconv.FormatInt(pr.Number, 10) + "/" + localRef
+			i := 0
+			for g.gitRepo.IsBranchExist(localRef) {
+				if i > 5 {
+					// ... We tried, we really tried but this is just a seriously unfriendly repo
+					return fmt.Errorf("unable to create unique local reference from %s", pr.Head.Ref)
+				}
+				// OK just try some uuids!
+				localRef = git.SanitizeRefPattern("head-pr-" + strconv.FormatInt(pr.Number, 10) + uuid.New().String())
+				i++
+			}
+		}
+
+		fetchArg := pr.Head.Ref + ":" + git.BranchPrefix + localRef
+		if strings.HasPrefix(fetchArg, "-") {
+			fetchArg = git.BranchPrefix + fetchArg
+		}
+
+		_, _, err = git.NewCommand(g.ctx, "fetch", "--no-tags").AddDashesAndList(remote, fetchArg).RunStdString(&git.RunOpts{Dir: g.gitPath()})
+		if err != nil {
+			log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
+			// We need to continue here so that the Head.Ref is reset and we attempt to set the gitref for the PR
+			// (This last step will likely fail but we should try to do as much as we can.)
+		} else {
+			// Cache the localRef as the Head.Ref - if we've failed we can always try again.
+			g.prHeadCache[pr.Head.CloneURL+":"+pr.Head.Ref] = localRef
+		}
+	}
+
+	// Set the pr.Head.Ref to the localRef
+	pr.Head.Ref = localRef
+
+	// 5. Now if pr.Head.SHA == "" we should recover this to the head of this branch
+	if pr.Head.SHA == "" {
+		headSha, err := g.gitRepo.GetBranchCommitID(localRef)
+		if err != nil {
+			log.Error("unable to get head SHA of local head for PR #%d from %s in %s/%s. Error: %v", pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
+			return nil
+		}
+		pr.Head.SHA = headSha
+	}
+	if pr.Head.SHA != "" {
+		_, _, err = git.NewCommand(g.ctx, "update-ref", "--no-deref").AddDynamicArguments(pr.GetGitRefName(), pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.gitPath()})
+		if err != nil {
+			log.Error("unable to set %s as the local head for PR #%d from %s in %s/%s. Error: %v", pr.Head.SHA, pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
+		}
+	}
+
+	return nil
+}
+
+// CreatePullRequests creates pull requests
+func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 	var err error
 	if g.pullrequestFile == nil {
 		if err := os.MkdirAll(g.baseDir, os.ModePerm); err != nil {
@@ -525,16 +602,22 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 		}
 	}
 
-	bs, err := yaml.Marshal(prs)
-	if err != nil {
-		return err
-	}
+	encoder := yaml.NewEncoder(g.pullrequestFile)
+	defer encoder.Close()
 
-	if _, err := g.pullrequestFile.Write(bs); err != nil {
-		return err
+	count := 0
+	for i := 0; i < len(prs); i++ {
+		pr := prs[i]
+		if err := g.handlePullRequest(pr); err != nil {
+			log.Error("PR #%d in %s/%s failed - skipping", pr.Number, g.repoOwner, g.repoName, err)
+			continue
+		}
+		prs[count] = pr
+		count++
 	}
+	prs = prs[:count]
 
-	return nil
+	return encoder.Encode(prs)
 }
 
 // CreateReviews create pull request reviews
@@ -560,6 +643,10 @@ func (g *RepositoryDumper) Finish() error {
 
 // DumpRepository dump repository according MigrateOptions to a local directory
 func DumpRepository(ctx context.Context, baseDir, ownerName string, opts base.MigrateOptions) error {
+	doer, err := user_model.GetAdminUser()
+	if err != nil {
+		return err
+	}
 	downloader, err := newDownloader(ctx, ownerName, opts)
 	if err != nil {
 		return err
@@ -569,7 +656,7 @@ func DumpRepository(ctx context.Context, baseDir, ownerName string, opts base.Mi
 		return err
 	}
 
-	if err := migrateRepository(downloader, uploader, opts, nil); err != nil {
+	if err := migrateRepository(doer, downloader, uploader, opts, nil); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
 		}
@@ -641,7 +728,7 @@ func RestoreRepository(ctx context.Context, baseDir, ownerName, repoName string,
 		return err
 	}
 
-	if err = migrateRepository(downloader, uploader, migrateOpts, nil); err != nil {
+	if err = migrateRepository(doer, downloader, uploader, migrateOpts, nil); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
 		}

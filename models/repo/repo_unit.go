@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/xorm"
 	"xorm.io/xorm/convert"
@@ -31,6 +32,10 @@ func IsErrUnitTypeNotExist(err error) bool {
 
 func (err ErrUnitTypeNotExist) Error() string {
 	return fmt.Sprintf("Unit type does not exist: %s", err.UT.String())
+}
+
+func (err ErrUnitTypeNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // RepoUnit describes all units of a repository
@@ -236,7 +241,7 @@ func UpdateRepoUnit(unit *RepoUnit) error {
 
 // UpdateRepositoryUnits updates a repository's units
 func UpdateRepositoryUnits(repo *Repository, units []RepoUnit, deleteUnitTypes []unit.Type) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

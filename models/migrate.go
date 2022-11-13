@@ -9,6 +9,8 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/structs"
 )
 
@@ -18,7 +20,7 @@ func InsertMilestones(ms ...*issues_model.Milestone) (err error) {
 		return nil
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -40,7 +42,7 @@ func InsertMilestones(ms ...*issues_model.Milestone) (err error) {
 
 // InsertIssues insert issues to database
 func InsertIssues(issues ...*issues_model.Issue) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -98,12 +100,12 @@ func InsertIssueComments(comments []*issues_model.Comment) error {
 		return nil
 	}
 
-	issueIDs := make(map[int64]bool)
+	issueIDs := make(container.Set[int64])
 	for _, comment := range comments {
-		issueIDs[comment.IssueID] = true
+		issueIDs.Add(comment.IssueID)
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -135,7 +137,7 @@ func InsertIssueComments(comments []*issues_model.Comment) error {
 
 // InsertPullRequests inserted pull requests
 func InsertPullRequests(prs ...*issues_model.PullRequest) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -154,8 +156,8 @@ func InsertPullRequests(prs ...*issues_model.PullRequest) error {
 }
 
 // InsertReleases migrates release
-func InsertReleases(rels ...*Release) error {
-	ctx, committer, err := db.TxContext()
+func InsertReleases(rels ...*repo_model.Release) error {
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -191,7 +193,7 @@ func UpdateMigrationsByType(tp structs.GitServiceType, externalUserID string, us
 		return err
 	}
 
-	if err := UpdateReleasesMigrationsByType(tp, externalUserID, userID); err != nil {
+	if err := repo_model.UpdateReleasesMigrationsByType(tp, externalUserID, userID); err != nil {
 		return err
 	}
 

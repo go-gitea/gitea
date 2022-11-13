@@ -126,7 +126,7 @@ func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey
 		accessMode = perm.AccessModeWrite
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +151,7 @@ func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey
 		pkey.Content = content
 		pkey.Name = name
 		if err = addKey(ctx, pkey); err != nil {
-			return nil, fmt.Errorf("addKey: %v", err)
+			return nil, fmt.Errorf("addKey: %w", err)
 		}
 	}
 

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -32,7 +33,7 @@ import (
 	"code.gitea.io/gitea/modules/uri"
 	"code.gitea.io/gitea/services/pull"
 
-	gouuid "github.com/google/uuid"
+	"github.com/google/uuid"
 )
 
 var _ base.Uploader = &GiteaLocalUploader{}
@@ -48,7 +49,7 @@ type GiteaLocalUploader struct {
 	milestones     map[string]int64
 	issues         map[int64]*issues_model.Issue
 	gitRepo        *git.Repository
-	prHeadCache    map[string]struct{}
+	prHeadCache    map[string]string
 	sameApp        bool
 	userMap        map[int64]int64 // external user id mapping to user id
 	prCache        map[int64]*issues_model.PullRequest
@@ -65,7 +66,7 @@ func NewGiteaLocalUploader(ctx context.Context, doer *user_model.User, repoOwner
 		labels:      make(map[string]*issues_model.Label),
 		milestones:  make(map[string]int64),
 		issues:      make(map[int64]*issues_model.Issue),
-		prHeadCache: make(map[string]struct{}),
+		prHeadCache: make(map[string]string),
 		userMap:     make(map[int64]int64),
 		prCache:     make(map[int64]*issues_model.PullRequest),
 	}
@@ -83,7 +84,7 @@ func (g *GiteaLocalUploader) MaxBatchInsertSize(tp string) int {
 	case "label":
 		return db.MaxBatchInsertSize(new(issues_model.Label))
 	case "release":
-		return db.MaxBatchInsertSize(new(models.Release))
+		return db.MaxBatchInsertSize(new(repo_model.Release))
 	case "pullrequest":
 		return db.MaxBatchInsertSize(new(issues_model.PullRequest))
 	}
@@ -99,7 +100,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 
 	var r *repo_model.Repository
 	if opts.MigrateToRepoID <= 0 {
-		r, err = repo_module.CreateRepository(g.doer, owner, models.CreateRepoOptions{
+		r, err = repo_module.CreateRepository(g.doer, owner, repo_module.CreateRepoOptions{
 			Name:           g.repoName,
 			Description:    repo.Description,
 			OriginalURL:    repo.OriginalURL,
@@ -125,7 +126,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 		Mirror:         repo.IsMirror,
 		LFS:            opts.LFS,
 		LFSEndpoint:    opts.LFSEndpoint,
-		CloneAddr:      repo.CloneURL,
+		CloneAddr:      repo.CloneURL, // SECURITY: we will assume that this has already been checked
 		Private:        repo.IsPrivate,
 		Wiki:           opts.Wiki,
 		Releases:       opts.Releases, // if didn't get releases, then sync them from tags
@@ -150,13 +151,15 @@ func (g *GiteaLocalUploader) Close() {
 
 // CreateTopics creates topics
 func (g *GiteaLocalUploader) CreateTopics(topics ...string) error {
-	// ignore topics to long for the db
+	// Ignore topics too long for the db
 	c := 0
-	for i := range topics {
-		if len(topics[i]) <= 50 {
-			topics[c] = topics[i]
-			c++
+	for _, topic := range topics {
+		if len(topic) > 50 {
+			continue
 		}
+
+		topics[c] = topic
+		c++
 	}
 	topics = topics[:c]
 	return repo_model.SaveTopics(g.repo.ID, topics...)
@@ -217,11 +220,17 @@ func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) err
 func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
 	lbs := make([]*issues_model.Label, 0, len(labels))
 	for _, label := range labels {
+		// We must validate color here:
+		if !issues_model.LabelColorPattern.MatchString("#" + label.Color) {
+			log.Warn("Invalid label color: #%s for label: %s in migration to %s/%s", label.Color, label.Name, g.repoOwner, g.repoName)
+			label.Color = "ffffff"
+		}
+
 		lbs = append(lbs, &issues_model.Label{
 			RepoID:      g.repo.ID,
 			Name:        label.Name,
 			Description: label.Description,
-			Color:       fmt.Sprintf("#%s", label.Color),
+			Color:       "#" + label.Color,
 		})
 	}
 
@@ -237,7 +246,7 @@ func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
 
 // CreateReleases creates releases
 func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
-	rels := make([]*models.Release, 0, len(releases))
+	rels := make([]*repo_model.Release, 0, len(releases))
 	for _, release := range releases {
 		if release.Created.IsZero() {
 			if !release.Published.IsZero() {
@@ -247,7 +256,17 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 			}
 		}
 
-		rel := models.Release{
+		// SECURITY: The TagName must be a valid git ref
+		if release.TagName != "" && !git.IsValidRefPattern(release.TagName) {
+			release.TagName = ""
+		}
+
+		// SECURITY: The TargetCommitish must be a valid git ref
+		if release.TargetCommitish != "" && !git.IsValidRefPattern(release.TargetCommitish) {
+			release.TargetCommitish = ""
+		}
+
+		rel := repo_model.Release{
 			RepoID:       g.repo.ID,
 			TagName:      release.TagName,
 			LowerTagName: strings.ToLower(release.TagName),
@@ -269,12 +288,12 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 			commit, err := g.gitRepo.GetTagCommit(rel.TagName)
 			if !git.IsErrNotExist(err) {
 				if err != nil {
-					return fmt.Errorf("GetTagCommit[%v]: %v", rel.TagName, err)
+					return fmt.Errorf("GetTagCommit[%v]: %w", rel.TagName, err)
 				}
 				rel.Sha1 = commit.ID.String()
 				rel.NumCommits, err = commit.CommitsCount()
 				if err != nil {
-					return fmt.Errorf("CommitsCount: %v", err)
+					return fmt.Errorf("CommitsCount: %w", err)
 				}
 			}
 		}
@@ -288,14 +307,15 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 				}
 			}
 			attach := repo_model.Attachment{
-				UUID:          gouuid.New().String(),
+				UUID:          uuid.New().String(),
 				Name:          asset.Name,
 				DownloadCount: int64(*asset.DownloadCount),
 				Size:          int64(*asset.Size),
 				CreatedUnix:   timeutil.TimeStamp(asset.Created.Unix()),
 			}
 
-			// download attachment
+			// SECURITY: We cannot check the DownloadURL and DownloadFunc are safe here
+			// ... we must assume that they are safe and simply download the attachment
 			err := func() error {
 				// asset.DownloadURL maybe a local file
 				var rc io.ReadCloser
@@ -365,6 +385,12 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 			}
 		}
 
+		// SECURITY: issue.Ref needs to be a valid reference
+		if !git.IsValidRefPattern(issue.Ref) {
+			log.Warn("Invalid issue.Ref[%s] in issue #%d in %s/%s", issue.Ref, issue.Number, g.repoOwner, g.repoName)
+			issue.Ref = ""
+		}
+
 		is := issues_model.Issue{
 			RepoID:      g.repo.ID,
 			Repo:        g.repo,
@@ -384,6 +410,10 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 				RepoID:       g.repo.ID,
 				Type:         foreignreference.TypeIssue,
 			},
+		}
+
+		if is.ForeignReference.ForeignIndex == "0" {
+			is.ForeignReference.ForeignIndex = strconv.FormatInt(is.Index, 10)
 		}
 
 		if err := g.remapUser(issue, &is); err != nil {
@@ -496,102 +526,151 @@ func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error 
 }
 
 func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head string, err error) {
-	// download patch file
+	// SECURITY: this pr must have been must have been ensured safe
+	if !pr.EnsuredSafe {
+		log.Error("PR #%d in %s/%s has not been checked for safety.", pr.Number, g.repoOwner, g.repoName)
+		return "", fmt.Errorf("the PR[%d] was not checked for safety", pr.Number)
+	}
+
+	// Anonymous function to download the patch file (allows us to use defer)
 	err = func() error {
+		// if the patchURL is empty there is nothing to download
 		if pr.PatchURL == "" {
 			return nil
 		}
-		// pr.PatchURL maybe a local file
-		ret, err := uri.Open(pr.PatchURL)
+
+		// SECURITY: We will assume that the pr.PatchURL has been checked
+		// pr.PatchURL maybe a local file - but note EnsureSafe should be asserting that this safe
+		ret, err := uri.Open(pr.PatchURL) // TODO: This probably needs to use the downloader as there may be rate limiting issues here
 		if err != nil {
 			return err
 		}
 		defer ret.Close()
+
 		pullDir := filepath.Join(g.repo.RepoPath(), "pulls")
 		if err = os.MkdirAll(pullDir, os.ModePerm); err != nil {
 			return err
 		}
+
 		f, err := os.Create(filepath.Join(pullDir, fmt.Sprintf("%d.patch", pr.Number)))
 		if err != nil {
 			return err
 		}
 		defer f.Close()
+
+		// TODO: Should there be limits on the size of this file?
 		_, err = io.Copy(f, ret)
+
 		return err
 	}()
 	if err != nil {
 		return "", err
 	}
 
-	// set head information
-	pullHead := filepath.Join(g.repo.RepoPath(), "refs", "pull", fmt.Sprintf("%d", pr.Number))
-	if err := os.MkdirAll(pullHead, os.ModePerm); err != nil {
-		return "", err
-	}
-	p, err := os.Create(filepath.Join(pullHead, "head"))
-	if err != nil {
-		return "", err
-	}
-	_, err = p.WriteString(pr.Head.SHA)
-	p.Close()
-	if err != nil {
-		return "", err
-	}
-
 	head = "unknown repository"
 	if pr.IsForkPullRequest() && pr.State != "closed" {
-		if pr.Head.OwnerName != "" {
-			remote := pr.Head.OwnerName
-			_, ok := g.prHeadCache[remote]
-			if !ok {
-				// git remote add
-				err := g.gitRepo.AddRemote(remote, pr.Head.CloneURL, true)
-				if err != nil {
-					log.Error("AddRemote failed: %s", err)
-				} else {
-					g.prHeadCache[remote] = struct{}{}
-					ok = true
+		// OK we want to fetch the current head as a branch from its CloneURL
+
+		// 1. Is there a head clone URL available?
+		// 2. Is there a head ref available?
+		if pr.Head.CloneURL == "" || pr.Head.Ref == "" {
+			return head, nil
+		}
+
+		// 3. We need to create a remote for this clone url
+		// ... maybe we already have a name for this remote
+		remote, ok := g.prHeadCache[pr.Head.CloneURL+":"]
+		if !ok {
+			// ... let's try ownername as a reasonable name
+			remote = pr.Head.OwnerName
+			if !git.IsValidRefPattern(remote) {
+				// ... let's try something less nice
+				remote = "head-pr-" + strconv.FormatInt(pr.Number, 10)
+			}
+			// ... now add the remote
+			err := g.gitRepo.AddRemote(remote, pr.Head.CloneURL, true)
+			if err != nil {
+				log.Error("PR #%d in %s/%s AddRemote[%s] failed: %v", pr.Number, g.repoOwner, g.repoName, remote, err)
+			} else {
+				g.prHeadCache[pr.Head.CloneURL+":"] = remote
+				ok = true
+			}
+		}
+		if !ok {
+			return head, nil
+		}
+
+		// 4. Check if we already have this ref?
+		localRef, ok := g.prHeadCache[pr.Head.CloneURL+":"+pr.Head.Ref]
+		if !ok {
+			// ... We would normally name this migrated branch as <OwnerName>/<HeadRef> but we need to ensure that is safe
+			localRef = git.SanitizeRefPattern(pr.Head.OwnerName + "/" + pr.Head.Ref)
+
+			// ... Now we must assert that this does not exist
+			if g.gitRepo.IsBranchExist(localRef) {
+				localRef = "head-pr-" + strconv.FormatInt(pr.Number, 10) + "/" + localRef
+				i := 0
+				for g.gitRepo.IsBranchExist(localRef) {
+					if i > 5 {
+						// ... We tried, we really tried but this is just a seriously unfriendly repo
+						return head, nil
+					}
+					// OK just try some uuids!
+					localRef = git.SanitizeRefPattern("head-pr-" + strconv.FormatInt(pr.Number, 10) + uuid.New().String())
+					i++
 				}
 			}
 
-			if ok {
-				_, _, err = git.NewCommand(g.ctx, "fetch", "--no-tags", "--", remote, pr.Head.Ref).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
-				if err != nil {
-					log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
-				} else {
-					headBranch := filepath.Join(g.repo.RepoPath(), "refs", "heads", pr.Head.OwnerName, pr.Head.Ref)
-					if err := os.MkdirAll(filepath.Dir(headBranch), os.ModePerm); err != nil {
-						return "", err
-					}
-					b, err := os.Create(headBranch)
-					if err != nil {
-						return "", err
-					}
-					_, err = b.WriteString(pr.Head.SHA)
-					b.Close()
-					if err != nil {
-						return "", err
-					}
-					head = pr.Head.OwnerName + "/" + pr.Head.Ref
-				}
+			fetchArg := pr.Head.Ref + ":" + git.BranchPrefix + localRef
+			if strings.HasPrefix(fetchArg, "-") {
+				fetchArg = git.BranchPrefix + fetchArg
 			}
-		}
-	} else {
-		head = pr.Head.Ref
-		// Ensure the closed PR SHA still points to an existing ref
-		_, _, err = git.NewCommand(g.ctx, "rev-list", "--quiet", "-1", pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
-		if err != nil {
-			if pr.Head.SHA != "" {
-				// Git update-ref remove bad references with a relative path
-				log.Warn("Deprecated local head, removing : %v", pr.Head.SHA)
-				err = g.gitRepo.RemoveReference(pr.GetGitRefName())
-			} else {
-				// The SHA is empty, remove the head file
-				log.Warn("Empty reference, removing : %v", pullHead)
-				err = os.Remove(filepath.Join(pullHead, "head"))
-			}
+
+			_, _, err = git.NewCommand(g.ctx, "fetch", "--no-tags").AddDashesAndList(remote, fetchArg).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
 			if err != nil {
-				log.Error("Cannot remove local head ref, %v", err)
+				log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
+				return head, nil
+			}
+			g.prHeadCache[pr.Head.CloneURL+":"+pr.Head.Ref] = localRef
+			head = localRef
+		}
+
+		// 5. Now if pr.Head.SHA == "" we should recover this to the head of this branch
+		if pr.Head.SHA == "" {
+			headSha, err := g.gitRepo.GetBranchCommitID(localRef)
+			if err != nil {
+				log.Error("unable to get head SHA of local head for PR #%d from %s in %s/%s. Error: %v", pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
+				return head, nil
+			}
+			pr.Head.SHA = headSha
+		}
+
+		_, _, err = git.NewCommand(g.ctx, "update-ref", "--no-deref").AddDynamicArguments(pr.GetGitRefName(), pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
+		if err != nil {
+			return "", err
+		}
+
+		return head, nil
+	}
+
+	if pr.Head.Ref != "" {
+		head = pr.Head.Ref
+	}
+
+	// Ensure the closed PR SHA still points to an existing ref
+	if pr.Head.SHA == "" {
+		// The SHA is empty
+		log.Warn("Empty reference, no pull head for PR #%d in %s/%s", pr.Number, g.repoOwner, g.repoName)
+	} else {
+		_, _, err = git.NewCommand(g.ctx, "rev-list", "--quiet", "-1").AddDynamicArguments(pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
+		if err != nil {
+			// Git update-ref remove bad references with a relative path
+			log.Warn("Deprecated local head %s for PR #%d in %s/%s, removing  %s", pr.Head.SHA, pr.Number, g.repoOwner, g.repoName, pr.GetGitRefName())
+		} else {
+			// set head information
+			_, _, err = git.NewCommand(g.ctx, "update-ref", "--no-deref").AddDynamicArguments(pr.GetGitRefName(), pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
+			if err != nil {
+				log.Error("unable to set %s as the local head for PR #%d from %s in %s/%s. Error: %v", pr.Head.SHA, pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
 			}
 		}
 	}
@@ -613,6 +692,20 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*issues_model
 	head, err := g.updateGitForPullRequest(pr)
 	if err != nil {
 		return nil, fmt.Errorf("updateGitForPullRequest: %w", err)
+	}
+
+	// Now we may need to fix the mergebase
+	if pr.Base.SHA == "" {
+		if pr.Base.Ref != "" && pr.Head.SHA != "" {
+			// A PR against a tag base does not make sense - therefore pr.Base.Ref must be a branch
+			// TODO: should we be checking for the refs/heads/ prefix on the pr.Base.Ref? (i.e. are these actually branches or refs)
+			pr.Base.SHA, _, err = g.gitRepo.GetMergeBase("", git.BranchPrefix+pr.Base.Ref, pr.Head.SHA)
+			if err != nil {
+				log.Error("Cannot determine the merge base for PR #%d in %s/%s. Error: %v", pr.Number, g.repoOwner, g.repoName, err)
+			}
+		} else {
+			log.Error("Cannot determine the merge base for PR #%d in %s/%s. Not enough information", pr.Number, g.repoOwner, g.repoName)
+		}
 	}
 
 	if pr.Created.IsZero() {
@@ -728,6 +821,8 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			return err
 		}
 
+		cms = append(cms, &cm)
+
 		// get pr
 		pr, ok := g.prCache[issue.ID]
 		if !ok {
@@ -738,6 +833,17 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			}
 			g.prCache[issue.ID] = pr
 		}
+		if pr.MergeBase == "" {
+			// No mergebase -> no basis for any patches
+			log.Warn("PR #%d in %s/%s: does not have a merge base, all review comments will be ignored", pr.Index, g.repoOwner, g.repoName)
+			continue
+		}
+
+		headCommitID, err := g.gitRepo.GetRefCommitID(pr.GetGitRefName())
+		if err != nil {
+			log.Warn("PR #%d GetRefCommitID[%s] in %s/%s: %v, all review comments will be ignored", pr.Index, pr.GetGitRefName(), g.repoOwner, g.repoName, err)
+			continue
+		}
 
 		for _, comment := range review.Comments {
 			line := comment.Line
@@ -746,11 +852,9 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			} else {
 				_, _, line, _ = git.ParseDiffHunkString(comment.DiffHunk)
 			}
-			headCommitID, err := g.gitRepo.GetRefCommitID(pr.GetGitRefName())
-			if err != nil {
-				log.Warn("GetRefCommitID[%s]: %v, the review comment will be ignored", pr.GetGitRefName(), err)
-				continue
-			}
+
+			// SECURITY: The TreePath must be cleaned!
+			comment.TreePath = path.Clean("/" + comment.TreePath)[1:]
 
 			var patch string
 			reader, writer := io.Pipe()
@@ -775,6 +879,11 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 				comment.UpdatedAt = comment.CreatedAt
 			}
 
+			if !git.IsValidSHAPattern(comment.CommitID) {
+				log.Warn("Invalid comment CommitID[%s] on comment[%d] in PR #%d of %s/%s replaced with %s", comment.CommitID, pr.Index, g.repoOwner, g.repoName, headCommitID)
+				comment.CommitID = headCommitID
+			}
+
 			c := issues_model.Comment{
 				Type:        issues_model.CommentTypeCode,
 				IssueID:     issue.ID,
@@ -793,8 +902,6 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 
 			cm.Comments = append(cm.Comments, &c)
 		}
-
-		cms = append(cms, &cm)
 	}
 
 	return issues_model.InsertReviews(cms)

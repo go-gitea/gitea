@@ -93,7 +93,7 @@ func (f *WechatworkPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 	for i, commit := range p.Commits {
 		var authorName string
 		if commit.Author != nil {
-			authorName = "Author：" + commit.Author.Name
+			authorName = "Author: " + commit.Author.Name
 		}
 
 		message := strings.ReplaceAll(commit.Message, "\n\n", "\r\n")
@@ -164,6 +164,13 @@ func (f *WechatworkPayload) Repository(p *api.RepositoryPayload) (api.Payloader,
 	}
 
 	return nil, nil
+}
+
+// Wiki implements PayloadConvertor Wiki method
+func (f *WechatworkPayload) Wiki(p *api.WikiPayload) (api.Payloader, error) {
+	text, _, _ := getWikiPayloadInfo(p, noneLinkFormatter, true)
+
+	return newWechatworkMarkdownPayload(text), nil
 }
 
 // Release implements PayloadConvertor Release method

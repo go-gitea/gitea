@@ -38,6 +38,10 @@ func (err ErrRepoLabelNotExist) Error() string {
 	return fmt.Sprintf("label does not exist [label_id: %d, repo_id: %d]", err.LabelID, err.RepoID)
 }
 
+func (err ErrRepoLabelNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrOrgLabelNotExist represents a "OrgLabelNotExist" kind of error.
 type ErrOrgLabelNotExist struct {
 	LabelID int64
@@ -54,6 +58,10 @@ func (err ErrOrgLabelNotExist) Error() string {
 	return fmt.Sprintf("label does not exist [label_id: %d, org_id: %d]", err.LabelID, err.OrgID)
 }
 
+func (err ErrOrgLabelNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrLabelNotExist represents a "LabelNotExist" kind of error.
 type ErrLabelNotExist struct {
 	LabelID int64
@@ -67,6 +75,10 @@ func IsErrLabelNotExist(err error) bool {
 
 func (err ErrLabelNotExist) Error() string {
 	return fmt.Sprintf("label does not exist [label_id: %d]", err.LabelID)
+}
+
+func (err ErrLabelNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // LabelColorPattern is a regexp witch can validate LabelColor
@@ -220,7 +232,7 @@ func NewLabel(ctx context.Context, label *Label) error {
 
 // NewLabels creates new labels
 func NewLabels(labels ...*Label) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -255,7 +267,7 @@ func DeleteLabel(id, labelID int64) error {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -615,7 +627,7 @@ func NewIssueLabel(issue *Issue, label *Label, doer *user_model.User) (err error
 		return nil
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -655,7 +667,7 @@ func newIssueLabels(ctx context.Context, issue *Issue, labels []*Label, doer *us
 		}
 
 		if err = newIssueLabel(ctx, issue, label, doer); err != nil {
-			return fmt.Errorf("newIssueLabel: %v", err)
+			return fmt.Errorf("newIssueLabel: %w", err)
 		}
 	}
 
@@ -664,7 +676,7 @@ func newIssueLabels(ctx context.Context, issue *Issue, labels []*Label, doer *us
 
 // NewIssueLabels creates a list of issue-label relations.
 func NewIssueLabels(issue *Issue, labels []*Label, doer *user_model.User) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

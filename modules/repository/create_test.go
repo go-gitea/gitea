@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
@@ -24,7 +25,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testTeamRepositories := func(teamID int64, repoIds []int64) {
-		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID}).(*organization.Team)
+		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
 		assert.NoError(t, team.GetRepositoriesCtx(db.DefaultContext), "%s: GetRepositories", team.Name)
 		assert.Len(t, team.Repos, team.NumRepos, "%s: len repo", team.Name)
 		assert.Len(t, team.Repos, len(repoIds), "%s: repo count", team.Name)
@@ -56,7 +57,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	// Create repos.
 	repoIds := make([]int64, 0)
 	for i := 0; i < 3; i++ {
-		r, err := CreateRepository(user, org.AsUser(), models.CreateRepoOptions{Name: fmt.Sprintf("repo-%d", i)})
+		r, err := CreateRepository(user, org.AsUser(), CreateRepoOptions{Name: fmt.Sprintf("repo-%d", i)})
 		assert.NoError(t, err, "CreateRepository %d", i)
 		if r != nil {
 			repoIds = append(repoIds, r.ID)
@@ -118,7 +119,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	}
 
 	// Create repo and check teams repositories.
-	r, err := CreateRepository(user, org.AsUser(), models.CreateRepoOptions{Name: "repo-last"})
+	r, err := CreateRepository(user, org.AsUser(), CreateRepoOptions{Name: "repo-last"})
 	assert.NoError(t, err, "CreateRepository last")
 	if r != nil {
 		repoIds = append(repoIds, r.ID)
@@ -162,7 +163,7 @@ func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Check visibility of action has become private
-	act := models.Action{}
+	act := activities_model.Action{}
 	_, err = db.GetEngine(db.DefaultContext).ID(3).Get(&act)
 
 	assert.NoError(t, err)

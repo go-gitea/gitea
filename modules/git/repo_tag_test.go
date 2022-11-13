@@ -8,8 +8,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.gitea.io/gitea/modules/util"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -38,12 +36,11 @@ func TestRepository_GetTags(t *testing.T) {
 func TestRepository_GetTag(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 
-	clonedPath, err := cloneRepo(bareRepo1Path, "TestRepository_GetTag")
+	clonedPath, err := cloneRepo(t, bareRepo1Path)
 	if err != nil {
 		assert.NoError(t, err)
 		return
 	}
-	defer util.RemoveAll(clonedPath)
 
 	bareRepo1, err := openRepositoryWithDefaultContext(clonedPath)
 	if err != nil {
@@ -143,12 +140,11 @@ func TestRepository_GetTag(t *testing.T) {
 func TestRepository_GetAnnotatedTag(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 
-	clonedPath, err := cloneRepo(bareRepo1Path, "TestRepository_GetAnnotatedTag")
+	clonedPath, err := cloneRepo(t, bareRepo1Path)
 	if err != nil {
 		assert.NoError(t, err)
 		return
 	}
-	defer util.RemoveAll(clonedPath)
 
 	bareRepo1, err := openRepositoryWithDefaultContext(clonedPath)
 	if err != nil {

@@ -219,9 +219,9 @@ func ReleaseReopen() error {
 		logger := value.(*MultiChannelledLogger)
 		if err := logger.ReleaseReopen(); err != nil {
 			if accumulatedErr == nil {
-				accumulatedErr = fmt.Errorf("Error reopening %s: %v", key.(string), err)
+				accumulatedErr = fmt.Errorf("Error reopening %s: %w", key.(string), err)
 			} else {
-				accumulatedErr = fmt.Errorf("Error reopening %s: %v & %v", key.(string), err, accumulatedErr)
+				accumulatedErr = fmt.Errorf("Error reopening %s: %v & %w", key.(string), err, accumulatedErr)
 			}
 		}
 		return true

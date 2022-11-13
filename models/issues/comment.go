@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -47,6 +48,10 @@ func IsErrCommentNotExist(err error) bool {
 
 func (err ErrCommentNotExist) Error() string {
 	return fmt.Sprintf("comment does not exist [id: %d, issue_id: %d]", err.ID, err.IssueID)
+}
+
+func (err ErrCommentNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // CommentType defines whether a comment is just a simple comment, an action (like close) or a reference.
@@ -560,7 +565,7 @@ func (c *Comment) LoadAttachments() error {
 
 // UpdateAttachments update attachments by UUIDs for the comment
 func (c *Comment) UpdateAttachments(uuids []string) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -568,13 +573,13 @@ func (c *Comment) UpdateAttachments(uuids []string) error {
 
 	attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, uuids)
 	if err != nil {
-		return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %v", uuids, err)
+		return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", uuids, err)
 	}
 	for i := 0; i < len(attachments); i++ {
 		attachments[i].IssueID = c.IssueID
 		attachments[i].CommentID = c.ID
 		if err := repo_model.UpdateAttachment(ctx, attachments[i]); err != nil {
-			return fmt.Errorf("update attachment [id: %d]: %v", attachments[i].ID, err)
+			return fmt.Errorf("update attachment [id: %d]: %w", attachments[i].ID, err)
 		}
 	}
 	return committer.Commit()
@@ -869,7 +874,7 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 		// Check attachments
 		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, opts.Attachments)
 		if err != nil {
-			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %v", opts.Attachments, err)
+			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", opts.Attachments, err)
 		}
 
 		for i := range attachments {
@@ -877,11 +882,11 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 			attachments[i].CommentID = comment.ID
 			// No assign value could be 0, so ignore AllCols().
 			if _, err = db.GetEngine(ctx).ID(attachments[i].ID).Update(attachments[i]); err != nil {
-				return fmt.Errorf("update attachment [%d]: %v", attachments[i].ID, err)
+				return fmt.Errorf("update attachment [%d]: %w", attachments[i].ID, err)
 			}
 		}
 	case CommentTypeReopen, CommentTypeClose:
-		if err = updateIssueClosedNum(ctx, opts.Issue); err != nil {
+		if err = repo_model.UpdateRepoIssueNumbers(ctx, opts.Issue.RepoID, opts.Issue.IsPull, true); err != nil {
 			return err
 		}
 	}
@@ -998,7 +1003,7 @@ type CreateCommentOptions struct {
 
 // CreateComment creates comment of issue or commit.
 func CreateComment(opts *CreateCommentOptions) (comment *Comment, err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}
@@ -1029,7 +1034,7 @@ func CreateRefComment(doer *user_model.User, repo *repo_model.Repository, issue 
 		CommitSHA: commitSHA,
 	})
 	if err != nil {
-		return fmt.Errorf("check reference comment: %v", err)
+		return fmt.Errorf("check reference comment: %w", err)
 	} else if has {
 		return nil
 	}
@@ -1130,7 +1135,7 @@ func CountComments(opts *FindCommentsOptions) (int64, error) {
 
 // UpdateComment updates information of comment.
 func UpdateComment(c *Comment, doer *user_model.User) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -1147,7 +1152,7 @@ func UpdateComment(c *Comment, doer *user_model.User) error {
 		return err
 	}
 	if err := committer.Commit(); err != nil {
-		return fmt.Errorf("Commit: %v", err)
+		return fmt.Errorf("Commit: %w", err)
 	}
 
 	return nil

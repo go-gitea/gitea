@@ -16,8 +16,8 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/hcaptcha"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/mcaptcha"
 	"code.gitea.io/gitea/modules/recaptcha"
-	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	auth_service "code.gitea.io/gitea/services/auth"
@@ -40,6 +40,8 @@ func LinkAccount(ctx *context.Context) {
 	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
+	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
+	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
 	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
 	ctx.Data["ShowRegistrationButton"] = false
@@ -96,6 +98,8 @@ func LinkAccountPostSignIn(ctx *context.Context) {
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
+	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
+	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
 	ctx.Data["ShowRegistrationButton"] = false
 
@@ -151,23 +155,14 @@ func linkAccount(ctx *context.Context, u *user_model.User, gothUser goth.User, r
 		return
 	}
 
-	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
+	if err := updateSession(ctx, nil, map[string]interface{}{
+		// User needs to use 2FA, save data and redirect to 2FA page.
+		"twofaUid":      u.ID,
+		"twofaRemember": remember,
+		"linkAccount":   true,
+	}); err != nil {
 		ctx.ServerError("RegenerateSession", err)
 		return
-	}
-
-	// User needs to use 2FA, save data and redirect to 2FA page.
-	if err := ctx.Session.Set("twofaUid", u.ID); err != nil {
-		log.Error("Error setting twofaUid in session: %v", err)
-	}
-	if err := ctx.Session.Set("twofaRemember", remember); err != nil {
-		log.Error("Error setting twofaRemember in session: %v", err)
-	}
-	if err := ctx.Session.Set("linkAccount", true); err != nil {
-		log.Error("Error setting linkAccount in session: %v", err)
-	}
-	if err := ctx.Session.Release(); err != nil {
-		log.Error("Error storing session: %v", err)
 	}
 
 	// If WebAuthn is enrolled -> Redirect to WebAuthn instead
@@ -195,6 +190,8 @@ func LinkAccountPostRegister(ctx *context.Context) {
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
+	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
+	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
 	ctx.Data["ShowRegistrationButton"] = false
 
@@ -233,6 +230,8 @@ func LinkAccountPostRegister(ctx *context.Context) {
 			valid, err = recaptcha.Verify(ctx, form.GRecaptchaResponse)
 		case setting.HCaptcha:
 			valid, err = hcaptcha.Verify(ctx, form.HcaptchaResponse)
+		case setting.MCaptcha:
+			valid, err = mcaptcha.Verify(ctx, form.McaptchaResponse)
 		default:
 			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
 			return

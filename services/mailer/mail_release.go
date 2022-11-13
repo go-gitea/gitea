@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"context"
 
-	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -24,8 +23,8 @@ const (
 	tplNewReleaseMail base.TplName = "release"
 )
 
-// MailNewRelease send new release notify to all all repo watchers.
-func MailNewRelease(ctx context.Context, rel *models.Release) {
+// MailNewRelease send new release notify to all repo watchers.
+func MailNewRelease(ctx context.Context, rel *repo_model.Release) {
 	if setting.MailService == nil {
 		// No mail service configured
 		return
@@ -55,7 +54,7 @@ func MailNewRelease(ctx context.Context, rel *models.Release) {
 	}
 }
 
-func mailNewRelease(ctx context.Context, lang string, tos []string, rel *models.Release) {
+func mailNewRelease(ctx context.Context, lang string, tos []string, rel *repo_model.Release) {
 	locale := translation.NewLocale(lang)
 
 	var err error

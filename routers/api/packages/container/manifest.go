@@ -77,7 +77,7 @@ func processImageManifest(mci *manifestCreationInfo, buf *packages_module.Hashed
 			return err
 		}
 
-		ctx, committer, err := db.TxContext()
+		ctx, committer, err := db.TxContext(db.DefaultContext)
 		if err != nil {
 			return err
 		}
@@ -190,7 +190,7 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 			return err
 		}
 
-		ctx, committer, err := db.TxContext()
+		ctx, committer, err := db.TxContext(db.DefaultContext)
 		if err != nil {
 			return err
 		}
@@ -311,6 +311,9 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 			if err := packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
 				return nil, err
 			}
+
+			// keep download count on overwrite
+			_pv.DownloadCount = pv.DownloadCount
 
 			if pv, err = packages_model.GetOrInsertVersion(ctx, _pv); err != nil {
 				log.Error("Error inserting package: %v", err)

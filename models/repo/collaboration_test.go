@@ -19,7 +19,7 @@ import (
 func TestRepository_GetCollaborators(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	test := func(repoID int64) {
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID}).(*repo_model.Repository)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
 		collaborators, err := repo_model.GetCollaborators(db.DefaultContext, repo.ID, db.ListOptions{})
 		assert.NoError(t, err)
 		expectedLen, err := db.GetEngine(db.DefaultContext).Count(&repo_model.Collaboration{RepoID: repoID})
@@ -40,7 +40,7 @@ func TestRepository_IsCollaborator(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	test := func(repoID, userID int64, expected bool) {
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID}).(*repo_model.Repository)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
 		actual, err := repo_model.IsCollaborator(db.DefaultContext, repo.ID, userID)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
@@ -54,13 +54,13 @@ func TestRepository_IsCollaborator(t *testing.T) {
 func TestRepository_ChangeCollaborationAccessMode(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4}).(*repo_model.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(repo, 4, perm.AccessModeAdmin))
 
-	collaboration := unittest.AssertExistsAndLoadBean(t, &repo_model.Collaboration{RepoID: repo.ID, UserID: 4}).(*repo_model.Collaboration)
+	collaboration := unittest.AssertExistsAndLoadBean(t, &repo_model.Collaboration{RepoID: repo.ID, UserID: 4})
 	assert.EqualValues(t, perm.AccessModeAdmin, collaboration.Mode)
 
-	access := unittest.AssertExistsAndLoadBean(t, &access_model.Access{UserID: 4, RepoID: repo.ID}).(*access_model.Access)
+	access := unittest.AssertExistsAndLoadBean(t, &access_model.Access{UserID: 4, RepoID: repo.ID})
 	assert.EqualValues(t, perm.AccessModeAdmin, access.Mode)
 
 	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(repo, 4, perm.AccessModeAdmin))

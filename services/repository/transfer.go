@@ -16,6 +16,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/sync"
 )
 
@@ -49,7 +50,7 @@ func TransferOwnership(doer, newOwner *user_model.User, repo *repo_model.Reposit
 	}
 
 	for _, team := range teams {
-		if err := models.AddRepository(team, newRepo); err != nil {
+		if err := models.AddRepository(db.DefaultContext, team, newRepo); err != nil {
 			return err
 		}
 	}
@@ -111,7 +112,7 @@ func StartRepositoryTransfer(doer, newOwner *user_model.User, repo *repo_model.R
 		return err
 	}
 	if !hasAccess {
-		if err := models.AddCollaborator(repo, newOwner); err != nil {
+		if err := repo_module.AddCollaborator(repo, newOwner); err != nil {
 			return err
 		}
 		if err := repo_model.ChangeCollaborationAccessMode(repo, newOwner.ID, perm.AccessModeRead); err != nil {

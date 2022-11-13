@@ -1,6 +1,12 @@
 import $ from 'jquery';
 import {svg} from '../svg.js';
 import {invertFileFolding} from './file-fold.js';
+import {createTippy, showTemporaryTooltip} from '../modules/tippy.js';
+import {copyToClipboard} from './clipboard.js';
+
+const {i18n} = window.config;
+export const singleAnchorRegex = /^#(L|n)([1-9][0-9]*)$/;
+export const rangeAnchorRegex = /^#(L[1-9][0-9]*)-(L[1-9][0-9]*)$/;
 
 function changeHash(hash) {
   if (window.history.pushState) {
@@ -39,13 +45,13 @@ function selectRange($list, $select, $from) {
     $viewGitBlame.attr('href', href);
   };
 
-  const updateCopyPermalinkHref = function(anchor) {
+  const updateCopyPermalinkUrl = function(anchor) {
     if ($copyPermalink.length === 0) {
       return;
     }
-    let link = $copyPermalink.attr('data-clipboard-text');
+    let link = $copyPermalink.attr('data-url');
     link = `${link.replace(/#L\d+$|#L\d+-L\d+$/, '')}#${anchor}`;
-    $copyPermalink.attr('data-clipboard-text', link);
+    $copyPermalink.attr('data-url', link);
   };
 
   if ($from) {
@@ -67,7 +73,7 @@ function selectRange($list, $select, $from) {
 
       updateIssueHref(`L${a}-L${b}`);
       updateViewGitBlameFragment(`L${a}-L${b}`);
-      updateCopyPermalinkHref(`L${a}-L${b}`);
+      updateCopyPermalinkUrl(`L${a}-L${b}`);
       return;
     }
   }
@@ -76,17 +82,48 @@ function selectRange($list, $select, $from) {
 
   updateIssueHref($select.attr('rel'));
   updateViewGitBlameFragment($select.attr('rel'));
-  updateCopyPermalinkHref($select.attr('rel'));
+  updateCopyPermalinkUrl($select.attr('rel'));
 }
 
 function showLineButton() {
-  if ($('.code-line-menu').length === 0) return;
-  $('.code-line-button').remove();
-  $('.code-view td.lines-code.active').closest('tr').find('td:eq(0)').first().prepend(
-    $(`<button class="code-line-button">${svg('octicon-kebab-horizontal')}</button>`)
-  );
-  $('.code-line-menu').appendTo($('.code-view'));
-  $('.code-line-button').popup({popup: $('.code-line-menu'), on: 'click'});
+  const menu = document.querySelector('.code-line-menu');
+  if (!menu) return;
+
+  // remove all other line buttons
+  for (const el of document.querySelectorAll('.code-line-button')) {
+    el.remove();
+  }
+
+  // find active row and add button
+  const tr = document.querySelector('.code-view td.lines-code.active').closest('tr');
+  const td = tr.querySelector('td');
+  const btn = document.createElement('button');
+  btn.classList.add('code-line-button');
+  btn.innerHTML = svg('octicon-kebab-horizontal');
+  td.prepend(btn);
+
+  // put a copy of the menu back into DOM for the next click
+  btn.closest('.code-view').appendChild(menu.cloneNode(true));
+
+  createTippy(btn, {
+    trigger: 'click',
+    content: menu,
+    placement: 'right-start',
+    role: 'menu',
+    interactive: 'true',
+  });
+}
+
+function initCopyFileContent() {
+  // get raw text for copy content button, at the moment, only one button (and one related file content) is supported.
+  const copyFileContent = document.querySelector('#copy-file-content');
+  if (!copyFileContent) return;
+
+  copyFileContent.addEventListener('click', async () => {
+    const text = Array.from(document.querySelectorAll('.file-view .lines-code')).map((el) => el.textContent).join('');
+    const success = await copyToClipboard(text);
+    showTemporaryTooltip(copyFileContent, success ? i18n.copy_success : i18n.copy_error);
+  });
 }
 
 export function initRepoCodeView() {
@@ -114,7 +151,7 @@ export function initRepoCodeView() {
     });
 
     $(window).on('hashchange', () => {
-      let m = window.location.hash.match(/^#(L\d+)-(L\d+)$/);
+      let m = window.location.hash.match(rangeAnchorRegex);
       let $list;
       if ($('div.blame').length) {
         $list = $('.code-view td.lines-code.blame-code');
@@ -124,27 +161,31 @@ export function initRepoCodeView() {
       let $first;
       if (m) {
         $first = $list.filter(`[rel=${m[1]}]`);
-        selectRange($list, $first, $list.filter(`[rel=${m[2]}]`));
+        if ($first.length) {
+          selectRange($list, $first, $list.filter(`[rel=${m[2]}]`));
 
-        // show code view menu marker (don't show in blame page)
-        if ($('div.blame').length === 0) {
-          showLineButton();
+          // show code view menu marker (don't show in blame page)
+          if ($('div.blame').length === 0) {
+            showLineButton();
+          }
+
+          $('html, body').scrollTop($first.offset().top - 200);
+          return;
         }
-
-        $('html, body').scrollTop($first.offset().top - 200);
-        return;
       }
-      m = window.location.hash.match(/^#(L|n)(\d+)$/);
+      m = window.location.hash.match(singleAnchorRegex);
       if (m) {
         $first = $list.filter(`[rel=L${m[2]}]`);
-        selectRange($list, $first);
+        if ($first.length) {
+          selectRange($list, $first);
 
-        // show code view menu marker (don't show in blame page)
-        if ($('div.blame').length === 0) {
-          showLineButton();
+          // show code view menu marker (don't show in blame page)
+          if ($('div.blame').length === 0) {
+            showLineButton();
+          }
+
+          $('html, body').scrollTop($first.offset().top - 200);
         }
-
-        $('html, body').scrollTop($first.offset().top - 200);
       }
     }).trigger('hashchange');
   }
@@ -159,4 +200,10 @@ export function initRepoCodeView() {
     const blob = await $.get(`${url}?${query}&anchor=${anchor}`);
     currentTarget.closest('tr').outerHTML = blob;
   });
+  $(document).on('click', '.copy-line-permalink', async (e) => {
+    const success = await copyToClipboard(e.currentTarget.getAttribute('data-url'));
+    if (!success) return;
+    document.querySelector('.code-line-button')?._tippy?.hide();
+  });
+  initCopyFileContent();
 }

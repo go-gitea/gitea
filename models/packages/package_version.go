@@ -33,7 +33,7 @@ type PackageVersion struct {
 	LowerVersion  string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	CreatedUnix   timeutil.TimeStamp `xorm:"created INDEX NOT NULL"`
 	IsInternal    bool               `xorm:"INDEX NOT NULL DEFAULT false"`
-	MetadataJSON  string             `xorm:"metadata_json TEXT"`
+	MetadataJSON  string             `xorm:"metadata_json LONGTEXT"`
 	DownloadCount int64              `xorm:"NOT NULL DEFAULT 0"`
 }
 
@@ -163,6 +163,17 @@ type SearchValue struct {
 	ExactMatch bool
 }
 
+type VersionSort = string
+
+const (
+	SortNameAsc     VersionSort = "name_asc"
+	SortNameDesc    VersionSort = "name_desc"
+	SortVersionAsc  VersionSort = "version_asc"
+	SortVersionDesc VersionSort = "version_desc"
+	SortCreatedAsc  VersionSort = "created_asc"
+	SortCreatedDesc VersionSort = "created_desc"
+)
+
 // PackageSearchOptions are options for SearchXXX methods
 // Besides IsInternal are all fields optional and are not used if they have their default value (nil, "", 0)
 type PackageSearchOptions struct {
@@ -176,7 +187,7 @@ type PackageSearchOptions struct {
 	IsInternal      util.OptionalBool
 	HasFileWithName string            // only results are found which are associated with a file with the specific name
 	HasFiles        util.OptionalBool // only results are found which have associated files
-	Sort            string
+	Sort            VersionSort
 	db.Paginator
 }
 
@@ -254,15 +265,15 @@ func (opts *PackageSearchOptions) toConds() builder.Cond {
 
 func (opts *PackageSearchOptions) configureOrderBy(e db.Engine) {
 	switch opts.Sort {
-	case "alphabetically":
+	case SortNameAsc:
 		e.Asc("package.name")
-	case "reversealphabetically":
+	case SortNameDesc:
 		e.Desc("package.name")
-	case "highestversion":
+	case SortVersionDesc:
 		e.Desc("package_version.version")
-	case "lowestversion":
+	case SortVersionAsc:
 		e.Asc("package_version.version")
-	case "oldest":
+	case SortCreatedAsc:
 		e.Asc("package_version.created_unix")
 	default:
 		e.Desc("package_version.created_unix")
@@ -307,4 +318,13 @@ func SearchLatestVersions(ctx context.Context, opts *PackageSearchOptions) ([]*P
 	pvs := make([]*PackageVersion, 0, 10)
 	count, err := sess.FindAndCount(&pvs)
 	return pvs, count, err
+}
+
+// CountVersions counts all versions of packages matching the search options
+func CountVersions(ctx context.Context, opts *PackageSearchOptions) (int64, error) {
+	return db.GetEngine(ctx).
+		Where(opts.toConds()).
+		Table("package_version").
+		Join("INNER", "package", "package.id = package_version.package_id").
+		Count(new(PackageVersion))
 }

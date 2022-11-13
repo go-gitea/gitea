@@ -18,6 +18,7 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/pipeline"
@@ -121,14 +122,14 @@ func LFSLocks(ctx *context.Context) {
 		Shared: true,
 	}); err != nil {
 		log.Error("Failed to clone repository: %s (%v)", ctx.Repo.Repository.FullName(), err)
-		ctx.ServerError("LFSLocks", fmt.Errorf("failed to clone repository: %s (%v)", ctx.Repo.Repository.FullName(), err))
+		ctx.ServerError("LFSLocks", fmt.Errorf("failed to clone repository: %s (%w)", ctx.Repo.Repository.FullName(), err))
 		return
 	}
 
 	gitRepo, err := git.OpenRepository(ctx, tmpBasePath)
 	if err != nil {
 		log.Error("Unable to open temporary repository: %s (%v)", tmpBasePath, err)
-		ctx.ServerError("LFSLocks", fmt.Errorf("failed to open new temporary repository in: %s %v", tmpBasePath, err))
+		ctx.ServerError("LFSLocks", fmt.Errorf("failed to open new temporary repository in: %s %w", tmpBasePath, err))
 		return
 	}
 	defer gitRepo.Close()
@@ -141,12 +142,12 @@ func LFSLocks(ctx *context.Context) {
 
 	if err := gitRepo.ReadTreeToIndex(ctx.Repo.Repository.DefaultBranch); err != nil {
 		log.Error("Unable to read the default branch to the index: %s (%v)", ctx.Repo.Repository.DefaultBranch, err)
-		ctx.ServerError("LFSLocks", fmt.Errorf("unable to read the default branch to the index: %s (%v)", ctx.Repo.Repository.DefaultBranch, err))
+		ctx.ServerError("LFSLocks", fmt.Errorf("unable to read the default branch to the index: %s (%w)", ctx.Repo.Repository.DefaultBranch, err))
 		return
 	}
 
 	name2attribute2info, err := gitRepo.CheckAttribute(git.CheckAttributeOpts{
-		Attributes: []string{"lockable"},
+		Attributes: []git.CmdArg{"lockable"},
 		Filenames:  filenames,
 		CachedOnly: true,
 	})
@@ -176,14 +177,12 @@ func LFSLocks(ctx *context.Context) {
 		return
 	}
 
-	filemap := make(map[string]bool, len(filelist))
-	for _, name := range filelist {
-		filemap[name] = true
-	}
+	fileset := make(container.Set[string], len(filelist))
+	fileset.AddMultiple(filelist...)
 
 	linkable := make([]bool, len(lfsLocks))
 	for i, lock := range lfsLocks {
-		linkable[i] = filemap[lock.Path]
+		linkable[i] = fileset.Contains(lock.Path)
 	}
 	ctx.Data["Linkable"] = linkable
 
@@ -309,7 +308,7 @@ func LFSFileGet(ctx *context.Context) {
 
 		// Building code view blocks with line number on server side.
 		escapedContent := &bytes.Buffer{}
-		ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, escapedContent)
+		ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, escapedContent, ctx.Locale)
 
 		var output bytes.Buffer
 		lines := strings.Split(escapedContent.String(), "\n")
@@ -543,7 +542,7 @@ func LFSAutoAssociate(ctx *context.Context) {
 		metas[i] = &git_model.LFSMetaObject{}
 		metas[i].Size, err = strconv.ParseInt(oid[idx+1:], 10, 64)
 		if err != nil {
-			ctx.ServerError("LFSAutoAssociate", fmt.Errorf("illegal oid input: %s %v", oid, err))
+			ctx.ServerError("LFSAutoAssociate", fmt.Errorf("illegal oid input: %s %w", oid, err))
 			return
 		}
 		metas[i].Oid = oid[:idx]

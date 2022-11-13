@@ -1,5 +1,5 @@
 <div class="ui top right pointing dropdown custom" id="review-box">
-	<div class="ui tiny green button btn-review">
+	<div class="ui tiny green button btn-review ml-2 mr-0">
 		{{.locale.Tr "repo.diff.review"}}
 		<span class="ui small label review-comments-counter" data-pending-comment-number="{{.PendingCodeCommentNumber}}">{{.PendingCodeCommentNumber}}</span>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -22,9 +22,9 @@
 					</div>
 				{{end}}
 				<div class="ui divider"></div>
-				<button type="submit" name="type" value="approve" {{ if and $.IsSigned ($.Issue.IsPoster $.SignedUser.ID) }} disabled {{ end }} class="ui submit green tiny button btn-submit">{{$.locale.Tr "repo.diff.review.approve"}}</button>
+				<button type="submit" name="type" value="approve" {{if and $.IsSigned ($.Issue.IsPoster $.SignedUser.ID)}} disabled {{end}} class="ui submit green tiny button btn-submit">{{$.locale.Tr "repo.diff.review.approve"}}</button>
 				<button type="submit" name="type" value="comment" class="ui submit tiny basic button btn-submit">{{$.locale.Tr "repo.diff.review.comment"}}</button>
-				<button type="submit" name="type" value="reject" {{ if and $.IsSigned ($.Issue.IsPoster $.SignedUser.ID) }} disabled {{ end }} class="ui submit red tiny button btn-submit">{{$.locale.Tr "repo.diff.review.reject"}}</button>
+				<button type="submit" name="type" value="reject" {{if and $.IsSigned ($.Issue.IsPoster $.SignedUser.ID)}} disabled {{end}} class="ui submit red tiny button btn-submit">{{$.locale.Tr "repo.diff.review.reject"}}</button>
 			</form>
 		</div>
 	</div>

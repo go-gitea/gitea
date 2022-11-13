@@ -149,7 +149,7 @@ func GetTrackedSeconds(ctx context.Context, opts FindTrackedTimesOptions) (track
 
 // AddTime will add the given time (in seconds) to the issue
 func AddTime(user *user_model.User, issue *Issue, amount int64, created time.Time) (*TrackedTime, error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +220,7 @@ func TotalTimes(options *FindTrackedTimesOptions) (map[*user_model.User]string, 
 
 // DeleteIssueUserTimes deletes times for issue
 func DeleteIssueUserTimes(issue *Issue, user *user_model.User) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -236,7 +236,7 @@ func DeleteIssueUserTimes(issue *Issue, user *user_model.User) error {
 		return err
 	}
 	if removedTime == 0 {
-		return db.ErrNotExist{}
+		return db.ErrNotExist{Resource: "tracked_time"}
 	}
 
 	if err := issue.LoadRepo(ctx); err != nil {
@@ -257,7 +257,7 @@ func DeleteIssueUserTimes(issue *Issue, user *user_model.User) error {
 
 // DeleteTime delete a specific Time
 func DeleteTime(t *TrackedTime) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -296,7 +296,7 @@ func deleteTimes(ctx context.Context, opts FindTrackedTimesOptions) (removedTime
 
 func deleteTime(ctx context.Context, t *TrackedTime) error {
 	if t.Deleted {
-		return db.ErrNotExist{ID: t.ID}
+		return db.ErrNotExist{Resource: "tracked_time", ID: t.ID}
 	}
 	t.Deleted = true
 	_, err := db.GetEngine(ctx).ID(t.ID).Cols("deleted").Update(t)
@@ -310,7 +310,7 @@ func GetTrackedTimeByID(id int64) (*TrackedTime, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, db.ErrNotExist{ID: id}
+		return nil, db.ErrNotExist{Resource: "tracked_time", ID: id}
 	}
 	return time, nil
 }

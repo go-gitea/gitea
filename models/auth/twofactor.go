@@ -41,6 +41,11 @@ func (err ErrTwoFactorNotEnrolled) Error() string {
 	return fmt.Sprintf("user not enrolled in 2FA [uid: %d]", err.UID)
 }
 
+// Unwrap unwraps this as a ErrNotExist err
+func (err ErrTwoFactorNotEnrolled) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // TwoFactor represents a two-factor authentication token.
 type TwoFactor struct {
 	ID               int64 `xorm:"pk autoincr"`

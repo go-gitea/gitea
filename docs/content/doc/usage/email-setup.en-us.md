@@ -47,7 +47,8 @@ Directly use SMTP server as relay. This option is useful if you don't want to se
 ENABLED        = true
 FROM           = gitea@mydomain.com
 MAILER_TYPE    = smtp
-HOST           = mail.mydomain.com:587
+SMTP_ADDR      = mail.mydomain.com
+SMTP_PORT      = 587
 IS_TLS_ENABLED = true
 USER           = gitea@mydomain.com
 PASSWD         = `password`
@@ -75,7 +76,8 @@ The following configuration should work with GMail's SMTP server:
 ```ini
 [mailer]
 ENABLED        = true
-HOST           = smtp.gmail.com:465
+SMTP_ADDR      = smtp.gmail.com
+SMTP_PORT      = 465
 FROM           = example@gmail.com
 USER           = example@gmail.com
 PASSWD         = ***
