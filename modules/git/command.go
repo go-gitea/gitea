@@ -169,8 +169,11 @@ func (c *Command) Run(opts *RunOpts) error {
 	if opts == nil {
 		opts = &RunOpts{}
 	}
-	if opts.Timeout <= 0 {
-		opts.Timeout = defaultCommandExecutionTimeout
+
+	// We must not change the provided options
+	timeout := opts.Timeout
+	if timeout <= 0 {
+		timeout = defaultCommandExecutionTimeout
 	}
 
 	if len(opts.Dir) == 0 {
@@ -205,7 +208,7 @@ func (c *Command) Run(opts *RunOpts) error {
 	if opts.UseContextTimeout {
 		ctx, cancel, finished = process.GetManager().AddContext(c.parentContext, desc)
 	} else {
-		ctx, cancel, finished = process.GetManager().AddContextTimeout(c.parentContext, opts.Timeout, desc)
+		ctx, cancel, finished = process.GetManager().AddContextTimeout(c.parentContext, timeout, desc)
 	}
 	defer finished()
 
@@ -306,9 +309,20 @@ func (c *Command) RunStdBytes(opts *RunOpts) (stdout, stderr []byte, runErr RunS
 	}
 	stdoutBuf := &bytes.Buffer{}
 	stderrBuf := &bytes.Buffer{}
-	opts.Stdout = stdoutBuf
-	opts.Stderr = stderrBuf
-	err := c.Run(opts)
+
+	// We must not change the provided options as it could break future calls - therefore make a copy.
+	newOpts := &RunOpts{
+		Env:               opts.Env,
+		Timeout:           opts.Timeout,
+		UseContextTimeout: opts.UseContextTimeout,
+		Dir:               opts.Dir,
+		Stdout:            stdoutBuf,
+		Stderr:            stderrBuf,
+		Stdin:             opts.Stdin,
+		PipelineFunc:      opts.PipelineFunc,
+	}
+
+	err := c.Run(newOpts)
 	stderr = stderrBuf.Bytes()
 	if err != nil {
 		return nil, stderr, &runStdError{err: err, stderr: bytesToString(stderr)}
