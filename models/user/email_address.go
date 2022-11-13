@@ -321,7 +321,7 @@ func DeleteInactiveEmailAddresses(ctx context.Context) error {
 
 // ActivateEmail activates the email address to given user.
 func ActivateEmail(email *EmailAddress) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -372,7 +372,7 @@ func MakeEmailPrimary(email *EmailAddress) error {
 		}
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -510,7 +510,7 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 // ActivateUserEmail will change the activated state of an email address,
 // either primary or secondary (all in the email_address table)
 func ActivateUserEmail(userID int64, email string, activate bool) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

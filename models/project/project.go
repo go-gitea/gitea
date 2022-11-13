@@ -180,7 +180,7 @@ func NewProject(p *Project) error {
 		return errors.New("project type is not valid")
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -248,7 +248,7 @@ func updateRepositoryProjectCount(ctx context.Context, repoID int64) error {
 
 // ChangeProjectStatusByRepoIDAndID toggles a project between opened and closed
 func ChangeProjectStatusByRepoIDAndID(repoID, projectID int64, isClosed bool) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -272,7 +272,7 @@ func ChangeProjectStatusByRepoIDAndID(repoID, projectID int64, isClosed bool) er
 
 // ChangeProjectStatus toggle a project between opened and closed
 func ChangeProjectStatus(p *Project, isClosed bool) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -301,7 +301,7 @@ func changeProjectStatus(ctx context.Context, p *Project, isClosed bool) error {
 
 // DeleteProjectByID deletes a project from a repository.
 func DeleteProjectByID(id int64) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
