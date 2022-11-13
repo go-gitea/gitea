@@ -95,7 +95,7 @@ readLoop:
 			_, _ = payloadSB.Write(line)
 		}
 	}
-	commit.CommitMessage = messageSB.String()
+	commit.CommitMessage = strings.TrimRight(messageSB.String(), "\n")
 	commit.Signature = &CommitGPGSignature{
 		Signature: signatureSB.String(),
 		Payload:   payloadSB.String(),
