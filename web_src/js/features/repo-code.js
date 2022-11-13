@@ -5,6 +5,8 @@ import {createTippy, showTemporaryTooltip} from '../modules/tippy.js';
 import {copyToClipboard} from './clipboard.js';
 
 const {i18n} = window.config;
+export const singleAnchorRegex = /^#(L|n)([1-9][0-9]*)$/;
+export const rangeAnchorRegex = /^#(L[1-9][0-9]*)-(L[1-9][0-9]*)$/;
 
 function changeHash(hash) {
   if (window.history.pushState) {
@@ -149,7 +151,7 @@ export function initRepoCodeView() {
     });
 
     $(window).on('hashchange', () => {
-      let m = window.location.hash.match(/^#(L\d+)-(L\d+)$/);
+      let m = window.location.hash.match(rangeAnchorRegex);
       let $list;
       if ($('div.blame').length) {
         $list = $('.code-view td.lines-code.blame-code');
@@ -159,27 +161,31 @@ export function initRepoCodeView() {
       let $first;
       if (m) {
         $first = $list.filter(`[rel=${m[1]}]`);
-        selectRange($list, $first, $list.filter(`[rel=${m[2]}]`));
+        if ($first.length) {
+          selectRange($list, $first, $list.filter(`[rel=${m[2]}]`));
 
-        // show code view menu marker (don't show in blame page)
-        if ($('div.blame').length === 0) {
-          showLineButton();
+          // show code view menu marker (don't show in blame page)
+          if ($('div.blame').length === 0) {
+            showLineButton();
+          }
+
+          $('html, body').scrollTop($first.offset().top - 200);
+          return;
         }
-
-        $('html, body').scrollTop($first.offset().top - 200);
-        return;
       }
-      m = window.location.hash.match(/^#(L|n)(\d+)$/);
+      m = window.location.hash.match(singleAnchorRegex);
       if (m) {
         $first = $list.filter(`[rel=L${m[2]}]`);
-        selectRange($list, $first);
+        if ($first.length) {
+          selectRange($list, $first);
 
-        // show code view menu marker (don't show in blame page)
-        if ($('div.blame').length === 0) {
-          showLineButton();
+          // show code view menu marker (don't show in blame page)
+          if ($('div.blame').length === 0) {
+            showLineButton();
+          }
+
+          $('html, body').scrollTop($first.offset().top - 200);
         }
-
-        $('html, body').scrollTop($first.offset().top - 200);
       }
     }).trigger('hashchange');
   }
