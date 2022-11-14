@@ -20,31 +20,43 @@ func TestFile(t *testing.T) {
 		name string
 		code string
 		want []string
+		lexer string
 	}{
 		{
-			name: "empty.py",
-			code: "",
-			want: lines(""),
+			name:  "empty.py",
+			code:  "",
+			want:  lines(""),
+			lexer: "Python",
 		},
 		{
-			name: "tags.txt",
-			code: "<>",
-			want: lines("&lt;&gt;"),
+			name:  "empty.js",
+			code:  "",
+			want:  lines(""),
+			lexer: "Javascript",
 		},
 		{
-			name: "tags.py",
-			code: "<>",
-			want: lines(`<span class="o">&lt;</span><span class="o">&gt;</span>`),
+			name:  "tags.txt",
+			code:  "<>",
+			want:  lines("&lt;&gt;"),
+			lexer: "Plaintext",
 		},
 		{
-			name: "eol-no.py",
-			code: "a=1",
-			want: lines(`<span class="n">a</span><span class="o">=</span><span class="mi">1</span>`),
+			name:  "tags.py",
+			code:  "<>",
+			want:  lines(`<span class="o">&lt;</span><span class="o">&gt;</span>`),
+			lexer: "Python",
 		},
 		{
-			name: "eol-newline1.py",
-			code: "a=1\n",
-			want: lines(`<span class="n">a</span><span class="o">=</span><span class="mi">1</span>\n`),
+			name:  "eol-no.py",
+			code:  "a=1",
+			want:  lines(`<span class="n">a</span><span class="o">=</span><span class="mi">1</span>`),
+			lexer: "Python",
+		},
+		{
+			name:  "eol-newline1.py",
+			code:  "a=1\n",
+			want:  lines(`<span class="n">a</span><span class="o">=</span><span class="mi">1</span>\n`),
+			lexer: "Python",
 		},
 		{
 			name: "eol-newline2.py",
@@ -54,6 +66,7 @@ func TestFile(t *testing.T) {
 \n
 			`,
 			),
+			lexer: "Python",
 		},
 		{
 			name: "empty-line-with-space.py",
@@ -73,6 +86,7 @@ c=2
     \n
 <span class="n">c</span><span class="o">=</span><span class="mi">2</span>`,
 			),
+			lexer: "Python",
 		},
 	}
 
@@ -82,9 +96,9 @@ c=2
 			assert.NoError(t, err)
 			expected := strings.Join(tt.want, "\n")
 			actual := strings.Join(out, "\n")
-			assert.NotEmpty(t, lexerName)
 			assert.Equal(t, strings.Count(actual, "<span"), strings.Count(actual, "</span>"))
 			assert.EqualValues(t, expected, actual)
+			assert.Equal(t, tt.lexer, lexerName)
 		})
 	}
 }
