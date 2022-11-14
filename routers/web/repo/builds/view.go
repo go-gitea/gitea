@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/bots"
 	context_module "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/web"
+
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 	"xorm.io/builder"
 )
@@ -143,7 +144,7 @@ func ViewPost(ctx *context_module.Context) {
 		} else {
 			resp.StateData.CurrentJobInfo.Detail = "TODO: more detail info" // TODO: more detail info
 
-			steps := task.FullSteps()
+			steps := bots.FullSteps(task)
 
 			resp.StateData.CurrentJobSteps = make([]ViewJobStep, len(steps))
 			for i, v := range steps {

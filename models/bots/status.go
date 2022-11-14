@@ -25,7 +25,12 @@ func (s Status) String() string {
 
 // IsDone returns whether the Status is final
 func (s Status) IsDone() bool {
-	return s > StatusUnknown && s <= StatusSkipped
+	return s.In(StatusSuccess, StatusFailure, StatusCancelled, StatusSkipped)
+}
+
+// HasRun returns whether the Status is a result of running
+func (s Status) HasRun() bool {
+	return s.In(StatusSuccess, StatusFailure)
 }
 
 func (s Status) IsSuccess() bool {

@@ -190,56 +190,6 @@ func (task *Task) LoadAttributes(ctx context.Context) error {
 	return nil
 }
 
-// FullSteps returns steps with "Set up job" and "Complete job"
-func (task *Task) FullSteps() []*TaskStep {
-	// TODO: The logic here is too complex and tricky, may need to be rewritten
-
-	var firstStep, lastStep *TaskStep
-	if l := len(task.Steps); l > 0 {
-		firstStep = task.Steps[0]
-		lastStep = task.Steps[l-1]
-	}
-	var index int64
-
-	headStep := &TaskStep{
-		Name:      "Set up job",
-		LogLength: task.LogLength,
-		Started:   task.Started,
-		Status:    StatusWaiting,
-	}
-	if task.LogLength > 0 {
-		headStep.Status = StatusRunning
-	}
-	if firstStep != nil && firstStep.LogLength > 0 {
-		headStep.LogLength = firstStep.LogIndex
-		headStep.Stopped = firstStep.Started
-		headStep.Status = StatusSuccess
-	}
-	index += headStep.LogLength
-
-	for _, step := range task.Steps {
-		index += step.LogLength
-	}
-
-	tailStep := &TaskStep{
-		Name:    "Complete job",
-		Stopped: task.Stopped,
-		Status:  StatusWaiting,
-	}
-	if lastStep != nil && lastStep.Result != runnerv1.Result_RESULT_UNSPECIFIED {
-		tailStep.LogIndex = index
-		tailStep.LogLength = task.LogLength - tailStep.LogIndex
-		tailStep.Started = lastStep.Stopped
-		tailStep.Status = StatusSuccess
-	}
-	steps := make([]*TaskStep, 0, len(task.Steps)+2)
-	steps = append(steps, headStep)
-	steps = append(steps, task.Steps...)
-	steps = append(steps, tailStep)
-
-	return steps
-}
-
 func (task *Task) GenerateToken() error {
 	salt, err := util.CryptoRandomString(10)
 	if err != nil {
