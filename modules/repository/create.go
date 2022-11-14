@@ -211,7 +211,7 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 
 	var rollbackRepo *repo_model.Repository
 
-	if err := db.WithTx(func(ctx context.Context) error {
+	if err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		if err := CreateRepositoryByExample(ctx, doer, u, repo, false); err != nil {
 			return err
 		}

@@ -19,7 +19,7 @@ import (
 // Source holds configuration for the SMTP login source.
 type Source struct {
 	Auth           string
-	Addr           string
+	Host           string
 	Port           int
 	AllowedDomains string `xorm:"TEXT"`
 	ForceSMTPS     bool

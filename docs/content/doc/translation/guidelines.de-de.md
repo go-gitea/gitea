@@ -45,15 +45,15 @@ Beispiel: Wenn der Button mit `löschen` beschriftet ist, sollte im Modal die Fr
 ## Artikeldefinitionen für Anglizismen
 
 * _Der_ Commit (m.)
-* _Der_ Branch (m.)
+* _Der_ Branch (m.), plural: die Branches
 * _Das_ Issue (n.)
 * _Der_ Fork (m.)
-* _Das_ Repository (n.)
+* _Das_ Repository (n.), plural: die Repositories
 * _Der_ Pull-Request (m.)
-* _Der_ Token (m.)
+* _Der_ Token (m.), plural: die Token
 * _Das_ Review (n.)
 * _Der_ Key (m.)
-* _Der_ Committer (m.)
+* _Der_ Committer (m.), plural: die Committer
 
 ## Weiterführende Links
 

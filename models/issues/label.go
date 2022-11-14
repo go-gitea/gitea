@@ -232,7 +232,7 @@ func NewLabel(ctx context.Context, label *Label) error {
 
 // NewLabels creates new labels
 func NewLabels(labels ...*Label) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -267,7 +267,7 @@ func DeleteLabel(id, labelID int64) error {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -627,7 +627,7 @@ func NewIssueLabel(issue *Issue, label *Label, doer *user_model.User) (err error
 		return nil
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -676,7 +676,7 @@ func newIssueLabels(ctx context.Context, issue *Issue, labels []*Label, doer *us
 
 // NewIssueLabels creates a list of issue-label relations.
 func NewIssueLabels(issue *Issue, labels []*Label, doer *user_model.User) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
