@@ -165,6 +165,12 @@ func (s *Service) UpdateTask(
 	ctx context.Context,
 	req *connect.Request[runnerv1.UpdateTaskRequest],
 ) (*connect.Response[runnerv1.UpdateTaskResponse], error) {
+	{
+		// to debug strange runner behaviors, it could be removed if all problems have been solved.
+		stateMsg, _ := json.Marshal(req.Msg.State)
+		log.Trace("update task with state: %s", stateMsg)
+	}
+
 	// Get Task first
 	task, err := bots_model.GetTaskByID(ctx, req.Msg.State.Id)
 	if err != nil {

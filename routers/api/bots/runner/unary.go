@@ -11,9 +11,9 @@ import (
 	bots_model "code.gitea.io/gitea/models/bots"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
+
 	"gitea.com/gitea/act_runner/core"
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
-
 	"github.com/bufbuild/connect-go"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
