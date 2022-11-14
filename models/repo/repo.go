@@ -516,38 +516,39 @@ func (repo *Repository) IsOwnedBy(userID int64) bool {
 	return repo.OwnerID == userID
 }
 
-func (repo *Repository) computeSize() (int64, error) {
-	size, err := util.GetDirectorySize(repo.RepoPath())
-	if err != nil {
-		return 0, fmt.Errorf("computeSize: %v", err)
-	}
+// TODO - DmitryFrolovTri Review every commented function and see if we need to reinstate it
+// func (repo *Repository) computeSize() (int64, error) {
+// 	size, err := util.GetDirectorySize(repo.RepoPath())
+// 	if err != nil {
+// 		return 0, fmt.Errorf("computeSize: %v", err)
+// 	}
 
-	objs, err := repo.GetLFSMetaObjects(repo.ID, -1, 0)
-	if err != nil {
-		return 0, fmt.Errorf("computeSize: GetLFSMetaObjects: %v", err)
-	}
-	for _, obj := range objs {
-		size += obj.Size
-	}
+// 	objs, err := repo.GetLFSMetaObjects(repo.ID, -1, 0)
+// 	if err != nil {
+// 		return 0, fmt.Errorf("computeSize: GetLFSMetaObjects: %v", err)
+// 	}
+// 	for _, obj := range objs {
+// 		size += obj.Size
+// 	}
 
-	return size, nil
-}
+// 	return size, nil
+// }
 
-func (repo *Repository) updateSize(e Engine) error {
-	size, err := repo.computeSize()
-	if err != nil {
-		return fmt.Errorf("updateSize: %v", err)
-	}
+// func (repo *Repository) updateSize(ctx context.Context Engine) error {
+// 	size, err := repo.computeSize()
+// 	if err != nil {
+// 		return fmt.Errorf("updateSize: %v", err)
+// 	}
 
-	repo.Size = size
-	_, err = e.ID(repo.ID).Cols("size").Update(repo)
-	return err
-}
+// 	repo.Size = size
+// 	_, err = e.ID(repo.ID).Cols("size").Update(repo)
+// 	return err
+// }
 
-// UpdateSize updates the repository size, calculating it using util.GetDirectorySize
-func (repo *Repository) UpdateSize(ctx DBContext) error {
-	return repo.updateSize(ctx.e)
-}
+// // UpdateSize updates the repository size, calculating it using util.GetDirectorySize
+// func (repo *Repository) UpdateSize(ctx DBContext) error {
+// 	return repo.updateSize(ctx.e)
+// }
 
 // RepoSizeIsOversized return if is over size limitation
 func (repo *Repository) RepoSizeIsOversized(additionalSize int64) bool {
