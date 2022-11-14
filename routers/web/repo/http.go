@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/auth"
+	bots_model "code.gitea.io/gitea/models/bots"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -164,7 +165,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 			return
 		}
 
-		if ctx.IsBasicAuth && ctx.Data["IsApiToken"] != true {
+		if ctx.IsBasicAuth && ctx.Data["IsApiToken"] != true && ctx.Data["IsBotToken"] != true {
 			_, err = auth.GetTwoFactorByUID(ctx.Doer.ID)
 			if err == nil {
 				// TODO: This response should be changed to "invalid credentials" for security reasons once the expectation behind it (creating an app token to authenticate) is properly documented
@@ -182,20 +183,32 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 		}
 
 		if repoExist {
-			p, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
-			if err != nil {
-				ctx.ServerError("GetUserRepoPermission", err)
-				return
-			}
-
 			// Because of special ref "refs/for" .. , need delay write permission check
 			if git.SupportProcReceive {
 				accessMode = perm.AccessModeRead
 			}
 
-			if !p.CanAccess(accessMode, unitType) {
-				ctx.PlainText(http.StatusForbidden, "User permission denied")
-				return
+			if ctx.Data["IsBotToken"] == true {
+				taskID := ctx.Data["BotTaskID"].(int64)
+				task, err := bots_model.GetTaskByID(ctx, taskID)
+				if err != nil {
+					ctx.ServerError("GetTaskByID", err)
+					return
+				}
+				if task.RepoID != repo.ID {
+					ctx.PlainText(http.StatusForbidden, "User permission denied")
+					return
+				}
+			} else {
+				p, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+				if err != nil {
+					ctx.ServerError("GetUserRepoPermission", err)
+					return
+				}
+				if !p.CanAccess(accessMode, unitType) {
+					ctx.PlainText(http.StatusForbidden, "User permission denied")
+					return
+				}
 			}
 
 			if !isPull && repo.IsMirror {

@@ -114,6 +114,9 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	if err == nil && task != nil && task.Status.IsRunning() {
 		log.Trace("Basic Authorization: Valid AccessToken for task[%d]", task.ID)
 
+		store.GetData()["IsBotToken"] = true
+		store.GetData()["BotTaskID"] = task.ID
+
 		return bots_model.NewBotUser()
 	} else {
 		log.Error("GetRunnerByToken: %v", err)
