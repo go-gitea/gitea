@@ -219,5 +219,9 @@ func PlainText(code []byte) []string {
 }
 
 func formatLexerName(name string) string {
+	if name == "fallback" {
+		return "Plaintext"
+	}
+
 	return strings.Title(name)
 }
