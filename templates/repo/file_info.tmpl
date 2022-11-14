@@ -4,7 +4,7 @@
 			{{.locale.Tr "repo.symbolic_link"}}
 		</div>
 	{{end}}
-	{{if .NumLinesSet}}
+	{{if .NumLinesSet}}{{/* Explicit attribute needed to show 0 line changes */}}
 		<div class="file-info-entry">
 			{{.NumLines}} {{.locale.TrN .NumLines "repo.line" "repo.lines"}}
 		</div>
