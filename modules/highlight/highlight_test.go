@@ -35,6 +35,12 @@ func TestFile(t *testing.T) {
 			lexerName: "JavaScript",
 		},
 		{
+			name:      "empty.yaml",
+			code:      "",
+			want:      lines(""),
+			lexerName: "YAML",
+		},
+		{
 			name:      "tags.txt",
 			code:      "<>",
 			want:      lines("&lt;&gt;"),
