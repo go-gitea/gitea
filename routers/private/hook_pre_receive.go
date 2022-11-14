@@ -13,7 +13,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	bots_model "code.gitea.io/gitea/models/bots"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	perm_model "code.gitea.io/gitea/models/perm"
@@ -466,8 +465,8 @@ func (ctx *preReceiveContext) loadPusherAndPermission() bool {
 		return true
 	}
 
-	if ctx.opts.UserID == -2 {
-		ctx.user = bots_model.NewBotUser()
+	if ctx.opts.UserID == user_model.BotUserID {
+		ctx.user = user_model.NewBotUser()
 		ctx.userPerm.AccessMode = perm_model.AccessModeAdmin
 		if err := ctx.Repo.Repository.LoadUnits(ctx); err != nil {
 			log.Error("Unable to get User id %d Error: %v", ctx.opts.UserID, err)

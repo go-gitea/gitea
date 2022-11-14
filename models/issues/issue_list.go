@@ -106,12 +106,15 @@ func (issues IssueList) loadPosters(ctx context.Context) error {
 	}
 
 	for _, issue := range issues {
-		if issue.PosterID <= 0 {
+		if issue.PosterID == user_model.BotUserID {
+			issue.Poster = user_model.NewBotUser()
+		} else if issue.PosterID <= 0 {
 			continue
-		}
-		var ok bool
-		if issue.Poster, ok = posterMaps[issue.PosterID]; !ok {
-			issue.Poster = user_model.NewGhostUser()
+		} else {
+			var ok bool
+			if issue.Poster, ok = posterMaps[issue.PosterID]; !ok {
+				issue.Poster = user_model.NewGhostUser()
+			}
 		}
 	}
 	return nil

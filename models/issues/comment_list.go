@@ -49,12 +49,15 @@ func (comments CommentList) LoadPosters(ctx context.Context) error {
 	}
 
 	for _, comment := range comments {
-		if comment.PosterID <= 0 {
+		if comment.PosterID == user_model.BotUserID {
+			comment.Poster = user_model.NewBotUser()
+		} else if comment.PosterID <= 0 {
 			continue
-		}
-		var ok bool
-		if comment.Poster, ok = posterMaps[comment.PosterID]; !ok {
-			comment.Poster = user_model.NewGhostUser()
+		} else {
+			var ok bool
+			if comment.Poster, ok = posterMaps[comment.PosterID]; !ok {
+				comment.Poster = user_model.NewGhostUser()
+			}
 		}
 	}
 	return nil

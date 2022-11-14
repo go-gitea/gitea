@@ -73,6 +73,7 @@ import (
 
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	perm_model "code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -185,10 +186,23 @@ func repoAssignment() func(ctx *context.APIContext) {
 		repo.Owner = owner
 		ctx.Repo.Repository = repo
 
-		ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
-			return
+		if ctx.Doer.ID == user_model.BotUserID {
+			ctx.Repo.Permission.AccessMode = perm_model.AccessModeAdmin
+			if err := ctx.Repo.Repository.LoadUnits(ctx); err != nil {
+				ctx.Error(http.StatusInternalServerError, "LoadUnits", err)
+				return
+			}
+			ctx.Repo.Permission.Units = ctx.Repo.Repository.Units
+			ctx.Repo.Permission.UnitsMode = make(map[unit.Type]perm_model.AccessMode)
+			for _, u := range ctx.Repo.Repository.Units {
+				ctx.Repo.Permission.UnitsMode[u.Type] = ctx.Repo.Permission.AccessMode
+			}
+		} else {
+			ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
+				return
+			}
 		}
 
 		if !ctx.Repo.HasAccess() {
@@ -210,7 +224,7 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.APIContext) 
 // Contexter middleware already checks token for user sign in process.
 func reqToken() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if true == ctx.Data["IsApiToken"] {
+		if true == ctx.Data["IsApiToken"] || true == ctx.Data["IsBotToken"] {
 			return
 		}
 		if ctx.Context.IsBasicAuth {

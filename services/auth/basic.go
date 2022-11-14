@@ -117,9 +117,9 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		store.GetData()["IsBotToken"] = true
 		store.GetData()["BotTaskID"] = task.ID
 
-		return bots_model.NewBotUser()
+		return user_model.NewBotUser()
 	} else {
-		log.Error("GetRunnerByToken: %v", err)
+		log.Error("GetRunnerByToken: %v %v", task, err)
 	}
 
 	if !setting.Service.EnableBasicAuth {

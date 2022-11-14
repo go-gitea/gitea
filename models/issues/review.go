@@ -159,7 +159,7 @@ func (r *Review) LoadReviewer(ctx context.Context) (err error) {
 	if r.ReviewerID == 0 || r.Reviewer != nil {
 		return
 	}
-	r.Reviewer, err = user_model.GetUserByIDCtx(ctx, r.ReviewerID)
+	r.Reviewer, err = user_model.GetPossbileUserByID(ctx, r.ReviewerID)
 	return err
 }
 

@@ -551,39 +551,6 @@ func GetUserSalt() (string, error) {
 	return hex.EncodeToString(rBytes), nil
 }
 
-// NewGhostUser creates and returns a fake user for someone has deleted their account.
-func NewGhostUser() *User {
-	return &User{
-		ID:        -1,
-		Name:      "Ghost",
-		LowerName: "ghost",
-	}
-}
-
-// NewReplaceUser creates and returns a fake user for external user
-func NewReplaceUser(name string) *User {
-	return &User{
-		ID:        -1,
-		Name:      name,
-		LowerName: strings.ToLower(name),
-	}
-}
-
-// IsGhost check if user is fake user for a deleted account
-func (u *User) IsGhost() bool {
-	if u == nil {
-		return false
-	}
-	return u.ID == -1 && u.Name == "Ghost"
-}
-
-func (u *User) IsBots() bool {
-	if u == nil {
-		return false
-	}
-	return u.ID == -2 && u.Name == "gitea-bots"
-}
-
 var (
 	reservedUsernames = []string{
 		".",
@@ -1015,6 +982,20 @@ func GetUserByIDCtx(ctx context.Context, id int64) (*User, error) {
 		return nil, ErrUserNotExist{id, "", 0}
 	}
 	return u, nil
+}
+
+// GetPossbileUserByID returns the user if id > 0 or return system usrs if id < 0
+func GetPossbileUserByID(ctx context.Context, id int64) (*User, error) {
+	switch id {
+	case -1:
+		return NewGhostUser(), nil
+	case BotUserID:
+		return NewBotUser(), nil
+	case 0:
+		return nil, ErrUserNotExist{}
+	default:
+		return GetUserByIDCtx(ctx, id)
+	}
 }
 
 // GetUserByNameCtx returns user by given name.
