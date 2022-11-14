@@ -5,18 +5,18 @@
 package bots
 
 import (
-	"log"
 	"net/http"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/bots/grpc"
 )
 
 func grpcHandler(h http.Handler) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Println("protocol version:", r.Proto)
+	return func(w http.ResponseWriter, r *http.Request) {
+		log.Trace("protocol version:", r.Proto)
 		h.ServeHTTP(w, r)
-	})
+	}
 }
 
 func gRPCRouter(r *web.Route, fn grpc.RouteFn) {
