@@ -6,12 +6,14 @@ package bots
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	bots_model "code.gitea.io/gitea/models/bots"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/queue"
+
 	"xorm.io/builder"
 )
 
@@ -27,9 +29,13 @@ func InitJobEmitter() {
 }
 
 func EmitJobsIfReady(runID int64) error {
-	return jobEmitterQueue.Push(&jobUpdate{
+	err := jobEmitterQueue.Push(&jobUpdate{
 		RunID: runID,
 	})
+	if errors.Is(err, queue.ErrAlreadyInQueue) {
+		return nil
+	}
+	return err
 }
 
 func jobEmitterQueueHandle(data ...queue.Data) []queue.Data {
