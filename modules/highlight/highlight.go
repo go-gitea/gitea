@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/formatters/html"
@@ -223,5 +224,5 @@ func formatLexerName(name string) string {
 		return "Plaintext"
 	}
 
-	return strings.Title(name)
+	return util.ToTitleCase(name)
 }
