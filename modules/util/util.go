@@ -187,10 +187,16 @@ func ToUpperASCII(s string) string {
 }
 
 var titleCaser = cases.Title(language.English)
+var titleCaserNoLower = cases.Title(language.English, cases.NoLower)
 
 // ToTitleCase returns s with all english words capitalized
 func ToTitleCase(s string) string {
 	return titleCaser.String(s)
+}
+
+// ToTitleCaseNoLower returns s with all english words capitalized without lowercasing
+func ToTitleCaseNoLower(s string) string {
+	return titleCaserNoLower.String(s)
 }
 
 var (

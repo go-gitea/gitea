@@ -224,5 +224,5 @@ func formatLexerName(name string) string {
 		return "Plaintext"
 	}
 
-	return util.ToTitleCase(name)
+	return util.ToTitleCaseNoLower(name)
 }

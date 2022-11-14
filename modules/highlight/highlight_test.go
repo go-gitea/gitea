@@ -32,7 +32,7 @@ func TestFile(t *testing.T) {
 			name:      "empty.js",
 			code:      "",
 			want:      lines(""),
-			lexerName: "Javascript",
+			lexerName: "JavaScript",
 		},
 		{
 			name:      "tags.txt",
