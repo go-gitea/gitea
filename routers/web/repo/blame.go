@@ -286,7 +286,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 
 			// set lexer name to the first detected lexer. this is certainly suboptimal and
 			// we should instead highlight the whole file at once
-			if (lexerName == "") {
+			if lexerName == "" {
 				lexerName = lexerNameForLine
 			}
 
