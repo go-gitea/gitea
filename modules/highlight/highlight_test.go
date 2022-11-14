@@ -78,10 +78,11 @@ c=2
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			out, err := File(tt.name, "", []byte(tt.code))
+			out, lexerName, err := File(tt.name, "", []byte(tt.code))
 			assert.NoError(t, err)
 			expected := strings.Join(tt.want, "\n")
 			actual := strings.Join(out, "\n")
+			assert.NotEmpty(t, lexerName)
 			assert.Equal(t, strings.Count(actual, "<span"), strings.Count(actual, "</span>"))
 			assert.EqualValues(t, expected, actual)
 		})

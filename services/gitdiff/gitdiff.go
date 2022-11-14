@@ -280,7 +280,8 @@ func DiffInlineWithUnicodeEscape(s template.HTML, locale translation.Locale) Dif
 
 // DiffInlineWithHighlightCode makes a DiffInline with code highlight and hidden unicode characters escaped
 func DiffInlineWithHighlightCode(fileName, language, code string, locale translation.Locale) DiffInline {
-	status, content := charset.EscapeControlHTML(highlight.Code(fileName, language, code), locale)
+	highlighted, _ := highlight.Code(fileName, language, code)
+	status, content := charset.EscapeControlHTML(highlighted, locale)
 	return DiffInline{EscapeStatus: status, Content: template.HTML(content)}
 }
 

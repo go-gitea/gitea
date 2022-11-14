@@ -94,6 +94,9 @@ func searchResult(result *SearchResult, startIndex, endIndex int) (*Result, erro
 		lineNumbers[i] = startLineNum + i
 		index += len(line)
 	}
+
+	highlighted, _ := highlight.Code(result.Filename, "", formattedLinesBuffer.String())
+
 	return &Result{
 		RepoID:         result.RepoID,
 		Filename:       result.Filename,
@@ -102,7 +105,7 @@ func searchResult(result *SearchResult, startIndex, endIndex int) (*Result, erro
 		Language:       result.Language,
 		Color:          result.Color,
 		LineNumbers:    lineNumbers,
-		FormattedLines: highlight.Code(result.Filename, "", formattedLinesBuffer.String()),
+		FormattedLines: highlighted,
 	}, nil
 }
 

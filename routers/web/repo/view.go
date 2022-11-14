@@ -568,7 +568,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 					language = ""
 				}
 			}
-			fileContent, err := highlight.File(blob.Name(), language, buf)
+			fileContent, lexerName, err := highlight.File(blob.Name(), language, buf)
 			if err != nil {
 				log.Error("highlight.File failed, fallback to plain text: %v", err)
 				fileContent = highlight.PlainText(buf)
@@ -581,6 +581,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			}
 			ctx.Data["EscapeStatus"] = status
 			ctx.Data["FileContent"] = fileContent
+			ctx.Data["LexerName"] = lexerName
 			ctx.Data["LineEscapeStatus"] = statuses
 		}
 		if !isLFSFile {
