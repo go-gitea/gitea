@@ -259,20 +259,6 @@ func GetRunnerByID(id int64) (*Runner, error) {
 	return &runner, nil
 }
 
-// GetRunnerByToken returns a bot runner via token
-func GetRunnerByToken(token string) (*Runner, error) {
-	var runner Runner
-	has, err := db.GetEngine(db.DefaultContext).Where("token=?", token).Get(&runner)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrRunnerNotExist{
-			Token: token,
-		}
-	}
-	return &runner, nil
-}
-
 // UpdateRunner updates runner's information.
 func UpdateRunner(ctx context.Context, r *Runner, cols ...string) error {
 	e := db.GetEngine(ctx)

@@ -119,7 +119,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 
 		return user_model.NewBotUser()
 	} else {
-		log.Error("GetRunnerByToken: %v %v", task, err)
+		log.Error("GetTaskByToken: %v %v", task, err)
 	}
 
 	if !setting.Service.EnableBasicAuth {

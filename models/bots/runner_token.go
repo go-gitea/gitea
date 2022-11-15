@@ -49,7 +49,7 @@ func init() {
 	db.RegisterModel(new(RunnerToken))
 }
 
-// GetRunnerByToken returns a bot runner via token
+// GetRunnerToken returns a bot runner via token
 func GetRunnerToken(token string) (*RunnerToken, error) {
 	var runnerToken RunnerToken
 	has, err := db.GetEngine(db.DefaultContext).Where("token=?", token).Get(&runnerToken)
