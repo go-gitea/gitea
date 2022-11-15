@@ -122,9 +122,9 @@ func GetAttachmentsByUUIDs(ctx context.Context, uuids []string) ([]*Attachment, 
 	return attachments, db.GetEngine(ctx).In("uuid", uuids).Find(&attachments)
 }
 
-// ExistAttachmentsByUUID returns true if attachment is exist by given UUID
-func ExistAttachmentsByUUID(uuid string) (bool, error) {
-	return db.GetEngine(db.DefaultContext).Where("`uuid`=?", uuid).Exist(new(Attachment))
+// ExistAttachmentsByUUID returns true if attachment exists with the given UUID
+func ExistAttachmentsByUUID(ctx context.Context, uuid string) (bool, error) {
+	return db.GetEngine(ctx).Where("`uuid`=?", uuid).Exist(new(Attachment))
 }
 
 // GetAttachmentsByIssueID returns all attachments of an issue.
