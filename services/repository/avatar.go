@@ -33,7 +33,7 @@ func UploadAvatar(repo *repo_model.Repository, data []byte) error {
 		return nil
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -76,7 +76,7 @@ func DeleteAvatar(repo *repo_model.Repository) error {
 	avatarPath := repo.CustomAvatarRelativePath()
 	log.Trace("DeleteAvatar[%d]: %s", repo.ID, avatarPath)
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func DeleteAvatar(repo *repo_model.Repository) error {
 
 // RemoveRandomAvatars removes the randomly generated avatars that were created for repositories
 func RemoveRandomAvatars(ctx context.Context) error {
-	return db.IterateObjects(ctx, func(repository *repo_model.Repository) error {
+	return db.Iterate(ctx, nil, func(ctx context.Context, repository *repo_model.Repository) error {
 		select {
 		case <-ctx.Done():
 			return db.ErrCancelledf("before random avatars removed for %s", repository.FullName())

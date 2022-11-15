@@ -64,6 +64,7 @@ const (
 	ActionPublishRelease                                  // 24
 	ActionPullReviewDismissed                             // 25
 	ActionPullRequestReadyForReview                       // 26
+	ActionAutoMergePullRequest                            // 27
 )
 
 // Action represents user operation type and other information to
@@ -550,7 +551,7 @@ func notifyWatchers(ctx context.Context, actions ...*Action) error {
 				if !permIssue[i] {
 					continue
 				}
-			case ActionCreatePullRequest, ActionCommentPull, ActionMergePullRequest, ActionClosePullRequest, ActionReopenPullRequest:
+			case ActionCreatePullRequest, ActionCommentPull, ActionMergePullRequest, ActionClosePullRequest, ActionReopenPullRequest, ActionAutoMergePullRequest:
 				if !permPR[i] {
 					continue
 				}
@@ -571,7 +572,7 @@ func NotifyWatchers(actions ...*Action) error {
 
 // NotifyWatchersActions creates batch of actions for every watcher.
 func NotifyWatchersActions(acts []*Action) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

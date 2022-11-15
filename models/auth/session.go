@@ -37,7 +37,7 @@ func ReadSession(key string) (*Session, error) {
 		Key: key,
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func DestroySession(key string) error {
 
 // RegenerateSession regenerates a session from the old id
 func RegenerateSession(oldKey, newKey string) (*Session, error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}

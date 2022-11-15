@@ -88,10 +88,10 @@ var (
 	// AppWorkPath is used as the base path for several other paths.
 	AppWorkPath string
 	// AppDataPath is the default path for storing data.
-	// It maps to ini:"APP_DATA_PATH" and defaults to AppWorkPath + "/data"
+	// It maps to ini:"APP_DATA_PATH" in [server] and defaults to AppWorkPath + "/data"
 	AppDataPath string
 	// LocalURL is the url for locally running applications to contact Gitea. It always has a '/' suffix
-	// It maps to ini:"LOCAL_ROOT_URL"
+	// It maps to ini:"LOCAL_ROOT_URL" in [server]
 	LocalURL string
 	// AssetVersion holds a opaque value that is used for cache-busting assets
 	AssetVersion string
@@ -1158,6 +1158,8 @@ func parseAuthorizedPrincipalsAllow(values []string) ([]string, bool) {
 	return authorizedPrincipalsAllow, true
 }
 
+// loadSecret load the secret from ini by uriKey or verbatimKey, only one of them could be set
+// If the secret is loaded from uriKey (file), the file should be non-empty, to guarantee the behavior stable and clear.
 func loadSecret(sec *ini.Section, uriKey, verbatimKey string) string {
 	// don't allow setting both URI and verbatim string
 	uri := sec.Key(uriKey).String()
@@ -1181,7 +1183,15 @@ func loadSecret(sec *ini.Section, uriKey, verbatimKey string) string {
 		if err != nil {
 			log.Fatal("Failed to read %s (%s): %v", uriKey, tempURI.RequestURI(), err)
 		}
-		return strings.TrimSpace(string(buf))
+		val := strings.TrimSpace(string(buf))
+		if val == "" {
+			// The file shouldn't be empty, otherwise we can not know whether the user has ever set the KEY or KEY_URI
+			// For example: if INTERNAL_TOKEN_URI=file:///empty-file,
+			// Then if the token is re-generated during installation and saved to INTERNAL_TOKEN
+			// Then INTERNAL_TOKEN and INTERNAL_TOKEN_URI both exist, that's a fatal error (they shouldn't)
+			log.Fatal("Failed to read %s (%s): the file is empty", uriKey, tempURI.RequestURI())
+		}
+		return val
 
 	// only file URIs are allowed
 	default:
