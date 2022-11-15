@@ -62,6 +62,13 @@ func GetBlobByID(ctx context.Context, blobID int64) (*PackageBlob, error) {
 	return pb, nil
 }
 
+// ExistPackageBlobWithSHA returns if a package blob exists with the provided sha
+func ExistPackageBlobWithSHA(ctx context.Context, blobSha256 string) (bool, error) {
+	return db.GetEngine(ctx).Exist(&PackageBlob{
+		HashSHA256: blobSha256,
+	})
+}
+
 // FindExpiredUnreferencedBlobs gets all blobs without associated files older than the specific duration
 func FindExpiredUnreferencedBlobs(ctx context.Context, olderThan time.Duration) ([]*PackageBlob, error) {
 	pbs := make([]*PackageBlob, 0, 10)
