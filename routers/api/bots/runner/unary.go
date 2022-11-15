@@ -12,21 +12,23 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"gitea.com/gitea/act_runner/core"
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 	"github.com/bufbuild/connect-go"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-const runnerOnlineTimeDeltaSecs = 30
+const (
+	runnerOnlineTimeDeltaSecs = 30
+	uuidHeaderKey             = "x-runner-uuid"
+)
 
 var WithRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unaryFunc connect.UnaryFunc) connect.UnaryFunc {
 	return func(ctx context.Context, request connect.AnyRequest) (connect.AnyResponse, error) {
 		if methodName(request) == "Register" {
 			return unaryFunc(ctx, request)
 		}
-		uuid := request.Header().Get(core.UUIDHeader)
+		uuid := request.Header().Get(uuidHeaderKey)
 		runner, err := bots_model.GetRunnerByUUID(uuid)
 		if err != nil {
 			if _, ok := err.(bots_model.ErrRunnerNotExist); ok {

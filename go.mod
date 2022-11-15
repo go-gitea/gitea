@@ -6,7 +6,6 @@ require (
 	code.gitea.io/gitea-vet v0.2.2-0.20220122151748-48ebc902541b
 	code.gitea.io/sdk/gitea v0.15.1
 	codeberg.org/gusted/mcaptcha v0.0.0-20220723083913-4f3072e1d570
-	gitea.com/gitea/act_runner v0.0.0-20221015084035-e63e22e8c81d
 	gitea.com/gitea/proto-go v0.0.0-20221028125601-35c4f6b05835
 	gitea.com/go-chi/binding v0.0.0-20220309004920-114340dabecb
 	gitea.com/go-chi/cache v0.2.0
