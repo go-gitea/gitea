@@ -229,7 +229,7 @@ export default {
         'jquery.are-you-sure@*': {licenseName: 'MIT'},
       },
       emitError: true,
-      allow: '(Apache-2.0 OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC OR CPAL-1.0 OR AGPL-1.0)',
+      allow: '(Apache-2.0 OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC OR CPAL-1.0)',
       ignore: [
         'font-awesome',
       ],
