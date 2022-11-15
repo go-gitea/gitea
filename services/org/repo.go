@@ -22,7 +22,7 @@ func TeamAddRepository(t *organization.Team, repo *repo_model.Repository) (err e
 		return nil
 	}
 
-	return db.WithTx(func(ctx context.Context) error {
+	return db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		return models.AddRepository(ctx, t, repo)
 	})
 }

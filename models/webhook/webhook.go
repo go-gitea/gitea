@@ -13,6 +13,8 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/secret"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -194,6 +196,9 @@ type Webhook struct {
 	Type            HookType   `xorm:"VARCHAR(16) 'type'"`
 	Meta            string     `xorm:"TEXT"` // store hook-specific attributes
 	LastStatus      HookStatus // Last delivery status
+
+	// HeaderAuthorizationEncrypted should be accessed using HeaderAuthorization() and SetHeaderAuthorization()
+	HeaderAuthorizationEncrypted string `xorm:"TEXT"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -401,6 +406,29 @@ func (w *Webhook) EventsArray() []string {
 	return events
 }
 
+// HeaderAuthorization returns the decrypted Authorization header.
+// Not on the reference (*w), to be accessible on WebhooksNew.
+func (w Webhook) HeaderAuthorization() (string, error) {
+	if w.HeaderAuthorizationEncrypted == "" {
+		return "", nil
+	}
+	return secret.DecryptSecret(setting.SecretKey, w.HeaderAuthorizationEncrypted)
+}
+
+// SetHeaderAuthorization encrypts and sets the Authorization header.
+func (w *Webhook) SetHeaderAuthorization(cleartext string) error {
+	if cleartext == "" {
+		w.HeaderAuthorizationEncrypted = ""
+		return nil
+	}
+	ciphertext, err := secret.EncryptSecret(setting.SecretKey, cleartext)
+	if err != nil {
+		return err
+	}
+	w.HeaderAuthorizationEncrypted = ciphertext
+	return nil
+}
+
 // CreateWebhook creates a new web hook.
 func CreateWebhook(ctx context.Context, w *Webhook) error {
 	w.Type = strings.TrimSpace(w.Type)
@@ -547,7 +575,7 @@ func UpdateWebhookLastStatus(w *Webhook) error {
 // deleteWebhook uses argument bean as query condition,
 // ID must be specified and do not assign unnecessary fields.
 func deleteWebhook(bean *Webhook) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -582,7 +610,7 @@ func DeleteWebhookByOrgID(orgID, id int64) error {
 
 // DeleteDefaultSystemWebhook deletes an admin-configured default or system webhook (where Org and Repo ID both 0)
 func DeleteDefaultSystemWebhook(id int64) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

@@ -174,7 +174,7 @@ func (aReq *ArchiveRequest) Await(ctx context.Context) (*repo_model.RepoArchiver
 }
 
 func doArchive(r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
-	txCtx, committer, err := db.TxContext()
+	txCtx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}
