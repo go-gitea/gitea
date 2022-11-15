@@ -132,16 +132,16 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		newCommitID := opts.NewCommitIDs[i]
 		refFullName := opts.RefFullNames[i]
 
-		//Check size
-		if newCommitID != git.EmptySHA && repo.RepoSizeIsOversized(pushSize.Size) { //Check next size if we are not deleting a reference
+		// Check size
+		if newCommitID != git.EmptySHA && repo.RepoSizeIsOversized(pushSize.Size) { // Check next size if we are not deleting a reference
 			log.Warn("Forbidden: new repo size is over limitation: %d", repo.SizeLimit)
 			ctx.JSON(http.StatusForbidden, map[string]interface{}{
 				"err": fmt.Sprintf("new repo size is over limitation: %d", repo.SizeLimit),
 			})
 		}
-		//TODO investigate why on force push some git objects are not cleaned on server side.
-		//TODO corner-case force push and branch creation -> git.EmptySHA == oldCommitID
-		//TODO calculate pushed LFS objects size
+		// TODO investigate why on force push some git objects are not cleaned on server side.
+		// TODO corner-case force push and branch creation -> git.EmptySHA == oldCommitID
+		// TODO calculate pushed LFS objects size
 
 		switch {
 		case strings.HasPrefix(refFullName, git.BranchPrefix):

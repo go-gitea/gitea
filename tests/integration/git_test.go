@@ -79,29 +79,29 @@ func testGit(t *testing.T, u *url.URL) {
 
 		t.Run("SizeLimit", func(t *testing.T) {
 			t.Run("Under", func(t *testing.T) {
-				PrintCurrentTest(t)
+				tests.PrintCurrentTest(t)
 				doCommitAndPush(t, littleSize, dstPath, "data-file-")
 			})
 			t.Run("Over", func(t *testing.T) {
-				PrintCurrentTest(t)
+				tests.PrintCurrentTest(t)
 				doAPISetRepoSizeLimit(forkedUserCtx, forkedUserCtx.Username, forkedUserCtx.Reponame, littleSize)
 				doCommitAndPushWithExpectedError(t, bigSize, dstPath, "data-file-")
 			})
 			t.Run("UnderAfterResize", func(t *testing.T) {
-				PrintCurrentTest(t)
+				tests.PrintCurrentTest(t)
 				doAPISetRepoSizeLimit(forkedUserCtx, forkedUserCtx.Username, forkedUserCtx.Reponame, bigSize*10)
 				doCommitAndPush(t, littleSize, dstPath, "data-file-")
 			})
 			t.Run("Deletion", func(t *testing.T) {
-				PrintCurrentTest(t)
-				//TODO doDeleteCommitAndPush(t, littleSize, dstPath, "data-file-")
+				tests.PrintCurrentTest(t)
+				// TODO doDeleteCommitAndPush(t, littleSize, dstPath, "data-file-")
 			})
-			//TODO delete branch
-			//TODO delete tag
-			//TODO add big commit that will be over with the push
-			//TODO add lfs
-			//TODO remove lfs
-			//TODO add missing case
+			// TODO delete branch
+			// TODO delete tag
+			// TODO add big commit that will be over with the push
+			// TODO add lfs
+			// TODO remove lfs
+			// TODO add missing case
 		})
 		t.Run("CreateAgitFlowPull", doCreateAgitFlowPull(dstPath, &httpContext, "master", "test/head"))
 		t.Run("BranchProtectMerge", doBranchProtectPRMerge(&httpContext, dstPath))
@@ -324,7 +324,7 @@ func doCommitAndPush(t *testing.T, size int, repoPath, prefix string) string {
 func doCommitAndPushWithExpectedError(t *testing.T, size int, repoPath, prefix string) string {
 	name, err := generateCommitWithNewData(size, repoPath, "user2@example.com", "User Two", prefix)
 	assert.NoError(t, err)
-	_, err = git.NewCommand("push", "origin", "master").RunInDir(repoPath) //Push
+	_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "master").RunStdString(&git.RunOpts{Dir: repoPath}) // Push
 	assert.Error(t, err)
 	return name
 }
