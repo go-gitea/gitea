@@ -6,6 +6,7 @@ package runner
 
 import (
 	"context"
+	"crypto/subtle"
 	"strings"
 
 	bots_model "code.gitea.io/gitea/models/bots"
@@ -21,6 +22,7 @@ import (
 const (
 	runnerOnlineTimeDeltaSecs = 30
 	uuidHeaderKey             = "x-runner-uuid"
+	tokenHeaderKey            = "x-runner-token"
 )
 
 var WithRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unaryFunc connect.UnaryFunc) connect.UnaryFunc {
@@ -29,12 +31,16 @@ var WithRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 			return unaryFunc(ctx, request)
 		}
 		uuid := request.Header().Get(uuidHeaderKey)
+		token := request.Header().Get(tokenHeaderKey)
 		runner, err := bots_model.GetRunnerByUUID(uuid)
 		if err != nil {
 			if _, ok := err.(bots_model.ErrRunnerNotExist); ok {
 				return nil, status.Error(codes.Unauthenticated, "unregistered runner")
 			}
 			return nil, status.Error(codes.Internal, err.Error())
+		}
+		if subtle.ConstantTimeCompare([]byte(token), []byte(runner.Token)) != 1 {
+			return nil, status.Error(codes.Unauthenticated, "unregistered runner")
 		}
 
 		// update runner online status
