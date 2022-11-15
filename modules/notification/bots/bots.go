@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	bots_module "code.gitea.io/gitea/modules/bots"
@@ -44,9 +45,18 @@ func NewNotifier() base.Notifier {
 }
 
 func notify(repo *repo_model.Repository, doer *user_model.User, ref string, evt webhook.HookEventType, payload api.Payloader) error {
+	if unit.TypeBuilds.UnitGlobalDisabled() {
+		return nil
+	}
+	if err := repo.LoadUnits(db.DefaultContext); err != nil {
+		return fmt.Errorf("repo.LoadUnits: %w", err)
+	} else if !repo.UnitEnabled(unit.TypeBuilds) {
+		return nil
+	}
+
 	gitRepo, err := git.OpenRepository(context.Background(), repo.RepoPath())
 	if err != nil {
-		return fmt.Errorf("git.OpenRepository: %v", err)
+		return fmt.Errorf("git.OpenRepository: %w", err)
 	}
 	defer gitRepo.Close()
 
