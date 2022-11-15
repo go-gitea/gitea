@@ -15,7 +15,7 @@ import (
 
 // VerifySSHKey marks a SSH key as verified
 func VerifySSHKey(ownerID int64, fingerprint, token, signature string) (string, error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return "", err
 	}

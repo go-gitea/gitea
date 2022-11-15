@@ -9,7 +9,7 @@ import "code.gitea.io/gitea/models/db"
 // RecalculateIssueIndexForRepo create issue_index for repo if not exist and
 // update it based on highest index of existing issues assigned to a repo
 func RecalculateIssueIndexForRepo(repoID int64) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
