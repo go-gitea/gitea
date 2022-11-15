@@ -37,7 +37,7 @@ func addCollaborator(ctx context.Context, repo *repo_model.Repository, u *user_m
 
 // AddCollaborator adds new collaboration to a repository with default access mode.
 func AddCollaborator(repo *repo_model.Repository, u *user_model.User) error {
-	return db.WithTx(func(ctx context.Context) error {
+	return db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		return addCollaborator(ctx, repo, u)
 	})
 }

@@ -241,7 +241,7 @@ func UpdateRepoUnit(unit *RepoUnit) error {
 
 // UpdateRepositoryUnits updates a repository's units
 func UpdateRepositoryUnits(repo *Repository, units []RepoUnit, deleteUnitTypes []unit.Type) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
