@@ -8,11 +8,16 @@ import (
 	"context"
 	"fmt"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
+
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
+	gouuid "github.com/google/uuid"
 	"xorm.io/builder"
 )
 
@@ -43,7 +48,11 @@ type Runner struct {
 	Description string                 `xorm:"TEXT"`
 	Base        int                    // 0 native 1 docker 2 virtual machine
 	RepoRange   string                 // glob match which repositories could use this runner
-	Token       string                 `xorm:"CHAR(36) UNIQUE"`
+
+	Token     string `xorm:"-"`
+	TokenHash string `xorm:"UNIQUE"` // sha256 of token
+	TokenSalt string
+	// TokenLastEight string `xorm:"token_last_eight"` // it's unnecessary because we don't find runners by token
 
 	// instance status (idle, active, offline)
 	Status runnerv1.RunnerStatus
@@ -123,6 +132,17 @@ func (r *Runner) LoadAttributes(ctx context.Context) error {
 			r.Repo = &repo
 		}
 	}
+	return nil
+}
+
+func (r *Runner) GenerateToken() error {
+	salt, err := util.CryptoRandomString(10)
+	if err != nil {
+		return err
+	}
+	r.TokenSalt = salt
+	r.Token = base.EncodeSha1(gouuid.New().String())
+	r.TokenHash = auth_model.HashToken(r.Token, r.TokenSalt)
 	return nil
 }
 

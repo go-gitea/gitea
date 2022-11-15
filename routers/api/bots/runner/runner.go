@@ -14,7 +14,6 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/bots"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -82,10 +81,12 @@ func (s *Service) Register(
 		Name:         req.Msg.Name,
 		OwnerID:      runnerToken.OwnerID,
 		RepoID:       runnerToken.RepoID,
-		Token:        base.EncodeSha1(gouuid.New().String())[:36],
 		Status:       runnerv1.RunnerStatus_RUNNER_STATUS_OFFLINE,
 		AgentLabels:  req.Msg.AgentLabels,
 		CustomLabels: req.Msg.CustomLabels,
+	}
+	if err := runner.GenerateToken(); err != nil {
+		return nil, errors.New("can't generate token")
 	}
 
 	// create new runner

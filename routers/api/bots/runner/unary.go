@@ -9,6 +9,7 @@ import (
 	"crypto/subtle"
 	"strings"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	bots_model "code.gitea.io/gitea/models/bots"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -39,7 +40,7 @@ var WithRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 			}
 			return nil, status.Error(codes.Internal, err.Error())
 		}
-		if subtle.ConstantTimeCompare([]byte(token), []byte(runner.Token)) != 1 {
+		if subtle.ConstantTimeCompare([]byte(runner.TokenHash), []byte(auth_model.HashToken(token, runner.TokenSalt))) != 1 {
 			return nil, status.Error(codes.Unauthenticated, "unregistered runner")
 		}
 
