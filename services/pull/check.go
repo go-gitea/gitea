@@ -63,7 +63,7 @@ func AddToTaskQueue(pr *issues_model.PullRequest) {
 
 // CheckPullMergable check if the pull mergable based on all conditions (branch protection, merge options, ...)
 func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *access_model.Permission, pr *issues_model.PullRequest, manuallMerge, force bool) error {
-	return db.WithTx(func(ctx context.Context) error {
+	return db.WithTx(stdCtx, func(ctx context.Context) error {
 		if pr.HasMerged {
 			return ErrHasMerged
 		}
@@ -122,7 +122,7 @@ func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *acce
 		}
 
 		return nil
-	}, stdCtx)
+	})
 }
 
 // isSignedIfRequired check if merge will be signed if required

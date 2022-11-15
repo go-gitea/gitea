@@ -78,7 +78,7 @@ func (p *Project) NumOpenIssues() int {
 
 // MoveIssuesOnProjectBoard moves or keeps issues in a column and sorts them inside that column
 func MoveIssuesOnProjectBoard(board *Board, sortedIssueIDs map[int64]int64) error {
-	return db.WithTx(func(ctx context.Context) error {
+	return db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		sess := db.GetEngine(ctx)
 
 		issueIDs := make([]int64, 0, len(sortedIssueIDs))
