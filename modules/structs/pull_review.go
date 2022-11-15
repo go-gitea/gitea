@@ -40,6 +40,8 @@ type PullReview struct {
 	CodeCommentsCount int             `json:"comments_count"`
 	// swagger:strfmt date-time
 	Submitted time.Time `json:"submitted_at"`
+	// swagger:strfmt date-time
+	Updated time.Time `json:"updated_at"`
 
 	HTMLURL     string `json:"html_url"`
 	HTMLPullURL string `json:"pull_request_url"`
