@@ -98,7 +98,7 @@ func getExpectedFileResponseForCreate(repoFullName, commitID, treePath, latestCo
 				},
 				Date: "2000-12-31T23:59:50Z",
 			},
-			Message: "Updates README.md",
+			Message: "Updates README.md\n",
 		},
 		Verification: &api.PayloadCommitVerification{
 			Verified:  false,
@@ -204,7 +204,7 @@ func TestAPICreateFile(t *testing.T) {
 		assert.EqualValues(t, expectedSHA, fileResponse.Content.SHA)
 		assert.EqualValues(t, expectedHTMLURL, *fileResponse.Content.HTMLURL)
 		assert.EqualValues(t, expectedDownloadURL, *fileResponse.Content.DownloadURL)
-		assert.EqualValues(t, createFileOptions.Message, fileResponse.Commit.Message)
+		assert.EqualValues(t, createFileOptions.Message+"\n", fileResponse.Commit.Message)
 
 		// Test creating a file without a message
 		createFileOptions = getCreateFileOptions()
@@ -215,7 +215,7 @@ func TestAPICreateFile(t *testing.T) {
 		req = NewRequestWithJSON(t, "POST", url, &createFileOptions)
 		resp = session.MakeRequest(t, req, http.StatusCreated)
 		DecodeJSON(t, resp, &fileResponse)
-		expectedMessage := "Add '" + treePath + "'"
+		expectedMessage := "Add '" + treePath + "'\n"
 		assert.EqualValues(t, expectedMessage, fileResponse.Commit.Message)
 
 		// Test trying to create a file that already exists, should fail

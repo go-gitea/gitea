@@ -50,7 +50,7 @@ func TestAPIGetWikiPage(t *testing.T) {
 					},
 					Date: "2017-11-27T04:31:18Z",
 				},
-				Message: "Add Home.md",
+				Message: "Add Home.md\n",
 			},
 		},
 		ContentBase64: base64.RawStdEncoding.EncodeToString(
@@ -97,7 +97,7 @@ func TestAPIListWikiPages(t *testing.T) {
 					},
 					Date: "2017-11-27T04:31:18Z",
 				},
-				Message: "Add Home.md",
+				Message: "Add Home.md\n",
 			},
 		},
 		{
@@ -120,7 +120,7 @@ func TestAPIListWikiPages(t *testing.T) {
 					},
 					Date: "2019-01-25T01:41:55Z",
 				},
-				Message: "Add jpeg.jpg and page with image",
+				Message: "Add jpeg.jpg and page with image\n",
 			},
 		},
 		{
@@ -143,7 +143,7 @@ func TestAPIListWikiPages(t *testing.T) {
 					},
 					Date: "2019-01-25T01:39:51Z",
 				},
-				Message: "Add page with spaced name",
+				Message: "Add page with spaced name\n",
 			},
 		},
 		{
@@ -166,7 +166,7 @@ func TestAPIListWikiPages(t *testing.T) {
 					},
 					Date: "2021-07-19T16:42:46Z",
 				},
-				Message: "add unescaped file",
+				Message: "add unescaped file\n",
 			},
 		},
 	}
@@ -242,7 +242,7 @@ func TestAPIListPageRevisions(t *testing.T) {
 					},
 					Date: "2017-11-27T04:31:18Z",
 				},
-				Message: "Add Home.md",
+				Message: "Add Home.md\n",
 			},
 		},
 		Count: 1,

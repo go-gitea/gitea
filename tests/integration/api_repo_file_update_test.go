@@ -94,7 +94,7 @@ func getExpectedFileResponseForUpdate(commitID, treePath, lastCommitSHA string) 
 					Email: "annedoe@example.com",
 				},
 			},
-			Message: "My update of README.md",
+			Message: "My update of README.md\n",
 		},
 		Verification: &api.PayloadCommitVerification{
 			Verified:  false,
@@ -168,7 +168,7 @@ func TestAPIUpdateFile(t *testing.T) {
 		assert.EqualValues(t, expectedSHA, fileResponse.Content.SHA)
 		assert.EqualValues(t, expectedHTMLURL, *fileResponse.Content.HTMLURL)
 		assert.EqualValues(t, expectedDownloadURL, *fileResponse.Content.DownloadURL)
-		assert.EqualValues(t, updateFileOptions.Message, fileResponse.Commit.Message)
+		assert.EqualValues(t, updateFileOptions.Message+"\n", fileResponse.Commit.Message)
 
 		// Test updating a file and renaming it
 		updateFileOptions = getUpdateFileOptions()
@@ -200,7 +200,7 @@ func TestAPIUpdateFile(t *testing.T) {
 		req = NewRequestWithJSON(t, "PUT", url, &updateFileOptions)
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &fileResponse)
-		expectedMessage := "Update '" + treePath + "'"
+		expectedMessage := "Update '" + treePath + "'\n"
 		assert.EqualValues(t, expectedMessage, fileResponse.Commit.Message)
 
 		// Test updating a file with the wrong SHA

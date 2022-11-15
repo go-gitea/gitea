@@ -51,7 +51,7 @@ func getExpectedDeleteFileResponse(u *url.URL) *api.FileResponse {
 					Email: "bob@smith.com",
 				},
 			},
-			Message: "Deletes README.md",
+			Message: "Deletes README.md\n",
 		},
 		Verification: &api.PayloadCommitVerification{
 			Verified:  false,

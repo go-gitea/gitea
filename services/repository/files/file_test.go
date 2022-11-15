@@ -82,7 +82,7 @@ func getExpectedFileResponse() *api.FileResponse {
 				Date: "2017-03-19T20:47:59Z",
 			},
 			Parents: []*api.CommitMeta{},
-			Message: "Initial commit",
+			Message: "Initial commit\n",
 			Tree: &api.CommitMeta{
 				URL: "https://try.gitea.io/api/v1/repos/user2/repo1/git/trees/2a2f1d4670728a2e10049e345bd7a276468beab6",
 				SHA: "2a2f1d4670728a2e10049e345bd7a276468beab6",
