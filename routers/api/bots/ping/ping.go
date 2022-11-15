@@ -9,9 +9,9 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/log"
+
 	pingv1 "gitea.com/gitea/proto-go/ping/v1"
 	"gitea.com/gitea/proto-go/ping/v1/pingv1connect"
-
 	"github.com/bufbuild/connect-go"
 )
 
@@ -23,9 +23,8 @@ func (s *Service) Ping(
 	ctx context.Context,
 	req *connect.Request[pingv1.PingRequest],
 ) (*connect.Response[pingv1.PingResponse], error) {
-	log.Info("Content-Type: %s", req.Header().Get("Content-Type"))
-	log.Info("User-Agent: %s", req.Header().Get("User-Agent"))
-	log.Info("X-Runner-Token: %s", req.Header().Get("X-Runner-Token"))
+	log.Trace("Content-Type: %s", req.Header().Get("Content-Type"))
+	log.Trace("User-Agent: %s", req.Header().Get("User-Agent"))
 	res := connect.NewResponse(&pingv1.PingResponse{
 		Data: fmt.Sprintf("Hello, %s!", req.Msg.Data),
 	})
