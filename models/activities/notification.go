@@ -142,7 +142,7 @@ func CountNotifications(opts *FindNotificationOptions) (int64, error) {
 
 // CreateRepoTransferNotification creates  notification for the user a repository was transferred to
 func CreateRepoTransferNotification(doer, newOwner *user_model.User, repo *repo_model.Repository) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -185,7 +185,7 @@ func CreateRepoTransferNotification(doer, newOwner *user_model.User, repo *repo_
 // for each watcher, or updates it if already exists
 // receiverID > 0 just send to receiver, else send to all watcher
 func CreateOrUpdateIssueNotifications(issueID, commentID, notificationAuthorID, receiverID int64) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
