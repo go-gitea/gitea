@@ -21,7 +21,11 @@ func addBotTables(x *xorm.Engine) error {
 		Description string `xorm:"TEXT"`
 		Base        int    // 0 native 1 docker 2 virtual machine
 		RepoRange   string // glob match which repositories could use this runner
-		Token       string `xorm:"CHAR(36) UNIQUE"`
+
+		Token     string `xorm:"-"`
+		TokenHash string `xorm:"UNIQUE"` // sha256 of token
+		TokenSalt string
+		// TokenLastEight string `xorm:"token_last_eight"` // it's unnecessary because we don't find runners by token
 
 		// instance status (idle, active, offline)
 		Status int32
@@ -38,7 +42,7 @@ func addBotTables(x *xorm.Engine) error {
 
 	type BotsRunnerToken struct {
 		ID       int64
-		Token    string `xorm:"CHAR(36) UNIQUE"`
+		Token    string `xorm:"UNIQUE"`
 		OwnerID  int64  `xorm:"index"` // org level runner, 0 means system
 		RepoID   int64  `xorm:"index"` // repo level runner, if orgid also is zero, then it's a global
 		IsActive bool
