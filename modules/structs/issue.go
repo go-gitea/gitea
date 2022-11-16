@@ -5,7 +5,9 @@
 package structs
 
 import (
+	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -145,15 +147,46 @@ type IssueFormField struct {
 // IssueTemplate represents an issue template for a repository
 // swagger:model
 type IssueTemplate struct {
-	Name       string            `json:"name" yaml:"name"`
-	Title      string            `json:"title" yaml:"title"`
-	About      string            `json:"about" yaml:"about"` // Using "description" in a template file is compatible
-	Labels     []string          `json:"labels" yaml:"-"`
-	LabelsNode yaml.Node         `json:"-" yaml:"labels"`
-	Ref        string            `json:"ref" yaml:"ref"`
-	Content    string            `json:"content" yaml:"-"`
-	Fields     []*IssueFormField `json:"body" yaml:"body"`
-	FileName   string            `json:"file_name" yaml:"-"`
+	Name     string              `json:"name" yaml:"name"`
+	Title    string              `json:"title" yaml:"title"`
+	About    string              `json:"about" yaml:"about"` // Using "description" in a template file is compatible
+	Labels   IssueTemplateLabels `json:"labels" yaml:"labels"`
+	Ref      string              `json:"ref" yaml:"ref"`
+	Content  string              `json:"content" yaml:"-"`
+	Fields   []*IssueFormField   `json:"body" yaml:"body"`
+	FileName string              `json:"file_name" yaml:"-"`
+}
+
+type IssueTemplateLabels []string
+
+func (labels *IssueTemplateLabels) UnmarshalYAML(value *yaml.Node) error {
+	if value.IsZero() {
+		return nil
+	}
+	switch value.Kind {
+	case yaml.ScalarNode:
+		str := ""
+		err := value.Decode(&str)
+		if err != nil {
+			return err
+		}
+		for _, v := range strings.Split(str, ",") {
+			if v = strings.TrimSpace(v); v == "" {
+				continue
+			}
+			*labels = append(*labels, v)
+		}
+		return nil
+	case yaml.SequenceNode:
+		var strs []string
+		if err := value.Decode(&strs); err != nil {
+			return err
+		}
+		*labels = strs
+		return nil
+	}
+	return fmt.Errorf("line %d: cannot unmarshal %s%s into IssueTemplateLabels",
+		value.Line, value.ShortTag(), value.Value)
 }
 
 // IssueTemplateType defines issue template type

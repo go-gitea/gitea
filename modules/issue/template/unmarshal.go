@@ -9,7 +9,6 @@ import (
 	"io"
 	"path/filepath"
 	"strconv"
-	"strings"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -113,9 +112,6 @@ func unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 			it.Name = filepath.Base(it.FileName)
 			it.About, _ = util.SplitStringAtByteN(it.Content, 80)
 		} else {
-			if it.Labels, err = decodeLabels(it.LabelsNode); err != nil {
-				return nil, fmt.Errorf("yaml unmarshal: %w", err)
-			}
 			it.Content = templateBody
 			if it.About == "" {
 				if _, err := markdown.ExtractMetadata(string(content), compatibleTemplate); err == nil && compatibleTemplate.About != "" {
@@ -125,10 +121,6 @@ func unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 		}
 	} else if typ == api.IssueTemplateTypeYaml {
 		if err := yaml.Unmarshal(content, it); err != nil {
-			return nil, fmt.Errorf("yaml unmarshal: %w", err)
-		}
-		var err error
-		if it.Labels, err = decodeLabels(it.LabelsNode); err != nil {
 			return nil, fmt.Errorf("yaml unmarshal: %w", err)
 		}
 		if it.About == "" {
@@ -144,34 +136,4 @@ func unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 	}
 
 	return it, nil
-}
-
-func decodeLabels(node yaml.Node) ([]string, error) {
-	if node.IsZero() {
-		return nil, nil
-	}
-	var labels []string
-	switch node.Kind {
-	case yaml.ScalarNode:
-		str := ""
-		err := node.Decode(&str)
-		if err != nil {
-			return nil, err
-		}
-		for _, v := range strings.Split(str, ",") {
-			if v = strings.TrimSpace(v); v == "" {
-				continue
-			}
-			labels = append(labels, v)
-		}
-		return labels, nil
-	case yaml.SequenceNode:
-		err := node.Decode(&labels)
-		if err != nil {
-			return nil, err
-		}
-		return labels, nil
-	}
-	return nil, fmt.Errorf("line %d: cannot unmarshal %s%s into []string",
-		node.Line, node.ShortTag(), node.Value)
 }
