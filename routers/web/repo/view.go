@@ -523,13 +523,15 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			// to prevent iframe load third-party url
 			ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'")
 		} else if readmeExist && !shouldRenderSource {
-			buf := &bytes.Buffer{}
 			ctx.Data["IsRenderedHTML"] = true
 
-			ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, buf, ctx.Locale)
+			buf, _ := io.ReadAll(rd)
+
+			// Do render a EscapeStatus, but don't render escaped HTML as it's plain text.
+			ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(bytes.NewReader(buf), io.Discard, ctx.Locale)
 
 			ctx.Data["FileContent"] = strings.ReplaceAll(
-				gotemplate.HTMLEscapeString(buf.String()), "\n", `<br>`,
+				gotemplate.HTMLEscapeString(string(buf)), "\n", `<br>`,
 			)
 		} else {
 			buf, _ := io.ReadAll(rd)
