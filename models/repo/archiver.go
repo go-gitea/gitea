@@ -7,11 +7,14 @@ package repo
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -44,6 +47,28 @@ func (archiver *RepoArchiver) RelativePath() string {
 	return fmt.Sprintf("%d/%s/%s.%s", archiver.RepoID, archiver.CommitID[:2], archiver.CommitID, archiver.Type.String())
 }
 
+// repoArchiverForRelativePath takes a relativePath created from (archiver *RepoArchiver) RelativePath() and creates a shell repoArchiver struct representing it
+func repoArchiverForRelativePath(relativePath string) (*RepoArchiver, error) {
+	parts := strings.SplitN(relativePath, "/", 3)
+	if len(parts) != 3 {
+		return nil, util.SilentWrap{Message: fmt.Sprintf("invalid storage path: %s", relativePath), Err: util.ErrInvalidArgument}
+	}
+	repoID, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		return nil, util.SilentWrap{Message: fmt.Sprintf("invalid storage path: %s", relativePath), Err: util.ErrInvalidArgument}
+	}
+	nameExts := strings.SplitN(parts[2], ".", 2)
+	if len(nameExts) != 2 {
+		return nil, util.SilentWrap{Message: fmt.Sprintf("invalid storage path: %s", relativePath), Err: util.ErrInvalidArgument}
+	}
+
+	return &RepoArchiver{
+		RepoID:   repoID,
+		CommitID: parts[1] + nameExts[0],
+		Type:     git.ToArchiveType(nameExts[1]),
+	}, nil
+}
+
 var delRepoArchiver = new(RepoArchiver)
 
 // DeleteRepoArchiver delete archiver
@@ -63,6 +88,17 @@ func GetRepoArchiver(ctx context.Context, repoID int64, tp git.ArchiveType, comm
 		return &archiver, nil
 	}
 	return nil, nil
+}
+
+// ExistsRepoArchiverWithStoragePath checks if there is a RepoArchiver for a given storage path
+func ExistsRepoArchiverWithStoragePath(ctx context.Context, storagePath string) (bool, error) {
+	// We need to invert the path provided func (archiver *RepoArchiver) RelativePath() above
+	archiver, err := repoArchiverForRelativePath(storagePath)
+	if err != nil {
+		return false, err
+	}
+
+	return db.GetEngine(ctx).Exist(archiver)
 }
 
 // AddRepoArchiver adds an archiver

@@ -1073,6 +1073,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 			}, repoAssignment())
 		})
 
+		// NOTE: these are Gitea package management API - see packages.CommonRoutes and packages.DockerContainerRoutes for endpoints that implement package manager APIs
 		m.Group("/packages/{username}", func() {
 			m.Group("/{type}/{name}/{version}", func() {
 				m.Get("", packages.GetPackage)

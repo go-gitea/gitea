@@ -45,7 +45,7 @@ func AddLabels(issue *issues_model.Issue, doer *user_model.User, labels []*issue
 
 // RemoveLabel removes a label from issue by given ID.
 func RemoveLabel(issue *issues_model.Issue, doer *user_model.User, label *issues_model.Label) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

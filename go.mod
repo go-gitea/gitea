@@ -94,11 +94,11 @@ require (
 	github.com/yuin/goldmark-meta v1.1.0
 	go.jolheiser.com/hcaptcha v0.0.4
 	go.jolheiser.com/pwn v0.0.3
-	golang.org/x/crypto v0.0.0-20220926161630-eccd6366d1be
-	golang.org/x/net v0.0.0-20220927171203-f486391704dc
+	golang.org/x/crypto v0.2.1-0.20221112162523-6fad3dfc1891
+	golang.org/x/net v0.2.0
 	golang.org/x/oauth2 v0.0.0-20220909003341-f21342109be1
-	golang.org/x/sys v0.0.0-20220928140112-f11e5e49a4ec
-	golang.org/x/text v0.3.8
+	golang.org/x/sys v0.2.0
+	golang.org/x/text v0.4.0
 	golang.org/x/tools v0.1.12
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gopkg.in/ini.v1 v1.67.0
