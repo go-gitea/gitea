@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/bots"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	secret_service "code.gitea.io/gitea/services/secrets"
 
@@ -305,22 +306,23 @@ func pickTask(ctx context.Context, runner *bots_model.Runner) (*runnerv1.Task, b
 
 	// TODO: more context in https://docs.github.com/cn/actions/learn-github-actions/contexts#github-context
 	taskContext, _ := structpb.NewStruct(map[string]interface{}{
-		"event":            event,
-		"run_id":           fmt.Sprint(t.Job.ID),
-		"run_number":       fmt.Sprint(t.Job.Run.Index),
-		"run_attempt":      fmt.Sprint(t.Job.Attempt),
-		"actor":            fmt.Sprint(t.Job.Run.TriggerUser.Name),
-		"repository":       fmt.Sprint(t.Job.Run.Repo.OwnerName) + "/" + fmt.Sprint(t.Job.Run.Repo.Name),
-		"event_name":       fmt.Sprint(t.Job.Run.Event.Event()),
-		"sha":              fmt.Sprint(t.Job.Run.CommitSHA),
-		"ref":              fmt.Sprint(t.Job.Run.Ref),
-		"ref_name":         "",
-		"ref_type":         "",
-		"head_ref":         "",
-		"base_ref":         "",
-		"token":            t.Token,
-		"repository_owner": fmt.Sprint(t.Job.Run.Repo.OwnerName),
-		"retention_days":   "",
+		"event":                  event,
+		"run_id":                 fmt.Sprint(t.Job.ID),
+		"run_number":             fmt.Sprint(t.Job.Run.Index),
+		"run_attempt":            fmt.Sprint(t.Job.Attempt),
+		"actor":                  fmt.Sprint(t.Job.Run.TriggerUser.Name),
+		"repository":             fmt.Sprint(t.Job.Run.Repo.OwnerName) + "/" + fmt.Sprint(t.Job.Run.Repo.Name),
+		"event_name":             fmt.Sprint(t.Job.Run.Event.Event()),
+		"sha":                    fmt.Sprint(t.Job.Run.CommitSHA),
+		"ref":                    fmt.Sprint(t.Job.Run.Ref),
+		"ref_name":               "",
+		"ref_type":               "",
+		"head_ref":               "",
+		"base_ref":               "",
+		"token":                  t.Token,
+		"repository_owner":       fmt.Sprint(t.Job.Run.Repo.OwnerName),
+		"retention_days":         "",
+		"gitea_default_bots_url": setting.Bots.DefaultBotsURL,
 	})
 	secrets := getSecretsOfTask(ctx, t)
 	if _, ok := secrets["GITHUB_TOKEN"]; !ok {

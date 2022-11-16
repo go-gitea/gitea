@@ -140,7 +140,7 @@ func Init() error {
 		initLFS,
 		initRepoArchives,
 		initPackages,
-		initBuilds,
+		initBots,
 	} {
 		if err := f(); err != nil {
 			return err
@@ -198,8 +198,8 @@ func initPackages() (err error) {
 	return err
 }
 
-func initBuilds() (err error) {
-	log.Info("Initialising Builds storage with type: %s", setting.Builds.Storage.Type)
-	Builds, err = NewStorage(setting.Builds.Storage.Type, &setting.Builds.Storage)
+func initBots() (err error) {
+	log.Info("Initialising Bots storage with type: %s", setting.Bots.Storage.Type)
+	Builds, err = NewStorage(setting.Bots.Storage.Type, &setting.Bots.Storage)
 	return err
 }

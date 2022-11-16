@@ -8,21 +8,23 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-// Builds settings
+// Bots settings
 var (
-	Builds = struct {
+	Bots = struct {
 		Storage
-		Enabled bool
+		Enabled        bool
+		DefaultBotsURL string
 	}{
-		Enabled: true,
+		Enabled:        false,
+		DefaultBotsURL: "https://gitea.com",
 	}
 )
 
 func newBuilds() {
-	sec := Cfg.Section("builds")
-	if err := sec.MapTo(&Builds); err != nil {
+	sec := Cfg.Section("bots")
+	if err := sec.MapTo(&Bots); err != nil {
 		log.Fatal("Failed to map Builds settings: %v", err)
 	}
 
-	Builds.Storage = getStorage("builds", "", nil)
+	Bots.Storage = getStorage("bots_log", "", nil)
 }
