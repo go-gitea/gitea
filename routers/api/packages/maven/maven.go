@@ -39,7 +39,7 @@ const (
 	extensionPom      = ".pom"
 	extensionJar      = ".jar"
 	contentTypeJar    = "application/java-archive"
-	contentTypeXml    = "text/xml"
+	contentTypeXML    = "text/xml"
 )
 
 var (
@@ -134,7 +134,7 @@ func serveMavenMetadata(ctx *context.Context, params parameters) {
 	}
 
 	ctx.Resp.Header().Set("Content-Length", strconv.Itoa(len(xmlMetadataWithHeader)))
-	ctx.Resp.Header().Set("Content-Type", contentTypeXml)
+	ctx.Resp.Header().Set("Content-Type", contentTypeXML)
 
 	if _, err := ctx.Resp.Write(xmlMetadataWithHeader); err != nil {
 		log.Error("write bytes failed: %v", err)
@@ -202,7 +202,7 @@ func servePackageFile(ctx *context.Context, params parameters, serveContent bool
 	case extensionJar:
 		contentType = contentTypeJar
 	case extensionPom:
-		contentType = contentTypeXml
+		contentType = contentTypeXML
 	}
 	if contentType != "" {
 		ctx.Resp.Header().Set("Content-Type", contentType)
