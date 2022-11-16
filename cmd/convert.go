@@ -16,7 +16,7 @@ import (
 
 // CmdConvert represents the available convert sub-command.
 //
-// Deprecated: Remove in 1.20
+// FIXME: DEPRECATED: Remove in 1.20
 var CmdConvert = cli.Command{
 	Name:        "convert",
 	Usage:       "Convert the database",
