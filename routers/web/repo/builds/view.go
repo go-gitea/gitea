@@ -210,10 +210,10 @@ func Rerun(ctx *context_module.Context) {
 	job.Started = 0
 	job.Stopped = 0
 
-	if err := db.WithTx(func(ctx context.Context) error {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		_, err := bots_model.UpdateRunJob(ctx, job, builder.Eq{"status": status}, "task_id", "status", "started", "stopped")
 		return err
-	}, ctx); err != nil {
+	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}

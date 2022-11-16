@@ -291,7 +291,7 @@ func GetTaskByToken(ctx context.Context, token string) (*Task, error) {
 }
 
 func CreateTaskForRunner(ctx context.Context, runner *Runner) (*Task, bool, error) {
-	dbCtx, commiter, err := db.TxContext()
+	dbCtx, commiter, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, false, err
 	}
@@ -422,7 +422,7 @@ func UpdateTaskByState(state *runnerv1.TaskState) (*Task, error) {
 		stepStates[v.Id] = v
 	}
 
-	ctx, commiter, err := db.TxContext()
+	ctx, commiter, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}
@@ -485,7 +485,7 @@ func UpdateTaskByState(state *runnerv1.TaskState) (*Task, error) {
 }
 
 func StopTask(ctx context.Context, task *Task, result runnerv1.Result) (*Task, error) {
-	ctx, commiter, err := db.TxContext()
+	ctx, commiter, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
 	}

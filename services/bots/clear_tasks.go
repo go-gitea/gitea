@@ -77,10 +77,10 @@ func CancelAbandonedJobs(ctx context.Context) error {
 	for _, job := range jobs {
 		job.Status = bots_model.StatusCancelled
 		job.Stopped = now
-		if err := db.WithTx(func(ctx context.Context) error {
+		if err := db.WithTx(ctx, func(ctx context.Context) error {
 			_, err := bots_model.UpdateRunJob(ctx, job, nil, "status", "stopped")
 			return err
-		}, ctx); err != nil {
+		}); err != nil {
 			log.Warn("cancel abandoned job %v: %v", job.ID, err)
 			// go on
 		}

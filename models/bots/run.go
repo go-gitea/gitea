@@ -136,17 +136,21 @@ func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) err
 
 // InsertRun inserts a bot run
 func InsertRun(run *Run, jobs []*jobparser.SingleWorkflow) error {
-	index, err := db.GetNextResourceIndex("bots_run_index", run.RepoID)
+	ctx, commiter, err := db.TxContext(db.DefaultContext)
+	if err != nil {
+		return err
+	}
+	defer commiter.Close()
+
+	index, err := db.GetNextResourceIndex(ctx, "bots_run_index", run.RepoID)
 	if err != nil {
 		return err
 	}
 	run.Index = index
 
-	ctx, commiter, err := db.TxContext()
-	if err != nil {
-		return err
+	if run.Status == StatusUnknown {
+		run.Status = StatusWaiting
 	}
-	defer commiter.Close()
 
 	if err := db.Insert(ctx, run); err != nil {
 		return err

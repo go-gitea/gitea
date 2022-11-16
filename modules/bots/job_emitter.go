@@ -46,7 +46,7 @@ func jobEmitterQueueHandle(data ...queue.Data) []queue.Data {
 }
 
 func checkJobsOfRun(ctx context.Context, runID int64) error {
-	return db.WithTx(func(ctx context.Context) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
 		jobs, _, err := bots_model.FindRunJobs(ctx, bots_model.FindRunJobOptions{RunID: runID})
 		if err != nil {
 			return err
@@ -68,7 +68,7 @@ func checkJobsOfRun(ctx context.Context, runID int64) error {
 			}
 		}
 		return nil
-	}, ctx)
+	})
 }
 
 type jobStatusResolver struct {
