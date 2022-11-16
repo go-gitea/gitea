@@ -163,7 +163,7 @@ const (
 
 // Type returns the type of IssueTemplate, can be "md", "yaml" or empty for known
 func (it IssueTemplate) Type() IssueTemplateType {
-	if it.Name == "config.yaml" || it.Name == "config.yml" {
+	if base := filepath.Base(it.FileName); base == "config.yaml" || base == "config.yml" {
 		// ignore config.yaml which is a special configuration file
 		return ""
 	}
