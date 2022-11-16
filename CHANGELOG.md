@@ -186,7 +186,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Update JS dependencies, adjust eslint (#20659)
   * Add more linters to improve code readability (#19989)
 
-
 ## [1.17.3](https://github.com/go-gitea/gitea/releases/tag/v1.17.3) - 2022-10-15
 
 * SECURITY
