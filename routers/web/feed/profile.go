@@ -5,7 +5,6 @@
 package feed
 
 import (
-	"net/http"
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
