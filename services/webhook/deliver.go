@@ -164,7 +164,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 	// has not been delivered in the meantime
 	updated, err := webhook_model.MarkTaskDelivered(ctx, t)
 	if err != nil {
-		log.Error("MarkTaskDelivered[%d]: %v", err)
+		log.Error("MarkTaskDelivered[%d]: %v", t.ID, err)
 		return fmt.Errorf("unable to mark task[%d] delivered in the db: %w", t.ID, err)
 	}
 	if !updated {
