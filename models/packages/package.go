@@ -128,7 +128,7 @@ func TryInsertPackage(ctx context.Context, p *Package) (*Package, error) {
 		LowerName: p.LowerName,
 	}
 
-	has, err := e.Get(key)
+	has, err := e.Exist(key)
 	if err != nil {
 		return nil, err
 	}
@@ -136,6 +136,13 @@ func TryInsertPackage(ctx context.Context, p *Package) (*Package, error) {
 		return key, ErrDuplicatePackage
 	}
 	if _, err = e.Insert(p); err != nil {
+		has, err := e.Exist(key)
+		if err != nil {
+			return nil, err
+		}
+		if has {
+			return key, ErrDuplicatePackage
+		}
 		return nil, err
 	}
 	return p, nil

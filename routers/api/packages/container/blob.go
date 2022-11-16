@@ -38,12 +38,11 @@ func saveAsPackageBlob(hsr packages_module.HashedSizeReader, pi *packages_servic
 		}
 		var err error
 		if p, err = packages_model.TryInsertPackage(ctx, p); err != nil {
-			if err == packages_model.ErrDuplicatePackage {
-				created = false
-			} else {
+			if err != packages_model.ErrDuplicatePackage {
 				log.Error("Error inserting package: %v", err)
 				return err
 			}
+			created = false
 		}
 
 		if created {
