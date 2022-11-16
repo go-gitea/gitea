@@ -1,7 +1,6 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-
 package setting
 
 // defaultI18nLangNames must be a slice, we need the order

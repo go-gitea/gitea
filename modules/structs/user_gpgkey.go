@@ -1,7 +1,6 @@
 // Copyright 2017 Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-
 package structs
 
 import (

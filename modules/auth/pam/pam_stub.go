@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-
 //go:build !pam
 
 package pam

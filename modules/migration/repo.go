@@ -2,7 +2,6 @@
 // Copyright 2018 Jonas Franz. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-
 package migration
 
 // Repository defines a standard repository information

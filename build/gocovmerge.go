@@ -2,7 +2,6 @@
 // Copyright (c) 2015, Wade Simmons
 // SPDX-License-Identifier: MIT
 
-
 // gocovmerge takes the results from multiple `go test -coverprofile` runs and
 // merges them into one profile
 

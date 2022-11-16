@@ -1,7 +1,6 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-
 //go:generate go run invisible/generate.go -v -o ./invisible_gen.go
 
 //go:generate go run ambiguous/generate.go -v -o ./ambiguous_gen.go ambiguous/ambiguous.json

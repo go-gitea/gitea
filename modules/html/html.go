@@ -1,7 +1,6 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-
 package html
 
 // ParseSizeAndClass get size and class from string with default values

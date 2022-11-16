@@ -1,7 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-
 package migration
 
 // Reaction represents a reaction to an issue/pr/comment.

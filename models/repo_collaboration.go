@@ -2,7 +2,6 @@
 // Copyright 2020 The Gitea Authors.
 // SPDX-License-Identifier: MIT
 
-
 package models
 
 import (

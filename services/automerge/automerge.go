@@ -1,7 +1,6 @@
 // Copyright 2021 Gitea. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-
 package automerge
 
 import (

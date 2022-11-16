@@ -1,7 +1,6 @@
 // Copyright 2017 Gitea. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-
 package git
 
 import (

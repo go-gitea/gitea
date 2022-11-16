@@ -1,7 +1,6 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-
 package system
 
 // RuntimeState contains app state for runtime, and we can save remote version for update checker here in future

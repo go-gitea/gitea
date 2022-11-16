@@ -1,7 +1,6 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-
 package migration
 
 // Messenger is a formatting function similar to i18n.Tr

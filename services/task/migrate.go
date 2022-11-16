@@ -1,7 +1,6 @@
 // Copyright 2019 Gitea. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-
 package task
 
 import (

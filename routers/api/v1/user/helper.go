@@ -1,7 +1,6 @@
 // Copyright 2021 The Gitea Authors.
 // SPDX-License-Identifier: MIT
 
-
 package user
 
 import (

@@ -2,7 +2,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-
 package git
 
 // GetBlobByPath get the blob object according the path

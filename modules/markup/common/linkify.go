@@ -2,7 +2,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-
 // Most of this file is a subtly changed version of github.com/yuin/goldmark/extension/linkify.go
 
 package common

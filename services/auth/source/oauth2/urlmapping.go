@@ -1,7 +1,6 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-
 package oauth2
 
 // CustomURLMapping describes the urls values to use when customizing OAuth2 provider URLs

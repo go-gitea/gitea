@@ -2,7 +2,6 @@
 // Copyright 2015 Kenneth Shaw
 // SPDX-License-Identifier: MIT
 
-
 package emoji
 
 import (

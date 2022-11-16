@@ -2,7 +2,6 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-
 package models
 
 import (

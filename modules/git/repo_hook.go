@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-
 package git
 
 // GetHook get one hook according the name on a repository

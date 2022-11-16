@@ -1,7 +1,6 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-
 // This is primarily coped from /tests/integration/integration_test.go
 //   TODO: Move common functions to shared file
 

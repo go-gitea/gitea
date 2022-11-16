@@ -1,7 +1,6 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-
 package util
 
 // RemoveIDFromList removes the given ID from the slice, if found.

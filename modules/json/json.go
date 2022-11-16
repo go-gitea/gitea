@@ -1,7 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 
-
 package json
 
 // Allow "encoding/json" import.

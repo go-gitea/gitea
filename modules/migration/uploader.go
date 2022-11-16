@@ -2,7 +2,6 @@
 // Copyright 2018 Jonas Franz. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-
 package migration
 
 // Uploader uploads all the information of one repository

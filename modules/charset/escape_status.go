@@ -1,7 +1,6 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-
 package charset
 
 // EscapeStatus represents the findings of the unicode escaper
