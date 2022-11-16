@@ -159,8 +159,10 @@ type IssueTemplate struct {
 
 type IssueTemplateLabels []string
 
-func (labels *IssueTemplateLabels) UnmarshalYAML(value *yaml.Node) error {
+func (l *IssueTemplateLabels) UnmarshalYAML(value *yaml.Node) error {
+	var labels []string
 	if value.IsZero() {
+		*l = labels
 		return nil
 	}
 	switch value.Kind {
@@ -174,19 +176,18 @@ func (labels *IssueTemplateLabels) UnmarshalYAML(value *yaml.Node) error {
 			if v = strings.TrimSpace(v); v == "" {
 				continue
 			}
-			*labels = append(*labels, v)
+			labels = append(labels, v)
 		}
+		*l = labels
 		return nil
 	case yaml.SequenceNode:
-		var strs []string
-		if err := value.Decode(&strs); err != nil {
+		if err := value.Decode(&labels); err != nil {
 			return err
 		}
-		*labels = strs
+		*l = labels
 		return nil
 	}
-	return fmt.Errorf("line %d: cannot unmarshal %s%s into IssueTemplateLabels",
-		value.Line, value.ShortTag(), value.Value)
+	return fmt.Errorf("line %d: cannot unmarshal %s into IssueTemplateLabels", value.Line, value.ShortTag())
 }
 
 // IssueTemplateType defines issue template type
