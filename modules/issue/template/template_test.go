@@ -456,7 +456,7 @@ body:
 			wantErr: "",
 		},
 		{
-			name: "single_label",
+			name: "single label",
 			content: `
 name: Name
 title: Title
@@ -474,6 +474,39 @@ body:
 				Title:  "Title",
 				About:  "About",
 				Labels: []string{"label1"},
+				Ref:    "Ref",
+				Fields: []*api.IssueFormField{
+					{
+						Type: "markdown",
+						ID:   "id1",
+						Attributes: map[string]interface{}{
+							"value": "Value of the markdown",
+						},
+					},
+				},
+				FileName: "test.yaml",
+			},
+			wantErr: "",
+		},
+		{
+			name: "comma delimited labels",
+			content: `
+name: Name
+title: Title
+about: About
+labels: label1,label2
+ref: Ref
+body:
+  - type: markdown
+    id: id1
+    attributes:
+      value: Value of the markdown
+`,
+			want: &api.IssueTemplate{
+				Name:   "Name",
+				Title:  "Title",
+				About:  "About",
+				Labels: []string{"label1", "label2"},
 				Ref:    "Ref",
 				Fields: []*api.IssueFormField{
 					{

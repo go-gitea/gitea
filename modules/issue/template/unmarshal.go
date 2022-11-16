@@ -9,6 +9,7 @@ import (
 	"io"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -148,12 +149,12 @@ func decodeLabels(node yaml.Node) ([]string, error) {
 	}
 	switch node.Kind {
 	case yaml.ScalarNode:
-		label := ""
-		err := node.Decode(&label)
+		labels := ""
+		err := node.Decode(&labels)
 		if err != nil {
 			return nil, err
 		}
-		return []string{label}, nil
+		return strings.Split(labels, ","), nil
 	case yaml.SequenceNode:
 		var labels []string
 		err := node.Decode(&labels)
