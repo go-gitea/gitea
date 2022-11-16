@@ -322,9 +322,9 @@ func (ctx *Context) plainTextInternal(skip, status int, bs []byte) {
 	if statusPrefix == 4 || statusPrefix == 5 {
 		log.Log(skip, log.TRACE, "plainTextInternal (status=%d): %s", status, string(bs))
 	}
-	ctx.Resp.WriteHeader(status)
 	ctx.Resp.Header().Set("Content-Type", "text/plain;charset=utf-8")
 	ctx.Resp.Header().Set("X-Content-Type-Options", "nosniff")
+	ctx.Resp.WriteHeader(status)
 	if _, err := ctx.Resp.Write(bs); err != nil {
 		log.ErrorWithSkip(skip, "plainTextInternal (status=%d): write bytes failed: %v", status, err)
 	}
@@ -349,7 +349,7 @@ func (ctx *Context) RespHeader() http.Header {
 func (ctx *Context) SetServeHeaders(filename string) {
 	ctx.Resp.Header().Set("Content-Description", "File Transfer")
 	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
-	ctx.Resp.Header().Set("Content-Disposition", "attachment; filename="+filename)
+	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"; filename*=UTF-8''%s`, filename, url.PathEscape(filename)))
 	ctx.Resp.Header().Set("Content-Transfer-Encoding", "binary")
 	ctx.Resp.Header().Set("Expires", "0")
 	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
