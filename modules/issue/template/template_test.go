@@ -443,9 +443,9 @@ body:
 							"label":       "Label of checkboxes",
 							"description": "Description of checkboxes",
 							"options": []interface{}{
-								map[interface{}]interface{}{"label": "Option 1 of checkboxes", "required": true},
-								map[interface{}]interface{}{"label": "Option 2 of checkboxes", "required": false},
-								map[interface{}]interface{}{"label": "Option 3 of checkboxes", "required": true},
+								map[string]interface{}{"label": "Option 1 of checkboxes", "required": true},
+								map[string]interface{}{"label": "Option 2 of checkboxes", "required": false},
+								map[string]interface{}{"label": "Option 3 of checkboxes", "required": true},
 							},
 						},
 					},
