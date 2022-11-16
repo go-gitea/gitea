@@ -50,7 +50,7 @@ committer-tz -0500
 summary Add code of delete user
 previous be0ba9ea88aff8a658d0495d36accf944b74888d gogs.go
 filename gogs.go
-	// SPDX-License-Identifier: MIT
+	// Use of this source code is governed by a MIT-style
 4b92a6c2df28054ad766bc262f308db9f6066596 3 4
 author Unknown
 author-mail <joe2010xtmf@163.com>
@@ -63,7 +63,7 @@ committer-tz -0500
 summary Add code of delete user
 previous be0ba9ea88aff8a658d0495d36accf944b74888d gogs.go
 filename gogs.go
-	
+	// license that can be found in the LICENSE file.	
 	
 e2aa991e10ffd924a828ec149951f2f20eecead2 6 6 2
 author Lunny Xiao
@@ -118,7 +118,8 @@ func TestReadingBlameOutput(t *testing.T) {
 		{
 			"4b92a6c2df28054ad766bc262f308db9f6066596",
 			[]string{
-				"// SPDX-License-Identifier: MIT",
+				"// Use of this source code is governed by a MIT-style",
+				"// license that can be found in the LICENSE file.",
 				"",
 				"",
 			},
