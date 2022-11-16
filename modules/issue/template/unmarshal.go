@@ -123,6 +123,10 @@ func unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 		if err := yaml.Unmarshal(content, it); err != nil {
 			return nil, fmt.Errorf("yaml unmarshal: %w", err)
 		}
+		var err error
+		if it.Labels, err = decodeLabels(it.LabelsNode); err != nil {
+			return nil, fmt.Errorf("yaml unmarshal: %w", err)
+		}
 		if it.About == "" {
 			if err := yaml.Unmarshal(content, compatibleTemplate); err == nil && compatibleTemplate.About != "" {
 				it.About = compatibleTemplate.About
@@ -136,4 +140,28 @@ func unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 	}
 
 	return it, nil
+}
+
+func decodeLabels(node yaml.Node) ([]string, error) {
+	if node.IsZero() {
+		return nil, nil
+	}
+	switch node.Kind {
+	case yaml.ScalarNode:
+		label := ""
+		err := node.Decode(&label)
+		if err != nil {
+			return nil, err
+		}
+		return []string{label}, nil
+	case yaml.SequenceNode:
+		var labels []string
+		err := node.Decode(&labels)
+		if err != nil {
+			return nil, err
+		}
+		return labels, nil
+	}
+	return nil, fmt.Errorf("line %d: cannot unmarshal %s%s into []string",
+		node.Line, node.ShortTag(), node.Value)
 }

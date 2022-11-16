@@ -8,9 +8,10 @@ import (
 	"net/url"
 	"testing"
 
+	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidate(t *testing.T) {
@@ -491,12 +492,14 @@ body:
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tmpl, err := unmarshal("test.yaml", []byte(tt.content))
-			if assert.NoError(t, err) {
-				if tt.wantErr != "" {
-					assert.EqualError(t, Validate(tmpl), tt.wantErr)
-				} else if assert.NoError(t, Validate(tmpl)) {
-					assert.Equal(t, tt.want, tmpl)
-				}
+			require.NoError(t, err)
+			if tt.wantErr != "" {
+				require.EqualError(t, Validate(tmpl), tt.wantErr)
+			} else {
+				require.NoError(t, Validate(tmpl))
+				want, _ := json.Marshal(tt.want)
+				got, _ := json.Marshal(tmpl)
+				require.JSONEq(t, string(want), string(got))
 			}
 		})
 	}
