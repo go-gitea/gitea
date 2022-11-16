@@ -35,7 +35,7 @@ type PackageBlob struct {
 func GetOrInsertBlob(ctx context.Context, pb *PackageBlob) (*PackageBlob, bool, error) {
 	e := db.GetEngine(ctx)
 
-	has, err := e.Get(pb)
+	has, err := e.Exist(pb)
 	if err != nil {
 		return nil, false, err
 	}
@@ -43,6 +43,13 @@ func GetOrInsertBlob(ctx context.Context, pb *PackageBlob) (*PackageBlob, bool, 
 		return pb, true, nil
 	}
 	if _, err = e.Insert(pb); err != nil {
+		has, err := e.Exist(pb)
+		if err != nil {
+			return nil, false, err
+		}
+		if has {
+			return pb, true, nil
+		}
 		return nil, false, err
 	}
 	return pb, false, nil

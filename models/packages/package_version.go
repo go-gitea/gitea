@@ -46,7 +46,7 @@ func GetOrInsertVersion(ctx context.Context, pv *PackageVersion) (*PackageVersio
 		LowerVersion: pv.LowerVersion,
 	}
 
-	has, err := e.Get(key)
+	has, err := e.Exist(key)
 	if err != nil {
 		return nil, err
 	}
@@ -54,6 +54,13 @@ func GetOrInsertVersion(ctx context.Context, pv *PackageVersion) (*PackageVersio
 		return key, ErrDuplicatePackageVersion
 	}
 	if _, err = e.Insert(pv); err != nil {
+		has, err := e.Exist(key)
+		if err != nil {
+			return nil, err
+		}
+		if has {
+			return key, ErrDuplicatePackageVersion
+		}
 		return nil, err
 	}
 	return pv, nil
