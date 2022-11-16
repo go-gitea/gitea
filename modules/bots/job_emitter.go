@@ -23,11 +23,6 @@ type jobUpdate struct {
 	RunID int64
 }
 
-func InitJobEmitter() {
-	jobEmitterQueue = queue.CreateUniqueQueue("bots_ready_job", jobEmitterQueueHandle, new(jobUpdate))
-	go graceful.GetManager().RunWithShutdownFns(jobEmitterQueue.Run)
-}
-
 func EmitJobsIfReady(runID int64) error {
 	err := jobEmitterQueue.Push(&jobUpdate{
 		RunID: runID,

@@ -175,7 +175,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	auth.Init()
 	svg.Init()
 
-	bots.InitJobEmitter()
+	bots.Init()
 
 	// Finally start up the cron
 	cron.NewContext(ctx)

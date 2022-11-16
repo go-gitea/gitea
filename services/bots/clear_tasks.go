@@ -12,13 +12,14 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
+
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 )
 
 const (
 	zombieTaskTimeout   = 10 * time.Minute
-	endlessTaskTimeout  = 3 * time.Hour  // the task is running for a long time with updates
-	abandonedJobTimeout = 24 * time.Hour // the job is waiting for being picked by a runner
+	endlessTaskTimeout  = 3 * time.Hour
+	abandonedJobTimeout = 24 * time.Hour
 )
 
 // StopZombieTasks stops the task which have running status, but haven't been updated for a long time
