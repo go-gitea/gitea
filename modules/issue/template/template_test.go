@@ -490,12 +490,12 @@ body:
 			wantErr: "",
 		},
 		{
-			name: "comma delimited labels",
+			name: "comma-delimited labels",
 			content: `
 name: Name
 title: Title
 about: About
-labels: label1,label2
+labels: label1,label2,,label3 ,,
 ref: Ref
 body:
   - type: markdown
@@ -507,7 +507,40 @@ body:
 				Name:   "Name",
 				Title:  "Title",
 				About:  "About",
-				Labels: []string{"label1", "label2"},
+				Labels: []string{"label1", "label2", "label3"},
+				Ref:    "Ref",
+				Fields: []*api.IssueFormField{
+					{
+						Type: "markdown",
+						ID:   "id1",
+						Attributes: map[string]interface{}{
+							"value": "Value of the markdown",
+						},
+					},
+				},
+				FileName: "test.yaml",
+			},
+			wantErr: "",
+		},
+		{
+			name: "empty string as labels",
+			content: `
+name: Name
+title: Title
+about: About
+labels: ''
+ref: Ref
+body:
+  - type: markdown
+    id: id1
+    attributes:
+      value: Value of the markdown
+`,
+			want: &api.IssueTemplate{
+				Name:   "Name",
+				Title:  "Title",
+				About:  "About",
+				Labels: nil,
 				Ref:    "Ref",
 				Fields: []*api.IssueFormField{
 					{
@@ -529,7 +562,7 @@ body:
 name: Name
 title: Title
 about: About
-labels: label1,label2
+labels: label1,label2,,label3 ,,
 ref: Ref
 ---
 Content
@@ -538,7 +571,7 @@ Content
 				Name:     "Name",
 				Title:    "Title",
 				About:    "About",
-				Labels:   []string{"label1", "label2"},
+				Labels:   []string{"label1", "label2", "label3"},
 				Ref:      "Ref",
 				Fields:   nil,
 				Content:  "Content\n",

@@ -150,16 +150,22 @@ func decodeLabels(node yaml.Node) ([]string, error) {
 	if node.IsZero() {
 		return nil, nil
 	}
+	var labels []string
 	switch node.Kind {
 	case yaml.ScalarNode:
-		labels := ""
-		err := node.Decode(&labels)
+		str := ""
+		err := node.Decode(&str)
 		if err != nil {
 			return nil, err
 		}
-		return strings.Split(labels, ","), nil
+		for _, v := range strings.Split(str, ",") {
+			if v = strings.TrimSpace(v); v == "" {
+				continue
+			}
+			labels = append(labels, v)
+		}
+		return labels, nil
 	case yaml.SequenceNode:
-		var labels []string
 		err := node.Decode(&labels)
 		if err != nil {
 			return nil, err
