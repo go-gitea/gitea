@@ -60,7 +60,9 @@
 			<tbody>
 				{{range .Runners}}
 				<tr>
-					<td><span class="runner-status-{{.StatusType}}">{{.StatusType}}</span></td>
+					<td>
+						<span class="runner-status-{{if .IsOnline}}online{{else}}offline{{end}}">{{.StatusName}}</span>
+					</td>
 					<td>
 						{{if .Editable $.RunnerOnwerID $.RunnerRepoID}}
 						<a href="{{$.Link}}/{{.ID}}" class="tooltip" data-content="{{.Description}}">

@@ -27,17 +27,17 @@ func addBotTables(x *xorm.Engine) error {
 		TokenSalt string
 		// TokenLastEight string `xorm:"token_last_eight"` // it's unnecessary because we don't find runners by token
 
-		// instance status (idle, active, offline)
-		Status int32
+		LastOnline timeutil.TimeStamp `xorm:"index"`
+		LastActive timeutil.TimeStamp `xorm:"index"`
+
 		// Store OS and Artch.
 		AgentLabels []string
 		// Store custom labes use defined.
 		CustomLabels []string
 
-		LastOnline timeutil.TimeStamp `xorm:"index"`
-		Created    timeutil.TimeStamp `xorm:"created"`
-		Updated    timeutil.TimeStamp `xorm:"updated"`
-		Deleted    timeutil.TimeStamp `xorm:"deleted"`
+		Created timeutil.TimeStamp `xorm:"created"`
+		Updated timeutil.TimeStamp `xorm:"updated"`
+		Deleted timeutil.TimeStamp `xorm:"deleted"`
 	}
 
 	type BotsRunnerToken struct {

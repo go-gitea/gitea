@@ -14,21 +14,20 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 	"github.com/bufbuild/connect-go"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 const (
-	runnerOnlineTimeDeltaSecs = 30
-	uuidHeaderKey             = "x-runner-uuid"
-	tokenHeaderKey            = "x-runner-token"
+	uuidHeaderKey  = "x-runner-uuid"
+	tokenHeaderKey = "x-runner-token"
 )
 
 var WithRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unaryFunc connect.UnaryFunc) connect.UnaryFunc {
 	return func(ctx context.Context, request connect.AnyRequest) (connect.AnyResponse, error) {
-		if methodName(request) == "Register" {
+		methodName := getMethodName(request)
+		if methodName == "Register" {
 			return unaryFunc(ctx, request)
 		}
 		uuid := request.Header().Get(uuidHeaderKey)
@@ -44,19 +43,14 @@ var WithRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 			return nil, status.Error(codes.Unauthenticated, "unregistered runner")
 		}
 
-		// update runner online status
-		if runner.Status == runnerv1.RunnerStatus_RUNNER_STATUS_OFFLINE {
-			runner.LastOnline = timeutil.TimeStampNow()
-			runner.Status = runnerv1.RunnerStatus_RUNNER_STATUS_ACTIVE
-			if err := bots_model.UpdateRunner(ctx, runner, "last_online", "status"); err != nil {
-				log.Error("can't update runner status: %v", err)
-			}
+		cols := []string{"last_online"}
+		runner.LastOnline = timeutil.TimeStampNow()
+		if methodName == "UpdateTask" || methodName == "UpdateLog" {
+			runner.LastActive = timeutil.TimeStampNow()
+			cols = append(cols, "last_active")
 		}
-		if timeutil.TimeStampNow()-runner.LastOnline >= runnerOnlineTimeDeltaSecs {
-			runner.LastOnline = timeutil.TimeStampNow()
-			if err := bots_model.UpdateRunner(ctx, runner, "last_online"); err != nil {
-				log.Error("can't update runner last_online: %v", err)
-			}
+		if err := bots_model.UpdateRunner(ctx, runner, cols...); err != nil {
+			log.Error("can't update runner status: %v", err)
 		}
 
 		ctx = context.WithValue(ctx, runnerCtxKey{}, runner)
@@ -64,7 +58,7 @@ var WithRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 	}
 }))
 
-func methodName(req connect.AnyRequest) string {
+func getMethodName(req connect.AnyRequest) string {
 	splits := strings.Split(req.Spec().Procedure, "/")
 	if len(splits) > 0 {
 		return splits[len(splits)-1]

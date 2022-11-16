@@ -7,6 +7,8 @@ package bots
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
@@ -54,17 +56,17 @@ type Runner struct {
 	TokenSalt string
 	// TokenLastEight string `xorm:"token_last_eight"` // it's unnecessary because we don't find runners by token
 
-	// instance status (idle, active, offline)
-	Status runnerv1.RunnerStatus
+	LastOnline timeutil.TimeStamp `xorm:"index"`
+	LastActive timeutil.TimeStamp `xorm:"index"`
+
 	// Store OS and Artch.
 	AgentLabels []string
 	// Store custom labes use defined.
 	CustomLabels []string
 
-	LastOnline timeutil.TimeStamp `xorm:"index"`
-	Created    timeutil.TimeStamp `xorm:"created"`
-	Updated    timeutil.TimeStamp `xorm:"updated"`
-	Deleted    timeutil.TimeStamp `xorm:"deleted"`
+	Created timeutil.TimeStamp `xorm:"created"`
+	Updated timeutil.TimeStamp `xorm:"updated"`
+	Deleted timeutil.TimeStamp `xorm:"deleted"`
 }
 
 func (Runner) TableName() string {
@@ -82,16 +84,26 @@ func (r *Runner) OwnType() string {
 	return r.Repo.FullName()
 }
 
-func (r *Runner) StatusType() string {
-	switch r.Status {
-	case runnerv1.RunnerStatus_RUNNER_STATUS_OFFLINE:
-		return "offline"
-	case runnerv1.RunnerStatus_RUNNER_STATUS_IDLE:
-		return "online"
-	case runnerv1.RunnerStatus_RUNNER_STATUS_ACTIVE:
-		return "online"
+func (r *Runner) Status() runnerv1.RunnerStatus {
+	if time.Since(r.LastOnline.AsTime()) > time.Minute {
+		return runnerv1.RunnerStatus_RUNNER_STATUS_OFFLINE
 	}
-	return "unknown"
+	if time.Since(r.LastActive.AsTime()) > 10*time.Second {
+		return runnerv1.RunnerStatus_RUNNER_STATUS_IDLE
+	}
+	return runnerv1.RunnerStatus_RUNNER_STATUS_ACTIVE
+}
+
+func (r *Runner) StatusName() string {
+	return strings.ToLower(strings.TrimPrefix(r.Status().String(), "RUNNER_STATUS_"))
+}
+
+func (r *Runner) IsOnline() bool {
+	status := r.Status()
+	if status == runnerv1.RunnerStatus_RUNNER_STATUS_IDLE || status == runnerv1.RunnerStatus_RUNNER_STATUS_ACTIVE {
+		return true
+	}
+	return false
 }
 
 // AllLabels returns agent and custom labels

@@ -10,7 +10,7 @@
 			<div class="runner-basic-info">
 				<div class="field dib">
 					<label>{{.locale.Tr "admin.runners.status"}}</label>
-					<span class="runner-status-{{.Runner.StatusType}}">{{.Runner.StatusType}}</span>
+					<span class="runner-status-{{if .Runner.IsOnline}}online{{else}}offline{{end}}">{{.Runner.StatusName}}</span>
 				</div>
 				<div class="field dib">
 					<label>{{.locale.Tr "admin.runners.latest_online"}}</label>

@@ -38,22 +38,10 @@ type Service struct {
 
 // UpdateRunner update runner status or other data.
 func (s *Service) UpdateRunner(
-	ctx context.Context,
-	req *connect.Request[runnerv1.UpdateRunnerRequest],
+	_ context.Context,
+	_ *connect.Request[runnerv1.UpdateRunnerRequest],
 ) (*connect.Response[runnerv1.UpdateRunnerResponse], error) {
-	runner := GetRunner(ctx)
-
-	// check status
-	if runner.Status == req.Msg.Status {
-		return connect.NewResponse(&runnerv1.UpdateRunnerResponse{}), nil
-	}
-
-	// update status
-	runner.Status = req.Msg.Status
-	if err := bots_model.UpdateRunner(ctx, runner, "status"); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
+	// FIXME: we don't need it any longer
 	return connect.NewResponse(&runnerv1.UpdateRunnerResponse{}), nil
 }
 
@@ -81,7 +69,6 @@ func (s *Service) Register(
 		Name:         req.Msg.Name,
 		OwnerID:      runnerToken.OwnerID,
 		RepoID:       runnerToken.RepoID,
-		Status:       runnerv1.RunnerStatus_RUNNER_STATUS_OFFLINE,
 		AgentLabels:  req.Msg.AgentLabels,
 		CustomLabels: req.Msg.CustomLabels,
 	}
@@ -108,7 +95,6 @@ func (s *Service) Register(
 			Name:         runner.Name,
 			AgentLabels:  runner.AgentLabels,
 			CustomLabels: runner.CustomLabels,
-			Status:       runner.Status,
 		},
 	})
 
