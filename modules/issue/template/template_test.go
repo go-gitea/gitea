@@ -16,10 +16,11 @@ import (
 
 func TestValidate(t *testing.T) {
 	tests := []struct {
-		name    string
-		content string
-		want    *api.IssueTemplate
-		wantErr string
+		name     string
+		filename string
+		content  string
+		want     *api.IssueTemplate
+		wantErr  string
 	}{
 		{
 			name:    "miss name",
@@ -521,10 +522,38 @@ body:
 			},
 			wantErr: "",
 		},
+		{
+			name:     "comma delimited labels in markdown",
+			filename: "test.md",
+			content: `---
+name: Name
+title: Title
+about: About
+labels: label1,label2
+ref: Ref
+---
+Content
+`,
+			want: &api.IssueTemplate{
+				Name:     "Name",
+				Title:    "Title",
+				About:    "About",
+				Labels:   []string{"label1", "label2"},
+				Ref:      "Ref",
+				Fields:   nil,
+				Content:  "Content\n",
+				FileName: "test.md",
+			},
+			wantErr: "",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tmpl, err := unmarshal("test.yaml", []byte(tt.content))
+			filename := "test.yaml"
+			if tt.filename != "" {
+				filename = tt.filename
+			}
+			tmpl, err := unmarshal(filename, []byte(tt.content))
 			require.NoError(t, err)
 			if tt.wantErr != "" {
 				require.EqualError(t, Validate(tmpl), tt.wantErr)

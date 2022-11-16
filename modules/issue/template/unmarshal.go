@@ -113,6 +113,9 @@ func unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 			it.Name = filepath.Base(it.FileName)
 			it.About, _ = util.SplitStringAtByteN(it.Content, 80)
 		} else {
+			if it.Labels, err = decodeLabels(it.LabelsNode); err != nil {
+				return nil, fmt.Errorf("yaml unmarshal: %w", err)
+			}
 			it.Content = templateBody
 			if it.About == "" {
 				if _, err := markdown.ExtractMetadata(string(content), compatibleTemplate); err == nil && compatibleTemplate.About != "" {
