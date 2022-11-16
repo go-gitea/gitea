@@ -16,6 +16,8 @@ import (
 	"net/http"
 	"path/filepath"
 	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -34,6 +36,10 @@ const (
 	extensionSHA1     = ".sha1"
 	extensionSHA256   = ".sha256"
 	extensionSHA512   = ".sha512"
+	extensionPom      = ".pom"
+	extensionJar      = ".jar"
+	contentTypeJar    = "application/java-archive"
+	contentTypeXml    = "text/xml"
 )
 
 var (
@@ -49,6 +55,15 @@ func apiError(ctx *context.Context, status int, obj interface{}) {
 
 // DownloadPackageFile serves the content of a package
 func DownloadPackageFile(ctx *context.Context) {
+	handlePackageFile(ctx, true)
+}
+
+// ProvidePackageFileHeader provides only the headers describing a package
+func ProvidePackageFileHeader(ctx *context.Context) {
+	handlePackageFile(ctx, false)
+}
+
+func handlePackageFile(ctx *context.Context, serveContent bool) {
 	params, err := extractPathParameters(ctx)
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
@@ -58,7 +73,7 @@ func DownloadPackageFile(ctx *context.Context) {
 	if params.IsMeta && params.Version == "" {
 		serveMavenMetadata(ctx, params)
 	} else {
-		servePackageFile(ctx, params)
+		servePackageFile(ctx, params, serveContent)
 	}
 }
 
@@ -82,12 +97,20 @@ func serveMavenMetadata(ctx *context.Context, params parameters) {
 		return
 	}
 
+	sort.Slice(pds, func(i, j int) bool {
+		// Maven and Gradle order packages by their creation timestamp and not by their version string
+		return pds[i].Version.CreatedUnix < pds[j].Version.CreatedUnix
+	})
+
 	xmlMetadata, err := xml.Marshal(createMetadataResponse(pds))
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	xmlMetadataWithHeader := append([]byte(xml.Header), xmlMetadata...)
+
+	latest := pds[len(pds)-1]
+	ctx.Resp.Header().Set("Last-Modified", latest.Version.CreatedUnix.Format(http.TimeFormat))
 
 	ext := strings.ToLower(filepath.Ext(params.Filename))
 	if isChecksumExtension(ext) {
@@ -110,10 +133,15 @@ func serveMavenMetadata(ctx *context.Context, params parameters) {
 		return
 	}
 
-	ctx.PlainTextBytes(http.StatusOK, xmlMetadataWithHeader)
+	ctx.Resp.Header().Set("Content-Length", strconv.Itoa(len(xmlMetadataWithHeader)))
+	ctx.Resp.Header().Set("Content-Type", contentTypeXml)
+
+	if _, err := ctx.Resp.Write(xmlMetadataWithHeader); err != nil {
+		log.Error("write bytes failed: %v", err)
+	}
 }
 
-func servePackageFile(ctx *context.Context, params parameters) {
+func servePackageFile(ctx *context.Context, params parameters, serveContent bool) {
 	packageName := params.GroupID + "-" + params.ArtifactID
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeMaven, packageName, params.Version)
@@ -149,6 +177,8 @@ func servePackageFile(ctx *context.Context, params parameters) {
 		return
 	}
 
+	ctx.Resp.Header().Set("Last-Modified", pf.CreatedUnix.Format(http.TimeFormat))
+
 	if isChecksumExtension(ext) {
 		var hash string
 		switch ext {
@@ -162,6 +192,24 @@ func servePackageFile(ctx *context.Context, params parameters) {
 			hash = pb.HashSHA512
 		}
 		ctx.PlainText(http.StatusOK, hash)
+		return
+	}
+
+	ctx.Resp.Header().Set("Content-Length", strconv.FormatInt(pb.Size, 10))
+
+	var contentType string
+	switch ext {
+	case extensionJar:
+		contentType = contentTypeJar
+	case extensionPom:
+		contentType = contentTypeXml
+	}
+	if contentType != "" {
+		ctx.Resp.Header().Set("Content-Type", contentType)
+	}
+
+	if !serveContent {
+		ctx.Resp.WriteHeader(http.StatusOK)
 		return
 	}
 
@@ -273,7 +321,7 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 
 	// If it's the package pom file extract the metadata
-	if ext == ".pom" {
+	if ext == extensionPom {
 		pfci.IsLead = true
 
 		var err error
