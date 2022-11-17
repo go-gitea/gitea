@@ -3,15 +3,15 @@ import {showTemporaryTooltip} from '../modules/tippy.js';
 const {copy_success, copy_error} = window.config.i18n;
 
 export async function copyToClipboard(content) {
-  if (typeof content === 'string') {
+  if (content instanceof Blob) { // this may throw in unsupporting browsers
+    const item = new window.ClipboardItem({[content.type]: content});
+    await navigator.clipboard.write([item]);
+  } else { // text
     try {
       await navigator.clipboard.writeText(content);
     } catch {
       return fallbackCopyToClipboard(content);
     }
-  } else { // blob, this may throw in unsupporting browsers
-    const item = new window.ClipboardItem({[content.type]: content});
-    await navigator.clipboard.write([item]);
   }
   return true;
 }
