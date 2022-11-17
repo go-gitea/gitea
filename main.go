@@ -2,7 +2,6 @@
 // Copyright 2016 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-
 // Gitea (git with a cup of tea) is a painless self-hosted Git Service.
 package main // import "code.gitea.io/gitea"
 
