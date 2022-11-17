@@ -34,6 +34,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/auth"
@@ -357,7 +358,7 @@ type ServeHeaderOptions struct {
 func (ctx *Context) SetServeHeaders(opts *ServeHeaderOptions) {
 	header := ctx.Resp.Header()
 
-	contentType := "application/octet-stream"
+	contentType := typesniffer.ApplicationOctetStream
 	if opts.ContentType != "" {
 		if opts.ContentTypeCharset != "" {
 			contentType = opts.ContentType + "; charset=" + strings.ToLower(opts.ContentTypeCharset)
@@ -374,7 +375,7 @@ func (ctx *Context) SetServeHeaders(opts *ServeHeaderOptions) {
 			disposition = "attachment"
 		}
 
-		header.Set("Content-Disposition", fmt.Sprintf(`%s; filename="%s"; filename*=UTF-8''%s`, disposition, opts.Filename, url.PathEscape(opts.Filename)))
+		header.Set("Content-Disposition", fmt.Sprintf(`%s; filename="%s"; filename*=UTF-8''%s`, disposition, strings.ReplaceAll(opts.Filename, `"`, `\"`), url.PathEscape(opts.Filename)))
 		header.Set("Access-Control-Expose-Headers", "Content-Disposition")
 	}
 
