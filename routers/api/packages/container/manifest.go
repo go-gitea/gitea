@@ -77,7 +77,7 @@ func processImageManifest(mci *manifestCreationInfo, buf *packages_module.Hashed
 			return err
 		}
 
-		ctx, committer, err := db.TxContext()
+		ctx, committer, err := db.TxContext(db.DefaultContext)
 		if err != nil {
 			return err
 		}
@@ -190,7 +190,7 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 			return err
 		}
 
-		ctx, committer, err := db.TxContext()
+		ctx, committer, err := db.TxContext(db.DefaultContext)
 		if err != nil {
 			return err
 		}
