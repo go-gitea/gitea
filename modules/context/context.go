@@ -375,7 +375,8 @@ func (ctx *Context) SetServeHeaders(opts *ServeHeaderOptions) {
 			disposition = "attachment"
 		}
 
-		header.Set("Content-Disposition", fmt.Sprintf(`%s; filename="%s"; filename*=UTF-8''%s`, disposition, strings.ReplaceAll(opts.Filename, `"`, `\"`), url.PathEscape(opts.Filename)))
+		backslashEscapedName := strings.ReplaceAll(strings.ReplaceAll(opts.Filename, `\`, `\\`), `"`, `\"`) // \ -> \\, " -> \"
+		header.Set("Content-Disposition", fmt.Sprintf(`%s; filename="%s"; filename*=UTF-8''%s`, disposition, backslashEscapedName, url.PathEscape(opts.Filename)))
 		header.Set("Access-Control-Expose-Headers", "Content-Disposition")
 	}
 
