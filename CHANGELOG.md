@@ -8,8 +8,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 * BREAKING
   * Remove U2F support (#20141)
-* SECURITY
-  * Support Go Vulnerability Management (#21139)
 * FEATURES
   * Add color previews in markdown (#21474)
   * Allow package version sorting (#21453)
