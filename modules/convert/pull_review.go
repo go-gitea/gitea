@@ -39,6 +39,7 @@ func ToPullReview(ctx context.Context, r *issues_model.Review, doer *user_model.
 		Dismissed:         r.Dismissed,
 		CodeCommentsCount: r.GetCodeCommentsCount(),
 		Submitted:         r.CreatedUnix.AsTime(),
+		Updated:           r.UpdatedUnix.AsTime(),
 		HTMLURL:           r.HTMLURL(),
 		HTMLPullURL:       r.Issue.HTMLURL(),
 	}
