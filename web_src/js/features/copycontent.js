@@ -4,9 +4,10 @@ const {i18n} = window.config;
 
 export function initCopyContent() {
   const btn = document.getElementById('copy-content');
-  if (!btn || btn.classList.contains('disabled') || btn.classList.contains('is-loading')) return;
+  if (!btn || btn.classList.contains('disabled')) return;
 
   btn.addEventListener('click', async () => {
+    if (btn.classList.contains('is-loading')) return;
     let content;
     const link = btn.getAttribute('data-link');
 
