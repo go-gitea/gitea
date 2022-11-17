@@ -38,6 +38,18 @@ func (a ArchiveType) String() string {
 	return "unknown"
 }
 
+func ToArchiveType(s string) ArchiveType {
+	switch s {
+	case "zip":
+		return ZIP
+	case "tar.gz":
+		return TARGZ
+	case "bundle":
+		return BUNDLE
+	}
+	return 0
+}
+
 // CreateArchive create archive content to the target path
 func (repo *Repository) CreateArchive(ctx context.Context, format ArchiveType, target io.Writer, usePrefix bool, commitID string) error {
 	if format.String() == "unknown" {

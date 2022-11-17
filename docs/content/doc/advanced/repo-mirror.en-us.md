@@ -41,13 +41,15 @@ For an existing remote repository, you can set up pull mirroring as follows:
 
 The repository now gets mirrored periodically from the remote repository. You can force a sync by selecting **Synchronize Now** in the repository settings.
 
+:exclamation::exclamation: **NOTE:** You can only set up pull mirroring for repos that don't exist yet on your instance. Once the repo is created, you can't convert it into a pull mirror anymore. :exclamation::exclamation:
+
 ## Pushing to a remote repository
 
 For an existing repository, you can set up push mirroring as follows:
 
 1. In your repository, go to **Settings** > **Repository**, and then the **Mirror Settings** section.
 2. Enter a repository URL.
-3. If the repository needs authentication expand the **Authorization** section and fill in your authentication information.
+3. If the repository needs authentication expand the **Authorization** section and fill in your authentication information. Note that the requested **password** can also be your access token.
 4. Select **Add Push Mirror** to save the configuration.
 
 The repository now gets mirrored periodically to the remote repository. You can force a sync by selecting **Synchronize Now**. In case of an error a message displayed to help you resolve it.
@@ -59,9 +61,11 @@ The repository now gets mirrored periodically to the remote repository. You can 
 To set up a mirror from Gitea to GitHub, you need to follow these steps:
 
 1. Create a [GitHub personal access token](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token) with the *public_repo* box checked.
-2. Fill in the **Git Remote Repository URL**: `https://github.com/<your_github_group>/<your_github_project>.git`.
-3. Fill in the **Authorization** fields with your GitHub username and the personal access token.
-4. Select **Add Push Mirror** to save the configuration.
+2. Create a repository with that name on GitHub. Unlike Gitea, GitHub does not support creating repositories by pushing to the remote. You can also use an existing remote repo if it has the same commit history as your Gitea repo.
+3. In the settings of your Gitea repo, fill in the **Git Remote Repository URL**: `https://github.com/<your_github_group>/<your_github_project>.git`.
+4. Fill in the **Authorization** fields with your GitHub username and the personal access token as **Password**.
+5. (Optional, available on Gitea 1.18+) Select `Sync when new commits are pushed` so that the mirror will be updated as well as soon as there are changes. You can also disable the periodic sync if you like.
+6. Select **Add Push Mirror** to save the configuration.
 
 The repository pushes shortly thereafter. To force a push, select the **Synchronize Now** button.
 
