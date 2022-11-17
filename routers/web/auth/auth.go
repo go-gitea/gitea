@@ -146,9 +146,25 @@ func checkAutoLogin(ctx *context.Context) bool {
 	return false
 }
 
+func checkForceOpenID(ctx *context.Context) bool {
+	// Check forced OpenID login
+	forced := setting.Service.ForceOpenID
+
+	if forced && setting.Service.EnableOpenIDSignIn {
+		ctx.RedirectToFirst(setting.AppSubURL + "/user/login/openid")
+		return true
+	}
+	return false
+}
+
 // SignIn render sign in page
 func SignIn(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
+
+	// Check forced OpenID login
+	if checkForceOpenID(ctx) {
+		return
+	}
 
 	// Check auto-login
 	if checkAutoLogin(ctx) {
