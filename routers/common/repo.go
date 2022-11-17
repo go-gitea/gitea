@@ -7,7 +7,6 @@ package common
 import (
 	"fmt"
 	"io"
-	"net/url"
 	"path"
 	"path/filepath"
 	"strings"
@@ -53,49 +52,43 @@ func ServeData(ctx *context.Context, filePath string, size int64, reader io.Read
 		buf = buf[:n]
 	}
 
-	httpcache.AddCacheControlToHeader(ctx.Resp.Header(), 5*time.Minute)
-
 	if size >= 0 {
 		ctx.Resp.Header().Set("Content-Length", fmt.Sprintf("%d", size))
 	} else {
 		log.Error("ServeData called to serve data: %s with size < 0: %d", filePath, size)
 	}
 
-	fileName := path.Base(filePath)
-	sniffedType := typesniffer.DetectContentType(buf)
-	isPlain := sniffedType.IsText() || ctx.FormBool("render")
-	mimeType := ""
-	charset := ""
-
-	if setting.MimeTypeMap.Enabled {
-		fileExtension := strings.ToLower(filepath.Ext(fileName))
-		mimeType = setting.MimeTypeMap.Map[fileExtension]
+	opts := &context.ServeHeaderOptions{
+		Filename: path.Base(filePath),
 	}
 
-	if mimeType == "" {
+	sniffedType := typesniffer.DetectContentType(buf)
+	isPlain := sniffedType.IsText() || ctx.FormBool("render")
+
+	if setting.MimeTypeMap.Enabled {
+		fileExtension := strings.ToLower(filepath.Ext(filePath))
+		opts.ContentType = setting.MimeTypeMap.Map[fileExtension]
+	}
+
+	if opts.ContentType == "" {
 		if sniffedType.IsBrowsableBinaryType() {
-			mimeType = sniffedType.GetMimeType()
+			opts.ContentType = sniffedType.GetMimeType()
 		} else if isPlain {
-			mimeType = "text/plain"
+			opts.ContentType = "text/plain"
 		} else {
-			mimeType = typesniffer.ApplicationOctetStream
+			opts.ContentType = typesniffer.ApplicationOctetStream
 		}
 	}
 
 	if isPlain {
+		var charset string
 		charset, err = charsetModule.DetectEncoding(buf)
 		if err != nil {
 			log.Error("Detect raw file %s charset failed: %v, using by default utf-8", filePath, err)
 			charset = "utf-8"
 		}
+		opts.ContentTypeCharset = strings.ToLower(charset)
 	}
-
-	if charset != "" {
-		ctx.Resp.Header().Set("Content-Type", mimeType+"; charset="+strings.ToLower(charset))
-	} else {
-		ctx.Resp.Header().Set("Content-Type", mimeType)
-	}
-	ctx.Resp.Header().Set("X-Content-Type-Options", "nosniff")
 
 	isSVG := sniffedType.IsSvgImage()
 
@@ -109,16 +102,12 @@ func ServeData(ctx *context.Context, filePath string, size int64, reader io.Read
 		ctx.Resp.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")
 	}
 
-	disposition := "inline"
+	opts.Disposition = "inline"
 	if isSVG && !setting.UI.SVG.Enabled {
-		disposition = "attachment"
+		opts.Disposition = "attachment"
 	}
 
-	// encode filename per https://datatracker.ietf.org/doc/html/rfc5987
-	encodedFileName := `filename*=UTF-8''` + url.PathEscape(fileName)
-
-	ctx.Resp.Header().Set("Content-Disposition", disposition+"; "+encodedFileName)
-	ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
+	ctx.SetServeHeaders(opts)
 
 	_, err = ctx.Resp.Write(buf)
 	if err != nil {
