@@ -277,7 +277,7 @@ func CreateOrganization(org *Organization, owner *user_model.User) (err error) {
 	org.NumMembers = 1
 	org.Type = user_model.UserTypeOrganization
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -564,7 +564,7 @@ func AddOrgUser(orgID, uid int64) error {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

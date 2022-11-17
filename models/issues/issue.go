@@ -528,7 +528,7 @@ func clearIssueLabels(ctx context.Context, issue *Issue, doer *user_model.User) 
 // ClearIssueLabels removes all issue labels as the given user.
 // Triggers appropriate WebHooks, if any.
 func ClearIssueLabels(issue *Issue, doer *user_model.User) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -576,7 +576,7 @@ func (ts labelSorter) Swap(i, j int) {
 // ReplaceIssueLabels removes all current labels and add new labels to the issue.
 // Triggers appropriate WebHooks, if any.
 func ReplaceIssueLabels(issue *Issue, labels []*Label, doer *user_model.User) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -748,7 +748,7 @@ func ChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User,
 
 // ChangeIssueTitle changes the title of this issue, as the given user.
 func ChangeIssueTitle(issue *Issue, doer *user_model.User, oldTitle string) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -782,7 +782,7 @@ func ChangeIssueTitle(issue *Issue, doer *user_model.User, oldTitle string) (err
 
 // ChangeIssueRef changes the branch of this issue, as the given user.
 func ChangeIssueRef(issue *Issue, doer *user_model.User, oldRef string) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -832,7 +832,7 @@ func AddDeletePRBranchComment(ctx context.Context, doer *user_model.User, repo *
 
 // UpdateIssueAttachments update attachments by UUIDs for the issue
 func UpdateIssueAttachments(issueID int64, uuids []string) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -852,7 +852,7 @@ func UpdateIssueAttachments(issueID int64, uuids []string) (err error) {
 
 // ChangeIssueContent changes issue content, as the given user.
 func ChangeIssueContent(issue *Issue, doer *user_model.User, content string) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -1057,7 +1057,7 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 
 // NewIssue creates new issue with labels for repository.
 func NewIssue(repo *repo_model.Repository, issue *Issue, labelIDs []int64, uuids []string) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -1973,7 +1973,7 @@ func SearchIssueIDsByKeyword(ctx context.Context, kw string, repoIDs []int64, li
 // If the issue status is changed a statusChangeComment is returned
 // similarly if the title is changed the titleChanged bool is set to true
 func UpdateIssueByAPI(issue *Issue, doer *user_model.User) (statusChangeComment *Comment, titleChanged bool, err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, false, err
 	}
@@ -2031,7 +2031,7 @@ func UpdateIssueDeadline(issue *Issue, deadlineUnix timeutil.TimeStamp, doer *us
 	if issue.DeadlineUnix == deadlineUnix {
 		return nil
 	}
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -2423,35 +2423,31 @@ func CountOrphanedIssues(ctx context.Context) (int64, error) {
 }
 
 // DeleteOrphanedIssues delete issues without a repo
-func DeleteOrphanedIssues(_ context.Context) error {
-	ctx, committer, err := db.TxContext()
+func DeleteOrphanedIssues(ctx context.Context) error {
+	var attachmentPaths []string
+	err := db.AutoTx(ctx, func(ctx context.Context) error {
+		var ids []int64
+
+		if err := db.GetEngine(ctx).Table("issue").Distinct("issue.repo_id").
+			Join("LEFT", "repository", "issue.repo_id=repository.id").
+			Where(builder.IsNull{"repository.id"}).GroupBy("issue.repo_id").
+			Find(&ids); err != nil {
+			return err
+		}
+
+		for i := range ids {
+			paths, err := DeleteIssuesByRepoID(ctx, ids[i])
+			if err != nil {
+				return err
+			}
+			attachmentPaths = append(attachmentPaths, paths...)
+		}
+
+		return nil
+	})
 	if err != nil {
 		return err
 	}
-	defer committer.Close()
-
-	var ids []int64
-
-	if err := db.GetEngine(ctx).Table("issue").Distinct("issue.repo_id").
-		Join("LEFT", "repository", "issue.repo_id=repository.id").
-		Where(builder.IsNull{"repository.id"}).GroupBy("issue.repo_id").
-		Find(&ids); err != nil {
-		return err
-	}
-
-	var attachmentPaths []string
-	for i := range ids {
-		paths, err := DeleteIssuesByRepoID(ctx, ids[i])
-		if err != nil {
-			return err
-		}
-		attachmentPaths = append(attachmentPaths, paths...)
-	}
-
-	if err := committer.Commit(); err != nil {
-		return err
-	}
-	committer.Close()
 
 	// Remove issue attachment files.
 	for i := range attachmentPaths {

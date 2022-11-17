@@ -370,7 +370,7 @@ func TestDeleteIssueLabel(t *testing.T) {
 			}
 		}
 
-		ctx, committer, err := db.TxContext()
+		ctx, committer, err := db.TxContext(db.DefaultContext)
 		defer committer.Close()
 		assert.NoError(t, err)
 		assert.NoError(t, issues_model.DeleteIssueLabel(ctx, issue, label, doer))

@@ -196,7 +196,7 @@ func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *repo_mod
 	}
 	rel.LowerTagName = strings.ToLower(rel.TagName)
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

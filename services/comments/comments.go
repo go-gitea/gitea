@@ -7,6 +7,7 @@ package comments
 import (
 	"context"
 
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -73,7 +74,10 @@ func UpdateComment(ctx context.Context, c *issues_model.Comment, doer *user_mode
 
 // DeleteComment deletes the comment
 func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) error {
-	if err := issues_model.DeleteComment(ctx, comment); err != nil {
+	err := db.AutoTx(ctx, func(ctx context.Context) error {
+		return issues_model.DeleteComment(ctx, comment)
+	})
+	if err != nil {
 		return err
 	}
 

@@ -6,6 +6,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -79,6 +80,9 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		Timeout:       migrateTimeout,
 		SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 	}); err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return repo, fmt.Errorf("Clone timed out. Consider increasing [git.timeout] MIGRATE in app.ini. Underlying Error: %w", err)
+		}
 		return repo, fmt.Errorf("Clone: %w", err)
 	}
 
@@ -169,7 +173,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		}
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}
@@ -485,7 +489,7 @@ func pullMirrorReleaseSync(repo *repo_model.Repository, gitRepo *git.Repository)
 	if err != nil {
 		return fmt.Errorf("unable to GetTagInfos in pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 	}
-	err = db.WithTx(func(ctx context.Context) error {
+	err = db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		//
 		// clear out existing releases
 		//

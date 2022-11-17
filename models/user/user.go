@@ -695,7 +695,7 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 		return err
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -814,7 +814,7 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -957,7 +957,7 @@ func UpdateUserCols(ctx context.Context, u *User, cols ...string) error {
 
 // UpdateUserSetting updates user's settings.
 func UpdateUserSetting(u *User) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

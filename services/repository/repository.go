@@ -90,7 +90,7 @@ func Init() error {
 
 // UpdateRepository updates a repository
 func UpdateRepository(repo *repo_model.Repository, visibilityChanged bool) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

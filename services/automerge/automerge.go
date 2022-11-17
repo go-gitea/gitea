@@ -63,7 +63,7 @@ func addToQueue(pr *issues_model.PullRequest, sha string) {
 
 // ScheduleAutoMerge if schedule is false and no error, pull can be merged directly
 func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, style repo_model.MergeStyle, message string) (scheduled bool, err error) {
-	err = db.WithTx(func(ctx context.Context) error {
+	err = db.WithTx(ctx, func(ctx context.Context) error {
 		lastCommitStatus, err := pull_service.GetPullRequestCommitStatusState(ctx, pull)
 		if err != nil {
 			return err
@@ -81,20 +81,20 @@ func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_
 
 		_, err = issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRScheduledToAutoMerge, pull, doer)
 		return err
-	}, ctx)
+	})
 	return scheduled, err
 }
 
 // RemoveScheduledAutoMerge cancels a previously scheduled pull request
 func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest) error {
-	return db.WithTx(func(ctx context.Context) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
 		if err := pull_model.DeleteScheduledAutoMerge(ctx, pull.ID); err != nil {
 			return err
 		}
 
 		_, err := issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRUnScheduledToAutoMerge, pull, doer)
 		return err
-	}, ctx)
+	})
 }
 
 // MergeScheduledPullRequest merges a previously scheduled pull request when all checks succeeded

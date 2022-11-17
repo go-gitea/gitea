@@ -142,7 +142,7 @@ func CountNotifications(ctx context.Context, opts *FindNotificationOptions) (int
 
 // CreateRepoTransferNotification creates  notification for the user a repository was transferred to
 func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) error {
-	return db.WithTx(func(ctx context.Context) error {
+	return db.AutoTx(ctx, func(ctx context.Context) error {
 		var notify []*Notification
 
 		if newOwner.IsOrganization() {
@@ -170,14 +170,14 @@ func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_mo
 		}
 
 		return db.Insert(ctx, notify)
-	}, ctx)
+	})
 }
 
 // CreateOrUpdateIssueNotifications creates an issue notification
 // for each watcher, or updates it if already exists
 // receiverID > 0 just send to receiver, else send to all watcher
 func CreateOrUpdateIssueNotifications(issueID, commentID, notificationAuthorID, receiverID int64) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

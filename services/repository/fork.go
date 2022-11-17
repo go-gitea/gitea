@@ -112,7 +112,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		panic(panicErr)
 	}()
 
-	err = db.WithTx(func(txCtx context.Context) error {
+	err = db.WithTx(ctx, func(txCtx context.Context) error {
 		if err = repo_module.CreateRepositoryByExample(txCtx, doer, owner, repo, false); err != nil {
 			return err
 		}
@@ -184,7 +184,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 
 // ConvertForkToNormalRepository convert the provided repo from a forked repo to normal repo
 func ConvertForkToNormalRepository(repo *repo_model.Repository) error {
-	err := db.WithTx(func(ctx context.Context) error {
+	err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		repo, err := repo_model.GetRepositoryByIDCtx(ctx, repo.ID)
 		if err != nil {
 			return err

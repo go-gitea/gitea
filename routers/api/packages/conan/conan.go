@@ -604,7 +604,7 @@ func DeletePackageV2(ctx *context.Context) {
 }
 
 func deleteRecipeOrPackage(apictx *context.Context, rref *conan_module.RecipeReference, ignoreRecipeRevision bool, pref *conan_module.PackageReference, ignorePackageRevision bool) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
