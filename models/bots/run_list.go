@@ -49,7 +49,11 @@ func (runs RunList) LoadTriggerUser() error {
 		return err
 	}
 	for _, run := range runs {
-		run.TriggerUser = users[run.TriggerUserID]
+		if run.TriggerUserID == user_model.BotUserID {
+			run.TriggerUser = user_model.NewBotUser()
+		} else {
+			run.TriggerUser = users[run.TriggerUserID]
+		}
 	}
 	return nil
 }

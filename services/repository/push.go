@@ -109,9 +109,13 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 		}
 		if opts.IsTag() { // If is tag reference
 			if pusher == nil || pusher.ID != opts.PusherID {
-				var err error
-				if pusher, err = user_model.GetUserByID(opts.PusherID); err != nil {
-					return err
+				if opts.PusherID == user_model.BotUserID {
+					pusher = user_model.NewBotUser()
+				} else {
+					var err error
+					if pusher, err = user_model.GetUserByID(opts.PusherID); err != nil {
+						return err
+					}
 				}
 			}
 			tagName := opts.TagName()
@@ -149,9 +153,13 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 			}
 		} else if opts.IsBranch() { // If is branch reference
 			if pusher == nil || pusher.ID != opts.PusherID {
-				var err error
-				if pusher, err = user_model.GetUserByID(opts.PusherID); err != nil {
-					return err
+				if opts.PusherID == user_model.BotUserID {
+					pusher = user_model.NewBotUser()
+				} else {
+					var err error
+					if pusher, err = user_model.GetUserByID(opts.PusherID); err != nil {
+						return err
+					}
 				}
 			}
 
