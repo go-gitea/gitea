@@ -202,7 +202,7 @@ func (s *Service) UpdateTask(
 			Creator: creator,
 			CommitStatus: &git_model.CommitStatus{
 				SHA:         payload.HeadCommit.ID,
-				TargetURL:   fmt.Sprintf("%s/builds/runs/%d", task.Job.Run.Repo.HTMLURL(), task.Job.Run.ID),
+				TargetURL:   task.Job.Run.HTMLURL(),
 				Description: "",
 				Context:     task.Job.Name,
 				CreatorID:   payload.Pusher.ID,
