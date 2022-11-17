@@ -30,7 +30,7 @@ export function initCopyContent() {
       } finally {
         btn.classList.remove('is-loading');
       }
-    } else { // text, copy from DOM
+    } else { // text, read from DOM
       const lineEls = document.querySelectorAll('.file-view .lines-code');
       content = Array.from(lineEls).map((el) => el.textContent).join('');
     }
