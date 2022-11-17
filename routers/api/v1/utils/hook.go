@@ -58,7 +58,7 @@ func GetOwnerHook(ctx *context.APIContext, ownerID, hookID int64) (*webhook.Webh
 		if webhook.IsErrWebhookNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetWebhookByOrgID", err)
+			ctx.Error(http.StatusInternalServerError, "GetWebhookByOwnerID", err)
 		}
 		return nil, err
 	}

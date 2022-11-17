@@ -62,7 +62,13 @@ func GetHook(ctx *context.APIContext) {
 	if err != nil {
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToHook(ctx.Doer.HomeLink(), hook))
+
+	apiHook, err := convert.ToHook(ctx.Doer.HomeLink(), hook)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, apiHook)
 }
 
 // CreateHook create a hook for the authenticated user

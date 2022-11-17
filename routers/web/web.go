@@ -447,7 +447,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Get("/repos", user_setting.Repos)
 		m.Post("/repos/unadopted", user_setting.AdoptOrDeleteRepository)
 
-		m.Group("/hooks", func() {
+		m.Group("/hooks", func() { //nolint:dupl
 			m.Get("", user_setting.Webhooks)
 			m.Post("/delete", user_setting.DeleteWebhook)
 			m.Get("/{type}/new", repo.WebhooksNew)
@@ -742,7 +742,7 @@ func RegisterRoutes(m *web.Route) {
 					}
 				})
 
-				m.Group("/hooks", func() {
+				m.Group("/hooks", func() { //nolint:dupl
 					m.Get("", org.Webhooks)
 					m.Post("/delete", org.DeleteWebhook)
 					m.Get("/{type}/new", repo.WebhooksNew)
