@@ -14,7 +14,7 @@ import (
 
 func grpcHandler(h http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log.Trace("protocol version:", r.Proto)
+		log.Trace("protocol version: %v", r.Proto)
 		h.ServeHTTP(w, r)
 	}
 }
