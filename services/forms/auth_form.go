@@ -73,6 +73,7 @@ type AuthenticationForm struct {
 	Oauth2AdminGroup              string
 	Oauth2RestrictedGroup         string
 	SkipLocalTwoFA                bool
+	ForceOAuth                    bool
 	SSPIAutoCreateUsers           bool
 	SSPIAutoActivateUsers         bool
 	SSPIStripDomainNames          bool

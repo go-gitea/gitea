@@ -137,12 +137,43 @@ func checkAutoLogin(ctx *context.Context) bool {
 	return false
 }
 
+func checkForceOAuth(ctx *context.Context) bool {
+	// Check if authentication is forced to OAuth
+
+	authSources, err := auth.GetActiveOAuth2ProviderSources()
+	if err != nil {
+		return false
+	}
+
+	var OAuthList []int64
+
+	for _, source := range authSources {
+		if forced, ok := source.Cfg.(auth_service.ForceOAuth); ok && forced.IsOAuthForced() {
+			OAuthList = append(OAuthList, source.ID)
+			app, err := auth.GetOAuth2ApplicationByID(ctx, OAuthList[0])
+			if err != nil {
+				return false
+			}
+			url := app.PrimaryRedirectURI()
+			ctx.Redirect(url)
+			return true
+		}
+	}
+
+	return false
+}
+
 // SignIn render sign in page
 func SignIn(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 
 	// Check auto-login
 	if checkAutoLogin(ctx) {
+		return
+	}
+
+	// Check if authentication is forced to OAuth
+	if checkForceOAuth(ctx) {
 		return
 	}
 

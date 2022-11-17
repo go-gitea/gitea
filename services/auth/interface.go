@@ -59,6 +59,10 @@ type LocalTwoFASkipper interface {
 	IsSkipLocalTwoFA() bool
 }
 
+type ForceOAuth interface {
+	IsOAuthForced() bool
+}
+
 // SynchronizableSource represents a source that can synchronize users
 type SynchronizableSource interface {
 	Sync(ctx context.Context, updateExisting bool) error
