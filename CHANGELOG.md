@@ -45,7 +45,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add new endpoints for push mirrors management (#19841)
 * ENHANCEMENTS
   * Use CSS color-scheme instead of invert (#21616) (#21623)
-  *  Respect user's locale when rendering the date range in the repo activity page (#21410)
+  * Respect user's locale when rendering the date range in the repo activity page (#21410)
   * Change `commits-table` column width (#21564)
   * Refactor git command arguments and make all arguments to be safe to be used (#21535)
   * CSS color enhancements (#21534)
