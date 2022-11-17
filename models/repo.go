@@ -45,7 +45,7 @@ func Init() error {
 // DeleteRepository deletes a repository for a user or organization.
 // make sure if you call this func to close open sessions (sqlite will otherwise get a deadlock)
 func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -569,7 +569,7 @@ func UpdateRepoStats(ctx context.Context, id int64) error {
 }
 
 func updateUserStarNumbers(users []user_model.User) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

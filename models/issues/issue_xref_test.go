@@ -131,7 +131,7 @@ func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispu
 	r := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo})
 	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: doer})
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	assert.NoError(t, err)
 	defer committer.Close()
 
@@ -174,7 +174,7 @@ func testCreateComment(t *testing.T, repo, doer, issue int64, content string) *i
 	i := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issue})
 	c := &issues_model.Comment{Type: issues_model.CommentTypeComment, PosterID: doer, Poster: d, IssueID: issue, Issue: i, Content: content}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	assert.NoError(t, err)
 	defer committer.Close()
 	err = db.Insert(ctx, c)

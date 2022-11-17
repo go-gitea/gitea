@@ -5,10 +5,13 @@
 package db
 
 import (
+	"errors"
 	"fmt"
 
 	"code.gitea.io/gitea/modules/util"
 )
+
+var ErrAlreadyInTransaction = errors.New("database connection has already been in a transaction")
 
 // ErrCancelled represents an error due to context cancellation
 type ErrCancelled struct {
