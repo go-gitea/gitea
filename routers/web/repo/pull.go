@@ -183,6 +183,9 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 func Fork(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_fork")
 
+	ctx.Data["CanCreateRepo"] = ctx.Doer.CanCreateRepo()
+	ctx.Data["MaxCreationLimit"] = ctx.Doer.MaxCreationLimit()
+
 	getForkRepository(ctx)
 	if ctx.Written() {
 		return
@@ -195,6 +198,9 @@ func Fork(ctx *context.Context) {
 func ForkPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateRepoForm)
 	ctx.Data["Title"] = ctx.Tr("new_fork")
+
+	ctx.Data["CanCreateRepo"] = ctx.Doer.CanCreateRepo()
+	ctx.Data["MaxCreationLimit"] = ctx.Doer.MaxCreationLimit()
 
 	ctxUser := checkContextUser(ctx, form.UID)
 	if ctx.Written() {
@@ -255,6 +261,10 @@ func ForkPost(ctx *context.Context) {
 	if err != nil {
 		ctx.Data["Err_RepoName"] = true
 		switch {
+		case repo_model.IsErrReachLimitOfRepo(err):
+			maxCreationLimit := ctxUser.MaxCreationLimit()
+			msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
+			ctx.RenderWithErr(msg, tplFork, &form)
 		case repo_model.IsErrRepoAlreadyExist(err):
 			ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplFork, &form)
 		case db.IsErrNameReserved(err):

@@ -9,6 +9,13 @@
 				</h3>
 				<div class="ui attached segment">
 					{{template "base/alert" .}}
+
+					{{if not .CanCreateRepo}}
+						<div class="ui negative message">
+							<p>{{.locale.TrN .MaxCreationLimit "repo.form.reach_limit_of_creation_1" "repo.form.reach_limit_of_creation_n" .MaxCreationLimit}}</p>
+						</div>
+					{{end}}
+
 					<div class="inline required field {{if .Err_Owner}}error{{end}}">
 						<label>{{.locale.Tr "repo.owner"}}</label>
 						<div class="ui selection owner dropdown">
@@ -58,7 +65,7 @@
 
 					<div class="inline field">
 						<label></label>
-						<button class="ui green button">
+						<button class="ui green button {{if not .CanCreateRepo}}disabled{{end}}">
 							{{.locale.Tr "repo.fork_repo"}}
 						</button>
 						<a class="ui button" href="{{.ForkRepo.Link}}">{{.locale.Tr "cancel"}}</a>
