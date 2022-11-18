@@ -89,7 +89,7 @@
 							<label for="from">{{.locale.Tr "repo.settings.rename_branch_from"}}</label>
 							<input id="from" name="from" required>
 						</div>
-						<div class="required field {{if .Err_BranchName}}error{{end}}">
+						<div class="required field{{if .Err_BranchName}} error{{end}}">
 							<label for="to">{{.locale.Tr "repo.settings.rename_branch_to"}}</label>
 							<input id="to" name="to" required>
 						</div>

@@ -45,7 +45,7 @@
 			<div class="ten wide right aligned column">
 				<div class="ui secondary filter stackable menu labels">
 					<!-- Label -->
-					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item label-filter" style="margin-left: auto">
+					<div class="ui{{if not .Labels}} disabled{{end}} dropdown jump item label-filter" style="margin-left: auto">
 						<span class="text">
 							{{.locale.Tr "repo.issues.filter_label"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -64,7 +64,7 @@
 					</div>
 
 					<!-- Author -->
-					<div class="ui {{if not .Posters}}disabled{{end}} dropdown jump item">
+					<div class="ui{{if not .Posters}} disabled{{end}} dropdown jump item">
 						<span class="text">
 							{{.locale.Tr "repo.issues.filter_poster"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -80,7 +80,7 @@
 					</div>
 
 					<!-- Assignee -->
-					<div class="ui {{if not .Assignees}}disabled{{end}} dropdown jump item">
+					<div class="ui{{if not .Assignees}} disabled{{end}} dropdown jump item">
 						<span class="text">
 							{{.locale.Tr "repo.issues.filter_assignee"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -153,7 +153,7 @@
 						<div class="ui red active basic button issue-action" data-action="close" data-url="{{$.RepoLink}}/issues/status" style="margin-left: auto">{{.locale.Tr "repo.issues.action_close"}}</div>
 					{{end}}
 					<!-- Labels -->
-					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item">
+					<div class="ui{{if not .Labels}} disabled{{end}} dropdown jump item">
 						<span class="text">
 							{{.locale.Tr "repo.issues.action_label"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -168,7 +168,7 @@
 					</div>
 
 					<!-- Assignees -->
-					<div class="ui {{if not .Assignees}}disabled{{end}} dropdown jump item">
+					<div class="ui{{if not .Assignees}} disabled{{end}} dropdown jump item">
 						<span class="text">
 							{{.locale.Tr "repo.issues.action_assignee"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}

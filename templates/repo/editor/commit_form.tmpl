@@ -22,8 +22,8 @@
 		</div>
 		<div class="quick-pull-choice js-quick-pull-choice">
 			<div class="field">
-				<div class="ui radio checkbox {{if not .CanCommitToBranch.CanCommitToBranch}}disabled{{end}}">
-					<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="direct" button_text="{{.locale.Tr "repo.editor.commit_changes"}}" {{if eq .commit_choice "direct"}}checked{{end}}>
+				<div class="ui radio checkbox{{if not .CanCommitToBranch.CanCommitToBranch}} disabled{{end}}">
+					<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="direct" button_text="{{.locale.Tr "repo.editor.commit_changes"}}"{{if eq .commit_choice "direct"}} checked{{end}}>
 					<label>
 						{{svg "octicon-git-commit"}}
 						{{.locale.Tr "repo.editor.commit_directly_to_this_branch" (.BranchName|Escape) | Safe}}
@@ -44,9 +44,9 @@
 				{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
 				<div class="ui radio checkbox">
 					{{if $pullRequestEnabled}}
-						<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="commit-to-new-branch" button_text="{{.locale.Tr "repo.editor.propose_file_change"}}" {{if eq .commit_choice "commit-to-new-branch"}}checked{{end}}>
+						<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="commit-to-new-branch" button_text="{{.locale.Tr "repo.editor.propose_file_change"}}"{{if eq .commit_choice "commit-to-new-branch"}} checked{{end}}>
 					{{else}}
-						<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="commit-to-new-branch" button_text="{{.locale.Tr "repo.editor.commit_changes"}}" {{if eq .commit_choice "commit-to-new-branch"}}checked{{end}}>
+						<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="commit-to-new-branch" button_text="{{.locale.Tr "repo.editor.commit_changes"}}"{{if eq .commit_choice "commit-to-new-branch"}} checked{{end}}>
 					{{end}}
 					<label>
 						{{svg "octicon-git-pull-request"}}
@@ -58,10 +58,10 @@
 					</label>
 				</div>
 			</div>
-			<div class="quick-pull-branch-name {{if not (eq .commit_choice "commit-to-new-branch")}}hide{{end}}">
-				<div class="new-branch-name-input field {{if .Err_NewBranchName}}error{{end}}">
+			<div class="quick-pull-branch-name{{if not (eq .commit_choice "commit-to-new-branch")}} hide{{end}}">
+				<div class="new-branch-name-input field{{if .Err_NewBranchName}} error{{end}}">
 					{{svg "octicon-git-branch"}}
-					<input type="text" name="new_branch_name" value="{{.new_branch_name}}" class="input-contrast mr-2 js-quick-pull-new-branch-name" placeholder="{{.locale.Tr "repo.editor.new_branch_name_desc"}}" {{if eq .commit_choice "commit-to-new-branch"}}required{{end}}>
+					<input type="text" name="new_branch_name" value="{{.new_branch_name}}" class="input-contrast mr-2 js-quick-pull-new-branch-name" placeholder="{{.locale.Tr "repo.editor.new_branch_name_desc"}}"{{if eq .commit_choice "commit-to-new-branch"}} required{{end}}>
 					<span class="text-muted js-quick-pull-normalization-info"></span>
 				</div>
 			</div>

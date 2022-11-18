@@ -181,7 +181,7 @@
 					<div class="card board-card" data-issue="{{.ID}}">
 						<div class="content p-0">
 							<div class="header">
-								<span class="dif ac vm {{if .IsClosed}}red{{else}}green{{end}}">
+								<span class="dif ac vm{{if .IsClosed}}red{{else}} green{{end}}">
 									{{if .IsPull}}
 										{{if .PullRequest.HasMerged}}
 											{{svg "octicon-git-merge" 16 "text purple"}}
@@ -228,7 +228,7 @@
 							{{- range index $.LinkedPRs .ID}}
 							<div class="meta my-2">
 								<a href="{{$.RepoLink}}/pulls/{{.Index}}">
-									<span class="m-0 {{if .PullRequest.HasMerged}}purple{{else if .IsClosed}}red{{else}}green{{end}}">{{svg "octicon-git-merge" 16 "mr-2 vm"}}</span>
+									<span class="m-0{{if .PullRequest.HasMerged}}purple{{else if .IsClosed}}red{{else}} green{{end}}">{{svg "octicon-git-merge" 16 "mr-2 vm"}}</span>
 									<span class="vm">{{.Title}} <span class="text light grey">#{{.Index}}</span></span>
 								</a>
 							</div>

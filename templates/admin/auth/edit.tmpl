@@ -16,7 +16,7 @@
 					<input type="hidden" id="auth_type" name="type" value="{{.Source.Type.Int}}">
 					<span>{{.Source.TypeName}}</span>
 				</div>
-				<div class="required inline field {{if .Err_Name}}error{{end}}">
+				<div class="required inline field{{if .Err_Name}} error{{end}}">
 					<label for="name">{{.locale.Tr "admin.auths.auth_name"}}</label>
 					<input id="name" name="name" value="{{.Source.Name}}" autofocus required>
 				</div>
@@ -24,7 +24,7 @@
 				<!-- LDAP and DLDAP -->
 				{{if or .Source.IsLDAP .Source.IsDLDAP}}
 					{{$cfg:=.Source.Cfg}}
-					<div class="inline required field {{if .Err_SecurityProtocol}}error{{end}}">
+					<div class="inline required field{{if .Err_SecurityProtocol}} error{{end}}">
 						<label>{{.locale.Tr "admin.auths.security_protocol"}}</label>
 						<div class="ui selection security-protocol dropdown">
 							<input type="hidden" id="security_protocol" name="security_protocol" value="{{$cfg.SecurityProtocol.Int}}">
@@ -45,7 +45,7 @@
 						<label for="port">{{.locale.Tr "admin.auths.port"}}</label>
 						<input id="port" name="port" value="{{$cfg.Port}}"  placeholder="e.g. 636" required>
 					</div>
-					<div class="has-tls inline field {{if not .HasTLS}}hide{{end}}">
+					<div class="has-tls inline field{{if not .HasTLS}} hide{{end}}">
 						<div class="ui checkbox">
 							<label><strong>{{.locale.Tr "admin.auths.skip_tls_verify"}}</strong></label>
 							<input name="skip_verify" type="checkbox" {{if .Source.SkipVerify}}checked{{end}}>
@@ -114,10 +114,10 @@
 					<div class="inline field">
 						<div class="ui checkbox">
 							<label><strong>{{.locale.Tr "admin.auths.enable_ldap_groups"}}</strong></label>
-							<input type="checkbox" name="groups_enabled" class="js-ldap-group-toggle" {{if $cfg.GroupsEnabled}}checked{{end}}>
+							<input type="checkbox" name="groups_enabled" class="js-ldap-group-toggle"{{if $cfg.GroupsEnabled}} checked{{end}}>
 						</div>
 					</div>
-					<div id="ldap-group-options" class="ui segment secondary" {{if not $cfg.GroupsEnabled}}hidden{{end}}>
+					<div id="ldap-group-options" class="ui segment secondary"{{if not $cfg.GroupsEnabled}} hidden{{end}}>
 						<div class="field">
 							<label>{{.locale.Tr "admin.auths.group_search_base"}}</label>
 							<input name="group_dn" value="{{$cfg.GroupDN}}" placeholder="e.g. ou=group,dc=mydomain,dc=com">
@@ -209,7 +209,7 @@
 						</div>
 						<p class="help">{{.locale.Tr "admin.auths.force_smtps_helper"}}</p>
 					</div>
-					<div class="has-tls inline field {{if not .HasTLS}}hide{{end}}">
+					<div class="has-tls inline field{{if not .HasTLS}} hide{{end}}">
 						<div class="ui checkbox">
 							<label><strong>{{.locale.Tr "admin.auths.skip_tls_verify"}}</strong></label>
 							<input name="skip_verify" type="checkbox" {{if .Source.SkipVerify}}checked{{end}}>
@@ -369,21 +369,21 @@
 					<div class="field">
 						<div class="ui checkbox">
 							<label for="sspi_auto_create_users"><strong>{{.locale.Tr "admin.auths.sspi_auto_create_users"}}</strong></label>
-							<input id="sspi_auto_create_users" name="sspi_auto_create_users" class="sspi-auto-create-users" type="checkbox" {{if $cfg.AutoCreateUsers}}checked{{end}}>
+							<input id="sspi_auto_create_users" name="sspi_auto_create_users" class="sspi-auto-create-users" type="checkbox"{{if $cfg.AutoCreateUsers}} checked{{end}}>
 							<p class="help">{{.locale.Tr "admin.auths.sspi_auto_create_users_helper"}}</p>
 						</div>
 					</div>
 					<div class="field">
 						<div class="ui checkbox">
 							<label for="sspi_auto_activate_users"><strong>{{.locale.Tr "admin.auths.sspi_auto_activate_users"}}</strong></label>
-							<input id="sspi_auto_activate_users" name="sspi_auto_activate_users" class="sspi-auto-activate-users" type="checkbox" {{if $cfg.AutoActivateUsers}}checked{{end}}>
+							<input id="sspi_auto_activate_users" name="sspi_auto_activate_users" class="sspi-auto-activate-users" type="checkbox"{{if $cfg.AutoActivateUsers}} checked{{end}}>
 							<p class="help">{{.locale.Tr "admin.auths.sspi_auto_activate_users_helper"}}</p>
 						</div>
 					</div>
 					<div class="field">
 						<div class="ui checkbox">
 							<label for="sspi_strip_domain_names"><strong>{{.locale.Tr "admin.auths.sspi_strip_domain_names"}}</strong></label>
-							<input id="sspi_strip_domain_names" name="sspi_strip_domain_names" class="sspi-strip-domain-names" type="checkbox" {{if $cfg.StripDomainNames}}checked{{end}}>
+							<input id="sspi_strip_domain_names" name="sspi_strip_domain_names" class="sspi-strip-domain-names" type="checkbox"{{if $cfg.StripDomainNames}} checked{{end}}>
 							<p class="help">{{.locale.Tr "admin.auths.sspi_strip_domain_names_helper"}}</p>
 						</div>
 					</div>

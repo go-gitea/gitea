@@ -5,7 +5,7 @@
 		{{if .Issue.IsPull}}
 
 			<input id="reviewer_id" name="reviewer_id" type="hidden" value="{{.reviewer_id}}">
-			<div class="ui {{if or (not .Reviewers) (not .CanChooseReviewer) .Repository.IsArchived}}disabled{{end}} floating jump select-reviewers-modify dropdown">
+			<div class="ui{{if or (not .Reviewers) (not .CanChooseReviewer) .Repository.IsArchived}} disabled{{end}} floating jump select-reviewers-modify dropdown">
 				<a class="text df ac muted">
 					<strong>{{.locale.Tr "repo.issues.review.reviewers"}}</strong>
 					{{if and .CanChooseReviewer (not .Repository.IsArchived)}}
@@ -23,8 +23,8 @@
 					{{if .Reviewers}}
 						{{range .Reviewers}}
 							{{if .User}}
-								<a class="{{if not .CanChange}}ui tooltip{{end}} item {{if .Checked}} checked  {{end}}{{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_{{.ItemID}}" {{if not .CanChange}} data-content="{{$.locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
-									<span class="octicon-check {{if not .Checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
+								<a class="{{if not .CanChange}}ui tooltip{{end}} item {{if .Checked}} checked  {{end}}{{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_{{.ItemID}}"{{if not .CanChange}} data-content="{{$.locale.Tr "repo.issues.remove_request_review_block"}} "{{end}}>
+									<span class="octicon-check{{if not .Checked}} invisible{{end}}">{{svg "octicon-check"}}</span>
 									<span class="text">
 										{{avatar .User 28 "mr-3"}}
 										{{.User.GetDisplayName}}
@@ -37,8 +37,8 @@
 						<div class="ui divider"></div>
 						{{range .TeamReviewers}}
 							{{if .Team}}
-								<a class="{{if not .CanChange}}ui tooltip{{end}} item {{if .Checked}} checked  {{end}}{{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_team_{{.Team.ID}}" {{if not .CanChange}} data-content="{{$.locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
-									<span class="octicon-check {{if not .Checked}}invisible{{end}}">{{svg "octicon-check" 16}}</span>
+								<a class="{{if not .CanChange}}ui tooltip{{end}} item {{if .Checked}} checked  {{end}}{{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_team_{{.Team.ID}}"{{if not .CanChange}} data-content="{{$.locale.Tr "repo.issues.remove_request_review_block"}} "{{end}}>
+									<span class="octicon-check{{if not .Checked}} invisible{{end}}">{{svg "octicon-check" 16}}</span>
 									<span class="text">
 										{{svg "octicon-people" 16 "ml-4 mr-2"}}{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}
 									</span>
@@ -50,7 +50,7 @@
 			</div>
 
 			<div class="ui assignees list">
-				<span class="no-select item {{if or .OriginalReviews .PullReviewers}}hide{{end}}">{{.locale.Tr "repo.issues.new.no_reviewers"}}</span>
+				<span class="no-select item{{if or .OriginalReviews .PullReviewers}} hide{{end}}">{{.locale.Tr "repo.issues.new.no_reviewers"}}</span>
 				<div class="selected">
 					{{range .PullReviewers}}
 						<div class="item mb-2">
@@ -69,7 +69,7 @@
 								{{- else}}grey{{end}} right ">
 
 								{{if .CanChange}}
-									<a href="#" class="ui tooltip icon re-request-review {{if .Checked}}checked{{end}}" data-content="{{if .Checked}} {{$.locale.Tr "repo.issues.remove_request_review"}} {{else}} {{$.locale.Tr "repo.issues.re_request_review"}} {{end}}" data-issue-id="{{$.Issue.ID}}"  data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
+									<a href="#" class="ui tooltip icon re-request-review{{if .Checked}}checked{{end}}" data-content="{{if .Checked}} {{$.locale.Tr "repo.issues.remove_request_review"}} {{else}} {{$.locale.Tr "repo.issues.re_request_review"}}  {{end}}" data-issue-id="{{$.Issue.ID}}"  data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
 										{{if .Checked}} {{svg "octicon-trash"}} {{else}} {{svg "octicon-sync"}} {{end}}
 									</a>
 								{{end}}
@@ -106,7 +106,7 @@
 			<div class="ui divider"></div>
 		{{end}}
 
-		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-label dropdown">
+		<div class="ui{{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}} disabled{{end}} floating jump select-label dropdown">
 			<a class="text df ac muted">
 				<strong>{{.locale.Tr "repo.issues.new.labels"}}</strong>
 				{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
@@ -124,12 +124,12 @@
 				<div class="no-select item">{{.locale.Tr "repo.issues.new.clear_labels"}}</div>
 				{{if or .Labels .OrgLabels}}
 					{{range .Labels}}
-						<a class="{{if .IsChecked}}checked {{end}}item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check"}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
+						<a class="{{if .IsChecked}}checked {{end}}item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check{{if not .IsChecked}} invisible{{end}}">{{svg "octicon-check"}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
 						{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
 					{{end}}
 					<div class="ui divider"></div>
 					{{range .OrgLabels}}
-						<a class="{{if .IsChecked}}checked {{end}}item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check"}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
+						<a class="{{if .IsChecked}}checked {{end}}item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check{{if not .IsChecked}} invisible{{end}}">{{svg "octicon-check"}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
 						{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
 					{{end}}
 				{{else}}
@@ -141,7 +141,7 @@
 
 		<div class="ui divider"></div>
 
-		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-milestone dropdown">
+		<div class="ui{{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}} disabled{{end}} floating jump select-milestone dropdown">
 			<a class="text df ac muted">
 				<strong>{{.locale.Tr "repo.issues.new.milestone"}}</strong>
 				{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
@@ -190,7 +190,7 @@
 			</div>
 		</div>
 		<div class="ui select-milestone list">
-			<span class="no-select item {{if .Issue.Milestone}}hide{{end}}">{{.locale.Tr "repo.issues.new.no_milestone"}}</span>
+			<span class="no-select item{{if .Issue.Milestone}} hide{{end}}">{{.locale.Tr "repo.issues.new.no_milestone"}}</span>
 			<div class="selected">
 				{{if .Issue.Milestone}}
 					<a class="item muted sidebar-item-link" href="{{.RepoLink}}/milestone/{{.Issue.Milestone.ID}}">
@@ -204,7 +204,7 @@
 		{{if .IsProjectsEnabled}}
 			<div class="ui divider"></div>
 
-			<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-project dropdown">
+			<div class="ui{{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}} disabled{{end}} floating jump select-project dropdown">
 				<a class="text df ac muted">
 					<strong>{{.locale.Tr "repo.issues.new.projects"}}</strong>
 					{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
@@ -240,7 +240,7 @@
 				</div>
 			</div>
 			<div class="ui select-project list">
-				<span class="no-select item {{if .Issue.ProjectID}}hide{{end}}">{{.locale.Tr "repo.issues.new.no_projects"}}</span>
+				<span class="no-select item{{if .Issue.ProjectID}} hide{{end}}">{{.locale.Tr "repo.issues.new.no_projects"}}</span>
 				<div class="selected">
 					{{if .Issue.ProjectID}}
 						<a class="item muted sidebar-item-link" href="{{.RepoLink}}/projects/{{.Issue.ProjectID}}">
@@ -255,7 +255,7 @@
 		<div class="ui divider"></div>
 
 		<input id="assignee_id" name="assignee_id" type="hidden" value="{{.assignee_id}}">
-		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-assignees-modify dropdown">
+		<div class="ui{{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}} disabled{{end}} floating jump select-assignees-modify dropdown">
 			<a class="text df ac muted">
 				<strong>{{.locale.Tr "repo.issues.new.assignees"}}</strong>
 				{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
@@ -279,7 +279,7 @@
 								{{$checked = true}}
 							{{end}}
 						{{end}}
-						<span class="octicon-check {{if not $checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
+						<span class="octicon-check{{if not $checked}} invisible{{end}}">{{svg "octicon-check"}}</span>
 						<span class="text">
 							{{avatar . 28 "mr-3"}}
 							{{.GetDisplayName}}
@@ -289,7 +289,7 @@
 			</div>
 		</div>
 		<div class="ui assignees list">
-			<span class="no-select item {{if .Issue.Assignees}}hide{{end}}">{{.locale.Tr "repo.issues.new.no_assignees"}}</span>
+			<span class="no-select item{{if .Issue.Assignees}} hide{{end}}">{{.locale.Tr "repo.issues.new.no_assignees"}}</span>
 			<div class="selected">
 				{{range .Issue.Assignees}}
 					<div class="item">
@@ -308,7 +308,7 @@
 			<span class="text"><strong>{{.locale.Tr "repo.issues.num_participants" .NumParticipants}}</strong></span>
 			<div class="ui list df fw">
 				{{range .Participants}}
-					<a class="ui tooltip" {{if gt .ID 0}}href="{{.HomeLink}}"{{end}} data-content="{{.GetDisplayName}}" data-position="top center">
+					<a class="ui tooltip"{{if gt .ID 0}}href="{{.HomeLink}} "{{end}} data-content="{{.GetDisplayName}}" data-position="top center">
 						{{avatar . 28 "my-1 mr-2"}}
 					</a>
 				{{end}}
@@ -411,7 +411,7 @@
 			{{if ne .Issue.DeadlineUnix 0}}
 				<p>
 					<div class="df sb ac">
-						<div class="due-date tooltip {{if .Issue.IsOverdue}}text red{{end}}" {{if .Issue.IsOverdue}}data-content="{{.locale.Tr "repo.issues.due_date_overdue"}}"{{end}}>
+						<div class="due-date tooltip {{if .Issue.IsOverdue}}text red{{end}}"{{if .Issue.IsOverdue}}data-content="{{.locale.Tr "repo.issues.due_date_overdue"}} "{{end}}>
 							{{svg "octicon-calendar" 16 "mr-3"}}
 							<time data-format="date" datetime="{{.Issue.DeadlineUnix.FormatLong}}">{{.Issue.DeadlineUnix.FormatDate}}</time>
 						</div>
@@ -580,7 +580,7 @@
 		{{if and .IsRepoAdmin (not .Repository.IsArchived)}}
 			<div class="ui divider"></div>
 			<div class="ui watching">
-				<button class="fluid ui show-modal button {{if .Issue.IsLocked}} negative {{end}}" data-modal="#lock">
+				<button class="fluid ui show-modal button{{if .Issue.IsLocked}}  negative {{end}}" data-modal="#lock">
 					{{if .Issue.IsLocked}}
 						{{svg "octicon-key"}}
 						{{.locale.Tr "repo.issues.unlock"}}

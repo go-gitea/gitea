@@ -13,7 +13,7 @@
 			<div class="inline field">
 				{{.locale.Tr "auth.openid_signin_desc"}}
 			</div>
-			<div class="required inline field {{if .Err_OpenID}}error{{end}}">
+			<div class="required inline field{{if .Err_OpenID}} error{{end}}">
 				<label for="openid">
 				{{svg "fontawesome-openid"}}
 				OpenID URI

@@ -15,21 +15,21 @@
 			{{if .DisableRegistration}}
 				<p>{{.locale.Tr "auth.disable_register_prompt"}}</p>
 			{{else}}
-				<div class="required inline field {{if and (.Err_UserName) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
+				<div class="required inline field{{if and (.Err_UserName) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}} error{{end}}">
 					<label for="user_name">{{.locale.Tr "username"}}</label>
 					<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required>
 				</div>
-				<div class="required inline field {{if .Err_Email}}error{{end}}">
+				<div class="required inline field{{if .Err_Email}} error{{end}}">
 					<label for="email">{{.locale.Tr "email"}}</label>
 					<input id="email" name="email" type="email" value="{{.email}}" required>
 				</div>
 
 				{{if not .DisablePassword}}
-					<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
+					<div class="required inline field{{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}} error{{end}}">
 						<label for="password">{{.locale.Tr "password"}}</label>
 						<input id="password" name="password" type="password" value="{{.password}}" autocomplete="new-password" required>
 					</div>
-					<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
+					<div class="required inline field{{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}} error{{end}}">
 						<label for="retype">{{.locale.Tr "re_type"}}</label>
 						<input id="retype" name="retype" type="password" value="{{.retype}}" autocomplete="new-password" required>
 					</div>
@@ -39,7 +39,7 @@
 						<label></label>
 						{{.Captcha.CreateHTML}}
 					</div>
-					<div class="required inline field {{if .Err_Captcha}}error{{end}}">
+					<div class="required inline field{{if .Err_Captcha}} error{{end}}">
 						<label for="captcha">{{.locale.Tr "captcha"}}</label>
 						<input id="captcha" name="captcha" value="{{.captcha}}" autocomplete="off">
 					</div>

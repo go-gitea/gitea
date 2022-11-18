@@ -24,11 +24,11 @@
 		<form class="ui form grid" action="{{.Link}}" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="twelve wide column">
-				<div class="field {{if .Err_Title}}error{{end}}">
+				<div class="field{{if .Err_Title}} error{{end}}">
 					<label>{{.locale.Tr "repo.milestones.title"}}</label>
 					<input name="title" placeholder="{{.locale.Tr "repo.milestones.title"}}" value="{{.title}}" autofocus required maxlength="50">
 				</div>
-				<div class="field {{if .Err_Deadline}}error{{end}}">
+				<div class="field{{if .Err_Deadline}} error{{end}}">
 					<label>
 						{{.locale.Tr "repo.milestones.due_date"}}
 						<a id="clear-date">{{.locale.Tr "repo.milestones.clear"}}</a>

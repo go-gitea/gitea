@@ -21,7 +21,7 @@
 							</div>
 							<div class="scrolling menu">
 								{{range .Pages}}
-									<div class="item {{if eq $.Title .Name}}selected{{end}}" data-url="{{$.RepoLink}}/wiki/{{.SubURL}}">{{.Name}}</div>
+									<div class="item{{if eq $.Title .Name}} selected{{end}}" data-url="{{$.RepoLink}}/wiki/{{.SubURL}}">{{.Name}}</div>
 								{{end}}
 							</div>
 						</div>
@@ -65,8 +65,8 @@
 				<p>{{.FormatWarning}}</p>
 			</div>
 		{{end}}
-		<div class="ui {{if or .sidebarPresent .toc}}grid equal width{{end}}" style="margin-top: 1rem;">
-			<div class="ui {{if or .sidebarPresent .toc}}eleven wide column{{end}} segment markup wiki-content-main">
+		<div class="ui{{if or .sidebarPresent .toc}} grid equal width{{end}}" style="margin-top: 1rem;">
+			<div class="ui{{if or .sidebarPresent .toc}} eleven wide column{{end}} segment markup wiki-content-main">
 				{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus "root" $}}
 				{{.content | Safe}}
 			</div>

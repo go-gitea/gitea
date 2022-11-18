@@ -9,25 +9,25 @@
 				</h3>
 				<div class="ui attached segment">
 					{{template "base/alert" .}}
-					<div class="inline required field {{if .Err_OrgName}}error{{end}}">
+					<div class="inline required field{{if .Err_OrgName}} error{{end}}">
 						<label for="org_name">{{.locale.Tr "org.org_name_holder"}}</label>
 						<input id="org_name" name="org_name" value="{{.org_name}}" autofocus required>
 						<span class="help">{{.locale.Tr "org.org_name_helper"}}</span>
 					</div>
 
-					<div class="inline field {{if .Err_OrgVisibility}}error{{end}}">
+					<div class="inline field{{if .Err_OrgVisibility}} error{{end}}">
 						<span class="inline required field"><label for="visibility">{{.locale.Tr "org.settings.visibility"}}</label></span>
 						<div class="inline-grouped-list">
 							<div class="ui radio checkbox">
-								<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="0" {{if .DefaultOrgVisibilityMode.IsPublic}}checked{{end}}/>
+								<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="0"{{if .DefaultOrgVisibilityMode.IsPublic}} checked{{end}}/>
 								<label>{{.locale.Tr "org.settings.visibility.public"}}</label>
 							</div>
 							<div class="ui radio checkbox">
-								<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="1" {{if .DefaultOrgVisibilityMode.IsLimited}}checked{{end}}/>
+								<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="1"{{if .DefaultOrgVisibilityMode.IsLimited}} checked{{end}}/>
 								<label>{{.locale.Tr "org.settings.visibility.limited"}}</label>
 							</div>
 							<div class="ui radio checkbox">
-								<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="2" {{if .DefaultOrgVisibilityMode.IsPrivate}}checked{{end}}/>
+								<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="2"{{if .DefaultOrgVisibilityMode.IsPrivate}} checked{{end}}/>
 								<label>{{.locale.Tr "org.settings.visibility.private"}}</label>
 							</div>
 						</div>

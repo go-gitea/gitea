@@ -14,11 +14,11 @@
 	<div class="{{if not .HasSSHError}}hide {{end}}mb-4" id="add-ssh-key-panel">
 		<form class="ui form" action="{{.Link}}" method="post">
 			{{.CsrfTokenHtml}}
-			<div class="field {{if .Err_Title}}error{{end}}">
+			<div class="field{{if .Err_Title}} error{{end}}">
 				<label for="title">{{.locale.Tr "settings.key_name"}}</label>
 				<input id="ssh-key-title" name="title" value="{{.title}}" autofocus required>
 			</div>
-			<div class="field {{if .Err_Content}}error{{end}}">
+			<div class="field{{if .Err_Content}} error{{end}}">
 				<label for="content">{{.locale.Tr "settings.key_content"}}</label>
 				<textarea id="ssh-key-content" name="content" class="js-quick-submit" placeholder="{{.locale.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
 			</div>
@@ -47,7 +47,7 @@
 
 				</div>
 				<div class="left floated content">
-					<span class="tooltip{{if .HasRecentActivity}} green{{end}}" {{if .HasRecentActivity}}data-content="{{$.locale.Tr "settings.key_state_desc"}}"{{end}}>{{svg "octicon-key" 32}}</span>
+					<span class="tooltip{{if .HasRecentActivity}} green{{end}}"{{if .HasRecentActivity}}data-content="{{$.locale.Tr "settings.key_state_desc"}} "{{end}}>{{svg "octicon-key" 32}}</span>
 				</div>
 				<div class="content">
 						{{if .Verified}}

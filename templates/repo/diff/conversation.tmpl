@@ -20,7 +20,7 @@
 			</div>
 		</div>
 	{{end}}
-	<div id="code-comments-{{(index  .comments 0).ID}}" class="field comment-code-cloud {{if $resolved}}hide{{end}}">
+	<div id="code-comments-{{(index  .comments 0).ID}}" class="field comment-code-cloud{{if $resolved}} hide{{end}}">
 		<div class="comment-list">
 			<ui class="ui comments">
 				{{template "repo/diff/comments" dict "root" $ "comments" .comments}}

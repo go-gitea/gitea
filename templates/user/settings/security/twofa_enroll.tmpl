@@ -13,7 +13,7 @@
 			<p>{{.locale.Tr "settings.then_enter_passcode"}}
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
-				<div class="inline required field {{if .Err_Passcode}}error{{end}}">
+				<div class="inline required field{{if .Err_Passcode}} error{{end}}">
 					<label for="passcode">{{.locale.Tr "passcode"}}</label>
 					<input id="passcode" name="passcode" autofocus required>
 				</div>

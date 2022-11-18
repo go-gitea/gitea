@@ -1,7 +1,7 @@
 {{template "base/head" .}}
-<div class="page-content repository diff {{if .PageIsComparePull}}compare pull{{end}}">
+<div class="page-content repository diff{{if .PageIsComparePull}} compare pull{{end}}">
 	{{template "repo/header" .}}
-	<div class="ui container {{if .IsSplitStyle}}fluid padded{{end}}">
+	<div class="ui container{{if .IsSplitStyle}} fluid padded{{end}}">
 
 	<h2 class="ui header">
 		{{if and $.PageIsComparePull $.IsSigned (not .Repository.IsArchived)}}
@@ -70,7 +70,7 @@
 				</div>
 				<div class="scrolling menu reference-list-menu base-branch-list">
 					{{range .Branches}}
-						<div class="item {{if eq $.BaseBranch .}}selected{{end}}" data-url="{{$.RepoLink}}/compare/{{PathEscapeSegments .}}{{$.CompareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.HeadUser.Name}}/{{PathEscape $.HeadRepo.Name}}:{{end}}{{PathEscapeSegments $.HeadBranch}}">{{$BaseCompareName}}:{{.}}</div>
+						<div class="item{{if eq $.BaseBranch .}}selected{{end}}" data-url="{{$.RepoLink}}/compare/{{PathEscapeSegments .}}{{$.CompareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.HeadUser.Name}}/{{PathEscape $.HeadRepo.Name}} :{{end}}{{PathEscapeSegments $.HeadBranch}}">{{$BaseCompareName}}:{{.}}</div>
 					{{end}}
 					{{if not .PullRequestCtx.SameRepo}}
 						{{range .HeadBranches}}
@@ -90,7 +90,7 @@
 				</div>
 				<div class="scrolling menu reference-list-menu base-tag-list" style="display: none">
 					{{range .Tags}}
-						<div class="item {{if eq $.BaseBranch .}}selected{{end}}" data-url="{{$.RepoLink}}/compare/{{PathEscapeSegments .}}{{$.CompareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.HeadUser.Name}}/{{PathEscape $.HeadRepo.Name}}:{{end}}{{PathEscapeSegments $.HeadBranch}}">{{$BaseCompareName}}:{{.}}</div>
+						<div class="item{{if eq $.BaseBranch .}}selected{{end}}" data-url="{{$.RepoLink}}/compare/{{PathEscapeSegments .}}{{$.CompareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.HeadUser.Name}}/{{PathEscape $.HeadRepo.Name}} :{{end}}{{PathEscapeSegments $.HeadBranch}}">{{$BaseCompareName}}:{{.}}</div>
 					{{end}}
 					{{if not .PullRequestCtx.SameRepo}}
 						{{range .HeadTags}}
@@ -184,10 +184,10 @@
 	{{if .IsNothingToCompare}}
 		{{if and $.IsSigned $.AllowEmptyPr (not .Repository.IsArchived)}}
 			<div class="ui segment">{{.locale.Tr "repo.pulls.nothing_to_compare_and_allow_empty_pr"}}</div>
-			<div class="ui info message show-form-container" {{if .Flash}}style="display: none"{{end}}>
+			<div class="ui info message show-form-container"{{if .Flash}} style="display: none"{{end}}>
 				<button class="ui button green show-form">{{.locale.Tr "repo.pulls.new"}}</button>
 			</div>
-			<div class="pullrequest-form" {{if not .Flash}}style="display: none"{{end}}>
+			<div class="pullrequest-form"{{if not .Flash}} style="display: none"{{end}}>
 				{{template "repo/issue/new_form" .}}
 			</div>
 		{{else}}
@@ -214,7 +214,7 @@
 			</div>
 		{{else}}
 			{{if and $.IsSigned (not .Repository.IsArchived)}}
-				<div class="ui info message show-form-container" {{if .Flash}}style="display: none"{{end}}>
+				<div class="ui info message show-form-container"{{if .Flash}} style="display: none"{{end}}>
 					<button class="ui button green show-form">{{.locale.Tr "repo.pulls.new"}}</button>
 				</div>
 			{{else if .Repository.IsArchived}}
@@ -223,7 +223,7 @@
 				</div>
 			{{end}}
 			{{if $.IsSigned}}
-				<div class="pullrequest-form" {{if not .Flash}}style="display: none"{{end}}>
+				<div class="pullrequest-form"{{if not .Flash}} style="display: none"{{end}}>
 					{{template "repo/issue/new_form" .}}
 				</div>
 			{{end}}

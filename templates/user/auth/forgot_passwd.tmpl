@@ -12,7 +12,7 @@
 					{{if .IsResetSent}}
 						<p>{{.locale.Tr "auth.reset_password_mail_sent_prompt" (Escape .Email) .ResetPwdCodeLives | Str2html}}</p>
 					{{else if .IsResetRequest}}
-						<div class="required inline field {{if .Err_Email}}error{{end}}">
+						<div class="required inline field{{if .Err_Email}} error{{end}}">
 							<label for="email">{{.locale.Tr "email"}}</label>
 							<input id="email" name="email" type="email"  value="{{.Email}}" autofocus required>
 						</div>

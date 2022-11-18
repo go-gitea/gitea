@@ -72,7 +72,7 @@
 						</div>
 					</div>
 					<div class="ui attached segment comment-body">
-						<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.IsSigned (eq $.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
+						<div class="render-content markup"{{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.IsSigned (eq $.SignedUserID .PosterID))}} data-can-edit="true"{{end}}>
 							{{if .RenderedContent}}
 								{{.RenderedContent|Str2html}}
 							{{else}}
@@ -207,7 +207,7 @@
 					{{if .RemovedAssignee}}
 						{{template "shared/user/avatarlink" .Assignee}}
 						<span class="text grey">
-							<a class="author" {{if gt .Assignee.ID 0}}href="{{.Assignee.HomeLink}}"{{end}}>{{.Assignee.GetDisplayName}}</a>
+							<a class="author"{{if gt .Assignee.ID 0}}href="{{.Assignee.HomeLink}} "{{end}}>{{.Assignee.GetDisplayName}}</a>
 							{{if eq .Poster.ID .Assignee.ID}}
 								{{$.locale.Tr "repo.issues.remove_self_assignment" $createdStr | Safe}}
 							{{else}}
@@ -444,7 +444,7 @@
 							</div>
 						</div>
 						<div class="ui attached segment comment-body">
-							<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.IsSigned (eq $.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
+							<div class="render-content markup"{{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.IsSigned (eq $.SignedUserID .PosterID))}} data-can-edit="true"{{end}}>
 								{{if .RenderedContent}}
 									{{.RenderedContent|Str2html}}
 								{{else}}
@@ -571,7 +571,7 @@
 															</div>
 														</div>
 														<div class="text comment-content">
-															<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.IsSigned (eq $.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
+															<div class="render-content markup"{{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.IsSigned (eq $.SignedUserID .PosterID))}} data-can-edit="true"{{end}}>
 															{{if .RenderedContent}}
 																{{.RenderedContent|Str2html}}
 															{{else}}

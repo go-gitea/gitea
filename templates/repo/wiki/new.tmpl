@@ -13,7 +13,7 @@
 		</div>
 		<form class="ui form" action="{{.Link}}?action={{if .PageIsWikiEdit}}_edit{{else}}_new{{end}}" method="post">
 			{{.CsrfTokenHtml}}
-			<div class="field {{if .Err_Title}}error{{end}}">
+			<div class="field{{if .Err_Title}} error{{end}}">
 				<input name="title" value="{{.title}}" autofocus required>
 			</div>
 			<div class="help">

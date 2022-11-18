@@ -22,7 +22,7 @@
 			<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
 		</div>
 	</form>
-	<div class="ui {{if .PackageDescriptors}}issue list{{end}}">
+	<div class="ui{{if .PackageDescriptors}} issue list{{end}}">
 		{{range .PackageDescriptors}}
 			<li class="item df py-3">
 				<div class="issue-item-main f1 fc df">

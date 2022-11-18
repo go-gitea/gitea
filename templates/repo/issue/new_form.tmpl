@@ -36,7 +36,7 @@
 			{{template "repo/issue/branch_selector_field" .}}
 
 			<input id="label_ids" name="label_ids" type="hidden" value="{{.label_ids}}">
-			<div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating jump select-label dropdown">
+			<div class="ui{{if not .HasIssuesOrPullsWritePermission}} disabled{{end}} floating jump select-label dropdown">
 				<span class="text">
 					<strong>{{.locale.Tr "repo.issues.new.labels"}}</strong>
 					{{if .HasIssuesOrPullsWritePermission}}
@@ -54,13 +54,13 @@
 					<div class="no-select item">{{.locale.Tr "repo.issues.new.clear_labels"}}</div>
 					{{if or .Labels .OrgLabels}}
 						{{range .Labels}}
-							<a class="{{if .IsChecked}}checked {{end}}item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check"}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
+							<a class="{{if .IsChecked}}checked {{end}}item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check{{if not .IsChecked}} invisible{{end}}">{{svg "octicon-check"}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
 							{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
 						{{end}}
 
 						<div class="ui divider"></div>
 						{{range .OrgLabels}}
-							<a class="{{if .IsChecked}}checked {{end}}item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check"}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
+							<a class="{{if .IsChecked}}checked {{end}}item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check{{if not .IsChecked}} invisible{{end}}">{{svg "octicon-check"}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
 							{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
 						{{end}}
 					{{else}}
@@ -73,7 +73,7 @@
 			<div class="ui divider"></div>
 
 			<input id="milestone_id" name="milestone_id" type="hidden" value="{{.milestone_id}}">
-			<div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating jump select-milestone dropdown">
+			<div class="ui{{if not .HasIssuesOrPullsWritePermission}} disabled{{end}} floating jump select-milestone dropdown">
 				<span class="text">
 					<strong>{{.locale.Tr "repo.issues.new.milestone"}}</strong>
 					{{if .HasIssuesOrPullsWritePermission}}
@@ -122,7 +122,7 @@
 				</div>
 			</div>
 			<div class="ui select-milestone list">
-				<span class="no-select item {{if .Milestone}}hide{{end}}">{{.locale.Tr "repo.issues.new.no_milestone"}}</span>
+				<span class="no-select item{{if .Milestone}} hide{{end}}">{{.locale.Tr "repo.issues.new.no_milestone"}}</span>
 				<div class="selected">
 					{{if .Milestone}}
 						<a class="item muted sidebar-item-link" href="{{.RepoLink}}/issues?milestone={{.Milestone.ID}}">
@@ -137,7 +137,7 @@
 			<div class="ui divider"></div>
 
 			<input id="project_id" name="project_id" type="hidden" value="{{.project_id}}">
-			<div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating jump select-project dropdown">
+			<div class="ui{{if not .HasIssuesOrPullsWritePermission}} disabled{{end}} floating jump select-project dropdown">
 				<span class="text">
 					<strong>{{.locale.Tr "repo.issues.new.projects"}}</strong>
 					{{if .HasIssuesOrPullsWritePermission}}
@@ -186,7 +186,7 @@
 				</div>
 			</div>
 			<div class="ui select-project list">
-				<span class="no-select item {{if .Project}}hide{{end}}">{{.locale.Tr "repo.issues.new.no_projects"}}</span>
+				<span class="no-select item{{if .Project}} hide{{end}}">{{.locale.Tr "repo.issues.new.no_projects"}}</span>
 				<div class="selected">
 					{{if .Project}}
 						<a class="item muted sidebar-item-link" href="{{.RepoLink}}/projects/{{.Project.ID}}">
@@ -199,7 +199,7 @@
 			{{end}}
 			<div class="ui divider"></div>
 				<input id="assignee_ids" name="assignee_ids" type="hidden" value="{{.assignee_ids}}">
-				<div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating jump select-assignees dropdown">
+				<div class="ui{{if not .HasIssuesOrPullsWritePermission}} disabled{{end}} floating jump select-assignees dropdown">
 					<span class="text">
 						<strong>{{.locale.Tr "repo.issues.new.assignees"}}</strong>
 						{{if .HasIssuesOrPullsWritePermission}}
@@ -224,7 +224,7 @@
 					</div>
 				</div>
 				<div class="ui assignees list">
-					<span class="no-select item {{if .HasSelectedLabel}}hide{{end}}">
+					<span class="no-select item{{if .HasSelectedLabel}} hide{{end}}">
 						{{.locale.Tr "repo.issues.new.no_assignees"}}
 					</span>
 					{{range .Assignees}}

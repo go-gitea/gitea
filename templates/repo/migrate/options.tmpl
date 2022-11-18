@@ -18,7 +18,7 @@
 </div>
 <div id="lfs_endpoint" style="display:none">
 	<span class="help">{{.locale.Tr "repo.migrate_options_lfs_endpoint.description" "https://github.com/git-lfs/git-lfs/blob/main/docs/api/server-discovery.md#server-discovery" | Str2html}}{{if .ContextUser.CanImportLocal}} {{.locale.Tr "repo.migrate_options_lfs_endpoint.description.local"}}{{end}}</span>
-	<div class="inline field {{if .Err_LFSEndpoint}}error{{end}}">
+	<div class="inline field{{if .Err_LFSEndpoint}} error{{end}}">
 		<label>{{.locale.Tr "repo.migrate_options_lfs_endpoint.label"}}</label>
 		<input name="lfs_endpoint" value="{{.lfs_endpoint}}" placeholder="{{.locale.Tr "repo.migrate_options_lfs_endpoint.placeholder"}}">
 	</div>

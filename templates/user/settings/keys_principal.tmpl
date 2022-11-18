@@ -21,7 +21,7 @@
 							{{$.locale.Tr "settings.delete_key"}}
 						</button>
 					</div>
-					<i class="icon tooltip{{if .HasRecentActivity}} green{{end}}" {{if .HasRecentActivity}}data-content="{{$.locale.Tr "settings.principal_state_desc"}}"{{end}}>{{svg "octicon-key" 36}}</i>
+					<i class="icon tooltip{{if .HasRecentActivity}} green{{end}}"{{if .HasRecentActivity}}data-content="{{$.locale.Tr "settings.principal_state_desc"}} "{{end}}>{{svg "octicon-key" 36}}</i>
 					<div class="content">
 						<strong>{{.Name}}</strong>
 						<div class="activity meta">
@@ -41,7 +41,7 @@
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
-				<div class="field {{if .Err_Content}}error{{end}}">
+				<div class="field{{if .Err_Content}} error{{end}}">
 					<label for="content">{{.locale.Tr "settings.principal_content"}}</label>
 					<input id="ssh-principal-content" name="content" value="{{.content}}" autofocus required>
 				</div>

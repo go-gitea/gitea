@@ -11,11 +11,11 @@
 				<div class="ui attached segment">
 					<form class="ui form" action="{{.Link}}" method="post">
 					{{.CsrfTokenHtml}}
-					<div class="required inline field {{if .Err_UserName}}error{{end}}">
+					<div class="required inline field{{if .Err_UserName}} error{{end}}">
 						<label for="user_name">{{.locale.Tr "home.uname_holder"}}</label>
 						<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required>
 					</div>
-					<div class="required inline field {{if .Err_Password}}error{{end}}">
+					<div class="required inline field{{if .Err_Password}} error{{end}}">
 						<label for="password">{{.locale.Tr "password"}}</label>
 						<input id="password" name="password" type="password" value="{{.password}}" autocomplete="off" required>
 					</div>

@@ -143,7 +143,7 @@
 							<div class="markup desc">
 								{{Str2html .Note}}
 							</div>
-							<details class="download border-secondary-top mt-4 pt-4" {{if eq $idx 0}}open{{end}}>
+							<details class="download border-secondary-top mt-4 pt-4"{{if eq $idx 0}} open{{end}}>
 								<summary class="mb-4">
 									{{$.locale.Tr "repo.release.downloads"}}
 								</summary>

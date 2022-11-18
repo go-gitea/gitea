@@ -2,11 +2,11 @@
 	<p>{{.locale.Tr "repo.settings.add_web_hook_desc" "https://slack.com" (.locale.Tr "repo.settings.web_hook_name_slack") | Str2html}}</p>
 	<form class="ui form" action="{{.BaseLink}}/slack/{{or .Webhook.ID "new"}}" method="post">
 		{{.CsrfTokenHtml}}
-		<div class="required field {{if .Err_PayloadURL}}error{{end}}">
+		<div class="required field{{if .Err_PayloadURL}} error{{end}}">
 			<label for="payload_url">{{.locale.Tr "repo.settings.payload_url"}}</label>
 			<input id="payload_url" name="payload_url" type="url" value="{{.Webhook.URL}}" autofocus required>
 		</div>
-		<div class="required field {{if .Err_Channel}}error{{end}}">
+		<div class="required field{{if .Err_Channel}} error{{end}}">
 			<label for="channel">{{.locale.Tr "repo.settings.slack_channel"}}</label>
 			<input id="channel" name="channel" value="{{.SlackHook.Channel}}" placeholder="e.g. #general" required>
 		</div>

@@ -22,7 +22,7 @@
 			{{if .Issue.OriginalAuthor}}
 				<span class="timeline-avatar"><img src="{{AppSubUrl}}/assets/img/avatar_default.png"></span>
 			{{else}}
-				<a class="timeline-avatar" {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>
+				<a class="timeline-avatar"{{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}} "{{end}}>
 					{{avatar .Issue.Poster}}
 				</a>
 			{{end}}
@@ -70,7 +70,7 @@
 						</div>
 					</div>
 					<div class="ui attached segment comment-body">
-						<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission $.IsIssuePoster}}data-can-edit="true"{{end}}>
+						<div class="render-content markup"{{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission $.IsIssuePoster}} data-can-edit="true"{{end}}>
 							{{if .Issue.RenderedContent}}
 								{{.Issue.RenderedContent|Str2html}}
 							{{else}}

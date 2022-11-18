@@ -2,11 +2,11 @@
 	<p>{{.locale.Tr "repo.settings.add_web_hook_desc" "https://matrix.org/" (.locale.Tr "repo.settings.web_hook_name_matrix") | Str2html}}</p>
 	<form class="ui form" action="{{.BaseLink}}/matrix/{{or .Webhook.ID "new"}}" method="post">
 		{{.CsrfTokenHtml}}
-		<div class="required field {{if .Err_HomeserverURL}}error{{end}}">
+		<div class="required field{{if .Err_HomeserverURL}} error{{end}}">
 			<label for="homeserver_url">{{.locale.Tr "repo.settings.matrix.homeserver_url"}}</label>
 			<input id="homeserver_url" name="homeserver_url" type="url" value="{{.MatrixHook.HomeserverURL}}" autofocus required>
 		</div>
-		<div class="required field {{if .Err_Room}}error{{end}}">
+		<div class="required field{{if .Err_Room}} error{{end}}">
 			<label for="room_id">{{.locale.Tr "repo.settings.matrix.room_id"}}</label>
 			<input id="room_id" name="room_id" type="text" value="{{.MatrixHook.Room}}" required>
 		</div>

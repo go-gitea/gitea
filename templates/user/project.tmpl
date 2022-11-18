@@ -9,7 +9,7 @@
 				</h3>
 				<div class="ui attached segment">
 					{{template "base/alert" .}}
-					<div class="inline required field {{if .Err_Owner}}error{{end}}">
+					<div class="inline required field{{if .Err_Owner}} error{{end}}">
 						<label>{{.locale.Tr "repo.owner"}}</label>
 						<div class="ui selection owner dropdown">
 							<input type="hidden" id="uid" name="uid" value="{{.ContextUser.ID}}" required>
@@ -33,7 +33,7 @@
 						</div>
 					</div>
 
-					<div class="inline field {{if .Err_Title}}error{{end}}">
+					<div class="inline field{{if .Err_Title}} error{{end}}">
 						<label>{{.locale.Tr "repo.projects.title"}}</label>
 						<input name="title" placeholder="{{.locale.Tr "repo.projects.title"}}" value="{{.title}}" autofocus required>
 					</div>

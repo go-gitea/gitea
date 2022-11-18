@@ -19,9 +19,9 @@
 				{{if $release}}
 					{{.root.locale.Tr "repo.release.compare"}}
 				{{else}}
-					<span :class="{visible: isViewTag}" v-if="isViewTag" {{if not (eq $type "tag")}}v-cloak{{end}}>{{svg "octicon-tag"}}</span>
-					<span :class="{visible: isViewBranch}" v-if="isViewBranch" {{if not (eq $type "branch")}}v-cloak{{end}}>{{svg "octicon-git-branch"}}</span>
-					<span :class="{visible: isViewTree}" v-if="isViewTree" {{if not (eq $type "tree")}}v-cloak{{end}}>{{svg "octicon-git-branch"}}</span>
+					<span :class="{visible: isViewTag}" v-if="isViewTag"{{if not (eq $type "tag")}} v-cloak{{end}}>{{svg "octicon-tag"}}</span>
+					<span :class="{visible: isViewBranch}" v-if="isViewBranch"{{if not (eq $type "branch")}} v-cloak{{end}}>{{svg "octicon-git-branch"}}</span>
+					<span :class="{visible: isViewTree}" v-if="isViewTree"{{if not (eq $type "tree")}} v-cloak{{end}}>{{svg "octicon-git-branch"}}</span>
 					<strong ref="dropdownRefName" class="ml-3">{{if and .root.IsViewTag (not .noTag)}}{{.root.TagName}}{{else if .root.IsViewBranch}}{{.root.BranchName}}{{else}}{{ShortSha .root.CommitID}}{{end}}</strong>
 				{{end}}
 			</span>
@@ -30,15 +30,15 @@
 		<div class="data" style="display: none" data-mode="{{if or .root.IsViewTag .isTag}}tags{{else}}branches{{end}}">
 			{{if $showBranchesInDropdown}}
 				{{range .root.Branches}}
-					<div class="item branch {{if eq $defaultBranch .}}selected{{end}}" data-url="{{PathEscapeSegments .}}">{{.}}</div>
+					<div class="item branch{{if eq $defaultBranch .}} selected{{end}}" data-url="{{PathEscapeSegments .}}">{{.}}</div>
 				{{end}}
 			{{end}}
 			{{if (not .noTag)}}
 				{{range .root.Tags}}
 					{{if $release}}
-						<div class="item tag {{if eq $release.TagName .}}selected{{end}}" data-url="{{PathEscapeSegments .}}">{{.}}</div>
+						<div class="item tag{{if eq $release.TagName .}} selected{{end}}" data-url="{{PathEscapeSegments .}}">{{.}}</div>
 					{{else}}
-						<div class="item tag {{if eq $defaultBranch .}}selected{{end}}" data-url="{{PathEscapeSegments .}}">{{.}}</div>
+						<div class="item tag{{if eq $defaultBranch .}} selected{{end}}" data-url="{{PathEscapeSegments .}}">{{.}}</div>
 					{{end}}
 				{{end}}
 			{{end}}

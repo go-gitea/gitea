@@ -50,7 +50,7 @@
 						<form method="post" action="{{$.RepoLink}}/action/accept_transfer?redirect_to={{$.RepoLink}}">
 							{{$.CsrfTokenHtml}}
 							<div class="ui tooltip" data-content="{{if $.CanUserAcceptTransfer}}{{$.locale.Tr "repo.transfer.accept_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{$.locale.Tr "repo.transfer.no_permission_to_accept"}}{{end}}" data-position="bottom center">
-								<button type="submit" class="ui button {{if $.CanUserAcceptTransfer}}green {{end}} ok inverted small"{{if not $.CanUserAcceptTransfer}} disabled{{end}}>
+								<button type="submit" class="ui button{{if $.CanUserAcceptTransfer}}green {{end}} ok inverted small"{{if not $.CanUserAcceptTransfer}}  disabled{{end}}>
 									{{$.locale.Tr "repo.transfer.accept"}}
 								</button>
 							</div>
@@ -58,7 +58,7 @@
 						<form method="post" action="{{$.RepoLink}}/action/reject_transfer?redirect_to={{$.RepoLink}}">
 							{{$.CsrfTokenHtml}}
 							<div class="ui tooltip" data-content="{{if $.CanUserAcceptTransfer}}{{$.locale.Tr "repo.transfer.reject_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{$.locale.Tr "repo.transfer.no_permission_to_reject"}}{{end}}" data-position="bottom center">
-								<button type="submit" class="ui button {{if $.CanUserAcceptTransfer}}red {{end}}ok inverted small"{{if not $.CanUserAcceptTransfer}} disabled{{end}}>
+								<button type="submit" class="ui button{{if $.CanUserAcceptTransfer}}red {{end}}ok inverted small"{{if not $.CanUserAcceptTransfer}}  disabled{{end}}>
 									{{$.locale.Tr "repo.transfer.reject"}}
 								</button>
 							</div>
@@ -206,7 +206,7 @@
 				{{end}}
 
 				{{if or (.Permission.CanRead $.UnitTypeWiki) (.Permission.CanRead $.UnitTypeExternalWiki)}}
-					<a class="{{if .PageIsWiki}}active {{end}}item" href="{{.RepoLink}}/wiki" {{if and (.Permission.CanRead $.UnitTypeExternalWiki) (not (HasPrefix ((.Repository.MustGetUnit $.UnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL) (.Repository.HTMLURL)))}} target="_blank" rel="noopener noreferrer" {{end}}>
+					<a class="{{if .PageIsWiki}}active {{end}}item" href="{{.RepoLink}}/wiki"{{if and (.Permission.CanRead $.UnitTypeExternalWiki) (not (HasPrefix ((.Repository.MustGetUnit $.UnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL) (.Repository.HTMLURL)))}}  target="_blank" rel="noopener noreferrer" {{end}}>
 						{{svg "octicon-book"}} {{.locale.Tr "repo.wiki"}}
 					</a>
 				{{end}}

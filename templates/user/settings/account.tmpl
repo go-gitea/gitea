@@ -12,16 +12,16 @@
 				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
 				{{if .SignedUser.IsPasswordSet}}
-				<div class="required field {{if .Err_OldPassword}}error{{end}}">
+				<div class="required field{{if .Err_OldPassword}} error{{end}}">
 					<label for="old_password">{{.locale.Tr "settings.old_password"}}</label>
 					<input id="old_password" name="old_password" type="password" autocomplete="current-password" autofocus required>
 				</div>
 				{{end}}
-				<div class="required field {{if .Err_Password}}error{{end}}">
+				<div class="required field{{if .Err_Password}} error{{end}}">
 					<label for="password">{{.locale.Tr "settings.new_password"}}</label>
 					<input id="password" name="password" type="password" autocomplete="new-password" required>
 				</div>
-				<div class="required field {{if .Err_Password}}error{{end}}">
+				<div class="required field{{if .Err_Password}} error{{end}}">
 					<label for="retype">{{.locale.Tr "settings.retype_new_password"}}</label>
 					<input id="retype" name="retype" type="password" autocomplete="new-password" required>
 				</div>
@@ -123,11 +123,11 @@
 		<div class="ui attached bottom segment">
 			<form class="ui form" action="{{AppSubUrl}}/user/settings/account/email" method="post">
 				{{.CsrfTokenHtml}}
-				<div class="required field {{if .Err_Email}}error{{end}}">
+				<div class="required field{{if .Err_Email}} error{{end}}">
 					<label for="email">{{.locale.Tr "settings.add_new_email"}}</label>
 					<input id="email" name="email" type="email" required {{if not .CanAddEmails}}disabled{{end}}>
 				</div>
-				<button class="ui green button" {{if not .CanAddEmails}}disabled{{end}}>
+				<button class="ui green button"{{if not .CanAddEmails}} disabled{{end}}>
 					{{.locale.Tr "settings.add_email"}}
 				</button>
 			</form>
@@ -146,7 +146,7 @@
 			<form class="ui form ignore-dirty" id="delete-form" action="{{AppSubUrl}}/user/settings/account/delete" method="post">
 				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
-				<div class="required field {{if .Err_Password}}error{{end}}">
+				<div class="required field{{if .Err_Password}} error{{end}}">
 					<label for="password-confirmation">{{.locale.Tr "password"}}</label>
 					<input id="password-confirmation" name="password" type="password" autocomplete="off" required>
 				</div>

@@ -11,7 +11,7 @@
 					</h3>
 					<div class="ui attached segment">
 						{{template "base/alert" .}}
-						<div class="required field {{if .Err_TeamName}}error{{end}}">
+						<div class="required field{{if .Err_TeamName}} error{{end}}">
 							<label for="team_name">{{.locale.Tr "org.team_name"}}</label>
 							{{if eq .Team.LowerName "owners"}}
 								<input type="hidden" name="team_name" value="{{.Team.Name}}">
@@ -19,7 +19,7 @@
 							<input id="team_name" name="team_name" value="{{.Team.Name}}" required {{if eq .Team.LowerName "owners"}}disabled{{end}} autofocus>
 							<span class="help">{{.locale.Tr "org.team_name_helper"}}</span>
 						</div>
-						<div class="field {{if .Err_Description}}error{{end}}">
+						<div class="field{{if .Err_Description}} error{{end}}">
 							<label for="description">{{.locale.Tr "org.team_desc"}}</label>
 							<input id="description" name="description" value="{{.Team.Description}}">
 							<span class="help">{{.locale.Tr "org.team_desc_helper"}}</span>
@@ -104,12 +104,12 @@
 													</td>
 													<td class="center aligned">
 														<div class="ui radio checkbox">
-															<input type="radio" class="hidden" name="unit_{{$unit.Type.Value}}" value="1"{{if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $unit.Type) 1)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}}>
+															<input type="radio" class="hidden" name="unit_{{$unit.Type.Value}}" value="1"{{if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $unit.Type) 1)}} checked{{end}}{{if $unit.Type.UnitGlobalDisabled}} disabled{{end}}>
 														</div>
 													</td>
 													<td class="center aligned">
 														<div class="ui radio checkbox">
-															<input type="radio" class="hidden" name="unit_{{$unit.Type.Value}}" value="2"{{if (eq ($.Team.UnitAccessMode $unit.Type) 2)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}}>
+															<input type="radio" class="hidden" name="unit_{{$unit.Type.Value}}" value="2"{{if (eq ($.Team.UnitAccessMode $unit.Type) 2)}} checked{{end}}{{if $unit.Type.UnitGlobalDisabled}} disabled{{end}}>
 														</div>
 													</td>
 												</tr>
@@ -121,7 +121,7 @@
 									{{if lt $unit.MaxPerm 2}}
 										<div {{if $unit.Type.UnitGlobalDisabled}}class="field tooltip" data-content="{{$.locale.Tr "repo.unit_disabled"}}"{{else}}class="field"{{end}}>
 											<div class="ui checkbox">
-												<input type="checkbox" class="hidden" name="unit_{{$unit.Type.Value}}" value="1"{{if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $unit.Type) 1)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}}>
+												<input type="checkbox" class="hidden" name="unit_{{$unit.Type.Value}}" value="1"{{if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $unit.Type) 1)}} checked{{end}}{{if $unit.Type.UnitGlobalDisabled}} disabled{{end}}>
 												<label>{{$.locale.Tr $unit.NameKey}}{{if $unit.Type.UnitGlobalDisabled}} {{$.locale.Tr "org.team_unit_disabled"}}{{end}}</label>
 												<span class="help">{{$.locale.Tr $unit.DescKey}}</span>
 											</div>
