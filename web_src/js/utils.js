@@ -87,7 +87,7 @@ export function translateDay(day) {
 }
 
 // convert a Blob to a DataURI
-function blobToDataURI(blob) {
+export function blobToDataURI(blob) {
   return new Promise((resolve, reject) => {
     try {
       const reader = new FileReader();
