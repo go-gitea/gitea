@@ -4,6 +4,8 @@
 
 package bots
 
+import runnerv1 "gitea.com/gitea/proto-go/runner/v1"
+
 // Status represents the status of Run, RunJob, Task, or TaskStep
 type Status int
 
@@ -13,9 +15,9 @@ const (
 	StatusFailure                 // 2, consistent with runnerv1.Result_RESULT_FAILURE
 	StatusCancelled               // 3, consistent with runnerv1.Result_RESULT_CANCELLED
 	StatusSkipped                 // 4, consistent with runnerv1.Result_RESULT_SKIPPED
-	StatusWaiting                 // 5
-	StatusRunning                 // 6
-	StatusBlocked                 // 7
+	StatusWaiting                 // 5, isn't a runnerv1.Result
+	StatusRunning                 // 6, isn't a runnerv1.Result
+	StatusBlocked                 // 7, isn't a runnerv1.Result
 )
 
 // String returns the string name of the Status
@@ -31,6 +33,10 @@ func (s Status) IsDone() bool {
 // HasRun returns whether the Status is a result of running
 func (s Status) HasRun() bool {
 	return s.In(StatusSuccess, StatusFailure)
+}
+
+func (s Status) IsUnknown() bool {
+	return s == StatusUnknown
 }
 
 func (s Status) IsSuccess() bool {
@@ -64,6 +70,13 @@ func (s Status) In(statuses ...Status) bool {
 		}
 	}
 	return false
+}
+
+func (s Status) AsResult() runnerv1.Result {
+	if s.IsDone() {
+		return runnerv1.Result(s)
+	}
+	return runnerv1.Result_RESULT_UNSPECIFIED
 }
 
 var statusNames = map[Status]string{

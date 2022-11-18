@@ -148,7 +148,7 @@ func InsertRun(run *Run, jobs []*jobparser.SingleWorkflow) error {
 	}
 	run.Index = index
 
-	if run.Status == StatusUnknown {
+	if run.Status.IsUnknown() {
 		run.Status = StatusWaiting
 	}
 

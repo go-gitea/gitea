@@ -104,8 +104,7 @@ func addBotTables(x *xorm.Engine) error {
 		ID       int64
 		JobID    int64
 		Attempt  int64
-		RunnerID int64 `xorm:"index"`
-		Result   int32
+		RunnerID int64              `xorm:"index"`
 		Status   int                `xorm:"index"`
 		Started  timeutil.TimeStamp `xorm:"index"`
 		Stopped  timeutil.TimeStamp
@@ -134,8 +133,7 @@ func addBotTables(x *xorm.Engine) error {
 		Name      string
 		TaskID    int64 `xorm:"index unique(task_number)"`
 		Number    int64 `xorm:"index unique(task_number)"`
-		Result    int32
-		Status    int `xorm:"index"`
+		Status    int   `xorm:"index"`
 		LogIndex  int64
 		LogLength int64
 		Started   timeutil.TimeStamp

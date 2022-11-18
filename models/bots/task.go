@@ -38,8 +38,7 @@ type Task struct {
 	Job      *RunJob     `xorm:"-"`
 	Steps    []*TaskStep `xorm:"-"`
 	Attempt  int64
-	RunnerID int64 `xorm:"index"`
-	Result   runnerv1.Result
+	RunnerID int64              `xorm:"index"`
 	Status   Status             `xorm:"index"`
 	Started  timeutil.TimeStamp `xorm:"index"`
 	Stopped  timeutil.TimeStamp
@@ -435,9 +434,8 @@ func UpdateTaskByState(state *runnerv1.TaskState) (*Task, error) {
 		return nil, err
 	}
 
-	task.Result = state.Result
-	if task.Result != runnerv1.Result_RESULT_UNSPECIFIED {
-		task.Status = Status(task.Result)
+	if state.Result != runnerv1.Result_RESULT_UNSPECIFIED {
+		task.Status = Status(state.Result)
 		task.Stopped = timeutil.TimeStamp(state.StoppedAt.AsTime().Unix())
 		if _, err := UpdateRunJob(ctx, &RunJob{
 			ID:      task.JobID,
@@ -458,15 +456,16 @@ func UpdateTaskByState(state *runnerv1.TaskState) (*Task, error) {
 
 	prevStepDone := true
 	for _, step := range task.Steps {
+		var result runnerv1.Result
 		if v, ok := stepStates[step.Number]; ok {
-			step.Result = v.Result
+			result = v.Result
 			step.LogIndex = v.LogIndex
 			step.LogLength = v.LogLength
 			step.Started = convertTimestamp(v.StartedAt)
 			step.Stopped = convertTimestamp(v.StoppedAt)
 		}
-		if step.Result != runnerv1.Result_RESULT_UNSPECIFIED {
-			step.Status = Status(step.Result)
+		if result != runnerv1.Result_RESULT_UNSPECIFIED {
+			step.Status = Status(result)
 			prevStepDone = true
 		} else if prevStepDone {
 			step.Status = StatusRunning
@@ -494,9 +493,8 @@ func StopTask(ctx context.Context, task *Task, result runnerv1.Result) (*Task, e
 	e := db.GetEngine(ctx)
 
 	now := timeutil.TimeStampNow()
-	task.Result = result
-	if task.Result != runnerv1.Result_RESULT_UNSPECIFIED {
-		task.Status = Status(task.Result)
+	if result != runnerv1.Result_RESULT_UNSPECIFIED {
+		task.Status = Status(result)
 		task.Stopped = now
 		if _, err := UpdateRunJob(ctx, &RunJob{
 			ID:      task.JobID,
@@ -516,8 +514,7 @@ func StopTask(ctx context.Context, task *Task, result runnerv1.Result) (*Task, e
 	}
 
 	for _, step := range task.Steps {
-		if step.Result == runnerv1.Result_RESULT_UNSPECIFIED {
-			step.Result = result
+		if !step.Status.IsDone() {
 			step.Status = Status(result)
 			if step.Started == 0 {
 				step.Started = now

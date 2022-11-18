@@ -165,11 +165,11 @@ func (s *Service) UpdateTask(
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "can't find the task: %v", err)
 	}
-	if task.Result == runnerv1.Result_RESULT_CANCELLED {
+	if task.Status.IsCancelled() {
 		return connect.NewResponse(&runnerv1.UpdateTaskResponse{
 			State: &runnerv1.TaskState{
 				Id:     req.Msg.State.Id,
-				Result: task.Result,
+				Result: task.Status.AsResult(),
 			},
 		}), nil
 	}

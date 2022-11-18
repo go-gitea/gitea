@@ -10,16 +10,14 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
-	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 )
 
 // TaskStep represents a step of Task
 type TaskStep struct {
 	ID        int64
 	Name      string
-	TaskID    int64 `xorm:"index unique(task_number)"`
-	Number    int64 `xorm:"index unique(task_number)"`
-	Result    runnerv1.Result
+	TaskID    int64  `xorm:"index unique(task_number)"`
+	Number    int64  `xorm:"index unique(task_number)"`
 	Status    Status `xorm:"index"`
 	LogIndex  int64
 	LogLength int64
