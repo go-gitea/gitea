@@ -205,6 +205,9 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 		// find stopwatches without existing issue
 		genericOrphanCheck("Orphaned Stopwatches without existing Issue",
 			"stopwatch", "issue", "stopwatch.issue_id=`issue`.id"),
+		// find redirects without existing user.
+		genericOrphanCheck("Orphaned Redirects without existing redirect user",
+			"user_redirect", "user", "user_redirect.redirect_user_id=`user`.id"),
 	)
 
 	for _, c := range consistencyChecks {
