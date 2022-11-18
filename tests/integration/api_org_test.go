@@ -128,7 +128,7 @@ func TestAPIOrgDeny(t *testing.T) {
 			setting.Service.RequireSignInView = false
 		}()
 
-		token := getUserToken(t, "user1", "read_org")
+		token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadOrg)
 
 		orgName := "user1_org"
 		req := NewRequestf(t, "GET", "/api/v1/orgs/%s?token=%s", orgName, token)
@@ -145,7 +145,7 @@ func TestAPIOrgDeny(t *testing.T) {
 func TestAPIGetAll(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	token := getUserToken(t, "user1", "read_org")
+	token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadOrg)
 
 	req := NewRequestf(t, "GET", "/api/v1/orgs?token=%s", token)
 	resp := MakeRequest(t, req, http.StatusOK)
