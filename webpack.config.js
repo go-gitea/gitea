@@ -47,6 +47,7 @@ const filterCssImport = (url, ...args) => {
   return true;
 };
 
+/** @type {import("webpack").Configuration} */
 export default {
   mode: isProduction ? 'production' : 'development',
   entry: {
