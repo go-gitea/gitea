@@ -580,7 +580,7 @@
 		{{if and .IsRepoAdmin (not .Repository.IsArchived)}}
 			<div class="ui divider"></div>
 			<div class="ui watching">
-				<button class="fluid ui show-modal button{{if .Issue.IsLocked}}  negative {{end}}" data-modal="#lock">
+				<button class="fluid ui show-modal button{{if .Issue.IsLocked}} negative{{end}}" data-modal="#lock">
 					{{if .Issue.IsLocked}}
 						{{svg "octicon-key"}}
 						{{.locale.Tr "repo.issues.unlock"}}
