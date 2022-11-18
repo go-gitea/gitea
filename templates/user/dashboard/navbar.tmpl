@@ -63,7 +63,7 @@
 							</a>
 							{{range .Teams}}
 								{{if not .IncludesAllRepositories}}
-									<a class="{{if $.Team}}{{if eq $.Team.ID .ID}}active selected{{end}} {{end}}item" title="{{.Name}}" href="{{$.Org.OrganisationLink}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}/{{.Name}}">
+									<a class="{{if $.Team}}{{if eq $.Team.ID .ID}}active selected {{end}}{{end}}item" title="{{.Name}}" href="{{$.Org.OrganisationLink}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}/{{.Name}}">
 										{{.Name}}
 									</a>
 								{{end}}
