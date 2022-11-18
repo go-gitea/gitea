@@ -29,7 +29,7 @@
 			{{if .SearchResults}}
 				<div class="df ac fw">
 					{{range $term := .SearchResultLanguages}}
-					<a class="ui text-label df ac mr-1 my-1{{if eq $.Language $term.Language}}primary {{end}}basic label" href="{{$.SourcePath}}/search?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}{{if ne $.queryType ""}}&t={{$.queryType}} {{end}}">
+					<a class="ui text-label df ac mr-1 my-1{{if eq $.Language $term.Language}} primary {{end}}basic label" href="{{$.SourcePath}}/search?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}{{if ne $.queryType ""}}&t={{$.queryType}} {{end}}">
 						<i class="color-icon mr-3" style="background-color: {{$term.Color}}"></i>
 						{{$term.Language}}
 						<div class="detail">{{$term.Count}}</div>
