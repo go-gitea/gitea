@@ -411,7 +411,7 @@
 			{{if ne .Issue.DeadlineUnix 0}}
 				<p>
 					<div class="df sb ac">
-						<div class="due-date tooltip {{if .Issue.IsOverdue}}text red{{end}}"{{if .Issue.IsOverdue}}data-content="{{.locale.Tr "repo.issues.due_date_overdue"}} "{{end}}>
+						<div class="due-date tooltip {{if .Issue.IsOverdue}}text red{{end}}"{{if .Issue.IsOverdue}} data-content="{{.locale.Tr "repo.issues.due_date_overdue"}}"{{end}}>
 							{{svg "octicon-calendar" 16 "mr-3"}}
 							<time data-format="date" datetime="{{.Issue.DeadlineUnix.FormatLong}}">{{.Issue.DeadlineUnix.FormatDate}}</time>
 						</div>

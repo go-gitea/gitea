@@ -21,7 +21,7 @@
 
 					<div class="inline field{{if .Err_Auth}} error{{end}}">
 						<label for="auth_username">{{.locale.Tr "username"}}</label>
-						<input id="auth_username" name="auth_username" value="{{.auth_username}}" {{if not .auth_username}}data-need-clear="true"{{end}}>
+						<input id="auth_username" name="auth_username" value="{{.auth_username}}"{{if not .auth_username}} data-need-clear="true"{{end}}>
 					</div>
 					<div class="inline field{{if .Err_Auth}} error{{end}}">
 						<label for="auth_password">{{.locale.Tr "password"}}</label>

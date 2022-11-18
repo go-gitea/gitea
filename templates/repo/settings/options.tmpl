@@ -132,11 +132,11 @@
 										<div class="p-2">
 											<div class="inline field{{if .Err_Auth}} error{{end}}">
 												<label for="mirror_username">{{.locale.Tr "username"}}</label>
-												<input id="mirror_username" name="mirror_username" value="{{$address.Username}}" {{if not .mirror_username}}data-need-clear="true"{{end}}>
+												<input id="mirror_username" name="mirror_username" value="{{$address.Username}}"{{if not .mirror_username}} data-need-clear="true"{{end}}>
 											</div>
 											<div class="inline field{{if .Err_Auth}} error{{end}}">
 												<label for="mirror_password">{{.locale.Tr "password"}}</label>
-												<input id="mirror_password" name="mirror_password" type="password" placeholder="{{if $address.Password}}{{.locale.Tr "repo.mirror_password_placeholder"}}{{else}}{{.locale.Tr "repo.mirror_password_blank_placeholder"}}{{end}}" value="" {{if not .mirror_password}}data-need-clear="true"{{end}} autocomplete="off">
+												<input id="mirror_password" name="mirror_password" type="password" placeholder="{{if $address.Password}}{{.locale.Tr "repo.mirror_password_placeholder"}}{{else}}{{.locale.Tr "repo.mirror_password_blank_placeholder"}}{{end}}" value=""{{if not .mirror_password}} data-need-clear="true"{{end}} autocomplete="off">
 											</div>
 											<p class="help">{{.locale.Tr "repo.mirror_password_help"}}</p>
 										</div>
