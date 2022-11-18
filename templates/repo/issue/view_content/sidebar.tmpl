@@ -23,7 +23,7 @@
 					{{if .Reviewers}}
 						{{range .Reviewers}}
 							{{if .User}}
-								<a class="item{{if not .CanChange}} ui tooltip{{end}}{{if .Checked}} checked{{end}}{{if not .CanChange}} ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_{{.ItemID}}"{{if not .CanChange}} data-content="{{$.locale.Tr "repo.issues.remove_request_review_block"}} "{{end}}>
+								<a class="item{{if not .CanChange}} ui tooltip{{end}}{{if .Checked}} checked{{end}}{{if not .CanChange}} ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_{{.ItemID}}"{{if not .CanChange}} data-content="{{$.locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
 									<span class="octicon-check{{if not .Checked}} invisible{{end}}">{{svg "octicon-check"}}</span>
 									<span class="text">
 										{{avatar .User 28 "mr-3"}}
@@ -37,7 +37,7 @@
 						<div class="ui divider"></div>
 						{{range .TeamReviewers}}
 							{{if .Team}}
-								<a class="item{{if not .CanChange}} ui tooltip{{end}}{{if .Checked}} checked{{end}}{{if not .CanChange}} ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_team_{{.Team.ID}}"{{if not .CanChange}} data-content="{{$.locale.Tr "repo.issues.remove_request_review_block"}} "{{end}}>
+								<a class="item{{if not .CanChange}} ui tooltip{{end}}{{if .Checked}} checked{{end}}{{if not .CanChange}} ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_team_{{.Team.ID}}"{{if not .CanChange}} data-content="{{$.locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
 									<span class="octicon-check{{if not .Checked}} invisible{{end}}">{{svg "octicon-check" 16}}</span>
 									<span class="text">
 										{{svg "octicon-people" 16 "ml-4 mr-2"}}{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}
@@ -308,7 +308,7 @@
 			<span class="text"><strong>{{.locale.Tr "repo.issues.num_participants" .NumParticipants}}</strong></span>
 			<div class="ui list df fw">
 				{{range .Participants}}
-					<a class="ui tooltip"{{if gt .ID 0}}href="{{.HomeLink}} "{{end}} data-content="{{.GetDisplayName}}" data-position="top center">
+					<a class="ui tooltip"{{if gt .ID 0}} href="{{.HomeLink}}"{{end}} data-content="{{.GetDisplayName}}" data-position="top center">
 						{{avatar . 28 "my-1 mr-2"}}
 					</a>
 				{{end}}

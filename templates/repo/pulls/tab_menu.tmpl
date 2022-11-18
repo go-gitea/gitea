@@ -4,12 +4,12 @@
 		{{$.locale.Tr "repo.pulls.tab_conversation"}}
 		<span class="ui{{if not .Issue.NumComments}}gray{{else}} primary{{end}} small label">{{.Issue.NumComments}}</span>
 	</a>
-	<a class="item {{if .PageIsPullCommits}}active{{end}}"{{if .NumCommits}}href="{{.Issue.Link}} /commits"{{end}}>
+	<a class="item {{if .PageIsPullCommits}}active{{end}}"{{if .NumCommits}} href="{{.Issue.Link}}/commits"{{end}}>
 		{{svg "octicon-git-commit"}}
 		{{$.locale.Tr "repo.pulls.tab_commits"}}
 		<span class="ui{{if not .NumCommits}}gray{{else}}primary{{end}} small label">{{if .NumCommits}}{{.NumCommits}}{{else}} N/A{{end}}</span>
 	</a>
-	<a class="item {{if .PageIsPullFiles}}active{{end}}"{{if .NumFiles}}href="{{.Issue.Link}} /files"{{end}}>
+	<a class="item {{if .PageIsPullFiles}}active{{end}}"{{if .NumFiles}} href="{{.Issue.Link}}/files"{{end}}>
 		{{svg "octicon-diff"}}
 		{{$.locale.Tr "repo.pulls.tab_files"}}
 		<span class="ui{{if not .NumFiles}}gray{{else}}primary{{end}} small label">{{if .NumFiles}}{{.NumFiles}}{{else}} N/A{{end}}</span>

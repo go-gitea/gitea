@@ -32,7 +32,7 @@
 		<a class="item{{if .PageIsPulls}} active{{end}}" href="{{AppSubUrl}}/pulls">{{.locale.Tr "pull_requests"}}</a>
 		{{end}}
 		{{if not (and .UnitIssuesGlobalDisabled .UnitPullsGlobalDisabled)}}
-		{{if .ShowMilestonesDashboardPage}}<a class="item{{if .PageIsMilestonesDashboard}}active{{end}}" href="{{AppSubUrl}}/milestones">{{.locale.Tr "milestones"}} </a>{{end}}
+		{{if .ShowMilestonesDashboardPage}}<a class="item{{if .PageIsMilestonesDashboard}} active{{end}}" href="{{AppSubUrl}}/milestones">{{.locale.Tr "milestones"}}</a>{{end}}
 		{{end}}
 		<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.locale.Tr "explore"}}</a>
 	{{else if .IsLandingPageOrganizations}}
