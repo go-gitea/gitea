@@ -45,8 +45,7 @@ export function initCopyContent() {
     try {
       await doCopy(content, btn);
     } catch {
-      if (isImage) {
-        // convert image to png as last-resort as some browser only support png copy
+      if (isImage) { // convert image to png as last-resort as some browser only support png copy
         try {
           await doCopy(await imageBlobToPng(content), btn);
         } catch {
