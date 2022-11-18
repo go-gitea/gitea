@@ -5,10 +5,10 @@
 		{{template "base/alert" .}}
 		<h2 class="ui compact small menu header">
 			{{if .Permission.CanRead $.UnitTypeReleases}}
-				<a class="{{if (not .PageIsTagList)}}active{{end}} item" href="{{.RepoLink}}/releases">{{.locale.Tr "repo.release.releases"}}</a>
+				<a class="{{if (not .PageIsTagList)}}active {{end}}item" href="{{.RepoLink}}/releases">{{.locale.Tr "repo.release.releases"}}</a>
 			{{end}}
 			{{if .Permission.CanRead $.UnitTypeCode}}
-				<a class="{{if .PageIsTagList}}active{{end}} item" href="{{.RepoLink}}/tags">{{.locale.Tr "repo.release.tags"}}</a>
+				<a class="{{if .PageIsTagList}}active {{end}}item" href="{{.RepoLink}}/tags">{{.locale.Tr "repo.release.tags"}}</a>
 			{{end}}
 		</h2>
 		{{if (and .CanCreateRelease (not .PageIsTagList))}}
