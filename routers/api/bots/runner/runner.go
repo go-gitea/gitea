@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	bot_service "code.gitea.io/gitea/services/bots"
 	secret_service "code.gitea.io/gitea/services/secrets"
 
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
@@ -214,7 +215,7 @@ func (s *Service) UpdateTask(
 	}
 
 	if req.Msg.State.Result != runnerv1.Result_RESULT_UNSPECIFIED {
-		if err := bots.EmitJobsIfReady(task.Job.RunID); err != nil {
+		if err := bot_service.EmitJobsIfReady(task.Job.RunID); err != nil {
 			log.Error("Emit ready jobs of run %d: %v", task.Job.RunID, err)
 		}
 	}

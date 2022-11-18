@@ -11,17 +11,10 @@ import (
 
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/queue"
 
 	"github.com/nektos/act/pkg/model"
 )
-
-func Init() {
-	jobEmitterQueue = queue.CreateUniqueQueue("bots_ready_job", jobEmitterQueueHandle, new(jobUpdate))
-	go graceful.GetManager().RunWithShutdownFns(jobEmitterQueue.Run)
-}
 
 func ListWorkflows(commit *git.Commit) (git.Entries, error) {
 	tree, err := commit.SubTree(".gitea/workflows")

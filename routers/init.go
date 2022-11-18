@@ -11,7 +11,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/modules/bots"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/git"
@@ -41,6 +40,7 @@ import (
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/automerge"
+	bot_service "code.gitea.io/gitea/services/bots"
 	"code.gitea.io/gitea/services/cron"
 	"code.gitea.io/gitea/services/mailer"
 	markup_service "code.gitea.io/gitea/services/markup"
@@ -175,7 +175,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	auth.Init()
 	svg.Init()
 
-	bots.Init()
+	bot_service.Init()
 
 	// Finally start up the cron
 	cron.NewContext(ctx)
