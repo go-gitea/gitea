@@ -115,10 +115,13 @@ export function imageBlobToPng(blob) {
         canvas.height = img.naturalHeight;
         const context = canvas.getContext('2d');
         context.drawImage(img, 0, 0);
-        canvas.toBlob(resolve, 'image/png');
+        canvas.toBlob((blob) => {
+          if (!(blob instanceof Blob)) return reject(new Error('imageBlobToPng failed'));
+          resolve(blob);
+        }, 'image/png');
       });
       img.addEventListener('error', () => {
-        reject(new Error('Image conversion failed'));
+        reject(new Error('imageBlobToPng failed'));
       });
       img.src = await blobToDataURI(blob);
     } catch (err) {
