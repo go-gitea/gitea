@@ -341,7 +341,7 @@ export function initRepositoryBuildView() {
 
 .build-view-container {
   display: flex;
-  height: calc(100vh - 286px); // fine tune this value to make the main view has full height
+  height: calc(100vh - 226px); // fine tune this value to make the main view has full height
 }
 
 

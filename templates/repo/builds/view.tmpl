@@ -2,13 +2,6 @@
 
 <div class="page-content repository">
 	{{template "repo/header" .}}
-	<div class="build-view-header">
-		<h1>
-			<span class="title">{{template "repo/builds/status" .Build.Status}}{{RenderIssueTitle $.Context .Build.Title $.RepoLink $.Repository.ComposeMetas}}</span>
-			<span class="index">#{{.Build.Index}}</span>
-		</h1>
-	</div>
-
 	<div id="repo-build-view" data-run-index="{{.RunIndex}}" data-job-index="{{.JobIndex}}">
 	</div>
 
