@@ -85,3 +85,44 @@ export function translateMonth(month) {
 export function translateDay(day) {
   return new Date(Date.UTC(2022, 7, day)).toLocaleString(getCurrentLocale(), {weekday: 'short'});
 }
+
+// convert a Blob to a DataURI
+function blobToDataURI(blob) {
+  return new Promise((resolve, reject) => {
+    try {
+      const reader = new FileReader();
+      reader.addEventListener('load', (e) => {
+        resolve(e.target.result);
+      });
+      reader.addEventListener('error', () => {
+        reject(new Error('FileReader failed'));
+      });
+      reader.readAsDataURL(blob);
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+// convert a jpg (and possibly other formats) blob to a png blob
+export function imageBlobToPng(blob) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const img = new Image();
+      const canvas = document.createElement('canvas');
+      img.addEventListener('load', () => {
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const context = canvas.getContext('2d');
+        context.drawImage(img, 0, 0);
+        canvas.toBlob(resolve, 'image/png');
+      });
+      img.addEventListener('error', () => {
+        reject(new Error('Image convertion failed'));
+      });
+      img.src = await blobToDataURI(blob);
+    } catch (err) {
+      reject(err);
+    }
+  });
+}

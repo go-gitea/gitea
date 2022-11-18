@@ -1,6 +1,12 @@
 import {copyToClipboard} from './clipboard.js';
 import {showTemporaryTooltip} from '../modules/tippy.js';
+import {imageBlobToPng} from '../utils.js';
 const {i18n} = window.config;
+
+async function doCopy(content, btn) {
+  const success = await copyToClipboard(content);
+  showTemporaryTooltip(btn, success ? i18n.copy_success : i18n.copy_error);
+}
 
 export function initCopyContent() {
   const btn = document.getElementById('copy-content');
@@ -8,7 +14,7 @@ export function initCopyContent() {
 
   btn.addEventListener('click', async () => {
     if (btn.classList.contains('is-loading')) return;
-    let content;
+    let content, isImage;
     const link = btn.getAttribute('data-link');
 
     // when data-link is present, we perform a fetch. this is either because
@@ -21,6 +27,7 @@ export function initCopyContent() {
         const contentType = res.headers.get('content-type');
 
         if (contentType.startsWith('image/') && !contentType.startsWith('image/svg')) {
+          isImage = true;
           content = await res.blob();
         } else {
           content = await res.text();
@@ -36,10 +43,18 @@ export function initCopyContent() {
     }
 
     try {
-      const success = await copyToClipboard(content);
-      showTemporaryTooltip(btn, success ? i18n.copy_success : i18n.copy_error);
+      await doCopy(content, btn);
     } catch {
-      showTemporaryTooltip(btn, i18n.copy_error);
+      if (isImage) {
+        // convert image to png as last-resort as some browser only support png copy
+        try {
+          await doCopy(await imageBlobToPng(content), btn);
+        } catch {
+          showTemporaryTooltip(btn, i18n.copy_error);
+        }
+      } else {
+        showTemporaryTooltip(btn, i18n.copy_error);
+      }
     }
   });
 }
