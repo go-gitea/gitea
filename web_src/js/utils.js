@@ -104,7 +104,7 @@ function blobToDataURI(blob) {
   });
 }
 
-// convert a jpg (and possibly other formats) blob to a png blob
+// convert any image Blob to a png Blob
 export function imageBlobToPng(blob) {
   return new Promise(async (resolve, reject) => {
     try {
