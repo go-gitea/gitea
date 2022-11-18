@@ -118,7 +118,7 @@ export function imageBlobToPng(blob) {
         canvas.toBlob(resolve, 'image/png');
       });
       img.addEventListener('error', () => {
-        reject(new Error('Image convertion failed'));
+        reject(new Error('Image conversion failed'));
       });
       img.src = await blobToDataURI(blob);
     } catch (err) {
