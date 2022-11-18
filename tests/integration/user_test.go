@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -166,7 +167,7 @@ Note: This user hasn't uploaded any GPG keys.
 	// Import key
 	// User1 <user1@example.com>
 	session := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, session, "write_gpg_key")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteGPGKey)
 	testCreateGPGKey(t, session.MakeRequest, token, http.StatusCreated, `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 mQENBFyy/VUBCADJ7zbM20Z1RWmFoVgp5WkQfI2rU1Vj9cQHes9i42wVLLtcbPeo

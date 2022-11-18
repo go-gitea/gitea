@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/auth"
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -56,7 +57,7 @@ func testAPICreateOAuth2Application(t *testing.T) {
 func testAPIListOAuth2Applications(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, "read_application")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadApplication)
 
 	existApp := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{
 		UID:  user.ID,
@@ -87,7 +88,7 @@ func testAPIListOAuth2Applications(t *testing.T) {
 func testAPIDeleteOAuth2Application(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, "write_application")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteApplication)
 
 	oldApp := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{
 		UID:  user.ID,
@@ -108,7 +109,7 @@ func testAPIDeleteOAuth2Application(t *testing.T) {
 func testAPIGetOAuth2Application(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, "read_application")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadApplication)
 
 	existApp := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{
 		UID:  user.ID,

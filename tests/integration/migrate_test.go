@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -67,7 +68,7 @@ func TestMigrateGiteaForm(t *testing.T) {
 		repoName := "repo1"
 		repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: ownerName})
 		session := loginUser(t, ownerName)
-		token := getTokenForLoggedInUser(t, session, "repo")
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
 
 		// Step 0: verify the repo is available
 		req := NewRequestf(t, "GET", fmt.Sprintf("/%s/%s", ownerName, repoName))

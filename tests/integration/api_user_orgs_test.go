@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -68,7 +69,7 @@ func TestUserOrgs(t *testing.T) {
 
 func getUserOrgs(t *testing.T, userDoer, userCheck string) (orgs []*api.Organization) {
 	session := loginUser(t, userDoer)
-	token := getTokenForLoggedInUser(t, session, "read_org")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrg)
 	urlStr := fmt.Sprintf("/api/v1/users/%s/orgs?token=%s", userCheck, token)
 	req := NewRequest(t, "GET", urlStr)
 	resp := session.MakeRequest(t, req, http.StatusOK)
@@ -91,7 +92,7 @@ func TestMyOrgs(t *testing.T) {
 
 	normalUsername := "user2"
 	session = loginUser(t, normalUsername)
-	token := getTokenForLoggedInUser(t, session, "read_org")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrg)
 	req = NewRequest(t, "GET", "/api/v1/user/orgs?token="+token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var orgs []*api.Organization

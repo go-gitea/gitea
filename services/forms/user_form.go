@@ -8,7 +8,6 @@ package forms
 import (
 	"mime/multipart"
 	"net/http"
-	"reflect"
 	"strings"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -371,36 +370,8 @@ func (f *AddKeyForm) Validate(req *http.Request, errs binding.Errors) binding.Er
 
 // NewAccessTokenForm form for creating access token
 type NewAccessTokenForm struct {
-	Name                  string `binding:"Required;MaxSize(255)"`
-	ScopeRepo             bool
-	ScopeRepoStatus       bool
-	ScopePublicRepo       bool
-	ScopeAdminOrg         bool
-	ScopeWriteOrg         bool
-	ScopeReadOrg          bool
-	ScopeAdminPublicKey   bool
-	ScopeWritePublicKey   bool
-	ScopeReadPublicKey    bool
-	ScopeAdminRepoHook    bool
-	ScopeWriteRepoHook    bool
-	ScopeReadRepoHook     bool
-	ScopeNotification     bool
-	ScopeUser             bool
-	ScopeReadUser         bool
-	ScopeUserEmail        bool
-	ScopeUserFollow       bool
-	ScopeDeleteRepo       bool
-	ScopePackage          bool
-	ScopeWritePackage     bool
-	ScopeReadPackage      bool
-	ScopeDeletePackage    bool
-	ScopeAdminGPGKey      bool
-	ScopeWriteGPGKey      bool
-	ScopeReadGPGKey       bool
-	ScopeAdminApplication bool
-	ScopeWriteApplication bool
-	ScopeReadApplication  bool
-	ScopeSudo             bool
+	Name  string `binding:"Required;MaxSize(255)"`
+	Scope []string
 }
 
 // Validate validates the fields
@@ -409,50 +380,10 @@ func (f *NewAccessTokenForm) Validate(req *http.Request, errs binding.Errors) bi
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-func (f *NewAccessTokenForm) GetScope() auth_model.AccessTokenScope {
-	scopesMapping := map[string]string{
-		"Repo":             auth_model.AccessTokenScopeRepo,
-		"RepoStatus":       auth_model.AccessTokenScopeRepoStatus,
-		"PublicRepo":       auth_model.AccessTokenScopePublicRepo,
-		"AdminOrg":         auth_model.AccessTokenScopeAdminOrg,
-		"WriteOrg":         auth_model.AccessTokenScopeWriteOrg,
-		"ReadOrg":          auth_model.AccessTokenScopeReadOrg,
-		"AdminPublicKey":   auth_model.AccessTokenScopeAdminPublicKey,
-		"WritePublicKey":   auth_model.AccessTokenScopeWritePublicKey,
-		"ReadPublicKey":    auth_model.AccessTokenScopeReadPublicKey,
-		"AdminRepoHook":    auth_model.AccessTokenScopeAdminRepoHook,
-		"WriteRepoHook":    auth_model.AccessTokenScopeWriteRepoHook,
-		"ReadRepoHook":     auth_model.AccessTokenScopeReadRepoHook,
-		"Notification":     auth_model.AccessTokenScopeNotification,
-		"User":             auth_model.AccessTokenScopeUser,
-		"ReadUser":         auth_model.AccessTokenScopeReadUser,
-		"UserEmail":        auth_model.AccessTokenScopeUserEmail,
-		"UserFollow":       auth_model.AccessTokenScopeUserFollow,
-		"DeleteRepo":       auth_model.AccessTokenScopeDeleteRepo,
-		"Package":          auth_model.AccessTokenScopePackage,
-		"WritePackage":     auth_model.AccessTokenScopeWritePackage,
-		"ReadPackage":      auth_model.AccessTokenScopeReadPackage,
-		"DeletePackage":    auth_model.AccessTokenScopeDeletePackage,
-		"AdminGPGKey":      auth_model.AccessTokenScopeAdminGPGKey,
-		"WriteGPGKey":      auth_model.AccessTokenScopeWriteGPGKey,
-		"ReadGPGKey":       auth_model.AccessTokenScopeReadGPGKey,
-		"AdminApplication": auth_model.AccessTokenScopeAdminApplication,
-		"WriteApplication": auth_model.AccessTokenScopeWriteApplication,
-		"ReadApplication":  auth_model.AccessTokenScopeReadApplication,
-		"Sudo":             auth_model.AccessTokenScopeSudo,
-	}
-
-	scope := ""
-	v := reflect.ValueOf(*f)
-	for i := 0; i < v.NumField(); i++ {
-		if strings.HasPrefix(v.Type().Field(i).Name, "Scope") && v.Field(i).Bool() {
-			singleScope := strings.TrimPrefix(v.Type().Field(i).Name, "Scope")
-			scope += scopesMapping[singleScope] + ","
-		}
-	}
-	scope = strings.TrimSuffix(scope, ",")
-	s, _ := auth_model.AccessTokenScope(scope).Normalize() // error should not happen, since fields are valid scopes
-	return s
+func (f *NewAccessTokenForm) GetScope() (auth_model.AccessTokenScope, error) {
+	scope := strings.Join(f.Scope, ",")
+	s, err := auth_model.AccessTokenScope(scope).Normalize()
+	return s, err
 }
 
 // EditOAuth2ApplicationForm form for editing oauth2 applications

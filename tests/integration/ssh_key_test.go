@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 
@@ -48,8 +49,8 @@ func TestPushDeployKeyOnEmptyRepo(t *testing.T) {
 
 func testPushDeployKeyOnEmptyRepo(t *testing.T, u *url.URL) {
 	// OK login
-	ctx := NewAPITestContext(t, "user2", "deploy-key-empty-repo-1", "repo")
-	ctxWithDeleteRepo := NewAPITestContext(t, "user2", "deploy-key-empty-repo-1", "repo", "delete_repo")
+	ctx := NewAPITestContext(t, "user2", "deploy-key-empty-repo-1", auth_model.AccessTokenScopeRepo)
+	ctxWithDeleteRepo := NewAPITestContext(t, "user2", "deploy-key-empty-repo-1", auth_model.AccessTokenScopeRepo, auth_model.AccessTokenScopeDeleteRepo)
 
 	keyname := fmt.Sprintf("%s-push", ctx.Reponame)
 	u.Path = ctx.GitPath()
@@ -92,8 +93,8 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 	keyname := fmt.Sprintf("%s-push", reponame)
 
 	// OK login
-	ctx := NewAPITestContext(t, username, reponame, "repo", "admin_public_key")
-	ctxWithDeleteRepo := NewAPITestContext(t, username, reponame, "repo", "admin_public_key", "delete_repo")
+	ctx := NewAPITestContext(t, username, reponame, auth_model.AccessTokenScopeRepo, auth_model.AccessTokenScopeAdminPublicKey)
+	ctxWithDeleteRepo := NewAPITestContext(t, username, reponame, auth_model.AccessTokenScopeRepo, auth_model.AccessTokenScopeAdminPublicKey, auth_model.AccessTokenScopeDeleteRepo)
 
 	otherCtx := ctx
 	otherCtx.Reponame = "ssh-key-test-repo-2"

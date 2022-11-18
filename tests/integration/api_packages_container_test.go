@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
@@ -31,7 +32,7 @@ func TestPackageContainer(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, "read_package")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadPackage)
 
 	has := func(l packages_model.PackagePropertyList, name string) bool {
 		for _, pp := range l {

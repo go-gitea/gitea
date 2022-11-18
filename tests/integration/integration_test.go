@@ -270,14 +270,13 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...strin
 	req := NewRequest(t, "GET", "/user/settings/applications")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
-	values := map[string]string{
-		"_csrf": doc.GetCSRF(),
-		"name":  fmt.Sprintf("api-testing-token-%d", tokenCounter),
-	}
+	urlValues := url.Values{}
+	urlValues.Add("_csrf", doc.GetCSRF())
+	urlValues.Add("name", fmt.Sprintf("api-testing-token-%d", tokenCounter))
 	for _, scope := range scopes {
-		values[fmt.Sprintf("scope_%s", scope)] = "on"
+		urlValues.Add("scope", scope)
 	}
-	req = NewRequestWithValues(t, "POST", "/user/settings/applications", values)
+	req = NewRequestWithURLValues(t, "POST", "/user/settings/applications", urlValues)
 	session.MakeRequest(t, req, http.StatusSeeOther)
 	req = NewRequest(t, "GET", "/user/settings/applications")
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -303,6 +302,11 @@ func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string
 	for key, value := range values {
 		urlValues[key] = []string{value}
 	}
+	return NewRequestWithURLValues(t, method, urlStr, urlValues)
+}
+
+func NewRequestWithURLValues(t testing.TB, method, urlStr string, urlValues url.Values) *http.Request {
+	t.Helper()
 	req := NewRequestWithBody(t, method, urlStr, bytes.NewBufferString(urlValues.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	return req

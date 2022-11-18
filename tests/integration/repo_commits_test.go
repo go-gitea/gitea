@@ -10,6 +10,7 @@ import (
 	"path"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -49,7 +50,7 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 	assert.NotEmpty(t, commitURL)
 
 	// Call API to add status for commit
-	ctx := NewAPITestContext(t, "user2", "repo1", "repo")
+	ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeRepo)
 	t.Run("CreateStatus", doAPICreateCommitStatus(ctx, path.Base(commitURL), api.CommitStatusState(state)))
 
 	req = NewRequest(t, "GET", "/user2/repo1/commits/branch/master")

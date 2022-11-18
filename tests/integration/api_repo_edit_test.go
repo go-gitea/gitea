@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
@@ -146,10 +147,10 @@ func TestAPIRepoEdit(t *testing.T) {
 
 		// Get user2's token
 		session := loginUser(t, user2.Name)
-		token2 := getTokenForLoggedInUser(t, session, "repo")
+		token2 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
 		// Get user4's token
 		session = loginUser(t, user4.Name)
-		token4 := getTokenForLoggedInUser(t, session, "repo")
+		token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
 		session = emptyTestSession(t)
 
 		// Test editing a repo1 which user2 owns, changing name and many properties

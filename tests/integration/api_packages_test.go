@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
@@ -29,8 +30,8 @@ func TestPackageAPI(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 	session := loginUser(t, user.Name)
-	tokenReadPackage := getTokenForLoggedInUser(t, session, "read_package")
-	tokenDeletePackage := getTokenForLoggedInUser(t, session, "delete_package")
+	tokenReadPackage := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadPackage)
+	tokenDeletePackage := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeDeletePackage)
 
 	packageName := "test-package"
 	packageVersion := "1.0.3"

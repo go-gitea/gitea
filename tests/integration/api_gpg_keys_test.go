@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
@@ -21,8 +22,8 @@ type makeRequestFunc func(testing.TB, *http.Request, int) *httptest.ResponseReco
 func TestGPGKeys(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
-	token := getTokenForLoggedInUser(t, session, "repo")
-	tokenWithGPGKeyScope := getTokenForLoggedInUser(t, session, "admin_gpg_key", "repo")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	tokenWithGPGKeyScope := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAdminGPGKey, auth_model.AccessTokenScopeRepo)
 
 	tt := []struct {
 		name        string

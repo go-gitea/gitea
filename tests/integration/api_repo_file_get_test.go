@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
@@ -25,7 +26,7 @@ func TestAPIGetRawFileOrLFS(t *testing.T) {
 
 	// Test with LFS
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		httpContext := NewAPITestContext(t, "user2", "repo-lfs-test", "repo", "delete_repo")
+		httpContext := NewAPITestContext(t, "user2", "repo-lfs-test", auth_model.AccessTokenScopeRepo, auth_model.AccessTokenScopeDeleteRepo)
 		doAPICreateRepository(httpContext, false, func(t *testing.T, repository api.Repository) {
 			u.Path = httpContext.GitPath()
 			dstPath := t.TempDir()

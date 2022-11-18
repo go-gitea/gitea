@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
@@ -34,7 +35,7 @@ func sampleTest(t *testing.T, auoptc apiUserOrgPermTestCase) {
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, auoptc.LoginUser)
-	token := getTokenForLoggedInUser(t, session, "read_org")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrg)
 
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s/orgs/%s/permissions?token=%s", auoptc.User, auoptc.Organization, token))
 	resp := session.MakeRequest(t, req, http.StatusOK)
@@ -127,7 +128,7 @@ func TestUnknowUser(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, session, "read_org")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrg)
 
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/unknow/orgs/org25/permissions?token=%s", token))
 	resp := session.MakeRequest(t, req, http.StatusNotFound)
@@ -141,7 +142,7 @@ func TestUnknowOrganization(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, session, "read_org")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrg)
 
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/user1/orgs/unknow/permissions?token=%s", token))
 	resp := session.MakeRequest(t, req, http.StatusNotFound)

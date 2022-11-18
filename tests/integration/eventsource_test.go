@@ -11,6 +11,7 @@ import (
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
+	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -59,7 +60,7 @@ func TestEventSourceManagerRun(t *testing.T) {
 	thread5 := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: 5})
 	assert.NoError(t, thread5.LoadAttributes())
 	session := loginUser(t, user2.Name)
-	token := getTokenForLoggedInUser(t, session, "notification")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeNotification)
 
 	var apiNL []api.NotificationThread
 

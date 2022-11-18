@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -22,7 +23,7 @@ import (
 
 func TestAPIOrgCreate(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
-		token := getUserToken(t, "user1", "write_org", "read_org")
+		token := getUserToken(t, "user1", auth_model.AccessTokenScopeWriteOrg)
 
 		org := api.CreateOrgOption{
 			UserName:    "user1_org",
@@ -80,7 +81,7 @@ func TestAPIOrgEdit(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
 		session := loginUser(t, "user1")
 
-		token := getTokenForLoggedInUser(t, session, "write_org")
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrg)
 		org := api.EditOrgOption{
 			FullName:    "User3 organization new full name",
 			Description: "A new description",
@@ -107,7 +108,7 @@ func TestAPIOrgEditBadVisibility(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
 		session := loginUser(t, "user1")
 
-		token := getTokenForLoggedInUser(t, session, "write_org")
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrg)
 		org := api.EditOrgOption{
 			FullName:    "User3 organization new full name",
 			Description: "A new description",
@@ -160,7 +161,7 @@ func TestAPIGetAll(t *testing.T) {
 
 func TestAPIOrgSearchEmptyTeam(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
-		token := getUserToken(t, "user1", "admin_org")
+		token := getUserToken(t, "user1", auth_model.AccessTokenScopeAdminOrg)
 		orgName := "org_with_empty_team"
 
 		// create org

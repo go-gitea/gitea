@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -25,7 +26,7 @@ func TestAPIModifyLabels(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, "repo")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/labels?token=%s", owner.Name, repo.Name, token)
 
 	// CreateLabel
@@ -97,7 +98,7 @@ func TestAPIAddIssueLabels(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, "repo")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels?token=%s",
 		repo.OwnerName, repo.Name, issue.Index, token)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.IssueLabelsOption{
@@ -120,7 +121,7 @@ func TestAPIReplaceIssueLabels(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, "repo")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels?token=%s",
 		owner.Name, repo.Name, issue.Index, token)
 	req := NewRequestWithJSON(t, "PUT", urlStr, &api.IssueLabelsOption{
@@ -144,7 +145,7 @@ func TestAPIModifyOrgLabels(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	user := "user1"
 	session := loginUser(t, user)
-	token := getTokenForLoggedInUser(t, session, "repo", "admin_org")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo, auth_model.AccessTokenScopeAdminOrg)
 	urlStr := fmt.Sprintf("/api/v1/orgs/%s/labels?token=%s", owner.Name, token)
 
 	// CreateLabel

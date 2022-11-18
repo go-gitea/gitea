@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
@@ -19,7 +20,7 @@ func TestAPIListEmails(t *testing.T) {
 
 	normalUsername := "user2"
 	session := loginUser(t, normalUsername)
-	token := getTokenForLoggedInUser(t, session, "read_user")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
 
 	req := NewRequest(t, "GET", "/api/v1/user/emails?token="+token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
@@ -46,7 +47,7 @@ func TestAPIAddEmail(t *testing.T) {
 
 	normalUsername := "user2"
 	session := loginUser(t, normalUsername)
-	token := getTokenForLoggedInUser(t, session, "user")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeUser)
 
 	opts := api.CreateEmailOption{
 		Emails: []string{"user101@example.com"},
@@ -83,7 +84,7 @@ func TestAPIDeleteEmail(t *testing.T) {
 
 	normalUsername := "user2"
 	session := loginUser(t, normalUsername)
-	token := getTokenForLoggedInUser(t, session, "user")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeUser)
 
 	opts := api.DeleteEmailOption{
 		Emails: []string{"user2-3@example.com"},
