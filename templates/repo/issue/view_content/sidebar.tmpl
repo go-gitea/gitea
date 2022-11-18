@@ -23,7 +23,7 @@
 					{{if .Reviewers}}
 						{{range .Reviewers}}
 							{{if .User}}
-								<a class="{{if not .CanChange}}ui tooltip {{end}}item{{if .Checked}}  checked  {{end}}{{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_{{.ItemID}}"{{if not .CanChange}} data-content="{{$.locale.Tr "repo.issues.remove_request_review_block"}} "{{end}}>
+								<a class="item{{if not .CanChange}} ui tooltip{{end}}{{if .Checked}} checked{{end}}{{if not .CanChange}} ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_{{.ItemID}}"{{if not .CanChange}} data-content="{{$.locale.Tr "repo.issues.remove_request_review_block"}} "{{end}}>
 									<span class="octicon-check{{if not .Checked}} invisible{{end}}">{{svg "octicon-check"}}</span>
 									<span class="text">
 										{{avatar .User 28 "mr-3"}}
@@ -37,7 +37,7 @@
 						<div class="ui divider"></div>
 						{{range .TeamReviewers}}
 							{{if .Team}}
-								<a class="{{if not .CanChange}}ui tooltip {{end}}item{{if .Checked}}  checked  {{end}}{{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_team_{{.Team.ID}}"{{if not .CanChange}} data-content="{{$.locale.Tr "repo.issues.remove_request_review_block"}} "{{end}}>
+								<a class="item{{if not .CanChange}} ui tooltip{{end}}{{if .Checked}} checked{{end}}{{if not .CanChange}} ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_team_{{.Team.ID}}"{{if not .CanChange}} data-content="{{$.locale.Tr "repo.issues.remove_request_review_block"}} "{{end}}>
 									<span class="octicon-check{{if not .Checked}} invisible{{end}}">{{svg "octicon-check" 16}}</span>
 									<span class="text">
 										{{svg "octicon-people" 16 "ml-4 mr-2"}}{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}
