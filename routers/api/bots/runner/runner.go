@@ -220,7 +220,12 @@ func (s *Service) UpdateTask(
 		}
 	}
 
-	return connect.NewResponse(&runnerv1.UpdateTaskResponse{}), nil
+	return connect.NewResponse(&runnerv1.UpdateTaskResponse{
+		State: &runnerv1.TaskState{
+			Id:     req.Msg.State.Id,
+			Result: task.Status.AsResult(),
+		},
+	}), nil
 }
 
 // UpdateLog uploads log of the task.
