@@ -1225,7 +1225,7 @@ func RegisterRoutes(m *web.Route) {
 						Post(bindIgnErr(builds.ViewRequest{}), builds.ViewPost)
 					m.Post("/rerun", builds.Rerun)
 				})
-
+				m.Post("/cancel", builds.Cancel)
 			})
 		}, reqRepoBuildsReader, builds.MustEnableBuilds)
 

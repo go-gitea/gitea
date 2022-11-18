@@ -6,9 +6,9 @@
       </div>
 
       <div class="job-group-section" v-for="(jobGroup, i) in allJobGroups" :key="i">
-        <div class="job-group-summary">
-          {{ jobGroup.summary }}
-        </div>
+<!--        <div class="job-group-summary">-->
+<!--          {{ jobGroup.summary }}-->
+<!--        </div>-->
         <div class="job-brief-list">
           <a class="job-brief-item" v-for="(job, index) in jobGroup.jobs" :key="job.id" v-bind:href="buildInfo.htmlurl+'/jobs/'+index">
             <SvgIcon name="octicon-check-circle-fill" class="green" v-if="job.status === 'success'"/>
@@ -23,6 +23,7 @@
             </button>
           </a>
         </div>
+        <button class="ui fluid tiny basic red button" @click="cancelRun()" v-if="buildInfo.cancelable">Cancel</button>
       </div>
     </div>
 
@@ -152,6 +153,17 @@ const sfc = {
     // rerun a job
     rerunJob(idx) {
       fetch(this.buildInfo.htmlurl+'/jobs/'+idx+'/rerun', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Csrf-Token': csrfToken,
+        },
+        body: {},
+      });
+    },
+    // cancel a run
+    cancelRun() {
+      fetch(this.buildInfo.htmlurl+'/cancel', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

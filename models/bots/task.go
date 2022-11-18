@@ -430,8 +430,10 @@ func UpdateTaskByState(state *runnerv1.TaskState) (*Task, error) {
 	e := db.GetEngine(ctx)
 
 	task := &Task{}
-	if _, err := e.ID(state.Id).Get(task); err != nil {
+	if has, err := e.ID(state.Id).Get(task); err != nil {
 		return nil, err
+	} else if !has {
+		return nil, util.ErrNotExist
 	}
 
 	if state.Result != runnerv1.Result_RESULT_UNSPECIFIED {
@@ -483,54 +485,55 @@ func UpdateTaskByState(state *runnerv1.TaskState) (*Task, error) {
 	return task, nil
 }
 
-func StopTask(ctx context.Context, task *Task, result runnerv1.Result) (*Task, error) {
-	ctx, commiter, err := db.TxContext(ctx)
-	if err != nil {
-		return nil, err
+func StopTask(ctx context.Context, taskID int64, status Status) error {
+	if !status.IsDone() {
+		return fmt.Errorf("cannot stop task with status %v", status)
 	}
-	defer commiter.Close()
-
 	e := db.GetEngine(ctx)
 
+	task := &Task{}
+	if has, err := e.ID(taskID).Get(task); err != nil {
+		return err
+	} else if !has {
+		return util.ErrNotExist
+	}
+	if task.Status.IsDone() {
+		return nil
+	}
+
 	now := timeutil.TimeStampNow()
-	if result != runnerv1.Result_RESULT_UNSPECIFIED {
-		task.Status = Status(result)
-		task.Stopped = now
-		if _, err := UpdateRunJob(ctx, &RunJob{
-			ID:      task.JobID,
-			Status:  task.Status,
-			Stopped: task.Stopped,
-		}, nil); err != nil {
-			return nil, err
-		}
+	task.Status = status
+	task.Stopped = now
+	if _, err := UpdateRunJob(ctx, &RunJob{
+		ID:      task.JobID,
+		Status:  task.Status,
+		Stopped: task.Stopped,
+	}, nil); err != nil {
+		return err
 	}
 
 	if _, err := e.ID(task.ID).Update(task); err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := task.LoadAttributes(ctx); err != nil {
-		return nil, err
+		return err
 	}
 
 	for _, step := range task.Steps {
 		if !step.Status.IsDone() {
-			step.Status = Status(result)
+			step.Status = status
 			if step.Started == 0 {
 				step.Started = now
 			}
 			step.Stopped = now
 		}
 		if _, err := e.ID(step.ID).Update(step); err != nil {
-			return nil, err
+			return err
 		}
 	}
 
-	if err := commiter.Commit(); err != nil {
-		return nil, err
-	}
-
-	return task, nil
+	return nil
 }
 
 func isSubset(set, subset []string) bool {

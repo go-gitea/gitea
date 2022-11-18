@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/bots"
 	context_module "code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
@@ -45,8 +46,9 @@ type ViewRequest struct {
 type ViewResponse struct {
 	StateData struct {
 		BuildInfo struct {
-			HTMLURL string `json:"htmlurl"`
-			Title   string `json:"title"`
+			HTMLURL    string `json:"htmlurl"`
+			Title      string `json:"title"`
+			Cancelable bool   `json:"cancelable"`
 		} `json:"buildInfo"`
 		AllJobGroups   []ViewGroup `json:"allJobGroups"`
 		CurrentJobInfo struct {
@@ -103,6 +105,7 @@ func ViewPost(ctx *context_module.Context) {
 	resp := &ViewResponse{}
 	resp.StateData.BuildInfo.Title = run.Title
 	resp.StateData.BuildInfo.HTMLURL = run.HTMLURL()
+	resp.StateData.BuildInfo.Cancelable = !run.Status.IsDone()
 
 	respJobs := make([]*ViewJob, len(jobs))
 	for i, v := range jobs {
@@ -115,8 +118,8 @@ func ViewPost(ctx *context_module.Context) {
 
 	resp.StateData.AllJobGroups = []ViewGroup{
 		{
-			Summary: "Only One Group", // TODO: maybe we don't need job group
-			Jobs:    respJobs,
+			// TODO: maybe we don't need job group
+			Jobs: respJobs,
 		},
 	}
 
@@ -221,6 +224,45 @@ func Rerun(ctx *context_module.Context) {
 	ctx.JSON(http.StatusOK, struct{}{})
 }
 
+func Cancel(ctx *context_module.Context) {
+	runIndex := ctx.ParamsInt64("run")
+
+	_, jobs := getRunJobs(ctx, runIndex, -1)
+	if ctx.Written() {
+		return
+	}
+
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		for _, job := range jobs {
+			status := job.Status
+			if status.IsDone() {
+				continue
+			}
+			if job.TaskID == 0 {
+				job.Status = bots_model.StatusCancelled
+				job.Stopped = timeutil.TimeStampNow()
+				n, err := bots_model.UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}, "status", "stopped")
+				if err != nil {
+					return err
+				}
+				if n == 0 {
+					return fmt.Errorf("job has changed, try again")
+				}
+				continue
+			}
+			if err := bots_model.StopTask(ctx, job.TaskID, bots_model.StatusCancelled); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	ctx.JSON(http.StatusOK, struct{}{})
+}
+
 func getRunJobs(ctx *context_module.Context, runIndex, jobIndex int64) (current *bots_model.RunJob, jobs []*bots_model.RunJob) {
 	run, err := bots_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
 	if err != nil {
@@ -242,12 +284,12 @@ func getRunJobs(ctx *context_module.Context, runIndex, jobIndex int64) (current 
 		v.Run = run
 	}
 
-	if jobIndex < 0 || jobIndex >= int64(len(jobs)) {
+	if jobIndex >= 0 && jobIndex < int64(len(jobs)) {
 		if len(jobs) == 0 {
 			ctx.Error(http.StatusNotFound, fmt.Sprintf("run %v has no job %v", runIndex, jobIndex))
 			return nil, nil
 		}
+		current = jobs[jobIndex]
 	}
-	current = jobs[jobIndex]
 	return
 }

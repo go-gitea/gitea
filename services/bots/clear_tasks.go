@@ -12,8 +12,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 )
 
 const (
@@ -34,7 +32,9 @@ func StopZombieTasks(ctx context.Context) error {
 	}
 
 	for _, task := range tasks {
-		if _, err := bots_model.StopTask(ctx, task, runnerv1.Result_RESULT_FAILURE); err != nil {
+		if err := db.WithTx(ctx, func(ctx context.Context) error {
+			return bots_model.StopTask(ctx, task.ID, bots_model.StatusFailure)
+		}); err != nil {
 			log.Warn("stop zombie task %v: %v", task.ID, err)
 			// go on
 		}
@@ -54,7 +54,9 @@ func StopEndlessTasks(ctx context.Context) error {
 	}
 
 	for _, task := range tasks {
-		if _, err := bots_model.StopTask(ctx, task, runnerv1.Result_RESULT_FAILURE); err != nil {
+		if err := db.WithTx(ctx, func(ctx context.Context) error {
+			return bots_model.StopTask(ctx, task.ID, bots_model.StatusFailure)
+		}); err != nil {
 			log.Warn("stop endless task %v: %v", task.ID, err)
 			// go on
 		}
