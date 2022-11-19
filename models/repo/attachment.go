@@ -226,20 +226,20 @@ func UpdateAttachment(ctx context.Context, atta *Attachment) error {
 }
 
 // DeleteAttachmentsByRelease deletes all attachments associated with the given release.
-func DeleteAttachmentsByRelease(releaseID int64) error {
-	_, err := db.GetEngine(db.DefaultContext).Where("release_id = ?", releaseID).Delete(&Attachment{})
+func DeleteAttachmentsByRelease(ctx context.Context, releaseID int64) error {
+	_, err := db.GetEngine(ctx).Where("release_id = ?", releaseID).Delete(&Attachment{})
 	return err
 }
 
 // CountOrphanedAttachments returns the number of bad attachments
-func CountOrphanedAttachments() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where("(issue_id > 0 and issue_id not in (select id from issue)) or (release_id > 0 and release_id not in (select id from `release`))").
+func CountOrphanedAttachments(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).Where("(issue_id > 0 and issue_id not in (select id from issue)) or (release_id > 0 and release_id not in (select id from `release`))").
 		Count(new(Attachment))
 }
 
 // DeleteOrphanedAttachments delete all bad attachments
-func DeleteOrphanedAttachments() error {
-	_, err := db.GetEngine(db.DefaultContext).Where("(issue_id > 0 and issue_id not in (select id from issue)) or (release_id > 0 and release_id not in (select id from `release`))").
+func DeleteOrphanedAttachments(ctx context.Context) error {
+	_, err := db.GetEngine(ctx).Where("(issue_id > 0 and issue_id not in (select id from issue)) or (release_id > 0 and release_id not in (select id from `release`))").
 		Delete(new(Attachment))
 	return err
 }
