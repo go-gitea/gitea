@@ -30,7 +30,7 @@
 					<div class="ui divider"></div>
 					<a class="{{if not $.RepoIDs}}ui basic primary button {{end}}repo name item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&q={{$.Keyword}}">
 						<span class="text truncate">All</span>
-						<div class="ui{{if $.IsShowClosed}} red{{else}} green{{end}} label">{{CountFmt .TotalIssueCount}}</div>
+						<div class="ui label {{if $.IsShowClosed}}red{{else}}green{{end}}">{{CountFmt .TotalIssueCount}}</div>
 					</a>
 					{{range .Repos}}
 						{{with $Repo := .}}
@@ -49,7 +49,7 @@
 									{{- end -}}
 									]&sort={{$.SortType}}&state={{$.State}}&q={{$.Keyword}}" title="{{.FullName}}">
 								<span class="text truncate">{{$Repo.FullName}}</span>
-								<div class="ui{{if $.IsShowClosed}} red{{else}} green{{end}} label">{{CountFmt (index $.Counts $Repo.ID)}}</div>
+								<div class="ui label {{if $.IsShowClosed}}red{{else}}green{{end}}">{{CountFmt (index $.Counts $Repo.ID)}}</div>
 							</a>
 						{{end}}
 					{{end}}
