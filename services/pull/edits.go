@@ -23,7 +23,7 @@ func SetAllowEdits(ctx context.Context, doer *user_model.User, pr *issues_model.
 		return ErrUserHasNoPermissionForAction
 	}
 
-	if err := pr.LoadHeadRepo(); err != nil {
+	if err := pr.LoadHeadRepo(ctx); err != nil {
 		return err
 	}
 

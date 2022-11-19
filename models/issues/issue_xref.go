@@ -235,7 +235,7 @@ func (c *Comment) AddCrossReferences(stdCtx context.Context, doer *user_model.Us
 	if c.Type != CommentTypeCode && c.Type != CommentTypeComment {
 		return nil
 	}
-	if err := c.LoadIssueCtx(stdCtx); err != nil {
+	if err := c.LoadIssue(stdCtx); err != nil {
 		return err
 	}
 	ctx := &crossReferencesContext{

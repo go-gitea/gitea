@@ -461,7 +461,8 @@ func DeleteOldActions(olderThan time.Duration) (err error) {
 	return err
 }
 
-func notifyWatchers(ctx context.Context, actions ...*Action) error {
+// NotifyWatchers creates batch of actions for every watcher.
+func NotifyWatchers(ctx context.Context, actions ...*Action) error {
 	var watchers []*repo_model.Watch
 	var repo *repo_model.Repository
 	var err error
@@ -565,11 +566,6 @@ func notifyWatchers(ctx context.Context, actions ...*Action) error {
 	return nil
 }
 
-// NotifyWatchers creates batch of actions for every watcher.
-func NotifyWatchers(actions ...*Action) error {
-	return notifyWatchers(db.DefaultContext, actions...)
-}
-
 // NotifyWatchersActions creates batch of actions for every watcher.
 func NotifyWatchersActions(acts []*Action) error {
 	ctx, committer, err := db.TxContext(db.DefaultContext)
@@ -578,7 +574,7 @@ func NotifyWatchersActions(acts []*Action) error {
 	}
 	defer committer.Close()
 	for _, act := range acts {
-		if err := notifyWatchers(ctx, act); err != nil {
+		if err := NotifyWatchers(ctx, act); err != nil {
 			return err
 		}
 	}
@@ -603,17 +599,17 @@ func DeleteIssueActions(ctx context.Context, repoID, issueID int64) error {
 }
 
 // CountActionCreatedUnixString count actions where created_unix is an empty string
-func CountActionCreatedUnixString() (int64, error) {
+func CountActionCreatedUnixString(ctx context.Context) (int64, error) {
 	if setting.Database.UseSQLite3 {
-		return db.GetEngine(db.DefaultContext).Where(`created_unix = ""`).Count(new(Action))
+		return db.GetEngine(ctx).Where(`created_unix = ""`).Count(new(Action))
 	}
 	return 0, nil
 }
 
 // FixActionCreatedUnixString set created_unix to zero if it is an empty string
-func FixActionCreatedUnixString() (int64, error) {
+func FixActionCreatedUnixString(ctx context.Context) (int64, error) {
 	if setting.Database.UseSQLite3 {
-		res, err := db.GetEngine(db.DefaultContext).Exec(`UPDATE action SET created_unix = 0 WHERE created_unix = ""`)
+		res, err := db.GetEngine(ctx).Exec(`UPDATE action SET created_unix = 0 WHERE created_unix = ""`)
 		if err != nil {
 			return 0, err
 		}

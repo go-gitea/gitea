@@ -5,6 +5,8 @@
 package mirror
 
 import (
+	"context"
+
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -24,16 +26,16 @@ func NewNotifier() base.Notifier {
 	return &mirrorNotifier{}
 }
 
-func (m *mirrorNotifier) NotifyPushCommits(_ *user_model.User, repo *repo_model.Repository, _ *repository.PushUpdateOptions, _ *repository.PushCommits) {
-	syncPushMirrorWithSyncOnCommit(repo.ID)
+func (m *mirrorNotifier) NotifyPushCommits(ctx context.Context, _ *user_model.User, repo *repo_model.Repository, _ *repository.PushUpdateOptions, _ *repository.PushCommits) {
+	syncPushMirrorWithSyncOnCommit(ctx, repo.ID)
 }
 
-func (m *mirrorNotifier) NotifySyncPushCommits(_ *user_model.User, repo *repo_model.Repository, _ *repository.PushUpdateOptions, _ *repository.PushCommits) {
-	syncPushMirrorWithSyncOnCommit(repo.ID)
+func (m *mirrorNotifier) NotifySyncPushCommits(ctx context.Context, _ *user_model.User, repo *repo_model.Repository, _ *repository.PushUpdateOptions, _ *repository.PushCommits) {
+	syncPushMirrorWithSyncOnCommit(ctx, repo.ID)
 }
 
-func syncPushMirrorWithSyncOnCommit(repoID int64) {
-	pushMirrors, err := repo_model.GetPushMirrorsSyncedOnCommit(repoID)
+func syncPushMirrorWithSyncOnCommit(ctx context.Context, repoID int64) {
+	pushMirrors, err := repo_model.GetPushMirrorsSyncedOnCommit(ctx, repoID)
 	if err != nil {
 		log.Error("repo_model.GetPushMirrorsSyncedOnCommit failed: %v", err)
 		return

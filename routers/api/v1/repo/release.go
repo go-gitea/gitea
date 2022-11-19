@@ -61,7 +61,7 @@ func GetRelease(ctx *context.APIContext) {
 		return
 	}
 
-	if err := release.LoadAttributes(); err != nil {
+	if err := release.LoadAttributes(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
@@ -123,14 +123,14 @@ func ListReleases(ctx *context.APIContext) {
 		IsPreRelease:  ctx.FormOptionalBool("pre-release"),
 	}
 
-	releases, err := repo_model.GetReleasesByRepoID(ctx.Repo.Repository.ID, opts)
+	releases, err := repo_model.GetReleasesByRepoID(ctx, ctx.Repo.Repository.ID, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetReleasesByRepoID", err)
 		return
 	}
 	rels := make([]*api.Release, len(releases))
 	for i, release := range releases {
-		if err := release.LoadAttributes(); err != nil {
+		if err := release.LoadAttributes(ctx); err != nil {
 			ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 			return
 		}
@@ -313,7 +313,7 @@ func EditRelease(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "GetReleaseByID", err)
 		return
 	}
-	if err := rel.LoadAttributes(); err != nil {
+	if err := rel.LoadAttributes(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
