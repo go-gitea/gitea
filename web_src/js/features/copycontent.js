@@ -1,6 +1,6 @@
 import {copyToClipboard} from './clipboard.js';
 import {showTemporaryTooltip} from '../modules/tippy.js';
-import {imageBlobToPng} from '../utils.js';
+import {convertImage} from '../utils.js';
 const {i18n} = window.config;
 
 async function doCopy(content, btn) {
@@ -47,7 +47,7 @@ export function initCopyContent() {
     } catch {
       if (isImage) { // convert image to png as last-resort as some browser only support png copy
         try {
-          await doCopy(await imageBlobToPng(content), btn);
+          await doCopy(await convertImage(content, 'image/png'), btn);
         } catch {
           showTemporaryTooltip(btn, i18n.copy_error);
         }

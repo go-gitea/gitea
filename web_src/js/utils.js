@@ -104,8 +104,8 @@ export function blobToDataURI(blob) {
   });
 }
 
-// convert any image Blob to a png Blob
-export function imageBlobToPng(blob) {
+// convert image Blob to another mime-type format.
+export function convertImage(blob, mime) {
   return new Promise(async (resolve, reject) => {
     try {
       const img = new Image();
@@ -118,7 +118,7 @@ export function imageBlobToPng(blob) {
         canvas.toBlob((blob) => {
           if (!(blob instanceof Blob)) return reject(new Error('imageBlobToPng failed'));
           resolve(blob);
-        }, 'image/png');
+        }, mime);
       });
       img.addEventListener('error', () => {
         reject(new Error('imageBlobToPng failed'));
