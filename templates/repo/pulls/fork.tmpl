@@ -10,7 +10,7 @@
 				<div class="ui attached segment">
 					{{template "base/alert" .}}
 
-					{{if not .CanCreateRepo}}
+					{{if not .CanForkRepo}}
 						<div class="ui negative message">
 							<p>{{.locale.TrN .MaxCreationLimit "repo.form.reach_limit_of_creation_1" "repo.form.reach_limit_of_creation_n" .MaxCreationLimit}}</p>
 						</div>
@@ -65,7 +65,7 @@
 
 					<div class="inline field">
 						<label></label>
-						<button class="ui green button{{if not .CanCreateRepo}} disabled{{end}}">
+						<button class="ui green button{{if not .CanForkRepo}} disabled{{end}}">
 							{{.locale.Tr "repo.fork_repo"}}
 						</button>
 						<a class="ui button" href="{{.ForkRepo.Link}}">{{.locale.Tr "cancel"}}</a>

@@ -53,7 +53,7 @@ type ForkRepoOptions struct {
 // ForkRepository forks a repository
 func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts ForkRepoOptions) (*repo_model.Repository, error) {
 	// Fork is prohibited, if user has reached maximum limit of repositories
-	if !owner.CanCreateRepo() {
+	if !owner.CanForkRepo() {
 		return nil, repo_model.ErrReachLimitOfRepo{
 			Limit: owner.MaxRepoCreation,
 		}
