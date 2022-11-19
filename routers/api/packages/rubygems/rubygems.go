@@ -77,7 +77,9 @@ func enumeratePackages(ctx *context.Context, filename string, pvs []*packages_mo
 		})
 	}
 
-	ctx.SetServeHeaders(filename + ".gz")
+	ctx.SetServeHeaders(&context.ServeHeaderOptions{
+		Filename: filename + ".gz",
+	})
 
 	zw := gzip.NewWriter(ctx.Resp)
 	defer zw.Close()
@@ -115,7 +117,9 @@ func ServePackageSpecification(ctx *context.Context) {
 		return
 	}
 
-	ctx.SetServeHeaders(filename)
+	ctx.SetServeHeaders(&context.ServeHeaderOptions{
+		Filename: filename,
+	})
 
 	zw := zlib.NewWriter(ctx.Resp)
 	defer zw.Close()

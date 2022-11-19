@@ -34,6 +34,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/auth"
@@ -322,9 +323,9 @@ func (ctx *Context) plainTextInternal(skip, status int, bs []byte) {
 	if statusPrefix == 4 || statusPrefix == 5 {
 		log.Log(skip, log.TRACE, "plainTextInternal (status=%d): %s", status, string(bs))
 	}
-	ctx.Resp.WriteHeader(status)
 	ctx.Resp.Header().Set("Content-Type", "text/plain;charset=utf-8")
 	ctx.Resp.Header().Set("X-Content-Type-Options", "nosniff")
+	ctx.Resp.WriteHeader(status)
 	if _, err := ctx.Resp.Write(bs); err != nil {
 		log.ErrorWithSkip(skip, "plainTextInternal (status=%d): write bytes failed: %v", status, err)
 	}
@@ -345,34 +346,53 @@ func (ctx *Context) RespHeader() http.Header {
 	return ctx.Resp.Header()
 }
 
+type ServeHeaderOptions struct {
+	ContentType        string // defaults to "application/octet-stream"
+	ContentTypeCharset string
+	Disposition        string // defaults to "attachment"
+	Filename           string
+	CacheDuration      time.Duration // defaults to 5 minutes
+}
+
 // SetServeHeaders sets necessary content serve headers
-func (ctx *Context) SetServeHeaders(filename string) {
-	ctx.Resp.Header().Set("Content-Description", "File Transfer")
-	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
-	ctx.Resp.Header().Set("Content-Disposition", "attachment; filename="+filename)
-	ctx.Resp.Header().Set("Content-Transfer-Encoding", "binary")
-	ctx.Resp.Header().Set("Expires", "0")
-	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
-	ctx.Resp.Header().Set("Pragma", "public")
-	ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
+func (ctx *Context) SetServeHeaders(opts *ServeHeaderOptions) {
+	header := ctx.Resp.Header()
+
+	contentType := typesniffer.ApplicationOctetStream
+	if opts.ContentType != "" {
+		if opts.ContentTypeCharset != "" {
+			contentType = opts.ContentType + "; charset=" + strings.ToLower(opts.ContentTypeCharset)
+		} else {
+			contentType = opts.ContentType
+		}
+	}
+	header.Set("Content-Type", contentType)
+	header.Set("X-Content-Type-Options", "nosniff")
+
+	if opts.Filename != "" {
+		disposition := opts.Disposition
+		if disposition == "" {
+			disposition = "attachment"
+		}
+
+		backslashEscapedName := strings.ReplaceAll(strings.ReplaceAll(opts.Filename, `\`, `\\`), `"`, `\"`) // \ -> \\, " -> \"
+		header.Set("Content-Disposition", fmt.Sprintf(`%s; filename="%s"; filename*=UTF-8''%s`, disposition, backslashEscapedName, url.PathEscape(opts.Filename)))
+		header.Set("Access-Control-Expose-Headers", "Content-Disposition")
+	}
+
+	duration := opts.CacheDuration
+	if duration == 0 {
+		duration = 5 * time.Minute
+	}
+	httpcache.AddCacheControlToHeader(header, duration)
 }
 
 // ServeContent serves content to http request
 func (ctx *Context) ServeContent(name string, r io.ReadSeeker, modTime time.Time) {
-	ctx.SetServeHeaders(name)
+	ctx.SetServeHeaders(&ServeHeaderOptions{
+		Filename: name,
+	})
 	http.ServeContent(ctx.Resp, ctx.Req, name, modTime, r)
-}
-
-// ServeFile serves given file to response.
-func (ctx *Context) ServeFile(file string, names ...string) {
-	var name string
-	if len(names) > 0 {
-		name = names[0]
-	} else {
-		name = path.Base(file)
-	}
-	ctx.SetServeHeaders(name)
-	http.ServeFile(ctx.Resp, ctx.Req, file)
 }
 
 // UploadStream returns the request body or the first form file
