@@ -75,7 +75,7 @@ func RetrieveLabels(ctx *context.Context) {
 			return
 		}
 		for _, l := range orgLabels {
-			l.CalOpenOrgIssues(ctx.Repo.Repository.ID, l.ID)
+			l.CalOpenOrgIssues(ctx, ctx.Repo.Repository.ID, l.ID)
 		}
 		ctx.Data["OrgLabels"] = orgLabels
 

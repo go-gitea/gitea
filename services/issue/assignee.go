@@ -51,13 +51,13 @@ func ToggleAssignee(issue *issues_model.Issue, doer *user_model.User, assigneeID
 		return
 	}
 
-	assignee, err1 := user_model.GetUserByID(assigneeID)
+	assignee, err1 := user_model.GetUserByIDCtx(db.DefaultContext, assigneeID)
 	if err1 != nil {
 		err = err1
 		return
 	}
 
-	notification.NotifyIssueChangeAssignee(doer, issue, assignee, removed, comment)
+	notification.NotifyIssueChangeAssignee(db.DefaultContext, doer, issue, assignee, removed, comment)
 
 	return removed, comment, err
 }
@@ -75,7 +75,7 @@ func ReviewRequest(issue *issues_model.Issue, doer, reviewer *user_model.User, i
 	}
 
 	if comment != nil {
-		notification.NotifyPullReviewRequest(doer, issue, reviewer, isAdd, comment)
+		notification.NotifyPullReviewRequest(db.DefaultContext, doer, issue, reviewer, isAdd, comment)
 	}
 
 	return comment, err
@@ -246,7 +246,7 @@ func TeamReviewRequest(issue *issues_model.Issue, doer *user_model.User, reviewe
 	}
 
 	// notify all user in this team
-	if err = comment.LoadIssue(); err != nil {
+	if err = comment.LoadIssue(db.DefaultContext); err != nil {
 		return
 	}
 
@@ -262,7 +262,7 @@ func TeamReviewRequest(issue *issues_model.Issue, doer *user_model.User, reviewe
 			continue
 		}
 		comment.AssigneeID = member.ID
-		notification.NotifyPullReviewRequest(doer, issue, member, isAdd, comment)
+		notification.NotifyPullReviewRequest(db.DefaultContext, doer, issue, member, isAdd, comment)
 	}
 
 	return comment, err

@@ -114,7 +114,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 		return
 	}
 
-	if err = comment.LoadIssue(); err != nil {
+	if err = comment.LoadIssue(ctx); err != nil {
 		ctx.ServerError("comment.LoadIssue", err)
 		return
 	}
@@ -169,7 +169,7 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment) {
 	ctx.Data["comments"] = comments
 	ctx.Data["CanMarkConversation"] = true
 	ctx.Data["Issue"] = comment.Issue
-	if err = comment.Issue.LoadPullRequest(); err != nil {
+	if err = comment.Issue.LoadPullRequest(ctx); err != nil {
 		ctx.ServerError("comment.Issue.LoadPullRequest", err)
 		return
 	}

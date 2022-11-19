@@ -291,7 +291,7 @@ func populateIssueIndexer(ctx context.Context) {
 			return
 		default:
 		}
-		repos, _, err := repo_model.SearchRepositoryByName(&repo_model.SearchRepoOptions{
+		repos, _, err := repo_model.SearchRepositoryByName(ctx, &repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{Page: page, PageSize: repo_model.RepositoryListDefaultPageSize},
 			OrderBy:     db.SearchOrderByID,
 			Private:     true,
@@ -313,14 +313,14 @@ func populateIssueIndexer(ctx context.Context) {
 				return
 			default:
 			}
-			UpdateRepoIndexer(repo)
+			UpdateRepoIndexer(ctx, repo)
 		}
 	}
 }
 
 // UpdateRepoIndexer add/update all issues of the repositories
-func UpdateRepoIndexer(repo *repo_model.Repository) {
-	is, err := issues_model.Issues(&issues_model.IssuesOptions{
+func UpdateRepoIndexer(ctx context.Context, repo *repo_model.Repository) {
+	is, err := issues_model.Issues(ctx, &issues_model.IssuesOptions{
 		RepoID:   repo.ID,
 		IsClosed: util.OptionalBoolNone,
 		IsPull:   util.OptionalBoolNone,
@@ -329,8 +329,8 @@ func UpdateRepoIndexer(repo *repo_model.Repository) {
 		log.Error("Issues: %v", err)
 		return
 	}
-	if err = issues_model.IssueList(is).LoadDiscussComments(); err != nil {
-		log.Error("LoadComments: %v", err)
+	if err = issues_model.IssueList(is).LoadDiscussComments(ctx); err != nil {
+		log.Error("LoadDiscussComments: %v", err)
 		return
 	}
 	for _, issue := range is {
@@ -360,11 +360,11 @@ func UpdateIssueIndexer(issue *issues_model.Issue) {
 }
 
 // DeleteRepoIssueIndexer deletes repo's all issues indexes
-func DeleteRepoIssueIndexer(repo *repo_model.Repository) {
+func DeleteRepoIssueIndexer(ctx context.Context, repo *repo_model.Repository) {
 	var ids []int64
-	ids, err := issues_model.GetIssueIDsByRepoID(db.DefaultContext, repo.ID)
+	ids, err := issues_model.GetIssueIDsByRepoID(ctx, repo.ID)
 	if err != nil {
-		log.Error("getIssueIDsByRepoID failed: %v", err)
+		log.Error("GetIssueIDsByRepoID failed: %v", err)
 		return
 	}
 
