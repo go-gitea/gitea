@@ -1,11 +1,11 @@
 <h4 class="ui top attached header commits-table df ac sb">
 	<div class="commits-table-left df ac">
 		{{if or .PageIsCommits (gt .CommitCount 0)}}
-			{{.CommitCount}} {{.locale.Tr "repo.commits.commits"}} {{if .RefName}}({{.RefName}}){{end}}
+			{{.CommitCount}} {{.locale.Tr "repo.commits.commits"}}{{if .RefName}}({{.RefName}} ){{end}}
 		{{else if .IsNothingToCompare}}
-			{{.locale.Tr "repo.commits.nothing_to_compare"}} {{if .RefName}}({{.RefName}}){{end}}
+			{{.locale.Tr "repo.commits.nothing_to_compare"}}{{if .RefName}}({{.RefName}} ){{end}}
 		{{else}}
-			{{.locale.Tr "repo.commits.no_commits" $.BaseBranch $.HeadBranch}} {{if .RefName}}({{.RefName}}){{end}}
+			{{.locale.Tr "repo.commits.no_commits" $.BaseBranch $.HeadBranch}}{{if .RefName}}({{.RefName}} ){{end}}
 		{{end}}
 	</div>
 	<div class="commits-table-right df ac">

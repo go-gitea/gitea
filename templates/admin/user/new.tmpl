@@ -64,7 +64,7 @@
 				</div>
 				<div class="required local field{{if .Err_Password}} error{{end}}{{if not (eq .login_type "0-0")}} hide{{end}}">
 					<label for="password">{{.locale.Tr "password"}}</label>
-					<input id="password" name="password" type="password" autocomplete="new-password" value="{{.password}}" {{if eq .login_type "0-0"}}required{{end}}>
+					<input id="password" name="password" type="password" autocomplete="new-password" value="{{.password}}"{{if eq .login_type "0-0"}} required{{end}}>
 				</div>
 
 				<div class="inline field local{{if ne .login_type "0-0"}} hide{{end}}">
@@ -79,7 +79,7 @@
 					<div class="inline field">
 						<div class="ui checkbox">
 							<label><strong>{{.locale.Tr "admin.users.send_register_notify"}}</strong></label>
-							<input name="send_notify" type="checkbox" {{if .send_notify}}checked{{end}}>
+							<input name="send_notify" type="checkbox"{{if .send_notify}} checked{{end}}>
 						</div>
 					</div>
 				{{end}}

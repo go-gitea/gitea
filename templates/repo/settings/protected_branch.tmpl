@@ -76,7 +76,7 @@
 						<br>
 						<div class="whitelist field">
 							<div class="ui checkbox">
-								<input type="checkbox" name="whitelist_deploy_keys" {{if .Branch.WhitelistDeployKeys}}checked{{end}}>
+								<input type="checkbox" name="whitelist_deploy_keys"{{if .Branch.WhitelistDeployKeys}} checked{{end}}>
 								<label for="whitelist_deploy_keys">{{.locale.Tr "repo.settings.protect_whitelist_deploy_keys"}}</label>
 							</div>
 						</div>
@@ -206,35 +206,35 @@
 					</div>
 					<div class="field">
 						<div class="ui checkbox">
-							<input name="block_on_rejected_reviews" type="checkbox" {{if .Branch.BlockOnRejectedReviews}}checked{{end}}>
+							<input name="block_on_rejected_reviews" type="checkbox"{{if .Branch.BlockOnRejectedReviews}} checked{{end}}>
 							<label for="block_on_rejected_reviews">{{.locale.Tr "repo.settings.block_rejected_reviews"}}</label>
 							<p class="help">{{.locale.Tr "repo.settings.block_rejected_reviews_desc"}}</p>
 						</div>
 					</div>
 					<div class="field">
 						<div class="ui checkbox">
-							<input name="block_on_official_review_requests" type="checkbox" {{if .Branch.BlockOnOfficialReviewRequests}}checked{{end}}>
+							<input name="block_on_official_review_requests" type="checkbox"{{if .Branch.BlockOnOfficialReviewRequests}} checked{{end}}>
 							<label for="block_on_official_review_requests">{{.locale.Tr "repo.settings.block_on_official_review_requests"}}</label>
 							<p class="help">{{.locale.Tr "repo.settings.block_on_official_review_requests_desc"}}</p>
 						</div>
 					</div>
 					<div class="field">
 						<div class="ui checkbox">
-							<input name="dismiss_stale_approvals" type="checkbox" {{if .Branch.DismissStaleApprovals}}checked{{end}}>
+							<input name="dismiss_stale_approvals" type="checkbox"{{if .Branch.DismissStaleApprovals}} checked{{end}}>
 							<label for="dismiss_stale_approvals">{{.locale.Tr "repo.settings.dismiss_stale_approvals"}}</label>
 							<p class="help">{{.locale.Tr "repo.settings.dismiss_stale_approvals_desc"}}</p>
 						</div>
 					</div>
 					<div class="field">
 						<div class="ui checkbox">
-							<input name="require_signed_commits" type="checkbox" {{if .Branch.RequireSignedCommits}}checked{{end}}>
+							<input name="require_signed_commits" type="checkbox"{{if .Branch.RequireSignedCommits}} checked{{end}}>
 							<label for="require_signed_commits">{{.locale.Tr "repo.settings.require_signed_commits"}}</label>
 							<p class="help">{{.locale.Tr "repo.settings.require_signed_commits_desc"}}</p>
 						</div>
 					</div>
 					<div class="field">
 						<div class="ui checkbox">
-							<input name="block_on_outdated_branch" type="checkbox" {{if .Branch.BlockOnOutdatedBranch}}checked{{end}}>
+							<input name="block_on_outdated_branch" type="checkbox"{{if .Branch.BlockOnOutdatedBranch}} checked{{end}}>
 							<label for="block_on_outdated_branch">{{.locale.Tr "repo.settings.block_outdated_branch"}}</label>
 							<p class="help">{{.locale.Tr "repo.settings.block_outdated_branch_desc"}}</p>
 						</div>

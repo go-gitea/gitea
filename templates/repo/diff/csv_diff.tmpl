@@ -6,7 +6,7 @@
 		{{else if $result.Sections}}
 			<table class="data-table">
 			{{range $i, $section := $result.Sections}}
-				<tbody {{if gt $i 0}}class="section"{{end}}>
+				<tbody{{if gt $i 0}} class="section"{{end}}>
 				{{range $j, $row := $section.Rows}}
 					<tr>
 						{{if and (eq $i 0) (eq $j 0)}}

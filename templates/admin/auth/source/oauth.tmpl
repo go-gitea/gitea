@@ -31,7 +31,7 @@
 	<div class="optional field">
 		<div class="ui checkbox">
 			<label for="skip_local_two_fa"><strong>{{.locale.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
-			<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if .skip_local_two_fa}}checked{{end}}>
+			<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox"{{if .skip_local_two_fa}} checked{{end}}>
 			<p class="help">{{.locale.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
 		</div>
 	</div>

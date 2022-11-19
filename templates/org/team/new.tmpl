@@ -16,7 +16,7 @@
 							{{if eq .Team.LowerName "owners"}}
 								<input type="hidden" name="team_name" value="{{.Team.Name}}">
 							{{end}}
-							<input id="team_name" name="team_name" value="{{.Team.Name}}" required {{if eq .Team.LowerName "owners"}}disabled{{end}} autofocus>
+							<input id="team_name" name="team_name" value="{{.Team.Name}}" required{{if eq .Team.LowerName "owners"}} disabled{{end}} autofocus>
 							<span class="help">{{.locale.Tr "org.team_name_helper"}}</span>
 						</div>
 						<div class="field{{if .Err_Description}} error{{end}}">
@@ -30,14 +30,14 @@
 								<br>
 								<div class="field">
 									<div class="ui radio checkbox">
-										<input type="radio" name="repo_access" value="specific" {{if not .Team.IncludesAllRepositories}}checked{{end}}>
+										<input type="radio" name="repo_access" value="specific"{{if not .Team.IncludesAllRepositories}} checked{{end}}>
 										<label>{{.locale.Tr "org.teams.specific_repositories"}}</label>
 										<span class="help">{{.locale.Tr "org.teams.specific_repositories_helper" | Str2html}}</span>
 									</div>
 								</div>
 								<div class="field">
 									<div class="ui radio checkbox">
-										<input type="radio" name="repo_access" value="all" {{if .Team.IncludesAllRepositories}}checked{{end}}>
+										<input type="radio" name="repo_access" value="all"{{if .Team.IncludesAllRepositories}} checked{{end}}>
 										<label>{{.locale.Tr "org.teams.all_repositories"}}</label>
 										<span class="help">{{.locale.Tr "org.teams.all_repositories_helper" | Str2html}}</span>
 									</div>
@@ -46,7 +46,7 @@
 								<div class="field">
 									<div class="ui checkbox">
 										<label for="can_create_org_repo">{{.locale.Tr "org.teams.can_create_org_repo"}}</label>
-										<input id="can_create_org_repo" name="can_create_org_repo" type="checkbox" {{if .Team.CanCreateOrgRepo}}checked{{end}}>
+										<input id="can_create_org_repo" name="can_create_org_repo" type="checkbox"{{if .Team.CanCreateOrgRepo}} checked{{end}}>
 										<span class="help">{{.locale.Tr "org.teams.can_create_org_repo_helper"}}</span>
 									</div>
 								</div>
@@ -56,14 +56,14 @@
 								<br>
 								<div class="field">
 									<div class="ui radio checkbox">
-										<input type="radio" name="permission" value="read" {{if or .PageIsOrgTeamsNew (eq .Team.AccessMode 1) (eq .Team.AccessMode 2)}}checked{{end}}>
+										<input type="radio" name="permission" value="read"{{if or .PageIsOrgTeamsNew (eq .Team.AccessMode 1) (eq .Team.AccessMode 2)}} checked{{end}}>
 										<label>{{.locale.Tr "org.teams.general_access"}}</label>
 										<span class="help">{{.locale.Tr "org.teams.general_access_helper"}}</span>
 									</div>
 								</div>
 								<div class="field">
 									<div class="ui radio checkbox">
-										<input type="radio" name="permission" value="admin" {{if eq .Team.AccessMode 3}}checked{{end}}>
+										<input type="radio" name="permission" value="admin"{{if eq .Team.AccessMode 3}} checked{{end}}>
 										<label>{{.locale.Tr "org.teams.admin_access"}}</label>
 										<span class="help">{{.locale.Tr "org.teams.admin_access_helper"}}</span>
 									</div>

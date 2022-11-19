@@ -15,7 +15,7 @@
 						<span class="text red hide" id="name-change-prompt"> {{.locale.Tr "settings.change_username_prompt"}}</span>
 						<span class="text red hide" id="name-change-redirect-prompt"> {{.locale.Tr "settings.change_username_redirect_prompt"}}</span>
 					</label>
-					<input id="username" name="name" value="{{.SignedUser.Name}}" data-name="{{.SignedUser.Name}}" autofocus required {{if or (not .SignedUser.IsLocal) .IsReverseProxy}}disabled{{end}}>
+					<input id="username" name="name" value="{{.SignedUser.Name}}" data-name="{{.SignedUser.Name}}" autofocus required{{if or (not .SignedUser.IsLocal) .IsReverseProxy}} disabled{{end}}>
 					{{if or (not .SignedUser.IsLocal) .IsReverseProxy}}
 					<p class="help text blue">{{$.locale.Tr "settings.password_username_disabled"}}</p>
 					{{end}}
@@ -31,7 +31,7 @@
 				<div class="inline field">
 					<div class="ui checkbox" id="keep-email-private">
 						<label class="tooltip" data-content="{{.locale.Tr "settings.keep_email_private_popup"}}"><strong>{{.locale.Tr "settings.keep_email_private"}}</strong></label>
-						<input name="keep_email_private" type="checkbox" {{if .SignedUser.KeepEmailPrivate}}checked{{end}}>
+						<input name="keep_email_private" type="checkbox"{{if .SignedUser.KeepEmailPrivate}} checked{{end}}>
 					</div>
 				</div>
 				<div class="field{{if .Err_Description}} error{{end}}">
@@ -83,7 +83,7 @@
 				<div class="field">
 					<div class="ui checkbox" id="keep-activity-private">
 						<label class="tooltip" data-content="{{.locale.Tr "settings.keep_activity_private_popup"}}"><strong>{{.locale.Tr "settings.keep_activity_private"}}</strong></label>
-						<input name="keep_activity_private" type="checkbox" {{if .SignedUser.KeepActivityPrivate}}checked{{end}}>
+						<input name="keep_activity_private" type="checkbox"{{if .SignedUser.KeepActivityPrivate}} checked{{end}}>
 					</div>
 				</div>
 
@@ -104,7 +104,7 @@
 				{{if not DisableGravatar}}
 				<div class="inline field">
 					<div class="ui radio checkbox">
-						<input name="source" value="lookup" type="radio" {{if not .SignedUser.UseCustomAvatar}}checked{{end}}>
+						<input name="source" value="lookup" type="radio"{{if not .SignedUser.UseCustomAvatar}} checked{{end}}>
 						<label>{{.locale.Tr "settings.lookup_avatar_by_mail"}}</label>
 					</div>
 				</div>
@@ -116,7 +116,7 @@
 
 				<div class="inline field">
 					<div class="ui radio checkbox">
-						<input name="source" value="local" type="radio" {{if .SignedUser.UseCustomAvatar}}checked{{end}}>
+						<input name="source" value="local" type="radio"{{if .SignedUser.UseCustomAvatar}} checked{{end}}>
 						<label>{{.locale.Tr "settings.enable_custom_avatar"}}</label>
 					</div>
 				</div>
