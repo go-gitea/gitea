@@ -79,7 +79,7 @@ func ChangeMilestoneAssign(issue *issues_model.Issue, doer *user_model.User, old
 		return fmt.Errorf("Commit: %w", err)
 	}
 
-	notification.NotifyIssueChangeMilestone(doer, issue, oldMilestoneID)
+	notification.NotifyIssueChangeMilestone(db.DefaultContext, doer, issue, oldMilestoneID)
 
 	return nil
 }
