@@ -35,8 +35,8 @@ func TestAPIPullUpdate(t *testing.T) {
 		assert.NoError(t, err)
 		assert.EqualValues(t, 1, diffCount.Behind)
 		assert.EqualValues(t, 1, diffCount.Ahead)
-		assert.NoError(t, pr.LoadBaseRepo())
-		assert.NoError(t, pr.LoadIssue())
+		assert.NoError(t, pr.LoadBaseRepo(db.DefaultContext))
+		assert.NoError(t, pr.LoadIssue(db.DefaultContext))
 
 		session := loginUser(t, "user2")
 		token := getTokenForLoggedInUser(t, session)
@@ -63,8 +63,8 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 		assert.NoError(t, err)
 		assert.EqualValues(t, 1, diffCount.Behind)
 		assert.EqualValues(t, 1, diffCount.Ahead)
-		assert.NoError(t, pr.LoadBaseRepo())
-		assert.NoError(t, pr.LoadIssue())
+		assert.NoError(t, pr.LoadBaseRepo(db.DefaultContext))
+		assert.NoError(t, pr.LoadIssue(db.DefaultContext))
 
 		session := loginUser(t, "user2")
 		token := getTokenForLoggedInUser(t, session)

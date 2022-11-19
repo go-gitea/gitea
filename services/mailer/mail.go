@@ -18,7 +18,6 @@ import (
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -265,7 +264,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 		"Issue":           ctx.Issue,
 		"Comment":         ctx.Comment,
 		"IsPull":          ctx.Issue.IsPull,
-		"User":            ctx.Issue.Repo.MustOwner(),
+		"User":            ctx.Issue.Repo.MustOwner(ctx),
 		"Repo":            ctx.Issue.Repo.FullName(),
 		"Doer":            ctx.Doer,
 		"IsMention":       fromMention,
@@ -395,13 +394,13 @@ func sanitizeSubject(subject string) string {
 }
 
 // SendIssueAssignedMail composes and sends issue assigned email
-func SendIssueAssignedMail(issue *issues_model.Issue, doer *user_model.User, content string, comment *issues_model.Comment, recipients []*user_model.User) error {
+func SendIssueAssignedMail(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, content string, comment *issues_model.Comment, recipients []*user_model.User) error {
 	if setting.MailService == nil {
 		// No mail service configured
 		return nil
 	}
 
-	if err := issue.LoadRepo(db.DefaultContext); err != nil {
+	if err := issue.LoadRepo(ctx); err != nil {
 		log.Error("Unable to load repo [%d] for issue #%d [%d]. Error: %v", issue.RepoID, issue.Index, issue.ID, err)
 		return err
 	}
@@ -417,7 +416,7 @@ func SendIssueAssignedMail(issue *issues_model.Issue, doer *user_model.User, con
 
 	for lang, tos := range langMap {
 		msgs, err := composeIssueCommentMessages(&mailCommentContext{
-			Context:    context.TODO(), // TODO: use a correct context
+			Context:    ctx,
 			Issue:      issue,
 			Doer:       doer,
 			ActionType: activities_model.ActionType(0),

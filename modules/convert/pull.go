@@ -33,13 +33,13 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		return nil
 	}
 
-	apiIssue := ToAPIIssue(pr.Issue)
-	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
+	apiIssue := ToAPIIssue(ctx, pr.Issue)
+	if err := pr.LoadBaseRepo(ctx); err != nil {
 		log.Error("GetRepositoryById[%d]: %v", pr.ID, err)
 		return nil
 	}
 
-	if err := pr.LoadHeadRepoCtx(ctx); err != nil {
+	if err := pr.LoadHeadRepo(ctx); err != nil {
 		log.Error("GetRepositoryById[%d]: %v", pr.ID, err)
 		return nil
 	}
