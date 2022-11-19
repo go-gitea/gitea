@@ -604,7 +604,10 @@ func RegisterRoutes(m *web.Route) {
 
 	m.Group("", func() {
 		m.Get("/favicon.ico", func(ctx *context.Context) {
-			ctx.ServeFile(path.Join(setting.StaticRootPath, "public/img/favicon.png"))
+			ctx.SetServeHeaders(&context.ServeHeaderOptions{
+				Filename: "favicon.png",
+			})
+			http.ServeFile(ctx.Resp, ctx.Req, path.Join(setting.StaticRootPath, "public/img/favicon.png"))
 		})
 		m.Group("/{username}", func() {
 			m.Get(".png", func(ctx *context.Context) { ctx.Error(http.StatusNotFound) })
