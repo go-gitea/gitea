@@ -37,15 +37,6 @@ type Service struct {
 	runnerv1connect.UnimplementedRunnerServiceHandler
 }
 
-// UpdateRunner update runner status or other data.
-func (s *Service) UpdateRunner(
-	_ context.Context,
-	_ *connect.Request[runnerv1.UpdateRunnerRequest],
-) (*connect.Response[runnerv1.UpdateRunnerResponse], error) {
-	// FIXME: we don't need it any longer
-	return connect.NewResponse(&runnerv1.UpdateRunnerResponse{}), nil
-}
-
 // Register for new runner.
 func (s *Service) Register(
 	ctx context.Context,
