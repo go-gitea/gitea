@@ -39,7 +39,7 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 
 	apiRepos := make([]*api.Repository, 0, len(repos))
 	for i := range repos {
-		access, err := access_model.AccessLevel(ctx.Doer, repos[i])
+		access, err := access_model.AccessLevel(ctx, ctx.Doer, repos[i])
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 			return
@@ -112,7 +112,7 @@ func ListMyRepos(ctx *context.APIContext) {
 	}
 
 	var err error
-	repos, count, err := repo_model.SearchRepository(opts)
+	repos, count, err := repo_model.SearchRepository(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "SearchRepository", err)
 		return
@@ -124,7 +124,7 @@ func ListMyRepos(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "GetOwner", err)
 			return
 		}
-		accessMode, err := access_model.AccessLevel(ctx.Doer, repo)
+		accessMode, err := access_model.AccessLevel(ctx, ctx.Doer, repo)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		}

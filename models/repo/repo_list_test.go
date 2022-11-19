@@ -20,7 +20,7 @@ func TestSearchRepository(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// test search public repository on explore page
-	repos, count, err := repo_model.SearchRepositoryByName(&repo_model.SearchRepoOptions{
+	repos, count, err := repo_model.SearchRepositoryByName(db.DefaultContext, &repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			Page:     1,
 			PageSize: 10,
@@ -35,7 +35,7 @@ func TestSearchRepository(t *testing.T) {
 	}
 	assert.Equal(t, int64(1), count)
 
-	repos, count, err = repo_model.SearchRepositoryByName(&repo_model.SearchRepoOptions{
+	repos, count, err = repo_model.SearchRepositoryByName(db.DefaultContext, &repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			Page:     1,
 			PageSize: 10,
@@ -49,7 +49,7 @@ func TestSearchRepository(t *testing.T) {
 	assert.Len(t, repos, 2)
 
 	// test search private repository on explore page
-	repos, count, err = repo_model.SearchRepositoryByName(&repo_model.SearchRepoOptions{
+	repos, count, err = repo_model.SearchRepositoryByName(db.DefaultContext, &repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			Page:     1,
 			PageSize: 10,
@@ -65,7 +65,7 @@ func TestSearchRepository(t *testing.T) {
 	}
 	assert.Equal(t, int64(1), count)
 
-	repos, count, err = repo_model.SearchRepositoryByName(&repo_model.SearchRepoOptions{
+	repos, count, err = repo_model.SearchRepositoryByName(db.DefaultContext, &repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			Page:     1,
 			PageSize: 10,
@@ -80,14 +80,14 @@ func TestSearchRepository(t *testing.T) {
 	assert.Len(t, repos, 3)
 
 	// Test non existing owner
-	repos, count, err = repo_model.SearchRepositoryByName(&repo_model.SearchRepoOptions{OwnerID: unittest.NonexistentID})
+	repos, count, err = repo_model.SearchRepositoryByName(db.DefaultContext, &repo_model.SearchRepoOptions{OwnerID: unittest.NonexistentID})
 
 	assert.NoError(t, err)
 	assert.Empty(t, repos)
 	assert.Equal(t, int64(0), count)
 
 	// Test search within description
-	repos, count, err = repo_model.SearchRepository(&repo_model.SearchRepoOptions{
+	repos, count, err = repo_model.SearchRepository(db.DefaultContext, &repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			Page:     1,
 			PageSize: 10,
@@ -104,7 +104,7 @@ func TestSearchRepository(t *testing.T) {
 	assert.Equal(t, int64(1), count)
 
 	// Test NOT search within description
-	repos, count, err = repo_model.SearchRepository(&repo_model.SearchRepoOptions{
+	repos, count, err = repo_model.SearchRepository(db.DefaultContext, &repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			Page:     1,
 			PageSize: 10,
@@ -277,7 +277,7 @@ func TestSearchRepository(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			repos, count, err := repo_model.SearchRepositoryByName(testCase.opts)
+			repos, count, err := repo_model.SearchRepositoryByName(db.DefaultContext, testCase.opts)
 
 			assert.NoError(t, err)
 			assert.Equal(t, int64(testCase.count), count)
@@ -377,7 +377,7 @@ func TestSearchRepositoryByTopicName(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			_, count, err := repo_model.SearchRepositoryByName(testCase.opts)
+			_, count, err := repo_model.SearchRepositoryByName(db.DefaultContext, testCase.opts)
 			assert.NoError(t, err)
 			assert.Equal(t, int64(testCase.count), count)
 		})

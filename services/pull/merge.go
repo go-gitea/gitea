@@ -40,18 +40,18 @@ import (
 )
 
 // GetDefaultMergeMessage returns default message used when merging pull request
-func GetDefaultMergeMessage(baseGitRepo *git.Repository, pr *issues_model.PullRequest, mergeStyle repo_model.MergeStyle) (string, error) {
-	if err := pr.LoadHeadRepo(); err != nil {
+func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issues_model.PullRequest, mergeStyle repo_model.MergeStyle) (string, error) {
+	if err := pr.LoadHeadRepo(ctx); err != nil {
 		return "", err
 	}
-	if err := pr.LoadBaseRepo(); err != nil {
+	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return "", err
 	}
 	if pr.BaseRepo == nil {
 		return "", repo_model.ErrRepoNotExist{ID: pr.BaseRepoID}
 	}
 
-	if err := pr.LoadIssue(); err != nil {
+	if err := pr.LoadIssue(ctx); err != nil {
 		return "", err
 	}
 
@@ -90,7 +90,7 @@ func GetDefaultMergeMessage(baseGitRepo *git.Repository, pr *issues_model.PullRe
 				vars["HeadRepoOwnerName"] = pr.HeadRepo.OwnerName
 				vars["HeadRepoName"] = pr.HeadRepo.Name
 			}
-			refs, err := pr.ResolveCrossReferences(baseGitRepo.Ctx)
+			refs, err := pr.ResolveCrossReferences(ctx)
 			if err == nil {
 				closeIssueIndexes := make([]string, 0, len(refs))
 				closeWord := "close"
@@ -134,10 +134,10 @@ func GetDefaultMergeMessage(baseGitRepo *git.Repository, pr *issues_model.PullRe
 // Merge merges pull request to base repository.
 // Caller should check PR is ready to be merged (review and status checks)
 func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, wasAutoMerged bool) error {
-	if err := pr.LoadHeadRepo(); err != nil {
+	if err := pr.LoadHeadRepo(ctx); err != nil {
 		log.Error("LoadHeadRepo: %v", err)
 		return fmt.Errorf("LoadHeadRepo: %w", err)
-	} else if err := pr.LoadBaseRepo(); err != nil {
+	} else if err := pr.LoadBaseRepo(ctx); err != nil {
 		log.Error("LoadBaseRepo: %v", err)
 		return fmt.Errorf("LoadBaseRepo: %w", err)
 	}
@@ -179,24 +179,24 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	pr.MergerID = doer.ID
 
 	if _, err := pr.SetMerged(hammerCtx); err != nil {
-		log.Error("setMerged [%d]: %v", pr.ID, err)
+		log.Error("SetMerged [%d]: %v", pr.ID, err)
 	}
 
-	if err := pr.LoadIssueCtx(hammerCtx); err != nil {
-		log.Error("loadIssue [%d]: %v", pr.ID, err)
+	if err := pr.LoadIssue(hammerCtx); err != nil {
+		log.Error("LoadIssue [%d]: %v", pr.ID, err)
 	}
 
 	if err := pr.Issue.LoadRepo(hammerCtx); err != nil {
-		log.Error("loadRepo for issue [%d]: %v", pr.ID, err)
+		log.Error("LoadRepo for issue [%d]: %v", pr.ID, err)
 	}
 	if err := pr.Issue.Repo.GetOwner(hammerCtx); err != nil {
-		log.Error("GetOwner for issue repo [%d]: %v", pr.ID, err)
+		log.Error("GetOwner for PR [%d]: %v", pr.ID, err)
 	}
 
 	if wasAutoMerged {
-		notification.NotifyAutoMergePullRequest(pr, doer)
+		notification.NotifyAutoMergePullRequest(hammerCtx, doer, pr)
 	} else {
-		notification.NotifyMergePullRequest(pr, doer)
+		notification.NotifyMergePullRequest(hammerCtx, doer, pr)
 	}
 
 	// Reset cached commit count
@@ -210,7 +210,7 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	}
 
 	for _, ref := range refs {
-		if err = ref.LoadIssueCtx(hammerCtx); err != nil {
+		if err = ref.LoadIssue(hammerCtx); err != nil {
 			return err
 		}
 		if err = ref.Issue.LoadRepo(hammerCtx); err != nil {
@@ -511,7 +511,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 			return "", err
 		}
 
-		if err = pr.Issue.LoadPoster(); err != nil {
+		if err = pr.Issue.LoadPoster(ctx); err != nil {
 			log.Error("LoadPoster: %v", err)
 			return "", fmt.Errorf("LoadPoster: %w", err)
 		}
@@ -767,7 +767,7 @@ func IsUserAllowedToMerge(ctx context.Context, pr *issues_model.PullRequest, p a
 
 // CheckPullBranchProtections checks whether the PR is ready to be merged (reviews and status checks)
 func CheckPullBranchProtections(ctx context.Context, pr *issues_model.PullRequest, skipProtectedFilesCheck bool) (err error) {
-	if err = pr.LoadBaseRepoCtx(ctx); err != nil {
+	if err = pr.LoadBaseRepo(ctx); err != nil {
 		return fmt.Errorf("LoadBaseRepo: %w", err)
 	}
 
@@ -878,7 +878,7 @@ func MergedManually(pr *issues_model.PullRequest, doer *user_model.User, baseGit
 		return err
 	}
 
-	notification.NotifyMergePullRequest(pr, doer)
+	notification.NotifyMergePullRequest(baseGitRepo.Ctx, doer, pr)
 	log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commitID)
 	return nil
 }
