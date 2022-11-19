@@ -289,17 +289,12 @@ The following configuration set `Content-Type: application/vnd.android.package-a
    This includes CSS files, images, JS files and web fonts.
    Avatar images are dynamic resources and still served by Gitea.
    The option can be just a different path, as in `/static`, or another domain, as in `https://cdn.example.com`.
-   Requests are then made as `%(ROOT_URL)s/static/asset/css/index.css` and `https://cdn.example.com/asset/css/index.css` respective.
+   Requests are then made as `%(ROOT_URL)s/static/assets/css/index.css` or `https://cdn.example.com/assets/css/index.css` respectively.
    The static files are located in the `public/` directory of the Gitea source repository.
-   Copy this directory to the `/static` location eg: `/var/www/static` and rename
-   it to `assets` eg:[^1]
-
-```bash
-cd /var/www
-mkdir static
-cp -a $GITEA_BUILD/public static
-mv static/public static/assets
-```
+   You can proxy the STATIC_URL_PREFIX requests to Gitea server to serve the static
+   assets, or copy the manually built Gitea assets from `$GITEA_BUILD/public` to
+   the assets location, eg: `/var/www/assets`, make sure `$STATIC_URL_PREFIX/assets/css/index.css`
+   points to `/var/www/assets/css/index.css`.
 
 - `HTTP_ADDR`: **0.0.0.0**: HTTP listen address.
   - If `PROTOCOL` is set to `fcgi`, Gitea will listen for FastCGI requests on TCP socket
@@ -415,10 +410,6 @@ mv static/public static/assets
 - `ALLOW_GRACEFUL_RESTARTS`: **true**: Perform a graceful restart on SIGHUP
 - `GRACEFUL_HAMMER_TIME`: **60s**: After a restart the parent process will stop accepting new connections and will allow requests to finish before stopping. Shutdown will be forced if it takes longer than this time.
 - `STARTUP_TIMEOUT`: **0**: Shutsdown the server if startup takes longer than the provided time. On Windows setting this sends a waithint to the SVC host to tell the SVC host startup may take some time. Please note startup is determined by the opening of the listeners - HTTP/HTTPS/SSH. Indexers may take longer to startup and can have their own timeouts.
-
-[^1]: Gitea's initial configuration form will not work correctly with
-`STATIC_URL_PREFIX` enabled.  Use this option only after successfully deploying
-Gitea and initializing the database.
 
 ## Database (`database`)
 
