@@ -8,7 +8,7 @@
 						{{$avatar}}
 					{{end}}
 					<a class="name" href="{{.Link}}">
-						{{if (or $.PageIsExplore $.PageIsProfileStarList) and .Owner}}{{.Owner.Name}} / {{end}}{{.Name}}
+						{{if and (or $.PageIsExplore $.PageIsProfileStarList) .Owner}}{{.Owner.Name}} / {{end}}{{.Name}}
 					</a>
 					<div class="labels df ac fw">
 						{{if .IsArchived}}
