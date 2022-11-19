@@ -186,7 +186,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 		repo.Owner = owner
 		ctx.Repo.Repository = repo
 
-		if ctx.Doer.ID == user_model.BotUserID {
+		if ctx.Doer != nil && ctx.Doer.ID == user_model.BotUserID {
 			ctx.Repo.Permission.AccessMode = perm_model.AccessModeAdmin
 			if err := ctx.Repo.Repository.LoadUnits(ctx); err != nil {
 				ctx.Error(http.StatusInternalServerError, "LoadUnits", err)
