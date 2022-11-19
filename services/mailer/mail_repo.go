@@ -6,9 +6,9 @@ package mailer
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -18,14 +18,14 @@ import (
 )
 
 // SendRepoTransferNotifyMail triggers a notification e-mail when a pending repository transfer was created
-func SendRepoTransferNotifyMail(doer, newOwner *user_model.User, repo *repo_model.Repository) error {
+func SendRepoTransferNotifyMail(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) error {
 	if setting.MailService == nil {
 		// No mail service configured
 		return nil
 	}
 
 	if newOwner.IsOrganization() {
-		users, err := organization.GetUsersWhoCanCreateOrgRepo(db.DefaultContext, newOwner.ID)
+		users, err := organization.GetUsersWhoCanCreateOrgRepo(ctx, newOwner.ID)
 		if err != nil {
 			return err
 		}
