@@ -183,8 +183,12 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 func Fork(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_fork")
 
-	ctx.Data["CanForkRepo"] = ctx.Doer.CanForkRepo()
-	ctx.Data["MaxCreationLimit"] = ctx.Doer.MaxCreationLimit()
+	if !ctx.Doer.CanForkRepo() {
+		maxCreationLimit := ctx.Doer.MaxCreationLimit()
+		msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
+		ctx.Data["Flash"] = ctx.Flash
+		ctx.Flash.Error(msg)
+	}
 
 	getForkRepository(ctx)
 	if ctx.Written() {
@@ -198,9 +202,6 @@ func Fork(ctx *context.Context) {
 func ForkPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateRepoForm)
 	ctx.Data["Title"] = ctx.Tr("new_fork")
-
-	ctx.Data["CanForkRepo"] = ctx.Doer.CanForkRepo()
-	ctx.Data["MaxCreationLimit"] = ctx.Doer.MaxCreationLimit()
 
 	ctxUser := checkContextUser(ctx, form.UID)
 	if ctx.Written() {
