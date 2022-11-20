@@ -173,10 +173,10 @@ authentication.  To work with normal Linux passwords, the user running Gitea
 must also have read access to `/etc/shadow` in order to check the validity of
 the account when logging in using a public key.
 
-**Note**: Once a user has been authenticated use of items such as SSH public
-keys _may_ bypass the login check system.  Therefore, if disabling a user, it
-is recommended to manually disable the account in Gitea using the built-in user
-manager as well.
+**Note**: If a user has added SSH public keys into Gitea, the use of these
+keys _may_ bypass the login check system.  Therefore, if you wish to disable a user who
+authenticates with PAM, you _should_ also manually disable the account in Gitea using the
+built-in user manager.
 
 1. Configure and prepare the installation.
     - It is recommended that you create an administrative user.
