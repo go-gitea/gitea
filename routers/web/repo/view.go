@@ -568,7 +568,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 					language = ""
 				}
 			}
-			fileContent, err := highlight.File(blob.Name(), language, buf)
+			fileContent, lexerName, err := highlight.File(blob.Name(), language, buf)
+			ctx.Data["LexerName"] = lexerName
 			if err != nil {
 				log.Error("highlight.File failed, fallback to plain text: %v", err)
 				fileContent = highlight.PlainText(buf)

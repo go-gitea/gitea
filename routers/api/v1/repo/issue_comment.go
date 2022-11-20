@@ -91,7 +91,7 @@ func ListIssueComments(ctx *context.APIContext) {
 		return
 	}
 
-	if err := issues_model.CommentList(comments).LoadPosters(); err != nil {
+	if err := issues_model.CommentList(comments).LoadPosters(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadPosters", err)
 		return
 	}
@@ -178,7 +178,7 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 		return
 	}
 
-	if err := issues_model.CommentList(comments).LoadPosters(); err != nil {
+	if err := issues_model.CommentList(comments).LoadPosters(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadPosters", err)
 		return
 	}
@@ -187,7 +187,7 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 	for _, comment := range comments {
 		if comment.Type != issues_model.CommentTypeCode && isXRefCommentAccessible(ctx, ctx.Doer, comment, issue.RepoID) {
 			comment.Issue = issue
-			apiComments = append(apiComments, convert.ToTimelineComment(comment, ctx.Doer))
+			apiComments = append(apiComments, convert.ToTimelineComment(ctx, comment, ctx.Doer))
 		}
 	}
 
@@ -281,21 +281,21 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 		return
 	}
 
-	if err = issues_model.CommentList(comments).LoadPosters(); err != nil {
+	if err = issues_model.CommentList(comments).LoadPosters(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadPosters", err)
 		return
 	}
 
 	apiComments := make([]*api.Comment, len(comments))
-	if err := issues_model.CommentList(comments).LoadIssues(); err != nil {
+	if err := issues_model.CommentList(comments).LoadIssues(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadIssues", err)
 		return
 	}
-	if err := issues_model.CommentList(comments).LoadPosters(); err != nil {
+	if err := issues_model.CommentList(comments).LoadPosters(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadPosters", err)
 		return
 	}
-	if _, err := issues_model.CommentList(comments).Issues().LoadRepositories(); err != nil {
+	if _, err := issues_model.CommentList(comments).Issues().LoadRepositories(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadRepositories", err)
 		return
 	}
@@ -354,7 +354,7 @@ func CreateIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	comment, err := comment_service.CreateIssueComment(ctx.Doer, ctx.Repo.Repository, issue, form.Body, nil)
+	comment, err := comment_service.CreateIssueComment(ctx, ctx.Doer, ctx.Repo.Repository, issue, form.Body, nil)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateIssueComment", err)
 		return
@@ -409,7 +409,7 @@ func GetIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	if err = comment.LoadIssue(); err != nil {
+	if err = comment.LoadIssue(ctx); err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
@@ -423,7 +423,7 @@ func GetIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	if err := comment.LoadPoster(); err != nil {
+	if err := comment.LoadPoster(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "comment.LoadPoster", err)
 		return
 	}
@@ -548,7 +548,7 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 
 	oldContent := comment.Content
 	comment.Content = form.Body
-	if err := comment_service.UpdateComment(comment, ctx.Doer, oldContent); err != nil {
+	if err := comment_service.UpdateComment(ctx, comment, ctx.Doer, oldContent); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateComment", err)
 		return
 	}
@@ -647,7 +647,7 @@ func deleteIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	if err = comment_service.DeleteComment(ctx.Doer, comment); err != nil {
+	if err = comment_service.DeleteComment(ctx, ctx.Doer, comment); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteCommentByID", err)
 		return
 	}

@@ -165,7 +165,7 @@ func validateOptions(field *api.IssueFormField, idx int) error {
 				return position.Errorf("should be a string")
 			}
 		case api.IssueFormFieldTypeCheckboxes:
-			opt, ok := option.(map[interface{}]interface{})
+			opt, ok := option.(map[string]interface{})
 			if !ok {
 				return position.Errorf("should be a dictionary")
 			}
@@ -351,7 +351,7 @@ func (o *valuedOption) Label() string {
 			return label
 		}
 	case api.IssueFormFieldTypeCheckboxes:
-		if vs, ok := o.data.(map[interface{}]interface{}); ok {
+		if vs, ok := o.data.(map[string]interface{}); ok {
 			if v, ok := vs["label"].(string); ok {
 				return v
 			}

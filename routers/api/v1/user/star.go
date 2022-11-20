@@ -6,6 +6,7 @@
 package user
 
 import (
+	std_context "context"
 	"net/http"
 
 	"code.gitea.io/gitea/models/db"
@@ -20,15 +21,15 @@ import (
 
 // getStarredRepos returns the repos that the user with the specified userID has
 // starred
-func getStarredRepos(user *user_model.User, private bool, listOptions db.ListOptions) ([]*api.Repository, error) {
-	starredRepos, err := repo_model.GetStarredRepos(user.ID, private, listOptions)
+func getStarredRepos(ctx std_context.Context, user *user_model.User, private bool, listOptions db.ListOptions) ([]*api.Repository, error) {
+	starredRepos, err := repo_model.GetStarredRepos(ctx, user.ID, private, listOptions)
 	if err != nil {
 		return nil, err
 	}
 
 	repos := make([]*api.Repository, len(starredRepos))
 	for i, starred := range starredRepos {
-		access, err := access_model.AccessLevel(user, starred)
+		access, err := access_model.AccessLevel(ctx, user, starred)
 		if err != nil {
 			return nil, err
 		}
@@ -63,7 +64,7 @@ func GetStarredRepos(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepositoryList"
 
 	private := ctx.ContextUser.ID == ctx.Doer.ID
-	repos, err := getStarredRepos(ctx.ContextUser, private, utils.GetListOptions(ctx))
+	repos, err := getStarredRepos(ctx, ctx.ContextUser, private, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "getStarredRepos", err)
 		return
@@ -93,7 +94,7 @@ func GetMyStarredRepos(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	repos, err := getStarredRepos(ctx.Doer, true, utils.GetListOptions(ctx))
+	repos, err := getStarredRepos(ctx, ctx.Doer, true, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "getStarredRepos", err)
 	}

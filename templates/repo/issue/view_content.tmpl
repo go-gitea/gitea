@@ -30,7 +30,7 @@
 					<div class="ui top attached header comment-header df ac sb">
 						<div class="comment-header-left df ac">
 							{{if .Issue.OriginalAuthor}}
-								<span class="text black">
+								<span class="text black bold">
 									{{svg (MigrationIcon .Repository.GetOriginalURLHostname)}}
 									{{.Issue.OriginalAuthor}}
 								</span>
@@ -45,7 +45,7 @@
 									{{avatar .Issue.Poster}}
 								</a>
 								<span class="text grey">
-									<a class="author"{{if gt .Issue.Poster.ID 0}} href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.GetDisplayName}}</a>
+									{{template "shared/user/authorlink" .Issue.Poster}}
 									{{.locale.Tr "repo.issues.commented_at" (.Issue.HashTag|Escape) $createdStr | Safe}}
 								</span>
 							{{end}}

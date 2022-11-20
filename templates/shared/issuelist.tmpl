@@ -160,7 +160,7 @@
 				</div>
 				<div class="issue-item-icon-right text grey">
 					{{if .NumComments}}
-						<a class="tdn" href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
+						<a class="tdn muted" href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
 							{{svg "octicon-comment" 16 "mr-2"}}{{.NumComments}}
 						</a>
 					{{end}}
