@@ -236,14 +236,6 @@ func (repo *Repository) AfterLoad() {
 	repo.NumOpenProjects = repo.NumProjects - repo.NumClosedProjects
 }
 
-// MustOwner always returns a valid *user_model.User object to avoid
-// conceptually impossible error handling.
-// It creates a fake object that contains error details
-// when error occurs.
-func (repo *Repository) MustOwner() *user_model.User {
-	return repo.mustOwner(db.DefaultContext)
-}
-
 // LoadAttributes loads attributes of the repository.
 func (repo *Repository) LoadAttributes(ctx context.Context) error {
 	// Load owner
@@ -403,7 +395,11 @@ func (repo *Repository) GetOwner(ctx context.Context) (err error) {
 	return err
 }
 
-func (repo *Repository) mustOwner(ctx context.Context) *user_model.User {
+// MustOwner always returns a valid *user_model.User object to avoid
+// conceptually impossible error handling.
+// It creates a fake object that contains error details
+// when error occurs.
+func (repo *Repository) MustOwner(ctx context.Context) *user_model.User {
 	if err := repo.GetOwner(ctx); err != nil {
 		return &user_model.User{
 			Name:     "error",
@@ -438,7 +434,7 @@ func (repo *Repository) ComposeMetas() map[string]string {
 			}
 		}
 
-		repo.MustOwner()
+		repo.MustOwner(db.DefaultContext)
 		if repo.Owner.IsOrganization() {
 			teams := make([]string, 0, 5)
 			_ = db.GetEngine(db.DefaultContext).Table("team_repo").
@@ -792,13 +788,13 @@ func UpdateRepoIssueNumbers(ctx context.Context, repoID int64, isPull, isClosed 
 }
 
 // CountNullArchivedRepository counts the number of repositories with is_archived is null
-func CountNullArchivedRepository() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(builder.IsNull{"is_archived"}).Count(new(Repository))
+func CountNullArchivedRepository(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).Where(builder.IsNull{"is_archived"}).Count(new(Repository))
 }
 
 // FixNullArchivedRepository sets is_archived to false where it is null
-func FixNullArchivedRepository() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(builder.IsNull{"is_archived"}).Cols("is_archived").NoAutoTime().Update(&Repository{
+func FixNullArchivedRepository(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).Where(builder.IsNull{"is_archived"}).Cols("is_archived").NoAutoTime().Update(&Repository{
 		IsArchived: false,
 	})
 }

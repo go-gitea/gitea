@@ -135,7 +135,7 @@ func TestGetReviewersByIssueID(t *testing.T) {
 
 	allReviews, err := issues_model.GetReviewersByIssueID(issue.ID)
 	for _, reviewer := range allReviews {
-		assert.NoError(t, reviewer.LoadReviewer())
+		assert.NoError(t, reviewer.LoadReviewer(db.DefaultContext))
 	}
 	assert.NoError(t, err)
 	if assert.Len(t, allReviews, 3) {
