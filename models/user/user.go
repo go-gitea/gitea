@@ -277,6 +277,7 @@ func (u *User) CanEditGitHook() bool {
 }
 
 // CanForkRepo returns if user login can fork a repository
+// It checks especially that the user can create repos, and potentially more 
 func (u *User) CanForkRepo() bool {
 	return u.CanCreateRepo()
 }
