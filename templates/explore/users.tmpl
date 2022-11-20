@@ -4,21 +4,24 @@
 	<div class="ui container">
 		{{template "explore/search" .}}
 
-		<div class="ui user list">
+		<div class="ui user list df fw">
 			{{range .Users}}
-				<div class="item">
-					{{avatar .}}
+				<div class="df" style="margin: 1rem 1.5rem;">
+					<div class="df mr-4" style="place-self: center;">{{avatar . 36}}</div>
 					<div class="content">
 						<span class="header"><a href="{{.HomeLink}}">{{.Name}}</a> {{.FullName}}</span>
-						<div class="description">
+						<div class="description df fc">
 							{{if .Location}}
-								{{svg "octicon-location"}} {{.Location}}
+								<div>{{svg "octicon-location"}} {{.Location}}</div>
 							{{end}}
 							{{if and $.ShowUserEmail .Email $.IsSigned (not .KeepEmailPrivate)}}
-								{{svg "octicon-mail"}}
-								<a href="mailto:{{.Email}}" rel="nofollow">{{.Email}}</a>
+								<div>
+									{{svg "octicon-mail"}} <a href="mailto:{{.Email}}" rel="nofollow">{{.Email}}</a>
+								</div>
 							{{end}}
-							{{svg "octicon-clock"}} {{$.locale.Tr "user.join_on"}} <time data-format="short-date" datetime="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</time>
+							<div>
+								{{svg "octicon-clock"}} {{$.locale.Tr "user.join_on"}} <time data-format="short-date" datetime="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</time>
+							</div>
 						</div>
 					</div>
 				</div>
