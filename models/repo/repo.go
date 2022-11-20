@@ -316,7 +316,7 @@ func (repo *Repository) LoadUnits(ctx context.Context) (err error) {
 }
 
 // UnitEnabled if this repository has the given unit enabled
-func (repo *Repository) UnitEnabled(tp unit.Type) (result bool) {
+func (repo *Repository) UnitEnabled(tp unit.Type) (result bool) { // Notice: Don't remove this function directly, beacuse it has been used in go template.
 	return repo.UnitEnabledCtx(db.DefaultContext, tp)
 }
 
@@ -391,7 +391,7 @@ func (repo *Repository) GetOwner(ctx context.Context) (err error) {
 		return nil
 	}
 
-	repo.Owner, err = user_model.GetUserByIDCtx(ctx, repo.OwnerID)
+	repo.Owner, err = user_model.GetUserByID(ctx, repo.OwnerID)
 	return err
 }
 
@@ -468,8 +468,8 @@ func (repo *Repository) ComposeDocumentMetas() map[string]string {
 // GetBaseRepo populates repo.BaseRepo for a fork repository and
 // returns an error on failure (NOTE: no error is returned for
 // non-fork repositories, and BaseRepo will be left untouched)
-func (repo *Repository) GetBaseRepo() (err error) {
-	return repo.getBaseRepo(db.DefaultContext)
+func (repo *Repository) GetBaseRepo(ctx context.Context) (err error) {
+	return repo.getBaseRepo(ctx)
 }
 
 func (repo *Repository) getBaseRepo(ctx context.Context) (err error) {
@@ -477,7 +477,7 @@ func (repo *Repository) getBaseRepo(ctx context.Context) (err error) {
 		return nil
 	}
 
-	repo.BaseRepo, err = GetRepositoryByIDCtx(ctx, repo.ForkID)
+	repo.BaseRepo, err = GetRepositoryByID(ctx, repo.ForkID)
 	return err
 }
 
@@ -612,11 +612,6 @@ func (repo *Repository) GetTrustModel() TrustModelType {
 	return trustModel
 }
 
-// GetRepositoryByOwnerAndName returns the repository by given ownername and reponame.
-func GetRepositoryByOwnerAndName(ownerName, repoName string) (*Repository, error) {
-	return GetRepositoryByOwnerAndNameCtx(db.DefaultContext, ownerName, repoName)
-}
-
 // __________                           .__  __
 // \______   \ ____ ______   ____  _____|__|/  |_  ___________ ___.__.
 //  |       _// __ \\____ \ /  _ \/  ___/  \   __\/  _ \_  __ <   |  |
@@ -648,8 +643,8 @@ func (err ErrRepoNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// GetRepositoryByOwnerAndNameCtx returns the repository by given owner name and repo name
-func GetRepositoryByOwnerAndNameCtx(ctx context.Context, ownerName, repoName string) (*Repository, error) {
+// GetRepositoryByOwnerAndName returns the repository by given owner name and repo name
+func GetRepositoryByOwnerAndName(ctx context.Context, ownerName, repoName string) (*Repository, error) {
 	var repo Repository
 	has, err := db.GetEngine(ctx).Table("repository").Select("repository.*").
 		Join("INNER", "`user`", "`user`.id = repository.owner_id").
@@ -679,8 +674,8 @@ func GetRepositoryByName(ownerID int64, name string) (*Repository, error) {
 	return repo, err
 }
 
-// GetRepositoryByIDCtx returns the repository by given id if exists.
-func GetRepositoryByIDCtx(ctx context.Context, id int64) (*Repository, error) {
+// GetRepositoryByID returns the repository by given id if exists.
+func GetRepositoryByID(ctx context.Context, id int64) (*Repository, error) {
 	repo := new(Repository)
 	has, err := db.GetEngine(ctx).ID(id).Get(repo)
 	if err != nil {
@@ -689,11 +684,6 @@ func GetRepositoryByIDCtx(ctx context.Context, id int64) (*Repository, error) {
 		return nil, ErrRepoNotExist{id, 0, "", ""}
 	}
 	return repo, nil
-}
-
-// GetRepositoryByID returns the repository by given id if exists.
-func GetRepositoryByID(id int64) (*Repository, error) {
-	return GetRepositoryByIDCtx(db.DefaultContext, id)
 }
 
 // GetRepositoriesMapByIDs returns the repositories by given id slice.
@@ -723,7 +713,7 @@ func GetTemplateRepo(ctx context.Context, repo *Repository) (*Repository, error)
 		return nil, nil
 	}
 
-	return GetRepositoryByIDCtx(ctx, repo.TemplateID)
+	return GetRepositoryByID(ctx, repo.TemplateID)
 }
 
 // TemplateRepo returns the repository, which is template of this repository

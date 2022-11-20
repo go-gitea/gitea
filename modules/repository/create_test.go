@@ -26,7 +26,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 
 	testTeamRepositories := func(teamID int64, repoIds []int64) {
 		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-		assert.NoError(t, team.GetRepositoriesCtx(db.DefaultContext), "%s: GetRepositories", team.Name)
+		assert.NoError(t, team.LoadRepositories(db.DefaultContext), "%s: GetRepositories", team.Name)
 		assert.Len(t, team.Repos, team.NumRepos, "%s: len repo", team.Name)
 		assert.Len(t, team.Repos, len(repoIds), "%s: repo count", team.Name)
 		for i, rid := range repoIds {
@@ -37,7 +37,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	}
 
 	// Get an admin user.
-	user, err := user_model.GetUserByID(1)
+	user, err := user_model.GetUserByID(db.DefaultContext, 1)
 	assert.NoError(t, err, "GetUserByID")
 
 	// Create org.
@@ -154,7 +154,7 @@ func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// Get sample repo and change visibility
-	repo, err := repo_model.GetRepositoryByID(9)
+	repo, err := repo_model.GetRepositoryByID(db.DefaultContext, 9)
 	assert.NoError(t, err)
 	repo.IsPrivate = true
 

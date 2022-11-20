@@ -157,7 +157,7 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 
 	for _, r := range releases {
 		if r.Publisher, ok = cacheUsers[r.PublisherID]; !ok {
-			r.Publisher, err = user_model.GetUserByID(r.PublisherID)
+			r.Publisher, err = user_model.GetUserByID(ctx, r.PublisherID)
 			if err != nil {
 				if user_model.IsErrUserNotExist(err) {
 					r.Publisher = user_model.NewGhostUser()
@@ -224,7 +224,7 @@ func SingleRelease(ctx *context.Context) {
 		return
 	}
 
-	release.Publisher, err = user_model.GetUserByID(release.PublisherID)
+	release.Publisher, err = user_model.GetUserByID(ctx, release.PublisherID)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			release.Publisher = user_model.NewGhostUser()

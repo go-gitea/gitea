@@ -116,7 +116,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 				description = opts.GitPushOptions["description"]
 			}
 
-			pusher, err := user_model.GetUserByID(opts.UserID)
+			pusher, err := user_model.GetUserByID(ctx, opts.UserID)
 			if err != nil {
 				return nil, fmt.Errorf("Failed to get user. Error: %w", err)
 			}
@@ -199,7 +199,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		}
 
 		pull_service.AddToTaskQueue(pr)
-		pusher, err := user_model.GetUserByID(opts.UserID)
+		pusher, err := user_model.GetUserByID(ctx, opts.UserID)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to get user. Error: %w", err)
 		}

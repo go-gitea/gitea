@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -409,7 +410,7 @@ func getAuthenticatedMeta(ctx *context.Context, rc *requestContext, p lfs_module
 }
 
 func getAuthenticatedRepository(ctx *context.Context, rc *requestContext, requireWrite bool) *repo_model.Repository {
-	repository, err := repo_model.GetRepositoryByOwnerAndName(rc.User, rc.Repo)
+	repository, err := repo_model.GetRepositoryByOwnerAndName(ctx, rc.User, rc.Repo)
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", rc.User, rc.Repo, err)
 		writeStatus(ctx, http.StatusNotFound)
@@ -544,7 +545,7 @@ func handleLFSToken(tokenSHA string, target *repo_model.Repository, mode perm.Ac
 		return nil, fmt.Errorf("invalid token claim")
 	}
 
-	u, err := user_model.GetUserByID(claims.UserID)
+	u, err := user_model.GetUserByID(db.DefaultContext, claims.UserID)
 	if err != nil {
 		log.Error("Unable to GetUserById[%d]: Error: %v", claims.UserID, err)
 		return nil, err

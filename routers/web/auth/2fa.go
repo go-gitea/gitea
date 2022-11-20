@@ -69,7 +69,7 @@ func TwoFactorPost(ctx *context.Context) {
 
 	if ok && twofa.LastUsedPasscode != form.Passcode {
 		remember := ctx.Session.Get("twofaRemember").(bool)
-		u, err := user_model.GetUserByID(id)
+		u, err := user_model.GetUserByID(ctx, id)
 		if err != nil {
 			ctx.ServerError("UserSignIn", err)
 			return
@@ -147,7 +147,7 @@ func TwoFactorScratchPost(ctx *context.Context) {
 		}
 
 		remember := ctx.Session.Get("twofaRemember").(bool)
-		u, err := user_model.GetUserByID(id)
+		u, err := user_model.GetUserByID(ctx, id)
 		if err != nil {
 			ctx.ServerError("UserSignIn", err)
 			return

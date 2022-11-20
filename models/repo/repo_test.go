@@ -116,7 +116,7 @@ func TestMetas(t *testing.T) {
 	externalTracker.ExternalTrackerConfig().ExternalTrackerStyle = markup.IssueNameStyleRegexp
 	testSuccess(markup.IssueNameStyleRegexp)
 
-	repo, err := repo_model.GetRepositoryByID(3)
+	repo, err := repo_model.GetRepositoryByID(db.DefaultContext, 3)
 	assert.NoError(t, err)
 
 	metas = repo.ComposeMetas()
