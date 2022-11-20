@@ -11,6 +11,7 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -26,7 +27,7 @@ func TestAPINotification(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	thread5 := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: 5})
-	assert.NoError(t, thread5.LoadAttributes())
+	assert.NoError(t, thread5.LoadAttributes(db.DefaultContext))
 	session := loginUser(t, user2.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeNotification)
 
@@ -144,7 +145,7 @@ func TestAPINotificationPUT(t *testing.T) {
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	thread5 := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: 5})
-	assert.NoError(t, thread5.LoadAttributes())
+	assert.NoError(t, thread5.LoadAttributes(db.DefaultContext))
 	session := loginUser(t, user2.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeNotification)
 

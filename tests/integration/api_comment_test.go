@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -117,7 +118,7 @@ func TestAPIGetComment(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 2})
-	assert.NoError(t, comment.LoadIssue())
+	assert.NoError(t, comment.LoadIssue(db.DefaultContext))
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: comment.Issue.RepoID})
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
@@ -131,7 +132,7 @@ func TestAPIGetComment(t *testing.T) {
 	var apiComment api.Comment
 	DecodeJSON(t, resp, &apiComment)
 
-	assert.NoError(t, comment.LoadPoster())
+	assert.NoError(t, comment.LoadPoster(db.DefaultContext))
 	expect := convert.ToComment(comment)
 
 	assert.Equal(t, expect.ID, apiComment.ID)

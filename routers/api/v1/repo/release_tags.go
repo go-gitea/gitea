@@ -60,7 +60,7 @@ func GetReleaseByTag(ctx *context.APIContext) {
 		return
 	}
 
-	if err = release.LoadAttributes(); err != nil {
+	if err = release.LoadAttributes(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
