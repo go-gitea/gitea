@@ -426,7 +426,10 @@ func download(ctx *context.Context, archiveName string, archiver *repo_model.Rep
 	}
 	defer fr.Close()
 
-	ctx.ServeContent(downloadName, fr, archiver.CreatedUnix.AsLocalTime())
+	ctx.ServeContent(fr, &context.ServeHeaderOptions{
+		Filename:     downloadName,
+		LastModified: archiver.CreatedUnix.AsLocalTime(),
+	})
 }
 
 // InitiateDownload will enqueue an archival request, as needed.  It may submit
@@ -540,7 +543,7 @@ func SearchRepo(ctx *context.Context) {
 	}
 
 	var err error
-	repos, count, err := repo_model.SearchRepository(opts)
+	repos, count, err := repo_model.SearchRepository(ctx, opts)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, api.SearchError{
 			OK:    false,

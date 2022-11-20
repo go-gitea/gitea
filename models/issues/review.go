@@ -154,7 +154,8 @@ func (r *Review) loadIssue(ctx context.Context) (err error) {
 	return err
 }
 
-func (r *Review) loadReviewer(ctx context.Context) (err error) {
+// LoadReviewer loads reviewer
+func (r *Review) LoadReviewer(ctx context.Context) (err error) {
 	if r.ReviewerID == 0 || r.Reviewer != nil {
 		return
 	}
@@ -162,23 +163,14 @@ func (r *Review) loadReviewer(ctx context.Context) (err error) {
 	return err
 }
 
-func (r *Review) loadReviewerTeam(ctx context.Context) (err error) {
+// LoadReviewerTeam loads reviewer team
+func (r *Review) LoadReviewerTeam(ctx context.Context) (err error) {
 	if r.ReviewerTeamID == 0 || r.ReviewerTeam != nil {
 		return
 	}
 
 	r.ReviewerTeam, err = organization.GetTeamByID(ctx, r.ReviewerTeamID)
 	return err
-}
-
-// LoadReviewer loads reviewer
-func (r *Review) LoadReviewer() error {
-	return r.loadReviewer(db.DefaultContext)
-}
-
-// LoadReviewerTeam loads reviewer team
-func (r *Review) LoadReviewerTeam() error {
-	return r.loadReviewerTeam(db.DefaultContext)
 }
 
 // LoadAttributes loads all attributes except CodeComments
@@ -189,10 +181,10 @@ func (r *Review) LoadAttributes(ctx context.Context) (err error) {
 	if err = r.LoadCodeComments(ctx); err != nil {
 		return
 	}
-	if err = r.loadReviewer(ctx); err != nil {
+	if err = r.LoadReviewer(ctx); err != nil {
 		return
 	}
-	if err = r.loadReviewerTeam(ctx); err != nil {
+	if err = r.LoadReviewerTeam(ctx); err != nil {
 		return
 	}
 	return err

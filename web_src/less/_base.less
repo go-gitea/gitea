@@ -79,6 +79,7 @@
   --color-pink: #e03997;
   --color-brown: #a5673f;
   --color-grey: #888888;
+  --color-black: #1b1c1d;
   /* light variants - produced via Sass scale-color(color, $lightness: +25%) */
   --color-red-light: #e45e5e;
   --color-orange-light: #f59555;
@@ -92,9 +93,9 @@
   --color-pink-light: #e86bb1;
   --color-brown-light: #c58b66;
   --color-grey-light: #a6a6a6;
+  --color-black-light: #525558;
   /* other colors */
   --color-gold: #a1882b;
-  --color-black: #1b1c1d;
   --color-white: #ffffff;
   --color-diff-removed-word-bg: #fdb8c0;
   --color-diff-added-word-bg: #acf2bd;
@@ -293,13 +294,15 @@ a,
   text-decoration-skip-ink: all;
 }
 
-a.muted {
+a.muted,
+.muted-links a {
   color: inherit;
 }
 
 a:hover,
 a.muted:hover,
 a.muted:hover [class*="color-text"],
+.muted-links a:hover,
 .ui.breadcrumb a:hover {
   color: var(--color-primary);
 }

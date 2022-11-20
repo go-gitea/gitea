@@ -177,8 +177,6 @@ func servePackageFile(ctx *context.Context, params parameters, serveContent bool
 		return
 	}
 
-	ctx.Resp.Header().Set("Last-Modified", pf.CreatedUnix.Format(http.TimeFormat))
-
 	if isChecksumExtension(ext) {
 		var hash string
 		switch ext {
@@ -195,21 +193,20 @@ func servePackageFile(ctx *context.Context, params parameters, serveContent bool
 		return
 	}
 
-	ctx.Resp.Header().Set("Content-Length", strconv.FormatInt(pb.Size, 10))
-
-	var contentType string
+	opts := &context.ServeHeaderOptions{
+		ContentLength: &pb.Size,
+		LastModified: pf.CreatedUnix.AsLocalTime(),
+	}
 	switch ext {
 	case extensionJar:
-		contentType = contentTypeJar
+		opts.ContentType = contentTypeJar
 	case extensionPom:
-		contentType = contentTypeXML
-	}
-	if contentType != "" {
-		ctx.Resp.Header().Set("Content-Type", contentType)
+		opts.ContentType = contentTypeXML
 	}
 
 	if !serveContent {
-		ctx.Resp.WriteHeader(http.StatusOK)
+		ctx.SetServeHeaders(opts)
+		ctx.Status(http.StatusOK)
 		return
 	}
 
@@ -225,7 +222,9 @@ func servePackageFile(ctx *context.Context, params parameters, serveContent bool
 		}
 	}
 
-	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
+	opts.Filename = pf.Name
+
+	ctx.ServeContent(s, opts)
 }
 
 // UploadPackageFile adds a file to the package. If the package does not exist, it gets created.
