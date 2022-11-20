@@ -79,6 +79,7 @@
   --color-pink: #e03997;
   --color-brown: #a5673f;
   --color-grey: #888888;
+  --color-black: #1b1c1d;
   /* light variants - produced via Sass scale-color(color, $lightness: +25%) */
   --color-red-light: #e45e5e;
   --color-orange-light: #f59555;
@@ -92,9 +93,9 @@
   --color-pink-light: #e86bb1;
   --color-brown-light: #c58b66;
   --color-grey-light: #a6a6a6;
+  --color-black-light: #525558;
   /* other colors */
   --color-gold: #a1882b;
-  --color-black: #1b1c1d;
   --color-white: #ffffff;
   --color-diff-removed-word-bg: #fdb8c0;
   --color-diff-added-word-bg: #acf2bd;
@@ -293,13 +294,15 @@ a,
   text-decoration-skip-ink: all;
 }
 
-a.muted {
+a.muted,
+.muted-links a {
   color: inherit;
 }
 
 a:hover,
 a.muted:hover,
 a.muted:hover [class*="color-text"],
+.muted-links a:hover,
 .ui.breadcrumb a:hover {
   color: var(--color-primary);
 }
@@ -1301,6 +1304,22 @@ a.ui.card:hover,
   visibility: hidden;
 }
 
+.text.red { color: var(--color-red) !important; }
+.text.orange { color: var(--color-orange) !important; }
+.text.yellow { color: var(--color-yellow) !important; }
+.text.olive { color: var(--color-olive) !important; }
+.text.green { color: var(--color-green) !important; }
+.text.teal { color: var(--color-teal) !important; }
+.text.blue { color: var(--color-blue) !important; }
+.text.violet { color: var(--color-violet) !important; }
+.text.purple { color: var(--color-purple) !important; }
+.text.pink { color: var(--color-pink) !important; }
+.text.brown { color: var(--color-brown) !important; }
+.text.black { color: var(--color-text) !important; }
+.text.grey { color: var(--color-text-light) !important; }
+.text.light.grey { color: var(--color-grey-light) !important; }
+.text.gold { color: var(--color-gold) !important; }
+
 .ui {
   &.left:not(.action) {
     float: left;
@@ -1370,74 +1389,6 @@ a.ui.card:hover,
   }
 
   .text {
-    &.red {
-      color: var(--color-red) !important;
-
-      a {
-        color: inherit !important;
-
-        &:hover {
-          color: var(--color-red-light) !important;
-        }
-      }
-    }
-
-    &.blue {
-      color: var(--color-blue) !important;
-
-      a {
-        color: inherit !important;
-
-        &:hover {
-          color: var(--color-blue-light) !important;
-        }
-      }
-    }
-
-    &.black {
-      color: var(--color-text);
-
-      &:hover {
-        color: var(--color-text-dark);
-      }
-    }
-
-    &.grey {
-      color: var(--color-text-light) !important;
-
-      a {
-        color: var(--color-text) !important;
-
-        &:hover {
-          color: var(--color-primary) !important;
-        }
-      }
-    }
-
-    &.light.grey {
-      color: var(--color-text-light-2) !important;
-    }
-
-    &.green {
-      color: var(--color-green) !important;
-    }
-
-    &.purple {
-      color: var(--color-purple) !important;
-    }
-
-    &.yellow {
-      color: var(--color-yellow) !important;
-    }
-
-    &.orange {
-      color: var(--color-orange) !important;
-    }
-
-    &.gold {
-      color: var(--color-gold) !important;
-    }
-
     &.left {
       text-align: left !important;
     }
