@@ -4,36 +4,7 @@
 	<div class="ui container">
 		{{template "explore/search" .}}
 
-		<div class="ui user list df fw">
-			{{range .Users}}
-				<div class="df" style="margin: 1rem 1.5rem;">
-					<div class="df mr-4" style="place-self: center;">{{avatar . 36}}</div>
-					<div class="content">
-						<span class="header">
-							<a href="{{.HomeLink}}">{{.Name}}</a> {{.FullName}}
-							{{if .Visibility.IsPrivate}}
-								<span class="ui basic label">{{$.locale.Tr "repo.desc.private"}}</span>
-							{{end}}
-						</span>
-						<div class="description df fc">
-							{{if .Location}}
-								<div>{{svg "octicon-location"}} {{.Location}}</div>
-							{{end}}
-							{{if and .Website}}
-								<div>
-									{{svg "octicon-link"}} <a href="{{.Website}}" rel="nofollow">{{.Website}}</a>
-								</div>
-							{{end}}
-							<div>
-								{{svg "octicon-clock"}} {{$.locale.Tr "user.join_on"}} <time data-format="short-date" datetime="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</time>
-							</div>
-						</div>
-					</div>
-				</div>
-			{{else}}
-				<div>{{$.locale.Tr "explore.org_no_results"}}</div>
-			{{end}}
-		</div>
+			{{template "explore/owners" .}}
 
 		{{template "base/paginate" .}}
 	</div>

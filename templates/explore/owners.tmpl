@@ -1,0 +1,35 @@
+<div class="ui user list df fw">
+	{{range .Users}}
+		<div class="df m-4">
+			<div class="df mr-4 place-self-center">{{avatar . 36}}</div>
+			<div class="content">
+				<span class="header">
+					<a href="{{.HomeLink}}">{{.Name}}</a> {{.FullName}}
+						{{if .Visibility.IsPrivate}}
+							<span class="ui basic label">{{$.locale.Tr "repo.desc.private"}}</span>
+						{{end}}
+				</span>
+				<div class="description df fc">
+					{{if .Location}}
+						<div>{{svg "octicon-location"}} {{.Location}}</div>
+					{{end}}
+					{{if and .Website}}
+						<div>
+							{{svg "octicon-link"}} <a href="{{.Website}}" rel="nofollow">{{.Website}}</a>
+						</div>
+					{{end}}
+					{{if and $.ShowUserEmail .Email $.IsSigned (not .KeepEmailPrivate)}}
+						<div>
+							{{svg "octicon-mail"}} <a class="muted" href="mailto:{{.Email}}" rel="nofollow">{{.Email}}</a>
+						</div>
+					{{end}}
+					<div>
+						{{svg "octicon-clock"}} {{$.locale.Tr "user.join_on"}} <time data-format="short-date" datetime="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</time>
+					</div>
+				</div>
+			</div>
+		</div>
+	{{else}}
+		<div>{{$.locale.Tr "explore.user_no_results"}}</div>
+	{{end}}
+</div>
