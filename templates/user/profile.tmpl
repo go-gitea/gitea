@@ -18,7 +18,9 @@
 					<div class="content word-break profile-avatar-name">
 						{{if .Owner.FullName}}<span class="header text center">{{.Owner.FullName}}</span>{{end}}
 						<span class="username text center">{{.Owner.Name}}</span>
-						<a href="{{.Owner.HomeLink}}.rss"><i class="ui grey icon tooltip ml-3" data-content="{{.locale.Tr "rss_feed"}}" data-position="bottom center">{{svg "octicon-rss" 18}}</i></a>
+						{{if .EnableFeed}}
+							<a href="{{.Owner.HomeLink}}.rss"><i class="ui grey icon tooltip ml-3" data-content="{{.locale.Tr "rss_feed"}}" data-position="bottom center">{{svg "octicon-rss" 18}}</i></a>
+						{{end}}
 						<div class="mt-3">
 							<a class="muted" href="{{.Owner.HomeLink}}?tab=followers">{{svg "octicon-person" 18 "mr-2"}}{{.Owner.NumFollowers}} {{.locale.Tr "user.followers"}}</a> · <a class="muted" href="{{.Owner.HomeLink}}?tab=following">{{.Owner.NumFollowing}} {{.locale.Tr "user.following"}}</a>
 						</div>

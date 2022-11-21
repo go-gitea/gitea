@@ -441,8 +441,10 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	userName := ctx.Params(":username")
 	repoName := ctx.Params(":reponame")
 	repoName = strings.TrimSuffix(repoName, ".git")
-	repoName = strings.TrimSuffix(repoName, ".rss")
-	repoName = strings.TrimSuffix(repoName, ".atom")
+	if setting.EnableFeed {
+		repoName = strings.TrimSuffix(repoName, ".rss")
+		repoName = strings.TrimSuffix(repoName, ".atom")
+	}
 
 	// Check if the user is the same as the repository owner
 	if ctx.IsSigned && ctx.Doer.LowerName == strings.ToLower(userName) {
