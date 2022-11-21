@@ -17,34 +17,52 @@ func lines(s string) []string {
 
 func TestFile(t *testing.T) {
 	tests := []struct {
-		name string
-		code string
-		want []string
+		name      string
+		code      string
+		want      []string
+		lexerName string
 	}{
 		{
-			name: "empty.py",
-			code: "",
-			want: lines(""),
+			name:      "empty.py",
+			code:      "",
+			want:      lines(""),
+			lexerName: "Python",
 		},
 		{
-			name: "tags.txt",
-			code: "<>",
-			want: lines("&lt;&gt;"),
+			name:      "empty.js",
+			code:      "",
+			want:      lines(""),
+			lexerName: "JavaScript",
 		},
 		{
-			name: "tags.py",
-			code: "<>",
-			want: lines(`<span class="o">&lt;</span><span class="o">&gt;</span>`),
+			name:      "empty.yaml",
+			code:      "",
+			want:      lines(""),
+			lexerName: "YAML",
 		},
 		{
-			name: "eol-no.py",
-			code: "a=1",
-			want: lines(`<span class="n">a</span><span class="o">=</span><span class="mi">1</span>`),
+			name:      "tags.txt",
+			code:      "<>",
+			want:      lines("&lt;&gt;"),
+			lexerName: "Plaintext",
 		},
 		{
-			name: "eol-newline1.py",
-			code: "a=1\n",
-			want: lines(`<span class="n">a</span><span class="o">=</span><span class="mi">1</span>\n`),
+			name:      "tags.py",
+			code:      "<>",
+			want:      lines(`<span class="o">&lt;</span><span class="o">&gt;</span>`),
+			lexerName: "Python",
+		},
+		{
+			name:      "eol-no.py",
+			code:      "a=1",
+			want:      lines(`<span class="n">a</span><span class="o">=</span><span class="mi">1</span>`),
+			lexerName: "Python",
+		},
+		{
+			name:      "eol-newline1.py",
+			code:      "a=1\n",
+			want:      lines(`<span class="n">a</span><span class="o">=</span><span class="mi">1</span>\n`),
+			lexerName: "Python",
 		},
 		{
 			name: "eol-newline2.py",
@@ -54,6 +72,7 @@ func TestFile(t *testing.T) {
 \n
 			`,
 			),
+			lexerName: "Python",
 		},
 		{
 			name: "empty-line-with-space.py",
@@ -73,17 +92,19 @@ c=2
     \n
 <span class="n">c</span><span class="o">=</span><span class="mi">2</span>`,
 			),
+			lexerName: "Python",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			out, err := File(tt.name, "", []byte(tt.code))
+			out, lexerName, err := File(tt.name, "", []byte(tt.code))
 			assert.NoError(t, err)
 			expected := strings.Join(tt.want, "\n")
 			actual := strings.Join(out, "\n")
 			assert.Equal(t, strings.Count(actual, "<span"), strings.Count(actual, "</span>"))
 			assert.EqualValues(t, expected, actual)
+			assert.Equal(t, tt.lexerName, lexerName)
 		})
 	}
 }
