@@ -70,7 +70,7 @@
 				</div>
 				<div class="scrolling menu reference-list-menu base-branch-list">
 					{{range .Branches}}
-						<div class="item{{if eq $.BaseBranch .}}selected{{end}}" data-url="{{$.RepoLink}}/compare/{{PathEscapeSegments .}}{{$.CompareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.HeadUser.Name}}/{{PathEscape $.HeadRepo.Name}}:{{end}}{{PathEscapeSegments $.HeadBranch}}">{{$BaseCompareName}}:{{.}}</div>
+						<div class="item{{if eq $.BaseBranch .}} selected{{end}}" data-url="{{$.RepoLink}}/compare/{{PathEscapeSegments .}}{{$.CompareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.HeadUser.Name}}/{{PathEscape $.HeadRepo.Name}}:{{end}}{{PathEscapeSegments $.HeadBranch}}">{{$BaseCompareName}}:{{.}}</div>
 					{{end}}
 					{{if not .PullRequestCtx.SameRepo}}
 						{{range .HeadBranches}}
@@ -90,7 +90,7 @@
 				</div>
 				<div class="scrolling menu reference-list-menu base-tag-list" style="display: none">
 					{{range .Tags}}
-						<div class="item{{if eq $.BaseBranch .}}selected{{end}}" data-url="{{$.RepoLink}}/compare/{{PathEscapeSegments .}}{{$.CompareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.HeadUser.Name}}/{{PathEscape $.HeadRepo.Name}}:{{end}}{{PathEscapeSegments $.HeadBranch}}">{{$BaseCompareName}}:{{.}}</div>
+						<div class="item{{if eq $.BaseBranch .}} selected{{end}}" data-url="{{$.RepoLink}}/compare/{{PathEscapeSegments .}}{{$.CompareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.HeadUser.Name}}/{{PathEscape $.HeadRepo.Name}}:{{end}}{{PathEscapeSegments $.HeadBranch}}">{{$BaseCompareName}}:{{.}}</div>
 					{{end}}
 					{{if not .PullRequestCtx.SameRepo}}
 						{{range .HeadTags}}
