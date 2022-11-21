@@ -18,6 +18,11 @@
 		<a class="{{if .PageIsSettingsKeys}}active{{end}} item" href="{{AppSubUrl}}/user/settings/keys">
 			{{.locale.Tr "settings.ssh_gpg_keys"}}
 		</a>
+		{{if .EnablePackages}}
+		<a class="{{if .PageIsSettingsPackages}}active{{end}} item" href="{{AppSubUrl}}/user/settings/packages">
+			{{.locale.Tr "packages.title"}}
+		</a>
+		{{end}}
 		<a class="{{if .PageIsSettingsOrganization}}active{{end}} item" href="{{AppSubUrl}}/user/settings/organization">
 			{{.locale.Tr "settings.organization"}}
 		</a>
