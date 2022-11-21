@@ -111,14 +111,18 @@ export function convertImage(blob, mime) {
       const img = new Image();
       const canvas = document.createElement('canvas');
       img.addEventListener('load', () => {
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        const context = canvas.getContext('2d');
-        context.drawImage(img, 0, 0);
-        canvas.toBlob((blob) => {
-          if (!(blob instanceof Blob)) return reject(new Error('imageBlobToPng failed'));
-          resolve(blob);
-        }, mime);
+        try {
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          const context = canvas.getContext('2d');
+          context.drawImage(img, 0, 0);
+          canvas.toBlob((blob) => {
+            if (!(blob instanceof Blob)) return reject(new Error('imageBlobToPng failed'));
+            resolve(blob);
+          }, mime);
+        } catch (err) {
+          reject(err);
+        }
       });
       img.addEventListener('error', () => {
         reject(new Error('imageBlobToPng failed'));
