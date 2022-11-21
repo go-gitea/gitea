@@ -27,6 +27,7 @@ export function createTippy(target, opts = {}) {
 export function initTooltip(el, props = {}) {
   const content = el.getAttribute('data-content') || props.content;
   if (!content) return null;
+  if (!el.hasAttribute('aria-label')) el.setAttribute('aria-label', content);
   return createTippy(el, {
     content,
     delay: 100,
