@@ -201,12 +201,17 @@ h6 {
 body {
   color: var(--color-text);
   background-color: var(--color-body);
-  overflow-y: overlay;
-  overflow-y: scroll;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   overflow-wrap: break-word;
-  scrollbar-gutter: stable;
+}
+
+@supports (overflow: overlay) {
+  body {
+    overflow: overlay;
+    scrollbar-gutter: stable;
+  }
 }
 
 img {
