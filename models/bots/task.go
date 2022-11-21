@@ -127,7 +127,7 @@ func (task *Task) GetBuildViewLink() string {
 	if task.Job == nil || task.Job.Run == nil || task.Job.Run.Repo == nil {
 		return ""
 	}
-	return task.Job.Run.Repo.Link() + "/builds/runs/" + strconv.FormatInt(task.ID, 10)
+	return task.Job.Run.Repo.Link() + "/bots/runs/" + strconv.FormatInt(task.ID, 10)
 }
 
 func (task *Task) GetCommitLink() string {

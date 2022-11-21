@@ -1,8 +1,8 @@
-// Copyright 2018 The Gitea Authors. All rights reserved.
+// Copyright 2022 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package builds
+package bots
 
 import (
 	"net/http"
@@ -18,28 +18,28 @@ import (
 )
 
 const (
-	tplListBuilds base.TplName = "repo/builds/list"
-	tplViewBuild  base.TplName = "repo/builds/view"
+	tplListBots  base.TplName = "repo/bots/list"
+	tplViewBuild base.TplName = "repo/bots/view"
 )
 
-// MustEnableBuilds check if builds are enabled in settings
-func MustEnableBuilds(ctx *context.Context) {
-	if unit.TypeBuilds.UnitGlobalDisabled() {
-		ctx.NotFound("EnableTypeBuilds", nil)
+// MustEnableBots check if bots are enabled in settings
+func MustEnableBots(ctx *context.Context) {
+	if unit.TypeBots.UnitGlobalDisabled() {
+		ctx.NotFound("MustEnableBots", nil)
 		return
 	}
 
 	if ctx.Repo.Repository != nil {
-		if !ctx.Repo.CanRead(unit.TypeBuilds) {
-			ctx.NotFound("MustEnableBuilds", nil)
+		if !ctx.Repo.CanRead(unit.TypeBots) {
+			ctx.NotFound("MustEnableBots", nil)
 			return
 		}
 	}
 }
 
 func List(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.builds")
-	ctx.Data["PageIsBuilds"] = true
+	ctx.Data["Title"] = ctx.Tr("repo.bots")
+	ctx.Data["PageIsBots"] = true
 
 	defaultBranch, err := ctx.Repo.GitRepo.GetDefaultBranch()
 	if err != nil {
@@ -118,11 +118,11 @@ func List(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["Builds"] = runs
+	ctx.Data["Runs"] = runs
 
 	pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(http.StatusOK, tplListBuilds)
+	ctx.HTML(http.StatusOK, tplListBots)
 }

@@ -1079,7 +1079,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 
 	newPackages()
 
-	newBuilds()
+	newBots()
 
 	if err = Cfg.Section("ui").MapTo(&UI); err != nil {
 		log.Fatal("Failed to map UI settings: %v", err)

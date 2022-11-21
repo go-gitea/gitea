@@ -127,8 +127,8 @@ var (
 	// Packages represents packages storage
 	Packages ObjectStorage
 
-	// Builds represents builds storage
-	Builds ObjectStorage
+	// Bots represents bots storage
+	Bots ObjectStorage
 )
 
 // Init init the stoarge
@@ -200,6 +200,6 @@ func initPackages() (err error) {
 
 func initBots() (err error) {
 	log.Info("Initialising Bots storage with type: %s", setting.Bots.Storage.Type)
-	Builds, err = NewStorage(setting.Bots.Storage.Type, &setting.Bots.Storage)
+	Bots, err = NewStorage(setting.Bots.Storage.Type, &setting.Bots.Storage)
 	return err
 }

@@ -104,7 +104,7 @@ func TransferLogs(ctx context.Context, filename string) (func(), error) {
 	}
 	defer f.Close()
 
-	if _, err := storage.Builds.Save(filename, f, -1); err != nil {
+	if _, err := storage.Bots.Save(filename, f, -1); err != nil {
 		return nil, fmt.Errorf("storage save %q: %w", filename, err)
 	}
 	return remove, nil
@@ -119,7 +119,7 @@ func openLogs(ctx context.Context, inStorage bool, filename string) (io.ReadSeek
 		}
 		return f, nil
 	}
-	f, err := storage.Builds.Open(filename)
+	f, err := storage.Bots.Open(filename)
 	if err != nil {
 		return nil, fmt.Errorf("storage open %q: %w", filename, err)
 	}

@@ -56,7 +56,7 @@ func (Run) TableName() string {
 }
 
 func (run *Run) HTMLURL() string {
-	return fmt.Sprintf("%s/builds/runs/%d", run.Repo.HTMLURL(), run.Index)
+	return fmt.Sprintf("%s/bots/runs/%d", run.Repo.HTMLURL(), run.Index)
 }
 
 // LoadAttributes load Repo TriggerUser if not loaded

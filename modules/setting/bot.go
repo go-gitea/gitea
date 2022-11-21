@@ -20,10 +20,10 @@ var (
 	}
 )
 
-func newBuilds() {
+func newBots() {
 	sec := Cfg.Section("bots")
 	if err := sec.MapTo(&Bots); err != nil {
-		log.Fatal("Failed to map Builds settings: %v", err)
+		log.Fatal("Failed to map Bots settings: %v", err)
 	}
 
 	Bots.Storage = getStorage("bots_log", "", nil)

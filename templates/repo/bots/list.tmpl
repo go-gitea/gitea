@@ -16,12 +16,12 @@
 			<div class="twelve wide column content">
 				<div id="issue-filters" class="ui stackable grid">
 					<div class="six wide column">
-						{{template "repo/builds/openclose" .}}
+						{{template "repo/bots/openclose" .}}
 					</div>
 				</div>
 				<div id="issue-actions" class="ui stackable grid hide">
 					<div class="six wide column">
-						{{template "repo/builds/openclose" .}}
+						{{template "repo/bots/openclose" .}}
 					</div>
 					<div class="ui divider"></div>
 					{{/* Ten wide does not cope well and makes the columns stack.
@@ -41,7 +41,7 @@
 						</div>
 					</div>
 				</div>
-				{{template "repo/builds/build_list" .}}
+				{{template "repo/bots/build_list" .}}
 			</div>
 		</div>
 	</div>

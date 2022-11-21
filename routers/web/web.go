@@ -36,7 +36,7 @@ import (
 	"code.gitea.io/gitea/routers/web/misc"
 	"code.gitea.io/gitea/routers/web/org"
 	"code.gitea.io/gitea/routers/web/repo"
-	"code.gitea.io/gitea/routers/web/repo/builds"
+	"code.gitea.io/gitea/routers/web/repo/bots"
 	"code.gitea.io/gitea/routers/web/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/routers/web/user/setting/security"
@@ -679,7 +679,7 @@ func RegisterRoutes(m *web.Route) {
 	reqRepoIssuesOrPullsReader := context.RequireRepoReaderOr(unit.TypeIssues, unit.TypePullRequests)
 	reqRepoProjectsReader := context.RequireRepoReader(unit.TypeProjects)
 	reqRepoProjectsWriter := context.RequireRepoWriter(unit.TypeProjects)
-	reqRepoBuildsReader := context.RequireRepoReader(unit.TypeBuilds)
+	reqRepoBotsReader := context.RequireRepoReader(unit.TypeBots)
 
 	reqPackageAccess := func(accessMode perm.AccessMode) func(ctx *context.Context) {
 		return func(ctx *context.Context) {
@@ -1212,22 +1212,22 @@ func RegisterRoutes(m *web.Route) {
 			}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())
 		}, reqRepoProjectsReader, repo.MustEnableProjects)
 
-		m.Group("/builds", func() {
-			m.Get("", builds.List)
+		m.Group("/bots", func() {
+			m.Get("", bots.List)
 
 			m.Group("/runs/{run}", func() {
 				m.Combo("").
-					Get(builds.View).
-					Post(bindIgnErr(builds.ViewRequest{}), builds.ViewPost)
+					Get(bots.View).
+					Post(bindIgnErr(bots.ViewRequest{}), bots.ViewPost)
 				m.Group("/jobs/{job}", func() {
 					m.Combo("").
-						Get(builds.View).
-						Post(bindIgnErr(builds.ViewRequest{}), builds.ViewPost)
-					m.Post("/rerun", builds.Rerun)
+						Get(bots.View).
+						Post(bindIgnErr(bots.ViewRequest{}), bots.ViewPost)
+					m.Post("/rerun", bots.Rerun)
 				})
-				m.Post("/cancel", builds.Cancel)
+				m.Post("/cancel", bots.Cancel)
 			})
-		}, reqRepoBuildsReader, builds.MustEnableBuilds)
+		}, reqRepoBotsReader, bots.MustEnableBots)
 
 		m.Group("/wiki", func() {
 			m.Combo("/").

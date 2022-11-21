@@ -1,4 +1,8 @@
-package builds
+// Copyright 2022 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
+package bots
 
 import (
 	"context"
@@ -18,7 +22,7 @@ import (
 )
 
 func View(ctx *context_module.Context) {
-	ctx.Data["PageIsBuilds"] = true
+	ctx.Data["PageIsBots"] = true
 	runIndex := ctx.ParamsInt64("run")
 	jobIndex := ctx.ParamsInt64("job")
 	ctx.Data["RunIndex"] = runIndex
@@ -31,7 +35,6 @@ func View(ctx *context_module.Context) {
 	run := job.Run
 	ctx.Data["Build"] = run
 
-	// ctx.Data["Build"] = &bots_model.Run{Title: "test", Index: 123, Status: bots_model.StatusRunning}
 	ctx.HTML(http.StatusOK, tplViewBuild)
 }
 

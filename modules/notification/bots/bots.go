@@ -45,12 +45,12 @@ func NewNotifier() base.Notifier {
 }
 
 func notify(repo *repo_model.Repository, doer *user_model.User, ref string, evt webhook.HookEventType, payload api.Payloader) error {
-	if unit.TypeBuilds.UnitGlobalDisabled() {
+	if unit.TypeBots.UnitGlobalDisabled() {
 		return nil
 	}
 	if err := repo.LoadUnits(db.DefaultContext); err != nil {
 		return fmt.Errorf("repo.LoadUnits: %w", err)
-	} else if !repo.UnitEnabled(unit.TypeBuilds) {
+	} else if !repo.UnitEnabled(unit.TypeBots) {
 		return nil
 	}
 

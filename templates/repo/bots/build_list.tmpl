@@ -1,8 +1,8 @@
 <div class="issue list">
-	{{range .Builds}}
+	{{range .Runs}}
 		<li class="item df py-3">
 			<div class="issue-item-left df">
-				{{template "repo/builds/status" .Status}}
+				{{template "repo/bots/status" .Status}}
 			</div>
 			<div class="issue-item-main f1 fc df">
 				<div class="issue-item-top-row">
