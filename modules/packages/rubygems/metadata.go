@@ -120,7 +120,7 @@ func (r requirement) AsVersionRequirement() []VersionRequirement {
 		if !ok {
 			continue
 		}
-		vm, ok := req[1].(map[interface{}]interface{})
+		vm, ok := req[1].(map[string]interface{})
 		if !ok {
 			continue
 		}
