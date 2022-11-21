@@ -133,3 +133,51 @@ export function convertImage(blob, mime) {
     }
   });
 }
+
+// convert a Blob to a DataURI
+export function blobToDataURI(blob) {
+  return new Promise((resolve, reject) => {
+    try {
+      const reader = new FileReader();
+      reader.addEventListener('load', (e) => {
+        resolve(e.target.result);
+      });
+      reader.addEventListener('error', () => {
+        reject(new Error('FileReader failed'));
+      });
+      reader.readAsDataURL(blob);
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+// convert image Blob to another mime-type format.
+export function convertImage(blob, mime) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const img = new Image();
+      const canvas = document.createElement('canvas');
+      img.addEventListener('load', () => {
+        try {
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          const context = canvas.getContext('2d');
+          context.drawImage(img, 0, 0);
+          canvas.toBlob((blob) => {
+            if (!(blob instanceof Blob)) return reject(new Error('imageBlobToPng failed'));
+            resolve(blob);
+          }, mime);
+        } catch (err) {
+          reject(err);
+        }
+      });
+      img.addEventListener('error', () => {
+        reject(new Error('imageBlobToPng failed'));
+      });
+      img.src = await blobToDataURI(blob);
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
