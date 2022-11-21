@@ -39,16 +39,6 @@ steps:
       - make lint-frontend
     depends_on: [deps-frontend]
 
-  - name: security-check
-    image: golang:1.19
-    pull: always
-    commands:
-      - make security-check
-    depends_on: [deps-backend]
-    volumes:
-      - name: deps
-        path: /go
-
   - name: lint-backend
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     pull: always
