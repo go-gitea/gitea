@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v3"
 )
 
 func TestIssueTemplate_Type(t *testing.T) {
@@ -38,6 +39,68 @@ func TestIssueTemplate_Type(t *testing.T) {
 				FileName: tt.fileName,
 			}
 			assert.Equal(t, tt.want, it.Type())
+		})
+	}
+}
+
+func TestIssueTemplateLabels_UnmarshalYAML(t *testing.T) {
+	tests := []struct {
+		name    string
+		content string
+		tmpl    *IssueTemplate
+		want    *IssueTemplate
+		wantErr string
+	}{
+		{
+			name:    "array",
+			content: `labels: ["a", "b", "c"]`,
+			tmpl: &IssueTemplate{
+				Labels: []string{"should_be_overwrote"},
+			},
+			want: &IssueTemplate{
+				Labels: []string{"a", "b", "c"},
+			},
+		},
+		{
+			name:    "string",
+			content: `labels: "a,b,c"`,
+			tmpl: &IssueTemplate{
+				Labels: []string{"should_be_overwrote"},
+			},
+			want: &IssueTemplate{
+				Labels: []string{"a", "b", "c"},
+			},
+		},
+		{
+			name:    "empty",
+			content: `labels:`,
+			tmpl: &IssueTemplate{
+				Labels: []string{"should_be_overwrote"},
+			},
+			want: &IssueTemplate{
+				Labels: nil,
+			},
+		},
+		{
+			name: "error",
+			content: `
+labels:
+  a: aa
+  b: bb
+`,
+			tmpl:    &IssueTemplate{},
+			wantErr: "line 3: cannot unmarshal !!map into IssueTemplateLabels",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := yaml.Unmarshal([]byte(tt.content), tt.tmpl)
+			if tt.wantErr != "" {
+				assert.EqualError(t, err, tt.wantErr)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.want, tt.tmpl)
+			}
 		})
 	}
 }
