@@ -20,6 +20,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
+// DefaultAvatarClass is the default class of a rendered avatar
+const DefaultAvatarClass = "ui avatar vm"
+
 // DefaultAvatarPixelSize is the default size in pixels of a rendered avatar
 const DefaultAvatarPixelSize = 28
 
