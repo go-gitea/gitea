@@ -5,8 +5,12 @@
 package structs
 
 import (
-	"path/filepath"
+	"fmt"
+	"path"
+	"strings"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
 // StateType issue state type
@@ -143,14 +147,47 @@ type IssueFormField struct {
 // IssueTemplate represents an issue template for a repository
 // swagger:model
 type IssueTemplate struct {
-	Name     string            `json:"name" yaml:"name"`
-	Title    string            `json:"title" yaml:"title"`
-	About    string            `json:"about" yaml:"about"` // Using "description" in a template file is compatible
-	Labels   []string          `json:"labels" yaml:"labels"`
-	Ref      string            `json:"ref" yaml:"ref"`
-	Content  string            `json:"content" yaml:"-"`
-	Fields   []*IssueFormField `json:"body" yaml:"body"`
-	FileName string            `json:"file_name" yaml:"-"`
+	Name     string              `json:"name" yaml:"name"`
+	Title    string              `json:"title" yaml:"title"`
+	About    string              `json:"about" yaml:"about"` // Using "description" in a template file is compatible
+	Labels   IssueTemplateLabels `json:"labels" yaml:"labels"`
+	Ref      string              `json:"ref" yaml:"ref"`
+	Content  string              `json:"content" yaml:"-"`
+	Fields   []*IssueFormField   `json:"body" yaml:"body"`
+	FileName string              `json:"file_name" yaml:"-"`
+}
+
+type IssueTemplateLabels []string
+
+func (l *IssueTemplateLabels) UnmarshalYAML(value *yaml.Node) error {
+	var labels []string
+	if value.IsZero() {
+		*l = labels
+		return nil
+	}
+	switch value.Kind {
+	case yaml.ScalarNode:
+		str := ""
+		err := value.Decode(&str)
+		if err != nil {
+			return err
+		}
+		for _, v := range strings.Split(str, ",") {
+			if v = strings.TrimSpace(v); v == "" {
+				continue
+			}
+			labels = append(labels, v)
+		}
+		*l = labels
+		return nil
+	case yaml.SequenceNode:
+		if err := value.Decode(&labels); err != nil {
+			return err
+		}
+		*l = labels
+		return nil
+	}
+	return fmt.Errorf("line %d: cannot unmarshal %s into IssueTemplateLabels", value.Line, value.ShortTag())
 }
 
 // IssueTemplateType defines issue template type
@@ -163,11 +200,11 @@ const (
 
 // Type returns the type of IssueTemplate, can be "md", "yaml" or empty for known
 func (it IssueTemplate) Type() IssueTemplateType {
-	if it.Name == "config.yaml" || it.Name == "config.yml" {
+	if base := path.Base(it.FileName); base == "config.yaml" || base == "config.yml" {
 		// ignore config.yaml which is a special configuration file
 		return ""
 	}
-	if ext := filepath.Ext(it.FileName); ext == ".md" {
+	if ext := path.Ext(it.FileName); ext == ".md" {
 		return IssueTemplateTypeMarkdown
 	} else if ext == ".yaml" || ext == ".yml" {
 		return IssueTemplateTypeYaml

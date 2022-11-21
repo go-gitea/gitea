@@ -22,7 +22,7 @@ func GetYamlFixturesAccess() (string, error) {
 	}
 
 	for _, repo := range repos {
-		repo.MustOwner()
+		repo.MustOwner(db.DefaultContext)
 		if err := access_model.RecalculateAccesses(db.DefaultContext, repo); err != nil {
 			return "", err
 		}

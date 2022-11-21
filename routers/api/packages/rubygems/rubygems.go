@@ -77,7 +77,9 @@ func enumeratePackages(ctx *context.Context, filename string, pvs []*packages_mo
 		})
 	}
 
-	ctx.SetServeHeaders(filename + ".gz")
+	ctx.SetServeHeaders(&context.ServeHeaderOptions{
+		Filename: filename + ".gz",
+	})
 
 	zw := gzip.NewWriter(ctx.Resp)
 	defer zw.Close()
@@ -115,7 +117,9 @@ func ServePackageSpecification(ctx *context.Context) {
 		return
 	}
 
-	ctx.SetServeHeaders(filename)
+	ctx.SetServeHeaders(&context.ServeHeaderOptions{
+		Filename: filename,
+	})
 
 	zw := zlib.NewWriter(ctx.Resp)
 	defer zw.Close()
@@ -242,16 +246,20 @@ func UploadPackageFile(ctx *context.Context) {
 			PackageFileInfo: packages_service.PackageFileInfo{
 				Filename: filename,
 			},
-			Data:   buf,
-			IsLead: true,
+			Creator: ctx.Doer,
+			Data:    buf,
+			IsLead:  true,
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrDuplicatePackageVersion {
+		switch err {
+		case packages_model.ErrDuplicatePackageVersion:
 			apiError(ctx, http.StatusBadRequest, err)
-			return
+		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+			apiError(ctx, http.StatusForbidden, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
 		}
-		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 

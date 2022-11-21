@@ -25,7 +25,7 @@ func DeleteCollaboration(repo *repo_model.Repository, uid int64) (err error) {
 		UserID: uid,
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
