@@ -31,6 +31,7 @@ type Type string
 
 // List of supported packages
 const (
+	TypeCargo     Type = "cargo"
 	TypeComposer  Type = "composer"
 	TypeConan     Type = "conan"
 	TypeContainer Type = "container"
@@ -46,6 +47,7 @@ const (
 )
 
 var TypeList = []Type{
+	TypeCargo,
 	TypeComposer,
 	TypeConan,
 	TypeContainer,
@@ -63,6 +65,8 @@ var TypeList = []Type{
 // Name gets the name of the package type
 func (pt Type) Name() string {
 	switch pt {
+	case TypeCargo:
+		return "Cargo"
 	case TypeComposer:
 		return "Composer"
 	case TypeConan:
@@ -94,6 +98,8 @@ func (pt Type) Name() string {
 // SVGName gets the name of the package type svg image
 func (pt Type) SVGName() string {
 	switch pt {
+	case TypeCargo:
+		return "gitea-cargo"
 	case TypeComposer:
 		return "gitea-composer"
 	case TypeConan:

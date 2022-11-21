@@ -463,6 +463,10 @@ func RegisterRoutes(m *web.Route) {
 					m.Get("/preview", user_setting.PackagesRulePreview)
 				})
 			})
+			m.Group("/cargo", func() {
+				m.Post("/initialize", user_setting.InitializeCargoIndex)
+				m.Post("/rebuild", user_setting.RebuildCargoIndex)
+			})
 		}, packagesEnabled)
 		m.Get("/organization", user_setting.Organization)
 		m.Get("/repos", user_setting.Repos)
@@ -783,6 +787,10 @@ func RegisterRoutes(m *web.Route) {
 							m.Post("", bindIgnErr(forms.PackageCleanupRuleForm{}), org.PackagesRuleEditPost)
 							m.Get("/preview", org.PackagesRulePreview)
 						})
+					})
+					m.Group("/cargo", func() {
+						m.Post("/initialize", org.InitializeCargoIndex)
+						m.Post("/rebuild", org.RebuildCargoIndex)
 					})
 				}, packagesEnabled)
 			}, func(ctx *context.Context) {

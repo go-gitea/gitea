@@ -6,6 +6,7 @@
 			<select class="ui dropdown" name="type">
 				<option value="">{{.locale.Tr "packages.filter.type"}}</option>
 				<option value="all">{{.locale.Tr "packages.filter.type.all"}}</option>
+				<option value="cargo" {{if eq .PackageType "cargo"}}selected="selected"{{end}}>Cargo</option>
 				<option value="composer" {{if eq .PackageType "composer"}}selected="selected"{{end}}>Composer</option>
 				<option value="conan" {{if eq .PackageType "conan"}}selected="selected"{{end}}>Conan</option>
 				<option value="container" {{if eq .PackageType "container"}}selected="selected"{{end}}>Container</option>

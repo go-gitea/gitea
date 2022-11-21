@@ -22,6 +22,7 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	cargo_service "code.gitea.io/gitea/services/packages/cargo"
 	container_service "code.gitea.io/gitea/services/packages/container"
 )
 
@@ -331,6 +332,8 @@ func checkSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 
 	var typeSpecificSize int64
 	switch packageType {
+	case packages_model.TypeCargo:
+		typeSpecificSize = setting.Packages.LimitSizeCargo
 	case packages_model.TypeComposer:
 		typeSpecificSize = setting.Packages.LimitSizeComposer
 	case packages_model.TypeConan:
@@ -478,12 +481,15 @@ func Cleanup(taskCtx context.Context, olderThan time.Duration) error {
 			if err != nil {
 				return fmt.Errorf("CleanupRule [%d]: SearchVersions failed: %w", pcr.ID, err)
 			}
+			versionDeleted := false
 			for _, pv := range pvs {
-				if skip, err := container_service.ShouldBeSkipped(ctx, pcr, p, pv); err != nil {
-					return fmt.Errorf("CleanupRule [%d]: container.ShouldBeSkipped failed: %w", pcr.ID, err)
-				} else if skip {
-					log.Debug("Rule[%d]: keep '%s/%s' (container)", pcr.ID, p.Name, pv.Version)
-					continue
+				if pcr.Type == packages_model.TypeContainer {
+					if skip, err := container_service.ShouldBeSkipped(ctx, pcr, p, pv); err != nil {
+						return fmt.Errorf("CleanupRule [%d]: container.ShouldBeSkipped failed: %w", pcr.ID, err)
+					} else if skip {
+						log.Debug("Rule[%d]: keep '%s/%s' (container)", pcr.ID, p.Name, pv.Version)
+						continue
+					}
 				}
 
 				toMatch := pv.LowerVersion
@@ -508,6 +514,20 @@ func Cleanup(taskCtx context.Context, olderThan time.Duration) error {
 
 				if err := DeletePackageVersionAndReferences(ctx, pv); err != nil {
 					return fmt.Errorf("CleanupRule [%d]: DeletePackageVersionAndReferences failed: %w", pcr.ID, err)
+				}
+
+				versionDeleted = true
+			}
+
+			if versionDeleted {
+				if pcr.Type == packages_model.TypeCargo {
+					owner, err := user_model.GetUserByIDCtx(ctx, pcr.OwnerID)
+					if err != nil {
+						return fmt.Errorf("GetUserByID failed: %w", err)
+					}
+					if err := cargo_service.AddOrUpdatePackageIndex(ctx, owner, owner, p.ID); err != nil {
+						return fmt.Errorf("CleanupRule [%d]: cargo.AddOrUpdatePackageIndex failed: %w", pcr.ID, err)
+					}
 				}
 			}
 		}
