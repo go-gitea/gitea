@@ -202,7 +202,7 @@ func Milestones(ctx *context.Context) {
 		return
 	}
 
-	showRepos, _, err := repo_model.SearchRepositoryByCondition(&repoOpts, userRepoCond, false)
+	showRepos, _, err := repo_model.SearchRepositoryByCondition(ctx, &repoOpts, userRepoCond, false)
 	if err != nil {
 		ctx.ServerError("SearchRepositoryByCondition", err)
 		return
@@ -461,7 +461,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// USING NON-FINAL STATE OF opts FOR A QUERY.
 	var issueCountByRepo map[int64]int64
 	if !forceEmpty {
-		issueCountByRepo, err = issues_model.CountIssuesByRepo(opts)
+		issueCountByRepo, err = issues_model.CountIssuesByRepo(ctx, opts)
 		if err != nil {
 			ctx.ServerError("CountIssuesByRepo", err)
 			return
@@ -504,7 +504,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// USING FINAL STATE OF opts FOR A QUERY.
 	var issues []*issues_model.Issue
 	if !forceEmpty {
-		issues, err = issues_model.Issues(opts)
+		issues, err = issues_model.Issues(ctx, opts)
 		if err != nil {
 			ctx.ServerError("Issues", err)
 			return

@@ -5,6 +5,8 @@
 package comments
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -14,7 +16,7 @@ import (
 )
 
 // CreateIssueComment creates a plain issue comment.
-func CreateIssueComment(doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content string, attachments []string) (*issues_model.Comment, error) {
+func CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content string, attachments []string) (*issues_model.Comment, error) {
 	comment, err := issues_model.CreateComment(&issues_model.CreateCommentOptions{
 		Type:        issues_model.CommentTypeComment,
 		Doer:        doer,
@@ -27,27 +29,27 @@ func CreateIssueComment(doer *user_model.User, repo *repo_model.Repository, issu
 		return nil, err
 	}
 
-	mentions, err := issues_model.FindAndUpdateIssueMentions(db.DefaultContext, issue, doer, comment.Content)
+	mentions, err := issues_model.FindAndUpdateIssueMentions(ctx, issue, doer, comment.Content)
 	if err != nil {
 		return nil, err
 	}
 
-	notification.NotifyCreateIssueComment(doer, repo, issue, comment, mentions)
+	notification.NotifyCreateIssueComment(ctx, doer, repo, issue, comment, mentions)
 
 	return comment, nil
 }
 
 // UpdateComment updates information of comment.
-func UpdateComment(c *issues_model.Comment, doer *user_model.User, oldContent string) error {
+func UpdateComment(ctx context.Context, c *issues_model.Comment, doer *user_model.User, oldContent string) error {
 	needsContentHistory := c.Content != oldContent &&
 		(c.Type == issues_model.CommentTypeComment || c.Type == issues_model.CommentTypeReview || c.Type == issues_model.CommentTypeCode)
 	if needsContentHistory {
-		hasContentHistory, err := issues_model.HasIssueContentHistory(db.DefaultContext, c.IssueID, c.ID)
+		hasContentHistory, err := issues_model.HasIssueContentHistory(ctx, c.IssueID, c.ID)
 		if err != nil {
 			return err
 		}
 		if !hasContentHistory {
-			if err = issues_model.SaveIssueContentHistory(db.DefaultContext, c.PosterID, c.IssueID, c.ID,
+			if err = issues_model.SaveIssueContentHistory(ctx, c.PosterID, c.IssueID, c.ID,
 				c.CreatedUnix, oldContent, true); err != nil {
 				return err
 			}
@@ -59,33 +61,27 @@ func UpdateComment(c *issues_model.Comment, doer *user_model.User, oldContent st
 	}
 
 	if needsContentHistory {
-		err := issues_model.SaveIssueContentHistory(db.DefaultContext, doer.ID, c.IssueID, c.ID, timeutil.TimeStampNow(), c.Content, false)
+		err := issues_model.SaveIssueContentHistory(ctx, doer.ID, c.IssueID, c.ID, timeutil.TimeStampNow(), c.Content, false)
 		if err != nil {
 			return err
 		}
 	}
 
-	notification.NotifyUpdateComment(doer, c, oldContent)
+	notification.NotifyUpdateComment(ctx, doer, c, oldContent)
 
 	return nil
 }
 
 // DeleteComment deletes the comment
-func DeleteComment(doer *user_model.User, comment *issues_model.Comment) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) error {
+	err := db.AutoTx(ctx, func(ctx context.Context) error {
+		return issues_model.DeleteComment(ctx, comment)
+	})
 	if err != nil {
 		return err
 	}
-	defer committer.Close()
 
-	if err := issues_model.DeleteComment(ctx, comment); err != nil {
-		return err
-	}
-	if err := committer.Commit(); err != nil {
-		return err
-	}
-
-	notification.NotifyDeleteComment(doer, comment)
+	notification.NotifyDeleteComment(ctx, doer, comment)
 
 	return nil
 }

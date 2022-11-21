@@ -16818,11 +16818,7 @@
           "x-go-name": "FileName"
         },
         "labels": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "x-go-name": "Labels"
+          "$ref": "#/definitions/IssueTemplateLabels"
         },
         "name": {
           "type": "string",
@@ -16836,6 +16832,13 @@
           "type": "string",
           "x-go-name": "Title"
         }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "IssueTemplateLabels": {
+      "type": "array",
+      "items": {
+        "type": "string"
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
