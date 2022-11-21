@@ -310,6 +310,13 @@ func RegisterRoutes(m *web.Route) {
 		}
 	}
 
+	feedEnabled := func(ctx *context.Context) {
+		if !setting.EnableFeed {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+	}
+
 	// FIXME: not all routes need go through same middleware.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 	// Routers.
@@ -633,9 +640,11 @@ func RegisterRoutes(m *web.Route) {
 			m.Get(".png", func(ctx *context.Context) { ctx.Error(http.StatusNotFound) })
 			m.Get(".keys", user.ShowSSHKeys)
 			m.Get(".gpg", user.ShowGPGKeys)
-			m.Get(".rss", feed.ShowUserFeedRSS)
-			m.Get(".atom", feed.ShowUserFeedAtom)
+			m.Get(".rss", feedEnabled, feed.ShowUserFeedRSS)
+			m.Get(".atom", feedEnabled, feed.ShowUserFeedAtom)
 			m.Get("", user.Profile)
+		}, func(ctx *context.Context) {
+			ctx.Data["EnableFeed"] = setting.EnableFeed
 		}, context_service.UserAssignmentWeb())
 		m.Get("/attachments/{uuid}", repo.GetAttachment)
 	}, ignSignIn)
