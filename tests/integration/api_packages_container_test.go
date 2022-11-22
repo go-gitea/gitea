@@ -611,7 +611,7 @@ func TestPackageContainer(t *testing.T) {
 
 			go func() {
 				defer wg.Done()
-				
+
 				req := NewRequestWithBody(t, "POST", fmt.Sprintf("%s/blobs/uploads?digest=%s", url, digest), bytes.NewReader(content))
 				addTokenAuthHeader(req, userToken)
 				resp := MakeRequest(t, req, http.StatusCreated)
