@@ -7,6 +7,7 @@ package issues_test
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
@@ -23,7 +24,7 @@ func TestIssueList_LoadRepositories(t *testing.T) {
 		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 4}),
 	}
 
-	repos, err := issueList.LoadRepositories()
+	repos, err := issueList.LoadRepositories(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.Len(t, repos, 2)
 	for _, issue := range issueList {
