@@ -6,9 +6,14 @@ plugins:
 overrides:
   - files: ["**/*.less"]
     customSyntax: postcss-less
-  - files: ["web_src/less/*.less"]
+  - files: ["**/*.less"]
     rules:
-      scale-unlimited/declaration-strict-value: [color, {ignoreValues: /^(inherit|transparent)$/}]
+      scale-unlimited/declaration-strict-value: [color, {
+        ignoreValues: /^(inherit|transparent|unset|initial)$/
+      }]
+  - files: ["**/chroma/*", "**/codemirror/*", "**/standalone/*", "**/console/*"]
+    rules:
+      scale-unlimited/declaration-strict-value: null
 
 rules:
   alpha-value-notation: null
