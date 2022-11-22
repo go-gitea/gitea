@@ -197,8 +197,9 @@ func UploadPackage(ctx *context.Context) {
 			PackageFileInfo: packages_service.PackageFileInfo{
 				Filename: strings.ToLower(fmt.Sprintf("%s-%s.crate", cp.Name, cp.Version)),
 			},
-			Data:   buf,
-			IsLead: true,
+			Creator: ctx.Doer,
+			Data:    buf,
+			IsLead:  true,
 		},
 	)
 	if err != nil {
