@@ -11,6 +11,7 @@ import (
 	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	bots_model "code.gitea.io/gitea/models/bots"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -92,7 +93,21 @@ func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
 	}
 	t, err := auth_model.GetAccessTokenBySHA(tokenSHA)
 	if err != nil {
-		if !auth_model.IsErrAccessTokenNotExist(err) && !auth_model.IsErrAccessTokenEmpty(err) {
+		if auth_model.IsErrAccessTokenNotExist(err) {
+			// check task token
+			task, err := bots_model.GetTaskByToken(db.DefaultContext, tokenSHA)
+			if err == nil && task != nil {
+				if task.Status.IsRunning() {
+					log.Trace("Basic Authorization: Valid AccessToken for task[%d]", task.ID)
+
+					store.GetData()["IsBotToken"] = true
+					store.GetData()["BotTaskID"] = task.ID
+
+					return user_model.BotUserID
+				}
+				log.Warn("task %v status is %v but auth request sent: %v", task.ID, task.Status, req.RemoteAddr)
+			}
+		} else if !auth_model.IsErrAccessTokenNotExist(err) && !auth_model.IsErrAccessTokenEmpty(err) {
 			log.Error("GetAccessTokenBySHA: %v", err)
 		}
 		return 0
@@ -119,12 +134,12 @@ func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStor
 	}
 
 	id := o.userIDFromToken(req, store)
-	if id <= 0 {
+	if id == -1 || id <= -3 { // -2 means bots, so we need to allow it.
 		return nil
 	}
 	log.Trace("OAuth2 Authorization: Found token for user[%d]", id)
 
-	user, err := user_model.GetUserByID(id)
+	user, err := user_model.GetPossbileUserByID(req.Context(), id)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("GetUserByName: %v", err)
