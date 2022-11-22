@@ -51,7 +51,7 @@ func newSignatureFromCommitline(line []byte) (sig *Signature, err error) {
 		return
 	}
 
-	if emailStart > 0 {
+	if emailStart > 0 { // Empty name has already occurred, even if it shouldn't
 		sig.Name = string(line[:emailStart-1])
 	}
 	sig.Email = string(line[emailStart+1 : emailEnd])
