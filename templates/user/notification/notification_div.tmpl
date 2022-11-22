@@ -34,7 +34,6 @@
 						{{range $notification := .Notifications}}
 							{{$issue := .Issue}}
 							{{$repo := .Repository}}
-							{{$repoOwner := $repo.MustOwner}}
 							<tr id="notification_{{.ID}}">
 								<td class="collapsing" data-href="{{.HTMLURL}}">
 									{{if eq .Status 3}}
@@ -69,9 +68,7 @@
 									</a>
 								</td>
 								<td data-href="{{$repo.Link}}">
-									<a class="item" href="{{$repo.Link}}">
-										{{$repoOwner.Name}}/{{$repo.Name}}
-									</a>
+									<a class="item" href="{{$repo.Link}}">{{$repo.FullName}}</a>
 								</td>
 								<td class="collapsing">
 									{{if ne .Status 3}}

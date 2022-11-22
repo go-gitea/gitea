@@ -8,12 +8,13 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // Load project data from file, with optional validation
@@ -84,13 +85,9 @@ func validate(bs []byte, datatype interface{}, isJSON bool) error {
 func toStringKeys(val interface{}) (interface{}, error) {
 	var err error
 	switch val := val.(type) {
-	case map[interface{}]interface{}:
+	case map[string]interface{}:
 		m := make(map[string]interface{})
 		for k, v := range val {
-			k, ok := k.(string)
-			if !ok {
-				return nil, fmt.Errorf("found non-string key %T %s", k, k)
-			}
 			m[k], err = toStringKeys(v)
 			if err != nil {
 				return nil, err
@@ -106,6 +103,8 @@ func toStringKeys(val interface{}) (interface{}, error) {
 			}
 		}
 		return l, nil
+	case time.Time:
+		return val.Format(time.RFC3339), nil
 	default:
 		return val, nil
 	}

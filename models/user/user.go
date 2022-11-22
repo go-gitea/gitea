@@ -1042,14 +1042,15 @@ func GetUserEmailsByNames(ctx context.Context, names []string) []string {
 }
 
 // GetMaileableUsersByIDs gets users from ids, but only if they can receive mails
-func GetMaileableUsersByIDs(ids []int64, isMention bool) ([]*User, error) {
+func GetMaileableUsersByIDs(ctx context.Context, ids []int64, isMention bool) ([]*User, error) {
 	if len(ids) == 0 {
 		return nil, nil
 	}
 	ous := make([]*User, 0, len(ids))
 
 	if isMention {
-		return ous, db.GetEngine(db.DefaultContext).In("id", ids).
+		return ous, db.GetEngine(ctx).
+			In("id", ids).
 			Where("`type` = ?", UserTypeIndividual).
 			And("`prohibit_login` = ?", false).
 			And("`is_active` = ?", true).
@@ -1057,7 +1058,8 @@ func GetMaileableUsersByIDs(ids []int64, isMention bool) ([]*User, error) {
 			Find(&ous)
 	}
 
-	return ous, db.GetEngine(db.DefaultContext).In("id", ids).
+	return ous, db.GetEngine(ctx).
+		In("id", ids).
 		Where("`type` = ?", UserTypeIndividual).
 		And("`prohibit_login` = ?", false).
 		And("`is_active` = ?", true).
@@ -1090,10 +1092,10 @@ func GetUserNameByID(ctx context.Context, id int64) (string, error) {
 }
 
 // GetUserIDsByNames returns a slice of ids corresponds to names.
-func GetUserIDsByNames(names []string, ignoreNonExistent bool) ([]int64, error) {
+func GetUserIDsByNames(ctx context.Context, names []string, ignoreNonExistent bool) ([]int64, error) {
 	ids := make([]int64, 0, len(names))
 	for _, name := range names {
-		u, err := GetUserByName(db.DefaultContext, name)
+		u, err := GetUserByName(ctx, name)
 		if err != nil {
 			if ignoreNonExistent {
 				continue

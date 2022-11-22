@@ -36,34 +36,34 @@ func TestAccessLevel(t *testing.T) {
 	// org. owned private repo
 	repo24 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 24})
 
-	level, err := access_model.AccessLevel(user2, repo1)
+	level, err := access_model.AccessLevel(db.DefaultContext, user2, repo1)
 	assert.NoError(t, err)
 	assert.Equal(t, perm_model.AccessModeOwner, level)
 
-	level, err = access_model.AccessLevel(user2, repo3)
+	level, err = access_model.AccessLevel(db.DefaultContext, user2, repo3)
 	assert.NoError(t, err)
 	assert.Equal(t, perm_model.AccessModeOwner, level)
 
-	level, err = access_model.AccessLevel(user5, repo1)
+	level, err = access_model.AccessLevel(db.DefaultContext, user5, repo1)
 	assert.NoError(t, err)
 	assert.Equal(t, perm_model.AccessModeRead, level)
 
-	level, err = access_model.AccessLevel(user5, repo3)
+	level, err = access_model.AccessLevel(db.DefaultContext, user5, repo3)
 	assert.NoError(t, err)
 	assert.Equal(t, perm_model.AccessModeNone, level)
 
 	// restricted user has no access to a public repo
-	level, err = access_model.AccessLevel(user29, repo1)
+	level, err = access_model.AccessLevel(db.DefaultContext, user29, repo1)
 	assert.NoError(t, err)
 	assert.Equal(t, perm_model.AccessModeNone, level)
 
 	// ... unless he's a collaborator
-	level, err = access_model.AccessLevel(user29, repo4)
+	level, err = access_model.AccessLevel(db.DefaultContext, user29, repo4)
 	assert.NoError(t, err)
 	assert.Equal(t, perm_model.AccessModeWrite, level)
 
 	// ... or a team member
-	level, err = access_model.AccessLevel(user29, repo24)
+	level, err = access_model.AccessLevel(db.DefaultContext, user29, repo24)
 	assert.NoError(t, err)
 	assert.Equal(t, perm_model.AccessModeRead, level)
 }
