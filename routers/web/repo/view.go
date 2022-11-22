@@ -443,7 +443,12 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["IsRepresentableAsText"] = isRepresentableAsText
 	ctx.Data["IsDisplayingSource"] = isDisplayingSource
 	ctx.Data["IsDisplayingRendered"] = isDisplayingRendered
-	ctx.Data["IsTextSource"] = isTextFile || isDisplayingSource
+
+	isTextSource := isTextFile || isDisplayingSource
+	ctx.Data["IsTextSource"] = isTextSource
+	if isTextSource {
+		ctx.Data["CanCopyContent"] = true
+	}
 
 	// Check LFS Lock
 	lfsLock, err := git_model.GetTreePathLock(ctx.Repo.Repository.ID, ctx.Repo.TreePath)
@@ -474,6 +479,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	case isRepresentableAsText:
 		if st.IsSvgImage() {
 			ctx.Data["IsImageFile"] = true
+			ctx.Data["CanCopyContent"] = true
 			ctx.Data["HasSourceRenderedToggle"] = true
 		}
 
@@ -608,6 +614,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		ctx.Data["IsAudioFile"] = true
 	case st.IsImage() && (setting.UI.SVG.Enabled || !st.IsSvgImage()):
 		ctx.Data["IsImageFile"] = true
+		ctx.Data["CanCopyContent"] = true
 	default:
 		if fileSize >= setting.UI.MaxDisplayFileSize {
 			ctx.Data["IsFileTooLarge"] = true
