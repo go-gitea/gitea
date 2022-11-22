@@ -75,7 +75,7 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.20
 	github.com/minio/minio-go/v7 v7.0.39
 	github.com/msteinert/pam v1.1.0
-	github.com/nektos/act v0.2.32
+	github.com/nektos/act v0.0.0
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/niklasfasching/go-org v1.6.5
 	github.com/oliamb/cutter v0.2.2
@@ -87,7 +87,7 @@ require (
 	github.com/santhosh-tekuri/jsonschema/v5 v5.0.1
 	github.com/sergi/go-diff v1.2.0
 	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.1
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tstranex/u2f v1.0.0
 	github.com/unrolled/render v1.5.0
@@ -215,7 +215,7 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
-	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jessevdk/go-flags v1.5.0 // indirect
 	github.com/jhump/protoreflect v1.8.2 // indirect
@@ -253,7 +253,7 @@ require (
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
-	github.com/rhysd/actionlint v1.6.17 // indirect
+	github.com/rhysd/actionlint v1.6.21 // indirect
 	github.com/rivo/uniseg v0.4.2 // indirect
 	github.com/robfig/cron v1.2.0 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
@@ -265,7 +265,7 @@ require (
 	github.com/soheilhy/cmux v0.1.5 // indirect
 	github.com/spf13/afero v1.8.2 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
-	github.com/spf13/cobra v1.5.0 // indirect
+	github.com/spf13/cobra v1.6.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.12.0 // indirect
@@ -319,4 +319,4 @@ exclude github.com/gofrs/uuid v4.0.0+incompatible
 
 exclude github.com/goccy/go-json v0.4.11
 
-replace github.com/nektos/act => gitea.com/gitea/act v0.0.0-20221104080934-57978c14b59d
+replace github.com/nektos/act => gitea.com/gitea/act v0.233.4
