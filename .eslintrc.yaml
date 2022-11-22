@@ -199,7 +199,7 @@ rules:
   newline-per-chained-call: [0]
   no-alert: [0]
   no-array-constructor: [2]
-  no-async-promise-executor: [2]
+  no-async-promise-executor: [0]
   no-await-in-loop: [0]
   no-bitwise: [0]
   no-buffer-constructor: [0]
