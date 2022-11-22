@@ -100,7 +100,7 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 
 			content := readGitContent(t, cargo_service.ConfigFileName)
 
-			var config cargo_service.CargoConfig
+			var config cargo_service.Config
 			err := json.Unmarshal([]byte(content), &config)
 			assert.NoError(t, err)
 

@@ -196,7 +196,7 @@ func getOrCreateIndexRepository(ctx context.Context, doer, owner *user_model.Use
 	return repo, nil
 }
 
-type CargoConfig struct {
+type Config struct {
 	DownloadURL string `json:"dl"`
 	APIURL      string `json:"api"`
 }
@@ -209,7 +209,7 @@ func createOrUpdateConfigFile(ctx context.Context, repo *repo_model.Repository, 
 		"Initialize Cargo Config",
 		func(t *files_service.TemporaryUploadRepository) error {
 			var b bytes.Buffer
-			err := json.NewEncoder(&b).Encode(CargoConfig{
+			err := json.NewEncoder(&b).Encode(Config{
 				DownloadURL: setting.AppURL + "api/packages/" + owner.Name + "/cargo/api/v1/crates",
 				APIURL:      setting.AppURL + "api/packages/" + owner.Name + "/cargo",
 			})
@@ -266,11 +266,7 @@ func alterRepositoryContent(ctx context.Context, doer *user_model.User, repo *re
 		return err
 	}
 
-	if err := t.Push(doer, commitHash, repo.DefaultBranch); err != nil {
-		return err
-	}
-
-	return nil
+	return t.Push(doer, commitHash, repo.DefaultBranch)
 }
 
 func writeObjectToIndex(t *files_service.TemporaryUploadRepository, path string, r io.Reader) error {
