@@ -23,7 +23,7 @@ import (
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
 
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 func apiError(ctx *context.Context, status int, obj interface{}) {
