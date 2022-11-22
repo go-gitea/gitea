@@ -82,12 +82,12 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 		return err
 	}
 
-	notification.NotifyNewPullRequest(pr, mentions)
+	notification.NotifyNewPullRequest(prCtx, pr, mentions)
 	if len(pull.Labels) > 0 {
-		notification.NotifyIssueChangeLabels(pull.Poster, pull, pull.Labels, nil)
+		notification.NotifyIssueChangeLabels(prCtx, pull.Poster, pull, pull.Labels, nil)
 	}
 	if pull.Milestone != nil {
-		notification.NotifyIssueChangeMilestone(pull.Poster, pull, 0)
+		notification.NotifyIssueChangeMilestone(prCtx, pull.Poster, pull, 0)
 	}
 
 	// add first push codes comment
@@ -172,7 +172,7 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 	}
 
 	// Check if pull request for the new target branch already exists
-	existingPr, err := issues_model.GetUnmergedPullRequest(pr.HeadRepoID, pr.BaseRepoID, pr.HeadBranch, targetBranch, issues_model.PullRequestFlowGithub)
+	existingPr, err := issues_model.GetUnmergedPullRequest(ctx, pr.HeadRepoID, pr.BaseRepoID, pr.HeadBranch, targetBranch, issues_model.PullRequestFlowGithub)
 	if existingPr != nil {
 		return issues_model.ErrPullRequestAlreadyExists{
 			ID:         existingPr.ID,
@@ -210,7 +210,7 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 	pr.CommitsAhead = divergence.Ahead
 	pr.CommitsBehind = divergence.Behind
 
-	if err := pr.UpdateColsIfNotMerged("merge_base", "status", "conflicted_files", "changed_protected_files", "base_branch", "commits_ahead", "commits_behind"); err != nil {
+	if err := pr.UpdateColsIfNotMerged(ctx, "merge_base", "status", "conflicted_files", "changed_protected_files", "base_branch", "commits_ahead", "commits_behind"); err != nil {
 		return err
 	}
 
@@ -231,9 +231,9 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 }
 
 func checkForInvalidation(ctx context.Context, requests issues_model.PullRequestList, repoID int64, doer *user_model.User, branch string) error {
-	repo, err := repo_model.GetRepositoryByID(repoID)
+	repo, err := repo_model.GetRepositoryByIDCtx(ctx, repoID)
 	if err != nil {
-		return fmt.Errorf("GetRepositoryByID: %w", err)
+		return fmt.Errorf("GetRepositoryByIDCtx: %w", err)
 	}
 	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 	if err != nil {
@@ -301,7 +301,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 					}
 
 					pr.Issue.PullRequest = pr
-					notification.NotifyPullRequestSynchronized(doer, pr)
+					notification.NotifyPullRequestSynchronized(ctx, doer, pr)
 				}
 			}
 		}
@@ -320,7 +320,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 			AddToTaskQueue(pr)
 			comment, err := issues_model.CreatePushPullComment(ctx, doer, pr, oldCommitID, newCommitID)
 			if err == nil && comment != nil {
-				notification.NotifyPullRequestPushCommits(doer, pr, comment)
+				notification.NotifyPullRequestPushCommits(ctx, doer, pr, comment)
 			}
 		}
 
@@ -352,14 +352,14 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 // checkIfPRContentChanged checks if diff to target branch has changed by push
 // A commit can be considered to leave the PR untouched if the patch/diff with its merge base is unchanged
 func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, oldCommitID, newCommitID string) (hasChanged bool, err error) {
-	if err = pr.LoadHeadRepoCtx(ctx); err != nil {
+	if err = pr.LoadHeadRepo(ctx); err != nil {
 		return false, fmt.Errorf("LoadHeadRepo: %w", err)
 	} else if pr.HeadRepo == nil {
 		// corrupt data assumed changed
 		return true, nil
 	}
 
-	if err = pr.LoadBaseRepoCtx(ctx); err != nil {
+	if err = pr.LoadBaseRepo(ctx); err != nil {
 		return false, fmt.Errorf("LoadBaseRepo: %w", err)
 	}
 
@@ -430,22 +430,22 @@ func PushToBaseRepo(ctx context.Context, pr *issues_model.PullRequest) (err erro
 func pushToBaseRepoHelper(ctx context.Context, pr *issues_model.PullRequest, prefixHeadBranch string) (err error) {
 	log.Trace("PushToBaseRepo[%d]: pushing commits to base repo '%s'", pr.BaseRepoID, pr.GetGitRefName())
 
-	if err := pr.LoadHeadRepoCtx(ctx); err != nil {
+	if err := pr.LoadHeadRepo(ctx); err != nil {
 		log.Error("Unable to load head repository for PR[%d] Error: %v", pr.ID, err)
 		return err
 	}
 	headRepoPath := pr.HeadRepo.RepoPath()
 
-	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
+	if err := pr.LoadBaseRepo(ctx); err != nil {
 		log.Error("Unable to load base repository for PR[%d] Error: %v", pr.ID, err)
 		return err
 	}
 	baseRepoPath := pr.BaseRepo.RepoPath()
 
-	if err = pr.LoadIssue(); err != nil {
+	if err = pr.LoadIssue(ctx); err != nil {
 		return fmt.Errorf("unable to load issue %d for pr %d: %w", pr.IssueID, pr.ID, err)
 	}
-	if err = pr.Issue.LoadPoster(); err != nil {
+	if err = pr.Issue.LoadPoster(ctx); err != nil {
 		return fmt.Errorf("unable to load poster %d for pr %d: %w", pr.Issue.PosterID, pr.ID, err)
 	}
 
@@ -485,7 +485,7 @@ func pushToBaseRepoHelper(ctx context.Context, pr *issues_model.PullRequest, pre
 // UpdateRef update refs/pull/id/head directly for agit flow pull request
 func UpdateRef(ctx context.Context, pr *issues_model.PullRequest) (err error) {
 	log.Trace("UpdateRef[%d]: upgate pull request ref in base repo '%s'", pr.ID, pr.GetGitRefName())
-	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
+	if err := pr.LoadBaseRepo(ctx); err != nil {
 		log.Error("Unable to load base repository for PR[%d] Error: %v", pr.ID, err)
 		return err
 	}
@@ -583,21 +583,21 @@ var commitMessageTrailersPattern = regexp.MustCompile(`(?:^|\n\n)(?:[\w-]+[ \t]*
 
 // GetSquashMergeCommitMessages returns the commit messages between head and merge base (if there is one)
 func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequest) string {
-	if err := pr.LoadIssue(); err != nil {
+	if err := pr.LoadIssue(ctx); err != nil {
 		log.Error("Cannot load issue %d for PR id %d: Error: %v", pr.IssueID, pr.ID, err)
 		return ""
 	}
 
-	if err := pr.Issue.LoadPoster(); err != nil {
+	if err := pr.Issue.LoadPoster(ctx); err != nil {
 		log.Error("Cannot load poster %d for pr id %d, index %d Error: %v", pr.Issue.PosterID, pr.ID, pr.Index, err)
 		return ""
 	}
 
 	if pr.HeadRepo == nil {
 		var err error
-		pr.HeadRepo, err = repo_model.GetRepositoryByID(pr.HeadRepoID)
+		pr.HeadRepo, err = repo_model.GetRepositoryByIDCtx(ctx, pr.HeadRepoID)
 		if err != nil {
-			log.Error("GetRepositoryById[%d]: %v", pr.HeadRepoID, err)
+			log.Error("GetRepositoryByIdCtx[%d]: %v", pr.HeadRepoID, err)
 			return ""
 		}
 	}
@@ -743,10 +743,10 @@ func GetIssuesLastCommitStatus(ctx context.Context, issues issues_model.IssueLis
 
 // GetIssuesAllCommitStatus returns a map of issue ID to a list of all statuses for the most recent commit as well as a map of issue ID to only the commit's latest status
 func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList) (map[int64][]*git_model.CommitStatus, map[int64]*git_model.CommitStatus, error) {
-	if err := issues.LoadPullRequests(); err != nil {
+	if err := issues.LoadPullRequests(ctx); err != nil {
 		return nil, nil, err
 	}
-	if _, err := issues.LoadRepositories(); err != nil {
+	if _, err := issues.LoadRepositories(ctx); err != nil {
 		return nil, nil, err
 	}
 
@@ -802,7 +802,7 @@ func getAllCommitStatus(gitRepo *git.Repository, pr *issues_model.PullRequest) (
 // IsHeadEqualWithBranch returns if the commits of branchName are available in pull request head
 func IsHeadEqualWithBranch(ctx context.Context, pr *issues_model.PullRequest, branchName string) (bool, error) {
 	var err error
-	if err = pr.LoadBaseRepoCtx(ctx); err != nil {
+	if err = pr.LoadBaseRepo(ctx); err != nil {
 		return false, err
 	}
 	baseGitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo.RepoPath())
@@ -816,7 +816,7 @@ func IsHeadEqualWithBranch(ctx context.Context, pr *issues_model.PullRequest, br
 		return false, err
 	}
 
-	if err = pr.LoadHeadRepoCtx(ctx); err != nil {
+	if err = pr.LoadHeadRepo(ctx); err != nil {
 		return false, err
 	}
 	var headGitRepo *git.Repository

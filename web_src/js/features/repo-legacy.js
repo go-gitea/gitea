@@ -463,10 +463,10 @@ export function initRepository() {
     $('.enable-system-radio').on('change', function () {
       if (this.value === 'false') {
         $($(this).data('target')).addClass('disabled');
-        if (typeof $(this).data('context') !== 'undefined') $($(this).data('context')).removeClass('disabled');
+        if ($(this).data('context') !== undefined) $($(this).data('context')).removeClass('disabled');
       } else if (this.value === 'true') {
         $($(this).data('target')).removeClass('disabled');
-        if (typeof $(this).data('context') !== 'undefined') $($(this).data('context')).addClass('disabled');
+        if ($(this).data('context') !== undefined) $($(this).data('context')).addClass('disabled');
       }
     });
     const $trackerIssueStyleRadios = $('.js-tracker-issue-style');

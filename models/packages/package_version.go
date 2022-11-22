@@ -320,6 +320,15 @@ func SearchLatestVersions(ctx context.Context, opts *PackageSearchOptions) ([]*P
 	return pvs, count, err
 }
 
+// ExistVersion checks if a version matching the search options exist
+func ExistVersion(ctx context.Context, opts *PackageSearchOptions) (bool, error) {
+	return db.GetEngine(ctx).
+		Where(opts.toConds()).
+		Table("package_version").
+		Join("INNER", "package", "package.id = package_version.package_id").
+		Exist(new(PackageVersion))
+}
+
 // CountVersions counts all versions of packages matching the search options
 func CountVersions(ctx context.Context, opts *PackageSearchOptions) (int64, error) {
 	return db.GetEngine(ctx).

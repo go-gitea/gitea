@@ -71,7 +71,7 @@ func ListPullReviews(ctx *context.APIContext) {
 		return
 	}
 
-	if err = pr.LoadIssue(); err != nil {
+	if err = pr.LoadIssue(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
 		return
 	}
@@ -476,7 +476,7 @@ func SubmitPullReview(ctx *context.APIContext) {
 
 // preparePullReviewType return ReviewType and false or nil and true if an error happen
 func preparePullReviewType(ctx *context.APIContext, pr *issues_model.PullRequest, event api.ReviewStateType, body string, hasComments bool) (issues_model.ReviewType, bool) {
-	if err := pr.LoadIssue(); err != nil {
+	if err := pr.LoadIssue(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
 		return -1, true
 	}

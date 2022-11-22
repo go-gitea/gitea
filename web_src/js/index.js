@@ -89,6 +89,7 @@ import {initRepoWikiForm} from './features/repo-wiki.js';
 import {initRepoCommentForm, initRepository} from './features/repo-legacy.js';
 import {initFormattingReplacements} from './features/formatting.js';
 import {initMcaptcha} from './features/mcaptcha.js';
+import {initCopyContent} from './features/copycontent.js';
 
 // Run time-critical code as soon as possible. This is safe to do because this
 // script appears at the end of <body> and rendered HTML is accessible at that point.
@@ -136,6 +137,7 @@ $(document).ready(() => {
   initStopwatch();
   initTableSort();
   initFindFileInRepo();
+  initCopyContent();
 
   initAdminCommon();
   initAdminEmails();
