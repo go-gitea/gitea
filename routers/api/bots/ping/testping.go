@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/bots-proto-go/ping/v1/pingv1connect"
 	"github.com/bufbuild/connect-go"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func MainServiceTest(t *testing.T, h http.Handler) {
@@ -46,7 +47,7 @@ func MainServiceTest(t *testing.T, h http.Handler) {
 			result, err := client.Ping(context.Background(), connect.NewRequest(&pingv1.PingRequest{
 				Data: "foobar",
 			}))
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, "Hello, foobar!", result.Msg.Data)
 		}
 	})

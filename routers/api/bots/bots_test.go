@@ -5,12 +5,12 @@
 package bots
 
 import (
+	"context"
 	"testing"
 
-	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/bots/ping"
 )
 
 func TestPingService(t *testing.T) {
-	ping.MainServiceTest(t, Routes(web.NewRoute()))
+	ping.MainServiceTest(t, Routes(context.Background(), ""))
 }
