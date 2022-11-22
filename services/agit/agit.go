@@ -96,7 +96,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			headBranch = curentTopicBranch
 		}
 
-		pr, err := issues_model.GetUnmergedPullRequest(repo.ID, repo.ID, headBranch, baseBranchName, issues_model.PullRequestFlowAGit)
+		pr, err := issues_model.GetUnmergedPullRequest(ctx, repo.ID, repo.ID, headBranch, baseBranchName, issues_model.PullRequestFlowAGit)
 		if err != nil {
 			if !issues_model.IsErrPullRequestNotExist(err) {
 				return nil, fmt.Errorf("Failed to get unmerged agit flow pull request in repository: %s/%s Error: %w", ownerName, repoName, err)
@@ -159,7 +159,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		}
 
 		// update exist pull request
-		if err := pr.LoadBaseRepoCtx(ctx); err != nil {
+		if err := pr.LoadBaseRepo(ctx); err != nil {
 			return nil, fmt.Errorf("Unable to load base repository for PR[%d] Error: %w", pr.ID, err)
 		}
 
@@ -203,15 +203,15 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		if err != nil {
 			return nil, fmt.Errorf("Failed to get user. Error: %w", err)
 		}
-		err = pr.LoadIssue()
+		err = pr.LoadIssue(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to load pull issue. Error: %w", err)
 		}
 		comment, err := issues_model.CreatePushPullComment(ctx, pusher, pr, oldCommitID, opts.NewCommitIDs[i])
 		if err == nil && comment != nil {
-			notification.NotifyPullRequestPushCommits(pusher, pr, comment)
+			notification.NotifyPullRequestPushCommits(ctx, pusher, pr, comment)
 		}
-		notification.NotifyPullRequestSynchronized(pusher, pr)
+		notification.NotifyPullRequestSynchronized(ctx, pusher, pr)
 		isForcePush := comment != nil && comment.IsForcePush
 
 		results = append(results, private.HookProcReceiveRefResult{

@@ -5,6 +5,7 @@
 package db
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 
@@ -12,7 +13,7 @@ import (
 )
 
 // CountBadSequences looks for broken sequences from recreate-table mistakes
-func CountBadSequences() (int64, error) {
+func CountBadSequences(_ context.Context) (int64, error) {
 	if !setting.Database.UsePostgreSQL {
 		return 0, nil
 	}
@@ -33,7 +34,7 @@ func CountBadSequences() (int64, error) {
 }
 
 // FixBadSequences fixes for broken sequences from recreate-table mistakes
-func FixBadSequences() error {
+func FixBadSequences(_ context.Context) error {
 	if !setting.Database.UsePostgreSQL {
 		return nil
 	}
