@@ -4,7 +4,7 @@ const {copy_success, copy_error} = window.config.i18n;
 
 export async function copyToClipboard(content) {
   if (content instanceof Blob) {
-    const item = new window.ClipboardItem({[content.type]: content});
+    const item = new ClipboardItem({[content.type]: content});
     await navigator.clipboard.write([item]);
   } else { // text
     try {

@@ -15,6 +15,14 @@ menu:
 
 # Logging Configuration
 
+The logging configuration of Gitea mainly consists of 3 types of components:
+
+- The `[log]` section for general configuration
+- `[log.<sublogger>]` sections for the configuration of different log outputs
+- `[log.<sublogger>.<group>]` sections for output specific configuration of a log group
+
+As mentioned below, there is a fully functional log output by default, so it is not necessary to define one.
+
 **Table of Contents**
 
 {{< toc >}}
@@ -22,6 +30,166 @@ menu:
 ## Collecting Logs for Help
 
 To collect logs for help and issue report, see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}}).
+
+## The `[log]` section
+
+Configuration of logging facilities in Gitea happen in the `[log]` section and it's subsections.
+
+In the top level `[log]` section the following configurations can be placed:
+
+- `ROOT_PATH`: (Default: **%(GITEA_WORK_DIR)/log**): Base path for log files
+- `MODE`: (Default: **console**) List of log outputs to use for the Default logger.
+- `ROUTER`: (Default: **console**): List of log outputs to use for the Router logger.
+- `ACCESS`: List of log outputs to use for the Access logger.
+- `XORM`: (Default: **,**) List of log outputs to use for the XORM logger.
+- `ENABLE_ACCESS_LOG`: (Default: **false**): whether the Access logger is allowed to emit logs
+- `ENABLE_XORM_LOG`: (Default: **true**): whether the XORM logger is allowed to emit logs
+
+For details on the loggers check the "Log Groups" section.
+Important: log outputs won't be used if you don't enable them for the desired loggers in the corresponding list value.
+
+Lists are specified as comma separated values. This format also works in subsection.
+
+This section may be used for defining default values for subsections.
+Examples:
+
+- `LEVEL`: (Default: **Info**) Least severe log events to persist. Case insensitive. The full list of levels as of v1.17.3 can be read [here](https://github.com/go-gitea/gitea/blob/v1.17.3/custom/conf/app.example.ini#L507).
+- `STACKTRACE_LEVEL`: (Default: **None**) For this and more severe events the stacktrace will be printed upon getting logged.
+
+Some values are not inherited by subsections. For details see the "Non-inherited default values" section.
+
+## Log outputs
+
+Log outputs are the targets to which log messages will be sent.
+The content and the format of the log messages to be saved can be configured in these.
+
+Log outputs are also called subloggers.
+
+Gitea provides 4 possible log outputs:
+
+- `console` - Log to `os.Stdout` or `os.Stderr`
+- `file` - Log to a file
+- `conn` - Log to a socket (network or unix)
+- `smtp` - Log via email
+
+By default, Gitea has a `console` output configured, which is used by the loggers as seen in the section "The log section" above.
+
+### Common configuration
+
+Certain configuration is common to all modes of log output:
+
+- `MODE` is the mode of the log output. It will default to the sublogger
+  name, thus `[log.console.router]` will default to `MODE = console`.
+  For mode specific confgurations read further.
+- `LEVEL` is the lowest level that this output will log. This value
+  is inherited from `[log]` and in the case of the non-default loggers
+  from `[log.sublogger]`.
+- `STACKTRACE_LEVEL` is the lowest level that this output will print
+  a stacktrace. This value is inherited.
+- `COLORIZE` will default to `true` for `console` as
+  described, otherwise it will default to `false`.
+
+### Non-inherited default values
+
+There are several values which are not inherited as described above but
+rather default to those specific to type of logger, these are:
+`EXPRESSION`, `FLAGS`, `PREFIX` and `FILE_NAME`.
+
+#### `EXPRESSION`
+
+`EXPRESSION` represents a regular expression that log events must match to be logged by the sublogger. Either the log message, (with colors removed), must match or the `longfilename:linenumber:functionname` must match. NB: the whole message or string doesn't need to completely match.
+
+Please note this expression will be run in the sublogger's goroutine
+not the logging event subroutine. Therefore it can be complicated.
+
+#### `FLAGS`
+
+`FLAGS` represents the preceding logging context information that is
+printed before each message. It is a comma-separated string set. The order of values does not matter.
+
+Possible values are:
+
+- `none` or `,` - No flags.
+- `date` - the date in the local time zone: `2009/01/23`.
+- `time` - the time in the local time zone: `01:23:23`.
+- `microseconds` - microsecond resolution: `01:23:23.123123`. Assumes
+  time.
+- `longfile` - full file name and line number: `/a/b/c/d.go:23`.
+- `shortfile` - final file name element and line number: `d.go:23`.
+- `funcname` - function name of the caller: `runtime.Caller()`.
+- `shortfuncname` - last part of the function name. Overrides
+  `funcname`.
+- `utc` - if date or time is set, use UTC rather than the local time
+  zone.
+- `levelinitial` - Initial character of the provided level in brackets eg. `[I]` for info.
+- `level` - Provided level in brackets `[INFO]`
+- `medfile` - Last 20 characters of the filename - equivalent to
+  `shortfile,longfile`.
+- `stdflags` - Equivalent to `date,time,medfile,shortfuncname,levelinitial`
+
+### Console mode
+
+In this mode the logger will forward log messages to the stdout and
+stderr streams attached to the Gitea process.
+
+For loggers in console mode, `COLORIZE` will default to `true` if not
+on windows, or the windows terminal can be set into ANSI mode or is a
+cygwin or Msys pipe.
+
+Settings:
+
+- `STDERR`: **false**: Whether the logger should print to `stderr` instead of `stdout`.
+
+### File mode
+
+In this mode the logger will save log messages to a file.
+
+Settings:
+
+- `FILE_NAME`: The file to write the log events to. For details see below.
+- `MAX_SIZE_SHIFT`: **28**: Maximum size shift of a single file. 28 represents 256Mb. For details see below.
+- `LOG_ROTATE` **true**: Whether to rotate the log files. TODO: if false, will it delete instead on daily rotate, or do nothing?.
+- `DAILY_ROTATE`: **true**: Whether to rotate logs daily.
+- `MAX_DAYS`: **7**: Delete rotated log files after this number of days.
+- `COMPRESS`: **true**: Whether to compress old log files by default with gzip.
+- `COMPRESSION_LEVEL`: **-1**: Compression level. For details see below.
+
+The default value of `FILE_NAME` depends on the respective logger facility.
+If unset, their own default will be used.
+If set it will be relative to the provided `ROOT_PATH` in the master `[log]` section.
+
+`MAX_SIZE_SHIFT` defines the maximum size of a file by left shifting 1 the given number of times (`1 << x`).
+The exact behavior at the time of v1.17.3 can be seen [here](https://github.com/go-gitea/gitea/blob/v1.17.3/modules/setting/log.go#L185).
+
+The useful values of `COMPRESSION_LEVEL` are from 1 to (and including) 9, where higher numbers mean better compression.
+Beware that better compression might come with higher resource usage.
+Must be preceded with a `-` sign.
+
+### Conn mode
+
+In this mode the logger will send log messages over a network socket.
+
+Settings:
+
+- `ADDR`: **:7020**: Sets the address to connect to.
+- `PROTOCOL`: **tcp**: Set the protocol, either "tcp", "unix" or "udp".
+- `RECONNECT`: **false**: Try to reconnect when connection is lost.
+- `RECONNECT_ON_MSG`: **false**: Reconnect host for every single message.
+
+### SMTP mode
+
+In this mode the logger will send log messages in email.
+
+It is not recommended to use this logger to send general logging
+messages. However, you could perhaps set this logger to work on `FATAL` messages only.
+
+Settings:
+
+- `HOST`: **127.0.0.1:25**: The SMTP host to connect to.
+- `USER`: User email address to send from.
+- `PASSWD`: Password for the smtp server.
+- `RECEIVERS`: Email addresses to send to.
+- `SUBJECT`: **Diagnostic message from Gitea**. The content of the email's subject field.
 
 ## Log Groups
 
@@ -171,106 +339,6 @@ which will not be inherited from the `[log]` or relevant
 - `FLAGS` defaults to `date,time`
 - `EXPRESSION` will default to `""`
 - `PREFIX` will default to `""`
-
-## Log outputs
-
-Gitea provides 4 possible log outputs:
-
-- `console` - Log to `os.Stdout` or `os.Stderr`
-- `file` - Log to a file
-- `conn` - Log to a keep-alive TCP connection
-- `smtp` - Log via email
-
-Certain configuration is common to all modes of log output:
-
-- `LEVEL` is the lowest level that this output will log. This value
-  is inherited from `[log]` and in the case of the non-default loggers
-  from `[log.sublogger]`.
-- `STACKTRACE_LEVEL` is the lowest level that this output will print
-  a stacktrace. This value is inherited.
-- `MODE` is the mode of the log output. It will default to the sublogger
-  name. Thus `[log.console.router]` will default to `MODE = console`.
-- `COLORIZE` will default to `true` for `console` as
-  described, otherwise it will default to `false`.
-
-### Non-inherited default values
-
-There are several values which are not inherited as described above but
-rather default to those specific to type of logger, these are:
-`EXPRESSION`, `FLAGS`, `PREFIX` and `FILE_NAME`.
-
-#### `EXPRESSION`
-
-`EXPRESSION` represents a regular expression that log events must match to be logged by the sublogger. Either the log message, (with colors removed), must match or the `longfilename:linenumber:functionname` must match. NB: the whole message or string doesn't need to completely match.
-
-Please note this expression will be run in the sublogger's goroutine
-not the logging event subroutine. Therefore it can be complicated.
-
-#### `FLAGS`
-
-`FLAGS` represents the preceding logging context information that is
-printed before each message. It is a comma-separated string set. The order of values does not matter.
-
-Possible values are:
-
-- `none` or `,` - No flags.
-- `date` - the date in the local time zone: `2009/01/23`.
-- `time` - the time in the local time zone: `01:23:23`.
-- `microseconds` - microsecond resolution: `01:23:23.123123`. Assumes
-  time.
-- `longfile` - full file name and line number: `/a/b/c/d.go:23`.
-- `shortfile` - final file name element and line number: `d.go:23`.
-- `funcname` - function name of the caller: `runtime.Caller()`.
-- `shortfuncname` - last part of the function name. Overrides
-  `funcname`.
-- `utc` - if date or time is set, use UTC rather than the local time
-  zone.
-- `levelinitial` - Initial character of the provided level in brackets eg. `[I]` for info.
-- `level` - Provided level in brackets `[INFO]`
-- `medfile` - Last 20 characters of the filename - equivalent to
-  `shortfile,longfile`.
-- `stdflags` - Equivalent to `date,time,medfile,shortfuncname,levelinitial`
-
-### Console mode
-
-For loggers in console mode, `COLORIZE` will default to `true` if not
-on windows, or the windows terminal can be set into ANSI mode or is a
-cygwin or Msys pipe.
-
-If `STDERR` is set to `true` the logger will use `os.Stderr` instead of
-`os.Stdout`.
-
-### File mode
-
-The `FILE_NAME` defaults as described above. If set it will be relative
-to the provided `ROOT_PATH` in the master `[log]` section.
-
-Other values:
-
-- `LOG_ROTATE`: **true**: Rotate the log files.
-- `MAX_SIZE_SHIFT`: **28**: Maximum size shift of a single file, 28 represents 256Mb.
-- `DAILY_ROTATE`: **true**: Rotate logs daily.
-- `MAX_DAYS`: **7**: Delete the log file after n days
-- `COMPRESS`: **true**: Compress old log files by default with gzip
-- `COMPRESSION_LEVEL`: **-1**: Compression level
-
-### Conn mode
-
-- `RECONNECT_ON_MSG`: **false**: Reconnect host for every single message.
-- `RECONNECT`: **false**: Try to reconnect when connection is lost.
-- `PROTOCOL`: **tcp**: Set the protocol, either "tcp", "unix" or "udp".
-- `ADDR`: **:7020**: Sets the address to connect to.
-
-### SMTP mode
-
-It is not recommended to use this logger to send general logging
-messages. However, you could perhaps set this logger to work on `FATAL`.
-
-- `USER`: User email address to send from.
-- `PASSWD`: Password for the smtp server.
-- `HOST`: **127.0.0.1:25**: The SMTP host to connect to.
-- `RECEIVERS`: Email addresses to send to.
-- `SUBJECT`: **Diagnostic message from Gitea**
 
 ## Debugging problems
 
