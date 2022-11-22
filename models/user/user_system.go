@@ -36,19 +36,22 @@ func NewReplaceUser(name string) *User {
 	}
 }
 
-const BotUserID = -2
+const (
+	BotUserID   = -2
+	BotUserName = "[robot]gitea-bots"
+)
 
 // NewBotUser creates and returns a fake user for running the build.
 func NewBotUser() *User {
 	return &User{
 		ID:                      BotUserID,
-		Name:                    "gitea-bots",
-		LowerName:               "gitea-bots",
+		Name:                    "[robot]gitea-bots",
+		LowerName:               "[robot]gitea-bots",
 		IsActive:                true,
 		FullName:                "Gitea Bots",
 		Email:                   "teabot@gitea.io",
 		KeepEmailPrivate:        true,
-		LoginName:               "gitea-bots",
+		LoginName:               "[robot]gitea-bots",
 		Type:                    UserTypeIndividual,
 		AllowCreateOrganization: true,
 		Visibility:              structs.VisibleTypePublic,
@@ -59,5 +62,5 @@ func (u *User) IsBots() bool {
 	if u == nil {
 		return false
 	}
-	return u.ID == BotUserID && u.Name == "gitea-bots"
+	return u.ID == BotUserID && u.Name == BotUserName
 }
