@@ -51,7 +51,9 @@ func newSignatureFromCommitline(line []byte) (sig *Signature, err error) {
 		return
 	}
 
-	sig.Name = string(line[:emailStart-1])
+	if emailStart > 0 {
+		sig.Name = string(line[:emailStart-1])
+	}
 	sig.Email = string(line[emailStart+1 : emailEnd])
 
 	hasTime := emailEnd+2 < len(line)

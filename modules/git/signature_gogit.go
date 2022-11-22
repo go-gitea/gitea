@@ -30,7 +30,9 @@ type Signature = object.Signature
 func newSignatureFromCommitline(line []byte) (_ *Signature, err error) {
 	sig := new(Signature)
 	emailStart := bytes.IndexByte(line, '<')
-	sig.Name = string(line[:emailStart-1])
+	if emailStart > 0 {
+		sig.Name = string(line[:emailStart-1])
+	}
 	emailEnd := bytes.IndexByte(line, '>')
 	sig.Email = string(line[emailStart+1 : emailEnd])
 
