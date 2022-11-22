@@ -3,10 +3,10 @@ module code.gitea.io/gitea
 go 1.18
 
 require (
+	code.gitea.io/bots-proto-go v0.0.0-20221121102336-f6af4c6176c1
 	code.gitea.io/gitea-vet v0.2.2-0.20220122151748-48ebc902541b
 	code.gitea.io/sdk/gitea v0.15.1
 	codeberg.org/gusted/mcaptcha v0.0.0-20220723083913-4f3072e1d570
-	gitea.com/gitea/proto-go v0.0.0-20221118134050-62e4a9f56c7d
 	gitea.com/go-chi/binding v0.0.0-20221013104517-b29891619681
 	gitea.com/go-chi/cache v0.2.0
 	gitea.com/go-chi/captcha v0.0.0-20211013065431-70641c1a35d5
@@ -18,7 +18,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/alecthomas/chroma/v2 v2.3.0
 	github.com/blevesearch/bleve/v2 v2.3.4
-	github.com/bufbuild/connect-go v1.0.0
+	github.com/bufbuild/connect-go v1.1.0
 	github.com/bufbuild/connect-grpchealth-go v1.0.0
 	github.com/bufbuild/connect-grpcreflect-go v1.0.0
 	github.com/buildkite/terminal-to-html/v3 v3.7.0

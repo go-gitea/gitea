@@ -22,8 +22,8 @@ import (
 	bot_service "code.gitea.io/gitea/services/bots"
 	secret_service "code.gitea.io/gitea/services/secrets"
 
-	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
-	"gitea.com/gitea/proto-go/runner/v1/runnerv1connect"
+	runnerv1 "code.gitea.io/bots-proto-go/runner/v1"
+	"code.gitea.io/bots-proto-go/runner/v1/runnerv1connect"
 	"github.com/bufbuild/connect-go"
 	gouuid "github.com/google/uuid"
 	"google.golang.org/grpc/codes"

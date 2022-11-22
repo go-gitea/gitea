@@ -4,7 +4,7 @@
 
 package bots
 
-import runnerv1 "gitea.com/gitea/proto-go/runner/v1"
+import runnerv1 "code.gitea.io/bots-proto-go/runner/v1"
 
 // Status represents the status of Run, RunJob, Task, or TaskStep
 type Status int

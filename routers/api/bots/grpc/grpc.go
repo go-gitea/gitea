@@ -7,9 +7,8 @@ package grpc
 import (
 	"net/http"
 
-	"gitea.com/gitea/proto-go/ping/v1/pingv1connect"
-	"gitea.com/gitea/proto-go/runner/v1/runnerv1connect"
-
+	"code.gitea.io/bots-proto-go/ping/v1/pingv1connect"
+	"code.gitea.io/bots-proto-go/runner/v1/runnerv1connect"
 	"github.com/bufbuild/connect-go"
 	grpcreflect "github.com/bufbuild/connect-grpcreflect-go"
 	"google.golang.org/grpc/health/grpc_health_v1"

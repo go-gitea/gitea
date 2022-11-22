@@ -10,8 +10,8 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 
-	pingv1 "gitea.com/gitea/proto-go/ping/v1"
-	"gitea.com/gitea/proto-go/ping/v1/pingv1connect"
+	pingv1 "code.gitea.io/bots-proto-go/ping/v1"
+	"code.gitea.io/bots-proto-go/ping/v1/pingv1connect"
 	"github.com/bufbuild/connect-go"
 )
 
