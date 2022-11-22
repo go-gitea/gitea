@@ -78,12 +78,12 @@ function getCurrentLocale() {
 
 // given a month (0-11), returns it in the documents language
 export function translateMonth(month) {
-  return new Date(Date.UTC(2022, month, 12)).toLocaleString(getCurrentLocale(), {month: 'short'});
+  return new Date(Date.UTC(2022, month, 12)).toLocaleString(getCurrentLocale(), {month: 'short', timeZone: 'UTC'});
 }
 
 // given a weekday (0-6, Sunday to Saturday), returns it in the documents language
 export function translateDay(day) {
-  return new Date(Date.UTC(2022, 7, day)).toLocaleString(getCurrentLocale(), {weekday: 'short'});
+  return new Date(Date.UTC(2022, 7, day)).toLocaleString(getCurrentLocale(), {weekday: 'short', timeZone: 'UTC'});
 }
 
 // convert a Blob to a DataURI
