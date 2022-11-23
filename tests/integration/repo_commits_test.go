@@ -5,9 +5,11 @@
 package integration
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"path"
+	"sync"
 	"testing"
 
 	"code.gitea.io/gitea/modules/json"
@@ -50,6 +52,18 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 
 	// Call API to add status for commit
 	t.Run("CreateStatus", doAPICreateCommitStatus(NewAPITestContext(t, "user2", "repo1"), path.Base(commitURL), api.CommitStatusState(state)))
+
+	runBody := doAPICreateCommitStatus(NewAPITestContext(t, "user2", "repo1"), path.Base(commitURL), api.CommitStatusState(state))
+	var wg sync.WaitGroup
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		t.Run(fmt.Sprintf("ParallelCreateStatus_%d", i), func(t *testing.T) {
+			t.Parallel()
+			runBody(t)
+			wg.Done()
+		})
+	}
+	wg.Wait()
 
 	req = NewRequest(t, "GET", "/user2/repo1/commits/branch/master")
 	resp = session.MakeRequest(t, req, http.StatusOK)
