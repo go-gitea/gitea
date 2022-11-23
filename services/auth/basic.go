@@ -110,17 +110,14 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	}
 
 	// check task token
-	task, err := bots_model.GetTaskByToken(db.DefaultContext, authToken)
+	task, err := bots_model.GetRunningTaskByToken(db.DefaultContext, authToken)
 	if err == nil && task != nil {
-		if task.Status.IsRunning() {
-			log.Trace("Basic Authorization: Valid AccessToken for task[%d]", task.ID)
+		log.Trace("Basic Authorization: Valid AccessToken for task[%d]", task.ID)
 
-			store.GetData()["IsBotToken"] = true
-			store.GetData()["BotTaskID"] = task.ID
+		store.GetData()["IsBotToken"] = true
+		store.GetData()["BotTaskID"] = task.ID
 
-			return user_model.NewBotUser()
-		}
-		log.Warn("task %v status is %v but auth request sent: %v", task.ID, task.Status, req.RemoteAddr)
+		return user_model.NewBotUser()
 	}
 
 	if !setting.Service.EnableBasicAuth {

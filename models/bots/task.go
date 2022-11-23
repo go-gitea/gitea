@@ -50,7 +50,7 @@ type Task struct {
 	Token          string `xorm:"-"`
 	TokenHash      string `xorm:"UNIQUE"` // sha256 of token
 	TokenSalt      string
-	TokenLastEight string `xorm:"token_last_eight"`
+	TokenLastEight string `xorm:"index token_last_eight"`
 
 	LogFilename  string      // file name of log
 	LogInStorage bool        // read log from database or from storage
@@ -237,7 +237,7 @@ func GetTaskByID(ctx context.Context, id int64) (*Task, error) {
 	return &task, nil
 }
 
-func GetTaskByToken(ctx context.Context, token string) (*Task, error) {
+func GetRunningTaskByToken(ctx context.Context, token string) (*Task, error) {
 	errNotExist := fmt.Errorf("task with token %q: %w", token, util.ErrNotExist)
 	if token == "" {
 		return nil, errNotExist
@@ -270,7 +270,7 @@ func GetTaskByToken(ctx context.Context, token string) (*Task, error) {
 	}
 
 	var tasks []*Task
-	err := db.GetEngine(ctx).Where("token_last_eight = ?", lastEight).Find(&tasks)
+	err := db.GetEngine(ctx).Where("token_last_eight = ? AND status = ?", lastEight, StatusRunning).Find(&tasks)
 	if err != nil {
 		return nil, err
 	} else if len(tasks) == 0 {

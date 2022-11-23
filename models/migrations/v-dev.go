@@ -115,7 +115,7 @@ func addBotTables(x *xorm.Engine) error {
 
 		TokenHash      string `xorm:"UNIQUE"` // sha256 of token
 		TokenSalt      string
-		TokenLastEight string `xorm:"token_last_eight"`
+		TokenLastEight string `xorm:"index token_last_eight"`
 
 		LogFilename  string   // file name of log
 		LogInStorage bool     // read log from database or from storage

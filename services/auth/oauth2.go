@@ -95,17 +95,14 @@ func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
 	if err != nil {
 		if auth_model.IsErrAccessTokenNotExist(err) {
 			// check task token
-			task, err := bots_model.GetTaskByToken(db.DefaultContext, tokenSHA)
+			task, err := bots_model.GetRunningTaskByToken(db.DefaultContext, tokenSHA)
 			if err == nil && task != nil {
-				if task.Status.IsRunning() {
-					log.Trace("Basic Authorization: Valid AccessToken for task[%d]", task.ID)
+				log.Trace("Basic Authorization: Valid AccessToken for task[%d]", task.ID)
 
-					store.GetData()["IsBotToken"] = true
-					store.GetData()["BotTaskID"] = task.ID
+				store.GetData()["IsBotToken"] = true
+				store.GetData()["BotTaskID"] = task.ID
 
-					return user_model.BotUserID
-				}
-				log.Warn("task %v status is %v but auth request sent: %v", task.ID, task.Status, req.RemoteAddr)
+				return user_model.BotUserID
 			}
 		} else if !auth_model.IsErrAccessTokenNotExist(err) && !auth_model.IsErrAccessTokenEmpty(err) {
 			log.Error("GetAccessTokenBySHA: %v", err)
