@@ -106,7 +106,7 @@ func ListIssueCommentAttachments(ctx *context.APIContext) {
 		return
 	}
 
-	if err := comment.LoadAttachments(); err != nil {
+	if err := comment.LoadAttachments(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadAttachments", err)
 		return
 	}
@@ -192,12 +192,12 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "UploadAttachment", err)
 		return
 	}
-	if err := comment.LoadAttachments(); err != nil {
+	if err := comment.LoadAttachments(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadAttachments", err)
 		return
 	}
 
-	if err = comment_service.UpdateComment(comment, ctx.Doer, comment.Content); err != nil {
+	if err = comment_service.UpdateComment(ctx, comment, ctx.Doer, comment.Content); err != nil {
 		ctx.ServerError("UpdateComment", err)
 		return
 	}
@@ -317,7 +317,7 @@ func getIssueCommentSafe(ctx *context.APIContext) *issues_model.Comment {
 		ctx.NotFoundOrServerError("GetCommentByID", issues_model.IsErrCommentNotExist, err)
 		return nil
 	}
-	if err := comment.LoadIssue(); err != nil {
+	if err := comment.LoadIssue(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "comment.LoadIssue", err)
 		return nil
 	}

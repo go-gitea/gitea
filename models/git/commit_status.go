@@ -94,7 +94,7 @@ func GetNextCommitStatusIndex(repoID int64, sha string) (int64, error) {
 
 // getNextCommitStatusIndex return the next index
 func getNextCommitStatusIndex(repoID int64, sha string) (int64, error) {
-	ctx, commiter, err := db.TxContext()
+	ctx, commiter, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return 0, err
 	}
@@ -297,7 +297,7 @@ func NewCommitStatus(opts NewCommitStatusOptions) error {
 		return fmt.Errorf("generate commit status index failed: %w", err)
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return fmt.Errorf("NewCommitStatus[repo_id: %d, user_id: %d, sha: %s]: %w", opts.Repo.ID, opts.Creator.ID, opts.SHA, err)
 	}

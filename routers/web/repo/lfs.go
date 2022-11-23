@@ -478,7 +478,7 @@ func LFSPointerFiles(ctx *context.Context) {
 						return err
 					}
 					if !result.Associatable {
-						associated, err := git_model.LFSObjectIsAssociated(pointerBlob.Oid)
+						associated, err := git_model.ExistsLFSObject(ctx, pointerBlob.Oid)
 						if err != nil {
 							return err
 						}

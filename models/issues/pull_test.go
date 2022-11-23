@@ -17,7 +17,7 @@ import (
 func TestPullRequest_LoadAttributes(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
-	assert.NoError(t, pr.LoadAttributes())
+	assert.NoError(t, pr.LoadAttributes(db.DefaultContext))
 	assert.NotNil(t, pr.Merger)
 	assert.Equal(t, pr.MergerID, pr.Merger.ID)
 }
@@ -25,10 +25,10 @@ func TestPullRequest_LoadAttributes(t *testing.T) {
 func TestPullRequest_LoadIssue(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
-	assert.NoError(t, pr.LoadIssue())
+	assert.NoError(t, pr.LoadIssue(db.DefaultContext))
 	assert.NotNil(t, pr.Issue)
 	assert.Equal(t, int64(2), pr.Issue.ID)
-	assert.NoError(t, pr.LoadIssue())
+	assert.NoError(t, pr.LoadIssue(db.DefaultContext))
 	assert.NotNil(t, pr.Issue)
 	assert.Equal(t, int64(2), pr.Issue.ID)
 }
@@ -36,10 +36,10 @@ func TestPullRequest_LoadIssue(t *testing.T) {
 func TestPullRequest_LoadBaseRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
-	assert.NoError(t, pr.LoadBaseRepo())
+	assert.NoError(t, pr.LoadBaseRepo(db.DefaultContext))
 	assert.NotNil(t, pr.BaseRepo)
 	assert.Equal(t, pr.BaseRepoID, pr.BaseRepo.ID)
-	assert.NoError(t, pr.LoadBaseRepo())
+	assert.NoError(t, pr.LoadBaseRepo(db.DefaultContext))
 	assert.NotNil(t, pr.BaseRepo)
 	assert.Equal(t, pr.BaseRepoID, pr.BaseRepo.ID)
 }
@@ -47,7 +47,7 @@ func TestPullRequest_LoadBaseRepo(t *testing.T) {
 func TestPullRequest_LoadHeadRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
-	assert.NoError(t, pr.LoadHeadRepo())
+	assert.NoError(t, pr.LoadHeadRepo(db.DefaultContext))
 	assert.NotNil(t, pr.HeadRepo)
 	assert.Equal(t, pr.HeadRepoID, pr.HeadRepo.ID)
 }
@@ -96,11 +96,11 @@ func TestPullRequestsOldest(t *testing.T) {
 
 func TestGetUnmergedPullRequest(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	pr, err := issues_model.GetUnmergedPullRequest(1, 1, "branch2", "master", issues_model.PullRequestFlowGithub)
+	pr, err := issues_model.GetUnmergedPullRequest(db.DefaultContext, 1, 1, "branch2", "master", issues_model.PullRequestFlowGithub)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), pr.ID)
 
-	_, err = issues_model.GetUnmergedPullRequest(1, 9223372036854775807, "branch1", "master", issues_model.PullRequestFlowGithub)
+	_, err = issues_model.GetUnmergedPullRequest(db.DefaultContext, 1, 9223372036854775807, "branch1", "master", issues_model.PullRequestFlowGithub)
 	assert.Error(t, err)
 	assert.True(t, issues_model.IsErrPullRequestNotExist(err))
 }
@@ -228,7 +228,7 @@ func TestPullRequest_IsWorkInProgress(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
-	pr.LoadIssue()
+	pr.LoadIssue(db.DefaultContext)
 
 	assert.False(t, pr.IsWorkInProgress())
 
@@ -243,16 +243,16 @@ func TestPullRequest_GetWorkInProgressPrefixWorkInProgress(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
-	pr.LoadIssue()
+	pr.LoadIssue(db.DefaultContext)
 
-	assert.Empty(t, pr.GetWorkInProgressPrefix())
+	assert.Empty(t, pr.GetWorkInProgressPrefix(db.DefaultContext))
 
 	original := pr.Issue.Title
 	pr.Issue.Title = "WIP: " + original
-	assert.Equal(t, "WIP:", pr.GetWorkInProgressPrefix())
+	assert.Equal(t, "WIP:", pr.GetWorkInProgressPrefix(db.DefaultContext))
 
 	pr.Issue.Title = "[wip] " + original
-	assert.Equal(t, "[wip]", pr.GetWorkInProgressPrefix())
+	assert.Equal(t, "[wip]", pr.GetWorkInProgressPrefix(db.DefaultContext))
 }
 
 func TestDeleteOrphanedObjects(t *testing.T) {
@@ -264,11 +264,11 @@ func TestDeleteOrphanedObjects(t *testing.T) {
 	_, err = db.GetEngine(db.DefaultContext).Insert(&issues_model.PullRequest{IssueID: 1000}, &issues_model.PullRequest{IssueID: 1001}, &issues_model.PullRequest{IssueID: 1003})
 	assert.NoError(t, err)
 
-	orphaned, err := db.CountOrphanedObjects("pull_request", "issue", "pull_request.issue_id=issue.id")
+	orphaned, err := db.CountOrphanedObjects(db.DefaultContext, "pull_request", "issue", "pull_request.issue_id=issue.id")
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, orphaned)
 
-	err = db.DeleteOrphanedObjects("pull_request", "issue", "pull_request.issue_id=issue.id")
+	err = db.DeleteOrphanedObjects(db.DefaultContext, "pull_request", "issue", "pull_request.issue_id=issue.id")
 	assert.NoError(t, err)
 
 	countAfter, err := db.GetEngine(db.DefaultContext).Count(&issues_model.PullRequest{})

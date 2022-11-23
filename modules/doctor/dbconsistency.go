@@ -18,13 +18,13 @@ import (
 
 type consistencyCheck struct {
 	Name         string
-	Counter      func() (int64, error)
-	Fixer        func() (int64, error)
+	Counter      func(context.Context) (int64, error)
+	Fixer        func(context.Context) (int64, error)
 	FixedMessage string
 }
 
 func (c *consistencyCheck) Run(ctx context.Context, logger log.Logger, autofix bool) error {
-	count, err := c.Counter()
+	count, err := c.Counter(ctx)
 	if err != nil {
 		logger.Critical("Error: %v whilst counting %s", err, c.Name)
 		return err
@@ -32,7 +32,7 @@ func (c *consistencyCheck) Run(ctx context.Context, logger log.Logger, autofix b
 	if count > 0 {
 		if autofix {
 			var fixed int64
-			if fixed, err = c.Fixer(); err != nil {
+			if fixed, err = c.Fixer(ctx); err != nil {
 				logger.Critical("Error: %v whilst fixing %s", err, c.Name)
 				return err
 			}
@@ -54,9 +54,9 @@ func (c *consistencyCheck) Run(ctx context.Context, logger log.Logger, autofix b
 	return nil
 }
 
-func asFixer(fn func() error) func() (int64, error) {
-	return func() (int64, error) {
-		err := fn()
+func asFixer(fn func(ctx context.Context) error) func(ctx context.Context) (int64, error) {
+	return func(ctx context.Context) (int64, error) {
+		err := fn(ctx)
 		return -1, err
 	}
 }
@@ -64,11 +64,11 @@ func asFixer(fn func() error) func() (int64, error) {
 func genericOrphanCheck(name, subject, refobject, joincond string) consistencyCheck {
 	return consistencyCheck{
 		Name: name,
-		Counter: func() (int64, error) {
-			return db.CountOrphanedObjects(subject, refobject, joincond)
+		Counter: func(ctx context.Context) (int64, error) {
+			return db.CountOrphanedObjects(ctx, subject, refobject, joincond)
 		},
-		Fixer: func() (int64, error) {
-			err := db.DeleteOrphanedObjects(subject, refobject, joincond)
+		Fixer: func(ctx context.Context) (int64, error) {
+			err := db.DeleteOrphanedObjects(ctx, subject, refobject, joincond)
 			return -1, err
 		},
 	}
@@ -205,6 +205,9 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 		// find stopwatches without existing issue
 		genericOrphanCheck("Orphaned Stopwatches without existing Issue",
 			"stopwatch", "issue", "stopwatch.issue_id=`issue`.id"),
+		// find redirects without existing user.
+		genericOrphanCheck("Orphaned Redirects without existing redirect user",
+			"user_redirect", "user", "user_redirect.redirect_user_id=`user`.id"),
 	)
 
 	for _, c := range consistencyChecks {

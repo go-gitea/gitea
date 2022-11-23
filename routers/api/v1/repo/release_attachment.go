@@ -114,7 +114,7 @@ func ListReleaseAttachments(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-	if err := release.LoadAttributes(); err != nil {
+	if err := release.LoadAttributes(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}

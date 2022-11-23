@@ -277,7 +277,7 @@ func CreateOrganization(org *Organization, owner *user_model.User) (err error) {
 	org.NumMembers = 1
 	org.Type = user_model.UserTypeOrganization
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -458,8 +458,9 @@ func CountOrgs(opts FindOrgOptions) (int64, error) {
 
 // HasOrgOrUserVisible tells if the given user can see the given org or user
 func HasOrgOrUserVisible(ctx context.Context, orgOrUser, user *user_model.User) bool {
-	// Not SignedUser
-	if user == nil {
+	// If user is nil, it's an anonymous user/request.
+	// The Ghost user is handled like an anonymous user.
+	if user == nil || user.IsGhost() {
 		return orgOrUser.Visibility == structs.VisibleTypePublic
 	}
 
@@ -564,7 +565,7 @@ func AddOrgUser(orgID, uid int64) error {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
