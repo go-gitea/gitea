@@ -48,10 +48,10 @@ func Update(ctx context.Context, pull *issues_model.PullRequest, doer *user_mode
 		return fmt.Errorf("Not support update agit flow pull request's head branch")
 	}
 
-	if err := pr.LoadHeadRepoCtx(ctx); err != nil {
+	if err := pr.LoadHeadRepo(ctx); err != nil {
 		log.Error("LoadHeadRepo: %v", err)
 		return fmt.Errorf("LoadHeadRepo: %w", err)
-	} else if err = pr.LoadBaseRepoCtx(ctx); err != nil {
+	} else if err = pr.LoadBaseRepo(ctx); err != nil {
 		log.Error("LoadBaseRepo: %v", err)
 		return fmt.Errorf("LoadBaseRepo: %w", err)
 	}
@@ -145,10 +145,10 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 // GetDiverging determines how many commits a PR is ahead or behind the PR base branch
 func GetDiverging(ctx context.Context, pr *issues_model.PullRequest) (*git.DivergeObject, error) {
 	log.Trace("GetDiverging[%d]: compare commits", pr.ID)
-	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
+	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return nil, err
 	}
-	if err := pr.LoadHeadRepoCtx(ctx); err != nil {
+	if err := pr.LoadHeadRepo(ctx); err != nil {
 		return nil, err
 	}
 

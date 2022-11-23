@@ -5,7 +5,9 @@
 		<div id="org-info">
 			<div class="ui header">
 				{{.Org.DisplayName}}
-				<a href="{{.Org.HomeLink}}.rss"><i class="ui grey icon tooltip ml-3" data-content="{{.locale.Tr "rss_feed"}}" data-position="top center">{{svg "octicon-rss" 36}}</i></a>
+				{{if .EnableFeed}}
+					<a href="{{.Org.HomeLink}}.rss"><i class="ui grey icon tooltip ml-3" data-content="{{.locale.Tr "rss_feed"}}" data-position="top center">{{svg "octicon-rss" 36}}</i></a>
+				{{end}}
 				<span class="org-visibility">
 					{{if .Org.Visibility.IsLimited}}<div class="ui large basic horizontal label">{{.locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
 					{{if .Org.Visibility.IsPrivate}}<div class="ui large basic horizontal label">{{.locale.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
@@ -68,8 +70,8 @@
 							<div class="item">
 								<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong class="team-name">{{.Name}}</strong></a>
 								<p class="text grey">
-									<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong>{{.NumMembers}}</strong> {{$.locale.Tr "org.lower_members"}}</a> ·
-									<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}/repositories"><strong>{{.NumRepos}}</strong> {{$.locale.Tr "org.lower_repositories"}}</a>
+									<a class="muted" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong>{{.NumMembers}}</strong> {{$.locale.Tr "org.lower_members"}}</a> ·
+									<a class="muted" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}/repositories"><strong>{{.NumRepos}}</strong> {{$.locale.Tr "org.lower_repositories"}}</a>
 								</p>
 							</div>
 						{{end}}

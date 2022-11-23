@@ -79,7 +79,7 @@ func CanMaintainerWriteToBranch(p access_model.Permission, branch string, user *
 
 	for _, pr := range prs {
 		if pr.AllowMaintainerEdit {
-			err = pr.LoadBaseRepo()
+			err = pr.LoadBaseRepo(db.DefaultContext)
 			if err != nil {
 				continue
 			}

@@ -309,13 +309,8 @@ type PushActionContent struct {
 	CommitIDs   []string `json:"commit_ids"`
 }
 
-// LoadIssue loads issue from database
-func (c *Comment) LoadIssue() (err error) {
-	return c.LoadIssueCtx(db.DefaultContext)
-}
-
-// LoadIssueCtx loads issue from database
-func (c *Comment) LoadIssueCtx(ctx context.Context) (err error) {
+// LoadIssue loads the issue reference for the comment
+func (c *Comment) LoadIssue(ctx context.Context) (err error) {
 	if c.Issue != nil {
 		return nil
 	}
@@ -350,7 +345,8 @@ func (c *Comment) AfterLoad(session *xorm.Session) {
 	}
 }
 
-func (c *Comment) loadPoster(ctx context.Context) (err error) {
+// LoadPoster loads comment poster
+func (c *Comment) LoadPoster(ctx context.Context) (err error) {
 	if c.PosterID <= 0 || c.Poster != nil {
 		return nil
 	}
@@ -381,7 +377,7 @@ func (c *Comment) AfterDelete() {
 
 // HTMLURL formats a URL-string to the issue-comment
 func (c *Comment) HTMLURL() string {
-	err := c.LoadIssue()
+	err := c.LoadIssue(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("LoadIssue(%d): %v", c.IssueID, err)
 		return ""
@@ -410,7 +406,7 @@ func (c *Comment) HTMLURL() string {
 
 // APIURL formats a API-string to the issue-comment
 func (c *Comment) APIURL() string {
-	err := c.LoadIssue()
+	err := c.LoadIssue(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("LoadIssue(%d): %v", c.IssueID, err)
 		return ""
@@ -426,7 +422,7 @@ func (c *Comment) APIURL() string {
 
 // IssueURL formats a URL-string to the issue
 func (c *Comment) IssueURL() string {
-	err := c.LoadIssue()
+	err := c.LoadIssue(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("LoadIssue(%d): %v", c.IssueID, err)
 		return ""
@@ -446,7 +442,7 @@ func (c *Comment) IssueURL() string {
 
 // PRURL formats a URL-string to the pull-request
 func (c *Comment) PRURL() string {
-	err := c.LoadIssue()
+	err := c.LoadIssue(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("LoadIssue(%d): %v", c.IssueID, err)
 		return ""
@@ -521,10 +517,10 @@ func (c *Comment) LoadProject() error {
 }
 
 // LoadMilestone if comment.Type is CommentTypeMilestone, then load milestone
-func (c *Comment) LoadMilestone() error {
+func (c *Comment) LoadMilestone(ctx context.Context) error {
 	if c.OldMilestoneID > 0 {
 		var oldMilestone Milestone
-		has, err := db.GetEngine(db.DefaultContext).ID(c.OldMilestoneID).Get(&oldMilestone)
+		has, err := db.GetEngine(ctx).ID(c.OldMilestoneID).Get(&oldMilestone)
 		if err != nil {
 			return err
 		} else if has {
@@ -534,7 +530,7 @@ func (c *Comment) LoadMilestone() error {
 
 	if c.MilestoneID > 0 {
 		var milestone Milestone
-		has, err := db.GetEngine(db.DefaultContext).ID(c.MilestoneID).Get(&milestone)
+		has, err := db.GetEngine(ctx).ID(c.MilestoneID).Get(&milestone)
 		if err != nil {
 			return err
 		} else if has {
@@ -544,19 +540,14 @@ func (c *Comment) LoadMilestone() error {
 	return nil
 }
 
-// LoadPoster loads comment poster
-func (c *Comment) LoadPoster() error {
-	return c.loadPoster(db.DefaultContext)
-}
-
 // LoadAttachments loads attachments (it never returns error, the error during `GetAttachmentsByCommentIDCtx` is ignored)
-func (c *Comment) LoadAttachments() error {
+func (c *Comment) LoadAttachments(ctx context.Context) error {
 	if len(c.Attachments) > 0 {
 		return nil
 	}
 
 	var err error
-	c.Attachments, err = repo_model.GetAttachmentsByCommentID(db.DefaultContext, c.ID)
+	c.Attachments, err = repo_model.GetAttachmentsByCommentID(ctx, c.ID)
 	if err != nil {
 		log.Error("getAttachmentsByCommentID[%d]: %v", c.ID, err)
 	}
@@ -598,7 +589,7 @@ func (c *Comment) LoadAssigneeUserAndTeam() error {
 			c.Assignee = user_model.NewGhostUser()
 		}
 	} else if c.AssigneeTeamID > 0 && c.AssigneeTeam == nil {
-		if err = c.LoadIssue(); err != nil {
+		if err = c.LoadIssue(db.DefaultContext); err != nil {
 			return err
 		}
 
@@ -740,7 +731,7 @@ func (c *Comment) UnsignedLine() uint64 {
 
 // CodeCommentURL returns the url to a comment in code
 func (c *Comment) CodeCommentURL() string {
-	err := c.LoadIssue()
+	err := c.LoadIssue(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("LoadIssue(%d): %v", c.IssueID, err)
 		return ""
@@ -1145,7 +1136,7 @@ func UpdateComment(c *Comment, doer *user_model.User) error {
 	if _, err := sess.ID(c.ID).AllCols().Update(c); err != nil {
 		return err
 	}
-	if err := c.LoadIssueCtx(ctx); err != nil {
+	if err := c.LoadIssue(ctx); err != nil {
 		return err
 	}
 	if err := c.AddCrossReferences(ctx, doer, true); err != nil {
@@ -1245,7 +1236,7 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 		return nil, err
 	}
 
-	if err := CommentList(comments).loadPosters(ctx); err != nil {
+	if err := CommentList(comments).LoadPosters(ctx); err != nil {
 		return nil, err
 	}
 
@@ -1363,11 +1354,11 @@ func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullReques
 	if typ != CommentTypePRScheduledToAutoMerge && typ != CommentTypePRUnScheduledToAutoMerge {
 		return nil, fmt.Errorf("comment type %d cannot be used to create an auto merge comment", typ)
 	}
-	if err = pr.LoadIssueCtx(ctx); err != nil {
+	if err = pr.LoadIssue(ctx); err != nil {
 		return
 	}
 
-	if err = pr.LoadBaseRepoCtx(ctx); err != nil {
+	if err = pr.LoadBaseRepo(ctx); err != nil {
 		return
 	}
 
@@ -1512,18 +1503,18 @@ func (c *Comment) GetExternalName() string { return c.OriginalAuthor }
 func (c *Comment) GetExternalID() int64 { return c.OriginalAuthorID }
 
 // CountCommentTypeLabelWithEmptyLabel count label comments with empty label
-func CountCommentTypeLabelWithEmptyLabel() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": CommentTypeLabel, "label_id": 0}).Count(new(Comment))
+func CountCommentTypeLabelWithEmptyLabel(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).Where(builder.Eq{"type": CommentTypeLabel, "label_id": 0}).Count(new(Comment))
 }
 
 // FixCommentTypeLabelWithEmptyLabel count label comments with empty label
-func FixCommentTypeLabelWithEmptyLabel() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": CommentTypeLabel, "label_id": 0}).Delete(new(Comment))
+func FixCommentTypeLabelWithEmptyLabel(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).Where(builder.Eq{"type": CommentTypeLabel, "label_id": 0}).Delete(new(Comment))
 }
 
 // CountCommentTypeLabelWithOutsideLabels count label comments with outside label
-func CountCommentTypeLabelWithOutsideLabels() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where("comment.type = ? AND ((label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != repository.owner_id))", CommentTypeLabel).
+func CountCommentTypeLabelWithOutsideLabels(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).Where("comment.type = ? AND ((label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != repository.owner_id))", CommentTypeLabel).
 		Table("comment").
 		Join("inner", "label", "label.id = comment.label_id").
 		Join("inner", "issue", "issue.id = comment.issue_id ").
@@ -1532,8 +1523,8 @@ func CountCommentTypeLabelWithOutsideLabels() (int64, error) {
 }
 
 // FixCommentTypeLabelWithOutsideLabels count label comments with outside label
-func FixCommentTypeLabelWithOutsideLabels() (int64, error) {
-	res, err := db.GetEngine(db.DefaultContext).Exec(`DELETE FROM comment WHERE comment.id IN (
+func FixCommentTypeLabelWithOutsideLabels(ctx context.Context) (int64, error) {
+	res, err := db.GetEngine(ctx).Exec(`DELETE FROM comment WHERE comment.id IN (
 		SELECT il_too.id FROM (
 			SELECT com.id
 				FROM comment AS com

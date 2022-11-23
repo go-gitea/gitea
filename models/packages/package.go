@@ -45,6 +45,21 @@ const (
 	TypeVagrant   Type = "vagrant"
 )
 
+var TypeList = []Type{
+	TypeComposer,
+	TypeConan,
+	TypeContainer,
+	TypeGeneric,
+	TypeHelm,
+	TypeMaven,
+	TypeNpm,
+	TypeNuGet,
+	TypePub,
+	TypePyPI,
+	TypeRubyGems,
+	TypeVagrant,
+}
+
 // Name gets the name of the package type
 func (pt Type) Name() string {
 	switch pt {

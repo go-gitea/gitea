@@ -5,33 +5,25 @@
 package v1_19 //nolint
 
 import (
-	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/xorm"
 )
 
-func RenameWebhookOrgToOwner(x *xorm.Engine) error {
-	type Webhook struct {
-		ID      int64 `xorm:"pk autoincr"`
-		OrgID   int64
-		OwnerID int64 `xorm:"INDEX"`
+func CreatePackageCleanupRuleTable(x *xorm.Engine) error {
+	type PackageCleanupRule struct {
+		ID            int64              `xorm:"pk autoincr"`
+		Enabled       bool               `xorm:"INDEX NOT NULL DEFAULT false"`
+		OwnerID       int64              `xorm:"UNIQUE(s) INDEX NOT NULL DEFAULT 0"`
+		Type          string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		KeepCount     int                `xorm:"NOT NULL DEFAULT 0"`
+		KeepPattern   string             `xorm:"NOT NULL DEFAULT ''"`
+		RemoveDays    int                `xorm:"NOT NULL DEFAULT 0"`
+		RemovePattern string             `xorm:"NOT NULL DEFAULT ''"`
+		MatchFullName bool               `xorm:"NOT NULL DEFAULT false"`
+		CreatedUnix   timeutil.TimeStamp `xorm:"created NOT NULL DEFAULT 0"`
+		UpdatedUnix   timeutil.TimeStamp `xorm:"updated NOT NULL DEFAULT 0"`
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-
-	if err := sess.Sync2(new(Webhook)); err != nil {
-		return err
-	}
-	if _, err := sess.Exec("UPDATE webhook SET owner_id = org_id"); err != nil {
-		return err
-	}
-	if err := base.DropTableColumns(sess, "webhook", "org_id"); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return x.Sync2(new(PackageCleanupRule))
 }
