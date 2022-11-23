@@ -548,7 +548,7 @@
             position: absolute;
             top: 9px;
             left: 10px;
-            color: #b0c4ce;
+            color: var(--color-grey);
           }
         }
       }
@@ -915,8 +915,8 @@
                 border: 1px solid var(--color-light-border);
 
                 &.isSigned.isWarning {
-                  border: 1px solid #db2828;
-                  background: fade(#db2828, 10%);
+                  border: 1px solid var(--color-red-badge);
+                  background: var(--color-red-badge-bg);
 
                   .shortsha {
                     display: inline-block;
@@ -924,13 +924,13 @@
                   }
 
                   &:hover {
-                    background: fade(#db2828, 30%) !important;
+                    background: var(--color-red-badge-hover-bg) !important;
                   }
                 }
 
                 &.isSigned.isVerified {
-                  border: 1px solid #21ba45;
-                  background: fade(#21ba45, 10%);
+                  border: 1px solid var(--color-green-badge);
+                  background: var(--color-green-badge-bg);
 
                   .shortsha {
                     display: inline-block;
@@ -938,13 +938,13 @@
                   }
 
                   &:hover {
-                    background: fade(#21ba45, 30%) !important;
+                    background: var(--color-green-badge-hover-bg) !important;
                   }
                 }
 
                 &.isSigned.isVerifiedUntrusted {
-                  border: 1px solid #fbbd08;
-                  background: fade(#fbbd08, 10%);
+                  border: 1px solid var(--color-yellow-badge);
+                  background: var(--color-yellow-badge-bg);
 
                   .shortsha {
                     display: inline-block;
@@ -952,13 +952,13 @@
                   }
 
                   &:hover {
-                    background: fade(#fbbd08, 30%) !important;
+                    background: var(--color-yellow-badge-hover-bg) !important;
                   }
                 }
 
                 &.isSigned.isVerifiedUnmatched {
-                  border: 1px solid #f2711c;
-                  background: fade(#f2711c, 10%);
+                  border: 1px solid var(--color-orange-badge);
+                  background: var(--color-orange-badge-bg);
 
                   .shortsha {
                     display: inline-block;
@@ -966,7 +966,7 @@
                   }
 
                   &:hover {
-                    background: fade(#f2711c, 30%) !important;
+                    background: var(--color-orange-badge-hover-bg) !important;
                   }
                 }
               }
@@ -1433,8 +1433,8 @@
     }
 
     &.isSigned.isWarning {
-      border: 1px solid #db2828;
-      background: fade(#db2828, 10%);
+      border: 1px solid var(--color-red-badge);
+      background: var(--color-red-badge-bg);
 
       .shortsha {
         display: inline-block;
@@ -1442,18 +1442,18 @@
       }
 
       .detail.icon {
-        border-left: 1px solid #db2828;
-        color: #db2828;
+        border-left: 1px solid var(--color-red-badge);
+        color: var(--color-red-badge);
       }
 
       &:hover {
-        background: fade(#db2828, 30%) !important;
+        background: var(--color-red-badge-hover-bg) !important;
       }
     }
 
     &.isSigned.isVerified {
-      border: 1px solid #21ba45;
-      background: fade(#21ba45, 10%);
+      border: 1px solid var(--color-green-badge);
+      background: var(--color-green-badge-bg);
 
       .shortsha {
         display: inline-block;
@@ -1461,18 +1461,18 @@
       }
 
       .detail.icon {
-        border-left: 1px solid #21ba45;
-        color: #21ba45;
+        border-left: 1px solid var(--color-green-badge);
+        color: var(--color-green-badge);
       }
 
       &:hover {
-        background: fade(#21ba45, 30%) !important;
+        background: var(--color-green-badge-hover-bg) !important;
       }
     }
 
     &.isSigned.isVerifiedUntrusted {
-      border: 1px solid #fbbd08;
-      background: fade(#fbbd08, 10%);
+      border: 1px solid var(--color-yellow-badge);
+      background: var(--color-yellow-badge-bg);
 
       .shortsha {
         display: inline-block;
@@ -1480,18 +1480,18 @@
       }
 
       .detail.icon {
-        border-left: 1px solid #fbbd08;
-        color: #fbbd08;
+        border-left: 1px solid var(--color-yellow-badge);
+        color: var(--color-yellow-badge);
       }
 
       &:hover {
-        background: fade(#fbbd08, 30%) !important;
+        background: var(--color-yellow-badge-hover-bg) !important;
       }
     }
 
     &.isSigned.isVerifiedUnmatched {
-      border: 1px solid #f2711c;
-      background: fade(#f2711c, 10%);
+      border: 1px solid var(--color-orange-badge);
+      background: var(--color-orange-badge-bg);
 
       .shortsha {
         display: inline-block;
@@ -1499,12 +1499,12 @@
       }
 
       .detail.icon {
-        border-left: 1px solid #f2711c;
-        color: #f2711c;
+        border-left: 1px solid var(--color-orange-badge);
+        color: var(--color-orange-badge);
       }
 
       &:hover {
-        background: fade(#f2711c, 30%) !important;
+        background: var(--color-orange-badge-hover-bg) !important;
       }
     }
   }
