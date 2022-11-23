@@ -29,7 +29,7 @@
 					<img width="20" height="20" src="{{AssetUrlPrefix}}/img/feishu.png">{{.locale.Tr "repo.settings.web_hook_name_feishu_or_larksuite"}}
 				</a>
 				<a class="item" href="{{.BaseLinkNew}}/matrix/new">
-					<img width="20" height="20" src="{{AssetUrlPrefix}}/img/matrix.svg">{{.locale.Tr "repo.settings.web_hook_name_matrix"}}
+					{{svg "gitea-matrix" 20 "img"}}{{.locale.Tr "repo.settings.web_hook_name_matrix"}}
 				</a>
 				<a class="item" href="{{.BaseLinkNew}}/wechatwork/new">
 					<img width="20" height="20" src="{{AssetUrlPrefix}}/img/wechatwork.png">{{.locale.Tr "repo.settings.web_hook_name_wechatwork"}}
@@ -55,11 +55,9 @@
 				{{else}}
 					<span class="text grey mr-3">{{svg "octicon-dot-fill"}}</span>
 				{{end}}
-				<a class="text truncate" title="{{.URL}}" href="{{$.BaseLink}}/{{.ID}}">{{.URL}}</a>
-				<div class="ui right" style="display: inline-flex">
-					<span class="text blue px-2"><a href="{{$.BaseLink}}/{{.ID}}">{{svg "octicon-pencil"}}</a></span>
-					<span class="text red px-2"><a class="delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trash"}}</a></span>
-				</div>
+				<a class="text truncate f1 mr-3" title="{{.URL}}" href="{{$.BaseLink}}/{{.ID}}">{{.URL}}</a>
+				<a class="muted p-3" href="{{$.BaseLink}}/{{.ID}}">{{svg "octicon-pencil"}}</a></span>
+				<a class="delete-button p-3" data-url="{{$.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trash"}}</a>
 			</div>
 		{{end}}
 	</div>

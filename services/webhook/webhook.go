@@ -116,19 +116,26 @@ func handle(data ...queue.Data) []queue.Data {
 	for _, taskID := range data {
 		task, err := webhook_model.GetHookTaskByID(ctx, taskID.(int64))
 		if err != nil {
-			log.Error("GetHookTaskByID failed: %v", err)
-		} else {
-			if err := Deliver(ctx, task); err != nil {
-				log.Error("webhook.Deliver failed: %v", err)
-			}
+			log.Error("GetHookTaskByID[%d] failed: %v", taskID.(int64), err)
+			continue
+		}
+
+		if task.IsDelivered {
+			// Already delivered in the meantime
+			log.Trace("Task[%d] has already been delivered", task.ID)
+			continue
+		}
+
+		if err := Deliver(ctx, task); err != nil {
+			log.Error("Unable to deliver webhook task[%d]: %v", task.ID, err)
 		}
 	}
 
 	return nil
 }
 
-func enqueueHookTask(task *webhook_model.HookTask) error {
-	err := hookQueue.PushFunc(task.ID, nil)
+func enqueueHookTask(taskID int64) error {
+	err := hookQueue.Push(taskID)
 	if err != nil && err != queue.ErrAlreadyInQueue {
 		return err
 	}
@@ -205,7 +212,7 @@ func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook
 		return fmt.Errorf("CreateHookTask: %w", err)
 	}
 
-	return enqueueHookTask(task)
+	return enqueueHookTask(task.ID)
 }
 
 // PrepareWebhooks adds new webhooks to task queue for given payload.
@@ -265,5 +272,5 @@ func ReplayHookTask(ctx context.Context, w *webhook_model.Webhook, uuid string) 
 		return err
 	}
 
-	return enqueueHookTask(task)
+	return enqueueHookTask(task.ID)
 }

@@ -195,7 +195,7 @@ func servePackageFile(ctx *context.Context, params parameters, serveContent bool
 
 	opts := &context.ServeHeaderOptions{
 		ContentLength: &pb.Size,
-		LastModified: pf.CreatedUnix.AsLocalTime(),
+		LastModified:  pf.CreatedUnix.AsLocalTime(),
 	}
 	switch ext {
 	case extensionJar:
