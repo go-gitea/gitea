@@ -199,12 +199,25 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 					ctx.PlainText(http.StatusForbidden, "User permission denied")
 					return
 				}
+
+				if task.IsForkPullRequest {
+					if accessMode > perm.AccessModeRead {
+						ctx.PlainText(http.StatusForbidden, "User permission denied")
+						return
+					}
+				} else {
+					if accessMode > perm.AccessModeWrite {
+						ctx.PlainText(http.StatusForbidden, "User permission denied")
+						return
+					}
+				}
 			} else {
 				p, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 				if err != nil {
 					ctx.ServerError("GetUserRepoPermission", err)
 					return
 				}
+
 				if !p.CanAccess(accessMode, unitType) {
 					ctx.PlainText(http.StatusForbidden, "User permission denied")
 					return

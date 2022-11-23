@@ -199,7 +199,12 @@ func repoAssignment() func(ctx *context.APIContext) {
 				return
 			}
 
-			ctx.Repo.Permission.AccessMode = perm_model.AccessModeAdmin
+			if task.IsForkPullRequest {
+				ctx.Repo.Permission.AccessMode = perm_model.AccessModeRead
+			} else {
+				ctx.Repo.Permission.AccessMode = perm_model.AccessModeWrite
+			}
+
 			if err := ctx.Repo.Repository.LoadUnits(ctx); err != nil {
 				ctx.Error(http.StatusInternalServerError, "LoadUnits", err)
 				return
