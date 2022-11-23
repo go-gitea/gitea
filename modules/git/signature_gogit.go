@@ -10,6 +10,7 @@ package git
 import (
 	"bytes"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-git/go-git/v5/plumbing/object"
