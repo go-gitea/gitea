@@ -143,6 +143,9 @@ func NotifyNewPullRequest(ctx context.Context, pr *issues_model.PullRequest, men
 		log.Error("%v", err)
 		return
 	}
+	if err := pr.Issue.LoadPoster(ctx); err != nil {
+		return
+	}
 	if pr.Issue.Poster.IsBots() {
 		return
 	}

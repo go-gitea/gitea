@@ -71,6 +71,7 @@ import (
 	"reflect"
 	"strings"
 
+	bots_model "code.gitea.io/gitea/models/bots"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	perm_model "code.gitea.io/gitea/models/perm"
@@ -187,6 +188,17 @@ func repoAssignment() func(ctx *context.APIContext) {
 		ctx.Repo.Repository = repo
 
 		if ctx.Doer != nil && ctx.Doer.ID == user_model.BotUserID {
+			botTaskID := ctx.Data["BotTaskID"].(int64)
+			task, err := bots_model.GetTaskByID(ctx, botTaskID)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "bots_model.GetTaskByID", err)
+				return
+			}
+			if task.RepoID != repo.ID {
+				ctx.NotFound()
+				return
+			}
+
 			ctx.Repo.Permission.AccessMode = perm_model.AccessModeAdmin
 			if err := ctx.Repo.Repository.LoadUnits(ctx); err != nil {
 				ctx.Error(http.StatusInternalServerError, "LoadUnits", err)
