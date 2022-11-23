@@ -205,6 +205,7 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 		GroupClaimName:                form.Oauth2GroupClaimName,
 		RestrictedGroup:               form.Oauth2RestrictedGroup,
 		AdminGroup:                    form.Oauth2AdminGroup,
+		ForceOAuth:                    form.ForceOAuth,
 	}
 }
 

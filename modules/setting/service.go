@@ -70,7 +70,6 @@ var Service = struct {
 	// OpenID settings
 	EnableOpenIDSignIn bool
 	EnableOpenIDSignUp bool
-	ForceOpenID        bool
 	OpenIDWhitelist    []*regexp.Regexp
 	OpenIDBlacklist    []*regexp.Regexp
 
@@ -187,7 +186,6 @@ func newService() {
 	sec = Cfg.Section("openid")
 	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(!InstallLock)
 	Service.EnableOpenIDSignUp = sec.Key("ENABLE_OPENID_SIGNUP").MustBool(!Service.DisableRegistration && Service.EnableOpenIDSignIn)
-	Service.ForceOpenID = sec.Key("FORCE_OPENID").MustBool(false)
 	pats := sec.Key("WHITELISTED_URIS").Strings(" ")
 	if len(pats) != 0 {
 		Service.OpenIDWhitelist = make([]*regexp.Regexp, len(pats))

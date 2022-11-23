@@ -60,6 +60,7 @@ type AuthenticationForm struct {
 	Oauth2Key                     string
 	Oauth2Secret                  string
 	OpenIDConnectAutoDiscoveryURL string
+	ForceOAuth                    bool
 	Oauth2UseCustomURL            bool
 	Oauth2TokenURL                string
 	Oauth2AuthURL                 string

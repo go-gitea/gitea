@@ -547,7 +547,6 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
    OpenID URI's to permit.
 - `BLACKLISTED_URIS`: **\<empty\>**: If non-empty, list of POSIX regex patterns matching
    OpenID URI's to block.
-- `FORCE_OPENID`: **false**: Skip login page and always link to OpenID
 
 ## OAuth2 Client (`oauth2_client`)
 

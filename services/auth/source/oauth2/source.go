@@ -24,6 +24,7 @@ type Source struct {
 	OpenIDConnectAutoDiscoveryURL string
 	CustomURLMapping              *CustomURLMapping
 	IconURL                       string
+	ForceOAuth                    bool `json:",omitempty"`
 
 	Scopes             []string
 	RequiredClaimName  string

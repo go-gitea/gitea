@@ -146,14 +146,21 @@ func checkAutoLogin(ctx *context.Context) bool {
 	return false
 }
 
-func checkForceOpenID(ctx *context.Context) bool {
-	// Check forced OpenID login
-	forced := setting.Service.ForceOpenID
+func checkForceOAuth(ctx *context.Context) bool {
+	// Check if authentication is forced to OAuth
 
-	if forced && setting.Service.EnableOpenIDSignIn {
-		ctx.RedirectToFirst(setting.AppSubURL + "/user/login/openid")
-		return true
+	authSources, err := auth.GetActiveOAuth2ProviderSources()
+	if err != nil {
+		return false
 	}
+
+	for _, source := range authSources {
+		if source.Cfg.(*oauth2.Source).ForceOAuth {
+			ctx.RedirectToFirst(setting.AppSubURL + "/user/login/openid")
+			return true
+		}
+	}
+
 	return false
 }
 
@@ -161,13 +168,13 @@ func checkForceOpenID(ctx *context.Context) bool {
 func SignIn(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 
-	// Check forced OpenID login
-	if checkForceOpenID(ctx) {
+	// Check auto-login
+	if checkAutoLogin(ctx) {
 		return
 	}
 
-	// Check auto-login
-	if checkAutoLogin(ctx) {
+	// Check if authentication is forced to OAuth
+	if checkForceOAuth(ctx) {
 		return
 	}
 
