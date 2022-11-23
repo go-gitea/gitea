@@ -91,8 +91,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Display total blob size of a package version (#20927)
   * Show language name on hover (#20923)
   * Show instructions for all generic package files (#20917)
-  * Replace `ServeStream` with `ServeContent` (#20903)
-  * Make every not exist error unwrappable to a fs.ErrNotExist (#20891)
   * Refactor AssertExistsAndLoadBean to use generics (#20797)
   * Move the official website link at the footer of gitea (#20777)
   * Add support for full name in reverse proxy auth (#20776)
