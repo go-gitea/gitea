@@ -233,12 +233,28 @@ func ReplayHookTask(ctx context.Context, hookID int64, uuid string) (*HookTask, 
 	return newTask, db.Insert(ctx, newTask)
 }
 
-// FindUndeliveredHookTasks represents find the undelivered hook tasks
-func FindUndeliveredHookTasks(ctx context.Context) ([]*HookTask, error) {
-	tasks := make([]*HookTask, 0, 10)
+// FindUndeliveredHookTaskIDs will find the next 100 undelivered hook tasks with ID greater than the provided lowerID
+func FindUndeliveredHookTaskIDs(ctx context.Context, lowerID int64) ([]int64, error) {
+	const batchSize = 100
+
+	tasks := make([]int64, 0, batchSize)
 	return tasks, db.GetEngine(ctx).
+		Select("id").
+		Table(new(HookTask)).
 		Where("is_delivered=?", false).
+		And("id > ?", lowerID).
+		Asc("id").
+		Limit(batchSize).
 		Find(&tasks)
+}
+
+func MarkTaskDelivered(ctx context.Context, task *HookTask) (bool, error) {
+	count, err := db.GetEngine(ctx).ID(task.ID).Where("is_delivered = ?", false).Cols("is_delivered").Update(&HookTask{
+		ID:          task.ID,
+		IsDelivered: true,
+	})
+
+	return count != 0, err
 }
 
 // CleanupHookTaskTable deletes rows from hook_task as needed.
