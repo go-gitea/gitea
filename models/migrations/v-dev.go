@@ -53,44 +53,44 @@ func addBotTables(x *xorm.Engine) error {
 	}
 
 	type BotsRun struct {
-		ID            int64
-		Title         string
-		RepoID        int64  `xorm:"index unique(repo_index)"`
-		OwnerID       int64  `xorm:"index"`
-		WorkflowID    string `xorm:"index"`                    // the name of workflow file
-		Index         int64  `xorm:"index unique(repo_index)"` // a unique number for each run of a repository
-		TriggerUserID int64
-		Ref           string
-		CommitSHA     string
-		Event         string
-		Token         string // token for this task
-		Grant         string // permissions for this task
-		EventPayload  string `xorm:"LONGTEXT"`
-		Status        int    `xorm:"index"`
-		Started       timeutil.TimeStamp
-		Stopped       timeutil.TimeStamp
-		Created       timeutil.TimeStamp `xorm:"created"`
-		Updated       timeutil.TimeStamp `xorm:"updated"`
+		ID                int64
+		Title             string
+		RepoID            int64  `xorm:"index unique(repo_index)"`
+		OwnerID           int64  `xorm:"index"`
+		WorkflowID        string `xorm:"index"`                    // the name of workflow file
+		Index             int64  `xorm:"index unique(repo_index)"` // a unique number for each run of a repository
+		TriggerUserID     int64
+		Ref               string
+		CommitSHA         string
+		Event             string
+		IsForkPullRequest bool
+		EventPayload      string `xorm:"LONGTEXT"`
+		Status            int    `xorm:"index"`
+		Started           timeutil.TimeStamp
+		Stopped           timeutil.TimeStamp
+		Created           timeutil.TimeStamp `xorm:"created"`
+		Updated           timeutil.TimeStamp `xorm:"updated"`
 	}
 
 	type BotsRunJob struct {
-		ID              int64
-		RunID           int64  `xorm:"index"`
-		RepoID          int64  `xorm:"index"`
-		OwnerID         int64  `xorm:"index"`
-		CommitSHA       string `xorm:"index"`
-		Name            string
-		Attempt         int64
-		WorkflowPayload []byte
-		JobID           string   // job id in workflow, not job's id
-		Needs           []string `xorm:"JSON TEXT"`
-		RunsOn          []string `xorm:"JSON TEXT"`
-		TaskID          int64    // the latest task of the job
-		Status          int      `xorm:"index"`
-		Started         timeutil.TimeStamp
-		Stopped         timeutil.TimeStamp
-		Created         timeutil.TimeStamp `xorm:"created"`
-		Updated         timeutil.TimeStamp `xorm:"updated index"`
+		ID                int64
+		RunID             int64  `xorm:"index"`
+		RepoID            int64  `xorm:"index"`
+		OwnerID           int64  `xorm:"index"`
+		CommitSHA         string `xorm:"index"`
+		IsForkPullRequest bool
+		Name              string
+		Attempt           int64
+		WorkflowPayload   []byte
+		JobID             string   // job id in workflow, not job's id
+		Needs             []string `xorm:"JSON TEXT"`
+		RunsOn            []string `xorm:"JSON TEXT"`
+		TaskID            int64    // the latest task of the job
+		Status            int      `xorm:"index"`
+		Started           timeutil.TimeStamp
+		Stopped           timeutil.TimeStamp
+		Created           timeutil.TimeStamp `xorm:"created"`
+		Updated           timeutil.TimeStamp `xorm:"updated index"`
 	}
 
 	type Repository struct {
@@ -109,9 +109,10 @@ func addBotTables(x *xorm.Engine) error {
 		Started  timeutil.TimeStamp `xorm:"index"`
 		Stopped  timeutil.TimeStamp
 
-		RepoID    int64  `xorm:"index"`
-		OwnerID   int64  `xorm:"index"`
-		CommitSHA string `xorm:"index"`
+		RepoID            int64  `xorm:"index"`
+		OwnerID           int64  `xorm:"index"`
+		CommitSHA         string `xorm:"index"`
+		IsForkPullRequest bool
 
 		TokenHash      string `xorm:"UNIQUE"` // sha256 of token
 		TokenSalt      string

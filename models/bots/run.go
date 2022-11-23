@@ -24,26 +24,25 @@ import (
 
 // Run represents a run of a workflow file
 type Run struct {
-	ID            int64
-	Title         string
-	RepoID        int64                  `xorm:"index unique(repo_index)"`
-	Repo          *repo_model.Repository `xorm:"-"`
-	OwnerID       int64                  `xorm:"index"`
-	WorkflowID    string                 `xorm:"index"`                    // the name of workflow file
-	Index         int64                  `xorm:"index unique(repo_index)"` // a unique number for each run of a repository
-	TriggerUserID int64
-	TriggerUser   *user_model.User `xorm:"-"`
-	Ref           string
-	CommitSHA     string
-	Event         webhook.HookEventType
-	Token         string // token for this task
-	Grant         string // permissions for this task
-	EventPayload  string `xorm:"LONGTEXT"`
-	Status        Status `xorm:"index"`
-	Started       timeutil.TimeStamp
-	Stopped       timeutil.TimeStamp
-	Created       timeutil.TimeStamp `xorm:"created"`
-	Updated       timeutil.TimeStamp `xorm:"updated"`
+	ID                int64
+	Title             string
+	RepoID            int64                  `xorm:"index unique(repo_index)"`
+	Repo              *repo_model.Repository `xorm:"-"`
+	OwnerID           int64                  `xorm:"index"`
+	WorkflowID        string                 `xorm:"index"`                    // the name of workflow file
+	Index             int64                  `xorm:"index unique(repo_index)"` // a unique number for each run of a repository
+	TriggerUserID     int64
+	TriggerUser       *user_model.User `xorm:"-"`
+	Ref               string
+	CommitSHA         string
+	IsForkPullRequest bool
+	Event             webhook.HookEventType
+	EventPayload      string `xorm:"LONGTEXT"`
+	Status            Status `xorm:"index"`
+	Started           timeutil.TimeStamp
+	Stopped           timeutil.TimeStamp
+	Created           timeutil.TimeStamp `xorm:"created"`
+	Updated           timeutil.TimeStamp `xorm:"updated"`
 }
 
 func init() {
@@ -179,16 +178,17 @@ func InsertRun(run *Run, jobs []*jobparser.SingleWorkflow) error {
 			status = StatusBlocked
 		}
 		runJobs = append(runJobs, &RunJob{
-			RunID:           run.ID,
-			RepoID:          run.RepoID,
-			OwnerID:         run.OwnerID,
-			CommitSHA:       run.CommitSHA,
-			Name:            job.Name,
-			WorkflowPayload: payload,
-			JobID:           id,
-			Needs:           needs,
-			RunsOn:          job.RunsOn(),
-			Status:          status,
+			RunID:             run.ID,
+			RepoID:            run.RepoID,
+			OwnerID:           run.OwnerID,
+			CommitSHA:         run.CommitSHA,
+			IsForkPullRequest: run.IsForkPullRequest,
+			Name:              job.Name,
+			WorkflowPayload:   payload,
+			JobID:             id,
+			Needs:             needs,
+			RunsOn:            job.RunsOn(),
+			Status:            status,
 		})
 	}
 	if err := db.Insert(ctx, runJobs); err != nil {

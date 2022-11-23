@@ -43,9 +43,10 @@ type Task struct {
 	Started  timeutil.TimeStamp `xorm:"index"`
 	Stopped  timeutil.TimeStamp
 
-	RepoID    int64  `xorm:"index"`
-	OwnerID   int64  `xorm:"index"`
-	CommitSHA string `xorm:"index"`
+	RepoID            int64  `xorm:"index"`
+	OwnerID           int64  `xorm:"index"`
+	CommitSHA         string `xorm:"index"`
+	IsForkPullRequest bool
 
 	Token          string `xorm:"-"`
 	TokenHash      string `xorm:"UNIQUE"` // sha256 of token
@@ -337,14 +338,15 @@ func CreateTaskForRunner(ctx context.Context, runner *Runner) (*Task, bool, erro
 	job.Status = StatusRunning
 
 	task := &Task{
-		JobID:     job.ID,
-		Attempt:   job.Attempt,
-		RunnerID:  runner.ID,
-		Started:   now,
-		Status:    StatusRunning,
-		RepoID:    job.RepoID,
-		OwnerID:   job.OwnerID,
-		CommitSHA: job.CommitSHA,
+		JobID:             job.ID,
+		Attempt:           job.Attempt,
+		RunnerID:          runner.ID,
+		Started:           now,
+		Status:            StatusRunning,
+		RepoID:            job.RepoID,
+		OwnerID:           job.OwnerID,
+		CommitSHA:         job.CommitSHA,
+		IsForkPullRequest: job.IsForkPullRequest,
 	}
 	if err := task.GenerateToken(); err != nil {
 		return nil, false, err
