@@ -389,7 +389,7 @@
 									{{avatar $user}}
 								</a>
 								<div class="content">
-									<a class="author">{{$user.DisplayName}}</a>
+									{{template "shared/user/authorlink" $user}}
 									<div class="text">
 										{{$trackedtime}}
 									</div>
