@@ -13,10 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/auth/openid"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/hcaptcha"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/mcaptcha"
-	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -357,14 +354,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsOpenIDRegister"] = true
 	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
-	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
-	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
-	ctx.Data["Captcha"] = context.GetImageCaptcha()
-	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
-	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
-	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
-	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
-	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
+	context.SetCaptchaData(ctx)
 	ctx.Data["OpenID"] = oid
 
 	if setting.Service.AllowOnlyInternalRegistration {
@@ -373,42 +363,11 @@ func RegisterOpenIDPost(ctx *context.Context) {
 	}
 
 	if setting.Service.EnableCaptcha {
-		var valid bool
-		var err error
-		switch setting.Service.CaptchaType {
-		case setting.ImageCaptcha:
-			valid = context.GetImageCaptcha().VerifyReq(ctx.Req)
-		case setting.ReCaptcha:
-			if err := ctx.Req.ParseForm(); err != nil {
-				ctx.ServerError("", err)
-				return
-			}
-			valid, err = recaptcha.Verify(ctx, form.GRecaptchaResponse)
-		case setting.HCaptcha:
-			if err := ctx.Req.ParseForm(); err != nil {
-				ctx.ServerError("", err)
-				return
-			}
-			valid, err = hcaptcha.Verify(ctx, form.HcaptchaResponse)
-		case setting.MCaptcha:
-			if err := ctx.Req.ParseForm(); err != nil {
-				ctx.ServerError("", err)
-				return
-			}
-			valid, err = mcaptcha.Verify(ctx, form.McaptchaResponse)
-		default:
-			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
+		if err := ctx.Req.ParseForm(); err != nil {
+			ctx.ServerError("", err)
 			return
 		}
-		if err != nil {
-			log.Debug("%s", err.Error())
-		}
-
-		if !valid {
-			ctx.Data["Err_Captcha"] = true
-			ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplSignUpOID, &form)
-			return
-		}
+		context.VerifyCaptcha(ctx, tplSignUpOID, form)
 	}
 
 	length := setting.MinPasswordLength
