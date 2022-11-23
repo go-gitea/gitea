@@ -65,6 +65,7 @@
     "postcss-less": "6.0.0",
     "stylelint": "14.15.0",
     "stylelint-config-standard": "29.0.0",
+    "stylelint-declaration-strict-value": "1.9.1",
     "svgo": "3.0.2",
     "updates": "13.2.1",
     "vitest": "0.25.2"
