@@ -288,7 +288,7 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) 
 	}
 	for page := 1; ; page++ {
 		opts.Page = page
-		rels, err := repo_model.GetReleasesByRepoID(repo.ID, opts)
+		rels, err := repo_model.GetReleasesByRepoID(gitRepo.Ctx, repo.ID, opts)
 		if err != nil {
 			return fmt.Errorf("unable to GetReleasesByRepoID in Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 		}

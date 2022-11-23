@@ -59,7 +59,7 @@ func ListForks(ctx *context.APIContext) {
 	}
 	apiForks := make([]*api.Repository, len(forks))
 	for i, fork := range forks {
-		access, err := access_model.AccessLevel(ctx.Doer, fork)
+		access, err := access_model.AccessLevel(ctx, ctx.Doer, fork)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 			return

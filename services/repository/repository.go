@@ -32,7 +32,7 @@ func CreateRepository(doer, owner *user_model.User, opts repo_module.CreateRepoO
 		return nil, err
 	}
 
-	notification.NotifyCreateRepository(doer, owner, repo)
+	notification.NotifyCreateRepository(db.DefaultContext, doer, owner, repo)
 
 	return repo, nil
 }
@@ -45,7 +45,7 @@ func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_mod
 
 	if notify {
 		// If the repo itself has webhooks, we need to trigger them before deleting it...
-		notification.NotifyDeleteRepository(doer, repo)
+		notification.NotifyDeleteRepository(ctx, doer, repo)
 	}
 
 	if err := models.DeleteRepository(doer, repo.OwnerID, repo.ID); err != nil {

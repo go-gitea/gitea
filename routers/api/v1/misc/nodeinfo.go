@@ -42,7 +42,7 @@ func NodeInfo(ctx *context.APIContext) {
 			usersActiveMonth := int(user_model.CountUsers(&user_model.CountUserFilter{LastLoginSince: &timeOneMonthAgo}))
 			usersActiveHalfyear := int(user_model.CountUsers(&user_model.CountUserFilter{LastLoginSince: &timeHaveYearAgo}))
 
-			allIssues, _ := issues_model.CountIssues(&issues_model.IssuesOptions{})
+			allIssues, _ := issues_model.CountIssues(ctx, &issues_model.IssuesOptions{})
 			allComments, _ := issues_model.CountComments(&issues_model.FindCommentsOptions{})
 
 			nodeInfoUsage = structs.NodeInfoUsage{

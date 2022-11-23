@@ -540,7 +540,7 @@ func SearchRepo(ctx *context.Context) {
 	}
 
 	var err error
-	repos, count, err := repo_model.SearchRepository(opts)
+	repos, count, err := repo_model.SearchRepository(ctx, opts)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, api.SearchError{
 			OK:    false,

@@ -78,7 +78,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 				Actor:   u,
 			})
 			if err != nil {
-				return fmt.Errorf("SearchRepositoryByName: %w", err)
+				return fmt.Errorf("GetUserRepositories: %w", err)
 			}
 			if len(repos) == 0 {
 				break

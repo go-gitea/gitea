@@ -246,7 +246,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	if forceEmpty {
 		issues = []*issues_model.Issue{}
 	} else {
-		issues, err = issues_model.Issues(&issues_model.IssuesOptions{
+		issues, err = issues_model.Issues(ctx, &issues_model.IssuesOptions{
 			ListOptions: db.ListOptions{
 				Page:     pager.Paginater.Current(),
 				PageSize: setting.UI.IssuePagingNum,
@@ -608,7 +608,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 		currentPullReviewers := make([]*repoReviewerSelection, 0, len(pullReviews))
 		for _, item := range pullReviews {
 			if item.Review.ReviewerID > 0 {
-				if err = item.Review.LoadReviewer(); err != nil {
+				if err = item.Review.LoadReviewer(ctx); err != nil {
 					if user_model.IsErrUserNotExist(err) {
 						continue
 					}
@@ -617,7 +617,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 				}
 				item.User = item.Review.Reviewer
 			} else if item.Review.ReviewerTeamID > 0 {
-				if err = item.Review.LoadReviewerTeam(); err != nil {
+				if err = item.Review.LoadReviewerTeam(ctx); err != nil {
 					if organization.IsErrTeamNotExist(err) {
 						continue
 					}
@@ -784,6 +784,10 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 					}
 				}
 			}
+
+		}
+		if !strings.HasPrefix(template.Ref, "refs/") { // Assume that the ref intended is always a branch - for tags users should use refs/tags/<ref>
+			template.Ref = git.BranchPrefix + template.Ref
 		}
 		ctx.Data["HasSelectedLabel"] = len(labelIDs) > 0
 		ctx.Data["label_ids"] = strings.Join(labelIDs, ",")
@@ -1163,7 +1167,7 @@ func getBranchData(ctx *context.Context, issue *issues_model.Issue) {
 		pull := issue.PullRequest
 		ctx.Data["BaseBranch"] = pull.BaseBranch
 		ctx.Data["HeadBranch"] = pull.HeadBranch
-		ctx.Data["HeadUserName"] = pull.MustHeadUserName()
+		ctx.Data["HeadUserName"] = pull.MustHeadUserName(ctx)
 	}
 }
 
@@ -1426,13 +1430,13 @@ func ViewIssue(ctx *context.Context) {
 	for _, comment = range issue.Comments {
 		comment.Issue = issue
 
-		if err := comment.LoadPoster(); err != nil {
+		if err := comment.LoadPoster(ctx); err != nil {
 			ctx.ServerError("LoadPoster", err)
 			return
 		}
 
 		if comment.Type == issues_model.CommentTypeComment || comment.Type == issues_model.CommentTypeReview {
-			if err := comment.LoadAttachments(); err != nil {
+			if err := comment.LoadAttachments(ctx); err != nil {
 				ctx.ServerError("LoadAttachments", err)
 				return
 			}
@@ -1467,7 +1471,7 @@ func ViewIssue(ctx *context.Context) {
 				return
 			}
 		} else if comment.Type == issues_model.CommentTypeMilestone {
-			if err = comment.LoadMilestone(); err != nil {
+			if err = comment.LoadMilestone(ctx); err != nil {
 				ctx.ServerError("LoadMilestone", err)
 				return
 			}
@@ -1591,7 +1595,7 @@ func ViewIssue(ctx *context.Context) {
 		ctx.Data["AllowMerge"] = false
 
 		if ctx.IsSigned {
-			if err := pull.LoadHeadRepoCtx(ctx); err != nil {
+			if err := pull.LoadHeadRepo(ctx); err != nil {
 				log.Error("LoadHeadRepo: %v", err)
 			} else if pull.HeadRepo != nil {
 				perm, err := access_model.GetUserRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
@@ -1613,7 +1617,7 @@ func ViewIssue(ctx *context.Context) {
 				}
 			}
 
-			if err := pull.LoadBaseRepoCtx(ctx); err != nil {
+			if err := pull.LoadBaseRepo(ctx); err != nil {
 				log.Error("LoadBaseRepo: %v", err)
 			}
 			perm, err := access_model.GetUserRepoPermission(ctx, pull.BaseRepo, ctx.Doer)
@@ -1662,14 +1666,14 @@ func ViewIssue(ctx *context.Context) {
 
 		ctx.Data["MergeStyle"] = mergeStyle
 
-		defaultMergeMessage, err := pull_service.GetDefaultMergeMessage(ctx.Repo.GitRepo, pull, mergeStyle)
+		defaultMergeMessage, err := pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, mergeStyle)
 		if err != nil {
 			ctx.ServerError("GetDefaultMergeMessage", err)
 			return
 		}
 		ctx.Data["DefaultMergeMessage"] = defaultMergeMessage
 
-		defaultSquashMergeMessage, err := pull_service.GetDefaultMergeMessage(ctx.Repo.GitRepo, pull, repo_model.MergeStyleSquash)
+		defaultSquashMergeMessage, err := pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, repo_model.MergeStyleSquash)
 		if err != nil {
 			ctx.ServerError("GetDefaultSquashMergeMessage", err)
 			return
@@ -1885,7 +1889,7 @@ func GetIssueInfo(ctx *context.Context) {
 		}
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToAPIIssue(issue))
+	ctx.JSON(http.StatusOK, convert.ToAPIIssue(ctx, issue))
 }
 
 // UpdateIssueTitle change issue's title
@@ -2280,7 +2284,7 @@ func SearchIssues(ctx *context.Context) {
 	repoCond := repo_model.SearchRepositoryCondition(opts)
 	repoIDs, _, err := repo_model.SearchRepositoryIDs(opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "SearchRepositoryByName", err.Error())
+		ctx.Error(http.StatusInternalServerError, "SearchRepositoryIDs", err.Error())
 		return
 	}
 
@@ -2369,7 +2373,7 @@ func SearchIssues(ctx *context.Context) {
 			issuesOpt.ReviewRequestedID = ctxUserID
 		}
 
-		if issues, err = issues_model.Issues(issuesOpt); err != nil {
+		if issues, err = issues_model.Issues(ctx, issuesOpt); err != nil {
 			ctx.Error(http.StatusInternalServerError, "Issues", err.Error())
 			return
 		}
@@ -2377,14 +2381,14 @@ func SearchIssues(ctx *context.Context) {
 		issuesOpt.ListOptions = db.ListOptions{
 			Page: -1,
 		}
-		if filteredCount, err = issues_model.CountIssues(issuesOpt); err != nil {
+		if filteredCount, err = issues_model.CountIssues(ctx, issuesOpt); err != nil {
 			ctx.Error(http.StatusInternalServerError, "CountIssues", err.Error())
 			return
 		}
 	}
 
 	ctx.SetTotalCountHeader(filteredCount)
-	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(issues))
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, issues))
 }
 
 func getUserIDForFilter(ctx *context.Context, queryName string) int64 {
@@ -2527,7 +2531,7 @@ func ListIssues(ctx *context.Context) {
 			MentionedID:       mentionedByID,
 		}
 
-		if issues, err = issues_model.Issues(issuesOpt); err != nil {
+		if issues, err = issues_model.Issues(ctx, issuesOpt); err != nil {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 			return
 		}
@@ -2535,14 +2539,14 @@ func ListIssues(ctx *context.Context) {
 		issuesOpt.ListOptions = db.ListOptions{
 			Page: -1,
 		}
-		if filteredCount, err = issues_model.CountIssues(issuesOpt); err != nil {
+		if filteredCount, err = issues_model.CountIssues(ctx, issuesOpt); err != nil {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 			return
 		}
 	}
 
 	ctx.SetTotalCountHeader(filteredCount)
-	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(issues))
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, issues))
 }
 
 // UpdateIssueStatus change issue's status
@@ -2562,7 +2566,7 @@ func UpdateIssueStatus(ctx *context.Context) {
 		log.Warn("Unrecognized action: %s", action)
 	}
 
-	if _, err := issues_model.IssueList(issues).LoadRepositories(); err != nil {
+	if _, err := issues_model.IssueList(issues).LoadRepositories(ctx); err != nil {
 		ctx.ServerError("LoadRepositories", err)
 		return
 	}
@@ -2646,7 +2650,7 @@ func NewComment(ctx *context.Context) {
 			if form.Status == "reopen" && issue.IsPull {
 				pull := issue.PullRequest
 				var err error
-				pr, err = issues_model.GetUnmergedPullRequest(pull.HeadRepoID, pull.BaseRepoID, pull.HeadBranch, pull.BaseBranch, pull.Flow)
+				pr, err = issues_model.GetUnmergedPullRequest(ctx, pull.HeadRepoID, pull.BaseRepoID, pull.HeadBranch, pull.BaseBranch, pull.Flow)
 				if err != nil {
 					if !issues_model.IsErrPullRequestNotExist(err) {
 						ctx.ServerError("GetUnmergedPullRequest", err)
@@ -2706,7 +2710,7 @@ func NewComment(ctx *context.Context) {
 		return
 	}
 
-	comment, err := comment_service.CreateIssueComment(ctx.Doer, ctx.Repo.Repository, issue, form.Content, attachments)
+	comment, err := comment_service.CreateIssueComment(ctx, ctx.Doer, ctx.Repo.Repository, issue, form.Content, attachments)
 	if err != nil {
 		ctx.ServerError("CreateIssueComment", err)
 		return
@@ -2723,7 +2727,7 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
-	if err := comment.LoadIssue(); err != nil {
+	if err := comment.LoadIssue(ctx); err != nil {
 		ctx.NotFoundOrServerError("LoadIssue", issues_model.IsErrIssueNotExist, err)
 		return
 	}
@@ -2746,12 +2750,12 @@ func UpdateCommentContent(ctx *context.Context) {
 		})
 		return
 	}
-	if err = comment_service.UpdateComment(comment, ctx.Doer, oldContent); err != nil {
+	if err = comment_service.UpdateComment(ctx, comment, ctx.Doer, oldContent); err != nil {
 		ctx.ServerError("UpdateComment", err)
 		return
 	}
 
-	if err := comment.LoadAttachments(); err != nil {
+	if err := comment.LoadAttachments(ctx); err != nil {
 		ctx.ServerError("LoadAttachments", err)
 		return
 	}
@@ -2789,7 +2793,7 @@ func DeleteComment(ctx *context.Context) {
 		return
 	}
 
-	if err := comment.LoadIssue(); err != nil {
+	if err := comment.LoadIssue(ctx); err != nil {
 		ctx.NotFoundOrServerError("LoadIssue", issues_model.IsErrIssueNotExist, err)
 		return
 	}
@@ -2802,8 +2806,8 @@ func DeleteComment(ctx *context.Context) {
 		return
 	}
 
-	if err = comment_service.DeleteComment(ctx.Doer, comment); err != nil {
-		ctx.ServerError("DeleteCommentByID", err)
+	if err = comment_service.DeleteComment(ctx, ctx.Doer, comment); err != nil {
+		ctx.ServerError("DeleteComment", err)
 		return
 	}
 
@@ -2915,7 +2919,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 		return
 	}
 
-	if err := comment.LoadIssue(); err != nil {
+	if err := comment.LoadIssue(ctx); err != nil {
 		ctx.NotFoundOrServerError("LoadIssue", issues_model.IsErrIssueNotExist, err)
 		return
 	}
@@ -3061,7 +3065,7 @@ func GetCommentAttachments(ctx *context.Context) {
 	}
 	attachments := make([]*api.Attachment, 0)
 	if comment.Type == issues_model.CommentTypeComment {
-		if err := comment.LoadAttachments(); err != nil {
+		if err := comment.LoadAttachments(ctx); err != nil {
 			ctx.ServerError("LoadAttachments", err)
 			return
 		}
