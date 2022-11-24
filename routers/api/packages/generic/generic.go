@@ -53,7 +53,10 @@ func DownloadPackageFile(ctx *context.Context) {
 	}
 	defer s.Close()
 
-	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
+	ctx.ServeContent(s, &context.ServeHeaderOptions{
+		Filename:     pf.Name,
+		LastModified: pf.CreatedUnix.AsLocalTime(),
+	})
 }
 
 // UploadPackage uploads the specific generic package.
