@@ -20,8 +20,12 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-// DefaultAvatarPixelSize is the default size in pixels of a rendered avatar
-const DefaultAvatarPixelSize = 28
+const (
+	// DefaultAvatarClass is the default class of a rendered avatar
+	DefaultAvatarClass = "ui avatar vm"
+	// DefaultAvatarPixelSize is the default size in pixels of a rendered avatar
+	DefaultAvatarPixelSize = 28
+)
 
 // EmailHash represents a pre-generated hash map (mainly used by LibravatarURL, it queries email server's DNS records)
 type EmailHash struct {
