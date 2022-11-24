@@ -58,7 +58,7 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 		return
 	}
 
-	if err := comment.LoadIssue(); err != nil {
+	if err := comment.LoadIssue(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "comment.LoadIssue", err)
 	}
 
@@ -185,7 +185,7 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 		return
 	}
 
-	err = comment.LoadIssue()
+	err = comment.LoadIssue(ctx)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "comment.LoadIssue() failed", err)
 	}

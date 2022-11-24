@@ -117,7 +117,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 			tagName := opts.TagName()
 			if opts.IsDelRef() {
 				notification.NotifyPushCommits(
-					pusher, repo,
+					db.DefaultContext, pusher, repo,
 					&repo_module.PushUpdateOptions{
 						RefFullName: git.TagPrefix + tagName,
 						OldCommitID: opts.OldCommitID,
@@ -125,7 +125,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					}, repo_module.NewPushCommits())
 
 				delTags = append(delTags, tagName)
-				notification.NotifyDeleteRef(pusher, repo, "tag", opts.RefFullName)
+				notification.NotifyDeleteRef(db.DefaultContext, pusher, repo, "tag", opts.RefFullName)
 			} else { // is new tag
 				newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
 				if err != nil {
@@ -137,7 +137,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				commits.CompareURL = repo.ComposeCompareURL(git.EmptySHA, opts.NewCommitID)
 
 				notification.NotifyPushCommits(
-					pusher, repo,
+					db.DefaultContext, pusher, repo,
 					&repo_module.PushUpdateOptions{
 						RefFullName: git.TagPrefix + tagName,
 						OldCommitID: git.EmptySHA,
@@ -145,7 +145,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					}, commits)
 
 				addTags = append(addTags, tagName)
-				notification.NotifyCreateRef(pusher, repo, "tag", opts.RefFullName, opts.NewCommitID)
+				notification.NotifyCreateRef(db.DefaultContext, pusher, repo, "tag", opts.RefFullName, opts.NewCommitID)
 			}
 		} else if opts.IsBranch() { // If is branch reference
 			if pusher == nil || pusher.ID != opts.PusherID {
@@ -190,7 +190,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					if err != nil {
 						return fmt.Errorf("newCommit.CommitsBeforeLimit: %w", err)
 					}
-					notification.NotifyCreateRef(pusher, repo, "branch", opts.RefFullName, opts.NewCommitID)
+					notification.NotifyCreateRef(db.DefaultContext, pusher, repo, "branch", opts.RefFullName, opts.NewCommitID)
 				} else {
 					l, err = newCommit.CommitsBeforeUntil(opts.OldCommitID)
 					if err != nil {
@@ -250,7 +250,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					commits.Commits = commits.Commits[:setting.UI.FeedMaxCommitNum]
 				}
 
-				notification.NotifyPushCommits(pusher, repo, opts, commits)
+				notification.NotifyPushCommits(db.DefaultContext, pusher, repo, opts, commits)
 
 				if err = git_model.RemoveDeletedBranchByName(repo.ID, branch); err != nil {
 					log.Error("models.RemoveDeletedBranch %s/%s failed: %v", repo.ID, branch, err)
@@ -261,7 +261,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					log.Error("repo_module.CacheRef %s/%s failed: %v", repo.ID, branch, err)
 				}
 			} else {
-				notification.NotifyDeleteRef(pusher, repo, "branch", opts.RefFullName)
+				notification.NotifyDeleteRef(db.DefaultContext, pusher, repo, "branch", opts.RefFullName)
 				if err = pull_service.CloseBranchPulls(pusher, repo.ID, branch); err != nil {
 					// close all related pulls
 					log.Error("close related pull request failed: %v", err)

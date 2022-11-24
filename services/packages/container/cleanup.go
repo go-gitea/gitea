@@ -6,13 +6,12 @@ package container
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
-	user_model "code.gitea.io/gitea/models/user"
 	container_module "code.gitea.io/gitea/modules/packages/container"
+	"code.gitea.io/gitea/modules/packages/container/oci"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -82,24 +81,30 @@ func cleanupExpiredUploadedBlobs(ctx context.Context, olderThan time.Duration) e
 	return nil
 }
 
-// UpdateRepositoryNames updates the repository name property for all packages of the specific owner
-func UpdateRepositoryNames(ctx context.Context, owner *user_model.User, newOwnerName string) error {
-	ps, err := packages_model.GetPackagesByType(ctx, owner.ID, packages_model.TypeContainer)
-	if err != nil {
-		return err
+func ShouldBeSkipped(ctx context.Context, pcr *packages_model.PackageCleanupRule, p *packages_model.Package, pv *packages_model.PackageVersion) (bool, error) {
+	// Always skip the "latest" tag
+	if pv.LowerVersion == "latest" {
+		return true, nil
 	}
 
-	newOwnerName = strings.ToLower(newOwnerName)
-
-	for _, p := range ps {
-		if err := packages_model.DeletePropertyByName(ctx, packages_model.PropertyTypePackage, p.ID, container_module.PropertyRepository); err != nil {
-			return err
+	// Check if the version is a digest (or untagged)
+	if oci.Digest(pv.LowerVersion).Validate() {
+		// Check if there is another manifest referencing this version
+		has, err := packages_model.ExistVersion(ctx, &packages_model.PackageSearchOptions{
+			PackageID: p.ID,
+			Properties: map[string]string{
+				container_module.PropertyManifestReference: pv.LowerVersion,
+			},
+		})
+		if err != nil {
+			return false, err
 		}
 
-		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypePackage, p.ID, container_module.PropertyRepository, newOwnerName+"/"+p.LowerName); err != nil {
-			return err
+		// Skip it if the version is referenced
+		if has {
+			return true, nil
 		}
 	}
 
-	return nil
+	return false, nil
 }

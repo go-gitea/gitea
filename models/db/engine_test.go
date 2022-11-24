@@ -41,11 +41,11 @@ func TestDeleteOrphanedObjects(t *testing.T) {
 	_, err = db.GetEngine(db.DefaultContext).Insert(&issues_model.PullRequest{IssueID: 1000}, &issues_model.PullRequest{IssueID: 1001}, &issues_model.PullRequest{IssueID: 1003})
 	assert.NoError(t, err)
 
-	orphaned, err := db.CountOrphanedObjects("pull_request", "issue", "pull_request.issue_id=issue.id")
+	orphaned, err := db.CountOrphanedObjects(db.DefaultContext, "pull_request", "issue", "pull_request.issue_id=issue.id")
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, orphaned)
 
-	err = db.DeleteOrphanedObjects("pull_request", "issue", "pull_request.issue_id=issue.id")
+	err = db.DeleteOrphanedObjects(db.DefaultContext, "pull_request", "issue", "pull_request.issue_id=issue.id")
 	assert.NoError(t, err)
 
 	countAfter, err := db.GetEngine(db.DefaultContext).Count(&issues_model.PullRequest{})

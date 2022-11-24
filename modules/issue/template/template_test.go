@@ -6,18 +6,21 @@ package template
 
 import (
 	"net/url"
-	"reflect"
 	"testing"
 
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidate(t *testing.T) {
 	tests := []struct {
-		name    string
-		content string
-		wantErr string
+		name     string
+		filename string
+		content  string
+		want     *api.IssueTemplate
+		wantErr  string
 	}{
 		{
 			name:    "miss name",
@@ -316,21 +319,9 @@ body:
 `,
 			wantErr: "body[0](checkboxes), option[0]: 'required' should be a bool",
 		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tmpl, err := unmarshal("test.yaml", []byte(tt.content))
-			if err != nil {
-				t.Fatal(err)
-			}
-			if err := Validate(tmpl); (err == nil) != (tt.wantErr == "") || err != nil && err.Error() != tt.wantErr {
-				t.Errorf("Validate() error = %v, wantErr %q", err, tt.wantErr)
-			}
-		})
-	}
-
-	t.Run("valid", func(t *testing.T) {
-		content := `
+		{
+			name: "valid",
+			content: `
 name: Name
 title: Title
 about: About
@@ -386,96 +377,227 @@ body:
           required: false
         - label: Option 3 of checkboxes
           required: true
-`
-		want := &api.IssueTemplate{
-			Name:   "Name",
-			Title:  "Title",
-			About:  "About",
-			Labels: []string{"label1", "label2"},
-			Ref:    "Ref",
-			Fields: []*api.IssueFormField{
-				{
-					Type: "markdown",
-					ID:   "id1",
-					Attributes: map[string]interface{}{
-						"value": "Value of the markdown",
-					},
-				},
-				{
-					Type: "textarea",
-					ID:   "id2",
-					Attributes: map[string]interface{}{
-						"label":       "Label of textarea",
-						"description": "Description of textarea",
-						"placeholder": "Placeholder of textarea",
-						"value":       "Value of textarea",
-						"render":      "bash",
-					},
-					Validations: map[string]interface{}{
-						"required": true,
-					},
-				},
-				{
-					Type: "input",
-					ID:   "id3",
-					Attributes: map[string]interface{}{
-						"label":       "Label of input",
-						"description": "Description of input",
-						"placeholder": "Placeholder of input",
-						"value":       "Value of input",
-					},
-					Validations: map[string]interface{}{
-						"required":  true,
-						"is_number": true,
-						"regex":     "[a-zA-Z0-9]+",
-					},
-				},
-				{
-					Type: "dropdown",
-					ID:   "id4",
-					Attributes: map[string]interface{}{
-						"label":       "Label of dropdown",
-						"description": "Description of dropdown",
-						"multiple":    true,
-						"options": []interface{}{
-							"Option 1 of dropdown",
-							"Option 2 of dropdown",
-							"Option 3 of dropdown",
+`,
+			want: &api.IssueTemplate{
+				Name:   "Name",
+				Title:  "Title",
+				About:  "About",
+				Labels: []string{"label1", "label2"},
+				Ref:    "Ref",
+				Fields: []*api.IssueFormField{
+					{
+						Type: "markdown",
+						ID:   "id1",
+						Attributes: map[string]interface{}{
+							"value": "Value of the markdown",
 						},
 					},
-					Validations: map[string]interface{}{
-						"required": true,
+					{
+						Type: "textarea",
+						ID:   "id2",
+						Attributes: map[string]interface{}{
+							"label":       "Label of textarea",
+							"description": "Description of textarea",
+							"placeholder": "Placeholder of textarea",
+							"value":       "Value of textarea",
+							"render":      "bash",
+						},
+						Validations: map[string]interface{}{
+							"required": true,
+						},
 					},
-				},
-				{
-					Type: "checkboxes",
-					ID:   "id5",
-					Attributes: map[string]interface{}{
-						"label":       "Label of checkboxes",
-						"description": "Description of checkboxes",
-						"options": []interface{}{
-							map[interface{}]interface{}{"label": "Option 1 of checkboxes", "required": true},
-							map[interface{}]interface{}{"label": "Option 2 of checkboxes", "required": false},
-							map[interface{}]interface{}{"label": "Option 3 of checkboxes", "required": true},
+					{
+						Type: "input",
+						ID:   "id3",
+						Attributes: map[string]interface{}{
+							"label":       "Label of input",
+							"description": "Description of input",
+							"placeholder": "Placeholder of input",
+							"value":       "Value of input",
+						},
+						Validations: map[string]interface{}{
+							"required":  true,
+							"is_number": true,
+							"regex":     "[a-zA-Z0-9]+",
+						},
+					},
+					{
+						Type: "dropdown",
+						ID:   "id4",
+						Attributes: map[string]interface{}{
+							"label":       "Label of dropdown",
+							"description": "Description of dropdown",
+							"multiple":    true,
+							"options": []interface{}{
+								"Option 1 of dropdown",
+								"Option 2 of dropdown",
+								"Option 3 of dropdown",
+							},
+						},
+						Validations: map[string]interface{}{
+							"required": true,
+						},
+					},
+					{
+						Type: "checkboxes",
+						ID:   "id5",
+						Attributes: map[string]interface{}{
+							"label":       "Label of checkboxes",
+							"description": "Description of checkboxes",
+							"options": []interface{}{
+								map[string]interface{}{"label": "Option 1 of checkboxes", "required": true},
+								map[string]interface{}{"label": "Option 2 of checkboxes", "required": false},
+								map[string]interface{}{"label": "Option 3 of checkboxes", "required": true},
+							},
 						},
 					},
 				},
+				FileName: "test.yaml",
 			},
-			FileName: "test.yaml",
-		}
-		got, err := unmarshal("test.yaml", []byte(content))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if err := Validate(got); err != nil {
-			t.Errorf("Validate() error = %v", err)
-		}
-		if !reflect.DeepEqual(want, got) {
-			jsonWant, _ := json.Marshal(want)
-			jsonGot, _ := json.Marshal(got)
-			t.Errorf("want:\n%s\ngot:\n%s", jsonWant, jsonGot)
-		}
-	})
+			wantErr: "",
+		},
+		{
+			name: "single label",
+			content: `
+name: Name
+title: Title
+about: About
+labels: label1
+ref: Ref
+body:
+  - type: markdown
+    id: id1
+    attributes:
+      value: Value of the markdown
+`,
+			want: &api.IssueTemplate{
+				Name:   "Name",
+				Title:  "Title",
+				About:  "About",
+				Labels: []string{"label1"},
+				Ref:    "Ref",
+				Fields: []*api.IssueFormField{
+					{
+						Type: "markdown",
+						ID:   "id1",
+						Attributes: map[string]interface{}{
+							"value": "Value of the markdown",
+						},
+					},
+				},
+				FileName: "test.yaml",
+			},
+			wantErr: "",
+		},
+		{
+			name: "comma-delimited labels",
+			content: `
+name: Name
+title: Title
+about: About
+labels: label1,label2,,label3 ,,
+ref: Ref
+body:
+  - type: markdown
+    id: id1
+    attributes:
+      value: Value of the markdown
+`,
+			want: &api.IssueTemplate{
+				Name:   "Name",
+				Title:  "Title",
+				About:  "About",
+				Labels: []string{"label1", "label2", "label3"},
+				Ref:    "Ref",
+				Fields: []*api.IssueFormField{
+					{
+						Type: "markdown",
+						ID:   "id1",
+						Attributes: map[string]interface{}{
+							"value": "Value of the markdown",
+						},
+					},
+				},
+				FileName: "test.yaml",
+			},
+			wantErr: "",
+		},
+		{
+			name: "empty string as labels",
+			content: `
+name: Name
+title: Title
+about: About
+labels: ''
+ref: Ref
+body:
+  - type: markdown
+    id: id1
+    attributes:
+      value: Value of the markdown
+`,
+			want: &api.IssueTemplate{
+				Name:   "Name",
+				Title:  "Title",
+				About:  "About",
+				Labels: nil,
+				Ref:    "Ref",
+				Fields: []*api.IssueFormField{
+					{
+						Type: "markdown",
+						ID:   "id1",
+						Attributes: map[string]interface{}{
+							"value": "Value of the markdown",
+						},
+					},
+				},
+				FileName: "test.yaml",
+			},
+			wantErr: "",
+		},
+		{
+			name:     "comma delimited labels in markdown",
+			filename: "test.md",
+			content: `---
+name: Name
+title: Title
+about: About
+labels: label1,label2,,label3 ,,
+ref: Ref
+---
+Content
+`,
+			want: &api.IssueTemplate{
+				Name:     "Name",
+				Title:    "Title",
+				About:    "About",
+				Labels:   []string{"label1", "label2", "label3"},
+				Ref:      "Ref",
+				Fields:   nil,
+				Content:  "Content\n",
+				FileName: "test.md",
+			},
+			wantErr: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			filename := "test.yaml"
+			if tt.filename != "" {
+				filename = tt.filename
+			}
+			tmpl, err := unmarshal(filename, []byte(tt.content))
+			require.NoError(t, err)
+			if tt.wantErr != "" {
+				require.EqualError(t, Validate(tmpl), tt.wantErr)
+			} else {
+				require.NoError(t, Validate(tmpl))
+				want, _ := json.Marshal(tt.want)
+				got, _ := json.Marshal(tmpl)
+				require.JSONEq(t, string(want), string(got))
+			}
+		})
+	}
 }
 
 func TestRenderToMarkdown(t *testing.T) {

@@ -108,12 +108,12 @@ func createPackageAndAddFile(pvci *PackageCreationInfo, pfci *PackageFileCreatio
 	}
 
 	if created {
-		pd, err := packages_model.GetPackageDescriptor(ctx, pv)
+		pd, err := packages_model.GetPackageDescriptor(db.DefaultContext, pv)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		notification.NotifyPackageCreate(pvci.Creator, pd)
+		notification.NotifyPackageCreate(db.DefaultContext, pvci.Creator, pd)
 	}
 
 	return pv, pf, nil
@@ -409,7 +409,7 @@ func RemovePackageVersion(doer *user_model.User, pv *packages_model.PackageVersi
 		return err
 	}
 
-	notification.NotifyPackageDelete(doer, pd)
+	notification.NotifyPackageDelete(db.DefaultContext, doer, pd)
 
 	return nil
 }
@@ -443,12 +443,79 @@ func DeletePackageFile(ctx context.Context, pf *packages_model.PackageFile) erro
 }
 
 // Cleanup removes expired package data
-func Cleanup(unused context.Context, olderThan time.Duration) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func Cleanup(taskCtx context.Context, olderThan time.Duration) error {
+	ctx, committer, err := db.TxContext(taskCtx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
+
+	err = packages_model.IterateEnabledCleanupRules(ctx, func(ctx context.Context, pcr *packages_model.PackageCleanupRule) error {
+		select {
+		case <-taskCtx.Done():
+			return db.ErrCancelledf("While processing package cleanup rules")
+		default:
+		}
+
+		if err := pcr.CompiledPattern(); err != nil {
+			return fmt.Errorf("CleanupRule [%d]: CompilePattern failed: %w", pcr.ID, err)
+		}
+
+		olderThan := time.Now().AddDate(0, 0, -pcr.RemoveDays)
+
+		packages, err := packages_model.GetPackagesByType(ctx, pcr.OwnerID, pcr.Type)
+		if err != nil {
+			return fmt.Errorf("CleanupRule [%d]: GetPackagesByType failed: %w", pcr.ID, err)
+		}
+
+		for _, p := range packages {
+			pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
+				PackageID:  p.ID,
+				IsInternal: util.OptionalBoolFalse,
+				Sort:       packages_model.SortCreatedDesc,
+				Paginator:  db.NewAbsoluteListOptions(pcr.KeepCount, 200),
+			})
+			if err != nil {
+				return fmt.Errorf("CleanupRule [%d]: SearchVersions failed: %w", pcr.ID, err)
+			}
+			for _, pv := range pvs {
+				if skip, err := container_service.ShouldBeSkipped(ctx, pcr, p, pv); err != nil {
+					return fmt.Errorf("CleanupRule [%d]: container.ShouldBeSkipped failed: %w", pcr.ID, err)
+				} else if skip {
+					log.Debug("Rule[%d]: keep '%s/%s' (container)", pcr.ID, p.Name, pv.Version)
+					continue
+				}
+
+				toMatch := pv.LowerVersion
+				if pcr.MatchFullName {
+					toMatch = p.LowerName + "/" + pv.LowerVersion
+				}
+
+				if pcr.KeepPatternMatcher != nil && pcr.KeepPatternMatcher.MatchString(toMatch) {
+					log.Debug("Rule[%d]: keep '%s/%s' (keep pattern)", pcr.ID, p.Name, pv.Version)
+					continue
+				}
+				if pv.CreatedUnix.AsLocalTime().After(olderThan) {
+					log.Debug("Rule[%d]: keep '%s/%s' (remove days)", pcr.ID, p.Name, pv.Version)
+					continue
+				}
+				if pcr.RemovePatternMatcher != nil && !pcr.RemovePatternMatcher.MatchString(toMatch) {
+					log.Debug("Rule[%d]: keep '%s/%s' (remove pattern)", pcr.ID, p.Name, pv.Version)
+					continue
+				}
+
+				log.Debug("Rule[%d]: remove '%s/%s'", pcr.ID, p.Name, pv.Version)
+
+				if err := DeletePackageVersionAndReferences(ctx, pv); err != nil {
+					return fmt.Errorf("CleanupRule [%d]: DeletePackageVersionAndReferences failed: %w", pcr.ID, err)
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
 
 	if err := container_service.Cleanup(ctx, olderThan); err != nil {
 		return err
