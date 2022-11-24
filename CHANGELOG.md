@@ -34,6 +34,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add system setting table with cache and also add cache supports for user setting (#18058)
   * Add pages to view watched repos and subscribed issues/PRs (#17156)
   * Support Proxy protocol (#12527)
+  * Implement sync push mirror on commit (#19411)
 * API
   * Make external issue tracker regexp configurable via API (#21338)
   * Add name field for org api (#21270)
@@ -136,7 +137,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add support for authentication based on reverse proxy email (#19949)
   * Enable spellcheck for EasyMDE, use contenteditable mode (#19776)
   * Allow specifying SECRET_KEY_URI, similar to INTERNAL_TOKEN_URI (#19663)
-  * Implement sync push mirror on commit (#19411)
   * Rework mailer settings (#18982)
   * Add option to purge users (#18064)
   * Add author search input (#21246)
