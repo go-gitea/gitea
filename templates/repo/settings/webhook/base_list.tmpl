@@ -48,13 +48,7 @@
 		</div>
 		{{range .Webhooks}}
 			<div class="item truncated-item-container">
-				{{if eq .LastStatus 1}}
-					<span class="text green mr-3">{{svg "octicon-check"}}</span>
-				{{else if eq .LastStatus 2}}
-					<span class="text red mr-3">{{svg "octicon-alert"}}</span>
-				{{else}}
-					<span class="text grey mr-3">{{svg "octicon-dot-fill"}}</span>
-				{{end}}
+				<span class="text {{if eq .LastStatus 1}}green{{else if eq .LastStatus 2}}red{{else}}grey{{end}} mr-3">{{svg "octicon-dot-fill" 22}}</span>
 				<a class="text truncate f1 mr-3" title="{{.URL}}" href="{{$.BaseLink}}/{{.ID}}">{{.URL}}</a>
 				<a class="muted p-3" href="{{$.BaseLink}}/{{.ID}}">{{svg "octicon-pencil"}}</a></span>
 				<a class="delete-button p-3" data-url="{{$.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trash"}}</a>
