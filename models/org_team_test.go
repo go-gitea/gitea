@@ -143,7 +143,7 @@ func TestDeleteTeam(t *testing.T) {
 	// check that team members don't have "leftover" access to repos
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
-	accessMode, err := access_model.AccessLevel(user, repo)
+	accessMode, err := access_model.AccessLevel(db.DefaultContext, user, repo)
 	assert.NoError(t, err)
 	assert.True(t, accessMode < perm.AccessModeWrite)
 }

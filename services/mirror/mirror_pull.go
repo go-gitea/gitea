@@ -459,18 +459,18 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 				log.Error("SyncMirrors [repo: %-v]: unable to GetRefCommitID [ref_name: %s]: %v", m.Repo, result.refName, err)
 				continue
 			}
-			notification.NotifySyncPushCommits(m.Repo.MustOwner(), m.Repo, &repo_module.PushUpdateOptions{
+			notification.NotifySyncPushCommits(ctx, m.Repo.MustOwner(ctx), m.Repo, &repo_module.PushUpdateOptions{
 				RefFullName: result.refName,
 				OldCommitID: git.EmptySHA,
 				NewCommitID: commitID,
 			}, repo_module.NewPushCommits())
-			notification.NotifySyncCreateRef(m.Repo.MustOwner(), m.Repo, tp, result.refName, commitID)
+			notification.NotifySyncCreateRef(ctx, m.Repo.MustOwner(ctx), m.Repo, tp, result.refName, commitID)
 			continue
 		}
 
 		// Delete reference
 		if result.newCommitID == gitShortEmptySha {
-			notification.NotifySyncDeleteRef(m.Repo.MustOwner(), m.Repo, tp, result.refName)
+			notification.NotifySyncDeleteRef(ctx, m.Repo.MustOwner(ctx), m.Repo, tp, result.refName)
 			continue
 		}
 
@@ -498,7 +498,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 
 		theCommits.CompareURL = m.Repo.ComposeCompareURL(oldCommitID, newCommitID)
 
-		notification.NotifySyncPushCommits(m.Repo.MustOwner(), m.Repo, &repo_module.PushUpdateOptions{
+		notification.NotifySyncPushCommits(ctx, m.Repo.MustOwner(ctx), m.Repo, &repo_module.PushUpdateOptions{
 			RefFullName: result.refName,
 			OldCommitID: oldCommitID,
 			NewCommitID: newCommitID,

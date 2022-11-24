@@ -224,7 +224,7 @@ func PrepareWebhooks(ctx context.Context, source EventSource, event webhook_mode
 		}
 		ws = append(ws, repoHooks...)
 
-		owner = source.Repository.MustOwner()
+		owner = source.Repository.MustOwner(ctx)
 	}
 
 	// check if owner is an org and append additional webhooks
