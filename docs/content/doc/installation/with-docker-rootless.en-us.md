@@ -29,10 +29,16 @@ the official [install instructions](https://docs.docker.com/compose/install/).
 
 The most simple setup just creates a volume and a network and starts the `gitea/gitea:latest-rootless`
 image as a service. Since there is no database available, one can be initialized using SQLite3.
-Create a directory for `data` and `config` then paste the following content into a file named `docker-compose.yml`.
-Note that the volume should be owned by the user/group with the UID/GID specified in the config file. By default Gitea in docker will use uid:1000 gid:1000. If needed you can set ownership on those folders with the command: `sudo chown 1000:1000 config/ data/`
-If you don't give the volume correct permissions, the container may not start.
-For a stable release you could use `:latest-rootless`, `:1-rootless` or specify a certain release like `:{{< version >}}-rootless`, but if you'd like to use the latest development version then `:dev-rootless` would be an appropriate tag. If you'd like to run the latest commit from a release branch you can use the `:1.x-dev-rootless` tag, where x is the minor version of Gitea. (e.g. `:1.16-dev-rootless`)
+
+Create a directory for `data` and `config`:
+
+```sh
+mkdir -p gitea/{data,config}
+cd gitea
+touch docker-compose.yml
+```
+
+Then paste the following content into a file named `docker-compose.yml`:
 
 ```yaml
 version: "2"
@@ -50,6 +56,16 @@ services:
       - "3000:3000"
       - "2222:2222"
 ```
+
+Note that the volume should be owned by the user/group with the UID/GID specified in the config file. By default Gitea in docker will use uid:1000 gid:1000. If needed you can set ownership on those folders with the command:
+
+```sh
+sudo chown 1000:1000 config/ data/
+```
+
+> If you don't give the volume correct permissions, the container may not start.
+
+For a stable release you could use `:latest-rootless`, `:1-rootless` or specify a certain release like `:{{< version >}}-rootless`, but if you'd like to use the latest development version then `:dev-rootless` would be an appropriate tag. If you'd like to run the latest commit from a release branch you can use the `:1.x-dev-rootless` tag, where x is the minor version of Gitea. (e.g. `:1.16-dev-rootless`)
 
 ## Custom port
 
