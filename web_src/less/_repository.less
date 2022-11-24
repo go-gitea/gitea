@@ -2612,12 +2612,18 @@
     }
   }
 
+  &.webhooks .list > .item:not(:first-child),
+  &.githooks .list > .item:not(:first-child) {
+    padding: .25rem 1rem;
+    margin: 12px -1rem -1rem;
+  }
+
   .list {
     > .item {
       &:not(:first-child) {
         border-top: 1px solid var(--color-secondary);
-        padding: .25rem 1rem;
-        margin: 12px -1rem -1rem;
+        padding: 1rem;
+        margin: 16px -1rem -1rem;
       }
 
       > .svg {
