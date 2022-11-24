@@ -252,7 +252,7 @@ func ListBranches(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/BranchList"
 
-	var totalNumOfBranches int64
+	var totalNumOfBranches int
 	var apiBranches []*api.Branch
 
 	listOptions := utils.GetListOptions(ctx)
