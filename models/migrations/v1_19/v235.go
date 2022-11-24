@@ -5,33 +5,13 @@
 package v1_19 //nolint
 
 import (
-	"code.gitea.io/gitea/models/migrations/base"
-
 	"xorm.io/xorm"
 )
 
-func RenameWebhookOrgToOwner(x *xorm.Engine) error {
-	type Webhook struct {
-		ID      int64 `xorm:"pk autoincr"`
-		OrgID   int64
-		OwnerID int64 `xorm:"INDEX"`
+func AddIndexForAccessToken(x *xorm.Engine) error {
+	type AccessToken struct {
+		TokenLastEight string `xorm:"INDEX token_last_eight"`
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-
-	if err := sess.Sync2(new(Webhook)); err != nil {
-		return err
-	}
-	if _, err := sess.Exec("UPDATE webhook SET owner_id = org_id"); err != nil {
-		return err
-	}
-	if err := base.DropTableColumns(sess, "webhook", "org_id"); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return x.Sync(new(AccessToken))
 }
