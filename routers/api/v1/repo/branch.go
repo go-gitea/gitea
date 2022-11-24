@@ -252,6 +252,11 @@ func ListBranches(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/BranchList"
 
+	if ctx.Repo.Repository.IsEmpty || ctx.Repo.GitRepo == nil {
+		ctx.JSON(http.StatusOK, &[]*api.Branch{})
+		return
+	}
+
 	listOptions := utils.GetListOptions(ctx)
 	skip, _ := listOptions.GetStartEnd()
 	branches, totalNumOfBranches, err := ctx.Repo.GitRepo.GetBranches(skip, listOptions.PageSize)
