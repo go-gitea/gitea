@@ -6,7 +6,6 @@ package maven
 
 import (
 	"encoding/xml"
-	"sort"
 	"strings"
 
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -23,12 +22,8 @@ type MetadataResponse struct {
 	Version    []string `xml:"versioning>versions>version"`
 }
 
+// pds is expected to be sorted ascending by CreatedUnix
 func createMetadataResponse(pds []*packages_model.PackageDescriptor) *MetadataResponse {
-	sort.Slice(pds, func(i, j int) bool {
-		// Maven and Gradle order packages by their creation timestamp and not by their version string
-		return pds[i].Version.CreatedUnix < pds[j].Version.CreatedUnix
-	})
-
 	var release *packages_model.PackageDescriptor
 
 	versions := make([]string, 0, len(pds))

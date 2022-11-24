@@ -7,6 +7,7 @@ package integration
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -37,6 +38,12 @@ func TestPackageMaven(t *testing.T) {
 		req := NewRequestWithBody(t, "PUT", root+path, strings.NewReader(content))
 		req = AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, expectedStatus)
+	}
+
+	checkHeaders := func(t *testing.T, h http.Header, contentType string, contentLength int64) {
+		assert.Equal(t, contentType, h.Get("Content-Type"))
+		assert.Equal(t, strconv.FormatInt(contentLength, 10), h.Get("Content-Length"))
+		assert.NotEmpty(t, h.Get("Last-Modified"))
 	}
 
 	t.Run("Upload", func(t *testing.T) {
@@ -77,9 +84,17 @@ func TestPackageMaven(t *testing.T) {
 	t.Run("Download", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/%s/%s", root, packageVersion, filename))
+		req := NewRequest(t, "HEAD", fmt.Sprintf("%s/%s/%s", root, packageVersion, filename))
 		req = AddBasicAuthHeader(req, user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
+
+		checkHeaders(t, resp.Header(), "application/java-archive", 4)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/%s/%s", root, packageVersion, filename))
+		req = AddBasicAuthHeader(req, user.Name)
+		resp = MakeRequest(t, req, http.StatusOK)
+
+		checkHeaders(t, resp.Header(), "application/java-archive", 4)
 
 		assert.Equal(t, []byte("test"), resp.Body.Bytes())
 
@@ -150,9 +165,17 @@ func TestPackageMaven(t *testing.T) {
 	t.Run("DownloadPOM", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/%s/%s.pom", root, packageVersion, filename))
+		req := NewRequest(t, "HEAD", fmt.Sprintf("%s/%s/%s.pom", root, packageVersion, filename))
 		req = AddBasicAuthHeader(req, user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
+
+		checkHeaders(t, resp.Header(), "text/xml", int64(len(pomContent)))
+
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/%s/%s.pom", root, packageVersion, filename))
+		req = AddBasicAuthHeader(req, user.Name)
+		resp = MakeRequest(t, req, http.StatusOK)
+
+		checkHeaders(t, resp.Header(), "text/xml", int64(len(pomContent)))
 
 		assert.Equal(t, []byte(pomContent), resp.Body.Bytes())
 
@@ -191,6 +214,9 @@ func TestPackageMaven(t *testing.T) {
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		expectedMetadata := `<?xml version="1.0" encoding="UTF-8"?>` + "\n<metadata><groupId>com.gitea</groupId><artifactId>test-project</artifactId><versioning><release>1.0.1</release><latest>1.0.1</latest><versions><version>1.0.1</version></versions></versioning></metadata>"
+
+		checkHeaders(t, resp.Header(), "text/xml", int64(len(expectedMetadata)))
+
 		assert.Equal(t, expectedMetadata, resp.Body.String())
 
 		for key, checksum := range map[string]string{
