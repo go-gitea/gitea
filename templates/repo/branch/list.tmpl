@@ -22,18 +22,18 @@
 							</td>
 							<td class="right aligned overflow-visible">
 								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
-									<div class="ui basic jump button icon tooltip show-create-branch-modal" data-content="{{$.locale.Tr "repo.branch.new_branch_from" ($.DefaultBranch)}}" data-branch-from="{{$.DefaultBranch}}" data-branch-from-urlcomponent="{{PathEscapeSegments $.DefaultBranch}}" data-modal="#create-branch-modal" data-position="top right">
+									<button class="ui basic jump button icon tooltip show-create-branch-modal" data-content="{{$.locale.Tr "repo.branch.new_branch_from" ($.DefaultBranch)}}" data-branch-from="{{$.DefaultBranch}}" data-branch-from-urlcomponent="{{PathEscapeSegments $.DefaultBranch}}" data-modal="#create-branch-modal" data-position="top right">
 										{{svg "octicon-git-branch"}}
-									</div>
+									</button>
 								{{end}}
 								{{if not $.DisableDownloadSourceArchives}}
-									<div class="ui basic jump dropdown icon button tooltip" data-content="{{$.locale.Tr "repo.branch.download" ($.DefaultBranch)}}" data-position="top right">
+									<button class="ui basic jump dropdown icon button tooltip" data-content="{{$.locale.Tr "repo.branch.download" ($.DefaultBranch)}}" data-position="top right">
 										{{svg "octicon-download"}}
 										<div class="menu">
 											<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.DefaultBranch}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
 											<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.DefaultBranch}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
 										</div>
-									</div>
+									</button>
 								{{end}}
 							</td>
 						</tr>
@@ -108,26 +108,30 @@
 									</td>
 									<td class="two wide right aligned overflow-visible">
 										{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
-											<div class="ui basic jump button icon tooltip show-create-branch-modal" data-branch-from="{{.Name}}" data-branch-from-urlcomponent="{{PathEscapeSegments .Name}}" data-content="{{$.locale.Tr "repo.branch.new_branch_from" .Name}}" data-position="top right" data-modal="#create-branch-modal" data-name="{{.Name}}">
+											<button class="ui basic jump button icon tooltip show-create-branch-modal" data-branch-from="{{.Name}}" data-branch-from-urlcomponent="{{PathEscapeSegments .Name}}" data-content="{{$.locale.Tr "repo.branch.new_branch_from" .Name}}" data-position="top right" data-modal="#create-branch-modal" data-name="{{.Name}}">
 												{{svg "octicon-git-branch"}}
-											</div>
+											</button>
 										{{end}}
 										{{if and (not .IsDeleted) (not $.DisableDownloadSourceArchives)}}
-											<div class="ui basic jump dropdown icon button tooltip" data-content="{{$.locale.Tr "repo.branch.download" (.Name)}}" data-position="top right">
+											<button class="ui basic jump dropdown icon button tooltip" data-content="{{$.locale.Tr "repo.branch.download" (.Name)}}" data-position="top right">
 												{{svg "octicon-download"}}
 												<div class="menu">
 													<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments .Name}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
 													<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments .Name}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
 												</div>
-											</div>
+											</button>
 										{{end}}
 										{{if and $.IsWriter (not $.IsMirror) (not $.Repository.IsArchived) (not .IsProtected)}}
 											{{if .IsDeleted}}
-												<a class="ui basic jump button icon tooltip undo-button" href data-url="{{$.Link}}/restore?branch_id={{.DeletedBranch.ID}}&name={{.DeletedBranch.Name}}" data-content="{{$.locale.Tr "repo.branch.restore" (.Name)}}" data-position="top right"><span class="text blue">{{svg "octicon-reply"}}</span></a>
+												<button class="ui basic jump button icon tooltip undo-button" data-url="{{$.Link}}/restore?branch_id={{.DeletedBranch.ID}}&name={{.DeletedBranch.Name}}" data-content="{{$.locale.Tr "repo.branch.restore" (.Name)}}" data-position="top right">
+													<span class="text blue">
+														{{svg "octicon-reply"}}
+													</span>
+												</button>
 											{{else}}
-												<a class="ui basic jump button icon tooltip delete-button delete-branch-button" href data-url="{{$.Link}}/delete?name={{.Name}}" data-content="{{$.locale.Tr "repo.branch.delete" (.Name)}}" data-position="top right" data-name="{{.Name}}">
+												<button class="ui basic jump button icon tooltip delete-button delete-branch-button" data-url="{{$.Link}}/delete?name={{.Name}}" data-content="{{$.locale.Tr "repo.branch.delete" (.Name)}}" data-position="top right" data-name="{{.Name}}">
 													{{svg "octicon-trash"}}
-												</a>
+												</button>
 											{{end}}
 										{{end}}
 									</td>
