@@ -179,6 +179,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 		r.Group("/maven", func() {
 			r.Put("/*", reqPackageAccess(perm.AccessModeWrite), maven.UploadPackageFile)
 			r.Get("/*", maven.DownloadPackageFile)
+			r.Head("/*", maven.ProvidePackageFileHeader)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/nuget", func() {
 			r.Group("", func() { // Needs to be unauthenticated for the NuGet client.

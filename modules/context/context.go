@@ -349,9 +349,11 @@ func (ctx *Context) RespHeader() http.Header {
 type ServeHeaderOptions struct {
 	ContentType        string // defaults to "application/octet-stream"
 	ContentTypeCharset string
+	ContentLength      *int64
 	Disposition        string // defaults to "attachment"
 	Filename           string
 	CacheDuration      time.Duration // defaults to 5 minutes
+	LastModified       time.Time
 }
 
 // SetServeHeaders sets necessary content serve headers
@@ -369,6 +371,10 @@ func (ctx *Context) SetServeHeaders(opts *ServeHeaderOptions) {
 	header.Set("Content-Type", contentType)
 	header.Set("X-Content-Type-Options", "nosniff")
 
+	if opts.ContentLength != nil {
+		header.Set("Content-Length", strconv.FormatInt(*opts.ContentLength, 10))
+	}
+
 	if opts.Filename != "" {
 		disposition := opts.Disposition
 		if disposition == "" {
@@ -385,14 +391,16 @@ func (ctx *Context) SetServeHeaders(opts *ServeHeaderOptions) {
 		duration = 5 * time.Minute
 	}
 	httpcache.AddCacheControlToHeader(header, duration)
+
+	if !opts.LastModified.IsZero() {
+		header.Set("Last-Modified", opts.LastModified.UTC().Format(http.TimeFormat))
+	}
 }
 
 // ServeContent serves content to http request
-func (ctx *Context) ServeContent(name string, r io.ReadSeeker, modTime time.Time) {
-	ctx.SetServeHeaders(&ServeHeaderOptions{
-		Filename: name,
-	})
-	http.ServeContent(ctx.Resp, ctx.Req, name, modTime, r)
+func (ctx *Context) ServeContent(r io.ReadSeeker, opts *ServeHeaderOptions) {
+	ctx.SetServeHeaders(opts)
+	http.ServeContent(ctx.Resp, ctx.Req, opts.Filename, opts.LastModified, r)
 }
 
 // UploadStream returns the request body or the first form file
