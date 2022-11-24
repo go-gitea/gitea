@@ -166,11 +166,47 @@ Uses the following fields:
 
 ## PAM (Pluggable Authentication Module)
 
-To configure PAM, set the 'PAM Service Name' to a filename in `/etc/pam.d/`. To
-work with normal Linux passwords, the user running Gitea must have read access
-to `/etc/shadow`.
+This procedure enables PAM authentication.  Users may still be added to the
+system manually using the user administration.  PAM provides a mechanism to
+automatically add users to the current database by testing them against PAM
+authentication.  To work with normal Linux passwords, the user running Gitea
+must also have read access to `/etc/shadow` in order to check the validity of
+the account when logging in using a public key.
 
-**Note**: PAM support is added via [build-time flags](https://docs.gitea.io/en-us/install-from-source/#build), and the official binaries provided do not have this enabled.
+**Note**: If a user has added SSH public keys into Gitea, the use of these
+keys _may_ bypass the login check system.  Therefore, if you wish to disable a user who
+authenticates with PAM, you _should_ also manually disable the account in Gitea using the
+built-in user manager.
+
+1. Configure and prepare the installation.
+    - It is recommended that you create an administrative user.
+    - Deselecting automatic sign-up may also be desired.
+1. Once the database has been initialized, log in as the newly created
+administrative user.
+1. Navigate to the user setting (icon in top-right corner), and select
+`Site Administration` -> `Authentication Sources`, and select
+`Add Authentication Source`.
+1. Fill out the field as follows:
+    - `Authentication Type` : `PAM`
+    - `Name` : Any value should be valid here, use "System Authentication" if
+    you'd like.
+    - `PAM Service Name` : Select the appropriate file listed under `/etc/pam.d/`
+    that performs the authentication desired.[^1]
+    - `PAM Email Domain` : The e-mail suffix to append to user authentication.
+    For example, if the login system expects a user called `gituser`, and this
+    field is set to `mail.com`, then Gitea will expect the `user email` field
+    for an authenticated GIT instance to be `gituser@mail.com`.[^2]
+
+**Note**: PAM support is added via [build-time flags](https://docs.gitea.io/en-us/install-from-source/#build),
+and the official binaries provided do not have this enabled.  PAM requires that
+the necessary libpam dynamic library be available and the necessary PAM
+development headers be accessible to the compiler.
+
+[^1]: For example, using standard Linux log-in on Debian "Bullseye" use
+`common-session-noninteractive` - this value may be valid for other flavors of
+Debian including Ubuntu and Mint, consult your distribution's documentation.
+[^2]: **This is a required field for PAM**.  Be aware: In the above example, the
+user will log into the Gitea web interface as `gituser` and not `gituser@mail.com`
 
 ## SMTP (Simple Mail Transfer Protocol)
 

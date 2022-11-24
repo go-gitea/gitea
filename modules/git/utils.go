@@ -100,6 +100,9 @@ func RefURL(repoURL, ref string) string {
 		return repoURL + "/src/branch/" + refName
 	case strings.HasPrefix(ref, TagPrefix):
 		return repoURL + "/src/tag/" + refName
+	case !IsValidSHAPattern(ref):
+		// assume they mean a branch
+		return repoURL + "/src/branch/" + refName
 	default:
 		return repoURL + "/src/commit/" + refName
 	}
