@@ -54,7 +54,7 @@ func TransferOwnership(doer, newOwner *user_model.User, repo *repo_model.Reposit
 		}
 	}
 
-	notification.NotifyTransferRepository(doer, repo, oldOwner.Name)
+	notification.NotifyTransferRepository(db.DefaultContext, doer, repo, oldOwner.Name)
 
 	return nil
 }
@@ -77,7 +77,7 @@ func ChangeRepositoryName(doer *user_model.User, repo *repo_model.Repository, ne
 	repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 
 	repo.Name = newRepoName
-	notification.NotifyRenameRepository(doer, repo, oldRepoName)
+	notification.NotifyRenameRepository(db.DefaultContext, doer, repo, oldRepoName)
 
 	return nil
 }
@@ -126,7 +126,7 @@ func StartRepositoryTransfer(doer, newOwner *user_model.User, repo *repo_model.R
 	}
 
 	// notify users who are able to accept / reject transfer
-	notification.NotifyRepoPendingTransfer(doer, newOwner, repo)
+	notification.NotifyRepoPendingTransfer(db.DefaultContext, doer, newOwner, repo)
 
 	return nil
 }

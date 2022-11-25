@@ -14,7 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/validation"
 
 	"github.com/hashicorp/go-version"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 var (

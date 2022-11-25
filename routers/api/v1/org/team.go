@@ -541,7 +541,7 @@ func GetTeamRepos(ctx *context.APIContext) {
 	}
 	repos := make([]*api.Repository, len(teamRepos))
 	for i, repo := range teamRepos {
-		access, err := access_model.AccessLevel(ctx.Doer, repo)
+		access, err := access_model.AccessLevel(ctx, ctx.Doer, repo)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetTeamRepos", err)
 			return
@@ -592,7 +592,7 @@ func GetTeamRepo(ctx *context.APIContext) {
 		return
 	}
 
-	access, err := access_model.AccessLevel(ctx.Doer, repo)
+	access, err := access_model.AccessLevel(ctx, ctx.Doer, repo)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTeamRepos", err)
 		return
@@ -649,7 +649,7 @@ func AddTeamRepository(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if access, err := access_model.AccessLevel(ctx.Doer, repo); err != nil {
+	if access, err := access_model.AccessLevel(ctx, ctx.Doer, repo); err != nil {
 		ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		return
 	} else if access < perm.AccessModeAdmin {
@@ -699,7 +699,7 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if access, err := access_model.AccessLevel(ctx.Doer, repo); err != nil {
+	if access, err := access_model.AccessLevel(ctx, ctx.Doer, repo); err != nil {
 		ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		return
 	} else if access < perm.AccessModeAdmin {

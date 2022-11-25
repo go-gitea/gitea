@@ -56,7 +56,7 @@ func GetListLockHandler(ctx *context.Context) {
 		})
 		return
 	}
-	repository.MustOwner()
+	repository.MustOwner(ctx)
 
 	authenticated := authenticate(ctx, repository, rv.Authorization, true, false)
 	if !authenticated {
@@ -143,7 +143,7 @@ func PostLockHandler(ctx *context.Context) {
 		})
 		return
 	}
-	repository.MustOwner()
+	repository.MustOwner(ctx)
 
 	authenticated := authenticate(ctx, repository, authorization, true, true)
 	if !authenticated {
@@ -210,7 +210,7 @@ func VerifyLockHandler(ctx *context.Context) {
 		})
 		return
 	}
-	repository.MustOwner()
+	repository.MustOwner(ctx)
 
 	authenticated := authenticate(ctx, repository, authorization, true, true)
 	if !authenticated {
@@ -276,7 +276,7 @@ func UnLockHandler(ctx *context.Context) {
 		})
 		return
 	}
-	repository.MustOwner()
+	repository.MustOwner(ctx)
 
 	authenticated := authenticate(ctx, repository, authorization, true, true)
 	if !authenticated {

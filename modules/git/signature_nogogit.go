@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -50,7 +51,9 @@ func newSignatureFromCommitline(line []byte) (sig *Signature, err error) {
 		return
 	}
 
-	sig.Name = string(line[:emailStart-1])
+	if emailStart > 0 { // Empty name has already occurred, even if it shouldn't
+		sig.Name = strings.TrimSpace(string(line[:emailStart-1]))
+	}
 	sig.Email = string(line[emailStart+1 : emailEnd])
 
 	hasTime := emailEnd+2 < len(line)

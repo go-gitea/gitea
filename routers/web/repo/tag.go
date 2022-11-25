@@ -123,7 +123,7 @@ func DeleteProtectedTagPost(ctx *context.Context) {
 		return
 	}
 
-	if err := git_model.DeleteProtectedTag(pt); err != nil {
+	if err := git_model.DeleteProtectedTag(ctx, pt); err != nil {
 		ctx.ServerError("DeleteProtectedTag", err)
 		return
 	}
@@ -136,7 +136,7 @@ func setTagsContext(ctx *context.Context) error {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsTags"] = true
 
-	protectedTags, err := git_model.GetProtectedTags(ctx.Repo.Repository.ID)
+	protectedTags, err := git_model.GetProtectedTags(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("GetProtectedTags", err)
 		return err

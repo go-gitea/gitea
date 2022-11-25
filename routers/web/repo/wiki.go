@@ -705,7 +705,7 @@ func NewWikiPost(ctx *context.Context) {
 		return
 	}
 
-	notification.NotifyNewWikiPage(ctx.Doer, ctx.Repo.Repository, wikiName, form.Message)
+	notification.NotifyNewWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName, form.Message)
 
 	ctx.Redirect(ctx.Repo.RepoLink + "/wiki/" + wiki_service.NameToSubURL(wikiName))
 }
@@ -749,7 +749,7 @@ func EditWikiPost(ctx *context.Context) {
 		return
 	}
 
-	notification.NotifyEditWikiPage(ctx.Doer, ctx.Repo.Repository, newWikiName, form.Message)
+	notification.NotifyEditWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, newWikiName, form.Message)
 
 	ctx.Redirect(ctx.Repo.RepoLink + "/wiki/" + wiki_service.NameToSubURL(newWikiName))
 }
@@ -766,7 +766,7 @@ func DeleteWikiPagePost(ctx *context.Context) {
 		return
 	}
 
-	notification.NotifyDeleteWikiPage(ctx.Doer, ctx.Repo.Repository, wikiName)
+	notification.NotifyDeleteWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName)
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/wiki/",

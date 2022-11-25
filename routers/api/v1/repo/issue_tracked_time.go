@@ -138,7 +138,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	}
 
 	ctx.SetTotalCountHeader(count)
-	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(trackedTimes))
+	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(ctx, trackedTimes))
 }
 
 // AddTime add time manual to the given issue
@@ -223,7 +223,7 @@ func AddTime(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToTrackedTime(trackedTime))
+	ctx.JSON(http.StatusOK, convert.ToTrackedTime(ctx, trackedTime))
 }
 
 // ResetIssueTime reset time manual to the given issue
@@ -447,7 +447,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(trackedTimes))
+	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(ctx, trackedTimes))
 }
 
 // ListTrackedTimesByRepository lists all tracked times of the repository
@@ -557,7 +557,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 	}
 
 	ctx.SetTotalCountHeader(count)
-	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(trackedTimes))
+	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(ctx, trackedTimes))
 }
 
 // ListMyTrackedTimes lists all tracked times of the current user
@@ -619,5 +619,5 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 	}
 
 	ctx.SetTotalCountHeader(count)
-	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(trackedTimes))
+	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(ctx, trackedTimes))
 }

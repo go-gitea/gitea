@@ -79,6 +79,7 @@
   --color-pink: #e03997;
   --color-brown: #a5673f;
   --color-grey: #888888;
+  --color-black: #1b1c1d;
   /* light variants - produced via Sass scale-color(color, $lightness: +25%) */
   --color-red-light: #e45e5e;
   --color-orange-light: #f59555;
@@ -92,9 +93,9 @@
   --color-pink-light: #e86bb1;
   --color-brown-light: #c58b66;
   --color-grey-light: #a6a6a6;
+  --color-black-light: #525558;
   /* other colors */
   --color-gold: #a1882b;
-  --color-black: #1b1c1d;
   --color-white: #ffffff;
   --color-diff-removed-word-bg: #fdb8c0;
   --color-diff-added-word-bg: #acf2bd;
@@ -117,6 +118,20 @@
   --color-info-border: #a9d5de;
   --color-info-bg: #f8ffff;
   --color-info-text: #276f86;
+  --color-red-badge: #db2828;
+  --color-red-badge-bg: #db28281a;
+  --color-red-badge-hover-bg: #db28284d;
+  --color-green-badge: #21ba45;
+  --color-green-badge-bg: #21ba451a;
+  --color-green-badge-hover-bg: #21ba454d;
+  --color-yellow-badge: #fbbd08;
+  --color-yellow-badge-bg: #fbbd081a;
+  --color-yellow-badge-hover-bg: #fbbd084d;
+  --color-orange-badge: #f2711c;
+  --color-orange-badge-bg: #f2711c1a;
+  --color-orange-badge-hover-bg: #f2711c4d;
+  --color-git: #f05133;
+  /* target-based colors */
   --color-body: #ffffff;
   --color-text-dark: #080808;
   --color-text: #212121;
@@ -293,15 +308,22 @@ a,
   text-decoration-skip-ink: all;
 }
 
-a.muted {
+a.muted,
+.muted-links a {
   color: inherit;
 }
 
 a:hover,
 a.muted:hover,
 a.muted:hover [class*="color-text"],
+.muted-links a:hover,
 .ui.breadcrumb a:hover {
   color: var(--color-primary);
+}
+
+.delete-button,
+.delete-button:hover {
+  color: var(--color-red);
 }
 
 a.label,
@@ -781,6 +803,9 @@ a.commit-statuses-trigger {
   margin-top: -.25rem;
   margin-bottom: -.25rem;
 }
+.ui.dropdown .menu > .item > svg.img {
+  margin-right: .78571429rem;
+}
 
 .ui.selection.dropdown .menu > .item {
   border-color: var(--color-secondary);
@@ -1185,11 +1210,7 @@ a.ui.card:hover,
   }
 
   .searchbox {
-    background-color: #f4f4f4 !important;
-
-    &:focus {
-      background-color: #e9e9e9 !important;
-    }
+    background-color: var(--color-input-background) !important;
   }
 
   .text .svg {
@@ -1921,7 +1942,7 @@ footer {
 }
 
 .archived-icon {
-  color: lighten(#000000, 70%) !important;
+  color: var(--color-secondary-dark-2) !important;
 }
 
 .oauth2-authorize-application-box {
@@ -2074,7 +2095,7 @@ a.ui.label:hover {
 .lines-commit {
   &:extend(.unselectable);
   vertical-align: top;
-  color: #999999;
+  color: var(--color-grey);
   padding: 0 !important;
   background: var(--color-code-sidebar-bg);
   width: 1%;
@@ -2150,6 +2171,7 @@ a.ui.label:hover {
   color: var(--color-text);
 }
 
+.ui.active.button,
 .ui.button:active,
 .ui.active.button:active,
 .ui.active.button:hover {
@@ -2301,7 +2323,7 @@ a.ui.basic.label:hover {
 }
 
 .migrate .svg.gitea-git {
-  color: #f05133; /* from https://upload.wikimedia.org/wikipedia/commons/e/e0/Git-logo.svg */
+  color: var(--color-git);
 }
 
 .color-icon {
@@ -2565,6 +2587,7 @@ table th[data-sortt-desc] {
 
 .truncated-item-container {
   display: flex !important;
+  align-items: center;
 }
 
 .ellipsis-button {

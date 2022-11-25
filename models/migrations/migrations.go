@@ -438,6 +438,10 @@ var migrations = []Migration{
 	NewMigration("Alter package_version.metadata_json to LONGTEXT", v1_19.AlterPackageVersionMetadataToLongText),
 	// v233 -> v234
 	NewMigration("Add header_authorization_encrypted column to webhook table", v1_19.AddHeaderAuthorizationEncryptedColWebhook),
+	// v234 -> v235
+	NewMigration("Add package cleanup rule table", v1_19.CreatePackageCleanupRuleTable),
+	// v235 -> v236
+	NewMigration("Add index for access_token", v1_19.AddIndexForAccessToken),
 }
 
 // GetCurrentDBVersion returns the current db version

@@ -340,7 +340,11 @@ func download(ctx *context.APIContext, archiveName string, archiver *repo_model.
 		return
 	}
 	defer fr.Close()
-	ctx.ServeContent(downloadName, fr, archiver.CreatedUnix.AsLocalTime())
+
+	ctx.ServeContent(fr, &context.ServeHeaderOptions{
+		Filename:     downloadName,
+		LastModified: archiver.CreatedUnix.AsLocalTime(),
+	})
 }
 
 // GetEditorconfig get editor config of a repository

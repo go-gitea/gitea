@@ -371,7 +371,7 @@ func preReceiveTag(ctx *preReceiveContext, oldCommitID, newCommitID, refFullName
 
 	if !ctx.gotProtectedTags {
 		var err error
-		ctx.protectedTags, err = git_model.GetProtectedTags(ctx.Repo.Repository.ID)
+		ctx.protectedTags, err = git_model.GetProtectedTags(ctx, ctx.Repo.Repository.ID)
 		if err != nil {
 			log.Error("Unable to get protected tags for %-v Error: %v", ctx.Repo.Repository, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -382,7 +382,7 @@ func preReceiveTag(ctx *preReceiveContext, oldCommitID, newCommitID, refFullName
 		ctx.gotProtectedTags = true
 	}
 
-	isAllowed, err := git_model.IsUserAllowedToControlTag(ctx.protectedTags, tagName, ctx.opts.UserID)
+	isAllowed, err := git_model.IsUserAllowedToControlTag(ctx, ctx.protectedTags, tagName, ctx.opts.UserID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: err.Error(),

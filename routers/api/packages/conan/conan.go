@@ -476,7 +476,10 @@ func downloadFile(ctx *context.Context, fileFilter container.Set[string], fileKe
 	}
 	defer s.Close()
 
-	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
+	ctx.ServeContent(s, &context.ServeHeaderOptions{
+		Filename:     pf.Name,
+		LastModified: pf.CreatedUnix.AsLocalTime(),
+	})
 }
 
 // DeleteRecipeV1 deletes the requested recipe(s)
@@ -675,7 +678,7 @@ func deleteRecipeOrPackage(apictx *context.Context, rref *conan_module.RecipeRef
 	}
 
 	if versionDeleted {
-		notification.NotifyPackageDelete(apictx.Doer, pd)
+		notification.NotifyPackageDelete(apictx, apictx.Doer, pd)
 	}
 
 	return nil
