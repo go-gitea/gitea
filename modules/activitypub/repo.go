@@ -15,8 +15,7 @@ import (
 
 // Create a new federated repo from a Repository object
 func FederatedRepoNew(ctx context.Context, repository *forgefed.Repository) error {
-	ownerIRI := repository.AttributedTo.GetLink()
-	user, err := PersonIRIToUser(ctx, ownerIRI)
+	user, err := PersonIRIToUser(ctx, repository.AttributedTo.GetLink())
 	if err != nil {
 		return err
 	}

@@ -46,6 +46,7 @@ func Ticket(ctx *context.APIContext) {
 	link := setting.AppURL + "api/v1/activitypub/ticket/" + ctx.ContextUser.Name + "/" + ctx.Repo.Repository.Name + "/" + ctx.Params("id")
 
 	ticket := forgefed.TicketNew()
+	ticket.Type = forgefed.TicketType
 	ticket.ID = ap.IRI(link)
 
 	repo, err := repo_model.GetRepositoryByOwnerAndNameCtx(ctx, ctx.ContextUser.Name, ctx.Repo.Repository.Name)
@@ -64,7 +65,16 @@ func Ticket(ctx *context.APIContext) {
 		return
 	}
 
-	ticket.Context = ap.IRI(setting.AppURL + ctx.ContextUser.Name + "/" + ctx.Repo.Repository.Name)
+	ticket.Name = ap.NaturalLanguageValuesNew()
+	// Setting a NaturalLanguageValue to a number causes go-ap's JSON parsing to do weird things
+	// Workaround: set it to #1 instead of 1
+	err = ticket.Name.Set("en", ap.Content("#" + ctx.Params("id")))
+	if err != nil {
+		ctx.ServerError("Set Name", err)
+		return
+	}
+
+	ticket.Context = ap.IRI(setting.AppURL + "api/v1/activitypub/repo/" + ctx.ContextUser.Name + "/" + ctx.Repo.Repository.Name)
 
 	err = issue.LoadPoster()
 	if err != nil {
