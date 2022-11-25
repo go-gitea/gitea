@@ -59,9 +59,10 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 		for i := 0; i < 10; i++ {
 			wg.Add(1)
 			t.Run(fmt.Sprintf("ParallelCreateStatus_%d", i), func(t *testing.T) {
-				t.Parallel()
-				runBody(t)
-				wg.Done()
+				go func(t *testing.T) {
+					runBody(t)
+					wg.Done()
+				}(t)
 			})
 		}
 		wg.Wait()
