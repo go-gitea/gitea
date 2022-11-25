@@ -26,7 +26,7 @@ export function initMarkupAnchors() {
     a.setAttribute('href', `#${encodeURIComponent(originalId)}`);
     a.innerHTML = svg('octicon-link');
     a.addEventListener('click', (e) => {
-      scrollToAnchor(e.currentTarget.getAttribute('href'));
+      scrollToAnchor(e.currentTarget.getAttribute('href'), false);
     });
     heading.prepend(a);
   }
