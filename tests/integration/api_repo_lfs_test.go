@@ -63,7 +63,7 @@ func createLFSTestRepository(t *testing.T, name string) *repo_model.Repository {
 	ctx := NewAPITestContext(t, "user2", "lfs-"+name+"-repo")
 	t.Run("CreateRepo", doAPICreateRepository(ctx, false))
 
-	repo, err := repo_model.GetRepositoryByOwnerAndName(db.DefaultContext,"user2", "lfs-"+name+"-repo")
+	repo, err := repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, "user2", "lfs-"+name+"-repo")
 	assert.NoError(t, err)
 
 	return repo
