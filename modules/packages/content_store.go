@@ -32,6 +32,13 @@ func (s *ContentStore) Get(key BlobHash256Key) (storage.Object, error) {
 	return s.store.Open(KeyToRelativePath(key))
 }
 
+// FIXME: Workaround to be removed in v1.20
+// https://github.com/go-gitea/gitea/issues/19586
+func (s *ContentStore) Has(key BlobHash256Key) error {
+	_, err := s.store.Stat(KeyToRelativePath(key))
+	return err
+}
+
 // Save stores a package blob
 func (s *ContentStore) Save(key BlobHash256Key, r io.Reader, size int64) error {
 	_, err := s.store.Save(KeyToRelativePath(key), r, size)
