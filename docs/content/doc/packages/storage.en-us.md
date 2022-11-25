@@ -7,7 +7,7 @@ toc: false
 menu:
   sidebar:
     parent: "packages"
-    name: "storage"
+    name: "Storage"
     weight: 5
     identifier: "storage"
 ---
