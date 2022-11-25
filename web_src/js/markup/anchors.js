@@ -2,8 +2,9 @@ import {svg} from '../svg.js';
 
 const headingSelector = '.markup h1, .markup h2, .markup h3, .markup h4, .markup h5, .markup h6';
 
-function scrollToAnchor(hash) {
-  if (document.querySelector(':target')) return; // something else on the page matches
+function scrollToAnchor(hash, initial) {
+  // abort on page load if the browser has already scrolled to another anchor
+  if (initial && document.querySelector(':target')) return;
   if (hash?.length <= 1) return;
   const id = decodeURIComponent(hash.substring(1));
   const el = document.getElementById(`user-content-${id}`);
@@ -30,5 +31,5 @@ export function initMarkupAnchors() {
     heading.prepend(a);
   }
 
-  scrollToAnchor(window.location.hash);
+  scrollToAnchor(window.location.hash, true);
 }
