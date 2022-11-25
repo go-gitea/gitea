@@ -102,7 +102,7 @@ func notifyWithPR(repo *repo_model.Repository, doer *user_model.User, ref string
 		if len(run.Title) > 255 {
 			run.Title = run.Title[:255] // FIXME: we should use a better method to cut title
 		}
-		jobs, err := jobparser.Parse(content) // TODO: parse with options
+		jobs, err := jobparser.Parse(content)
 		if err != nil {
 			log.Error("jobparser.Parse: %v", err)
 			continue

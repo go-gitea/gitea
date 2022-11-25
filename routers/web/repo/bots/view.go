@@ -121,7 +121,6 @@ func ViewPost(ctx *context_module.Context) {
 
 	resp.StateData.AllJobGroups = []ViewGroup{
 		{
-			// TODO: maybe we don't need job group
 			Jobs: respJobs,
 		},
 	}
