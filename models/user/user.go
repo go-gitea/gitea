@@ -891,7 +891,7 @@ func UpdateUser(ctx context.Context, u *User, changePrimaryEmail bool, cols ...s
 		if err != nil {
 			return err
 		}
-		if has && emailAddress.UID != u.ID {
+		if has && emailAddress.IsActivated && emailAddress.UID != u.ID {
 			return ErrEmailAlreadyUsed{
 				Email: u.Email,
 			}
