@@ -3,7 +3,7 @@ import {svg} from '../svg.js';
 const headingSelector = '.markup h1, .markup h2, .markup h3, .markup h4, .markup h5, .markup h6';
 
 function scrollToAnchor(hash, initial) {
-  // abort on page load if the browser has already scrolled to another anchor
+  // abort if the browser has already scrolled to another anchor during page load
   if (initial && document.querySelector(':target')) return;
   if (hash?.length <= 1) return;
   const id = decodeURIComponent(hash.substring(1));
