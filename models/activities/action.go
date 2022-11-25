@@ -120,7 +120,7 @@ func (a *Action) LoadActUser(ctx context.Context) {
 		return
 	}
 	var err error
-	a.ActUser, err = user_model.GetUserByID(db.DefaultContext, a.ActUserID)
+	a.ActUser, err = user_model.GetUserByID(ctx, a.ActUserID)
 	if err == nil {
 		return
 	} else if user_model.IsErrUserNotExist(err) {
