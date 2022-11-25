@@ -6,11 +6,11 @@
       </div>
 
       <div class="job-group-section" v-for="(jobGroup, i) in allJobGroups" :key="i">
-<!--        <div class="job-group-summary">-->
-<!--          {{ jobGroup.summary }}-->
-<!--        </div>-->
+        <!--        <div class="job-group-summary">-->
+        <!--          {{ jobGroup.summary }}-->
+        <!--        </div>-->
         <div class="job-brief-list">
-          <a class="job-brief-item" v-for="(job, index) in jobGroup.jobs" :key="job.id" v-bind:href="buildInfo.htmlurl+'/jobs/'+index">
+          <a class="job-brief-item" v-for="(job, index) in jobGroup.jobs" :key="job.id" :href="buildInfo.htmlurl+'/jobs/'+index">
             <SvgIcon name="octicon-check-circle-fill" class="green" v-if="job.status === 'success'"/>
             <SvgIcon name="octicon-skip" class="ui text grey" v-else-if="job.status === 'skipped'"/>
             <SvgIcon name="octicon-clock" class="ui text yellow" v-else-if="job.status === 'waiting'"/>
@@ -23,7 +23,9 @@
             </button>
           </a>
         </div>
-        <button class="ui fluid tiny basic red button" @click="cancelRun()" v-if="buildInfo.cancelable">Cancel</button>
+        <button class="ui fluid tiny basic red button" @click="cancelRun()" v-if="buildInfo.cancelable">
+          Cancel
+        </button>
       </div>
     </div>
 
@@ -75,8 +77,8 @@
 
 <script>
 import {SvgIcon} from '../svg.js';
-import Vue, {createApp} from 'vue';
-import AnsiToHTML from `ansi-to-html`;
+import {createApp} from 'vue';
+import AnsiToHTML from 'ansi-to-html';
 
 const {csrfToken} = window.config;
 
@@ -152,7 +154,7 @@ const sfc = {
     },
     // rerun a job
     rerunJob(idx) {
-      fetch(this.buildInfo.htmlurl+'/jobs/'+idx+'/rerun', {
+      fetch(`${this.buildInfo.htmlurl}/jobs/${idx}/rerun`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -163,7 +165,7 @@ const sfc = {
     },
     // cancel a run
     cancelRun() {
-      fetch(this.buildInfo.htmlurl+'/cancel', {
+      fetch(`${this.buildInfo.htmlurl}/cancel`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -186,7 +188,7 @@ const sfc = {
       let res = '', resCount = 0;
       for (let i = parts.length - 1; i >= 0 && resCount < 2; i--) {
         if (parts[i] > 0) {
-          res += parts[i] + unitNames[i] + ' ';
+          res += `${parts[i] + unitNames[i]} `;
           resCount++;
         }
       }
@@ -204,7 +206,7 @@ const sfc = {
       el.appendChild(elLineNum);
 
       const elLogTime = document.createElement('log-time');
-      elLogTime.innerText = new Date(line.t*1000).toISOString();
+      elLogTime.innerText = new Date(line.t * 1000).toISOString();
       el.appendChild(elLogTime);
 
       const elLogMsg = document.createElement('log-msg');
@@ -269,8 +271,8 @@ const sfc = {
         for (let i = 0; i < 110; i++) {
           lines.push({
             ln: cursor, // demo only, use cursor for line number
-            m: ' '.repeat(i % 4) + `\x1B[1;3;31mDemo Log\x1B[0m, tag test <br>, hello world ${Date.now()}, cursor: ${cursor}`,
-            t: Date.now()/1000, // use second as unit
+            m: `${' '.repeat(i % 4)}\x1B[1;3;31mDemo Log\x1B[0m, tag test <br>, hello world ${Date.now()}, cursor: ${cursor}`,
+            t: Date.now() / 1000, // use second as unit
           });
           cursor++;
         }
@@ -341,8 +343,8 @@ export function initRepositoryBuildView() {
   if (!el) return;
 
   const view = createApp(sfc, {
-    jobIndex: el.getAttribute("data-job-index"),
-    runIndex: el.getAttribute("data-run-index"),
+    jobIndex: el.getAttribute('data-job-index'),
+    runIndex: el.getAttribute('data-run-index'),
   });
   view.mount(el);
 }
