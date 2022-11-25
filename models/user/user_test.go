@@ -302,7 +302,7 @@ func TestUpdateUser(t *testing.T) {
 	newEmail := "new_" + user.Email
 	user.Email = newEmail
 	assert.NoError(t, user_model.UpdateUser(db.DefaultContext, user, true))
-	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	assert.Equal(t, newEmail, user.Email)
 
 	user.Email = "no mail@mail.org"
@@ -311,8 +311,8 @@ func TestUpdateUser(t *testing.T) {
 
 func TestUpdateUserEmailAlreadyUsed(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)
 
 	user2.Email = user3.Email
 	err := user_model.UpdateUser(db.DefaultContext, user2, true)
