@@ -444,7 +444,6 @@ var migrations = []Migration{
 	// v235 -> v236
 	NewMigration("Add index for access_token", v1_19.AddIndexForAccessToken),
 
-
 	// in dev
 	NewMigration("Add bots tables", addBotTables),
 }

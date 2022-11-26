@@ -57,7 +57,7 @@ func WriteLogs(ctx context.Context, filename string, offset int64, rows []*runne
 	return ns, nil
 }
 
-func ReadLogs(ctx context.Context, inStorage bool, filename string, offset int64, limit int64) ([]*runnerv1.LogRow, error) {
+func ReadLogs(ctx context.Context, inStorage bool, filename string, offset, limit int64) ([]*runnerv1.LogRow, error) {
 	f, err := openLogs(ctx, inStorage, filename)
 	if err != nil {
 		return nil, err

@@ -967,7 +967,6 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/{runnerid}/delete", repo.RunnerDeletePost)
 				m.Get("/reset_registration_token", repo.ResetRunnerRegistrationToken)
 			})
-
 		}, func(ctx *context.Context) {
 			ctx.Data["PageIsSettings"] = true
 			ctx.Data["LFSStartServer"] = setting.LFS.StartServer

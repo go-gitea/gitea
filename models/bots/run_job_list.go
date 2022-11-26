@@ -16,14 +16,14 @@ import (
 type RunJobList []*RunJob
 
 func (jobs RunJobList) GetRunIDs() []int64 {
-	var runIDsMap = make(map[int64]struct{})
+	runIDsMap := make(map[int64]struct{})
 	for _, j := range jobs {
 		if j.RunID == 0 {
 			continue
 		}
 		runIDsMap[j.RunID] = struct{}{}
 	}
-	var runIDs = make([]int64, 0, len(runIDsMap))
+	runIDs := make([]int64, 0, len(runIDsMap))
 	for runID := range runIDsMap {
 		runIDs = append(runIDs, runID)
 	}

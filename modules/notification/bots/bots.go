@@ -180,7 +180,7 @@ func (a *botsNotifier) NotifyIssueChangeStatus(ctx context.Context, doer *user_m
 }
 
 func (a *botsNotifier) NotifyIssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue,
-	addedLabels []*issues_model.Label, removedLabels []*issues_model.Label,
+	_, _ []*issues_model.Label,
 ) {
 	var err error
 	if err = issue.LoadRepo(ctx); err != nil {
@@ -288,7 +288,7 @@ func (a *botsNotifier) NotifyRenameRepository(ctx context.Context, doer *user_mo
 func (a *botsNotifier) NotifyTransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwnerName string) {
 }
 
-func (a *botsNotifier) NotifyCreateRepository(ctx context.Context, doer *user_model.User, u *user_model.User, repo *repo_model.Repository) {
+func (a *botsNotifier) NotifyCreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
 	if err := notify(repo, doer, repo.DefaultBranch,
 		webhook.HookEventRepository,
 		&api.RepositoryPayload{

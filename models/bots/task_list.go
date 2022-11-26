@@ -16,14 +16,14 @@ import (
 type TaskList []*Task
 
 func (tasks TaskList) GetJobIDs() []int64 {
-	var jobIDsMap = make(map[int64]struct{})
+	jobIDsMap := make(map[int64]struct{})
 	for _, t := range tasks {
 		if t.JobID == 0 {
 			continue
 		}
 		jobIDsMap[t.JobID] = struct{}{}
 	}
-	var jobIDs = make([]int64, 0, len(jobIDsMap))
+	jobIDs := make([]int64, 0, len(jobIDsMap))
 	for jobID := range jobIDsMap {
 		jobIDs = append(jobIDs, jobID)
 	}

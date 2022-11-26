@@ -20,7 +20,6 @@ import (
 
 // RunnersList render common runners list page
 func RunnersList(ctx *context.Context, tplName base.TplName, opts bots_model.FindRunnerOptions) {
-
 	count, err := bots_model.CountRunners(opts)
 	if err != nil {
 		ctx.ServerError("AdminRunners", err)
@@ -65,7 +64,7 @@ func RunnersList(ctx *context.Context, tplName base.TplName, opts bots_model.Fin
 }
 
 // RunnerDetails render runner details page
-func RunnerDetails(ctx *context.Context, tplName base.TplName, page int, runnerID int64, ownerID int64, repoID int64) {
+func RunnerDetails(ctx *context.Context, tplName base.TplName, page int, runnerID, ownerID, repoID int64) {
 	runner, err := bots_model.GetRunnerByID(runnerID)
 	if err != nil {
 		ctx.ServerError("GetRunnerByID", err)
@@ -117,7 +116,7 @@ func RunnerDetails(ctx *context.Context, tplName base.TplName, page int, runnerI
 }
 
 // RunnerDetailsEditPost response for edit runner details
-func RunnerDetailsEditPost(ctx *context.Context, runnerID int64, ownerID int64, repoID int64, redirectTo string) {
+func RunnerDetailsEditPost(ctx *context.Context, runnerID, ownerID, repoID int64, redirectTo string) {
 	runner, err := bots_model.GetRunnerByID(runnerID)
 	if err != nil {
 		log.Warn("RunnerDetailsEditPost.GetRunnerByID failed: %v, url: %s", err, ctx.Req.URL)
@@ -162,7 +161,8 @@ func RunnerResetRegistrationToken(ctx *context.Context, ownerID, repoID int64, r
 
 // RunnerDeletePost response for deleting a runner
 func RunnerDeletePost(ctx *context.Context, runnerID int64,
-	successRedirectTo, failedRedirectTo string) {
+	successRedirectTo, failedRedirectTo string,
+) {
 	runner, err := bots_model.GetRunnerByID(runnerID)
 	if err != nil {
 		log.Warn("DeleteRunnerPost.GetRunnerByID failed: %v, url: %s", err, ctx.Req.URL)
