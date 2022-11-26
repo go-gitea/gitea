@@ -30,7 +30,6 @@ type Repository struct {
 func RepositoryNew(id ap.ID) *Repository {
 	a := ap.ActorNew(id, RepositoryType)
 	o := Repository{Actor: *a}
-	o.Type = RepositoryType
 	return &o
 }
 

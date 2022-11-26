@@ -97,6 +97,7 @@ func RepoInbox(ctx *context.APIContext) {
 
 	ap.ItemTyperFunc = forgefed.GetItemByType
 	ap.JSONItemUnmarshal = forgefed.JSONUnmarshalerFn
+	ap.NotEmptyChecker = forgefed.NotEmpty
 	var activity ap.Activity
 	err = activity.UnmarshalJSON(body)
 	if err != nil {

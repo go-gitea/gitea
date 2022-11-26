@@ -93,7 +93,7 @@ func IsValidExternalTrackerURLFormat(uri string) bool {
 }
 
 var (
-	validUsernamePattern   = regexp.MustCompile(`^[\da-zA-Z][-.\w]*$`)
+	validUsernamePattern   = regexp.MustCompile(`^[\da-zA-Z][-.\w@]*$`)
 	invalidUsernamePattern = regexp.MustCompile(`[-._]{2,}|[-._]$`) // No consecutive or trailing non-alphanumeric chars
 )
 

@@ -90,7 +90,7 @@ var (
 		"git-receive-pack":   perm.AccessModeWrite,
 		lfsAuthenticateVerb:  perm.AccessModeNone,
 	}
-	alphaDashDotPattern = regexp.MustCompile(`[^\w-\.@]`)
+	alphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
 )
 
 func fail(userMessage, logMessage string, args ...interface{}) error {

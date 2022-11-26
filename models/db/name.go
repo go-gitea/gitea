@@ -18,7 +18,7 @@ var (
 	ErrNameEmpty = util.SilentWrap{Message: "name is empty", Err: util.ErrInvalidArgument}
 
 	// AlphaDashDotPattern characters prohibited in a user name (anything except A-Za-z0-9_.-)
-	AlphaDashDotPattern = regexp.MustCompile(`[^\w-\.@]`) // Ugly hack to allow remote usernames to contain @
+	AlphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
 )
 
 // ErrNameReserved represents a "reserved name" error.

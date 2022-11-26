@@ -31,6 +31,7 @@ func AuthorizeInteraction(ctx *context.Context) {
 	
 	ap.ItemTyperFunc = forgefed.GetItemByType
 	ap.JSONItemUnmarshal = forgefed.JSONUnmarshalerFn
+	ap.NotEmptyChecker = forgefed.NotEmpty
 	object, err := ap.UnmarshalJSON(resp)
 	if err != nil {
 		ctx.ServerError("UnmarshalJSON", err)
@@ -70,6 +71,7 @@ func AuthorizeInteraction(ctx *context.Context) {
 			// Parse person object
 			ap.ItemTyperFunc = forgefed.GetItemByType
 			ap.JSONItemUnmarshal = forgefed.JSONUnmarshalerFn
+			ap.NotEmptyChecker = forgefed.NotEmpty
 			object, err := ap.UnmarshalJSON(resp)
 			if err != nil {
 				return err
@@ -108,6 +110,7 @@ func AuthorizeInteraction(ctx *context.Context) {
 			// Parse repository object
 			ap.ItemTyperFunc = forgefed.GetItemByType
 			ap.JSONItemUnmarshal = forgefed.JSONUnmarshalerFn
+			ap.NotEmptyChecker = forgefed.NotEmpty
 			object, err := ap.UnmarshalJSON(resp)
 			if err != nil {
 				return err

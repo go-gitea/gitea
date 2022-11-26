@@ -32,7 +32,7 @@ require (
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/gliderlabs/ssh v0.3.5
 	github.com/go-ap/activitypub v0.0.0-20220917143152-e4e7018838c0
-	github.com/go-ap/jsonld v0.0.0-20220917142617-76bf51585778
+	github.com/go-ap/jsonld v0.0.0-20221030091449-f2a191312c73
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-chi/cors v1.2.1
 	github.com/go-enry/go-enry/v2 v2.8.3
@@ -169,7 +169,7 @@ require (
 	github.com/form3tech-oss/jwt-go v3.2.3+incompatible // indirect
 	github.com/fullstorydev/grpcurl v1.8.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.4.0 // indirect
-	github.com/go-ap/errors v0.0.0-20220917143055-4283ea5dae18 // indirect
+	github.com/go-ap/errors v0.0.0-20221115052505-8aaa26f930b4 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.4 // indirect
 	github.com/go-enry/go-oniguruma v1.2.1 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
@@ -302,7 +302,7 @@ replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142
 
 replace github.com/satori/go.uuid v1.2.0 => github.com/gofrs/uuid v4.2.0+incompatible
 
-replace github.com/go-ap/activitypub => gitea.com/xy/activitypub v0.0.0-20220915153216-ee7ec91cd818
+replace github.com/go-ap/activitypub => gitea.com/xy/activitypub v0.0.0-20221126171442-81405e14ea3b
 
 exclude github.com/gofrs/uuid v3.2.0+incompatible
 
