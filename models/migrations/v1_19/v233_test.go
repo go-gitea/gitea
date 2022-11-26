@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_addHeaderAuthorizationEncryptedColWebhook(t *testing.T) {
+func Test_AddHeaderAuthorizationEncryptedColWebhook(t *testing.T) {
 	// Create Webhook table
 	type Webhook struct {
 		ID   int64            `xorm:"pk autoincr"`

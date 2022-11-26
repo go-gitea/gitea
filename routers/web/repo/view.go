@@ -443,7 +443,12 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["IsRepresentableAsText"] = isRepresentableAsText
 	ctx.Data["IsDisplayingSource"] = isDisplayingSource
 	ctx.Data["IsDisplayingRendered"] = isDisplayingRendered
-	ctx.Data["IsTextSource"] = isTextFile || isDisplayingSource
+
+	isTextSource := isTextFile || isDisplayingSource
+	ctx.Data["IsTextSource"] = isTextSource
+	if isTextSource {
+		ctx.Data["CanCopyContent"] = true
+	}
 
 	// Check LFS Lock
 	lfsLock, err := git_model.GetTreePathLock(ctx.Repo.Repository.ID, ctx.Repo.TreePath)
@@ -474,6 +479,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	case isRepresentableAsText:
 		if st.IsSvgImage() {
 			ctx.Data["IsImageFile"] = true
+			ctx.Data["CanCopyContent"] = true
 			ctx.Data["HasSourceRenderedToggle"] = true
 		}
 
@@ -568,7 +574,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 					language = ""
 				}
 			}
-			fileContent, err := highlight.File(blob.Name(), language, buf)
+			fileContent, lexerName, err := highlight.File(blob.Name(), language, buf)
+			ctx.Data["LexerName"] = lexerName
 			if err != nil {
 				log.Error("highlight.File failed, fallback to plain text: %v", err)
 				fileContent = highlight.PlainText(buf)
@@ -607,6 +614,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		ctx.Data["IsAudioFile"] = true
 	case st.IsImage() && (setting.UI.SVG.Enabled || !st.IsSvgImage()):
 		ctx.Data["IsImageFile"] = true
+		ctx.Data["CanCopyContent"] = true
 	default:
 		if fileSize >= setting.UI.MaxDisplayFileSize {
 			ctx.Data["IsFileTooLarge"] = true
@@ -730,15 +738,56 @@ func checkHomeCodeViewable(ctx *context.Context) {
 	ctx.NotFound("Home", fmt.Errorf(ctx.Tr("units.error.no_unit_allowed_repo")))
 }
 
-// Home render repository home page
-func Home(ctx *context.Context) {
-	isFeed, _, showFeedType := feed.GetFeedType(ctx.Params(":reponame"), ctx.Req)
-	if isFeed {
-		feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
+func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
+	if entry.Name() != "" {
 		return
 	}
+	tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
+	if err != nil {
+		ctx.NotFoundOrServerError("Repo.Commit.SubTree", git.IsErrNotExist, err)
+		return
+	}
+	allEntries, err := tree.ListEntries()
+	if err != nil {
+		ctx.ServerError("ListEntries", err)
+		return
+	}
+	for _, entry := range allEntries {
+		if entry.Name() == "CITATION.cff" || entry.Name() == "CITATION.bib" {
+			ctx.Data["CitiationExist"] = true
+			// Read Citation file contents
+			blob := entry.Blob()
+			dataRc, err := blob.DataAsync()
+			if err != nil {
+				ctx.ServerError("DataAsync", err)
+				return
+			}
+			defer dataRc.Close()
+			buf := make([]byte, 1024)
+			n, err := util.ReadAtMost(dataRc, buf)
+			if err != nil {
+				ctx.ServerError("ReadAtMost", err)
+				return
+			}
+			buf = buf[:n]
+			ctx.PageData["citationFileContent"] = string(buf)
+			break
+		}
+	}
+}
 
-	ctx.Data["FeedURL"] = ctx.Repo.Repository.HTMLURL()
+// Home render repository home page
+func Home(ctx *context.Context) {
+	if setting.EnableFeed {
+		isFeed, _, showFeedType := feed.GetFeedType(ctx.Params(":reponame"), ctx.Req)
+		if isFeed {
+			feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
+			return
+		}
+
+		ctx.Data["EnableFeed"] = true
+		ctx.Data["FeedURL"] = ctx.Repo.Repository.HTMLURL()
+	}
 
 	checkHomeCodeViewable(ctx)
 	if ctx.Written() {
@@ -952,6 +1001,13 @@ func renderCode(ctx *context.Context) {
 	if err != nil {
 		ctx.NotFoundOrServerError("Repo.Commit.GetTreeEntryByPath", git.IsErrNotExist, err)
 		return
+	}
+
+	if !ctx.Repo.Repository.IsEmpty {
+		checkCitationFile(ctx, entry)
+		if ctx.Written() {
+			return
+		}
 	}
 
 	renderLanguageStats(ctx)

@@ -8,6 +8,7 @@ import (
 	"context"
 	"database/sql"
 
+	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
 
@@ -86,7 +87,11 @@ type Committer interface {
 }
 
 // TxContext represents a transaction Context
-func TxContext() (*Context, Committer, error) {
+func TxContext(parentCtx context.Context) (*Context, Committer, error) {
+	if InTransaction(parentCtx) {
+		return nil, nil, ErrAlreadyInTransaction
+	}
+
 	sess := x.NewSession()
 	if err := sess.Begin(); err != nil {
 		sess.Close()
@@ -97,14 +102,24 @@ func TxContext() (*Context, Committer, error) {
 }
 
 // WithTx represents executing database operations on a transaction
-// you can optionally change the context to a parent one
-func WithTx(f func(ctx context.Context) error, stdCtx ...context.Context) error {
-	parentCtx := DefaultContext
-	if len(stdCtx) != 0 && stdCtx[0] != nil {
-		// TODO: make sure parent context has no open session
-		parentCtx = stdCtx[0]
+// This function will always open a new transaction, if a transaction exist in parentCtx return an error.
+func WithTx(parentCtx context.Context, f func(ctx context.Context) error) error {
+	if InTransaction(parentCtx) {
+		return ErrAlreadyInTransaction
 	}
+	return txWithNoCheck(parentCtx, f)
+}
 
+// AutoTx represents executing database operations on a transaction, if the transaction exist,
+// this function will reuse it otherwise will create a new one and close it when finished.
+func AutoTx(parentCtx context.Context, f func(ctx context.Context) error) error {
+	if InTransaction(parentCtx) {
+		return f(newContext(parentCtx, GetEngine(parentCtx), true))
+	}
+	return txWithNoCheck(parentCtx, f)
+}
+
+func txWithNoCheck(parentCtx context.Context, f func(ctx context.Context) error) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
@@ -179,4 +194,29 @@ func EstimateCount(ctx context.Context, bean interface{}) (int64, error) {
 		return e.Context(ctx).Count(tablename)
 	}
 	return rows, err
+}
+
+// InTransaction returns true if the engine is in a transaction otherwise return false
+func InTransaction(ctx context.Context) bool {
+	var e Engine
+	if engined, ok := ctx.(Engined); ok {
+		e = engined.Engine()
+	} else {
+		enginedInterface := ctx.Value(enginedContextKey)
+		if enginedInterface != nil {
+			e = enginedInterface.(Engined).Engine()
+		}
+	}
+	if e == nil {
+		return false
+	}
+
+	switch t := e.(type) {
+	case *xorm.Engine:
+		return false
+	case *xorm.Session:
+		return t.IsInTx()
+	default:
+		return false
+	}
 }

@@ -44,7 +44,7 @@ func cleanPath(p string) string {
 
 // CreateLFSLock creates a new lock.
 func CreateLFSLock(repo *repo_model.Repository, lock *LFSLock) (*LFSLock, error) {
-	dbCtx, committer, err := db.TxContext()
+	dbCtx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +137,7 @@ func CountLFSLockByRepoID(repoID int64) (int64, error) {
 
 // DeleteLFSLockByID deletes a lock by given ID.
 func DeleteLFSLockByID(id int64, repo *repo_model.Repository, u *user_model.User, force bool) (*LFSLock, error) {
-	dbCtx, committer, err := db.TxContext()
+	dbCtx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}

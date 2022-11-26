@@ -413,9 +413,9 @@ var (
 			Usage: "SMTP Authentication Type (PLAIN/LOGIN/CRAM-MD5) default PLAIN",
 		},
 		cli.StringFlag{
-			Name:  "addr",
+			Name:  "host",
 			Value: "",
-			Usage: "SMTP Addr",
+			Usage: "SMTP Host",
 		},
 		cli.IntFlag{
 			Name:  "port",
@@ -727,7 +727,7 @@ func runRepoSyncReleases(_ *cli.Context) error {
 
 	log.Trace("Synchronizing repository releases (this may take a while)")
 	for page := 1; ; page++ {
-		repos, count, err := repo_model.SearchRepositoryByName(&repo_model.SearchRepoOptions{
+		repos, count, err := repo_model.SearchRepositoryByName(ctx, &repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
 				PageSize: repo_model.RepositoryListDefaultPageSize,
 				Page:     page,
@@ -955,8 +955,8 @@ func parseSMTPConfig(c *cli.Context, conf *smtp.Source) error {
 		}
 		conf.Auth = c.String("auth-type")
 	}
-	if c.IsSet("addr") {
-		conf.Addr = c.String("addr")
+	if c.IsSet("host") {
+		conf.Host = c.String("host")
 	}
 	if c.IsSet("port") {
 		conf.Port = c.Int("port")

@@ -88,10 +88,10 @@ var (
 	// AppWorkPath is used as the base path for several other paths.
 	AppWorkPath string
 	// AppDataPath is the default path for storing data.
-	// It maps to ini:"APP_DATA_PATH" and defaults to AppWorkPath + "/data"
+	// It maps to ini:"APP_DATA_PATH" in [server] and defaults to AppWorkPath + "/data"
 	AppDataPath string
 	// LocalURL is the url for locally running applications to contact Gitea. It always has a '/' suffix
-	// It maps to ini:"LOCAL_ROOT_URL"
+	// It maps to ini:"LOCAL_ROOT_URL" in [server]
 	LocalURL string
 	// AssetVersion holds a opaque value that is used for cache-busting assets
 	AssetVersion string
@@ -440,6 +440,7 @@ var (
 	ShowFooterBranding         bool
 	ShowFooterVersion          bool
 	ShowFooterTemplateLoadTime bool
+	EnableFeed                 bool
 
 	// Global setting objects
 	Cfg           *ini.File
@@ -1102,6 +1103,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	ShowFooterVersion = Cfg.Section("other").Key("SHOW_FOOTER_VERSION").MustBool(true)
 	ShowFooterTemplateLoadTime = Cfg.Section("other").Key("SHOW_FOOTER_TEMPLATE_LOAD_TIME").MustBool(true)
 	EnableSitemap = Cfg.Section("other").Key("ENABLE_SITEMAP").MustBool(true)
+	EnableFeed = Cfg.Section("other").Key("ENABLE_FEED").MustBool(true)
 
 	UI.ShowUserEmail = Cfg.Section("ui").Key("SHOW_USER_EMAIL").MustBool(true)
 	UI.DefaultShowFullName = Cfg.Section("ui").Key("DEFAULT_SHOW_FULL_NAME").MustBool(false)

@@ -544,7 +544,7 @@ func FindRenamedBranch(repoID int64, from string) (branch *RenamedBranch, exist 
 
 // RenameBranch rename a branch
 func RenameBranch(repo *repo_model.Repository, from, to string, gitAction func(isDefault bool) error) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
