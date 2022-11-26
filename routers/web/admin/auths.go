@@ -39,7 +39,7 @@ const (
 )
 
 var (
-	separatorAntiPattern = regexp.MustCompile(`[^\w-\.@]`)
+	separatorAntiPattern = regexp.MustCompile(`[^\w-\.]`)
 	langCodePattern      = regexp.MustCompile(`^[a-z]{2}-[A-Z]{2}$`)
 )
 
