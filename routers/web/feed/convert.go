@@ -274,7 +274,7 @@ func GetFeedType(name string, req *http.Request) (bool, string, string) {
 // feedActionsToFeedItems convert gitea's Repo's Releases to feeds Item
 func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release, isReleasesOnly bool) (items []*feeds.Item, err error) {
 	for _, rel := range releases {
-		err := rel.LoadAttributes()
+		err := rel.LoadAttributes(ctx)
 		if err != nil {
 			return nil, err
 		}

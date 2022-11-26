@@ -1083,15 +1083,15 @@ func RegisterRoutes(m *web.Route) {
 	m.Group("/{username}/{reponame}", func() {
 		m.Group("/tags", func() {
 			m.Get("", repo.TagsList)
-			m.Get(".rss", repo.TagsListFeedRSS)
-			m.Get(".atom", repo.TagsListFeedAtom)
+			m.Get(".rss", feedEnabled, repo.TagsListFeedRSS)
+			m.Get(".atom", feedEnabled, repo.TagsListFeedAtom)
 		}, repo.MustBeNotEmpty, reqRepoCodeReader, context.RepoRefByType(context.RepoRefTag, true))
 		m.Group("/releases", func() {
 			m.Get("/", repo.Releases)
 			m.Get("/tag/*", repo.SingleRelease)
 			m.Get("/latest", repo.LatestRelease)
-			m.Get(".rss", repo.ReleasesFeedRSS)
-			m.Get(".atom", repo.ReleasesFeedAtom)
+			m.Get(".rss", feedEnabled, repo.ReleasesFeedRSS)
+			m.Get(".atom", feedEnabled, repo.ReleasesFeedAtom)
 		}, repo.MustBeNotEmpty, reqRepoReleaseReader, context.RepoRefByType(context.RepoRefTag, true))
 		m.Get("/releases/attachments/{uuid}", repo.GetAttachment, repo.MustBeNotEmpty, reqRepoReleaseReader)
 		m.Group("/releases", func() {
