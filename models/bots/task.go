@@ -204,7 +204,7 @@ func (task *Task) GenerateToken() error {
 
 type LogIndexes []int64
 
-func (i *LogIndexes) FromDB(b []byte) error {
+func (indexes *LogIndexes) FromDB(b []byte) error {
 	reader := bytes.NewReader(b)
 	for {
 		v, err := binary.ReadVarint(reader)
@@ -214,16 +214,17 @@ func (i *LogIndexes) FromDB(b []byte) error {
 			}
 			return fmt.Errorf("binary ReadVarint: %w", err)
 		}
-		*i = append(*i, v)
+		*indexes = append(*indexes, v)
 	}
 }
 
-func (i *LogIndexes) ToDB() ([]byte, error) {
-	var buf []byte
-	for _, v := range *i {
-		buf = binary.AppendVarint(buf, v)
+func (indexes *LogIndexes) ToDB() ([]byte, error) {
+	buf, i := make([]byte, binary.MaxVarintLen64*len(*indexes)), 0
+	for _, v := range *indexes {
+		n := binary.PutVarint(buf[i:], v)
+		i += n
 	}
-	return buf, nil
+	return buf[:i], nil
 }
 
 func GetTaskByID(ctx context.Context, id int64) (*Task, error) {
