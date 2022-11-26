@@ -6,6 +6,7 @@
 package setting
 
 import (
+	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
 	"math"
@@ -28,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
 
+	"golang.org/x/crypto/pbkdf2"
 	gossh "golang.org/x/crypto/ssh"
 	ini "gopkg.in/ini.v1"
 )
@@ -215,6 +217,8 @@ var (
 		HMACKey   string `ini:"HMAC_KEY"`
 		Allways   bool
 	}{}
+	MasterKeyProvider string
+	MasterKey         []byte
 
 	// UI settings
 	UI = struct {
@@ -963,6 +967,19 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
 	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
 	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
+
+	// Master key provider configuration
+	MasterKeyProvider = sec.Key("MASTER_KEY_PROVIDER").MustString("plain")
+	switch MasterKeyProvider {
+	case "plain":
+		tempSalt := []byte{'g', 'i', 't', 'e', 'a'}
+		MasterKey = []byte(sec.Key("MASTER_KEY").MustString(SecretKey))
+		MasterKey = pbkdf2.Key(MasterKey, tempSalt, 4096, 32, sha1.New)
+	case "none":
+	default:
+		log.Fatal("invalid master key provider type: %v", MasterKeyProvider)
+		return
+	}
 
 	InternalToken = loadSecret(sec, "INTERNAL_TOKEN_URI", "INTERNAL_TOKEN")
 	if InstallLock && InternalToken == "" {

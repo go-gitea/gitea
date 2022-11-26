@@ -6,10 +6,14 @@
 package cmd
 
 import (
+	"encoding/base64"
 	"fmt"
 	"os"
 
 	"code.gitea.io/gitea/modules/generate"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/secrets"
 
 	"github.com/mattn/go-isatty"
 	"github.com/urfave/cli"
@@ -32,6 +36,7 @@ var (
 			microcmdGenerateInternalToken,
 			microcmdGenerateLfsJwtSecret,
 			microcmdGenerateSecretKey,
+			microcmdGenerateMasterKey,
 		},
 	}
 
@@ -52,6 +57,12 @@ var (
 		Name:   "SECRET_KEY",
 		Usage:  "Generate a new SECRET_KEY",
 		Action: runGenerateSecretKey,
+	}
+
+	microcmdGenerateMasterKey = cli.Command{
+		Name:   "MASTER_KEY",
+		Usage:  "Generate a new MASTER_KEY",
+		Action: runGenerateMasterKey,
 	}
 )
 
@@ -95,6 +106,49 @@ func runGenerateSecretKey(c *cli.Context) error {
 
 	if isatty.IsTerminal(os.Stdout.Fd()) {
 		fmt.Printf("\n")
+	}
+
+	return nil
+}
+
+func runGenerateMasterKey(c *cli.Context) error {
+	// Silence the console logger
+	log.DelNamedLogger("console")
+	log.DelNamedLogger(log.DEFAULT)
+
+	// Read configuration file
+	setting.LoadFromExisting()
+
+	providerType := secrets.MasterKeyProviderType(setting.MasterKeyProvider)
+	if providerType == secrets.MasterKeyProviderTypeNone {
+		return fmt.Errorf("configured master key provider does not support key generation")
+	}
+
+	if err := secrets.Init(); err != nil {
+		return err
+	}
+
+	scrts, err := secrets.GenerateMasterKey()
+	if err != nil {
+		return err
+	}
+
+	if len(scrts) > 1 {
+		fmt.Println("Unseal secrets:")
+		for i, secret := range scrts {
+			if i > 0 {
+				fmt.Printf("\n")
+			}
+			fmt.Printf("%s\n", base64.StdEncoding.EncodeToString(secret))
+		}
+	}
+
+	if providerType == secrets.MasterKeyProviderTypePlain && len(scrts) == 1 {
+		fmt.Printf("%s", base64.StdEncoding.EncodeToString(scrts[0]))
+
+		if isatty.IsTerminal(os.Stdout.Fd()) {
+			fmt.Printf("\n")
+		}
 	}
 
 	return nil

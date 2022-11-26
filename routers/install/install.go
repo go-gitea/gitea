@@ -7,6 +7,7 @@ package install
 
 import (
 	goctx "context"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"os"
@@ -34,6 +35,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/forms"
+	"code.gitea.io/gitea/services/secrets"
 
 	"gitea.com/go-chi/session"
 	"gopkg.in/ini.v1"
@@ -163,6 +165,7 @@ func Install(ctx *context.Context) {
 	form.DefaultEnableTimetracking = setting.Service.DefaultEnableTimetracking
 	form.NoReplyAddress = setting.Service.NoReplyAddress
 	form.PasswordAlgorithm = setting.PasswordHashAlgo
+	form.MasterKeyProvider = secrets.MasterKeyProviderTypePlain
 
 	middleware.AssignForm(form, ctx.Data)
 	ctx.HTML(http.StatusOK, tplInstall)
@@ -388,10 +391,40 @@ func SubmitInstall(ctx *context.Context) {
 			log.Error("Failed to load custom conf '%s': %v", setting.CustomConf, err)
 		}
 	}
+
+	// Setup master key provider
+	cfg.Section("security").Key("MASTER_KEY_PROVIDER").SetValue(string(form.MasterKeyProvider))
+	var provider secrets.MasterKeyProvider
+	switch form.MasterKeyProvider {
+	case secrets.MasterKeyProviderTypePlain:
+		provider = secrets.NewPlainMasterKeyProvider()
+	}
+	var masterKey []byte
+	if provider != nil {
+		if err = provider.Init(); err != nil {
+			ctx.RenderWithErr(ctx.Tr("install.master_key_failed", err), tplInstall, &form)
+			return
+		}
+		// Generate master key
+		if _, err = provider.GenerateMasterKey(); err != nil {
+			ctx.RenderWithErr(ctx.Tr("install.master_key_failed", err), tplInstall, &form)
+			return
+		}
+		masterKey, err = provider.GetMasterKey()
+		if err != nil {
+			ctx.RenderWithErr(ctx.Tr("install.master_key_failed", err), tplInstall, &form)
+			return
+		}
+		if form.MasterKeyProvider == secrets.MasterKeyProviderTypePlain {
+			cfg.Section("security").Key("MASTER_KEY").SetValue(base64.StdEncoding.EncodeToString(masterKey))
+		}
+	}
+
 	cfg.Section("database").Key("DB_TYPE").SetValue(setting.Database.Type)
 	cfg.Section("database").Key("HOST").SetValue(setting.Database.Host)
 	cfg.Section("database").Key("NAME").SetValue(setting.Database.Name)
 	cfg.Section("database").Key("USER").SetValue(setting.Database.User)
+	// TODO: Encrypt secret
 	cfg.Section("database").Key("PASSWD").SetValue(setting.Database.Passwd)
 	cfg.Section("database").Key("SCHEMA").SetValue(setting.Database.Schema)
 	cfg.Section("database").Key("SSL_MODE").SetValue(setting.Database.SSLMode)
@@ -433,6 +466,7 @@ func SubmitInstall(ctx *context.Context) {
 		cfg.Section("mailer").Key("SMTP_PORT").SetValue(form.SMTPPort)
 		cfg.Section("mailer").Key("FROM").SetValue(form.SMTPFrom)
 		cfg.Section("mailer").Key("USER").SetValue(form.SMTPUser)
+		// TODO: Encrypt secret
 		cfg.Section("mailer").Key("PASSWD").SetValue(form.SMTPPasswd)
 	} else {
 		cfg.Section("mailer").Key("ENABLED").SetValue("false")

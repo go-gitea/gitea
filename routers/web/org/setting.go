@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/services/org"
 	container_service "code.gitea.io/gitea/services/packages/container"
 	repo_service "code.gitea.io/gitea/services/repository"
+	secret_service "code.gitea.io/gitea/services/secrets"
 	user_service "code.gitea.io/gitea/services/user"
 )
 
@@ -38,6 +39,8 @@ const (
 	tplSettingsHooks base.TplName = "org/settings/hooks"
 	// tplSettingsLabels template path for render labels settings
 	tplSettingsLabels base.TplName = "org/settings/labels"
+	// tplSettingsSecrets template path for render secrets settings
+	tplSettingsSecrets base.TplName = "org/settings/secrets"
 )
 
 // Settings render the main settings page
@@ -246,4 +249,47 @@ func Labels(ctx *context.Context) {
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["LabelTemplates"] = repo_module.LabelTemplates
 	ctx.HTML(http.StatusOK, tplSettingsLabels)
+}
+
+// Secrets render organization secrets page
+func Secrets(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("repo.secrets")
+	ctx.Data["PageIsOrgSettings"] = true
+	ctx.Data["PageIsOrgSettingsSecrets"] = true
+	ctx.Data["RequireTribute"] = true
+
+	secrets, err := secret_service.FindUserSecrets(ctx, ctx.Org.Organization.ID)
+	if err != nil {
+		ctx.ServerError("FindRepoSecrets", err)
+		return
+	}
+	ctx.Data["Secrets"] = secrets
+
+	ctx.HTML(http.StatusOK, tplSettingsSecrets)
+}
+
+// SecretsPost add secrets
+func SecretsPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.AddSecretForm)
+	if err := secret_service.InsertOrgSecret(ctx, ctx.Org.Organization.ID, form.Title, form.Content, form.PullRequestRead); err != nil {
+		ctx.ServerError("InsertRepoSecret", err)
+		return
+	}
+
+	log.Trace("Secret added: %d", ctx.Org.Organization.ID)
+	ctx.Flash.Success(ctx.Tr("repo.settings.add_secret_success", form.Title))
+	ctx.Redirect(ctx.Org.OrgLink + "/settings/secrets")
+}
+
+// SecretsDelete delete secrets
+func SecretsDelete(ctx *context.Context) {
+	if err := secret_service.DeleteSecretByID(ctx, ctx.FormInt64("id")); err != nil {
+		ctx.Flash.Error("DeleteSecretByID: " + err.Error())
+	} else {
+		ctx.Flash.Success(ctx.Tr("repo.settings.secret_deletion_success"))
+	}
+
+	ctx.JSON(http.StatusOK, map[string]interface{}{
+		"redirect": ctx.Org.OrgLink + "/settings/secrets",
+	})
 }

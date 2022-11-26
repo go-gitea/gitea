@@ -4,6 +4,12 @@
 
 package db
 
+import (
+	"context"
+
+	"xorm.io/builder"
+)
+
 // SearchOrderBy is used to sort the result
 type SearchOrderBy string
 
@@ -28,3 +34,15 @@ const (
 	SearchOrderByForks                 SearchOrderBy = "num_forks ASC"
 	SearchOrderByForksReverse          SearchOrderBy = "num_forks DESC"
 )
+
+// FindObjects represents a common function to find Objects from database according cond and ListOptions
+func FindObjects[Object any](ctx context.Context, cond builder.Cond, opts *ListOptions, objects *[]*Object) error {
+	sess := GetEngine(ctx).Where(cond)
+	if opts != nil && opts.PageSize > 0 {
+		if opts.Page < 1 {
+			opts.Page = 1
+		}
+		sess.Limit(opts.PageSize, opts.PageSize*(opts.Page-1))
+	}
+	return sess.Find(objects)
+}
