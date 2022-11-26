@@ -138,7 +138,7 @@ func newMailService() {
 	sec.Key("SENDMAIL_PATH").MustString("sendmail")
 	sec.Key("SENDMAIL_TIMEOUT").MustDuration(5 * time.Minute)
 	sec.Key("SENDMAIL_CONVERT_CRLF").MustBool(true)
-	sec.Key("FROM").MustString(MailService.User)
+	sec.Key("FROM").MustString(sec.Key("USER").String())
 
 	// Now map the values on to the MailService
 	MailService = &Mailer{}
