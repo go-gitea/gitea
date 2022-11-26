@@ -2,9 +2,9 @@
 
 *This describes Gitea's future federation capabilities, not what it can do currently.*
 
-Gitea is federated using [ActivityPub](https://www.w3.org/TR/activitypub/) and the [ForgeFed extension](https://forgefed.org/) so you can interact with users and repositories from other instances as if they were on your own instance. By using the standardized ActivityPub protocol, users on any fediverse software such as [Mastodon](https://joinmastodon.org/) can follow Gitea users, star repos, receive activity updates, and comment on issues.
+Gitea is federated using [ActivityPub](https://www.w3.org/TR/activitypub/) and the [ForgeFed extension](https://forgefed.org/) so you can interact with users and repositories from other instances as if they were on your own instance. By using the standardized ActivityPub protocol, users on any fediverse software such as [Mastodon](https://joinmastodon.org/) can follow Gitea users, star repositories, receive activity updates, and comment on issues.
 
-Currently, C2S ActivityPub is not supported.
+C2S ActivityPub is not supported because Gitea already has an existing API.
 
 ## Following
 

@@ -28,7 +28,7 @@ func AuthorizeInteraction(ctx *context.Context) {
 		ctx.ServerError("Fetch", err)
 		return
 	}
-	
+
 	ap.ItemTyperFunc = forgefed.GetItemByType
 	ap.JSONItemUnmarshal = forgefed.JSONUnmarshalerFn
 	ap.NotEmptyChecker = forgefed.NotEmpty
@@ -37,7 +37,7 @@ func AuthorizeInteraction(ctx *context.Context) {
 		ctx.ServerError("UnmarshalJSON", err)
 		return
 	}
-	
+
 	switch object.GetType() {
 	case ap.PersonType:
 		// Federated user

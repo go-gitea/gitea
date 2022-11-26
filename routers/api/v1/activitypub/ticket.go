@@ -68,7 +68,7 @@ func Ticket(ctx *context.APIContext) {
 	ticket.Name = ap.NaturalLanguageValuesNew()
 	// Setting a NaturalLanguageValue to a number causes go-ap's JSON parsing to do weird things
 	// Workaround: set it to #1 instead of 1
-	err = ticket.Name.Set("en", ap.Content("#" + ctx.Params("id")))
+	err = ticket.Name.Set("en", ap.Content("#"+ctx.Params("id")))
 	if err != nil {
 		ctx.ServerError("Set Name", err)
 		return
