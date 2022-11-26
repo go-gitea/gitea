@@ -125,67 +125,65 @@ func ViewPost(ctx *context_module.Context) {
 		},
 	}
 
-	if current != nil {
-		var task *bots_model.Task
-		if current.TaskID > 0 {
-			var err error
-			task, err = bots_model.GetTaskByID(ctx, current.TaskID)
-			if err != nil {
-				ctx.Error(http.StatusInternalServerError, err.Error())
-				return
-			}
-			task.Job = current
-			if err := task.LoadAttributes(ctx); err != nil {
-				ctx.Error(http.StatusInternalServerError, err.Error())
-				return
+	var task *bots_model.Task
+	if current.TaskID > 0 {
+		var err error
+		task, err = bots_model.GetTaskByID(ctx, current.TaskID)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, err.Error())
+			return
+		}
+		task.Job = current
+		if err := task.LoadAttributes(ctx); err != nil {
+			ctx.Error(http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+
+	resp.StateData.CurrentJobInfo.Title = current.Name
+	resp.StateData.CurrentJobSteps = make([]ViewJobStep, 0)
+	resp.LogsData.StreamingLogs = make([]ViewStepLog, 0, len(req.StepLogCursors))
+	resp.StateData.CurrentJobInfo.Detail = current.Status.String()
+	if task != nil {
+		steps := bots.FullSteps(task)
+
+		resp.StateData.CurrentJobSteps = make([]ViewJobStep, len(steps))
+		for i, v := range steps {
+			resp.StateData.CurrentJobSteps[i] = ViewJobStep{
+				Summary:  v.Name,
+				Duration: float64(v.TakeTime() / time.Second),
+				Status:   v.Status.String(),
 			}
 		}
 
-		resp.StateData.CurrentJobInfo.Title = current.Name
-		resp.StateData.CurrentJobSteps = make([]ViewJobStep, 0)
-		resp.LogsData.StreamingLogs = make([]ViewStepLog, 0, len(req.StepLogCursors))
-		resp.StateData.CurrentJobInfo.Detail = current.Status.String()
-		if task != nil {
-			steps := bots.FullSteps(task)
-
-			resp.StateData.CurrentJobSteps = make([]ViewJobStep, len(steps))
-			for i, v := range steps {
-				resp.StateData.CurrentJobSteps[i] = ViewJobStep{
-					Summary:  v.Name,
-					Duration: float64(v.TakeTime() / time.Second),
-					Status:   v.Status.String(),
-				}
-			}
-
-			for _, cursor := range req.StepLogCursors {
-				if cursor.Expanded {
-					step := steps[cursor.StepIndex]
-					var logRows []*runnerv1.LogRow
-					if cursor.Cursor < step.LogLength || step.LogLength < 0 {
-						index := step.LogIndex + cursor.Cursor
-						length := step.LogLength - cursor.Cursor
-						offset := (*task.LogIndexes)[index]
-						var err error
-						logRows, err = bots.ReadLogs(ctx, task.LogInStorage, task.LogFilename, offset, length)
-						if err != nil {
-							ctx.Error(http.StatusInternalServerError, err.Error())
-							return
-						}
+		for _, cursor := range req.StepLogCursors {
+			if cursor.Expanded {
+				step := steps[cursor.StepIndex]
+				var logRows []*runnerv1.LogRow
+				if cursor.Cursor < step.LogLength || step.LogLength < 0 {
+					index := step.LogIndex + cursor.Cursor
+					length := step.LogLength - cursor.Cursor
+					offset := (*task.LogIndexes)[index]
+					var err error
+					logRows, err = bots.ReadLogs(ctx, task.LogInStorage, task.LogFilename, offset, length)
+					if err != nil {
+						ctx.Error(http.StatusInternalServerError, err.Error())
+						return
 					}
-					logLines := make([]ViewStepLogLine, len(logRows))
-					for i, row := range logRows {
-						logLines[i] = ViewStepLogLine{
-							Ln: cursor.Cursor + int64(i) + 1, // start at 1
-							M:  row.Content,
-							T:  float64(row.Time.AsTime().UnixNano()) / float64(time.Second),
-						}
-					}
-					resp.LogsData.StreamingLogs = append(resp.LogsData.StreamingLogs, ViewStepLog{
-						StepIndex: cursor.StepIndex,
-						Cursor:    cursor.Cursor + int64(len(logLines)),
-						Lines:     logLines,
-					})
 				}
+				logLines := make([]ViewStepLogLine, len(logRows))
+				for i, row := range logRows {
+					logLines[i] = ViewStepLogLine{
+						Ln: cursor.Cursor + int64(i) + 1, // start at 1
+						M:  row.Content,
+						T:  float64(row.Time.AsTime().UnixNano()) / float64(time.Second),
+					}
+				}
+				resp.LogsData.StreamingLogs = append(resp.LogsData.StreamingLogs, ViewStepLog{
+					StepIndex: cursor.StepIndex,
+					Cursor:    cursor.Cursor + int64(len(logLines)),
+					Lines:     logLines,
+				})
 			}
 		}
 	}
@@ -262,33 +260,37 @@ func Cancel(ctx *context_module.Context) {
 	ctx.JSON(http.StatusOK, struct{}{})
 }
 
-func getRunJobs(ctx *context_module.Context, runIndex, jobIndex int64) (current *bots_model.RunJob, jobs []*bots_model.RunJob) {
+// getRunJobs gets the jobs of runIndex, and returns jobs[jobIndex], jobs.
+// Any error will be written to the ctx.
+// It never returns a nil job of an empty jobs, if the jobIndex is out of range, it will be treated as 0.
+func getRunJobs(ctx *context_module.Context, runIndex, jobIndex int64) (*bots_model.RunJob, []*bots_model.RunJob) {
 	run, err := bots_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
 	if err != nil {
 		if _, ok := err.(bots_model.ErrRunNotExist); ok {
 			ctx.Error(http.StatusNotFound, err.Error())
-			return
+			return nil, nil
 		}
 		ctx.Error(http.StatusInternalServerError, err.Error())
-		return
+		return nil, nil
 	}
 	run.Repo = ctx.Repo.Repository
 
-	jobs, err = bots_model.GetRunJobsByRunID(ctx, run.ID)
+	jobs, err := bots_model.GetRunJobsByRunID(ctx, run.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return nil, nil
 	}
+	if len(jobs) == 0 {
+		ctx.Error(http.StatusNotFound, err.Error())
+		return nil, nil
+	}
+
 	for _, v := range jobs {
 		v.Run = run
 	}
 
 	if jobIndex >= 0 && jobIndex < int64(len(jobs)) {
-		if len(jobs) == 0 {
-			ctx.Error(http.StatusNotFound, fmt.Sprintf("run %v has no job %v", runIndex, jobIndex))
-			return nil, nil
-		}
-		current = jobs[jobIndex]
+		return jobs[jobIndex], jobs
 	}
-	return
+	return jobs[0], jobs
 }

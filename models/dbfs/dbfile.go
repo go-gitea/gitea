@@ -87,7 +87,7 @@ func (f *file) Read(p []byte) (n int, err error) {
 		return 0, os.ErrInvalid
 	}
 
-	fileMeta, err := findFileMetaById(f.ctx, f.metaID)
+	fileMeta, err := findFileMetaByID(f.ctx, f.metaID)
 	if err != nil {
 		return 0, err
 	}
@@ -101,7 +101,7 @@ func (f *file) Write(p []byte) (n int, err error) {
 		return 0, os.ErrInvalid
 	}
 
-	fileMeta, err := findFileMetaById(f.ctx, f.metaID)
+	fileMeta, err := findFileMetaByID(f.ctx, f.metaID)
 	if err != nil {
 		return 0, err
 	}
@@ -196,10 +196,6 @@ func (f *file) Close() error {
 
 func timeToFileTimestamp(t time.Time) int64 {
 	return t.UnixMicro()
-}
-
-func fileTimestampToTime(t int64) time.Time {
-	return time.UnixMicro(t)
 }
 
 func (f *file) loadMetaByPath() (*FileMeta, error) {
@@ -328,14 +324,14 @@ func (f *file) size() (int64, error) {
 	if f.metaID == 0 {
 		return 0, os.ErrNotExist
 	}
-	fileMeta, err := findFileMetaById(f.ctx, f.metaID)
+	fileMeta, err := findFileMetaByID(f.ctx, f.metaID)
 	if err != nil {
 		return 0, err
 	}
 	return fileMeta.FileSize, nil
 }
 
-func findFileMetaById(ctx context.Context, metaID int64) (*FileMeta, error) {
+func findFileMetaByID(ctx context.Context, metaID int64) (*FileMeta, error) {
 	var fileMeta FileMeta
 	if ok, err := db.GetEngine(ctx).Where("id = ?", metaID).Get(&fileMeta); err != nil {
 		return nil, err

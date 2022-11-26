@@ -50,10 +50,7 @@ func (tasks TaskList) LoadJobs(ctx context.Context) error {
 }
 
 func (tasks TaskList) LoadAttributes(ctx context.Context) error {
-	if err := tasks.LoadJobs(ctx); err != nil {
-		return err
-	}
-	return nil
+	return tasks.LoadJobs(ctx)
 }
 
 type FindTaskOptions struct {

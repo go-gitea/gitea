@@ -42,11 +42,9 @@ func RunnersList(ctx *context.Context, tplName base.TplName, opts bots_model.Fin
 			ctx.ServerError("CreateRunnerToken", err)
 			return
 		}
-	} else {
-		if err != nil {
-			ctx.ServerError("GetUnactivatedRunnerToken", err)
-			return
-		}
+	} else if err != nil {
+		ctx.ServerError("GetUnactivatedRunnerToken", err)
+		return
 	}
 
 	ctx.Data["Keyword"] = opts.Filter

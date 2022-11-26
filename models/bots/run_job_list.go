@@ -52,10 +52,7 @@ func (jobs RunJobList) LoadRuns(ctx context.Context, withRepo bool) error {
 }
 
 func (jobs RunJobList) LoadAttributes(ctx context.Context, withRepo bool) error {
-	if err := jobs.LoadRuns(ctx, withRepo); err != nil {
-		return err
-	}
-	return nil
+	return jobs.LoadRuns(ctx, withRepo)
 }
 
 type FindRunJobOptions struct {

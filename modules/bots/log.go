@@ -135,16 +135,14 @@ func FormatLog(timestamp time.Time, content string) string {
 	return fmt.Sprintf("%s %s", timestamp.UTC().Format(timeFormat), content)
 }
 
-func ParseLog(in string) (timestamp time.Time, content string, err error) {
+func ParseLog(in string) (time.Time, string, error) {
 	index := strings.IndexRune(in, ' ')
 	if index < 0 {
-		err = fmt.Errorf("invalid log: %q", in)
-		return
+		return time.Time{}, "", fmt.Errorf("invalid log: %q", in)
 	}
-	timestamp, err = time.Parse(timeFormat, in[:index])
+	timestamp, err := time.Parse(timeFormat, in[:index])
 	if err != nil {
-		return
+		return time.Time{}, "", err
 	}
-	content = in[index+1:]
-	return
+	return timestamp, in[index+1:], nil
 }

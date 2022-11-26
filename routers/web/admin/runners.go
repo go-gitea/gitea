@@ -18,7 +18,6 @@ import (
 
 const (
 	tplRunners    base.TplName = "admin/runners/base"
-	tplRunnerNew  base.TplName = "admin/runners/new"
 	tplRunnerEdit base.TplName = "admin/runners/edit"
 )
 

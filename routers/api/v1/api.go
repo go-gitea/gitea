@@ -74,7 +74,6 @@ import (
 	bots_model "code.gitea.io/gitea/models/bots"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
-	perm_model "code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -200,9 +199,9 @@ func repoAssignment() func(ctx *context.APIContext) {
 			}
 
 			if task.IsForkPullRequest {
-				ctx.Repo.Permission.AccessMode = perm_model.AccessModeRead
+				ctx.Repo.Permission.AccessMode = perm.AccessModeRead
 			} else {
-				ctx.Repo.Permission.AccessMode = perm_model.AccessModeWrite
+				ctx.Repo.Permission.AccessMode = perm.AccessModeWrite
 			}
 
 			if err := ctx.Repo.Repository.LoadUnits(ctx); err != nil {
@@ -210,7 +209,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 				return
 			}
 			ctx.Repo.Permission.Units = ctx.Repo.Repository.Units
-			ctx.Repo.Permission.UnitsMode = make(map[unit.Type]perm_model.AccessMode)
+			ctx.Repo.Permission.UnitsMode = make(map[unit.Type]perm.AccessMode)
 			for _, u := range ctx.Repo.Repository.Units {
 				ctx.Repo.Permission.UnitsMode[u.Type] = ctx.Repo.Permission.AccessMode
 			}

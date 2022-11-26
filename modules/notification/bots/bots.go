@@ -6,7 +6,6 @@ package bots
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	bots_model "code.gitea.io/gitea/models/bots"
@@ -23,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/process"
@@ -409,9 +409,6 @@ func (*botsNotifier) NotifyMergePullRequest(ctx context.Context, doer *user_mode
 }
 
 func (a *botsNotifier) NotifyPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
-	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("botsNofiter.NotifyPushCommits User: %s[%d] in %s[%d]", pusher.Name, pusher.ID, repo.FullName(), repo.ID))
-	defer finished()
-
 	apiPusher := convert.ToUser(pusher, nil)
 	apiCommits, apiHeadCommit, err := commits.ToAPIPayloadCommits(ctx, repo.RepoPath(), repo.HTMLURL())
 	if err != nil {
@@ -419,7 +416,7 @@ func (a *botsNotifier) NotifyPushCommits(ctx context.Context, pusher *user_model
 		return
 	}
 
-	notify(repo, pusher, opts.RefFullName, webhook.HookEventPush, &api.PushPayload{
+	if err := notify(repo, pusher, opts.RefFullName, webhook.HookEventPush, &api.PushPayload{
 		Ref:        opts.RefFullName,
 		Before:     opts.OldCommitID,
 		After:      opts.NewCommitID,
@@ -429,7 +426,9 @@ func (a *botsNotifier) NotifyPushCommits(ctx context.Context, pusher *user_model
 		Repo:       convert.ToRepo(repo, perm.AccessModeOwner),
 		Pusher:     apiPusher,
 		Sender:     apiPusher,
-	})
+	}); err != nil {
+		log.Error("PrepareWebhooks: %v", err)
+	}
 }
 
 func (a *botsNotifier) NotifyCreateRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
