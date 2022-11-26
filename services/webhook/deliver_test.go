@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -67,8 +68,15 @@ func TestWebhookDeliverAuthorizationHeader(t *testing.T) {
 	err := hook.SetHeaderAuthorization("Bearer s3cr3t-t0ken")
 	assert.NoError(t, err)
 	assert.NoError(t, webhook_model.CreateWebhook(db.DefaultContext, hook))
+	db.GetEngine(db.DefaultContext).NoAutoTime().DB().Logger.ShowSQL(true)
 
-	hookTask := &webhook_model.HookTask{HookID: hook.ID, EventType: webhook_model.HookEventPush}
+	hookTask := &webhook_model.HookTask{HookID: hook.ID, EventType: webhook_model.HookEventPush, Payloader: &api.PushPayload{}}
+
+	hookTask, err = webhook_model.CreateHookTask(db.DefaultContext, hookTask)
+	assert.NoError(t, err)
+	if !assert.NotNil(t, hookTask) {
+		return
+	}
 
 	assert.NoError(t, Deliver(context.Background(), hookTask))
 	select {

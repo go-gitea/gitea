@@ -10,6 +10,7 @@ package git
 import (
 	"bytes"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -30,7 +31,9 @@ type Signature = object.Signature
 func newSignatureFromCommitline(line []byte) (_ *Signature, err error) {
 	sig := new(Signature)
 	emailStart := bytes.IndexByte(line, '<')
-	sig.Name = string(line[:emailStart-1])
+	if emailStart > 0 { // Empty name has already occurred, even if it shouldn't
+		sig.Name = strings.TrimSpace(string(line[:emailStart-1]))
+	}
 	emailEnd := bytes.IndexByte(line, '>')
 	sig.Email = string(line[emailStart+1 : emailEnd])
 

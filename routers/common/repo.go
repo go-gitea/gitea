@@ -5,7 +5,6 @@
 package common
 
 import (
-	"fmt"
 	"io"
 	"path"
 	"path/filepath"
@@ -52,14 +51,14 @@ func ServeData(ctx *context.Context, filePath string, size int64, reader io.Read
 		buf = buf[:n]
 	}
 
-	if size >= 0 {
-		ctx.Resp.Header().Set("Content-Length", fmt.Sprintf("%d", size))
-	} else {
-		log.Error("ServeData called to serve data: %s with size < 0: %d", filePath, size)
-	}
-
 	opts := &context.ServeHeaderOptions{
 		Filename: path.Base(filePath),
+	}
+
+	if size >= 0 {
+		opts.ContentLength = &size
+	} else {
+		log.Error("ServeData called to serve data: %s with size < 0: %d", filePath, size)
 	}
 
 	sniffedType := typesniffer.DetectContentType(buf)
