@@ -30,22 +30,9 @@ func (comments CommentList) LoadPosters(ctx context.Context) error {
 		return nil
 	}
 
-	posterIDs := comments.getPosterIDs()
-	posterMaps := make(map[int64]*user_model.User, len(posterIDs))
-	left := len(posterIDs)
-	for left > 0 {
-		limit := db.DefaultMaxInSize
-		if left < limit {
-			limit = left
-		}
-		err := db.GetEngine(ctx).
-			In("id", posterIDs[:limit]).
-			Find(&posterMaps)
-		if err != nil {
-			return err
-		}
-		left -= limit
-		posterIDs = posterIDs[limit:]
+	posterMaps, err := getPosters(ctx, comments.getPosterIDs())
+	if err != nil {
+		return err
 	}
 
 	for _, comment := range comments {
