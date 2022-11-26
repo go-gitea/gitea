@@ -316,7 +316,7 @@ func (repo *Repository) LoadUnits(ctx context.Context) (err error) {
 }
 
 // UnitEnabled if this repository has the given unit enabled
-func (repo *Repository) UnitEnabled(tp unit.Type) (result bool) { // Notice: Don't remove this function directly, beacuse it has been used in go template.
+func (repo *Repository) UnitEnabled(tp unit.Type) (result bool) { // Notice: Don't remove this function directly, because it has been used in go template.
 	return repo.UnitEnabledCtx(db.DefaultContext, tp)
 }
 
