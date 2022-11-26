@@ -126,6 +126,10 @@ func RestoreBranchPost(ctx *context.Context) {
 		log.Error("GetDeletedBranchByID: %v", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.restore_failed", branchName))
 		return
+	} else if deletedBranch == nil {
+		log.Debug("RestoreBranch: Can't restore branch[%d] '%s', as it does not exist", branchID, branchName)
+		ctx.Flash.Error(ctx.Tr("repo.branch.restore_failed", branchName))
+		return
 	}
 
 	if err := git.Push(ctx, ctx.Repo.Repository.RepoPath(), git.PushOptions{
