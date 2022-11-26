@@ -30,7 +30,7 @@
 		</div>
 		<div class="mt-3" id="repo-topics">
 		{{range .Topics}}<a class="ui repo-topic large label topic" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
-		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}<a id="manage_topic" class="muted">{{.locale.Tr "repo.topic.manage_topics"}}</a>{{end}}
+		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}<a id="manage_topic" class="muted" tabindex="0">{{.locale.Tr "repo.topic.manage_topics"}}</a>{{end}}
 		</div>
 		{{end}}
 		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}
@@ -40,7 +40,7 @@
 					<div class="ui fluid multiple search selection dropdown">
 						<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if lt (Add $i 1) (len $.Topics)}},{{end}}{{end}}">
 						{{range .Topics}}
-						<div class="ui small label topic transition visible" data-value="{{.Name}}" style="display: inline-block !important; cursor: default;">{{.Name}}{{svg "octicon-x" 16 "delete icon ml-3 mt-1"}}</div>
+						<div class="ui small label topic transition visible" data-value="{{.Name}}" style="display: inline-block !important; cursor: default;">{{.Name}}<span class="delete icon ml-3 mt-1" tabindex="0" aria-label="{{$.locale.Tr "repo.topic.delete"}} {{.Name}}">{{svg "octicon-x" 16}}</span></div>
 						{{end}}
 						<div class="text"></div>
 					</div>

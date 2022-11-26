@@ -16,6 +16,12 @@ export function initRepoTopicBar() {
     viewDiv.hide();
     editDiv.css('display', ''); // show Semantic UI Grid
   });
+  mgrBtn.on('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      viewDiv.hide();
+      editDiv.css('display', ''); // show Semantic UI Grid
+    }
+  });
 
   function getPrompts() {
     const hidePrompt = $('div.hide#validate_prompt');
