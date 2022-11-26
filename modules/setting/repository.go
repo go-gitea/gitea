@@ -49,6 +49,7 @@ var (
 		AllowAdoptionOfUnadoptedRepositories    bool
 		AllowDeleteOfUnadoptedRepositories      bool
 		DisableDownloadSourceArchives           bool
+		AllowForkWithoutMaximumLimit            bool
 
 		// Repository editor settings
 		Editor struct {
@@ -160,6 +161,7 @@ var (
 		DisableMigrations:                       false,
 		DisableStars:                            false,
 		DefaultBranch:                           "main",
+		AllowForkWithoutMaximumLimit:            false,
 
 		// Repository editor settings
 		Editor: struct {
