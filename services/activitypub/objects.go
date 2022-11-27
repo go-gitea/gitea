@@ -15,15 +15,26 @@ import (
 )
 
 // Construct a Note object from a comment
-func Note(comment *issues_model.Comment) *ap.Note {
+func Note(comment *issues_model.Comment) (*ap.Note, error) {
+	err := comment.LoadPoster()
+	if err != nil {
+		return nil, err
+	}
+	err = comment.LoadIssue()
+	if err != nil {
+		return nil, err
+	}
 	note := ap.Note{
 		Type:         ap.NoteType,
 		AttributedTo: ap.IRI(comment.Poster.GetIRI()),
 		Context:      ap.IRI(comment.Issue.GetIRI()),
 	}
 	note.Content = ap.NaturalLanguageValuesNew()
-	_ = note.Content.Set("en", ap.Content(comment.Content))
-	return &note
+	err = note.Content.Set("en", ap.Content(comment.Content))
+	if err != nil {
+		return nil, err
+	}
+	return &note, nil
 }
 
 // Construct a Ticket object from an issue

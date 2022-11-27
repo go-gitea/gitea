@@ -29,6 +29,7 @@ type Repository struct {
 // RepositoryNew initializes a Repository type actor
 func RepositoryNew(id ap.ID) *Repository {
 	a := ap.ActorNew(id, RepositoryType)
+	a.Type = RepositoryType
 	o := Repository{Actor: *a}
 	return &o
 }

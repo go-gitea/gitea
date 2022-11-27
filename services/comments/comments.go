@@ -32,7 +32,11 @@ func CreateIssueComment(doer *user_model.User, repo *repo_model.Repository, issu
 
 	if strings.Contains(repo.OwnerName, "@") {
 		// Federated comment
-		create := activitypub.Create(repo.OriginalURL + "/inbox", activitypub.Note(comment))
+		note, err := activitypub.Note(comment)
+		if err != nil {
+			return nil, err
+		}
+		create := activitypub.Create(repo.OriginalURL + "/inbox", note)
 		err = activitypub.Send(doer, create)
 		if err != nil {
 			return nil, err

@@ -41,7 +41,6 @@ func Repo(ctx *context.APIContext) {
 
 	iri := ctx.Repo.Repository.GetIRI()
 	repo := forgefed.RepositoryNew(ap.IRI(iri))
-	repo.Type = forgefed.RepositoryType
 
 	repo.Name = ap.NaturalLanguageValuesNew()
 	err := repo.Name.Set("en", ap.Content(ctx.Repo.Repository.Name))
@@ -148,7 +147,6 @@ func RepoInbox(ctx *context.APIContext) {
 	case ap.LikeType:
 		err = star(ctx, activity)
 	default:
-		log.Info("Incoming unsupported ActivityStreams type: %s", activity.Type)
 		ctx.PlainText(http.StatusNotImplemented, "ActivityStreams type not supported")
 		return
 	}

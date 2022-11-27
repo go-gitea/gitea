@@ -662,6 +662,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 					m.Get("/followers", activitypub.RepoFollowers)
 				}, repoAssignment())
 				m.Get("/ticket/{username}/{reponame}/{id}", repoAssignment(), activitypub.Ticket)
+				m.Get("/note/{username}/{reponame}/{id}/{noteid}", repoAssignment(), activitypub.Note)
 			})
 		}
 		m.Get("/signing-key.gpg", misc.SigningKey)
