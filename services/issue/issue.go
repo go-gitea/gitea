@@ -6,6 +6,7 @@ package issue
 
 import (
 	"fmt"
+	"strings"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
@@ -19,12 +20,26 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/activitypub"
 )
 
 // NewIssue creates new issue with labels for repository.
 func NewIssue(repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string, assigneeIDs []int64) error {
 	if err := issues_model.NewIssue(repo, issue, labelIDs, uuids); err != nil {
 		return err
+	}
+
+	if strings.Contains(repo.OwnerName, "@") {
+		// Federated issue
+		ticket, err := activitypub.Ticket(issue)
+		if err != nil {
+			return err
+		}
+		create := activitypub.Create(repo.OriginalURL + "/inbox", ticket)
+		err = activitypub.Send(issue.Poster, create)
+		if err != nil {
+			return err
+		}
 	}
 
 	for _, assigneeID := range assigneeIDs {

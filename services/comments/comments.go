@@ -14,8 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/services/activitypub"
-
-	ap "github.com/go-ap/activitypub"
 )
 
 // CreateIssueComment creates a plain issue comment.
@@ -34,13 +32,8 @@ func CreateIssueComment(doer *user_model.User, repo *repo_model.Repository, issu
 
 	if strings.Contains(repo.OwnerName, "@") {
 		// Federated comment
-		// Refactor this to its own function in services/activitypub
-		create := ap.Create{
-			Type:   ap.CreateType,
-			Object: activitypub.Note(comment),
-			To:     ap.ItemCollection{ap.Item(ap.IRI(repo.OriginalURL + "/inbox"))},
-		}
-		err = activitypub.Send(doer, &create)
+		create := activitypub.Create(repo.OriginalURL + "/inbox", activitypub.Note(comment))
+		err = activitypub.Send(doer, create)
 		if err != nil {
 			return nil, err
 		}

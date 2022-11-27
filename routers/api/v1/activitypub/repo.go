@@ -41,6 +41,7 @@ func Repo(ctx *context.APIContext) {
 
 	iri := ctx.Repo.Repository.GetIRI()
 	repo := forgefed.RepositoryNew(ap.IRI(iri))
+	repo.Type = forgefed.RepositoryType
 
 	repo.Name = ap.NaturalLanguageValuesNew()
 	err := repo.Name.Set("en", ap.Content(ctx.Repo.Repository.Name))
@@ -123,24 +124,27 @@ func RepoInbox(ctx *context.APIContext) {
 	// Process activity
 	switch activity.Type {
 	case ap.CreateType:
-		err = ap.OnObject(activity.Object, func(o *ap.Object) error {
-			switch o.Type {
-			case forgefed.RepositoryType:
-				// Fork created by remote instance
-				return forgefed.OnRepository(o, func(r *forgefed.Repository) error {
-					return createRepository(ctx, r)
-				})
-			case forgefed.TicketType:
-				// New issue or pull request
-				return forgefed.OnTicket(o, func(t *forgefed.Ticket) error {
-					return createTicket(ctx, t)
-				})
-			case ap.NoteType:
-				// New comment
-				return createComment(ctx, o)
-			}
-			return nil
-		})
+		switch activity.Object.GetType() {
+		case forgefed.RepositoryType:
+			// Fork created by remote instance
+			err = forgefed.OnRepository(activity.Object, func(r *forgefed.Repository) error {
+				return createRepository(ctx, r)
+			})
+		case forgefed.TicketType:
+			// New issue or pull request
+			err = forgefed.OnTicket(activity.Object, func(t *forgefed.Ticket) error {
+				return createTicket(ctx, t)
+			})
+		case ap.NoteType:
+			// New comment
+			err = ap.On(activity.Object, func(n *ap.Note) error {
+				return createComment(ctx, n)
+			})
+		default:
+			log.Info("Incoming unsupported ActivityStreams object type: %s",  activity.Object.GetType())
+			ctx.PlainText(http.StatusNotImplemented, "ActivityStreams object type not supported")
+			return
+		}
 	case ap.LikeType:
 		err = star(ctx, activity)
 	default:
@@ -149,7 +153,7 @@ func RepoInbox(ctx *context.APIContext) {
 		return
 	}
 	if err != nil {
-		ctx.ServerError("Error when processing: %s", err)
+		ctx.ServerError("Error when processing", err)
 	}
 
 	ctx.Status(http.StatusNoContent)

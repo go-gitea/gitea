@@ -8,12 +8,8 @@ import (
 	"strconv"
 
 	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/forgefed"
-	"code.gitea.io/gitea/modules/setting"
-
-	ap "github.com/go-ap/activitypub"
+	"code.gitea.io/gitea/services/activitypub"
 )
 
 // Ticket function returns the Ticket object for an issue or PR
@@ -43,63 +39,20 @@ func Ticket(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	repo, err := repo_model.GetRepositoryByOwnerAndNameCtx(ctx, ctx.ContextUser.Name, ctx.Repo.Repository.Name)
-	if err != nil {
-		ctx.ServerError("GetRepositoryByOwnerAndNameCtx", err)
-		return
-	}
 	index, err := strconv.ParseInt(ctx.Params("id"), 10, 64)
 	if err != nil {
 		ctx.ServerError("ParseInt", err)
 		return
 	}
-	issue, err := issues_model.GetIssueByIndex(repo.ID, index)
+	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, index)
 	if err != nil {
 		ctx.ServerError("GetIssueByIndex", err)
 		return
 	}
-	iri := issue.GetIRI()
-
-	// TODO: move this to services/activitypub/objects.go
-	ticket := forgefed.TicketNew()
-	ticket.Type = forgefed.TicketType
-	ticket.ID = ap.IRI(iri)
-
-	// Setting a NaturalLanguageValue to a number causes go-ap's JSON parsing to do weird things
-	// Workaround: set it to #1 instead of 1
-	ticket.Name = ap.NaturalLanguageValuesNew()
-	err = ticket.Name.Set("en", ap.Content("#"+ctx.Params("id")))
+	ticket, err := activitypub.Ticket(issue)
 	if err != nil {
-		ctx.ServerError("Set Name", err)
+		ctx.ServerError("Ticket", err)
 		return
 	}
-
-	ticket.Context = ap.IRI(setting.AppURL + "api/v1/activitypub/repo/" + ctx.ContextUser.Name + "/" + ctx.Repo.Repository.Name)
-
-	err = issue.LoadPoster()
-	if err != nil {
-		ctx.ServerError("LoadPoster", err)
-		return
-	}
-	ticket.AttributedTo = ap.IRI(setting.AppURL + "api/v1/activitypub/user/" + issue.Poster.Name)
-
-	ticket.Summary = ap.NaturalLanguageValuesNew()
-	err = ticket.Summary.Set("en", ap.Content(issue.Title))
-	if err != nil {
-		ctx.ServerError("Set Summary", err)
-		return
-	}
-
-	ticket.Content = ap.NaturalLanguageValuesNew()
-	err = ticket.Content.Set("en", ap.Content(issue.Content))
-	if err != nil {
-		ctx.ServerError("Set Content", err)
-		return
-	}
-
-	if issue.IsClosed {
-		ticket.IsResolved = true
-	}
-
 	response(ctx, ticket)
 }
