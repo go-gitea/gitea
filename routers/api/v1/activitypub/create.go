@@ -55,11 +55,12 @@ func createPerson(ctx context.Context, person *ap.Person) error {
 	}
 
 	user := &user_model.User{
-		Name:      name,
-		FullName:  person.Name.String(), // May not exist!!
-		Email:     email,
-		LoginType: auth.Federated,
-		LoginName: person.GetLink().String(),
+		Name:                         name,
+		FullName:                     person.Name.String(), // May not exist!!
+		Email:                        email,
+		LoginType:                    auth.Federated,
+		LoginName:                    person.GetLink().String(),
+		EmailNotificationsPreference: user_model.EmailNotificationsDisabled,
 	}
 	err = user_model.CreateUser(user)
 	if err != nil {
