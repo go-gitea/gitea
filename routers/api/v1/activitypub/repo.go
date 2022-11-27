@@ -39,8 +39,8 @@ func Repo(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	link := setting.AppURL + "api/v1/activitypub/repo/" + ctx.ContextUser.Name + "/" + ctx.Repo.Repository.Name
-	repo := forgefed.RepositoryNew(ap.IRI(link))
+	iri := ctx.Repo.Repository.GetIRI()
+	repo := forgefed.RepositoryNew(ap.IRI(iri))
 
 	repo.Name = ap.NaturalLanguageValuesNew()
 	err := repo.Name.Set("en", ap.Content(ctx.Repo.Repository.Name))
@@ -58,10 +58,10 @@ func Repo(ctx *context.APIContext) {
 		return
 	}
 
-	repo.Inbox = ap.IRI(link + "/inbox")
-	repo.Outbox = ap.IRI(link + "/outbox")
-	repo.Followers = ap.IRI(link + "/followers")
-	repo.Team = ap.IRI(link + "/team")
+	repo.Inbox = ap.IRI(iri + "/inbox")
+	repo.Outbox = ap.IRI(iri + "/outbox")
+	repo.Followers = ap.IRI(iri + "/followers")
+	repo.Team = ap.IRI(iri + "/team")
 
 	response(ctx, repo)
 }

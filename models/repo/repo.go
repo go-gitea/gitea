@@ -802,3 +802,10 @@ func FixNullArchivedRepository() (int64, error) {
 		IsArchived: false,
 	})
 }
+
+func (r *Repository) GetIRI() string {
+	if strings.Contains(r.OwnerName, "@") {
+		return r.OriginalURL
+	}
+	return setting.AppURL + "api/v1/activitypub/repo/" + r.OwnerName + "/" + r.Name
+}

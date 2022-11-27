@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -2470,4 +2471,12 @@ func DeleteOrphanedIssues() error {
 		system_model.RemoveAllWithNotice(db.DefaultContext, "Delete issue attachment", attachmentPaths[i])
 	}
 	return nil
+}
+
+func (issue *Issue) GetIRI() string {
+	_ = issue.LoadRepo(db.DefaultContext)
+	if strings.Contains(issue.Repo.OwnerName, "@") {
+		return issue.OriginalAuthor
+	}
+	return setting.AppURL + "api/v1/activitypub/ticket/" + issue.Repo.OwnerName + "/" + issue.Repo.Name + "/" + strconv.FormatInt(issue.Index, 10)
 }

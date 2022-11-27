@@ -42,8 +42,8 @@ func Person(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	link := setting.AppURL + "api/v1/activitypub/user/" + ctx.ContextUser.Name
-	person := ap.PersonNew(ap.IRI(link))
+	iri := ctx.ContextUser.GetIRI()
+	person := ap.PersonNew(ap.IRI(iri))
 
 	person.Name = ap.NaturalLanguageValuesNew()
 	err := person.Name.Set("en", ap.Content(ctx.ContextUser.FullName))
@@ -68,14 +68,14 @@ func Person(ctx *context.APIContext) {
 		URL:       ap.IRI(ctx.ContextUser.AvatarFullLinkWithSize(2048)),
 	}
 
-	person.Inbox = ap.IRI(link + "/inbox")
-	person.Outbox = ap.IRI(link + "/outbox")
-	person.Following = ap.IRI(link + "/following")
-	person.Followers = ap.IRI(link + "/followers")
-	person.Liked = ap.IRI(link + "/liked")
+	person.Inbox = ap.IRI(iri + "/inbox")
+	person.Outbox = ap.IRI(iri + "/outbox")
+	person.Following = ap.IRI(iri + "/following")
+	person.Followers = ap.IRI(iri + "/followers")
+	person.Liked = ap.IRI(iri + "/liked")
 
-	person.PublicKey.ID = ap.IRI(link + "#main-key")
-	person.PublicKey.Owner = ap.IRI(link)
+	person.PublicKey.ID = ap.IRI(iri + "#main-key")
+	person.PublicKey.Owner = ap.IRI(iri)
 	publicKeyPem, err := activitypub.GetPublicKey(ctx.ContextUser)
 	if err != nil {
 		ctx.ServerError("GetPublicKey", err)
@@ -164,13 +164,13 @@ func PersonOutbox(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	link := setting.AppURL + "api/v1/activitypub/user/" + ctx.ContextUser.Name
+	iri := ctx.ContextUser.GetIRI()
 
-	orderedCollection := ap.OrderedCollectionNew(ap.IRI(link + "/outbox"))
-	orderedCollection.First = ap.IRI(link + "/outbox?page=1")
+	orderedCollection := ap.OrderedCollectionNew(ap.IRI(iri + "/outbox"))
+	orderedCollection.First = ap.IRI(iri + "/outbox?page=1")
 
 	outbox := ap.OrderedCollectionPageNew(orderedCollection)
-	outbox.First = ap.IRI(link + "/outbox?page=1")
+	outbox.First = ap.IRI(iri + "/outbox?page=1")
 
 	feed, err := activities.GetFeeds(ctx, activities.GetFeedsOptions{
 		RequestedUser:       ctx.ContextUser,
@@ -183,12 +183,12 @@ func PersonOutbox(ctx *context.APIContext) {
 
 	// Only specify next if this amount of feed corresponds to the calculated limit.
 	if len(feed) == convert.ToCorrectPageSize(ctx.FormInt("limit")) {
-		outbox.Next = ap.IRI(fmt.Sprintf("%s/outbox?page=%d", link, ctx.FormInt("page")+1))
+		outbox.Next = ap.IRI(fmt.Sprintf("%s/outbox?page=%d", iri, ctx.FormInt("page")+1))
 	}
 
 	// Only specify previous page when there is one.
 	if ctx.FormInt("page") > 1 {
-		outbox.Prev = ap.IRI(fmt.Sprintf("%s/outbox?page=%d", link, ctx.FormInt("page")-1))
+		outbox.Prev = ap.IRI(fmt.Sprintf("%s/outbox?page=%d", iri, ctx.FormInt("page")-1))
 	}
 
 	if err != nil {
@@ -249,7 +249,7 @@ func PersonFollowing(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	link := setting.AppURL + "api/v1/activitypub/user/" + ctx.ContextUser.Name
+	iri := ctx.ContextUser.GetIRI()
 
 	users, _, err := user_model.GetUserFollowing(ctx, ctx.ContextUser, ctx.Doer, utils.GetListOptions(ctx))
 	if err != nil {
@@ -257,7 +257,7 @@ func PersonFollowing(ctx *context.APIContext) {
 		return
 	}
 
-	following := ap.OrderedCollectionNew(ap.IRI(link + "/following"))
+	following := ap.OrderedCollectionNew(ap.IRI(iri + "/following"))
 	following.TotalItems = uint(len(users))
 
 	for _, user := range users {
@@ -290,7 +290,7 @@ func PersonFollowers(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	link := setting.AppURL + "api/v1/activitypub/user/" + ctx.ContextUser.Name
+	iri := ctx.ContextUser.GetIRI()
 
 	users, _, err := user_model.GetUserFollowers(ctx, ctx.ContextUser, ctx.Doer, utils.GetListOptions(ctx))
 	if err != nil {
@@ -298,7 +298,7 @@ func PersonFollowers(ctx *context.APIContext) {
 		return
 	}
 
-	followers := ap.OrderedCollectionNew(ap.IRI(link + "/followers"))
+	followers := ap.OrderedCollectionNew(ap.IRI(iri + "/followers"))
 	followers.TotalItems = uint(len(users))
 
 	for _, user := range users {
@@ -331,7 +331,7 @@ func PersonLiked(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	link := setting.AppURL + "api/v1/activitypub/user/" + ctx.ContextUser.Name
+	iri := ctx.ContextUser.GetIRI()
 
 	repos, count, err := repo_model.SearchRepository(&repo_model.SearchRepoOptions{
 		Actor:       ctx.Doer,
@@ -343,7 +343,7 @@ func PersonLiked(ctx *context.APIContext) {
 		return
 	}
 
-	liked := ap.OrderedCollectionNew(ap.IRI(link + "/liked"))
+	liked := ap.OrderedCollectionNew(ap.IRI(iri + "/liked"))
 	liked.TotalItems = uint(count)
 
 	for _, repo := range repos {

@@ -1339,3 +1339,10 @@ func GetOrderByName() string {
 	}
 	return "name"
 }
+
+func (u *User) GetIRI() string {
+	if u.LoginType == auth.Federated {
+		return u.LoginName
+	}
+	return setting.AppURL + "api/v1/activitypub/user/" + u.Name
+}

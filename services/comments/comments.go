@@ -5,12 +5,17 @@
 package comments
 
 import (
+	"strings"
+
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/services/activitypub"
+
+	ap "github.com/go-ap/activitypub"
 )
 
 // CreateIssueComment creates a plain issue comment.
@@ -25,6 +30,20 @@ func CreateIssueComment(doer *user_model.User, repo *repo_model.Repository, issu
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	if strings.Contains(repo.Owner.Name, "@") {
+		// Federated comment
+		// Refactor this to its own function in services/activitypub
+		create := ap.Create{
+			Type:   ap.CreateType,
+			Object: activitypub.Note(comment),
+			To:     ap.ItemCollection{ap.Item(ap.IRI(repo.OriginalURL + "/inbox"))},
+		}
+		err = activitypub.Send(doer, &create)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	mentions, err := issues_model.FindAndUpdateIssueMentions(db.DefaultContext, issue, doer, comment.Content)

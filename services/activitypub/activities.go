@@ -12,42 +12,22 @@ import (
 )
 
 // Create and send Follow activity
-func Follow(userID, followID int64) error {
-	followUser, err := user_model.GetUserByID(followID)
-	if err != nil {
-		return err
-	}
-
-	actorUser, err := user_model.GetUserByID(userID)
-	if err != nil {
-		return err
-	}
-
+func Follow(actorUser, followUser *user_model.User) *ap.Follow {
 	object := ap.PersonNew(ap.IRI(followUser.LoginName))
 	follow := ap.FollowNew("", object)
 	follow.Type = ap.FollowType
 	follow.Actor = ap.PersonNew(ap.IRI(setting.AppURL + "api/v1/activitypub/user/" + actorUser.Name))
 	follow.To = ap.ItemCollection{ap.Item(ap.IRI(followUser.LoginName + "/inbox"))}
-	return Send(actorUser, follow)
+	return follow
 }
 
 // Create and send Undo Follow activity
-func Unfollow(userID, followID int64) error {
-	followUser, err := user_model.GetUserByID(followID)
-	if err != nil {
-		return err
-	}
-
-	actorUser, err := user_model.GetUserByID(userID)
-	if err != nil {
-		return err
-	}
-
+func Unfollow(actorUser, followUser *user_model.User) *ap.Undo {
 	object := ap.PersonNew(ap.IRI(followUser.LoginName))
 	follow := ap.FollowNew("", object)
 	follow.Actor = ap.PersonNew(ap.IRI(setting.AppURL + "api/v1/activitypub/user/" + actorUser.Name))
 	unfollow := ap.UndoNew("", follow)
 	unfollow.Type = ap.UndoType
 	unfollow.To = ap.ItemCollection{ap.Item(ap.IRI(followUser.LoginName + "/inbox"))}
-	return Send(actorUser, unfollow)
+	return unfollow
 }

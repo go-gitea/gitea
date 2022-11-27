@@ -67,7 +67,10 @@ func createPerson(ctx context.Context, person *ap.Person) error {
 	}
 
 	if person.Icon != nil {
-		icon := person.Icon.(*ap.Image)
+		icon, err := ap.ToObject(person.Icon)
+		if err != nil {
+			return err
+		}
 		iconURL, err := icon.URL.GetLink().URL()
 		if err != nil {
 			return err
@@ -112,7 +115,11 @@ func createPersonFromIRI(ctx context.Context, personIRI ap.IRI) error {
 	}
 
 	// Create federated user
-	return createPerson(ctx, object.(*ap.Person))
+	person, err := ap.ToActor(object)
+	if err != nil {
+		return err
+	}
+	return createPerson(ctx, person)
 }
 
 // Create a new federated repo from a Repository object
@@ -133,7 +140,8 @@ func createRepository(ctx context.Context, repository *forgefed.Repository) erro
 	}
 
 	repo, err := repo_service.CreateRepository(user, user, repo_module.CreateRepoOptions{
-		Name: repository.Name.String(),
+		Name:        repository.Name.String(),
+		OriginalURL: repository.GetLink().String(),
 	})
 	if err != nil {
 		return err
@@ -281,7 +289,7 @@ func createComment(ctx context.Context, note *ap.Note) error {
 		return err
 	}
 
-	actorUser, err := activitypub.PersonIRIToUser(ctx, note.AttributedTo.GetLink())
+	user, err := activitypub.PersonIRIToUser(ctx, note.AttributedTo.GetLink())
 	if err != nil {
 		return err
 	}
@@ -299,7 +307,7 @@ func createComment(ctx context.Context, note *ap.Note) error {
 		return err
 	}
 	_, err = issues_model.CreateCommentCtx(ctx, &issues_model.CreateCommentOptions{
-		Doer:    actorUser,
+		Doer:    user,
 		Repo:    repo,
 		Issue:   issue,
 		Content: note.Content.String(),

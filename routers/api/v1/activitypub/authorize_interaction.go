@@ -42,7 +42,12 @@ func AuthorizeInteraction(ctx *context.Context) {
 	switch object.GetType() {
 	case ap.PersonType:
 		// Federated user
-		err = createPerson(ctx, object.(*ap.Person))
+		person, err := ap.ToActor(object)
+		if err != nil {
+			ctx.ServerError("ToActor", err)
+			return
+		}
+		err = createPerson(ctx, person)
 		if err != nil {
 			ctx.ServerError("FederatedUserNew", err)
 			return

@@ -43,12 +43,6 @@ func Ticket(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	link := setting.AppURL + "api/v1/activitypub/ticket/" + ctx.ContextUser.Name + "/" + ctx.Repo.Repository.Name + "/" + ctx.Params("id")
-
-	ticket := forgefed.TicketNew()
-	ticket.Type = forgefed.TicketType
-	ticket.ID = ap.IRI(link)
-
 	repo, err := repo_model.GetRepositoryByOwnerAndNameCtx(ctx, ctx.ContextUser.Name, ctx.Repo.Repository.Name)
 	if err != nil {
 		ctx.ServerError("GetRepositoryByOwnerAndNameCtx", err)
@@ -64,6 +58,12 @@ func Ticket(ctx *context.APIContext) {
 		ctx.ServerError("GetIssueByIndex", err)
 		return
 	}
+	iri := issue.GetIRI()
+
+	// TODO: move this to services/activitypub/objects.go
+	ticket := forgefed.TicketNew()
+	ticket.Type = forgefed.TicketType
+	ticket.ID = ap.IRI(iri)
 
 	// Setting a NaturalLanguageValue to a number causes go-ap's JSON parsing to do weird things
 	// Workaround: set it to #1 instead of 1

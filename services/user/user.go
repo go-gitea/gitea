@@ -295,9 +295,13 @@ func FollowUser(userID, followID int64) (err error) {
 	}
 	if followUser.LoginType == auth.Federated {
 		// Following remote user
-		err = activitypub.Follow(userID, followID)
+		actorUser, err := user_model.GetUserByID(userID)
 		if err != nil {
-			return
+			return err
+		}
+		err = activitypub.Send(actorUser, activitypub.Follow(actorUser, followUser))
+		if err != nil {
+			return err
 		}
 	}
 
@@ -316,9 +320,13 @@ func UnfollowUser(userID, followID int64) (err error) {
 	}
 	if followUser.LoginType == auth.Federated {
 		// Unfollowing remote user
-		err = activitypub.Unfollow(userID, followID)
+		actorUser, err := user_model.GetUserByID(userID)
 		if err != nil {
-			return
+			return err
+		}
+		err = activitypub.Send(actorUser, activitypub.Unfollow(actorUser, followUser))
+		if err != nil {
+			return err
 		}
 	}
 

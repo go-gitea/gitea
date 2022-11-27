@@ -62,35 +62,37 @@ func NotEmpty(i ap.Item) bool {
 	if ap.IsNil(i) {
 		return false
 	}
-	var notEmpty bool
 	switch i.GetType() {
 	case CommitType:
-		OnCommit(i, func(c *Commit) error {
-			notEmpty = ap.NotEmpty(c.Object)
-			return nil
-		})
+		c, err := ToCommit(i)
+		if err != nil {
+			return false
+		}
+		return ap.NotEmpty(c.Object)
 	case BranchType:
-		OnBranch(i, func(b *Branch) error {
-			notEmpty = ap.NotEmpty(b.Object)
-			return nil
-		})
+		b, err := ToBranch(i)
+		if err != nil {
+			return false
+		}
+		return ap.NotEmpty(b.Object)
 	case RepositoryType:
-		OnRepository(i, func(r *Repository) error {
-			notEmpty = ap.NotEmpty(r.Actor)
-			return nil
-		})
+		r, err := ToRepository(i)
+		if err != nil {
+			return false
+		}
+		return ap.NotEmpty(r.Actor)
 	case PushType:
-		OnPush(i, func(p *Push) error {
-			notEmpty = ap.NotEmpty(p.Object)
-			return nil
-		})
+		p, err := ToPush(i)
+		if err != nil {
+			return false
+		}
+		return ap.NotEmpty(p.Object)
 	case TicketType:
-		OnTicket(i, func(t *Ticket) error {
-			notEmpty = ap.NotEmpty(t.Object)
-			return nil
-		})
-	default:
-		notEmpty = ap.NotEmpty(i)
+		t, err := ToTicket(i)
+		if err != nil {
+			return false
+		}
+		return ap.NotEmpty(t.Object)
 	}
-	return notEmpty
+	return ap.NotEmpty(i)
 }
