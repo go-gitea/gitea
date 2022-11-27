@@ -444,7 +444,7 @@ var migrations = []Migration{
 	// v235 -> v236
 	NewMigration("Add index for access_token", v1_19.AddIndexForAccessToken),
 	// v236 -> v237
-	NewMigration("add manually_merge_pull_confirmed to pull_request table", v1_19.AddManuallyMergePullConfirmedToPullRequest),
+	NewMigration("Add manually_merge_pull_confirmed to pull_request table", v1_19.AddManuallyMergePullConfirmedToPullRequest),
 }
 
 // GetCurrentDBVersion returns the current db version
