@@ -2474,7 +2474,10 @@ func DeleteOrphanedIssues() error {
 }
 
 func (issue *Issue) GetIRI() string {
-	_ = issue.LoadRepo(db.DefaultContext)
+	err := issue.LoadRepo(db.DefaultContext)
+	if err != nil {
+		log.Error(fmt.Sprintf("loadRepo: %v", err))
+	}
 	if strings.Contains(issue.Repo.OwnerName, "@") {
 		return issue.OriginalAuthor
 	}

@@ -213,14 +213,15 @@ func createIssue(ctx context.Context, ticket *forgefed.Ticket) error {
 		return err
 	}
 	issue := &issues_model.Issue{
-		Index:    idx, // This doesn't seem to work?
-		RepoID:   repo.ID,
-		Repo:     repo,
-		Title:    ticket.Summary.String(),
-		PosterID: user.ID,
-		Poster:   user,
-		Content:  ticket.Content.String(),
-		IsClosed: ticket.IsResolved,
+		Index:          idx, // This doesn't seem to work?
+		RepoID:         repo.ID,
+		Repo:           repo,
+		Title:          ticket.Summary.String(),
+		PosterID:       user.ID,
+		Poster:         user,
+		Content:        ticket.Content.String(),
+		OriginalAuthor: ticket.GetLink().String(), // Create new database field to store IRI?
+		IsClosed:       ticket.IsResolved,
 	}
 	return issue_service.NewIssue(repo, issue, nil, nil, nil)
 }

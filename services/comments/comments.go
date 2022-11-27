@@ -32,7 +32,7 @@ func CreateIssueComment(doer *user_model.User, repo *repo_model.Repository, issu
 		return nil, err
 	}
 
-	if strings.Contains(repo.Owner.Name, "@") {
+	if strings.Contains(repo.OwnerName, "@") {
 		// Federated comment
 		// Refactor this to its own function in services/activitypub
 		create := ap.Create{
