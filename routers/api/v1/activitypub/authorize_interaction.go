@@ -52,7 +52,7 @@ func AuthorizeInteraction(ctx *context.Context) {
 			ctx.ServerError("PersonIRIToName", err)
 			return
 		}
-		ctx.Redirect(setting.AppSubURL + name)
+		ctx.Redirect(setting.AppURL + name)
 	case forgefed.RepositoryType:
 		// Federated repository
 		err = forgefed.OnRepository(object, func(r *forgefed.Repository) error {
@@ -67,7 +67,7 @@ func AuthorizeInteraction(ctx *context.Context) {
 			ctx.ServerError("RepositoryIRIToName", err)
 			return
 		}
-		ctx.Redirect(setting.AppSubURL + username + "/" + reponame)
+		ctx.Redirect(setting.AppURL + username + "/" + reponame)
 	case forgefed.TicketType:
 		// Federated issue or pull request
 		err = forgefed.OnTicket(object, func(t *forgefed.Ticket) error {
@@ -82,7 +82,7 @@ func AuthorizeInteraction(ctx *context.Context) {
 			ctx.ServerError("TicketIRIToName", err)
 			return
 		}
-		ctx.Redirect(setting.AppSubURL + username + "/" + reponame + "/issues/" + strconv.FormatInt(idx, 10))
+		ctx.Redirect(setting.AppURL + username + "/" + reponame + "/issues/" + strconv.FormatInt(idx, 10))
 	default:
 		ctx.ServerError("Not implemented", err)
 		return
