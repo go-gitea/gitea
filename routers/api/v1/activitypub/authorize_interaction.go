@@ -16,6 +16,7 @@ import (
 	ap "github.com/go-ap/activitypub"
 )
 
+// Fetch and load a remote object
 func AuthorizeInteraction(ctx *context.Context) {
 	uri, err := url.Parse(ctx.Req.URL.Query().Get("uri"))
 	if err != nil {
@@ -40,10 +41,6 @@ func AuthorizeInteraction(ctx *context.Context) {
 	switch object.GetType() {
 	case ap.PersonType:
 		// Federated user
-		if err != nil {
-			ctx.ServerError("UnmarshalJSON", err)
-			return
-		}
 		err = createPerson(ctx, object.(*ap.Person))
 		if err != nil {
 			ctx.ServerError("FederatedUserNew", err)
@@ -71,35 +68,9 @@ func AuthorizeInteraction(ctx *context.Context) {
 		}
 		ctx.Redirect(username + "/" + reponame)
 	case forgefed.TicketType:
-		// Federated ticket
+		// Federated issue or pull request
 		err = forgefed.OnTicket(object, func(t *forgefed.Ticket) error {
-			// TODO: make sure federated user exists
-			// Also, refactor this code to reduce the chance of accidentally creating import cycles
-			repoURL, err := url.Parse(t.Context.GetLink().String())
-			if err != nil {
-				return err
-			}
-			// Fetch repository object
-			resp, err := activitypub.Fetch(repoURL)
-			if err != nil {
-				return err
-			}
-			// Parse repository object
-			ap.ItemTyperFunc = forgefed.GetItemByType
-			ap.JSONItemUnmarshal = forgefed.JSONUnmarshalerFn
-			ap.NotEmptyChecker = forgefed.NotEmpty
-			object, err := ap.UnmarshalJSON(resp)
-			if err != nil {
-				return err
-			}
-			// Create federated repo
-			err = forgefed.OnRepository(object, func(r *forgefed.Repository) error {
-				return createRepository(ctx, r)
-			})
-			if err != nil {
-				return err
-			}
-			return createIssue(ctx, t)
+			return createTicket(ctx, t)
 		})
 		if err != nil {
 			ctx.ServerError("ReceiveIssue", err)

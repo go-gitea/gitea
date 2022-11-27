@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/auth"
-	issue_model "code.gitea.io/gitea/models/issues"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/forgefed"
@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/activitypub"
 	issue_service "code.gitea.io/gitea/services/issue"
+	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 	user_service "code.gitea.io/gitea/services/user"
 
@@ -120,6 +121,7 @@ func createRepository(ctx context.Context, repository *forgefed.Repository) erro
 		return err
 	}
 
+	// Check if repo exists
 	_, err = repo_model.GetRepositoryByOwnerAndNameCtx(ctx, user.Name, repository.Name.String())
 	if err == nil {
 		return nil
@@ -143,8 +145,41 @@ func createRepository(ctx context.Context, repository *forgefed.Repository) erro
 	return nil
 }
 
+// Create a ticket
+func createTicket(ctx context.Context, ticket *forgefed.Ticket) error {
+	if ticket.Origin != nil {
+		return createPullRequest(ctx, ticket)
+	}
+	return createIssue(ctx, ticket)
+}
+
 // Create an issue
 func createIssue(ctx context.Context, ticket *forgefed.Ticket) error {
+	repoURL, err := url.Parse(ticket.Context.GetLink().String())
+	if err != nil {
+		return err
+	}
+	// Fetch repository object
+	resp, err := activitypub.Fetch(repoURL)
+	if err != nil {
+		return err
+	}
+	// Parse repository object
+	ap.ItemTyperFunc = forgefed.GetItemByType
+	ap.JSONItemUnmarshal = forgefed.JSONUnmarshalerFn
+	ap.NotEmptyChecker = forgefed.NotEmpty
+	object, err := ap.UnmarshalJSON(resp)
+	if err != nil {
+		return err
+	}
+	// Create federated repo
+	err = forgefed.OnRepository(object, func(r *forgefed.Repository) error {
+		return createRepository(ctx, r)
+	})
+	if err != nil {
+		return err
+	}
+
 	// Construct issue
 	user, err := activitypub.PersonIRIToUser(ctx, ap.IRI(ticket.AttributedTo.GetLink().String()))
 	if err != nil {
@@ -158,7 +193,7 @@ func createIssue(ctx context.Context, ticket *forgefed.Ticket) error {
 	if err != nil {
 		return err
 	}
-	issue := &issue_model.Issue{
+	issue := &issues_model.Issue{
 		ID:       idx,
 		RepoID:   repo.ID,
 		Repo:     repo,
@@ -168,6 +203,56 @@ func createIssue(ctx context.Context, ticket *forgefed.Ticket) error {
 		Content:  ticket.Content.String(),
 	}
 	return issue_service.NewIssue(repo, issue, nil, nil, nil)
+}
+
+// Create a pull request
+func createPullRequest(ctx context.Context, ticket *forgefed.Ticket) error {
+	// TODO: Clean this up
+
+	actorUser, err := activitypub.PersonIRIToUser(ctx, ticket.AttributedTo.GetLink())
+	if err != nil {
+		return err
+	}
+
+	// TODO: The IRI processing stuff should be moved to iri.go
+	originIRI := ticket.Origin.GetLink()
+	originIRISplit := strings.Split(originIRI.String(), "/")
+	originInstance := originIRISplit[2]
+	originUsername := originIRISplit[3]
+	originReponame := originIRISplit[4]
+	originBranch := originIRISplit[len(originIRISplit)-1]
+	originRepo, _ := repo_model.GetRepositoryByOwnerAndName(originUsername+"@"+originInstance, originReponame)
+
+	targetIRI := ticket.Target.GetLink()
+	targetIRISplit := strings.Split(targetIRI.String(), "/")
+	// targetInstance := targetIRISplit[2]
+	targetUsername := targetIRISplit[3]
+	targetReponame := targetIRISplit[4]
+	targetBranch := targetIRISplit[len(targetIRISplit)-1]
+
+	targetRepo, _ := repo_model.GetRepositoryByOwnerAndName(targetUsername, targetReponame)
+
+	prIssue := &issues_model.Issue{
+		RepoID:   targetRepo.ID,
+		Title:    "Hello from test.exozy.me!", // Don't hardcode, get the title from the Ticket object
+		PosterID: actorUser.ID,
+		Poster:   actorUser,
+		IsPull:   true,
+		Content:  "🎉", // TODO: Get content from Ticket object
+	}
+
+	pr := &issues_model.PullRequest{
+		HeadRepoID: originRepo.ID,
+		BaseRepoID: targetRepo.ID,
+		HeadBranch: originBranch,
+		BaseBranch: targetBranch,
+		HeadRepo:   originRepo,
+		BaseRepo:   targetRepo,
+		MergeBase:  "",
+		Type:       issues_model.PullRequestGitea,
+	}
+
+	return pull_service.NewPullRequest(ctx, targetRepo, prIssue, []int64{}, []string{}, pr, []int64{})
 }
 
 // Create a comment
@@ -185,11 +270,11 @@ func createComment(ctx context.Context, note *ap.Note) error {
 	if err != nil {
 		return err
 	}
-	issue, err := issue_model.GetIssueByIndex(repo.ID, idx)
+	issue, err := issues_model.GetIssueByIndex(repo.ID, idx)
 	if err != nil {
 		return err
 	}
-	_, err = issue_model.CreateCommentCtx(ctx, &issue_model.CreateCommentOptions{
+	_, err = issues_model.CreateCommentCtx(ctx, &issues_model.CreateCommentOptions{
 		Doer:    actorUser,
 		Repo:    repo,
 		Issue:   issue,

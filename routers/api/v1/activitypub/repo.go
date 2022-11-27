@@ -127,16 +127,13 @@ func RepoInbox(ctx *context.APIContext) {
 			switch o.Type {
 			case forgefed.RepositoryType:
 				// Fork created by remote instance
-				return fork(ctx, activity)
+				return forgefed.OnRepository(o, func(r *forgefed.Repository) error {
+					return createRepository(ctx, r)
+				})
 			case forgefed.TicketType:
 				// New issue or pull request
 				return forgefed.OnTicket(o, func(t *forgefed.Ticket) error {
-					if t.Origin != nil {
-						// New pull request
-						return createPullRequest(ctx, t)
-					}
-					// New issue
-					return createIssue(ctx, t)
+					return createTicket(ctx, t)
 				})
 			case ap.NoteType:
 				// New comment
