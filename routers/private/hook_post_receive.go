@@ -115,9 +115,9 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		}
 
 		// handle manually merge pulls confirm
-		mergePullIndexs := opts.GitPushOptions.Int64Array(private.GitPushOptionMergePulls)
-		if len(mergePullIndexs) > 0 {
-			if err := issues_model.ManuallyMergePullConfirmByIndexs(ctx, repo.ID, mergePullIndexs); err != nil {
+		mergePullIndexes := opts.GitPushOptions.Int64Array(private.GitPushOptionMergePulls)
+		if len(mergePullIndexes) > 0 {
+			if err := issues_model.ManuallyMergePullConfirmByIndexes(ctx, repo.ID, mergePullIndexes); err != nil {
 				log.Error("Failed to manually merge pull confirm: %s/%s Error: %v", ownerName, repoName, err)
 				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
 					Err: fmt.Sprintf("Failed to manually merge pull confirm: %s/%s Error: %v", ownerName, repoName, err),
