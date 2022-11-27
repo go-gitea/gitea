@@ -18,32 +18,33 @@ import (
 // Mailer represents mail service.
 type Mailer struct {
 	// Mailer
-	Name                 string
-	From                 string
-	EnvelopeFrom         string
-	OverrideEnvelopeFrom bool `ini:"-"`
-	FromName             string
-	FromEmail            string
-	SendAsPlainText      bool
-	SubjectPrefix        string
+	Name                 string `ini:"NAME"`
+	From                 string `ini:"FROM"`
+	EnvelopeFrom         string `ini:"ENVELOPE_FROM"`
+	OverrideEnvelopeFrom bool   `ini:"-"`
+	FromName             string `ini:"-"`
+	FromEmail            string `ini:"-"`
+	SendAsPlainText      bool   `ini:"SEND_AS_PLAIN_TEXT"`
+	SubjectPrefix        string `ini:"SUBJECT_PREFIX"`
 
 	// SMTP sender
-	Protocol             string
-	SMTPAddr             string
-	SMTPPort             string
-	User, Passwd         string
-	EnableHelo           bool
-	HeloHostname         string
-	ForceTrustServerCert bool
-	UseClientCert        bool
-	ClientCertFile       string
-	ClientKeyFile        string
+	Protocol             string `ini:"PROTOCOL"`
+	SMTPAddr             string `ini:"SMTP_ADDR"`
+	SMTPPort             string `ini:"SMTP_PORT"`
+	User                 string `ini:"USER"`
+	Passwd               string `ini:"PASSWD"`
+	EnableHelo           bool   `ini:"ENABLE_HELO"`
+	HeloHostname         string `ini:"HELO_HOSTNAME"`
+	ForceTrustServerCert bool   `ini:"FORCE_TRUST_SERVER_CERT"`
+	UseClientCert        bool   `ini:"USE_CLIENT_CERT"`
+	ClientCertFile       string `ini:"CLIENT_CERT_FILE"`
+	ClientKeyFile        string `ini:"CLIENT_KEY_FILE"`
 
 	// Sendmail sender
-	SendmailPath        string
-	SendmailArgs        []string
-	SendmailTimeout     time.Duration
-	SendmailConvertCRLF bool
+	SendmailPath        string        `ini:"SENDMAIL_PATH"`
+	SendmailArgs        []string      `ini:"-"`
+	SendmailTimeout     time.Duration `ini:"SENDMAIL_TIMEOUT"`
+	SendmailConvertCRLF bool          `ini:"SENDMAIL_CONVERT_CRLF"`
 }
 
 // MailService the global mailer
@@ -56,35 +57,12 @@ func newMailService() {
 		return
 	}
 
-	MailService = &Mailer{
-		Name:            sec.Key("NAME").MustString(AppName),
-		SendAsPlainText: sec.Key("SEND_AS_PLAIN_TEXT").MustBool(false),
-
-		Protocol:             sec.Key("PROTOCOL").In("", []string{"smtp", "smtps", "smtp+startls", "smtp+unix", "sendmail", "dummy"}),
-		SMTPAddr:             sec.Key("SMTP_ADDR").String(),
-		SMTPPort:             sec.Key("SMTP_PORT").String(),
-		User:                 sec.Key("USER").String(),
-		Passwd:               sec.Key("PASSWD").String(),
-		EnableHelo:           sec.Key("ENABLE_HELO").MustBool(true),
-		HeloHostname:         sec.Key("HELO_HOSTNAME").String(),
-		ForceTrustServerCert: sec.Key("FORCE_TRUST_SERVER_CERT").MustBool(false),
-		UseClientCert:        sec.Key("USE_CLIENT_CERT").MustBool(false),
-		ClientCertFile:       sec.Key("CLIENT_CERT_FILE").String(),
-		ClientKeyFile:        sec.Key("CLIENT_KEY_FILE").String(),
-		SubjectPrefix:        sec.Key("SUBJECT_PREFIX").MustString(""),
-
-		SendmailPath:        sec.Key("SENDMAIL_PATH").MustString("sendmail"),
-		SendmailTimeout:     sec.Key("SENDMAIL_TIMEOUT").MustDuration(5 * time.Minute),
-		SendmailConvertCRLF: sec.Key("SENDMAIL_CONVERT_CRLF").MustBool(true),
-	}
-	MailService.From = sec.Key("FROM").MustString(MailService.User)
-	MailService.EnvelopeFrom = sec.Key("ENVELOPE_FROM").MustString("")
-
+	// Handle Deprecations and map on to new configuration
 	// FIXME: DEPRECATED to be removed in v1.19.0
 	deprecatedSetting("mailer", "MAILER_TYPE", "mailer", "PROTOCOL")
 	if sec.HasKey("MAILER_TYPE") && !sec.HasKey("PROTOCOL") {
 		if sec.Key("MAILER_TYPE").String() == "sendmail" {
-			MailService.Protocol = "sendmail"
+			sec.Key("PROTOCOL").MustString("sendmail")
 		}
 	}
 
@@ -96,31 +74,91 @@ func newMailService() {
 		if err != nil {
 			log.Fatal("Invalid mailer.HOST (%s): %v", givenHost, err)
 		}
-		MailService.SMTPAddr = addr
-		MailService.SMTPPort = port
+		sec.Key("SMTP_ADDR").MustString(addr)
+		sec.Key("SMTP_PORT").MustString(port)
 	}
 
 	// FIXME: DEPRECATED to be removed in v1.19.0
 	deprecatedSetting("mailer", "IS_TLS_ENABLED", "mailer", "PROTOCOL")
 	if sec.HasKey("IS_TLS_ENABLED") && !sec.HasKey("PROTOCOL") {
 		if sec.Key("IS_TLS_ENABLED").MustBool() {
-			MailService.Protocol = "smtps"
+			sec.Key("PROTOCOL").MustString("smtps")
 		} else {
-			MailService.Protocol = "smtp+startls"
+			sec.Key("PROTOCOL").MustString("smtp+starttls")
 		}
 	}
 
+	// FIXME: DEPRECATED to be removed in v1.19.0
+	deprecatedSetting("mailer", "DISABLE_HELO", "mailer", "ENABLE_HELO")
+	if sec.HasKey("DISABLE_HELO") && !sec.HasKey("ENABLE_HELO") {
+		sec.Key("ENABLE_HELO").MustBool(!sec.Key("DISABLE_HELO").MustBool())
+	}
+
+	// FIXME: DEPRECATED to be removed in v1.19.0
+	deprecatedSetting("mailer", "SKIP_VERIFY", "mailer", "FORCE_TRUST_SERVER_CERT")
+	if sec.HasKey("SKIP_VERIFY") && !sec.HasKey("FORCE_TRUST_SERVER_CERT") {
+		sec.Key("FORCE_TRUST_SERVER_CERT").MustBool(sec.Key("SKIP_VERIFY").MustBool())
+	}
+
+	// FIXME: DEPRECATED to be removed in v1.19.0
+	deprecatedSetting("mailer", "USE_CERTIFICATE", "mailer", "USE_CLIENT_CERT")
+	if sec.HasKey("USE_CERTIFICATE") && !sec.HasKey("USE_CLIENT_CERT") {
+		sec.Key("USE_CLIENT_CERT").MustBool(sec.Key("USE_CERTIFICATE").MustBool())
+	}
+
+	// FIXME: DEPRECATED to be removed in v1.19.0
+	deprecatedSetting("mailer", "CERT_FILE", "mailer", "CLIENT_CERT_FILE")
+	if sec.HasKey("CERT_FILE") && !sec.HasKey("CLIENT_CERT_FILE") {
+		sec.Key("CERT_FILE").MustString(sec.Key("CERT_FILE").String())
+	}
+
+	// FIXME: DEPRECATED to be removed in v1.19.0
+	deprecatedSetting("mailer", "KEY_FILE", "mailer", "CLIENT_KEY_FILE")
+	if sec.HasKey("KEY_FILE") && !sec.HasKey("CLIENT_KEY_FILE") {
+		sec.Key("KEY_FILE").MustString(sec.Key("KEY_FILE").String())
+	}
+
+	// FIXME: DEPRECATED to be removed in v1.19.0
+	deprecatedSetting("mailer", "ENABLE_HTML_ALTERNATIVE", "mailer", "SEND_AS_PLAIN_TEXT")
+	if sec.HasKey("ENABLE_HTML_ALTERNATIVE") && !sec.HasKey("SEND_AS_PLAIN_TEXT") {
+		sec.Key("SEND_AS_PLAIN_TEXT").MustBool(!sec.Key("ENABLE_HTML_ALTERNATIVE").MustBool(false))
+	}
+
+	if sec.HasKey("PROTOCOL") && sec.Key("PROTOCOL").String() == "smtp+startls" {
+		log.Error("Deprecated fallback `[mailer]` `PROTOCOL = smtp+startls` present. Use `[mailer]` `PROTOCOL = smtp+starttls`` instead. This fallback will be removed in v1.19.0")
+		sec.Key("PROTOCOL").SetValue("smtp+starttls")
+	}
+
+	// Set default values & validate
+	sec.Key("NAME").MustString(AppName)
+	sec.Key("PROTOCOL").In("", []string{"smtp", "smtps", "smtp+starttls", "smtp+unix", "sendmail", "dummy"})
+	sec.Key("ENABLE_HELO").MustBool(true)
+	sec.Key("FORCE_TRUST_SERVER_CERT").MustBool(false)
+	sec.Key("USE_CLIENT_CERT").MustBool(false)
+	sec.Key("SENDMAIL_PATH").MustString("sendmail")
+	sec.Key("SENDMAIL_TIMEOUT").MustDuration(5 * time.Minute)
+	sec.Key("SENDMAIL_CONVERT_CRLF").MustBool(true)
+	sec.Key("FROM").MustString(sec.Key("USER").String())
+
+	// Now map the values on to the MailService
+	MailService = &Mailer{}
+	if err := sec.MapTo(MailService); err != nil {
+		log.Fatal("Unable to map [mailer] section on to MailService. Error: %v", err)
+	}
+
+	// Infer SMTPPort if not set
 	if MailService.SMTPPort == "" {
 		switch MailService.Protocol {
 		case "smtp":
 			MailService.SMTPPort = "25"
 		case "smtps":
 			MailService.SMTPPort = "465"
-		case "smtp+startls":
+		case "smtp+starttls":
 			MailService.SMTPPort = "587"
 		}
 	}
 
+	// Infer Protocol
 	if MailService.Protocol == "" {
 		if strings.ContainsAny(MailService.SMTPAddr, "/\\") {
 			MailService.Protocol = "smtp+unix"
@@ -131,7 +169,7 @@ func newMailService() {
 			case "465":
 				MailService.Protocol = "smtps"
 			case "587":
-				MailService.Protocol = "smtp+startls"
+				MailService.Protocol = "smtp+starttls"
 			default:
 				log.Error("unable to infer unspecified mailer.PROTOCOL from mailer.SMTP_PORT = %q, assume using smtps", MailService.SMTPPort)
 				MailService.Protocol = "smtps"
@@ -149,42 +187,6 @@ func newMailService() {
 				break
 			}
 		}
-	}
-
-	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "DISABLE_HELO", "mailer", "ENABLE_HELO")
-	if sec.HasKey("DISABLE_HELO") && !sec.HasKey("ENABLE_HELO") {
-		MailService.EnableHelo = !sec.Key("DISABLE_HELO").MustBool()
-	}
-
-	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "SKIP_VERIFY", "mailer", "FORCE_TRUST_SERVER_CERT")
-	if sec.HasKey("SKIP_VERIFY") && !sec.HasKey("FORCE_TRUST_SERVER_CERT") {
-		MailService.ForceTrustServerCert = sec.Key("SKIP_VERIFY").MustBool()
-	}
-
-	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "USE_CERTIFICATE", "mailer", "USE_CLIENT_CERT")
-	if sec.HasKey("USE_CERTIFICATE") && !sec.HasKey("USE_CLIENT_CERT") {
-		MailService.UseClientCert = sec.Key("USE_CLIENT_CERT").MustBool()
-	}
-
-	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "CERT_FILE", "mailer", "CLIENT_CERT_FILE")
-	if sec.HasKey("CERT_FILE") && !sec.HasKey("CLIENT_CERT_FILE") {
-		MailService.ClientCertFile = sec.Key("CERT_FILE").String()
-	}
-
-	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "KEY_FILE", "mailer", "CLIENT_KEY_FILE")
-	if sec.HasKey("KEY_FILE") && !sec.HasKey("CLIENT_KEY_FILE") {
-		MailService.ClientKeyFile = sec.Key("KEY_FILE").String()
-	}
-
-	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "ENABLE_HTML_ALTERNATIVE", "mailer", "SEND_AS_PLAIN_TEXT")
-	if sec.HasKey("ENABLE_HTML_ALTERNATIVE") && !sec.HasKey("SEND_AS_PLAIN_TEXT") {
-		MailService.SendAsPlainText = !sec.Key("ENABLE_HTML_ALTERNATIVE").MustBool(false)
 	}
 
 	if MailService.From != "" {
