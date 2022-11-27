@@ -237,14 +237,16 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 		return false
 	}
 
-	if unit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests); err == nil {
-		config := unit.PullRequestsConfig()
-		if !config.AutodetectManualMerge {
+	if !pr.ManuallyMergePullConfirmed {
+		if unit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests); err == nil {
+			config := unit.PullRequestsConfig()
+			if !config.AutodetectManualMerge {
+				return false
+			}
+		} else {
+			log.Error("PullRequest[%d].BaseRepo.GetUnit(unit.TypePullRequests): %v", pr.ID, err)
 			return false
 		}
-	} else {
-		log.Error("PullRequest[%d].BaseRepo.GetUnit(unit.TypePullRequests): %v", pr.ID, err)
-		return false
 	}
 
 	commit, err := getMergeCommit(ctx, pr)
@@ -283,6 +285,14 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 		log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commit.ID.String())
 		return true
 	}
+
+	if pr.ManuallyMergePullConfirmed {
+		pr.ManuallyMergePullConfirmed = false
+		if err := pr.UpdateCols("manually_merge_pull_confirmed"); err != nil {
+			log.Error("PullRequest[%d]: reset manually_merge_pull_confirmed failed: %v", pr.ID, err)
+		}
+	}
+
 	return false
 }
 

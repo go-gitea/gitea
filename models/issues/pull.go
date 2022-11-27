@@ -178,6 +178,8 @@ type PullRequest struct {
 	isHeadRepoLoaded bool `xorm:"-"`
 
 	Flow PullRequestFlow `xorm:"NOT NULL DEFAULT 0"`
+
+	ManuallyMergePullConfirmed bool `xorm:"NOT NULL DEFAULT false"`
 }
 
 func init() {
@@ -831,4 +833,17 @@ func MergeBlockedByOfficialReviewRequests(ctx context.Context, protectBranch *gi
 // MergeBlockedByOutdatedBranch returns true if merge is blocked by an outdated head branch
 func MergeBlockedByOutdatedBranch(protectBranch *git_model.ProtectedBranch, pr *PullRequest) bool {
 	return protectBranch.BlockOnOutdatedBranch && pr.CommitsBehind > 0
+}
+
+// ManuallyMergePullConfirm confirm manually merge pulls by repo id and indexs
+func ManuallyMergePullConfirmByIndexs(ctx context.Context, repoID int64, indexs []int64) error {
+	_, err := db.GetEngine(ctx).Where(builder.And(
+		builder.Eq{"base_repo_id": repoID},
+		builder.Eq{"has_merged": false},
+		builder.In("`index`", indexs),
+	)).Cols("manually_merge_pull_confirmed").Update(&PullRequest{
+		ManuallyMergePullConfirmed: true,
+	})
+
+	return err
 }

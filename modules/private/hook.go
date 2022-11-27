@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/json"
@@ -32,6 +33,7 @@ type GitPushOptions map[string]string
 const (
 	GitPushOptionRepoPrivate  = "repo.private"
 	GitPushOptionRepoTemplate = "repo.template"
+	GitPushOptionMergePulls   = "merge-pulls"
 )
 
 // Bool checks for a key in the map and parses as a boolean
@@ -42,6 +44,26 @@ func (g GitPushOptions) Bool(key string, def bool) bool {
 		}
 	}
 	return def
+}
+
+// Int64Array checks for a key in the map and parses as a int64 array
+func (g GitPushOptions) Int64Array(key string) []int64 {
+	if val, ok := g[key]; ok {
+		parts := strings.SplitN(val, ",", 10)
+		result := make([]int64, 0, len(parts))
+		for _, part := range parts {
+			v, err := strconv.ParseInt(part, 10, 64)
+			if err != nil {
+				break
+			}
+
+			result = append(result, v)
+		}
+
+		return result
+	}
+
+	return []int64{}
 }
 
 // HookOptions represents the options for the Hook calls

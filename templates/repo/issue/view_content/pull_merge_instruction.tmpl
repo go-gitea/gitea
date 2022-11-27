@@ -14,6 +14,6 @@
 	<div class="ui secondary segment">
 		<div>git checkout {{$.Issue.PullRequest.BaseBranch}}</div>
 		<div>git merge --no-ff {{if ne $.Issue.PullRequest.HeadRepo.ID $.Issue.PullRequest.BaseRepo.ID}}{{$.Issue.PullRequest.HeadRepo.OwnerName}}-{{end}}{{$.Issue.PullRequest.HeadBranch}}</div>
-		<div>git push origin {{$.Issue.PullRequest.BaseBranch}}</div>
+		<div>git push origin {{$.Issue.PullRequest.BaseBranch}} -o merge-pulls={{$.Issue.PullRequest.Index}}</div>
 	</div>
 </div>
