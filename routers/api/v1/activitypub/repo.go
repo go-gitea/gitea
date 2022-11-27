@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/modules/activitypub"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/forgefed"
 	"code.gitea.io/gitea/modules/log"
@@ -128,25 +127,25 @@ func RepoInbox(ctx *context.APIContext) {
 			switch o.Type {
 			case forgefed.RepositoryType:
 				// Fork created by remote instance
-				return activitypub.ReceiveFork(ctx, activity)
+				return fork(ctx, activity)
 			case forgefed.TicketType:
 				// New issue or pull request
 				return forgefed.OnTicket(o, func(t *forgefed.Ticket) error {
 					if t.Origin != nil {
 						// New pull request
-						return activitypub.PullRequest(ctx, t)
+						return createPullRequest(ctx, t)
 					}
 					// New issue
-					return activitypub.ReceiveIssue(ctx, t)
+					return createIssue(ctx, t)
 				})
 			case ap.NoteType:
 				// New comment
-				return activitypub.Comment(ctx, o)
+				return createComment(ctx, o)
 			}
 			return nil
 		})
 	case ap.LikeType:
-		err = activitypub.ReceiveStar(ctx, activity)
+		err = star(ctx, activity)
 	default:
 		log.Info("Incoming unsupported ActivityStreams type: %s", activity.Type)
 		ctx.PlainText(http.StatusNotImplemented, "ActivityStreams type not supported")

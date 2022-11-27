@@ -7,10 +7,10 @@ package activitypub
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/modules/activitypub"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/forgefed"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/services/activitypub"
 
 	ap "github.com/go-ap/activitypub"
 	"github.com/go-ap/jsonld"

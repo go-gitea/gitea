@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -26,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/activitypub"
 	"code.gitea.io/gitea/services/packages"
 )
 
@@ -279,4 +281,46 @@ func DeleteAvatar(u *user_model.User) error {
 		return fmt.Errorf("UpdateUser: %w", err)
 	}
 	return nil
+}
+
+// FollowUser marks someone be another's follower.
+func FollowUser(userID, followID int64) (err error) {
+	if userID == followID || user_model.IsFollowing(userID, followID) {
+		return nil
+	}
+
+	followUser, err := user_model.GetUserByID(followID)
+	if err != nil {
+		return
+	}
+	if followUser.LoginType == auth.Federated {
+		// Following remote user
+		err = activitypub.Follow(userID, followID)
+		if err != nil {
+			return
+		}
+	}
+
+	return user_model.FollowUser(userID, followID)
+}
+
+// UnfollowUser unmarks someone as another's follower.
+func UnfollowUser(userID, followID int64) (err error) {
+	if userID == followID || !user_model.IsFollowing(userID, followID) {
+		return nil
+	}
+
+	followUser, err := user_model.GetUserByID(followID)
+	if err != nil {
+		return
+	}
+	if followUser.LoginType == auth.Federated {
+		// Unfollowing remote user
+		err = activitypub.Unfollow(userID, followID)
+		if err != nil {
+			return
+		}
+	}
+
+	return user_model.UnfollowUser(userID, followID)
 }

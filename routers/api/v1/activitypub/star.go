@@ -9,17 +9,18 @@ import (
 	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/services/activitypub"
 
 	ap "github.com/go-ap/activitypub"
 )
 
 // Process a Like activity to star a repository
-func ReceiveStar(ctx context.Context, like ap.Like) (err error) {
-	user, err := PersonIRIToUser(ctx, like.Actor.GetLink())
+func star(ctx context.Context, like ap.Like) (err error) {
+	user, err := activitypub.PersonIRIToUser(ctx, like.Actor.GetLink())
 	if err != nil {
 		return
 	}
-	repo, err := RepositoryIRIToRepository(ctx, like.Object.GetLink())
+	repo, err := activitypub.RepositoryIRIToRepository(ctx, like.Object.GetLink())
 	if err != nil || strings.Contains(repo.Name, "@") || repo.IsPrivate {
 		return
 	}

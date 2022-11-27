@@ -12,13 +12,14 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/forgefed"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/services/activitypub"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
-func PullRequest(ctx context.Context, ticket *forgefed.Ticket) error {
+func createPullRequest(ctx context.Context, ticket *forgefed.Ticket) error {
 	// TODO: Clean this up
 
-	actorUser, err := PersonIRIToUser(ctx, ticket.AttributedTo.GetLink())
+	actorUser, err := activitypub.PersonIRIToUser(ctx, ticket.AttributedTo.GetLink())
 	if err != nil {
 		log.Warn("Couldn't find ticket actor user", err)
 	}

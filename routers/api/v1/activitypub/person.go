@@ -14,13 +14,13 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/activitypub"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/forgefed"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/activitypub"
 
 	ap "github.com/go-ap/activitypub"
 )
@@ -131,9 +131,9 @@ func PersonInbox(ctx *context.APIContext) {
 	// Process activity
 	switch activity.Type {
 	case ap.FollowType:
-		err = activitypub.Follow(ctx, activity)
+		err = follow(ctx, activity)
 	case ap.UndoType:
-		err = activitypub.Unfollow(ctx, activity)
+		err = unfollow(ctx, activity)
 	default:
 		log.Info("Incoming unsupported ActivityStreams type: %s", activity.GetType())
 		ctx.PlainText(http.StatusNotImplemented, "ActivityStreams type not supported")

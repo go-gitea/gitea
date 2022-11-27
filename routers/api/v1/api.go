@@ -644,6 +644,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 		}
 		m.Get("/version", misc.Version)
 		if setting.Federation.Enabled {
+			m.Get("/authorize_interaction", activitypub.AuthorizeInteraction)
 			m.Get("/nodeinfo", misc.NodeInfo)
 			m.Group("/activitypub", func() {
 				m.Group("/user/{username}", func() {

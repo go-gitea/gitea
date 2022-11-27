@@ -2,17 +2,16 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package web
+package activitypub
 
 import (
 	"net/http"
 	"net/url"
 	"strconv"
 
-	"code.gitea.io/gitea/modules/activitypub"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/forgefed"
-	user_service "code.gitea.io/gitea/services/user"
+	"code.gitea.io/gitea/services/activitypub"
 
 	ap "github.com/go-ap/activitypub"
 )
@@ -45,7 +44,7 @@ func AuthorizeInteraction(ctx *context.Context) {
 			ctx.ServerError("UnmarshalJSON", err)
 			return
 		}
-		err = user_service.FederatedUserNew(ctx, object.(*ap.Person))
+		err = createPerson(ctx, object.(*ap.Person))
 		if err != nil {
 			ctx.ServerError("FederatedUserNew", err)
 			return
@@ -59,29 +58,7 @@ func AuthorizeInteraction(ctx *context.Context) {
 	case forgefed.RepositoryType:
 		// Federated repository
 		err = forgefed.OnRepository(object, func(r *forgefed.Repository) error {
-			ownerURL, err := url.Parse(r.AttributedTo.GetLink().String())
-			if err != nil {
-				return err
-			}
-			// Fetch person object
-			resp, err := activitypub.Fetch(ownerURL)
-			if err != nil {
-				return err
-			}
-			// Parse person object
-			ap.ItemTyperFunc = forgefed.GetItemByType
-			ap.JSONItemUnmarshal = forgefed.JSONUnmarshalerFn
-			ap.NotEmptyChecker = forgefed.NotEmpty
-			object, err := ap.UnmarshalJSON(resp)
-			if err != nil {
-				return err
-			}
-			// Create federated user
-			err = user_service.FederatedUserNew(ctx, object.(*ap.Person))
-			if err != nil {
-				return err
-			}
-			return activitypub.FederatedRepoNew(ctx, r)
+			return createRepository(ctx, r)
 		})
 		if err != nil {
 			ctx.ServerError("FederatedRepoNew", err)
@@ -117,12 +94,12 @@ func AuthorizeInteraction(ctx *context.Context) {
 			}
 			// Create federated repo
 			err = forgefed.OnRepository(object, func(r *forgefed.Repository) error {
-				return activitypub.FederatedRepoNew(ctx, r)
+				return createRepository(ctx, r)
 			})
 			if err != nil {
 				return err
 			}
-			return activitypub.ReceiveIssue(ctx, t)
+			return createIssue(ctx, t)
 		})
 		if err != nil {
 			ctx.ServerError("ReceiveIssue", err)
