@@ -91,9 +91,8 @@ func createPerson(ctx context.Context, person *ap.Person) error {
 	return user_model.SetUserSetting(user.ID, user_model.UserActivityPubPubPem, person.PublicKey.PublicKeyPem)
 }
 
-// Create a new federated repo from a Repository object
-func createRepository(ctx context.Context, repository *forgefed.Repository) error {
-	ownerURL, err := url.Parse(repository.AttributedTo.GetLink().String())
+func createPersonFromIRI(ctx context.Context, personIRI ap.IRI) error {
+	ownerURL, err := url.Parse(personIRI.String())
 	if err != nil {
 		return err
 	}
@@ -102,6 +101,7 @@ func createRepository(ctx context.Context, repository *forgefed.Repository) erro
 	if err != nil {
 		return err
 	}
+
 	// Parse person object
 	ap.ItemTyperFunc = forgefed.GetItemByType
 	ap.JSONItemUnmarshal = forgefed.JSONUnmarshalerFn
@@ -110,12 +110,17 @@ func createRepository(ctx context.Context, repository *forgefed.Repository) erro
 	if err != nil {
 		return err
 	}
+
 	// Create federated user
-	err = createPerson(ctx, object.(*ap.Person))
+	return createPerson(ctx, object.(*ap.Person))
+}
+
+// Create a new federated repo from a Repository object
+func createRepository(ctx context.Context, repository *forgefed.Repository) error {
+	err := createPersonFromIRI(ctx, repository.AttributedTo.GetLink())
 	if err != nil {
 		return err
 	}
-
 	user, err := activitypub.PersonIRIToUser(ctx, repository.AttributedTo.GetLink())
 	if err != nil {
 		return err
@@ -145,17 +150,8 @@ func createRepository(ctx context.Context, repository *forgefed.Repository) erro
 	return nil
 }
 
-// Create a ticket
-func createTicket(ctx context.Context, ticket *forgefed.Ticket) error {
-	if ticket.Origin != nil {
-		return createPullRequest(ctx, ticket)
-	}
-	return createIssue(ctx, ticket)
-}
-
-// Create an issue
-func createIssue(ctx context.Context, ticket *forgefed.Ticket) error {
-	repoURL, err := url.Parse(ticket.Context.GetLink().String())
+func createRepositoryFromIRI(ctx context.Context, repoIRI ap.IRI) error {
+	repoURL, err := url.Parse(repoIRI.String())
 	if err != nil {
 		return err
 	}
@@ -164,6 +160,7 @@ func createIssue(ctx context.Context, ticket *forgefed.Ticket) error {
 	if err != nil {
 		return err
 	}
+
 	// Parse repository object
 	ap.ItemTyperFunc = forgefed.GetItemByType
 	ap.JSONItemUnmarshal = forgefed.JSONUnmarshalerFn
@@ -172,10 +169,24 @@ func createIssue(ctx context.Context, ticket *forgefed.Ticket) error {
 	if err != nil {
 		return err
 	}
+
 	// Create federated repo
-	err = forgefed.OnRepository(object, func(r *forgefed.Repository) error {
+	return forgefed.OnRepository(object, func(r *forgefed.Repository) error {
 		return createRepository(ctx, r)
 	})
+}
+
+// Create a ticket
+func createTicket(ctx context.Context, ticket *forgefed.Ticket) error {
+	if ticket.Origin != nil && ticket.Target != nil {
+		return createPullRequest(ctx, ticket)
+	}
+	return createIssue(ctx, ticket)
+}
+
+// Create an issue
+func createIssue(ctx context.Context, ticket *forgefed.Ticket) error {
+	err := createRepositoryFromIRI(ctx, ticket.Context.GetLink())
 	if err != nil {
 		return err
 	}
@@ -194,53 +205,62 @@ func createIssue(ctx context.Context, ticket *forgefed.Ticket) error {
 		return err
 	}
 	issue := &issues_model.Issue{
-		Index:    idx,
+		Index:    idx, // This doesn't seem to work?
 		RepoID:   repo.ID,
 		Repo:     repo,
 		Title:    ticket.Summary.String(),
 		PosterID: user.ID,
 		Poster:   user,
 		Content:  ticket.Content.String(),
+		IsClosed: ticket.IsResolved,
 	}
 	return issue_service.NewIssue(repo, issue, nil, nil, nil)
 }
 
 // Create a pull request
 func createPullRequest(ctx context.Context, ticket *forgefed.Ticket) error {
-	// TODO: Clean this up
-
-	actorUser, err := activitypub.PersonIRIToUser(ctx, ticket.AttributedTo.GetLink())
+	err := createRepositoryFromIRI(ctx, ticket.Context.GetLink())
 	if err != nil {
 		return err
 	}
 
-	// TODO: The IRI processing stuff should be moved to iri.go
-	originIRI := ticket.Origin.GetLink()
-	originIRISplit := strings.Split(originIRI.String(), "/")
-	originInstance := originIRISplit[2]
-	originUsername := originIRISplit[3]
-	originReponame := originIRISplit[4]
-	originBranch := originIRISplit[len(originIRISplit)-1]
-	originRepo, _ := repo_model.GetRepositoryByOwnerAndName(originUsername+"@"+originInstance, originReponame)
-
-	targetIRI := ticket.Target.GetLink()
-	targetIRISplit := strings.Split(targetIRI.String(), "/")
-	// targetInstance := targetIRISplit[2]
-	targetUsername := targetIRISplit[3]
-	targetReponame := targetIRISplit[4]
-	targetBranch := targetIRISplit[len(targetIRISplit)-1]
-
-	targetRepo, _ := repo_model.GetRepositoryByOwnerAndName(targetUsername, targetReponame)
-
-	prIssue := &issues_model.Issue{
-		RepoID:   targetRepo.ID,
-		Title:    "Hello from test.exozy.me!", // Don't hardcode, get the title from the Ticket object
-		PosterID: actorUser.ID,
-		Poster:   actorUser,
-		IsPull:   true,
-		Content:  "🎉", // TODO: Get content from Ticket object
+	user, err := activitypub.PersonIRIToUser(ctx, ticket.AttributedTo.GetLink())
+	if err != nil {
+		return err
 	}
 
+	// Extract origin and target repos
+	originUsername, originReponame, originBranch, err := activitypub.BranchIRIToName(ticket.Origin.GetLink())
+	if err != nil {
+		return err
+	}
+	originRepo, err := repo_model.GetRepositoryByOwnerAndName(originUsername, originReponame)
+	if err != nil {
+		return err
+	}
+	targetUsername, targetReponame, targetBranch, err := activitypub.BranchIRIToName(ticket.Target.GetLink())
+	if err != nil {
+		return err
+	}
+	targetRepo, err := repo_model.GetRepositoryByOwnerAndName(targetUsername, targetReponame)
+	if err != nil {
+		return err
+	}
+
+	idx, err := strconv.ParseInt(ticket.Name.String()[1:], 10, 64)
+	if err != nil {
+		return err
+	}
+	prIssue := &issues_model.Issue{
+		Index:    idx,
+		RepoID:   targetRepo.ID,
+		Title:    ticket.Summary.String(),
+		PosterID: user.ID,
+		Poster:   user,
+		IsPull:   true,
+		Content:  ticket.Content.String(),
+		IsClosed: ticket.IsResolved,
+	}
 	pr := &issues_model.PullRequest{
 		HeadRepoID: originRepo.ID,
 		BaseRepoID: targetRepo.ID,
@@ -251,12 +271,16 @@ func createPullRequest(ctx context.Context, ticket *forgefed.Ticket) error {
 		MergeBase:  "",
 		Type:       issues_model.PullRequestGitea,
 	}
-
 	return pull_service.NewPullRequest(ctx, targetRepo, prIssue, []int64{}, []string{}, pr, []int64{})
 }
 
 // Create a comment
 func createComment(ctx context.Context, note *ap.Note) error {
+	err := createPersonFromIRI(ctx, note.AttributedTo.GetLink())
+	if err != nil {
+		return err
+	}
+
 	actorUser, err := activitypub.PersonIRIToUser(ctx, note.AttributedTo.GetLink())
 	if err != nil {
 		return err

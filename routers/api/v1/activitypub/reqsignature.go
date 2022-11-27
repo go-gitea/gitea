@@ -78,6 +78,8 @@ func verifyHTTPSignatures(ctx *gitea_context.APIContext) (authenticated bool, er
 		return
 	}
 	// 4. Create a federated user for the actor
+	// TODO: This is a very bad place for creating federated users
+	// We end up creating way more users than necessary!
 	var person ap.Person
 	err = person.UnmarshalJSON(b)
 	if err != nil {

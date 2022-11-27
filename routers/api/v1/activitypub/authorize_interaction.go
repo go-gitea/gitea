@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/forgefed"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/activitypub"
 
 	ap "github.com/go-ap/activitypub"
@@ -51,7 +52,7 @@ func AuthorizeInteraction(ctx *context.Context) {
 			ctx.ServerError("PersonIRIToName", err)
 			return
 		}
-		ctx.Redirect(name)
+		ctx.Redirect(setting.AppSubURL + name)
 	case forgefed.RepositoryType:
 		// Federated repository
 		err = forgefed.OnRepository(object, func(r *forgefed.Repository) error {
@@ -66,7 +67,7 @@ func AuthorizeInteraction(ctx *context.Context) {
 			ctx.ServerError("RepositoryIRIToName", err)
 			return
 		}
-		ctx.Redirect(username + "/" + reponame)
+		ctx.Redirect(setting.AppSubURL + username + "/" + reponame)
 	case forgefed.TicketType:
 		// Federated issue or pull request
 		err = forgefed.OnTicket(object, func(t *forgefed.Ticket) error {
@@ -81,7 +82,7 @@ func AuthorizeInteraction(ctx *context.Context) {
 			ctx.ServerError("TicketIRIToName", err)
 			return
 		}
-		ctx.Redirect(username + "/" + reponame + "/issues/" + strconv.FormatInt(idx, 10))
+		ctx.Redirect(setting.AppSubURL + username + "/" + reponame + "/issues/" + strconv.FormatInt(idx, 10))
 	default:
 		ctx.ServerError("Not implemented", err)
 		return
