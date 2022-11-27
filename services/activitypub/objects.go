@@ -26,8 +26,10 @@ func Note(comment *issues_model.Comment) (*ap.Note, error) {
 	}
 	note := ap.Note{
 		Type:         ap.NoteType,
+		ID:           ap.IRI(comment.GetIRI()),
 		AttributedTo: ap.IRI(comment.Poster.GetIRI()),
 		Context:      ap.IRI(comment.Issue.GetIRI()),
+		To:           ap.ItemCollection{ap.IRI("https://www.w3.org/ns/activitystreams#Public")},
 	}
 	note.Content = ap.NaturalLanguageValuesNew()
 	err = note.Content.Set("en", ap.Content(comment.Content))

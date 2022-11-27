@@ -36,7 +36,7 @@ func CreateIssueComment(doer *user_model.User, repo *repo_model.Repository, issu
 		if err != nil {
 			return nil, err
 		}
-		create := activitypub.Create(repo.OriginalURL + "/inbox", note)
+		create := activitypub.Create(repo.OriginalURL+"/inbox", note)
 		err = activitypub.Send(doer, create)
 		if err != nil {
 			return nil, err

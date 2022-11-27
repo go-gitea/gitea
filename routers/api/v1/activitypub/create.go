@@ -308,10 +308,11 @@ func createComment(ctx context.Context, note *ap.Note) error {
 		return err
 	}
 	_, err = issues_model.CreateCommentCtx(ctx, &issues_model.CreateCommentOptions{
-		Doer:    user,
-		Repo:    repo,
-		Issue:   issue,
-		Content: note.Content.String(),
+		Doer:     user,
+		Repo:     repo,
+		Issue:    issue,
+		OldTitle: note.GetLink().String(),
+		Content:  note.Content.String(),
 	})
 	return err
 }

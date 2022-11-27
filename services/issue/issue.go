@@ -35,7 +35,7 @@ func NewIssue(repo *repo_model.Repository, issue *issues_model.Issue, labelIDs [
 		if err != nil {
 			return err
 		}
-		create := activitypub.Create(repo.OriginalURL + "/inbox", ticket)
+		create := activitypub.Create(repo.OriginalURL+"/inbox", ticket)
 		err = activitypub.Send(issue.Poster, create)
 		if err != nil {
 			return err

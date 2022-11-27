@@ -134,6 +134,14 @@ func PersonInbox(ctx *context.APIContext) {
 		err = follow(ctx, activity)
 	case ap.UndoType:
 		err = unfollow(ctx, activity)
+	case ap.CreateType:
+		// TODO: this is kinda a hack
+		err = ap.OnObject(activity.Object, func(n *ap.Note) error {
+			noteIRI := n.InReplyTo.GetLink().String()
+			noteIRISplit := strings.Split(noteIRI, "/")
+			n.Context = ap.IRI(strings.TrimSuffix(noteIRI, "/"+noteIRISplit[len(noteIRISplit)-1]))
+			return createComment(ctx, n)
+		})
 	default:
 		log.Info("Incoming unsupported ActivityStreams type: %s", activity.GetType())
 		ctx.PlainText(http.StatusNotImplemented, "ActivityStreams type not supported")

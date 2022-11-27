@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/references"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -1548,4 +1549,19 @@ func FixCommentTypeLabelWithOutsideLabels() (int64, error) {
 	}
 
 	return res.RowsAffected()
+}
+
+func (c *Comment) GetIRI() string {
+	err := c.LoadIssue()
+	if err != nil {
+		return ""
+	}
+	err = c.Issue.LoadRepo(db.DefaultContext)
+	if err != nil {
+		return ""
+	}
+	if strings.Contains(c.Issue.Repo.OwnerName, "@") {
+		return c.OldTitle
+	}
+	return setting.AppURL + "api/v1/activitypub/note/" + c.Issue.Repo.OwnerName + "/" + c.Issue.Repo.Name + "/" + strconv.FormatInt(c.Issue.Index, 10) + "/" + strconv.FormatInt(c.ID, 10)
 }

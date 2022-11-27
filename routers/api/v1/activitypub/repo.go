@@ -140,7 +140,7 @@ func RepoInbox(ctx *context.APIContext) {
 				return createComment(ctx, n)
 			})
 		default:
-			log.Info("Incoming unsupported ActivityStreams object type: %s",  activity.Object.GetType())
+			log.Info("Incoming unsupported ActivityStreams object type: %s", activity.Object.GetType())
 			ctx.PlainText(http.StatusNotImplemented, "ActivityStreams object type not supported")
 			return
 		}
