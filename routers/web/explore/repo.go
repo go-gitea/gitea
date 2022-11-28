@@ -17,8 +17,8 @@ import (
 
 const (
 	// tplExploreRepos explore repositories page template
-	tplExploreRepos base.TplName = "explore/repos"
-	relevantReposOnlyParam = "no_filter"
+	tplExploreRepos        base.TplName = "explore/repos"
+	relevantReposOnlyParam string       = "no_filter"
 )
 
 // RepoSearchOptions when calling search repositories
