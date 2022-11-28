@@ -351,6 +351,8 @@
 									'textAutoMergeButtonWhenSucceed': {{$.locale.Tr "repo.pulls.auto_merge_button_when_succeed"}},
 									'textAutoMergeWhenSucceed': {{$.locale.Tr "repo.pulls.auto_merge_when_succeed"}},
 									'textAutoMergeCancelSchedule': {{$.locale.Tr "repo.pulls.auto_merge_cancel_schedule"}},
+									'textClearMergeMessage': {{$.locale.Tr "repo.pulls.clear_merge_message"}},
+									'textClearMergeMessageHint': {{$.locale.Tr "repo.pulls.clear_merge_message_hint"}},
 
 									'canMergeNow': {{$canMergeNow}},
 									'allOverridableChecksOk': {{not $notAllOverridableChecksOk}},
@@ -360,6 +362,7 @@
 									'defaultMergeStyle': {{.MergeStyle}},
 									'defaultDeleteBranchAfterMerge': {{$prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}},
 									'mergeMessageFieldPlaceHolder': {{$.locale.Tr "repo.editor.commit_message_desc"}},
+									'defaultMergeMessage': defaultMergeMessage,
 
 									'hasPendingPullRequestMerge': {{.HasPendingPullRequestMerge}},
 									'hasPendingPullRequestMergeTip': {{$hasPendingPullRequestMergeTip}},

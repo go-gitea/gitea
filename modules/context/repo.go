@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package context
 
@@ -1089,6 +1088,9 @@ func (ctx *Context) IssueTemplatesErrorsFromDefaultBranch() ([]*api.IssueTemplat
 			if it, err := template.UnmarshalFromEntry(entry, dirName); err != nil {
 				invalidFiles[fullName] = err
 			} else {
+				if !strings.HasPrefix(it.Ref, "refs/") { // Assume that the ref intended is always a branch - for tags users should use refs/tags/<ref>
+					it.Ref = git.BranchPrefix + it.Ref
+				}
 				issueTemplates = append(issueTemplates, it)
 			}
 		}

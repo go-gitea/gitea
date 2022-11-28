@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package auth
 
@@ -66,7 +65,7 @@ type AccessToken struct {
 	Token          string `xorm:"-"`
 	TokenHash      string `xorm:"UNIQUE"` // sha256 of token
 	TokenSalt      string
-	TokenLastEight string `xorm:"token_last_eight"`
+	TokenLastEight string `xorm:"INDEX token_last_eight"`
 
 	CreatedUnix       timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix       timeutil.TimeStamp `xorm:"INDEX updated"`
