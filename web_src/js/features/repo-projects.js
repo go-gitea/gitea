@@ -52,10 +52,7 @@ async function initRepoProjectLabelFilter() {
     const labels = card.querySelectorAll('[data-label-id]');
     let hasLabel = false;
     for (const label of labels) {
-      const label_id = $(label).data('label-id')
-      console.log(labelsArray)
-      console.log(label)
-      console.log(label_id)
+      const label_id = $(label).data('label-id');
 
       if (labelsArray.includes(label_id.toString())) {
         hasLabel = true;
