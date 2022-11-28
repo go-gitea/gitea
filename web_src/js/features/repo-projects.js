@@ -34,6 +34,40 @@ function moveIssue({item, from, to, oldIndex}) {
   });
 }
 
+async function initRepoProjectLabelFilter() {
+  // FIXME: Per design document, this should be moved to filter server side once sorting is partial ajax send
+  //        There is a risk of flash of unfiltered content with this approach
+
+  // check if labels query string is set
+  const urlParams = new URLSearchParams(window.location.search);
+  const labels = urlParams.get('labels');
+  if (!labels) return;
+
+  // split labels query string into array
+  const labelsArray = labels.split(',');
+
+  // loop through all cards and check if they have the label
+  const cards = document.querySelectorAll('.board-card[data-issue]');
+  for (const card of cards) {
+    const labels = card.querySelectorAll('[data-label-id]');
+    let hasLabel = false;
+    for (const label of labels) {
+      const label_id = $(label).data('label-id')
+      console.log(labelsArray)
+      console.log(label)
+      console.log(label_id)
+
+      if (labelsArray.includes(label_id.toString())) {
+        hasLabel = true;
+        break;
+      }
+    }
+    if (!hasLabel) {
+      card.style.display = 'none';
+    }
+  }
+}
+
 async function initRepoProjectSortable() {
   const els = document.querySelectorAll('#project-board > .board');
   if (!els.length) return;
@@ -85,7 +119,8 @@ export default function initRepoProject() {
     return;
   }
 
-  const _promise = initRepoProjectSortable();
+  const _promise1 = initRepoProjectSortable();
+  const _promise2 = initRepoProjectLabelFilter();
 
   $('.edit-project-board').each(function () {
     const projectHeader = $(this).closest('.board-column-header');

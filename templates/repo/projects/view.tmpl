@@ -238,7 +238,7 @@
 						{{if or .Labels .Assignees}}
 						<div class="extra content labels-list p-0 pt-2">
 							{{range .Labels}}
-								<a class="ui label" target="_blank" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}};" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
+								<a class="ui label" target="_blank" href="{{$.RepoLink}}/issues?labels={{.ID}}" data-label-id="{{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}};" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
 							{{end}}
 							<div class="right floated">
 								{{range .Assignees}}
