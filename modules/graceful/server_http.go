@@ -9,9 +9,6 @@ import (
 	"crypto/tls"
 	"net"
 	"net/http"
-
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 )
 
 func newHTTPServer(network, address, name string, handler http.Handler) (*Server, ServeFunction) {
@@ -20,7 +17,7 @@ func newHTTPServer(network, address, name string, handler http.Handler) (*Server
 		ReadTimeout:    DefaultReadTimeOut,
 		WriteTimeout:   DefaultWriteTimeOut,
 		MaxHeaderBytes: DefaultMaxHeaderBytes,
-		Handler:        h2c.NewHandler(handler, &http2.Server{}),
+		Handler:        handler,
 		BaseContext:    func(net.Listener) context.Context { return GetManager().HammerContext() },
 	}
 	server.OnShutdown = func() {
