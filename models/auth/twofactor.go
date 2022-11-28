@@ -9,6 +9,7 @@ import (
 	"crypto/subtle"
 	"encoding/base32"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -78,7 +79,7 @@ func (t *TwoFactor) GenerateScratchToken() (string, error) {
 // HashToken return the hashable salt
 func HashToken(token, salt string) string {
 	tempHash := pbkdf2.Key([]byte(token), []byte(salt), 10000, 50, sha256.New)
-	return fmt.Sprintf("%x", tempHash)
+	return hex.EncodeToString(tempHash)
 }
 
 // VerifyScratchToken verifies if the specified scratch token is valid.
