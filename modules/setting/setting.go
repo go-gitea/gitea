@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package setting
 
@@ -440,6 +439,7 @@ var (
 	ShowFooterBranding         bool
 	ShowFooterVersion          bool
 	ShowFooterTemplateLoadTime bool
+	EnableFeed                 bool
 
 	// Global setting objects
 	Cfg           *ini.File
@@ -604,7 +604,7 @@ func LoadForTest(extraConfigs ...string) {
 
 func deprecatedSetting(oldSection, oldKey, newSection, newKey string) {
 	if Cfg.Section(oldSection).HasKey(oldKey) {
-		log.Error("Deprecated fallback `[%s]` `%s` present. Use `[%s]` `%s` instead. This fallback will be removed in v1.18.0", oldSection, oldKey, newSection, newKey)
+		log.Error("Deprecated fallback `[%s]` `%s` present. Use `[%s]` `%s` instead. This fallback will be removed in v1.19.0", oldSection, oldKey, newSection, newKey)
 	}
 }
 
@@ -1102,6 +1102,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	ShowFooterVersion = Cfg.Section("other").Key("SHOW_FOOTER_VERSION").MustBool(true)
 	ShowFooterTemplateLoadTime = Cfg.Section("other").Key("SHOW_FOOTER_TEMPLATE_LOAD_TIME").MustBool(true)
 	EnableSitemap = Cfg.Section("other").Key("ENABLE_SITEMAP").MustBool(true)
+	EnableFeed = Cfg.Section("other").Key("ENABLE_FEED").MustBool(true)
 
 	UI.ShowUserEmail = Cfg.Section("ui").Key("SHOW_USER_EMAIL").MustBool(true)
 	UI.DefaultShowFullName = Cfg.Section("ui").Key("DEFAULT_SHOW_FULL_NAME").MustBool(false)

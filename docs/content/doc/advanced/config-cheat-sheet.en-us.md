@@ -289,8 +289,13 @@ The following configuration set `Content-Type: application/vnd.android.package-a
    This includes CSS files, images, JS files and web fonts.
    Avatar images are dynamic resources and still served by Gitea.
    The option can be just a different path, as in `/static`, or another domain, as in `https://cdn.example.com`.
-   Requests are then made as `%(ROOT_URL)s/static/css/index.css` and `https://cdn.example.com/css/index.css` respective.
+   Requests are then made as `%(ROOT_URL)s/static/assets/css/index.css` or `https://cdn.example.com/assets/css/index.css` respectively.
    The static files are located in the `public/` directory of the Gitea source repository.
+   You can proxy the STATIC_URL_PREFIX requests to Gitea server to serve the static
+   assets, or copy the manually built Gitea assets from `$GITEA_BUILD/public` to
+   the assets location, eg: `/var/www/assets`, make sure `$STATIC_URL_PREFIX/assets/css/index.css`
+   points to `/var/www/assets/css/index.css`.
+
 - `HTTP_ADDR`: **0.0.0.0**: HTTP listen address.
   - If `PROTOCOL` is set to `fcgi`, Gitea will listen for FastCGI requests on TCP socket
      defined by `HTTP_ADDR` and `HTTP_PORT` configuration settings.
@@ -629,6 +634,7 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
 - `ENABLE_REVERSE_PROXY_FULL_NAME`: **false**: Enable this to allow to auto-registration with a
    provided full name for the user.
 - `ENABLE_CAPTCHA`: **false**: Enable this to use captcha validation for registration.
+- `REQUIRE_CAPTCHA_FOR_LOGIN`: **false**: Enable this to require captcha validation for login. You also must enable `ENABLE_CAPTCHA`.
 - `REQUIRE_EXTERNAL_REGISTRATION_CAPTCHA`: **false**: Enable this to force captcha validation
    even for External Accounts (i.e. GitHub, OpenID Connect, etc). You also must enable `ENABLE_CAPTCHA`.
 - `CAPTCHA_TYPE`: **image**: \[image, recaptcha, hcaptcha, mcaptcha\]
@@ -707,7 +713,7 @@ and
 [Gitea 1.17 configuration document](https://github.com/go-gitea/gitea/blob/release/v1.17/docs/content/doc/advanced/config-cheat-sheet.en-us.md)
 
 - `ENABLED`: **false**: Enable to use a mail service.
-- `PROTOCOL`: **\<empty\>**: Mail server protocol. One of "smtp", "smtps", "smtp+startls", "smtp+unix", "sendmail", "dummy". _Before 1.18, this was inferred from a combination of `MAILER_TYPE` and `IS_TLS_ENABLED`._
+- `PROTOCOL`: **\<empty\>**: Mail server protocol. One of "smtp", "smtps", "smtp+starttls", "smtp+unix", "sendmail", "dummy". _Before 1.18, this was inferred from a combination of `MAILER_TYPE` and `IS_TLS_ENABLED`._
   - SMTP family, if your provider does not explicitly say which protocol it uses but does provide a port, you can set SMTP_PORT instead and this will be inferred.
   - **sendmail** Use the operating system's `sendmail` command instead of SMTP. This is common on Linux systems.
   - **dummy** Send email messages to the log as a testing phase.
@@ -1283,3 +1289,4 @@ PROXY_HOSTS = *.github.com
 - `SHOW_FOOTER_VERSION`: **true**: Show Gitea and Go version information in the footer.
 - `SHOW_FOOTER_TEMPLATE_LOAD_TIME`: **true**: Show time of template execution in the footer.
 - `ENABLE_SITEMAP`: **true**: Generate sitemap.
+- `ENABLE_FEED`: **true**: Enable/Disable RSS/Atom feed.

@@ -333,7 +333,7 @@ checks: checks-frontend checks-backend
 checks-frontend: lockfile-check svg-check
 
 .PHONY: checks-backend
-checks-backend: tidy-check swagger-check fmt-check misspell-check swagger-validate
+checks-backend: tidy-check swagger-check fmt-check misspell-check swagger-validate security-check
 
 .PHONY: lint
 lint: lint-frontend lint-backend
@@ -745,7 +745,7 @@ generate-go: $(TAGS_PREREQ)
 
 .PHONY: security-check
 security-check:
-	govulncheck -v ./...
+	go run $(GOVULNCHECK_PACKAGE) -v ./...
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@

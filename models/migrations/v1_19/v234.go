@@ -5,20 +5,25 @@
 package v1_19 //nolint
 
 import (
-	auth_models "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/xorm"
 )
 
-func AddScopeForAccessTokens(x *xorm.Engine) error {
-	type AccessToken struct {
-		Scope auth_models.AccessTokenScope
+func CreatePackageCleanupRuleTable(x *xorm.Engine) error {
+	type PackageCleanupRule struct {
+		ID            int64              `xorm:"pk autoincr"`
+		Enabled       bool               `xorm:"INDEX NOT NULL DEFAULT false"`
+		OwnerID       int64              `xorm:"UNIQUE(s) INDEX NOT NULL DEFAULT 0"`
+		Type          string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		KeepCount     int                `xorm:"NOT NULL DEFAULT 0"`
+		KeepPattern   string             `xorm:"NOT NULL DEFAULT ''"`
+		RemoveDays    int                `xorm:"NOT NULL DEFAULT 0"`
+		RemovePattern string             `xorm:"NOT NULL DEFAULT ''"`
+		MatchFullName bool               `xorm:"NOT NULL DEFAULT false"`
+		CreatedUnix   timeutil.TimeStamp `xorm:"created NOT NULL DEFAULT 0"`
+		UpdatedUnix   timeutil.TimeStamp `xorm:"updated NOT NULL DEFAULT 0"`
 	}
 
-	if err := x.Sync(new(AccessToken)); err != nil {
-		return err
-	}
-
-	_, err := x.Exec("UPDATE access_token SET scope = ?", auth_models.AccessTokenScopeAll)
-	return err
+	return x.Sync2(new(PackageCleanupRule))
 }

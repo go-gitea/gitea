@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -784,6 +783,10 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 					}
 				}
 			}
+
+		}
+		if !strings.HasPrefix(template.Ref, "refs/") { // Assume that the ref intended is always a branch - for tags users should use refs/tags/<ref>
+			template.Ref = git.BranchPrefix + template.Ref
 		}
 		ctx.Data["HasSelectedLabel"] = len(labelIDs) > 0
 		ctx.Data["label_ids"] = strings.Join(labelIDs, ",")

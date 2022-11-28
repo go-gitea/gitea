@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migrations
 
@@ -440,6 +439,10 @@ var migrations = []Migration{
 	// v233 -> v234
 	NewMigration("Add header_authorization_encrypted column to webhook table", v1_19.AddHeaderAuthorizationEncryptedColWebhook),
 	// v234 -> v235
+	NewMigration("Add package cleanup rule table", v1_19.CreatePackageCleanupRuleTable),
+	// v235 -> v236
+	NewMigration("Add index for access_token", v1_19.AddIndexForAccessToken),
+	// v236 -> v237
 	NewMigration("Add scope for access_token", v1_19.AddScopeForAccessTokens),
 }
 
