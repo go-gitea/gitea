@@ -471,7 +471,7 @@ func (a *botsNotifier) NotifySyncPushCommits(ctx context.Context, pusher *user_m
 		return
 	}
 
-	if err := notify(repo, pusher, apiHeadCommit.ID, webhook.HookEventPush, &api.PushPayload{
+	if err := notify(repo, pusher, opts.RefFullName, webhook.HookEventPush, &api.PushPayload{
 		Ref:          opts.RefFullName,
 		Before:       opts.OldCommitID,
 		After:        opts.NewCommitID,
