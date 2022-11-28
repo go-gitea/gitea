@@ -112,3 +112,6 @@ prime/
 
 # Manpage
 /man
+
+# tags file, simply due to its size (>18MB)
+tags
