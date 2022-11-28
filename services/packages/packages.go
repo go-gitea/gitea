@@ -5,6 +5,7 @@ package packages
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -229,10 +230,10 @@ func NewPackageBlob(hsr packages_module.HashedSizeReader) *packages_model.Packag
 
 	return &packages_model.PackageBlob{
 		Size:       hsr.Size(),
-		HashMD5:    fmt.Sprintf("%x", hashMD5),
-		HashSHA1:   fmt.Sprintf("%x", hashSHA1),
-		HashSHA256: fmt.Sprintf("%x", hashSHA256),
-		HashSHA512: fmt.Sprintf("%x", hashSHA512),
+		HashMD5:    hex.EncodeToString(hashMD5),
+		HashSHA1:   hex.EncodeToString(hashSHA1),
+		HashSHA256: hex.EncodeToString(hashSHA256),
+		HashSHA512: hex.EncodeToString(hashSHA512),
 	}
 }
 
