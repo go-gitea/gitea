@@ -836,11 +836,11 @@ func MergeBlockedByOutdatedBranch(protectBranch *git_model.ProtectedBranch, pr *
 }
 
 // ManuallyMergePullConfirm confirm manually merge pulls by repo id and indexes
-func ManuallyMergePullConfirmByIndexs(ctx context.Context, repoID int64, indexes []int64) error {
+func ManuallyMergePullConfirmByIndexes(ctx context.Context, repoID int64, indexes []int64) error {
 	_, err := db.GetEngine(ctx).Where(builder.And(
 		builder.Eq{"base_repo_id": repoID},
 		builder.Eq{"has_merged": false},
-		builder.In("`index`", indexs),
+		builder.In("`index`", indexes),
 	)).Cols("manually_merge_pull_confirmed").Update(&PullRequest{
 		ManuallyMergePullConfirmed: true,
 	})
