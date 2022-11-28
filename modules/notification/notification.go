@@ -41,7 +41,9 @@ func NewContext() {
 	RegisterNotifier(webhook.NewNotifier())
 	RegisterNotifier(action.NewNotifier())
 	RegisterNotifier(mirror.NewNotifier())
-	RegisterNotifier(bots.NewNotifier())
+	if setting.Bots.Enabled {
+		RegisterNotifier(bots.NewNotifier())
+	}
 }
 
 // NotifyNewWikiPage notifies creating new wiki pages to notifiers
