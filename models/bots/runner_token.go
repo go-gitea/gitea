@@ -11,10 +11,8 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	gouuid "github.com/google/uuid"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrRunnerNotExist represents an error for bot runner not exist
@@ -77,13 +75,17 @@ func UpdateRunnerToken(ctx context.Context, r *RunnerToken, cols ...string) (err
 
 // NewRunnerToken creates a new runner token
 func NewRunnerToken(ownerID, repoID int64) (*RunnerToken, error) {
+	token, err := util.CryptoRandomString(40)
+	if err != nil {
+		return nil, err
+	}
 	runnerToken := &RunnerToken{
 		OwnerID:  ownerID,
 		RepoID:   repoID,
 		IsActive: false,
-		Token:    base.EncodeSha1(gouuid.New().String()),
+		Token:    token,
 	}
-	_, err := db.GetEngine(db.DefaultContext).Insert(runnerToken)
+	_, err = db.GetEngine(db.DefaultContext).Insert(runnerToken)
 	return runnerToken, err
 }
 

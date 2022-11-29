@@ -10,16 +10,12 @@ import (
 	"strings"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 
 	runnerv1 "code.gitea.io/bots-proto-go/runner/v1"
-	gouuid "github.com/google/uuid"
 	"xorm.io/builder"
 )
 
@@ -147,15 +143,9 @@ func (r *Runner) LoadAttributes(ctx context.Context) error {
 	return nil
 }
 
-func (r *Runner) GenerateToken() error {
-	salt, err := util.CryptoRandomString(10)
-	if err != nil {
-		return err
-	}
-	r.TokenSalt = salt
-	r.Token = base.EncodeSha1(gouuid.New().String())
-	r.TokenHash = auth_model.HashToken(r.Token, r.TokenSalt)
-	return nil
+func (r *Runner) GenerateToken() (err error) {
+	r.Token, r.TokenSalt, r.TokenHash, _, err = generateSaltedToken()
+	return err
 }
 
 func init() {

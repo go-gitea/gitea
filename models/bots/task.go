@@ -17,14 +17,12 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
 	runnerv1 "code.gitea.io/bots-proto-go/runner/v1"
-	gouuid "github.com/google/uuid"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/nektos/act/pkg/jobparser"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -190,16 +188,9 @@ func (task *Task) LoadAttributes(ctx context.Context) error {
 	return nil
 }
 
-func (task *Task) GenerateToken() error {
-	salt, err := util.CryptoRandomString(10)
-	if err != nil {
-		return err
-	}
-	task.TokenSalt = salt
-	task.Token = base.EncodeSha1(gouuid.New().String())
-	task.TokenHash = auth_model.HashToken(task.Token, task.TokenSalt)
-	task.TokenLastEight = task.Token[len(task.Token)-8:]
-	return nil
+func (task *Task) GenerateToken() (err error) {
+	task.Token, task.TokenSalt, task.TokenHash, task.TokenLastEight, err = generateSaltedToken()
+	return err
 }
 
 type LogIndexes []int64
