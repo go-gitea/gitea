@@ -10,11 +10,15 @@ import (
 
 	bots_model "code.gitea.io/gitea/models/bots"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/models/webhook"
 	bots_module "code.gitea.io/gitea/modules/bots"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 func Init() {
@@ -60,4 +64,78 @@ func DeleteResourceOfRepository(ctx context.Context, repo *repo_model.Repository
 	}
 
 	return nil
+}
+
+func CreateCommitStatus(ctx context.Context, task *bots_model.BotTask) error {
+	if err := task.LoadJob(ctx); err != nil {
+		return fmt.Errorf("load job: %w", err)
+	}
+	if err := task.Job.LoadAttributes(ctx); err != nil {
+		return fmt.Errorf("load run: %w", err)
+	}
+
+	if task.Job.Run.Event != webhook.HookEventPush {
+		return nil
+	}
+
+	payload, err := task.Job.Run.GetPushEventPayload()
+	if err != nil {
+		return fmt.Errorf("GetPushEventPayload: %w", err)
+	}
+
+	creator, err := user_model.GetUserByID(payload.Pusher.ID)
+	if err != nil {
+		return fmt.Errorf("GetUserByID: %w", err)
+	}
+
+	repo := task.Job.Run.Repo
+	sha := payload.HeadCommit.ID
+	ctxname := task.Job.Name
+	state := toCommitStatus(task.Job.Status)
+
+	if statuses, _, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, db.ListOptions{}); err != nil {
+		return fmt.Errorf("GetLatestCommitStatus: %w", err)
+	} else {
+		for _, status := range statuses {
+			if status.Context == ctxname {
+				if status.State == state {
+					return nil
+				}
+				break
+			}
+		}
+	}
+
+	if err := git_model.NewCommitStatus(git_model.NewCommitStatusOptions{
+		Repo:    repo,
+		SHA:     payload.HeadCommit.ID,
+		Creator: creator,
+		CommitStatus: &git_model.CommitStatus{
+			SHA:         sha,
+			TargetURL:   task.Job.Run.HTMLURL(),
+			Description: "",
+			Context:     ctxname,
+			CreatorID:   payload.Pusher.ID,
+			State:       state,
+		},
+	}); err != nil {
+		return fmt.Errorf("NewCommitStatus: %w", err)
+	}
+
+	return nil
+}
+
+func toCommitStatus(status bots_model.Status) api.CommitStatusState {
+	switch status {
+	case bots_model.StatusSuccess:
+		return api.CommitStatusSuccess
+	case bots_model.StatusFailure, bots_model.StatusCancelled, bots_model.StatusSkipped:
+		return api.CommitStatusFailure
+	case bots_model.StatusWaiting, bots_model.StatusBlocked:
+		return api.CommitStatusPending
+	case bots_model.StatusRunning:
+		return api.CommitStatusRunning
+	default:
+		return api.CommitStatusError
+	}
 }

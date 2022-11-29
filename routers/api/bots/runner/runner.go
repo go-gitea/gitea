@@ -11,8 +11,6 @@ import (
 	"time"
 
 	bots_model "code.gitea.io/gitea/models/bots"
-	git_model "code.gitea.io/gitea/models/git"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/bots"
 	"code.gitea.io/gitea/modules/json"
@@ -20,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	bot_service "code.gitea.io/gitea/services/bots"
+	bots_service "code.gitea.io/gitea/services/bots"
 	secret_service "code.gitea.io/gitea/services/secrets"
 
 	runnerv1 "code.gitea.io/bots-proto-go/runner/v1"
@@ -177,32 +176,9 @@ func (s *Service) UpdateTask(
 		return nil, status.Errorf(codes.Internal, "load run: %v", err)
 	}
 
-	if task.Job.Run.Event == webhook.HookEventPush {
-		payload, err := task.Job.Run.GetPushEventPayload()
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "GetPushEventPayload: %v", err)
-		}
-
-		creator, err := user_model.GetUserByID(payload.Pusher.ID)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "GetUserByID: %v", err)
-		}
-
-		if err := git_model.NewCommitStatus(git_model.NewCommitStatusOptions{
-			Repo:    task.Job.Run.Repo,
-			SHA:     payload.HeadCommit.ID,
-			Creator: creator,
-			CommitStatus: &git_model.CommitStatus{
-				SHA:         payload.HeadCommit.ID,
-				TargetURL:   task.Job.Run.HTMLURL(),
-				Description: "",
-				Context:     task.Job.Name,
-				CreatorID:   payload.Pusher.ID,
-				State:       toCommitStatus(task.Job.Status),
-			},
-		}); err != nil {
-			log.Error("Update commit status failed: %v", err)
-		}
+	if err := bots_service.CreateCommitStatus(ctx, task); err != nil {
+		log.Error("Update commit status failed: %v", err)
+		// go on
 	}
 
 	if req.Msg.State.Result != runnerv1.Result_RESULT_UNSPECIFIED {
