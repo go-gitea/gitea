@@ -172,11 +172,8 @@ func (s *Service) UpdateTask(
 	if err := task.LoadJob(ctx); err != nil {
 		return nil, status.Errorf(codes.Internal, "load job: %v", err)
 	}
-	if err := task.Job.LoadAttributes(ctx); err != nil {
-		return nil, status.Errorf(codes.Internal, "load run: %v", err)
-	}
 
-	if err := bots_service.CreateCommitStatus(ctx, task); err != nil {
+	if err := bots_service.CreateCommitStatus(ctx, task.Job); err != nil {
 		log.Error("Update commit status failed: %v", err)
 		// go on
 	}

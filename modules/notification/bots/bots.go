@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	bots_service "code.gitea.io/gitea/services/bots"
 
 	"github.com/nektos/act/pkg/jobparser"
 )
@@ -44,11 +45,11 @@ func NewNotifier() base.Notifier {
 	return &botsNotifier{}
 }
 
-func notify(repo *repo_model.Repository, doer *user_model.User, ref string, evt webhook.HookEventType, payload api.Payloader) error {
-	return notifyWithPR(repo, doer, ref, evt, payload, nil)
+func notify(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, ref string, evt webhook.HookEventType, payload api.Payloader) error {
+	return notifyWithPR(ctx, repo, doer, ref, evt, payload, nil)
 }
 
-func notifyWithPR(repo *repo_model.Repository, doer *user_model.User, ref string, evt webhook.HookEventType, payload api.Payloader, pr *issues_model.PullRequest) error {
+func notifyWithPR(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, ref string, evt webhook.HookEventType, payload api.Payloader, pr *issues_model.PullRequest) error {
 	if unit.TypeBots.UnitGlobalDisabled() {
 		return nil
 	}
@@ -109,7 +110,18 @@ func notifyWithPR(repo *repo_model.Repository, doer *user_model.User, ref string
 		}
 		if err := bots_model.InsertRun(&run, jobs); err != nil {
 			log.Error("InsertRun: %v", err)
+			continue
 		}
+		if jobs, _, err := bots_model.FindRunJobs(ctx, bots_model.FindRunJobOptions{RunID: run.ID}); err != nil {
+			log.Error("FindRunJobs: %v", err)
+		} else {
+			for _, job := range jobs {
+				if err := bots_service.CreateCommitStatus(ctx, job); err != nil {
+					log.Error("CreateCommitStatus: %v", err)
+				}
+			}
+		}
+
 	}
 	return nil
 }
@@ -126,7 +138,7 @@ func (a *botsNotifier) NotifyNewIssue(ctx context.Context, issue *issues_model.I
 	}
 
 	mode, _ := access_model.AccessLevel(ctx, issue.Poster, issue.Repo)
-	if err := notify(issue.Repo, issue.Poster, issue.Repo.DefaultBranch,
+	if err := notify(ctx, issue.Repo, issue.Poster, issue.Repo.DefaultBranch,
 		webhook.HookEventIssues, &api.IssuePayload{
 			Action:     api.HookIssueOpened,
 			Index:      issue.Index,
@@ -159,7 +171,7 @@ func (a *botsNotifier) NotifyIssueChangeStatus(ctx context.Context, doer *user_m
 		} else {
 			apiPullRequest.Action = api.HookIssueReOpened
 		}
-		err = notify(issue.Repo, doer, issue.Repo.DefaultBranch, webhook.HookEventPullRequest, apiPullRequest)
+		err = notify(ctx, issue.Repo, doer, issue.Repo.DefaultBranch, webhook.HookEventPullRequest, apiPullRequest)
 	} else {
 		apiIssue := &api.IssuePayload{
 			Index:      issue.Index,
@@ -172,7 +184,7 @@ func (a *botsNotifier) NotifyIssueChangeStatus(ctx context.Context, doer *user_m
 		} else {
 			apiIssue.Action = api.HookIssueReOpened
 		}
-		err = notify(issue.Repo, doer, issue.Repo.DefaultBranch, webhook.HookEventIssues, apiIssue)
+		err = notify(ctx, issue.Repo, doer, issue.Repo.DefaultBranch, webhook.HookEventIssues, apiIssue)
 	}
 	if err != nil {
 		log.Error("PrepareWebhooks [is_pull: %v, is_closed: %v]: %v", issue.IsPull, isClosed, err)
@@ -203,7 +215,7 @@ func (a *botsNotifier) NotifyIssueChangeLabels(ctx context.Context, doer *user_m
 			log.Error("LoadIssue: %v", err)
 			return
 		}
-		err = notify(issue.Repo, doer, issue.Repo.DefaultBranch, webhook.HookEventPullRequestLabel, &api.PullRequestPayload{
+		err = notify(ctx, issue.Repo, doer, issue.Repo.DefaultBranch, webhook.HookEventPullRequestLabel, &api.PullRequestPayload{
 			Action:      api.HookIssueLabelUpdated,
 			Index:       issue.Index,
 			PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
@@ -211,7 +223,7 @@ func (a *botsNotifier) NotifyIssueChangeLabels(ctx context.Context, doer *user_m
 			Sender:      convert.ToUser(doer, nil),
 		})
 	} else {
-		err = notify(issue.Repo, doer, issue.Repo.DefaultBranch, webhook.HookEventIssueLabel, &api.IssuePayload{
+		err = notify(ctx, issue.Repo, doer, issue.Repo.DefaultBranch, webhook.HookEventIssueLabel, &api.IssuePayload{
 			Action:     api.HookIssueLabelUpdated,
 			Index:      issue.Index,
 			Issue:      convert.ToAPIIssue(ctx, issue),
@@ -232,7 +244,7 @@ func (a *botsNotifier) NotifyCreateIssueComment(ctx context.Context, doer *user_
 
 	var err error
 	if issue.IsPull {
-		err = notify(issue.Repo, doer, issue.Repo.DefaultBranch, webhook.HookEventPullRequestComment, &api.IssueCommentPayload{
+		err = notify(ctx, issue.Repo, doer, issue.Repo.DefaultBranch, webhook.HookEventPullRequestComment, &api.IssueCommentPayload{
 			Action:     api.HookIssueCommentCreated,
 			Issue:      convert.ToAPIIssue(ctx, issue),
 			Comment:    convert.ToComment(comment),
@@ -241,7 +253,7 @@ func (a *botsNotifier) NotifyCreateIssueComment(ctx context.Context, doer *user_
 			IsPull:     true,
 		})
 	} else {
-		err = notify(issue.Repo, doer, issue.Repo.DefaultBranch, webhook.HookEventIssueComment, &api.IssueCommentPayload{
+		err = notify(ctx, issue.Repo, doer, issue.Repo.DefaultBranch, webhook.HookEventIssueComment, &api.IssueCommentPayload{
 			Action:     api.HookIssueCommentCreated,
 			Issue:      convert.ToAPIIssue(ctx, issue),
 			Comment:    convert.ToComment(comment),
@@ -271,7 +283,7 @@ func (a *botsNotifier) NotifyNewPullRequest(ctx context.Context, pull *issues_mo
 	}
 
 	mode, _ := access_model.AccessLevel(ctx, pull.Issue.Poster, pull.Issue.Repo)
-	if err := notifyWithPR(pull.Issue.Repo, pull.Issue.Poster, pull.Issue.Repo.DefaultBranch, webhook.HookEventPullRequest, &api.PullRequestPayload{
+	if err := notifyWithPR(ctx, pull.Issue.Repo, pull.Issue.Poster, pull.Issue.Repo.DefaultBranch, webhook.HookEventPullRequest, &api.PullRequestPayload{
 		Action:      api.HookIssueOpened,
 		Index:       pull.Issue.Index,
 		PullRequest: convert.ToAPIPullRequest(ctx, pull, nil),
@@ -289,7 +301,7 @@ func (a *botsNotifier) NotifyTransferRepository(ctx context.Context, doer *user_
 }
 
 func (a *botsNotifier) NotifyCreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
-	if err := notify(repo, doer, repo.DefaultBranch,
+	if err := notify(ctx, repo, doer, repo.DefaultBranch,
 		webhook.HookEventRepository,
 		&api.RepositoryPayload{
 			Action:       api.HookRepoCreated,
@@ -306,7 +318,7 @@ func (a *botsNotifier) NotifyForkRepository(ctx context.Context, doer *user_mode
 	mode, _ := access_model.AccessLevel(ctx, doer, repo)
 
 	// forked webhook
-	if err := notify(oldRepo, doer, oldRepo.DefaultBranch, webhook.HookEventFork, &api.ForkPayload{
+	if err := notify(ctx, oldRepo, doer, oldRepo.DefaultBranch, webhook.HookEventFork, &api.ForkPayload{
 		Forkee: convert.ToRepo(oldRepo, oldMode),
 		Repo:   convert.ToRepo(repo, mode),
 		Sender: convert.ToUser(doer, nil),
@@ -318,7 +330,7 @@ func (a *botsNotifier) NotifyForkRepository(ctx context.Context, doer *user_mode
 
 	// Add to hook queue for created repo after session commit.
 	if u.IsOrganization() {
-		if err := notify(repo, doer, oldRepo.DefaultBranch, webhook.HookEventRepository, &api.RepositoryPayload{
+		if err := notify(ctx, repo, doer, oldRepo.DefaultBranch, webhook.HookEventRepository, &api.RepositoryPayload{
 			Action:       api.HookRepoCreated,
 			Repository:   convert.ToRepo(repo, perm.AccessModeOwner),
 			Organization: convert.ToUser(u, nil),
@@ -355,7 +367,7 @@ func (a *botsNotifier) NotifyPullRequestReview(ctx context.Context, pr *issues_m
 		log.Error("models.AccessLevel: %v", err)
 		return
 	}
-	if err := notifyWithPR(review.Issue.Repo, review.Reviewer, review.CommitID, reviewHookType, &api.PullRequestPayload{
+	if err := notifyWithPR(ctx, review.Issue.Repo, review.Reviewer, review.CommitID, reviewHookType, &api.PullRequestPayload{
 		Action:      api.HookIssueReviewed,
 		Index:       review.Issue.Index,
 		PullRequest: convert.ToAPIPullRequest(db.DefaultContext, pr, nil),
@@ -402,7 +414,7 @@ func (*botsNotifier) NotifyMergePullRequest(ctx context.Context, doer *user_mode
 		Action:      api.HookIssueClosed,
 	}
 
-	err = notifyWithPR(pr.Issue.Repo, doer, pr.MergedCommitID, webhook.HookEventPullRequest, apiPullRequest, pr)
+	err = notifyWithPR(ctx, pr.Issue.Repo, doer, pr.MergedCommitID, webhook.HookEventPullRequest, apiPullRequest, pr)
 	if err != nil {
 		log.Error("PrepareWebhooks: %v", err)
 	}
@@ -416,7 +428,7 @@ func (a *botsNotifier) NotifyPushCommits(ctx context.Context, pusher *user_model
 		return
 	}
 
-	if err := notify(repo, pusher, opts.RefFullName, webhook.HookEventPush, &api.PushPayload{
+	if err := notify(ctx, repo, pusher, opts.RefFullName, webhook.HookEventPush, &api.PushPayload{
 		Ref:        opts.RefFullName,
 		Before:     opts.OldCommitID,
 		After:      opts.NewCommitID,
@@ -436,7 +448,7 @@ func (a *botsNotifier) NotifyCreateRef(ctx context.Context, pusher *user_model.U
 	apiRepo := convert.ToRepo(repo, perm.AccessModeNone)
 	refName := git.RefEndName(refFullName)
 
-	if err := notify(repo, pusher, refName, webhook.HookEventCreate, &api.CreatePayload{
+	if err := notify(ctx, repo, pusher, refName, webhook.HookEventCreate, &api.CreatePayload{
 		Ref:     refName,
 		Sha:     refID,
 		RefType: refType,
@@ -452,7 +464,7 @@ func (a *botsNotifier) NotifyDeleteRef(ctx context.Context, pusher *user_model.U
 	apiRepo := convert.ToRepo(repo, perm.AccessModeNone)
 	refName := git.RefEndName(refFullName)
 
-	if err := notify(repo, pusher, refName, webhook.HookEventDelete, &api.DeletePayload{
+	if err := notify(ctx, repo, pusher, refName, webhook.HookEventDelete, &api.DeletePayload{
 		Ref:        refName,
 		RefType:    refType,
 		PusherType: api.PusherTypeUser,
@@ -471,7 +483,7 @@ func (a *botsNotifier) NotifySyncPushCommits(ctx context.Context, pusher *user_m
 		return
 	}
 
-	if err := notify(repo, pusher, opts.RefFullName, webhook.HookEventPush, &api.PushPayload{
+	if err := notify(ctx, repo, pusher, opts.RefFullName, webhook.HookEventPush, &api.PushPayload{
 		Ref:          opts.RefFullName,
 		Before:       opts.OldCommitID,
 		After:        opts.NewCommitID,
@@ -502,7 +514,7 @@ func sendReleaseNofiter(ctx context.Context, doer *user_model.User, rel *repo_mo
 	}
 
 	mode, _ := access_model.AccessLevel(ctx, doer, rel.Repo)
-	if err := notify(rel.Repo, doer, ref, webhook.HookEventRelease, &api.ReleasePayload{
+	if err := notify(ctx, rel.Repo, doer, ref, webhook.HookEventRelease, &api.ReleasePayload{
 		Action:     action,
 		Release:    convert.ToRelease(rel),
 		Repository: convert.ToRepo(rel.Repo, mode),
@@ -547,7 +559,7 @@ func notifyPackage(sender *user_model.User, pd *packages_model.PackageDescriptor
 		return
 	}
 
-	if err := notify(pd.Repository, sender, "", webhook.HookEventPackage, &api.PackagePayload{
+	if err := notify(ctx, pd.Repository, sender, "", webhook.HookEventPackage, &api.PackagePayload{
 		Action:  action,
 		Package: apiPackage,
 		Sender:  convert.ToUser(sender, nil),

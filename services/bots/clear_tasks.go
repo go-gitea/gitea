@@ -33,7 +33,13 @@ func StopZombieTasks(ctx context.Context) error {
 
 	for _, task := range tasks {
 		if err := db.WithTx(ctx, func(ctx context.Context) error {
-			return bots_model.StopTask(ctx, task.ID, bots_model.StatusFailure)
+			if err := bots_model.StopTask(ctx, task.ID, bots_model.StatusFailure); err != nil {
+				return err
+			}
+			if err := task.LoadJob(ctx); err != nil {
+				return err
+			}
+			return CreateCommitStatus(ctx, task.Job)
 		}); err != nil {
 			log.Warn("stop zombie task %v: %v", task.ID, err)
 			// go on
@@ -55,7 +61,13 @@ func StopEndlessTasks(ctx context.Context) error {
 
 	for _, task := range tasks {
 		if err := db.WithTx(ctx, func(ctx context.Context) error {
-			return bots_model.StopTask(ctx, task.ID, bots_model.StatusFailure)
+			if err := bots_model.StopTask(ctx, task.ID, bots_model.StatusFailure); err != nil {
+				return err
+			}
+			if err := task.LoadJob(ctx); err != nil {
+				return err
+			}
+			return CreateCommitStatus(ctx, task.Job)
 		}); err != nil {
 			log.Warn("stop endless task %v: %v", task.ID, err)
 			// go on
@@ -80,8 +92,10 @@ func CancelAbandonedJobs(ctx context.Context) error {
 		job.Status = bots_model.StatusCancelled
 		job.Stopped = now
 		if err := db.WithTx(ctx, func(ctx context.Context) error {
-			_, err := bots_model.UpdateRunJob(ctx, job, nil, "status", "stopped")
-			return err
+			if _, err := bots_model.UpdateRunJob(ctx, job, nil, "status", "stopped"); err != nil {
+				return err
+			}
+			return CreateCommitStatus(ctx, job)
 		}); err != nil {
 			log.Warn("cancel abandoned job %v: %v", job.ID, err)
 			// go on

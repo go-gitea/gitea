@@ -66,19 +66,17 @@ func DeleteResourceOfRepository(ctx context.Context, repo *repo_model.Repository
 	return nil
 }
 
-func CreateCommitStatus(ctx context.Context, task *bots_model.BotTask) error {
-	if err := task.LoadJob(ctx); err != nil {
-		return fmt.Errorf("load job: %w", err)
-	}
-	if err := task.Job.LoadAttributes(ctx); err != nil {
+func CreateCommitStatus(ctx context.Context, job *bots_model.BotRunJob) error {
+	if err := job.LoadAttributes(ctx); err != nil {
 		return fmt.Errorf("load run: %w", err)
 	}
 
-	if task.Job.Run.Event != webhook.HookEventPush {
+	run := job.Run
+	if run.Event != webhook.HookEventPush {
 		return nil
 	}
 
-	payload, err := task.Job.Run.GetPushEventPayload()
+	payload, err := run.GetPushEventPayload()
 	if err != nil {
 		return fmt.Errorf("GetPushEventPayload: %w", err)
 	}
@@ -88,17 +86,17 @@ func CreateCommitStatus(ctx context.Context, task *bots_model.BotTask) error {
 		return fmt.Errorf("GetUserByID: %w", err)
 	}
 
-	repo := task.Job.Run.Repo
+	repo := run.Repo
 	sha := payload.HeadCommit.ID
-	ctxname := task.Job.Name
-	state := toCommitStatus(task.Job.Status)
+	ctxname := job.Name
+	state := toCommitStatus(job.Status)
 
 	if statuses, _, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, db.ListOptions{}); err != nil {
 		return fmt.Errorf("GetLatestCommitStatus: %w", err)
 	} else {
-		for _, status := range statuses {
-			if status.Context == ctxname {
-				if status.State == state {
+		for _, v := range statuses {
+			if v.Context == ctxname {
+				if v.State == state {
 					return nil
 				}
 				break
@@ -112,7 +110,7 @@ func CreateCommitStatus(ctx context.Context, task *bots_model.BotTask) error {
 		Creator: creator,
 		CommitStatus: &git_model.CommitStatus{
 			SHA:         sha,
-			TargetURL:   task.Job.Run.HTMLURL(),
+			TargetURL:   run.HTMLURL(),
 			Description: "",
 			Context:     ctxname,
 			CreatorID:   payload.Pusher.ID,

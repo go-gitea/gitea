@@ -16,6 +16,7 @@ import (
 	context_module "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
+	bots_service "code.gitea.io/gitea/services/bots"
 
 	runnerv1 "code.gitea.io/bots-proto-go/runner/v1"
 	"xorm.io/builder"
@@ -211,8 +212,10 @@ func Rerun(ctx *context_module.Context) {
 	job.Stopped = 0
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		_, err := bots_model.UpdateRunJob(ctx, job, builder.Eq{"status": status}, "task_id", "status", "started", "stopped")
-		return err
+		if _, err := bots_model.UpdateRunJob(ctx, job, builder.Eq{"status": status}, "task_id", "status", "started", "stopped"); err != nil {
+			return err
+		}
+		return bots_service.CreateCommitStatus(ctx, job)
 	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
@@ -248,6 +251,9 @@ func Cancel(ctx *context_module.Context) {
 				continue
 			}
 			if err := bots_model.StopTask(ctx, job.TaskID, bots_model.StatusCancelled); err != nil {
+				return err
+			}
+			if err := bots_service.CreateCommitStatus(ctx, job); err != nil {
 				return err
 			}
 		}
