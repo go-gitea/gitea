@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package maven
 
@@ -9,9 +8,9 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
+	"encoding/hex"
 	"encoding/xml"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"path/filepath"
@@ -129,7 +128,7 @@ func serveMavenMetadata(ctx *context.Context, params parameters) {
 			tmp := sha512.Sum512(xmlMetadataWithHeader)
 			hash = tmp[:]
 		}
-		ctx.PlainText(http.StatusOK, fmt.Sprintf("%x", hash))
+		ctx.PlainText(http.StatusOK, hex.EncodeToString(hash))
 		return
 	}
 
