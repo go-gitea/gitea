@@ -49,34 +49,6 @@ func init() {
 	db.RegisterModel(new(CommitStatusIndex))
 }
 
-// upsertCommitStatusIndex the function will not return until it acquires the lock or receives an error.
-func upsertCommitStatusIndex(ctx context.Context, repoID int64, sha string) (err error) {
-	// An atomic UPSERT operation (INSERT/UPDATE) is the only operation
-	// that ensures that the key is actually locked.
-	switch {
-	case setting.Database.UseSQLite3 || setting.Database.UsePostgreSQL:
-		_, err = db.Exec(ctx, "INSERT INTO `commit_status_index` (repo_id, sha, max_index) "+
-			"VALUES (?,?,1) ON CONFLICT (repo_id,sha) DO UPDATE SET max_index = `commit_status_index`.max_index+1",
-			repoID, sha)
-	case setting.Database.UseMySQL:
-		_, err = db.Exec(ctx, "INSERT INTO `commit_status_index` (repo_id, sha, max_index) "+
-			"VALUES (?,?,1) ON DUPLICATE KEY UPDATE max_index = max_index+1",
-			repoID, sha)
-	case setting.Database.UseMSSQL:
-		// https://weblogs.sqlteam.com/dang/2009/01/31/upsert-race-condition-with-merge/
-		_, err = db.Exec(ctx, "MERGE `commit_status_index` WITH (HOLDLOCK) as target "+
-			"USING (SELECT ? AS repo_id, ? AS sha) AS src "+
-			"ON src.repo_id = target.repo_id AND src.sha = target.sha "+
-			"WHEN MATCHED THEN UPDATE SET target.max_index = target.max_index+1 "+
-			"WHEN NOT MATCHED THEN INSERT (repo_id, sha, max_index) "+
-			"VALUES (src.repo_id, src.sha, 1);",
-			repoID, sha)
-	default:
-		return fmt.Errorf("database type not supported")
-	}
-	return err
-}
-
 // GetNextCommitStatusIndex retried 3 times to generate a resource index
 func GetNextCommitStatusIndex(ctx context.Context, repoID int64, sha string) (int64, error) {
 	e := db.GetEngine(ctx)
