@@ -54,16 +54,16 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 	t.Run("CreateStatus", doAPICreateCommitStatus(NewAPITestContext(t, "user2", "repo1"), path.Base(commitURL), api.CommitStatusState(state)))
 
 	if !setting.Database.UseSQLite3 {
-		runBody := doAPICreateCommitStatus(NewAPITestContext(t, "user2", "repo1"), path.Base(commitURL), api.CommitStatusState(state))
 		var wg sync.WaitGroup
 		for i := 0; i < 10; i++ {
 			wg.Add(1)
-			t.Run(fmt.Sprintf("ParallelCreateStatus_%d", i), func(t *testing.T) {
-				go func(t *testing.T) {
+			go func(t *testing.T, i int) {
+				t.Run(fmt.Sprintf("ParallelCreateStatus_%d", i), func(t *testing.T) {
+					runBody := doAPICreateCommitStatus(NewAPITestContext(t, "user2", "repo1"), path.Base(commitURL), api.CommitStatusState(state))
 					runBody(t)
 					wg.Done()
-				}(t)
-			})
+				})
+			}(t, i)
 		}
 		wg.Wait()
 	}
