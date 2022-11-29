@@ -189,12 +189,41 @@ function initVueComponents(app) {
         }
       },
 
+      onSearchEnter() {
+        if (this.searchQuery.length > 0) {
+          const items = document.getElementsByClassName('repo-list-link');
+          items[this.repoIndex].click();
+        }
+      },
+
+      onSearchDown() {
+        if (this.repoIndex + 1 < this.repos.length) {
+          const items = document.getElementsByClassName('repo-list-link');
+          items[this.repoIndex].classList.remove('selected');
+          this.repoIndex++;
+          items[this.repoIndex].classList.add('selected');
+        }
+      },
+
+      onSearchUp() {
+        if (this.repoIndex > 0) {
+          const items = document.getElementsByClassName('repo-list-link');
+          items[this.repoIndex].classList.remove('selected');
+          this.repoIndex--;
+          items[this.repoIndex].classList.add('selected');
+        }
+      },
+
       changeReposFilter(filter) {
         this.reposFilter = filter;
         this.repos = [];
         this.page = 1;
         this.counts[`${filter}:${this.archivedFilter}:${this.privateFilter}`] = 0;
         this.searchRepos();
+        setTimeout(() => {
+          const items = document.getElementsByClassName('repo-list-link');
+          items[0].classList.add('selected');
+        }, 100);
       },
 
       updateHistory() {
