@@ -365,6 +365,7 @@ func CreateTaskForRunner(ctx context.Context, runner *BotRunner) (*BotTask, bool
 			Name:   v.String(),
 			TaskID: task.ID,
 			Number: int64(i),
+			RepoID: task.RepoID,
 			Status: StatusWaiting,
 		}
 	}

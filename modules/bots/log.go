@@ -110,6 +110,22 @@ func TransferLogs(ctx context.Context, filename string) (func(), error) {
 	return remove, nil
 }
 
+func RemoveLogs(ctx context.Context, inStorage bool, filename string) error {
+	if !inStorage {
+		name := DBFSPrefix + filename
+		err := dbfs.Remove(ctx, name)
+		if err != nil {
+			return fmt.Errorf("dbfs remove %q: %w", name, err)
+		}
+		return nil
+	}
+	err := storage.Bots.Delete(filename)
+	if err != nil {
+		return fmt.Errorf("storage delete %q: %w", filename, err)
+	}
+	return nil
+}
+
 func openLogs(ctx context.Context, inStorage bool, filename string) (io.ReadSeekCloser, error) {
 	if !inStorage {
 		name := DBFSPrefix + filename

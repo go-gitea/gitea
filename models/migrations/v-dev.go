@@ -134,6 +134,7 @@ func addBotTables(x *xorm.Engine) error {
 		Name      string
 		TaskID    int64 `xorm:"index unique(task_number)"`
 		Number    int64 `xorm:"index unique(task_number)"`
+		RepoID    int64 `xorm:"index"`
 		Status    int   `xorm:"index"`
 		LogIndex  int64
 		LogLength int64
