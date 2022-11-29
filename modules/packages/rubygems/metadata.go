@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package rubygems
 
@@ -14,7 +13,7 @@ import (
 
 	"code.gitea.io/gitea/modules/validation"
 
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -120,7 +119,7 @@ func (r requirement) AsVersionRequirement() []VersionRequirement {
 		if !ok {
 			continue
 		}
-		vm, ok := req[1].(map[interface{}]interface{})
+		vm, ok := req[1].(map[string]interface{})
 		if !ok {
 			continue
 		}

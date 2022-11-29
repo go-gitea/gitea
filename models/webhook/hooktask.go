@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package webhook
 
@@ -103,9 +102,9 @@ type HookResponse struct {
 
 // HookTask represents a hook task.
 type HookTask struct {
-	ID              int64 `xorm:"pk autoincr"`
-	HookID          int64
-	UUID            string
+	ID              int64  `xorm:"pk autoincr"`
+	HookID          int64  `xorm:"index"`
+	UUID            string `xorm:"unique"`
 	api.Payloader   `xorm:"-"`
 	PayloadContent  string `xorm:"LONGTEXT"`
 	EventType       HookEventType
@@ -233,12 +232,28 @@ func ReplayHookTask(ctx context.Context, hookID int64, uuid string) (*HookTask, 
 	return newTask, db.Insert(ctx, newTask)
 }
 
-// FindUndeliveredHookTasks represents find the undelivered hook tasks
-func FindUndeliveredHookTasks(ctx context.Context) ([]*HookTask, error) {
-	tasks := make([]*HookTask, 0, 10)
+// FindUndeliveredHookTaskIDs will find the next 100 undelivered hook tasks with ID greater than the provided lowerID
+func FindUndeliveredHookTaskIDs(ctx context.Context, lowerID int64) ([]int64, error) {
+	const batchSize = 100
+
+	tasks := make([]int64, 0, batchSize)
 	return tasks, db.GetEngine(ctx).
+		Select("id").
+		Table(new(HookTask)).
 		Where("is_delivered=?", false).
+		And("id > ?", lowerID).
+		Asc("id").
+		Limit(batchSize).
 		Find(&tasks)
+}
+
+func MarkTaskDelivered(ctx context.Context, task *HookTask) (bool, error) {
+	count, err := db.GetEngine(ctx).ID(task.ID).Where("is_delivered = ?", false).Cols("is_delivered").Update(&HookTask{
+		ID:          task.ID,
+		IsDelivered: true,
+	})
+
+	return count != 0, err
 }
 
 // CleanupHookTaskTable deletes rows from hook_task as needed.
@@ -270,7 +285,7 @@ func CleanupHookTaskTable(ctx context.Context, cleanupType HookTaskCleanupType, 
 				return db.ErrCancelledf("Before deleting hook_task records for hook id %d", hookID)
 			default:
 			}
-			if err = deleteDeliveredHookTasksByWebhook(hookID, numberToKeep); err != nil {
+			if err = deleteDeliveredHookTasksByWebhook(ctx, hookID, numberToKeep); err != nil {
 				return err
 			}
 		}
@@ -279,10 +294,10 @@ func CleanupHookTaskTable(ctx context.Context, cleanupType HookTaskCleanupType, 
 	return nil
 }
 
-func deleteDeliveredHookTasksByWebhook(hookID int64, numberDeliveriesToKeep int) error {
+func deleteDeliveredHookTasksByWebhook(ctx context.Context, hookID int64, numberDeliveriesToKeep int) error {
 	log.Trace("Deleting hook_task rows for webhook %d, keeping the most recent %d deliveries", hookID, numberDeliveriesToKeep)
 	deliveryDates := make([]int64, 0, 10)
-	err := db.GetEngine(db.DefaultContext).Table("hook_task").
+	err := db.GetEngine(ctx).Table("hook_task").
 		Where("hook_task.hook_id = ? AND hook_task.is_delivered = ? AND hook_task.delivered is not null", hookID, true).
 		Cols("hook_task.delivered").
 		Join("INNER", "webhook", "hook_task.hook_id = webhook.id").
@@ -294,7 +309,7 @@ func deleteDeliveredHookTasksByWebhook(hookID int64, numberDeliveriesToKeep int)
 	}
 
 	if len(deliveryDates) > 0 {
-		deletes, err := db.GetEngine(db.DefaultContext).
+		deletes, err := db.GetEngine(ctx).
 			Where("hook_id = ? and is_delivered = ? and delivered <= ?", hookID, true, deliveryDates[0]).
 			Delete(new(HookTask))
 		if err != nil {

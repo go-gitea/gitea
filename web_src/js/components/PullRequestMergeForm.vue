@@ -25,6 +25,14 @@
           </div>
           <div class="field">
             <textarea name="merge_message_field" rows="5" :placeholder="mergeForm.mergeMessageFieldPlaceHolder" v-model="mergeMessageFieldValue"/>
+            <template v-if="mergeMessageFieldValue !== mergeForm.defaultMergeMessage">
+              <button @click.prevent="clearMergeMessage" class="ui tertiary button">
+                {{ mergeForm.textClearMergeMessage }}
+              </button>
+              <div class="ui label"><!-- TODO: Convert to tooltip once we can use tooltips in Vue templates -->
+                {{ mergeForm.textClearMergeMessageHint }}
+              </div>
+            </template>
           </div>
         </template>
 
@@ -173,6 +181,9 @@ export default {
     switchMergeStyle(name, autoMerge = false) {
       this.mergeStyle = name;
       this.autoMergeWhenSucceed = autoMerge;
+    },
+    clearMergeMessage() {
+      this.mergeMessageFieldValue = this.mergeForm.defaultMergeMessage;
     },
   },
 };

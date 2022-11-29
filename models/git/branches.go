@@ -1,6 +1,5 @@
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -270,7 +269,7 @@ type WhitelistOptions struct {
 // to avoid unnecessary whitelist delete and regenerate.
 func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, protectBranch *ProtectedBranch, opts WhitelistOptions) (err error) {
 	if err = repo.GetOwner(ctx); err != nil {
-		return fmt.Errorf("GetOwner: %v", err)
+		return fmt.Errorf("GetOwner: %w", err)
 	}
 
 	whitelist, err := updateUserWhitelist(ctx, repo, protectBranch.WhitelistUserIDs, opts.UserIDs)
@@ -313,13 +312,13 @@ func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, prote
 	// Make sure protectBranch.ID is not 0 for whitelists
 	if protectBranch.ID == 0 {
 		if _, err = db.GetEngine(ctx).Insert(protectBranch); err != nil {
-			return fmt.Errorf("Insert: %v", err)
+			return fmt.Errorf("Insert: %w", err)
 		}
 		return nil
 	}
 
 	if _, err = db.GetEngine(ctx).ID(protectBranch.ID).AllCols().Update(protectBranch); err != nil {
-		return fmt.Errorf("Update: %v", err)
+		return fmt.Errorf("Update: %w", err)
 	}
 
 	return nil
@@ -378,11 +377,11 @@ func updateUserWhitelist(ctx context.Context, repo *repo_model.Repository, curre
 	for _, userID := range newWhitelist {
 		user, err := user_model.GetUserByIDCtx(ctx, userID)
 		if err != nil {
-			return nil, fmt.Errorf("GetUserByID [user_id: %d, repo_id: %d]: %v", userID, repo.ID, err)
+			return nil, fmt.Errorf("GetUserByID [user_id: %d, repo_id: %d]: %w", userID, repo.ID, err)
 		}
 		perm, err := access_model.GetUserRepoPermission(ctx, repo, user)
 		if err != nil {
-			return nil, fmt.Errorf("GetUserRepoPermission [user_id: %d, repo_id: %d]: %v", userID, repo.ID, err)
+			return nil, fmt.Errorf("GetUserRepoPermission [user_id: %d, repo_id: %d]: %w", userID, repo.ID, err)
 		}
 
 		if !perm.CanWrite(unit.TypeCode) {
@@ -405,7 +404,7 @@ func updateTeamWhitelist(ctx context.Context, repo *repo_model.Repository, curre
 
 	teams, err := organization.GetTeamsWithAccessToRepo(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead)
 	if err != nil {
-		return nil, fmt.Errorf("GetTeamsWithAccessToRepo [org_id: %d, repo_id: %d]: %v", repo.OwnerID, repo.ID, err)
+		return nil, fmt.Errorf("GetTeamsWithAccessToRepo [org_id: %d, repo_id: %d]: %w", repo.OwnerID, repo.ID, err)
 	}
 
 	whitelist = make([]int64, 0, len(teams))
@@ -544,7 +543,7 @@ func FindRenamedBranch(repoID int64, from string) (branch *RenamedBranch, exist 
 
 // RenameBranch rename a branch
 func RenameBranch(repo *repo_model.Repository, from, to string, gitAction func(isDefault bool) error) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

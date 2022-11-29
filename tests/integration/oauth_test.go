@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -84,6 +83,17 @@ func TestAuthorizeRedirectWithExistingGrant(t *testing.T) {
 	assert.Truef(t, len(u.Query().Get("code")) > 30, "authorization code '%s' should be longer then 30", u.Query().Get("code"))
 	u.RawQuery = ""
 	assert.Equal(t, "https://example.com/xyzzy", u.String())
+}
+
+func TestAuthorizePKCERequiredForPublicClient(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	req := NewRequest(t, "GET", "/login/oauth/authorize?client_id=ce5a1322-42a7-11ed-b878-0242ac120002&redirect_uri=http%3A%2F%2F127.0.0.1&response_type=code&state=thestate")
+	ctx := loginUser(t, "user1")
+	resp := ctx.MakeRequest(t, req, http.StatusSeeOther)
+	u, err := resp.Result().Location()
+	assert.NoError(t, err)
+	assert.Equal(t, "invalid_request", u.Query().Get("error"))
+	assert.Equal(t, "PKCE is required for public clients", u.Query().Get("error_description"))
 }
 
 func TestAccessTokenExchange(t *testing.T) {

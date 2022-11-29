@@ -200,7 +200,7 @@
 							{{else}}
 								<span class="ui text mr-3">{{.locale.Tr "repo.commits.signed_by_untrusted_user_unmatched"}}:</span>
 							{{end}}
-							{{avatar .Verification.SigningUser 28}}
+							{{avatar .Verification.SigningUser 28 "mr-3"}}
 							<a href="{{.Verification.SigningUser.HomeLink}}"><strong>{{.Verification.SigningUser.GetDisplayName}}</strong></a>
 						{{else}}
 							<span title="{{.locale.Tr "gpg.default_key"}}">{{svg "gitea-lock-cog" 16 "mr-3"}}</span>

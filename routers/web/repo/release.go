@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -46,11 +45,11 @@ func calReleaseNumCommitsBehind(repoCtx *context.Repository, release *repo_model
 		if repoCtx.GitRepo.IsBranchExist(release.Target) {
 			commit, err := repoCtx.GitRepo.GetBranchCommit(release.Target)
 			if err != nil {
-				return fmt.Errorf("GetBranchCommit: %v", err)
+				return fmt.Errorf("GetBranchCommit: %w", err)
 			}
 			countCache[release.Target], err = commit.CommitsCount()
 			if err != nil {
-				return fmt.Errorf("CommitsCount: %v", err)
+				return fmt.Errorf("CommitsCount: %w", err)
 			}
 		} else {
 			// Use NumCommits of the newest release on that target
@@ -130,7 +129,7 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 		opts.IncludeDrafts = writeAccess
 	}
 
-	releases, err := repo_model.GetReleasesByRepoID(ctx.Repo.Repository.ID, opts)
+	releases, err := repo_model.GetReleasesByRepoID(ctx, ctx.Repo.Repository.ID, opts)
 	if err != nil {
 		ctx.ServerError("GetReleasesByRepoID", err)
 		return
@@ -266,7 +265,7 @@ func LatestRelease(ctx *context.Context) {
 		return
 	}
 
-	if err := release.LoadAttributes(); err != nil {
+	if err := release.LoadAttributes(ctx); err != nil {
 		ctx.ServerError("LoadAttributes", err)
 		return
 	}
@@ -289,7 +288,7 @@ func NewRelease(ctx *context.Context) {
 
 		if rel != nil {
 			rel.Repo = ctx.Repo.Repository
-			if err := rel.LoadAttributes(); err != nil {
+			if err := rel.LoadAttributes(ctx); err != nil {
 				ctx.ServerError("LoadAttributes", err)
 				return
 			}
@@ -454,7 +453,7 @@ func EditRelease(ctx *context.Context) {
 	ctx.Data["IsDraft"] = rel.IsDraft
 
 	rel.Repo = ctx.Repo.Repository
-	if err := rel.LoadAttributes(); err != nil {
+	if err := rel.LoadAttributes(ctx); err != nil {
 		ctx.ServerError("LoadAttributes", err)
 		return
 	}

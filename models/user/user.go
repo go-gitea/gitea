@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -29,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/validation"
 
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/bcrypt"
@@ -401,7 +401,7 @@ func hashPassword(passwd, salt, algo string) (string, error) {
 		tempPasswd = pbkdf2.Key([]byte(passwd), saltBytes, 10000, 50, sha256.New)
 	}
 
-	return fmt.Sprintf("%x", tempPasswd), nil
+	return hex.EncodeToString(tempPasswd), nil
 }
 
 // SetPassword hashes a password using the algorithm defined in the config value of PASSWORD_HASH_ALGO
@@ -621,7 +621,7 @@ var (
 // IsUsableUsername returns an error when a username is reserved
 func IsUsableUsername(name string) error {
 	// Validate username make sure it satisfies requirement.
-	if db.AlphaDashDotPattern.MatchString(name) {
+	if !validation.IsValidUsername(name) {
 		// Note: usually this error is normally caught up earlier in the UI
 		return db.ErrNameCharsNotAllowed{Name: name}
 	}
@@ -694,7 +694,7 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 		return err
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -813,7 +813,7 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -827,12 +827,12 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 	}
 
 	if _, err = db.GetEngine(ctx).Exec("UPDATE `repository` SET owner_name=? WHERE owner_name=?", newUserName, oldUserName); err != nil {
-		return fmt.Errorf("Change repo owner name: %v", err)
+		return fmt.Errorf("Change repo owner name: %w", err)
 	}
 
 	// Do not fail if directory does not exist
 	if err = util.Rename(UserPath(oldUserName), UserPath(newUserName)); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("Rename user directory: %v", err)
+		return fmt.Errorf("Rename user directory: %w", err)
 	}
 
 	if err = NewUserRedirect(ctx, u.ID, oldUserName, newUserName); err != nil {
@@ -956,7 +956,7 @@ func UpdateUserCols(ctx context.Context, u *User, cols ...string) error {
 
 // UpdateUserSetting updates user's settings.
 func UpdateUserSetting(u *User) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -1041,14 +1041,15 @@ func GetUserEmailsByNames(ctx context.Context, names []string) []string {
 }
 
 // GetMaileableUsersByIDs gets users from ids, but only if they can receive mails
-func GetMaileableUsersByIDs(ids []int64, isMention bool) ([]*User, error) {
+func GetMaileableUsersByIDs(ctx context.Context, ids []int64, isMention bool) ([]*User, error) {
 	if len(ids) == 0 {
 		return nil, nil
 	}
 	ous := make([]*User, 0, len(ids))
 
 	if isMention {
-		return ous, db.GetEngine(db.DefaultContext).In("id", ids).
+		return ous, db.GetEngine(ctx).
+			In("id", ids).
 			Where("`type` = ?", UserTypeIndividual).
 			And("`prohibit_login` = ?", false).
 			And("`is_active` = ?", true).
@@ -1056,7 +1057,8 @@ func GetMaileableUsersByIDs(ids []int64, isMention bool) ([]*User, error) {
 			Find(&ous)
 	}
 
-	return ous, db.GetEngine(db.DefaultContext).In("id", ids).
+	return ous, db.GetEngine(ctx).
+		In("id", ids).
 		Where("`type` = ?", UserTypeIndividual).
 		And("`prohibit_login` = ?", false).
 		And("`is_active` = ?", true).
@@ -1089,10 +1091,10 @@ func GetUserNameByID(ctx context.Context, id int64) (string, error) {
 }
 
 // GetUserIDsByNames returns a slice of ids corresponds to names.
-func GetUserIDsByNames(names []string, ignoreNonExistent bool) ([]int64, error) {
+func GetUserIDsByNames(ctx context.Context, names []string, ignoreNonExistent bool) ([]int64, error) {
 	ids := make([]int64, 0, len(names))
 	for _, name := range names {
-		u, err := GetUserByName(db.DefaultContext, name)
+		u, err := GetUserByName(ctx, name)
 		if err != nil {
 			if ignoreNonExistent {
 				continue

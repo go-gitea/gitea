@@ -227,7 +227,7 @@
       border-right: none;
     }
 
-    #download-btn {
+    #more-btn {
       border-left: none;
     }
 
@@ -548,7 +548,7 @@
             position: absolute;
             top: 9px;
             left: 10px;
-            color: #b0c4ce;
+            color: var(--color-grey);
           }
         }
       }
@@ -829,7 +829,7 @@
 
         .timeline-avatar {
           position: absolute;
-          left: -72px;
+          left: -68px;
 
           img {
             width: 40px !important;
@@ -846,7 +846,6 @@
         .avatar img {
           width: 20px;
           height: 20px;
-          margin: 0 .25rem;
           vertical-align: middle;
         }
 
@@ -916,8 +915,8 @@
                 border: 1px solid var(--color-light-border);
 
                 &.isSigned.isWarning {
-                  border: 1px solid #db2828;
-                  background: fade(#db2828, 10%);
+                  border: 1px solid var(--color-red-badge);
+                  background: var(--color-red-badge-bg);
 
                   .shortsha {
                     display: inline-block;
@@ -925,13 +924,13 @@
                   }
 
                   &:hover {
-                    background: fade(#db2828, 30%) !important;
+                    background: var(--color-red-badge-hover-bg) !important;
                   }
                 }
 
                 &.isSigned.isVerified {
-                  border: 1px solid #21ba45;
-                  background: fade(#21ba45, 10%);
+                  border: 1px solid var(--color-green-badge);
+                  background: var(--color-green-badge-bg);
 
                   .shortsha {
                     display: inline-block;
@@ -939,13 +938,13 @@
                   }
 
                   &:hover {
-                    background: fade(#21ba45, 30%) !important;
+                    background: var(--color-green-badge-hover-bg) !important;
                   }
                 }
 
                 &.isSigned.isVerifiedUntrusted {
-                  border: 1px solid #fbbd08;
-                  background: fade(#fbbd08, 10%);
+                  border: 1px solid var(--color-yellow-badge);
+                  background: var(--color-yellow-badge-bg);
 
                   .shortsha {
                     display: inline-block;
@@ -953,13 +952,13 @@
                   }
 
                   &:hover {
-                    background: fade(#fbbd08, 30%) !important;
+                    background: var(--color-yellow-badge-hover-bg) !important;
                   }
                 }
 
                 &.isSigned.isVerifiedUnmatched {
-                  border: 1px solid #f2711c;
-                  background: fade(#f2711c, 10%);
+                  border: 1px solid var(--color-orange-badge);
+                  background: var(--color-orange-badge-bg);
 
                   .shortsha {
                     display: inline-block;
@@ -967,7 +966,7 @@
                   }
 
                   &:hover {
-                    background: fade(#f2711c, 30%) !important;
+                    background: var(--color-orange-badge-hover-bg) !important;
                   }
                 }
               }
@@ -979,10 +978,6 @@
           float: right;
           margin-right: 8px;
           margin-top: 4px;
-        }
-
-        .author {
-          font-weight: 600;
         }
 
         .comment-form-reply .footer {
@@ -1126,7 +1121,10 @@
         .comment-content {
           margin-left: 36px;
         }
+      }
 
+      .code-comment,
+      .comment {
         img.avatar {
           width: 28px;
           height: 28px;
@@ -1162,9 +1160,12 @@
         padding-left: 15px;
 
         .detail {
-          font-size: .9rem;
-          margin-top: 5px;
-          margin-left: 8px;
+          margin-top: 4px;
+          margin-left: 14px;
+
+          .svg {
+            margin-right: 2px;
+          }
         }
 
         .segments {
@@ -1432,8 +1433,8 @@
     }
 
     &.isSigned.isWarning {
-      border: 1px solid #db2828;
-      background: fade(#db2828, 10%);
+      border: 1px solid var(--color-red-badge);
+      background: var(--color-red-badge-bg);
 
       .shortsha {
         display: inline-block;
@@ -1441,18 +1442,18 @@
       }
 
       .detail.icon {
-        border-left: 1px solid #db2828;
-        color: #db2828;
+        border-left: 1px solid var(--color-red-badge);
+        color: var(--color-red-badge);
       }
 
       &:hover {
-        background: fade(#db2828, 30%) !important;
+        background: var(--color-red-badge-hover-bg) !important;
       }
     }
 
     &.isSigned.isVerified {
-      border: 1px solid #21ba45;
-      background: fade(#21ba45, 10%);
+      border: 1px solid var(--color-green-badge);
+      background: var(--color-green-badge-bg);
 
       .shortsha {
         display: inline-block;
@@ -1460,18 +1461,18 @@
       }
 
       .detail.icon {
-        border-left: 1px solid #21ba45;
-        color: #21ba45;
+        border-left: 1px solid var(--color-green-badge);
+        color: var(--color-green-badge);
       }
 
       &:hover {
-        background: fade(#21ba45, 30%) !important;
+        background: var(--color-green-badge-hover-bg) !important;
       }
     }
 
     &.isSigned.isVerifiedUntrusted {
-      border: 1px solid #fbbd08;
-      background: fade(#fbbd08, 10%);
+      border: 1px solid var(--color-yellow-badge);
+      background: var(--color-yellow-badge-bg);
 
       .shortsha {
         display: inline-block;
@@ -1479,18 +1480,18 @@
       }
 
       .detail.icon {
-        border-left: 1px solid #fbbd08;
-        color: #fbbd08;
+        border-left: 1px solid var(--color-yellow-badge);
+        color: var(--color-yellow-badge);
       }
 
       &:hover {
-        background: fade(#fbbd08, 30%) !important;
+        background: var(--color-yellow-badge-hover-bg) !important;
       }
     }
 
     &.isSigned.isVerifiedUnmatched {
-      border: 1px solid #f2711c;
-      background: fade(#f2711c, 10%);
+      border: 1px solid var(--color-orange-badge);
+      background: var(--color-orange-badge-bg);
 
       .shortsha {
         display: inline-block;
@@ -1498,12 +1499,12 @@
       }
 
       .detail.icon {
-        border-left: 1px solid #f2711c;
-        color: #f2711c;
+        border-left: 1px solid var(--color-orange-badge);
+        color: var(--color-orange-badge);
       }
 
       &:hover {
-        background: fade(#f2711c, 30%) !important;
+        background: var(--color-orange-badge-hover-bg) !important;
       }
     }
   }
@@ -2465,6 +2466,56 @@
 
 // End of .repository
 
+#cite-repo-modal {
+  #citation-panel {
+    width: 500px;
+
+    @media @mediaSm {
+      width: 100%;
+    }
+
+    input {
+      border-radius: 0;
+      padding: 5px 10px;
+      width: 50%;
+      line-height: 1.4;
+    }
+
+    .citation.button {
+      font-size: 13px;
+      padding: 7.5px 5px;
+    }
+
+    #citation-copy-content {
+      border-radius: 0;
+      padding: 5px 10px;
+      font-size: 1.2em;
+      line-height: 1.4;
+    }
+
+    #citation-copy-apa,
+    #citation-copy-bibtex {
+      border-right: none;
+    }
+
+    #goto-citation-btn {
+      border-left: none;
+    }
+
+    >:first-child {
+      border-radius: var(--border-radius) 0 0 var(--border-radius) !important;
+    }
+
+    >:last-child {
+      border-radius: 0 var(--border-radius) var(--border-radius) 0 !important;
+    }
+
+    .icon.button {
+      padding: 0 10px;
+    }
+  }
+}
+
 &.user-cards {
   .list {
     padding: 0;
@@ -2561,12 +2612,18 @@
     }
   }
 
+  &.webhooks .list > .item:not(:first-child),
+  &.githooks .list > .item:not(:first-child) {
+    padding: .25rem 1rem;
+    margin: 12px -1rem -1rem;
+  }
+
   .list {
     > .item {
       &:not(:first-child) {
         border-top: 1px solid var(--color-secondary);
         padding: 1rem;
-        margin: 15px -1rem -1rem;
+        margin: 16px -1rem -1rem;
       }
 
       > .svg {
@@ -2670,12 +2727,10 @@
 
   a {
     color: var(--color-text);
-    text-decoration: none;
   }
 
   a:hover {
     color: var(--color-primary);
-    text-decoration: none;
   }
 }
 
@@ -2802,6 +2857,11 @@
 
 .repo-button-row > * {
   margin-top: 10px;
+}
+
+.repo-button-row .dropdown > .dropdown.icon {
+  margin-left: .25rem !important;
+  margin-right: 0 !important;
 }
 
 .wiki .repo-button-row {
@@ -3261,7 +3321,8 @@ td.blob-excerpt {
   background: var(--color-diff-inactive);
 }
 
-.code-diff-split tbody tr td:nth-child(5) {
+.code-diff-split tbody tr td:nth-child(5),
+.code-diff-split tbody tr td.add-comment-right {
   border-left: 1px solid var(--color-secondary);
 }
 
@@ -3466,5 +3527,43 @@ td.blob-excerpt {
   }
   @media @mediaSm {
     max-width: 165px;
+  }
+}
+
+.pr-status {
+  padding: 0 !important; // To clear fomantic's padding on .ui.segment elements
+  display: flex;
+  align-items: center;
+
+  .commit-status {
+    margin: 1em;
+    flex-shrink: 0;
+  }
+
+  .status-context {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+
+    > span {
+      padding: 1em 0;
+    }
+  }
+
+  .status-details {
+    display: flex;
+    padding-right: .5em;
+    align-items: center;
+    justify-content: flex-end;
+
+    @media @mediaSm {
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    > span {
+      padding-right: .5em; // To match the alignment with the "required" label
+    }
   }
 }

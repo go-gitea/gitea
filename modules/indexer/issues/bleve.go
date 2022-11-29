@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -40,7 +39,7 @@ func indexerID(id int64) string {
 func idOfIndexerID(indexerID string) (int64, error) {
 	id, err := strconv.ParseInt(indexerID, 36, 64)
 	if err != nil {
-		return 0, fmt.Errorf("Unexpected indexer ID %s: %v", indexerID, err)
+		return 0, fmt.Errorf("Unexpected indexer ID %s: %w", indexerID, err)
 	}
 	return id, nil
 }

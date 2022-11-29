@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -236,14 +235,6 @@ func (repo *Repository) AfterLoad() {
 	repo.NumOpenProjects = repo.NumProjects - repo.NumClosedProjects
 }
 
-// MustOwner always returns a valid *user_model.User object to avoid
-// conceptually impossible error handling.
-// It creates a fake object that contains error details
-// when error occurs.
-func (repo *Repository) MustOwner() *user_model.User {
-	return repo.mustOwner(db.DefaultContext)
-}
-
 // LoadAttributes loads attributes of the repository.
 func (repo *Repository) LoadAttributes(ctx context.Context) error {
 	// Load owner
@@ -403,7 +394,11 @@ func (repo *Repository) GetOwner(ctx context.Context) (err error) {
 	return err
 }
 
-func (repo *Repository) mustOwner(ctx context.Context) *user_model.User {
+// MustOwner always returns a valid *user_model.User object to avoid
+// conceptually impossible error handling.
+// It creates a fake object that contains error details
+// when error occurs.
+func (repo *Repository) MustOwner(ctx context.Context) *user_model.User {
 	if err := repo.GetOwner(ctx); err != nil {
 		return &user_model.User{
 			Name:     "error",
@@ -438,7 +433,7 @@ func (repo *Repository) ComposeMetas() map[string]string {
 			}
 		}
 
-		repo.MustOwner()
+		repo.MustOwner(db.DefaultContext)
 		if repo.Owner.IsOrganization() {
 			teams := make([]string, 0, 5)
 			_ = db.GetEngine(db.DefaultContext).Table("team_repo").
@@ -760,50 +755,45 @@ func CountRepositories(ctx context.Context, opts CountRepositoryOptions) (int64,
 
 	count, err := sess.Count(new(Repository))
 	if err != nil {
-		return 0, fmt.Errorf("countRepositories: %v", err)
+		return 0, fmt.Errorf("countRepositories: %w", err)
 	}
 	return count, nil
 }
 
-// StatsCorrectNumClosed update repository's issue related numbers
-func StatsCorrectNumClosed(ctx context.Context, id int64, isPull bool, field string) error {
-	_, err := db.Exec(ctx, "UPDATE `repository` SET "+field+"=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, isPull, id)
+// UpdateRepoIssueNumbers updates one of a repositories amount of (open|closed) (issues|PRs) with the current count
+func UpdateRepoIssueNumbers(ctx context.Context, repoID int64, isPull, isClosed bool) error {
+	field := "num_"
+	if isClosed {
+		field += "closed_"
+	}
+	if isPull {
+		field += "pulls"
+	} else {
+		field += "issues"
+	}
+
+	subQuery := builder.Select("count(*)").
+		From("issue").Where(builder.Eq{
+		"repo_id": repoID,
+		"is_pull": isPull,
+	}.And(builder.If(isClosed, builder.Eq{"is_closed": isClosed})))
+
+	// builder.Update(cond) will generate SQL like UPDATE ... SET cond
+	query := builder.Update(builder.Eq{field: subQuery}).
+		From("repository").
+		Where(builder.Eq{"id": repoID})
+	_, err := db.Exec(ctx, query)
 	return err
 }
 
-// UpdateRepoIssueNumbers update repository issue numbers
-func UpdateRepoIssueNumbers(ctx context.Context, repoID int64, isPull, isClosed bool) error {
-	e := db.GetEngine(ctx)
-	if isPull {
-		if _, err := e.ID(repoID).Decr("num_pulls").Update(new(Repository)); err != nil {
-			return err
-		}
-		if isClosed {
-			if _, err := e.ID(repoID).Decr("num_closed_pulls").Update(new(Repository)); err != nil {
-				return err
-			}
-		}
-	} else {
-		if _, err := e.ID(repoID).Decr("num_issues").Update(new(Repository)); err != nil {
-			return err
-		}
-		if isClosed {
-			if _, err := e.ID(repoID).Decr("num_closed_issues").Update(new(Repository)); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
 // CountNullArchivedRepository counts the number of repositories with is_archived is null
-func CountNullArchivedRepository() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(builder.IsNull{"is_archived"}).Count(new(Repository))
+func CountNullArchivedRepository(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).Where(builder.IsNull{"is_archived"}).Count(new(Repository))
 }
 
 // FixNullArchivedRepository sets is_archived to false where it is null
-func FixNullArchivedRepository() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(builder.IsNull{"is_archived"}).Cols("is_archived").NoAutoTime().Update(&Repository{
+func FixNullArchivedRepository(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).Where(builder.IsNull{"is_archived"}).Cols("is_archived").NoAutoTime().Update(&Repository{
 		IsArchived: false,
 	})
 }

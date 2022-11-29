@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package web
 
@@ -28,7 +27,6 @@ import (
 	"code.gitea.io/gitea/modules/web/routing"
 	"code.gitea.io/gitea/routers/web/admin"
 	"code.gitea.io/gitea/routers/web/auth"
-	"code.gitea.io/gitea/routers/web/dev"
 	"code.gitea.io/gitea/routers/web/events"
 	"code.gitea.io/gitea/routers/web/explore"
 	"code.gitea.io/gitea/routers/web/feed"
@@ -68,6 +66,7 @@ func CorsHandler() func(next http.Handler) http.Handler {
 			// setting.CORSConfig.AllowSubdomain // FIXME: the cors middleware needs allowSubdomain option
 			AllowedMethods:   setting.CORSConfig.Methods,
 			AllowCredentials: setting.CORSConfig.AllowCredentials,
+			AllowedHeaders:   setting.CORSConfig.Headers,
 			MaxAge:           int(setting.CORSConfig.MaxAge.Seconds()),
 		})
 	}
@@ -296,12 +295,33 @@ func RegisterRoutes(m *web.Route) {
 		}
 	}
 
+	sitemapEnabled := func(ctx *context.Context) {
+		if !setting.EnableSitemap {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+	}
+
+	packagesEnabled := func(ctx *context.Context) {
+		if !setting.Packages.Enabled {
+			ctx.Error(http.StatusForbidden)
+			return
+		}
+	}
+
+	feedEnabled := func(ctx *context.Context) {
+		if !setting.EnableFeed {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+	}
+
 	// FIXME: not all routes need go through same middleware.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 	// Routers.
 	// for health check
 	m.Get("/", Home)
-	m.Get("/sitemap.xml", ignExploreSignIn, HomeSitemap)
+	m.Get("/sitemap.xml", sitemapEnabled, ignExploreSignIn, HomeSitemap)
 	m.Group("/.well-known", func() {
 		m.Get("/openid-configuration", auth.OIDCWellKnown)
 		m.Group("", func() {
@@ -318,9 +338,9 @@ func RegisterRoutes(m *web.Route) {
 			ctx.Redirect(setting.AppSubURL + "/explore/repos")
 		})
 		m.Get("/repos", explore.Repos)
-		m.Get("/repos/sitemap-{idx}.xml", explore.Repos)
+		m.Get("/repos/sitemap-{idx}.xml", sitemapEnabled, explore.Repos)
 		m.Get("/users", explore.Users)
-		m.Get("/users/sitemap-{idx}.xml", explore.Users)
+		m.Get("/users/sitemap-{idx}.xml", sitemapEnabled, explore.Users)
 		m.Get("/organizations", explore.Organizations)
 		m.Get("/code", explore.Code)
 		m.Get("/topics/search", explore.TopicSearch)
@@ -436,12 +456,27 @@ func RegisterRoutes(m *web.Route) {
 		m.Combo("/keys").Get(user_setting.Keys).
 			Post(bindIgnErr(forms.AddKeyForm{}), user_setting.KeysPost)
 		m.Post("/keys/delete", user_setting.DeleteKey)
+		m.Group("/packages", func() {
+			m.Get("", user_setting.Packages)
+			m.Group("/rules", func() {
+				m.Group("/add", func() {
+					m.Get("", user_setting.PackagesRuleAdd)
+					m.Post("", bindIgnErr(forms.PackageCleanupRuleForm{}), user_setting.PackagesRuleAddPost)
+				})
+				m.Group("/{id}", func() {
+					m.Get("", user_setting.PackagesRuleEdit)
+					m.Post("", bindIgnErr(forms.PackageCleanupRuleForm{}), user_setting.PackagesRuleEditPost)
+					m.Get("/preview", user_setting.PackagesRulePreview)
+				})
+			})
+		}, packagesEnabled)
 		m.Get("/organization", user_setting.Organization)
 		m.Get("/repos", user_setting.Repos)
 		m.Post("/repos/unadopted", user_setting.AdoptOrDeleteRepository)
 	}, reqSignIn, func(ctx *context.Context) {
 		ctx.Data["PageIsUserSettings"] = true
 		ctx.Data["AllThemes"] = setting.UI.Themes
+		ctx.Data["EnablePackages"] = setting.Packages.Enabled
 	})
 
 	m.Group("/user", func() {
@@ -519,12 +554,10 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/delete", admin.DeleteRepo)
 		})
 
-		if setting.Packages.Enabled {
-			m.Group("/packages", func() {
-				m.Get("", admin.Packages)
-				m.Post("/delete", admin.DeletePackageVersion)
-			})
-		}
+		m.Group("/packages", func() {
+			m.Get("", admin.Packages)
+			m.Post("/delete", admin.DeletePackageVersion)
+		}, packagesEnabled)
 
 		m.Group("/hooks", func() {
 			m.Get("", admin.DefaultOrSystemWebhooks)
@@ -597,24 +630,25 @@ func RegisterRoutes(m *web.Route) {
 
 	m.Group("", func() {
 		m.Get("/favicon.ico", func(ctx *context.Context) {
-			ctx.ServeFile(path.Join(setting.StaticRootPath, "public/img/favicon.png"))
+			ctx.SetServeHeaders(&context.ServeHeaderOptions{
+				Filename: "favicon.png",
+			})
+			http.ServeFile(ctx.Resp, ctx.Req, path.Join(setting.StaticRootPath, "public/img/favicon.png"))
 		})
 		m.Group("/{username}", func() {
 			m.Get(".png", func(ctx *context.Context) { ctx.Error(http.StatusNotFound) })
 			m.Get(".keys", user.ShowSSHKeys)
 			m.Get(".gpg", user.ShowGPGKeys)
-			m.Get(".rss", feed.ShowUserFeedRSS)
-			m.Get(".atom", feed.ShowUserFeedAtom)
+			m.Get(".rss", feedEnabled, feed.ShowUserFeedRSS)
+			m.Get(".atom", feedEnabled, feed.ShowUserFeedAtom)
 			m.Get("", user.Profile)
+		}, func(ctx *context.Context) {
+			ctx.Data["EnableFeed"] = setting.EnableFeed
 		}, context_service.UserAssignmentWeb())
 		m.Get("/attachments/{uuid}", repo.GetAttachment)
 	}, ignSignIn)
 
 	m.Post("/{username}", reqSignIn, context_service.UserAssignmentWeb(), user.Action)
-
-	if !setting.IsProd {
-		m.Get("/template/*", dev.TemplatePreview)
-	}
 
 	reqRepoAdmin := context.RequireRepoAdmin()
 	reqRepoCodeWriter := context.RequireRepoWriter(unit.TypeCode)
@@ -744,8 +778,24 @@ func RegisterRoutes(m *web.Route) {
 				})
 
 				m.Route("/delete", "GET,POST", org.SettingsDelete)
+
+				m.Group("/packages", func() {
+					m.Get("", org.Packages)
+					m.Group("/rules", func() {
+						m.Group("/add", func() {
+							m.Get("", org.PackagesRuleAdd)
+							m.Post("", bindIgnErr(forms.PackageCleanupRuleForm{}), org.PackagesRuleAddPost)
+						})
+						m.Group("/{id}", func() {
+							m.Get("", org.PackagesRuleEdit)
+							m.Post("", bindIgnErr(forms.PackageCleanupRuleForm{}), org.PackagesRuleEditPost)
+							m.Get("/preview", org.PackagesRulePreview)
+						})
+					})
+				}, packagesEnabled)
 			}, func(ctx *context.Context) {
 				ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
+				ctx.Data["EnablePackages"] = setting.Packages.Enabled
 			})
 		}, context.OrgAssignment(true, true))
 	}, reqSignIn)

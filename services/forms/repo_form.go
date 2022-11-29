@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package forms
 
@@ -247,6 +246,7 @@ type WebhookForm struct {
 	Package              bool
 	Active               bool
 	BranchFilter         string `binding:"GlobPattern"`
+	AuthorizationHeader  string
 }
 
 // PushOnly if the hook will be triggered when push
@@ -359,7 +359,6 @@ func (f *NewTelegramHookForm) Validate(req *http.Request, errs binding.Errors) b
 type NewMatrixHookForm struct {
 	HomeserverURL string `binding:"Required;ValidUrl"`
 	RoomID        string `binding:"Required"`
-	AccessToken   string `binding:"Required"`
 	MessageType   int
 	WebhookForm
 }

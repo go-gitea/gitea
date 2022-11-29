@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package install
 
@@ -457,6 +456,7 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("service").Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").SetValue(fmt.Sprint(form.DefaultAllowCreateOrganization))
 	cfg.Section("service").Key("DEFAULT_ENABLE_TIMETRACKING").SetValue(fmt.Sprint(form.DefaultEnableTimetracking))
 	cfg.Section("service").Key("NO_REPLY_ADDRESS").SetValue(fmt.Sprint(form.NoReplyAddress))
+	cfg.Section("cron.update_checker").Key("ENABLED").SetValue(fmt.Sprint(form.EnableUpdateChecker))
 
 	cfg.Section("").Key("RUN_MODE").SetValue("prod")
 
@@ -473,12 +473,16 @@ func SubmitInstall(ctx *context.Context) {
 
 	cfg.Section("security").Key("INSTALL_LOCK").SetValue("true")
 
-	var internalToken string
-	if internalToken, err = generate.NewInternalToken(); err != nil {
-		ctx.RenderWithErr(ctx.Tr("install.internal_token_failed", err), tplInstall, &form)
-		return
+	// the internal token could be read from INTERNAL_TOKEN or INTERNAL_TOKEN_URI (the file is guaranteed to be non-empty)
+	// if there is no InternalToken, generate one and save to security.INTERNAL_TOKEN
+	if setting.InternalToken == "" {
+		var internalToken string
+		if internalToken, err = generate.NewInternalToken(); err != nil {
+			ctx.RenderWithErr(ctx.Tr("install.internal_token_failed", err), tplInstall, &form)
+			return
+		}
+		cfg.Section("security").Key("INTERNAL_TOKEN").SetValue(internalToken)
 	}
-	cfg.Section("security").Key("INTERNAL_TOKEN").SetValue(internalToken)
 
 	// if there is already a SECRET_KEY, we should not overwrite it, otherwise the encrypted data will not be able to be decrypted
 	if setting.SecretKey == "" {

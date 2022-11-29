@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migrations
 
@@ -398,7 +397,7 @@ func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 
 	issues, _, err := g.client.Issues.ListProjectIssues(g.repoID, opt, nil, gitlab.WithContext(g.ctx))
 	if err != nil {
-		return nil, false, fmt.Errorf("error while listing issues: %v", err)
+		return nil, false, fmt.Errorf("error while listing issues: %w", err)
 	}
 	for _, issue := range issues {
 
@@ -419,7 +418,7 @@ func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 		for {
 			awards, _, err := g.client.AwardEmoji.ListIssueAwardEmoji(g.repoID, issue.IID, &gitlab.ListAwardEmojiOptions{Page: awardPage, PerPage: perPage}, gitlab.WithContext(g.ctx))
 			if err != nil {
-				return nil, false, fmt.Errorf("error while listing issue awards: %v", err)
+				return nil, false, fmt.Errorf("error while listing issue awards: %w", err)
 			}
 
 			for i := range awards {
@@ -487,7 +486,7 @@ func (g *GitlabDownloader) GetComments(commentable base.Commentable) ([]*base.Co
 		}
 
 		if err != nil {
-			return nil, false, fmt.Errorf("error while listing comments: %v %v", g.repoID, err)
+			return nil, false, fmt.Errorf("error while listing comments: %v %w", g.repoID, err)
 		}
 		for _, comment := range comments {
 			// Flatten comment threads
@@ -541,7 +540,7 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 
 	prs, _, err := g.client.MergeRequests.ListProjectMergeRequests(g.repoID, opt, nil, gitlab.WithContext(g.ctx))
 	if err != nil {
-		return nil, false, fmt.Errorf("error while listing merge requests: %v", err)
+		return nil, false, fmt.Errorf("error while listing merge requests: %w", err)
 	}
 	for _, pr := range prs {
 
@@ -583,7 +582,7 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 		for {
 			awards, _, err := g.client.AwardEmoji.ListMergeRequestAwardEmoji(g.repoID, pr.IID, &gitlab.ListAwardEmojiOptions{Page: awardPage, PerPage: perPage}, gitlab.WithContext(g.ctx))
 			if err != nil {
-				return nil, false, fmt.Errorf("error while listing merge requests awards: %v", err)
+				return nil, false, fmt.Errorf("error while listing merge requests awards: %w", err)
 			}
 
 			for i := range awards {

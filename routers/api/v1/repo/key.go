@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -174,7 +173,7 @@ func HandleCheckKeyStringError(ctx *context.APIContext, err error) {
 	} else if asymkey_model.IsErrKeyUnableVerify(err) {
 		ctx.Error(http.StatusUnprocessableEntity, "", "Unable to verify key content")
 	} else {
-		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("Invalid key content: %v", err))
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("Invalid key content: %w", err))
 	}
 }
 

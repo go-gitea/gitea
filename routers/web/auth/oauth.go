@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package auth
 
@@ -22,7 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -303,7 +301,7 @@ func InfoOAuth(ctx *context.Context) {
 func getOAuthGroupsForUser(user *user_model.User) ([]string, error) {
 	orgs, err := org_model.GetUserOrgsList(user)
 	if err != nil {
-		return nil, fmt.Errorf("GetUserOrgList: %v", err)
+		return nil, fmt.Errorf("GetUserOrgList: %w", err)
 	}
 
 	var groups []string
@@ -311,7 +309,7 @@ func getOAuthGroupsForUser(user *user_model.User) ([]string, error) {
 		groups = append(groups, org.Name)
 		teams, err := org.LoadTeams()
 		if err != nil {
-			return nil, fmt.Errorf("LoadTeams: %v", err)
+			return nil, fmt.Errorf("LoadTeams: %w", err)
 		}
 		for _, team := range teams {
 			if team.IsMember(user.ID) {
@@ -438,8 +436,21 @@ func AuthorizeOAuth(ctx *context.Context) {
 			log.Error("Unable to save changes to the session: %v", err)
 		}
 	case "":
-		break
+		// "Authorization servers SHOULD reject authorization requests from native apps that don't use PKCE by returning an error message"
+		// https://datatracker.ietf.org/doc/html/rfc8252#section-8.1
+		if !app.ConfidentialClient {
+			// "the authorization endpoint MUST return the authorization error response with the "error" value set to "invalid_request""
+			// https://datatracker.ietf.org/doc/html/rfc7636#section-4.4.1
+			handleAuthorizeError(ctx, AuthorizeError{
+				ErrorCode:        ErrorCodeInvalidRequest,
+				ErrorDescription: "PKCE is required for public clients",
+				State:            form.State,
+			}, form.RedirectURI)
+			return
+		}
 	default:
+		// "If the server supporting PKCE does not support the requested transformation, the authorization endpoint MUST return the authorization error response with "error" value set to "invalid_request"."
+		// https://www.rfc-editor.org/rfc/rfc7636#section-4.4.1
 		handleAuthorizeError(ctx, AuthorizeError{
 			ErrorCode:        ErrorCodeInvalidRequest,
 			ErrorDescription: "unsupported code challenge method",
@@ -1014,16 +1025,11 @@ func setUserGroupClaims(loginSource *auth.Source, u *user_model.User, gothUser *
 }
 
 func showLinkingLogin(ctx *context.Context, gothUser goth.User) {
-	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
-		ctx.ServerError("RegenerateSession", err)
+	if err := updateSession(ctx, nil, map[string]interface{}{
+		"linkAccountGothUser": gothUser,
+	}); err != nil {
+		ctx.ServerError("updateSession", err)
 		return
-	}
-
-	if err := ctx.Session.Set("linkAccountGothUser", gothUser); err != nil {
-		log.Error("Error setting linkAccountGothUser in session: %v", err)
-	}
-	if err := ctx.Session.Release(); err != nil {
-		log.Error("Error storing session: %v", err)
 	}
 	ctx.Redirect(setting.AppSubURL + "/user/link_account")
 }
@@ -1062,19 +1068,12 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 	// If this user is enrolled in 2FA and this source doesn't override it,
 	// we can't sign the user in just yet. Instead, redirect them to the 2FA authentication page.
 	if !needs2FA {
-		if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
-			ctx.ServerError("RegenerateSession", err)
+		if err := updateSession(ctx, nil, map[string]interface{}{
+			"uid":   u.ID,
+			"uname": u.Name,
+		}); err != nil {
+			ctx.ServerError("updateSession", err)
 			return
-		}
-
-		if err := ctx.Session.Set("uid", u.ID); err != nil {
-			log.Error("Error setting uid in session: %v", err)
-		}
-		if err := ctx.Session.Set("uname", u.Name); err != nil {
-			log.Error("Error setting uname in session: %v", err)
-		}
-		if err := ctx.Session.Release(); err != nil {
-			log.Error("Error storing session: %v", err)
 		}
 
 		// Clear whatever CSRF cookie has right now, force to generate a new one
@@ -1125,20 +1124,13 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		}
 	}
 
-	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
-		ctx.ServerError("RegenerateSession", err)
+	if err := updateSession(ctx, nil, map[string]interface{}{
+		// User needs to use 2FA, save data and redirect to 2FA page.
+		"twofaUid":      u.ID,
+		"twofaRemember": false,
+	}); err != nil {
+		ctx.ServerError("updateSession", err)
 		return
-	}
-
-	// User needs to use 2FA, save data and redirect to 2FA page.
-	if err := ctx.Session.Set("twofaUid", u.ID); err != nil {
-		log.Error("Error setting twofaUid in session: %v", err)
-	}
-	if err := ctx.Session.Set("twofaRemember", false); err != nil {
-		log.Error("Error setting twofaRemember in session: %v", err)
-	}
-	if err := ctx.Session.Release(); err != nil {
-		log.Error("Error storing session: %v", err)
 	}
 
 	// If WebAuthn is enrolled -> Redirect to WebAuthn instead

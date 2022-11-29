@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -40,7 +39,7 @@ type Collaborator struct {
 func GetCollaborators(ctx context.Context, repoID int64, listOptions db.ListOptions) ([]*Collaborator, error) {
 	collaborations, err := getCollaborations(ctx, repoID, listOptions)
 	if err != nil {
-		return nil, fmt.Errorf("getCollaborations: %v", err)
+		return nil, fmt.Errorf("getCollaborations: %w", err)
 	}
 
 	collaborators := make([]*Collaborator, 0, len(collaborations))
@@ -114,7 +113,7 @@ func ChangeCollaborationAccessModeCtx(ctx context.Context, repo *Repository, uid
 	}
 	has, err := e.Get(collaboration)
 	if err != nil {
-		return fmt.Errorf("get collaboration: %v", err)
+		return fmt.Errorf("get collaboration: %w", err)
 	} else if !has {
 		return nil
 	}
@@ -128,9 +127,9 @@ func ChangeCollaborationAccessModeCtx(ctx context.Context, repo *Repository, uid
 		ID(collaboration.ID).
 		Cols("mode").
 		Update(collaboration); err != nil {
-		return fmt.Errorf("update collaboration: %v", err)
+		return fmt.Errorf("update collaboration: %w", err)
 	} else if _, err = e.Exec("UPDATE access SET mode = ? WHERE user_id = ? AND repo_id = ?", mode, uid, repo.ID); err != nil {
-		return fmt.Errorf("update access table: %v", err)
+		return fmt.Errorf("update access table: %w", err)
 	}
 
 	return nil
@@ -138,7 +137,7 @@ func ChangeCollaborationAccessModeCtx(ctx context.Context, repo *Repository, uid
 
 // ChangeCollaborationAccessMode sets new access mode for the collaboration.
 func ChangeCollaborationAccessMode(repo *Repository, uid int64, mode perm.AccessMode) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

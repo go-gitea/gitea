@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues_test
 
@@ -71,22 +70,22 @@ func TestMakeIDsFromAPIAssigneesToAdd(t *testing.T) {
 	_ = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	_ = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	IDs, err := issues_model.MakeIDsFromAPIAssigneesToAdd("", []string{""})
+	IDs, err := issues_model.MakeIDsFromAPIAssigneesToAdd(db.DefaultContext, "", []string{""})
 	assert.NoError(t, err)
 	assert.Equal(t, []int64{}, IDs)
 
-	_, err = issues_model.MakeIDsFromAPIAssigneesToAdd("", []string{"none_existing_user"})
+	_, err = issues_model.MakeIDsFromAPIAssigneesToAdd(db.DefaultContext, "", []string{"none_existing_user"})
 	assert.Error(t, err)
 
-	IDs, err = issues_model.MakeIDsFromAPIAssigneesToAdd("user1", []string{"user1"})
+	IDs, err = issues_model.MakeIDsFromAPIAssigneesToAdd(db.DefaultContext, "user1", []string{"user1"})
 	assert.NoError(t, err)
 	assert.Equal(t, []int64{1}, IDs)
 
-	IDs, err = issues_model.MakeIDsFromAPIAssigneesToAdd("user2", []string{""})
+	IDs, err = issues_model.MakeIDsFromAPIAssigneesToAdd(db.DefaultContext, "user2", []string{""})
 	assert.NoError(t, err)
 	assert.Equal(t, []int64{2}, IDs)
 
-	IDs, err = issues_model.MakeIDsFromAPIAssigneesToAdd("", []string{"user1", "user2"})
+	IDs, err = issues_model.MakeIDsFromAPIAssigneesToAdd(db.DefaultContext, "", []string{"user1", "user2"})
 	assert.NoError(t, err)
 	assert.Equal(t, []int64{1, 2}, IDs)
 }
