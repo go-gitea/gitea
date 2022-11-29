@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 )
 
-type FileMeta struct {
+type dbfsMeta struct {
 	ID              int64  `xorm:"pk autoincr"`
 	FullPath        string `xorm:"VARCHAR(500) UNIQUE NOT NULL"`
 	BlockSize       int64  `xorm:"BIGINT NOT NULL"`
@@ -20,7 +20,7 @@ type FileMeta struct {
 	ModifyTimestamp int64  `xorm:"BIGINT NOT NULL"`
 }
 
-type FileData struct {
+type dbfsData struct {
 	ID         int64  `xorm:"pk autoincr"`
 	Revision   int64  `xorm:"BIGINT NOT NULL"`
 	MetaID     int64  `xorm:"BIGINT index(meta_offset) NOT NULL"`
@@ -30,8 +30,8 @@ type FileData struct {
 }
 
 func init() {
-	db.RegisterModel(new(FileMeta))
-	db.RegisterModel(new(FileData))
+	db.RegisterModel(new(dbfsMeta))
+	db.RegisterModel(new(dbfsData))
 }
 
 func OpenFile(ctx context.Context, name string, flag int) (File, error) {

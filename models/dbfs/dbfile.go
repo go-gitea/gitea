@@ -37,7 +37,7 @@ type file struct {
 
 var _ File = (*file)(nil)
 
-func (f *file) readAt(fileMeta *FileMeta, offset int64, p []byte) (n int, err error) {
+func (f *file) readAt(fileMeta *dbfsMeta, offset int64, p []byte) (n int, err error) {
 	if offset >= fileMeta.FileSize {
 		return 0, io.EOF
 	}
@@ -55,7 +55,7 @@ func (f *file) readAt(fileMeta *FileMeta, offset int64, p []byte) (n int, err er
 	if needRead <= 0 {
 		return 0, io.EOF
 	}
-	var fileData FileData
+	var fileData dbfsData
 	ok, err := db.GetEngine(f.ctx).Where("meta_id = ? AND blob_offset = ?", f.metaID, blobOffset).Get(&fileData)
 	if err != nil {
 		return 0, err
@@ -128,12 +128,12 @@ func (f *file) Write(p []byte) (n int, err error) {
 			buf = buf[:readBytes]
 		}
 
-		fileData := FileData{
+		fileData := dbfsData{
 			MetaID:     fileMeta.ID,
 			BlobOffset: blobOffset,
 			BlobData:   buf,
 		}
-		if res, err := db.GetEngine(f.ctx).Exec("UPDATE file_data SET revision=revision+1, blob_data=? WHERE meta_id=? AND blob_offset=?", buf, fileMeta.ID, blobOffset); err != nil {
+		if res, err := db.GetEngine(f.ctx).Exec("UPDATE dbfs_data SET revision=revision+1, blob_data=? WHERE meta_id=? AND blob_offset=?", buf, fileMeta.ID, blobOffset); err != nil {
 			return written, err
 		} else if updated, err := res.RowsAffected(); err != nil {
 			return written, err
@@ -151,7 +151,7 @@ func (f *file) Write(p []byte) (n int, err error) {
 		p = p[needWrite:]
 	}
 
-	fileMetaUpdate := FileMeta{
+	fileMetaUpdate := dbfsMeta{
 		ModifyTimestamp: timeToFileTimestamp(time.Now()),
 	}
 	if needUpdateSize {
@@ -198,8 +198,8 @@ func timeToFileTimestamp(t time.Time) int64 {
 	return t.UnixMicro()
 }
 
-func (f *file) loadMetaByPath() (*FileMeta, error) {
-	var fileMeta FileMeta
+func (f *file) loadMetaByPath() (*dbfsMeta, error) {
+	var fileMeta dbfsMeta
 	if ok, err := db.GetEngine(f.ctx).Where("full_path = ?", f.fullPath).Get(&fileMeta); err != nil {
 		return nil, err
 	} else if ok {
@@ -262,7 +262,7 @@ func (f *file) createEmpty() error {
 		return os.ErrExist
 	}
 	now := time.Now()
-	_, err := db.GetEngine(f.ctx).Insert(&FileMeta{
+	_, err := db.GetEngine(f.ctx).Insert(&dbfsMeta{
 		FullPath:        f.fullPath,
 		BlockSize:       f.blockSize,
 		CreateTimestamp: timeToFileTimestamp(now),
@@ -282,10 +282,10 @@ func (f *file) truncate() error {
 		return os.ErrNotExist
 	}
 	return db.WithTx(f.ctx, func(ctx context.Context) error {
-		if _, err := db.GetEngine(ctx).Exec("UPDATE file_meta SET file_size = 0 WHERE id = ?", f.metaID); err != nil {
+		if _, err := db.GetEngine(ctx).Exec("UPDATE dbfs_meta SET file_size = 0 WHERE id = ?", f.metaID); err != nil {
 			return err
 		}
-		if _, err := db.GetEngine(ctx).Delete(&FileData{MetaID: f.metaID}); err != nil {
+		if _, err := db.GetEngine(ctx).Delete(&dbfsData{MetaID: f.metaID}); err != nil {
 			return err
 		}
 		return nil
@@ -298,7 +298,7 @@ func (f *file) renameTo(newPath string) error {
 	}
 	newPath = buildPath(newPath)
 	return db.WithTx(f.ctx, func(ctx context.Context) error {
-		if _, err := db.GetEngine(ctx).Exec("UPDATE file_meta SET full_path = ? WHERE id = ?", newPath, f.metaID); err != nil {
+		if _, err := db.GetEngine(ctx).Exec("UPDATE dbfs_meta SET full_path = ? WHERE id = ?", newPath, f.metaID); err != nil {
 			return err
 		}
 		return nil
@@ -310,10 +310,10 @@ func (f *file) delete() error {
 		return os.ErrNotExist
 	}
 	return db.WithTx(f.ctx, func(ctx context.Context) error {
-		if _, err := db.GetEngine(ctx).Delete(&FileMeta{ID: f.metaID}); err != nil {
+		if _, err := db.GetEngine(ctx).Delete(&dbfsMeta{ID: f.metaID}); err != nil {
 			return err
 		}
-		if _, err := db.GetEngine(ctx).Delete(&FileData{MetaID: f.metaID}); err != nil {
+		if _, err := db.GetEngine(ctx).Delete(&dbfsData{MetaID: f.metaID}); err != nil {
 			return err
 		}
 		return nil
@@ -331,8 +331,8 @@ func (f *file) size() (int64, error) {
 	return fileMeta.FileSize, nil
 }
 
-func findFileMetaByID(ctx context.Context, metaID int64) (*FileMeta, error) {
-	var fileMeta FileMeta
+func findFileMetaByID(ctx context.Context, metaID int64) (*dbfsMeta, error) {
+	var fileMeta dbfsMeta
 	if ok, err := db.GetEngine(ctx).Where("id = ?", metaID).Get(&fileMeta); err != nil {
 		return nil, err
 	} else if ok {

@@ -144,6 +144,24 @@ func addBotTables(x *xorm.Engine) error {
 		Updated   timeutil.TimeStamp `xorm:"updated"`
 	}
 
+	type dbfsMeta struct {
+		ID              int64  `xorm:"pk autoincr"`
+		FullPath        string `xorm:"VARCHAR(500) UNIQUE NOT NULL"`
+		BlockSize       int64  `xorm:"BIGINT NOT NULL"`
+		FileSize        int64  `xorm:"BIGINT NOT NULL"`
+		CreateTimestamp int64  `xorm:"BIGINT NOT NULL"`
+		ModifyTimestamp int64  `xorm:"BIGINT NOT NULL"`
+	}
+
+	type dbfsData struct {
+		ID         int64  `xorm:"pk autoincr"`
+		Revision   int64  `xorm:"BIGINT NOT NULL"`
+		MetaID     int64  `xorm:"BIGINT index(meta_offset) NOT NULL"`
+		BlobOffset int64  `xorm:"BIGINT index(meta_offset) NOT NULL"`
+		BlobSize   int64  `xorm:"BIGINT NOT NULL"`
+		BlobData   []byte `xorm:"BLOB NOT NULL"`
+	}
+
 	return x.Sync(
 		new(BotRunner),
 		new(BotRunnerToken),
@@ -153,5 +171,7 @@ func addBotTables(x *xorm.Engine) error {
 		new(BotRunIndex),
 		new(BotTask),
 		new(BotTaskStep),
+		new(dbfsMeta),
+		new(dbfsData),
 	)
 }
