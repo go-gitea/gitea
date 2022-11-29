@@ -6,6 +6,7 @@ package git
 import (
 	"context"
 	"crypto/sha1"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -77,50 +78,48 @@ func upsertCommitStatusIndex(ctx context.Context, repoID int64, sha string) (err
 }
 
 // GetNextCommitStatusIndex retried 3 times to generate a resource index
-func GetNextCommitStatusIndex(repoID int64, sha string) (int64, error) {
-	for i := 0; i < db.MaxDupIndexAttempts; i++ {
-		idx, err := getNextCommitStatusIndex(repoID, sha)
-		if err == db.ErrResouceOutdated {
-			continue
-		}
+func GetNextCommitStatusIndex(ctx context.Context, repoID int64, sha string) (int64, error) {
+	e := db.GetEngine(ctx)
+
+	// try to update the max_index to next value, and acquire the write-lock for the record
+	res, err := e.Exec("UPDATE `commit_status_index` SET max_index=max_index+1 WHERE repo_id=? AND sha=?", repoID, sha)
+	if err != nil {
+		return 0, err
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	if affected == 0 {
+		// this slow path is only for the first time of creating a resource index
+		_, errIns := e.Exec("INSERT INTO `commit_status_index` (repo_id, sha, max_index) VALUES (?, ?, 0)", repoID, sha)
+		res, err = e.Exec("UPDATE `commit_status_index` SET max_index=max_index+1 WHERE repo_id=? AND sha=?", repoID, sha)
 		if err != nil {
 			return 0, err
 		}
-		return idx, nil
-	}
-	return 0, db.ErrGetResourceIndexFailed
-}
-
-// getNextCommitStatusIndex return the next index
-func getNextCommitStatusIndex(repoID int64, sha string) (int64, error) {
-	ctx, commiter, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return 0, err
-	}
-	defer commiter.Close()
-
-	var preIdx int64
-	_, err = db.GetEngine(ctx).SQL("SELECT max_index FROM `commit_status_index` WHERE repo_id = ? AND sha = ?", repoID, sha).Get(&preIdx)
-	if err != nil {
-		return 0, err
+		affected, err = res.RowsAffected()
+		if err != nil {
+			return 0, err
+		}
+		// if the update still can not update any records, the record must not exist and there must be some errors (insert error)
+		if affected == 0 {
+			if errIns == nil {
+				return 0, errors.New("impossible error when GetNextCommitStatusIndex, insert and update both succeeded but no record is updated")
+			}
+			return 0, errIns
+		}
 	}
 
-	if err := upsertCommitStatusIndex(ctx, repoID, sha); err != nil {
-		return 0, err
-	}
-
-	var curIdx int64
-	has, err := db.GetEngine(ctx).SQL("SELECT max_index FROM `commit_status_index` WHERE repo_id = ? AND sha = ? AND max_index=?", repoID, sha, preIdx+1).Get(&curIdx)
+	// now, the new index is in database (protected by the transaction and write-lock)
+	var newIdx int64
+	has, err := e.SQL("SELECT max_index FROM `commit_status_index` WHERE repo_id=? AND sha=?", repoID, sha).Get(&newIdx)
 	if err != nil {
 		return 0, err
 	}
 	if !has {
-		return 0, db.ErrResouceOutdated
+		return 0, errors.New("impossible error when GetNextCommitStatusIndex, upsert succeeded but no record can be selected")
 	}
-	if err := commiter.Commit(); err != nil {
-		return 0, err
-	}
-	return curIdx, nil
+	return newIdx, nil
 }
 
 func (status *CommitStatus) loadAttributes(ctx context.Context) (err error) {
@@ -290,17 +289,17 @@ func NewCommitStatus(opts NewCommitStatusOptions) error {
 		return fmt.Errorf("NewCommitStatus[%s, %s]: no user specified", repoPath, opts.SHA)
 	}
 
-	// Get the next Status Index
-	idx, err := GetNextCommitStatusIndex(opts.Repo.ID, opts.SHA)
-	if err != nil {
-		return fmt.Errorf("generate commit status index failed: %w", err)
-	}
-
 	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return fmt.Errorf("NewCommitStatus[repo_id: %d, user_id: %d, sha: %s]: %w", opts.Repo.ID, opts.Creator.ID, opts.SHA, err)
 	}
 	defer committer.Close()
+
+	// Get the next Status Index
+	idx, err := GetNextCommitStatusIndex(ctx, opts.Repo.ID, opts.SHA)
+	if err != nil {
+		return fmt.Errorf("generate commit status index failed: %w", err)
+	}
 
 	opts.CommitStatus.Description = strings.TrimSpace(opts.CommitStatus.Description)
 	opts.CommitStatus.Context = strings.TrimSpace(opts.CommitStatus.Context)
@@ -315,7 +314,7 @@ func NewCommitStatus(opts NewCommitStatusOptions) error {
 
 	// Insert new CommitStatus
 	if _, err = db.GetEngine(ctx).Insert(opts.CommitStatus); err != nil {
-		return fmt.Errorf("Insert CommitStatus[%s, %s]: %w", repoPath, opts.SHA, err)
+		return fmt.Errorf("insert CommitStatus[%s, %s]: %w", repoPath, opts.SHA, err)
 	}
 
 	return committer.Commit()
