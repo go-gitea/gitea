@@ -108,11 +108,11 @@ func (run *BotRun) GetPushEventPayload() (*api.PushPayload, error) {
 func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) error {
 	_, err := db.GetEngine(ctx).ID(repo.ID).
 		SetExpr("num_runs",
-			builder.Select("count(*)").From("bots_run").
+			builder.Select("count(*)").From("bot_run").
 				Where(builder.Eq{"repo_id": repo.ID}),
 		).
 		SetExpr("num_closed_runs",
-			builder.Select("count(*)").From("bots_run").
+			builder.Select("count(*)").From("bot_run").
 				Where(builder.Eq{
 					"repo_id": repo.ID,
 				}.And(
@@ -137,7 +137,7 @@ func InsertRun(run *BotRun, jobs []*jobparser.SingleWorkflow) error {
 	}
 	defer commiter.Close()
 
-	index, err := db.GetNextResourceIndex(ctx, "bots_run_index", run.RepoID)
+	index, err := db.GetNextResourceIndex(ctx, "bot_run_index", run.RepoID)
 	if err != nil {
 		return err
 	}

@@ -196,7 +196,7 @@ func (opts FindRunnerOptions) toOrder() string {
 
 func CountRunners(opts FindRunnerOptions) (int64, error) {
 	return db.GetEngine(db.DefaultContext).
-		Table("bots_runner").
+		Table(BotRunner{}).
 		Where(opts.toCond()).
 		OrderBy(opts.toOrder()).
 		Count()
