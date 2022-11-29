@@ -755,15 +755,14 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	appURL, err := url.Parse(AppURL)
 	if err != nil {
 		log.Fatal("Invalid ROOT_URL '%s': %s", AppURL, err)
-	} else {
-		// Remove default ports from AppURL.
-		// (scheme-based URL normalization, RFC 3986 section 6.2.3)
-		if (appURL.Scheme == string(HTTP) && appURL.Port() == "80") || (appURL.Scheme == string(HTTPS) && appURL.Port() == "443") {
-			appURL.Host = appURL.Hostname()
-		}
-		// This should be TrimRight to ensure that there is only a single '/' at the end of AppURL.
-		AppURL = strings.TrimRight(appURL.String(), "/") + "/"
 	}
+	// Remove default ports from AppURL.
+	// (scheme-based URL normalization, RFC 3986 section 6.2.3)
+	if (appURL.Scheme == string(HTTP) && appURL.Port() == "80") || (appURL.Scheme == string(HTTPS) && appURL.Port() == "443") {
+		appURL.Host = appURL.Hostname()
+	}
+	// This should be TrimRight to ensure that there is only a single '/' at the end of AppURL.
+	AppURL = strings.TrimRight(appURL.String(), "/") + "/"
 
 	// Suburl should start with '/' and end without '/', such as '/{subpath}'.
 	// This value is empty if site does not have sub-url.
