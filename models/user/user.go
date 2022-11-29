@@ -401,7 +401,7 @@ func hashPassword(passwd, salt, algo string) (string, error) {
 		tempPasswd = pbkdf2.Key([]byte(passwd), saltBytes, 10000, 50, sha256.New)
 	}
 
-	return fmt.Sprintf("%x", tempPasswd), nil
+	return hex.EncodeToString(tempPasswd), nil
 }
 
 // SetPassword hashes a password using the algorithm defined in the config value of PASSWORD_HASH_ALGO

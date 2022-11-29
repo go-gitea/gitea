@@ -4,7 +4,7 @@
 package pypi
 
 import (
-	"fmt"
+	"encoding/hex"
 	"io"
 	"net/http"
 	"regexp"
@@ -118,7 +118,7 @@ func UploadPackageFile(ctx *context.Context) {
 
 	_, _, hashSHA256, _ := buf.Sums()
 
-	if !strings.EqualFold(ctx.Req.FormValue("sha256_digest"), fmt.Sprintf("%x", hashSHA256)) {
+	if !strings.EqualFold(ctx.Req.FormValue("sha256_digest"), hex.EncodeToString(hashSHA256)) {
 		apiError(ctx, http.StatusBadRequest, "hash mismatch")
 		return
 	}
