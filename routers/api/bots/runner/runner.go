@@ -56,7 +56,7 @@ func (s *Service) Register(
 	}
 
 	// create new runner
-	runner := &bots_model.Runner{
+	runner := &bots_model.BotRunner{
 		UUID:         gouuid.New().String(),
 		Name:         req.Msg.Name,
 		OwnerID:      runnerToken.OwnerID,
@@ -276,7 +276,7 @@ func (s *Service) UpdateLog(
 	return res, nil
 }
 
-func pickTask(ctx context.Context, runner *bots_model.Runner) (*runnerv1.Task, bool, error) {
+func pickTask(ctx context.Context, runner *bots_model.BotRunner) (*runnerv1.Task, bool, error) {
 	t, ok, err := bots_model.CreateTaskForRunner(ctx, runner)
 	if err != nil {
 		return nil, false, fmt.Errorf("CreateTaskForRunner: %w", err)
@@ -294,7 +294,7 @@ func pickTask(ctx context.Context, runner *bots_model.Runner) (*runnerv1.Task, b
 	return task, true, nil
 }
 
-func getSecretsOfTask(ctx context.Context, task *bots_model.Task) map[string]string {
+func getSecretsOfTask(ctx context.Context, task *bots_model.BotTask) map[string]string {
 	// Returning an error is worse than returning empty secrets.
 
 	secrets := map[string]string{}
@@ -334,7 +334,7 @@ func getSecretsOfTask(ctx context.Context, task *bots_model.Task) map[string]str
 	return secrets
 }
 
-func generateTaskContext(t *bots_model.Task) *structpb.Struct {
+func generateTaskContext(t *bots_model.BotTask) *structpb.Struct {
 	event := map[string]interface{}{}
 	_ = json.Unmarshal([]byte(t.Job.Run.EventPayload), &event)
 

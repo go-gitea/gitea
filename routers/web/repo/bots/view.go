@@ -125,7 +125,7 @@ func ViewPost(ctx *context_module.Context) {
 		},
 	}
 
-	var task *bots_model.Task
+	var task *bots_model.BotTask
 	if current.TaskID > 0 {
 		var err error
 		task, err = bots_model.GetTaskByID(ctx, current.TaskID)
@@ -263,7 +263,7 @@ func Cancel(ctx *context_module.Context) {
 // getRunJobs gets the jobs of runIndex, and returns jobs[jobIndex], jobs.
 // Any error will be written to the ctx.
 // It never returns a nil job of an empty jobs, if the jobIndex is out of range, it will be treated as 0.
-func getRunJobs(ctx *context_module.Context, runIndex, jobIndex int64) (*bots_model.RunJob, []*bots_model.RunJob) {
+func getRunJobs(ctx *context_module.Context, runIndex, jobIndex int64) (*bots_model.BotRunJob, []*bots_model.BotRunJob) {
 	run, err := bots_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
 	if err != nil {
 		if _, ok := err.(bots_model.ErrRunNotExist); ok {

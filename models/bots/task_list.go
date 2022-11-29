@@ -13,7 +13,7 @@ import (
 	"xorm.io/builder"
 )
 
-type TaskList []*Task
+type TaskList []*BotTask
 
 func (tasks TaskList) GetJobIDs() []int64 {
 	jobIDsMap := make(map[int64]struct{})
@@ -32,7 +32,7 @@ func (tasks TaskList) GetJobIDs() []int64 {
 
 func (tasks TaskList) LoadJobs(ctx context.Context) error {
 	jobIDs := tasks.GetJobIDs()
-	jobs := make(map[int64]*RunJob, len(jobIDs))
+	jobs := make(map[int64]*BotRunJob, len(jobIDs))
 	if err := db.GetEngine(ctx).In("id", jobIDs).Find(&jobs); err != nil {
 		return err
 	}
@@ -42,7 +42,7 @@ func (tasks TaskList) LoadJobs(ctx context.Context) error {
 		}
 	}
 
-	var jobsList RunJobList = make([]*RunJob, 0, len(jobs))
+	var jobsList RunJobList = make([]*BotRunJob, 0, len(jobs))
 	for _, j := range jobs {
 		jobsList = append(jobsList, j)
 	}
@@ -105,5 +105,5 @@ func FindTasks(ctx context.Context, opts FindTaskOptions) (TaskList, int64, erro
 }
 
 func CountTasks(ctx context.Context, opts FindTaskOptions) (int64, error) {
-	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(Task))
+	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(BotTask))
 }

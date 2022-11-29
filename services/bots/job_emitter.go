@@ -51,7 +51,7 @@ func checkJobsOfRun(ctx context.Context, runID int64) error {
 		if err != nil {
 			return err
 		}
-		idToJobs := make(map[string][]*bots_model.RunJob, len(jobs))
+		idToJobs := make(map[string][]*bots_model.BotRunJob, len(jobs))
 		for _, job := range jobs {
 			idToJobs[job.JobID] = append(idToJobs[job.JobID], job)
 		}
@@ -77,7 +77,7 @@ type jobStatusResolver struct {
 }
 
 func newJobStatusResolver(jobs bots_model.RunJobList) *jobStatusResolver {
-	idToJobs := make(map[string][]*bots_model.RunJob, len(jobs))
+	idToJobs := make(map[string][]*bots_model.BotRunJob, len(jobs))
 	for _, job := range jobs {
 		idToJobs[job.JobID] = append(idToJobs[job.JobID], job)
 	}

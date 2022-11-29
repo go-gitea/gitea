@@ -13,7 +13,7 @@ import (
 	"xorm.io/builder"
 )
 
-type RunJobList []*RunJob
+type RunJobList []*BotRunJob
 
 func (jobs RunJobList) GetRunIDs() []int64 {
 	runIDsMap := make(map[int64]struct{})
@@ -32,7 +32,7 @@ func (jobs RunJobList) GetRunIDs() []int64 {
 
 func (jobs RunJobList) LoadRuns(ctx context.Context, withRepo bool) error {
 	runIDs := jobs.GetRunIDs()
-	runs := make(map[int64]*Run, len(runIDs))
+	runs := make(map[int64]*BotRun, len(runIDs))
 	if err := db.GetEngine(ctx).In("id", runIDs).Find(&runs); err != nil {
 		return err
 	}
@@ -42,7 +42,7 @@ func (jobs RunJobList) LoadRuns(ctx context.Context, withRepo bool) error {
 		}
 	}
 	if withRepo {
-		var runsList RunList = make([]*Run, 0, len(runs))
+		var runsList RunList = make([]*BotRun, 0, len(runs))
 		for _, r := range runs {
 			runsList = append(runsList, r)
 		}
@@ -99,5 +99,5 @@ func FindRunJobs(ctx context.Context, opts FindRunJobOptions) (RunJobList, int64
 }
 
 func CountRunJobs(ctx context.Context, opts FindRunJobOptions) (int64, error) {
-	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(RunJob))
+	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(BotRunJob))
 }

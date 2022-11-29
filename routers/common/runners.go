@@ -37,7 +37,7 @@ func RunnersList(ctx *context.Context, tplName base.TplName, opts bots_model.Fin
 	}
 
 	// ownid=0,repo_id=0,means this token is used for global
-	var token *bots_model.RunnerToken
+	var token *bots_model.BotRunnerToken
 	token, err = bots_model.GetUnactivatedRunnerToken(opts.OwnerID, opts.RepoID)
 	if _, ok := err.(bots_model.ErrRunnerTokenNotExist); ok {
 		token, err = bots_model.NewRunnerToken(opts.OwnerID, opts.RepoID)

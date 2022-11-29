@@ -68,9 +68,9 @@ func getMethodName(req connect.AnyRequest) string {
 
 type runnerCtxKey struct{}
 
-func GetRunner(ctx context.Context) *bots_model.Runner {
+func GetRunner(ctx context.Context) *bots_model.BotRunner {
 	if v := ctx.Value(runnerCtxKey{}); v != nil {
-		if r, ok := v.(*bots_model.Runner); ok {
+		if r, ok := v.(*bots_model.BotRunner); ok {
 			return r
 		}
 	}

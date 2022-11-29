@@ -16,14 +16,14 @@ import (
 	"xorm.io/builder"
 )
 
-// RunJob represents a job of a run
-type RunJob struct {
+// BotRunJob represents a job of a run
+type BotRunJob struct {
 	ID                int64
-	RunID             int64  `xorm:"index"`
-	Run               *Run   `xorm:"-"`
-	RepoID            int64  `xorm:"index"`
-	OwnerID           int64  `xorm:"index"`
-	CommitSHA         string `xorm:"index"`
+	RunID             int64   `xorm:"index"`
+	Run               *BotRun `xorm:"-"`
+	RepoID            int64   `xorm:"index"`
+	OwnerID           int64   `xorm:"index"`
+	CommitSHA         string  `xorm:"index"`
 	IsForkPullRequest bool
 	Name              string
 	Attempt           int64
@@ -40,14 +40,10 @@ type RunJob struct {
 }
 
 func init() {
-	db.RegisterModel(new(RunJob))
+	db.RegisterModel(new(BotRunJob))
 }
 
-func (RunJob) TableName() string {
-	return "bots_run_job"
-}
-
-func (job *RunJob) TakeTime() time.Duration {
+func (job *BotRunJob) TakeTime() time.Duration {
 	if job.Started == 0 {
 		return 0
 	}
@@ -59,7 +55,7 @@ func (job *RunJob) TakeTime() time.Duration {
 	return time.Since(started).Truncate(time.Second)
 }
 
-func (job *RunJob) LoadRun(ctx context.Context) error {
+func (job *BotRunJob) LoadRun(ctx context.Context) error {
 	if job.Run == nil {
 		run, err := GetRunByID(ctx, job.RunID)
 		if err != nil {
@@ -71,7 +67,7 @@ func (job *RunJob) LoadRun(ctx context.Context) error {
 }
 
 // LoadAttributes load Run if not loaded
-func (job *RunJob) LoadAttributes(ctx context.Context) error {
+func (job *BotRunJob) LoadAttributes(ctx context.Context) error {
 	if job == nil {
 		return nil
 	}
@@ -92,8 +88,8 @@ func (err ErrRunJobNotExist) Error() string {
 	return fmt.Sprintf("run job [%d] is not exist", err.ID)
 }
 
-func GetRunJobByID(ctx context.Context, id int64) (*RunJob, error) {
-	var job RunJob
+func GetRunJobByID(ctx context.Context, id int64) (*BotRunJob, error) {
+	var job BotRunJob
 	has, err := db.GetEngine(ctx).Where("id=?", id).Get(&job)
 	if err != nil {
 		return nil, err
@@ -106,15 +102,15 @@ func GetRunJobByID(ctx context.Context, id int64) (*RunJob, error) {
 	return &job, nil
 }
 
-func GetRunJobsByRunID(ctx context.Context, runID int64) ([]*RunJob, error) {
-	var jobs []*RunJob
+func GetRunJobsByRunID(ctx context.Context, runID int64) ([]*BotRunJob, error) {
+	var jobs []*BotRunJob
 	if err := db.GetEngine(ctx).Where("run_id=?", runID).OrderBy("id").Find(&jobs); err != nil {
 		return nil, err
 	}
 	return jobs, nil
 }
 
-func UpdateRunJob(ctx context.Context, job *RunJob, cond builder.Cond, cols ...string) (int64, error) {
+func UpdateRunJob(ctx context.Context, job *BotRunJob, cond builder.Cond, cols ...string) (int64, error) {
 	e := db.GetEngine(ctx)
 
 	sess := e.ID(job.ID)
@@ -149,7 +145,7 @@ func UpdateRunJob(ctx context.Context, job *RunJob, cond builder.Cond, cols ...s
 
 	runStatus := aggregateJobStatus(jobs)
 
-	run := &Run{
+	run := &BotRun{
 		ID:     job.RunID,
 		Status: runStatus,
 	}
@@ -159,7 +155,7 @@ func UpdateRunJob(ctx context.Context, job *RunJob, cond builder.Cond, cols ...s
 	return affected, UpdateRun(ctx, run)
 }
 
-func aggregateJobStatus(jobs []*RunJob) Status {
+func aggregateJobStatus(jobs []*BotRunJob) Status {
 	allDone := true
 	allWaiting := true
 	hasFailure := false

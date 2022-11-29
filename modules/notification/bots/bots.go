@@ -86,7 +86,7 @@ func notifyWithPR(repo *repo_model.Repository, doer *user_model.User, ref string
 	}
 
 	for id, content := range workflows {
-		run := bots_model.Run{
+		run := bots_model.BotRun{
 			Title:             commit.Message(),
 			RepoID:            repo.ID,
 			OwnerID:           repo.OwnerID,

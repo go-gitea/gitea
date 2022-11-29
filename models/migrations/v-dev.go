@@ -12,7 +12,7 @@ import (
 )
 
 func addBotTables(x *xorm.Engine) error {
-	type BotsRunner struct {
+	type BotRunner struct {
 		ID          int64
 		UUID        string `xorm:"CHAR(36) UNIQUE"`
 		Name        string `xorm:"VARCHAR(32)"`
@@ -40,7 +40,7 @@ func addBotTables(x *xorm.Engine) error {
 		Deleted timeutil.TimeStamp `xorm:"deleted"`
 	}
 
-	type BotsRunnerToken struct {
+	type BotRunnerToken struct {
 		ID       int64
 		Token    string `xorm:"UNIQUE"`
 		OwnerID  int64  `xorm:"index"` // org level runner, 0 means system
@@ -52,7 +52,7 @@ func addBotTables(x *xorm.Engine) error {
 		Deleted timeutil.TimeStamp `xorm:"deleted"`
 	}
 
-	type BotsRun struct {
+	type BotRun struct {
 		ID                int64
 		Title             string
 		RepoID            int64  `xorm:"index unique(repo_index)"`
@@ -72,7 +72,7 @@ func addBotTables(x *xorm.Engine) error {
 		Updated           timeutil.TimeStamp `xorm:"updated"`
 	}
 
-	type BotsRunJob struct {
+	type BotRunJob struct {
 		ID                int64
 		RunID             int64  `xorm:"index"`
 		RepoID            int64  `xorm:"index"`
@@ -98,9 +98,9 @@ func addBotTables(x *xorm.Engine) error {
 		NumClosedRuns int `xorm:"NOT NULL DEFAULT 0"`
 	}
 
-	type BotsRunIndex db.ResourceIndex
+	type BotRunIndex db.ResourceIndex
 
-	type BotsTask struct {
+	type BotTask struct {
 		ID       int64
 		JobID    int64
 		Attempt  int64
@@ -129,7 +129,7 @@ func addBotTables(x *xorm.Engine) error {
 		Updated timeutil.TimeStamp `xorm:"updated index"`
 	}
 
-	type BotsTaskStep struct {
+	type BotTaskStep struct {
 		ID        int64
 		Name      string
 		TaskID    int64 `xorm:"index unique(task_number)"`
@@ -143,14 +143,14 @@ func addBotTables(x *xorm.Engine) error {
 		Updated   timeutil.TimeStamp `xorm:"updated"`
 	}
 
-	return x.Sync2(
-		new(BotsRunner),
-		new(BotsRunnerToken),
-		new(BotsRun),
-		new(BotsRunJob),
+	return x.Sync(
+		new(BotRunner),
+		new(BotRunnerToken),
+		new(BotRun),
+		new(BotRunJob),
 		new(Repository),
-		new(BotsRunIndex),
-		new(BotsTask),
-		new(BotsTaskStep),
+		new(BotRunIndex),
+		new(BotTask),
+		new(BotTaskStep),
 	)
 }
