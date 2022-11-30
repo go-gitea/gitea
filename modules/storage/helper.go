@@ -66,10 +66,7 @@ func toConfig(exemplar, cfg interface{}) (interface{}, error) {
 	return newVal.Elem().Interface(), nil
 }
 
-var (
-	_                    ObjectStorage = discardStorage("")
-	uninitializedStorage               = discardStorage("uninitialized storage")
-)
+var uninitializedStorage = discardStorage("uninitialized storage")
 
 type discardStorage string
 
