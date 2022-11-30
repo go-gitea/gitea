@@ -16,9 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
 	bot_service "code.gitea.io/gitea/services/bots"
-	bots_service "code.gitea.io/gitea/services/bots"
 	secret_service "code.gitea.io/gitea/services/secrets"
 
 	runnerv1 "code.gitea.io/bots-proto-go/runner/v1"
@@ -124,21 +122,6 @@ func (s *Service) FetchTask(
 	return res, nil
 }
 
-func toCommitStatus(status bots_model.Status) api.CommitStatusState {
-	switch status {
-	case bots_model.StatusSuccess:
-		return api.CommitStatusSuccess
-	case bots_model.StatusFailure, bots_model.StatusCancelled, bots_model.StatusSkipped:
-		return api.CommitStatusFailure
-	case bots_model.StatusWaiting, bots_model.StatusBlocked:
-		return api.CommitStatusPending
-	case bots_model.StatusRunning:
-		return api.CommitStatusRunning
-	default:
-		return api.CommitStatusError
-	}
-}
-
 // UpdateTask updates the task status.
 func (s *Service) UpdateTask(
 	ctx context.Context,
@@ -173,7 +156,7 @@ func (s *Service) UpdateTask(
 		return nil, status.Errorf(codes.Internal, "load job: %v", err)
 	}
 
-	if err := bots_service.CreateCommitStatus(ctx, task.Job); err != nil {
+	if err := bot_service.CreateCommitStatus(ctx, task.Job); err != nil {
 		log.Error("Update commit status failed: %v", err)
 		// go on
 	}
