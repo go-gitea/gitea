@@ -13,20 +13,17 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
 
   $dialog = $(`
 <div class="ui modal content-history-detail-dialog">
-  <i class="close icon inside"></i>
+  ${svg('octicon-x', 16, 'close icon inside')}
   <div class="header">
     ${itemTitleHtml}
     <div class="ui dropdown right dialog-header-options" style="display: none; margin-right: 50px;">
-      ${i18nTextOptions} <i class="dropdown icon"></i>
+      ${i18nTextOptions}${svg('octicon-triangle-down', 16, 'dropdown icon')}
       <div class="menu">
         <div class="item red text" data-option-item="delete">${i18nTextDeleteFromHistory}</div>
       </div>
     </div>
   </div>
-  <!-- ".modal .content" style was polluted in "_base.less": "&.modal > .content"  -->
-  <div class="scrolling content" style="text-align: left; min-height: 30vh;">
-      <div class="ui loader active"></div>
-  </div>
+  <div class="comment-diff-data tl p-3 is-loading"></div>
 </div>`);
   $dialog.appendTo($('body'));
   $dialog.find('.dialog-header-options').dropdown({
@@ -62,7 +59,7 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
           _csrf: csrfToken,
         },
       }).done((resp) => {
-        $dialog.find('.content').html(resp.diffHtml);
+        $dialog.find('.comment-diff-data').removeClass('is-loading').html(resp.diffHtml);
         // there is only one option "item[data-option-item=delete]", so the dropdown can be entirely shown/hidden.
         if (resp.canSoftDelete) {
           $dialog.find('.dialog-header-options').show();
@@ -79,7 +76,7 @@ function showContentHistoryMenu(issueBaseUrl, $item, commentId) {
   const $headerLeft = $item.find('.comment-header-left');
   const menuHtml = `
   <div class="ui pointing dropdown top left content-history-menu" data-comment-id="${commentId}">
-    <a>&bull; ${i18nTextEdited} ${svg('octicon-triangle-down', 17)}</a>
+    &bull; <a>${i18nTextEdited} ${svg('octicon-triangle-down', 14, 'dropdown icon')}</a>
     <div class="menu">
     </div>
   </div>`;
