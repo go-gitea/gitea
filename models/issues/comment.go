@@ -738,8 +738,8 @@ func (c *Comment) UnsignedLine() uint64 {
 	return uint64(c.Line)
 }
 
-// CodeCommentURL returns the url to a comment in code
-func (c *Comment) CodeCommentURL() string {
+// CodeCommentLink returns the url to a comment in code
+func (c *Comment) CodeCommentLink() string {
 	err := c.LoadIssue(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("LoadIssue(%d): %v", c.IssueID, err)
@@ -750,7 +750,7 @@ func (c *Comment) CodeCommentURL() string {
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
 	}
-	return fmt.Sprintf("%s/files#%s", c.Issue.HTMLURL(), c.HashTag())
+	return fmt.Sprintf("%s/files#%s", c.Issue.Link(), c.HashTag())
 }
 
 // LoadPushCommits Load push commits
