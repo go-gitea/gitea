@@ -6,16 +6,15 @@ package auth
 
 import (
 	"crypto/subtle"
+	"encoding/hex"
 	"fmt"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	gouuid "github.com/google/uuid"
 	lru "github.com/hashicorp/golang-lru"
 )
 
@@ -100,8 +99,12 @@ func NewAccessToken(t *AccessToken) error {
 	if err != nil {
 		return err
 	}
+	token, err := util.CryptoRandomBytes(20)
+	if err != nil {
+		return err
+	}
 	t.TokenSalt = salt
-	t.Token = base.EncodeSha1(gouuid.New().String())
+	t.Token = hex.EncodeToString(token)
 	t.TokenHash = HashToken(t.Token, t.TokenSalt)
 	t.TokenLastEight = t.Token[len(t.Token)-8:]
 	_, err = db.GetEngine(db.DefaultContext).Insert(t)

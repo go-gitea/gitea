@@ -748,19 +748,22 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	PerWriteTimeout = sec.Key("PER_WRITE_TIMEOUT").MustDuration(PerWriteTimeout)
 	PerWritePerKbTimeout = sec.Key("PER_WRITE_PER_KB_TIMEOUT").MustDuration(PerWritePerKbTimeout)
 
-	defaultAppURL := string(Protocol) + "://" + Domain
-	if (Protocol == HTTP && HTTPPort != "80") || (Protocol == HTTPS && HTTPPort != "443") {
-		defaultAppURL += ":" + HTTPPort
-	}
-	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL + "/")
-	// This should be TrimRight to ensure that there is only a single '/' at the end of AppURL.
-	AppURL = strings.TrimRight(AppURL, "/") + "/"
+	defaultAppURL := string(Protocol) + "://" + Domain + ":" + HTTPPort
+	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL)
 
-	// Check if has app suburl.
+	// Check validity of AppURL
 	appURL, err := url.Parse(AppURL)
 	if err != nil {
 		log.Fatal("Invalid ROOT_URL '%s': %s", AppURL, err)
 	}
+	// Remove default ports from AppURL.
+	// (scheme-based URL normalization, RFC 3986 section 6.2.3)
+	if (appURL.Scheme == string(HTTP) && appURL.Port() == "80") || (appURL.Scheme == string(HTTPS) && appURL.Port() == "443") {
+		appURL.Host = appURL.Hostname()
+	}
+	// This should be TrimRight to ensure that there is only a single '/' at the end of AppURL.
+	AppURL = strings.TrimRight(appURL.String(), "/") + "/"
+
 	// Suburl should start with '/' and end without '/', such as '/{subpath}'.
 	// This value is empty if site does not have sub-url.
 	AppSubURL = strings.TrimSuffix(appURL.Path, "/")
