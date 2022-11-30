@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -90,7 +89,8 @@ func init() {
 	db.RegisterModel(new(Release))
 }
 
-func (r *Release) loadAttributes(ctx context.Context) error {
+// LoadAttributes load repo and publisher attributes for a release
+func (r *Release) LoadAttributes(ctx context.Context) error {
 	var err error
 	if r.Repo == nil {
 		r.Repo, err = GetRepositoryByIDCtx(ctx, r.RepoID)
@@ -109,11 +109,6 @@ func (r *Release) loadAttributes(ctx context.Context) error {
 		}
 	}
 	return GetReleaseAttachments(ctx, r)
-}
-
-// LoadAttributes load repo and publisher attributes for a release
-func (r *Release) LoadAttributes() error {
-	return r.loadAttributes(db.DefaultContext)
 }
 
 // APIURL the api url for a release. release must have attributes loaded
@@ -241,8 +236,8 @@ func (opts *FindReleasesOptions) toConds(repoID int64) builder.Cond {
 }
 
 // GetReleasesByRepoID returns a list of releases of repository.
-func GetReleasesByRepoID(repoID int64, opts FindReleasesOptions) ([]*Release, error) {
-	sess := db.GetEngine(db.DefaultContext).
+func GetReleasesByRepoID(ctx context.Context, repoID int64, opts FindReleasesOptions) ([]*Release, error) {
+	sess := db.GetEngine(ctx).
 		Desc("created_unix", "id").
 		Where(opts.toConds(repoID))
 
@@ -381,8 +376,8 @@ func SortReleases(rels []*Release) {
 }
 
 // DeleteReleaseByID deletes a release from database by given ID.
-func DeleteReleaseByID(id int64) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(id).Delete(new(Release))
+func DeleteReleaseByID(ctx context.Context, id int64) error {
+	_, err := db.GetEngine(ctx).ID(id).Delete(new(Release))
 	return err
 }
 

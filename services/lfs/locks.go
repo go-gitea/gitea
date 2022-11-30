@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package lfs
 
@@ -57,7 +56,7 @@ func GetListLockHandler(ctx *context.Context) {
 		})
 		return
 	}
-	repository.MustOwner()
+	repository.MustOwner(ctx)
 
 	authenticated := authenticate(ctx, repository, rv.Authorization, true, false)
 	if !authenticated {
@@ -144,7 +143,7 @@ func PostLockHandler(ctx *context.Context) {
 		})
 		return
 	}
-	repository.MustOwner()
+	repository.MustOwner(ctx)
 
 	authenticated := authenticate(ctx, repository, authorization, true, true)
 	if !authenticated {
@@ -211,7 +210,7 @@ func VerifyLockHandler(ctx *context.Context) {
 		})
 		return
 	}
-	repository.MustOwner()
+	repository.MustOwner(ctx)
 
 	authenticated := authenticate(ctx, repository, authorization, true, true)
 	if !authenticated {
@@ -277,7 +276,7 @@ func UnLockHandler(ctx *context.Context) {
 		})
 		return
 	}
-	repository.MustOwner()
+	repository.MustOwner(ctx)
 
 	authenticated := authenticate(ctx, repository, authorization, true, true)
 	if !authenticated {

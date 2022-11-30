@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package notify
 
@@ -42,7 +41,7 @@ func GetThread(ctx *context.APIContext) {
 	if n == nil {
 		return
 	}
-	if err := n.LoadAttributes(); err != nil && !issues_model.IsErrCommentNotExist(err) {
+	if err := n.LoadAttributes(ctx); err != nil && !issues_model.IsErrCommentNotExist(err) {
 		ctx.InternalServerError(err)
 		return
 	}
@@ -89,12 +88,12 @@ func ReadThread(ctx *context.APIContext) {
 		targetStatus = activities_model.NotificationStatusRead
 	}
 
-	notif, err := activities_model.SetNotificationStatus(n.ID, ctx.Doer, targetStatus)
+	notif, err := activities_model.SetNotificationStatus(ctx, n.ID, ctx.Doer, targetStatus)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
-	if err = notif.LoadAttributes(); err != nil && !issues_model.IsErrCommentNotExist(err) {
+	if err = notif.LoadAttributes(ctx); err != nil && !issues_model.IsErrCommentNotExist(err) {
 		ctx.InternalServerError(err)
 		return
 	}
@@ -102,7 +101,7 @@ func ReadThread(ctx *context.APIContext) {
 }
 
 func getThread(ctx *context.APIContext) *activities_model.Notification {
-	n, err := activities_model.GetNotificationByID(ctx.ParamsInt64(":id"))
+	n, err := activities_model.GetNotificationByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if db.IsErrNotExist(err) {
 			ctx.Error(http.StatusNotFound, "GetNotificationByID", err)

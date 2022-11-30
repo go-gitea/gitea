@@ -1,6 +1,5 @@
 // Copyright 2021 Gitea. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package automerge
 
@@ -188,8 +187,8 @@ func handlePull(pullID int64, sha string) {
 	// We get the latest sha commit hash again to handle the case where the check of a previous push
 	// did not succeed or was not finished yet.
 
-	if err = pr.LoadHeadRepoCtx(ctx); err != nil {
-		log.Error("pull[%d] LoadHeadRepoCtx: %v", pr.ID, err)
+	if err = pr.LoadHeadRepo(ctx); err != nil {
+		log.Error("pull[%d] LoadHeadRepo: %v", pr.ID, err)
 		return
 	}
 
@@ -244,8 +243,8 @@ func handlePull(pullID int64, sha string) {
 	if pr.BaseRepoID == pr.HeadRepoID {
 		baseGitRepo = headGitRepo
 	} else {
-		if err = pr.LoadBaseRepoCtx(ctx); err != nil {
-			log.Error("LoadBaseRepoCtx: %v", err)
+		if err = pr.LoadBaseRepo(ctx); err != nil {
+			log.Error("LoadBaseRepo: %v", err)
 			return
 		}
 

@@ -67,8 +67,9 @@
   --color-purple: #b259d0;
   --color-pink: #d22e8b;
   --color-brown: #a47252;
-  --color-grey: #5e626a;
-  /* light variants */
+  --color-grey: #9ea2aa;
+  --color-black: #1e222e;
+  /* light variants - produced via Sass scale-color(color, $lightness: -10%) */
   --color-red-light: #c23636;
   --color-orange-light: #b84f0b;
   --color-yellow-light: #b88a03;
@@ -80,9 +81,9 @@
   --color-purple-light: #a742c9;
   --color-pink-light: #be297d;
   --color-brown-light: #94674a;
-  --color-grey-light: #55585f;
+  --color-grey-light: #8d919b;
+  --color-black-light: #1b1f29;
   /* other colors */
-  --color-black: #1e222e;
   --color-gold: #b1983b;
   --color-white: #ffffff;
   --color-diff-removed-word-bg: #6f3333;
@@ -106,6 +107,19 @@
   --color-info-border: #306090;
   --color-info-bg: #26354c;
   --color-info-text: #38a8e8;
+  --color-red-badge: #db2828;
+  --color-red-badge-bg: #db28281a;
+  --color-red-badge-hover-bg: #db28284d;
+  --color-green-badge: #21ba45;
+  --color-green-badge-bg: #21ba451a;
+  --color-green-badge-hover-bg: #21ba454d;
+  --color-yellow-badge: #fbbd08;
+  --color-yellow-badge-bg: #fbbd081a;
+  --color-yellow-badge-hover-bg: #fbbd084d;
+  --color-orange-badge: #f2711c;
+  --color-orange-badge-bg: #f2711c1a;
+  --color-orange-badge-hover-bg: #f2711c4d;
+  --color-git: #f05133;
   /* target-based colors */
   --color-body: #383c4a;
   --color-box-header: #404652;
@@ -180,8 +194,4 @@
 .emoji[aria-label="musical note"],
 .emoji[aria-label="musical notes"] {
   filter: invert(100%) hue-rotate(180deg);
-}
-
-img[src$="/img/matrix.svg"] {
-  filter: invert(80%);
 }
