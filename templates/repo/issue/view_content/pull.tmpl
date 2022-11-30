@@ -343,7 +343,7 @@
 							(() => {
 								const defaultMergeTitle = {{.DefaultMergeMessage}};
 								const defaultSquashMergeTitle = {{.DefaultSquashMergeMessage}};
-								const defaultMergeMessage = 'Reviewed-on: ' + {{$.Issue.Link}} + '\n' + {{$approvers}};
+								const defaultMergeMessage = 'Reviewed-on: ' + {{$.Issue.HTMLURL}} + '\n' + {{$approvers}};
 								const mergeForm = {
 									'baseLink': {{.Link}},
 									'textCancel': {{$.locale.Tr "cancel"}},
