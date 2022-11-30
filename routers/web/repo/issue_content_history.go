@@ -73,7 +73,7 @@ func GetContentHistoryList(ctx *context.Context) {
 		src := html.EscapeString(item.UserAvatarLink)
 		class := avatars.DefaultAvatarClass + " mr-3";
 		name := html.EscapeString(username)
-		avatarHTML := string(templates.AvatarHTML(src, 28, class, name));
+		avatarHTML := string(templates.AvatarHTML(src, 28, class, username));
 		timeSinceText := string(timeutil.TimeSinceUnix(item.EditedUnix, ctx.Locale))
 
 		results = append(results, map[string]interface{}{
