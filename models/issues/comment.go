@@ -376,15 +376,6 @@ func (c *Comment) AfterDelete() {
 
 // HTMLURL formats a URL-string to the issue-comment
 func (c *Comment) HTMLURL() string {
-	return c.link(c.Issue.HTMLURL())
-}
-
-// Link formats a URL-string to the issue-comment
-func (c *Comment) Link() string {
-	return c.link(c.Issue.Link())
-}
-
-func (c *Comment) link(baseURL string) string {
 	err := c.LoadIssue(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("LoadIssue(%d): %v", c.IssueID, err)
@@ -395,7 +386,25 @@ func (c *Comment) link(baseURL string) string {
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
 	}
+	return c.link(c.Issue.HTMLURL())
+}
 
+// Link formats a URL-string to the issue-comment
+func (c *Comment) Link() string {
+	err := c.LoadIssue(db.DefaultContext)
+	if err != nil { // Silently dropping errors :unamused:
+		log.Error("LoadIssue(%d): %v", c.IssueID, err)
+		return ""
+	}
+	err = c.Issue.LoadRepo(db.DefaultContext)
+	if err != nil { // Silently dropping errors :unamused:
+		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
+		return ""
+	}
+	return c.link(c.Issue.Link())
+}
+
+func (c *Comment) link(baseURL string) string {
 	if c.Type == CommentTypeCode {
 		if c.ReviewID == 0 {
 			return fmt.Sprintf("%s/files#%s", baseURL, c.HashTag())
