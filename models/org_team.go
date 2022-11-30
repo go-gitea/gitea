@@ -351,7 +351,7 @@ func UpdateTeam(t *organization.Team, authChanged, includeAllChanged bool) (err 
 	// Update access for team members if needed.
 	if authChanged {
 		if err = t.LoadRepositories(ctx); err != nil {
-			return fmt.Errorf("getRepositories: %w", err)
+			return fmt.Errorf("LoadRepositories: %w", err)
 		}
 
 		for _, repo := range t.Repos {
@@ -520,8 +520,10 @@ func AddTeamMember(team *organization.Team, userID int64) error {
 	if err := committer.Commit(); err != nil {
 		return err
 	}
+	committer.Close()
 
-	// watch could be failed, so run it in a goroutine
+	// this behaviour may spend much time so run it in a goroutine
+	// FIXME: Update watch repos batchly
 	if setting.Service.AutoWatchNewRepos {
 		// Get team and its repositories.
 		if err := team.LoadRepositories(db.DefaultContext); err != nil {

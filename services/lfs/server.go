@@ -5,6 +5,7 @@
 package lfs
 
 import (
+	stdCtx "context"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -18,7 +19,6 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -508,7 +508,7 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 		return true
 	}
 
-	user, err := parseToken(authorization, repository, accessMode)
+	user, err := parseToken(ctx, authorization, repository, accessMode)
 	if err != nil {
 		// Most of these are Warn level - the true internal server errors are logged in parseToken already
 		log.Warn("Authentication failure for provided token with Error: %v", err)
@@ -518,7 +518,7 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 	return true
 }
 
-func handleLFSToken(tokenSHA string, target *repo_model.Repository, mode perm.AccessMode) (*user_model.User, error) {
+func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repository, mode perm.AccessMode) (*user_model.User, error) {
 	if !strings.Contains(tokenSHA, ".") {
 		return nil, nil
 	}
@@ -545,7 +545,7 @@ func handleLFSToken(tokenSHA string, target *repo_model.Repository, mode perm.Ac
 		return nil, fmt.Errorf("invalid token claim")
 	}
 
-	u, err := user_model.GetUserByID(db.DefaultContext, claims.UserID)
+	u, err := user_model.GetUserByID(ctx, claims.UserID)
 	if err != nil {
 		log.Error("Unable to GetUserById[%d]: Error: %v", claims.UserID, err)
 		return nil, err
@@ -553,7 +553,7 @@ func handleLFSToken(tokenSHA string, target *repo_model.Repository, mode perm.Ac
 	return u, nil
 }
 
-func parseToken(authorization string, target *repo_model.Repository, mode perm.AccessMode) (*user_model.User, error) {
+func parseToken(ctx stdCtx.Context, authorization string, target *repo_model.Repository, mode perm.AccessMode) (*user_model.User, error) {
 	if authorization == "" {
 		return nil, fmt.Errorf("no token")
 	}
@@ -567,7 +567,7 @@ func parseToken(authorization string, target *repo_model.Repository, mode perm.A
 	case "bearer":
 		fallthrough
 	case "token":
-		return handleLFSToken(tokenSHA, target, mode)
+		return handleLFSToken(ctx, tokenSHA, target, mode)
 	}
 	return nil, fmt.Errorf("token not found")
 }

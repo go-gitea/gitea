@@ -469,10 +469,6 @@ func (repo *Repository) ComposeDocumentMetas() map[string]string {
 // returns an error on failure (NOTE: no error is returned for
 // non-fork repositories, and BaseRepo will be left untouched)
 func (repo *Repository) GetBaseRepo(ctx context.Context) (err error) {
-	return repo.getBaseRepo(ctx)
-}
-
-func (repo *Repository) getBaseRepo(ctx context.Context) (err error) {
 	if !repo.IsFork {
 		return nil
 	}
