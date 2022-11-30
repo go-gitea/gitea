@@ -61,7 +61,7 @@ func TestHTTPSigPubKey(t *testing.T) {
 		Key:   keyType + " " + keyContent,
 	}
 	req := NewRequestWithJSON(t, "POST", keysURL, rawKeyBody)
-	session.MakeRequest(t, req, http.StatusCreated)
+	MakeRequest(t, req, http.StatusCreated)
 
 	// parse our private key and create the httpsig request
 	sshSigner, _ := ssh.ParsePrivateKey([]byte(httpsigPrivateKey))
@@ -98,7 +98,7 @@ func TestHTTPSigCert(t *testing.T) {
 		"type":    "principal",
 	})
 
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	MakeRequest(t, req, http.StatusSeeOther)
 	pkcert, _, _, _, err := ssh.ParseAuthorizedKey([]byte(httpsigCertificate))
 	if err != nil {
 		t.Fatal(err)

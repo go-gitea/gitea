@@ -660,7 +660,7 @@ func TestPackageContainer(t *testing.T) {
 			"email":    "user2@example.com",
 			"language": "en-US",
 		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
+		MakeRequest(t, req, http.StatusSeeOther)
 
 		t.Run(fmt.Sprintf("Catalog[%s]", newOwnerName), checkCatalog(newOwnerName))
 
@@ -670,6 +670,6 @@ func TestPackageContainer(t *testing.T) {
 			"email":    "user2@example.com",
 			"language": "en-US",
 		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
+		MakeRequest(t, req, http.StatusSeeOther)
 	})
 }

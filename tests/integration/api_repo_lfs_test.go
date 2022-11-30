@@ -98,7 +98,7 @@ func TestAPILFSBatch(t *testing.T) {
 
 		req := newRequest(t, nil)
 
-		session.MakeRequest(t, req, http.StatusBadRequest)
+		MakeRequest(t, req, http.StatusBadRequest)
 	})
 
 	t.Run("InvalidOperation", func(t *testing.T) {
@@ -108,7 +108,7 @@ func TestAPILFSBatch(t *testing.T) {
 			Operation: "dummy",
 		})
 
-		session.MakeRequest(t, req, http.StatusBadRequest)
+		MakeRequest(t, req, http.StatusBadRequest)
 	})
 
 	t.Run("InvalidPointer", func(t *testing.T) {
@@ -122,7 +122,7 @@ func TestAPILFSBatch(t *testing.T) {
 			},
 		})
 
-		resp := session.MakeRequest(t, req, http.StatusOK)
+		resp := MakeRequest(t, req, http.StatusOK)
 		br := decodeResponse(t, resp.Body)
 		assert.Len(t, br.Objects, 2)
 		assert.Equal(t, "dummy", br.Objects[0].Oid)
@@ -147,7 +147,7 @@ func TestAPILFSBatch(t *testing.T) {
 			},
 		})
 
-		resp := session.MakeRequest(t, req, http.StatusOK)
+		resp := MakeRequest(t, req, http.StatusOK)
 		br := decodeResponse(t, resp.Body)
 		assert.Len(t, br.Objects, 1)
 		assert.NotNil(t, br.Objects[0].Error)
@@ -168,7 +168,7 @@ func TestAPILFSBatch(t *testing.T) {
 				},
 			})
 
-			resp := session.MakeRequest(t, req, http.StatusOK)
+			resp := MakeRequest(t, req, http.StatusOK)
 			br := decodeResponse(t, resp.Body)
 			assert.Len(t, br.Objects, 1)
 			assert.NotNil(t, br.Objects[0].Error)
@@ -192,7 +192,7 @@ func TestAPILFSBatch(t *testing.T) {
 				Objects:   []lfs.Pointer{p},
 			})
 
-			resp := session.MakeRequest(t, req, http.StatusOK)
+			resp := MakeRequest(t, req, http.StatusOK)
 			br := decodeResponse(t, resp.Body)
 			assert.Len(t, br.Objects, 1)
 			assert.NotNil(t, br.Objects[0].Error)
@@ -209,7 +209,7 @@ func TestAPILFSBatch(t *testing.T) {
 				},
 			})
 
-			resp := session.MakeRequest(t, req, http.StatusOK)
+			resp := MakeRequest(t, req, http.StatusOK)
 			br := decodeResponse(t, resp.Body)
 			assert.Len(t, br.Objects, 1)
 			assert.Nil(t, br.Objects[0].Error)
@@ -236,7 +236,7 @@ func TestAPILFSBatch(t *testing.T) {
 				},
 			})
 
-			resp := session.MakeRequest(t, req, http.StatusOK)
+			resp := MakeRequest(t, req, http.StatusOK)
 			br := decodeResponse(t, resp.Body)
 			assert.Len(t, br.Objects, 1)
 			assert.NotNil(t, br.Objects[0].Error)
@@ -269,7 +269,7 @@ func TestAPILFSBatch(t *testing.T) {
 				Objects:   []lfs.Pointer{p},
 			})
 
-			resp := session.MakeRequest(t, req, http.StatusOK)
+			resp := MakeRequest(t, req, http.StatusOK)
 			br := decodeResponse(t, resp.Body)
 			assert.Len(t, br.Objects, 1)
 			assert.Nil(t, br.Objects[0].Error)
@@ -294,7 +294,7 @@ func TestAPILFSBatch(t *testing.T) {
 				},
 			})
 
-			resp := session.MakeRequest(t, req, http.StatusOK)
+			resp := MakeRequest(t, req, http.StatusOK)
 			br := decodeResponse(t, resp.Body)
 			assert.Len(t, br.Objects, 1)
 			assert.Nil(t, br.Objects[0].Error)
@@ -311,7 +311,7 @@ func TestAPILFSBatch(t *testing.T) {
 				},
 			})
 
-			resp := session.MakeRequest(t, req, http.StatusOK)
+			resp := MakeRequest(t, req, http.StatusOK)
 			br := decodeResponse(t, resp.Body)
 			assert.Len(t, br.Objects, 1)
 			assert.Nil(t, br.Objects[0].Error)
@@ -350,7 +350,7 @@ func TestAPILFSUpload(t *testing.T) {
 
 		req := newRequest(t, lfs.Pointer{Oid: "dummy"}, "")
 
-		session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+		MakeRequest(t, req, http.StatusUnprocessableEntity)
 	})
 
 	t.Run("AlreadyExistsInStore", func(t *testing.T) {
@@ -371,13 +371,13 @@ func TestAPILFSUpload(t *testing.T) {
 
 		t.Run("InvalidAccess", func(t *testing.T) {
 			req := newRequest(t, p, "invalid")
-			session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+			MakeRequest(t, req, http.StatusUnprocessableEntity)
 		})
 
 		t.Run("ValidAccess", func(t *testing.T) {
 			req := newRequest(t, p, "dummy5")
 
-			session.MakeRequest(t, req, http.StatusOK)
+			MakeRequest(t, req, http.StatusOK)
 			meta, err = git_model.GetLFSMetaObjectByOid(repo.ID, p.Oid)
 			assert.NoError(t, err)
 			assert.NotNil(t, meta)
@@ -393,7 +393,7 @@ func TestAPILFSUpload(t *testing.T) {
 
 		req := newRequest(t, lfs.Pointer{Oid: oid, Size: 6}, "")
 
-		session.MakeRequest(t, req, http.StatusOK)
+		MakeRequest(t, req, http.StatusOK)
 	})
 
 	t.Run("HashMismatch", func(t *testing.T) {
@@ -401,7 +401,7 @@ func TestAPILFSUpload(t *testing.T) {
 
 		req := newRequest(t, lfs.Pointer{Oid: "2581dd7bbc1fe44726de4b7dd806a087a978b9c5aec0a60481259e34be09b06a", Size: 1}, "a")
 
-		session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+		MakeRequest(t, req, http.StatusUnprocessableEntity)
 	})
 
 	t.Run("SizeMismatch", func(t *testing.T) {
@@ -409,7 +409,7 @@ func TestAPILFSUpload(t *testing.T) {
 
 		req := newRequest(t, lfs.Pointer{Oid: "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb", Size: 2}, "a")
 
-		session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+		MakeRequest(t, req, http.StatusUnprocessableEntity)
 	})
 
 	t.Run("Success", func(t *testing.T) {
@@ -419,7 +419,7 @@ func TestAPILFSUpload(t *testing.T) {
 
 		req := newRequest(t, p, "gitea")
 
-		session.MakeRequest(t, req, http.StatusOK)
+		MakeRequest(t, req, http.StatusOK)
 
 		contentStore := lfs.NewContentStore()
 		exist, err := contentStore.Exists(p)
@@ -457,7 +457,7 @@ func TestAPILFSVerify(t *testing.T) {
 
 		req := newRequest(t, nil)
 
-		session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+		MakeRequest(t, req, http.StatusUnprocessableEntity)
 	})
 
 	t.Run("InvalidPointer", func(t *testing.T) {
@@ -465,7 +465,7 @@ func TestAPILFSVerify(t *testing.T) {
 
 		req := newRequest(t, &lfs.Pointer{})
 
-		session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+		MakeRequest(t, req, http.StatusUnprocessableEntity)
 	})
 
 	t.Run("PointerNotExisting", func(t *testing.T) {
@@ -473,7 +473,7 @@ func TestAPILFSVerify(t *testing.T) {
 
 		req := newRequest(t, &lfs.Pointer{Oid: "fb8f7d8435968c4f82a726a92395be4d16f2f63116caf36c8ad35c60831ab042", Size: 6})
 
-		session.MakeRequest(t, req, http.StatusNotFound)
+		MakeRequest(t, req, http.StatusNotFound)
 	})
 
 	t.Run("Success", func(t *testing.T) {
@@ -481,6 +481,6 @@ func TestAPILFSVerify(t *testing.T) {
 
 		req := newRequest(t, &lfs.Pointer{Oid: oid, Size: 6})
 
-		session.MakeRequest(t, req, http.StatusOK)
+		MakeRequest(t, req, http.StatusOK)
 	})
 }

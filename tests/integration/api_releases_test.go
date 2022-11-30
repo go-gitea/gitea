@@ -79,7 +79,7 @@ func createNewReleaseUsingAPI(t *testing.T, session *TestSession, token string, 
 		IsPrerelease: false,
 		Target:       target,
 	})
-	resp := session.MakeRequest(t, req, http.StatusCreated)
+	resp := MakeRequest(t, req, http.StatusCreated)
 
 	var newRelease api.Release
 	DecodeJSON(t, resp, &newRelease)
@@ -117,7 +117,7 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases/%d?token=%s",
 		owner.Name, repo.Name, newRelease.ID, token)
 	req := NewRequest(t, "GET", urlStr)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 
 	var release api.Release
 	DecodeJSON(t, resp, &release)
@@ -134,7 +134,7 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 		IsPrerelease: &release.IsPrerelease,
 		Target:       release.Target,
 	})
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &newRelease)
 	rel := &repo_model.Release{
@@ -188,7 +188,7 @@ func TestAPIGetReleaseByTag(t *testing.T) {
 		owner.Name, repo.Name, tag)
 
 	req := NewRequestf(t, "GET", urlStr)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 
 	var release *api.Release
 	DecodeJSON(t, resp, &release)
@@ -201,7 +201,7 @@ func TestAPIGetReleaseByTag(t *testing.T) {
 		owner.Name, repo.Name, nonexistingtag)
 
 	req = NewRequestf(t, "GET", urlStr)
-	resp = session.MakeRequest(t, req, http.StatusNotFound)
+	resp = MakeRequest(t, req, http.StatusNotFound)
 
 	var err *api.APIError
 	DecodeJSON(t, resp, &err)
@@ -220,13 +220,13 @@ func TestAPIDeleteReleaseByTagName(t *testing.T) {
 
 	// delete release
 	req := NewRequestf(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/release-tag?token=%s", owner.Name, repo.Name, token))
-	_ = session.MakeRequest(t, req, http.StatusNoContent)
+	_ = MakeRequest(t, req, http.StatusNoContent)
 
 	// make sure release is deleted
 	req = NewRequestf(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/release-tag?token=%s", owner.Name, repo.Name, token))
-	_ = session.MakeRequest(t, req, http.StatusNotFound)
+	_ = MakeRequest(t, req, http.StatusNotFound)
 
 	// delete release tag too
 	req = NewRequestf(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/tags/release-tag?token=%s", owner.Name, repo.Name, token))
-	_ = session.MakeRequest(t, req, http.StatusNoContent)
+	_ = MakeRequest(t, req, http.StatusNoContent)
 }

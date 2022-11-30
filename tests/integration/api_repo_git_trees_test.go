@@ -37,7 +37,7 @@ func TestAPIReposGitTrees(t *testing.T) {
 		repo1TreeSHA, // Tree SHA
 	} {
 		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/%s", user2.Name, repo1.Name, ref)
-		session.MakeRequest(t, req, http.StatusOK)
+		MakeRequest(t, req, http.StatusOK)
 	}
 
 	// Tests a private repo with no token so will fail
@@ -46,24 +46,24 @@ func TestAPIReposGitTrees(t *testing.T) {
 		repo1TreeSHA, // Tag
 	} {
 		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/%s", user2.Name, repo16.Name, ref)
-		session.MakeRequest(t, req, http.StatusNotFound)
+		MakeRequest(t, req, http.StatusNotFound)
 	}
 
 	// Test using access token for a private repo that the user of the token owns
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/%s?token=%s", user2.Name, repo16.Name, repo16TreeSHA, token)
-	session.MakeRequest(t, req, http.StatusOK)
+	MakeRequest(t, req, http.StatusOK)
 
 	// Test using bad sha
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/%s", user2.Name, repo1.Name, badSHA)
-	session.MakeRequest(t, req, http.StatusBadRequest)
+	MakeRequest(t, req, http.StatusBadRequest)
 
 	// Test using org repo "user3/repo3" where user2 is a collaborator
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/%s?token=%s", user3.Name, repo3.Name, repo3TreeSHA, token)
-	session.MakeRequest(t, req, http.StatusOK)
+	MakeRequest(t, req, http.StatusOK)
 
 	// Test using org repo "user3/repo3" with no user token
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/%s", user3.Name, repo3TreeSHA, repo3.Name)
-	session.MakeRequest(t, req, http.StatusNotFound)
+	MakeRequest(t, req, http.StatusNotFound)
 
 	// Login as User4.
 	session = loginUser(t, user4.Name)
@@ -72,5 +72,5 @@ func TestAPIReposGitTrees(t *testing.T) {
 
 	// Test using org repo "user3/repo3" where user4 is a NOT collaborator
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/d56a3073c1dbb7b15963110a049d50cdb5db99fc?access=%s", user3.Name, repo3.Name, token4)
-	session.MakeRequest(t, req, http.StatusNotFound)
+	MakeRequest(t, req, http.StatusNotFound)
 }

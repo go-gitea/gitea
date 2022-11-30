@@ -18,7 +18,7 @@ func TestRepoLanguages(t *testing.T) {
 
 		// Request editor page
 		req := NewRequest(t, "GET", "/user2/repo1/_new/master/")
-		resp := session.MakeRequest(t, req, http.StatusOK)
+		resp := MakeRequest(t, req, http.StatusOK)
 
 		doc := NewHTMLParser(t, resp.Body)
 		lastCommit := doc.GetInputValueByName("last_commit")
@@ -32,14 +32,14 @@ func TestRepoLanguages(t *testing.T) {
 			"content":       "package main",
 			"commit_choice": "direct",
 		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
+		MakeRequest(t, req, http.StatusSeeOther)
 
 		// let gitea calculate language stats
 		time.Sleep(time.Second)
 
 		// Save new file to master branch
 		req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/languages")
-		resp = session.MakeRequest(t, req, http.StatusOK)
+		resp = MakeRequest(t, req, http.StatusOK)
 
 		var languages map[string]int64
 		DecodeJSON(t, resp, &languages)
