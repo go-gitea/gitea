@@ -2965,9 +2965,15 @@ tbody.commit-list {
 
 .comment-diff-data {
   background: var(--color-code-bg);
-  line-height: 18px;
   max-height: calc(100vh - 10.5rem);
-  overflow: auto;
+  overflow-y: auto;
+}
+
+.comment-diff-data pre {
+  line-height: 18px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-wrap: break-word;
 }
 
 #topic_edit {
