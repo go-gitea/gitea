@@ -112,6 +112,10 @@ const (
 	AccessTokenScopeReadApplicationBits  = 1 << iota
 
 	AccessTokenScopeSudoBits = 1 << iota
+
+	// The current implementation only supports up to 64 token scopes.
+	// If we need to support > 64 scopes,
+	// refactoring the whole implementation in this file (and only this file) is needed.
 )
 
 // AllAccessTokenScopes contains all access token scopes.
