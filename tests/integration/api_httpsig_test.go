@@ -98,7 +98,7 @@ func TestHTTPSigCert(t *testing.T) {
 		"type":    "principal",
 	})
 
-	MakeRequest(t, req, http.StatusSeeOther)
+	session.MakeRequest(t, req, http.StatusSeeOther)
 	pkcert, _, _, _, err := ssh.ParseAuthorizedKey([]byte(httpsigCertificate))
 	if err != nil {
 		t.Fatal(err)
