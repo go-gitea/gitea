@@ -111,7 +111,7 @@ func MembersAction(ctx *context.Context) {
 		if err == nil {
 			ctx.Flash.Success(ctx.Tr("form.organization_leave_success", org.DisplayName()))
 			ctx.JSON(http.StatusOK, map[string]interface{}{
-				"redirect": "",
+				"redirect": "", // keep the user stay on current page, in case they want to do other operations.
 			})
 		} else if organization.IsErrLastOrgOwner(err) {
 			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
