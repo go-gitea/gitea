@@ -129,27 +129,19 @@ var (
 
 // Init init the stoarge
 func Init() error {
-	if err := initAttachments(); err != nil {
-		return err
+	for _, f := range []func() error{
+		initAttachments,
+		initAvatars,
+		initRepoAvatars,
+		initLFS,
+		initRepoArchives,
+		initPackages,
+	} {
+		if err := f(); err != nil {
+			return err
+		}
 	}
-
-	if err := initAvatars(); err != nil {
-		return err
-	}
-
-	if err := initRepoAvatars(); err != nil {
-		return err
-	}
-
-	if err := initLFS(); err != nil {
-		return err
-	}
-
-	if err := initRepoArchives(); err != nil {
-		return err
-	}
-
-	return initPackages()
+	return nil
 }
 
 // NewStorage takes a storage type and some config and returns an ObjectStorage or an error
@@ -172,6 +164,9 @@ func initAvatars() (err error) {
 }
 
 func initAttachments() (err error) {
+	if !setting.Attachment.Enabled {
+		return nil
+	}
 	log.Info("Initialising Attachment storage with type: %s", setting.Attachment.Storage.Type)
 	Attachments, err = NewStorage(setting.Attachment.Storage.Type, &setting.Attachment.Storage)
 	return err
@@ -196,6 +191,9 @@ func initRepoArchives() (err error) {
 }
 
 func initPackages() (err error) {
+	if !setting.Packages.Enabled {
+		return nil
+	}
 	log.Info("Initialising Packages storage with type: %s", setting.Packages.Storage.Type)
 	Packages, err = NewStorage(setting.Packages.Storage.Type, &setting.Packages.Storage)
 	return err
