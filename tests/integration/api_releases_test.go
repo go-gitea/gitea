@@ -180,7 +180,6 @@ func TestAPIGetReleaseByTag(t *testing.T) {
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	session := loginUser(t, owner.LowerName)
 
 	tag := "v1.1"
 

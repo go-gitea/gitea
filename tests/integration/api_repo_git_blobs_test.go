@@ -32,7 +32,6 @@ func TestAPIReposGitBlobs(t *testing.T) {
 	// Login as User2.
 	session := loginUser(t, user2.Name)
 	token := getTokenForLoggedInUser(t, session)
-	session = emptyTestSession(t) // don't want anyone logged in for this
 
 	// Test a public repo that anyone can GET the blob of
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/blobs/%s", user2.Name, repo1.Name, repo1ReadmeSHA)
@@ -70,7 +69,6 @@ func TestAPIReposGitBlobs(t *testing.T) {
 	// Login as User4.
 	session = loginUser(t, user4.Name)
 	token4 := getTokenForLoggedInUser(t, session)
-	session = emptyTestSession(t) // don't want anyone logged in for this
 
 	// Test using org repo "user3/repo3" where user4 is a NOT collaborator
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/blobs/d56a3073c1dbb7b15963110a049d50cdb5db99fc?access=%s", user3.Name, repo3.Name, token4)

@@ -24,7 +24,6 @@ type apiUserOrgPermTestCase struct {
 func TestTokenNeeded(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	session := emptyTestSession(t)
 	req := NewRequest(t, "GET", "/api/v1/users/user1/orgs/user6/permissions")
 	MakeRequest(t, req, http.StatusUnauthorized)
 }

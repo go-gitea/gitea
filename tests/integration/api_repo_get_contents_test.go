@@ -69,7 +69,6 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	// Get user4's token
 	session = loginUser(t, user4.Name)
 	token4 := getTokenForLoggedInUser(t, session)
-	session = emptyTestSession(t)
 
 	// Make a new branch in repo1
 	newBranch := "test_branch"

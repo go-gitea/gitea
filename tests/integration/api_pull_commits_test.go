@@ -23,7 +23,6 @@ func TestAPIPullCommits(t *testing.T) {
 	assert.NoError(t, pr.LoadIssue(db.DefaultContext))
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pr.HeadRepoID})
 
-	session := loginUser(t, "user2")
 	req := NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/commits", repo.OwnerName, repo.Name, pr.Index)
 	resp := MakeRequest(t, req, http.StatusOK)
 

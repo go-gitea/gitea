@@ -19,7 +19,6 @@ func TestAPIGetWikiPage(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	username := "user2"
-	session := loginUser(t, username)
 
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/page/Home", username, "repo1")
 
@@ -65,7 +64,6 @@ func TestAPIListWikiPages(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	username := "user2"
-	session := loginUser(t, username)
 
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/pages", username, "repo1")
 
@@ -213,7 +211,6 @@ func TestAPIEditWikiPage(t *testing.T) {
 func TestAPIListPageRevisions(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	username := "user2"
-	session := loginUser(t, username)
 
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/revisions/Home", username, "repo1")
 

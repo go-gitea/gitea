@@ -52,7 +52,6 @@ func TestAPIDeleteFile(t *testing.T) {
 		// Get user4's token
 		session = loginUser(t, user4.Name)
 		token4 := getTokenForLoggedInUser(t, session)
-		session = emptyTestSession(t)
 
 		// Test deleting a file in repo1 which user2 owns, try both with branch and empty branch
 		for _, branch := range [...]string{

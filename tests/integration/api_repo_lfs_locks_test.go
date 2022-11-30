@@ -107,7 +107,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s.git/info/lfs/locks", test.repo.FullName()), map[string]string{"path": test.path})
 		req.Header.Set("Accept", lfs.MediaType)
 		req.Header.Set("Content-Type", lfs.MediaType)
-		resp := MakeRequest(t, req, test.httpResult)
+		resp := session.MakeRequest(t, req, test.httpResult)
 		if len(test.addTime) > 0 {
 			var lfsLock api.LFSLockResponse
 			DecodeJSON(t, resp, &lfsLock)
@@ -124,7 +124,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		session := loginUser(t, test.user.Name)
 		req := NewRequestf(t, "GET", "/%s.git/info/lfs/locks", test.repo.FullName())
 		req.Header.Set("Accept", lfs.MediaType)
-		resp := MakeRequest(t, req, http.StatusOK)
+		resp := session.MakeRequest(t, req, http.StatusOK)
 		var lfsLocks api.LFSLockList
 		DecodeJSON(t, resp, &lfsLocks)
 		assert.Len(t, lfsLocks.Locks, test.totalCount)
@@ -137,7 +137,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s.git/info/lfs/locks/verify", test.repo.FullName()), map[string]string{})
 		req.Header.Set("Accept", lfs.MediaType)
 		req.Header.Set("Content-Type", lfs.MediaType)
-		resp = MakeRequest(t, req, http.StatusOK)
+		resp = session.MakeRequest(t, req, http.StatusOK)
 		var lfsLocksVerify api.LFSLockListVerify
 		DecodeJSON(t, resp, &lfsLocksVerify)
 		assert.Len(t, lfsLocksVerify.Ours, test.oursCount)
@@ -161,7 +161,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s.git/info/lfs/locks/%s/unlock", test.repo.FullName(), test.lockID), map[string]string{})
 		req.Header.Set("Accept", lfs.MediaType)
 		req.Header.Set("Content-Type", lfs.MediaType)
-		resp := MakeRequest(t, req, http.StatusOK)
+		resp := session.MakeRequest(t, req, http.StatusOK)
 		var lfsLockRep api.LFSLockResponse
 		DecodeJSON(t, resp, &lfsLockRep)
 		assert.Equal(t, test.lockID, lfsLockRep.Lock.ID)
@@ -173,7 +173,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		session := loginUser(t, test.user.Name)
 		req := NewRequestf(t, "GET", "/%s.git/info/lfs/locks", test.repo.FullName())
 		req.Header.Set("Accept", lfs.MediaType)
-		resp := MakeRequest(t, req, http.StatusOK)
+		resp := session.MakeRequest(t, req, http.StatusOK)
 		var lfsLocks api.LFSLockList
 		DecodeJSON(t, resp, &lfsLocks)
 		assert.Len(t, lfsLocks.Locks, 0)

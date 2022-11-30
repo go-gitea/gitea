@@ -27,7 +27,6 @@ func TestAPIRepoCollaboratorPermission(t *testing.T) {
 		user10 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 10})
 		user11 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 11})
 
-		session := loginUser(t, repo2Owner.Name)
 		testCtx := NewAPITestContext(t, repo2Owner.Name, repo2.Name)
 
 		t.Run("RepoOwnerShouldBeOwner", func(t *testing.T) {

@@ -29,7 +29,6 @@ func TestAPIReposGitTrees(t *testing.T) {
 	// Login as User2.
 	session := loginUser(t, user2.Name)
 	token := getTokenForLoggedInUser(t, session)
-	session = emptyTestSession(t) // don't want anyone logged in for this
 
 	// Test a public repo that anyone can GET the tree of
 	for _, ref := range [...]string{
@@ -68,7 +67,6 @@ func TestAPIReposGitTrees(t *testing.T) {
 	// Login as User4.
 	session = loginUser(t, user4.Name)
 	token4 := getTokenForLoggedInUser(t, session)
-	session = emptyTestSession(t) // don't want anyone logged in for this
 
 	// Test using org repo "user3/repo3" where user4 is a NOT collaborator
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/d56a3073c1dbb7b15963110a049d50cdb5db99fc?access=%s", user3.Name, repo3.Name, token4)
