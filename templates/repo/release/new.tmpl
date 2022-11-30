@@ -48,7 +48,7 @@
 					<label>{{.locale.Tr "repo.release.content"}}</label>
 					<div class="ui top tabular menu" data-write="write" data-preview="preview">
 						<a class="active write item" data-tab="write">{{$.locale.Tr "write"}}</a>
-						<a class="preview item" data-tab="preview" data-url="{{$.Repository.HTMLURL}}/markdown" data-context="{{$.RepoLink}}">{{$.locale.Tr "preview"}}</a>
+						<a class="preview item" data-tab="preview" data-url="{{$.Repository.Link}}/markdown" data-context="{{$.RepoLink}}">{{$.locale.Tr "preview"}}</a>
 					</div>
 					<div class="ui bottom active tab" data-tab="write">
 						<textarea name="content">{{.content}}</textarea>

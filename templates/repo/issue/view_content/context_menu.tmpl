@@ -6,9 +6,9 @@
 	<div class="menu">
 		{{$referenceUrl := ""}}
 		{{if .issue}}
-			{{$referenceUrl = Printf "%s#%s" .ctx.Issue.HTMLURL .item.HashTag}}
+			{{$referenceUrl = Printf "%s#%s" .ctx.Issue.Link .item.HashTag}}
 		{{else}}
-			{{$referenceUrl = Printf "%s/files#%s" .ctx.Issue.HTMLURL .item.HashTag}}
+			{{$referenceUrl = Printf "%s/files#%s" .ctx.Issue.Link .item.HashTag}}
 		{{end}}
 		<div class="item context" data-clipboard-text="{{$referenceUrl}}">{{.ctx.locale.Tr "repo.issues.context.copy_link"}}</div>
 		<div class="item context quote-reply {{if .diff}}quote-reply-diff{{end}}" data-target="{{.item.ID}}">{{.ctx.locale.Tr "repo.issues.context.quote_reply"}}</div>

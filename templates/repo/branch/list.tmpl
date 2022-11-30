@@ -96,13 +96,13 @@
 											</a>
 											{{end}}
 										{{else}}
-											<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="vm ref-issue">{{if not .LatestPullRequest.IsSameRepo}}{{.LatestPullRequest.BaseRepo.FullName}}{{end}}#{{.LatestPullRequest.Issue.Index}}</a>
+											<a href="{{.LatestPullRequest.Issue.Link}}" class="vm ref-issue">{{if not .LatestPullRequest.IsSameRepo}}{{.LatestPullRequest.BaseRepo.FullName}}{{end}}#{{.LatestPullRequest.Issue.Index}}</a>
 											{{if .LatestPullRequest.HasMerged}}
-												<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="ui text-label purple large label vm">{{svg "octicon-git-merge" 16 "mr-2"}}{{$.locale.Tr "repo.pulls.merged"}}</a>
+												<a href="{{.LatestPullRequest.Issue.Link}}" class="ui text-label purple large label vm">{{svg "octicon-git-merge" 16 "mr-2"}}{{$.locale.Tr "repo.pulls.merged"}}</a>
 											{{else if .LatestPullRequest.Issue.IsClosed}}
-												<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="ui text-label red large label vm">{{svg "octicon-git-pull-request" 16 "mr-2"}}{{$.locale.Tr "repo.issues.closed_title"}}</a>
+												<a href="{{.LatestPullRequest.Issue.Link}}" class="ui text-label red large label vm">{{svg "octicon-git-pull-request" 16 "mr-2"}}{{$.locale.Tr "repo.issues.closed_title"}}</a>
 											{{else}}
-												<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="ui text-label green large label vm">{{svg "octicon-git-pull-request" 16 "mr-2"}}{{$.locale.Tr "repo.issues.open_title"}}</a>
+												<a href="{{.LatestPullRequest.Issue.Link}}" class="ui text-label green large label vm">{{svg "octicon-git-pull-request" 16 "mr-2"}}{{$.locale.Tr "repo.issues.open_title"}}</a>
 											{{end}}
 										{{end}}
 									</td>

@@ -63,6 +63,7 @@ type Repository struct {
 	Language      string      `json:"language"`
 	LanguagesURL  string      `json:"languages_url"`
 	HTMLURL       string      `json:"html_url"`
+	Link          string      `json:"link"`
 	SSHURL        string      `json:"ssh_url"`
 	CloneURL      string      `json:"clone_url"`
 	OriginalURL   string      `json:"original_url"`

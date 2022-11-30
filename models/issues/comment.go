@@ -376,6 +376,15 @@ func (c *Comment) AfterDelete() {
 
 // HTMLURL formats a URL-string to the issue-comment
 func (c *Comment) HTMLURL() string {
+	return c.link(c.Issue.HTMLURL())
+}
+
+// Link formats a URL-string to the issue-comment
+func (c *Comment) Link() string {
+	return c.link(c.Issue.Link())
+}
+
+func (c *Comment) link(baseURL string) string {
 	err := c.LoadIssue(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("LoadIssue(%d): %v", c.IssueID, err)
@@ -386,21 +395,22 @@ func (c *Comment) HTMLURL() string {
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
 	}
+
 	if c.Type == CommentTypeCode {
 		if c.ReviewID == 0 {
-			return fmt.Sprintf("%s/files#%s", c.Issue.HTMLURL(), c.HashTag())
+			return fmt.Sprintf("%s/files#%s", baseURL, c.HashTag())
 		}
 		if c.Review == nil {
 			if err := c.LoadReview(); err != nil {
 				log.Warn("LoadReview(%d): %v", c.ReviewID, err)
-				return fmt.Sprintf("%s/files#%s", c.Issue.HTMLURL(), c.HashTag())
+				return fmt.Sprintf("%s/files#%s", baseURL, c.HashTag())
 			}
 		}
 		if c.Review.Type <= ReviewTypePending {
-			return fmt.Sprintf("%s/files#%s", c.Issue.HTMLURL(), c.HashTag())
+			return fmt.Sprintf("%s/files#%s", baseURL, c.HashTag())
 		}
 	}
-	return fmt.Sprintf("%s#%s", c.Issue.HTMLURL(), c.HashTag())
+	return fmt.Sprintf("%s#%s", baseURL, c.HashTag())
 }
 
 // APIURL formats a API-string to the issue-comment

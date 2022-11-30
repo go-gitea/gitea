@@ -21,11 +21,11 @@
 			</div>
 			<div class="ui top attached tabular menu previewtabs" data-write="write" data-preview="preview">
 				<a class="active item" data-tab="write">{{.locale.Tr "write"}}</a>
-				<a class="item" data-tab="preview" data-url="{{$.Repository.HTMLURL}}/markdown" data-context="{{$.RepoLink}}">{{$.locale.Tr "preview"}}</a>
+				<a class="item" data-tab="preview" data-url="{{$.Repository.Link}}/markdown" data-context="{{$.RepoLink}}">{{$.locale.Tr "preview"}}</a>
 			</div>
 			<div class="field content" data-loading="{{.locale.Tr "loading"}}">
 				<div class="ui bottom active tab" data-tab="write">
-					<textarea class="js-quick-submit" id="edit_area" name="content" data-id="wiki-{{.title}}" data-url="{{.Repository.HTMLURL}}/markdown" data-context="{{.RepoLink}}">{{if .PageIsWikiEdit}}{{.content}}{{else}}{{.locale.Tr "repo.wiki.welcome"}}{{end}}</textarea>
+					<textarea class="js-quick-submit" id="edit_area" name="content" data-id="wiki-{{.title}}" data-url="{{.Repository.Link}}/markdown" data-context="{{.RepoLink}}">{{if .PageIsWikiEdit}}{{.content}}{{else}}{{.locale.Tr "repo.wiki.welcome"}}{{end}}</textarea>
 				</div>
 			</div>
 			<div class="field">

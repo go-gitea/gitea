@@ -1,5 +1,5 @@
 {{if and $.root.SignedUserID (not $.Repository.IsArchived)}}
-	<form class="ui form {{if $.hidden}}hide comment-form comment-form-reply{{end}}" action="{{$.root.Issue.HTMLURL}}/files/reviews/comments" method="post">
+	<form class="ui form {{if $.hidden}}hide comment-form comment-form-reply{{end}}" action="{{$.root.Issue.Link}}/files/reviews/comments" method="post">
 	{{$.root.CsrfTokenHtml}}
 		<input type="hidden" name="origin" value="{{if $.root.PageIsPullFiles}}diff{{else}}timeline{{end}}">
 		<input type="hidden" name="latest_commit_id" value="{{$.root.AfterCommitID}}"/>
@@ -11,7 +11,7 @@
 		<input type="hidden" name="diff_base_cid">
 		<div class="ui top tabular menu" data-write="write" data-preview="preview">
 			<a class="active item" data-tab="write">{{$.root.locale.Tr "write"}}</a>
-			<a class="item" data-tab="preview" data-url="{{$.root.Repository.HTMLURL}}/markdown" data-context="{{$.root.RepoLink}}">{{$.root.locale.Tr "preview"}}</a>
+			<a class="item" data-tab="preview" data-url="{{$.root.Repository.Link}}/markdown" data-context="{{$.root.RepoLink}}">{{$.root.locale.Tr "preview"}}</a>
 		</div>
 		<div class="field">
 			<div class="ui active tab" data-tab="write">
