@@ -50,7 +50,7 @@ func init() {
 	db.RegisterModel(new(CommitStatusIndex))
 }
 
-func postGresGetCommitStatusIndex(ctx context.Context, repoID int64, sha string) (int64, error) {
+func postgresGetCommitStatusIndex(ctx context.Context, repoID int64, sha string) (int64, error) {
 	res, err := db.GetEngine(ctx).Query("INSERT INTO `commit_status_index` (repo_id, sha, max_index) "+
 		"VALUES (?,?,1) ON CONFLICT (repo_id, sha) DO UPDATE SET max_index = `commit_status_index`.max_index+1 RETURNING max_index",
 		repoID, sha)
@@ -66,7 +66,7 @@ func postGresGetCommitStatusIndex(ctx context.Context, repoID int64, sha string)
 // GetNextCommitStatusIndex retried 3 times to generate a resource index
 func GetNextCommitStatusIndex(ctx context.Context, repoID int64, sha string) (int64, error) {
 	if setting.Database.UsePostgreSQL {
-		return postGresGetCommitStatusIndex(ctx, repoID, sha)
+		return postgresGetCommitStatusIndex(ctx, repoID, sha)
 	}
 
 	e := db.GetEngine(ctx)
