@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -191,7 +190,7 @@ func Search(ctx *context.APIContext) {
 	}
 
 	var err error
-	repos, count, err := repo_model.SearchRepository(opts)
+	repos, count, err := repo_model.SearchRepository(ctx, opts)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, api.SearchError{
 			OK:    false,
@@ -209,7 +208,7 @@ func Search(ctx *context.APIContext) {
 			})
 			return
 		}
-		accessMode, err := access_model.AccessLevel(ctx.Doer, repo)
+		accessMode, err := access_model.AccessLevel(ctx, ctx.Doer, repo)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, api.SearchError{
 				OK:    false,

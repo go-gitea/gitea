@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -68,11 +67,9 @@ func (u *User) AvatarLinkWithSize(size int) string {
 	useLocalAvatar := false
 	autoGenerateAvatar := false
 
-	var disableGravatar bool
 	disableGravatarSetting, _ := system_model.GetSetting(system_model.KeyPictureDisableGravatar)
-	if disableGravatarSetting != nil {
-		disableGravatar = disableGravatarSetting.GetValueBool()
-	}
+
+	disableGravatar := disableGravatarSetting.GetValueBool()
 
 	switch {
 	case u.UseCustomAvatar:
@@ -112,4 +109,11 @@ func (u *User) IsUploadAvatarChanged(data []byte) bool {
 	}
 	avatarID := fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%d-%x", u.ID, md5.Sum(data)))))
 	return u.Avatar != avatarID
+}
+
+// ExistsWithAvatarAtStoragePath returns true if there is a user with this Avatar
+func ExistsWithAvatarAtStoragePath(ctx context.Context, storagePath string) (bool, error) {
+	// See func (u *User) CustomAvatarRelativePath()
+	// u.Avatar is used directly as the storage path - therefore we can check for existence directly using the path
+	return db.GetEngine(ctx).Where("`avatar`=?", storagePath).Exist(new(User))
 }

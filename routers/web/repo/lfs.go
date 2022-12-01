@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -478,7 +477,7 @@ func LFSPointerFiles(ctx *context.Context) {
 						return err
 					}
 					if !result.Associatable {
-						associated, err := git_model.LFSObjectIsAssociated(pointerBlob.Oid)
+						associated, err := git_model.ExistsLFSObject(ctx, pointerBlob.Oid)
 						if err != nil {
 							return err
 						}

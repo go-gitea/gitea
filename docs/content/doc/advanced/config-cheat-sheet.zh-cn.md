@@ -145,7 +145,8 @@ menu:
 - `ENABLE_NOTIFY_MAIL`: 是否发送工单创建等提醒邮件，需要 `Mailer` 被激活。
 - `ENABLE_REVERSE_PROXY_AUTHENTICATION`: 允许反向代理认证，更多细节见：https://github.com/gogits/gogs/issues/165
 - `ENABLE_REVERSE_PROXY_AUTO_REGISTRATION`: 允许通过反向认证做自动注册。
-- `ENABLE_CAPTCHA`: 注册时使用图片验证码。
+- `ENABLE_CAPTCHA`: **false**: 注册时使用图片验证码。
+- `REQUIRE_CAPTCHA_FOR_LOGIN`: **false**: 登录时需要图片验证码。需要同时开启 `ENABLE_CAPTCHA`。
 
 ### Service - Expore (`service.explore`)
 

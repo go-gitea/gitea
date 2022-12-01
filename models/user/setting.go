@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -10,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/cache"
 
 	"xorm.io/builder"
 )
@@ -47,9 +47,25 @@ func IsErrUserSettingIsNotExist(err error) bool {
 	return ok
 }
 
-// GetSetting returns specific setting
+// genSettingCacheKey returns the cache key for some configuration
+func genSettingCacheKey(userID int64, key string) string {
+	return fmt.Sprintf("user_%d.setting.%s", userID, key)
+}
+
+// GetSetting returns the setting value via the key
 func GetSetting(uid int64, key string) (*Setting, error) {
-	v, err := GetUserSettings(uid, []string{key})
+	return cache.Get(genSettingCacheKey(uid, key), func() (*Setting, error) {
+		res, err := GetSettingNoCache(uid, key)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
+	})
+}
+
+// GetSettingNoCache returns specific setting without using the cache
+func GetSettingNoCache(uid int64, key string) (*Setting, error) {
+	v, err := GetSettings(uid, []string{key})
 	if err != nil {
 		return nil, err
 	}
@@ -59,8 +75,8 @@ func GetSetting(uid int64, key string) (*Setting, error) {
 	return v[key], nil
 }
 
-// GetUserSettings returns specific settings from user
-func GetUserSettings(uid int64, keys []string) (map[string]*Setting, error) {
+// GetSettings returns specific settings from user
+func GetSettings(uid int64, keys []string) (map[string]*Setting, error) {
 	settings := make([]*Setting, 0, len(keys))
 	if err := db.GetEngine(db.DefaultContext).
 		Where("user_id=?", uid).
@@ -105,6 +121,7 @@ func GetUserSetting(userID int64, key string, def ...string) (string, error) {
 	if err := validateUserSettingKey(key); err != nil {
 		return "", err
 	}
+
 	setting := &Setting{UserID: userID, SettingKey: key}
 	has, err := db.GetEngine(db.DefaultContext).Get(setting)
 	if err != nil {
@@ -124,7 +141,10 @@ func DeleteUserSetting(userID int64, key string) error {
 	if err := validateUserSettingKey(key); err != nil {
 		return err
 	}
+
+	cache.Remove(genSettingCacheKey(userID, key))
 	_, err := db.GetEngine(db.DefaultContext).Delete(&Setting{UserID: userID, SettingKey: key})
+
 	return err
 }
 
@@ -133,11 +153,16 @@ func SetUserSetting(userID int64, key, value string) error {
 	if err := validateUserSettingKey(key); err != nil {
 		return err
 	}
-	return upsertUserSettingValue(userID, key, value)
+
+	_, err := cache.Set(genSettingCacheKey(userID, key), func() (string, error) {
+		return value, upsertUserSettingValue(userID, key, value)
+	})
+
+	return err
 }
 
 func upsertUserSettingValue(userID int64, key, value string) error {
-	return db.WithTx(func(ctx context.Context) error {
+	return db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		e := db.GetEngine(ctx)
 
 		// here we use a general method to do a safe upsert for different databases (and most transaction levels)

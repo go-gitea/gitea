@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package mailer
 
@@ -166,7 +165,7 @@ func (s *smtpSender) Send(from string, to []string, msg io.WriterTo) error {
 	defer conn.Close()
 
 	var tlsconfig *tls.Config
-	if opts.Protocol == "smtps" || opts.Protocol == "smtp+startls" {
+	if opts.Protocol == "smtps" || opts.Protocol == "smtp+starttls" {
 		tlsconfig = &tls.Config{
 			InsecureSkipVerify: opts.ForceTrustServerCert,
 			ServerName:         opts.SMTPAddr,
@@ -208,7 +207,7 @@ func (s *smtpSender) Send(from string, to []string, msg io.WriterTo) error {
 		}
 	}
 
-	if opts.Protocol == "smtp+startls" {
+	if opts.Protocol == "smtp+starttls" {
 		hasStartTLS, _ := client.Extension("STARTTLS")
 		if hasStartTLS {
 			if err = client.StartTLS(tlsconfig); err != nil {

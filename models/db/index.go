@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package db
 
@@ -22,11 +21,6 @@ var (
 	ErrResouceOutdated = errors.New("resource outdated")
 	// ErrGetResourceIndexFailed represents an error when resource index retries 3 times
 	ErrGetResourceIndexFailed = errors.New("get resource index failed")
-)
-
-const (
-	// MaxDupIndexAttempts max retry times to create index
-	MaxDupIndexAttempts = 3
 )
 
 // SyncMaxResourceIndex sync the max index with the resource

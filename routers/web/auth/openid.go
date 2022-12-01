@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package auth
 
@@ -13,11 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/auth/openid"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/hcaptcha"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/mcaptcha"
-	"code.gitea.io/gitea/modules/recaptcha"
-	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -232,27 +227,16 @@ func signInOpenIDVerify(ctx *context.Context) {
 		}
 	}
 
-	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
-		ctx.ServerError("RegenerateSession", err)
-		return
-	}
-
-	if err := ctx.Session.Set("openid_verified_uri", id); err != nil {
-		log.Error("signInOpenIDVerify: Could not set openid_verified_uri in session: %v", err)
-	}
-	if err := ctx.Session.Set("openid_determined_email", email); err != nil {
-		log.Error("signInOpenIDVerify: Could not set openid_determined_email in session: %v", err)
-	}
-
 	if u != nil {
 		nickname = u.LowerName
 	}
-
-	if err := ctx.Session.Set("openid_determined_username", nickname); err != nil {
-		log.Error("signInOpenIDVerify: Could not set openid_determined_username in session: %v", err)
-	}
-	if err := ctx.Session.Release(); err != nil {
-		log.Error("signInOpenIDVerify: Unable to save changes to the session: %v", err)
+	if err := updateSession(ctx, nil, map[string]interface{}{
+		"openid_verified_uri":        id,
+		"openid_determined_email":    email,
+		"openid_determined_username": nickname,
+	}); err != nil {
+		ctx.ServerError("updateSession", err)
+		return
 	}
 
 	if u != nil || !setting.Service.EnableOpenIDSignUp || setting.Service.AllowOnlyInternalRegistration {
@@ -369,14 +353,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsOpenIDRegister"] = true
 	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
-	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
-	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
-	ctx.Data["Captcha"] = context.GetImageCaptcha()
-	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
-	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
-	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
-	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
-	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
+	context.SetCaptchaData(ctx)
 	ctx.Data["OpenID"] = oid
 
 	if setting.Service.AllowOnlyInternalRegistration {
@@ -385,42 +362,11 @@ func RegisterOpenIDPost(ctx *context.Context) {
 	}
 
 	if setting.Service.EnableCaptcha {
-		var valid bool
-		var err error
-		switch setting.Service.CaptchaType {
-		case setting.ImageCaptcha:
-			valid = context.GetImageCaptcha().VerifyReq(ctx.Req)
-		case setting.ReCaptcha:
-			if err := ctx.Req.ParseForm(); err != nil {
-				ctx.ServerError("", err)
-				return
-			}
-			valid, err = recaptcha.Verify(ctx, form.GRecaptchaResponse)
-		case setting.HCaptcha:
-			if err := ctx.Req.ParseForm(); err != nil {
-				ctx.ServerError("", err)
-				return
-			}
-			valid, err = hcaptcha.Verify(ctx, form.HcaptchaResponse)
-		case setting.MCaptcha:
-			if err := ctx.Req.ParseForm(); err != nil {
-				ctx.ServerError("", err)
-				return
-			}
-			valid, err = mcaptcha.Verify(ctx, form.McaptchaResponse)
-		default:
-			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
+		if err := ctx.Req.ParseForm(); err != nil {
+			ctx.ServerError("", err)
 			return
 		}
-		if err != nil {
-			log.Debug("%s", err.Error())
-		}
-
-		if !valid {
-			ctx.Data["Err_Captcha"] = true
-			ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplSignUpOID, &form)
-			return
-		}
+		context.VerifyCaptcha(ctx, tplSignUpOID, form)
 	}
 
 	length := setting.MinPasswordLength

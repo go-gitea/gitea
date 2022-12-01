@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package archiver
 
@@ -174,7 +173,7 @@ func (aReq *ArchiveRequest) Await(ctx context.Context) (*repo_model.RepoArchiver
 }
 
 func doArchive(r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
-	txCtx, committer, err := db.TxContext()
+	txCtx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}

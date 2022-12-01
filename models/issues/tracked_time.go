@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -149,7 +148,7 @@ func GetTrackedSeconds(ctx context.Context, opts FindTrackedTimesOptions) (track
 
 // AddTime will add the given time (in seconds) to the issue
 func AddTime(user *user_model.User, issue *Issue, amount int64, created time.Time) (*TrackedTime, error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +219,7 @@ func TotalTimes(options *FindTrackedTimesOptions) (map[*user_model.User]string, 
 
 // DeleteIssueUserTimes deletes times for issue
 func DeleteIssueUserTimes(issue *Issue, user *user_model.User) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -257,7 +256,7 @@ func DeleteIssueUserTimes(issue *Issue, user *user_model.User) error {
 
 // DeleteTime delete a specific Time
 func DeleteTime(t *TrackedTime) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
