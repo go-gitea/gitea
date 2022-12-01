@@ -629,7 +629,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/reset_registration_token", admin.ResetRunnerRegistrationToken)
 			m.Combo("/{runnerid}").Get(admin.EditRunner).Post(bindIgnErr(forms.EditRunnerForm{}), admin.EditRunnerPost)
 			m.Post("/{runnerid}/delete", admin.DeleteRunnerPost)
-		})
+		}, bots.MustEnableBots)
 	}, func(ctx *context.Context) {
 		ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
 		ctx.Data["EnablePackages"] = setting.Packages.Enabled
@@ -792,17 +792,12 @@ func RegisterRoutes(m *web.Route) {
 						Post(bindIgnErr(forms.EditRunnerForm{}), org.RunnersEditPost)
 					m.Post("/{runnerid}/delete", org.RunnerDeletePost)
 					m.Get("/reset_registration_token", org.ResetRunnerRegistrationToken)
-				})
+				}, bots.MustEnableBots)
 
 				m.Group("/secrets", func() {
 					m.Get("", org.Secrets)
 					m.Post("", bindIgnErr(forms.AddSecretForm{}), org.SecretsPost)
 					m.Post("/delete", org.SecretsDelete)
-				})
-
-				m.Group("/runners", func() {
-					m.Get("", org.Runners)
-					m.Get("/reset_registration_token", org.ResetRunnerRegistrationToken)
 				})
 
 				m.Route("/delete", "GET,POST", org.SettingsDelete)
@@ -965,7 +960,7 @@ func RegisterRoutes(m *web.Route) {
 					Post(bindIgnErr(forms.EditRunnerForm{}), repo.RunnersEditPost)
 				m.Post("/{runnerid}/delete", repo.RunnerDeletePost)
 				m.Get("/reset_registration_token", repo.ResetRunnerRegistrationToken)
-			})
+			}, bots.MustEnableBots)
 		}, func(ctx *context.Context) {
 			ctx.Data["PageIsSettings"] = true
 			ctx.Data["LFSStartServer"] = setting.LFS.StartServer

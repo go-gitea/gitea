@@ -22,9 +22,11 @@
 			{{.locale.Tr "packages.title"}}
 		</a>
 		{{end}}
+		{{if .EnableBots}}
 		<a class="{{if .PageIsOrgSettingsRunners}}active{{end}} item" href="{{.OrgLink}}/settings/runners">
 			{{.locale.Tr "repo.runners"}}
 		</a>
+		{{end}}
 		<a class="{{if .PageIsOrgSettingsSecrets}}active{{end}} item" href="{{.OrgLink}}/settings/secrets">
 			{{.locale.Tr "org.settings.secrets"}}
 		</a>

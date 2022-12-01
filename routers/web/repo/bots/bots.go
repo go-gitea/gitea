@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/bots"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -24,6 +25,11 @@ const (
 
 // MustEnableBots check if bots are enabled in settings
 func MustEnableBots(ctx *context.Context) {
+	if !setting.Bots.Enabled {
+		ctx.NotFound("MustEnableBots", nil)
+		return
+	}
+
 	if unit.TypeBots.UnitGlobalDisabled() {
 		ctx.NotFound("MustEnableBots", nil)
 		return
