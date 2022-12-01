@@ -91,9 +91,7 @@ func CreateCommitStatus(ctx context.Context, job *bots_model.BotRunJob) error {
 	ctxname := job.Name
 	state := toCommitStatus(job.Status)
 
-	if statuses, _, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, db.ListOptions{}); err != nil {
-		return fmt.Errorf("GetLatestCommitStatus: %w", err)
-	} else {
+	if statuses, _, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, db.ListOptions{}); err == nil {
 		for _, v := range statuses {
 			if v.Context == ctxname {
 				if v.State == state {
@@ -102,6 +100,8 @@ func CreateCommitStatus(ctx context.Context, job *bots_model.BotRunJob) error {
 				break
 			}
 		}
+	} else {
+		return fmt.Errorf("GetLatestCommitStatus: %w", err)
 	}
 
 	if err := git_model.NewCommitStatus(git_model.NewCommitStatusOptions{
