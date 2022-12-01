@@ -5,7 +5,7 @@ package v1_14 //nolint
 
 import (
 	"crypto/sha256"
-	"fmt"
+	"encoding/hex"
 
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/bcrypt"
@@ -53,7 +53,7 @@ func RecalculateUserEmptyPWD(x *xorm.Engine) (err error) {
 			tempPasswd = pbkdf2.Key([]byte(passwd), []byte(salt), 10000, 50, sha256.New)
 		}
 
-		return fmt.Sprintf("%x", tempPasswd)
+		return hex.EncodeToString(tempPasswd)
 	}
 
 	// ValidatePassword checks if given password matches the one belongs to the user.
