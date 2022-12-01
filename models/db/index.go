@@ -23,11 +23,6 @@ var (
 	ErrGetResourceIndexFailed = errors.New("get resource index failed")
 )
 
-const (
-	// MaxDupIndexAttempts max retry times to create index
-	MaxDupIndexAttempts = 3
-)
-
 // SyncMaxResourceIndex sync the max index with the resource
 func SyncMaxResourceIndex(ctx context.Context, tableName string, groupID, maxIndex int64) (err error) {
 	e := GetEngine(ctx)
