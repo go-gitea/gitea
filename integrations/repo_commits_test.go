@@ -118,7 +118,7 @@ func TestRepoCommitsWithStatusWarning(t *testing.T) {
 }
 
 func TestRepoCommitsStatusParallel(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 
