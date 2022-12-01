@@ -14,9 +14,9 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
   $dialog = $(`
 <div class="ui modal content-history-detail-dialog">
   ${svg('octicon-x', 16, 'close icon inside')}
-  <div class="header">
-    ${itemTitleHtml}
-    <div class="ui dropdown right dialog-header-options df ac" style="display: none; margin-right: 50px;">
+  <div class="header df ac sb">
+    <div>${itemTitleHtml}</div>
+    <div class="ui dropdown dialog-header-options df ac mr-5 hide">
       ${i18nTextOptions}${svg('octicon-triangle-down', 14, 'dropdown icon')}
       <div class="menu">
         <div class="item red text" data-option-item="delete">${i18nTextDeleteFromHistory}</div>
@@ -62,7 +62,7 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
         $dialog.find('.comment-diff-data').removeClass('is-loading').html(resp.diffHtml);
         // there is only one option "item[data-option-item=delete]", so the dropdown can be entirely shown/hidden.
         if (resp.canSoftDelete) {
-          $dialog.find('.dialog-header-options').show();
+          $dialog.find('.dialog-header-options').removeClass('hide');
         }
       });
     },
