@@ -20,15 +20,34 @@ import (
 	bots_module "code.gitea.io/gitea/modules/bots"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
 	api "code.gitea.io/gitea/modules/structs"
 	bots_service "code.gitea.io/gitea/services/bots"
 
 	"github.com/nektos/act/pkg/jobparser"
 )
+
+var methodCtxKey struct{}
+
+func withMethod(ctx context.Context, method string) context.Context {
+	// don't overwrite
+	if v := ctx.Value(methodCtxKey); v != nil {
+		if _, ok := v.(string); ok {
+			return ctx
+		}
+	}
+	return context.WithValue(ctx, methodCtxKey, method)
+}
+
+func getMethod(ctx context.Context) string {
+	if v := ctx.Value(methodCtxKey); v != nil {
+		if s, ok := v.(string); ok {
+			return s
+		}
+	}
+	return "notify"
+}
 
 type notifyInput struct {
 	// required
@@ -71,9 +90,9 @@ func (input *notifyInput) WithPullRequest(pr *issues_model.PullRequest) *notifyI
 	return input
 }
 
-func (input *notifyInput) Notify(ctx context.Context, hook string) {
+func (input *notifyInput) Notify(ctx context.Context) {
 	if err := notify(ctx, input); err != nil {
-		log.Error("%s: %v", hook, err)
+		log.Error("%s: %v", getMethod(ctx), err)
 	}
 }
 
@@ -174,17 +193,14 @@ func notifyRelease(ctx context.Context, doer *user_model.User, rel *repo_model.R
 			Repository: convert.ToRepo(rel.Repo, mode),
 			Sender:     convert.ToUser(doer, nil),
 		}).
-		Notify(ctx, "notifyRelease")
+		Notify(ctx)
 }
 
-func notifyPackage(sender *user_model.User, pd *packages_model.PackageDescriptor, action api.HookPackageAction) {
+func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_model.PackageDescriptor, action api.HookPackageAction) {
 	if pd.Repository == nil {
 		// TODO https://github.com/go-gitea/gitea/pull/17940
 		return
 	}
-
-	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("webhook.notifyPackage Package: %s[%d]", pd.Package.Name, pd.Package.ID))
-	defer finished()
 
 	apiPackage, err := convert.ToPackage(ctx, pd, sender)
 	if err != nil {
@@ -198,5 +214,5 @@ func notifyPackage(sender *user_model.User, pd *packages_model.PackageDescriptor
 			Package: apiPackage,
 			Sender:  convert.ToUser(sender, nil),
 		}).
-		Notify(ctx, "notifyPackage")
+		Notify(ctx)
 }
