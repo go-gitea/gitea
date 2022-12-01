@@ -124,10 +124,10 @@ var (
 	RepoArchives ObjectStorage = uninitializedStorage
 
 	// Packages represents packages storage
-	Packages ObjectStorage  = uninitializedStorage
+	Packages ObjectStorage = uninitializedStorage
 
 	// Bots represents bots storage
-	Bots ObjectStorage  = uninitializedStorage
+	Bots ObjectStorage = uninitializedStorage
 )
 
 // Init init the stoarge
@@ -206,6 +206,10 @@ func initPackages() (err error) {
 }
 
 func initBots() (err error) {
+	if !setting.Bots.Enabled {
+		Bots = discardStorage("Bots isn't enabled")
+		return nil
+	}
 	log.Info("Initialising Bots storage with type: %s", setting.Bots.Storage.Type)
 	Bots, err = NewStorage(setting.Bots.Storage.Type, &setting.Bots.Storage)
 	return err
