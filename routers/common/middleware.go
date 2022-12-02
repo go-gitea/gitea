@@ -1,4 +1,4 @@
-// Copyright 2021 The Gitea Authors. All rights reserved.
+// Copyright 2022 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -79,5 +79,43 @@ func Middlewares() []func(http.Handler) http.Handler {
 			next.ServeHTTP(resp, req)
 		})
 	})
+
+	// Add CSRF handler.
+	handlers = append(handlers, csrfHandler())
+
 	return handlers
+}
+
+// csfrHandler blocks recognized CSRF attempts.
+// WARNING: for this proctection to work, web browser compatible with
+// Fetch Metadata Request Headers (https://w3c.github.io/webappsec-fetch-metadata)
+// must be used.
+func csrfHandler() func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+
+			// Put header names we use for CSRF recognition into Vary response header.
+			if setting.CORSConfig.Enabled {
+				resp.Header().Set("Vary", "Origin, Sec-Fetch-Site")
+			} else {
+				resp.Header().Set("Vary", "Sec-Fetch-Site")
+			}
+
+			// Allow requests not recognized as CSRF.
+			secFetchSite := strings.ToLower(req.Header.Get("Sec-Fetch-Site"))
+			if req.Method == "GET" || // GET must not be used for changing state (CSRF resistant).
+				secFetchSite == "" || // Accept requests from clients without Fetch Metadata Request Headers support.
+				secFetchSite == "same-origin" || // Accept requests from own origin.
+				secFetchSite == "none" || // Accept requests initiated by user (i.e. using bookmark).
+				((secFetchSite == "same-site" || secFetchSite == "cross-site") && // Accept cross site requests allowed by CORS.
+					setting.CORSConfig.Enabled && setting.Cors.OriginAllowed(req)) {
+				next.ServeHTTP(resp, req)
+				return
+			}
+
+			// Forbid and log other requests as CSRF.
+			log.Error("CSRF rejected: METHOD=\"%s\", Origin=\"%s\", Sec-Fetch-Site=\"%s\"", req.Method, req.Header.Get("Origin"), secFetchSite)
+			http.Error(resp, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+		})
+	}
 }
