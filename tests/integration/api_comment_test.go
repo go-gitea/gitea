@@ -146,7 +146,7 @@ func TestAPIEditComment(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-  token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeRepo)
+	token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeRepo)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d?token=%s",
 		repoOwner.Name, repo.Name, comment.ID, token)
 	req := NewRequestWithValues(t, "PATCH", urlStr, map[string]string{
