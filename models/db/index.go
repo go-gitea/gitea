@@ -7,6 +7,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
+
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // ResourceIndex represents a resource index which could be used as issue/release and others
@@ -55,8 +58,25 @@ func SyncMaxResourceIndex(ctx context.Context, tableName string, groupID, maxInd
 	return nil
 }
 
+func postgresGetNextResourceIndex(ctx context.Context, tableName string, groupID int64) (int64, error) {
+	res, err := GetEngine(ctx).Query(fmt.Sprintf("INSERT INTO %s (group_id, max_index) "+
+		"VALUES (?,1) ON CONFLICT (group_id) DO UPDATE SET max_index = %s.max_index+1 RETURNING max_index",
+		tableName, tableName), groupID)
+	if err != nil {
+		return 0, err
+	}
+	if len(res) == 0 {
+		return 0, ErrGetResourceIndexFailed
+	}
+	return strconv.ParseInt(string(res[0]["max_index"]), 10, 64)
+}
+
 // GetNextResourceIndex generates a resource index, it must run in the same transaction where the resource is created
 func GetNextResourceIndex(ctx context.Context, tableName string, groupID int64) (int64, error) {
+	if setting.Database.UsePostgreSQL {
+		return postgresGetNextResourceIndex(ctx, tableName, groupID)
+	}
+
 	e := GetEngine(ctx)
 
 	// try to update the max_index to next value, and acquire the write-lock for the record

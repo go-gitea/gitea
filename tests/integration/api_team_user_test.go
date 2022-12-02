@@ -25,10 +25,10 @@ func TestAPITeamUser(t *testing.T) {
 	session := loginUser(t, normalUsername)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrg)
 	req := NewRequest(t, "GET", "/api/v1/teams/1/members/user1?token="+token)
-	session.MakeRequest(t, req, http.StatusNotFound)
+	MakeRequest(t, req, http.StatusNotFound)
 
 	req = NewRequest(t, "GET", "/api/v1/teams/1/members/user2?token="+token)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 	var user2 *api.User
 	DecodeJSON(t, resp, &user2)
 	user2.Created = user2.Created.In(time.Local)

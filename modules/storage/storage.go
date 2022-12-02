@@ -174,6 +174,10 @@ func initAttachments() (err error) {
 }
 
 func initLFS() (err error) {
+	if !setting.LFS.StartServer {
+		LFS = discardStorage("LFS isn't enabled")
+		return nil
+	}
 	log.Info("Initialising LFS storage with type: %s", setting.LFS.Storage.Type)
 	LFS, err = NewStorage(setting.LFS.Storage.Type, &setting.LFS.Storage)
 	return err

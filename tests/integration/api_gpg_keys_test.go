@@ -80,7 +80,7 @@ func TestGPGKeys(t *testing.T) {
 		var keys []*api.GPGKey
 
 		req := NewRequest(t, "GET", "/api/v1/user/gpg_keys?token="+tokenWithGPGKeyScope) // GET all keys
-		resp := session.MakeRequest(t, req, http.StatusOK)
+		resp := MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &keys)
 		assert.Len(t, keys, 1)
 
@@ -96,7 +96,7 @@ func TestGPGKeys(t *testing.T) {
 
 		var key api.GPGKey
 		req = NewRequest(t, "GET", "/api/v1/user/gpg_keys/"+strconv.FormatInt(primaryKey1.ID, 10)+"?token="+tokenWithGPGKeyScope) // Primary key 1
-		resp = session.MakeRequest(t, req, http.StatusOK)
+		resp = MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &key)
 		assert.EqualValues(t, "38EA3BCED732982C", key.KeyID)
 		assert.Len(t, key.Emails, 1)
@@ -104,7 +104,7 @@ func TestGPGKeys(t *testing.T) {
 		assert.True(t, key.Emails[0].Verified)
 
 		req = NewRequest(t, "GET", "/api/v1/user/gpg_keys/"+strconv.FormatInt(subKey.ID, 10)+"?token="+tokenWithGPGKeyScope) // Subkey of 38EA3BCED732982C
-		resp = session.MakeRequest(t, req, http.StatusOK)
+		resp = MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &key)
 		assert.EqualValues(t, "70D7C694D17D03AD", key.KeyID)
 		assert.Empty(t, key.Emails)
@@ -115,7 +115,7 @@ func TestGPGKeys(t *testing.T) {
 		t.Run("NotSigned", func(t *testing.T) {
 			var branch api.Branch
 			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/branches/not-signed?token="+token)
-			resp := session.MakeRequest(t, req, http.StatusOK)
+			resp := MakeRequest(t, req, http.StatusOK)
 			DecodeJSON(t, resp, &branch)
 			assert.False(t, branch.Commit.Verification.Verified)
 		})
@@ -123,7 +123,7 @@ func TestGPGKeys(t *testing.T) {
 		t.Run("SignedWithNotValidatedEmail", func(t *testing.T) {
 			var branch api.Branch
 			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/branches/good-sign-not-yet-validated?token="+token)
-			resp := session.MakeRequest(t, req, http.StatusOK)
+			resp := MakeRequest(t, req, http.StatusOK)
 			DecodeJSON(t, resp, &branch)
 			assert.False(t, branch.Commit.Verification.Verified)
 		})
@@ -131,7 +131,7 @@ func TestGPGKeys(t *testing.T) {
 		t.Run("SignedWithValidEmail", func(t *testing.T) {
 			var branch api.Branch
 			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/branches/good-sign?token="+token)
-			resp := session.MakeRequest(t, req, http.StatusOK)
+			resp := MakeRequest(t, req, http.StatusOK)
 			DecodeJSON(t, resp, &branch)
 			assert.True(t, branch.Commit.Verification.Verified)
 		})
