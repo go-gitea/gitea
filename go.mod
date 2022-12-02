@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	code.gitea.io/bots-proto-go v0.1.0
-	code.gitea.io/gitea-vet v0.2.2-0.20220122151748-48ebc902541b
+	code.gitea.io/gitea-vet v0.2.2
 	code.gitea.io/sdk/gitea v0.15.1
 	codeberg.org/gusted/mcaptcha v0.0.0-20220723083913-4f3072e1d570
 	gitea.com/go-chi/binding v0.0.0-20221013104517-b29891619681
