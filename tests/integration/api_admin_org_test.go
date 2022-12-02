@@ -31,7 +31,7 @@ func TestAPIAdminOrgCreate(t *testing.T) {
 			Visibility:  "private",
 		}
 		req := NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user2/orgs?token="+token, &org)
-		resp := session.MakeRequest(t, req, http.StatusCreated)
+		resp := MakeRequest(t, req, http.StatusCreated)
 
 		var apiOrg api.Organization
 		DecodeJSON(t, resp, &apiOrg)
@@ -65,7 +65,7 @@ func TestAPIAdminOrgCreateBadVisibility(t *testing.T) {
 			Visibility:  "notvalid",
 		}
 		req := NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user2/orgs?token="+token, &org)
-		session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+		MakeRequest(t, req, http.StatusUnprocessableEntity)
 	})
 }
 
@@ -83,5 +83,5 @@ func TestAPIAdminOrgCreateNotAdmin(t *testing.T) {
 		Visibility:  "public",
 	}
 	req := NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user2/orgs?token="+token, &org)
-	session.MakeRequest(t, req, http.StatusForbidden)
+	MakeRequest(t, req, http.StatusForbidden)
 }

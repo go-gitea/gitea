@@ -88,7 +88,7 @@ func TestAPIOrgEdit(t *testing.T) {
 			Visibility:  "private",
 		}
 		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/user3?token="+token, &org)
-		resp := session.MakeRequest(t, req, http.StatusOK)
+		resp := MakeRequest(t, req, http.StatusOK)
 
 		var apiOrg api.Organization
 		DecodeJSON(t, resp, &apiOrg)
@@ -115,7 +115,7 @@ func TestAPIOrgEditBadVisibility(t *testing.T) {
 			Visibility:  "badvisibility",
 		}
 		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/user3?token="+token, &org)
-		session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+		MakeRequest(t, req, http.StatusUnprocessableEntity)
 	})
 }
 
