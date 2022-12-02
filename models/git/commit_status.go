@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -49,8 +50,25 @@ func init() {
 	db.RegisterModel(new(CommitStatusIndex))
 }
 
+func postgresGetCommitStatusIndex(ctx context.Context, repoID int64, sha string) (int64, error) {
+	res, err := db.GetEngine(ctx).Query("INSERT INTO `commit_status_index` (repo_id, sha, max_index) "+
+		"VALUES (?,?,1) ON CONFLICT (repo_id, sha) DO UPDATE SET max_index = `commit_status_index`.max_index+1 RETURNING max_index",
+		repoID, sha)
+	if err != nil {
+		return 0, err
+	}
+	if len(res) == 0 {
+		return 0, db.ErrGetResourceIndexFailed
+	}
+	return strconv.ParseInt(string(res[0]["max_index"]), 10, 64)
+}
+
 // GetNextCommitStatusIndex retried 3 times to generate a resource index
 func GetNextCommitStatusIndex(ctx context.Context, repoID int64, sha string) (int64, error) {
+	if setting.Database.UsePostgreSQL {
+		return postgresGetCommitStatusIndex(ctx, repoID, sha)
+	}
+
 	e := db.GetEngine(ctx)
 
 	// try to update the max_index to next value, and acquire the write-lock for the record
