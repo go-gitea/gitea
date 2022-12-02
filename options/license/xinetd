@@ -18,7 +18,7 @@ Modifications: Version: 2.1.8.7-current Copyright 1998-2001 by Rob Braun
 
 Sensor Addition Version: 2.1.8.9pre14a Copyright 2001 by Steve Grubb
 
-This is an exerpt from an email I recieved from the original author, allowing xinetd as maintained by me (Rob Braun), to use the higher version numbers:
+This is an excerpt from an email I received from the original author, allowing xinetd as maintained by me (Rob Braun), to use the higher version numbers:
 
 I appreciate your maintaining the version string guidelines as specified in the copyright. But I did not mean them to last as long as they did.
 
