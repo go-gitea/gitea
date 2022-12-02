@@ -36,7 +36,7 @@ func TestActivityPubSignedPost(t *testing.T) {
 		body, err := io.ReadAll(r.Body)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, string(body))
-		fmt.Fprintf(w, expected)
+		fmt.Fprintln(w, expected)
 	}))
 	defer srv.Close()
 
