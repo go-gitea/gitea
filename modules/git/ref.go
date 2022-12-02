@@ -40,15 +40,17 @@ func SanitizeRefPattern(name string) string {
 	return refNamePatternInvalid.ReplaceAllString(name, "_")
 }
 
-// RefName represents a git reference name
-type RefName string
-
-func (ref RefName) IsBranch() bool {
-	return strings.HasPrefix(string(ref), BranchPrefix)
+// Reference represents a Git ref.
+type Reference struct {
+	Name   string
+	repo   *Repository
+	Object SHA1 // The id of this commit object
+	Type   string
 }
 
-func (ref RefName) IsTag() bool {
-	return strings.HasPrefix(string(ref), TagPrefix)
+// Commit return the commit of the reference
+func (ref *Reference) Commit() (*Commit, error) {
+	return ref.repo.getCommit(ref.Object)
 }
 
 // ShortName returns the short name of the reference
@@ -107,27 +109,4 @@ func (ref RefName) RefGroup() string {
 		return "pull"
 	}
 	return ""
-}
-
-// Reference represents a Git ref.
-type Reference struct {
-	Name   string
-	repo   *Repository
-	Object SHA1 // The id of this commit object
-	Type   string
-}
-
-// Commit return the commit of the reference
-func (ref *Reference) Commit() (*Commit, error) {
-	return ref.repo.getCommit(ref.Object)
-}
-
-// ShortName returns the short name of the reference name
-func (ref *Reference) ShortName() string {
-	return RefName(ref.Name).ShortName()
-}
-
-// RefGroup returns the group type of the reference
-func (ref *Reference) RefGroup() string {
-	return RefName(ref.Name).RefGroup()
 }
