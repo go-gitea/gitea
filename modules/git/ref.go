@@ -51,6 +51,27 @@ func (ref RefName) IsTag() bool {
 	return strings.HasPrefix(string(ref), TagPrefix)
 }
 
+// ShortName returns the short name of the reference
+func (ref *Reference) ShortName() string {
+	return RefName(ref.Name).ShortName()
+}
+
+// RefGroup returns the group type of the reference
+func (ref *Reference) RefGroup() string {
+	return RefName(ref.Name).RefGroup()
+}
+
+// RefName represents a git reference name
+type RefName string
+
+func (ref RefName) IsBranch() bool {
+	return strings.HasPrefix(string(ref), BranchPrefix)
+}
+
+func (ref RefName) IsTag() bool {
+	return strings.HasPrefix(string(ref), TagPrefix)
+}
+
 // ShortName returns the short name of the reference name
 func (ref RefName) ShortName() string {
 	refName := string(ref)
