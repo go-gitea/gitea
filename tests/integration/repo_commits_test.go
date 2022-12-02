@@ -135,8 +135,8 @@ func TestRepoCommitsStatusParallel(t *testing.T) {
 	var wg sync.WaitGroup
 	for i := 0; i < 10; i++ {
 		wg.Add(1)
-		go func(t *testing.T, i int) {
-			t.Run(fmt.Sprintf("ParallelCreateStatus_%d", i), func(t *testing.T) {
+		go func(parentT *testing.T, i int) {
+			parentT.Run(fmt.Sprintf("ParallelCreateStatus_%d", i), func(t *testing.T) {
 				runBody := doAPICreateCommitStatus(NewAPITestContext(t, "user2", "repo1"), path.Base(commitURL), api.CommitStatusState("pending"))
 				runBody(t)
 				wg.Done()
