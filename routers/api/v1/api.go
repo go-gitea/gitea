@@ -220,7 +220,7 @@ func reqToken(requiredScope string) func(ctx *context.APIContext) {
 			scope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
 			allow, err := scope.HasScope(requiredScope)
 			if err != nil {
-				ctx.Error(http.StatusUnauthorized, "reqToken", "parsing token failed: "+err.Error())
+				ctx.Error(http.StatusForbidden, "reqToken", "parsing token failed: "+err.Error())
 				return
 			}
 			if allow {
@@ -236,7 +236,7 @@ func reqToken(requiredScope string) func(ctx *context.APIContext) {
 				}
 			}
 
-			ctx.Error(http.StatusUnauthorized, "reqToken", "token does not have required scope: "+requiredScope)
+			ctx.Error(http.StatusForbidden, "reqToken", "token does not have required scope: "+requiredScope)
 			return
 		}
 		if ctx.Context.IsBasicAuth {

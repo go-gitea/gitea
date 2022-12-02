@@ -36,7 +36,7 @@ func TestGPGKeys(t *testing.T) {
 		},
 		{
 			name: "LoggedAsUser2", makeRequest: session.MakeRequest, token: token,
-			results: []int{http.StatusUnauthorized, http.StatusOK, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized},
+			results: []int{http.StatusForbidden, http.StatusOK, http.StatusForbidden, http.StatusForbidden, http.StatusForbidden, http.StatusForbidden, http.StatusForbidden, http.StatusForbidden, http.StatusForbidden},
 		},
 		{
 			name: "LoggedAsUser2WithScope", makeRequest: session.MakeRequest, token: tokenWithGPGKeyScope,
