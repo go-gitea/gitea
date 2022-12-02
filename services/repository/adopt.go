@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
@@ -96,7 +95,7 @@ func AdoptRepository(doer, u *user_model.User, opts repo_module.CreateRepoOption
 		return nil, err
 	}
 
-	notification.NotifyCreateRepository(doer, u, repo)
+	notification.NotifyCreateRepository(db.DefaultContext, doer, u, repo)
 
 	return repo, nil
 }

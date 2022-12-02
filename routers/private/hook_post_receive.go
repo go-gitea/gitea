@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 // Package private includes all internal routes. The package name internal is ideal but Golang is not allowed, so we use private as package name instead.
 package private
@@ -202,7 +201,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				continue
 			}
 
-			pr, err := issues_model.GetUnmergedPullRequest(repo.ID, baseRepo.ID, branch, baseRepo.DefaultBranch, issues_model.PullRequestFlowGithub)
+			pr, err := issues_model.GetUnmergedPullRequest(ctx, repo.ID, baseRepo.ID, branch, baseRepo.DefaultBranch, issues_model.PullRequestFlowGithub)
 			if err != nil && !issues_model.IsErrPullRequestNotExist(err) {
 				log.Error("Failed to get active PR in: %-v Branch: %s to: %-v Branch: %s Error: %v", repo, branch, baseRepo, baseRepo.DefaultBranch, err)
 				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{

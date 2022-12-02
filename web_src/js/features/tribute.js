@@ -21,7 +21,7 @@ function makeCollections({mentions, emoji}) {
       },
       lookup: (item) => item,
       selectTemplate: (item) => {
-        if (typeof item === 'undefined') return null;
+        if (item === undefined) return null;
         return emojiString(item.original);
       },
       menuItemTemplate: (item) => {

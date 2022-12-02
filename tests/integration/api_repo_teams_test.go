@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -33,7 +32,7 @@ func TestAPIRepoTeams(t *testing.T) {
 	// ListTeams
 	url := fmt.Sprintf("/api/v1/repos/%s/teams?token=%s", publicOrgRepo.FullName(), token)
 	req := NewRequest(t, "GET", url)
-	res := session.MakeRequest(t, req, http.StatusOK)
+	res := MakeRequest(t, req, http.StatusOK)
 	var teams []*api.Team
 	DecodeJSON(t, res, &teams)
 	if assert.Len(t, teams, 2) {
@@ -51,19 +50,19 @@ func TestAPIRepoTeams(t *testing.T) {
 	// IsTeam
 	url = fmt.Sprintf("/api/v1/repos/%s/teams/%s?token=%s", publicOrgRepo.FullName(), "Test_Team", token)
 	req = NewRequest(t, "GET", url)
-	res = session.MakeRequest(t, req, http.StatusOK)
+	res = MakeRequest(t, req, http.StatusOK)
 	var team *api.Team
 	DecodeJSON(t, res, &team)
 	assert.EqualValues(t, teams[1], team)
 
 	url = fmt.Sprintf("/api/v1/repos/%s/teams/%s?token=%s", publicOrgRepo.FullName(), "NonExistingTeam", token)
 	req = NewRequest(t, "GET", url)
-	session.MakeRequest(t, req, http.StatusNotFound)
+	MakeRequest(t, req, http.StatusNotFound)
 
 	// AddTeam with user4
 	url = fmt.Sprintf("/api/v1/repos/%s/teams/%s?token=%s", publicOrgRepo.FullName(), "team1", token)
 	req = NewRequest(t, "PUT", url)
-	session.MakeRequest(t, req, http.StatusForbidden)
+	MakeRequest(t, req, http.StatusForbidden)
 
 	// AddTeam with user2
 	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
@@ -71,12 +70,12 @@ func TestAPIRepoTeams(t *testing.T) {
 	token = getTokenForLoggedInUser(t, session)
 	url = fmt.Sprintf("/api/v1/repos/%s/teams/%s?token=%s", publicOrgRepo.FullName(), "team1", token)
 	req = NewRequest(t, "PUT", url)
-	session.MakeRequest(t, req, http.StatusNoContent)
-	session.MakeRequest(t, req, http.StatusUnprocessableEntity) // test duplicate request
+	MakeRequest(t, req, http.StatusNoContent)
+	MakeRequest(t, req, http.StatusUnprocessableEntity) // test duplicate request
 
 	// DeleteTeam
 	url = fmt.Sprintf("/api/v1/repos/%s/teams/%s?token=%s", publicOrgRepo.FullName(), "team1", token)
 	req = NewRequest(t, "DELETE", url)
-	session.MakeRequest(t, req, http.StatusNoContent)
-	session.MakeRequest(t, req, http.StatusUnprocessableEntity) // test duplicate request
+	MakeRequest(t, req, http.StatusNoContent)
+	MakeRequest(t, req, http.StatusUnprocessableEntity) // test duplicate request
 }

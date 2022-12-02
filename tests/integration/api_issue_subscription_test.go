@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -38,7 +37,7 @@ func TestAPIIssueSubscriptions(t *testing.T) {
 
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/subscriptions/check?token=%s", issueRepo.OwnerName, issueRepo.Name, issue.Index, token)
 		req := NewRequest(t, "GET", urlStr)
-		resp := session.MakeRequest(t, req, http.StatusOK)
+		resp := MakeRequest(t, req, http.StatusOK)
 		wi := new(api.WatchInfo)
 		DecodeJSON(t, resp, wi)
 
@@ -58,20 +57,20 @@ func TestAPIIssueSubscriptions(t *testing.T) {
 	issue1Repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue1.RepoID})
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/subscriptions/%s?token=%s", issue1Repo.OwnerName, issue1Repo.Name, issue1.Index, owner.Name, token)
 	req := NewRequest(t, "DELETE", urlStr)
-	session.MakeRequest(t, req, http.StatusCreated)
+	MakeRequest(t, req, http.StatusCreated)
 	testSubscription(issue1, false)
 
 	req = NewRequest(t, "DELETE", urlStr)
-	session.MakeRequest(t, req, http.StatusOK)
+	MakeRequest(t, req, http.StatusOK)
 	testSubscription(issue1, false)
 
 	issue5Repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue5.RepoID})
 	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/subscriptions/%s?token=%s", issue5Repo.OwnerName, issue5Repo.Name, issue5.Index, owner.Name, token)
 	req = NewRequest(t, "PUT", urlStr)
-	session.MakeRequest(t, req, http.StatusCreated)
+	MakeRequest(t, req, http.StatusCreated)
 	testSubscription(issue5, true)
 
 	req = NewRequest(t, "PUT", urlStr)
-	session.MakeRequest(t, req, http.StatusOK)
+	MakeRequest(t, req, http.StatusOK)
 	testSubscription(issue5, true)
 }

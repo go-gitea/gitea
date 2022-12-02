@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -747,7 +746,7 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["HeadTags"] = headTags
 
 	if ctx.Data["PageIsComparePull"] == true {
-		pr, err := issues_model.GetUnmergedPullRequest(ci.HeadRepo.ID, ctx.Repo.Repository.ID, ci.HeadBranch, ci.BaseBranch, issues_model.PullRequestFlowGithub)
+		pr, err := issues_model.GetUnmergedPullRequest(ctx, ci.HeadRepo.ID, ctx.Repo.Repository.ID, ci.HeadBranch, ci.BaseBranch, issues_model.PullRequestFlowGithub)
 		if err != nil {
 			if !issues_model.IsErrPullRequestNotExist(err) {
 				ctx.ServerError("GetUnmergedPullRequest", err)
@@ -755,7 +754,7 @@ func CompareDiff(ctx *context.Context) {
 			}
 		} else {
 			ctx.Data["HasPullRequest"] = true
-			if err := pr.LoadIssue(); err != nil {
+			if err := pr.LoadIssue(ctx); err != nil {
 				ctx.ServerError("LoadIssue", err)
 				return
 			}

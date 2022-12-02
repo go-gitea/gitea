@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -35,8 +34,8 @@ func TestAPIPullUpdate(t *testing.T) {
 		assert.NoError(t, err)
 		assert.EqualValues(t, 1, diffCount.Behind)
 		assert.EqualValues(t, 1, diffCount.Ahead)
-		assert.NoError(t, pr.LoadBaseRepo())
-		assert.NoError(t, pr.LoadIssue())
+		assert.NoError(t, pr.LoadBaseRepo(db.DefaultContext))
+		assert.NoError(t, pr.LoadIssue(db.DefaultContext))
 
 		session := loginUser(t, "user2")
 		token := getTokenForLoggedInUser(t, session)
@@ -63,8 +62,8 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 		assert.NoError(t, err)
 		assert.EqualValues(t, 1, diffCount.Behind)
 		assert.EqualValues(t, 1, diffCount.Ahead)
-		assert.NoError(t, pr.LoadBaseRepo())
-		assert.NoError(t, pr.LoadIssue())
+		assert.NoError(t, pr.LoadBaseRepo(db.DefaultContext))
+		assert.NoError(t, pr.LoadIssue(db.DefaultContext))
 
 		session := loginUser(t, "user2")
 		token := getTokenForLoggedInUser(t, session)

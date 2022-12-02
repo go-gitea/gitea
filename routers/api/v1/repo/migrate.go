@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -195,7 +194,7 @@ func Migrate(ctx *context.APIContext) {
 		}
 
 		if err == nil {
-			notification.NotifyMigrateRepository(ctx.Doer, repoOwner, repo)
+			notification.NotifyMigrateRepository(ctx, ctx.Doer, repoOwner, repo)
 			return
 		}
 
