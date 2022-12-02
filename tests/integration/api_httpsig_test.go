@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -62,7 +61,7 @@ func TestHTTPSigPubKey(t *testing.T) {
 		Key:   keyType + " " + keyContent,
 	}
 	req := NewRequestWithJSON(t, "POST", keysURL, rawKeyBody)
-	session.MakeRequest(t, req, http.StatusCreated)
+	MakeRequest(t, req, http.StatusCreated)
 
 	// parse our private key and create the httpsig request
 	sshSigner, _ := ssh.ParsePrivateKey([]byte(httpsigPrivateKey))
