@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -200,7 +199,7 @@ func isXRefCommentAccessible(ctx stdCtx.Context, user *user_model.User, c *issue
 	if issues_model.CommentTypeIsRef(c.Type) && c.RefRepoID != issueRepoID && c.RefRepoID != 0 {
 		var err error
 		// Set RefRepo for description in template
-		c.RefRepo, err = repo_model.GetRepositoryByIDCtx(ctx, c.RefRepoID)
+		c.RefRepo, err = repo_model.GetRepositoryByID(ctx, c.RefRepoID)
 		if err != nil {
 			return false
 		}

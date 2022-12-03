@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -67,7 +66,7 @@ func Migrate(ctx *context.APIContext) {
 	if len(form.RepoOwner) != 0 {
 		repoOwner, err = user_model.GetUserByName(ctx, form.RepoOwner)
 	} else if form.RepoOwnerID != 0 {
-		repoOwner, err = user_model.GetUserByID(form.RepoOwnerID)
+		repoOwner, err = user_model.GetUserByID(ctx, form.RepoOwnerID)
 	} else {
 		repoOwner = ctx.Doer
 	}
@@ -212,7 +211,7 @@ func Migrate(ctx *context.APIContext) {
 	}
 
 	log.Trace("Repository migrated: %s/%s", repoOwner.Name, form.RepoName)
-	ctx.JSON(http.StatusCreated, convert.ToRepo(repo, perm.AccessModeAdmin))
+	ctx.JSON(http.StatusCreated, convert.ToRepo(ctx, repo, perm.AccessModeAdmin))
 }
 
 func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, remoteAddr string, err error) {

@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -28,7 +27,7 @@ func TestAPIRepoTags(t *testing.T) {
 	repoName := "repo1"
 
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/tags?token=%s", user.Name, repoName, token)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 
 	var tags []*api.Tag
 	DecodeJSON(t, resp, &tags)
@@ -42,7 +41,7 @@ func TestAPIRepoTags(t *testing.T) {
 	assert.Equal(t, setting.AppURL+"user2/repo1/archive/v1.1.tar.gz", tags[0].TarballURL)
 
 	newTag := createNewTagUsingAPI(t, session, token, user.Name, repoName, "gitea/22", "", "nice!\nand some text")
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &tags)
 	assert.Len(t, tags, 2)
 	for _, tag := range tags {
@@ -56,17 +55,17 @@ func TestAPIRepoTags(t *testing.T) {
 
 	// get created tag
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/tags/%s?token=%s", user.Name, repoName, newTag.Name, token)
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, req, http.StatusOK)
 	var tag *api.Tag
 	DecodeJSON(t, resp, &tag)
 	assert.EqualValues(t, newTag, tag)
 
 	// delete tag
 	delReq := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/tags/%s?token=%s", user.Name, repoName, newTag.Name, token)
-	session.MakeRequest(t, delReq, http.StatusNoContent)
+	MakeRequest(t, delReq, http.StatusNoContent)
 
 	// check if it's gone
-	session.MakeRequest(t, req, http.StatusNotFound)
+	MakeRequest(t, req, http.StatusNotFound)
 }
 
 func createNewTagUsingAPI(t *testing.T, session *TestSession, token, ownerName, repoName, name, target, msg string) *api.Tag {
@@ -76,7 +75,7 @@ func createNewTagUsingAPI(t *testing.T, session *TestSession, token, ownerName, 
 		Message: msg,
 		Target:  target,
 	})
-	resp := session.MakeRequest(t, req, http.StatusCreated)
+	resp := MakeRequest(t, req, http.StatusCreated)
 
 	var respObj api.Tag
 	DecodeJSON(t, resp, &respObj)

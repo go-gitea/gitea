@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -150,14 +149,13 @@ func TestAPIRepoEdit(t *testing.T) {
 		// Get user4's token
 		session = loginUser(t, user4.Name)
 		token4 := getTokenForLoggedInUser(t, session)
-		session = emptyTestSession(t)
 
 		// Test editing a repo1 which user2 owns, changing name and many properties
 		origRepoEditOption := getRepoEditOptionFromRepo(repo1)
 		repoEditOption := getNewRepoEditOption(origRepoEditOption)
 		url := fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user2.Name, repo1.Name, token2)
 		req := NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
-		resp := session.MakeRequest(t, req, http.StatusOK)
+		resp := MakeRequest(t, req, http.StatusOK)
 		var repo api.Repository
 		DecodeJSON(t, resp, &repo)
 		assert.NotNil(t, repo)
@@ -188,7 +186,7 @@ func TestAPIRepoEdit(t *testing.T) {
 		repoEditOption.ExternalWiki = nil
 		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user2.Name, *repoEditOption.Name, token2)
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
-		resp = session.MakeRequest(t, req, http.StatusOK)
+		resp = MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &repo)
 		assert.NotNil(t, repo)
 		// check repo1 was written to database
@@ -210,7 +208,7 @@ func TestAPIRepoEdit(t *testing.T) {
 			ExternalWikiURL: "http://www.somewebsite.com",
 		}
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
-		resp = session.MakeRequest(t, req, http.StatusOK)
+		resp = MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &repo)
 		assert.NotNil(t, repo)
 		// check repo1 was written to database
@@ -224,7 +222,7 @@ func TestAPIRepoEdit(t *testing.T) {
 		repoEditOption.ExternalTracker.ExternalTrackerStyle = "regexp"
 		repoEditOption.ExternalTracker.ExternalTrackerRegexpPattern = `(\d+)`
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
-		resp = session.MakeRequest(t, req, http.StatusOK)
+		resp = MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &repo)
 		assert.NotNil(t, repo)
 		repo1edited = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
@@ -235,15 +233,15 @@ func TestAPIRepoEdit(t *testing.T) {
 		// Do some tests with invalid URL for external tracker and wiki
 		repoEditOption.ExternalTracker.ExternalTrackerURL = "htp://www.somewebsite.com"
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
-		session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+		MakeRequest(t, req, http.StatusUnprocessableEntity)
 		repoEditOption.ExternalTracker.ExternalTrackerURL = "http://www.somewebsite.com"
 		repoEditOption.ExternalTracker.ExternalTrackerFormat = "http://www.somewebsite.com/{user/{repo}?issue={index}"
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
-		session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+		MakeRequest(t, req, http.StatusUnprocessableEntity)
 		repoEditOption.ExternalTracker.ExternalTrackerFormat = "http://www.somewebsite.com/{user}/{repo}?issue={index}"
 		repoEditOption.ExternalWiki.ExternalWikiURL = "htp://www.somewebsite.com"
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
-		session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+		MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 		// Test small repo change through API with issue and wiki option not set; They shall not be touched.
 		*repoEditOption.Description = "small change"
@@ -252,7 +250,7 @@ func TestAPIRepoEdit(t *testing.T) {
 		repoEditOption.HasWiki = nil
 		repoEditOption.ExternalWiki = nil
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
-		resp = session.MakeRequest(t, req, http.StatusOK)
+		resp = MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &repo)
 		assert.NotNil(t, repo)
 		// check repo1 was written to database
@@ -267,38 +265,38 @@ func TestAPIRepoEdit(t *testing.T) {
 		// reset repo in db
 		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user2.Name, *repoEditOption.Name, token2)
 		req = NewRequestWithJSON(t, "PATCH", url, &origRepoEditOption)
-		_ = session.MakeRequest(t, req, http.StatusOK)
+		_ = MakeRequest(t, req, http.StatusOK)
 
 		// Test editing a non-existing repo
 		name := "repodoesnotexist"
 		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user2.Name, name, token2)
 		req = NewRequestWithJSON(t, "PATCH", url, &api.EditRepoOption{Name: &name})
-		_ = session.MakeRequest(t, req, http.StatusNotFound)
+		_ = MakeRequest(t, req, http.StatusNotFound)
 
 		// Test editing repo16 by user4 who does not have write access
 		origRepoEditOption = getRepoEditOptionFromRepo(repo16)
 		repoEditOption = getNewRepoEditOption(origRepoEditOption)
 		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user2.Name, repo16.Name, token4)
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
-		session.MakeRequest(t, req, http.StatusNotFound)
+		MakeRequest(t, req, http.StatusNotFound)
 
 		// Tests a repo with no token given so will fail
 		origRepoEditOption = getRepoEditOptionFromRepo(repo16)
 		repoEditOption = getNewRepoEditOption(origRepoEditOption)
 		url = fmt.Sprintf("/api/v1/repos/%s/%s", user2.Name, repo16.Name)
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
-		_ = session.MakeRequest(t, req, http.StatusNotFound)
+		_ = MakeRequest(t, req, http.StatusNotFound)
 
 		// Test using access token for a private repo that the user of the token owns
 		origRepoEditOption = getRepoEditOptionFromRepo(repo16)
 		repoEditOption = getNewRepoEditOption(origRepoEditOption)
 		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user2.Name, repo16.Name, token2)
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
-		_ = session.MakeRequest(t, req, http.StatusOK)
+		_ = MakeRequest(t, req, http.StatusOK)
 		// reset repo in db
 		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user2.Name, *repoEditOption.Name, token2)
 		req = NewRequestWithJSON(t, "PATCH", url, &origRepoEditOption)
-		_ = session.MakeRequest(t, req, http.StatusOK)
+		_ = MakeRequest(t, req, http.StatusOK)
 
 		// Test making a repo public that is private
 		repo16 = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 16})
@@ -308,13 +306,13 @@ func TestAPIRepoEdit(t *testing.T) {
 		}
 		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user2.Name, repo16.Name, token2)
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
-		_ = session.MakeRequest(t, req, http.StatusOK)
+		_ = MakeRequest(t, req, http.StatusOK)
 		repo16 = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 16})
 		assert.False(t, repo16.IsPrivate)
 		// Make it private again
 		repoEditOption.Private = &bTrue
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
-		_ = session.MakeRequest(t, req, http.StatusOK)
+		_ = MakeRequest(t, req, http.StatusOK)
 
 		// Test to change empty repo
 		assert.False(t, repo15.IsArchived)
@@ -322,37 +320,37 @@ func TestAPIRepoEdit(t *testing.T) {
 		req = NewRequestWithJSON(t, "PATCH", url, &api.EditRepoOption{
 			Archived: &bTrue,
 		})
-		_ = session.MakeRequest(t, req, http.StatusOK)
+		_ = MakeRequest(t, req, http.StatusOK)
 		repo15 = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 15})
 		assert.True(t, repo15.IsArchived)
 		req = NewRequestWithJSON(t, "PATCH", url, &api.EditRepoOption{
 			Archived: &bFalse,
 		})
-		_ = session.MakeRequest(t, req, http.StatusOK)
+		_ = MakeRequest(t, req, http.StatusOK)
 
 		// Test using org repo "user3/repo3" where user2 is a collaborator
 		origRepoEditOption = getRepoEditOptionFromRepo(repo3)
 		repoEditOption = getNewRepoEditOption(origRepoEditOption)
 		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user3.Name, repo3.Name, token2)
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
-		session.MakeRequest(t, req, http.StatusOK)
+		MakeRequest(t, req, http.StatusOK)
 		// reset repo in db
 		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user3.Name, *repoEditOption.Name, token2)
 		req = NewRequestWithJSON(t, "PATCH", url, &origRepoEditOption)
-		_ = session.MakeRequest(t, req, http.StatusOK)
+		_ = MakeRequest(t, req, http.StatusOK)
 
 		// Test using org repo "user3/repo3" with no user token
 		origRepoEditOption = getRepoEditOptionFromRepo(repo3)
 		repoEditOption = getNewRepoEditOption(origRepoEditOption)
 		url = fmt.Sprintf("/api/v1/repos/%s/%s", user3.Name, repo3.Name)
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
-		session.MakeRequest(t, req, http.StatusNotFound)
+		MakeRequest(t, req, http.StatusNotFound)
 
 		// Test using repo "user2/repo1" where user4 is a NOT collaborator
 		origRepoEditOption = getRepoEditOptionFromRepo(repo1)
 		repoEditOption = getNewRepoEditOption(origRepoEditOption)
 		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user2.Name, repo1.Name, token4)
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
-		session.MakeRequest(t, req, http.StatusForbidden)
+		MakeRequest(t, req, http.StatusForbidden)
 	})
 }

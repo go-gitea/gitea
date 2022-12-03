@@ -1,6 +1,5 @@
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -400,7 +399,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 	}
 	// Check if the passed assignees is assignable
 	for _, aID := range assigneeIDs {
-		assignee, err := user_model.GetUserByIDCtx(ctx, aID)
+		assignee, err := user_model.GetUserByID(ctx, aID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUserByID", err)
 			return

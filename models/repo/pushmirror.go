@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -62,7 +61,7 @@ func (m *PushMirror) GetRepository() *Repository {
 		return m.Repo
 	}
 	var err error
-	m.Repo, err = GetRepositoryByIDCtx(db.DefaultContext, m.RepoID)
+	m.Repo, err = GetRepositoryByID(db.DefaultContext, m.RepoID)
 	if err != nil {
 		log.Error("getRepositoryByID[%d]: %v", m.ID, err)
 	}

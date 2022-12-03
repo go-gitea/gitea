@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package context
 
@@ -265,7 +264,7 @@ func (r *Repository) GetEditorconfig(optCommit ...*git.Commit) (*editorconfig.Ed
 // RetrieveBaseRepo retrieves base repository
 func RetrieveBaseRepo(ctx *Context, repo *repo_model.Repository) {
 	// Non-fork repository will not return error in this method.
-	if err := repo.GetBaseRepo(); err != nil {
+	if err := repo.GetBaseRepo(ctx); err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
 			repo.IsFork = false
 			repo.ForkID = 0
@@ -336,7 +335,7 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 	ownerName := ctx.Params(":username")
 	previousRepoName := ctx.Params(":reponame")
 
-	repo, err := repo_model.GetRepositoryByID(redirectRepoID)
+	repo, err := repo_model.GetRepositoryByID(ctx, redirectRepoID)
 	if err != nil {
 		ctx.ServerError("GetRepositoryByID", err)
 		return
@@ -411,7 +410,7 @@ func RepoIDAssignment() func(ctx *Context) {
 		repoID := ctx.ParamsInt64(":repoid")
 
 		// Get repository.
-		repo, err := repo_model.GetRepositoryByID(repoID)
+		repo, err := repo_model.GetRepositoryByID(ctx, repoID)
 		if err != nil {
 			if repo_model.IsErrRepoNotExist(err) {
 				ctx.NotFound("GetRepositoryByID", nil)

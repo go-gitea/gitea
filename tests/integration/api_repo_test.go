@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -199,7 +198,7 @@ func TestAPISearchRepo(t *testing.T) {
 
 				t.Run(testName, func(t *testing.T) {
 					request := NewRequest(t, "GET", testCase.requestURL+"&token="+token)
-					response := session.MakeRequest(t, request, http.StatusOK)
+					response := MakeRequest(t, request, http.StatusOK)
 
 					var body api.SearchResults
 					DecodeJSON(t, response, &body)
@@ -307,7 +306,7 @@ func TestAPIOrgRepos(t *testing.T) {
 		}
 		t.Run(testName, func(t *testing.T) {
 			req := NewRequestf(t, "GET", "/api/v1/orgs/%s/repos?token="+token, sourceOrg.Name)
-			resp := session.MakeRequest(t, req, http.StatusOK)
+			resp := MakeRequest(t, req, http.StatusOK)
 
 			var apiRepos []*api.Repository
 			DecodeJSON(t, resp, &apiRepos)
@@ -327,7 +326,7 @@ func TestAPIGetRepoByIDUnauthorized(t *testing.T) {
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
 	req := NewRequestf(t, "GET", "/api/v1/repositories/2?token="+token)
-	session.MakeRequest(t, req, http.StatusNotFound)
+	MakeRequest(t, req, http.StatusNotFound)
 }
 
 func TestAPIRepoMigrate(t *testing.T) {
@@ -423,7 +422,7 @@ func TestAPIMirrorSyncNonMirrorRepo(t *testing.T) {
 	assert.EqualValues(t, false, repo.Mirror)
 
 	req = NewRequestf(t, "POST", "/api/v1/repos/user2/repo1/mirror-sync?token=%s", token)
-	resp = session.MakeRequest(t, req, http.StatusBadRequest)
+	resp = MakeRequest(t, req, http.StatusBadRequest)
 	errRespJSON := map[string]string{}
 	DecodeJSON(t, resp, &errRespJSON)
 	assert.Equal(t, "Repository is not a mirror", errRespJSON["message"])
@@ -450,7 +449,7 @@ func TestAPIOrgRepoCreate(t *testing.T) {
 		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/org/%s/repos?token="+token, testCase.orgName), &api.CreateRepoOption{
 			Name: testCase.repoName,
 		})
-		session.MakeRequest(t, req, testCase.expectedStatus)
+		MakeRequest(t, req, testCase.expectedStatus)
 	}
 }
 
@@ -520,7 +519,7 @@ func TestAPIRepoTransfer(t *testing.T) {
 		Readme:      "Default",
 		AutoInit:    true,
 	})
-	resp := session.MakeRequest(t, req, http.StatusCreated)
+	resp := MakeRequest(t, req, http.StatusCreated)
 	DecodeJSON(t, resp, apiRepo)
 
 	// start testing
@@ -533,7 +532,7 @@ func TestAPIRepoTransfer(t *testing.T) {
 			NewOwner: testCase.newOwner,
 			TeamIDs:  testCase.teams,
 		})
-		session.MakeRequest(t, req, testCase.expectedStatus)
+		MakeRequest(t, req, testCase.expectedStatus)
 	}
 
 	// cleanup
@@ -556,14 +555,14 @@ func transfer(t *testing.T) *repo_model.Repository {
 		AutoInit:    true,
 	})
 
-	resp := session.MakeRequest(t, req, http.StatusCreated)
+	resp := MakeRequest(t, req, http.StatusCreated)
 	DecodeJSON(t, resp, apiRepo)
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
 	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer?token=%s", repo.OwnerName, repo.Name, token), &api.TransferRepoOption{
 		NewOwner: "user4",
 	})
-	session.MakeRequest(t, req, http.StatusCreated)
+	MakeRequest(t, req, http.StatusCreated)
 
 	return repo
 }
@@ -577,18 +576,18 @@ func TestAPIAcceptTransfer(t *testing.T) {
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session)
 	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject?token=%s", repo.OwnerName, repo.Name, token))
-	session.MakeRequest(t, req, http.StatusForbidden)
+	MakeRequest(t, req, http.StatusForbidden)
 
 	// try to accept repo that's not marked as transferred
 	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/accept?token=%s", "user2", "repo1", token))
-	session.MakeRequest(t, req, http.StatusNotFound)
+	MakeRequest(t, req, http.StatusNotFound)
 
 	// accept transfer
 	session = loginUser(t, "user4")
 	token = getTokenForLoggedInUser(t, session)
 
 	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/accept?token=%s", repo.OwnerName, repo.Name, token))
-	resp := session.MakeRequest(t, req, http.StatusAccepted)
+	resp := MakeRequest(t, req, http.StatusAccepted)
 	apiRepo := new(api.Repository)
 	DecodeJSON(t, resp, apiRepo)
 	assert.Equal(t, "user4", apiRepo.Owner.UserName)
@@ -603,18 +602,18 @@ func TestAPIRejectTransfer(t *testing.T) {
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session)
 	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject?token=%s", repo.OwnerName, repo.Name, token))
-	session.MakeRequest(t, req, http.StatusForbidden)
+	MakeRequest(t, req, http.StatusForbidden)
 
 	// try to reject repo that's not marked as transferred
 	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject?token=%s", "user2", "repo1", token))
-	session.MakeRequest(t, req, http.StatusNotFound)
+	MakeRequest(t, req, http.StatusNotFound)
 
 	// reject transfer
 	session = loginUser(t, "user4")
 	token = getTokenForLoggedInUser(t, session)
 
 	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject?token=%s", repo.OwnerName, repo.Name, token))
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 	apiRepo := new(api.Repository)
 	DecodeJSON(t, resp, apiRepo)
 	assert.Equal(t, "user2", apiRepo.Owner.UserName)
@@ -638,7 +637,7 @@ func TestAPIGenerateRepo(t *testing.T) {
 		Private:     false,
 		GitContent:  true,
 	})
-	resp := session.MakeRequest(t, req, http.StatusCreated)
+	resp := MakeRequest(t, req, http.StatusCreated)
 	DecodeJSON(t, resp, repo)
 
 	assert.Equal(t, "new-repo", repo.Name)
@@ -651,7 +650,7 @@ func TestAPIGenerateRepo(t *testing.T) {
 		Private:     false,
 		GitContent:  true,
 	})
-	resp = session.MakeRequest(t, req, http.StatusCreated)
+	resp = MakeRequest(t, req, http.StatusCreated)
 	DecodeJSON(t, resp, repo)
 
 	assert.Equal(t, "new-repo", repo.Name)
@@ -665,7 +664,7 @@ func TestAPIRepoGetReviewers(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/reviewers?token=%s", user.Name, repo.Name, token)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 	var reviewers []*api.User
 	DecodeJSON(t, resp, &reviewers)
 	assert.Len(t, reviewers, 4)
@@ -679,7 +678,7 @@ func TestAPIRepoGetAssignees(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/assignees?token=%s", user.Name, repo.Name, token)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 	var assignees []*api.User
 	DecodeJSON(t, resp, &assignees)
 	assert.Len(t, assignees, 1)
