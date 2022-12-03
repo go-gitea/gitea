@@ -414,7 +414,7 @@ func doProtectBranch(ctx APITestContext, branch, userToWhitelist, unprotectedFil
 
 		if userToWhitelist == "" {
 			// Change branch to protected
-			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/new", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)), map[string]string{
+			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/edit", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)), map[string]string{
 				"_csrf":                     csrf,
 				"rule_name":                 branch,
 				"unprotected_file_patterns": unprotectedFilePatterns,
@@ -424,7 +424,7 @@ func doProtectBranch(ctx APITestContext, branch, userToWhitelist, unprotectedFil
 			user, err := user_model.GetUserByName(db.DefaultContext, userToWhitelist)
 			assert.NoError(t, err)
 			// Change branch to protected
-			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/new", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)), map[string]string{
+			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/edit", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)), map[string]string{
 				"_csrf":                     csrf,
 				"rule_name":                 branch,
 				"enable_push":               "whitelist",

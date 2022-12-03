@@ -87,11 +87,11 @@ func SetDefaultBranchPost(ctx *context.Context) {
 
 // SettingsProtectedBranch renders the protected branch setting page
 func SettingsProtectedBranch(c *context.Context) {
-	ruleID := c.ParamsInt64("id")
+	ruleName := c.FormString("rule_name")
 	var rule *git_model.ProtectedBranch
-	if ruleID > 0 {
+	if ruleName != "" {
 		var err error
-		rule, err = git_model.GetProtectedBranchRuleByID(c, c.Repo.Repository.ID, ruleID)
+		rule, err = git_model.GetProtectedBranchRuleByName(c, c.Repo.Repository.ID, ruleName)
 		if err != nil {
 			c.ServerError("GetProtectBranchOfRepoByName", err)
 			return
@@ -158,16 +158,20 @@ func SettingsProtectedBranch(c *context.Context) {
 // SettingsProtectedBranchPost updates the protected branch settings
 func SettingsProtectedBranchPost(ctx *context.Context) {
 	f := web.GetForm(ctx).(*forms.ProtectBranchForm)
-	ruleID := ctx.ParamsInt64("id")
 	var protectBranch *git_model.ProtectedBranch
-	if ruleID > 0 {
-		var err error
-		protectBranch, err = git_model.GetProtectedBranchRuleByID(ctx, ctx.Repo.Repository.ID, ruleID)
-		if err != nil {
-			ctx.ServerError("GetProtectBranchOfRepoByName", err)
-			return
-		}
-	} else {
+	if f.RuleName == "" {
+		ctx.Flash.Error(ctx.Tr("repo.settings.protected_branch_required_rule_name"))
+		ctx.Redirect(fmt.Sprintf("%s/settings/branches/edit", ctx.Repo.RepoLink))
+		return
+	}
+
+	var err error
+	protectBranch, err = git_model.GetProtectedBranchRuleByName(ctx, ctx.Repo.Repository.ID, f.RuleName)
+	if err != nil {
+		ctx.ServerError("GetProtectBranchOfRepoByName", err)
+		return
+	}
+	if protectBranch == nil {
 		// No options found, create defaults.
 		protectBranch = &git_model.ProtectedBranch{
 			RepoID:   ctx.Repo.Repository.ID,
@@ -179,7 +183,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	protectBranch.RuleName = f.RuleName
 	if f.RequiredApprovals < 0 {
 		ctx.Flash.Error(ctx.Tr("repo.settings.protected_branch_required_approvals_min"))
-		ctx.Redirect(fmt.Sprintf("%s/settings/branches/%d", ctx.Repo.RepoLink, ruleID))
+		ctx.Redirect(fmt.Sprintf("%s/settings/branches/edit", ctx.Repo.RepoLink))
 		return
 	}
 
@@ -239,7 +243,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	protectBranch.UnprotectedFilePatterns = f.UnprotectedFilePatterns
 	protectBranch.BlockOnOutdatedBranch = f.BlockOnOutdatedBranch
 
-	err := git_model.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
+	err = git_model.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
 		UserIDs:          whitelistUsers,
 		TeamIDs:          whitelistTeams,
 		MergeUserIDs:     mergeWhitelistUsers,
