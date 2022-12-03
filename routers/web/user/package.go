@@ -336,7 +336,7 @@ func PackageSettingsPost(ctx *context.Context) {
 		success := func() bool {
 			repoID := int64(0)
 			if form.RepoID != 0 {
-				repo, err := repo_model.GetRepositoryByID(form.RepoID)
+				repo, err := repo_model.GetRepositoryByID(ctx, form.RepoID)
 				if err != nil {
 					log.Error("Error getting repository: %v", err)
 					return false

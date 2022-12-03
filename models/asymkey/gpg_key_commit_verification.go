@@ -426,7 +426,7 @@ func hashAndVerifyForKeyID(sig *packet.Signature, payload string, committer *use
 			Email: email,
 		}
 		if key.OwnerID != 0 {
-			owner, err := user_model.GetUserByID(key.OwnerID)
+			owner, err := user_model.GetUserByID(db.DefaultContext, key.OwnerID)
 			if err == nil {
 				signer = owner
 			} else if !user_model.IsErrUserNotExist(err) {

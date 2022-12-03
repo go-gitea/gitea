@@ -36,7 +36,7 @@ func TestRepoStatsIndex(t *testing.T) {
 	err := Init()
 	assert.NoError(t, err)
 
-	repo, err := repo_model.GetRepositoryByID(1)
+	repo, err := repo_model.GetRepositoryByID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 
 	err = UpdateRepoIndexer(repo)

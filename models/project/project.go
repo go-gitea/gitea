@@ -338,7 +338,7 @@ func DeleteProjectByIDCtx(ctx context.Context, id int64) error {
 	return updateRepositoryProjectCount(ctx, p.RepoID)
 }
 
-func DeleteProjectByRepoIDCtx(ctx context.Context, repoID int64) error {
+func DeleteProjectByRepoID(ctx context.Context, repoID int64) error {
 	switch {
 	case setting.Database.UseSQLite3:
 		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_issue WHERE project_issue.id IN (SELECT project_issue.id FROM project_issue INNER JOIN project WHERE project.id = project_issue.project_id AND project.repo_id = ?)", repoID); err != nil {
