@@ -32,7 +32,7 @@ func EscapeControlHTML(text string, locale translation.Locale, allowed ...rune) 
 	return streamer.escaped, sb.String()
 }
 
-// EscapeControlReaders escapes the unicode control sequences in a provider reader and writer in a locale and returns the findings as an EscapeStatus and the escaped []byte
+// EscapeControlReaders escapes the unicode control sequences in a provided reader of HTML content and writer in a locale and returns the findings as an EscapeStatus and the escaped []byte
 func EscapeControlReader(reader io.Reader, writer io.Writer, locale translation.Locale, allowed ...rune) (escaped *EscapeStatus, err error) {
 	outputStream := &HTMLStreamerWriter{Writer: writer}
 	streamer := NewEscapeStreamer(locale, outputStream, allowed...).(*escapeStreamer)
@@ -44,7 +44,7 @@ func EscapeControlReader(reader io.Reader, writer io.Writer, locale translation.
 	return streamer.escaped, err
 }
 
-// EscapeControlStringReader escapes the unicode control sequences in a provided string and returns the findings as an EscapeStatus and the escaped string
+// EscapeControlStringReader escapes the unicode control sequences in a provided reader of string content and writer in a locale and returns the findings as an EscapeStatus and the escaped []byte
 func EscapeControlStringReader(reader io.Reader, writer io.Writer, locale translation.Locale, allowed ...rune) (escaped *EscapeStatus, err error) {
 	bufRd := bufio.NewReader(reader)
 	outputStream := &HTMLStreamerWriter{Writer: writer}
