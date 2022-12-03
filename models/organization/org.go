@@ -701,7 +701,7 @@ func AccessibleReposEnv(ctx context.Context, org *Organization, userID int64) (A
 	var user *user_model.User
 
 	if userID > 0 {
-		u, err := user_model.GetUserByIDCtx(ctx, userID)
+		u, err := user_model.GetUserByID(ctx, userID)
 		if err != nil {
 			return nil, err
 		}

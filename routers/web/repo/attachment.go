@@ -94,7 +94,7 @@ func GetAttachment(ctx *context.Context) {
 		return
 	}
 
-	repository, unitType, err := repo_service.LinkedRepository(attach)
+	repository, unitType, err := repo_service.LinkedRepository(ctx, attach)
 	if err != nil {
 		ctx.ServerError("LinkedRepository", err)
 		return

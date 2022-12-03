@@ -43,7 +43,7 @@ func TransferOwnership(doer, newOwner *user_model.User, repo *repo_model.Reposit
 	}
 	repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 
-	newRepo, err := repo_model.GetRepositoryByID(repo.ID)
+	newRepo, err := repo_model.GetRepositoryByID(db.DefaultContext, repo.ID)
 	if err != nil {
 		return err
 	}

@@ -72,7 +72,7 @@ func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataSt
 		}
 	}
 
-	u, err := user_model.GetUserByID(publicKey.OwnerID)
+	u, err := user_model.GetUserByID(req.Context(), publicKey.OwnerID)
 	if err != nil {
 		log.Error("GetUserByID:  %v", err)
 		return nil

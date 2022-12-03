@@ -48,13 +48,13 @@ func TestDeletedBranchLoadUser(t *testing.T) {
 
 	branch := getDeletedBranch(t, firstBranch)
 	assert.Nil(t, branch.DeletedBy)
-	branch.LoadUser()
+	branch.LoadUser(db.DefaultContext)
 	assert.NotNil(t, branch.DeletedBy)
 	assert.Equal(t, "user1", branch.DeletedBy.Name)
 
 	branch = getDeletedBranch(t, secondBranch)
 	assert.Nil(t, branch.DeletedBy)
-	branch.LoadUser()
+	branch.LoadUser(db.DefaultContext)
 	assert.NotNil(t, branch.DeletedBy)
 	assert.Equal(t, "Ghost", branch.DeletedBy.Name)
 }

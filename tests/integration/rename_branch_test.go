@@ -35,7 +35,7 @@ func TestRenameBranch(t *testing.T) {
 	// check old branch link
 	req = NewRequestWithValues(t, "GET", "/user2/repo1/src/branch/master/README.md", postData)
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
-	location := resp.HeaderMap.Get("Location")
+	location := resp.Header().Get("Location")
 	assert.Equal(t, "/user2/repo1/src/branch/main/README.md", location)
 
 	// check db

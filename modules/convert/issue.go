@@ -149,7 +149,7 @@ func ToStopWatches(sws []*issues_model.Stopwatch) (api.StopWatches, error) {
 		}
 		repo, ok = repoCache[issue.RepoID]
 		if !ok {
-			repo, err = repo_model.GetRepositoryByID(issue.RepoID)
+			repo, err = repo_model.GetRepositoryByID(db.DefaultContext, issue.RepoID)
 			if err != nil {
 				return nil, err
 			}

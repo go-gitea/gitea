@@ -58,7 +58,9 @@
 		</div>
 	</h4>
 	<div class="ui attached table unstackable segment">
-		{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus "root" $}}
+		{{if not (or .IsMarkup .IsRenderedHTML)}}
+			{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus "root" $}}
+		{{end}}
 		<div class="file-view{{if .IsMarkup}} markup {{.MarkupType}}{{else if .IsRenderedHTML}} plain-text{{else if .IsTextSource}} code-view{{end}}">
 			{{if .IsMarkup}}
 				{{if .FileContent}}{{.FileContent | Safe}}{{end}}

@@ -122,12 +122,12 @@ func Transfer(ctx *context.APIContext) {
 
 	if ctx.Repo.Repository.Status == repo_model.RepositoryPendingTransfer {
 		log.Trace("Repository transfer initiated: %s -> %s", oldFullname, ctx.Repo.Repository.FullName())
-		ctx.JSON(http.StatusCreated, convert.ToRepo(ctx.Repo.Repository, perm.AccessModeAdmin))
+		ctx.JSON(http.StatusCreated, convert.ToRepo(ctx, ctx.Repo.Repository, perm.AccessModeAdmin))
 		return
 	}
 
 	log.Trace("Repository transferred: %s -> %s", oldFullname, ctx.Repo.Repository.FullName())
-	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx.Repo.Repository, perm.AccessModeAdmin))
+	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx, ctx.Repo.Repository, perm.AccessModeAdmin))
 }
 
 // AcceptTransfer accept a repo transfer
@@ -165,7 +165,7 @@ func AcceptTransfer(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx.Repo.Repository, ctx.Repo.AccessMode))
+	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx, ctx.Repo.Repository, ctx.Repo.AccessMode))
 }
 
 // RejectTransfer reject a repo transfer
@@ -203,7 +203,7 @@ func RejectTransfer(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToRepo(ctx.Repo.Repository, ctx.Repo.AccessMode))
+	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, ctx.Repo.Repository, ctx.Repo.AccessMode))
 }
 
 func acceptOrRejectRepoTransfer(ctx *context.APIContext, accept bool) error {
