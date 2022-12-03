@@ -107,6 +107,9 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 
 	// can't do rebase on protected branch because need force push
 	if pb == nil {
+		if err := pr.LoadBaseRepo(ctx); err != nil {
+			return false, false, err
+		}
 		prUnit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests)
 		if err != nil {
 			log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %v", err)
