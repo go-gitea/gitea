@@ -323,7 +323,7 @@ func Repos(ctx *context.Context) {
 		}
 		for _, repo := range userRepos {
 			if repo.IsFork {
-				if err := repo.GetBaseRepo(); err != nil {
+				if err := repo.GetBaseRepo(ctx); err != nil {
 					ctx.ServerError("GetBaseRepo", err)
 					return
 				}
@@ -342,7 +342,7 @@ func Repos(ctx *context.Context) {
 
 		for i := range repos {
 			if repos[i].IsFork {
-				if err := repos[i].GetBaseRepo(); err != nil {
+				if err := repos[i].GetBaseRepo(ctx); err != nil {
 					ctx.ServerError("GetBaseRepo", err)
 					return
 				}

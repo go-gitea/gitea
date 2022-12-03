@@ -57,7 +57,7 @@ func LoadRepo(t *testing.T, ctx *context.Context, repoID int64) {
 	ctx.Repo = &context.Repository{}
 	ctx.Repo.Repository = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
 	var err error
-	ctx.Repo.Owner, err = user_model.GetUserByID(ctx.Repo.Repository.OwnerID)
+	ctx.Repo.Owner, err = user_model.GetUserByID(ctx, ctx.Repo.Repository.OwnerID)
 	assert.NoError(t, err)
 	ctx.Repo.RepoLink = ctx.Repo.Repository.Link()
 	ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, ctx.Repo.Repository, ctx.Doer)

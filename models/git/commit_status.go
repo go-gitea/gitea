@@ -114,13 +114,13 @@ func GetNextCommitStatusIndex(ctx context.Context, repoID int64, sha string) (in
 
 func (status *CommitStatus) loadAttributes(ctx context.Context) (err error) {
 	if status.Repo == nil {
-		status.Repo, err = repo_model.GetRepositoryByIDCtx(ctx, status.RepoID)
+		status.Repo, err = repo_model.GetRepositoryByID(ctx, status.RepoID)
 		if err != nil {
 			return fmt.Errorf("getRepositoryByID [%d]: %w", status.RepoID, err)
 		}
 	}
 	if status.Creator == nil && status.CreatorID > 0 {
-		status.Creator, err = user_model.GetUserByIDCtx(ctx, status.CreatorID)
+		status.Creator, err = user_model.GetUserByID(ctx, status.CreatorID)
 		if err != nil {
 			return fmt.Errorf("getUserByID [%d]: %w", status.CreatorID, err)
 		}

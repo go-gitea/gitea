@@ -25,6 +25,7 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/avatars"
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -631,7 +632,7 @@ func Avatar(item interface{}, others ...interface{}) template.HTML {
 
 // AvatarByAction renders user avatars from action. args: action, size (int), class (string)
 func AvatarByAction(action *activities_model.Action, others ...interface{}) template.HTML {
-	action.LoadActUser()
+	action.LoadActUser(db.DefaultContext)
 	return Avatar(action.ActUser, others...)
 }
 

@@ -51,7 +51,7 @@ func ServNoCommand(ctx *context.PrivateContext) {
 	results.Key = key
 
 	if key.Type == asymkey_model.KeyTypeUser || key.Type == asymkey_model.KeyTypePrincipal {
-		user, err := user_model.GetUserByID(key.OwnerID)
+		user, err := user_model.GetUserByID(ctx, key.OwnerID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				ctx.JSON(http.StatusUnauthorized, private.Response{
@@ -259,7 +259,7 @@ func ServCommand(ctx *context.PrivateContext) {
 	} else {
 		// Get the user represented by the Key
 		var err error
-		user, err = user_model.GetUserByID(key.OwnerID)
+		user, err = user_model.GetUserByID(ctx, key.OwnerID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				ctx.JSON(http.StatusUnauthorized, private.ErrServCommand{

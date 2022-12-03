@@ -99,7 +99,7 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 		BaseBranch: pull.HeadBranch,
 	}
 
-	err = pr.LoadProtectedBranch()
+	err = pr.LoadProtectedBranch(ctx)
 	if err != nil {
 		return false, false, err
 	}
