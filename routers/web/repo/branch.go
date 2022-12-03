@@ -332,7 +332,7 @@ func getDeletedBranches(ctx *context.Context) ([]*Branch, error) {
 	}
 
 	for i := range deletedBranches {
-		deletedBranches[i].LoadUser()
+		deletedBranches[i].LoadUser(ctx)
 		branches = append(branches, &Branch{
 			Name:          deletedBranches[i].Name,
 			IsDeleted:     true,

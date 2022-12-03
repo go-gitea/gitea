@@ -81,8 +81,8 @@ func RemoveDeletedBranchByID(repoID, id int64) (err error) {
 
 // LoadUser loads the user that deleted the branch
 // When there's no user found it returns a user_model.NewGhostUser
-func (deletedBranch *DeletedBranch) LoadUser() {
-	user, err := user_model.GetUserByID(deletedBranch.DeletedByID)
+func (deletedBranch *DeletedBranch) LoadUser(ctx context.Context) {
+	user, err := user_model.GetUserByID(ctx, deletedBranch.DeletedByID)
 	if err != nil {
 		user = user_model.NewGhostUser()
 	}

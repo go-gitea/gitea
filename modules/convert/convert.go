@@ -5,6 +5,7 @@
 package convert
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -88,7 +89,7 @@ func ToBranch(repo *repo_model.Repository, b *git.Branch, c *git.Commit, bp *git
 		if err != nil {
 			return nil, err
 		}
-		branch.UserCanPush = bp.CanUserPush(user.ID)
+		branch.UserCanPush = bp.CanUserPush(db.DefaultContext, user.ID)
 		branch.UserCanMerge = git_model.IsUserMergeWhitelisted(db.DefaultContext, bp, user.ID, permission)
 	}
 
@@ -408,8 +409,8 @@ func ToOAuth2Application(app *auth.OAuth2Application) *api.OAuth2Application {
 }
 
 // ToLFSLock convert a LFSLock to api.LFSLock
-func ToLFSLock(l *git_model.LFSLock) *api.LFSLock {
-	u, err := user_model.GetUserByID(l.OwnerID)
+func ToLFSLock(ctx context.Context, l *git_model.LFSLock) *api.LFSLock {
+	u, err := user_model.GetUserByID(ctx, l.OwnerID)
 	if err != nil {
 		return nil
 	}

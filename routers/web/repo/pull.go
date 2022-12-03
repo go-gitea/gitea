@@ -78,7 +78,7 @@ var pullRequestTemplateCandidates = []string{
 }
 
 func getRepository(ctx *context.Context, repoID int64) *repo_model.Repository {
-	repo, err := repo_model.GetRepositoryByID(repoID)
+	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
 			ctx.NotFound("GetRepositoryByID", nil)
@@ -159,7 +159,7 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 		if !traverseParentRepo.IsFork {
 			break
 		}
-		traverseParentRepo, err = repo_model.GetRepositoryByID(traverseParentRepo.ForkID)
+		traverseParentRepo, err = repo_model.GetRepositoryByID(ctx, traverseParentRepo.ForkID)
 		if err != nil {
 			ctx.ServerError("GetRepositoryByID", err)
 			return nil
@@ -227,7 +227,7 @@ func ForkPost(ctx *context.Context) {
 		if !traverseParentRepo.IsFork {
 			break
 		}
-		traverseParentRepo, err = repo_model.GetRepositoryByID(traverseParentRepo.ForkID)
+		traverseParentRepo, err = repo_model.GetRepositoryByID(ctx, traverseParentRepo.ForkID)
 		if err != nil {
 			ctx.ServerError("GetRepositoryByID", err)
 			return

@@ -332,7 +332,7 @@ func ActivateEmail(email *EmailAddress) error {
 }
 
 func updateActivation(ctx context.Context, email *EmailAddress, activate bool) error {
-	user, err := GetUserByIDCtx(ctx, email.UID)
+	user, err := GetUserByID(ctx, email.UID)
 	if err != nil {
 		return err
 	}

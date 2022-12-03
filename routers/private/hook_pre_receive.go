@@ -251,7 +251,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 	if ctx.opts.DeployKeyID != 0 {
 		canPush = !changedProtectedfiles && protectBranch.CanPush && (!protectBranch.EnableWhitelist || protectBranch.WhitelistDeployKeys)
 	} else {
-		canPush = !changedProtectedfiles && protectBranch.CanUserPush(ctx.opts.UserID)
+		canPush = !changedProtectedfiles && protectBranch.CanUserPush(ctx, ctx.opts.UserID)
 	}
 
 	// 6. If we're not allowed to push directly
@@ -464,7 +464,7 @@ func (ctx *preReceiveContext) loadPusherAndPermission() bool {
 		return true
 	}
 
-	user, err := user_model.GetUserByID(ctx.opts.UserID)
+	user, err := user_model.GetUserByID(ctx, ctx.opts.UserID)
 	if err != nil {
 		log.Error("Unable to get User id %d Error: %v", ctx.opts.UserID, err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{

@@ -167,7 +167,7 @@ func checkAndUpdateStatus(ctx context.Context, pr *issues_model.PullRequest) {
 func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Commit, error) {
 	if pr.BaseRepo == nil {
 		var err error
-		pr.BaseRepo, err = repo_model.GetRepositoryByID(pr.BaseRepoID)
+		pr.BaseRepo, err = repo_model.GetRepositoryByID(ctx, pr.BaseRepoID)
 		if err != nil {
 			return nil, fmt.Errorf("GetRepositoryByID: %w", err)
 		}

@@ -230,7 +230,7 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 }
 
 func checkForInvalidation(ctx context.Context, requests issues_model.PullRequestList, repoID int64, doer *user_model.User, branch string) error {
-	repo, err := repo_model.GetRepositoryByIDCtx(ctx, repoID)
+	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
 	if err != nil {
 		return fmt.Errorf("GetRepositoryByIDCtx: %w", err)
 	}
@@ -594,7 +594,7 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 
 	if pr.HeadRepo == nil {
 		var err error
-		pr.HeadRepo, err = repo_model.GetRepositoryByIDCtx(ctx, pr.HeadRepoID)
+		pr.HeadRepo, err = repo_model.GetRepositoryByID(ctx, pr.HeadRepoID)
 		if err != nil {
 			log.Error("GetRepositoryByIdCtx[%d]: %v", pr.HeadRepoID, err)
 			return ""

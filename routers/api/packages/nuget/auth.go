@@ -29,7 +29,7 @@ func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataS
 		return nil
 	}
 
-	u, err := user_model.GetUserByID(token.UID)
+	u, err := user_model.GetUserByID(req.Context(), token.UID)
 	if err != nil {
 		log.Error("GetUserByID:  %v", err)
 		return nil

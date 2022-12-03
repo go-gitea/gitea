@@ -93,19 +93,19 @@ func (protectBranch *ProtectedBranch) Match(branchName string) bool {
 }
 
 // CanUserPush returns if some user could push to this protected branch
-func (protectBranch *ProtectedBranch) CanUserPush(userID int64) bool {
+func (protectBranch *ProtectedBranch) CanUserPush(ctx context.Context, userID int64) bool {
 	if !protectBranch.CanPush {
 		return false
 	}
 
 	if !protectBranch.EnableWhitelist {
-		if user, err := user_model.GetUserByID(userID); err != nil {
+		if user, err := user_model.GetUserByID(ctx, userID); err != nil {
 			log.Error("GetUserByID: %v", err)
 			return false
-		} else if repo, err := repo_model.GetRepositoryByID(protectBranch.RepoID); err != nil {
+		} else if repo, err := repo_model.GetRepositoryByID(ctx, protectBranch.RepoID); err != nil {
 			log.Error("repo_model.GetRepositoryByID: %v", err)
 			return false
-		} else if writeAccess, err := access_model.HasAccessUnit(db.DefaultContext, user, repo, unit.TypeCode, perm.AccessModeWrite); err != nil {
+		} else if writeAccess, err := access_model.HasAccessUnit(ctx, user, repo, unit.TypeCode, perm.AccessModeWrite); err != nil {
 			log.Error("HasAccessUnit: %v", err)
 			return false
 		} else {
@@ -121,7 +121,7 @@ func (protectBranch *ProtectedBranch) CanUserPush(userID int64) bool {
 		return false
 	}
 
-	in, err := organization.IsUserInTeams(db.DefaultContext, userID, protectBranch.WhitelistTeamIDs)
+	in, err := organization.IsUserInTeams(ctx, userID, protectBranch.WhitelistTeamIDs)
 	if err != nil {
 		log.Error("IsUserInTeams: %v", err)
 		return false
@@ -154,7 +154,7 @@ func IsUserMergeWhitelisted(ctx context.Context, protectBranch *ProtectedBranch,
 
 // IsUserOfficialReviewer check if user is official reviewer for the branch (counts towards required approvals)
 func IsUserOfficialReviewer(ctx context.Context, protectBranch *ProtectedBranch, user *user_model.User) (bool, error) {
-	repo, err := repo_model.GetRepositoryByIDCtx(ctx, protectBranch.RepoID)
+	repo, err := repo_model.GetRepositoryByID(ctx, protectBranch.RepoID)
 	if err != nil {
 		return false, err
 	}
@@ -389,7 +389,7 @@ func updateUserWhitelist(ctx context.Context, repo *repo_model.Repository, curre
 
 	whitelist = make([]int64, 0, len(newWhitelist))
 	for _, userID := range newWhitelist {
-		user, err := user_model.GetUserByIDCtx(ctx, userID)
+		user, err := user_model.GetUserByID(ctx, userID)
 		if err != nil {
 			return nil, fmt.Errorf("GetUserByID [user_id: %d, repo_id: %d]: %v", userID, repo.ID, err)
 		}
