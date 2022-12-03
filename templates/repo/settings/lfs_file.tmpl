@@ -17,10 +17,10 @@
 			</h4>
 			<div class="ui attached table unstackable segment">
 				{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus "root" $}}
-				<div class="file-view{{if .IsMarkup}} markup {{.MarkupType}}{{else if .IsRenderedPlainText}} plain-text{{else if .IsTextFile}} code-view{{end}}">
+				<div class="file-view{{if .IsMarkup}} markup {{.MarkupType}}{{else if .IsPlainText}} plain-text{{else if .IsTextFile}} code-view{{end}}">
 					{{if .IsMarkup}}
 						{{if .FileContent}}{{.FileContent | Safe}}{{end}}
-					{{else if .IsRenderedPlainText}}
+					{{else if .IsPlainText}}
 						<pre>{{if .FileContent}}{{.FileContent | Safe}}{{end}}</pre>
 					{{else if not .IsTextFile}}
 						<div class="view-raw ui center">

@@ -344,7 +344,7 @@ func renderReadmeFile(ctx *context.Context, readmeFile *namedBlob, readmeTreelin
 			ctx.Data["FileContent"] = buf.String()
 		}
 	} else {
-		ctx.Data["IsRenderedPlainText"] = true
+		ctx.Data["IsPlainText"] = true
 		buf := &bytes.Buffer{}
 		ctx.Data["EscapeStatus"], err = charset.EscapeControlStringReader(rd, buf, ctx.Locale)
 		if err != nil {
