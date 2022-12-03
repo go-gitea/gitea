@@ -993,12 +993,7 @@ func UserPath(userName string) string { //revive:disable-line:exported
 }
 
 // GetUserByID returns the user object by given ID if exists.
-func GetUserByID(id int64) (*User, error) {
-	return GetUserByIDCtx(db.DefaultContext, id)
-}
-
-// GetUserByIDCtx returns the user object by given ID if exists.
-func GetUserByIDCtx(ctx context.Context, id int64) (*User, error) {
+func GetUserByID(ctx context.Context, id int64) (*User, error) {
 	u := new(User)
 	has, err := db.GetEngine(ctx).ID(id).Get(u)
 	if err != nil {
@@ -1176,7 +1171,7 @@ func GetUserByEmailContext(ctx context.Context, email string) (*User, error) {
 		return nil, err
 	}
 	if has {
-		return GetUserByIDCtx(ctx, emailAddress.UID)
+		return GetUserByID(ctx, emailAddress.UID)
 	}
 
 	// Finally, if email address is the protected email address:
@@ -1220,7 +1215,7 @@ func GetUserByOpenID(uri string) (*User, error) {
 		return nil, err
 	}
 	if has {
-		return GetUserByID(oid.UID)
+		return GetUserByID(db.DefaultContext, oid.UID)
 	}
 
 	return nil, ErrUserNotExist{0, uri, 0}

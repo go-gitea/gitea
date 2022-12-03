@@ -41,7 +41,7 @@ func Repos(ctx *context.Context) {
 
 // DeleteRepo delete one repository
 func DeleteRepo(ctx *context.Context) {
-	repo, err := repo_model.GetRepositoryByID(ctx.FormInt64("id"))
+	repo, err := repo_model.GetRepositoryByID(ctx, ctx.FormInt64("id"))
 	if err != nil {
 		ctx.ServerError("GetRepositoryByID", err)
 		return

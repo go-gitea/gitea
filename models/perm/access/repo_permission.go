@@ -364,7 +364,7 @@ func HasAccess(ctx context.Context, userID int64, repo *repo_model.Repository) (
 	var user *user_model.User
 	var err error
 	if userID > 0 {
-		user, err = user_model.GetUserByIDCtx(ctx, userID)
+		user, err = user_model.GetUserByID(ctx, userID)
 		if err != nil {
 			return false, err
 		}

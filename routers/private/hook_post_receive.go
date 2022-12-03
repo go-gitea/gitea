@@ -183,7 +183,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				baseRepo = repo
 
 				if repo.IsFork {
-					if err := repo.GetBaseRepo(); err != nil {
+					if err := repo.GetBaseRepo(ctx); err != nil {
 						log.Error("Failed to get Base Repository of Forked repository: %-v Error: %v", repo, err)
 						ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
 							Err:          fmt.Sprintf("Failed to get Base Repository of Forked repository: %-v Error: %v", repo, err),

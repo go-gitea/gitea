@@ -43,7 +43,7 @@ func TestAPIGetTrackedTimes(t *testing.T) {
 		assert.EqualValues(t, issue2.ID, apiTimes[i].IssueID)
 		assert.Equal(t, time.Created.Unix(), apiTimes[i].Created.Unix())
 		assert.Equal(t, time.Time, apiTimes[i].Time)
-		user, err := user_model.GetUserByID(time.UserID)
+		user, err := user_model.GetUserByID(db.DefaultContext, time.UserID)
 		assert.NoError(t, err)
 		assert.Equal(t, user.Name, apiTimes[i].UserName)
 	}

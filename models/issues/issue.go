@@ -193,7 +193,7 @@ func (issue *Issue) IsOverdue() bool {
 // LoadRepo loads issue's repository
 func (issue *Issue) LoadRepo(ctx context.Context) (err error) {
 	if issue.Repo == nil {
-		issue.Repo, err = repo_model.GetRepositoryByIDCtx(ctx, issue.RepoID)
+		issue.Repo, err = repo_model.GetRepositoryByID(ctx, issue.RepoID)
 		if err != nil {
 			return fmt.Errorf("getRepositoryByID [%d]: %w", issue.RepoID, err)
 		}
@@ -242,7 +242,7 @@ func (issue *Issue) LoadLabels(ctx context.Context) (err error) {
 // LoadPoster loads poster
 func (issue *Issue) LoadPoster(ctx context.Context) (err error) {
 	if issue.Poster == nil {
-		issue.Poster, err = user_model.GetUserByIDCtx(ctx, issue.PosterID)
+		issue.Poster, err = user_model.GetUserByID(ctx, issue.PosterID)
 		if err != nil {
 			issue.PosterID = -1
 			issue.Poster = user_model.NewGhostUser()

@@ -194,7 +194,7 @@ func newAccessTokenResponse(ctx stdContext.Context, grant *auth.OAuth2Grant, ser
 				ErrorDescription: "cannot find application",
 			}
 		}
-		user, err := user_model.GetUserByID(grant.UserID)
+		user, err := user_model.GetUserByID(ctx, grant.UserID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				return nil, &AccessTokenError{
@@ -385,7 +385,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 
 	var user *user_model.User
 	if app.UID != 0 {
-		user, err = user_model.GetUserByID(app.UID)
+		user, err = user_model.GetUserByID(ctx, app.UID)
 		if err != nil {
 			ctx.ServerError("GetUserByID", err)
 			return
@@ -1222,7 +1222,7 @@ func oAuth2UserLoginCallback(authSource *auth.Source, request *http.Request, res
 		return nil, goth.User{}, err
 	}
 	if hasUser {
-		user, err = user_model.GetUserByID(externalLoginUser.UserID)
+		user, err = user_model.GetUserByID(request.Context(), externalLoginUser.UserID)
 		return user, gothUser, err
 	}
 

@@ -218,7 +218,7 @@ func handlePull(pullID int64, sha string) {
 	}
 
 	// Merge if all checks succeeded
-	doer, err := user_model.GetUserByIDCtx(ctx, scheduledPRM.DoerID)
+	doer, err := user_model.GetUserByID(ctx, scheduledPRM.DoerID)
 	if err != nil {
 		log.Error("GetUserByIDCtx: %v", err)
 		return
