@@ -45,7 +45,7 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 
 		csrf := GetCSRF(t, session, "/user2/repo1/settings/branches")
 		// Change master branch to protected
-		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/new", map[string]string{
+		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
 			"_csrf":       csrf,
 			"rule_name":   "master",
 			"enable_push": "true",
