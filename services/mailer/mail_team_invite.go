@@ -26,7 +26,7 @@ func MailTeamInvite(ctx context.Context, inviter *user_model.User, team *org_mod
 		return nil
 	}
 
-	org, err := user_model.GetUserByIDCtx(ctx, team.OrgID)
+	org, err := user_model.GetUserByID(ctx, team.OrgID)
 	if err != nil {
 		return err
 	}

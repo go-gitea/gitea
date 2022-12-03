@@ -57,7 +57,7 @@ func (t *TrackedTime) loadAttributes(ctx context.Context) (err error) {
 		}
 	}
 	if t.User == nil {
-		t.User, err = user_model.GetUserByIDCtx(ctx, t.UserID)
+		t.User, err = user_model.GetUserByID(ctx, t.UserID)
 		if err != nil {
 			return
 		}
@@ -205,7 +205,7 @@ func TotalTimes(options *FindTrackedTimesOptions) (map[*user_model.User]string, 
 	totalTimes := make(map[*user_model.User]string)
 	// Fetching User and making time human readable
 	for userID, total := range totalTimesByUser {
-		user, err := user_model.GetUserByID(userID)
+		user, err := user_model.GetUserByID(db.DefaultContext, userID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				continue

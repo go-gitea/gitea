@@ -84,7 +84,7 @@ type IndexerData struct {
 var indexerQueue queue.UniqueQueue
 
 func index(ctx context.Context, indexer Indexer, repoID int64) error {
-	repo, err := repo_model.GetRepositoryByID(repoID)
+	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
 	if repo_model.IsErrRepoNotExist(err) {
 		return indexer.Delete(repoID)
 	}

@@ -75,7 +75,7 @@ func (r *Reaction) LoadUser() (*user_model.User, error) {
 	if r.User != nil {
 		return r.User, nil
 	}
-	user, err := user_model.GetUserByIDCtx(db.DefaultContext, r.UserID)
+	user, err := user_model.GetUserByID(db.DefaultContext, r.UserID)
 	if err != nil {
 		return nil, err
 	}
