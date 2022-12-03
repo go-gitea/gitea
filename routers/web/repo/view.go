@@ -457,7 +457,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		return
 	}
 	if lfsLock != nil {
-		u, err := user_model.GetUserByID(lfsLock.OwnerID)
+		u, err := user_model.GetUserByID(ctx, lfsLock.OwnerID)
 		if err != nil {
 			ctx.ServerError("GetTreePathLock", err)
 			return

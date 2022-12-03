@@ -21,7 +21,7 @@ func (db *DBIndexer) Index(id int64) error {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().ShutdownContext(), fmt.Sprintf("Stats.DB Index Repo[%d]", id))
 	defer finished()
 
-	repo, err := repo_model.GetRepositoryByID(id)
+	repo, err := repo_model.GetRepositoryByID(ctx, id)
 	if err != nil {
 		return err
 	}

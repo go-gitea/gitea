@@ -7,6 +7,7 @@ import (
 	"net/url"
 
 	activities_model "code.gitea.io/gitea/models/activities"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	api "code.gitea.io/gitea/modules/structs"
 )
@@ -23,7 +24,7 @@ func ToNotificationThread(n *activities_model.Notification) *api.NotificationThr
 
 	// since user only get notifications when he has access to use minimal access mode
 	if n.Repository != nil {
-		result.Repository = ToRepo(n.Repository, perm.AccessModeRead)
+		result.Repository = ToRepo(db.DefaultContext, n.Repository, perm.AccessModeRead)
 
 		// This permission is not correct and we should not be reporting it
 		for repository := result.Repository; repository != nil; repository = repository.Parent {
