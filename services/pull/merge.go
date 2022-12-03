@@ -829,6 +829,9 @@ func MergedManually(pr *issues_model.PullRequest, doer *user_model.User, baseGit
 	defer pullWorkingPool.CheckOut(fmt.Sprint(pr.ID))
 
 	if err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+		if err := pr.LoadBaseRepo(ctx); err != nil {
+			return err
+		}
 		prUnit, err := pr.BaseRepo.GetUnitCtx(ctx, unit.TypePullRequests)
 		if err != nil {
 			return err
