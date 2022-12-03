@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -58,7 +57,7 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 		return
 	}
 
-	if err := comment.LoadIssue(); err != nil {
+	if err := comment.LoadIssue(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "comment.LoadIssue", err)
 	}
 
@@ -185,7 +184,7 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 		return
 	}
 
-	err = comment.LoadIssue()
+	err = comment.LoadIssue(ctx)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "comment.LoadIssue() failed", err)
 	}

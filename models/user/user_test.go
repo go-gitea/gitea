@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user_test
 
@@ -23,7 +22,7 @@ import (
 func TestOAuth2Application_LoadUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	app := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{ID: 1})
-	user, err := user_model.GetUserByID(app.UID)
+	user, err := user_model.GetUserByID(db.DefaultContext, app.UID)
 	assert.NoError(t, err)
 	assert.NotNil(t, user)
 }
@@ -257,12 +256,12 @@ func TestGetUserIDsByNames(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// ignore non existing
-	IDs, err := user_model.GetUserIDsByNames([]string{"user1", "user2", "none_existing_user"}, true)
+	IDs, err := user_model.GetUserIDsByNames(db.DefaultContext, []string{"user1", "user2", "none_existing_user"}, true)
 	assert.NoError(t, err)
 	assert.Equal(t, []int64{1, 2}, IDs)
 
 	// ignore non existing
-	IDs, err = user_model.GetUserIDsByNames([]string{"user1", "do_not_exist"}, false)
+	IDs, err = user_model.GetUserIDsByNames(db.DefaultContext, []string{"user1", "do_not_exist"}, false)
 	assert.Error(t, err)
 	assert.Equal(t, []int64(nil), IDs)
 }
@@ -270,14 +269,14 @@ func TestGetUserIDsByNames(t *testing.T) {
 func TestGetMaileableUsersByIDs(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	results, err := user_model.GetMaileableUsersByIDs([]int64{1, 4}, false)
+	results, err := user_model.GetMaileableUsersByIDs(db.DefaultContext, []int64{1, 4}, false)
 	assert.NoError(t, err)
 	assert.Len(t, results, 1)
 	if len(results) > 1 {
 		assert.Equal(t, results[0].ID, 1)
 	}
 
-	results, err = user_model.GetMaileableUsersByIDs([]int64{1, 4}, true)
+	results, err = user_model.GetMaileableUsersByIDs(db.DefaultContext, []int64{1, 4}, true)
 	assert.NoError(t, err)
 	assert.Len(t, results, 2)
 	if len(results) > 2 {
