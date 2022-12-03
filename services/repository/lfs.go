@@ -5,7 +5,6 @@ package repository
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -58,28 +57,16 @@ func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.R
 		return err
 	}
 	defer gitRepo.Close()
-	checkWr, checkRd, cancel := gitRepo.CatFileBatchCheck(ctx)
-	defer cancel()
 
 	store := lfs.NewContentStore()
 
 	return git_model.IterateLFSMetaObjectsForRepo(ctx, repo.ID, func(ctx context.Context, metaObject *git_model.LFSMetaObject, count int64) error {
 		total++
 		pointerSha := git.ComputeBlobHash([]byte(metaObject.Pointer.StringContent()))
-		_, err := checkWr.Write([]byte(pointerSha.String()))
-		if err != nil {
-			return fmt.Errorf("unable to write pointerSHA to cat-file in %s: %w", repo.FullName(), err)
-		}
 
-		_, _, _, err = git.ReadBatchLine(checkRd)
-		if err == nil {
+		if gitRepo.IsObjectExist(pointerSha.String()) {
 			return nil
 		}
-
-		if !errors.Is(err, git.ErrNotExist{}) {
-			return fmt.Errorf("unable to read pointerSHA from cat-file in %s: %w", repo.FullName(), err)
-		}
-
 		orphaned++
 
 		if !autofix {
