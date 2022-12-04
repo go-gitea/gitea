@@ -1,0 +1,25 @@
+-
+  repo_id: 1
+  local_index: 1
+  foreign_index: "foo"
+  type: "foo"
+-
+  repo_id: 1
+  local_index: 2
+  foreign_index: "bar"
+  type: "foo"
+-
+  repo_id: 2
+  local_index: 2
+  foreign_index: "foo"
+  type: "foo"
+-
+  repo_id: 3
+  local_index: 1024
+  foreign_index: "1"
+  type: "normal"
+-
+  repo_id: 2
+  local_index: 1
+  foreign_index: "bar"
+  type: "foo"
