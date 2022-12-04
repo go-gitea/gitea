@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues_test
 
@@ -189,7 +188,7 @@ func TestIssues(t *testing.T) {
 			[]int64{}, // issues with **both** label 1 and 2, none of these issues matches, TODO: add more tests
 		},
 	} {
-		issues, err := issues_model.Issues(&test.Opts)
+		issues, err := issues_model.Issues(db.DefaultContext, &test.Opts)
 		assert.NoError(t, err)
 		if assert.Len(t, issues, len(test.ExpectedIssueIDs)) {
 			for i, issue := range issues {
@@ -556,7 +555,7 @@ func TestLoadTotalTrackedTime(t *testing.T) {
 
 func TestCountIssues(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	count, err := issues_model.CountIssues(&issues_model.IssuesOptions{})
+	count, err := issues_model.CountIssues(db.DefaultContext, &issues_model.IssuesOptions{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 17, count)
 }

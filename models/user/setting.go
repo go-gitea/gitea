@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -163,7 +162,7 @@ func SetUserSetting(userID int64, key, value string) error {
 }
 
 func upsertUserSettingValue(userID int64, key, value string) error {
-	return db.WithTx(func(ctx context.Context) error {
+	return db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		e := db.GetEngine(ctx)
 
 		// here we use a general method to do a safe upsert for different databases (and most transaction levels)

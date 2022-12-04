@@ -9,7 +9,7 @@ export function initRepoMigrationStatusChecker() {
   $('#repo_migrating_progress_message').hide();
   if (migrating) {
     const task = migrating.attr('task');
-    if (typeof task === 'undefined') {
+    if (task === undefined) {
       return;
     }
     $.ajax({

@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.package models
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -69,14 +68,12 @@ func TestUserOrgs(t *testing.T) {
 
 func getUserOrgs(t *testing.T, userDoer, userCheck string) (orgs []*api.Organization) {
 	token := ""
-	session := emptyTestSession(t)
 	if len(userDoer) != 0 {
-		session = loginUser(t, userDoer)
-		token = getTokenForLoggedInUser(t, session)
+		token = getUserToken(t, userDoer)
 	}
 	urlStr := fmt.Sprintf("/api/v1/users/%s/orgs?token=%s", userCheck, token)
 	req := NewRequest(t, "GET", urlStr)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &orgs)
 	return orgs
 }
@@ -84,15 +81,13 @@ func getUserOrgs(t *testing.T, userDoer, userCheck string) (orgs []*api.Organiza
 func TestMyOrgs(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	session := emptyTestSession(t)
 	req := NewRequest(t, "GET", "/api/v1/user/orgs")
-	session.MakeRequest(t, req, http.StatusUnauthorized)
+	MakeRequest(t, req, http.StatusUnauthorized)
 
 	normalUsername := "user2"
-	session = loginUser(t, normalUsername)
-	token := getTokenForLoggedInUser(t, session)
+	token := getUserToken(t, normalUsername)
 	req = NewRequest(t, "GET", "/api/v1/user/orgs?token="+token)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 	var orgs []*api.Organization
 	DecodeJSON(t, resp, &orgs)
 	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user3"})

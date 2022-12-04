@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 // Package v1 Gitea API.
 //
@@ -1073,6 +1072,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 			}, repoAssignment())
 		})
 
+		// NOTE: these are Gitea package management API - see packages.CommonRoutes and packages.DockerContainerRoutes for endpoints that implement package manager APIs
 		m.Group("/packages/{username}", func() {
 			m.Group("/{type}/{name}/{version}", func() {
 				m.Get("", packages.GetPackage)

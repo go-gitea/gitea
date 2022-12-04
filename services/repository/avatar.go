@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
@@ -33,7 +32,7 @@ func UploadAvatar(repo *repo_model.Repository, data []byte) error {
 		return nil
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -76,7 +75,7 @@ func DeleteAvatar(repo *repo_model.Repository) error {
 	avatarPath := repo.CustomAvatarRelativePath()
 	log.Trace("DeleteAvatar[%d]: %s", repo.ID, avatarPath)
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
