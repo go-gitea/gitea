@@ -6,6 +6,7 @@ package repo
 import (
 	"context"
 	"math"
+	"sort"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -43,7 +44,7 @@ func (stats LanguageStatList) LoadAttributes() {
 
 func (stats LanguageStatList) getLanguagePercentages() map[string]float32 {
 	langPerc := make(map[string]float32)
-	var otherPerc float32 = 100
+	var otherPerc float32
 	var total int64
 
 	for _, stat := range stats {
@@ -51,19 +52,56 @@ func (stats LanguageStatList) getLanguagePercentages() map[string]float32 {
 	}
 	if total > 0 {
 		for _, stat := range stats {
-			perc := float32(math.Round(float64(stat.Size)/float64(total)*1000) / 10)
+			perc := float32(float64(stat.Size) / float64(total) * 100)
 			if perc <= 0.1 {
+				otherPerc += perc
 				continue
 			}
-			otherPerc -= perc
 			langPerc[stat.Language] = perc
 		}
-		otherPerc = float32(math.Round(float64(otherPerc)*10) / 10)
 	}
 	if otherPerc > 0 {
 		langPerc["other"] = otherPerc
 	}
+	roundByLargestRemainder(langPerc, 100)
 	return langPerc
+}
+
+// Rounds to 1 decimal point, target should be the expected sum of percs
+func roundByLargestRemainder(percs map[string]float32, target float32) {
+	// Intermediates are the floored numbers multiplied to the decimal
+	// 54.37 -> 543
+	intermediates := make(map[string]int, len(percs))
+	remainders := make(map[string]float64, len(percs))
+
+	leftToDistribute := int(target * 10)
+
+	keys := make([]string, 0, len(percs))
+
+	for k, v := range percs {
+		remains := float64(v * 10)
+		intermediates[k] = int(math.Floor(remains))
+		leftToDistribute -= intermediates[k]
+
+		remains -= math.Floor(remains)
+		remainders[k] = remains
+
+		keys = append(keys, k)
+	}
+
+	// Sort the keys by the largest remainder
+	sort.SliceStable(keys, func(i, j int) bool {
+		return remainders[keys[i]] > remainders[keys[j]]
+	})
+
+	// Increment the values in order of largest remainder
+	for _, k := range keys {
+		if leftToDistribute > 0 {
+			intermediates[k]++
+			leftToDistribute--
+		}
+		percs[k] = float32(intermediates[k]) / 10
+	}
 }
 
 // GetLanguageStats returns the language statistics for a repository
