@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
@@ -185,7 +184,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 // ConvertForkToNormalRepository convert the provided repo from a forked repo to normal repo
 func ConvertForkToNormalRepository(repo *repo_model.Repository) error {
 	err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
-		repo, err := repo_model.GetRepositoryByIDCtx(ctx, repo.ID)
+		repo, err := repo_model.GetRepositoryByID(ctx, repo.ID)
 		if err != nil {
 			return err
 		}

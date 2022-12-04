@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package activities
 
@@ -115,12 +114,12 @@ func (a *Action) GetOpType() ActionType {
 }
 
 // LoadActUser loads a.ActUser
-func (a *Action) LoadActUser() {
+func (a *Action) LoadActUser(ctx context.Context) {
 	if a.ActUser != nil {
 		return
 	}
 	var err error
-	a.ActUser, err = user_model.GetUserByID(a.ActUserID)
+	a.ActUser, err = user_model.GetUserByID(ctx, a.ActUserID)
 	if err == nil {
 		return
 	} else if user_model.IsErrUserNotExist(err) {
@@ -130,12 +129,12 @@ func (a *Action) LoadActUser() {
 	}
 }
 
-func (a *Action) loadRepo() {
+func (a *Action) loadRepo(ctx context.Context) {
 	if a.Repo != nil {
 		return
 	}
 	var err error
-	a.Repo, err = repo_model.GetRepositoryByID(a.RepoID)
+	a.Repo, err = repo_model.GetRepositoryByID(ctx, a.RepoID)
 	if err != nil {
 		log.Error("repo_model.GetRepositoryByID(%d): %v", a.RepoID, err)
 	}
@@ -143,13 +142,13 @@ func (a *Action) loadRepo() {
 
 // GetActFullName gets the action's user full name.
 func (a *Action) GetActFullName() string {
-	a.LoadActUser()
+	a.LoadActUser(db.DefaultContext)
 	return a.ActUser.FullName
 }
 
 // GetActUserName gets the action's user name.
 func (a *Action) GetActUserName() string {
-	a.LoadActUser()
+	a.LoadActUser(db.DefaultContext)
 	return a.ActUser.Name
 }
 
@@ -180,7 +179,7 @@ func (a *Action) GetDisplayNameTitle() string {
 
 // GetRepoUserName returns the name of the action repository owner.
 func (a *Action) GetRepoUserName() string {
-	a.loadRepo()
+	a.loadRepo(db.DefaultContext)
 	return a.Repo.OwnerName
 }
 
@@ -192,7 +191,7 @@ func (a *Action) ShortRepoUserName() string {
 
 // GetRepoName returns the name of the action repository.
 func (a *Action) GetRepoName() string {
-	a.loadRepo()
+	a.loadRepo(db.DefaultContext)
 	return a.Repo.Name
 }
 
@@ -380,7 +379,7 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 	cond := builder.NewCond()
 
 	if opts.RequestedTeam != nil && opts.RequestedUser == nil {
-		org, err := user_model.GetUserByID(opts.RequestedTeam.OrgID)
+		org, err := user_model.GetUserByID(db.DefaultContext, opts.RequestedTeam.OrgID)
 		if err != nil {
 			return nil, err
 		}
@@ -490,7 +489,7 @@ func NotifyWatchers(ctx context.Context, actions ...*Action) error {
 		}
 
 		if repoChanged {
-			act.loadRepo()
+			act.loadRepo(ctx)
 			repo = act.Repo
 
 			// check repo owner exist.
@@ -515,7 +514,7 @@ func NotifyWatchers(ctx context.Context, actions ...*Action) error {
 			permIssue = make([]bool, len(watchers))
 			permPR = make([]bool, len(watchers))
 			for i, watcher := range watchers {
-				user, err := user_model.GetUserByIDCtx(ctx, watcher.UserID)
+				user, err := user_model.GetUserByID(ctx, watcher.UserID)
 				if err != nil {
 					permCode[i] = false
 					permIssue[i] = false

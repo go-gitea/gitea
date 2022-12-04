@@ -2612,12 +2612,18 @@
     }
   }
 
+  &.webhooks .list > .item:not(:first-child),
+  &.githooks .list > .item:not(:first-child) {
+    padding: .25rem 1rem;
+    margin: 12px -1rem -1rem;
+  }
+
   .list {
     > .item {
       &:not(:first-child) {
         border-top: 1px solid var(--color-secondary);
-        padding: .25rem 1rem;
-        margin: 12px -1rem -1rem;
+        padding: 1rem;
+        margin: 16px -1rem -1rem;
       }
 
       > .svg {
@@ -2955,6 +2961,24 @@ tbody.commit-list {
 
 .git-notes.top {
   text-align: left;
+}
+
+.comment-diff-data {
+  background: var(--color-code-bg);
+  max-height: calc(100vh - 10.5rem);
+  overflow-y: auto;
+}
+
+.comment-diff-data pre {
+  line-height: 18px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-wrap: break-word;
+}
+
+.content-history-detail-dialog .header .avatar {
+  position: relative;
+  top: -2px;
 }
 
 #topic_edit {

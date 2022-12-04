@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issue
 
@@ -161,7 +160,7 @@ func DeleteIssue(doer *user_model.User, gitRepo *git.Repository, issue *issues_m
 // AddAssigneeIfNotAssigned adds an assignee only if he isn't already assigned to the issue.
 // Also checks for access of assigned user
 func AddAssigneeIfNotAssigned(issue *issues_model.Issue, doer *user_model.User, assigneeID int64) (err error) {
-	assignee, err := user_model.GetUserByIDCtx(db.DefaultContext, assigneeID)
+	assignee, err := user_model.GetUserByID(db.DefaultContext, assigneeID)
 	if err != nil {
 		return err
 	}

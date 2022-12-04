@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
@@ -44,7 +43,7 @@ func TransferOwnership(doer, newOwner *user_model.User, repo *repo_model.Reposit
 	}
 	repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 
-	newRepo, err := repo_model.GetRepositoryByID(repo.ID)
+	newRepo, err := repo_model.GetRepositoryByID(db.DefaultContext, repo.ID)
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package convert
 
@@ -156,7 +155,7 @@ func ToStopWatches(sws []*issues_model.Stopwatch) (api.StopWatches, error) {
 		}
 		repo, ok = repoCache[issue.RepoID]
 		if !ok {
-			repo, err = repo_model.GetRepositoryByID(issue.RepoID)
+			repo, err = repo_model.GetRepositoryByID(db.DefaultContext, issue.RepoID)
 			if err != nil {
 				return nil, err
 			}

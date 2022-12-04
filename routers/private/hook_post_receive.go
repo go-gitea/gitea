@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 // Package private includes all internal routes. The package name internal is ideal but Golang is not allowed, so we use private as package name instead.
 package private
@@ -184,7 +183,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				baseRepo = repo
 
 				if repo.IsFork {
-					if err := repo.GetBaseRepo(); err != nil {
+					if err := repo.GetBaseRepo(ctx); err != nil {
 						log.Error("Failed to get Base Repository of Forked repository: %-v Error: %v", repo, err)
 						ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
 							Err:          fmt.Sprintf("Failed to get Base Repository of Forked repository: %-v Error: %v", repo, err),
