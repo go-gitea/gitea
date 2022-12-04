@@ -293,7 +293,6 @@ func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release, i
 			URLPrefix: rel.Repo.Link(),
 			Metas:     rel.Repo.ComposeMetas(),
 		}, rel.Note)
-		content = html.EscapeString(content)
 
 		if err != nil {
 			return nil, err
