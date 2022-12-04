@@ -222,6 +222,13 @@ body {
   overflow-wrap: break-word;
 }
 
+@supports (overflow: overlay) {
+  body {
+    overflow: overlay;
+    scrollbar-gutter: stable;
+  }
+}
+
 img {
   border-radius: 3px;
 }
