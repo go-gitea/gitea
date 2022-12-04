@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -205,8 +204,8 @@ func DeletePullsByBaseRepoID(ctx context.Context, repoID int64) error {
 }
 
 // MustHeadUserName returns the HeadRepo's username if failed return blank
-func (pr *PullRequest) MustHeadUserName() string {
-	if err := pr.LoadHeadRepo(); err != nil {
+func (pr *PullRequest) MustHeadUserName(ctx context.Context) string {
+	if err := pr.LoadHeadRepo(ctx); err != nil {
 		if !repo_model.IsErrRepoNotExist(err) {
 			log.Error("LoadHeadRepo: %v", err)
 		} else {
@@ -220,10 +219,11 @@ func (pr *PullRequest) MustHeadUserName() string {
 	return pr.HeadRepo.OwnerName
 }
 
+// LoadAttributes loads pull request attributes from database
 // Note: don't try to get Issue because will end up recursive querying.
-func (pr *PullRequest) loadAttributes(ctx context.Context) (err error) {
+func (pr *PullRequest) LoadAttributes(ctx context.Context) (err error) {
 	if pr.HasMerged && pr.Merger == nil {
-		pr.Merger, err = user_model.GetUserByIDCtx(ctx, pr.MergerID)
+		pr.Merger, err = user_model.GetUserByID(ctx, pr.MergerID)
 		if user_model.IsErrUserNotExist(err) {
 			pr.MergerID = -1
 			pr.Merger = user_model.NewGhostUser()
@@ -235,13 +235,8 @@ func (pr *PullRequest) loadAttributes(ctx context.Context) (err error) {
 	return nil
 }
 
-// LoadAttributes loads pull request attributes from database
-func (pr *PullRequest) LoadAttributes() error {
-	return pr.loadAttributes(db.DefaultContext)
-}
-
-// LoadHeadRepoCtx loads the head repository
-func (pr *PullRequest) LoadHeadRepoCtx(ctx context.Context) (err error) {
+// LoadHeadRepo loads the head repository
+func (pr *PullRequest) LoadHeadRepo(ctx context.Context) (err error) {
 	if !pr.isHeadRepoLoaded && pr.HeadRepo == nil && pr.HeadRepoID > 0 {
 		if pr.HeadRepoID == pr.BaseRepoID {
 			if pr.BaseRepo != nil {
@@ -253,27 +248,17 @@ func (pr *PullRequest) LoadHeadRepoCtx(ctx context.Context) (err error) {
 			}
 		}
 
-		pr.HeadRepo, err = repo_model.GetRepositoryByIDCtx(ctx, pr.HeadRepoID)
+		pr.HeadRepo, err = repo_model.GetRepositoryByID(ctx, pr.HeadRepoID)
 		if err != nil && !repo_model.IsErrRepoNotExist(err) { // Head repo maybe deleted, but it should still work
-			return fmt.Errorf("getRepositoryByID(head): %w", err)
+			return fmt.Errorf("GetRepositoryByID(head): %w", err)
 		}
 		pr.isHeadRepoLoaded = true
 	}
 	return nil
 }
 
-// LoadHeadRepo loads the head repository
-func (pr *PullRequest) LoadHeadRepo() error {
-	return pr.LoadHeadRepoCtx(db.DefaultContext)
-}
-
 // LoadBaseRepo loads the target repository
-func (pr *PullRequest) LoadBaseRepo() error {
-	return pr.LoadBaseRepoCtx(db.DefaultContext)
-}
-
-// LoadBaseRepoCtx loads the target repository
-func (pr *PullRequest) LoadBaseRepoCtx(ctx context.Context) (err error) {
+func (pr *PullRequest) LoadBaseRepo(ctx context.Context) (err error) {
 	if pr.BaseRepo != nil {
 		return nil
 	}
@@ -288,7 +273,7 @@ func (pr *PullRequest) LoadBaseRepoCtx(ctx context.Context) (err error) {
 		return nil
 	}
 
-	pr.BaseRepo, err = repo_model.GetRepositoryByIDCtx(ctx, pr.BaseRepoID)
+	pr.BaseRepo, err = repo_model.GetRepositoryByID(ctx, pr.BaseRepoID)
 	if err != nil {
 		return fmt.Errorf("repo_model.GetRepositoryByID(base): %w", err)
 	}
@@ -296,12 +281,7 @@ func (pr *PullRequest) LoadBaseRepoCtx(ctx context.Context) (err error) {
 }
 
 // LoadIssue loads issue information from database
-func (pr *PullRequest) LoadIssue() (err error) {
-	return pr.LoadIssueCtx(db.DefaultContext)
-}
-
-// LoadIssueCtx loads issue information from database
-func (pr *PullRequest) LoadIssueCtx(ctx context.Context) (err error) {
+func (pr *PullRequest) LoadIssue(ctx context.Context) (err error) {
 	if pr.Issue != nil {
 		return nil
 	}
@@ -314,18 +294,13 @@ func (pr *PullRequest) LoadIssueCtx(ctx context.Context) (err error) {
 }
 
 // LoadProtectedBranch loads the protected branch of the base branch
-func (pr *PullRequest) LoadProtectedBranch() (err error) {
-	return pr.LoadProtectedBranchCtx(db.DefaultContext)
-}
-
-// LoadProtectedBranchCtx loads the protected branch of the base branch
-func (pr *PullRequest) LoadProtectedBranchCtx(ctx context.Context) (err error) {
+func (pr *PullRequest) LoadProtectedBranch(ctx context.Context) (err error) {
 	if pr.ProtectedBranch == nil {
 		if pr.BaseRepo == nil {
 			if pr.BaseRepoID == 0 {
 				return nil
 			}
-			pr.BaseRepo, err = repo_model.GetRepositoryByIDCtx(ctx, pr.BaseRepoID)
+			pr.BaseRepo, err = repo_model.GetRepositoryByID(ctx, pr.BaseRepoID)
 			if err != nil {
 				return
 			}
@@ -368,7 +343,7 @@ func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
 		return nil
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -392,7 +367,7 @@ func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
 			break
 		}
 
-		if err := review.loadReviewer(ctx); err != nil && !user_model.IsErrUserNotExist(err) {
+		if err := review.LoadReviewer(ctx); err != nil && !user_model.IsErrUserNotExist(err) {
 			log.Error("Unable to LoadReviewer[%d] for PR ID %d : %v", review.ReviewerID, pr.ID, err)
 			return err
 		} else if review.Reviewer == nil {
@@ -458,7 +433,7 @@ func (pr *PullRequest) SetMerged(ctx context.Context) (bool, error) {
 	}
 
 	pr.Issue = nil
-	if err := pr.LoadIssueCtx(ctx); err != nil {
+	if err := pr.LoadIssue(ctx); err != nil {
 		return false, err
 	}
 
@@ -498,7 +473,7 @@ func (pr *PullRequest) SetMerged(ctx context.Context) (bool, error) {
 
 // NewPullRequest creates new pull request with labels for repository.
 func NewPullRequest(outerCtx context.Context, repo *repo_model.Repository, issue *Issue, labelIDs []int64, uuids []string, pr *PullRequest) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(outerCtx)
 	if err != nil {
 		return err
 	}
@@ -541,9 +516,9 @@ func NewPullRequest(outerCtx context.Context, repo *repo_model.Repository, issue
 
 // GetUnmergedPullRequest returns a pull request that is open and has not been merged
 // by given head/base and repo/branch.
-func GetUnmergedPullRequest(headRepoID, baseRepoID int64, headBranch, baseBranch string, flow PullRequestFlow) (*PullRequest, error) {
+func GetUnmergedPullRequest(ctx context.Context, headRepoID, baseRepoID int64, headBranch, baseBranch string, flow PullRequestFlow) (*PullRequest, error) {
 	pr := new(PullRequest)
-	has, err := db.GetEngine(db.DefaultContext).
+	has, err := db.GetEngine(ctx).
 		Where("head_repo_id=? AND head_branch=? AND base_repo_id=? AND base_branch=? AND has_merged=? AND flow = ? AND issue.is_closed=?",
 			headRepoID, headBranch, baseRepoID, baseBranch, false, flow, false).
 		Join("INNER", "issue", "issue.id=pull_request.issue_id").
@@ -588,10 +563,10 @@ func GetPullRequestByIndex(ctx context.Context, repoID, index int64) (*PullReque
 		return nil, ErrPullRequestNotExist{0, 0, 0, repoID, "", ""}
 	}
 
-	if err = pr.loadAttributes(ctx); err != nil {
+	if err = pr.LoadAttributes(ctx); err != nil {
 		return nil, err
 	}
-	if err = pr.LoadIssueCtx(ctx); err != nil {
+	if err = pr.LoadIssue(ctx); err != nil {
 		return nil, err
 	}
 
@@ -607,7 +582,7 @@ func GetPullRequestByID(ctx context.Context, id int64) (*PullRequest, error) {
 	} else if !has {
 		return nil, ErrPullRequestNotExist{id, 0, 0, 0, "", ""}
 	}
-	return pr, pr.loadAttributes(ctx)
+	return pr, pr.LoadAttributes(ctx)
 }
 
 // GetPullRequestByIssueIDWithNoAttributes returns pull request with no attributes loaded by given issue ID.
@@ -634,7 +609,7 @@ func GetPullRequestByIssueID(ctx context.Context, issueID int64) (*PullRequest, 
 	} else if !has {
 		return nil, ErrPullRequestNotExist{0, issueID, 0, 0, "", ""}
 	}
-	return pr, pr.loadAttributes(ctx)
+	return pr, pr.LoadAttributes(ctx)
 }
 
 // GetAllUnmergedAgitPullRequestByPoster get all unmerged agit flow pull request
@@ -664,14 +639,15 @@ func (pr *PullRequest) UpdateCols(cols ...string) error {
 }
 
 // UpdateColsIfNotMerged updates specific fields of a pull request if it has not been merged
-func (pr *PullRequest) UpdateColsIfNotMerged(cols ...string) error {
-	_, err := db.GetEngine(db.DefaultContext).Where("id = ? AND has_merged = ?", pr.ID, false).Cols(cols...).Update(pr)
+func (pr *PullRequest) UpdateColsIfNotMerged(ctx context.Context, cols ...string) error {
+	_, err := db.GetEngine(ctx).Where("id = ? AND has_merged = ?", pr.ID, false).Cols(cols...).Update(pr)
 	return err
 }
 
 // IsWorkInProgress determine if the Pull Request is a Work In Progress by its title
+// Issue must be set before this method can be called.
 func (pr *PullRequest) IsWorkInProgress() bool {
-	if err := pr.LoadIssue(); err != nil {
+	if err := pr.LoadIssue(db.DefaultContext); err != nil {
 		log.Error("LoadIssue: %v", err)
 		return false
 	}
@@ -695,8 +671,8 @@ func (pr *PullRequest) IsFilesConflicted() bool {
 
 // GetWorkInProgressPrefix returns the prefix used to mark the pull request as a work in progress.
 // It returns an empty string when none were found
-func (pr *PullRequest) GetWorkInProgressPrefix() string {
-	if err := pr.LoadIssue(); err != nil {
+func (pr *PullRequest) GetWorkInProgressPrefix(ctx context.Context) string {
+	if err := pr.LoadIssue(ctx); err != nil {
 		log.Error("LoadIssue: %v", err)
 		return ""
 	}
@@ -739,7 +715,7 @@ func GetPullRequestsByHeadBranch(ctx context.Context, headBranch string, headRep
 
 // GetBaseBranchHTMLURL returns the HTML URL of the base branch
 func (pr *PullRequest) GetBaseBranchHTMLURL() string {
-	if err := pr.LoadBaseRepo(); err != nil {
+	if err := pr.LoadBaseRepo(db.DefaultContext); err != nil {
 		log.Error("LoadBaseRepo: %v", err)
 		return ""
 	}
@@ -755,7 +731,7 @@ func (pr *PullRequest) GetHeadBranchHTMLURL() string {
 		return ""
 	}
 
-	if err := pr.LoadHeadRepo(); err != nil {
+	if err := pr.LoadHeadRepo(db.DefaultContext); err != nil {
 		log.Error("LoadHeadRepo: %v", err)
 		return ""
 	}

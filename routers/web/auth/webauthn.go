@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package auth
 
@@ -50,7 +49,7 @@ func WebAuthnLoginAssertion(ctx *context.Context) {
 		return
 	}
 
-	user, err := user_model.GetUserByID(idSess)
+	user, err := user_model.GetUserByID(ctx, idSess)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -92,7 +91,7 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 	}()
 
 	// Load the user from the db
-	user, err := user_model.GetUserByID(idSess)
+	user, err := user_model.GetUserByID(ctx, idSess)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return

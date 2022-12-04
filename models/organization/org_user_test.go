@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package organization_test
 
@@ -38,7 +37,7 @@ func TestUserIsPublicMember(t *testing.T) {
 }
 
 func testUserIsPublicMember(t *testing.T, uid, orgID int64, expected bool) {
-	user, err := user_model.GetUserByID(uid)
+	user, err := user_model.GetUserByID(db.DefaultContext, uid)
 	assert.NoError(t, err)
 	is, err := organization.IsPublicMembership(orgID, user.ID)
 	assert.NoError(t, err)
@@ -66,7 +65,7 @@ func TestIsUserOrgOwner(t *testing.T) {
 }
 
 func testIsUserOrgOwner(t *testing.T, uid, orgID int64, expected bool) {
-	user, err := user_model.GetUserByID(uid)
+	user, err := user_model.GetUserByID(db.DefaultContext, uid)
 	assert.NoError(t, err)
 	is, err := organization.IsOrganizationOwner(db.DefaultContext, orgID, user.ID)
 	assert.NoError(t, err)

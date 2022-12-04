@@ -3,7 +3,7 @@ const {mermaidMaxSourceCharacters} = window.config;
 
 const iframeCss = `
   :root {color-scheme: normal}
-  body {margin: 0; padding: 0}
+  body {margin: 0; padding: 0; overflow: hidden}
   #mermaid {display: block; margin: 0 auto}
 `;
 

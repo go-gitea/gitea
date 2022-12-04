@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
@@ -37,7 +36,7 @@ func addCollaborator(ctx context.Context, repo *repo_model.Repository, u *user_m
 
 // AddCollaborator adds new collaboration to a repository with default access mode.
 func AddCollaborator(repo *repo_model.Repository, u *user_model.User) error {
-	return db.WithTx(func(ctx context.Context) error {
+	return db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		return addCollaborator(ctx, repo, u)
 	})
 }

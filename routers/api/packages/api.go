@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package packages
 
@@ -40,7 +39,9 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 	}
 }
 
-func Routes(ctx gocontext.Context) *web.Route {
+// CommonRoutes provide endpoints for most package managers (except containers - see below)
+// These are mounted on `/api/packages` (not `/api/v1/packages`)
+func CommonRoutes(ctx gocontext.Context) *web.Route {
 	r := web.NewRoute()
 
 	r.Use(context.PackageContexter(ctx))
@@ -179,6 +180,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 		r.Group("/maven", func() {
 			r.Put("/*", reqPackageAccess(perm.AccessModeWrite), maven.UploadPackageFile)
 			r.Get("/*", maven.DownloadPackageFile)
+			r.Head("/*", maven.ProvidePackageFileHeader)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/nuget", func() {
 			r.Group("", func() { // Needs to be unauthenticated for the NuGet client.
@@ -301,6 +303,9 @@ func Routes(ctx gocontext.Context) *web.Route {
 	return r
 }
 
+// ContainerRoutes provides endpoints that implement the OCI API to serve containers
+// These have to be mounted on `/v2/...` to comply with the OCI spec:
+// https://github.com/opencontainers/distribution-spec/blob/main/spec.md
 func ContainerRoutes(ctx gocontext.Context) *web.Route {
 	r := web.NewRoute()
 
