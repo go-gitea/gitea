@@ -443,7 +443,7 @@ var migrations = []Migration{
 	// v235 -> v236
 	NewMigration("Add index for access_token", v1_19.AddIndexForAccessToken),
 	// to modify later
-	NewMigration("add size limit on repository", addSizeLimitOnRepo),
+	NewMigration("add size limit on repository", v1_19.AddSizeLimitOnRepo),
 }
 
 // GetCurrentDBVersion returns the current db version
