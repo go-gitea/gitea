@@ -6,16 +6,17 @@ package repo
 
 import (
 	"bytes"
-	"fmt"
 	"html"
 	"net/http"
 	"strings"
 
+	"code.gitea.io/gitea/models/avatars"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
@@ -64,16 +65,20 @@ func GetContentHistoryList(ctx *context.Context) {
 		} else {
 			actionText = ctx.Locale.Tr("repo.issues.content_history.edited")
 		}
-		timeSinceText := timeutil.TimeSinceUnix(item.EditedUnix, ctx.Locale)
 
 		username := item.UserName
 		if setting.UI.DefaultShowFullName && strings.TrimSpace(item.UserFullName) != "" {
 			username = strings.TrimSpace(item.UserFullName)
 		}
 
+		src := html.EscapeString(item.UserAvatarLink)
+		class := avatars.DefaultAvatarClass + " mr-3"
+		name := html.EscapeString(username)
+		avatarHTML := string(templates.AvatarHTML(src, 28, class, username))
+		timeSinceText := string(timeutil.TimeSinceUnix(item.EditedUnix, ctx.Locale))
+
 		results = append(results, map[string]interface{}{
-			"name": fmt.Sprintf("<img class='ui avatar image' src='%s'><strong>%s</strong> %s %s",
-				html.EscapeString(item.UserAvatarLink), html.EscapeString(username), actionText, timeSinceText),
+			"name":  avatarHTML + "<strong>" + name + "</strong> " + actionText + " " + timeSinceText,
 			"value": item.HistoryID,
 		})
 	}

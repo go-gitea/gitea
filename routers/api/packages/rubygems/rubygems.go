@@ -77,7 +77,9 @@ func enumeratePackages(ctx *context.Context, filename string, pvs []*packages_mo
 		})
 	}
 
-	ctx.SetServeHeaders(filename + ".gz")
+	ctx.SetServeHeaders(&context.ServeHeaderOptions{
+		Filename: filename + ".gz",
+	})
 
 	zw := gzip.NewWriter(ctx.Resp)
 	defer zw.Close()
@@ -115,7 +117,9 @@ func ServePackageSpecification(ctx *context.Context) {
 		return
 	}
 
-	ctx.SetServeHeaders(filename)
+	ctx.SetServeHeaders(&context.ServeHeaderOptions{
+		Filename: filename,
+	})
 
 	zw := zlib.NewWriter(ctx.Resp)
 	defer zw.Close()
@@ -188,7 +192,10 @@ func DownloadPackageFile(ctx *context.Context) {
 	}
 	defer s.Close()
 
-	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
+	ctx.ServeContent(s, &context.ServeHeaderOptions{
+		Filename:     pf.Name,
+		LastModified: pf.CreatedUnix.AsLocalTime(),
+	})
 }
 
 // UploadPackageFile adds a file to the package. If the package does not exist, it gets created.
