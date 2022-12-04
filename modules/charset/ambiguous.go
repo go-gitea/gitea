@@ -29,6 +29,12 @@ func AmbiguousTablesForLocale(locale translation.Locale) []*AmbiguousTable {
 			key = key[:idx]
 		}
 	}
+	if table == nil && (locale.Language() == "zh-CN" || locale.Language() == "zh_CN") {
+		table = AmbiguousCharacters["zh-hans"]
+	}
+	if table == nil && strings.HasPrefix(locale.Language(), "zh") {
+		table = AmbiguousCharacters["zh-hant"]
+	}
 	if table == nil {
 		table = AmbiguousCharacters["_default"]
 	}
