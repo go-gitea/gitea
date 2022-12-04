@@ -31,6 +31,7 @@ EXPOSE 2222 3000
 RUN apk --no-cache add \
     bash \
     ca-certificates \
+    dumb-init \
     gettext \
     git \
     curl \
@@ -68,6 +69,6 @@ ENV HOME "/var/lib/gitea/git"
 VOLUME ["/var/lib/gitea", "/etc/gitea"]
 WORKDIR /var/lib/gitea
 
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+ENTRYPOINT ["/usr/bin/dumb-init", "--", "/usr/local/bin/docker-entrypoint.sh"]
 CMD []
 
