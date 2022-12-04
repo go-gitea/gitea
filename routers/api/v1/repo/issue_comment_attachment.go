@@ -110,7 +110,7 @@ func ListIssueCommentAttachments(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToComment(comment).Attachments)
+	ctx.JSON(http.StatusOK, convert.ToAttachments(comment.Attachments))
 }
 
 // CreateIssueCommentAttachment creates an attachment and saves the given file
