@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -571,7 +570,7 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 		t.Run("SuccessfullyPushAndCreateTestRepository", doGitPushTestRepository(tmpDir, "origin", "master"))
 
 		// Finally, fetch repo from database and ensure the correct repository has been created
-		repo, err := repo_model.GetRepositoryByOwnerAndName(ctx.Username, ctx.Reponame)
+		repo, err := repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, ctx.Username, ctx.Reponame)
 		assert.NoError(t, err)
 		assert.False(t, repo.IsEmpty)
 		assert.True(t, repo.IsPrivate)
@@ -699,7 +698,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			pr1, pr2 *issues_model.PullRequest
 			commit   string
 		)
-		repo, err := repo_model.GetRepositoryByOwnerAndName(ctx.Username, ctx.Reponame)
+		repo, err := repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, ctx.Username, ctx.Reponame)
 		if !assert.NoError(t, err) {
 			return
 		}

@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package models
 
@@ -42,7 +41,7 @@ func init() {
 // LoadAttributes fetches the transfer recipient from the database
 func (r *RepoTransfer) LoadAttributes() error {
 	if r.Recipient == nil {
-		u, err := user_model.GetUserByID(r.RecipientID)
+		u, err := user_model.GetUserByID(db.DefaultContext, r.RecipientID)
 		if err != nil {
 			return err
 		}
@@ -66,7 +65,7 @@ func (r *RepoTransfer) LoadAttributes() error {
 	}
 
 	if r.Doer == nil {
-		u, err := user_model.GetUserByID(r.DoerID)
+		u, err := user_model.GetUserByID(db.DefaultContext, r.DoerID)
 		if err != nil {
 			return err
 		}
@@ -124,7 +123,7 @@ func deleteRepositoryTransfer(ctx context.Context, repoID int64) error {
 // CancelRepositoryTransfer marks the repository as ready and remove pending transfer entry,
 // thus cancel the transfer process.
 func CancelRepositoryTransfer(repo *repo_model.Repository) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -156,13 +155,13 @@ func TestRepositoryReadyForTransfer(status repo_model.RepositoryStatus) error {
 // CreatePendingRepositoryTransfer transfer a repo from one owner to a new one.
 // it marks the repository transfer as "pending"
 func CreatePendingRepositoryTransfer(doer, newOwner *user_model.User, repoID int64, teams []*organization.Team) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	repo, err := repo_model.GetRepositoryByIDCtx(ctx, repoID)
+	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
 	if err != nil {
 		return err
 	}
@@ -243,7 +242,7 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 		}
 	}()
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

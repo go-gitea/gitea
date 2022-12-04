@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -45,7 +44,7 @@ func GetCollaborators(ctx context.Context, repoID int64, listOptions db.ListOpti
 
 	collaborators := make([]*Collaborator, 0, len(collaborations))
 	for _, c := range collaborations {
-		user, err := user_model.GetUserByIDCtx(ctx, c.UserID)
+		user, err := user_model.GetUserByID(ctx, c.UserID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				log.Warn("Inconsistent DB: User: %d is listed as collaborator of %-v but does not exist", c.UserID, repoID)
@@ -138,7 +137,7 @@ func ChangeCollaborationAccessModeCtx(ctx context.Context, repo *Repository, uid
 
 // ChangeCollaborationAccessMode sets new access mode for the collaboration.
 func ChangeCollaborationAccessMode(repo *Repository, uid int64, mode perm.AccessMode) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

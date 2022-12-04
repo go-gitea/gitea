@@ -1,15 +1,16 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -593,6 +594,32 @@ func TestPackageContainer(t *testing.T) {
 			})
 		})
 	}
+
+	// https://github.com/go-gitea/gitea/issues/19586
+	t.Run("ParallelUpload", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		url := fmt.Sprintf("%sv2/%s/parallel", setting.AppURL, user.Name)
+
+		var wg sync.WaitGroup
+		for i := 0; i < 10; i++ {
+			wg.Add(1)
+
+			content := []byte{byte(i)}
+			digest := fmt.Sprintf("sha256:%x", sha256.Sum256(content))
+
+			go func() {
+				defer wg.Done()
+
+				req := NewRequestWithBody(t, "POST", fmt.Sprintf("%s/blobs/uploads?digest=%s", url, digest), bytes.NewReader(content))
+				addTokenAuthHeader(req, userToken)
+				resp := MakeRequest(t, req, http.StatusCreated)
+
+				assert.Equal(t, digest, resp.Header().Get("Docker-Content-Digest"))
+			}()
+		}
+		wg.Wait()
+	})
 
 	t.Run("OwnerNameChange", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()

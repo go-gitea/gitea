@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -137,7 +136,7 @@ var ErrLFSObjectNotExist = db.ErrNotExist{Resource: "LFS Meta object"}
 func NewLFSMetaObject(m *LFSMetaObject) (*LFSMetaObject, error) {
 	var err error
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +184,7 @@ func RemoveLFSMetaObjectByOid(repoID int64, oid string) (int64, error) {
 		return 0, ErrLFSObjectNotExist
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return 0, err
 	}
@@ -235,14 +234,14 @@ func LFSObjectAccessible(user *user_model.User, oid string) (bool, error) {
 	return count > 0, err
 }
 
-// LFSObjectIsAssociated checks if a provided Oid is associated
-func LFSObjectIsAssociated(oid string) (bool, error) {
-	return db.GetEngine(db.DefaultContext).Exist(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
+// ExistsLFSObject checks if a provided Oid exists within the DB
+func ExistsLFSObject(ctx context.Context, oid string) (bool, error) {
+	return db.GetEngine(ctx).Exist(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
 }
 
 // LFSAutoAssociate auto associates accessible LFSMetaObjects
 func LFSAutoAssociate(metas []*LFSMetaObject, user *user_model.User, repoID int64) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

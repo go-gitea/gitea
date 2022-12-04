@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -11,7 +10,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -106,7 +104,7 @@ func TestPackageNuGet(t *testing.T) {
 		return &buf
 	}
 
-	content, _ := ioutil.ReadAll(createPackage(packageName, packageVersion))
+	content, _ := io.ReadAll(createPackage(packageName, packageVersion))
 
 	url := fmt.Sprintf("/api/packages/%s/nuget", user.Name)
 

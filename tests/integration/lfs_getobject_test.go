@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -12,6 +11,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/json"
@@ -41,7 +41,7 @@ func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string
 }
 
 func storeAndGetLfs(t *testing.T, content *[]byte, extraHeader *http.Header, expectedStatus int) *httptest.ResponseRecorder {
-	repo, err := repo_model.GetRepositoryByOwnerAndName("user2", "repo1")
+	repo, err := repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, "user2", "repo1")
 	assert.NoError(t, err)
 	oid := storeObjectInRepo(t, repo.ID, content)
 	defer git_model.RemoveLFSMetaObjectByOid(repo.ID, oid)

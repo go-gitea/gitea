@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package files
 
@@ -70,7 +69,7 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 			return err
 		}
 		if lfsLock != nil && lfsLock.OwnerID != doer.ID {
-			u, err := user_model.GetUserByID(lfsLock.OwnerID)
+			u, err := user_model.GetUserByID(ctx, lfsLock.OwnerID)
 			if err != nil {
 				return err
 			}

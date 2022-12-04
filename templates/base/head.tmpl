@@ -15,7 +15,7 @@
 	<meta name="go-import" content="{{.GoGetImport}} git {{.RepoCloneLink.HTTPS}}">
 	<meta name="go-source" content="{{.GoGetImport}} _ {{.GoDocDirectory}} {{.GoDocFile}}">
 {{end}}
-{{if .FeedURL}}
+{{if and .EnableFeed .FeedURL}}
 	<link rel="alternate" type="application/atom+xml" title="" href="{{.FeedURL}}.atom">
 	<link rel="alternate" type="application/rss+xml" title="" href="{{.FeedURL}}.rss">
 {{end}}
