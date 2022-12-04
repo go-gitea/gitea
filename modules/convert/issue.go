@@ -36,11 +36,6 @@ func ToAPIIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
 		return &api.Issue{}
 	}
 
-	attachments := make([]*api.Attachment, 0, len(issue.Attachments))
-	for _, att := range issue.Attachments {
-		attachments = append(attachments, ToIssueAttachment(att))
-	}
-
 	apiIssue := &api.Issue{
 		ID:          issue.ID,
 		URL:         issue.APIURL(),
@@ -49,7 +44,7 @@ func ToAPIIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
 		Poster:      ToUser(issue.Poster, nil),
 		Title:       issue.Title,
 		Body:        issue.Content,
-		Attachments: attachments,
+		Attachments: ToAttachments(issue.Attachments),
 		Ref:         issue.Ref,
 		Labels:      ToLabelList(issue.Labels, issue.Repo, issue.Repo.Owner),
 		State:       issue.State(),
@@ -238,17 +233,4 @@ func ToAPIMilestone(m *issues_model.Milestone) *api.Milestone {
 		apiMilestone.Deadline = m.DeadlineUnix.AsTimePtr()
 	}
 	return apiMilestone
-}
-
-// ToIssueAttachment converts issues_model.Attachment to api.Attachment
-func ToIssueAttachment(a *repo_model.Attachment) *api.Attachment {
-	return &api.Attachment{
-		ID:            a.ID,
-		Name:          a.Name,
-		Created:       a.CreatedUnix.AsTime(),
-		DownloadCount: a.DownloadCount,
-		Size:          a.Size,
-		UUID:          a.UUID,
-		DownloadURL:   a.DownloadURL(),
-	}
 }

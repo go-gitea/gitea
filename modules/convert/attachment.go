@@ -20,3 +20,11 @@ func ToAttachment(a *repo_model.Attachment) *api.Attachment {
 		DownloadURL:   a.DownloadURL(),
 	}
 }
+
+func ToAttachments(attachments []*repo_model.Attachment) []*api.Attachment {
+	converted := make([]*api.Attachment, 0, len(attachments))
+	for _, attachment := range attachments {
+		converted = append(converted, ToAttachment(attachment))
+	}
+	return converted
+}

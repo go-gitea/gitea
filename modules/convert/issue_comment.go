@@ -15,10 +15,6 @@ import (
 
 // ToComment converts a issues_model.Comment to the api.Comment format
 func ToComment(c *issues_model.Comment) *api.Comment {
-	attachments := make([]*api.Attachment, 0, len(c.Attachments))
-	for _, attachment := range c.Attachments {
-		attachments = append(attachments, ToAttachment(attachment))
-	}
 	return &api.Comment{
 		ID:          c.ID,
 		Poster:      ToUser(c.Poster, nil),
@@ -26,7 +22,7 @@ func ToComment(c *issues_model.Comment) *api.Comment {
 		IssueURL:    c.IssueURL(),
 		PRURL:       c.PRURL(),
 		Body:        c.Content,
-		Attachments: attachments,
+		Attachments: ToAttachments(c.Attachments),
 		Created:     c.CreatedUnix.AsTime(),
 		Updated:     c.UpdatedUnix.AsTime(),
 	}
