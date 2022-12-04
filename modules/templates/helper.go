@@ -647,7 +647,7 @@ func SVG(icon string, others ...interface{}) template.HTML {
 
 // Avatar renders user avatars. args: user, size (int), class (string)
 func Avatar(item interface{}, others ...interface{}) template.HTML {
-	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image", others...)
+	size, class := parseOthers(avatars.DefaultAvatarPixelSize, avatars.DefaultAvatarClass, others...)
 
 	switch t := item.(type) {
 	case *user_model.User:
@@ -678,7 +678,7 @@ func AvatarByAction(action *models.Action, others ...interface{}) template.HTML 
 
 // RepoAvatar renders repo avatars. args: repo, size(int), class (string)
 func RepoAvatar(repo *repo_model.Repository, others ...interface{}) template.HTML {
-	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image", others...)
+	size, class := parseOthers(avatars.DefaultAvatarPixelSize, avatars.DefaultAvatarClass, others...)
 
 	src := repo.RelAvatarLink()
 	if src != "" {
@@ -689,7 +689,7 @@ func RepoAvatar(repo *repo_model.Repository, others ...interface{}) template.HTM
 
 // AvatarByEmail renders avatars by email address. args: email, name, size (int), class (string)
 func AvatarByEmail(email, name string, others ...interface{}) template.HTML {
-	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image", others...)
+	size, class := parseOthers(avatars.DefaultAvatarPixelSize, avatars.DefaultAvatarClass, others...)
 	src := avatars.GenerateEmailAvatarFastLink(email, size*setting.Avatar.RenderedSizeFactor)
 
 	if src != "" {
