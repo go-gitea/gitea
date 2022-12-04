@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -61,11 +60,11 @@ func (issue *Issue) projectBoardID(ctx context.Context) int64 {
 }
 
 // LoadIssuesFromBoard load issues assigned to this board
-func LoadIssuesFromBoard(b *project_model.Board) (IssueList, error) {
+func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board) (IssueList, error) {
 	issueList := make([]*Issue, 0, 10)
 
 	if b.ID != 0 {
-		issues, err := Issues(&IssuesOptions{
+		issues, err := Issues(ctx, &IssuesOptions{
 			ProjectBoardID: b.ID,
 			ProjectID:      b.ProjectID,
 			SortType:       "project-column-sorting",
@@ -77,7 +76,7 @@ func LoadIssuesFromBoard(b *project_model.Board) (IssueList, error) {
 	}
 
 	if b.Default {
-		issues, err := Issues(&IssuesOptions{
+		issues, err := Issues(ctx, &IssuesOptions{
 			ProjectBoardID: -1, // Issues without ProjectBoardID
 			ProjectID:      b.ProjectID,
 			SortType:       "project-column-sorting",
@@ -88,7 +87,7 @@ func LoadIssuesFromBoard(b *project_model.Board) (IssueList, error) {
 		issueList = append(issueList, issues...)
 	}
 
-	if err := IssueList(issueList).LoadComments(); err != nil {
+	if err := IssueList(issueList).LoadComments(ctx); err != nil {
 		return nil, err
 	}
 
@@ -96,10 +95,10 @@ func LoadIssuesFromBoard(b *project_model.Board) (IssueList, error) {
 }
 
 // LoadIssuesFromBoardList load issues assigned to the boards
-func LoadIssuesFromBoardList(bs project_model.BoardList) (map[int64]IssueList, error) {
+func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList) (map[int64]IssueList, error) {
 	issuesMap := make(map[int64]IssueList, len(bs))
 	for i := range bs {
-		il, err := LoadIssuesFromBoard(bs[i])
+		il, err := LoadIssuesFromBoard(ctx, bs[i])
 		if err != nil {
 			return nil, err
 		}

@@ -1,7 +1,6 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -427,7 +426,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		requiredApprovals = form.RequiredApprovals
 	}
 
-	whitelistUsers, err := user_model.GetUserIDsByNames(form.PushWhitelistUsernames, false)
+	whitelistUsers, err := user_model.GetUserIDsByNames(ctx, form.PushWhitelistUsernames, false)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "User does not exist", err)
@@ -436,7 +435,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "GetUserIDsByNames", err)
 		return
 	}
-	mergeWhitelistUsers, err := user_model.GetUserIDsByNames(form.MergeWhitelistUsernames, false)
+	mergeWhitelistUsers, err := user_model.GetUserIDsByNames(ctx, form.MergeWhitelistUsernames, false)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "User does not exist", err)
@@ -445,7 +444,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "GetUserIDsByNames", err)
 		return
 	}
-	approvalsWhitelistUsers, err := user_model.GetUserIDsByNames(form.ApprovalsWhitelistUsernames, false)
+	approvalsWhitelistUsers, err := user_model.GetUserIDsByNames(ctx, form.ApprovalsWhitelistUsernames, false)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "User does not exist", err)
@@ -656,7 +655,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 
 	var whitelistUsers []int64
 	if form.PushWhitelistUsernames != nil {
-		whitelistUsers, err = user_model.GetUserIDsByNames(form.PushWhitelistUsernames, false)
+		whitelistUsers, err = user_model.GetUserIDsByNames(ctx, form.PushWhitelistUsernames, false)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "User does not exist", err)
@@ -670,7 +669,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 	}
 	var mergeWhitelistUsers []int64
 	if form.MergeWhitelistUsernames != nil {
-		mergeWhitelistUsers, err = user_model.GetUserIDsByNames(form.MergeWhitelistUsernames, false)
+		mergeWhitelistUsers, err = user_model.GetUserIDsByNames(ctx, form.MergeWhitelistUsernames, false)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "User does not exist", err)
@@ -684,7 +683,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 	}
 	var approvalsWhitelistUsers []int64
 	if form.ApprovalsWhitelistUsernames != nil {
-		approvalsWhitelistUsers, err = user_model.GetUserIDsByNames(form.ApprovalsWhitelistUsernames, false)
+		approvalsWhitelistUsers, err = user_model.GetUserIDsByNames(ctx, form.ApprovalsWhitelistUsernames, false)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "User does not exist", err)

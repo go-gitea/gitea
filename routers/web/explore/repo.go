@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package explore
 
@@ -98,7 +97,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	language := ctx.FormTrim("language")
 	ctx.Data["Language"] = language
 
-	repos, count, err = repo_model.SearchRepository(&repo_model.SearchRepoOptions{
+	repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
 			PageSize: opts.PageSize,

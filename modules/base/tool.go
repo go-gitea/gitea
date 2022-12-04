@@ -1,6 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package base
 
@@ -43,7 +42,7 @@ func EncodeSha1(str string) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-// EncodeSha256 string to sha1 hex value.
+// EncodeSha256 string to sha256 hex value.
 func EncodeSha256(str string) string {
 	h := sha256.New()
 	_, _ = h.Write([]byte(str))

@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -518,14 +517,13 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 
 // SearchRepository returns repositories based on search options,
 // it returns results in given range and number of total results.
-func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
+func SearchRepository(ctx context.Context, opts *SearchRepoOptions) (RepositoryList, int64, error) {
 	cond := SearchRepositoryCondition(opts)
-	return SearchRepositoryByCondition(opts, cond, true)
+	return SearchRepositoryByCondition(ctx, opts, cond, true)
 }
 
 // SearchRepositoryByCondition search repositories by condition
-func SearchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond, loadAttributes bool) (RepositoryList, int64, error) {
-	ctx := db.DefaultContext
+func SearchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, cond builder.Cond, loadAttributes bool) (RepositoryList, int64, error) {
 	sess, count, err := searchRepositoryByCondition(ctx, opts, cond)
 	if err != nil {
 		return nil, 0, err
@@ -652,9 +650,9 @@ func AccessibleRepositoryCondition(user *user_model.User, unitType unit.Type) bu
 
 // SearchRepositoryByName takes keyword and part of repository name to search,
 // it returns results in given range and number of total results.
-func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, error) {
+func SearchRepositoryByName(ctx context.Context, opts *SearchRepoOptions) (RepositoryList, int64, error) {
 	opts.IncludeDescription = false
-	return SearchRepository(opts)
+	return SearchRepository(ctx, opts)
 }
 
 // SearchRepositoryIDs takes keyword and part of repository name to search,

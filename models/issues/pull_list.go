@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -79,7 +78,7 @@ func CanMaintainerWriteToBranch(p access_model.Permission, branch string, user *
 
 	for _, pr := range prs {
 		if pr.AllowMaintainerEdit {
-			err = pr.LoadBaseRepo()
+			err = pr.LoadBaseRepo(db.DefaultContext)
 			if err != nil {
 				continue
 			}

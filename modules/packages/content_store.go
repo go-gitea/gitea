@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package packages
 
@@ -30,6 +29,13 @@ func NewContentStore() *ContentStore {
 // Get gets a package blob
 func (s *ContentStore) Get(key BlobHash256Key) (storage.Object, error) {
 	return s.store.Open(KeyToRelativePath(key))
+}
+
+// FIXME: Workaround to be removed in v1.20
+// https://github.com/go-gitea/gitea/issues/19586
+func (s *ContentStore) Has(key BlobHash256Key) error {
+	_, err := s.store.Stat(KeyToRelativePath(key))
+	return err
 }
 
 // Save stores a package blob
