@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 // Package v1 Gitea API.
 //
@@ -617,7 +616,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 			// setting.CORSConfig.AllowSubdomain // FIXME: the cors middleware needs allowSubdomain option
 			AllowedMethods:   setting.CORSConfig.Methods,
 			AllowCredentials: setting.CORSConfig.AllowCredentials,
-			AllowedHeaders:   []string{"Authorization", "X-Gitea-OTP"},
+			AllowedHeaders:   append([]string{"Authorization", "X-Gitea-OTP"}, setting.CORSConfig.Headers...),
 			MaxAge:           int(setting.CORSConfig.MaxAge.Seconds()),
 		}))
 	}
@@ -898,7 +897,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 					m.Group("/{index}", func() {
 						m.Combo("").Get(repo.GetIssue).
 							Patch(reqToken(), bind(api.EditIssueOption{}), repo.EditIssue).
-							Delete(reqToken(), reqAdmin(), repo.DeleteIssue)
+							Delete(reqToken(), reqAdmin(), context.ReferencesGitRepo(), repo.DeleteIssue)
 						m.Group("/comments", func() {
 							m.Combo("").Get(repo.ListIssueComments).
 								Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueCommentOption{}), repo.CreateIssueComment)
@@ -1073,6 +1072,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 			}, repoAssignment())
 		})
 
+		// NOTE: these are Gitea package management API - see packages.CommonRoutes and packages.DockerContainerRoutes for endpoints that implement package manager APIs
 		m.Group("/packages/{username}", func() {
 			m.Group("/{type}/{name}/{version}", func() {
 				m.Get("", packages.GetPackage)

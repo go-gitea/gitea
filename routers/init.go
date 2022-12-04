@@ -1,6 +1,5 @@
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package routers
 
@@ -185,8 +184,14 @@ func NormalRoutes(ctx context.Context) *web.Route {
 	r.Mount("/", web_routers.Routes(ctx))
 	r.Mount("/api/v1", apiv1.Routes(ctx))
 	r.Mount("/api/internal", private.Routes())
+
 	if setting.Packages.Enabled {
-		r.Mount("/api/packages", packages_router.Routes(ctx))
+		// Add endpoints to match common package manager APIs
+
+		// This implements package support for most package managers
+		r.Mount("/api/packages", packages_router.CommonRoutes(ctx))
+
+		// This implements the OCI API (Note this is not preceded by /api but is instead /v2)
 		r.Mount("/v2", packages_router.ContainerRoutes(ctx))
 	}
 	return r

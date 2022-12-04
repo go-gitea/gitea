@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package smtp
 
@@ -32,7 +31,7 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 	var auth smtp.Auth
 	switch source.Auth {
 	case PlainAuthentication:
-		auth = smtp.PlainAuth("", userName, password, source.Addr)
+		auth = smtp.PlainAuth("", userName, password, source.Host)
 	case LoginAuthentication:
 		auth = &loginAuthenticator{userName, password}
 	case CRAMMD5Authentication:

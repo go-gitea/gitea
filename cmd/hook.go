@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cmd
 
@@ -218,9 +217,9 @@ Gitea or set your environment appropriately.`, "")
 		}
 	}
 
-	supportProcRecive := false
+	supportProcReceive := false
 	if git.CheckGitVersionAtLeast("2.29") == nil {
-		supportProcRecive = true
+		supportProcReceive = true
 	}
 
 	for scanner.Scan() {
@@ -241,9 +240,9 @@ Gitea or set your environment appropriately.`, "")
 		lastline++
 
 		// If the ref is a branch or tag, check if it's protected
-		// if supportProcRecive all ref should be checked because
+		// if supportProcReceive all ref should be checked because
 		// permission check was delayed
-		if supportProcRecive || strings.HasPrefix(refFullName, git.BranchPrefix) || strings.HasPrefix(refFullName, git.TagPrefix) {
+		if supportProcReceive || strings.HasPrefix(refFullName, git.BranchPrefix) || strings.HasPrefix(refFullName, git.TagPrefix) {
 			oldCommitIDs[count] = oldCommitID
 			newCommitIDs[count] = newCommitID
 			refFullNames[count] = refFullName

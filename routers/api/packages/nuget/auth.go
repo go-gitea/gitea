@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package nuget
 
@@ -30,7 +29,7 @@ func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataS
 		return nil
 	}
 
-	u, err := user_model.GetUserByID(token.UID)
+	u, err := user_model.GetUserByID(req.Context(), token.UID)
 	if err != nil {
 		log.Error("GetUserByID:  %v", err)
 		return nil

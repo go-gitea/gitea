@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -685,7 +684,7 @@ func TestWebhook(ctx *context.Context) {
 		Commits:      []*api.PayloadCommit{apiCommit},
 		TotalCommits: 1,
 		HeadCommit:   apiCommit,
-		Repo:         convert.ToRepo(ctx.Repo.Repository, perm.AccessModeNone),
+		Repo:         convert.ToRepo(ctx, ctx.Repo.Repository, perm.AccessModeNone),
 		Pusher:       apiUser,
 		Sender:       apiUser,
 	}

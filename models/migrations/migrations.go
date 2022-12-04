@@ -1,11 +1,11 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migrations
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
 	"code.gitea.io/gitea/models/migrations/v1_9"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -437,6 +438,10 @@ var migrations = []Migration{
 	NewMigration("Alter package_version.metadata_json to LONGTEXT", v1_19.AlterPackageVersionMetadataToLongText),
 	// v233 -> v234
 	NewMigration("Add header_authorization_encrypted column to webhook table", v1_19.AddHeaderAuthorizationEncryptedColWebhook),
+	// v234 -> v235
+	NewMigration("Add package cleanup rule table", v1_19.CreatePackageCleanupRuleTable),
+	// v235 -> v236
+	NewMigration("Add index for access_token", v1_19.AddIndexForAccessToken),
 }
 
 // GetCurrentDBVersion returns the current db version
@@ -525,6 +530,13 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 		_, _ = fmt.Fprintln(os.Stderr, msg)
 		log.Fatal(msg)
 		return nil
+	}
+
+	// Some migration tasks depend on the git command
+	if git.DefaultContext == nil {
+		if err = git.InitSimple(context.Background()); err != nil {
+			return err
+		}
 	}
 
 	// Migrate

@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package convert
 
@@ -39,6 +38,7 @@ func ToPullReview(ctx context.Context, r *issues_model.Review, doer *user_model.
 		Dismissed:         r.Dismissed,
 		CodeCommentsCount: r.GetCodeCommentsCount(),
 		Submitted:         r.CreatedUnix.AsTime(),
+		Updated:           r.UpdatedUnix.AsTime(),
 		HTMLURL:           r.HTMLURL(),
 		HTMLPullURL:       r.Issue.HTMLURL(),
 	}

@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package models
 
@@ -45,7 +44,7 @@ func Init() error {
 // DeleteRepository deletes a repository for a user or organization.
 // make sure if you call this func to close open sessions (sqlite will otherwise get a deadlock)
 func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -53,7 +52,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	sess := db.GetEngine(ctx)
 
 	// In case is a organization.
-	org, err := user_model.GetUserByIDCtx(ctx, uid)
+	org, err := user_model.GetUserByID(ctx, uid)
 	if err != nil {
 		return err
 	}
@@ -192,7 +191,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		}
 	}
 
-	if err := project_model.DeleteProjectByRepoIDCtx(ctx, repoID); err != nil {
+	if err := project_model.DeleteProjectByRepoID(ctx, repoID); err != nil {
 		return fmt.Errorf("unable to delete projects for repo[%d]: %w", repoID, err)
 	}
 
@@ -524,7 +523,7 @@ func CheckRepoStats(ctx context.Context) error {
 			}
 			log.Trace("Updating repository count 'num_forks': %d", id)
 
-			repo, err := repo_model.GetRepositoryByID(id)
+			repo, err := repo_model.GetRepositoryByID(ctx, id)
 			if err != nil {
 				log.Error("repo_model.GetRepositoryByID[%d]: %v", id, err)
 				continue
@@ -569,7 +568,7 @@ func UpdateRepoStats(ctx context.Context, id int64) error {
 }
 
 func updateUserStarNumbers(users []user_model.User) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -619,7 +618,7 @@ func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error
 
 	// Check if user has access to delete this key.
 	if !doer.IsAdmin {
-		repo, err := repo_model.GetRepositoryByIDCtx(ctx, key.RepoID)
+		repo, err := repo_model.GetRepositoryByID(ctx, key.RepoID)
 		if err != nil {
 			return fmt.Errorf("GetRepositoryByID: %w", err)
 		}

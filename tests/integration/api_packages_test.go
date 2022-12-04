@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -16,6 +15,7 @@ import (
 	container_model "code.gitea.io/gitea/models/packages/container"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	packages_service "code.gitea.io/gitea/services/packages"
 	"code.gitea.io/gitea/tests"
@@ -166,25 +166,207 @@ func TestPackageAccess(t *testing.T) {
 	uploadPackage(admin, user, http.StatusCreated)
 }
 
+func TestPackageQuota(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	limitTotalOwnerCount, limitTotalOwnerSize, limitSizeGeneric := setting.Packages.LimitTotalOwnerCount, setting.Packages.LimitTotalOwnerSize, setting.Packages.LimitSizeGeneric
+
+	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 10})
+
+	uploadPackage := func(doer *user_model.User, version string, expectedStatus int) {
+		url := fmt.Sprintf("/api/packages/%s/generic/test-package/%s/file.bin", user.Name, version)
+		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1}))
+		AddBasicAuthHeader(req, doer.Name)
+		MakeRequest(t, req, expectedStatus)
+	}
+
+	// Exceeded quota result in StatusForbidden for normal users but admins are always allowed to upload.
+
+	setting.Packages.LimitTotalOwnerCount = 0
+	uploadPackage(user, "1.0", http.StatusForbidden)
+	uploadPackage(admin, "1.0", http.StatusCreated)
+	setting.Packages.LimitTotalOwnerCount = limitTotalOwnerCount
+
+	setting.Packages.LimitTotalOwnerSize = 0
+	uploadPackage(user, "1.1", http.StatusForbidden)
+	uploadPackage(admin, "1.1", http.StatusCreated)
+	setting.Packages.LimitTotalOwnerSize = limitTotalOwnerSize
+
+	setting.Packages.LimitSizeGeneric = 0
+	uploadPackage(user, "1.2", http.StatusForbidden)
+	uploadPackage(admin, "1.2", http.StatusCreated)
+	setting.Packages.LimitSizeGeneric = limitSizeGeneric
+}
+
 func TestPackageCleanup(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	time.Sleep(time.Second)
+	duration, _ := time.ParseDuration("-1h")
 
-	pbs, err := packages_model.FindExpiredUnreferencedBlobs(db.DefaultContext, time.Duration(0))
-	assert.NoError(t, err)
-	assert.NotEmpty(t, pbs)
+	t.Run("Common", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
 
-	_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, 2, packages_model.TypeContainer, "test", container_model.UploadVersion)
-	assert.NoError(t, err)
+		pbs, err := packages_model.FindExpiredUnreferencedBlobs(db.DefaultContext, duration)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, pbs)
 
-	err = packages_service.Cleanup(nil, time.Duration(0))
-	assert.NoError(t, err)
+		_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, 2, packages_model.TypeContainer, "test", container_model.UploadVersion)
+		assert.NoError(t, err)
 
-	pbs, err = packages_model.FindExpiredUnreferencedBlobs(db.DefaultContext, time.Duration(0))
-	assert.NoError(t, err)
-	assert.Empty(t, pbs)
+		err = packages_service.Cleanup(db.DefaultContext, duration)
+		assert.NoError(t, err)
 
-	_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, 2, packages_model.TypeContainer, "test", container_model.UploadVersion)
-	assert.ErrorIs(t, err, packages_model.ErrPackageNotExist)
+		pbs, err = packages_model.FindExpiredUnreferencedBlobs(db.DefaultContext, duration)
+		assert.NoError(t, err)
+		assert.Empty(t, pbs)
+
+		_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, 2, packages_model.TypeContainer, "test", container_model.UploadVersion)
+		assert.ErrorIs(t, err, packages_model.ErrPackageNotExist)
+	})
+
+	t.Run("CleanupRules", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+		type version struct {
+			Version     string
+			ShouldExist bool
+			Created     int64
+		}
+
+		cases := []struct {
+			Name     string
+			Versions []version
+			Rule     *packages_model.PackageCleanupRule
+		}{
+			{
+				Name: "Disabled",
+				Versions: []version{
+					{Version: "keep", ShouldExist: true},
+				},
+				Rule: &packages_model.PackageCleanupRule{
+					Enabled: false,
+				},
+			},
+			{
+				Name: "KeepCount",
+				Versions: []version{
+					{Version: "keep", ShouldExist: true},
+					{Version: "v1.0", ShouldExist: true},
+					{Version: "test-3", ShouldExist: false, Created: 1},
+					{Version: "test-4", ShouldExist: false, Created: 1},
+				},
+				Rule: &packages_model.PackageCleanupRule{
+					Enabled:   true,
+					KeepCount: 2,
+				},
+			},
+			{
+				Name: "KeepPattern",
+				Versions: []version{
+					{Version: "keep", ShouldExist: true},
+					{Version: "v1.0", ShouldExist: false},
+				},
+				Rule: &packages_model.PackageCleanupRule{
+					Enabled:     true,
+					KeepPattern: "k.+p",
+				},
+			},
+			{
+				Name: "RemoveDays",
+				Versions: []version{
+					{Version: "keep", ShouldExist: true},
+					{Version: "v1.0", ShouldExist: false, Created: 1},
+				},
+				Rule: &packages_model.PackageCleanupRule{
+					Enabled:    true,
+					RemoveDays: 60,
+				},
+			},
+			{
+				Name: "RemovePattern",
+				Versions: []version{
+					{Version: "test", ShouldExist: true},
+					{Version: "test-3", ShouldExist: false},
+					{Version: "test-4", ShouldExist: false},
+				},
+				Rule: &packages_model.PackageCleanupRule{
+					Enabled:       true,
+					RemovePattern: `t[e]+st-\d+`,
+				},
+			},
+			{
+				Name: "MatchFullName",
+				Versions: []version{
+					{Version: "keep", ShouldExist: true},
+					{Version: "test", ShouldExist: false},
+				},
+				Rule: &packages_model.PackageCleanupRule{
+					Enabled:       true,
+					RemovePattern: `package/test|different/keep`,
+					MatchFullName: true,
+				},
+			},
+			{
+				Name: "Mixed",
+				Versions: []version{
+					{Version: "keep", ShouldExist: true, Created: time.Now().Add(time.Duration(10000)).Unix()},
+					{Version: "dummy", ShouldExist: true, Created: 1},
+					{Version: "test-3", ShouldExist: true},
+					{Version: "test-4", ShouldExist: false, Created: 1},
+				},
+				Rule: &packages_model.PackageCleanupRule{
+					Enabled:       true,
+					KeepCount:     1,
+					KeepPattern:   `dummy`,
+					RemoveDays:    7,
+					RemovePattern: `t[e]+st-\d+`,
+				},
+			},
+		}
+
+		for _, c := range cases {
+			t.Run(c.Name, func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				for _, v := range c.Versions {
+					url := fmt.Sprintf("/api/packages/%s/generic/package/%s/file.bin", user.Name, v.Version)
+					req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1}))
+					AddBasicAuthHeader(req, user.Name)
+					MakeRequest(t, req, http.StatusCreated)
+
+					if v.Created != 0 {
+						pv, err := packages_model.GetVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeGeneric, "package", v.Version)
+						assert.NoError(t, err)
+						_, err = db.GetEngine(db.DefaultContext).Exec("UPDATE package_version SET created_unix = ? WHERE id = ?", v.Created, pv.ID)
+						assert.NoError(t, err)
+					}
+				}
+
+				c.Rule.OwnerID = user.ID
+				c.Rule.Type = packages_model.TypeGeneric
+
+				pcr, err := packages_model.InsertCleanupRule(db.DefaultContext, c.Rule)
+				assert.NoError(t, err)
+
+				err = packages_service.Cleanup(db.DefaultContext, duration)
+				assert.NoError(t, err)
+
+				for _, v := range c.Versions {
+					pv, err := packages_model.GetVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeGeneric, "package", v.Version)
+					if v.ShouldExist {
+						assert.NoError(t, err)
+						err = packages_service.DeletePackageVersionAndReferences(db.DefaultContext, pv)
+						assert.NoError(t, err)
+					} else {
+						assert.ErrorIs(t, err, packages_model.ErrPackageNotExist)
+					}
+				}
+
+				assert.NoError(t, packages_model.DeleteCleanupRuleByID(db.DefaultContext, pcr.ID))
+			})
+		}
+	})
 }

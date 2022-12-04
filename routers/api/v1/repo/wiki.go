@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -86,7 +85,7 @@ func NewWikiPage(ctx *context.APIContext) {
 	wikiPage := getWikiPage(ctx, wikiName)
 
 	if !ctx.Written() {
-		notification.NotifyNewWikiPage(ctx.Doer, ctx.Repo.Repository, wikiName, form.Message)
+		notification.NotifyNewWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName, form.Message)
 		ctx.JSON(http.StatusCreated, wikiPage)
 	}
 }
@@ -154,7 +153,7 @@ func EditWikiPage(ctx *context.APIContext) {
 	wikiPage := getWikiPage(ctx, newWikiName)
 
 	if !ctx.Written() {
-		notification.NotifyEditWikiPage(ctx.Doer, ctx.Repo.Repository, newWikiName, form.Message)
+		notification.NotifyEditWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, newWikiName, form.Message)
 		ctx.JSON(http.StatusOK, wikiPage)
 	}
 }
@@ -245,7 +244,7 @@ func DeleteWikiPage(ctx *context.APIContext) {
 		return
 	}
 
-	notification.NotifyDeleteWikiPage(ctx.Doer, ctx.Repo.Repository, wikiName)
+	notification.NotifyDeleteWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName)
 
 	ctx.Status(http.StatusNoContent)
 }

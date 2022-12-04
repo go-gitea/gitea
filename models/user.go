@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package models
 
@@ -89,6 +88,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 		&user_model.UserBadge{UserID: u.ID},
 		&pull_model.AutoMerge{DoerID: u.ID},
 		&pull_model.ReviewState{UserID: u.ID},
+		&user_model.Redirect{RedirectUserID: u.ID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %w", err)
 	}
