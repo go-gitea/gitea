@@ -60,7 +60,7 @@
 									<tr>
 										<td><div class="ui basic primary label">{{.RuleName}}</div></td>
 										<td class="right aligned">
-										<a class="rm ui button" href="{{$.Repository.Link}}/settings/branches/{{.ID}}">{{$.locale.Tr "repo.settings.edit_protected_branch"}}</a>
+										<a class="rm ui button" href="{{$.Repository.Link}}/settings/branches/edit?rule_name={{.RuleName}}">{{$.locale.Tr "repo.settings.edit_protected_branch"}}</a>
 										<button class="ui red tiny button delete-button" data-url="{{$.Repository.Link}}/settings/branches/{{.ID}}/delete" data-id="{{.ID}}">
 										{{$.locale.Tr "repo.settings.protected_branch.delete_rule"}}</button>
 										</td>

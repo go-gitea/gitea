@@ -6,12 +6,12 @@
 		{{template "base/alert" .}}
 		<form class="ui form" action="{{.Link}}" method="post">
 			<h4 class="ui top attached header">
-				{{.locale.Tr "repo.settings.branch_protection" (.Rule.BranchName|Escape) | Str2html}}
+				{{.locale.Tr "repo.settings.branch_protection" (.Rule.RuleName|Escape) | Str2html}}
 			</h4>
 			<div class="ui attached segment branch-protection">
 				<div class="field">
 					<label for="protected_file_patterns">{{.locale.Tr "repo.settings.protect_branch_name_pattern"}}</label>
-					<input name="rule_name" type="text" value="{{.Rule.BranchName}}">
+					<input name="rule_name" type="text" value="{{.Rule.RuleName}}">
 					<input name="rule_id" type="hidden" value="{{.Rule.ID}}">
 				</div>
 

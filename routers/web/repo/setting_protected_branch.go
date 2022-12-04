@@ -183,7 +183,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	protectBranch.RuleName = f.RuleName
 	if f.RequiredApprovals < 0 {
 		ctx.Flash.Error(ctx.Tr("repo.settings.protected_branch_required_approvals_min"))
-		ctx.Redirect(fmt.Sprintf("%s/settings/branches/edit", ctx.Repo.RepoLink))
+		ctx.Redirect(fmt.Sprintf("%s/settings/branches/edit?rule_name=%s", ctx.Repo.RepoLink, f.RuleName))
 		return
 	}
 
@@ -270,7 +270,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_protect_branch_success", protectBranch.RuleName))
-	ctx.Redirect(fmt.Sprintf("%s/settings/branches/%d", ctx.Repo.RepoLink, protectBranch.ID))
+	ctx.Redirect(fmt.Sprintf("%s/settings/branches?rule_name=%s", ctx.Repo.RepoLink, protectBranch.RuleName))
 }
 
 // DeleteProtectedBranchRulePost delete protected branch rule by id
