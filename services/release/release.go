@@ -218,7 +218,7 @@ func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *repo_mod
 		}
 		for _, attach := range attachments {
 			if attach.ReleaseID != rel.ID {
-				return errors.New("delete attachement of release permission denied")
+				return errors.New("delete attachment of release permission denied")
 			}
 			deletedUUIDs.Add(attach.UUID)
 		}
@@ -240,7 +240,7 @@ func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *repo_mod
 		}
 		for _, attach := range attachments {
 			if attach.ReleaseID != rel.ID {
-				return errors.New("update attachement of release permission denied")
+				return errors.New("update attachment of release permission denied")
 			}
 		}
 

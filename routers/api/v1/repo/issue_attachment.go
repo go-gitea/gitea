@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -354,18 +353,18 @@ func canUserWriteIssueAttachment(ctx *context.APIContext, issue *issues_model.Is
 	return true
 }
 
-func attachmentBelongsToRepoOrIssue(ctx *context.APIContext, attachement *repo_model.Attachment, issue *issues_model.Issue) bool {
-	if attachement.RepoID != ctx.Repo.Repository.ID {
-		log.Debug("Requested attachment[%d] does not belong to repo[%-v].", attachement.ID, ctx.Repo.Repository)
+func attachmentBelongsToRepoOrIssue(ctx *context.APIContext, attachment *repo_model.Attachment, issue *issues_model.Issue) bool {
+	if attachment.RepoID != ctx.Repo.Repository.ID {
+		log.Debug("Requested attachment[%d] does not belong to repo[%-v].", attachment.ID, ctx.Repo.Repository)
 		ctx.NotFound("no such attachment in repo")
 		return false
 	}
-	if attachement.IssueID == 0 {
-		log.Debug("Requested attachment[%d] is not in an issue.", attachement.ID)
+	if attachment.IssueID == 0 {
+		log.Debug("Requested attachment[%d] is not in an issue.", attachment.ID)
 		ctx.NotFound("no such attachment in issue")
 		return false
-	} else if issue != nil && attachement.IssueID != issue.ID {
-		log.Debug("Requested attachment[%d] does not belong to issue[%d, #%d].", attachement.ID, issue.ID, issue.Index)
+	} else if issue != nil && attachment.IssueID != issue.ID {
+		log.Debug("Requested attachment[%d] does not belong to issue[%d, #%d].", attachment.ID, issue.ID, issue.Index)
 		ctx.NotFound("no such attachment in issue")
 		return false
 	}

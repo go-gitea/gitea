@@ -86,7 +86,7 @@ func DeleteAttachment(ctx *context.Context) {
 	})
 }
 
-// GetAttachment serve attachements
+// GetAttachment serve attachments
 func GetAttachment(ctx *context.Context) {
 	attach, err := repo_model.GetAttachmentByUUID(ctx, ctx.Params(":uuid"))
 	if err != nil {
