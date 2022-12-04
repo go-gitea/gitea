@@ -110,12 +110,11 @@ func ToAPIIssueList(il issues_model.IssueList) []*api.Issue {
 // ToTrackedTime converts TrackedTime to API format
 func ToTrackedTime(t *issues_model.TrackedTime) (apiT *api.TrackedTime) {
 	apiT = &api.TrackedTime{
-		ID:       t.ID,
-		IssueID:  t.IssueID,
-		UserID:   t.UserID,
-		UserName: t.User.Name,
-		Time:     t.Time,
-		Created:  t.Created,
+		ID:      t.ID,
+		IssueID: t.IssueID,
+		UserID:  t.UserID,
+		Time:    t.Time,
+		Created: t.Created,
 	}
 	if t.Issue != nil {
 		apiT.Issue = ToAPIIssue(t.Issue)
