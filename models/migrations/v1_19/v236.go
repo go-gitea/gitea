@@ -3,7 +3,10 @@
 
 package v1_19 //nolint
 
-import "xorm.io/xorm"
+import (
+	"code.gitea.io/gitea/models/migrations/base"
+	"xorm.io/xorm"
+)
 
 func AddPrimaryKeyToForeignReference(x *xorm.Engine) error {
 	// ForeignReference represents external references
@@ -17,5 +20,13 @@ func AddPrimaryKeyToForeignReference(x *xorm.Engine) error {
 		Type         string `xorm:"VARCHAR(16) INDEX UNIQUE(repo_foreign_type)"`
 	}
 
-	return x.Sync(new(ForeignReference))
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	base.RecreateTable(sess, &ForeignReference{})
+
+	return sess.Commit()
 }
