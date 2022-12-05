@@ -13699,8 +13699,9 @@
           "x-go-name": "BlockOnRejectedReviews"
         },
         "branch_name": {
+          "description": "Deprecated: true",
           "type": "string",
-          "x-go-name": "RuleName"
+          "x-go-name": "BranchName"
         },
         "created_at": {
           "type": "string",
@@ -13775,6 +13776,10 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "RequiredApprovals"
+        },
+        "rule_name": {
+          "type": "string",
+          "x-go-name": "RuleName"
         },
         "status_check_contexts": {
           "type": "array",
@@ -14231,8 +14236,9 @@
           "x-go-name": "BlockOnRejectedReviews"
         },
         "branch_name": {
+          "description": "Deprecated: true",
           "type": "string",
-          "x-go-name": "RuleName"
+          "x-go-name": "BranchName"
         },
         "dismiss_stale_approvals": {
           "type": "boolean",
@@ -14302,6 +14308,10 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "RequiredApprovals"
+        },
+        "rule_name": {
+          "type": "string",
+          "x-go-name": "RuleName"
         },
         "status_check_contexts": {
           "type": "array",

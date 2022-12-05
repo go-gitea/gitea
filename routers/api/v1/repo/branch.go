@@ -417,13 +417,18 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.CreateBranchProtectionOption)
 	repo := ctx.Repo.Repository
 
-	isPlainRule := !git_model.IsRuleNameSpecial(form.RuleName)
-	var isBranchExist bool
-	if isPlainRule {
-		isBranchExist = git.IsBranchExist(ctx.Req.Context(), ctx.Repo.Repository.RepoPath(), form.RuleName)
+	ruleName := form.RuleName
+	if ruleName == "" {
+		ruleName = form.BranchName
 	}
 
-	protectBranch, err := git_model.GetProtectedBranchRuleByName(ctx, repo.ID, form.RuleName)
+	isPlainRule := !git_model.IsRuleNameSpecial(ruleName)
+	var isBranchExist bool
+	if isPlainRule {
+		isBranchExist = git.IsBranchExist(ctx.Req.Context(), ctx.Repo.Repository.RepoPath(), ruleName)
+	}
+
+	protectBranch, err := git_model.GetProtectedBranchRuleByName(ctx, repo.ID, ruleName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectBranchOfRepoByName", err)
 		return

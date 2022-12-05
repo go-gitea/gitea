@@ -123,7 +123,13 @@ func ToBranchProtection(bp *git_model.ProtectedBranch) *api.BranchProtection {
 		log.Error("GetTeamNamesByID (ApprovalsWhitelistTeamIDs): %v", err)
 	}
 
+	branchName := ""
+	if !git_model.IsRuleNameSpecial(bp.RuleName) {
+		branchName = bp.RuleName
+	}
+
 	return &api.BranchProtection{
+		BranchName:                    branchName,
 		RuleName:                      bp.RuleName,
 		EnablePush:                    bp.CanPush,
 		EnablePushWhitelist:           bp.EnableWhitelist,
