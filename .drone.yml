@@ -600,7 +600,7 @@ steps:
         from_secret: crowdin_key
 
   - name: update
-    image: alpine:3.13
+    image: alpine:3.17
     pull: always
     commands:
       - ./build/update-locales.sh

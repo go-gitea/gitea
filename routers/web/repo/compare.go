@@ -269,7 +269,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 				ci.HeadRepo = baseRepo
 			}
 		} else {
-			ci.HeadRepo, err = repo_model.GetRepositoryByOwnerAndName(headInfosSplit[0], headInfosSplit[1])
+			ci.HeadRepo, err = repo_model.GetRepositoryByOwnerAndName(ctx, headInfosSplit[0], headInfosSplit[1])
 			if err != nil {
 				if repo_model.IsErrRepoNotExist(err) {
 					ctx.NotFound("GetRepositoryByOwnerAndName", nil)
@@ -339,7 +339,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	// forked from
 	var rootRepo *repo_model.Repository
 	if baseRepo.IsFork {
-		err = baseRepo.GetBaseRepo()
+		err = baseRepo.GetBaseRepo(ctx)
 		if err != nil {
 			if !repo_model.IsErrRepoNotExist(err) {
 				ctx.ServerError("Unable to find root repo", err)

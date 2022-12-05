@@ -167,7 +167,7 @@ func CheckLFSAccessForRepo(ctx context.Context, ownerID int64, repo *repo_model.
 	if ownerID == 0 {
 		return ErrLFSUnauthorizedAction{repo.ID, "undefined", mode}
 	}
-	u, err := user_model.GetUserByIDCtx(ctx, ownerID)
+	u, err := user_model.GetUserByID(ctx, ownerID)
 	if err != nil {
 		return err
 	}

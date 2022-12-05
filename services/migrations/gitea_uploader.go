@@ -109,7 +109,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 			Status:         repo_model.RepositoryBeingMigrated,
 		})
 	} else {
-		r, err = repo_model.GetRepositoryByID(opts.MigrateToRepoID)
+		r, err = repo_model.GetRepositoryByID(g.ctx, opts.MigrateToRepoID)
 	}
 	if err != nil {
 		return err

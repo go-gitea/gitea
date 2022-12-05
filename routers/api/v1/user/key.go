@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -29,7 +30,7 @@ func appendPrivateInformation(apiKey *api.PublicKey, key *asymkey_model.PublicKe
 		if defaultUser.ID == key.OwnerID {
 			apiKey.Owner = convert.ToUser(defaultUser, defaultUser)
 		} else {
-			user, err := user_model.GetUserByID(key.OwnerID)
+			user, err := user_model.GetUserByID(db.DefaultContext, key.OwnerID)
 			if err != nil {
 				return apiKey, err
 			}
