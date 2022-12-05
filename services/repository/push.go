@@ -81,7 +81,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("PushUpdates: %s/%s", optsList[0].RepoUserName, optsList[0].RepoName))
 	defer finished()
 
-	repo, err := repo_model.GetRepositoryByOwnerAndName(optsList[0].RepoUserName, optsList[0].RepoName)
+	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, optsList[0].RepoUserName, optsList[0].RepoName)
 	if err != nil {
 		return fmt.Errorf("GetRepositoryByOwnerAndName failed: %w", err)
 	}
@@ -112,7 +112,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					pusher = user_model.NewBotUser()
 				} else {
 					var err error
-					if pusher, err = user_model.GetUserByID(opts.PusherID); err != nil {
+					if pusher, err = user_model.GetUserByID(ctx, opts.PusherID); err != nil {
 						return err
 					}
 				}
@@ -156,7 +156,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					pusher = user_model.NewBotUser()
 				} else {
 					var err error
-					if pusher, err = user_model.GetUserByID(opts.PusherID); err != nil {
+					if pusher, err = user_model.GetUserByID(ctx, opts.PusherID); err != nil {
 						return err
 					}
 				}

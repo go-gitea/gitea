@@ -206,7 +206,7 @@ func NewUserPost(ctx *context.Context) {
 }
 
 func prepareUserInfo(ctx *context.Context) *user_model.User {
-	u, err := user_model.GetUserByID(ctx.ParamsInt64(":userid"))
+	u, err := user_model.GetUserByID(ctx, ctx.ParamsInt64(":userid"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Redirect(setting.AppSubURL + "/admin/users")
@@ -413,7 +413,7 @@ func EditUserPost(ctx *context.Context) {
 
 // DeleteUser response for deleting a user
 func DeleteUser(ctx *context.Context) {
-	u, err := user_model.GetUserByID(ctx.ParamsInt64(":userid"))
+	u, err := user_model.GetUserByID(ctx, ctx.ParamsInt64(":userid"))
 	if err != nil {
 		ctx.ServerError("GetUserByID", err)
 		return

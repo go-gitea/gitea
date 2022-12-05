@@ -5,7 +5,7 @@ package integration
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 
@@ -41,7 +41,7 @@ func TestAPIViewPulls(t *testing.T) {
 	pull := pulls[0]
 	if assert.EqualValues(t, 5, pull.ID) {
 		resp = ctx.Session.MakeRequest(t, NewRequest(t, "GET", pull.DiffURL), http.StatusOK)
-		_, err := ioutil.ReadAll(resp.Body)
+		_, err := io.ReadAll(resp.Body)
 		assert.NoError(t, err)
 		// TODO: use diff to generate stats to test against
 

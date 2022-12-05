@@ -263,7 +263,7 @@ func IsOfficialReviewer(ctx context.Context, issue *Issue, reviewers ...*user_mo
 	if err != nil {
 		return false, err
 	}
-	if err = pr.LoadProtectedBranchCtx(ctx); err != nil {
+	if err = pr.LoadProtectedBranch(ctx); err != nil {
 		return false, err
 	}
 	if pr.ProtectedBranch == nil {
@@ -271,7 +271,7 @@ func IsOfficialReviewer(ctx context.Context, issue *Issue, reviewers ...*user_mo
 	}
 
 	for _, reviewer := range reviewers {
-		official, err := git_model.IsUserOfficialReviewerCtx(ctx, pr.ProtectedBranch, reviewer)
+		official, err := git_model.IsUserOfficialReviewer(ctx, pr.ProtectedBranch, reviewer)
 		if official || err != nil {
 			return official, err
 		}
@@ -286,7 +286,7 @@ func IsOfficialReviewerTeam(ctx context.Context, issue *Issue, team *organizatio
 	if err != nil {
 		return false, err
 	}
-	if err = pr.LoadProtectedBranchCtx(ctx); err != nil {
+	if err = pr.LoadProtectedBranch(ctx); err != nil {
 		return false, err
 	}
 	if pr.ProtectedBranch == nil {

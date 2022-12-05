@@ -193,7 +193,7 @@ func (issue *Issue) IsOverdue() bool {
 // LoadRepo loads issue's repository
 func (issue *Issue) LoadRepo(ctx context.Context) (err error) {
 	if issue.Repo == nil {
-		issue.Repo, err = repo_model.GetRepositoryByIDCtx(ctx, issue.RepoID)
+		issue.Repo, err = repo_model.GetRepositoryByID(ctx, issue.RepoID)
 		if err != nil {
 			return fmt.Errorf("getRepositoryByID [%d]: %w", issue.RepoID, err)
 		}

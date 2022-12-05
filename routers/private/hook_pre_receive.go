@@ -480,7 +480,7 @@ func (ctx *preReceiveContext) loadPusherAndPermission() bool {
 			ctx.userPerm.UnitsMode[u.Type] = ctx.userPerm.AccessMode
 		}
 	} else {
-		user, err := user_model.GetUserByID(ctx.opts.UserID)
+		user, err := user_model.GetUserByID(ctx, ctx.opts.UserID)
 		if err != nil {
 			log.Error("Unable to get User id %d Error: %v", ctx.opts.UserID, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{

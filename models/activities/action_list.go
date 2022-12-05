@@ -81,7 +81,7 @@ func (actions ActionList) loadRepoOwner(ctx context.Context, userMap map[int64]*
 		}
 		repoOwner, ok := userMap[action.Repo.OwnerID]
 		if !ok {
-			repoOwner, err = user_model.GetUserByIDCtx(ctx, action.Repo.OwnerID)
+			repoOwner, err = user_model.GetUserByID(ctx, action.Repo.OwnerID)
 			if err != nil {
 				if user_model.IsErrUserNotExist(err) {
 					continue

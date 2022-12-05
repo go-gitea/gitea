@@ -139,7 +139,7 @@ func (ctx *Context) IsUserRepoReaderAny() bool {
 
 // RedirectToUser redirect to a differently-named user
 func RedirectToUser(ctx *Context, userName string, redirectUserID int64) {
-	user, err := user_model.GetUserByID(redirectUserID)
+	user, err := user_model.GetUserByID(ctx, redirectUserID)
 	if err != nil {
 		ctx.ServerError("GetUserByID", err)
 		return
