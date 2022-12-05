@@ -51,7 +51,7 @@ func (n *botsNotifier) NotifyNewIssue(ctx context.Context, issue *issues_model.I
 		Action:     api.HookIssueOpened,
 		Index:      issue.Index,
 		Issue:      convert.ToAPIIssue(ctx, issue),
-		Repository: convert.ToRepo(issue.Repo, mode),
+		Repository: convert.ToRepo(ctx, issue.Repo, mode),
 		Sender:     convert.ToUser(issue.Poster, nil),
 	}).Notify(withMethod(ctx, "NotifyNewIssue"))
 }
@@ -69,7 +69,7 @@ func (n *botsNotifier) NotifyIssueChangeStatus(ctx context.Context, doer *user_m
 		apiPullRequest := &api.PullRequestPayload{
 			Index:       issue.Index,
 			PullRequest: convert.ToAPIPullRequest(db.DefaultContext, issue.PullRequest, nil),
-			Repository:  convert.ToRepo(issue.Repo, mode),
+			Repository:  convert.ToRepo(ctx, issue.Repo, mode),
 			Sender:      convert.ToUser(doer, nil),
 		}
 		if isClosed {
@@ -86,7 +86,7 @@ func (n *botsNotifier) NotifyIssueChangeStatus(ctx context.Context, doer *user_m
 	apiIssue := &api.IssuePayload{
 		Index:      issue.Index,
 		Issue:      convert.ToAPIIssue(ctx, issue),
-		Repository: convert.ToRepo(issue.Repo, mode),
+		Repository: convert.ToRepo(ctx, issue.Repo, mode),
 		Sender:     convert.ToUser(doer, nil),
 	}
 	if isClosed {
@@ -132,7 +132,7 @@ func (n *botsNotifier) NotifyIssueChangeLabels(ctx context.Context, doer *user_m
 				Action:      api.HookIssueLabelUpdated,
 				Index:       issue.Index,
 				PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
-				Repository:  convert.ToRepo(issue.Repo, perm.AccessModeNone),
+				Repository:  convert.ToRepo(ctx, issue.Repo, perm.AccessModeNone),
 				Sender:      convert.ToUser(doer, nil),
 			}).
 			Notify(ctx)
@@ -144,7 +144,7 @@ func (n *botsNotifier) NotifyIssueChangeLabels(ctx context.Context, doer *user_m
 			Action:     api.HookIssueLabelUpdated,
 			Index:      issue.Index,
 			Issue:      convert.ToAPIIssue(ctx, issue),
-			Repository: convert.ToRepo(issue.Repo, mode),
+			Repository: convert.ToRepo(ctx, issue.Repo, mode),
 			Sender:     convert.ToUser(doer, nil),
 		}).
 		Notify(ctx)
@@ -165,7 +165,7 @@ func (n *botsNotifier) NotifyCreateIssueComment(ctx context.Context, doer *user_
 				Action:     api.HookIssueCommentCreated,
 				Issue:      convert.ToAPIIssue(ctx, issue),
 				Comment:    convert.ToComment(comment),
-				Repository: convert.ToRepo(repo, mode),
+				Repository: convert.ToRepo(ctx, repo, mode),
 				Sender:     convert.ToUser(doer, nil),
 				IsPull:     true,
 			}).
@@ -178,7 +178,7 @@ func (n *botsNotifier) NotifyCreateIssueComment(ctx context.Context, doer *user_
 			Action:     api.HookIssueCommentCreated,
 			Issue:      convert.ToAPIIssue(ctx, issue),
 			Comment:    convert.ToComment(comment),
-			Repository: convert.ToRepo(repo, mode),
+			Repository: convert.ToRepo(ctx, repo, mode),
 			Sender:     convert.ToUser(doer, nil),
 			IsPull:     false,
 		}).
@@ -208,7 +208,7 @@ func (n *botsNotifier) NotifyNewPullRequest(ctx context.Context, pull *issues_mo
 			Action:      api.HookIssueOpened,
 			Index:       pull.Issue.Index,
 			PullRequest: convert.ToAPIPullRequest(ctx, pull, nil),
-			Repository:  convert.ToRepo(pull.Issue.Repo, mode),
+			Repository:  convert.ToRepo(ctx, pull.Issue.Repo, mode),
 			Sender:      convert.ToUser(pull.Issue.Poster, nil),
 		}).
 		WithPullRequest(pull).
@@ -220,7 +220,7 @@ func (n *botsNotifier) NotifyCreateRepository(ctx context.Context, doer, u *user
 
 	newNotifyInput(repo, doer, webhook.HookEventRepository).WithPayload(&api.RepositoryPayload{
 		Action:       api.HookRepoCreated,
-		Repository:   convert.ToRepo(repo, perm.AccessModeOwner),
+		Repository:   convert.ToRepo(ctx, repo, perm.AccessModeOwner),
 		Organization: convert.ToUser(u, nil),
 		Sender:       convert.ToUser(doer, nil),
 	}).Notify(ctx)
@@ -234,8 +234,8 @@ func (n *botsNotifier) NotifyForkRepository(ctx context.Context, doer *user_mode
 
 	// forked webhook
 	newNotifyInput(oldRepo, doer, webhook.HookEventFork).WithPayload(&api.ForkPayload{
-		Forkee: convert.ToRepo(oldRepo, oldMode),
-		Repo:   convert.ToRepo(repo, mode),
+		Forkee: convert.ToRepo(ctx, oldRepo, oldMode),
+		Repo:   convert.ToRepo(ctx, repo, mode),
 		Sender: convert.ToUser(doer, nil),
 	}).Notify(ctx)
 
@@ -247,7 +247,7 @@ func (n *botsNotifier) NotifyForkRepository(ctx context.Context, doer *user_mode
 			WithRef(oldRepo.DefaultBranch).
 			WithPayload(&api.RepositoryPayload{
 				Action:       api.HookRepoCreated,
-				Repository:   convert.ToRepo(repo, perm.AccessModeOwner),
+				Repository:   convert.ToRepo(ctx, repo, perm.AccessModeOwner),
 				Organization: convert.ToUser(u, nil),
 				Sender:       convert.ToUser(doer, nil),
 			}).Notify(ctx)
@@ -289,7 +289,7 @@ func (n *botsNotifier) NotifyPullRequestReview(ctx context.Context, pr *issues_m
 			Action:      api.HookIssueReviewed,
 			Index:       review.Issue.Index,
 			PullRequest: convert.ToAPIPullRequest(db.DefaultContext, pr, nil),
-			Repository:  convert.ToRepo(review.Issue.Repo, mode),
+			Repository:  convert.ToRepo(ctx, review.Issue.Repo, mode),
 			Sender:      convert.ToUser(review.Reviewer, nil),
 			Review: &api.ReviewPayload{
 				Type:    string(reviewHookType),
@@ -327,7 +327,7 @@ func (*botsNotifier) NotifyMergePullRequest(ctx context.Context, doer *user_mode
 	apiPullRequest := &api.PullRequestPayload{
 		Index:       pr.Issue.Index,
 		PullRequest: convert.ToAPIPullRequest(db.DefaultContext, pr, nil),
-		Repository:  convert.ToRepo(pr.Issue.Repo, mode),
+		Repository:  convert.ToRepo(ctx, pr.Issue.Repo, mode),
 		Sender:      convert.ToUser(doer, nil),
 		Action:      api.HookIssueClosed,
 	}
@@ -358,7 +358,7 @@ func (n *botsNotifier) NotifyPushCommits(ctx context.Context, pusher *user_model
 			CompareURL: setting.AppURL + commits.CompareURL,
 			Commits:    apiCommits,
 			HeadCommit: apiHeadCommit,
-			Repo:       convert.ToRepo(repo, perm.AccessModeOwner),
+			Repo:       convert.ToRepo(ctx, repo, perm.AccessModeOwner),
 			Pusher:     apiPusher,
 			Sender:     apiPusher,
 		}).
@@ -369,7 +369,7 @@ func (n *botsNotifier) NotifyCreateRef(ctx context.Context, pusher *user_model.U
 	ctx = withMethod(ctx, "NotifyCreateRef")
 
 	apiPusher := convert.ToUser(pusher, nil)
-	apiRepo := convert.ToRepo(repo, perm.AccessModeNone)
+	apiRepo := convert.ToRepo(ctx, repo, perm.AccessModeNone)
 	refName := git.RefEndName(refFullName)
 
 	newNotifyInput(repo, pusher, webhook.HookEventCreate).
@@ -388,7 +388,7 @@ func (n *botsNotifier) NotifyDeleteRef(ctx context.Context, pusher *user_model.U
 	ctx = withMethod(ctx, "NotifyDeleteRef")
 
 	apiPusher := convert.ToUser(pusher, nil)
-	apiRepo := convert.ToRepo(repo, perm.AccessModeNone)
+	apiRepo := convert.ToRepo(ctx, repo, perm.AccessModeNone)
 	refName := git.RefEndName(refFullName)
 
 	newNotifyInput(repo, pusher, webhook.HookEventDelete).
@@ -423,7 +423,7 @@ func (n *botsNotifier) NotifySyncPushCommits(ctx context.Context, pusher *user_m
 			Commits:      apiCommits,
 			TotalCommits: commits.Len,
 			HeadCommit:   apiHeadCommit,
-			Repo:         convert.ToRepo(repo, perm.AccessModeOwner),
+			Repo:         convert.ToRepo(ctx, repo, perm.AccessModeOwner),
 			Pusher:       apiPusher,
 			Sender:       apiPusher,
 		}).
@@ -488,7 +488,7 @@ func (n *botsNotifier) NotifyPullRequestSynchronized(ctx context.Context, doer *
 			Action:      api.HookIssueSynchronized,
 			Index:       pr.Issue.Index,
 			PullRequest: convert.ToAPIPullRequest(ctx, pr, nil),
-			Repository:  convert.ToRepo(pr.Issue.Repo, perm.AccessModeNone),
+			Repository:  convert.ToRepo(ctx, pr.Issue.Repo, perm.AccessModeNone),
 			Sender:      convert.ToUser(doer, nil),
 		}).
 		WithPullRequest(pr).
@@ -519,7 +519,7 @@ func (n *botsNotifier) NotifyPullRequestChangeTargetBranch(ctx context.Context, 
 				},
 			},
 			PullRequest: convert.ToAPIPullRequest(ctx, pr, nil),
-			Repository:  convert.ToRepo(pr.Issue.Repo, mode),
+			Repository:  convert.ToRepo(ctx, pr.Issue.Repo, mode),
 			Sender:      convert.ToUser(doer, nil),
 		}).
 		WithPullRequest(pr).

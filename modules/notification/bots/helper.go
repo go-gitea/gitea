@@ -189,7 +189,7 @@ func notifyRelease(ctx context.Context, doer *user_model.User, rel *repo_model.R
 		WithPayload(&api.ReleasePayload{
 			Action:     action,
 			Release:    convert.ToRelease(rel),
-			Repository: convert.ToRepo(rel.Repo, mode),
+			Repository: convert.ToRepo(ctx, rel.Repo, mode),
 			Sender:     convert.ToUser(doer, nil),
 		}).
 		Notify(ctx)

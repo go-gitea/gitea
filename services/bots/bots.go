@@ -80,7 +80,7 @@ func CreateCommitStatus(ctx context.Context, job *bots_model.BotRunJob) error {
 		return fmt.Errorf("GetPushEventPayload: %w", err)
 	}
 
-	creator, err := user_model.GetUserByID(payload.Pusher.ID)
+	creator, err := user_model.GetUserByID(ctx, payload.Pusher.ID)
 	if err != nil {
 		return fmt.Errorf("GetUserByID: %w", err)
 	}

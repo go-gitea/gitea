@@ -988,7 +988,7 @@ func GetPossbileUserByID(ctx context.Context, id int64) (*User, error) {
 	case 0:
 		return nil, ErrUserNotExist{}
 	default:
-		return GetUserByIDCtx(ctx, id)
+		return GetUserByID(ctx, id)
 	}
 }
 

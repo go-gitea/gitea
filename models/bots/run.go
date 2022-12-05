@@ -60,7 +60,7 @@ func (run *BotRun) LoadAttributes(ctx context.Context) error {
 	}
 
 	if run.Repo == nil {
-		repo, err := repo_model.GetRepositoryByIDCtx(ctx, run.RepoID)
+		repo, err := repo_model.GetRepositoryByID(ctx, run.RepoID)
 		if err != nil {
 			return err
 		}
@@ -151,7 +151,7 @@ func InsertRun(run *BotRun, jobs []*jobparser.SingleWorkflow) error {
 	}
 
 	if run.Repo == nil {
-		repo, err := repo_model.GetRepositoryByIDCtx(ctx, run.RepoID)
+		repo, err := repo_model.GetRepositoryByID(ctx, run.RepoID)
 		if err != nil {
 			return err
 		}
@@ -254,7 +254,7 @@ func UpdateRun(ctx context.Context, run *BotRun, cols ...string) error {
 			}
 		}
 		if run.Repo == nil {
-			repo, err := repo_model.GetRepositoryByIDCtx(ctx, run.RepoID)
+			repo, err := repo_model.GetRepositoryByID(ctx, run.RepoID)
 			if err != nil {
 				return err
 			}
