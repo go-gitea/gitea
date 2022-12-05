@@ -24,7 +24,7 @@ func (rules ProtectedBranchRules) GetFirstMatched(branchName string) *ProtectedB
 	return nil
 }
 
-func (rules ProtectedBranchRules) Sort() {
+func (rules ProtectedBranchRules) sort() {
 	sort.Slice(rules, func(i, j int) bool {
 		rules[i].loadGlob()
 		rules[j].loadGlob()
@@ -46,7 +46,7 @@ func FindRepoProtectedBranchRules(ctx context.Context, repoID int64) (ProtectedB
 	if err != nil {
 		return nil, err
 	}
-	rules.Sort()
+	rules.sort()
 	return rules, nil
 }
 
