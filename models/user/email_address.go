@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"net/mail"
-	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -142,16 +141,10 @@ func (email *EmailAddress) BeforeInsert() {
 	}
 }
 
-var emailRegexp = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
-
 // ValidateEmail check if email is a allowed address
 func ValidateEmail(email string) error {
 	if len(email) == 0 {
 		return nil
-	}
-
-	if !emailRegexp.MatchString(email) {
-		return ErrEmailCharIsNotSupported{email}
 	}
 
 	if email[0] == '-' {
