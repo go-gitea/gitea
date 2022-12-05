@@ -34,7 +34,7 @@ import (
 	"code.gitea.io/gitea/routers/web/misc"
 	"code.gitea.io/gitea/routers/web/org"
 	"code.gitea.io/gitea/routers/web/repo"
-	"code.gitea.io/gitea/routers/web/repo/bots"
+	"code.gitea.io/gitea/routers/web/repo/actions"
 	"code.gitea.io/gitea/routers/web/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/routers/web/user/setting/security"
@@ -629,7 +629,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/reset_registration_token", admin.ResetRunnerRegistrationToken)
 			m.Combo("/{runnerid}").Get(admin.EditRunner).Post(bindIgnErr(forms.EditRunnerForm{}), admin.EditRunnerPost)
 			m.Post("/{runnerid}/delete", admin.DeleteRunnerPost)
-		}, bots.MustEnableBots)
+		}, actions.MustEnableBots)
 	}, func(ctx *context.Context) {
 		ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
 		ctx.Data["EnablePackages"] = setting.Packages.Enabled
@@ -792,7 +792,7 @@ func RegisterRoutes(m *web.Route) {
 						Post(bindIgnErr(forms.EditRunnerForm{}), org.RunnersEditPost)
 					m.Post("/{runnerid}/delete", org.RunnerDeletePost)
 					m.Get("/reset_registration_token", org.ResetRunnerRegistrationToken)
-				}, bots.MustEnableBots)
+				}, actions.MustEnableBots)
 
 				m.Group("/secrets", func() {
 					m.Get("", org.Secrets)
@@ -960,7 +960,7 @@ func RegisterRoutes(m *web.Route) {
 					Post(bindIgnErr(forms.EditRunnerForm{}), repo.RunnersEditPost)
 				m.Post("/{runnerid}/delete", repo.RunnerDeletePost)
 				m.Get("/reset_registration_token", repo.ResetRunnerRegistrationToken)
-			}, bots.MustEnableBots)
+			}, actions.MustEnableBots)
 		}, func(ctx *context.Context) {
 			ctx.Data["PageIsSettings"] = true
 			ctx.Data["LFSStartServer"] = setting.LFS.StartServer
@@ -1200,21 +1200,21 @@ func RegisterRoutes(m *web.Route) {
 		}, reqRepoProjectsReader, repo.MustEnableProjects)
 
 		m.Group("/bots", func() {
-			m.Get("", bots.List)
+			m.Get("", actions.List)
 
 			m.Group("/runs/{run}", func() {
 				m.Combo("").
-					Get(bots.View).
-					Post(bindIgnErr(bots.ViewRequest{}), bots.ViewPost)
+					Get(actions.View).
+					Post(bindIgnErr(actions.ViewRequest{}), actions.ViewPost)
 				m.Group("/jobs/{job}", func() {
 					m.Combo("").
-						Get(bots.View).
-						Post(bindIgnErr(bots.ViewRequest{}), bots.ViewPost)
-					m.Post("/rerun", bots.Rerun)
+						Get(actions.View).
+						Post(bindIgnErr(actions.ViewRequest{}), actions.ViewPost)
+					m.Post("/rerun", actions.Rerun)
 				})
-				m.Post("/cancel", bots.Cancel)
+				m.Post("/cancel", actions.Cancel)
 			})
-		}, reqRepoBotsReader, bots.MustEnableBots)
+		}, reqRepoBotsReader, actions.MustEnableBots)
 
 		m.Group("/wiki", func() {
 			m.Combo("/").

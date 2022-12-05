@@ -12,8 +12,8 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/action"
+	"code.gitea.io/gitea/modules/notification/actions"
 	"code.gitea.io/gitea/modules/notification/base"
-	"code.gitea.io/gitea/modules/notification/bots"
 	"code.gitea.io/gitea/modules/notification/indexer"
 	"code.gitea.io/gitea/modules/notification/mail"
 	"code.gitea.io/gitea/modules/notification/mirror"
@@ -42,7 +42,7 @@ func NewContext() {
 	RegisterNotifier(action.NewNotifier())
 	RegisterNotifier(mirror.NewNotifier())
 	if setting.Bots.Enabled {
-		RegisterNotifier(bots.NewNotifier())
+		RegisterNotifier(actions.NewNotifier())
 	}
 }
 

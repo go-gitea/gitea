@@ -18,8 +18,8 @@ import (
 	"sync"
 	"time"
 
+	bots_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/auth"
-	bots_model "code.gitea.io/gitea/models/bots"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"

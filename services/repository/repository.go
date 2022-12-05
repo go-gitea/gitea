@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
-	bots_service "code.gitea.io/gitea/services/bots"
+	bots_service "code.gitea.io/gitea/services/actions"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 

@@ -7,7 +7,7 @@ import (
 	"context"
 
 	user_model "code.gitea.io/gitea/models/user"
-	bots_service "code.gitea.io/gitea/services/bots"
+	bots_service "code.gitea.io/gitea/services/actions"
 )
 
 func initBotsTasks() {

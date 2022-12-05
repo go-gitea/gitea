@@ -70,7 +70,7 @@ import (
 	"reflect"
 	"strings"
 
-	bots_model "code.gitea.io/gitea/models/bots"
+	bots_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
