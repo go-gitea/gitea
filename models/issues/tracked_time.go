@@ -6,6 +6,7 @@ package issues
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -47,33 +48,42 @@ func (t *TrackedTime) LoadAttributes() (err error) {
 }
 
 func (t *TrackedTime) loadAttributes(ctx context.Context) (err error) {
+	// Load the issue
 	if t.Issue == nil {
 		t.Issue, err = GetIssueByID(ctx, t.IssueID)
-		if err != nil {
-			return
-		}
-		err = t.Issue.LoadRepo(ctx)
-		if err != nil {
-			return
-		}
-	}
-	if t.User == nil {
-		t.User, err = user_model.GetUserByIDCtx(ctx, t.UserID)
-		if err != nil {
-			return
-		}
-	}
-	return err
-}
 
-// LoadAttributes load Issue, User
-func (tl TrackedTimeList) LoadAttributes() (err error) {
-	for _, t := range tl {
-		if err = t.LoadAttributes(); err != nil {
+		if err != nil && !errors.Is(err, util.ErrNotExist) {
 			return err
 		}
 	}
-	return err
+	// Now load the repo for the issue (which we may have just loaded)
+	if t.Issue != nil {
+		err = t.Issue.LoadRepo(ctx)
+		if err != nil && !errors.Is(err, util.ErrNotExist) {
+			return err
+		}
+	}
+	// Load the user
+	if t.User == nil {
+		t.User, err = user_model.GetUserByIDCtx(ctx, t.UserID)
+		if err != nil {
+			if !errors.Is(err, util.ErrNotExist) {
+				return err
+			}
+			t.User = user_model.NewGhostUser()
+		}
+	}
+	return nil
+}
+
+// LoadAttributes load Issue, User
+func (tl TrackedTimeList) LoadAttributes() error {
+	for _, t := range tl {
+		if err := t.LoadAttributes(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // FindTrackedTimesOptions represent the filters for tracked times. If an ID is 0 it will be ignored.
