@@ -302,6 +302,8 @@ replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142
 
 replace github.com/satori/go.uuid v1.2.0 => github.com/gofrs/uuid v4.2.0+incompatible
 
+replace github.com/blevesearch/zapx/v15 v15.3.6 => github.com/zeripath/zapx/v15 v15.3.6-alignment-fix
+
 exclude github.com/gofrs/uuid v3.2.0+incompatible
 
 exclude github.com/gofrs/uuid v4.0.0+incompatible
