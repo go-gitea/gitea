@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 
-	bots_model "code.gitea.io/gitea/models/actions"
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -16,13 +16,13 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
-	bots_module "code.gitea.io/gitea/modules/actions"
+	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
-	bots_service "code.gitea.io/gitea/services/actions"
+	actions_service "code.gitea.io/gitea/services/actions"
 
 	"github.com/nektos/act/pkg/jobparser"
 )
@@ -117,7 +117,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		return fmt.Errorf("gitRepo.GetCommit: %v", err)
 	}
 
-	workflows, err := bots_module.DetectWorkflows(commit, input.Event)
+	workflows, err := actions_module.DetectWorkflows(commit, input.Event)
 	if err != nil {
 		return fmt.Errorf("DetectWorkflows: %v", err)
 	}
@@ -133,7 +133,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 	}
 
 	for id, content := range workflows {
-		run := bots_model.BotRun{
+		run := actions_model.BotRun{
 			Title:             commit.Message(),
 			RepoID:            input.Repo.ID,
 			OwnerID:           input.Repo.OwnerID,
@@ -144,7 +144,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 			IsForkPullRequest: input.PullRequest != nil && input.PullRequest.IsFromFork(),
 			Event:             input.Event,
 			EventPayload:      string(p),
-			Status:            bots_model.StatusWaiting,
+			Status:            actions_model.StatusWaiting,
 		}
 		if len(run.Title) > 255 {
 			run.Title = run.Title[:255] // FIXME: we should use a better method to cut title
@@ -154,15 +154,15 @@ func notify(ctx context.Context, input *notifyInput) error {
 			log.Error("jobparser.Parse: %v", err)
 			continue
 		}
-		if err := bots_model.InsertRun(&run, jobs); err != nil {
+		if err := actions_model.InsertRun(&run, jobs); err != nil {
 			log.Error("InsertRun: %v", err)
 			continue
 		}
-		if jobs, _, err := bots_model.FindRunJobs(ctx, bots_model.FindRunJobOptions{RunID: run.ID}); err != nil {
+		if jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: run.ID}); err != nil {
 			log.Error("FindRunJobs: %v", err)
 		} else {
 			for _, job := range jobs {
-				if err := bots_service.CreateCommitStatus(ctx, job); err != nil {
+				if err := actions_service.CreateCommitStatus(ctx, job); err != nil {
 					log.Error("CreateCommitStatus: %v", err)
 				}
 			}

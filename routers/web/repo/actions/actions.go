@@ -6,7 +6,7 @@ package actions
 import (
 	"net/http"
 
-	bots_model "code.gitea.io/gitea/models/actions"
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/actions"
@@ -74,7 +74,7 @@ func List(ctx *context.Context) {
 	workflow := ctx.FormString("workflow")
 	ctx.Data["CurWorkflow"] = workflow
 
-	opts := bots_model.FindRunOptions{
+	opts := actions_model.FindRunOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
@@ -85,7 +85,7 @@ func List(ctx *context.Context) {
 
 	// open counts
 	opts.IsClosed = util.OptionalBoolFalse
-	numOpenRuns, err := bots_model.CountRuns(ctx, opts)
+	numOpenRuns, err := actions_model.CountRuns(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
@@ -94,7 +94,7 @@ func List(ctx *context.Context) {
 
 	// closed counts
 	opts.IsClosed = util.OptionalBoolTrue
-	numClosedRuns, err := bots_model.CountRuns(ctx, opts)
+	numClosedRuns, err := actions_model.CountRuns(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
@@ -108,7 +108,7 @@ func List(ctx *context.Context) {
 	} else {
 		opts.IsClosed = util.OptionalBoolFalse
 	}
-	runs, total, err := bots_model.FindRuns(ctx, opts)
+	runs, total, err := actions_model.FindRuns(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return

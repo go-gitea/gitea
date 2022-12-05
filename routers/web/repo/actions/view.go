@@ -9,13 +9,13 @@ import (
 	"net/http"
 	"time"
 
-	bots_model "code.gitea.io/gitea/models/actions"
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/actions"
 	context_module "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
-	bots_service "code.gitea.io/gitea/services/actions"
+	actions_service "code.gitea.io/gitea/services/actions"
 
 	runnerv1 "code.gitea.io/bots-proto-go/runner/v1"
 	"xorm.io/builder"
@@ -125,10 +125,10 @@ func ViewPost(ctx *context_module.Context) {
 		},
 	}
 
-	var task *bots_model.BotTask
+	var task *actions_model.BotTask
 	if current.TaskID > 0 {
 		var err error
-		task, err = bots_model.GetTaskByID(ctx, current.TaskID)
+		task, err = actions_model.GetTaskByID(ctx, current.TaskID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 			return
@@ -206,15 +206,15 @@ func Rerun(ctx *context_module.Context) {
 	}
 
 	job.TaskID = 0
-	job.Status = bots_model.StatusWaiting
+	job.Status = actions_model.StatusWaiting
 	job.Started = 0
 	job.Stopped = 0
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if _, err := bots_model.UpdateRunJob(ctx, job, builder.Eq{"status": status}, "task_id", "status", "started", "stopped"); err != nil {
+		if _, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": status}, "task_id", "status", "started", "stopped"); err != nil {
 			return err
 		}
-		return bots_service.CreateCommitStatus(ctx, job)
+		return actions_service.CreateCommitStatus(ctx, job)
 	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
@@ -238,9 +238,9 @@ func Cancel(ctx *context_module.Context) {
 				continue
 			}
 			if job.TaskID == 0 {
-				job.Status = bots_model.StatusCancelled
+				job.Status = actions_model.StatusCancelled
 				job.Stopped = timeutil.TimeStampNow()
-				n, err := bots_model.UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}, "status", "stopped")
+				n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}, "status", "stopped")
 				if err != nil {
 					return err
 				}
@@ -249,10 +249,10 @@ func Cancel(ctx *context_module.Context) {
 				}
 				continue
 			}
-			if err := bots_model.StopTask(ctx, job.TaskID, bots_model.StatusCancelled); err != nil {
+			if err := actions_model.StopTask(ctx, job.TaskID, actions_model.StatusCancelled); err != nil {
 				return err
 			}
-			if err := bots_service.CreateCommitStatus(ctx, job); err != nil {
+			if err := actions_service.CreateCommitStatus(ctx, job); err != nil {
 				return err
 			}
 		}
@@ -268,10 +268,10 @@ func Cancel(ctx *context_module.Context) {
 // getRunJobs gets the jobs of runIndex, and returns jobs[jobIndex], jobs.
 // Any error will be written to the ctx.
 // It never returns a nil job of an empty jobs, if the jobIndex is out of range, it will be treated as 0.
-func getRunJobs(ctx *context_module.Context, runIndex, jobIndex int64) (*bots_model.BotRunJob, []*bots_model.BotRunJob) {
-	run, err := bots_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
+func getRunJobs(ctx *context_module.Context, runIndex, jobIndex int64) (*actions_model.BotRunJob, []*actions_model.BotRunJob) {
+	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
 	if err != nil {
-		if _, ok := err.(bots_model.ErrRunNotExist); ok {
+		if _, ok := err.(actions_model.ErrRunNotExist); ok {
 			ctx.Error(http.StatusNotFound, err.Error())
 			return nil, nil
 		}
@@ -280,7 +280,7 @@ func getRunJobs(ctx *context_module.Context, runIndex, jobIndex int64) (*bots_mo
 	}
 	run.Repo = ctx.Repo.Repository
 
-	jobs, err := bots_model.GetRunJobsByRunID(ctx, run.ID)
+	jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return nil, nil

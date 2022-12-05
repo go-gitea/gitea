@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 
-	bots_model "code.gitea.io/gitea/models/actions"
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/queue"
@@ -46,11 +46,11 @@ func jobEmitterQueueHandle(data ...queue.Data) []queue.Data {
 
 func checkJobsOfRun(ctx context.Context, runID int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		jobs, _, err := bots_model.FindRunJobs(ctx, bots_model.FindRunJobOptions{RunID: runID})
+		jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: runID})
 		if err != nil {
 			return err
 		}
-		idToJobs := make(map[string][]*bots_model.BotRunJob, len(jobs))
+		idToJobs := make(map[string][]*actions_model.BotRunJob, len(jobs))
 		for _, job := range jobs {
 			idToJobs[job.JobID] = append(idToJobs[job.JobID], job)
 		}
@@ -59,7 +59,7 @@ func checkJobsOfRun(ctx context.Context, runID int64) error {
 		for _, job := range jobs {
 			if status, ok := updates[job.ID]; ok {
 				job.Status = status
-				if n, err := bots_model.UpdateRunJob(ctx, job, builder.Eq{"status": bots_model.StatusBlocked}, "status"); err != nil {
+				if n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked}, "status"); err != nil {
 					return err
 				} else if n != 1 {
 					return fmt.Errorf("no affected for updating blocked job %v", job.ID)
@@ -71,17 +71,17 @@ func checkJobsOfRun(ctx context.Context, runID int64) error {
 }
 
 type jobStatusResolver struct {
-	statuses map[int64]bots_model.Status
+	statuses map[int64]actions_model.Status
 	needs    map[int64][]int64
 }
 
-func newJobStatusResolver(jobs bots_model.RunJobList) *jobStatusResolver {
-	idToJobs := make(map[string][]*bots_model.BotRunJob, len(jobs))
+func newJobStatusResolver(jobs actions_model.RunJobList) *jobStatusResolver {
+	idToJobs := make(map[string][]*actions_model.BotRunJob, len(jobs))
 	for _, job := range jobs {
 		idToJobs[job.JobID] = append(idToJobs[job.JobID], job)
 	}
 
-	statuses := make(map[int64]bots_model.Status, len(jobs))
+	statuses := make(map[int64]actions_model.Status, len(jobs))
 	needs := make(map[int64][]int64, len(jobs))
 	for _, job := range jobs {
 		statuses[job.ID] = job.Status
@@ -97,8 +97,8 @@ func newJobStatusResolver(jobs bots_model.RunJobList) *jobStatusResolver {
 	}
 }
 
-func (r *jobStatusResolver) Resolve() map[int64]bots_model.Status {
-	ret := map[int64]bots_model.Status{}
+func (r *jobStatusResolver) Resolve() map[int64]actions_model.Status {
+	ret := map[int64]actions_model.Status{}
 	for i := 0; i < len(r.statuses); i++ {
 		updated := r.resolve()
 		if len(updated) == 0 {
@@ -112,10 +112,10 @@ func (r *jobStatusResolver) Resolve() map[int64]bots_model.Status {
 	return ret
 }
 
-func (r *jobStatusResolver) resolve() map[int64]bots_model.Status {
-	ret := map[int64]bots_model.Status{}
+func (r *jobStatusResolver) resolve() map[int64]actions_model.Status {
+	ret := map[int64]actions_model.Status{}
 	for id, status := range r.statuses {
-		if status != bots_model.StatusBlocked {
+		if status != actions_model.StatusBlocked {
 			continue
 		}
 		allDone, allSucceed := true, true
@@ -124,15 +124,15 @@ func (r *jobStatusResolver) resolve() map[int64]bots_model.Status {
 			if !needStatus.IsDone() {
 				allDone = false
 			}
-			if needStatus.In(bots_model.StatusFailure, bots_model.StatusCancelled, bots_model.StatusSkipped) {
+			if needStatus.In(actions_model.StatusFailure, actions_model.StatusCancelled, actions_model.StatusSkipped) {
 				allSucceed = false
 			}
 		}
 		if allDone {
 			if allSucceed {
-				ret[id] = bots_model.StatusWaiting
+				ret[id] = actions_model.StatusWaiting
 			} else {
-				ret[id] = bots_model.StatusSkipped
+				ret[id] = actions_model.StatusSkipped
 			}
 		}
 	}

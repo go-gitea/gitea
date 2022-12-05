@@ -18,7 +18,7 @@ import (
 	"sync"
 	"time"
 
-	bots_model "code.gitea.io/gitea/models/actions"
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -189,7 +189,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 
 			if ctx.Data["IsBotToken"] == true {
 				taskID := ctx.Data["BotTaskID"].(int64)
-				task, err := bots_model.GetTaskByID(ctx, taskID)
+				task, err := actions_model.GetTaskByID(ctx, taskID)
 				if err != nil {
 					ctx.ServerError("GetTaskByID", err)
 					return

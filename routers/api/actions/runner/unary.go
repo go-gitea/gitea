@@ -8,7 +8,7 @@ import (
 	"crypto/subtle"
 	"strings"
 
-	bots_model "code.gitea.io/gitea/models/actions"
+	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -31,9 +31,9 @@ var WithRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 		}
 		uuid := request.Header().Get(uuidHeaderKey)
 		token := request.Header().Get(tokenHeaderKey)
-		runner, err := bots_model.GetRunnerByUUID(uuid)
+		runner, err := actions_model.GetRunnerByUUID(uuid)
 		if err != nil {
-			if _, ok := err.(bots_model.ErrRunnerNotExist); ok {
+			if _, ok := err.(actions_model.ErrRunnerNotExist); ok {
 				return nil, status.Error(codes.Unauthenticated, "unregistered runner")
 			}
 			return nil, status.Error(codes.Internal, err.Error())
@@ -48,7 +48,7 @@ var WithRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 			runner.LastActive = timeutil.TimeStampNow()
 			cols = append(cols, "last_active")
 		}
-		if err := bots_model.UpdateRunner(ctx, runner, cols...); err != nil {
+		if err := actions_model.UpdateRunner(ctx, runner, cols...); err != nil {
 			log.Error("can't update runner status: %v", err)
 		}
 
@@ -67,9 +67,9 @@ func getMethodName(req connect.AnyRequest) string {
 
 type runnerCtxKey struct{}
 
-func GetRunner(ctx context.Context) *bots_model.BotRunner {
+func GetRunner(ctx context.Context) *actions_model.BotRunner {
 	if v := ctx.Value(runnerCtxKey{}); v != nil {
-		if r, ok := v.(*bots_model.BotRunner); ok {
+		if r, ok := v.(*actions_model.BotRunner); ok {
 			return r
 		}
 	}

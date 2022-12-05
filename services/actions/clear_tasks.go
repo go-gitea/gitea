@@ -7,7 +7,7 @@ import (
 	"context"
 	"time"
 
-	bots_model "code.gitea.io/gitea/models/actions"
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -21,8 +21,8 @@ const (
 
 // StopZombieTasks stops the task which have running status, but haven't been updated for a long time
 func StopZombieTasks(ctx context.Context) error {
-	tasks, _, err := bots_model.FindTasks(ctx, bots_model.FindTaskOptions{
-		Status:        bots_model.StatusRunning,
+	tasks, _, err := actions_model.FindTasks(ctx, actions_model.FindTaskOptions{
+		Status:        actions_model.StatusRunning,
 		UpdatedBefore: timeutil.TimeStamp(time.Now().Add(-zombieTaskTimeout).Unix()),
 	})
 	if err != nil {
@@ -32,7 +32,7 @@ func StopZombieTasks(ctx context.Context) error {
 
 	for _, task := range tasks {
 		if err := db.WithTx(ctx, func(ctx context.Context) error {
-			if err := bots_model.StopTask(ctx, task.ID, bots_model.StatusFailure); err != nil {
+			if err := actions_model.StopTask(ctx, task.ID, actions_model.StatusFailure); err != nil {
 				return err
 			}
 			if err := task.LoadJob(ctx); err != nil {
@@ -49,8 +49,8 @@ func StopZombieTasks(ctx context.Context) error {
 
 // StopEndlessTasks stops the tasks which have running status and continuous updates, but don't end for a long time
 func StopEndlessTasks(ctx context.Context) error {
-	tasks, _, err := bots_model.FindTasks(ctx, bots_model.FindTaskOptions{
-		Status:        bots_model.StatusRunning,
+	tasks, _, err := actions_model.FindTasks(ctx, actions_model.FindTaskOptions{
+		Status:        actions_model.StatusRunning,
 		StartedBefore: timeutil.TimeStamp(time.Now().Add(-endlessTaskTimeout).Unix()),
 	})
 	if err != nil {
@@ -60,7 +60,7 @@ func StopEndlessTasks(ctx context.Context) error {
 
 	for _, task := range tasks {
 		if err := db.WithTx(ctx, func(ctx context.Context) error {
-			if err := bots_model.StopTask(ctx, task.ID, bots_model.StatusFailure); err != nil {
+			if err := actions_model.StopTask(ctx, task.ID, actions_model.StatusFailure); err != nil {
 				return err
 			}
 			if err := task.LoadJob(ctx); err != nil {
@@ -77,8 +77,8 @@ func StopEndlessTasks(ctx context.Context) error {
 
 // CancelAbandonedJobs cancels the jobs which have waiting status, but haven't been picked by a runner for a long time
 func CancelAbandonedJobs(ctx context.Context) error {
-	jobs, _, err := bots_model.FindRunJobs(ctx, bots_model.FindRunJobOptions{
-		Statuses:      []bots_model.Status{bots_model.StatusWaiting, bots_model.StatusBlocked},
+	jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{
+		Statuses:      []actions_model.Status{actions_model.StatusWaiting, actions_model.StatusBlocked},
 		UpdatedBefore: timeutil.TimeStamp(time.Now().Add(-abandonedJobTimeout).Unix()),
 	})
 	if err != nil {
@@ -88,10 +88,10 @@ func CancelAbandonedJobs(ctx context.Context) error {
 
 	now := timeutil.TimeStampNow()
 	for _, job := range jobs {
-		job.Status = bots_model.StatusCancelled
+		job.Status = actions_model.StatusCancelled
 		job.Stopped = now
 		if err := db.WithTx(ctx, func(ctx context.Context) error {
-			if _, err := bots_model.UpdateRunJob(ctx, job, nil, "status", "stopped"); err != nil {
+			if _, err := actions_model.UpdateRunJob(ctx, job, nil, "status", "stopped"); err != nil {
 				return err
 			}
 			return CreateCommitStatus(ctx, job)

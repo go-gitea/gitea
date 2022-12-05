@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	bots_model "code.gitea.io/gitea/models/actions"
+	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
@@ -109,7 +109,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	}
 
 	// check task token
-	task, err := bots_model.GetRunningTaskByToken(db.DefaultContext, authToken)
+	task, err := actions_model.GetRunningTaskByToken(db.DefaultContext, authToken)
 	if err == nil && task != nil {
 		log.Trace("Basic Authorization: Valid AccessToken for task[%d]", task.ID)
 

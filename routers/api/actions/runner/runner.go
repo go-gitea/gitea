@@ -9,13 +9,13 @@ import (
 	"fmt"
 	"time"
 
-	bots_model "code.gitea.io/gitea/models/actions"
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	bot_service "code.gitea.io/gitea/services/actions"
+	actions_service "code.gitea.io/gitea/services/actions"
 	secret_service "code.gitea.io/gitea/services/secrets"
 
 	runnerv1 "code.gitea.io/bots-proto-go/runner/v1"
@@ -42,7 +42,7 @@ func (s *Service) Register(
 		return nil, errors.New("missing runner token, name")
 	}
 
-	runnerToken, err := bots_model.GetRunnerToken(req.Msg.Token)
+	runnerToken, err := actions_model.GetRunnerToken(req.Msg.Token)
 	if err != nil {
 		return nil, errors.New("runner token not found")
 	}
@@ -52,7 +52,7 @@ func (s *Service) Register(
 	}
 
 	// create new runner
-	runner := &bots_model.BotRunner{
+	runner := &actions_model.BotRunner{
 		UUID:         gouuid.New().String(),
 		Name:         req.Msg.Name,
 		OwnerID:      runnerToken.OwnerID,
@@ -65,13 +65,13 @@ func (s *Service) Register(
 	}
 
 	// create new runner
-	if err := bots_model.NewRunner(ctx, runner); err != nil {
+	if err := actions_model.NewRunner(ctx, runner); err != nil {
 		return nil, errors.New("can't create new runner")
 	}
 
 	// update token status
 	runnerToken.IsActive = true
-	if err := bots_model.UpdateRunnerToken(ctx, runnerToken, "is_active"); err != nil {
+	if err := actions_model.UpdateRunnerToken(ctx, runnerToken, "is_active"); err != nil {
 		return nil, errors.New("can't update runner token status")
 	}
 
@@ -133,7 +133,7 @@ func (s *Service) UpdateTask(
 	}
 
 	// Get Task first
-	task, err := bots_model.GetTaskByID(ctx, req.Msg.State.Id)
+	task, err := actions_model.GetTaskByID(ctx, req.Msg.State.Id)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "can't find the task: %v", err)
 	}
@@ -146,7 +146,7 @@ func (s *Service) UpdateTask(
 		}), nil
 	}
 
-	task, err = bots_model.UpdateTaskByState(req.Msg.State)
+	task, err = actions_model.UpdateTaskByState(req.Msg.State)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "update task: %v", err)
 	}
@@ -155,13 +155,13 @@ func (s *Service) UpdateTask(
 		return nil, status.Errorf(codes.Internal, "load job: %v", err)
 	}
 
-	if err := bot_service.CreateCommitStatus(ctx, task.Job); err != nil {
+	if err := actions_service.CreateCommitStatus(ctx, task.Job); err != nil {
 		log.Error("Update commit status failed: %v", err)
 		// go on
 	}
 
 	if req.Msg.State.Result != runnerv1.Result_RESULT_UNSPECIFIED {
-		if err := bot_service.EmitJobsIfReady(task.Job.RunID); err != nil {
+		if err := actions_service.EmitJobsIfReady(task.Job.RunID); err != nil {
 			log.Error("Emit ready jobs of run %d: %v", task.Job.RunID, err)
 		}
 	}
@@ -181,7 +181,7 @@ func (s *Service) UpdateLog(
 ) (*connect.Response[runnerv1.UpdateLogResponse], error) {
 	res := connect.NewResponse(&runnerv1.UpdateLogResponse{})
 
-	task, err := bots_model.GetTaskByID(ctx, req.Msg.TaskId)
+	task, err := actions_model.GetTaskByID(ctx, req.Msg.TaskId)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "get task: %v", err)
 	}
@@ -203,7 +203,7 @@ func (s *Service) UpdateLog(
 	}
 	task.LogLength += int64(len(rows))
 	if task.LogIndexes == nil {
-		task.LogIndexes = &bots_model.LogIndexes{}
+		task.LogIndexes = &actions_model.LogIndexes{}
 	}
 	for _, n := range ns {
 		*task.LogIndexes = append(*task.LogIndexes, task.LogSize)
@@ -221,7 +221,7 @@ func (s *Service) UpdateLog(
 		}
 	}
 
-	if err := bots_model.UpdateTask(ctx, task, "log_indexes", "log_length", "log_size", "log_in_storage"); err != nil {
+	if err := actions_model.UpdateTask(ctx, task, "log_indexes", "log_length", "log_size", "log_in_storage"); err != nil {
 		return nil, status.Errorf(codes.Internal, "update task: %v", err)
 	}
 	if remove != nil {
@@ -231,8 +231,8 @@ func (s *Service) UpdateLog(
 	return res, nil
 }
 
-func pickTask(ctx context.Context, runner *bots_model.BotRunner) (*runnerv1.Task, bool, error) {
-	t, ok, err := bots_model.CreateTaskForRunner(ctx, runner)
+func pickTask(ctx context.Context, runner *actions_model.BotRunner) (*runnerv1.Task, bool, error) {
+	t, ok, err := actions_model.CreateTaskForRunner(ctx, runner)
 	if err != nil {
 		return nil, false, fmt.Errorf("CreateTaskForRunner: %w", err)
 	}
@@ -249,7 +249,7 @@ func pickTask(ctx context.Context, runner *bots_model.BotRunner) (*runnerv1.Task
 	return task, true, nil
 }
 
-func getSecretsOfTask(ctx context.Context, task *bots_model.BotTask) map[string]string {
+func getSecretsOfTask(ctx context.Context, task *actions_model.BotTask) map[string]string {
 	// Returning an error is worse than returning empty secrets.
 
 	secrets := map[string]string{}
@@ -289,7 +289,7 @@ func getSecretsOfTask(ctx context.Context, task *bots_model.BotTask) map[string]
 	return secrets
 }
 
-func generateTaskContext(t *bots_model.BotTask) *structpb.Struct {
+func generateTaskContext(t *actions_model.BotTask) *structpb.Struct {
 	event := map[string]interface{}{}
 	_ = json.Unmarshal([]byte(t.Job.Run.EventPayload), &event)
 

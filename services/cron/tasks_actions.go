@@ -7,7 +7,7 @@ import (
 	"context"
 
 	user_model "code.gitea.io/gitea/models/user"
-	bots_service "code.gitea.io/gitea/services/actions"
+	actions_service "code.gitea.io/gitea/services/actions"
 )
 
 func initBotsTasks() {
@@ -22,7 +22,7 @@ func registerStopZombieTasks() {
 		RunAtStart: true,
 		Schedule:   "@every 5m",
 	}, func(ctx context.Context, _ *user_model.User, cfg Config) error {
-		return bots_service.StopZombieTasks(ctx)
+		return actions_service.StopZombieTasks(ctx)
 	})
 }
 
@@ -32,7 +32,7 @@ func registerStopEndlessTasks() {
 		RunAtStart: true,
 		Schedule:   "@every 30m",
 	}, func(ctx context.Context, _ *user_model.User, cfg Config) error {
-		return bots_service.StopEndlessTasks(ctx)
+		return actions_service.StopEndlessTasks(ctx)
 	})
 }
 
@@ -42,6 +42,6 @@ func registerCancelAbandonedJobs() {
 		RunAtStart: true,
 		Schedule:   "@every 6h",
 	}, func(ctx context.Context, _ *user_model.User, cfg Config) error {
-		return bots_service.CancelAbandonedJobs(ctx)
+		return actions_service.CancelAbandonedJobs(ctx)
 	})
 }

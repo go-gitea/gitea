@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	bots_model "code.gitea.io/gitea/models/actions"
+	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
@@ -94,7 +94,7 @@ func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
 	if err != nil {
 		if auth_model.IsErrAccessTokenNotExist(err) {
 			// check task token
-			task, err := bots_model.GetRunningTaskByToken(db.DefaultContext, tokenSHA)
+			task, err := actions_model.GetRunningTaskByToken(db.DefaultContext, tokenSHA)
 			if err == nil && task != nil {
 				log.Trace("Basic Authorization: Valid AccessToken for task[%d]", task.ID)
 

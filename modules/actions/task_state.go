@@ -4,7 +4,7 @@
 package actions
 
 import (
-	bots_model "code.gitea.io/gitea/models/actions"
+	actions_model "code.gitea.io/gitea/models/actions"
 )
 
 const (
@@ -13,7 +13,7 @@ const (
 )
 
 // FullSteps returns steps with "Set up job" and "Complete job"
-func FullSteps(task *bots_model.BotTask) []*bots_model.BotTaskStep {
+func FullSteps(task *actions_model.BotTask) []*actions_model.BotTaskStep {
 	if len(task.Steps) == 0 {
 		return fullStepsOfEmptySteps(task)
 	}
@@ -21,24 +21,24 @@ func FullSteps(task *bots_model.BotTask) []*bots_model.BotTaskStep {
 	firstStep := task.Steps[0]
 	var logIndex int64
 
-	preStep := &bots_model.BotTaskStep{
+	preStep := &actions_model.BotTaskStep{
 		Name:      preStepName,
 		LogLength: task.LogLength,
 		Started:   task.Started,
-		Status:    bots_model.StatusRunning,
+		Status:    actions_model.StatusRunning,
 	}
 
 	if firstStep.Status.HasRun() || firstStep.Status.IsRunning() {
 		preStep.LogLength = firstStep.LogIndex
 		preStep.Stopped = firstStep.Started
-		preStep.Status = bots_model.StatusSuccess
+		preStep.Status = actions_model.StatusSuccess
 	} else if task.Status.IsDone() {
 		preStep.Stopped = task.Stopped
-		preStep.Status = bots_model.StatusFailure
+		preStep.Status = actions_model.StatusFailure
 	}
 	logIndex += preStep.LogLength
 
-	var lastHasRunStep *bots_model.BotTaskStep
+	var lastHasRunStep *actions_model.BotTaskStep
 	for _, step := range task.Steps {
 		if step.Status.HasRun() {
 			lastHasRunStep = step
@@ -49,9 +49,9 @@ func FullSteps(task *bots_model.BotTask) []*bots_model.BotTaskStep {
 		lastHasRunStep = preStep
 	}
 
-	postStep := &bots_model.BotTaskStep{
+	postStep := &actions_model.BotTaskStep{
 		Name:   postStepName,
-		Status: bots_model.StatusWaiting,
+		Status: actions_model.StatusWaiting,
 	}
 	if task.Status.IsDone() {
 		postStep.LogIndex = logIndex
@@ -60,7 +60,7 @@ func FullSteps(task *bots_model.BotTask) []*bots_model.BotTaskStep {
 		postStep.Started = lastHasRunStep.Stopped
 		postStep.Stopped = task.Stopped
 	}
-	ret := make([]*bots_model.BotTaskStep, 0, len(task.Steps)+2)
+	ret := make([]*actions_model.BotTaskStep, 0, len(task.Steps)+2)
 	ret = append(ret, preStep)
 	ret = append(ret, task.Steps...)
 	ret = append(ret, postStep)
@@ -68,33 +68,33 @@ func FullSteps(task *bots_model.BotTask) []*bots_model.BotTaskStep {
 	return ret
 }
 
-func fullStepsOfEmptySteps(task *bots_model.BotTask) []*bots_model.BotTaskStep {
-	preStep := &bots_model.BotTaskStep{
+func fullStepsOfEmptySteps(task *actions_model.BotTask) []*actions_model.BotTaskStep {
+	preStep := &actions_model.BotTaskStep{
 		Name:      preStepName,
 		LogLength: task.LogLength,
 		Started:   task.Started,
 		Stopped:   task.Stopped,
-		Status:    bots_model.StatusRunning,
+		Status:    actions_model.StatusRunning,
 	}
 
-	postStep := &bots_model.BotTaskStep{
+	postStep := &actions_model.BotTaskStep{
 		Name:     postStepName,
 		LogIndex: task.LogLength,
 		Started:  task.Stopped,
 		Stopped:  task.Stopped,
-		Status:   bots_model.StatusWaiting,
+		Status:   actions_model.StatusWaiting,
 	}
 
 	if task.Status.IsDone() {
 		preStep.Status = task.Status
 		if preStep.Status.IsSuccess() {
-			postStep.Status = bots_model.StatusSuccess
+			postStep.Status = actions_model.StatusSuccess
 		} else {
-			postStep.Status = bots_model.StatusCancelled
+			postStep.Status = actions_model.StatusCancelled
 		}
 	}
 
-	return []*bots_model.BotTaskStep{
+	return []*actions_model.BotTaskStep{
 		preStep,
 		postStep,
 	}

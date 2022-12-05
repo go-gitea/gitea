@@ -70,7 +70,7 @@ import (
 	"reflect"
 	"strings"
 
-	bots_model "code.gitea.io/gitea/models/actions"
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -187,9 +187,9 @@ func repoAssignment() func(ctx *context.APIContext) {
 
 		if ctx.Doer != nil && ctx.Doer.ID == user_model.BotUserID {
 			botTaskID := ctx.Data["BotTaskID"].(int64)
-			task, err := bots_model.GetTaskByID(ctx, botTaskID)
+			task, err := actions_model.GetTaskByID(ctx, botTaskID)
 			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "bots_model.GetTaskByID", err)
+				ctx.Error(http.StatusInternalServerError, "actions_model.GetTaskByID", err)
 				return
 			}
 			if task.RepoID != repo.ID {

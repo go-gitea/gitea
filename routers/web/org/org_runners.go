@@ -6,7 +6,7 @@ package org
 import (
 	"net/url"
 
-	bots_model "code.gitea.io/gitea/models/actions"
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/routers/common"
@@ -23,7 +23,7 @@ func Runners(ctx *context.Context) {
 		page = 1
 	}
 
-	opts := bots_model.FindRunnerOptions{
+	opts := actions_model.FindRunnerOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
 			PageSize: 100,

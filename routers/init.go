@@ -30,13 +30,13 @@ import (
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
-	bots_router "code.gitea.io/gitea/routers/api/actions"
+	actions_router "code.gitea.io/gitea/routers/api/actions"
 	packages_router "code.gitea.io/gitea/routers/api/packages"
 	apiv1 "code.gitea.io/gitea/routers/api/v1"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/routers/private"
 	web_routers "code.gitea.io/gitea/routers/web"
-	bot_service "code.gitea.io/gitea/services/actions"
+	actions_service "code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/automerge"
@@ -174,7 +174,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	auth.Init()
 	svg.Init()
 
-	bot_service.Init()
+	actions_service.Init()
 
 	// Finally start up the cron
 	cron.NewContext(ctx)
@@ -204,7 +204,7 @@ func NormalRoutes(ctx context.Context) *web.Route {
 
 	if setting.Bots.Enabled {
 		prefix := "/api/bots"
-		r.Mount(prefix, bots_router.Routes(ctx, prefix))
+		r.Mount(prefix, actions_router.Routes(ctx, prefix))
 	}
 
 	return r
