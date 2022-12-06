@@ -92,7 +92,14 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 			log.Error("GetUserByID:  %v", err)
 			return nil
 		}
+		// assume if the token is cognito access token
+		if u == nil {
+			u, err = CheckCognitoAccessToken(authToken)
+			if err != nil {
+				log.Error("GetUserByCognitoAccessToken: %v", err)
+			}
 
+		}
 		token.UpdatedUnix = timeutil.TimeStampNow()
 		if err = auth_model.UpdateAccessToken(token); err != nil {
 			log.Error("UpdateAccessToken:  %v", err)

@@ -64,9 +64,36 @@ func (o *UpdateFileOptions) Branch() string {
 	return o.FileOptions.BranchName
 }
 
+// PushFilesOptions options for push all files
+// Note: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
+type PushFilesOptions struct {
+	CreateRepoOptionCustom
+	FileOptions
+	Files []*UpdateOrCreateOrDeleteFileOptions `json:"files"`
+}
+
+// Branch returns branch name
+func (o *PushFilesOptions) Branch() string {
+	return o.FileOptions.BranchName
+}
+
 // FileOptionInterface provides a unified interface for the different file options
 type FileOptionInterface interface {
 	Branch() string
+}
+
+// UpdateOrCreateOrDeleteFileOptions options for creating or updating or delete files
+type UpdateOrCreateOrDeleteFileOptions struct {
+	// sha is the SHA for the file that already exists
+	SHA string `json:"sha"`
+	// content must be base64 encoded
+	Content string `json:"content"`
+	// from_path is the path of the original file which will be moved/renamed to the path in the URL
+	// required: true
+	FromPath string `json:"from_path" binding:"MaxSize(500)"`
+	// file_action is the action of operation on file must be one of them : create, edit, delete
+	// required: true
+	FileAction string `json:"file_action"`
 }
 
 // ApplyDiffPatchFileOptions options for applying a diff patch

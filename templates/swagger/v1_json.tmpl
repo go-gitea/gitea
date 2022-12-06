@@ -3472,6 +3472,57 @@
             "$ref": "#/responses/notFound"
           }
         }
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Update a files in a repository",
+        "operationId": "repoUpdateFile",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PushFilesOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/FileResponse"
+          },
+          "403": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/error"
+          }
+        }
       }
     },
     "/repos/{owner}/{repo}/contents/{filepath}": {
@@ -3519,64 +3570,6 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
-          }
-        }
-      },
-      "put": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Update a file in a repository",
-        "operationId": "repoUpdateFile",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "path of the file to update",
-            "name": "filepath",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/UpdateFileOptions"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/FileResponse"
-          },
-          "403": {
-            "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/error"
           }
         }
       },
@@ -17997,6 +17990,100 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "PushFilesOptions": {
+      "description": "PushFilesOptions options for push all files\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
+      "type": "object",
+      "properties": {
+        "author": {
+          "$ref": "#/definitions/Identity"
+        },
+        "branch": {
+          "description": "branch (optional) to base this file from. if not given, the default branch is used",
+          "type": "string",
+          "x-go-name": "BranchName"
+        },
+        "committer": {
+          "$ref": "#/definitions/Identity"
+        },
+        "dates": {
+          "$ref": "#/definitions/CommitDateOptions"
+        },
+        "default_branch": {
+          "description": "DefaultBranch of the repository (used when initializes and in template)",
+          "type": "string",
+          "x-go-name": "DefaultBranch"
+        },
+        "description": {
+          "description": "Description of the repository to create",
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/UpdateOrCreateOrDeleteFileOptions"
+          },
+          "x-go-name": "Files"
+        },
+        "gitignores": {
+          "description": "Gitignores to use",
+          "type": "string",
+          "x-go-name": "Gitignores"
+        },
+        "issue_labels": {
+          "description": "Label-Set to use",
+          "type": "string",
+          "x-go-name": "IssueLabels"
+        },
+        "license": {
+          "description": "License to use",
+          "type": "string",
+          "x-go-name": "License"
+        },
+        "message": {
+          "description": "message (optional) for the commit of this file. if not supplied, a default message will be used",
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "new_branch": {
+          "description": "new_branch (optional) will make a new branch from `branch` before creating the file",
+          "type": "string",
+          "x-go-name": "NewBranchName"
+        },
+        "private": {
+          "description": "Whether the repository is private",
+          "type": "boolean",
+          "x-go-name": "Private"
+        },
+        "readme": {
+          "description": "Readme of the repository to create",
+          "type": "string",
+          "x-go-name": "Readme"
+        },
+        "signoff": {
+          "description": "Add a Signed-off-by trailer by the committer at the end of the commit log message.",
+          "type": "boolean",
+          "x-go-name": "Signoff"
+        },
+        "template": {
+          "description": "Whether the repository is template",
+          "type": "boolean",
+          "x-go-name": "Template"
+        },
+        "trust_model": {
+          "description": "TrustModel of the repository",
+          "type": "string",
+          "enum": [
+            "default",
+            "collaborator",
+            "committer",
+            "collaboratorcommitter"
+          ],
+          "x-go-name": "TrustModel"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "PushMirror": {
       "description": "PushMirror represents information of a push mirror",
       "type": "object",
@@ -18940,6 +19027,37 @@
           "description": "Add a Signed-off-by trailer by the committer at the end of the commit log message.",
           "type": "boolean",
           "x-go-name": "Signoff"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "UpdateOrCreateOrDeleteFileOptions": {
+      "description": "UpdateOrCreateOrDeleteFileOptions options for creating or updating or delete files",
+      "type": "object",
+      "required": [
+        "from_path",
+        "file_action"
+      ],
+      "properties": {
+        "content": {
+          "description": "content must be base64 encoded",
+          "type": "string",
+          "x-go-name": "Content"
+        },
+        "file_action": {
+          "description": "file_action is the action of operation on file must be one of them : create, edit, delete",
+          "type": "string",
+          "x-go-name": "FileAction"
+        },
+        "from_path": {
+          "description": "from_path is the path of the original file which will be moved/renamed to the path in the URL",
+          "type": "string",
+          "x-go-name": "FromPath"
+        },
+        "sha": {
+          "description": "sha is the SHA for the file that already exists",
+          "type": "string",
+          "x-go-name": "SHA"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -20171,65 +20289,18 @@
     }
   },
   "securityDefinitions": {
-    "AccessToken": {
-      "type": "apiKey",
-      "name": "access_token",
-      "in": "query"
-    },
-    "AuthorizationHeaderToken": {
-      "description": "API tokens must be prepended with \"token\" followed by a space.",
-      "type": "apiKey",
-      "name": "Authorization",
-      "in": "header"
-    },
     "BasicAuth": {
       "type": "basic"
     },
-    "SudoHeader": {
-      "description": "Sudo API request as the user provided as the key. Admin privileges are required.",
+    "CognitoToken": {
       "type": "apiKey",
-      "name": "Sudo",
+      "name": "COGNITO-TOKEN",
       "in": "header"
-    },
-    "SudoParam": {
-      "description": "Sudo API request as the user provided as the key. Admin privileges are required.",
-      "type": "apiKey",
-      "name": "sudo",
-      "in": "query"
-    },
-    "TOTPHeader": {
-      "description": "Must be used in combination with BasicAuth if two-factor authentication is enabled.",
-      "type": "apiKey",
-      "name": "X-GITEA-OTP",
-      "in": "header"
-    },
-    "Token": {
-      "type": "apiKey",
-      "name": "token",
-      "in": "query"
     }
   },
   "security": [
     {
-      "BasicAuth": []
-    },
-    {
-      "Token": []
-    },
-    {
-      "AccessToken": []
-    },
-    {
-      "AuthorizationHeaderToken": []
-    },
-    {
-      "SudoParam": []
-    },
-    {
-      "SudoHeader": []
-    },
-    {
-      "TOTPHeader": []
+      "CognitoToken": []
     }
   ]
 }

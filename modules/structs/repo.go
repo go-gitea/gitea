@@ -133,6 +133,27 @@ type CreateRepoOption struct {
 	// enum: default,collaborator,committer,collaboratorcommitter
 	TrustModel string `json:"trust_model"`
 }
+type CreateRepoOptionCustom struct {
+	// Description of the repository to create
+	Description string `json:"description" binding:"MaxSize(255)"`
+	// Whether the repository is private
+	Private bool `json:"private"`
+	// Label-Set to use
+	IssueLabels string `json:"issue_labels"`
+	// Whether the repository is template
+	Template bool `json:"template"`
+	// Gitignores to use
+	Gitignores string `json:"gitignores"`
+	// License to use
+	License string `json:"license"`
+	// Readme of the repository to create
+	Readme string `json:"readme"`
+	// DefaultBranch of the repository (used when initializes and in template)
+	DefaultBranch string `json:"default_branch" binding:"GitRefName;MaxSize(100)"`
+	// TrustModel of the repository
+	// enum: default,collaborator,committer,collaboratorcommitter
+	TrustModel string `json:"trust_model"`
+}
 
 // EditRepoOption options when editing a repository's properties
 // swagger:model

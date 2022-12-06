@@ -39,9 +39,9 @@ func (ct *ContentType) String() string {
 
 // GetContentsOrList gets the meta data of a file's contents (*ContentsResponse) if treePath not a tree
 // directory, otherwise a listing of file contents ([]*ContentsResponse). Ref can be a branch, commit or tag
-func GetContentsOrList(ctx context.Context, repo *repo_model.Repository, treePath, ref string) (interface{}, error) {
+func GetContentsOrList(ctx context.Context, repo *repo_model.Repository, treePath, ref string) ([]*api.ContentsResponse, error) {
 	if repo.IsEmpty {
-		return make([]interface{}, 0), nil
+		return make([]*api.ContentsResponse, 0), nil
 	}
 	if ref == "" {
 		ref = repo.DefaultBranch
@@ -74,13 +74,14 @@ func GetContentsOrList(ctx context.Context, repo *repo_model.Repository, treePat
 		return nil, err
 	}
 
-	if entry.Type() != "tree" {
-		return GetContents(ctx, repo, treePath, origRef, false)
-	}
-
 	// We are in a directory, so we return a list of FileContentResponse objects
 	var fileList []*api.ContentsResponse
 
+	if entry.Type() != "tree" {
+		content, err := GetContents(ctx, repo, treePath, origRef, false)
+		fileList = append(fileList, content)
+		return fileList, err
+	}
 	gitTree, err := commit.SubTree(treePath)
 	if err != nil {
 		return nil, err

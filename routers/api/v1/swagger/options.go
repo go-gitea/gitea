@@ -116,6 +116,9 @@ type swaggerParameterBodies struct {
 	UpdateFileOptions api.UpdateFileOptions
 
 	// in:body
+	PushFilesOptions api.PushFilesOptions
+
+	// in:body
 	DeleteFileOptions api.DeleteFileOptions
 
 	// in:body

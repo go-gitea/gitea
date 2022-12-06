@@ -20,45 +20,15 @@
 //	- text/html
 //
 //	Security:
-//	- BasicAuth :
-//	- Token :
-//	- AccessToken :
-//	- AuthorizationHeaderToken :
-//	- SudoParam :
-//	- SudoHeader :
-//	- TOTPHeader :
+//	- CognitoToken :
 //
 //	SecurityDefinitions:
 //	BasicAuth:
 //	     type: basic
-//	Token:
+//	CognitoToken:
 //	     type: apiKey
-//	     name: token
-//	     in: query
-//	AccessToken:
-//	     type: apiKey
-//	     name: access_token
-//	     in: query
-//	AuthorizationHeaderToken:
-//	     type: apiKey
-//	     name: Authorization
+//	     name: COGNITO-TOKEN
 //	     in: header
-//	     description: API tokens must be prepended with "token" followed by a space.
-//	SudoParam:
-//	     type: apiKey
-//	     name: sudo
-//	     in: query
-//	     description: Sudo API request as the user provided as the key. Admin privileges are required.
-//	SudoHeader:
-//	     type: apiKey
-//	     name: Sudo
-//	     in: header
-//	     description: Sudo API request as the user provided as the key. Admin privileges are required.
-//	TOTPHeader:
-//	     type: apiKey
-//	     name: X-GITEA-OTP
-//	     in: header
-//	     description: Must be used in combination with BasicAuth if two-factor authentication is enabled.
 //
 // swagger:meta
 package v1
@@ -134,7 +104,6 @@ func repoAssignment() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		userName := ctx.Params("username")
 		repoName := ctx.Params("reponame")
-
 		var (
 			owner *user_model.User
 			err   error
@@ -162,16 +131,19 @@ func repoAssignment() func(ctx *context.APIContext) {
 		}
 		ctx.Repo.Owner = owner
 		ctx.ContextUser = owner
-
 		// Get repository.
 		repo, err := repo_model.GetRepositoryByName(owner.ID, repoName)
+
 		if err != nil {
 			if repo_model.IsErrRepoNotExist(err) {
 				redirectRepoID, err := repo_model.LookupRedirect(owner.ID, repoName)
 				if err == nil {
 					context.RedirectToRepo(ctx.Context, redirectRepoID)
 				} else if repo_model.IsErrRedirectNotExist(err) {
-					ctx.NotFound()
+
+					if ctx.Req.URL.Query().Get("isNewRepo") != "true" {
+						ctx.NotFound()
+					}
 				} else {
 					ctx.Error(http.StatusInternalServerError, "LookupRepoRedirect", err)
 				}
@@ -183,14 +155,13 @@ func repoAssignment() func(ctx *context.APIContext) {
 
 		repo.Owner = owner
 		ctx.Repo.Repository = repo
-
 		ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 			return
 		}
-
 		if !ctx.Repo.HasAccess() {
+			log.Debug("error is here")
 			ctx.NotFound()
 			return
 		}
@@ -287,7 +258,7 @@ func reqRepoWriter(unitTypes ...unit.Type) func(ctx *context.APIContext) {
 // reqRepoBranchWriter user should have a permission to write to a branch, or be a site admin
 func reqRepoBranchWriter(ctx *context.APIContext) {
 	options, ok := web.GetForm(ctx).(api.FileOptionInterface)
-	if !ok || (!ctx.Repo.CanWriteToBranch(ctx.Doer, options.Branch()) && !ctx.IsUserSiteAdmin()) {
+	if !ok || (!ctx.Repo.CanWriteToBranch(ctx.Doer, options.Branch()) && !ctx.IsUserSiteAdmin() && ctx.Req.URL.Query().Get("isNewRepo") != "true") {
 		ctx.Error(http.StatusForbidden, "reqRepoBranchWriter", "user should have a permission to write to this branch")
 		return
 	}
@@ -296,7 +267,7 @@ func reqRepoBranchWriter(ctx *context.APIContext) {
 // reqRepoReader user should have specific read permission or be a repo admin or a site admin
 func reqRepoReader(unitType unit.Type) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if !ctx.IsUserRepoReaderSpecific(unitType) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
+		if !ctx.IsUserRepoReaderSpecific(unitType) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() && ctx.Req.URL.Query().Get("isNewRepo") != "true" {
 			ctx.Error(http.StatusForbidden, "reqRepoReader", "user should have specific read permission or be a repo admin or a site admin")
 			return
 		}
@@ -1051,6 +1022,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 				m.Post("/diffpatch", reqRepoWriter(unit.TypeCode), reqToken(), bind(api.ApplyDiffPatchFileOptions{}), repo.ApplyDiffPatch)
 				m.Group("/contents", func() {
 					m.Get("", repo.GetContentsList)
+					m.Put("", bind(api.PushFilesOptions{}), reqRepoBranchWriter, repo.UpdateFile)
 					m.Get("/*", repo.GetContents)
 					m.Group("/*", func() {
 						m.Post("", bind(api.CreateFileOptions{}), reqRepoBranchWriter, repo.CreateFile)

@@ -12,22 +12,28 @@ import (
 	"io"
 	"net/http"
 	"path"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
+	db_model "code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
+	repo_permission "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/common"
+	repo_service "code.gitea.io/gitea/services/repository"
 	archiver_service "code.gitea.io/gitea/services/repository/archiver"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
@@ -292,8 +298,20 @@ func GetArchive(ctx *context.APIContext) {
 		}
 		ctx.Repo.GitRepo = gitRepo
 		defer gitRepo.Close()
-	}
+		head, err := gitRepo.GetHEADBranch()
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetHEADBranch", err)
+			return
+		}
+		baseCommit, err := gitRepo.GetBranchCommit(head.Name)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetBranchCommit", err)
+			return
+		}
 
+		ctx.Resp.Header().Set("last-commit-id", baseCommit.ID.String())
+
+	}
 	archiveDownload(ctx)
 }
 
@@ -499,9 +517,9 @@ func CreateFile(ctx *context.APIContext) {
 
 // UpdateFile handles API call for updating a file
 func UpdateFile(ctx *context.APIContext) {
-	// swagger:operation PUT /repos/{owner}/{repo}/contents/{filepath} repository repoUpdateFile
+	// swagger:operation PUT /repos/{owner}/{repo}/contents repository repoUpdateFile
 	// ---
-	// summary: Update a file in a repository
+	// summary: Update the files in a repository
 	// consumes:
 	// - application/json
 	// produces:
@@ -517,16 +535,11 @@ func UpdateFile(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: filepath
-	//   in: path
-	//   description: path of the file to update
-	//   type: string
-	//   required: true
 	// - name: body
 	//   in: body
 	//   required: true
 	//   schema:
-	//     "$ref": "#/definitions/UpdateFileOptions"
+	//     "$ref": "#/definitions/PushFilesOptions"
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/FileResponse"
@@ -536,50 +549,144 @@ func UpdateFile(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/error"
-	apiOpts := web.GetForm(ctx).(*api.UpdateFileOptions)
-	if ctx.Repo.Repository.IsEmpty {
-		ctx.Error(http.StatusUnprocessableEntity, "RepoIsEmpty", fmt.Errorf("repo is empty"))
-	}
 
-	if apiOpts.BranchName == "" {
-		apiOpts.BranchName = ctx.Repo.Repository.DefaultBranch
-	}
+	apiOpts := web.GetForm(ctx).(*api.PushFilesOptions)
+	repoFilesOptions := &files_service.UpdateRepoFilesOptions{
 
-	opts := &files_service.UpdateRepoFileOptions{
-		Content:      apiOpts.Content,
-		SHA:          apiOpts.SHA,
-		IsNewFile:    false,
-		Message:      apiOpts.Message,
-		FromTreePath: apiOpts.FromPath,
-		TreePath:     ctx.Params("*"),
-		OldBranch:    apiOpts.BranchName,
-		NewBranch:    apiOpts.NewBranchName,
-		Committer: &files_service.IdentityOptions{
-			Name:  apiOpts.Committer.Name,
-			Email: apiOpts.Committer.Email,
-		},
 		Author: &files_service.IdentityOptions{
 			Name:  apiOpts.Author.Name,
 			Email: apiOpts.Author.Email,
+		},
+		Committer: &files_service.IdentityOptions{
+			Name:  apiOpts.Committer.Name,
+			Email: apiOpts.Committer.Email,
 		},
 		Dates: &files_service.CommitDateOptions{
 			Author:    apiOpts.Dates.Author,
 			Committer: apiOpts.Dates.Committer,
 		},
-		Signoff: apiOpts.Signoff,
+		NewBranch: apiOpts.NewBranchName,
+		OldBranch: apiOpts.BranchName,
+		Signoff:   apiOpts.Signoff,
+		Message:   apiOpts.Message,
 	}
-	if opts.Dates.Author.IsZero() {
-		opts.Dates.Author = time.Now()
+	if repoFilesOptions.Dates.Author.IsZero() {
+		repoFilesOptions.Dates.Author = time.Now()
 	}
-	if opts.Dates.Committer.IsZero() {
-		opts.Dates.Committer = time.Now()
+	if repoFilesOptions.Dates.Committer.IsZero() {
+		repoFilesOptions.Dates.Committer = time.Now()
+	}
+	for i := 0; i < len(apiOpts.Files); i++ {
+		fileAction := strings.ToLower(apiOpts.Files[i].FileAction)
+		if fileAction == files_service.CreateFileAction || fileAction == files_service.EditFileAction || fileAction == files_service.DeleteFileAction {
+
+			opts := &files_service.UpdateRepoFileOptions{
+				FromTreePath: apiOpts.Files[i].FromPath,
+				TreePath:     apiOpts.Files[i].FromPath,
+				FileAction:   fileAction,
+			}
+
+			if fileAction != files_service.DeleteFileAction {
+				if len(apiOpts.Files[i].Content) == 0 {
+					ctx.Error(http.StatusBadRequest, "ContentIsEmpty", fmt.Errorf("content is empty"))
+					return
+				}
+				opts.Content = apiOpts.Files[i].Content
+			}
+
+			if fileAction == files_service.CreateFileAction {
+				opts.IsNewFile = true
+			} else {
+				if len(apiOpts.Files[i].SHA) == 0 {
+					ctx.Error(http.StatusBadRequest, "SHAIsEmpty", fmt.Errorf("SHA is empty"))
+					return
+				}
+				opts.SHA = apiOpts.Files[i].SHA
+				if fileAction == files_service.EditFileAction {
+					opts.IsNewFile = false
+					opts.Content = apiOpts.Files[i].Content
+				}
+			}
+
+			repoFilesOptions.Files = append(repoFilesOptions.Files, opts)
+
+		} else {
+			ctx.Error(http.StatusUnprocessableEntity, "FileAction", fmt.Errorf("file action not valid"))
+			return
+		}
+	}
+	if ctx.Req.URL.Query().Get("isNewRepo") == "true" {
+
+		owner, err := user_model.GetUserByName(ctx, ctx.Params("username"))
+		if err != nil {
+			if user_model.IsErrUserNotExist(err) {
+				ctx.JSON(http.StatusNotFound, map[string]interface{}{
+					"error": "request owner `" + ctx.Params("username") + "` does not exist",
+				})
+				return
+			}
+			ctx.Error(http.StatusUnprocessableEntity, "GetUserByName", err)
+			return
+		}
+
+		if apiOpts.Readme == "" {
+			apiOpts.Readme = "Default"
+		}
+		if apiOpts.DefaultBranch == "" {
+			apiOpts.DefaultBranch = "master"
+		}
+
+		repo, err := repo_service.CreateRepository(ctx.Doer, owner, repo_module.CreateRepoOptions{
+			Name:          ctx.Params("reponame"),
+			Description:   apiOpts.Description,
+			IssueLabels:   apiOpts.IssueLabels,
+			Gitignores:    apiOpts.Gitignores,
+			License:       apiOpts.License,
+			Readme:        apiOpts.Readme,
+			IsPrivate:     apiOpts.Private,
+			AutoInit:      true,
+			DefaultBranch: apiOpts.DefaultBranch,
+			TrustModel:    repo_model.ToTrustModel(apiOpts.TrustModel),
+			IsTemplate:    apiOpts.Template,
+		})
+		if err != nil {
+			if repo_model.IsErrRepoAlreadyExist(err) {
+				ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
+			} else if db_model.IsErrNameReserved(err) ||
+				db_model.IsErrNamePatternNotAllowed(err) ||
+				repo_module.IsErrIssueLabelTemplateLoad(err) {
+				ctx.Error(http.StatusUnprocessableEntity, "", err)
+			} else {
+				ctx.Error(http.StatusInternalServerError, "CreateRepository", err)
+			}
+			return
+		}
+		// reload repo from db to get a real state after creation
+		repo, err = repo_model.GetRepositoryByID(repo.ID)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetRepositoryByID", err)
+		}
+		ctx.Repo.Repository = repo
+		ctx.Repo.Permission, err = repo_permission.GetUserRepoPermission(ctx, repo, ctx.Doer)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
+			return
+		}
+	}
+	if ctx.Repo.Repository.IsEmpty {
+		ctx.Error(http.StatusUnprocessableEntity, "RepoIsEmpty", fmt.Errorf("repo is empty"))
+		return
+	}
+	if apiOpts.BranchName == "" {
+		repoFilesOptions.OldBranch = apiOpts.DefaultBranch
 	}
 
-	if opts.Message == "" {
-		opts.Message = ctx.Tr("repo.editor.update", opts.TreePath)
+	if apiOpts.Message == "" {
+		//set message of commit with final changing on commit
+		apiOpts.Message = ctx.Tr("repo.editor."+apiOpts.Files[len(apiOpts.Files)-1].FileAction, apiOpts.Files[len(apiOpts.Files)-1].FromPath)
 	}
 
-	if fileResponse, err := createOrUpdateFile(ctx, opts); err != nil {
+	if fileResponse, err := createOrUpdateOrDeleteFiles(ctx, repoFilesOptions); err != nil {
 		handleCreateOrUpdateFileError(ctx, err)
 	} else {
 		ctx.JSON(http.StatusOK, fileResponse)
@@ -620,6 +727,25 @@ func createOrUpdateFile(ctx *context.APIContext, opts *files_service.UpdateRepoF
 	opts.Content = string(content)
 
 	return files_service.CreateOrUpdateRepoFile(ctx, ctx.Repo.Repository, ctx.Doer, opts)
+}
+
+func createOrUpdateOrDeleteFiles(ctx *context.APIContext, opts *files_service.UpdateRepoFilesOptions) (*files_service.PushedFilesRes, error) {
+	if !canWriteFiles(ctx, opts.OldBranch) {
+		return nil, repo_model.ErrUserDoesNotHaveAccessToRepo{
+			UserID:   ctx.Doer.ID,
+			RepoName: ctx.Repo.Repository.LowerName,
+		}
+	}
+	for i := 0; i < len(opts.Files); i++ {
+
+		content, err := base64.StdEncoding.DecodeString(opts.Files[i].Content)
+		if err != nil {
+			return nil, err
+		}
+		opts.Files[i].Content = string(content)
+	}
+
+	return files_service.CreateOrUpdateOrDeleteRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, opts)
 }
 
 // DeleteFile Delete a file in a repository
@@ -813,5 +939,63 @@ func GetContentsList(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	// same as GetContents(), this function is here because swagger fails if path is empty in GetContents() interface
-	GetContents(ctx)
+	// GetContents(ctx)
+	if !canReadFiles(ctx.Repo) {
+		ctx.Error(http.StatusInternalServerError, "GetContentsOrList", repo_model.ErrUserDoesNotHaveAccessToRepo{
+			UserID:   ctx.Doer.ID,
+			RepoName: ctx.Repo.Repository.LowerName,
+		})
+		return
+	}
+
+	treePath := ctx.Params("*")
+	ref := ctx.FormTrim("ref")
+
+	fileList, err := files_service.GetContentsOrList(ctx, ctx.Repo.Repository, treePath, ref)
+	if err != nil {
+		if git.IsErrNotExist(err) {
+			ctx.NotFound("GetContentsOrList", err)
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, "GetContentsOrList", err)
+	}
+
+	var allDir []string
+	dir := files_service.ContentTypeDir
+
+	for i := 0; i < len(fileList); i++ {
+		if fileList[i].Type == dir.String() {
+			allDir = append(allDir, fileList[i].Path)
+		}
+	}
+
+	for i := 0; i < len(allDir); i++ {
+
+		filesDirList, err := files_service.GetContentsOrList(ctx, ctx.Repo.Repository, allDir[i], ref)
+		if err != nil {
+			if git.IsErrNotExist(err) {
+				ctx.NotFound("GetContentsOrList", err)
+				return
+			}
+			ctx.Error(http.StatusInternalServerError, "GetContentsOrList", err)
+		}
+
+		for j := range filesDirList {
+			if filesDirList[j].Type != dir.String() {
+				fileList = append(fileList, filesDirList[j])
+			} else {
+				allDir = append(allDir, filesDirList[j].Path)
+			}
+		}
+
+	}
+
+	for i := 0; i < len(fileList); i++ {
+		if fileList[i].Type == dir.String() {
+			fileList = append(fileList[:i], fileList[i+1:]...)
+			i--
+		}
+	}
+
+	ctx.JSON(http.StatusOK, fileList)
 }

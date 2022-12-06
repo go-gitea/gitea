@@ -505,6 +505,20 @@ func (err ErrSHAOrCommitIDNotProvided) Error() string {
 	return "a SHA or commit ID must be proved when updating a file"
 }
 
+type ErrLoginSourceAlreadyExist struct {
+	Name string
+}
+
+// IsErrLoginSourceAlreadyExist checks if an error is a ErrLoginSourceAlreadyExist.
+func IsErrLoginSourceAlreadyExist(err error) bool {
+	_, ok := err.(ErrLoginSourceAlreadyExist)
+	return ok
+}
+
+func (err ErrLoginSourceAlreadyExist) Error() string {
+	return fmt.Sprintf("login source already exists [name: %s]", err.Name)
+}
+
 // ErrInvalidMergeStyle represents an error if merging with disabled merge strategy
 type ErrInvalidMergeStyle struct {
 	ID    int64

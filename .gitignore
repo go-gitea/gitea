@@ -2,7 +2,7 @@
 *.o
 *.a
 *.so
-
+*.gz
 # Folders
 _obj
 _test
