@@ -54,7 +54,7 @@ func Init(ctx context.Context) error {
 			case <-ctx.Done():
 				return
 			default:
-				if err := processIncomingEmail(ctx); err != nil {
+				if err := processIncomingEmails(ctx); err != nil {
 					log.Error("Error while processing incoming emails: %v", err)
 				}
 				select {
@@ -69,7 +69,8 @@ func Init(ctx context.Context) error {
 	return nil
 }
 
-func processIncomingEmail(ctx context.Context) error {
+// processIncomingEmails is the "main" method with the wait/process loop
+func processIncomingEmails(ctx context.Context) error {
 	server := fmt.Sprintf("%s:%d", setting.IncomingEmail.Host, setting.IncomingEmail.Port)
 
 	var c *client.Client
@@ -116,6 +117,7 @@ func processIncomingEmail(ctx context.Context) error {
 	}
 }
 
+// waitForUpdates uses IMAP IDLE to wait for new emails
 func waitForUpdates(ctx context.Context, c *client.Client) error {
 	updates := make(chan client.Update, 1)
 
@@ -153,6 +155,7 @@ func waitForUpdates(ctx context.Context, c *client.Client) error {
 	}
 }
 
+// processMessages searches unread mails and processes them.
 func processMessages(ctx context.Context, c *client.Client) error {
 	mbox, err := c.Select(setting.IncomingEmail.Mailbox, false)
 	if err != nil {
@@ -278,6 +281,7 @@ loop:
 	return nil
 }
 
+// isAutomaticReply tests if the headers indicate an automatic reply
 func isAutomaticReply(h mail.Header) bool {
 	autoSubmitted := h.Get("Auto-Submitted")
 	if autoSubmitted != "" && autoSubmitted != "no" {
@@ -291,6 +295,7 @@ func isAutomaticReply(h mail.Header) bool {
 	return autoRespond != ""
 }
 
+// searchTokenInHeaders looks for the token in To, Delivered-To and References
 func searchTokenInHeaders(h mail.Header) string {
 	if addressTokenRegex != nil {
 		to, _ := h.AddressList("To")
@@ -344,6 +349,9 @@ type Attachment struct {
 	Content bytes.Buffer
 }
 
+// getContentFromMailReader reads the plain content and the attachments from the mail.
+// If there is only HTML content, it gets converted to plain text.
+// A potential reply/signature gets stripped from the content.
 func getContentFromMailReader(mr *mail.Reader) (*MailContent, error) {
 	contentText := ""
 	contentHTML := ""
