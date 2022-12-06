@@ -69,7 +69,7 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 			return err
 		}
 		if lfsLock != nil && lfsLock.OwnerID != doer.ID {
-			u, err := user_model.GetUserByID(lfsLock.OwnerID)
+			u, err := user_model.GetUserByID(ctx, lfsLock.OwnerID)
 			if err != nil {
 				return err
 			}

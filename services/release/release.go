@@ -289,7 +289,7 @@ func DeleteReleaseByID(ctx context.Context, id int64, doer *user_model.User, del
 		return fmt.Errorf("GetReleaseByID: %w", err)
 	}
 
-	repo, err := repo_model.GetRepositoryByIDCtx(ctx, rel.RepoID)
+	repo, err := repo_model.GetRepositoryByID(ctx, rel.RepoID)
 	if err != nil {
 		return fmt.Errorf("GetRepositoryByID: %w", err)
 	}

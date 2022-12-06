@@ -15,10 +15,9 @@ import (
 )
 
 func testAPIGetBranch(t *testing.T, branchName string, exists bool) {
-	session := loginUser(t, "user2")
-	token := getTokenForLoggedInUser(t, session)
+	token := getUserToken(t, "user2")
 	req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/branches/%s?token=%s", branchName, token)
-	resp := session.MakeRequest(t, req, NoExpectedStatus)
+	resp := MakeRequest(t, req, NoExpectedStatus)
 	if !exists {
 		assert.EqualValues(t, http.StatusNotFound, resp.Code)
 		return
@@ -32,10 +31,9 @@ func testAPIGetBranch(t *testing.T, branchName string, exists bool) {
 }
 
 func testAPIGetBranchProtection(t *testing.T, branchName string, expectedHTTPStatus int) {
-	session := loginUser(t, "user2")
-	token := getTokenForLoggedInUser(t, session)
+	token := getUserToken(t, "user2")
 	req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/branch_protections/%s?token=%s", branchName, token)
-	resp := session.MakeRequest(t, req, expectedHTTPStatus)
+	resp := MakeRequest(t, req, expectedHTTPStatus)
 
 	if resp.Code == http.StatusOK {
 		var branchProtection api.BranchProtection
@@ -45,12 +43,11 @@ func testAPIGetBranchProtection(t *testing.T, branchName string, expectedHTTPSta
 }
 
 func testAPICreateBranchProtection(t *testing.T, branchName string, expectedHTTPStatus int) {
-	session := loginUser(t, "user2")
-	token := getTokenForLoggedInUser(t, session)
+	token := getUserToken(t, "user2")
 	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/branch_protections?token="+token, &api.BranchProtection{
 		BranchName: branchName,
 	})
-	resp := session.MakeRequest(t, req, expectedHTTPStatus)
+	resp := MakeRequest(t, req, expectedHTTPStatus)
 
 	if resp.Code == http.StatusCreated {
 		var branchProtection api.BranchProtection
@@ -60,10 +57,9 @@ func testAPICreateBranchProtection(t *testing.T, branchName string, expectedHTTP
 }
 
 func testAPIEditBranchProtection(t *testing.T, branchName string, body *api.BranchProtection, expectedHTTPStatus int) {
-	session := loginUser(t, "user2")
-	token := getTokenForLoggedInUser(t, session)
+	token := getUserToken(t, "user2")
 	req := NewRequestWithJSON(t, "PATCH", "/api/v1/repos/user2/repo1/branch_protections/"+branchName+"?token="+token, body)
-	resp := session.MakeRequest(t, req, expectedHTTPStatus)
+	resp := MakeRequest(t, req, expectedHTTPStatus)
 
 	if resp.Code == http.StatusOK {
 		var branchProtection api.BranchProtection
@@ -73,17 +69,15 @@ func testAPIEditBranchProtection(t *testing.T, branchName string, body *api.Bran
 }
 
 func testAPIDeleteBranchProtection(t *testing.T, branchName string, expectedHTTPStatus int) {
-	session := loginUser(t, "user2")
-	token := getTokenForLoggedInUser(t, session)
+	token := getUserToken(t, "user2")
 	req := NewRequestf(t, "DELETE", "/api/v1/repos/user2/repo1/branch_protections/%s?token=%s", branchName, token)
-	session.MakeRequest(t, req, expectedHTTPStatus)
+	MakeRequest(t, req, expectedHTTPStatus)
 }
 
 func testAPIDeleteBranch(t *testing.T, branchName string, expectedHTTPStatus int) {
-	session := loginUser(t, "user2")
-	token := getTokenForLoggedInUser(t, session)
+	token := getUserToken(t, "user2")
 	req := NewRequestf(t, "DELETE", "/api/v1/repos/user2/repo1/branches/%s?token=%s", branchName, token)
-	session.MakeRequest(t, req, expectedHTTPStatus)
+	MakeRequest(t, req, expectedHTTPStatus)
 }
 
 func TestAPIGetBranch(t *testing.T) {
@@ -160,7 +154,7 @@ func testAPICreateBranch(t testing.TB, session *TestSession, user, repo, oldBran
 		BranchName:    newBranch,
 		OldBranchName: oldBranch,
 	})
-	resp := session.MakeRequest(t, req, status)
+	resp := MakeRequest(t, req, status)
 
 	var branch api.Branch
 	DecodeJSON(t, resp, &branch)

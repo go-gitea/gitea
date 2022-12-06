@@ -4,6 +4,7 @@
 package convert
 
 import (
+	"context"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -16,11 +17,11 @@ import (
 )
 
 // ToRepo converts a Repository to api.Repository
-func ToRepo(repo *repo_model.Repository, mode perm.AccessMode) *api.Repository {
-	return innerToRepo(repo, mode, false)
+func ToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.AccessMode) *api.Repository {
+	return innerToRepo(ctx, repo, mode, false)
 }
 
-func innerToRepo(repo *repo_model.Repository, mode perm.AccessMode, isParent bool) *api.Repository {
+func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.AccessMode, isParent bool) *api.Repository {
 	var parent *api.Repository
 
 	cloneLink := repo.CloneLink()
@@ -30,12 +31,12 @@ func innerToRepo(repo *repo_model.Repository, mode perm.AccessMode, isParent boo
 		Pull:  mode >= perm.AccessModeRead,
 	}
 	if !isParent {
-		err := repo.GetBaseRepo()
+		err := repo.GetBaseRepo(ctx)
 		if err != nil {
 			return nil
 		}
 		if repo.BaseRepo != nil {
-			parent = innerToRepo(repo.BaseRepo, mode, true)
+			parent = innerToRepo(ctx, repo.BaseRepo, mode, true)
 		}
 	}
 
