@@ -22,7 +22,7 @@ import (
 
 const (
 	MaxLineSize = 64 * 1024
-	DBFSPrefix  = "actions_tasks/"
+	DBFSPrefix  = "actions_log/"
 
 	timeFormat     = "2006-01-02T15:04:05.0000000Z07:00"
 	defaultBufSize = 64 * 1024
