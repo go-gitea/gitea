@@ -249,7 +249,7 @@ type fileInfo struct {
 	st         typesniffer.SniffedType
 }
 
-func getFileReader(ctx *context.Context, blob *git.Blob) ([]byte, io.ReadCloser, *fileInfo, error) {
+func getFileReader(repoID int64, blob *git.Blob) ([]byte, io.ReadCloser, *fileInfo, error) {
 	dataRc, err := blob.DataAsync()
 	if err != nil {
 		return nil, nil, nil, err
@@ -272,7 +272,7 @@ func getFileReader(ctx *context.Context, blob *git.Blob) ([]byte, io.ReadCloser,
 		return buf, dataRc, &fileInfo{isTextFile, false, blob.Size(), nil, st}, nil
 	}
 
-	meta, err := git_model.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
+	meta, err := git_model.GetLFSMetaObjectByOid(repoID, pointer.Oid)
 	if err != git_model.ErrLFSObjectNotExist { // fallback to plain file
 		return buf, dataRc, &fileInfo{isTextFile, false, blob.Size(), nil, st}, nil
 	}
@@ -306,7 +306,7 @@ func renderReadmeFile(ctx *context.Context, readmeFile *namedBlob, readmeTreelin
 	ctx.Data["ReadmeExist"] = true
 	ctx.Data["FileIsSymlink"] = readmeFile.isSymlink
 
-	buf, dataRc, fInfo, err := getFileReader(ctx, readmeFile.blob)
+	buf, dataRc, fInfo, err := getFileReader(ctx.Repo.Repository.ID, readmeFile.blob)
 	if err != nil {
 		ctx.ServerError("getFileReader", err)
 		return
@@ -371,7 +371,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["IsViewFile"] = true
 	ctx.Data["HideRepoInfo"] = true
 	blob := entry.Blob()
-	buf, dataRc, fInfo, err := getFileReader(ctx, blob)
+	buf, dataRc, fInfo, err := getFileReader(ctx.Repo.Repository.ID, blob)
 	if err != nil {
 		ctx.ServerError("getFileReader", err)
 		return
