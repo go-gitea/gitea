@@ -1,7 +1,6 @@
 // Copyright 2019 The Gitea Authors.
 // All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package pull
 
@@ -15,6 +14,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/container"
@@ -534,7 +534,7 @@ func checkPullFilesProtection(pr *issues_model.PullRequest, gitRepo *git.Reposit
 		return nil
 	}
 
-	if err := pr.LoadProtectedBranch(); err != nil {
+	if err := pr.LoadProtectedBranch(db.DefaultContext); err != nil {
 		return err
 	}
 

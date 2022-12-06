@@ -1,6 +1,5 @@
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package activities
 
@@ -246,7 +245,7 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 	// notify
 	for userID := range toNotify {
 		issue.Repo.Units = nil
-		user, err := user_model.GetUserByIDCtx(ctx, userID)
+		user, err := user_model.GetUserByID(ctx, userID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				continue
@@ -389,7 +388,7 @@ func (n *Notification) LoadAttributes(ctx context.Context) (err error) {
 
 func (n *Notification) loadRepo(ctx context.Context) (err error) {
 	if n.Repository == nil {
-		n.Repository, err = repo_model.GetRepositoryByIDCtx(ctx, n.RepoID)
+		n.Repository, err = repo_model.GetRepositoryByID(ctx, n.RepoID)
 		if err != nil {
 			return fmt.Errorf("getRepositoryByID [%d]: %w", n.RepoID, err)
 		}
@@ -426,7 +425,7 @@ func (n *Notification) loadComment(ctx context.Context) (err error) {
 
 func (n *Notification) loadUser(ctx context.Context) (err error) {
 	if n.User == nil {
-		n.User, err = user_model.GetUserByIDCtx(ctx, n.UserID)
+		n.User, err = user_model.GetUserByID(ctx, n.UserID)
 		if err != nil {
 			return fmt.Errorf("getUserByID [%d]: %w", n.UserID, err)
 		}

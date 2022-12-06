@@ -1,6 +1,5 @@
 // Copyright 2021 Gitea. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package automerge
 
@@ -219,7 +218,7 @@ func handlePull(pullID int64, sha string) {
 	}
 
 	// Merge if all checks succeeded
-	doer, err := user_model.GetUserByIDCtx(ctx, scheduledPRM.DoerID)
+	doer, err := user_model.GetUserByID(ctx, scheduledPRM.DoerID)
 	if err != nil {
 		log.Error("GetUserByIDCtx: %v", err)
 		return

@@ -1,7 +1,6 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -252,42 +251,50 @@ func ListBranches(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/BranchList"
 
-	listOptions := utils.GetListOptions(ctx)
-	skip, _ := listOptions.GetStartEnd()
-	branches, totalNumOfBranches, err := ctx.Repo.GitRepo.GetBranches(skip, listOptions.PageSize)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetBranches", err)
-		return
-	}
+	var totalNumOfBranches int
+	var apiBranches []*api.Branch
 
-	apiBranches := make([]*api.Branch, 0, len(branches))
-	for i := range branches {
-		c, err := branches[i].GetCommit()
+	listOptions := utils.GetListOptions(ctx)
+
+	if !ctx.Repo.Repository.IsEmpty && ctx.Repo.GitRepo != nil {
+		skip, _ := listOptions.GetStartEnd()
+		branches, total, err := ctx.Repo.GitRepo.GetBranches(skip, listOptions.PageSize)
 		if err != nil {
-			// Skip if this branch doesn't exist anymore.
-			if git.IsErrNotExist(err) {
-				totalNumOfBranches--
-				continue
+			ctx.Error(http.StatusInternalServerError, "GetBranches", err)
+			return
+		}
+
+		apiBranches = make([]*api.Branch, 0, len(branches))
+		for i := range branches {
+			c, err := branches[i].GetCommit()
+			if err != nil {
+				// Skip if this branch doesn't exist anymore.
+				if git.IsErrNotExist(err) {
+					total--
+					continue
+				}
+				ctx.Error(http.StatusInternalServerError, "GetCommit", err)
+				return
 			}
-			ctx.Error(http.StatusInternalServerError, "GetCommit", err)
-			return
+			branchProtection, err := git_model.GetProtectedBranchBy(ctx, ctx.Repo.Repository.ID, branches[i].Name)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetProtectedBranchBy", err)
+				return
+			}
+			apiBranch, err := convert.ToBranch(ctx.Repo.Repository, branches[i], c, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "convert.ToBranch", err)
+				return
+			}
+			apiBranches = append(apiBranches, apiBranch)
 		}
-		branchProtection, err := git_model.GetProtectedBranchBy(ctx, ctx.Repo.Repository.ID, branches[i].Name)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
-			return
-		}
-		apiBranch, err := convert.ToBranch(ctx.Repo.Repository, branches[i], c, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "convert.ToBranch", err)
-			return
-		}
-		apiBranches = append(apiBranches, apiBranch)
+
+		totalNumOfBranches = total
 	}
 
 	ctx.SetLinkHeader(totalNumOfBranches, listOptions.PageSize)
 	ctx.SetTotalCountHeader(int64(totalNumOfBranches))
-	ctx.JSON(http.StatusOK, &apiBranches)
+	ctx.JSON(http.StatusOK, apiBranches)
 }
 
 // GetBranchProtection gets a branch protection

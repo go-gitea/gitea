@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package org
 
@@ -108,13 +107,20 @@ func MembersAction(ctx *context.Context) {
 		}
 	case "leave":
 		err = models.RemoveOrgUser(org.ID, ctx.Doer.ID)
-		if organization.IsErrLastOrgOwner(err) {
+		if err == nil {
+			ctx.Flash.Success(ctx.Tr("form.organization_leave_success", org.DisplayName()))
+			ctx.JSON(http.StatusOK, map[string]interface{}{
+				"redirect": "", // keep the user stay on current page, in case they want to do other operations.
+			})
+		} else if organization.IsErrLastOrgOwner(err) {
 			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
 			ctx.JSON(http.StatusOK, map[string]interface{}{
 				"redirect": ctx.Org.OrgLink + "/members",
 			})
-			return
+		} else {
+			log.Error("RemoveOrgUser(%d,%d): %v", org.ID, ctx.Doer.ID, err)
 		}
+		return
 	}
 
 	if err != nil {

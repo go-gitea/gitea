@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -95,7 +94,7 @@ func GetAttachment(ctx *context.Context) {
 		return
 	}
 
-	repository, unitType, err := repo_service.LinkedRepository(attach)
+	repository, unitType, err := repo_service.LinkedRepository(ctx, attach)
 	if err != nil {
 		ctx.ServerError("LinkedRepository", err)
 		return
