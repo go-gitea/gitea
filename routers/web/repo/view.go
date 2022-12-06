@@ -267,8 +267,6 @@ func getFileReader(ctx *context.Context, blob *git.Blob) ([]byte, io.ReadCloser,
 		return buf, dataRc, &fileInfo{isTextFile, false, blob.Size(), nil, st}, nil
 	}
 
-	dataRc.Close()
-
 	pointer, _ := lfs.ReadPointerFromBuffer(buf)
 	if !pointer.IsValid() { // fallback to plain file
 		return buf, dataRc, &fileInfo{isTextFile, false, blob.Size(), nil, st}, nil
@@ -278,6 +276,8 @@ func getFileReader(ctx *context.Context, blob *git.Blob) ([]byte, io.ReadCloser,
 	if err != git_model.ErrLFSObjectNotExist { // fallback to plain file
 		return buf, dataRc, &fileInfo{isTextFile, false, blob.Size(), nil, st}, nil
 	}
+
+	dataRc.Close()
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -290,6 +290,7 @@ func getFileReader(ctx *context.Context, blob *git.Blob) ([]byte, io.ReadCloser,
 	buf = make([]byte, 1024)
 	n, err = util.ReadAtMost(dataRc, buf)
 	if err != nil {
+		dataRc.Close()
 		return nil, nil, nil, err
 	}
 	buf = buf[:n]
