@@ -281,7 +281,8 @@ func renderReadmeFile(ctx *context.Context, readmeFile *namedBlob, readmeTreelin
 				isLFSFile = true
 
 				// OK read the lfs object
-				var err error
+				dataRc.Close()
+
 				dataRc, err = lfs.ReadMetaObject(pointer)
 				if err != nil {
 					ctx.ServerError("ReadMetaObject", err)
