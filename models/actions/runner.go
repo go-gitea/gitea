@@ -14,7 +14,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	runnerv1 "code.gitea.io/bots-proto-go/runner/v1"
+	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"xorm.io/builder"
 )
 

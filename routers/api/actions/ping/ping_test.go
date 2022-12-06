@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/bots-proto-go/ping/v1/pingv1connect"
+	"code.gitea.io/actions-proto-go/ping/v1/pingv1connect"
 )
 
 func TestService(t *testing.T) {

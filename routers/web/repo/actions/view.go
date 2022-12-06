@@ -17,7 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	actions_service "code.gitea.io/gitea/services/actions"
 
-	runnerv1 "code.gitea.io/bots-proto-go/runner/v1"
+	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"xorm.io/builder"
 )
 

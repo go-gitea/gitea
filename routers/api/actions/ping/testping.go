@@ -9,8 +9,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	pingv1 "code.gitea.io/bots-proto-go/ping/v1"
-	"code.gitea.io/bots-proto-go/ping/v1/pingv1connect"
+	pingv1 "code.gitea.io/actions-proto-go/ping/v1"
+	"code.gitea.io/actions-proto-go/ping/v1/pingv1connect"
 	"github.com/bufbuild/connect-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

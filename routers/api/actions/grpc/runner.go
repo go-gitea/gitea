@@ -8,7 +8,7 @@ import (
 
 	"code.gitea.io/gitea/routers/api/actions/runner"
 
-	"code.gitea.io/bots-proto-go/runner/v1/runnerv1connect"
+	"code.gitea.io/actions-proto-go/runner/v1/runnerv1connect"
 )
 
 func RunnerRoute() (string, http.Handler) {

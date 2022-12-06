@@ -3,7 +3,7 @@
 
 package actions
 
-import runnerv1 "code.gitea.io/bots-proto-go/runner/v1"
+import runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 
 // Status represents the status of BotRun, BotRunJob, BotTask, or BotTaskStep
 type Status int

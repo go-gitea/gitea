@@ -8,7 +8,7 @@ import (
 
 	"code.gitea.io/gitea/routers/api/actions/ping"
 
-	"code.gitea.io/bots-proto-go/ping/v1/pingv1connect"
+	"code.gitea.io/actions-proto-go/ping/v1/pingv1connect"
 )
 
 func PingRoute() (string, http.Handler) {
