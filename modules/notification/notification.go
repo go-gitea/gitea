@@ -41,14 +41,14 @@ func NewContext() {
 	RegisterNotifier(webhook.NewNotifier())
 	RegisterNotifier(action.NewNotifier())
 	RegisterNotifier(mirror.NewNotifier())
-	if setting.Bots.Enabled {
+	if setting.Actions.Enabled {
 		RegisterNotifier(actions.NewNotifier())
 	}
 }
 
 // NotifyNewWikiPage notifies creating new wiki pages to notifiers
 func NotifyNewWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page, comment string) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -58,7 +58,7 @@ func NotifyNewWikiPage(ctx context.Context, doer *user_model.User, repo *repo_mo
 
 // NotifyEditWikiPage notifies editing or renaming wiki pages to notifiers
 func NotifyEditWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page, comment string) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -68,7 +68,7 @@ func NotifyEditWikiPage(ctx context.Context, doer *user_model.User, repo *repo_m
 
 // NotifyDeleteWikiPage notifies deleting wiki pages to notifiers
 func NotifyDeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page string) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -80,7 +80,7 @@ func NotifyDeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo
 func NotifyCreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,
 	issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User,
 ) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -90,7 +90,7 @@ func NotifyCreateIssueComment(ctx context.Context, doer *user_model.User, repo *
 
 // NotifyNewIssue notifies new issue to notifiers
 func NotifyNewIssue(ctx context.Context, issue *issues_model.Issue, mentions []*user_model.User) {
-	if issue.Poster.IsBots() {
+	if issue.Poster.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -100,7 +100,7 @@ func NotifyNewIssue(ctx context.Context, issue *issues_model.Issue, mentions []*
 
 // NotifyIssueChangeStatus notifies close or reopen issue to notifiers
 func NotifyIssueChangeStatus(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, actionComment *issues_model.Comment, closeOrReopen bool) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -110,7 +110,7 @@ func NotifyIssueChangeStatus(ctx context.Context, doer *user_model.User, issue *
 
 // NotifyDeleteIssue notify when some issue deleted
 func NotifyDeleteIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -120,7 +120,7 @@ func NotifyDeleteIssue(ctx context.Context, doer *user_model.User, issue *issues
 
 // NotifyMergePullRequest notifies merge pull request to notifiers
 func NotifyMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -130,7 +130,7 @@ func NotifyMergePullRequest(ctx context.Context, doer *user_model.User, pr *issu
 
 // NotifyAutoMergePullRequest notifies merge pull request to notifiers
 func NotifyAutoMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -147,7 +147,7 @@ func NotifyNewPullRequest(ctx context.Context, pr *issues_model.PullRequest, men
 	if err := pr.Issue.LoadPoster(ctx); err != nil {
 		return
 	}
-	if pr.Issue.Poster.IsBots() {
+	if pr.Issue.Poster.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -157,7 +157,7 @@ func NotifyNewPullRequest(ctx context.Context, pr *issues_model.PullRequest, men
 
 // NotifyPullRequestSynchronized notifies Synchronized pull request
 func NotifyPullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -171,7 +171,7 @@ func NotifyPullRequestReview(ctx context.Context, pr *issues_model.PullRequest, 
 		log.Error("%v", err)
 		return
 	}
-	if review.Reviewer.IsBots() {
+	if review.Reviewer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -185,7 +185,7 @@ func NotifyPullRequestCodeComment(ctx context.Context, pr *issues_model.PullRequ
 		log.Error("LoadPoster: %v", err)
 		return
 	}
-	if comment.Poster.IsBots() {
+	if comment.Poster.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -195,7 +195,7 @@ func NotifyPullRequestCodeComment(ctx context.Context, pr *issues_model.PullRequ
 
 // NotifyPullRequestChangeTargetBranch notifies when a pull request's target branch was changed
 func NotifyPullRequestChangeTargetBranch(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, oldBranch string) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -205,7 +205,7 @@ func NotifyPullRequestChangeTargetBranch(ctx context.Context, doer *user_model.U
 
 // NotifyPullRequestPushCommits notifies when push commits to pull request's head branch
 func NotifyPullRequestPushCommits(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, comment *issues_model.Comment) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -215,7 +215,7 @@ func NotifyPullRequestPushCommits(ctx context.Context, doer *user_model.User, pr
 
 // NotifyPullReviewDismiss notifies when a review was dismissed by repo admin
 func NotifyPullReviewDismiss(ctx context.Context, doer *user_model.User, review *issues_model.Review, comment *issues_model.Comment) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -225,7 +225,7 @@ func NotifyPullReviewDismiss(ctx context.Context, doer *user_model.User, review 
 
 // NotifyUpdateComment notifies update comment to notifiers
 func NotifyUpdateComment(ctx context.Context, doer *user_model.User, c *issues_model.Comment, oldContent string) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -235,7 +235,7 @@ func NotifyUpdateComment(ctx context.Context, doer *user_model.User, c *issues_m
 
 // NotifyDeleteComment notifies delete comment to notifiers
 func NotifyDeleteComment(ctx context.Context, doer *user_model.User, c *issues_model.Comment) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -249,7 +249,7 @@ func NotifyNewRelease(ctx context.Context, rel *repo_model.Release) {
 		log.Error("LoadPublisher: %v", err)
 		return
 	}
-	if rel.Publisher.IsBots() {
+	if rel.Publisher.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -259,7 +259,7 @@ func NotifyNewRelease(ctx context.Context, rel *repo_model.Release) {
 
 // NotifyUpdateRelease notifies update release to notifiers
 func NotifyUpdateRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -269,7 +269,7 @@ func NotifyUpdateRelease(ctx context.Context, doer *user_model.User, rel *repo_m
 
 // NotifyDeleteRelease notifies delete release to notifiers
 func NotifyDeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -279,7 +279,7 @@ func NotifyDeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_m
 
 // NotifyIssueChangeMilestone notifies change milestone to notifiers
 func NotifyIssueChangeMilestone(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldMilestoneID int64) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -289,7 +289,7 @@ func NotifyIssueChangeMilestone(ctx context.Context, doer *user_model.User, issu
 
 // NotifyIssueChangeContent notifies change content to notifiers
 func NotifyIssueChangeContent(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldContent string) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -299,7 +299,7 @@ func NotifyIssueChangeContent(ctx context.Context, doer *user_model.User, issue 
 
 // NotifyIssueChangeAssignee notifies change content to notifiers
 func NotifyIssueChangeAssignee(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, assignee *user_model.User, removed bool, comment *issues_model.Comment) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -309,7 +309,7 @@ func NotifyIssueChangeAssignee(ctx context.Context, doer *user_model.User, issue
 
 // NotifyPullReviewRequest notifies Request Review change
 func NotifyPullReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -319,7 +319,7 @@ func NotifyPullReviewRequest(ctx context.Context, doer *user_model.User, issue *
 
 // NotifyIssueClearLabels notifies clear labels to notifiers
 func NotifyIssueClearLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -329,7 +329,7 @@ func NotifyIssueClearLabels(ctx context.Context, doer *user_model.User, issue *i
 
 // NotifyIssueChangeTitle notifies change title to notifiers
 func NotifyIssueChangeTitle(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -339,7 +339,7 @@ func NotifyIssueChangeTitle(ctx context.Context, doer *user_model.User, issue *i
 
 // NotifyIssueChangeRef notifies change reference to notifiers
 func NotifyIssueChangeRef(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldRef string) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -351,7 +351,7 @@ func NotifyIssueChangeRef(ctx context.Context, doer *user_model.User, issue *iss
 func NotifyIssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue,
 	addedLabels, removedLabels []*issues_model.Label,
 ) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -361,7 +361,7 @@ func NotifyIssueChangeLabels(ctx context.Context, doer *user_model.User, issue *
 
 // NotifyCreateRepository notifies create repository to notifiers
 func NotifyCreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -371,7 +371,7 @@ func NotifyCreateRepository(ctx context.Context, doer, u *user_model.User, repo 
 
 // NotifyMigrateRepository notifies create repository to notifiers
 func NotifyMigrateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -381,7 +381,7 @@ func NotifyMigrateRepository(ctx context.Context, doer, u *user_model.User, repo
 
 // NotifyTransferRepository notifies create repository to notifiers
 func NotifyTransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, newOwnerName string) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -391,7 +391,7 @@ func NotifyTransferRepository(ctx context.Context, doer *user_model.User, repo *
 
 // NotifyDeleteRepository notifies delete repository to notifiers
 func NotifyDeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -401,7 +401,7 @@ func NotifyDeleteRepository(ctx context.Context, doer *user_model.User, repo *re
 
 // NotifyForkRepository notifies fork repository to notifiers
 func NotifyForkRepository(ctx context.Context, doer *user_model.User, oldRepo, repo *repo_model.Repository) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -411,7 +411,7 @@ func NotifyForkRepository(ctx context.Context, doer *user_model.User, oldRepo, r
 
 // NotifyRenameRepository notifies repository renamed
 func NotifyRenameRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldName string) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -421,7 +421,7 @@ func NotifyRenameRepository(ctx context.Context, doer *user_model.User, repo *re
 
 // NotifyPushCommits notifies commits pushed to notifiers
 func NotifyPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
-	if pusher.IsBots() {
+	if pusher.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -431,7 +431,7 @@ func NotifyPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_
 
 // NotifyCreateRef notifies branch or tag creation to notifiers
 func NotifyCreateRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
-	if pusher.IsBots() {
+	if pusher.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -441,7 +441,7 @@ func NotifyCreateRef(ctx context.Context, pusher *user_model.User, repo *repo_mo
 
 // NotifyDeleteRef notifies branch or tag deletion to notifiers
 func NotifyDeleteRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
-	if pusher.IsBots() {
+	if pusher.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -451,7 +451,7 @@ func NotifyDeleteRef(ctx context.Context, pusher *user_model.User, repo *repo_mo
 
 // NotifySyncPushCommits notifies commits pushed to notifiers
 func NotifySyncPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
-	if pusher.IsBots() {
+	if pusher.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -461,7 +461,7 @@ func NotifySyncPushCommits(ctx context.Context, pusher *user_model.User, repo *r
 
 // NotifySyncCreateRef notifies branch or tag creation to notifiers
 func NotifySyncCreateRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
-	if pusher.IsBots() {
+	if pusher.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -471,7 +471,7 @@ func NotifySyncCreateRef(ctx context.Context, pusher *user_model.User, repo *rep
 
 // NotifySyncDeleteRef notifies branch or tag deletion to notifiers
 func NotifySyncDeleteRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
-	if pusher.IsBots() {
+	if pusher.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -481,7 +481,7 @@ func NotifySyncDeleteRef(ctx context.Context, pusher *user_model.User, repo *rep
 
 // NotifyRepoPendingTransfer notifies creation of pending transfer to notifiers
 func NotifyRepoPendingTransfer(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -491,7 +491,7 @@ func NotifyRepoPendingTransfer(ctx context.Context, doer, newOwner *user_model.U
 
 // NotifyPackageCreate notifies creation of a package to notifiers
 func NotifyPackageCreate(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {
@@ -501,7 +501,7 @@ func NotifyPackageCreate(ctx context.Context, doer *user_model.User, pd *package
 
 // NotifyPackageDelete notifies deletion of a package to notifiers
 func NotifyPackageDelete(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor) {
-	if doer.IsBots() {
+	if doer.IsActions() {
 		return
 	}
 	for _, notifier := range notifiers {

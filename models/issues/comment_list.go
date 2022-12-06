@@ -35,8 +35,8 @@ func (comments CommentList) LoadPosters(ctx context.Context) error {
 	}
 
 	for _, comment := range comments {
-		if comment.PosterID == user_model.BotUserID {
-			comment.Poster = user_model.NewBotUser()
+		if comment.PosterID == user_model.ActionsUserID {
+			comment.Poster = user_model.NewActionsUser()
 		} else if comment.PosterID <= 0 {
 			continue
 		} else {

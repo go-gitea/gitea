@@ -24,7 +24,7 @@ import (
 )
 
 func View(ctx *context_module.Context) {
-	ctx.Data["PageIsBots"] = true
+	ctx.Data["PageIsActions"] = true
 	runIndex := ctx.ParamsInt64("run")
 	jobIndex := ctx.ParamsInt64("job")
 	ctx.Data["RunIndex"] = runIndex
@@ -37,7 +37,7 @@ func View(ctx *context_module.Context) {
 	run := job.Run
 	ctx.Data["Build"] = run
 
-	ctx.HTML(http.StatusOK, tplViewBuild)
+	ctx.HTML(http.StatusOK, tplViewActions)
 }
 
 type ViewRequest struct {

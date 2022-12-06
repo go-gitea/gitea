@@ -489,13 +489,13 @@ func SettingsPost(ctx *context.Context) {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePackages)
 		}
 
-		if form.EnableBots && !unit_model.TypeBots.UnitGlobalDisabled() {
+		if form.EnableActions && !unit_model.TypeActions.UnitGlobalDisabled() {
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
-				Type:   unit_model.TypeBots,
+				Type:   unit_model.TypeActions,
 			})
-		} else if !unit_model.TypeBots.UnitGlobalDisabled() {
-			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeBots)
+		} else if !unit_model.TypeActions.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeActions)
 		}
 
 		if form.EnablePulls && !unit_model.TypePullRequests.UnitGlobalDisabled() {

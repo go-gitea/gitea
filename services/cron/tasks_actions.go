@@ -10,7 +10,7 @@ import (
 	actions_service "code.gitea.io/gitea/services/actions"
 )
 
-func initBotsTasks() {
+func initActionsTasks() {
 	registerStopZombieTasks()
 	registerStopEndlessTasks()
 	registerCancelAbandonedJobs()

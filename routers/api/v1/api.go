@@ -185,9 +185,9 @@ func repoAssignment() func(ctx *context.APIContext) {
 		repo.Owner = owner
 		ctx.Repo.Repository = repo
 
-		if ctx.Doer != nil && ctx.Doer.ID == user_model.BotUserID {
-			botTaskID := ctx.Data["BotTaskID"].(int64)
-			task, err := actions_model.GetTaskByID(ctx, botTaskID)
+		if ctx.Doer != nil && ctx.Doer.ID == user_model.ActionsUserID {
+			taskID := ctx.Data["ActionsTaskID"].(int64)
+			task, err := actions_model.GetTaskByID(ctx, taskID)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "actions_model.GetTaskByID", err)
 				return
@@ -239,7 +239,7 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.APIContext) 
 // Contexter middleware already checks token for user sign in process.
 func reqToken() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if true == ctx.Data["IsApiToken"] || true == ctx.Data["IsBotToken"] {
+		if true == ctx.Data["IsApiToken"] || true == ctx.Data["IsActionsToken"] {
 			return
 		}
 		if ctx.Context.IsBasicAuth {

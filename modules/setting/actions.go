@@ -7,23 +7,23 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-// Bots settings
+// Actions settings
 var (
-	Bots = struct {
+	Actions = struct {
 		Storage
-		Enabled        bool
-		DefaultBotsURL string
+		Enabled           bool
+		DefaultActionsURL string
 	}{
-		Enabled:        false,
-		DefaultBotsURL: "https://gitea.com",
+		Enabled:           false,
+		DefaultActionsURL: "https://gitea.com",
 	}
 )
 
-func newBots() {
-	sec := Cfg.Section("bots")
-	if err := sec.MapTo(&Bots); err != nil {
-		log.Fatal("Failed to map Bots settings: %v", err)
+func newActions() {
+	sec := Cfg.Section("actions")
+	if err := sec.MapTo(&Actions); err != nil {
+		log.Fatal("Failed to map Actions settings: %v", err)
 	}
 
-	Bots.Storage = getStorage("bots_log", "", nil)
+	Actions.Storage = getStorage("actions_log", "", nil)
 }

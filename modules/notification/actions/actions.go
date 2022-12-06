@@ -23,19 +23,19 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-type botsNotifier struct {
+type actionsNotifier struct {
 	base.NullNotifier
 }
 
-var _ base.Notifier = &botsNotifier{}
+var _ base.Notifier = &actionsNotifier{}
 
-// NewNotifier create a new botsNotifier notifier
+// NewNotifier create a new actionsNotifier notifier
 func NewNotifier() base.Notifier {
-	return &botsNotifier{}
+	return &actionsNotifier{}
 }
 
 // NotifyNewIssue notifies issue created event
-func (n *botsNotifier) NotifyNewIssue(ctx context.Context, issue *issues_model.Issue, _ []*user_model.User) {
+func (n *actionsNotifier) NotifyNewIssue(ctx context.Context, issue *issues_model.Issue, _ []*user_model.User) {
 	ctx = withMethod(ctx, "NotifyNewIssue")
 	if err := issue.LoadRepo(ctx); err != nil {
 		log.Error("issue.LoadRepo: %v", err)
@@ -57,7 +57,7 @@ func (n *botsNotifier) NotifyNewIssue(ctx context.Context, issue *issues_model.I
 }
 
 // NotifyIssueChangeStatus notifies close or reopen issue to notifiers
-func (n *botsNotifier) NotifyIssueChangeStatus(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, _ *issues_model.Comment, isClosed bool) {
+func (n *actionsNotifier) NotifyIssueChangeStatus(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, _ *issues_model.Comment, isClosed bool) {
 	ctx = withMethod(ctx, "NotifyIssueChangeStatus")
 	mode, _ := access_model.AccessLevel(ctx, issue.Poster, issue.Repo)
 	if issue.IsPull {
@@ -100,7 +100,7 @@ func (n *botsNotifier) NotifyIssueChangeStatus(ctx context.Context, doer *user_m
 		Notify(ctx)
 }
 
-func (n *botsNotifier) NotifyIssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue,
+func (n *actionsNotifier) NotifyIssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue,
 	_, _ []*issues_model.Label,
 ) {
 	ctx = withMethod(ctx, "NotifyIssueChangeLabels")
@@ -151,7 +151,7 @@ func (n *botsNotifier) NotifyIssueChangeLabels(ctx context.Context, doer *user_m
 }
 
 // NotifyCreateIssueComment notifies comment on an issue to notifiers
-func (n *botsNotifier) NotifyCreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,
+func (n *actionsNotifier) NotifyCreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,
 	issue *issues_model.Issue, comment *issues_model.Comment, _ []*user_model.User,
 ) {
 	ctx = withMethod(ctx, "NotifyCreateIssueComment")
@@ -185,7 +185,7 @@ func (n *botsNotifier) NotifyCreateIssueComment(ctx context.Context, doer *user_
 		Notify(ctx)
 }
 
-func (n *botsNotifier) NotifyNewPullRequest(ctx context.Context, pull *issues_model.PullRequest, _ []*user_model.User) {
+func (n *actionsNotifier) NotifyNewPullRequest(ctx context.Context, pull *issues_model.PullRequest, _ []*user_model.User) {
 	ctx = withMethod(ctx, "NotifyNewPullRequest")
 
 	if err := pull.LoadIssue(ctx); err != nil {
@@ -215,7 +215,7 @@ func (n *botsNotifier) NotifyNewPullRequest(ctx context.Context, pull *issues_mo
 		Notify(ctx)
 }
 
-func (n *botsNotifier) NotifyCreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
+func (n *actionsNotifier) NotifyCreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
 	ctx = withMethod(ctx, "NotifyCreateRepository")
 
 	newNotifyInput(repo, doer, webhook.HookEventRepository).WithPayload(&api.RepositoryPayload{
@@ -226,7 +226,7 @@ func (n *botsNotifier) NotifyCreateRepository(ctx context.Context, doer, u *user
 	}).Notify(ctx)
 }
 
-func (n *botsNotifier) NotifyForkRepository(ctx context.Context, doer *user_model.User, oldRepo, repo *repo_model.Repository) {
+func (n *actionsNotifier) NotifyForkRepository(ctx context.Context, doer *user_model.User, oldRepo, repo *repo_model.Repository) {
 	ctx = withMethod(ctx, "NotifyForkRepository")
 
 	oldMode, _ := access_model.AccessLevel(ctx, doer, oldRepo)
@@ -254,7 +254,7 @@ func (n *botsNotifier) NotifyForkRepository(ctx context.Context, doer *user_mode
 	}
 }
 
-func (n *botsNotifier) NotifyPullRequestReview(ctx context.Context, pr *issues_model.PullRequest, review *issues_model.Review, _ *issues_model.Comment, _ []*user_model.User) {
+func (n *actionsNotifier) NotifyPullRequestReview(ctx context.Context, pr *issues_model.PullRequest, review *issues_model.Review, _ *issues_model.Comment, _ []*user_model.User) {
 	ctx = withMethod(ctx, "NotifyPullRequestReview")
 
 	var reviewHookType webhook.HookEventType
@@ -298,7 +298,7 @@ func (n *botsNotifier) NotifyPullRequestReview(ctx context.Context, pr *issues_m
 		}).Notify(ctx)
 }
 
-func (*botsNotifier) NotifyMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
+func (*actionsNotifier) NotifyMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
 	ctx = withMethod(ctx, "NotifyMergePullRequest")
 
 	// Reload pull request information.
@@ -339,7 +339,7 @@ func (*botsNotifier) NotifyMergePullRequest(ctx context.Context, doer *user_mode
 		Notify(ctx)
 }
 
-func (n *botsNotifier) NotifyPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+func (n *actionsNotifier) NotifyPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	ctx = withMethod(ctx, "NotifyPushCommits")
 
 	apiPusher := convert.ToUser(pusher, nil)
@@ -365,7 +365,7 @@ func (n *botsNotifier) NotifyPushCommits(ctx context.Context, pusher *user_model
 		Notify(ctx)
 }
 
-func (n *botsNotifier) NotifyCreateRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
+func (n *actionsNotifier) NotifyCreateRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
 	ctx = withMethod(ctx, "NotifyCreateRef")
 
 	apiPusher := convert.ToUser(pusher, nil)
@@ -384,7 +384,7 @@ func (n *botsNotifier) NotifyCreateRef(ctx context.Context, pusher *user_model.U
 		Notify(ctx)
 }
 
-func (n *botsNotifier) NotifyDeleteRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
+func (n *actionsNotifier) NotifyDeleteRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
 	ctx = withMethod(ctx, "NotifyDeleteRef")
 
 	apiPusher := convert.ToUser(pusher, nil)
@@ -403,7 +403,7 @@ func (n *botsNotifier) NotifyDeleteRef(ctx context.Context, pusher *user_model.U
 		Notify(ctx)
 }
 
-func (n *botsNotifier) NotifySyncPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+func (n *actionsNotifier) NotifySyncPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	ctx = withMethod(ctx, "NotifySyncPushCommits")
 
 	apiPusher := convert.ToUser(pusher, nil)
@@ -430,47 +430,47 @@ func (n *botsNotifier) NotifySyncPushCommits(ctx context.Context, pusher *user_m
 		Notify(ctx)
 }
 
-func (n *botsNotifier) NotifySyncCreateRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
+func (n *actionsNotifier) NotifySyncCreateRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
 	ctx = withMethod(ctx, "NotifySyncCreateRef")
 	n.NotifyCreateRef(ctx, pusher, repo, refType, refFullName, refID)
 }
 
-func (n *botsNotifier) NotifySyncDeleteRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
+func (n *actionsNotifier) NotifySyncDeleteRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
 	ctx = withMethod(ctx, "NotifySyncDeleteRef")
 	n.NotifyDeleteRef(ctx, pusher, repo, refType, refFullName)
 }
 
-func (n *botsNotifier) NotifyNewRelease(ctx context.Context, rel *repo_model.Release) {
+func (n *actionsNotifier) NotifyNewRelease(ctx context.Context, rel *repo_model.Release) {
 	ctx = withMethod(ctx, "NotifyNewRelease")
 	notifyRelease(ctx, rel.Publisher, rel, rel.Sha1, api.HookReleasePublished)
 }
 
-func (n *botsNotifier) NotifyUpdateRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
+func (n *actionsNotifier) NotifyUpdateRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
 	ctx = withMethod(ctx, "NotifyUpdateRelease")
 	notifyRelease(ctx, doer, rel, rel.Sha1, api.HookReleaseUpdated)
 }
 
-func (n *botsNotifier) NotifyDeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
+func (n *actionsNotifier) NotifyDeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
 	ctx = withMethod(ctx, "NotifyDeleteRelease")
 	notifyRelease(ctx, doer, rel, rel.Sha1, api.HookReleaseDeleted)
 }
 
-func (n *botsNotifier) NotifyPackageCreate(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor) {
+func (n *actionsNotifier) NotifyPackageCreate(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor) {
 	ctx = withMethod(ctx, "NotifyPackageCreate")
 	notifyPackage(ctx, doer, pd, api.HookPackageCreated)
 }
 
-func (n *botsNotifier) NotifyPackageDelete(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor) {
+func (n *actionsNotifier) NotifyPackageDelete(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor) {
 	ctx = withMethod(ctx, "NotifyPackageDelete")
 	notifyPackage(ctx, doer, pd, api.HookPackageDeleted)
 }
 
-func (n *botsNotifier) NotifyAutoMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
+func (n *actionsNotifier) NotifyAutoMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
 	ctx = withMethod(ctx, "NotifyAutoMergePullRequest")
 	n.NotifyMergePullRequest(ctx, doer, pr)
 }
 
-func (n *botsNotifier) NotifyPullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
+func (n *actionsNotifier) NotifyPullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
 	ctx = withMethod(ctx, "NotifyPullRequestSynchronized")
 
 	if err := pr.LoadIssue(ctx); err != nil {
@@ -495,7 +495,7 @@ func (n *botsNotifier) NotifyPullRequestSynchronized(ctx context.Context, doer *
 		Notify(ctx)
 }
 
-func (n *botsNotifier) NotifyPullRequestChangeTargetBranch(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, oldBranch string) {
+func (n *actionsNotifier) NotifyPullRequestChangeTargetBranch(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, oldBranch string) {
 	ctx = withMethod(ctx, "NotifyPullRequestChangeTargetBranch")
 
 	if err := pr.LoadIssue(ctx); err != nil {

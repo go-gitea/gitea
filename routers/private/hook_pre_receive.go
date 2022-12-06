@@ -464,8 +464,8 @@ func (ctx *preReceiveContext) loadPusherAndPermission() bool {
 		return true
 	}
 
-	if ctx.opts.UserID == user_model.BotUserID {
-		ctx.user = user_model.NewBotUser()
+	if ctx.opts.UserID == user_model.ActionsUserID {
+		ctx.user = user_model.NewActionsUser()
 		ctx.userPerm.AccessMode = perm_model.AccessModeAdmin
 		if err := ctx.Repo.Repository.LoadUnits(ctx); err != nil {
 			log.Error("Unable to get User id %d Error: %v", ctx.opts.UserID, err)

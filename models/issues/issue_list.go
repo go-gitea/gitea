@@ -92,8 +92,8 @@ func (issues IssueList) loadPosters(ctx context.Context) error {
 	}
 
 	for _, issue := range issues {
-		if issue.PosterID == user_model.BotUserID {
-			issue.Poster = user_model.NewBotUser()
+		if issue.PosterID == user_model.ActionsUserID {
+			issue.Poster = user_model.NewActionsUser()
 		} else if issue.PosterID <= 0 {
 			continue
 		} else {

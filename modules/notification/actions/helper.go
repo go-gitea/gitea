@@ -16,7 +16,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
-	bots_module "code.gitea.io/gitea/modules/actions"
+	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
@@ -96,12 +96,12 @@ func (input *notifyInput) Notify(ctx context.Context) {
 }
 
 func notify(ctx context.Context, input *notifyInput) error {
-	if unit.TypeBots.UnitGlobalDisabled() {
+	if unit.TypeActions.UnitGlobalDisabled() {
 		return nil
 	}
 	if err := input.Repo.LoadUnits(db.DefaultContext); err != nil {
 		return fmt.Errorf("repo.LoadUnits: %w", err)
-	} else if !input.Repo.UnitEnabled(unit.TypeBots) {
+	} else if !input.Repo.UnitEnabled(unit.TypeActions) {
 		return nil
 	}
 
@@ -117,7 +117,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		return fmt.Errorf("gitRepo.GetCommit: %v", err)
 	}
 
-	workflows, err := bots_module.DetectWorkflows(commit, input.Event)
+	workflows, err := actions_module.DetectWorkflows(commit, input.Event)
 	if err != nil {
 		return fmt.Errorf("DetectWorkflows: %v", err)
 	}

@@ -51,7 +51,7 @@ func init() {
 }
 
 func (run *ActionRun) HTMLURL() string {
-	return fmt.Sprintf("%s/bots/runs/%d", run.Repo.HTMLURL(), run.Index)
+	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.HTMLURL(), run.Index)
 }
 
 // LoadAttributes load Repo TriggerUser if not loaded
@@ -108,11 +108,11 @@ func (run *ActionRun) GetPushEventPayload() (*api.PushPayload, error) {
 func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) error {
 	_, err := db.GetEngine(ctx).ID(repo.ID).
 		SetExpr("num_runs",
-			builder.Select("count(*)").From("bot_run").
+			builder.Select("count(*)").From("action_run").
 				Where(builder.Eq{"repo_id": repo.ID}),
 		).
 		SetExpr("num_closed_runs",
-			builder.Select("count(*)").From("bot_run").
+			builder.Select("count(*)").From("action_run").
 				Where(builder.Eq{
 					"repo_id": repo.ID,
 				}.And(
@@ -129,7 +129,7 @@ func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) err
 	return err
 }
 
-// InsertRun inserts a bot run
+// InsertRun inserts a run
 func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWorkflow) error {
 	ctx, commiter, err := db.TxContext(ctx)
 	if err != nil {
@@ -137,7 +137,7 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 	}
 	defer commiter.Close()
 
-	index, err := db.GetNextResourceIndex(ctx, "bot_run_index", run.RepoID)
+	index, err := db.GetNextResourceIndex(ctx, "action_run_index", run.RepoID)
 	if err != nil {
 		return err
 	}

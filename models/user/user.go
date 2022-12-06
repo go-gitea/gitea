@@ -983,8 +983,8 @@ func GetPossbileUserByID(ctx context.Context, id int64) (*User, error) {
 	switch id {
 	case -1:
 		return NewGhostUser(), nil
-	case BotUserID:
-		return NewBotUser(), nil
+	case ActionsUserID:
+		return NewActionsUser(), nil
 	case 0:
 		return nil, ErrUserNotExist{}
 	default:

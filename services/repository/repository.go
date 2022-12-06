@@ -52,9 +52,9 @@ func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_mod
 		return err
 	}
 
-	// deletes bots resource after the repo has been deleted, to avoid new bots tasks
+	// deletes actions resource after the repo has been deleted, to avoid new tasks
 	if err := actions_service.DeleteResourceOfRepository(ctx, repo); err != nil {
-		log.Error("delete bots resource failed: %v", err)
+		log.Error("delete actions resource failed: %v", err)
 	}
 
 	return packages_model.UnlinkRepositoryFromAllPackages(ctx, repo.ID)

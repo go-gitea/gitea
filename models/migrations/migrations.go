@@ -444,7 +444,7 @@ var migrations = []Migration{
 	NewMigration("Add index for access_token", v1_19.AddIndexForAccessToken),
 
 	// in dev
-	NewMigration("Add bots tables", addBotTables),
+	NewMigration("Add actions tables", addActionsTables),
 }
 
 // GetCurrentDBVersion returns the current db version

@@ -13,7 +13,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
-	bots_module "code.gitea.io/gitea/modules/actions"
+	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
@@ -21,7 +21,7 @@ import (
 )
 
 func Init() {
-	jobEmitterQueue = queue.CreateUniqueQueue("bots_ready_job", jobEmitterQueueHandle, new(jobUpdate))
+	jobEmitterQueue = queue.CreateUniqueQueue("actions_ready_job", jobEmitterQueueHandle, new(jobUpdate))
 	go graceful.GetManager().RunWithShutdownFns(jobEmitterQueue.Run)
 }
 
@@ -34,19 +34,19 @@ func DeleteResourceOfRepository(ctx context.Context, repo *repo_model.Repository
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		e := db.GetEngine(ctx)
 		if _, err := e.Delete(&actions_model.ActionTaskStep{RepoID: repo.ID}); err != nil {
-			return fmt.Errorf("delete bots task steps of repo %d: %w", repo.ID, err)
+			return fmt.Errorf("delete actions task steps of repo %d: %w", repo.ID, err)
 		}
 		if _, err := e.Delete(&actions_model.ActionTask{RepoID: repo.ID}); err != nil {
-			return fmt.Errorf("delete bots tasks of repo %d: %w", repo.ID, err)
+			return fmt.Errorf("delete actions tasks of repo %d: %w", repo.ID, err)
 		}
 		if _, err := e.Delete(&actions_model.ActionRunJob{RepoID: repo.ID}); err != nil {
-			return fmt.Errorf("delete bots run jobs of repo %d: %w", repo.ID, err)
+			return fmt.Errorf("delete actions run jobs of repo %d: %w", repo.ID, err)
 		}
 		if _, err := e.Delete(&actions_model.ActionRun{RepoID: repo.ID}); err != nil {
-			return fmt.Errorf("delete bots runs of repo %d: %w", repo.ID, err)
+			return fmt.Errorf("delete actions runs of repo %d: %w", repo.ID, err)
 		}
 		if _, err := e.Delete(&actions_model.ActionRunner{RepoID: repo.ID}); err != nil {
-			return fmt.Errorf("delete bots runner of repo %d: %w", repo.ID, err)
+			return fmt.Errorf("delete actions runner of repo %d: %w", repo.ID, err)
 		}
 		return nil
 	}); err != nil {
@@ -55,7 +55,7 @@ func DeleteResourceOfRepository(ctx context.Context, repo *repo_model.Repository
 
 	// remove logs file after tasks have been deleted, to avoid new log files
 	for _, task := range tasks {
-		err := bots_module.RemoveLogs(ctx, task.LogInStorage, task.LogFilename)
+		err := actions_module.RemoveLogs(ctx, task.LogInStorage, task.LogFilename)
 		if err != nil {
 			log.Error("remove log file %q: %v", task.LogFilename, err)
 			// go on

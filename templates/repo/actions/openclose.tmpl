@@ -1,10 +1,10 @@
 <div class="ui compact tiny menu">
 	<a class="{{if not .IsShowClosed}}active{{end}} item" href="{{$.Link}}?workflow={{.CurWorkflow}}&state=open">
 		{{svg "octicon-issue-opened" 16 "mr-3"}}
-		{{.locale.Tr "repo.bots.open_tab" $.NumOpenRuns}}
+		{{.locale.Tr "repo.actions.open_tab" $.NumOpenRuns}}
 	</a>
 	<a class="{{if .IsShowClosed}}active{{end}} item" href="{{$.Link}}?workflow={{.CurWorkflow}}&state=closed">
 		{{svg "octicon-issue-closed" 16 "mr-3"}}
-		{{.locale.Tr "repo.bots.closed_tab" $.NumClosedRuns}}
+		{{.locale.Tr "repo.actions.closed_tab" $.NumClosedRuns}}
 	</a>
 </div>

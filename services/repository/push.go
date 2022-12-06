@@ -108,8 +108,8 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 		}
 		if opts.IsTag() { // If is tag reference
 			if pusher == nil || pusher.ID != opts.PusherID {
-				if opts.PusherID == user_model.BotUserID {
-					pusher = user_model.NewBotUser()
+				if opts.PusherID == user_model.ActionsUserID {
+					pusher = user_model.NewActionsUser()
 				} else {
 					var err error
 					if pusher, err = user_model.GetUserByID(ctx, opts.PusherID); err != nil {
@@ -152,8 +152,8 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 			}
 		} else if opts.IsBranch() { // If is branch reference
 			if pusher == nil || pusher.ID != opts.PusherID {
-				if opts.PusherID == user_model.BotUserID {
-					pusher = user_model.NewBotUser()
+				if opts.PusherID == user_model.ActionsUserID {
+					pusher = user_model.NewActionsUser()
 				} else {
 					var err error
 					if pusher, err = user_model.GetUserByID(ctx, opts.PusherID); err != nil {

@@ -164,7 +164,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 			return
 		}
 
-		if ctx.IsBasicAuth && ctx.Data["IsApiToken"] != true && ctx.Data["IsBotToken"] != true {
+		if ctx.IsBasicAuth && ctx.Data["IsApiToken"] != true && ctx.Data["IsActionsToken"] != true {
 			_, err = auth.GetTwoFactorByUID(ctx.Doer.ID)
 			if err == nil {
 				// TODO: This response should be changed to "invalid credentials" for security reasons once the expectation behind it (creating an app token to authenticate) is properly documented
@@ -187,8 +187,8 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 				accessMode = perm.AccessModeRead
 			}
 
-			if ctx.Data["IsBotToken"] == true {
-				taskID := ctx.Data["BotTaskID"].(int64)
+			if ctx.Data["IsActionsToken"] == true {
+				taskID := ctx.Data["ActionsTaskID"].(int64)
 				task, err := actions_model.GetTaskByID(ctx, taskID)
 				if err != nil {
 					ctx.ServerError("GetTaskByID", err)

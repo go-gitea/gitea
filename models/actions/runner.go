@@ -197,7 +197,7 @@ func FindRunners(ctx context.Context, opts FindRunnerOptions) (runners RunnerLis
 	return runners, sess.Find(&runners)
 }
 
-// GetRunnerByUUID returns a bot runner via uuid
+// GetRunnerByUUID returns a runner via uuid
 func GetRunnerByUUID(ctx context.Context, uuid string) (*ActionRunner, error) {
 	var runner ActionRunner
 	has, err := db.GetEngine(ctx).Where("uuid=?", uuid).Get(&runner)
@@ -209,7 +209,7 @@ func GetRunnerByUUID(ctx context.Context, uuid string) (*ActionRunner, error) {
 	return &runner, nil
 }
 
-// GetRunnerByID returns a bot runner via id
+// GetRunnerByID returns a runner via id
 func GetRunnerByID(ctx context.Context, id int64) (*ActionRunner, error) {
 	var runner ActionRunner
 	has, err := db.GetEngine(ctx).Where("id=?", id).Get(&runner)

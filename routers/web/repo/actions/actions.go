@@ -18,33 +18,33 @@ import (
 )
 
 const (
-	tplListBots  base.TplName = "repo/bots/list"
-	tplViewBuild base.TplName = "repo/bots/view"
+	tplListActions base.TplName = "repo/actions/list"
+	tplViewActions base.TplName = "repo/actions/view"
 )
 
-// MustEnableBots check if bots are enabled in settings
-func MustEnableBots(ctx *context.Context) {
-	if !setting.Bots.Enabled {
-		ctx.NotFound("MustEnableBots", nil)
+// MustEnableActions check if actions are enabled in settings
+func MustEnableActions(ctx *context.Context) {
+	if !setting.Actions.Enabled {
+		ctx.NotFound("MustEnableActions", nil)
 		return
 	}
 
-	if unit.TypeBots.UnitGlobalDisabled() {
-		ctx.NotFound("MustEnableBots", nil)
+	if unit.TypeActions.UnitGlobalDisabled() {
+		ctx.NotFound("MustEnableActions", nil)
 		return
 	}
 
 	if ctx.Repo.Repository != nil {
-		if !ctx.Repo.CanRead(unit.TypeBots) {
-			ctx.NotFound("MustEnableBots", nil)
+		if !ctx.Repo.CanRead(unit.TypeActions) {
+			ctx.NotFound("MustEnableActions", nil)
 			return
 		}
 	}
 }
 
 func List(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.bots")
-	ctx.Data["PageIsBots"] = true
+	ctx.Data["Title"] = ctx.Tr("repo.actions")
+	ctx.Data["PageIsActions"] = true
 
 	defaultBranch, err := ctx.Repo.GitRepo.GetDefaultBranch()
 	if err != nil {
@@ -129,5 +129,5 @@ func List(ctx *context.Context) {
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(http.StatusOK, tplListBots)
+	ctx.HTML(http.StatusOK, tplListActions)
 }

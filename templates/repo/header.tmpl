@@ -183,9 +183,9 @@
 					</a>
 				{{end}}
 
-				{{if and .EnableBots (not .UnitBotsGlobalDisabled) (.Permission.CanRead $.UnitTypeBots)}}
-					<a class="{{if .PageIsBots}}active{{end}} item" href="{{.RepoLink}}/bots">
-						{{svg "octicon-play"}} {{.locale.Tr "repo.bots"}}
+				{{if and .EnableActions (not .UnitActionsGlobalDisabled) (.Permission.CanRead $.UnitTypeActions)}}
+					<a class="{{if .PageIsActions}}active{{end}} item" href="{{.RepoLink}}/actions">
+						{{svg "octicon-play"}} {{.locale.Tr "repo.actions"}}
 						{{if .Repository.NumOpenRuns}}
 							<span class="ui blue small label">{{CountFmt .Repository.NumOpenRuns}}</span>
 						{{end}}

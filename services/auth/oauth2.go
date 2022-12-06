@@ -98,10 +98,10 @@ func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
 			if err == nil && task != nil {
 				log.Trace("Basic Authorization: Valid AccessToken for task[%d]", task.ID)
 
-				store.GetData()["IsBotToken"] = true
-				store.GetData()["BotTaskID"] = task.ID
+				store.GetData()["IsActionsToken"] = true
+				store.GetData()["ActionsTaskID"] = task.ID
 
-				return user_model.BotUserID
+				return user_model.ActionsUserID
 			}
 		} else if !auth_model.IsErrAccessTokenNotExist(err) && !auth_model.IsErrAccessTokenEmpty(err) {
 			log.Error("GetAccessTokenBySHA: %v", err)
@@ -130,7 +130,7 @@ func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStor
 	}
 
 	id := o.userIDFromToken(req, store)
-	if id == -1 || id <= -3 { // -2 means bots, so we need to allow it.
+	if id == -1 || id <= -3 { // -2 means actions, so we need to allow it.
 		return nil
 	}
 	log.Trace("OAuth2 Authorization: Found token for user[%d]", id)

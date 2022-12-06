@@ -629,7 +629,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/reset_registration_token", admin.ResetRunnerRegistrationToken)
 			m.Combo("/{runnerid}").Get(admin.EditRunner).Post(bindIgnErr(forms.EditRunnerForm{}), admin.EditRunnerPost)
 			m.Post("/{runnerid}/delete", admin.DeleteRunnerPost)
-		}, actions.MustEnableBots)
+		}, actions.MustEnableActions)
 	}, func(ctx *context.Context) {
 		ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
 		ctx.Data["EnablePackages"] = setting.Packages.Enabled
@@ -672,7 +672,7 @@ func RegisterRoutes(m *web.Route) {
 	reqRepoIssuesOrPullsReader := context.RequireRepoReaderOr(unit.TypeIssues, unit.TypePullRequests)
 	reqRepoProjectsReader := context.RequireRepoReader(unit.TypeProjects)
 	reqRepoProjectsWriter := context.RequireRepoWriter(unit.TypeProjects)
-	reqRepoBotsReader := context.RequireRepoReader(unit.TypeBots)
+	reqRepoActionsReader := context.RequireRepoReader(unit.TypeActions)
 
 	reqPackageAccess := func(accessMode perm.AccessMode) func(ctx *context.Context) {
 		return func(ctx *context.Context) {
@@ -792,7 +792,7 @@ func RegisterRoutes(m *web.Route) {
 						Post(bindIgnErr(forms.EditRunnerForm{}), org.RunnersEditPost)
 					m.Post("/{runnerid}/delete", org.RunnerDeletePost)
 					m.Get("/reset_registration_token", org.ResetRunnerRegistrationToken)
-				}, actions.MustEnableBots)
+				}, actions.MustEnableActions)
 
 				m.Group("/secrets", func() {
 					m.Get("", org.Secrets)
@@ -960,7 +960,7 @@ func RegisterRoutes(m *web.Route) {
 					Post(bindIgnErr(forms.EditRunnerForm{}), repo.RunnersEditPost)
 				m.Post("/{runnerid}/delete", repo.RunnerDeletePost)
 				m.Get("/reset_registration_token", repo.ResetRunnerRegistrationToken)
-			}, actions.MustEnableBots)
+			}, actions.MustEnableActions)
 		}, func(ctx *context.Context) {
 			ctx.Data["PageIsSettings"] = true
 			ctx.Data["LFSStartServer"] = setting.LFS.StartServer
@@ -1199,7 +1199,7 @@ func RegisterRoutes(m *web.Route) {
 			}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())
 		}, reqRepoProjectsReader, repo.MustEnableProjects)
 
-		m.Group("/bots", func() {
+		m.Group("/actions", func() {
 			m.Get("", actions.List)
 
 			m.Group("/runs/{run}", func() {
@@ -1214,7 +1214,7 @@ func RegisterRoutes(m *web.Route) {
 				})
 				m.Post("/cancel", actions.Cancel)
 			})
-		}, reqRepoBotsReader, actions.MustEnableBots)
+		}, reqRepoActionsReader, actions.MustEnableActions)
 
 		m.Group("/wiki", func() {
 			m.Combo("/").

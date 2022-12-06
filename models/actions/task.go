@@ -117,7 +117,7 @@ func (task *ActionTask) GetBuildViewLink() string {
 	if task.Job == nil || task.Job.Run == nil || task.Job.Run.Repo == nil {
 		return ""
 	}
-	return task.Job.Run.Repo.Link() + "/bots/runs/" + strconv.FormatInt(task.ID, 10)
+	return task.Job.Run.Repo.Link() + "/actions/runs/" + strconv.FormatInt(task.ID, 10)
 }
 
 func (task *ActionTask) GetCommitLink() string {
@@ -265,7 +265,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 		jobCond = builder.In("repo_id", builder.Select("id").From("repository").Where(builder.Eq{"owner_id": runner.OwnerID}))
 	}
 	if jobCond.IsValid() {
-		jobCond = builder.In("run_id", builder.Select("id").From("bot_run").Where(jobCond))
+		jobCond = builder.In("run_id", builder.Select("id").From("action_run").Where(jobCond))
 	}
 
 	var jobs []*ActionRunJob

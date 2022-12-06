@@ -36,30 +36,30 @@ func NewReplaceUser(name string) *User {
 }
 
 const (
-	BotUserID   = -2
-	BotUserName = "[robot]gitea-bots"
+	ActionsUserID   = -2
+	ActionsUserName = "[bot]gitea-actions"
 )
 
-// NewBotUser creates and returns a fake user for running the build.
-func NewBotUser() *User {
+// NewActionsUser creates and returns a fake user for running the actions.
+func NewActionsUser() *User {
 	return &User{
-		ID:                      BotUserID,
-		Name:                    "[robot]gitea-bots",
-		LowerName:               "[robot]gitea-bots",
+		ID:                      ActionsUserID,
+		Name:                    ActionsUserName,
+		LowerName:               ActionsUserName,
 		IsActive:                true,
-		FullName:                "Gitea Bots",
+		FullName:                "Gitea Actions",
 		Email:                   "teabot@gitea.io",
 		KeepEmailPrivate:        true,
-		LoginName:               "[robot]gitea-bots",
+		LoginName:               ActionsUserName,
 		Type:                    UserTypeIndividual,
 		AllowCreateOrganization: true,
 		Visibility:              structs.VisibleTypePublic,
 	}
 }
 
-func (u *User) IsBots() bool {
+func (u *User) IsActions() bool {
 	if u == nil {
 		return false
 	}
-	return u.ID == BotUserID && u.Name == BotUserName
+	return u.ID == ActionsUserID && u.Name == ActionsUserName
 }

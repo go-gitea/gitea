@@ -799,7 +799,7 @@ func Contexter(ctx context.Context) func(next http.Handler) http.Handler {
 			ctx.Data["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 			ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 			ctx.Data["DisableStars"] = setting.Repository.DisableStars
-			ctx.Data["EnableBots"] = setting.Bots.Enabled
+			ctx.Data["EnableActions"] = setting.Actions.Enabled
 
 			ctx.Data["ManifestData"] = setting.ManifestData
 
@@ -807,7 +807,7 @@ func Contexter(ctx context.Context) func(next http.Handler) http.Handler {
 			ctx.Data["UnitIssuesGlobalDisabled"] = unit.TypeIssues.UnitGlobalDisabled()
 			ctx.Data["UnitPullsGlobalDisabled"] = unit.TypePullRequests.UnitGlobalDisabled()
 			ctx.Data["UnitProjectsGlobalDisabled"] = unit.TypeProjects.UnitGlobalDisabled()
-			ctx.Data["UnitBotsGlobalDisabled"] = unit.TypeBots.UnitGlobalDisabled()
+			ctx.Data["UnitActionsGlobalDisabled"] = unit.TypeActions.UnitGlobalDisabled()
 
 			ctx.Data["locale"] = locale
 			ctx.Data["AllLangs"] = translation.AllLangs()

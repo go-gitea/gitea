@@ -420,17 +420,17 @@
 					</div>
 				</div>
 
-				{{if .EnableBots}}
-					{{$isBotsEnabled := .Repository.UnitEnabled $.UnitTypeBots}}
+				{{if .EnableActions}}
+					{{$isActionsEnabled := .Repository.UnitEnabled $.UnitTypeActions}}
 					<div class="inline field">
-						<label>{{.locale.Tr "repo.bots"}}</label>
-						{{if .UnitTypeBots.UnitGlobalDisabled}}
+						<label>{{.locale.Tr "repo.actions"}}</label>
+						{{if .UnitTypeActions.UnitGlobalDisabled}}
 						<div class="ui checkbox tooltip disabled" data-content="{{.locale.Tr "repo.unit_disabled"}}">
 						{{else}}
 						<div class="ui checkbox">
 						{{end}}
-							<input class="enable-system" name="enable_bots" type="checkbox" {{if $isBotsEnabled}}checked{{end}}>
-							<label>{{.locale.Tr "repo.settings.bots_desc"}}</label>
+							<input class="enable-system" name="enable_actions" type="checkbox" {{if $isActionsEnabled}}checked{{end}}>
+							<label>{{.locale.Tr "repo.settings.actions_desc"}}</label>
 						</div>
 					</div>
 				{{end}}

@@ -202,8 +202,8 @@ func NormalRoutes(ctx context.Context) *web.Route {
 		r.Mount("/v2", packages_router.ContainerRoutes(ctx))
 	}
 
-	if setting.Bots.Enabled {
-		prefix := "/api/bots"
+	if setting.Actions.Enabled {
+		prefix := "/api/actions"
 		r.Mount(prefix, actions_router.Routes(ctx, prefix))
 	}
 

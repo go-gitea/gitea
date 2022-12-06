@@ -10,8 +10,8 @@ import (
 	"xorm.io/xorm"
 )
 
-func addBotTables(x *xorm.Engine) error {
-	type BotRunner struct {
+func addActionsTables(x *xorm.Engine) error {
+	type ActionRunner struct {
 		ID          int64
 		UUID        string `xorm:"CHAR(36) UNIQUE"`
 		Name        string `xorm:"VARCHAR(32)"`
@@ -39,7 +39,7 @@ func addBotTables(x *xorm.Engine) error {
 		Deleted timeutil.TimeStamp `xorm:"deleted"`
 	}
 
-	type BotRunnerToken struct {
+	type ActionRunnerToken struct {
 		ID       int64
 		Token    string `xorm:"UNIQUE"`
 		OwnerID  int64  `xorm:"index"` // org level runner, 0 means system
@@ -51,7 +51,7 @@ func addBotTables(x *xorm.Engine) error {
 		Deleted timeutil.TimeStamp `xorm:"deleted"`
 	}
 
-	type BotRun struct {
+	type ActionRun struct {
 		ID                int64
 		Title             string
 		RepoID            int64  `xorm:"index unique(repo_index)"`
@@ -71,7 +71,7 @@ func addBotTables(x *xorm.Engine) error {
 		Updated           timeutil.TimeStamp `xorm:"updated"`
 	}
 
-	type BotRunJob struct {
+	type ActionRunJob struct {
 		ID                int64
 		RunID             int64  `xorm:"index"`
 		RepoID            int64  `xorm:"index"`
@@ -97,9 +97,9 @@ func addBotTables(x *xorm.Engine) error {
 		NumClosedRuns int `xorm:"NOT NULL DEFAULT 0"`
 	}
 
-	type BotRunIndex db.ResourceIndex
+	type ActionRunIndex db.ResourceIndex
 
-	type BotTask struct {
+	type ActionTask struct {
 		ID       int64
 		JobID    int64
 		Attempt  int64
@@ -128,7 +128,7 @@ func addBotTables(x *xorm.Engine) error {
 		Updated timeutil.TimeStamp `xorm:"updated index"`
 	}
 
-	type BotTaskStep struct {
+	type ActionTaskStep struct {
 		ID        int64
 		Name      string
 		TaskID    int64 `xorm:"index unique(task_number)"`
@@ -162,14 +162,14 @@ func addBotTables(x *xorm.Engine) error {
 	}
 
 	return x.Sync(
-		new(BotRunner),
-		new(BotRunnerToken),
-		new(BotRun),
-		new(BotRunJob),
+		new(ActionRunner),
+		new(ActionRunnerToken),
+		new(ActionRun),
+		new(ActionRunJob),
 		new(Repository),
-		new(BotRunIndex),
-		new(BotTask),
-		new(BotTaskStep),
+		new(ActionRunIndex),
+		new(ActionTask),
+		new(ActionTaskStep),
 		new(dbfsMeta),
 		new(dbfsData),
 	)

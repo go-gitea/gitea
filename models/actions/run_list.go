@@ -48,8 +48,8 @@ func (runs RunList) LoadTriggerUser(ctx context.Context) error {
 		return err
 	}
 	for _, run := range runs {
-		if run.TriggerUserID == user_model.BotUserID {
-			run.TriggerUser = user_model.NewBotUser()
+		if run.TriggerUserID == user_model.ActionsUserID {
+			run.TriggerUser = user_model.NewActionsUser()
 		} else {
 			run.TriggerUser = users[run.TriggerUserID]
 		}

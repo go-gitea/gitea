@@ -126,8 +126,8 @@ var (
 	// Packages represents packages storage
 	Packages ObjectStorage = uninitializedStorage
 
-	// Bots represents bots storage
-	Bots ObjectStorage = uninitializedStorage
+	// Actions represents actions storage
+	Actions ObjectStorage = uninitializedStorage
 )
 
 // Init init the stoarge
@@ -139,7 +139,7 @@ func Init() error {
 		initLFS,
 		initRepoArchives,
 		initPackages,
-		initBots,
+		initActions,
 	} {
 		if err := f(); err != nil {
 			return err
@@ -209,12 +209,12 @@ func initPackages() (err error) {
 	return err
 }
 
-func initBots() (err error) {
-	if !setting.Bots.Enabled {
-		Bots = discardStorage("Bots isn't enabled")
+func initActions() (err error) {
+	if !setting.Actions.Enabled {
+		Actions = discardStorage("Actions isn't enabled")
 		return nil
 	}
-	log.Info("Initialising Bots storage with type: %s", setting.Bots.Storage.Type)
-	Bots, err = NewStorage(setting.Bots.Storage.Type, &setting.Bots.Storage)
+	log.Info("Initialising Actions storage with type: %s", setting.Actions.Storage.Type)
+	Actions, err = NewStorage(setting.Actions.Storage.Type, &setting.Actions.Storage)
 	return err
 }

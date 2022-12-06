@@ -104,7 +104,7 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 
 	setting.Packages.Storage.Path = filepath.Join(setting.AppDataPath, "packages")
 
-	setting.Bots.Storage.Path = filepath.Join(setting.AppDataPath, "bots_log")
+	setting.Actions.Storage.Path = filepath.Join(setting.AppDataPath, "actions_log")
 
 	setting.Git.HomePath = filepath.Join(setting.AppDataPath, "home")
 
