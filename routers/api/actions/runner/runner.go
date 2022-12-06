@@ -42,7 +42,7 @@ func (s *Service) Register(
 		return nil, errors.New("missing runner token, name")
 	}
 
-	runnerToken, err := actions_model.GetRunnerToken(req.Msg.Token)
+	runnerToken, err := actions_model.GetRunnerToken(ctx, req.Msg.Token)
 	if err != nil {
 		return nil, errors.New("runner token not found")
 	}
@@ -65,7 +65,7 @@ func (s *Service) Register(
 	}
 
 	// create new runner
-	if err := actions_model.NewRunner(ctx, runner); err != nil {
+	if err := actions_model.CreateRunner(ctx, runner); err != nil {
 		return nil, errors.New("can't create new runner")
 	}
 
@@ -146,7 +146,7 @@ func (s *Service) UpdateTask(
 		}), nil
 	}
 
-	task, err = actions_model.UpdateTaskByState(req.Msg.State)
+	task, err = actions_model.UpdateTaskByState(ctx, req.Msg.State)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "update task: %v", err)
 	}

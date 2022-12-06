@@ -13,25 +13,11 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"xorm.io/builder"
 )
-
-// ErrRunnerNotExist represents an error for bot runner not exist
-type ErrRunnerNotExist struct {
-	ID    int64
-	UUID  string
-	Token string
-}
-
-func (err ErrRunnerNotExist) Error() string {
-	if err.UUID != "" {
-		return fmt.Sprintf("Bot runner ID [%s] is not exist", err.UUID)
-	}
-
-	return fmt.Sprintf("Bot runner token [%s] is not exist", err.Token)
-}
 
 // ActionRunner represents runner machines
 type ActionRunner struct {
@@ -193,16 +179,16 @@ func (opts FindRunnerOptions) toOrder() string {
 	return "last_online DESC"
 }
 
-func CountRunners(opts FindRunnerOptions) (int64, error) {
-	return db.GetEngine(db.DefaultContext).
+func CountRunners(ctx context.Context, opts FindRunnerOptions) (int64, error) {
+	return db.GetEngine(ctx).
 		Table(ActionRunner{}).
 		Where(opts.toCond()).
 		OrderBy(opts.toOrder()).
 		Count()
 }
 
-func FindRunners(opts FindRunnerOptions) (runners RunnerList, err error) {
-	sess := db.GetEngine(db.DefaultContext).
+func FindRunners(ctx context.Context, opts FindRunnerOptions) (runners RunnerList, err error) {
+	sess := db.GetEngine(ctx).
 		Where(opts.toCond()).
 		OrderBy(opts.toOrder())
 	if opts.Page > 0 {
@@ -211,47 +197,27 @@ func FindRunners(opts FindRunnerOptions) (runners RunnerList, err error) {
 	return runners, sess.Find(&runners)
 }
 
-// GetUsableRunner returns the usable runner
-func GetUsableRunner(opts FindRunnerOptions) (*ActionRunner, error) {
-	var runner ActionRunner
-	has, err := db.GetEngine(db.DefaultContext).
-		Where(opts.toCond()).
-		Asc("last_online").
-		Get(&runner)
-	if err != nil {
-		return nil, err
-	}
-	if !has {
-		return nil, ErrRunnerNotExist{}
-	}
-
-	return &runner, nil
-}
-
 // GetRunnerByUUID returns a bot runner via uuid
-func GetRunnerByUUID(uuid string) (*ActionRunner, error) {
+func GetRunnerByUUID(ctx context.Context, uuid string) (*ActionRunner, error) {
 	var runner ActionRunner
-	has, err := db.GetEngine(db.DefaultContext).Where("uuid=?", uuid).Get(&runner)
+	has, err := db.GetEngine(ctx).Where("uuid=?", uuid).Get(&runner)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrRunnerNotExist{
-			UUID: uuid,
-		}
+		return nil, fmt.Errorf("runner with uuid %s: %w", uuid, util.ErrNotExist)
 	}
 	return &runner, nil
 }
 
 // GetRunnerByID returns a bot runner via id
-func GetRunnerByID(id int64) (*ActionRunner, error) {
+func GetRunnerByID(ctx context.Context, id int64) (*ActionRunner, error) {
 	var runner ActionRunner
-	has, err := db.GetEngine(db.DefaultContext).Where("id=?", id).Get(&runner)
+	has, err := db.GetEngine(ctx).Where("id=?", id).Get(&runner)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrRunnerNotExist{
-			ID: id,
-		}
+		return nil, fmt.Errorf("runner with id %d: %w", id, util.ErrNotExist)
+
 	}
 	return &runner, nil
 }
@@ -275,20 +241,8 @@ func DeleteRunner(ctx context.Context, r *ActionRunner) error {
 	return err
 }
 
-// FindRunnersByRepoID returns all workers for the repository
-func FindRunnersByRepoID(repoID int64) ([]*ActionRunner, error) {
-	var runners []*ActionRunner
-	err := db.GetEngine(db.DefaultContext).Where("repo_id=? OR repo_id=0", repoID).
-		Find(&runners)
-	if err != nil {
-		return nil, err
-	}
-	err = db.GetEngine(db.DefaultContext).Join("INNER", "repository", "repository.owner_id = bot_runner.owner_id").Find(&runners)
-	return runners, err
-}
-
-// NewRunner creates new runner.
-func NewRunner(ctx context.Context, t *ActionRunner) error {
+// CreateRunner creates new runner.
+func CreateRunner(ctx context.Context, t *ActionRunner) error {
 	_, err := db.GetEngine(ctx).Insert(t)
 	return err
 }

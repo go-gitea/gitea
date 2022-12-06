@@ -14,15 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-// ErrRunnerNotExist represents an error for bot runner not exist
-type ErrRunnerTokenNotExist struct {
-	Token string
-}
-
-func (err ErrRunnerTokenNotExist) Error() string {
-	return fmt.Sprintf("runner token [%s] is not exist", err.Token)
-}
-
 // ActionRunnerToken represents runner tokens
 type ActionRunnerToken struct {
 	ID       int64
@@ -43,15 +34,13 @@ func init() {
 }
 
 // GetRunnerToken returns a bot runner via token
-func GetRunnerToken(token string) (*ActionRunnerToken, error) {
+func GetRunnerToken(ctx context.Context, token string) (*ActionRunnerToken, error) {
 	var runnerToken ActionRunnerToken
-	has, err := db.GetEngine(db.DefaultContext).Where("token=?", token).Get(&runnerToken)
+	has, err := db.GetEngine(ctx).Where("token=?", token).Get(&runnerToken)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrRunnerTokenNotExist{
-			Token: token,
-		}
+		return nil, fmt.Errorf("runner token %q: %w", token, util.ErrNotExist)
 	}
 	return &runnerToken, nil
 }
@@ -69,7 +58,7 @@ func UpdateRunnerToken(ctx context.Context, r *ActionRunnerToken, cols ...string
 }
 
 // NewRunnerToken creates a new runner token
-func NewRunnerToken(ownerID, repoID int64) (*ActionRunnerToken, error) {
+func NewRunnerToken(ctx context.Context, ownerID, repoID int64) (*ActionRunnerToken, error) {
 	token, err := util.CryptoRandomString(40)
 	if err != nil {
 		return nil, err
@@ -80,18 +69,18 @@ func NewRunnerToken(ownerID, repoID int64) (*ActionRunnerToken, error) {
 		IsActive: false,
 		Token:    token,
 	}
-	_, err = db.GetEngine(db.DefaultContext).Insert(runnerToken)
+	_, err = db.GetEngine(ctx).Insert(runnerToken)
 	return runnerToken, err
 }
 
 // GetUnactivatedRunnerToken returns a unactivated runner token
-func GetUnactivatedRunnerToken(ownerID, repoID int64) (*ActionRunnerToken, error) {
+func GetUnactivatedRunnerToken(ctx context.Context, ownerID, repoID int64) (*ActionRunnerToken, error) {
 	var runnerToken ActionRunnerToken
-	has, err := db.GetEngine(db.DefaultContext).Where("owner_id=? AND repo_id=? AND is_active=?", ownerID, repoID, false).OrderBy("id DESC").Get(&runnerToken)
+	has, err := db.GetEngine(ctx).Where("owner_id=? AND repo_id=? AND is_active=?", ownerID, repoID, false).OrderBy("id DESC").Get(&runnerToken)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrRunnerTokenNotExist{}
+		return nil, fmt.Errorf("runner token: %w", util.ErrNotExist)
 	}
 	return &runnerToken, nil
 }

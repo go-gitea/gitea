@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/nektos/act/pkg/jobparser"
 	"golang.org/x/exp/slices"
@@ -129,8 +130,8 @@ func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) err
 }
 
 // InsertRun inserts a bot run
-func InsertRun(run *ActionRun, jobs []*jobparser.SingleWorkflow) error {
-	ctx, commiter, err := db.TxContext(db.DefaultContext)
+func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWorkflow) error {
+	ctx, commiter, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -193,29 +194,13 @@ func InsertRun(run *ActionRun, jobs []*jobparser.SingleWorkflow) error {
 	return commiter.Commit()
 }
 
-// ErrRunNotExist represents an error for bot run not exist
-type ErrRunNotExist struct {
-	ID     int64
-	RepoID int64
-	Index  int64
-}
-
-func (err ErrRunNotExist) Error() string {
-	if err.RepoID > 0 {
-		return fmt.Sprintf("run repe_id [%d] index [%d] is not exist", err.RepoID, err.Index)
-	}
-	return fmt.Sprintf("run [%d] is not exist", err.ID)
-}
-
 func GetRunByID(ctx context.Context, id int64) (*ActionRun, error) {
 	var run ActionRun
 	has, err := db.GetEngine(ctx).Where("id=?", id).Get(&run)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrRunNotExist{
-			ID: id,
-		}
+		return nil, fmt.Errorf("run with id %d: %w", id, util.ErrNotExist)
 	}
 
 	return &run, nil
@@ -230,10 +215,8 @@ func GetRunByIndex(ctx context.Context, repoID, index int64) (*ActionRun, error)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrRunNotExist{
-			RepoID: repoID,
-			Index:  index,
-		}
+		return nil, fmt.Errorf("run with index %d %d: %w", repoID, index, util.ErrNotExist)
+
 	}
 
 	return run, nil

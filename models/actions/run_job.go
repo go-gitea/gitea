@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"golang.org/x/exp/slices"
 	"xorm.io/builder"
@@ -78,24 +79,13 @@ func (job *ActionRunJob) LoadAttributes(ctx context.Context) error {
 	return job.Run.LoadAttributes(ctx)
 }
 
-// ErrRunJobNotExist represents an error for bot run job not exist
-type ErrRunJobNotExist struct {
-	ID int64
-}
-
-func (err ErrRunJobNotExist) Error() string {
-	return fmt.Sprintf("run job [%d] is not exist", err.ID)
-}
-
 func GetRunJobByID(ctx context.Context, id int64) (*ActionRunJob, error) {
 	var job ActionRunJob
 	has, err := db.GetEngine(ctx).Where("id=?", id).Get(&job)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrRunJobNotExist{
-			ID: id,
-		}
+		return nil, fmt.Errorf("run job with id %d: %w", id, util.ErrNotExist)
 	}
 
 	return &job, nil

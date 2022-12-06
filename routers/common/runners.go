@@ -13,19 +13,20 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
 )
 
 // RunnersList render common runners list page
 func RunnersList(ctx *context.Context, tplName base.TplName, opts actions_model.FindRunnerOptions) {
-	count, err := actions_model.CountRunners(opts)
+	count, err := actions_model.CountRunners(ctx, opts)
 	if err != nil {
 		ctx.ServerError("AdminRunners", err)
 		return
 	}
 
-	runners, err := actions_model.FindRunners(opts)
+	runners, err := actions_model.FindRunners(ctx, opts)
 	if err != nil {
 		ctx.ServerError("AdminRunners", err)
 		return
@@ -37,9 +38,9 @@ func RunnersList(ctx *context.Context, tplName base.TplName, opts actions_model.
 
 	// ownid=0,repo_id=0,means this token is used for global
 	var token *actions_model.ActionRunnerToken
-	token, err = actions_model.GetUnactivatedRunnerToken(opts.OwnerID, opts.RepoID)
-	if _, ok := err.(actions_model.ErrRunnerTokenNotExist); ok {
-		token, err = actions_model.NewRunnerToken(opts.OwnerID, opts.RepoID)
+	token, err = actions_model.GetUnactivatedRunnerToken(ctx, opts.OwnerID, opts.RepoID)
+	if errors.Is(err, util.ErrNotExist) {
+		token, err = actions_model.NewRunnerToken(ctx, opts.OwnerID, opts.RepoID)
 		if err != nil {
 			ctx.ServerError("CreateRunnerToken", err)
 			return
@@ -64,7 +65,7 @@ func RunnersList(ctx *context.Context, tplName base.TplName, opts actions_model.
 
 // RunnerDetails render runner details page
 func RunnerDetails(ctx *context.Context, tplName base.TplName, page int, runnerID, ownerID, repoID int64) {
-	runner, err := actions_model.GetRunnerByID(runnerID)
+	runner, err := actions_model.GetRunnerByID(ctx, runnerID)
 	if err != nil {
 		ctx.ServerError("GetRunnerByID", err)
 		return
@@ -116,7 +117,7 @@ func RunnerDetails(ctx *context.Context, tplName base.TplName, page int, runnerI
 
 // RunnerDetailsEditPost response for edit runner details
 func RunnerDetailsEditPost(ctx *context.Context, runnerID, ownerID, repoID int64, redirectTo string) {
-	runner, err := actions_model.GetRunnerByID(runnerID)
+	runner, err := actions_model.GetRunnerByID(ctx, runnerID)
 	if err != nil {
 		log.Warn("RunnerDetailsEditPost.GetRunnerByID failed: %v, url: %s", err, ctx.Req.URL)
 		ctx.ServerError("RunnerDetailsEditPost.GetRunnerByID", err)
@@ -148,7 +149,7 @@ func RunnerDetailsEditPost(ctx *context.Context, runnerID, ownerID, repoID int64
 
 // RunnerResetRegistrationToken reset registration token
 func RunnerResetRegistrationToken(ctx *context.Context, ownerID, repoID int64, redirectTo string) {
-	_, err := actions_model.NewRunnerToken(ownerID, repoID)
+	_, err := actions_model.NewRunnerToken(ctx, ownerID, repoID)
 	if err != nil {
 		ctx.ServerError("ResetRunnerRegistrationToken", err)
 		return
@@ -162,7 +163,7 @@ func RunnerResetRegistrationToken(ctx *context.Context, ownerID, repoID int64, r
 func RunnerDeletePost(ctx *context.Context, runnerID int64,
 	successRedirectTo, failedRedirectTo string,
 ) {
-	runner, err := actions_model.GetRunnerByID(runnerID)
+	runner, err := actions_model.GetRunnerByID(ctx, runnerID)
 	if err != nil {
 		log.Warn("DeleteRunnerPost.GetRunnerByID failed: %v, url: %s", err, ctx.Req.URL)
 		ctx.ServerError("DeleteRunnerPost.GetRunnerByID", err)

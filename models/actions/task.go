@@ -4,13 +4,9 @@
 package actions
 
 import (
-	"bytes"
 	"context"
 	"crypto/subtle"
-	"encoding/binary"
-	"errors"
 	"fmt"
-	"io"
 	"strconv"
 	"time"
 
@@ -188,31 +184,6 @@ func (task *ActionTask) GenerateToken() (err error) {
 	return err
 }
 
-type LogIndexes []int64
-
-func (indexes *LogIndexes) FromDB(b []byte) error {
-	reader := bytes.NewReader(b)
-	for {
-		v, err := binary.ReadVarint(reader)
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				return nil
-			}
-			return fmt.Errorf("binary ReadVarint: %w", err)
-		}
-		*indexes = append(*indexes, v)
-	}
-}
-
-func (indexes *LogIndexes) ToDB() ([]byte, error) {
-	buf, i := make([]byte, binary.MaxVarintLen64*len(*indexes)), 0
-	for _, v := range *indexes {
-		n := binary.PutVarint(buf[i:], v)
-		i += n
-	}
-	return buf[:i], nil
-}
-
 func GetTaskByID(ctx context.Context, id int64) (*ActionTask, error) {
 	var task ActionTask
 	has, err := db.GetEngine(ctx).Where("id=?", id).Get(&task)
@@ -247,7 +218,7 @@ func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, erro
 			TokenLastEight: lastEight,
 		}
 		// Re-get the task from the db in case it has been deleted in the intervening period
-		has, err := db.GetEngine(db.DefaultContext).ID(id).Get(task)
+		has, err := db.GetEngine(ctx).ID(id).Get(task)
 		if err != nil {
 			return nil, err
 		}
@@ -406,13 +377,13 @@ func UpdateTask(ctx context.Context, task *ActionTask, cols ...string) error {
 	return err
 }
 
-func UpdateTaskByState(state *runnerv1.TaskState) (*ActionTask, error) {
+func UpdateTaskByState(ctx context.Context, state *runnerv1.TaskState) (*ActionTask, error) {
 	stepStates := map[int64]*runnerv1.StepState{}
 	for _, v := range state.Steps {
 		stepStates[v.Id] = v
 	}
 
-	ctx, commiter, err := db.TxContext(db.DefaultContext)
+	ctx, commiter, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
 	}

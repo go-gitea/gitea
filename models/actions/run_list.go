@@ -41,10 +41,10 @@ func (runs RunList) GetRepoIDs() []int64 {
 	return repoIDs
 }
 
-func (runs RunList) LoadTriggerUser() error {
+func (runs RunList) LoadTriggerUser(ctx context.Context) error {
 	userIDs := runs.GetUserIDs()
 	users := make(map[int64]*user_model.User, len(userIDs))
-	if err := db.GetEngine(db.DefaultContext).In("id", userIDs).Find(&users); err != nil {
+	if err := db.GetEngine(ctx).In("id", userIDs).Find(&users); err != nil {
 		return err
 	}
 	for _, run := range runs {

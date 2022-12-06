@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/actions"
 	context_module "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	actions_service "code.gitea.io/gitea/services/actions"
 
@@ -271,7 +273,7 @@ func Cancel(ctx *context_module.Context) {
 func getRunJobs(ctx *context_module.Context, runIndex, jobIndex int64) (*actions_model.ActionRunJob, []*actions_model.ActionRunJob) {
 	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
 	if err != nil {
-		if _, ok := err.(actions_model.ErrRunNotExist); ok {
+		if errors.Is(err, util.ErrNotExist) {
 			ctx.Error(http.StatusNotFound, err.Error())
 			return nil, nil
 		}

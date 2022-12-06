@@ -154,7 +154,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 			log.Error("jobparser.Parse: %v", err)
 			continue
 		}
-		if err := actions_model.InsertRun(&run, jobs); err != nil {
+		if err := actions_model.InsertRun(ctx, &run, jobs); err != nil {
 			log.Error("InsertRun: %v", err)
 			continue
 		}

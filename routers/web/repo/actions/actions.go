@@ -118,7 +118,7 @@ func List(ctx *context.Context) {
 		run.Repo = ctx.Repo.Repository
 	}
 
-	if err := runs.LoadTriggerUser(); err != nil {
+	if err := runs.LoadTriggerUser(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}

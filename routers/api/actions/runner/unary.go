@@ -6,12 +6,14 @@ package runner
 import (
 	"context"
 	"crypto/subtle"
+	"errors"
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/bufbuild/connect-go"
 	"google.golang.org/grpc/codes"
@@ -31,9 +33,9 @@ var WithRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 		}
 		uuid := request.Header().Get(uuidHeaderKey)
 		token := request.Header().Get(tokenHeaderKey)
-		runner, err := actions_model.GetRunnerByUUID(uuid)
+		runner, err := actions_model.GetRunnerByUUID(ctx, uuid)
 		if err != nil {
-			if _, ok := err.(actions_model.ErrRunnerNotExist); ok {
+			if errors.Is(err, util.ErrNotExist) {
 				return nil, status.Error(codes.Unauthenticated, "unregistered runner")
 			}
 			return nil, status.Error(codes.Internal, err.Error())
