@@ -83,8 +83,8 @@ contrib.go.opencensus.io/resource v0.1.1/go.mod h1:F361eGI91LCmW1I/Saf+rX0+OFcig
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
 git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078 h1:cliQ4HHsCo6xi2oWZYKWW4bly/Ory9FuTpFPRxj/mAg=
 git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078/go.mod h1:g/V2Hjas6Z1UHUp4yIx6bATpNzJ7DYtD0FG3+xARWxs=
-gitea.com/gitea/act v0.233.4 h1:ItqivoomnfTTeXZ/hqlSQFlgA0TBv40U3dbg0gYUYKk=
-gitea.com/gitea/act v0.233.4/go.mod h1:QpHTbzW4rX/jfN9qnfPdPC5Us0JZPxfPeEaAv18VVrQ=
+gitea.com/gitea/act v0.234.0 h1:gWgMPMKdNcMrp/o2CF/SyVKiiJLBFl+xmzfvoHCpykU=
+gitea.com/gitea/act v0.234.0/go.mod h1:2C/WbTalu1VPNgbVaZJaZDzlOtAKqkXJhdOClxkMy14=
 gitea.com/go-chi/binding v0.0.0-20221013104517-b29891619681 h1:MMSPgnVULVwV9kEBgvyEUhC9v/uviZ55hPJEMjpbNR4=
 gitea.com/go-chi/binding v0.0.0-20221013104517-b29891619681/go.mod h1:77TZu701zMXWJFvB8gvTbQ92zQ3DQq/H7l5wAEjQRKc=
 gitea.com/go-chi/cache v0.0.0-20210110083709-82c4c9ce2d5e/go.mod h1:k2V/gPDEtXGjjMGuBJiapffAXTv76H4snSmlJRLUhH0=
@@ -1298,8 +1298,8 @@ github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a/go.mod h1:bCqn
 github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563/go.mod h1:bCqnVzQkZxMG4s8nGwiZ5l3QUCyqpo9Y+/ZMZ9VjZe4=
 github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 h1:OdAsTTz6OkFY5QxjkYwrChwuRruF69c169dPK26NUlk=
 github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0/go.mod h1:qqbHyh8v60DhA7CoWK5oRCqLrMHRGoxYCSS9EjAz6Eo=
-github.com/rhysd/actionlint v1.6.21 h1:OSCP03XnvWSRAhUmA5onpgyGG+3NVoQTCu4UX0Rc2dY=
-github.com/rhysd/actionlint v1.6.21/go.mod h1:gIKOdxtV40mBOcD0ZR8EBa8NqjEXToAZioroS3oedMg=
+github.com/rhysd/actionlint v1.6.22 h1:cAEf2PGNwJXhdcTVF2xS/0ORqWS+ueUHwjQYsqFsGSk=
+github.com/rhysd/actionlint v1.6.22/go.mod h1:gIKOdxtV40mBOcD0ZR8EBa8NqjEXToAZioroS3oedMg=
 github.com/rivo/uniseg v0.1.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rivo/uniseg v0.4.2 h1:YwD0ulJSJytLpiaWua0sBDusfsCZohxjxzVTYjwxfV8=
