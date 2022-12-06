@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -46,21 +47,26 @@ func List(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.actions")
 	ctx.Data["PageIsActions"] = true
 
-	defaultBranch, err := ctx.Repo.GitRepo.GetDefaultBranch()
-	if err != nil {
+	var workflows git.Entries
+	if empty, err := ctx.Repo.GitRepo.IsEmpty(); err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
-	}
-	commit, err := ctx.Repo.GitRepo.GetBranchCommit(defaultBranch)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	workflows, err := actions.ListWorkflows(commit)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
-		return
+	} else if !empty {
+		defaultBranch, err := ctx.Repo.GitRepo.GetDefaultBranch()
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, err.Error())
+			return
+		}
+		commit, err := ctx.Repo.GitRepo.GetBranchCommit(defaultBranch)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, err.Error())
+			return
+		}
+		workflows, err = actions.ListWorkflows(commit)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, err.Error())
+			return
+		}
 	}
 
 	ctx.Data["workflows"] = workflows
