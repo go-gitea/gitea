@@ -12,9 +12,9 @@ import (
 	"xorm.io/builder"
 )
 
-type RunJobList []*BotRunJob
+type ActionJobList []*ActionRunJob
 
-func (jobs RunJobList) GetRunIDs() []int64 {
+func (jobs ActionJobList) GetRunIDs() []int64 {
 	runIDsMap := make(map[int64]struct{})
 	for _, j := range jobs {
 		if j.RunID == 0 {
@@ -29,9 +29,9 @@ func (jobs RunJobList) GetRunIDs() []int64 {
 	return runIDs
 }
 
-func (jobs RunJobList) LoadRuns(ctx context.Context, withRepo bool) error {
+func (jobs ActionJobList) LoadRuns(ctx context.Context, withRepo bool) error {
 	runIDs := jobs.GetRunIDs()
-	runs := make(map[int64]*BotRun, len(runIDs))
+	runs := make(map[int64]*ActionRun, len(runIDs))
 	if err := db.GetEngine(ctx).In("id", runIDs).Find(&runs); err != nil {
 		return err
 	}
@@ -41,7 +41,7 @@ func (jobs RunJobList) LoadRuns(ctx context.Context, withRepo bool) error {
 		}
 	}
 	if withRepo {
-		var runsList RunList = make([]*BotRun, 0, len(runs))
+		var runsList RunList = make([]*ActionRun, 0, len(runs))
 		for _, r := range runs {
 			runsList = append(runsList, r)
 		}
@@ -50,7 +50,7 @@ func (jobs RunJobList) LoadRuns(ctx context.Context, withRepo bool) error {
 	return nil
 }
 
-func (jobs RunJobList) LoadAttributes(ctx context.Context, withRepo bool) error {
+func (jobs ActionJobList) LoadAttributes(ctx context.Context, withRepo bool) error {
 	return jobs.LoadRuns(ctx, withRepo)
 }
 
@@ -87,16 +87,16 @@ func (opts FindRunJobOptions) toConds() builder.Cond {
 	return cond
 }
 
-func FindRunJobs(ctx context.Context, opts FindRunJobOptions) (RunJobList, int64, error) {
+func FindRunJobs(ctx context.Context, opts FindRunJobOptions) (ActionJobList, int64, error) {
 	e := db.GetEngine(ctx).Where(opts.toConds())
 	if opts.PageSize > 0 && opts.Page >= 1 {
 		e.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 	}
-	var tasks RunJobList
+	var tasks ActionJobList
 	total, err := e.FindAndCount(&tasks)
 	return tasks, total, err
 }
 
 func CountRunJobs(ctx context.Context, opts FindRunJobOptions) (int64, error) {
-	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(BotRunJob))
+	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(ActionRunJob))
 }

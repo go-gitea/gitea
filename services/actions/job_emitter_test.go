@@ -14,12 +14,12 @@ import (
 func Test_jobStatusResolver_Resolve(t *testing.T) {
 	tests := []struct {
 		name string
-		jobs actions_model.RunJobList
+		jobs actions_model.ActionJobList
 		want map[int64]actions_model.Status
 	}{
 		{
 			name: "no blocked",
-			jobs: actions_model.RunJobList{
+			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "1", Status: actions_model.StatusWaiting, Needs: []string{}},
 				{ID: 2, JobID: "2", Status: actions_model.StatusWaiting, Needs: []string{}},
 				{ID: 3, JobID: "3", Status: actions_model.StatusWaiting, Needs: []string{}},
@@ -28,7 +28,7 @@ func Test_jobStatusResolver_Resolve(t *testing.T) {
 		},
 		{
 			name: "single blocked",
-			jobs: actions_model.RunJobList{
+			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "1", Status: actions_model.StatusSuccess, Needs: []string{}},
 				{ID: 2, JobID: "2", Status: actions_model.StatusBlocked, Needs: []string{"1"}},
 				{ID: 3, JobID: "3", Status: actions_model.StatusWaiting, Needs: []string{}},
@@ -39,7 +39,7 @@ func Test_jobStatusResolver_Resolve(t *testing.T) {
 		},
 		{
 			name: "multiple blocked",
-			jobs: actions_model.RunJobList{
+			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "1", Status: actions_model.StatusSuccess, Needs: []string{}},
 				{ID: 2, JobID: "2", Status: actions_model.StatusBlocked, Needs: []string{"1"}},
 				{ID: 3, JobID: "3", Status: actions_model.StatusBlocked, Needs: []string{"1"}},
@@ -51,7 +51,7 @@ func Test_jobStatusResolver_Resolve(t *testing.T) {
 		},
 		{
 			name: "chain blocked",
-			jobs: actions_model.RunJobList{
+			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "1", Status: actions_model.StatusFailure, Needs: []string{}},
 				{ID: 2, JobID: "2", Status: actions_model.StatusBlocked, Needs: []string{"1"}},
 				{ID: 3, JobID: "3", Status: actions_model.StatusBlocked, Needs: []string{"2"}},
@@ -63,7 +63,7 @@ func Test_jobStatusResolver_Resolve(t *testing.T) {
 		},
 		{
 			name: "loop need",
-			jobs: actions_model.RunJobList{
+			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "1", Status: actions_model.StatusBlocked, Needs: []string{"3"}},
 				{ID: 2, JobID: "2", Status: actions_model.StatusBlocked, Needs: []string{"1"}},
 				{ID: 3, JobID: "3", Status: actions_model.StatusBlocked, Needs: []string{"2"}},

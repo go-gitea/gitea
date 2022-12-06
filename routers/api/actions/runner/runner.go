@@ -52,7 +52,7 @@ func (s *Service) Register(
 	}
 
 	// create new runner
-	runner := &actions_model.BotRunner{
+	runner := &actions_model.ActionRunner{
 		UUID:         gouuid.New().String(),
 		Name:         req.Msg.Name,
 		OwnerID:      runnerToken.OwnerID,
@@ -231,7 +231,7 @@ func (s *Service) UpdateLog(
 	return res, nil
 }
 
-func pickTask(ctx context.Context, runner *actions_model.BotRunner) (*runnerv1.Task, bool, error) {
+func pickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv1.Task, bool, error) {
 	t, ok, err := actions_model.CreateTaskForRunner(ctx, runner)
 	if err != nil {
 		return nil, false, fmt.Errorf("CreateTaskForRunner: %w", err)
@@ -249,7 +249,7 @@ func pickTask(ctx context.Context, runner *actions_model.BotRunner) (*runnerv1.T
 	return task, true, nil
 }
 
-func getSecretsOfTask(ctx context.Context, task *actions_model.BotTask) map[string]string {
+func getSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) map[string]string {
 	// Returning an error is worse than returning empty secrets.
 
 	secrets := map[string]string{}
@@ -289,7 +289,7 @@ func getSecretsOfTask(ctx context.Context, task *actions_model.BotTask) map[stri
 	return secrets
 }
 
-func generateTaskContext(t *actions_model.BotTask) *structpb.Struct {
+func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {
 	event := map[string]interface{}{}
 	_ = json.Unmarshal([]byte(t.Job.Run.EventPayload), &event)
 

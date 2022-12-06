@@ -23,8 +23,8 @@ func (err ErrRunnerTokenNotExist) Error() string {
 	return fmt.Sprintf("runner token [%s] is not exist", err.Token)
 }
 
-// BotRunnerToken represents runner tokens
-type BotRunnerToken struct {
+// ActionRunnerToken represents runner tokens
+type ActionRunnerToken struct {
 	ID       int64
 	Token    string                 `xorm:"UNIQUE"`
 	OwnerID  int64                  `xorm:"index"` // org level runner, 0 means system
@@ -39,12 +39,12 @@ type BotRunnerToken struct {
 }
 
 func init() {
-	db.RegisterModel(new(BotRunnerToken))
+	db.RegisterModel(new(ActionRunnerToken))
 }
 
 // GetRunnerToken returns a bot runner via token
-func GetRunnerToken(token string) (*BotRunnerToken, error) {
-	var runnerToken BotRunnerToken
+func GetRunnerToken(token string) (*ActionRunnerToken, error) {
+	var runnerToken ActionRunnerToken
 	has, err := db.GetEngine(db.DefaultContext).Where("token=?", token).Get(&runnerToken)
 	if err != nil {
 		return nil, err
@@ -57,7 +57,7 @@ func GetRunnerToken(token string) (*BotRunnerToken, error) {
 }
 
 // UpdateRunnerToken updates runner token information.
-func UpdateRunnerToken(ctx context.Context, r *BotRunnerToken, cols ...string) (err error) {
+func UpdateRunnerToken(ctx context.Context, r *ActionRunnerToken, cols ...string) (err error) {
 	e := db.GetEngine(ctx)
 
 	if len(cols) == 0 {
@@ -69,12 +69,12 @@ func UpdateRunnerToken(ctx context.Context, r *BotRunnerToken, cols ...string) (
 }
 
 // NewRunnerToken creates a new runner token
-func NewRunnerToken(ownerID, repoID int64) (*BotRunnerToken, error) {
+func NewRunnerToken(ownerID, repoID int64) (*ActionRunnerToken, error) {
 	token, err := util.CryptoRandomString(40)
 	if err != nil {
 		return nil, err
 	}
-	runnerToken := &BotRunnerToken{
+	runnerToken := &ActionRunnerToken{
 		OwnerID:  ownerID,
 		RepoID:   repoID,
 		IsActive: false,
@@ -85,8 +85,8 @@ func NewRunnerToken(ownerID, repoID int64) (*BotRunnerToken, error) {
 }
 
 // GetUnactivatedRunnerToken returns a unactivated runner token
-func GetUnactivatedRunnerToken(ownerID, repoID int64) (*BotRunnerToken, error) {
-	var runnerToken BotRunnerToken
+func GetUnactivatedRunnerToken(ownerID, repoID int64) (*ActionRunnerToken, error) {
+	var runnerToken ActionRunnerToken
 	has, err := db.GetEngine(db.DefaultContext).Where("owner_id=? AND repo_id=? AND is_active=?", ownerID, repoID, false).OrderBy("id DESC").Get(&runnerToken)
 	if err != nil {
 		return nil, err

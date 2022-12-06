@@ -33,8 +33,8 @@ func (err ErrRunnerNotExist) Error() string {
 	return fmt.Sprintf("Bot runner token [%s] is not exist", err.Token)
 }
 
-// BotRunner represents runner machines
-type BotRunner struct {
+// ActionRunner represents runner machines
+type ActionRunner struct {
 	ID          int64
 	UUID        string                 `xorm:"CHAR(36) UNIQUE"`
 	Name        string                 `xorm:"VARCHAR(32)"`
@@ -64,7 +64,7 @@ type BotRunner struct {
 	Deleted timeutil.TimeStamp `xorm:"deleted"`
 }
 
-func (r *BotRunner) OwnType() string {
+func (r *ActionRunner) OwnType() string {
 	if r.OwnerID == 0 {
 		return "Global"
 	}
@@ -75,7 +75,7 @@ func (r *BotRunner) OwnType() string {
 	return r.Repo.FullName()
 }
 
-func (r *BotRunner) Status() runnerv1.RunnerStatus {
+func (r *ActionRunner) Status() runnerv1.RunnerStatus {
 	if time.Since(r.LastOnline.AsTime()) > time.Minute {
 		return runnerv1.RunnerStatus_RUNNER_STATUS_OFFLINE
 	}
@@ -85,11 +85,11 @@ func (r *BotRunner) Status() runnerv1.RunnerStatus {
 	return runnerv1.RunnerStatus_RUNNER_STATUS_ACTIVE
 }
 
-func (r *BotRunner) StatusName() string {
+func (r *ActionRunner) StatusName() string {
 	return strings.ToLower(strings.TrimPrefix(r.Status().String(), "RUNNER_STATUS_"))
 }
 
-func (r *BotRunner) IsOnline() bool {
+func (r *ActionRunner) IsOnline() bool {
 	status := r.Status()
 	if status == runnerv1.RunnerStatus_RUNNER_STATUS_IDLE || status == runnerv1.RunnerStatus_RUNNER_STATUS_ACTIVE {
 		return true
@@ -98,12 +98,12 @@ func (r *BotRunner) IsOnline() bool {
 }
 
 // AllLabels returns agent and custom labels
-func (r *BotRunner) AllLabels() []string {
+func (r *ActionRunner) AllLabels() []string {
 	return append(r.AgentLabels, r.CustomLabels...)
 }
 
 // Editable checks if the runner is editable by the user
-func (r *BotRunner) Editable(ownerID, repoID int64) bool {
+func (r *ActionRunner) Editable(ownerID, repoID int64) bool {
 	if ownerID == 0 && repoID == 0 {
 		return true
 	}
@@ -114,7 +114,7 @@ func (r *BotRunner) Editable(ownerID, repoID int64) bool {
 }
 
 // LoadAttributes loads the attributes of the runner
-func (r *BotRunner) LoadAttributes(ctx context.Context) error {
+func (r *ActionRunner) LoadAttributes(ctx context.Context) error {
 	if r.OwnerID > 0 {
 		var user user_model.User
 		has, err := db.GetEngine(ctx).ID(r.OwnerID).Get(&user)
@@ -138,13 +138,13 @@ func (r *BotRunner) LoadAttributes(ctx context.Context) error {
 	return nil
 }
 
-func (r *BotRunner) GenerateToken() (err error) {
+func (r *ActionRunner) GenerateToken() (err error) {
 	r.Token, r.TokenSalt, r.TokenHash, _, err = generateSaltedToken()
 	return err
 }
 
 func init() {
-	db.RegisterModel(&BotRunner{})
+	db.RegisterModel(&ActionRunner{})
 }
 
 type FindRunnerOptions struct {
@@ -195,7 +195,7 @@ func (opts FindRunnerOptions) toOrder() string {
 
 func CountRunners(opts FindRunnerOptions) (int64, error) {
 	return db.GetEngine(db.DefaultContext).
-		Table(BotRunner{}).
+		Table(ActionRunner{}).
 		Where(opts.toCond()).
 		OrderBy(opts.toOrder()).
 		Count()
@@ -212,8 +212,8 @@ func FindRunners(opts FindRunnerOptions) (runners RunnerList, err error) {
 }
 
 // GetUsableRunner returns the usable runner
-func GetUsableRunner(opts FindRunnerOptions) (*BotRunner, error) {
-	var runner BotRunner
+func GetUsableRunner(opts FindRunnerOptions) (*ActionRunner, error) {
+	var runner ActionRunner
 	has, err := db.GetEngine(db.DefaultContext).
 		Where(opts.toCond()).
 		Asc("last_online").
@@ -229,8 +229,8 @@ func GetUsableRunner(opts FindRunnerOptions) (*BotRunner, error) {
 }
 
 // GetRunnerByUUID returns a bot runner via uuid
-func GetRunnerByUUID(uuid string) (*BotRunner, error) {
-	var runner BotRunner
+func GetRunnerByUUID(uuid string) (*ActionRunner, error) {
+	var runner ActionRunner
 	has, err := db.GetEngine(db.DefaultContext).Where("uuid=?", uuid).Get(&runner)
 	if err != nil {
 		return nil, err
@@ -243,8 +243,8 @@ func GetRunnerByUUID(uuid string) (*BotRunner, error) {
 }
 
 // GetRunnerByID returns a bot runner via id
-func GetRunnerByID(id int64) (*BotRunner, error) {
-	var runner BotRunner
+func GetRunnerByID(id int64) (*ActionRunner, error) {
+	var runner ActionRunner
 	has, err := db.GetEngine(db.DefaultContext).Where("id=?", id).Get(&runner)
 	if err != nil {
 		return nil, err
@@ -257,7 +257,7 @@ func GetRunnerByID(id int64) (*BotRunner, error) {
 }
 
 // UpdateRunner updates runner's information.
-func UpdateRunner(ctx context.Context, r *BotRunner, cols ...string) error {
+func UpdateRunner(ctx context.Context, r *ActionRunner, cols ...string) error {
 	e := db.GetEngine(ctx)
 	var err error
 	if len(cols) == 0 {
@@ -269,15 +269,15 @@ func UpdateRunner(ctx context.Context, r *BotRunner, cols ...string) error {
 }
 
 // DeleteRunner deletes a runner by given ID.
-func DeleteRunner(ctx context.Context, r *BotRunner) error {
+func DeleteRunner(ctx context.Context, r *ActionRunner) error {
 	e := db.GetEngine(ctx)
 	_, err := e.Delete(r)
 	return err
 }
 
 // FindRunnersByRepoID returns all workers for the repository
-func FindRunnersByRepoID(repoID int64) ([]*BotRunner, error) {
-	var runners []*BotRunner
+func FindRunnersByRepoID(repoID int64) ([]*ActionRunner, error) {
+	var runners []*ActionRunner
 	err := db.GetEngine(db.DefaultContext).Where("repo_id=? OR repo_id=0", repoID).
 		Find(&runners)
 	if err != nil {
@@ -288,7 +288,7 @@ func FindRunnersByRepoID(repoID int64) ([]*BotRunner, error) {
 }
 
 // NewRunner creates new runner.
-func NewRunner(ctx context.Context, t *BotRunner) error {
+func NewRunner(ctx context.Context, t *ActionRunner) error {
 	_, err := db.GetEngine(ctx).Insert(t)
 	return err
 }

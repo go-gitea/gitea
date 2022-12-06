@@ -5,7 +5,7 @@ package actions
 
 import runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 
-// Status represents the status of BotRun, BotRunJob, BotTask, or BotTaskStep
+// Status represents the status of ActionRun, ActionRunJob, ActionTask, or ActionTaskStep
 type Status int
 
 const (

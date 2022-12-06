@@ -28,12 +28,12 @@ import (
 	"xorm.io/builder"
 )
 
-// BotTask represents a distribution of job
-type BotTask struct {
+// ActionTask represents a distribution of job
+type ActionTask struct {
 	ID       int64
 	JobID    int64
-	Job      *BotRunJob     `xorm:"-"`
-	Steps    []*BotTaskStep `xorm:"-"`
+	Job      *ActionRunJob     `xorm:"-"`
+	Steps    []*ActionTaskStep `xorm:"-"`
 	Attempt  int64
 	RunnerID int64              `xorm:"index"`
 	Status   Status             `xorm:"index"`
@@ -64,7 +64,7 @@ type BotTask struct {
 var successfulTokenTaskCache *lru.Cache
 
 func init() {
-	db.RegisterModel(new(BotTask), func() error {
+	db.RegisterModel(new(ActionTask), func() error {
 		if setting.SuccessfulTokensCacheSize > 0 {
 			var err error
 			successfulTokenTaskCache, err = lru.New(setting.SuccessfulTokensCacheSize)
@@ -78,7 +78,7 @@ func init() {
 	})
 }
 
-func (task *BotTask) TakeTime() time.Duration {
+func (task *ActionTask) TakeTime() time.Duration {
 	if task.Started == 0 {
 		return 0
 	}
@@ -90,15 +90,15 @@ func (task *BotTask) TakeTime() time.Duration {
 	return time.Since(started).Truncate(time.Second)
 }
 
-func (task *BotTask) IsStopped() bool {
+func (task *ActionTask) IsStopped() bool {
 	return task.Stopped > 0
 }
 
-func (task *BotTask) GetRepo() string {
+func (task *ActionTask) GetRepo() string {
 	return "xxxx"
 }
 
-func (task *BotTask) GetCommitSHA() string {
+func (task *ActionTask) GetCommitSHA() string {
 	if task.Job == nil {
 		return ""
 	}
@@ -109,7 +109,7 @@ func (task *BotTask) GetCommitSHA() string {
 	return task.Job.Run.CommitSHA
 }
 
-func (task *BotTask) GetCommitSHAShort() string {
+func (task *ActionTask) GetCommitSHAShort() string {
 	commitSHA := task.GetCommitSHA()
 	if len(commitSHA) > 8 {
 		return commitSHA[:8]
@@ -117,14 +117,14 @@ func (task *BotTask) GetCommitSHAShort() string {
 	return commitSHA
 }
 
-func (task *BotTask) GetBuildViewLink() string {
+func (task *ActionTask) GetBuildViewLink() string {
 	if task.Job == nil || task.Job.Run == nil || task.Job.Run.Repo == nil {
 		return ""
 	}
 	return task.Job.Run.Repo.Link() + "/bots/runs/" + strconv.FormatInt(task.ID, 10)
 }
 
-func (task *BotTask) GetCommitLink() string {
+func (task *ActionTask) GetCommitLink() string {
 	if task.Job == nil || task.Job.Run == nil || task.Job.Run.Repo == nil {
 		return ""
 	}
@@ -134,21 +134,21 @@ func (task *BotTask) GetCommitLink() string {
 	return ""
 }
 
-func (task *BotTask) GetRepoName() string {
+func (task *ActionTask) GetRepoName() string {
 	if task.Job == nil || task.Job.Run == nil || task.Job.Run.Repo == nil {
 		return ""
 	}
 	return task.Job.Run.Repo.FullName()
 }
 
-func (task *BotTask) GetRepoLink() string {
+func (task *ActionTask) GetRepoLink() string {
 	if task.Job == nil || task.Job.Run == nil || task.Job.Run.Repo == nil {
 		return ""
 	}
 	return task.Job.Run.Repo.Link()
 }
 
-func (task *BotTask) LoadJob(ctx context.Context) error {
+func (task *ActionTask) LoadJob(ctx context.Context) error {
 	if task.Job == nil {
 		job, err := GetRunJobByID(ctx, task.JobID)
 		if err != nil {
@@ -160,7 +160,7 @@ func (task *BotTask) LoadJob(ctx context.Context) error {
 }
 
 // LoadAttributes load Job Steps if not loaded
-func (task *BotTask) LoadAttributes(ctx context.Context) error {
+func (task *ActionTask) LoadAttributes(ctx context.Context) error {
 	if task == nil {
 		return nil
 	}
@@ -183,7 +183,7 @@ func (task *BotTask) LoadAttributes(ctx context.Context) error {
 	return nil
 }
 
-func (task *BotTask) GenerateToken() (err error) {
+func (task *ActionTask) GenerateToken() (err error) {
 	task.Token, task.TokenSalt, task.TokenHash, task.TokenLastEight, err = generateSaltedToken()
 	return err
 }
@@ -213,8 +213,8 @@ func (indexes *LogIndexes) ToDB() ([]byte, error) {
 	return buf[:i], nil
 }
 
-func GetTaskByID(ctx context.Context, id int64) (*BotTask, error) {
-	var task BotTask
+func GetTaskByID(ctx context.Context, id int64) (*ActionTask, error) {
+	var task ActionTask
 	has, err := db.GetEngine(ctx).Where("id=?", id).Get(&task)
 	if err != nil {
 		return nil, err
@@ -225,7 +225,7 @@ func GetTaskByID(ctx context.Context, id int64) (*BotTask, error) {
 	return &task, nil
 }
 
-func GetRunningTaskByToken(ctx context.Context, token string) (*BotTask, error) {
+func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, error) {
 	errNotExist := fmt.Errorf("task with token %q: %w", token, util.ErrNotExist)
 	if token == "" {
 		return nil, errNotExist
@@ -243,7 +243,7 @@ func GetRunningTaskByToken(ctx context.Context, token string) (*BotTask, error) 
 	lastEight := token[len(token)-8:]
 
 	if id := getTaskIDFromCache(token); id > 0 {
-		task := &BotTask{
+		task := &ActionTask{
 			TokenLastEight: lastEight,
 		}
 		// Re-get the task from the db in case it has been deleted in the intervening period
@@ -257,7 +257,7 @@ func GetRunningTaskByToken(ctx context.Context, token string) (*BotTask, error) 
 		successfulTokenTaskCache.Remove(token)
 	}
 
-	var tasks []*BotTask
+	var tasks []*ActionTask
 	err := db.GetEngine(ctx).Where("token_last_eight = ? AND status = ?", lastEight, StatusRunning).Find(&tasks)
 	if err != nil {
 		return nil, err
@@ -277,7 +277,7 @@ func GetRunningTaskByToken(ctx context.Context, token string) (*BotTask, error) 
 	return nil, errNotExist
 }
 
-func CreateTaskForRunner(ctx context.Context, runner *BotRunner) (*BotTask, bool, error) {
+func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask, bool, error) {
 	dbCtx, commiter, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, false, err
@@ -297,13 +297,13 @@ func CreateTaskForRunner(ctx context.Context, runner *BotRunner) (*BotTask, bool
 		jobCond = builder.In("run_id", builder.Select("id").From("bot_run").Where(jobCond))
 	}
 
-	var jobs []*BotRunJob
+	var jobs []*ActionRunJob
 	if err := e.Where("task_id=? AND status=?", 0, StatusWaiting).And(jobCond).Asc("id").Find(&jobs); err != nil {
 		return nil, false, err
 	}
 
 	// TODO: a more efficient way to filter labels
-	var job *BotRunJob
+	var job *ActionRunJob
 	labels := runner.AgentLabels
 	labels = append(labels, runner.CustomLabels...)
 	log.Trace("runner labels: %v", labels)
@@ -325,7 +325,7 @@ func CreateTaskForRunner(ctx context.Context, runner *BotRunner) (*BotTask, bool
 	job.Started = now
 	job.Status = StatusRunning
 
-	task := &BotTask{
+	task := &ActionTask{
 		JobID:             job.ID,
 		Attempt:           job.Attempt,
 		RunnerID:          runner.ID,
@@ -358,9 +358,9 @@ func CreateTaskForRunner(ctx context.Context, runner *BotRunner) (*BotTask, bool
 		return nil, false, err
 	}
 
-	steps := make([]*BotTaskStep, len(workflowJob.Steps))
+	steps := make([]*ActionTaskStep, len(workflowJob.Steps))
 	for i, v := range workflowJob.Steps {
-		steps[i] = &BotTaskStep{
+		steps[i] = &ActionTaskStep{
 			Name:   v.String(),
 			TaskID: task.ID,
 			Number: int64(i),
@@ -397,7 +397,7 @@ func CreateTaskForRunner(ctx context.Context, runner *BotRunner) (*BotTask, bool
 	return task, true, nil
 }
 
-func UpdateTask(ctx context.Context, task *BotTask, cols ...string) error {
+func UpdateTask(ctx context.Context, task *ActionTask, cols ...string) error {
 	sess := db.GetEngine(ctx).ID(task.ID)
 	if len(cols) > 0 {
 		sess.Cols(cols...)
@@ -406,7 +406,7 @@ func UpdateTask(ctx context.Context, task *BotTask, cols ...string) error {
 	return err
 }
 
-func UpdateTaskByState(state *runnerv1.TaskState) (*BotTask, error) {
+func UpdateTaskByState(state *runnerv1.TaskState) (*ActionTask, error) {
 	stepStates := map[int64]*runnerv1.StepState{}
 	for _, v := range state.Steps {
 		stepStates[v.Id] = v
@@ -420,7 +420,7 @@ func UpdateTaskByState(state *runnerv1.TaskState) (*BotTask, error) {
 
 	e := db.GetEngine(ctx)
 
-	task := &BotTask{}
+	task := &ActionTask{}
 	if has, err := e.ID(state.Id).Get(task); err != nil {
 		return nil, err
 	} else if !has {
@@ -430,7 +430,7 @@ func UpdateTaskByState(state *runnerv1.TaskState) (*BotTask, error) {
 	if state.Result != runnerv1.Result_RESULT_UNSPECIFIED {
 		task.Status = Status(state.Result)
 		task.Stopped = timeutil.TimeStamp(state.StoppedAt.AsTime().Unix())
-		if _, err := UpdateRunJob(ctx, &BotRunJob{
+		if _, err := UpdateRunJob(ctx, &ActionRunJob{
 			ID:      task.JobID,
 			Status:  task.Status,
 			Stopped: task.Stopped,
@@ -482,7 +482,7 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 	}
 	e := db.GetEngine(ctx)
 
-	task := &BotTask{}
+	task := &ActionTask{}
 	if has, err := e.ID(taskID).Get(task); err != nil {
 		return err
 	} else if !has {
@@ -495,7 +495,7 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 	now := timeutil.TimeStampNow()
 	task.Status = status
 	task.Stopped = now
-	if _, err := UpdateRunJob(ctx, &BotRunJob{
+	if _, err := UpdateRunJob(ctx, &ActionRunJob{
 		ID:      task.JobID,
 		Status:  task.Status,
 		Stopped: task.Stopped,

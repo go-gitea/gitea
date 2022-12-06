@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 )
 
-type RunnerList []*BotRunner
+type RunnerList []*ActionRunner
 
 // GetUserIDs returns a slice of user's id
 func (runners RunnerList) GetUserIDs() []int64 {

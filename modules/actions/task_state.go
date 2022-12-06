@@ -13,7 +13,7 @@ const (
 )
 
 // FullSteps returns steps with "Set up job" and "Complete job"
-func FullSteps(task *actions_model.BotTask) []*actions_model.BotTaskStep {
+func FullSteps(task *actions_model.ActionTask) []*actions_model.ActionTaskStep {
 	if len(task.Steps) == 0 {
 		return fullStepsOfEmptySteps(task)
 	}
@@ -21,7 +21,7 @@ func FullSteps(task *actions_model.BotTask) []*actions_model.BotTaskStep {
 	firstStep := task.Steps[0]
 	var logIndex int64
 
-	preStep := &actions_model.BotTaskStep{
+	preStep := &actions_model.ActionTaskStep{
 		Name:      preStepName,
 		LogLength: task.LogLength,
 		Started:   task.Started,
@@ -38,7 +38,7 @@ func FullSteps(task *actions_model.BotTask) []*actions_model.BotTaskStep {
 	}
 	logIndex += preStep.LogLength
 
-	var lastHasRunStep *actions_model.BotTaskStep
+	var lastHasRunStep *actions_model.ActionTaskStep
 	for _, step := range task.Steps {
 		if step.Status.HasRun() {
 			lastHasRunStep = step
@@ -49,7 +49,7 @@ func FullSteps(task *actions_model.BotTask) []*actions_model.BotTaskStep {
 		lastHasRunStep = preStep
 	}
 
-	postStep := &actions_model.BotTaskStep{
+	postStep := &actions_model.ActionTaskStep{
 		Name:   postStepName,
 		Status: actions_model.StatusWaiting,
 	}
@@ -60,7 +60,7 @@ func FullSteps(task *actions_model.BotTask) []*actions_model.BotTaskStep {
 		postStep.Started = lastHasRunStep.Stopped
 		postStep.Stopped = task.Stopped
 	}
-	ret := make([]*actions_model.BotTaskStep, 0, len(task.Steps)+2)
+	ret := make([]*actions_model.ActionTaskStep, 0, len(task.Steps)+2)
 	ret = append(ret, preStep)
 	ret = append(ret, task.Steps...)
 	ret = append(ret, postStep)
@@ -68,8 +68,8 @@ func FullSteps(task *actions_model.BotTask) []*actions_model.BotTaskStep {
 	return ret
 }
 
-func fullStepsOfEmptySteps(task *actions_model.BotTask) []*actions_model.BotTaskStep {
-	preStep := &actions_model.BotTaskStep{
+func fullStepsOfEmptySteps(task *actions_model.ActionTask) []*actions_model.ActionTaskStep {
+	preStep := &actions_model.ActionTaskStep{
 		Name:      preStepName,
 		LogLength: task.LogLength,
 		Started:   task.Started,
@@ -77,7 +77,7 @@ func fullStepsOfEmptySteps(task *actions_model.BotTask) []*actions_model.BotTask
 		Status:    actions_model.StatusRunning,
 	}
 
-	postStep := &actions_model.BotTaskStep{
+	postStep := &actions_model.ActionTaskStep{
 		Name:     postStepName,
 		LogIndex: task.LogLength,
 		Started:  task.Stopped,
@@ -94,7 +94,7 @@ func fullStepsOfEmptySteps(task *actions_model.BotTask) []*actions_model.BotTask
 		}
 	}
 
-	return []*actions_model.BotTaskStep{
+	return []*actions_model.ActionTaskStep{
 		preStep,
 		postStep,
 	}

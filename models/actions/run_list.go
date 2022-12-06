@@ -14,7 +14,7 @@ import (
 	"xorm.io/builder"
 )
 
-type RunList []*BotRun
+type RunList []*ActionRun
 
 // GetUserIDs returns a slice of user's id
 func (runs RunList) GetUserIDs() []int64 {
@@ -110,5 +110,5 @@ func FindRuns(ctx context.Context, opts FindRunOptions) (RunList, int64, error) 
 }
 
 func CountRuns(ctx context.Context, opts FindRunOptions) (int64, error) {
-	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(BotRun))
+	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(ActionRun))
 }

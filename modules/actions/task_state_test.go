@@ -14,13 +14,13 @@ import (
 func TestFullSteps(t *testing.T) {
 	tests := []struct {
 		name string
-		task *actions_model.BotTask
-		want []*actions_model.BotTaskStep
+		task *actions_model.ActionTask
+		want []*actions_model.ActionTaskStep
 	}{
 		{
 			name: "regular",
-			task: &actions_model.BotTask{
-				Steps: []*actions_model.BotTaskStep{
+			task: &actions_model.ActionTask{
+				Steps: []*actions_model.ActionTaskStep{
 					{Status: actions_model.StatusSuccess, LogIndex: 10, LogLength: 80, Started: 10010, Stopped: 10090},
 				},
 				Status:    actions_model.StatusSuccess,
@@ -28,7 +28,7 @@ func TestFullSteps(t *testing.T) {
 				Stopped:   10100,
 				LogLength: 100,
 			},
-			want: []*actions_model.BotTaskStep{
+			want: []*actions_model.ActionTaskStep{
 				{Name: preStepName, Status: actions_model.StatusSuccess, LogIndex: 0, LogLength: 10, Started: 10000, Stopped: 10010},
 				{Status: actions_model.StatusSuccess, LogIndex: 10, LogLength: 80, Started: 10010, Stopped: 10090},
 				{Name: postStepName, Status: actions_model.StatusSuccess, LogIndex: 90, LogLength: 10, Started: 10090, Stopped: 10100},
@@ -36,8 +36,8 @@ func TestFullSteps(t *testing.T) {
 		},
 		{
 			name: "failed step",
-			task: &actions_model.BotTask{
-				Steps: []*actions_model.BotTaskStep{
+			task: &actions_model.ActionTask{
+				Steps: []*actions_model.ActionTaskStep{
 					{Status: actions_model.StatusSuccess, LogIndex: 10, LogLength: 20, Started: 10010, Stopped: 10020},
 					{Status: actions_model.StatusFailure, LogIndex: 30, LogLength: 60, Started: 10020, Stopped: 10090},
 					{Status: actions_model.StatusCancelled, LogIndex: 0, LogLength: 0, Started: 0, Stopped: 0},
@@ -47,7 +47,7 @@ func TestFullSteps(t *testing.T) {
 				Stopped:   10100,
 				LogLength: 100,
 			},
-			want: []*actions_model.BotTaskStep{
+			want: []*actions_model.ActionTaskStep{
 				{Name: preStepName, Status: actions_model.StatusSuccess, LogIndex: 0, LogLength: 10, Started: 10000, Stopped: 10010},
 				{Status: actions_model.StatusSuccess, LogIndex: 10, LogLength: 20, Started: 10010, Stopped: 10020},
 				{Status: actions_model.StatusFailure, LogIndex: 30, LogLength: 60, Started: 10020, Stopped: 10090},
@@ -57,8 +57,8 @@ func TestFullSteps(t *testing.T) {
 		},
 		{
 			name: "first step is running",
-			task: &actions_model.BotTask{
-				Steps: []*actions_model.BotTaskStep{
+			task: &actions_model.ActionTask{
+				Steps: []*actions_model.ActionTaskStep{
 					{Status: actions_model.StatusRunning, LogIndex: 10, LogLength: 80, Started: 10010, Stopped: 0},
 				},
 				Status:    actions_model.StatusRunning,
@@ -66,7 +66,7 @@ func TestFullSteps(t *testing.T) {
 				Stopped:   10100,
 				LogLength: 100,
 			},
-			want: []*actions_model.BotTaskStep{
+			want: []*actions_model.ActionTaskStep{
 				{Name: preStepName, Status: actions_model.StatusSuccess, LogIndex: 0, LogLength: 10, Started: 10000, Stopped: 10010},
 				{Status: actions_model.StatusRunning, LogIndex: 10, LogLength: 80, Started: 10010, Stopped: 0},
 				{Name: postStepName, Status: actions_model.StatusWaiting, LogIndex: 0, LogLength: 0, Started: 0, Stopped: 0},
@@ -74,8 +74,8 @@ func TestFullSteps(t *testing.T) {
 		},
 		{
 			name: "first step has canceled",
-			task: &actions_model.BotTask{
-				Steps: []*actions_model.BotTaskStep{
+			task: &actions_model.ActionTask{
+				Steps: []*actions_model.ActionTaskStep{
 					{Status: actions_model.StatusCancelled, LogIndex: 0, LogLength: 0, Started: 0, Stopped: 0},
 				},
 				Status:    actions_model.StatusFailure,
@@ -83,7 +83,7 @@ func TestFullSteps(t *testing.T) {
 				Stopped:   10100,
 				LogLength: 100,
 			},
-			want: []*actions_model.BotTaskStep{
+			want: []*actions_model.ActionTaskStep{
 				{Name: preStepName, Status: actions_model.StatusFailure, LogIndex: 0, LogLength: 100, Started: 10000, Stopped: 10100},
 				{Status: actions_model.StatusCancelled, LogIndex: 0, LogLength: 0, Started: 0, Stopped: 0},
 				{Name: postStepName, Status: actions_model.StatusFailure, LogIndex: 100, LogLength: 0, Started: 10100, Stopped: 10100},
@@ -91,14 +91,14 @@ func TestFullSteps(t *testing.T) {
 		},
 		{
 			name: "empty steps",
-			task: &actions_model.BotTask{
-				Steps:     []*actions_model.BotTaskStep{},
+			task: &actions_model.ActionTask{
+				Steps:     []*actions_model.ActionTaskStep{},
 				Status:    actions_model.StatusSuccess,
 				Started:   10000,
 				Stopped:   10100,
 				LogLength: 100,
 			},
-			want: []*actions_model.BotTaskStep{
+			want: []*actions_model.ActionTaskStep{
 				{Name: preStepName, Status: actions_model.StatusSuccess, LogIndex: 0, LogLength: 100, Started: 10000, Stopped: 10100},
 				{Name: postStepName, Status: actions_model.StatusSuccess, LogIndex: 100, LogLength: 0, Started: 10100, Stopped: 10100},
 			},

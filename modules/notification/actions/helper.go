@@ -16,7 +16,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
-	actions_module "code.gitea.io/gitea/modules/actions"
+	bots_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
@@ -117,7 +117,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		return fmt.Errorf("gitRepo.GetCommit: %v", err)
 	}
 
-	workflows, err := actions_module.DetectWorkflows(commit, input.Event)
+	workflows, err := bots_module.DetectWorkflows(commit, input.Event)
 	if err != nil {
 		return fmt.Errorf("DetectWorkflows: %v", err)
 	}
@@ -133,7 +133,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 	}
 
 	for id, content := range workflows {
-		run := actions_model.BotRun{
+		run := actions_model.ActionRun{
 			Title:             commit.Message(),
 			RepoID:            input.Repo.ID,
 			OwnerID:           input.Repo.OwnerID,

@@ -21,8 +21,8 @@ import (
 	"xorm.io/builder"
 )
 
-// BotRun represents a run of a workflow file
-type BotRun struct {
+// ActionRun represents a run of a workflow file
+type ActionRun struct {
 	ID                int64
 	Title             string
 	RepoID            int64                  `xorm:"index unique(repo_index)"`
@@ -45,16 +45,16 @@ type BotRun struct {
 }
 
 func init() {
-	db.RegisterModel(new(BotRun))
-	db.RegisterModel(new(BotRunIndex))
+	db.RegisterModel(new(ActionRun))
+	db.RegisterModel(new(ActionRunIndex))
 }
 
-func (run *BotRun) HTMLURL() string {
+func (run *ActionRun) HTMLURL() string {
 	return fmt.Sprintf("%s/bots/runs/%d", run.Repo.HTMLURL(), run.Index)
 }
 
 // LoadAttributes load Repo TriggerUser if not loaded
-func (run *BotRun) LoadAttributes(ctx context.Context) error {
+func (run *ActionRun) LoadAttributes(ctx context.Context) error {
 	if run == nil {
 		return nil
 	}
@@ -81,7 +81,7 @@ func (run *BotRun) LoadAttributes(ctx context.Context) error {
 	return nil
 }
 
-func (run *BotRun) TakeTime() time.Duration {
+func (run *ActionRun) TakeTime() time.Duration {
 	if run.Started == 0 {
 		return 0
 	}
@@ -93,7 +93,7 @@ func (run *BotRun) TakeTime() time.Duration {
 	return time.Since(started).Truncate(time.Second)
 }
 
-func (run *BotRun) GetPushEventPayload() (*api.PushPayload, error) {
+func (run *ActionRun) GetPushEventPayload() (*api.PushPayload, error) {
 	if run.Event == webhook.HookEventPush {
 		var payload api.PushPayload
 		if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
@@ -129,7 +129,7 @@ func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) err
 }
 
 // InsertRun inserts a bot run
-func InsertRun(run *BotRun, jobs []*jobparser.SingleWorkflow) error {
+func InsertRun(run *ActionRun, jobs []*jobparser.SingleWorkflow) error {
 	ctx, commiter, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
@@ -162,7 +162,7 @@ func InsertRun(run *BotRun, jobs []*jobparser.SingleWorkflow) error {
 		return err
 	}
 
-	runJobs := make([]*BotRunJob, 0, len(jobs))
+	runJobs := make([]*ActionRunJob, 0, len(jobs))
 	for _, v := range jobs {
 		id, job := v.Job()
 		needs := job.Needs()
@@ -172,7 +172,7 @@ func InsertRun(run *BotRun, jobs []*jobparser.SingleWorkflow) error {
 		if len(needs) > 0 {
 			status = StatusBlocked
 		}
-		runJobs = append(runJobs, &BotRunJob{
+		runJobs = append(runJobs, &ActionRunJob{
 			RunID:             run.ID,
 			RepoID:            run.RepoID,
 			OwnerID:           run.OwnerID,
@@ -207,8 +207,8 @@ func (err ErrRunNotExist) Error() string {
 	return fmt.Sprintf("run [%d] is not exist", err.ID)
 }
 
-func GetRunByID(ctx context.Context, id int64) (*BotRun, error) {
-	var run BotRun
+func GetRunByID(ctx context.Context, id int64) (*ActionRun, error) {
+	var run ActionRun
 	has, err := db.GetEngine(ctx).Where("id=?", id).Get(&run)
 	if err != nil {
 		return nil, err
@@ -221,8 +221,8 @@ func GetRunByID(ctx context.Context, id int64) (*BotRun, error) {
 	return &run, nil
 }
 
-func GetRunByIndex(ctx context.Context, repoID, index int64) (*BotRun, error) {
-	run := &BotRun{
+func GetRunByIndex(ctx context.Context, repoID, index int64) (*ActionRun, error) {
+	run := &ActionRun{
 		RepoID: repoID,
 		Index:  index,
 	}
@@ -239,7 +239,7 @@ func GetRunByIndex(ctx context.Context, repoID, index int64) (*BotRun, error) {
 	return run, nil
 }
 
-func UpdateRun(ctx context.Context, run *BotRun, cols ...string) error {
+func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 	sess := db.GetEngine(ctx).ID(run.ID)
 	if len(cols) > 0 {
 		sess.Cols(cols...)
@@ -268,4 +268,4 @@ func UpdateRun(ctx context.Context, run *BotRun, cols ...string) error {
 	return err
 }
 
-type BotRunIndex db.ResourceIndex
+type ActionRunIndex db.ResourceIndex

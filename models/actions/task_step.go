@@ -11,8 +11,8 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
-// BotTaskStep represents a step of BotTask
-type BotTaskStep struct {
+// ActionTaskStep represents a step of ActionTask
+type ActionTaskStep struct {
 	ID        int64
 	Name      string
 	TaskID    int64  `xorm:"index unique(task_number)"`
@@ -27,7 +27,7 @@ type BotTaskStep struct {
 	Updated   timeutil.TimeStamp `xorm:"updated"`
 }
 
-func (step *BotTaskStep) TakeTime() time.Duration {
+func (step *ActionTaskStep) TakeTime() time.Duration {
 	if step.Started == 0 {
 		return 0
 	}
@@ -40,10 +40,10 @@ func (step *BotTaskStep) TakeTime() time.Duration {
 }
 
 func init() {
-	db.RegisterModel(new(BotTaskStep))
+	db.RegisterModel(new(ActionTaskStep))
 }
 
-func GetTaskStepsByTaskID(ctx context.Context, taskID int64) ([]*BotTaskStep, error) {
-	var steps []*BotTaskStep
+func GetTaskStepsByTaskID(ctx context.Context, taskID int64) ([]*ActionTaskStep, error) {
+	var steps []*ActionTaskStep
 	return steps, db.GetEngine(ctx).Where("task_id=?", taskID).OrderBy("number").Find(&steps)
 }
