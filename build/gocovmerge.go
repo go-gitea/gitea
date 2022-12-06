@@ -1,7 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // Copyright (c) 2015, Wade Simmons
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 // gocovmerge takes the results from multiple `go test -coverprofile` runs and
 // merges them into one profile

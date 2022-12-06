@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
@@ -8,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -53,7 +53,7 @@ func AdoptRepository(doer, u *user_model.User, opts repo_module.CreateRepoOption
 		IsEmpty:                         !opts.AutoInit,
 	}
 
-	if err := db.WithTx(func(ctx context.Context) error {
+	if err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		repoPath := repo_model.RepoPath(u.Name, repo.Name)
 		isExist, err := util.IsExist(repoPath)
 		if err != nil {
@@ -71,16 +71,16 @@ func AdoptRepository(doer, u *user_model.User, opts repo_module.CreateRepoOption
 			return err
 		}
 		if err := adoptRepository(ctx, repoPath, doer, repo, opts); err != nil {
-			return fmt.Errorf("createDelegateHooks: %v", err)
+			return fmt.Errorf("createDelegateHooks: %w", err)
 		}
 		if err := repo_module.CheckDaemonExportOK(ctx, repo); err != nil {
-			return fmt.Errorf("checkDaemonExportOK: %v", err)
+			return fmt.Errorf("checkDaemonExportOK: %w", err)
 		}
 
 		// Initialize Issue Labels if selected
 		if len(opts.IssueLabels) > 0 {
 			if err := repo_module.InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
-				return fmt.Errorf("InitializeLabels: %v", err)
+				return fmt.Errorf("InitializeLabels: %w", err)
 			}
 		}
 
@@ -88,14 +88,14 @@ func AdoptRepository(doer, u *user_model.User, opts repo_module.CreateRepoOption
 			SetDescription(fmt.Sprintf("CreateRepository(git update-server-info): %s", repoPath)).
 			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
 			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
-			return fmt.Errorf("CreateRepository(git update-server-info): %v", err)
+			return fmt.Errorf("CreateRepository(git update-server-info): %w", err)
 		}
 		return nil
 	}); err != nil {
 		return nil, err
 	}
 
-	notification.NotifyCreateRepository(doer, u, repo)
+	notification.NotifyCreateRepository(db.DefaultContext, doer, u, repo)
 
 	return repo, nil
 }
@@ -111,13 +111,13 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 	}
 
 	if err := repo_module.CreateDelegateHooks(repoPath); err != nil {
-		return fmt.Errorf("createDelegateHooks: %v", err)
+		return fmt.Errorf("createDelegateHooks: %w", err)
 	}
 
 	// Re-fetch the repository from database before updating it (else it would
 	// override changes that were done earlier with sql)
-	if repo, err = repo_model.GetRepositoryByIDCtx(ctx, repo.ID); err != nil {
-		return fmt.Errorf("getRepositoryByID: %v", err)
+	if repo, err = repo_model.GetRepositoryByID(ctx, repo.ID); err != nil {
+		return fmt.Errorf("getRepositoryByID: %w", err)
 	}
 
 	repo.IsEmpty = false
@@ -125,7 +125,7 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 	// Don't bother looking this repo in the context it won't be there
 	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 	if err != nil {
-		return fmt.Errorf("openRepository: %v", err)
+		return fmt.Errorf("openRepository: %w", err)
 	}
 	defer gitRepo.Close()
 
@@ -133,14 +133,14 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 		repo.DefaultBranch = opts.DefaultBranch
 
 		if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
-			return fmt.Errorf("setDefaultBranch: %v", err)
+			return fmt.Errorf("setDefaultBranch: %w", err)
 		}
 	} else {
 		repo.DefaultBranch, err = gitRepo.GetDefaultBranch()
 		if err != nil {
 			repo.DefaultBranch = setting.Repository.DefaultBranch
 			if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
-				return fmt.Errorf("setDefaultBranch: %v", err)
+				return fmt.Errorf("setDefaultBranch: %w", err)
 			}
 		}
 	}
@@ -176,12 +176,12 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 		}
 
 		if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
-			return fmt.Errorf("setDefaultBranch: %v", err)
+			return fmt.Errorf("setDefaultBranch: %w", err)
 		}
 	}
 
 	if err = repo_module.UpdateRepository(ctx, repo, false); err != nil {
-		return fmt.Errorf("updateRepository: %v", err)
+		return fmt.Errorf("updateRepository: %w", err)
 	}
 
 	return nil
@@ -218,21 +218,21 @@ func DeleteUnadoptedRepository(doer, u *user_model.User, repoName string) error 
 	return util.RemoveAll(repoPath)
 }
 
-type unadoptedRrepositories struct {
+type unadoptedRepositories struct {
 	repositories []string
 	index        int
 	start        int
 	end          int
 }
 
-func (unadopted *unadoptedRrepositories) add(repository string) {
+func (unadopted *unadoptedRepositories) add(repository string) {
 	if unadopted.index >= unadopted.start && unadopted.index < unadopted.end {
 		unadopted.repositories = append(unadopted.repositories, repository)
 	}
 	unadopted.index++
 }
 
-func checkUnadoptedRepositories(userName string, repoNamesToCheck []string, unadopted *unadoptedRrepositories) error {
+func checkUnadoptedRepositories(userName string, repoNamesToCheck []string, unadopted *unadoptedRepositories) error {
 	if len(repoNamesToCheck) == 0 {
 		return nil
 	}
@@ -264,7 +264,7 @@ func checkUnadoptedRepositories(userName string, repoNamesToCheck []string, unad
 	}
 	for _, repoName := range repoNamesToCheck {
 		if !repoNames.Contains(repoName) {
-			unadopted.add(filepath.Join(userName, repoName))
+			unadopted.add(path.Join(userName, repoName)) // These are not used as filepaths - but as reponames - therefore use path.Join not filepath.Join
 		}
 	}
 	return nil
@@ -292,7 +292,7 @@ func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, in
 	var repoNamesToCheck []string
 
 	start := (opts.Page - 1) * opts.PageSize
-	unadopted := &unadoptedRrepositories{
+	unadopted := &unadoptedRepositories{
 		repositories: make([]string, 0, opts.PageSize),
 		start:        start,
 		end:          start + opts.PageSize,

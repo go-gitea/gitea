@@ -1,7 +1,6 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -38,19 +37,19 @@ func Test_localizedExtensions(t *testing.T) {
 			name:              "With region - lowercase",
 			languageCode:      "en-us",
 			ext:               ".md",
-			wantLocalizedExts: []string{".en-us.md", ".en_us.md", ".en.md", ".md"},
+			wantLocalizedExts: []string{".en-us.md", ".en_us.md", ".en.md", "_en.md", ".md"},
 		},
 		{
 			name:              "With region - uppercase",
 			languageCode:      "en-CA",
 			ext:               ".MD",
-			wantLocalizedExts: []string{".en-ca.MD", ".en_ca.MD", ".en.MD", ".MD"},
+			wantLocalizedExts: []string{".en-ca.MD", ".en_ca.MD", ".en.MD", "_en.MD", ".MD"},
 		},
 		{
 			name:              "With region - all uppercase",
 			languageCode:      "ZH-TW",
 			ext:               ".md",
-			wantLocalizedExts: []string{".zh-tw.md", ".zh_tw.md", ".zh.md", ".md"},
+			wantLocalizedExts: []string{".zh-tw.md", ".zh_tw.md", ".zh.md", "_zh.md", ".md"},
 		},
 	}
 	for _, tt := range tests {

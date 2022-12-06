@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package files
 
@@ -26,13 +25,13 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 	// confirm that commit is exist
 	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
 	if err != nil {
-		return fmt.Errorf("OpenRepository[%s]: %v", repoPath, err)
+		return fmt.Errorf("OpenRepository[%s]: %w", repoPath, err)
 	}
 	defer closer.Close()
 
 	if _, err := gitRepo.GetCommit(sha); err != nil {
 		gitRepo.Close()
-		return fmt.Errorf("GetCommit[%s]: %v", sha, err)
+		return fmt.Errorf("GetCommit[%s]: %w", sha, err)
 	}
 	gitRepo.Close()
 
@@ -42,7 +41,7 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 		SHA:          sha,
 		CommitStatus: status,
 	}); err != nil {
-		return fmt.Errorf("NewCommitStatus[repo_id: %d, user_id: %d, sha: %s]: %v", repo.ID, creator.ID, sha, err)
+		return fmt.Errorf("NewCommitStatus[repo_id: %d, user_id: %d, sha: %s]: %w", repo.ID, creator.ID, sha, err)
 	}
 
 	if status.State.IsSuccess() {

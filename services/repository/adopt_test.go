@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
@@ -19,7 +18,7 @@ import (
 func TestCheckUnadoptedRepositories_Add(t *testing.T) {
 	start := 10
 	end := 20
-	unadopted := &unadoptedRrepositories{
+	unadopted := &unadoptedRepositories{
 		start: start,
 		end:   end,
 		index: 0,
@@ -39,7 +38,7 @@ func TestCheckUnadoptedRepositories(t *testing.T) {
 	//
 	// Non existent user
 	//
-	unadopted := &unadoptedRrepositories{start: 0, end: 100}
+	unadopted := &unadoptedRepositories{start: 0, end: 100}
 	err := checkUnadoptedRepositories("notauser", []string{"repo"}, unadopted)
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(unadopted.repositories))
@@ -50,14 +49,14 @@ func TestCheckUnadoptedRepositories(t *testing.T) {
 	userName := "user2"
 	repoName := "repo2"
 	unadoptedRepoName := "unadopted"
-	unadopted = &unadoptedRrepositories{start: 0, end: 100}
+	unadopted = &unadoptedRepositories{start: 0, end: 100}
 	err = checkUnadoptedRepositories(userName, []string{repoName, unadoptedRepoName}, unadopted)
 	assert.NoError(t, err)
 	assert.Equal(t, []string{path.Join(userName, unadoptedRepoName)}, unadopted.repositories)
 	//
 	// Existing (adopted) repository is not returned
 	//
-	unadopted = &unadoptedRrepositories{start: 0, end: 100}
+	unadopted = &unadoptedRepositories{start: 0, end: 100}
 	err = checkUnadoptedRepositories(userName, []string{repoName}, unadopted)
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(unadopted.repositories))

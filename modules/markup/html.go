@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package markup
 
@@ -603,8 +602,14 @@ func mentionProcessor(ctx *RenderContext, node *html.Node) {
 			start = loc.End
 			continue
 		}
-		replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, mention[1:]), mention, "mention"))
-		node = node.NextSibling.NextSibling
+		mentionedUsername := mention[1:]
+
+		if processorHelper.IsUsernameMentionable != nil && processorHelper.IsUsernameMentionable(ctx.Ctx, mentionedUsername) {
+			replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, mentionedUsername), mention, "mention"))
+			node = node.NextSibling.NextSibling
+		} else {
+			node = node.NextSibling
+		}
 		start = 0
 	}
 }

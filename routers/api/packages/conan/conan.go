@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package conan
 
@@ -348,8 +347,9 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 			Filename:     strings.ToLower(filename),
 			CompositeKey: fileKey,
 		},
-		Data:   buf,
-		IsLead: isConanfileFile,
+		Creator: ctx.Doer,
+		Data:    buf,
+		IsLead:  isConanfileFile,
 		Properties: map[string]string{
 			conan_module.PropertyRecipeUser:     rref.User,
 			conan_module.PropertyRecipeChannel:  rref.Channel,
@@ -416,11 +416,14 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 		pfci,
 	)
 	if err != nil {
-		if err == packages_model.ErrDuplicatePackageFile {
+		switch err {
+		case packages_model.ErrDuplicatePackageFile:
 			apiError(ctx, http.StatusBadRequest, err)
-			return
+		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+			apiError(ctx, http.StatusForbidden, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
 		}
-		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -473,7 +476,10 @@ func downloadFile(ctx *context.Context, fileFilter container.Set[string], fileKe
 	}
 	defer s.Close()
 
-	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
+	ctx.ServeContent(s, &context.ServeHeaderOptions{
+		Filename:     pf.Name,
+		LastModified: pf.CreatedUnix.AsLocalTime(),
+	})
 }
 
 // DeleteRecipeV1 deletes the requested recipe(s)
@@ -600,7 +606,7 @@ func DeletePackageV2(ctx *context.Context) {
 }
 
 func deleteRecipeOrPackage(apictx *context.Context, rref *conan_module.RecipeReference, ignoreRecipeRevision bool, pref *conan_module.PackageReference, ignorePackageRevision bool) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -672,7 +678,7 @@ func deleteRecipeOrPackage(apictx *context.Context, rref *conan_module.RecipeRef
 	}
 
 	if versionDeleted {
-		notification.NotifyPackageDelete(apictx.Doer, pd)
+		notification.NotifyPackageDelete(apictx, apictx.Doer, pd)
 	}
 
 	return nil

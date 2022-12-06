@@ -1,10 +1,10 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package lfs
 
 import (
+	stdCtx "context"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -409,7 +409,7 @@ func getAuthenticatedMeta(ctx *context.Context, rc *requestContext, p lfs_module
 }
 
 func getAuthenticatedRepository(ctx *context.Context, rc *requestContext, requireWrite bool) *repo_model.Repository {
-	repository, err := repo_model.GetRepositoryByOwnerAndName(rc.User, rc.Repo)
+	repository, err := repo_model.GetRepositoryByOwnerAndName(ctx, rc.User, rc.Repo)
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", rc.User, rc.Repo, err)
 		writeStatus(ctx, http.StatusNotFound)
@@ -438,14 +438,21 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 		}
 
 		if download {
-			rep.Actions["download"] = &lfs_module.Link{Href: rc.DownloadLink(pointer), Header: header}
+			var link *lfs_module.Link
 			if setting.LFS.ServeDirect {
 				// If we have a signed url (S3, object storage), redirect to this directly.
 				u, err := storage.LFS.URL(pointer.RelativePath(), pointer.Oid)
 				if u != nil && err == nil {
-					rep.Actions["download"] = &lfs_module.Link{Href: u.String(), Header: header}
+					// Presigned url does not need the Authorization header
+					// https://github.com/go-gitea/gitea/issues/21525
+					delete(header, "Authorization")
+					link = &lfs_module.Link{Href: u.String(), Header: header}
 				}
 			}
+			if link == nil {
+				link = &lfs_module.Link{Href: rc.DownloadLink(pointer), Header: header}
+			}
+			rep.Actions["download"] = link
 		}
 		if upload {
 			rep.Actions["upload"] = &lfs_module.Link{Href: rc.UploadLink(pointer), Header: header}
@@ -500,7 +507,7 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 		return true
 	}
 
-	user, err := parseToken(authorization, repository, accessMode)
+	user, err := parseToken(ctx, authorization, repository, accessMode)
 	if err != nil {
 		// Most of these are Warn level - the true internal server errors are logged in parseToken already
 		log.Warn("Authentication failure for provided token with Error: %v", err)
@@ -510,7 +517,7 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 	return true
 }
 
-func handleLFSToken(tokenSHA string, target *repo_model.Repository, mode perm.AccessMode) (*user_model.User, error) {
+func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repository, mode perm.AccessMode) (*user_model.User, error) {
 	if !strings.Contains(tokenSHA, ".") {
 		return nil, nil
 	}
@@ -537,7 +544,7 @@ func handleLFSToken(tokenSHA string, target *repo_model.Repository, mode perm.Ac
 		return nil, fmt.Errorf("invalid token claim")
 	}
 
-	u, err := user_model.GetUserByID(claims.UserID)
+	u, err := user_model.GetUserByID(ctx, claims.UserID)
 	if err != nil {
 		log.Error("Unable to GetUserById[%d]: Error: %v", claims.UserID, err)
 		return nil, err
@@ -545,7 +552,7 @@ func handleLFSToken(tokenSHA string, target *repo_model.Repository, mode perm.Ac
 	return u, nil
 }
 
-func parseToken(authorization string, target *repo_model.Repository, mode perm.AccessMode) (*user_model.User, error) {
+func parseToken(ctx stdCtx.Context, authorization string, target *repo_model.Repository, mode perm.AccessMode) (*user_model.User, error) {
 	if authorization == "" {
 		return nil, fmt.Errorf("no token")
 	}
@@ -559,7 +566,7 @@ func parseToken(authorization string, target *repo_model.Repository, mode perm.A
 	case "bearer":
 		fallthrough
 	case "token":
-		return handleLFSToken(tokenSHA, target, mode)
+		return handleLFSToken(ctx, tokenSHA, target, mode)
 	}
 	return nil, fmt.Errorf("token not found")
 }

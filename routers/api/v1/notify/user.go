@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package notify
 
@@ -69,7 +68,7 @@ func ListNotifications(ctx *context.APIContext) {
 		return
 	}
 
-	totalCount, err := activities_model.CountNotifications(opts)
+	totalCount, err := activities_model.CountNotifications(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -80,7 +79,7 @@ func ListNotifications(ctx *context.APIContext) {
 		ctx.InternalServerError(err)
 		return
 	}
-	err = nl.LoadAttributes()
+	err = nl.LoadAttributes(ctx)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -162,12 +161,12 @@ func ReadNotifications(ctx *context.APIContext) {
 	changed := make([]*structs.NotificationThread, 0, len(nl))
 
 	for _, n := range nl {
-		notif, err := activities_model.SetNotificationStatus(n.ID, ctx.Doer, targetStatus)
+		notif, err := activities_model.SetNotificationStatus(ctx, n.ID, ctx.Doer, targetStatus)
 		if err != nil {
 			ctx.InternalServerError(err)
 			return
 		}
-		_ = notif.LoadAttributes()
+		_ = notif.LoadAttributes(ctx)
 		changed = append(changed, convert.ToNotificationThread(notif))
 	}
 

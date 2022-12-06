@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cmd
 
@@ -145,6 +144,10 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 		cli.BoolFlag{
 			Name:  "skip-package-data",
 			Usage: "Skip package data",
+		},
+		cli.BoolFlag{
+			Name:  "skip-index",
+			Usage: "Skip bleve index data",
 		},
 		cli.GenericFlag{
 			Name:  "type",
@@ -325,6 +328,11 @@ func runDump(ctx *cli.Context) error {
 				return err
 			}
 			excludes = append(excludes, opts.ProviderConfig)
+		}
+
+		if ctx.IsSet("skip-index") && ctx.Bool("skip-index") {
+			excludes = append(excludes, setting.Indexer.RepoPath)
+			excludes = append(excludes, setting.Indexer.IssuePath)
 		}
 
 		excludes = append(excludes, setting.RepoRootPath)

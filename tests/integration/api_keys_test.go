@@ -1,6 +1,5 @@
 // Copyright 2017 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -62,7 +61,7 @@ func TestCreateReadOnlyDeployKey(t *testing.T) {
 		ReadOnly: true,
 	}
 	req := NewRequestWithJSON(t, "POST", keysURL, rawKeyBody)
-	resp := session.MakeRequest(t, req, http.StatusCreated)
+	resp := MakeRequest(t, req, http.StatusCreated)
 
 	var newDeployKey api.DeployKey
 	DecodeJSON(t, resp, &newDeployKey)
@@ -87,7 +86,7 @@ func TestCreateReadWriteDeployKey(t *testing.T) {
 		Key:   "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC4cn+iXnA4KvcQYSV88vGn0Yi91vG47t1P7okprVmhNTkipNRIHWr6WdCO4VDr/cvsRkuVJAsLO2enwjGWWueOO6BodiBgyAOZ/5t5nJNMCNuLGT5UIo/RI1b0WRQwxEZTRjt6mFNw6lH14wRd8ulsr9toSWBPMOGWoYs1PDeDL0JuTjL+tr1SZi/EyxCngpYszKdXllJEHyI79KQgeD0Vt3pTrkbNVTOEcCNqZePSVmUH8X8Vhugz3bnE0/iE9Pb5fkWO9c4AnM1FgI/8Bvp27Fw2ShryIXuR6kKvUqhVMTuOSDHwu6A8jLE5Owt3GAYugDpDYuwTVNGrHLXKpPzrGGPE/jPmaLCMZcsdkec95dYeU3zKODEm8UQZFhmJmDeWVJ36nGrGZHL4J5aTTaeFUJmmXDaJYiJ+K2/ioKgXqnXvltu0A9R8/LGy4nrTJRr4JMLuJFoUXvGm1gXQ70w2LSpk6yl71RNC0hCtsBe8BP8IhYCM0EP5jh7eCMQZNvM= nocomment\n",
 	}
 	req := NewRequestWithJSON(t, "POST", keysURL, rawKeyBody)
-	resp := session.MakeRequest(t, req, http.StatusCreated)
+	resp := MakeRequest(t, req, http.StatusCreated)
 
 	var newDeployKey api.DeployKey
 	DecodeJSON(t, resp, &newDeployKey)
@@ -113,7 +112,7 @@ func TestCreateUserKey(t *testing.T) {
 		Key:   keyType + " " + keyContent,
 	}
 	req := NewRequestWithJSON(t, "POST", keysURL, rawKeyBody)
-	resp := session.MakeRequest(t, req, http.StatusCreated)
+	resp := MakeRequest(t, req, http.StatusCreated)
 
 	var newPublicKey api.PublicKey
 	DecodeJSON(t, resp, &newPublicKey)
@@ -131,7 +130,7 @@ func TestCreateUserKey(t *testing.T) {
 	fingerprintURL := fmt.Sprintf("/api/v1/user/keys?token=%s&fingerprint=%s", token, newPublicKey.Fingerprint)
 
 	req = NewRequest(t, "GET", fingerprintURL)
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, req, http.StatusOK)
 
 	var fingerprintPublicKeys []api.PublicKey
 	DecodeJSON(t, resp, &fingerprintPublicKeys)
@@ -142,7 +141,7 @@ func TestCreateUserKey(t *testing.T) {
 	fingerprintURL = fmt.Sprintf("/api/v1/users/%s/keys?token=%s&fingerprint=%s", user.Name, token, newPublicKey.Fingerprint)
 
 	req = NewRequest(t, "GET", fingerprintURL)
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &fingerprintPublicKeys)
 	assert.Equal(t, newPublicKey.Fingerprint, fingerprintPublicKeys[0].Fingerprint)
@@ -153,7 +152,7 @@ func TestCreateUserKey(t *testing.T) {
 	fingerprintURL = fmt.Sprintf("/api/v1/user/keys?token=%s&fingerprint=%sA", token, newPublicKey.Fingerprint)
 
 	req = NewRequest(t, "GET", fingerprintURL)
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &fingerprintPublicKeys)
 	assert.Len(t, fingerprintPublicKeys, 0)
@@ -161,7 +160,7 @@ func TestCreateUserKey(t *testing.T) {
 	// Fail searching for wrong users key
 	fingerprintURL = fmt.Sprintf("/api/v1/users/%s/keys?token=%s&fingerprint=%s", "user2", token, newPublicKey.Fingerprint)
 	req = NewRequest(t, "GET", fingerprintURL)
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &fingerprintPublicKeys)
 	assert.Len(t, fingerprintPublicKeys, 0)
@@ -173,7 +172,7 @@ func TestCreateUserKey(t *testing.T) {
 	// Should find key even though not ours, but we shouldn't know whose it is
 	fingerprintURL = fmt.Sprintf("/api/v1/user/keys?token=%s&fingerprint=%s", token2, newPublicKey.Fingerprint)
 	req = NewRequest(t, "GET", fingerprintURL)
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &fingerprintPublicKeys)
 	assert.Equal(t, newPublicKey.Fingerprint, fingerprintPublicKeys[0].Fingerprint)
@@ -184,7 +183,7 @@ func TestCreateUserKey(t *testing.T) {
 	fingerprintURL = fmt.Sprintf("/api/v1/users/%s/keys?token=%s&fingerprint=%s", user.Name, token2, newPublicKey.Fingerprint)
 
 	req = NewRequest(t, "GET", fingerprintURL)
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &fingerprintPublicKeys)
 	assert.Equal(t, newPublicKey.Fingerprint, fingerprintPublicKeys[0].Fingerprint)
@@ -194,7 +193,7 @@ func TestCreateUserKey(t *testing.T) {
 	// Fail when searching for key if it is not ours
 	fingerprintURL = fmt.Sprintf("/api/v1/users/%s/keys?token=%s&fingerprint=%s", "user2", token2, newPublicKey.Fingerprint)
 	req = NewRequest(t, "GET", fingerprintURL)
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &fingerprintPublicKeys)
 	assert.Len(t, fingerprintPublicKeys, 0)

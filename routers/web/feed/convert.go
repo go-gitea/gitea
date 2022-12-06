@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package feed
 
@@ -69,7 +68,7 @@ func renderMarkdown(ctx *context.Context, act *activities_model.Action, content 
 // feedActionsToFeedItems convert gitea's Action feed to feeds Item
 func feedActionsToFeedItems(ctx *context.Context, actions activities_model.ActionList) (items []*feeds.Item, err error) {
 	for _, act := range actions {
-		act.LoadActUser()
+		act.LoadActUser(ctx)
 
 		var content, desc, title string
 
@@ -115,6 +114,12 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 				link.Href = pullLink
 			}
 			title += ctx.TrHTMLEscapeArgs("action.merge_pull_request", pullLink, act.GetIssueInfos()[0], act.ShortRepoPath())
+		case activities_model.ActionAutoMergePullRequest:
+			pullLink := toPullLink(act)
+			if link.Href == "#" {
+				link.Href = pullLink
+			}
+			title += ctx.TrHTMLEscapeArgs("action.auto_merge_pull_request", pullLink, act.GetIssueInfos()[0], act.ShortRepoPath())
 		case activities_model.ActionCloseIssue:
 			issueLink := toIssueLink(act)
 			if link.Href == "#" {
@@ -221,7 +226,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 				if len(comment) != 0 {
 					desc += "\n\n" + renderMarkdown(ctx, act, comment)
 				}
-			case activities_model.ActionMergePullRequest:
+			case activities_model.ActionMergePullRequest, activities_model.ActionAutoMergePullRequest:
 				desc = act.GetIssueInfos()[1]
 			case activities_model.ActionCloseIssue, activities_model.ActionReopenIssue, activities_model.ActionClosePullRequest, activities_model.ActionReopenPullRequest:
 				desc = act.GetIssueTitle()
@@ -241,7 +246,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 				Name:  act.ActUser.DisplayName(),
 				Email: act.ActUser.GetEmail(),
 			},
-			Id:      strconv.FormatInt(act.ID, 10),
+			Id:      fmt.Sprintf("%v: %v", strconv.FormatInt(act.ID, 10), link.Href),
 			Created: act.CreatedUnix.AsTime(),
 			Content: content,
 		})

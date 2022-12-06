@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -18,6 +17,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -263,19 +263,19 @@ var tokenCounter int64
 
 func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
 	t.Helper()
-	tokenCounter++
 	req := NewRequest(t, "GET", "/user/settings/applications")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
 	req = NewRequestWithValues(t, "POST", "/user/settings/applications", map[string]string{
 		"_csrf": doc.GetCSRF(),
-		"name":  fmt.Sprintf("api-testing-token-%d", tokenCounter),
+		"name":  fmt.Sprintf("api-testing-token-%d", atomic.AddInt64(&tokenCounter, 1)),
 	})
 	session.MakeRequest(t, req, http.StatusSeeOther)
 	req = NewRequest(t, "GET", "/user/settings/applications")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	token := htmlDoc.doc.Find(".ui.info p").Text()
+	assert.NotEmpty(t, token)
 	return token
 }
 

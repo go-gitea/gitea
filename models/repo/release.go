@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -90,16 +89,17 @@ func init() {
 	db.RegisterModel(new(Release))
 }
 
-func (r *Release) loadAttributes(ctx context.Context) error {
+// LoadAttributes load repo and publisher attributes for a release
+func (r *Release) LoadAttributes(ctx context.Context) error {
 	var err error
 	if r.Repo == nil {
-		r.Repo, err = GetRepositoryByIDCtx(ctx, r.RepoID)
+		r.Repo, err = GetRepositoryByID(ctx, r.RepoID)
 		if err != nil {
 			return err
 		}
 	}
 	if r.Publisher == nil {
-		r.Publisher, err = user_model.GetUserByIDCtx(ctx, r.PublisherID)
+		r.Publisher, err = user_model.GetUserByID(ctx, r.PublisherID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				r.Publisher = user_model.NewGhostUser()
@@ -109,11 +109,6 @@ func (r *Release) loadAttributes(ctx context.Context) error {
 		}
 	}
 	return GetReleaseAttachments(ctx, r)
-}
-
-// LoadAttributes load repo and publisher attributes for a release
-func (r *Release) LoadAttributes() error {
-	return r.loadAttributes(db.DefaultContext)
 }
 
 // APIURL the api url for a release. release must have attributes loaded
@@ -156,7 +151,7 @@ func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs
 	// Check attachments
 	attachments, err := GetAttachmentsByUUIDs(ctx, attachmentUUIDs)
 	if err != nil {
-		return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %v", attachmentUUIDs, err)
+		return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %w", attachmentUUIDs, err)
 	}
 
 	for i := range attachments {
@@ -166,7 +161,7 @@ func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs
 		attachments[i].ReleaseID = releaseID
 		// No assign value could be 0, so ignore AllCols().
 		if _, err = db.GetEngine(ctx).ID(attachments[i].ID).Update(attachments[i]); err != nil {
-			return fmt.Errorf("update attachment [%d]: %v", attachments[i].ID, err)
+			return fmt.Errorf("update attachment [%d]: %w", attachments[i].ID, err)
 		}
 	}
 
@@ -241,8 +236,8 @@ func (opts *FindReleasesOptions) toConds(repoID int64) builder.Cond {
 }
 
 // GetReleasesByRepoID returns a list of releases of repository.
-func GetReleasesByRepoID(repoID int64, opts FindReleasesOptions) ([]*Release, error) {
-	sess := db.GetEngine(db.DefaultContext).
+func GetReleasesByRepoID(ctx context.Context, repoID int64, opts FindReleasesOptions) ([]*Release, error) {
+	sess := db.GetEngine(ctx).
 		Desc("created_unix", "id").
 		Where(opts.toConds(repoID))
 
@@ -381,8 +376,8 @@ func SortReleases(rels []*Release) {
 }
 
 // DeleteReleaseByID deletes a release from database by given ID.
-func DeleteReleaseByID(id int64) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(id).Delete(new(Release))
+func DeleteReleaseByID(ctx context.Context, id int64) error {
+	_, err := db.GetEngine(ctx).ID(id).Delete(new(Release))
 	return err
 }
 
@@ -413,7 +408,7 @@ func PushUpdateDeleteTagsContext(ctx context.Context, repo *Repository, tags []s
 		Where("repo_id = ? AND is_tag = ?", repo.ID, true).
 		In("lower_tag_name", lowerTags).
 		Delete(new(Release)); err != nil {
-		return fmt.Errorf("Delete: %v", err)
+		return fmt.Errorf("Delete: %w", err)
 	}
 
 	if _, err := db.GetEngine(ctx).
@@ -423,7 +418,7 @@ func PushUpdateDeleteTagsContext(ctx context.Context, repo *Repository, tags []s
 		Update(&Release{
 			IsDraft: true,
 		}); err != nil {
-		return fmt.Errorf("Update: %v", err)
+		return fmt.Errorf("Update: %w", err)
 	}
 
 	return nil
@@ -436,18 +431,18 @@ func PushUpdateDeleteTag(repo *Repository, tagName string) error {
 		if IsErrReleaseNotExist(err) {
 			return nil
 		}
-		return fmt.Errorf("GetRelease: %v", err)
+		return fmt.Errorf("GetRelease: %w", err)
 	}
 	if rel.IsTag {
 		if _, err = db.GetEngine(db.DefaultContext).ID(rel.ID).Delete(new(Release)); err != nil {
-			return fmt.Errorf("Delete: %v", err)
+			return fmt.Errorf("Delete: %w", err)
 		}
 	} else {
 		rel.IsDraft = true
 		rel.NumCommits = 0
 		rel.Sha1 = ""
 		if _, err = db.GetEngine(db.DefaultContext).ID(rel.ID).AllCols().Update(rel); err != nil {
-			return fmt.Errorf("Update: %v", err)
+			return fmt.Errorf("Update: %w", err)
 		}
 	}
 
@@ -458,13 +453,13 @@ func PushUpdateDeleteTag(repo *Repository, tagName string) error {
 func SaveOrUpdateTag(repo *Repository, newRel *Release) error {
 	rel, err := GetRelease(repo.ID, newRel.TagName)
 	if err != nil && !IsErrReleaseNotExist(err) {
-		return fmt.Errorf("GetRelease: %v", err)
+		return fmt.Errorf("GetRelease: %w", err)
 	}
 
 	if rel == nil {
 		rel = newRel
 		if _, err = db.GetEngine(db.DefaultContext).Insert(rel); err != nil {
-			return fmt.Errorf("InsertOne: %v", err)
+			return fmt.Errorf("InsertOne: %w", err)
 		}
 	} else {
 		rel.Sha1 = newRel.Sha1
@@ -475,7 +470,7 @@ func SaveOrUpdateTag(repo *Repository, newRel *Release) error {
 			rel.PublisherID = newRel.PublisherID
 		}
 		if _, err = db.GetEngine(db.DefaultContext).ID(rel.ID).AllCols().Update(rel); err != nil {
-			return fmt.Errorf("Update: %v", err)
+			return fmt.Errorf("Update: %w", err)
 		}
 	}
 	return nil

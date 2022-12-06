@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package oauth2
 
@@ -339,7 +338,7 @@ func InitSigningKey() error {
 	}
 
 	if err != nil {
-		return fmt.Errorf("Error while loading or creating JWT key: %v", err)
+		return fmt.Errorf("Error while loading or creating JWT key: %w", err)
 	}
 
 	signingKey, err := CreateJWTSigningKey(setting.OAuth2.JWTSigningAlgorithm, key)

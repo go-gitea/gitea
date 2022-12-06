@@ -1,7 +1,6 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // Copyright 2017 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package markup
 
@@ -55,6 +54,16 @@ func createDefaultPolicy() *bluemonday.Policy {
 	// For JS code copy and Mermaid loading state
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^code-block( is-loading)?$`)).OnElements("pre")
 
+	// For color preview
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^color-preview$`)).OnElements("span")
+
+	// For attention
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^attention-\w+$`)).OnElements("strong")
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^attention-icon attention-\w+$`)).OnElements("span", "strong")
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^svg octicon-\w+$`)).OnElements("svg")
+	policy.AllowAttrs("viewBox", "width", "height", "aria-hidden").OnElements("svg")
+	policy.AllowAttrs("fill-rule", "d").OnElements("path")
+
 	// For Chroma markdown plugin
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^(chroma )?language-[\w-]+( display)?( is-loading)?$`)).OnElements("code")
 
@@ -88,8 +97,8 @@ func createDefaultPolicy() *bluemonday.Policy {
 	// Allow 'style' attribute on text elements.
 	policy.AllowAttrs("style").OnElements("span", "p")
 
-	// Allow 'color' property for the style attribute on text elements.
-	policy.AllowStyles("color").OnElements("span", "p")
+	// Allow 'color' and 'background-color' properties for the style attribute on text elements.
+	policy.AllowStyles("color", "background-color").OnElements("span", "p")
 
 	// Allow generally safe attributes
 	generalSafeAttrs := []string{

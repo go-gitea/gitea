@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
@@ -48,7 +47,7 @@ func GenerateRepository(doer, owner *user_model.User, templateRepo *repo_model.R
 	}
 
 	var generateRepo *repo_model.Repository
-	if err = db.WithTx(func(ctx context.Context) error {
+	if err = db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		generateRepo, err = repo_module.GenerateRepository(ctx, doer, owner, templateRepo, opts)
 		if err != nil {
 			return err
@@ -101,7 +100,7 @@ func GenerateRepository(doer, owner *user_model.User, templateRepo *repo_model.R
 		return nil, err
 	}
 
-	notification.NotifyCreateRepository(doer, owner, generateRepo)
+	notification.NotifyCreateRepository(db.DefaultContext, doer, owner, generateRepo)
 
 	return generateRepo, nil
 }

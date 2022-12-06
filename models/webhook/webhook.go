@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package webhook
 
@@ -13,18 +12,13 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/secret"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
-
-//  __      __      ___.   .__                   __
-// /  \    /  \ ____\_ |__ |  |__   ____   ____ |  | __
-// \   \/\/   // __ \| __ \|  |  \ /  _ \ /  _ \|  |/ /
-//  \        /\  ___/| \_\ \   Y  (  <_> |  <_> )    <
-//   \__/\  /  \___  >___  /___|  /\____/ \____/|__|_ \
-//        \/       \/    \/     \/                   \/
 
 // ErrWebhookNotExist represents a "WebhookNotExist" kind of error.
 type ErrWebhookNotExist struct {
@@ -47,6 +41,7 @@ func (err ErrWebhookNotExist) Unwrap() error {
 
 // ErrHookTaskNotExist represents a "HookTaskNotExist" kind of error.
 type ErrHookTaskNotExist struct {
+	TaskID int64
 	HookID int64
 	UUID   string
 }
@@ -58,7 +53,7 @@ func IsErrHookTaskNotExist(err error) bool {
 }
 
 func (err ErrHookTaskNotExist) Error() string {
-	return fmt.Sprintf("hook task does not exist [hook: %d, uuid: %s]", err.HookID, err.UUID)
+	return fmt.Sprintf("hook task does not exist [task: %d, hook: %d, uuid: %s]", err.TaskID, err.HookID, err.UUID)
 }
 
 func (err ErrHookTaskNotExist) Unwrap() error {
@@ -200,6 +195,9 @@ type Webhook struct {
 	Type            HookType   `xorm:"VARCHAR(16) 'type'"`
 	Meta            string     `xorm:"TEXT"` // store hook-specific attributes
 	LastStatus      HookStatus // Last delivery status
+
+	// HeaderAuthorizationEncrypted should be accessed using HeaderAuthorization() and SetHeaderAuthorization()
+	HeaderAuthorizationEncrypted string `xorm:"TEXT"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -407,6 +405,29 @@ func (w *Webhook) EventsArray() []string {
 	return events
 }
 
+// HeaderAuthorization returns the decrypted Authorization header.
+// Not on the reference (*w), to be accessible on WebhooksNew.
+func (w Webhook) HeaderAuthorization() (string, error) {
+	if w.HeaderAuthorizationEncrypted == "" {
+		return "", nil
+	}
+	return secret.DecryptSecret(setting.SecretKey, w.HeaderAuthorizationEncrypted)
+}
+
+// SetHeaderAuthorization encrypts and sets the Authorization header.
+func (w *Webhook) SetHeaderAuthorization(cleartext string) error {
+	if cleartext == "" {
+		w.HeaderAuthorizationEncrypted = ""
+		return nil
+	}
+	ciphertext, err := secret.EncryptSecret(setting.SecretKey, cleartext)
+	if err != nil {
+		return err
+	}
+	w.HeaderAuthorizationEncrypted = ciphertext
+	return nil
+}
+
 // CreateWebhook creates a new web hook.
 func CreateWebhook(ctx context.Context, w *Webhook) error {
 	w.Type = strings.TrimSpace(w.Type)
@@ -553,7 +574,7 @@ func UpdateWebhookLastStatus(w *Webhook) error {
 // deleteWebhook uses argument bean as query condition,
 // ID must be specified and do not assign unnecessary fields.
 func deleteWebhook(bean *Webhook) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -588,7 +609,7 @@ func DeleteWebhookByOrgID(orgID, id int64) error {
 
 // DeleteDefaultSystemWebhook deletes an admin-configured default or system webhook (where Org and Repo ID both 0)
 func DeleteDefaultSystemWebhook(id int64) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -614,14 +635,14 @@ func DeleteDefaultSystemWebhook(id int64) error {
 func CopyDefaultWebhooksToRepo(ctx context.Context, repoID int64) error {
 	ws, err := GetDefaultWebhooks(ctx)
 	if err != nil {
-		return fmt.Errorf("GetDefaultWebhooks: %v", err)
+		return fmt.Errorf("GetDefaultWebhooks: %w", err)
 	}
 
 	for _, w := range ws {
 		w.ID = 0
 		w.RepoID = repoID
 		if err := CreateWebhook(ctx, w); err != nil {
-			return fmt.Errorf("CreateWebhook: %v", err)
+			return fmt.Errorf("CreateWebhook: %w", err)
 		}
 	}
 	return nil
