@@ -216,7 +216,6 @@ func GetRunByIndex(ctx context.Context, repoID, index int64) (*ActionRun, error)
 		return nil, err
 	} else if !has {
 		return nil, fmt.Errorf("run with index %d %d: %w", repoID, index, util.ErrNotExist)
-
 	}
 
 	return run, nil

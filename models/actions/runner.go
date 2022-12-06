@@ -217,7 +217,6 @@ func GetRunnerByID(ctx context.Context, id int64) (*ActionRunner, error) {
 		return nil, err
 	} else if !has {
 		return nil, fmt.Errorf("runner with id %d: %w", id, util.ErrNotExist)
-
 	}
 	return &runner, nil
 }
