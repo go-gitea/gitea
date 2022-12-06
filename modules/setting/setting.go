@@ -1329,6 +1329,7 @@ func NewServices() {
 	newSessionService()
 	newCORSService()
 	newMailService()
+	newIncomingEmail()
 	newRegisterMailService()
 	newNotifyMailService()
 	newProxyService()
