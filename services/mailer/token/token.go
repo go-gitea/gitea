@@ -16,8 +16,8 @@ import (
 )
 
 const (
-	tokenVersion1 byte = 1
-	tokenLifetimeInYears = 1
+	tokenVersion1        byte = 1
+	tokenLifetimeInYears      = 1
 )
 
 type HandlerType byte
@@ -83,7 +83,7 @@ func ExtractToken(ctx context.Context, token string) (HandlerType, *user_model.U
 		return UnknownHandlerType, nil, nil, err
 	}
 
-	user, err := user_model.GetUserByIDCtx(ctx, userID)
+	user, err := user_model.GetUserByID(ctx, userID)
 	if err != nil {
 		return UnknownHandlerType, nil, nil, err
 	}
