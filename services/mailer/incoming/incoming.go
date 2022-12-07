@@ -4,12 +4,9 @@
 package incoming
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
-	"errors"
 	"fmt"
-	"io"
 	net_mail "net/mail"
 	"regexp"
 	"strings"
@@ -23,8 +20,7 @@ import (
 	"github.com/dimiro1/reply"
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"
-	"github.com/emersion/go-message/mail"
-	"github.com/jaytaylor/html2text"
+	"github.com/jhillyerd/enmime"
 )
 
 var (
@@ -224,18 +220,17 @@ loop:
 					return fmt.Errorf("get body failed: %w", err)
 				}
 
-				mr, err := mail.CreateReader(r)
+				env, err := enmime.ReadEnvelope(r)
 				if err != nil {
-					return fmt.Errorf("create reader failed: %w", err)
+					return fmt.Errorf("read envelope failed: %w", err)
 				}
-				defer mr.Close()
 
-				if isAutomaticReply(mr.Header) {
+				if isAutomaticReply(env) {
 					log.Debug("Skipping automatic reply")
 					return nil
 				}
 
-				t := searchTokenInHeaders(mr.Header)
+				t := searchTokenInHeaders(env)
 				if t == "" {
 					log.Debug("Token not found")
 					return nil
@@ -255,7 +250,7 @@ loop:
 					return fmt.Errorf("unexpected handler type: %v", handlerType)
 				}
 
-				content, err := getContentFromMailReader(mr)
+				content, err := getContentFromMailReader(env)
 				if err != nil {
 					return fmt.Errorf("getContentFromMailReader failed: %w", err)
 				}
@@ -282,24 +277,24 @@ loop:
 }
 
 // isAutomaticReply tests if the headers indicate an automatic reply
-func isAutomaticReply(h mail.Header) bool {
-	autoSubmitted := h.Get("Auto-Submitted")
+func isAutomaticReply(env *enmime.Envelope) bool {
+	autoSubmitted := env.GetHeader("Auto-Submitted")
 	if autoSubmitted != "" && autoSubmitted != "no" {
 		return true
 	}
-	autoReply := h.Get("X-Autoreply")
+	autoReply := env.GetHeader("X-Autoreply")
 	if autoReply == "yes" {
 		return true
 	}
-	autoRespond := h.Get("X-Autorespond")
+	autoRespond := env.GetHeader("X-Autorespond")
 	return autoRespond != ""
 }
 
 // searchTokenInHeaders looks for the token in To, Delivered-To and References
-func searchTokenInHeaders(h mail.Header) string {
+func searchTokenInHeaders(env *enmime.Envelope) string {
 	if addressTokenRegex != nil {
-		to, _ := h.AddressList("To")
-		deliveredTo, _ := h.AddressList("Delivered-To")
+		to, _ := env.AddressList("To")
+		deliveredTo, _ := env.AddressList("Delivered-To")
 		for _, list := range [][]*net_mail.Address{
 			to,
 			deliveredTo,
@@ -315,7 +310,7 @@ func searchTokenInHeaders(h mail.Header) string {
 		}
 	}
 
-	references := h.Get("References")
+	references := env.GetHeader("References")
 	for {
 		begin := strings.IndexByte(references, '<')
 		if begin == -1 {
@@ -346,77 +341,22 @@ type MailContent struct {
 
 type Attachment struct {
 	Name    string
-	Content bytes.Buffer
+	Content []byte
 }
 
-// getContentFromMailReader reads the plain content and the attachments from the mail.
-// If there is only HTML content, it gets converted to plain text.
+// getContentFromMailReader grabs the plain content and the attachments from the mail.
 // A potential reply/signature gets stripped from the content.
-func getContentFromMailReader(mr *mail.Reader) (*MailContent, error) {
-	contentText := ""
-	contentHTML := ""
-	attachments := make([]*Attachment, 0, 1)
-
-	for {
-		p, err := mr.NextPart()
-		if errors.Is(err, io.EOF) {
-			break
-		} else if err != nil {
-			return nil, fmt.Errorf("next part failed: %w", err)
-		}
-
-		switch h := p.Header.(type) {
-		case *mail.InlineHeader:
-			contentType, _, err := h.ContentType()
-			if err != nil {
-				return nil, fmt.Errorf("ContentType failed: %w", err)
-			}
-
-			if contentType == "text/plain" {
-				if contentText != "" {
-					continue
-				}
-			} else if contentType == "text/html" {
-				if contentHTML != "" {
-					continue
-				}
-			} else {
-				continue
-			}
-
-			data, err := io.ReadAll(p.Body)
-			if err != nil {
-				return nil, fmt.Errorf("read body failed: %w", err)
-			}
-
-			switch contentType {
-			case "text/plain":
-				contentText = string(data)
-			case "text/html":
-				contentHTML = string(data)
-			}
-		case *mail.AttachmentHeader:
-			attachment := &Attachment{}
-			attachment.Name, _ = h.Filename()
-			_, err := io.Copy(&attachment.Content, p.Body)
-			if err != nil {
-				return nil, fmt.Errorf("read attachment failed: %w", err)
-			}
-
-			attachments = append(attachments, attachment)
-		}
-	}
-
-	if contentText == "" && contentHTML != "" {
-		var err error
-		contentText, err = html2text.FromString(contentHTML)
-		if err != nil {
-			return nil, err
-		}
+func getContentFromMailReader(env *enmime.Envelope) (*MailContent, error) {
+	attachments := make([]*Attachment, 0, len(env.Attachments))
+	for _, attachment := range env.Attachments {
+		attachments = append(attachments, &Attachment{
+			Name:    attachment.FileName,
+			Content: attachment.Content,
+		})
 	}
 
 	return &MailContent{
-		Content:     reply.FromText(contentText),
+		Content:     reply.FromText(env.Text),
 		Attachments: attachments,
 	}, nil
 }

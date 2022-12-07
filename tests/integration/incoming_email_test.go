@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"bytes"
 	"io"
 	"net"
 	"net/smtp"
@@ -86,7 +85,7 @@ func TestIncomingEmail(t *testing.T) {
 					Attachments: []*incoming.Attachment{
 						{
 							Name:    "attachment.txt",
-							Content: *bytes.NewBuffer([]byte("test")),
+							Content: []byte("test"),
 						},
 					},
 				}
@@ -127,7 +126,7 @@ func TestIncomingEmail(t *testing.T) {
 					Attachments: []*incoming.Attachment{
 						{
 							Name:    "attachment.txt",
-							Content: *bytes.NewBuffer([]byte("test")),
+							Content: []byte("test"),
 						},
 					},
 				}

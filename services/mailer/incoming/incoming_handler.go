@@ -4,6 +4,7 @@
 package incoming
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 
@@ -82,7 +83,7 @@ func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, user *u
 		attachmentIDs := make([]string, 0, len(content.Attachments))
 		if setting.Attachment.Enabled {
 			for _, attachment := range content.Attachments {
-				a, err := attachment_service.UploadAttachment(&attachment.Content, user.ID, issue.Repo.ID, 0, attachment.Name, setting.Attachment.AllowedTypes)
+				a, err := attachment_service.UploadAttachment(bytes.NewReader(attachment.Content), user.ID, issue.Repo.ID, 0, attachment.Name, setting.Attachment.AllowedTypes)
 				if err != nil {
 					if upload.IsErrFileTypeForbidden(err) {
 						log.Debug("Skipping disallowed attachment type")

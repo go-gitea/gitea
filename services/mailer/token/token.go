@@ -17,7 +17,7 @@ import (
 
 const (
 	tokenVersion1        byte = 1
-	tokenLifetimeInYears      = 1
+	tokenLifetimeInYears int  = 1
 )
 
 type HandlerType byte

@@ -7,53 +7,64 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/emersion/go-message/mail"
+	"github.com/jhillyerd/enmime"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestIsAutomaticReply(t *testing.T) {
 	cases := []struct {
-		Headers  map[string][]string
+		Headers  map[string]string
 		Expected bool
 	}{
 		{
-			Headers:  map[string][]string{},
+			Headers:  map[string]string{},
 			Expected: false,
 		},
 		{
-			Headers: map[string][]string{
-				"Auto-Submitted": {"no"},
+			Headers: map[string]string{
+				"Auto-Submitted": "no",
 			},
 			Expected: false,
 		},
 		{
-			Headers: map[string][]string{
-				"Auto-Submitted": {"yes"},
+			Headers: map[string]string{
+				"Auto-Submitted": "yes",
 			},
 			Expected: true,
 		},
 		{
-			Headers: map[string][]string{
-				"X-Autoreply": {"no"},
+			Headers: map[string]string{
+				"X-Autoreply": "no",
 			},
 			Expected: false,
 		},
 		{
-			Headers: map[string][]string{
-				"X-Autoreply": {"yes"},
+			Headers: map[string]string{
+				"X-Autoreply": "yes",
 			},
 			Expected: true,
 		},
 		{
-			Headers: map[string][]string{
-				"X-Autorespond": {"yes"},
+			Headers: map[string]string{
+				"X-Autorespond": "yes",
 			},
 			Expected: true,
 		},
 	}
 
 	for _, c := range cases {
-		assert.Equal(t, c.Expected, isAutomaticReply(mail.HeaderFromMap(c.Headers)))
+		b := enmime.Builder().
+			From("Dummy", "dummy@gitea.io").
+			To("Dummy", "dummy@gitea.io")
+		for k, v := range c.Headers {
+			b = b.Header(k, v)
+		}
+		root, err := b.Build()
+		assert.NoError(t, err)
+		env, err := enmime.EnvelopeFromPart(root)
+		assert.NoError(t, err)
+
+		assert.Equal(t, c.Expected, isAutomaticReply(env))
 	}
 }
 
@@ -76,14 +87,14 @@ func TestGetContentFromMailReader(t *testing.T) {
 		"attachment content\r\n" +
 		"--message-boundary--\r\n"
 
-	mr, err := mail.CreateReader(strings.NewReader(mailString))
+	env, err := enmime.ReadEnvelope(strings.NewReader(mailString))
 	assert.NoError(t, err)
-	content, err := getContentFromMailReader(mr)
+	content, err := getContentFromMailReader(env)
 	assert.NoError(t, err)
 	assert.Equal(t, "mail content", content.Content)
 	assert.Len(t, content.Attachments, 1)
 	assert.Equal(t, "attachment.txt", content.Attachments[0].Name)
-	assert.Equal(t, []byte("attachment content"), content.Attachments[0].Content.Bytes())
+	assert.Equal(t, []byte("attachment content"), content.Attachments[0].Content)
 
 	mailString = "Content-Type: multipart/mixed; boundary=message-boundary\r\n" +
 		"\r\n" +
@@ -98,9 +109,9 @@ func TestGetContentFromMailReader(t *testing.T) {
 		"--text-boundary--\r\n" +
 		"--message-boundary--\r\n"
 
-	mr, err = mail.CreateReader(strings.NewReader(mailString))
+	env, err = enmime.ReadEnvelope(strings.NewReader(mailString))
 	assert.NoError(t, err)
-	content, err = getContentFromMailReader(mr)
+	content, err = getContentFromMailReader(env)
 	assert.NoError(t, err)
 	assert.Equal(t, "mail content", content.Content)
 	assert.Empty(t, content.Attachments)
@@ -120,9 +131,9 @@ func TestGetContentFromMailReader(t *testing.T) {
 		"--text-boundary--\r\n" +
 		"--message-boundary--\r\n"
 
-	mr, err = mail.CreateReader(strings.NewReader(mailString))
+	env, err = enmime.ReadEnvelope(strings.NewReader(mailString))
 	assert.NoError(t, err)
-	content, err = getContentFromMailReader(mr)
+	content, err = getContentFromMailReader(env)
 	assert.NoError(t, err)
 	assert.Equal(t, "mail content without signature", content.Content)
 	assert.Empty(t, content.Attachments)
