@@ -49,6 +49,7 @@ var (
 		MaxOpenConns      int
 		ConnMaxLifetime   time.Duration
 		IterateBufferSize int
+		AutoMigration     bool
 	}{
 		Timeout:           500,
 		IterateBufferSize: 50,
@@ -105,6 +106,7 @@ func InitDBConfig() {
 	Database.LogSQL = sec.Key("LOG_SQL").MustBool(true)
 	Database.DBConnectRetries = sec.Key("DB_RETRIES").MustInt(10)
 	Database.DBConnectBackoff = sec.Key("DB_RETRY_BACKOFF").MustDuration(3 * time.Second)
+	Database.AutoMigration = sec.Key("AUTO_MIGRATION").MustBool(true)
 }
 
 // DBConnStr returns database connection string
