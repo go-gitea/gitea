@@ -171,20 +171,20 @@
 					</div>
 
 					<!-- Security Settings -->
-					<h4 class="ui dividing header">{{.i18n.Tr "install.security_title"}}</h4>
+					<h4 class="ui dividing header">{{.locale.Tr "install.security_title"}}</h4>
 
 					<div class="inline required field">
-						<label>{{.i18n.Tr "install.master_key_provider"}}</label>
+						<label>{{.locale.Tr "install.master_key_provider"}}</label>
 						<div class="ui selection master-key-provider dropdown">
 							<input type="hidden" name="master_key_provider" value="{{if .master_key_provider}}{{.master_key_provider}}{{else}}plain{{end}}">
-							<div class="text">{{.i18n.Tr "install.master_key_provider_plain"}}</div>
+							<div class="text">{{.locale.Tr "install.master_key_provider_plain"}}</div>
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">
-								<div class="item" data-value="none">{{.i18n.Tr "install.master_key_provider_none"}}</div>
-								<div class="item" data-value="plain">{{.i18n.Tr "install.master_key_provider_plain"}}</div>
+								<div class="item" data-value="none">{{.locale.Tr "install.master_key_provider_none"}}</div>
+								<div class="item" data-value="plain">{{.locale.Tr "install.master_key_provider_plain"}}</div>
 							</div>
 						</div>
-						<span class="help">{{.i18n.Tr "install.master_key_provider_helper"}}</span>
+						<span class="help">{{.locale.Tr "install.master_key_provider_helper"}}</span>
 					</div>
 
 					<!-- Optional Settings -->
