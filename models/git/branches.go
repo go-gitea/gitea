@@ -1,6 +1,5 @@
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -74,10 +73,10 @@ func (protectBranch *ProtectedBranch) CanUserPush(userID int64) bool {
 	}
 
 	if !protectBranch.EnableWhitelist {
-		if user, err := user_model.GetUserByID(userID); err != nil {
+		if user, err := user_model.GetUserByID(db.DefaultContext, userID); err != nil {
 			log.Error("GetUserByID: %v", err)
 			return false
-		} else if repo, err := repo_model.GetRepositoryByID(protectBranch.RepoID); err != nil {
+		} else if repo, err := repo_model.GetRepositoryByID(db.DefaultContext, protectBranch.RepoID); err != nil {
 			log.Error("repo_model.GetRepositoryByID: %v", err)
 			return false
 		} else if writeAccess, err := access_model.HasAccessUnit(db.DefaultContext, user, repo, unit.TypeCode, perm.AccessModeWrite); err != nil {
@@ -128,13 +127,8 @@ func IsUserMergeWhitelisted(ctx context.Context, protectBranch *ProtectedBranch,
 }
 
 // IsUserOfficialReviewer check if user is official reviewer for the branch (counts towards required approvals)
-func IsUserOfficialReviewer(protectBranch *ProtectedBranch, user *user_model.User) (bool, error) {
-	return IsUserOfficialReviewerCtx(db.DefaultContext, protectBranch, user)
-}
-
-// IsUserOfficialReviewerCtx check if user is official reviewer for the branch (counts towards required approvals)
-func IsUserOfficialReviewerCtx(ctx context.Context, protectBranch *ProtectedBranch, user *user_model.User) (bool, error) {
-	repo, err := repo_model.GetRepositoryByIDCtx(ctx, protectBranch.RepoID)
+func IsUserOfficialReviewer(ctx context.Context, protectBranch *ProtectedBranch, user *user_model.User) (bool, error) {
+	repo, err := repo_model.GetRepositoryByID(ctx, protectBranch.RepoID)
 	if err != nil {
 		return false, err
 	}
@@ -376,7 +370,7 @@ func updateUserWhitelist(ctx context.Context, repo *repo_model.Repository, curre
 
 	whitelist = make([]int64, 0, len(newWhitelist))
 	for _, userID := range newWhitelist {
-		user, err := user_model.GetUserByIDCtx(ctx, userID)
+		user, err := user_model.GetUserByID(ctx, userID)
 		if err != nil {
 			return nil, fmt.Errorf("GetUserByID [user_id: %d, repo_id: %d]: %w", userID, repo.ID, err)
 		}
@@ -495,8 +489,8 @@ func RemoveDeletedBranchByID(repoID, id int64) (err error) {
 
 // LoadUser loads the user that deleted the branch
 // When there's no user found it returns a user_model.NewGhostUser
-func (deletedBranch *DeletedBranch) LoadUser() {
-	user, err := user_model.GetUserByID(deletedBranch.DeletedByID)
+func (deletedBranch *DeletedBranch) LoadUser(ctx context.Context) {
+	user, err := user_model.GetUserByID(ctx, deletedBranch.DeletedByID)
 	if err != nil {
 		user = user_model.NewGhostUser()
 	}

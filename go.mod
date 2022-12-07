@@ -3,7 +3,7 @@ module code.gitea.io/gitea
 go 1.18
 
 require (
-	code.gitea.io/gitea-vet v0.2.2-0.20220122151748-48ebc902541b
+	code.gitea.io/gitea-vet v0.2.2
 	code.gitea.io/sdk/gitea v0.15.1
 	codeberg.org/gusted/mcaptcha v0.0.0-20220723083913-4f3072e1d570
 	gitea.com/go-chi/binding v0.0.0-20221013104517-b29891619681
@@ -15,7 +15,7 @@ require (
 	github.com/42wim/sshsig v0.0.0-20211121163825-841cf5bbc121
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/PuerkitoBio/goquery v1.8.0
-	github.com/alecthomas/chroma/v2 v2.3.0
+	github.com/alecthomas/chroma/v2 v2.4.0
 	github.com/blevesearch/bleve/v2 v2.3.4
 	github.com/buildkite/terminal-to-html/v3 v3.7.0
 	github.com/caddyserver/certmagic v0.17.2

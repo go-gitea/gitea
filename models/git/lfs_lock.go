@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -168,7 +167,7 @@ func CheckLFSAccessForRepo(ctx context.Context, ownerID int64, repo *repo_model.
 	if ownerID == 0 {
 		return ErrLFSUnauthorizedAction{repo.ID, "undefined", mode}
 	}
-	u, err := user_model.GetUserByIDCtx(ctx, ownerID)
+	u, err := user_model.GetUserByID(ctx, ownerID)
 	if err != nil {
 		return err
 	}

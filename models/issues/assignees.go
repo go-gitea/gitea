@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -119,7 +118,7 @@ func toggleIssueAssignee(ctx context.Context, issue *Issue, doer *user_model.Use
 // toggles user assignee state in database
 func toggleUserAssignee(ctx context.Context, issue *Issue, assigneeID int64) (removed bool, err error) {
 	// Check if the user exists
-	assignee, err := user_model.GetUserByIDCtx(ctx, assigneeID)
+	assignee, err := user_model.GetUserByID(ctx, assigneeID)
 	if err != nil {
 		return false, err
 	}
