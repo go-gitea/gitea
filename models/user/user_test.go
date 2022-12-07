@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user_test
 
@@ -23,7 +22,7 @@ import (
 func TestOAuth2Application_LoadUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	app := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{ID: 1})
-	user, err := user_model.GetUserByID(app.UID)
+	user, err := user_model.GetUserByID(db.DefaultContext, app.UID)
 	assert.NoError(t, err)
 	assert.NotNil(t, user)
 }

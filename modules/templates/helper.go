@@ -1,7 +1,6 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package templates
 
@@ -26,6 +25,7 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/avatars"
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -640,7 +640,7 @@ func Avatar(item interface{}, others ...interface{}) template.HTML {
 
 // AvatarByAction renders user avatars from action. args: action, size (int), class (string)
 func AvatarByAction(action *activities_model.Action, others ...interface{}) template.HTML {
-	action.LoadActUser()
+	action.LoadActUser(db.DefaultContext)
 	return Avatar(action.ActUser, others...)
 }
 

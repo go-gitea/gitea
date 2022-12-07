@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package access
 
@@ -365,7 +364,7 @@ func HasAccess(ctx context.Context, userID int64, repo *repo_model.Repository) (
 	var user *user_model.User
 	var err error
 	if userID > 0 {
-		user, err = user_model.GetUserByIDCtx(ctx, userID)
+		user, err = user_model.GetUserByID(ctx, userID)
 		if err != nil {
 			return false, err
 		}
