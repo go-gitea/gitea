@@ -220,8 +220,15 @@ func deleteIssue(issue *issues_model.Issue) error {
 		return err
 	}
 
-	if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, issue.IsClosed); err != nil {
+	// update the total issue numbers
+	if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, false); err != nil {
 		return err
+	}
+	// if the issue is closed, update the closed issue numbers
+	if issue.IsClosed {
+		if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, true); err != nil {
+			return err
+		}
 	}
 
 	if err := issues_model.UpdateMilestoneCounters(ctx, issue.MilestoneID); err != nil {
