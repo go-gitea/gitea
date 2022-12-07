@@ -160,7 +160,7 @@ func DeleteIssue(doer *user_model.User, gitRepo *git.Repository, issue *issues_m
 // AddAssigneeIfNotAssigned adds an assignee only if he isn't already assigned to the issue.
 // Also checks for access of assigned user
 func AddAssigneeIfNotAssigned(issue *issues_model.Issue, doer *user_model.User, assigneeID int64) (err error) {
-	assignee, err := user_model.GetUserByIDCtx(db.DefaultContext, assigneeID)
+	assignee, err := user_model.GetUserByID(db.DefaultContext, assigneeID)
 	if err != nil {
 		return err
 	}
@@ -218,8 +218,15 @@ func deleteIssue(issue *issues_model.Issue) error {
 		return err
 	}
 
-	if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, issue.IsClosed); err != nil {
+	// update the total issue numbers
+	if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, false); err != nil {
 		return err
+	}
+	// if the issue is closed, update the closed issue numbers
+	if issue.IsClosed {
+		if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, true); err != nil {
+			return err
+		}
 	}
 
 	if err := issues_model.UpdateMilestoneCounters(ctx, issue.MilestoneID); err != nil {

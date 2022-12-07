@@ -110,12 +110,11 @@ func ToAPIIssueList(ctx context.Context, il issues_model.IssueList) []*api.Issue
 // ToTrackedTime converts TrackedTime to API format
 func ToTrackedTime(ctx context.Context, t *issues_model.TrackedTime) (apiT *api.TrackedTime) {
 	apiT = &api.TrackedTime{
-		ID:       t.ID,
-		IssueID:  t.IssueID,
-		UserID:   t.UserID,
-		UserName: t.User.Name,
-		Time:     t.Time,
-		Created:  t.Created,
+		ID:      t.ID,
+		IssueID: t.IssueID,
+		UserID:  t.UserID,
+		Time:    t.Time,
+		Created: t.Created,
 	}
 	if t.Issue != nil {
 		apiT.Issue = ToAPIIssue(ctx, t.Issue)
@@ -149,7 +148,7 @@ func ToStopWatches(sws []*issues_model.Stopwatch) (api.StopWatches, error) {
 		}
 		repo, ok = repoCache[issue.RepoID]
 		if !ok {
-			repo, err = repo_model.GetRepositoryByID(issue.RepoID)
+			repo, err = repo_model.GetRepositoryByID(db.DefaultContext, issue.RepoID)
 			if err != nil {
 				return nil, err
 			}
