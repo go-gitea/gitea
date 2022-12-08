@@ -1288,8 +1288,6 @@ func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullReques
 	return comment, err
 }
 
-
-
 // RemapExternalUser ExternalUserRemappable interface
 func (c *Comment) RemapExternalUser(externalName string, externalID, userID int64) error {
 	c.OriginalAuthor = externalName
