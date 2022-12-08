@@ -382,7 +382,7 @@ func ServCommand(ctx *context.PrivateContext) {
 
 	if results.IsWiki {
 		// Ensure the wiki is enabled before we allow access to it
-		if _, err := repo.GetUnit(unit.TypeWiki); err != nil {
+		if _, err := repo.GetUnit(ctx, unit.TypeWiki); err != nil {
 			if repo_model.IsErrUnitTypeNotExist(err) {
 				ctx.JSON(http.StatusForbidden, private.ErrServCommand{
 					Results: results,

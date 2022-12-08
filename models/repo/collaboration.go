@@ -99,7 +99,7 @@ func getCollaborations(ctx context.Context, repoID int64, listOptions db.ListOpt
 }
 
 // ChangeCollaborationAccessMode sets new access mode for the collaboration.
-func ChangeCollaborationAccessModeCtx(ctx context.Context, repo *Repository, uid int64, mode perm.AccessMode) error {
+func ChangeCollaborationAccessMode(ctx context.Context, repo *Repository, uid int64, mode perm.AccessMode) error {
 	// Discard invalid input
 	if mode <= perm.AccessModeNone || mode > perm.AccessModeOwner {
 		return nil
@@ -133,21 +133,6 @@ func ChangeCollaborationAccessModeCtx(ctx context.Context, repo *Repository, uid
 	}
 
 	return nil
-}
-
-// ChangeCollaborationAccessMode sets new access mode for the collaboration.
-func ChangeCollaborationAccessMode(repo *Repository, uid int64, mode perm.AccessMode) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err := ChangeCollaborationAccessModeCtx(ctx, repo, uid, mode); err != nil {
-		return err
-	}
-
-	return committer.Commit()
 }
 
 // IsOwnerMemberCollaborator checks if a provided user is the owner, a collaborator or a member of a team in a repository

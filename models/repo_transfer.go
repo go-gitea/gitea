@@ -39,9 +39,9 @@ func init() {
 }
 
 // LoadAttributes fetches the transfer recipient from the database
-func (r *RepoTransfer) LoadAttributes() error {
+func (r *RepoTransfer) LoadAttributes(ctx context.Context) error {
 	if r.Recipient == nil {
-		u, err := user_model.GetUserByID(db.DefaultContext, r.RecipientID)
+		u, err := user_model.GetUserByID(ctx, r.RecipientID)
 		if err != nil {
 			return err
 		}
@@ -51,7 +51,7 @@ func (r *RepoTransfer) LoadAttributes() error {
 
 	if r.Recipient.IsOrganization() && len(r.TeamIDs) != len(r.Teams) {
 		for _, v := range r.TeamIDs {
-			team, err := organization.GetTeamByID(db.DefaultContext, v)
+			team, err := organization.GetTeamByID(ctx, v)
 			if err != nil {
 				return err
 			}
@@ -65,7 +65,7 @@ func (r *RepoTransfer) LoadAttributes() error {
 	}
 
 	if r.Doer == nil {
-		u, err := user_model.GetUserByID(db.DefaultContext, r.DoerID)
+		u, err := user_model.GetUserByID(ctx, r.DoerID)
 		if err != nil {
 			return err
 		}
@@ -80,7 +80,7 @@ func (r *RepoTransfer) LoadAttributes() error {
 // For user, it checks if it's himself
 // For organizations, it checks if the user is able to create repos
 func (r *RepoTransfer) CanUserAcceptTransfer(u *user_model.User) bool {
-	if err := r.LoadAttributes(); err != nil {
+	if err := r.LoadAttributes(db.DefaultContext); err != nil {
 		log.Error("LoadAttributes: %v", err)
 		return false
 	}
@@ -89,7 +89,7 @@ func (r *RepoTransfer) CanUserAcceptTransfer(u *user_model.User) bool {
 		return r.RecipientID == u.ID
 	}
 
-	allowed, err := organization.CanCreateOrgRepo(r.RecipientID, u.ID)
+	allowed, err := organization.CanCreateOrgRepo(db.DefaultContext, r.RecipientID, u.ID)
 	if err != nil {
 		log.Error("CanCreateOrgRepo: %v", err)
 		return false
@@ -100,10 +100,10 @@ func (r *RepoTransfer) CanUserAcceptTransfer(u *user_model.User) bool {
 
 // GetPendingRepositoryTransfer fetches the most recent and ongoing transfer
 // process for the repository
-func GetPendingRepositoryTransfer(repo *repo_model.Repository) (*RepoTransfer, error) {
+func GetPendingRepositoryTransfer(ctx context.Context, repo *repo_model.Repository) (*RepoTransfer, error) {
 	transfer := new(RepoTransfer)
 
-	has, err := db.GetEngine(db.DefaultContext).Where("repo_id = ? ", repo.ID).Get(transfer)
+	has, err := db.GetEngine(ctx).Where("repo_id = ? ", repo.ID).Get(transfer)
 	if err != nil {
 		return nil, err
 	}
@@ -154,13 +154,7 @@ func TestRepositoryReadyForTransfer(status repo_model.RepositoryStatus) error {
 
 // CreatePendingRepositoryTransfer transfer a repo from one owner to a new one.
 // it marks the repository transfer as "pending"
-func CreatePendingRepositoryTransfer(doer, newOwner *user_model.User, repoID int64, teams []*organization.Team) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
+func CreatePendingRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.User, repoID int64, teams []*organization.Team) error {
 	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
 	if err != nil {
 		return err
@@ -199,11 +193,7 @@ func CreatePendingRepositoryTransfer(doer, newOwner *user_model.User, repoID int
 		transfer.TeamIDs = append(transfer.TeamIDs, teams[k].ID)
 	}
 
-	if err := db.Insert(ctx, transfer); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+	return db.Insert(ctx, transfer)
 }
 
 // TransferOwnership transfers all corresponding repository items from old user to new one.
