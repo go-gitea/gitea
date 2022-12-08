@@ -6,6 +6,7 @@ package setting
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"math"
 	"net"
@@ -465,6 +466,12 @@ func getAppPath() (string, error) {
 		appPath, err = exec.LookPath(os.Args[0])
 	}
 
+	if err != nil {
+		if !errors.Is(err, exec.ErrDot) {
+			return "", err
+		}
+		appPath, err = filepath.Abs(os.Args[0])
+	}
 	if err != nil {
 		return "", err
 	}
