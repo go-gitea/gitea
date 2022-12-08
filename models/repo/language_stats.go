@@ -69,38 +69,32 @@ func (stats LanguageStatList) getLanguagePercentages() map[string]float32 {
 
 // Rounds to 1 decimal point, target should be the expected sum of percs
 func roundByLargestRemainder(percs map[string]float32, target float32) {
-	// Intermediates are the floored numbers multiplied to the decimal
-	// 54.37 -> 543
-	intermediates := make(map[string]int, len(percs))
-	remainders := make(map[string]float64, len(percs))
-
 	leftToDistribute := int(target * 10)
 
 	keys := make([]string, 0, len(percs))
 
 	for k, v := range percs {
-		remains := float64(v * 10)
-		intermediates[k] = int(math.Floor(remains))
-		leftToDistribute -= intermediates[k]
-
-		remains -= math.Floor(remains)
-		remainders[k] = remains
-
+		percs[k] = v * 10
+		floored := math.Floor(float64(percs[k]))
+		leftToDistribute -= int(floored)
 		keys = append(keys, k)
 	}
 
 	// Sort the keys by the largest remainder
 	sort.SliceStable(keys, func(i, j int) bool {
-		return remainders[keys[i]] > remainders[keys[j]]
+		_, remainderI := math.Modf(float64(percs[keys[i]]))
+		_, remainderJ := math.Modf(float64(percs[keys[j]]))
+		return remainderI > remainderJ
 	})
 
 	// Increment the values in order of largest remainder
 	for _, k := range keys {
+		percs[k] = float32(math.Floor(float64(percs[k])))
 		if leftToDistribute > 0 {
-			intermediates[k]++
+			percs[k]++
 			leftToDistribute--
 		}
-		percs[k] = float32(intermediates[k]) / 10
+		percs[k] /= 10
 	}
 }
 
