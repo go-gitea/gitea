@@ -26,15 +26,15 @@ COMMA := ,
 XGO_VERSION := go-1.19.x
 
 AIR_PACKAGE ?= github.com/cosmtrek/air@v1.40.4
-EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@2.5.0
-ERRCHECK_PACKAGE ?= github.com/kisielk/errcheck@v1.6.1
-GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.3.1
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.47.0
+EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@2.6.0
+ERRCHECK_PACKAGE ?= github.com/kisielk/errcheck@v1.6.2
+GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.4.0
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.50.1
 GXZ_PAGAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.10
 MISSPELL_PACKAGE ?= github.com/client9/misspell/cmd/misspell@v0.3.4
-SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.30.0
+SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.30.3
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
-GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1.3.0
+GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1.5.0
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@latest
 
 DOCKER_IMAGE ?= gitea/gitea
