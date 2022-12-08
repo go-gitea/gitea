@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.package models
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -30,7 +29,7 @@ func TestAPIUserSearchLoggedIn(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session)
 	query := "user2"
 	req := NewRequestf(t, "GET", "/api/v1/users/search?token=%s&q=%s", token, query)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 
 	var results SearchResults
 	DecodeJSON(t, resp, &results)
@@ -70,7 +69,7 @@ func TestAPIUserSearchAdminLoggedInUserHidden(t *testing.T) {
 	query := "user31"
 	req := NewRequestf(t, "GET", "/api/v1/users/search?token=%s&q=%s", token, query)
 	req.SetBasicAuth(token, "x-oauth-basic")
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 
 	var results SearchResults
 	DecodeJSON(t, resp, &results)

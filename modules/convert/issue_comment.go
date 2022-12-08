@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package convert
 
@@ -139,15 +138,15 @@ func ToTimelineComment(ctx context.Context, c *issues_model.Comment, doer *user_
 		var repo *repo_model.Repository
 		if c.Label.BelongsToOrg() {
 			var err error
-			org, err = user_model.GetUserByIDCtx(ctx, c.Label.OrgID)
+			org, err = user_model.GetUserByID(ctx, c.Label.OrgID)
 			if err != nil {
-				log.Error("GetUserByIDCtx(%d): %v", c.Label.OrgID, err)
+				log.Error("GetUserByID(%d): %v", c.Label.OrgID, err)
 				return nil
 			}
 		}
 		if c.Label.BelongsToRepo() {
 			var err error
-			repo, err = repo_model.GetRepositoryByIDCtx(ctx, c.Label.RepoID)
+			repo, err = repo_model.GetRepositoryByID(ctx, c.Label.RepoID)
 			if err != nil {
 				log.Error("GetRepositoryByIDCtx(%d): %v", c.Label.RepoID, err)
 				return nil

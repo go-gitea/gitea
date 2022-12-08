@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -124,6 +123,10 @@ func RestoreBranchPost(ctx *context.Context) {
 	deletedBranch, err := git_model.GetDeletedBranchByID(ctx.Repo.Repository.ID, branchID)
 	if err != nil {
 		log.Error("GetDeletedBranchByID: %v", err)
+		ctx.Flash.Error(ctx.Tr("repo.branch.restore_failed", branchName))
+		return
+	} else if deletedBranch == nil {
+		log.Debug("RestoreBranch: Can't restore branch[%d] '%s', as it does not exist", branchID, branchName)
 		ctx.Flash.Error(ctx.Tr("repo.branch.restore_failed", branchName))
 		return
 	}
@@ -334,7 +337,7 @@ func getDeletedBranches(ctx *context.Context) ([]*Branch, error) {
 	}
 
 	for i := range deletedBranches {
-		deletedBranches[i].LoadUser()
+		deletedBranches[i].LoadUser(ctx)
 		branches = append(branches, &Branch{
 			Name:          deletedBranches[i].Name,
 			IsDeleted:     true,

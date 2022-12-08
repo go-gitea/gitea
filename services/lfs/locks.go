@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package lfs
 
@@ -40,7 +39,7 @@ func handleLockListOut(ctx *context.Context, repo *repo_model.Repository, lock *
 		return
 	}
 	ctx.JSON(http.StatusOK, api.LFSLockList{
-		Locks: []*api.LFSLock{convert.ToLFSLock(lock)},
+		Locks: []*api.LFSLock{convert.ToLFSLock(ctx, lock)},
 	})
 }
 
@@ -48,7 +47,7 @@ func handleLockListOut(ctx *context.Context, repo *repo_model.Repository, lock *
 func GetListLockHandler(ctx *context.Context) {
 	rv := getRequestContext(ctx)
 
-	repository, err := repo_model.GetRepositoryByOwnerAndName(rv.User, rv.Repo)
+	repository, err := repo_model.GetRepositoryByOwnerAndName(ctx, rv.User, rv.Repo)
 	if err != nil {
 		log.Debug("Could not find repository: %s/%s - %s", rv.User, rv.Repo, err)
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
@@ -118,7 +117,7 @@ func GetListLockHandler(ctx *context.Context) {
 	lockListAPI := make([]*api.LFSLock, len(lockList))
 	next := ""
 	for i, l := range lockList {
-		lockListAPI[i] = convert.ToLFSLock(l)
+		lockListAPI[i] = convert.ToLFSLock(ctx, l)
 	}
 	if limit > 0 && len(lockList) == limit {
 		next = strconv.Itoa(cursor + 1)
@@ -135,7 +134,7 @@ func PostLockHandler(ctx *context.Context) {
 	repoName := strings.TrimSuffix(ctx.Params("reponame"), ".git")
 	authorization := ctx.Req.Header.Get("Authorization")
 
-	repository, err := repo_model.GetRepositoryByOwnerAndName(userName, repoName)
+	repository, err := repo_model.GetRepositoryByOwnerAndName(ctx, userName, repoName)
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", userName, repoName, err)
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
@@ -175,7 +174,7 @@ func PostLockHandler(ctx *context.Context) {
 	if err != nil {
 		if git_model.IsErrLFSLockAlreadyExist(err) {
 			ctx.JSON(http.StatusConflict, api.LFSLockError{
-				Lock:    convert.ToLFSLock(lock),
+				Lock:    convert.ToLFSLock(ctx, lock),
 				Message: "already created lock",
 			})
 			return
@@ -193,7 +192,7 @@ func PostLockHandler(ctx *context.Context) {
 		})
 		return
 	}
-	ctx.JSON(http.StatusCreated, api.LFSLockResponse{Lock: convert.ToLFSLock(lock)})
+	ctx.JSON(http.StatusCreated, api.LFSLockResponse{Lock: convert.ToLFSLock(ctx, lock)})
 }
 
 // VerifyLockHandler list locks for verification
@@ -202,7 +201,7 @@ func VerifyLockHandler(ctx *context.Context) {
 	repoName := strings.TrimSuffix(ctx.Params("reponame"), ".git")
 	authorization := ctx.Req.Header.Get("Authorization")
 
-	repository, err := repo_model.GetRepositoryByOwnerAndName(userName, repoName)
+	repository, err := repo_model.GetRepositoryByOwnerAndName(ctx, userName, repoName)
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", userName, repoName, err)
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
@@ -250,9 +249,9 @@ func VerifyLockHandler(ctx *context.Context) {
 	lockTheirsListAPI := make([]*api.LFSLock, 0, len(lockList))
 	for _, l := range lockList {
 		if l.OwnerID == ctx.Doer.ID {
-			lockOursListAPI = append(lockOursListAPI, convert.ToLFSLock(l))
+			lockOursListAPI = append(lockOursListAPI, convert.ToLFSLock(ctx, l))
 		} else {
-			lockTheirsListAPI = append(lockTheirsListAPI, convert.ToLFSLock(l))
+			lockTheirsListAPI = append(lockTheirsListAPI, convert.ToLFSLock(ctx, l))
 		}
 	}
 	ctx.JSON(http.StatusOK, api.LFSLockListVerify{
@@ -268,7 +267,7 @@ func UnLockHandler(ctx *context.Context) {
 	repoName := strings.TrimSuffix(ctx.Params("reponame"), ".git")
 	authorization := ctx.Req.Header.Get("Authorization")
 
-	repository, err := repo_model.GetRepositoryByOwnerAndName(userName, repoName)
+	repository, err := repo_model.GetRepositoryByOwnerAndName(ctx, userName, repoName)
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", userName, repoName, err)
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
@@ -316,5 +315,5 @@ func UnLockHandler(ctx *context.Context) {
 		})
 		return
 	}
-	ctx.JSON(http.StatusOK, api.LFSLockResponse{Lock: convert.ToLFSLock(lock)})
+	ctx.JSON(http.StatusOK, api.LFSLockResponse{Lock: convert.ToLFSLock(ctx, lock)})
 }

@@ -1,7 +1,6 @@
 // Copyright 2019 The Gitea Authors.
 // All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package pull
 
@@ -127,7 +126,7 @@ func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *acce
 
 // isSignedIfRequired check if merge will be signed if required
 func isSignedIfRequired(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User) (bool, error) {
-	if err := pr.LoadProtectedBranchCtx(ctx); err != nil {
+	if err := pr.LoadProtectedBranch(ctx); err != nil {
 		return false, err
 	}
 
@@ -166,7 +165,7 @@ func checkAndUpdateStatus(ctx context.Context, pr *issues_model.PullRequest) {
 func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Commit, error) {
 	if pr.BaseRepo == nil {
 		var err error
-		pr.BaseRepo, err = repo_model.GetRepositoryByID(pr.BaseRepoID)
+		pr.BaseRepo, err = repo_model.GetRepositoryByID(ctx, pr.BaseRepoID)
 		if err != nil {
 			return nil, fmt.Errorf("GetRepositoryByID: %w", err)
 		}

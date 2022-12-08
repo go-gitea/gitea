@@ -1,7 +1,6 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -33,7 +32,7 @@ func getStarredRepos(ctx std_context.Context, user *user_model.User, private boo
 		if err != nil {
 			return nil, err
 		}
-		repos[i] = convert.ToRepo(starred, access)
+		repos[i] = convert.ToRepo(ctx, starred, access)
 	}
 	return repos, nil
 }

@@ -23,6 +23,8 @@ params:
   goVersion: 1.19
   minNodeVersion: 14
   search: nav
+  repo: "https://github.com/go-gitea/gitea"
+  docContentPath: "docs/content"
 
 outputs:
   home:

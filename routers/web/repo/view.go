@@ -1,7 +1,6 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -458,7 +457,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		return
 	}
 	if lfsLock != nil {
-		u, err := user_model.GetUserByID(lfsLock.OwnerID)
+		u, err := user_model.GetUserByID(ctx, lfsLock.OwnerID)
 		if err != nil {
 			ctx.ServerError("GetTreePathLock", err)
 			return
