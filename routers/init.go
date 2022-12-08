@@ -193,6 +193,8 @@ func NormalRoutes(ctx context.Context) *web.Route {
 	if setting.Actions.Enabled {
 		prefix := "/api/actions"
 		r.Mount(prefix, actions_router.Routes(ctx, prefix))
+		prefix = "/api/artifacts"
+		r.Mount(prefix, actions_router.ArtifactsRoutes(ctx, prefix))
 	}
 
 	return r
