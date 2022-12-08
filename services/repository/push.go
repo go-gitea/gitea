@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
@@ -82,7 +81,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("PushUpdates: %s/%s", optsList[0].RepoUserName, optsList[0].RepoName))
 	defer finished()
 
-	repo, err := repo_model.GetRepositoryByOwnerAndName(optsList[0].RepoUserName, optsList[0].RepoName)
+	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, optsList[0].RepoUserName, optsList[0].RepoName)
 	if err != nil {
 		return fmt.Errorf("GetRepositoryByOwnerAndName failed: %w", err)
 	}
@@ -110,7 +109,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 		if opts.IsTag() { // If is tag reference
 			if pusher == nil || pusher.ID != opts.PusherID {
 				var err error
-				if pusher, err = user_model.GetUserByID(opts.PusherID); err != nil {
+				if pusher, err = user_model.GetUserByID(ctx, opts.PusherID); err != nil {
 					return err
 				}
 			}
@@ -150,7 +149,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 		} else if opts.IsBranch() { // If is branch reference
 			if pusher == nil || pusher.ID != opts.PusherID {
 				var err error
-				if pusher, err = user_model.GetUserByID(opts.PusherID); err != nil {
+				if pusher, err = user_model.GetUserByID(ctx, opts.PusherID); err != nil {
 					return err
 				}
 			}

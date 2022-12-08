@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -28,7 +27,7 @@ func TestAPIListStopWatches(t *testing.T) {
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
 	req := NewRequestf(t, "GET", "/api/v1/user/stopwatches?token=%s", token)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 	var apiWatches []*api.StopWatch
 	DecodeJSON(t, resp, &apiWatches)
 	stopwatch := unittest.AssertExistsAndLoadBean(t, &issues_model.Stopwatch{UserID: owner.ID})
@@ -55,8 +54,8 @@ func TestAPIStopStopWatches(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session)
 
 	req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/issues/%d/stopwatch/stop?token=%s", owner.Name, issue.Repo.Name, issue.Index, token)
-	session.MakeRequest(t, req, http.StatusCreated)
-	session.MakeRequest(t, req, http.StatusConflict)
+	MakeRequest(t, req, http.StatusCreated)
+	MakeRequest(t, req, http.StatusConflict)
 }
 
 func TestAPICancelStopWatches(t *testing.T) {
@@ -71,8 +70,8 @@ func TestAPICancelStopWatches(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session)
 
 	req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/%d/stopwatch/delete?token=%s", owner.Name, issue.Repo.Name, issue.Index, token)
-	session.MakeRequest(t, req, http.StatusNoContent)
-	session.MakeRequest(t, req, http.StatusConflict)
+	MakeRequest(t, req, http.StatusNoContent)
+	MakeRequest(t, req, http.StatusConflict)
 }
 
 func TestAPIStartStopWatches(t *testing.T) {
@@ -87,6 +86,6 @@ func TestAPIStartStopWatches(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session)
 
 	req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/issues/%d/stopwatch/start?token=%s", owner.Name, issue.Repo.Name, issue.Index, token)
-	session.MakeRequest(t, req, http.StatusCreated)
-	session.MakeRequest(t, req, http.StatusConflict)
+	MakeRequest(t, req, http.StatusCreated)
+	MakeRequest(t, req, http.StatusConflict)
 }

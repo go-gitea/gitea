@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package models
 
@@ -42,7 +41,7 @@ func init() {
 // LoadAttributes fetches the transfer recipient from the database
 func (r *RepoTransfer) LoadAttributes() error {
 	if r.Recipient == nil {
-		u, err := user_model.GetUserByID(r.RecipientID)
+		u, err := user_model.GetUserByID(db.DefaultContext, r.RecipientID)
 		if err != nil {
 			return err
 		}
@@ -66,7 +65,7 @@ func (r *RepoTransfer) LoadAttributes() error {
 	}
 
 	if r.Doer == nil {
-		u, err := user_model.GetUserByID(r.DoerID)
+		u, err := user_model.GetUserByID(db.DefaultContext, r.DoerID)
 		if err != nil {
 			return err
 		}
@@ -162,7 +161,7 @@ func CreatePendingRepositoryTransfer(doer, newOwner *user_model.User, repoID int
 	}
 	defer committer.Close()
 
-	repo, err := repo_model.GetRepositoryByIDCtx(ctx, repoID)
+	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
 	if err != nil {
 		return err
 	}

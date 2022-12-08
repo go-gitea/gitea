@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -38,13 +37,13 @@ func TestAPIIssuesMilestone(t *testing.T) {
 	req := NewRequestWithJSON(t, "PATCH", urlStr, structs.EditMilestoneOption{
 		State: &milestoneState,
 	})
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 	var apiMilestone structs.Milestone
 	DecodeJSON(t, resp, &apiMilestone)
 	assert.EqualValues(t, "closed", apiMilestone.State)
 
 	req = NewRequest(t, "GET", urlStr)
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, req, http.StatusOK)
 	var apiMilestone2 structs.Milestone
 	DecodeJSON(t, resp, &apiMilestone2)
 	assert.EqualValues(t, "closed", apiMilestone2.State)
@@ -54,28 +53,28 @@ func TestAPIIssuesMilestone(t *testing.T) {
 		Description: "closed one",
 		State:       "closed",
 	})
-	resp = session.MakeRequest(t, req, http.StatusCreated)
+	resp = MakeRequest(t, req, http.StatusCreated)
 	DecodeJSON(t, resp, &apiMilestone)
 	assert.Equal(t, "wow", apiMilestone.Title)
 	assert.Equal(t, structs.StateClosed, apiMilestone.State)
 
 	var apiMilestones []structs.Milestone
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/milestones?state=%s&token=%s", owner.Name, repo.Name, "all", token))
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiMilestones)
 	assert.Len(t, apiMilestones, 4)
 
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/milestones/%s?token=%s", owner.Name, repo.Name, apiMilestones[2].Title, token))
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiMilestone)
 	assert.EqualValues(t, apiMilestones[2], apiMilestone)
 
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/milestones?state=%s&name=%s&token=%s", owner.Name, repo.Name, "all", "milestone2", token))
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiMilestones)
 	assert.Len(t, apiMilestones, 1)
 	assert.Equal(t, int64(2), apiMilestones[0].ID)
 
 	req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/milestones/%d?token=%s", owner.Name, repo.Name, apiMilestone.ID, token))
-	session.MakeRequest(t, req, http.StatusNoContent)
+	MakeRequest(t, req, http.StatusNoContent)
 }

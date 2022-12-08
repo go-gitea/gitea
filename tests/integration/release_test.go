@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -54,7 +53,7 @@ func checkLatestReleaseAndCount(t *testing.T, session *TestSession, repoURL, ver
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	labelText := htmlDoc.doc.Find("#release-list > li .meta .label").First().Text()
+	labelText := htmlDoc.doc.Find("#release-list > li .detail .label").First().Text()
 	assert.EqualValues(t, label, labelText)
 	titleText := htmlDoc.doc.Find("#release-list > li .detail h4 a").First().Text()
 	assert.EqualValues(t, version, titleText)
