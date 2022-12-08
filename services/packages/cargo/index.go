@@ -179,7 +179,7 @@ func addOrUpdatePackageIndex(ctx context.Context, t *files_service.TemporaryUplo
 }
 
 func getOrCreateIndexRepository(ctx context.Context, doer, owner *user_model.User) (*repo_model.Repository, error) {
-	repo, err := repo_model.GetRepositoryByOwnerAndNameCtx(ctx, owner.Name, IndexRepositoryName)
+	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, owner.Name, IndexRepositoryName)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			repo, err = repo_module.CreateRepository(doer, owner, repo_module.CreateRepoOptions{
@@ -189,7 +189,7 @@ func getOrCreateIndexRepository(ctx context.Context, doer, owner *user_model.Use
 				return nil, fmt.Errorf("CreateRepository: %w", err)
 			}
 		} else {
-			return nil, fmt.Errorf("GetRepositoryByOwnerAndNameCtx: %w", err)
+			return nil, fmt.Errorf("GetRepositoryByOwnerAndName: %w", err)
 		}
 	}
 

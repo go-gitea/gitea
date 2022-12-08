@@ -96,7 +96,7 @@ func Cleanup(taskCtx context.Context, olderThan time.Duration) error {
 
 			if versionDeleted {
 				if pcr.Type == packages_model.TypeCargo {
-					owner, err := user_model.GetUserByIDCtx(ctx, pcr.OwnerID)
+					owner, err := user_model.GetUserByID(ctx, pcr.OwnerID)
 					if err != nil {
 						return fmt.Errorf("GetUserByID failed: %w", err)
 					}
