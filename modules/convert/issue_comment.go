@@ -148,7 +148,7 @@ func ToTimelineComment(ctx context.Context, c *issues_model.Comment, doer *user_
 			var err error
 			repo, err = repo_model.GetRepositoryByID(ctx, c.Label.RepoID)
 			if err != nil {
-				log.Error("GetRepositoryByIDCtx(%d): %v", c.Label.RepoID, err)
+				log.Error("GetRepositoryByID(%d): %v", c.Label.RepoID, err)
 				return nil
 			}
 		}
