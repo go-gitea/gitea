@@ -1,12 +1,18 @@
 package actions
 
 import (
+	"context"
+	"fmt"
 	"io"
 	"io/fs"
 	"log"
 	"net"
 	"os"
 	"path/filepath"
+
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ArtifactFile is a file that is stored in the artifact storage.
@@ -68,4 +74,55 @@ func GetOutboundIP() net.IP {
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
 
 	return localAddr.IP
+}
+
+func init() {
+	db.RegisterModel(new(ActionArtifact))
+}
+
+// ActionArtifact is a file that is stored in the artifact storage.
+type ActionArtifact struct {
+	ID           int64
+	JobID        int64
+	RunnerID     int64  `xorm:"index"`
+	RepoID       int64  `xorm:"index"`
+	OwnerID      int64  `xorm:"index"`
+	CommitSHA    string `xorm:"index"`
+	FilePath     string
+	FileSize     int64
+	ArtifactPath string
+	ArtifactName string
+	Created      timeutil.TimeStamp `xorm:"created"`
+	Updated      timeutil.TimeStamp `xorm:"updated index"`
+}
+
+// CreateArtifact creates a new artifact with task info
+func CreateArtifact(ctx context.Context, t *ActionTask) (*ActionArtifact, error) {
+	artifact := &ActionArtifact{
+		JobID:     t.JobID,
+		RunnerID:  t.RunnerID,
+		RepoID:    t.RepoID,
+		OwnerID:   t.OwnerID,
+		CommitSHA: t.CommitSHA,
+	}
+	_, err := db.GetEngine(ctx).Insert(artifact)
+	return artifact, err
+}
+
+func GetArtifactByID(ctx context.Context, id int64) (*ActionArtifact, error) {
+	var art ActionArtifact
+	has, err := db.GetEngine(ctx).Where("id=?", id).Get(&art)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, fmt.Errorf("task with id %d: %w", id, util.ErrNotExist)
+	}
+
+	return &art, nil
+}
+
+func UpdateArtifactByID(ctx context.Context, id int64, art *ActionArtifact) error {
+	art.ID = id
+	_, err := db.GetEngine(ctx).ID(id).AllCols().Update(art)
+	return err
 }

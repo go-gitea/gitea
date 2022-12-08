@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/actions"
@@ -52,17 +53,37 @@ type artifactRoutes struct {
 	fs     actions.MkdirFS
 }
 
-func (ar artifactRoutes) openFile(fpath string, contentRange string) (actions.ArtifactFile, error) {
+func (ar artifactRoutes) openFile(fpath string, contentRange string) (actions.ArtifactFile, bool, error) {
 	if contentRange != "" && !strings.HasPrefix(contentRange, "bytes 0-") {
-		return ar.fs.OpenAtEnd(fpath)
+		f, err := ar.fs.OpenAtEnd(fpath)
+		return f, true, err
 	}
-	return ar.fs.Open(fpath)
+	f, err := ar.fs.Open(fpath)
+	return f, false, err
 }
 
 // getUploadArtifactURL generates a URL for uploading an artifact
 func (ar artifactRoutes) getUploadArtifactURL(ctx *context.Context) {
-	jobID := ctx.Params("runId")
-	uploadURL := strings.TrimSuffix(setting.AppURL, "/") + ctx.Req.URL.Path + "/" + jobID + "/upload"
+	// get task
+	jobID := ctx.ParamsInt64("runId")
+
+	task, err := actions.GetTaskByID(ctx, jobID)
+	if err != nil {
+		log.Error("Error getting task: %v", err)
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	artifact, err := actions.CreateArtifact(ctx, task)
+	if err != nil {
+		log.Error("Error creating artifact: %v", err)
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	uploadURL := strings.TrimSuffix(setting.AppURL, "/") +
+		ctx.Req.URL.Path + "/" + strconv.FormatInt(artifact.ID, 10) + "/upload"
+
 	u, err := url.Parse(uploadURL)
 	if err != nil {
 		log.Error("Error parsing upload URL: %v", err)
@@ -84,15 +105,26 @@ func (ar artifactRoutes) getUploadArtifactURL(ctx *context.Context) {
 }
 
 func (ar artifactRoutes) uploadArtifact(ctx *context.Context) {
+	artifactID := ctx.ParamsInt64("artifactID")
+
+	artifact, err := actions.GetArtifactByID(ctx, artifactID)
+	if err != nil {
+		log.Error("Error getting artifact: %v", err)
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	itemPath := ctx.Req.URL.Query().Get("itemPath")
 	runID := ctx.Params("runId")
+	artifactName := strings.Split(itemPath, "/")[0]
 
 	if ctx.Req.Header.Get("Content-Encoding") == "gzip" {
 		itemPath += ".gz"
 	}
-	filePath := fmt.Sprintf("%s/%s", runID, itemPath)
+	filePath := fmt.Sprintf("%s/%d/%s", runID, artifactID, itemPath)
 
-	file, err := ar.openFile(filePath, ctx.Req.Header.Get("Content-Range"))
+	fSize := int64(0)
+	file, isChunked, err := ar.openFile(filePath, ctx.Req.Header.Get("Content-Range"))
 	if err != nil {
 		log.Error("Error opening file: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
@@ -100,9 +132,25 @@ func (ar artifactRoutes) uploadArtifact(ctx *context.Context) {
 	}
 	defer file.Close()
 
-	_, err = io.Copy(file, ctx.Req.Body)
+	if isChunked {
+		// chunked means it is a continuation of a previous upload
+		fSize = artifact.FileSize
+	}
+
+	n, err := io.Copy(file, ctx.Req.Body)
 	if err != nil {
 		log.Error("Error copying body to file: %v", err)
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+	fSize += n
+	artifact.FilePath = filePath // path in storage
+	artifact.ArtifactName = artifactName
+	artifact.ArtifactPath = itemPath // path in container
+	artifact.FileSize = fSize
+
+	if err := actions.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
+		log.Error("Error updating artifact: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -114,6 +162,7 @@ func (ar artifactRoutes) uploadArtifact(ctx *context.Context) {
 
 // TODO: why it is used?
 func (ar artifactRoutes) patchArtifact(ctx *context.Context) {
+
 	ctx.JSON(200, map[string]string{
 		"message": "success",
 	})
