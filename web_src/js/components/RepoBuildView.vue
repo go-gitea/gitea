@@ -205,9 +205,10 @@ const sfc = {
       elLineNum.innerText = line.ln;
       el.appendChild(elLineNum);
 
-      const elLogTime = document.createElement('log-time');
-      elLogTime.innerText = new Date(line.t * 1000).toISOString();
-      el.appendChild(elLogTime);
+      // TODO: Support displaying time optionally
+      // const elLogTime = document.createElement('log-time');
+      // elLogTime.innerText = new Date(line.t * 1000).toISOString();
+      // el.appendChild(elLogTime);
 
       const elLogMsg = document.createElement('log-msg');
       elLogMsg.innerHTML = this.ansiToHTML.toHtml(line.m);
