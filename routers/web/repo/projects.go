@@ -23,7 +23,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
-	project_service "code.gitea.io/gitea/services/projects"
 )
 
 const (
@@ -197,7 +196,7 @@ func DeleteProject(ctx *context.Context) {
 		return
 	}
 
-	if err := project_service.DeleteProjectByID(ctx, p.ID); err != nil {
+	if err := project_model.DeleteProjectByID(ctx, p.ID); err != nil {
 		ctx.Flash.Error("DeleteProjectByID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.projects.deletion_success"))

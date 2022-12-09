@@ -12,7 +12,6 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unit"
@@ -125,19 +124,4 @@ func LinkedRepository(ctx context.Context, a *repo_model.Attachment) (*repo_mode
 		return repo, unit.TypeReleases, err
 	}
 	return nil, -1, nil
-}
-
-// ChangeCollaborationAccessMode sets new access mode for the collaboration.
-func ChangeCollaborationAccessMode(repo *repo_model.Repository, uid int64, mode perm.AccessMode) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err := repo_model.ChangeCollaborationAccessMode(ctx, repo, uid, mode); err != nil {
-		return err
-	}
-
-	return committer.Commit()
 }

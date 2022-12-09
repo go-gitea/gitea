@@ -298,29 +298,32 @@ func changeProjectStatus(ctx context.Context, p *Project, isClosed bool) error {
 	return updateRepositoryProjectCount(ctx, p.RepoID)
 }
 
-// DeleteProjectByID deletes a project from a repository.
+// DeleteProjectByID deletes a project from a repository. if it's not in a database
+// transaction, it will start a new database transaction
 func DeleteProjectByID(ctx context.Context, id int64) error {
-	p, err := GetProjectByID(ctx, id)
-	if err != nil {
-		if IsErrProjectNotExist(err) {
-			return nil
+	return db.AutoTx(ctx, func(ctx context.Context) error {
+		p, err := GetProjectByID(ctx, id)
+		if err != nil {
+			if IsErrProjectNotExist(err) {
+				return nil
+			}
+			return err
 		}
-		return err
-	}
 
-	if err := deleteProjectIssuesByProjectID(ctx, id); err != nil {
-		return err
-	}
+		if err := deleteProjectIssuesByProjectID(ctx, id); err != nil {
+			return err
+		}
 
-	if err := deleteBoardByProjectID(ctx, id); err != nil {
-		return err
-	}
+		if err := deleteBoardByProjectID(ctx, id); err != nil {
+			return err
+		}
 
-	if _, err = db.GetEngine(ctx).ID(p.ID).Delete(new(Project)); err != nil {
-		return err
-	}
+		if _, err = db.GetEngine(ctx).ID(p.ID).Delete(new(Project)); err != nil {
+			return err
+		}
 
-	return updateRepositoryProjectCount(ctx, p.RepoID)
+		return updateRepositoryProjectCount(ctx, p.RepoID)
+	})
 }
 
 func DeleteProjectByRepoID(ctx context.Context, repoID int64) error {

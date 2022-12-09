@@ -105,34 +105,36 @@ func ChangeCollaborationAccessMode(ctx context.Context, repo *Repository, uid in
 		return nil
 	}
 
-	e := db.GetEngine(ctx)
+	return db.AutoTx(ctx, func(ctx context.Context) error {
+		e := db.GetEngine(ctx)
 
-	collaboration := &Collaboration{
-		RepoID: repo.ID,
-		UserID: uid,
-	}
-	has, err := e.Get(collaboration)
-	if err != nil {
-		return fmt.Errorf("get collaboration: %w", err)
-	} else if !has {
+		collaboration := &Collaboration{
+			RepoID: repo.ID,
+			UserID: uid,
+		}
+		has, err := e.Get(collaboration)
+		if err != nil {
+			return fmt.Errorf("get collaboration: %w", err)
+		} else if !has {
+			return nil
+		}
+
+		if collaboration.Mode == mode {
+			return nil
+		}
+		collaboration.Mode = mode
+
+		if _, err = e.
+			ID(collaboration.ID).
+			Cols("mode").
+			Update(collaboration); err != nil {
+			return fmt.Errorf("update collaboration: %w", err)
+		} else if _, err = e.Exec("UPDATE access SET mode = ? WHERE user_id = ? AND repo_id = ?", mode, uid, repo.ID); err != nil {
+			return fmt.Errorf("update access table: %w", err)
+		}
+
 		return nil
-	}
-
-	if collaboration.Mode == mode {
-		return nil
-	}
-	collaboration.Mode = mode
-
-	if _, err = e.
-		ID(collaboration.ID).
-		Cols("mode").
-		Update(collaboration); err != nil {
-		return fmt.Errorf("update collaboration: %w", err)
-	} else if _, err = e.Exec("UPDATE access SET mode = ? WHERE user_id = ? AND repo_id = ?", mode, uid, repo.ID); err != nil {
-		return fmt.Errorf("update access table: %w", err)
-	}
-
-	return nil
+	})
 }
 
 // IsOwnerMemberCollaborator checks if a provided user is the owner, a collaborator or a member of a team in a repository
