@@ -364,7 +364,8 @@ export function initRepositoryActionView() {
 // action view left
 
 .action-view-left {
-  width: 20%;
+  width: 30%;
+  max-width: 400px;
   overflow-y: scroll;
   margin-left: 10px;
 }
@@ -408,6 +409,7 @@ export function initRepositoryActionView() {
   background-color: #262626;
   color: #d6d6d6;
   max-height: 100%;
+  margin-right: 10px;
 
   display: flex;
   flex-direction: column;
