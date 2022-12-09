@@ -31,9 +31,9 @@
 					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				</span>
 				<div class="menu">
-					<a class="{{if eq .SortType "oldest"}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&sort=oldest&state={{$.State}}">{{.locale.Tr "repo.issues.filter_sort.oldest"}}</a>
-					<a class="{{if eq .SortType "recentupdate"}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&sort=recentupdate&state={{$.State}}">{{.locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
-					<a class="{{if eq .SortType "leastupdate"}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&sort=leastupdate&state={{$.State}}">{{.locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
+					<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&sort=oldest&state={{$.State}}">{{.locale.Tr "repo.issues.filter_sort.oldest"}}</a>
+					<a class="{{if eq .SortType "recentupdate"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&sort=recentupdate&state={{$.State}}">{{.locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
+					<a class="{{if eq .SortType "leastupdate"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&sort=leastupdate&state={{$.State}}">{{.locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
 				</div>
 			</div>
 		</div>
