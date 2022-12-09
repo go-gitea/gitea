@@ -16,7 +16,6 @@ func CreateSecretsTable(x *xorm.Engine) error {
 		RepoID      int64              `xorm:"index NOTNULL"`
 		Name        string             `xorm:"NOTNULL"`
 		Data        string             `xorm:"LONGTEXT"`
-		PullRequest bool               `xorm:"NOTNULL"`
 		CreatedUnix timeutil.TimeStamp `xorm:"created NOTNULL"`
 	}
 

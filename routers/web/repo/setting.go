@@ -1117,7 +1117,7 @@ func DeployKeys(ctx *context.Context) {
 // SecretsPost response for creating a new secret
 func SecretsPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AddKeyForm)
-	if err := secret_service.InsertRepoSecret(ctx, ctx.Repo.Repository.ID, form.Title, form.Content, form.PullRequestRead); err != nil {
+	if err := secret_service.InsertRepoSecret(ctx, ctx.Repo.Repository.ID, form.Title, form.Content); err != nil {
 		ctx.ServerError("InsertRepoSecret", err)
 		return
 	}

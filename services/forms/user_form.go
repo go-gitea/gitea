@@ -368,9 +368,8 @@ func (f *AddKeyForm) Validate(req *http.Request, errs binding.Errors) binding.Er
 
 // AddSecretForm for adding secrets
 type AddSecretForm struct {
-	Title           string `binding:"Required;MaxSize(50)"`
-	Content         string `binding:"Required"`
-	PullRequestRead bool
+	Title   string `binding:"Required;MaxSize(50)"`
+	Content string `binding:"Required"`
 }
 
 // Validate validates the fields
