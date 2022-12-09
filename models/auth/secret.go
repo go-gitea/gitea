@@ -35,7 +35,7 @@ type Secret struct {
 	UserID      int64              `xorm:"index NOTNULL"`
 	RepoID      int64              `xorm:"index NOTNULL"`
 	Name        string             `xorm:"NOTNULL"`
-	Data        string             `xorm:"TEXT"`
+	Data        string             `xorm:"LONGTEXT"` // encrypted data, or plaintext data if there's no master key
 	PullRequest bool               `xorm:"NOTNULL"`
 	CreatedUnix timeutil.TimeStamp `xorm:"created NOTNULL"`
 }
