@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -11,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
@@ -192,7 +190,7 @@ func Search(ctx *context.APIContext) {
 	}
 
 	var err error
-	repos, count, err := repo_model.SearchRepository(opts)
+	repos, count, err := repo_model.SearchRepository(ctx, opts)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, api.SearchError{
 			OK:    false,
@@ -210,14 +208,14 @@ func Search(ctx *context.APIContext) {
 			})
 			return
 		}
-		accessMode, err := access_model.AccessLevel(ctx.Doer, repo)
+		accessMode, err := access_model.AccessLevel(ctx, ctx.Doer, repo)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, api.SearchError{
 				OK:    false,
 				Error: err.Error(),
 			})
 		}
-		results[i] = convert.ToRepo(repo, accessMode)
+		results[i] = convert.ToRepo(ctx, repo, accessMode)
 	}
 	ctx.SetLinkHeader(int(count), opts.PageSize)
 	ctx.SetTotalCountHeader(count)
@@ -232,7 +230,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 	if opt.AutoInit && opt.Readme == "" {
 		opt.Readme = "Default"
 	}
-	repo, err := repo_service.CreateRepository(ctx.Doer, owner, models.CreateRepoOptions{
+	repo, err := repo_service.CreateRepository(ctx.Doer, owner, repo_module.CreateRepoOptions{
 		Name:          opt.Name,
 		Description:   opt.Description,
 		IssueLabels:   opt.IssueLabels,
@@ -259,12 +257,12 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 	}
 
 	// reload repo from db to get a real state after creation
-	repo, err = repo_model.GetRepositoryByID(repo.ID)
+	repo, err = repo_model.GetRepositoryByID(ctx, repo.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetRepositoryByID", err)
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToRepo(repo, perm.AccessModeOwner))
+	ctx.JSON(http.StatusCreated, convert.ToRepo(ctx, repo, perm.AccessModeOwner))
 }
 
 // Create one repository of mine
@@ -409,7 +407,7 @@ func Generate(ctx *context.APIContext) {
 	}
 	log.Trace("Repository generated [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
 
-	ctx.JSON(http.StatusCreated, convert.ToRepo(repo, perm.AccessModeOwner))
+	ctx.JSON(http.StatusCreated, convert.ToRepo(ctx, repo, perm.AccessModeOwner))
 }
 
 // CreateOrgRepoDeprecated create one repository of the organization
@@ -525,7 +523,7 @@ func Get(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToRepo(ctx.Repo.Repository, ctx.Repo.AccessMode))
+	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, ctx.Repo.Repository, ctx.Repo.AccessMode))
 }
 
 // GetByID returns a single Repository
@@ -546,7 +544,7 @@ func GetByID(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Repository"
 
-	repo, err := repo_model.GetRepositoryByID(ctx.ParamsInt64(":id"))
+	repo, err := repo_model.GetRepositoryByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
 			ctx.NotFound()
@@ -564,7 +562,7 @@ func GetByID(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToRepo(repo, perm.AccessMode))
+	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, repo, perm.AccessMode))
 }
 
 // Edit edit repository properties
@@ -584,7 +582,6 @@ func Edit(ctx *context.APIContext) {
 	//   in: path
 	//   description: name of the repo to edit
 	//   type: string
-	//   required: true
 	//   required: true
 	// - name: body
 	//   in: body
@@ -621,13 +618,13 @@ func Edit(ctx *context.APIContext) {
 		}
 	}
 
-	repo, err := repo_model.GetRepositoryByID(ctx.Repo.Repository.ID)
+	repo, err := repo_model.GetRepositoryByID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToRepo(repo, ctx.Repo.AccessMode))
+	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, repo, ctx.Repo.AccessMode))
 }
 
 // updateBasicProperties updates the basic properties of a repo: Name, Description, Website and Visibility
@@ -672,7 +669,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	if opts.Private != nil {
 		// Visibility of forked repository is forced sync with base repository.
 		if repo.IsFork {
-			if err := repo.GetBaseRepo(); err != nil {
+			if err := repo.GetBaseRepo(ctx); err != nil {
 				ctx.Error(http.StatusInternalServerError, "Unable to load base repository", err)
 				return err
 			}
@@ -734,8 +731,13 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 	var units []repo_model.RepoUnit
 	var deleteUnitTypes []unit_model.Type
 
+	currHasIssues := repo.UnitEnabledCtx(ctx, unit_model.TypeIssues)
+	newHasIssues := currHasIssues
 	if opts.HasIssues != nil {
-		if *opts.HasIssues && opts.ExternalTracker != nil && !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
+		newHasIssues = *opts.HasIssues
+	}
+	if currHasIssues || newHasIssues {
+		if newHasIssues && opts.ExternalTracker != nil && !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
 			// Check that values are valid
 			if !validation.IsValidExternalURL(opts.ExternalTracker.ExternalTrackerURL) {
 				err := fmt.Errorf("External tracker URL not valid")
@@ -752,13 +754,14 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				RepoID: repo.ID,
 				Type:   unit_model.TypeExternalTracker,
 				Config: &repo_model.ExternalTrackerConfig{
-					ExternalTrackerURL:    opts.ExternalTracker.ExternalTrackerURL,
-					ExternalTrackerFormat: opts.ExternalTracker.ExternalTrackerFormat,
-					ExternalTrackerStyle:  opts.ExternalTracker.ExternalTrackerStyle,
+					ExternalTrackerURL:           opts.ExternalTracker.ExternalTrackerURL,
+					ExternalTrackerFormat:        opts.ExternalTracker.ExternalTrackerFormat,
+					ExternalTrackerStyle:         opts.ExternalTracker.ExternalTrackerStyle,
+					ExternalTrackerRegexpPattern: opts.ExternalTracker.ExternalTrackerRegexpPattern,
 				},
 			})
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
-		} else if *opts.HasIssues && opts.ExternalTracker == nil && !unit_model.TypeIssues.UnitGlobalDisabled() {
+		} else if newHasIssues && opts.ExternalTracker == nil && !unit_model.TypeIssues.UnitGlobalDisabled() {
 			// Default to built-in tracker
 			var config *repo_model.IssuesConfig
 
@@ -785,7 +788,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				Config: config,
 			})
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
-		} else if !*opts.HasIssues {
+		} else if !newHasIssues {
 			if !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
 				deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
 			}
@@ -795,8 +798,13 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
+	currHasWiki := repo.UnitEnabledCtx(ctx, unit_model.TypeWiki)
+	newHasWiki := currHasWiki
 	if opts.HasWiki != nil {
-		if *opts.HasWiki && opts.ExternalWiki != nil && !unit_model.TypeExternalWiki.UnitGlobalDisabled() {
+		newHasWiki = *opts.HasWiki
+	}
+	if currHasWiki || newHasWiki {
+		if newHasWiki && opts.ExternalWiki != nil && !unit_model.TypeExternalWiki.UnitGlobalDisabled() {
 			// Check that values are valid
 			if !validation.IsValidExternalURL(opts.ExternalWiki.ExternalWikiURL) {
 				err := fmt.Errorf("External wiki URL not valid")
@@ -812,7 +820,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				},
 			})
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeWiki)
-		} else if *opts.HasWiki && opts.ExternalWiki == nil && !unit_model.TypeWiki.UnitGlobalDisabled() {
+		} else if newHasWiki && opts.ExternalWiki == nil && !unit_model.TypeWiki.UnitGlobalDisabled() {
 			config := &repo_model.UnitConfig{}
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
@@ -820,7 +828,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				Config: config,
 			})
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalWiki)
-		} else if !*opts.HasWiki {
+		} else if !newHasWiki {
 			if !unit_model.TypeExternalWiki.UnitGlobalDisabled() {
 				deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalWiki)
 			}
@@ -830,8 +838,13 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
+	currHasPullRequests := repo.UnitEnabledCtx(ctx, unit_model.TypePullRequests)
+	newHasPullRequests := currHasPullRequests
 	if opts.HasPullRequests != nil {
-		if *opts.HasPullRequests && !unit_model.TypePullRequests.UnitGlobalDisabled() {
+		newHasPullRequests = *opts.HasPullRequests
+	}
+	if currHasPullRequests || newHasPullRequests {
+		if newHasPullRequests && !unit_model.TypePullRequests.UnitGlobalDisabled() {
 			// We do allow setting individual PR settings through the API, so
 			// we get the config settings and then set them
 			// if those settings were provided in the opts.
@@ -891,7 +904,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				Type:   unit_model.TypePullRequests,
 				Config: config,
 			})
-		} else if !*opts.HasPullRequests && !unit_model.TypePullRequests.UnitGlobalDisabled() {
+		} else if !newHasPullRequests && !unit_model.TypePullRequests.UnitGlobalDisabled() {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePullRequests)
 		}
 	}

@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package templates
 
@@ -17,8 +16,8 @@ func TestSubjectBodySeparator(t *testing.T) {
 			assert.Empty(t, subject, "no subject found, but one expected")
 			assert.Equal(t, body, input)
 		} else {
-			assert.Equal(t, subject, string(input[0:loc[0]]))
-			assert.Equal(t, body, string(input[loc[1]:]))
+			assert.Equal(t, subject, input[0:loc[0]])
+			assert.Equal(t, body, input[loc[1]:])
 		}
 	}
 

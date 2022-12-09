@@ -2,7 +2,8 @@ import {isDarkTheme} from '../utils.js';
 const {mermaidMaxSourceCharacters} = window.config;
 
 const iframeCss = `
-  body {margin: 0; padding: 0}
+  :root {color-scheme: normal}
+  body {margin: 0; padding: 0; overflow: hidden}
   #mermaid {display: block; margin: 0 auto}
 `;
 
@@ -50,7 +51,7 @@ export async function renderMermaid() {
       // can't use bindFunctions here because we can't cross the iframe boundary. This
       // means js-based interactions won't work but they aren't intended to work either
       mermaid.mermaidAPI.render('mermaid', source, (svgStr) => {
-        const heightStr = (svgStr.match(/height="(.+?)"/) || [])[1];
+        const heightStr = (svgStr.match(/viewBox="(.+?)"/) || ['', ''])[1].split(/\s+/)[3];
         if (!heightStr) return displayError(el, new Error('Could not determine chart height'));
         const iframe = document.createElement('iframe');
         iframe.classList.add('markup-render');

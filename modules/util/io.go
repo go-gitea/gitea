@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package util
 
@@ -16,5 +15,5 @@ func ReadAtMost(r io.Reader, buf []byte) (n int, err error) {
 	if err == io.EOF || err == io.ErrUnexpectedEOF {
 		err = nil
 	}
-	return
+	return n, err
 }

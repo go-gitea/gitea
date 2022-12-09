@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -80,7 +79,7 @@ func Branches(ctx *context.Context) {
 	}
 	ctx.Data["Branches"] = branches
 	ctx.Data["DefaultBranchBranch"] = defaultBranchBranch
-	pager := context.NewPagination(int(branchesCount), setting.Git.BranchesRangeSize, page, 5)
+	pager := context.NewPagination(branchesCount, setting.Git.BranchesRangeSize, page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
@@ -124,6 +123,10 @@ func RestoreBranchPost(ctx *context.Context) {
 	deletedBranch, err := git_model.GetDeletedBranchByID(ctx.Repo.Repository.ID, branchID)
 	if err != nil {
 		log.Error("GetDeletedBranchByID: %v", err)
+		ctx.Flash.Error(ctx.Tr("repo.branch.restore_failed", branchName))
+		return
+	} else if deletedBranch == nil {
+		log.Debug("RestoreBranch: Can't restore branch[%d] '%s', as it does not exist", branchID, branchName)
 		ctx.Flash.Error(ctx.Tr("repo.branch.restore_failed", branchName))
 		return
 	}
@@ -275,14 +278,14 @@ func loadOneBranch(ctx *context.Context, rawBranch, defaultBranch *git.Branch, p
 	mergeMovedOn := false
 	if pr != nil {
 		pr.HeadRepo = ctx.Repo.Repository
-		if err := pr.LoadIssue(); err != nil {
-			ctx.ServerError("pr.LoadIssue", err)
+		if err := pr.LoadIssue(ctx); err != nil {
+			ctx.ServerError("LoadIssue", err)
 			return nil
 		}
 		if repo, ok := repoIDToRepo[pr.BaseRepoID]; ok {
 			pr.BaseRepo = repo
-		} else if err := pr.LoadBaseRepoCtx(ctx); err != nil {
-			ctx.ServerError("pr.LoadBaseRepo", err)
+		} else if err := pr.LoadBaseRepo(ctx); err != nil {
+			ctx.ServerError("LoadBaseRepo", err)
 			return nil
 		} else {
 			repoIDToRepo[pr.BaseRepoID] = pr.BaseRepo
@@ -334,7 +337,7 @@ func getDeletedBranches(ctx *context.Context) ([]*Branch, error) {
 	}
 
 	for i := range deletedBranches {
-		deletedBranches[i].LoadUser()
+		deletedBranches[i].LoadUser(ctx)
 		branches = append(branches, &Branch{
 			Name:          deletedBranches[i].Name,
 			IsDeleted:     true,
@@ -427,5 +430,5 @@ func CreateBranch(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.branch.create_success", form.NewBranchName))
-	ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(form.NewBranchName))
+	ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(form.NewBranchName) + "/" + util.PathEscapeSegments(form.CurrentPath))
 }

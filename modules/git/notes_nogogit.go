@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 //go:build !gogit
 
@@ -81,7 +80,7 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 		path = path[idx+1:]
 	}
 
-	lastCommits, err := GetLastCommitForPaths(ctx, nil, notes, treePath, []string{path})
+	lastCommits, err := GetLastCommitForPaths(ctx, notes, treePath, []string{path})
 	if err != nil {
 		log.Error("Unable to get the commit for the path %q. Error: %v", treePath, err)
 		return err

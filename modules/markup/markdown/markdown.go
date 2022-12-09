@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package markdown
 
@@ -14,12 +13,13 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/common"
+	"code.gitea.io/gitea/modules/markup/markdown/math"
 	"code.gitea.io/gitea/modules/setting"
 	giteautil "code.gitea.io/gitea/modules/util"
 
-	chromahtml "github.com/alecthomas/chroma/formatters/html"
+	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/yuin/goldmark"
-	highlighting "github.com/yuin/goldmark-highlighting"
+	highlighting "github.com/yuin/goldmark-highlighting/v2"
 	meta "github.com/yuin/goldmark-meta"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
@@ -38,6 +38,7 @@ var (
 	isWikiKey        = parser.NewContextKey()
 	renderMetasKey   = parser.NewContextKey()
 	renderContextKey = parser.NewContextKey()
+	renderConfigKey  = parser.NewContextKey()
 )
 
 type limitWriter struct {
@@ -98,7 +99,7 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 							languageStr := string(language)
 
 							preClasses := []string{"code-block"}
-							if languageStr == "mermaid" {
+							if languageStr == "mermaid" || languageStr == "math" {
 								preClasses = append(preClasses, "is-loading")
 							}
 
@@ -119,6 +120,9 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 							}
 						}
 					}),
+				),
+				math.NewExtension(
+					math.Enabled(setting.Markdown.EnableMath),
 				),
 				meta.Meta,
 			),
@@ -156,7 +160,7 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 
 		log.Warn("Unable to render markdown due to panic in goldmark: %v", err)
 		if log.IsDebug() {
-			log.Debug("Panic in markdown: %v\n%s", err, string(log.Stack(2)))
+			log.Debug("Panic in markdown: %v\n%s", err, log.Stack(2))
 		}
 	}()
 
@@ -167,7 +171,18 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 		log.Error("Unable to ReadAll: %v", err)
 		return err
 	}
-	if err := converter.Convert(giteautil.NormalizeEOL(buf), lw, parser.WithContext(pc)); err != nil {
+	buf = giteautil.NormalizeEOL(buf)
+
+	rc := &RenderConfig{
+		Meta: "table",
+		Icon: "table",
+		Lang: "",
+	}
+	buf, _ = ExtractMetadataBytes(buf, rc)
+
+	pc.Set(renderConfigKey, rc)
+
+	if err := converter.Convert(buf, lw, parser.WithContext(pc)); err != nil {
 		log.Error("Unable to render: %v", err)
 		return err
 	}
@@ -185,7 +200,7 @@ func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 
 		log.Warn("Unable to render markdown due to panic in goldmark - will return raw bytes")
 		if log.IsDebug() {
-			log.Debug("Panic in markdown: %v\n%s", err, string(log.Stack(2)))
+			log.Debug("Panic in markdown: %v\n%s", err, log.Stack(2))
 		}
 		_, err = io.Copy(output, input)
 		if err != nil {

@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -10,7 +9,6 @@ import (
 	"time"
 
 	git_model "code.gitea.io/gitea/models/git"
-	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httpcache"
@@ -99,12 +97,7 @@ func getBlobForEntry(ctx *context.Context) (blob *git.Blob, lastModified time.Ti
 		return
 	}
 
-	var c *git.LastCommitCache
-	if setting.CacheService.LastCommit.Enabled && ctx.Repo.CommitsCount >= setting.CacheService.LastCommit.CommitsCount {
-		c = git.NewLastCommitCache(ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, setting.LastCommitCacheTTLSeconds, cache.GetCache())
-	}
-
-	info, _, err := git.Entries([]*git.TreeEntry{entry}).GetCommitsInfo(ctx, ctx.Repo.Commit, path.Dir("/" + ctx.Repo.TreePath)[1:], c)
+	info, _, err := git.Entries([]*git.TreeEntry{entry}).GetCommitsInfo(ctx, ctx.Repo.Commit, path.Dir("/" + ctx.Repo.TreePath)[1:])
 	if err != nil {
 		ctx.ServerError("GetCommitsInfo", err)
 		return
@@ -116,7 +109,7 @@ func getBlobForEntry(ctx *context.Context) (blob *git.Blob, lastModified time.Ti
 	}
 	blob = entry.Blob()
 
-	return
+	return blob, lastModified
 }
 
 // SingleDownload download a file by repos path

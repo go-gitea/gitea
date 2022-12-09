@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cmd
 
@@ -113,14 +112,14 @@ func runACME(listenAddr string, m http.Handler) error {
 
 			log.Info("Running Let's Encrypt handler on %s", setting.HTTPAddr+":"+setting.PortToRedirect)
 			// all traffic coming into HTTP will be redirect to HTTPS automatically (LE HTTP-01 validation happens here)
-			err := runHTTP("tcp", setting.HTTPAddr+":"+setting.PortToRedirect, "Let's Encrypt HTTP Challenge", myACME.HTTPChallengeHandler(http.HandlerFunc(runLetsEncryptFallbackHandler)))
+			err := runHTTP("tcp", setting.HTTPAddr+":"+setting.PortToRedirect, "Let's Encrypt HTTP Challenge", myACME.HTTPChallengeHandler(http.HandlerFunc(runLetsEncryptFallbackHandler)), setting.RedirectorUseProxyProtocol)
 			if err != nil {
 				log.Fatal("Failed to start the Let's Encrypt handler on port %s: %v", setting.PortToRedirect, err)
 			}
 		}()
 	}
 
-	return runHTTPSWithTLSConfig("tcp", listenAddr, "Web", tlsConfig, m)
+	return runHTTPSWithTLSConfig("tcp", listenAddr, "Web", tlsConfig, m, setting.UseProxyProtocol, setting.ProxyProtocolTLSBridging)
 }
 
 func runLetsEncryptFallbackHandler(w http.ResponseWriter, r *http.Request) {

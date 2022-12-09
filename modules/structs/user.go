@@ -1,6 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package structs
 
@@ -17,6 +16,9 @@ type User struct {
 	ID int64 `json:"id"`
 	// the user's username
 	UserName string `json:"login"`
+	// the user's authentication sign-in name.
+	// default: empty
+	LoginName string `json:"login_name"`
 	// the user's full name
 	FullName string `json:"full_name"`
 	// swagger:strfmt email

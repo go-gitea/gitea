@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo_test
 
@@ -56,7 +55,7 @@ func TestGetPrivateRepositoryCount(t *testing.T) {
 
 func TestRepoAPIURL(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10}).(*repo_model.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
 
 	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user12/repo10", repo.APIURL())
 }
@@ -116,7 +115,7 @@ func TestMetas(t *testing.T) {
 	externalTracker.ExternalTrackerConfig().ExternalTrackerStyle = markup.IssueNameStyleRegexp
 	testSuccess(markup.IssueNameStyleRegexp)
 
-	repo, err := repo_model.GetRepositoryByID(3)
+	repo, err := repo_model.GetRepositoryByID(db.DefaultContext, 3)
 	assert.NoError(t, err)
 
 	metas = repo.ComposeMetas()

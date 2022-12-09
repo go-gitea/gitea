@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package organization_test
 
@@ -17,22 +16,22 @@ import (
 func TestTeam_IsOwnerTeam(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 1}).(*organization.Team)
+	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 1})
 	assert.True(t, team.IsOwnerTeam())
 
-	team = unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2}).(*organization.Team)
+	team = unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
 	assert.False(t, team.IsOwnerTeam())
 }
 
 func TestTeam_IsMember(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 1}).(*organization.Team)
+	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 1})
 	assert.True(t, team.IsMember(2))
 	assert.False(t, team.IsMember(4))
 	assert.False(t, team.IsMember(unittest.NonexistentID))
 
-	team = unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2}).(*organization.Team)
+	team = unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
 	assert.True(t, team.IsMember(2))
 	assert.True(t, team.IsMember(4))
 	assert.False(t, team.IsMember(unittest.NonexistentID))
@@ -42,8 +41,8 @@ func TestTeam_GetRepositories(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	test := func(teamID int64) {
-		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID}).(*organization.Team)
-		assert.NoError(t, team.GetRepositoriesCtx(db.DefaultContext))
+		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
+		assert.NoError(t, team.LoadRepositories(db.DefaultContext))
 		assert.Len(t, team.Repos, team.NumRepos)
 		for _, repo := range team.Repos {
 			unittest.AssertExistsAndLoadBean(t, &organization.TeamRepo{TeamID: teamID, RepoID: repo.ID})
@@ -57,8 +56,8 @@ func TestTeam_GetMembers(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	test := func(teamID int64) {
-		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID}).(*organization.Team)
-		assert.NoError(t, team.GetMembersCtx(db.DefaultContext))
+		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
+		assert.NoError(t, team.LoadMembers(db.DefaultContext))
 		assert.Len(t, team.Members, team.NumMembers)
 		for _, member := range team.Members {
 			unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{UID: member.ID, TeamID: teamID})
@@ -126,7 +125,7 @@ func TestGetTeamMembers(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	test := func(teamID int64) {
-		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID}).(*organization.Team)
+		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
 		members, err := organization.GetTeamMembers(db.DefaultContext, &organization.SearchMembersOptions{
 			TeamID: teamID,
 		})
@@ -173,7 +172,7 @@ func TestHasTeamRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	test := func(teamID, repoID int64, expected bool) {
-		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID}).(*organization.Team)
+		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
 		assert.Equal(t, expected, organization.HasTeamRepo(db.DefaultContext, team.OrgID, teamID, repoID))
 	}
 	test(1, 1, false)

@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package references
 
@@ -309,7 +308,7 @@ func TestRegExp_mentionPattern(t *testing.T) {
 		pat string
 		exp string
 	}{
-		{"@Unknwon", "@Unknwon"},
+		{"@User", "@User"},
 		{"@ANT_123", "@ANT_123"},
 		{"@xxx-DiN0-z-A..uru..s-xxx", "@xxx-DiN0-z-A..uru..s-xxx"},
 		{"   @lol   ", "@lol"},

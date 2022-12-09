@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package context
 
@@ -12,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 )
 
 // Organization contains organization context
@@ -69,6 +69,20 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 		return
 	}
 	org := ctx.Org.Organization
+
+	// Handle Visibility
+	if org.Visibility != structs.VisibleTypePublic && !ctx.IsSigned {
+		// We must be signed in to see limited or private organizations
+		ctx.NotFound("OrgAssignment", err)
+		return
+	}
+
+	if org.Visibility == structs.VisibleTypePrivate {
+		requireMember = true
+	} else if ctx.IsSigned && ctx.Doer.IsRestricted {
+		requireMember = true
+	}
+
 	ctx.ContextUser = org.AsUser()
 	ctx.Data["Org"] = org
 
@@ -115,6 +129,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	ctx.Data["IsOrganizationOwner"] = ctx.Org.IsOwner
 	ctx.Data["IsOrganizationMember"] = ctx.Org.IsMember
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["IsPublicMember"] = func(uid int64) bool {
 		is, _ := organization.IsPublicMembership(ctx.Org.Organization.ID, uid)
 		return is

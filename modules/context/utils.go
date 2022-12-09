@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package context
 
@@ -52,5 +51,5 @@ func parseTime(value string) (int64, error) {
 func prepareQueryArg(ctx *Context, name string) (value string, err error) {
 	value, err = url.PathUnescape(ctx.FormString(name))
 	value = strings.TrimSpace(value)
-	return
+	return value, err
 }

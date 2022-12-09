@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package graceful
 
@@ -26,7 +25,7 @@ func NewChannelContext(done <-chan struct{}, err error) *ChannelContext {
 // Deadline returns the time when work done on behalf of this context
 // should be canceled. There is no Deadline for a ChannelContext
 func (ctx *ChannelContext) Deadline() (deadline time.Time, ok bool) {
-	return
+	return deadline, ok
 }
 
 // Done returns the channel provided at the creation of this context.

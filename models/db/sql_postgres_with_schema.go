@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package db
 
@@ -44,7 +43,7 @@ func (d *postgresSchemaDriver) Open(name string) (driver.Conn, error) {
 		_, err := execer.Exec(`SELECT set_config(
 			'search_path',
 			$1 || ',' || current_setting('search_path'),
-			false)`, []driver.Value{schemaValue}) //nolint
+			false)`, []driver.Value{schemaValue})
 		if err != nil {
 			_ = conn.Close()
 			return nil, err

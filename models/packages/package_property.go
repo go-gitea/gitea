@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package packages
 
@@ -21,9 +20,11 @@ const (
 	PropertyTypeVersion PropertyType = iota // 0
 	// PropertyTypeFile means the reference is a package file
 	PropertyTypeFile // 1
+	// PropertyTypePackage means the reference is a package
+	PropertyTypePackage // 2
 )
 
-// PackageProperty represents a property of a package version or file
+// PackageProperty represents a property of a package, version or file
 type PackageProperty struct {
 	ID      int64        `xorm:"pk autoincr"`
 	RefType PropertyType `xorm:"INDEX NOT NULL"`
@@ -66,5 +67,11 @@ func DeleteAllProperties(ctx context.Context, refType PropertyType, refID int64)
 // DeletePropertyByID deletes a property
 func DeletePropertyByID(ctx context.Context, propertyID int64) error {
 	_, err := db.GetEngine(ctx).ID(propertyID).Delete(&PackageProperty{})
+	return err
+}
+
+// DeletePropertyByName deletes properties by name
+func DeletePropertyByName(ctx context.Context, refType PropertyType, refID int64, name string) error {
+	_, err := db.GetEngine(ctx).Where("ref_type = ? AND ref_id = ? AND name = ?", refType, refID, name).Delete(&PackageProperty{})
 	return err
 }

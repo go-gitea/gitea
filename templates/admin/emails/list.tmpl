@@ -4,28 +4,28 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "admin.emails.email_manage_panel"}} ({{.i18n.Tr "admin.total" .Total}})
+			{{.locale.Tr "admin.emails.email_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
 		</h4>
 		<div class="ui attached segment">
 			<div class="ui right floated secondary filter menu">
 			<!-- Sort -->
 				<div class="ui dropdown type jump item">
 					<span class="text">
-						{{.i18n.Tr "repo.issues.filter_sort"}}
+						{{.locale.Tr "repo.issues.filter_sort"}}
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 					</span>
 					<div class="menu">
-						<a class="{{if or (eq .SortType "email") (not .SortType)}}active{{end}} item" href="{{$.Link}}?sort=email&q={{$.Keyword}}">{{.i18n.Tr "admin.emails.filter_sort.email"}}</a>
-						<a class="{{if eq .SortType "reverseemail"}}active{{end}} item" href="{{$.Link}}?sort=reverseemail&q={{$.Keyword}}">{{.i18n.Tr "admin.emails.filter_sort.email_reverse"}}</a>
-						<a class="{{if eq .SortType "username"}}active{{end}} item" href="{{$.Link}}?sort=username&q={{$.Keyword}}">{{.i18n.Tr "admin.emails.filter_sort.name"}}</a>
-						<a class="{{if eq .SortType "reverseusername"}}active{{end}} item" href="{{$.Link}}?sort=reverseusername&q={{$.Keyword}}">{{.i18n.Tr "admin.emails.filter_sort.name_reverse"}}</a>
+						<a class="{{if or (eq .SortType "email") (not .SortType)}}active{{end}} item" href="{{$.Link}}?sort=email&q={{$.Keyword}}">{{.locale.Tr "admin.emails.filter_sort.email"}}</a>
+						<a class="{{if eq .SortType "reverseemail"}}active{{end}} item" href="{{$.Link}}?sort=reverseemail&q={{$.Keyword}}">{{.locale.Tr "admin.emails.filter_sort.email_reverse"}}</a>
+						<a class="{{if eq .SortType "username"}}active{{end}} item" href="{{$.Link}}?sort=username&q={{$.Keyword}}">{{.locale.Tr "admin.emails.filter_sort.name"}}</a>
+						<a class="{{if eq .SortType "reverseusername"}}active{{end}} item" href="{{$.Link}}?sort=reverseusername&q={{$.Keyword}}">{{.locale.Tr "admin.emails.filter_sort.name_reverse"}}</a>
 					</div>
 				</div>
 			</div>
 			<form class="ui form ignore-dirty"  style="max-width: 90%">
 				<div class="ui fluid action input">
-					<input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "explore.search"}}..." autofocus>
-					<button class="ui primary button">{{.i18n.Tr "explore.search"}}</button>
+					<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}..." autofocus>
+					<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
 				</div>
 			</form>
 		</div>
@@ -34,16 +34,16 @@
 				<thead>
 					<tr>
 						<th data-sortt-asc="username" data-sortt-desc="reverseusername">
-							{{.i18n.Tr "admin.users.name"}}
+							{{.locale.Tr "admin.users.name"}}
 							{{SortArrow "username" "reverseusername" $.SortType false}}
 						</th>
-						<th>{{.i18n.Tr "admin.users.full_name"}}</th>
+						<th>{{.locale.Tr "admin.users.full_name"}}</th>
 						<th data-sortt-asc="email" data-sortt-desc="reverseemail" data-sortt-default="true">
-							{{.i18n.Tr "email"}}
+							{{.locale.Tr "email"}}
 							{{SortArrow "email" "reverseemail" $.SortType true}}
 						</th>
-						<th>{{.i18n.Tr "admin.emails.primary"}}</th>
-						<th>{{.i18n.Tr "admin.emails.activated"}}</th>
+						<th>{{.locale.Tr "admin.emails.primary"}}</th>
+						<th>{{.locale.Tr "admin.emails.activated"}}</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -75,10 +75,10 @@
 
 		<div class="ui basic modal" id="change-email-modal">
 			<div class="ui icon header">
-				{{.i18n.Tr "admin.emails.change_email_header"}}
+				{{.locale.Tr "admin.emails.change_email_header"}}
 			</div>
 			<div class="content center">
-				<p>{{.i18n.Tr "admin.emails.change_email_text"}}</p>
+				<p>{{.locale.Tr "admin.emails.change_email_text"}}</p>
 
 				<form class="ui form" id="email-action-form" action="{{AppSubUrl}}/admin/emails/activate" method="post">
 					{{$.CsrfTokenHtml}}
@@ -94,8 +94,8 @@
 					<input type="hidden" id="form-activate" name="activate" value="" required>
 
 					<div class="center actions">
-						<div class="ui basic cancel inverted button">{{$.i18n.Tr "settings.cancel"}}</div>
-						<button class="ui basic inverted yellow button">{{$.i18n.Tr "modal.yes"}}</button>
+						<div class="ui basic cancel inverted button">{{$.locale.Tr "settings.cancel"}}</div>
+						<button class="ui basic inverted yellow button">{{$.locale.Tr "modal.yes"}}</button>
 					</div>
 
 				</form>

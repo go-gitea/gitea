@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package queue
 
@@ -73,7 +72,7 @@ func NewByteFIFOQueue(typ Type, byteFIFO ByteFIFO, handle HandlerFunc, cfg, exem
 				failed = append(failed, fail)
 			}
 		}
-		return
+		return failed
 	}, config.WorkerPoolConfiguration)
 
 	return q, nil
@@ -401,7 +400,7 @@ func NewByteFIFOUniqueQueue(typ Type, byteFIFO UniqueByteFIFO, handle HandlerFun
 				failed = append(failed, fail)
 			}
 		}
-		return
+		return failed
 	}, config.WorkerPoolConfiguration)
 
 	return q, nil

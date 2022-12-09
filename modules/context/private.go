@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package context
 
@@ -82,5 +81,5 @@ func PrivateContexter() func(http.Handler) http.Handler {
 func OverrideContext(ctx *PrivateContext) (cancel context.CancelFunc) {
 	// We now need to override the request context as the base for our work because even if the request is cancelled we have to continue this work
 	ctx.Override, _, cancel = process.GetManager().AddTypedContext(graceful.GetManager().HammerContext(), fmt.Sprintf("PrivateContext: %s", ctx.Req.RequestURI), process.RequestProcessType, true)
-	return
+	return cancel
 }

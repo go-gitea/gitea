@@ -1,6 +1,5 @@
 // Copyright 2017 Gitea. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git_test
 
@@ -19,7 +18,7 @@ import (
 func TestGetCommitStatuses(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
 	sha1 := "1234123412341234123412341234123412341234"
 

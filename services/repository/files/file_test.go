@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package files
 
@@ -43,17 +42,18 @@ func getExpectedFileResponse() *api.FileResponse {
 	downloadURL := setting.AppURL + "user2/repo1/raw/branch/master/" + treePath
 	return &api.FileResponse{
 		Content: &api.ContentsResponse{
-			Name:        treePath,
-			Path:        treePath,
-			SHA:         sha,
-			Type:        "file",
-			Size:        30,
-			Encoding:    &encoding,
-			Content:     &content,
-			URL:         &selfURL,
-			HTMLURL:     &htmlURL,
-			GitURL:      &gitURL,
-			DownloadURL: &downloadURL,
+			Name:          treePath,
+			Path:          treePath,
+			SHA:           sha,
+			LastCommitSHA: "65f1bf27bc3bf70f64657658635e66094edbcb4d",
+			Type:          "file",
+			Size:          30,
+			Encoding:      &encoding,
+			Content:       &content,
+			URL:           &selfURL,
+			HTMLURL:       &htmlURL,
+			GitURL:        &gitURL,
+			DownloadURL:   &downloadURL,
 			Links: &api.FileLinksResponse{
 				Self:    &selfURL,
 				GitURL:  &gitURL,

@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -139,7 +138,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	}
 
 	ctx.SetTotalCountHeader(count)
-	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(trackedTimes))
+	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(ctx, trackedTimes))
 }
 
 // AddTime add time manual to the given issue
@@ -224,7 +223,7 @@ func AddTime(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToTrackedTime(trackedTime))
+	ctx.JSON(http.StatusOK, convert.ToTrackedTime(ctx, trackedTime))
 }
 
 // ResetIssueTime reset time manual to the given issue
@@ -448,7 +447,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(trackedTimes))
+	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(ctx, trackedTimes))
 }
 
 // ListTrackedTimesByRepository lists all tracked times of the repository
@@ -558,7 +557,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 	}
 
 	ctx.SetTotalCountHeader(count)
-	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(trackedTimes))
+	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(ctx, trackedTimes))
 }
 
 // ListMyTrackedTimes lists all tracked times of the current user
@@ -566,6 +565,8 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 	// swagger:operation GET /user/times user userCurrentTrackedTimes
 	// ---
 	// summary: List the current user's tracked times
+	// produces:
+	// - application/json
 	// parameters:
 	// - name: page
 	//   in: query
@@ -575,9 +576,6 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 	//   in: query
 	//   description: page size of results
 	//   type: integer
-	// produces:
-	// - application/json
-	// parameters:
 	// - name: since
 	//   in: query
 	//   description: Only show times updated after the given time. This is a timestamp in RFC 3339 format
@@ -621,5 +619,5 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 	}
 
 	ctx.SetTotalCountHeader(count)
-	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(trackedTimes))
+	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(ctx, trackedTimes))
 }

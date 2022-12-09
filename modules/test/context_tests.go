@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package test
 
@@ -56,9 +55,9 @@ func MockContext(t *testing.T, path string) *context.Context {
 // LoadRepo load a repo into a test context.
 func LoadRepo(t *testing.T, ctx *context.Context, repoID int64) {
 	ctx.Repo = &context.Repository{}
-	ctx.Repo.Repository = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID}).(*repo_model.Repository)
+	ctx.Repo.Repository = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
 	var err error
-	ctx.Repo.Owner, err = user_model.GetUserByID(ctx.Repo.Repository.OwnerID)
+	ctx.Repo.Owner, err = user_model.GetUserByID(ctx, ctx.Repo.Repository.OwnerID)
 	assert.NoError(t, err)
 	ctx.Repo.RepoLink = ctx.Repo.Repository.Link()
 	ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, ctx.Repo.Repository, ctx.Doer)
@@ -81,7 +80,7 @@ func LoadRepoCommit(t *testing.T, ctx *context.Context) {
 
 // LoadUser load a user into a test context.
 func LoadUser(t *testing.T, ctx *context.Context, userID int64) {
-	ctx.Doer = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID}).(*user_model.User)
+	ctx.Doer = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID})
 }
 
 // LoadGitRepo load a git repo into a test context. Requires that ctx.Repo has

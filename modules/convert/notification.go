@@ -1,30 +1,30 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package convert
 
 import (
 	"net/url"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
 // ToNotificationThread convert a Notification to api.NotificationThread
-func ToNotificationThread(n *models.Notification) *api.NotificationThread {
+func ToNotificationThread(n *activities_model.Notification) *api.NotificationThread {
 	result := &api.NotificationThread{
 		ID:        n.ID,
-		Unread:    !(n.Status == models.NotificationStatusRead || n.Status == models.NotificationStatusPinned),
-		Pinned:    n.Status == models.NotificationStatusPinned,
+		Unread:    !(n.Status == activities_model.NotificationStatusRead || n.Status == activities_model.NotificationStatusPinned),
+		Pinned:    n.Status == activities_model.NotificationStatusPinned,
 		UpdatedAt: n.UpdatedUnix.AsTime(),
 		URL:       n.APIURL(),
 	}
 
 	// since user only get notifications when he has access to use minimal access mode
 	if n.Repository != nil {
-		result.Repository = ToRepo(n.Repository, perm.AccessModeRead)
+		result.Repository = ToRepo(db.DefaultContext, n.Repository, perm.AccessModeRead)
 
 		// This permission is not correct and we should not be reporting it
 		for repository := result.Repository; repository != nil; repository = repository.Parent {
@@ -34,7 +34,7 @@ func ToNotificationThread(n *models.Notification) *api.NotificationThread {
 
 	// handle Subject
 	switch n.Source {
-	case models.NotificationSourceIssue:
+	case activities_model.NotificationSourceIssue:
 		result.Subject = &api.NotificationSubject{Type: api.NotifySubjectIssue}
 		if n.Issue != nil {
 			result.Subject.Title = n.Issue.Title
@@ -47,7 +47,7 @@ func ToNotificationThread(n *models.Notification) *api.NotificationThread {
 				result.Subject.LatestCommentHTMLURL = comment.HTMLURL()
 			}
 		}
-	case models.NotificationSourcePullRequest:
+	case activities_model.NotificationSourcePullRequest:
 		result.Subject = &api.NotificationSubject{Type: api.NotifySubjectPull}
 		if n.Issue != nil {
 			result.Subject.Title = n.Issue.Title
@@ -65,7 +65,7 @@ func ToNotificationThread(n *models.Notification) *api.NotificationThread {
 				result.Subject.State = "merged"
 			}
 		}
-	case models.NotificationSourceCommit:
+	case activities_model.NotificationSourceCommit:
 		url := n.Repository.HTMLURL() + "/commit/" + url.PathEscape(n.CommitID)
 		result.Subject = &api.NotificationSubject{
 			Type:    api.NotifySubjectCommit,
@@ -73,7 +73,7 @@ func ToNotificationThread(n *models.Notification) *api.NotificationThread {
 			URL:     url,
 			HTMLURL: url,
 		}
-	case models.NotificationSourceRepository:
+	case activities_model.NotificationSourceRepository:
 		result.Subject = &api.NotificationSubject{
 			Type:  api.NotifySubjectRepository,
 			Title: n.Repository.FullName(),
@@ -87,7 +87,7 @@ func ToNotificationThread(n *models.Notification) *api.NotificationThread {
 }
 
 // ToNotifications convert list of Notification to api.NotificationThread list
-func ToNotifications(nl models.NotificationList) []*api.NotificationThread {
+func ToNotifications(nl activities_model.NotificationList) []*api.NotificationThread {
 	result := make([]*api.NotificationThread, 0, len(nl))
 	for _, n := range nl {
 		result = append(result, ToNotificationThread(n))

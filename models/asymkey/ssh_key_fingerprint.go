@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package asymkey
 
@@ -95,7 +94,7 @@ func CalcFingerprint(publicKeyContent string) (string, error) {
 			log.Info("%s", publicKeyContent)
 			return "", err
 		}
-		return "", fmt.Errorf("%s: %v", fnName, err)
+		return "", fmt.Errorf("%s: %w", fnName, err)
 	}
 	return fp, nil
 }

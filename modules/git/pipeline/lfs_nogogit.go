@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 //go:build !gogit
 
@@ -116,7 +115,7 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 				continue
 			case "commit":
 				// Read in the commit to get its tree and in case this is one of the last used commits
-				curCommit, err = git.CommitFromReader(repo, git.MustIDFromString(string(commitID)), io.LimitReader(batchReader, int64(size)))
+				curCommit, err = git.CommitFromReader(repo, git.MustIDFromString(string(commitID)), io.LimitReader(batchReader, size))
 				if err != nil {
 					return nil, err
 				}

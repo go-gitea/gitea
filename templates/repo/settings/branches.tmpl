@@ -6,15 +6,15 @@
 		{{template "base/alert" .}}
 		{{if .Repository.IsArchived}}
 			<div class="ui warning message">
-				{{.i18n.Tr "repo.settings.archive.branchsettings_unavailable"}}
+				{{.locale.Tr "repo.settings.archive.branchsettings_unavailable"}}
 			</div>
 		{{else}}
 			<h4 class="ui top attached header">
-				{{.i18n.Tr "repo.default_branch"}}
+				{{.locale.Tr "repo.default_branch"}}
 			</h4>
 			<div class="ui attached segment">
 				<p>
-					{{.i18n.Tr "repo.settings.default_branch_desc"}}
+					{{.locale.Tr "repo.settings.default_branch_desc"}}
 				</p>
 				<form class="ui form" action="{{.Link}}" method="post">
 					{{.CsrfTokenHtml}}
@@ -35,14 +35,14 @@
 								{{end}}
 							</div>
 						</div>
-						<button class="ui green button">{{$.i18n.Tr "repo.settings.branches.update_default_branch"}}</button>
+						<button class="ui green button">{{$.locale.Tr "repo.settings.branches.update_default_branch"}}</button>
 					</div>
 					{{end}}
 				</form>
 			</div>
 
 			<h4 class="ui top attached header">
-				{{.i18n.Tr "repo.settings.protected_branch"}}
+				{{.locale.Tr "repo.settings.protected_branch"}}
 			</h4>
 
 			<div class="ui attached table segment">
@@ -50,7 +50,7 @@
 					<div class="eight wide column">
 						<div class="ui fluid dropdown selection" tabindex="0">
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<div class="default text">{{.i18n.Tr "repo.settings.choose_branch"}}</div>
+							<div class="default text">{{.locale.Tr "repo.settings.choose_branch"}}</div>
 							<div class="menu transition hidden" tabindex="-1" style="display: block !important;">
 								{{range .LeftBranches}}
 									<a class="item" href="{{$.Repository.Link}}/settings/branches/{{. | PathEscapeSegments}}">{{.}}</a>
@@ -67,10 +67,10 @@
 								{{range .ProtectedBranches}}
 									<tr>
 										<td><div class="ui basic primary label">{{.BranchName}}</div></td>
-										<td class="right aligned"><a class="rm ui button" href="{{$.Repository.Link}}/settings/branches/{{.BranchName | PathEscapeSegments}}">{{$.i18n.Tr "repo.settings.edit_protected_branch"}}</a></td>
+										<td class="right aligned"><a class="rm ui button" href="{{$.Repository.Link}}/settings/branches/{{.BranchName | PathEscapeSegments}}">{{$.locale.Tr "repo.settings.edit_protected_branch"}}</a></td>
 									</tr>
 								{{else}}
-									<tr class="center aligned"><td>{{.i18n.Tr "repo.settings.no_protected_branch"}}</td></tr>
+									<tr class="center aligned"><td>{{.locale.Tr "repo.settings.no_protected_branch"}}</td></tr>
 								{{end}}
 							</tbody>
 						</table>
@@ -80,21 +80,21 @@
 
 			{{if $.Repository.CanCreateBranch}}
 				<h4 class="ui top attached header">
-					{{.i18n.Tr "repo.settings.rename_branch"}}
+					{{.locale.Tr "repo.settings.rename_branch"}}
 				</h4>
 				<div class="ui attached segment">
 					<form class="ui form" action="{{$.Repository.Link}}/settings/rename_branch" method="post">
 						{{.CsrfTokenHtml}}
 						<div class="required field">
-							<label for="from">{{.i18n.Tr "repo.settings.rename_branch_from"}}</label>
+							<label for="from">{{.locale.Tr "repo.settings.rename_branch_from"}}</label>
 							<input id="from" name="from" required>
 						</div>
 						<div class="required field {{if .Err_BranchName}}error{{end}}">
-							<label for="to">{{.i18n.Tr "repo.settings.rename_branch_to"}}</label>
+							<label for="to">{{.locale.Tr "repo.settings.rename_branch_to"}}</label>
 							<input id="to" name="to" required>
 						</div>
 						<div class="field">
-							<button class="ui green button">{{$.i18n.Tr "repo.settings.update_settings"}}</button>
+							<button class="ui green button">{{$.locale.Tr "repo.settings.update_settings"}}</button>
 						</div>
 					</form>
 				</div>

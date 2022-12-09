@@ -6,13 +6,13 @@
 		{{template "base/alert" .}}
 		<div class="tab-size-8 non-diff-file-content">
 			<h4 class="ui top attached header">
-				<a href="{{.LFSFilesLink}}">{{.i18n.Tr "repo.settings.lfs"}}</a> / <span class="truncate sha">{{.LFSFile.Oid}}</span>
+				<a href="{{.LFSFilesLink}}">{{.locale.Tr "repo.settings.lfs"}}</a> / <span class="truncate sha">{{.LFSFile.Oid}}</span>
 				<div class="ui right">
 					{{if .EscapeStatus.Escaped}}
-						<a class="ui mini basic button unescape-button" style="display: none;">{{.i18n.Tr "repo.unescape_control_characters"}}</a>
-						<a class="ui mini basic button escape-button">{{.i18n.Tr "repo.escape_control_characters"}}</a>
+						<a class="ui mini basic button unescape-button" style="display: none;">{{.locale.Tr "repo.unescape_control_characters"}}</a>
+						<a class="ui mini basic button escape-button">{{.locale.Tr "repo.escape_control_characters"}}</a>
 					{{end}}
-					<a class="ui primary show-panel button" href="{{.LFSFilesLink}}/find?oid={{.LFSFile.Oid}}&size={{.LFSFile.Size}}">{{$.i18n.Tr "repo.settings.lfs_findcommits"}}</a>
+					<a class="ui primary show-panel button" href="{{.LFSFilesLink}}/find?oid={{.LFSFile.Oid}}&size={{.LFSFile.Size}}">{{$.locale.Tr "repo.settings.lfs_findcommits"}}</a>
 				</div>
 			</h4>
 			<div class="ui attached table unstackable segment">
@@ -28,16 +28,16 @@
 								<img src="{{$.RawFileLink}}">
 							{{else if .IsVideoFile}}
 								<video controls src="{{$.RawFileLink}}">
-									<strong>{{.i18n.Tr "repo.video_not_supported_in_browser"}}</strong>
+									<strong>{{.locale.Tr "repo.video_not_supported_in_browser"}}</strong>
 								</video>
 							{{else if .IsAudioFile}}
 								<audio controls src="{{$.RawFileLink}}">
-									<strong>{{.i18n.Tr "repo.audio_not_supported_in_browser"}}</strong>
+									<strong>{{.locale.Tr "repo.audio_not_supported_in_browser"}}</strong>
 								</audio>
 							{{else if .IsPDFFile}}
 								<iframe width="100%" height="600px" src="{{AppSubUrl}}/vendor/plugins/pdfjs/web/viewer.html?file={{$.RawFileLink}}"></iframe>
 							{{else}}
-								<a href="{{$.RawFileLink}}" rel="nofollow" class="btn btn-gray btn-radius">{{.i18n.Tr "repo.file_view_raw"}}</a>
+								<a href="{{$.RawFileLink}}" rel="nofollow" class="btn btn-gray btn-radius">{{.locale.Tr "repo.file_view_raw"}}</a>
 							{{end}}
 						</div>
 					{{else if .FileSize}}
@@ -45,7 +45,7 @@
 							<tbody>
 								<tr>
 								{{if .IsFileTooLarge}}
-									<td><strong>{{.i18n.Tr "repo.file_too_large"}}</strong></td>
+									<td><strong>{{.locale.Tr "repo.file_too_large"}}</strong></td>
 								{{else}}
 									<td class="lines-num">{{.LineNums}}</td>
 									<td class="lines-code"><pre><code class="{{.HighlightClass}}"><ol class="linenums">{{.FileContent}}</ol></code></pre></td>

@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -12,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
+	org_service "code.gitea.io/gitea/services/org"
 )
 
 // ListTeams list a repository's teams
@@ -199,7 +199,7 @@ func changeRepoTeam(ctx *context.APIContext, add bool) {
 			ctx.Error(http.StatusUnprocessableEntity, "alreadyAdded", fmt.Errorf("team '%s' is already added to repo", team.Name))
 			return
 		}
-		err = models.AddRepository(team, ctx.Repo.Repository)
+		err = org_service.TeamAddRepository(team, ctx.Repo.Repository)
 	} else {
 		if !repoHasTeam {
 			ctx.Error(http.StatusUnprocessableEntity, "notAdded", fmt.Errorf("team '%s' was not added to repo", team.Name))

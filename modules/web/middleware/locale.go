@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package middleware
 
@@ -60,7 +59,7 @@ func SetLocaleCookie(resp http.ResponseWriter, lang string, expiry int) {
 }
 
 // DeleteLocaleCookie convenience function to delete the locale cookie consistently
-// Setting the lang cookie will trigger the middleware to reset the language ot previous state.
+// Setting the lang cookie will trigger the middleware to reset the language to previous state.
 func DeleteLocaleCookie(resp http.ResponseWriter) {
 	SetCookie(resp, "lang", "",
 		-1,

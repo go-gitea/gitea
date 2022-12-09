@@ -32,10 +32,12 @@ The following package managers are currently supported:
 | [Generic]({{< relref "doc/packages/generic.en-us.md" >}}) | - | any HTTP client |
 | [Helm]({{< relref "doc/packages/helm.en-us.md" >}}) | - | any HTTP client, `cm-push` |
 | [Maven]({{< relref "doc/packages/maven.en-us.md" >}}) | Java | `mvn`, `gradle` |
-| [npm]({{< relref "doc/packages/npm.en-us.md" >}}) | JavaScript | `npm`, `yarn` |
+| [npm]({{< relref "doc/packages/npm.en-us.md" >}}) | JavaScript | `npm`, `yarn`, `pnpm` |
 | [NuGet]({{< relref "doc/packages/nuget.en-us.md" >}}) | .NET | `nuget` |
+| [Pub]({{< relref "doc/packages/pub.en-us.md" >}}) | Dart | `dart`, `flutter` |
 | [PyPI]({{< relref "doc/packages/pypi.en-us.md" >}}) | Python | `pip`, `twine` |
 | [RubyGems]({{< relref "doc/packages/rubygems.en-us.md" >}}) | Ruby | `gem`, `Bundler` |
+| [Vagrant]({{< relref "doc/packages/vagrant.en-us.md" >}}) | - | `vagrant` |
 
 **The following paragraphs only apply if Packages are not globally disabled!**
 

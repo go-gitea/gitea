@@ -1,6 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -47,11 +46,6 @@ func AddEmail(ctx *context.APIContext) {
 	// summary: Add email addresses
 	// produces:
 	// - application/json
-	// parameters:
-	// - name: options
-	//   in: body
-	//   schema:
-	//     "$ref": "#/definitions/CreateEmailOption"
 	// parameters:
 	// - name: body
 	//   in: body

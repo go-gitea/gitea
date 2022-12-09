@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package structs
 
@@ -55,5 +54,5 @@ func ExtractKeysFromMapString(in map[string]VisibleType) (keys []string) {
 	for k := range in {
 		keys = append(keys, k)
 	}
-	return
+	return keys
 }

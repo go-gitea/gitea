@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package nosql
 
@@ -65,7 +64,7 @@ func (m *Manager) GetRedisClient(connection string) (client redis.UniversalClien
 	if recovered != nil {
 		panic(recovered)
 	}
-	return
+	return client
 }
 
 func (m *Manager) getRedisClient(connection string) redis.UniversalClient {
@@ -245,7 +244,7 @@ func getRedisTLSOptions(uri *url.URL) *tls.Config {
 
 	if len(skipverify) > 0 {
 		skipverify, err := strconv.ParseBool(skipverify)
-		if err != nil {
+		if err == nil {
 			tlsConfig.InsecureSkipVerify = skipverify
 		}
 	}
@@ -254,7 +253,7 @@ func getRedisTLSOptions(uri *url.URL) *tls.Config {
 
 	if len(insecureskipverify) > 0 {
 		insecureskipverify, err := strconv.ParseBool(insecureskipverify)
-		if err != nil {
+		if err == nil {
 			tlsConfig.InsecureSkipVerify = insecureskipverify
 		}
 	}

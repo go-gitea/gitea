@@ -1,7 +1,6 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package org
 
@@ -22,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	org_service "code.gitea.io/gitea/services/org"
 )
 
 // ListTeams list all the teams of an organization
@@ -262,7 +262,7 @@ func EditTeam(ctx *context.APIContext) {
 	}
 
 	if form.CanCreateOrgRepo != nil {
-		team.CanCreateOrgRepo = *form.CanCreateOrgRepo
+		team.CanCreateOrgRepo = team.IsOwnerTeam() || *form.CanCreateOrgRepo
 	}
 
 	if len(form.Name) > 0 {
@@ -541,12 +541,12 @@ func GetTeamRepos(ctx *context.APIContext) {
 	}
 	repos := make([]*api.Repository, len(teamRepos))
 	for i, repo := range teamRepos {
-		access, err := access_model.AccessLevel(ctx.Doer, repo)
+		access, err := access_model.AccessLevel(ctx, ctx.Doer, repo)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetTeamRepos", err)
 			return
 		}
-		repos[i] = convert.ToRepo(repo, access)
+		repos[i] = convert.ToRepo(ctx, repo, access)
 	}
 	ctx.SetTotalCountHeader(int64(team.NumRepos))
 	ctx.JSON(http.StatusOK, repos)
@@ -592,13 +592,13 @@ func GetTeamRepo(ctx *context.APIContext) {
 		return
 	}
 
-	access, err := access_model.AccessLevel(ctx.Doer, repo)
+	access, err := access_model.AccessLevel(ctx, ctx.Doer, repo)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTeamRepos", err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToRepo(repo, access))
+	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, repo, access))
 }
 
 // getRepositoryByParams get repository by a team's organization ID and repo name
@@ -649,15 +649,15 @@ func AddTeamRepository(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if access, err := access_model.AccessLevel(ctx.Doer, repo); err != nil {
+	if access, err := access_model.AccessLevel(ctx, ctx.Doer, repo); err != nil {
 		ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		return
 	} else if access < perm.AccessModeAdmin {
 		ctx.Error(http.StatusForbidden, "", "Must have admin-level access to the repository")
 		return
 	}
-	if err := models.AddRepository(ctx.Org.Team, repo); err != nil {
-		ctx.Error(http.StatusInternalServerError, "AddRepository", err)
+	if err := org_service.TeamAddRepository(ctx.Org.Team, repo); err != nil {
+		ctx.Error(http.StatusInternalServerError, "TeamAddRepository", err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
@@ -699,7 +699,7 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if access, err := access_model.AccessLevel(ctx.Doer, repo); err != nil {
+	if access, err := access_model.AccessLevel(ctx, ctx.Doer, repo); err != nil {
 		ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		return
 	} else if access < perm.AccessModeAdmin {
@@ -758,11 +758,15 @@ func SearchTeam(ctx *context.APIContext) {
 	listOptions := utils.GetListOptions(ctx)
 
 	opts := &organization.SearchTeamOptions{
-		UserID:      ctx.Doer.ID,
 		Keyword:     ctx.FormTrim("q"),
 		OrgID:       ctx.Org.Organization.ID,
 		IncludeDesc: ctx.FormString("include_desc") == "" || ctx.FormBool("include_desc"),
 		ListOptions: listOptions,
+	}
+
+	// Only admin is allowd to search for all teams
+	if !ctx.Doer.IsAdmin {
+		opts.UserID = ctx.Doer.ID
 	}
 
 	teams, maxResults, err := organization.SearchTeam(opts)

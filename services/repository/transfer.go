@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
@@ -16,6 +15,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/sync"
 )
 
@@ -43,18 +43,18 @@ func TransferOwnership(doer, newOwner *user_model.User, repo *repo_model.Reposit
 	}
 	repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 
-	newRepo, err := repo_model.GetRepositoryByID(repo.ID)
+	newRepo, err := repo_model.GetRepositoryByID(db.DefaultContext, repo.ID)
 	if err != nil {
 		return err
 	}
 
 	for _, team := range teams {
-		if err := models.AddRepository(team, newRepo); err != nil {
+		if err := models.AddRepository(db.DefaultContext, team, newRepo); err != nil {
 			return err
 		}
 	}
 
-	notification.NotifyTransferRepository(doer, repo, oldOwner.Name)
+	notification.NotifyTransferRepository(db.DefaultContext, doer, repo, oldOwner.Name)
 
 	return nil
 }
@@ -77,7 +77,7 @@ func ChangeRepositoryName(doer *user_model.User, repo *repo_model.Repository, ne
 	repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 
 	repo.Name = newRepoName
-	notification.NotifyRenameRepository(doer, repo, oldRepoName)
+	notification.NotifyRenameRepository(db.DefaultContext, doer, repo, oldRepoName)
 
 	return nil
 }
@@ -111,7 +111,7 @@ func StartRepositoryTransfer(doer, newOwner *user_model.User, repo *repo_model.R
 		return err
 	}
 	if !hasAccess {
-		if err := models.AddCollaborator(repo, newOwner); err != nil {
+		if err := repo_module.AddCollaborator(repo, newOwner); err != nil {
 			return err
 		}
 		if err := repo_model.ChangeCollaborationAccessMode(repo, newOwner.ID, perm.AccessModeRead); err != nil {
@@ -126,7 +126,7 @@ func StartRepositoryTransfer(doer, newOwner *user_model.User, repo *repo_model.R
 	}
 
 	// notify users who are able to accept / reject transfer
-	notification.NotifyRepoPendingTransfer(doer, newOwner, repo)
+	notification.NotifyRepoPendingTransfer(db.DefaultContext, doer, newOwner, repo)
 
 	return nil
 }

@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -65,7 +64,7 @@ func GetIssueWatch(ctx context.Context, userID, issueID int64) (iw *IssueWatch, 
 		Where("user_id = ?", userID).
 		And("issue_id = ?", issueID).
 		Get(iw)
-	return
+	return iw, exists, err
 }
 
 // CheckIssueWatch check if an user is watching an issue

@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package charset
 
@@ -296,11 +295,11 @@ func TestDetectEncoding(t *testing.T) {
 }
 
 func stringMustStartWith(t *testing.T, expected, value string) {
-	assert.Equal(t, expected, string(value[:len(expected)]))
+	assert.Equal(t, expected, value[:len(expected)])
 }
 
 func stringMustEndWith(t *testing.T, expected, value string) {
-	assert.Equal(t, expected, string(value[len(value)-len(expected):]))
+	assert.Equal(t, expected, value[len(value)-len(expected):])
 }
 
 func bytesMustStartWith(t *testing.T, expected, value []byte) {

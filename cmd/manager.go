@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cmd
 
@@ -82,7 +81,7 @@ var (
 			},
 			cli.BoolFlag{
 				Name:  "no-system",
-				Usage: "Do not show system proceses",
+				Usage: "Do not show system processes",
 			},
 			cli.BoolFlag{
 				Name:  "stacktraces",

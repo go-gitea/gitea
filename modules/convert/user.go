@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package convert
 
@@ -73,6 +72,7 @@ func toUser(user *user_model.User, signed, authed bool) *api.User {
 	// only site admin will get these information and possibly user himself
 	if authed {
 		result.IsAdmin = user.IsAdmin
+		result.LoginName = user.LoginName
 		result.LastLogin = user.LastLoginUnix.AsTime()
 		result.Language = user.Language
 		result.IsActive = user.IsActive

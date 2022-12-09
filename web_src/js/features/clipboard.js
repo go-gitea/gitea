@@ -1,24 +1,20 @@
-import $ from 'jquery';
+import {showTemporaryTooltip} from '../modules/tippy.js';
 
 const {copy_success, copy_error} = window.config.i18n;
 
-function onSuccess(btn) {
-  btn.setAttribute('data-variation', 'inverted tiny');
-  $(btn).popup('destroy');
-  const oldContent = btn.getAttribute('data-content');
-  btn.setAttribute('data-content', copy_success);
-  $(btn).popup('show');
-  btn.setAttribute('data-content', oldContent || '');
+export async function copyToClipboard(content) {
+  if (content instanceof Blob) {
+    const item = new ClipboardItem({[content.type]: content});
+    await navigator.clipboard.write([item]);
+  } else { // text
+    try {
+      await navigator.clipboard.writeText(content);
+    } catch {
+      return fallbackCopyToClipboard(content);
+    }
+  }
+  return true;
 }
-function onError(btn) {
-  btn.setAttribute('data-variation', 'inverted tiny');
-  const oldContent = btn.getAttribute('data-content');
-  $(btn).popup('destroy');
-  btn.setAttribute('data-content', copy_error);
-  $(btn).popup('show');
-  btn.setAttribute('data-content', oldContent || '');
-}
-
 
 // Fallback to use if navigator.clipboard doesn't exist. Achieved via creating
 // a temporary textarea element, selecting the text, and using document.execCommand
@@ -60,16 +56,8 @@ export default function initGlobalCopyToClipboardListener() {
         e.preventDefault();
 
         (async() => {
-          try {
-            await navigator.clipboard.writeText(text);
-            onSuccess(target);
-          } catch {
-            if (fallbackCopyToClipboard(text)) {
-              onSuccess(target);
-            } else {
-              onError(target);
-            }
-          }
+          const success = await copyToClipboard(text);
+          showTemporaryTooltip(target, success ? copy_success : copy_error);
         })();
 
         break;

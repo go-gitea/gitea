@@ -6,18 +6,18 @@
 			{{template "repo/issue/navbar" .}}
 			{{if and (or .CanWriteIssues .CanWritePulls) .PageIsEditMilestone}}
 				<div class="ui right floated secondary menu">
-					<a class="ui green button" href="{{$.RepoLink}}/milestones/new">{{.i18n.Tr "repo.milestones.new"}}</a>
+					<a class="ui green button" href="{{$.RepoLink}}/milestones/new">{{.locale.Tr "repo.milestones.new"}}</a>
 				</div>
 			{{end}}
 		</div>
 		<div class="ui divider"></div>
 		<h2 class="ui dividing header">
 			{{if .PageIsEditMilestone}}
-				{{.i18n.Tr "repo.milestones.edit"}}
-				<div class="sub header">{{.i18n.Tr "repo.milestones.edit_subheader"}}</div>
+				{{.locale.Tr "repo.milestones.edit"}}
+				<div class="sub header">{{.locale.Tr "repo.milestones.edit_subheader"}}</div>
 			{{else}}
-				{{.i18n.Tr "repo.milestones.new"}}
-				<div class="sub header">{{.i18n.Tr "repo.milestones.new_subheader"}}</div>
+				{{.locale.Tr "repo.milestones.new"}}
+				<div class="sub header">{{.locale.Tr "repo.milestones.new_subheader"}}</div>
 			{{end}}
 		</h2>
 		{{template "base/alert" .}}
@@ -25,18 +25,18 @@
 			{{.CsrfTokenHtml}}
 			<div class="twelve wide column">
 				<div class="field {{if .Err_Title}}error{{end}}">
-					<label>{{.i18n.Tr "repo.milestones.title"}}</label>
-					<input name="title" placeholder="{{.i18n.Tr "repo.milestones.title"}}" value="{{.title}}" autofocus required maxlength="50">
+					<label>{{.locale.Tr "repo.milestones.title"}}</label>
+					<input name="title" placeholder="{{.locale.Tr "repo.milestones.title"}}" value="{{.title}}" autofocus required maxlength="50">
 				</div>
 				<div class="field {{if .Err_Deadline}}error{{end}}">
 					<label>
-						{{.i18n.Tr "repo.milestones.due_date"}}
-						<a id="clear-date">{{.i18n.Tr "repo.milestones.clear"}}</a>
+						{{.locale.Tr "repo.milestones.due_date"}}
+						<a id="clear-date">{{.locale.Tr "repo.milestones.clear"}}</a>
 					</label>
-					<input type="date" id="deadline" name="deadline" value="{{.deadline}}" placeholder="{{.i18n.Tr "repo.issues.due_date_form"}}">
+					<input type="date" id="deadline" name="deadline" value="{{.deadline}}" placeholder="{{.locale.Tr "repo.issues.due_date_form"}}">
 				</div>
 				<div class="field">
-					<label>{{.i18n.Tr "repo.milestones.desc"}}</label>
+					<label>{{.locale.Tr "repo.milestones.desc"}}</label>
 					<textarea name="content">{{.content}}</textarea>
 				</div>
 			</div>
@@ -45,14 +45,14 @@
 				<div class="ui right">
 					{{if .PageIsEditMilestone}}
 						<a class="ui primary basic button" href="{{.RepoLink}}/milestones">
-							{{.i18n.Tr "repo.milestones.cancel"}}
+							{{.locale.Tr "repo.milestones.cancel"}}
 						</a>
 						<button class="ui green button">
-							{{.i18n.Tr "repo.milestones.modify"}}
+							{{.locale.Tr "repo.milestones.modify"}}
 						</button>
 					{{else}}
 						<button class="ui green button">
-							{{.i18n.Tr "repo.milestones.create"}}
+							{{.locale.Tr "repo.milestones.create"}}
 						</button>
 					{{end}}
 				</div>

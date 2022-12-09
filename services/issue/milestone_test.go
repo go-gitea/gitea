@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issue
 
@@ -16,8 +15,8 @@ import (
 
 func TestChangeMilestoneAssign(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: 1}).(*issues_model.Issue)
-	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: 1})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	assert.NotNil(t, issue)
 	assert.NotNil(t, doer)
 

@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cmd
 
@@ -22,7 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"gitea.com/go-chi/session"
-	archiver "github.com/mholt/archiver/v3"
+	"github.com/mholt/archiver/v3"
 	"github.com/urfave/cli"
 )
 
@@ -92,7 +91,7 @@ func (o outputType) String() string {
 }
 
 var outputTypeEnum = &outputType{
-	Enum:    []string{"zip", "tar", "tar.sz", "tar.gz", "tar.xz", "tar.bz2", "tar.br", "tar.lz4"},
+	Enum:    []string{"zip", "tar", "tar.sz", "tar.gz", "tar.xz", "tar.bz2", "tar.br", "tar.lz4", "tar.zst"},
 	Default: "zip",
 }
 
@@ -145,6 +144,10 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 		cli.BoolFlag{
 			Name:  "skip-package-data",
 			Usage: "Skip package data",
+		},
+		cli.BoolFlag{
+			Name:  "skip-index",
+			Usage: "Skip bleve index data",
 		},
 		cli.GenericFlag{
 			Name:  "type",
@@ -327,6 +330,11 @@ func runDump(ctx *cli.Context) error {
 			excludes = append(excludes, opts.ProviderConfig)
 		}
 
+		if ctx.IsSet("skip-index") && ctx.Bool("skip-index") {
+			excludes = append(excludes, setting.Indexer.RepoPath)
+			excludes = append(excludes, setting.Indexer.IssuePath)
+		}
+
 		excludes = append(excludes, setting.RepoRootPath)
 		excludes = append(excludes, setting.LFS.Path)
 		excludes = append(excludes, setting.Attachment.Path)
@@ -439,8 +447,23 @@ func addRecursiveExclude(w archiver.Writer, insidePath, absPath string, excludeA
 				}
 			}
 		} else {
-			if err = addFile(w, currentInsidePath, currentAbsPath, verbose); err != nil {
-				return err
+			// only copy regular files and symlink regular files, skip non-regular files like socket/pipe/...
+			shouldAdd := file.Mode().IsRegular()
+			if !shouldAdd && file.Mode()&os.ModeSymlink == os.ModeSymlink {
+				target, err := filepath.EvalSymlinks(currentAbsPath)
+				if err != nil {
+					return err
+				}
+				targetStat, err := os.Stat(target)
+				if err != nil {
+					return err
+				}
+				shouldAdd = targetStat.Mode().IsRegular()
+			}
+			if shouldAdd {
+				if err = addFile(w, currentInsidePath, currentAbsPath, verbose); err != nil {
+					return err
+				}
 			}
 		}
 	}

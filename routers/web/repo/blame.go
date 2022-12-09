@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -40,7 +39,7 @@ type blameRow struct {
 	CommitMessage  string
 	CommitSince    gotemplate.HTML
 	Code           gotemplate.HTML
-	EscapeStatus   charset.EscapeStatus
+	EscapeStatus   *charset.EscapeStatus
 }
 
 // RefBlame render blame page
@@ -100,6 +99,8 @@ func RefBlame(ctx *context.Context) {
 	ctx.Data["FileName"] = blob.Name()
 
 	ctx.Data["NumLines"], err = blob.GetBlobLineCount()
+	ctx.Data["NumLinesSet"] = true
+
 	if err != nil {
 		ctx.NotFound("GetBlobLineCount", err)
 		return
@@ -216,7 +217,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 
 		filename2attribute2info, err := ctx.Repo.GitRepo.CheckAttribute(git.CheckAttributeOpts{
 			CachedOnly: true,
-			Attributes: []string{"linguist-language", "gitlab-language"},
+			Attributes: []git.CmdArg{"linguist-language", "gitlab-language"},
 			Filenames:  []string{ctx.Repo.TreePath},
 			IndexFile:  indexFilename,
 			WorkTree:   worktree,
@@ -235,7 +236,9 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 	}
 	lines := make([]string, 0)
 	rows := make([]*blameRow, 0)
-	escapeStatus := charset.EscapeStatus{}
+	escapeStatus := &charset.EscapeStatus{}
+
+	var lexerName string
 
 	i := 0
 	commitCnt := 0
@@ -255,7 +258,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 				commitCnt++
 
 				// User avatar image
-				commitSince := timeutil.TimeSinceUnix(timeutil.TimeStamp(commit.Author.When.Unix()), ctx.Locale.Language())
+				commitSince := timeutil.TimeSinceUnix(timeutil.TimeStamp(commit.Author.When.Unix()), ctx.Locale)
 
 				var avatar string
 				if commit.User != nil {
@@ -278,9 +281,15 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 				line += "\n"
 			}
 			fileName := fmt.Sprintf("%v", ctx.Data["FileName"])
-			line = highlight.Code(fileName, language, line)
+			line, lexerNameForLine := highlight.Code(fileName, language, line)
 
-			br.EscapeStatus, line = charset.EscapeControlString(line)
+			// set lexer name to the first detected lexer. this is certainly suboptimal and
+			// we should instead highlight the whole file at once
+			if lexerName == "" {
+				lexerName = lexerNameForLine
+			}
+
+			br.EscapeStatus, line = charset.EscapeControlHTML(line, ctx.Locale)
 			br.Code = gotemplate.HTML(line)
 			rows = append(rows, br)
 			escapeStatus = escapeStatus.Or(br.EscapeStatus)
@@ -290,4 +299,5 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 	ctx.Data["EscapeStatus"] = escapeStatus
 	ctx.Data["BlameRows"] = rows
 	ctx.Data["CommitCnt"] = commitCnt
+	ctx.Data["LexerName"] = lexerName
 }

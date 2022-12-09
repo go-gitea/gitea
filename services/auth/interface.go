@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package auth
 
@@ -34,7 +33,7 @@ type Method interface {
 type Initializable interface {
 	// Init should be called exactly once before using any of the other methods,
 	// in order to allow the plugin to allocate necessary resources
-	Init() error
+	Init(ctx context.Context) error
 }
 
 // Named represents a named thing

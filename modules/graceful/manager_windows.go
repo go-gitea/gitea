@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 // This code is heavily inspired by the archived gofacebook/gracenet/net.go handler
 
 //go:build windows
@@ -114,9 +113,9 @@ func (g *Manager) start() {
 // Execute makes Manager implement svc.Handler
 func (g *Manager) Execute(args []string, changes <-chan svc.ChangeRequest, status chan<- svc.Status) (svcSpecificEC bool, exitCode uint32) {
 	if setting.StartupTimeout > 0 {
-		status <- svc.Status{State: svc.StartPending}
-	} else {
 		status <- svc.Status{State: svc.StartPending, WaitHint: uint32(setting.StartupTimeout / time.Millisecond)}
+	} else {
+		status <- svc.Status{State: svc.StartPending}
 	}
 
 	log.Trace("Awaiting server start-up")

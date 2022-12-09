@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 //go:build !gogit
 
@@ -11,6 +10,7 @@ import (
 	"bytes"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -37,8 +37,10 @@ func (s *Signature) Decode(b []byte) {
 }
 
 // Helper to get a signature from the commit line, which looks like these:
-//     author Patrick Gundlach <gundlach@speedata.de> 1378823654 +0200
-//     author Patrick Gundlach <gundlach@speedata.de> Thu, 07 Apr 2005 22:13:13 +0200
+//
+//	author Patrick Gundlach <gundlach@speedata.de> 1378823654 +0200
+//	author Patrick Gundlach <gundlach@speedata.de> Thu, 07 Apr 2005 22:13:13 +0200
+//
 // but without the "author " at the beginning (this method should)
 // be used for author and committer.
 func newSignatureFromCommitline(line []byte) (sig *Signature, err error) {
@@ -49,7 +51,9 @@ func newSignatureFromCommitline(line []byte) (sig *Signature, err error) {
 		return
 	}
 
-	sig.Name = string(line[:emailStart-1])
+	if emailStart > 0 { // Empty name has already occurred, even if it shouldn't
+		sig.Name = strings.TrimSpace(string(line[:emailStart-1]))
+	}
 	sig.Email = string(line[emailStart+1 : emailEnd])
 
 	hasTime := emailEnd+2 < len(line)
@@ -91,5 +95,5 @@ func newSignatureFromCommitline(line []byte) (sig *Signature, err error) {
 			return
 		}
 	}
-	return
+	return sig, err
 }

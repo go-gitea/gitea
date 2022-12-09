@@ -1,12 +1,12 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package auth
 
 import (
 	"net/http"
 
+	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 )
@@ -39,6 +39,10 @@ func (s *Session) Verify(req *http.Request, w http.ResponseWriter, store DataSto
 
 // SessionUser returns the user object corresponding to the "uid" session variable.
 func SessionUser(sess SessionStore) *user_model.User {
+	if sess == nil {
+		return nil
+	}
+
 	// Get user ID
 	uid := sess.Get("uid")
 	if uid == nil {
@@ -52,7 +56,7 @@ func SessionUser(sess SessionStore) *user_model.User {
 	}
 
 	// Get user object
-	user, err := user_model.GetUserByID(id)
+	user, err := user_model.GetUserByID(db.DefaultContext, id)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("GetUserById: %v", err)

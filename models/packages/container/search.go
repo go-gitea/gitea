@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package container
 
@@ -12,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
+	user_model "code.gitea.io/gitea/models/user"
 	container_module "code.gitea.io/gitea/modules/packages/container"
 
 	"xorm.io/builder"
@@ -164,6 +164,7 @@ type ImageTagsSearchOptions struct {
 	PackageID int64
 	Query     string
 	IsTagged  bool
+	Sort      packages.VersionSort
 	db.Paginator
 }
 
@@ -194,12 +195,26 @@ func (opts *ImageTagsSearchOptions) toConds() builder.Cond {
 	return cond
 }
 
+func (opts *ImageTagsSearchOptions) configureOrderBy(e db.Engine) {
+	switch opts.Sort {
+	case packages.SortVersionDesc:
+		e.Desc("package_version.version")
+	case packages.SortVersionAsc:
+		e.Asc("package_version.version")
+	case packages.SortCreatedAsc:
+		e.Asc("package_version.created_unix")
+	default:
+		e.Desc("package_version.created_unix")
+	}
+}
+
 // SearchImageTags gets a sorted list of the tags of an image
 func SearchImageTags(ctx context.Context, opts *ImageTagsSearchOptions) ([]*packages.PackageVersion, int64, error) {
 	sess := db.GetEngine(ctx).
 		Join("INNER", "package", "package.id = package_version.package_id").
-		Where(opts.toConds()).
-		Desc("package_version.created_unix")
+		Where(opts.toConds())
+
+	opts.configureOrderBy(sess)
 
 	if opts.Paginator != nil {
 		sess = db.SetSessionPagination(sess, opts)
@@ -210,6 +225,7 @@ func SearchImageTags(ctx context.Context, opts *ImageTagsSearchOptions) ([]*pack
 	return pvs, count, err
 }
 
+// SearchExpiredUploadedBlobs gets all uploaded blobs which are older than specified
 func SearchExpiredUploadedBlobs(ctx context.Context, olderThan time.Duration) ([]*packages.PackageFile, error) {
 	var cond builder.Cond = builder.Eq{
 		"package_version.is_internal":   true,
@@ -224,4 +240,38 @@ func SearchExpiredUploadedBlobs(ctx context.Context, olderThan time.Duration) ([
 		Join("INNER", "package", "package.id = package_version.package_id").
 		Where(cond).
 		Find(&pfs)
+}
+
+// GetRepositories gets a sorted list of all repositories
+func GetRepositories(ctx context.Context, actor *user_model.User, n int, last string) ([]string, error) {
+	var cond builder.Cond = builder.Eq{
+		"package.type":              packages.TypeContainer,
+		"package_property.ref_type": packages.PropertyTypePackage,
+		"package_property.name":     container_module.PropertyRepository,
+	}
+
+	cond = cond.And(builder.Exists(
+		builder.
+			Select("package_version.id").
+			Where(builder.Eq{"package_version.is_internal": false}.And(builder.Expr("package.id = package_version.package_id"))).
+			From("package_version"),
+	))
+
+	if last != "" {
+		cond = cond.And(builder.Gt{"package_property.value": strings.ToLower(last)})
+	}
+
+	cond = cond.And(user_model.BuildCanSeeUserCondition(actor))
+
+	sess := db.GetEngine(ctx).
+		Table("package").
+		Select("package_property.value").
+		Join("INNER", "user", "`user`.id = package.owner_id").
+		Join("INNER", "package_property", "package_property.ref_id = package.id").
+		Where(cond).
+		Asc("package_property.value").
+		Limit(n)
+
+	repositories := make([]string, 0, n)
+	return repositories, sess.Find(&repositories)
 }

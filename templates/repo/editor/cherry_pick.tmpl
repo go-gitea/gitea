@@ -14,14 +14,14 @@
 						{{$shaurl := printf "%s/commit/%s" $.RepoLink (PathEscape .SHA)}}
 						{{$shalink := printf "<a class=\"ui primary sha label\" href=\"%s\">%s</a>" (Escape $shaurl) (ShortSha .SHA)}}
 						{{if eq .CherryPickType "revert"}}
-							{{.i18n.Tr "repo.editor.revert" $shalink | Str2html}}
+							{{.locale.Tr "repo.editor.revert" $shalink | Str2html}}
 						{{else}}
-							{{.i18n.Tr "repo.editor.cherry_pick" $shalink | Str2html}}
+							{{.locale.Tr "repo.editor.cherry_pick" $shalink | Str2html}}
 						{{end}}
 						<a class="section" href="{{$.RepoLink}}">{{.Repository.FullName}}</a>
 						<div class="divider">:</div>
 						<a class="section" href="{{$.BranchLink}}">{{.BranchName}}</a>
-						<span>{{.i18n.Tr "repo.editor.or"}} <a href="{{$shaurl}}">{{.i18n.Tr "repo.editor.cancel_lower"}}</a></span>
+						<span>{{.locale.Tr "repo.editor.or"}} <a href="{{$shaurl}}">{{.locale.Tr "repo.editor.cancel_lower"}}</a></span>
 					</div>
 				</div>
 			</div>

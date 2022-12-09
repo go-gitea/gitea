@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package container
 
@@ -10,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -24,6 +24,7 @@ import (
 	container_module "code.gitea.io/gitea/modules/packages/container"
 	"code.gitea.io/gitea/modules/packages/container/oci"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
 	container_service "code.gitea.io/gitea/services/packages/container"
@@ -112,7 +113,7 @@ func apiErrorDefined(ctx *context.Context, err *namedError) {
 // ReqContainerAccess is a middleware which checks the current user valid (real user or ghost for anonymous access)
 func ReqContainerAccess(ctx *context.Context) {
 	if ctx.Doer == nil {
-		ctx.Resp.Header().Add("WWW-Authenticate", `Bearer realm="`+setting.AppURL+`v2/token"`)
+		ctx.Resp.Header().Add("WWW-Authenticate", `Bearer realm="`+setting.AppURL+`v2/token",service="container_registry",scope="*"`)
 		apiErrorDefined(ctx, errUnauthorized)
 	}
 }
@@ -151,6 +152,39 @@ func Authenticate(ctx *context.Context) {
 	})
 }
 
+// https://docs.docker.com/registry/spec/api/#listing-repositories
+func GetRepositoryList(ctx *context.Context) {
+	n := ctx.FormInt("n")
+	if n <= 0 || n > 100 {
+		n = 100
+	}
+	last := ctx.FormTrim("last")
+
+	repositories, err := container_model.GetRepositories(ctx, ctx.Doer, n, last)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	type RepositoryList struct {
+		Repositories []string `json:"repositories"`
+	}
+
+	if len(repositories) == n {
+		v := url.Values{}
+		if n > 0 {
+			v.Add("n", strconv.Itoa(n))
+		}
+		v.Add("last", repositories[len(repositories)-1])
+
+		ctx.Resp.Header().Set("Link", fmt.Sprintf(`</v2/_catalog?%s>; rel="next"`, v.Encode()))
+	}
+
+	jsonResponse(ctx, http.StatusOK, RepositoryList{
+		Repositories: repositories,
+	})
+}
+
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#mounting-a-blob-from-another-repository
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#single-post
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#pushing-a-blob-in-chunks
@@ -160,7 +194,7 @@ func InitiateUploadBlob(ctx *context.Context) {
 	mount := ctx.FormTrim("mount")
 	from := ctx.FormTrim("from")
 	if mount != "" {
-		blob, _ := container_model.GetContainerBlob(ctx, &container_model.BlobSearchOptions{
+		blob, _ := workaroundGetContainerBlob(ctx, &container_model.BlobSearchOptions{
 			Image:  from,
 			Digest: mount,
 		})
@@ -212,6 +246,27 @@ func InitiateUploadBlob(ctx *context.Context) {
 		Range:      "0-0",
 		UploadUUID: upload.ID,
 		Status:     http.StatusAccepted,
+	})
+}
+
+// https://docs.docker.com/registry/spec/api/#get-blob-upload
+func GetUploadBlob(ctx *context.Context) {
+	uuid := ctx.Params("uuid")
+
+	upload, err := packages_model.GetBlobUploadByID(ctx, uuid)
+	if err != nil {
+		if err == packages_model.ErrPackageBlobUploadNotExist {
+			apiErrorDefined(ctx, errBlobUploadUnknown)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
+	setResponseHeaders(ctx.Resp, &containerHeaders{
+		Range:      fmt.Sprintf("0-%d", upload.BytesReceived),
+		UploadUUID: upload.ID,
+		Status:     http.StatusNoContent,
 	})
 }
 
@@ -321,6 +376,30 @@ func EndUploadBlob(ctx *context.Context) {
 	})
 }
 
+// https://docs.docker.com/registry/spec/api/#delete-blob-upload
+func CancelUploadBlob(ctx *context.Context) {
+	uuid := ctx.Params("uuid")
+
+	_, err := packages_model.GetBlobUploadByID(ctx, uuid)
+	if err != nil {
+		if err == packages_model.ErrPackageBlobUploadNotExist {
+			apiErrorDefined(ctx, errBlobUploadUnknown)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
+	if err := container_service.RemoveBlobUploadByID(ctx, uuid); err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	setResponseHeaders(ctx.Resp, &containerHeaders{
+		Status: http.StatusNoContent,
+	})
+}
+
 func getBlobFromContext(ctx *context.Context) (*packages_model.PackageFileDescriptor, error) {
 	digest := ctx.Params("digest")
 
@@ -328,7 +407,7 @@ func getBlobFromContext(ctx *context.Context) (*packages_model.PackageFileDescri
 		return nil, container_model.ErrContainerBlobNotExist
 	}
 
-	return container_model.GetContainerBlob(ctx, &container_model.BlobSearchOptions{
+	return workaroundGetContainerBlob(ctx, &container_model.BlobSearchOptions{
 		OwnerID: ctx.Package.Owner.ID,
 		Image:   ctx.Params("image"),
 		Digest:  digest,
@@ -470,7 +549,7 @@ func getManifestFromContext(ctx *context.Context) (*packages_model.PackageFileDe
 		return nil, container_model.ErrContainerBlobNotExist
 	}
 
-	return container_model.GetContainerBlob(ctx, opts)
+	return workaroundGetContainerBlob(ctx, opts)
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#checking-if-content-exists-in-the-registry
@@ -609,4 +688,24 @@ func GetTagList(ctx *context.Context) {
 		Name: strings.ToLower(ctx.Package.Owner.LowerName + "/" + image),
 		Tags: tags,
 	})
+}
+
+// FIXME: Workaround to be removed in v1.20
+// https://github.com/go-gitea/gitea/issues/19586
+func workaroundGetContainerBlob(ctx *context.Context, opts *container_model.BlobSearchOptions) (*packages_model.PackageFileDescriptor, error) {
+	blob, err := container_model.GetContainerBlob(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	err = packages_module.NewContentStore().Has(packages_module.BlobHash256Key(blob.Blob.HashSHA256))
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) || errors.Is(err, os.ErrNotExist) {
+			log.Debug("Package registry inconsistent: blob %s does not exist on file system", blob.Blob.HashSHA256)
+			return nil, container_model.ErrContainerBlobNotExist
+		}
+		return nil, err
+	}
+
+	return blob, nil
 }

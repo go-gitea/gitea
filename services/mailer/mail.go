@@ -1,7 +1,6 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package mailer
 
@@ -17,8 +16,7 @@ import (
 	texttmpl "text/template"
 	"time"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	activities_model "code.gitea.io/gitea/models/activities"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -55,12 +53,6 @@ var (
 	subjectRemoveSpaces = regexp.MustCompile(`[\s]+`)
 )
 
-// InitMailRender initializes the mail renderer
-func InitMailRender(subjectTpl *texttmpl.Template, bodyTpl *template.Template) {
-	subjectTemplates = subjectTpl
-	bodyTemplates = bodyTpl
-}
-
 // SendTestMail sends a test mail
 func SendTestMail(email string) error {
 	if setting.MailService == nil {
@@ -75,12 +67,12 @@ func sendUserMail(language string, u *user_model.User, tpl base.TplName, code, s
 	locale := translation.NewLocale(language)
 	data := map[string]interface{}{
 		"DisplayName":       u.DisplayName(),
-		"ActiveCodeLives":   timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, language),
-		"ResetPwdCodeLives": timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, language),
+		"ActiveCodeLives":   timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, locale),
+		"ResetPwdCodeLives": timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, locale),
 		"Code":              code,
 		"Language":          locale.Language(),
 		// helper
-		"i18n":      locale,
+		"locale":    locale,
 		"Str2html":  templates.Str2html,
 		"DotEscape": templates.DotEscape,
 	}
@@ -126,12 +118,12 @@ func SendActivateEmailMail(u *user_model.User, email *user_model.EmailAddress) {
 	locale := translation.NewLocale(u.Language)
 	data := map[string]interface{}{
 		"DisplayName":     u.DisplayName(),
-		"ActiveCodeLives": timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, locale.Language()),
+		"ActiveCodeLives": timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, locale),
 		"Code":            u.GenerateEmailActivateCode(email.Email),
 		"Email":           email.Email,
 		"Language":        locale.Language(),
 		// helper
-		"i18n":      locale,
+		"locale":    locale,
 		"Str2html":  templates.Str2html,
 		"DotEscape": templates.DotEscape,
 	}
@@ -162,7 +154,7 @@ func SendRegisterNotifyMail(u *user_model.User) {
 		"Username":    u.Name,
 		"Language":    locale.Language(),
 		// helper
-		"i18n":      locale,
+		"locale":    locale,
 		"Str2html":  templates.Str2html,
 		"DotEscape": templates.DotEscape,
 	}
@@ -196,7 +188,7 @@ func SendCollaboratorMail(u, doer *user_model.User, repo *repo_model.Repository)
 		"Link":     repo.HTMLURL(),
 		"Language": locale.Language(),
 		// helper
-		"i18n":      locale,
+		"locale":    locale,
 		"Str2html":  templates.Str2html,
 		"DotEscape": templates.DotEscape,
 	}
@@ -271,7 +263,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 		"Issue":           ctx.Issue,
 		"Comment":         ctx.Comment,
 		"IsPull":          ctx.Issue.IsPull,
-		"User":            ctx.Issue.Repo.MustOwner(),
+		"User":            ctx.Issue.Repo.MustOwner(ctx),
 		"Repo":            ctx.Issue.Repo.FullName(),
 		"Doer":            ctx.Doer,
 		"IsMention":       fromMention,
@@ -281,13 +273,13 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 		"ReviewComments":  reviewComments,
 		"Language":        locale.Language(),
 		// helper
-		"i18n":      locale,
+		"locale":    locale,
 		"Str2html":  templates.Str2html,
 		"DotEscape": templates.DotEscape,
 	}
 
 	var mailSubject bytes.Buffer
-	if err := subjectTemplates.ExecuteTemplate(&mailSubject, string(tplName), mailMeta); err == nil {
+	if err := subjectTemplates.ExecuteTemplate(&mailSubject, tplName, mailMeta); err == nil {
 		subject = sanitizeSubject(mailSubject.String())
 		if subject == "" {
 			subject = fallback
@@ -302,13 +294,13 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 
 	var mailBody bytes.Buffer
 
-	if err := bodyTemplates.ExecuteTemplate(&mailBody, string(tplName), mailMeta); err != nil {
-		log.Error("ExecuteTemplate [%s]: %v", string(tplName)+"/body", err)
+	if err := bodyTemplates.ExecuteTemplate(&mailBody, tplName, mailMeta); err != nil {
+		log.Error("ExecuteTemplate [%s]: %v", tplName+"/body", err)
 	}
 
 	// Make sure to compose independent messages to avoid leaking user emails
 	msgID := createReference(ctx.Issue, ctx.Comment, ctx.ActionType)
-	reference := createReference(ctx.Issue, nil, models.ActionType(0))
+	reference := createReference(ctx.Issue, nil, activities_model.ActionType(0))
 
 	msgs := make([]*Message, 0, len(recipients))
 	for _, recipient := range recipients {
@@ -329,7 +321,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	return msgs, nil
 }
 
-func createReference(issue *issues_model.Issue, comment *issues_model.Comment, actionType models.ActionType) string {
+func createReference(issue *issues_model.Issue, comment *issues_model.Comment, actionType activities_model.ActionType) string {
 	var path string
 	if issue.IsPull {
 		path = "pulls"
@@ -342,13 +334,13 @@ func createReference(issue *issues_model.Issue, comment *issues_model.Comment, a
 		extra = fmt.Sprintf("/comment/%d", comment.ID)
 	} else {
 		switch actionType {
-		case models.ActionCloseIssue, models.ActionClosePullRequest:
+		case activities_model.ActionCloseIssue, activities_model.ActionClosePullRequest:
 			extra = fmt.Sprintf("/close/%d", time.Now().UnixNano()/1e6)
-		case models.ActionReopenIssue, models.ActionReopenPullRequest:
+		case activities_model.ActionReopenIssue, activities_model.ActionReopenPullRequest:
 			extra = fmt.Sprintf("/reopen/%d", time.Now().UnixNano()/1e6)
-		case models.ActionMergePullRequest:
+		case activities_model.ActionMergePullRequest, activities_model.ActionAutoMergePullRequest:
 			extra = fmt.Sprintf("/merge/%d", time.Now().UnixNano()/1e6)
-		case models.ActionPullRequestReadyForReview:
+		case activities_model.ActionPullRequestReadyForReview:
 			extra = fmt.Sprintf("/ready/%d", time.Now().UnixNano()/1e6)
 		}
 	}
@@ -401,13 +393,13 @@ func sanitizeSubject(subject string) string {
 }
 
 // SendIssueAssignedMail composes and sends issue assigned email
-func SendIssueAssignedMail(issue *issues_model.Issue, doer *user_model.User, content string, comment *issues_model.Comment, recipients []*user_model.User) error {
+func SendIssueAssignedMail(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, content string, comment *issues_model.Comment, recipients []*user_model.User) error {
 	if setting.MailService == nil {
 		// No mail service configured
 		return nil
 	}
 
-	if err := issue.LoadRepo(db.DefaultContext); err != nil {
+	if err := issue.LoadRepo(ctx); err != nil {
 		log.Error("Unable to load repo [%d] for issue #%d [%d]. Error: %v", issue.RepoID, issue.Index, issue.ID, err)
 		return err
 	}
@@ -423,10 +415,10 @@ func SendIssueAssignedMail(issue *issues_model.Issue, doer *user_model.User, con
 
 	for lang, tos := range langMap {
 		msgs, err := composeIssueCommentMessages(&mailCommentContext{
-			Context:    context.TODO(), // TODO: use a correct context
+			Context:    ctx,
 			Issue:      issue,
 			Doer:       doer,
-			ActionType: models.ActionType(0),
+			ActionType: activities_model.ActionType(0),
 			Content:    content,
 			Comment:    comment,
 		}, lang, tos, false, "issue assigned")
@@ -439,8 +431,8 @@ func SendIssueAssignedMail(issue *issues_model.Issue, doer *user_model.User, con
 }
 
 // actionToTemplate returns the type and name of the action facing the user
-// (slightly different from models.ActionType) and the name of the template to use (based on availability)
-func actionToTemplate(issue *issues_model.Issue, actionType models.ActionType,
+// (slightly different from activities_model.ActionType) and the name of the template to use (based on availability)
+func actionToTemplate(issue *issues_model.Issue, actionType activities_model.ActionType,
 	commentType issues_model.CommentType, reviewType issues_model.ReviewType,
 ) (typeName, name, template string) {
 	if issue.IsPull {
@@ -449,19 +441,19 @@ func actionToTemplate(issue *issues_model.Issue, actionType models.ActionType,
 		typeName = "issue"
 	}
 	switch actionType {
-	case models.ActionCreateIssue, models.ActionCreatePullRequest:
+	case activities_model.ActionCreateIssue, activities_model.ActionCreatePullRequest:
 		name = "new"
-	case models.ActionCommentIssue, models.ActionCommentPull:
+	case activities_model.ActionCommentIssue, activities_model.ActionCommentPull:
 		name = "comment"
-	case models.ActionCloseIssue, models.ActionClosePullRequest:
+	case activities_model.ActionCloseIssue, activities_model.ActionClosePullRequest:
 		name = "close"
-	case models.ActionReopenIssue, models.ActionReopenPullRequest:
+	case activities_model.ActionReopenIssue, activities_model.ActionReopenPullRequest:
 		name = "reopen"
-	case models.ActionMergePullRequest:
+	case activities_model.ActionMergePullRequest, activities_model.ActionAutoMergePullRequest:
 		name = "merge"
-	case models.ActionPullReviewDismissed:
+	case activities_model.ActionPullReviewDismissed:
 		name = "review_dismissed"
-	case models.ActionPullRequestReadyForReview:
+	case activities_model.ActionPullRequestReadyForReview:
 		name = "ready_for_review"
 	default:
 		switch commentType {
@@ -498,5 +490,5 @@ func actionToTemplate(issue *issues_model.Issue, actionType models.ActionType,
 	if !ok {
 		template = "issue/default"
 	}
-	return
+	return typeName, name, template
 }

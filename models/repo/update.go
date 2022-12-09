@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -21,7 +20,7 @@ func UpdateRepositoryOwnerNames(ownerID int64, ownerName string) error {
 	if ownerID == 0 {
 		return nil
 	}
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -63,6 +62,10 @@ func (err ErrReachLimitOfRepo) Error() string {
 	return fmt.Sprintf("user has reached maximum limit of repositories [limit: %d]", err.Limit)
 }
 
+func (err ErrReachLimitOfRepo) Unwrap() error {
+	return util.ErrPermissionDenied
+}
+
 // ErrRepoAlreadyExist represents a "RepoAlreadyExist" kind of error.
 type ErrRepoAlreadyExist struct {
 	Uname string
@@ -77,6 +80,10 @@ func IsErrRepoAlreadyExist(err error) bool {
 
 func (err ErrRepoAlreadyExist) Error() string {
 	return fmt.Sprintf("repository already exists [uname: %s, name: %s]", err.Uname, err.Name)
+}
+
+func (err ErrRepoAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
 }
 
 // ErrRepoFilesAlreadyExist represents a "RepoFilesAlreadyExist" kind of error.
@@ -95,6 +102,10 @@ func (err ErrRepoFilesAlreadyExist) Error() string {
 	return fmt.Sprintf("repository files already exist [uname: %s, name: %s]", err.Uname, err.Name)
 }
 
+func (err ErrRepoFilesAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
 // CheckCreateRepository check if could created a repository
 func CheckCreateRepository(doer, u *user_model.User, name string, overwriteOrAdopt bool) error {
 	if !doer.CanCreateRepo() {
@@ -107,7 +118,7 @@ func CheckCreateRepository(doer, u *user_model.User, name string, overwriteOrAdo
 
 	has, err := IsRepositoryExist(db.DefaultContext, u, name)
 	if err != nil {
-		return fmt.Errorf("IsRepositoryExist: %v", err)
+		return fmt.Errorf("IsRepositoryExist: %w", err)
 	} else if has {
 		return ErrRepoAlreadyExist{u.Name, name}
 	}
@@ -138,14 +149,14 @@ func ChangeRepositoryName(doer *user_model.User, repo *Repository, newRepoName s
 
 	has, err := IsRepositoryExist(db.DefaultContext, repo.Owner, newRepoName)
 	if err != nil {
-		return fmt.Errorf("IsRepositoryExist: %v", err)
+		return fmt.Errorf("IsRepositoryExist: %w", err)
 	} else if has {
 		return ErrRepoAlreadyExist{repo.Owner.Name, newRepoName}
 	}
 
 	newRepoPath := RepoPath(repo.Owner.Name, newRepoName)
 	if err = util.Rename(repo.RepoPath(), newRepoPath); err != nil {
-		return fmt.Errorf("rename repository directory: %v", err)
+		return fmt.Errorf("rename repository directory: %w", err)
 	}
 
 	wikiPath := repo.WikiPath()
@@ -156,11 +167,11 @@ func ChangeRepositoryName(doer *user_model.User, repo *Repository, newRepoName s
 	}
 	if isExist {
 		if err = util.Rename(wikiPath, WikiPath(repo.Owner.Name, newRepoName)); err != nil {
-			return fmt.Errorf("rename repository wiki: %v", err)
+			return fmt.Errorf("rename repository wiki: %w", err)
 		}
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

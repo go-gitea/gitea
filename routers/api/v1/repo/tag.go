@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -10,6 +9,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -189,7 +189,7 @@ func CreateTag(ctx *context.APIContext) {
 
 	commit, err := ctx.Repo.GitRepo.GetCommit(form.Target)
 	if err != nil {
-		ctx.Error(http.StatusNotFound, "target not found", fmt.Errorf("target not found: %v", err))
+		ctx.Error(http.StatusNotFound, "target not found", fmt.Errorf("target not found: %w", err))
 		return
 	}
 
@@ -249,9 +249,9 @@ func DeleteTag(ctx *context.APIContext) {
 	//     "$ref": "#/responses/conflict"
 	tagName := ctx.Params("*")
 
-	tag, err := models.GetRelease(ctx.Repo.Repository.ID, tagName)
+	tag, err := repo_model.GetRelease(ctx.Repo.Repository.ID, tagName)
 	if err != nil {
-		if models.IsErrReleaseNotExist(err) {
+		if repo_model.IsErrReleaseNotExist(err) {
 			ctx.NotFound()
 			return
 		}

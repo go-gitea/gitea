@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 //go:build !gogit
 
@@ -99,7 +98,7 @@ func (b *blobReader) Read(p []byte) (n int, err error) {
 	}
 	n, err = b.rd.Read(p)
 	b.n -= int64(n)
-	return
+	return n, err
 }
 
 // Close implements io.Closer

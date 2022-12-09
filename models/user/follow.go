@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -9,7 +8,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
-// Follow represents relations of user and his/her followers.
+// Follow represents relations of user and their followers.
 type Follow struct {
 	ID          int64              `xorm:"pk autoincr"`
 	UserID      int64              `xorm:"UNIQUE(follow)"`
@@ -33,7 +32,7 @@ func FollowUser(userID, followID int64) (err error) {
 		return nil
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -59,7 +58,7 @@ func UnfollowUser(userID, followID int64) (err error) {
 		return nil
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

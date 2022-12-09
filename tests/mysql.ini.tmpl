@@ -1,0 +1,126 @@
+APP_NAME = Gitea: Git with a cup of tea
+RUN_MODE = prod
+
+[database]
+DB_TYPE  = mysql
+HOST     = {{TEST_MYSQL_HOST}}
+NAME     = {{TEST_MYSQL_DBNAME}}
+USER     = {{TEST_MYSQL_USERNAME}}
+PASSWD   = {{TEST_MYSQL_PASSWORD}}
+SSL_MODE = disable
+
+[indexer]
+REPO_INDEXER_ENABLED = true
+REPO_INDEXER_PATH = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql/indexers/repos.bleve
+
+[queue.issue_indexer]
+TYPE = elasticsearch
+CONN_STR = http://elastic:changeme@elasticsearch:9200
+DATADIR = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql/indexers/issues.queue
+
+[queue]
+TYPE = immediate
+
+[queue.code_indexer]
+TYPE = immediate
+
+[queue.push_update]
+TYPE = immediate
+
+[repository]
+ROOT = {{REPO_TEST_DIR}}tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql/gitea-repositories
+
+[repository.local]
+LOCAL_COPY_PATH = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql/tmp/local-repo
+
+[repository.upload]
+TEMP_PATH = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql/tmp/uploads
+
+[repository.signing]
+SIGNING_KEY = none
+
+[server]
+SSH_DOMAIN       = localhost
+HTTP_PORT        = 3001
+ROOT_URL         = http://localhost:3001/
+DISABLE_SSH      = false
+SSH_LISTEN_HOST  = localhost
+SSH_PORT         = 2201
+APP_DATA_PATH    = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql/data
+BUILTIN_SSH_SERVER_USER = git
+START_SSH_SERVER = true
+OFFLINE_MODE     = false
+
+LFS_START_SERVER = true
+LFS_JWT_SECRET   = Tv_MjmZuHqpIY6GFl12ebgkRAMt4RlWt0v4EHKSXO0w
+SSH_TRUSTED_USER_CA_KEYS = ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCb4DC1dMFnJ6pXWo7GMxTchtzmJHYzfN6sZ9FAPFR4ijMLfGki+olvOMO5Fql1/yGnGfbELQa1S6y4shSvj/5K+zUFScmEXYf3Gcr87RqilLkyk16RS+cHNB1u87xTHbETaa3nyCJeGQRpd4IQ4NKob745mwDZ7jQBH8AZEng50Oh8y8fi8skBBBzaYp1ilgvzG740L7uex6fHV62myq0SXeCa+oJUjq326FU8y+Vsa32H8A3e7tOgXZPdt2TVNltx2S9H2WO8RMi7LfaSwARNfy1zu+bfR50r6ef8Yx5YKCMz4wWb1SHU1GS800mjOjlInLQORYRNMlSwR1+vLlVDciOqFapDSbj+YOVOawR0R1aqlSKpZkt33DuOBPx9qe6CVnIi7Z+Px/KqM+OLCzlLY/RS+LbxQpDWcfTVRiP+S5qRTcE3M3UioN/e0BE/1+MpX90IGpvVkA63ILYbKEa4bM3ASL7ChTCr6xN5XT+GpVJveFKK1cfNx9ExHI4rzYE=
+
+[lfs]
+MINIO_BASE_PATH = lfs/
+
+[attachment]
+MINIO_BASE_PATH = attachments/
+
+[avatars]
+MINIO_BASE_PATH = avatars/
+
+[repo-avatars]
+MINIO_BASE_PATH = repo-avatars/
+
+[storage]
+STORAGE_TYPE = minio
+SERVE_DIRECT = false
+MINIO_ENDPOINT = minio:9000
+MINIO_ACCESS_KEY_ID = 123456
+MINIO_SECRET_ACCESS_KEY = 12345678
+MINIO_BUCKET = gitea
+MINIO_LOCATION = us-east-1
+MINIO_USE_SSL = false
+
+[mailer]
+ENABLED = true
+MAILER_TYPE = dummy
+FROM = mysql-{{TEST_TYPE}}-test@gitea.io
+
+[service]
+REGISTER_EMAIL_CONFIRM            = false
+REGISTER_MANUAL_CONFIRM           = false
+ENABLE_NOTIFY_MAIL                = false
+DISABLE_REGISTRATION              = false
+ENABLE_CAPTCHA                    = false
+REQUIRE_SIGNIN_VIEW               = false
+DEFAULT_KEEP_EMAIL_PRIVATE        = false
+DEFAULT_ALLOW_CREATE_ORGANIZATION = true
+NO_REPLY_ADDRESS                  = noreply.example.org
+ENABLE_NOTIFY_MAIL                = true
+
+[picture]
+DISABLE_GRAVATAR              = false
+ENABLE_FEDERATED_AVATAR       = false
+
+[session]
+PROVIDER        = file
+PROVIDER_CONFIG = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql/data/sessions
+
+[log]
+MODE                 = {{TEST_LOGGER}}
+ROOT_PATH            = {{REPO_TEST_DIR}}mysql-log
+ROUTER               = ,
+XORM                 = file
+ENABLE_SSH_LOG       = true
+
+[log.test]
+LEVEL                = Info
+COLORIZE             = true
+
+[log.file]
+LEVEL                = Debug
+
+[security]
+DISABLE_GIT_HOOKS = false
+INSTALL_LOCK   = true
+SECRET_KEY     = 9pCviYTWSb
+INTERNAL_TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE0OTU1NTE2MTh9.hhSVGOANkaKk3vfCd2jDOIww4pUk0xtg9JRde5UogyQ
+
+[packages]
+ENABLED = true

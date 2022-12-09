@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package util
 
@@ -12,7 +11,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"strings"
 )
 
 // EnsureAbsolutePath ensure that a path is absolute, making it
@@ -91,7 +89,7 @@ func statDir(dirPath, recPath string, includeDir, isDirOnly, followSymlinks bool
 
 	statList := make([]string, 0)
 	for _, fi := range fis {
-		if strings.Contains(fi.Name(), ".DS_Store") {
+		if CommonSkip(fi.Name()) {
 			continue
 		}
 
@@ -198,4 +196,22 @@ func HomeDir() (home string, err error) {
 	}
 
 	return home, nil
+}
+
+// CommonSkip will check a provided name to see if it represents file or directory that should not be watched
+func CommonSkip(name string) bool {
+	if name == "" {
+		return true
+	}
+
+	switch name[0] {
+	case '.':
+		return true
+	case 't', 'T':
+		return name[1:] == "humbs.db"
+	case 'd', 'D':
+		return name[1:] == "esktop.ini"
+	}
+
+	return false
 }

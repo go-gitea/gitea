@@ -1,11 +1,11 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package convert
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/gitdiff"
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
@@ -242,7 +243,7 @@ func ToGPGKeyEmail(email *user_model.EmailAddress) *api.GPGKeyEmail {
 }
 
 // ToHook convert models.Webhook to api.Hook
-func ToHook(repoLink string, w *webhook.Webhook) *api.Hook {
+func ToHook(repoLink string, w *webhook.Webhook) (*api.Hook, error) {
 	config := map[string]string{
 		"url":          w.URL,
 		"content_type": w.ContentType.Name(),
@@ -255,16 +256,22 @@ func ToHook(repoLink string, w *webhook.Webhook) *api.Hook {
 		config["color"] = s.Color
 	}
 
-	return &api.Hook{
-		ID:      w.ID,
-		Type:    string(w.Type),
-		URL:     fmt.Sprintf("%s/settings/hooks/%d", repoLink, w.ID),
-		Active:  w.IsActive,
-		Config:  config,
-		Events:  w.EventsArray(),
-		Updated: w.UpdatedUnix.AsTime(),
-		Created: w.CreatedUnix.AsTime(),
+	authorizationHeader, err := w.HeaderAuthorization()
+	if err != nil {
+		return nil, err
 	}
+
+	return &api.Hook{
+		ID:                  w.ID,
+		Type:                w.Type,
+		URL:                 fmt.Sprintf("%s/settings/hooks/%d", repoLink, w.ID),
+		Active:              w.IsActive,
+		Config:              config,
+		Events:              w.EventsArray(),
+		AuthorizationHeader: authorizationHeader,
+		Updated:             w.UpdatedUnix.AsTime(),
+		Created:             w.CreatedUnix.AsTime(),
+	}, nil
 }
 
 // ToGitHook convert git.Hook to api.GitHook
@@ -295,6 +302,7 @@ func ToOrganization(org *organization.Organization) *api.Organization {
 	return &api.Organization{
 		ID:                        org.ID,
 		AvatarURL:                 org.AsUser().AvatarLink(),
+		Name:                      org.Name,
 		UserName:                  org.Name,
 		FullName:                  org.FullName,
 		Description:               org.Description,
@@ -390,18 +398,19 @@ func ToTopicResponse(topic *repo_model.Topic) *api.TopicResponse {
 // ToOAuth2Application convert from auth.OAuth2Application to api.OAuth2Application
 func ToOAuth2Application(app *auth.OAuth2Application) *api.OAuth2Application {
 	return &api.OAuth2Application{
-		ID:           app.ID,
-		Name:         app.Name,
-		ClientID:     app.ClientID,
-		ClientSecret: app.ClientSecret,
-		RedirectURIs: app.RedirectURIs,
-		Created:      app.CreatedUnix.AsTime(),
+		ID:                 app.ID,
+		Name:               app.Name,
+		ClientID:           app.ClientID,
+		ClientSecret:       app.ClientSecret,
+		ConfidentialClient: app.ConfidentialClient,
+		RedirectURIs:       app.RedirectURIs,
+		Created:            app.CreatedUnix.AsTime(),
 	}
 }
 
 // ToLFSLock convert a LFSLock to api.LFSLock
-func ToLFSLock(l *git_model.LFSLock) *api.LFSLock {
-	u, err := user_model.GetUserByID(l.OwnerID)
+func ToLFSLock(ctx context.Context, l *git_model.LFSLock) *api.LFSLock {
+	u, err := user_model.GetUserByID(ctx, l.OwnerID)
 	if err != nil {
 		return nil
 	}
@@ -410,7 +419,40 @@ func ToLFSLock(l *git_model.LFSLock) *api.LFSLock {
 		Path:     l.Path,
 		LockedAt: l.Created.Round(time.Second),
 		Owner: &api.LFSLockOwner{
-			Name: u.DisplayName(),
+			Name: u.Name,
 		},
 	}
+}
+
+// ToChangedFile convert a gitdiff.DiffFile to api.ChangedFile
+func ToChangedFile(f *gitdiff.DiffFile, repo *repo_model.Repository, commit string) *api.ChangedFile {
+	status := "changed"
+	if f.IsDeleted {
+		status = "deleted"
+	} else if f.IsCreated {
+		status = "added"
+	} else if f.IsRenamed && f.Type == gitdiff.DiffFileCopy {
+		status = "copied"
+	} else if f.IsRenamed && f.Type == gitdiff.DiffFileRename {
+		status = "renamed"
+	} else if f.Addition == 0 && f.Deletion == 0 {
+		status = "unchanged"
+	}
+
+	file := &api.ChangedFile{
+		Filename:    f.GetDiffFileName(),
+		Status:      status,
+		Additions:   f.Addition,
+		Deletions:   f.Deletion,
+		Changes:     f.Addition + f.Deletion,
+		HTMLURL:     fmt.Sprint(repo.HTMLURL(), "/src/commit/", commit, "/", util.PathEscapeSegments(f.GetDiffFileName())),
+		ContentsURL: fmt.Sprint(repo.APIURL(), "/contents/", util.PathEscapeSegments(f.GetDiffFileName()), "?ref=", commit),
+		RawURL:      fmt.Sprint(repo.HTMLURL(), "/raw/commit/", commit, "/", util.PathEscapeSegments(f.GetDiffFileName())),
+	}
+
+	if status == "rename" {
+		file.PreviousFilename = f.OldName
+	}
+
+	return file
 }

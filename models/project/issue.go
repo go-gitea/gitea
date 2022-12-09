@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package project
 
@@ -78,7 +77,7 @@ func (p *Project) NumOpenIssues() int {
 
 // MoveIssuesOnProjectBoard moves or keeps issues in a column and sorts them inside that column
 func MoveIssuesOnProjectBoard(board *Board, sortedIssueIDs map[int64]int64) error {
-	return db.WithTx(func(ctx context.Context) error {
+	return db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		sess := db.GetEngine(ctx)
 
 		issueIDs := make([]int64, 0, len(sortedIssueIDs))
@@ -103,7 +102,7 @@ func MoveIssuesOnProjectBoard(board *Board, sortedIssueIDs map[int64]int64) erro
 	})
 }
 
-func (pb *Board) removeIssues(ctx context.Context) error {
-	_, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id = 0 WHERE project_board_id = ? ", pb.ID)
+func (b *Board) removeIssues(ctx context.Context) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id = 0 WHERE project_board_id = ? ", b.ID)
 	return err
 }

@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -8,6 +7,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	releaseservice "code.gitea.io/gitea/services/release"
@@ -44,9 +44,9 @@ func GetReleaseByTag(ctx *context.APIContext) {
 
 	tag := ctx.Params(":tag")
 
-	release, err := models.GetRelease(ctx.Repo.Repository.ID, tag)
+	release, err := repo_model.GetRelease(ctx.Repo.Repository.ID, tag)
 	if err != nil {
-		if models.IsErrReleaseNotExist(err) {
+		if repo_model.IsErrReleaseNotExist(err) {
 			ctx.NotFound()
 			return
 		}
@@ -59,7 +59,7 @@ func GetReleaseByTag(ctx *context.APIContext) {
 		return
 	}
 
-	if err = release.LoadAttributes(); err != nil {
+	if err = release.LoadAttributes(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
@@ -97,9 +97,9 @@ func DeleteReleaseByTag(ctx *context.APIContext) {
 
 	tag := ctx.Params(":tag")
 
-	release, err := models.GetRelease(ctx.Repo.Repository.ID, tag)
+	release, err := repo_model.GetRelease(ctx.Repo.Repository.ID, tag)
 	if err != nil {
-		if models.IsErrReleaseNotExist(err) {
+		if repo_model.IsErrReleaseNotExist(err) {
 			ctx.NotFound()
 			return
 		}

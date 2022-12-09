@@ -1,16 +1,20 @@
 import $ from 'jquery';
+import {createTippy} from '../../modules/tippy.js';
+
 const {csrfToken} = window.config;
 
 export function initCompReactionSelector(parent) {
-  let reactions = '';
+  let selector = 'a.label';
   if (!parent) {
     parent = $(document);
-    reactions = '.reactions > ';
+    selector = `.reactions ${selector}`;
   }
 
-  parent.find(`${reactions}a.label`).popup({position: 'bottom left', metadata: {content: 'title', title: 'none'}});
+  for (const el of parent[0].querySelectorAll(selector)) {
+    createTippy(el, {placement: 'bottom-start', content: el.getAttribute('data-title')});
+  }
 
-  parent.find(`.select-reaction > .menu > .item, ${reactions}a.label`).on('click', function (e) {
+  parent.find(`.select-reaction > .menu > .item, ${selector}`).on('click', function (e) {
     e.preventDefault();
 
     if ($(this).hasClass('disabled')) return;

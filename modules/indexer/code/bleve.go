@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package code
 
@@ -194,12 +193,12 @@ func (b *BleveIndexer) addUpdate(ctx context.Context, batchWriter git.WriteClose
 	var err error
 	if !update.Sized {
 		var stdout string
-		stdout, _, err = git.NewCommand(ctx, "cat-file", "-s", update.BlobSha).RunStdString(&git.RunOpts{Dir: repo.RepoPath()})
+		stdout, _, err = git.NewCommand(ctx, "cat-file", "-s").AddDynamicArguments(update.BlobSha).RunStdString(&git.RunOpts{Dir: repo.RepoPath()})
 		if err != nil {
 			return err
 		}
 		if size, err = strconv.ParseInt(strings.TrimSpace(stdout), 10, 64); err != nil {
-			return fmt.Errorf("Misformatted git cat-file output: %v", err)
+			return fmt.Errorf("Misformatted git cat-file output: %w", err)
 		}
 	}
 
@@ -392,7 +391,7 @@ func (b *BleveIndexer) Search(ctx context.Context, repoIDs []int64, language, ke
 
 	searchResults := make([]*SearchResult, len(result.Hits))
 	for i, hit := range result.Hits {
-		var startIndex, endIndex int = -1, -1
+		startIndex, endIndex := -1, -1
 		for _, locations := range hit.Locations["Content"] {
 			location := locations[0]
 			locationStart := int(location.Start)

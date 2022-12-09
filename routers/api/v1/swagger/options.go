@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package swagger
 
@@ -108,9 +107,6 @@ type swaggerParameterBodies struct {
 	EditUserOption api.EditUserOption
 
 	// in:body
-	MigrateRepoForm forms.MigrateRepoForm
-
-	// in:body
 	EditAttachmentOptions api.EditAttachmentOptions
 
 	// in:body
@@ -172,4 +168,7 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	CreateWikiPageOptions api.CreateWikiPageOptions
+
+	// in:body
+	CreatePushMirrorOption api.CreatePushMirrorOption
 }

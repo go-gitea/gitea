@@ -21,7 +21,7 @@ menu:
 
 To help decide if Gitea is suited for your needs, here is how it compares to other Git self hosted options.
 
-Be warned that we don't regularly check for feature changes in other products, so this list may be outdated. If you find anything that needs to be updated in the table below, please report it in an [issue on GitHub](https://github.com/go-gitea/gitea/issues).
+Be warned that we don't regularly check for feature changes in other products, so this list may be outdated. If you find anything that needs to be updated in the table below, please [open an issue](https://github.com/go-gitea/gitea/issues/new/choose).
 
 _Symbols used in table:_
 
@@ -33,100 +33,111 @@ _Symbols used in table:_
 
 ## General Features
 
-| Feature                             | Gitea                                              | Gogs | GitHub EE | GitLab CE | GitLab EE | BitBucket      | RhodeCode CE |
-| ----------------------------------- | ---------------------------------------------------| ---- | --------- | --------- | --------- | -------------- | ------------ |
-| Open source and free                | ✓                                                 | ✓    | ✘         | ✓         | ✘         | ✘              | ✓            |
-| Low resource usage (RAM/CPU)        | ✓                                                 | ✓    | ✘         | ✘         | ✘         | ✘              | ✘            |
-| Multiple database support           | ✓                                                 | ✓    | ✘         | ⁄         | ⁄         | ✓              | ✓            |
-| Multiple OS support                 | ✓                                                 | ✓    | ✘         | ✘         | ✘         | ✘              | ✓            |
-| Easy upgrade process                | ✓                                                 | ✓    | ✘         | ✓         | ✓         | ✘              | ✓            |
-| Markdown support                    | ✓                                                 | ✓    | ✓         | ✓         | ✓         | ✓              | ✓            |
-| Orgmode support                     | ✓                                                 | ✘    | ✓         | ✘         | ✘         | ✘              | ?            |
-| CSV support                         | ✓                                                 | ✘    | ✓         | ✘         | ✘         | ✓              | ?            |
-| Third-party render tool support     | ✓                                                 | ✘    | ✘         | ✘         | ✘         | ✓              | ?            |
-| Static Git-powered pages            | [✘](https://github.com/go-gitea/gitea/issues/302) | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
-| Integrated Git-powered wiki         | ✓                                                 | ✓    | ✓         | ✓         | ✓         | ✓ (cloud only) | ✘            |
-| Deploy Tokens                       | ✓                                                 | ✓    | ✓         | ✓         | ✓         | ✓              | ✓            |
-| Repository Tokens with write rights | ✓                                                 | ✘    | ✓         | ✓         | ✓         | ✓              | ✓            |
-| Built-in Package/Container Registry | ✓                                                 | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
-| External git mirroring              | ✓                                                 | ✓    | ✘         | ✘         | ✓         | ✓              | ✓            |
-| WebAuthn (2FA)                      | ✓                                                 | ✘    | ✓         | ✓         | ✓         | ✓              | ?            |
-| Built-in CI/CD                      | ✘                                                 | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
-| Subgroups: groups within groups     | ✘                                                 | ✘    | ✘         | ✓         | ✓         | ✘              | ✓            |
+| Feature                                          | Gitea                                               | Gogs | GitHub EE | GitLab CE | GitLab EE | BitBucket | RhodeCode CE |
+| ------------------------------------------------ | --------------------------------------------------- | ---- | --------- | --------- | --------- | --------- | ------------ |
+| Open source and free                             | ✓                                                   | ✓    | ✘         | ✓         | ✘         | ✘         | ✓            |
+| Low RAM/ CPU usage                               | ✓                                                   | ✓    | ✘         | ✘         | ✘         | ✘         | ✘            |
+| Multiple database support                        | ✓                                                   | ✓    | ✘         | ⁄         | ⁄         | ✓         | ✓            |
+| Multiple OS support                              | ✓                                                   | ✓    | ✘         | ✘         | ✘         | ✘         | ✓            |
+| Easy upgrades                                    | ✓                                                   | ✓    | ✘         | ✓         | ✓         | ✘         | ✓            |
+| Telemetry                                        | **✘**                                               | ✘    | ✓         | ✓         | ✓         | ✓         | ?            |
+| Third-party render tool support                  | ✓                                                   | ✘    | ✘         | ✘         | ✘         | ✓         | ?            |
+| WebAuthn (2FA)                                   | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✓         | ?            |
+| Extensive API                                    | ✓                                                   | ✓    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| Built-in Package/Container Registry              | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
+| Sync commits to an external repo (push mirror)   | ✓                                                   | ✓    | ✘         | ✓         | ✓         | ✘         | ✓            |
+| Sync commits from an external repo (pull mirror) | ✓                                                   | ✘    | ✘         | ✓         | ✓         | ✘         | ?            |
+| Light and Dark Theme                             | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✘         | ?            |
+| Custom Theme Support                             | ✓                                                   | ✓    | ✘         | ✘         | ✘         | ✓         | ✘            |
+| Markdown support                                 | ✓                                                   | ✓    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| CSV support                                      | ✓                                                   | ✘    | ✓         | ✘         | ✘         | ✓         | ?            |
+| 'GitHub / GitLab pages'                          | [✘](https://github.com/go-gitea/gitea/issues/302)   | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
+| Repo-specific wiki (as a repo itself)            | ✓                                                   | ✓    | ✓         | ✓         | ✓         | /         | ✘            |
+| Deploy Tokens                                    | ✓                                                   | ✓    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| Repository Tokens with write rights              | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| RSS Feeds                                        | ✓                                                   | ✘    | ✓         | ✘         | ✘         | ✘         | ✘            |
+| Built-in CI/CD                                   | [✘](https://github.com/go-gitea/gitea/issues/13539) | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
+| Subgroups: groups within groups                  | [✘](https://github.com/go-gitea/gitea/issues/1872)  | ✘    | ✘         | ✓         | ✓         | ✘         | ✓            |
+| Interaction with other instances                 | [/](https://github.com/go-gitea/gitea/issues/18240) | ✘    | ✘         | ✘         | ✘         | ✘         | ✘            |
+| Mermaid diagrams in Markdown                     | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
+| Math syntax in Markdown                          | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
 
 ## Code management
 
-| Feature                                      | Gitea                                            | Gogs | GitHub EE | GitLab CE | GitLab EE | BitBucket | RhodeCode CE |
-| -------------------------------------------- | ------------------------------------------------ | ---- | --------- | --------- | --------- | --------- | ------------ |
-| Repository topics                            | ✓                                                | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
-| Repository code search                       | ✓                                                | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
-| Global code search                           | ✓                                                | ✘    | ✓         | ✘         | ✓         | ✓         | ✓            |
-| Git LFS 2.0                                  | ✓                                                | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
-| Group Milestones                             | ✘                                                | ✘    | ✘         | ✓         | ✓         | ✘         | ✘            |
-| Granular user roles (Code, Issues, Wiki etc) | ✓                                                | ✘    | ✘         | ✓         | ✓         | ✘         | ✘            |
-| Verified Committer                           | ⁄                                                | ✘    | ?         | ✓         | ✓         | ✓         | ✘            |
-| GPG Signed Commits                           | ✓                                                | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
-| SSH Signed Commits                           | ✓                                                | ✘    | ✘         | ✘         | ✘         | ?         | ?            |
-| Reject unsigned commits                      | [✓](https://github.com/go-gitea/gitea/pull/9708) | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
-| Repository Activity page                     | ✓                                                | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
-| Branch manager                               | ✓                                                | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
-| Create new branches                          | ✓                                                | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
-| Web code editor                              | ✓                                                | ✓    | ✓         | ✓         | ✓         | ✓         | ✓            |
-| Commit graph                                 | ✓                                                | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
-| Template Repositories                        | [✓](https://github.com/go-gitea/gitea/pull/8768) | ✘    | ✓         | ✘         | ✓         | ✓         | ✘            |
+| Feature                                     | Gitea                                               | Gogs | GitHub EE | GitLab CE | GitLab EE | BitBucket | RhodeCode CE |
+| ------------------------------------------- | --------------------------------------------------- | ---- | --------- | --------- | --------- | --------- | ------------ |
+| Repository topics                           | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
+| Repository code search                      | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| Global code search                          | ✓                                                   | ✘    | ✓         | ✘         | ✓         | ✓         | ✓            |
+| Git LFS 2.0                                 | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| Group Milestones                            | [✘](https://github.com/go-gitea/gitea/issues/14622) | ✘    | ✘         | ✓         | ✓         | ✘         | ✘            |
+| Granular user roles (Code, Issues, Wiki, …) | ✓                                                   | ✘    | ✘         | ✓         | ✓         | ✘         | ✘            |
+| Verified Committer                          | ⁄                                                   | ✘    | ?         | ✓         | ✓         | ✓         | ✘            |
+| GPG Signed Commits                          | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| SSH Signed Commits                          | ✓                                                   | ✘    | ✓         | ✘         | ✘         | ?         | ?            |
+| Reject unsigned commits                     | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| Migrating repos from other services         | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| Repository Activity page                    | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| Branch manager                              | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| Create new branches                         | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
+| Web code editor                             | ✓                                                   | ✓    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| Commit graph                                | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| Template Repositories                       | ✓                                                   | ✘    | ✓         | ✘         | ✓         | ✓         | ✘            |
+| Git Blame                                   | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            |
+| Visual comparison of image changes          | ✓                                                   | ✘    | ✓         | ?         | ?         | ?         | ?            |
 
 ## Issue Tracker
 
-| Feature                         | Gitea                                              | Gogs                                          | GitHub EE | GitLab CE                                                               | GitLab EE | BitBucket | RhodeCode CE |
-| ------------------------------- | -------------------------------------------------- | --------------------------------------------- | --------- | ----------------------------------------------------------------------- | --------- | -------------- | ------------ |
-| Issue tracker                   | ✓                                                  | ✓                                             | ✓         | ✓                                                                       | ✓         | ✓ (cloud only) | ✘            |
-| Issue templates                 | ✓                                                  | ✓                                             | ✓         | ✓                                                                       | ✓         | ✘              | ✘            |
-| Labels                          | ✓                                                  | ✓                                             | ✓         | ✓                                                                       | ✓         | ✘              | ✘            |
-| Time tracking                   | ✓                                                  | ✘                                             | ✓         | ✓                                                                       | ✓         | ✘              | ✘            |
-| Multiple assignees for issues   | ✓                                                  | ✘                                             | ✓         | ✘                                                                       | ✓         | ✘              | ✘            |
-| Related issues                  | ✘                                                  | ✘                                             | ⁄         | [✓](https://docs.gitlab.com/ce/user/project/issues/related_issues.html) | ✓         | ✘              | ✘            |
-| Confidential issues             | [✘](https://github.com/go-gitea/gitea/issues/3217) | ✘                                             | ✘         | ✓                                                                       | ✓         | ✘              | ✘            |
-| Comment reactions               | ✓                                                  | ✘                                             | ✓         | ✓                                                                       | ✓         | ✘              | ✘            |
-| Lock Discussion                 | ✓                                                  | ✘                                             | ✓         | ✓                                                                       | ✓         | ✘              | ✘            |
-| Batch issue handling            | ✓                                                  | ✘                                             | ✓         | ✓                                                                       | ✓         | ✘              | ✘            |
-| Issue Boards (Kanban)           | [✓](https://github.com/go-gitea/gitea/pull/8346)   | ✘                                             | ✘         | ✓                                                                       | ✓         | ✘              | ✘            |
-| Create new branches from issues | ✘                                                  | ✘                                             | ✘         | ✓                                                                       | ✓         | ✘              | ✘            |
-| Issue search                    | ✓                                                  | ✘                                             | ✓         | ✓                                                                       | ✓         | ✓              | ✘            |
-| Global issue search             | [✘](https://github.com/go-gitea/gitea/issues/2434) | ✘                                             | ✓         | ✓                                                                       | ✓         | ✓              | ✘            |
-| Issue dependency                | ✓                                                  | ✘                                             | ✘         | ✘                                                                       | ✘         | ✘              | ✘            |
-| Create issue via email          | [✘](https://github.com/go-gitea/gitea/issues/6226) | [✘](https://github.com/gogs/gogs/issues/2602) | ✘         | ✘                                                                       | ✓         | ✓              | ✘            |
-| Service Desk                    | [✘](https://github.com/go-gitea/gitea/issues/6219) | ✘                                             | ✘         | [✓](https://gitlab.com/groups/gitlab-org/-/epics/3103)                  | ✓         | ✘              | ✘            |
+| Feature                       | Gitea                                               | Gogs | GitHub EE | GitLab CE | GitLab EE | BitBucket | RhodeCode CE |
+| ----------------------------- | --------------------------------------------------- | ---- | --------- | --------- | --------- | --------- | ------------ |
+| Issue tracker                 | ✓                                                   | ✓    | ✓         | ✓         | ✓         | /         | ✘            |
+| Issue templates               | ✓                                                   | ✓    | ✓         | ✓         | ✓         | ✘         | ✘            |
+| Labels                        | ✓                                                   | ✓    | ✓         | ✓         | ✓         | ✘         | ✘            |
+| Time tracking                 | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
+| Multiple assignees for issues | ✓                                                   | ✘    | ✓         | ✘         | ✓         | ✘         | ✘            |
+| Related issues                | ✘                                                   | ✘    | ⁄         | ✓         | ✓         | ✘         | ✘            |
+| Confidential issues           | [✘](https://github.com/go-gitea/gitea/issues/3217)  | ✘    | ✘         | ✓         | ✓         | ✘         | ✘            |
+| Comment reactions             | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
+| Lock Discussion               | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
+| Batch issue handling          | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
+| Issue Boards (Kanban)         | [/](https://github.com/go-gitea/gitea/issues/14710) | ✘    | ✘         | ✓         | ✓         | ✘         | ✘            |
+| Create branch from issue      | [✘](https://github.com/go-gitea/gitea/issues/20226) | ✘    | ✘         | ✓         | ✓         | ✘         | ✘            |
+| Convert comment to new issue  | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
+| Issue search                  | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            |
+| Global issue search           | [/](https://github.com/go-gitea/gitea/issues/2434)  | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            |
+| Issue dependency              | ✓                                                   | ✘    | ✘         | ✘         | ✘         | ✘         | ✘            |
+| Create issue via email        | [✘](https://github.com/go-gitea/gitea/issues/6226)  | ✘    | ✘         | ✘         | ✓         | ✓         | ✘            |
+| Service Desk                  | [✘](https://github.com/go-gitea/gitea/issues/6219)  | ✘    | ✘         | ✓         | ✓         | ✘         | ✘            |
 
 ## Pull/Merge requests
 
-| Feature                                         | Gitea                                              | Gogs | GitHub EE | GitLab CE                                                                         | GitLab EE | BitBucket                                                                | RhodeCode CE |
-| ----------------------------------------------- | -------------------------------------------------- | ---- | --------- | --------------------------------------------------------------------------------- | --------- | ------------------------------------------------------------------------ | ------------ |
-| Pull/Merge requests                             | ✓                                                  | ✓    | ✓         | ✓                                                                                 | ✓         | ✓                                                                        | ✓            |
-| Squash merging                                  | ✓                                                  | ✘    | ✓         | [✓](https://docs.gitlab.com/ce/user/project/merge_requests/squash_and_merge.html) | ✓         | ✓                                                                        | ✓            |
-| Rebase merging                                  | ✓                                                  | ✓    | ✓         | ✘                                                                                 | ⁄         | ✘                                                                        | ✓            |
-| Pull/Merge request inline comments              | ✓                                                  | ✘    | ✓         | ✓                                                                                 | ✓         | ✓                                                                        | ✓            |
-| Pull/Merge request approval                     | ✓                                                  | ✘    | ⁄         | ✓                                                                                 | ✓         | ✓                                                                        | ✓            |
-| Merge conflict resolution                       | [✘](https://github.com/go-gitea/gitea/issues/5158) | ✘    | ✓         | ✓                                                                                 | ✓         | ✓                                                                        | ✘            |
-| Restrict push and merge access to certain users | ✓                                                  | ✘    | ✓         | ⁄                                                                                 | ✓         | ✓                                                                        | ✓            |
-| Revert specific commits or a merge request      | [✘](https://github.com/go-gitea/gitea/issues/5158) | ✘    | ✓         | ✓                                                                                 | ✓         | ✓                                                                        | ✘            |
-| Pull/Merge requests templates                   | ✓                                                  | ✓    | ✓         | ✓                                                                                 | ✓         | ✘                                                                        | ✘            |
-| Cherry-picking changes                          | [✘](https://github.com/go-gitea/gitea/issues/5158) | ✘    | ✘         | ✓                                                                                 | ✓         | ✘                                                                        | ✘            |
-| Download Patch                                  | ✓                                                  | ✘    | ✓         | ✓                                                                                 | ✓         | [/](https://jira.atlassian.com/plugins/servlet/mobile#issue/BCLOUD-8323) | ✘            |
+| Feature                                         | Gitea                                              | Gogs | GitHub EE | GitLab CE | GitLab EE | BitBucket | RhodeCode CE |
+| ----------------------------------------------- | -------------------------------------------------- | ---- | --------- | --------- | --------- | --------- | ------------ |
+| Pull/Merge requests                             | ✓                                                  | ✓    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| Squash merging                                  | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| Rebase merging                                  | ✓                                                  | ✓    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| Pull/Merge request inline comments              | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| Pull/Merge request approval                     | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| Merge conflict resolution                       | [✘](https://github.com/go-gitea/gitea/issues/9014) | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            |
+| Restrict push and merge access to certain users | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| Revert specific commits                         | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            |
+| Pull/Merge requests templates                   | ✓                                                  | ✓    | ✓         | ✓         | ✓         | ✘         | ✘            |
+| Cherry-picking changes                          | ✓                                                  | ✘    | ✘         | ✓         | ✓         | ✘         | ✘            |
+| Download Patch                                  | ✓                                                  | ✘    | ✓         | ✓         | ✓         | /         | ✘            |
 
 ## 3rd-party integrations
 
-| Feature                                        | Gitea                                            | Gogs | GitHub EE | GitLab CE | GitLab EE | BitBucket | RhodeCode CE |
-| ---------------------------------------------- | ------------------------------------------------ | ---- | --------- | --------- | --------- | --------- | ------------ |
-| Webhook support                                | ✓                                                | ✓    | ✓         | ✓         | ✓         | ✓         | ✓            |
-| Custom Git Hooks                               | ✓                                                | ✓    | ✓         | ✓         | ✓         | ✓         | ✓            |
-| AD / LDAP integration                          | ✓                                                | ✓    | ✓         | ✓         | ✓         | ✓         | ✓            |
-| Multiple LDAP / AD server support              | ✓                                                | ✓    | ✘         | ✘         | ✓         | ✓         | ✓            |
-| LDAP user synchronization                      | ✓                                                | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
-| OpenId Connect support                         | ✓                                                | ✘    | ✓         | ✓         | ✓         | ?         | ✘            |
-| OAuth 2.0 integration (external authorization) | ✓                                                | ✘    | ⁄         | ✓         | ✓         | ?         | ✓            |
-| Act as OAuth 2.0 provider                      | [✓](https://github.com/go-gitea/gitea/pull/5378) | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            |
-| Two factor authentication (2FA)                | ✓                                                | ✓    | ✓         | ✓         | ✓         | ✓         | ✘            |
-| Mattermost/Slack integration                   | ✓                                                | ✓    | ⁄         | ✓         | ✓         | ⁄         | ✓            |
-| Discord integration                            | ✓                                                | ✓    | ✓         | ✓         | ✓         | ✘         | ✘            |
-| Microsoft Teams integration                    | ✓                                                | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            |
-| External CI/CD status display                  | ✓                                                | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| Feature                                        | Gitea                                              | Gogs | GitHub EE | GitLab CE | GitLab EE | BitBucket | RhodeCode CE |
+| ---------------------------------------------- | ------------------------------------------------   | ---- | --------- | --------- | --------- | --------- | ------------ |
+| Webhooks                                       | ✓                                                  | ✓    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| Git Hooks                                      | ✓                                                  | ✓    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| AD / LDAP integration                          | ✓                                                  | ✓    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| Multiple LDAP / AD server support              | ✓                                                  | ✓    | ✘         | ✘         | ✓         | ✓         | ✓            |
+| LDAP user synchronization                      | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| SAML 2.0 service provider                      | [✘](https://github.com/go-gitea/gitea/issues/5512) | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            |
+| OpenID Connect support                         | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ?         | ✘            |
+| OAuth 2.0 integration (external authorization) | ✓                                                  | ✘    | ⁄         | ✓         | ✓         | ?         | ✓            |
+| Act as OAuth 2.0 provider                      | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            |
+| Two factor authentication (2FA)                | ✓                                                  | ✓    | ✓         | ✓         | ✓         | ✓         | ✘            |
+| Integration with the most common services      | ✓                                                  | /    | ⁄         | ✓         | ✓         | ⁄         | ✓            |
+| Incorporate external CI/CD                     | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |

@@ -1,7 +1,6 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
 // Copyright 2016 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package organization
 
@@ -16,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -43,6 +43,10 @@ func (err ErrTeamAlreadyExist) Error() string {
 	return fmt.Sprintf("team already exists [org_id: %d, name: %s]", err.OrgID, err.Name)
 }
 
+func (err ErrTeamAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
 // ErrTeamNotExist represents a "TeamNotExist" error
 type ErrTeamNotExist struct {
 	OrgID  int64
@@ -58,6 +62,10 @@ func IsErrTeamNotExist(err error) bool {
 
 func (err ErrTeamNotExist) Error() string {
 	return fmt.Sprintf("team does not exist [org_id %d, team_id %d, name: %s]", err.OrgID, err.TeamID, err.Name)
+}
+
+func (err ErrTeamNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // OwnerTeamName return the owner team name
@@ -85,6 +93,7 @@ func init() {
 	db.RegisterModel(new(TeamUser))
 	db.RegisterModel(new(TeamRepo))
 	db.RegisterModel(new(TeamUnit))
+	db.RegisterModel(new(TeamInvite))
 }
 
 // SearchTeamOptions holds the search options
@@ -96,16 +105,7 @@ type SearchTeamOptions struct {
 	IncludeDesc bool
 }
 
-// SearchTeam search for teams. Caller is responsible to check permissions.
-func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
-	if opts.Page <= 0 {
-		opts.Page = 1
-	}
-	if opts.PageSize == 0 {
-		// Default limit
-		opts.PageSize = 10
-	}
-
+func (opts *SearchTeamOptions) toCond() builder.Cond {
 	cond := builder.NewCond()
 
 	if len(opts.Keyword) > 0 {
@@ -117,28 +117,32 @@ func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 		cond = cond.And(keywordCond)
 	}
 
-	cond = cond.And(builder.Eq{"org_id": opts.OrgID})
+	if opts.OrgID > 0 {
+		cond = cond.And(builder.Eq{"`team`.org_id": opts.OrgID})
+	}
 
+	if opts.UserID > 0 {
+		cond = cond.And(builder.Eq{"team_user.uid": opts.UserID})
+	}
+
+	return cond
+}
+
+// SearchTeam search for teams. Caller is responsible to check permissions.
+func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 	sess := db.GetEngine(db.DefaultContext)
 
-	count, err := sess.
-		Where(cond).
-		Count(new(Team))
-	if err != nil {
-		return nil, 0, err
-	}
+	opts.SetDefaultValues()
+	cond := opts.toCond()
 
-	sess = sess.Where(cond)
-	if opts.PageSize == -1 {
-		opts.PageSize = int(count)
-	} else {
-		sess = sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
+	if opts.UserID > 0 {
+		sess = sess.Join("INNER", "team_user", "team_user.team_id = team.id")
 	}
+	sess = db.SetSessionPagination(sess, opts)
 
 	teams := make([]*Team, 0, opts.PageSize)
-	if err = sess.
-		OrderBy("lower_name").
-		Find(&teams); err != nil {
+	count, err := sess.Where(cond).OrderBy("lower_name").FindAndCount(&teams)
+	if err != nil {
 		return nil, 0, err
 	}
 
@@ -185,7 +189,7 @@ func (t *Team) GetUnitNames() (res []string) {
 	for _, u := range t.Units {
 		res = append(res, unit.Units[u.Type].NameKey)
 	}
-	return
+	return res
 }
 
 // GetUnitsMap returns the team units permissions
@@ -218,19 +222,19 @@ func (t *Team) IsMember(userID int64) bool {
 	return isMember
 }
 
-// GetRepositoriesCtx returns paginated repositories in team of organization.
-func (t *Team) GetRepositoriesCtx(ctx context.Context) (err error) {
+// LoadRepositories returns paginated repositories in team of organization.
+func (t *Team) LoadRepositories(ctx context.Context) (err error) {
 	if t.Repos != nil {
 		return nil
 	}
 	t.Repos, err = GetTeamRepositories(ctx, &SearchTeamRepoOptions{
 		TeamID: t.ID,
 	})
-	return
+	return err
 }
 
-// GetMembersCtx returns paginated members in team of organization.
-func (t *Team) GetMembersCtx(ctx context.Context) (err error) {
+// LoadMembers returns paginated members in team of organization.
+func (t *Team) LoadMembers(ctx context.Context) (err error) {
 	t.Members, err = GetTeamMembers(ctx, &SearchMembersOptions{
 		TeamID: t.ID,
 	})
@@ -244,7 +248,7 @@ func (t *Team) UnitEnabled(tp unit.Type) bool {
 
 // UnitAccessMode returns if the team has the given unit type enabled
 // it is called in templates, should not be replaced by `UnitAccessModeCtx(ctx ...)`
-func (t *Team) UnitAccessMode(tp unit.Type) perm.AccessMode {
+func (t *Team) UnitAccessMode(tp unit.Type) perm.AccessMode { // Notice: It will be used in template, don't remove it directly
 	return t.UnitAccessModeCtx(db.DefaultContext, tp)
 }
 
@@ -345,4 +349,10 @@ func GetRepoTeams(ctx context.Context, repo *repo_model.Repository) (teams []*Te
 		And("team_repo.repo_id=?", repo.ID).
 		OrderBy("CASE WHEN name LIKE '" + OwnerTeamName + "' THEN '' ELSE name END").
 		Find(&teams)
+}
+
+// IncrTeamRepoNum increases the number of repos for the given team by 1
+func IncrTeamRepoNum(ctx context.Context, teamID int64) error {
+	_, err := db.GetEngine(ctx).Incr("num_repos").ID(teamID).Update(new(Team))
+	return err
 }

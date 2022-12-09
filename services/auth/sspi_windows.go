@@ -1,10 +1,10 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package auth
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strings"
@@ -52,21 +52,14 @@ type SSPI struct {
 }
 
 // Init creates a new global websspi.Authenticator object
-func (s *SSPI) Init() error {
+func (s *SSPI) Init(ctx context.Context) error {
 	config := websspi.NewConfig()
 	var err error
 	sspiAuth, err = websspi.New(config)
 	if err != nil {
 		return err
 	}
-	s.rnd = render.New(render.Options{
-		Extensions:    []string{".tmpl"},
-		Directory:     "templates",
-		Funcs:         templates.NewFuncMap(),
-		Asset:         templates.GetAsset,
-		AssetNames:    templates.GetAssetNames,
-		IsDevelopment: !setting.IsProd,
-	})
+	_, s.rnd = templates.HTMLRenderer(ctx)
 	return nil
 }
 
@@ -180,7 +173,7 @@ func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {
 	} else if middleware.IsAPIPath(req) || isAttachmentDownload(req) {
 		shouldAuth = true
 	}
-	return
+	return shouldAuth
 }
 
 // newUser creates a new user object for the purpose of automatic registration

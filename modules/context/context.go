@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package context
 
@@ -28,11 +27,13 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	mc "code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/auth"
@@ -138,7 +139,7 @@ func (ctx *Context) IsUserRepoReaderAny() bool {
 
 // RedirectToUser redirect to a differently-named user
 func RedirectToUser(ctx *Context, userName string, redirectUserID int64) {
-	user, err := user_model.GetUserByID(redirectUserID)
+	user, err := user_model.GetUserByID(ctx, redirectUserID)
 	if err != nil {
 		ctx.ServerError("GetUserByID", err)
 		return
@@ -223,7 +224,7 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 	ctx.Data["TemplateLoadTimes"] = func() string {
 		return strconv.FormatInt(time.Since(tmplStartTime).Nanoseconds()/1e6, 10) + "ms"
 	}
-	if err := ctx.Render.HTML(ctx.Resp, status, string(name), ctx.Data); err != nil {
+	if err := ctx.Render.HTML(ctx.Resp, status, string(name), templates.BaseVars().Merge(ctx.Data)); err != nil {
 		if status == http.StatusInternalServerError && name == base.TplName("status/500") {
 			ctx.PlainText(http.StatusInternalServerError, "Unable to find status/500 template")
 			return
@@ -321,9 +322,9 @@ func (ctx *Context) plainTextInternal(skip, status int, bs []byte) {
 	if statusPrefix == 4 || statusPrefix == 5 {
 		log.Log(skip, log.TRACE, "plainTextInternal (status=%d): %s", status, string(bs))
 	}
-	ctx.Resp.WriteHeader(status)
 	ctx.Resp.Header().Set("Content-Type", "text/plain;charset=utf-8")
 	ctx.Resp.Header().Set("X-Content-Type-Options", "nosniff")
+	ctx.Resp.WriteHeader(status)
 	if _, err := ctx.Resp.Write(bs); err != nil {
 		log.ErrorWithSkip(skip, "plainTextInternal (status=%d): write bytes failed: %v", status, err)
 	}
@@ -344,50 +345,61 @@ func (ctx *Context) RespHeader() http.Header {
 	return ctx.Resp.Header()
 }
 
+type ServeHeaderOptions struct {
+	ContentType        string // defaults to "application/octet-stream"
+	ContentTypeCharset string
+	ContentLength      *int64
+	Disposition        string // defaults to "attachment"
+	Filename           string
+	CacheDuration      time.Duration // defaults to 5 minutes
+	LastModified       time.Time
+}
+
 // SetServeHeaders sets necessary content serve headers
-func (ctx *Context) SetServeHeaders(filename string) {
-	ctx.Resp.Header().Set("Content-Description", "File Transfer")
-	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
-	ctx.Resp.Header().Set("Content-Disposition", "attachment; filename="+filename)
-	ctx.Resp.Header().Set("Content-Transfer-Encoding", "binary")
-	ctx.Resp.Header().Set("Expires", "0")
-	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
-	ctx.Resp.Header().Set("Pragma", "public")
-	ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
+func (ctx *Context) SetServeHeaders(opts *ServeHeaderOptions) {
+	header := ctx.Resp.Header()
+
+	contentType := typesniffer.ApplicationOctetStream
+	if opts.ContentType != "" {
+		if opts.ContentTypeCharset != "" {
+			contentType = opts.ContentType + "; charset=" + strings.ToLower(opts.ContentTypeCharset)
+		} else {
+			contentType = opts.ContentType
+		}
+	}
+	header.Set("Content-Type", contentType)
+	header.Set("X-Content-Type-Options", "nosniff")
+
+	if opts.ContentLength != nil {
+		header.Set("Content-Length", strconv.FormatInt(*opts.ContentLength, 10))
+	}
+
+	if opts.Filename != "" {
+		disposition := opts.Disposition
+		if disposition == "" {
+			disposition = "attachment"
+		}
+
+		backslashEscapedName := strings.ReplaceAll(strings.ReplaceAll(opts.Filename, `\`, `\\`), `"`, `\"`) // \ -> \\, " -> \"
+		header.Set("Content-Disposition", fmt.Sprintf(`%s; filename="%s"; filename*=UTF-8''%s`, disposition, backslashEscapedName, url.PathEscape(opts.Filename)))
+		header.Set("Access-Control-Expose-Headers", "Content-Disposition")
+	}
+
+	duration := opts.CacheDuration
+	if duration == 0 {
+		duration = 5 * time.Minute
+	}
+	httpcache.AddCacheControlToHeader(header, duration)
+
+	if !opts.LastModified.IsZero() {
+		header.Set("Last-Modified", opts.LastModified.UTC().Format(http.TimeFormat))
+	}
 }
 
 // ServeContent serves content to http request
-func (ctx *Context) ServeContent(name string, r io.ReadSeeker, params ...interface{}) {
-	modTime := time.Now()
-	for _, p := range params {
-		switch v := p.(type) {
-		case time.Time:
-			modTime = v
-		}
-	}
-	ctx.SetServeHeaders(name)
-	http.ServeContent(ctx.Resp, ctx.Req, name, modTime, r)
-}
-
-// ServeFile serves given file to response.
-func (ctx *Context) ServeFile(file string, names ...string) {
-	var name string
-	if len(names) > 0 {
-		name = names[0]
-	} else {
-		name = path.Base(file)
-	}
-	ctx.SetServeHeaders(name)
-	http.ServeFile(ctx.Resp, ctx.Req, file)
-}
-
-// ServeStream serves file via io stream
-func (ctx *Context) ServeStream(rd io.Reader, name string) {
-	ctx.SetServeHeaders(name)
-	_, err := io.Copy(ctx.Resp, rd)
-	if err != nil {
-		ctx.ServerError("Download file failed", err)
-	}
+func (ctx *Context) ServeContent(r io.ReadSeeker, opts *ServeHeaderOptions) {
+	ctx.SetServeHeaders(opts)
+	http.ServeContent(ctx.Resp, ctx.Req, opts.Filename, opts.LastModified, r)
 }
 
 // UploadStream returns the request body or the first form file
@@ -673,8 +685,8 @@ func Auth(authMethod auth.Method) func(*Context) {
 }
 
 // Contexter initializes a classic context for a request.
-func Contexter() func(next http.Handler) http.Handler {
-	rnd := templates.HTMLRenderer()
+func Contexter(ctx context.Context) func(next http.Handler) http.Handler {
+	_, rnd := templates.HTMLRenderer(ctx)
 	csrfOpts := getCsrfOpts()
 	if !setting.IsProd {
 		CsrfTokenRegenerationInterval = 5 * time.Second // in dev, re-generate the tokens more aggressively for debug purpose
@@ -767,6 +779,7 @@ func Contexter() func(next http.Handler) http.Handler {
 				}
 			}
 
+			httpcache.AddCacheControlToHeader(ctx.Resp.Header(), 0, "no-transform")
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 			ctx.Data["CsrfToken"] = ctx.csrf.GetToken()
@@ -794,7 +807,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.Data["UnitPullsGlobalDisabled"] = unit.TypePullRequests.UnitGlobalDisabled()
 			ctx.Data["UnitProjectsGlobalDisabled"] = unit.TypeProjects.UnitGlobalDisabled()
 
-			ctx.Data["i18n"] = locale
+			ctx.Data["locale"] = locale
 			ctx.Data["AllLangs"] = translation.AllLangs()
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)

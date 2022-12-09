@@ -1,7 +1,6 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package context
 
@@ -16,6 +15,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -268,6 +268,7 @@ func APIContexter() func(http.Handler) http.Handler {
 				}
 			}
 
+			httpcache.AddCacheControlToHeader(ctx.Resp.Header(), 0, "no-transform")
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 			ctx.Data["Context"] = &ctx
@@ -340,7 +341,7 @@ func ReferencesGitRepo(allowEmpty ...bool) func(ctx *APIContext) (cancel context
 			}
 		}
 
-		return
+		return cancel
 	}
 }
 

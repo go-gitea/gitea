@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package packages
 
@@ -119,5 +118,5 @@ func (h *MultiHasher) Sums() (hashMD5, hashSHA1, hashSHA256, hashSHA512 []byte) 
 	hashSHA1 = h.sha1.Sum(nil)
 	hashSHA256 = h.sha256.Sum(nil)
 	hashSHA512 = h.sha512.Sum(nil)
-	return
+	return hashMD5, hashSHA1, hashSHA256, hashSHA512
 }

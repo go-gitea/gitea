@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 //go:build !gogit
 
@@ -58,5 +57,5 @@ func NewHasher(t ObjectType, size int64) Hasher {
 // Sum generates a SHA1 for the provided hash
 func (h Hasher) Sum() (sha1 SHA1) {
 	copy(sha1[:], h.Hash.Sum(nil))
-	return
+	return sha1
 }

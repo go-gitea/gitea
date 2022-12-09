@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package code
 
@@ -223,12 +222,12 @@ func (b *ElasticSearchIndexer) addUpdate(ctx context.Context, batchWriter git.Wr
 	var err error
 	if !update.Sized {
 		var stdout string
-		stdout, _, err = git.NewCommand(ctx, "cat-file", "-s", update.BlobSha).RunStdString(&git.RunOpts{Dir: repo.RepoPath()})
+		stdout, _, err = git.NewCommand(ctx, "cat-file", "-s").AddDynamicArguments(update.BlobSha).RunStdString(&git.RunOpts{Dir: repo.RepoPath()})
 		if err != nil {
 			return nil, err
 		}
 		if size, err = strconv.ParseInt(strings.TrimSpace(stdout), 10, 64); err != nil {
-			return nil, fmt.Errorf("misformatted git cat-file output: %v", err)
+			return nil, fmt.Errorf("misformatted git cat-file output: %w", err)
 		}
 	}
 
@@ -284,7 +283,7 @@ func (b *ElasticSearchIndexer) Index(ctx context.Context, repo *repo_model.Repos
 	reqs := make([]elastic.BulkableRequest, 0)
 	if len(changes.Updates) > 0 {
 		// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
-		if err := git.EnsureValidGitRepository(git.DefaultContext, repo.RepoPath()); err != nil {
+		if err := git.EnsureValidGitRepository(ctx, repo.RepoPath()); err != nil {
 			log.Error("Unable to open git repo: %s for %-v: %v", repo.RepoPath(), repo, err)
 			return err
 		}
@@ -348,7 +347,7 @@ func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) 
 		// FIXME: There is no way to get the position the keyword on the content currently on the same request.
 		// So we get it from content, this may made the query slower. See
 		// https://discuss.elastic.co/t/fetching-position-of-keyword-in-matched-document/94291
-		var startIndex, endIndex int = -1, -1
+		var startIndex, endIndex int
 		c, ok := hit.Highlight["content"]
 		if ok && len(c) > 0 {
 			// FIXME: Since the highlighting content will include <em> and </em> for the keywords,

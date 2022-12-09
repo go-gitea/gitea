@@ -1,6 +1,5 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -13,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	git_model "code.gitea.io/gitea/models/git"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
@@ -763,7 +763,7 @@ func UploadFileToServer(ctx *context.Context) {
 		return
 	}
 
-	upload, err := models.NewUpload(name, buf, file)
+	upload, err := repo_model.NewUpload(name, buf, file)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("NewUpload: %v", err))
 		return
@@ -783,7 +783,7 @@ func RemoveUploadFileFromServer(ctx *context.Context) {
 		return
 	}
 
-	if err := models.DeleteUploadByUUID(form.File); err != nil {
+	if err := repo_model.DeleteUploadByUUID(form.File); err != nil {
 		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("DeleteUploadByUUID: %v", err))
 		return
 	}

@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package setting
 
@@ -38,7 +37,9 @@ var Service = struct {
 	EnableReverseProxyAuth                  bool
 	EnableReverseProxyAutoRegister          bool
 	EnableReverseProxyEmail                 bool
+	EnableReverseProxyFullName              bool
 	EnableCaptcha                           bool
+	RequireCaptchaForLogin                  bool
 	RequireExternalRegistrationCaptcha      bool
 	RequireExternalRegistrationPassword     bool
 	CaptchaType                             string
@@ -47,6 +48,9 @@ var Service = struct {
 	RecaptchaURL                            string
 	HcaptchaSecret                          string
 	HcaptchaSitekey                         string
+	McaptchaSecret                          string
+	McaptchaSitekey                         string
+	McaptchaURL                             string
 	DefaultKeepEmailPrivate                 bool
 	DefaultAllowCreateOrganization          bool
 	DefaultUserIsRestricted                 bool
@@ -96,7 +100,7 @@ func (a AllowedVisibility) ToVisibleTypeSlice() (result []structs.VisibleType) {
 			result = append(result, structs.VisibleType(i))
 		}
 	}
-	return
+	return result
 }
 
 func newService() {
@@ -124,7 +128,9 @@ func newService() {
 	Service.EnableReverseProxyAuth = sec.Key("ENABLE_REVERSE_PROXY_AUTHENTICATION").MustBool()
 	Service.EnableReverseProxyAutoRegister = sec.Key("ENABLE_REVERSE_PROXY_AUTO_REGISTRATION").MustBool()
 	Service.EnableReverseProxyEmail = sec.Key("ENABLE_REVERSE_PROXY_EMAIL").MustBool()
+	Service.EnableReverseProxyFullName = sec.Key("ENABLE_REVERSE_PROXY_FULL_NAME").MustBool()
 	Service.EnableCaptcha = sec.Key("ENABLE_CAPTCHA").MustBool(false)
+	Service.RequireCaptchaForLogin = sec.Key("REQUIRE_CAPTCHA_FOR_LOGIN").MustBool(false)
 	Service.RequireExternalRegistrationCaptcha = sec.Key("REQUIRE_EXTERNAL_REGISTRATION_CAPTCHA").MustBool(Service.EnableCaptcha)
 	Service.RequireExternalRegistrationPassword = sec.Key("REQUIRE_EXTERNAL_REGISTRATION_PASSWORD").MustBool()
 	Service.CaptchaType = sec.Key("CAPTCHA_TYPE").MustString(ImageCaptcha)
@@ -133,6 +139,9 @@ func newService() {
 	Service.RecaptchaURL = sec.Key("RECAPTCHA_URL").MustString("https://www.google.com/recaptcha/")
 	Service.HcaptchaSecret = sec.Key("HCAPTCHA_SECRET").MustString("")
 	Service.HcaptchaSitekey = sec.Key("HCAPTCHA_SITEKEY").MustString("")
+	Service.McaptchaURL = sec.Key("MCAPTCHA_URL").MustString("https://demo.mcaptcha.org/")
+	Service.McaptchaSecret = sec.Key("MCAPTCHA_SECRET").MustString("")
+	Service.McaptchaSitekey = sec.Key("MCAPTCHA_SITEKEY").MustString("")
 	Service.DefaultKeepEmailPrivate = sec.Key("DEFAULT_KEEP_EMAIL_PRIVATE").MustBool()
 	Service.DefaultAllowCreateOrganization = sec.Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").MustBool(true)
 	Service.DefaultUserIsRestricted = sec.Key("DEFAULT_USER_IS_RESTRICTED").MustBool(false)

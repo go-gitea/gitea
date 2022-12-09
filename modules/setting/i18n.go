@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package setting
 
@@ -26,7 +25,6 @@ var defaultI18nLangNames = []string{
 	"fi-FI", "Suomi",
 	"tr-TR", "Türkçe",
 	"cs-CZ", "Čeština",
-	"sr-SP", "Српски",
 	"sv-SE", "Svenska",
 	"ko-KR", "한국어",
 	"el-GR", "Ελληνικά",
@@ -40,12 +38,12 @@ func defaultI18nLangs() (res []string) {
 	for i := 0; i < len(defaultI18nLangNames); i += 2 {
 		res = append(res, defaultI18nLangNames[i])
 	}
-	return
+	return res
 }
 
 func defaultI18nNames() (res []string) {
 	for i := 0; i < len(defaultI18nLangNames); i += 2 {
 		res = append(res, defaultI18nLangNames[i+1])
 	}
-	return
+	return res
 }

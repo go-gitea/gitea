@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package organization
 
@@ -118,7 +117,7 @@ func loadOrganizationOwners(ctx context.Context, users user_model.UserList, orgI
 		And("team_id=?", ownerTeam.ID).
 		Find(&ownerMaps)
 	if err != nil {
-		return nil, fmt.Errorf("find team users: %v", err)
+		return nil, fmt.Errorf("find team users: %w", err)
 	}
 	return ownerMaps, nil
 }

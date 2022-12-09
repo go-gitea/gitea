@@ -1,6 +1,5 @@
 // Copyright 2017 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues_test
 
@@ -18,7 +17,7 @@ import (
 func Test_NewIssueUsers(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	newIssue := &issues_model.Issue{
 		RepoID:   repo.ID,
 		PosterID: 4,
@@ -39,7 +38,7 @@ func Test_NewIssueUsers(t *testing.T) {
 
 func TestUpdateIssueUserByRead(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1}).(*issues_model.Issue)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
 
 	assert.NoError(t, issues_model.UpdateIssueUserByRead(4, issue.ID))
 	unittest.AssertExistsAndLoadBean(t, &issues_model.IssueUser{IssueID: issue.ID, UID: 4}, "is_read=1")
@@ -52,7 +51,7 @@ func TestUpdateIssueUserByRead(t *testing.T) {
 
 func TestUpdateIssueUsersByMentions(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1}).(*issues_model.Issue)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
 
 	uids := []int64{2, 5}
 	assert.NoError(t, issues_model.UpdateIssueUsersByMentions(db.DefaultContext, issue.ID, uids))

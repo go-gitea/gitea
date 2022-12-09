@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package typesniffer
 
@@ -68,6 +67,16 @@ func (ct SniffedType) IsAudio() bool {
 // plain text or is empty.
 func (ct SniffedType) IsRepresentableAsText() bool {
 	return ct.IsText() || ct.IsSvgImage()
+}
+
+// IsBrowsableType returns whether a non-text type can be displayed in a browser
+func (ct SniffedType) IsBrowsableBinaryType() bool {
+	return ct.IsImage() || ct.IsSvgImage() || ct.IsPDF() || ct.IsVideo() || ct.IsAudio()
+}
+
+// GetMimeType returns the mime type
+func (ct SniffedType) GetMimeType() string {
+	return strings.SplitN(ct.contentType, ";", 2)[0]
 }
 
 // DetectContentType extends http.DetectContentType with more content types. Defaults to text/unknown if input is empty.

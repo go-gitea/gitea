@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package queue
 
@@ -62,7 +61,7 @@ func NewPersistableChannelUniqueQueue(handle HandlerFunc, cfg, exemplar interfac
 				failed = append(failed, fail)
 			}
 		}
-		return
+		return failed
 	}
 
 	channelUniqueQueue, err := NewChannelUniqueQueue(wrappedHandle, ChannelUniqueQueueConfiguration{

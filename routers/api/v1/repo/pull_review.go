@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -71,7 +70,7 @@ func ListPullReviews(ctx *context.APIContext) {
 		return
 	}
 
-	if err = pr.LoadIssue(); err != nil {
+	if err = pr.LoadIssue(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
 		return
 	}
@@ -476,7 +475,7 @@ func SubmitPullReview(ctx *context.APIContext) {
 
 // preparePullReviewType return ReviewType and false or nil and true if an error happen
 func preparePullReviewType(ctx *context.APIContext, pr *issues_model.PullRequest, event api.ReviewStateType, body string, hasComments bool) (issues_model.ReviewType, bool) {
-	if err := pr.LoadIssue(); err != nil {
+	if err := pr.LoadIssue(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
 		return -1, true
 	}
@@ -823,7 +822,7 @@ func DismissPullReview(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	opts := web.GetForm(ctx).(*api.DismissPullReviewOptions)
-	dismissReview(ctx, opts.Message, true)
+	dismissReview(ctx, opts.Message, true, opts.Priors)
 }
 
 // UnDismissPullReview cancel to dismiss a review for a pull request
@@ -863,10 +862,10 @@ func UnDismissPullReview(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	dismissReview(ctx, "", false)
+	dismissReview(ctx, "", false, false)
 }
 
-func dismissReview(ctx *context.APIContext, msg string, isDismiss bool) {
+func dismissReview(ctx *context.APIContext, msg string, isDismiss, dismissPriors bool) {
 	if !ctx.Repo.IsAdmin() {
 		ctx.Error(http.StatusForbidden, "", "Must be repo admin")
 		return
@@ -886,7 +885,7 @@ func dismissReview(ctx *context.APIContext, msg string, isDismiss bool) {
 		return
 	}
 
-	_, err := pull_service.DismissReview(ctx, review.ID, msg, ctx.Doer, isDismiss)
+	_, err := pull_service.DismissReview(ctx, review.ID, ctx.Repo.Repository.ID, msg, ctx.Doer, isDismiss, dismissPriors)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "pull_service.DismissReview", err)
 		return

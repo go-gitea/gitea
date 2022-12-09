@@ -1,10 +1,10 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -105,7 +105,7 @@ func Projects(ctx *context.Context) {
 
 	numPages := 0
 	if count > 0 {
-		numPages = int((int(count) - 1) / setting.UI.IssuePagingNum)
+		numPages = (int(count) - 1/setting.UI.IssuePagingNum)
 	}
 
 	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, numPages)
@@ -296,7 +296,7 @@ func ViewProject(ctx *context.Context) {
 		boards[0].Title = ctx.Tr("repo.projects.type.uncategorized")
 	}
 
-	issuesMap, err := issues_model.LoadIssuesFromBoardList(boards)
+	issuesMap, err := issues_model.LoadIssuesFromBoardList(ctx, boards)
 	if err != nil {
 		ctx.ServerError("LoadIssuesOfBoards", err)
 		return
@@ -313,7 +313,7 @@ func ViewProject(ctx *context.Context) {
 			}
 
 			if len(referencedIds) > 0 {
-				if linkedPrs, err := issues_model.Issues(&issues_model.IssuesOptions{
+				if linkedPrs, err := issues_model.Issues(ctx, &issues_model.IssuesOptions{
 					IssueIDs: referencedIds,
 					IsPull:   util.OptionalBoolTrue,
 				}); err == nil {
@@ -633,8 +633,15 @@ func MoveIssues(ctx *context.Context) {
 	}
 
 	if len(movedIssues) != len(form.Issues) {
-		ctx.ServerError("IssuesNotFound", err)
+		ctx.ServerError("some issues do not exist", errors.New("some issues do not exist"))
 		return
+	}
+
+	for _, issue := range movedIssues {
+		if issue.RepoID != project.RepoID {
+			ctx.ServerError("Some issue's repoID is not equal to project's repoID", errors.New("Some issue's repoID is not equal to project's repoID"))
+			return
+		}
 	}
 
 	if err = project_model.MoveIssuesOnProjectBoard(board, sortedIssueIDs); err != nil {

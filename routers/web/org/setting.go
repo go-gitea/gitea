@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package org
 
@@ -24,6 +23,7 @@ import (
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/org"
+	container_service "code.gitea.io/gitea/services/packages/container"
 	repo_service "code.gitea.io/gitea/services/repository"
 	user_service "code.gitea.io/gitea/services/user"
 )
@@ -88,6 +88,12 @@ func SettingsPost(ctx *context.Context) {
 			}
 			return
 		}
+
+		if err := container_service.UpdateRepositoryNames(ctx, org.AsUser(), form.Name); err != nil {
+			ctx.ServerError("UpdateRepositoryNames", err)
+			return
+		}
+
 		// reset ctx.org.OrgLink with new name
 		ctx.Org.OrgLink = setting.AppSubURL + "/org/" + url.PathEscape(form.Name)
 		log.Trace("Organization name changed: %s -> %s", org.Name, form.Name)

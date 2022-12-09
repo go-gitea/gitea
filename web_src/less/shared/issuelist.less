@@ -91,6 +91,14 @@
           border-radius: 3px;
           vertical-align: 2px !important;
         }
+
+        progress::-webkit-progress-value {
+          background-color: var(--color-secondary-dark-4);
+        }
+
+        progress::-moz-progress-bar {
+          background-color: var(--color-secondary-dark-4);
+        }
       }
 
       .conflicting {
@@ -101,7 +109,8 @@
         padding-left: 5px;
       }
 
-      a.milestone {
+      a.milestone,
+      a.project {
         margin-left: 5px;
       }
 
@@ -121,7 +130,7 @@
 
   .branches {
     display: inline-flex;
-    padding: 0 6px;
+    padding: 0 4px;
 
     .branch {
       background-color: var(--color-secondary);

@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -25,6 +24,10 @@ func (err ErrIssueStopwatchNotExist) Error() string {
 	return fmt.Sprintf("issue stopwatch doesn't exist[uid: %d, issue_id: %d", err.UserID, err.IssueID)
 }
 
+func (err ErrIssueStopwatchNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrIssueStopwatchAlreadyExist represents an error that stopwatch is already exist
 type ErrIssueStopwatchAlreadyExist struct {
 	UserID  int64
@@ -33,6 +36,10 @@ type ErrIssueStopwatchAlreadyExist struct {
 
 func (err ErrIssueStopwatchAlreadyExist) Error() string {
 	return fmt.Sprintf("issue stopwatch already exists[uid: %d, issue_id: %d", err.UserID, err.IssueID)
+}
+
+func (err ErrIssueStopwatchAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
 }
 
 // Stopwatch represents a stopwatch for time tracking.
@@ -63,7 +70,7 @@ func getStopwatch(ctx context.Context, userID, issueID int64) (sw *Stopwatch, ex
 		Where("user_id = ?", userID).
 		And("issue_id = ?", issueID).
 		Get(sw)
-	return
+	return sw, exists, err
 }
 
 // UserIDCount is a simple coalition of UserID and Count
@@ -130,7 +137,7 @@ func HasUserStopwatch(ctx context.Context, userID int64) (exists bool, sw *Stopw
 	exists, err = db.GetEngine(ctx).
 		Where("user_id = ?", userID).
 		Get(sw)
-	return
+	return exists, sw, err
 }
 
 // FinishIssueStopwatchIfPossible if stopwatch exist then finish it otherwise ignore
@@ -253,7 +260,7 @@ func CreateIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 
 // CancelStopwatch removes the given stopwatch and logs it into issue's timeline.
 func CancelStopwatch(user *user_model.User, issue *Issue) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

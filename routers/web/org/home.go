@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package org
 
@@ -38,11 +37,6 @@ func Home(ctx *context.Context) {
 	}
 
 	org := ctx.Org.Organization
-
-	if !organization.HasOrgOrUserVisible(ctx, org.AsUser(), ctx.Doer) {
-		ctx.NotFound("HasOrgOrUserVisible", nil)
-		return
-	}
 
 	ctx.Data["PageIsUserProfile"] = true
 	ctx.Data["Title"] = org.DisplayName()
@@ -104,7 +98,7 @@ func Home(ctx *context.Context) {
 		count int64
 		err   error
 	)
-	repos, count, err = repo_model.SearchRepository(&repo_model.SearchRepoOptions{
+	repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,

@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package references
 
@@ -379,7 +378,7 @@ func FindRenderizableReferenceAlphanumeric(content string) (bool, *RenderizableR
 	action, location := findActionKeywords([]byte(content), match[2])
 
 	return true, &RenderizableReference{
-		Issue:          string(content[match[2]:match[3]]),
+		Issue:          content[match[2]:match[3]],
 		RefLocation:    &RefSpan{Start: match[2], End: match[3]},
 		Action:         action,
 		ActionLocation: location,
@@ -506,7 +505,7 @@ func getCrossReference(content []byte, start, end int, fromLink, prOnly bool) *r
 	}
 	repo := string(content[start : start+sep])
 	issue := string(content[start+sep+1 : end])
-	index, err := strconv.ParseInt(string(issue), 10, 64)
+	index, err := strconv.ParseInt(issue, 10, 64)
 	if err != nil {
 		return nil
 	}

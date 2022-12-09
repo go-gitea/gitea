@@ -1,10 +1,10 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package auth
 
 import (
+	"context"
 	"net/http"
 	"reflect"
 	"strings"
@@ -51,14 +51,14 @@ func (b *Group) Name() string {
 }
 
 // Init does nothing as the Basic implementation does not need to allocate any resources
-func (b *Group) Init() error {
+func (b *Group) Init(ctx context.Context) error {
 	for _, method := range b.methods {
 		initializable, ok := method.(Initializable)
 		if !ok {
 			continue
 		}
 
-		if err := initializable.Init(); err != nil {
+		if err := initializable.Init(ctx); err != nil {
 			return err
 		}
 	}

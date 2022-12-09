@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package webhook
 
@@ -143,6 +142,35 @@ func TestTelegramPayload(t *testing.T) {
 		require.IsType(t, &TelegramPayload{}, pl)
 
 		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Repository created`, pl.(*TelegramPayload).Message)
+	})
+
+	t.Run("Wiki", func(t *testing.T) {
+		p := wikiTestPayload()
+
+		d := new(TelegramPayload)
+		p.Action = api.HookWikiCreated
+		pl, err := d.Wiki(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &TelegramPayload{}, pl)
+
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] New wiki page '<a href="http://localhost:3000/test/repo/wiki/index">index</a>' (Wiki change comment) by <a href="https://try.gitea.io/user1">user1</a>`, pl.(*TelegramPayload).Message)
+
+		p.Action = api.HookWikiEdited
+		pl, err = d.Wiki(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &TelegramPayload{}, pl)
+
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Wiki page '<a href="http://localhost:3000/test/repo/wiki/index">index</a>' edited (Wiki change comment) by <a href="https://try.gitea.io/user1">user1</a>`, pl.(*TelegramPayload).Message)
+
+		p.Action = api.HookWikiDeleted
+		pl, err = d.Wiki(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &TelegramPayload{}, pl)
+
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Wiki page '<a href="http://localhost:3000/test/repo/wiki/index">index</a>' deleted by <a href="https://try.gitea.io/user1">user1</a>`, pl.(*TelegramPayload).Message)
 	})
 
 	t.Run("Release", func(t *testing.T) {

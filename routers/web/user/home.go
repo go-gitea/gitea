@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -14,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -56,7 +55,7 @@ func getDashboardContextUser(ctx *context.Context) *user_model.User {
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
-	orgs, err := models.GetUserOrgsList(ctx.Doer)
+	orgs, err := organization.GetUserOrgsList(ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserOrgsList", err)
 		return nil
@@ -91,7 +90,7 @@ func Dashboard(ctx *context.Context) {
 	}
 
 	if setting.Service.EnableUserHeatmap {
-		data, err := models.GetUserHeatmapDataByUserTeam(ctxUser, ctx.Org.Team, ctx.Doer)
+		data, err := activities_model.GetUserHeatmapDataByUserTeam(ctxUser, ctx.Org.Team, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("GetUserHeatmapDataByUserTeam", err)
 			return
@@ -100,40 +99,7 @@ func Dashboard(ctx *context.Context) {
 	}
 
 	var err error
-	var mirrors []*repo_model.Repository
-	if ctxUser.IsOrganization() {
-		var env organization.AccessibleReposEnvironment
-		if ctx.Org.Team != nil {
-			env = organization.OrgFromUser(ctxUser).AccessibleTeamReposEnv(ctx.Org.Team)
-		} else {
-			env, err = organization.AccessibleReposEnv(ctx, organization.OrgFromUser(ctxUser), ctx.Doer.ID)
-			if err != nil {
-				ctx.ServerError("AccessibleReposEnv", err)
-				return
-			}
-		}
-		mirrors, err = env.MirrorRepos()
-		if err != nil {
-			ctx.ServerError("env.MirrorRepos", err)
-			return
-		}
-	} else {
-		mirrors, err = repo_model.GetUserMirrorRepositories(ctxUser.ID)
-		if err != nil {
-			ctx.ServerError("GetUserMirrorRepositories", err)
-			return
-		}
-	}
-	ctx.Data["MaxShowRepoNum"] = setting.UI.User.RepoPagingNum
-
-	if err := repo_model.MirrorRepositoryList(mirrors).LoadAttributes(); err != nil {
-		ctx.ServerError("MirrorRepositoryList.LoadAttributes", err)
-		return
-	}
-	ctx.Data["MirrorCount"] = len(mirrors)
-	ctx.Data["Mirrors"] = mirrors
-
-	ctx.Data["Feeds"], err = models.GetFeeds(ctx, models.GetFeedsOptions{
+	ctx.Data["Feeds"], err = activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
 		RequestedUser:   ctxUser,
 		RequestedTeam:   ctx.Org.Team,
 		Actor:           ctx.Doer,
@@ -141,6 +107,7 @@ func Dashboard(ctx *context.Context) {
 		OnlyPerformedBy: false,
 		IncludeDeleted:  false,
 		Date:            ctx.FormString("date"),
+		ListOptions:     db.ListOptions{PageSize: setting.UI.FeedPagingNum},
 	})
 	if err != nil {
 		ctx.ServerError("GetFeeds", err)
@@ -234,7 +201,7 @@ func Milestones(ctx *context.Context) {
 		return
 	}
 
-	showRepos, _, err := repo_model.SearchRepositoryByCondition(&repoOpts, userRepoCond, false)
+	showRepos, _, err := repo_model.SearchRepositoryByCondition(ctx, &repoOpts, userRepoCond, false)
 	if err != nil {
 		ctx.ServerError("SearchRepositoryByCondition", err)
 		return
@@ -333,6 +300,7 @@ func Pulls(ctx *context.Context) {
 
 	ctx.Data["Title"] = ctx.Tr("pull_requests")
 	ctx.Data["PageIsPulls"] = true
+	ctx.Data["SingleRepoAction"] = "pull"
 	buildIssueOverview(ctx, unit.TypePullRequests)
 }
 
@@ -346,6 +314,7 @@ func Issues(ctx *context.Context) {
 
 	ctx.Data["Title"] = ctx.Tr("issues")
 	ctx.Data["PageIsIssues"] = true
+	ctx.Data["SingleRepoAction"] = "issue"
 	buildIssueOverview(ctx, unit.TypeIssues)
 }
 
@@ -491,7 +460,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// USING NON-FINAL STATE OF opts FOR A QUERY.
 	var issueCountByRepo map[int64]int64
 	if !forceEmpty {
-		issueCountByRepo, err = issues_model.CountIssuesByRepo(opts)
+		issueCountByRepo, err = issues_model.CountIssuesByRepo(ctx, opts)
 		if err != nil {
 			ctx.ServerError("CountIssuesByRepo", err)
 			return
@@ -534,7 +503,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// USING FINAL STATE OF opts FOR A QUERY.
 	var issues []*issues_model.Issue
 	if !forceEmpty {
-		issues, err = issues_model.Issues(opts)
+		issues, err = issues_model.Issues(ctx, opts)
 		if err != nil {
 			ctx.ServerError("Issues", err)
 			return
@@ -590,6 +559,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			LabelIDs:   opts.LabelIDs,
 			Org:        org,
 			Team:       team,
+			RepoCond:   opts.RepoCond,
 		}
 
 		issueStats, err = issues_model.GetUserIssueStats(statsOpts)
@@ -605,15 +575,26 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	var shownIssues int
 	if !isShowClosed {
 		shownIssues = int(issueStats.OpenCount)
-		ctx.Data["TotalIssueCount"] = shownIssues
 	} else {
 		shownIssues = int(issueStats.ClosedCount)
-		ctx.Data["TotalIssueCount"] = shownIssues
 	}
 	if len(repoIDs) != 0 {
 		shownIssues = 0
 		for _, repoID := range repoIDs {
 			shownIssues += int(issueCountByRepo[repoID])
+		}
+	}
+
+	var allIssueCount int64
+	for _, issueCount := range issueCountByRepo {
+		allIssueCount += issueCount
+	}
+	ctx.Data["TotalIssueCount"] = allIssueCount
+
+	if len(repoIDs) == 1 {
+		repo := showReposMap[repoIDs[0]]
+		if repo != nil {
+			ctx.Data["SingleRepoLink"] = repo.Link()
 		}
 	}
 
@@ -715,11 +696,11 @@ func issueIDsFromSearch(ctx *context.Context, ctxUser *user_model.User, keyword 
 
 	searchRepoIDs, err := issues_model.GetRepoIDsForIssuesOptions(opts, ctxUser)
 	if err != nil {
-		return nil, fmt.Errorf("GetRepoIDsForIssuesOptions: %v", err)
+		return nil, fmt.Errorf("GetRepoIDsForIssuesOptions: %w", err)
 	}
 	issueIDsFromSearch, err := issue_indexer.SearchIssuesByKeyword(ctx, searchRepoIDs, keyword)
 	if err != nil {
-		return nil, fmt.Errorf("SearchIssuesByKeyword: %v", err)
+		return nil, fmt.Errorf("SearchIssuesByKeyword: %w", err)
 	}
 
 	return issueIDsFromSearch, nil

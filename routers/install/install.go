@@ -1,22 +1,24 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package install
 
 import (
+	goctx "context"
 	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	db_install "code.gitea.io/gitea/models/db/install"
 	"code.gitea.io/gitea/models/migrations"
+	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -51,39 +53,41 @@ func getSupportedDbTypeNames() (dbTypeNames []map[string]string) {
 }
 
 // Init prepare for rendering installation page
-func Init(next http.Handler) http.Handler {
-	rnd := templates.HTMLRenderer()
+func Init(ctx goctx.Context) func(next http.Handler) http.Handler {
+	_, rnd := templates.HTMLRenderer(ctx)
 	dbTypeNames := getSupportedDbTypeNames()
-	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		if setting.InstallLock {
-			resp.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
-			_ = rnd.HTML(resp, http.StatusOK, string(tplPostInstall), nil)
-			return
-		}
-		locale := middleware.Locale(resp, req)
-		startTime := time.Now()
-		ctx := context.Context{
-			Resp:    context.NewResponse(resp),
-			Flash:   &middleware.Flash{},
-			Locale:  locale,
-			Render:  rnd,
-			Session: session.GetSession(req),
-			Data: map[string]interface{}{
-				"i18n":          locale,
-				"Title":         locale.Tr("install.install"),
-				"PageIsInstall": true,
-				"DbTypeNames":   dbTypeNames,
-				"AllLangs":      translation.AllLangs(),
-				"PageStartTime": startTime,
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			if setting.InstallLock {
+				resp.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
+				_ = rnd.HTML(resp, http.StatusOK, string(tplPostInstall), nil)
+				return
+			}
+			locale := middleware.Locale(resp, req)
+			startTime := time.Now()
+			ctx := context.Context{
+				Resp:    context.NewResponse(resp),
+				Flash:   &middleware.Flash{},
+				Locale:  locale,
+				Render:  rnd,
+				Session: session.GetSession(req),
+				Data: map[string]interface{}{
+					"locale":        locale,
+					"Title":         locale.Tr("install.install"),
+					"PageIsInstall": true,
+					"DbTypeNames":   dbTypeNames,
+					"AllLangs":      translation.AllLangs(),
+					"PageStartTime": startTime,
 
-				"PasswordHashAlgorithms": user_model.AvailableHashAlgorithms,
-			},
-		}
-		defer ctx.Close()
+					"PasswordHashAlgorithms": user_model.AvailableHashAlgorithms,
+				},
+			}
+			defer ctx.Close()
 
-		ctx.Req = context.WithContext(req, &ctx)
-		next.ServeHTTP(resp, ctx.Req)
-	})
+			ctx.Req = context.WithContext(req, &ctx)
+			next.ServeHTTP(resp, ctx.Req)
+		})
+	}
 }
 
 // Install render installation page
@@ -133,7 +137,8 @@ func Install(ctx *context.Context) {
 
 	// E-mail service settings
 	if setting.MailService != nil {
-		form.SMTPHost = setting.MailService.Host
+		form.SMTPAddr = setting.MailService.SMTPAddr
+		form.SMTPPort = setting.MailService.SMTPPort
 		form.SMTPFrom = setting.MailService.From
 		form.SMTPUser = setting.MailService.User
 		form.SMTPPasswd = setting.MailService.Passwd
@@ -143,8 +148,9 @@ func Install(ctx *context.Context) {
 
 	// Server and other services settings
 	form.OfflineMode = setting.OfflineMode
-	form.DisableGravatar = setting.DisableGravatar
-	form.EnableFederatedAvatar = setting.EnableFederatedAvatar
+	form.DisableGravatar = false       // when installing, there is no database connection so that given a default value
+	form.EnableFederatedAvatar = false // when installing, there is no database connection so that given a default value
+
 	form.EnableOpenIDSignIn = setting.Service.EnableOpenIDSignIn
 	form.EnableOpenIDSignUp = setting.Service.EnableOpenIDSignUp
 	form.DisableRegistration = setting.Service.DisableRegistration
@@ -368,7 +374,6 @@ func SubmitInstall(ctx *context.Context) {
 		ctx.RenderWithErr(ctx.Tr("install.invalid_db_setting", err), tplInstall, &form)
 		return
 	}
-	db.UnsetDefaultEngine()
 
 	// Save settings.
 	cfg := ini.Empty()
@@ -421,9 +426,10 @@ func SubmitInstall(ctx *context.Context) {
 		cfg.Section("server").Key("LFS_START_SERVER").SetValue("false")
 	}
 
-	if len(strings.TrimSpace(form.SMTPHost)) > 0 {
+	if len(strings.TrimSpace(form.SMTPAddr)) > 0 {
 		cfg.Section("mailer").Key("ENABLED").SetValue("true")
-		cfg.Section("mailer").Key("HOST").SetValue(form.SMTPHost)
+		cfg.Section("mailer").Key("SMTP_ADDR").SetValue(form.SMTPAddr)
+		cfg.Section("mailer").Key("SMTP_PORT").SetValue(form.SMTPPort)
 		cfg.Section("mailer").Key("FROM").SetValue(form.SMTPFrom)
 		cfg.Section("mailer").Key("USER").SetValue(form.SMTPUser)
 		cfg.Section("mailer").Key("PASSWD").SetValue(form.SMTPPasswd)
@@ -434,7 +440,11 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("service").Key("ENABLE_NOTIFY_MAIL").SetValue(fmt.Sprint(form.MailNotify))
 
 	cfg.Section("server").Key("OFFLINE_MODE").SetValue(fmt.Sprint(form.OfflineMode))
-	cfg.Section("picture").Key("DISABLE_GRAVATAR").SetValue(fmt.Sprint(form.DisableGravatar))
+	// if you are reinstalling, this maybe not right because of missing version
+	if err := system_model.SetSettingNoVersion(system_model.KeyPictureDisableGravatar, strconv.FormatBool(form.DisableGravatar)); err != nil {
+		ctx.RenderWithErr(ctx.Tr("install.secret_key_failed", err), tplInstall, &form)
+		return
+	}
 	cfg.Section("picture").Key("ENABLE_FEDERATED_AVATAR").SetValue(fmt.Sprint(form.EnableFederatedAvatar))
 	cfg.Section("openid").Key("ENABLE_OPENID_SIGNIN").SetValue(fmt.Sprint(form.EnableOpenIDSignIn))
 	cfg.Section("openid").Key("ENABLE_OPENID_SIGNUP").SetValue(fmt.Sprint(form.EnableOpenIDSignUp))
@@ -446,6 +456,7 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("service").Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").SetValue(fmt.Sprint(form.DefaultAllowCreateOrganization))
 	cfg.Section("service").Key("DEFAULT_ENABLE_TIMETRACKING").SetValue(fmt.Sprint(form.DefaultEnableTimetracking))
 	cfg.Section("service").Key("NO_REPLY_ADDRESS").SetValue(fmt.Sprint(form.NoReplyAddress))
+	cfg.Section("cron.update_checker").Key("ENABLED").SetValue(fmt.Sprint(form.EnableUpdateChecker))
 
 	cfg.Section("").Key("RUN_MODE").SetValue("prod")
 
@@ -462,12 +473,16 @@ func SubmitInstall(ctx *context.Context) {
 
 	cfg.Section("security").Key("INSTALL_LOCK").SetValue("true")
 
-	var internalToken string
-	if internalToken, err = generate.NewInternalToken(); err != nil {
-		ctx.RenderWithErr(ctx.Tr("install.internal_token_failed", err), tplInstall, &form)
-		return
+	// the internal token could be read from INTERNAL_TOKEN or INTERNAL_TOKEN_URI (the file is guaranteed to be non-empty)
+	// if there is no InternalToken, generate one and save to security.INTERNAL_TOKEN
+	if setting.InternalToken == "" {
+		var internalToken string
+		if internalToken, err = generate.NewInternalToken(); err != nil {
+			ctx.RenderWithErr(ctx.Tr("install.internal_token_failed", err), tplInstall, &form)
+			return
+		}
+		cfg.Section("security").Key("INTERNAL_TOKEN").SetValue(internalToken)
 	}
-	cfg.Section("security").Key("INTERNAL_TOKEN").SetValue(internalToken)
 
 	// if there is already a SECRET_KEY, we should not overwrite it, otherwise the encrypted data will not be able to be decrypted
 	if setting.SecretKey == "" {
@@ -495,6 +510,9 @@ func SubmitInstall(ctx *context.Context) {
 		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 		return
 	}
+
+	// unset default engine before reload database setting
+	db.UnsetDefaultEngine()
 
 	// ---- All checks are passed
 

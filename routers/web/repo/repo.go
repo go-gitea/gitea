@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -10,18 +9,17 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
-	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -85,13 +83,13 @@ func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
 		return ctx.Doer
 	}
 
-	org, err := user_model.GetUserByID(uid)
+	org, err := user_model.GetUserByID(ctx, uid)
 	if user_model.IsErrUserNotExist(err) {
 		return ctx.Doer
 	}
 
 	if err != nil {
-		ctx.ServerError("GetUserByID", fmt.Errorf("[%d]: %v", uid, err))
+		ctx.ServerError("GetUserByID", fmt.Errorf("[%d]: %w", uid, err))
 		return nil
 	}
 
@@ -151,8 +149,8 @@ func Create(ctx *context.Context) {
 	ctx.Data["repo_template_name"] = ctx.Tr("repo.template_select")
 	templateID := ctx.FormInt64("template_id")
 	if templateID > 0 {
-		templateRepo, err := repo_model.GetRepositoryByID(templateID)
-		if err == nil && models.CheckRepoUnitUser(ctx, templateRepo, ctxUser, unit.TypeCode) {
+		templateRepo, err := repo_model.GetRepositoryByID(ctx, templateID)
+		if err == nil && access_model.CheckRepoUnitUser(ctx, templateRepo, ctxUser, unit.TypeCode) {
 			ctx.Data["repo_template"] = templateID
 			ctx.Data["repo_template_name"] = templateRepo.Name
 		}
@@ -257,7 +255,7 @@ func CreatePost(ctx *context.Context) {
 			return
 		}
 	} else {
-		repo, err = repo_service.CreateRepository(ctx.Doer, ctxUser, models.CreateRepoOptions{
+		repo, err = repo_service.CreateRepository(ctx.Doer, ctxUser, repo_module.CreateRepoOptions{
 			Name:          form.RepoName,
 			Description:   form.Description,
 			Gitignores:    form.Gitignores,
@@ -358,7 +356,7 @@ func RedirectDownload(ctx *context.Context) {
 	)
 	tagNames := []string{vTag}
 	curRepo := ctx.Repo.Repository
-	releases, err := models.GetReleasesByRepoIDAndNames(ctx, curRepo.ID, tagNames)
+	releases, err := repo_model.GetReleasesByRepoIDAndNames(ctx, curRepo.ID, tagNames)
 	if err != nil {
 		if repo_model.IsErrAttachmentNotExist(err) {
 			ctx.Error(http.StatusNotFound)
@@ -389,68 +387,27 @@ func Download(ctx *context.Context) {
 	if err != nil {
 		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
 			ctx.Error(http.StatusBadRequest, err.Error())
+		} else if errors.Is(err, archiver_service.RepoRefNotFoundError{}) {
+			ctx.Error(http.StatusNotFound, err.Error())
 		} else {
 			ctx.ServerError("archiver_service.NewRequest", err)
 		}
 		return
 	}
-	if aReq == nil {
-		ctx.Error(http.StatusNotFound)
-		return
-	}
 
-	archiver, err := repo_model.GetRepoArchiver(ctx, aReq.RepoID, aReq.Type, aReq.CommitID)
+	archiver, err := aReq.Await(ctx)
 	if err != nil {
-		ctx.ServerError("models.GetRepoArchiver", err)
-		return
-	}
-	if archiver != nil && archiver.Status == repo_model.ArchiverReady {
-		download(ctx, aReq.GetArchiveName(), archiver)
+		ctx.ServerError("archiver.Await", err)
 		return
 	}
 
-	if err := archiver_service.StartArchive(aReq); err != nil {
-		ctx.ServerError("archiver_service.StartArchive", err)
-		return
-	}
-
-	var times int
-	t := time.NewTicker(time.Second * 1)
-	defer t.Stop()
-
-	for {
-		select {
-		case <-graceful.GetManager().HammerContext().Done():
-			log.Warn("exit archive download because system stop")
-			return
-		case <-t.C:
-			if times > 20 {
-				ctx.ServerError("wait download timeout", nil)
-				return
-			}
-			times++
-			archiver, err = repo_model.GetRepoArchiver(ctx, aReq.RepoID, aReq.Type, aReq.CommitID)
-			if err != nil {
-				ctx.ServerError("archiver_service.StartArchive", err)
-				return
-			}
-			if archiver != nil && archiver.Status == repo_model.ArchiverReady {
-				download(ctx, aReq.GetArchiveName(), archiver)
-				return
-			}
-		}
-	}
+	download(ctx, aReq.GetArchiveName(), archiver)
 }
 
 func download(ctx *context.Context, archiveName string, archiver *repo_model.RepoArchiver) {
 	downloadName := ctx.Repo.Repository.Name + "-" + archiveName
 
-	rPath, err := archiver.RelativePath()
-	if err != nil {
-		ctx.ServerError("archiver.RelativePath", err)
-		return
-	}
-
+	rPath := archiver.RelativePath()
 	if setting.RepoArchive.ServeDirect {
 		// If we have a signed url (S3, object storage), redirect to this directly.
 		u, err := storage.RepoArchives.URL(rPath, downloadName)
@@ -467,7 +424,11 @@ func download(ctx *context.Context, archiveName string, archiver *repo_model.Rep
 		return
 	}
 	defer fr.Close()
-	ctx.ServeStream(fr, downloadName)
+
+	ctx.ServeContent(fr, &context.ServeHeaderOptions{
+		Filename:     downloadName,
+		LastModified: archiver.CreatedUnix.AsLocalTime(),
+	})
 }
 
 // InitiateDownload will enqueue an archival request, as needed.  It may submit
@@ -581,7 +542,7 @@ func SearchRepo(ctx *context.Context) {
 	}
 
 	var err error
-	repos, count, err := repo_model.SearchRepository(opts)
+	repos, count, err := repo_model.SearchRepository(ctx, opts)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, api.SearchError{
 			OK:    false,

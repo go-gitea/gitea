@@ -1,6 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -100,6 +99,9 @@ func RefURL(repoURL, ref string) string {
 		return repoURL + "/src/branch/" + refName
 	case strings.HasPrefix(ref, TagPrefix):
 		return repoURL + "/src/tag/" + refName
+	case !IsValidSHAPattern(ref):
+		// assume they mean a branch
+		return repoURL + "/src/branch/" + refName
 	default:
 		return repoURL + "/src/commit/" + refName
 	}
@@ -163,7 +165,7 @@ func (l *LimitedReaderCloser) Read(p []byte) (n int, err error) {
 	}
 	n, err = l.R.Read(p)
 	l.N -= int64(n)
-	return
+	return n, err
 }
 
 // Close implements io.Closer
