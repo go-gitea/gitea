@@ -1,7 +1,6 @@
 // Copyright 2019 The Gitea Authors.
 // All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package pull
 
@@ -753,7 +752,7 @@ func IsUserAllowedToMerge(ctx context.Context, pr *issues_model.PullRequest, p a
 		return false, nil
 	}
 
-	err := pr.LoadProtectedBranchCtx(ctx)
+	err := pr.LoadProtectedBranch(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -771,7 +770,7 @@ func CheckPullBranchProtections(ctx context.Context, pr *issues_model.PullReques
 		return fmt.Errorf("LoadBaseRepo: %w", err)
 	}
 
-	if err = pr.LoadProtectedBranchCtx(ctx); err != nil {
+	if err = pr.LoadProtectedBranch(ctx); err != nil {
 		return fmt.Errorf("LoadProtectedBranch: %w", err)
 	}
 	if pr.ProtectedBranch == nil {

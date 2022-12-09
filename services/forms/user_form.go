@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package forms
 
@@ -369,9 +368,8 @@ func (f *AddKeyForm) Validate(req *http.Request, errs binding.Errors) binding.Er
 
 // AddSecretForm for adding secrets
 type AddSecretForm struct {
-	Title           string `binding:"Required;MaxSize(50)"`
-	Content         string `binding:"Required"`
-	PullRequestRead bool
+	Title   string `binding:"Required;MaxSize(50)"`
+	Content string `binding:"Required"`
 }
 
 // Validate validates the fields

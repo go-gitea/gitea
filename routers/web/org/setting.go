@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package org
 
@@ -260,7 +259,7 @@ func Secrets(ctx *context.Context) {
 
 	secrets, err := secret_service.FindUserSecrets(ctx, ctx.Org.Organization.ID)
 	if err != nil {
-		ctx.ServerError("FindRepoSecrets", err)
+		ctx.ServerError("FindUserSecrets", err)
 		return
 	}
 	ctx.Data["Secrets"] = secrets
@@ -271,7 +270,7 @@ func Secrets(ctx *context.Context) {
 // SecretsPost add secrets
 func SecretsPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AddSecretForm)
-	if err := secret_service.InsertOrgSecret(ctx, ctx.Org.Organization.ID, form.Title, form.Content, form.PullRequestRead); err != nil {
+	if err := secret_service.InsertOrgSecret(ctx, ctx.Org.Organization.ID, form.Title, form.Content); err != nil {
 		ctx.ServerError("InsertRepoSecret", err)
 		return
 	}
@@ -284,7 +283,8 @@ func SecretsPost(ctx *context.Context) {
 // SecretsDelete delete secrets
 func SecretsDelete(ctx *context.Context) {
 	if err := secret_service.DeleteSecretByID(ctx, ctx.FormInt64("id")); err != nil {
-		ctx.Flash.Error("DeleteSecretByID: " + err.Error())
+		ctx.Flash.Error(ctx.Tr("repo.settings.secret_deletion_failed"))
+		log.Error("delete secret %d: %v", ctx.FormInt64("id"), err)
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.settings.secret_deletion_success"))
 	}

@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 // Package private includes all internal routes. The package name internal is ideal but Golang is not allowed, so we use private as package name instead.
 package private
@@ -465,7 +464,7 @@ func (ctx *preReceiveContext) loadPusherAndPermission() bool {
 		return true
 	}
 
-	user, err := user_model.GetUserByID(ctx.opts.UserID)
+	user, err := user_model.GetUserByID(ctx, ctx.opts.UserID)
 	if err != nil {
 		log.Error("Unable to get User id %d Error: %v", ctx.opts.UserID, err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{

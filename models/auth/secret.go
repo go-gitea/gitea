@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package auth
 
@@ -10,25 +9,29 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
 
-type ErrSecretNameInvalid struct {
-	Name string
+type ErrSecretInvalidValue struct {
+	Name *string
+	Data *string
 }
 
-func (err ErrSecretNameInvalid) Error() string {
-	return fmt.Sprintf("secret name %s is invalid", err.Name)
+func (err ErrSecretInvalidValue) Error() string {
+	if err.Name != nil {
+		return fmt.Sprintf("secret name %q is invalid", *err.Name)
+	}
+	if err.Data != nil {
+		return fmt.Sprintf("secret data %q is invalid", *err.Data)
+	}
+	return util.ErrInvalidArgument.Error()
 }
 
-type ErrSecretDataInvalid struct {
-	Data string
+func (err ErrSecretInvalidValue) Unwrap() error {
+	return util.ErrInvalidArgument
 }
 
-func (err ErrSecretDataInvalid) Error() string {
-	return fmt.Sprintf("secret data %s is invalid", err.Data)
-}
-
-var nameRE = regexp.MustCompile("[^a-zA-Z0-9-_.]+")
+var nameRE = regexp.MustCompile("^[a-zA-Z_][a-zA-Z0-9-_.]*$")
 
 // Secret represents a secret
 type Secret struct {
@@ -36,8 +39,7 @@ type Secret struct {
 	UserID      int64              `xorm:"index NOTNULL"`
 	RepoID      int64              `xorm:"index NOTNULL"`
 	Name        string             `xorm:"NOTNULL"`
-	Data        string             `xorm:"TEXT"`
-	PullRequest bool               `xorm:"NOTNULL"`
+	Data        string             `xorm:"LONGTEXT"` // encrypted data, or plaintext data if there's no master key
 	CreatedUnix timeutil.TimeStamp `xorm:"created NOTNULL"`
 }
 
@@ -49,11 +51,11 @@ func init() {
 func (s *Secret) Validate() error {
 	switch {
 	case len(s.Name) == 0:
-		return ErrSecretNameInvalid{Name: s.Name}
+		return ErrSecretInvalidValue{Name: &s.Name}
 	case len(s.Data) == 0:
-		return ErrSecretDataInvalid{Data: s.Data}
+		return ErrSecretInvalidValue{Data: &s.Data}
 	case nameRE.MatchString(s.Name):
-		return ErrSecretNameInvalid{Name: s.Name}
+		return ErrSecretInvalidValue{Name: &s.Name}
 	default:
 		return nil
 	}

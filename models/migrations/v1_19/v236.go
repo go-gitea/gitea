@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package v1_19 //nolint
 
@@ -16,8 +15,7 @@ func CreateSecretsTable(x *xorm.Engine) error {
 		UserID      int64              `xorm:"index NOTNULL"`
 		RepoID      int64              `xorm:"index NOTNULL"`
 		Name        string             `xorm:"NOTNULL"`
-		Data        string             `xorm:"TEXT"`
-		PullRequest bool               `xorm:"NOTNULL"`
+		Data        string             `xorm:"LONGTEXT"`
 		CreatedUnix timeutil.TimeStamp `xorm:"created NOTNULL"`
 	}
 

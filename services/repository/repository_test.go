@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
@@ -32,7 +31,7 @@ func TestLinkedRepository(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			attach, err := repo_model.GetAttachmentByID(db.DefaultContext, tc.attachID)
 			assert.NoError(t, err)
-			repo, unitType, err := LinkedRepository(attach)
+			repo, unitType, err := LinkedRepository(db.DefaultContext, attach)
 			assert.NoError(t, err)
 			if tc.expectedRepo != nil {
 				assert.Equal(t, tc.expectedRepo.ID, repo.ID)

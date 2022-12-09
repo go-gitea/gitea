@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package secrets
 
@@ -106,29 +105,27 @@ func DecryptString(enc string) (string, error) {
 	return encProvider.DecryptString(enc, key)
 }
 
-func InsertRepoSecret(ctx context.Context, repoID int64, key, data string, pullRequest bool) error {
+func InsertRepoSecret(ctx context.Context, repoID int64, key, data string) error {
 	v, err := EncryptString(data)
 	if err != nil {
 		return err
 	}
 	return db.Insert(ctx, &auth_model.Secret{
-		RepoID:      repoID,
-		Name:        key,
-		Data:        v,
-		PullRequest: pullRequest,
+		RepoID: repoID,
+		Name:   key,
+		Data:   v,
 	})
 }
 
-func InsertOrgSecret(ctx context.Context, userID int64, key, data string, pullRequest bool) error {
+func InsertOrgSecret(ctx context.Context, userID int64, key, data string) error {
 	v, err := EncryptString(data)
 	if err != nil {
 		return err
 	}
 	return db.Insert(ctx, &auth_model.Secret{
-		UserID:      userID,
-		Name:        key,
-		Data:        v,
-		PullRequest: pullRequest,
+		UserID: userID,
+		Name:   key,
+		Data:   v,
 	})
 }
 
