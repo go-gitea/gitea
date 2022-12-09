@@ -83,14 +83,6 @@ func ChangeRepositoryName(doer *user_model.User, repo *repo_model.Repository, ne
 	return nil
 }
 
-// CreatePendingRepositoryTransfer transfer a repo from one owner to a new one.
-// it marks the repository transfer as "pending"
-func CreatePendingRepositoryTransfer(doer, newOwner *user_model.User, repoID int64, teams []*organization.Team) error {
-	return db.WithTx(db.DefaultContext, func(ctx context.Context) error {
-		return models.CreatePendingRepositoryTransfer(ctx, doer, newOwner, repoID, teams)
-	})
-}
-
 // StartRepositoryTransfer transfer a repo from one owner to a new one.
 // it make repository into pending transfer state, if doer can not create repo for new owner.
 func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository, teams []*organization.Team) error {

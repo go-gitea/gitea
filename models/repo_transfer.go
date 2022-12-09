@@ -155,45 +155,47 @@ func TestRepositoryReadyForTransfer(status repo_model.RepositoryStatus) error {
 // CreatePendingRepositoryTransfer transfer a repo from one owner to a new one.
 // it marks the repository transfer as "pending"
 func CreatePendingRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.User, repoID int64, teams []*organization.Team) error {
-	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
-	if err != nil {
-		return err
-	}
-
-	// Make sure repo is ready to transfer
-	if err := TestRepositoryReadyForTransfer(repo.Status); err != nil {
-		return err
-	}
-
-	repo.Status = repo_model.RepositoryPendingTransfer
-	if err := repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
-		return err
-	}
-
-	// Check if new owner has repository with same name.
-	if has, err := repo_model.IsRepositoryExist(ctx, newOwner, repo.Name); err != nil {
-		return fmt.Errorf("IsRepositoryExist: %w", err)
-	} else if has {
-		return repo_model.ErrRepoAlreadyExist{
-			Uname: newOwner.LowerName,
-			Name:  repo.Name,
+	return db.AutoTx(ctx, func(ctx context.Context) error {
+		repo, err := repo_model.GetRepositoryByID(ctx, repoID)
+		if err != nil {
+			return err
 		}
-	}
 
-	transfer := &RepoTransfer{
-		RepoID:      repo.ID,
-		RecipientID: newOwner.ID,
-		CreatedUnix: timeutil.TimeStampNow(),
-		UpdatedUnix: timeutil.TimeStampNow(),
-		DoerID:      doer.ID,
-		TeamIDs:     make([]int64, 0, len(teams)),
-	}
+		// Make sure repo is ready to transfer
+		if err := TestRepositoryReadyForTransfer(repo.Status); err != nil {
+			return err
+		}
 
-	for k := range teams {
-		transfer.TeamIDs = append(transfer.TeamIDs, teams[k].ID)
-	}
+		repo.Status = repo_model.RepositoryPendingTransfer
+		if err := repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
+			return err
+		}
 
-	return db.Insert(ctx, transfer)
+		// Check if new owner has repository with same name.
+		if has, err := repo_model.IsRepositoryExist(ctx, newOwner, repo.Name); err != nil {
+			return fmt.Errorf("IsRepositoryExist: %w", err)
+		} else if has {
+			return repo_model.ErrRepoAlreadyExist{
+				Uname: newOwner.LowerName,
+				Name:  repo.Name,
+			}
+		}
+
+		transfer := &RepoTransfer{
+			RepoID:      repo.ID,
+			RecipientID: newOwner.ID,
+			CreatedUnix: timeutil.TimeStampNow(),
+			UpdatedUnix: timeutil.TimeStampNow(),
+			DoerID:      doer.ID,
+			TeamIDs:     make([]int64, 0, len(teams)),
+		}
+
+		for k := range teams {
+			transfer.TeamIDs = append(transfer.TeamIDs, teams[k].ID)
+		}
+
+		return db.Insert(ctx, transfer)
+	})
 }
 
 // TransferOwnership transfers all corresponding repository items from old user to new one.
