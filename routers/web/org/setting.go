@@ -259,7 +259,7 @@ func Secrets(ctx *context.Context) {
 
 	secrets, err := secret_service.FindUserSecrets(ctx, ctx.Org.Organization.ID)
 	if err != nil {
-		ctx.ServerError("FindRepoSecrets", err)
+		ctx.ServerError("FindUserSecrets", err)
 		return
 	}
 	ctx.Data["Secrets"] = secrets
