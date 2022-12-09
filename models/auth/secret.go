@@ -27,7 +27,7 @@ func (err ErrSecretDataInvalid) Error() string {
 	return fmt.Sprintf("secret data %s is invalid", err.Data)
 }
 
-var nameRE = regexp.MustCompile("[^a-zA-Z0-9-_.]+")
+var nameRE = regexp.MustCompile("^[a-zA-Z_][a-zA-Z0-9-_.]*$")
 
 // Secret represents a secret
 type Secret struct {
