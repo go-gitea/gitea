@@ -14,22 +14,24 @@ import (
 )
 
 func AddCollaborator(ctx context.Context, repo *repo_model.Repository, u *user_model.User) error {
-	collaboration := &repo_model.Collaboration{
-		RepoID: repo.ID,
-		UserID: u.ID,
-	}
+	return db.AutoTx(ctx, func(ctx context.Context) error {
+		collaboration := &repo_model.Collaboration{
+			RepoID: repo.ID,
+			UserID: u.ID,
+		}
 
-	has, err := db.GetByBean(ctx, collaboration)
-	if err != nil {
-		return err
-	} else if has {
-		return nil
-	}
-	collaboration.Mode = perm.AccessModeWrite
+		has, err := db.GetByBean(ctx, collaboration)
+		if err != nil {
+			return err
+		} else if has {
+			return nil
+		}
+		collaboration.Mode = perm.AccessModeWrite
 
-	if err = db.Insert(ctx, collaboration); err != nil {
-		return err
-	}
+		if err = db.Insert(ctx, collaboration); err != nil {
+			return err
+		}
 
-	return access_model.RecalculateUserAccess(ctx, repo, u.ID)
+		return access_model.RecalculateUserAccess(ctx, repo, u.ID)
+	})
 }
