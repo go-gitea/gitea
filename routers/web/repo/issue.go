@@ -3049,7 +3049,7 @@ func GetIssueAttachments(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
 	attachments := make([]*api.Attachment, len(issue.Attachments))
 	for i := 0; i < len(issue.Attachments); i++ {
-		attachments[i] = convert.ToReleaseAttachment(issue.Attachments[i])
+		attachments[i] = convert.ToAttachment(issue.Attachments[i])
 	}
 	ctx.JSON(http.StatusOK, attachments)
 }
@@ -3068,7 +3068,7 @@ func GetCommentAttachments(ctx *context.Context) {
 			return
 		}
 		for i := 0; i < len(comment.Attachments); i++ {
-			attachments = append(attachments, convert.ToReleaseAttachment(comment.Attachments[i]))
+			attachments = append(attachments, convert.ToAttachment(comment.Attachments[i]))
 		}
 	}
 	ctx.JSON(http.StatusOK, attachments)

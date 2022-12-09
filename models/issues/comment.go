@@ -875,6 +875,8 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 				return fmt.Errorf("update attachment [%d]: %w", attachments[i].ID, err)
 			}
 		}
+
+		comment.Attachments = attachments
 	case CommentTypeReopen, CommentTypeClose:
 		if err = repo_model.UpdateRepoIssueNumbers(ctx, opts.Issue.RepoID, opts.Issue.IsPull, true); err != nil {
 			return err
