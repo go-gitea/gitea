@@ -1196,7 +1196,8 @@ func DeployKeysPost(ctx *context.Context) {
 
 func DeleteSecret(ctx *context.Context) {
 	if err := secret_service.DeleteSecretByID(ctx, ctx.FormInt64("id")); err != nil {
-		ctx.Flash.Error("DeleteSecretByID: " + err.Error())
+		ctx.Flash.Error(ctx.Tr("repo.settings.secret_deletion_failed"))
+		log.Error("delete secret %d: %v", ctx.FormInt64("id"), err)
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.settings.secret_deletion_success"))
 	}
