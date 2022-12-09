@@ -1,73 +1,76 @@
 <template>
   <div class="action-view-container">
-    <div class="action-view-left">
+    <div class="action-view-header">
       <div class="action-info-summary">
         {{ runInfo.title }}
       </div>
-
-      <div class="job-group-section" v-for="(jobGroup, i) in allJobGroups" :key="i">
-        <!--        <div class="job-group-summary">-->
-        <!--          {{ jobGroup.summary }}-->
-        <!--        </div>-->
-        <div class="job-brief-list">
-          <a class="job-brief-item" v-for="(job, index) in jobGroup.jobs" :key="job.id" :href="runInfo.htmlurl+'/jobs/'+index">
-            <SvgIcon name="octicon-check-circle-fill" class="green" v-if="job.status === 'success'"/>
-            <SvgIcon name="octicon-skip" class="ui text grey" v-else-if="job.status === 'skipped'"/>
-            <SvgIcon name="octicon-clock" class="ui text yellow" v-else-if="job.status === 'waiting'"/>
-            <SvgIcon name="octicon-blocked" class="ui text yellow" v-else-if="job.status === 'blocked'"/>
-            <SvgIcon name="octicon-meter" class="ui text yellow" class-name="job-status-rotate" v-else-if="job.status === 'running'"/>
-            <SvgIcon name="octicon-x-circle-fill" class="red" v-else/>
-            {{ job.name }}
-            <button class="job-brief-rerun" @click="rerunJob(index)" v-if="job.status !== 'waiting' && job.status !== 'blocked' && job.status !== 'running'">
-              <SvgIcon name="octicon-sync" class="ui text black"/>
-            </button>
-          </a>
-        </div>
-        <button class="ui fluid tiny basic red button" @click="cancelRun()" v-if="runInfo.cancelable">
-          Cancel
-        </button>
-      </div>
     </div>
-
-    <div class="action-view-right">
-      <div class="job-info-header">
-        <div class="job-info-header-title">
-          {{ currentJobInfo.title }}
-        </div>
-        <div class="job-info-header-detail">
-          {{ currentJobInfo.detail }}
+    <div class="action-view-body">
+      <div class="action-view-left">
+        <div class="job-group-section" v-for="(jobGroup, i) in allJobGroups" :key="i">
+          <!--        <div class="job-group-summary">-->
+          <!--          {{ jobGroup.summary }}-->
+          <!--        </div>-->
+          <div class="job-brief-list">
+            <a class="job-brief-item" v-for="(job, index) in jobGroup.jobs" :key="job.id" :href="runInfo.htmlurl+'/jobs/'+index">
+              <SvgIcon name="octicon-check-circle-fill" class="green" v-if="job.status === 'success'"/>
+              <SvgIcon name="octicon-skip" class="ui text grey" v-else-if="job.status === 'skipped'"/>
+              <SvgIcon name="octicon-clock" class="ui text yellow" v-else-if="job.status === 'waiting'"/>
+              <SvgIcon name="octicon-blocked" class="ui text yellow" v-else-if="job.status === 'blocked'"/>
+              <SvgIcon name="octicon-meter" class="ui text yellow" class-name="job-status-rotate" v-else-if="job.status === 'running'"/>
+              <SvgIcon name="octicon-x-circle-fill" class="red" v-else/>
+              {{ job.name }}
+              <button class="job-brief-rerun" @click="rerunJob(index)" v-if="job.status !== 'waiting' && job.status !== 'blocked' && job.status !== 'running'">
+                <SvgIcon name="octicon-sync" class="ui text black"/>
+              </button>
+            </a>
+          </div>
+          <button class="ui fluid tiny basic red button" @click="cancelRun()" v-if="runInfo.cancelable">
+            Cancel
+          </button>
         </div>
       </div>
-      <div class="job-step-container">
-        <div class="job-step-section" v-for="(jobStep, i) in currentJobSteps" :key="i">
-          <div class="job-step-summary" @click.stop="toggleStepLogs(i)">
-            <SvgIcon name="octicon-chevron-down" class="mr-3" v-show="currentJobStepsStates[i].expanded"/>
-            <SvgIcon name="octicon-chevron-right" class="mr-3" v-show="!currentJobStepsStates[i].expanded"/>
 
-            <SvgIcon name="octicon-check-circle-fill" class="green mr-3" v-if="jobStep.status === 'success'"/>
-            <SvgIcon name="octicon-skip" class="ui text grey mr-3" v-else-if="jobStep.status === 'skipped'"/>
-            <SvgIcon name="octicon-clock" class="ui text yellow mr-3" v-else-if="jobStep.status === 'waiting'"/>
-            <SvgIcon name="octicon-blocked" class="ui text yellow mr-3" v-else-if="jobStep.status === 'blocked'"/>
-            <SvgIcon name="octicon-meter" class="ui text yellow mr-3" class-name="job-status-rotate" v-else-if="jobStep.status === 'running'"/>
-            <SvgIcon name="octicon-x-circle-fill" class="red mr-3 " v-else/>
-
-            <span class="step-summary-msg">{{ jobStep.summary }}</span>
-            <span class="step-summary-dur">{{ formatDuration(jobStep.duration) }}</span>
+      <div class="action-view-right">
+        <div class="job-info-header">
+          <div class="job-info-header-title">
+            {{ currentJobInfo.title }}
           </div>
+          <div class="job-info-header-detail">
+            {{ currentJobInfo.detail }}
+          </div>
+        </div>
+        <div class="job-step-container">
+          <div class="job-step-section" v-for="(jobStep, i) in currentJobSteps" :key="i">
+            <div class="job-step-summary" @click.stop="toggleStepLogs(i)">
+              <SvgIcon name="octicon-chevron-down" class="mr-3" v-show="currentJobStepsStates[i].expanded"/>
+              <SvgIcon name="octicon-chevron-right" class="mr-3" v-show="!currentJobStepsStates[i].expanded"/>
 
-          <!-- the log elements could be a lot, do not use v-if to destroy/reconstruct the DOM -->
-          <div class="job-step-logs" ref="elJobStepLogs" v-show="currentJobStepsStates[i].expanded">
-            <!--
-            possible layouts:
-            <div class="job-log-group">
-              <div class="job-log-group-summary"></div>
-              <div class="job-log-list">
-                <div class="job-log-line"></div>
-              </div>
+              <SvgIcon name="octicon-check-circle-fill" class="green mr-3" v-if="jobStep.status === 'success'"/>
+              <SvgIcon name="octicon-skip" class="ui text grey mr-3" v-else-if="jobStep.status === 'skipped'"/>
+              <SvgIcon name="octicon-clock" class="ui text yellow mr-3" v-else-if="jobStep.status === 'waiting'"/>
+              <SvgIcon name="octicon-blocked" class="ui text yellow mr-3" v-else-if="jobStep.status === 'blocked'"/>
+              <SvgIcon name="octicon-meter" class="ui text yellow mr-3" class-name="job-status-rotate" v-else-if="jobStep.status === 'running'"/>
+              <SvgIcon name="octicon-x-circle-fill" class="red mr-3 " v-else/>
+
+              <span class="step-summary-msg">{{ jobStep.summary }}</span>
+              <span class="step-summary-dur">{{ formatDuration(jobStep.duration) }}</span>
             </div>
-            -- or --
-            <div class="job-log-line"></div>
-            -->
+
+            <!-- the log elements could be a lot, do not use v-if to destroy/reconstruct the DOM -->
+            <div class="job-step-logs" ref="elJobStepLogs" v-show="currentJobStepsStates[i].expanded">
+              <!--
+              possible layouts:
+              <div class="job-log-group">
+                <div class="job-log-group-summary"></div>
+                <div class="job-log-list">
+                  <div class="job-log-line"></div>
+                </div>
+              </div>
+              -- or --
+              <div class="job-log-line"></div>
+              -->
+            </div>
           </div>
         </div>
       </div>
@@ -354,11 +357,24 @@ export function initRepositoryActionView() {
 
 <style scoped lang="less">
 
-.action-view-container {
+.action-view-body {
   display: flex;
-  height: calc(100vh - 226px); // fine tune this value to make the main view has full height
+  height: calc(100vh - 266px); // fine tune this value to make the main view has full height
 }
 
+// ================
+// action view header
+
+.action-view-header {
+  width: 1127px;
+  margin: 0 auto 20px auto;
+}
+
+.action-info-summary {
+  font-size: 150%;
+  height: 20px;
+  padding: 0 10px;
+}
 
 // ================
 // action view left
@@ -368,11 +384,6 @@ export function initRepositoryActionView() {
   max-width: 400px;
   overflow-y: scroll;
   margin-left: 10px;
-}
-
-.action-info-summary {
-  font-size: 150%;
-  margin: 5px 0;
 }
 
 .job-group-section {
