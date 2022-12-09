@@ -68,7 +68,7 @@ func renderMarkdown(ctx *context.Context, act *activities_model.Action, content 
 // feedActionsToFeedItems convert gitea's Action feed to feeds Item
 func feedActionsToFeedItems(ctx *context.Context, actions activities_model.ActionList) (items []*feeds.Item, err error) {
 	for _, act := range actions {
-		act.LoadActUser()
+		act.LoadActUser(ctx)
 
 		var content, desc, title string
 

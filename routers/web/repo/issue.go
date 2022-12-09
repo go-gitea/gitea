@@ -1007,7 +1007,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 
 		// Check if the passed assignees actually exists and is assignable
 		for _, aID := range assigneeIDs {
-			assignee, err := user_model.GetUserByID(aID)
+			assignee, err := user_model.GetUserByID(ctx, aID)
 			if err != nil {
 				ctx.ServerError("GetUserByID", err)
 				return nil, nil, 0, 0
@@ -1679,7 +1679,7 @@ func ViewIssue(ctx *context.Context) {
 		}
 		ctx.Data["DefaultSquashMergeMessage"] = defaultSquashMergeMessage
 
-		if err = pull.LoadProtectedBranch(); err != nil {
+		if err = pull.LoadProtectedBranch(ctx); err != nil {
 			ctx.ServerError("LoadProtectedBranch", err)
 			return
 		}
@@ -2062,7 +2062,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 				return
 			}
 		default:
-			assignee, err := user_model.GetUserByID(assigneeID)
+			assignee, err := user_model.GetUserByID(ctx, assigneeID)
 			if err != nil {
 				ctx.ServerError("GetUserByID", err)
 				return
@@ -2173,7 +2173,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 			continue
 		}
 
-		reviewer, err := user_model.GetUserByID(reviewID)
+		reviewer, err := user_model.GetUserByID(ctx, reviewID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				log.Warn(
@@ -2749,6 +2749,7 @@ func UpdateCommentContent(ctx *context.Context) {
 		})
 		return
 	}
+
 	if err = comment_service.UpdateComment(ctx, comment, ctx.Doer, oldContent); err != nil {
 		ctx.ServerError("UpdateComment", err)
 		return
@@ -3027,7 +3028,7 @@ func filterXRefComments(ctx *context.Context, issue *issues_model.Issue) error {
 		if issues_model.CommentTypeIsRef(c.Type) && c.RefRepoID != issue.RepoID && c.RefRepoID != 0 {
 			var err error
 			// Set RefRepo for description in template
-			c.RefRepo, err = repo_model.GetRepositoryByID(c.RefRepoID)
+			c.RefRepo, err = repo_model.GetRepositoryByID(ctx, c.RefRepoID)
 			if err != nil {
 				return err
 			}
@@ -3050,7 +3051,7 @@ func GetIssueAttachments(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
 	attachments := make([]*api.Attachment, len(issue.Attachments))
 	for i := 0; i < len(issue.Attachments); i++ {
-		attachments[i] = convert.ToReleaseAttachment(issue.Attachments[i])
+		attachments[i] = convert.ToAttachment(issue.Attachments[i])
 	}
 	ctx.JSON(http.StatusOK, attachments)
 }
@@ -3069,7 +3070,7 @@ func GetCommentAttachments(ctx *context.Context) {
 			return
 		}
 		for i := 0; i < len(comment.Attachments); i++ {
-			attachments = append(attachments, convert.ToReleaseAttachment(comment.Attachments[i]))
+			attachments = append(attachments, convert.ToAttachment(comment.Attachments[i]))
 		}
 	}
 	ctx.JSON(http.StatusOK, attachments)

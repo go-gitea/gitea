@@ -350,7 +350,7 @@ func (c *Comment) LoadPoster(ctx context.Context) (err error) {
 		return nil
 	}
 
-	c.Poster, err = user_model.GetUserByIDCtx(ctx, c.PosterID)
+	c.Poster, err = user_model.GetUserByID(ctx, c.PosterID)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			c.PosterID = -1
@@ -599,7 +599,7 @@ func (c *Comment) LoadAssigneeUserAndTeam() error {
 	var err error
 
 	if c.AssigneeID > 0 && c.Assignee == nil {
-		c.Assignee, err = user_model.GetUserByIDCtx(db.DefaultContext, c.AssigneeID)
+		c.Assignee, err = user_model.GetUserByID(db.DefaultContext, c.AssigneeID)
 		if err != nil {
 			if !user_model.IsErrUserNotExist(err) {
 				return err
@@ -634,7 +634,7 @@ func (c *Comment) LoadResolveDoer() (err error) {
 	if c.ResolveDoerID == 0 || c.Type != CommentTypeCode {
 		return nil
 	}
-	c.ResolveDoer, err = user_model.GetUserByIDCtx(db.DefaultContext, c.ResolveDoerID)
+	c.ResolveDoer, err = user_model.GetUserByID(db.DefaultContext, c.ResolveDoerID)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			c.ResolveDoer = user_model.NewGhostUser()
@@ -894,6 +894,8 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 				return fmt.Errorf("update attachment [%d]: %w", attachments[i].ID, err)
 			}
 		}
+
+		comment.Attachments = attachments
 	case CommentTypeReopen, CommentTypeClose:
 		if err = repo_model.UpdateRepoIssueNumbers(ctx, opts.Issue.RepoID, opts.Issue.IsPull, true); err != nil {
 			return err

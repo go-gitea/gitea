@@ -123,7 +123,7 @@ func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStor
 	}
 	log.Trace("OAuth2 Authorization: Found token for user[%d]", id)
 
-	user, err := user_model.GetUserByID(id)
+	user, err := user_model.GetUserByID(req.Context(), id)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("GetUserByName: %v", err)

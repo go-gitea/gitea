@@ -26,7 +26,7 @@ func (repo *Repository) CanEnableTimetracker() bool {
 }
 
 // IsTimetrackerEnabled returns whether or not the timetracker is enabled. It returns the default value from config if an error occurs.
-func (repo *Repository) IsTimetrackerEnabled() bool {
+func (repo *Repository) IsTimetrackerEnabled() bool { // Notice: It will be used in template so don't remove directly
 	return repo.IsTimetrackerEnabledCtx(db.DefaultContext)
 }
 

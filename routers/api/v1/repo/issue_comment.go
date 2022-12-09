@@ -95,6 +95,11 @@ func ListIssueComments(ctx *context.APIContext) {
 		return
 	}
 
+	if err := issues_model.CommentList(comments).LoadAttachments(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadAttachments", err)
+		return
+	}
+
 	apiComments := make([]*api.Comment, len(comments))
 	for i, comment := range comments {
 		comment.Issue = issue
@@ -199,7 +204,7 @@ func isXRefCommentAccessible(ctx stdCtx.Context, user *user_model.User, c *issue
 	if issues_model.CommentTypeIsRef(c.Type) && c.RefRepoID != issueRepoID && c.RefRepoID != 0 {
 		var err error
 		// Set RefRepo for description in template
-		c.RefRepo, err = repo_model.GetRepositoryByIDCtx(ctx, c.RefRepoID)
+		c.RefRepo, err = repo_model.GetRepositoryByID(ctx, c.RefRepoID)
 		if err != nil {
 			return false
 		}
@@ -292,6 +297,10 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	}
 	if err := issues_model.CommentList(comments).LoadPosters(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadPosters", err)
+		return
+	}
+	if err := issues_model.CommentList(comments).LoadAttachments(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadAttachments", err)
 		return
 	}
 	if _, err := issues_model.CommentList(comments).Issues().LoadRepositories(ctx); err != nil {
