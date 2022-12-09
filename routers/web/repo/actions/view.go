@@ -50,11 +50,11 @@ type ViewRequest struct {
 
 type ViewResponse struct {
 	StateData struct {
-		BuildInfo struct {
+		RunInfo struct {
 			HTMLURL    string `json:"htmlurl"`
 			Title      string `json:"title"`
 			Cancelable bool   `json:"cancelable"`
-		} `json:"buildInfo"`
+		} `json:"runInfo"`
 		AllJobGroups   []ViewGroup `json:"allJobGroups"`
 		CurrentJobInfo struct {
 			Title  string `json:"title"`
@@ -108,9 +108,9 @@ func ViewPost(ctx *context_module.Context) {
 	run := current.Run
 
 	resp := &ViewResponse{}
-	resp.StateData.BuildInfo.Title = run.Title
-	resp.StateData.BuildInfo.HTMLURL = run.HTMLURL()
-	resp.StateData.BuildInfo.Cancelable = !run.Status.IsDone()
+	resp.StateData.RunInfo.Title = run.Title
+	resp.StateData.RunInfo.HTMLURL = run.HTMLURL()
+	resp.StateData.RunInfo.Cancelable = !run.Status.IsDone()
 
 	respJobs := make([]*ViewJob, len(jobs))
 	for i, v := range jobs {

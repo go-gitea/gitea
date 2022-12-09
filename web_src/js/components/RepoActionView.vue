@@ -1,8 +1,8 @@
 <template>
-  <div class="build-view-container">
-    <div class="build-view-left">
-      <div class="build-info-summary">
-        {{ buildInfo.title }}
+  <div class="action-view-container">
+    <div class="action-view-left">
+      <div class="action-info-summary">
+        {{ runInfo.title }}
       </div>
 
       <div class="job-group-section" v-for="(jobGroup, i) in allJobGroups" :key="i">
@@ -10,7 +10,7 @@
         <!--          {{ jobGroup.summary }}-->
         <!--        </div>-->
         <div class="job-brief-list">
-          <a class="job-brief-item" v-for="(job, index) in jobGroup.jobs" :key="job.id" :href="buildInfo.htmlurl+'/jobs/'+index">
+          <a class="job-brief-item" v-for="(job, index) in jobGroup.jobs" :key="job.id" :href="runInfo.htmlurl+'/jobs/'+index">
             <SvgIcon name="octicon-check-circle-fill" class="green" v-if="job.status === 'success'"/>
             <SvgIcon name="octicon-skip" class="ui text grey" v-else-if="job.status === 'skipped'"/>
             <SvgIcon name="octicon-clock" class="ui text yellow" v-else-if="job.status === 'waiting'"/>
@@ -23,13 +23,13 @@
             </button>
           </a>
         </div>
-        <button class="ui fluid tiny basic red button" @click="cancelRun()" v-if="buildInfo.cancelable">
+        <button class="ui fluid tiny basic red button" @click="cancelRun()" v-if="runInfo.cancelable">
           Cancel
         </button>
       </div>
     </div>
 
-    <div class="build-view-right">
+    <div class="action-view-right">
       <div class="job-info-header">
         <div class="job-info-header-title">
           {{ currentJobInfo.title }}
@@ -83,7 +83,7 @@ import AnsiToHTML from 'ansi-to-html';
 const {csrfToken} = window.config;
 
 const sfc = {
-  name: 'RepoBuildView',
+  name: 'RepoActionView',
   components: {
     SvgIcon,
   },
@@ -99,7 +99,7 @@ const sfc = {
       currentJobStepsStates: [],
 
       // provided by backend
-      buildInfo: {},
+      runInfo: {},
       allJobGroups: [],
       currentJobInfo: {},
       currentJobSteps: [],
@@ -154,7 +154,7 @@ const sfc = {
     },
     // rerun a job
     rerunJob(idx) {
-      fetch(`${this.buildInfo.htmlurl}/jobs/${idx}/rerun`, {
+      fetch(`${this.runInfo.htmlurl}/jobs/${idx}/rerun`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -165,7 +165,7 @@ const sfc = {
     },
     // cancel a run
     cancelRun() {
-      fetch(`${this.buildInfo.htmlurl}/cancel`, {
+      fetch(`${this.runInfo.htmlurl}/cancel`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -230,7 +230,7 @@ const sfc = {
     // * logsData: the logs in it will be appended to the UI manually, no touch to Vue data
     fetchMockData(reqData) {
       const stateData = {
-        buildInfo: {title: 'The Demo Build'},
+        runInfo: {title: 'The Demo Build'},
         allJobGroups: [
           {
             summary: 'Job Group Foo',
@@ -339,8 +339,8 @@ const sfc = {
 
 export default sfc;
 
-export function initRepositoryBuildView() {
-  const el = document.getElementById('repo-build-view');
+export function initRepositoryActionView() {
+  const el = document.getElementById('repo-action-view');
   if (!el) return;
 
   const view = createApp(sfc, {
@@ -354,22 +354,22 @@ export function initRepositoryBuildView() {
 
 <style scoped lang="less">
 
-.build-view-container {
+.action-view-container {
   display: flex;
   height: calc(100vh - 226px); // fine tune this value to make the main view has full height
 }
 
 
 // ================
-// build view left
+// action view left
 
-.build-view-left {
+.action-view-left {
   width: 20%;
   overflow-y: scroll;
   margin-left: 10px;
 }
 
-.build-info-summary {
+.action-info-summary {
   font-size: 150%;
   margin: 5px 0;
 }
@@ -401,9 +401,9 @@ export function initRepositoryBuildView() {
 
 
 // ================
-// build view right
+// action view right
 
-.build-view-right {
+.action-view-right {
   flex: 1;
   background-color: #262626;
   color: #d6d6d6;
