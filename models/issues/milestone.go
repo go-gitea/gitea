@@ -284,7 +284,7 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 		return err
 	}
 
-	repo, err := repo_model.GetRepositoryByID(m.RepoID)
+	repo, err := repo_model.GetRepositoryByID(db.DefaultContext, m.RepoID)
 	if err != nil {
 		return err
 	}

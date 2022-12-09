@@ -171,7 +171,7 @@ func RecalculateTeamAccesses(ctx context.Context, repo *repo_model.Repository, i
 			continue
 		}
 
-		if err = t.GetMembersCtx(ctx); err != nil {
+		if err = t.LoadMembers(ctx); err != nil {
 			return fmt.Errorf("getMembers '%d': %w", t.ID, err)
 		}
 		for _, m := range t.Members {

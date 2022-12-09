@@ -50,7 +50,7 @@ func ToggleAssignee(issue *issues_model.Issue, doer *user_model.User, assigneeID
 		return
 	}
 
-	assignee, err1 := user_model.GetUserByIDCtx(db.DefaultContext, assigneeID)
+	assignee, err1 := user_model.GetUserByID(db.DefaultContext, assigneeID)
 	if err1 != nil {
 		err = err1
 		return
