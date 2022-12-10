@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package organization
 
@@ -107,7 +106,7 @@ func (org *Organization) IsOrgMember(uid int64) (bool, error) {
 
 // CanCreateOrgRepo returns true if given user can create repo in organization
 func (org *Organization) CanCreateOrgRepo(uid int64) (bool, error) {
-	return CanCreateOrgRepo(org.ID, uid)
+	return CanCreateOrgRepo(db.DefaultContext, org.ID, uid)
 }
 
 func (org *Organization) getTeam(ctx context.Context, name string) (*Team, error) {
@@ -458,8 +457,9 @@ func CountOrgs(opts FindOrgOptions) (int64, error) {
 
 // HasOrgOrUserVisible tells if the given user can see the given org or user
 func HasOrgOrUserVisible(ctx context.Context, orgOrUser, user *user_model.User) bool {
-	// Not SignedUser
-	if user == nil {
+	// If user is nil, it's an anonymous user/request.
+	// The Ghost user is handled like an anonymous user.
+	if user == nil || user.IsGhost() {
 		return orgOrUser.Visibility == structs.VisibleTypePublic
 	}
 
@@ -701,7 +701,7 @@ func AccessibleReposEnv(ctx context.Context, org *Organization, userID int64) (A
 	var user *user_model.User
 
 	if userID > 0 {
-		u, err := user_model.GetUserByIDCtx(ctx, userID)
+		u, err := user_model.GetUserByID(ctx, userID)
 		if err != nil {
 			return nil, err
 		}

@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 // Package v1 Gitea API.
 //
@@ -568,6 +567,13 @@ func mustNotBeArchived(ctx *context.APIContext) {
 	}
 }
 
+func mustEnableAttachments(ctx *context.APIContext) {
+	if !setting.Attachment.Enabled {
+		ctx.NotFound()
+		return
+	}
+}
+
 // bind binding an obj to a func(ctx *context.APIContext)
 func bind(obj interface{}) http.HandlerFunc {
 	tp := reflect.TypeOf(obj)
@@ -893,6 +899,15 @@ func Routes(ctx gocontext.Context) *web.Route {
 								Get(repo.GetIssueCommentReactions).
 								Post(reqToken(), bind(api.EditReactionOption{}), repo.PostIssueCommentReaction).
 								Delete(reqToken(), bind(api.EditReactionOption{}), repo.DeleteIssueCommentReaction)
+							m.Group("/assets", func() {
+								m.Combo("").
+									Get(repo.ListIssueCommentAttachments).
+									Post(reqToken(), mustNotBeArchived, repo.CreateIssueCommentAttachment)
+								m.Combo("/{asset}").
+									Get(repo.GetIssueCommentAttachment).
+									Patch(reqToken(), mustNotBeArchived, bind(api.EditAttachmentOptions{}), repo.EditIssueCommentAttachment).
+									Delete(reqToken(), mustNotBeArchived, repo.DeleteIssueCommentAttachment)
+							}, mustEnableAttachments)
 						})
 					})
 					m.Group("/{index}", func() {
@@ -936,6 +951,15 @@ func Routes(ctx gocontext.Context) *web.Route {
 							Get(repo.GetIssueReactions).
 							Post(reqToken(), bind(api.EditReactionOption{}), repo.PostIssueReaction).
 							Delete(reqToken(), bind(api.EditReactionOption{}), repo.DeleteIssueReaction)
+						m.Group("/assets", func() {
+							m.Combo("").
+								Get(repo.ListIssueAttachments).
+								Post(reqToken(), mustNotBeArchived, repo.CreateIssueAttachment)
+							m.Combo("/{asset}").
+								Get(repo.GetIssueAttachment).
+								Patch(reqToken(), mustNotBeArchived, bind(api.EditAttachmentOptions{}), repo.EditIssueAttachment).
+								Delete(reqToken(), mustNotBeArchived, repo.DeleteIssueAttachment)
+						}, mustEnableAttachments)
 					})
 				}, mustEnableIssuesOrPulls)
 				m.Group("/labels", func() {

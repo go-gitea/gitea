@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package forms
 
@@ -91,13 +90,10 @@ func (f *InstallForm) Validate(req *http.Request, errs binding.Errors) binding.E
 
 // RegisterForm form for registering
 type RegisterForm struct {
-	UserName           string `binding:"Required;Username;MaxSize(40)"`
-	Email              string `binding:"Required;MaxSize(254)"`
-	Password           string `binding:"MaxSize(255)"`
-	Retype             string
-	GRecaptchaResponse string `form:"g-recaptcha-response"`
-	HcaptchaResponse   string `form:"h-captcha-response"`
-	McaptchaResponse   string `form:"m-captcha-response"`
+	UserName string `binding:"Required;Username;MaxSize(40)"`
+	Email    string `binding:"Required;MaxSize(254)"`
+	Password string `binding:"MaxSize(255)"`
+	Retype   string
 }
 
 // Validate validates the fields

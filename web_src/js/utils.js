@@ -78,10 +78,58 @@ function getCurrentLocale() {
 
 // given a month (0-11), returns it in the documents language
 export function translateMonth(month) {
-  return new Date(Date.UTC(2022, month, 12)).toLocaleString(getCurrentLocale(), {month: 'short'});
+  return new Date(Date.UTC(2022, month, 12)).toLocaleString(getCurrentLocale(), {month: 'short', timeZone: 'UTC'});
 }
 
 // given a weekday (0-6, Sunday to Saturday), returns it in the documents language
 export function translateDay(day) {
-  return new Date(Date.UTC(2022, 7, day)).toLocaleString(getCurrentLocale(), {weekday: 'short'});
+  return new Date(Date.UTC(2022, 7, day)).toLocaleString(getCurrentLocale(), {weekday: 'short', timeZone: 'UTC'});
+}
+
+// convert a Blob to a DataURI
+export function blobToDataURI(blob) {
+  return new Promise((resolve, reject) => {
+    try {
+      const reader = new FileReader();
+      reader.addEventListener('load', (e) => {
+        resolve(e.target.result);
+      });
+      reader.addEventListener('error', () => {
+        reject(new Error('FileReader failed'));
+      });
+      reader.readAsDataURL(blob);
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+// convert image Blob to another mime-type format.
+export function convertImage(blob, mime) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const img = new Image();
+      const canvas = document.createElement('canvas');
+      img.addEventListener('load', () => {
+        try {
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          const context = canvas.getContext('2d');
+          context.drawImage(img, 0, 0);
+          canvas.toBlob((blob) => {
+            if (!(blob instanceof Blob)) return reject(new Error('imageBlobToPng failed'));
+            resolve(blob);
+          }, mime);
+        } catch (err) {
+          reject(err);
+        }
+      });
+      img.addEventListener('error', () => {
+        reject(new Error('imageBlobToPng failed'));
+      });
+      img.src = await blobToDataURI(blob);
+    } catch (err) {
+      reject(err);
+    }
+  });
 }

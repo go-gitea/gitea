@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -20,12 +19,11 @@ func TestAPIGetWikiPage(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	username := "user2"
-	session := loginUser(t, username)
 
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/page/Home", username, "repo1")
 
 	req := NewRequest(t, "GET", urlStr)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 	var page *api.WikiPage
 	DecodeJSON(t, resp, &page)
 
@@ -66,12 +64,11 @@ func TestAPIListWikiPages(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	username := "user2"
-	session := loginUser(t, username)
 
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/pages", username, "repo1")
 
 	req := NewRequest(t, "GET", urlStr)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 
 	var meta []*api.WikiPageMetaData
 	DecodeJSON(t, resp, &meta)
@@ -191,7 +188,7 @@ func TestAPINewWikiPage(t *testing.T) {
 			ContentBase64: base64.StdEncoding.EncodeToString([]byte("Wiki page content for API unit tests")),
 			Message:       "",
 		})
-		session.MakeRequest(t, req, http.StatusCreated)
+		MakeRequest(t, req, http.StatusCreated)
 	}
 }
 
@@ -208,18 +205,17 @@ func TestAPIEditWikiPage(t *testing.T) {
 		ContentBase64: base64.StdEncoding.EncodeToString([]byte("Edited wiki page content for API unit tests")),
 		Message:       "",
 	})
-	session.MakeRequest(t, req, http.StatusOK)
+	MakeRequest(t, req, http.StatusOK)
 }
 
 func TestAPIListPageRevisions(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	username := "user2"
-	session := loginUser(t, username)
 
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/revisions/Home", username, "repo1")
 
 	req := NewRequest(t, "GET", urlStr)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 
 	var revisions *api.WikiCommitList
 	DecodeJSON(t, resp, &revisions)

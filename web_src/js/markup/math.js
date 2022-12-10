@@ -23,12 +23,14 @@ export async function renderMath() {
 
   for (const el of els) {
     const source = el.textContent;
-    const options = {display: el.classList.contains('display')};
+    const nodeName = el.classList.contains('display') ? 'p' : 'span';
 
     try {
-      const markup = katex.renderToString(source, options);
-      const tempEl = document.createElement(options.display ? 'p' : 'span');
-      tempEl.innerHTML = markup;
+      const tempEl = document.createElement(nodeName);
+      katex.render(source, tempEl, {
+        maxSize: 25,
+        maxExpand: 50,
+      });
       targetElement(el).replaceWith(tempEl);
     } catch (error) {
       displayError(el, error);

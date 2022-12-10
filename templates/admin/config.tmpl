@@ -177,7 +177,7 @@
 					<dt>{{.locale.Tr "admin.config.default_enable_timetracking"}}</dt>
 					<dd>{{if .Service.DefaultEnableTimetracking}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 					<dt>{{.locale.Tr "admin.config.default_allow_only_contributors_to_track_time"}}</dt>
-					<dd>{{if .Service.DefaultAllowOnlyContributorsToTrackTime}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
+					<dd>{{if .Service.DefaultAllowOnlyContributorsToTrackTime $.Context}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				{{end}}
 				<dt>{{.locale.Tr "admin.config.default_visibility_organization"}}</dt>
 				<dd>{{.Service.DefaultOrgVisibility}}</dd>

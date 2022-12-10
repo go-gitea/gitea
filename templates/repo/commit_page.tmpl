@@ -26,10 +26,10 @@
 							{{.locale.Tr "repo.diff.browse_source"}}
 						</a>
 						{{if and ($.Permission.CanWrite $.UnitTypeCode) (not $.Repository.IsArchived) (not .IsDeleted)}}{{- /* */ -}}
-							<div class="ui primary tiny floating dropdown icon button">{{.locale.Tr "repo.commit.actions"}}
-								{{svg "octicon-triangle-down" 14 "dropdown icon"}}<span class="sr-mobile-only">{{.locale.Tr "repo.commit.actions"}}</span>
+							<div class="ui primary tiny floating dropdown icon button">{{.locale.Tr "repo.commit.operations"}}
+								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 								<div class="menu">
-									<div class="ui header">{{.locale.Tr "repo.commit.actions"}}</div>
+									<div class="ui header">{{.locale.Tr "repo.commit.operations"}}</div>
 									<div class="divider"></div>
 									<div class="item show-create-branch-modal"
 										data-content="{{$.locale.Tr "repo.branch.new_branch_from" (.CommitID)}}"
@@ -200,7 +200,7 @@
 							{{else}}
 								<span class="ui text mr-3">{{.locale.Tr "repo.commits.signed_by_untrusted_user_unmatched"}}:</span>
 							{{end}}
-							{{avatar .Verification.SigningUser 28}}
+							{{avatar .Verification.SigningUser 28 "mr-3"}}
 							<a href="{{.Verification.SigningUser.HomeLink}}"><strong>{{.Verification.SigningUser.GetDisplayName}}</strong></a>
 						{{else}}
 							<span title="{{.locale.Tr "gpg.default_key"}}">{{svg "gitea-lock-cog" 16 "mr-3"}}</span>

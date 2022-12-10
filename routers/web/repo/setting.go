@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -690,7 +689,7 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Repo.GitRepo = nil
 		}
 
-		if err := repo_service.StartRepositoryTransfer(ctx.Doer, newOwner, repo, nil); err != nil {
+		if err := repo_service.StartRepositoryTransfer(ctx, ctx.Doer, newOwner, repo, nil); err != nil {
 			if repo_model.IsErrRepoAlreadyExist(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
 			} else if models.IsErrRepoTransferInProgress(err) {
@@ -712,7 +711,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository)
+		repoTransfer, err := models.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
 		if err != nil {
 			if models.IsErrNoPendingTransfer(err) {
 				ctx.Flash.Error("repo.settings.transfer_abort_invalid")
@@ -724,7 +723,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := repoTransfer.LoadAttributes(); err != nil {
+		if err := repoTransfer.LoadAttributes(ctx); err != nil {
 			ctx.ServerError("LoadRecipient", err)
 			return
 		}
@@ -930,7 +929,7 @@ func CollaborationPost(ctx *context.Context) {
 		}
 	}
 
-	if err = repo_module.AddCollaborator(ctx.Repo.Repository, u); err != nil {
+	if err = repo_module.AddCollaborator(ctx, ctx.Repo.Repository, u); err != nil {
 		ctx.ServerError("AddCollaborator", err)
 		return
 	}
@@ -946,6 +945,7 @@ func CollaborationPost(ctx *context.Context) {
 // ChangeCollaborationAccessMode response for changing access of a collaboration
 func ChangeCollaborationAccessMode(ctx *context.Context) {
 	if err := repo_model.ChangeCollaborationAccessMode(
+		ctx,
 		ctx.Repo.Repository,
 		ctx.FormInt64("uid"),
 		perm.AccessMode(ctx.FormInt("mode"))); err != nil {

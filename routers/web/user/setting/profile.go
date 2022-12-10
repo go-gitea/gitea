@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package setting
 
@@ -324,7 +323,7 @@ func Repos(ctx *context.Context) {
 		}
 		for _, repo := range userRepos {
 			if repo.IsFork {
-				if err := repo.GetBaseRepo(); err != nil {
+				if err := repo.GetBaseRepo(ctx); err != nil {
 					ctx.ServerError("GetBaseRepo", err)
 					return
 				}
@@ -343,7 +342,7 @@ func Repos(ctx *context.Context) {
 
 		for i := range repos {
 			if repos[i].IsFork {
-				if err := repos[i].GetBaseRepo(); err != nil {
+				if err := repos[i].GetBaseRepo(ctx); err != nil {
 					ctx.ServerError("GetBaseRepo", err)
 					return
 				}

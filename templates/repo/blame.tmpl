@@ -1,14 +1,9 @@
 <div class="{{TabSizeClass .Editorconfig .FileName}} non-diff-file-content">
-	<h4 class="file-header ui top attached header df ac sb">
-		<div class="file-header-left df ac">
-			<div class="file-info text grey normal mono">
-				<div class="file-info-entry">
-					{{.NumLines}} {{.locale.TrN .NumLines "repo.line" "repo.lines"}}
-				</div>
-				<div class="file-info-entry">{{FileSize .FileSize}}</div>
-			</div>
+	<h4 class="file-header ui top attached header df ac sb fw">
+		<div class="file-header-left df ac py-3 pr-4">
+			{{template "repo/file_info" .}}
 		</div>
-		<div class="file-header-right file-actions df ac">
+		<div class="file-header-right file-actions df ac fw">
 			<div class="ui buttons">
 				<a class="ui tiny button" href="{{$.RawFileLink}}">{{.locale.Tr "repo.file_raw"}}</a>
 				{{if not .IsViewCommit}}

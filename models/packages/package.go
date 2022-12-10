@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package packages
 
@@ -44,6 +43,21 @@ const (
 	TypeRubyGems  Type = "rubygems"
 	TypeVagrant   Type = "vagrant"
 )
+
+var TypeList = []Type{
+	TypeComposer,
+	TypeConan,
+	TypeContainer,
+	TypeGeneric,
+	TypeHelm,
+	TypeMaven,
+	TypeNpm,
+	TypeNuGet,
+	TypePub,
+	TypePyPI,
+	TypeRubyGems,
+	TypeVagrant,
+}
 
 // Name gets the name of the package type
 func (pt Type) Name() string {

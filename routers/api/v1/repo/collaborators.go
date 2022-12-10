@@ -1,7 +1,6 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -175,13 +174,13 @@ func AddCollaborator(ctx *context.APIContext) {
 		return
 	}
 
-	if err := repo_module.AddCollaborator(ctx.Repo.Repository, collaborator); err != nil {
+	if err := repo_module.AddCollaborator(ctx, ctx.Repo.Repository, collaborator); err != nil {
 		ctx.Error(http.StatusInternalServerError, "AddCollaborator", err)
 		return
 	}
 
 	if form.Permission != nil {
-		if err := repo_model.ChangeCollaborationAccessMode(ctx.Repo.Repository, collaborator.ID, perm.ParseAccessMode(*form.Permission)); err != nil {
+		if err := repo_model.ChangeCollaborationAccessMode(ctx, ctx.Repo.Repository, collaborator.ID, perm.ParseAccessMode(*form.Permission)); err != nil {
 			ctx.Error(http.StatusInternalServerError, "ChangeCollaborationAccessMode", err)
 			return
 		}

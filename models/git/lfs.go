@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -235,9 +234,9 @@ func LFSObjectAccessible(user *user_model.User, oid string) (bool, error) {
 	return count > 0, err
 }
 
-// LFSObjectIsAssociated checks if a provided Oid is associated
-func LFSObjectIsAssociated(oid string) (bool, error) {
-	return db.GetEngine(db.DefaultContext).Exist(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
+// ExistsLFSObject checks if a provided Oid exists within the DB
+func ExistsLFSObject(ctx context.Context, oid string) (bool, error) {
+	return db.GetEngine(ctx).Exist(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
 }
 
 // LFSAutoAssociate auto associates accessible LFSMetaObjects
