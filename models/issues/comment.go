@@ -779,7 +779,7 @@ func (c *Comment) LoadPushCommits(ctx context.Context) (err error) {
 	return err
 }
 
-// CreateCommentCtx creates comment with context
+// CreateComment creates comment with context
 func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment, err error) {
 	e := db.GetEngine(ctx)
 	var LabelID int64
