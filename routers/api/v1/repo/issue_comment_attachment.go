@@ -15,7 +15,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/attachment"
-	comment_service "code.gitea.io/gitea/services/comments"
+	issue_service "code.gitea.io/gitea/services/issue"
 )
 
 // GetIssueCommentAttachment gets a single attachment of the comment
@@ -196,7 +196,7 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 		return
 	}
 
-	if err = comment_service.UpdateComment(ctx, comment, ctx.Doer, comment.Content); err != nil {
+	if err = issue_service.UpdateComment(ctx, comment, ctx.Doer, comment.Content); err != nil {
 		ctx.ServerError("UpdateComment", err)
 		return
 	}

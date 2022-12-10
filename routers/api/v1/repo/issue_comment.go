@@ -18,7 +18,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
-	comment_service "code.gitea.io/gitea/services/comments"
+	issue_service "code.gitea.io/gitea/services/issue"
 )
 
 // ListIssueComments list all the comments of an issue
@@ -362,7 +362,7 @@ func CreateIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	comment, err := comment_service.CreateIssueComment(ctx, ctx.Doer, ctx.Repo.Repository, issue, form.Body, nil)
+	comment, err := issue_service.CreateIssueComment(ctx, ctx.Doer, ctx.Repo.Repository, issue, form.Body, nil)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateIssueComment", err)
 		return
@@ -556,7 +556,7 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 
 	oldContent := comment.Content
 	comment.Content = form.Body
-	if err := comment_service.UpdateComment(ctx, comment, ctx.Doer, oldContent); err != nil {
+	if err := issue_service.UpdateComment(ctx, comment, ctx.Doer, oldContent); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateComment", err)
 		return
 	}
@@ -655,7 +655,7 @@ func deleteIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	if err = comment_service.DeleteComment(ctx, ctx.Doer, comment); err != nil {
+	if err = issue_service.DeleteComment(ctx, ctx.Doer, comment); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteCommentByID", err)
 		return
 	}
