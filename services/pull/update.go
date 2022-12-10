@@ -110,7 +110,7 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 		if err := pr.LoadBaseRepo(ctx); err != nil {
 			return false, false, err
 		}
-		prUnit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests)
+		prUnit, err := pr.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
 		if err != nil {
 			log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %v", err)
 			return false, false, err

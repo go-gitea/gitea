@@ -1,34 +1,34 @@
 <div class="ui secondary pointing tabular top attached borderless menu stackable new-menu navbar shadow-body">
 	<div class="new-menu-inner">
-		<a class="{{if .PageIsSettingsOptions}}active{{end}} item" href="{{.RepoLink}}/settings">
+		<a class="{{if .PageIsSettingsOptions}}active {{end}}item" href="{{.RepoLink}}/settings">
 			{{.locale.Tr "repo.settings.options"}}
 		</a>
-		<a class="{{if .PageIsSettingsCollaboration}}active{{end}} item" href="{{.RepoLink}}/settings/collaboration">
+		<a class="{{if .PageIsSettingsCollaboration}}active {{end}}item" href="{{.RepoLink}}/settings/collaboration">
 			{{.locale.Tr "repo.settings.collaboration"}}
 		</a>
 		{{if not .Repository.IsEmpty}}
-			<a class="{{if .PageIsSettingsBranches}}active{{end}} item" href="{{.RepoLink}}/settings/branches">
+			<a class="{{if .PageIsSettingsBranches}}active {{end}}item" href="{{.RepoLink}}/settings/branches">
 				{{.locale.Tr "repo.settings.branches"}}
 			</a>
 		{{end}}
-		<a class="{{if .PageIsSettingsTags}}active{{end}} item" href="{{.RepoLink}}/settings/tags">
+		<a class="{{if .PageIsSettingsTags}}active {{end}}item" href="{{.RepoLink}}/settings/tags">
 			{{.locale.Tr "repo.settings.tags"}}
 		</a>
 		{{if not DisableWebhooks}}
-			<a class="{{if .PageIsSettingsHooks}}active{{end}} item" href="{{.RepoLink}}/settings/hooks">
+			<a class="{{if .PageIsSettingsHooks}}active {{end}}item" href="{{.RepoLink}}/settings/hooks">
 				{{.locale.Tr "repo.settings.hooks"}}
 			</a>
 		{{end}}
 		{{if .SignedUser.CanEditGitHook}}
-			<a class="{{if .PageIsSettingsGitHooks}}active{{end}} item" href="{{.RepoLink}}/settings/hooks/git">
+			<a class="{{if .PageIsSettingsGitHooks}}active {{end}}item" href="{{.RepoLink}}/settings/hooks/git">
 				{{.locale.Tr "repo.settings.githooks"}}
 			</a>
 		{{end}}
-		<a class="{{if .PageIsSettingsKeys}}active{{end}} item" href="{{.RepoLink}}/settings/keys">
+		<a class="{{if .PageIsSettingsKeys}}active {{end}}item" href="{{.RepoLink}}/settings/keys">
 			{{.locale.Tr "repo.settings.deploy_keys"}}
 		</a>
 		{{if .LFSStartServer}}
-			<a class="{{if .PageIsSettingsLFS}}active{{end}} item" href="{{.RepoLink}}/settings/lfs">
+			<a class="{{if .PageIsSettingsLFS}}active {{end}}item" href="{{.RepoLink}}/settings/lfs">
 				{{.locale.Tr "repo.settings.lfs"}}
 			</a>
 		{{end}}

@@ -461,7 +461,7 @@ func (issues IssueList) loadTotalTrackedTimes(ctx context.Context) (err error) {
 
 	ids := make([]int64, 0, len(issues))
 	for _, issue := range issues {
-		if issue.Repo.IsTimetrackerEnabled() {
+		if issue.Repo.IsTimetrackerEnabled(ctx) {
 			ids = append(ids, issue.ID)
 		}
 	}

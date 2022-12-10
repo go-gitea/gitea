@@ -577,7 +577,7 @@ func PrepareCompareDiff(
 	if (headCommitID == ci.CompareInfo.MergeBase && !ci.DirectComparison) ||
 		headCommitID == ci.CompareInfo.BaseCommitID {
 		ctx.Data["IsNothingToCompare"] = true
-		if unit, err := repo.GetUnit(unit.TypePullRequests); err == nil {
+		if unit, err := repo.GetUnit(ctx, unit.TypePullRequests); err == nil {
 			config := unit.PullRequestsConfig()
 
 			if !config.AutodetectManualMerge {
