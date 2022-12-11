@@ -419,7 +419,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 
 	ruleName := form.RuleName
 	if ruleName == "" {
-		ruleName = form.BranchName // nolint
+		ruleName = form.BranchName //nolint
 	}
 
 	isPlainRule := !git_model.IsRuleNameSpecial(ruleName)
