@@ -778,6 +778,7 @@ func runRepoSyncReleases(_ *cli.Context) error {
 
 func getReleaseCount(id int64) (int64, error) {
 	return repo_model.GetReleaseCountByRepoID(
+		db.DefaultContext,
 		id,
 		repo_model.FindReleasesOptions{
 			IncludeTags: true,

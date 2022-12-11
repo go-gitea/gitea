@@ -58,7 +58,7 @@ func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_mod
 func PushCreateRepo(authUser, owner *user_model.User, repoName string) (*repo_model.Repository, error) {
 	if !authUser.IsAdmin {
 		if owner.IsOrganization() {
-			if ok, err := organization.CanCreateOrgRepo(owner.ID, authUser.ID); err != nil {
+			if ok, err := organization.CanCreateOrgRepo(db.DefaultContext, owner.ID, authUser.ID); err != nil {
 				return nil, err
 			} else if !ok {
 				return nil, fmt.Errorf("cannot push-create repository for org")

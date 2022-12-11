@@ -594,6 +594,13 @@ func mustNotBeArchived(ctx *context.APIContext) {
 	}
 }
 
+func mustEnableAttachments(ctx *context.APIContext) {
+	if !setting.Attachment.Enabled {
+		ctx.NotFound()
+		return
+	}
+}
+
 // bind binding an obj to a func(ctx *context.APIContext)
 func bind(obj interface{}) http.HandlerFunc {
 	tp := reflect.TypeOf(obj)
@@ -925,6 +932,15 @@ func Routes(ctx gocontext.Context) *web.Route {
 								Get(repo.GetIssueCommentReactions).
 								Post(reqToken(auth_model.AccessTokenScopeRepo), bind(api.EditReactionOption{}), repo.PostIssueCommentReaction).
 								Delete(reqToken(auth_model.AccessTokenScopeRepo), bind(api.EditReactionOption{}), repo.DeleteIssueCommentReaction)
+							m.Group("/assets", func() {
+								m.Combo("").
+									Get(repo.ListIssueCommentAttachments).
+									Post(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, repo.CreateIssueCommentAttachment)
+								m.Combo("/{asset}").
+									Get(repo.GetIssueCommentAttachment).
+									Patch(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, bind(api.EditAttachmentOptions{}), repo.EditIssueCommentAttachment).
+									Delete(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, repo.DeleteIssueCommentAttachment)
+							}, mustEnableAttachments)
 						})
 					})
 					m.Group("/{index}", func() {
@@ -968,6 +984,15 @@ func Routes(ctx gocontext.Context) *web.Route {
 							Get(repo.GetIssueReactions).
 							Post(reqToken(auth_model.AccessTokenScopeRepo), bind(api.EditReactionOption{}), repo.PostIssueReaction).
 							Delete(reqToken(auth_model.AccessTokenScopeRepo), bind(api.EditReactionOption{}), repo.DeleteIssueReaction)
+						m.Group("/assets", func() {
+							m.Combo("").
+								Get(repo.ListIssueAttachments).
+								Post(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, repo.CreateIssueAttachment)
+							m.Combo("/{asset}").
+								Get(repo.GetIssueAttachment).
+								Patch(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, bind(api.EditAttachmentOptions{}), repo.EditIssueAttachment).
+								Delete(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, repo.DeleteIssueAttachment)
+						}, mustEnableAttachments)
 					})
 				}, mustEnableIssuesOrPulls)
 				m.Group("/labels", func() {

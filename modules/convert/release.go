@@ -10,10 +10,6 @@ import (
 
 // ToRelease convert a repo_model.Release to api.Release
 func ToRelease(r *repo_model.Release) *api.Release {
-	assets := make([]*api.Attachment, 0)
-	for _, att := range r.Attachments {
-		assets = append(assets, ToReleaseAttachment(att))
-	}
 	return &api.Release{
 		ID:           r.ID,
 		TagName:      r.TagName,
@@ -29,19 +25,6 @@ func ToRelease(r *repo_model.Release) *api.Release {
 		CreatedAt:    r.CreatedUnix.AsTime(),
 		PublishedAt:  r.CreatedUnix.AsTime(),
 		Publisher:    ToUser(r.Publisher, nil),
-		Attachments:  assets,
-	}
-}
-
-// ToReleaseAttachment converts models.Attachment to api.Attachment
-func ToReleaseAttachment(a *repo_model.Attachment) *api.Attachment {
-	return &api.Attachment{
-		ID:            a.ID,
-		Name:          a.Name,
-		Created:       a.CreatedUnix.AsTime(),
-		DownloadCount: a.DownloadCount,
-		Size:          a.Size,
-		UUID:          a.UUID,
-		DownloadURL:   a.DownloadURL(),
+		Attachments:  ToAttachments(r.Attachments),
 	}
 }
