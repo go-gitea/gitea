@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/json"
@@ -195,7 +196,7 @@ func doAPICreateDeployKey(ctx *APITestContext, keyname, keyFile string, readOnly
 
 func doAPICreatePullRequest(ctx *APITestContext, owner, repo, baseBranch, headBranch string) func(*testing.T) (api.PullRequest, error) {
 	return func(t *testing.T) (api.PullRequest, error) {
-		repoBefore, err := repo_model.GetRepositoryByOwnerAndName(owner, repo)
+		repoBefore, err := repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, owner, repo)
 		assert.NoError(t, err)
 
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls?token=%s",
@@ -212,7 +213,7 @@ func doAPICreatePullRequest(ctx *APITestContext, owner, repo, baseBranch, headBr
 		}
 		resp := ctx.MakeRequest(t, req, expected)
 
-		repoAfter, err := repo_model.GetRepositoryByOwnerAndName(owner, repo)
+		repoAfter, err := repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, owner, repo)
 		assert.NoError(t, err)
 		assert.EqualValues(t, repoBefore.NumPulls+1, repoAfter.NumPulls)
 
