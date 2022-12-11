@@ -83,7 +83,7 @@ func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
 		return ctx.Doer
 	}
 
-	org, err := user_model.GetUserByID(uid)
+	org, err := user_model.GetUserByID(ctx, uid)
 	if user_model.IsErrUserNotExist(err) {
 		return ctx.Doer
 	}
@@ -149,7 +149,7 @@ func Create(ctx *context.Context) {
 	ctx.Data["repo_template_name"] = ctx.Tr("repo.template_select")
 	templateID := ctx.FormInt64("template_id")
 	if templateID > 0 {
-		templateRepo, err := repo_model.GetRepositoryByID(templateID)
+		templateRepo, err := repo_model.GetRepositoryByID(ctx, templateID)
 		if err == nil && access_model.CheckRepoUnitUser(ctx, templateRepo, ctxUser, unit.TypeCode) {
 			ctx.Data["repo_template"] = templateID
 			ctx.Data["repo_template_name"] = templateRepo.Name
@@ -314,12 +314,12 @@ func Action(ctx *context.Context) {
 }
 
 func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
-	repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository)
+	repoTransfer, err := models.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
 	if err != nil {
 		return err
 	}
 
-	if err := repoTransfer.LoadAttributes(); err != nil {
+	if err := repoTransfer.LoadAttributes(ctx); err != nil {
 		return err
 	}
 
@@ -333,7 +333,7 @@ func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
 			ctx.Repo.GitRepo = nil
 		}
 
-		if err := repo_service.TransferOwnership(repoTransfer.Doer, repoTransfer.Recipient, ctx.Repo.Repository, repoTransfer.Teams); err != nil {
+		if err := repo_service.TransferOwnership(ctx, repoTransfer.Doer, repoTransfer.Recipient, ctx.Repo.Repository, repoTransfer.Teams); err != nil {
 			return err
 		}
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.success"))

@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/container"
@@ -353,7 +354,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 	}
 
 	// 5. Now get the pull request configuration to check if we need to ignore whitespace
-	prUnit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests)
+	prUnit, err := pr.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
 	if err != nil {
 		return false, err
 	}
@@ -533,7 +534,7 @@ func checkPullFilesProtection(pr *issues_model.PullRequest, gitRepo *git.Reposit
 		return nil
 	}
 
-	if err := pr.LoadProtectedBranch(); err != nil {
+	if err := pr.LoadProtectedBranch(db.DefaultContext); err != nil {
 		return err
 	}
 

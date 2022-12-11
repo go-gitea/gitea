@@ -5,6 +5,7 @@
 package convert
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -408,8 +409,8 @@ func ToOAuth2Application(app *auth.OAuth2Application) *api.OAuth2Application {
 }
 
 // ToLFSLock convert a LFSLock to api.LFSLock
-func ToLFSLock(l *git_model.LFSLock) *api.LFSLock {
-	u, err := user_model.GetUserByID(l.OwnerID)
+func ToLFSLock(ctx context.Context, l *git_model.LFSLock) *api.LFSLock {
+	u, err := user_model.GetUserByID(ctx, l.OwnerID)
 	if err != nil {
 		return nil
 	}

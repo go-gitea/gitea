@@ -16,14 +16,15 @@ import (
 // ToComment converts a issues_model.Comment to the api.Comment format
 func ToComment(c *issues_model.Comment) *api.Comment {
 	return &api.Comment{
-		ID:       c.ID,
-		Poster:   ToUser(c.Poster, nil),
-		HTMLURL:  c.HTMLURL(),
-		IssueURL: c.IssueURL(),
-		PRURL:    c.PRURL(),
-		Body:     c.Content,
-		Created:  c.CreatedUnix.AsTime(),
-		Updated:  c.UpdatedUnix.AsTime(),
+		ID:          c.ID,
+		Poster:      ToUser(c.Poster, nil),
+		HTMLURL:     c.HTMLURL(),
+		IssueURL:    c.IssueURL(),
+		PRURL:       c.PRURL(),
+		Body:        c.Content,
+		Attachments: ToAttachments(c.Attachments),
+		Created:     c.CreatedUnix.AsTime(),
+		Updated:     c.UpdatedUnix.AsTime(),
 	}
 }
 
@@ -138,17 +139,17 @@ func ToTimelineComment(ctx context.Context, c *issues_model.Comment, doer *user_
 		var repo *repo_model.Repository
 		if c.Label.BelongsToOrg() {
 			var err error
-			org, err = user_model.GetUserByIDCtx(ctx, c.Label.OrgID)
+			org, err = user_model.GetUserByID(ctx, c.Label.OrgID)
 			if err != nil {
-				log.Error("GetUserByIDCtx(%d): %v", c.Label.OrgID, err)
+				log.Error("GetUserByID(%d): %v", c.Label.OrgID, err)
 				return nil
 			}
 		}
 		if c.Label.BelongsToRepo() {
 			var err error
-			repo, err = repo_model.GetRepositoryByIDCtx(ctx, c.Label.RepoID)
+			repo, err = repo_model.GetRepositoryByID(ctx, c.Label.RepoID)
 			if err != nil {
-				log.Error("GetRepositoryByIDCtx(%d): %v", c.Label.RepoID, err)
+				log.Error("GetRepositoryByID(%d): %v", c.Label.RepoID, err)
 				return nil
 			}
 		}

@@ -18,7 +18,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
-	comment_service "code.gitea.io/gitea/services/comments"
+	issue_service "code.gitea.io/gitea/services/issue"
 )
 
 // ListIssueComments list all the comments of an issue
@@ -92,6 +92,11 @@ func ListIssueComments(ctx *context.APIContext) {
 
 	if err := issues_model.CommentList(comments).LoadPosters(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadPosters", err)
+		return
+	}
+
+	if err := issues_model.CommentList(comments).LoadAttachments(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadAttachments", err)
 		return
 	}
 
@@ -199,7 +204,7 @@ func isXRefCommentAccessible(ctx stdCtx.Context, user *user_model.User, c *issue
 	if issues_model.CommentTypeIsRef(c.Type) && c.RefRepoID != issueRepoID && c.RefRepoID != 0 {
 		var err error
 		// Set RefRepo for description in template
-		c.RefRepo, err = repo_model.GetRepositoryByIDCtx(ctx, c.RefRepoID)
+		c.RefRepo, err = repo_model.GetRepositoryByID(ctx, c.RefRepoID)
 		if err != nil {
 			return false
 		}
@@ -294,6 +299,10 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadPosters", err)
 		return
 	}
+	if err := issues_model.CommentList(comments).LoadAttachments(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadAttachments", err)
+		return
+	}
 	if _, err := issues_model.CommentList(comments).Issues().LoadRepositories(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadRepositories", err)
 		return
@@ -353,7 +362,7 @@ func CreateIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	comment, err := comment_service.CreateIssueComment(ctx, ctx.Doer, ctx.Repo.Repository, issue, form.Body, nil)
+	comment, err := issue_service.CreateIssueComment(ctx, ctx.Doer, ctx.Repo.Repository, issue, form.Body, nil)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateIssueComment", err)
 		return
@@ -547,7 +556,7 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 
 	oldContent := comment.Content
 	comment.Content = form.Body
-	if err := comment_service.UpdateComment(ctx, comment, ctx.Doer, oldContent); err != nil {
+	if err := issue_service.UpdateComment(ctx, comment, ctx.Doer, oldContent); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateComment", err)
 		return
 	}
@@ -646,7 +655,7 @@ func deleteIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	if err = comment_service.DeleteComment(ctx, ctx.Doer, comment); err != nil {
+	if err = issue_service.DeleteComment(ctx, ctx.Doer, comment); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteCommentByID", err)
 		return
 	}

@@ -47,7 +47,6 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
-	comment_service "code.gitea.io/gitea/services/comments"
 	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -114,7 +113,7 @@ func MustEnableIssues(ctx *context.Context) {
 		return
 	}
 
-	unit, err := ctx.Repo.Repository.GetUnit(unit.TypeExternalTracker)
+	unit, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypeExternalTracker)
 	if err == nil {
 		ctx.Redirect(unit.ExternalTrackerConfig().ExternalTrackerURL)
 		return
@@ -1007,7 +1006,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 
 		// Check if the passed assignees actually exists and is assignable
 		for _, aID := range assigneeIDs {
-			assignee, err := user_model.GetUserByID(aID)
+			assignee, err := user_model.GetUserByID(ctx, aID)
 			if err != nil {
 				ctx.ServerError("GetUserByID", err)
 				return nil, nil, 0, 0
@@ -1174,7 +1173,7 @@ func getBranchData(ctx *context.Context, issue *issues_model.Issue) {
 func ViewIssue(ctx *context.Context) {
 	if ctx.Params(":type") == "issues" {
 		// If issue was requested we check if repo has external tracker and redirect
-		extIssueUnit, err := ctx.Repo.Repository.GetUnit(unit.TypeExternalTracker)
+		extIssueUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypeExternalTracker)
 		if err == nil && extIssueUnit != nil {
 			if extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == markup.IssueNameStyleNumeric || extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == "" {
 				metas := ctx.Repo.Repository.ComposeMetas()
@@ -1375,7 +1374,7 @@ func ViewIssue(ctx *context.Context) {
 		comment      *issues_model.Comment
 		participants = make([]*user_model.User, 1, 10)
 	)
-	if ctx.Repo.Repository.IsTimetrackerEnabled() {
+	if ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
 		if ctx.IsSigned {
 			// Deal with the stopwatch
 			ctx.Data["IsStopwatchRunning"] = issues_model.StopwatchExists(ctx.Doer.ID, issue.ID)
@@ -1636,7 +1635,7 @@ func ViewIssue(ctx *context.Context) {
 			}
 		}
 
-		prUnit, err := repo.GetUnit(unit.TypePullRequests)
+		prUnit, err := repo.GetUnit(ctx, unit.TypePullRequests)
 		if err != nil {
 			ctx.ServerError("GetUnit", err)
 			return
@@ -1679,7 +1678,7 @@ func ViewIssue(ctx *context.Context) {
 		}
 		ctx.Data["DefaultSquashMergeMessage"] = defaultSquashMergeMessage
 
-		if err = pull.LoadProtectedBranch(); err != nil {
+		if err = pull.LoadProtectedBranch(ctx); err != nil {
 			ctx.ServerError("LoadProtectedBranch", err)
 			return
 		}
@@ -2062,7 +2061,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 				return
 			}
 		default:
-			assignee, err := user_model.GetUserByID(assigneeID)
+			assignee, err := user_model.GetUserByID(ctx, assigneeID)
 			if err != nil {
 				ctx.ServerError("GetUserByID", err)
 				return
@@ -2173,7 +2172,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 			continue
 		}
 
-		reviewer, err := user_model.GetUserByID(reviewID)
+		reviewer, err := user_model.GetUserByID(ctx, reviewID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				log.Warn(
@@ -2709,7 +2708,7 @@ func NewComment(ctx *context.Context) {
 		return
 	}
 
-	comment, err := comment_service.CreateIssueComment(ctx, ctx.Doer, ctx.Repo.Repository, issue, form.Content, attachments)
+	comment, err := issue_service.CreateIssueComment(ctx, ctx.Doer, ctx.Repo.Repository, issue, form.Content, attachments)
 	if err != nil {
 		ctx.ServerError("CreateIssueComment", err)
 		return
@@ -2749,7 +2748,7 @@ func UpdateCommentContent(ctx *context.Context) {
 		})
 		return
 	}
-	if err = comment_service.UpdateComment(ctx, comment, ctx.Doer, oldContent); err != nil {
+	if err = issue_service.UpdateComment(ctx, comment, ctx.Doer, oldContent); err != nil {
 		ctx.ServerError("UpdateComment", err)
 		return
 	}
@@ -2805,7 +2804,7 @@ func DeleteComment(ctx *context.Context) {
 		return
 	}
 
-	if err = comment_service.DeleteComment(ctx, ctx.Doer, comment); err != nil {
+	if err = issue_service.DeleteComment(ctx, ctx.Doer, comment); err != nil {
 		ctx.ServerError("DeleteComment", err)
 		return
 	}
@@ -3027,7 +3026,7 @@ func filterXRefComments(ctx *context.Context, issue *issues_model.Issue) error {
 		if issues_model.CommentTypeIsRef(c.Type) && c.RefRepoID != issue.RepoID && c.RefRepoID != 0 {
 			var err error
 			// Set RefRepo for description in template
-			c.RefRepo, err = repo_model.GetRepositoryByID(c.RefRepoID)
+			c.RefRepo, err = repo_model.GetRepositoryByID(ctx, c.RefRepoID)
 			if err != nil {
 				return err
 			}
@@ -3050,7 +3049,7 @@ func GetIssueAttachments(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
 	attachments := make([]*api.Attachment, len(issue.Attachments))
 	for i := 0; i < len(issue.Attachments); i++ {
-		attachments[i] = convert.ToReleaseAttachment(issue.Attachments[i])
+		attachments[i] = convert.ToAttachment(issue.Attachments[i])
 	}
 	ctx.JSON(http.StatusOK, attachments)
 }
@@ -3069,7 +3068,7 @@ func GetCommentAttachments(ctx *context.Context) {
 			return
 		}
 		for i := 0; i < len(comment.Attachments); i++ {
-			attachments = append(attachments, convert.ToReleaseAttachment(comment.Attachments[i]))
+			attachments = append(attachments, convert.ToAttachment(comment.Attachments[i]))
 		}
 	}
 	ctx.JSON(http.StatusOK, attachments)

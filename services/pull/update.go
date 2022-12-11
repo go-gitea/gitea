@@ -99,14 +99,14 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 		BaseBranch: pull.HeadBranch,
 	}
 
-	err = pr.LoadProtectedBranch()
+	err = pr.LoadProtectedBranch(ctx)
 	if err != nil {
 		return false, false, err
 	}
 
 	// can't do rebase on protected branch because need force push
 	if pr.ProtectedBranch == nil {
-		prUnit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests)
+		prUnit, err := pr.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
 		if err != nil {
 			log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %v", err)
 			return false, false, err

@@ -37,20 +37,21 @@ func ToAPIIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
 	}
 
 	apiIssue := &api.Issue{
-		ID:       issue.ID,
-		URL:      issue.APIURL(),
-		HTMLURL:  issue.HTMLURL(),
-		Index:    issue.Index,
-		Poster:   ToUser(issue.Poster, nil),
-		Title:    issue.Title,
-		Body:     issue.Content,
-		Ref:      issue.Ref,
-		Labels:   ToLabelList(issue.Labels, issue.Repo, issue.Repo.Owner),
-		State:    issue.State(),
-		IsLocked: issue.IsLocked,
-		Comments: issue.NumComments,
-		Created:  issue.CreatedUnix.AsTime(),
-		Updated:  issue.UpdatedUnix.AsTime(),
+		ID:          issue.ID,
+		URL:         issue.APIURL(),
+		HTMLURL:     issue.HTMLURL(),
+		Index:       issue.Index,
+		Poster:      ToUser(issue.Poster, nil),
+		Title:       issue.Title,
+		Body:        issue.Content,
+		Attachments: ToAttachments(issue.Attachments),
+		Ref:         issue.Ref,
+		Labels:      ToLabelList(issue.Labels, issue.Repo, issue.Repo.Owner),
+		State:       issue.State(),
+		IsLocked:    issue.IsLocked,
+		Comments:    issue.NumComments,
+		Created:     issue.CreatedUnix.AsTime(),
+		Updated:     issue.UpdatedUnix.AsTime(),
 	}
 
 	apiIssue.Repo = &api.RepositoryMeta{
@@ -110,12 +111,11 @@ func ToAPIIssueList(ctx context.Context, il issues_model.IssueList) []*api.Issue
 // ToTrackedTime converts TrackedTime to API format
 func ToTrackedTime(ctx context.Context, t *issues_model.TrackedTime) (apiT *api.TrackedTime) {
 	apiT = &api.TrackedTime{
-		ID:       t.ID,
-		IssueID:  t.IssueID,
-		UserID:   t.UserID,
-		UserName: t.User.Name,
-		Time:     t.Time,
-		Created:  t.Created,
+		ID:      t.ID,
+		IssueID: t.IssueID,
+		UserID:  t.UserID,
+		Time:    t.Time,
+		Created: t.Created,
 	}
 	if t.Issue != nil {
 		apiT.Issue = ToAPIIssue(ctx, t.Issue)
@@ -149,7 +149,7 @@ func ToStopWatches(sws []*issues_model.Stopwatch) (api.StopWatches, error) {
 		}
 		repo, ok = repoCache[issue.RepoID]
 		if !ok {
-			repo, err = repo_model.GetRepositoryByID(issue.RepoID)
+			repo, err = repo_model.GetRepositoryByID(db.DefaultContext, issue.RepoID)
 			if err != nil {
 				return nil, err
 			}

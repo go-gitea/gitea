@@ -18,7 +18,7 @@ func TestCreateIssueDependency(t *testing.T) {
 	// Prepare
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user1, err := user_model.GetUserByID(1)
+	user1, err := user_model.GetUserByID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 
 	issue1, err := issues_model.GetIssueByID(db.DefaultContext, 1)

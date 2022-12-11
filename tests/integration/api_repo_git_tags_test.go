@@ -45,7 +45,7 @@ func TestAPIGitTags(t *testing.T) {
 
 	// SHOULD work for annotated tags
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/tags/%s?token=%s", user.Name, repo.Name, aTag.ID.String(), token)
-	res := session.MakeRequest(t, req, http.StatusOK)
+	res := MakeRequest(t, req, http.StatusOK)
 
 	var tag *api.AnnotatedTag
 	DecodeJSON(t, res, &tag)
@@ -60,7 +60,7 @@ func TestAPIGitTags(t *testing.T) {
 
 	// Should NOT work for lightweight tags
 	badReq := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/tags/%s?token=%s", user.Name, repo.Name, commit.ID.String(), token)
-	session.MakeRequest(t, badReq, http.StatusBadRequest)
+	MakeRequest(t, badReq, http.StatusBadRequest)
 }
 
 func TestAPIDeleteTagByName(t *testing.T) {
@@ -75,7 +75,7 @@ func TestAPIDeleteTagByName(t *testing.T) {
 		owner.Name, repo.Name, token)
 
 	req := NewRequestf(t, http.MethodDelete, urlStr)
-	_ = session.MakeRequest(t, req, http.StatusNoContent)
+	_ = MakeRequest(t, req, http.StatusNoContent)
 
 	// Make sure that actual releases can't be deleted outright
 	createNewReleaseUsingAPI(t, session, token, owner, repo, "release-tag", "", "Release Tag", "test")
@@ -83,5 +83,5 @@ func TestAPIDeleteTagByName(t *testing.T) {
 		owner.Name, repo.Name, token)
 
 	req = NewRequestf(t, http.MethodDelete, urlStr)
-	_ = session.MakeRequest(t, req, http.StatusConflict)
+	_ = MakeRequest(t, req, http.StatusConflict)
 }

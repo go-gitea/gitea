@@ -665,7 +665,7 @@ func runDeleteUser(c *cli.Context) error {
 	} else if c.IsSet("username") {
 		user, err = user_model.GetUserByName(ctx, c.String("username"))
 	} else {
-		user, err = user_model.GetUserByID(c.Int64("id"))
+		user, err = user_model.GetUserByID(ctx, c.Int64("id"))
 	}
 	if err != nil {
 		return err
@@ -778,6 +778,7 @@ func runRepoSyncReleases(_ *cli.Context) error {
 
 func getReleaseCount(id int64) (int64, error) {
 	return repo_model.GetReleaseCountByRepoID(
+		db.DefaultContext,
 		id,
 		repo_model.FindReleasesOptions{
 			IncludeTags: true,

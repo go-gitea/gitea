@@ -54,7 +54,7 @@ func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr
 		return "", err
 	}
 
-	isExternalTracker := pr.BaseRepo.UnitEnabled(unit.TypeExternalTracker)
+	isExternalTracker := pr.BaseRepo.UnitEnabled(ctx, unit.TypeExternalTracker)
 	issueReference := "#"
 	if isExternalTracker {
 		issueReference = "!"
@@ -145,11 +145,11 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	defer pullWorkingPool.CheckOut(fmt.Sprint(pr.ID))
 
 	// Removing an auto merge pull and ignore if not exist
-	if err := pull_model.DeleteScheduledAutoMerge(db.DefaultContext, pr.ID); err != nil && !db.IsErrNotExist(err) {
+	if err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID); err != nil && !db.IsErrNotExist(err) {
 		return err
 	}
 
-	prUnit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests)
+	prUnit, err := pr.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
 	if err != nil {
 		log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %v", err)
 		return err
@@ -752,7 +752,7 @@ func IsUserAllowedToMerge(ctx context.Context, pr *issues_model.PullRequest, p a
 		return false, nil
 	}
 
-	err := pr.LoadProtectedBranchCtx(ctx)
+	err := pr.LoadProtectedBranch(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -770,7 +770,7 @@ func CheckPullBranchProtections(ctx context.Context, pr *issues_model.PullReques
 		return fmt.Errorf("LoadBaseRepo: %w", err)
 	}
 
-	if err = pr.LoadProtectedBranchCtx(ctx); err != nil {
+	if err = pr.LoadProtectedBranch(ctx); err != nil {
 		return fmt.Errorf("LoadProtectedBranch: %w", err)
 	}
 	if pr.ProtectedBranch == nil {
@@ -828,7 +828,7 @@ func MergedManually(pr *issues_model.PullRequest, doer *user_model.User, baseGit
 	defer pullWorkingPool.CheckOut(fmt.Sprint(pr.ID))
 
 	if err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
-		prUnit, err := pr.BaseRepo.GetUnitCtx(ctx, unit.TypePullRequests)
+		prUnit, err := pr.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
 		if err != nil {
 			return err
 		}

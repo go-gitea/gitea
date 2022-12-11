@@ -3,7 +3,7 @@ module code.gitea.io/gitea
 go 1.18
 
 require (
-	code.gitea.io/gitea-vet v0.2.2-0.20220122151748-48ebc902541b
+	code.gitea.io/gitea-vet v0.2.2
 	code.gitea.io/sdk/gitea v0.15.1
 	codeberg.org/gusted/mcaptcha v0.0.0-20220723083913-4f3072e1d570
 	gitea.com/go-chi/binding v0.0.0-20221013104517-b29891619681
@@ -15,7 +15,7 @@ require (
 	github.com/42wim/sshsig v0.0.0-20211121163825-841cf5bbc121
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/PuerkitoBio/goquery v1.8.0
-	github.com/alecthomas/chroma/v2 v2.3.0
+	github.com/alecthomas/chroma/v2 v2.4.0
 	github.com/blevesearch/bleve/v2 v2.3.4
 	github.com/buildkite/terminal-to-html/v3 v3.7.0
 	github.com/caddyserver/certmagic v0.17.2
@@ -105,8 +105,8 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 	mvdan.cc/xurls/v2 v2.4.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
-	xorm.io/builder v0.3.11
-	xorm.io/xorm v1.3.2-0.20220714055524-c3bce556200f
+	xorm.io/builder v0.3.12
+	xorm.io/xorm v1.3.3-0.20221209153726-f1bfc5ce9830
 )
 
 require (
@@ -182,7 +182,7 @@ require (
 	github.com/go-openapi/strfmt v0.21.3 // indirect
 	github.com/go-openapi/swag v0.22.3 // indirect
 	github.com/go-openapi/validate v0.22.0 // indirect
-	github.com/goccy/go-json v0.9.11 // indirect
+	github.com/goccy/go-json v0.10.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
