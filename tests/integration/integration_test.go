@@ -17,6 +17,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -265,7 +266,7 @@ var tokenCounter int64
 // but without the "scope_" prefix.
 func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...string) string {
 	t.Helper()
-	tokenCounter++
+	atomic.AddInt64(&tokenCounter, 1)
 	req := NewRequest(t, "GET", "/user/settings/applications")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
