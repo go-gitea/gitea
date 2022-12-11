@@ -613,7 +613,7 @@ func newIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *user_m
 		Label:   label,
 		Content: "1",
 	}
-	if _, err = CreateCommentCtx(ctx, opts); err != nil {
+	if _, err = CreateComment(ctx, opts); err != nil {
 		return err
 	}
 
@@ -714,7 +714,7 @@ func deleteIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *use
 		Issue: issue,
 		Label: label,
 	}
-	if _, err = CreateCommentCtx(ctx, opts); err != nil {
+	if _, err = CreateComment(ctx, opts); err != nil {
 		return err
 	}
 
