@@ -57,6 +57,7 @@ type HookOptions struct {
 	PullRequestID                   int64
 	DeployKeyID                     int64 // if the pusher is a DeployKey, then UserID is the repo's org user.
 	IsWiki                          bool
+	ActionPerm                      int
 }
 
 // SSHLogOption ssh log options

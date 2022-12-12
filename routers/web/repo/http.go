@@ -181,6 +181,14 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 			return
 		}
 
+		environ = []string{
+			repo_module.EnvRepoUsername + "=" + username,
+			repo_module.EnvRepoName + "=" + reponame,
+			repo_module.EnvPusherName + "=" + ctx.Doer.Name,
+			repo_module.EnvPusherID + fmt.Sprintf("=%d", ctx.Doer.ID),
+			repo_module.EnvAppURL + "=" + setting.AppURL,
+		}
+
 		if repoExist {
 			// Because of special ref "refs/for" .. , need delay write permission check
 			if git.SupportProcReceive {
@@ -204,11 +212,13 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 						ctx.PlainText(http.StatusForbidden, "User permission denied")
 						return
 					}
+					environ = append(environ, fmt.Sprintf("%s=%d", repo_module.EnvActionPerm, perm.AccessModeRead))
 				} else {
 					if accessMode > perm.AccessModeWrite {
 						ctx.PlainText(http.StatusForbidden, "User permission denied")
 						return
 					}
+					environ = append(environ, fmt.Sprintf("%s=%d", repo_module.EnvActionPerm, perm.AccessModeWrite))
 				}
 			} else {
 				p, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
@@ -227,14 +237,6 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 				ctx.PlainText(http.StatusForbidden, "mirror repository is read-only")
 				return
 			}
-		}
-
-		environ = []string{
-			repo_module.EnvRepoUsername + "=" + username,
-			repo_module.EnvRepoName + "=" + reponame,
-			repo_module.EnvPusherName + "=" + ctx.Doer.Name,
-			repo_module.EnvPusherID + fmt.Sprintf("=%d", ctx.Doer.ID),
-			repo_module.EnvAppURL + "=" + setting.AppURL,
 		}
 
 		if !ctx.Doer.KeepEmailPrivate {

@@ -466,7 +466,7 @@ func (ctx *preReceiveContext) loadPusherAndPermission() bool {
 
 	if ctx.opts.UserID == user_model.ActionsUserID {
 		ctx.user = user_model.NewActionsUser()
-		ctx.userPerm.AccessMode = perm_model.AccessModeAdmin
+		ctx.userPerm.AccessMode = perm_model.AccessMode(ctx.opts.ActionPerm)
 		if err := ctx.Repo.Repository.LoadUnits(ctx); err != nil {
 			log.Error("Unable to get User id %d Error: %v", ctx.opts.UserID, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
