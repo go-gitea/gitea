@@ -6,6 +6,7 @@ package ping
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"code.gitea.io/gitea/modules/log"
 
@@ -13,6 +14,12 @@ import (
 	"code.gitea.io/actions-proto-go/ping/v1/pingv1connect"
 	"github.com/bufbuild/connect-go"
 )
+
+func NewPingServiceHandler() (string, http.Handler) {
+	return pingv1connect.NewPingServiceHandler(&Service{})
+}
+
+var _ pingv1connect.PingServiceHandler = (*Service)(nil)
 
 type Service struct {
 	pingv1connect.UnimplementedPingServiceHandler

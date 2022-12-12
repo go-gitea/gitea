@@ -8,22 +8,18 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/actions/grpc"
+	"code.gitea.io/gitea/routers/api/actions/ping"
+	"code.gitea.io/gitea/routers/api/actions/runner"
 )
 
 func Routes(_ context.Context, prefix string) *web.Route {
 	m := web.NewRoute()
 
-	for _, fn := range []grpc.RouteFn{
-		grpc.V1Route,
-		grpc.V1AlphaRoute,
-		grpc.HealthRoute,
-		grpc.PingRoute,
-		grpc.RunnerRoute,
-	} {
-		path, handler := fn()
-		m.Post(path+"*", http.StripPrefix(prefix, handler).ServeHTTP)
-	}
+	path, handler := ping.NewPingServiceHandler()
+	m.Post(path+"*", http.StripPrefix(prefix, handler).ServeHTTP)
+
+	path, handler = runner.NewRunnerServiceHandler()
+	m.Post(path+"*", http.StripPrefix(prefix, handler).ServeHTTP)
 
 	return m
 }
