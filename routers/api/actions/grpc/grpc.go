@@ -34,6 +34,7 @@ func V1Route() (string, http.Handler) {
 
 func V1AlphaRoute() (string, http.Handler) {
 	// grpcV1Alpha
+	// to support tools that haven't updated to the v1 API
 	return grpcreflect.NewHandlerV1Alpha(
 		grpcreflect.NewStaticReflector(allServices...),
 		compress1KB,
