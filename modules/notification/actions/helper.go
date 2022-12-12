@@ -103,7 +103,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 	}
 	if err := input.Repo.LoadUnits(db.DefaultContext); err != nil {
 		return fmt.Errorf("repo.LoadUnits: %w", err)
-	} else if !input.Repo.UnitEnabled(unit.TypeActions) {
+	} else if !input.Repo.UnitEnabled(ctx, unit.TypeActions) {
 		return nil
 	}
 
