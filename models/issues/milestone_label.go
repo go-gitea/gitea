@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -135,7 +134,6 @@ func NewMilestoneLabels(m *Milestone, labels []*Label, doer *user_model.User) (e
 }
 
 func deleteMilestoneLabel(ctx context.Context, m *Milestone, label *Label, doer *user_model.User) (err error) {
-	// if count, err := db.DeleteByBean(ctx, &MilestoneLabel{
 	if count, err := db.DeleteByBean(ctx, &MilestoneLabel{
 		MilestoneID: m.ID,
 		LabelID:     label.ID,
@@ -165,6 +163,11 @@ func DeleteMilestoneLabel(m *Milestone, label *Label, doer *user_model.User) (er
 // LoadLabels loads labels
 func (m *Milestone) LoadLabels() error {
 	return m.loadLabels(db.DefaultContext)
+}
+
+// LoadLabels loads labels with context
+func (m *Milestone) LoadLabelsWithContext(ctx context.Context) error {
+	return m.loadLabels(ctx)
 }
 
 func (m *Milestone) loadLabels(ctx context.Context) (err error) {

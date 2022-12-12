@@ -381,7 +381,7 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 		return err
 	}
 
-	if err = m.LoadLabels(); err != nil {
+	if err = m.LoadLabelsWithContext(ctx); err != nil {
 		return err
 	}
 	for _, label := range m.Labels {
