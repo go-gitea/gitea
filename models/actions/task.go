@@ -90,10 +90,6 @@ func (task *ActionTask) IsStopped() bool {
 	return task.Stopped > 0
 }
 
-func (task *ActionTask) GetRepo() string {
-	return "xxxx"
-}
-
 func (task *ActionTask) GetCommitSHA() string {
 	if task.Job == nil {
 		return ""
