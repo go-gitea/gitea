@@ -29,6 +29,20 @@ func generateSaltedToken() (string, string, string, string, error) {
 	return token, salt, hash, token[:8], nil
 }
 
+/*
+LogIndexes is the index for mapping log line number to buffer offset.
+Because it uses varint encoding, it is impossible to predict its size.
+But we can make a simple estimate with an assumption that each log line has 200 byte, then:
+| lines     | file size           | index size         |
+|-----------|---------------------|--------------------|
+| 100       | 20 KiB(20000)       | 258 B(258)         |
+| 1000      | 195 KiB(200000)     | 2.9 KiB(2958)      |
+| 10000     | 1.9 MiB(2000000)    | 34 KiB(34715)      |
+| 100000    | 19 MiB(20000000)    | 386 KiB(394715)    |
+| 1000000   | 191 MiB(200000000)  | 4.1 MiB(4323626)   |
+| 10000000  | 1.9 GiB(2000000000) | 47 MiB(49323626)   |
+| 100000000 | 19 GiB(20000000000) | 490 MiB(513424280) |
+*/
 type LogIndexes []int64
 
 func (indexes *LogIndexes) FromDB(b []byte) error {

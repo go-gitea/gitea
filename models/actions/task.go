@@ -50,7 +50,7 @@ type ActionTask struct {
 	LogInStorage bool        // read log from database or from storage
 	LogLength    int64       // lines count
 	LogSize      int64       // blob size
-	LogIndexes   *LogIndexes `xorm:"BLOB"` // line number to offset
+	LogIndexes   *LogIndexes `xorm:"LONGBLOB"` // line number to offset
 	LogExpired   bool        // files that are too old will be deleted
 
 	Created timeutil.TimeStamp `xorm:"created"`

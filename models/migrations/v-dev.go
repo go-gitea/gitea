@@ -121,7 +121,7 @@ func addActionsTables(x *xorm.Engine) error {
 		LogInStorage bool     // read log from database or from storage
 		LogLength    int64    // lines count
 		LogSize      int64    // blob size
-		LogIndexes   *[]int64 `xorm:"BLOB"` // line number to offset
+		LogIndexes   *[]int64 `xorm:"LONGBLOB"` // line number to offset
 		LogExpired   bool     // files that are too old will be deleted
 
 		Created timeutil.TimeStamp `xorm:"created"`
