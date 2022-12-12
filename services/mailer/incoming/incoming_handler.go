@@ -15,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/upload"
 	attachment_service "code.gitea.io/gitea/services/attachment"
-	comment_service "code.gitea.io/gitea/services/comments"
+	issue_service "code.gitea.io/gitea/services/issue"
 	incoming_payload "code.gitea.io/gitea/services/mailer/incoming/payload"
 	"code.gitea.io/gitea/services/mailer/token"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -83,7 +83,11 @@ func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, user *u
 		attachmentIDs := make([]string, 0, len(content.Attachments))
 		if setting.Attachment.Enabled {
 			for _, attachment := range content.Attachments {
-				a, err := attachment_service.UploadAttachment(bytes.NewReader(attachment.Content), user.ID, issue.Repo.ID, 0, attachment.Name, setting.Attachment.AllowedTypes)
+				a, err := attachment_service.UploadAttachment(bytes.NewReader(attachment.Content), setting.Attachment.AllowedTypes, &repo_model.Attachment{
+					Name:       attachment.Name,
+					UploaderID: user.ID,
+					RepoID:     issue.Repo.ID,
+				})
 				if err != nil {
 					if upload.IsErrFileTypeForbidden(err) {
 						log.Debug("Skipping disallowed attachment type")
@@ -95,7 +99,7 @@ func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, user *u
 			}
 		}
 
-		_, err = comment_service.CreateIssueComment(ctx, user, issue.Repo, issue, content.Content, attachmentIDs)
+		_, err = issue_service.CreateIssueComment(ctx, user, issue.Repo, issue, content.Content, attachmentIDs)
 		if err != nil {
 			return fmt.Errorf("CreateIssueComment failed: %w", err)
 		}
