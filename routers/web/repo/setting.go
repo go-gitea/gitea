@@ -397,6 +397,15 @@ func SettingsPost(ctx *context.Context) {
 			repoChanged = true
 		}
 
+		if form.EnableCode && !unit_model.TypeCode.UnitGlobalDisabled() {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   unit_model.TypeCode,
+			})
+		} else if !unit_model.TypeCode.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeCode)
+		}
+
 		if form.EnableWiki && form.EnableExternalWiki && !unit_model.TypeExternalWiki.UnitGlobalDisabled() {
 			if !validation.IsValidExternalURL(form.ExternalWikiURL) {
 				ctx.Flash.Error(ctx.Tr("repo.settings.external_wiki_url_error"))
