@@ -625,7 +625,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/runners", func() {
 			m.Get("", admin.Runners)
 			m.Get("/reset_registration_token", admin.ResetRunnerRegistrationToken)
-			m.Combo("/{runnerid}").Get(admin.EditRunner).Post(bindIgnErr(forms.EditRunnerForm{}), admin.EditRunnerPost)
+			m.Combo("/{runnerid}").Get(admin.EditRunner).Post(web.Bind(forms.EditRunnerForm{}), admin.EditRunnerPost)
 			m.Post("/{runnerid}/delete", admin.DeleteRunnerPost)
 		}, actions.MustEnableActions)
 	}, func(ctx *context.Context) {
@@ -787,14 +787,14 @@ func RegisterRoutes(m *web.Route) {
 				m.Group("/runners", func() {
 					m.Get("", org.Runners)
 					m.Combo("/{runnerid}").Get(org.RunnersEdit).
-						Post(bindIgnErr(forms.EditRunnerForm{}), org.RunnersEditPost)
+						Post(web.Bind(forms.EditRunnerForm{}), org.RunnersEditPost)
 					m.Post("/{runnerid}/delete", org.RunnerDeletePost)
 					m.Get("/reset_registration_token", org.ResetRunnerRegistrationToken)
 				}, actions.MustEnableActions)
 
 				m.Group("/secrets", func() {
 					m.Get("", org.Secrets)
-					m.Post("", bindIgnErr(forms.AddSecretForm{}), org.SecretsPost)
+					m.Post("", web.Bind(forms.AddSecretForm{}), org.SecretsPost)
 					m.Post("/delete", org.SecretsDelete)
 				})
 
@@ -955,7 +955,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Group("/runners", func() {
 				m.Get("", repo.Runners)
 				m.Combo("/{runnerid}").Get(repo.RunnersEdit).
-					Post(bindIgnErr(forms.EditRunnerForm{}), repo.RunnersEditPost)
+					Post(web.Bind(forms.EditRunnerForm{}), repo.RunnersEditPost)
 				m.Post("/{runnerid}/delete", repo.RunnerDeletePost)
 				m.Get("/reset_registration_token", repo.ResetRunnerRegistrationToken)
 			}, actions.MustEnableActions)
@@ -1203,11 +1203,11 @@ func RegisterRoutes(m *web.Route) {
 			m.Group("/runs/{run}", func() {
 				m.Combo("").
 					Get(actions.View).
-					Post(bindIgnErr(actions.ViewRequest{}), actions.ViewPost)
+					Post(web.Bind(actions.ViewRequest{}), actions.ViewPost)
 				m.Group("/jobs/{job}", func() {
 					m.Combo("").
 						Get(actions.View).
-						Post(bindIgnErr(actions.ViewRequest{}), actions.ViewPost)
+						Post(web.Bind(actions.ViewRequest{}), actions.ViewPost)
 					m.Post("/rerun", actions.Rerun)
 				})
 				m.Post("/cancel", actions.Cancel)
