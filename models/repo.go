@@ -443,7 +443,7 @@ func CheckRepoStats(ctx context.Context) error {
 		},
 		// Repository.NumIssues
 		{
-			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_issues!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", false, false),
+			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_issues!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_pull=?)", false),
 			repoStatsCorrectNumIssues,
 			"repository count 'num_issues'",
 		},
@@ -455,7 +455,7 @@ func CheckRepoStats(ctx context.Context) error {
 		},
 		// Repository.NumPulls
 		{
-			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_pulls!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", false, true),
+			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_pulls!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_pull=?)", true),
 			repoStatsCorrectNumPulls,
 			"repository count 'num_pulls'",
 		},

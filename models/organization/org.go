@@ -106,7 +106,7 @@ func (org *Organization) IsOrgMember(uid int64) (bool, error) {
 
 // CanCreateOrgRepo returns true if given user can create repo in organization
 func (org *Organization) CanCreateOrgRepo(uid int64) (bool, error) {
-	return CanCreateOrgRepo(org.ID, uid)
+	return CanCreateOrgRepo(db.DefaultContext, org.ID, uid)
 }
 
 func (org *Organization) getTeam(ctx context.Context, name string) (*Team, error) {

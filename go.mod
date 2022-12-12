@@ -105,8 +105,8 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 	mvdan.cc/xurls/v2 v2.4.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
-	xorm.io/builder v0.3.11
-	xorm.io/xorm v1.3.2-0.20220714055524-c3bce556200f
+	xorm.io/builder v0.3.12
+	xorm.io/xorm v1.3.3-0.20221209153726-f1bfc5ce9830
 )
 
 require (
@@ -182,7 +182,7 @@ require (
 	github.com/go-openapi/strfmt v0.21.3 // indirect
 	github.com/go-openapi/swag v0.22.3 // indirect
 	github.com/go-openapi/validate v0.22.0 // indirect
-	github.com/goccy/go-json v0.9.11 // indirect
+	github.com/goccy/go-json v0.10.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect

@@ -108,6 +108,8 @@
   --color-diff-inactive: #f2f2f2;
   --color-error-border: #e0b4b4;
   --color-error-bg: #fff6f6;
+  --color-error-bg-active: #fbb;
+  --color-error-bg-hover: #fdd;
   --color-error-text: #9f3a38;
   --color-success-border: #a3c293;
   --color-success-bg: #fcfff5;
@@ -1293,6 +1295,11 @@ a.ui.card:hover,
 .ui.form .fields.error .field input[type="text"],
 .ui.form .fields.error .field input[type="file"],
 .ui.form .fields.error .field input[type="url"],
+.ui.form .fields.error .field .ui.dropdown,
+.ui.form .fields.error .field .ui.dropdown .item,
+.ui.form .field.error .ui.dropdown,
+.ui.form .field.error .ui.dropdown .text,
+.ui.form .field.error .ui.dropdown .item,
 .ui.form .field.error textarea,
 .ui.form .field.error select,
 .ui.form .field.error input:not([type]),
@@ -1321,8 +1328,30 @@ a.ui.card:hover,
 .ui.form .field.error input[type="file"]:focus,
 .ui.form .field.error input[type="url"]:focus {
   background-color: var(--color-error-bg);
-  border: 1px solid var(--color-error-border);
+  border-color: var(--color-error-border);
   color: var(--color-error-text);
+}
+
+.ui.form .fields.error .field .ui.dropdown,
+.ui.form .field.error .ui.dropdown,
+.ui.form .fields.error .field .ui.dropdown:hover,
+.ui.form .field.error .ui.dropdown:hover {
+  border-color: var(--color-error-border) !important;
+}
+
+.ui.form .fields.error .field .ui.dropdown .menu .item:hover,
+.ui.form .field.error .ui.dropdown .menu .item:hover {
+  background-color: var(--color-error-bg-hover);
+}
+
+.ui.form .fields.error .field .ui.dropdown .menu .active.item,
+.ui.form .field.error .ui.dropdown .menu .active.item {
+  background-color: var(--color-error-bg-active) !important;
+}
+
+.ui.form .fields.error .dropdown .menu,
+.ui.form .field.error .dropdown .menu {
+  border-color: var(--color-error-border) !important;
 }
 
 .ui.loading.loading.input > i.icon svg {
