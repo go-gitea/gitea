@@ -47,7 +47,6 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
-	comment_service "code.gitea.io/gitea/services/comments"
 	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -114,7 +113,7 @@ func MustEnableIssues(ctx *context.Context) {
 		return
 	}
 
-	unit, err := ctx.Repo.Repository.GetUnit(unit.TypeExternalTracker)
+	unit, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypeExternalTracker)
 	if err == nil {
 		ctx.Redirect(unit.ExternalTrackerConfig().ExternalTrackerURL)
 		return
@@ -1174,7 +1173,7 @@ func getBranchData(ctx *context.Context, issue *issues_model.Issue) {
 func ViewIssue(ctx *context.Context) {
 	if ctx.Params(":type") == "issues" {
 		// If issue was requested we check if repo has external tracker and redirect
-		extIssueUnit, err := ctx.Repo.Repository.GetUnit(unit.TypeExternalTracker)
+		extIssueUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypeExternalTracker)
 		if err == nil && extIssueUnit != nil {
 			if extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == markup.IssueNameStyleNumeric || extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == "" {
 				metas := ctx.Repo.Repository.ComposeMetas()
@@ -1375,7 +1374,7 @@ func ViewIssue(ctx *context.Context) {
 		comment      *issues_model.Comment
 		participants = make([]*user_model.User, 1, 10)
 	)
-	if ctx.Repo.Repository.IsTimetrackerEnabled() {
+	if ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
 		if ctx.IsSigned {
 			// Deal with the stopwatch
 			ctx.Data["IsStopwatchRunning"] = issues_model.StopwatchExists(ctx.Doer.ID, issue.ID)
@@ -1636,7 +1635,7 @@ func ViewIssue(ctx *context.Context) {
 			}
 		}
 
-		prUnit, err := repo.GetUnit(unit.TypePullRequests)
+		prUnit, err := repo.GetUnit(ctx, unit.TypePullRequests)
 		if err != nil {
 			ctx.ServerError("GetUnit", err)
 			return
@@ -2709,7 +2708,7 @@ func NewComment(ctx *context.Context) {
 		return
 	}
 
-	comment, err := comment_service.CreateIssueComment(ctx, ctx.Doer, ctx.Repo.Repository, issue, form.Content, attachments)
+	comment, err := issue_service.CreateIssueComment(ctx, ctx.Doer, ctx.Repo.Repository, issue, form.Content, attachments)
 	if err != nil {
 		ctx.ServerError("CreateIssueComment", err)
 		return
@@ -2749,8 +2748,7 @@ func UpdateCommentContent(ctx *context.Context) {
 		})
 		return
 	}
-
-	if err = comment_service.UpdateComment(ctx, comment, ctx.Doer, oldContent); err != nil {
+	if err = issue_service.UpdateComment(ctx, comment, ctx.Doer, oldContent); err != nil {
 		ctx.ServerError("UpdateComment", err)
 		return
 	}
@@ -2806,7 +2804,7 @@ func DeleteComment(ctx *context.Context) {
 		return
 	}
 
-	if err = comment_service.DeleteComment(ctx, ctx.Doer, comment); err != nil {
+	if err = issue_service.DeleteComment(ctx, ctx.Doer, comment); err != nil {
 		ctx.ServerError("DeleteComment", err)
 		return
 	}

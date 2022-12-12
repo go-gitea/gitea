@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
@@ -44,7 +43,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 	hasIssues := false
 	var externalTracker *api.ExternalTracker
 	var internalTracker *api.InternalTracker
-	if unit, err := repo.GetUnit(unit_model.TypeIssues); err == nil {
+	if unit, err := repo.GetUnit(ctx, unit_model.TypeIssues); err == nil {
 		config := unit.IssuesConfig()
 		hasIssues = true
 		internalTracker = &api.InternalTracker{
@@ -52,7 +51,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 			AllowOnlyContributorsToTrackTime: config.AllowOnlyContributorsToTrackTime,
 			EnableIssueDependencies:          config.EnableDependencies,
 		}
-	} else if unit, err := repo.GetUnit(unit_model.TypeExternalTracker); err == nil {
+	} else if unit, err := repo.GetUnit(ctx, unit_model.TypeExternalTracker); err == nil {
 		config := unit.ExternalTrackerConfig()
 		hasIssues = true
 		externalTracker = &api.ExternalTracker{
@@ -64,9 +63,9 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 	}
 	hasWiki := false
 	var externalWiki *api.ExternalWiki
-	if _, err := repo.GetUnit(unit_model.TypeWiki); err == nil {
+	if _, err := repo.GetUnit(ctx, unit_model.TypeWiki); err == nil {
 		hasWiki = true
-	} else if unit, err := repo.GetUnit(unit_model.TypeExternalWiki); err == nil {
+	} else if unit, err := repo.GetUnit(ctx, unit_model.TypeExternalWiki); err == nil {
 		hasWiki = true
 		config := unit.ExternalWikiConfig()
 		externalWiki = &api.ExternalWiki{
@@ -82,7 +81,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 	allowRebaseUpdate := false
 	defaultDeleteBranchAfterMerge := false
 	defaultMergeStyle := repo_model.MergeStyleMerge
-	if unit, err := repo.GetUnit(unit_model.TypePullRequests); err == nil {
+	if unit, err := repo.GetUnit(ctx, unit_model.TypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
 		hasPullRequests = true
 		ignoreWhitespaceConflicts = config.IgnoreWhitespaceConflicts
@@ -95,21 +94,21 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 		defaultMergeStyle = config.GetDefaultMergeStyle()
 	}
 	hasProjects := false
-	if _, err := repo.GetUnit(unit_model.TypeProjects); err == nil {
+	if _, err := repo.GetUnit(ctx, unit_model.TypeProjects); err == nil {
 		hasProjects = true
 	}
 
-	if err := repo.GetOwner(db.DefaultContext); err != nil {
+	if err := repo.GetOwner(ctx); err != nil {
 		return nil
 	}
 
-	numReleases, _ := repo_model.GetReleaseCountByRepoID(repo.ID, repo_model.FindReleasesOptions{IncludeDrafts: false, IncludeTags: false})
+	numReleases, _ := repo_model.GetReleaseCountByRepoID(ctx, repo.ID, repo_model.FindReleasesOptions{IncludeDrafts: false, IncludeTags: false})
 
 	mirrorInterval := ""
 	var mirrorUpdated time.Time
 	if repo.IsMirror {
 		var err error
-		repo.Mirror, err = repo_model.GetMirrorByRepoID(db.DefaultContext, repo.ID)
+		repo.Mirror, err = repo_model.GetMirrorByRepoID(ctx, repo.ID)
 		if err == nil {
 			mirrorInterval = repo.Mirror.Interval.String()
 			mirrorUpdated = repo.Mirror.UpdatedUnix.AsTime()
@@ -118,11 +117,11 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 
 	var transfer *api.RepoTransfer
 	if repo.Status == repo_model.RepositoryPendingTransfer {
-		t, err := models.GetPendingRepositoryTransfer(repo)
+		t, err := models.GetPendingRepositoryTransfer(ctx, repo)
 		if err != nil && !models.IsErrNoPendingTransfer(err) {
 			log.Warn("GetPendingRepositoryTransfer: %v", err)
 		} else {
-			if err := t.LoadAttributes(); err != nil {
+			if err := t.LoadAttributes(ctx); err != nil {
 				log.Warn("LoadAttributes of RepoTransfer: %v", err)
 			} else {
 				transfer = ToRepoTransfer(t)

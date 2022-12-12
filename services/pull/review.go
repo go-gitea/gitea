@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	issue_service "code.gitea.io/gitea/services/issue"
 )
 
 // CreateCodeComment creates a comment on the code line
@@ -202,7 +203,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 			return nil, err
 		}
 	}
-	return issues_model.CreateComment(&issues_model.CreateCommentOptions{
+	return issue_service.CreateComment(&issues_model.CreateCommentOptions{
 		Type:        issues_model.CommentTypeCode,
 		Doer:        doer,
 		Repo:        repo,
@@ -322,7 +323,7 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 		return
 	}
 
-	comment, err = issues_model.CreateComment(&issues_model.CreateCommentOptions{
+	comment, err = issue_service.CreateComment(&issues_model.CreateCommentOptions{
 		Doer:     doer,
 		Content:  message,
 		Type:     issues_model.CommentTypeDismissReview,

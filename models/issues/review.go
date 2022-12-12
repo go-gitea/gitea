@@ -294,7 +294,7 @@ func IsOfficialReviewerTeam(ctx context.Context, issue *Issue, team *organizatio
 	}
 
 	if !pr.ProtectedBranch.EnableApprovalsWhitelist {
-		return team.UnitAccessModeCtx(ctx, unit.TypeCode) >= perm.AccessModeWrite, nil
+		return team.UnitAccessMode(ctx, unit.TypeCode) >= perm.AccessModeWrite, nil
 	}
 
 	return base.Int64sContains(pr.ProtectedBranch.ApprovalsWhitelistTeamIDs, team.ID), nil
@@ -436,7 +436,7 @@ func SubmitReview(doer *user_model.User, issue *Issue, reviewType ReviewType, co
 		}
 	}
 
-	comm, err := CreateCommentCtx(ctx, &CreateCommentOptions{
+	comm, err := CreateComment(ctx, &CreateCommentOptions{
 		Type:        CommentTypeReview,
 		Doer:        doer,
 		Content:     review.Content,
@@ -692,7 +692,7 @@ func AddReviewRequest(issue *Issue, reviewer, doer *user_model.User) (*Comment, 
 		return nil, err
 	}
 
-	comment, err := CreateCommentCtx(ctx, &CreateCommentOptions{
+	comment, err := CreateComment(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -746,7 +746,7 @@ func RemoveReviewRequest(issue *Issue, reviewer, doer *user_model.User) (*Commen
 		}
 	}
 
-	comment, err := CreateCommentCtx(ctx, &CreateCommentOptions{
+	comment, err := CreateComment(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -804,7 +804,7 @@ func AddTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *user_
 		}
 	}
 
-	comment, err := CreateCommentCtx(ctx, &CreateCommentOptions{
+	comment, err := CreateComment(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -814,7 +814,7 @@ func AddTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *user_
 		ReviewID:        review.ID,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("CreateCommentCtx(): %w", err)
+		return nil, fmt.Errorf("CreateComment(): %w", err)
 	}
 
 	return comment, committer.Commit()
@@ -864,7 +864,7 @@ func RemoveTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *us
 		return nil, committer.Commit()
 	}
 
-	comment, err := CreateCommentCtx(ctx, &CreateCommentOptions{
+	comment, err := CreateComment(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -873,7 +873,7 @@ func RemoveTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *us
 		AssigneeTeamID:  reviewer.ID, // Use AssigneeTeamID as reviewer team ID
 	})
 	if err != nil {
-		return nil, fmt.Errorf("CreateCommentCtx(): %w", err)
+		return nil, fmt.Errorf("CreateComment(): %w", err)
 	}
 
 	return comment, committer.Commit()

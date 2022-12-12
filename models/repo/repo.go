@@ -319,12 +319,7 @@ func (repo *Repository) LoadUnits(ctx context.Context) (err error) {
 }
 
 // UnitEnabled if this repository has the given unit enabled
-func (repo *Repository) UnitEnabled(tp unit.Type) (result bool) { // Notice: Don't remove this function directly, because it has been used in go template.
-	return repo.UnitEnabledCtx(db.DefaultContext, tp)
-}
-
-// UnitEnabled if this repository has the given unit enabled
-func (repo *Repository) UnitEnabledCtx(ctx context.Context, tp unit.Type) bool {
+func (repo *Repository) UnitEnabled(ctx context.Context, tp unit.Type) bool {
 	if err := repo.LoadUnits(ctx); err != nil {
 		log.Warn("Error loading repository (ID: %d) units: %s", repo.ID, err.Error())
 	}
@@ -337,8 +332,8 @@ func (repo *Repository) UnitEnabledCtx(ctx context.Context, tp unit.Type) bool {
 }
 
 // MustGetUnit always returns a RepoUnit object
-func (repo *Repository) MustGetUnit(tp unit.Type) *RepoUnit {
-	ru, err := repo.GetUnit(tp)
+func (repo *Repository) MustGetUnit(ctx context.Context, tp unit.Type) *RepoUnit {
+	ru, err := repo.GetUnit(ctx, tp)
 	if err == nil {
 		return ru
 	}
@@ -371,12 +366,7 @@ func (repo *Repository) MustGetUnit(tp unit.Type) *RepoUnit {
 }
 
 // GetUnit returns a RepoUnit object
-func (repo *Repository) GetUnit(tp unit.Type) (*RepoUnit, error) {
-	return repo.GetUnitCtx(db.DefaultContext, tp)
-}
-
-// GetUnitCtx returns a RepoUnit object
-func (repo *Repository) GetUnitCtx(ctx context.Context, tp unit.Type) (*RepoUnit, error) {
+func (repo *Repository) GetUnit(ctx context.Context, tp unit.Type) (*RepoUnit, error) {
 	if err := repo.LoadUnits(ctx); err != nil {
 		return nil, err
 	}
@@ -423,7 +413,7 @@ func (repo *Repository) ComposeMetas() map[string]string {
 			"mode":     "comment",
 		}
 
-		unit, err := repo.GetUnit(unit.TypeExternalTracker)
+		unit, err := repo.GetUnit(db.DefaultContext, unit.TypeExternalTracker)
 		if err == nil {
 			metas["format"] = unit.ExternalTrackerConfig().ExternalTrackerFormat
 			switch unit.ExternalTrackerConfig().ExternalTrackerStyle {
@@ -522,7 +512,7 @@ func (repo *Repository) CanEnablePulls() bool {
 
 // AllowsPulls returns true if repository meets the requirements of accepting pulls and has them enabled.
 func (repo *Repository) AllowsPulls() bool {
-	return repo.CanEnablePulls() && repo.UnitEnabled(unit.TypePullRequests)
+	return repo.CanEnablePulls() && repo.UnitEnabled(db.DefaultContext, unit.TypePullRequests)
 }
 
 // CanEnableEditor returns true if repository meets the requirements of web editor.

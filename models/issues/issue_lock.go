@@ -56,7 +56,7 @@ func updateIssueLock(opts *IssueLockOptions, lock bool) error {
 		Type:    commentType,
 		Content: opts.Reason,
 	}
-	if _, err := CreateCommentCtx(ctx, opt); err != nil {
+	if _, err := CreateComment(ctx, opt); err != nil {
 		return err
 	}
 
