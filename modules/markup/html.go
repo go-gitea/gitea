@@ -305,18 +305,15 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 		return err
 	}
 
-	res := bytes.NewBuffer(make([]byte, 0, len(rawHTML)+50))
-	// prepend "<html><body>"
-	_, _ = res.WriteString("<html><body>")
-
-	// Strip out nuls - they're always invalid
-	_, _ = res.Write(tagCleaner.ReplaceAll([]byte(nulCleaner.Replace(string(rawHTML))), []byte("&lt;$1")))
-
-	// close the tags
-	_, _ = res.WriteString("</body></html>")
-
 	// parse the HTML
-	node, err := html.Parse(res)
+	node, err := html.Parse(io.MultiReader(
+		// prepend "<html><body>"
+		strings.NewReader("<html><body>"),
+		// Strip out nuls - they're always invalid
+		bytes.NewReader(tagCleaner.ReplaceAll([]byte(nulCleaner.Replace(string(rawHTML))), []byte("&lt;$1"))),
+		// close the tags
+		strings.NewReader("</body></html>"),
+	))
 	if err != nil {
 		return &postProcessError{"invalid HTML", err}
 	}
