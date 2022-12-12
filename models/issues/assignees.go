@@ -102,7 +102,7 @@ func toggleIssueAssignee(ctx context.Context, issue *Issue, doer *user_model.Use
 		AssigneeID:      assigneeID,
 	}
 	// Comment
-	comment, err = CreateCommentCtx(ctx, opts)
+	comment, err = CreateComment(ctx, opts)
 	if err != nil {
 		return false, nil, fmt.Errorf("createComment: %w", err)
 	}
