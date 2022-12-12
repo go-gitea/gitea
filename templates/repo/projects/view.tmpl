@@ -179,7 +179,7 @@
 
 					<!-- start issue card -->
 					<div class="card board-card" data-issue="{{.ID}}">
-						<div class="card-attachment-image">
+						<div class="card-attachment-images">
 							{{range (index $.issuesAttachmentMap .ID)}}
 								<img src="{{.DownloadURL}}" alt="{{.Name}}" />
 							{{end}}
