@@ -307,8 +307,11 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 
 	// parse the HTML
 	node, err := html.Parse(io.MultiReader(
+		// prepend "<html><body>"
 		strings.NewReader("<html><body>"),
+		// Strip out nuls - they're always invalid
 		bytes.NewReader(tagCleaner.ReplaceAll([]byte(nulCleaner.Replace(string(rawHTML))), []byte("&lt;$1"))),
+		// close the tags
 		strings.NewReader("</body></html>"),
 	))
 	if err != nil {
