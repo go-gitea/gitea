@@ -33,7 +33,7 @@
 			</a>
 		{{end}}
 		{{if and .EnableActions (not .UnitActionsGlobalDisabled) (.Permission.CanRead $.UnitTypeActions)}}
-			<a class="{{if .PageIsSettingsRunners}}active{{end}} item" href="{{.RepoLink}}/settings/runners">
+			<a class="{{if .PageIsSettingsRunners}}active {{end}}item" href="{{.RepoLink}}/settings/runners">
 				{{.locale.Tr "repo.settings.runners"}}
 			</a>
 		{{end}}
