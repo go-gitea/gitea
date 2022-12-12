@@ -13,6 +13,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/perm"
 	project_model "code.gitea.io/gitea/models/project"
+	attachment_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -301,6 +302,16 @@ func ViewProject(ctx *context.Context) {
 		ctx.ServerError("LoadIssuesOfBoards", err)
 		return
 	}
+
+	issuesAttachmentMap := make(map[int64][]*attachment_model.Attachment)
+	for _, issuesList := range issuesMap {
+		for _, issue := range issuesList {
+			if issueAttachment, err := attachment_model.GetAttachmentsByIssueIDImagesLatest(ctx, issue.ID); err == nil {
+				issuesAttachmentMap[issue.ID] = issueAttachment
+			}
+		}
+	}
+	ctx.Data["issuesAttachmentMap"] = issuesAttachmentMap
 
 	linkedPrsMap := make(map[int64][]*issues_model.Issue)
 	for _, issuesList := range issuesMap {
