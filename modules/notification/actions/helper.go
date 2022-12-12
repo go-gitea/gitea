@@ -6,6 +6,7 @@ package actions
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -22,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	actions_service "code.gitea.io/gitea/services/actions"
 
 	"github.com/nektos/act/pkg/jobparser"
@@ -134,7 +136,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 
 	for id, content := range workflows {
 		run := actions_model.ActionRun{
-			Title:             strings.SplitN(commit.CommitMessage, "\n", 2)[0],
+			Title:             truncateContent(strings.SplitN(commit.CommitMessage, "\n", 2)[0], 255),
 			RepoID:            input.Repo.ID,
 			OwnerID:           input.Repo.OwnerID,
 			WorkflowID:        id,
@@ -145,9 +147,6 @@ func notify(ctx context.Context, input *notifyInput) error {
 			Event:             input.Event,
 			EventPayload:      string(p),
 			Status:            actions_model.StatusWaiting,
-		}
-		if len(run.Title) > 255 {
-			run.Title = run.Title[:255] // FIXME: we should use a better method to cut title
 		}
 		jobs, err := jobparser.Parse(content)
 		if err != nil {
@@ -214,4 +213,16 @@ func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_mo
 			Sender:  convert.ToUser(sender, nil),
 		}).
 		Notify(ctx)
+}
+
+func truncateContent(content string, n int) string {
+	truncatedContent, truncatedRight := util.SplitStringAtByteN(content, n)
+	if truncatedRight != "" {
+		// in case the content is in a Latin family language, we remove the last broken word.
+		lastSpaceIdx := strings.LastIndex(truncatedContent, " ")
+		if lastSpaceIdx != -1 && (len(truncatedContent)-lastSpaceIdx < 15) {
+			truncatedContent = truncatedContent[:lastSpaceIdx] + "…"
+		}
+	}
+	return truncatedContent
 }
