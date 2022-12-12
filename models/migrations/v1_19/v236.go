@@ -1,7 +1,7 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package migrations
+package v1_19 //nolint
 
 import (
 	"code.gitea.io/gitea/models/db"
@@ -10,7 +10,7 @@ import (
 	"xorm.io/xorm"
 )
 
-func addActionsTables(x *xorm.Engine) error {
+func AddActionsTables(x *xorm.Engine) error {
 	type ActionRunner struct {
 		ID          int64
 		UUID        string `xorm:"CHAR(36) UNIQUE"`

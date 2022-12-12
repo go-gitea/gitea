@@ -442,9 +442,8 @@ var migrations = []Migration{
 	NewMigration("Add package cleanup rule table", v1_19.CreatePackageCleanupRuleTable),
 	// v235 -> v236
 	NewMigration("Add index for access_token", v1_19.AddIndexForAccessToken),
-
-	// in dev
-	NewMigration("Add actions tables", addActionsTables),
+	// v236 -> v237
+	NewMigration("Add actions tables", v1_19.AddActionsTables),
 }
 
 // GetCurrentDBVersion returns the current db version
