@@ -28,11 +28,10 @@ func Runners(ctx *context.Context) {
 			Page:     page,
 			PageSize: 100,
 		},
-		Sort:        ctx.Req.URL.Query().Get("sort"),
-		Filter:      ctx.Req.URL.Query().Get("q"),
-		WithDeleted: false,
-		RepoID:      0,
-		OwnerID:     ctx.Org.Organization.ID,
+		Sort:          ctx.Req.URL.Query().Get("sort"),
+		Filter:        ctx.Req.URL.Query().Get("q"),
+		OwnerID:       ctx.Org.Organization.ID,
+		WithAvailable: true,
 	}
 
 	common.RunnersList(ctx, tplSettingsRunners, opts)

@@ -434,7 +434,7 @@
 				</div>
 
 				{{if .EnableActions}}
-					{{$isActionsEnabled := .Repository.UnitEnabled $.UnitTypeActions}}
+					{{$isActionsEnabled := .Repository.UnitEnabled $.Context $.UnitTypeActions}}
 					<div class="inline field">
 						<label>{{.locale.Tr "repo.actions"}}</label>
 						{{if .UnitTypeActions.UnitGlobalDisabled}}

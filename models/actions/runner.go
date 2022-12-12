@@ -51,14 +51,13 @@ type ActionRunner struct {
 }
 
 func (r *ActionRunner) OwnType() string {
-	if r.OwnerID == 0 {
-		return "Global"
+	if r.RepoID != 0 {
+		return fmt.Sprintf("Repo(%s)", r.Repo.FullName())
 	}
-	if r.RepoID == 0 {
-		return r.Owner.Name
+	if r.OwnerID != 0 {
+		return fmt.Sprintf("Org(%s)", r.Owner.Name)
 	}
-
-	return r.Repo.FullName()
+	return "Global"
 }
 
 func (r *ActionRunner) Status() runnerv1.RunnerStatus {
@@ -135,34 +134,34 @@ func init() {
 
 type FindRunnerOptions struct {
 	db.ListOptions
-	RepoID      int64
-	OwnerID     int64
-	Sort        string
-	Filter      string
-	WithDeleted bool
+	RepoID        int64
+	OwnerID       int64
+	Sort          string
+	Filter        string
+	WithAvailable bool // not only runners belong to, but also runners can be used
 }
 
 func (opts FindRunnerOptions) toCond() builder.Cond {
 	cond := builder.NewCond()
 
-	withGlobal := false
 	if opts.RepoID > 0 {
-		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
-		withGlobal = true
+		c := builder.NewCond().And(builder.Eq{"repo_id": opts.RepoID})
+		if opts.WithAvailable {
+			c = c.Or(builder.Eq{"owner_id": builder.Select("owner_id").From("repository").Where(builder.Eq{"id": opts.RepoID})})
+			c = c.Or(builder.Eq{"repo_id": 0, "owner_id": 0})
+		}
+		cond = cond.And(c)
 	}
 	if opts.OwnerID > 0 {
-		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
-		withGlobal = true
-	}
-	if withGlobal {
-		cond = cond.Or(builder.Eq{"repo_id": 0, "owner_id": 0})
+		c := builder.NewCond().And(builder.Eq{"owner_id": opts.OwnerID})
+		if opts.WithAvailable {
+			c = c.Or(builder.Eq{"repo_id": 0, "owner_id": 0})
+		}
+		cond = cond.And(c)
 	}
 
 	if opts.Filter != "" {
 		cond = cond.And(builder.Like{"name", opts.Filter})
-	}
-	if !opts.WithDeleted {
-		cond = cond.And(builder.IsNull{"deleted"})
 	}
 	return cond
 }
@@ -181,10 +180,8 @@ func (opts FindRunnerOptions) toOrder() string {
 
 func CountRunners(ctx context.Context, opts FindRunnerOptions) (int64, error) {
 	return db.GetEngine(ctx).
-		Table(ActionRunner{}).
 		Where(opts.toCond()).
-		OrderBy(opts.toOrder()).
-		Count()
+		Count(ActionRunner{})
 }
 
 func FindRunners(ctx context.Context, opts FindRunnerOptions) (runners RunnerList, err error) {
