@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
@@ -27,7 +28,7 @@ func getRepoEditOptionFromRepo(repo *repo_model.Repository) *api.EditRepoOption 
 	hasIssues := false
 	var internalTracker *api.InternalTracker
 	var externalTracker *api.ExternalTracker
-	if unit, err := repo.GetUnit(unit_model.TypeIssues); err == nil {
+	if unit, err := repo.GetUnit(db.DefaultContext, unit_model.TypeIssues); err == nil {
 		config := unit.IssuesConfig()
 		hasIssues = true
 		internalTracker = &api.InternalTracker{
@@ -35,7 +36,7 @@ func getRepoEditOptionFromRepo(repo *repo_model.Repository) *api.EditRepoOption 
 			AllowOnlyContributorsToTrackTime: config.AllowOnlyContributorsToTrackTime,
 			EnableIssueDependencies:          config.EnableDependencies,
 		}
-	} else if unit, err := repo.GetUnit(unit_model.TypeExternalTracker); err == nil {
+	} else if unit, err := repo.GetUnit(db.DefaultContext, unit_model.TypeExternalTracker); err == nil {
 		config := unit.ExternalTrackerConfig()
 		hasIssues = true
 		externalTracker = &api.ExternalTracker{
@@ -47,9 +48,9 @@ func getRepoEditOptionFromRepo(repo *repo_model.Repository) *api.EditRepoOption 
 	}
 	hasWiki := false
 	var externalWiki *api.ExternalWiki
-	if _, err := repo.GetUnit(unit_model.TypeWiki); err == nil {
+	if _, err := repo.GetUnit(db.DefaultContext, unit_model.TypeWiki); err == nil {
 		hasWiki = true
-	} else if unit, err := repo.GetUnit(unit_model.TypeExternalWiki); err == nil {
+	} else if unit, err := repo.GetUnit(db.DefaultContext, unit_model.TypeExternalWiki); err == nil {
 		hasWiki = true
 		config := unit.ExternalWikiConfig()
 		externalWiki = &api.ExternalWiki{
@@ -63,7 +64,7 @@ func getRepoEditOptionFromRepo(repo *repo_model.Repository) *api.EditRepoOption 
 	allowRebase := false
 	allowRebaseMerge := false
 	allowSquash := false
-	if unit, err := repo.GetUnit(unit_model.TypePullRequests); err == nil {
+	if unit, err := repo.GetUnit(db.DefaultContext, unit_model.TypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
 		hasPullRequests = true
 		ignoreWhitespaceConflicts = config.IgnoreWhitespaceConflicts

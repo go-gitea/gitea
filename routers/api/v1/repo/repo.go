@@ -731,7 +731,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 	var units []repo_model.RepoUnit
 	var deleteUnitTypes []unit_model.Type
 
-	currHasIssues := repo.UnitEnabledCtx(ctx, unit_model.TypeIssues)
+	currHasIssues := repo.UnitEnabled(ctx, unit_model.TypeIssues)
 	newHasIssues := currHasIssues
 	if opts.HasIssues != nil {
 		newHasIssues = *opts.HasIssues
@@ -771,7 +771,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 					AllowOnlyContributorsToTrackTime: opts.InternalTracker.AllowOnlyContributorsToTrackTime,
 					EnableDependencies:               opts.InternalTracker.EnableIssueDependencies,
 				}
-			} else if unit, err := repo.GetUnit(unit_model.TypeIssues); err != nil {
+			} else if unit, err := repo.GetUnit(ctx, unit_model.TypeIssues); err != nil {
 				// Unit type doesn't exist so we make a new config file with default values
 				config = &repo_model.IssuesConfig{
 					EnableTimetracker:                true,
@@ -798,7 +798,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
-	currHasWiki := repo.UnitEnabledCtx(ctx, unit_model.TypeWiki)
+	currHasWiki := repo.UnitEnabled(ctx, unit_model.TypeWiki)
 	newHasWiki := currHasWiki
 	if opts.HasWiki != nil {
 		newHasWiki = *opts.HasWiki
@@ -838,7 +838,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
-	currHasPullRequests := repo.UnitEnabledCtx(ctx, unit_model.TypePullRequests)
+	currHasPullRequests := repo.UnitEnabled(ctx, unit_model.TypePullRequests)
 	newHasPullRequests := currHasPullRequests
 	if opts.HasPullRequests != nil {
 		newHasPullRequests = *opts.HasPullRequests
@@ -848,7 +848,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			// We do allow setting individual PR settings through the API, so
 			// we get the config settings and then set them
 			// if those settings were provided in the opts.
-			unit, err := repo.GetUnit(unit_model.TypePullRequests)
+			unit, err := repo.GetUnit(ctx, unit_model.TypePullRequests)
 			var config *repo_model.PullRequestsConfig
 			if err != nil {
 				// Unit type doesn't exist so we make a new config file with default values
