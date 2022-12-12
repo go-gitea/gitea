@@ -16,7 +16,7 @@ import (
 
 // IsTagExist returns true if given tag exists in the repository.
 func (repo *Repository) IsTagExist(name string) bool {
-	if name == "" {
+	if repo == nil || name == "" {
 		return false
 	}
 

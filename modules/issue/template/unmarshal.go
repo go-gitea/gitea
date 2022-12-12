@@ -7,7 +7,7 @@ package template
 import (
 	"fmt"
 	"io"
-	"path/filepath"
+	"path"
 	"strconv"
 
 	"code.gitea.io/gitea/modules/git"
@@ -44,7 +44,7 @@ func Unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 
 // UnmarshalFromEntry parses out a valid template from the blob in entry
 func UnmarshalFromEntry(entry *git.TreeEntry, dir string) (*api.IssueTemplate, error) {
-	return unmarshalFromEntry(entry, filepath.Join(dir, entry.Name()))
+	return unmarshalFromEntry(entry, path.Join(dir, entry.Name())) // Filepaths in Git are ALWAYS '/' separated do not use filepath here
 }
 
 // UnmarshalFromCommit parses out a valid template from the commit
@@ -109,7 +109,7 @@ func unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 			// It could be a valid markdown with two horizontal lines, or an invalid markdown with wrong metadata.
 
 			it.Content = string(content)
-			it.Name = filepath.Base(it.FileName)
+			it.Name = path.Base(it.FileName) // paths in Git are always '/' separated - do not use filepath!
 			it.About, _ = util.SplitStringAtByteN(it.Content, 80)
 		} else {
 			it.Content = templateBody
