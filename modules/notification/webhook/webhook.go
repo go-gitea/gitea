@@ -314,6 +314,11 @@ func (m *webhookNotifier) NotifyNewPullRequest(ctx context.Context, pull *issues
 }
 
 func (m *webhookNotifier) NotifyIssueChangeContent(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldContent string) {
+	if err := issue.LoadRepo(ctx); err != nil {
+		log.Error("LoadRepo: %v", err)
+		return
+	}
+
 	mode, _ := access_model.AccessLevel(ctx, issue.Poster, issue.Repo)
 	var err error
 	if issue.IsPull {

@@ -26,10 +26,10 @@
 							{{.locale.Tr "repo.diff.browse_source"}}
 						</a>
 						{{if and ($.Permission.CanWrite $.UnitTypeCode) (not $.Repository.IsArchived) (not .IsDeleted)}}{{- /* */ -}}
-							<div class="ui primary tiny floating dropdown icon button">{{.locale.Tr "repo.commit.actions"}}
+							<div class="ui primary tiny floating dropdown icon button">{{.locale.Tr "repo.commit.operations"}}
 								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 								<div class="menu">
-									<div class="ui header">{{.locale.Tr "repo.commit.actions"}}</div>
+									<div class="ui header">{{.locale.Tr "repo.commit.operations"}}</div>
 									<div class="divider"></div>
 									<div class="item show-create-branch-modal"
 										data-content="{{$.locale.Tr "repo.branch.new_branch_from" (.CommitID)}}"
