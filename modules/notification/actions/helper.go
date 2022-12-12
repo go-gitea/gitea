@@ -134,7 +134,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 
 	for id, content := range workflows {
 		run := actions_model.ActionRun{
-			Title:             commit.Message(),
+			Title:             strings.SplitN(commit.CommitMessage, "\n", 2)[0],
 			RepoID:            input.Repo.ID,
 			OwnerID:           input.Repo.OwnerID,
 			WorkflowID:        id,
