@@ -587,6 +587,7 @@ var (
 		"swagger.v1.json",
 		"user",
 		"v2",
+		"gitea-actions",
 	}
 
 	reservedUserPatterns = []string{"*.keys", "*.gpg", "*.rss", "*.atom"}

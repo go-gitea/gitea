@@ -37,7 +37,7 @@ func NewReplaceUser(name string) *User {
 
 const (
 	ActionsUserID   = -2
-	ActionsUserName = "[bot]gitea-actions"
+	ActionsUserName = "gitea-actions"
 )
 
 // NewActionsUser creates and returns a fake user for running the actions.
