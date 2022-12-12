@@ -249,6 +249,19 @@
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="advanced">
 
+				{{$isCodeEnabled := .Repository.UnitEnabled $.Context $.UnitTypeCode}}
+				<div class="inline field">
+					<label>{{.locale.Tr "repo.code"}}</label>
+					{{if .UnitTypeCode.UnitGlobalDisabled}}
+					<div class="ui checkbox tooltip disabled" data-content="{{.locale.Tr "repo.unit_disabled"}}">
+					{{else}}
+					<div class="ui checkbox">
+					{{end}}
+						<input class="enable-system" name="enable_code" type="checkbox"{{if $isCodeEnabled}} checked{{end}}>
+						<label>{{.locale.Tr "repo.code.desc"}}</label>
+					</div>
+				</div>
+
 				{{$isWikiEnabled := or (.Repository.UnitEnabled $.Context $.UnitTypeWiki) (.Repository.UnitEnabled $.Context $.UnitTypeExternalWiki)}}
 				<div class="inline field">
 					<label>{{.locale.Tr "repo.wiki"}}</label>
