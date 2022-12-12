@@ -55,7 +55,7 @@ func ListHooks(ctx *context.APIContext) {
 
 // GetHook get an organization's hook by id
 func GetHook(ctx *context.APIContext) {
-	// swagger:operation GET /hooks/{id} admin adminGetHook
+	// swagger:operation GET /admin/hooks/{id} admin adminGetHook
 	// ---
 	// summary: Get a hook
 	// produces:
@@ -87,7 +87,7 @@ func GetHook(ctx *context.APIContext) {
 
 // CreateHook create a hook for an organization
 func CreateHook(ctx *context.APIContext) {
-	// swagger:operation POST /admin/hooks/ admin adminCreateHook
+	// swagger:operation POST /admin/hooks admin adminCreateHook
 	// ---
 	// summary: Create a hook
 	// consumes:

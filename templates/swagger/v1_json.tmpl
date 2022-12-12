@@ -167,9 +167,7 @@
             "$ref": "#/responses/HookList"
           }
         }
-      }
-    },
-    "/admin/hooks/": {
+      },
       "post": {
         "consumes": [
           "application/json"
@@ -200,6 +198,31 @@
       }
     },
     "/admin/hooks/{id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get a hook",
+        "operationId": "adminGetHook",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the hook to get",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Hook"
+          }
+        }
+      },
       "patch": {
         "consumes": [
           "application/json"
@@ -722,33 +745,6 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
-          }
-        }
-      }
-    },
-    "/hooks/{id}": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "admin"
-        ],
-        "summary": "Get a hook",
-        "operationId": "adminGetHook",
-        "parameters": [
-          {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the hook to get",
-            "name": "id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/Hook"
           }
         }
       }
