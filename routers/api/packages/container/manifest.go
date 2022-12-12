@@ -6,8 +6,10 @@ package container
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -402,6 +404,15 @@ func createManifestBlob(ctx context.Context, mci *manifestCreationInfo, pv *pack
 	if err != nil {
 		log.Error("Error inserting package blob: %v", err)
 		return nil, false, "", err
+	}
+	// FIXME: Workaround to be removed in v1.20
+	// https://github.com/go-gitea/gitea/issues/19586
+	if exists {
+		err = packages_module.NewContentStore().Has(packages_module.BlobHash256Key(pb.HashSHA256))
+		if err != nil && errors.Is(err, os.ErrNotExist) {
+			log.Debug("Package registry inconsistent: blob %s does not exist on file system", pb.HashSHA256)
+			exists = false
+		}
 	}
 	if !exists {
 		contentStore := packages_module.NewContentStore()

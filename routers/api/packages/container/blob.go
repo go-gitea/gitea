@@ -7,8 +7,11 @@ package container
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"os"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -19,6 +22,8 @@ import (
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
+var uploadVersionMutex sync.Mutex
+
 // saveAsPackageBlob creates a package blob from an upload
 // The uploaded blob gets stored in a special upload version to link them to the package/image
 func saveAsPackageBlob(hsr packages_module.HashedSizeReader, pi *packages_service.PackageInfo) (*packages_model.PackageBlob, error) {
@@ -28,6 +33,11 @@ func saveAsPackageBlob(hsr packages_module.HashedSizeReader, pi *packages_servic
 
 	contentStore := packages_module.NewContentStore()
 
+	var uploadVersion *packages_model.PackageVersion
+
+	// FIXME: Replace usage of mutex with database transaction
+	// https://github.com/go-gitea/gitea/pull/21862
+	uploadVersionMutex.Lock()
 	err := db.WithTx(func(ctx context.Context) error {
 		created := true
 		p := &packages_model.Package{
@@ -68,10 +78,29 @@ func saveAsPackageBlob(hsr packages_module.HashedSizeReader, pi *packages_servic
 			}
 		}
 
+		uploadVersion = pv
+
+		return nil
+	})
+	uploadVersionMutex.Unlock()
+	if err != nil {
+		return nil, err
+	}
+
+	err = db.WithTx(func(ctx context.Context) error {
 		pb, exists, err = packages_model.GetOrInsertBlob(ctx, pb)
 		if err != nil {
 			log.Error("Error inserting package blob: %v", err)
 			return err
+		}
+		// FIXME: Workaround to be removed in v1.20
+		// https://github.com/go-gitea/gitea/issues/19586
+		if exists {
+			err = contentStore.Has(packages_module.BlobHash256Key(pb.HashSHA256))
+			if err != nil && errors.Is(err, os.ErrNotExist) {
+				log.Debug("Package registry inconsistent: blob %s does not exist on file system", pb.HashSHA256)
+				exists = false
+			}
 		}
 		if !exists {
 			if err := contentStore.Save(packages_module.BlobHash256Key(pb.HashSHA256), hsr, hsr.Size()); err != nil {
@@ -83,7 +112,7 @@ func saveAsPackageBlob(hsr packages_module.HashedSizeReader, pi *packages_servic
 		filename := strings.ToLower(fmt.Sprintf("sha256_%s", pb.HashSHA256))
 
 		pf := &packages_model.PackageFile{
-			VersionID:    pv.ID,
+			VersionID:    uploadVersion.ID,
 			BlobID:       pb.ID,
 			Name:         filename,
 			LowerName:    filename,
