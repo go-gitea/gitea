@@ -21,8 +21,10 @@ type contextKey struct {
 }
 
 // enginedContextKey is a context key. It is used with context.Value() to get the current Engined for the context
-var enginedContextKey = &contextKey{"engined"}
-var _ Engined = &Context{}
+var (
+	enginedContextKey         = &contextKey{"engined"}
+	_                 Engined = &Context{}
+)
 
 // Context represents a db context
 type Context struct {

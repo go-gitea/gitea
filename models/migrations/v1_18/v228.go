@@ -1,7 +1,7 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_18 // nolint
+package v1_18 //nolint
 
 import (
 	"code.gitea.io/gitea/modules/timeutil"

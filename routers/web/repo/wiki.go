@@ -59,7 +59,7 @@ func MustEnableWiki(ctx *context.Context) {
 		return
 	}
 
-	unit, err := ctx.Repo.Repository.GetUnit(unit.TypeExternalWiki)
+	unit, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypeExternalWiki)
 	if err == nil {
 		ctx.Redirect(unit.ExternalWikiConfig().ExternalWikiURL)
 		return
