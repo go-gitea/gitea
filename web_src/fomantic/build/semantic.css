@@ -10719,7 +10719,6 @@ select.ui.dropdown {
 .ui.form .field.field input:-webkit-autofill {
   box-shadow: 0 0 0 100px #FFFFF0 inset !important;
   border-color: #E5DFA1 !important;
-  -webkit-text-fill-color: #000000 !important;
 }
 
 /* Focus */
