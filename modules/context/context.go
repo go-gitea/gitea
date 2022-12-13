@@ -666,7 +666,7 @@ func Auth(authMethod auth.Method) func(*Context) {
 		ctx.Doer, err = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
 		if err != nil {
 			log.Error("Failed to verify user %v: %v", ctx.Req.RemoteAddr, err)
-			ctx.Error(401, "Verify")
+			ctx.Error(http.StatusUnauthorized, "Verify")
 			return
 		}
 		if ctx.Doer != nil {

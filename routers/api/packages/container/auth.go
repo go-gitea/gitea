@@ -23,10 +23,8 @@ func (a *Auth) Name() string {
 func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataStore, sess auth.SessionStore) (*user_model.User, error) {
 	uid, err := packages.ParseAuthorizationToken(req)
 	if err != nil {
-		if err.Error() != "no token" {
-			log.Trace("ParseAuthorizationToken: %v", err)
-			return nil, err
-		}
+		log.Trace("ParseAuthorizationToken: %v", err)
+		return nil, err
 	}
 
 	if uid == 0 {
