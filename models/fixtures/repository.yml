@@ -1558,3 +1558,30 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+
+-
+  id: 53
+  owner_id: 30
+  owner_name: user30
+  lower_name: renderer
+  name: renderer
+  is_archived: false
+  is_empty: false
+  is_private: false
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_watches: 0
+  num_projects: 0
+  num_closed_projects: 0
+  status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
