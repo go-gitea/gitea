@@ -275,7 +275,7 @@ func SecretsPost(ctx *context.Context) {
 		return
 	}
 
-	log.Trace("Secret added: %d", ctx.Org.Organization.ID)
+	log.Trace("Org %d: secret added", ctx.Org.Organization.ID)
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_secret_success", form.Title))
 	ctx.Redirect(ctx.Org.OrgLink + "/settings/secrets")
 }
