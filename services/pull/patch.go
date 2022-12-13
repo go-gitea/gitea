@@ -54,6 +54,7 @@ var patchErrorSuffices = []string{
 	": already exists in working directory",
 	"unrecognized input",
 	": No such file or directory",
+	": does not exist in index",
 }
 
 // TestPatch will test whether a simple patch will apply
