@@ -271,7 +271,7 @@ func Secrets(ctx *context.Context) {
 func SecretsPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AddSecretForm)
 	if err := secret_service.InsertOrgSecret(ctx, ctx.Org.Organization.ID, form.Title, form.Content); err != nil {
-		ctx.ServerError("InsertRepoSecret", err)
+		ctx.ServerError("InsertOrgSecret", err)
 		return
 	}
 
