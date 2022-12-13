@@ -1,10 +1,11 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package comments
+package issue
 
 import (
 	"context"
+	"fmt"
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -14,9 +15,58 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
+// CreateComment creates comment of issue or commit.
+func CreateComment(opts *issues_model.CreateCommentOptions) (comment *issues_model.Comment, err error) {
+	ctx, committer, err := db.TxContext(db.DefaultContext)
+	if err != nil {
+		return nil, err
+	}
+	defer committer.Close()
+
+	comment, err = issues_model.CreateComment(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = committer.Commit(); err != nil {
+		return nil, err
+	}
+
+	return comment, nil
+}
+
+// CreateRefComment creates a commit reference comment to issue.
+func CreateRefComment(doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content, commitSHA string) error {
+	if len(commitSHA) == 0 {
+		return fmt.Errorf("cannot create reference with empty commit SHA")
+	}
+
+	// Check if same reference from same commit has already existed.
+	has, err := db.GetEngine(db.DefaultContext).Get(&issues_model.Comment{
+		Type:      issues_model.CommentTypeCommitRef,
+		IssueID:   issue.ID,
+		CommitSHA: commitSHA,
+	})
+	if err != nil {
+		return fmt.Errorf("check reference comment: %w", err)
+	} else if has {
+		return nil
+	}
+
+	_, err = CreateComment(&issues_model.CreateCommentOptions{
+		Type:      issues_model.CommentTypeCommitRef,
+		Doer:      doer,
+		Repo:      repo,
+		Issue:     issue,
+		CommitSHA: commitSHA,
+		Content:   content,
+	})
+	return err
+}
+
 // CreateIssueComment creates a plain issue comment.
 func CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content string, attachments []string) (*issues_model.Comment, error) {
-	comment, err := issues_model.CreateComment(&issues_model.CreateCommentOptions{
+	comment, err := CreateComment(&issues_model.CreateCommentOptions{
 		Type:        issues_model.CommentTypeComment,
 		Doer:        doer,
 		Repo:        repo,
