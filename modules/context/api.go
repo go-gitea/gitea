@@ -219,7 +219,13 @@ func (ctx *APIContext) CheckForOTP() {
 func APIAuth(authMethod auth_service.Method) func(*APIContext) {
 	return func(ctx *APIContext) {
 		// Get user from session if logged in.
-		ctx.Doer = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		var err error
+		ctx.Doer, err = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		if err != nil {
+			ctx.Error(http.StatusUnauthorized, "APIAuth", err)
+			return
+		}
+
 		if ctx.Doer != nil {
 			if ctx.Locale.Language() != ctx.Doer.Language {
 				ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
