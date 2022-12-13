@@ -1,7 +1,6 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package mailer
 
@@ -18,7 +17,6 @@ import (
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -265,7 +263,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 		"Issue":           ctx.Issue,
 		"Comment":         ctx.Comment,
 		"IsPull":          ctx.Issue.IsPull,
-		"User":            ctx.Issue.Repo.MustOwner(),
+		"User":            ctx.Issue.Repo.MustOwner(ctx),
 		"Repo":            ctx.Issue.Repo.FullName(),
 		"Doer":            ctx.Doer,
 		"IsMention":       fromMention,
@@ -340,7 +338,7 @@ func createReference(issue *issues_model.Issue, comment *issues_model.Comment, a
 			extra = fmt.Sprintf("/close/%d", time.Now().UnixNano()/1e6)
 		case activities_model.ActionReopenIssue, activities_model.ActionReopenPullRequest:
 			extra = fmt.Sprintf("/reopen/%d", time.Now().UnixNano()/1e6)
-		case activities_model.ActionMergePullRequest:
+		case activities_model.ActionMergePullRequest, activities_model.ActionAutoMergePullRequest:
 			extra = fmt.Sprintf("/merge/%d", time.Now().UnixNano()/1e6)
 		case activities_model.ActionPullRequestReadyForReview:
 			extra = fmt.Sprintf("/ready/%d", time.Now().UnixNano()/1e6)
@@ -395,13 +393,13 @@ func sanitizeSubject(subject string) string {
 }
 
 // SendIssueAssignedMail composes and sends issue assigned email
-func SendIssueAssignedMail(issue *issues_model.Issue, doer *user_model.User, content string, comment *issues_model.Comment, recipients []*user_model.User) error {
+func SendIssueAssignedMail(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, content string, comment *issues_model.Comment, recipients []*user_model.User) error {
 	if setting.MailService == nil {
 		// No mail service configured
 		return nil
 	}
 
-	if err := issue.LoadRepo(db.DefaultContext); err != nil {
+	if err := issue.LoadRepo(ctx); err != nil {
 		log.Error("Unable to load repo [%d] for issue #%d [%d]. Error: %v", issue.RepoID, issue.Index, issue.ID, err)
 		return err
 	}
@@ -417,7 +415,7 @@ func SendIssueAssignedMail(issue *issues_model.Issue, doer *user_model.User, con
 
 	for lang, tos := range langMap {
 		msgs, err := composeIssueCommentMessages(&mailCommentContext{
-			Context:    context.TODO(), // TODO: use a correct context
+			Context:    ctx,
 			Issue:      issue,
 			Doer:       doer,
 			ActionType: activities_model.ActionType(0),
@@ -451,7 +449,7 @@ func actionToTemplate(issue *issues_model.Issue, actionType activities_model.Act
 		name = "close"
 	case activities_model.ActionReopenIssue, activities_model.ActionReopenPullRequest:
 		name = "reopen"
-	case activities_model.ActionMergePullRequest:
+	case activities_model.ActionMergePullRequest, activities_model.ActionAutoMergePullRequest:
 		name = "merge"
 	case activities_model.ActionPullReviewDismissed:
 		name = "review_dismissed"

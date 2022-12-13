@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package files
 
@@ -104,7 +103,7 @@ func DeleteRepoFile(ctx context.Context, repo *repo_model.Repository, doer *user
 	} else {
 		lastCommitID, err := t.gitRepo.ConvertToSHA1(opts.LastCommitID)
 		if err != nil {
-			return nil, fmt.Errorf("DeleteRepoFile: Invalid last commit ID: %v", err)
+			return nil, fmt.Errorf("DeleteRepoFile: Invalid last commit ID: %w", err)
 		}
 		opts.LastCommitID = lastCommitID.String()
 	}
@@ -112,7 +111,7 @@ func DeleteRepoFile(ctx context.Context, repo *repo_model.Repository, doer *user
 	// Get the files in the index
 	filesInIndex, err := t.LsFiles(opts.TreePath)
 	if err != nil {
-		return nil, fmt.Errorf("DeleteRepoFile: %v", err)
+		return nil, fmt.Errorf("DeleteRepoFile: %w", err)
 	}
 
 	// Find the file we want to delete in the index

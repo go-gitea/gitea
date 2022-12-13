@@ -1,7 +1,6 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
 // Copyright 2016 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package organization
 
@@ -16,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -43,6 +43,10 @@ func (err ErrTeamAlreadyExist) Error() string {
 	return fmt.Sprintf("team already exists [org_id: %d, name: %s]", err.OrgID, err.Name)
 }
 
+func (err ErrTeamAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
 // ErrTeamNotExist represents a "TeamNotExist" error
 type ErrTeamNotExist struct {
 	OrgID  int64
@@ -58,6 +62,10 @@ func IsErrTeamNotExist(err error) bool {
 
 func (err ErrTeamNotExist) Error() string {
 	return fmt.Sprintf("team does not exist [org_id %d, team_id %d, name: %s]", err.OrgID, err.TeamID, err.Name)
+}
+
+func (err ErrTeamNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // OwnerTeamName return the owner team name
@@ -85,6 +93,7 @@ func init() {
 	db.RegisterModel(new(TeamUser))
 	db.RegisterModel(new(TeamRepo))
 	db.RegisterModel(new(TeamUnit))
+	db.RegisterModel(new(TeamInvite))
 }
 
 // SearchTeamOptions holds the search options
@@ -129,29 +138,11 @@ func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 	if opts.UserID > 0 {
 		sess = sess.Join("INNER", "team_user", "team_user.team_id = team.id")
 	}
-
-	count, err := sess.
-		Where(cond).
-		Count(new(Team))
-	if err != nil {
-		return nil, 0, err
-	}
-
-	if opts.UserID > 0 {
-		sess = sess.Join("INNER", "team_user", "team_user.team_id = team.id")
-	}
-
-	if opts.PageSize == -1 {
-		opts.PageSize = int(count)
-	} else {
-		sess = sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
-	}
+	sess = db.SetSessionPagination(sess, opts)
 
 	teams := make([]*Team, 0, opts.PageSize)
-	if err = sess.
-		Where(cond).
-		OrderBy("lower_name").
-		Find(&teams); err != nil {
+	count, err := sess.Where(cond).OrderBy("lower_name").FindAndCount(&teams)
+	if err != nil {
 		return nil, 0, err
 	}
 
@@ -231,8 +222,8 @@ func (t *Team) IsMember(userID int64) bool {
 	return isMember
 }
 
-// GetRepositoriesCtx returns paginated repositories in team of organization.
-func (t *Team) GetRepositoriesCtx(ctx context.Context) (err error) {
+// LoadRepositories returns paginated repositories in team of organization.
+func (t *Team) LoadRepositories(ctx context.Context) (err error) {
 	if t.Repos != nil {
 		return nil
 	}
@@ -242,8 +233,8 @@ func (t *Team) GetRepositoriesCtx(ctx context.Context) (err error) {
 	return err
 }
 
-// GetMembersCtx returns paginated members in team of organization.
-func (t *Team) GetMembersCtx(ctx context.Context) (err error) {
+// LoadMembers returns paginated members in team of organization.
+func (t *Team) LoadMembers(ctx context.Context) (err error) {
 	t.Members, err = GetTeamMembers(ctx, &SearchMembersOptions{
 		TeamID: t.ID,
 	})
@@ -251,18 +242,12 @@ func (t *Team) GetMembersCtx(ctx context.Context) (err error) {
 }
 
 // UnitEnabled returns if the team has the given unit type enabled
-func (t *Team) UnitEnabled(tp unit.Type) bool {
-	return t.UnitAccessMode(tp) > perm.AccessModeNone
+func (t *Team) UnitEnabled(ctx context.Context, tp unit.Type) bool {
+	return t.UnitAccessMode(ctx, tp) > perm.AccessModeNone
 }
 
 // UnitAccessMode returns if the team has the given unit type enabled
-// it is called in templates, should not be replaced by `UnitAccessModeCtx(ctx ...)`
-func (t *Team) UnitAccessMode(tp unit.Type) perm.AccessMode {
-	return t.UnitAccessModeCtx(db.DefaultContext, tp)
-}
-
-// UnitAccessModeCtx returns if the team has the given unit type enabled
-func (t *Team) UnitAccessModeCtx(ctx context.Context, tp unit.Type) perm.AccessMode {
+func (t *Team) UnitAccessMode(ctx context.Context, tp unit.Type) perm.AccessMode {
 	if err := t.getUnits(ctx); err != nil {
 		log.Warn("Error loading team (ID: %d) units: %s", t.ID, err.Error())
 	}

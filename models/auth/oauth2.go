@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package auth
 
@@ -10,6 +9,7 @@ import (
 	"encoding/base32"
 	"encoding/base64"
 	"fmt"
+	"net"
 	"net/url"
 	"strings"
 
@@ -30,9 +30,14 @@ type OAuth2Application struct {
 	Name         string
 	ClientID     string `xorm:"unique"`
 	ClientSecret string
-	RedirectURIs []string           `xorm:"redirect_uris JSON TEXT"`
-	CreatedUnix  timeutil.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix  timeutil.TimeStamp `xorm:"INDEX updated"`
+	// OAuth defines both Confidential and Public client types
+	// https://datatracker.ietf.org/doc/html/rfc6749#section-2.1
+	// "Authorization servers MUST record the client type in the client registration details"
+	// https://datatracker.ietf.org/doc/html/rfc8252#section-8.4
+	ConfidentialClient bool               `xorm:"NOT NULL DEFAULT TRUE"`
+	RedirectURIs       []string           `xorm:"redirect_uris JSON TEXT"`
+	CreatedUnix        timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix        timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
 func init() {
@@ -56,6 +61,20 @@ func (app *OAuth2Application) PrimaryRedirectURI() string {
 
 // ContainsRedirectURI checks if redirectURI is allowed for app
 func (app *OAuth2Application) ContainsRedirectURI(redirectURI string) bool {
+	if !app.ConfidentialClient {
+		uri, err := url.Parse(redirectURI)
+		// ignore port for http loopback uris following https://datatracker.ietf.org/doc/html/rfc8252#section-7.3
+		if err == nil && uri.Scheme == "http" && uri.Port() != "" {
+			ip := net.ParseIP(uri.Hostname())
+			if ip != nil && ip.IsLoopback() {
+				// strip port
+				uri.Host = uri.Hostname()
+				if util.IsStringInSlice(uri.String(), app.RedirectURIs, true) {
+					return true
+				}
+			}
+		}
+	}
 	return util.IsStringInSlice(redirectURI, app.RedirectURIs, true)
 }
 
@@ -148,19 +167,21 @@ func GetOAuth2ApplicationsByUserID(ctx context.Context, userID int64) (apps []*O
 
 // CreateOAuth2ApplicationOptions holds options to create an oauth2 application
 type CreateOAuth2ApplicationOptions struct {
-	Name         string
-	UserID       int64
-	RedirectURIs []string
+	Name               string
+	UserID             int64
+	ConfidentialClient bool
+	RedirectURIs       []string
 }
 
 // CreateOAuth2Application inserts a new oauth2 application
 func CreateOAuth2Application(ctx context.Context, opts CreateOAuth2ApplicationOptions) (*OAuth2Application, error) {
 	clientID := uuid.New().String()
 	app := &OAuth2Application{
-		UID:          opts.UserID,
-		Name:         opts.Name,
-		ClientID:     clientID,
-		RedirectURIs: opts.RedirectURIs,
+		UID:                opts.UserID,
+		Name:               opts.Name,
+		ClientID:           clientID,
+		RedirectURIs:       opts.RedirectURIs,
+		ConfidentialClient: opts.ConfidentialClient,
 	}
 	if err := db.Insert(ctx, app); err != nil {
 		return nil, err
@@ -170,15 +191,16 @@ func CreateOAuth2Application(ctx context.Context, opts CreateOAuth2ApplicationOp
 
 // UpdateOAuth2ApplicationOptions holds options to update an oauth2 application
 type UpdateOAuth2ApplicationOptions struct {
-	ID           int64
-	Name         string
-	UserID       int64
-	RedirectURIs []string
+	ID                 int64
+	Name               string
+	UserID             int64
+	ConfidentialClient bool
+	RedirectURIs       []string
 }
 
 // UpdateOAuth2Application updates an oauth2 application
 func UpdateOAuth2Application(opts UpdateOAuth2ApplicationOptions) (*OAuth2Application, error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}
@@ -194,6 +216,7 @@ func UpdateOAuth2Application(opts UpdateOAuth2ApplicationOptions) (*OAuth2Applic
 
 	app.Name = opts.Name
 	app.RedirectURIs = opts.RedirectURIs
+	app.ConfidentialClient = opts.ConfidentialClient
 
 	if err = updateOAuth2Application(ctx, app); err != nil {
 		return nil, err
@@ -204,7 +227,7 @@ func UpdateOAuth2Application(opts UpdateOAuth2ApplicationOptions) (*OAuth2Applic
 }
 
 func updateOAuth2Application(ctx context.Context, app *OAuth2Application) error {
-	if _, err := db.GetEngine(ctx).ID(app.ID).Update(app); err != nil {
+	if _, err := db.GetEngine(ctx).ID(app.ID).UseBool("confidential_client").Update(app); err != nil {
 		return err
 	}
 	return nil
@@ -212,7 +235,8 @@ func updateOAuth2Application(ctx context.Context, app *OAuth2Application) error 
 
 func deleteOAuth2Application(ctx context.Context, id, userid int64) error {
 	sess := db.GetEngine(ctx)
-	if deleted, err := sess.Delete(&OAuth2Application{ID: id, UID: userid}); err != nil {
+	// the userid could be 0 if the app is instance-wide
+	if deleted, err := sess.Where(builder.Eq{"id": id, "uid": userid}).Delete(&OAuth2Application{}); err != nil {
 		return err
 	} else if deleted == 0 {
 		return ErrOAuthApplicationNotFound{ID: id}
@@ -240,7 +264,7 @@ func deleteOAuth2Application(ctx context.Context, id, userid int64) error {
 
 // DeleteOAuth2Application deletes the application with the given id and the grants and auth codes related to it. It checks if the userid was the creator of the app.
 func DeleteOAuth2Application(id, userid int64) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -463,7 +487,7 @@ func GetOAuth2GrantsByUserID(ctx context.Context, uid int64) ([]*OAuth2Grant, er
 
 // RevokeOAuth2Grant deletes the grant with grantID and userID
 func RevokeOAuth2Grant(ctx context.Context, grantID, userID int64) error {
-	_, err := db.DeleteByBean(ctx, &OAuth2Grant{ID: grantID, UserID: userID})
+	_, err := db.GetEngine(ctx).Where(builder.Eq{"id": grantID, "user_id": userID}).Delete(&OAuth2Grant{})
 	return err
 }
 
@@ -472,7 +496,7 @@ type ErrOAuthClientIDInvalid struct {
 	ClientID string
 }
 
-// IsErrOauthClientIDInvalid checks if an error is a ErrReviewNotExist.
+// IsErrOauthClientIDInvalid checks if an error is a ErrOAuthClientIDInvalid.
 func IsErrOauthClientIDInvalid(err error) bool {
 	_, ok := err.(ErrOAuthClientIDInvalid)
 	return ok
@@ -481,6 +505,11 @@ func IsErrOauthClientIDInvalid(err error) bool {
 // Error returns the error message
 func (err ErrOAuthClientIDInvalid) Error() string {
 	return fmt.Sprintf("Client ID invalid [Client ID: %s]", err.ClientID)
+}
+
+// Unwrap unwraps this as a ErrNotExist err
+func (err ErrOAuthClientIDInvalid) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // ErrOAuthApplicationNotFound will be thrown if id cannot be found
@@ -497,6 +526,11 @@ func IsErrOAuthApplicationNotFound(err error) bool {
 // Error returns the error message
 func (err ErrOAuthApplicationNotFound) Error() string {
 	return fmt.Sprintf("OAuth application not found [ID: %d]", err.ID)
+}
+
+// Unwrap unwraps this as a ErrNotExist err
+func (err ErrOAuthApplicationNotFound) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // GetActiveOAuth2ProviderSources returns all actived LoginOAuth2 sources
@@ -535,7 +569,7 @@ func DeleteOAuth2RelictsByUserID(ctx context.Context, userID int64) error {
 		&OAuth2Application{UID: userID},
 		&OAuth2Grant{UserID: userID},
 	); err != nil {
-		return fmt.Errorf("DeleteBeans: %v", err)
+		return fmt.Errorf("DeleteBeans: %w", err)
 	}
 
 	return nil

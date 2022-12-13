@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
@@ -37,6 +36,10 @@ func IsErrForkAlreadyExist(err error) bool {
 
 func (err ErrForkAlreadyExist) Error() string {
 	return fmt.Sprintf("repository is already forked by user [uname: %s, repo path: %s, fork path: %s]", err.Uname, err.RepoName, err.ForkName)
+}
+
+func (err ErrForkAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
 }
 
 // ForkRepoOptions contains the fork repository options
@@ -108,7 +111,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		panic(panicErr)
 	}()
 
-	err = db.WithTx(func(txCtx context.Context) error {
+	err = db.WithTx(ctx, func(txCtx context.Context) error {
 		if err = repo_module.CreateRepositoryByExample(txCtx, doer, owner, repo, false); err != nil {
 			return err
 		}
@@ -126,26 +129,26 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 
 		repoPath := repo_model.RepoPath(owner.Name, repo.Name)
 		if stdout, _, err := git.NewCommand(txCtx,
-			"clone", "--bare", oldRepoPath, repoPath).
+			"clone", "--bare").AddDynamicArguments(oldRepoPath, repoPath).
 			SetDescription(fmt.Sprintf("ForkRepository(git clone): %s to %s", opts.BaseRepo.FullName(), repo.FullName())).
 			RunStdBytes(&git.RunOpts{Timeout: 10 * time.Minute}); err != nil {
 			log.Error("Fork Repository (git clone) Failed for %v (from %v):\nStdout: %s\nError: %v", repo, opts.BaseRepo, stdout, err)
-			return fmt.Errorf("git clone: %v", err)
+			return fmt.Errorf("git clone: %w", err)
 		}
 
 		if err := repo_module.CheckDaemonExportOK(txCtx, repo); err != nil {
-			return fmt.Errorf("checkDaemonExportOK: %v", err)
+			return fmt.Errorf("checkDaemonExportOK: %w", err)
 		}
 
 		if stdout, _, err := git.NewCommand(txCtx, "update-server-info").
 			SetDescription(fmt.Sprintf("ForkRepository(git update-server-info): %s", repo.FullName())).
 			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
 			log.Error("Fork Repository (git update-server-info) failed for %v:\nStdout: %s\nError: %v", repo, stdout, err)
-			return fmt.Errorf("git update-server-info: %v", err)
+			return fmt.Errorf("git update-server-info: %w", err)
 		}
 
 		if err = repo_module.CreateDelegateHooks(repoPath); err != nil {
-			return fmt.Errorf("createDelegateHooks: %v", err)
+			return fmt.Errorf("createDelegateHooks: %w", err)
 		}
 		return nil
 	})
@@ -173,15 +176,15 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		}
 	}
 
-	notification.NotifyForkRepository(doer, opts.BaseRepo, repo)
+	notification.NotifyForkRepository(ctx, doer, opts.BaseRepo, repo)
 
 	return repo, nil
 }
 
 // ConvertForkToNormalRepository convert the provided repo from a forked repo to normal repo
 func ConvertForkToNormalRepository(repo *repo_model.Repository) error {
-	err := db.WithTx(func(ctx context.Context) error {
-		repo, err := repo_model.GetRepositoryByIDCtx(ctx, repo.ID)
+	err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+		repo, err := repo_model.GetRepositoryByID(ctx, repo.ID)
 		if err != nil {
 			return err
 		}

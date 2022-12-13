@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package forms
 
@@ -34,7 +33,7 @@ type CreateRepoForm struct {
 	UID           int64  `binding:"Required"`
 	RepoName      string `binding:"Required;AlphaDashDot;MaxSize(100)"`
 	Private       bool
-	Description   string `binding:"MaxSize(255)"`
+	Description   string `binding:"MaxSize(2048)"`
 	DefaultBranch string `binding:"GitRefName;MaxSize(100)"`
 	AutoInit      bool
 	Gitignores    string
@@ -76,7 +75,7 @@ type MigrateRepoForm struct {
 	LFS            bool   `json:"lfs"`
 	LFSEndpoint    string `json:"lfs_endpoint"`
 	Private        bool   `json:"private"`
-	Description    string `json:"description" binding:"MaxSize(255)"`
+	Description    string `json:"description" binding:"MaxSize(2048)"`
 	Wiki           bool   `json:"wiki"`
 	Milestones     bool   `json:"milestones"`
 	Labels         bool   `json:"labels"`
@@ -116,8 +115,8 @@ func ParseRemoteAddr(remoteAddr, authUsername, authPassword string) (string, err
 // RepoSettingForm form for changing repository settings
 type RepoSettingForm struct {
 	RepoName               string `binding:"Required;AlphaDashDot;MaxSize(100)"`
-	Description            string `binding:"MaxSize(255)"`
-	Website                string `binding:"ValidUrl;MaxSize(255)"`
+	Description            string `binding:"MaxSize(2048)"`
+	Website                string `binding:"ValidUrl;MaxSize(1024)"`
 	Interval               string
 	MirrorAddress          string
 	MirrorUsername         string
@@ -135,6 +134,7 @@ type RepoSettingForm struct {
 	EnablePrune            bool
 
 	// Advanced settings
+	EnableCode                            bool
 	EnableWiki                            bool
 	EnableExternalWiki                    bool
 	ExternalWikiURL                       string
@@ -215,12 +215,12 @@ func (f *ProtectBranchForm) Validate(req *http.Request, errs binding.Errors) bin
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-//  __      __      ___.   .__    .__            __
-// /  \    /  \ ____\_ |__ |  |__ |  |__   ____ |  | __
-// \   \/\/   // __ \| __ \|  |  \|  |  \ /  _ \|  |/ /
-//  \        /\  ___/| \_\ \   Y  \   Y  (  <_> )    <
-//   \__/\  /  \___  >___  /___|  /___|  /\____/|__|_ \
-//        \/       \/    \/     \/     \/            \/
+//  __      __      ___.   .__                   __
+// /  \    /  \ ____\_ |__ |  |__   ____   ____ |  | __
+// \   \/\/   // __ \| __ \|  |  \ /  _ \ /  _ \|  |/ /
+//  \        /\  ___/| \_\ \   Y  (  <_> |  <_> )    <
+//   \__/\  /  \___  >___  /___|  /\____/ \____/|__|_ \
+//        \/       \/    \/     \/                   \/
 
 // WebhookForm form for changing web hook
 type WebhookForm struct {
@@ -242,10 +242,12 @@ type WebhookForm struct {
 	PullRequestComment   bool
 	PullRequestReview    bool
 	PullRequestSync      bool
+	Wiki                 bool
 	Repository           bool
 	Package              bool
 	Active               bool
 	BranchFilter         string `binding:"GlobPattern"`
+	AuthorizationHeader  string
 }
 
 // PushOnly if the hook will be triggered when push
@@ -358,7 +360,6 @@ func (f *NewTelegramHookForm) Validate(req *http.Request, errs binding.Errors) b
 type NewMatrixHookForm struct {
 	HomeserverURL string `binding:"Required;ValidUrl"`
 	RoomID        string `binding:"Required"`
-	AccessToken   string `binding:"Required"`
 	MessageType   int
 	WebhookForm
 }

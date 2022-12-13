@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cron
 
@@ -9,10 +8,11 @@ import (
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/admin"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/updatechecker"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -60,7 +60,12 @@ func registerGarbageCollectRepositories() {
 		Args:    setting.Git.GCArgs,
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		rhcConfig := config.(*RepoHealthCheckConfig)
-		return repo_service.GitGcRepos(ctx, rhcConfig.Timeout, rhcConfig.Args...)
+		// the git args are set by config, they can be safe to be trusted
+		args := make([]git.CmdArg, 0, len(rhcConfig.Args))
+		for _, arg := range rhcConfig.Args {
+			args = append(args, git.CmdArg(arg))
+		}
+		return repo_service.GitGcRepos(ctx, rhcConfig.Timeout, args...)
 	})
 }
 
@@ -166,7 +171,7 @@ func registerDeleteOldSystemNotices() {
 		OlderThan: 365 * 24 * time.Hour,
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		olderThanConfig := config.(*OlderThanConfig)
-		return admin.DeleteOldSystemNotices(olderThanConfig.OlderThan)
+		return system.DeleteOldSystemNotices(olderThanConfig.OlderThan)
 	})
 }
 

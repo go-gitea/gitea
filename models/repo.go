@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package models
 
@@ -22,6 +21,7 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
@@ -32,15 +32,19 @@ import (
 	"xorm.io/builder"
 )
 
-// NewRepoContext creates a new repository context
-func NewRepoContext() {
+// ItemsPerPage maximum items per page in forks, watchers and stars of a repo
+var ItemsPerPage = 40
+
+// Init initialize model
+func Init() error {
 	unit.LoadUnitConfig()
+	return system_model.Init()
 }
 
 // DeleteRepository deletes a repository for a user or organization.
 // make sure if you call this func to close open sessions (sqlite will otherwise get a deadlock)
 func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -48,7 +52,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	sess := db.GetEngine(ctx)
 
 	// In case is a organization.
-	org, err := user_model.GetUserByIDCtx(ctx, uid)
+	org, err := user_model.GetUserByID(ctx, uid)
 	if err != nil {
 		return err
 	}
@@ -69,12 +73,12 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	// Delete Deploy Keys
 	deployKeys, err := asymkey_model.ListDeployKeys(ctx, &asymkey_model.ListDeployKeysOptions{RepoID: repoID})
 	if err != nil {
-		return fmt.Errorf("listDeployKeys: %v", err)
+		return fmt.Errorf("listDeployKeys: %w", err)
 	}
 	needRewriteKeysFile := len(deployKeys) > 0
 	for _, dKey := range deployKeys {
 		if err := DeleteDeployKey(ctx, doer, dKey.ID); err != nil {
-			return fmt.Errorf("deleteDeployKeys: %v", err)
+			return fmt.Errorf("deleteDeployKeys: %w", err)
 		}
 	}
 
@@ -118,6 +122,11 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		return err
 	}
 
+	if _, err := db.GetEngine(ctx).In("hook_id", builder.Select("id").From("webhook").Where(builder.Eq{"webhook.repo_id": repo.ID})).
+		Delete(&webhook.HookTask{}); err != nil {
+		return err
+	}
+
 	if err := db.DeleteBeans(ctx,
 		&access_model.Access{RepoID: repo.ID},
 		&activities_model.Action{RepoID: repo.ID},
@@ -125,7 +134,6 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		&issues_model.Comment{RefRepoID: repoID},
 		&git_model.CommitStatus{RepoID: repoID},
 		&git_model.DeletedBranch{RepoID: repoID},
-		&webhook.HookTask{RepoID: repoID},
 		&git_model.LFSLock{RepoID: repoID},
 		&repo_model.LanguageStat{RepoID: repoID},
 		&issues_model.Milestone{RepoID: repoID},
@@ -143,7 +151,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		&repo_model.Watch{RepoID: repoID},
 		&webhook.Webhook{RepoID: repoID},
 	); err != nil {
-		return fmt.Errorf("deleteBeans: %v", err)
+		return fmt.Errorf("deleteBeans: %w", err)
 	}
 
 	// Delete Labels and related objects
@@ -163,13 +171,13 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	}
 
 	// Delete issue index
-	if err := db.DeleteResouceIndex(ctx, "issue_index", repoID); err != nil {
+	if err := db.DeleteResourceIndex(ctx, "issue_index", repoID); err != nil {
 		return err
 	}
 
 	if repo.IsFork {
 		if _, err := db.Exec(ctx, "UPDATE `repository` SET num_forks=num_forks-1 WHERE id=?", repo.ForkID); err != nil {
-			return fmt.Errorf("decrease fork count: %v", err)
+			return fmt.Errorf("decrease fork count: %w", err)
 		}
 	}
 
@@ -183,8 +191,8 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		}
 	}
 
-	if err := project_model.DeleteProjectByRepoIDCtx(ctx, repoID); err != nil {
-		return fmt.Errorf("unable to delete projects for repo[%d]: %v", repoID, err)
+	if err := project_model.DeleteProjectByRepoID(ctx, repoID); err != nil {
+		return fmt.Errorf("unable to delete projects for repo[%d]: %w", repoID, err)
 	}
 
 	// Remove LFS objects
@@ -267,41 +275,41 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 
 	// Remove repository files.
 	repoPath := repo.RepoPath()
-	admin_model.RemoveAllWithNotice(db.DefaultContext, "Delete repository files", repoPath)
+	system_model.RemoveAllWithNotice(db.DefaultContext, "Delete repository files", repoPath)
 
 	// Remove wiki files
 	if repo.HasWiki() {
-		admin_model.RemoveAllWithNotice(db.DefaultContext, "Delete repository wiki", repo.WikiPath())
+		system_model.RemoveAllWithNotice(db.DefaultContext, "Delete repository wiki", repo.WikiPath())
 	}
 
 	// Remove archives
 	for _, archive := range archivePaths {
-		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.RepoArchives, "Delete repo archive file", archive)
+		system_model.RemoveStorageWithNotice(db.DefaultContext, storage.RepoArchives, "Delete repo archive file", archive)
 	}
 
 	// Remove lfs objects
 	for _, lfsObj := range lfsPaths {
-		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.LFS, "Delete orphaned LFS file", lfsObj)
+		system_model.RemoveStorageWithNotice(db.DefaultContext, storage.LFS, "Delete orphaned LFS file", lfsObj)
 	}
 
 	// Remove issue attachment files.
 	for _, attachment := range attachmentPaths {
-		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", attachment)
+		system_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", attachment)
 	}
 
 	// Remove release attachment files.
 	for _, releaseAttachment := range releaseAttachments {
-		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete release attachment", releaseAttachment)
+		system_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete release attachment", releaseAttachment)
 	}
 
 	// Remove attachment with no issue_id and release_id.
 	for _, newAttachment := range newAttachmentPaths {
-		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", newAttachment)
+		system_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", newAttachment)
 	}
 
 	if len(repo.Avatar) > 0 {
 		if err := storage.RepoAvatars.Delete(repo.CustomAvatarRelativePath()); err != nil {
-			return fmt.Errorf("Failed to remove %s: %v", repo.Avatar, err)
+			return fmt.Errorf("Failed to remove %s: %w", repo.Avatar, err)
 		}
 	}
 
@@ -395,24 +403,19 @@ func repoStatsCorrectIssueNumComments(ctx context.Context, id int64) error {
 }
 
 func repoStatsCorrectNumIssues(ctx context.Context, id int64) error {
-	return repoStatsCorrectNum(ctx, id, false, "num_issues")
+	return repo_model.UpdateRepoIssueNumbers(ctx, id, false, false)
 }
 
 func repoStatsCorrectNumPulls(ctx context.Context, id int64) error {
-	return repoStatsCorrectNum(ctx, id, true, "num_pulls")
-}
-
-func repoStatsCorrectNum(ctx context.Context, id int64, isPull bool, field string) error {
-	_, err := db.GetEngine(ctx).Exec("UPDATE `repository` SET "+field+"=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_pull=?) WHERE id=?", id, isPull, id)
-	return err
+	return repo_model.UpdateRepoIssueNumbers(ctx, id, true, false)
 }
 
 func repoStatsCorrectNumClosedIssues(ctx context.Context, id int64) error {
-	return repo_model.StatsCorrectNumClosed(ctx, id, false, "num_closed_issues")
+	return repo_model.UpdateRepoIssueNumbers(ctx, id, false, true)
 }
 
 func repoStatsCorrectNumClosedPulls(ctx context.Context, id int64) error {
-	return repo_model.StatsCorrectNumClosed(ctx, id, true, "num_closed_pulls")
+	return repo_model.UpdateRepoIssueNumbers(ctx, id, true, true)
 }
 
 func statsQuery(args ...interface{}) func(context.Context) ([]map[string][]byte, error) {
@@ -438,15 +441,27 @@ func CheckRepoStats(ctx context.Context) error {
 			repoStatsCorrectNumStars,
 			"repository count 'num_stars'",
 		},
+		// Repository.NumIssues
+		{
+			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_issues!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_pull=?)", false),
+			repoStatsCorrectNumIssues,
+			"repository count 'num_issues'",
+		},
 		// Repository.NumClosedIssues
 		{
 			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_closed_issues!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", true, false),
 			repoStatsCorrectNumClosedIssues,
 			"repository count 'num_closed_issues'",
 		},
+		// Repository.NumPulls
+		{
+			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_pulls!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_pull=?)", true),
+			repoStatsCorrectNumPulls,
+			"repository count 'num_pulls'",
+		},
 		// Repository.NumClosedPulls
 		{
-			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_closed_issues!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", true, true),
+			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_closed_pulls!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", true, true),
 			repoStatsCorrectNumClosedPulls,
 			"repository count 'num_closed_pulls'",
 		},
@@ -508,7 +523,7 @@ func CheckRepoStats(ctx context.Context) error {
 			}
 			log.Trace("Updating repository count 'num_forks': %d", id)
 
-			repo, err := repo_model.GetRepositoryByID(id)
+			repo, err := repo_model.GetRepositoryByID(ctx, id)
 			if err != nil {
 				log.Error("repo_model.GetRepositoryByID[%d]: %v", id, err)
 				continue
@@ -553,7 +568,7 @@ func UpdateRepoStats(ctx context.Context, id int64) error {
 }
 
 func updateUserStarNumbers(users []user_model.User) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -598,18 +613,18 @@ func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error
 		if asymkey_model.IsErrDeployKeyNotExist(err) {
 			return nil
 		}
-		return fmt.Errorf("GetDeployKeyByID: %v", err)
+		return fmt.Errorf("GetDeployKeyByID: %w", err)
 	}
 
 	// Check if user has access to delete this key.
 	if !doer.IsAdmin {
-		repo, err := repo_model.GetRepositoryByIDCtx(ctx, key.RepoID)
+		repo, err := repo_model.GetRepositoryByID(ctx, key.RepoID)
 		if err != nil {
-			return fmt.Errorf("GetRepositoryByID: %v", err)
+			return fmt.Errorf("GetRepositoryByID: %w", err)
 		}
 		has, err := access_model.IsUserRepoAdmin(ctx, repo, doer)
 		if err != nil {
-			return fmt.Errorf("GetUserRepoPermission: %v", err)
+			return fmt.Errorf("GetUserRepoPermission: %w", err)
 		} else if !has {
 			return asymkey_model.ErrKeyAccessDenied{
 				UserID: doer.ID,
@@ -622,7 +637,7 @@ func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error
 	if _, err := db.DeleteByBean(ctx, &asymkey_model.DeployKey{
 		ID: key.ID,
 	}); err != nil {
-		return fmt.Errorf("delete deploy key [%d]: %v", key.ID, err)
+		return fmt.Errorf("delete deploy key [%d]: %w", key.ID, err)
 	}
 
 	// Check if this is the last reference to same key content.

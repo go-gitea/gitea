@@ -1,6 +1,5 @@
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package routers
 
@@ -11,7 +10,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/modules/appstate"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/git"
@@ -27,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/svg"
+	"code.gitea.io/gitea/modules/system"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
@@ -41,6 +40,7 @@ import (
 	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/cron"
 	"code.gitea.io/gitea/services/mailer"
+	markup_service "code.gitea.io/gitea/services/markup"
 	repo_migrations "code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -75,22 +75,32 @@ func InitGitServices() {
 	mustInit(repo_service.Init)
 }
 
-func syncAppPathForGit(ctx context.Context) error {
-	runtimeState := new(appstate.RuntimeState)
-	if err := appstate.AppState.Get(runtimeState); err != nil {
+func syncAppConfForGit(ctx context.Context) error {
+	runtimeState := new(system.RuntimeState)
+	if err := system.AppState.Get(runtimeState); err != nil {
 		return err
 	}
+
+	updated := false
 	if runtimeState.LastAppPath != setting.AppPath {
 		log.Info("AppPath changed from '%s' to '%s'", runtimeState.LastAppPath, setting.AppPath)
+		runtimeState.LastAppPath = setting.AppPath
+		updated = true
+	}
+	if runtimeState.LastCustomConf != setting.CustomConf {
+		log.Info("CustomConf changed from '%s' to '%s'", runtimeState.LastCustomConf, setting.CustomConf)
+		runtimeState.LastCustomConf = setting.CustomConf
+		updated = true
+	}
 
+	if updated {
 		log.Info("re-sync repository hooks ...")
 		mustInitCtx(ctx, repo_service.SyncRepositoryHooks)
 
 		log.Info("re-write ssh public keys ...")
 		mustInit(asymkey_model.RewriteAllPublicKeys)
 
-		runtimeState.LastAppPath = setting.AppPath
-		return appstate.AppState.Set(runtimeState)
+		return system.AppState.Set(runtimeState)
 	}
 	return nil
 }
@@ -123,7 +133,7 @@ func GlobalInitInstalled(ctx context.Context) {
 
 	highlight.NewContext()
 	external.RegisterRenderers()
-	markup.Init()
+	markup.Init(markup_service.ProcessorHelper())
 
 	if setting.EnableSQLite3 {
 		log.Info("SQLite3 support is enabled")
@@ -133,10 +143,10 @@ func GlobalInitInstalled(ctx context.Context) {
 
 	mustInitCtx(ctx, common.InitDBEngine)
 	log.Info("ORM engine initialization successful!")
-	mustInit(appstate.Init)
+	mustInit(system.Init)
 	mustInit(oauth2.Init)
 
-	models.NewRepoContext()
+	mustInit(models.Init)
 	mustInit(repo_service.Init)
 
 	// Booting long running goroutines.
@@ -152,7 +162,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	mustInit(repo_migrations.Init)
 	eventsource.GetManager().Init()
 
-	mustInitCtx(ctx, syncAppPathForGit)
+	mustInitCtx(ctx, syncAppConfForGit)
 
 	mustInit(ssh.Init)
 
@@ -174,8 +184,14 @@ func NormalRoutes(ctx context.Context) *web.Route {
 	r.Mount("/", web_routers.Routes(ctx))
 	r.Mount("/api/v1", apiv1.Routes(ctx))
 	r.Mount("/api/internal", private.Routes())
+
 	if setting.Packages.Enabled {
-		r.Mount("/api/packages", packages_router.Routes(ctx))
+		// Add endpoints to match common package manager APIs
+
+		// This implements package support for most package managers
+		r.Mount("/api/packages", packages_router.CommonRoutes(ctx))
+
+		// This implements the OCI API (Note this is not preceded by /api but is instead /v2)
 		r.Mount("/v2", packages_router.ContainerRoutes(ctx))
 	}
 	return r

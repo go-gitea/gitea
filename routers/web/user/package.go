@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -86,6 +85,7 @@ func ListPackages(ctx *context.Context) {
 
 	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["IsPackagesPage"] = true
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["Query"] = query
 	ctx.Data["PackageType"] = packageType
@@ -157,6 +157,7 @@ func ViewPackageVersion(ctx *context.Context) {
 
 	ctx.Data["Title"] = pd.Package.Name
 	ctx.Data["IsPackagesPage"] = true
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["PackageDescriptor"] = pd
 
@@ -231,18 +232,22 @@ func ListPackageVersions(ctx *context.Context) {
 	}
 
 	query := ctx.FormTrim("q")
+	sort := ctx.FormTrim("sort")
 
 	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["IsPackagesPage"] = true
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["PackageDescriptor"] = &packages_model.PackageDescriptor{
 		Package: p,
 		Owner:   ctx.Package.Owner,
 	}
 	ctx.Data["Query"] = query
+	ctx.Data["Sort"] = sort
 
 	pagerParams := map[string]string{
-		"q": query,
+		"q":    query,
+		"sort": sort,
 	}
 
 	var (
@@ -261,6 +266,7 @@ func ListPackageVersions(ctx *context.Context) {
 			PackageID: p.ID,
 			Query:     query,
 			IsTagged:  tagged == "" || tagged == "tagged",
+			Sort:      sort,
 		})
 		if err != nil {
 			ctx.ServerError("SearchImageTags", err)
@@ -275,6 +281,7 @@ func ListPackageVersions(ctx *context.Context) {
 				Value:      query,
 			},
 			IsInternal: util.OptionalBoolFalse,
+			Sort:       sort,
 		})
 		if err != nil {
 			ctx.ServerError("SearchVersions", err)
@@ -305,6 +312,7 @@ func PackageSettings(ctx *context.Context) {
 
 	ctx.Data["Title"] = pd.Package.Name
 	ctx.Data["IsPackagesPage"] = true
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["PackageDescriptor"] = pd
 
@@ -328,7 +336,7 @@ func PackageSettingsPost(ctx *context.Context) {
 		success := func() bool {
 			repoID := int64(0)
 			if form.RepoID != 0 {
-				repo, err := repo_model.GetRepositoryByID(form.RepoID)
+				repo, err := repo_model.GetRepositoryByID(ctx, form.RepoID)
 				if err != nil {
 					log.Error("Error getting repository: %v", err)
 					return false
@@ -393,5 +401,8 @@ func DownloadPackageFile(ctx *context.Context) {
 	}
 	defer s.Close()
 
-	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
+	ctx.ServeContent(s, &context.ServeHeaderOptions{
+		Filename:     pf.Name,
+		LastModified: pf.CreatedUnix.AsLocalTime(),
+	})
 }

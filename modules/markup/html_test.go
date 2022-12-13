@@ -1,12 +1,12 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package markup_test
 
 import (
 	"context"
 	"io"
+	"os"
 	"strings"
 	"testing"
 
@@ -24,7 +24,7 @@ import (
 var localMetas = map[string]string{
 	"user":     "gogits",
 	"repo":     "gogs",
-	"repoPath": "../../integrations/gitea-repositories-meta/user13/repo11.git/",
+	"repoPath": "../../tests/gitea-repositories-meta/user13/repo11.git/",
 }
 
 func TestMain(m *testing.M) {
@@ -32,6 +32,7 @@ func TestMain(m *testing.M) {
 	if err := git.InitSimple(context.Background()); err != nil {
 		log.Fatal("git init failed, err: %v", err)
 	}
+	os.Exit(m.Run())
 }
 
 func TestRender_Commits(t *testing.T) {
@@ -336,7 +337,7 @@ func TestRender_emoji(t *testing.T) {
 		`<p>Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span><span class="emoji" aria-label="grinning face with smiling eyes">😄</span> 2 emoji next to each other</p>`)
 	test(
 		"😎🤪🔐🤑❓",
-		`<p><span class="emoji" aria-label="smiling face with sunglasses">😎</span><span class="emoji" aria-label="zany face">🤪</span><span class="emoji" aria-label="locked with key">🔐</span><span class="emoji" aria-label="money-mouth face">🤑</span><span class="emoji" aria-label="question mark">❓</span></p>`)
+		`<p><span class="emoji" aria-label="smiling face with sunglasses">😎</span><span class="emoji" aria-label="zany face">🤪</span><span class="emoji" aria-label="locked with key">🔐</span><span class="emoji" aria-label="money-mouth face">🤑</span><span class="emoji" aria-label="red question mark">❓</span></p>`)
 
 	// should match nothing
 	test(

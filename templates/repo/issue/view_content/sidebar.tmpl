@@ -337,7 +337,7 @@
 				</div>
 			</div>
 		{{end}}
-		{{if .Repository.IsTimetrackerEnabled}}
+		{{if .Repository.IsTimetrackerEnabled $.Context}}
 			{{if and .CanUseTimetracker (not .Repository.IsArchived)}}
 				<div class="ui divider"></div>
 				<div class="ui timetrack">
@@ -389,7 +389,7 @@
 									{{avatar $user}}
 								</a>
 								<div class="content">
-									<a class="author">{{$user.DisplayName}}</a>
+									{{template "shared/user/authorlink" $user}}
 									<div class="text">
 										{{$trackedtime}}
 									</div>
@@ -413,7 +413,7 @@
 					<div class="df sb ac">
 						<div class="due-date tooltip {{if .Issue.IsOverdue}}text red{{end}}" {{if .Issue.IsOverdue}}data-content="{{.locale.Tr "repo.issues.due_date_overdue"}}"{{end}}>
 							{{svg "octicon-calendar" 16 "mr-3"}}
-							{{.Issue.DeadlineUnix.FormatDate}}
+							<time data-format="date" datetime="{{.Issue.DeadlineUnix.FormatLong}}">{{.Issue.DeadlineUnix.FormatDate}}</time>
 						</div>
 						<div>
 							{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
@@ -444,7 +444,7 @@
 			{{end}}
 		</div>
 
-		{{if .Repository.IsDependenciesEnabled}}
+		{{if .Repository.IsDependenciesEnabled $.Context}}
 			<div class="ui divider"></div>
 
 			<div class="ui depending">

@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package auth
 
@@ -75,7 +74,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	if uid != 0 {
 		log.Trace("Basic Authorization: Valid OAuthAccessToken for user[%d]", uid)
 
-		u, err := user_model.GetUserByID(uid)
+		u, err := user_model.GetUserByID(req.Context(), uid)
 		if err != nil {
 			log.Error("GetUserByID:  %v", err)
 			return nil
@@ -88,7 +87,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	token, err := auth_model.GetAccessTokenBySHA(authToken)
 	if err == nil {
 		log.Trace("Basic Authorization: Valid AccessToken for user[%d]", uid)
-		u, err := user_model.GetUserByID(token.UID)
+		u, err := user_model.GetUserByID(req.Context(), token.UID)
 		if err != nil {
 			log.Error("GetUserByID:  %v", err)
 			return nil

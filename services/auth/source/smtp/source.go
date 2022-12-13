@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package smtp
 
@@ -19,7 +18,7 @@ import (
 // Source holds configuration for the SMTP login source.
 type Source struct {
 	Auth           string
-	Addr           string
+	Host           string
 	Port           int
 	AllowedDomains string `xorm:"TEXT"`
 	ForceSMTPS     bool

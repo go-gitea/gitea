@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package forms
 
@@ -60,11 +59,12 @@ type InstallForm struct {
 	DefaultKeepEmailPrivate        bool
 	DefaultAllowCreateOrganization bool
 	DefaultEnableTimetracking      bool
+	EnableUpdateChecker            bool
 	NoReplyAddress                 string
 
 	PasswordAlgorithm string
 
-	AdminName          string `binding:"OmitEmpty;AlphaDashDot;MaxSize(30)" locale:"install.admin_name"`
+	AdminName          string `binding:"OmitEmpty;Username;MaxSize(30)" locale:"install.admin_name"`
 	AdminPasswd        string `binding:"OmitEmpty;MaxSize(255)" locale:"install.admin_password"`
 	AdminConfirmPasswd string
 	AdminEmail         string `binding:"OmitEmpty;MinSize(3);MaxSize(254);Include(@)" locale:"install.admin_email"`
@@ -90,13 +90,10 @@ func (f *InstallForm) Validate(req *http.Request, errs binding.Errors) binding.E
 
 // RegisterForm form for registering
 type RegisterForm struct {
-	UserName           string `binding:"Required;AlphaDashDot;MaxSize(40)"`
-	Email              string `binding:"Required;MaxSize(254)"`
-	Password           string `binding:"MaxSize(255)"`
-	Retype             string
-	GRecaptchaResponse string `form:"g-recaptcha-response"`
-	HcaptchaResponse   string `form:"h-captcha-response"`
-	McaptchaResponse   string `form:"m-captcha-response"`
+	UserName string `binding:"Required;Username;MaxSize(40)"`
+	Email    string `binding:"Required;MaxSize(254)"`
+	Password string `binding:"MaxSize(255)"`
+	Retype   string
 }
 
 // Validate validates the fields
@@ -242,7 +239,7 @@ func (f *IntrospectTokenForm) Validate(req *http.Request, errs binding.Errors) b
 
 // UpdateProfileForm form for updating profile
 type UpdateProfileForm struct {
-	Name                string `binding:"AlphaDashDot;MaxSize(40)"`
+	Name                string `binding:"Username;MaxSize(40)"`
 	FullName            string `binding:"MaxSize(100)"`
 	KeepEmailPrivate    bool
 	Website             string `binding:"ValidSiteUrl;MaxSize(255)"`
@@ -379,8 +376,9 @@ func (f *NewAccessTokenForm) Validate(req *http.Request, errs binding.Errors) bi
 
 // EditOAuth2ApplicationForm form for editing oauth2 applications
 type EditOAuth2ApplicationForm struct {
-	Name        string `binding:"Required;MaxSize(255)" form:"application_name"`
-	RedirectURI string `binding:"Required" form:"redirect_uri"`
+	Name               string `binding:"Required;MaxSize(255)" form:"application_name"`
+	RedirectURI        string `binding:"Required" form:"redirect_uri"`
+	ConfidentialClient bool   `form:"confidential_client"`
 }
 
 // Validate validates the fields

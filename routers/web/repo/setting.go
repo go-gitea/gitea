@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -398,6 +397,15 @@ func SettingsPost(ctx *context.Context) {
 			repoChanged = true
 		}
 
+		if form.EnableCode && !unit_model.TypeCode.UnitGlobalDisabled() {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   unit_model.TypeCode,
+			})
+		} else if !unit_model.TypeCode.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeCode)
+		}
+
 		if form.EnableWiki && form.EnableExternalWiki && !unit_model.TypeExternalWiki.UnitGlobalDisabled() {
 			if !validation.IsValidExternalURL(form.ExternalWikiURL) {
 				ctx.Flash.Error(ctx.Tr("repo.settings.external_wiki_url_error"))
@@ -690,7 +698,7 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Repo.GitRepo = nil
 		}
 
-		if err := repo_service.StartRepositoryTransfer(ctx.Doer, newOwner, repo, nil); err != nil {
+		if err := repo_service.StartRepositoryTransfer(ctx, ctx.Doer, newOwner, repo, nil); err != nil {
 			if repo_model.IsErrRepoAlreadyExist(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
 			} else if models.IsErrRepoTransferInProgress(err) {
@@ -712,7 +720,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository)
+		repoTransfer, err := models.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
 		if err != nil {
 			if models.IsErrNoPendingTransfer(err) {
 				ctx.Flash.Error("repo.settings.transfer_abort_invalid")
@@ -724,7 +732,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := repoTransfer.LoadAttributes(); err != nil {
+		if err := repoTransfer.LoadAttributes(ctx); err != nil {
 			ctx.ServerError("LoadRecipient", err)
 			return
 		}
@@ -917,7 +925,20 @@ func CollaborationPost(ctx *context.Context) {
 		return
 	}
 
-	if err = repo_module.AddCollaborator(ctx.Repo.Repository, u); err != nil {
+	// find the owner team of the organization the repo belongs too and
+	// check if the user we're trying to add is an owner.
+	if ctx.Repo.Repository.Owner.IsOrganization() {
+		if isOwner, err := organization.IsOrganizationOwner(ctx, ctx.Repo.Repository.Owner.ID, u.ID); err != nil {
+			ctx.ServerError("IsOrganizationOwner", err)
+			return
+		} else if isOwner {
+			ctx.Flash.Error(ctx.Tr("repo.settings.add_collaborator_owner"))
+			ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
+			return
+		}
+	}
+
+	if err = repo_module.AddCollaborator(ctx, ctx.Repo.Repository, u); err != nil {
 		ctx.ServerError("AddCollaborator", err)
 		return
 	}
@@ -933,6 +954,7 @@ func CollaborationPost(ctx *context.Context) {
 // ChangeCollaborationAccessMode response for changing access of a collaboration
 func ChangeCollaborationAccessMode(ctx *context.Context) {
 	if err := repo_model.ChangeCollaborationAccessMode(
+		ctx,
 		ctx.Repo.Repository,
 		ctx.FormInt64("uid"),
 		perm.AccessMode(ctx.FormInt("mode"))); err != nil {
@@ -1184,7 +1206,7 @@ func UpdateAvatarSetting(ctx *context.Context, form forms.AvatarForm) error {
 
 	r, err := form.Avatar.Open()
 	if err != nil {
-		return fmt.Errorf("Avatar.Open: %v", err)
+		return fmt.Errorf("Avatar.Open: %w", err)
 	}
 	defer r.Close()
 
@@ -1194,14 +1216,14 @@ func UpdateAvatarSetting(ctx *context.Context, form forms.AvatarForm) error {
 
 	data, err := io.ReadAll(r)
 	if err != nil {
-		return fmt.Errorf("io.ReadAll: %v", err)
+		return fmt.Errorf("io.ReadAll: %w", err)
 	}
 	st := typesniffer.DetectContentType(data)
 	if !(st.IsImage() && !st.IsSvgImage()) {
 		return errors.New(ctx.Tr("settings.uploaded_avatar_not_a_image"))
 	}
 	if err = repo_service.UploadAvatar(ctxRepo, data); err != nil {
-		return fmt.Errorf("UploadAvatar: %v", err)
+		return fmt.Errorf("UploadAvatar: %w", err)
 	}
 	return nil
 }

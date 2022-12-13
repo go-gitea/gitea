@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package webhook
 
@@ -91,6 +90,11 @@ func (f *PackagistPayload) Review(p *api.PullRequestPayload, event webhook_model
 
 // Repository implements PayloadConvertor Repository method
 func (f *PackagistPayload) Repository(p *api.RepositoryPayload) (api.Payloader, error) {
+	return nil, nil
+}
+
+// Wiki implements PayloadConvertor Wiki method
+func (f *PackagistPayload) Wiki(p *api.WikiPayload) (api.Payloader, error) {
 	return nil, nil
 }
 

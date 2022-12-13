@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package activities_test
 
@@ -10,6 +9,7 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
+	issue_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -20,7 +20,7 @@ import (
 
 func TestAction_GetRepoPath(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	action := &activities_model.Action{RepoID: repo.ID}
 	assert.Equal(t, path.Join(owner.Name, repo.Name), action.GetRepoPath())
@@ -28,12 +28,15 @@ func TestAction_GetRepoPath(t *testing.T) {
 
 func TestAction_GetRepoLink(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	action := &activities_model.Action{RepoID: repo.ID}
+	comment := unittest.AssertExistsAndLoadBean(t, &issue_model.Comment{ID: 2})
+	action := &activities_model.Action{RepoID: repo.ID, CommentID: comment.ID}
 	setting.AppSubURL = "/suburl"
 	expected := path.Join(setting.AppSubURL, owner.Name, repo.Name)
 	assert.Equal(t, expected, action.GetRepoLink())
+	assert.Equal(t, repo.HTMLURL(), action.GetRepoAbsoluteLink())
+	assert.Equal(t, comment.HTMLURL(), action.GetCommentLink())
 }
 
 func TestGetFeeds(t *testing.T) {
@@ -184,7 +187,7 @@ func TestNotifyWatchers(t *testing.T) {
 		RepoID:    1,
 		OpType:    activities_model.ActionStarRepo,
 	}
-	assert.NoError(t, activities_model.NotifyWatchers(action))
+	assert.NoError(t, activities_model.NotifyWatchers(db.DefaultContext, action))
 
 	// One watchers are inactive, thus action is only created for user 8, 1, 4, 11
 	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
@@ -252,17 +255,17 @@ func TestConsistencyUpdateAction(t *testing.T) {
 	//
 	// Get rid of incorrectly set created_unix
 	//
-	count, err := activities_model.CountActionCreatedUnixString()
+	count, err := activities_model.CountActionCreatedUnixString(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, count)
-	count, err = activities_model.FixActionCreatedUnixString()
+	count, err = activities_model.FixActionCreatedUnixString(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, count)
 
-	count, err = activities_model.CountActionCreatedUnixString()
+	count, err = activities_model.CountActionCreatedUnixString(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, count)
-	count, err = activities_model.FixActionCreatedUnixString()
+	count, err = activities_model.FixActionCreatedUnixString(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, count)
 

@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
@@ -9,12 +8,12 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
-	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -32,7 +31,7 @@ func CreateRepository(doer, owner *user_model.User, opts repo_module.CreateRepoO
 		return nil, err
 	}
 
-	notification.NotifyCreateRepository(doer, owner, repo)
+	notification.NotifyCreateRepository(db.DefaultContext, doer, owner, repo)
 
 	return repo, nil
 }
@@ -45,7 +44,7 @@ func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_mod
 
 	if notify {
 		// If the repo itself has webhooks, we need to trigger them before deleting it...
-		notification.NotifyDeleteRepository(doer, repo)
+		notification.NotifyDeleteRepository(ctx, doer, repo)
 	}
 
 	if err := models.DeleteRepository(doer, repo.OwnerID, repo.ID); err != nil {
@@ -59,7 +58,7 @@ func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_mod
 func PushCreateRepo(authUser, owner *user_model.User, repoName string) (*repo_model.Repository, error) {
 	if !authUser.IsAdmin {
 		if owner.IsOrganization() {
-			if ok, err := organization.CanCreateOrgRepo(owner.ID, authUser.ID); err != nil {
+			if ok, err := organization.CanCreateOrgRepo(db.DefaultContext, owner.ID, authUser.ID); err != nil {
 				return nil, err
 			} else if !ok {
 				return nil, fmt.Errorf("cannot push-create repository for org")
@@ -83,45 +82,45 @@ func PushCreateRepo(authUser, owner *user_model.User, repoName string) (*repo_mo
 // Init start repository service
 func Init() error {
 	repo_module.LoadRepoConfig()
-	admin_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repository uploads", setting.Repository.Upload.TempPath)
-	admin_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repositories", repo_module.LocalCopyPath())
+	system_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repository uploads", setting.Repository.Upload.TempPath)
+	system_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repositories", repo_module.LocalCopyPath())
 	return initPushQueue()
 }
 
 // UpdateRepository updates a repository
 func UpdateRepository(repo *repo_model.Repository, visibilityChanged bool) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
 	if err = repo_module.UpdateRepository(ctx, repo, visibilityChanged); err != nil {
-		return fmt.Errorf("updateRepository: %v", err)
+		return fmt.Errorf("updateRepository: %w", err)
 	}
 
 	return committer.Commit()
 }
 
 // LinkedRepository returns the linked repo if any
-func LinkedRepository(a *repo_model.Attachment) (*repo_model.Repository, unit.Type, error) {
+func LinkedRepository(ctx context.Context, a *repo_model.Attachment) (*repo_model.Repository, unit.Type, error) {
 	if a.IssueID != 0 {
-		iss, err := issues_model.GetIssueByID(db.DefaultContext, a.IssueID)
+		iss, err := issues_model.GetIssueByID(ctx, a.IssueID)
 		if err != nil {
 			return nil, unit.TypeIssues, err
 		}
-		repo, err := repo_model.GetRepositoryByID(iss.RepoID)
+		repo, err := repo_model.GetRepositoryByID(ctx, iss.RepoID)
 		unitType := unit.TypeIssues
 		if iss.IsPull {
 			unitType = unit.TypePullRequests
 		}
 		return repo, unitType, err
 	} else if a.ReleaseID != 0 {
-		rel, err := repo_model.GetReleaseByID(db.DefaultContext, a.ReleaseID)
+		rel, err := repo_model.GetReleaseByID(ctx, a.ReleaseID)
 		if err != nil {
 			return nil, unit.TypeReleases, err
 		}
-		repo, err := repo_model.GetRepositoryByID(rel.RepoID)
+		repo, err := repo_model.GetRepositoryByID(ctx, rel.RepoID)
 		return repo, unit.TypeReleases, err
 	}
 	return nil, -1, nil

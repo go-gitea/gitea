@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -44,7 +43,7 @@ func cleanPath(p string) string {
 
 // CreateLFSLock creates a new lock.
 func CreateLFSLock(repo *repo_model.Repository, lock *LFSLock) (*LFSLock, error) {
-	dbCtx, committer, err := db.TxContext()
+	dbCtx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +136,7 @@ func CountLFSLockByRepoID(repoID int64) (int64, error) {
 
 // DeleteLFSLockByID deletes a lock by given ID.
 func DeleteLFSLockByID(id int64, repo *repo_model.Repository, u *user_model.User, force bool) (*LFSLock, error) {
-	dbCtx, committer, err := db.TxContext()
+	dbCtx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +167,7 @@ func CheckLFSAccessForRepo(ctx context.Context, ownerID int64, repo *repo_model.
 	if ownerID == 0 {
 		return ErrLFSUnauthorizedAction{repo.ID, "undefined", mode}
 	}
-	u, err := user_model.GetUserByIDCtx(ctx, ownerID)
+	u, err := user_model.GetUserByID(ctx, ownerID)
 	if err != nil {
 		return err
 	}

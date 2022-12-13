@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package markdown
 
@@ -143,4 +142,74 @@ func NewIcon(name string) *Icon {
 func IsIcon(node ast.Node) bool {
 	_, ok := node.(*Icon)
 	return ok
+}
+
+// ColorPreview is an inline for a color preview
+type ColorPreview struct {
+	ast.BaseInline
+	Color []byte
+}
+
+// Dump implements Node.Dump.
+func (n *ColorPreview) Dump(source []byte, level int) {
+	m := map[string]string{}
+	m["Color"] = string(n.Color)
+	ast.DumpHelper(n, source, level, m, nil)
+}
+
+// KindColorPreview is the NodeKind for ColorPreview
+var KindColorPreview = ast.NewNodeKind("ColorPreview")
+
+// Kind implements Node.Kind.
+func (n *ColorPreview) Kind() ast.NodeKind {
+	return KindColorPreview
+}
+
+// NewColorPreview returns a new Span node.
+func NewColorPreview(color []byte) *ColorPreview {
+	return &ColorPreview{
+		BaseInline: ast.BaseInline{},
+		Color:      color,
+	}
+}
+
+// IsColorPreview returns true if the given node implements the ColorPreview interface,
+// otherwise false.
+func IsColorPreview(node ast.Node) bool {
+	_, ok := node.(*ColorPreview)
+	return ok
+}
+
+const (
+	AttentionNote    string = "Note"
+	AttentionWarning string = "Warning"
+)
+
+// Attention is an inline for a color preview
+type Attention struct {
+	ast.BaseInline
+	AttentionType string
+}
+
+// Dump implements Node.Dump.
+func (n *Attention) Dump(source []byte, level int) {
+	m := map[string]string{}
+	m["AttentionType"] = n.AttentionType
+	ast.DumpHelper(n, source, level, m, nil)
+}
+
+// KindAttention is the NodeKind for Attention
+var KindAttention = ast.NewNodeKind("Attention")
+
+// Kind implements Node.Kind.
+func (n *Attention) Kind() ast.NodeKind {
+	return KindAttention
+}
+
+// NewAttention returns a new Attention node.
+func NewAttention(attentionType string) *Attention {
+	return &Attention{
+		BaseInline:    ast.BaseInline{},
+		AttentionType: attentionType,
+	}
 }

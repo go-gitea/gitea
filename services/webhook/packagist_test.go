@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package webhook
 
@@ -112,6 +111,26 @@ func TestPackagistPayload(t *testing.T) {
 
 		d := new(PackagistPayload)
 		pl, err := d.Repository(p)
+		require.NoError(t, err)
+		require.Nil(t, pl)
+	})
+
+	t.Run("Wiki", func(t *testing.T) {
+		p := wikiTestPayload()
+
+		d := new(PackagistPayload)
+		p.Action = api.HookWikiCreated
+		pl, err := d.Wiki(p)
+		require.NoError(t, err)
+		require.Nil(t, pl)
+
+		p.Action = api.HookWikiEdited
+		pl, err = d.Wiki(p)
+		require.NoError(t, err)
+		require.Nil(t, pl)
+
+		p.Action = api.HookWikiDeleted
+		pl, err = d.Wiki(p)
 		require.NoError(t, err)
 		require.Nil(t, pl)
 	})

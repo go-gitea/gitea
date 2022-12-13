@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package storage
 
@@ -100,6 +99,10 @@ func (l *LocalStorage) Save(path string, r io.Reader, size int64) (int64, error)
 	}
 
 	if err := util.Rename(tmp.Name(), p); err != nil {
+		return 0, err
+	}
+	// Golang's tmp file (os.CreateTemp) always have 0o600 mode, so we need to change the file to follow the umask (as what Create/MkDir does)
+	if err := util.ApplyUmask(p, os.ModePerm); err != nil {
 		return 0, err
 	}
 

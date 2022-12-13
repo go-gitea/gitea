@@ -1,12 +1,10 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -17,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -36,6 +35,10 @@ func IsErrLFSLockNotExist(err error) bool {
 
 func (err ErrLFSLockNotExist) Error() string {
 	return fmt.Sprintf("lfs lock does not exist [id: %d, rid: %d, path: %s]", err.ID, err.RepoID, err.Path)
+}
+
+func (err ErrLFSLockNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // ErrLFSUnauthorizedAction represents a "LFSUnauthorizedAction" kind of error.
@@ -58,6 +61,10 @@ func (err ErrLFSUnauthorizedAction) Error() string {
 	return fmt.Sprintf("User %s doesn't have read access for lfs lock [rid: %d]", err.UserName, err.RepoID)
 }
 
+func (err ErrLFSUnauthorizedAction) Unwrap() error {
+	return util.ErrPermissionDenied
+}
+
 // ErrLFSLockAlreadyExist represents a "LFSLockAlreadyExist" kind of error.
 type ErrLFSLockAlreadyExist struct {
 	RepoID int64
@@ -72,6 +79,10 @@ func IsErrLFSLockAlreadyExist(err error) bool {
 
 func (err ErrLFSLockAlreadyExist) Error() string {
 	return fmt.Sprintf("lfs lock already exists [rid: %d, path: %s]", err.RepoID, err.Path)
+}
+
+func (err ErrLFSLockAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
 }
 
 // ErrLFSFileLocked represents a "LFSFileLocked" kind of error.
@@ -89,6 +100,10 @@ func IsErrLFSFileLocked(err error) bool {
 
 func (err ErrLFSFileLocked) Error() string {
 	return fmt.Sprintf("File is lfs locked [repo: %d, locked by: %s, path: %s]", err.RepoID, err.UserName, err.Path)
+}
+
+func (err ErrLFSFileLocked) Unwrap() error {
+	return util.ErrPermissionDenied
 }
 
 // LFSMetaObject stores metadata for LFS tracked files.
@@ -114,14 +129,14 @@ type LFSTokenResponse struct {
 
 // ErrLFSObjectNotExist is returned from lfs models functions in order
 // to differentiate between database and missing object errors.
-var ErrLFSObjectNotExist = errors.New("LFS Meta object does not exist")
+var ErrLFSObjectNotExist = db.ErrNotExist{Resource: "LFS Meta object"}
 
 // NewLFSMetaObject stores a given populated LFSMetaObject structure in the database
 // if it is not already present.
 func NewLFSMetaObject(m *LFSMetaObject) (*LFSMetaObject, error) {
 	var err error
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +184,7 @@ func RemoveLFSMetaObjectByOid(repoID int64, oid string) (int64, error) {
 		return 0, ErrLFSObjectNotExist
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return 0, err
 	}
@@ -219,14 +234,14 @@ func LFSObjectAccessible(user *user_model.User, oid string) (bool, error) {
 	return count > 0, err
 }
 
-// LFSObjectIsAssociated checks if a provided Oid is associated
-func LFSObjectIsAssociated(oid string) (bool, error) {
-	return db.GetEngine(db.DefaultContext).Exist(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
+// ExistsLFSObject checks if a provided Oid exists within the DB
+func ExistsLFSObject(ctx context.Context, oid string) (bool, error) {
+	return db.GetEngine(ctx).Exist(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
 }
 
 // LFSAutoAssociate auto associates accessible LFSMetaObjects
 func LFSAutoAssociate(metas []*LFSMetaObject, user *user_model.User, repoID int64) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -300,7 +315,7 @@ func CopyLFS(ctx context.Context, newRepo, oldRepo *repo_model.Repository) error
 func GetRepoLFSSize(ctx context.Context, repoID int64) (int64, error) {
 	lfsSize, err := db.GetEngine(ctx).Where("repository_id = ?", repoID).SumInt(new(LFSMetaObject), "size")
 	if err != nil {
-		return 0, fmt.Errorf("updateSize: GetLFSMetaObjects: %v", err)
+		return 0, fmt.Errorf("updateSize: GetLFSMetaObjects: %w", err)
 	}
 	return lfsSize, nil
 }

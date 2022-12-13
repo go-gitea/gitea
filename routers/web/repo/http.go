@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -259,7 +258,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 
 	if isWiki {
 		// Ensure the wiki is enabled before we allow access to it
-		if _, err := repo.GetUnit(unit.TypeWiki); err != nil {
+		if _, err := repo.GetUnit(ctx, unit.TypeWiki); err != nil {
 			if repo_model.IsErrUnitTypeNotExist(err) {
 				ctx.PlainText(http.StatusForbidden, "repository wiki is disabled")
 				return
@@ -398,7 +397,7 @@ func (h *serviceHandler) sendFile(contentType, file string) {
 var safeGitProtocolHeader = regexp.MustCompile(`^[0-9a-zA-Z]+=[0-9a-zA-Z]+(:[0-9a-zA-Z]+=[0-9a-zA-Z]+)*$`)
 
 func getGitConfig(ctx gocontext.Context, option, dir string) string {
-	out, _, err := git.NewCommand(ctx, "config", option).RunStdString(&git.RunOpts{Dir: dir})
+	out, _, err := git.NewCommand(ctx, "config").AddDynamicArguments(option).RunStdString(&git.RunOpts{Dir: dir})
 	if err != nil {
 		log.Error("%v - %s", err, out)
 	}
@@ -471,7 +470,7 @@ func serviceRPC(ctx gocontext.Context, h serviceHandler, service string) {
 	}
 
 	var stderr bytes.Buffer
-	cmd := git.NewCommand(h.r.Context(), service, "--stateless-rpc", h.dir)
+	cmd := git.NewCommand(h.r.Context(), git.CmdArgCheck(service), "--stateless-rpc").AddDynamicArguments(h.dir)
 	cmd.SetDescription(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir))
 	if err := cmd.Run(&git.RunOpts{
 		Dir:               h.dir,
@@ -543,7 +542,7 @@ func GetInfoRefs(ctx *context.Context) {
 		}
 		h.environ = append(os.Environ(), h.environ...)
 
-		refs, _, err := git.NewCommand(ctx, service, "--stateless-rpc", "--advertise-refs", ".").RunStdBytes(&git.RunOpts{Env: h.environ, Dir: h.dir})
+		refs, _, err := git.NewCommand(ctx, git.CmdArgCheck(service), "--stateless-rpc", "--advertise-refs", ".").RunStdBytes(&git.RunOpts{Env: h.environ, Dir: h.dir})
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}

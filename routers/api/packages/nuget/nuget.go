@@ -1,19 +1,21 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package nuget
 
 import (
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	nuget_module "code.gitea.io/gitea/modules/packages/nuget"
 	"code.gitea.io/gitea/modules/setting"
@@ -30,15 +32,121 @@ func apiError(ctx *context.Context, status int, obj interface{}) {
 	})
 }
 
-// ServiceIndex https://docs.microsoft.com/en-us/nuget/api/service-index
-func ServiceIndex(ctx *context.Context) {
-	resp := createServiceIndexResponse(setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget")
-
-	ctx.JSON(http.StatusOK, resp)
+func xmlResponse(ctx *context.Context, status int, obj interface{}) {
+	ctx.Resp.Header().Set("Content-Type", "application/atom+xml; charset=utf-8")
+	ctx.Resp.WriteHeader(status)
+	if _, err := ctx.Resp.Write([]byte(xml.Header)); err != nil {
+		log.Error("Write failed: %v", err)
+	}
+	if err := xml.NewEncoder(ctx.Resp).Encode(obj); err != nil {
+		log.Error("XML encode failed: %v", err)
+	}
 }
 
-// SearchService https://docs.microsoft.com/en-us/nuget/api/search-query-service-resource#search-for-packages
-func SearchService(ctx *context.Context) {
+// https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Core/NuGet.Protocol/LegacyFeed/V2FeedQueryBuilder.cs
+func ServiceIndexV2(ctx *context.Context) {
+	base := setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget"
+
+	xmlResponse(ctx, http.StatusOK, &ServiceIndexResponseV2{
+		Base:      base,
+		Xmlns:     "http://www.w3.org/2007/app",
+		XmlnsAtom: "http://www.w3.org/2005/Atom",
+		Workspace: ServiceWorkspace{
+			Title: AtomTitle{
+				Type: "text",
+				Text: "Default",
+			},
+			Collection: ServiceCollection{
+				Href: "Packages",
+				Title: AtomTitle{
+					Type: "text",
+					Text: "Packages",
+				},
+			},
+		},
+	})
+}
+
+// https://docs.microsoft.com/en-us/nuget/api/service-index
+func ServiceIndexV3(ctx *context.Context) {
+	root := setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget"
+
+	ctx.JSON(http.StatusOK, &ServiceIndexResponseV3{
+		Version: "3.0.0",
+		Resources: []ServiceResource{
+			{ID: root + "/query", Type: "SearchQueryService"},
+			{ID: root + "/query", Type: "SearchQueryService/3.0.0-beta"},
+			{ID: root + "/query", Type: "SearchQueryService/3.0.0-rc"},
+			{ID: root + "/registration", Type: "RegistrationsBaseUrl"},
+			{ID: root + "/registration", Type: "RegistrationsBaseUrl/3.0.0-beta"},
+			{ID: root + "/registration", Type: "RegistrationsBaseUrl/3.0.0-rc"},
+			{ID: root + "/package", Type: "PackageBaseAddress/3.0.0"},
+			{ID: root, Type: "PackagePublish/2.0.0"},
+			{ID: root + "/symbolpackage", Type: "SymbolPackagePublish/4.9.0"},
+		},
+	})
+}
+
+// https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Core/NuGet.Protocol/LegacyFeed/LegacyFeedCapabilityResourceV2Feed.cs
+func FeedCapabilityResource(ctx *context.Context) {
+	xmlResponse(ctx, http.StatusOK, Metadata)
+}
+
+var searchTermExtract = regexp.MustCompile(`'([^']+)'`)
+
+// https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Core/NuGet.Protocol/LegacyFeed/V2FeedQueryBuilder.cs
+func SearchServiceV2(ctx *context.Context) {
+	searchTerm := strings.Trim(ctx.FormTrim("searchTerm"), "'")
+	if searchTerm == "" {
+		// $filter contains a query like:
+		// (((Id ne null) and substringof('microsoft',tolower(Id)))
+		// We don't support these queries, just extract the search term.
+		match := searchTermExtract.FindStringSubmatch(ctx.FormTrim("$filter"))
+		if len(match) == 2 {
+			searchTerm = strings.TrimSpace(match[1])
+		}
+	}
+
+	skip, take := ctx.FormInt("skip"), ctx.FormInt("take")
+	if skip == 0 {
+		skip = ctx.FormInt("$skip")
+	}
+	if take == 0 {
+		take = ctx.FormInt("$top")
+	}
+
+	pvs, total, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
+		OwnerID:    ctx.Package.Owner.ID,
+		Type:       packages_model.TypeNuGet,
+		Name:       packages_model.SearchValue{Value: searchTerm},
+		IsInternal: util.OptionalBoolFalse,
+		Paginator: db.NewAbsoluteListOptions(
+			skip,
+			take,
+		),
+	})
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	resp := createFeedResponse(
+		&linkBuilder{setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget"},
+		total,
+		pds,
+	)
+
+	xmlResponse(ctx, http.StatusOK, resp)
+}
+
+// https://docs.microsoft.com/en-us/nuget/api/search-query-service-resource#search-for-packages
+func SearchServiceV3(ctx *context.Context) {
 	pvs, count, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 		OwnerID:    ctx.Package.Owner.ID,
 		Type:       packages_model.TypeNuGet,
@@ -69,7 +177,7 @@ func SearchService(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// RegistrationIndex https://docs.microsoft.com/en-us/nuget/api/registration-base-url-resource#registration-index
+// https://docs.microsoft.com/en-us/nuget/api/registration-base-url-resource#registration-index
 func RegistrationIndex(ctx *context.Context) {
 	packageName := ctx.Params("id")
 
@@ -97,8 +205,37 @@ func RegistrationIndex(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// RegistrationLeaf https://docs.microsoft.com/en-us/nuget/api/registration-base-url-resource#registration-leaf
-func RegistrationLeaf(ctx *context.Context) {
+// https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Core/NuGet.Protocol/LegacyFeed/V2FeedQueryBuilder.cs
+func RegistrationLeafV2(ctx *context.Context) {
+	packageName := ctx.Params("id")
+	packageVersion := ctx.Params("version")
+
+	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeNuGet, packageName, packageVersion)
+	if err != nil {
+		if err == packages_model.ErrPackageNotExist {
+			apiError(ctx, http.StatusNotFound, err)
+			return
+		}
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	resp := createEntryResponse(
+		&linkBuilder{setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget"},
+		pd,
+	)
+
+	xmlResponse(ctx, http.StatusOK, resp)
+}
+
+// https://docs.microsoft.com/en-us/nuget/api/registration-base-url-resource#registration-leaf
+func RegistrationLeafV3(ctx *context.Context) {
 	packageName := ctx.Params("id")
 	packageVersion := strings.TrimSuffix(ctx.Params("version"), ".json")
 
@@ -126,8 +263,33 @@ func RegistrationLeaf(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// EnumeratePackageVersions https://docs.microsoft.com/en-us/nuget/api/package-base-address-resource#enumerate-package-versions
-func EnumeratePackageVersions(ctx *context.Context) {
+// https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Core/NuGet.Protocol/LegacyFeed/V2FeedQueryBuilder.cs
+func EnumeratePackageVersionsV2(ctx *context.Context) {
+	packageName := strings.Trim(ctx.FormTrim("id"), "'")
+
+	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNuGet, packageName)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	resp := createFeedResponse(
+		&linkBuilder{setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget"},
+		int64(len(pds)),
+		pds,
+	)
+
+	xmlResponse(ctx, http.StatusOK, resp)
+}
+
+// https://docs.microsoft.com/en-us/nuget/api/package-base-address-resource#enumerate-package-versions
+func EnumeratePackageVersionsV3(ctx *context.Context) {
 	packageName := ctx.Params("id")
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNuGet, packageName)
@@ -151,7 +313,7 @@ func EnumeratePackageVersions(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// DownloadPackageFile https://docs.microsoft.com/en-us/nuget/api/package-base-address-resource#download-package-content-nupkg
+// https://docs.microsoft.com/en-us/nuget/api/package-base-address-resource#download-package-content-nupkg
 func DownloadPackageFile(ctx *context.Context) {
 	packageName := ctx.Params("id")
 	packageVersion := ctx.Params("version")
@@ -179,7 +341,10 @@ func DownloadPackageFile(ctx *context.Context) {
 	}
 	defer s.Close()
 
-	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
+	ctx.ServeContent(s, &context.ServeHeaderOptions{
+		Filename:     pf.Name,
+		LastModified: pf.CreatedUnix.AsLocalTime(),
+	})
 }
 
 // UploadPackage creates a new package with the metadata contained in the uploaded nupgk file
@@ -211,16 +376,20 @@ func UploadPackage(ctx *context.Context) {
 			PackageFileInfo: packages_service.PackageFileInfo{
 				Filename: strings.ToLower(fmt.Sprintf("%s.%s.nupkg", np.ID, np.Version)),
 			},
-			Data:   buf,
-			IsLead: true,
+			Creator: ctx.Doer,
+			Data:    buf,
+			IsLead:  true,
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrDuplicatePackageVersion {
+		switch err {
+		case packages_model.ErrDuplicatePackageVersion:
 			apiError(ctx, http.StatusConflict, err)
-			return
+		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+			apiError(ctx, http.StatusForbidden, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
 		}
-		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -265,8 +434,9 @@ func UploadSymbolPackage(ctx *context.Context) {
 			PackageFileInfo: packages_service.PackageFileInfo{
 				Filename: strings.ToLower(fmt.Sprintf("%s.%s.snupkg", np.ID, np.Version)),
 			},
-			Data:   buf,
-			IsLead: false,
+			Creator: ctx.Doer,
+			Data:    buf,
+			IsLead:  false,
 		},
 	)
 	if err != nil {
@@ -275,6 +445,8 @@ func UploadSymbolPackage(ctx *context.Context) {
 			apiError(ctx, http.StatusNotFound, err)
 		case packages_model.ErrDuplicatePackageFile:
 			apiError(ctx, http.StatusConflict, err)
+		case packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+			apiError(ctx, http.StatusForbidden, err)
 		default:
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
@@ -289,8 +461,9 @@ func UploadSymbolPackage(ctx *context.Context) {
 					Filename:     strings.ToLower(pdb.Name),
 					CompositeKey: strings.ToLower(pdb.ID),
 				},
-				Data:   pdb.Content,
-				IsLead: false,
+				Creator: ctx.Doer,
+				Data:    pdb.Content,
+				IsLead:  false,
 				Properties: map[string]string{
 					nuget_module.PropertySymbolID: strings.ToLower(pdb.ID),
 				},
@@ -300,6 +473,8 @@ func UploadSymbolPackage(ctx *context.Context) {
 			switch err {
 			case packages_model.ErrDuplicatePackageFile:
 				apiError(ctx, http.StatusConflict, err)
+			case packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+				apiError(ctx, http.StatusForbidden, err)
 			default:
 				apiError(ctx, http.StatusInternalServerError, err)
 			}
@@ -350,10 +525,10 @@ func processUploadedFile(ctx *context.Context, expectedType nuget_module.Package
 	return np, buf, closables
 }
 
-// DownloadSymbolFile https://github.com/dotnet/symstore/blob/main/docs/specs/Simple_Symbol_Query_Protocol.md#request
+// https://github.com/dotnet/symstore/blob/main/docs/specs/Simple_Symbol_Query_Protocol.md#request
 func DownloadSymbolFile(ctx *context.Context) {
 	filename := ctx.Params("filename")
-	guid := ctx.Params("guid")
+	guid := ctx.Params("guid")[:32]
 	filename2 := ctx.Params("filename2")
 
 	if filename != filename2 {
@@ -389,7 +564,10 @@ func DownloadSymbolFile(ctx *context.Context) {
 	}
 	defer s.Close()
 
-	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
+	ctx.ServeContent(s, &context.ServeHeaderOptions{
+		Filename:     pf.Name,
+		LastModified: pf.CreatedUnix.AsLocalTime(),
+	})
 }
 
 // DeletePackage hard deletes the package
