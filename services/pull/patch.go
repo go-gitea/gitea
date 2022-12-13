@@ -53,6 +53,7 @@ var patchErrorSuffices = []string{
 	": patch does not apply",
 	": already exists in working directory",
 	"unrecognized input",
+	": No such file or directory",
 }
 
 // TestPatch will test whether a simple patch will apply
