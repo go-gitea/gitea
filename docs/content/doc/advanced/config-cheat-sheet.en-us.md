@@ -444,6 +444,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `MAX_OPEN_CONNS` **0**: Database maximum open connections - default is 0, meaning there is no limit.
 - `MAX_IDLE_CONNS` **2**: Max idle database connections on connection pool, default is 2 - this will be capped to `MAX_OPEN_CONNS`.
 - `CONN_MAX_LIFETIME` **0 or 3s**: Sets the maximum amount of time a DB connection may be reused - default is 0, meaning there is no limit (except on MySQL where it is 3s - see #6804 & #7071).
+- `AUTO_MIGRATION` **true**: Whether execute database models migrations automatically.
 
 Please see #8540 & #8273 for further discussion of the appropriate values for `MAX_OPEN_CONNS`, `MAX_IDLE_CONNS` & `CONN_MAX_LIFETIME` and their
 relation to port exhaustion.
@@ -1004,7 +1005,7 @@ Default templates for project boards:
 
 #### Cron -  Check for new Gitea versions ('cron.update_checker')
 
-- `ENABLED`: **false**: Enable service.
+- `ENABLED`: **true**: Enable service.
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
 - `ENABLE_SUCCESS_NOTICE`: **true**: Set to false to switch off success notices.
 - `SCHEDULE`: **@every 168h**: Cron syntax for scheduling a work, e.g. `@every 168h`.
