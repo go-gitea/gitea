@@ -6,7 +6,6 @@ package setting
 
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"math"
 	"net"
@@ -467,7 +466,8 @@ func getAppPath() (string, error) {
 	}
 
 	if err != nil {
-		if !errors.Is(err, exec.ErrDot) {
+		// FIXME: Once we switch to go 1.19 use !errors.Is(err, exec.ErrDot)
+		if !strings.Contains(err.Error(), "cannot run executable found relative to current directory") {
 			return "", err
 		}
 		appPath, err = filepath.Abs(os.Args[0])
