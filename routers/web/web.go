@@ -776,7 +776,7 @@ func RegisterRoutes(m *web.Route) {
 
 				m.Group("/secrets", func() {
 					m.Get("", org.Secrets)
-					m.Post("", bindIgnErr(forms.AddSecretForm{}), org.SecretsPost)
+					m.Post("", web.Bind(forms.AddSecretForm{}), org.SecretsPost)
 					m.Post("/delete", org.SecretsDelete)
 				})
 
