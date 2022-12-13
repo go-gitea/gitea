@@ -11,9 +11,9 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
-	"strconv"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -284,7 +284,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 	if len(opts.License) > 0 {
 		data, err = GetRepoInitFile("license", opts.License)
 
-		// Replace placeholders in License
+		// Replace Placeholders in License
 		data = bytes.ReplaceAll(data, []byte("<program>"), []byte(repo.Name))
 		data = bytes.ReplaceAll(data, []byte("<owner>"), []byte(repo.OwnerName))
 		data = bytes.ReplaceAll(data, []byte("<name of author>"), []byte(repo.OwnerName))
