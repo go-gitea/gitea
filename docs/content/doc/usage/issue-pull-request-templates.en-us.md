@@ -50,6 +50,18 @@ Possible file names for issue templates:
 - `.github/issue_template.yaml`
 - `.github/issue_template.yml`
 
+Possible file names for issue config:
+
+- `.gitea/ISSUE_TEMPLATE/config.yaml`
+- `.gitea/ISSUE_TEMPLATE/config.yml`
+- `.gitea/issue_template/config.yaml`
+- `.gitea/issue_template/config.yaml`
+- `.gitea/issue_template/config.yml`
+- `.github/ISSUE_TEMPLATE/config.yaml`
+- `.github/ISSUE_TEMPLATE/config.yml`
+- `.github/issue_template/config.yaml`
+- `.github/issue_template/config.yml`
+
 Possible file names for PR templates:
 
 - `PULL_REQUEST_TEMPLATE.md`
@@ -267,3 +279,17 @@ For each value in the options array, you can set the following keys.
 |----------|------------------------------------------------------------------------------------------------------------------------------------------|----------|---------|---------|---------|
 | label    | The identifier for the option, which is displayed in the form. Markdown is supported for bold or italic text formatting, and hyperlinks. | Required | String  | -       | -       |
 | required | Prevents form submission until element is completed.                                                                                     | Optional | Boolean | false   | -       |
+
+## Syntax for issue config
+
+This is a example for a issue config file
+
+```yaml
+BlankIssuesEnabled: true
+```
+
+### Possible Options
+
+| Key                | Description                                                                                           | Type    |
+|--------------------|-------------------------------------------------------------------------------------------------------|---------|
+| BalnkIssuesEnabled | If set to false, the User is forced to use a Template                                                 | Boolean |
