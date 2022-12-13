@@ -1005,7 +1005,7 @@ Default templates for project boards:
 
 #### Cron -  Check for new Gitea versions ('cron.update_checker')
 
-- `ENABLED`: **false**: Enable service.
+- `ENABLED`: **true**: Enable service.
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
 - `ENABLE_SUCCESS_NOTICE`: **true**: Set to false to switch off success notices.
 - `SCHEDULE`: **@every 168h**: Cron syntax for scheduling a work, e.g. `@every 168h`.
