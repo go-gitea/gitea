@@ -58,7 +58,7 @@ func (e *aesEncryptionProvider) Decrypt(enc, key []byte) ([]byte, error) {
 	}
 
 	if len(enc) < c.NonceSize() {
-		return nil, fmt.Errorf("encrypted value too short")
+		return nil, fmt.Errorf("encrypted value has length %d, which is too short for expected %d", len(enc), c.NonceSize())
 	}
 
 	nonce := enc[:c.NonceSize()]
