@@ -6,7 +6,7 @@ package log
 import "unsafe"
 
 //go:linkname runtime_getProfLabel runtime/pprof.runtime_getProfLabel
-func runtime_getProfLabel() unsafe.Pointer // nolint
+func runtime_getProfLabel() unsafe.Pointer //nolint
 
 type labelMap map[string]string
 

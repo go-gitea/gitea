@@ -71,7 +71,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if !ctx.Repo.Repository.IsTimetrackerEnabled() {
+	if !ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
 		ctx.NotFound("Timetracker is disabled")
 		return
 	}
@@ -190,7 +190,7 @@ func AddTime(ctx *context.APIContext) {
 	}
 
 	if !ctx.Repo.CanUseTimetracker(issue, ctx.Doer) {
-		if !ctx.Repo.Repository.IsTimetrackerEnabled() {
+		if !ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
 			ctx.Error(http.StatusBadRequest, "", "time tracking disabled")
 			return
 		}
@@ -271,7 +271,7 @@ func ResetIssueTime(ctx *context.APIContext) {
 	}
 
 	if !ctx.Repo.CanUseTimetracker(issue, ctx.Doer) {
-		if !ctx.Repo.Repository.IsTimetrackerEnabled() {
+		if !ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
 			ctx.JSON(http.StatusBadRequest, struct{ Message string }{Message: "time tracking disabled"})
 			return
 		}
@@ -342,7 +342,7 @@ func DeleteTime(ctx *context.APIContext) {
 	}
 
 	if !ctx.Repo.CanUseTimetracker(issue, ctx.Doer) {
-		if !ctx.Repo.Repository.IsTimetrackerEnabled() {
+		if !ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
 			ctx.JSON(http.StatusBadRequest, struct{ Message string }{Message: "time tracking disabled"})
 			return
 		}
@@ -410,7 +410,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	if !ctx.Repo.Repository.IsTimetrackerEnabled() {
+	if !ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
 		ctx.Error(http.StatusBadRequest, "", "time tracking disabled")
 		return
 	}
@@ -498,7 +498,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	if !ctx.Repo.Repository.IsTimetrackerEnabled() {
+	if !ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
 		ctx.Error(http.StatusBadRequest, "", "time tracking disabled")
 		return
 	}

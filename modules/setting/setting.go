@@ -948,7 +948,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	if SecretKey == "" {
 		// FIXME: https://github.com/go-gitea/gitea/issues/16832
 		// Until it supports rotating an existing secret key, we shouldn't move users off of the widely used default value
-		SecretKey = "!#@FDEWREWR&*(" // nolint:gosec
+		SecretKey = "!#@FDEWREWR&*(" //nolint:gosec
 	}
 
 	CookieRememberName = sec.Key("COOKIE_REMEMBER_NAME").MustString("gitea_incredible")

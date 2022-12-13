@@ -37,20 +37,21 @@ func ToAPIIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
 	}
 
 	apiIssue := &api.Issue{
-		ID:       issue.ID,
-		URL:      issue.APIURL(),
-		HTMLURL:  issue.HTMLURL(),
-		Index:    issue.Index,
-		Poster:   ToUser(issue.Poster, nil),
-		Title:    issue.Title,
-		Body:     issue.Content,
-		Ref:      issue.Ref,
-		Labels:   ToLabelList(issue.Labels, issue.Repo, issue.Repo.Owner),
-		State:    issue.State(),
-		IsLocked: issue.IsLocked,
-		Comments: issue.NumComments,
-		Created:  issue.CreatedUnix.AsTime(),
-		Updated:  issue.UpdatedUnix.AsTime(),
+		ID:          issue.ID,
+		URL:         issue.APIURL(),
+		HTMLURL:     issue.HTMLURL(),
+		Index:       issue.Index,
+		Poster:      ToUser(issue.Poster, nil),
+		Title:       issue.Title,
+		Body:        issue.Content,
+		Attachments: ToAttachments(issue.Attachments),
+		Ref:         issue.Ref,
+		Labels:      ToLabelList(issue.Labels, issue.Repo, issue.Repo.Owner),
+		State:       issue.State(),
+		IsLocked:    issue.IsLocked,
+		Comments:    issue.NumComments,
+		Created:     issue.CreatedUnix.AsTime(),
+		Updated:     issue.UpdatedUnix.AsTime(),
 	}
 
 	apiIssue.Repo = &api.RepositoryMeta{

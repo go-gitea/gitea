@@ -121,7 +121,7 @@ func (issue *Issue) createCrossReferences(stdCtx context.Context, ctx *crossRefe
 			RefAction:    xref.Action,
 			RefIsPull:    ctx.OrigIssue.IsPull,
 		}
-		_, err := CreateCommentCtx(stdCtx, opts)
+		_, err := CreateComment(stdCtx, opts)
 		if err != nil {
 			return err
 		}
