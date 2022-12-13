@@ -25,6 +25,7 @@ func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataS
 	if err != nil {
 		if !(auth_model.IsErrAccessTokenNotExist(err) || auth_model.IsErrAccessTokenEmpty(err)) {
 			log.Error("GetAccessTokenBySHA: %v", err)
+			return nil, err
 		}
 		return nil, nil
 	}
