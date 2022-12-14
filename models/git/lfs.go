@@ -334,11 +334,15 @@ func GetRepoLFSSize(ctx context.Context, repoID int64) (int64, error) {
 	return lfsSize, nil
 }
 
+type IterateLFSMetaObjectsForRepoOptions struct {
+	OlderThan time.Time
+}
+
 // IterateLFSMetaObjectsForRepo provides a iterator for LFSMetaObjects per Repo
-func IterateLFSMetaObjectsForRepo(ctx context.Context, repoID int64, f func(context.Context, *LFSMetaObject, int64) error) error {
+func IterateLFSMetaObjectsForRepo(ctx context.Context, repoID int64, f func(context.Context, *LFSMetaObject, int64) error, opts *IterateLFSMetaObjectsForRepoOptions) error {
 	var start int
 	batchSize := setting.Database.IterateBufferSize
-	sess := db.GetEngine(ctx)
+	engine := db.GetEngine(ctx)
 	type CountLFSMetaObject struct {
 		Count int64
 		LFSMetaObject
@@ -347,10 +351,13 @@ func IterateLFSMetaObjectsForRepo(ctx context.Context, repoID int64, f func(cont
 	for {
 		beans := make([]*CountLFSMetaObject, 0, batchSize)
 		// SELECT `lfs_meta_object`.*, COUNT(`l1`.id) as `count` FROM lfs_meta_object INNER JOIN lfs_meta_object AS l1 ON l1.oid = lfs_meta_object.oid WHERE lfs_meta_object.repository_id = ? GROUP BY lfs_meta_object.id
-		sess.Select("`lfs_meta_object`.*, COUNT(`l1`.oid) AS `count`").
+		sess := engine.Select("`lfs_meta_object`.*, COUNT(`l1`.oid) AS `count`").
 			Join("INNER", "`lfs_meta_object` AS l1", "`lfs_meta_object`.oid = `l1`.oid").
-			Where("`lfs_meta_object`.repository_id = ? AND `lfs_meta_object`.created_unix < ?", repoID, time.Now().Add(-24*7*time.Hour)).
-			GroupBy("`lfs_meta_object`.id")
+			Where("`lfs_meta_object`.repository_id = ?", repoID)
+		if !opts.OlderThan.IsZero() {
+			sess.And("`lfs_meta_object`.created_unix < ?", opts.OlderThan)
+		}
+		sess.GroupBy("`lfs_meta_object`.id")
 		if err := sess.Limit(batchSize, start).Find(&beans); err != nil {
 			return err
 		}

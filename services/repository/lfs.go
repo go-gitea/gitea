@@ -6,6 +6,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -90,5 +91,7 @@ func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.R
 		collected++
 
 		return nil
+	}, &git_model.IterateLFSMetaObjectsForRepoOptions{
+		OlderThan: time.Now().Add(-24 * 7 * time.Hour),
 	})
 }
