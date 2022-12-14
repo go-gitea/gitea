@@ -12,7 +12,7 @@ import (
 func CreateSecretsTable(x *xorm.Engine) error {
 	type Secret struct {
 		ID          int64
-		UserID      int64              `xorm:"index NOTNULL"`
+		OwnerID     int64              `xorm:"index NOTNULL"`
 		RepoID      int64              `xorm:"index NOTNULL"`
 		Name        string             `xorm:"NOTNULL"`
 		Data        string             `xorm:"LONGTEXT"`

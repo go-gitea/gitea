@@ -36,7 +36,7 @@ var nameRE = regexp.MustCompile("^[a-zA-Z_][a-zA-Z0-9-_.]*$")
 // Secret represents a secret
 type Secret struct {
 	ID          int64
-	UserID      int64              `xorm:"index NOTNULL"`
+	OwnerID     int64              `xorm:"index NOTNULL"`
 	RepoID      int64              `xorm:"index NOTNULL"`
 	Name        string             `xorm:"NOTNULL"`
 	Data        string             `xorm:"LONGTEXT"` // encrypted data, or plaintext data if there's no master key

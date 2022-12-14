@@ -257,9 +257,9 @@ func Secrets(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettingsSecrets"] = true
 	ctx.Data["RequireTribute"] = true
 
-	secrets, err := secret_service.FindUserSecrets(ctx, ctx.Org.Organization.ID)
+	secrets, err := secret_service.FindOwnerSecrets(ctx, ctx.Org.Organization.ID)
 	if err != nil {
-		ctx.ServerError("FindUserSecrets", err)
+		ctx.ServerError("FindOwnerSecrets", err)
 		return
 	}
 	ctx.Data["Secrets"] = secrets
@@ -270,8 +270,8 @@ func Secrets(ctx *context.Context) {
 // SecretsPost add secrets
 func SecretsPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AddSecretForm)
-	if err := secret_service.InsertOrgSecret(ctx, ctx.Org.Organization.ID, form.Title, form.Content); err != nil {
-		ctx.ServerError("InsertOrgSecret", err)
+	if err := secret_service.InsertOwnerSecret(ctx, ctx.Org.Organization.ID, form.Title, form.Content); err != nil {
+		ctx.ServerError("InsertOwnerSecret", err)
 		return
 	}
 
