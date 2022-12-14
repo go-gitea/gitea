@@ -13,7 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/services/secrets"
 
 	"gitea.com/go-chi/binding"
 )
@@ -64,7 +63,6 @@ type InstallForm struct {
 	NoReplyAddress                 string
 
 	PasswordAlgorithm string
-	MasterKeyProvider secrets.MasterKeyProviderType `binding:"Required;In(none,plain)"`
 
 	AdminName          string `binding:"OmitEmpty;Username;MaxSize(30)" locale:"install.admin_name"`
 	AdminPasswd        string `binding:"OmitEmpty;MaxSize(255)" locale:"install.admin_password"`

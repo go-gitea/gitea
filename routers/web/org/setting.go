@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -18,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
@@ -25,7 +27,6 @@ import (
 	"code.gitea.io/gitea/services/org"
 	container_service "code.gitea.io/gitea/services/packages/container"
 	repo_service "code.gitea.io/gitea/services/repository"
-	secret_service "code.gitea.io/gitea/services/secrets"
 	user_service "code.gitea.io/gitea/services/user"
 )
 
@@ -257,9 +258,9 @@ func Secrets(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettingsSecrets"] = true
 	ctx.Data["RequireTribute"] = true
 
-	secrets, err := secret_service.FindOwnerSecrets(ctx, ctx.Org.Organization.ID)
+	secrets, err := auth_model.FindSecrets(ctx, auth_model.FindSecretsOptions{OwnerID: ctx.Org.Organization.ID})
 	if err != nil {
-		ctx.ServerError("FindOwnerSecrets", err)
+		ctx.ServerError("FindSecrets", err)
 		return
 	}
 	ctx.Data["Secrets"] = secrets
@@ -270,8 +271,19 @@ func Secrets(ctx *context.Context) {
 // SecretsPost add secrets
 func SecretsPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AddSecretForm)
-	if err := secret_service.InsertOwnerSecret(ctx, ctx.Org.Organization.ID, form.Title, form.Content); err != nil {
-		ctx.ServerError("InsertOwnerSecret", err)
+
+	data, err := secret.EncryptSecret(setting.SecretKey, form.Content)
+	if err != nil {
+		ctx.ServerError("EncryptSecret", err)
+		return
+	}
+
+	if err := db.Insert(ctx, &auth_model.Secret{
+		OwnerID: ctx.Org.Organization.ID,
+		Name:    form.Title,
+		Data:    data,
+	}); err != nil {
+		ctx.ServerError("Insert Secret", err)
 		return
 	}
 
@@ -282,9 +294,10 @@ func SecretsPost(ctx *context.Context) {
 
 // SecretsDelete delete secrets
 func SecretsDelete(ctx *context.Context) {
-	if err := secret_service.DeleteSecretByID(ctx, ctx.FormInt64("id")); err != nil {
+	id := ctx.FormInt64("id")
+	if _, err := db.DeleteByBean(ctx, &auth_model.Secret{ID: id}); err != nil {
 		ctx.Flash.Error(ctx.Tr("repo.settings.secret_deletion_failed"))
-		log.Error("delete secret %d: %v", ctx.FormInt64("id"), err)
+		log.Error("delete secret %d: %v", id, err)
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.settings.secret_deletion_success"))
 	}

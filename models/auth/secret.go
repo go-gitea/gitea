@@ -4,12 +4,15 @@
 package auth
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+
+	"xorm.io/builder"
 )
 
 type ErrSecretInvalidValue struct {
@@ -59,4 +62,33 @@ func (s *Secret) Validate() error {
 	default:
 		return nil
 	}
+}
+
+type FindSecretsOptions struct {
+	db.ListOptions
+	OwnerID int64
+	RepoID  int64
+}
+
+func (opts *FindSecretsOptions) toConds() builder.Cond {
+	cond := builder.NewCond()
+	if opts.OwnerID > 0 {
+		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
+	}
+	if opts.RepoID > 0 {
+		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	}
+
+	return cond
+}
+
+func FindSecrets(ctx context.Context, opts FindSecretsOptions) ([]*Secret, error) {
+	var secrets []*Secret
+	sess := db.GetEngine(ctx)
+	if opts.PageSize != 0 {
+		sess = db.SetSessionPagination(sess, &opts.ListOptions)
+	}
+	return secrets, sess.
+		Where(opts.toConds()).
+		Find(&secrets)
 }
