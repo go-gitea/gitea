@@ -305,7 +305,7 @@ func SearchLatestVersions(ctx context.Context, opts *PackageSearchOptions) ([]*P
 
 	sess := db.GetEngine(ctx).
 		Table("package_version").
-		Join("LEFT", "package_version pv2", "package_version.package_id = pv2.package_id AND (package_version.created_unix < pv2.created_unix OR (package_version.created_unix = pv2.created_unix AND package_version.id < pv2.id))").
+		Join("LEFT", "package_version pv2", "package_version.package_id = pv2.package_id AND pv2.is_internal = ? AND (package_version.created_unix < pv2.created_unix OR (package_version.created_unix = pv2.created_unix AND package_version.id < pv2.id))", false).
 		Join("INNER", "package", "package.id = package_version.package_id").
 		Where(cond)
 
