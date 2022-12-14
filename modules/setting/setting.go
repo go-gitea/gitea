@@ -466,6 +466,13 @@ func getAppPath() (string, error) {
 	}
 
 	if err != nil {
+		// FIXME: Once we switch to go 1.19 use !errors.Is(err, exec.ErrDot)
+		if !strings.Contains(err.Error(), "cannot run executable found relative to current directory") {
+			return "", err
+		}
+		appPath, err = filepath.Abs(os.Args[0])
+	}
+	if err != nil {
 		return "", err
 	}
 	appPath, err = filepath.Abs(appPath)
@@ -941,7 +948,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	if SecretKey == "" {
 		// FIXME: https://github.com/go-gitea/gitea/issues/16832
 		// Until it supports rotating an existing secret key, we shouldn't move users off of the widely used default value
-		SecretKey = "!#@FDEWREWR&*(" // nolint:gosec
+		SecretKey = "!#@FDEWREWR&*(" //nolint:gosec
 	}
 
 	CookieRememberName = sec.Key("COOKIE_REMEMBER_NAME").MustString("gitea_incredible")
