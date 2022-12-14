@@ -655,7 +655,6 @@ func RegisterRoutes(m *web.Route) {
 	reqRepoReleaseWriter := context.RequireRepoWriter(unit.TypeReleases)
 	reqRepoReleaseReader := context.RequireRepoReader(unit.TypeReleases)
 	reqRepoWikiWriter := context.RequireRepoWriter(unit.TypeWiki)
-	reqRepoIssueWriter := context.RequireRepoWriter(unit.TypeIssues)
 	reqRepoIssueReader := context.RequireRepoReader(unit.TypeIssues)
 	reqRepoPullsReader := context.RequireRepoReader(unit.TypePullRequests)
 	reqRepoIssuesOrPullsWriter := context.RequireRepoWriterOr(unit.TypeIssues, unit.TypePullRequests)
@@ -992,8 +991,8 @@ func RegisterRoutes(m *web.Route) {
 					})
 				})
 				m.Post("/reactions/{action}", web.Bind(forms.ReactionForm{}), repo.ChangeIssueReaction)
-				m.Post("/lock", reqRepoIssueWriter, web.Bind(forms.IssueLockForm{}), repo.LockIssue)
-				m.Post("/unlock", reqRepoIssueWriter, repo.UnlockIssue)
+				m.Post("/lock", reqRepoIssuesOrPullsWriter, web.Bind(forms.IssueLockForm{}), repo.LockIssue)
+				m.Post("/unlock", reqRepoIssuesOrPullsWriter, repo.UnlockIssue)
 				m.Post("/delete", reqRepoAdmin, repo.DeleteIssue)
 			}, context.RepoMustNotBeArchived())
 			m.Group("/{index}", func() {
