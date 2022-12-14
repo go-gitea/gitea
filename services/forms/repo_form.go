@@ -136,6 +136,7 @@ type RepoSettingForm struct {
 	RepoSizeLimit          int64
 
 	// Advanced settings
+	EnableCode                            bool
 	EnableWiki                            bool
 	EnableExternalWiki                    bool
 	ExternalWikiURL                       string

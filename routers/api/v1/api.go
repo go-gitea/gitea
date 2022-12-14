@@ -67,7 +67,6 @@ import (
 	gocontext "context"
 	"fmt"
 	"net/http"
-	"reflect"
 	"strings"
 
 	"code.gitea.io/gitea/models/organization"
@@ -567,14 +566,17 @@ func mustNotBeArchived(ctx *context.APIContext) {
 	}
 }
 
-// bind binding an obj to a func(ctx *context.APIContext)
-func bind(obj interface{}) http.HandlerFunc {
-	tp := reflect.TypeOf(obj)
-	for tp.Kind() == reflect.Ptr {
-		tp = tp.Elem()
+func mustEnableAttachments(ctx *context.APIContext) {
+	if !setting.Attachment.Enabled {
+		ctx.NotFound()
+		return
 	}
+}
+
+// bind binding an obj to a func(ctx *context.APIContext)
+func bind[T any](obj T) http.HandlerFunc {
 	return web.Wrap(func(ctx *context.APIContext) {
-		theObj := reflect.New(tp).Interface() // create a new form obj for every request but not use obj directly
+		theObj := new(T) // create a new form obj for every request but not use obj directly
 		errs := binding.Bind(ctx.Req, theObj)
 		if len(errs) > 0 {
 			ctx.Error(http.StatusUnprocessableEntity, "validationError", fmt.Sprintf("%s: %s", errs[0].FieldNames, errs[0].Error()))
@@ -892,6 +894,15 @@ func Routes(ctx gocontext.Context) *web.Route {
 								Get(repo.GetIssueCommentReactions).
 								Post(reqToken(), bind(api.EditReactionOption{}), repo.PostIssueCommentReaction).
 								Delete(reqToken(), bind(api.EditReactionOption{}), repo.DeleteIssueCommentReaction)
+							m.Group("/assets", func() {
+								m.Combo("").
+									Get(repo.ListIssueCommentAttachments).
+									Post(reqToken(), mustNotBeArchived, repo.CreateIssueCommentAttachment)
+								m.Combo("/{asset}").
+									Get(repo.GetIssueCommentAttachment).
+									Patch(reqToken(), mustNotBeArchived, bind(api.EditAttachmentOptions{}), repo.EditIssueCommentAttachment).
+									Delete(reqToken(), mustNotBeArchived, repo.DeleteIssueCommentAttachment)
+							}, mustEnableAttachments)
 						})
 					})
 					m.Group("/{index}", func() {
@@ -935,6 +946,15 @@ func Routes(ctx gocontext.Context) *web.Route {
 							Get(repo.GetIssueReactions).
 							Post(reqToken(), bind(api.EditReactionOption{}), repo.PostIssueReaction).
 							Delete(reqToken(), bind(api.EditReactionOption{}), repo.DeleteIssueReaction)
+						m.Group("/assets", func() {
+							m.Combo("").
+								Get(repo.ListIssueAttachments).
+								Post(reqToken(), mustNotBeArchived, repo.CreateIssueAttachment)
+							m.Combo("/{asset}").
+								Get(repo.GetIssueAttachment).
+								Patch(reqToken(), mustNotBeArchived, bind(api.EditAttachmentOptions{}), repo.EditIssueAttachment).
+								Delete(reqToken(), mustNotBeArchived, repo.DeleteIssueAttachment)
+						}, mustEnableAttachments)
 					})
 				}, mustEnableIssuesOrPulls)
 				m.Group("/labels", func() {
