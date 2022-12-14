@@ -67,7 +67,6 @@ import (
 	gocontext "context"
 	"fmt"
 	"net/http"
-	"reflect"
 	"strings"
 
 	"code.gitea.io/gitea/models/organization"
@@ -575,13 +574,9 @@ func mustEnableAttachments(ctx *context.APIContext) {
 }
 
 // bind binding an obj to a func(ctx *context.APIContext)
-func bind(obj interface{}) http.HandlerFunc {
-	tp := reflect.TypeOf(obj)
-	for tp.Kind() == reflect.Ptr {
-		tp = tp.Elem()
-	}
+func bind[T any](obj T) http.HandlerFunc {
 	return web.Wrap(func(ctx *context.APIContext) {
-		theObj := reflect.New(tp).Interface() // create a new form obj for every request but not use obj directly
+		theObj := new(T) // create a new form obj for every request but not use obj directly
 		errs := binding.Bind(ctx.Req, theObj)
 		if len(errs) > 0 {
 			ctx.Error(http.StatusUnprocessableEntity, "validationError", fmt.Sprintf("%s: %s", errs[0].FieldNames, errs[0].Error()))
