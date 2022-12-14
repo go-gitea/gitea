@@ -136,10 +136,10 @@ func DeleteSecretByID(ctx context.Context, id int64) error {
 
 func FindRepoSecrets(ctx context.Context, repoID int64) ([]*auth_model.Secret, error) {
 	var res []*auth_model.Secret
-	return res, db.FindObjects(ctx, builder.Eq{"repo_id": repoID}, nil, &res)
+	return res, db.GetEngine(ctx).Where(builder.Eq{"repo_id": repoID}).Find(&res)
 }
 
 func FindOwnerSecrets(ctx context.Context, ownerID int64) ([]*auth_model.Secret, error) {
 	var res []*auth_model.Secret
-	return res, db.FindObjects(ctx, builder.Eq{"owner_id": ownerID}, nil, &res)
+	return res, db.GetEngine(ctx).Where(builder.Eq{"owner_id": ownerID}).Find(&res)
 }
