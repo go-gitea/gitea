@@ -109,6 +109,7 @@ func CreateArtifact(ctx context.Context, t *ActionTask) (*ActionArtifact, error)
 	return artifact, err
 }
 
+// GetArtifactByID returns an artifact by id
 func GetArtifactByID(ctx context.Context, id int64) (*ActionArtifact, error) {
 	var art ActionArtifact
 	has, err := db.GetEngine(ctx).Where("id=?", id).Get(&art)
@@ -121,8 +122,15 @@ func GetArtifactByID(ctx context.Context, id int64) (*ActionArtifact, error) {
 	return &art, nil
 }
 
+// UpdateArtifactByID updates an artifact by id
 func UpdateArtifactByID(ctx context.Context, id int64, art *ActionArtifact) error {
 	art.ID = id
 	_, err := db.GetEngine(ctx).ID(id).AllCols().Update(art)
 	return err
+}
+
+// ListArtifactByJobID returns all artifacts of a job
+func ListArtifactByJobID(ctx context.Context, jobID int64) ([]*ActionArtifact, error) {
+	arts := make([]*ActionArtifact, 0, 10)
+	return arts, db.GetEngine(ctx).Where("job_id=?", jobID).Find(&arts)
 }
