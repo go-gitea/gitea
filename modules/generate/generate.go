@@ -66,8 +66,3 @@ func NewSecretKey() (string, error) {
 
 	return secretKey, nil
 }
-
-// NewMasterKey generate a new value intended to be used by MASTER_KEY.
-func NewMasterKey() ([]byte, error) {
-	return util.CryptoRandomBytes(64)
-}

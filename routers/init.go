@@ -46,7 +46,6 @@ import (
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/services/repository/archiver"
-	secret_service "code.gitea.io/gitea/services/secrets"
 	"code.gitea.io/gitea/services/task"
 	"code.gitea.io/gitea/services/webhook"
 )
@@ -149,8 +148,6 @@ func GlobalInitInstalled(ctx context.Context) {
 
 	mustInit(models.Init)
 	mustInit(repo_service.Init)
-
-	mustInit(secret_service.Init)
 
 	// Booting long running goroutines.
 	issue_indexer.InitIssueIndexer(false)
