@@ -60,7 +60,7 @@ func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataSt
 		if err != nil {
 			log.Debug("VerifyCert on request from %s: failed: %v", req.RemoteAddr, err)
 			log.Warn("Failed authentication attempt from %s", req.RemoteAddr)
-			return nil, err
+			return nil, nil
 		}
 	} else {
 		// Handle Signature signed by Public Key
@@ -68,7 +68,7 @@ func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataSt
 		if err != nil {
 			log.Debug("VerifyPubKey on request from %s: failed: %v", req.RemoteAddr, err)
 			log.Warn("Failed authentication attempt from %s", req.RemoteAddr)
-			return nil, err
+			return nil, nil
 		}
 	}
 
