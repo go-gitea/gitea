@@ -92,6 +92,14 @@ func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.R
 
 		return nil
 	}, &git_model.IterateLFSMetaObjectsForRepoOptions{
+		// Only attempt to garbage collect lfs meta objects older than a week as the order of git lfs upload
+		// and git object upload is not necessarily guaranteed. It's possible to imagine a situation whereby
+		// an LFS object is uploaded but the git branch is not uploaded immediately, or there are some rapid
+		// changes in new branches that might lead to lfs objects becoming temporarily unassociated with git
+		// objects.
+		//
+		// It is likely that a week is potentially excessive but it should definitely be enough that any
+		// unassociated LFS object is genuinely unassociated.
 		OlderThan: time.Now().Add(-24 * 7 * time.Hour),
 	})
 }
