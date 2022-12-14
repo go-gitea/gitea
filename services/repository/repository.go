@@ -21,6 +21,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	pull_service "code.gitea.io/gitea/services/pull"
+	secret_service "code.gitea.io/gitea/services/secrets"
 )
 
 // CreateRepository creates a repository for the user/organization.
@@ -48,6 +49,10 @@ func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_mod
 	}
 
 	if err := models.DeleteRepository(doer, repo.OwnerID, repo.ID); err != nil {
+		return err
+	}
+
+	if err := secret_service.DeleteSecretsByRepoID(ctx, repo.ID); err != nil {
 		return err
 	}
 

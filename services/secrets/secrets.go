@@ -134,6 +134,16 @@ func DeleteSecretByID(ctx context.Context, id int64) error {
 	return err
 }
 
+func DeleteSecretsByRepoID(ctx context.Context, repoID int64) error {
+	_, err := db.DeleteByBean(ctx, &auth_model.Secret{RepoID: repoID})
+	return err
+}
+
+func DeleteSecretsByOwnerID(ctx context.Context, ownerID int64) error {
+	_, err := db.DeleteByBean(ctx, &auth_model.Secret{ID: ownerID})
+	return err
+}
+
 func FindRepoSecrets(ctx context.Context, repoID int64) ([]*auth_model.Secret, error) {
 	var res []*auth_model.Secret
 	return res, db.GetEngine(ctx).Where(builder.Eq{"repo_id": repoID}).Find(&res)

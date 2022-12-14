@@ -14,6 +14,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
+	secret_service "code.gitea.io/gitea/services/secrets"
 )
 
 // DeleteOrganization completely and permanently deletes everything of organization.
@@ -37,6 +38,10 @@ func DeleteOrganization(org *organization.Organization) error {
 		return fmt.Errorf("HasOwnerPackages: %w", err)
 	} else if ownsPackages {
 		return models.ErrUserOwnPackages{UID: org.ID}
+	}
+
+	if err := secret_service.DeleteSecretsByOwnerID(ctx, org.ID); err != nil {
+		return err
 	}
 
 	if err := organization.DeleteOrganization(ctx, org); err != nil {
