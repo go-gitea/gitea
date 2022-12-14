@@ -236,7 +236,7 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 		return false
 	}
 
-	if unit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests); err == nil {
+	if unit, err := pr.BaseRepo.GetUnit(ctx, unit.TypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
 		if !config.AutodetectManualMerge {
 			return false
