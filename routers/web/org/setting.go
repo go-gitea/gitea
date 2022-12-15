@@ -264,11 +264,6 @@ func Secrets(ctx *context.Context) {
 	}
 	ctx.Data["Secrets"] = secrets
 
-	for _, s := range secrets {
-		v, _ := secret.DecryptSecret(setting.SecretKey, s.Data)
-		log.Info("secret: %q %q %q", s.Name, s.Data, v)
-	}
-
 	ctx.HTML(http.StatusOK, tplSettingsSecrets)
 }
 
