@@ -53,6 +53,7 @@ func TestProject(t *testing.T) {
 	project := &Project{
 		Type:        TypeRepository,
 		BoardType:   BoardTypeBasicKanban,
+		CardType:    CardTypeTextOnly,
 		Title:       "New Project",
 		RepoID:      1,
 		CreatedUnix: timeutil.TimeStampNow(),

@@ -180,8 +180,10 @@
 					<!-- start issue card -->
 					<div class="card board-card" data-issue="{{.ID}}">
 						<div class="card-attachment-images">
-							{{range (index $.issuesAttachmentMap .ID)}}
-								<img src="{{.DownloadURL}}" alt="{{.Name}}" />
+							{{if eq $.Project.CardType 2}}
+								{{range (index $.issuesAttachmentMap .ID)}}
+									<img src="{{.DownloadURL}}" alt="{{.Name}}" />
+								{{end}}
 							{{end}}
 						</div>
 						<div class="content p-0">

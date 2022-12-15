@@ -510,6 +510,7 @@ type CreateProjectForm struct {
 	Title     string `binding:"Required;MaxSize(100)"`
 	Content   string
 	BoardType project_model.BoardType
+	CardType  project_model.CardType
 }
 
 // UserCreateProjectForm is a from for creating an individual or organization
@@ -518,6 +519,7 @@ type UserCreateProjectForm struct {
 	Title     string `binding:"Required;MaxSize(100)"`
 	Content   string
 	BoardType project_model.BoardType
+	CardType  project_model.CardType
 	UID       int64 `binding:"Required"`
 }
 
