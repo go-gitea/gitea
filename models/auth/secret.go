@@ -34,8 +34,6 @@ func (err ErrSecretInvalidValue) Unwrap() error {
 	return util.ErrInvalidArgument
 }
 
-var nameRE = regexp.MustCompile("^[a-zA-Z_][a-zA-Z0-9-_.]*$")
-
 // Secret represents a secret
 type Secret struct {
 	ID          int64
@@ -50,6 +48,8 @@ func init() {
 	db.RegisterModel(new(Secret))
 }
 
+var secretNameReg = regexp.MustCompile("^[a-zA-Z_][a-zA-Z0-9_.-]*$")
+
 // Validate validates the required fields and formats.
 func (s *Secret) Validate() error {
 	switch {
@@ -57,7 +57,7 @@ func (s *Secret) Validate() error {
 		return ErrSecretInvalidValue{Name: &s.Name}
 	case len(s.Data) == 0:
 		return ErrSecretInvalidValue{Data: &s.Data}
-	case nameRE.MatchString(s.Name):
+	case !secretNameReg.MatchString(s.Name):
 		return ErrSecretInvalidValue{Name: &s.Name}
 	default:
 		return nil

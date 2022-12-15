@@ -1137,11 +1137,19 @@ func SecretsPost(ctx *context.Context) {
 		return
 	}
 
-	if err := db.Insert(ctx, &auth_model.Secret{
+	sec := &auth_model.Secret{
 		RepoID: ctx.Repo.Repository.ID,
 		Name:   form.Title,
 		Data:   data,
-	}); err != nil {
+	}
+	if err := sec.Validate(); err != nil {
+		ctx.Flash.Error(ctx.Tr("secrets.creation.failed"))
+		log.Error("validate secret: %v", err)
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
+		return
+	}
+
+	if err := db.Insert(ctx, sec); err != nil {
 		ctx.Flash.Error(ctx.Tr("secrets.creation.failed"))
 		log.Error("insert secret: %v", err)
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
