@@ -105,7 +105,7 @@ func Transfer(ctx *context.APIContext) {
 
 	oldFullname := ctx.Repo.Repository.FullName()
 
-	if err := repo_service.StartRepositoryTransfer(ctx.Doer, newOwner, ctx.Repo.Repository, teams); err != nil {
+	if err := repo_service.StartRepositoryTransfer(ctx, ctx.Doer, newOwner, ctx.Repo.Repository, teams); err != nil {
 		if models.IsErrRepoTransferInProgress(err) {
 			ctx.Error(http.StatusConflict, "StartRepositoryTransfer", err)
 			return
@@ -207,7 +207,7 @@ func RejectTransfer(ctx *context.APIContext) {
 }
 
 func acceptOrRejectRepoTransfer(ctx *context.APIContext, accept bool) error {
-	repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository)
+	repoTransfer, err := models.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
 	if err != nil {
 		if models.IsErrNoPendingTransfer(err) {
 			ctx.NotFound()
@@ -216,7 +216,7 @@ func acceptOrRejectRepoTransfer(ctx *context.APIContext, accept bool) error {
 		return err
 	}
 
-	if err := repoTransfer.LoadAttributes(); err != nil {
+	if err := repoTransfer.LoadAttributes(ctx); err != nil {
 		return err
 	}
 
@@ -226,7 +226,7 @@ func acceptOrRejectRepoTransfer(ctx *context.APIContext, accept bool) error {
 	}
 
 	if accept {
-		return repo_service.TransferOwnership(repoTransfer.Doer, repoTransfer.Recipient, ctx.Repo.Repository, repoTransfer.Teams)
+		return repo_service.TransferOwnership(ctx, repoTransfer.Doer, repoTransfer.Recipient, ctx.Repo.Repository, repoTransfer.Teams)
 	}
 
 	return models.CancelRepositoryTransfer(ctx.Repo.Repository)

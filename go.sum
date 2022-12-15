@@ -599,8 +599,8 @@ github.com/gobwas/glob v0.2.3/go.mod h1:d3Ez4x06l9bZtSvzIay5+Yzi0fmZzPgnTbPcKjJA
 github.com/goccy/go-json v0.8.1/go.mod h1:6MelG93GURQebXPDq3khkgXZkazVtN9CRI+MGFi0w8I=
 github.com/goccy/go-json v0.9.5/go.mod h1:6MelG93GURQebXPDq3khkgXZkazVtN9CRI+MGFi0w8I=
 github.com/goccy/go-json v0.9.6/go.mod h1:6MelG93GURQebXPDq3khkgXZkazVtN9CRI+MGFi0w8I=
-github.com/goccy/go-json v0.9.11 h1:/pAaQDLHEoCq/5FFmSKBswWmK6H0e8g4159Kc/X/nqk=
-github.com/goccy/go-json v0.9.11/go.mod h1:6MelG93GURQebXPDq3khkgXZkazVtN9CRI+MGFi0w8I=
+github.com/goccy/go-json v0.10.0 h1:mXKd9Qw4NuzShiRlOXKews24ufknHO7gx30lsDyokKA=
+github.com/goccy/go-json v0.10.0/go.mod h1:6MelG93GURQebXPDq3khkgXZkazVtN9CRI+MGFi0w8I=
 github.com/godbus/dbus/v5 v5.0.3/go.mod h1:xhWf0FNVPg57R7Z0UbKHbJfkEywrmjJnf7w5xrFpKfA=
 github.com/godbus/dbus/v5 v5.0.4/go.mod h1:xhWf0FNVPg57R7Z0UbKHbJfkEywrmjJnf7w5xrFpKfA=
 github.com/gofrs/uuid v4.2.0+incompatible/go.mod h1:b2aQJv3Z4Fp6yNu3cdSllBxTCLRxnplIgP/c0N/04lM=
@@ -2379,7 +2379,7 @@ sourcegraph.com/sourcegraph/appdash v0.0.0-20190731080439-ebfcffb1b5c0/go.mod h1
 strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251 h1:mUcz5b3FJbP5Cvdq7Khzn6J9OCUQJaBwgBkCR+MOwSs=
 strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251/go.mod h1:FJGmPh3vz9jSos1L/F91iAgnC/aejc0wIIrF2ZwJxdY=
 xorm.io/builder v0.3.11-0.20220531020008-1bd24a7dc978/go.mod h1:aUW0S9eb9VCaPohFCH3j7czOx1PMW3i1HrSzbLYGBSE=
-xorm.io/builder v0.3.11 h1:naLkJitGyYW7ZZdncsh/JW+HF4HshmvTHTyUyPwJS00=
-xorm.io/builder v0.3.11/go.mod h1:aUW0S9eb9VCaPohFCH3j7czOx1PMW3i1HrSzbLYGBSE=
-xorm.io/xorm v1.3.2-0.20220714055524-c3bce556200f h1:3NvNsM4lnttTsHpk8ODHqrwN1MCEjsO3bD/rpd8A47k=
-xorm.io/xorm v1.3.2-0.20220714055524-c3bce556200f/go.mod h1:9NbjqdnjX6eyjRRhh01GHm64r6N9shTb/8Ak3YRt8Nw=
+xorm.io/builder v0.3.12 h1:ASZYX7fQmy+o8UJdhlLHSW57JDOkM8DNhcAF5d0LiJM=
+xorm.io/builder v0.3.12/go.mod h1:aUW0S9eb9VCaPohFCH3j7czOx1PMW3i1HrSzbLYGBSE=
+xorm.io/xorm v1.3.3-0.20221209153726-f1bfc5ce9830 h1:ohaHCvT7ocSDkTEa2/2z0BXfINYlHm/Z7IzN7MeXQlM=
+xorm.io/xorm v1.3.3-0.20221209153726-f1bfc5ce9830/go.mod h1:9NbjqdnjX6eyjRRhh01GHm64r6N9shTb/8Ak3YRt8Nw=
