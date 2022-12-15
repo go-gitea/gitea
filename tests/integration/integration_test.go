@@ -408,10 +408,7 @@ func VerifyJSONSchema(t testing.TB, resp *httptest.ResponseRecorder, schemaFile 
 
 	schema, schemaFileReadErr := os.ReadFile(schemaFilePath)
 	assert.Nil(t, schemaFileReadErr)
-
-	t.Log("schema:", string(schema))
-	t.Log("resp.Body.Bytes():", resp.Body.Bytes())
-	t.Log("resp.Body.String():", resp.Body.String())
+	assert.True(t, len(schema) > 0)
 
 	nodeinfoSchema := gojsonschema.NewStringLoader(string(schema))
 	nodeinfoString := gojsonschema.NewStringLoader(resp.Body.String())
