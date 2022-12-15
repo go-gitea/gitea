@@ -53,7 +53,7 @@
 					<div class="ui selection dropdown">
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						{{range $element := .CardTypes}}
-							{{if or (eq $.card_type $element.CardType) (and (not $.card_type) (eq $element.CardType 2)) }}
+							{{if or (eq $.card_type $element.CardType) (and (not $.card_type) (eq $element.CardType 2))}}
 								<input type="hidden" name="card_type" value="{{$element.CardType}}">
 								<div class="default text">{{$.locale.Tr $element.Translation}}</div>
 							{{end}}

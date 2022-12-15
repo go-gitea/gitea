@@ -45,7 +45,6 @@ const (
 	CardTypeImagesAndText
 )
 
-
 // BoardColorPattern is a regexp witch can validate BoardColor
 var BoardColorPattern = regexp.MustCompile("^#[0-9a-fA-F]{6}$")
 

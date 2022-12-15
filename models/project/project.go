@@ -19,14 +19,14 @@ import (
 type (
 	// BoardConfig is used to identify the type of board that is being created
 	BoardConfig struct {
-		BoardType    BoardType
-		Translation  string
+		BoardType   BoardType
+		Translation string
 	}
 
 	// CardConfig is used to identify the type of board card that is being used
 	CardConfig struct {
-		CardType     CardType
-		Translation  string
+		CardType    CardType
+		Translation string
 	}
 
 	// Type is used to identify the type of project in question and ownership
