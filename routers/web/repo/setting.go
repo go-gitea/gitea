@@ -1136,9 +1136,9 @@ func SecretsPost(ctx *context.Context) {
 	}
 
 	if err := db.Insert(ctx, &auth_model.Secret{
-		OwnerID: ctx.Repo.Repository.ID,
-		Name:    form.Title,
-		Data:    data,
+		RepoID: ctx.Repo.Repository.ID,
+		Name:   form.Title,
+		Data:   data,
 	}); err != nil {
 		ctx.ServerError("Insert Secret", err)
 		return
