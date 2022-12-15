@@ -117,9 +117,10 @@ func CreateBlameReader(ctx context.Context, repoPath, commitID, file string) (*B
 
 	go func(cmd *Command, dir string, stdout io.WriteCloser, done chan error) {
 		if err := cmd.Run(&RunOpts{
-			Dir:    dir,
-			Stdout: stdout,
-			Stderr: os.Stderr,
+			UseContextTimeout: true,
+			Dir:               dir,
+			Stdout:            stdout,
+			Stderr:            os.Stderr,
 		}); err == nil {
 			stdout.Close()
 		}
