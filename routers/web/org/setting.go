@@ -273,7 +273,9 @@ func SecretsPost(ctx *context.Context) {
 
 	data, err := secret.EncryptSecret(setting.SecretKey, form.Content)
 	if err != nil {
-		ctx.ServerError("EncryptSecret", err)
+		ctx.Flash.Error(ctx.Tr("secrets.creation.failed"))
+		log.Error("encrypt secret: %v", err)
+		ctx.Redirect(ctx.Org.OrgLink + "/settings/secrets")
 		return
 	}
 
@@ -282,7 +284,9 @@ func SecretsPost(ctx *context.Context) {
 		Name:    form.Title,
 		Data:    data,
 	}); err != nil {
-		ctx.ServerError("Insert Secret", err)
+		ctx.Flash.Error(ctx.Tr("secrets.creation.failed"))
+		log.Error("insert secret: %v", err)
+		ctx.Redirect(ctx.Org.OrgLink + "/settings/secrets")
 		return
 	}
 
