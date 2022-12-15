@@ -40,7 +40,7 @@ type Secret struct {
 	OwnerID     int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOTNULL"`
 	RepoID      int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOTNULL"`
 	Name        string             `xorm:"UNIQUE(owner_repo_name) NOTNULL"`
-	Data        string             `xorm:"LONGTEXT"` // encrypted data, or plaintext data if there's no master key
+	Data        string             `xorm:"LONGTEXT"` // encrypted data
 	CreatedUnix timeutil.TimeStamp `xorm:"created NOTNULL"`
 }
 
