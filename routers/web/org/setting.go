@@ -256,7 +256,6 @@ func Secrets(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.secrets")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsOrgSettingsSecrets"] = true
-	ctx.Data["RequireTribute"] = true
 
 	secrets, err := auth_model.FindSecrets(ctx, auth_model.FindSecretsOptions{OwnerID: ctx.Org.Organization.ID})
 	if err != nil {
