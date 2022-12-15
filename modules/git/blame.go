@@ -103,9 +103,8 @@ func (r *BlameReader) Close() error {
 
 // CreateBlameReader creates reader for given repository, commit and file
 func CreateBlameReader(ctx context.Context, repoPath, commitID, file string) (*BlameReader, error) {
-	cmd := NewCommandContextNoGlobals(ctx, "blame").
+	cmd := NewCommandContextNoGlobals(ctx, "blame", "--porcelain").
 		AddDynamicArguments(commitID).
-		AddArguments("--porcelain").
 		AddDashesAndList(file).
 		SetDescription(fmt.Sprintf("GetBlame [repo_path: %s]", repoPath))
 	reader, stdout, err := os.Pipe()
