@@ -271,7 +271,7 @@ func Secrets(ctx *context.Context) {
 func SecretsPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AddSecretForm)
 
-	data, err := secret.EncryptSecret(setting.SecretKey, form.Content)
+	data, err := secret.EncryptSecret(setting.SecretKey, strings.TrimSpace(form.Content))
 	if err != nil {
 		ctx.Flash.Error(ctx.Tr("secrets.creation.failed"))
 		log.Error("encrypt secret: %v", err)
