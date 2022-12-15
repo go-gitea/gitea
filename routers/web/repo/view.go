@@ -241,18 +241,19 @@ func findReadmeFile(ctx *context.Context, entries git.Entries, treeLink string) 
 	return readmeFile, readmeTreelink
 }
 
-func renderReadmeFile(ctx *context.Context, readmeFile *namedBlob, readmeTreelink string) {
-	ctx.Data["RawFileLink"] = ""
-	ctx.Data["ReadmeInList"] = true
-	ctx.Data["ReadmeExist"] = true
-	ctx.Data["FileIsSymlink"] = readmeFile.isSymlink
+type fileInfo struct {
+	isTextFile bool
+	isLFSFile  bool
+	fileSize   int64
+	lfsMeta    *lfs.Pointer
+	st         typesniffer.SniffedType
+}
 
-	dataRc, err := readmeFile.blob.DataAsync()
+func getFileReader(repoID int64, blob *git.Blob) ([]byte, io.ReadCloser, *fileInfo, error) {
+	dataRc, err := blob.DataAsync()
 	if err != nil {
-		ctx.ServerError("Data", err)
-		return
+		return nil, nil, nil, err
 	}
-	defer dataRc.Close()
 
 	buf := make([]byte, 1024)
 	n, _ := util.ReadAtMost(dataRc, buf)
@@ -261,67 +262,75 @@ func renderReadmeFile(ctx *context.Context, readmeFile *namedBlob, readmeTreelin
 	st := typesniffer.DetectContentType(buf)
 	isTextFile := st.IsText()
 
-	ctx.Data["FileIsText"] = isTextFile
-	ctx.Data["FileName"] = readmeFile.name
-	fileSize := int64(0)
-	isLFSFile := false
-	ctx.Data["IsLFSFile"] = false
-
 	// FIXME: what happens when README file is an image?
-	if isTextFile && setting.LFS.StartServer {
-		pointer, _ := lfs.ReadPointerFromBuffer(buf)
-		if pointer.IsValid() {
-			meta, err := git_model.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
-			if err != nil && err != git_model.ErrLFSObjectNotExist {
-				ctx.ServerError("GetLFSMetaObject", err)
-				return
-			}
-			if meta != nil {
-				ctx.Data["IsLFSFile"] = true
-				isLFSFile = true
-
-				// OK read the lfs object
-				var err error
-				dataRc, err = lfs.ReadMetaObject(pointer)
-				if err != nil {
-					ctx.ServerError("ReadMetaObject", err)
-					return
-				}
-				defer dataRc.Close()
-
-				buf = make([]byte, 1024)
-				n, err = util.ReadAtMost(dataRc, buf)
-				if err != nil {
-					ctx.ServerError("Data", err)
-					return
-				}
-				buf = buf[:n]
-
-				st = typesniffer.DetectContentType(buf)
-				isTextFile = st.IsText()
-				ctx.Data["IsTextFile"] = isTextFile
-
-				fileSize = meta.Size
-				ctx.Data["FileSize"] = meta.Size
-				filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(readmeFile.name))
-				ctx.Data["RawFileLink"] = fmt.Sprintf("%s.git/info/lfs/objects/%s/%s", ctx.Repo.Repository.HTMLURL(), url.PathEscape(meta.Oid), url.PathEscape(filenameBase64))
-			}
-		}
+	if !isTextFile || !setting.LFS.StartServer {
+		return buf, dataRc, &fileInfo{isTextFile, false, blob.Size(), nil, st}, nil
 	}
 
-	if !isTextFile {
+	pointer, _ := lfs.ReadPointerFromBuffer(buf)
+	if !pointer.IsValid() { // fallback to plain file
+		return buf, dataRc, &fileInfo{isTextFile, false, blob.Size(), nil, st}, nil
+	}
+
+	meta, err := git_model.GetLFSMetaObjectByOid(repoID, pointer.Oid)
+	if err != git_model.ErrLFSObjectNotExist { // fallback to plain file
+		return buf, dataRc, &fileInfo{isTextFile, false, blob.Size(), nil, st}, nil
+	}
+
+	dataRc.Close()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	dataRc, err = lfs.ReadMetaObject(pointer)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	buf = make([]byte, 1024)
+	n, err = util.ReadAtMost(dataRc, buf)
+	if err != nil {
+		dataRc.Close()
+		return nil, nil, nil, err
+	}
+	buf = buf[:n]
+
+	st = typesniffer.DetectContentType(buf)
+
+	return buf, dataRc, &fileInfo{st.IsText(), true, meta.Size, &meta.Pointer, st}, nil
+}
+
+func renderReadmeFile(ctx *context.Context, readmeFile *namedBlob, readmeTreelink string) {
+	ctx.Data["RawFileLink"] = ""
+	ctx.Data["ReadmeInList"] = true
+	ctx.Data["ReadmeExist"] = true
+	ctx.Data["FileIsSymlink"] = readmeFile.isSymlink
+
+	buf, dataRc, fInfo, err := getFileReader(ctx.Repo.Repository.ID, readmeFile.blob)
+	if err != nil {
+		ctx.ServerError("getFileReader", err)
+		return
+	}
+	defer dataRc.Close()
+
+	ctx.Data["FileIsText"] = fInfo.isTextFile
+	ctx.Data["FileName"] = readmeFile.name
+	ctx.Data["IsLFSFile"] = fInfo.isLFSFile
+
+	if fInfo.isLFSFile {
+		filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(readmeFile.name))
+		ctx.Data["RawFileLink"] = fmt.Sprintf("%s.git/info/lfs/objects/%s/%s", ctx.Repo.Repository.HTMLURL(), url.PathEscape(fInfo.lfsMeta.Oid), url.PathEscape(filenameBase64))
+	}
+
+	if !fInfo.isTextFile {
 		return
 	}
 
-	if !isLFSFile {
-		fileSize = readmeFile.blob.Size()
-	}
-
-	if fileSize >= setting.UI.MaxDisplayFileSize {
+	if fInfo.fileSize >= setting.UI.MaxDisplayFileSize {
 		// Pretend that this is a normal text file to display 'This file is too large to be shown'
 		ctx.Data["IsFileTooLarge"] = true
 		ctx.Data["IsTextFile"] = true
-		ctx.Data["FileSize"] = fileSize
+		ctx.Data["FileSize"] = fInfo.fileSize
 		return
 	}
 
@@ -362,16 +371,14 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["IsViewFile"] = true
 	ctx.Data["HideRepoInfo"] = true
 	blob := entry.Blob()
-	dataRc, err := blob.DataAsync()
+	buf, dataRc, fInfo, err := getFileReader(ctx.Repo.Repository.ID, blob)
 	if err != nil {
-		ctx.ServerError("DataAsync", err)
+		ctx.ServerError("getFileReader", err)
 		return
 	}
 	defer dataRc.Close()
 
 	ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefName)
-
-	fileSize := blob.Size()
 	ctx.Data["FileIsSymlink"] = entry.IsLink()
 	ctx.Data["FileName"] = blob.Name()
 	ctx.Data["RawFileLink"] = rawLink + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
@@ -381,69 +388,27 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		ctx.Data["FileError"] = editorconfigErr
 	}
 
-	buf := make([]byte, 1024)
-	n, _ := util.ReadAtMost(dataRc, buf)
-	buf = buf[:n]
-
-	st := typesniffer.DetectContentType(buf)
-	isTextFile := st.IsText()
-
-	isLFSFile := false
 	isDisplayingSource := ctx.FormString("display") == "source"
 	isDisplayingRendered := !isDisplayingSource
 
-	// Check for LFS meta file
-	if isTextFile && setting.LFS.StartServer {
-		pointer, _ := lfs.ReadPointerFromBuffer(buf)
-		if pointer.IsValid() {
-			meta, err := git_model.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
-			if err != nil && err != git_model.ErrLFSObjectNotExist {
-				ctx.ServerError("GetLFSMetaObject", err)
-				return
-			}
-			if meta != nil {
-				isLFSFile = true
-
-				// OK read the lfs object
-				var err error
-				dataRc, err = lfs.ReadMetaObject(pointer)
-				if err != nil {
-					ctx.ServerError("ReadMetaObject", err)
-					return
-				}
-				defer dataRc.Close()
-
-				buf = make([]byte, 1024)
-				n, err = util.ReadAtMost(dataRc, buf)
-				if err != nil {
-					ctx.ServerError("Data", err)
-					return
-				}
-				buf = buf[:n]
-
-				st = typesniffer.DetectContentType(buf)
-				isTextFile = st.IsText()
-
-				fileSize = meta.Size
-				ctx.Data["RawFileLink"] = ctx.Repo.RepoLink + "/media/" + ctx.Repo.BranchNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
-			}
-		}
+	if fInfo.isLFSFile {
+		ctx.Data["RawFileLink"] = ctx.Repo.RepoLink + "/media/" + ctx.Repo.BranchNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 	}
 
-	isRepresentableAsText := st.IsRepresentableAsText()
+	isRepresentableAsText := fInfo.st.IsRepresentableAsText()
 	if !isRepresentableAsText {
 		// If we can't show plain text, always try to render.
 		isDisplayingSource = false
 		isDisplayingRendered = true
 	}
-	ctx.Data["IsLFSFile"] = isLFSFile
-	ctx.Data["FileSize"] = fileSize
-	ctx.Data["IsTextFile"] = isTextFile
+	ctx.Data["IsLFSFile"] = fInfo.isLFSFile
+	ctx.Data["FileSize"] = fInfo.fileSize
+	ctx.Data["IsTextFile"] = fInfo.isTextFile
 	ctx.Data["IsRepresentableAsText"] = isRepresentableAsText
 	ctx.Data["IsDisplayingSource"] = isDisplayingSource
 	ctx.Data["IsDisplayingRendered"] = isDisplayingRendered
 
-	isTextSource := isTextFile || isDisplayingSource
+	isTextSource := fInfo.isTextFile || isDisplayingSource
 	ctx.Data["IsTextSource"] = isTextSource
 	if isTextSource {
 		ctx.Data["CanCopyContent"] = true
@@ -468,7 +433,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	}
 
 	// Assume file is not editable first.
-	if isLFSFile {
+	if fInfo.isLFSFile {
 		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_lfs_files")
 	} else if !isRepresentableAsText {
 		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_non_text_files")
@@ -476,13 +441,13 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 	switch {
 	case isRepresentableAsText:
-		if st.IsSvgImage() {
+		if fInfo.st.IsSvgImage() {
 			ctx.Data["IsImageFile"] = true
 			ctx.Data["CanCopyContent"] = true
 			ctx.Data["HasSourceRenderedToggle"] = true
 		}
 
-		if fileSize >= setting.UI.MaxDisplayFileSize {
+		if fInfo.fileSize >= setting.UI.MaxDisplayFileSize {
 			ctx.Data["IsFileTooLarge"] = true
 			break
 		}
@@ -589,7 +554,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			ctx.Data["FileContent"] = fileContent
 			ctx.Data["LineEscapeStatus"] = statuses
 		}
-		if !isLFSFile {
+		if !fInfo.isLFSFile {
 			if ctx.Repo.CanEnableEditor(ctx.Doer) {
 				if lfsLock != nil && lfsLock.OwnerID != ctx.Doer.ID {
 					ctx.Data["CanEditFile"] = false
@@ -605,17 +570,17 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			}
 		}
 
-	case st.IsPDF():
+	case fInfo.st.IsPDF():
 		ctx.Data["IsPDFFile"] = true
-	case st.IsVideo():
+	case fInfo.st.IsVideo():
 		ctx.Data["IsVideoFile"] = true
-	case st.IsAudio():
+	case fInfo.st.IsAudio():
 		ctx.Data["IsAudioFile"] = true
-	case st.IsImage() && (setting.UI.SVG.Enabled || !st.IsSvgImage()):
+	case fInfo.st.IsImage() && (setting.UI.SVG.Enabled || !fInfo.st.IsSvgImage()):
 		ctx.Data["IsImageFile"] = true
 		ctx.Data["CanCopyContent"] = true
 	default:
-		if fileSize >= setting.UI.MaxDisplayFileSize {
+		if fInfo.fileSize >= setting.UI.MaxDisplayFileSize {
 			ctx.Data["IsFileTooLarge"] = true
 			break
 		}
