@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
-	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -38,10 +37,6 @@ func DeleteOrganization(org *organization.Organization) error {
 		return fmt.Errorf("HasOwnerPackages: %w", err)
 	} else if ownsPackages {
 		return models.ErrUserOwnPackages{UID: org.ID}
-	}
-
-	if _, err := db.DeleteByBean(ctx, &auth_model.Secret{OwnerID: org.ID}); err != nil {
-		return err
 	}
 
 	if err := organization.DeleteOrganization(ctx, org); err != nil {

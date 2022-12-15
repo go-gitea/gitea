@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
-	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
@@ -49,10 +48,6 @@ func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_mod
 	}
 
 	if err := models.DeleteRepository(doer, repo.OwnerID, repo.ID); err != nil {
-		return err
-	}
-
-	if _, err := db.DeleteByBean(ctx, &auth_model.Secret{RepoID: repo.ID}); err != nil {
 		return err
 	}
 
