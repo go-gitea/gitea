@@ -545,7 +545,7 @@ steps:
     depends_on: [deps-frontend]
 
   - name: deps-backend
-    image: golang:1.18
+    image: golang:1.19
     pull: always
     commands:
       - make deps-backend
