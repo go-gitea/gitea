@@ -79,6 +79,7 @@ import {initOrgTeamSearchRepoBox, initOrgTeamSettings} from './features/org-team
 import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.js';
 import {initRepoRelease, initRepoReleaseEditor} from './features/repo-release.js';
 import {initRepoEditor} from './features/repo-editor.js';
+import {initPackageEditor} from './features/package-editor.js';
 import {initCompSearchUserBox} from './features/comp/SearchUserBox.js';
 import {initInstall} from './features/install.js';
 import {initCompWebHookEditor} from './features/comp/WebHookEditor.js';
@@ -187,6 +188,8 @@ $(document).ready(() => {
   initRepoTopicBar();
   initRepoWikiForm();
   initRepository();
+
+  initPackageEditor();
 
   initCommitStatuses();
   initMcaptcha();

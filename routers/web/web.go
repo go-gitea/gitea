@@ -818,6 +818,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Group("/{type}/{name}", func() {
 					m.Get("", user.RedirectToLastVersion)
 					m.Get("/versions", user.ListPackageVersions)
+					m.Post("/markdown", bindIgnErr(structs.MarkdownOption{}), misc.Markdown)
 					m.Group("/{version}", func() {
 						m.Get("", user.ViewPackageVersion)
 						m.Get("/files/{fileid}", user.DownloadPackageFile)

@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content repository settings options">
+<div class="page-content repository package settings options">
 	{{template "user/overview/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -31,6 +31,28 @@
 				</div>
 				<div class="field">
 					<button class="ui green button">{{.locale.Tr "packages.settings.link.button"}}</button>
+				</div>
+			</form>
+		</div>
+		<h4 class="ui top attached header">
+			{{.locale.Tr "packages.settings.descriptions"}}
+		</h4>
+		<div class="ui attached segment">
+			<form class="ui descriptions form" action="{{.Link}}" method="post">
+				{{template "base/disable_form_autofill"}}
+				{{.CsrfTokenHtml}}
+				<input type="hidden" name="action" value="update">
+
+				<div class="field {{if .Err_Description}}error{{end}}">
+					<label for="description">{{$.locale.Tr "packages.settings.description.description"}}</label>
+					<textarea id="description" name="description" rows="2" maxlength="255">{{.PackageDescriptor.Package.Description}}</textarea>
+				</div>
+
+				<label for="readme">{{$.locale.Tr "packages.settings.readme.description"}}</label>
+				{{template "package/readme_tab" .}}
+
+				<div class="field">
+					<button class="ui green button">{{.locale.Tr "packages.settings.descriptions.button"}}</button>
 				</div>
 			</form>
 		</div>

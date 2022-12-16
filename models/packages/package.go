@@ -130,6 +130,8 @@ type Package struct {
 	Name             string `xorm:"NOT NULL"`
 	LowerName        string `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	SemverCompatible bool   `xorm:"NOT NULL DEFAULT false"`
+	Description      string `xorm:"VARCHAR(255)"`
+	Readme           string `xorm:"LONGBLOB"`
 }
 
 // TryInsertPackage inserts a package. If a package exists already, ErrDuplicatePackage is returned
@@ -164,6 +166,15 @@ func DeletePackageByID(ctx context.Context, packageID int64) error {
 // SetRepositoryLink sets the linked repository
 func SetRepositoryLink(ctx context.Context, packageID, repoID int64) error {
 	_, err := db.GetEngine(ctx).ID(packageID).Cols("repo_id").Update(&Package{RepoID: repoID})
+	return err
+}
+
+// SetDescriptions sets descriptions
+func SetDescriptions(ctx context.Context, packageID int64, description, readme string) error {
+	_, err := db.GetEngine(ctx).ID(packageID).Update(&Package{
+		Description: description,
+		Readme:      readme,
+	})
 	return err
 }
 

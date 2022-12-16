@@ -414,7 +414,7 @@ var migrations = []Migration{
 	// v222 -> v223
 	NewMigration("Drop old CredentialID column", v1_17.DropOldCredentialIDColumn),
 	// v223 -> v224
-	NewMigration("Rename CredentialIDBytes column to CredentialID", v1_17.RenameCredentialIDBytes),
+	NewMigration("Rename CredentialIDBytes column to CredentialID", renameCredentialIDBytes),
 
 	// Gitea 1.17.0 ends at v224
 
@@ -442,6 +442,8 @@ var migrations = []Migration{
 	NewMigration("Add package cleanup rule table", v1_19.CreatePackageCleanupRuleTable),
 	// v235 -> v236
 	NewMigration("Add index for access_token", v1_19.AddIndexForAccessToken),
+
+  NewMigration("Add container repository property", addDescriptionAndReadmeColsForPackage),
 }
 
 // GetCurrentDBVersion returns the current db version
