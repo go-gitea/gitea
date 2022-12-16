@@ -1424,7 +1424,6 @@ steps:
   - name: manifest-rootless
     pull: always
     image: plugins/manifest
-    pull: always
     settings:
       auto_tag: false
       ignore_missing: true
