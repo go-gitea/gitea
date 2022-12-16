@@ -37,11 +37,11 @@ func (err ErrSecretInvalidValue) Unwrap() error {
 // Secret represents a secret
 type Secret struct {
 	ID          int64
-	OwnerID     int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOTNULL"`
-	RepoID      int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOTNULL"`
-	Name        string             `xorm:"UNIQUE(owner_repo_name) NOTNULL"`
+	OwnerID     int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL"`
+	RepoID      int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL DEFAULT 0"`
+	Name        string             `xorm:"UNIQUE(owner_repo_name) NOT NULL"`
 	Data        string             `xorm:"LONGTEXT"` // encrypted data
-	CreatedUnix timeutil.TimeStamp `xorm:"created NOTNULL"`
+	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
 }
 
 func init() {
