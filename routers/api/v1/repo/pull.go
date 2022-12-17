@@ -489,7 +489,7 @@ func EditPullRequest(ctx *context.APIContext) {
 	}
 	issue := pr.Issue
 	issue.Repo = ctx.Repo.Repository
-	
+
 	if err := issue.LoadAttributes(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
