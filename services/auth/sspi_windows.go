@@ -85,7 +85,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 	cfg, err := s.getConfig()
 	if err != nil {
 		log.Error("could not get SSPI config: %v", err)
-		return nil, nil
+		return nil, err
 	}
 
 	log.Trace("SSPI Authorization: Attempting to authenticate")
