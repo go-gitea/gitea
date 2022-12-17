@@ -198,7 +198,7 @@ func UpdateMilestone(m *Milestone, oldIsClosed bool) error {
 		}
 	}
 
-	if err = m.LoadLabels(); err != nil {
+	if err = m.LoadLabels(ctx); err != nil {
 		return err
 	}
 	dbLabels, err := GetLabelsByMilestoneID(ctx, m.ID)
@@ -381,7 +381,7 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 		return err
 	}
 
-	if err = m.LoadLabelsWithContext(ctx); err != nil {
+	if err = m.LoadLabels(ctx); err != nil {
 		return err
 	}
 	for _, label := range m.Labels {

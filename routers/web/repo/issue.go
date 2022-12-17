@@ -1769,7 +1769,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["Participants"] = participants
 	ctx.Data["NumParticipants"] = len(participants)
 	if issue.Milestone != nil {
-		if err = issue.Milestone.LoadLabels(); err != nil {
+		if err = issue.Milestone.LoadLabels(db.DefaultContext); err != nil {
 			ctx.ServerError("issue.Milestone.LoadLabels", err)
 			return
 		}

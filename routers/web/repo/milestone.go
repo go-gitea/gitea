@@ -93,7 +93,7 @@ func Milestones(ctx *context.Context) {
 			ctx.ServerError("RenderString", err)
 			return
 		}
-		if err = m.LoadLabels(); err != nil {
+		if err = m.LoadLabels(db.DefaultContext); err != nil {
 			return
 		}
 	}
@@ -282,7 +282,7 @@ func EditMilestone(ctx *context.Context) {
 	}
 
 	labelIDsString := ""
-	if err = m.LoadLabels(); err != nil {
+	if err = m.LoadLabels(db.DefaultContext); err != nil {
 		return
 	}
 	for index, selectL := range m.Labels {

@@ -221,7 +221,7 @@ func ToAPIMilestone(m *issues_model.Milestone) *api.Milestone {
 		repo = m.Repo
 		user = m.Repo.Owner
 	}
-	if err := m.LoadLabels(); err != nil {
+	if err := m.LoadLabels(db.DefaultContext); err != nil {
 		log.Error("ToAPIMilestone cannot LoadLabels for milestone with id '%d': %v", m.ID, err)
 		return nil
 	}

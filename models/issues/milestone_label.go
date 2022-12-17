@@ -24,17 +24,13 @@ func init() {
 	db.RegisterModel(new(MilestoneLabel))
 }
 
-func hasMilestoneLabel(ctx context.Context, milestoneID, labelID int64) (bool, error) {
+// HasMilestoneLabel returns true if milestone has been labeled.
+func HasMilestoneLabel(ctx context.Context, milestoneID, labelID int64) (bool, error) {
 	has, err := db.GetEngine(ctx).Where("milestone_id = ? AND label_id = ?", milestoneID, labelID).Exist(new(MilestoneLabel))
 	if err != nil {
 		return false, err
 	}
 	return has, nil
-}
-
-// HasMilestoneLabel returns true if milestone has been labeled.
-func HasMilestoneLabel(milestoneID, labelID int64) (bool, error) {
-	return hasMilestoneLabel(db.DefaultContext, milestoneID, labelID)
 }
 
 // GetLabelsByMilestoneID returns all labels that belong to given milestone by ID.
@@ -61,7 +57,7 @@ func newMilestoneLabel(ctx context.Context, m *Milestone, label *Label, doer *us
 
 // NewMilestoneLabel creates a new milestone-label relation.
 func NewMilestoneLabel(m *Milestone, label *Label, doer *user_model.User) (err error) {
-	hasLabel, err := HasMilestoneLabel(m.ID, label.ID)
+	hasLabel, err := HasMilestoneLabel(db.DefaultContext, m.ID, label.ID)
 	if hasLabel {
 		return nil
 	}
@@ -69,7 +65,7 @@ func NewMilestoneLabel(m *Milestone, label *Label, doer *user_model.User) (err e
 		return err
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -85,7 +81,7 @@ func NewMilestoneLabel(m *Milestone, label *Label, doer *user_model.User) (err e
 	}
 
 	m.Labels = nil
-	if err = m.loadLabels(ctx); err != nil {
+	if err = m.LoadLabels(ctx); err != nil {
 		return err
 	}
 
@@ -95,7 +91,7 @@ func NewMilestoneLabel(m *Milestone, label *Label, doer *user_model.User) (err e
 // newMilestoneLabels add labels to an milestone. It will check if the labels are valid for the milestone
 func newMilestoneLabels(ctx context.Context, m *Milestone, labels []*Label, doer *user_model.User) (err error) {
 	for _, label := range labels {
-		hasLabel, err := hasMilestoneLabel(ctx, m.ID, label.ID)
+		hasLabel, err := HasMilestoneLabel(ctx, m.ID, label.ID)
 		if err != nil {
 			return err
 		}
@@ -115,7 +111,7 @@ func newMilestoneLabels(ctx context.Context, m *Milestone, labels []*Label, doer
 
 // NewMilestoneLabels creates a list of milestone-label relations.
 func NewMilestoneLabels(m *Milestone, labels []*Label, doer *user_model.User) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -126,7 +122,7 @@ func NewMilestoneLabels(m *Milestone, labels []*Label, doer *user_model.User) (e
 	}
 
 	m.Labels = nil
-	if err = m.loadLabels(ctx); err != nil {
+	if err = m.LoadLabels(ctx); err != nil {
 		return err
 	}
 
@@ -147,7 +143,7 @@ func deleteMilestoneLabel(ctx context.Context, m *Milestone, label *Label, doer 
 
 // DeleteMilestoneLabel deletes milestone-label relation.
 func DeleteMilestoneLabel(m *Milestone, label *Label, doer *user_model.User) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -161,16 +157,7 @@ func DeleteMilestoneLabel(m *Milestone, label *Label, doer *user_model.User) (er
 }
 
 // LoadLabels loads labels
-func (m *Milestone) LoadLabels() error {
-	return m.loadLabels(db.DefaultContext)
-}
-
-// LoadLabels loads labels with context
-func (m *Milestone) LoadLabelsWithContext(ctx context.Context) error {
-	return m.loadLabels(ctx)
-}
-
-func (m *Milestone) loadLabels(ctx context.Context) (err error) {
+func (m *Milestone) LoadLabels(ctx context.Context) (err error) {
 	if m.Labels == nil {
 		m.Labels, err = GetLabelsByMilestoneID(ctx, m.ID)
 		if err != nil {
@@ -181,7 +168,7 @@ func (m *Milestone) loadLabels(ctx context.Context) (err error) {
 }
 
 func (m *Milestone) hasLabel(ctx context.Context, labelID int64) (bool, error) {
-	hasLabel, err := hasMilestoneLabel(ctx, m.ID, labelID)
+	hasLabel, err := HasMilestoneLabel(ctx, m.ID, labelID)
 	if err != nil {
 		return false, err
 	}
@@ -212,7 +199,7 @@ func (m *Milestone) removeLabel(ctx context.Context, doer *user_model.User, labe
 }
 
 func (m *Milestone) clearLabels(ctx context.Context, e db.Engine, doer *user_model.User) (err error) {
-	if err = m.loadLabels(ctx); err != nil {
+	if err = m.LoadLabels(ctx); err != nil {
 		return fmt.Errorf("getLabels: %v", err)
 	}
 
@@ -228,7 +215,7 @@ func (m *Milestone) clearLabels(ctx context.Context, e db.Engine, doer *user_mod
 // ClearLabels removes all milestone labels as the given user.
 // Triggers appropriate WebHooks, if any.
 func (m *Milestone) ClearLabels(doer *user_model.User) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -256,13 +243,13 @@ func (m *Milestone) ClearLabels(doer *user_model.User) (err error) {
 // ReplaceLabels removes all current labels and adds the given labels to the milestone.
 // Triggers appropriate WebHooks, if any.
 func (m *Milestone) ReplaceLabels(labels []*Label, doer *user_model.User) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	if err = m.loadLabels(ctx); err != nil {
+	if err = m.LoadLabels(ctx); err != nil {
 		return err
 	}
 
@@ -310,7 +297,7 @@ func (m *Milestone) ReplaceLabels(labels []*Label, doer *user_model.User) (err e
 	}
 
 	m.Labels = nil
-	if err = m.loadLabels(ctx); err != nil {
+	if err = m.LoadLabels(ctx); err != nil {
 		return err
 	}
 
