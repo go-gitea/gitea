@@ -1,12 +1,11 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 
@@ -42,7 +41,7 @@ func TestAPIViewPulls(t *testing.T) {
 	pull := pulls[0]
 	if assert.EqualValues(t, 5, pull.ID) {
 		resp = ctx.Session.MakeRequest(t, NewRequest(t, "GET", pull.DiffURL), http.StatusOK)
-		_, err := ioutil.ReadAll(resp.Body)
+		_, err := io.ReadAll(resp.Body)
 		assert.NoError(t, err)
 		// TODO: use diff to generate stats to test against
 
@@ -81,7 +80,7 @@ func TestAPIMergePullWIP(t *testing.T) {
 		Do:                string(repo_model.MergeStyleMerge),
 	})
 
-	session.MakeRequest(t, req, http.StatusMethodNotAllowed)
+	MakeRequest(t, req, http.StatusMethodNotAllowed)
 }
 
 func TestAPICreatePullSuccess(t *testing.T) {
@@ -100,8 +99,8 @@ func TestAPICreatePullSuccess(t *testing.T) {
 		Base:  "master",
 		Title: "create a failure pr",
 	})
-	session.MakeRequest(t, req, http.StatusCreated)
-	session.MakeRequest(t, req, http.StatusUnprocessableEntity) // second request should fail
+	MakeRequest(t, req, http.StatusCreated)
+	MakeRequest(t, req, http.StatusUnprocessableEntity) // second request should fail
 }
 
 func TestAPICreatePullWithFieldsSuccess(t *testing.T) {
@@ -128,7 +127,7 @@ func TestAPICreatePullWithFieldsSuccess(t *testing.T) {
 
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls?token=%s", owner10.Name, repo10.Name, token), opts)
 
-	res := session.MakeRequest(t, req, http.StatusCreated)
+	res := MakeRequest(t, req, http.StatusCreated)
 	pull := new(api.PullRequest)
 	DecodeJSON(t, res, pull)
 
@@ -159,19 +158,19 @@ func TestAPICreatePullWithFieldsFailure(t *testing.T) {
 	}
 
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls?token=%s", owner10.Name, repo10.Name, token), opts)
-	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
 	opts.Title = "is required"
 
 	opts.Milestone = 666
-	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
 	opts.Milestone = 5
 
 	opts.Assignees = []string{"qweruqweroiuyqweoiruywqer"}
-	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
 	opts.Assignees = []string{owner10.LoginName}
 
 	opts.Labels = []int64{55555}
-	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
 	opts.Labels = []int64{5}
 }
 
@@ -188,7 +187,7 @@ func TestAPIEditPull(t *testing.T) {
 		Title: "create a success pr",
 	})
 	pull := new(api.PullRequest)
-	resp := session.MakeRequest(t, req, http.StatusCreated)
+	resp := MakeRequest(t, req, http.StatusCreated)
 	DecodeJSON(t, resp, pull)
 	assert.EqualValues(t, "master", pull.Base.Name)
 
@@ -196,14 +195,14 @@ func TestAPIEditPull(t *testing.T) {
 		Base:  "feature/1",
 		Title: "edit a this pr",
 	})
-	resp = session.MakeRequest(t, req, http.StatusCreated)
+	resp = MakeRequest(t, req, http.StatusCreated)
 	DecodeJSON(t, resp, pull)
 	assert.EqualValues(t, "feature/1", pull.Base.Name)
 
 	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d?token=%s", owner10.Name, repo10.Name, pull.Index, token), &api.EditPullRequestOption{
 		Base: "not-exist",
 	})
-	session.MakeRequest(t, req, http.StatusNotFound)
+	MakeRequest(t, req, http.StatusNotFound)
 }
 
 func doAPIGetPullFiles(ctx APITestContext, pr *api.PullRequest, callback func(*testing.T, []*api.ChangedFile)) func(*testing.T) {

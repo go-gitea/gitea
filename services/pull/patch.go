@@ -1,7 +1,6 @@
 // Copyright 2019 The Gitea Authors.
 // All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package pull
 
@@ -15,6 +14,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/container"
@@ -53,6 +53,8 @@ var patchErrorSuffices = []string{
 	": patch does not apply",
 	": already exists in working directory",
 	"unrecognized input",
+	": No such file or directory",
+	": does not exist in index",
 }
 
 // TestPatch will test whether a simple patch will apply
@@ -354,7 +356,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 	}
 
 	// 5. Now get the pull request configuration to check if we need to ignore whitespace
-	prUnit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests)
+	prUnit, err := pr.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
 	if err != nil {
 		return false, err
 	}
@@ -416,6 +418,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 				scanner := bufio.NewScanner(stderrReader)
 				for scanner.Scan() {
 					line := scanner.Text()
+					log.Trace("PullRequest[%d].testPatch: stderr: %s", pr.ID, line)
 					if strings.HasPrefix(line, prefix) {
 						conflict = true
 						filepath := strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0])
@@ -534,7 +537,7 @@ func checkPullFilesProtection(pr *issues_model.PullRequest, gitRepo *git.Reposit
 		return nil
 	}
 
-	if err := pr.LoadProtectedBranch(); err != nil {
+	if err := pr.LoadProtectedBranch(db.DefaultContext); err != nil {
 		return err
 	}
 

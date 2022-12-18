@@ -128,9 +128,9 @@
 				<ul class="repo-owner-name-list">
 					<li v-for="repo in repos" :class="{'private': repo.private || repo.internal}">
 						<a class="repo-list-link df ac sb" :href="repo.html_url">
-							<div class="text truncate item-name f1">
-								<component v-bind:is="repoIcon(repo)" size="16"></component>
-								<strong>${repo.full_name}</strong>
+							<div class="item-name df ac f1 mr-2">
+								<component v-bind:is="repoIcon(repo)" size="16" class="mr-2"></component>
+								<div class="text bold truncate ml-1">${repo.full_name}</div>
 								<span v-if="repo.archived">
 									{{svg "octicon-archive" 16 "ml-2"}}
 								</span>

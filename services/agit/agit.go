@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package agit
 
@@ -116,7 +115,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 				description = opts.GitPushOptions["description"]
 			}
 
-			pusher, err := user_model.GetUserByID(opts.UserID)
+			pusher, err := user_model.GetUserByID(ctx, opts.UserID)
 			if err != nil {
 				return nil, fmt.Errorf("Failed to get user. Error: %w", err)
 			}
@@ -199,7 +198,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		}
 
 		pull_service.AddToTaskQueue(pr)
-		pusher, err := user_model.GetUserByID(opts.UserID)
+		pusher, err := user_model.GetUserByID(ctx, opts.UserID)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to get user. Error: %w", err)
 		}
@@ -207,7 +206,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		if err != nil {
 			return nil, fmt.Errorf("Failed to load pull issue. Error: %w", err)
 		}
-		comment, err := issues_model.CreatePushPullComment(ctx, pusher, pr, oldCommitID, opts.NewCommitIDs[i])
+		comment, err := pull_service.CreatePushPullComment(ctx, pusher, pr, oldCommitID, opts.NewCommitIDs[i])
 		if err == nil && comment != nil {
 			notification.NotifyPullRequestPushCommits(ctx, pusher, pr, comment)
 		}

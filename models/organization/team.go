@@ -1,7 +1,6 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
 // Copyright 2016 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package organization
 
@@ -223,8 +222,8 @@ func (t *Team) IsMember(userID int64) bool {
 	return isMember
 }
 
-// GetRepositoriesCtx returns paginated repositories in team of organization.
-func (t *Team) GetRepositoriesCtx(ctx context.Context) (err error) {
+// LoadRepositories returns paginated repositories in team of organization.
+func (t *Team) LoadRepositories(ctx context.Context) (err error) {
 	if t.Repos != nil {
 		return nil
 	}
@@ -234,8 +233,8 @@ func (t *Team) GetRepositoriesCtx(ctx context.Context) (err error) {
 	return err
 }
 
-// GetMembersCtx returns paginated members in team of organization.
-func (t *Team) GetMembersCtx(ctx context.Context) (err error) {
+// LoadMembers returns paginated members in team of organization.
+func (t *Team) LoadMembers(ctx context.Context) (err error) {
 	t.Members, err = GetTeamMembers(ctx, &SearchMembersOptions{
 		TeamID: t.ID,
 	})
@@ -243,18 +242,12 @@ func (t *Team) GetMembersCtx(ctx context.Context) (err error) {
 }
 
 // UnitEnabled returns if the team has the given unit type enabled
-func (t *Team) UnitEnabled(tp unit.Type) bool {
-	return t.UnitAccessMode(tp) > perm.AccessModeNone
+func (t *Team) UnitEnabled(ctx context.Context, tp unit.Type) bool {
+	return t.UnitAccessMode(ctx, tp) > perm.AccessModeNone
 }
 
 // UnitAccessMode returns if the team has the given unit type enabled
-// it is called in templates, should not be replaced by `UnitAccessModeCtx(ctx ...)`
-func (t *Team) UnitAccessMode(tp unit.Type) perm.AccessMode {
-	return t.UnitAccessModeCtx(db.DefaultContext, tp)
-}
-
-// UnitAccessModeCtx returns if the team has the given unit type enabled
-func (t *Team) UnitAccessModeCtx(ctx context.Context, tp unit.Type) perm.AccessMode {
+func (t *Team) UnitAccessMode(ctx context.Context, tp unit.Type) perm.AccessMode {
 	if err := t.getUnits(ctx); err != nil {
 		log.Warn("Error loading team (ID: %d) units: %s", t.ID, err.Error())
 	}
