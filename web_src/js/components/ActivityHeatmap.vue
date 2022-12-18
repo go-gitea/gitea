@@ -53,7 +53,7 @@ export default {
   },
   mounted() {
     // work around issue with first legend color being rendered twice and legend cut off
-    const legend = document.querySelector('#user-heatmap .vch__external-legend-wrapper');
+    const legend = document.querySelector('.vch__external-legend-wrapper');
     legend.setAttribute('viewBox', '12 0 80 10');
     legend.style.marginRight = '-12px';
   },
