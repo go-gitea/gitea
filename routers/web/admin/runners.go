@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/routers/common"
+	actions_shared "code.gitea.io/gitea/routers/web/shared/actions"
 )
 
 const (
@@ -40,7 +40,7 @@ func Runners(ctx *context.Context) {
 		Filter: ctx.Req.URL.Query().Get("q"),
 	}
 
-	common.RunnersList(ctx, tplRunners, opts)
+	actions_shared.RunnersList(ctx, tplRunners, opts)
 }
 
 // EditRunner show editing runner page
@@ -54,7 +54,7 @@ func EditRunner(ctx *context.Context) {
 		page = 1
 	}
 
-	common.RunnerDetails(ctx, tplRunnerEdit, page, ctx.ParamsInt64(":runnerid"), 0, 0)
+	actions_shared.RunnerDetails(ctx, tplRunnerEdit, page, ctx.ParamsInt64(":runnerid"), 0, 0)
 }
 
 // EditRunnerPost response for editing runner
@@ -62,18 +62,18 @@ func EditRunnerPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.runners.edit")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminRunners"] = true
-	common.RunnerDetailsEditPost(ctx, ctx.ParamsInt64(":runnerid"), 0, 0,
+	actions_shared.RunnerDetailsEditPost(ctx, ctx.ParamsInt64(":runnerid"), 0, 0,
 		setting.AppSubURL+"/admin/runners/"+url.PathEscape(ctx.Params(":runnerid")))
 }
 
 // DeleteRunnerPost response for deleting a runner
 func DeleteRunnerPost(ctx *context.Context) {
-	common.RunnerDeletePost(ctx, ctx.ParamsInt64(":runnerid"),
+	actions_shared.RunnerDeletePost(ctx, ctx.ParamsInt64(":runnerid"),
 		setting.AppSubURL+"/admin/runners/",
 		setting.AppSubURL+"/admin/runners/"+url.PathEscape(ctx.Params(":runnerid")),
 	)
 }
 
 func ResetRunnerRegistrationToken(ctx *context.Context) {
-	common.RunnerResetRegistrationToken(ctx, 0, 0, setting.AppSubURL+"/admin/runners/")
+	actions_shared.RunnerResetRegistrationToken(ctx, 0, 0, setting.AppSubURL+"/admin/runners/")
 }

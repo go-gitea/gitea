@@ -9,7 +9,7 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/routers/common"
+	actions_shared "code.gitea.io/gitea/routers/web/shared/actions"
 )
 
 const (
@@ -38,7 +38,7 @@ func Runners(ctx *context.Context) {
 		WithAvailable: true,
 	}
 
-	common.RunnersList(ctx, tplRunners, opts)
+	actions_shared.RunnersList(ctx, tplRunners, opts)
 }
 
 func RunnersEdit(ctx *context.Context) {
@@ -49,7 +49,7 @@ func RunnersEdit(ctx *context.Context) {
 		page = 1
 	}
 
-	common.RunnerDetails(ctx, tplRunnerEdit, page,
+	actions_shared.RunnerDetails(ctx, tplRunnerEdit, page,
 		ctx.ParamsInt64(":runnerid"), 0, ctx.Repo.Repository.ID,
 	)
 }
@@ -57,20 +57,20 @@ func RunnersEdit(ctx *context.Context) {
 func RunnersEditPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.runners")
 	ctx.Data["PageIsSettingsRunners"] = true
-	common.RunnerDetailsEditPost(ctx, ctx.ParamsInt64(":runnerid"),
+	actions_shared.RunnerDetailsEditPost(ctx, ctx.ParamsInt64(":runnerid"),
 		0, ctx.Repo.Repository.ID,
 		ctx.Repo.RepoLink+"/settings/runners/"+url.PathEscape(ctx.Params(":runnerid")))
 }
 
 func ResetRunnerRegistrationToken(ctx *context.Context) {
-	common.RunnerResetRegistrationToken(ctx,
+	actions_shared.RunnerResetRegistrationToken(ctx,
 		0, ctx.Repo.Repository.ID,
 		ctx.Repo.RepoLink+"/settings/runners")
 }
 
 // RunnerDeletePost response for deleting runner
 func RunnerDeletePost(ctx *context.Context) {
-	common.RunnerDeletePost(ctx, ctx.ParamsInt64(":runnerid"),
+	actions_shared.RunnerDeletePost(ctx, ctx.ParamsInt64(":runnerid"),
 		ctx.Repo.RepoLink+"/settings/runners",
 		ctx.Repo.RepoLink+"/settings/runners/"+url.PathEscape(ctx.Params(":runnerid")))
 }
