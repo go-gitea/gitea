@@ -90,7 +90,6 @@ func (run *ActionRun) TakeTime() time.Duration {
 	if run.Status.IsDone() {
 		return run.Stopped.AsTime().Sub(started)
 	}
-	run.Stopped.AsTime().Sub(started)
 	return time.Since(started).Truncate(time.Second)
 }
 
