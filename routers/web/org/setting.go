@@ -278,10 +278,11 @@ func SecretsPost(ctx *context.Context) {
 		ctx.Redirect(ctx.Org.OrgLink + "/settings/secrets")
 		return
 	}
+	name := strings.ToUpper(form.Title)
 
 	sec := &auth_model.Secret{
 		OwnerID: ctx.Org.Organization.ID,
-		Name:    form.Title,
+		Name:    name,
 		Data:    data,
 	}
 	if err := sec.Validate(); err != nil {

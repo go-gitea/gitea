@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -48,7 +49,7 @@ func init() {
 	db.RegisterModel(new(Secret))
 }
 
-var secretNameReg = regexp.MustCompile("^[a-zA-Z_][a-zA-Z0-9_.-]*$")
+var secretNameReg = regexp.MustCompile("^[A-Z_][A-Z0-9_]*$")
 
 // Validate validates the required fields and formats.
 func (s *Secret) Validate() error {
@@ -57,7 +58,9 @@ func (s *Secret) Validate() error {
 		return ErrSecretInvalidValue{Name: &s.Name}
 	case len(s.Data) == 0:
 		return ErrSecretInvalidValue{Data: &s.Data}
-	case !secretNameReg.MatchString(s.Name):
+	case !secretNameReg.MatchString(s.Name) ||
+		strings.HasPrefix(s.Name, "GITHUB_") ||
+		strings.HasPrefix(s.Name, "GITEA_"):
 		return ErrSecretInvalidValue{Name: &s.Name}
 	default:
 		return nil

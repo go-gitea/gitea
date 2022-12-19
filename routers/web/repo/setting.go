@@ -1127,7 +1127,7 @@ func DeployKeys(ctx *context.Context) {
 
 // SecretsPost response for creating a new secret
 func SecretsPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.AddKeyForm)
+	form := web.GetForm(ctx).(*forms.AddSecretForm)
 
 	data, err := secret.EncryptSecret(setting.SecretKey, strings.TrimSpace(form.Content))
 	if err != nil {
@@ -1136,10 +1136,11 @@ func SecretsPost(ctx *context.Context) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
 		return
 	}
+	name := strings.ToUpper(form.Title)
 
 	sec := &auth_model.Secret{
 		RepoID: ctx.Repo.Repository.ID,
-		Name:   form.Title,
+		Name:   name,
 		Data:   data,
 	}
 	if err := sec.Validate(); err != nil {
