@@ -10,9 +10,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	secret_model "code.gitea.io/gitea/models/secret"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/base"
@@ -257,7 +257,7 @@ func Secrets(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsOrgSettingsSecrets"] = true
 
-	secrets, err := auth_model.FindSecrets(ctx, auth_model.FindSecretsOptions{OwnerID: ctx.Org.Organization.ID})
+	secrets, err := secret_model.FindSecrets(ctx, secret_model.FindSecretsOptions{OwnerID: ctx.Org.Organization.ID})
 	if err != nil {
 		ctx.ServerError("FindSecrets", err)
 		return
@@ -278,13 +278,8 @@ func SecretsPost(ctx *context.Context) {
 		ctx.Redirect(ctx.Org.OrgLink + "/settings/secrets")
 		return
 	}
-	name := strings.ToUpper(form.Title)
 
-	sec := &auth_model.Secret{
-		OwnerID: ctx.Org.Organization.ID,
-		Name:    name,
-		Data:    data,
-	}
+	sec := secret_model.NewSecret(ctx.Org.Organization.ID, 0, form.Title, data)
 	if err := sec.Validate(); err != nil {
 		ctx.Flash.Error(ctx.Tr("secrets.creation.failed"))
 		log.Error("validate secret: %v", err)
@@ -307,7 +302,7 @@ func SecretsPost(ctx *context.Context) {
 // SecretsDelete delete secrets
 func SecretsDelete(ctx *context.Context) {
 	id := ctx.FormInt64("id")
-	if _, err := db.DeleteByBean(ctx, &auth_model.Secret{ID: id}); err != nil {
+	if _, err := db.DeleteByBean(ctx, &secret_model.Secret{ID: id}); err != nil {
 		ctx.Flash.Error(ctx.Tr("secrets.deletion.failed"))
 		log.Error("delete secret %d: %v", id, err)
 	} else {

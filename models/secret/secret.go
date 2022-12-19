@@ -1,12 +1,13 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package auth
+package secret
 
 import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -44,6 +45,15 @@ type Secret struct {
 	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
 }
 
+func NewSecret(ownerID, repoID int64, name, data string) *Secret {
+	return &Secret{
+		OwnerID: ownerID,
+		RepoID:  repoID,
+		Name:    strings.ToUpper(name),
+		Data:    data,
+	}
+}
+
 func init() {
 	db.RegisterModel(new(Secret))
 }
@@ -56,7 +66,7 @@ var (
 // Validate validates the required fields and formats.
 func (s *Secret) Validate() error {
 	switch {
-	case len(s.Name) == 0:
+	case len(s.Name) == 0 || len(s.Name) > 50:
 		return ErrSecretInvalidValue{Name: &s.Name}
 	case len(s.Data) == 0:
 		return ErrSecretInvalidValue{Data: &s.Data}

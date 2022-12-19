@@ -14,7 +14,6 @@ import (
 	activities_model "code.gitea.io/gitea/models/activities"
 	admin_model "code.gitea.io/gitea/models/admin"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -22,6 +21,7 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
+	secret_model "code.gitea.io/gitea/models/secret"
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -151,7 +151,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		&admin_model.Task{RepoID: repoID},
 		&repo_model.Watch{RepoID: repoID},
 		&webhook.Webhook{RepoID: repoID},
-		&auth_model.Secret{RepoID: repoID},
+		&secret_model.Secret{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %w", err)
 	}

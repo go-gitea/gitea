@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"strings"
 
-	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
+	secret_model "code.gitea.io/gitea/models/secret"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -371,7 +371,7 @@ func DeleteOrganization(ctx context.Context, org *Organization) error {
 		&TeamUser{OrgID: org.ID},
 		&TeamUnit{OrgID: org.ID},
 		&TeamInvite{OrgID: org.ID},
-		&auth_model.Secret{OwnerID: org.ID},
+		&secret_model.Secret{OwnerID: org.ID},
 	); err != nil {
 		return fmt.Errorf("DeleteBeans: %w", err)
 	}
