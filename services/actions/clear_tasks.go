@@ -5,10 +5,12 @@ package actions
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -21,41 +23,24 @@ const (
 
 // StopZombieTasks stops the task which have running status, but haven't been updated for a long time
 func StopZombieTasks(ctx context.Context) error {
-	tasks, _, err := actions_model.FindTasks(ctx, actions_model.FindTaskOptions{
+	return stopTasks(ctx, actions_model.FindTaskOptions{
 		Status:        actions_model.StatusRunning,
 		UpdatedBefore: timeutil.TimeStamp(time.Now().Add(-zombieTaskTimeout).Unix()),
 	})
-	if err != nil {
-		log.Warn("find zombie tasks: %v", err)
-		return err
-	}
-
-	for _, task := range tasks {
-		if err := db.WithTx(ctx, func(ctx context.Context) error {
-			if err := actions_model.StopTask(ctx, task.ID, actions_model.StatusFailure); err != nil {
-				return err
-			}
-			if err := task.LoadJob(ctx); err != nil {
-				return err
-			}
-			return CreateCommitStatus(ctx, task.Job)
-		}); err != nil {
-			log.Warn("stop zombie task %v: %v", task.ID, err)
-			// go on
-		}
-	}
-	return nil
 }
 
 // StopEndlessTasks stops the tasks which have running status and continuous updates, but don't end for a long time
 func StopEndlessTasks(ctx context.Context) error {
-	tasks, _, err := actions_model.FindTasks(ctx, actions_model.FindTaskOptions{
+	return stopTasks(ctx, actions_model.FindTaskOptions{
 		Status:        actions_model.StatusRunning,
 		StartedBefore: timeutil.TimeStamp(time.Now().Add(-endlessTaskTimeout).Unix()),
 	})
+}
+
+func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
+	tasks, _, err := actions_model.FindTasks(ctx, opts)
 	if err != nil {
-		log.Warn("find endless tasks: %v", err)
-		return err
+		return fmt.Errorf("find tasks: %w", err)
 	}
 
 	for _, task := range tasks {
@@ -68,8 +53,12 @@ func StopEndlessTasks(ctx context.Context) error {
 			}
 			return CreateCommitStatus(ctx, task.Job)
 		}); err != nil {
-			log.Warn("stop endless task %v: %v", task.ID, err)
+			log.Warn("stop task %v: %v", task.ID, err)
 			// go on
+		} else if remove, err := actions.TransferLogs(ctx, task.LogFilename); err != nil {
+			log.Warn("transfer logs of task %v: %v", task.ID, err)
+		} else {
+			remove()
 		}
 	}
 	return nil
