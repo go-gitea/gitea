@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -50,9 +49,9 @@ func init() {
 }
 
 var (
-	secretNameReg = regexp.MustCompile("^[A-Z_][A-Z0-9_]*$")
+	secretNameReg            = regexp.MustCompile("^[A-Z_][A-Z0-9_]*$")
 	forbiddenSecretPrefixReg = regexp.MustCompile("^GIT(EA|HUB)_")
-	)
+)
 
 // Validate validates the required fields and formats.
 func (s *Secret) Validate() error {
@@ -62,7 +61,7 @@ func (s *Secret) Validate() error {
 	case len(s.Data) == 0:
 		return ErrSecretInvalidValue{Data: &s.Data}
 	case !secretNameReg.MatchString(s.Name) ||
-		forbiddenSecretPrefixReg.MatchSting(s.Name):
+		forbiddenSecretPrefixReg.MatchString(s.Name):
 		return ErrSecretInvalidValue{Name: &s.Name}
 	default:
 		return nil
