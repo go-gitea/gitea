@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
@@ -271,25 +270,10 @@ func Secrets(ctx *context.Context) {
 func SecretsPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AddSecretForm)
 
-	data, err := secret.EncryptSecret(setting.SecretKey, strings.TrimSpace(form.Content))
+	_, err := secret_model.InsertEncryptedSecret(ctx, ctx.Org.Organization.ID, 0, form.Title, strings.TrimSpace(form.Content))
 	if err != nil {
 		ctx.Flash.Error(ctx.Tr("secrets.creation.failed"))
-		log.Error("encrypt secret: %v", err)
-		ctx.Redirect(ctx.Org.OrgLink + "/settings/secrets")
-		return
-	}
-
-	sec := secret_model.NewSecret(ctx.Org.Organization.ID, 0, form.Title, data)
-	if err := sec.Validate(); err != nil {
-		ctx.Flash.Error(ctx.Tr("secrets.creation.failed"))
 		log.Error("validate secret: %v", err)
-		ctx.Redirect(ctx.Org.OrgLink + "/settings/secrets")
-		return
-	}
-
-	if err := db.Insert(ctx, sec); err != nil {
-		ctx.Flash.Error(ctx.Tr("secrets.creation.failed"))
-		log.Error("insert secret: %v", err)
 		ctx.Redirect(ctx.Org.OrgLink + "/settings/secrets")
 		return
 	}

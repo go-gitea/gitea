@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	secret_module "code.gitea.io/gitea/modules/secret"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -45,13 +47,27 @@ type Secret struct {
 	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
 }
 
-func NewSecret(ownerID, repoID int64, name, data string) *Secret {
+// newSecret Creates a new already encrypted secret
+func newSecret(ownerID, repoID int64, name, data string) *Secret {
 	return &Secret{
 		OwnerID: ownerID,
 		RepoID:  repoID,
 		Name:    strings.ToUpper(name),
 		Data:    data,
 	}
+}
+
+// InsertEncryptedSecret Creates, encrypts, and validates a new secret with yet unencrypted data and insert into database
+func InsertEncryptedSecret(ctx context.Context, ownerID, repoID int64, name, data string) (*Secret, error) {
+	encrypted, err := secret_module.EncryptSecret(setting.SecretKey, strings.TrimSpace(data))
+	if err != nil {
+		return nil, err
+	}
+	secret := newSecret(ownerID, repoID, name, encrypted)
+	if err := secret.Validate(); err != nil {
+		return secret, err
+	}
+	return secret, db.Insert(ctx, secret)
 }
 
 func init() {
