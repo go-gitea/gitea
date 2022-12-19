@@ -20,7 +20,7 @@ Encrypted secrets allow you to store sensitive information in your organization,
 
 The following rules apply to secret names:
 
-Secret names can only contain alphanumeric characters ([a-z], [A-Z], [0-9]) or underscores (_). Spaces are not allowed.
+Secret names can only contain alphanumeric characters (`[a-z]`, `[A-Z]`, `[0-9]) or underscores (`_`). Spaces are not allowed.
 
 Secret names must not start with the `GITHUB_` and `GITEA_` prefix.
 
