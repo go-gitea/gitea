@@ -54,6 +54,8 @@ var patchErrorSuffices = []string{
 	": patch does not apply",
 	": already exists in working directory",
 	"unrecognized input",
+	": No such file or directory",
+	": does not exist in index",
 }
 
 // TestPatch will test whether a simple patch will apply
@@ -429,6 +431,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 				scanner := bufio.NewScanner(stderrReader)
 				for scanner.Scan() {
 					line := scanner.Text()
+					log.Trace("PullRequest[%d].testPatch: stderr: %s", pr.ID, line)
 					if strings.HasPrefix(line, prefix) {
 						conflict = true
 						filepath := strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0])
