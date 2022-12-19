@@ -286,8 +286,8 @@ func GetReleasesByRepoIDAndNames(ctx context.Context, repoID int64, tagNames []s
 }
 
 // GetReleaseCountByRepoID returns the count of releases of repository
-func GetReleaseCountByRepoID(repoID int64, opts FindReleasesOptions) (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(opts.toConds(repoID)).Count(&Release{})
+func GetReleaseCountByRepoID(ctx context.Context, repoID int64, opts FindReleasesOptions) (int64, error) {
+	return db.GetEngine(ctx).Where(opts.toConds(repoID)).Count(&Release{})
 }
 
 type releaseMetaSearch struct {

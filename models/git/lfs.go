@@ -6,6 +6,7 @@ package git
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
@@ -14,6 +15,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -180,6 +182,12 @@ func GetLFSMetaObjectByOid(repoID int64, oid string) (*LFSMetaObject, error) {
 // RemoveLFSMetaObjectByOid removes a LFSMetaObject entry from database by its OID.
 // It may return ErrLFSObjectNotExist or a database error.
 func RemoveLFSMetaObjectByOid(repoID int64, oid string) (int64, error) {
+	return RemoveLFSMetaObjectByOidFn(repoID, oid, nil)
+}
+
+// RemoveLFSMetaObjectByOidFn removes a LFSMetaObject entry from database by its OID.
+// It may return ErrLFSObjectNotExist or a database error. It will run Fn with the current count within the transaction
+func RemoveLFSMetaObjectByOidFn(repoID int64, oid string, fn func(count int64) error) (int64, error) {
 	if len(oid) == 0 {
 		return 0, ErrLFSObjectNotExist
 	}
@@ -198,6 +206,12 @@ func RemoveLFSMetaObjectByOid(repoID int64, oid string) (int64, error) {
 	count, err := db.CountByBean(ctx, &LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
 	if err != nil {
 		return count, err
+	}
+
+	if fn != nil {
+		if err := fn(count); err != nil {
+			return count, err
+		}
 	}
 
 	return count, committer.Commit()
@@ -318,4 +332,44 @@ func GetRepoLFSSize(ctx context.Context, repoID int64) (int64, error) {
 		return 0, fmt.Errorf("updateSize: GetLFSMetaObjects: %w", err)
 	}
 	return lfsSize, nil
+}
+
+type IterateLFSMetaObjectsForRepoOptions struct {
+	OlderThan time.Time
+}
+
+// IterateLFSMetaObjectsForRepo provides a iterator for LFSMetaObjects per Repo
+func IterateLFSMetaObjectsForRepo(ctx context.Context, repoID int64, f func(context.Context, *LFSMetaObject, int64) error, opts *IterateLFSMetaObjectsForRepoOptions) error {
+	var start int
+	batchSize := setting.Database.IterateBufferSize
+	engine := db.GetEngine(ctx)
+	type CountLFSMetaObject struct {
+		Count int64
+		LFSMetaObject
+	}
+
+	for {
+		beans := make([]*CountLFSMetaObject, 0, batchSize)
+		// SELECT `lfs_meta_object`.*, COUNT(`l1`.id) as `count` FROM lfs_meta_object INNER JOIN lfs_meta_object AS l1 ON l1.oid = lfs_meta_object.oid WHERE lfs_meta_object.repository_id = ? GROUP BY lfs_meta_object.id
+		sess := engine.Select("`lfs_meta_object`.*, COUNT(`l1`.oid) AS `count`").
+			Join("INNER", "`lfs_meta_object` AS l1", "`lfs_meta_object`.oid = `l1`.oid").
+			Where("`lfs_meta_object`.repository_id = ?", repoID)
+		if !opts.OlderThan.IsZero() {
+			sess.And("`lfs_meta_object`.created_unix < ?", opts.OlderThan)
+		}
+		sess.GroupBy("`lfs_meta_object`.id")
+		if err := sess.Limit(batchSize, start).Find(&beans); err != nil {
+			return err
+		}
+		if len(beans) == 0 {
+			return nil
+		}
+		start += len(beans)
+
+		for _, bean := range beans {
+			if err := f(ctx, &bean.LFSMetaObject, bean.Count); err != nil {
+				return err
+			}
+		}
+	}
 }

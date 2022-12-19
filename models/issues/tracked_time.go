@@ -172,7 +172,7 @@ func AddTime(user *user_model.User, issue *Issue, amount int64, created time.Tim
 		return nil, err
 	}
 
-	if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
+	if _, err := CreateComment(ctx, &CreateCommentOptions{
 		Issue:   issue,
 		Repo:    issue.Repo,
 		Doer:    user,
@@ -250,7 +250,7 @@ func DeleteIssueUserTimes(issue *Issue, user *user_model.User) error {
 	if err := issue.LoadRepo(ctx); err != nil {
 		return err
 	}
-	if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
+	if _, err := CreateComment(ctx, &CreateCommentOptions{
 		Issue:   issue,
 		Repo:    issue.Repo,
 		Doer:    user,
@@ -279,7 +279,7 @@ func DeleteTime(t *TrackedTime) error {
 		return err
 	}
 
-	if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
+	if _, err := CreateComment(ctx, &CreateCommentOptions{
 		Issue:   t.Issue,
 		Repo:    t.Issue.Repo,
 		Doer:    t.User,

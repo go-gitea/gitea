@@ -33,6 +33,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
+	"github.com/xeipuuv/gojsonschema"
 )
 
 var c *web.Route
@@ -396,6 +397,25 @@ func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v interface{}) {
 
 	decoder := json.NewDecoder(resp.Body)
 	assert.NoError(t, decoder.Decode(v))
+}
+
+func VerifyJSONSchema(t testing.TB, resp *httptest.ResponseRecorder, schemaFile string) {
+	t.Helper()
+
+	schemaFilePath := filepath.Join(filepath.Dir(setting.AppPath), "tests", "integration", "schemas", schemaFile)
+	_, schemaFileErr := os.Stat(schemaFilePath)
+	assert.Nil(t, schemaFileErr)
+
+	schema, schemaFileReadErr := os.ReadFile(schemaFilePath)
+	assert.Nil(t, schemaFileReadErr)
+	assert.True(t, len(schema) > 0)
+
+	nodeinfoSchema := gojsonschema.NewStringLoader(string(schema))
+	nodeinfoString := gojsonschema.NewStringLoader(resp.Body.String())
+	result, schemaValidationErr := gojsonschema.Validate(nodeinfoSchema, nodeinfoString)
+	assert.Nil(t, schemaValidationErr)
+	assert.Empty(t, result.Errors())
+	assert.True(t, result.Valid())
 }
 
 func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
