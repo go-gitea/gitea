@@ -366,8 +366,7 @@ export function initRepositoryActionView() {
 // action view header
 
 .action-view-header {
-  width: 1127px;
-  margin: 0 auto 20px auto;
+  margin: 0 0 20px 20px;
 }
 
 .action-info-summary {
