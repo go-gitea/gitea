@@ -338,7 +338,7 @@ func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, in
 		}
 
 		repoNamesToCheck = append(repoNamesToCheck, name)
-		if len(repoNamesToCheck) > setting.Database.IterateBufferSize {
+		if len(repoNamesToCheck) >= setting.Database.IterateBufferSize {
 			if err = checkUnadoptedRepositories(userName, repoNamesToCheck, unadopted); err != nil {
 				return err
 			}
