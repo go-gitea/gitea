@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -462,7 +461,7 @@ func (issues IssueList) loadTotalTrackedTimes(ctx context.Context) (err error) {
 
 	ids := make([]int64, 0, len(issues))
 	for _, issue := range issues {
-		if issue.Repo.IsTimetrackerEnabled() {
+		if issue.Repo.IsTimetrackerEnabled(ctx) {
 			ids = append(ids, issue.ID)
 		}
 	}

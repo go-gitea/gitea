@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package db_test
 
@@ -26,7 +25,7 @@ func TestIterate(t *testing.T) {
 		return nil
 	})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 79, repoCnt)
+	assert.EqualValues(t, 80, repoCnt)
 
 	err = db.Iterate(db.DefaultContext, nil, func(ctx context.Context, repoUnit *repo_model.RepoUnit) error {
 		reopUnit2 := repo_model.RepoUnit{ID: repoUnit.ID}

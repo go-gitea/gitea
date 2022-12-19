@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.package models
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -69,7 +68,7 @@ func testAPIListOAuth2Applications(t *testing.T) {
 
 	urlStr := fmt.Sprintf("/api/v1/user/applications/oauth2?token=%s", token)
 	req := NewRequest(t, "GET", urlStr)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 
 	var appList api.OAuth2ApplicationList
 	DecodeJSON(t, resp, &appList)
@@ -96,13 +95,13 @@ func testAPIDeleteOAuth2Application(t *testing.T) {
 
 	urlStr := fmt.Sprintf("/api/v1/user/applications/oauth2/%d?token=%s", oldApp.ID, token)
 	req := NewRequest(t, "DELETE", urlStr)
-	session.MakeRequest(t, req, http.StatusNoContent)
+	MakeRequest(t, req, http.StatusNoContent)
 
 	unittest.AssertNotExistsBean(t, &auth.OAuth2Application{UID: oldApp.UID, Name: oldApp.Name})
 
 	// Delete again will return not found
 	req = NewRequest(t, "DELETE", urlStr)
-	session.MakeRequest(t, req, http.StatusNotFound)
+	MakeRequest(t, req, http.StatusNotFound)
 }
 
 func testAPIGetOAuth2Application(t *testing.T) {
@@ -121,7 +120,7 @@ func testAPIGetOAuth2Application(t *testing.T) {
 
 	urlStr := fmt.Sprintf("/api/v1/user/applications/oauth2/%d?token=%s", existApp.ID, token)
 	req := NewRequest(t, "GET", urlStr)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 
 	var app api.OAuth2Application
 	DecodeJSON(t, resp, &app)

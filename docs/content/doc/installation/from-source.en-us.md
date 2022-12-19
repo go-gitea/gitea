@@ -145,7 +145,7 @@ launched manually from command line, it can be killed by pressing `Ctrl + C`.
 
 Gitea will search for a number of things from the _`CustomPath`_. By default this is
 the `custom/` directory in the current working directory when running Gitea. It will also
-look for its configuration file _`CustomConf`_ in _`CustomPath`_/conf/app.ini`, and will use the
+look for its configuration file _`CustomConf`_ in `$(CustomPath)/conf/app.ini`, and will use the
 current working directory as the relative base path _`AppWorkPath`_ for a number configurable
 values. Finally the static files will be served from _`StaticRootPath`_ which defaults to the _`AppWorkPath`_.
 

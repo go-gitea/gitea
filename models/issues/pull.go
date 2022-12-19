@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -224,7 +223,7 @@ func (pr *PullRequest) MustHeadUserName(ctx context.Context) string {
 // Note: don't try to get Issue because will end up recursive querying.
 func (pr *PullRequest) LoadAttributes(ctx context.Context) (err error) {
 	if pr.HasMerged && pr.Merger == nil {
-		pr.Merger, err = user_model.GetUserByIDCtx(ctx, pr.MergerID)
+		pr.Merger, err = user_model.GetUserByID(ctx, pr.MergerID)
 		if user_model.IsErrUserNotExist(err) {
 			pr.MergerID = -1
 			pr.Merger = user_model.NewGhostUser()
@@ -249,9 +248,9 @@ func (pr *PullRequest) LoadHeadRepo(ctx context.Context) (err error) {
 			}
 		}
 
-		pr.HeadRepo, err = repo_model.GetRepositoryByIDCtx(ctx, pr.HeadRepoID)
+		pr.HeadRepo, err = repo_model.GetRepositoryByID(ctx, pr.HeadRepoID)
 		if err != nil && !repo_model.IsErrRepoNotExist(err) { // Head repo maybe deleted, but it should still work
-			return fmt.Errorf("getRepositoryByID(head): %w", err)
+			return fmt.Errorf("GetRepositoryByID(head): %w", err)
 		}
 		pr.isHeadRepoLoaded = true
 	}
@@ -274,7 +273,7 @@ func (pr *PullRequest) LoadBaseRepo(ctx context.Context) (err error) {
 		return nil
 	}
 
-	pr.BaseRepo, err = repo_model.GetRepositoryByIDCtx(ctx, pr.BaseRepoID)
+	pr.BaseRepo, err = repo_model.GetRepositoryByID(ctx, pr.BaseRepoID)
 	if err != nil {
 		return fmt.Errorf("repo_model.GetRepositoryByID(base): %w", err)
 	}
@@ -295,18 +294,13 @@ func (pr *PullRequest) LoadIssue(ctx context.Context) (err error) {
 }
 
 // LoadProtectedBranch loads the protected branch of the base branch
-func (pr *PullRequest) LoadProtectedBranch() (err error) {
-	return pr.LoadProtectedBranchCtx(db.DefaultContext)
-}
-
-// LoadProtectedBranchCtx loads the protected branch of the base branch
-func (pr *PullRequest) LoadProtectedBranchCtx(ctx context.Context) (err error) {
+func (pr *PullRequest) LoadProtectedBranch(ctx context.Context) (err error) {
 	if pr.ProtectedBranch == nil {
 		if pr.BaseRepo == nil {
 			if pr.BaseRepoID == 0 {
 				return nil
 			}
-			pr.BaseRepo, err = repo_model.GetRepositoryByIDCtx(ctx, pr.BaseRepoID)
+			pr.BaseRepo, err = repo_model.GetRepositoryByID(ctx, pr.BaseRepoID)
 			if err != nil {
 				return
 			}
