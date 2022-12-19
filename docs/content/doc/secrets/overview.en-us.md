@@ -14,7 +14,8 @@ menu:
 
 # Encrypted secrets
 
-Encrypted secrets allow you to store sensitive information in your organization, repository, or repository environments.
+Encrypted secrets allow you to store sensitive information in your organization or repository.  
+Secrets are available on Gitea 1.19+.
 
 # Naming your secrets
 
