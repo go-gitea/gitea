@@ -63,7 +63,7 @@ func registerRepoHealthCheck() {
 		for _, arg := range rhcConfig.Args {
 			args = append(args, git.CmdArg(arg))
 		}
-		return repo_service.GitFsck(ctx, rhcConfig.Timeout, args)
+		return repo_service.GitFsckRepos(ctx, rhcConfig.Timeout, args)
 	})
 }
 
