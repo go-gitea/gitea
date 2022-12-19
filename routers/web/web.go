@@ -918,6 +918,10 @@ func RegisterRoutes(m *web.Route) {
 				m.Combo("").Get(repo.DeployKeys).
 					Post(web.Bind(forms.AddKeyForm{}), repo.DeployKeysPost)
 				m.Post("/delete", repo.DeleteDeployKey)
+				m.Group("/secrets", func() {
+					m.Post("", web.Bind(forms.AddKeyForm{}), repo.SecretsPost)
+					m.Post("/delete", repo.DeleteSecret)
+				})
 			})
 
 			m.Group("/lfs", func() {

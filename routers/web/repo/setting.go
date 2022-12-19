@@ -1163,11 +1163,6 @@ func SecretsPost(ctx *context.Context) {
 
 // DeployKeysPost response for adding a deploy key of a repository
 func DeployKeysPost(ctx *context.Context) {
-	if ctx.FormString("act") == "secret" {
-		SecretsPost(ctx)
-		return
-	}
-
 	form := web.GetForm(ctx).(*forms.AddKeyForm)
 
 	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
@@ -1244,11 +1239,6 @@ func DeleteSecret(ctx *context.Context) {
 
 // DeleteDeployKey response for deleting a deploy key
 func DeleteDeployKey(ctx *context.Context) {
-	if ctx.FormString("act") == "secret" {
-		DeleteSecret(ctx)
-		return
-	}
-
 	if err := asymkey_service.DeleteDeployKey(ctx.Doer, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteDeployKey: " + err.Error())
 	} else {
