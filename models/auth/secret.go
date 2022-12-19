@@ -49,7 +49,10 @@ func init() {
 	db.RegisterModel(new(Secret))
 }
 
-var secretNameReg = regexp.MustCompile("^[A-Z_][A-Z0-9_]*$")
+var (
+	secretNameReg = regexp.MustCompile("^[A-Z_][A-Z0-9_]*$")
+	forbiddenSecretPrefixReg = regexp.MustCompile("^GIT(EA|HUB)_")
+	)
 
 // Validate validates the required fields and formats.
 func (s *Secret) Validate() error {
@@ -59,8 +62,7 @@ func (s *Secret) Validate() error {
 	case len(s.Data) == 0:
 		return ErrSecretInvalidValue{Data: &s.Data}
 	case !secretNameReg.MatchString(s.Name) ||
-		strings.HasPrefix(s.Name, "GITHUB_") ||
-		strings.HasPrefix(s.Name, "GITEA_"):
+		forbiddenSecretPrefixReg.MatchSting(s.Name):
 		return ErrSecretInvalidValue{Name: &s.Name}
 	default:
 		return nil
