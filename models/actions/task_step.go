@@ -35,7 +35,6 @@ func (step *ActionTaskStep) TakeTime() time.Duration {
 	if step.Status.IsDone() {
 		return step.Stopped.AsTime().Sub(started)
 	}
-	step.Stopped.AsTime().Sub(started)
 	return time.Since(started).Truncate(time.Second)
 }
 

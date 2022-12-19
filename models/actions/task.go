@@ -82,7 +82,6 @@ func (task *ActionTask) TakeTime() time.Duration {
 	if task.Status.IsDone() {
 		return task.Stopped.AsTime().Sub(started)
 	}
-	task.Stopped.AsTime().Sub(started)
 	return time.Since(started).Truncate(time.Second)
 }
 
