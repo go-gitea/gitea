@@ -270,7 +270,7 @@ func Secrets(ctx *context.Context) {
 func SecretsPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AddSecretForm)
 
-	_, err := secret_model.InsertEncryptedSecret(ctx, ctx.Org.Organization.ID, 0, form.Title, strings.TrimSpace(form.Content))
+	_, err := secret_model.InsertEncryptedSecret(ctx, ctx.Org.Organization.ID, 0, form.Title, form.Content)
 	if err != nil {
 		ctx.Flash.Error(ctx.Tr("secrets.creation.failed"))
 		log.Error("validate secret: %v", err)
