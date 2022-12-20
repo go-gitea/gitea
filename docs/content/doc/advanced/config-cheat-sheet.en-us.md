@@ -747,7 +747,7 @@ and
 ## Incoming Email (`incoming_email`)
 
 - `ENABLED`: **false**: Enable handling of incoming emails.
-- `REPLY_TO_ADDRESS`: **\<empty\>**: # The email address including the %{token} placeholder that will be replaced per user/action. Example: `incoming+%{token}@example.com`. The placeholder must appear in the user part of the address (before the `@`).
+- `REPLY_TO_ADDRESS`: **\<empty\>**: The email address including the `%{token}` placeholder that will be replaced per user/action. Example: `incoming+%{token}@example.com`. The placeholder must appear in the user part of the address (before the `@`).
 - `HOST`: **\<empty\>**: IMAP server host.
 - `PORT`: **\<empty\>**: IMAP server port.
 - `USERNAME`: **\<empty\>**: Username of the receiving account.
