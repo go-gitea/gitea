@@ -468,6 +468,11 @@ func RegisterRoutes(m *web.Route) {
 				})
 			})
 		}, packagesEnabled)
+		m.Group("/secrets", func() {
+			m.Get("", user_setting.Secrets)
+			m.Post("", web.Bind(forms.AddSecretForm{}), user_setting.SecretsPost)
+			m.Post("/delete", user_setting.SecretsDelete)
+		})
 		m.Get("/organization", user_setting.Organization)
 		m.Get("/repos", user_setting.Repos)
 		m.Post("/repos/unadopted", user_setting.AdoptOrDeleteRepository)
