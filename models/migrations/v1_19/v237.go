@@ -11,7 +11,8 @@ func AddManuallyMergePullConfirmedToPullRequest(x *xorm.Engine) error {
 	type PullRequest struct {
 		ID int64 `xorm:"pk autoincr"`
 
-		ManuallyMergePullConfirmed bool `xorm:"NOT NULL DEFAULT false"`
+		ManuallyMergeConfirmed        bool  `xorm:"NOT NULL DEFAULT false"`
+		ManuallyMergeConfirmedVersion int64 `xorm:"NOT NULL DEFAULT 0"`
 	}
 
 	return x.Sync(new(PullRequest))

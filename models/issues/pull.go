@@ -178,7 +178,8 @@ type PullRequest struct {
 
 	Flow PullRequestFlow `xorm:"NOT NULL DEFAULT 0"`
 
-	ManuallyMergePullConfirmed bool `xorm:"NOT NULL DEFAULT false"`
+	ManuallyMergeConfirmed        bool  `xorm:"NOT NULL DEFAULT false"`
+	ManuallyMergeConfirmedVersion int64 `xorm:"NOT NULL DEFAULT 0"`
 }
 
 func init() {
@@ -836,9 +837,21 @@ func ManuallyMergePullConfirmByIndexes(ctx context.Context, repoID int64, baseBr
 		builder.Eq{"has_merged": false},
 		builder.In("`index`", indexes),
 		builder.In("`base_branch`", baseBranchs),
-	)).Cols("manually_merge_pull_confirmed").Update(&PullRequest{
-		ManuallyMergePullConfirmed: true,
-	})
+	)).
+		Incr("manually_merge_confirmed_version").
+		SetExpr("manually_merge_confirmed", true).Update(new(PullRequest))
 
+	return err
+}
+
+// ResetManuallyMergePullConfirm reset manualy merge confirmed flag
+func (pr *PullRequest) ResetManuallyMergePullConfirm(ctx context.Context) error {
+	_, err := db.GetEngine(ctx).
+		Where(builder.And(
+			builder.Eq{"`id`": pr.ID},
+			builder.Eq{"manually_merge_confirmed_version": pr.ManuallyMergeConfirmedVersion},
+		)).
+		Incr("manually_merge_confirmed_version").
+		SetExpr("manually_merge_confirmed", false).Update(new(PullRequest))
 	return err
 }

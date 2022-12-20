@@ -236,7 +236,7 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 		return false
 	}
 
-	if !pr.ManuallyMergePullConfirmed {
+	if !pr.ManuallyMergeConfirmed {
 		if unit, err := pr.BaseRepo.GetUnit(ctx, unit.TypePullRequests); err == nil {
 			config := unit.PullRequestsConfig()
 			if !config.AutodetectManualMerge {
@@ -285,9 +285,9 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 		return true
 	}
 
-	if pr.ManuallyMergePullConfirmed {
-		pr.ManuallyMergePullConfirmed = false
-		if err := pr.UpdateCols("manually_merge_pull_confirmed"); err != nil {
+	if pr.ManuallyMergeConfirmed {
+		pr.ManuallyMergeConfirmed = false
+		if err := pr.ResetManuallyMergePullConfirm(ctx); err != nil {
 			log.Error("PullRequest[%d]: reset manually_merge_pull_confirmed failed: %v", pr.ID, err)
 		}
 	}
