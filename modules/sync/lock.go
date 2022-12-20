@@ -88,9 +88,18 @@ func (r *redisLock) Unlock() (bool, error) {
 	return r.mutex.Unlock()
 }
 
+var (
+	syncOnce    sync.Once
+	lockService LockService
+)
+
 func GetLockService() LockService {
-	if setting.Sync.LockServiceType == "redis" {
-		return NewRedisLockService(setting.Sync.LockServiceConnStr)
-	}
-	return NewMemoryLockService()
+	syncOnce.Do(func() {
+		if setting.Sync.LockServiceType == "redis" {
+			lockService = NewRedisLockService(setting.Sync.LockServiceConnStr)
+		} else {
+			lockService = NewMemoryLockService()
+		}
+	})
+	return lockService
 }
