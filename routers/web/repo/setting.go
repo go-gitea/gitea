@@ -37,7 +37,6 @@ import (
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
-	shared "code.gitea.io/gitea/routers/web/shared/secrets"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
@@ -1113,11 +1112,6 @@ func DeployKeys(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Deploykeys"] = keys
-
-	shared.SetSecretsContext(ctx, 0, ctx.Repo.Repository.ID)
-	if ctx.Written() {
-		return
-	}
 
 	ctx.HTML(http.StatusOK, tplDeployKeys)
 }
