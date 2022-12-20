@@ -286,6 +286,7 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
 	})
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 
+	// Log the flash values on failure
 	if !assert.Equal(t, resp.Result().Header["Location"], []string{"/user/settings/applications"}) {
 		for _, cookie := range resp.Result().Cookies() {
 			if cookie.Name != "macaron_flash" {
