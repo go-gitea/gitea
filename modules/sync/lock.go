@@ -31,7 +31,7 @@ func (r *memoryLock) Lock() error {
 }
 
 func (r *memoryLock) Unlock() (bool, error) {
-	r.mutex.Lock()
+	r.mutex.Unlock()
 	return true, nil
 }
 
