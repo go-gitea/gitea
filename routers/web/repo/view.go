@@ -56,18 +56,15 @@ type namedBlob struct {
 	blob      *git.Blob
 }
 
+// locate a README for a tree in one of the supported paths.
+//
+// entries is passed to reduce calls to ListEntries(), so
+// this has precondition:
+//
+//	entries == ctx.Repo.Commit.SubTree(ctx.Repo.TreePath).ListEntries()
+//
 // FIXME: There has to be a more efficient way of doing this
-func getReadmeFileFromPath(ctx *context.Context, commit *git.Commit, treePath string) (*namedBlob, error) {
-	tree, err := commit.SubTree(treePath)
-	if err != nil {
-		return nil, err
-	}
-
-	entries, err := tree.ListEntries()
-	if err != nil {
-		return nil, err
-	}
-
+func findReadmeFileInEntries(ctx *context.Context, entries []*git.TreeEntry) (*namedBlob, error) {
 	// Create a list of extensions in priority order
 	// 1. Markdown files - with and without localisation - e.g. README.en-us.md or README.md
 	// 2. Txt files - e.g. README.txt
@@ -75,16 +72,38 @@ func getReadmeFileFromPath(ctx *context.Context, commit *git.Commit, treePath st
 	exts := append(localizedExtensions(".md", ctx.Language()), ".txt", "") // sorted by priority
 	extCount := len(exts)
 	readmeFiles := make([]*namedBlob, extCount+1)
+
+	docsEntries := make([]*git.TreeEntry, 3) // (one of docs/, .gitea/ or .github/)
 	for _, entry := range entries {
 		if entry.IsDir() {
+			// as a special case for the top-level repo introduction README,
+			// fall back to subfolders, looking for e.g. docs/README.md, .gitea/README.zh-CN.txt, .github/README.txt, ...
+			// (note that docsEntries is ignored unless we are at the root)
+			lowerName := strings.ToLower(entry.Name())
+			switch lowerName {
+			case "docs":
+				if entry.Name() == "docs" || docsEntries[0] == nil {
+					docsEntries[0] = entry
+				}
+			case ".gitea":
+				if entry.Name() == ".gitea" || docsEntries[1] == nil {
+					docsEntries[1] = entry
+				}
+			case ".github":
+				if entry.Name() == ".github" || docsEntries[2] == nil {
+					docsEntries[2] = entry
+				}
+			}
 			continue
 		}
 		if i, ok := markup.IsReadmeFileExtension(entry.Name(), exts...); ok {
+			log.Debug("Potential readme file: %s", entry.Name())
 			if readmeFiles[i] == nil || base.NaturalSortLess(readmeFiles[i].name, entry.Blob().Name()) {
 				name := entry.Name()
 				isSymlink := entry.IsLink()
 				target := entry
 				if isSymlink {
+					var err error
 					target, err = entry.FollowLinks()
 					if err != nil && !git.IsErrBadLink(err) {
 						return nil, err
@@ -107,6 +126,33 @@ func getReadmeFileFromPath(ctx *context.Context, commit *git.Commit, treePath st
 			break
 		}
 	}
+
+	if ctx.Repo.TreePath == "" && readmeFile == nil {
+		for _, subTreeEntry := range docsEntries {
+			if subTreeEntry == nil {
+				continue
+			}
+			subTree := subTreeEntry.Tree()
+			if subTree == nil {
+				// this should be impossible; if subTreeEntry exists so should this.
+				continue
+			}
+			var err error
+			childEntries, err := subTree.ListEntries()
+			if err != nil {
+				return nil, err
+			}
+			readmeFile, err = findReadmeFileInEntries(ctx, childEntries)
+			if err != nil && !git.IsErrNotExist(err) {
+				return nil, err
+			}
+			if readmeFile != nil {
+				readmeFile.name = subTreeEntry.Name() + "/" + readmeFile.name
+				break
+			}
+		}
+	}
+
 	return readmeFile, nil
 }
 
@@ -127,12 +173,20 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		ctx.Data["CanUploadFile"] = setting.Repository.Upload.Enabled && !ctx.Repo.Repository.IsArchived
 	}
 
-	readmeFile, readmeTreelink := findReadmeFile(ctx, entries, treeLink)
-	if ctx.Written() || readmeFile == nil {
+	if ctx.Written() {
 		return
 	}
 
-	renderReadmeFile(ctx, readmeFile, readmeTreelink)
+	readmeFile, err := findReadmeFileInEntries(ctx, entries)
+	if err != nil {
+		ctx.ServerError("findReadmeFileInEntries", err)
+		return
+	}
+	if readmeFile == nil {
+		return
+	}
+
+	renderReadmeFile(ctx, readmeFile, treeLink)
 }
 
 // localizedExtensions prepends the provided language code with and without a
@@ -155,89 +209,6 @@ func localizedExtensions(ext, languageCode string) (localizedExts []string) {
 
 	// e.g. [.en.md, .md]
 	return []string{lowerLangCode + ext, ext}
-}
-
-func findReadmeFile(ctx *context.Context, entries git.Entries, treeLink string) (*namedBlob, string) {
-	// Create a list of extensions in priority order
-	// 1. Markdown files - with and without localisation - e.g. README.en-us.md or README.md
-	// 2. Txt files - e.g. README.txt
-	// 3. No extension - e.g. README
-	exts := append(localizedExtensions(".md", ctx.Language()), ".txt", "") // sorted by priority
-	extCount := len(exts)
-	readmeFiles := make([]*namedBlob, extCount+1)
-
-	docsEntries := make([]*git.TreeEntry, 3) // (one of docs/, .gitea/ or .github/)
-	for _, entry := range entries {
-		if entry.IsDir() {
-			lowerName := strings.ToLower(entry.Name())
-			switch lowerName {
-			case "docs":
-				if entry.Name() == "docs" || docsEntries[0] == nil {
-					docsEntries[0] = entry
-				}
-			case ".gitea":
-				if entry.Name() == ".gitea" || docsEntries[1] == nil {
-					docsEntries[1] = entry
-				}
-			case ".github":
-				if entry.Name() == ".github" || docsEntries[2] == nil {
-					docsEntries[2] = entry
-				}
-			}
-			continue
-		}
-
-		if i, ok := markup.IsReadmeFileExtension(entry.Name(), exts...); ok {
-			log.Debug("Potential readme file: %s", entry.Name())
-			name := entry.Name()
-			isSymlink := entry.IsLink()
-			target := entry
-			if isSymlink {
-				var err error
-				target, err = entry.FollowLinks()
-				if err != nil && !git.IsErrBadLink(err) {
-					ctx.ServerError("FollowLinks", err)
-					return nil, ""
-				}
-			}
-			if target != nil && (target.IsExecutable() || target.IsRegular()) {
-				readmeFiles[i] = &namedBlob{
-					name,
-					isSymlink,
-					target.Blob(),
-				}
-			}
-		}
-	}
-
-	var readmeFile *namedBlob
-	readmeTreelink := treeLink
-	for _, f := range readmeFiles {
-		if f != nil {
-			readmeFile = f
-			break
-		}
-	}
-
-	if ctx.Repo.TreePath == "" && readmeFile == nil {
-		for _, entry := range docsEntries {
-			if entry == nil {
-				continue
-			}
-			var err error
-			readmeFile, err = getReadmeFileFromPath(ctx, ctx.Repo.Commit, entry.GetSubJumpablePathName())
-			if err != nil {
-				ctx.ServerError("getReadmeFileFromPath", err)
-				return nil, ""
-			}
-			if readmeFile != nil {
-				readmeFile.name = entry.Name() + "/" + readmeFile.name
-				readmeTreelink = treeLink + "/" + util.PathEscapeSegments(entry.GetSubJumpablePathName())
-				break
-			}
-		}
-	}
-	return readmeFile, readmeTreelink
 }
 
 type fileInfo struct {
@@ -342,7 +313,7 @@ func renderReadmeFile(ctx *context.Context, readmeFile *namedBlob, readmeTreelin
 		ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
 			Ctx:          ctx,
 			RelativePath: path.Join(ctx.Repo.TreePath, readmeFile.name), // ctx.Repo.TreePath is the directory not the Readme so we must append the Readme filename (and path).
-			URLPrefix:    readmeTreelink,
+			URLPrefix:    path.Dir(readmeTreelink),
 			Metas:        ctx.Repo.Repository.ComposeDocumentMetas(),
 			GitRepo:      ctx.Repo.GitRepo,
 		}, rd)
