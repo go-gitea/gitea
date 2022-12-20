@@ -902,8 +902,11 @@ steps:
     image: techknowlogick/drone-docker:latest
     pull: always
     settings:
-      auto_tag: true
+      auto_tag: false
       auto_tag_suffix: linux-amd64
+      tags:
+        - ${DRONE_TAG##v}-linux-amd64
+        - ${DRONE_TAG:1:4}-linux-amd64
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -920,8 +923,11 @@ steps:
     image: techknowlogick/drone-docker:latest
     settings:
       dockerfile: Dockerfile.rootless
-      auto_tag: true
+      auto_tag: false
       auto_tag_suffix: linux-amd64-rootless
+      tags:
+        - ${DRONE_TAG##v}-linux-amd64-rootless
+        - ${DRONE_TAG:1:4}-linux-amd64-rootless
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1126,8 +1132,11 @@ steps:
     image: techknowlogick/drone-docker:latest
     pull: always
     settings:
-      auto_tag: true
+      auto_tag: false
       auto_tag_suffix: linux-arm64
+      tags:
+        - ${DRONE_TAG##v}-linux-arm64
+        - ${DRONE_TAG:1:4}-linux-arm64
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1144,8 +1153,11 @@ steps:
     image: techknowlogick/drone-docker:latest
     settings:
       dockerfile: Dockerfile.rootless
-      auto_tag: true
+      auto_tag: false
       auto_tag_suffix: linux-arm64-rootless
+      tags:
+        - ${DRONE_TAG##v}-linux-arm64-rootless
+        - ${DRONE_TAG:1:4}-linux-arm64-rootless
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1299,7 +1311,7 @@ steps:
     image: plugins/manifest
     pull: always
     settings:
-      auto_tag: true
+      auto_tag: false
       ignore_missing: true
       spec: docker/manifest.rootless.tmpl
       password:
@@ -1310,7 +1322,7 @@ steps:
   - name: manifest
     image: plugins/manifest
     settings:
-      auto_tag: true
+      auto_tag: false
       ignore_missing: true
       spec: docker/manifest.tmpl
       password:
