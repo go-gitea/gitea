@@ -1,7 +1,6 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
 // Copyright 2016 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package models
 
@@ -42,7 +41,7 @@ func AddRepository(ctx context.Context, t *organization.Team, repo *repo_model.R
 
 	// Make all team members watch this repo if enabled in global settings
 	if setting.Service.AutoWatchNewRepos {
-		if err = t.GetMembersCtx(ctx); err != nil {
+		if err = t.LoadMembers(ctx); err != nil {
 			return fmt.Errorf("getMembers: %w", err)
 		}
 		for _, u := range t.Members {
@@ -214,7 +213,7 @@ func RemoveRepository(t *organization.Team, repoID int64) error {
 		return nil
 	}
 
-	repo, err := repo_model.GetRepositoryByID(repoID)
+	repo, err := repo_model.GetRepositoryByID(db.DefaultContext, repoID)
 	if err != nil {
 		return err
 	}
@@ -350,8 +349,8 @@ func UpdateTeam(t *organization.Team, authChanged, includeAllChanged bool) (err 
 
 	// Update access for team members if needed.
 	if authChanged {
-		if err = t.GetRepositoriesCtx(ctx); err != nil {
-			return fmt.Errorf("getRepositories: %w", err)
+		if err = t.LoadRepositories(ctx); err != nil {
+			return fmt.Errorf("LoadRepositories: %w", err)
 		}
 
 		for _, repo := range t.Repos {
@@ -382,11 +381,11 @@ func DeleteTeam(t *organization.Team) error {
 	defer committer.Close()
 	sess := db.GetEngine(ctx)
 
-	if err := t.GetRepositoriesCtx(ctx); err != nil {
+	if err := t.LoadRepositories(ctx); err != nil {
 		return err
 	}
 
-	if err := t.GetMembersCtx(ctx); err != nil {
+	if err := t.LoadMembers(ctx); err != nil {
 		return err
 	}
 
@@ -517,10 +516,16 @@ func AddTeamMember(team *organization.Team, userID int64) error {
 		}
 	}
 
-	// watch could be failed, so run it in a goroutine
+	if err := committer.Commit(); err != nil {
+		return err
+	}
+	committer.Close()
+
+	// this behaviour may spend much time so run it in a goroutine
+	// FIXME: Update watch repos batchly
 	if setting.Service.AutoWatchNewRepos {
 		// Get team and its repositories.
-		if err := team.GetRepositoriesCtx(db.DefaultContext); err != nil {
+		if err := team.LoadRepositories(db.DefaultContext); err != nil {
 			log.Error("getRepositories failed: %v", err)
 		}
 		go func(repos []*repo_model.Repository) {
@@ -532,7 +537,7 @@ func AddTeamMember(team *organization.Team, userID int64) error {
 		}(team.Repos)
 	}
 
-	return committer.Commit()
+	return nil
 }
 
 func removeTeamMember(ctx context.Context, team *organization.Team, userID int64) error {
@@ -549,7 +554,7 @@ func removeTeamMember(ctx context.Context, team *organization.Team, userID int64
 
 	team.NumMembers--
 
-	if err := team.GetRepositoriesCtx(ctx); err != nil {
+	if err := team.LoadRepositories(ctx); err != nil {
 		return err
 	}
 

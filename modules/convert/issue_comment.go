@@ -1,11 +1,11 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package convert
 
 import (
-	"code.gitea.io/gitea/models/db"
+	"context"
+
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -16,20 +16,21 @@ import (
 // ToComment converts a issues_model.Comment to the api.Comment format
 func ToComment(c *issues_model.Comment) *api.Comment {
 	return &api.Comment{
-		ID:       c.ID,
-		Poster:   ToUser(c.Poster, nil),
-		HTMLURL:  c.HTMLURL(),
-		IssueURL: c.IssueURL(),
-		PRURL:    c.PRURL(),
-		Body:     c.Content,
-		Created:  c.CreatedUnix.AsTime(),
-		Updated:  c.UpdatedUnix.AsTime(),
+		ID:          c.ID,
+		Poster:      ToUser(c.Poster, nil),
+		HTMLURL:     c.HTMLURL(),
+		IssueURL:    c.IssueURL(),
+		PRURL:       c.PRURL(),
+		Body:        c.Content,
+		Attachments: ToAttachments(c.Attachments),
+		Created:     c.CreatedUnix.AsTime(),
+		Updated:     c.UpdatedUnix.AsTime(),
 	}
 }
 
 // ToTimelineComment converts a issues_model.Comment to the api.TimelineComment format
-func ToTimelineComment(c *issues_model.Comment, doer *user_model.User) *api.TimelineComment {
-	err := c.LoadMilestone()
+func ToTimelineComment(ctx context.Context, c *issues_model.Comment, doer *user_model.User) *api.TimelineComment {
+	err := c.LoadMilestone(ctx)
 	if err != nil {
 		log.Error("LoadMilestone: %v", err)
 		return nil
@@ -107,25 +108,25 @@ func ToTimelineComment(c *issues_model.Comment, doer *user_model.User) *api.Time
 			return nil
 		}
 
-		comment.TrackedTime = ToTrackedTime(c.Time)
+		comment.TrackedTime = ToTrackedTime(ctx, c.Time)
 	}
 
 	if c.RefIssueID != 0 {
-		issue, err := issues_model.GetIssueByID(db.DefaultContext, c.RefIssueID)
+		issue, err := issues_model.GetIssueByID(ctx, c.RefIssueID)
 		if err != nil {
 			log.Error("GetIssueByID(%d): %v", c.RefIssueID, err)
 			return nil
 		}
-		comment.RefIssue = ToAPIIssue(issue)
+		comment.RefIssue = ToAPIIssue(ctx, issue)
 	}
 
 	if c.RefCommentID != 0 {
-		com, err := issues_model.GetCommentByID(db.DefaultContext, c.RefCommentID)
+		com, err := issues_model.GetCommentByID(ctx, c.RefCommentID)
 		if err != nil {
 			log.Error("GetCommentByID(%d): %v", c.RefCommentID, err)
 			return nil
 		}
-		err = com.LoadPoster()
+		err = com.LoadPoster(ctx)
 		if err != nil {
 			log.Error("LoadPoster: %v", err)
 			return nil
@@ -138,7 +139,7 @@ func ToTimelineComment(c *issues_model.Comment, doer *user_model.User) *api.Time
 		var repo *repo_model.Repository
 		if c.Label.BelongsToOrg() {
 			var err error
-			org, err = user_model.GetUserByID(c.Label.OrgID)
+			org, err = user_model.GetUserByID(ctx, c.Label.OrgID)
 			if err != nil {
 				log.Error("GetUserByID(%d): %v", c.Label.OrgID, err)
 				return nil
@@ -146,7 +147,7 @@ func ToTimelineComment(c *issues_model.Comment, doer *user_model.User) *api.Time
 		}
 		if c.Label.BelongsToRepo() {
 			var err error
-			repo, err = repo_model.GetRepositoryByID(c.Label.RepoID)
+			repo, err = repo_model.GetRepositoryByID(ctx, c.Label.RepoID)
 			if err != nil {
 				log.Error("GetRepositoryByID(%d): %v", c.Label.RepoID, err)
 				return nil
@@ -167,7 +168,7 @@ func ToTimelineComment(c *issues_model.Comment, doer *user_model.User) *api.Time
 	}
 
 	if c.DependentIssue != nil {
-		comment.DependentIssue = ToAPIIssue(c.DependentIssue)
+		comment.DependentIssue = ToAPIIssue(ctx, c.DependentIssue)
 	}
 
 	return comment

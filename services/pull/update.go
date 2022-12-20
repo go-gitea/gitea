@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package pull
 
@@ -48,10 +47,10 @@ func Update(ctx context.Context, pull *issues_model.PullRequest, doer *user_mode
 		return fmt.Errorf("Not support update agit flow pull request's head branch")
 	}
 
-	if err := pr.LoadHeadRepoCtx(ctx); err != nil {
+	if err := pr.LoadHeadRepo(ctx); err != nil {
 		log.Error("LoadHeadRepo: %v", err)
 		return fmt.Errorf("LoadHeadRepo: %w", err)
-	} else if err = pr.LoadBaseRepoCtx(ctx); err != nil {
+	} else if err = pr.LoadBaseRepo(ctx); err != nil {
 		log.Error("LoadBaseRepo: %v", err)
 		return fmt.Errorf("LoadBaseRepo: %w", err)
 	}
@@ -100,14 +99,14 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 		BaseBranch: pull.HeadBranch,
 	}
 
-	err = pr.LoadProtectedBranch()
+	err = pr.LoadProtectedBranch(ctx)
 	if err != nil {
 		return false, false, err
 	}
 
 	// can't do rebase on protected branch because need force push
 	if pr.ProtectedBranch == nil {
-		prUnit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests)
+		prUnit, err := pr.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
 		if err != nil {
 			log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %v", err)
 			return false, false, err
@@ -145,10 +144,10 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 // GetDiverging determines how many commits a PR is ahead or behind the PR base branch
 func GetDiverging(ctx context.Context, pr *issues_model.PullRequest) (*git.DivergeObject, error) {
 	log.Trace("GetDiverging[%d]: compare commits", pr.ID)
-	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
+	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return nil, err
 	}
-	if err := pr.LoadHeadRepoCtx(ctx); err != nil {
+	if err := pr.LoadHeadRepo(ctx); err != nil {
 		return nil, err
 	}
 

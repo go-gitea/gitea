@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -270,7 +269,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 				ci.HeadRepo = baseRepo
 			}
 		} else {
-			ci.HeadRepo, err = repo_model.GetRepositoryByOwnerAndName(headInfosSplit[0], headInfosSplit[1])
+			ci.HeadRepo, err = repo_model.GetRepositoryByOwnerAndName(ctx, headInfosSplit[0], headInfosSplit[1])
 			if err != nil {
 				if repo_model.IsErrRepoNotExist(err) {
 					ctx.NotFound("GetRepositoryByOwnerAndName", nil)
@@ -340,7 +339,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	// forked from
 	var rootRepo *repo_model.Repository
 	if baseRepo.IsFork {
-		err = baseRepo.GetBaseRepo()
+		err = baseRepo.GetBaseRepo(ctx)
 		if err != nil {
 			if !repo_model.IsErrRepoNotExist(err) {
 				ctx.ServerError("Unable to find root repo", err)
@@ -578,7 +577,7 @@ func PrepareCompareDiff(
 	if (headCommitID == ci.CompareInfo.MergeBase && !ci.DirectComparison) ||
 		headCommitID == ci.CompareInfo.BaseCommitID {
 		ctx.Data["IsNothingToCompare"] = true
-		if unit, err := repo.GetUnit(unit.TypePullRequests); err == nil {
+		if unit, err := repo.GetUnit(ctx, unit.TypePullRequests); err == nil {
 			config := unit.PullRequestsConfig()
 
 			if !config.AutodetectManualMerge {
@@ -747,7 +746,7 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["HeadTags"] = headTags
 
 	if ctx.Data["PageIsComparePull"] == true {
-		pr, err := issues_model.GetUnmergedPullRequest(ci.HeadRepo.ID, ctx.Repo.Repository.ID, ci.HeadBranch, ci.BaseBranch, issues_model.PullRequestFlowGithub)
+		pr, err := issues_model.GetUnmergedPullRequest(ctx, ci.HeadRepo.ID, ctx.Repo.Repository.ID, ci.HeadBranch, ci.BaseBranch, issues_model.PullRequestFlowGithub)
 		if err != nil {
 			if !issues_model.IsErrPullRequestNotExist(err) {
 				ctx.ServerError("GetUnmergedPullRequest", err)
@@ -755,7 +754,7 @@ func CompareDiff(ctx *context.Context) {
 			}
 		} else {
 			ctx.Data["HasPullRequest"] = true
-			if err := pr.LoadIssue(); err != nil {
+			if err := pr.LoadIssue(ctx); err != nil {
 				ctx.ServerError("LoadIssue", err)
 				return
 			}

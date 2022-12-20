@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package packages
 
@@ -303,9 +302,14 @@ func SearchLatestVersions(ctx context.Context, opts *PackageSearchOptions) ([]*P
 	cond := opts.toConds().
 		And(builder.Expr("pv2.id IS NULL"))
 
+	joinCond := builder.Expr("package_version.package_id = pv2.package_id AND (package_version.created_unix < pv2.created_unix OR (package_version.created_unix = pv2.created_unix AND package_version.id < pv2.id))")
+	if !opts.IsInternal.IsNone() {
+		joinCond = joinCond.And(builder.Eq{"pv2.is_internal": opts.IsInternal.IsTrue()})
+	}
+
 	sess := db.GetEngine(ctx).
 		Table("package_version").
-		Join("LEFT", "package_version pv2", "package_version.package_id = pv2.package_id AND (package_version.created_unix < pv2.created_unix OR (package_version.created_unix = pv2.created_unix AND package_version.id < pv2.id))").
+		Join("LEFT", "package_version pv2", joinCond).
 		Join("INNER", "package", "package.id = package_version.package_id").
 		Where(cond)
 
@@ -318,6 +322,15 @@ func SearchLatestVersions(ctx context.Context, opts *PackageSearchOptions) ([]*P
 	pvs := make([]*PackageVersion, 0, 10)
 	count, err := sess.FindAndCount(&pvs)
 	return pvs, count, err
+}
+
+// ExistVersion checks if a version matching the search options exist
+func ExistVersion(ctx context.Context, opts *PackageSearchOptions) (bool, error) {
+	return db.GetEngine(ctx).
+		Where(opts.toConds()).
+		Table("package_version").
+		Join("INNER", "package", "package.id = package_version.package_id").
+		Exist(new(PackageVersion))
 }
 
 // CountVersions counts all versions of packages matching the search options

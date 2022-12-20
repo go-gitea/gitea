@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -106,7 +105,7 @@ func Transfer(ctx *context.APIContext) {
 
 	oldFullname := ctx.Repo.Repository.FullName()
 
-	if err := repo_service.StartRepositoryTransfer(ctx.Doer, newOwner, ctx.Repo.Repository, teams); err != nil {
+	if err := repo_service.StartRepositoryTransfer(ctx, ctx.Doer, newOwner, ctx.Repo.Repository, teams); err != nil {
 		if models.IsErrRepoTransferInProgress(err) {
 			ctx.Error(http.StatusConflict, "StartRepositoryTransfer", err)
 			return
@@ -123,12 +122,12 @@ func Transfer(ctx *context.APIContext) {
 
 	if ctx.Repo.Repository.Status == repo_model.RepositoryPendingTransfer {
 		log.Trace("Repository transfer initiated: %s -> %s", oldFullname, ctx.Repo.Repository.FullName())
-		ctx.JSON(http.StatusCreated, convert.ToRepo(ctx.Repo.Repository, perm.AccessModeAdmin))
+		ctx.JSON(http.StatusCreated, convert.ToRepo(ctx, ctx.Repo.Repository, perm.AccessModeAdmin))
 		return
 	}
 
 	log.Trace("Repository transferred: %s -> %s", oldFullname, ctx.Repo.Repository.FullName())
-	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx.Repo.Repository, perm.AccessModeAdmin))
+	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx, ctx.Repo.Repository, perm.AccessModeAdmin))
 }
 
 // AcceptTransfer accept a repo transfer
@@ -166,7 +165,7 @@ func AcceptTransfer(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx.Repo.Repository, ctx.Repo.AccessMode))
+	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx, ctx.Repo.Repository, ctx.Repo.AccessMode))
 }
 
 // RejectTransfer reject a repo transfer
@@ -204,11 +203,11 @@ func RejectTransfer(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToRepo(ctx.Repo.Repository, ctx.Repo.AccessMode))
+	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, ctx.Repo.Repository, ctx.Repo.AccessMode))
 }
 
 func acceptOrRejectRepoTransfer(ctx *context.APIContext, accept bool) error {
-	repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository)
+	repoTransfer, err := models.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
 	if err != nil {
 		if models.IsErrNoPendingTransfer(err) {
 			ctx.NotFound()
@@ -217,7 +216,7 @@ func acceptOrRejectRepoTransfer(ctx *context.APIContext, accept bool) error {
 		return err
 	}
 
-	if err := repoTransfer.LoadAttributes(); err != nil {
+	if err := repoTransfer.LoadAttributes(ctx); err != nil {
 		return err
 	}
 
@@ -227,7 +226,7 @@ func acceptOrRejectRepoTransfer(ctx *context.APIContext, accept bool) error {
 	}
 
 	if accept {
-		return repo_service.TransferOwnership(repoTransfer.Doer, repoTransfer.Recipient, ctx.Repo.Repository, repoTransfer.Teams)
+		return repo_service.TransferOwnership(ctx, repoTransfer.Doer, repoTransfer.Recipient, ctx.Repo.Repository, repoTransfer.Teams)
 	}
 
 	return models.CancelRepositoryTransfer(ctx.Repo.Repository)

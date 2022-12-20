@@ -1,7 +1,6 @@
 // Copyright 2019 The Gitea Authors.
 // All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package pull
 
@@ -21,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	issue_service "code.gitea.io/gitea/services/issue"
 )
 
 // CreateCodeComment creates a comment on the code line
@@ -67,7 +67,7 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 			return nil, err
 		}
 
-		notification.NotifyCreateIssueComment(doer, issue.Repo, issue, comment, mentions)
+		notification.NotifyCreateIssueComment(ctx, doer, issue.Repo, issue, comment, mentions)
 
 		return comment, nil
 	}
@@ -119,12 +119,12 @@ var notEnoughLines = regexp.MustCompile(`exit status 128 - fatal: file .* has on
 // createCodeComment creates a plain code comment at the specified line / path
 func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content, treePath string, line, reviewID int64) (*issues_model.Comment, error) {
 	var commitID, patch string
-	if err := issue.LoadPullRequest(); err != nil {
-		return nil, fmt.Errorf("GetPullRequestByIssueID: %w", err)
+	if err := issue.LoadPullRequest(ctx); err != nil {
+		return nil, fmt.Errorf("LoadPullRequest: %w", err)
 	}
 	pr := issue.PullRequest
-	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
-		return nil, fmt.Errorf("LoadHeadRepo: %w", err)
+	if err := pr.LoadBaseRepo(ctx); err != nil {
+		return nil, fmt.Errorf("LoadBaseRepo: %w", err)
 	}
 	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo.RepoPath())
 	if err != nil {
@@ -203,7 +203,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 			return nil, err
 		}
 	}
-	return issues_model.CreateComment(&issues_model.CreateCommentOptions{
+	return issue_service.CreateComment(&issues_model.CreateCommentOptions{
 		Type:        issues_model.CommentTypeCode,
 		Doer:        doer,
 		Repo:        repo,
@@ -254,7 +254,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 		return nil, nil, err
 	}
 
-	notification.NotifyPullRequestReview(pr, review, comm, mentions)
+	notification.NotifyPullRequestReview(ctx, pr, review, comm, mentions)
 
 	for _, lines := range review.CodeComments {
 		for _, comments := range lines {
@@ -263,7 +263,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 				if err != nil {
 					return nil, nil, err
 				}
-				notification.NotifyPullRequestCodeComment(pr, codeComment, mentions)
+				notification.NotifyPullRequestCodeComment(ctx, pr, codeComment, mentions)
 			}
 		}
 	}
@@ -316,14 +316,14 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 		return nil, nil
 	}
 
-	if err = review.Issue.LoadPullRequest(); err != nil {
+	if err = review.Issue.LoadPullRequest(ctx); err != nil {
 		return
 	}
 	if err = review.Issue.LoadAttributes(ctx); err != nil {
 		return
 	}
 
-	comment, err = issues_model.CreateComment(&issues_model.CreateCommentOptions{
+	comment, err = issue_service.CreateComment(&issues_model.CreateCommentOptions{
 		Doer:     doer,
 		Content:  message,
 		Type:     issues_model.CommentTypeDismissReview,
@@ -339,7 +339,7 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 	comment.Poster = doer
 	comment.Issue = review.Issue
 
-	notification.NotifyPullRevieweDismiss(doer, review, comment)
+	notification.NotifyPullReviewDismiss(ctx, doer, review, comment)
 
 	return comment, err
 }

@@ -3,7 +3,7 @@ module code.gitea.io/gitea
 go 1.18
 
 require (
-	code.gitea.io/gitea-vet v0.2.2-0.20220122151748-48ebc902541b
+	code.gitea.io/gitea-vet v0.2.2
 	code.gitea.io/sdk/gitea v0.15.1
 	codeberg.org/gusted/mcaptcha v0.0.0-20220723083913-4f3072e1d570
 	gitea.com/go-chi/binding v0.0.0-20221013104517-b29891619681
@@ -15,7 +15,7 @@ require (
 	github.com/42wim/sshsig v0.0.0-20211121163825-841cf5bbc121
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/PuerkitoBio/goquery v1.8.0
-	github.com/alecthomas/chroma/v2 v2.3.0
+	github.com/alecthomas/chroma/v2 v2.4.0
 	github.com/blevesearch/bleve/v2 v2.3.4
 	github.com/buildkite/terminal-to-html/v3 v3.7.0
 	github.com/caddyserver/certmagic v0.17.2
@@ -88,6 +88,7 @@ require (
 	github.com/unrolled/render v1.5.0
 	github.com/urfave/cli v1.22.10
 	github.com/xanzy/go-gitlab v0.73.1
+	github.com/xeipuuv/gojsonschema v1.2.0
 	github.com/yohcop/openid-go v1.0.0
 	github.com/yuin/goldmark v1.5.2
 	github.com/yuin/goldmark-highlighting/v2 v2.0.0-20220924101305-151362477c87
@@ -102,12 +103,11 @@ require (
 	golang.org/x/tools v0.1.12
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gopkg.in/ini.v1 v1.67.0
-	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
 	mvdan.cc/xurls/v2 v2.4.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
-	xorm.io/builder v0.3.11
-	xorm.io/xorm v1.3.2-0.20220714055524-c3bce556200f
+	xorm.io/builder v0.3.12
+	xorm.io/xorm v1.3.3-0.20221209153726-f1bfc5ce9830
 )
 
 require (
@@ -183,7 +183,7 @@ require (
 	github.com/go-openapi/strfmt v0.21.3 // indirect
 	github.com/go-openapi/swag v0.22.3 // indirect
 	github.com/go-openapi/validate v0.22.0 // indirect
-	github.com/goccy/go-json v0.9.11 // indirect
+	github.com/goccy/go-json v0.10.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
@@ -267,6 +267,8 @@ require (
 	github.com/valyala/fastjson v1.6.3 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xanzy/ssh-agent v0.3.2 // indirect
+	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
+	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
@@ -293,6 +295,7 @@ require (
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.28 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
 

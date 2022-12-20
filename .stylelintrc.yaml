@@ -1,8 +1,19 @@
 extends: stylelint-config-standard
 
+plugins:
+  - stylelint-declaration-strict-value
+
 overrides:
   - files: ["**/*.less"]
     customSyntax: postcss-less
+  - files: ["**/*.less"]
+    rules:
+      scale-unlimited/declaration-strict-value: [color, {
+        ignoreValues: /^(inherit|transparent|unset|initial)$/
+      }]
+  - files: ["**/chroma/*", "**/codemirror/*", "**/standalone/*", "**/console/*"]
+    rules:
+      scale-unlimited/declaration-strict-value: null
 
 rules:
   alpha-value-notation: null

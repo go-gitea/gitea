@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git_test
 
@@ -49,13 +48,13 @@ func TestDeletedBranchLoadUser(t *testing.T) {
 
 	branch := getDeletedBranch(t, firstBranch)
 	assert.Nil(t, branch.DeletedBy)
-	branch.LoadUser()
+	branch.LoadUser(db.DefaultContext)
 	assert.NotNil(t, branch.DeletedBy)
 	assert.Equal(t, "user1", branch.DeletedBy.Name)
 
 	branch = getDeletedBranch(t, secondBranch)
 	assert.Nil(t, branch.DeletedBy)
-	branch.LoadUser()
+	branch.LoadUser(db.DefaultContext)
 	assert.NotNil(t, branch.DeletedBy)
 	assert.Equal(t, "Ghost", branch.DeletedBy.Name)
 }

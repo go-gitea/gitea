@@ -6,10 +6,10 @@ import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin';
 import {VueLoaderPlugin} from 'vue-loader';
 import EsBuildLoader from 'esbuild-loader';
-import {parse, dirname} from 'path';
+import {parse, dirname} from 'node:path';
 import webpack from 'webpack';
-import {fileURLToPath} from 'url';
-import {readFileSync} from 'fs';
+import {fileURLToPath} from 'node:url';
+import {readFileSync} from 'node:fs';
 
 const {ESBuildMinifyPlugin} = EsBuildLoader;
 const {SourceMapDevToolPlugin} = webpack;
@@ -47,6 +47,7 @@ const filterCssImport = (url, ...args) => {
   return true;
 };
 
+/** @type {import("webpack").Configuration} */
 export default {
   mode: isProduction ? 'production' : 'development',
   entry: {
@@ -226,9 +227,11 @@ export default {
         }).join('\n');
       },
       override: {
-        'jquery.are-you-sure@*': {licenseName: 'MIT'},
+        'jquery.are-you-sure@*': {licenseName: 'MIT'}, // https://github.com/codedance/jquery.AreYouSure/pull/147
+        'khroma@*': {licenseName: 'MIT'}, // https://github.com/fabiospampinato/khroma/pull/33
       },
-      allow: '(Apache-2.0 OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC)',
+      emitError: true,
+      allow: '(Apache-2.0 OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC OR CPAL-1.0 OR Unlicense)',
       ignore: [
         'font-awesome',
       ],

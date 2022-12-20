@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -25,9 +24,8 @@ type apiUserOrgPermTestCase struct {
 func TestTokenNeeded(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	session := emptyTestSession(t)
 	req := NewRequest(t, "GET", "/api/v1/users/user1/orgs/user6/permissions")
-	session.MakeRequest(t, req, http.StatusUnauthorized)
+	MakeRequest(t, req, http.StatusUnauthorized)
 }
 
 func sampleTest(t *testing.T, auoptc apiUserOrgPermTestCase) {
@@ -37,7 +35,7 @@ func sampleTest(t *testing.T, auoptc apiUserOrgPermTestCase) {
 	token := getTokenForLoggedInUser(t, session)
 
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s/orgs/%s/permissions?token=%s", auoptc.User, auoptc.Organization, token))
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 
 	var apiOP api.OrganizationPermissions
 	DecodeJSON(t, resp, &apiOP)
@@ -130,7 +128,7 @@ func TestUnknowUser(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session)
 
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/unknow/orgs/org25/permissions?token=%s", token))
-	resp := session.MakeRequest(t, req, http.StatusNotFound)
+	resp := MakeRequest(t, req, http.StatusNotFound)
 
 	var apiError api.APIError
 	DecodeJSON(t, resp, &apiError)
@@ -144,7 +142,7 @@ func TestUnknowOrganization(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session)
 
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/user1/orgs/unknow/permissions?token=%s", token))
-	resp := session.MakeRequest(t, req, http.StatusNotFound)
+	resp := MakeRequest(t, req, http.StatusNotFound)
 	var apiError api.APIError
 	DecodeJSON(t, resp, &apiError)
 	assert.Equal(t, "GetUserByName", apiError.Message)

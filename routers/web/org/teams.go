@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package org
 
@@ -50,7 +49,7 @@ func Teams(ctx *context.Context) {
 	ctx.Data["PageIsOrgTeams"] = true
 
 	for _, t := range ctx.Org.Teams {
-		if err := t.GetMembersCtx(ctx); err != nil {
+		if err := t.LoadMembers(ctx); err != nil {
 			ctx.ServerError("GetMembers", err)
 			return
 		}
@@ -347,7 +346,7 @@ func TeamMembers(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Org.Team.Name
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamMembers"] = true
-	if err := ctx.Org.Team.GetMembersCtx(ctx); err != nil {
+	if err := ctx.Org.Team.LoadMembers(ctx); err != nil {
 		ctx.ServerError("GetMembers", err)
 		return
 	}
@@ -369,7 +368,7 @@ func TeamRepositories(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Org.Team.Name
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamRepos"] = true
-	if err := ctx.Org.Team.GetRepositoriesCtx(ctx); err != nil {
+	if err := ctx.Org.Team.LoadRepositories(ctx); err != nil {
 		ctx.ServerError("GetRepositories", err)
 		return
 	}
@@ -571,7 +570,7 @@ func getTeamInviteFromContext(ctx *context.Context) (*org_model.TeamInvite, *org
 		return nil, nil, nil, nil, err
 	}
 
-	inviter, err := user_model.GetUserByIDCtx(ctx, invite.InviterID)
+	inviter, err := user_model.GetUserByID(ctx, invite.InviterID)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -581,7 +580,7 @@ func getTeamInviteFromContext(ctx *context.Context) (*org_model.TeamInvite, *org
 		return nil, nil, nil, nil, err
 	}
 
-	org, err := user_model.GetUserByIDCtx(ctx, team.OrgID)
+	org, err := user_model.GetUserByID(ctx, team.OrgID)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}

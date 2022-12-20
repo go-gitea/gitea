@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package setting
 
@@ -440,6 +439,7 @@ var (
 	ShowFooterBranding         bool
 	ShowFooterVersion          bool
 	ShowFooterTemplateLoadTime bool
+	EnableFeed                 bool
 
 	// Global setting objects
 	Cfg           *ini.File
@@ -465,6 +465,13 @@ func getAppPath() (string, error) {
 		appPath, err = exec.LookPath(os.Args[0])
 	}
 
+	if err != nil {
+		// FIXME: Once we switch to go 1.19 use !errors.Is(err, exec.ErrDot)
+		if !strings.Contains(err.Error(), "cannot run executable found relative to current directory") {
+			return "", err
+		}
+		appPath, err = filepath.Abs(os.Args[0])
+	}
 	if err != nil {
 		return "", err
 	}
@@ -604,7 +611,7 @@ func LoadForTest(extraConfigs ...string) {
 
 func deprecatedSetting(oldSection, oldKey, newSection, newKey string) {
 	if Cfg.Section(oldSection).HasKey(oldKey) {
-		log.Error("Deprecated fallback `[%s]` `%s` present. Use `[%s]` `%s` instead. This fallback will be removed in v1.18.0", oldSection, oldKey, newSection, newKey)
+		log.Error("Deprecated fallback `[%s]` `%s` present. Use `[%s]` `%s` instead. This fallback will be removed in v1.19.0", oldSection, oldKey, newSection, newKey)
 	}
 }
 
@@ -748,19 +755,22 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	PerWriteTimeout = sec.Key("PER_WRITE_TIMEOUT").MustDuration(PerWriteTimeout)
 	PerWritePerKbTimeout = sec.Key("PER_WRITE_PER_KB_TIMEOUT").MustDuration(PerWritePerKbTimeout)
 
-	defaultAppURL := string(Protocol) + "://" + Domain
-	if (Protocol == HTTP && HTTPPort != "80") || (Protocol == HTTPS && HTTPPort != "443") {
-		defaultAppURL += ":" + HTTPPort
-	}
-	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL + "/")
-	// This should be TrimRight to ensure that there is only a single '/' at the end of AppURL.
-	AppURL = strings.TrimRight(AppURL, "/") + "/"
+	defaultAppURL := string(Protocol) + "://" + Domain + ":" + HTTPPort
+	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL)
 
-	// Check if has app suburl.
+	// Check validity of AppURL
 	appURL, err := url.Parse(AppURL)
 	if err != nil {
 		log.Fatal("Invalid ROOT_URL '%s': %s", AppURL, err)
 	}
+	// Remove default ports from AppURL.
+	// (scheme-based URL normalization, RFC 3986 section 6.2.3)
+	if (appURL.Scheme == string(HTTP) && appURL.Port() == "80") || (appURL.Scheme == string(HTTPS) && appURL.Port() == "443") {
+		appURL.Host = appURL.Hostname()
+	}
+	// This should be TrimRight to ensure that there is only a single '/' at the end of AppURL.
+	AppURL = strings.TrimRight(appURL.String(), "/") + "/"
+
 	// Suburl should start with '/' and end without '/', such as '/{subpath}'.
 	// This value is empty if site does not have sub-url.
 	AppSubURL = strings.TrimSuffix(appURL.Path, "/")
@@ -938,7 +948,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	if SecretKey == "" {
 		// FIXME: https://github.com/go-gitea/gitea/issues/16832
 		// Until it supports rotating an existing secret key, we shouldn't move users off of the widely used default value
-		SecretKey = "!#@FDEWREWR&*(" // nolint:gosec
+		SecretKey = "!#@FDEWREWR&*(" //nolint:gosec
 	}
 
 	CookieRememberName = sec.Key("COOKIE_REMEMBER_NAME").MustString("gitea_incredible")
@@ -1102,6 +1112,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	ShowFooterVersion = Cfg.Section("other").Key("SHOW_FOOTER_VERSION").MustBool(true)
 	ShowFooterTemplateLoadTime = Cfg.Section("other").Key("SHOW_FOOTER_TEMPLATE_LOAD_TIME").MustBool(true)
 	EnableSitemap = Cfg.Section("other").Key("ENABLE_SITEMAP").MustBool(true)
+	EnableFeed = Cfg.Section("other").Key("ENABLE_FEED").MustBool(true)
 
 	UI.ShowUserEmail = Cfg.Section("ui").Key("SHOW_USER_EMAIL").MustBool(true)
 	UI.DefaultShowFullName = Cfg.Section("ui").Key("DEFAULT_SHOW_FULL_NAME").MustBool(false)

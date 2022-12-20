@@ -1,11 +1,9 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package feed
 
 import (
-	"net/http"
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
@@ -59,7 +57,6 @@ func showUserFeed(ctx *context.Context, formatType string) {
 
 // writeFeed write a feeds.Feed as atom or rss to ctx.Resp
 func writeFeed(ctx *context.Context, feed *feeds.Feed, formatType string) {
-	ctx.Resp.WriteHeader(http.StatusOK)
 	if formatType == "atom" {
 		ctx.Resp.Header().Set("Content-Type", "application/atom+xml;charset=utf-8")
 		if err := feed.WriteAtom(ctx.Resp); err != nil {
