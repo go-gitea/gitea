@@ -82,7 +82,7 @@ services:
     restart: always
     volumes:
       - ./data:/var/lib/gitea
-      - ./config:/etc/gitea  
+      - ./config:/etc/gitea
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
@@ -112,7 +112,7 @@ services:
     restart: always
     volumes:
       - ./data:/var/lib/gitea
-      - ./config:/etc/gitea  
+      - ./config:/etc/gitea
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
@@ -153,7 +153,7 @@ services:
     restart: always
     volumes:
       - ./data:/var/lib/gitea
-      - ./config:/etc/gitea  
+      - ./config:/etc/gitea
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
