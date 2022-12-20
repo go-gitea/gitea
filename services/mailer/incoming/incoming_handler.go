@@ -39,10 +39,6 @@ func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, user *u
 		return fmt.Errorf("user needed")
 	}
 
-	if content.Content == "" && len(content.Attachments) == 0 {
-		return nil
-	}
-
 	ref, err := incoming_payload.GetReferenceFromPayload(ctx, payload)
 	if err != nil {
 		return err
@@ -91,7 +87,7 @@ func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, user *u
 				})
 				if err != nil {
 					if upload.IsErrFileTypeForbidden(err) {
-						log.Debug("Skipping disallowed attachment type")
+						log.Info("Skipping disallowed attachment type: %s", attachment.Name)
 						continue
 					}
 					return err
@@ -100,12 +96,20 @@ func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, user *u
 			}
 		}
 
+		if content.Content == "" && len(attachmentIDs) == 0 {
+			return nil
+		}
+
 		_, err = issue_service.CreateIssueComment(ctx, user, issue.Repo, issue, content.Content, attachmentIDs)
 		if err != nil {
 			return fmt.Errorf("CreateIssueComment failed: %w", err)
 		}
 	case *issues_model.Comment:
 		comment := r
+
+		if content.Content == "" {
+			return nil
+		}
 
 		if comment.Type == issues_model.CommentTypeCode {
 			_, err := pull_service.CreateCodeComment(
