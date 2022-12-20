@@ -1122,16 +1122,6 @@ func DeployKeys(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplDeployKeys)
 }
 
-// SecretsPost response for creating a new secret
-func SecretsPost(ctx *context.Context) {
-	shared.PerformSecretsPost(
-		ctx,
-		0,
-		ctx.Repo.Repository.ID,
-		ctx.Repo.RepoLink+"/settings/keys",
-	)
-}
-
 // DeployKeysPost response for adding a deploy key of a repository
 func DeployKeysPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AddKeyForm)
@@ -1192,13 +1182,6 @@ func DeployKeysPost(ctx *context.Context) {
 	log.Trace("Deploy key added: %d", ctx.Repo.Repository.ID)
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_key_success", key.Name))
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
-}
-
-func DeleteSecret(ctx *context.Context) {
-	shared.PerformSecretsDelete(
-		ctx,
-		ctx.Repo.RepoLink+"/settings/keys",
-	)
 }
 
 // DeleteDeployKey response for deleting a deploy key
