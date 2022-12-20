@@ -13,8 +13,13 @@ import (
 // TimeStamp defines a timestamp
 type TimeStamp int64
 
-// mock is NOT concurrency-safe!!
-var mock time.Time
+var (
+	// mock is NOT concurrency-safe!!
+	mock time.Time
+
+	// Used for IsZero, to check if timestamp is the zero time instant.
+	timeZeroUnix = time.Time{}.Unix()
+)
 
 // Set sets the time to a mocked time.Time
 func Set(now time.Time) {
@@ -103,5 +108,5 @@ func (ts TimeStamp) FormatDate() string {
 
 // IsZero is zero time
 func (ts TimeStamp) IsZero() bool {
-	return int64(ts) == 0
+	return int64(ts) == 0 || int64(ts) == timeZeroUnix
 }
