@@ -18,6 +18,7 @@ import (
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
+// ListOwnerHooks lists the webhooks of the provided owner
 func ListOwnerHooks(ctx *context.APIContext, owner *user_model.User) {
 	opts := &webhook.ListWebhookOptions{
 		ListOptions: GetListOptions(ctx),
@@ -49,8 +50,7 @@ func ListOwnerHooks(ctx *context.APIContext, owner *user_model.User) {
 	ctx.JSON(http.StatusOK, apiHooks)
 }
 
-// GetOwnerHook get an user or organization's webhook. If there is an error, write to
-// `ctx` accordingly and return the error
+// GetOwnerHook gets an user or organization webhook. Errors are written to ctx.
 func GetOwnerHook(ctx *context.APIContext, ownerID, hookID int64) (*webhook.Webhook, error) {
 	w, err := webhook.GetWebhookByOwnerID(ownerID, hookID)
 	if err != nil {
@@ -99,7 +99,7 @@ func checkCreateHookOption(ctx *context.APIContext, form *api.CreateHookOption) 
 	return true
 }
 
-// AddOwnerHook add a hook to an user or organization. Writes to `ctx` accordingly
+// AddOwnerHook adds a hook to an user or organization
 func AddOwnerHook(ctx *context.APIContext, owner *user_model.User, form *api.CreateHookOption) {
 	hook, ok := addHook(ctx, form, owner.ID, 0)
 	if !ok {
@@ -231,7 +231,7 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 	return w, true
 }
 
-// EditOwnerHook edit webhook `w` according to `form`. Writes to `ctx` accordingly
+// EditOwnerHook updates a webhook of an user or organization
 func EditOwnerHook(ctx *context.APIContext, owner *user_model.User, form *api.EditHookOption, hookID int64) {
 	hook, err := GetOwnerHook(ctx, owner.ID, hookID)
 	if err != nil {
@@ -359,6 +359,7 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 	return true
 }
 
+// DeleteOwnerHook deletes the hook owned by the owner.
 func DeleteOwnerHook(ctx *context.APIContext, owner *user_model.User, hookID int64) {
 	if err := webhook.DeleteWebhookByOwnerID(owner.ID, hookID); err != nil {
 		if webhook.IsErrWebhookNotExist(err) {
