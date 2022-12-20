@@ -33,4 +33,4 @@ Secret names must be unique at the level they are created at.
 
 For example, a secret created at the repository level must have a unique name in that repository, and a secret created at the organization level must have a unique name at that level.
 
-If a secret with the same name exists at multiple levels, the secret at the lowest level takes precedence. For example, if an organization-level secret has the same name as a repository-level secret, then the repository-level secret takes precedence. Similarly, if an organization and repository both have a secret with the same name, the repository-level secret takes precedence.
+If a secret with the same name exists at multiple levels, the secret at the lowest level takes precedence. For example, if an organization-level secret has the same name as a repository-level secret, then the repository-level secret takes precedence.
