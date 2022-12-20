@@ -12,6 +12,9 @@
 		<a class="{{if .PageIsOrgSettingsLabels}}active {{end}}item" href="{{.OrgLink}}/settings/labels">
 			{{.locale.Tr "repo.labels"}}
 		</a>
+		<a class="{{if .PageIsOrgSettingsSecrets}}active {{end}}item" href="{{.OrgLink}}/settings/secrets">
+			{{.locale.Tr "secrets.secrets"}}
+		</a>
 		{{if .EnableOAuth2}}
 		<a class="{{if .PageIsSettingsApplications}}active {{end}}item" href="{{.OrgLink}}/settings/applications">
 			{{.locale.Tr "settings.applications"}}
