@@ -1,4 +1,4 @@
-// Copyright 2022 The Gogs Authors. All rights reserved.
+// Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package sync
@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"code.gitea.io/gitea/modules/nosql"
+	"code.gitea.io/gitea/modules/setting"
 	redsync "github.com/go-redsync/redsync/v4"
 	goredis "github.com/go-redsync/redsync/v4/redis/goredis/v8"
 )
@@ -88,5 +89,8 @@ func (r *redisLock) Unlock() (bool, error) {
 }
 
 func GetLockService() LockService {
+	if setting.Sync.LockServiceType == "redis" {
+		return NewRedisLockService(setting.Sync.LockServiceConnStr)
+	}
 	return NewMemoryLockService()
 }
