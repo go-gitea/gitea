@@ -34,7 +34,7 @@ import (
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // IssueTemplateDirCandidates issue templates directory
@@ -50,14 +50,10 @@ var IssueTemplateDirCandidates = []string{
 }
 
 var IssueConfigCanidates = []string{
-	".gitea/ISSUE_TEMPLATE/config.yaml",
-	".gitea/ISSUE_TEMPLATE/config.yml",
-	".gitea/issue_template/config.yaml",
-	".gitea/issue_template/config.yml",
-	".github/ISSUE_TEMPLATE/config.yaml",
-	".github/ISSUE_TEMPLATE/config.yml",
-	".github/issue_template/config.yaml",
-	".github/issue_template/config.yml",
+	".gitea/ISSUE_TEMPLATE/config",
+	".gitea/issue_template/config",
+	".github/ISSUE_TEMPLATE/config",
+	".github/issue_template/config",
 }
 
 // PullRequest contains information to make a pull request
@@ -1094,9 +1090,6 @@ func (ctx *Context) IssueTemplatesErrorsFromDefaultBranch() ([]*api.IssueTemplat
 			return issueTemplates, nil
 		}
 		for _, entry := range entries {
-			if entry.Name() == "config.yaml" || entry.Name() == "config.yml" {
-				continue
-			}
 			if !template.CouldBe(entry.Name()) {
 				continue
 			}
@@ -1114,53 +1107,70 @@ func (ctx *Context) IssueTemplatesErrorsFromDefaultBranch() ([]*api.IssueTemplat
 	return issueTemplates, invalidFiles
 }
 
-func ExtractIssueConfigFromYaml(configContent []byte) (api.IssueConfig, error) {
-	config := api.IssueConfig{
+
+func GetDefaultIssueConfig() (api.IssueConfig) {
+	return api.IssueConfig{
 		BlankIssuesEnabled: true,
 	}
+}
 
-	err := yaml.Unmarshal(configContent, &config)
-	if err != nil {
-		return api.IssueConfig{}, err
+func (r *Repository) GetIssueConfig(path string, commit *git.Commit) (api.IssueConfig, error) {
+	if r.GitRepo == nil {
+		return GetDefaultIssueConfig(), nil
 	}
 
-	return config, nil
+	var err error
+
+	treeEntry, err := commit.GetTreeEntryByPath(path)
+	if err != nil {
+		return GetDefaultIssueConfig(), err
+	}
+
+	reader, err := treeEntry.Blob().DataAsync()
+	if err != nil {
+		log.Debug("DataAsync: %v", err)
+		return GetDefaultIssueConfig(), nil
+	}
+
+	configContent, err := io.ReadAll(reader)
+	if err != nil {
+		return GetDefaultIssueConfig(), err
+	}
+
+	issueConfig := api.IssueConfig{}
+	if err := yaml.Unmarshal(configContent, &issueConfig); err != nil {
+		return GetDefaultIssueConfig(), err
+	}
+
+	return issueConfig, nil
 }
 
 func (ctx *Context) IssueConfigFromDefaultBranch() (api.IssueConfig, error) {
-	defaultIssueConfig := api.IssueConfig{
-		BlankIssuesEnabled: true,
-	}
-
 	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
 	if err != nil {
-		return defaultIssueConfig, wee
+		return GetDefaultIssueConfig(), err
 	}
 
 	for _, configName := range IssueConfigCanidates {
-		entry, err := commit.GetTreeEntryByPath(configName)
-		if err != nil {
-			continue
+		_, err := commit.GetTreeEntryByPath(configName + ".yaml")
+		if err == nil {
+			return ctx.Repo.GetIssueConfig(configName + ".yaml", commit)
 		}
 
-		r, err := entry.Blob().DataAsync()
-		if err != nil {
-			log.Debug("DataAsync: %v", err)
-			return defaultIssueConfig, nil
+		_, err2 := commit.GetTreeEntryByPath(configName + ".yml")
+		if err2 == nil {
+			return ctx.Repo.GetIssueConfig(configName + ".yml", commit)
 		}
-
-		configContent, err := io.ReadAll(r)
-		if err != nil {
-			return defaultIssueConfig, err
-		}
-
-		issueConfig, err := ExtractIssueConfigFromYaml(configContent)
-		if err != nil {
-			return defaultIssueConfig, err
-		}
-
-		return issueConfig, nil
 	}
 
-	return defaultIssueConfig, nil
+	return GetDefaultIssueConfig(), nil
+}
+
+func (r *Repository) IsIssueConfig(path string) (bool) {
+	for _, configName := range IssueConfigCanidates {
+		if path == configName + ".yaml" || path == configName + ".yml" {
+			return true
+		}
+	}
+	return false
 }

@@ -290,6 +290,6 @@ BlankIssuesEnabled: true
 
 ### Possible Options
 
-| Key                | Description                                                                                           | Type    |
-|--------------------|-------------------------------------------------------------------------------------------------------|---------|
-| BalnkIssuesEnabled | If set to false, the User is forced to use a Template                                                 | Boolean |
+| Key                  | Description                                                                                           | Type    |
+|----------------------|-------------------------------------------------------------------------------------------------------|---------|
+| blank_issues_enabled | If set to false, the User is forced to use a Template                                                 | Boolean |
