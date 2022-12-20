@@ -9,7 +9,6 @@ import (
 	gocontext "context"
 	"encoding/base64"
 	"fmt"
-	gotemplate "html/template"
 	"io"
 	"net/http"
 	"net/url"
@@ -350,15 +349,13 @@ func renderReadmeFile(ctx *context.Context, readmeFile *namedBlob, readmeTreelin
 		if err != nil {
 			log.Error("Render failed for %s in %-v: %v Falling back to rendering source", readmeFile.name, ctx.Repo.Repository, err)
 			buf := &bytes.Buffer{}
-			ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, buf, ctx.Locale)
-			ctx.Data["FileContent"] = strings.ReplaceAll(
-				gotemplate.HTMLEscapeString(buf.String()), "\n", `<br>`,
-			)
+			ctx.Data["EscapeStatus"], _ = charset.EscapeControlStringReader(rd, buf, ctx.Locale)
+			ctx.Data["FileContent"] = buf.String()
 		}
 	} else {
-		ctx.Data["IsRenderedHTML"] = true
+		ctx.Data["IsPlainText"] = true
 		buf := &bytes.Buffer{}
-		ctx.Data["EscapeStatus"], err = charset.EscapeControlReader(rd, &charset.BreakWriter{Writer: buf}, ctx.Locale, charset.RuneNBSP)
+		ctx.Data["EscapeStatus"], err = charset.EscapeControlStringReader(rd, buf, ctx.Locale)
 		if err != nil {
 			log.Error("Read failed: %v", err)
 		}
@@ -492,15 +489,6 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			}
 			// to prevent iframe load third-party url
 			ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'")
-		} else if readmeExist && !shouldRenderSource {
-			buf := &bytes.Buffer{}
-			ctx.Data["IsRenderedHTML"] = true
-
-			ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, buf, ctx.Locale)
-
-			ctx.Data["FileContent"] = strings.ReplaceAll(
-				gotemplate.HTMLEscapeString(buf.String()), "\n", `<br>`,
-			)
 		} else {
 			buf, _ := io.ReadAll(rd)
 
