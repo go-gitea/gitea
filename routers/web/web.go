@@ -774,6 +774,12 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/initialize", web.Bind(forms.InitializeLabelsForm{}), org.InitializeLabels)
 				})
 
+				m.Group("/secrets", func() {
+					m.Get("", org.Secrets)
+					m.Post("", web.Bind(forms.AddSecretForm{}), org.SecretsPost)
+					m.Post("/delete", org.SecretsDelete)
+				})
+
 				m.Route("/delete", "GET,POST", org.SettingsDelete)
 
 				m.Group("/packages", func() {
@@ -912,6 +918,10 @@ func RegisterRoutes(m *web.Route) {
 				m.Combo("").Get(repo.DeployKeys).
 					Post(web.Bind(forms.AddKeyForm{}), repo.DeployKeysPost)
 				m.Post("/delete", repo.DeleteDeployKey)
+				m.Group("/secrets", func() {
+					m.Post("", web.Bind(forms.AddSecretForm{}), repo.SecretsPost)
+					m.Post("/delete", repo.DeleteSecret)
+				})
 			})
 
 			m.Group("/lfs", func() {
