@@ -117,11 +117,11 @@ services:
     environment:
       - USER_UID=1000
       - USER_GID=1000
-+     - GITEA__database__DB_TYPE=mysql
-+     - GITEA__database__HOST=db:3306
-+     - GITEA__database__NAME=gitea
-+     - GITEA__database__USER=gitea
-+     - GITEA__database__PASSWD=gitea
++      - GITEA__database__DB_TYPE=mysql
++      - GITEA__database__HOST=db:3306
++      - GITEA__database__NAME=gitea
++      - GITEA__database__USER=gitea
++      - GITEA__database__PASSWD=gitea
     restart: always
     networks:
       - gitea
@@ -168,11 +168,11 @@ services:
     environment:
       - USER_UID=1000
       - USER_GID=1000
-+     - GITEA__database__DB_TYPE=postgres
-+     - GITEA__database__HOST=db:5432
-+     - GITEA__database__NAME=gitea
-+     - GITEA__database__USER=gitea
-+     - GITEA__database__PASSWD=gitea
++      - GITEA__database__DB_TYPE=postgres
++      - GITEA__database__HOST=db:5432
++      - GITEA__database__NAME=gitea
++      - GITEA__database__USER=gitea
++      - GITEA__database__PASSWD=gitea
     restart: always
     networks:
       - gitea
@@ -225,8 +225,8 @@ services:
     networks:
       - gitea
     volumes:
--     - ./gitea:/data
-+     - gitea:/data
+-      - ./gitea:/data
++      - gitea:/data
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
