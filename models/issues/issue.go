@@ -202,16 +202,12 @@ func (issue *Issue) LoadRepo(ctx context.Context) (err error) {
 }
 
 // IsTimetrackerEnabled returns true if the repo enables timetracking
-func (issue *Issue) IsTimetrackerEnabled() bool {
-	return issue.isTimetrackerEnabled(db.DefaultContext)
-}
-
-func (issue *Issue) isTimetrackerEnabled(ctx context.Context) bool {
+func (issue *Issue) IsTimetrackerEnabled(ctx context.Context) bool {
 	if err := issue.LoadRepo(ctx); err != nil {
 		log.Error(fmt.Sprintf("loadRepo: %v", err))
 		return false
 	}
-	return issue.Repo.IsTimetrackerEnabledCtx(ctx)
+	return issue.Repo.IsTimetrackerEnabled(ctx)
 }
 
 // GetPullRequest returns the issue pull request
@@ -404,7 +400,7 @@ func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 	if err = CommentList(issue.Comments).loadAttributes(ctx); err != nil {
 		return err
 	}
-	if issue.isTimetrackerEnabled(ctx) {
+	if issue.IsTimetrackerEnabled(ctx) {
 		if err = issue.LoadTotalTimes(ctx); err != nil {
 			return err
 		}
@@ -673,7 +669,7 @@ func changeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User,
 
 func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User, isMergePull bool) (*Comment, error) {
 	// Check for open dependencies
-	if issue.IsClosed && issue.Repo.IsDependenciesEnabledCtx(ctx) {
+	if issue.IsClosed && issue.Repo.IsDependenciesEnabled(ctx) {
 		// only check if dependencies are enabled and we're about to close an issue, otherwise reopening an issue would fail when there are unsatisfied dependencies
 		noDeps, err := IssueNoDependenciesLeft(ctx, issue)
 		if err != nil {
@@ -725,7 +721,7 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 		cmtType = CommentTypeMergePull
 	}
 
-	return CreateCommentCtx(ctx, &CreateCommentOptions{
+	return CreateComment(ctx, &CreateCommentOptions{
 		Type:  cmtType,
 		Doer:  doer,
 		Repo:  issue.Repo,
@@ -769,7 +765,7 @@ func ChangeIssueTitle(issue *Issue, doer *user_model.User, oldTitle string) (err
 		OldTitle: oldTitle,
 		NewTitle: issue.Title,
 	}
-	if _, err = CreateCommentCtx(ctx, opts); err != nil {
+	if _, err = CreateComment(ctx, opts); err != nil {
 		return fmt.Errorf("createComment: %w", err)
 	}
 	if err = issue.AddCrossReferences(ctx, doer, true); err != nil {
@@ -805,7 +801,7 @@ func ChangeIssueRef(issue *Issue, doer *user_model.User, oldRef string) (err err
 		OldRef: oldRefFriendly,
 		NewRef: newRefFriendly,
 	}
-	if _, err = CreateCommentCtx(ctx, opts); err != nil {
+	if _, err = CreateComment(ctx, opts); err != nil {
 		return fmt.Errorf("createComment: %w", err)
 	}
 
@@ -825,7 +821,7 @@ func AddDeletePRBranchComment(ctx context.Context, doer *user_model.User, repo *
 		Issue:  issue,
 		OldRef: branchName,
 	}
-	_, err = CreateCommentCtx(ctx, opts)
+	_, err = CreateComment(ctx, opts)
 	return err
 }
 
@@ -992,7 +988,7 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 			OldMilestoneID: 0,
 			MilestoneID:    opts.Issue.MilestoneID,
 		}
-		if _, err = CreateCommentCtx(ctx, opts); err != nil {
+		if _, err = CreateComment(ctx, opts); err != nil {
 			return err
 		}
 	}
@@ -2000,7 +1996,7 @@ func UpdateIssueByAPI(issue *Issue, doer *user_model.User) (statusChangeComment 
 			OldTitle: currentIssue.Title,
 			NewTitle: issue.Title,
 		}
-		_, err := CreateCommentCtx(ctx, opts)
+		_, err := CreateComment(ctx, opts)
 		if err != nil {
 			return nil, false, fmt.Errorf("createComment: %w", err)
 		}

@@ -330,7 +330,7 @@
 				{{end}}
 
 				{{if .AllowMerge}} {{/* user is allowed to merge */}}
-					{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
+					{{$prUnit := .Repository.MustGetUnit $.Context $.UnitTypePullRequests}}
 					{{$approvers := .Issue.PullRequest.GetApprovers}}
 					{{if or $prUnit.PullRequestsConfig.AllowMerge $prUnit.PullRequestsConfig.AllowRebase $prUnit.PullRequestsConfig.AllowRebaseMerge $prUnit.PullRequestsConfig.AllowSquash}}
 						{{$hasPendingPullRequestMergeTip := ""}}

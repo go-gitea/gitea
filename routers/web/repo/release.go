@@ -135,7 +135,7 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 		return
 	}
 
-	count, err := repo_model.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, opts)
+	count, err := repo_model.GetReleaseCountByRepoID(ctx, ctx.Repo.Repository.ID, opts)
 	if err != nil {
 		ctx.ServerError("GetReleaseCountByRepoID", err)
 		return

@@ -61,11 +61,11 @@
 		{{if not (or .IsMarkup .IsRenderedHTML)}}
 			{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus "root" $}}
 		{{end}}
-		<div class="file-view{{if .IsMarkup}} markup {{.MarkupType}}{{else if .IsRenderedHTML}} plain-text{{else if .IsTextSource}} code-view{{end}}">
+		<div class="file-view{{if .IsMarkup}} markup {{.MarkupType}}{{else if .IsPlainText}} plain-text{{else if .IsTextSource}} code-view{{end}}">
 			{{if .IsMarkup}}
 				{{if .FileContent}}{{.FileContent | Safe}}{{end}}
-			{{else if .IsRenderedHTML}}
-				<pre>{{if .FileContent}}{{.FileContent | Str2html}}{{end}}</pre>
+			{{else if .IsPlainText}}
+				<pre>{{if .FileContent}}{{.FileContent | Safe}}{{end}}</pre>
 			{{else if not .IsTextSource}}
 				<div class="view-raw ui center">
 					{{if .IsImageFile}}

@@ -110,7 +110,7 @@ func determineAccessMode(ctx *Context) (perm.AccessMode, error) {
 					return accessMode, err
 				}
 				for _, t := range teams {
-					perm := t.UnitAccessModeCtx(ctx, unit.TypePackages)
+					perm := t.UnitAccessMode(ctx, unit.TypePackages)
 					if accessMode < perm {
 						accessMode = perm
 					}

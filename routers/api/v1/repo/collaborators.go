@@ -174,13 +174,13 @@ func AddCollaborator(ctx *context.APIContext) {
 		return
 	}
 
-	if err := repo_module.AddCollaborator(ctx.Repo.Repository, collaborator); err != nil {
+	if err := repo_module.AddCollaborator(ctx, ctx.Repo.Repository, collaborator); err != nil {
 		ctx.Error(http.StatusInternalServerError, "AddCollaborator", err)
 		return
 	}
 
 	if form.Permission != nil {
-		if err := repo_model.ChangeCollaborationAccessMode(ctx.Repo.Repository, collaborator.ID, perm.ParseAccessMode(*form.Permission)); err != nil {
+		if err := repo_model.ChangeCollaborationAccessMode(ctx, ctx.Repo.Repository, collaborator.ID, perm.ParseAccessMode(*form.Permission)); err != nil {
 			ctx.Error(http.StatusInternalServerError, "ChangeCollaborationAccessMode", err)
 			return
 		}
