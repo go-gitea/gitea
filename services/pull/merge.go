@@ -33,6 +33,7 @@ import (
 	"code.gitea.io/gitea/modules/references"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/timeutil"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	issue_service "code.gitea.io/gitea/services/issue"
@@ -141,8 +142,9 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 		return fmt.Errorf("LoadBaseRepo: %w", err)
 	}
 
-	pullWorkingPool.CheckIn(fmt.Sprint(pr.ID))
-	defer pullWorkingPool.CheckOut(fmt.Sprint(pr.ID))
+	lock := sync.GetLockService().NewLock(fmt.Sprintf("pull_working_%d", pr.ID))
+	lock.Lock()
+	defer lock.Unlock()
 
 	// Removing an auto merge pull and ignore if not exist
 	if err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID); err != nil && !db.IsErrNotExist(err) {
@@ -824,8 +826,9 @@ func CheckPullBranchProtections(ctx context.Context, pr *issues_model.PullReques
 
 // MergedManually mark pr as merged manually
 func MergedManually(pr *issues_model.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, commitID string) error {
-	pullWorkingPool.CheckIn(fmt.Sprint(pr.ID))
-	defer pullWorkingPool.CheckOut(fmt.Sprint(pr.ID))
+	lock := sync.GetLockService().NewLock(fmt.Sprintf("pull_working_%d", pr.ID))
+	lock.Lock()
+	defer lock.Unlock()
 
 	if err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		prUnit, err := pr.BaseRepo.GetUnit(ctx, unit.TypePullRequests)

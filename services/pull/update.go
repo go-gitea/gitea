@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/sync"
 )
 
 // Update updates pull request with base branch.
@@ -25,8 +26,9 @@ func Update(ctx context.Context, pull *issues_model.PullRequest, doer *user_mode
 		style repo_model.MergeStyle
 	)
 
-	pullWorkingPool.CheckIn(fmt.Sprint(pull.ID))
-	defer pullWorkingPool.CheckOut(fmt.Sprint(pull.ID))
+	lock := sync.GetLockService().NewLock(fmt.Sprintf("pull_working_%d", pull.ID))
+	lock.Lock()
+	defer lock.Unlock()
 
 	if rebase {
 		pr = pull

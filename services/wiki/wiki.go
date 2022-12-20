@@ -23,11 +23,7 @@ import (
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 )
 
-var (
-	reservedWikiNames = []string{"_pages", "_new", "_edit", "raw"}
-	// TODO: use clustered lock (unique queue? or *abuse* cache)
-	wikiWorkingPool = sync.NewExclusivePool()
-)
+var reservedWikiNames = []string{"_pages", "_new", "_edit", "raw"}
 
 const (
 	DefaultRemote = "origin"
@@ -127,8 +123,9 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	if err = nameAllowed(newWikiName); err != nil {
 		return err
 	}
-	wikiWorkingPool.CheckIn(fmt.Sprint(repo.ID))
-	defer wikiWorkingPool.CheckOut(fmt.Sprint(repo.ID))
+	lock := sync.GetLockService().NewLock(fmt.Sprintf("wiki_working_%d", repo.ID))
+	lock.Lock()
+	defer lock.Unlock()
 
 	if err = InitWiki(ctx, repo); err != nil {
 		return fmt.Errorf("InitWiki: %w", err)
@@ -283,8 +280,9 @@ func EditWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.R
 
 // DeleteWikiPage deletes a wiki page identified by its path.
 func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, wikiName string) (err error) {
-	wikiWorkingPool.CheckIn(fmt.Sprint(repo.ID))
-	defer wikiWorkingPool.CheckOut(fmt.Sprint(repo.ID))
+	lock := sync.GetLockService().NewLock(fmt.Sprintf("wiki_working_%d", repo.ID))
+	lock.Lock()
+	defer lock.Unlock()
 
 	if err = InitWiki(ctx, repo); err != nil {
 		return fmt.Errorf("InitWiki: %w", err)

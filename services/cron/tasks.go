@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	sync_module "code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/translation"
 )
 
@@ -69,9 +70,11 @@ func (t *Task) Run() {
 
 // RunWithUser will run the task incrementing the cron counter at the time with User
 func (t *Task) RunWithUser(doer *user_model.User, config Config) {
-	if !taskStatusTable.StartIfNotRunning(t.Name) {
+	lock := sync_module.GetLockService().NewLock(t.Name)
+	if lock.Lock() != nil {
 		return
 	}
+
 	t.lock.Lock()
 	if config == nil {
 		config = t.config
@@ -79,7 +82,7 @@ func (t *Task) RunWithUser(doer *user_model.User, config Config) {
 	t.ExecTimes++
 	t.lock.Unlock()
 	defer func() {
-		taskStatusTable.Stop(t.Name)
+		lock.Unlock()
 		if err := recover(); err != nil {
 			// Recover a panic within the
 			combinedErr := fmt.Errorf("%s\n%s", err, log.Stack(2))

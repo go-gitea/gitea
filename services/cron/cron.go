@@ -11,16 +11,12 @@ import (
 
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/process"
-	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/translation"
 
 	"github.com/gogs/cron"
 )
 
 var c = cron.New()
-
-// Prevent duplicate running tasks.
-var taskStatusTable = sync.NewStatusTable()
 
 // NewContext begins cron tasks
 // Each cron task is run within the shutdown context as a running server

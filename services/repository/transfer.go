@@ -20,10 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/sync"
 )
 
-// repoWorkingPool represents a working pool to order the parallel changes to the same repository
-// TODO: use clustered lock (unique queue? or *abuse* cache)
-var repoWorkingPool = sync.NewExclusivePool()
-
 // TransferOwnership transfers all corresponding setting from old user to new one.
 func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository, teams []*organization.Team) error {
 	if err := repo.GetOwner(ctx); err != nil {
@@ -37,12 +33,13 @@ func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, rep
 
 	oldOwner := repo.Owner
 
-	repoWorkingPool.CheckIn(fmt.Sprint(repo.ID))
+	lock := sync.GetLockService().NewLock(fmt.Sprintf("repo_working_%d", repo.ID))
+	lock.Lock()
 	if err := models.TransferOwnership(doer, newOwner.Name, repo); err != nil {
-		repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
+		lock.Unlock()
 		return err
 	}
-	repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
+	lock.Unlock()
 
 	newRepo, err := repo_model.GetRepositoryByID(ctx, repo.ID)
 	if err != nil {
@@ -70,12 +67,13 @@ func ChangeRepositoryName(doer *user_model.User, repo *repo_model.Repository, ne
 	// repo so that we can atomically rename the repo path and updates the
 	// local copy's origin accordingly.
 
-	repoWorkingPool.CheckIn(fmt.Sprint(repo.ID))
+	lock := sync.GetLockService().NewLock(fmt.Sprintf("repo_working_%d", repo.ID))
+	lock.Lock()
 	if err := repo_model.ChangeRepositoryName(doer, repo, newRepoName); err != nil {
-		repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
+		lock.Unlock()
 		return err
 	}
-	repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
+	lock.Unlock()
 
 	repo.Name = newRepoName
 	notification.NotifyRenameRepository(db.DefaultContext, doer, repo, oldRepoName)
