@@ -844,7 +844,7 @@ func ManuallyMergePullConfirmByIndexes(ctx context.Context, repoID int64, baseBr
 	return err
 }
 
-// ResetManuallyMergePullConfirm reset manualy merge confirmed flag
+// ResetManuallyMergePullConfirm reset manually merge confirmed flag
 func (pr *PullRequest) ResetManuallyMergePullConfirm(ctx context.Context) error {
 	_, err := db.GetEngine(ctx).
 		Where(builder.And(
