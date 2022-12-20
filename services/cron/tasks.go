@@ -70,7 +70,7 @@ func (t *Task) Run() {
 
 // RunWithUser will run the task incrementing the cron counter at the time with User
 func (t *Task) RunWithUser(doer *user_model.User, config Config) {
-	lock := sync_module.GetLockService().NewLock(t.Name)
+	lock := sync_module.GetLockService().GetLock(fmt.Sprintf("cron_tasks_%s", t.Name))
 	if lock.Lock() != nil {
 		return
 	}

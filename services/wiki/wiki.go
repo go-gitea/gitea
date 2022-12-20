@@ -123,7 +123,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	if err = nameAllowed(newWikiName); err != nil {
 		return err
 	}
-	lock := sync.GetLockService().NewLock(fmt.Sprintf("wiki_working_%d", repo.ID))
+	lock := sync.GetLockService().GetLock(fmt.Sprintf("wiki_working_%d", repo.ID))
 	lock.Lock()
 	defer lock.Unlock()
 
@@ -280,7 +280,7 @@ func EditWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.R
 
 // DeleteWikiPage deletes a wiki page identified by its path.
 func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, wikiName string) (err error) {
-	lock := sync.GetLockService().NewLock(fmt.Sprintf("wiki_working_%d", repo.ID))
+	lock := sync.GetLockService().GetLock(fmt.Sprintf("wiki_working_%d", repo.ID))
 	lock.Lock()
 	defer lock.Unlock()
 

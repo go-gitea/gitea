@@ -33,7 +33,7 @@ func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, rep
 
 	oldOwner := repo.Owner
 
-	lock := sync.GetLockService().NewLock(fmt.Sprintf("repo_working_%d", repo.ID))
+	lock := sync.GetLockService().GetLock(fmt.Sprintf("repo_working_%d", repo.ID))
 	lock.Lock()
 	if err := models.TransferOwnership(doer, newOwner.Name, repo); err != nil {
 		lock.Unlock()
@@ -67,7 +67,7 @@ func ChangeRepositoryName(doer *user_model.User, repo *repo_model.Repository, ne
 	// repo so that we can atomically rename the repo path and updates the
 	// local copy's origin accordingly.
 
-	lock := sync.GetLockService().NewLock(fmt.Sprintf("repo_working_%d", repo.ID))
+	lock := sync.GetLockService().GetLock(fmt.Sprintf("repo_working_%d", repo.ID))
 	lock.Lock()
 	if err := repo_model.ChangeRepositoryName(doer, repo, newRepoName); err != nil {
 		lock.Unlock()

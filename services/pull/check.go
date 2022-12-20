@@ -319,7 +319,7 @@ func handle(data ...queue.Data) []queue.Data {
 }
 
 func testPR(id int64) {
-	lock := sync.GetLockService().NewLock(fmt.Sprintf("pull_working_%d", id))
+	lock := sync.GetLockService().GetLock(fmt.Sprintf("pull_working_%d", id))
 	lock.Lock()
 	defer lock.Unlock()
 

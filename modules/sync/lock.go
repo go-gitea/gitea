@@ -18,7 +18,7 @@ type Locker interface {
 }
 
 type LockService interface {
-	NewLock(name string) Locker
+	GetLock(name string) Locker
 }
 
 type memoryLock struct {
@@ -47,7 +47,7 @@ func NewMemoryLockService() *memoryLockService {
 	return &memoryLockService{}
 }
 
-func (l *memoryLockService) NewLock(name string) Locker {
+func (l *memoryLockService) GetLock(name string) Locker {
 	lock, _ := l.lockes.LoadOrStore(name, &sync.Mutex{})
 	return &memoryLock{mutex: lock.(*sync.Mutex)}
 }
@@ -76,7 +76,7 @@ type redisLock struct {
 	mutex *redsync.Mutex
 }
 
-func (r *redisLockService) NewLock(name string) Locker {
+func (r *redisLockService) GetLock(name string) Locker {
 	return &redisLock{mutex: r.rs.NewMutex(name)}
 }
 

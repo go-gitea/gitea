@@ -26,7 +26,7 @@ func Update(ctx context.Context, pull *issues_model.PullRequest, doer *user_mode
 		style repo_model.MergeStyle
 	)
 
-	lock := sync.GetLockService().NewLock(fmt.Sprintf("pull_working_%d", pull.ID))
+	lock := sync.GetLockService().GetLock(fmt.Sprintf("pull_working_%d", pull.ID))
 	lock.Lock()
 	defer lock.Unlock()
 
