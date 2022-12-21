@@ -931,7 +931,7 @@ steps:
     image: golang:1.19
     commands:
       - cd docs
-      - cd docs && make trans-copy clean build
+      - make trans-copy clean build
 
   - name: publish-docs
     image: techknowlogick/drone-netlify:latest
