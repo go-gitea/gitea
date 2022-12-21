@@ -39,7 +39,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Added check for disabled Packages (#21540) (#21614)
   * Fix `Timestamp.IsZero` (#21593) (#21604)
   * Fix issues count bug (#21600)
-  * support binary deploy in npm packages (#21589)
+  * Support binary deploy in npm packages (#21589)
   * Update milestone counters when issue is deleted (#21459) (#21586)
   * SessionUser protection against nil pointer dereference (#21581)
   * Case-insensitive NuGet symbol file GUID (#21409) (#21575)
