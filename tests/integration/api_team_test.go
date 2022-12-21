@@ -24,7 +24,7 @@ import (
 func TestAPITeam(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	teamUser := unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{})
+	teamUser := unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{ID: 1})
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamUser.TeamID})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: teamUser.UID})
 
