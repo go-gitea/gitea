@@ -264,18 +264,45 @@ var tokenCounter int64
 
 func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
 	t.Helper()
+	var token string
 	req := NewRequest(t, "GET", "/user/settings/applications")
 	resp := session.MakeRequest(t, req, http.StatusOK)
-	doc := NewHTMLParser(t, resp.Body)
+	var csrf string
+	for _, cookie := range resp.Result().Cookies() {
+		if cookie.Name != "_csrf" {
+			continue
+		}
+		csrf = cookie.Value
+		break
+	}
+	if csrf == "" {
+		doc := NewHTMLParser(t, resp.Body)
+		csrf = doc.GetCSRF()
+	}
+	assert.NotEmpty(t, csrf)
 	req = NewRequestWithValues(t, "POST", "/user/settings/applications", map[string]string{
-		"_csrf": doc.GetCSRF(),
+		"_csrf": csrf,
 		"name":  fmt.Sprintf("api-testing-token-%d", atomic.AddInt64(&tokenCounter, 1)),
 	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+
+	// Log the flash values on failure
+	if !assert.Equal(t, resp.Result().Header["Location"], []string{"/user/settings/applications"}) {
+		for _, cookie := range resp.Result().Cookies() {
+			if cookie.Name != "macaron_flash" {
+				continue
+			}
+			flash, _ := url.ParseQuery(cookie.Value)
+			for key, value := range flash {
+				t.Logf("Flash %q: %q", key, value)
+			}
+		}
+	}
+
 	req = NewRequest(t, "GET", "/user/settings/applications")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	token := htmlDoc.doc.Find(".ui.info p").Text()
+	token = htmlDoc.doc.Find(".ui.info p").Text()
 	assert.NotEmpty(t, token)
 	return token
 }
