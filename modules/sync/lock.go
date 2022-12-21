@@ -6,6 +6,7 @@ package sync
 import (
 	"sync"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/nosql"
 	"code.gitea.io/gitea/modules/setting"
 	redsync "github.com/go-redsync/redsync/v4"
@@ -22,7 +23,8 @@ type LockService interface {
 }
 
 type memoryLock struct {
-	mutex *sync.Mutex
+	mutex  *sync.Mutex
+	closer func()
 }
 
 func (r *memoryLock) Lock() error {
@@ -32,6 +34,7 @@ func (r *memoryLock) Lock() error {
 
 func (r *memoryLock) Unlock() (bool, error) {
 	r.mutex.Unlock()
+	r.closer()
 	return true, nil
 }
 
@@ -49,7 +52,13 @@ func NewMemoryLockService() *memoryLockService {
 
 func (l *memoryLockService) GetLock(name string) Locker {
 	lock, _ := l.lockes.LoadOrStore(name, &sync.Mutex{})
-	return &memoryLock{mutex: lock.(*sync.Mutex)}
+	return &memoryLock{
+		mutex: lock.(*sync.Mutex),
+		closer: func() {
+			_, _ = l.lockes.LoadAndDelete(name)
+			log.Trace("Lock: %v", l.lockes)
+		},
+	}
 }
 
 type redisLockService struct {
