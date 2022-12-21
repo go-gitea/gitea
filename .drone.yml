@@ -931,7 +931,7 @@ steps:
     image: plugins/hugo:latest
     pull: always
     commands:
-      - apk add --no-cache make bash curl
+      - apk add --no-cache make bash curl curl-dev
       - cd docs
       - make trans-copy clean build
 
