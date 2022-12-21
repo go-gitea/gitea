@@ -52,6 +52,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Display total commit count in hook message (#21400) (#21481)
   * Enforce grouped NuGet search results (#21442) (#21480)
   * Return 404 when user is not found on avatar (#21476) (#21477)
+  * Normalize NuGet package version on upload (#22186) (#22201) 
 * MISC
   * Check for zero time instant in TimeStamp.IsZero() (#22171) (#22173)
   * Fix warn in database structs sync (#22111)
