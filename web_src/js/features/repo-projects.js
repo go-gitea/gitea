@@ -49,6 +49,8 @@ async function initRepoProjectSortable() {
     filter: '[data-id="0"]',
     animation: 150,
     ghostClass: 'card-ghost',
+    delayOnTouchOnly: true,
+    delay: 500,
     onSort: () => {
       boardColumns = mainBoard.getElementsByClassName('board-column');
       for (let i = 0; i < boardColumns.length; i++) {
@@ -76,6 +78,8 @@ async function initRepoProjectSortable() {
       ghostClass: 'card-ghost',
       onAdd: moveIssue,
       onUpdate: moveIssue,
+      delayOnTouchOnly: true,
+      delay: 500,
     });
   }
 }
