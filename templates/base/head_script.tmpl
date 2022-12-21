@@ -8,7 +8,7 @@ If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 	window.config = {
 		appUrl: '{{AppUrl}}',
 		appSubUrl: '{{AppSubUrl}}',
-		getCurAbsUrl: (relUrl) => `${window.location.origin}{{AppSubUrl}}${relUrl}`,
+		getCurAbsUrl: (relUrl) => `${window.location.origin}`+'{{AppSubUrl}}'+`${relUrl}`,
 		assetVersionEncoded: encodeURIComponent('{{AssetVersion}}'), // will be used in URL construction directly
 		assetUrlPrefix: '{{AssetUrlPrefix}}',
 		runModeIsProd: {{.RunModeIsProd}},
