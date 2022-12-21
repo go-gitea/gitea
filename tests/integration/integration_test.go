@@ -33,6 +33,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
+	"github.com/xeipuuv/gojsonschema"
 )
 
 var c *web.Route
@@ -263,18 +264,45 @@ var tokenCounter int64
 
 func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
 	t.Helper()
+	var token string
 	req := NewRequest(t, "GET", "/user/settings/applications")
 	resp := session.MakeRequest(t, req, http.StatusOK)
-	doc := NewHTMLParser(t, resp.Body)
+	var csrf string
+	for _, cookie := range resp.Result().Cookies() {
+		if cookie.Name != "_csrf" {
+			continue
+		}
+		csrf = cookie.Value
+		break
+	}
+	if csrf == "" {
+		doc := NewHTMLParser(t, resp.Body)
+		csrf = doc.GetCSRF()
+	}
+	assert.NotEmpty(t, csrf)
 	req = NewRequestWithValues(t, "POST", "/user/settings/applications", map[string]string{
-		"_csrf": doc.GetCSRF(),
+		"_csrf": csrf,
 		"name":  fmt.Sprintf("api-testing-token-%d", atomic.AddInt64(&tokenCounter, 1)),
 	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+
+	// Log the flash values on failure
+	if !assert.Equal(t, resp.Result().Header["Location"], []string{"/user/settings/applications"}) {
+		for _, cookie := range resp.Result().Cookies() {
+			if cookie.Name != "macaron_flash" {
+				continue
+			}
+			flash, _ := url.ParseQuery(cookie.Value)
+			for key, value := range flash {
+				t.Logf("Flash %q: %q", key, value)
+			}
+		}
+	}
+
 	req = NewRequest(t, "GET", "/user/settings/applications")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	token := htmlDoc.doc.Find(".ui.info p").Text()
+	token = htmlDoc.doc.Find(".ui.info p").Text()
 	assert.NotEmpty(t, token)
 	return token
 }
@@ -396,6 +424,25 @@ func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v interface{}) {
 
 	decoder := json.NewDecoder(resp.Body)
 	assert.NoError(t, decoder.Decode(v))
+}
+
+func VerifyJSONSchema(t testing.TB, resp *httptest.ResponseRecorder, schemaFile string) {
+	t.Helper()
+
+	schemaFilePath := filepath.Join(filepath.Dir(setting.AppPath), "tests", "integration", "schemas", schemaFile)
+	_, schemaFileErr := os.Stat(schemaFilePath)
+	assert.Nil(t, schemaFileErr)
+
+	schema, schemaFileReadErr := os.ReadFile(schemaFilePath)
+	assert.Nil(t, schemaFileReadErr)
+	assert.True(t, len(schema) > 0)
+
+	nodeinfoSchema := gojsonschema.NewStringLoader(string(schema))
+	nodeinfoString := gojsonschema.NewStringLoader(resp.Body.String())
+	result, schemaValidationErr := gojsonschema.Validate(nodeinfoSchema, nodeinfoString)
+	assert.Nil(t, schemaValidationErr)
+	assert.Empty(t, result.Errors())
+	assert.True(t, result.Valid())
 }
 
 func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
