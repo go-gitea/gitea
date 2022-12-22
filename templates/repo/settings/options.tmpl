@@ -436,7 +436,7 @@
 				{{if .EnableActions}}
 					{{$isActionsEnabled := .Repository.UnitEnabled $.Context $.UnitTypeActions}}
 					<div class="inline field">
-						<label>{{.locale.Tr "repo.actions"}}</label>
+						<label>{{.locale.Tr "actions.actions"}}</label>
 						{{if .UnitTypeActions.UnitGlobalDisabled}}
 						<div class="ui checkbox tooltip disabled" data-content="{{.locale.Tr "repo.unit_disabled"}}">
 						{{else}}

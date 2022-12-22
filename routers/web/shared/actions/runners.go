@@ -136,14 +136,14 @@ func RunnerDetailsEditPost(ctx *context.Context, runnerID, ownerID, repoID int64
 	err = actions_model.UpdateRunner(ctx, runner, "description", "custom_labels")
 	if err != nil {
 		log.Warn("RunnerDetailsEditPost.UpdateRunner failed: %v, url: %s", err, ctx.Req.URL)
-		ctx.Flash.Warning(ctx.Tr("admin.runners.update_runner_failed"))
+		ctx.Flash.Warning(ctx.Tr("actions.runners.update_runner_failed"))
 		ctx.Redirect(redirectTo)
 		return
 	}
 
 	log.Debug("RunnerDetailsEditPost success: %s", ctx.Req.URL)
 
-	ctx.Flash.Success(ctx.Tr("admin.runners.update_runner_success"))
+	ctx.Flash.Success(ctx.Tr("actions.runners.update_runner_success"))
 	ctx.Redirect(redirectTo)
 }
 
@@ -155,7 +155,7 @@ func RunnerResetRegistrationToken(ctx *context.Context, ownerID, repoID int64, r
 		return
 	}
 
-	ctx.Flash.Success(ctx.Tr("admin.runners.reset_registration_token_success"))
+	ctx.Flash.Success(ctx.Tr("actions.runners.reset_registration_token_success"))
 	ctx.Redirect(redirectTo)
 }
 

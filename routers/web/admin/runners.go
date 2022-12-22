@@ -21,7 +21,7 @@ const (
 
 // Runners show all the runners
 func Runners(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("admin.runners")
+	ctx.Data["Title"] = ctx.Tr("actions.runners")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminRunners"] = true
 
@@ -44,7 +44,7 @@ func Runners(ctx *context.Context) {
 
 // EditRunner show editing runner page
 func EditRunner(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("admin.runners.edit_runner")
+	ctx.Data["Title"] = ctx.Tr("actions.runners.edit_runner")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminRunners"] = true
 
@@ -58,7 +58,7 @@ func EditRunner(ctx *context.Context) {
 
 // EditRunnerPost response for editing runner
 func EditRunnerPost(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("admin.runners.edit")
+	ctx.Data["Title"] = ctx.Tr("actions.runners.edit")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminRunners"] = true
 	actions_shared.RunnerDetailsEditPost(ctx, ctx.ParamsInt64(":runnerid"), 0, 0,

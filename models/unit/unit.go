@@ -294,9 +294,9 @@ var (
 
 	UnitActions = Unit{
 		TypeActions,
-		"repo.actions",
+		"actions.actions",
 		"/actions",
-		"repo.actions.desc",
+		"actions.description",
 		7,
 		perm.AccessModeOwner,
 	}

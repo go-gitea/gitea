@@ -1,7 +1,7 @@
 <div class="runner-container">
 	{{template "base/alert" .}}
 	<h4 class="ui top attached header">
-		{{.locale.Tr "admin.runners.runner_title"}} #{{.Runner.ID}} {{.Runner.Name}}
+		{{.locale.Tr "actions.runners.runner_title"}} #{{.Runner.ID}} {{.Runner.Name}}
 	</h4>
 	<div class="ui attached segment">
 		<form class="ui form" action="{{.Link}}" method="post">
@@ -9,15 +9,15 @@
 			{{.CsrfTokenHtml}}
 			<div class="runner-basic-info">
 				<div class="field dib">
-					<label>{{.locale.Tr "admin.runners.status"}}</label>
+					<label>{{.locale.Tr "actions.runners.status"}}</label>
 					<span class="runner-status-{{if .Runner.IsOnline}}online{{else}}offline{{end}}">{{.Runner.StatusName}}</span>
 				</div>
 				<div class="field dib">
-					<label>{{.locale.Tr "admin.runners.latest_online"}}</label>
+					<label>{{.locale.Tr "actions.runners.latest_online"}}</label>
 					<span>{{TimeSinceUnix .Runner.LastOnline $.locale}}</span>
 				</div>
 				<div class="field dib">
-					<label>{{.locale.Tr "admin.runners.agent_labels"}}</label>
+					<label>{{.locale.Tr "actions.runners.agent_labels"}}</label>
 					<span>
 						{{range .Runner.AgentLabels}}
 						<span>{{.}}</span>
@@ -25,7 +25,7 @@
 					</span>
 				</div>
 				<div class="field dib">
-					<label>{{.locale.Tr "admin.runners.owner_type"}}</label>
+					<label>{{.locale.Tr "actions.runners.owner_type"}}</label>
 					<span>{{.Runner.OwnType}}</span>
 				</div>
 			</div>
@@ -33,27 +33,27 @@
 			<div class="ui divider"></div>
 
 			<div class="field">
-				<label for="description">{{.locale.Tr "admin.runners.description"}}</label>
+				<label for="description">{{.locale.Tr "actions.runners.description"}}</label>
 				<input id="description" name="description" value="{{.Runner.Description}}">
 			</div>
 			<div class="field">
-				<label for="custom_labels">{{.locale.Tr "admin.runners.custom_labels"}}</label>
+				<label for="custom_labels">{{.locale.Tr "actions.runners.custom_labels"}}</label>
 				<input id="custom_labels" name="custom_labels" value="{{Join .Runner.CustomLabels `,`}}">
-				<p class="help">{{.locale.Tr "admin.runners.custom_labels_helper"}}</p>
+				<p class="help">{{.locale.Tr "actions.runners.custom_labels_helper"}}</p>
 			</div>
 
 			<div class="ui divider"></div>
 
 			<div class="field">
-				<button type="submit" class="ui green button">{{.locale.Tr "admin.runners.update_runner"}}</button>
+				<button type="submit" class="ui green button">{{.locale.Tr "actions.runners.update_runner"}}</button>
 				<button type="button" class="ui red button delete-button show-modal" data-modal="#runner-delete-modal">
-					{{.locale.Tr "admin.runners.delete_runner"}}</button>
+					{{.locale.Tr "actions.runners.delete_runner"}}</button>
 			</div>
 		</form>
 	</div>
 
 	<h4 class="ui top attached header">
-		{{.locale.Tr "admin.runners.task_list"}}
+		{{.locale.Tr "actions.runners.task_list"}}
 	</h4>
 	<div class="ui attached segment">
 		<table class="ui very basic striped table unstackable">
@@ -91,7 +91,7 @@
 	</div>
 	<div class="ui small modal" id="runner-delete-modal">
 		<div class="header">
-			{{.locale.Tr "admin.runners.delete_header"}}
+			{{.locale.Tr "actions.runners.delete_header"}}
 		</div>
 		<div class="content">
 			<div class="ui warning message text left">
@@ -102,7 +102,7 @@
 				<input type="hidden" name="action" value="delete">
 				<div class="text right actions">
 					<div class="ui cancel button">{{.locale.Tr "settings.cancel"}}</div>
-					<button class="ui red button">{{.locale.Tr "admin.runners.delete_confirm"}}</button>
+					<button class="ui red button">{{.locale.Tr "actions.runners.delete_confirm"}}</button>
 				</div>
 			</form>
 		</div>

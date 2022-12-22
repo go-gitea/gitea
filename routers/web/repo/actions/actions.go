@@ -44,7 +44,7 @@ func MustEnableActions(ctx *context.Context) {
 }
 
 func List(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.actions")
+	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsActions"] = true
 
 	var workflows git.Entries

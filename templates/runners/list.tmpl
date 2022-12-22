@@ -2,18 +2,18 @@
 	{{template "base/alert" .}}
 
 	<h4 class="ui top attached header">
-		{{.locale.Tr "admin.runners.runner_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
+		{{.locale.Tr "actions.runners.runner_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
 		<div class="ui right">
-			<!--<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/runners/new">{{.locale.Tr "admin.runners.new"}}</a>-->
+			<!--<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/runners/new">{{.locale.Tr "actions.runners.new"}}</a>-->
 
 			<div class="ui top right pointing dropdown">
 				<button class="ui button primary">
-					{{.locale.Tr "admin.runners.new"}}
+					{{.locale.Tr "actions.runners.new"}}
 					<i class="dropdown icon"></i>
 				</button>
 				<div class="menu">
 					<div class="item">
-						<a href="#">{{.locale.Tr "admin.runners.new_notice"}}</a>
+						<a href="#">{{.locale.Tr "actions.runners.new_notice"}}</a>
 					</div>
 					<div class="divider"></div>
 					<div class="header">
@@ -47,13 +47,13 @@
 		<table class="ui very basic striped table unstackable">
 			<thead>
 				<tr>
-					<th data-sortt-asc="online" data-sortt-desc="offline">{{.locale.Tr "admin.runners.status"}}</th>
+					<th data-sortt-asc="online" data-sortt-desc="offline">{{.locale.Tr "actions.runners.status"}}</th>
 					<th data-sortt-asc="alphabetically">
-						{{.locale.Tr "admin.runners.id"}}
+						{{.locale.Tr "actions.runners.id"}}
 					</th>
-					<th>{{.locale.Tr "admin.runners.owner_type"}}</th>
-					<th>{{.locale.Tr "admin.runners.labels"}}</th>
-					<th>{{.locale.Tr "admin.runners.latest_online"}}</th>
+					<th>{{.locale.Tr "actions.runners.owner_type"}}</th>
+					<th>{{.locale.Tr "actions.runners.labels"}}</th>
+					<th>{{.locale.Tr "actions.runners.latest_online"}}</th>
 					<th></th>
 				</tr>
 			</thead>

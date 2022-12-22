@@ -185,7 +185,7 @@
 
 				{{if and .EnableActions (not .UnitActionsGlobalDisabled) (.Permission.CanRead $.UnitTypeActions)}}
 					<a class="{{if .PageIsActions}}active {{end}}item" href="{{.RepoLink}}/actions">
-						{{svg "octicon-play"}} {{.locale.Tr "repo.actions"}}
+						{{svg "octicon-play"}} {{.locale.Tr "actions.actions"}}
 						{{if .Repository.NumOpenRuns}}
 							<span class="ui blue small label">{{CountFmt .Repository.NumOpenRuns}}</span>
 						{{end}}
