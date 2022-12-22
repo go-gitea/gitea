@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
+	secret_model "code.gitea.io/gitea/models/secret"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -44,7 +45,6 @@ import (
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	org_service "code.gitea.io/gitea/services/org"
 	repo_service "code.gitea.io/gitea/services/repository"
-	secret_service "code.gitea.io/gitea/services/secrets"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 )
 
@@ -1123,9 +1123,9 @@ func DeployKeys(ctx *context.Context) {
 	}
 	ctx.Data["Deploykeys"] = keys
 
-	secrets, err := secret_service.FindRepoSecrets(ctx, ctx.Repo.Repository.ID)
+	secrets, err := secret_model.FindSecrets(ctx, secret_model.FindSecretsOptions{RepoID: ctx.Repo.Repository.ID})
 	if err != nil {
-		ctx.ServerError("FindRepoSecrets", err)
+		ctx.ServerError("FindSecrets", err)
 		return
 	}
 	ctx.Data["Secrets"] = secrets
@@ -1135,26 +1135,24 @@ func DeployKeys(ctx *context.Context) {
 
 // SecretsPost response for creating a new secret
 func SecretsPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.AddKeyForm)
-	if err := secret_service.InsertRepoSecret(ctx, ctx.Repo.Repository.ID, form.Title, form.Content, form.PullRequestRead); err != nil {
-		ctx.ServerError("InsertRepoSecret", err)
+	form := web.GetForm(ctx).(*forms.AddSecretForm)
+
+	_, err := secret_model.InsertEncryptedSecret(ctx, 0, ctx.Repo.Repository.ID, form.Title, form.Content)
+	if err != nil {
+		ctx.Flash.Error(ctx.Tr("secrets.creation.failed"))
+		log.Error("validate secret: %v", err)
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
 		return
 	}
 
 	log.Trace("Secret added: %d", ctx.Repo.Repository.ID)
-	ctx.Flash.Success(ctx.Tr("repo.settings.add_secret_success", form.Title))
+	ctx.Flash.Success(ctx.Tr("secrets.creation.success", form.Title))
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
 }
 
 // DeployKeysPost response for adding a deploy key of a repository
 func DeployKeysPost(ctx *context.Context) {
-	if ctx.FormString("act") == "secret" {
-		SecretsPost(ctx)
-		return
-	}
-
 	form := web.GetForm(ctx).(*forms.AddKeyForm)
-
 	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
@@ -1214,10 +1212,12 @@ func DeployKeysPost(ctx *context.Context) {
 }
 
 func DeleteSecret(ctx *context.Context) {
-	if err := secret_service.DeleteSecretByID(ctx, ctx.FormInt64("id")); err != nil {
-		ctx.Flash.Error("DeleteSecretByID: " + err.Error())
+	id := ctx.FormInt64("id")
+	if _, err := db.DeleteByBean(ctx, &secret_model.Secret{ID: id}); err != nil {
+		ctx.Flash.Error(ctx.Tr("secrets.deletion.failed"))
+		log.Error("delete secret %d: %v", id, err)
 	} else {
-		ctx.Flash.Success(ctx.Tr("repo.settings.secret_deletion_success"))
+		ctx.Flash.Success(ctx.Tr("secrets.deletion.success"))
 	}
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
@@ -1227,11 +1227,6 @@ func DeleteSecret(ctx *context.Context) {
 
 // DeleteDeployKey response for deleting a deploy key
 func DeleteDeployKey(ctx *context.Context) {
-	if ctx.FormString("act") == "secret" {
-		DeleteSecret(ctx)
-		return
-	}
-
 	if err := asymkey_service.DeleteDeployKey(ctx.Doer, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteDeployKey: " + err.Error())
 	} else {

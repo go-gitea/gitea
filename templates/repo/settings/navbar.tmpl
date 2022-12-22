@@ -25,7 +25,7 @@
 			</a>
 		{{end}}
 		<a class="{{if .PageIsSettingsKeys}}active {{end}}item" href="{{.RepoLink}}/settings/keys">
-			{{.locale.Tr "repo.settings.deploy_keys"}}
+			{{.locale.Tr "secrets.secrets"}}
 		</a>
 		{{if .LFSStartServer}}
 			<a class="{{if .PageIsSettingsLFS}}active {{end}}item" href="{{.RepoLink}}/settings/lfs">
