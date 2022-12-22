@@ -79,6 +79,7 @@ require (
 	github.com/pquerna/otp v1.3.0
 	github.com/prometheus/client_golang v1.13.0
 	github.com/quasoft/websspi v1.1.2
+	github.com/rs/cors v1.8.2
 	github.com/santhosh-tekuri/jsonschema/v5 v5.0.1
 	github.com/sergi/go-diff v1.2.0
 	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
@@ -246,7 +247,6 @@ require (
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/rivo/uniseg v0.4.2 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
-	github.com/rs/cors v1.8.2 // indirect
 	github.com/rs/xid v1.4.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
