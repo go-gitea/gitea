@@ -133,3 +133,9 @@ export function convertImage(blob, mime) {
     }
   });
 }
+
+const {appSubUrl} = window.config;
+
+export function getCurAbsUrl(relUrl) {
+  return `${window.location.origin}${appSubUrl}${relUrl}`;
+}

@@ -2,6 +2,7 @@ import {expect, test} from 'vitest';
 import {
   basename, extname, isObject, uniq, stripTags, joinPaths, parseIssueHref,
   prettyNumber, parseUrl, translateMonth, translateDay, blobToDataURI,
+  getCurAbsUrl,
 } from './utils.js';
 
 test('basename', () => {
@@ -135,4 +136,9 @@ test('translateDay', () => {
 test('blobToDataURI', async () => {
   const blob = new Blob([JSON.stringify({test: true})], {type: 'application/json'});
   expect(await blobToDataURI(blob)).toEqual('data:application/json;base64,eyJ0ZXN0Ijp0cnVlfQ==');
+});
+
+test('getCurAbsUrl', () => {
+  expect(getCurAbsUrl('')).toEqual('http://localhost:3000');
+  expect(getCurAbsUrl('/path')).toEqual('http://localhost:3000/path');
 });
