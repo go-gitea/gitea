@@ -140,5 +140,5 @@ test('blobToDataURI', async () => {
 
 test('getCurAbsUrl', () => {
   expect(getCurAbsUrl('')).toEqual('http://localhost:3000');
-  expect(getCurAbsUrl('/path')).toEqual('http://localhost:3000/path');
+  expect(getCurAbsUrl('/user/repo')).toEqual('http://localhost:3000/user/repo');
 });
