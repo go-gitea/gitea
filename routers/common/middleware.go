@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 // Copyright 2019 The Gitea Authors. All rights reserved.
-=======
-// Copyright 2021 The Gitea Authors. All rights reserved.
->>>>>>> main-IB#1129006
 // SPDX-License-Identifier: MIT
 
 package common
