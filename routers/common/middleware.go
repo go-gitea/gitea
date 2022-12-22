@@ -1,4 +1,4 @@
-// Copyright 2022 The Gitea Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package common
@@ -92,7 +92,6 @@ func Middlewares() []func(http.Handler) http.Handler {
 func csrfHandler() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-
 			// Put header names we use for CSRF recognition into Vary response header.
 			if setting.CORSConfig.Enabled {
 				resp.Header().Set("Vary", "Origin, Sec-Fetch-Site")
@@ -103,6 +102,7 @@ func csrfHandler() func(next http.Handler) http.Handler {
 			// Allow requests not recognized as CSRF.
 			secFetchSite := strings.ToLower(req.Header.Get("Sec-Fetch-Site"))
 			if req.Method == "GET" || // GET must not be used for changing state (CSRF resistant).
+				req.Method == "HEAD" || // HEAD must not be used for changing state (CSRF resistant).
 				secFetchSite == "" || // Accept requests from clients without Fetch Metadata Request Headers support.
 				secFetchSite == "same-origin" || // Accept requests from own origin.
 				secFetchSite == "none" || // Accept requests initiated by user (i.e. using bookmark).
