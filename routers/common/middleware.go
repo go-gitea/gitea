@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 // Copyright 2019 The Gitea Authors. All rights reserved.
+=======
+// Copyright 2021 The Gitea Authors. All rights reserved.
+>>>>>>> main-IB#1129006
 // SPDX-License-Identifier: MIT
 
 package common
@@ -101,8 +105,9 @@ func csrfHandler() func(next http.Handler) http.Handler {
 
 			// Allow requests not recognized as CSRF.
 			secFetchSite := strings.ToLower(req.Header.Get("Sec-Fetch-Site"))
-			if req.Method == "GET" || // GET must not be used for changing state (CSRF resistant).
-				req.Method == "HEAD" || // HEAD must not be used for changing state (CSRF resistant).
+			if req.Method == "GET" || // GET, HEAD and OPTIONS must not be used for changing state (CSRF resistant).
+				req.Method == "HEAD" ||
+				req.Method == "OPTIONS" ||
 				secFetchSite == "" || // Accept requests from clients without Fetch Metadata Request Headers support.
 				secFetchSite == "same-origin" || // Accept requests from own origin.
 				secFetchSite == "none" || // Accept requests initiated by user (i.e. using bookmark).
