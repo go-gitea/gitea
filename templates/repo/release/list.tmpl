@@ -5,12 +5,15 @@
 		{{template "base/alert" .}}
 		<h2 class="ui compact small menu header">
 			{{if .Permission.CanRead $.UnitTypeReleases}}
-				<a class="{{if (not .PageIsTagList)}}active{{end}} item" href="{{.RepoLink}}/releases">{{.locale.Tr "repo.release.releases"}}</a>
+				<a class="{{if (not .PageIsTagList)}}active {{end}}item" href="{{.RepoLink}}/releases">{{.locale.Tr "repo.release.releases"}}</a>
 			{{end}}
 			{{if .Permission.CanRead $.UnitTypeCode}}
-				<a class="{{if .PageIsTagList}}active{{end}} item" href="{{.RepoLink}}/tags">{{.locale.Tr "repo.release.tags"}}</a>
+				<a class="{{if .PageIsTagList}}active {{end}}item" href="{{.RepoLink}}/tags">{{.locale.Tr "repo.release.tags"}}</a>
 			{{end}}
 		</h2>
+		{{if .EnableFeed}}
+			<a href="{{.RepoLink}}/{{if .PageIsTagList}}tags{{else}}releases{{end}}.rss"><i class="ui grey icon tooltip ml-3" data-content="{{.locale.Tr "rss_feed"}}" data-position="top center">{{svg "octicon-rss" 18}}</i></a>
+		{{end}}
 		{{if (and .CanCreateRelease (not .PageIsTagList))}}
 			<a class="ui right small green button" href="{{$.RepoLink}}/releases/new">
 				{{.locale.Tr "repo.release.new_release"}}

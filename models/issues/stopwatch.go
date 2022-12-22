@@ -196,7 +196,7 @@ func FinishIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 		return err
 	}
 
-	if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
+	if _, err := CreateComment(ctx, &CreateCommentOptions{
 		Doer:    user,
 		Issue:   issue,
 		Repo:    issue.Repo,
@@ -246,7 +246,7 @@ func CreateIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 		return err
 	}
 
-	if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
+	if _, err := CreateComment(ctx, &CreateCommentOptions{
 		Doer:  user,
 		Issue: issue,
 		Repo:  issue.Repo,
@@ -287,7 +287,7 @@ func cancelStopwatch(ctx context.Context, user *user_model.User, issue *Issue) e
 			return err
 		}
 
-		if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
+		if _, err := CreateComment(ctx, &CreateCommentOptions{
 			Doer:  user,
 			Issue: issue,
 			Repo:  issue.Repo,

@@ -117,11 +117,11 @@ services:
     environment:
       - USER_UID=1000
       - USER_GID=1000
-+     - GITEA__database__DB_TYPE=mysql
-+     - GITEA__database__HOST=db:3306
-+     - GITEA__database__NAME=gitea
-+     - GITEA__database__USER=gitea
-+     - GITEA__database__PASSWD=gitea
++      - GITEA__database__DB_TYPE=mysql
++      - GITEA__database__HOST=db:3306
++      - GITEA__database__NAME=gitea
++      - GITEA__database__USER=gitea
++      - GITEA__database__PASSWD=gitea
     restart: always
     networks:
       - gitea
@@ -168,11 +168,11 @@ services:
     environment:
       - USER_UID=1000
       - USER_GID=1000
-+     - GITEA__database__DB_TYPE=postgres
-+     - GITEA__database__HOST=db:5432
-+     - GITEA__database__NAME=gitea
-+     - GITEA__database__USER=gitea
-+     - GITEA__database__PASSWD=gitea
++      - GITEA__database__DB_TYPE=postgres
++      - GITEA__database__HOST=db:5432
++      - GITEA__database__NAME=gitea
++      - GITEA__database__USER=gitea
++      - GITEA__database__PASSWD=gitea
     restart: always
     networks:
       - gitea
@@ -225,8 +225,8 @@ services:
     networks:
       - gitea
     volumes:
--     - ./gitea:/data
-+     - gitea:/data
+-      - ./gitea:/data
++      - gitea:/data
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
@@ -294,13 +294,13 @@ These environment variables can be passed to the docker container in `docker-com
 services:
   server:
     environment:
-    - GITEA__mailer__ENABLED=true
-    - GITEA__mailer__FROM=${GITEA__mailer__FROM:?GITEA__mailer__FROM not set}
-    - GITEA__mailer__MAILER_TYPE=smtp
-    - GITEA__mailer__HOST=${GITEA__mailer__HOST:?GITEA__mailer__HOST not set}
-    - GITEA__mailer__IS_TLS_ENABLED=true
-    - GITEA__mailer__USER=${GITEA__mailer__USER:-apikey}
-    - GITEA__mailer__PASSWD="""${GITEA__mailer__PASSWD:?GITEA__mailer__PASSWD not set}"""
+      - GITEA__mailer__ENABLED=true
+      - GITEA__mailer__FROM=${GITEA__mailer__FROM:?GITEA__mailer__FROM not set}
+      - GITEA__mailer__MAILER_TYPE=smtp
+      - GITEA__mailer__HOST=${GITEA__mailer__HOST:?GITEA__mailer__HOST not set}
+      - GITEA__mailer__IS_TLS_ENABLED=true
+      - GITEA__mailer__USER=${GITEA__mailer__USER:-apikey}
+      - GITEA__mailer__PASSWD="""${GITEA__mailer__PASSWD:?GITEA__mailer__PASSWD not set}"""
 ```
 
 Gitea will generate new secrets/tokens for every new installation automatically and write them into the app.ini. If you want to set the secrets/tokens manually, you can use the following docker commands to use of Gitea's built-in [generate utility functions](https://docs.gitea.io/en-us/command-line/#generate). Do not lose/change your SECRET_KEY after the installation, otherwise the encrypted data can not be decrypted anymore.

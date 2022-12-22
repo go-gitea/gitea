@@ -6,10 +6,10 @@ import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin';
 import {VueLoaderPlugin} from 'vue-loader';
 import EsBuildLoader from 'esbuild-loader';
-import {parse, dirname} from 'path';
+import {parse, dirname} from 'node:path';
 import webpack from 'webpack';
-import {fileURLToPath} from 'url';
-import {readFileSync} from 'fs';
+import {fileURLToPath} from 'node:url';
+import {readFileSync} from 'node:fs';
 
 const {ESBuildMinifyPlugin} = EsBuildLoader;
 const {SourceMapDevToolPlugin} = webpack;
