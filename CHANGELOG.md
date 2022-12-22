@@ -4,8 +4,11 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.18.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.18.0-rc1) - 2022-11-15
+## [1.18.0](https://github.com/go-gitea/gitea/releases/tag/1.18.0) - 2022-12-22
 
+* SECURITY
+  * chore(security): Support Go Vulnerability Management (#21139)
+  * Forbid HTML string tooltips (#20935)
 * BREAKING
   * Remove U2F support (#20141)
 * FEATURES
@@ -43,6 +46,15 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add allow_rebase_update, default_delete_branch_after_merge to repository api response (#20079)
   * Add new endpoints for push mirrors management (#19841)
 * ENHANCEMENTS
+  * Add setting to disable the git apply step in test patch (#22130) (#22170)
+  * Multiple improvements for comment edit diff (#21990) (#22007)
+  * Fix button in branch list, avoid unexpected page jump before restore branch actually done (#21562) (#21928)
+  * Fix flex layout for repo list icons (#21896) (#21920)
+  * Fix vertical align of committer avatar rendered by email address (#21884) (#21918)
+  * Fix setting HTTP headers after write (#21833) (#21877)
+  * Color and Style enhancements (#21784, #21799) (#21868)
+  * Ignore line anchor links with leading zeroes (#21728) (#21776)
+  * Quick fixes monaco-editor error: "vs.editor.nullLanguage" (#21734) (#21738)
   * Use CSS color-scheme instead of invert (#21616) (#21623)
   * Respect user's locale when rendering the date range in the repo activity page (#21410)
   * Change `commits-table` column width (#21564)
