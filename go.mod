@@ -16,7 +16,7 @@ require (
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/alecthomas/chroma/v2 v2.4.0
-	github.com/blevesearch/bleve/v2 v2.3.4
+	github.com/blevesearch/bleve/v2 v2.3.5
 	github.com/buildkite/terminal-to-html/v3 v3.7.0
 	github.com/caddyserver/certmagic v0.17.2
 	github.com/chi-middleware/proxy v1.1.1
@@ -129,21 +129,21 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bgentry/speakeasy v0.1.0 // indirect
 	github.com/bits-and-blooms/bitset v1.3.3 // indirect
-	github.com/blevesearch/bleve_index_api v1.0.3 // indirect
-	github.com/blevesearch/geo v0.1.14 // indirect
+	github.com/blevesearch/bleve_index_api v1.0.4 // indirect
+	github.com/blevesearch/geo v0.1.15 // indirect
 	github.com/blevesearch/go-porterstemmer v1.0.3 // indirect
 	github.com/blevesearch/gtreap v0.1.1 // indirect
 	github.com/blevesearch/mmap-go v1.0.4 // indirect
-	github.com/blevesearch/scorch_segment_api/v2 v2.1.2 // indirect
+	github.com/blevesearch/scorch_segment_api/v2 v2.1.3 // indirect
 	github.com/blevesearch/segment v0.9.0 // indirect
 	github.com/blevesearch/snowballstem v0.9.0 // indirect
 	github.com/blevesearch/upsidedown_store_api v1.0.1 // indirect
-	github.com/blevesearch/vellum v1.0.8 // indirect
-	github.com/blevesearch/zapx/v11 v11.3.5 // indirect
-	github.com/blevesearch/zapx/v12 v12.3.5 // indirect
-	github.com/blevesearch/zapx/v13 v13.3.5 // indirect
-	github.com/blevesearch/zapx/v14 v14.3.5 // indirect
-	github.com/blevesearch/zapx/v15 v15.3.5 // indirect
+	github.com/blevesearch/vellum v1.0.9 // indirect
+	github.com/blevesearch/zapx/v11 v11.3.6 // indirect
+	github.com/blevesearch/zapx/v12 v12.3.6 // indirect
+	github.com/blevesearch/zapx/v13 v13.3.6 // indirect
+	github.com/blevesearch/zapx/v14 v14.3.6 // indirect
+	github.com/blevesearch/zapx/v15 v15.3.6 // indirect
 	github.com/boombuler/barcode v1.0.1 // indirect
 	github.com/bradfitz/gomemcache v0.0.0-20190913173617-a41fca850d0b // indirect
 	github.com/census-instrumentation/opencensus-proto v0.3.0 // indirect
@@ -304,6 +304,8 @@ replace github.com/hashicorp/go-version => github.com/6543/go-version v1.3.1
 replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142115-2c99e1ffdfa0
 
 replace github.com/satori/go.uuid v1.2.0 => github.com/gofrs/uuid v4.2.0+incompatible
+
+replace github.com/blevesearch/zapx/v15 v15.3.6 => github.com/zeripath/zapx/v15 v15.3.6-alignment-fix
 
 exclude github.com/gofrs/uuid v3.2.0+incompatible
 
