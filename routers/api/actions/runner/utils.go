@@ -8,11 +8,11 @@ import (
 	"fmt"
 
 	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/webhook"
+	secret_model "code.gitea.io/gitea/models/secret"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	secret_module "code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
-	secret_service "code.gitea.io/gitea/services/secrets"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -37,32 +37,29 @@ func pickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 }
 
 func getSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) map[string]string {
-	// Returning an error is worse than returning empty secrets.
-
 	secrets := map[string]string{}
-
-	userSecrets, err := secret_service.FindUserSecrets(ctx, task.Job.Run.Repo.OwnerID)
-	if err != nil {
-		log.Error("find user secrets of %v: %v", task.Job.Run.Repo.OwnerID, err)
-		// go on
-	}
-	repoSecrets, err := secret_service.FindRepoSecrets(ctx, task.Job.Run.RepoID)
-	if err != nil {
-		log.Error("find repo secrets of %v: %v", task.Job.Run.RepoID, err)
-		// go on
+	if task.Job.Run.IsForkPullRequest {
+		// ignore secrets for fork pull request
+		return secrets
 	}
 
-	// FIXME: Not sure if it's the exact meaning of secret.PullRequest
-	pullRequest := task.Job.Run.Event == webhook.HookEventPullRequest
+	ownerSecrets, err := secret_model.FindSecrets(ctx, secret_model.FindSecretsOptions{OwnerID: task.Job.Run.Repo.OwnerID})
+	if err != nil {
+		log.Error("find secrets of owner %v: %v", task.Job.Run.Repo.OwnerID, err)
+		// go on
+	}
+	repoSecrets, err := secret_model.FindSecrets(ctx, secret_model.FindSecretsOptions{RepoID: task.Job.Run.RepoID})
+	if err != nil {
+		log.Error("find secrets of repo %v: %v", task.Job.Run.RepoID, err)
+		// go on
+	}
 
-	for _, secret := range append(userSecrets, repoSecrets...) {
-		if !pullRequest || secret.PullRequest {
-			if v, err := secret_service.DecryptString(secret.Data); err != nil {
-				log.Error("decrypt secret %v %q: %v", secret.ID, secret.Name, err)
-				// go on
-			} else {
-				secrets[secret.Name] = v
-			}
+	for _, secret := range append(ownerSecrets, repoSecrets...) {
+		if v, err := secret_module.DecryptSecret(setting.SecretKey, secret.Data); err != nil {
+			log.Error("decrypt secret %v %q: %v", secret.ID, secret.Name, err)
+			// go on
+		} else {
+			secrets[secret.Name] = v
 		}
 	}
 

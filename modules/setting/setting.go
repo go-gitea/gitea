@@ -5,7 +5,6 @@
 package setting
 
 import (
-	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
 	"math"
@@ -28,7 +27,6 @@ import (
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
 
-	"golang.org/x/crypto/pbkdf2"
 	gossh "golang.org/x/crypto/ssh"
 	ini "gopkg.in/ini.v1"
 )
