@@ -10,7 +10,10 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Support Go Vulnerability Management (#21139)
   * Forbid HTML string tooltips (#20935)
 * BREAKING
+  * Rework mailer settings (#18982)
   * Remove U2F support (#20141)
+  * Refactor `i18n` to `locale` (#20153)
+  * Enable contenthash in filename for dynamic assets (#20813)
 * FEATURES
   * Add color previews in markdown (#21474)
   * Allow package version sorting (#21453)
