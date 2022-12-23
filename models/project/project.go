@@ -80,7 +80,7 @@ func (err ErrProjectBoardNotExist) Unwrap() error {
 }
 
 // List is a list of projects
-type List []*Project
+// type List []*Project
 
 // Project represents a project board
 type Project struct {
@@ -355,40 +355,6 @@ func (p *Project) LoadCreator(ctx context.Context) (err error) {
 	return nil
 }
 
-// LoadAttributes load repos and creators of projects.
-func (pl List) LoadAttributes(ctx context.Context) (err error) {
-	repos := make(map[int64]*repo_model.Repository)
-	creators := make(map[int64]*user_model.User)
-	var ok bool
-
-	for i := range pl {
-		if pl[i].Repo == nil {
-			pl[i].Repo, ok = repos[pl[i].RepoID]
-			if !ok {
-				repo, err := repo_model.GetRepositoryByID(ctx, pl[i].RepoID)
-				if err != nil {
-					return fmt.Errorf("getRepositoryByID [%d]: %v", pl[i].RepoID, err)
-				}
-				pl[i].Repo = repo
-				repos[pl[i].RepoID] = repo
-			}
-		}
-
-		if pl[i].Creator == nil {
-			pl[i].Creator, ok = creators[pl[i].CreatorID]
-			if !ok {
-				creator, err := user_model.GetUserByID(ctx, pl[i].CreatorID)
-				if err != nil {
-					return fmt.Errorf("getUserByID [%d]: %v", pl[i].CreatorID, err)
-				}
-				pl[i].Creator = creator
-				creators[pl[i].CreatorID] = creator
-			}
-		}
-	}
-
-	return nil
-}
 
 func DeleteProjectByRepoID(ctx context.Context, repoID int64) error {
 	switch {
