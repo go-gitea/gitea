@@ -26,7 +26,6 @@ for SOURCE in $(find ${ROOT}/content -type f -iname *.en-us.md); do
     DEST="${SOURCE%.en-us.md}.${LOCALE}.md"
 
     if [[ ! -f ${DEST} ]]; then
-      echo "Creating fallback for ${DEST#${ROOT}/content/}"
       cp ${SOURCE} ${DEST}
       sed -i.bak "s/en\-us/${LOCALE}/g" ${DEST}
       rm ${DEST}.bak

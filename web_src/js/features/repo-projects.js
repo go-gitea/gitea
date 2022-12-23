@@ -49,6 +49,8 @@ async function initRepoProjectSortable() {
     filter: '[data-id="0"]',
     animation: 150,
     ghostClass: 'card-ghost',
+    delayOnTouchOnly: true,
+    delay: 500,
     onSort: () => {
       boardColumns = mainBoard.getElementsByClassName('board-column');
       for (let i = 0; i < boardColumns.length; i++) {
@@ -76,11 +78,13 @@ async function initRepoProjectSortable() {
       ghostClass: 'card-ghost',
       onAdd: moveIssue,
       onUpdate: moveIssue,
+      delayOnTouchOnly: true,
+      delay: 500,
     });
   }
 }
 
-export default function initRepoProject() {
+export function initRepoProject() {
   if (!$('.repository.projects').length) {
     return;
   }
@@ -200,7 +204,7 @@ function getRelativeColor(color) {
 }
 
 function rgbToHex(rgb) {
-  rgb = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+  rgb = rgb.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+).*\)$/);
   return `#${hex(rgb[1])}${hex(rgb[2])}${hex(rgb[3])}`;
 }
 

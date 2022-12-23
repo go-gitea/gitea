@@ -344,7 +344,7 @@ func createEntry(l *linkBuilder, pd *packages_model.PackageDescriptor, withNames
 		Content: content,
 		Properties: &FeedEntryProperties{
 			Version:                  pd.Version.Version,
-			NormalizedVersion:        normalizeVersion(pd.SemVer),
+			NormalizedVersion:        pd.Version.Version,
 			Authors:                  metadata.Authors,
 			Dependencies:             buildDependencyString(metadata),
 			Description:              metadata.Description,
