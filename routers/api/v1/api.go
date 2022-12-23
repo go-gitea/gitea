@@ -1208,20 +1208,20 @@ func Routes(ctx gocontext.Context) *web.Route {
 		m.Group("/projects", func() {
 			m.Group("/{id}", func() {
 				m.Combo("").
-					Get(reqToken(), repo.GetProject).
-					Patch(reqToken(), bind(api.UpdateProjectPayload{}), repo.UpdateProject).
-					Delete(reqToken(), repo.DeleteProject)
+					Get(reqToken(), reqRepoReader(unit.TypeProjects), repo.GetProject).
+					Patch(reqToken(), reqRepoWriter(unit.TypeProjects), bind(api.UpdateProjectPayload{}), repo.UpdateProject).
+					Delete(reqToken(), reqRepoWriter(unit.TypeProjects), repo.DeleteProject)
 
 				m.Combo("/boards").
-					Post(reqToken(), bind(api.NewProjectBoardPayload{}), repo.CreateProjectBoard).
-					Get(reqToken(), repo.ListProjectBoards)
+					Post(reqToken(), reqRepoWriter(unit.TypeProjects), bind(api.NewProjectBoardPayload{}), repo.CreateProjectBoard).
+					Get(reqToken(), reqRepoReader(unit.TypeProjects), repo.ListProjectBoards)
 			})
 
 			m.Group("/boards", func() {
 				m.Combo("/{id}").
-					Get(reqToken(), repo.GetProjectBoard).
-					Patch(reqToken(), bind(api.UpdateProjectBoardPayload{}), repo.UpdateProjectBoard).
-					Delete(reqToken(), repo.DeleteProjectBoard)
+					Get(reqToken(), reqRepoReader(unit.TypeProjects), repo.GetProjectBoard).
+					Patch(reqToken(), reqRepoWriter(unit.TypeProjects), bind(api.UpdateProjectBoardPayload{}), repo.UpdateProjectBoard).
+					Delete(reqToken(), reqRepoWriter(unit.TypeProjects), repo.DeleteProjectBoard)
 			})
 		})
 	}, sudo())
