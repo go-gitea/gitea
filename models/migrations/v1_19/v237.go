@@ -5,6 +5,7 @@ package v1_19 //nolint
 
 import (
 	"code.gitea.io/gitea/models/migrations/base"
+
 	"xorm.io/xorm"
 )
 
@@ -30,4 +31,3 @@ func AddPrimaryKeyToForeignReference(x *xorm.Engine) error {
 
 	return sess.Commit()
 }
-
