@@ -46,19 +46,13 @@ const luminance = (colorString) => {
 const luminanceThreshold = 0.179;
 
 export default {
-  name: 'ContextPopup',
-
-  components: {
-    SvgIcon,
-  },
-
+  components: {SvgIcon},
   data: () => ({
     loading: false,
     issue: null,
     i18nErrorOccurred: i18n.error_occurred,
     i18nErrorMessage: null,
   }),
-
   computed: {
     createdAt() {
       return new Date(this.issue.created_at).toLocaleDateString(undefined, {year: 'numeric', month: 'short', day: 'numeric'});
@@ -107,7 +101,6 @@ export default {
       });
     }
   },
-
   mounted() {
     this.$refs.root.addEventListener('us-load-context-popup', (e) => {
       const data = e.detail;
@@ -116,7 +109,6 @@ export default {
       }
     });
   },
-
   methods: {
     load(data) {
       this.loading = true;

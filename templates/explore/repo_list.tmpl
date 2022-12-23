@@ -32,16 +32,16 @@
 							{{end}}
 						{{end}}
 						{{if .IsFork}}
-							<span class="tooltip" data-content="{{$.locale.Tr "repo.fork"}}" data-position="bottom center">{{svg "octicon-repo-forked"}}</span>
+							<span class="tooltip df" data-content="{{$.locale.Tr "repo.fork"}}" data-position="bottom center">{{svg "octicon-repo-forked"}}</span>
 						{{else if .IsMirror}}
-							<span class="tooltip" data-content="{{$.locale.Tr "mirror"}}" data-position="bottom center">{{svg "octicon-mirror"}}</span>
+							<span class="tooltip df" data-content="{{$.locale.Tr "mirror"}}" data-position="bottom center">{{svg "octicon-mirror"}}</span>
 						{{end}}
 					</div>
 				</div>
-				<div class="metas df ac">
+				<div class="metas df ac text grey">
 					{{if .PrimaryLanguage}}
-						<a href="{{$.Link}}?q={{$.Keyword}}&sort={{$.SortType}}&language={{.PrimaryLanguage.Language}}">
-							<span class="text grey df ac mr-3"><i class="color-icon mr-3" style="background-color: {{.PrimaryLanguage.Color}}"></i>{{.PrimaryLanguage.Language}}</span>
+						<a class="muted" href="{{$.Link}}?q={{$.Keyword}}&sort={{$.SortType}}&language={{.PrimaryLanguage.Language}}">
+							<span class="df ac mr-3"><i class="color-icon mr-3" style="background-color: {{.PrimaryLanguage.Color}}"></i>{{.PrimaryLanguage.Language}}</span>
 						</a>
 					{{end}}
 					{{if not $.DisableStars}}

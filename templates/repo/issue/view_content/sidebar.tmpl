@@ -337,7 +337,7 @@
 				</div>
 			</div>
 		{{end}}
-		{{if .Repository.IsTimetrackerEnabled}}
+		{{if .Repository.IsTimetrackerEnabled $.Context}}
 			{{if and .CanUseTimetracker (not .Repository.IsArchived)}}
 				<div class="ui divider"></div>
 				<div class="ui timetrack">
@@ -389,7 +389,7 @@
 									{{avatar $user}}
 								</a>
 								<div class="content">
-									<a class="author">{{$user.DisplayName}}</a>
+									{{template "shared/user/authorlink" $user}}
 									<div class="text">
 										{{$trackedtime}}
 									</div>
@@ -444,7 +444,7 @@
 			{{end}}
 		</div>
 
-		{{if .Repository.IsDependenciesEnabled}}
+		{{if .Repository.IsDependenciesEnabled $.Context}}
 			<div class="ui divider"></div>
 
 			<div class="ui depending">

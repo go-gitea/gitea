@@ -1,10 +1,10 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package convert
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"strings"
@@ -22,35 +22,36 @@ import (
 // it assumes some fields assigned with values:
 // Required - Poster, Labels,
 // Optional - Milestone, Assignee, PullRequest
-func ToAPIIssue(issue *issues_model.Issue) *api.Issue {
-	if err := issue.LoadLabels(db.DefaultContext); err != nil {
+func ToAPIIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
+	if err := issue.LoadLabels(ctx); err != nil {
 		return &api.Issue{}
 	}
-	if err := issue.LoadPoster(); err != nil {
+	if err := issue.LoadPoster(ctx); err != nil {
 		return &api.Issue{}
 	}
-	if err := issue.LoadRepo(db.DefaultContext); err != nil {
+	if err := issue.LoadRepo(ctx); err != nil {
 		return &api.Issue{}
 	}
-	if err := issue.Repo.GetOwner(db.DefaultContext); err != nil {
+	if err := issue.Repo.GetOwner(ctx); err != nil {
 		return &api.Issue{}
 	}
 
 	apiIssue := &api.Issue{
-		ID:       issue.ID,
-		URL:      issue.APIURL(),
-		HTMLURL:  issue.HTMLURL(),
-		Index:    issue.Index,
-		Poster:   ToUser(issue.Poster, nil),
-		Title:    issue.Title,
-		Body:     issue.Content,
-		Ref:      issue.Ref,
-		Labels:   ToLabelList(issue.Labels, issue.Repo, issue.Repo.Owner),
-		State:    issue.State(),
-		IsLocked: issue.IsLocked,
-		Comments: issue.NumComments,
-		Created:  issue.CreatedUnix.AsTime(),
-		Updated:  issue.UpdatedUnix.AsTime(),
+		ID:          issue.ID,
+		URL:         issue.APIURL(),
+		HTMLURL:     issue.HTMLURL(),
+		Index:       issue.Index,
+		Poster:      ToUser(issue.Poster, nil),
+		Title:       issue.Title,
+		Body:        issue.Content,
+		Attachments: ToAttachments(issue.Attachments),
+		Ref:         issue.Ref,
+		Labels:      ToLabelList(issue.Labels, issue.Repo, issue.Repo.Owner),
+		State:       issue.State(),
+		IsLocked:    issue.IsLocked,
+		Comments:    issue.NumComments,
+		Created:     issue.CreatedUnix.AsTime(),
+		Updated:     issue.UpdatedUnix.AsTime(),
 	}
 
 	apiIssue.Repo = &api.RepositoryMeta{
@@ -64,14 +65,14 @@ func ToAPIIssue(issue *issues_model.Issue) *api.Issue {
 		apiIssue.Closed = issue.ClosedUnix.AsTimePtr()
 	}
 
-	if err := issue.LoadMilestone(); err != nil {
+	if err := issue.LoadMilestone(ctx); err != nil {
 		return &api.Issue{}
 	}
 	if issue.Milestone != nil {
 		apiIssue.Milestone = ToAPIMilestone(issue.Milestone)
 	}
 
-	if err := issue.LoadAssignees(db.DefaultContext); err != nil {
+	if err := issue.LoadAssignees(ctx); err != nil {
 		return &api.Issue{}
 	}
 	if len(issue.Assignees) > 0 {
@@ -81,7 +82,7 @@ func ToAPIIssue(issue *issues_model.Issue) *api.Issue {
 		apiIssue.Assignee = ToUser(issue.Assignees[0], nil) // For compatibility, we're keeping the first assignee as `apiIssue.Assignee`
 	}
 	if issue.IsPull {
-		if err := issue.LoadPullRequest(); err != nil {
+		if err := issue.LoadPullRequest(ctx); err != nil {
 			return &api.Issue{}
 		}
 		apiIssue.PullRequest = &api.PullRequestMeta{
@@ -99,26 +100,25 @@ func ToAPIIssue(issue *issues_model.Issue) *api.Issue {
 }
 
 // ToAPIIssueList converts an IssueList to API format
-func ToAPIIssueList(il issues_model.IssueList) []*api.Issue {
+func ToAPIIssueList(ctx context.Context, il issues_model.IssueList) []*api.Issue {
 	result := make([]*api.Issue, len(il))
 	for i := range il {
-		result[i] = ToAPIIssue(il[i])
+		result[i] = ToAPIIssue(ctx, il[i])
 	}
 	return result
 }
 
 // ToTrackedTime converts TrackedTime to API format
-func ToTrackedTime(t *issues_model.TrackedTime) (apiT *api.TrackedTime) {
+func ToTrackedTime(ctx context.Context, t *issues_model.TrackedTime) (apiT *api.TrackedTime) {
 	apiT = &api.TrackedTime{
-		ID:       t.ID,
-		IssueID:  t.IssueID,
-		UserID:   t.UserID,
-		UserName: t.User.Name,
-		Time:     t.Time,
-		Created:  t.Created,
+		ID:      t.ID,
+		IssueID: t.IssueID,
+		UserID:  t.UserID,
+		Time:    t.Time,
+		Created: t.Created,
 	}
 	if t.Issue != nil {
-		apiT.Issue = ToAPIIssue(t.Issue)
+		apiT.Issue = ToAPIIssue(ctx, t.Issue)
 	}
 	if t.User != nil {
 		apiT.UserName = t.User.Name
@@ -149,7 +149,7 @@ func ToStopWatches(sws []*issues_model.Stopwatch) (api.StopWatches, error) {
 		}
 		repo, ok = repoCache[issue.RepoID]
 		if !ok {
-			repo, err = repo_model.GetRepositoryByID(issue.RepoID)
+			repo, err = repo_model.GetRepositoryByID(db.DefaultContext, issue.RepoID)
 			if err != nil {
 				return nil, err
 			}
@@ -169,10 +169,10 @@ func ToStopWatches(sws []*issues_model.Stopwatch) (api.StopWatches, error) {
 }
 
 // ToTrackedTimeList converts TrackedTimeList to API format
-func ToTrackedTimeList(tl issues_model.TrackedTimeList) api.TrackedTimeList {
+func ToTrackedTimeList(ctx context.Context, tl issues_model.TrackedTimeList) api.TrackedTimeList {
 	result := make([]*api.TrackedTime, 0, len(tl))
 	for _, t := range tl {
-		result = append(result, ToTrackedTime(t))
+		result = append(result, ToTrackedTime(ctx, t))
 	}
 	return result
 }

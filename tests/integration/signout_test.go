@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -22,7 +21,4 @@ func TestSignOut(t *testing.T) {
 	// try to view a private repo, should fail
 	req = NewRequest(t, "GET", "/user2/repo2")
 	session.MakeRequest(t, req, http.StatusNotFound)
-
-	// invalidate cached cookies for user2, for subsequent tests
-	delete(loginSessionCache, "user2")
 }

@@ -1,7 +1,7 @@
 import $ from 'jquery';
 import 'jquery.are-you-sure';
 import {mqBinarySearch} from '../utils.js';
-import createDropzone from './dropzone.js';
+import {createDropzone} from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';
 import {attachDropdownAria} from './aria.js';
@@ -260,6 +260,7 @@ export function initGlobalLinkActions() {
     e.preventDefault();
     const $this = $(this);
     const redirect = $this.data('redirect');
+    $this.prop('disabled', true);
     $.post($this.data('url'), {
       _csrf: csrfToken
     }).done((data) => {
@@ -270,6 +271,8 @@ export function initGlobalLinkActions() {
       } else {
         window.location.reload();
       }
+    }).always(() => {
+      $this.prop('disabled', false);
     });
   }
 
@@ -283,11 +286,14 @@ export function initGlobalLinkActions() {
   // FIXME: this is only used once, and should be replace with `link-action` instead
   $('.undo-button').on('click', function () {
     const $this = $(this);
+    $this.prop('disabled', true);
     $.post($this.data('url'), {
       _csrf: csrfToken,
       id: $this.data('id')
     }).done((data) => {
       window.location.href = data.redirect;
+    }).always(() => {
+      $this.prop('disabled', false);
     });
   });
 }

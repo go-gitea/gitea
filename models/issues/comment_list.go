@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -24,7 +23,8 @@ func (comments CommentList) getPosterIDs() []int64 {
 	return posterIDs.Values()
 }
 
-func (comments CommentList) loadPosters(ctx context.Context) error {
+// LoadPosters loads posters
+func (comments CommentList) LoadPosters(ctx context.Context) error {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -277,7 +277,8 @@ func (comments CommentList) Issues() IssueList {
 	return issueList
 }
 
-func (comments CommentList) loadIssues(ctx context.Context) error {
+// LoadIssues loads issues of comments
+func (comments CommentList) LoadIssues(ctx context.Context) error {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -382,7 +383,8 @@ func (comments CommentList) loadDependentIssues(ctx context.Context) error {
 	return nil
 }
 
-func (comments CommentList) loadAttachments(ctx context.Context) (err error) {
+// LoadAttachments loads attachments
+func (comments CommentList) LoadAttachments(ctx context.Context) (err error) {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -476,7 +478,7 @@ func (comments CommentList) loadReviews(ctx context.Context) error { //nolint
 
 // loadAttributes loads all attributes
 func (comments CommentList) loadAttributes(ctx context.Context) (err error) {
-	if err = comments.loadPosters(ctx); err != nil {
+	if err = comments.LoadPosters(ctx); err != nil {
 		return
 	}
 
@@ -496,7 +498,7 @@ func (comments CommentList) loadAttributes(ctx context.Context) (err error) {
 		return
 	}
 
-	if err = comments.loadAttachments(ctx); err != nil {
+	if err = comments.LoadAttachments(ctx); err != nil {
 		return
 	}
 
@@ -504,7 +506,7 @@ func (comments CommentList) loadAttributes(ctx context.Context) (err error) {
 		return
 	}
 
-	if err = comments.loadIssues(ctx); err != nil {
+	if err = comments.LoadIssues(ctx); err != nil {
 		return
 	}
 
@@ -519,19 +521,4 @@ func (comments CommentList) loadAttributes(ctx context.Context) (err error) {
 // comments
 func (comments CommentList) LoadAttributes() error {
 	return comments.loadAttributes(db.DefaultContext)
-}
-
-// LoadAttachments loads attachments
-func (comments CommentList) LoadAttachments() error {
-	return comments.loadAttachments(db.DefaultContext)
-}
-
-// LoadPosters loads posters
-func (comments CommentList) LoadPosters() error {
-	return comments.loadPosters(db.DefaultContext)
-}
-
-// LoadIssues loads issues of comments
-func (comments CommentList) LoadIssues() error {
-	return comments.loadIssues(db.DefaultContext)
 }
