@@ -513,16 +513,16 @@ export function initRepoPullRequestReview() {
             <td class="lines-num"></td>
             <td class="lines-escape"></td>
             <td class="lines-type-marker"></td>
-            <td class="add-comment-left"></td>
+            <td class="add-comment-left" colspan="4"></td>
             <td class="lines-num"></td>
             <td class="lines-escape"></td>
             <td class="lines-type-marker"></td>
-            <td class="add-comment-right"></td>
+            <td class="add-comment-right" colspan="4"></td>
           ` : `
             <td class="lines-num"></td>
             <td class="lines-num"></td>
             <td class="lines-escape"></td>
-            <td class="add-comment-left add-comment-right" colspan="2"></td>
+            <td class="add-comment-left add-comment-right" colspan="5"></td>
           `}
         </tr>`);
       tr.after(ntr);
@@ -553,7 +553,7 @@ export function initRepoIssueReferenceIssue() {
     const $this = $(this);
     $this.closest('.dropdown').find('.menu').toggle('visible');
 
-    const content = $(`#comment-${$this.data('target')}`).text();
+    const content = $(`#${$this.data('target')}`).text();
     const poster = $this.data('poster-username');
     const reference = $this.data('reference');
     const $modal = $($this.data('modal'));

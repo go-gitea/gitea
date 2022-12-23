@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package models
 
@@ -20,7 +19,7 @@ func InsertMilestones(ms ...*issues_model.Milestone) (err error) {
 		return nil
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -42,7 +41,7 @@ func InsertMilestones(ms ...*issues_model.Milestone) (err error) {
 
 // InsertIssues insert issues to database
 func InsertIssues(issues ...*issues_model.Issue) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -105,7 +104,7 @@ func InsertIssueComments(comments []*issues_model.Comment) error {
 		issueIDs.Add(comment.IssueID)
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -137,7 +136,7 @@ func InsertIssueComments(comments []*issues_model.Comment) error {
 
 // InsertPullRequests inserted pull requests
 func InsertPullRequests(prs ...*issues_model.PullRequest) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -157,7 +156,7 @@ func InsertPullRequests(prs ...*issues_model.PullRequest) error {
 
 // InsertReleases migrates release
 func InsertReleases(rels ...*repo_model.Release) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

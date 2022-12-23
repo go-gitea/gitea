@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 // Package v1 Gitea API.
 //
@@ -68,7 +67,6 @@ import (
 	gocontext "context"
 	"fmt"
 	"net/http"
-	"reflect"
 	"strings"
 
 	"code.gitea.io/gitea/models/organization"
@@ -568,14 +566,17 @@ func mustNotBeArchived(ctx *context.APIContext) {
 	}
 }
 
-// bind binding an obj to a func(ctx *context.APIContext)
-func bind(obj interface{}) http.HandlerFunc {
-	tp := reflect.TypeOf(obj)
-	for tp.Kind() == reflect.Ptr {
-		tp = tp.Elem()
+func mustEnableAttachments(ctx *context.APIContext) {
+	if !setting.Attachment.Enabled {
+		ctx.NotFound()
+		return
 	}
+}
+
+// bind binding an obj to a func(ctx *context.APIContext)
+func bind[T any](obj T) http.HandlerFunc {
 	return web.Wrap(func(ctx *context.APIContext) {
-		theObj := reflect.New(tp).Interface() // create a new form obj for every request but not use obj directly
+		theObj := new(T) // create a new form obj for every request but not use obj directly
 		errs := binding.Bind(ctx.Req, theObj)
 		if len(errs) > 0 {
 			ctx.Error(http.StatusUnprocessableEntity, "validationError", fmt.Sprintf("%s: %s", errs[0].FieldNames, errs[0].Error()))
@@ -617,7 +618,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 			// setting.CORSConfig.AllowSubdomain // FIXME: the cors middleware needs allowSubdomain option
 			AllowedMethods:   setting.CORSConfig.Methods,
 			AllowCredentials: setting.CORSConfig.AllowCredentials,
-			AllowedHeaders:   []string{"Authorization", "X-Gitea-OTP"},
+			AllowedHeaders:   append([]string{"Authorization", "X-Gitea-OTP"}, setting.CORSConfig.Headers...),
 			MaxAge:           int(setting.CORSConfig.MaxAge.Seconds()),
 		}))
 	}
@@ -893,12 +894,21 @@ func Routes(ctx gocontext.Context) *web.Route {
 								Get(repo.GetIssueCommentReactions).
 								Post(reqToken(), bind(api.EditReactionOption{}), repo.PostIssueCommentReaction).
 								Delete(reqToken(), bind(api.EditReactionOption{}), repo.DeleteIssueCommentReaction)
+							m.Group("/assets", func() {
+								m.Combo("").
+									Get(repo.ListIssueCommentAttachments).
+									Post(reqToken(), mustNotBeArchived, repo.CreateIssueCommentAttachment)
+								m.Combo("/{asset}").
+									Get(repo.GetIssueCommentAttachment).
+									Patch(reqToken(), mustNotBeArchived, bind(api.EditAttachmentOptions{}), repo.EditIssueCommentAttachment).
+									Delete(reqToken(), mustNotBeArchived, repo.DeleteIssueCommentAttachment)
+							}, mustEnableAttachments)
 						})
 					})
 					m.Group("/{index}", func() {
 						m.Combo("").Get(repo.GetIssue).
 							Patch(reqToken(), bind(api.EditIssueOption{}), repo.EditIssue).
-							Delete(reqToken(), reqAdmin(), repo.DeleteIssue)
+							Delete(reqToken(), reqAdmin(), context.ReferencesGitRepo(), repo.DeleteIssue)
 						m.Group("/comments", func() {
 							m.Combo("").Get(repo.ListIssueComments).
 								Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueCommentOption{}), repo.CreateIssueComment)
@@ -936,6 +946,15 @@ func Routes(ctx gocontext.Context) *web.Route {
 							Get(repo.GetIssueReactions).
 							Post(reqToken(), bind(api.EditReactionOption{}), repo.PostIssueReaction).
 							Delete(reqToken(), bind(api.EditReactionOption{}), repo.DeleteIssueReaction)
+						m.Group("/assets", func() {
+							m.Combo("").
+								Get(repo.ListIssueAttachments).
+								Post(reqToken(), mustNotBeArchived, repo.CreateIssueAttachment)
+							m.Combo("/{asset}").
+								Get(repo.GetIssueAttachment).
+								Patch(reqToken(), mustNotBeArchived, bind(api.EditAttachmentOptions{}), repo.EditIssueAttachment).
+								Delete(reqToken(), mustNotBeArchived, repo.DeleteIssueAttachment)
+						}, mustEnableAttachments)
 					})
 				}, mustEnableIssuesOrPulls)
 				m.Group("/projects", func() {
@@ -1078,6 +1097,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 			}, repoAssignment())
 		})
 
+		// NOTE: these are Gitea package management API - see packages.CommonRoutes and packages.DockerContainerRoutes for endpoints that implement package manager APIs
 		m.Group("/packages/{username}", func() {
 			m.Group("/{type}/{name}/{version}", func() {
 				m.Get("", packages.GetPackage)

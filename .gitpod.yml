@@ -1,6 +1,7 @@
 tasks:
   - name: Setup
     init: |
+      cp -r contrib/ide/vscode .vscode
       make deps
       make build
     command: |
@@ -32,6 +33,7 @@ vscode:
     - johnsoncodehk.volar
     - ms-azuretools.vscode-docker
     - zixuanchen.vitest-explorer
+    - alexcvzz.vscode-sqlite
 
 ports:
   - name: Gitea

@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package markdown_test
 
@@ -38,6 +37,11 @@ func TestMain(m *testing.M) {
 	if err := git.InitSimple(context.Background()); err != nil {
 		log.Fatal("git init failed, err: %v", err)
 	}
+	markup.Init(&markup.ProcessorHelper{
+		IsUsernameMentionable: func(ctx context.Context, username string) bool {
+			return username == "r-lyeh"
+		},
+	})
 	os.Exit(m.Run())
 }
 

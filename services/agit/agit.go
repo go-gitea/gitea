@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package agit
 
@@ -96,10 +95,10 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			headBranch = curentTopicBranch
 		}
 
-		pr, err := issues_model.GetUnmergedPullRequest(repo.ID, repo.ID, headBranch, baseBranchName, issues_model.PullRequestFlowAGit)
+		pr, err := issues_model.GetUnmergedPullRequest(ctx, repo.ID, repo.ID, headBranch, baseBranchName, issues_model.PullRequestFlowAGit)
 		if err != nil {
 			if !issues_model.IsErrPullRequestNotExist(err) {
-				return nil, fmt.Errorf("Failed to get unmerged agit flow pull request in repository: %s/%s Error: %v", ownerName, repoName, err)
+				return nil, fmt.Errorf("Failed to get unmerged agit flow pull request in repository: %s/%s Error: %w", ownerName, repoName, err)
 			}
 
 			// create a new pull request
@@ -109,16 +108,16 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 				if !has || len(title) == 0 {
 					commit, err := gitRepo.GetCommit(opts.NewCommitIDs[i])
 					if err != nil {
-						return nil, fmt.Errorf("Failed to get commit %s in repository: %s/%s Error: %v", opts.NewCommitIDs[i], ownerName, repoName, err)
+						return nil, fmt.Errorf("Failed to get commit %s in repository: %s/%s Error: %w", opts.NewCommitIDs[i], ownerName, repoName, err)
 					}
 					title = strings.Split(commit.CommitMessage, "\n")[0]
 				}
 				description = opts.GitPushOptions["description"]
 			}
 
-			pusher, err := user_model.GetUserByID(opts.UserID)
+			pusher, err := user_model.GetUserByID(ctx, opts.UserID)
 			if err != nil {
-				return nil, fmt.Errorf("Failed to get user. Error: %v", err)
+				return nil, fmt.Errorf("Failed to get user. Error: %w", err)
 			}
 
 			prIssue := &issues_model.Issue{
@@ -159,13 +158,13 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		}
 
 		// update exist pull request
-		if err := pr.LoadBaseRepoCtx(ctx); err != nil {
-			return nil, fmt.Errorf("Unable to load base repository for PR[%d] Error: %v", pr.ID, err)
+		if err := pr.LoadBaseRepo(ctx); err != nil {
+			return nil, fmt.Errorf("Unable to load base repository for PR[%d] Error: %w", pr.ID, err)
 		}
 
 		oldCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
 		if err != nil {
-			return nil, fmt.Errorf("Unable to get ref commit id in base repository for PR[%d] Error: %v", pr.ID, err)
+			return nil, fmt.Errorf("Unable to get ref commit id in base repository for PR[%d] Error: %w", pr.ID, err)
 		}
 
 		if oldCommitID == opts.NewCommitIDs[i] {
@@ -179,9 +178,9 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		}
 
 		if !forcePush {
-			output, _, err := git.NewCommand(ctx, "rev-list", "--max-count=1", oldCommitID, "^"+opts.NewCommitIDs[i]).RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: os.Environ()})
+			output, _, err := git.NewCommand(ctx, "rev-list", "--max-count=1").AddDynamicArguments(oldCommitID, "^"+opts.NewCommitIDs[i]).RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: os.Environ()})
 			if err != nil {
-				return nil, fmt.Errorf("Fail to detect force push: %v", err)
+				return nil, fmt.Errorf("Fail to detect force push: %w", err)
 			} else if len(output) > 0 {
 				results = append(results, private.HookProcReceiveRefResult{
 					OriginalRef: opts.RefFullNames[i],
@@ -195,23 +194,23 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 
 		pr.HeadCommitID = opts.NewCommitIDs[i]
 		if err = pull_service.UpdateRef(ctx, pr); err != nil {
-			return nil, fmt.Errorf("Failed to update pull ref. Error: %v", err)
+			return nil, fmt.Errorf("Failed to update pull ref. Error: %w", err)
 		}
 
 		pull_service.AddToTaskQueue(pr)
-		pusher, err := user_model.GetUserByID(opts.UserID)
+		pusher, err := user_model.GetUserByID(ctx, opts.UserID)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to get user. Error: %v", err)
+			return nil, fmt.Errorf("Failed to get user. Error: %w", err)
 		}
-		err = pr.LoadIssue()
+		err = pr.LoadIssue(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to load pull issue. Error: %v", err)
+			return nil, fmt.Errorf("Failed to load pull issue. Error: %w", err)
 		}
-		comment, err := issues_model.CreatePushPullComment(ctx, pusher, pr, oldCommitID, opts.NewCommitIDs[i])
+		comment, err := pull_service.CreatePushPullComment(ctx, pusher, pr, oldCommitID, opts.NewCommitIDs[i])
 		if err == nil && comment != nil {
-			notification.NotifyPullRequestPushCommits(pusher, pr, comment)
+			notification.NotifyPullRequestPushCommits(ctx, pusher, pr, comment)
 		}
-		notification.NotifyPullRequestSynchronized(pusher, pr)
+		notification.NotifyPullRequestSynchronized(ctx, pusher, pr)
 		isForcePush := comment != nil && comment.IsForcePush
 
 		results = append(results, private.HookProcReceiveRefResult{

@@ -1,7 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // Copyright 2018 Jonas Franz. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migrations
 
@@ -84,7 +83,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, labels, 12)
 
-	releases, err := repo_model.GetReleasesByRepoID(repo.ID, repo_model.FindReleasesOptions{
+	releases, err := repo_model.GetReleasesByRepoID(db.DefaultContext, repo.ID, repo_model.FindReleasesOptions{
 		ListOptions: db.ListOptions{
 			PageSize: 10,
 			Page:     0,
@@ -94,7 +93,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, releases, 8)
 
-	releases, err = repo_model.GetReleasesByRepoID(repo.ID, repo_model.FindReleasesOptions{
+	releases, err = repo_model.GetReleasesByRepoID(db.DefaultContext, repo.ID, repo_model.FindReleasesOptions{
 		ListOptions: db.ListOptions{
 			PageSize: 10,
 			Page:     0,
@@ -104,14 +103,14 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, releases, 1)
 
-	issues, err := issues_model.Issues(&issues_model.IssuesOptions{
+	issues, err := issues_model.Issues(db.DefaultContext, &issues_model.IssuesOptions{
 		RepoID:   repo.ID,
 		IsPull:   util.OptionalBoolFalse,
 		SortType: "oldest",
 	})
 	assert.NoError(t, err)
 	assert.Len(t, issues, 15)
-	assert.NoError(t, issues[0].LoadDiscussComments())
+	assert.NoError(t, issues[0].LoadDiscussComments(db.DefaultContext))
 	assert.Empty(t, issues[0].Comments)
 
 	pulls, _, err := issues_model.PullRequests(repo.ID, &issues_model.PullRequestsOptions{
@@ -119,8 +118,8 @@ func TestGiteaUploadRepo(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Len(t, pulls, 30)
-	assert.NoError(t, pulls[0].LoadIssue())
-	assert.NoError(t, pulls[0].Issue.LoadDiscussComments())
+	assert.NoError(t, pulls[0].LoadIssue(db.DefaultContext))
+	assert.NoError(t, pulls[0].Issue.LoadDiscussComments(db.DefaultContext))
 	assert.Len(t, pulls[0].Issue.Comments, 2)
 }
 
@@ -234,7 +233,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 	fromRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	baseRef := "master"
 	assert.NoError(t, git.InitRepository(git.DefaultContext, fromRepo.RepoPath(), false))
-	err := git.NewCommand(git.DefaultContext, "symbolic-ref", "HEAD", git.BranchPrefix+baseRef).Run(&git.RunOpts{Dir: fromRepo.RepoPath()})
+	err := git.NewCommand(git.DefaultContext, "symbolic-ref").AddDynamicArguments("HEAD", git.BranchPrefix+baseRef).Run(&git.RunOpts{Dir: fromRepo.RepoPath()})
 	assert.NoError(t, err)
 	assert.NoError(t, os.WriteFile(filepath.Join(fromRepo.RepoPath(), "README.md"), []byte(fmt.Sprintf("# Testing Repository\n\nOriginally created in: %s", fromRepo.RepoPath())), 0o644))
 	assert.NoError(t, git.AddChanges(fromRepo.RepoPath(), true))
@@ -258,7 +257,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 	// fromRepo branch1
 	//
 	headRef := "branch1"
-	_, _, err = git.NewCommand(git.DefaultContext, "checkout", "-b", headRef).RunStdString(&git.RunOpts{Dir: fromRepo.RepoPath()})
+	_, _, err = git.NewCommand(git.DefaultContext, "checkout", "-b").AddDynamicArguments(headRef).RunStdString(&git.RunOpts{Dir: fromRepo.RepoPath()})
 	assert.NoError(t, err)
 	assert.NoError(t, os.WriteFile(filepath.Join(fromRepo.RepoPath(), "README.md"), []byte("SOMETHING"), 0o644))
 	assert.NoError(t, git.AddChanges(fromRepo.RepoPath(), true))
@@ -279,10 +278,10 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 	//
 	forkHeadRef := "branch2"
 	forkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 8})
-	assert.NoError(t, git.CloneWithArgs(git.DefaultContext, fromRepo.RepoPath(), forkRepo.RepoPath(), []string{}, git.CloneRepoOptions{
+	assert.NoError(t, git.CloneWithArgs(git.DefaultContext, nil, fromRepo.RepoPath(), forkRepo.RepoPath(), git.CloneRepoOptions{
 		Branch: headRef,
 	}))
-	_, _, err = git.NewCommand(git.DefaultContext, "checkout", "-b", forkHeadRef).RunStdString(&git.RunOpts{Dir: forkRepo.RepoPath()})
+	_, _, err = git.NewCommand(git.DefaultContext, "checkout", "-b").AddDynamicArguments(forkHeadRef).RunStdString(&git.RunOpts{Dir: forkRepo.RepoPath()})
 	assert.NoError(t, err)
 	assert.NoError(t, os.WriteFile(filepath.Join(forkRepo.RepoPath(), "README.md"), []byte(fmt.Sprintf("# branch2 %s", forkRepo.RepoPath())), 0o644))
 	assert.NoError(t, git.AddChanges(forkRepo.RepoPath(), true))

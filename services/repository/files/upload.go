@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package files
 
@@ -42,7 +41,7 @@ func cleanUpAfterFailure(infos *[]uploadInfo, t *TemporaryUploadRepository, orig
 		}
 		if !info.lfsMetaObject.Existing {
 			if _, err := git_model.RemoveLFSMetaObjectByOid(t.repo.ID, info.lfsMetaObject.Oid); err != nil {
-				original = fmt.Errorf("%v, %v", original, err)
+				original = fmt.Errorf("%w, %v", original, err) // We wrap the original error - as this is the underlying error that required the fallback
 			}
 		}
 	}
@@ -57,7 +56,7 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 
 	uploads, err := repo_model.GetUploadsByUUIDs(opts.Files)
 	if err != nil {
-		return fmt.Errorf("GetUploadsByUUIDs [uuids: %v]: %v", opts.Files, err)
+		return fmt.Errorf("GetUploadsByUUIDs [uuids: %v]: %w", opts.Files, err)
 	}
 
 	names := make([]string, len(uploads))
@@ -70,7 +69,7 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 			return err
 		}
 		if lfsLock != nil && lfsLock.OwnerID != doer.ID {
-			u, err := user_model.GetUserByID(lfsLock.OwnerID)
+			u, err := user_model.GetUserByID(ctx, lfsLock.OwnerID)
 			if err != nil {
 				return err
 			}
@@ -96,7 +95,7 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	var filename2attribute2info map[string]map[string]string
 	if setting.LFS.StartServer {
 		filename2attribute2info, err = t.gitRepo.CheckAttribute(git.CheckAttributeOpts{
-			Attributes: []string{"filter"},
+			Attributes: []git.CmdArg{"filter"},
 			Filenames:  names,
 			CachedOnly: true,
 		})

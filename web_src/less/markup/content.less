@@ -537,9 +537,11 @@
   width: 100%;
   height: var(--height-loading); // actual height is set in JS after loading
   overflow: hidden;
+  color-scheme: normal; // match the value inside the iframe to allow it to become transparent
 }
 
 .markup-block-error {
+  border: 1px solid var(--color-error-border) !important;
   margin-bottom: 0 !important;
   border-bottom-left-radius: 0 !important;
   border-bottom-right-radius: 0 !important;

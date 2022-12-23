@@ -2,7 +2,8 @@ import {isDarkTheme} from '../utils.js';
 const {mermaidMaxSourceCharacters} = window.config;
 
 const iframeCss = `
-  body {margin: 0; padding: 0}
+  :root {color-scheme: normal}
+  body {margin: 0; padding: 0; overflow: hidden}
   #mermaid {display: block; margin: 0 auto}
 `;
 

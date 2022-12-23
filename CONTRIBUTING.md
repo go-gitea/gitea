@@ -190,6 +190,8 @@ To maintain understandable code and avoid circular dependencies it is important 
 - **templates:** Golang templates for generating the html output.
 - **tests/e2e:** End to end tests
 - **tests/integration:** Integration tests
+- **tests/gitea-repositories-meta:** Sample repos used in integration tests. Adding a new repo requires editing `models/fixtures/repositories.yml` and `models/fixtures/repo_unit.yml` to match.
+- **tests/gitea-lfs-meta:** Sample LFS objects used in integration tests. Adding a new object requires editing `models/fixtures/lfs_meta_object.yml` to match.
 - **vendor:** External code that Gitea depends on.
 
 ## Documentation
@@ -440,8 +442,8 @@ Code that you contribute should use the standard copyright header:
 
 ```
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
+
 ```
 
 Files in the repository contain copyright from the year they are added

@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -69,7 +68,11 @@ func ListHooks(ctx *context.APIContext) {
 
 	apiHooks := make([]*api.Hook, len(hooks))
 	for i := range hooks {
-		apiHooks[i] = convert.ToHook(ctx.Repo.RepoLink, hooks[i])
+		apiHooks[i], err = convert.ToHook(ctx.Repo.RepoLink, hooks[i])
+		if err != nil {
+			ctx.InternalServerError(err)
+			return
+		}
 	}
 
 	ctx.SetTotalCountHeader(count)
@@ -112,7 +115,12 @@ func GetHook(ctx *context.APIContext) {
 	if err != nil {
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToHook(repo.RepoLink, hook))
+	apiHook, err := convert.ToHook(repo.RepoLink, hook)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, apiHook)
 }
 
 // TestHook tests a hook
@@ -176,7 +184,7 @@ func TestHook(ctx *context.APIContext) {
 		Commits:      []*api.PayloadCommit{commit},
 		TotalCommits: 1,
 		HeadCommit:   commit,
-		Repo:         convert.ToRepo(ctx.Repo.Repository, perm.AccessModeNone),
+		Repo:         convert.ToRepo(ctx, ctx.Repo.Repository, perm.AccessModeNone),
 		Pusher:       convert.ToUserWithAccessMode(ctx.Doer, perm.AccessModeNone),
 		Sender:       convert.ToUserWithAccessMode(ctx.Doer, perm.AccessModeNone),
 	}); err != nil {

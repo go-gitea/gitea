@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -8,6 +7,7 @@ import (
 	"context"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -58,7 +58,7 @@ func TestMirrorPull(t *testing.T) {
 	defer gitRepo.Close()
 
 	findOptions := repo_model.FindReleasesOptions{IncludeDrafts: true, IncludeTags: true}
-	initCount, err := repo_model.GetReleaseCountByRepoID(mirror.ID, findOptions)
+	initCount, err := repo_model.GetReleaseCountByRepoID(db.DefaultContext, mirror.ID, findOptions)
 	assert.NoError(t, err)
 
 	assert.NoError(t, release_service.CreateRelease(gitRepo, &repo_model.Release{
@@ -81,7 +81,7 @@ func TestMirrorPull(t *testing.T) {
 	ok := mirror_service.SyncPullMirror(ctx, mirror.ID)
 	assert.True(t, ok)
 
-	count, err := repo_model.GetReleaseCountByRepoID(mirror.ID, findOptions)
+	count, err := repo_model.GetReleaseCountByRepoID(db.DefaultContext, mirror.ID, findOptions)
 	assert.NoError(t, err)
 	assert.EqualValues(t, initCount+1, count)
 
@@ -92,7 +92,7 @@ func TestMirrorPull(t *testing.T) {
 	ok = mirror_service.SyncPullMirror(ctx, mirror.ID)
 	assert.True(t, ok)
 
-	count, err = repo_model.GetReleaseCountByRepoID(mirror.ID, findOptions)
+	count, err = repo_model.GetReleaseCountByRepoID(db.DefaultContext, mirror.ID, findOptions)
 	assert.NoError(t, err)
 	assert.EqualValues(t, initCount, count)
 }

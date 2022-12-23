@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package ldap
 
@@ -125,13 +124,13 @@ func dial(source *Source) (*ldap.Conn, error) {
 
 	conn, err := ldap.Dial("tcp", net.JoinHostPort(source.Host, strconv.Itoa(source.Port)))
 	if err != nil {
-		return nil, fmt.Errorf("error during Dial: %v", err)
+		return nil, fmt.Errorf("error during Dial: %w", err)
 	}
 
 	if source.SecurityProtocol == SecurityProtocolStartTLS {
 		if err = conn.StartTLS(tlsConfig); err != nil {
 			conn.Close()
-			return nil, fmt.Errorf("error during StartTLS: %v", err)
+			return nil, fmt.Errorf("error during StartTLS: %w", err)
 		}
 	}
 

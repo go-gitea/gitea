@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
@@ -78,7 +77,7 @@ func (pc *PushCommits) toAPIPayloadCommit(ctx context.Context, repoPath, repoLin
 
 	fileStatus, err := git.GetCommitFileStatus(ctx, repoPath, commit.Sha1)
 	if err != nil {
-		return nil, fmt.Errorf("FileStatus [commit_sha1: %s]: %v", commit.Sha1, err)
+		return nil, fmt.Errorf("FileStatus [commit_sha1: %s]: %w", commit.Sha1, err)
 	}
 
 	return &api.PayloadCommit{
