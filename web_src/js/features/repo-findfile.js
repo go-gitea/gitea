@@ -1,6 +1,6 @@
 import $ from 'jquery';
-
 import {svg} from '../svg.js';
+
 const {csrf} = window.config;
 
 const threshold = 50;
