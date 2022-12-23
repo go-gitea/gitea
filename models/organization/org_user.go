@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package organization
 
@@ -74,8 +73,8 @@ func IsPublicMembership(orgID, uid int64) (bool, error) {
 }
 
 // CanCreateOrgRepo returns true if user can create repo in organization
-func CanCreateOrgRepo(orgID, uid int64) (bool, error) {
-	return db.GetEngine(db.DefaultContext).
+func CanCreateOrgRepo(ctx context.Context, orgID, uid int64) (bool, error) {
+	return db.GetEngine(ctx).
 		Where(builder.Eq{"team.can_create_org_repo": true}).
 		Join("INNER", "team_user", "team_user.team_id = team.id").
 		And("team_user.uid = ?", uid).

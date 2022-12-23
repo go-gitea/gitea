@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -39,28 +38,28 @@ func TestAPIIssuesReactions(t *testing.T) {
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
 		Reaction: "wrong",
 	})
-	session.MakeRequest(t, req, http.StatusForbidden)
+	MakeRequest(t, req, http.StatusForbidden)
 
 	// Delete not allowed reaction
 	req = NewRequestWithJSON(t, "DELETE", urlStr, &api.EditReactionOption{
 		Reaction: "zzz",
 	})
-	session.MakeRequest(t, req, http.StatusOK)
+	MakeRequest(t, req, http.StatusOK)
 
 	// Add allowed reaction
 	req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
 		Reaction: "rocket",
 	})
-	resp := session.MakeRequest(t, req, http.StatusCreated)
+	resp := MakeRequest(t, req, http.StatusCreated)
 	var apiNewReaction api.Reaction
 	DecodeJSON(t, resp, &apiNewReaction)
 
 	// Add existing reaction
-	session.MakeRequest(t, req, http.StatusForbidden)
+	MakeRequest(t, req, http.StatusForbidden)
 
 	// Get end result of reaction list of issue #1
 	req = NewRequestf(t, "GET", urlStr)
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, req, http.StatusOK)
 	var apiReactions []*api.Reaction
 	DecodeJSON(t, resp, &apiReactions)
 	expectResponse := make(map[int]api.Reaction)
@@ -99,28 +98,28 @@ func TestAPICommentReactions(t *testing.T) {
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
 		Reaction: "wrong",
 	})
-	session.MakeRequest(t, req, http.StatusForbidden)
+	MakeRequest(t, req, http.StatusForbidden)
 
 	// Delete none existing reaction
 	req = NewRequestWithJSON(t, "DELETE", urlStr, &api.EditReactionOption{
 		Reaction: "eyes",
 	})
-	session.MakeRequest(t, req, http.StatusOK)
+	MakeRequest(t, req, http.StatusOK)
 
 	// Add allowed reaction
 	req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
 		Reaction: "+1",
 	})
-	resp := session.MakeRequest(t, req, http.StatusCreated)
+	resp := MakeRequest(t, req, http.StatusCreated)
 	var apiNewReaction api.Reaction
 	DecodeJSON(t, resp, &apiNewReaction)
 
 	// Add existing reaction
-	session.MakeRequest(t, req, http.StatusForbidden)
+	MakeRequest(t, req, http.StatusForbidden)
 
 	// Get end result of reaction list of issue #1
 	req = NewRequestf(t, "GET", urlStr)
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, req, http.StatusOK)
 	var apiReactions []*api.Reaction
 	DecodeJSON(t, resp, &apiReactions)
 	expectResponse := make(map[int]api.Reaction)

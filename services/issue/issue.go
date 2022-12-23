@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issue
 
@@ -18,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // NewIssue creates new issue with labels for repository.
@@ -162,7 +160,7 @@ func DeleteIssue(doer *user_model.User, gitRepo *git.Repository, issue *issues_m
 // AddAssigneeIfNotAssigned adds an assignee only if he isn't already assigned to the issue.
 // Also checks for access of assigned user
 func AddAssigneeIfNotAssigned(issue *issues_model.Issue, doer *user_model.User, assigneeID int64) (err error) {
-	assignee, err := user_model.GetUserByIDCtx(db.DefaultContext, assigneeID)
+	assignee, err := user_model.GetUserByID(db.DefaultContext, assigneeID)
 	if err != nil {
 		return err
 	}
@@ -201,7 +199,7 @@ func GetRefEndNamesAndURLs(issues []*issues_model.Issue, repoLink string) (map[i
 	for _, issue := range issues {
 		if issue.Ref != "" {
 			issueRefEndNames[issue.ID] = git.RefEndName(issue.Ref)
-			issueRefURLs[issue.ID] = git.RefURL(repoLink, util.PathEscapeSegments(issue.Ref))
+			issueRefURLs[issue.ID] = git.RefURL(repoLink, issue.Ref)
 		}
 	}
 	return issueRefEndNames, issueRefURLs
@@ -220,8 +218,15 @@ func deleteIssue(issue *issues_model.Issue) error {
 		return err
 	}
 
-	if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, issue.IsClosed); err != nil {
+	// update the total issue numbers
+	if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, false); err != nil {
 		return err
+	}
+	// if the issue is closed, update the closed issue numbers
+	if issue.IsClosed {
+		if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, true); err != nil {
+			return err
+		}
 	}
 
 	if err := issues_model.UpdateMilestoneCounters(ctx, issue.MilestoneID); err != nil {

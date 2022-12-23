@@ -1,13 +1,14 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"path"
+	"sync"
 	"testing"
 
 	"code.gitea.io/gitea/modules/json"
@@ -114,4 +115,33 @@ func TestRepoCommitsWithStatusFailure(t *testing.T) {
 
 func TestRepoCommitsWithStatusWarning(t *testing.T) {
 	doTestRepoCommitWithStatus(t, "warning", "gitea-exclamation", "yellow")
+}
+
+func TestRepoCommitsStatusParallel(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+
+	// Request repository commits page
+	req := NewRequest(t, "GET", "/user2/repo1/commits/branch/master")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	doc := NewHTMLParser(t, resp.Body)
+	// Get first commit URL
+	commitURL, exists := doc.doc.Find("#commits-table tbody tr td.sha a").Attr("href")
+	assert.True(t, exists)
+	assert.NotEmpty(t, commitURL)
+
+	var wg sync.WaitGroup
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func(parentT *testing.T, i int) {
+			parentT.Run(fmt.Sprintf("ParallelCreateStatus_%d", i), func(t *testing.T) {
+				runBody := doAPICreateCommitStatus(NewAPITestContext(t, "user2", "repo1"), path.Base(commitURL), api.CommitStatusState("pending"))
+				runBody(t)
+				wg.Done()
+			})
+		}(t, i)
+	}
+	wg.Wait()
 }

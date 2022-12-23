@@ -566,7 +566,7 @@ function initRepoIssueCommentEdit() {
   $(document).on('click', '.quote-reply', function (event) {
     $(this).closest('.dropdown').find('.menu').toggle('visible');
     const target = $(this).data('target');
-    const quote = $(`#comment-${target}`).text().replace(/\n/g, '\n> ');
+    const quote = $(`#${target}`).text().replace(/\n/g, '\n> ');
     const content = `> ${quote}\n\n`;
     let easyMDE;
     if ($(this).hasClass('quote-reply-diff')) {
