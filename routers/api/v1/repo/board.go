@@ -46,6 +46,11 @@ func GetProjectBoard(ctx *context.APIContext) {
 		return
 	}
 
+	if board.Project.RepoID != ctx.Repo.Repository.ID {
+		ctx.Error(http.StatusUnauthorized, "GetProjectBoard", "board doesn't belong to the repository")
+		return
+	}
+
 	ctx.JSON(http.StatusOK, convert.ToAPIProjectBoard(board))
 }
 
