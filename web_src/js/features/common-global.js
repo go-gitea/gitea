@@ -1,7 +1,7 @@
 import $ from 'jquery';
 import 'jquery.are-you-sure';
 import {mqBinarySearch} from '../utils.js';
-import createDropzone from './dropzone.js';
+import {createDropzone} from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';
 import {attachDropdownAria} from './aria.js';
