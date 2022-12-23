@@ -7,7 +7,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.18.0](https://github.com/go-gitea/gitea/releases/tag/1.18.0) - 2022-12-22
 
 * SECURITY
-  * chore(security): Support Go Vulnerability Management (#21139)
+  * Support Go Vulnerability Management (#21139)
   * Forbid HTML string tooltips (#20935)
 * BREAKING
   * Remove U2F support (#20141)
