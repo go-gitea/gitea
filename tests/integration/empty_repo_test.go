@@ -11,6 +11,8 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/tests"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestEmptyRepo(t *testing.T) {
@@ -21,7 +23,8 @@ func TestEmptyRepo(t *testing.T) {
 		"commit/1ae57b34ccf7e18373",
 		"graph",
 	}
-	emptyRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{}, unittest.Cond("is_empty = ?", true))
+	emptyRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 5})
+	assert.True(t, emptyRepo.IsEmpty)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: emptyRepo.OwnerID})
 	for _, subpath := range subpaths {
 		req := NewRequestf(t, "GET", "/%s/%s/%s", owner.Name, emptyRepo.Name, subpath)
