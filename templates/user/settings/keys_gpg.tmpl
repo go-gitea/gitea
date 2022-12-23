@@ -18,11 +18,11 @@
 					<p>{{.locale.Tr "settings.gpg_token_required"}}</p>
 				</div>
 				<div class="field">
-					<label for="token">{{.locale.Tr "setting.gpg_token"}}
+					<label for="token">{{.locale.Tr "settings.gpg_token"}}
 					<input readonly="" value="{{.TokenToSign}}">
 					<div class="help">
 						<p>{{.locale.Tr "settings.gpg_token_help"}}</p>
-						<p><code>{{$.locale.Tr "settings.gpg_token_code" .TokenToSign .PaddedKeyID}}</code></p>
+						<p><code>{{$.locale.Tr "settings.gpg_token_code" .TokenToSign .KeyID}}</code></p>
 					</div>
 				</div>
 				<div class="field">
