@@ -123,7 +123,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 			Content:     string(dataJSON),
 		}
 
-		_, _ = issues_model.CreateComment(ops)
+		_, _ = issue_service.CreateComment(ops)
 	}
 
 	return nil
@@ -222,7 +222,7 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 		OldRef: oldBranch,
 		NewRef: targetBranch,
 	}
-	if _, err = issues_model.CreateComment(options); err != nil {
+	if _, err = issue_service.CreateComment(options); err != nil {
 		return fmt.Errorf("CreateChangeTargetBranchComment: %w", err)
 	}
 
@@ -317,7 +317,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 			}
 
 			AddToTaskQueue(pr)
-			comment, err := issues_model.CreatePushPullComment(ctx, doer, pr, oldCommitID, newCommitID)
+			comment, err := CreatePushPullComment(ctx, doer, pr, oldCommitID, newCommitID)
 			if err == nil && comment != nil {
 				notification.NotifyPullRequestPushCommits(ctx, doer, pr, comment)
 			}

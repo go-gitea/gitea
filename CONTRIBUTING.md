@@ -190,6 +190,8 @@ To maintain understandable code and avoid circular dependencies it is important 
 - **templates:** Golang templates for generating the html output.
 - **tests/e2e:** End to end tests
 - **tests/integration:** Integration tests
+- **tests/gitea-repositories-meta:** Sample repos used in integration tests. Adding a new repo requires editing `models/fixtures/repositories.yml` and `models/fixtures/repo_unit.yml` to match.
+- **tests/gitea-lfs-meta:** Sample LFS objects used in integration tests. Adding a new object requires editing `models/fixtures/lfs_meta_object.yml` to match.
 - **vendor:** External code that Gitea depends on.
 
 ## Documentation
