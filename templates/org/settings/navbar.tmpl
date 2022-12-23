@@ -26,14 +26,14 @@
 		</a>
 		{{end}}
 		{{if .EnableActions}}
-		<a class="{{if .PageIsOrgSettingsRunners}}active {{end}} item" href="{{.OrgLink}}/settings/runners">
+		<a class="{{if .PageIsOrgSettingsRunners}}active {{end}}item" href="{{.OrgLink}}/settings/runners">
 			{{.locale.Tr "repo.runners"}}
 		</a>
 		{{end}}
-		<a class="{{if .PageIsOrgSettingsSecrets}}active {{end}} item" href="{{.OrgLink}}/settings/secrets">
+		<a class="{{if .PageIsOrgSettingsSecrets}}active {{end}}item" href="{{.OrgLink}}/settings/secrets">
 			{{.locale.Tr "org.settings.secrets"}}
 		</a>
-		<a class="{{if .PageIsSettingsDelete}}active {{end}} item" href="{{.OrgLink}}/settings/delete">
+		<a class="{{if .PageIsSettingsDelete}}active {{end}}item" href="{{.OrgLink}}/settings/delete">
 			{{.locale.Tr "org.settings.delete"}}
 		</a>
 	</div>
