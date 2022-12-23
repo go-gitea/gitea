@@ -115,7 +115,7 @@ func DeleteProject(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	err := project_model.DeleteProjectByIDCtx(ctx, ctx.ParamsInt64(":id"))
+	err := project_model.DeleteProjectByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteProject", err)
 		return

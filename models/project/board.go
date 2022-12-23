@@ -296,7 +296,7 @@ func UpdateBoardSorting(bs BoardList) error {
 // LoadBoardCreator load creator of project board.
 func (b *Board) LoadBoardCreator(ctx context.Context) (err error) {
 	if b.Creator == nil {
-		b.Creator, err = user_model.GetUserByIDCtx(ctx, b.CreatorID)
+		b.Creator, err = user_model.GetUserByID(ctx, b.CreatorID)
 		if err != nil {
 			return fmt.Errorf("getUserByID [%d]: %v", b.CreatorID, err)
 		}
@@ -337,7 +337,7 @@ func (bl BoardList) LoadAttributes(ctx context.Context) (err error) {
 		if bl[i].Creator == nil {
 			bl[i].Creator, ok = creators[bl[i].CreatorID]
 			if !ok {
-				creator, err := user_model.GetUserByIDCtx(ctx, bl[i].CreatorID)
+				creator, err := user_model.GetUserByID(ctx, bl[i].CreatorID)
 				if err != nil {
 					return fmt.Errorf("getUserByID [%d]: %v", bl[i].CreatorID, err)
 				}

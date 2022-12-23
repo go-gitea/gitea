@@ -336,7 +336,7 @@ func DeleteProjectByID(ctx context.Context, id int64) error {
 // LoadRepo load repo of the project.
 func (p *Project) LoadRepo(ctx context.Context) (err error) {
 	if p.Repo == nil {
-		p.Repo, err = repo_model.GetRepositoryByIDCtx(ctx, p.RepoID)
+		p.Repo, err = repo_model.GetRepositoryByID(ctx, p.RepoID)
 		if err != nil {
 			return fmt.Errorf("getRepositoryByID [%d]: %v", p.RepoID, err)
 		}
@@ -347,7 +347,7 @@ func (p *Project) LoadRepo(ctx context.Context) (err error) {
 // LoadCreator load creator of the project.
 func (p *Project) LoadCreator(ctx context.Context) (err error) {
 	if p.Creator == nil {
-		p.Creator, err = user_model.GetUserByIDCtx(ctx, p.CreatorID)
+		p.Creator, err = user_model.GetUserByID(ctx, p.CreatorID)
 		if err != nil {
 			return fmt.Errorf("getUserByID [%d]: %v", p.CreatorID, err)
 		}
@@ -365,7 +365,7 @@ func (pl List) LoadAttributes(ctx context.Context) (err error) {
 		if pl[i].Repo == nil {
 			pl[i].Repo, ok = repos[pl[i].RepoID]
 			if !ok {
-				repo, err := repo_model.GetRepositoryByIDCtx(ctx, pl[i].RepoID)
+				repo, err := repo_model.GetRepositoryByID(ctx, pl[i].RepoID)
 				if err != nil {
 					return fmt.Errorf("getRepositoryByID [%d]: %v", pl[i].RepoID, err)
 				}
@@ -377,7 +377,7 @@ func (pl List) LoadAttributes(ctx context.Context) (err error) {
 		if pl[i].Creator == nil {
 			pl[i].Creator, ok = creators[pl[i].CreatorID]
 			if !ok {
-				creator, err := user_model.GetUserByIDCtx(ctx, pl[i].CreatorID)
+				creator, err := user_model.GetUserByID(ctx, pl[i].CreatorID)
 				if err != nil {
 					return fmt.Errorf("getUserByID [%d]: %v", pl[i].CreatorID, err)
 				}
