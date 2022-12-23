@@ -26,7 +26,7 @@ func generateSaltedToken() (string, string, string, string, error) {
 	}
 	token := hex.EncodeToString(buf)
 	hash := auth_model.HashToken(token, salt)
-	return token, salt, hash, token[:8], nil
+	return token, salt, hash, token[len(token)-8:], nil
 }
 
 /*
