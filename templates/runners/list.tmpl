@@ -4,8 +4,6 @@
 	<h4 class="ui top attached header">
 		{{.locale.Tr "actions.runners.runner_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
 		<div class="ui right">
-			<!--<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/runners/new">{{.locale.Tr "actions.runners.new"}}</a>-->
-
 			<div class="ui top right pointing dropdown">
 				<button class="ui button primary">
 					{{.locale.Tr "actions.runners.new"}}
@@ -86,7 +84,6 @@
 					<td class="runner-ops">
 						{{if .Editable $.RunnerOnwerID $.RunnerRepoID}}
 						<a href="{{$.Link}}/{{.ID}}">{{svg "octicon-pencil"}}</a>
-						<!--<a class="runner-ops-delete show-modal" data-modal="#runner-delete-modal">{{svg "octicon-x-circle"}}</a>-->
 						{{end}}
 					</td>
 				</tr>
