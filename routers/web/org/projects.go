@@ -672,8 +672,13 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 
+	if _, err = movedIssues.LoadRepositories(ctx); err != nil {
+		ctx.ServerError("LoadRepositories", err)
+		return
+	}
+
 	for _, issue := range movedIssues {
-		if issue.RepoID != project.RepoID {
+		if issue.RepoID != project.RepoID && issue.Repo.OwnerID != project.OwnerID {
 			ctx.ServerError("Some issue's repoID is not equal to project's repoID", errors.New("Some issue's repoID is not equal to project's repoID"))
 			return
 		}
