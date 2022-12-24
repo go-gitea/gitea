@@ -32,6 +32,9 @@ func TestForkRepository(t *testing.T) {
 
 	// user not reached maximum limit of repositories
 	assert.False(t, repo_model.IsErrReachLimitOfRepo(err))
+
+	// change AllowForkWithoutMaximumLimit to false for the test
+	setting.Repository.AllowForkWithoutMaximumLimit = false
 	// user has reached maximum limit of repositories
 	user.MaxRepoCreation = 0
 	fork2, err := ForkRepository(git.DefaultContext, user, user, ForkRepoOptions{
