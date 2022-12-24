@@ -858,8 +858,13 @@ func RegisterRoutes(m *web.Route) {
 						m.Post("/move", org.MoveIssues)
 					})
 				})
-			}, reqSignIn)
-		}, repo.MustEnableProjects, )
+			}, reqSignIn, func(ctx *context.Context) {
+				if !ctx.Org.CanWriteUnit(ctx, unit.TypeProjects) {
+					ctx.NotFound("NewProject", nil)
+					return
+				}
+			})
+		}, repo.MustEnableProjects)
 
 		m.Get("/code", user.CodeSearch)
 	}, context_service.UserAssignmentWeb())

@@ -363,7 +363,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	}
 
 	if ctx.Repo.CanWriteIssuesOrPulls(ctx.Params(":type") == "pulls") {
-		projects, _, err := project_model.GetProjects(ctx, project_model.SearchOptions{
+		projects, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
 			RepoID:   repo.ID,
 			Type:     project_model.TypeRepository,
 			IsClosed: util.OptionalBoolOf(isShowClosed),
@@ -474,7 +474,7 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 
 func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 	var err error
-	projects, _, err := project_model.GetProjects(ctx, project_model.SearchOptions{
+	projects, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
 		RepoID:   repo.ID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolFalse,
@@ -484,7 +484,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		ctx.ServerError("GetProjects", err)
 		return
 	}
-	projects2, _, err := project_model.GetProjects(ctx, project_model.SearchOptions{
+	projects2, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
 		OwnerID:  repo.OwnerID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolFalse,
@@ -497,7 +497,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 
 	ctx.Data["OpenProjects"] = append(projects, projects2...)
 
-	projects, _, err = project_model.GetProjects(ctx, project_model.SearchOptions{
+	projects, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
 		RepoID:   repo.ID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolTrue,
@@ -507,7 +507,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		ctx.ServerError("GetProjects", err)
 		return
 	}
-	projects2, _, err = project_model.GetProjects(ctx, project_model.SearchOptions{
+	projects2, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
 		OwnerID:  repo.OwnerID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolTrue,

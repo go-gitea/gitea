@@ -12,10 +12,8 @@ import (
 	"strings"
 
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
 	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
@@ -52,40 +50,35 @@ func Projects(ctx *context.Context) {
 		page = 1
 	}
 
-	// ctx.Data["OpenCount"] = repo.NumOpenProjects
-	// ctx.Data["ClosedCount"] = repo.NumClosedProjects
-
-	var total int
-	if !isShowClosed {
-		// total = repo.NumOpenProjects
-	} else {
-		// total = repo.NumClosedProjects
-	}
-
-	projects, count, err := project_model.GetProjects(ctx, project_model.SearchOptions{
+	projects, total, err := project_model.FindProjects(ctx, project_model.SearchOptions{
 		OwnerID:  ctx.ContextUser.ID,
 		Page:     page,
 		IsClosed: util.OptionalBoolOf(isShowClosed),
 		SortType: sortType,
-		Type:     project_model.TypeRepository,
+		Type:     project_model.TypeOrganization,
 	})
 	if err != nil {
-		ctx.ServerError("GetProjects", err)
+		ctx.ServerError("FindProjects", err)
 		return
 	}
 
-	/*for i := range projects {
-		projects[i].RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-			URLPrefix: ctx.Repo.RepoLink,
-			Metas:     ctx.Repo.Repository.ComposeMetas(),
-			GitRepo:   ctx.Repo.GitRepo,
-			Ctx:       ctx,
-		}, projects[i].Description)
-		if err != nil {
-			ctx.ServerError("RenderString", err)
-			return
-		}
-	}*/
+	opTotal, err := project_model.CountProjects(ctx, project_model.SearchOptions{
+		OwnerID:  ctx.ContextUser.ID,
+		IsClosed: util.OptionalBoolOf(!isShowClosed),
+		Type:     project_model.TypeOrganization,
+	})
+	if err != nil {
+		ctx.ServerError("CountProjects", err)
+		return
+	}
+
+	if isShowClosed {
+		ctx.Data["OpenCount"] = opTotal
+		ctx.Data["ClosedCount"] = total
+	} else {
+		ctx.Data["OpenCount"] = total
+		ctx.Data["ClosedCount"] = opTotal
+	}
 
 	ctx.Data["Projects"] = projects
 
@@ -95,12 +88,16 @@ func Projects(ctx *context.Context) {
 		ctx.Data["State"] = "open"
 	}
 
-	numPages := 0
-	if count > 0 {
-		numPages = (int(count) - 1/setting.UI.IssuePagingNum)
+	for _, project := range projects {
+		project.RenderedContent = project.Description
 	}
 
-	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, numPages)
+	numPages := 0
+	if total > 0 {
+		numPages = (int(total) - 1/setting.UI.IssuePagingNum)
+	}
+
+	pager := context.NewPagination(int(total), setting.UI.IssuePagingNum, page, numPages)
 	pager.AddParam(ctx, "state", "State")
 	ctx.Data["Page"] = pager
 
@@ -318,19 +315,9 @@ func ViewProject(ctx *context.Context) {
 			}
 		}
 	}
+
+	project.RenderedContent = project.Description
 	ctx.Data["LinkedPRs"] = linkedPrsMap
-
-	/*project.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-		URLPrefix: ctx.Repo.RepoLink,
-		Metas:     ctx.Repo.Repository.ComposeMetas(),
-		GitRepo:   ctx.Repo.GitRepo,
-		Ctx:       ctx,
-	}, project.Description)
-	if err != nil {
-		ctx.ServerError("RenderString", err)
-		return
-	}*/
-
 	ctx.Data["PageIsViewProjects"] = true
 	ctx.Data["CanWriteProjects"] = ctx.Org.CanWriteUnit(ctx, unit.TypeProjects)
 	ctx.Data["Project"] = project
@@ -413,13 +400,6 @@ func DeleteProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	/*if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() {
-		ctx.JSON(http.StatusForbidden, map[string]string{
-			"message": "Only authorized users are allowed to perform this action.",
-		})
-		return
-	}*/
-
 	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
@@ -462,12 +442,6 @@ func DeleteProjectBoard(ctx *context.Context) {
 // AddBoardToProjectPost allows a new board to be added to a project.
 func AddBoardToProjectPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.EditProjectBoardForm)
-	/*if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() {
-		ctx.JSON(http.StatusForbidden, map[string]string{
-			"message": "Only authorized users are allowed to perform this action.",
-		})
-		return
-	}*/
 
 	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
@@ -501,13 +475,6 @@ func checkProjectBoardChangePermissions(ctx *context.Context) (*project_model.Pr
 		})
 		return nil, nil
 	}
-
-	/*if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() {
-		ctx.JSON(http.StatusForbidden, map[string]string{
-			"message": "Only authorized users are allowed to perform this action.",
-		})
-		return nil, nil
-	}*/
 
 	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
@@ -593,13 +560,6 @@ func MoveIssues(ctx *context.Context) {
 		})
 		return
 	}
-
-	/*if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
-		ctx.JSON(http.StatusForbidden, map[string]string{
-			"message": "Only authorized users are allowed to perform this action.",
-		})
-		return
-	}*/
 
 	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
@@ -692,58 +652,4 @@ func MoveIssues(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok": true,
 	})
-}
-
-func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
-	orgs, err := organization.GetOrgsCanCreateRepoByUserID(ctx.Doer.ID)
-	if err != nil {
-		ctx.ServerError("GetOrgsCanCreateRepoByUserID", err)
-		return nil
-	}
-
-	if !ctx.Doer.IsAdmin {
-		orgsAvailable := []*organization.Organization{}
-		for i := 0; i < len(orgs); i++ {
-			if orgs[i].CanCreateRepo() {
-				orgsAvailable = append(orgsAvailable, orgs[i])
-			}
-		}
-		ctx.Data["Orgs"] = orgsAvailable
-	} else {
-		ctx.Data["Orgs"] = orgs
-	}
-
-	// Not equal means current user is an organization.
-	if uid == ctx.Doer.ID || uid == 0 {
-		return ctx.Doer
-	}
-
-	org, err := user_model.GetUserByID(ctx, uid)
-	if user_model.IsErrUserNotExist(err) {
-		return ctx.Doer
-	}
-
-	if err != nil {
-		ctx.ServerError("GetUserByID", fmt.Errorf("[%d]: %w", uid, err))
-		return nil
-	}
-
-	// Check ownership of organization.
-	if !org.IsOrganization() {
-		ctx.Error(http.StatusForbidden)
-		return nil
-	}
-	if !ctx.Doer.IsAdmin {
-		canCreate, err := organization.OrgFromUser(org).CanCreateOrgRepo(ctx.Doer.ID)
-		if err != nil {
-			ctx.ServerError("CanCreateOrgRepo", err)
-			return nil
-		} else if !canCreate {
-			ctx.Error(http.StatusForbidden)
-			return nil
-		}
-	} else {
-		ctx.Data["Orgs"] = orgs
-	}
-	return org
 }

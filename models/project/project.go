@@ -170,11 +170,7 @@ type SearchOptions struct {
 	Type     Type
 }
 
-// GetProjects returns a list of all projects that have been created in the repository
-func GetProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, error) {
-	e := db.GetEngine(ctx)
-	projects := make([]*Project, 0, setting.UI.IssuePagingNum)
-
+func (opts *SearchOptions) toConds() builder.Cond {
 	var cond builder.Cond = builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
@@ -192,6 +188,19 @@ func GetProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, er
 	if opts.OwnerID > 0 {
 		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
 	}
+	return cond
+}
+
+// CountProjects counts projects
+func CountProjects(ctx context.Context, opts SearchOptions) (int64, error) {
+	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(Project))
+}
+
+// FindProjects returns a list of all projects that have been created in the repository
+func FindProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, error) {
+	e := db.GetEngine(ctx)
+	projects := make([]*Project, 0, setting.UI.IssuePagingNum)
+	cond := opts.toConds()
 
 	count, err := e.Where(cond).Count(new(Project))
 	if err != nil {
