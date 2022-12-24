@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	org_model "code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 )
@@ -55,6 +56,11 @@ func userAssignment(ctx *context.Context, errCb func(int, string, interface{})) 
 				}
 			} else {
 				errCb(http.StatusInternalServerError, "GetUserByName", err)
+			}
+		} else {
+			if ctx.ContextUser.IsOrganization() {
+				ctx.Org.Organization = (*org_model.Organization)(ctx.ContextUser)
+				ctx.Data["Org"] = ctx.Org.Organization
 			}
 		}
 	}
