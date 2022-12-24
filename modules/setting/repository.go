@@ -161,7 +161,7 @@ var (
 		DisableMigrations:                       false,
 		DisableStars:                            false,
 		DefaultBranch:                           "main",
-		AllowForkWithoutMaximumLimit:            false,
+		AllowForkWithoutMaximumLimit:            true,
 
 		// Repository editor settings
 		Editor: struct {
