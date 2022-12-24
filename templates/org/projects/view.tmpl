@@ -204,7 +204,7 @@
 							</div>
 							<div class="meta my-2">
 								<span class="text light grey">
-									#{{.Index}}
+									{{.Repo.FullName}}#{{.Index}}
 									{{$timeStr := TimeSinceUnix .GetLastEventTimestamp $.locale}}
 									{{if .OriginalAuthor}}
 										{{$.locale.Tr .GetLastEventLabelFake $timeStr (.OriginalAuthor|Escape) | Safe}}
