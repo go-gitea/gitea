@@ -18,12 +18,12 @@ import (
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
+	board_model "code.gitea.io/gitea/models/board"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
-	project_model "code.gitea.io/gitea/models/project"
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -363,9 +363,9 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	}
 
 	if ctx.Repo.CanWriteIssuesOrPulls(ctx.Params(":type") == "pulls") {
-		projects, _, err := project_model.GetProjects(ctx, project_model.SearchOptions{
+		projects, _, err := board_model.FindBoards(ctx, board_model.SearchOptions{
 			RepoID:   repo.ID,
-			Type:     project_model.TypeRepository,
+			Type:     board_model.TypeRepository,
 			IsClosed: util.OptionalBoolOf(isShowClosed),
 		})
 		if err != nil {
@@ -475,22 +475,22 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 	var err error
 
-	ctx.Data["OpenProjects"], _, err = project_model.GetProjects(ctx, project_model.SearchOptions{
+	ctx.Data["OpenProjects"], _, err = board_model.FindBoards(ctx, board_model.SearchOptions{
 		RepoID:   repo.ID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolFalse,
-		Type:     project_model.TypeRepository,
+		Type:     board_model.TypeRepository,
 	})
 	if err != nil {
 		ctx.ServerError("GetProjects", err)
 		return
 	}
 
-	ctx.Data["ClosedProjects"], _, err = project_model.GetProjects(ctx, project_model.SearchOptions{
+	ctx.Data["ClosedProjects"], _, err = board_model.FindBoards(ctx, board_model.SearchOptions{
 		RepoID:   repo.ID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolTrue,
-		Type:     project_model.TypeRepository,
+		Type:     board_model.TypeRepository,
 	})
 	if err != nil {
 		ctx.ServerError("GetProjects", err)
@@ -826,11 +826,11 @@ func NewIssue(ctx *context.Context) {
 
 	projectID := ctx.FormInt64("project")
 	if projectID > 0 && isProjectsEnabled {
-		project, err := project_model.GetProjectByID(ctx, projectID)
+		project, err := board_model.GetBoardByID(ctx, projectID)
 		if err != nil {
-			log.Error("GetProjectByID: %d: %v", projectID, err)
+			log.Error("GetBoardByID: %d: %v", projectID, err)
 		} else if project.RepoID != ctx.Repo.Repository.ID {
-			log.Error("GetProjectByID: %d: %v", projectID, fmt.Errorf("project[%d] not in repo [%d]", project.ID, ctx.Repo.Repository.ID))
+			log.Error("GetBoardByID: %d: %v", projectID, fmt.Errorf("project[%d] not in repo [%d]", project.ID, ctx.Repo.Repository.ID))
 		} else {
 			ctx.Data["project_id"] = projectID
 			ctx.Data["Project"] = project
@@ -982,9 +982,9 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 	}
 
 	if form.ProjectID > 0 {
-		p, err := project_model.GetProjectByID(ctx, form.ProjectID)
+		p, err := board_model.GetBoardByID(ctx, form.ProjectID)
 		if err != nil {
-			ctx.ServerError("GetProjectByID", err)
+			ctx.ServerError("GetBoardByID", err)
 			return nil, nil, 0, 0
 		}
 		if p.RepoID != ctx.Repo.Repository.ID {
@@ -1490,17 +1490,17 @@ func ViewIssue(ctx *context.Context) {
 				return
 			}
 
-			ghostProject := &project_model.Project{
+			ghostProject := &board_model.Board{
 				ID:    -1,
 				Title: ctx.Tr("repo.issues.deleted_project"),
 			}
 
-			if comment.OldProjectID > 0 && comment.OldProject == nil {
-				comment.OldProject = ghostProject
+			if comment.OldProjectID > 0 && comment.OldBoard == nil {
+				comment.OldBoard = ghostProject
 			}
 
-			if comment.ProjectID > 0 && comment.Project == nil {
-				comment.Project = ghostProject
+			if comment.ProjectID > 0 && comment.Board == nil {
+				comment.Board = ghostProject
 			}
 
 		} else if comment.Type == issues_model.CommentTypeAssignees || comment.Type == issues_model.CommentTypeReviewRequest {

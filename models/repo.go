@@ -14,12 +14,12 @@ import (
 	activities_model "code.gitea.io/gitea/models/activities"
 	admin_model "code.gitea.io/gitea/models/admin"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	board_model "code.gitea.io/gitea/models/board"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
-	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	secret_model "code.gitea.io/gitea/models/secret"
 	system_model "code.gitea.io/gitea/models/system"
@@ -193,7 +193,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		}
 	}
 
-	if err := project_model.DeleteProjectByRepoID(ctx, repoID); err != nil {
+	if err := board_model.DeleteBoardByRepoID(ctx, repoID); err != nil {
 		return fmt.Errorf("unable to delete projects for repo[%d]: %w", repoID, err)
 	}
 

@@ -7,8 +7,8 @@ import (
 	"context"
 	"fmt"
 
+	board_model "code.gitea.io/gitea/models/board"
 	"code.gitea.io/gitea/models/db"
-	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
@@ -214,21 +214,21 @@ func (issues IssueList) loadMilestones(ctx context.Context) error {
 	return nil
 }
 
-func (issues IssueList) getProjectIDs() []int64 {
+func (issues IssueList) getBoardIDs() []int64 {
 	ids := make(container.Set[int64], len(issues))
 	for _, issue := range issues {
-		ids.Add(issue.ProjectID())
+		ids.Add(issue.BoardID())
 	}
 	return ids.Values()
 }
 
-func (issues IssueList) loadProjects(ctx context.Context) error {
-	projectIDs := issues.getProjectIDs()
+func (issues IssueList) loadBoards(ctx context.Context) error {
+	projectIDs := issues.getBoardIDs()
 	if len(projectIDs) == 0 {
 		return nil
 	}
 
-	projectMaps := make(map[int64]*project_model.Project, len(projectIDs))
+	projectMaps := make(map[int64]*board_model.Board, len(projectIDs))
 	left := len(projectIDs)
 	for left > 0 {
 		limit := db.DefaultMaxInSize
@@ -246,7 +246,7 @@ func (issues IssueList) loadProjects(ctx context.Context) error {
 	}
 
 	for _, issue := range issues {
-		issue.Project = projectMaps[issue.ProjectID()]
+		issue.Board = projectMaps[issue.BoardID()]
 	}
 	return nil
 }
@@ -526,7 +526,7 @@ func (issues IssueList) loadAttributes(ctx context.Context) error {
 		return fmt.Errorf("issue.loadAttributes: loadMilestones: %w", err)
 	}
 
-	if err := issues.loadProjects(ctx); err != nil {
+	if err := issues.loadBoards(ctx); err != nil {
 		return fmt.Errorf("issue.loadAttributes: loadProjects: %w", err)
 	}
 

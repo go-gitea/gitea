@@ -10,9 +10,9 @@ import (
 	"strings"
 
 	activities_model "code.gitea.io/gitea/models/activities"
+	board_model "code.gitea.io/gitea/models/board"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
-	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -224,10 +224,10 @@ func Profile(ctx *context.Context) {
 
 		total = int(count)
 	case "projects":
-		ctx.Data["OpenProjects"], _, err = project_model.GetProjects(ctx, project_model.SearchOptions{
+		ctx.Data["OpenProjects"], _, err = board_model.FindBoards(ctx, board_model.SearchOptions{
 			Page:     -1,
 			IsClosed: util.OptionalBoolFalse,
-			Type:     project_model.TypeIndividual,
+			Type:     board_model.TypeIndividual,
 		})
 		if err != nil {
 			ctx.ServerError("GetProjects", err)

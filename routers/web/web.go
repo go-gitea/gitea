@@ -1160,23 +1160,23 @@ func RegisterRoutes(m *web.Route) {
 		}
 
 		m.Group("/projects", func() {
-			m.Get("", repo.Projects)
-			m.Get("/{id}", repo.ViewProject)
+			m.Get("", repo.Boards)
+			m.Get("/{id}", repo.ViewBoard)
 			m.Group("", func() {
-				m.Get("/new", repo.NewProject)
-				m.Post("/new", web.Bind(forms.CreateProjectForm{}), repo.NewProjectPost)
+				m.Get("/new", repo.NewBoard)
+				m.Post("/new", web.Bind(forms.CreateBoardForm{}), repo.NewBoardPost)
 				m.Group("/{id}", func() {
-					m.Post("", web.Bind(forms.EditProjectBoardForm{}), repo.AddBoardToProjectPost)
-					m.Post("/delete", repo.DeleteProject)
+					m.Post("", web.Bind(forms.EditBoardColumnForm{}), repo.AddBoardColumnPost)
+					m.Post("/delete", repo.DeleteBoard)
 
-					m.Get("/edit", repo.EditProject)
-					m.Post("/edit", web.Bind(forms.CreateProjectForm{}), repo.EditProjectPost)
-					m.Post("/{action:open|close}", repo.ChangeProjectStatus)
+					m.Get("/edit", repo.EditBoard)
+					m.Post("/edit", web.Bind(forms.CreateBoardForm{}), repo.EditBoardPost)
+					m.Post("/{action:open|close}", repo.ChangeBoardStatus)
 
 					m.Group("/{boardID}", func() {
-						m.Put("", web.Bind(forms.EditProjectBoardForm{}), repo.EditProjectBoard)
-						m.Delete("", repo.DeleteProjectBoard)
-						m.Post("/default", repo.SetDefaultProjectBoard)
+						m.Put("", web.Bind(forms.EditBoardColumnForm{}), repo.EditBoardColumn)
+						m.Delete("", repo.DeleteBoardColumn)
+						m.Post("/default", repo.SetDefaultBoardColumn)
 
 						m.Post("/move", repo.MoveIssues)
 					})

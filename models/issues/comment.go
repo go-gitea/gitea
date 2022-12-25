@@ -13,10 +13,10 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	board_model "code.gitea.io/gitea/models/board"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/organization"
-	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -231,8 +231,8 @@ type Comment struct {
 	RemovedLabels    []*Label `xorm:"-"`
 	OldProjectID     int64
 	ProjectID        int64
-	OldProject       *project_model.Project `xorm:"-"`
-	Project          *project_model.Project `xorm:"-"`
+	OldBoard         *board_model.Board `xorm:"-"`
+	Board            *board_model.Board `xorm:"-"`
 	OldMilestoneID   int64
 	MilestoneID      int64
 	OldMilestone     *Milestone `xorm:"-"`
@@ -493,22 +493,22 @@ func (c *Comment) LoadLabel() error {
 // LoadProject if comment.Type is CommentTypeProject, then load project.
 func (c *Comment) LoadProject() error {
 	if c.OldProjectID > 0 {
-		var oldProject project_model.Project
+		var oldProject board_model.Board
 		has, err := db.GetEngine(db.DefaultContext).ID(c.OldProjectID).Get(&oldProject)
 		if err != nil {
 			return err
 		} else if has {
-			c.OldProject = &oldProject
+			c.OldBoard = &oldProject
 		}
 	}
 
 	if c.ProjectID > 0 {
-		var project project_model.Project
+		var project board_model.Board
 		has, err := db.GetEngine(db.DefaultContext).ID(c.ProjectID).Get(&project)
 		if err != nil {
 			return err
 		} else if has {
-			c.Project = &project
+			c.Board = &project
 		}
 	}
 

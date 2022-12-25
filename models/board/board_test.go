@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestIsProjectTypeValid(t *testing.T) {
+func TestIsBoardTypeValid(t *testing.T) {
 	const UnknownType Type = 15
 
 	cases := []struct {
@@ -31,52 +31,52 @@ func TestIsProjectTypeValid(t *testing.T) {
 	}
 }
 
-func TestGetProjects(t *testing.T) {
+func TestFindBoards(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	projects, _, err := GetProjects(db.DefaultContext, SearchOptions{RepoID: 1})
+	projects, _, err := FindBoards(db.DefaultContext, SearchOptions{RepoID: 1})
 	assert.NoError(t, err)
 
 	// 1 value for this repo exists in the fixtures
 	assert.Len(t, projects, 1)
 
-	projects, _, err = GetProjects(db.DefaultContext, SearchOptions{RepoID: 3})
+	projects, _, err = FindBoards(db.DefaultContext, SearchOptions{RepoID: 3})
 	assert.NoError(t, err)
 
 	// 1 value for this repo exists in the fixtures
 	assert.Len(t, projects, 1)
 }
 
-func TestProject(t *testing.T) {
+func TestBoard(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	project := &Project{
+	board := &Board{
 		Type:        TypeRepository,
-		BoardType:   BoardTypeBasicKanban,
+		ColumnType:  BoardTypeBasicKanban,
 		Title:       "New Project",
 		RepoID:      1,
 		CreatedUnix: timeutil.TimeStampNow(),
 		CreatorID:   2,
 	}
 
-	assert.NoError(t, NewProject(project))
+	assert.NoError(t, NewBoard(board))
 
-	_, err := GetProjectByID(db.DefaultContext, project.ID)
+	_, err := GetBoardByID(db.DefaultContext, board.ID)
 	assert.NoError(t, err)
 
 	// Update project
-	project.Title = "Updated title"
-	assert.NoError(t, UpdateProject(db.DefaultContext, project))
+	board.Title = "Updated title"
+	assert.NoError(t, UpdateBoard(db.DefaultContext, board))
 
-	projectFromDB, err := GetProjectByID(db.DefaultContext, project.ID)
+	projectFromDB, err := GetBoardByID(db.DefaultContext, board.ID)
 	assert.NoError(t, err)
 
-	assert.Equal(t, project.Title, projectFromDB.Title)
+	assert.Equal(t, board.Title, projectFromDB.Title)
 
-	assert.NoError(t, ChangeProjectStatus(project, true))
+	assert.NoError(t, ChangeBoardStatus(board, true))
 
 	// Retrieve from DB afresh to check if it is truly closed
-	projectFromDB, err = GetProjectByID(db.DefaultContext, project.ID)
+	projectFromDB, err = GetBoardByID(db.DefaultContext, board.ID)
 	assert.NoError(t, err)
 
 	assert.True(t, projectFromDB.IsClosed)

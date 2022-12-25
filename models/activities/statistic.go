@@ -6,11 +6,11 @@ package activities
 import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
+	board_model "code.gitea.io/gitea/models/board"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
-	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
@@ -26,8 +26,8 @@ type Statistic struct {
 		Comment, Oauth, Follow,
 		Mirror, Release, AuthSource, Webhook,
 		Milestone, Label, HookTask,
-		Team, UpdateTask, Project,
-		ProjectBoard, Attachment int64
+		Team, UpdateTask, Board,
+		BoardColumn, Attachment int64
 		IssueByLabel      []IssueByLabelCount
 		IssueByRepository []IssueByRepositoryCount
 	}
@@ -108,7 +108,7 @@ func GetStatistic() (stats Statistic) {
 	stats.Counter.HookTask, _ = e.Count(new(webhook.HookTask))
 	stats.Counter.Team, _ = e.Count(new(organization.Team))
 	stats.Counter.Attachment, _ = e.Count(new(repo_model.Attachment))
-	stats.Counter.Project, _ = e.Count(new(project_model.Project))
-	stats.Counter.ProjectBoard, _ = e.Count(new(project_model.Board))
+	stats.Counter.Board, _ = e.Count(new(board_model.Board))
+	stats.Counter.BoardColumn, _ = e.Count(new(board_model.Board))
 	return stats
 }

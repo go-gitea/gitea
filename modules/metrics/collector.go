@@ -320,12 +320,12 @@ func (c Collector) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(
 		c.Projects,
 		prometheus.GaugeValue,
-		float64(stats.Counter.Project),
+		float64(stats.Counter.Board),
 	)
 	ch <- prometheus.MustNewConstMetric(
 		c.ProjectBoards,
 		prometheus.GaugeValue,
-		float64(stats.Counter.ProjectBoard),
+		float64(stats.Counter.BoardColumn),
 	)
 	ch <- prometheus.MustNewConstMetric(
 		c.PublicKeys,

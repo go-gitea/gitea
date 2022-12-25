@@ -24,8 +24,8 @@ func AddProjectsInfo(x *xorm.Engine) error {
 		CreatorID   int64  `xorm:"NOT NULL"`
 		IsClosed    bool   `xorm:"INDEX"`
 
-		BoardType ProjectBoardType
-		Type      ProjectType
+		ColumnType ProjectBoardType
+		Type       ProjectType
 
 		ClosedDateUnix timeutil.TimeStamp
 		CreatedUnix    timeutil.TimeStamp `xorm:"INDEX created"`

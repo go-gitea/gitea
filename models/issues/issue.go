@@ -11,11 +11,11 @@ import (
 	"sort"
 	"strings"
 
+	board_model "code.gitea.io/gitea/models/board"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
-	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unit"
@@ -110,14 +110,14 @@ type Issue struct {
 	PosterID         int64                  `xorm:"INDEX"`
 	Poster           *user_model.User       `xorm:"-"`
 	OriginalAuthor   string
-	OriginalAuthorID int64                  `xorm:"index"`
-	Title            string                 `xorm:"name"`
-	Content          string                 `xorm:"LONGTEXT"`
-	RenderedContent  string                 `xorm:"-"`
-	Labels           []*Label               `xorm:"-"`
-	MilestoneID      int64                  `xorm:"INDEX"`
-	Milestone        *Milestone             `xorm:"-"`
-	Project          *project_model.Project `xorm:"-"`
+	OriginalAuthorID int64              `xorm:"index"`
+	Title            string             `xorm:"name"`
+	Content          string             `xorm:"LONGTEXT"`
+	RenderedContent  string             `xorm:"-"`
+	Labels           []*Label           `xorm:"-"`
+	MilestoneID      int64              `xorm:"INDEX"`
+	Milestone        *Milestone         `xorm:"-"`
+	Board            *board_model.Board `xorm:"-"`
 	Priority         int
 	AssigneeID       int64            `xorm:"-"`
 	Assignee         *user_model.User `xorm:"-"`
@@ -2304,7 +2304,7 @@ func DeleteIssuesByRepoID(ctx context.Context, repoID int64) (attachmentPaths []
 	}
 
 	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&project_model.ProjectIssue{}); err != nil {
+		Delete(&board_model.BoardIssue{}); err != nil {
 		return
 	}
 

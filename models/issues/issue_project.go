@@ -7,8 +7,8 @@ import (
 	"context"
 	"fmt"
 
+	board_model "code.gitea.io/gitea/models/board"
 	"code.gitea.io/gitea/models/db"
-	project_model "code.gitea.io/gitea/models/project"
 	user_model "code.gitea.io/gitea/models/user"
 )
 
@@ -18,31 +18,31 @@ func (issue *Issue) LoadProject() (err error) {
 }
 
 func (issue *Issue) loadProject(ctx context.Context) (err error) {
-	if issue.Project == nil {
-		var p project_model.Project
+	if issue.Board == nil {
+		var p board_model.Board
 		if _, err = db.GetEngine(ctx).Table("project").
 			Join("INNER", "project_issue", "project.id=project_issue.project_id").
 			Where("project_issue.issue_id = ?", issue.ID).
 			Get(&p); err != nil {
 			return err
 		}
-		issue.Project = &p
+		issue.Board = &p
 	}
 	return err
 }
 
 // ProjectID return project id if issue was assigned to one
-func (issue *Issue) ProjectID() int64 {
-	return issue.projectID(db.DefaultContext)
+func (issue *Issue) BoardID() int64 {
+	return issue.boardID(db.DefaultContext)
 }
 
-func (issue *Issue) projectID(ctx context.Context) int64 {
-	var ip project_model.ProjectIssue
+func (issue *Issue) boardID(ctx context.Context) int64 {
+	var ip board_model.BoardIssue
 	has, err := db.GetEngine(ctx).Where("issue_id=?", issue.ID).Get(&ip)
 	if err != nil || !has {
 		return 0
 	}
-	return ip.ProjectID
+	return ip.BoardID
 }
 
 // ProjectBoardID return project board id if issue was assigned to one
@@ -51,22 +51,22 @@ func (issue *Issue) ProjectBoardID() int64 {
 }
 
 func (issue *Issue) projectBoardID(ctx context.Context) int64 {
-	var ip project_model.ProjectIssue
+	var ip board_model.BoardIssue
 	has, err := db.GetEngine(ctx).Where("issue_id=?", issue.ID).Get(&ip)
 	if err != nil || !has {
 		return 0
 	}
-	return ip.ProjectBoardID
+	return ip.BoardColumnID
 }
 
-// LoadIssuesFromBoard load issues assigned to this board
-func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board) (IssueList, error) {
+// LoadIssuesFromBoardColumn load issues assigned to this column
+func LoadIssuesFromBoardColumn(ctx context.Context, b *board_model.Column) (IssueList, error) {
 	issueList := make([]*Issue, 0, 10)
 
 	if b.ID != 0 {
 		issues, err := Issues(ctx, &IssuesOptions{
 			ProjectBoardID: b.ID,
-			ProjectID:      b.ProjectID,
+			ProjectID:      b.BoardID,
 			SortType:       "project-column-sorting",
 		})
 		if err != nil {
@@ -78,7 +78,7 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board) (IssueList
 	if b.Default {
 		issues, err := Issues(ctx, &IssuesOptions{
 			ProjectBoardID: -1, // Issues without ProjectBoardID
-			ProjectID:      b.ProjectID,
+			ProjectID:      b.BoardID,
 			SortType:       "project-column-sorting",
 		})
 		if err != nil {
@@ -95,10 +95,10 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board) (IssueList
 }
 
 // LoadIssuesFromBoardList load issues assigned to the boards
-func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList) (map[int64]IssueList, error) {
+func LoadIssuesFromBoardList(ctx context.Context, bs board_model.ColumnList) (map[int64]IssueList, error) {
 	issuesMap := make(map[int64]IssueList, len(bs))
 	for i := range bs {
-		il, err := LoadIssuesFromBoard(ctx, bs[i])
+		il, err := LoadIssuesFromBoardColumn(ctx, bs[i])
 		if err != nil {
 			return nil, err
 		}
@@ -115,19 +115,19 @@ func ChangeProjectAssign(issue *Issue, doer *user_model.User, newProjectID int64
 	}
 	defer committer.Close()
 
-	if err := addUpdateIssueProject(ctx, issue, doer, newProjectID); err != nil {
+	if err := addUpdateIssueBoard(ctx, issue, doer, newProjectID); err != nil {
 		return err
 	}
 
 	return committer.Commit()
 }
 
-func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectID int64) error {
-	oldProjectID := issue.projectID(ctx)
+func addUpdateIssueBoard(ctx context.Context, issue *Issue, doer *user_model.User, newBoardID int64) error {
+	oldBoardID := issue.boardID(ctx)
 
 	// Only check if we add a new project and not remove it.
-	if newProjectID > 0 {
-		newProject, err := project_model.GetProjectByID(ctx, newProjectID)
+	if newBoardID > 0 {
+		newProject, err := board_model.GetBoardByID(ctx, newBoardID)
 		if err != nil {
 			return err
 		}
@@ -136,7 +136,7 @@ func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.U
 		}
 	}
 
-	if _, err := db.GetEngine(ctx).Where("project_issue.issue_id=?", issue.ID).Delete(&project_model.ProjectIssue{}); err != nil {
+	if _, err := db.GetEngine(ctx).Where("project_issue.issue_id=?", issue.ID).Delete(&board_model.BoardIssue{}); err != nil {
 		return err
 	}
 
@@ -144,27 +144,27 @@ func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.U
 		return err
 	}
 
-	if oldProjectID > 0 || newProjectID > 0 {
+	if oldBoardID > 0 || newBoardID > 0 {
 		if _, err := CreateComment(ctx, &CreateCommentOptions{
 			Type:         CommentTypeProject,
 			Doer:         doer,
 			Repo:         issue.Repo,
 			Issue:        issue,
-			OldProjectID: oldProjectID,
-			ProjectID:    newProjectID,
+			OldProjectID: oldBoardID,
+			ProjectID:    newBoardID,
 		}); err != nil {
 			return err
 		}
 	}
 
-	return db.Insert(ctx, &project_model.ProjectIssue{
-		IssueID:   issue.ID,
-		ProjectID: newProjectID,
+	return db.Insert(ctx, &board_model.BoardIssue{
+		IssueID: issue.ID,
+		BoardID: newBoardID,
 	})
 }
 
 // MoveIssueAcrossProjectBoards move a card from one board to another
-func MoveIssueAcrossProjectBoards(issue *Issue, board *project_model.Board) error {
+func MoveIssueAcrossProjectBoards(issue *Issue, board *board_model.Board) error {
 	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
@@ -172,7 +172,7 @@ func MoveIssueAcrossProjectBoards(issue *Issue, board *project_model.Board) erro
 	defer committer.Close()
 	sess := db.GetEngine(ctx)
 
-	var pis project_model.ProjectIssue
+	var pis board_model.BoardIssue
 	has, err := sess.Where("issue_id=?", issue.ID).Get(&pis)
 	if err != nil {
 		return err
@@ -182,7 +182,7 @@ func MoveIssueAcrossProjectBoards(issue *Issue, board *project_model.Board) erro
 		return fmt.Errorf("issue has to be added to a project first")
 	}
 
-	pis.ProjectBoardID = board.ID
+	pis.BoardColumnID = board.ID
 	if _, err := sess.ID(pis.ID).Cols("project_board_id").Update(&pis); err != nil {
 		return err
 	}

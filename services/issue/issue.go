@@ -7,10 +7,10 @@ import (
 	"fmt"
 
 	activities_model "code.gitea.io/gitea/models/activities"
+	board_model "code.gitea.io/gitea/models/board"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
-	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
@@ -260,7 +260,7 @@ func deleteIssue(issue *issues_model.Issue) error {
 		&issues_model.IssueWatch{},
 		&issues_model.Stopwatch{},
 		&issues_model.TrackedTime{},
-		&project_model.ProjectIssue{},
+		&board_model.BoardIssue{},
 		&repo_model.Attachment{},
 		&issues_model.PullRequest{},
 	); err != nil {
