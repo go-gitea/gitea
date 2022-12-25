@@ -928,10 +928,8 @@ trigger:
 
 steps:
   - name: build-docs
-    image: plugins/hugo:latest
-    pull: always
+    image: golang:1.19
     commands:
-      - apk add --no-cache make bash curl
       - cd docs
       - make trans-copy clean build
 
