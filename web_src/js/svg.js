@@ -68,7 +68,6 @@ export const svgs = {
   'octicon-sync': octiconSync,
 };
 
-
 const parser = new DOMParser();
 const serializer = new XMLSerializer();
 
