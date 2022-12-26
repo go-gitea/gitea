@@ -718,14 +718,14 @@
 				{{template "shared/user/avatarlink" .Poster}}
 				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
-					{{if gt .OldProjectID 0}}
-						{{if gt .ProjectID 0}}
-							{{$.locale.Tr "repo.issues.change_project_at" (.OldProject.Title|Escape) (.Project.Title|Escape) $createdStr | Safe}}
+					{{if gt .OldBoardID 0}}
+						{{if gt .BoardID 0}}
+							{{$.locale.Tr "repo.issues.change_project_at" (.OldBoard.Title|Escape) (.Board.Title|Escape) $createdStr | Safe}}
 						{{else}}
-							{{$.locale.Tr "repo.issues.remove_project_at" (.OldProject.Title|Escape) $createdStr | Safe}}
+							{{$.locale.Tr "repo.issues.remove_project_at" (.OldBoard.Title|Escape) $createdStr | Safe}}
 						{{end}}
-					{{else if gt .ProjectID 0}}
-						{{$.locale.Tr "repo.issues.add_project_at" (.Project.Title|Escape) $createdStr | Safe}}
+					{{else if gt .BoardID 0}}
+						{{$.locale.Tr "repo.issues.add_project_at" (.Board.Title|Escape) $createdStr | Safe}}
 					{{end}}
 				</span>
 			</div>

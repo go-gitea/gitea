@@ -210,8 +210,8 @@ func DeleteBoard(ctx *context.Context) {
 // EditBoard allows a board to be edited
 func EditBoard(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.boards.edit")
-	ctx.Data["PageIsEditProjects"] = true
-	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeBoards)
+	ctx.Data["PageIsEditBoards"] = true
+	ctx.Data["CanWriteBoards"] = ctx.Repo.Permission.CanWrite(unit.TypeBoards)
 
 	p, err := board_model.GetBoardByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
@@ -236,9 +236,9 @@ func EditBoard(ctx *context.Context) {
 // EditBoardPost response for editing a board
 func EditBoardPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateBoardForm)
-	ctx.Data["Title"] = ctx.Tr("repo.projects.edit")
-	ctx.Data["PageIsEditProjects"] = true
-	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeBoards)
+	ctx.Data["Title"] = ctx.Tr("repo.boards.edit")
+	ctx.Data["PageIsEditBoards"] = true
+	ctx.Data["CanWriteBoards"] = ctx.Repo.Permission.CanWrite(unit.TypeBoards)
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplBoardsNew)
@@ -262,7 +262,7 @@ func EditBoardPost(ctx *context.Context) {
 	p.Title = form.Title
 	p.Description = form.Content
 	if err = board_model.UpdateBoard(ctx, p); err != nil {
-		ctx.ServerError("UpdateProjects", err)
+		ctx.ServerError("UpdateBoard", err)
 		return
 	}
 
@@ -272,7 +272,7 @@ func EditBoardPost(ctx *context.Context) {
 
 // ViewBoard renders the columns for a board
 func ViewBoard(ctx *context.Context) {
-	project, err := board_model.GetBoardByID(ctx, ctx.ParamsInt64(":id"))
+	board, err := board_model.GetBoardByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if board_model.IsErrBoardNotExist(err) {
 			ctx.NotFound("", nil)
@@ -281,24 +281,24 @@ func ViewBoard(ctx *context.Context) {
 		}
 		return
 	}
-	if project.RepoID != ctx.Repo.Repository.ID {
+	if board.RepoID != ctx.Repo.Repository.ID {
 		ctx.NotFound("", nil)
 		return
 	}
 
-	boards, err := board_model.FindColumns(ctx, project.ID)
+	boards, err := board_model.FindColumns(ctx, board.ID)
 	if err != nil {
-		ctx.ServerError("GetProjectBoards", err)
+		ctx.ServerError("FindColumns", err)
 		return
 	}
 
 	if boards[0].ID == 0 {
-		boards[0].Title = ctx.Tr("repo.projects.type.uncategorized")
+		boards[0].Title = ctx.Tr("repo.boards.type.uncategorized")
 	}
 
 	issuesMap, err := issues_model.LoadIssuesFromBoardList(ctx, boards)
 	if err != nil {
-		ctx.ServerError("LoadIssuesOfBoards", err)
+		ctx.ServerError("LoadIssuesFromBoardList", err)
 		return
 	}
 
@@ -324,42 +324,42 @@ func ViewBoard(ctx *context.Context) {
 	}
 	ctx.Data["LinkedPRs"] = linkedPrsMap
 
-	project.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
+	board.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
 		URLPrefix: ctx.Repo.RepoLink,
 		Metas:     ctx.Repo.Repository.ComposeMetas(),
 		GitRepo:   ctx.Repo.GitRepo,
 		Ctx:       ctx,
-	}, project.Description)
+	}, board.Description)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
 		return
 	}
 
-	ctx.Data["IsProjectsPage"] = true
-	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeBoards)
-	ctx.Data["Project"] = project
+	ctx.Data["IsBoardsPage"] = true
+	ctx.Data["CanWriteBoards"] = ctx.Repo.Permission.CanWrite(unit.TypeBoards)
+	ctx.Data["Board"] = board
 	ctx.Data["IssuesMap"] = issuesMap
 	ctx.Data["Boards"] = boards
 
 	ctx.HTML(http.StatusOK, tplBoardsView)
 }
 
-// UpdateIssueBoard change an issue's project
+// UpdateIssueBoard change an issue's board
 func UpdateIssueBoard(ctx *context.Context) {
 	issues := getActionIssues(ctx)
 	if ctx.Written() {
 		return
 	}
 
-	projectID := ctx.FormInt64("id")
+	boardID := ctx.FormInt64("id")
 	for _, issue := range issues {
-		oldProjectID := issue.BoardID()
-		if oldProjectID == projectID {
+		oldBoardID := issue.BoardID()
+		if oldBoardID == boardID {
 			continue
 		}
 
-		if err := issues_model.ChangeBoardAssign(issue, ctx.Doer, projectID); err != nil {
-			ctx.ServerError("ChangeProjectAssign", err)
+		if err := issues_model.ChangeBoardAssign(issue, ctx.Doer, boardID); err != nil {
+			ctx.ServerError("ChangeBoardAssign", err)
 			return
 		}
 	}
@@ -385,7 +385,7 @@ func DeleteBoardColumn(ctx *context.Context) {
 		return
 	}
 
-	project, err := board_model.GetBoardByID(ctx, ctx.ParamsInt64(":id"))
+	board, err := board_model.GetBoardByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if board_model.IsErrBoardNotExist(err) {
 			ctx.NotFound("", nil)
@@ -397,25 +397,25 @@ func DeleteBoardColumn(ctx *context.Context) {
 
 	pb, err := board_model.GetColumn(ctx, ctx.ParamsInt64(":boardID"))
 	if err != nil {
-		ctx.ServerError("GetProjectBoard", err)
+		ctx.ServerError("GetColumn", err)
 		return
 	}
 	if pb.BoardID != ctx.ParamsInt64(":id") {
 		ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
-			"message": fmt.Sprintf("ProjectBoard[%d] is not in Project[%d] as expected", pb.ID, project.ID),
+			"message": fmt.Sprintf("BoardColumn[%d] is not in Board[%d] as expected", pb.ID, board.ID),
 		})
 		return
 	}
 
-	if project.RepoID != ctx.Repo.Repository.ID {
+	if board.RepoID != ctx.Repo.Repository.ID {
 		ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
-			"message": fmt.Sprintf("ProjectBoard[%d] is not in Repository[%d] as expected", pb.ID, ctx.Repo.Repository.ID),
+			"message": fmt.Sprintf("BoardColumn[%d] is not in Repository[%d] as expected", pb.ID, ctx.Repo.Repository.ID),
 		})
 		return
 	}
 
 	if err := board_model.DeleteBoardByID(ctx, ctx.ParamsInt64(":boardID")); err != nil {
-		ctx.ServerError("DeleteProjectBoardByID", err)
+		ctx.ServerError("DeleteBoardByID", err)
 		return
 	}
 
@@ -486,7 +486,7 @@ func checkBoardColumnChangePermissions(ctx *context.Context) (*board_model.Board
 
 	column, err := board_model.GetColumn(ctx, ctx.ParamsInt64(":boardID"))
 	if err != nil {
-		ctx.ServerError("GetProjectBoard", err)
+		ctx.ServerError("GetColumn", err)
 		return nil, nil
 	}
 	if column.BoardID != ctx.ParamsInt64(":id") {
@@ -524,7 +524,7 @@ func EditBoardColumn(ctx *context.Context) {
 	}
 
 	if err := board_model.UpdateColumn(ctx, column); err != nil {
-		ctx.ServerError("UpdateProjectBoard", err)
+		ctx.ServerError("UpdateColumn", err)
 		return
 	}
 
@@ -566,16 +566,16 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 
-	project, err := board_model.GetBoardByID(ctx, ctx.ParamsInt64(":id"))
+	board, err := board_model.GetBoardByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if board_model.IsErrBoardNotExist(err) {
-			ctx.NotFound("ProjectNotExist", nil)
+			ctx.NotFound("BoardNotExist", nil)
 		} else {
 			ctx.ServerError("GetBoardByID", err)
 		}
 		return
 	}
-	if project.RepoID != ctx.Repo.Repository.ID {
+	if board.RepoID != ctx.Repo.Repository.ID {
 		ctx.NotFound("InvalidRepoID", nil)
 		return
 	}
@@ -585,21 +585,21 @@ func MoveIssues(ctx *context.Context) {
 	if ctx.ParamsInt64(":boardID") == 0 {
 		column = &board_model.Column{
 			ID:      0,
-			BoardID: project.ID,
-			Title:   ctx.Tr("repo.projects.type.uncategorized"),
+			BoardID: board.ID,
+			Title:   ctx.Tr("repo.boards.type.uncategorized"),
 		}
 	} else {
 		column, err = board_model.GetColumn(ctx, ctx.ParamsInt64(":boardID"))
 		if err != nil {
 			if board_model.IsErrColumnNotExist(err) {
-				ctx.NotFound("ProjectBoardNotExist", nil)
+				ctx.NotFound("BoardBoardNotExist", nil)
 			} else {
-				ctx.ServerError("GetProjectBoard", err)
+				ctx.ServerError("GetColumn", err)
 			}
 			return
 		}
-		if column.BoardID != project.ID {
-			ctx.NotFound("BoardNotInProject", nil)
+		if column.BoardID != board.ID {
+			ctx.NotFound("ColumnNotInBoard", nil)
 			return
 		}
 	}
@@ -638,62 +638,18 @@ func MoveIssues(ctx *context.Context) {
 	}
 
 	for _, issue := range movedIssues {
-		if issue.RepoID != project.RepoID {
-			ctx.ServerError("Some issue's repoID is not equal to project's repoID", errors.New("Some issue's repoID is not equal to project's repoID"))
+		if issue.RepoID != board.RepoID {
+			ctx.ServerError("Some issue's repoID is not equal to board's repoID", errors.New("Some issue's repoID is not equal to board's repoID"))
 			return
 		}
 	}
 
 	if err = board_model.MoveIssuesOnBoardColumn(column, sortedIssueIDs); err != nil {
-		ctx.ServerError("MoveIssuesOnProjectBoard", err)
+		ctx.ServerError("MoveIssuesOnBoardColumn", err)
 		return
 	}
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok": true,
 	})
-}
-
-// CreateProject renders the generic project creation page
-func CreateProject(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
-	ctx.Data["ProjectTypes"] = board_model.GetBoardsConfig()
-	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeBoards)
-
-	ctx.HTML(http.StatusOK, tplGenericBoardsNew)
-}
-
-// CreateProjectPost creates an individual and/or organization project
-func CreateProjectPost(ctx *context.Context, form forms.UserCreateProjectForm) {
-	user := checkContextUser(ctx, form.UID)
-	if ctx.Written() {
-		return
-	}
-
-	ctx.Data["ContextUser"] = user
-
-	if ctx.HasError() {
-		ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeBoards)
-		ctx.HTML(http.StatusOK, tplGenericBoardsNew)
-		return
-	}
-
-	projectType := board_model.TypeIndividual
-	if user.IsOrganization() {
-		projectType = board_model.TypeOrganization
-	}
-
-	if err := board_model.NewBoard(&board_model.Board{
-		Title:       form.Title,
-		Description: form.Content,
-		CreatorID:   user.ID,
-		ColumnType:  form.ColumnType,
-		Type:        projectType,
-	}); err != nil {
-		ctx.ServerError("NewBoard", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("repo.projects.create_success", form.Title))
-	ctx.Redirect(setting.AppSubURL + "/")
 }

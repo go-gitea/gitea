@@ -4,20 +4,20 @@
 	<div class="ui container">
 		<div class="navbar">
 			{{template "repo/issue/navbar" .}}
-			{{if and .CanWriteProjects .PageIsEditProject}}
+			{{if and .CanWriteBoards .PageIsEditBoard}}
 			<div class="ui right floated secondary menu">
-				<a class="ui green button" href="{{$.RepoLink}}/projects/new">{{.locale.Tr "repo.milestones.new"}}</a>
+				<a class="ui green button" href="{{$.RepoLink}}/boards/new">{{.locale.Tr "repo.milestones.new"}}</a>
 			</div>
 			{{end}}
 		</div>
 		<div class="ui divider"></div>
 		<h2 class="ui dividing header">
-			{{if .PageIsEditProjects}}
-			{{.locale.Tr "repo.projects.edit"}}
-			<div class="sub header">{{.locale.Tr "repo.projects.edit_subheader"}}</div>
+			{{if .PageIsEditBoards}}
+			{{.locale.Tr "repo.boards.edit"}}
+			<div class="sub header">{{.locale.Tr "repo.boards.edit_subheader"}}</div>
 			{{else}}
-				{{.locale.Tr "repo.projects.new"}}
-				<div class="sub header">{{.locale.Tr "repo.projects.new_subheader"}}</div>
+				{{.locale.Tr "repo.boards.new"}}
+				<div class="sub header">{{.locale.Tr "repo.boards.new_subheader"}}</div>
 				{{end}}
 		</h2>
 		{{template "base/alert" .}}
@@ -25,21 +25,21 @@
 			{{.CsrfTokenHtml}}
 			<div class="eleven wide column">
 				<div class="field {{if .Err_Title}}error{{end}}">
-					<label>{{.locale.Tr "repo.projects.title"}}</label>
-					<input name="title" placeholder="{{.locale.Tr "repo.projects.title"}}" value="{{.title}}" autofocus required>
+					<label>{{.locale.Tr "repo.boards.title"}}</label>
+					<input name="title" placeholder="{{.locale.Tr "repo.boards.title"}}" value="{{.title}}" autofocus required>
 				</div>
 				<div class="field">
-					<label>{{.locale.Tr "repo.projects.description"}}</label>
-					<textarea name="content" placeholder="{{.locale.Tr "repo.projects.description_placeholder"}}">{{.content}}</textarea>
+					<label>{{.locale.Tr "repo.boards.description"}}</label>
+					<textarea name="content" placeholder="{{.locale.Tr "repo.boards.description_placeholder"}}">{{.content}}</textarea>
 				</div>
 
-				{{if not .PageIsEditProjects}}
-					<label>{{.locale.Tr "repo.projects.template.desc"}}</label>
+				{{if not .PageIsEditBoards}}
+					<label>{{.locale.Tr "repo.boards.template.desc"}}</label>
 					<div class="ui selection dropdown">
 						<input type="hidden" name="board_type" value="{{.type}}">
-						<div class="default text">{{.locale.Tr "repo.projects.template.desc_helper"}}</div>
+						<div class="default text">{{.locale.Tr "repo.boards.template.desc_helper"}}</div>
 						<div class="menu">
-							{{range $element := .ProjectTypes}}
+							{{range $element := .BoardTypes}}
 								<div class="item" data-id="{{$element.BoardType}}" data-value="{{$element.BoardType}}">{{$.locale.Tr $element.Translation}}</div>
 							{{end}}
 						</div>
@@ -49,16 +49,16 @@
 			<div class="ui container">
 				<div class="ui divider"></div>
 				<div class="ui left">
-					{{if .PageIsEditProjects}}
-					<a class="ui primary basic button" href="{{.RepoLink}}/projects">
+					{{if .PageIsEditBoards}}
+					<a class="ui primary basic button" href="{{.RepoLink}}/boards">
 						{{.locale.Tr "repo.milestones.cancel"}}
 					</a>
 					<button class="ui green button">
-						{{.locale.Tr "repo.projects.modify"}}
+						{{.locale.Tr "repo.boards.modify"}}
 					</button>
 					{{else}}
 						<button class="ui green button">
-							{{.locale.Tr "repo.projects.create"}}
+							{{.locale.Tr "repo.boards.create"}}
 						</button>
 					{{end}}
 				</div>

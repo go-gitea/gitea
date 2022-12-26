@@ -407,15 +407,15 @@
 
 				<div class="ui divider"></div>
 
-				{{$isProjectsEnabled := .Repository.UnitEnabled $.Context $.UnitTypeProjects}}
+				{{$isBoardsEnabled := .Repository.UnitEnabled $.Context $.UnitTypeBoards}}
 				<div class="inline field">
 					<label>{{.locale.Tr "repo.project_board"}}</label>
-					{{if .UnitTypeProjects.UnitGlobalDisabled}}
+					{{if .UnitTypeBoards.UnitGlobalDisabled}}
 					<div class="ui checkbox tooltip disabled" data-content="{{.locale.Tr "repo.unit_disabled"}}">
 					{{else}}
 					<div class="ui checkbox">
 					{{end}}
-						<input class="enable-system" name="enable_projects" type="checkbox" {{if $isProjectsEnabled}}checked{{end}}>
+						<input class="enable-system" name="enable_projects" type="checkbox" {{if $isBoardsEnabled}}checked{{end}}>
 						<label>{{.locale.Tr "repo.settings.projects_desc"}}</label>
 					</div>
 				</div>

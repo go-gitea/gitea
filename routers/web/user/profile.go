@@ -284,7 +284,7 @@ func Profile(ctx *context.Context) {
 	pager := context.NewPagination(total, setting.UI.User.RepoPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "tab", "TabName")
-	if tab != "followers" && tab != "following" && tab != "activity" && tab != "projects" {
+	if tab != "followers" && tab != "following" && tab != "activity" && tab != "boards" {
 		pager.AddParam(ctx, "language", "Language")
 	}
 	ctx.Data["Page"] = pager

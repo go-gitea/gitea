@@ -363,16 +363,16 @@ func issues(ctx *context.Context, milestoneID, boardID int64, isPullOption util.
 	}
 
 	if ctx.Repo.CanWriteIssuesOrPulls(ctx.Params(":type") == "pulls") {
-		projects, _, err := board_model.FindBoards(ctx, board_model.SearchOptions{
+		boards, _, err := board_model.FindBoards(ctx, board_model.SearchOptions{
 			RepoID:   repo.ID,
 			Type:     board_model.TypeRepository,
 			IsClosed: util.OptionalBoolOf(isShowClosed),
 		})
 		if err != nil {
-			ctx.ServerError("GetProjects", err)
+			ctx.ServerError("FindBoards", err)
 			return
 		}
-		ctx.Data["Projects"] = projects
+		ctx.Data["Boards"] = boards
 	}
 
 	ctx.Data["IssueStats"] = issueStats
@@ -422,7 +422,7 @@ func Issues(ctx *context.Context) {
 		ctx.Data["NewIssueChooseTemplate"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
 	}
 
-	issues(ctx, ctx.FormInt64("milestone"), ctx.FormInt64("project"), util.OptionalBoolOf(isPullList))
+	issues(ctx, ctx.FormInt64("milestone"), ctx.FormInt64("board"), util.OptionalBoolOf(isPullList))
 	if ctx.Written() {
 		return
 	}
@@ -472,28 +472,28 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 	handleTeamMentions(ctx)
 }
 
-func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
+func retrieveBoards(ctx *context.Context, repo *repo_model.Repository) {
 	var err error
 
-	ctx.Data["OpenProjects"], _, err = board_model.FindBoards(ctx, board_model.SearchOptions{
+	ctx.Data["OpenBoards"], _, err = board_model.FindBoards(ctx, board_model.SearchOptions{
 		RepoID:   repo.ID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolFalse,
 		Type:     board_model.TypeRepository,
 	})
 	if err != nil {
-		ctx.ServerError("GetProjects", err)
+		ctx.ServerError("FindBoards", err)
 		return
 	}
 
-	ctx.Data["ClosedProjects"], _, err = board_model.FindBoards(ctx, board_model.SearchOptions{
+	ctx.Data["ClosedBoards"], _, err = board_model.FindBoards(ctx, board_model.SearchOptions{
 		RepoID:   repo.ID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolTrue,
 		Type:     board_model.TypeRepository,
 	})
 	if err != nil {
-		ctx.ServerError("GetProjects", err)
+		ctx.ServerError("FindBoards", err)
 		return
 	}
 }
@@ -716,7 +716,7 @@ func RetrieveRepoMetas(ctx *context.Context, repo *repo_model.Repository, isPull
 		return nil
 	}
 
-	retrieveProjects(ctx, repo)
+	retrieveBoards(ctx, repo)
 	if ctx.Written() {
 		return nil
 	}
@@ -808,8 +808,8 @@ func NewIssue(ctx *context.Context) {
 	body := ctx.FormString("body")
 	ctx.Data["BodyQuery"] = body
 
-	isProjectsEnabled := ctx.Repo.CanRead(unit.TypeBoards)
-	ctx.Data["IsProjectsEnabled"] = isProjectsEnabled
+	isBoardsEnabled := ctx.Repo.CanRead(unit.TypeBoards)
+	ctx.Data["IsBoardsEnabled"] = isBoardsEnabled
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
 
@@ -824,20 +824,20 @@ func NewIssue(ctx *context.Context) {
 		}
 	}
 
-	projectID := ctx.FormInt64("project")
-	if projectID > 0 && isProjectsEnabled {
-		project, err := board_model.GetBoardByID(ctx, projectID)
+	boardID := ctx.FormInt64("board")
+	if boardID > 0 && isBoardsEnabled {
+		board, err := board_model.GetBoardByID(ctx, boardID)
 		if err != nil {
-			log.Error("GetBoardByID: %d: %v", projectID, err)
-		} else if project.RepoID != ctx.Repo.Repository.ID {
-			log.Error("GetBoardByID: %d: %v", projectID, fmt.Errorf("project[%d] not in repo [%d]", project.ID, ctx.Repo.Repository.ID))
+			log.Error("GetBoardByID: %d: %v", boardID, err)
+		} else if board.RepoID != ctx.Repo.Repository.ID {
+			log.Error("GetBoardByID: %d: %v", boardID, fmt.Errorf("board[%d] not in repo [%d]", board.ID, ctx.Repo.Repository.ID))
 		} else {
-			ctx.Data["project_id"] = projectID
-			ctx.Data["Project"] = project
+			ctx.Data["board_id"] = boardID
+			ctx.Data["Board"] = board
 		}
 
-		if len(ctx.Req.URL.Query().Get("project")) > 0 {
-			ctx.Data["redirect_after_creation"] = "project"
+		if len(ctx.Req.URL.Query().Get("board")) > 0 {
+			ctx.Data["redirect_after_creation"] = "board"
 		}
 	}
 
@@ -899,13 +899,13 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 	}
 
 	if len(issueTemplates) == 0 {
-		// The "issues/new" and "issues/new/choose" share the same query parameters "project" and "milestone", if no template here, just redirect to the "issues/new" page with these parameters.
+		// The "issues/new" and "issues/new/choose" share the same query parameters "board" and "milestone", if no template here, just redirect to the "issues/new" page with these parameters.
 		ctx.Redirect(fmt.Sprintf("%s/issues/new?%s", ctx.Repo.Repository.HTMLURL(), ctx.Req.URL.RawQuery), http.StatusSeeOther)
 		return
 	}
 
 	ctx.Data["milestone"] = ctx.FormInt64("milestone")
-	ctx.Data["project"] = ctx.FormInt64("project")
+	ctx.Data["board"] = ctx.FormInt64("board")
 
 	ctx.HTML(http.StatusOK, tplIssueChoose)
 }
@@ -981,8 +981,8 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 		ctx.Data["milestone_id"] = milestoneID
 	}
 
-	if form.ProjectID > 0 {
-		p, err := board_model.GetBoardByID(ctx, form.ProjectID)
+	if form.BoardID > 0 {
+		p, err := board_model.GetBoardByID(ctx, form.BoardID)
 		if err != nil {
 			ctx.ServerError("GetBoardByID", err)
 			return nil, nil, 0, 0
@@ -992,8 +992,8 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 			return nil, nil, 0, 0
 		}
 
-		ctx.Data["Project"] = p
-		ctx.Data["project_id"] = form.ProjectID
+		ctx.Data["Board"] = p
+		ctx.Data["board_id"] = form.BoardID
 	}
 
 	// Check assignees
@@ -1030,7 +1030,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 		assigneeIDs = append(assigneeIDs, form.AssigneeID)
 	}
 
-	return labelIDs, assigneeIDs, milestoneID, form.ProjectID
+	return labelIDs, assigneeIDs, milestoneID, form.BoardID
 }
 
 // NewIssuePost response for creating new issue
@@ -1048,7 +1048,7 @@ func NewIssuePost(ctx *context.Context) {
 		attachments []string
 	)
 
-	labelIDs, assigneeIDs, milestoneID, projectID := ValidateRepoMetas(ctx, *form, false)
+	labelIDs, assigneeIDs, milestoneID, boardID := ValidateRepoMetas(ctx, *form, false)
 	if ctx.Written() {
 		return
 	}
@@ -1094,21 +1094,21 @@ func NewIssuePost(ctx *context.Context) {
 		return
 	}
 
-	if projectID > 0 {
+	if boardID > 0 {
 		if !ctx.Repo.CanRead(unit.TypeBoards) {
-			// User must also be able to see the project.
-			ctx.Error(http.StatusBadRequest, "user hasn't permissions to read projects")
+			// User must also be able to see the board.
+			ctx.Error(http.StatusBadRequest, "user hasn't permissions to read boards")
 			return
 		}
-		if err := issues_model.ChangeBoardAssign(issue, ctx.Doer, projectID); err != nil {
-			ctx.ServerError("ChangeProjectAssign", err)
+		if err := issues_model.ChangeBoardAssign(issue, ctx.Doer, boardID); err != nil {
+			ctx.ServerError("ChangeBoardAssign", err)
 			return
 		}
 	}
 
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)
-	if ctx.FormString("redirect_after_creation") == "project" {
-		ctx.Redirect(ctx.Repo.RepoLink + "/projects/" + strconv.FormatInt(form.ProjectID, 10))
+	if ctx.FormString("redirect_after_creation") == "board" {
+		ctx.Redirect(ctx.Repo.RepoLink + "/boards/" + strconv.FormatInt(form.BoardID, 10))
 	} else {
 		ctx.Redirect(issue.Link())
 	}
@@ -1240,7 +1240,7 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	ctx.Data["RequireTribute"] = true
-	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanRead(unit.TypeBoards)
+	ctx.Data["IsBoardsEnabled"] = ctx.Repo.CanRead(unit.TypeBoards)
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
 
@@ -1331,7 +1331,7 @@ func ViewIssue(ctx *context.Context) {
 	// Check milestone and assignee.
 	if ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
 		RetrieveRepoMilestonesAndAssignees(ctx, repo)
-		retrieveProjects(ctx, repo)
+		retrieveBoards(ctx, repo)
 
 		if ctx.Written() {
 			return
@@ -1486,21 +1486,21 @@ func ViewIssue(ctx *context.Context) {
 		} else if comment.Type == issues_model.CommentTypeBoard {
 
 			if err = comment.LoadBoard(); err != nil {
-				ctx.ServerError("LoadProject", err)
+				ctx.ServerError("LoadBoard", err)
 				return
 			}
 
-			ghostProject := &board_model.Board{
+			ghostBoard := &board_model.Board{
 				ID:    -1,
-				Title: ctx.Tr("repo.issues.deleted_project"),
+				Title: ctx.Tr("repo.issues.deleted_board"),
 			}
 
 			if comment.OldBoardID > 0 && comment.OldBoard == nil {
-				comment.OldBoard = ghostProject
+				comment.OldBoard = ghostBoard
 			}
 
 			if comment.BoardID > 0 && comment.Board == nil {
-				comment.Board = ghostProject
+				comment.Board = ghostBoard
 			}
 
 		} else if comment.Type == issues_model.CommentTypeAssignees || comment.Type == issues_model.CommentTypeReviewRequest {
@@ -1775,7 +1775,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login?redirect_to=" + url.QueryEscape(ctx.Data["Link"].(string))
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.Doer.ID)
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
-	ctx.Data["HasProjectsWritePermission"] = ctx.Repo.CanWrite(unit.TypeBoards)
+	ctx.Data["HasBoardsWritePermission"] = ctx.Repo.CanWrite(unit.TypeBoards)
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.Doer.IsAdmin)
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
 	ctx.Data["RefEndName"] = git.RefEndName(issue.Ref)

@@ -4,20 +4,20 @@
 	<div class="ui container">
 		<div class="navbar">
 			{{template "repo/issue/navbar" .}}
-			{{if and .CanWriteProjects (not .Repository.IsArchived)}}
+			{{if and .CanWriteBoards (not .Repository.IsArchived)}}
 				<div class="ui right">
-					<a class="ui green button" href="{{$.Link}}/new">{{.locale.Tr "repo.projects.new"}}</a>
+					<a class="ui green button" href="{{$.Link}}/new">{{.locale.Tr "repo.boards.new"}}</a>
 				</div>
 			{{end}}
 		</div>
 		<div class="ui divider"></div>
 		{{template "base/alert" .}}
 		<div class="ui compact tiny menu">
-			<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/projects?state=open">
+			<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/boards?state=open">
 				{{svg "octicon-project" 16 "mr-3"}}
 				{{JsPrettyNumber .OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
 			</a>
-			<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/projects?state=closed">
+			<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/boards?state=closed">
 				{{svg "octicon-check" 16 "mr-3"}}
 				{{JsPrettyNumber .ClosedCount}}&nbsp;{{.locale.Tr "repo.issues.closed_title"}}
 			</a>
@@ -38,9 +38,9 @@
 			</div>
 		</div>
 		<div class="milestone list">
-			{{range .Projects}}
+			{{range .Boards}}
 				<li class="item">
-					{{svg "octicon-project"}} <a href="{{$.RepoLink}}/projects/{{.ID}}">{{.Title}}</a>
+					{{svg "octicon-project"}} <a href="{{$.RepoLink}}/boards/{{.ID}}">{{.Title}}</a>
 					<div class="meta">
 						{{$closedDate:= TimeSinceUnix .ClosedDateUnix $.locale}}
 						{{if .IsClosed}}
@@ -57,11 +57,11 @@
 					<div class="ui right operate">
 						<a href="{{$.Link}}/{{.ID}}/edit" data-id={{.ID}} data-title={{.Title}}>{{svg "octicon-pencil"}} {{$.locale.Tr "repo.issues.label_edit"}}</a>
 						{{if .IsClosed}}
-							<a class="link-action" href data-url="{{$.Link}}/{{.ID}}/open">{{svg "octicon-check"}} {{$.locale.Tr "repo.projects.open"}}</a>
+							<a class="link-action" href data-url="{{$.Link}}/{{.ID}}/open">{{svg "octicon-check"}} {{$.locale.Tr "repo.boards.open"}}</a>
 						{{else}}
-							<a class="link-action" href data-url="{{$.Link}}/{{.ID}}/close">{{svg "octicon-skip"}} {{$.locale.Tr "repo.projects.close"}}</a>
+							<a class="link-action" href data-url="{{$.Link}}/{{.ID}}/close">{{svg "octicon-skip"}} {{$.locale.Tr "repo.boardds.close"}}</a>
 						{{end}}
-						<a class="delete-button" href="#" data-url="{{$.RepoLink}}/projects/{{.ID}}/delete" data-id="{{.ID}}">{{svg "octicon-trash"}} {{$.locale.Tr "repo.issues.label_delete"}}</a>
+						<a class="delete-button" href="#" data-url="{{$.RepoLink}}/boards/{{.ID}}/delete" data-id="{{.ID}}">{{svg "octicon-trash"}} {{$.locale.Tr "repo.issues.label_delete"}}</a>
 					</div>
 					{{end}}
 					{{if .Description}}
@@ -81,10 +81,10 @@
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
 		{{svg "octicon-trash"}}
-		{{.locale.Tr "repo.projects.deletion"}}
+		{{.locale.Tr "repo.boards.deletion"}}
 	</div>
 	<div class="content">
-		<p>{{.locale.Tr "repo.projects.deletion_desc"}}</p>
+		<p>{{.locale.Tr "repo.boards.deletion_desc"}}</p>
 	</div>
 	<div class="actions">
 		<div class="ui red basic inverted cancel button">
