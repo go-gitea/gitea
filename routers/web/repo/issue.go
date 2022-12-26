@@ -906,7 +906,7 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 
 	issueConfig, err := ctx.IssueConfigFromDefaultBranch()
 	ctx.Data["IssueConfig"] = issueConfig
-	ctx.Data["IssueConfigError"] = err
+	ctx.Data["IssueConfigError"] = err  // ctx.Flash.Err makes problems here
 
 	ctx.Data["milestone"] = ctx.FormInt64("milestone")
 	ctx.Data["project"] = ctx.FormInt64("project")

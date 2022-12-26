@@ -285,11 +285,11 @@ For each value in the options array, you can set the following keys.
 This is a example for a issue config file
 
 ```yaml
-BlankIssuesEnabled: true
+blank_issues_enabled: true
 ```
 
 ### Possible Options
 
-| Key                  | Description                                                                                           | Type    |
-|----------------------|-------------------------------------------------------------------------------------------------------|---------|
-| blank_issues_enabled | If set to false, the User is forced to use a Template                                                 | Boolean |
+| Key                  | Description                                                                                           | Type    | Default |
+|----------------------|-------------------------------------------------------------------------------------------------------|---------|---------|
+| blank_issues_enabled | If set to false, the User is forced to use a Template                                                 | Boolean | true    |

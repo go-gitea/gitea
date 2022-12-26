@@ -1114,6 +1114,8 @@ func GetDefaultIssueConfig() (api.IssueConfig) {
 	}
 }
 
+// GetIssueConfig loads the given issue config file.
+// It never returns a nil config.
 func (r *Repository) GetIssueConfig(path string, commit *git.Commit) (api.IssueConfig, error) {
 	if r.GitRepo == nil {
 		return GetDefaultIssueConfig(), nil
@@ -1145,6 +1147,8 @@ func (r *Repository) GetIssueConfig(path string, commit *git.Commit) (api.IssueC
 	return issueConfig, nil
 }
 
+// IssueConfigFromDefaultBranch returns the issue config for this repo.
+// It never returns a nil config.
 func (ctx *Context) IssueConfigFromDefaultBranch() (api.IssueConfig, error) {
 	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
 	if err != nil {
@@ -1166,6 +1170,7 @@ func (ctx *Context) IssueConfigFromDefaultBranch() (api.IssueConfig, error) {
 	return GetDefaultIssueConfig(), nil
 }
 
+// IsIssueConfig returns if the given path is a issue config file.
 func (r *Repository) IsIssueConfig(path string) (bool) {
 	for _, configName := range IssueConfigCanidates {
 		if path == configName + ".yaml" || path == configName + ".yml" {
