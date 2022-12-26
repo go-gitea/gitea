@@ -84,7 +84,7 @@ async function initRepoProjectSortable() {
   }
 }
 
-export default function initRepoProject() {
+export function initRepoProject() {
   if (!$('.repository.projects').length) {
     return;
   }
