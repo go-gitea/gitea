@@ -270,11 +270,11 @@ var (
 		perm.AccessModeRead,
 	}
 
-	UnitProjects = Unit{
+	UnitBoards = Unit{
 		TypeBoards,
-		"repo.projects",
-		"/projects",
-		"repo.projects.desc",
+		"repo.boards",
+		"/boards",
+		"repo.boards.desc",
 		5,
 		perm.AccessModeOwner,
 	}
@@ -297,7 +297,7 @@ var (
 		TypeReleases:        UnitReleases,
 		TypeWiki:            UnitWiki,
 		TypeExternalWiki:    UnitExternalWiki,
-		TypeBoards:          UnitProjects,
+		TypeBoards:          UnitBoards,
 		TypePackages:        UnitPackages,
 	}
 )

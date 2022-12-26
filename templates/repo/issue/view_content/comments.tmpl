@@ -712,7 +712,7 @@
 				{{template "repo/commits_list_small" dict "comment" . "root" $}}
 			{{end}}
 		{{else if eq .Type 30}}
-			{{if not $.UnitProjectsGlobalDisabled}}
+			{{if not $.UnitBoardsGlobalDisabled}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-project"}}</span>
 				{{template "shared/user/avatarlink" .Poster}}

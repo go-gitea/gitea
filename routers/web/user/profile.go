@@ -223,14 +223,14 @@ func Profile(ctx *context.Context) {
 		}
 
 		total = int(count)
-	case "projects":
-		ctx.Data["OpenProjects"], _, err = board_model.FindBoards(ctx, board_model.SearchOptions{
+	case "boards":
+		ctx.Data["OpenBoards"], _, err = board_model.FindBoards(ctx, board_model.SearchOptions{
 			Page:     -1,
 			IsClosed: util.OptionalBoolFalse,
 			Type:     board_model.TypeIndividual,
 		})
 		if err != nil {
-			ctx.ServerError("GetProjects", err)
+			ctx.ServerError("FindBoards", err)
 			return
 		}
 	case "watching":

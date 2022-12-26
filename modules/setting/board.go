@@ -16,7 +16,7 @@ var (
 	}
 )
 
-func newProject() {
+func newBoard() {
 	if err := Cfg.Section("project").MapTo(&Board); err != nil {
 		log.Fatal("Failed to map Board settings: %v", err)
 	}

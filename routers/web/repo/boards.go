@@ -26,14 +26,14 @@ import (
 )
 
 const (
-	tplProjects           base.TplName = "repo/projects/list"
-	tplProjectsNew        base.TplName = "repo/projects/new"
-	tplProjectsView       base.TplName = "repo/projects/view"
-	tplGenericProjectsNew base.TplName = "user/project"
+	tplBoards           base.TplName = "repo/boards/list"
+	tplBoardsNew        base.TplName = "repo/boards/new"
+	tplBoardsView       base.TplName = "repo/boards/view"
+	tplGenericBoardsNew base.TplName = "user/board"
 )
 
-// MustEnableProjects check if projects are enabled in settings
-func MustEnableProjects(ctx *context.Context) {
+// MustEnableBoards check if boards are enabled in settings
+func MustEnableBoards(ctx *context.Context) {
 	if unit.TypeBoards.UnitGlobalDisabled() {
 		ctx.NotFound("EnableKanbanBoard", nil)
 		return
@@ -41,7 +41,7 @@ func MustEnableProjects(ctx *context.Context) {
 
 	if ctx.Repo.Repository != nil {
 		if !ctx.Repo.CanRead(unit.TypeBoards) {
-			ctx.NotFound("MustEnableProjects", nil)
+			ctx.NotFound("MustEnableBoards", nil)
 			return
 		}
 	}
@@ -49,7 +49,7 @@ func MustEnableProjects(ctx *context.Context) {
 
 // Boards renders the home page of boards
 func Boards(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.project_board")
+	ctx.Data["Title"] = ctx.Tr("repo.board_column")
 
 	sortType := ctx.FormTrim("sort")
 
@@ -70,7 +70,7 @@ func Boards(ctx *context.Context) {
 		total = repo.NumClosedBoards
 	}
 
-	projects, count, err := board_model.FindBoards(ctx, board_model.SearchOptions{
+	boards, count, err := board_model.FindBoards(ctx, board_model.SearchOptions{
 		RepoID:   repo.ID,
 		Page:     page,
 		IsClosed: util.OptionalBoolOf(isShowClosed),
@@ -82,20 +82,20 @@ func Boards(ctx *context.Context) {
 		return
 	}
 
-	for i := range projects {
-		projects[i].RenderedContent, err = markdown.RenderString(&markup.RenderContext{
+	for i := range boards {
+		boards[i].RenderedContent, err = markdown.RenderString(&markup.RenderContext{
 			URLPrefix: ctx.Repo.RepoLink,
 			Metas:     ctx.Repo.Repository.ComposeMetas(),
 			GitRepo:   ctx.Repo.GitRepo,
 			Ctx:       ctx,
-		}, projects[i].Description)
+		}, boards[i].Description)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
 			return
 		}
 	}
 
-	ctx.Data["Projects"] = projects
+	ctx.Data["Boards"] = boards
 
 	if isShowClosed {
 		ctx.Data["State"] = "closed"
@@ -112,31 +112,31 @@ func Boards(ctx *context.Context) {
 	pager.AddParam(ctx, "state", "State")
 	ctx.Data["Page"] = pager
 
-	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeBoards)
+	ctx.Data["CanWriteBoards"] = ctx.Repo.Permission.CanWrite(unit.TypeBoards)
 	ctx.Data["IsShowClosed"] = isShowClosed
-	ctx.Data["IsProjectsPage"] = true
+	ctx.Data["IsBoardsPage"] = true
 	ctx.Data["SortType"] = sortType
 
-	ctx.HTML(http.StatusOK, tplProjects)
+	ctx.HTML(http.StatusOK, tplBoards)
 }
 
-// NewBoard render creating a project page
+// NewBoard render creating a board page
 func NewBoard(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
-	ctx.Data["ProjectTypes"] = board_model.GetBoardsConfig()
-	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeBoards)
-	ctx.HTML(http.StatusOK, tplProjectsNew)
+	ctx.Data["Title"] = ctx.Tr("repo.boards.new")
+	ctx.Data["BoardTypes"] = board_model.GetBoardsConfig()
+	ctx.Data["CanWriteBoards"] = ctx.Repo.Permission.CanWrite(unit.TypeBoards)
+	ctx.HTML(http.StatusOK, tplBoardsNew)
 }
 
-// NewBoardPost creates a new project
+// NewBoardPost creates a new board
 func NewBoardPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateBoardForm)
-	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
+	ctx.Data["Title"] = ctx.Tr("repo.boards.new")
 
 	if ctx.HasError() {
-		ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeBoards)
-		ctx.Data["ProjectTypes"] = board_model.GetBoardsConfig()
-		ctx.HTML(http.StatusOK, tplProjectsNew)
+		ctx.Data["CanWriteBoards"] = ctx.Repo.Permission.CanWrite(unit.TypeBoards)
+		ctx.Data["BoardTypes"] = board_model.GetBoardsConfig()
+		ctx.HTML(http.StatusOK, tplBoardsNew)
 		return
 	}
 
@@ -152,8 +152,8 @@ func NewBoardPost(ctx *context.Context) {
 		return
 	}
 
-	ctx.Flash.Success(ctx.Tr("repo.projects.create_success", form.Title))
-	ctx.Redirect(ctx.Repo.RepoLink + "/projects")
+	ctx.Flash.Success(ctx.Tr("repo.boards.create_success", form.Title))
+	ctx.Redirect(ctx.Repo.RepoLink + "/boards")
 }
 
 // ChangeBoardStatus updates the status of a board between "open" and "close"
@@ -165,7 +165,7 @@ func ChangeBoardStatus(ctx *context.Context) {
 	case "close":
 		toClose = true
 	default:
-		ctx.Redirect(ctx.Repo.RepoLink + "/projects")
+		ctx.Redirect(ctx.Repo.RepoLink + "/boards")
 	}
 	id := ctx.ParamsInt64(":id")
 
@@ -173,11 +173,11 @@ func ChangeBoardStatus(ctx *context.Context) {
 		if board_model.IsErrBoardNotExist(err) {
 			ctx.NotFound("", err)
 		} else {
-			ctx.ServerError("ChangeProjectStatusByIDAndRepoID", err)
+			ctx.ServerError("ChangeBoardStatusByRepoIDAndID", err)
 		}
 		return
 	}
-	ctx.Redirect(ctx.Repo.RepoLink + "/projects?state=" + url.QueryEscape(ctx.Params(":action")))
+	ctx.Redirect(ctx.Repo.RepoLink + "/boards?state=" + url.QueryEscape(ctx.Params(":action")))
 }
 
 // DeleteBoard delete a board
@@ -199,17 +199,17 @@ func DeleteBoard(ctx *context.Context) {
 	if err := board_model.DeleteBoardByID(ctx, p.ID); err != nil {
 		ctx.Flash.Error("DeleteBoardByID: " + err.Error())
 	} else {
-		ctx.Flash.Success(ctx.Tr("repo.projects.deletion_success"))
+		ctx.Flash.Success(ctx.Tr("repo.boards.deletion_success"))
 	}
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": ctx.Repo.RepoLink + "/projects",
+		"redirect": ctx.Repo.RepoLink + "/boards",
 	})
 }
 
 // EditBoard allows a board to be edited
 func EditBoard(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.projects.edit")
+	ctx.Data["Title"] = ctx.Tr("repo.boards.edit")
 	ctx.Data["PageIsEditProjects"] = true
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeBoards)
 
@@ -230,7 +230,7 @@ func EditBoard(ctx *context.Context) {
 	ctx.Data["title"] = p.Title
 	ctx.Data["content"] = p.Description
 
-	ctx.HTML(http.StatusOK, tplProjectsNew)
+	ctx.HTML(http.StatusOK, tplBoardsNew)
 }
 
 // EditBoardPost response for editing a board
@@ -241,7 +241,7 @@ func EditBoardPost(ctx *context.Context) {
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeBoards)
 
 	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplProjectsNew)
+		ctx.HTML(http.StatusOK, tplBoardsNew)
 		return
 	}
 
@@ -266,8 +266,8 @@ func EditBoardPost(ctx *context.Context) {
 		return
 	}
 
-	ctx.Flash.Success(ctx.Tr("repo.projects.edit_success", p.Title))
-	ctx.Redirect(ctx.Repo.RepoLink + "/projects")
+	ctx.Flash.Success(ctx.Tr("repo.boards.edit_success", p.Title))
+	ctx.Redirect(ctx.Repo.RepoLink + "/boards")
 }
 
 // ViewBoard renders the columns for a board
@@ -341,11 +341,11 @@ func ViewBoard(ctx *context.Context) {
 	ctx.Data["IssuesMap"] = issuesMap
 	ctx.Data["Boards"] = boards
 
-	ctx.HTML(http.StatusOK, tplProjectsView)
+	ctx.HTML(http.StatusOK, tplBoardsView)
 }
 
-// UpdateIssueProject change an issue's project
-func UpdateIssueProject(ctx *context.Context) {
+// UpdateIssueBoard change an issue's project
+func UpdateIssueBoard(ctx *context.Context) {
 	issues := getActionIssues(ctx)
 	if ctx.Written() {
 		return
@@ -660,7 +660,7 @@ func CreateProject(ctx *context.Context) {
 	ctx.Data["ProjectTypes"] = board_model.GetBoardsConfig()
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeBoards)
 
-	ctx.HTML(http.StatusOK, tplGenericProjectsNew)
+	ctx.HTML(http.StatusOK, tplGenericBoardsNew)
 }
 
 // CreateProjectPost creates an individual and/or organization project
@@ -674,7 +674,7 @@ func CreateProjectPost(ctx *context.Context, form forms.UserCreateProjectForm) {
 
 	if ctx.HasError() {
 		ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeBoards)
-		ctx.HTML(http.StatusOK, tplGenericProjectsNew)
+		ctx.HTML(http.StatusOK, tplGenericBoardsNew)
 		return
 	}
 

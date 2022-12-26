@@ -93,9 +93,9 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 		defaultDeleteBranchAfterMerge = config.DefaultDeleteBranchAfterMerge
 		defaultMergeStyle = config.GetDefaultMergeStyle()
 	}
-	hasProjects := false
+	hasBoards := false
 	if _, err := repo.GetUnit(ctx, unit_model.TypeBoards); err == nil {
-		hasProjects = true
+		hasBoards = true
 	}
 
 	if err := repo.GetOwner(ctx); err != nil {
@@ -171,7 +171,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 		ExternalTracker:               externalTracker,
 		InternalTracker:               internalTracker,
 		HasWiki:                       hasWiki,
-		HasProjects:                   hasProjects,
+		HasBoards:                     hasBoards,
 		ExternalWiki:                  externalWiki,
 		HasPullRequests:               hasPullRequests,
 		IgnoreWhitespaceConflicts:     ignoreWhitespaceConflicts,

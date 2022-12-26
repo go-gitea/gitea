@@ -146,12 +146,12 @@ func addUpdateIssueBoard(ctx context.Context, issue *Issue, doer *user_model.Use
 
 	if oldBoardID > 0 || newBoardID > 0 {
 		if _, err := CreateComment(ctx, &CreateCommentOptions{
-			Type:         CommentTypeBoard,
-			Doer:         doer,
-			Repo:         issue.Repo,
-			Issue:        issue,
-			OldProjectID: oldBoardID,
-			ProjectID:    newBoardID,
+			Type:       CommentTypeBoard,
+			Doer:       doer,
+			Repo:       issue.Repo,
+			Issue:      issue,
+			OldBoardID: oldBoardID,
+			BoardID:    newBoardID,
 		}); err != nil {
 			return err
 		}

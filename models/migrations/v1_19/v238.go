@@ -39,5 +39,11 @@ func RenameProjectsToBoards(x *xorm.Engine) error {
 	if err := base.RenameColumn(sess, "repository", "num_closed_projects", "num_closed_boards", "INT(11)"); err != nil {
 		return err
 	}
+	if err := base.RenameColumn(sess, "comment", "old_project_id", "old_board_id", "bigint"); err != nil {
+		return err
+	}
+	if err := base.RenameColumn(sess, "comment", "project_id", "board_id", "bigint"); err != nil {
+		return err
+	}
 	return nil
 }

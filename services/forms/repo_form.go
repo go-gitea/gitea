@@ -145,7 +145,7 @@ type RepoSettingForm struct {
 	TrackerIssueStyle                     string
 	ExternalTrackerRegexpPattern          string
 	EnableCloseIssuesViaCommitInAnyBranch bool
-	EnableProjects                        bool
+	EnableBoards                          bool
 	EnablePackages                        bool
 	EnablePulls                           bool
 	PullsIgnoreWhitespace                 bool
@@ -434,7 +434,7 @@ type CreateIssueForm struct {
 	AssigneeIDs         string `form:"assignee_ids"`
 	Ref                 string `form:"ref"`
 	MilestoneID         int64
-	ProjectID           int64
+	BoardID             int64
 	AssigneeID          int64
 	Content             string
 	Files               []string
@@ -505,16 +505,16 @@ type CreateBoardForm struct {
 	ColumnType board_model.ColumnType
 }
 
-// UserCreateProjectForm is a from for creating an individual or organization
+// UserCreateBoardForm is a from for creating an individual or organization
 // form.
-type UserCreateProjectForm struct {
+type UserCreateBoardForm struct {
 	Title      string `binding:"Required;MaxSize(100)"`
 	Content    string
 	ColumnType board_model.ColumnType
 	UID        int64 `binding:"Required"`
 }
 
-// EditBoardColumnForm is a form for editing a project board
+// EditBoardColumnForm is a form for editing a board column
 type EditBoardColumnForm struct {
 	Title   string `binding:"Required;MaxSize(100)"`
 	Sorting int8

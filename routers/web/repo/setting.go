@@ -480,7 +480,7 @@ func SettingsPost(ctx *context.Context) {
 			}
 		}
 
-		if form.EnableProjects && !unit_model.TypeBoards.UnitGlobalDisabled() {
+		if form.EnableBoards && !unit_model.TypeBoards.UnitGlobalDisabled() {
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   unit_model.TypeBoards,

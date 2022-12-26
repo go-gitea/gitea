@@ -189,8 +189,8 @@
 					</a>
 				{{end}}
 
-				{{if and (not .UnitProjectsGlobalDisabled) (.Permission.CanRead $.UnitTypeProjects)}}
-					<a href="{{.RepoLink}}/projects" class="{{if .IsProjectsPage}}active {{end}}item">
+				{{if and (not .UnitBoardsGlobalDisabled) (.Permission.CanRead $.UnitTypeProjects)}}
+					<a href="{{.RepoLink}}/boards" class="{{if .IsProjectsPage}}active {{end}}item">
 						{{svg "octicon-project"}} {{.locale.Tr "repo.project_board"}}
 						{{if .Repository.NumOpenProjects}}
 							<span class="ui primary small label">{{CountFmt .Repository.NumOpenProjects}}</span>

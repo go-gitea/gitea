@@ -77,8 +77,8 @@ func ToTimelineComment(ctx context.Context, c *issues_model.Comment, doer *user_
 		Created:  c.CreatedUnix.AsTime(),
 		Updated:  c.UpdatedUnix.AsTime(),
 
-		OldProjectID: c.OldProjectID,
-		ProjectID:    c.ProjectID,
+		OldBoardID: c.OldBoardID,
+		BoardID:    c.BoardID,
 
 		OldTitle: c.OldTitle,
 		NewTitle: c.NewTitle,

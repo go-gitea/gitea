@@ -107,9 +107,9 @@ func init() {
 // GetBoardsConfig retrieves the types of configurations boards could have
 func GetBoardsConfig() []BoardsConfig {
 	return []BoardsConfig{
-		{BoardTypeNone, "repo.projects.type.none"},
-		{BoardTypeBasicKanban, "repo.projects.type.basic_kanban"},
-		{BoardTypeBugTriage, "repo.projects.type.bug_triage"},
+		{BoardTypeNone, "repo.boards.type.none"},
+		{BoardTypeBasicKanban, "repo.boards.type.basic_kanban"},
+		{BoardTypeBugTriage, "repo.boards.type.bug_triage"},
 	}
 }
 

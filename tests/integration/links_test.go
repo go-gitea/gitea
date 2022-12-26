@@ -34,8 +34,8 @@ func TestLinksNoLogin(t *testing.T) {
 		"/api/swagger",
 		"/user2/repo1",
 		"/user2/repo1/",
-		"/user2/repo1/projects",
-		"/user2/repo1/projects/1",
+		"/user2/repo1/boards",
+		"/user2/repo1/boards/1",
 		"/assets/img/404.png",
 		"/assets/img/500.png",
 	}
@@ -68,8 +68,8 @@ func TestNoLoginNotExist(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	links := []string{
-		"/user5/repo4/projects",
-		"/user5/repo4/projects/3",
+		"/user5/repo4/boards",
+		"/user5/repo4/boards/3",
 	}
 
 	for _, link := range links {

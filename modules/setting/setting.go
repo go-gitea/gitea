@@ -1346,7 +1346,7 @@ func NewServices() {
 	newIndexerService()
 	newTaskService()
 	NewQueueService()
-	newProject()
+	newBoard()
 	newMimeTypeMap()
 	newFederationService()
 }

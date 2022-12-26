@@ -909,8 +909,8 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
-	if opts.HasProjects != nil && !unit_model.TypeBoards.UnitGlobalDisabled() {
-		if *opts.HasProjects {
+	if opts.HasBoards != nil && !unit_model.TypeBoards.UnitGlobalDisabled() {
+		if *opts.HasBoards {
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   unit_model.TypeBoards,

@@ -12,16 +12,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCheckProjectBoardChangePermissions(t *testing.T) {
+func TestCheckBoardColumnChangePermissions(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo1/projects/1/2")
+	ctx := test.MockContext(t, "user2/repo1/boards/1/2")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
 	ctx.SetParams(":id", "1")
 	ctx.SetParams(":boardID", "2")
 
-	project, board := checkBoardColumnChangePermissions(ctx)
-	assert.NotNil(t, project)
+	board, column := checkBoardColumnChangePermissions(ctx)
 	assert.NotNil(t, board)
+	assert.NotNil(t, column)
 	assert.False(t, ctx.Written())
 }

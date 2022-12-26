@@ -659,8 +659,8 @@ func RegisterRoutes(m *web.Route) {
 	reqRepoPullsReader := context.RequireRepoReader(unit.TypePullRequests)
 	reqRepoIssuesOrPullsWriter := context.RequireRepoWriterOr(unit.TypeIssues, unit.TypePullRequests)
 	reqRepoIssuesOrPullsReader := context.RequireRepoReaderOr(unit.TypeIssues, unit.TypePullRequests)
-	reqRepoProjectsReader := context.RequireRepoReader(unit.TypeBoards)
-	reqRepoProjectsWriter := context.RequireRepoWriter(unit.TypeBoards)
+	reqRepoBoardsReader := context.RequireRepoReader(unit.TypeBoards)
+	reqRepoBoardsWriter := context.RequireRepoWriter(unit.TypeBoards)
 
 	reqPackageAccess := func(accessMode perm.AccessMode) func(ctx *context.Context) {
 		return func(ctx *context.Context) {
@@ -1015,7 +1015,7 @@ func RegisterRoutes(m *web.Route) {
 
 			m.Post("/labels", reqRepoIssuesOrPullsWriter, repo.UpdateIssueLabel)
 			m.Post("/milestone", reqRepoIssuesOrPullsWriter, repo.UpdateIssueMilestone)
-			m.Post("/projects", reqRepoIssuesOrPullsWriter, reqRepoProjectsReader, repo.UpdateIssueProject)
+			m.Post("/boards", reqRepoIssuesOrPullsWriter, reqRepoBoardsReader, repo.UpdateIssueBoard)
 			m.Post("/assignee", reqRepoIssuesOrPullsWriter, repo.UpdateIssueAssignee)
 			m.Post("/request_review", reqRepoIssuesOrPullsReader, repo.UpdatePullReviewRequest)
 			m.Post("/dismiss_review", reqRepoAdmin, web.Bind(forms.DismissReviewForm{}), repo.DismissReview)
@@ -1159,7 +1159,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/packages", repo.Packages)
 		}
 
-		m.Group("/projects", func() {
+		m.Group("/boards", func() {
 			m.Get("", repo.Boards)
 			m.Get("/{id}", repo.ViewBoard)
 			m.Group("", func() {
@@ -1181,8 +1181,8 @@ func RegisterRoutes(m *web.Route) {
 						m.Post("/move", repo.MoveIssues)
 					})
 				})
-			}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())
-		}, reqRepoProjectsReader, repo.MustEnableProjects)
+			}, reqRepoBoardsWriter, context.RepoMustNotBeArchived())
+		}, reqRepoBoardsReader, repo.MustEnableBoards)
 
 		m.Group("/wiki", func() {
 			m.Combo("/").

@@ -51,8 +51,8 @@ type TimelineComment struct {
 	// swagger:strfmt date-time
 	Updated time.Time `json:"updated_at"`
 
-	OldProjectID int64        `json:"old_project_id"`
-	ProjectID    int64        `json:"project_id"`
+	OldBoardID   int64        `json:"old_project_id"`
+	BoardID      int64        `json:"project_id"`
 	OldMilestone *Milestone   `json:"old_milestone"`
 	Milestone    *Milestone   `json:"milestone"`
 	TrackedTime  *TrackedTime `json:"tracked_time"`

@@ -1495,11 +1495,11 @@ func ViewIssue(ctx *context.Context) {
 				Title: ctx.Tr("repo.issues.deleted_project"),
 			}
 
-			if comment.OldProjectID > 0 && comment.OldBoard == nil {
+			if comment.OldBoardID > 0 && comment.OldBoard == nil {
 				comment.OldBoard = ghostProject
 			}
 
-			if comment.ProjectID > 0 && comment.Board == nil {
+			if comment.BoardID > 0 && comment.Board == nil {
 				comment.Board = ghostProject
 			}
 

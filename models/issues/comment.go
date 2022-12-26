@@ -229,8 +229,8 @@ type Comment struct {
 	Label            *Label   `xorm:"-"`
 	AddedLabels      []*Label `xorm:"-"`
 	RemovedLabels    []*Label `xorm:"-"`
-	OldProjectID     int64
-	ProjectID        int64
+	OldBoardID       int64
+	BoardID          int64
 	OldBoard         *board_model.Board `xorm:"-"`
 	Board            *board_model.Board `xorm:"-"`
 	OldMilestoneID   int64
@@ -492,9 +492,9 @@ func (c *Comment) LoadLabel() error {
 
 // LoadBoard if comment.Type is CommentTypeBoard, then load boards.
 func (c *Comment) LoadBoard() error {
-	if c.OldProjectID > 0 {
+	if c.OldBoardID > 0 {
 		var oldBoard board_model.Board
-		has, err := db.GetEngine(db.DefaultContext).ID(c.OldProjectID).Get(&oldBoard)
+		has, err := db.GetEngine(db.DefaultContext).ID(c.OldBoardID).Get(&oldBoard)
 		if err != nil {
 			return err
 		} else if has {
@@ -502,9 +502,9 @@ func (c *Comment) LoadBoard() error {
 		}
 	}
 
-	if c.ProjectID > 0 {
+	if c.BoardID > 0 {
 		var board board_model.Board
-		has, err := db.GetEngine(db.DefaultContext).ID(c.ProjectID).Get(&board)
+		has, err := db.GetEngine(db.DefaultContext).ID(c.BoardID).Get(&board)
 		if err != nil {
 			return err
 		} else if has {
@@ -795,8 +795,8 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 		LabelID:          LabelID,
 		OldMilestoneID:   opts.OldMilestoneID,
 		MilestoneID:      opts.MilestoneID,
-		OldProjectID:     opts.OldProjectID,
-		ProjectID:        opts.ProjectID,
+		OldBoardID:       opts.OldBoardID,
+		BoardID:          opts.BoardID,
 		TimeID:           opts.TimeID,
 		RemovedAssignee:  opts.RemovedAssignee,
 		AssigneeID:       opts.AssigneeID,
@@ -966,8 +966,8 @@ type CreateCommentOptions struct {
 	DependentIssueID int64
 	OldMilestoneID   int64
 	MilestoneID      int64
-	OldProjectID     int64
-	ProjectID        int64
+	OldBoardID       int64
+	BoardID          int64
 	TimeID           int64
 	AssigneeID       int64
 	AssigneeTeamID   int64
