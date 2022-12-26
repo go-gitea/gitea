@@ -182,11 +182,8 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 	if len(sha) == 0 {
 		ctx.Error(http.StatusBadRequest, "ref/sha not given", nil)
 		return
-	} else if len(sha) != 40 {
-		if s, err := ctx.Repo.GitRepo.ConvertToSHA1(sha); err != nil {
-			sha = s.String()
-		}
 	}
+	sha = utils.MustConvertToSHA1(ctx.Context, sha)
 	repo := ctx.Repo.Repository
 
 	listOptions := utils.GetListOptions(ctx)
