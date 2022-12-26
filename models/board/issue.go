@@ -1,7 +1,7 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package project
+package board
 
 import (
 	"context"
@@ -11,13 +11,13 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-// BoardIssue saves relation from issue to a project
+// BoardIssue saves relation from issue to a board
 type BoardIssue struct { //revive:disable-line:exported
 	ID      int64 `xorm:"pk autoincr"`
 	IssueID int64 `xorm:"INDEX"`
 	BoardID int64 `xorm:"INDEX"`
 
-	// If 0, then it has not been added to a specific board in the project
+	// If 0, then it has not been added to a specific board in the board
 	BoardColumnID int64 `xorm:"INDEX"`
 
 	// the sorting order on the board
@@ -28,15 +28,15 @@ func init() {
 	db.RegisterModel(new(BoardIssue))
 }
 
-func deleteBoardIssuesByBoardID(ctx context.Context, projectID int64) error {
-	_, err := db.GetEngine(ctx).Where("project_id=?", projectID).Delete(&BoardIssue{})
+func deleteBoardIssuesByBoardID(ctx context.Context, boardID int64) error {
+	_, err := db.GetEngine(ctx).Where("board_id=?", boardID).Delete(&BoardIssue{})
 	return err
 }
 
-// NumIssues return counter of all issues assigned to a project
+// NumIssues return counter of all issues assigned to a board
 func (p *Board) NumIssues() int {
-	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
-		Where("project_id=?", p.ID).
+	c, err := db.GetEngine(db.DefaultContext).Table("board_issue").
+		Where("board_id=?", p.ID).
 		GroupBy("issue_id").
 		Cols("issue_id").
 		Count()
@@ -47,11 +47,11 @@ func (p *Board) NumIssues() int {
 	return int(c)
 }
 
-// NumClosedIssues return counter of closed issues assigned to a project
+// NumClosedIssues return counter of closed issues assigned to a board
 func (p *Board) NumClosedIssues() int {
-	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
-		Join("INNER", "issue", "project_issue.issue_id=issue.id").
-		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, true).
+	c, err := db.GetEngine(db.DefaultContext).Table("board_issue").
+		Join("INNER", "issue", "board_issue.issue_id=issue.id").
+		Where("board_issue.board_id=? AND issue.is_closed=?", p.ID, true).
 		Cols("issue_id").
 		Count()
 	if err != nil {
@@ -61,11 +61,11 @@ func (p *Board) NumClosedIssues() int {
 	return int(c)
 }
 
-// NumOpenIssues return counter of open issues assigned to a project
+// NumOpenIssues return counter of open issues assigned to a board
 func (p *Board) NumOpenIssues() int {
-	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
-		Join("INNER", "issue", "project_issue.issue_id=issue.id").
-		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, false).
+	c, err := db.GetEngine(db.DefaultContext).Table("board_issue").
+		Join("INNER", "issue", "board_issue.issue_id=issue.id").
+		Where("board_issue.board_id=? AND issue.is_closed=?", p.ID, false).
 		Cols("issue_id").
 		Count()
 	if err != nil {
@@ -84,16 +84,16 @@ func MoveIssuesOnBoardColumn(column *Column, sortedIssueIDs map[int64]int64) err
 		for _, issueID := range sortedIssueIDs {
 			issueIDs = append(issueIDs, issueID)
 		}
-		count, err := sess.Table(new(BoardIssue)).Where("project_id=?", column.BoardID).In("issue_id", issueIDs).Count()
+		count, err := sess.Table(new(BoardIssue)).Where("board_id=?", column.BoardID).In("issue_id", issueIDs).Count()
 		if err != nil {
 			return err
 		}
 		if int(count) != len(sortedIssueIDs) {
-			return fmt.Errorf("all issues have to be added to a project first")
+			return fmt.Errorf("all issues have to be added to a board first")
 		}
 
 		for sorting, issueID := range sortedIssueIDs {
-			_, err = sess.Exec("UPDATE `project_issue` SET project_board_id=?, sorting=? WHERE issue_id=?", column.ID, sorting, issueID)
+			_, err = sess.Exec("UPDATE `board_issue` SET board_column_id=?, sorting=? WHERE issue_id=?", column.ID, sorting, issueID)
 			if err != nil {
 				return err
 			}
@@ -103,6 +103,6 @@ func MoveIssuesOnBoardColumn(column *Column, sortedIssueIDs map[int64]int64) err
 }
 
 func (b *Column) removeIssues(ctx context.Context) error {
-	_, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id = 0 WHERE project_board_id = ? ", b.ID)
+	_, err := db.GetEngine(ctx).Exec("UPDATE `board_issue` SET board_column_id = 0 WHERE board_column_id = ? ", b.ID)
 	return err
 }

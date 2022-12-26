@@ -1,7 +1,7 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package project
+package board
 
 import (
 	"testing"
@@ -34,17 +34,17 @@ func TestIsBoardTypeValid(t *testing.T) {
 func TestFindBoards(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	projects, _, err := FindBoards(db.DefaultContext, SearchOptions{RepoID: 1})
+	boards, _, err := FindBoards(db.DefaultContext, SearchOptions{RepoID: 1})
 	assert.NoError(t, err)
 
 	// 1 value for this repo exists in the fixtures
-	assert.Len(t, projects, 1)
+	assert.Len(t, boards, 1)
 
-	projects, _, err = FindBoards(db.DefaultContext, SearchOptions{RepoID: 3})
+	boards, _, err = FindBoards(db.DefaultContext, SearchOptions{RepoID: 3})
 	assert.NoError(t, err)
 
 	// 1 value for this repo exists in the fixtures
-	assert.Len(t, projects, 1)
+	assert.Len(t, boards, 1)
 }
 
 func TestBoard(t *testing.T) {
@@ -53,7 +53,7 @@ func TestBoard(t *testing.T) {
 	board := &Board{
 		Type:        TypeRepository,
 		ColumnType:  BoardTypeBasicKanban,
-		Title:       "New Project",
+		Title:       "New Board",
 		RepoID:      1,
 		CreatedUnix: timeutil.TimeStampNow(),
 		CreatorID:   2,
@@ -64,20 +64,20 @@ func TestBoard(t *testing.T) {
 	_, err := GetBoardByID(db.DefaultContext, board.ID)
 	assert.NoError(t, err)
 
-	// Update project
+	// Update board
 	board.Title = "Updated title"
 	assert.NoError(t, UpdateBoard(db.DefaultContext, board))
 
-	projectFromDB, err := GetBoardByID(db.DefaultContext, board.ID)
+	boardFromDB, err := GetBoardByID(db.DefaultContext, board.ID)
 	assert.NoError(t, err)
 
-	assert.Equal(t, board.Title, projectFromDB.Title)
+	assert.Equal(t, board.Title, boardFromDB.Title)
 
 	assert.NoError(t, ChangeBoardStatus(board, true))
 
 	// Retrieve from DB afresh to check if it is truly closed
-	projectFromDB, err = GetBoardByID(db.DefaultContext, board.ID)
+	boardFromDB, err = GetBoardByID(db.DefaultContext, board.ID)
 	assert.NoError(t, err)
 
-	assert.True(t, projectFromDB.IsClosed)
+	assert.True(t, boardFromDB.IsClosed)
 }

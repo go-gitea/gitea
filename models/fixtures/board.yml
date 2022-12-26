@@ -1,6 +1,6 @@
 -
   id: 1
-  title: First project
+  title: First board
   repo_id: 1
   is_closed: false
   creator_id: 2
@@ -9,7 +9,7 @@
 
 -
   id: 2
-  title: second project
+  title: second board
   repo_id: 3
   is_closed: false
   creator_id: 3
@@ -18,7 +18,7 @@
 
 -
   id: 3
-  title: project on repo with disabled project
+  title: board on repo with disabled board
   repo_id: 4
   is_closed: true
   creator_id: 5

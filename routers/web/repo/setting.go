@@ -480,13 +480,13 @@ func SettingsPost(ctx *context.Context) {
 			}
 		}
 
-		if form.EnableProjects && !unit_model.TypeProjects.UnitGlobalDisabled() {
+		if form.EnableProjects && !unit_model.TypeBoards.UnitGlobalDisabled() {
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
-				Type:   unit_model.TypeProjects,
+				Type:   unit_model.TypeBoards,
 			})
-		} else if !unit_model.TypeProjects.UnitGlobalDisabled() {
-			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeProjects)
+		} else if !unit_model.TypeBoards.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeBoards)
 		}
 
 		if form.EnablePackages && !unit_model.TypePackages.UnitGlobalDisabled() {

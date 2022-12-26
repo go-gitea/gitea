@@ -446,6 +446,8 @@ var migrations = []Migration{
 	NewMigration("Create secrets table", v1_19.CreateSecretsTable),
 	// v237 -> v238
 	NewMigration("Drop ForeignReference table", v1_19.DropForeignReferenceTable),
+	// v238 -> v239
+	NewMigration("Rename projects related tables to boards", v1_19.RenameProjectsToBoards),
 }
 
 // GetCurrentDBVersion returns the current db version

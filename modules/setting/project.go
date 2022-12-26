@@ -5,9 +5,9 @@ package setting
 
 import "code.gitea.io/gitea/modules/log"
 
-// Project settings
+// Board settings
 var (
-	Project = struct {
+	Board = struct {
 		ProjectBoardBasicKanbanType []string
 		ProjectBoardBugTriageType   []string
 	}{
@@ -17,7 +17,7 @@ var (
 )
 
 func newProject() {
-	if err := Cfg.Section("project").MapTo(&Project); err != nil {
-		log.Fatal("Failed to map Project settings: %v", err)
+	if err := Cfg.Section("project").MapTo(&Board); err != nil {
+		log.Fatal("Failed to map Board settings: %v", err)
 	}
 }

@@ -805,7 +805,7 @@ func Contexter(ctx context.Context) func(next http.Handler) http.Handler {
 			ctx.Data["UnitWikiGlobalDisabled"] = unit.TypeWiki.UnitGlobalDisabled()
 			ctx.Data["UnitIssuesGlobalDisabled"] = unit.TypeIssues.UnitGlobalDisabled()
 			ctx.Data["UnitPullsGlobalDisabled"] = unit.TypePullRequests.UnitGlobalDisabled()
-			ctx.Data["UnitProjectsGlobalDisabled"] = unit.TypeProjects.UnitGlobalDisabled()
+			ctx.Data["UnitProjectsGlobalDisabled"] = unit.TypeBoards.UnitGlobalDisabled()
 
 			ctx.Data["locale"] = locale
 			ctx.Data["AllLangs"] = translation.AllLangs()

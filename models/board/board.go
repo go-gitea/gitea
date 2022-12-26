@@ -1,7 +1,7 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package project
+package board
 
 import (
 	"context"
@@ -19,41 +19,41 @@ import (
 type (
 	// BoardsConfig is used to identify the type of board that is being created
 	BoardsConfig struct {
-		ColumnType  BoardType
+		ColumnType  ColumnType
 		Translation string
 	}
 
-	// Type is used to identify the type of project in question and ownership
+	// Type is used to identify the type of board in question and ownership
 	Type uint8
 
-	// ColumnType is used to represent a project board type
-	BoardType uint8
+	// ColumnType is used to represent a board board type
+	ColumnType uint8
 )
 
 const (
-	// TypeIndividual is a type of project board that is owned by an individual
+	// TypeIndividual is a type of board board that is owned by an individual
 	TypeIndividual Type = iota + 1
 
-	// TypeRepository is a project that is tied to a repository
+	// TypeRepository is a board that is tied to a repository
 	TypeRepository
 
-	// TypeOrganization is a project that is tied to an organisation
+	// TypeOrganization is a board that is tied to an organisation
 	TypeOrganization
 )
 
 const (
 	// BoardTypeNone is a board type that has no predefined columns
-	BoardTypeNone BoardType = iota
+	BoardTypeNone ColumnType = iota
 
-	// ColumnTypeBasicKanban is a project board type that has basic predefined columns
+	// ColumnTypeBasicKanban is a board board type that has basic predefined columns
 	BoardTypeBasicKanban
 
-	// ColumnTypeBugTriage is a project board type that has predefined columns suited to hunting down bugs
+	// ColumnTypeBugTriage is a board board type that has predefined columns suited to hunting down bugs
 	BoardTypeBugTriage
 )
 
-// IsBoardTypeValid checks if the project board type is valid
-func IsBoardTypeValid(p BoardType) bool {
+// IsBoardTypeValid checks if the board board type is valid
+func IsBoardTypeValid(p ColumnType) bool {
 	switch p {
 	case BoardTypeNone, BoardTypeBasicKanban, BoardTypeBugTriage:
 		return true
@@ -90,7 +90,7 @@ type Board struct {
 	RepoID      int64  `xorm:"INDEX"`
 	CreatorID   int64  `xorm:"NOT NULL"`
 	IsClosed    bool   `xorm:"INDEX"`
-	ColumnType  BoardType
+	ColumnType  ColumnType
 	Type        Type
 
 	RenderedContent string `xorm:"-"`
@@ -104,7 +104,7 @@ func init() {
 	db.RegisterModel(new(Board))
 }
 
-// GetBoardsConfig retrieves the types of configurations projects could have
+// GetBoardsConfig retrieves the types of configurations boards could have
 func GetBoardsConfig() []BoardsConfig {
 	return []BoardsConfig{
 		{BoardTypeNone, "repo.projects.type.none"},
@@ -113,7 +113,7 @@ func GetBoardsConfig() []BoardsConfig {
 	}
 }
 
-// IsTypeValid checks if a project type is valid
+// IsTypeValid checks if a board type is valid
 func IsTypeValid(p Type) bool {
 	switch p {
 	case TypeRepository:
@@ -123,7 +123,7 @@ func IsTypeValid(p Type) bool {
 	}
 }
 
-// SearchOptions are options for GetProjects
+// SearchOptions are options for FindBoards
 type SearchOptions struct {
 	RepoID   int64
 	Page     int
@@ -135,7 +135,7 @@ type SearchOptions struct {
 // FindBoards returns a list of all boards that have been created in the repository
 func FindBoards(ctx context.Context, opts SearchOptions) ([]*Board, int64, error) {
 	e := db.GetEngine(ctx)
-	projects := make([]*Board, 0, setting.UI.IssuePagingNum)
+	boards := make([]*Board, 0, setting.UI.IssuePagingNum)
 
 	var cond builder.Cond = builder.Eq{"repo_id": opts.RepoID}
 	switch opts.IsClosed {
@@ -171,7 +171,7 @@ func FindBoards(ctx context.Context, opts SearchOptions) ([]*Board, int64, error
 		e.Asc("created_unix")
 	}
 
-	return projects, count, e.Find(&projects)
+	return boards, count, e.Find(&boards)
 }
 
 // NewBoard creates a new board
@@ -181,7 +181,7 @@ func NewBoard(p *Board) error {
 	}
 
 	if !IsTypeValid(p.Type) {
-		return errors.New("project type is not valid")
+		return errors.New("board type is not valid")
 	}
 
 	ctx, committer, err := db.TxContext(db.DefaultContext)
@@ -194,7 +194,7 @@ func NewBoard(p *Board) error {
 		return err
 	}
 
-	if _, err := db.Exec(ctx, "UPDATE `repository` SET num_projects = num_projects + 1 WHERE id = ?", p.RepoID); err != nil {
+	if _, err := db.Exec(ctx, "UPDATE `repository` SET num_boards = num_boards + 1 WHERE id = ?", p.RepoID); err != nil {
 		return err
 	}
 
@@ -231,19 +231,19 @@ func UpdateBoard(ctx context.Context, p *Board) error {
 func updateRepositoryBoardCount(ctx context.Context, repoID int64) error {
 	if _, err := db.GetEngine(ctx).Exec(builder.Update(
 		builder.Eq{
-			"`num_projects`": builder.Select("count(*)").From("`project`").
-				Where(builder.Eq{"`project`.`repo_id`": repoID}.
-					And(builder.Eq{"`project`.`type`": TypeRepository})),
+			"`num_boards`": builder.Select("count(*)").From("`board`").
+				Where(builder.Eq{"`board`.`repo_id`": repoID}.
+					And(builder.Eq{"`board`.`type`": TypeRepository})),
 		}).From("`repository`").Where(builder.Eq{"id": repoID})); err != nil {
 		return err
 	}
 
 	if _, err := db.GetEngine(ctx).Exec(builder.Update(
 		builder.Eq{
-			"`num_closed_projects`": builder.Select("count(*)").From("`project`").
-				Where(builder.Eq{"`project`.`repo_id`": repoID}.
-					And(builder.Eq{"`project`.`type`": TypeRepository}).
-					And(builder.Eq{"`project`.`is_closed`": true})),
+			"`num_closed_boards`": builder.Select("count(*)").From("`board`").
+				Where(builder.Eq{"`board`.`repo_id`": repoID}.
+					And(builder.Eq{"`board`.`type`": TypeRepository}).
+					And(builder.Eq{"`board`.`is_closed`": true})),
 		}).From("`repository`").Where(builder.Eq{"id": repoID})); err != nil {
 		return err
 	}
@@ -303,7 +303,7 @@ func changeBoardStatus(ctx context.Context, p *Board, isClosed bool) error {
 	return updateRepositoryBoardCount(ctx, p.RepoID)
 }
 
-// DeleteBoardByID deletes a project from a repository. if it's not in a database
+// DeleteBoardByID deletes a board from a repository. if it's not in a database
 // transaction, it will start a new database transaction
 func DeleteBoardByID(ctx context.Context, id int64) error {
 	return db.AutoTx(ctx, func(ctx context.Context) error {
@@ -334,33 +334,33 @@ func DeleteBoardByID(ctx context.Context, id int64) error {
 func DeleteBoardByRepoID(ctx context.Context, repoID int64) error {
 	switch {
 	case setting.Database.UseSQLite3:
-		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_issue WHERE project_issue.id IN (SELECT project_issue.id FROM project_issue INNER JOIN project WHERE project.id = project_issue.project_id AND project.repo_id = ?)", repoID); err != nil {
+		if _, err := db.GetEngine(ctx).Exec("DELETE FROM board_issue WHERE board_issue.id IN (SELECT board_issue.id FROM board_issue INNER JOIN board WHERE board.id = board_issue.board_id AND board.repo_id = ?)", repoID); err != nil {
 			return err
 		}
-		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_board WHERE project_board.id IN (SELECT project_board.id FROM project_board INNER JOIN project WHERE project.id = project_board.project_id AND project.repo_id = ?)", repoID); err != nil {
+		if _, err := db.GetEngine(ctx).Exec("DELETE FROM board_column WHERE board_column.id IN (SELECT board_column.id FROM board_column INNER JOIN board WHERE board.id = board_column.board_id AND board.repo_id = ?)", repoID); err != nil {
 			return err
 		}
-		if _, err := db.GetEngine(ctx).Table("project").Where("repo_id = ? ", repoID).Delete(&Board{}); err != nil {
+		if _, err := db.GetEngine(ctx).Table("board").Where("repo_id = ? ", repoID).Delete(&Board{}); err != nil {
 			return err
 		}
 	case setting.Database.UsePostgreSQL:
-		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_issue USING project WHERE project.id = project_issue.project_id AND project.repo_id = ? ", repoID); err != nil {
+		if _, err := db.GetEngine(ctx).Exec("DELETE FROM board_issue USING board WHERE board.id = board_issue.board_id AND board.repo_id = ? ", repoID); err != nil {
 			return err
 		}
-		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_board USING project WHERE project.id = project_board.project_id AND project.repo_id = ? ", repoID); err != nil {
+		if _, err := db.GetEngine(ctx).Exec("DELETE FROM board_column USING board WHERE board.id = board_column.board_id AND board.repo_id = ? ", repoID); err != nil {
 			return err
 		}
-		if _, err := db.GetEngine(ctx).Table("project").Where("repo_id = ? ", repoID).Delete(&Board{}); err != nil {
+		if _, err := db.GetEngine(ctx).Table("board").Where("repo_id = ? ", repoID).Delete(&Board{}); err != nil {
 			return err
 		}
 	default:
-		if _, err := db.GetEngine(ctx).Exec("DELETE project_issue FROM project_issue INNER JOIN project ON project.id = project_issue.project_id WHERE project.repo_id = ? ", repoID); err != nil {
+		if _, err := db.GetEngine(ctx).Exec("DELETE board_issue FROM board_issue INNER JOIN board ON board.id = board_issue.board_id WHERE board.repo_id = ? ", repoID); err != nil {
 			return err
 		}
-		if _, err := db.GetEngine(ctx).Exec("DELETE project_board FROM project_board INNER JOIN project ON project.id = project_board.project_id WHERE project.repo_id = ? ", repoID); err != nil {
+		if _, err := db.GetEngine(ctx).Exec("DELETE board_column FROM board_column INNER JOIN board ON board.id = board_column.board_id WHERE board.repo_id = ? ", repoID); err != nil {
 			return err
 		}
-		if _, err := db.GetEngine(ctx).Table("project").Where("repo_id = ? ", repoID).Delete(&Board{}); err != nil {
+		if _, err := db.GetEngine(ctx).Table("board").Where("repo_id = ? ", repoID).Delete(&Board{}); err != nil {
 			return err
 		}
 	}

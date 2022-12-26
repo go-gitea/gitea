@@ -1,7 +1,7 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package project
+package board
 
 import (
 	"context"
@@ -19,19 +19,19 @@ import (
 // ColumnColorPattern is a regexp witch can validate BoardColor
 var ColumnColorPattern = regexp.MustCompile("^#[0-9a-fA-F]{6}$")
 
-// ErrColumnNotExist represents a "ProjectBoardNotExist" kind of error.
+// ErrColumnNotExist represents a "ColumnNotExist" kind of error.
 type ErrColumnNotExist struct {
 	ColumnID int64
 }
 
-// IsErrProjectBoardNotExist checks if an error is a ErrProjectBoardNotExist
-func IsErrProjectBoardNotExist(err error) bool {
+// IsErrColumnNotExist checks if an error is a ErrColumnNotExist
+func IsErrColumnNotExist(err error) bool {
 	_, ok := err.(ErrColumnNotExist)
 	return ok
 }
 
 func (err ErrColumnNotExist) Error() string {
-	return fmt.Sprintf("project board does not exist [id: %d]", err.ColumnID)
+	return fmt.Sprintf("board column does not exist [id: %d]", err.ColumnID)
 }
 
 func (err ErrColumnNotExist) Unwrap() error {
@@ -55,14 +55,14 @@ type Column struct {
 
 // TableName return the real table name
 func (Column) TableName() string {
-	return "project_board"
+	return "board_column"
 }
 
 // NumIssues return counter of all issues assigned to the board
 func (b *Column) NumIssues() int {
-	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
-		Where("project_id=?", b.BoardID).
-		And("project_board_id=?", b.ID).
+	c, err := db.GetEngine(db.DefaultContext).Table("board_issue").
+		Where("board_id=?", b.BoardID).
+		And("board_column_id=?", b.ID).
 		GroupBy("issue_id").
 		Cols("issue_id").
 		Count()
@@ -82,10 +82,10 @@ func createColumnsForBoardType(ctx context.Context, board *Board) error {
 	switch board.ColumnType {
 
 	case BoardTypeBugTriage:
-		items = setting.Project.ProjectBoardBugTriageType
+		items = setting.Board.ProjectBoardBugTriageType
 
 	case BoardTypeBasicKanban:
-		items = setting.Project.ProjectBoardBasicKanbanType
+		items = setting.Board.ProjectBoardBasicKanbanType
 
 	case BoardTypeNone:
 		fallthrough
@@ -111,7 +111,7 @@ func createColumnsForBoardType(ctx context.Context, board *Board) error {
 	return db.Insert(ctx, columns)
 }
 
-// NewColumn adds a new project board to a given project
+// NewColumn adds a new board column to a given board
 func NewColumn(board *Column) error {
 	if len(board.Color) != 0 && !ColumnColorPattern.MatchString(board.Color) {
 		return fmt.Errorf("bad color code: %s", board.Color)
@@ -121,7 +121,7 @@ func NewColumn(board *Column) error {
 	return err
 }
 
-// DeleteColumnByID                             removes all issues references to the project board.
+// DeleteColumnByID removes all issues references to the board column.
 func DeleteColumnByID(boardID int64) error {
 	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
@@ -139,7 +139,7 @@ func DeleteColumnByID(boardID int64) error {
 func deleteColumnByID(ctx context.Context, columnID int64) error {
 	column, err := GetColumn(ctx, columnID)
 	if err != nil {
-		if IsErrProjectBoardNotExist(err) {
+		if IsErrColumnNotExist(err) {
 			return nil
 		}
 
@@ -157,11 +157,11 @@ func deleteColumnByID(ctx context.Context, columnID int64) error {
 }
 
 func deleteColumnsByBoardID(ctx context.Context, boardID int64) error {
-	_, err := db.GetEngine(ctx).Where("project_id=?", boardID).Delete(&Column{})
+	_, err := db.GetEngine(ctx).Where("board_id=?", boardID).Delete(&Column{})
 	return err
 }
 
-// GetBoard fetches the current board of a project
+// GetColumn fetches the current column of a board
 func GetColumn(ctx context.Context, columnID int64) (*Column, error) {
 	column := new(Column)
 
@@ -197,7 +197,7 @@ func UpdateColumn(ctx context.Context, column *Column) error {
 	return err
 }
 
-// ColumnList is a list of all project boards in a repository
+// ColumnList is a list of all board columns in a repository
 type ColumnList []*Column
 
 // FindColumns fetches all columns related to a board
@@ -205,7 +205,7 @@ type ColumnList []*Column
 func FindColumns(ctx context.Context, boardID int64) (ColumnList, error) {
 	columns := make([]*Column, 0, 5)
 
-	if err := db.GetEngine(ctx).Where("project_id=? AND `default`=?", boardID, false).OrderBy("Sorting").Find(&columns); err != nil {
+	if err := db.GetEngine(ctx).Where("board_id=? AND `default`=?", boardID, false).OrderBy("Sorting").Find(&columns); err != nil {
 		return nil, err
 	}
 
@@ -220,7 +220,7 @@ func FindColumns(ctx context.Context, boardID int64) (ColumnList, error) {
 // getDefaultColumn return default column and create a dummy if none exist
 func getDefaultColumn(ctx context.Context, boardID int64) (*Column, error) {
 	var board Column
-	exist, err := db.GetEngine(ctx).Where("project_id=? AND `default`=?", boardID, true).Get(&board)
+	exist, err := db.GetEngine(ctx).Where("board_id=? AND `default`=?", boardID, true).Get(&board)
 	if err != nil {
 		return nil, err
 	}
@@ -240,22 +240,22 @@ func getDefaultColumn(ctx context.Context, boardID int64) (*Column, error) {
 // if boardID is 0 unset default
 func SetDefaultColumn(boardID, columnID int64) error {
 	_, err := db.GetEngine(db.DefaultContext).Where(builder.Eq{
-		"project_id": boardID,
-		"`default`":  true,
+		"board_id":  boardID,
+		"`default`": true,
 	}).Cols("`default`").Update(&Column{Default: false})
 	if err != nil {
 		return err
 	}
 
 	if boardID > 0 {
-		_, err = db.GetEngine(db.DefaultContext).ID(boardID).Where(builder.Eq{"project_id": boardID}).
+		_, err = db.GetEngine(db.DefaultContext).ID(boardID).Where(builder.Eq{"board_id": boardID}).
 			Cols("`default`").Update(&Column{Default: true})
 	}
 
 	return err
 }
 
-// UpdateColumnSorting update project board sorting
+// UpdateColumnSorting update board column sorting
 func UpdateColumnSorting(bs ColumnList) error {
 	for i := range bs {
 		_, err := db.GetEngine(db.DefaultContext).ID(bs[i].ID).Cols(

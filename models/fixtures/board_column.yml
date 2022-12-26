@@ -1,6 +1,6 @@
 -
   id: 1
-  project_id: 1
+  board_id: 1
   title: To Do
   creator_id: 2
   created_unix: 1588117528
@@ -8,7 +8,7 @@
 
 -
   id: 2
-  project_id: 1
+  board_id: 1
   title: In Progress
   creator_id: 2
   created_unix: 1588117528
@@ -16,7 +16,7 @@
 
 -
   id: 3
-  project_id: 1
+  board_id: 1
   title: Done
   creator_id: 2
   created_unix: 1588117528

@@ -122,10 +122,10 @@ const (
 	CommentTypeMergePull
 	// 29 push to PR head branch
 	CommentTypePullRequestPush
-	// 30 Project changed
-	CommentTypeProject
-	// 31 Project board changed
-	CommentTypeProjectBoard
+	// 30 Board changed
+	CommentTypeBoard
+	// 31 Board column changed
+	CommentTypeBoardColumn
 	// 32 Dismiss Review
 	CommentTypeDismissReview
 	// 33 Change issue ref
@@ -490,25 +490,25 @@ func (c *Comment) LoadLabel() error {
 	return nil
 }
 
-// LoadProject if comment.Type is CommentTypeProject, then load project.
-func (c *Comment) LoadProject() error {
+// LoadBoard if comment.Type is CommentTypeBoard, then load boards.
+func (c *Comment) LoadBoard() error {
 	if c.OldProjectID > 0 {
-		var oldProject board_model.Board
-		has, err := db.GetEngine(db.DefaultContext).ID(c.OldProjectID).Get(&oldProject)
+		var oldBoard board_model.Board
+		has, err := db.GetEngine(db.DefaultContext).ID(c.OldProjectID).Get(&oldBoard)
 		if err != nil {
 			return err
 		} else if has {
-			c.OldBoard = &oldProject
+			c.OldBoard = &oldBoard
 		}
 	}
 
 	if c.ProjectID > 0 {
-		var project board_model.Board
-		has, err := db.GetEngine(db.DefaultContext).ID(c.ProjectID).Get(&project)
+		var board board_model.Board
+		has, err := db.GetEngine(db.DefaultContext).ID(c.ProjectID).Get(&board)
 		if err != nil {
 			return err
 		} else if has {
-			c.Board = &project
+			c.Board = &board
 		}
 	}
 

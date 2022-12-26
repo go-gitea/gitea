@@ -631,3 +631,29 @@ func deleteDB() error {
 
 	return nil
 }
+
+func RenameTable(x *xorm.Engine, oldTable, newTable string) error {
+	if _, err := x.Exec(fmt.Sprintf("ALTER TABLE `%s` RENAME TO `%s`", oldTable, newTable)); err != nil {
+		log.Error("Unable to rename %s to %s. Error: %v", oldTable, newTable, err)
+		return err
+	}
+	return nil
+}
+
+func RenameColumn(sess *xorm.Session, table, oldColumn, newColumn, mySQLType string) error {
+	switch {
+	case setting.Database.UseMySQL:
+		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` CHANGE %s %s %s", table, oldColumn, newColumn, mySQLType)); err != nil {
+			return err
+		}
+	case setting.Database.UseMSSQL:
+		if _, err := sess.Exec(fmt.Sprintf("sp_rename '%s.%s', '%s', 'COLUMN'", table, oldColumn, newColumn)); err != nil {
+			return err
+		}
+	default:
+		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` RENAME COLUMN %s TO %s", table, oldColumn, newColumn)); err != nil {
+			return err
+		}
+	}
+	return nil
+}

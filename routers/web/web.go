@@ -659,8 +659,8 @@ func RegisterRoutes(m *web.Route) {
 	reqRepoPullsReader := context.RequireRepoReader(unit.TypePullRequests)
 	reqRepoIssuesOrPullsWriter := context.RequireRepoWriterOr(unit.TypeIssues, unit.TypePullRequests)
 	reqRepoIssuesOrPullsReader := context.RequireRepoReaderOr(unit.TypeIssues, unit.TypePullRequests)
-	reqRepoProjectsReader := context.RequireRepoReader(unit.TypeProjects)
-	reqRepoProjectsWriter := context.RequireRepoWriter(unit.TypeProjects)
+	reqRepoProjectsReader := context.RequireRepoReader(unit.TypeBoards)
+	reqRepoProjectsWriter := context.RequireRepoWriter(unit.TypeBoards)
 
 	reqPackageAccess := func(accessMode perm.AccessMode) func(ctx *context.Context) {
 		return func(ctx *context.Context) {

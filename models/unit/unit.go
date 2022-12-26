@@ -25,7 +25,7 @@ const (
 	TypeWiki                        // 5 Wiki
 	TypeExternalWiki                // 6 ExternalWiki
 	TypeExternalTracker             // 7 ExternalTracker
-	TypeProjects                    // 8 Kanban board
+	TypeBoards                      // 8 Kanban board
 	TypePackages                    // 9 Packages
 )
 
@@ -50,8 +50,8 @@ func (u Type) String() string {
 		return "TypeExternalWiki"
 	case TypeExternalTracker:
 		return "TypeExternalTracker"
-	case TypeProjects:
-		return "TypeProjects"
+	case TypeBoards:
+		return "TypeBoards"
 	case TypePackages:
 		return "TypePackages"
 	}
@@ -75,7 +75,7 @@ var (
 		TypeWiki,
 		TypeExternalWiki,
 		TypeExternalTracker,
-		TypeProjects,
+		TypeBoards,
 		TypePackages,
 	}
 
@@ -86,7 +86,7 @@ var (
 		TypePullRequests,
 		TypeReleases,
 		TypeWiki,
-		TypeProjects,
+		TypeBoards,
 		TypePackages,
 	}
 
@@ -271,7 +271,7 @@ var (
 	}
 
 	UnitProjects = Unit{
-		TypeProjects,
+		TypeBoards,
 		"repo.projects",
 		"/projects",
 		"repo.projects.desc",
@@ -297,7 +297,7 @@ var (
 		TypeReleases:        UnitReleases,
 		TypeWiki:            UnitWiki,
 		TypeExternalWiki:    UnitExternalWiki,
-		TypeProjects:        UnitProjects,
+		TypeBoards:          UnitProjects,
 		TypePackages:        UnitPackages,
 	}
 )

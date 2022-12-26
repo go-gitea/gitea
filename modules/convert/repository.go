@@ -94,7 +94,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 		defaultMergeStyle = config.GetDefaultMergeStyle()
 	}
 	hasProjects := false
-	if _, err := repo.GetUnit(ctx, unit_model.TypeProjects); err == nil {
+	if _, err := repo.GetUnit(ctx, unit_model.TypeBoards); err == nil {
 		hasProjects = true
 	}
 

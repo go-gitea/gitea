@@ -502,7 +502,7 @@ func (i IssueLockForm) HasValidReason() bool {
 type CreateBoardForm struct {
 	Title      string `binding:"Required;MaxSize(100)"`
 	Content    string
-	ColumnType board_model.BoardType
+	ColumnType board_model.ColumnType
 }
 
 // UserCreateProjectForm is a from for creating an individual or organization
@@ -510,7 +510,7 @@ type CreateBoardForm struct {
 type UserCreateProjectForm struct {
 	Title      string `binding:"Required;MaxSize(100)"`
 	Content    string
-	ColumnType board_model.BoardType
+	ColumnType board_model.ColumnType
 	UID        int64 `binding:"Required"`
 }
 

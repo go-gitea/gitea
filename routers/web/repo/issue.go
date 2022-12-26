@@ -134,7 +134,7 @@ func MustAllowPulls(ctx *context.Context) {
 	}
 }
 
-func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption util.OptionalBool) {
+func issues(ctx *context.Context, milestoneID, boardID int64, isPullOption util.OptionalBool) {
 	var err error
 	viewType := ctx.FormString("type")
 	sortType := ctx.FormString("sort")
@@ -255,7 +255,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			MentionedID:       mentionedID,
 			ReviewRequestedID: reviewRequestedID,
 			MilestoneIDs:      mileIDs,
-			ProjectID:         projectID,
+			BoardID:           boardID,
 			IsClosed:          util.OptionalBoolOf(isShowClosed),
 			IsPull:            isPullOption,
 			LabelIDs:          labelIDs,
@@ -808,7 +808,7 @@ func NewIssue(ctx *context.Context) {
 	body := ctx.FormString("body")
 	ctx.Data["BodyQuery"] = body
 
-	isProjectsEnabled := ctx.Repo.CanRead(unit.TypeProjects)
+	isProjectsEnabled := ctx.Repo.CanRead(unit.TypeBoards)
 	ctx.Data["IsProjectsEnabled"] = isProjectsEnabled
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
@@ -1095,12 +1095,12 @@ func NewIssuePost(ctx *context.Context) {
 	}
 
 	if projectID > 0 {
-		if !ctx.Repo.CanRead(unit.TypeProjects) {
+		if !ctx.Repo.CanRead(unit.TypeBoards) {
 			// User must also be able to see the project.
 			ctx.Error(http.StatusBadRequest, "user hasn't permissions to read projects")
 			return
 		}
-		if err := issues_model.ChangeProjectAssign(issue, ctx.Doer, projectID); err != nil {
+		if err := issues_model.ChangeBoardAssign(issue, ctx.Doer, projectID); err != nil {
 			ctx.ServerError("ChangeProjectAssign", err)
 			return
 		}
@@ -1240,7 +1240,7 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	ctx.Data["RequireTribute"] = true
-	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanRead(unit.TypeProjects)
+	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanRead(unit.TypeBoards)
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
 
@@ -1483,9 +1483,9 @@ func ViewIssue(ctx *context.Context) {
 			if comment.MilestoneID > 0 && comment.Milestone == nil {
 				comment.Milestone = ghostMilestone
 			}
-		} else if comment.Type == issues_model.CommentTypeProject {
+		} else if comment.Type == issues_model.CommentTypeBoard {
 
-			if err = comment.LoadProject(); err != nil {
+			if err = comment.LoadBoard(); err != nil {
 				ctx.ServerError("LoadProject", err)
 				return
 			}
@@ -1775,7 +1775,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login?redirect_to=" + url.QueryEscape(ctx.Data["Link"].(string))
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.Doer.ID)
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
-	ctx.Data["HasProjectsWritePermission"] = ctx.Repo.CanWrite(unit.TypeProjects)
+	ctx.Data["HasProjectsWritePermission"] = ctx.Repo.CanWrite(unit.TypeBoards)
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.Doer.IsAdmin)
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
 	ctx.Data["RefEndName"] = git.RefEndName(issue.Ref)

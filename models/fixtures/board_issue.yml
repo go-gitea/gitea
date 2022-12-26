@@ -1,0 +1,23 @@
+-
+  id: 1
+  issue_id: 1
+  board_id: 1
+  board_column_id: 1
+
+-
+  id: 2
+  issue_id: 2
+  board_id: 1
+  board_column_id: 0 # no board assigned
+
+-
+  id: 3
+  issue_id: 3
+  board_id: 1
+  board_column_id: 2
+
+-
+  id: 4
+  issue_id: 5
+  board_id: 1
+  board_column_id: 3

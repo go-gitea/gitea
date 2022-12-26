@@ -216,7 +216,7 @@ func fixBrokenRepoUnit16961(repoUnit *repo_model.RepoUnit, bs []byte) (fixed boo
 	}
 
 	switch repoUnit.Type {
-	case unit.TypeCode, unit.TypeReleases, unit.TypeWiki, unit.TypeProjects:
+	case unit.TypeCode, unit.TypeReleases, unit.TypeWiki, unit.TypeBoards:
 		cfg := &repo_model.UnitConfig{}
 		repoUnit.Config = cfg
 		if fixed, err := fixUnitConfig16961(bs, cfg); !fixed {

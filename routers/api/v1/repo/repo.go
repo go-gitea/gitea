@@ -909,14 +909,14 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
-	if opts.HasProjects != nil && !unit_model.TypeProjects.UnitGlobalDisabled() {
+	if opts.HasProjects != nil && !unit_model.TypeBoards.UnitGlobalDisabled() {
 		if *opts.HasProjects {
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
-				Type:   unit_model.TypeProjects,
+				Type:   unit_model.TypeBoards,
 			})
 		} else {
-			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeProjects)
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeBoards)
 		}
 	}
 

@@ -223,30 +223,30 @@ func (issues IssueList) getBoardIDs() []int64 {
 }
 
 func (issues IssueList) loadBoards(ctx context.Context) error {
-	projectIDs := issues.getBoardIDs()
-	if len(projectIDs) == 0 {
+	boardIDs := issues.getBoardIDs()
+	if len(boardIDs) == 0 {
 		return nil
 	}
 
-	projectMaps := make(map[int64]*board_model.Board, len(projectIDs))
-	left := len(projectIDs)
+	boardMaps := make(map[int64]*board_model.Board, len(boardIDs))
+	left := len(boardIDs)
 	for left > 0 {
 		limit := db.DefaultMaxInSize
 		if left < limit {
 			limit = left
 		}
 		err := db.GetEngine(ctx).
-			In("id", projectIDs[:limit]).
-			Find(&projectMaps)
+			In("id", boardIDs[:limit]).
+			Find(&boardMaps)
 		if err != nil {
 			return err
 		}
 		left -= limit
-		projectIDs = projectIDs[limit:]
+		boardIDs = boardIDs[limit:]
 	}
 
 	for _, issue := range issues {
-		issue.Board = projectMaps[issue.BoardID()]
+		issue.Board = boardMaps[issue.BoardID()]
 	}
 	return nil
 }
@@ -527,7 +527,7 @@ func (issues IssueList) loadAttributes(ctx context.Context) error {
 	}
 
 	if err := issues.loadBoards(ctx); err != nil {
-		return fmt.Errorf("issue.loadAttributes: loadProjects: %w", err)
+		return fmt.Errorf("issue.loadAttributes: loadBoards: %w", err)
 	}
 
 	if err := issues.loadAssignees(ctx); err != nil {

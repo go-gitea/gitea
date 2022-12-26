@@ -20,7 +20,7 @@ func TestCheckProjectBoardChangePermissions(t *testing.T) {
 	ctx.SetParams(":id", "1")
 	ctx.SetParams(":boardID", "2")
 
-	project, board := checkProjectBoardChangePermissions(ctx)
+	project, board := checkBoardColumnChangePermissions(ctx)
 	assert.NotNil(t, project)
 	assert.NotNil(t, board)
 	assert.False(t, ctx.Written())

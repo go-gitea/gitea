@@ -347,7 +347,7 @@ func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 		return
 	}
 
-	if err = issue.loadProject(ctx); err != nil {
+	if err = issue.loadBoard(ctx); err != nil {
 		return
 	}
 
@@ -1121,8 +1121,8 @@ type IssuesOptions struct { //nolint
 	ReviewRequestedID  int64
 	SubscriberID       int64
 	MilestoneIDs       []int64
-	ProjectID          int64
-	ProjectBoardID     int64
+	BoardID            int64
+	BoardColumnID      int64
 	IsClosed           util.OptionalBool
 	IsPull             util.OptionalBool
 	LabelIDs           []int64
@@ -1181,8 +1181,8 @@ func sortIssuesSession(sess *xorm.Session, sortType string, priorityRepoID int64
 			"ELSE 2 END ASC", priorityRepoID).
 			Desc("issue.created_unix").
 			Desc("issue.id")
-	case "project-column-sorting":
-		sess.Asc("project_issue.sorting").Desc("issue.created_unix").Desc("issue.id")
+	case "board-column-sorting":
+		sess.Asc("board_issue.sorting").Desc("issue.created_unix").Desc("issue.id")
 	default:
 		sess.Desc("issue.created_unix").Desc("issue.id")
 	}
@@ -1248,16 +1248,16 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 		sess.And(builder.Lte{"issue.updated_unix": opts.UpdatedBeforeUnix})
 	}
 
-	if opts.ProjectID > 0 {
-		sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
-			And("project_issue.project_id=?", opts.ProjectID)
+	if opts.BoardID > 0 {
+		sess.Join("INNER", "board_issue", "issue.id = board_issue.issue_id").
+			And("board_issue.board_id=?", opts.BoardID)
 	}
 
-	if opts.ProjectBoardID != 0 {
-		if opts.ProjectBoardID > 0 {
-			sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": opts.ProjectBoardID}))
+	if opts.BoardColumnID != 0 {
+		if opts.BoardColumnID > 0 {
+			sess.In("issue.id", builder.Select("issue_id").From("board_issue").Where(builder.Eq{"board_column_id": opts.BoardColumnID}))
 		} else {
-			sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": 0}))
+			sess.In("issue.id", builder.Select("issue_id").From("board_issue").Where(builder.Eq{"board_column_id": 0}))
 		}
 	}
 
