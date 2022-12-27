@@ -72,7 +72,6 @@ func GetTeamMembers(ctx context.Context, opts *SearchMembersOptions) ([]*user_mo
 	return members, nil
 }
 
-
 // IsUserInTeams returns if a user in some teams
 func IsUserInTeams(ctx context.Context, userID int64, teamIDs []int64) (bool, error) {
 	return db.GetEngine(ctx).Where("uid=?", userID).In("team_id", teamIDs).Exist(new(TeamUser))

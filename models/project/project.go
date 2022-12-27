@@ -137,6 +137,10 @@ func (p *Project) Link() string {
 	return ""
 }
 
+func (p *Project) IsOrganizationProject() bool {
+	return p.Type == TypeOrganization
+}
+
 func init() {
 	db.RegisterModel(new(Project))
 }
@@ -171,7 +175,7 @@ type SearchOptions struct {
 }
 
 func (opts *SearchOptions) toConds() builder.Cond {
-	var cond builder.Cond = builder.NewCond()
+	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
 	}

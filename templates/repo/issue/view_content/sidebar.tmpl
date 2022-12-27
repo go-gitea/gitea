@@ -221,7 +221,7 @@
 						{{range .OpenProjects}}
 							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
 								{{svg "octicon-project" 18 "mr-3"}}
-								{{.Title}}
+								{{if .IsOrganizationProject}}org: {{end}}{{.Title}}
 							</a>
 						{{end}}
 					{{end}}
@@ -233,7 +233,7 @@
 						{{range .ClosedProjects}}
 							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
 								{{svg "octicon-project" 18 "mr-3"}}
-								{{.Title}}
+								{{if .IsOrganizationProject}}org: {{end}}{{.Title}}
 							</a>
 						{{end}}
 					{{end}}
@@ -245,7 +245,7 @@
 					{{if .Issue.ProjectID}}
 						<a class="item muted sidebar-item-link" href="{{.Issue.Project.Link}}">
 							{{svg "octicon-project" 18 "mr-3"}}
-							{{.Issue.Project.Title}}
+							{{if .Issue.Project.IsOrganizationProject}}org: {{end}}{{.Issue.Project.Title}}
 						</a>
 					{{end}}
 				</div>

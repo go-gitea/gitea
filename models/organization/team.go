@@ -280,8 +280,6 @@ func GetTeamNamesByID(teamIDs []int64) ([]string, error) {
 	return teamNames, err
 }
 
-
-
 // IncrTeamRepoNum increases the number of repos for the given team by 1
 func IncrTeamRepoNum(ctx context.Context, teamID int64) error {
 	_, err := db.GetEngine(ctx).Incr("num_repos").ID(teamID).Update(new(Team))
