@@ -4,6 +4,7 @@
 package webhook
 
 import (
+	webhook_module "code.gitea.io/gitea/modules/notification/webhook"
 	"context"
 	"crypto/hmac"
 	"crypto/sha1"
@@ -89,7 +90,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 		}
 	case http.MethodPut:
 		switch w.Type {
-		case webhook_model.MATRIX:
+		case webhook_module.MATRIX:
 			txnID, err := getMatrixTxnID([]byte(t.PayloadContent))
 			if err != nil {
 				return err

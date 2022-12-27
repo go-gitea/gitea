@@ -4,6 +4,7 @@
 package webhook
 
 import (
+	webhook_module "code.gitea.io/gitea/modules/notification/webhook"
 	"context"
 	"time"
 
@@ -107,7 +108,7 @@ type HookTask struct {
 	UUID            string `xorm:"unique"`
 	api.Payloader   `xorm:"-"`
 	PayloadContent  string `xorm:"LONGTEXT"`
-	EventType       HookEventType
+	EventType       webhook_module.HookEventType
 	IsDelivered     bool
 	Delivered       int64
 	DeliveredString string `xorm:"-"`
@@ -194,7 +195,7 @@ func GetHookTaskByID(ctx context.Context, id int64) (*HookTask, error) {
 		return nil, err
 	}
 	if !has {
-		return nil, ErrHookTaskNotExist{
+		return nil, webhook_module.ErrHookTaskNotExist{
 			TaskID: id,
 		}
 	}
@@ -217,7 +218,7 @@ func ReplayHookTask(ctx context.Context, hookID int64, uuid string) (*HookTask, 
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrHookTaskNotExist{
+		return nil, webhook_module.ErrHookTaskNotExist{
 			HookID: hookID,
 			UUID:   uuid,
 		}

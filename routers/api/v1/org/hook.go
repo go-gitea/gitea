@@ -4,11 +4,12 @@
 package org
 
 import (
+	webhook_module "code.gitea.io/gitea/modules/notification/webhook"
+	webhook_service "code.gitea.io/gitea/services/webhook"
 	"net/http"
 
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -58,7 +59,7 @@ func ListHooks(ctx *context.APIContext) {
 
 	hooks := make([]*api.Hook, len(orgHooks))
 	for i, hook := range orgHooks {
-		hooks[i], err = convert.ToHook(ctx.Org.Organization.AsUser().HomeLink(), hook)
+		hooks[i], err = webhook_service.ToHook(ctx.Org.Organization.AsUser().HomeLink(), hook)
 		if err != nil {
 			ctx.InternalServerError(err)
 			return
@@ -99,7 +100,7 @@ func GetHook(ctx *context.APIContext) {
 		return
 	}
 
-	apiHook, err := convert.ToHook(org.AsUser().HomeLink(), hook)
+	apiHook, err := webhook_service.ToHook(org.AsUser().HomeLink(), hook)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -201,7 +202,7 @@ func DeleteHook(ctx *context.APIContext) {
 	org := ctx.Org.Organization
 	hookID := ctx.ParamsInt64(":id")
 	if err := webhook.DeleteWebhookByOrgID(org.ID, hookID); err != nil {
-		if webhook.IsErrWebhookNotExist(err) {
+		if webhook_module.IsErrWebhookNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "DeleteWebhookByOrgID", err)
