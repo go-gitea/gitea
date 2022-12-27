@@ -137,7 +137,7 @@ func (repo *Repository) getCommitFromBatchReader(rd *bufio.Reader, id SHA1) (*Co
 
 // ConvertToSHA1 returns a Hash object from a potential ID string
 func (repo *Repository) ConvertToSHA1(commitID string) (SHA1, error) {
-	if len(commitID) == 40 && IsValidSHAPattern(commitID) {
+	if len(commitID) == SHAFullLength && IsValidSHAPattern(commitID) {
 		sha1, err := NewIDFromString(commitID)
 		if err == nil {
 			return sha1, nil
