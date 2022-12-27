@@ -107,14 +107,8 @@ func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr
 					vars["ClosingIssues"] = ""
 				}
 			}
-
-			templateDetail := ""
-			if splits := strings.SplitN(templateContent, "\n", 2); len(splits) == 2 {
-				templateContent = splits[0]
-				templateDetail = splits[1]
-			}
-			mapping := func(s string) string { return vars[s] }
-			return os.Expand(templateContent, mapping), os.Expand(templateDetail, mapping), nil
+			message, detail := expandDefaultMergeMessage(templateContent, vars)
+			return message, detail, nil
 		}
 	}
 
@@ -132,6 +126,17 @@ func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr
 	}
 
 	return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s:%s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseBranch), "", nil
+}
+
+func expandDefaultMergeMessage(template string, vars map[string]string) (string, string) {
+	message := strings.TrimSpace(template)
+	detail := ""
+	if splits := strings.SplitN(message, "\n", 2); len(splits) == 2 {
+		message = splits[0]
+		detail = strings.TrimSpace(detail)
+	}
+	mapping := func(s string) string { return vars[s] }
+	return os.Expand(message, mapping), os.Expand(detail, mapping)
 }
 
 // Merge merges pull request to base repository.
