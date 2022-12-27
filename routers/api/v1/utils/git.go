@@ -86,7 +86,7 @@ func ConvertToSHA1(ctx *context.Context, commitID string) (git.SHA1, error) {
 	return gitRepo.ConvertToSHA1(commitID)
 }
 
-// MustConvertToSHA1 returns a SHA1 string from a potential ID string, or returns origin input if it can't convert to SHA1
+// MustConvertToSHA1 returns a full-length SHA1 string from a potential ID string, or returns origin input if it can't convert to SHA1
 func MustConvertToSHA1(ctx *context.Context, commitID string) string {
 	sha, err := ConvertToSHA1(ctx, commitID)
 	if err != nil {
