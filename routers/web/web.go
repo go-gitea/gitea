@@ -670,6 +670,7 @@ func RegisterRoutes(m *web.Route) {
 	reqRepoProjectsReader := context.RequireRepoReader(unit.TypeProjects)
 	reqRepoProjectsWriter := context.RequireRepoWriter(unit.TypeProjects)
 	reqRepoActionsReader := context.RequireRepoReader(unit.TypeActions)
+	reqRepoActionsWriter := context.RequireRepoWriter(unit.TypeActions)
 
 	reqPackageAccess := func(accessMode perm.AccessMode) func(ctx *context.Context) {
 		return func(ctx *context.Context) {
@@ -1220,9 +1221,9 @@ func RegisterRoutes(m *web.Route) {
 					m.Combo("").
 						Get(actions.View).
 						Post(web.Bind(actions.ViewRequest{}), actions.ViewPost)
-					m.Post("/rerun", actions.Rerun)
+					m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
 				})
-				m.Post("/cancel", actions.Cancel)
+				m.Post("/cancel", reqRepoActionsWriter, actions.Cancel)
 			})
 		}, reqRepoActionsReader, actions.MustEnableActions)
 
