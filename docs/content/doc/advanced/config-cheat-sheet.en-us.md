@@ -239,6 +239,10 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `NOTICE_PAGING_NUM`: **25**: Number of notices that are shown in one page.
 - `ORG_PAGING_NUM`: **50**: Number of organizations that are shown in one page.
 
+### UI - User (`ui.user`)
+
+- `REPO_PAGING_NUM`: **15**: Number of repos that are shown in one page.
+
 ### UI - Metadata (`ui.meta`)
 
 - `AUTHOR`: **Gitea - Git with a cup of tea**: Author meta tag of the homepage.
