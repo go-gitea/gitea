@@ -441,7 +441,7 @@ be reviewed by two maintainers and must pass the automatic tests.
 Code that you contribute should use the standard copyright header:
 
 ```
-// Copyright 2022 The Gitea Authors. All rights reserved.
+// Copyright <year> The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 ```
