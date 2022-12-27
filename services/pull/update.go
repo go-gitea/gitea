@@ -27,8 +27,15 @@ func Update(ctx context.Context, pull *issues_model.PullRequest, doer *user_mode
 	)
 
 	lock := sync.GetLockService().GetLock(fmt.Sprintf("pull_working_%d", pull.ID))
-	lock.Lock()
-	defer lock.Unlock()
+	if err := lock.Lock(); err != nil {
+		log.Error("lock.Lock(): %v", err)
+		return fmt.Errorf("lock.Lock: %w", err)
+	}
+	defer func() {
+		if _, err := lock.Unlock(); err != nil {
+			log.Error("lock.Unlock: %v", err)
+		}
+	}()
 
 	if rebase {
 		pr = pull

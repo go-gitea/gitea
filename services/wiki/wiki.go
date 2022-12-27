@@ -124,8 +124,14 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return err
 	}
 	lock := sync.GetLockService().GetLock(fmt.Sprintf("wiki_working_%d", repo.ID))
-	lock.Lock()
-	defer lock.Unlock()
+	if err := lock.Lock(); err != nil {
+		return err
+	}
+	defer func() {
+		if _, err := lock.Unlock(); err != nil {
+			log.Error("lock.Unlock: %v", err)
+		}
+	}()
 
 	if err = InitWiki(ctx, repo); err != nil {
 		return fmt.Errorf("InitWiki: %w", err)
@@ -281,8 +287,14 @@ func EditWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.R
 // DeleteWikiPage deletes a wiki page identified by its path.
 func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, wikiName string) (err error) {
 	lock := sync.GetLockService().GetLock(fmt.Sprintf("wiki_working_%d", repo.ID))
-	lock.Lock()
-	defer lock.Unlock()
+	if err := lock.Lock(); err != nil {
+		return err
+	}
+	defer func() {
+		if _, err := lock.Unlock(); err != nil {
+			log.Error("lock.Unlock: %v", err)
+		}
+	}()
 
 	if err = InitWiki(ctx, repo); err != nil {
 		return fmt.Errorf("InitWiki: %w", err)

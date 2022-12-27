@@ -320,8 +320,15 @@ func handle(data ...queue.Data) []queue.Data {
 
 func testPR(id int64) {
 	lock := sync.GetLockService().GetLock(fmt.Sprintf("pull_working_%d", id))
-	lock.Lock()
-	defer lock.Unlock()
+	if err := lock.Lock(); err != nil {
+		log.Error("lock.Lock(): %v", err)
+		return
+	}
+	defer func() {
+		if _, err := lock.Unlock(); err != nil {
+			log.Error("lock.Unlock: %v", err)
+		}
+	}()
 
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("Test PR[%d] from patch checking queue", id))
 	defer finished()

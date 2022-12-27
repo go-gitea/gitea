@@ -45,7 +45,7 @@ type memoryLockService struct {
 
 var _ LockService = &memoryLockService{}
 
-func NewMemoryLockService() *memoryLockService {
+func newMemoryLockService() *memoryLockService {
 	return &memoryLockService{
 		locker: locker.New(),
 	}
@@ -64,7 +64,7 @@ type redisLockService struct {
 
 var _ LockService = &redisLockService{}
 
-func NewRedisLockService(connection string) *redisLockService {
+func newRedisLockService(connection string) *redisLockService {
 	client := nosql.GetManager().GetRedisClient(connection)
 
 	pool := goredis.NewPool(client) // or, pool := redigo.NewPool(...)
@@ -102,9 +102,9 @@ var (
 func GetLockService() LockService {
 	syncOnce.Do(func() {
 		if setting.Sync.LockServiceType == "redis" {
-			lockService = NewRedisLockService(setting.Sync.LockServiceConnStr)
+			lockService = newRedisLockService(setting.Sync.LockServiceConnStr)
 		} else {
-			lockService = NewMemoryLockService()
+			lockService = newMemoryLockService()
 		}
 	})
 	return lockService

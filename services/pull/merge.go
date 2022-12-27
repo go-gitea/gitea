@@ -143,8 +143,15 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	}
 
 	lock := sync.GetLockService().GetLock(fmt.Sprintf("pull_working_%d", pr.ID))
-	lock.Lock()
-	defer lock.Unlock()
+	if err := lock.Lock(); err != nil {
+		log.Error("lock.Lock(): %v", err)
+		return fmt.Errorf("lock.Lock: %w", err)
+	}
+	defer func() {
+		if _, err := lock.Unlock(); err != nil {
+			log.Error("lock.Unlock: %v", err)
+		}
+	}()
 
 	// Removing an auto merge pull and ignore if not exist
 	if err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID); err != nil && !db.IsErrNotExist(err) {
@@ -827,8 +834,15 @@ func CheckPullBranchProtections(ctx context.Context, pr *issues_model.PullReques
 // MergedManually mark pr as merged manually
 func MergedManually(pr *issues_model.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, commitID string) error {
 	lock := sync.GetLockService().GetLock(fmt.Sprintf("pull_working_%d", pr.ID))
-	lock.Lock()
-	defer lock.Unlock()
+	if err := lock.Lock(); err != nil {
+		log.Error("lock.Lock(): %v", err)
+		return fmt.Errorf("lock.Lock: %w", err)
+	}
+	defer func() {
+		if _, err := lock.Unlock(); err != nil {
+			log.Error("lock.Unlock: %v", err)
+		}
+	}()
 
 	if err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		prUnit, err := pr.BaseRepo.GetUnit(ctx, unit.TypePullRequests)

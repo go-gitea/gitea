@@ -34,13 +34,19 @@ func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, rep
 	oldOwner := repo.Owner
 
 	lock := sync.GetLockService().GetLock(fmt.Sprintf("repo_working_%d", repo.ID))
-	lock.Lock()
+	if err := lock.Lock(); err != nil {
+		log.Error("lock.Lock(): %v", err)
+		return fmt.Errorf("lock.Lock: %w", err)
+	}
+	defer func() {
+		if _, err := lock.Unlock(); err != nil {
+			log.Error("lock.Unlock: %v", err)
+		}
+	}()
+
 	if err := models.TransferOwnership(doer, newOwner.Name, repo); err != nil {
-		lock.Unlock()
 		return err
 	}
-	lock.Unlock()
-
 	newRepo, err := repo_model.GetRepositoryByID(ctx, repo.ID)
 	if err != nil {
 		return err
@@ -66,15 +72,20 @@ func ChangeRepositoryName(doer *user_model.User, repo *repo_model.Repository, ne
 	// Change repository directory name. We must lock the local copy of the
 	// repo so that we can atomically rename the repo path and updates the
 	// local copy's origin accordingly.
-
 	lock := sync.GetLockService().GetLock(fmt.Sprintf("repo_working_%d", repo.ID))
-	lock.Lock()
+	if err := lock.Lock(); err != nil {
+		log.Error("lock.Lock(): %v", err)
+		return fmt.Errorf("lock.Lock: %w", err)
+	}
+	defer func() {
+		if _, err := lock.Unlock(); err != nil {
+			log.Error("lock.Unlock: %v", err)
+		}
+	}()
+
 	if err := repo_model.ChangeRepositoryName(doer, repo, newRepoName); err != nil {
-		lock.Unlock()
 		return err
 	}
-	lock.Unlock()
-
 	repo.Name = newRepoName
 	notification.NotifyRenameRepository(db.DefaultContext, doer, repo, oldRepoName)
 
