@@ -133,7 +133,7 @@ func expandDefaultMergeMessage(template string, vars map[string]string) (string,
 	detail := ""
 	if splits := strings.SplitN(message, "\n", 2); len(splits) == 2 {
 		message = splits[0]
-		detail = strings.TrimSpace(detail)
+		detail = strings.TrimSpace(splits[1])
 	}
 	mapping := func(s string) string { return vars[s] }
 	return os.Expand(message, mapping), os.Expand(detail, mapping)
