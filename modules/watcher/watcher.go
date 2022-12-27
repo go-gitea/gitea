@@ -76,6 +76,10 @@ func run(ctx context.Context, desc string, opts *CreateWatcherOpts) {
 				return
 			}
 			log.Debug("Watched file for %s had event: %v", desc, event)
+			if event.Op == fsnotify.Chmod {
+				_ = watcher.Close()
+				return
+			}
 		case err, ok := <-watcher.Errors:
 			if !ok {
 				_ = watcher.Close()
