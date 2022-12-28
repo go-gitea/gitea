@@ -79,8 +79,7 @@ func HTMLRenderer(ctx context.Context) (context.Context, *render.Render) {
 			BetweenCallback: func() {
 				defer func() {
 					if err := recover(); err != nil {
-						combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, log.Stack(2))
-						log.Error("%s", combinedErr)
+						log.Error("PANIC: %v\n%s", err, log.Stack(2))
 					}
 				}()
 				renderer.CompileTemplates()
