@@ -6,8 +6,8 @@ package webhook
 import (
 	"testing"
 
-	webhook_module "code.gitea.io/gitea/modules/webhook"
 	api "code.gitea.io/gitea/modules/structs"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

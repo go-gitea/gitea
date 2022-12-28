@@ -7,10 +7,10 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/json"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
