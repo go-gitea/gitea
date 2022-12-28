@@ -859,7 +859,16 @@ func RegisterRoutes(m *web.Route) {
 					})
 				})
 			}, reqSignIn, func(ctx *context.Context) {
-				if !ctx.Org.CanWriteUnit(ctx, unit.TypeProjects) {
+				if ctx.ContextUser == nil {
+					ctx.NotFound("NewProject", nil)
+					return
+				}
+				if ctx.ContextUser.IsOrganization() {
+					if !ctx.Org.CanWriteUnit(ctx, unit.TypeProjects) {
+						ctx.NotFound("NewProject", nil)
+						return
+					}
+				} else if ctx.ContextUser.ID != ctx.Doer.ID {
 					ctx.NotFound("NewProject", nil)
 					return
 				}

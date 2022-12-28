@@ -103,7 +103,7 @@ func Projects(ctx *context.Context) {
 	pager.AddParam(ctx, "state", "State")
 	ctx.Data["Page"] = pager
 
-	ctx.Data["CanWriteProjects"] = ctx.Org.CanWriteUnit(ctx, unit.TypeProjects)
+	ctx.Data["CanWriteProjects"] = canWriteUnit(ctx)
 	ctx.Data["IsShowClosed"] = isShowClosed
 	ctx.Data["PageIsViewProjects"] = true
 	ctx.Data["SortType"] = sortType
@@ -111,11 +111,18 @@ func Projects(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplProjects)
 }
 
+func canWriteUnit(ctx *context.Context) bool {
+	if ctx.ContextUser.IsOrganization() {
+		return ctx.Org.CanWriteUnit(ctx, unit.TypeProjects)
+	}
+	return ctx.Doer != nil && ctx.ContextUser.ID == ctx.Doer.ID
+}
+
 // NewProject render creating a project page
 func NewProject(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
 	ctx.Data["ProjectTypes"] = project_model.GetProjectsConfig()
-	ctx.Data["CanWriteProjects"] = ctx.Org.CanWriteUnit(ctx, unit.TypeProjects)
+	ctx.Data["CanWriteProjects"] = canWriteUnit(ctx)
 	ctx.Data["HomeLink"] = ctx.ContextUser.HomeLink()
 	shared_user.RenderUserHeader(ctx)
 	ctx.HTML(http.StatusOK, tplProjectsNew)
@@ -128,7 +135,7 @@ func NewProjectPost(ctx *context.Context) {
 	shared_user.RenderUserHeader(ctx)
 
 	if ctx.HasError() {
-		ctx.Data["CanWriteProjects"] = ctx.Org.CanWriteUnit(ctx, unit.TypeProjects)
+		ctx.Data["CanWriteProjects"] = canWriteUnit(ctx)
 		ctx.Data["PageIsViewProjects"] = true
 		ctx.Data["ProjectTypes"] = project_model.GetProjectsConfig()
 		ctx.HTML(http.StatusOK, tplProjectsNew)
@@ -207,7 +214,7 @@ func EditProject(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.edit")
 	ctx.Data["PageIsEditProjects"] = true
 	ctx.Data["PageIsViewProjects"] = true
-	ctx.Data["CanWriteProjects"] = ctx.Org.CanWriteUnit(ctx, unit.TypeProjects)
+	ctx.Data["CanWriteProjects"] = canWriteUnit(ctx)
 	shared_user.RenderUserHeader(ctx)
 
 	p, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
@@ -236,7 +243,7 @@ func EditProjectPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.edit")
 	ctx.Data["PageIsEditProjects"] = true
 	ctx.Data["PageIsViewProjects"] = true
-	ctx.Data["CanWriteProjects"] = ctx.Org.CanWriteUnit(ctx, unit.TypeProjects)
+	ctx.Data["CanWriteProjects"] = canWriteUnit(ctx)
 	shared_user.RenderUserHeader(ctx)
 
 	if ctx.HasError() {
@@ -325,7 +332,7 @@ func ViewProject(ctx *context.Context) {
 	project.RenderedContent = project.Description
 	ctx.Data["LinkedPRs"] = linkedPrsMap
 	ctx.Data["PageIsViewProjects"] = true
-	ctx.Data["CanWriteProjects"] = ctx.Org.CanWriteUnit(ctx, unit.TypeProjects)
+	ctx.Data["CanWriteProjects"] = canWriteUnit(ctx)
 	ctx.Data["Project"] = project
 	ctx.Data["IssuesMap"] = issuesMap
 	ctx.Data["Boards"] = boards
