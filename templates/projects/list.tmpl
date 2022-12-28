@@ -1,0 +1,98 @@
+<div class="page-content repository projects">
+	<div class="ui container">
+		{{if .CanWriteProjects}}
+			<div class="navbar">
+				<div class="ui right">
+					<a class="ui green button" href="{{$.Link}}/new">{{.locale.Tr "repo.projects.new"}}</a>
+				</div>
+			</div>
+			<div class="ui divider"></div>
+		{{end}}
+
+		{{template "base/alert" .}}
+		<div class="ui compact tiny menu">
+			<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{$.Link}}?state=open">
+				{{svg "octicon-project" 16 "mr-3"}}
+				{{JsPrettyNumber .OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
+			</a>
+			<a class="item{{if .IsShowClosed}} active{{end}}" href="{{$.Link}}?state=closed">
+				{{svg "octicon-check" 16 "mr-3"}}
+				{{JsPrettyNumber .ClosedCount}}&nbsp;{{.locale.Tr "repo.issues.closed_title"}}
+			</a>
+		</div>
+
+		<div class="ui right floated secondary filter menu">
+			<!-- Sort -->
+			<div class="ui dropdown type jump item">
+				<span class="text">
+					{{.locale.Tr "repo.issues.filter_sort"}}
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				</span>
+				<div class="menu">
+					<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&sort=oldest&state={{$.State}}">{{.locale.Tr "repo.issues.filter_sort.oldest"}}</a>
+					<a class="{{if eq .SortType "recentupdate"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&sort=recentupdate&state={{$.State}}">{{.locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
+					<a class="{{if eq .SortType "leastupdate"}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&sort=leastupdate&state={{$.State}}">{{.locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
+				</div>
+			</div>
+		</div>
+		<div class="milestone list">
+			{{range .Projects}}
+				<li class="item">
+					{{svg "octicon-project"}} <a href="{{$.Link}}/{{.ID}}">{{.Title}}</a>
+					<div class="meta">
+						{{$closedDate:= TimeSinceUnix .ClosedDateUnix $.locale}}
+						{{if .IsClosed}}
+							{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.closed" $closedDate|Str2html}}
+						{{end}}
+						<span class="issue-stats">
+							{{svg "octicon-issue-opened" 16 "mr-3"}}
+							{{JsPrettyNumber .NumOpenIssues}}&nbsp;{{$.locale.Tr "repo.issues.open_title"}}
+							{{svg "octicon-check" 16 "mr-3"}}
+							{{JsPrettyNumber .NumClosedIssues}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
+						</span>
+					</div>
+					{{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived)}}
+					<div class="ui right operate">
+						<a href="{{$.Link}}/{{.ID}}/edit" data-id={{.ID}} data-title={{.Title}}>{{svg "octicon-pencil"}} {{$.locale.Tr "repo.issues.label_edit"}}</a>
+						{{if .IsClosed}}
+							<a class="link-action" href data-url="{{$.Link}}/{{.ID}}/open">{{svg "octicon-check"}} {{$.locale.Tr "repo.projects.open"}}</a>
+						{{else}}
+							<a class="link-action" href data-url="{{$.Link}}/{{.ID}}/close">{{svg "octicon-skip"}} {{$.locale.Tr "repo.projects.close"}}</a>
+						{{end}}
+						<a class="delete-button" href="#" data-url="{{$.RepoLink}}/projects/{{.ID}}/delete" data-id="{{.ID}}">{{svg "octicon-trash"}} {{$.locale.Tr "repo.issues.label_delete"}}</a>
+					</div>
+					{{end}}
+					{{if .Description}}
+					<div class="content">
+						{{.RenderedContent|Str2html}}
+					</div>
+					{{end}}
+				</li>
+			{{end}}
+
+			{{template "base/paginate" .}}
+		</div>
+	</div>
+</div>
+
+{{if or .CanWriteIssues .CanWritePulls}}
+<div class="ui small basic delete modal">
+	<div class="ui icon header">
+		{{svg "octicon-trash"}}
+		{{.locale.Tr "repo.projects.deletion"}}
+	</div>
+	<div class="content">
+		<p>{{.locale.Tr "repo.projects.deletion_desc"}}</p>
+	</div>
+	<div class="actions">
+		<div class="ui red basic inverted cancel button">
+			<i class="remove icon"></i>
+			{{.locale.Tr "modal.no"}}
+		</div>
+		<div class="ui green basic inverted ok button">
+			<i class="checkmark icon"></i>
+			{{.locale.Tr "modal.yes"}}
+		</div>
+	</div>
+</div>
+{{end}}

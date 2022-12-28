@@ -22,6 +22,9 @@
 			<a class="item" href="{{.ContextUser.HomeLink}}">
 				{{svg "octicon-repo"}} {{.locale.Tr "user.repositories"}}
 			</a>
+			<a href="{{.ContextUser.HomeLink}}/-/projects" class="{{if .PageIsViewProjects}}active {{end}}item">
+				{{svg "octicon-project"}} {{.locale.Tr "user.projects"}}
+			</a>
 			{{if (not .UnitPackagesGlobalDisabled)}}
 				<a href="{{.ContextUser.HomeLink}}/-/packages" class="{{if .IsPackagesPage}}active {{end}}item">
 					{{svg "octicon-package"}} {{.locale.Tr "packages.title"}}

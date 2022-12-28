@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/forms"
 )
 
@@ -81,6 +82,7 @@ func Projects(ctx *context.Context) {
 	}
 
 	ctx.Data["Projects"] = projects
+	shared_user.RenderUserHeader(ctx)
 
 	if isShowClosed {
 		ctx.Data["State"] = "closed"
@@ -115,6 +117,7 @@ func NewProject(ctx *context.Context) {
 	ctx.Data["ProjectTypes"] = project_model.GetProjectsConfig()
 	ctx.Data["CanWriteProjects"] = ctx.Org.CanWriteUnit(ctx, unit.TypeProjects)
 	ctx.Data["HomeLink"] = ctx.ContextUser.HomeLink()
+	shared_user.RenderUserHeader(ctx)
 	ctx.HTML(http.StatusOK, tplProjectsNew)
 }
 
@@ -122,6 +125,7 @@ func NewProject(ctx *context.Context) {
 func NewProjectPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateProjectForm)
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
+	shared_user.RenderUserHeader(ctx)
 
 	if ctx.HasError() {
 		ctx.Data["CanWriteProjects"] = ctx.Org.CanWriteUnit(ctx, unit.TypeProjects)
@@ -204,6 +208,7 @@ func EditProject(ctx *context.Context) {
 	ctx.Data["PageIsEditProjects"] = true
 	ctx.Data["PageIsViewProjects"] = true
 	ctx.Data["CanWriteProjects"] = ctx.Org.CanWriteUnit(ctx, unit.TypeProjects)
+	shared_user.RenderUserHeader(ctx)
 
 	p, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
@@ -232,6 +237,7 @@ func EditProjectPost(ctx *context.Context) {
 	ctx.Data["PageIsEditProjects"] = true
 	ctx.Data["PageIsViewProjects"] = true
 	ctx.Data["CanWriteProjects"] = ctx.Org.CanWriteUnit(ctx, unit.TypeProjects)
+	shared_user.RenderUserHeader(ctx)
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplProjectsNew)
@@ -323,6 +329,7 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["Project"] = project
 	ctx.Data["IssuesMap"] = issuesMap
 	ctx.Data["Boards"] = boards
+	shared_user.RenderUserHeader(ctx)
 
 	ctx.HTML(http.StatusOK, tplProjectsView)
 }
