@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"testing"
 
-	webhook_module "code.gitea.io/gitea/modules/notification/webhook"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
