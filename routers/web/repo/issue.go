@@ -1672,7 +1672,7 @@ func ViewIssue(ctx *context.Context) {
 		ctx.Data["DefaultMergeMessage"] = defaultMergeMessage
 		ctx.Data["DefaultMergeBody"] = defaultMergeBody
 
-		defaultSquashMergeMessage, defaultSquashMergeDetail, err := pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, repo_model.MergeStyleSquash)
+		defaultSquashMergeMessage, defaultSquashMergeBody, err := pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, repo_model.MergeStyleSquash)
 		if err != nil {
 			ctx.ServerError("GetDefaultSquashMergeMessage", err)
 			return
