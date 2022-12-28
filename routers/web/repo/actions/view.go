@@ -12,6 +12,7 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/actions"
 	context_module "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -51,9 +52,9 @@ type ViewRequest struct {
 type ViewResponse struct {
 	StateData struct {
 		RunInfo struct {
-			HTMLURL    string `json:"htmlurl"`
-			Title      string `json:"title"`
-			Cancelable bool   `json:"cancelable"`
+			HTMLURL   string `json:"htmlurl"`
+			Title     string `json:"title"`
+			CanCancel bool   `json:"can_cancel"`
 		} `json:"runInfo"`
 		AllJobGroups   []ViewGroup `json:"allJobGroups"`
 		CurrentJobInfo struct {
@@ -73,9 +74,10 @@ type ViewGroup struct {
 }
 
 type ViewJob struct {
-	ID     int64  `json:"id"`
-	Name   string `json:"name"`
-	Status string `json:"status"`
+	ID       int64  `json:"id"`
+	Name     string `json:"name"`
+	Status   string `json:"status"`
+	CanRerun bool   `json:"can_rerun"`
 }
 
 type ViewJobStep struct {
@@ -110,14 +112,15 @@ func ViewPost(ctx *context_module.Context) {
 	resp := &ViewResponse{}
 	resp.StateData.RunInfo.Title = run.Title
 	resp.StateData.RunInfo.HTMLURL = run.HTMLURL()
-	resp.StateData.RunInfo.Cancelable = !run.Status.IsDone()
+	resp.StateData.RunInfo.CanCancel = !run.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions)
 
 	respJobs := make([]*ViewJob, len(jobs))
 	for i, v := range jobs {
 		respJobs[i] = &ViewJob{
-			ID:     v.ID,
-			Name:   v.Name,
-			Status: v.Status.String(),
+			ID:       v.ID,
+			Name:     v.Name,
+			Status:   v.Status.String(),
+			CanRerun: run.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions),
 		}
 	}
 

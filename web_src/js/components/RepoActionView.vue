@@ -20,12 +20,12 @@
               <SvgIcon name="octicon-meter" class="ui text yellow" class-name="job-status-rotate" v-else-if="job.status === 'running'"/>
               <SvgIcon name="octicon-x-circle-fill" class="red" v-else/>
               {{ job.name }}
-              <button class="job-brief-rerun" @click="rerunJob(index)" v-if="job.status !== 'waiting' && job.status !== 'blocked' && job.status !== 'running'">
+              <button class="job-brief-rerun" @click="rerunJob(index)" v-if="job.can_rerun">
                 <SvgIcon name="octicon-sync" class="ui text black"/>
               </button>
             </a>
           </div>
-          <button class="ui fluid tiny basic red button" @click="cancelRun()" v-if="runInfo.cancelable">
+          <button class="ui fluid tiny basic red button" @click="cancelRun()" v-if="runInfo.can_cancel">
             Cancel
           </button>
         </div>
