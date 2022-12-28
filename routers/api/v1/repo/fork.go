@@ -141,7 +141,7 @@ func CreateFork(ctx *context.APIContext) {
 		Description: repo.Description,
 	})
 	if err != nil {
-		if repo_model.IsErrRepoAlreadyExist(err) {
+		if repo_model.IsErrReachLimitOfRepo(err) || repo_model.IsErrRepoAlreadyExist(err) {
 			ctx.Error(http.StatusConflict, "ForkRepository", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "ForkRepository", err)
