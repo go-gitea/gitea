@@ -15,10 +15,10 @@ func Test_expandDefaultMergeMessage(t *testing.T) {
 		vars     map[string]string
 	}
 	tests := []struct {
-		name  string
-		args  args
-		want  string
-		want1 string
+		name     string
+		args     args
+		want     string
+		wantBody string
 	}{
 		{
 			name: "single line",
@@ -29,8 +29,8 @@ func Test_expandDefaultMergeMessage(t *testing.T) {
 					"PullRequestDescription": "Pull\nRequest\nDescription\n",
 				},
 			},
-			want:  "Merge PullRequestTitle",
-			want1: "",
+			want:     "Merge PullRequestTitle",
+			wantBody: "",
 		},
 		{
 			name: "multiple lines",
@@ -41,8 +41,8 @@ func Test_expandDefaultMergeMessage(t *testing.T) {
 					"PullRequestDescription": "Pull\nRequest\nDescription\n",
 				},
 			},
-			want:  "Merge PullRequestTitle",
-			want1: "Description:\n\nPull\nRequest\nDescription\n",
+			want:     "Merge PullRequestTitle",
+			wantBody: "Description:\n\nPull\nRequest\nDescription\n",
 		},
 		{
 			name: "leading newlines",
@@ -53,15 +53,15 @@ func Test_expandDefaultMergeMessage(t *testing.T) {
 					"PullRequestDescription": "Pull\nRequest\nDescription\n",
 				},
 			},
-			want:  "Merge PullRequestTitle",
-			want1: "Description:\n\nPull\nRequest\nDescription\n",
+			want:     "Merge PullRequestTitle",
+			wantBody: "Description:\n\nPull\nRequest\nDescription\n",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, got1 := expandDefaultMergeMessage(tt.args.template, tt.args.vars)
 			assert.Equalf(t, tt.want, got, "expandDefaultMergeMessage(%v, %v)", tt.args.template, tt.args.vars)
-			assert.Equalf(t, tt.want1, got1, "expandDefaultMergeMessage(%v, %v)", tt.args.template, tt.args.vars)
+			assert.Equalf(t, tt.wantBody, got1, "expandDefaultMergeMessage(%v, %v)", tt.args.template, tt.args.vars)
 		})
 	}
 }

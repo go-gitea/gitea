@@ -107,8 +107,8 @@ func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr
 					vars["ClosingIssues"] = ""
 				}
 			}
-			message, detail := expandDefaultMergeMessage(templateContent, vars)
-			return message, detail, nil
+			message, body := expandDefaultMergeMessage(templateContent, vars)
+			return message, body, nil
 		}
 	}
 

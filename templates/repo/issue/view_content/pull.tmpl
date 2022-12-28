@@ -343,8 +343,8 @@
 							(() => {
 								const defaultMergeTitle = {{.DefaultMergeMessage}};
 								const defaultSquashMergeTitle = {{.DefaultSquashMergeMessage}};
-								const defaultMergeMessage = {{if .DefaultMergeDetail}}{{.DefaultMergeDetail}}{{else}}'Reviewed-on: ' + {{$.Issue.HTMLURL}} + '\n' + {{$approvers}}{{end}};
-								const defaultSquashMergeMessage = {{if .DefaultSquashMergeDetail}}{{.DefaultSquashMergeDetail}}{{else}}'Reviewed-on: ' + {{$.Issue.HTMLURL}} + '\n' + {{$approvers}}{{end}};
+								const defaultMergeMessage = {{if .DefaultMergeBody}}{{.DefaultMergeBody}}{{else}}'Reviewed-on: ' + {{$.Issue.HTMLURL}} + '\n' + {{$approvers}}{{end}};
+								const defaultSquashMergeMessage = {{if .DefaultSquashMergeBody}}{{.DefaultSquashMergeBody}}{{else}}'Reviewed-on: ' + {{$.Issue.HTMLURL}} + '\n' + {{$approvers}}{{end}};
 								const mergeForm = {
 									'baseLink': {{.Link}},
 									'textCancel': {{$.locale.Tr "cancel"}},

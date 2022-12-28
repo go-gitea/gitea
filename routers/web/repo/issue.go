@@ -1664,13 +1664,13 @@ func ViewIssue(ctx *context.Context) {
 
 		ctx.Data["MergeStyle"] = mergeStyle
 
-		defaultMergeMessage, defaultMergeDetail, err := pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, mergeStyle)
+		defaultMergeMessage, defaultMergeBody, err := pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, mergeStyle)
 		if err != nil {
 			ctx.ServerError("GetDefaultMergeMessage", err)
 			return
 		}
 		ctx.Data["DefaultMergeMessage"] = defaultMergeMessage
-		ctx.Data["DefaultMergeDetail"] = defaultMergeDetail
+		ctx.Data["DefaultMergeBody"] = defaultMergeBody
 
 		defaultSquashMergeMessage, defaultSquashMergeDetail, err := pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, repo_model.MergeStyleSquash)
 		if err != nil {
@@ -1678,7 +1678,7 @@ func ViewIssue(ctx *context.Context) {
 			return
 		}
 		ctx.Data["DefaultSquashMergeMessage"] = defaultSquashMergeMessage
-		ctx.Data["DefaultSquashMergeDetail"] = defaultSquashMergeDetail
+		ctx.Data["DefaultSquashMergeBody"] = defaultSquashMergeBody
 
 		if err = pull.LoadProtectedBranch(ctx); err != nil {
 			ctx.ServerError("LoadProtectedBranch", err)
