@@ -39,7 +39,7 @@ import (
 )
 
 // GetDefaultMergeMessage returns default message used when merging pull request
-func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issues_model.PullRequest, mergeStyle repo_model.MergeStyle) (string, string, error) {
+func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issues_model.PullRequest, mergeStyle repo_model.MergeStyle) (message, body string, err error) {
 	if err := pr.LoadHeadRepo(ctx); err != nil {
 		return "", "", err
 	}
@@ -107,7 +107,7 @@ func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr
 					vars["ClosingIssues"] = ""
 				}
 			}
-			message, body := expandDefaultMergeMessage(templateContent, vars)
+			message, body = expandDefaultMergeMessage(templateContent, vars)
 			return message, body, nil
 		}
 	}
@@ -128,9 +128,8 @@ func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr
 	return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s:%s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseBranch), "", nil
 }
 
-func expandDefaultMergeMessage(template string, vars map[string]string) (string, string) {
-	message := strings.TrimSpace(template)
-	body := ""
+func expandDefaultMergeMessage(template string, vars map[string]string) (message, body string) {
+	message = strings.TrimSpace(template)
 	if splits := strings.SplitN(message, "\n", 2); len(splits) == 2 {
 		message = splits[0]
 		body = strings.TrimSpace(splits[1])
