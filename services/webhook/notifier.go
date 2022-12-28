@@ -53,7 +53,7 @@ func (m *webhookNotifier) NotifyIssueClearLabels(ctx context.Context, doer *user
 			return
 		}
 
-		err = PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventType(webhook_module.HookEventPullRequestLabel), &api.PullRequestPayload{
+		err = PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventPullRequestLabel, &api.PullRequestPayload{
 			Action:      api.HookIssueLabelCleared,
 			Index:       issue.Index,
 			PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
@@ -61,7 +61,7 @@ func (m *webhookNotifier) NotifyIssueClearLabels(ctx context.Context, doer *user
 			Sender:      convert.ToUser(doer, nil),
 		})
 	} else {
-		err = PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventType(webhook_module.HookEventIssueLabel), &api.IssuePayload{
+		err = PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventIssueLabel, &api.IssuePayload{
 			Action:     api.HookIssueLabelCleared,
 			Index:      issue.Index,
 			Issue:      convert.ToAPIIssue(ctx, issue),
