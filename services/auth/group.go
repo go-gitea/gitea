@@ -84,7 +84,7 @@ func (b *Group) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	for _, ssoMethod := range b.methods {
 		user, err := ssoMethod.Verify(req, w, store, sess)
 		if err != nil {
-			return user, err
+			return nil, err
 		}
 
 		if user != nil {
