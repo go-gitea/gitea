@@ -75,8 +75,16 @@ func HTMLRenderer(ctx context.Context) (context.Context, *render.Render) {
 	compilingTemplates = false
 	if !setting.IsProd {
 		watcher.CreateWatcher(ctx, "HTML Templates", &watcher.CreateWatcherOpts{
-			PathsCallback:   walkTemplateFiles,
-			BetweenCallback: renderer.CompileTemplates,
+			PathsCallback: walkTemplateFiles,
+			BetweenCallback: func() {
+				defer func() {
+					if err := recover(); err != nil {
+						combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, log.Stack(2))
+						log.Error("%s", combinedErr)
+					}
+				}()
+				renderer.CompileTemplates()
+			},
 		})
 	}
 	return context.WithValue(ctx, rendererKey, renderer), renderer
