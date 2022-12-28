@@ -275,6 +275,15 @@ func (u *User) CanEditGitHook() bool {
 	return !setting.DisableGitHooks && (u.IsAdmin || u.AllowGitHook)
 }
 
+// CanForkRepo returns if user login can fork a repository
+// It checks especially that the user can create repos, and potentially more
+func (u *User) CanForkRepo() bool {
+	if setting.Repository.AllowForkWithoutMaximumLimit {
+		return true
+	}
+	return u.CanCreateRepo()
+}
+
 // CanImportLocal returns true if user can migrate repository by local path.
 func (u *User) CanImportLocal() bool {
 	if !setting.ImportLocalPaths || u == nil {
