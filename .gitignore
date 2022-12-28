@@ -112,6 +112,3 @@ prime/
 
 # Manpage
 /man
-
-# Tags file, simply because it's too large to commit (200MB with node modules)
-tags
