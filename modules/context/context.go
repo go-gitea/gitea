@@ -662,7 +662,13 @@ func getCsrfOpts() CsrfOptions {
 // Auth converts auth.Auth as a middleware
 func Auth(authMethod auth.Method) func(*Context) {
 	return func(ctx *Context) {
-		ctx.Doer = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		var err error
+		ctx.Doer, err = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		if err != nil {
+			log.Error("Failed to verify user %v: %v", ctx.Req.RemoteAddr, err)
+			ctx.Error(http.StatusUnauthorized, "Verify")
+			return
+		}
 		if ctx.Doer != nil {
 			if ctx.Locale.Language() != ctx.Doer.Language {
 				ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
