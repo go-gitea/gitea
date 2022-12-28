@@ -116,7 +116,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		store.GetData()["IsActionsToken"] = true
 		store.GetData()["ActionsTaskID"] = task.ID
 
-		return user_model.NewActionsUser()
+		return user_model.NewActionsUser(), nil
 	}
 
 	if !setting.Service.EnableBasicAuth {
