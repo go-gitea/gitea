@@ -22,7 +22,7 @@ func TestIsProjectTypeValid(t *testing.T) {
 	}{
 		{TypeIndividual, false},
 		{TypeRepository, true},
-		{TypeOrganization, false},
+		{TypeOrganization, true},
 		{UnknownType, false},
 	}
 
