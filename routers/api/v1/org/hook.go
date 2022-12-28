@@ -8,9 +8,9 @@ import (
 
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/context"
-	webhook_module "code.gitea.io/gitea/modules/notification/webhook"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )

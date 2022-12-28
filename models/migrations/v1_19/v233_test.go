@@ -8,9 +8,9 @@ import (
 
 	"code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/modules/json"
-	webhook_module "code.gitea.io/gitea/modules/notification/webhook"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
 )
