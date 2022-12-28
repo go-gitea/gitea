@@ -4,10 +4,10 @@
 package webhook
 
 import (
+	webhook_module "code.gitea.io/gitea/modules/notification/webhook"
 	"net/url"
 	"testing"
 
-	webhook_model "code.gitea.io/gitea/models/webhook"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -162,7 +162,7 @@ func TestDingTalkPayload(t *testing.T) {
 		p.Action = api.HookIssueReviewed
 
 		d := new(DingtalkPayload)
-		pl, err := d.Review(p, webhook_model.HookEventPullRequestReviewApproved)
+		pl, err := d.Review(p, webhook_module.HookEventPullRequestReviewApproved)
 		require.NoError(t, err)
 		require.NotNil(t, pl)
 		require.IsType(t, &DingtalkPayload{}, pl)

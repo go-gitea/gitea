@@ -4,6 +4,7 @@
 package webhook
 
 import (
+	webhook_module "code.gitea.io/gitea/modules/notification/webhook"
 	"context"
 	"net/http"
 	"net/http/httptest"
@@ -62,14 +63,14 @@ func TestWebhookDeliverAuthorizationHeader(t *testing.T) {
 		URL:         s.URL + "/webhook",
 		ContentType: webhook_model.ContentTypeJSON,
 		IsActive:    true,
-		Type:        webhook_model.GITEA,
+		Type:        webhook_module.GITEA,
 	}
 	err := hook.SetHeaderAuthorization("Bearer s3cr3t-t0ken")
 	assert.NoError(t, err)
 	assert.NoError(t, webhook_model.CreateWebhook(db.DefaultContext, hook))
 	db.GetEngine(db.DefaultContext).NoAutoTime().DB().Logger.ShowSQL(true)
 
-	hookTask := &webhook_model.HookTask{HookID: hook.ID, EventType: webhook_model.HookEventPush, Payloader: &api.PushPayload{}}
+	hookTask := &webhook_model.HookTask{HookID: hook.ID, EventType: webhook_module.HookEventPush, Payloader: &api.PushPayload{}}
 
 	hookTask, err = webhook_model.CreateHookTask(db.DefaultContext, hookTask)
 	assert.NoError(t, err)

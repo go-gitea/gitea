@@ -4,9 +4,9 @@
 package webhook
 
 import (
+	webhook_module "code.gitea.io/gitea/modules/notification/webhook"
 	"testing"
 
-	webhook_model "code.gitea.io/gitea/models/webhook"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -101,7 +101,7 @@ func TestPackagistPayload(t *testing.T) {
 		p.Action = api.HookIssueReviewed
 
 		d := new(PackagistPayload)
-		pl, err := d.Review(p, webhook_model.HookEventPullRequestReviewApproved)
+		pl, err := d.Review(p, webhook_module.HookEventPullRequestReviewApproved)
 		require.NoError(t, err)
 		require.Nil(t, pl)
 	})

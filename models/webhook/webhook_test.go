@@ -4,6 +4,7 @@
 package webhook
 
 import (
+	webhook_module "code.gitea.io/gitea/modules/notification/webhook"
 	"context"
 	"testing"
 	"time"
@@ -46,11 +47,11 @@ func TestWebhook_History(t *testing.T) {
 func TestWebhook_UpdateEvent(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	webhook := unittest.AssertExistsAndLoadBean(t, &Webhook{ID: 1})
-	hookEvent := &HookEvent{
+	hookEvent := &webhook_module.HookEvent{
 		PushOnly:       true,
 		SendEverything: false,
 		ChooseEvents:   false,
-		HookEvents: HookEvents{
+		HookEvents: webhook_module.HookEvents{
 			Create:      false,
 			Push:        true,
 			PullRequest: false,
@@ -59,7 +60,7 @@ func TestWebhook_UpdateEvent(t *testing.T) {
 	webhook.HookEvent = hookEvent
 	assert.NoError(t, webhook.UpdateEvent())
 	assert.NotEmpty(t, webhook.Events)
-	actualHookEvent := &HookEvent{}
+	actualHookEvent := &webhook_module.HookEvent{}
 	assert.NoError(t, json.Unmarshal([]byte(webhook.Events), actualHookEvent))
 	assert.Equal(t, *hookEvent, *actualHookEvent)
 }
@@ -74,13 +75,13 @@ func TestWebhook_EventsArray(t *testing.T) {
 		"package",
 	},
 		(&Webhook{
-			HookEvent: &HookEvent{SendEverything: true},
+			HookEvent: &webhook_module.HookEvent{SendEverything: true},
 		}).EventsArray(),
 	)
 
 	assert.Equal(t, []string{"push"},
 		(&Webhook{
-			HookEvent: &HookEvent{PushOnly: true},
+			HookEvent: &webhook_module.HookEvent{PushOnly: true},
 		}).EventsArray(),
 	)
 }
@@ -105,7 +106,7 @@ func TestGetWebhookByRepoID(t *testing.T) {
 
 	_, err = GetWebhookByRepoID(unittest.NonexistentID, unittest.NonexistentID)
 	assert.Error(t, err)
-	assert.True(t, IsErrWebhookNotExist(err))
+	assert.True(t, webhook_module.IsErrWebhookNotExist(err))
 }
 
 func TestGetWebhookByOrgID(t *testing.T) {
@@ -116,7 +117,7 @@ func TestGetWebhookByOrgID(t *testing.T) {
 
 	_, err = GetWebhookByOrgID(unittest.NonexistentID, unittest.NonexistentID)
 	assert.Error(t, err)
-	assert.True(t, IsErrWebhookNotExist(err))
+	assert.True(t, webhook_module.IsErrWebhookNotExist(err))
 }
 
 func TestGetActiveWebhooksByRepoID(t *testing.T) {
@@ -177,7 +178,7 @@ func TestDeleteWebhookByRepoID(t *testing.T) {
 
 	err := DeleteWebhookByRepoID(unittest.NonexistentID, unittest.NonexistentID)
 	assert.Error(t, err)
-	assert.True(t, IsErrWebhookNotExist(err))
+	assert.True(t, webhook_module.IsErrWebhookNotExist(err))
 }
 
 func TestDeleteWebhookByOrgID(t *testing.T) {
@@ -188,7 +189,7 @@ func TestDeleteWebhookByOrgID(t *testing.T) {
 
 	err := DeleteWebhookByOrgID(unittest.NonexistentID, unittest.NonexistentID)
 	assert.Error(t, err)
-	assert.True(t, IsErrWebhookNotExist(err))
+	assert.True(t, webhook_module.IsErrWebhookNotExist(err))
 }
 
 func TestHookTasks(t *testing.T) {
