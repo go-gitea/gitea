@@ -574,8 +574,24 @@
 
   @comment-avatar-width: 3em;
 
-  .comment textarea {
-    max-height: none !important;
+  .comment {
+    textarea {
+      max-height: none !important;
+    }
+
+    blockquote,
+    pre {
+      max-height: 405px;
+      overflow: auto;
+    }
+
+    blockquote,
+    details {
+      blockquote,
+      pre {
+        max-height: none;
+      }
+    }
   }
 
   &.new.issue {
