@@ -4,13 +4,13 @@
 package webhook
 
 import (
-	webhook_module "code.gitea.io/gitea/modules/notification/webhook"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	webhook_model "code.gitea.io/gitea/models/webhook"
+	webhook_module "code.gitea.io/gitea/modules/notification/webhook"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"

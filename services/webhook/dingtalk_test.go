@@ -4,10 +4,10 @@
 package webhook
 
 import (
-	webhook_module "code.gitea.io/gitea/modules/notification/webhook"
 	"net/url"
 	"testing"
 
+	webhook_module "code.gitea.io/gitea/modules/notification/webhook"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"

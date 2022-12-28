@@ -4,9 +4,9 @@
 package webhook
 
 import (
-	webhook_module "code.gitea.io/gitea/modules/notification/webhook"
 	"testing"
 
+	webhook_module "code.gitea.io/gitea/modules/notification/webhook"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
