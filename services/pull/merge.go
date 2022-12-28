@@ -130,13 +130,13 @@ func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr
 
 func expandDefaultMergeMessage(template string, vars map[string]string) (string, string) {
 	message := strings.TrimSpace(template)
-	detail := ""
+	body := ""
 	if splits := strings.SplitN(message, "\n", 2); len(splits) == 2 {
 		message = splits[0]
-		detail = strings.TrimSpace(splits[1])
+		body = strings.TrimSpace(splits[1])
 	}
 	mapping := func(s string) string { return vars[s] }
-	return os.Expand(message, mapping), os.Expand(detail, mapping)
+	return os.Expand(message, mapping), os.Expand(body, mapping)
 }
 
 // Merge merges pull request to base repository.
