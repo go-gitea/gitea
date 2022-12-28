@@ -21,6 +21,7 @@
 				<div class="twelve wide column">
 					{{template "package/content/composer" .}}
 					{{template "package/content/conan" .}}
+					{{template "package/content/conda" .}}
 					{{template "package/content/container" .}}
 					{{template "package/content/generic" .}}
 					{{template "package/content/helm" .}}
@@ -44,6 +45,7 @@
 							<div class="item">{{svg "octicon-download" 16 "mr-3"}} {{.PackageDescriptor.Version.DownloadCount}}</div>
 							{{template "package/metadata/composer" .}}
 							{{template "package/metadata/conan" .}}
+							{{template "package/metadata/conda" .}}
 							{{template "package/metadata/container" .}}
 							{{template "package/metadata/generic" .}}
 							{{template "package/metadata/helm" .}}

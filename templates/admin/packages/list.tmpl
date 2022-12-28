@@ -15,6 +15,7 @@
 						<option value="all">{{.locale.Tr "packages.filter.type.all"}}</option>
 						<option value="composer" {{if eq .PackageType "composer"}}selected="selected"{{end}}>Composer</option>
 						<option value="conan" {{if eq .PackageType "conan"}}selected="selected"{{end}}>Conan</option>
+						<option value="conda" {{if eq .PackageType "conda"}}selected="selected"{{end}}>Conda</option>
 						<option value="container" {{if eq .PackageType "container"}}selected="selected"{{end}}>Container</option>
 						<option value="generic" {{if eq .PackageType "generic"}}selected="selected"{{end}}>Generic</option>
 						<option value="helm" {{if eq .PackageType "helm"}}selected="selected"{{end}}>Helm</option>

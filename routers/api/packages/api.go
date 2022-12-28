@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/packages/composer"
 	"code.gitea.io/gitea/routers/api/packages/conan"
+	"code.gitea.io/gitea/routers/api/packages/conda"
 	"code.gitea.io/gitea/routers/api/packages/container"
 	"code.gitea.io/gitea/routers/api/packages/generic"
 	"code.gitea.io/gitea/routers/api/packages/helm"
@@ -158,6 +159,49 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 						})
 					}, conan.ExtractPathParameters)
 				})
+			})
+		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/conda", func() {
+			var (
+				downloadPattern = regexp.MustCompile(`\A(.+/)?(.+)/((?:[^/]+(?:\.tar\.bz2|\.conda))|(?:current_)?repodata\.json(?:\.bz2)?)\z`)
+				uploadPattern   = regexp.MustCompile(`\A(.+/)?([^/]+(?:\.tar\.bz2|\.conda))\z`)
+			)
+
+			r.Route("/*", "GET,PUT", func(ctx *context.Context) {
+				path := ctx.Params("*")
+
+				if ctx.Req.Method == "GET" {
+					m := downloadPattern.FindStringSubmatch(path)
+					if len(m) > 0 {
+						ctx.SetParams("channel", strings.TrimSuffix(m[1], "/"))
+						ctx.SetParams("architecture", m[2])
+						ctx.SetParams("filename", m[3])
+
+						switch m[3] {
+						case "repodata.json", "repodata.json.bz2", "current_repodata.json", "current_repodata.json.bz2":
+							conda.EnumeratePackages(ctx)
+						default:
+							conda.DownloadPackageFile(ctx)
+						}
+						return
+					}
+				} else {
+					reqPackageAccess(perm.AccessModeWrite)(ctx)
+					if ctx.Written() {
+						return
+					}
+
+					m := uploadPattern.FindStringSubmatch(path)
+					if len(m) > 0 {
+						ctx.SetParams("channel", strings.TrimSuffix(m[1], "/"))
+						ctx.SetParams("filename", m[2])
+
+						conda.UploadPackageFile(ctx)
+						return
+					}
+				}
+
+				ctx.Status(http.StatusNotFound)
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/generic", func() {
