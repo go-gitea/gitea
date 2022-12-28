@@ -15,8 +15,8 @@ import (
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/services/notification"
 )
 
 // NewIssue creates new issue with labels for repository.

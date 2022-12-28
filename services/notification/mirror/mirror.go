@@ -10,8 +10,8 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	mirror_module "code.gitea.io/gitea/modules/mirror"
-	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/services/notification/base"
 )
 
 type mirrorNotifier struct {

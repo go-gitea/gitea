@@ -24,12 +24,12 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/process"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
 	issue_service "code.gitea.io/gitea/services/issue"
+	"code.gitea.io/gitea/services/notification"
 )
 
 // TODO: use clustered lock (unique queue? or *abuse* cache)

@@ -15,9 +15,9 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/sync"
+	"code.gitea.io/gitea/services/notification"
 )
 
 // repoWorkingPool represents a working pool to order the parallel changes to the same repository

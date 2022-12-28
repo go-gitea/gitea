@@ -14,8 +14,8 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/queue"
+	"code.gitea.io/gitea/services/notification/base"
 )
 
 type (

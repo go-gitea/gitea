@@ -14,7 +14,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/services/notification"
 )
 
 // DeleteNotPassedAssignee deletes all assignees who aren't passed via the "assignees" array

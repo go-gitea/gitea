@@ -14,9 +14,9 @@ import (
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	stats_indexer "code.gitea.io/gitea/modules/indexer/stats"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/notification/base"
 )
 
 type indexerNotifier struct {

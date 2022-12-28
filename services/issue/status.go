@@ -10,7 +10,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/services/notification"
 )
 
 // ChangeStatus changes issue status to open or closed.

@@ -10,15 +10,15 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/notification/action"
-	"code.gitea.io/gitea/modules/notification/base"
-	"code.gitea.io/gitea/modules/notification/indexer"
-	"code.gitea.io/gitea/modules/notification/mail"
-	"code.gitea.io/gitea/modules/notification/mirror"
-	"code.gitea.io/gitea/modules/notification/ui"
-	"code.gitea.io/gitea/modules/notification/webhook"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/notification/action"
+	"code.gitea.io/gitea/services/notification/base"
+	"code.gitea.io/gitea/services/notification/indexer"
+	"code.gitea.io/gitea/services/notification/mail"
+	"code.gitea.io/gitea/services/notification/mirror"
+	"code.gitea.io/gitea/services/notification/ui"
+	"code.gitea.io/gitea/services/notification/webhook"
 )
 
 var notifiers []base.Notifier

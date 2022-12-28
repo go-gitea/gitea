@@ -14,9 +14,9 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/notification/action"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/notification"
+	"code.gitea.io/gitea/services/notification/action"
 
 	"github.com/stretchr/testify/assert"
 )
