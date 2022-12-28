@@ -4,7 +4,6 @@
 package webhook
 
 import (
-	webhook_module "code.gitea.io/gitea/modules/notification/webhook"
 	"context"
 	"crypto/hmac"
 	"crypto/sha1"
@@ -23,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/hostmatcher"
 	"code.gitea.io/gitea/modules/log"
+	webhook_module "code.gitea.io/gitea/modules/notification/webhook"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/queue"

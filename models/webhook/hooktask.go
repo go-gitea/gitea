@@ -4,13 +4,13 @@
 package webhook
 
 import (
-	webhook_module "code.gitea.io/gitea/modules/notification/webhook"
 	"context"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	webhook_module "code.gitea.io/gitea/modules/notification/webhook"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 

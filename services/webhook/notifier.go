@@ -4,8 +4,6 @@
 package webhook
 
 import (
-	"code.gitea.io/gitea/modules/notification"
-	webhook_module "code.gitea.io/gitea/modules/notification/webhook"
 	"context"
 
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -18,7 +16,9 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/notification/base"
+	webhook_module "code.gitea.io/gitea/modules/notification/webhook"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"

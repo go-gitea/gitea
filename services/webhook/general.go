@@ -4,13 +4,13 @@
 package webhook
 
 import (
-	webhook_model "code.gitea.io/gitea/models/webhook"
-	webhook_module "code.gitea.io/gitea/modules/notification/webhook"
 	"fmt"
 	"html"
 	"net/url"
 	"strings"
 
+	webhook_model "code.gitea.io/gitea/models/webhook"
+	webhook_module "code.gitea.io/gitea/modules/notification/webhook"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"

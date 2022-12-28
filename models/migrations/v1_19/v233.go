@@ -4,10 +4,10 @@
 package v1_19 //nolint
 
 import (
-	webhook_module "code.gitea.io/gitea/modules/notification/webhook"
 	"fmt"
 
 	"code.gitea.io/gitea/modules/json"
+	webhook_module "code.gitea.io/gitea/modules/notification/webhook"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
