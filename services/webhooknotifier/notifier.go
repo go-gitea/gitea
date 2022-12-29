@@ -4,7 +4,6 @@
 package webhooknotifier
 
 import (
-	"code.gitea.io/gitea/services/webhook"
 	"context"
 	"fmt"
 
@@ -24,6 +23,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/services/convert"
+	"code.gitea.io/gitea/services/webhook"
 )
 
 func init() {

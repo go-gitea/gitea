@@ -5,9 +5,6 @@
 package convert
 
 import (
-	webhook_model "code.gitea.io/gitea/models/webhook"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
-	"code.gitea.io/gitea/services/webhook"
 	"context"
 	"fmt"
 	"strconv"
@@ -25,11 +22,14 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/services/gitdiff"
+	"code.gitea.io/gitea/services/webhook"
 )
 
 // ToEmail convert models.EmailAddress to api.Email
