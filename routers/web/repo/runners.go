@@ -19,7 +19,7 @@ const (
 
 // Runners render runners page
 func Runners(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.settings.runners")
+	ctx.Data["Title"] = ctx.Tr("actions.runners")
 	ctx.Data["PageIsSettingsRunners"] = true
 
 	page := ctx.FormInt("page")
@@ -42,7 +42,7 @@ func Runners(ctx *context.Context) {
 }
 
 func RunnersEdit(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.settings.runners")
+	ctx.Data["Title"] = ctx.Tr("actions.runners")
 	ctx.Data["PageIsSettingsRunners"] = true
 	page := ctx.FormInt("page")
 	if page <= 1 {
@@ -55,7 +55,7 @@ func RunnersEdit(ctx *context.Context) {
 }
 
 func RunnersEditPost(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.settings.runners")
+	ctx.Data["Title"] = ctx.Tr("actions.runners")
 	ctx.Data["PageIsSettingsRunners"] = true
 	actions_shared.RunnerDetailsEditPost(ctx, ctx.ParamsInt64(":runnerid"),
 		0, ctx.Repo.Repository.ID,
