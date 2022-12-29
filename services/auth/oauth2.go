@@ -126,7 +126,8 @@ func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStor
 	}
 
 	id := o.userIDFromToken(req, store)
-	if id == -1 || id <= -3 { // -2 means actions, so we need to allow it.
+
+	if id <= 0 && id != -2 { // -2 means actions, so we need to allow it.
 		return nil, nil
 	}
 	log.Trace("OAuth2 Authorization: Found token for user[%d]", id)
