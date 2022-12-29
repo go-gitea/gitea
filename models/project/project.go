@@ -110,7 +110,7 @@ func (p *Project) LoadOwner(ctx context.Context) (err error) {
 }
 
 func (p *Project) LoadRepo(ctx context.Context) (err error) {
-	if p.RepoID == 0 {
+	if p.RepoID == 0 || p.Repo != nil {
 		return nil
 	}
 	p.Repo, err = repo_model.GetRepositoryByID(ctx, p.RepoID)
