@@ -39,19 +39,19 @@ import (
 )
 
 // GetDefaultMergeMessage returns default message used when merging pull request
-func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issues_model.PullRequest, mergeStyle repo_model.MergeStyle) (string, error) {
+func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issues_model.PullRequest, mergeStyle repo_model.MergeStyle) (message, body string, err error) {
 	if err := pr.LoadHeadRepo(ctx); err != nil {
-		return "", err
+		return "", "", err
 	}
 	if err := pr.LoadBaseRepo(ctx); err != nil {
-		return "", err
+		return "", "", err
 	}
 	if pr.BaseRepo == nil {
-		return "", repo_model.ErrRepoNotExist{ID: pr.BaseRepoID}
+		return "", "", repo_model.ErrRepoNotExist{ID: pr.BaseRepoID}
 	}
 
 	if err := pr.LoadIssue(ctx); err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	isExternalTracker := pr.BaseRepo.UnitEnabled(ctx, unit.TypeExternalTracker)
@@ -64,12 +64,12 @@ func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr
 		templateFilepath := fmt.Sprintf(".gitea/default_merge_message/%s_TEMPLATE.md", strings.ToUpper(string(mergeStyle)))
 		commit, err := baseGitRepo.GetBranchCommit(pr.BaseRepo.DefaultBranch)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 		templateContent, err := commit.GetFileContent(templateFilepath, setting.Repository.PullRequest.DefaultMergeMessageSize)
 		if err != nil {
 			if !git.IsErrNotExist(err) {
-				return "", err
+				return "", "", err
 			}
 		} else {
 			vars := map[string]string{
@@ -107,27 +107,35 @@ func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr
 					vars["ClosingIssues"] = ""
 				}
 			}
-
-			return os.Expand(templateContent, func(s string) string {
-				return vars[s]
-			}), nil
+			message, body = expandDefaultMergeMessage(templateContent, vars)
+			return message, body, nil
 		}
 	}
 
 	// Squash merge has a different from other styles.
 	if mergeStyle == repo_model.MergeStyleSquash {
-		return fmt.Sprintf("%s (%s%d)", pr.Issue.Title, issueReference, pr.Issue.Index), nil
+		return fmt.Sprintf("%s (%s%d)", pr.Issue.Title, issueReference, pr.Issue.Index), "", nil
 	}
 
 	if pr.BaseRepoID == pr.HeadRepoID {
-		return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadBranch, pr.BaseBranch), nil
+		return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadBranch, pr.BaseBranch), "", nil
 	}
 
 	if pr.HeadRepo == nil {
-		return fmt.Sprintf("Merge pull request '%s' (%s%d) from <deleted>:%s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadBranch, pr.BaseBranch), nil
+		return fmt.Sprintf("Merge pull request '%s' (%s%d) from <deleted>:%s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadBranch, pr.BaseBranch), "", nil
 	}
 
-	return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s:%s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseBranch), nil
+	return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s:%s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseBranch), "", nil
+}
+
+func expandDefaultMergeMessage(template string, vars map[string]string) (message, body string) {
+	message = strings.TrimSpace(template)
+	if splits := strings.SplitN(message, "\n", 2); len(splits) == 2 {
+		message = splits[0]
+		body = strings.TrimSpace(splits[1])
+	}
+	mapping := func(s string) string { return vars[s] }
+	return os.Expand(message, mapping), os.Expand(body, mapping)
 }
 
 // Merge merges pull request to base repository.
