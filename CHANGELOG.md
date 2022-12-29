@@ -4,10 +4,17 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.18.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.18.0-rc1) - 2022-11-15
+## [1.18.0](https://github.com/go-gitea/gitea/releases/tag/1.18.0) - 2022-12-22
 
+* SECURITY
+  * Remove ReverseProxy authentication from the API (#22219) (#22251)
+  * Support Go Vulnerability Management (#21139)
+  * Forbid HTML string tooltips (#20935)
 * BREAKING
+  * Rework mailer settings (#18982)
   * Remove U2F support (#20141)
+  * Refactor `i18n` to `locale` (#20153)
+  * Enable contenthash in filename for dynamic assets (#20813)
 * FEATURES
   * Add color previews in markdown (#21474)
   * Allow package version sorting (#21453)
@@ -36,6 +43,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Support Proxy protocol (#12527)
   * Implement sync push mirror on commit (#19411)
 * API
+  * Allow empty assignees on pull request edit (#22150) (#22214)
   * Make external issue tracker regexp configurable via API (#21338)
   * Add name field for org api (#21270)
   * Show teams with no members if user is admin (#21204)
@@ -43,6 +51,15 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add allow_rebase_update, default_delete_branch_after_merge to repository api response (#20079)
   * Add new endpoints for push mirrors management (#19841)
 * ENHANCEMENTS
+  * Add setting to disable the git apply step in test patch (#22130) (#22170)
+  * Multiple improvements for comment edit diff (#21990) (#22007)
+  * Fix button in branch list, avoid unexpected page jump before restore branch actually done (#21562) (#21928)
+  * Fix flex layout for repo list icons (#21896) (#21920)
+  * Fix vertical align of committer avatar rendered by email address (#21884) (#21918)
+  * Fix setting HTTP headers after write (#21833) (#21877)
+  * Color and Style enhancements (#21784, #21799) (#21868)
+  * Ignore line anchor links with leading zeroes (#21728) (#21776)
+  * Quick fixes monaco-editor error: "vs.editor.nullLanguage" (#21734) (#21738)
   * Use CSS color-scheme instead of invert (#21616) (#21623)
   * Respect user's locale when rendering the date range in the repo activity page (#21410)
   * Change `commits-table` column width (#21564)
@@ -142,6 +159,9 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add author search input (#21246)
   * Make rss/atom identifier globally unique (#21550)
 * BUGFIXES
+  * Auth interface return error when verify failure (#22119) (#22259)
+  * Use complete SHA to create and query commit status (#22244) (#22257)
+  * Update bleve and zapx to fix unaligned atomic (#22031) (#22218)
   * Prevent panic in doctor command when running default checks (#21791) (#21807)
   * Load GitRepo in API before deleting issue (#21720) (#21796)
   * Ignore line anchor links with leading zeroes (#21728) (#21776)
@@ -179,6 +199,60 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Switch to building with go1.19 (#20695)
   * Update JS dependencies, adjust eslint (#20659)
   * Add more linters to improve code readability (#19989)
+
+## [1.17.4](https://github.com/go-gitea/gitea/releases/tag/1.17.4) - 2022-12-21
+
+* SECURITY
+  * Do not allow Ghost access to limited visible user/org (#21849) (#21875)
+  * Fix package access for admins and inactive users (#21580) (#21592)
+* ENHANCEMENTS
+  * Fix button in branch list, avoid unexpected page jump before restore branch actually done (#21562) (#21927)
+  * Fix vertical align of committer avatar rendered by email address (#21884) (#21919)
+  * Fix setting HTTP headers after write (#21833) (#21874)
+  * Ignore line anchor links with leading zeroes (#21728) (#21777)
+  * Enable Monaco automaticLayout (#21516)
+* BUGFIXES
+  * Do not list active repositories as unadopted (#22034) (#22167)
+  * Correctly handle moved files in apply patch (#22118) (#22136)
+  * Fix condition for is_internal (#22095) (#22131)
+  * Fix permission check on issue/pull lock (#22114)
+  * Fix sorting admin user list by last login (#22081) (#22106)
+  * Workaround for container registry push/pull errors (#21862) (#22069)
+  * Fix issue/PR numbers (#22037) (#22045)
+  * Handle empty author names (#21902) (#22028)
+  * Fix ListBranches to handle empty case (#21921) (#22025)
+  * Fix enabling partial clones on 1.17 (#21809)
+  * Prevent panic in doctor command when running default checks (#21791) (#21808)
+  * Upgrade golang.org/x/crypto (#21792) (#21794)
+  * Init git module before database migration (#21764) (#21766)
+  * Set last login when activating account (#21731) (#21754)
+  * Add HEAD fix to gitea doctor (#21352) (#21751)
+  * Fix UI language switching bug (#21597) (#21748)
+  * Remove semver compatible flag and change pypi to an array of test cases (#21708) (#21729)
+  * Allow local package identifiers for PyPI packages (#21690) (#21726)
+  * Fix repository adoption on Windows (#21646) (#21651)
+  * Sync git hooks when config file path changed (#21619) (#21625)
+  * Added check for disabled Packages (#21540) (#21614)
+  * Fix `Timestamp.IsZero` (#21593) (#21604)
+  * Fix issues count bug (#21600)
+  * Support binary deploy in npm packages (#21589)
+  * Update milestone counters when issue is deleted (#21459) (#21586)
+  * SessionUser protection against nil pointer dereference (#21581)
+  * Case-insensitive NuGet symbol file GUID (#21409) (#21575)
+  * Suppress `ExternalLoginUserNotExist` error (#21504) (#21572)
+  * Prevent Authorization header for presigned LFS urls (#21531) (#21569)
+  * Update binding to fix bugs (#21560)
+  * Fix generating compare link (#21519) (#21530)
+  * Ignore error when retrieving changed PR review files (#21487) (#21524)
+  * Fix incorrect notification commit url (#21479) (#21483)
+  * Display total commit count in hook message (#21400) (#21481)
+  * Enforce grouped NuGet search results (#21442) (#21480)
+  * Return 404 when user is not found on avatar (#21476) (#21477)
+  * Normalize NuGet package version on upload (#22186) (#22201)
+* MISC
+  * Check for zero time instant in TimeStamp.IsZero() (#22171) (#22173)
+  * Fix warn in database structs sync (#22111)
+  * Allow for resolution of NPM registry paths that match upstream (#21568) (#21723)
 
 ## [1.17.3](https://github.com/go-gitea/gitea/releases/tag/v1.17.3) - 2022-10-15
 
