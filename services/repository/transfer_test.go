@@ -4,7 +4,6 @@
 package repository
 
 import (
-	"sync"
 	"testing"
 
 	activities_model "code.gitea.io/gitea/models/activities"
@@ -14,24 +13,13 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/notification/action"
 	"code.gitea.io/gitea/modules/util"
+	_ "code.gitea.io/gitea/services/feed" // to ensure action notification is registered
 
 	"github.com/stretchr/testify/assert"
 )
 
-var notifySync sync.Once
-
-func registerNotifier() {
-	notifySync.Do(func() {
-		notification.RegisterNotifier(action.NewNotifier())
-	})
-}
-
 func TestTransferOwnership(t *testing.T) {
-	registerNotifier()
-
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
