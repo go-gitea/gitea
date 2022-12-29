@@ -289,9 +289,3 @@ func RenderRawString(ctx *markup.RenderContext, content string) (string, error) 
 	}
 	return buf.String(), nil
 }
-
-// IsMarkdownFile reports whether name looks like a Markdown file
-// based on its extension.
-func IsMarkdownFile(name string) bool {
-	return markup.IsMarkupFile(name, MarkupName)
-}

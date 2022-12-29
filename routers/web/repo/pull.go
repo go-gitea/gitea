@@ -182,6 +182,15 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 func Fork(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_fork")
 
+	if ctx.Doer.CanForkRepo() {
+		ctx.Data["CanForkRepo"] = true
+	} else {
+		maxCreationLimit := ctx.Doer.MaxCreationLimit()
+		msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
+		ctx.Data["Flash"] = ctx.Flash
+		ctx.Flash.Error(msg)
+	}
+
 	getForkRepository(ctx)
 	if ctx.Written() {
 		return
@@ -254,6 +263,10 @@ func ForkPost(ctx *context.Context) {
 	if err != nil {
 		ctx.Data["Err_RepoName"] = true
 		switch {
+		case repo_model.IsErrReachLimitOfRepo(err):
+			maxCreationLimit := ctxUser.MaxCreationLimit()
+			msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
+			ctx.RenderWithErr(msg, tplFork, &form)
 		case repo_model.IsErrRepoAlreadyExist(err):
 			ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplFork, &form)
 		case db.IsErrNameReserved(err):
