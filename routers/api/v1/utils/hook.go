@@ -22,7 +22,7 @@ import (
 func GetOrgHook(ctx *context.APIContext, orgID, hookID int64) (*webhook.Webhook, error) {
 	w, err := webhook.GetWebhookByOrgID(orgID, hookID)
 	if err != nil {
-		if webhook_module.IsErrWebhookNotExist(err) {
+		if webhook.IsErrWebhookNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetWebhookByOrgID", err)
@@ -37,7 +37,7 @@ func GetOrgHook(ctx *context.APIContext, orgID, hookID int64) (*webhook.Webhook,
 func GetRepoHook(ctx *context.APIContext, repoID, hookID int64) (*webhook.Webhook, error) {
 	w, err := webhook.GetWebhookByRepoID(repoID, hookID)
 	if err != nil {
-		if webhook_module.IsErrWebhookNotExist(err) {
+		if webhook.IsErrWebhookNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetWebhookByID", err)

@@ -195,7 +195,7 @@ func GetHookTaskByID(ctx context.Context, id int64) (*HookTask, error) {
 		return nil, err
 	}
 	if !has {
-		return nil, webhook_module.ErrHookTaskNotExist{
+		return nil, ErrHookTaskNotExist{
 			TaskID: id,
 		}
 	}
@@ -218,7 +218,7 @@ func ReplayHookTask(ctx context.Context, hookID int64, uuid string) (*HookTask, 
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, webhook_module.ErrHookTaskNotExist{
+		return nil, ErrHookTaskNotExist{
 			HookID: hookID,
 			UUID:   uuid,
 		}

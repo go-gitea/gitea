@@ -10,7 +10,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )
@@ -202,7 +201,7 @@ func DeleteHook(ctx *context.APIContext) {
 	org := ctx.Org.Organization
 	hookID := ctx.ParamsInt64(":id")
 	if err := webhook.DeleteWebhookByOrgID(org.ID, hookID); err != nil {
-		if webhook_module.IsErrWebhookNotExist(err) {
+		if webhook.IsErrWebhookNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "DeleteWebhookByOrgID", err)

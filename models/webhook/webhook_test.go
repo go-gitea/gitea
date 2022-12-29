@@ -106,7 +106,7 @@ func TestGetWebhookByRepoID(t *testing.T) {
 
 	_, err = GetWebhookByRepoID(unittest.NonexistentID, unittest.NonexistentID)
 	assert.Error(t, err)
-	assert.True(t, webhook_module.IsErrWebhookNotExist(err))
+	assert.True(t, IsErrWebhookNotExist(err))
 }
 
 func TestGetWebhookByOrgID(t *testing.T) {
@@ -117,7 +117,7 @@ func TestGetWebhookByOrgID(t *testing.T) {
 
 	_, err = GetWebhookByOrgID(unittest.NonexistentID, unittest.NonexistentID)
 	assert.Error(t, err)
-	assert.True(t, webhook_module.IsErrWebhookNotExist(err))
+	assert.True(t, IsErrWebhookNotExist(err))
 }
 
 func TestGetActiveWebhooksByRepoID(t *testing.T) {
@@ -178,7 +178,7 @@ func TestDeleteWebhookByRepoID(t *testing.T) {
 
 	err := DeleteWebhookByRepoID(unittest.NonexistentID, unittest.NonexistentID)
 	assert.Error(t, err)
-	assert.True(t, webhook_module.IsErrWebhookNotExist(err))
+	assert.True(t, IsErrWebhookNotExist(err))
 }
 
 func TestDeleteWebhookByOrgID(t *testing.T) {
@@ -189,7 +189,7 @@ func TestDeleteWebhookByOrgID(t *testing.T) {
 
 	err := DeleteWebhookByOrgID(unittest.NonexistentID, unittest.NonexistentID)
 	assert.Error(t, err)
-	assert.True(t, webhook_module.IsErrWebhookNotExist(err))
+	assert.True(t, IsErrWebhookNotExist(err))
 }
 
 func TestHookTasks(t *testing.T) {
