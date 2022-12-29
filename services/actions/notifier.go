@@ -13,7 +13,7 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/models/webhook"
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
@@ -47,7 +47,7 @@ func (n *actionsNotifier) NotifyNewIssue(ctx context.Context, issue *issues_mode
 	}
 	mode, _ := access_model.AccessLevel(ctx, issue.Poster, issue.Repo)
 
-	newNotifyInputFromIssue(issue, webhook.HookEventIssues).WithPayload(&api.IssuePayload{
+	newNotifyInputFromIssue(issue, webhook_model.HookEventIssues).WithPayload(&api.IssuePayload{
 		Action:     api.HookIssueOpened,
 		Index:      issue.Index,
 		Issue:      convert.ToAPIIssue(ctx, issue),
@@ -77,7 +77,7 @@ func (n *actionsNotifier) NotifyIssueChangeStatus(ctx context.Context, doer *use
 		} else {
 			apiPullRequest.Action = api.HookIssueReOpened
 		}
-		newNotifyInputFromIssue(issue, webhook.HookEventPullRequest).
+		newNotifyInputFromIssue(issue, webhook_model.HookEventPullRequest).
 			WithDoer(doer).
 			WithPayload(apiPullRequest).
 			Notify(ctx)
@@ -94,7 +94,7 @@ func (n *actionsNotifier) NotifyIssueChangeStatus(ctx context.Context, doer *use
 	} else {
 		apiIssue.Action = api.HookIssueReOpened
 	}
-	newNotifyInputFromIssue(issue, webhook.HookEventIssues).
+	newNotifyInputFromIssue(issue, webhook_model.HookEventIssues).
 		WithDoer(doer).
 		WithPayload(apiIssue).
 		Notify(ctx)
@@ -126,7 +126,7 @@ func (n *actionsNotifier) NotifyIssueChangeLabels(ctx context.Context, doer *use
 			log.Error("LoadIssue: %v", err)
 			return
 		}
-		newNotifyInputFromIssue(issue, webhook.HookEventPullRequestLabel).
+		newNotifyInputFromIssue(issue, webhook_model.HookEventPullRequestLabel).
 			WithDoer(doer).
 			WithPayload(&api.PullRequestPayload{
 				Action:      api.HookIssueLabelUpdated,
@@ -138,7 +138,7 @@ func (n *actionsNotifier) NotifyIssueChangeLabels(ctx context.Context, doer *use
 			Notify(ctx)
 		return
 	}
-	newNotifyInputFromIssue(issue, webhook.HookEventIssueLabel).
+	newNotifyInputFromIssue(issue, webhook_model.HookEventIssueLabel).
 		WithDoer(doer).
 		WithPayload(&api.IssuePayload{
 			Action:     api.HookIssueLabelUpdated,
@@ -159,7 +159,7 @@ func (n *actionsNotifier) NotifyCreateIssueComment(ctx context.Context, doer *us
 	mode, _ := access_model.AccessLevel(ctx, doer, repo)
 
 	if issue.IsPull {
-		newNotifyInputFromIssue(issue, webhook.HookEventPullRequestComment).
+		newNotifyInputFromIssue(issue, webhook_model.HookEventPullRequestComment).
 			WithDoer(doer).
 			WithPayload(&api.IssueCommentPayload{
 				Action:     api.HookIssueCommentCreated,
@@ -172,7 +172,7 @@ func (n *actionsNotifier) NotifyCreateIssueComment(ctx context.Context, doer *us
 			Notify(ctx)
 		return
 	}
-	newNotifyInputFromIssue(issue, webhook.HookEventIssueComment).
+	newNotifyInputFromIssue(issue, webhook_model.HookEventIssueComment).
 		WithDoer(doer).
 		WithPayload(&api.IssueCommentPayload{
 			Action:     api.HookIssueCommentCreated,
@@ -203,7 +203,7 @@ func (n *actionsNotifier) NotifyNewPullRequest(ctx context.Context, pull *issues
 
 	mode, _ := access_model.AccessLevel(ctx, pull.Issue.Poster, pull.Issue.Repo)
 
-	newNotifyInputFromIssue(pull.Issue, webhook.HookEventPullRequest).
+	newNotifyInputFromIssue(pull.Issue, webhook_model.HookEventPullRequest).
 		WithPayload(&api.PullRequestPayload{
 			Action:      api.HookIssueOpened,
 			Index:       pull.Issue.Index,
@@ -218,7 +218,7 @@ func (n *actionsNotifier) NotifyNewPullRequest(ctx context.Context, pull *issues
 func (n *actionsNotifier) NotifyCreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
 	ctx = withMethod(ctx, "NotifyCreateRepository")
 
-	newNotifyInput(repo, doer, webhook.HookEventRepository).WithPayload(&api.RepositoryPayload{
+	newNotifyInput(repo, doer, webhook_model.HookEventRepository).WithPayload(&api.RepositoryPayload{
 		Action:       api.HookRepoCreated,
 		Repository:   convert.ToRepo(ctx, repo, perm_model.AccessModeOwner),
 		Organization: convert.ToUser(u, nil),
@@ -233,7 +233,7 @@ func (n *actionsNotifier) NotifyForkRepository(ctx context.Context, doer *user_m
 	mode, _ := access_model.AccessLevel(ctx, doer, repo)
 
 	// forked webhook
-	newNotifyInput(oldRepo, doer, webhook.HookEventFork).WithPayload(&api.ForkPayload{
+	newNotifyInput(oldRepo, doer, webhook_model.HookEventFork).WithPayload(&api.ForkPayload{
 		Forkee: convert.ToRepo(ctx, oldRepo, oldMode),
 		Repo:   convert.ToRepo(ctx, repo, mode),
 		Sender: convert.ToUser(doer, nil),
@@ -243,7 +243,7 @@ func (n *actionsNotifier) NotifyForkRepository(ctx context.Context, doer *user_m
 
 	// Add to hook queue for created repo after session commit.
 	if u.IsOrganization() {
-		newNotifyInput(repo, doer, webhook.HookEventRepository).
+		newNotifyInput(repo, doer, webhook_model.HookEventRepository).
 			WithRef(oldRepo.DefaultBranch).
 			WithPayload(&api.RepositoryPayload{
 				Action:       api.HookRepoCreated,
@@ -257,15 +257,15 @@ func (n *actionsNotifier) NotifyForkRepository(ctx context.Context, doer *user_m
 func (n *actionsNotifier) NotifyPullRequestReview(ctx context.Context, pr *issues_model.PullRequest, review *issues_model.Review, _ *issues_model.Comment, _ []*user_model.User) {
 	ctx = withMethod(ctx, "NotifyPullRequestReview")
 
-	var reviewHookType webhook.HookEventType
+	var reviewHookType webhook_model.HookEventType
 
 	switch review.Type {
 	case issues_model.ReviewTypeApprove:
-		reviewHookType = webhook.HookEventPullRequestReviewApproved
+		reviewHookType = webhook_model.HookEventPullRequestReviewApproved
 	case issues_model.ReviewTypeComment:
-		reviewHookType = webhook.HookEventPullRequestComment
+		reviewHookType = webhook_model.HookEventPullRequestComment
 	case issues_model.ReviewTypeReject:
-		reviewHookType = webhook.HookEventPullRequestReviewRejected
+		reviewHookType = webhook_model.HookEventPullRequestReviewRejected
 	default:
 		// unsupported review webhook type here
 		log.Error("Unsupported review webhook type")
@@ -332,7 +332,7 @@ func (*actionsNotifier) NotifyMergePullRequest(ctx context.Context, doer *user_m
 		Action:      api.HookIssueClosed,
 	}
 
-	newNotifyInput(pr.Issue.Repo, doer, webhook.HookEventPullRequest).
+	newNotifyInput(pr.Issue.Repo, doer, webhook_model.HookEventPullRequest).
 		WithRef(pr.MergedCommitID).
 		WithPayload(apiPullRequest).
 		WithPullRequest(pr).
@@ -349,7 +349,7 @@ func (n *actionsNotifier) NotifyPushCommits(ctx context.Context, pusher *user_mo
 		return
 	}
 
-	newNotifyInput(repo, pusher, webhook.HookEventPush).
+	newNotifyInput(repo, pusher, webhook_model.HookEventPush).
 		WithRef(opts.RefFullName).
 		WithPayload(&api.PushPayload{
 			Ref:        opts.RefFullName,
@@ -372,7 +372,7 @@ func (n *actionsNotifier) NotifyCreateRef(ctx context.Context, pusher *user_mode
 	apiRepo := convert.ToRepo(ctx, repo, perm_model.AccessModeNone)
 	refName := git.RefEndName(refFullName)
 
-	newNotifyInput(repo, pusher, webhook.HookEventCreate).
+	newNotifyInput(repo, pusher, webhook_model.HookEventCreate).
 		WithRef(refName).
 		WithPayload(&api.CreatePayload{
 			Ref:     refName,
@@ -391,7 +391,7 @@ func (n *actionsNotifier) NotifyDeleteRef(ctx context.Context, pusher *user_mode
 	apiRepo := convert.ToRepo(ctx, repo, perm_model.AccessModeNone)
 	refName := git.RefEndName(refFullName)
 
-	newNotifyInput(repo, pusher, webhook.HookEventDelete).
+	newNotifyInput(repo, pusher, webhook_model.HookEventDelete).
 		WithRef(refName).
 		WithPayload(&api.DeletePayload{
 			Ref:        refName,
@@ -413,7 +413,7 @@ func (n *actionsNotifier) NotifySyncPushCommits(ctx context.Context, pusher *use
 		return
 	}
 
-	newNotifyInput(repo, pusher, webhook.HookEventPush).
+	newNotifyInput(repo, pusher, webhook_model.HookEventPush).
 		WithRef(opts.RefFullName).
 		WithPayload(&api.PushPayload{
 			Ref:          opts.RefFullName,
@@ -483,7 +483,7 @@ func (n *actionsNotifier) NotifyPullRequestSynchronized(ctx context.Context, doe
 		return
 	}
 
-	newNotifyInput(pr.Issue.Repo, doer, webhook.HookEventPullRequestSync).
+	newNotifyInput(pr.Issue.Repo, doer, webhook_model.HookEventPullRequestSync).
 		WithPayload(&api.PullRequestPayload{
 			Action:      api.HookIssueSynchronized,
 			Index:       pr.Issue.Index,
@@ -509,7 +509,7 @@ func (n *actionsNotifier) NotifyPullRequestChangeTargetBranch(ctx context.Contex
 	}
 
 	mode, _ := access_model.AccessLevel(ctx, pr.Issue.Poster, pr.Issue.Repo)
-	newNotifyInput(pr.Issue.Repo, doer, webhook.HookEventPullRequest).
+	newNotifyInput(pr.Issue.Repo, doer, webhook_model.HookEventPullRequest).
 		WithPayload(&api.PullRequestPayload{
 			Action: api.HookIssueEdited,
 			Index:  pr.Issue.Index,
