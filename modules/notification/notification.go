@@ -10,15 +10,9 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/notification/action"
 	"code.gitea.io/gitea/modules/notification/base"
-	"code.gitea.io/gitea/modules/notification/indexer"
-	"code.gitea.io/gitea/modules/notification/mail"
-	"code.gitea.io/gitea/modules/notification/mirror"
-	"code.gitea.io/gitea/modules/notification/ui"
 	"code.gitea.io/gitea/modules/notification/webhook"
 	"code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/setting"
 )
 
 var notifiers []base.Notifier
@@ -31,14 +25,7 @@ func RegisterNotifier(notifier base.Notifier) {
 
 // NewContext registers notification handlers
 func NewContext() {
-	RegisterNotifier(ui.NewNotifier())
-	if setting.Service.EnableNotifyMail {
-		RegisterNotifier(mail.NewNotifier())
-	}
-	RegisterNotifier(indexer.NewNotifier())
 	RegisterNotifier(webhook.NewNotifier())
-	RegisterNotifier(action.NewNotifier())
-	RegisterNotifier(mirror.NewNotifier())
 }
 
 // NotifyNewWikiPage notifies creating new wiki pages to notifiers

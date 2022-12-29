@@ -1,7 +1,7 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package ui
+package notification
 
 import (
 	"context"
@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/queue"
 )
@@ -39,6 +40,10 @@ func NewNotifier() base.Notifier {
 	ns := &notificationService{}
 	ns.issueQueue = queue.CreateQueue("notification-service", ns.handle, issueNotificationOpts{})
 	return ns
+}
+
+func init() {
+	notification.RegisterNotifier(NewNotifier())
 }
 
 func (ns *notificationService) handle(data ...queue.Data) []queue.Data {

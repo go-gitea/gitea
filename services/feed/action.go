@@ -1,7 +1,7 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package action
+package feed
 
 import (
 	"context"
@@ -15,6 +15,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/util"
@@ -29,6 +30,10 @@ var _ base.Notifier = &actionNotifier{}
 // NewNotifier create a new actionNotifier notifier
 func NewNotifier() base.Notifier {
 	return &actionNotifier{}
+}
+
+func init() {
+	notification.RegisterNotifier(NewNotifier())
 }
 
 func (a *actionNotifier) NotifyNewIssue(ctx context.Context, issue *issues_model.Issue, mentions []*user_model.User) {
