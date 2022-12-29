@@ -7,20 +7,20 @@ import (
 	"archive/tar"
 	"archive/zip"
 	"compress/bzip2"
-	"errors"
 	"io"
 	"strings"
 
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 
 	"github.com/klauspost/compress/zstd"
 )
 
 var (
-	ErrInvalidStructure = errors.New("package structure is invalid")
-	ErrInvalidName      = errors.New("package name is invalid")
-	ErrInvalidVersion   = errors.New("package version is invalid")
+	ErrInvalidStructure = util.SilentWrap{Message: "package structure is invalid", Err: util.ErrInvalidArgument}
+	ErrInvalidName      = util.SilentWrap{Message: "package name is invalid", Err: util.ErrInvalidArgument}
+	ErrInvalidVersion   = util.SilentWrap{Message: "package version is invalid", Err: util.ErrInvalidArgument}
 )
 
 const (
