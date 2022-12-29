@@ -83,3 +83,13 @@ const (
 	WECHATWORK HookType = "wechatwork"
 	PACKAGIST  HookType = "packagist"
 )
+
+// HookStatus is the status of a web hook
+type HookStatus int
+
+// Possible statuses of a web hook
+const (
+	HookStatusNone HookStatus = iota
+	HookStatusSucceed
+	HookStatusFail
+)

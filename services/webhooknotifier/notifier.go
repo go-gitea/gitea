@@ -5,7 +5,6 @@ package webhooknotifier
 
 import (
 	"context"
-	"fmt"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -28,7 +27,6 @@ import (
 
 func init() {
 	notification.RegisterNotifier(&webhookNotifier{})
-	fmt.Println("Hi from init")
 }
 
 type webhookNotifier struct {

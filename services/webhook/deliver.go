@@ -190,9 +190,9 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 
 		// Update webhook last delivery status.
 		if t.IsSucceed {
-			w.LastStatus = webhook_model.HookStatusSucceed
+			w.LastStatus = webhook_module.HookStatusSucceed
 		} else {
-			w.LastStatus = webhook_model.HookStatusFail
+			w.LastStatus = webhook_module.HookStatusFail
 		}
 		if err = webhook_model.UpdateWebhookLastStatus(w); err != nil {
 			log.Error("UpdateWebhookLastStatus: %v", err)

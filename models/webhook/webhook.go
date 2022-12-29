@@ -118,13 +118,6 @@ func IsValidHookContentType(name string) bool {
 	return ok
 }
 
-// Possible statuses of a web hook
-const (
-	HookStatusNone = iota
-	HookStatusSucceed
-	HookStatusFail
-)
-
 // Webhook represents a web hook object.
 type Webhook struct {
 	ID                        int64 `xorm:"pk autoincr"`

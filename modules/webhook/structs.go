@@ -36,6 +36,3 @@ type HookEvent struct {
 
 	HookEvents `json:"events"`
 }
-
-// HookStatus is the status of a web hook
-type HookStatus int
