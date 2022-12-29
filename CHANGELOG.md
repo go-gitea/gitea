@@ -4,7 +4,7 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.18.0](https://github.com/go-gitea/gitea/releases/tag/1.18.0) - 2022-12-29
+## [1.18.0](https://github.com/go-gitea/gitea/releases/tag/v1.18.0) - 2022-12-29
 
 * SECURITY
   * Remove ReverseProxy authentication from the API (#22219) (#22251)
@@ -200,7 +200,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Update JS dependencies, adjust eslint (#20659)
   * Add more linters to improve code readability (#19989)
 
-## [1.17.4](https://github.com/go-gitea/gitea/releases/tag/1.17.4) - 2022-12-21
+## [1.17.4](https://github.com/go-gitea/gitea/releases/tag/v1.17.4) - 2022-12-21
 
 * SECURITY
   * Do not allow Ghost access to limited visible user/org (#21849) (#21875)
