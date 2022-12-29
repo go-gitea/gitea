@@ -62,6 +62,7 @@ func Packages(ctx *context.Context) {
 	ctx.Data["PageIsAdminPackages"] = true
 	ctx.Data["Query"] = query
 	ctx.Data["PackageType"] = packageType
+	ctx.Data["AvailableTypes"] = packages_model.TypeList
 	ctx.Data["SortType"] = sort
 	ctx.Data["PackageDescriptors"] = pds
 	ctx.Data["Total"] = total
