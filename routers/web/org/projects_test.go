@@ -1,13 +1,14 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package org
+package org_test
 
 import (
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/routers/web/org"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -20,7 +21,7 @@ func TestCheckProjectBoardChangePermissions(t *testing.T) {
 	ctx.SetParams(":id", "1")
 	ctx.SetParams(":boardID", "2")
 
-	project, board := checkProjectBoardChangePermissions(ctx)
+	project, board := org.CheckProjectBoardChangePermissions(ctx)
 	assert.NotNil(t, project)
 	assert.NotNil(t, board)
 	assert.False(t, ctx.Written())

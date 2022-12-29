@@ -482,7 +482,8 @@ func AddBoardToProjectPost(ctx *context.Context) {
 	})
 }
 
-func checkProjectBoardChangePermissions(ctx *context.Context) (*project_model.Project, *project_model.Board) {
+// CheckProjectBoardChangePermissions check permission
+func CheckProjectBoardChangePermissions(ctx *context.Context) (*project_model.Project, *project_model.Board) {
 	if ctx.Doer == nil {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only signed in users are allowed to perform this action.",
@@ -524,7 +525,7 @@ func checkProjectBoardChangePermissions(ctx *context.Context) (*project_model.Pr
 // EditProjectBoard allows a project board's to be updated
 func EditProjectBoard(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.EditProjectBoardForm)
-	_, board := checkProjectBoardChangePermissions(ctx)
+	_, board := CheckProjectBoardChangePermissions(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -551,7 +552,7 @@ func EditProjectBoard(ctx *context.Context) {
 
 // SetDefaultProjectBoard set default board for uncategorized issues/pulls
 func SetDefaultProjectBoard(ctx *context.Context) {
-	project, board := checkProjectBoardChangePermissions(ctx)
+	project, board := CheckProjectBoardChangePermissions(ctx)
 	if ctx.Written() {
 		return
 	}
