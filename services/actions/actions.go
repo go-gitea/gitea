@@ -23,12 +23,14 @@ import (
 )
 
 func Init() {
+	if !setting.Actions.Enabled {
+		return
+	}
+
 	jobEmitterQueue = queue.CreateUniqueQueue("actions_ready_job", jobEmitterQueueHandle, new(jobUpdate))
 	go graceful.GetManager().RunWithShutdownFns(jobEmitterQueue.Run)
 
-	if setting.Actions.Enabled {
-		notification.RegisterNotifier(NewNotifier())
-	}
+	notification.RegisterNotifier(NewNotifier())
 }
 
 func DeleteResourceOfRepository(ctx context.Context, repo *repo_model.Repository) error {
