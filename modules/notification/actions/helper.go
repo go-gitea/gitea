@@ -14,17 +14,17 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
+	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/models/webhook"
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	actions_module "code.gitea.io/gitea/modules/actions"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	actions_service "code.gitea.io/gitea/services/actions"
+	"code.gitea.io/gitea/services/convert"
 
 	"github.com/nektos/act/pkg/jobparser"
 )
@@ -54,7 +54,7 @@ type notifyInput struct {
 	// required
 	Repo  *repo_model.Repository
 	Doer  *user_model.User
-	Event webhook.HookEventType
+	Event webhook_model.HookEventType
 
 	// optional
 	Ref         string
@@ -62,7 +62,7 @@ type notifyInput struct {
 	PullRequest *issues_model.PullRequest
 }
 
-func newNotifyInput(repo *repo_model.Repository, doer *user_model.User, event webhook.HookEventType) *notifyInput {
+func newNotifyInput(repo *repo_model.Repository, doer *user_model.User, event webhook_model.HookEventType) *notifyInput {
 	return &notifyInput{
 		Repo:  repo,
 		Ref:   repo.DefaultBranch,
@@ -98,12 +98,12 @@ func (input *notifyInput) Notify(ctx context.Context) {
 }
 
 func notify(ctx context.Context, input *notifyInput) error {
-	if unit.TypeActions.UnitGlobalDisabled() {
+	if unit_model.TypeActions.UnitGlobalDisabled() {
 		return nil
 	}
 	if err := input.Repo.LoadUnits(db.DefaultContext); err != nil {
 		return fmt.Errorf("repo.LoadUnits: %w", err)
-	} else if !input.Repo.UnitEnabled(ctx, unit.TypeActions) {
+	} else if !input.Repo.UnitEnabled(ctx, unit_model.TypeActions) {
 		return nil
 	}
 
@@ -171,7 +171,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 	return nil
 }
 
-func newNotifyInputFromIssue(issue *issues_model.Issue, event webhook.HookEventType) *notifyInput {
+func newNotifyInputFromIssue(issue *issues_model.Issue, event webhook_model.HookEventType) *notifyInput {
 	return newNotifyInput(issue.Repo, issue.Poster, event)
 }
 
@@ -183,7 +183,7 @@ func notifyRelease(ctx context.Context, doer *user_model.User, rel *repo_model.R
 
 	mode, _ := access_model.AccessLevel(ctx, doer, rel.Repo)
 
-	newNotifyInput(rel.Repo, doer, webhook.HookEventRelease).
+	newNotifyInput(rel.Repo, doer, webhook_model.HookEventRelease).
 		WithRef(ref).
 		WithPayload(&api.ReleasePayload{
 			Action:     action,
@@ -206,7 +206,7 @@ func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_mo
 		return
 	}
 
-	newNotifyInput(pd.Repository, sender, webhook.HookEventPackage).
+	newNotifyInput(pd.Repository, sender, webhook_model.HookEventPackage).
 		WithPayload(&api.PackagePayload{
 			Action:  action,
 			Package: apiPackage,

@@ -9,18 +9,18 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/perm"
+	perm_model "code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/convert"
 )
 
 type actionsNotifier struct {
@@ -132,7 +132,7 @@ func (n *actionsNotifier) NotifyIssueChangeLabels(ctx context.Context, doer *use
 				Action:      api.HookIssueLabelUpdated,
 				Index:       issue.Index,
 				PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
-				Repository:  convert.ToRepo(ctx, issue.Repo, perm.AccessModeNone),
+				Repository:  convert.ToRepo(ctx, issue.Repo, perm_model.AccessModeNone),
 				Sender:      convert.ToUser(doer, nil),
 			}).
 			Notify(ctx)
@@ -220,7 +220,7 @@ func (n *actionsNotifier) NotifyCreateRepository(ctx context.Context, doer, u *u
 
 	newNotifyInput(repo, doer, webhook.HookEventRepository).WithPayload(&api.RepositoryPayload{
 		Action:       api.HookRepoCreated,
-		Repository:   convert.ToRepo(ctx, repo, perm.AccessModeOwner),
+		Repository:   convert.ToRepo(ctx, repo, perm_model.AccessModeOwner),
 		Organization: convert.ToUser(u, nil),
 		Sender:       convert.ToUser(doer, nil),
 	}).Notify(ctx)
@@ -247,7 +247,7 @@ func (n *actionsNotifier) NotifyForkRepository(ctx context.Context, doer *user_m
 			WithRef(oldRepo.DefaultBranch).
 			WithPayload(&api.RepositoryPayload{
 				Action:       api.HookRepoCreated,
-				Repository:   convert.ToRepo(ctx, repo, perm.AccessModeOwner),
+				Repository:   convert.ToRepo(ctx, repo, perm_model.AccessModeOwner),
 				Organization: convert.ToUser(u, nil),
 				Sender:       convert.ToUser(doer, nil),
 			}).Notify(ctx)
@@ -358,7 +358,7 @@ func (n *actionsNotifier) NotifyPushCommits(ctx context.Context, pusher *user_mo
 			CompareURL: setting.AppURL + commits.CompareURL,
 			Commits:    apiCommits,
 			HeadCommit: apiHeadCommit,
-			Repo:       convert.ToRepo(ctx, repo, perm.AccessModeOwner),
+			Repo:       convert.ToRepo(ctx, repo, perm_model.AccessModeOwner),
 			Pusher:     apiPusher,
 			Sender:     apiPusher,
 		}).
@@ -369,7 +369,7 @@ func (n *actionsNotifier) NotifyCreateRef(ctx context.Context, pusher *user_mode
 	ctx = withMethod(ctx, "NotifyCreateRef")
 
 	apiPusher := convert.ToUser(pusher, nil)
-	apiRepo := convert.ToRepo(ctx, repo, perm.AccessModeNone)
+	apiRepo := convert.ToRepo(ctx, repo, perm_model.AccessModeNone)
 	refName := git.RefEndName(refFullName)
 
 	newNotifyInput(repo, pusher, webhook.HookEventCreate).
@@ -388,7 +388,7 @@ func (n *actionsNotifier) NotifyDeleteRef(ctx context.Context, pusher *user_mode
 	ctx = withMethod(ctx, "NotifyDeleteRef")
 
 	apiPusher := convert.ToUser(pusher, nil)
-	apiRepo := convert.ToRepo(ctx, repo, perm.AccessModeNone)
+	apiRepo := convert.ToRepo(ctx, repo, perm_model.AccessModeNone)
 	refName := git.RefEndName(refFullName)
 
 	newNotifyInput(repo, pusher, webhook.HookEventDelete).
@@ -423,7 +423,7 @@ func (n *actionsNotifier) NotifySyncPushCommits(ctx context.Context, pusher *use
 			Commits:      apiCommits,
 			TotalCommits: commits.Len,
 			HeadCommit:   apiHeadCommit,
-			Repo:         convert.ToRepo(ctx, repo, perm.AccessModeOwner),
+			Repo:         convert.ToRepo(ctx, repo, perm_model.AccessModeOwner),
 			Pusher:       apiPusher,
 			Sender:       apiPusher,
 		}).
@@ -488,7 +488,7 @@ func (n *actionsNotifier) NotifyPullRequestSynchronized(ctx context.Context, doe
 			Action:      api.HookIssueSynchronized,
 			Index:       pr.Issue.Index,
 			PullRequest: convert.ToAPIPullRequest(ctx, pr, nil),
-			Repository:  convert.ToRepo(ctx, pr.Issue.Repo, perm.AccessModeNone),
+			Repository:  convert.ToRepo(ctx, pr.Issue.Repo, perm_model.AccessModeNone),
 			Sender:      convert.ToUser(doer, nil),
 		}).
 		WithPullRequest(pr).
