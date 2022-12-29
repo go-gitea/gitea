@@ -12,7 +12,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/action"
-	"code.gitea.io/gitea/modules/notification/actions"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/notification/indexer"
 	"code.gitea.io/gitea/modules/notification/mail"
@@ -41,9 +40,6 @@ func NewContext() {
 	RegisterNotifier(webhook.NewNotifier())
 	RegisterNotifier(action.NewNotifier())
 	RegisterNotifier(mirror.NewNotifier())
-	if setting.Actions.Enabled {
-		RegisterNotifier(actions.NewNotifier())
-	}
 }
 
 // NotifyNewWikiPage notifies creating new wiki pages to notifiers

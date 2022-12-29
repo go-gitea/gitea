@@ -16,13 +16,19 @@ import (
 	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/queue"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
 func Init() {
 	jobEmitterQueue = queue.CreateUniqueQueue("actions_ready_job", jobEmitterQueueHandle, new(jobUpdate))
 	go graceful.GetManager().RunWithShutdownFns(jobEmitterQueue.Run)
+
+	if setting.Actions.Enabled {
+		notification.RegisterNotifier(NewNotifier())
+	}
 }
 
 func DeleteResourceOfRepository(ctx context.Context, repo *repo_model.Repository) error {

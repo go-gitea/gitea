@@ -23,7 +23,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	actions_service "code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/convert"
 
 	"github.com/nektos/act/pkg/jobparser"
@@ -161,7 +160,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 			log.Error("FindRunJobs: %v", err)
 		} else {
 			for _, job := range jobs {
-				if err := actions_service.CreateCommitStatus(ctx, job); err != nil {
+				if err := CreateCommitStatus(ctx, job); err != nil {
 					log.Error("CreateCommitStatus: %v", err)
 				}
 			}
