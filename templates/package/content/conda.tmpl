@@ -13,7 +13,7 @@ default_channels:
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.conda.install"}}</label>
 				{{$channel := .PackageDescriptor.PackageProperties.GetByName "conda.channel"}}
-				<div class="markup"><pre class="code-block"><code>conda install{{if $channel}} -c {{$channel}}{{end}} {{.PackageDescriptor.PackageProperties.GetByName "conda.name"}}</code></pre></div>
+				<div class="markup"><pre class="code-block"><code>conda install{{if $channel}} -c {{$channel}}{{end}} {{.PackageDescriptor.PackageProperties.GetByName "conda.name"}}={{.PackageDescriptor.Version.Version}}</code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{.locale.Tr "packages.conda.documentation" | Safe}}</label>

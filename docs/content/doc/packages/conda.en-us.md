@@ -70,14 +70,16 @@ You cannot publish a package if a package of the same name and version already e
 
 ## Install a package
 
-To install a package from the package registry, execute the following command:
+To install a package from the package registry, execute one of the following commands:
 
 ```shell
 conda install {package_name}
+conda install {package_name}={package_version}
 conda install -c {channel} {package_name}
 ```
 
-| Parameter      | Description |
-| -------------- | ----------- |
-| `package_name` | The package name. |
-| `channel`      | The channel of the package. (optional) |
+| Parameter         | Description |
+| ----------------- | ----------- |
+| `package_name`    | The package name. |
+| `package_version` | The package version. |
+| `channel`         | The channel of the package. (optional) |
