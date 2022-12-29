@@ -32,7 +32,6 @@ import (
 	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
 
-	// The tests are not started from main.go, and otherwise the webhooks are not initialized correctly
 	_ "code.gitea.io/gitea/services/webhooknotifier"
 
 	"github.com/stretchr/testify/assert"
