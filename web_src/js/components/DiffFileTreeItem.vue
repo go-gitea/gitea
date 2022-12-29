@@ -43,11 +43,7 @@
 import {SvgIcon} from '../svg.js';
 
 export default {
-  name: 'DiffFileTreeItem',
-  components: {
-    SvgIcon,
-  },
-
+  components: {SvgIcon},
   props: {
     item: {
       type: Object,
@@ -59,7 +55,6 @@ export default {
       default: true
     }
   },
-
   data: () => ({
     collapsed: false,
   }),

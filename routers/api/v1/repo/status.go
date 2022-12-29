@@ -9,10 +9,10 @@ import (
 
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
 
@@ -183,6 +183,7 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 		ctx.Error(http.StatusBadRequest, "ref/sha not given", nil)
 		return
 	}
+	sha = utils.MustConvertToSHA1(ctx.Context, sha)
 	repo := ctx.Repo.Repository
 
 	listOptions := utils.GetListOptions(ctx)
