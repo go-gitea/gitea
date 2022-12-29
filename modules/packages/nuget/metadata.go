@@ -5,8 +5,10 @@ package nuget
 
 import (
 	"archive/zip"
+	"bytes"
 	"encoding/xml"
 	"errors"
+	"fmt"
 	"io"
 	"path/filepath"
 	"regexp"
@@ -182,7 +184,23 @@ func ParseNuspecMetaData(r io.Reader) (*Package, error) {
 	return &Package{
 		PackageType: packageType,
 		ID:          p.Metadata.ID,
-		Version:     v.String(),
+		Version:     toNormalizedVersion(v),
 		Metadata:    m,
 	}, nil
+}
+
+// https://learn.microsoft.com/en-us/nuget/concepts/package-versioning#normalized-version-numbers
+// https://github.com/NuGet/NuGet.Client/blob/dccbd304b11103e08b97abf4cf4bcc1499d9235a/src/NuGet.Core/NuGet.Versioning/VersionFormatter.cs#L121
+func toNormalizedVersion(v *version.Version) string {
+	var buf bytes.Buffer
+	segments := v.Segments64()
+	fmt.Fprintf(&buf, "%d.%d.%d", segments[0], segments[1], segments[2])
+	if len(segments) > 3 && segments[3] > 0 {
+		fmt.Fprintf(&buf, ".%d", segments[3])
+	}
+	pre := v.Prerelease()
+	if pre != "" {
+		fmt.Fprint(&buf, "-", pre)
+	}
+	return buf.String()
 }
