@@ -120,7 +120,7 @@ func ViewPost(ctx *context_module.Context) {
 			ID:       v.ID,
 			Name:     v.Name,
 			Status:   v.Status.String(),
-			CanRerun: run.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions),
+			CanRerun: v.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions),
 		}
 	}
 
