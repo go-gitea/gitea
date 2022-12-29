@@ -11,7 +11,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
-	webhook_service "code.gitea.io/gitea/services/webhook"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // ListHooks list an organziation's webhooks
@@ -58,7 +58,7 @@ func ListHooks(ctx *context.APIContext) {
 
 	hooks := make([]*api.Hook, len(orgHooks))
 	for i, hook := range orgHooks {
-		hooks[i], err = webhook_service.ToHook(ctx.Org.Organization.AsUser().HomeLink(), hook)
+		hooks[i], err = convert.ToHook(ctx.Org.Organization.AsUser().HomeLink(), hook)
 		if err != nil {
 			ctx.InternalServerError(err)
 			return
@@ -99,7 +99,7 @@ func GetHook(ctx *context.APIContext) {
 		return
 	}
 
-	apiHook, err := webhook_service.ToHook(org.AsUser().HomeLink(), hook)
+	apiHook, err := convert.ToHook(org.AsUser().HomeLink(), hook)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

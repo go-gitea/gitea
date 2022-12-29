@@ -22,6 +22,9 @@ import (
 	_ "code.gitea.io/gitea/modules/markup/markdown"
 	_ "code.gitea.io/gitea/modules/markup/orgmode"
 
+	// register webhook notifier
+	_ "code.gitea.io/gitea/services/webhooknotifier"
+
 	"github.com/urfave/cli"
 )
 

@@ -10,13 +10,13 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
@@ -69,7 +69,7 @@ func ListHooks(ctx *context.APIContext) {
 
 	apiHooks := make([]*api.Hook, len(hooks))
 	for i := range hooks {
-		apiHooks[i], err = webhook_service.ToHook(ctx.Repo.RepoLink, hooks[i])
+		apiHooks[i], err = convert.ToHook(ctx.Repo.RepoLink, hooks[i])
 		if err != nil {
 			ctx.InternalServerError(err)
 			return
@@ -116,7 +116,7 @@ func GetHook(ctx *context.APIContext) {
 	if err != nil {
 		return
 	}
-	apiHook, err := webhook_service.ToHook(repo.RepoLink, hook)
+	apiHook, err := convert.ToHook(repo.RepoLink, hook)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

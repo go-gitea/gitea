@@ -9,11 +9,9 @@ import (
 	"net/url"
 	"strings"
 
-	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
 )
 
 type linkFormatter = func(string, string) string
@@ -224,36 +222,4 @@ func getIssueCommentPayloadInfo(p *api.IssueCommentPayload, linkFormatter linkFo
 	}
 
 	return text, issueTitle, color
-}
-
-// ToHook convert models.Webhook to api.Hook
-func ToHook(repoLink string, w *webhook_model.Webhook) (*api.Hook, error) {
-	config := map[string]string{
-		"url":          w.URL,
-		"content_type": w.ContentType.Name(),
-	}
-	if w.Type == webhook_module.SLACK {
-		s := GetSlackHook(w)
-		config["channel"] = s.Channel
-		config["username"] = s.Username
-		config["icon_url"] = s.IconURL
-		config["color"] = s.Color
-	}
-
-	authorizationHeader, err := w.HeaderAuthorization()
-	if err != nil {
-		return nil, err
-	}
-
-	return &api.Hook{
-		ID:                  w.ID,
-		Type:                w.Type,
-		URL:                 fmt.Sprintf("%s/settings/hooks/%d", repoLink, w.ID),
-		Active:              w.IsActive,
-		Config:              config,
-		Events:              w.EventsArray(),
-		AuthorizationHeader: authorizationHeader,
-		Updated:             w.UpdatedUnix.AsTime(),
-		Created:             w.CreatedUnix.AsTime(),
-	}, nil
 }
