@@ -8,7 +8,6 @@ import (
 	"crypto/sha1"
 	"crypto/sha512"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"io"
 	"regexp"
@@ -16,22 +15,18 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 
 	"github.com/hashicorp/go-version"
 )
 
 var (
-	// ErrInvalidPackage indicates an invalid package
-	ErrInvalidPackage = errors.New("The package is invalid")
-	// ErrInvalidPackageName indicates an invalid name
-	ErrInvalidPackageName = errors.New("The package name is invalid")
-	// ErrInvalidPackageVersion indicates an invalid version
-	ErrInvalidPackageVersion = errors.New("The package version is invalid")
-	// ErrInvalidAttachment indicates a invalid attachment
-	ErrInvalidAttachment = errors.New("The package attachment is invalid")
-	// ErrInvalidIntegrity indicates an integrity validation error
-	ErrInvalidIntegrity = errors.New("Failed to validate integrity")
+	ErrInvalidPackage        = util.SilentWrap{Message: "package is invalid", Err: util.ErrInvalidArgument}
+	ErrInvalidPackageName    = util.SilentWrap{Message: "package name is invalid", Err: util.ErrInvalidArgument}
+	ErrInvalidPackageVersion = util.SilentWrap{Message: "package version is invalid", Err: util.ErrInvalidArgument}
+	ErrInvalidAttachment     = util.SilentWrap{Message: "package attachment is invalid", Err: util.ErrInvalidArgument}
+	ErrInvalidIntegrity      = util.SilentWrap{Message: "failed to validate integrity", Err: util.ErrInvalidArgument}
 )
 
 var nameMatch = regexp.MustCompile(`\A((@[^\s\/~'!\(\)\*]+?)[\/])?([^_.][^\s\/~'!\(\)\*]+)\z`)

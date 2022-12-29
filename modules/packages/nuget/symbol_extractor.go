@@ -7,7 +7,6 @@ import (
 	"archive/zip"
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"io"
 	"path"
@@ -15,13 +14,14 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/packages"
+	"code.gitea.io/gitea/modules/util"
 )
 
 var (
-	ErrMissingPdbFiles       = errors.New("Package does not contain PDB files")
-	ErrInvalidFiles          = errors.New("Package contains invalid files")
-	ErrInvalidPdbMagicNumber = errors.New("Invalid Portable PDB magic number")
-	ErrMissingPdbStream      = errors.New("Missing PDB stream")
+	ErrMissingPdbFiles       = util.SilentWrap{Message: "package does not contain PDB files", Err: util.ErrInvalidArgument}
+	ErrInvalidFiles          = util.SilentWrap{Message: "package contains invalid files", Err: util.ErrInvalidArgument}
+	ErrInvalidPdbMagicNumber = util.SilentWrap{Message: "invalid Portable PDB magic number", Err: util.ErrInvalidArgument}
+	ErrMissingPdbStream      = util.SilentWrap{Message: "missing PDB stream", Err: util.ErrInvalidArgument}
 )
 
 type PortablePdb struct {

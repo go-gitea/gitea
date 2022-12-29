@@ -6,9 +6,10 @@ package rubygems
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"io"
 	"reflect"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -30,10 +31,8 @@ const (
 )
 
 var (
-	// ErrUnsupportedType indicates an unsupported type
-	ErrUnsupportedType = errors.New("Type is unsupported")
-	// ErrInvalidIntRange indicates an invalid number range
-	ErrInvalidIntRange = errors.New("Number is not in valid range")
+	ErrUnsupportedType = util.SilentWrap{Message: "type is unsupported", Err: util.ErrInvalidArgument}
+	ErrInvalidIntRange = util.SilentWrap{Message: "number is not in valid range", Err: util.ErrInvalidArgument}
 )
 
 // RubyUserMarshal is a Ruby object that has a marshal_load function.

@@ -6,11 +6,11 @@ package pub
 import (
 	"archive/tar"
 	"compress/gzip"
-	"errors"
 	"io"
 	"regexp"
 	"strings"
 
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 
 	"github.com/hashicorp/go-version"
@@ -18,10 +18,10 @@ import (
 )
 
 var (
-	ErrMissingPubspecFile  = errors.New("Pubspec file is missing")
-	ErrPubspecFileTooLarge = errors.New("Pubspec file is too large")
-	ErrInvalidName         = errors.New("Package name is invalid")
-	ErrInvalidVersion      = errors.New("Package version is invalid")
+	ErrMissingPubspecFile  = util.SilentWrap{Message: "Pubspec file is missing", Err: util.ErrInvalidArgument}
+	ErrPubspecFileTooLarge = util.SilentWrap{Message: "Pubspec file is too large", Err: util.ErrInvalidArgument}
+	ErrInvalidName         = util.SilentWrap{Message: "Package name is invalid", Err: util.ErrInvalidArgument}
+	ErrInvalidVersion      = util.SilentWrap{Message: "Package version is invalid", Err: util.ErrInvalidArgument}
 )
 
 var namePattern = regexp.MustCompile(`\A[a-zA-Z_][a-zA-Z0-9_]*\z`)
