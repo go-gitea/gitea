@@ -159,6 +159,10 @@ func parsePackageTar(r io.Reader) (*Package, error) {
 			if !checkVersion(i.Version) {
 				return nil, ErrInvalidVersion
 			}
+
+			if a != nil {
+				break // stop loop if both files were found
+			}
 		} else if hdr.Name == "info/about.json" {
 			if err := json.NewDecoder(tr).Decode(&a); err != nil {
 				return nil, err
@@ -172,6 +176,10 @@ func parsePackageTar(r io.Reader) (*Package, error) {
 			}
 			if !validation.IsValidURL(a.DocumentationURL) {
 				a.DocumentationURL = ""
+			}
+
+			if i != nil {
+				break // stop loop if both files were found
 			}
 		}
 	}

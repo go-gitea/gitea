@@ -174,41 +174,35 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 				uploadPattern   = regexp.MustCompile(`\A(.+/)?([^/]+(?:\.tar\.bz2|\.conda))\z`)
 			)
 
-			r.Route("/*", "GET,PUT", func(ctx *context.Context) {
-				path := ctx.Params("*")
-
-				if ctx.Req.Method == "GET" {
-					m := downloadPattern.FindStringSubmatch(path)
-					if len(m) > 0 {
-						ctx.SetParams("channel", strings.TrimSuffix(m[1], "/"))
-						ctx.SetParams("architecture", m[2])
-						ctx.SetParams("filename", m[3])
-
-						switch m[3] {
-						case "repodata.json", "repodata.json.bz2", "current_repodata.json", "current_repodata.json.bz2":
-							conda.EnumeratePackages(ctx)
-						default:
-							conda.DownloadPackageFile(ctx)
-						}
-						return
-					}
-				} else {
-					reqPackageAccess(perm.AccessModeWrite)(ctx)
-					if ctx.Written() {
-						return
-					}
-
-					m := uploadPattern.FindStringSubmatch(path)
-					if len(m) > 0 {
-						ctx.SetParams("channel", strings.TrimSuffix(m[1], "/"))
-						ctx.SetParams("filename", m[2])
-
-						conda.UploadPackageFile(ctx)
-						return
-					}
+			r.Get("/*", func(ctx *context.Context) {
+				m := downloadPattern.FindStringSubmatch(ctx.Params("*"))
+				if len(m) == 0 {
+					ctx.Status(http.StatusNotFound)
+					return
 				}
 
-				ctx.Status(http.StatusNotFound)
+				ctx.SetParams("channel", strings.TrimSuffix(m[1], "/"))
+				ctx.SetParams("architecture", m[2])
+				ctx.SetParams("filename", m[3])
+
+				switch m[3] {
+				case "repodata.json", "repodata.json.bz2", "current_repodata.json", "current_repodata.json.bz2":
+					conda.EnumeratePackages(ctx)
+				default:
+					conda.DownloadPackageFile(ctx)
+				}
+			})
+			r.Put("/*", reqPackageAccess(perm.AccessModeWrite), func(ctx *context.Context) {
+				m := uploadPattern.FindStringSubmatch(ctx.Params("*"))
+				if len(m) == 0 {
+					ctx.Status(http.StatusNotFound)
+					return
+				}
+
+				ctx.SetParams("channel", strings.TrimSuffix(m[1], "/"))
+				ctx.SetParams("filename", m[2])
+
+				conda.UploadPackageFile(ctx)
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/generic", func() {

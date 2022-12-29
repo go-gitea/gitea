@@ -25,21 +25,14 @@ import (
 )
 
 func apiError(ctx *context.Context, status int, obj interface{}) {
-	type Error struct {
-		Reason  string `json:"reason"`
-		Message string `json:"message"`
-	}
-
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		resp := ctx.Resp
-		resp.Header().Set("Content-Type", "application/json")
-		resp.WriteHeader(status)
-		if err := json.NewEncoder(resp).Encode(Error{
+		ctx.JSON(status, struct {
+			Reason  string `json:"reason"`
+			Message string `json:"message"`
+		}{
 			Reason:  http.StatusText(status),
 			Message: message,
-		}); err != nil {
-			log.Error("JSON encode: %v", err)
-		}
+		})
 	})
 }
 
