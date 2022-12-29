@@ -298,47 +298,35 @@ func changeProjectStatus(ctx context.Context, p *Project, isClosed bool) error {
 	return updateRepositoryProjectCount(ctx, p.RepoID)
 }
 
-// DeleteProjectByID deletes a project from a repository.
-func DeleteProjectByID(id int64) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err := DeleteProjectByIDCtx(ctx, id); err != nil {
-		return err
-	}
-
-	return committer.Commit()
-}
-
-// DeleteProjectByIDCtx deletes a project from a repository.
-func DeleteProjectByIDCtx(ctx context.Context, id int64) error {
-	p, err := GetProjectByID(ctx, id)
-	if err != nil {
-		if IsErrProjectNotExist(err) {
-			return nil
+// DeleteProjectByID deletes a project from a repository. if it's not in a database
+// transaction, it will start a new database transaction
+func DeleteProjectByID(ctx context.Context, id int64) error {
+	return db.AutoTx(ctx, func(ctx context.Context) error {
+		p, err := GetProjectByID(ctx, id)
+		if err != nil {
+			if IsErrProjectNotExist(err) {
+				return nil
+			}
+			return err
 		}
-		return err
-	}
 
-	if err := deleteProjectIssuesByProjectID(ctx, id); err != nil {
-		return err
-	}
+		if err := deleteProjectIssuesByProjectID(ctx, id); err != nil {
+			return err
+		}
 
-	if err := deleteBoardByProjectID(ctx, id); err != nil {
-		return err
-	}
+		if err := deleteBoardByProjectID(ctx, id); err != nil {
+			return err
+		}
 
-	if _, err = db.GetEngine(ctx).ID(p.ID).Delete(new(Project)); err != nil {
-		return err
-	}
+		if _, err = db.GetEngine(ctx).ID(p.ID).Delete(new(Project)); err != nil {
+			return err
+		}
 
-	return updateRepositoryProjectCount(ctx, p.RepoID)
+		return updateRepositoryProjectCount(ctx, p.RepoID)
+	})
 }
 
-func DeleteProjectByRepoIDCtx(ctx context.Context, repoID int64) error {
+func DeleteProjectByRepoID(ctx context.Context, repoID int64) error {
 	switch {
 	case setting.Database.UseSQLite3:
 		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_issue WHERE project_issue.id IN (SELECT project_issue.id FROM project_issue INNER JOIN project WHERE project.id = project_issue.project_id AND project.repo_id = ?)", repoID); err != nil {

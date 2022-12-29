@@ -466,6 +466,13 @@ func getAppPath() (string, error) {
 	}
 
 	if err != nil {
+		// FIXME: Once we switch to go 1.19 use !errors.Is(err, exec.ErrDot)
+		if !strings.Contains(err.Error(), "cannot run executable found relative to current directory") {
+			return "", err
+		}
+		appPath, err = filepath.Abs(os.Args[0])
+	}
+	if err != nil {
 		return "", err
 	}
 	appPath, err = filepath.Abs(appPath)
@@ -748,19 +755,22 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	PerWriteTimeout = sec.Key("PER_WRITE_TIMEOUT").MustDuration(PerWriteTimeout)
 	PerWritePerKbTimeout = sec.Key("PER_WRITE_PER_KB_TIMEOUT").MustDuration(PerWritePerKbTimeout)
 
-	defaultAppURL := string(Protocol) + "://" + Domain
-	if (Protocol == HTTP && HTTPPort != "80") || (Protocol == HTTPS && HTTPPort != "443") {
-		defaultAppURL += ":" + HTTPPort
-	}
-	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL + "/")
-	// This should be TrimRight to ensure that there is only a single '/' at the end of AppURL.
-	AppURL = strings.TrimRight(AppURL, "/") + "/"
+	defaultAppURL := string(Protocol) + "://" + Domain + ":" + HTTPPort
+	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL)
 
-	// Check if has app suburl.
+	// Check validity of AppURL
 	appURL, err := url.Parse(AppURL)
 	if err != nil {
 		log.Fatal("Invalid ROOT_URL '%s': %s", AppURL, err)
 	}
+	// Remove default ports from AppURL.
+	// (scheme-based URL normalization, RFC 3986 section 6.2.3)
+	if (appURL.Scheme == string(HTTP) && appURL.Port() == "80") || (appURL.Scheme == string(HTTPS) && appURL.Port() == "443") {
+		appURL.Host = appURL.Hostname()
+	}
+	// This should be TrimRight to ensure that there is only a single '/' at the end of AppURL.
+	AppURL = strings.TrimRight(appURL.String(), "/") + "/"
+
 	// Suburl should start with '/' and end without '/', such as '/{subpath}'.
 	// This value is empty if site does not have sub-url.
 	AppSubURL = strings.TrimSuffix(appURL.Path, "/")
@@ -938,7 +948,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	if SecretKey == "" {
 		// FIXME: https://github.com/go-gitea/gitea/issues/16832
 		// Until it supports rotating an existing secret key, we shouldn't move users off of the widely used default value
-		SecretKey = "!#@FDEWREWR&*(" // nolint:gosec
+		SecretKey = "!#@FDEWREWR&*(" //nolint:gosec
 	}
 
 	CookieRememberName = sec.Key("COOKIE_REMEMBER_NAME").MustString("gitea_incredible")
@@ -1033,7 +1043,10 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	// The following is a purposefully undocumented option. Please do not run Gitea as root. It will only cause future headaches.
 	// Please don't use root as a bandaid to "fix" something that is broken, instead the broken thing should instead be fixed properly.
 	unsafeAllowRunAsRoot := Cfg.Section("").Key("I_AM_BEING_UNSAFE_RUNNING_AS_ROOT").MustBool(false)
-	RunMode = Cfg.Section("").Key("RUN_MODE").MustString("prod")
+	RunMode = os.Getenv("GITEA_RUN_MODE")
+	if RunMode == "" {
+		RunMode = Cfg.Section("").Key("RUN_MODE").MustString("prod")
+	}
 	IsProd = strings.EqualFold(RunMode, "prod")
 	// Does not check run user when the install lock is off.
 	if InstallLock {

@@ -52,7 +52,7 @@ func goGet(ctx *context.Context) {
 	}
 	branchName := setting.Repository.DefaultBranch
 
-	repo, err := repo_model.GetRepositoryByOwnerAndName(ownerName, repoName)
+	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ownerName, repoName)
 	if err == nil && len(repo.DefaultBranch) > 0 {
 		branchName = repo.DefaultBranch
 	}

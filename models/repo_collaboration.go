@@ -53,7 +53,7 @@ func DeleteCollaboration(repo *repo_model.Repository, uid int64) (err error) {
 }
 
 func reconsiderRepoIssuesAssignee(ctx context.Context, repo *repo_model.Repository, uid int64) error {
-	user, err := user_model.GetUserByIDCtx(ctx, uid)
+	user, err := user_model.GetUserByID(ctx, uid)
 	if err != nil {
 		return err
 	}

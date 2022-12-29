@@ -93,13 +93,13 @@ func init() {
 func (r *Release) LoadAttributes(ctx context.Context) error {
 	var err error
 	if r.Repo == nil {
-		r.Repo, err = GetRepositoryByIDCtx(ctx, r.RepoID)
+		r.Repo, err = GetRepositoryByID(ctx, r.RepoID)
 		if err != nil {
 			return err
 		}
 	}
 	if r.Publisher == nil {
-		r.Publisher, err = user_model.GetUserByIDCtx(ctx, r.PublisherID)
+		r.Publisher, err = user_model.GetUserByID(ctx, r.PublisherID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				r.Publisher = user_model.NewGhostUser()
@@ -286,8 +286,8 @@ func GetReleasesByRepoIDAndNames(ctx context.Context, repoID int64, tagNames []s
 }
 
 // GetReleaseCountByRepoID returns the count of releases of repository
-func GetReleaseCountByRepoID(repoID int64, opts FindReleasesOptions) (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(opts.toConds(repoID)).Count(&Release{})
+func GetReleaseCountByRepoID(ctx context.Context, repoID int64, opts FindReleasesOptions) (int64, error) {
+	return db.GetEngine(ctx).Where(opts.toConds(repoID)).Count(&Release{})
 }
 
 type releaseMetaSearch struct {

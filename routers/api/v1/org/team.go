@@ -15,12 +15,12 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 	org_service "code.gitea.io/gitea/services/org"
 )
 
@@ -546,7 +546,7 @@ func GetTeamRepos(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "GetTeamRepos", err)
 			return
 		}
-		repos[i] = convert.ToRepo(repo, access)
+		repos[i] = convert.ToRepo(ctx, repo, access)
 	}
 	ctx.SetTotalCountHeader(int64(team.NumRepos))
 	ctx.JSON(http.StatusOK, repos)
@@ -598,7 +598,7 @@ func GetTeamRepo(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToRepo(repo, access))
+	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, repo, access))
 }
 
 // getRepositoryByParams get repository by a team's organization ID and repo name

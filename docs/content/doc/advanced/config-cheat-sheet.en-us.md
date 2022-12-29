@@ -112,6 +112,7 @@ In addition there is _`StaticRootPath`_ which can be set as a built-in at build 
 - `ALLOW_ADOPTION_OF_UNADOPTED_REPOSITORIES`: **false**: Allow non-admin users to adopt unadopted repositories
 - `ALLOW_DELETION_OF_UNADOPTED_REPOSITORIES`: **false**: Allow non-admin users to delete unadopted repositories
 - `DISABLE_DOWNLOAD_SOURCE_ARCHIVES`: **false**: Don't allow download source archive files from UI
+- `ALLOW_FORK_WITHOUT_MAXIMUM_LIMIT`: **true**: Allow fork repositories without maximum number limit
 
 ### Repository - Editor (`repository.editor`)
 
@@ -134,6 +135,7 @@ In addition there is _`StaticRootPath`_ which can be set as a built-in at build 
 - `DEFAULT_MERGE_MESSAGE_OFFICIAL_APPROVERS_ONLY`: **true**: In default merge messages only include approvers who are officially allowed to review.
 - `POPULATE_SQUASH_COMMENT_WITH_COMMIT_MESSAGES`: **false**: In default squash-merge messages include the commit message of all commits comprising the pull request.
 - `ADD_CO_COMMITTER_TRAILERS`: **true**: Add co-authored-by and co-committed-by trailers to merge commit messages if committer does not match author.
+- `TEST_CONFLICTING_PATCHES_WITH_GIT_APPLY`: **false**: PR patches are tested using a three-way merge method to discover if there are conflicts. If this setting is set to **true**, conflicting patches will be retested using `git apply` - This was the previous behaviour in 1.18 (and earlier) but is somewhat inefficient. Please report if you find that this setting is required.
 
 ### Repository - Issue (`repository.issue`)
 
@@ -237,6 +239,10 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `REPO_PAGING_NUM`: **50**: Number of repos that are shown in one page.
 - `NOTICE_PAGING_NUM`: **25**: Number of notices that are shown in one page.
 - `ORG_PAGING_NUM`: **50**: Number of organizations that are shown in one page.
+
+### UI - User (`ui.user`)
+
+- `REPO_PAGING_NUM`: **15**: Number of repos that are shown in one page.
 
 ### UI - Metadata (`ui.meta`)
 
@@ -444,6 +450,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `MAX_OPEN_CONNS` **0**: Database maximum open connections - default is 0, meaning there is no limit.
 - `MAX_IDLE_CONNS` **2**: Max idle database connections on connection pool, default is 2 - this will be capped to `MAX_OPEN_CONNS`.
 - `CONN_MAX_LIFETIME` **0 or 3s**: Sets the maximum amount of time a DB connection may be reused - default is 0, meaning there is no limit (except on MySQL where it is 3s - see #6804 & #7071).
+- `AUTO_MIGRATION` **true**: Whether execute database models migrations automatically.
 
 Please see #8540 & #8273 for further discussion of the appropriate values for `MAX_OPEN_CONNS`, `MAX_IDLE_CONNS` & `CONN_MAX_LIFETIME` and their
 relation to port exhaustion.
@@ -1004,7 +1011,7 @@ Default templates for project boards:
 
 #### Cron -  Check for new Gitea versions ('cron.update_checker')
 
-- `ENABLED`: **false**: Enable service.
+- `ENABLED`: **true**: Enable service.
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
 - `ENABLE_SUCCESS_NOTICE`: **true**: Set to false to switch off success notices.
 - `SCHEDULE`: **@every 168h**: Cron syntax for scheduling a work, e.g. `@every 168h`.
@@ -1143,7 +1150,7 @@ in this mapping or the filetype using heuristics.
 ## Time (`time`)
 
 - `FORMAT`: Time format to display on UI. i.e. RFC1123 or 2006-01-02 15:04:05
-- `DEFAULT_UI_LOCATION`: Default location of time on the UI, so that we can display correct user's time on UI. i.e. Shanghai/Asia
+- `DEFAULT_UI_LOCATION`: Default location of time on the UI, so that we can display correct user's time on UI. i.e. Asia/Shanghai
 
 ## Task (`task`)
 
@@ -1179,20 +1186,20 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 
 - `ENABLED`: **true**: Enable/Disable package registry capabilities
 - `CHUNKED_UPLOAD_PATH`: **tmp/package-upload**: Path for chunked uploads. Defaults to `APP_DATA_PATH` + `tmp/package-upload`
-- `LIMIT_TOTAL_OWNER_COUNT`: **-1**: Maxmimum count of package versions a single owner can have (`-1` means no limits)
-- `LIMIT_TOTAL_OWNER_SIZE`: **-1**: Maxmimum size of packages a single owner can use (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
-- `LIMIT_SIZE_COMPOSER`: **-1**: Maxmimum size of a Composer upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
-- `LIMIT_SIZE_CONAN`: **-1**: Maxmimum size of a Conan upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
-- `LIMIT_SIZE_CONTAINER`: **-1**: Maxmimum size of a Container upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
-- `LIMIT_SIZE_GENERIC`: **-1**: Maxmimum size of a Generic upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
-- `LIMIT_SIZE_HELM`: **-1**: Maxmimum size of a Helm upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
-- `LIMIT_SIZE_MAVEN`: **-1**: Maxmimum size of a Maven upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
-- `LIMIT_SIZE_NPM`: **-1**: Maxmimum size of a npm upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
-- `LIMIT_SIZE_NUGET`: **-1**: Maxmimum size of a NuGet upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
-- `LIMIT_SIZE_PUB`: **-1**: Maxmimum size of a Pub upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
-- `LIMIT_SIZE_PYPI`: **-1**: Maxmimum size of a PyPI upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
-- `LIMIT_SIZE_RUBYGEMS`: **-1**: Maxmimum size of a RubyGems upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
-- `LIMIT_SIZE_VAGRANT`: **-1**: Maxmimum size of a Vagrant upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_TOTAL_OWNER_COUNT`: **-1**: Maximum count of package versions a single owner can have (`-1` means no limits)
+- `LIMIT_TOTAL_OWNER_SIZE`: **-1**: Maximum size of packages a single owner can use (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_COMPOSER`: **-1**: Maximum size of a Composer upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_CONAN`: **-1**: Maximum size of a Conan upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_CONTAINER`: **-1**: Maximum size of a Container upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_GENERIC`: **-1**: Maximum size of a Generic upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_HELM`: **-1**: Maximum size of a Helm upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_MAVEN`: **-1**: Maximum size of a Maven upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_NPM`: **-1**: Maximum size of a npm upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_NUGET`: **-1**: Maximum size of a NuGet upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_PUB`: **-1**: Maximum size of a Pub upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_PYPI`: **-1**: Maximum size of a PyPI upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_RUBYGEMS`: **-1**: Maximum size of a RubyGems upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_VAGRANT`: **-1**: Maximum size of a Vagrant upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 
 ## Mirror (`mirror`)
 

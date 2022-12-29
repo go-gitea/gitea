@@ -11,9 +11,9 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // listUserRepos - List the repositories owned by the given user.
@@ -44,7 +44,7 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 			return
 		}
 		if ctx.IsSigned && ctx.Doer.IsAdmin || access >= perm.AccessModeRead {
-			apiRepos = append(apiRepos, convert.ToRepo(repos[i], access))
+			apiRepos = append(apiRepos, convert.ToRepo(ctx, repos[i], access))
 		}
 	}
 
@@ -127,7 +127,7 @@ func ListMyRepos(ctx *context.APIContext) {
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		}
-		results[i] = convert.ToRepo(repo, accessMode)
+		results[i] = convert.ToRepo(ctx, repo, accessMode)
 	}
 
 	ctx.SetLinkHeader(int(count), opts.ListOptions.PageSize)

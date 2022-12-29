@@ -12,9 +12,9 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // getWatchedRepos returns the repos that the user with the specified userID is watching
@@ -30,7 +30,7 @@ func getWatchedRepos(ctx std_context.Context, user *user_model.User, private boo
 		if err != nil {
 			return nil, 0, err
 		}
-		repos[i] = convert.ToRepo(watched, access)
+		repos[i] = convert.ToRepo(ctx, watched, access)
 	}
 	return repos, total, nil
 }

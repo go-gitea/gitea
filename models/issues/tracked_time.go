@@ -5,6 +5,7 @@ package issues
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -46,33 +47,41 @@ func (t *TrackedTime) LoadAttributes() (err error) {
 }
 
 func (t *TrackedTime) loadAttributes(ctx context.Context) (err error) {
+	// Load the issue
 	if t.Issue == nil {
 		t.Issue, err = GetIssueByID(ctx, t.IssueID)
-		if err != nil {
-			return
-		}
-		err = t.Issue.LoadRepo(ctx)
-		if err != nil {
-			return
-		}
-	}
-	if t.User == nil {
-		t.User, err = user_model.GetUserByIDCtx(ctx, t.UserID)
-		if err != nil {
-			return
-		}
-	}
-	return err
-}
-
-// LoadAttributes load Issue, User
-func (tl TrackedTimeList) LoadAttributes() (err error) {
-	for _, t := range tl {
-		if err = t.LoadAttributes(); err != nil {
+		if err != nil && !errors.Is(err, util.ErrNotExist) {
 			return err
 		}
 	}
-	return err
+	// Now load the repo for the issue (which we may have just loaded)
+	if t.Issue != nil {
+		err = t.Issue.LoadRepo(ctx)
+		if err != nil && !errors.Is(err, util.ErrNotExist) {
+			return err
+		}
+	}
+	// Load the user
+	if t.User == nil {
+		t.User, err = user_model.GetUserByID(ctx, t.UserID)
+		if err != nil {
+			if !errors.Is(err, util.ErrNotExist) {
+				return err
+			}
+			t.User = user_model.NewGhostUser()
+		}
+	}
+	return nil
+}
+
+// LoadAttributes load Issue, User
+func (tl TrackedTimeList) LoadAttributes() error {
+	for _, t := range tl {
+		if err := t.LoadAttributes(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // FindTrackedTimesOptions represent the filters for tracked times. If an ID is 0 it will be ignored.
@@ -163,7 +172,7 @@ func AddTime(user *user_model.User, issue *Issue, amount int64, created time.Tim
 		return nil, err
 	}
 
-	if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
+	if _, err := CreateComment(ctx, &CreateCommentOptions{
 		Issue:   issue,
 		Repo:    issue.Repo,
 		Doer:    user,
@@ -205,7 +214,7 @@ func TotalTimes(options *FindTrackedTimesOptions) (map[*user_model.User]string, 
 	totalTimes := make(map[*user_model.User]string)
 	// Fetching User and making time human readable
 	for userID, total := range totalTimesByUser {
-		user, err := user_model.GetUserByID(userID)
+		user, err := user_model.GetUserByID(db.DefaultContext, userID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				continue
@@ -241,7 +250,7 @@ func DeleteIssueUserTimes(issue *Issue, user *user_model.User) error {
 	if err := issue.LoadRepo(ctx); err != nil {
 		return err
 	}
-	if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
+	if _, err := CreateComment(ctx, &CreateCommentOptions{
 		Issue:   issue,
 		Repo:    issue.Repo,
 		Doer:    user,
@@ -270,7 +279,7 @@ func DeleteTime(t *TrackedTime) error {
 		return err
 	}
 
-	if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
+	if _, err := CreateComment(ctx, &CreateCommentOptions{
 		Issue:   t.Issue,
 		Repo:    t.Issue.Repo,
 		Doer:    t.User,

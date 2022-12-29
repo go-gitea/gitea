@@ -145,7 +145,7 @@ func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.U
 	}
 
 	if oldProjectID > 0 || newProjectID > 0 {
-		if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
+		if _, err := CreateComment(ctx, &CreateCommentOptions{
 			Type:         CommentTypeProject,
 			Doer:         doer,
 			Repo:         issue.Repo,

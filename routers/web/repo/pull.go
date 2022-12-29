@@ -78,7 +78,7 @@ var pullRequestTemplateCandidates = []string{
 }
 
 func getRepository(ctx *context.Context, repoID int64) *repo_model.Repository {
-	repo, err := repo_model.GetRepositoryByID(repoID)
+	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
 			ctx.NotFound("GetRepositoryByID", nil)
@@ -159,7 +159,7 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 		if !traverseParentRepo.IsFork {
 			break
 		}
-		traverseParentRepo, err = repo_model.GetRepositoryByID(traverseParentRepo.ForkID)
+		traverseParentRepo, err = repo_model.GetRepositoryByID(ctx, traverseParentRepo.ForkID)
 		if err != nil {
 			ctx.ServerError("GetRepositoryByID", err)
 			return nil
@@ -181,6 +181,15 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 // Fork render repository fork page
 func Fork(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_fork")
+
+	if ctx.Doer.CanForkRepo() {
+		ctx.Data["CanForkRepo"] = true
+	} else {
+		maxCreationLimit := ctx.Doer.MaxCreationLimit()
+		msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
+		ctx.Data["Flash"] = ctx.Flash
+		ctx.Flash.Error(msg)
+	}
 
 	getForkRepository(ctx)
 	if ctx.Written() {
@@ -227,7 +236,7 @@ func ForkPost(ctx *context.Context) {
 		if !traverseParentRepo.IsFork {
 			break
 		}
-		traverseParentRepo, err = repo_model.GetRepositoryByID(traverseParentRepo.ForkID)
+		traverseParentRepo, err = repo_model.GetRepositoryByID(ctx, traverseParentRepo.ForkID)
 		if err != nil {
 			ctx.ServerError("GetRepositoryByID", err)
 			return
@@ -254,6 +263,10 @@ func ForkPost(ctx *context.Context) {
 	if err != nil {
 		ctx.Data["Err_RepoName"] = true
 		switch {
+		case repo_model.IsErrReachLimitOfRepo(err):
+			maxCreationLimit := ctxUser.MaxCreationLimit()
+			msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
+			ctx.RenderWithErr(msg, tplFork, &form)
 		case repo_model.IsErrRepoAlreadyExist(err):
 			ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplFork, &form)
 		case db.IsErrNameReserved(err):
@@ -427,7 +440,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 
 	setMergeTarget(ctx, pull)
 
-	if err := pull.LoadProtectedBranch(); err != nil {
+	if err := pull.LoadProtectedBranch(ctx); err != nil {
 		ctx.ServerError("LoadProtectedBranch", err)
 		return nil
 	}
@@ -739,7 +752,7 @@ func ViewPullFiles(ctx *context.Context) {
 		return
 	}
 
-	if err = pull.LoadProtectedBranch(); err != nil {
+	if err = pull.LoadProtectedBranch(ctx); err != nil {
 		ctx.ServerError("LoadProtectedBranch", err)
 		return
 	}
