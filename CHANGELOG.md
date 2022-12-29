@@ -4,7 +4,7 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.18.0](https://github.com/go-gitea/gitea/releases/tag/1.18.0) - 2022-12-22
+## [1.18.0](https://github.com/go-gitea/gitea/releases/tag/1.18.0) - 2022-12-29
 
 * SECURITY
   * Remove ReverseProxy authentication from the API (#22219) (#22251)
