@@ -7,6 +7,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.18.0](https://github.com/go-gitea/gitea/releases/tag/1.18.0) - 2022-12-22
 
 * SECURITY
+  * Remove ReverseProxy authentication from the API (#22219) (#22251)
   * Support Go Vulnerability Management (#21139)
   * Forbid HTML string tooltips (#20935)
 * BREAKING
@@ -42,6 +43,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Support Proxy protocol (#12527)
   * Implement sync push mirror on commit (#19411)
 * API
+  * Allow empty assignees on pull request edit (#22150) (#22214)
   * Make external issue tracker regexp configurable via API (#21338)
   * Add name field for org api (#21270)
   * Show teams with no members if user is admin (#21204)
@@ -157,6 +159,9 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add author search input (#21246)
   * Make rss/atom identifier globally unique (#21550)
 * BUGFIXES
+  * Auth interface return error when verify failure (#22119) (#22259)
+  * Use complete SHA to create and query commit status (#22244) (#22257)
+  * Update bleve and zapx to fix unaligned atomic (#22031) (#22218)
   * Prevent panic in doctor command when running default checks (#21791) (#21807)
   * Load GitRepo in API before deleting issue (#21720) (#21796)
   * Ignore line anchor links with leading zeroes (#21728) (#21776)
