@@ -76,7 +76,7 @@ func (s *Sitemap) WriteTo(w io.Writer) (int64, error) {
 		return 0, err
 	}
 	if buf.Len() > sitemapFileLimit {
-		return 0, fmt.Errorf("The sitemap is too big: %d", buf.Len())
+		return 0, fmt.Errorf("The sitemap has %d bytes, but only %d are allowed", buf.Len(), sitemapFileLimit)
 	}
 	return buf.WriteTo(w)
 }

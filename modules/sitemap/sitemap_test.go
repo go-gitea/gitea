@@ -61,14 +61,14 @@ func TestNewSitemap(t *testing.T) {
 		{
 			name:    "too many urls",
 			urls:    make([]URL, 50001),
-			wantErr: "The sitemap contains too many URLs: 50001",
+			wantErr: "The sitemap contains 50001 URLs, but only 50000 are allowed",
 		},
 		{
 			name: "too big file",
 			urls: []URL{
 				{URL: strings.Repeat("b", 50*1024*1024+1)},
 			},
-			wantErr: "The sitemap is too big: 52428932",
+			wantErr: "The sitemap has 52428932 bytes, but only 52428800 are allowed",
 		},
 	}
 	for _, tt := range tests {
@@ -135,16 +135,16 @@ func TestNewSitemapIndex(t *testing.T) {
 				"</sitemapindex>\n",
 		},
 		{
-			name:    "too many urls",
+			name:    "too many sitemaps",
 			urls:    make([]URL, 50001),
-			wantErr: "The sitemap contains too many URLs: 50001",
+			wantErr: "The sitemap contains 50001 sub-sitemaps, but only 50000 are allowed",
 		},
 		{
 			name: "too big file",
 			urls: []URL{
 				{URL: strings.Repeat("b", 50*1024*1024+1)},
 			},
-			wantErr: "The sitemap is too big: 52428952",
+			wantErr: "The sitemap has 52428952 bytes, but only 52428800 are allowed",
 		},
 	}
 	for _, tt := range tests {
