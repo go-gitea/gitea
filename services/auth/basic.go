@@ -80,7 +80,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 			return nil, err
 		}
 
-		store.GetData()["IsApiToken"] = false
+		store.GetData()["IsApiToken"] = true
 		return u, nil
 	}
 
@@ -98,7 +98,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 			log.Error("UpdateAccessToken:  %v", err)
 		}
 
-		store.GetData()["IsApiToken"] = false
+		store.GetData()["IsApiToken"] = true
 		return u, nil
 	} else if !auth_model.IsErrAccessTokenNotExist(err) && !auth_model.IsErrAccessTokenEmpty(err) {
 		log.Error("GetAccessTokenBySha: %v", err)

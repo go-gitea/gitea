@@ -209,7 +209,8 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.APIContext) 
 // Contexter middleware already checks token for user sign in process.
 func reqToken(requiredScope string) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if ctx.Data["IsApiToken"] == true {
+		// If OAuth2 token is present
+		if _, ok := ctx.Data["ApiTokenScope"]; ctx.Data["IsApiToken"] == true && ok {
 			// no scope required
 			if requiredScope == "" {
 				return
