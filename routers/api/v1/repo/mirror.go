@@ -345,10 +345,11 @@ func CreatePushMirror(ctx *context.APIContext, mirrorOption *api.CreatePushMirro
 	}
 
 	pushMirror := &repo_model.PushMirror{
-		RepoID:     repo.ID,
-		Repo:       repo,
-		RemoteName: fmt.Sprintf("remote_mirror_%s", remoteSuffix),
-		Interval:   interval,
+		RepoID:       repo.ID,
+		Repo:         repo,
+		RemoteName:   fmt.Sprintf("remote_mirror_%s", remoteSuffix),
+		Interval:     interval,
+		SyncOnCommit: mirrorOption.SyncOnCommit,
 	}
 
 	if err = repo_model.InsertPushMirror(ctx, pushMirror); err != nil {
