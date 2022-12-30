@@ -11,8 +11,14 @@ import (
 	"time"
 )
 
-// sitemapFileLimit contains the maximum size of a sitemap file
-const sitemapFileLimit = 50 * 1024 * 1024
+const (
+	sitemapFileLimit = 50 * 1024 * 1024 // the maximum size of a sitemap file
+	urlsLimit        = 50000
+
+	schemaURL        = "http://www.sitemaps.org/schemas/sitemap/0.9"
+	urlsetName       = "urlset"
+	sitemapindexName = "sitemapindex"
+)
 
 // URL represents a single sitemap entry
 type URL struct {
@@ -25,34 +31,42 @@ type Sitemap struct {
 	XMLName   xml.Name
 	Namespace string `xml:"xmlns,attr"`
 
-	URLs []URL `xml:"url"`
+	URLs     []URL `xml:"url"`
+	Sitemaps []URL `xml:"sitemap"`
 }
 
 // NewSitemap creates a sitemap
 func NewSitemap() *Sitemap {
 	return &Sitemap{
-		XMLName:   xml.Name{Local: "urlset"},
-		Namespace: "http://www.sitemaps.org/schemas/sitemap/0.9",
+		XMLName:   xml.Name{Local: urlsetName},
+		Namespace: schemaURL,
 	}
 }
 
 // NewSitemapIndex creates a sitemap index.
 func NewSitemapIndex() *Sitemap {
 	return &Sitemap{
-		XMLName:   xml.Name{Local: "sitemapindex"},
-		Namespace: "http://www.sitemaps.org/schemas/sitemap/0.9",
+		XMLName:   xml.Name{Local: sitemapindexName},
+		Namespace: schemaURL,
 	}
 }
 
 // Add adds a URL to the sitemap
 func (s *Sitemap) Add(u URL) {
-	s.URLs = append(s.URLs, u)
+	if s.XMLName.Local == sitemapindexName {
+		s.Sitemaps = append(s.Sitemaps, u)
+	} else {
+		s.URLs = append(s.URLs, u)
+	}
 }
 
 // WriteTo writes the sitemap to a response
 func (s *Sitemap) WriteTo(w io.Writer) (int64, error) {
-	if len(s.URLs) > 50000 {
-		return 0, fmt.Errorf("The sitemap contains too many URLs: %d", len(s.URLs))
+	if l := len(s.URLs); l > urlsLimit {
+		return 0, fmt.Errorf("The sitemap contains too many URLs: %d", l)
+	}
+	if l := len(s.Sitemaps); l > urlsLimit {
+		return 0, fmt.Errorf("The sitemap contains too many URLs: %d", l)
 	}
 	buf := bytes.NewBufferString(xml.Header)
 	if err := xml.NewEncoder(buf).Encode(s); err != nil {

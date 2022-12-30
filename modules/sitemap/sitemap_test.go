@@ -55,7 +55,7 @@ func TestNewSitemap(t *testing.T) {
 			},
 			want: xml.Header + `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">` +
 				"<url><loc>https://gitea.io/test1</loc><lastmod>2022-04-30T12:33:28Z</lastmod></url>" +
-				"<url><loc>https://gitea.io/test1</loc></url>" +
+				"<url><loc>https://gitea.io/test2</loc></url>" +
 				"</urlset>\n",
 		},
 	}
@@ -114,7 +114,7 @@ func TestNewSitemapIndex(t *testing.T) {
 			},
 			want: xml.Header + `<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">` +
 				"<sitemap><loc>https://gitea.io/test1</loc><lastmod>2022-04-30T12:33:28Z</lastmod></sitemap>" +
-				"<sitemap><loc>https://gitea.io/test1</loc></sitemap>" +
+				"<sitemap><loc>https://gitea.io/test2</loc></sitemap>" +
 				"</sitemapindex>\n",
 		},
 	}
