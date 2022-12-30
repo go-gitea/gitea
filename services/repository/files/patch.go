@@ -70,9 +70,12 @@ func (opts *ApplyDiffPatchOptions) Validate(ctx context.Context, repo *repo_mode
 		if err != nil {
 			return err
 		}
-		if protectedBranch != nil && !protectedBranch.CanUserPush(ctx, doer.ID) {
-			return models.ErrUserCannotCommit{
-				UserName: doer.LowerName,
+		if protectedBranch != nil {
+			protectedBranch.Repo = repo
+			if !protectedBranch.CanUserPush(ctx, doer) {
+				return models.ErrUserCannotCommit{
+					UserName: doer.LowerName,
+				}
 			}
 		}
 		if protectedBranch != nil && protectedBranch.RequireSignedCommits {

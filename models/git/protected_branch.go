@@ -29,12 +29,13 @@ var ErrBranchIsProtected = errors.New("branch is protected")
 
 // ProtectedBranch struct
 type ProtectedBranch struct {
-	ID                            int64     `xorm:"pk autoincr"`
-	RepoID                        int64     `xorm:"UNIQUE(s)"`
-	RuleName                      string    `xorm:"'branch_name' UNIQUE(s)"` // a branch name or a glob match to branch name
-	globRule                      glob.Glob `xorm:"-"`
-	isPlainName                   bool      `xorm:"-"`
-	CanPush                       bool      `xorm:"NOT NULL DEFAULT false"`
+	ID                            int64                  `xorm:"pk autoincr"`
+	RepoID                        int64                  `xorm:"UNIQUE(s)"`
+	Repo                          *repo_model.Repository `xorm:"-"`
+	RuleName                      string                 `xorm:"'branch_name' UNIQUE(s)"` // a branch name or a glob match to branch name
+	globRule                      glob.Glob              `xorm:"-"`
+	isPlainName                   bool                   `xorm:"-"`
+	CanPush                       bool                   `xorm:"NOT NULL DEFAULT false"`
 	EnableWhitelist               bool
 	WhitelistUserIDs              []int64  `xorm:"JSON TEXT"`
 	WhitelistTeamIDs              []int64  `xorm:"JSON TEXT"`
@@ -96,20 +97,27 @@ func (protectBranch *ProtectedBranch) Match(branchName string) bool {
 	return protectBranch.globRule.Match(branchName)
 }
 
+func (protectBranch *ProtectedBranch) LoadRepo(ctx context.Context) (err error) {
+	if protectBranch.Repo != nil {
+		return nil
+	}
+	protectBranch.Repo, err = repo_model.GetRepositoryByID(ctx, protectBranch.RepoID)
+	return
+}
+
 // CanUserPush returns if some user could push to this protected branch
-func (protectBranch *ProtectedBranch) CanUserPush(ctx context.Context, userID int64) bool {
+func (protectBranch *ProtectedBranch) CanUserPush(ctx context.Context, user *user_model.User) bool {
 	if !protectBranch.CanPush {
 		return false
 	}
 
 	if !protectBranch.EnableWhitelist {
-		if user, err := user_model.GetUserByID(ctx, userID); err != nil {
-			log.Error("GetUserByID: %v", err)
+		if err := protectBranch.LoadRepo(ctx); err != nil {
+			log.Error("LoadRepo: %v", err)
 			return false
-		} else if repo, err := repo_model.GetRepositoryByID(ctx, protectBranch.RepoID); err != nil {
-			log.Error("repo_model.GetRepositoryByID: %v", err)
-			return false
-		} else if writeAccess, err := access_model.HasAccessUnit(ctx, user, repo, unit.TypeCode, perm.AccessModeWrite); err != nil {
+		}
+
+		if writeAccess, err := access_model.HasAccessUnit(ctx, user, protectBranch.Repo, unit.TypeCode, perm.AccessModeWrite); err != nil {
 			log.Error("HasAccessUnit: %v", err)
 			return false
 		} else {
@@ -117,7 +125,7 @@ func (protectBranch *ProtectedBranch) CanUserPush(ctx context.Context, userID in
 		}
 	}
 
-	if base.Int64sContains(protectBranch.WhitelistUserIDs, userID) {
+	if base.Int64sContains(protectBranch.WhitelistUserIDs, user.ID) {
 		return true
 	}
 
@@ -125,7 +133,7 @@ func (protectBranch *ProtectedBranch) CanUserPush(ctx context.Context, userID in
 		return false
 	}
 
-	in, err := organization.IsUserInTeams(ctx, userID, protectBranch.WhitelistTeamIDs)
+	in, err := organization.IsUserInTeams(ctx, user.ID, protectBranch.WhitelistTeamIDs)
 	if err != nil {
 		log.Error("IsUserInTeams: %v", err)
 		return false

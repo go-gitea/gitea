@@ -1687,9 +1687,10 @@ func ViewIssue(ctx *context.Context) {
 		}
 		ctx.Data["ShowMergeInstructions"] = true
 		if pb != nil {
+			pb.Repo = pull.BaseRepo
 			var showMergeInstructions bool
 			if ctx.Doer != nil {
-				showMergeInstructions = pb.CanUserPush(ctx, ctx.Doer.ID)
+				showMergeInstructions = pb.CanUserPush(ctx, ctx.Doer)
 			}
 			ctx.Data["ProtectedBranch"] = pb
 			ctx.Data["IsBlockedByApprovals"] = !issues_model.HasEnoughApprovals(ctx, pb, pull)

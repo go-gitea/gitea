@@ -126,7 +126,8 @@ func (r *Repository) CanCommitToBranch(ctx context.Context, doer *user_model.Use
 	userCanPush := true
 	requireSigned := false
 	if protectedBranch != nil {
-		userCanPush = protectedBranch.CanUserPush(ctx, doer.ID)
+		protectedBranch.Repo = r.Repository
+		userCanPush = protectedBranch.CanUserPush(ctx, doer)
 		requireSigned = protectedBranch.RequireSignedCommits
 	}
 

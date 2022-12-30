@@ -93,9 +93,15 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 		return false, false, err
 	}
 
+	if err := pull.LoadBaseRepo(ctx); err != nil {
+		return false, false, err
+	}
+
 	pr := &issues_model.PullRequest{
 		HeadRepoID: pull.BaseRepoID,
+		HeadRepo:   pull.BaseRepo,
 		BaseRepoID: pull.HeadRepoID,
+		BaseRepo:   pull.HeadRepo,
 		HeadBranch: pull.BaseBranch,
 		BaseBranch: pull.HeadBranch,
 	}
@@ -119,8 +125,11 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 	}
 
 	// Update function need push permission
-	if pb != nil && !pb.CanUserPush(ctx, user.ID) {
-		return false, false, nil
+	if pb != nil {
+		pb.Repo = pull.BaseRepo
+		if !pb.CanUserPush(ctx, user) {
+			return false, false, nil
+		}
 	}
 
 	baseRepoPerm, err := access_model.GetUserRepoPermission(ctx, pull.BaseRepo, user)

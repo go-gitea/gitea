@@ -467,12 +467,13 @@ func VerifyBranchProtection(ctx context.Context, repo *repo_model.Repository, do
 		return err
 	}
 	if protectedBranch != nil {
+		protectedBranch.Repo = repo
 		isUnprotectedFile := false
 		glob := protectedBranch.GetUnprotectedFilePatterns()
 		if len(glob) != 0 {
 			isUnprotectedFile = protectedBranch.IsUnprotectedFile(glob, treePath)
 		}
-		if !protectedBranch.CanUserPush(ctx, doer.ID) && !isUnprotectedFile {
+		if !protectedBranch.CanUserPush(ctx, doer) && !isUnprotectedFile {
 			return models.ErrUserCannotCommit{
 				UserName: doer.LowerName,
 			}
