@@ -14,13 +14,13 @@ import (
 // sitemapFileLimit contains the maximum size of a sitemap file
 const sitemapFileLimit = 50 * 1024 * 1024
 
-// Url represents a single sitemap entry
+// URL represents a single sitemap entry
 type URL struct {
 	URL     string     `xml:"loc"`
 	LastMod *time.Time `xml:"lastmod,omitempty"`
 }
 
-// SitemapUrl represents a sitemap
+// Sitemap represents a sitemap
 type Sitemap struct {
 	XMLName   xml.Name
 	Namespace string `xml:"xmlns,attr"`
@@ -36,7 +36,7 @@ func NewSitemap() *Sitemap {
 	}
 }
 
-// NewSitemap creates a sitemap index.
+// NewSitemapIndex creates a sitemap index.
 func NewSitemapIndex() *Sitemap {
 	return &Sitemap{
 		XMLName:   xml.Name{Local: "sitemapindex"},
@@ -49,7 +49,7 @@ func (s *Sitemap) Add(u URL) {
 	s.URLs = append(s.URLs, u)
 }
 
-// Write writes the sitemap to a response
+// WriteTo writes the sitemap to a response
 func (s *Sitemap) WriteTo(w io.Writer) (int64, error) {
 	if len(s.URLs) > 50000 {
 		return 0, fmt.Errorf("The sitemap contains too many URLs: %d", len(s.URLs))
