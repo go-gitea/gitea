@@ -18,10 +18,10 @@ import (
 )
 
 var (
-	ErrMissingPubspecFile  = util.SilentWrap{Message: "Pubspec file is missing", Err: util.ErrInvalidArgument}
-	ErrPubspecFileTooLarge = util.SilentWrap{Message: "Pubspec file is too large", Err: util.ErrInvalidArgument}
-	ErrInvalidName         = util.SilentWrap{Message: "Package name is invalid", Err: util.ErrInvalidArgument}
-	ErrInvalidVersion      = util.SilentWrap{Message: "Package version is invalid", Err: util.ErrInvalidArgument}
+	ErrMissingPubspecFile  = util.NewInvalidArgumentErrorf("Pubspec file is missing")
+	ErrPubspecFileTooLarge = util.NewInvalidArgumentErrorf("Pubspec file is too large")
+	ErrInvalidName         = util.NewInvalidArgumentErrorf("package name is invalid")
+	ErrInvalidVersion      = util.NewInvalidArgumentErrorf("package version is invalid")
 )
 
 var namePattern = regexp.MustCompile(`\A[a-zA-Z_][a-zA-Z0-9_]*\z`)

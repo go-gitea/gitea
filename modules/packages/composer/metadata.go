@@ -20,9 +20,12 @@ import (
 const TypeProperty = "composer.type"
 
 var (
-	ErrMissingComposerFile = util.SilentWrap{Message: "composer.json file is missing", Err: util.ErrInvalidArgument}
-	ErrInvalidName         = util.SilentWrap{Message: "package name is invalid", Err: util.ErrInvalidArgument}
-	ErrInvalidVersion      = util.SilentWrap{Message: "package version is invalid", Err: util.ErrInvalidArgument}
+	// ErrMissingComposerFile indicates a missing composer.json file
+	ErrMissingComposerFile = util.NewInvalidArgumentErrorf("composer.json file is missing")
+	// ErrInvalidName indicates an invalid package name
+	ErrInvalidName = util.NewInvalidArgumentErrorf("package name is invalid")
+	// ErrInvalidVersion indicates an invalid package version
+	ErrInvalidVersion = util.NewInvalidArgumentErrorf("package version is invalid")
 )
 
 // Package represents a Composer package

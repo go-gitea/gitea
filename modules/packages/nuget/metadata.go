@@ -20,10 +20,14 @@ import (
 )
 
 var (
-	ErrMissingNuspecFile    = util.SilentWrap{Message: "Nuspec file is missing", Err: util.ErrInvalidArgument}
-	ErrNuspecFileTooLarge   = util.SilentWrap{Message: "Nuspec file is too large", Err: util.ErrInvalidArgument}
-	ErrNuspecInvalidID      = util.SilentWrap{Message: "Nuspec file contains an invalid id", Err: util.ErrInvalidArgument}
-	ErrNuspecInvalidVersion = util.SilentWrap{Message: "Nuspec file contains an invalid version", Err: util.ErrInvalidArgument}
+	// ErrMissingNuspecFile indicates a missing Nuspec file
+	ErrMissingNuspecFile = util.NewInvalidArgumentErrorf("Nuspec file is missing")
+	// ErrNuspecFileTooLarge indicates a Nuspec file which is too large
+	ErrNuspecFileTooLarge = util.NewInvalidArgumentErrorf("Nuspec file is too large")
+	// ErrNuspecInvalidID indicates an invalid id in the Nuspec file
+	ErrNuspecInvalidID = util.NewInvalidArgumentErrorf("Nuspec file contains an invalid id")
+	// ErrNuspecInvalidVersion indicates an invalid version in the Nuspec file
+	ErrNuspecInvalidVersion = util.NewInvalidArgumentErrorf("Nuspec file contains an invalid version")
 )
 
 // PackageType specifies the package type the metadata describes

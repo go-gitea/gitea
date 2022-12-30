@@ -17,10 +17,14 @@ import (
 )
 
 var (
-	ErrMissingChartFile = util.SilentWrap{Message: "Chart.yaml file is missing", Err: util.ErrInvalidArgument}
-	ErrInvalidName      = util.SilentWrap{Message: "package name is invalid", Err: util.ErrInvalidArgument}
-	ErrInvalidVersion   = util.SilentWrap{Message: "package version is invalid", Err: util.ErrInvalidArgument}
-	ErrInvalidChart     = util.SilentWrap{Message: "chart is invalid", Err: util.ErrInvalidArgument}
+	// ErrMissingChartFile indicates a missing Chart.yaml file
+	ErrMissingChartFile = util.NewInvalidArgumentErrorf("Chart.yaml file is missing")
+	// ErrInvalidName indicates an invalid package name
+	ErrInvalidName = util.NewInvalidArgumentErrorf("package name is invalid")
+	// ErrInvalidVersion indicates an invalid package version
+	ErrInvalidVersion = util.NewInvalidArgumentErrorf("package version is invalid")
+	// ErrInvalidChart indicates an invalid chart
+	ErrInvalidChart = util.NewInvalidArgumentErrorf("chart is invalid")
 )
 
 // Metadata for a Chart file. This models the structure of a Chart.yaml file.

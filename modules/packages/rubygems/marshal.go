@@ -31,8 +31,10 @@ const (
 )
 
 var (
-	ErrUnsupportedType = util.SilentWrap{Message: "type is unsupported", Err: util.ErrInvalidArgument}
-	ErrInvalidIntRange = util.SilentWrap{Message: "number is not in valid range", Err: util.ErrInvalidArgument}
+	// ErrUnsupportedType indicates an unsupported type
+	ErrUnsupportedType = util.NewInvalidArgumentErrorf("type is unsupported")
+	// ErrInvalidIntRange indicates an invalid number range
+	ErrInvalidIntRange = util.NewInvalidArgumentErrorf("number is not in valid range")
 )
 
 // RubyUserMarshal is a Ruby object that has a marshal_load function.

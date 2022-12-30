@@ -22,11 +22,16 @@ import (
 )
 
 var (
-	ErrInvalidPackage        = util.SilentWrap{Message: "package is invalid", Err: util.ErrInvalidArgument}
-	ErrInvalidPackageName    = util.SilentWrap{Message: "package name is invalid", Err: util.ErrInvalidArgument}
-	ErrInvalidPackageVersion = util.SilentWrap{Message: "package version is invalid", Err: util.ErrInvalidArgument}
-	ErrInvalidAttachment     = util.SilentWrap{Message: "package attachment is invalid", Err: util.ErrInvalidArgument}
-	ErrInvalidIntegrity      = util.SilentWrap{Message: "failed to validate integrity", Err: util.ErrInvalidArgument}
+	// ErrInvalidPackage indicates an invalid package
+	ErrInvalidPackage = util.NewInvalidArgumentErrorf("package is invalid")
+	// ErrInvalidPackageName indicates an invalid name
+	ErrInvalidPackageName = util.NewInvalidArgumentErrorf("package name is invalid")
+	// ErrInvalidPackageVersion indicates an invalid version
+	ErrInvalidPackageVersion = util.NewInvalidArgumentErrorf("package version is invalid")
+	// ErrInvalidAttachment indicates a invalid attachment
+	ErrInvalidAttachment = util.NewInvalidArgumentErrorf("package attachment is invalid")
+	// ErrInvalidIntegrity indicates an integrity validation error
+	ErrInvalidIntegrity = util.NewInvalidArgumentErrorf("failed to validate integrity")
 )
 
 var nameMatch = regexp.MustCompile(`\A((@[^\s\/~'!\(\)\*]+?)[\/])?([^_.][^\s\/~'!\(\)\*]+)\z`)

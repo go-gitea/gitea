@@ -6,7 +6,6 @@ package models
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -235,7 +234,7 @@ func RemoveRepository(t *organization.Team, repoID int64) error {
 // It's caller's responsibility to assign organization ID.
 func NewTeam(t *organization.Team) (err error) {
 	if len(t.Name) == 0 {
-		return errors.New("empty team name")
+		return util.NewInvalidArgumentErrorf("empty team name")
 	}
 
 	if err = organization.IsUsableTeamName(t.Name); err != nil {
@@ -300,7 +299,7 @@ func NewTeam(t *organization.Team) (err error) {
 // UpdateTeam updates information of team.
 func UpdateTeam(t *organization.Team, authChanged, includeAllChanged bool) (err error) {
 	if len(t.Name) == 0 {
-		return errors.New("empty team name")
+		return util.NewInvalidArgumentErrorf("empty team name")
 	}
 
 	if len(t.Description) > 255 {
