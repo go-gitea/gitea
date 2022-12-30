@@ -102,7 +102,7 @@ func (protectBranch *ProtectedBranch) LoadRepo(ctx context.Context) (err error) 
 		return nil
 	}
 	protectBranch.Repo, err = repo_model.GetRepositoryByID(ctx, protectBranch.RepoID)
-	return
+	return err
 }
 
 // CanUserPush returns if some user could push to this protected branch
@@ -117,12 +117,12 @@ func (protectBranch *ProtectedBranch) CanUserPush(ctx context.Context, user *use
 			return false
 		}
 
-		if writeAccess, err := access_model.HasAccessUnit(ctx, user, protectBranch.Repo, unit.TypeCode, perm.AccessModeWrite); err != nil {
+		writeAccess, err := access_model.HasAccessUnit(ctx, user, protectBranch.Repo, unit.TypeCode, perm.AccessModeWrite)
+		if err != nil {
 			log.Error("HasAccessUnit: %v", err)
 			return false
-		} else {
-			return writeAccess
 		}
+		return writeAccess
 	}
 
 	if base.Int64sContains(protectBranch.WhitelistUserIDs, user.ID) {
