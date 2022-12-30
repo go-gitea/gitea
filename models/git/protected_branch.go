@@ -76,7 +76,12 @@ func IsRuleNameSpecial(ruleName string) bool {
 
 func (protectBranch *ProtectedBranch) loadGlob() {
 	if protectBranch.globRule == nil {
-		protectBranch.globRule = glob.MustCompile(protectBranch.RuleName, '/')
+		var err error
+		protectBranch.globRule, err = glob.Compile(protectBranch.RuleName, '/')
+		if err != nil {
+			log.Warn("Invalid glob rule for ProtectedBranch[%d]: %s %v", protectBranch.ID, protectBranch.RuleName, err)
+			protectBranch.globRule = glob.MustCompile(glob.QuoteMeta(protectBranch.RuleName), '/')
+		}
 		protectBranch.isPlainName = !IsRuleNameSpecial(protectBranch.RuleName)
 	}
 }
