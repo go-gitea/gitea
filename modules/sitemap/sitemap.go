@@ -63,10 +63,10 @@ func (s *Sitemap) Add(u URL) {
 // WriteTo writes the sitemap to a response
 func (s *Sitemap) WriteTo(w io.Writer) (int64, error) {
 	if l := len(s.URLs); l > urlsLimit {
-		return 0, fmt.Errorf("The sitemap contains too many URLs: %d", l)
+		return 0, fmt.Errorf("The sitemap contains %d URLs, but only %d are allowed", l, urlsLimit)
 	}
 	if l := len(s.Sitemaps); l > urlsLimit {
-		return 0, fmt.Errorf("The sitemap contains too many URLs: %d", l)
+		return 0, fmt.Errorf("The sitemap contains %d sub-sitemaps, but only %d are allowed", l, urlsLimit)
 	}
 	buf := bytes.NewBufferString(xml.Header)
 	if err := xml.NewEncoder(buf).Encode(s); err != nil {
