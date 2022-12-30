@@ -8,6 +8,7 @@
 package charset
 
 import (
+	"bufio"
 	"io"
 	"strings"
 
@@ -31,7 +32,7 @@ func EscapeControlHTML(text string, locale translation.Locale, allowed ...rune) 
 	return streamer.escaped, sb.String()
 }
 
-// EscapeControlReaders escapes the unicode control sequences in a provider reader and writer in a locale and returns the findings as an EscapeStatus and the escaped []byte
+// EscapeControlReaders escapes the unicode control sequences in a provided reader of HTML content and writer in a locale and returns the findings as an EscapeStatus and the escaped []byte
 func EscapeControlReader(reader io.Reader, writer io.Writer, locale translation.Locale, allowed ...rune) (escaped *EscapeStatus, err error) {
 	outputStream := &HTMLStreamerWriter{Writer: writer}
 	streamer := NewEscapeStreamer(locale, outputStream, allowed...).(*escapeStreamer)
@@ -39,6 +40,35 @@ func EscapeControlReader(reader io.Reader, writer io.Writer, locale translation.
 	if err = StreamHTML(reader, streamer); err != nil {
 		streamer.escaped.HasError = true
 		log.Error("Error whilst escaping: %v", err)
+	}
+	return streamer.escaped, err
+}
+
+// EscapeControlStringReader escapes the unicode control sequences in a provided reader of string content and writer in a locale and returns the findings as an EscapeStatus and the escaped []byte
+func EscapeControlStringReader(reader io.Reader, writer io.Writer, locale translation.Locale, allowed ...rune) (escaped *EscapeStatus, err error) {
+	bufRd := bufio.NewReader(reader)
+	outputStream := &HTMLStreamerWriter{Writer: writer}
+	streamer := NewEscapeStreamer(locale, outputStream, allowed...).(*escapeStreamer)
+
+	for {
+		line, rdErr := bufRd.ReadString('\n')
+		if len(line) > 0 {
+			if err := streamer.Text(line); err != nil {
+				streamer.escaped.HasError = true
+				log.Error("Error whilst escaping: %v", err)
+				return streamer.escaped, err
+			}
+		}
+		if rdErr != nil {
+			if rdErr != io.EOF {
+				err = rdErr
+			}
+			break
+		}
+		if err := streamer.SelfClosingTag("br"); err != nil {
+			streamer.escaped.HasError = true
+			return streamer.escaped, err
+		}
 	}
 	return streamer.escaped, err
 }

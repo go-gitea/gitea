@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gobwas/glob"
@@ -53,6 +54,8 @@ var patchErrorSuffices = []string{
 	": patch does not apply",
 	": already exists in working directory",
 	"unrecognized input",
+	": No such file or directory",
+	": does not exist in index",
 }
 
 // TestPatch will test whether a simple patch will apply
@@ -287,13 +290,15 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 
 	// 2. AttemptThreeWayMerge first - this is much quicker than plain patch to base
 	description := fmt.Sprintf("PR[%d] %s/%s#%d", pr.ID, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Index)
-	conflict, _, err := AttemptThreeWayMerge(ctx,
+	conflict, conflictFiles, err := AttemptThreeWayMerge(ctx,
 		tmpBasePath, gitRepo, pr.MergeBase, "base", "tracking", description)
 	if err != nil {
 		return false, err
 	}
 
 	if !conflict {
+		// No conflicts detected so we need to check if the patch is empty...
+		// a. Write the newly merged tree and check the new tree-hash
 		var treeHash string
 		treeHash, _, err = git.NewCommand(ctx, "write-tree").RunStdString(&git.RunOpts{Dir: tmpBasePath})
 		if err != nil {
@@ -305,6 +310,8 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 		if err != nil {
 			return false, err
 		}
+
+		// b. compare the new tree-hash with the base tree hash
 		if treeHash == baseTree.ID.String() {
 			log.Debug("PullRequest[%d]: Patch is empty - ignoring", pr.ID)
 			pr.Status = issues_model.PullRequestStatusEmpty
@@ -313,9 +320,17 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 		return false, nil
 	}
 
-	// 3. OK read-tree has failed so we need to try a different thing - this might actually succeed where the above fails due to whitespace handling.
+	// 3. OK the three-way merge method has detected conflicts
+	// 3a. Are still testing with GitApply? If not set the conflict status and move on
+	if !setting.Repository.PullRequest.TestConflictingPatchesWithGitApply {
+		pr.Status = issues_model.PullRequestStatusConflict
+		pr.ConflictedFiles = conflictFiles
 
-	// 3a. Create a plain patch from head to base
+		log.Trace("Found %d files conflicted: %v", len(pr.ConflictedFiles), pr.ConflictedFiles)
+		return true, nil
+	}
+
+	// 3b. Create a plain patch from head to base
 	tmpPatchFile, err := os.CreateTemp("", "patch")
 	if err != nil {
 		log.Error("Unable to create temporary patch file! Error: %v", err)
@@ -338,7 +353,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 	patchPath := tmpPatchFile.Name()
 	tmpPatchFile.Close()
 
-	// 3b. if the size of that patch is 0 - there can be no conflicts!
+	// 3c. if the size of that patch is 0 - there can be no conflicts!
 	if stat.Size() == 0 {
 		log.Debug("PullRequest[%d]: Patch is empty - ignoring", pr.ID)
 		pr.Status = issues_model.PullRequestStatusEmpty
@@ -416,6 +431,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 				scanner := bufio.NewScanner(stderrReader)
 				for scanner.Scan() {
 					line := scanner.Text()
+					log.Trace("PullRequest[%d].testPatch: stderr: %s", pr.ID, line)
 					if strings.HasPrefix(line, prefix) {
 						conflict = true
 						filepath := strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0])
