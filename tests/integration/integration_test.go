@@ -283,10 +283,7 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...strin
 	for _, scope := range scopes {
 		urlValues.Add("scope", scope)
 	}
-	req = NewRequestWithValues(t, "POST", "/user/settings/applications", map[string]string{
-		"_csrf": csrf,
-		"name":  fmt.Sprintf("api-testing-token-%d", atomic.AddInt64(&tokenCounter, 1)),
-	})
+	req = NewRequestWithURLValues(t, "POST", "/user/settings/applications", urlValues)
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 
 	// Log the flash values on failure
