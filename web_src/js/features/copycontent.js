@@ -1,6 +1,7 @@
 import {copyToClipboard} from './clipboard.js';
 import {showTemporaryTooltip} from '../modules/tippy.js';
 import {convertImage} from '../utils.js';
+
 const {i18n} = window.config;
 
 async function doCopy(content, btn) {

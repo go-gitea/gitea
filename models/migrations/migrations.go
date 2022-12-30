@@ -443,6 +443,10 @@ var migrations = []Migration{
 	// v235 -> v236
 	NewMigration("Add index for access_token", v1_19.AddIndexForAccessToken),
 	// v236 -> v237
+	NewMigration("Create secrets table", v1_19.CreateSecretsTable),
+	// v237 -> v238
+	NewMigration("Drop ForeignReference table", v1_19.DropForeignReferenceTable),
+	// v238 -> v239
 	NewMigration("Add scope for access_token", v1_19.AddScopeForAccessTokens),
 }
 
