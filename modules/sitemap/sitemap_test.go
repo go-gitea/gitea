@@ -6,7 +6,6 @@ package sitemap
 import (
 	"bytes"
 	"encoding/xml"
-	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -18,9 +17,10 @@ func TestNewSitemap(t *testing.T) {
 	ts := time.Unix(1651322008, 0).UTC()
 
 	tests := []struct {
-		name string
-		urls []URL
-		want string
+		name    string
+		urls    []URL
+		want    string
+		wantErr string
 	}{
 		{
 			name: "empty",
@@ -58,6 +58,18 @@ func TestNewSitemap(t *testing.T) {
 				"<url><loc>https://gitea.io/test2</loc></url>" +
 				"</urlset>\n",
 		},
+		{
+			name:    "too many urls",
+			urls:    make([]URL, 50001),
+			wantErr: "The sitemap contains too many URLs: 50001",
+		},
+		{
+			name: "too big file",
+			urls: []URL{
+				{URL: strings.Repeat("b", 50*1024*1024+1)},
+			},
+			wantErr: "The sitemap is too big: 52428932",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -67,8 +79,12 @@ func TestNewSitemap(t *testing.T) {
 			}
 			buf := &bytes.Buffer{}
 			_, err := s.WriteTo(buf)
-			assert.NoError(t, nil, err)
-			assert.Equalf(t, tt.want, buf.String(), "NewSitemap()")
+			if tt.wantErr != "" {
+				assert.EqualError(t, err, tt.wantErr)
+			} else {
+				assert.NoError(t, err)
+				assert.Equalf(t, tt.want, buf.String(), "NewSitemap()")
+			}
 		})
 	}
 }
@@ -77,9 +93,10 @@ func TestNewSitemapIndex(t *testing.T) {
 	ts := time.Unix(1651322008, 0).UTC()
 
 	tests := []struct {
-		name string
-		urls []URL
-		want string
+		name    string
+		urls    []URL
+		want    string
+		wantErr string
 	}{
 		{
 			name: "empty",
@@ -117,6 +134,18 @@ func TestNewSitemapIndex(t *testing.T) {
 				"<sitemap><loc>https://gitea.io/test2</loc></sitemap>" +
 				"</sitemapindex>\n",
 		},
+		{
+			name:    "too many urls",
+			urls:    make([]URL, 50001),
+			wantErr: "The sitemap contains too many URLs: 50001",
+		},
+		{
+			name: "too big file",
+			urls: []URL{
+				{URL: strings.Repeat("b", 50*1024*1024+1)},
+			},
+			wantErr: "The sitemap is too big: 52428952",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -126,26 +155,12 @@ func TestNewSitemapIndex(t *testing.T) {
 			}
 			buf := &bytes.Buffer{}
 			_, err := s.WriteTo(buf)
-			assert.NoError(t, nil, err)
-			assert.Equalf(t, tt.want, buf.String(), "NewSitemapIndex()")
+			if tt.wantErr != "" {
+				assert.EqualError(t, err, tt.wantErr)
+			} else {
+				assert.NoError(t, err)
+				assert.Equalf(t, tt.want, buf.String(), "NewSitemapIndex()")
+			}
 		})
 	}
-}
-
-func TestTooManyURLs(t *testing.T) {
-	s := NewSitemap()
-	for i := 0; i < 50001; i++ {
-		s.Add(URL{URL: fmt.Sprintf("https://gitea.io/test%d", i)})
-	}
-	buf := &bytes.Buffer{}
-	_, err := s.WriteTo(buf)
-	assert.EqualError(t, err, "The sitemap contains too many URLs: 50001")
-}
-
-func TestSitemapTooBig(t *testing.T) {
-	s := NewSitemap()
-	s.Add(URL{URL: strings.Repeat("b", sitemapFileLimit)})
-	buf := &bytes.Buffer{}
-	_, err := s.WriteTo(buf)
-	assert.EqualError(t, err, "The sitemap is too big: 52428931")
 }
