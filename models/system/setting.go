@@ -92,13 +92,13 @@ func GetSettingNoCache(key string) (*Setting, error) {
 }
 
 // GetSetting returns the setting value via the key
-func GetSetting(key string) (*Setting, error) {
-	return cache.Get(genSettingCacheKey(key), func() (*Setting, error) {
+func GetSetting(key string) (string, error) {
+	return cache.GetString(genSettingCacheKey(key), func() (string, error) {
 		res, err := GetSettingNoCache(key)
 		if err != nil {
-			return nil, err
+			return "", err
 		}
-		return res, nil
+		return res.SettingValue, nil
 	})
 }
 
@@ -106,7 +106,8 @@ func GetSetting(key string) (*Setting, error) {
 // none existing keys and errors are ignored and result in false
 func GetSettingBool(key string) bool {
 	s, _ := GetSetting(key)
-	return s.GetValueBool()
+	v, _ := strconv.ParseBool(s)
+	return v
 }
 
 // GetSettings returns specific settings
@@ -183,8 +184,8 @@ func SetSettingNoVersion(key, value string) error {
 
 // SetSetting updates a users' setting for a specific key
 func SetSetting(setting *Setting) error {
-	_, err := cache.Set(genSettingCacheKey(setting.SettingKey), func() (*Setting, error) {
-		return setting, upsertSettingValue(strings.ToLower(setting.SettingKey), setting.SettingValue, setting.Version)
+	_, err := cache.GetString(genSettingCacheKey(setting.SettingKey), func() (string, error) {
+		return setting.SettingValue, upsertSettingValue(strings.ToLower(setting.SettingKey), setting.SettingValue, setting.Version)
 	})
 	if err != nil {
 		return err
