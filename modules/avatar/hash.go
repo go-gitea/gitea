@@ -11,7 +11,7 @@ import (
 // different unique ID while the data is the same, it will generate a different
 // output. It will generate the output according to:
 // HEX(HASH(uniqueID || - || data))
-// The hash is being used is SHA256.
+// The hash being used is SHA256.
 // The sole purpose of the unique ID is to generate a distinct hash Such that
 // two unique IDs with the same data will have a different hash output.
 // The "-" byte is important to ensure that data cannot be modified such that
