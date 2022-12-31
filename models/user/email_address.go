@@ -6,7 +6,6 @@ package user
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/mail"
 	"regexp"
@@ -22,7 +21,7 @@ import (
 )
 
 // ErrEmailNotActivated e-mail address has not been activated error
-var ErrEmailNotActivated = errors.New("e-mail address has not been activated")
+var ErrEmailNotActivated = util.NewInvalidArgumentErrorf("e-mail address has not been activated")
 
 // ErrEmailCharIsNotSupported e-mail address contains unsupported character
 type ErrEmailCharIsNotSupported struct {
