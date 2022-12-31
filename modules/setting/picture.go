@@ -69,7 +69,7 @@ func newPictureService() {
 }
 
 func GetDefaultDisableGravatar() bool {
-	return !OfflineMode
+	return OfflineMode
 }
 
 func GetDefaultEnableFederatedAvatar(disableGravatar bool) bool {
