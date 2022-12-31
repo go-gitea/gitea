@@ -176,14 +176,22 @@ func newMailService() {
 		}
 	}
 
-	// we want to warn if users use SMTP on a non-local IP;
-	// we might as well take the opportunity to check that it has an IP at all
-	ips := tryResolveAddr(MailService.SMTPAddr)
-	if MailService.Protocol == "smtp" {
-		for _, ip := range ips {
-			if !ip.IsLoopback() {
-				log.Warn("connecting over insecure SMTP protocol to non-local address is not recommended")
-				break
+	if MailService.Protocol == "sendmail" {
+		var err error
+		MailService.SendmailArgs, err = shellquote.Split(sec.Key("SENDMAIL_ARGS").String())
+		if err != nil {
+			log.Error("Failed to parse Sendmail args: %s with error %v", CustomConf, err)
+		}
+	} else {
+		// we want to warn if users use SMTP on a non-local IP;
+		// we might as well take the opportunity to check that it has an IP at all
+		ips := tryResolveAddr(MailService.SMTPAddr)
+		if MailService.Protocol == "smtp" {
+			for _, ip := range ips {
+				if !ip.IsLoopback() {
+					log.Warn("connecting over insecure SMTP protocol to non-local address is not recommended")
+					break
+				}
 			}
 		}
 	}
@@ -212,14 +220,6 @@ func newMailService() {
 		}
 		MailService.OverrideEnvelopeFrom = true
 		MailService.EnvelopeFrom = parsed.Address
-	}
-
-	if MailService.Protocol == "sendmail" {
-		var err error
-		MailService.SendmailArgs, err = shellquote.Split(sec.Key("SENDMAIL_ARGS").String())
-		if err != nil {
-			log.Error("Failed to parse Sendmail args: %s with error %v", CustomConf, err)
-		}
 	}
 
 	log.Info("Mail Service Enabled")
