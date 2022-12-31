@@ -15,12 +15,11 @@ import (
 
 func TestCheckProjectBoardChangePermissions(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/-/projects/1/2")
+	ctx := test.MockContext(t, "user2/-/projects/4/4")
 	test.LoadUser(t, ctx, 2)
-	test.LoadRepo(t, ctx, 1)
-	ctx.SetParams(":id", "1")
-	ctx.SetParams(":boardID", "2")
 	ctx.ContextUser = ctx.Doer // user2
+	ctx.SetParams(":id", "4")
+	ctx.SetParams(":boardID", "4")
 
 	project, board := org.CheckProjectBoardChangePermissions(ctx)
 	assert.NotNil(t, project)

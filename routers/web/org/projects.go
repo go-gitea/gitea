@@ -515,7 +515,7 @@ func CheckProjectBoardChangePermissions(ctx *context.Context) (*project_model.Pr
 
 	if project.OwnerID != ctx.ContextUser.ID {
 		ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
-			"message": fmt.Sprintf("ProjectBoard[%d] is not in Repository[%d] as expected", board.ID, ctx.Repo.Repository.ID),
+			"message": fmt.Sprintf("ProjectBoard[%d] is not in Repository[%d] as expected", board.ID, project.ID),
 		})
 		return nil, nil
 	}
