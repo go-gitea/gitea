@@ -38,6 +38,6 @@ func Search(ctx *context.Context) {
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok":   true,
-		"data": convert.ToUsers(ctx.Doer, users),
+		"data": convert.ToUsers(ctx, ctx.Doer, users),
 	})
 }

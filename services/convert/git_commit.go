@@ -4,6 +4,7 @@
 package convert
 
 import (
+	"context"
 	"net/url"
 	"time"
 
@@ -37,16 +38,16 @@ func ToCommitMeta(repo *repo_model.Repository, tag *git.Tag) *api.CommitMeta {
 }
 
 // ToPayloadCommit convert a git.Commit to api.PayloadCommit
-func ToPayloadCommit(repo *repo_model.Repository, c *git.Commit) *api.PayloadCommit {
+func ToPayloadCommit(ctx context.Context, repo *repo_model.Repository, c *git.Commit) *api.PayloadCommit {
 	authorUsername := ""
-	if author, err := user_model.GetUserByEmail(c.Author.Email); err == nil {
+	if author, err := user_model.GetUserByEmail(ctx, c.Author.Email); err == nil {
 		authorUsername = author.Name
 	} else if !user_model.IsErrUserNotExist(err) {
 		log.Error("GetUserByEmail: %v", err)
 	}
 
 	committerUsername := ""
-	if committer, err := user_model.GetUserByEmail(c.Committer.Email); err == nil {
+	if committer, err := user_model.GetUserByEmail(ctx, c.Committer.Email); err == nil {
 		committerUsername = committer.Name
 	} else if !user_model.IsErrUserNotExist(err) {
 		log.Error("GetUserByEmail: %v", err)
@@ -67,12 +68,12 @@ func ToPayloadCommit(repo *repo_model.Repository, c *git.Commit) *api.PayloadCom
 			UserName: committerUsername,
 		},
 		Timestamp:    c.Author.When,
-		Verification: ToVerification(c),
+		Verification: ToVerification(ctx, c),
 	}
 }
 
 // ToCommit convert a git.Commit to api.Commit
-func ToCommit(repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit, userCache map[string]*user_model.User, stat bool) (*api.Commit, error) {
+func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit, userCache map[string]*user_model.User, stat bool) (*api.Commit, error) {
 	var apiAuthor, apiCommitter *api.User
 
 	// Retrieve author and committer information
@@ -87,13 +88,13 @@ func ToCommit(repo *repo_model.Repository, gitRepo *git.Repository, commit *git.
 	}
 
 	if ok {
-		apiAuthor = ToUser(cacheAuthor, nil)
+		apiAuthor = ToUser(ctx, cacheAuthor, nil)
 	} else {
-		author, err := user_model.GetUserByEmail(commit.Author.Email)
+		author, err := user_model.GetUserByEmail(ctx, commit.Author.Email)
 		if err != nil && !user_model.IsErrUserNotExist(err) {
 			return nil, err
 		} else if err == nil {
-			apiAuthor = ToUser(author, nil)
+			apiAuthor = ToUser(ctx, author, nil)
 			if userCache != nil {
 				userCache[commit.Author.Email] = author
 			}
@@ -109,13 +110,13 @@ func ToCommit(repo *repo_model.Repository, gitRepo *git.Repository, commit *git.
 	}
 
 	if ok {
-		apiCommitter = ToUser(cacheCommitter, nil)
+		apiCommitter = ToUser(ctx, cacheCommitter, nil)
 	} else {
-		committer, err := user_model.GetUserByEmail(commit.Committer.Email)
+		committer, err := user_model.GetUserByEmail(ctx, commit.Committer.Email)
 		if err != nil && !user_model.IsErrUserNotExist(err) {
 			return nil, err
 		} else if err == nil {
-			apiCommitter = ToUser(committer, nil)
+			apiCommitter = ToUser(ctx, committer, nil)
 			if userCache != nil {
 				userCache[commit.Committer.Email] = committer
 			}
@@ -161,7 +162,7 @@ func ToCommit(repo *repo_model.Repository, gitRepo *git.Repository, commit *git.
 				SHA:     commit.ID.String(),
 				Created: commit.Committer.When,
 			},
-			Verification: ToVerification(commit),
+			Verification: ToVerification(ctx, commit),
 		},
 		Author:    apiAuthor,
 		Committer: apiCommitter,

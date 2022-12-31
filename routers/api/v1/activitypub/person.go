@@ -55,7 +55,7 @@ func Person(ctx *context.APIContext) {
 	person.Icon = ap.Image{
 		Type:      ap.ImageType,
 		MediaType: "image/png",
-		URL:       ap.IRI(ctx.ContextUser.AvatarLink()),
+		URL:       ap.IRI(ctx.ContextUser.AvatarLink(ctx)),
 	}
 
 	person.Inbox = ap.IRI(link + "/inbox")

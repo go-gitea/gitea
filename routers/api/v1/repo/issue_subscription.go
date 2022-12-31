@@ -280,7 +280,7 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 	}
 	apiUsers := make([]*api.User, 0, len(users))
 	for _, v := range users {
-		apiUsers = append(apiUsers, convert.ToUser(v, ctx.Doer))
+		apiUsers = append(apiUsers, convert.ToUser(ctx, v, ctx.Doer))
 	}
 
 	count, err := issues_model.CountIssueWatchers(ctx, issue.ID)

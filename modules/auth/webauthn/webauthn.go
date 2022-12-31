@@ -9,6 +9,7 @@ import (
 	"net/url"
 
 	"code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -63,7 +64,7 @@ func (u *User) WebAuthnDisplayName() string {
 
 // WebAuthnIcon implements the webauthn.User interface
 func (u *User) WebAuthnIcon() string {
-	return (*user_model.User)(u).AvatarLink()
+	return (*user_model.User)(u).AvatarLink(db.DefaultContext)
 }
 
 // WebAuthnCredentials implementns the webauthn.User interface

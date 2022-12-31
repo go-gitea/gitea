@@ -201,7 +201,7 @@ func ChangeConfig(ctx *context.Context) {
 	value := ctx.FormString("value")
 	version := ctx.FormInt("version")
 
-	if err := system_model.SetSetting(&system_model.Setting{
+	if err := system_model.SetSetting(ctx, &system_model.Setting{
 		SettingKey:   key,
 		SettingValue: value,
 		Version:      version,

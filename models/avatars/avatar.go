@@ -147,13 +147,13 @@ func generateRecognizedAvatarURL(u url.URL, size int) string {
 // generateEmailAvatarLink returns a email avatar link.
 // if final is true, it may use a slow path (eg: query DNS).
 // if final is false, it always uses a fast path.
-func generateEmailAvatarLink(email string, size int, final bool) string {
+func generateEmailAvatarLink(ctx context.Context, email string, size int, final bool) string {
 	email = strings.TrimSpace(email)
 	if email == "" {
 		return DefaultAvatarLink()
 	}
 
-	enableFederatedAvatarSetting, _ := system_model.GetSetting(system_model.KeyPictureEnableFederatedAvatar)
+	enableFederatedAvatarSetting, _ := system_model.GetSetting(ctx, system_model.KeyPictureEnableFederatedAvatar)
 	enableFederatedAvatar := enableFederatedAvatarSetting.GetValueBool()
 
 	var err error
@@ -175,7 +175,7 @@ func generateEmailAvatarLink(email string, size int, final bool) string {
 		return urlStr
 	}
 
-	disableGravatarSetting, _ := system_model.GetSetting(system_model.KeyPictureDisableGravatar)
+	disableGravatarSetting, _ := system_model.GetSetting(ctx, system_model.KeyPictureDisableGravatar)
 
 	disableGravatar := disableGravatarSetting.GetValueBool()
 	if !disableGravatar {
@@ -189,11 +189,11 @@ func generateEmailAvatarLink(email string, size int, final bool) string {
 }
 
 // GenerateEmailAvatarFastLink returns a avatar link (fast, the link may be a delegated one: "/avatar/${hash}")
-func GenerateEmailAvatarFastLink(email string, size int) string {
-	return generateEmailAvatarLink(email, size, false)
+func GenerateEmailAvatarFastLink(ctx context.Context, email string, size int) string {
+	return generateEmailAvatarLink(ctx, email, size, false)
 }
 
 // GenerateEmailAvatarFinalLink returns a avatar final link (maybe slow)
-func GenerateEmailAvatarFinalLink(email string, size int) string {
-	return generateEmailAvatarLink(email, size, true)
+func GenerateEmailAvatarFinalLink(ctx context.Context, email string, size int) string {
+	return generateEmailAvatarLink(ctx, email, size, true)
 }

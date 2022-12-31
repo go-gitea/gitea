@@ -348,10 +348,11 @@ func hashCommitStatusContext(context string) string {
 }
 
 // ConvertFromGitCommit converts git commits into SignCommitWithStatuses
-func ConvertFromGitCommit(commits []*git.Commit, repo *repo_model.Repository) []*SignCommitWithStatuses {
+func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo_model.Repository) []*SignCommitWithStatuses {
 	return ParseCommitsWithStatus(
 		asymkey_model.ParseCommitsWithSignature(
-			user_model.ValidateCommitsWithEmails(commits),
+			ctx,
+			user_model.ValidateCommitsWithEmails(ctx, commits),
 			repo.GetTrustModel(),
 			func(user *user_model.User) (bool, error) {
 				return repo_model.IsOwnerMemberCollaborator(repo, user.ID)

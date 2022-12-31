@@ -124,7 +124,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 			if err := t.LoadAttributes(ctx); err != nil {
 				log.Warn("LoadAttributes of RepoTransfer: %v", err)
 			} else {
-				transfer = ToRepoTransfer(t)
+				transfer = ToRepoTransfer(ctx, t)
 			}
 		}
 	}
@@ -138,7 +138,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 
 	return &api.Repository{
 		ID:                            repo.ID,
-		Owner:                         ToUserWithAccessMode(repo.Owner, mode),
+		Owner:                         ToUserWithAccessMode(ctx, repo.Owner, mode),
 		Name:                          repo.Name,
 		FullName:                      repo.FullName(),
 		Description:                   repo.Description,
@@ -191,12 +191,12 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 }
 
 // ToRepoTransfer convert a models.RepoTransfer to a structs.RepeTransfer
-func ToRepoTransfer(t *models.RepoTransfer) *api.RepoTransfer {
-	teams, _ := ToTeams(t.Teams, false)
+func ToRepoTransfer(ctx context.Context, t *models.RepoTransfer) *api.RepoTransfer {
+	teams, _ := ToTeams(ctx, t.Teams, false)
 
 	return &api.RepoTransfer{
-		Doer:      ToUser(t.Doer, nil),
-		Recipient: ToUser(t.Recipient, nil),
+		Doer:      ToUser(ctx, t.Doer, nil),
+		Recipient: ToUser(ctx, t.Recipient, nil),
 		Teams:     teams,
 	}
 }

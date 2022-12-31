@@ -58,7 +58,7 @@ func ListTeams(ctx *context.APIContext) {
 		return
 	}
 
-	apiTeams, err := convert.ToTeams(teams, false)
+	apiTeams, err := convert.ToTeams(ctx, teams, false)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ConvertToTeams", err)
 		return
@@ -97,7 +97,7 @@ func ListUserTeams(ctx *context.APIContext) {
 		return
 	}
 
-	apiTeams, err := convert.ToTeams(teams, true)
+	apiTeams, err := convert.ToTeams(ctx, teams, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ConvertToTeams", err)
 		return
@@ -125,7 +125,7 @@ func GetTeam(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Team"
 
-	apiTeam, err := convert.ToTeam(ctx.Org.Team)
+	apiTeam, err := convert.ToTeam(ctx, ctx.Org.Team)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -223,7 +223,7 @@ func CreateTeam(ctx *context.APIContext) {
 		return
 	}
 
-	apiTeam, err := convert.ToTeam(team)
+	apiTeam, err := convert.ToTeam(ctx, team)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -306,7 +306,7 @@ func EditTeam(ctx *context.APIContext) {
 		return
 	}
 
-	apiTeam, err := convert.ToTeam(team)
+	apiTeam, err := convert.ToTeam(ctx, team)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -383,7 +383,7 @@ func GetTeamMembers(ctx *context.APIContext) {
 
 	members := make([]*api.User, len(teamMembers))
 	for i, member := range teamMembers {
-		members[i] = convert.ToUser(member, ctx.Doer)
+		members[i] = convert.ToUser(ctx, member, ctx.Doer)
 	}
 
 	ctx.SetTotalCountHeader(int64(ctx.Org.Team.NumMembers))
@@ -428,7 +428,7 @@ func GetTeamMember(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToUser(u, ctx.Doer))
+	ctx.JSON(http.StatusOK, convert.ToUser(ctx, u, ctx.Doer))
 }
 
 // AddTeamMember api for add a member to a team
@@ -779,7 +779,7 @@ func SearchTeam(ctx *context.APIContext) {
 		return
 	}
 
-	apiTeams, err := convert.ToTeams(teams, false)
+	apiTeams, err := convert.ToTeams(ctx, teams, false)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

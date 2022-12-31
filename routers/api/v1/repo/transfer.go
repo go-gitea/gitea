@@ -81,7 +81,7 @@ func Transfer(ctx *context.APIContext) {
 			return
 		}
 
-		org := convert.ToOrganization(organization.OrgFromUser(newOwner))
+		org := convert.ToOrganization(ctx, organization.OrgFromUser(newOwner))
 		for _, tID := range *opts.TeamIDs {
 			team, err := organization.GetTeamByID(ctx, tID)
 			if err != nil {

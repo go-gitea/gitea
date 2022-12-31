@@ -58,7 +58,7 @@ func GenerateRandomAvatar(ctx context.Context, u *User) error {
 }
 
 // AvatarLinkWithSize returns a link to the user's avatar with size. size <= 0 means default size
-func (u *User) AvatarLinkWithSize(size int) string {
+func (u *User) AvatarLinkWithSize(ctx context.Context, size int) string {
 	if u.ID == -1 {
 		// ghost user
 		return avatars.DefaultAvatarLink()
@@ -67,7 +67,7 @@ func (u *User) AvatarLinkWithSize(size int) string {
 	useLocalAvatar := false
 	autoGenerateAvatar := false
 
-	disableGravatarSetting, _ := system_model.GetSetting(system_model.KeyPictureDisableGravatar)
+	disableGravatarSetting, _ := system_model.GetSetting(ctx, system_model.KeyPictureDisableGravatar)
 
 	disableGravatar := disableGravatarSetting.GetValueBool()
 
@@ -81,7 +81,7 @@ func (u *User) AvatarLinkWithSize(size int) string {
 
 	if useLocalAvatar {
 		if u.Avatar == "" && autoGenerateAvatar {
-			if err := GenerateRandomAvatar(db.DefaultContext, u); err != nil {
+			if err := GenerateRandomAvatar(ctx, u); err != nil {
 				log.Error("GenerateRandomAvatar: %v", err)
 			}
 		}
@@ -90,12 +90,12 @@ func (u *User) AvatarLinkWithSize(size int) string {
 		}
 		return avatars.GenerateUserAvatarImageLink(u.Avatar, size)
 	}
-	return avatars.GenerateEmailAvatarFastLink(u.AvatarEmail, size)
+	return avatars.GenerateEmailAvatarFastLink(ctx, u.AvatarEmail, size)
 }
 
 // AvatarLink returns the full avatar link with http host
-func (u *User) AvatarLink() string {
-	link := u.AvatarLinkWithSize(0)
+func (u *User) AvatarLink(ctx context.Context) string {
+	link := u.AvatarLinkWithSize(ctx, 0)
 	if !strings.HasPrefix(link, "//") && !strings.Contains(link, "://") {
 		return setting.AppURL + strings.TrimPrefix(link, setting.AppSubURL+"/")
 	}

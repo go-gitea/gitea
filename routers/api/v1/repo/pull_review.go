@@ -673,7 +673,7 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 	for _, r := range opts.Reviewers {
 		var reviewer *user_model.User
 		if strings.Contains(r, "@") {
-			reviewer, err = user_model.GetUserByEmail(r)
+			reviewer, err = user_model.GetUserByEmail(ctx, r)
 		} else {
 			reviewer, err = user_model.GetUserByName(ctx, r)
 		}
