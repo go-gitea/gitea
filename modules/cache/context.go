@@ -5,15 +5,15 @@ package cache
 
 import "context"
 
-type CacheContext struct {
+type cacheContext struct {
 	ctx  context.Context
 	Data map[any]map[any]any
 }
 
-type CacheContextKey struct{}
+type cacheContextKey struct{}
 
 func WithCacheContext(ctx context.Context) context.Context {
-	return context.WithValue(ctx, &CacheContextKey{}, &CacheContext{
+	return context.WithValue(ctx, &cacheContextKey{}, &cacheContext{
 		ctx:  ctx,
 		Data: make(map[any]map[any]any),
 	})
@@ -23,7 +23,7 @@ func GetContextData(ctx context.Context, tp, key any) any {
 	if ctx == nil {
 		return nil
 	}
-	if c, ok := ctx.Value(&CacheContextKey{}).(*CacheContext); ok {
+	if c, ok := ctx.Value(&cacheContextKey{}).(*cacheContext); ok {
 		if c.Data[tp] != nil {
 			return c.Data[tp][key]
 		}
@@ -35,7 +35,7 @@ func SetContextData(ctx context.Context, tp, key, value any) {
 	if ctx == nil {
 		return
 	}
-	if c, ok := ctx.Value(&CacheContextKey{}).(*CacheContext); ok {
+	if c, ok := ctx.Value(&cacheContextKey{}).(*cacheContext); ok {
 		if c.Data[tp] == nil {
 			c.Data[tp] = make(map[any]any)
 		}
@@ -47,7 +47,7 @@ func RemoveContextData(ctx context.Context, tp, key any) {
 	if ctx == nil {
 		return
 	}
-	if c, ok := ctx.Value(&CacheContextKey{}).(*CacheContext); ok {
+	if c, ok := ctx.Value(&cacheContextKey{}).(*cacheContext); ok {
 		if c.Data[tp] == nil {
 			c.Data[tp] = make(map[any]any)
 		}

@@ -115,7 +115,7 @@ func TestCreateUser_Issue5882(t *testing.T) {
 
 		assert.NoError(t, user_model.CreateUser(v.user))
 
-		u, err := user_model.GetUserByEmail(v.user.Email)
+		u, err := user_model.GetUserByEmail(db.DefaultContext, v.user.Email)
 		assert.NoError(t, err)
 
 		assert.Equal(t, !u.AllowCreateOrganization, v.disableOrgCreation)

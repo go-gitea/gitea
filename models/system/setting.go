@@ -124,9 +124,13 @@ func GetSettings(ctx context.Context, keys []string) (map[string]*Setting, error
 			newKeys = append(newKeys, key)
 		}
 	}
-	settings := make([]*Setting, 0, len(keys))
+	if len(newKeys) == 0 {
+		return settingsMap, nil
+	}
+
+	settings := make([]*Setting, 0, len(newKeys))
 	if err := db.GetEngine(db.DefaultContext).
-		Where(builder.In("setting_key", keys)).
+		Where(builder.In("setting_key", newKeys)).
 		Find(&settings); err != nil {
 		return nil, err
 	}
