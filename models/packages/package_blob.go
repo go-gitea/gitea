@@ -5,15 +5,15 @@ package packages
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrPackageBlobNotExist indicates a package blob not exist error
-var ErrPackageBlobNotExist = errors.New("Package blob does not exist")
+var ErrPackageBlobNotExist = util.NewNotExistErrorf("package blob does not exist")
 
 func init() {
 	db.RegisterModel(new(PackageBlob))

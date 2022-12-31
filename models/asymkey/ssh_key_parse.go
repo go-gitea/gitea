@@ -10,7 +10,6 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"math/big"
 	"os"
@@ -122,7 +121,7 @@ func parseKeyString(content string) (string, error) {
 		parts := strings.SplitN(content, " ", 3)
 		switch len(parts) {
 		case 0:
-			return "", errors.New("empty key")
+			return "", util.NewInvalidArgumentErrorf("empty key")
 		case 1:
 			keyContent = parts[0]
 		case 2:
@@ -167,7 +166,7 @@ func CheckPublicKeyString(content string) (_ string, err error) {
 
 	content = strings.TrimRight(content, "\n\r")
 	if strings.ContainsAny(content, "\n\r") {
-		return "", errors.New("only a single line with a single key please")
+		return "", util.NewInvalidArgumentErrorf("only a single line with a single key please")
 	}
 
 	// remove any unnecessary whitespace now
