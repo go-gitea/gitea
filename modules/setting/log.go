@@ -327,7 +327,7 @@ func newLogService() {
 	if !useConsole {
 		log.Info("According to the configuration, subsequent logs will not be printed to the console")
 		if err := log.DelLogger("console"); err != nil {
-			log.Fatal("DelLogger: %v", err)
+			log.Fatal("Cannot delete console logger: %v", err)
 		}
 	}
 
