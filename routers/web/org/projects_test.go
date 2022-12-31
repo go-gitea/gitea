@@ -20,6 +20,7 @@ func TestCheckProjectBoardChangePermissions(t *testing.T) {
 	test.LoadRepo(t, ctx, 1)
 	ctx.SetParams(":id", "1")
 	ctx.SetParams(":boardID", "2")
+	ctx.ContextUser = ctx.Doer // user2
 
 	project, board := org.CheckProjectBoardChangePermissions(ctx)
 	assert.NotNil(t, project)
