@@ -10,22 +10,15 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/notification/base"
-	"code.gitea.io/gitea/modules/notification/webhook"
 	"code.gitea.io/gitea/modules/repository"
 )
 
-var notifiers []base.Notifier
+var notifiers []Notifier
 
 // RegisterNotifier providers method to receive notify messages
-func RegisterNotifier(notifier base.Notifier) {
+func RegisterNotifier(notifier Notifier) {
 	go notifier.Run()
 	notifiers = append(notifiers, notifier)
-}
-
-// NewContext registers notification handlers
-func NewContext() {
-	RegisterNotifier(webhook.NewNotifier())
 }
 
 // NotifyNewWikiPage notifies creating new wiki pages to notifiers

@@ -11,18 +11,17 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	mirror_module "code.gitea.io/gitea/modules/mirror"
 	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/repository"
 )
 
 type mirrorNotifier struct {
-	base.NullNotifier
+	notification.NullNotifier
 }
 
-var _ base.Notifier = &mirrorNotifier{}
+var _ notification.Notifier = &mirrorNotifier{}
 
 // NewNotifier create a new mirrorNotifier notifier
-func NewNotifier() base.Notifier {
+func NewNotifier() notification.Notifier {
 	return &mirrorNotifier{}
 }
 

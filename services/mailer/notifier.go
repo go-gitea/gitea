@@ -12,17 +12,17 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification/base"
+	"code.gitea.io/gitea/modules/notification"
 )
 
 type mailNotifier struct {
-	base.NullNotifier
+	notification.NullNotifier
 }
 
-var _ base.Notifier = &mailNotifier{}
+var _ notification.Notifier = &mailNotifier{}
 
 // NewNotifier create a new mailNotifier notifier
-func NewNotifier() base.Notifier {
+func NewNotifier() notification.Notifier {
 	return &mailNotifier{}
 }
 

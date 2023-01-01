@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/storage"
@@ -119,6 +118,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	log.Info("Log path: %s", setting.LogRootPath)
 	log.Info("Configuration file: %s", setting.CustomConf)
 	log.Info("Run Mode: %s", util.ToTitleCase(setting.RunMode))
+	log.Info("Gitea v%s%s", setting.AppVer, setting.AppBuiltWith)
 
 	// Setup i18n
 	translation.InitLocales(ctx)
@@ -128,7 +128,6 @@ func GlobalInitInstalled(ctx context.Context) {
 
 	mailer.NewContext(ctx)
 	mustInit(cache.NewContext)
-	notification.NewContext()
 	mustInit(archiver.Init)
 
 	highlight.NewContext()
