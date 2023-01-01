@@ -119,6 +119,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	log.Info("Log path: %s", setting.LogRootPath)
 	log.Info("Configuration file: %s", setting.CustomConf)
 	log.Info("Run Mode: %s", util.ToTitleCase(setting.RunMode))
+	log.Info("Gitea v%s%s", setting.AppVer, setting.AppBuiltWith)
 
 	// Setup i18n
 	translation.InitLocales(ctx)
