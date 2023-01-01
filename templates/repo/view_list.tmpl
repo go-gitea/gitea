@@ -6,7 +6,7 @@
 					<div class="ui active tiny slow centered inline">…</div>
 				{{else}}
 					{{if .LatestCommitUser}}
-						{{avatar .LatestCommitUser 24}}
+						{{avatar $.Context .LatestCommitUser 24}}
 						{{if .LatestCommitUser.FullName}}
 							<a class="muted" href="{{.LatestCommitUser.HomeLink}}"><strong>{{.LatestCommitUser.FullName}}</strong></a>
 						{{else}}

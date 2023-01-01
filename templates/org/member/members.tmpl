@@ -8,7 +8,7 @@
 			{{range .Members}}
 				<div class="item ui grid">
 					<div class="ui four wide column" style="display: flex;">
-						{{avatar . 48}}
+						{{avatar $.Context . 48}}
 						<div>
 							<div class="meta"><a href="{{.HomeLink}}">{{.Name}}</a></div>
 							<div class="meta">{{.FullName}}</div>

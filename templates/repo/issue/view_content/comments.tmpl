@@ -18,7 +18,7 @@
 				<span class="timeline-avatar"><img src="{{AppSubUrl}}/assets/img/avatar_default.png"></span>
 			{{else}}
 				<a class="timeline-avatar"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
-					{{avatar .Poster}}
+					{{avatar $.Context .Poster}}
 				</a>
 			{{end}}
 				<div class="content comment-container">
@@ -38,7 +38,7 @@
 							{{else}}
 								{{if gt .Poster.ID 0}}
 									<a class="inline-timeline-avatar" href="{{.Poster.HomeLink}}">
-										{{avatar .Poster}}
+										{{avatar $.Context .Poster}}
 									</a>
 								{{end}}
 								<span class="text grey">
@@ -369,7 +369,7 @@
 					{{if .OriginalAuthor}}
 					{{else}}
 					<a class="timeline-avatar"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
-						{{avatar .Poster}}
+						{{avatar $.Context .Poster}}
 					</a>
 					{{end}}
 					<span class="badge{{if eq .Review.Type 1}} bg-green text-white{{else if eq .Review.Type 3}} bg-red text-white{{end}}">{{svg (printf "octicon-%s" .Review.Type.Icon)}}</span>
@@ -529,7 +529,7 @@
 															<div class="comment-header-left df ac">
 																{{if not .OriginalAuthor}}
 																	<a class="avatar">
-																		{{avatar .Poster}}
+																		{{avatar $.Context .Poster}}
 																	</a>
 																{{end}}
 																<span class="text grey">

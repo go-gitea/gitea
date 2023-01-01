@@ -10,7 +10,7 @@
 						<div class="review-item-left">
 							{{if .User}}
 								<a href="{{.User.HomeLink}}">
-									{{avatar .User}}
+									{{avatar $.Context .User}}
 								</a>
 							{{end}}
 							<span>

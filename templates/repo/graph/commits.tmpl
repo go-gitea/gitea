@@ -64,7 +64,7 @@
 							{{if $commit.User.FullName}}
 								{{$userName = $commit.User.FullName}}
 							{{end}}
-							{{avatar $commit.User}}
+							{{avatar $.Context $commit.User}}
 							<a href="{{$commit.User.HomeLink}}">{{$userName}}</a>
 						{{else}}
 							{{avatarByEmail $commit.Commit.Author.Email $userName}}

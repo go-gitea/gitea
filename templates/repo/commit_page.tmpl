@@ -146,7 +146,7 @@
 		<div class="ui attached segment df ac sb py-2 commit-header-row fw {{$class}}">
 				<div class="df ac author">
 					{{if .Author}}
-						{{avatar .Author 28 "mr-3"}}
+						{{avatar $.Context .Author 28 "mr-3"}}
 						{{if .Author.FullName}}
 							<a href="{{.Author.HomeLink}}"><strong>{{.Author.FullName}}</strong></a>
 						{{else}}
@@ -160,7 +160,7 @@
 					{{if or (ne .Commit.Committer.Name .Commit.Author.Name) (ne .Commit.Committer.Email .Commit.Author.Email)}}
 						<span class="text grey mx-3">{{.locale.Tr "repo.diff.committed_by"}}</span>
 						{{if ne .Verification.CommittingUser.ID 0}}
-							{{avatar .Verification.CommittingUser 28 "mx-3"}}
+							{{avatar $.Context .Verification.CommittingUser 28 "mx-3"}}
 							<a href="{{.Verification.CommittingUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong></a>
 						{{else}}
 							{{avatarByEmail .Commit.Committer.Email .Commit.Committer.Name 28 "mr-3"}}
@@ -200,7 +200,7 @@
 							{{else}}
 								<span class="ui text mr-3">{{.locale.Tr "repo.commits.signed_by_untrusted_user_unmatched"}}:</span>
 							{{end}}
-							{{avatar .Verification.SigningUser 28 "mr-3"}}
+							{{avatar $.Context .Verification.SigningUser 28 "mr-3"}}
 							<a href="{{.Verification.SigningUser.HomeLink}}"><strong>{{.Verification.SigningUser.GetDisplayName}}</strong></a>
 						{{else}}
 							<span title="{{.locale.Tr "gpg.default_key"}}">{{svg "gitea-lock-cog" 16 "mr-3"}}</span>

@@ -217,7 +217,7 @@
 							<a class="item muted" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
 								<span class="octicon-check invisible">{{svg "octicon-check"}}</span>
 								<span class="text">
-									{{avatar . 28 "mr-3"}}{{.GetDisplayName}}
+									{{avatar $.Context . 28 "mr-3"}}{{.GetDisplayName}}
 								</span>
 							</a>
 						{{end}}
@@ -229,7 +229,7 @@
 					</span>
 					{{range .Assignees}}
 						<a class="hide item p-2 muted" id="assignee_{{.ID}}" href="{{$.RepoLink}}/issues?assignee={{.ID}}">
-							{{avatar . 28 "mr-3 vm"}}{{.GetDisplayName}}
+							{{avatar $.Context . 28 "mr-3 vm"}}{{.GetDisplayName}}
 						</a>
 					{{end}}
 				</div>

@@ -8,7 +8,7 @@
 		<div class="ui list">
 			{{range .Forks}}
 				<div class="item">
-					{{avatar .Owner}}
+					{{avatar $.Context .Owner}}
 					<div class="link">
 						<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
 						/

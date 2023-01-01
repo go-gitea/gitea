@@ -36,7 +36,7 @@
 										<div class="menu">
 											{{range .Users}}
 												<div class="item" data-value="{{.ID}}">
-													{{avatar . 28 "mini"}}
+													{{avatar $.Context . 28 "mini"}}
 													{{.GetDisplayName}}
 												</div>
 											{{end}}
@@ -94,7 +94,7 @@
 												{{$userIDs := .AllowlistUserIDs}}
 												{{range $.Users}}
 													{{if contain $userIDs .ID}}
-														<a class="ui basic label" href="{{.HomeLink}}">{{avatar . 26}} {{.GetDisplayName}}</a>
+														<a class="ui basic label" href="{{.HomeLink}}">{{avatar $.Context . 26}} {{.GetDisplayName}}</a>
 													{{end}}
 												{{end}}
 												{{if $.Owner.IsOrganization}}
