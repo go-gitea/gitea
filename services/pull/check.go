@@ -318,8 +318,12 @@ func handle(data ...queue.Data) []queue.Data {
 	return nil
 }
 
+func getPullWorkingLockKey(prID int64) string {
+	return fmt.Sprintf("pull_working_%d", prID)
+}
+
 func testPR(id int64) {
-	lock := sync.GetLockService().GetLock(fmt.Sprintf("pull_working_%d", id))
+	lock := sync.GetLockService().GetLock(getPullWorkingLockKey(id))
 	if err := lock.Lock(); err != nil {
 		log.Error("lock.Lock(): %v", err)
 		return
