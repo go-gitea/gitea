@@ -32,8 +32,6 @@ import (
 	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
 
-	_ "code.gitea.io/gitea/services/webhooknotifier"
-
 	"github.com/stretchr/testify/assert"
 )
 

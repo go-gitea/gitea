@@ -14,7 +14,6 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
-	"code.gitea.io/gitea/services/convert"
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
@@ -99,7 +98,7 @@ func AddRepoHook(ctx *context.APIContext, form *api.CreateHookOption) {
 // toAPIHook converts the hook to its API representation.
 // If there is an error, write to `ctx` accordingly. Return (hook, ok)
 func toAPIHook(ctx *context.APIContext, repoLink string, hook *webhook.Webhook) (*api.Hook, bool) {
-	apiHook, err := convert.ToHook(repoLink, hook)
+	apiHook, err := webhook_service.ToHook(repoLink, hook)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ToHook", err)
 		return nil, false
