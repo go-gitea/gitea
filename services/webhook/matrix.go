@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 )
 
 const matrixPayloadSizeLimit = 1024 * 64
@@ -173,7 +174,7 @@ func (m *MatrixPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, e
 }
 
 // Review implements PayloadConvertor Review method
-func (m *MatrixPayload) Review(p *api.PullRequestPayload, event webhook_model.HookEventType) (api.Payloader, error) {
+func (m *MatrixPayload) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (api.Payloader, error) {
 	senderLink := MatrixLinkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName)
 	title := fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title)
 	titleLink := MatrixLinkFormatter(p.PullRequest.URL, title)
@@ -210,7 +211,7 @@ func (m *MatrixPayload) Repository(p *api.RepositoryPayload) (api.Payloader, err
 }
 
 // GetMatrixPayload converts a Matrix webhook into a MatrixPayload
-func GetMatrixPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
+func GetMatrixPayload(p api.Payloader, event webhook_module.HookEventType, meta string) (api.Payloader, error) {
 	s := new(MatrixPayload)
 
 	matrix := &MatrixMeta{}
