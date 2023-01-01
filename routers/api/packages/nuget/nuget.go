@@ -411,7 +411,11 @@ func UploadSymbolPackage(ctx *context.Context) {
 
 	pdbs, err := nuget_module.ExtractPortablePdb(buf, buf.Size())
 	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
+		if errors.Is(err, util.ErrInvalidArgument) {
+			apiError(ctx, http.StatusBadRequest, err)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
 		return
 	}
 	defer pdbs.Close()
@@ -507,7 +511,7 @@ func processUploadedFile(ctx *context.Context, expectedType nuget_module.Package
 
 	np, err := nuget_module.ParsePackageMetaData(buf, buf.Size())
 	if err != nil {
-		if err == nuget_module.ErrMissingNuspecFile || err == nuget_module.ErrNuspecFileTooLarge || err == nuget_module.ErrNuspecInvalidID || err == nuget_module.ErrNuspecInvalidVersion {
+		if errors.Is(err, util.ErrInvalidArgument) {
 			apiError(ctx, http.StatusBadRequest, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
