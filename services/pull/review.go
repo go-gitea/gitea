@@ -17,10 +17,10 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	issue_service "code.gitea.io/gitea/services/issue"
+	"code.gitea.io/gitea/services/notify"
 )
 
 // CreateCodeComment creates a comment on the code line
@@ -67,7 +67,7 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 			return nil, err
 		}
 
-		notification.NotifyCreateIssueComment(ctx, doer, issue.Repo, issue, comment, mentions)
+		notify.NotifyCreateIssueComment(ctx, doer, issue.Repo, issue, comment, mentions)
 
 		return comment, nil
 	}
@@ -254,7 +254,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 		return nil, nil, err
 	}
 
-	notification.NotifyPullRequestReview(ctx, pr, review, comm, mentions)
+	notify.NotifyPullRequestReview(ctx, pr, review, comm, mentions)
 
 	for _, lines := range review.CodeComments {
 		for _, comments := range lines {
@@ -263,7 +263,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 				if err != nil {
 					return nil, nil, err
 				}
-				notification.NotifyPullRequestCodeComment(ctx, pr, codeComment, mentions)
+				notify.NotifyPullRequestCodeComment(ctx, pr, codeComment, mentions)
 			}
 		}
 	}
@@ -339,7 +339,7 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 	comment.Poster = doer
 	comment.Issue = review.Issue
 
-	notification.NotifyPullReviewDismiss(ctx, doer, review, comment)
+	notify.NotifyPullReviewDismiss(ctx, doer, review, comment)
 
 	return comment, err
 }

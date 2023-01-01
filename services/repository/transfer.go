@@ -15,9 +15,9 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/sync"
+	"code.gitea.io/gitea/services/notify"
 )
 
 // repoWorkingPool represents a working pool to order the parallel changes to the same repository
@@ -55,7 +55,7 @@ func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, rep
 		}
 	}
 
-	notification.NotifyTransferRepository(ctx, doer, repo, oldOwner.Name)
+	notify.NotifyTransferRepository(ctx, doer, repo, oldOwner.Name)
 
 	return nil
 }
@@ -78,7 +78,7 @@ func ChangeRepositoryName(doer *user_model.User, repo *repo_model.Repository, ne
 	repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 
 	repo.Name = newRepoName
-	notification.NotifyRenameRepository(db.DefaultContext, doer, repo, oldRepoName)
+	notify.NotifyRenameRepository(db.DefaultContext, doer, repo, oldRepoName)
 
 	return nil
 }
@@ -127,7 +127,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 	}
 
 	// notify users who are able to accept / reject transfer
-	notification.NotifyRepoPendingTransfer(ctx, doer, newOwner, repo)
+	notify.NotifyRepoPendingTransfer(ctx, doer, newOwner, repo)
 
 	return nil
 }

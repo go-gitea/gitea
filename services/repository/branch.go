@@ -16,8 +16,8 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -141,8 +141,8 @@ func RenameBranch(repo *repo_model.Repository, doer *user_model.User, gitRepo *g
 		return "", err
 	}
 
-	notification.NotifyDeleteRef(db.DefaultContext, doer, repo, "branch", git.BranchPrefix+from)
-	notification.NotifyCreateRef(db.DefaultContext, doer, repo, "branch", git.BranchPrefix+to, refID)
+	notify.NotifyDeleteRef(db.DefaultContext, doer, repo, "branch", git.BranchPrefix+from)
+	notify.NotifyCreateRef(db.DefaultContext, doer, repo, "branch", git.BranchPrefix+to, refID)
 
 	return "", nil
 }

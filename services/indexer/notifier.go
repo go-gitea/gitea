@@ -14,24 +14,24 @@ import (
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	stats_indexer "code.gitea.io/gitea/modules/indexer/stats"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/notify"
 )
 
 type indexerNotifier struct {
-	notification.NullNotifier
+	notify.NullNotifier
 }
 
-var _ notification.Notifier = &indexerNotifier{}
+var _ notify.Notifier = &indexerNotifier{}
 
 // NewNotifier create a new indexerNotifier notifier
-func NewNotifier() notification.Notifier {
+func NewNotifier() notify.Notifier {
 	return &indexerNotifier{}
 }
 
 func init() {
-	notification.RegisterNotifier(NewNotifier())
+	notify.RegisterNotifier(NewNotifier())
 }
 
 func (r *indexerNotifier) NotifyCreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,

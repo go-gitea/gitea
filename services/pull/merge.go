@@ -29,13 +29,13 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/references"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	issue_service "code.gitea.io/gitea/services/issue"
+	"code.gitea.io/gitea/services/notify"
 )
 
 // GetDefaultMergeMessage returns default message used when merging pull request
@@ -201,9 +201,9 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	}
 
 	if wasAutoMerged {
-		notification.NotifyAutoMergePullRequest(hammerCtx, doer, pr)
+		notify.NotifyAutoMergePullRequest(hammerCtx, doer, pr)
 	} else {
-		notification.NotifyMergePullRequest(hammerCtx, doer, pr)
+		notify.NotifyMergePullRequest(hammerCtx, doer, pr)
 	}
 
 	// Reset cached commit count
@@ -885,7 +885,7 @@ func MergedManually(pr *issues_model.PullRequest, doer *user_model.User, baseGit
 		return err
 	}
 
-	notification.NotifyMergePullRequest(baseGitRepo.Ctx, doer, pr)
+	notify.NotifyMergePullRequest(baseGitRepo.Ctx, doer, pr)
 	log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commitID)
 	return nil
 }

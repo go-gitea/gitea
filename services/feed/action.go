@@ -15,24 +15,24 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/notify"
 )
 
 type actionNotifier struct {
-	notification.NullNotifier
+	notify.NullNotifier
 }
 
-var _ notification.Notifier = &actionNotifier{}
+var _ notify.Notifier = &actionNotifier{}
 
 // NewNotifier create a new actionNotifier notifier
-func NewNotifier() notification.Notifier {
+func NewNotifier() notify.Notifier {
 	return &actionNotifier{}
 }
 
 func init() {
-	notification.RegisterNotifier(NewNotifier())
+	notify.RegisterNotifier(NewNotifier())
 }
 
 func (a *actionNotifier) NotifyNewIssue(ctx context.Context, issue *issues_model.Issue, mentions []*user_model.User) {

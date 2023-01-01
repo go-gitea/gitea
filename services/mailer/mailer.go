@@ -21,11 +21,11 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/services/notify"
 
 	"github.com/jaytaylor/html2text"
 	"gopkg.in/gomail.v2"
@@ -358,7 +358,7 @@ func NewContext(ctx context.Context) {
 	}
 
 	if setting.Service.EnableNotifyMail {
-		notification.RegisterNotifier(NewNotifier())
+		notify.RegisterNotifier(NewNotifier())
 	}
 
 	switch setting.MailService.Protocol {

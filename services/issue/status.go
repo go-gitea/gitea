@@ -10,7 +10,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/services/notify"
 )
 
 // ChangeStatus changes issue status to open or closed.
@@ -37,7 +37,7 @@ func changeStatusCtx(ctx context.Context, issue *issues_model.Issue, doer *user_
 		}
 	}
 
-	notification.NotifyIssueChangeStatus(ctx, doer, issue, comment, closed)
+	notify.NotifyIssueChangeStatus(ctx, doer, issue, comment, closed)
 
 	return nil
 }

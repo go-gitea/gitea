@@ -24,12 +24,12 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/process"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
 	issue_service "code.gitea.io/gitea/services/issue"
+	"code.gitea.io/gitea/services/notify"
 )
 
 // TODO: use clustered lock (unique queue? or *abuse* cache)
@@ -81,12 +81,12 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 		return err
 	}
 
-	notification.NotifyNewPullRequest(prCtx, pr, mentions)
+	notify.NotifyNewPullRequest(prCtx, pr, mentions)
 	if len(pull.Labels) > 0 {
-		notification.NotifyIssueChangeLabels(prCtx, pull.Poster, pull, pull.Labels, nil)
+		notify.NotifyIssueChangeLabels(prCtx, pull.Poster, pull, pull.Labels, nil)
 	}
 	if pull.Milestone != nil {
-		notification.NotifyIssueChangeMilestone(prCtx, pull.Poster, pull, 0)
+		notify.NotifyIssueChangeMilestone(prCtx, pull.Poster, pull, 0)
 	}
 
 	// add first push codes comment
@@ -300,7 +300,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 					}
 
 					pr.Issue.PullRequest = pr
-					notification.NotifyPullRequestSynchronized(ctx, doer, pr)
+					notify.NotifyPullRequestSynchronized(ctx, doer, pr)
 				}
 			}
 		}
@@ -319,7 +319,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 			AddToTaskQueue(pr)
 			comment, err := CreatePushPullComment(ctx, doer, pr, oldCommitID, newCommitID)
 			if err == nil && comment != nil {
-				notification.NotifyPullRequestPushCommits(ctx, doer, pr, comment)
+				notify.NotifyPullRequestPushCommits(ctx, doer, pr, comment)
 			}
 		}
 

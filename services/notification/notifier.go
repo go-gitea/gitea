@@ -14,13 +14,13 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/queue"
+	"code.gitea.io/gitea/services/notify"
 )
 
 type (
 	notificationService struct {
-		notification.NullNotifier
+		notify.NullNotifier
 		issueQueue queue.Queue
 	}
 
@@ -32,17 +32,17 @@ type (
 	}
 )
 
-var _ notification.Notifier = &notificationService{}
+var _ notify.Notifier = &notificationService{}
 
 // NewNotifier create a new notificationService notifier
-func NewNotifier() notification.Notifier {
+func NewNotifier() notify.Notifier {
 	ns := &notificationService{}
 	ns.issueQueue = queue.CreateQueue("notification-service", ns.handle, issueNotificationOpts{})
 	return ns
 }
 
 func init() {
-	notification.RegisterNotifier(NewNotifier())
+	notify.RegisterNotifier(NewNotifier())
 }
 
 func (ns *notificationService) handle(data ...queue.Data) []queue.Data {

@@ -15,8 +15,8 @@ import (
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/services/notify"
 )
 
 // NewIssue creates new issue with labels for repository.
@@ -36,12 +36,12 @@ func NewIssue(repo *repo_model.Repository, issue *issues_model.Issue, labelIDs [
 		return err
 	}
 
-	notification.NotifyNewIssue(db.DefaultContext, issue, mentions)
+	notify.NotifyNewIssue(db.DefaultContext, issue, mentions)
 	if len(issue.Labels) > 0 {
-		notification.NotifyIssueChangeLabels(db.DefaultContext, issue.Poster, issue, issue.Labels, nil)
+		notify.NotifyIssueChangeLabels(db.DefaultContext, issue.Poster, issue, issue.Labels, nil)
 	}
 	if issue.Milestone != nil {
-		notification.NotifyIssueChangeMilestone(db.DefaultContext, issue.Poster, issue, 0)
+		notify.NotifyIssueChangeMilestone(db.DefaultContext, issue.Poster, issue, 0)
 	}
 
 	return nil
@@ -56,7 +56,7 @@ func ChangeTitle(issue *issues_model.Issue, doer *user_model.User, title string)
 		return
 	}
 
-	notification.NotifyIssueChangeTitle(db.DefaultContext, doer, issue, oldTitle)
+	notify.NotifyIssueChangeTitle(db.DefaultContext, doer, issue, oldTitle)
 
 	return nil
 }
@@ -70,7 +70,7 @@ func ChangeIssueRef(issue *issues_model.Issue, doer *user_model.User, ref string
 		return err
 	}
 
-	notification.NotifyIssueChangeRef(db.DefaultContext, doer, issue, oldRef)
+	notify.NotifyIssueChangeRef(db.DefaultContext, doer, issue, oldRef)
 
 	return nil
 }
@@ -152,7 +152,7 @@ func DeleteIssue(doer *user_model.User, gitRepo *git.Repository, issue *issues_m
 		}
 	}
 
-	notification.NotifyDeleteIssue(gitRepo.Ctx, doer, issue)
+	notify.NotifyDeleteIssue(gitRepo.Ctx, doer, issue)
 
 	return nil
 }

@@ -18,10 +18,10 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/notify"
 	container_service "code.gitea.io/gitea/services/packages/container"
 )
 
@@ -113,7 +113,7 @@ func createPackageAndAddFile(pvci *PackageCreationInfo, pfci *PackageFileCreatio
 			return nil, nil, err
 		}
 
-		notification.NotifyPackageCreate(db.DefaultContext, pvci.Creator, pd)
+		notify.NotifyPackageCreate(db.DefaultContext, pvci.Creator, pd)
 	}
 
 	return pv, pf, nil
@@ -409,7 +409,7 @@ func RemovePackageVersion(doer *user_model.User, pv *packages_model.PackageVersi
 		return err
 	}
 
-	notification.NotifyPackageDelete(db.DefaultContext, doer, pd)
+	notify.NotifyPackageDelete(db.DefaultContext, doer, pd)
 
 	return nil
 }

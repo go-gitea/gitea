@@ -17,9 +17,9 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -31,7 +31,7 @@ func CreateRepository(doer, owner *user_model.User, opts repo_module.CreateRepoO
 		return nil, err
 	}
 
-	notification.NotifyCreateRepository(db.DefaultContext, doer, owner, repo)
+	notify_service.NotifyCreateRepository(db.DefaultContext, doer, owner, repo)
 
 	return repo, nil
 }
@@ -44,7 +44,7 @@ func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_mod
 
 	if notify {
 		// If the repo itself has webhooks, we need to trigger them before deleting it...
-		notification.NotifyDeleteRepository(ctx, doer, repo)
+		notify_service.NotifyDeleteRepository(ctx, doer, repo)
 	}
 
 	if err := models.DeleteRepository(doer, repo.OwnerID, repo.ID); err != nil {

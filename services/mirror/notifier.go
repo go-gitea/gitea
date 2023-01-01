@@ -10,23 +10,23 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	mirror_module "code.gitea.io/gitea/modules/mirror"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/services/notify"
 )
 
 type mirrorNotifier struct {
-	notification.NullNotifier
+	notify.NullNotifier
 }
 
-var _ notification.Notifier = &mirrorNotifier{}
+var _ notify.Notifier = &mirrorNotifier{}
 
 // NewNotifier create a new mirrorNotifier notifier
-func NewNotifier() notification.Notifier {
+func NewNotifier() notify.Notifier {
 	return &mirrorNotifier{}
 }
 
 func init() {
-	notification.RegisterNotifier(NewNotifier())
+	notify.RegisterNotifier(NewNotifier())
 }
 
 func (m *mirrorNotifier) NotifyPushCommits(ctx context.Context, _ *user_model.User, repo *repo_model.Repository, _ *repository.PushUpdateOptions, _ *repository.PushCommits) {

@@ -4,7 +4,6 @@
 package feed
 
 import (
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -16,12 +15,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
-
-func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", "..", ".."),
-	})
-}
 
 func TestRenameRepoAction(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
