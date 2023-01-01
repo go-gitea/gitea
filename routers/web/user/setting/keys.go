@@ -99,14 +99,18 @@ func KeysPost(ctx *context.Context) {
 				loadKeysData(ctx)
 				ctx.Data["Err_Content"] = true
 				ctx.Data["Err_Signature"] = true
-				ctx.Data["KeyID"] = err.(asymkey_model.ErrGPGInvalidTokenSignature).ID
+				keyID := err.(asymkey_model.ErrGPGInvalidTokenSignature).ID
+				ctx.Data["KeyID"] = keyID
+				ctx.Data["PaddedKeyID"] = asymkey_model.PaddedKeyID(keyID)
 				ctx.RenderWithErr(ctx.Tr("settings.gpg_invalid_token_signature"), tplSettingsKeys, &form)
 			case asymkey_model.IsErrGPGNoEmailFound(err):
 				loadKeysData(ctx)
 
 				ctx.Data["Err_Content"] = true
 				ctx.Data["Err_Signature"] = true
-				ctx.Data["KeyID"] = err.(asymkey_model.ErrGPGNoEmailFound).ID
+				keyID := err.(asymkey_model.ErrGPGNoEmailFound).ID
+				ctx.Data["KeyID"] = keyID
+				ctx.Data["PaddedKeyID"] = asymkey_model.PaddedKeyID(keyID)
 				ctx.RenderWithErr(ctx.Tr("settings.gpg_no_key_email_found"), tplSettingsKeys, &form)
 			default:
 				ctx.ServerError("AddPublicKey", err)
@@ -138,7 +142,9 @@ func KeysPost(ctx *context.Context) {
 				loadKeysData(ctx)
 				ctx.Data["VerifyingID"] = form.KeyID
 				ctx.Data["Err_Signature"] = true
-				ctx.Data["KeyID"] = err.(asymkey_model.ErrGPGInvalidTokenSignature).ID
+				keyID := err.(asymkey_model.ErrGPGInvalidTokenSignature).ID
+				ctx.Data["KeyID"] = keyID
+				ctx.Data["PaddedKeyID"] = asymkey_model.PaddedKeyID(keyID)
 				ctx.RenderWithErr(ctx.Tr("settings.gpg_invalid_token_signature"), tplSettingsKeys, &form)
 			default:
 				ctx.ServerError("VerifyGPG", err)
