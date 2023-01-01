@@ -5,7 +5,6 @@ package project
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -176,7 +175,7 @@ func NewProject(p *Project) error {
 	}
 
 	if !IsTypeValid(p.Type) {
-		return errors.New("project type is not valid")
+		return util.NewInvalidArgumentErrorf("project type is not valid")
 	}
 
 	ctx, committer, err := db.TxContext(db.DefaultContext)

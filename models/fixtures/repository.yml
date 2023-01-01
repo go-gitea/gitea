@@ -1585,3 +1585,14 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+
+-
+  id: 54
+  owner_id: 2
+  owner_name: user2
+  lower_name: lfs
+  name: lfs
+  is_empty: false
+  is_archived: false
+  is_private: true
+  status: 0

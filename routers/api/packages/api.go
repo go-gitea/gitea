@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/packages/composer"
@@ -58,7 +59,13 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 
 	authGroup := auth.NewGroup(authMethods...)
 	r.Use(func(ctx *context.Context) {
-		ctx.Doer = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		var err error
+		ctx.Doer, err = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		if err != nil {
+			log.Error("Verify: %v", err)
+			ctx.Error(http.StatusUnauthorized, "authGroup.Verify")
+			return
+		}
 		ctx.IsSigned = ctx.Doer != nil
 	})
 
@@ -321,7 +328,13 @@ func ContainerRoutes(ctx gocontext.Context) *web.Route {
 
 	authGroup := auth.NewGroup(authMethods...)
 	r.Use(func(ctx *context.Context) {
-		ctx.Doer = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		var err error
+		ctx.Doer, err = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		if err != nil {
+			log.Error("Failed to verify user: %v", err)
+			ctx.Error(http.StatusUnauthorized, "Verify")
+			return
+		}
 		ctx.IsSigned = ctx.Doer != nil
 	})
 
