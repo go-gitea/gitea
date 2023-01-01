@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 )
 
 type (
@@ -20,7 +21,7 @@ type (
 		} `json:"repository"`
 	}
 
-	// PackagistMeta contains the meta data for the webhook
+	// PackagistMeta contains the metadata for the webhook
 	PackagistMeta struct {
 		Username   string `json:"username"`
 		APIToken   string `json:"api_token"`
@@ -49,62 +50,62 @@ func (f *PackagistPayload) JSONPayload() ([]byte, error) {
 var _ PayloadConvertor = &PackagistPayload{}
 
 // Create implements PayloadConvertor Create method
-func (f *PackagistPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
+func (f *PackagistPayload) Create(_ *api.CreatePayload) (api.Payloader, error) {
 	return nil, nil
 }
 
 // Delete implements PayloadConvertor Delete method
-func (f *PackagistPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
+func (f *PackagistPayload) Delete(_ *api.DeletePayload) (api.Payloader, error) {
 	return nil, nil
 }
 
 // Fork implements PayloadConvertor Fork method
-func (f *PackagistPayload) Fork(p *api.ForkPayload) (api.Payloader, error) {
+func (f *PackagistPayload) Fork(_ *api.ForkPayload) (api.Payloader, error) {
 	return nil, nil
 }
 
 // Push implements PayloadConvertor Push method
-func (f *PackagistPayload) Push(p *api.PushPayload) (api.Payloader, error) {
+func (f *PackagistPayload) Push(_ *api.PushPayload) (api.Payloader, error) {
 	return f, nil
 }
 
 // Issue implements PayloadConvertor Issue method
-func (f *PackagistPayload) Issue(p *api.IssuePayload) (api.Payloader, error) {
+func (f *PackagistPayload) Issue(_ *api.IssuePayload) (api.Payloader, error) {
 	return nil, nil
 }
 
 // IssueComment implements PayloadConvertor IssueComment method
-func (f *PackagistPayload) IssueComment(p *api.IssueCommentPayload) (api.Payloader, error) {
+func (f *PackagistPayload) IssueComment(_ *api.IssueCommentPayload) (api.Payloader, error) {
 	return nil, nil
 }
 
 // PullRequest implements PayloadConvertor PullRequest method
-func (f *PackagistPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, error) {
+func (f *PackagistPayload) PullRequest(_ *api.PullRequestPayload) (api.Payloader, error) {
 	return nil, nil
 }
 
 // Review implements PayloadConvertor Review method
-func (f *PackagistPayload) Review(p *api.PullRequestPayload, event webhook_model.HookEventType) (api.Payloader, error) {
+func (f *PackagistPayload) Review(_ *api.PullRequestPayload, _ webhook_module.HookEventType) (api.Payloader, error) {
 	return nil, nil
 }
 
 // Repository implements PayloadConvertor Repository method
-func (f *PackagistPayload) Repository(p *api.RepositoryPayload) (api.Payloader, error) {
+func (f *PackagistPayload) Repository(_ *api.RepositoryPayload) (api.Payloader, error) {
 	return nil, nil
 }
 
 // Wiki implements PayloadConvertor Wiki method
-func (f *PackagistPayload) Wiki(p *api.WikiPayload) (api.Payloader, error) {
+func (f *PackagistPayload) Wiki(_ *api.WikiPayload) (api.Payloader, error) {
 	return nil, nil
 }
 
 // Release implements PayloadConvertor Release method
-func (f *PackagistPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
+func (f *PackagistPayload) Release(_ *api.ReleasePayload) (api.Payloader, error) {
 	return nil, nil
 }
 
 // GetPackagistPayload converts a packagist webhook into a PackagistPayload
-func GetPackagistPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
+func GetPackagistPayload(p api.Payloader, event webhook_module.HookEventType, meta string) (api.Payloader, error) {
 	s := new(PackagistPayload)
 
 	packagist := &PackagistMeta{}
