@@ -268,7 +268,7 @@ func Init() error {
 		enableFederatedAvatar = false
 	}
 
-	if disableGravatar || !enableFederatedAvatar {
+	if enableFederatedAvatar || !disableGravatar {
 		var err error
 		GravatarSourceURL, err = url.Parse(setting.GravatarSource)
 		if err != nil {
