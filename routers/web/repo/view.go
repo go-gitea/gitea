@@ -272,7 +272,7 @@ func getFileReader(repoID int64, blob *git.Blob) ([]byte, io.ReadCloser, *fileIn
 	}
 
 	meta, err := git_model.GetLFSMetaObjectByOid(repoID, pointer.Oid)
-	if err != git_model.ErrLFSObjectNotExist { // fallback to plain file
+	if err != nil && err != git_model.ErrLFSObjectNotExist { // fallback to plain file
 		return buf, dataRc, &fileInfo{isTextFile, false, blob.Size(), nil, st}, nil
 	}
 

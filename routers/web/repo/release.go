@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/web/feed"
 	"code.gitea.io/gitea/services/forms"
 	releaseservice "code.gitea.io/gitea/services/release"
 )
@@ -197,6 +198,30 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplReleases)
+}
+
+// ReleasesFeedRSS get feeds for releases in RSS format
+func ReleasesFeedRSS(ctx *context.Context) {
+	releasesOrTagsFeed(ctx, true, "rss")
+}
+
+// TagsListFeedRSS get feeds for tags in RSS format
+func TagsListFeedRSS(ctx *context.Context) {
+	releasesOrTagsFeed(ctx, false, "rss")
+}
+
+// ReleasesFeedAtom get feeds for releases in Atom format
+func ReleasesFeedAtom(ctx *context.Context) {
+	releasesOrTagsFeed(ctx, true, "atom")
+}
+
+// TagsListFeedAtom get feeds for tags in RSS format
+func TagsListFeedAtom(ctx *context.Context) {
+	releasesOrTagsFeed(ctx, false, "atom")
+}
+
+func releasesOrTagsFeed(ctx *context.Context, isReleasesOnly bool, formatType string) {
+	feed.ShowReleaseFeed(ctx, ctx.Repo.Repository, isReleasesOnly, formatType)
 }
 
 // SingleRelease renders a single release's page

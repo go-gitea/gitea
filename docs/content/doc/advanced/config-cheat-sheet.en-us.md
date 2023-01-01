@@ -112,6 +112,7 @@ In addition there is _`StaticRootPath`_ which can be set as a built-in at build 
 - `ALLOW_ADOPTION_OF_UNADOPTED_REPOSITORIES`: **false**: Allow non-admin users to adopt unadopted repositories
 - `ALLOW_DELETION_OF_UNADOPTED_REPOSITORIES`: **false**: Allow non-admin users to delete unadopted repositories
 - `DISABLE_DOWNLOAD_SOURCE_ARCHIVES`: **false**: Don't allow download source archive files from UI
+- `ALLOW_FORK_WITHOUT_MAXIMUM_LIMIT`: **true**: Allow fork repositories without maximum number limit
 
 ### Repository - Editor (`repository.editor`)
 
@@ -134,6 +135,7 @@ In addition there is _`StaticRootPath`_ which can be set as a built-in at build 
 - `DEFAULT_MERGE_MESSAGE_OFFICIAL_APPROVERS_ONLY`: **true**: In default merge messages only include approvers who are officially allowed to review.
 - `POPULATE_SQUASH_COMMENT_WITH_COMMIT_MESSAGES`: **false**: In default squash-merge messages include the commit message of all commits comprising the pull request.
 - `ADD_CO_COMMITTER_TRAILERS`: **true**: Add co-authored-by and co-committed-by trailers to merge commit messages if committer does not match author.
+- `TEST_CONFLICTING_PATCHES_WITH_GIT_APPLY`: **false**: PR patches are tested using a three-way merge method to discover if there are conflicts. If this setting is set to **true**, conflicting patches will be retested using `git apply` - This was the previous behaviour in 1.18 (and earlier) but is somewhat inefficient. Please report if you find that this setting is required.
 
 ### Repository - Issue (`repository.issue`)
 
@@ -237,6 +239,10 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `REPO_PAGING_NUM`: **50**: Number of repos that are shown in one page.
 - `NOTICE_PAGING_NUM`: **25**: Number of notices that are shown in one page.
 - `ORG_PAGING_NUM`: **50**: Number of organizations that are shown in one page.
+
+### UI - User (`ui.user`)
+
+- `REPO_PAGING_NUM`: **15**: Number of repos that are shown in one page.
 
 ### UI - Metadata (`ui.meta`)
 
@@ -1144,7 +1150,7 @@ in this mapping or the filetype using heuristics.
 ## Time (`time`)
 
 - `FORMAT`: Time format to display on UI. i.e. RFC1123 or 2006-01-02 15:04:05
-- `DEFAULT_UI_LOCATION`: Default location of time on the UI, so that we can display correct user's time on UI. i.e. Shanghai/Asia
+- `DEFAULT_UI_LOCATION`: Default location of time on the UI, so that we can display correct user's time on UI. i.e. Asia/Shanghai
 
 ## Task (`task`)
 

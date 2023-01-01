@@ -39,10 +39,10 @@ func (h *HTTPSign) Name() string {
 // Verify extracts and validates HTTPsign from the Signature header of the request and returns
 // the corresponding user object on successful validation.
 // Returns nil if header is empty or validation fails.
-func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *user_model.User {
+func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
 	sigHead := req.Header.Get("Signature")
 	if len(sigHead) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	var (
@@ -53,14 +53,14 @@ func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataSt
 	if len(req.Header.Get("X-Ssh-Certificate")) != 0 {
 		// Handle Signature signed by SSH certificates
 		if len(setting.SSH.TrustedUserCAKeys) == 0 {
-			return nil
+			return nil, nil
 		}
 
 		publicKey, err = VerifyCert(req)
 		if err != nil {
 			log.Debug("VerifyCert on request from %s: failed: %v", req.RemoteAddr, err)
 			log.Warn("Failed authentication attempt from %s", req.RemoteAddr)
-			return nil
+			return nil, nil
 		}
 	} else {
 		// Handle Signature signed by Public Key
@@ -68,21 +68,21 @@ func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataSt
 		if err != nil {
 			log.Debug("VerifyPubKey on request from %s: failed: %v", req.RemoteAddr, err)
 			log.Warn("Failed authentication attempt from %s", req.RemoteAddr)
-			return nil
+			return nil, nil
 		}
 	}
 
 	u, err := user_model.GetUserByID(req.Context(), publicKey.OwnerID)
 	if err != nil {
 		log.Error("GetUserByID:  %v", err)
-		return nil
+		return nil, err
 	}
 
 	store.GetData()["IsApiToken"] = true
 
 	log.Trace("HTTP Sign: Logged in user %-v", u)
 
-	return u
+	return u, nil
 }
 
 func VerifyPubKey(r *http.Request) (*asymkey_model.PublicKey, error) {

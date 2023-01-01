@@ -21,15 +21,12 @@ const {pageData} = window.config;
 const LOCAL_STORAGE_KEY = 'diff_file_tree_visible';
 
 export default {
-  name: 'DiffFileTree',
   components: {DiffFileTreeItem},
-
   data: () => {
     const fileTreeIsVisible = localStorage.getItem(LOCAL_STORAGE_KEY) === 'true';
     pageData.diffFileInfo.fileTreeIsVisible = fileTreeIsVisible;
     return pageData.diffFileInfo;
   },
-
   computed: {
     fileTree() {
       const result = [];
@@ -94,7 +91,6 @@ export default {
       return result;
     }
   },
-
   mounted() {
     // ensure correct buttons when we are mounted to the dom
     this.adjustToggleButton(this.fileTreeIsVisible);
@@ -125,7 +121,7 @@ export default {
       doLoadMoreFiles(this.link, this.diffEnd, () => {
         this.isLoadingNewData = false;
       });
-    }
+    },
   },
 };
 </script>
