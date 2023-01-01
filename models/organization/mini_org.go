@@ -71,6 +71,7 @@ func GetUserOrgsList(user *user_model.User) ([]*MinimalOrg, error) {
 	for i, orgCount := range orgCounts {
 		orgCount.Organization.NumRepos = orgCount.OrgCount
 		orgs[i] = &orgCount.Organization
+		orgs[i].Type = user_model.UserTypeOrganization
 	}
 
 	return orgs, nil
