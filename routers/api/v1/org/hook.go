@@ -6,12 +6,12 @@ package org
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models/webhook"
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/convert"
+	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
 // ListHooks list an organziation's webhooks
@@ -39,18 +39,18 @@ func ListHooks(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/HookList"
 
-	opts := &webhook.ListWebhookOptions{
+	opts := &webhook_model.ListWebhookOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		OrgID:       ctx.Org.Organization.ID,
 	}
 
-	count, err := webhook.CountWebhooksByOpts(opts)
+	count, err := webhook_model.CountWebhooksByOpts(opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
 
-	orgHooks, err := webhook.ListWebhooksByOpts(ctx, opts)
+	orgHooks, err := webhook_model.ListWebhooksByOpts(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -58,7 +58,7 @@ func ListHooks(ctx *context.APIContext) {
 
 	hooks := make([]*api.Hook, len(orgHooks))
 	for i, hook := range orgHooks {
-		hooks[i], err = convert.ToHook(ctx.Org.Organization.AsUser().HomeLink(), hook)
+		hooks[i], err = webhook_service.ToHook(ctx.Org.Organization.AsUser().HomeLink(), hook)
 		if err != nil {
 			ctx.InternalServerError(err)
 			return
@@ -99,7 +99,7 @@ func GetHook(ctx *context.APIContext) {
 		return
 	}
 
-	apiHook, err := convert.ToHook(org.AsUser().HomeLink(), hook)
+	apiHook, err := webhook_service.ToHook(org.AsUser().HomeLink(), hook)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -200,8 +200,8 @@ func DeleteHook(ctx *context.APIContext) {
 
 	org := ctx.Org.Organization
 	hookID := ctx.ParamsInt64(":id")
-	if err := webhook.DeleteWebhookByOrgID(org.ID, hookID); err != nil {
-		if webhook.IsErrWebhookNotExist(err) {
+	if err := webhook_model.DeleteWebhookByOrgID(org.ID, hookID); err != nil {
+		if webhook_model.IsErrWebhookNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "DeleteWebhookByOrgID", err)
