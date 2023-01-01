@@ -188,7 +188,10 @@ func EstimateCount(ctx context.Context, bean interface{}) (int64, error) {
 	case schemas.MYSQL:
 		_, err = e.Context(ctx).SQL("SELECT table_rows FROM information_schema.tables WHERE tables.table_name = ? AND tables.table_schema = ?;", tablename, x.Dialect().URI().DBName).Get(&rows)
 	case schemas.POSTGRES:
-		_, err = e.Context(ctx).SQL("SELECT reltuples AS estimate FROM pg_class WHERE relname = ?;", tablename).Get(&rows)
+		// the table can live in multiple schemas of a postgres database
+		// See https://wiki.postgresql.org/wiki/Count_estimate
+		tablename = x.TableName(bean, true)
+		_, err = e.Context(ctx).SQL("SELECT reltuples::bigint AS estimate FROM pg_class WHERE oid = ?::regclass;", tablename).Get(&rows)
 	case schemas.MSSQL:
 		_, err = e.Context(ctx).SQL("sp_spaceused ?;", tablename).Get(&rows)
 	default:

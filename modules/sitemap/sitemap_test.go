@@ -6,7 +6,6 @@ package sitemap
 import (
 	"bytes"
 	"encoding/xml"
-	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -14,63 +13,154 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestOk(t *testing.T) {
-	testReal := func(s *Sitemap, name string, urls []URL, expected string) {
-		for _, url := range urls {
-			s.Add(url)
-		}
-		buf := &bytes.Buffer{}
-		_, err := s.WriteTo(buf)
-		assert.NoError(t, nil, err)
-		assert.Equal(t, xml.Header+"<"+name+" xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">"+expected+"</"+name+">\n", buf.String())
-	}
-	test := func(urls []URL, expected string) {
-		testReal(NewSitemap(), "urlset", urls, expected)
-		testReal(NewSitemapIndex(), "sitemapindex", urls, expected)
-	}
-
+func TestNewSitemap(t *testing.T) {
 	ts := time.Unix(1651322008, 0).UTC()
 
-	test(
-		[]URL{},
-		"",
-	)
-	test(
-		[]URL{
-			{URL: "https://gitea.io/test1", LastMod: &ts},
+	tests := []struct {
+		name    string
+		urls    []URL
+		want    string
+		wantErr string
+	}{
+		{
+			name: "empty",
+			urls: []URL{},
+			want: xml.Header + `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">` +
+				"" +
+				"</urlset>\n",
 		},
-		"<url><loc>https://gitea.io/test1</loc><lastmod>2022-04-30T12:33:28Z</lastmod></url>",
-	)
-	test(
-		[]URL{
-			{URL: "https://gitea.io/test2", LastMod: nil},
+		{
+			name: "regular",
+			urls: []URL{
+				{URL: "https://gitea.io/test1", LastMod: &ts},
+			},
+			want: xml.Header + `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">` +
+				"<url><loc>https://gitea.io/test1</loc><lastmod>2022-04-30T12:33:28Z</lastmod></url>" +
+				"</urlset>\n",
 		},
-		"<url><loc>https://gitea.io/test2</loc></url>",
-	)
-	test(
-		[]URL{
-			{URL: "https://gitea.io/test1", LastMod: &ts},
-			{URL: "https://gitea.io/test2", LastMod: nil},
+		{
+			name: "without lastmod",
+			urls: []URL{
+				{URL: "https://gitea.io/test1"},
+			},
+			want: xml.Header + `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">` +
+				"<url><loc>https://gitea.io/test1</loc></url>" +
+				"</urlset>\n",
 		},
-		"<url><loc>https://gitea.io/test1</loc><lastmod>2022-04-30T12:33:28Z</lastmod></url>"+
-			"<url><loc>https://gitea.io/test2</loc></url>",
-	)
-}
-
-func TestTooManyURLs(t *testing.T) {
-	s := NewSitemap()
-	for i := 0; i < 50001; i++ {
-		s.Add(URL{URL: fmt.Sprintf("https://gitea.io/test%d", i)})
+		{
+			name: "multiple",
+			urls: []URL{
+				{URL: "https://gitea.io/test1", LastMod: &ts},
+				{URL: "https://gitea.io/test2", LastMod: nil},
+			},
+			want: xml.Header + `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">` +
+				"<url><loc>https://gitea.io/test1</loc><lastmod>2022-04-30T12:33:28Z</lastmod></url>" +
+				"<url><loc>https://gitea.io/test2</loc></url>" +
+				"</urlset>\n",
+		},
+		{
+			name:    "too many urls",
+			urls:    make([]URL, 50001),
+			wantErr: "The sitemap contains 50001 URLs, but only 50000 are allowed",
+		},
+		{
+			name: "too big file",
+			urls: []URL{
+				{URL: strings.Repeat("b", 50*1024*1024+1)},
+			},
+			wantErr: "The sitemap has 52428932 bytes, but only 52428800 are allowed",
+		},
 	}
-	buf := &bytes.Buffer{}
-	_, err := s.WriteTo(buf)
-	assert.EqualError(t, err, "The sitemap contains too many URLs: 50001")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewSitemap()
+			for _, url := range tt.urls {
+				s.Add(url)
+			}
+			buf := &bytes.Buffer{}
+			_, err := s.WriteTo(buf)
+			if tt.wantErr != "" {
+				assert.EqualError(t, err, tt.wantErr)
+			} else {
+				assert.NoError(t, err)
+				assert.Equalf(t, tt.want, buf.String(), "NewSitemap()")
+			}
+		})
+	}
 }
 
-func TestSitemapTooBig(t *testing.T) {
-	s := NewSitemap()
-	s.Add(URL{URL: strings.Repeat("b", sitemapFileLimit)})
-	buf := &bytes.Buffer{}
-	_, err := s.WriteTo(buf)
-	assert.EqualError(t, err, "The sitemap is too big: 52428931")
+func TestNewSitemapIndex(t *testing.T) {
+	ts := time.Unix(1651322008, 0).UTC()
+
+	tests := []struct {
+		name    string
+		urls    []URL
+		want    string
+		wantErr string
+	}{
+		{
+			name: "empty",
+			urls: []URL{},
+			want: xml.Header + `<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">` +
+				"" +
+				"</sitemapindex>\n",
+		},
+		{
+			name: "regular",
+			urls: []URL{
+				{URL: "https://gitea.io/test1", LastMod: &ts},
+			},
+			want: xml.Header + `<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">` +
+				"<sitemap><loc>https://gitea.io/test1</loc><lastmod>2022-04-30T12:33:28Z</lastmod></sitemap>" +
+				"</sitemapindex>\n",
+		},
+		{
+			name: "without lastmod",
+			urls: []URL{
+				{URL: "https://gitea.io/test1"},
+			},
+			want: xml.Header + `<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">` +
+				"<sitemap><loc>https://gitea.io/test1</loc></sitemap>" +
+				"</sitemapindex>\n",
+		},
+		{
+			name: "multiple",
+			urls: []URL{
+				{URL: "https://gitea.io/test1", LastMod: &ts},
+				{URL: "https://gitea.io/test2", LastMod: nil},
+			},
+			want: xml.Header + `<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">` +
+				"<sitemap><loc>https://gitea.io/test1</loc><lastmod>2022-04-30T12:33:28Z</lastmod></sitemap>" +
+				"<sitemap><loc>https://gitea.io/test2</loc></sitemap>" +
+				"</sitemapindex>\n",
+		},
+		{
+			name:    "too many sitemaps",
+			urls:    make([]URL, 50001),
+			wantErr: "The sitemap contains 50001 sub-sitemaps, but only 50000 are allowed",
+		},
+		{
+			name: "too big file",
+			urls: []URL{
+				{URL: strings.Repeat("b", 50*1024*1024+1)},
+			},
+			wantErr: "The sitemap has 52428952 bytes, but only 52428800 are allowed",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewSitemapIndex()
+			for _, url := range tt.urls {
+				s.Add(url)
+			}
+			buf := &bytes.Buffer{}
+			_, err := s.WriteTo(buf)
+			if tt.wantErr != "" {
+				assert.EqualError(t, err, tt.wantErr)
+			} else {
+				assert.NoError(t, err)
+				assert.Equalf(t, tt.want, buf.String(), "NewSitemapIndex()")
+			}
+		})
+	}
 }
