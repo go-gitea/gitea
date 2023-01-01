@@ -26,7 +26,7 @@ func Update(ctx context.Context, pull *issues_model.PullRequest, doer *user_mode
 		style repo_model.MergeStyle
 	)
 
-	lock := sync.GetLockService().GetLock(getPullWorkingLockKey(pull.ID))
+	lock := sync.GetLock(getPullWorkingLockKey(pull.ID))
 	if err := lock.Lock(); err != nil {
 		log.Error("lock.Lock(): %v", err)
 		return fmt.Errorf("lock.Lock: %w", err)

@@ -99,7 +99,7 @@ var (
 	lockService LockService
 )
 
-func GetLockService() LockService {
+func getLockService() LockService {
 	syncOnce.Do(func() {
 		if setting.Sync.LockServiceType == "redis" {
 			lockService = newRedisLockService(setting.Sync.LockServiceConnStr)
@@ -108,4 +108,8 @@ func GetLockService() LockService {
 		}
 	})
 	return lockService
+}
+
+func GetLock(name string) Locker {
+	return getLockService().GetLock(name)
 }

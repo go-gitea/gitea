@@ -118,12 +118,16 @@ func prepareWikiFileName(gitRepo *git.Repository, wikiName string) (bool, string
 	return foundEscaped, escaped, nil
 }
 
+func getWikiWorkingLockKey(repoID int64) string {
+	return fmt.Sprintf("wiki_working_%d", repoID)
+}
+
 // updateWikiPage adds a new page or edits an existing page in repository wiki.
 func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldWikiName, newWikiName, content, message string, isNew bool) (err error) {
 	if err = nameAllowed(newWikiName); err != nil {
 		return err
 	}
-	lock := sync.GetLockService().GetLock(fmt.Sprintf("wiki_working_%d", repo.ID))
+	lock := sync.GetLock(getWikiWorkingLockKey(repo.ID))
 	if err := lock.Lock(); err != nil {
 		return err
 	}
@@ -286,7 +290,7 @@ func EditWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.R
 
 // DeleteWikiPage deletes a wiki page identified by its path.
 func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, wikiName string) (err error) {
-	lock := sync.GetLockService().GetLock(fmt.Sprintf("wiki_working_%d", repo.ID))
+	lock := sync.GetLock(getWikiWorkingLockKey(repo.ID))
 	if err := lock.Lock(); err != nil {
 		return err
 	}

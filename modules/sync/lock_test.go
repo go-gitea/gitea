@@ -8,7 +8,7 @@ import (
 )
 
 func Test_Lock(t *testing.T) {
-	locker := GetLockService().GetLock("test")
+	locker := GetLock("test")
 	locker.Lock()
 	locker.Unlock()
 }

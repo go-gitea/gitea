@@ -150,7 +150,7 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 		return fmt.Errorf("LoadBaseRepo: %w", err)
 	}
 
-	lock := sync.GetLockService().GetLock(getPullWorkingLockKey(pr.ID))
+	lock := sync.GetLock(getPullWorkingLockKey(pr.ID))
 	if err := lock.Lock(); err != nil {
 		log.Error("lock.Lock(): %v", err)
 		return fmt.Errorf("lock.Lock: %w", err)
@@ -841,7 +841,7 @@ func CheckPullBranchProtections(ctx context.Context, pr *issues_model.PullReques
 
 // MergedManually mark pr as merged manually
 func MergedManually(pr *issues_model.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, commitID string) error {
-	lock := sync.GetLockService().GetLock(getPullWorkingLockKey(pr.ID))
+	lock := sync.GetLock(getPullWorkingLockKey(pr.ID))
 	if err := lock.Lock(); err != nil {
 		log.Error("lock.Lock(): %v", err)
 		return fmt.Errorf("lock.Lock: %w", err)

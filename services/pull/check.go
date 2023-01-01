@@ -323,7 +323,7 @@ func getPullWorkingLockKey(prID int64) string {
 }
 
 func testPR(id int64) {
-	lock := sync.GetLockService().GetLock(getPullWorkingLockKey(id))
+	lock := sync.GetLock(getPullWorkingLockKey(id))
 	if err := lock.Lock(); err != nil {
 		log.Error("lock.Lock(): %v", err)
 		return

@@ -20,6 +20,10 @@ import (
 	"code.gitea.io/gitea/modules/sync"
 )
 
+func getRepoWorkingLockKey(repoID int64) string {
+	return fmt.Sprintf("repo_working_%d", repoID)
+}
+
 // TransferOwnership transfers all corresponding setting from old user to new one.
 func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository, teams []*organization.Team) error {
 	if err := repo.GetOwner(ctx); err != nil {
@@ -33,7 +37,7 @@ func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, rep
 
 	oldOwner := repo.Owner
 
-	lock := sync.GetLockService().GetLock(fmt.Sprintf("repo_working_%d", repo.ID))
+	lock := sync.GetLock(getRepoWorkingLockKey(repo.ID))
 	if err := lock.Lock(); err != nil {
 		log.Error("lock.Lock(): %v", err)
 		return fmt.Errorf("lock.Lock: %w", err)
@@ -72,7 +76,7 @@ func ChangeRepositoryName(doer *user_model.User, repo *repo_model.Repository, ne
 	// Change repository directory name. We must lock the local copy of the
 	// repo so that we can atomically rename the repo path and updates the
 	// local copy's origin accordingly.
-	lock := sync.GetLockService().GetLock(fmt.Sprintf("repo_working_%d", repo.ID))
+	lock := sync.GetLock(getRepoWorkingLockKey(repo.ID))
 	if err := lock.Lock(); err != nil {
 		log.Error("lock.Lock(): %v", err)
 		return fmt.Errorf("lock.Lock: %w", err)
