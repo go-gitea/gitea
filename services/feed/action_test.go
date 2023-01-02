@@ -1,7 +1,7 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package feed
+package feed_test
 
 import (
 	"strings"
@@ -12,6 +12,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/services/feed"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -39,7 +40,7 @@ func TestRenameRepoAction(t *testing.T) {
 	}
 	unittest.AssertNotExistsBean(t, actionBean)
 
-	NewNotifier().RenameRepository(db.DefaultContext, user, repo, oldRepoName)
+	feed.NewNotifier().RenameRepository(db.DefaultContext, user, repo, oldRepoName)
 
 	unittest.AssertExistsAndLoadBean(t, actionBean)
 	unittest.CheckConsistencyFor(t, &activities_model.Action{})

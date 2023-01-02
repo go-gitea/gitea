@@ -42,9 +42,8 @@ func NewNotifier() notify.Notifier {
 }
 
 // Init initializes notification service, we need to create queue so don't run RegisterNotifier in init
-func Init() error {
+func Init() {
 	notify.RegisterNotifier(NewNotifier())
-	return nil
 }
 
 func (ns *notificationService) handle(data ...queue.Data) []queue.Data {
@@ -61,7 +60,7 @@ func (ns *notificationService) Run() {
 	graceful.GetManager().RunWithShutdownFns(ns.issueQueue.Run)
 }
 
-func (ns *notificationService) NotifyCreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,
+func (ns *notificationService) CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,
 	issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User,
 ) {
 	opts := issueNotificationOpts{
@@ -85,7 +84,7 @@ func (ns *notificationService) NotifyCreateIssueComment(ctx context.Context, doe
 	}
 }
 
-func (ns *notificationService) NotifyNewIssue(ctx context.Context, issue *issues_model.Issue, mentions []*user_model.User) {
+func (ns *notificationService) NewIssue(ctx context.Context, issue *issues_model.Issue, mentions []*user_model.User) {
 	_ = ns.issueQueue.Push(issueNotificationOpts{
 		IssueID:              issue.ID,
 		NotificationAuthorID: issue.Poster.ID,
@@ -99,14 +98,14 @@ func (ns *notificationService) NotifyNewIssue(ctx context.Context, issue *issues
 	}
 }
 
-func (ns *notificationService) NotifyIssueChangeStatus(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, actionComment *issues_model.Comment, isClosed bool) {
+func (ns *notificationService) IssueChangeStatus(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, actionComment *issues_model.Comment, isClosed bool) {
 	_ = ns.issueQueue.Push(issueNotificationOpts{
 		IssueID:              issue.ID,
 		NotificationAuthorID: doer.ID,
 	})
 }
 
-func (ns *notificationService) NotifyIssueChangeTitle(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
+func (ns *notificationService) IssueChangeTitle(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
 	if err := issue.LoadPullRequest(ctx); err != nil {
 		log.Error("issue.LoadPullRequest: %v", err)
 		return
@@ -119,18 +118,18 @@ func (ns *notificationService) NotifyIssueChangeTitle(ctx context.Context, doer 
 	}
 }
 
-func (ns *notificationService) NotifyMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
+func (ns *notificationService) MergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
 	_ = ns.issueQueue.Push(issueNotificationOpts{
 		IssueID:              pr.Issue.ID,
 		NotificationAuthorID: doer.ID,
 	})
 }
 
-func (ns *notificationService) NotifyAutoMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
-	ns.NotifyMergePullRequest(ctx, doer, pr)
+func (ns *notificationService) AutoMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
+	ns.MergePullRequest(ctx, doer, pr)
 }
 
-func (ns *notificationService) NotifyNewPullRequest(ctx context.Context, pr *issues_model.PullRequest, mentions []*user_model.User) {
+func (ns *notificationService) NewPullRequest(ctx context.Context, pr *issues_model.PullRequest, mentions []*user_model.User) {
 	if err := pr.LoadIssue(ctx); err != nil {
 		log.Error("Unable to load issue: %d for pr: %d: Error: %v", pr.IssueID, pr.ID, err)
 		return
@@ -165,7 +164,7 @@ func (ns *notificationService) NotifyNewPullRequest(ctx context.Context, pr *iss
 	}
 }
 
-func (ns *notificationService) NotifyPullRequestReview(ctx context.Context, pr *issues_model.PullRequest, r *issues_model.Review, c *issues_model.Comment, mentions []*user_model.User) {
+func (ns *notificationService) PullRequestReview(ctx context.Context, pr *issues_model.PullRequest, r *issues_model.Review, c *issues_model.Comment, mentions []*user_model.User) {
 	opts := issueNotificationOpts{
 		IssueID:              pr.Issue.ID,
 		NotificationAuthorID: r.Reviewer.ID,
@@ -187,7 +186,7 @@ func (ns *notificationService) NotifyPullRequestReview(ctx context.Context, pr *
 	}
 }
 
-func (ns *notificationService) NotifyPullRequestCodeComment(ctx context.Context, pr *issues_model.PullRequest, c *issues_model.Comment, mentions []*user_model.User) {
+func (ns *notificationService) PullRequestCodeComment(ctx context.Context, pr *issues_model.PullRequest, c *issues_model.Comment, mentions []*user_model.User) {
 	for _, mention := range mentions {
 		_ = ns.issueQueue.Push(issueNotificationOpts{
 			IssueID:              pr.Issue.ID,
@@ -198,7 +197,7 @@ func (ns *notificationService) NotifyPullRequestCodeComment(ctx context.Context,
 	}
 }
 
-func (ns *notificationService) NotifyPullRequestPushCommits(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, comment *issues_model.Comment) {
+func (ns *notificationService) PullRequestPushCommits(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, comment *issues_model.Comment) {
 	opts := issueNotificationOpts{
 		IssueID:              pr.IssueID,
 		NotificationAuthorID: doer.ID,
@@ -207,7 +206,7 @@ func (ns *notificationService) NotifyPullRequestPushCommits(ctx context.Context,
 	_ = ns.issueQueue.Push(opts)
 }
 
-func (ns *notificationService) NotifyPullReviewDismiss(ctx context.Context, doer *user_model.User, review *issues_model.Review, comment *issues_model.Comment) {
+func (ns *notificationService) PullReviewDismiss(ctx context.Context, doer *user_model.User, review *issues_model.Review, comment *issues_model.Comment) {
 	opts := issueNotificationOpts{
 		IssueID:              review.IssueID,
 		NotificationAuthorID: doer.ID,
@@ -216,7 +215,7 @@ func (ns *notificationService) NotifyPullReviewDismiss(ctx context.Context, doer
 	_ = ns.issueQueue.Push(opts)
 }
 
-func (ns *notificationService) NotifyIssueChangeAssignee(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, assignee *user_model.User, removed bool, comment *issues_model.Comment) {
+func (ns *notificationService) IssueChangeAssignee(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, assignee *user_model.User, removed bool, comment *issues_model.Comment) {
 	if !removed && doer.ID != assignee.ID {
 		opts := issueNotificationOpts{
 			IssueID:              issue.ID,
@@ -232,7 +231,7 @@ func (ns *notificationService) NotifyIssueChangeAssignee(ctx context.Context, do
 	}
 }
 
-func (ns *notificationService) NotifyPullReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
+func (ns *notificationService) PullReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
 	if isRequest {
 		opts := issueNotificationOpts{
 			IssueID:              issue.ID,
@@ -248,7 +247,7 @@ func (ns *notificationService) NotifyPullReviewRequest(ctx context.Context, doer
 	}
 }
 
-func (ns *notificationService) NotifyRepoPendingTransfer(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) {
+func (ns *notificationService) RepoPendingTransfer(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) {
 	err := db.AutoTx(ctx, func(ctx context.Context) error {
 		return activities_model.CreateRepoTransferNotification(ctx, doer, newOwner, repo)
 	})

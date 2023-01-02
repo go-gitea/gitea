@@ -34,7 +34,7 @@ func init() {
 	notify.RegisterNotifier(NewNotifier())
 }
 
-func (r *indexerNotifier) NotifyCreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,
+func (r *indexerNotifier) CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,
 	issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User,
 ) {
 	if comment.Type == issues_model.CommentTypeComment {
@@ -51,15 +51,15 @@ func (r *indexerNotifier) NotifyCreateIssueComment(ctx context.Context, doer *us
 	}
 }
 
-func (r *indexerNotifier) NotifyNewIssue(ctx context.Context, issue *issues_model.Issue, mentions []*user_model.User) {
+func (r *indexerNotifier) NewIssue(ctx context.Context, issue *issues_model.Issue, mentions []*user_model.User) {
 	issue_indexer.UpdateIssueIndexer(issue)
 }
 
-func (r *indexerNotifier) NotifyNewPullRequest(ctx context.Context, pr *issues_model.PullRequest, mentions []*user_model.User) {
+func (r *indexerNotifier) NewPullRequest(ctx context.Context, pr *issues_model.PullRequest, mentions []*user_model.User) {
 	issue_indexer.UpdateIssueIndexer(pr.Issue)
 }
 
-func (r *indexerNotifier) NotifyUpdateComment(ctx context.Context, doer *user_model.User, c *issues_model.Comment, oldContent string) {
+func (r *indexerNotifier) UpdateComment(ctx context.Context, doer *user_model.User, c *issues_model.Comment, oldContent string) {
 	if c.Type == issues_model.CommentTypeComment {
 		var found bool
 		if c.Issue.Comments != nil {
@@ -83,7 +83,7 @@ func (r *indexerNotifier) NotifyUpdateComment(ctx context.Context, doer *user_mo
 	}
 }
 
-func (r *indexerNotifier) NotifyDeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) {
+func (r *indexerNotifier) DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) {
 	if comment.Type == issues_model.CommentTypeComment {
 		if err := comment.LoadIssue(ctx); err != nil {
 			log.Error("LoadIssue: %v", err)
@@ -112,14 +112,14 @@ func (r *indexerNotifier) NotifyDeleteComment(ctx context.Context, doer *user_mo
 	}
 }
 
-func (r *indexerNotifier) NotifyDeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository) {
+func (r *indexerNotifier) DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository) {
 	issue_indexer.DeleteRepoIssueIndexer(ctx, repo)
 	if setting.Indexer.RepoIndexerEnabled {
 		code_indexer.UpdateRepoIndexer(repo)
 	}
 }
 
-func (r *indexerNotifier) NotifyMigrateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
+func (r *indexerNotifier) MigrateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
 	issue_indexer.UpdateRepoIndexer(ctx, repo)
 	if setting.Indexer.RepoIndexerEnabled && !repo.IsEmpty {
 		code_indexer.UpdateRepoIndexer(repo)
@@ -129,7 +129,7 @@ func (r *indexerNotifier) NotifyMigrateRepository(ctx context.Context, doer, u *
 	}
 }
 
-func (r *indexerNotifier) NotifyPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+func (r *indexerNotifier) PushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	if setting.Indexer.RepoIndexerEnabled && opts.RefFullName == git.BranchPrefix+repo.DefaultBranch {
 		code_indexer.UpdateRepoIndexer(repo)
 	}
@@ -138,7 +138,7 @@ func (r *indexerNotifier) NotifyPushCommits(ctx context.Context, pusher *user_mo
 	}
 }
 
-func (r *indexerNotifier) NotifySyncPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+func (r *indexerNotifier) SyncPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	if setting.Indexer.RepoIndexerEnabled && opts.RefFullName == git.BranchPrefix+repo.DefaultBranch {
 		code_indexer.UpdateRepoIndexer(repo)
 	}
@@ -147,14 +147,14 @@ func (r *indexerNotifier) NotifySyncPushCommits(ctx context.Context, pusher *use
 	}
 }
 
-func (r *indexerNotifier) NotifyIssueChangeContent(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldContent string) {
+func (r *indexerNotifier) IssueChangeContent(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldContent string) {
 	issue_indexer.UpdateIssueIndexer(issue)
 }
 
-func (r *indexerNotifier) NotifyIssueChangeTitle(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
+func (r *indexerNotifier) IssueChangeTitle(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
 	issue_indexer.UpdateIssueIndexer(issue)
 }
 
-func (r *indexerNotifier) NotifyIssueChangeRef(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldRef string) {
+func (r *indexerNotifier) IssueChangeRef(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldRef string) {
 	issue_indexer.UpdateIssueIndexer(issue)
 }

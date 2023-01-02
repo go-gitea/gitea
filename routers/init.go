@@ -129,7 +129,7 @@ func GlobalInitInstalled(ctx context.Context) {
 
 	mailer.NewContext(ctx)
 	mustInit(cache.NewContext)
-	mustInit(uinotification.Init)
+	uinotification.Init()
 	mustInit(archiver.Init)
 
 	highlight.NewContext()
