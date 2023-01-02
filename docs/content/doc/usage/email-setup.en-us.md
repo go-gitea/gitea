@@ -76,7 +76,7 @@ The following configuration should work with GMail's SMTP server:
 ```ini
 [mailer]
 ENABLED        = true
-HOST           = smtp.gmail.com:465
+HOST           = smtp.gmail.com:465 ; Remove this line for Gitea >= 1.18.0
 SMTP_ADDR      = smtp.gmail.com
 SMTP_PORT      = 465
 FROM           = example.user@gmail.com
