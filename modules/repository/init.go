@@ -286,10 +286,13 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 
 		// Replace Placeholders in License
 		data = bytes.ReplaceAll(data, []byte("<program>"), []byte(repo.Name))
+		data = bytes.ReplaceAll(data, []byte("[NAME]"), []byte(repo.OwnerName))
 		data = bytes.ReplaceAll(data, []byte("<owner>"), []byte(repo.OwnerName))
 		data = bytes.ReplaceAll(data, []byte("<name of author>"), []byte(repo.OwnerName))
 		data = bytes.ReplaceAll(data, []byte("<copyright holders>"), []byte(repo.OwnerName))
 		data = bytes.ReplaceAll(data, []byte("<year>"), []byte(strconv.Itoa(time.Now().Year())))
+		data = bytes.ReplaceAll(data, []byte("[YEAR]"), []byte(strconv.Itoa(time.Now().Year())))
+		data = bytes.ReplaceAll(data, []byte("{YEAR}"), []byte(strconv.Itoa(time.Now().Year())))
 		data = bytes.ReplaceAll(data, []byte("<one line to give the program's name and a brief idea of what it does.>"), []byte(repo.Description))
 
 		if err != nil {
