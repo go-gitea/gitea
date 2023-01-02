@@ -18,7 +18,7 @@ func ChangeContent(issue *issues_model.Issue, doer *user_model.User, content str
 		return err
 	}
 
-	notify.NotifyIssueChangeContent(db.DefaultContext, doer, issue, oldContent)
+	notify.IssueChangeContent(db.DefaultContext, doer, issue, oldContent)
 
 	return nil
 }

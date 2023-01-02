@@ -208,9 +208,9 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		}
 		comment, err := pull_service.CreatePushPullComment(ctx, pusher, pr, oldCommitID, opts.NewCommitIDs[i])
 		if err == nil && comment != nil {
-			notify.NotifyPullRequestPushCommits(ctx, pusher, pr, comment)
+			notify.PullRequestPushCommits(ctx, pusher, pr, comment)
 		}
-		notify.NotifyPullRequestSynchronized(ctx, pusher, pr)
+		notify.PullRequestSynchronized(ctx, pusher, pr)
 		isForcePush := comment != nil && comment.IsForcePush
 
 		results = append(results, private.HookProcReceiveRefResult{

@@ -95,7 +95,7 @@ func AdoptRepository(doer, u *user_model.User, opts repo_module.CreateRepoOption
 		return nil, err
 	}
 
-	notify.NotifyCreateRepository(db.DefaultContext, doer, u, repo)
+	notify.CreateRepository(db.DefaultContext, doer, u, repo)
 
 	return repo, nil
 }

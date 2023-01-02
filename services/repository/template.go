@@ -100,7 +100,7 @@ func GenerateRepository(doer, owner *user_model.User, templateRepo *repo_model.R
 		return nil, err
 	}
 
-	notify.NotifyCreateRepository(db.DefaultContext, doer, owner, generateRepo)
+	notify.CreateRepository(db.DefaultContext, doer, owner, generateRepo)
 
 	return generateRepo, nil
 }

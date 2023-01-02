@@ -83,7 +83,7 @@ func CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_m
 		return nil, err
 	}
 
-	notify.NotifyCreateIssueComment(ctx, doer, repo, issue, comment, mentions)
+	notify.CreateIssueComment(ctx, doer, repo, issue, comment, mentions)
 
 	return comment, nil
 }
@@ -116,7 +116,7 @@ func UpdateComment(ctx context.Context, c *issues_model.Comment, doer *user_mode
 		}
 	}
 
-	notify.NotifyUpdateComment(ctx, doer, c, oldContent)
+	notify.UpdateComment(ctx, doer, c, oldContent)
 
 	return nil
 }
@@ -130,7 +130,7 @@ func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_m
 		return err
 	}
 
-	notify.NotifyDeleteComment(ctx, doer, comment)
+	notify.DeleteComment(ctx, doer, comment)
 
 	return nil
 }

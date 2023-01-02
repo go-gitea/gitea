@@ -1,7 +1,7 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package notification
+package uinotification
 
 import (
 	"context"
@@ -41,8 +41,10 @@ func NewNotifier() notify.Notifier {
 	return ns
 }
 
-func init() {
+// Init initializes notification service, we need to create queue so don't run RegisterNotifier in init
+func Init() error {
 	notify.RegisterNotifier(NewNotifier())
+	return nil
 }
 
 func (ns *notificationService) handle(data ...queue.Data) []queue.Data {

@@ -56,7 +56,7 @@ func ToggleAssignee(issue *issues_model.Issue, doer *user_model.User, assigneeID
 		return
 	}
 
-	notify.NotifyIssueChangeAssignee(db.DefaultContext, doer, issue, assignee, removed, comment)
+	notify.IssueChangeAssignee(db.DefaultContext, doer, issue, assignee, removed, comment)
 
 	return removed, comment, err
 }
@@ -74,7 +74,7 @@ func ReviewRequest(issue *issues_model.Issue, doer, reviewer *user_model.User, i
 	}
 
 	if comment != nil {
-		notify.NotifyPullReviewRequest(db.DefaultContext, doer, issue, reviewer, isAdd, comment)
+		notify.PullReviewRequest(db.DefaultContext, doer, issue, reviewer, isAdd, comment)
 	}
 
 	return comment, err
@@ -261,7 +261,7 @@ func TeamReviewRequest(issue *issues_model.Issue, doer *user_model.User, reviewe
 			continue
 		}
 		comment.AssigneeID = member.ID
-		notify.NotifyPullReviewRequest(db.DefaultContext, doer, issue, member, isAdd, comment)
+		notify.PullReviewRequest(db.DefaultContext, doer, issue, member, isAdd, comment)
 	}
 
 	return comment, err

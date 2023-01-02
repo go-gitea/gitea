@@ -19,7 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
-	notify_service "code.gitea.io/gitea/services/notify"
+	"code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -31,20 +31,20 @@ func CreateRepository(doer, owner *user_model.User, opts repo_module.CreateRepoO
 		return nil, err
 	}
 
-	notify_service.NotifyCreateRepository(db.DefaultContext, doer, owner, repo)
+	notify.CreateRepository(db.DefaultContext, doer, owner, repo)
 
 	return repo, nil
 }
 
 // DeleteRepository deletes a repository for a user or organization.
-func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, notify bool) error {
+func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, triggerNotify bool) error {
 	if err := pull_service.CloseRepoBranchesPulls(ctx, doer, repo); err != nil {
 		log.Error("CloseRepoBranchesPulls failed: %v", err)
 	}
 
-	if notify {
+	if triggerNotify {
 		// If the repo itself has webhooks, we need to trigger them before deleting it...
-		notify_service.NotifyDeleteRepository(ctx, doer, repo)
+		notify.DeleteRepository(ctx, doer, repo)
 	}
 
 	if err := models.DeleteRepository(doer, repo.OwnerID, repo.ID); err != nil {

@@ -22,9 +22,9 @@ import (
 	_ "code.gitea.io/gitea/modules/markup/markdown"
 	_ "code.gitea.io/gitea/modules/markup/orgmode"
 
+	// register supported notify types
 	_ "code.gitea.io/gitea/services/feed"
 	_ "code.gitea.io/gitea/services/indexer"
-	_ "code.gitea.io/gitea/services/notification"
 
 	"github.com/urfave/cli"
 )

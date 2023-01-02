@@ -36,12 +36,12 @@ func NewIssue(repo *repo_model.Repository, issue *issues_model.Issue, labelIDs [
 		return err
 	}
 
-	notify.NotifyNewIssue(db.DefaultContext, issue, mentions)
+	notify.NewIssue(db.DefaultContext, issue, mentions)
 	if len(issue.Labels) > 0 {
-		notify.NotifyIssueChangeLabels(db.DefaultContext, issue.Poster, issue, issue.Labels, nil)
+		notify.IssueChangeLabels(db.DefaultContext, issue.Poster, issue, issue.Labels, nil)
 	}
 	if issue.Milestone != nil {
-		notify.NotifyIssueChangeMilestone(db.DefaultContext, issue.Poster, issue, 0)
+		notify.IssueChangeMilestone(db.DefaultContext, issue.Poster, issue, 0)
 	}
 
 	return nil
@@ -56,7 +56,7 @@ func ChangeTitle(issue *issues_model.Issue, doer *user_model.User, title string)
 		return
 	}
 
-	notify.NotifyIssueChangeTitle(db.DefaultContext, doer, issue, oldTitle)
+	notify.IssueChangeTitle(db.DefaultContext, doer, issue, oldTitle)
 
 	return nil
 }
@@ -70,7 +70,7 @@ func ChangeIssueRef(issue *issues_model.Issue, doer *user_model.User, ref string
 		return err
 	}
 
-	notify.NotifyIssueChangeRef(db.DefaultContext, doer, issue, oldRef)
+	notify.IssueChangeRef(db.DefaultContext, doer, issue, oldRef)
 
 	return nil
 }
@@ -152,7 +152,7 @@ func DeleteIssue(doer *user_model.User, gitRepo *git.Repository, issue *issues_m
 		}
 	}
 
-	notify.NotifyDeleteIssue(gitRepo.Ctx, doer, issue)
+	notify.DeleteIssue(gitRepo.Ctx, doer, issue)
 
 	return nil
 }

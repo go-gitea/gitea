@@ -183,7 +183,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		}
 	}
 
-	notify.NotifyForkRepository(ctx, doer, opts.BaseRepo, repo)
+	notify.ForkRepository(ctx, doer, opts.BaseRepo, repo)
 
 	return repo, nil
 }

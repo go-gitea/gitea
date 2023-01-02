@@ -17,7 +17,7 @@ func ClearLabels(issue *issues_model.Issue, doer *user_model.User) (err error) {
 		return
 	}
 
-	notify.NotifyIssueClearLabels(db.DefaultContext, doer, issue)
+	notify.IssueClearLabels(db.DefaultContext, doer, issue)
 
 	return nil
 }
@@ -28,7 +28,7 @@ func AddLabel(issue *issues_model.Issue, doer *user_model.User, label *issues_mo
 		return err
 	}
 
-	notify.NotifyIssueChangeLabels(db.DefaultContext, doer, issue, []*issues_model.Label{label}, nil)
+	notify.IssueChangeLabels(db.DefaultContext, doer, issue, []*issues_model.Label{label}, nil)
 	return nil
 }
 
@@ -38,7 +38,7 @@ func AddLabels(issue *issues_model.Issue, doer *user_model.User, labels []*issue
 		return err
 	}
 
-	notify.NotifyIssueChangeLabels(db.DefaultContext, doer, issue, labels, nil)
+	notify.IssueChangeLabels(db.DefaultContext, doer, issue, labels, nil)
 	return nil
 }
 
@@ -73,7 +73,7 @@ func RemoveLabel(issue *issues_model.Issue, doer *user_model.User, label *issues
 		return err
 	}
 
-	notify.NotifyIssueChangeLabels(db.DefaultContext, doer, issue, nil, []*issues_model.Label{label})
+	notify.IssueChangeLabels(db.DefaultContext, doer, issue, nil, []*issues_model.Label{label})
 	return nil
 }
 
@@ -88,6 +88,6 @@ func ReplaceLabels(issue *issues_model.Issue, doer *user_model.User, labels []*i
 		return err
 	}
 
-	notify.NotifyIssueChangeLabels(db.DefaultContext, doer, issue, labels, old)
+	notify.IssueChangeLabels(db.DefaultContext, doer, issue, labels, old)
 	return nil
 }

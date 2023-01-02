@@ -81,12 +81,12 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 		return err
 	}
 
-	notify.NotifyNewPullRequest(prCtx, pr, mentions)
+	notify.NewPullRequest(prCtx, pr, mentions)
 	if len(pull.Labels) > 0 {
-		notify.NotifyIssueChangeLabels(prCtx, pull.Poster, pull, pull.Labels, nil)
+		notify.IssueChangeLabels(prCtx, pull.Poster, pull, pull.Labels, nil)
 	}
 	if pull.Milestone != nil {
-		notify.NotifyIssueChangeMilestone(prCtx, pull.Poster, pull, 0)
+		notify.IssueChangeMilestone(prCtx, pull.Poster, pull, 0)
 	}
 
 	// add first push codes comment
@@ -300,7 +300,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 					}
 
 					pr.Issue.PullRequest = pr
-					notify.NotifyPullRequestSynchronized(ctx, doer, pr)
+					notify.PullRequestSynchronized(ctx, doer, pr)
 				}
 			}
 		}
@@ -319,7 +319,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 			AddToTaskQueue(pr)
 			comment, err := CreatePushPullComment(ctx, doer, pr, oldCommitID, newCommitID)
 			if err == nil && comment != nil {
-				notify.NotifyPullRequestPushCommits(ctx, doer, pr, comment)
+				notify.PullRequestPushCommits(ctx, doer, pr, comment)
 			}
 		}
 

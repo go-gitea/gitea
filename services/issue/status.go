@@ -37,7 +37,7 @@ func changeStatusCtx(ctx context.Context, issue *issues_model.Issue, doer *user_
 		}
 	}
 
-	notify.NotifyIssueChangeStatus(ctx, doer, issue, comment, closed)
+	notify.IssueChangeStatus(ctx, doer, issue, comment, closed)
 
 	return nil
 }

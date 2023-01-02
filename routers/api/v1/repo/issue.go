@@ -822,11 +822,11 @@ func EditIssue(ctx *context.APIContext) {
 	}
 
 	if titleChanged {
-		notify.NotifyIssueChangeTitle(ctx, ctx.Doer, issue, oldTitle)
+		notify.IssueChangeTitle(ctx, ctx.Doer, issue, oldTitle)
 	}
 
 	if statusChangeComment != nil {
-		notify.NotifyIssueChangeStatus(ctx, ctx.Doer, issue, statusChangeComment, issue.IsClosed)
+		notify.IssueChangeStatus(ctx, ctx.Doer, issue, statusChangeComment, issue.IsClosed)
 	}
 
 	// Refetch from database to assign some automatic values

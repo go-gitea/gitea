@@ -194,7 +194,7 @@ func Migrate(ctx *context.APIContext) {
 		}
 
 		if err == nil {
-			notify.NotifyMigrateRepository(ctx, ctx.Doer, repoOwner, repo)
+			notify.MigrateRepository(ctx, ctx.Doer, repoOwner, repo)
 			return
 		}
 
