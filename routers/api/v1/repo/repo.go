@@ -1095,3 +1095,17 @@ func GetIssueTemplates(ctx *context.APIContext) {
 
 	ctx.JSON(http.StatusOK, ctx.IssueTemplatesFromDefaultBranch())
 }
+
+// GetIssueConfig returns the issue config for a repo
+func GetIssueConfig(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/issue_config repository repoGetIssueConfig
+	// ---
+	// summary: Returns the issue config for a repo
+	// produces:
+	// - application/json
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/IssueConfig"
+	issueConfig, _ := ctx.IssueConfigFromDefaultBranch()
+	ctx.JSON(http.StatusOK, issueConfig)
+}
