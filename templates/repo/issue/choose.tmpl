@@ -36,7 +36,7 @@
 		{{- if .IssueConfigError}}{{/* normal warning flash makes problems here*/}}
 			<div class="ui warning message">
 				<div class="text left">
-					<div>Your issue_config.yaml contains a error:</div>
+					<div>{{.locale.Tr "repo.issues.choose.invalid_config"}}</div>
 					<diy>{{.IssueConfigError}}</div>
 				</div>
 			</div>
