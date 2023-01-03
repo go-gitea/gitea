@@ -357,10 +357,6 @@ func NewContext(ctx context.Context) {
 		return
 	}
 
-	if setting.Service.EnableNotifyMail {
-		notify.RegisterNotifier(NewNotifier())
-	}
-
 	switch setting.MailService.Protocol {
 	case "sendmail":
 		Sender = &sendmailSender{}
@@ -387,6 +383,10 @@ func NewContext(ctx context.Context) {
 	go graceful.GetManager().RunWithShutdownFns(mailQueue.Run)
 
 	subjectTemplates, bodyTemplates = templates.Mailer(ctx)
+
+	if setting.Service.EnableNotifyMail {
+		notify.RegisterNotifier(NewNotifier())
+	}
 }
 
 // SendAsync send mail asynchronously
