@@ -6,7 +6,6 @@ package v1_19 //nolint
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
@@ -56,9 +55,9 @@ func batchProcess[T any](x *xorm.Engine, buf []T, query func(limit, start int) *
 func AddHeaderAuthorizationEncryptedColWebhook(x *xorm.Engine) error {
 	// Add the column to the table
 	type Webhook struct {
-		ID   int64            `xorm:"pk autoincr"`
-		Type webhook.HookType `xorm:"VARCHAR(16) 'type'"`
-		Meta string           `xorm:"TEXT"` // store hook-specific attributes
+		ID   int64  `xorm:"pk autoincr"`
+		Type string `xorm:"VARCHAR(16) 'type'"`
+		Meta string `xorm:"TEXT"` // store hook-specific attributes
 
 		// HeaderAuthorizationEncrypted should be accessed using HeaderAuthorization() and SetHeaderAuthorization()
 		HeaderAuthorizationEncrypted string `xorm:"TEXT"`
