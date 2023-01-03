@@ -4,15 +4,11 @@
 package nuget
 
 import (
-	"bytes"
-	"fmt"
 	"sort"
 	"time"
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	nuget_module "code.gitea.io/gitea/modules/packages/nuget"
-
-	"github.com/hashicorp/go-version"
 )
 
 // https://docs.microsoft.com/en-us/nuget/api/service-index#resources
@@ -95,8 +91,8 @@ func createRegistrationIndexResponse(l *linkBuilder, pds []*packages_model.Packa
 			{
 				RegistrationPageURL: l.GetRegistrationIndexURL(pds[0].Package.Name),
 				Count:               len(pds),
-				Lower:               normalizeVersion(pds[0].SemVer),
-				Upper:               normalizeVersion(pds[len(pds)-1].SemVer),
+				Lower:               pds[0].Version.Version,
+				Upper:               pds[len(pds)-1].Version.Version,
 				Items:               items,
 			},
 		},
@@ -173,7 +169,7 @@ type PackageVersionsResponse struct {
 func createPackageVersionsResponse(pds []*packages_model.PackageDescriptor) *PackageVersionsResponse {
 	versions := make([]string, 0, len(pds))
 	for _, pd := range pds {
-		versions = append(versions, normalizeVersion(pd.SemVer))
+		versions = append(versions, pd.Version.Version)
 	}
 
 	return &PackageVersionsResponse{
@@ -247,16 +243,4 @@ func createSearchResult(l *linkBuilder, pds []*packages_model.PackageDescriptor)
 		ProjectURL:           metadata.ProjectURL,
 		RegistrationIndexURL: l.GetRegistrationIndexURL(latest.Package.Name),
 	}
-}
-
-// normalizeVersion removes the metadata
-func normalizeVersion(v *version.Version) string {
-	var buf bytes.Buffer
-	segments := v.Segments64()
-	fmt.Fprintf(&buf, "%d.%d.%d", segments[0], segments[1], segments[2])
-	pre := v.Prerelease()
-	if pre != "" {
-		fmt.Fprintf(&buf, "-%s", pre)
-	}
-	return buf.String()
 }

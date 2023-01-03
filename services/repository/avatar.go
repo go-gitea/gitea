@@ -5,7 +5,6 @@ package repository
 
 import (
 	"context"
-	"crypto/md5"
 	"fmt"
 	"image/png"
 	"io"
@@ -27,7 +26,7 @@ func UploadAvatar(repo *repo_model.Repository, data []byte) error {
 		return err
 	}
 
-	newAvatar := fmt.Sprintf("%d-%x", repo.ID, md5.Sum(data))
+	newAvatar := avatar.HashAvatar(repo.ID, data)
 	if repo.Avatar == newAvatar { // upload the same picture
 		return nil
 	}

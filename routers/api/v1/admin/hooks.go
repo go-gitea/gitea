@@ -8,12 +8,12 @@ import (
 
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
 // ListHooks list system's webhooks
@@ -43,7 +43,7 @@ func ListHooks(ctx *context.APIContext) {
 	}
 	hooks := make([]*api.Hook, len(sysHooks))
 	for i, hook := range sysHooks {
-		h, err := convert.ToHook(setting.AppURL+"/admin", hook)
+		h, err := webhook_service.ToHook(setting.AppURL+"/admin", hook)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "convert.ToHook", err)
 			return
@@ -77,7 +77,7 @@ func GetHook(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "GetSystemOrDefaultWebhook", err)
 		return
 	}
-	h, err := convert.ToHook("/admin/", hook)
+	h, err := webhook_service.ToHook("/admin/", hook)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "convert.ToHook", err)
 		return
