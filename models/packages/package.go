@@ -33,6 +33,7 @@ const (
 	TypeComposer  Type = "composer"
 	TypeConan     Type = "conan"
 	TypeContainer Type = "container"
+	TypeCran      Type = "cran"
 	TypeGeneric   Type = "generic"
 	TypeHelm      Type = "helm"
 	TypeMaven     Type = "maven"
@@ -48,6 +49,7 @@ var TypeList = []Type{
 	TypeComposer,
 	TypeConan,
 	TypeContainer,
+	TypeCran,
 	TypeGeneric,
 	TypeHelm,
 	TypeMaven,
@@ -68,6 +70,8 @@ func (pt Type) Name() string {
 		return "Conan"
 	case TypeContainer:
 		return "Container"
+	case TypeCran:
+		return "CRAN"
 	case TypeGeneric:
 		return "Generic"
 	case TypeHelm:
@@ -99,6 +103,8 @@ func (pt Type) SVGName() string {
 		return "gitea-conan"
 	case TypeContainer:
 		return "octicon-container"
+	case TypeCran:
+		return "gitea-cran"
 	case TypeGeneric:
 		return "octicon-package"
 	case TypeHelm:
