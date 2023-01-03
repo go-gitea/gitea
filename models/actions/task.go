@@ -324,20 +324,22 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 		return nil, false, err
 	}
 
-	steps := make([]*ActionTaskStep, len(workflowJob.Steps))
-	for i, v := range workflowJob.Steps {
-		steps[i] = &ActionTaskStep{
-			Name:   v.String(),
-			TaskID: task.ID,
-			Number: int64(i),
-			RepoID: task.RepoID,
-			Status: StatusWaiting,
+	if len(workflowJob.Steps) > 0 {
+		steps := make([]*ActionTaskStep, len(workflowJob.Steps))
+		for i, v := range workflowJob.Steps {
+			steps[i] = &ActionTaskStep{
+				Name:   v.String(),
+				TaskID: task.ID,
+				Number: int64(i),
+				RepoID: task.RepoID,
+				Status: StatusWaiting,
+			}
 		}
+		if _, err := e.Insert(steps); err != nil {
+			return nil, false, err
+		}
+		task.Steps = steps
 	}
-	if _, err := e.Insert(steps); err != nil {
-		return nil, false, err
-	}
-	task.Steps = steps
 
 	job.TaskID = task.ID
 	if n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}); err != nil {
