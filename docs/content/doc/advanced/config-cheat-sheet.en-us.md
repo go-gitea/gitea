@@ -1322,6 +1322,7 @@ Of course we should support the form in future PRs like
 steps:
   - uses: gitea.com/actions/checkout@v3
 ```
+
 although Github don't support this form.
 
 ## Other (`other`)
