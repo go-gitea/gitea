@@ -41,6 +41,7 @@ func (tasks TaskList) LoadJobs(ctx context.Context) error {
 		}
 	}
 
+	// TODO: Replace with "ActionJobList(maps.Values(jobs))" once available
 	var jobsList ActionJobList = make([]*ActionRunJob, 0, len(jobs))
 	for _, j := range jobs {
 		jobsList = append(jobsList, j)
