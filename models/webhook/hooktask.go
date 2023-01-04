@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	gouuid "github.com/google/uuid"
 )
@@ -107,7 +108,7 @@ type HookTask struct {
 	UUID            string `xorm:"unique"`
 	api.Payloader   `xorm:"-"`
 	PayloadContent  string `xorm:"LONGTEXT"`
-	EventType       HookEventType
+	EventType       webhook_module.HookEventType
 	IsDelivered     bool
 	Delivered       int64
 	DeliveredString string `xorm:"-"`
