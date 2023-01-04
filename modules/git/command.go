@@ -17,7 +17,6 @@ import (
 	"unsafe"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -34,21 +33,18 @@ const DefaultLocale = "C"
 
 // Command represents a command with its subcommands or arguments.
 type Command struct {
-	name             string
 	args             []string
 	parentContext    context.Context
 	desc             string
 	globalArgsLength int
 	brokenArgs       []string
+	commandRunner    CommandRunner
 }
 
 type CmdArg string
 
 func (c *Command) String() string {
-	if len(c.args) == 0 {
-		return c.name
-	}
-	return fmt.Sprintf("%s %s", c.name, strings.Join(c.args, " "))
+	return fmt.Sprintf("%s %s", c.commandRunner.String(), strings.Join(c.args, " "))
 }
 
 // NewCommand creates and returns a new Git Command based on given command and arguments.
@@ -63,10 +59,9 @@ func NewCommand(ctx context.Context, args ...CmdArg) *Command {
 		cargs = append(cargs, string(arg))
 	}
 	return &Command{
-		name:             GitExecutable,
-		args:             cargs,
 		parentContext:    ctx,
 		globalArgsLength: len(globalCommandArgs),
+		commandRunner:    newLocalCommandRunner(ctx),
 	}
 }
 
@@ -84,9 +79,9 @@ func NewCommandContextNoGlobals(ctx context.Context, args ...CmdArg) *Command {
 		cargs = append(cargs, string(arg))
 	}
 	return &Command{
-		name:          GitExecutable,
 		args:          cargs,
 		parentContext: ctx,
+		commandRunner: newLocalCommandRunner(ctx),
 	}
 }
 
@@ -192,91 +187,6 @@ func CommonCmdServEnvs() []string {
 
 var ErrBrokenCommand = errors.New("git command is broken")
 
-// Run runs the command with the RunOpts
-func (c *Command) Run(opts *RunOpts) error {
-	if len(c.brokenArgs) != 0 {
-		log.Error("git command is broken: %s, broken args: %s", c.String(), strings.Join(c.brokenArgs, " "))
-		return ErrBrokenCommand
-	}
-	if opts == nil {
-		opts = &RunOpts{}
-	}
-
-	// We must not change the provided options
-	timeout := opts.Timeout
-	if timeout <= 0 {
-		timeout = defaultCommandExecutionTimeout
-	}
-
-	if len(opts.Dir) == 0 {
-		log.Debug("%s", c)
-	} else {
-		log.Debug("%s: %v", opts.Dir, c)
-	}
-
-	desc := c.desc
-	if desc == "" {
-		args := c.args[c.globalArgsLength:]
-		var argSensitiveURLIndexes []int
-		for i, arg := range c.args {
-			if strings.Contains(arg, "://") && strings.Contains(arg, "@") {
-				argSensitiveURLIndexes = append(argSensitiveURLIndexes, i)
-			}
-		}
-		if len(argSensitiveURLIndexes) > 0 {
-			args = make([]string, len(c.args))
-			copy(args, c.args)
-			for _, urlArgIndex := range argSensitiveURLIndexes {
-				args[urlArgIndex] = util.SanitizeCredentialURLs(args[urlArgIndex])
-			}
-		}
-		desc = fmt.Sprintf("%s %s [repo_path: %s]", c.name, strings.Join(args, " "), opts.Dir)
-	}
-
-	var ctx context.Context
-	var cancel context.CancelFunc
-	var finished context.CancelFunc
-
-	if opts.UseContextTimeout {
-		ctx, cancel, finished = process.GetManager().AddContext(c.parentContext, desc)
-	} else {
-		ctx, cancel, finished = process.GetManager().AddContextTimeout(c.parentContext, timeout, desc)
-	}
-	defer finished()
-
-	cmd := exec.CommandContext(ctx, c.name, c.args...)
-	if opts.Env == nil {
-		cmd.Env = os.Environ()
-	} else {
-		cmd.Env = opts.Env
-	}
-
-	process.SetSysProcAttribute(cmd)
-	cmd.Env = append(cmd.Env, CommonGitCmdEnvs()...)
-	cmd.Dir = opts.Dir
-	cmd.Stdout = opts.Stdout
-	cmd.Stderr = opts.Stderr
-	cmd.Stdin = opts.Stdin
-	if err := cmd.Start(); err != nil {
-		return err
-	}
-
-	if opts.PipelineFunc != nil {
-		err := opts.PipelineFunc(ctx, cancel)
-		if err != nil {
-			cancel()
-			_ = cmd.Wait()
-			return err
-		}
-	}
-
-	if err := cmd.Wait(); err != nil && ctx.Err() != context.DeadlineExceeded {
-		return err
-	}
-
-	return ctx.Err()
-}
-
 type RunStdError interface {
 	error
 	Unwrap() error
@@ -318,6 +228,49 @@ func bytesToString(b []byte) string {
 	return *(*string)(unsafe.Pointer(&b)) // that's what Golang's strings.Builder.String() does (go/src/strings/builder.go)
 }
 
+// Run runs the command with the RunOpts
+func (c *Command) Run(opts *RunOpts) error {
+	if len(c.brokenArgs) != 0 {
+		log.Error("git command is broken: %s, broken args: %s", c.String(), strings.Join(c.brokenArgs, " "))
+		return ErrBrokenCommand
+	}
+	if opts == nil {
+		opts = &RunOpts{}
+	}
+
+	// We must not change the provided options
+	timeout := opts.Timeout
+	if timeout <= 0 {
+		timeout = defaultCommandExecutionTimeout
+	}
+
+	if len(opts.Dir) == 0 {
+		log.Debug("%s", c)
+	} else {
+		log.Debug("%s: %v", opts.Dir, c)
+	}
+
+	if desc == "" {
+		args := args[c.globalArgsLength:]
+		var argSensitiveURLIndexes []int
+		for i, arg := range args {
+			if strings.Contains(arg, "://") && strings.Contains(arg, "@") {
+				argSensitiveURLIndexes = append(argSensitiveURLIndexes, i)
+			}
+		}
+		if len(argSensitiveURLIndexes) > 0 {
+			args = make([]string, len(args))
+			copy(args, args)
+			for _, urlArgIndex := range argSensitiveURLIndexes {
+				args[urlArgIndex] = util.SanitizeCredentialURLs(args[urlArgIndex])
+			}
+		}
+		desc = fmt.Sprintf("%s %s [repo_path: %s]", c.name, strings.Join(args, " "), opts.Dir)
+	}
+
+	return c.commandRunner.Run(c.parentContext, c.desc, c.args, opts, timeout)
+}
+
 // RunStdString runs the command with options and returns stdout/stderr as string. and store stderr to returned error (err combined with stderr).
 func (c *Command) RunStdString(opts *RunOpts) (stdout, stderr string, runErr RunStdError) {
 	stdoutBytes, stderrBytes, err := c.RunStdBytes(opts)
@@ -354,7 +307,7 @@ func (c *Command) RunStdBytes(opts *RunOpts) (stdout, stderr []byte, runErr RunS
 		PipelineFunc:      opts.PipelineFunc,
 	}
 
-	err := c.Run(newOpts)
+	err := c.commandRunner.Run(c.parentContext, c.desc, c.args, newOpts)
 	stderr = stderrBuf.Bytes()
 	if err != nil {
 		return nil, stderr, &runStdError{err: err, stderr: bytesToString(stderr)}
