@@ -12,7 +12,6 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/setting"
 	setting_module "code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -245,7 +244,7 @@ func Init() error {
 	var disableGravatar bool
 	disableGravatarSetting, err := GetSettingNoCache(KeyPictureDisableGravatar)
 	if IsErrSettingIsNotExist(err) {
-		disableGravatar = setting.GetDefaultDisableGravatar()
+		disableGravatar = setting_module.GetDefaultDisableGravatar()
 		disableGravatarSetting = &Setting{SettingValue: strconv.FormatBool(disableGravatar)}
 	} else if err != nil {
 		return err
@@ -256,7 +255,7 @@ func Init() error {
 	var enableFederatedAvatar bool
 	enableFederatedAvatarSetting, err := GetSettingNoCache(KeyPictureEnableFederatedAvatar)
 	if IsErrSettingIsNotExist(err) {
-		enableFederatedAvatar = setting.GetDefaultEnableFederatedAvatar(disableGravatar)
+		enableFederatedAvatar = setting_module.GetDefaultEnableFederatedAvatar(disableGravatar)
 		enableFederatedAvatarSetting = &Setting{SettingValue: strconv.FormatBool(enableFederatedAvatar)}
 	} else if err != nil {
 		return err
@@ -264,16 +263,16 @@ func Init() error {
 		enableFederatedAvatar = disableGravatarSetting.GetValueBool()
 	}
 
-	if setting.OfflineMode {
+	if setting_module.OfflineMode {
 		disableGravatar = true
 		enableFederatedAvatar = false
 	}
 
 	if enableFederatedAvatar || !disableGravatar {
 		var err error
-		GravatarSourceURL, err = url.Parse(setting.GravatarSource)
+		GravatarSourceURL, err = url.Parse(setting_module.GravatarSource)
 		if err != nil {
-			return fmt.Errorf("Failed to parse Gravatar URL(%s): %w", setting.GravatarSource, err)
+			return fmt.Errorf("Failed to parse Gravatar URL(%s): %w", setting_module.GravatarSource, err)
 		}
 	}
 
