@@ -35,16 +35,7 @@ func (comments CommentList) LoadPosters(ctx context.Context) error {
 	}
 
 	for _, comment := range comments {
-		if comment.PosterID == user_model.ActionsUserID {
-			comment.Poster = user_model.NewActionsUser()
-		} else if comment.PosterID <= 0 {
-			continue
-		} else {
-			var ok bool
-			if comment.Poster, ok = posterMaps[comment.PosterID]; !ok {
-				comment.Poster = user_model.NewGhostUser()
-			}
-		}
+		comment.Poster = getPoster(comment.PosterID, posterMaps)
 	}
 	return nil
 }
