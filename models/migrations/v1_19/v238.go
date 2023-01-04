@@ -14,7 +14,7 @@ func AddActionsTables(x *xorm.Engine) error {
 	type ActionRunner struct {
 		ID          int64
 		UUID        string `xorm:"CHAR(36) UNIQUE"`
-		Name        string `xorm:"VARCHAR(32)"`
+		Name        string `xorm:"VARCHAR(255)"`
 		OwnerID     int64  `xorm:"index"` // org level runner, 0 means system
 		RepoID      int64  `xorm:"index"` // repo level runner, if orgid also is zero, then it's a global
 		Description string `xorm:"TEXT"`
@@ -78,10 +78,10 @@ func AddActionsTables(x *xorm.Engine) error {
 		OwnerID           int64  `xorm:"index"`
 		CommitSHA         string `xorm:"index"`
 		IsForkPullRequest bool
-		Name              string
+		Name              string `xorm:"VARCHAR(255)"`
 		Attempt           int64
 		WorkflowPayload   []byte
-		JobID             string   // job id in workflow, not job's id
+		JobID             string   `xorm:"VARCHAR(255)"` // job id in workflow, not job's id
 		Needs             []string `xorm:"JSON TEXT"`
 		RunsOn            []string `xorm:"JSON TEXT"`
 		TaskID            int64    // the latest task of the job
@@ -130,11 +130,11 @@ func AddActionsTables(x *xorm.Engine) error {
 
 	type ActionTaskStep struct {
 		ID        int64
-		Name      string
-		TaskID    int64 `xorm:"index unique(task_number)"`
-		Number    int64 `xorm:"index unique(task_number)"`
-		RepoID    int64 `xorm:"index"`
-		Status    int   `xorm:"index"`
+		Name      string `xorm:"VARCHAR(255)"`
+		TaskID    int64  `xorm:"index unique(task_number)"`
+		Number    int64  `xorm:"index unique(task_number)"`
+		RepoID    int64  `xorm:"index"`
+		Status    int    `xorm:"index"`
 		LogIndex  int64
 		LogLength int64
 		Started   timeutil.TimeStamp

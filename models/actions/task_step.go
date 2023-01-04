@@ -14,7 +14,7 @@ import (
 // ActionTaskStep represents a step of ActionTask
 type ActionTaskStep struct {
 	ID        int64
-	Name      string
+	Name      string `xorm:"VARCHAR(255)"`
 	TaskID    int64  `xorm:"index unique(task_number)"`
 	Number    int64  `xorm:"index unique(task_number)"`
 	RepoID    int64  `xorm:"index"`

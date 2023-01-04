@@ -25,10 +25,10 @@ type ActionRunJob struct {
 	OwnerID           int64      `xorm:"index"`
 	CommitSHA         string     `xorm:"index"`
 	IsForkPullRequest bool
-	Name              string
+	Name              string `xorm:"VARCHAR(255)"`
 	Attempt           int64
 	WorkflowPayload   []byte
-	JobID             string   // job id in workflow, not job's id
+	JobID             string   `xorm:"VARCHAR(255)"` // job id in workflow, not job's id
 	Needs             []string `xorm:"JSON TEXT"`
 	RunsOn            []string `xorm:"JSON TEXT"`
 	TaskID            int64    // the latest task of the job
