@@ -32,16 +32,13 @@ func ListWorkflows(commit *git.Commit) (git.Entries, error) {
 		return nil, err
 	}
 
-	idx := 0
+	ret := make(git.Entries, 0, len(entries))
 	for _, entry := range entries {
-		if !strings.HasSuffix(entry.Name(), ".yml") && !strings.HasSuffix(entry.Name(), ".yaml") {
-			continue
+		if strings.HasSuffix(entry.Name(), ".yml") || strings.HasSuffix(entry.Name(), ".yaml") {
+			ret = append(ret, entry)
 		}
-		entries[idx] = entry
-		idx++
 	}
-
-	return entries[:idx], nil
+	return ret, nil
 }
 
 func DetectWorkflows(commit *git.Commit, event webhook.HookEventType) (map[string][]byte, error) {
