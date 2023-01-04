@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
@@ -126,10 +125,10 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 			return fmt.Errorf("IsUserRepoAdmin: %w", err)
 		} else if !isAdmin {
 			// Make creator repo admin if it wasn't assigned automatically
-			if err = addCollaborator(ctx, repo, doer); err != nil {
-				return fmt.Errorf("addCollaborator: %w", err)
+			if err = AddCollaborator(ctx, repo, doer); err != nil {
+				return fmt.Errorf("AddCollaborator: %w", err)
 			}
-			if err = repo_model.ChangeCollaborationAccessModeCtx(ctx, repo, doer.ID, perm.AccessModeAdmin); err != nil {
+			if err = repo_model.ChangeCollaborationAccessMode(ctx, repo, doer.ID, perm.AccessModeAdmin); err != nil {
 				return fmt.Errorf("ChangeCollaborationAccessModeCtx: %w", err)
 			}
 		}
@@ -211,7 +210,7 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 
 	var rollbackRepo *repo_model.Repository
 
-	if err := db.WithTx(func(ctx context.Context) error {
+	if err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		if err := CreateRepositoryByExample(ctx, doer, u, repo, false); err != nil {
 			return err
 		}

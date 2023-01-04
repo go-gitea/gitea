@@ -330,7 +330,7 @@
 				{{end}}
 
 				{{if .AllowMerge}} {{/* user is allowed to merge */}}
-					{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
+					{{$prUnit := .Repository.MustGetUnit $.Context $.UnitTypePullRequests}}
 					{{$approvers := .Issue.PullRequest.GetApprovers}}
 					{{if or $prUnit.PullRequestsConfig.AllowMerge $prUnit.PullRequestsConfig.AllowRebase $prUnit.PullRequestsConfig.AllowRebaseMerge $prUnit.PullRequestsConfig.AllowSquash}}
 						{{$hasPendingPullRequestMergeTip := ""}}
@@ -343,7 +343,8 @@
 							(() => {
 								const defaultMergeTitle = {{.DefaultMergeMessage}};
 								const defaultSquashMergeTitle = {{.DefaultSquashMergeMessage}};
-								const defaultMergeMessage = 'Reviewed-on: ' + {{$.Issue.HTMLURL}} + '\n' + {{$approvers}};
+								const defaultMergeMessage = {{if .DefaultMergeBody}}{{.DefaultMergeBody}}{{else}}'Reviewed-on: ' + {{$.Issue.HTMLURL}} + '\n' + {{$approvers}}{{end}};
+								const defaultSquashMergeMessage = {{if .DefaultSquashMergeBody}}{{.DefaultSquashMergeBody}}{{else}}'Reviewed-on: ' + {{$.Issue.HTMLURL}} + '\n' + {{$approvers}}{{end}};
 								const mergeForm = {
 									'baseLink': {{.Link}},
 									'textCancel': {{$.locale.Tr "cancel"}},
@@ -351,6 +352,8 @@
 									'textAutoMergeButtonWhenSucceed': {{$.locale.Tr "repo.pulls.auto_merge_button_when_succeed"}},
 									'textAutoMergeWhenSucceed': {{$.locale.Tr "repo.pulls.auto_merge_when_succeed"}},
 									'textAutoMergeCancelSchedule': {{$.locale.Tr "repo.pulls.auto_merge_cancel_schedule"}},
+									'textClearMergeMessage': {{$.locale.Tr "repo.pulls.clear_merge_message"}},
+									'textClearMergeMessageHint': {{$.locale.Tr "repo.pulls.clear_merge_message_hint"}},
 
 									'canMergeNow': {{$canMergeNow}},
 									'allOverridableChecksOk': {{not $notAllOverridableChecksOk}},
@@ -360,6 +363,7 @@
 									'defaultMergeStyle': {{.MergeStyle}},
 									'defaultDeleteBranchAfterMerge': {{$prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}},
 									'mergeMessageFieldPlaceHolder': {{$.locale.Tr "repo.editor.commit_message_desc"}},
+									'defaultMergeMessage': defaultMergeMessage,
 
 									'hasPendingPullRequestMerge': {{.HasPendingPullRequestMerge}},
 									'hasPendingPullRequestMergeTip': {{$hasPendingPullRequestMergeTip}},
@@ -395,7 +399,7 @@
 										'allowed': {{$prUnit.PullRequestsConfig.AllowSquash}},
 										'textDoMerge': {{$.locale.Tr "repo.pulls.squash_merge_pull_request"}},
 										'mergeTitleFieldText': defaultSquashMergeTitle,
-										'mergeMessageFieldText': {{.GetCommitMessages}} + defaultMergeMessage,
+										'mergeMessageFieldText': {{.GetCommitMessages}} + defaultSquashMergeMessage,
 										'hideAutoMerge': generalHideAutoMerge,
 									},
 									{

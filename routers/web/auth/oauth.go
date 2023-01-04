@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package auth
 
@@ -22,7 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -196,7 +194,7 @@ func newAccessTokenResponse(ctx stdContext.Context, grant *auth.OAuth2Grant, ser
 				ErrorDescription: "cannot find application",
 			}
 		}
-		user, err := user_model.GetUserByID(grant.UserID)
+		user, err := user_model.GetUserByID(ctx, grant.UserID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				return nil, &AccessTokenError{
@@ -387,7 +385,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 
 	var user *user_model.User
 	if app.UID != 0 {
-		user, err = user_model.GetUserByID(app.UID)
+		user, err = user_model.GetUserByID(ctx, app.UID)
 		if err != nil {
 			ctx.ServerError("GetUserByID", err)
 			return
@@ -1027,16 +1025,11 @@ func setUserGroupClaims(loginSource *auth.Source, u *user_model.User, gothUser *
 }
 
 func showLinkingLogin(ctx *context.Context, gothUser goth.User) {
-	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
-		ctx.ServerError("RegenerateSession", err)
+	if err := updateSession(ctx, nil, map[string]interface{}{
+		"linkAccountGothUser": gothUser,
+	}); err != nil {
+		ctx.ServerError("updateSession", err)
 		return
-	}
-
-	if err := ctx.Session.Set("linkAccountGothUser", gothUser); err != nil {
-		log.Error("Error setting linkAccountGothUser in session: %v", err)
-	}
-	if err := ctx.Session.Release(); err != nil {
-		log.Error("Error storing session: %v", err)
 	}
 	ctx.Redirect(setting.AppSubURL + "/user/link_account")
 }
@@ -1075,19 +1068,12 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 	// If this user is enrolled in 2FA and this source doesn't override it,
 	// we can't sign the user in just yet. Instead, redirect them to the 2FA authentication page.
 	if !needs2FA {
-		if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
-			ctx.ServerError("RegenerateSession", err)
+		if err := updateSession(ctx, nil, map[string]interface{}{
+			"uid":   u.ID,
+			"uname": u.Name,
+		}); err != nil {
+			ctx.ServerError("updateSession", err)
 			return
-		}
-
-		if err := ctx.Session.Set("uid", u.ID); err != nil {
-			log.Error("Error setting uid in session: %v", err)
-		}
-		if err := ctx.Session.Set("uname", u.Name); err != nil {
-			log.Error("Error setting uname in session: %v", err)
-		}
-		if err := ctx.Session.Release(); err != nil {
-			log.Error("Error storing session: %v", err)
 		}
 
 		// Clear whatever CSRF cookie has right now, force to generate a new one
@@ -1138,20 +1124,13 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		}
 	}
 
-	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
-		ctx.ServerError("RegenerateSession", err)
+	if err := updateSession(ctx, nil, map[string]interface{}{
+		// User needs to use 2FA, save data and redirect to 2FA page.
+		"twofaUid":      u.ID,
+		"twofaRemember": false,
+	}); err != nil {
+		ctx.ServerError("updateSession", err)
 		return
-	}
-
-	// User needs to use 2FA, save data and redirect to 2FA page.
-	if err := ctx.Session.Set("twofaUid", u.ID); err != nil {
-		log.Error("Error setting twofaUid in session: %v", err)
-	}
-	if err := ctx.Session.Set("twofaRemember", false); err != nil {
-		log.Error("Error setting twofaRemember in session: %v", err)
-	}
-	if err := ctx.Session.Release(); err != nil {
-		log.Error("Error storing session: %v", err)
 	}
 
 	// If WebAuthn is enrolled -> Redirect to WebAuthn instead
@@ -1243,7 +1222,7 @@ func oAuth2UserLoginCallback(authSource *auth.Source, request *http.Request, res
 		return nil, goth.User{}, err
 	}
 	if hasUser {
-		user, err = user_model.GetUserByID(externalLoginUser.UserID)
+		user, err = user_model.GetUserByID(request.Context(), externalLoginUser.UserID)
 		return user, gothUser, err
 	}
 

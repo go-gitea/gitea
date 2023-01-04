@@ -1,12 +1,10 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
 import (
 	"context"
-	"crypto/md5"
 	"fmt"
 	"image/png"
 	"io"
@@ -28,12 +26,12 @@ func UploadAvatar(repo *repo_model.Repository, data []byte) error {
 		return err
 	}
 
-	newAvatar := fmt.Sprintf("%d-%x", repo.ID, md5.Sum(data))
+	newAvatar := avatar.HashAvatar(repo.ID, data)
 	if repo.Avatar == newAvatar { // upload the same picture
 		return nil
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -76,7 +74,7 @@ func DeleteAvatar(repo *repo_model.Repository) error {
 	avatarPath := repo.CustomAvatarRelativePath()
 	log.Trace("DeleteAvatar[%d]: %s", repo.ID, avatarPath)
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -96,7 +94,7 @@ func DeleteAvatar(repo *repo_model.Repository) error {
 
 // RemoveRandomAvatars removes the randomly generated avatars that were created for repositories
 func RemoveRandomAvatars(ctx context.Context) error {
-	return db.IterateObjects(ctx, func(repository *repo_model.Repository) error {
+	return db.Iterate(ctx, nil, func(ctx context.Context, repository *repo_model.Repository) error {
 		select {
 		case <-ctx.Done():
 			return db.ErrCancelledf("before random avatars removed for %s", repository.FullName())

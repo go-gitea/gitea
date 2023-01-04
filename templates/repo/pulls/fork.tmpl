@@ -58,10 +58,9 @@
 
 					<div class="inline field">
 						<label></label>
-						<button class="ui green button">
+						<button class="ui green button{{if not .CanForkRepo}} disabled{{end}}">
 							{{.locale.Tr "repo.fork_repo"}}
 						</button>
-						<a class="ui button" href="{{.ForkRepo.Link}}">{{.locale.Tr "cancel"}}</a>
 					</div>
 				</div>
 			</form>

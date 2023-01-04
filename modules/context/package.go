@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package context
 
@@ -111,7 +110,7 @@ func determineAccessMode(ctx *Context) (perm.AccessMode, error) {
 					return accessMode, err
 				}
 				for _, t := range teams {
-					perm := t.UnitAccessModeCtx(ctx, unit.TypePackages)
+					perm := t.UnitAccessMode(ctx, unit.TypePackages)
 					if accessMode < perm {
 						accessMode = perm
 					}

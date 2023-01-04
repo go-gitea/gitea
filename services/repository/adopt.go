@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
@@ -8,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -53,7 +53,7 @@ func AdoptRepository(doer, u *user_model.User, opts repo_module.CreateRepoOption
 		IsEmpty:                         !opts.AutoInit,
 	}
 
-	if err := db.WithTx(func(ctx context.Context) error {
+	if err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		repoPath := repo_model.RepoPath(u.Name, repo.Name)
 		isExist, err := util.IsExist(repoPath)
 		if err != nil {
@@ -95,7 +95,7 @@ func AdoptRepository(doer, u *user_model.User, opts repo_module.CreateRepoOption
 		return nil, err
 	}
 
-	notification.NotifyCreateRepository(doer, u, repo)
+	notification.NotifyCreateRepository(db.DefaultContext, doer, u, repo)
 
 	return repo, nil
 }
@@ -116,7 +116,7 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 
 	// Re-fetch the repository from database before updating it (else it would
 	// override changes that were done earlier with sql)
-	if repo, err = repo_model.GetRepositoryByIDCtx(ctx, repo.ID); err != nil {
+	if repo, err = repo_model.GetRepositoryByID(ctx, repo.ID); err != nil {
 		return fmt.Errorf("getRepositoryByID: %w", err)
 	}
 
@@ -218,21 +218,21 @@ func DeleteUnadoptedRepository(doer, u *user_model.User, repoName string) error 
 	return util.RemoveAll(repoPath)
 }
 
-type unadoptedRrepositories struct {
+type unadoptedRepositories struct {
 	repositories []string
 	index        int
 	start        int
 	end          int
 }
 
-func (unadopted *unadoptedRrepositories) add(repository string) {
+func (unadopted *unadoptedRepositories) add(repository string) {
 	if unadopted.index >= unadopted.start && unadopted.index < unadopted.end {
 		unadopted.repositories = append(unadopted.repositories, repository)
 	}
 	unadopted.index++
 }
 
-func checkUnadoptedRepositories(userName string, repoNamesToCheck []string, unadopted *unadoptedRrepositories) error {
+func checkUnadoptedRepositories(userName string, repoNamesToCheck []string, unadopted *unadoptedRepositories) error {
 	if len(repoNamesToCheck) == 0 {
 		return nil
 	}
@@ -264,7 +264,7 @@ func checkUnadoptedRepositories(userName string, repoNamesToCheck []string, unad
 	}
 	for _, repoName := range repoNamesToCheck {
 		if !repoNames.Contains(repoName) {
-			unadopted.add(filepath.Join(userName, repoName))
+			unadopted.add(path.Join(userName, repoName)) // These are not used as filepaths - but as reponames - therefore use path.Join not filepath.Join
 		}
 	}
 	return nil
@@ -292,7 +292,7 @@ func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, in
 	var repoNamesToCheck []string
 
 	start := (opts.Page - 1) * opts.PageSize
-	unadopted := &unadoptedRrepositories{
+	unadopted := &unadoptedRepositories{
 		repositories: make([]string, 0, opts.PageSize),
 		start:        start,
 		end:          start + opts.PageSize,
@@ -337,7 +337,7 @@ func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, in
 		}
 
 		repoNamesToCheck = append(repoNamesToCheck, name)
-		if len(repoNamesToCheck) > setting.Database.IterateBufferSize {
+		if len(repoNamesToCheck) >= setting.Database.IterateBufferSize {
 			if err = checkUnadoptedRepositories(userName, repoNamesToCheck, unadopted); err != nil {
 				return err
 			}

@@ -1,7 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // Copyright 2018 Jonas Franz. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migrations
 
@@ -18,7 +17,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/foreignreference"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -110,7 +108,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 			Status:         repo_model.RepositoryBeingMigrated,
 		})
 	} else {
-		r, err = repo_model.GetRepositoryByID(opts.MigrateToRepoID)
+		r, err = repo_model.GetRepositoryByID(g.ctx, opts.MigrateToRepoID)
 	}
 	if err != nil {
 		return err
@@ -404,16 +402,6 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 			Labels:      labels,
 			CreatedUnix: timeutil.TimeStamp(issue.Created.Unix()),
 			UpdatedUnix: timeutil.TimeStamp(issue.Updated.Unix()),
-			ForeignReference: &foreignreference.ForeignReference{
-				LocalIndex:   issue.GetLocalIndex(),
-				ForeignIndex: strconv.FormatInt(issue.GetForeignIndex(), 10),
-				RepoID:       g.repo.ID,
-				Type:         foreignreference.TypeIssue,
-			},
-		}
-
-		if is.ForeignReference.ForeignIndex == "0" {
-			is.ForeignReference.ForeignIndex = strconv.FormatInt(is.Index, 10)
 		}
 
 		if err := g.remapUser(issue, &is); err != nil {

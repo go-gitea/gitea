@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import attachTribute from './tribute.js';
+import {attachTribute} from './tribute.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 import {initEasyMDEImagePaste} from './comp/ImagePaste.js';
 import {createCommentEasyMDE} from './comp/EasyMDE.js';

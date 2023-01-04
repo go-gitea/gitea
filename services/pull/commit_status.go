@@ -1,7 +1,6 @@
 // Copyright 2019 The Gitea Authors.
 // All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package pull
 
@@ -84,7 +83,7 @@ func IsCommitStatusContextSuccess(commitStatuses []*git_model.CommitStatus, requ
 
 // IsPullCommitStatusPass returns if all required status checks PASS
 func IsPullCommitStatusPass(ctx context.Context, pr *issues_model.PullRequest) (bool, error) {
-	if err := pr.LoadProtectedBranchCtx(ctx); err != nil {
+	if err := pr.LoadProtectedBranch(ctx); err != nil {
 		return false, errors.Wrap(err, "GetLatestCommitStatus")
 	}
 	if pr.ProtectedBranch == nil || !pr.ProtectedBranch.EnableStatusCheck {
@@ -101,7 +100,7 @@ func IsPullCommitStatusPass(ctx context.Context, pr *issues_model.PullRequest) (
 // GetPullRequestCommitStatusState returns pull request merged commit status state
 func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullRequest) (structs.CommitStatusState, error) {
 	// Ensure HeadRepo is loaded
-	if err := pr.LoadHeadRepoCtx(ctx); err != nil {
+	if err := pr.LoadHeadRepo(ctx); err != nil {
 		return "", errors.Wrap(err, "LoadHeadRepo")
 	}
 
@@ -129,7 +128,7 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullR
 		return "", err
 	}
 
-	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
+	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return "", errors.Wrap(err, "LoadBaseRepo")
 	}
 
@@ -138,7 +137,7 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullR
 		return "", errors.Wrap(err, "GetLatestCommitStatus")
 	}
 
-	if err := pr.LoadProtectedBranchCtx(ctx); err != nil {
+	if err := pr.LoadProtectedBranch(ctx); err != nil {
 		return "", errors.Wrap(err, "LoadProtectedBranch")
 	}
 	var requiredContexts []string

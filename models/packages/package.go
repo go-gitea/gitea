@@ -1,16 +1,15 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package packages
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -21,9 +20,9 @@ func init() {
 
 var (
 	// ErrDuplicatePackage indicates a duplicated package error
-	ErrDuplicatePackage = errors.New("Package does exist already")
+	ErrDuplicatePackage = util.NewAlreadyExistErrorf("package already exists")
 	// ErrPackageNotExist indicates a package not exist error
-	ErrPackageNotExist = errors.New("Package does not exist")
+	ErrPackageNotExist = util.NewNotExistErrorf("package does not exist")
 )
 
 // Type of a package
@@ -44,6 +43,21 @@ const (
 	TypeRubyGems  Type = "rubygems"
 	TypeVagrant   Type = "vagrant"
 )
+
+var TypeList = []Type{
+	TypeComposer,
+	TypeConan,
+	TypeContainer,
+	TypeGeneric,
+	TypeHelm,
+	TypeMaven,
+	TypeNpm,
+	TypeNuGet,
+	TypePub,
+	TypePyPI,
+	TypeRubyGems,
+	TypeVagrant,
+}
 
 // Name gets the name of the package type
 func (pt Type) Name() string {

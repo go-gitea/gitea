@@ -1,7 +1,6 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cmd
 
@@ -413,9 +412,9 @@ var (
 			Usage: "SMTP Authentication Type (PLAIN/LOGIN/CRAM-MD5) default PLAIN",
 		},
 		cli.StringFlag{
-			Name:  "addr",
+			Name:  "host",
 			Value: "",
-			Usage: "SMTP Addr",
+			Usage: "SMTP Host",
 		},
 		cli.IntFlag{
 			Name:  "port",
@@ -666,7 +665,7 @@ func runDeleteUser(c *cli.Context) error {
 	} else if c.IsSet("username") {
 		user, err = user_model.GetUserByName(ctx, c.String("username"))
 	} else {
-		user, err = user_model.GetUserByID(c.Int64("id"))
+		user, err = user_model.GetUserByID(ctx, c.Int64("id"))
 	}
 	if err != nil {
 		return err
@@ -727,7 +726,7 @@ func runRepoSyncReleases(_ *cli.Context) error {
 
 	log.Trace("Synchronizing repository releases (this may take a while)")
 	for page := 1; ; page++ {
-		repos, count, err := repo_model.SearchRepositoryByName(&repo_model.SearchRepoOptions{
+		repos, count, err := repo_model.SearchRepositoryByName(ctx, &repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
 				PageSize: repo_model.RepositoryListDefaultPageSize,
 				Page:     page,
@@ -779,6 +778,7 @@ func runRepoSyncReleases(_ *cli.Context) error {
 
 func getReleaseCount(id int64) (int64, error) {
 	return repo_model.GetReleaseCountByRepoID(
+		db.DefaultContext,
 		id,
 		repo_model.FindReleasesOptions{
 			IncludeTags: true,
@@ -955,8 +955,8 @@ func parseSMTPConfig(c *cli.Context, conf *smtp.Source) error {
 		}
 		conf.Auth = c.String("auth-type")
 	}
-	if c.IsSet("addr") {
-		conf.Addr = c.String("addr")
+	if c.IsSet("host") {
+		conf.Host = c.String("host")
 	}
 	if c.IsSet("port") {
 		conf.Port = c.Int("port")

@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -21,7 +20,7 @@ func UpdateRepositoryOwnerNames(ownerID int64, ownerName string) error {
 	if ownerID == 0 {
 		return nil
 	}
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -172,7 +171,7 @@ func ChangeRepositoryName(doer *user_model.User, repo *Repository, newRepoName s
 		}
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

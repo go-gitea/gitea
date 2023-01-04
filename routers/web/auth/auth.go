@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package auth
 
@@ -17,11 +16,8 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/eventsource"
-	"code.gitea.io/gitea/modules/hcaptcha"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/mcaptcha"
 	"code.gitea.io/gitea/modules/password"
-	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -82,19 +78,12 @@ func AutoSignIn(ctx *context.Context) (bool, error) {
 
 	isSucceed = true
 
-	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
-		return false, fmt.Errorf("unable to RegenerateSession: Error: %w", err)
-	}
-
-	// Set session IDs
-	if err := ctx.Session.Set("uid", u.ID); err != nil {
-		return false, err
-	}
-	if err := ctx.Session.Set("uname", u.Name); err != nil {
-		return false, err
-	}
-	if err := ctx.Session.Release(); err != nil {
-		return false, err
+	if err := updateSession(ctx, nil, map[string]interface{}{
+		// Set session IDs
+		"uid":   u.ID,
+		"uname": u.Name,
+	}); err != nil {
+		return false, fmt.Errorf("unable to updateSession: %w", err)
 	}
 
 	if err := resetLocale(ctx, u); err != nil {
@@ -170,6 +159,10 @@ func SignIn(ctx *context.Context) {
 	ctx.Data["PageIsLogin"] = true
 	ctx.Data["EnableSSPI"] = auth.IsSSPIEnabled()
 
+	if setting.Service.EnableCaptcha && setting.Service.RequireCaptchaForLogin {
+		context.SetCaptchaData(ctx)
+	}
+
 	ctx.HTML(http.StatusOK, tplSignIn)
 }
 
@@ -196,6 +189,16 @@ func SignInPost(ctx *context.Context) {
 	}
 
 	form := web.GetForm(ctx).(*forms.SignInForm)
+
+	if setting.Service.EnableCaptcha && setting.Service.RequireCaptchaForLogin {
+		context.SetCaptchaData(ctx)
+
+		context.VerifyCaptcha(ctx, tplSignIn, form)
+		if ctx.Written() {
+			return
+		}
+	}
+
 	u, source, err := auth_service.UserSignIn(form.UserName, form.Password)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) || user_model.IsErrEmailAddressNotExist(err) {
@@ -252,32 +255,17 @@ func SignInPost(ctx *context.Context) {
 		return
 	}
 
-	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
-		ctx.ServerError("UserSignIn: Unable to set regenerate session", err)
-		return
+	updates := map[string]interface{}{
+		// User will need to use 2FA TOTP or WebAuthn, save data
+		"twofaUid":      u.ID,
+		"twofaRemember": form.Remember,
 	}
-
-	// User will need to use 2FA TOTP or WebAuthn, save data
-	if err := ctx.Session.Set("twofaUid", u.ID); err != nil {
-		ctx.ServerError("UserSignIn: Unable to set twofaUid in session", err)
-		return
-	}
-
-	if err := ctx.Session.Set("twofaRemember", form.Remember); err != nil {
-		ctx.ServerError("UserSignIn: Unable to set twofaRemember in session", err)
-		return
-	}
-
 	if hasTOTPtwofa {
 		// User will need to use WebAuthn, save data
-		if err := ctx.Session.Set("totpEnrolled", u.ID); err != nil {
-			ctx.ServerError("UserSignIn: Unable to set WebAuthn Enrolled in session", err)
-			return
-		}
+		updates["totpEnrolled"] = u.ID
 	}
-
-	if err := ctx.Session.Release(); err != nil {
-		ctx.ServerError("UserSignIn: Unable to save session", err)
+	if err := updateSession(ctx, nil, updates); err != nil {
+		ctx.ServerError("UserSignIn: Unable to update session", err)
 		return
 	}
 
@@ -308,27 +296,21 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 			setting.CookieRememberName, u.Name, days)
 	}
 
-	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
+	if err := updateSession(ctx, []string{
+		// Delete the openid, 2fa and linkaccount data
+		"openid_verified_uri",
+		"openid_signin_remember",
+		"openid_determined_email",
+		"openid_determined_username",
+		"twofaUid",
+		"twofaRemember",
+		"linkAccount",
+	}, map[string]interface{}{
+		"uid":   u.ID,
+		"uname": u.Name,
+	}); err != nil {
 		ctx.ServerError("RegenerateSession", err)
 		return setting.AppSubURL + "/"
-	}
-
-	// Delete the openid, 2fa and linkaccount data
-	_ = ctx.Session.Delete("openid_verified_uri")
-	_ = ctx.Session.Delete("openid_signin_remember")
-	_ = ctx.Session.Delete("openid_determined_email")
-	_ = ctx.Session.Delete("openid_determined_username")
-	_ = ctx.Session.Delete("twofaUid")
-	_ = ctx.Session.Delete("twofaRemember")
-	_ = ctx.Session.Delete("linkAccount")
-	if err := ctx.Session.Set("uid", u.ID); err != nil {
-		log.Error("Error setting uid %d in session: %v", u.ID, err)
-	}
-	if err := ctx.Session.Set("uname", u.Name); err != nil {
-		log.Error("Error setting uname %s session: %v", u.Name, err)
-	}
-	if err := ctx.Session.Release(); err != nil {
-		log.Error("Unable to store session: %v", err)
 	}
 
 	// Language setting of the user overwrites the one previously set
@@ -411,14 +393,7 @@ func SignUp(ctx *context.Context) {
 
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 
-	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
-	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
-	ctx.Data["Captcha"] = context.GetImageCaptcha()
-	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
-	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
-	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
-	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
-	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
+	context.SetCaptchaData(ctx)
 	ctx.Data["PageIsSignUp"] = true
 
 	// Show Disabled Registration message if DisableRegistration or AllowOnlyExternalRegistration options are true
@@ -434,14 +409,7 @@ func SignUpPost(ctx *context.Context) {
 
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 
-	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
-	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
-	ctx.Data["Captcha"] = context.GetImageCaptcha()
-	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
-	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
-	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
-	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
-	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
+	context.SetCaptchaData(ctx)
 	ctx.Data["PageIsSignUp"] = true
 
 	// Permission denied if DisableRegistration or AllowOnlyExternalRegistration options are true
@@ -455,31 +423,9 @@ func SignUpPost(ctx *context.Context) {
 		return
 	}
 
-	if setting.Service.EnableCaptcha {
-		var valid bool
-		var err error
-		switch setting.Service.CaptchaType {
-		case setting.ImageCaptcha:
-			valid = context.GetImageCaptcha().VerifyReq(ctx.Req)
-		case setting.ReCaptcha:
-			valid, err = recaptcha.Verify(ctx, form.GRecaptchaResponse)
-		case setting.HCaptcha:
-			valid, err = hcaptcha.Verify(ctx, form.HcaptchaResponse)
-		case setting.MCaptcha:
-			valid, err = mcaptcha.Verify(ctx, form.McaptchaResponse)
-		default:
-			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
-			return
-		}
-		if err != nil {
-			log.Debug("%s", err.Error())
-		}
-
-		if !valid {
-			ctx.Data["Err_Captcha"] = true
-			ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplSignUp, &form)
-			return
-		}
+	context.VerifyCaptcha(ctx, tplSignUp, form)
+	if ctx.Written() {
+		return
 	}
 
 	if !form.IsEmailDomainAllowed() {
@@ -762,24 +708,24 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 
 	log.Trace("User activated: %s", user.Name)
 
-	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
+	if err := updateSession(ctx, nil, map[string]interface{}{
+		"uid":   user.ID,
+		"uname": user.Name,
+	}); err != nil {
 		log.Error("Unable to regenerate session for user: %-v with email: %s: %v", user, user.Email, err)
 		ctx.ServerError("ActivateUserEmail", err)
 		return
 	}
 
-	if err := ctx.Session.Set("uid", user.ID); err != nil {
-		log.Error("Error setting uid in session[%s]: %v", ctx.Session.ID(), err)
-	}
-	if err := ctx.Session.Set("uname", user.Name); err != nil {
-		log.Error("Error setting uname in session[%s]: %v", ctx.Session.ID(), err)
-	}
-	if err := ctx.Session.Release(); err != nil {
-		log.Error("Error storing session[%s]: %v", ctx.Session.ID(), err)
-	}
-
 	if err := resetLocale(ctx, user); err != nil {
 		ctx.ServerError("resetLocale", err)
+		return
+	}
+
+	// Register last login
+	user.SetLastLogin()
+	if err := user_model.UpdateUserCols(ctx, user, "last_login_unix"); err != nil {
+		ctx.ServerError("UpdateUserCols", err)
 		return
 	}
 
@@ -801,7 +747,7 @@ func ActivateEmail(ctx *context.Context) {
 		log.Trace("Email activated: %s", email.Email)
 		ctx.Flash.Success(ctx.Tr("settings.add_email_success"))
 
-		if u, err := user_model.GetUserByID(email.UID); err != nil {
+		if u, err := user_model.GetUserByID(ctx, email.UID); err != nil {
 			log.Warn("GetUserByID: %d", email.UID)
 		} else if setting.CacheService.Enabled {
 			// Allow user to validate more emails
@@ -813,4 +759,26 @@ func ActivateEmail(ctx *context.Context) {
 	// so this could be redirecting to the login page.
 	// Should users be logged in automatically here? (consider 2FA requirements, etc.)
 	ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+}
+
+func updateSession(ctx *context.Context, deletes []string, updates map[string]interface{}) error {
+	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
+		return fmt.Errorf("regenerate session: %w", err)
+	}
+	sess := ctx.Session
+	sessID := sess.ID()
+	for _, k := range deletes {
+		if err := sess.Delete(k); err != nil {
+			return fmt.Errorf("delete %v in session[%s]: %w", k, sessID, err)
+		}
+	}
+	for k, v := range updates {
+		if err := sess.Set(k, v); err != nil {
+			return fmt.Errorf("set %v in session[%s]: %w", k, sessID, err)
+		}
+	}
+	if err := sess.Release(); err != nil {
+		return fmt.Errorf("store session[%s]: %w", sessID, err)
+	}
+	return nil
 }

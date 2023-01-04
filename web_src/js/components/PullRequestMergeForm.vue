@@ -25,6 +25,14 @@
           </div>
           <div class="field">
             <textarea name="merge_message_field" rows="5" :placeholder="mergeForm.mergeMessageFieldPlaceHolder" v-model="mergeMessageFieldValue"/>
+            <template v-if="mergeMessageFieldValue !== mergeForm.defaultMergeMessage">
+              <button @click.prevent="clearMergeMessage" class="ui tertiary button">
+                {{ mergeForm.textClearMergeMessage }}
+              </button>
+              <div class="ui label"><!-- TODO: Convert to tooltip once we can use tooltips in Vue templates -->
+                {{ mergeForm.textClearMergeMessageHint }}
+              </div>
+            </template>
           </div>
         </template>
 
@@ -103,11 +111,7 @@ import {SvgIcon} from '../svg.js';
 const {csrfToken, pageData} = window.config;
 
 export default {
-  name: 'PullRequestMergeForm',
-  components: {
-    SvgIcon,
-  },
-
+  components: {SvgIcon},
   data: () => ({
     csrfToken,
     mergeForm: pageData.pullRequestMergeForm,
@@ -129,20 +133,17 @@ export default {
     showMergeStyleMenu: false,
     showActionForm: false,
   }),
-
   computed: {
     mergeButtonStyleClass() {
       if (this.mergeForm.allOverridableChecksOk) return 'green';
       return this.autoMergeWhenSucceed ? 'blue' : 'red';
     }
   },
-
   watch: {
     mergeStyle(val) {
       this.mergeStyleDetail = this.mergeForm.mergeStyles.find((e) => e.name === val);
     }
   },
-
   created() {
     this.mergeStyleAllowedCount = this.mergeForm.mergeStyles.reduce((v, msd) => v + (msd.allowed ? 1 : 0), 0);
 
@@ -150,15 +151,12 @@ export default {
     if (!mergeStyle) mergeStyle = this.mergeForm.mergeStyles.find((e) => e.allowed)?.name;
     this.switchMergeStyle(mergeStyle, !this.mergeForm.canMergeNow);
   },
-
   mounted() {
     document.addEventListener('mouseup', this.hideMergeStyleMenu);
   },
-
   unmounted() {
     document.removeEventListener('mouseup', this.hideMergeStyleMenu);
   },
-
   methods: {
     hideMergeStyleMenu() {
       this.showMergeStyleMenu = false;
@@ -173,6 +171,9 @@ export default {
     switchMergeStyle(name, autoMerge = false) {
       this.mergeStyle = name;
       this.autoMergeWhenSucceed = autoMerge;
+    },
+    clearMergeMessage() {
+      this.mergeMessageFieldValue = this.mergeForm.defaultMergeMessage;
     },
   },
 };

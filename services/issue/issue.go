@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issue
 
@@ -18,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // NewIssue creates new issue with labels for repository.
@@ -38,12 +36,12 @@ func NewIssue(repo *repo_model.Repository, issue *issues_model.Issue, labelIDs [
 		return err
 	}
 
-	notification.NotifyNewIssue(issue, mentions)
+	notification.NotifyNewIssue(db.DefaultContext, issue, mentions)
 	if len(issue.Labels) > 0 {
-		notification.NotifyIssueChangeLabels(issue.Poster, issue, issue.Labels, nil)
+		notification.NotifyIssueChangeLabels(db.DefaultContext, issue.Poster, issue, issue.Labels, nil)
 	}
 	if issue.Milestone != nil {
-		notification.NotifyIssueChangeMilestone(issue.Poster, issue, 0)
+		notification.NotifyIssueChangeMilestone(db.DefaultContext, issue.Poster, issue, 0)
 	}
 
 	return nil
@@ -58,7 +56,7 @@ func ChangeTitle(issue *issues_model.Issue, doer *user_model.User, title string)
 		return
 	}
 
-	notification.NotifyIssueChangeTitle(doer, issue, oldTitle)
+	notification.NotifyIssueChangeTitle(db.DefaultContext, doer, issue, oldTitle)
 
 	return nil
 }
@@ -72,7 +70,7 @@ func ChangeIssueRef(issue *issues_model.Issue, doer *user_model.User, ref string
 		return err
 	}
 
-	notification.NotifyIssueChangeRef(doer, issue, oldRef)
+	notification.NotifyIssueChangeRef(db.DefaultContext, doer, issue, oldRef)
 
 	return nil
 }
@@ -135,10 +133,10 @@ func UpdateAssignees(issue *issues_model.Issue, oneAssignee string, multipleAssi
 // DeleteIssue deletes an issue
 func DeleteIssue(doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue) error {
 	// load issue before deleting it
-	if err := issue.LoadAttributes(db.DefaultContext); err != nil {
+	if err := issue.LoadAttributes(gitRepo.Ctx); err != nil {
 		return err
 	}
-	if err := issue.LoadPullRequest(); err != nil {
+	if err := issue.LoadPullRequest(gitRepo.Ctx); err != nil {
 		return err
 	}
 
@@ -154,7 +152,7 @@ func DeleteIssue(doer *user_model.User, gitRepo *git.Repository, issue *issues_m
 		}
 	}
 
-	notification.NotifyDeleteIssue(doer, issue)
+	notification.NotifyDeleteIssue(gitRepo.Ctx, doer, issue)
 
 	return nil
 }
@@ -162,7 +160,7 @@ func DeleteIssue(doer *user_model.User, gitRepo *git.Repository, issue *issues_m
 // AddAssigneeIfNotAssigned adds an assignee only if he isn't already assigned to the issue.
 // Also checks for access of assigned user
 func AddAssigneeIfNotAssigned(issue *issues_model.Issue, doer *user_model.User, assigneeID int64) (err error) {
-	assignee, err := user_model.GetUserByID(assigneeID)
+	assignee, err := user_model.GetUserByID(db.DefaultContext, assigneeID)
 	if err != nil {
 		return err
 	}
@@ -201,7 +199,7 @@ func GetRefEndNamesAndURLs(issues []*issues_model.Issue, repoLink string) (map[i
 	for _, issue := range issues {
 		if issue.Ref != "" {
 			issueRefEndNames[issue.ID] = git.RefEndName(issue.Ref)
-			issueRefURLs[issue.ID] = git.RefURL(repoLink, util.PathEscapeSegments(issue.Ref))
+			issueRefURLs[issue.ID] = git.RefURL(repoLink, issue.Ref)
 		}
 	}
 	return issueRefEndNames, issueRefURLs
@@ -209,7 +207,7 @@ func GetRefEndNamesAndURLs(issues []*issues_model.Issue, repoLink string) (map[i
 
 // deleteIssue deletes the issue
 func deleteIssue(issue *issues_model.Issue) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -220,8 +218,15 @@ func deleteIssue(issue *issues_model.Issue) error {
 		return err
 	}
 
-	if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, issue.IsClosed); err != nil {
+	// update the total issue numbers
+	if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, false); err != nil {
 		return err
+	}
+	// if the issue is closed, update the closed issue numbers
+	if issue.IsClosed {
+		if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, true); err != nil {
+			return err
+		}
 	}
 
 	if err := issues_model.UpdateMilestoneCounters(ctx, issue.MilestoneID); err != nil {

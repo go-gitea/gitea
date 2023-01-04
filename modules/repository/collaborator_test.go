@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
@@ -26,7 +25,7 @@ func TestRepository_AddCollaborator(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
 		assert.NoError(t, repo.GetOwner(db.DefaultContext))
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID})
-		assert.NoError(t, AddCollaborator(repo, user))
+		assert.NoError(t, AddCollaborator(db.DefaultContext, repo, user))
 		unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repoID}, &user_model.User{ID: userID})
 	}
 	testSuccess(1, 4)
@@ -51,7 +50,7 @@ func TestRepoPermissionPublicNonOrgRepo(t *testing.T) {
 	}
 
 	// change to collaborator
-	assert.NoError(t, AddCollaborator(repo, user))
+	assert.NoError(t, AddCollaborator(db.DefaultContext, repo, user))
 	perm, err = access_model.GetUserRepoPermission(db.DefaultContext, repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -104,7 +103,7 @@ func TestRepoPermissionPrivateNonOrgRepo(t *testing.T) {
 	}
 
 	// change to collaborator to default write access
-	assert.NoError(t, AddCollaborator(repo, user))
+	assert.NoError(t, AddCollaborator(db.DefaultContext, repo, user))
 	perm, err = access_model.GetUserRepoPermission(db.DefaultContext, repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -112,7 +111,7 @@ func TestRepoPermissionPrivateNonOrgRepo(t *testing.T) {
 		assert.True(t, perm.CanWrite(unit.Type))
 	}
 
-	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(repo, user.ID, perm_model.AccessModeRead))
+	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(db.DefaultContext, repo, user.ID, perm_model.AccessModeRead))
 	perm, err = access_model.GetUserRepoPermission(db.DefaultContext, repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -156,7 +155,7 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 	}
 
 	// change to collaborator to default write access
-	assert.NoError(t, AddCollaborator(repo, user))
+	assert.NoError(t, AddCollaborator(db.DefaultContext, repo, user))
 	perm, err = access_model.GetUserRepoPermission(db.DefaultContext, repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -164,7 +163,7 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 		assert.True(t, perm.CanWrite(unit.Type))
 	}
 
-	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(repo, user.ID, perm_model.AccessModeRead))
+	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(db.DefaultContext, repo, user.ID, perm_model.AccessModeRead))
 	perm, err = access_model.GetUserRepoPermission(db.DefaultContext, repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -218,7 +217,7 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 	}
 
 	// change to collaborator to default write access
-	assert.NoError(t, AddCollaborator(repo, user))
+	assert.NoError(t, AddCollaborator(db.DefaultContext, repo, user))
 	perm, err = access_model.GetUserRepoPermission(db.DefaultContext, repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -226,7 +225,7 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 		assert.True(t, perm.CanWrite(unit.Type))
 	}
 
-	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(repo, user.ID, perm_model.AccessModeRead))
+	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(db.DefaultContext, repo, user.ID, perm_model.AccessModeRead))
 	perm, err = access_model.GetUserRepoPermission(db.DefaultContext, repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {

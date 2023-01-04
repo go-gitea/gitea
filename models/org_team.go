@@ -1,13 +1,11 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
 // Copyright 2016 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package models
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -42,7 +40,7 @@ func AddRepository(ctx context.Context, t *organization.Team, repo *repo_model.R
 
 	// Make all team members watch this repo if enabled in global settings
 	if setting.Service.AutoWatchNewRepos {
-		if err = t.GetMembersCtx(ctx); err != nil {
+		if err = t.LoadMembers(ctx); err != nil {
 			return fmt.Errorf("getMembers: %w", err)
 		}
 		for _, u := range t.Members {
@@ -76,7 +74,7 @@ func addAllRepositories(ctx context.Context, t *organization.Team) error {
 
 // AddAllRepositories adds all repositories to the team
 func AddAllRepositories(t *organization.Team) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -95,7 +93,7 @@ func RemoveAllRepositories(t *organization.Team) (err error) {
 		return nil
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -214,12 +212,12 @@ func RemoveRepository(t *organization.Team, repoID int64) error {
 		return nil
 	}
 
-	repo, err := repo_model.GetRepositoryByID(repoID)
+	repo, err := repo_model.GetRepositoryByID(db.DefaultContext, repoID)
 	if err != nil {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -236,7 +234,7 @@ func RemoveRepository(t *organization.Team, repoID int64) error {
 // It's caller's responsibility to assign organization ID.
 func NewTeam(t *organization.Team) (err error) {
 	if len(t.Name) == 0 {
-		return errors.New("empty team name")
+		return util.NewInvalidArgumentErrorf("empty team name")
 	}
 
 	if err = organization.IsUsableTeamName(t.Name); err != nil {
@@ -263,7 +261,7 @@ func NewTeam(t *organization.Team) (err error) {
 		return organization.ErrTeamAlreadyExist{OrgID: t.OrgID, Name: t.LowerName}
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -301,14 +299,14 @@ func NewTeam(t *organization.Team) (err error) {
 // UpdateTeam updates information of team.
 func UpdateTeam(t *organization.Team, authChanged, includeAllChanged bool) (err error) {
 	if len(t.Name) == 0 {
-		return errors.New("empty team name")
+		return util.NewInvalidArgumentErrorf("empty team name")
 	}
 
 	if len(t.Description) > 255 {
 		t.Description = t.Description[:255]
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -350,8 +348,8 @@ func UpdateTeam(t *organization.Team, authChanged, includeAllChanged bool) (err 
 
 	// Update access for team members if needed.
 	if authChanged {
-		if err = t.GetRepositoriesCtx(ctx); err != nil {
-			return fmt.Errorf("getRepositories: %w", err)
+		if err = t.LoadRepositories(ctx); err != nil {
+			return fmt.Errorf("LoadRepositories: %w", err)
 		}
 
 		for _, repo := range t.Repos {
@@ -375,18 +373,18 @@ func UpdateTeam(t *organization.Team, authChanged, includeAllChanged bool) (err 
 // DeleteTeam deletes given team.
 // It's caller's responsibility to assign organization ID.
 func DeleteTeam(t *organization.Team) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 	sess := db.GetEngine(ctx)
 
-	if err := t.GetRepositoriesCtx(ctx); err != nil {
+	if err := t.LoadRepositories(ctx); err != nil {
 		return err
 	}
 
-	if err := t.GetMembersCtx(ctx); err != nil {
+	if err := t.LoadMembers(ctx); err != nil {
 		return err
 	}
 
@@ -460,7 +458,7 @@ func AddTeamMember(team *organization.Team, userID int64) error {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -517,10 +515,16 @@ func AddTeamMember(team *organization.Team, userID int64) error {
 		}
 	}
 
-	// watch could be failed, so run it in a goroutine
+	if err := committer.Commit(); err != nil {
+		return err
+	}
+	committer.Close()
+
+	// this behaviour may spend much time so run it in a goroutine
+	// FIXME: Update watch repos batchly
 	if setting.Service.AutoWatchNewRepos {
 		// Get team and its repositories.
-		if err := team.GetRepositoriesCtx(db.DefaultContext); err != nil {
+		if err := team.LoadRepositories(db.DefaultContext); err != nil {
 			log.Error("getRepositories failed: %v", err)
 		}
 		go func(repos []*repo_model.Repository) {
@@ -532,7 +536,7 @@ func AddTeamMember(team *organization.Team, userID int64) error {
 		}(team.Repos)
 	}
 
-	return committer.Commit()
+	return nil
 }
 
 func removeTeamMember(ctx context.Context, team *organization.Team, userID int64) error {
@@ -549,7 +553,7 @@ func removeTeamMember(ctx context.Context, team *organization.Team, userID int64
 
 	team.NumMembers--
 
-	if err := team.GetRepositoriesCtx(ctx); err != nil {
+	if err := team.LoadRepositories(ctx); err != nil {
 		return err
 	}
 
@@ -598,7 +602,7 @@ func removeTeamMember(ctx context.Context, team *organization.Team, userID int64
 
 // RemoveTeamMember removes member from given team of given organization.
 func RemoveTeamMember(team *organization.Team, userID int64) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

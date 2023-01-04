@@ -6,6 +6,7 @@ export function createTippy(target, opts = {}) {
     placement: target.getAttribute('data-placement') || 'top-start',
     animation: false,
     allowHTML: false,
+    hideOnClick: false,
     interactiveBorder: 30,
     ignoreAttributes: true,
     maxWidth: 500, // increase over default 350px
@@ -27,6 +28,7 @@ export function createTippy(target, opts = {}) {
 export function initTooltip(el, props = {}) {
   const content = el.getAttribute('data-content') || props.content;
   if (!content) return null;
+  if (!el.hasAttribute('aria-label')) el.setAttribute('aria-label', content);
   return createTippy(el, {
     content,
     delay: 100,
@@ -45,7 +47,7 @@ export function showTemporaryTooltip(target, content) {
   }
 
   tippy.setContent(content);
-  tippy.show();
+  if (!tippy.state.isShown) tippy.show();
   tippy.setProps({
     onHidden: (tippy) => {
       if (oldContent) {

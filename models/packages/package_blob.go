@@ -1,20 +1,19 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package packages
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrPackageBlobNotExist indicates a package blob not exist error
-var ErrPackageBlobNotExist = errors.New("Package blob does not exist")
+var ErrPackageBlobNotExist = util.NewNotExistErrorf("package blob does not exist")
 
 func init() {
 	db.RegisterModel(new(PackageBlob))
@@ -60,6 +59,13 @@ func GetBlobByID(ctx context.Context, blobID int64) (*PackageBlob, error) {
 		return nil, ErrPackageBlobNotExist
 	}
 	return pb, nil
+}
+
+// ExistPackageBlobWithSHA returns if a package blob exists with the provided sha
+func ExistPackageBlobWithSHA(ctx context.Context, blobSha256 string) (bool, error) {
+	return db.GetEngine(ctx).Exist(&PackageBlob{
+		HashSHA256: blobSha256,
+	})
 }
 
 // FindExpiredUnreferencedBlobs gets all blobs without associated files older than the specific duration

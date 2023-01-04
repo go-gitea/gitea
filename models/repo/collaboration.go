@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -45,7 +44,7 @@ func GetCollaborators(ctx context.Context, repoID int64, listOptions db.ListOpti
 
 	collaborators := make([]*Collaborator, 0, len(collaborations))
 	for _, c := range collaborations {
-		user, err := user_model.GetUserByIDCtx(ctx, c.UserID)
+		user, err := user_model.GetUserByID(ctx, c.UserID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				log.Warn("Inconsistent DB: User: %d is listed as collaborator of %-v but does not exist", c.UserID, repoID)
@@ -100,55 +99,42 @@ func getCollaborations(ctx context.Context, repoID int64, listOptions db.ListOpt
 }
 
 // ChangeCollaborationAccessMode sets new access mode for the collaboration.
-func ChangeCollaborationAccessModeCtx(ctx context.Context, repo *Repository, uid int64, mode perm.AccessMode) error {
+func ChangeCollaborationAccessMode(ctx context.Context, repo *Repository, uid int64, mode perm.AccessMode) error {
 	// Discard invalid input
 	if mode <= perm.AccessModeNone || mode > perm.AccessModeOwner {
 		return nil
 	}
 
-	e := db.GetEngine(ctx)
+	return db.AutoTx(ctx, func(ctx context.Context) error {
+		e := db.GetEngine(ctx)
 
-	collaboration := &Collaboration{
-		RepoID: repo.ID,
-		UserID: uid,
-	}
-	has, err := e.Get(collaboration)
-	if err != nil {
-		return fmt.Errorf("get collaboration: %w", err)
-	} else if !has {
+		collaboration := &Collaboration{
+			RepoID: repo.ID,
+			UserID: uid,
+		}
+		has, err := e.Get(collaboration)
+		if err != nil {
+			return fmt.Errorf("get collaboration: %w", err)
+		} else if !has {
+			return nil
+		}
+
+		if collaboration.Mode == mode {
+			return nil
+		}
+		collaboration.Mode = mode
+
+		if _, err = e.
+			ID(collaboration.ID).
+			Cols("mode").
+			Update(collaboration); err != nil {
+			return fmt.Errorf("update collaboration: %w", err)
+		} else if _, err = e.Exec("UPDATE access SET mode = ? WHERE user_id = ? AND repo_id = ?", mode, uid, repo.ID); err != nil {
+			return fmt.Errorf("update access table: %w", err)
+		}
+
 		return nil
-	}
-
-	if collaboration.Mode == mode {
-		return nil
-	}
-	collaboration.Mode = mode
-
-	if _, err = e.
-		ID(collaboration.ID).
-		Cols("mode").
-		Update(collaboration); err != nil {
-		return fmt.Errorf("update collaboration: %w", err)
-	} else if _, err = e.Exec("UPDATE access SET mode = ? WHERE user_id = ? AND repo_id = ?", mode, uid, repo.ID); err != nil {
-		return fmt.Errorf("update access table: %w", err)
-	}
-
-	return nil
-}
-
-// ChangeCollaborationAccessMode sets new access mode for the collaboration.
-func ChangeCollaborationAccessMode(repo *Repository, uid int64, mode perm.AccessMode) error {
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err := ChangeCollaborationAccessModeCtx(ctx, repo, uid, mode); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+	})
 }
 
 // IsOwnerMemberCollaborator checks if a provided user is the owner, a collaborator or a member of a team in a repository

@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package admin
 
@@ -18,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	system_module "code.gitea.io/gitea/modules/system"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/mailer"
 
@@ -203,7 +201,11 @@ func ChangeConfig(ctx *context.Context) {
 	value := ctx.FormString("value")
 	version := ctx.FormInt("version")
 
-	if err := system_module.SetSetting(key, value, version); err != nil {
+	if err := system_model.SetSetting(&system_model.Setting{
+		SettingKey:   key,
+		SettingValue: value,
+		Version:      version,
+	}); err != nil {
 		log.Error("set setting failed: %v", err)
 		ctx.JSON(http.StatusOK, map[string]string{
 			"err": ctx.Tr("admin.config.set_setting_failed", key),

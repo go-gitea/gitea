@@ -1,7 +1,6 @@
 // Copyright 2019 The Gitea Authors.
 // All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package pull
 
@@ -48,7 +47,7 @@ var (
 func AddToTaskQueue(pr *issues_model.PullRequest) {
 	err := prPatchCheckerQueue.PushFunc(strconv.FormatInt(pr.ID, 10), func() error {
 		pr.Status = issues_model.PullRequestStatusChecking
-		err := pr.UpdateColsIfNotMerged("status")
+		err := pr.UpdateColsIfNotMerged(db.DefaultContext, "status")
 		if err != nil {
 			log.Error("AddToTaskQueue.UpdateCols[%d].(add to queue): %v", pr.ID, err)
 		} else {
@@ -63,12 +62,12 @@ func AddToTaskQueue(pr *issues_model.PullRequest) {
 
 // CheckPullMergable check if the pull mergable based on all conditions (branch protection, merge options, ...)
 func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *access_model.Permission, pr *issues_model.PullRequest, manuallMerge, force bool) error {
-	return db.WithTx(func(ctx context.Context) error {
+	return db.WithTx(stdCtx, func(ctx context.Context) error {
 		if pr.HasMerged {
 			return ErrHasMerged
 		}
 
-		if err := pr.LoadIssueCtx(ctx); err != nil {
+		if err := pr.LoadIssue(ctx); err != nil {
 			return err
 		} else if pr.Issue.IsClosed {
 			return ErrIsClosed
@@ -122,12 +121,12 @@ func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *acce
 		}
 
 		return nil
-	}, stdCtx)
+	})
 }
 
 // isSignedIfRequired check if merge will be signed if required
 func isSignedIfRequired(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User) (bool, error) {
-	if err := pr.LoadProtectedBranchCtx(ctx); err != nil {
+	if err := pr.LoadProtectedBranch(ctx); err != nil {
 		return false, err
 	}
 
@@ -142,7 +141,7 @@ func isSignedIfRequired(ctx context.Context, pr *issues_model.PullRequest, doer 
 
 // checkAndUpdateStatus checks if pull request is possible to leaving checking status,
 // and set to be either conflict or mergeable.
-func checkAndUpdateStatus(pr *issues_model.PullRequest) {
+func checkAndUpdateStatus(ctx context.Context, pr *issues_model.PullRequest) {
 	// Status is not changed to conflict means mergeable.
 	if pr.Status == issues_model.PullRequestStatusChecking {
 		pr.Status = issues_model.PullRequestStatusMergeable
@@ -155,7 +154,7 @@ func checkAndUpdateStatus(pr *issues_model.PullRequest) {
 	}
 
 	if !has {
-		if err := pr.UpdateColsIfNotMerged("merge_base", "status", "conflicted_files", "changed_protected_files"); err != nil {
+		if err := pr.UpdateColsIfNotMerged(ctx, "merge_base", "status", "conflicted_files", "changed_protected_files"); err != nil {
 			log.Error("Update[%d]: %v", pr.ID, err)
 		}
 	}
@@ -166,7 +165,7 @@ func checkAndUpdateStatus(pr *issues_model.PullRequest) {
 func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Commit, error) {
 	if pr.BaseRepo == nil {
 		var err error
-		pr.BaseRepo, err = repo_model.GetRepositoryByID(pr.BaseRepoID)
+		pr.BaseRepo, err = repo_model.GetRepositoryByID(ctx, pr.BaseRepoID)
 		if err != nil {
 			return nil, fmt.Errorf("GetRepositoryByID: %w", err)
 		}
@@ -200,19 +199,19 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 		return nil, fmt.Errorf("ReadFile(%s): %w", headFile, err)
 	}
 	commitID := string(commitIDBytes)
-	if len(commitID) < 40 {
+	if len(commitID) < git.SHAFullLength {
 		return nil, fmt.Errorf(`ReadFile(%s): invalid commit-ID "%s"`, headFile, commitID)
 	}
-	cmd := commitID[:40] + ".." + pr.BaseBranch
+	cmd := commitID[:git.SHAFullLength] + ".." + pr.BaseBranch
 
 	// Get the commit from BaseBranch where the pull request got merged
 	mergeCommit, _, err := git.NewCommand(ctx, "rev-list", "--ancestry-path", "--merges", "--reverse").AddDynamicArguments(cmd).
 		RunStdString(&git.RunOpts{Dir: "", Env: []string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()}})
 	if err != nil {
 		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %w", err)
-	} else if len(mergeCommit) < 40 {
+	} else if len(mergeCommit) < git.SHAFullLength {
 		// PR was maybe fast-forwarded, so just use last commit of PR
-		mergeCommit = commitID[:40]
+		mergeCommit = commitID[:git.SHAFullLength]
 	}
 
 	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
@@ -221,9 +220,9 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 	}
 	defer gitRepo.Close()
 
-	commit, err := gitRepo.GetCommit(mergeCommit[:40])
+	commit, err := gitRepo.GetCommit(mergeCommit[:git.SHAFullLength])
 	if err != nil {
-		return nil, fmt.Errorf("GetMergeCommit[%v]: %w", mergeCommit[:40], err)
+		return nil, fmt.Errorf("GetMergeCommit[%v]: %w", mergeCommit[:git.SHAFullLength], err)
 	}
 
 	return commit, nil
@@ -232,12 +231,12 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 // manuallyMerged checks if a pull request got manually merged
 // When a pull request got manually merged mark the pull request as merged
 func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
-	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
+	if err := pr.LoadBaseRepo(ctx); err != nil {
 		log.Error("PullRequest[%d].LoadBaseRepo: %v", pr.ID, err)
 		return false
 	}
 
-	if unit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests); err == nil {
+	if unit, err := pr.BaseRepo.GetUnit(ctx, unit.TypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
 		if !config.AutodetectManualMerge {
 			return false
@@ -278,7 +277,7 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 			return false
 		}
 
-		notification.NotifyMergePullRequest(pr, merger)
+		notification.NotifyMergePullRequest(ctx, merger, pr)
 
 		log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commit.ID.String())
 		return true
@@ -346,7 +345,7 @@ func testPR(id int64) {
 		}
 		return
 	}
-	checkAndUpdateStatus(pr)
+	checkAndUpdateStatus(ctx, pr)
 }
 
 // CheckPrsForBaseBranch check all pulls with bseBrannch

@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -18,13 +17,14 @@ import (
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
+	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )
@@ -120,7 +120,7 @@ func checkHookType(ctx *context.Context) string {
 // WebhooksNew render creating webhook page
 func WebhooksNew(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.add_webhook")
-	ctx.Data["Webhook"] = webhook.Webhook{HookEvent: &webhook.HookEvent{}}
+	ctx.Data["Webhook"] = webhook.Webhook{HookEvent: &webhook_module.HookEvent{}}
 
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
@@ -155,12 +155,12 @@ func WebhooksNew(ctx *context.Context) {
 }
 
 // ParseHookEvent convert web form content to webhook.HookEvent
-func ParseHookEvent(form forms.WebhookForm) *webhook.HookEvent {
-	return &webhook.HookEvent{
+func ParseHookEvent(form forms.WebhookForm) *webhook_module.HookEvent {
+	return &webhook_module.HookEvent{
 		PushOnly:       form.PushOnly(),
 		SendEverything: form.SendEverything(),
 		ChooseEvents:   form.ChooseEvents(),
-		HookEvents: webhook.HookEvents{
+		HookEvents: webhook_module.HookEvents{
 			Create:               form.Create,
 			Delete:               form.Delete,
 			Fork:                 form.Fork,
@@ -202,7 +202,7 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.add_webhook")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
-	ctx.Data["Webhook"] = webhook.Webhook{HookEvent: &webhook.HookEvent{}}
+	ctx.Data["Webhook"] = webhook.Webhook{HookEvent: &webhook_module.HookEvent{}}
 	ctx.Data["HookType"] = params.Type
 
 	orCtx, err := getOrgRepoCtx(ctx)
@@ -238,6 +238,11 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 		Meta:            string(meta),
 		OrgID:           orCtx.OrgID,
 		IsSystemWebhook: orCtx.IsSystemWebhook,
+	}
+	err = w.SetHeaderAuthorization(params.WebhookForm.AuthorizationHeader)
+	if err != nil {
+		ctx.ServerError("SetHeaderAuthorization", err)
+		return
 	}
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
@@ -285,6 +290,12 @@ func editWebhook(ctx *context.Context, params webhookParams) {
 	w.HTTPMethod = params.HTTPMethod
 	w.Meta = string(meta)
 
+	err = w.SetHeaderAuthorization(params.WebhookForm.AuthorizationHeader)
+	if err != nil {
+		ctx.ServerError("SetHeaderAuthorization", err)
+		return
+	}
+
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
 		return
@@ -316,7 +327,7 @@ func giteaHookParams(ctx *context.Context) webhookParams {
 	}
 
 	return webhookParams{
-		Type:        webhook.GITEA,
+		Type:        webhook_module.GITEA,
 		URL:         form.PayloadURL,
 		ContentType: contentType,
 		Secret:      form.Secret,
@@ -344,7 +355,7 @@ func gogsHookParams(ctx *context.Context) webhookParams {
 	}
 
 	return webhookParams{
-		Type:        webhook.GOGS,
+		Type:        webhook_module.GOGS,
 		URL:         form.PayloadURL,
 		ContentType: contentType,
 		Secret:      form.Secret,
@@ -366,7 +377,7 @@ func discordHookParams(ctx *context.Context) webhookParams {
 	form := web.GetForm(ctx).(*forms.NewDiscordHookForm)
 
 	return webhookParams{
-		Type:        webhook.DISCORD,
+		Type:        webhook_module.DISCORD,
 		URL:         form.PayloadURL,
 		ContentType: webhook.ContentTypeJSON,
 		WebhookForm: form.WebhookForm,
@@ -391,7 +402,7 @@ func dingtalkHookParams(ctx *context.Context) webhookParams {
 	form := web.GetForm(ctx).(*forms.NewDingtalkHookForm)
 
 	return webhookParams{
-		Type:        webhook.DINGTALK,
+		Type:        webhook_module.DINGTALK,
 		URL:         form.PayloadURL,
 		ContentType: webhook.ContentTypeJSON,
 		WebhookForm: form.WebhookForm,
@@ -412,7 +423,7 @@ func telegramHookParams(ctx *context.Context) webhookParams {
 	form := web.GetForm(ctx).(*forms.NewTelegramHookForm)
 
 	return webhookParams{
-		Type:        webhook.TELEGRAM,
+		Type:        webhook_module.TELEGRAM,
 		URL:         fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s", url.PathEscape(form.BotToken), url.QueryEscape(form.ChatID)),
 		ContentType: webhook.ContentTypeJSON,
 		WebhookForm: form.WebhookForm,
@@ -437,7 +448,7 @@ func matrixHookParams(ctx *context.Context) webhookParams {
 	form := web.GetForm(ctx).(*forms.NewMatrixHookForm)
 
 	return webhookParams{
-		Type:        webhook.MATRIX,
+		Type:        webhook_module.MATRIX,
 		URL:         fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message", form.HomeserverURL, url.PathEscape(form.RoomID)),
 		ContentType: webhook.ContentTypeJSON,
 		HTTPMethod:  http.MethodPut,
@@ -445,7 +456,6 @@ func matrixHookParams(ctx *context.Context) webhookParams {
 		Meta: &webhook_service.MatrixMeta{
 			HomeserverURL: form.HomeserverURL,
 			Room:          form.RoomID,
-			AccessToken:   form.AccessToken,
 			MessageType:   form.MessageType,
 		},
 	}
@@ -465,7 +475,7 @@ func mSTeamsHookParams(ctx *context.Context) webhookParams {
 	form := web.GetForm(ctx).(*forms.NewMSTeamsHookForm)
 
 	return webhookParams{
-		Type:        webhook.MSTEAMS,
+		Type:        webhook_module.MSTEAMS,
 		URL:         form.PayloadURL,
 		ContentType: webhook.ContentTypeJSON,
 		WebhookForm: form.WebhookForm,
@@ -486,7 +496,7 @@ func slackHookParams(ctx *context.Context) webhookParams {
 	form := web.GetForm(ctx).(*forms.NewSlackHookForm)
 
 	return webhookParams{
-		Type:        webhook.SLACK,
+		Type:        webhook_module.SLACK,
 		URL:         form.PayloadURL,
 		ContentType: webhook.ContentTypeJSON,
 		WebhookForm: form.WebhookForm,
@@ -513,7 +523,7 @@ func feishuHookParams(ctx *context.Context) webhookParams {
 	form := web.GetForm(ctx).(*forms.NewFeishuHookForm)
 
 	return webhookParams{
-		Type:        webhook.FEISHU,
+		Type:        webhook_module.FEISHU,
 		URL:         form.PayloadURL,
 		ContentType: webhook.ContentTypeJSON,
 		WebhookForm: form.WebhookForm,
@@ -534,7 +544,7 @@ func wechatworkHookParams(ctx *context.Context) webhookParams {
 	form := web.GetForm(ctx).(*forms.NewWechatWorkHookForm)
 
 	return webhookParams{
-		Type:        webhook.WECHATWORK,
+		Type:        webhook_module.WECHATWORK,
 		URL:         form.PayloadURL,
 		ContentType: webhook.ContentTypeJSON,
 		WebhookForm: form.WebhookForm,
@@ -555,7 +565,7 @@ func packagistHookParams(ctx *context.Context) webhookParams {
 	form := web.GetForm(ctx).(*forms.NewPackagistHookForm)
 
 	return webhookParams{
-		Type:        webhook.PACKAGIST,
+		Type:        webhook_module.PACKAGIST,
 		URL:         fmt.Sprintf("https://packagist.org/api/update-package?username=%s&apiToken=%s", url.QueryEscape(form.Username), url.QueryEscape(form.APIToken)),
 		ContentType: webhook.ContentTypeJSON,
 		WebhookForm: form.WebhookForm,
@@ -594,15 +604,15 @@ func checkWebhook(ctx *context.Context) (*orgRepoCtx, *webhook.Webhook) {
 
 	ctx.Data["HookType"] = w.Type
 	switch w.Type {
-	case webhook.SLACK:
+	case webhook_module.SLACK:
 		ctx.Data["SlackHook"] = webhook_service.GetSlackHook(w)
-	case webhook.DISCORD:
+	case webhook_module.DISCORD:
 		ctx.Data["DiscordHook"] = webhook_service.GetDiscordHook(w)
-	case webhook.TELEGRAM:
+	case webhook_module.TELEGRAM:
 		ctx.Data["TelegramHook"] = webhook_service.GetTelegramHook(w)
-	case webhook.MATRIX:
+	case webhook_module.MATRIX:
 		ctx.Data["MatrixHook"] = webhook_service.GetMatrixHook(w)
-	case webhook.PACKAGIST:
+	case webhook_module.PACKAGIST:
 		ctx.Data["PackagistHook"] = webhook_service.GetPackagistHook(w)
 	}
 
@@ -675,11 +685,11 @@ func TestWebhook(ctx *context.Context) {
 		Commits:      []*api.PayloadCommit{apiCommit},
 		TotalCommits: 1,
 		HeadCommit:   apiCommit,
-		Repo:         convert.ToRepo(ctx.Repo.Repository, perm.AccessModeNone),
+		Repo:         convert.ToRepo(ctx, ctx.Repo.Repository, perm.AccessModeNone),
 		Pusher:       apiUser,
 		Sender:       apiUser,
 	}
-	if err := webhook_service.PrepareWebhook(ctx, w, webhook.HookEventPush, p); err != nil {
+	if err := webhook_service.PrepareWebhook(ctx, w, webhook_module.HookEventPush, p); err != nil {
 		ctx.Flash.Error("PrepareWebhook: " + err.Error())
 		ctx.Status(http.StatusInternalServerError)
 	} else {

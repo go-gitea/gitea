@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -48,9 +47,10 @@ func (issue *Issue) LoadAssignees(ctx context.Context) (err error) {
 // GetAssigneeIDsByIssue returns the IDs of users assigned to an issue
 // but skips joining with `user` for performance reasons.
 // User permissions must be verified elsewhere if required.
-func GetAssigneeIDsByIssue(issueID int64) ([]int64, error) {
+func GetAssigneeIDsByIssue(ctx context.Context, issueID int64) ([]int64, error) {
 	userIDs := make([]int64, 0, 5)
-	return userIDs, db.GetEngine(db.DefaultContext).Table("issue_assignees").
+	return userIDs, db.GetEngine(ctx).
+		Table("issue_assignees").
 		Cols("assignee_id").
 		Where("issue_id = ?", issueID).
 		Distinct("assignee_id").
@@ -64,7 +64,7 @@ func IsUserAssignedToIssue(ctx context.Context, issue *Issue, user *user_model.U
 
 // ToggleIssueAssignee changes a user between assigned and not assigned for this issue, and make issue comment for it.
 func ToggleIssueAssignee(issue *Issue, doer *user_model.User, assigneeID int64) (removed bool, comment *Comment, err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return false, nil, err
 	}
@@ -102,7 +102,7 @@ func toggleIssueAssignee(ctx context.Context, issue *Issue, doer *user_model.Use
 		AssigneeID:      assigneeID,
 	}
 	// Comment
-	comment, err = CreateCommentCtx(ctx, opts)
+	comment, err = CreateComment(ctx, opts)
 	if err != nil {
 		return false, nil, fmt.Errorf("createComment: %w", err)
 	}
@@ -118,7 +118,7 @@ func toggleIssueAssignee(ctx context.Context, issue *Issue, doer *user_model.Use
 // toggles user assignee state in database
 func toggleUserAssignee(ctx context.Context, issue *Issue, assigneeID int64) (removed bool, err error) {
 	// Check if the user exists
-	assignee, err := user_model.GetUserByIDCtx(ctx, assigneeID)
+	assignee, err := user_model.GetUserByID(ctx, assigneeID)
 	if err != nil {
 		return false, err
 	}
@@ -151,7 +151,7 @@ func toggleUserAssignee(ctx context.Context, issue *Issue, assigneeID int64) (re
 }
 
 // MakeIDsFromAPIAssigneesToAdd returns an array with all assignee IDs
-func MakeIDsFromAPIAssigneesToAdd(oneAssignee string, multipleAssignees []string) (assigneeIDs []int64, err error) {
+func MakeIDsFromAPIAssigneesToAdd(ctx context.Context, oneAssignee string, multipleAssignees []string) (assigneeIDs []int64, err error) {
 	var requestAssignees []string
 
 	// Keeping the old assigning method for compatibility reasons
@@ -165,7 +165,7 @@ func MakeIDsFromAPIAssigneesToAdd(oneAssignee string, multipleAssignees []string
 	}
 
 	// Get the IDs of all assignees
-	assigneeIDs, err = user_model.GetUserIDsByNames(requestAssignees, false)
+	assigneeIDs, err = user_model.GetUserIDsByNames(ctx, requestAssignees, false)
 
 	return assigneeIDs, err
 }
