@@ -39,7 +39,7 @@ const (
 	ActionsUserID   = -2
 	ActionsUserName = "gitea-actions"
 	ActionsFullName = "Gitea Actions"
-	ActionsEmail = "teabot@gitea.io"
+	ActionsEmail    = "teabot@gitea.io"
 )
 
 // NewActionsUser creates and returns a fake user for running the actions.
