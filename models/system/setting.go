@@ -184,15 +184,8 @@ func SetSettingNoVersion(key, value string) error {
 
 // SetSetting updates a users' setting for a specific key
 func SetSetting(setting *Setting) error {
-	_, err := cache.GetString(genSettingCacheKey(setting.SettingKey), func() (string, error) {
-		return setting.SettingValue, upsertSettingValue(strings.ToLower(setting.SettingKey), setting.SettingValue, setting.Version)
-	})
-	if err != nil {
-		return err
-	}
-
-	setting.Version++
-	return nil
+	cache.Remove(genSettingCacheKey(setting.SettingKey))
+	return upsertSettingValue(strings.ToLower(setting.SettingKey), setting.SettingValue, setting.Version)
 }
 
 func upsertSettingValue(key, value string, version int) error {

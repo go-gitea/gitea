@@ -37,6 +37,11 @@ func TestSettings(t *testing.T) {
 	err = system.SetSetting(updatedSetting)
 	assert.NoError(t, err)
 
+	// make sure it's not cached
+	updatedSetting = &system.Setting{SettingKey: keyName, SettingValue: "100", Version: newSetting.Version}
+	err = system.SetSetting(updatedSetting)
+	assert.NoError(t, err)
+
 	// get all settings
 	settings, err = system.GetAllSettings()
 	assert.NoError(t, err)
