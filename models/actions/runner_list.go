@@ -16,18 +16,14 @@ type RunnerList []*ActionRunner
 
 // GetUserIDs returns a slice of user's id
 func (runners RunnerList) GetUserIDs() []int64 {
-	userIDsMap := make(map[int64]struct{})
+	ids := make(container.Set[int64], len(runners))
 	for _, runner := range runners {
 		if runner.OwnerID == 0 {
 			continue
 		}
-		userIDsMap[runner.OwnerID] = struct{}{}
+		ids.Add(runner.OwnerID)
 	}
-	userIDs := make([]int64, 0, len(userIDsMap))
-	for userID := range userIDsMap {
-		userIDs = append(userIDs, userID)
-	}
-	return userIDs
+	return ids.Values()
 }
 
 func (runners RunnerList) LoadOwners(ctx context.Context) error {

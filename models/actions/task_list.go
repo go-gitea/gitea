@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
@@ -15,18 +16,14 @@ import (
 type TaskList []*ActionTask
 
 func (tasks TaskList) GetJobIDs() []int64 {
-	jobIDsMap := make(map[int64]struct{})
+	ids := make(container.Set[int64], len(tasks))
 	for _, t := range tasks {
 		if t.JobID == 0 {
 			continue
 		}
-		jobIDsMap[t.JobID] = struct{}{}
+		ids.Add(t.JobID)
 	}
-	jobIDs := make([]int64, 0, len(jobIDsMap))
-	for jobID := range jobIDsMap {
-		jobIDs = append(jobIDs, jobID)
-	}
-	return jobIDs
+	return ids.Values()
 }
 
 func (tasks TaskList) LoadJobs(ctx context.Context) error {

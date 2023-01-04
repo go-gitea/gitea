@@ -12,6 +12,7 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -496,12 +497,13 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 }
 
 func isSubset(set, subset []string) bool {
-	m := make(map[string]struct{}, len(set))
+	m := make(container.Set[string], len(set))
 	for _, v := range set {
-		m[v] = struct{}{}
+		m.Add(v)
 	}
+
 	for _, v := range subset {
-		if _, ok := m[v]; !ok {
+		if m.Contains(v) {
 			return false
 		}
 	}

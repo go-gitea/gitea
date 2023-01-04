@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
@@ -18,27 +19,19 @@ type RunList []*ActionRun
 
 // GetUserIDs returns a slice of user's id
 func (runs RunList) GetUserIDs() []int64 {
-	userIDsMap := make(map[int64]struct{})
+	ids := make(container.Set[int64], len(runs))
 	for _, run := range runs {
-		userIDsMap[run.TriggerUserID] = struct{}{}
+		ids.Add(run.TriggerUserID)
 	}
-	userIDs := make([]int64, 0, len(userIDsMap))
-	for userID := range userIDsMap {
-		userIDs = append(userIDs, userID)
-	}
-	return userIDs
+	return ids.Values()
 }
 
 func (runs RunList) GetRepoIDs() []int64 {
-	repoIDsMap := make(map[int64]struct{})
+	ids := make(container.Set[int64], len(runs))
 	for _, run := range runs {
-		repoIDsMap[run.RepoID] = struct{}{}
+		ids.Add(run.RepoID)
 	}
-	repoIDs := make([]int64, 0, len(repoIDsMap))
-	for repoID := range repoIDsMap {
-		repoIDs = append(repoIDs, repoID)
-	}
-	return repoIDs
+	return ids.Values()
 }
 
 func (runs RunList) LoadTriggerUser(ctx context.Context) error {

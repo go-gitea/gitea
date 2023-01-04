@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
@@ -15,18 +16,14 @@ import (
 type ActionJobList []*ActionRunJob
 
 func (jobs ActionJobList) GetRunIDs() []int64 {
-	runIDsMap := make(map[int64]struct{})
+	ids := make(container.Set[int64], len(jobs))
 	for _, j := range jobs {
 		if j.RunID == 0 {
 			continue
 		}
-		runIDsMap[j.RunID] = struct{}{}
+		ids.Add(j.RunID)
 	}
-	runIDs := make([]int64, 0, len(runIDsMap))
-	for runID := range runIDsMap {
-		runIDs = append(runIDs, runID)
-	}
-	return runIDs
+	return ids.Values()
 }
 
 func (jobs ActionJobList) LoadRuns(ctx context.Context, withRepo bool) error {
