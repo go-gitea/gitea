@@ -63,5 +63,5 @@ func (u *User) IsActions() bool {
 	if u == nil {
 		return false
 	}
-	return u.ID == ActionsUserID && u.Name == ActionsUserName
+	return u.ID == ActionsUserID
 }
