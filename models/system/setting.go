@@ -275,7 +275,7 @@ func Init() error {
 		}
 	}
 
-	if enableFederatedAvatarSetting.GetValueBool() {
+	if GravatarSourceURL != nil && enableFederatedAvatarSetting.GetValueBool() {
 		LibravatarService = libravatar.New()
 		if GravatarSourceURL.Scheme == "https" {
 			LibravatarService.SetUseHTTPS(true)
