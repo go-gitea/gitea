@@ -19,6 +19,17 @@ const (
 	StatusBlocked                 // 7, isn't a runnerv1.Result
 )
 
+var statusNames = map[Status]string{
+	StatusUnknown:   "unknown",
+	StatusWaiting:   "waiting",
+	StatusRunning:   "running",
+	StatusSuccess:   "success",
+	StatusFailure:   "failure",
+	StatusCancelled: "cancelled",
+	StatusSkipped:   "skipped",
+	StatusBlocked:   "blocked",
+}
+
 // String returns the string name of the Status
 func (s Status) String() string {
 	return statusNames[s]
@@ -77,15 +88,4 @@ func (s Status) AsResult() runnerv1.Result {
 		return runnerv1.Result(s)
 	}
 	return runnerv1.Result_RESULT_UNSPECIFIED
-}
-
-var statusNames = map[Status]string{
-	StatusUnknown:   "unknown",
-	StatusWaiting:   "waiting",
-	StatusRunning:   "running",
-	StatusSuccess:   "success",
-	StatusFailure:   "failure",
-	StatusCancelled: "cancelled",
-	StatusSkipped:   "skipped",
-	StatusBlocked:   "blocked",
 }
