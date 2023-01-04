@@ -72,7 +72,7 @@ func (run *ActionRun) LoadAttributes(ctx context.Context) error {
 	}
 
 	if run.TriggerUser == nil {
-		u, err := user_model.GetPossbileUserByID(ctx, run.TriggerUserID)
+		u, err := user_model.GetPossibleUserByID(ctx, run.TriggerUserID)
 		if err != nil {
 			return err
 		}

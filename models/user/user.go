@@ -988,8 +988,8 @@ func GetUserByID(ctx context.Context, id int64) (*User, error) {
 	return u, nil
 }
 
-// GetPossbileUserByID returns the user if id > 0 or return system usrs if id < 0
-func GetPossbileUserByID(ctx context.Context, id int64) (*User, error) {
+// GetPossibleUserByID returns the user if id > 0 or return system usrs if id < 0
+func GetPossibleUserByID(ctx context.Context, id int64) (*User, error) {
 	switch id {
 	case -1:
 		return NewGhostUser(), nil
