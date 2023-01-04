@@ -2562,6 +2562,11 @@ func UpdateIssueStatus(ctx *context.Context) {
 		isClosed = false
 	case "close":
 		isClosed = true
+	case "delete":
+		if err := issue_service.DeleteIssues(ctx.Doer, ctx.Repo.GitRepo, issues); err != nil {
+			ctx.ServerError("DeleteIssues", err)
+		}
+		return
 	default:
 		log.Warn("Unrecognized action: %s", action)
 	}

@@ -130,6 +130,15 @@ func UpdateAssignees(issue *issues_model.Issue, oneAssignee string, multipleAssi
 	return err
 }
 
+func DeleteIssues(doer *user_model.User, gitRepo *git.Repository, issues []*issues_model.Issue) error {
+	for _, issue := range issues {
+		if err := DeleteIssue(doer, gitRepo, issue); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // DeleteIssue deletes an issue
 func DeleteIssue(doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue) error {
 	// load issue before deleting it

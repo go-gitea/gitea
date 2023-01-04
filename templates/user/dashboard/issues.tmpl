@@ -29,7 +29,7 @@
 					{{end}}
 					<div class="ui divider"></div>
 					<a class="{{if not $.RepoIDs}}ui basic primary button{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&q={{$.Keyword}}">
-						<span class="text truncate">All</span>
+						<span class="text truncate">{{.locale.Tr "all"}}</span>
 						<div class="ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{CountFmt .TotalIssueCount}}</div>
 					</a>
 					{{range .Repos}}
