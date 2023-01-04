@@ -93,8 +93,8 @@ func AddActionsTables(x *xorm.Engine) error {
 	}
 
 	type Repository struct {
-		NumRuns       int `xorm:"NOT NULL DEFAULT 0"`
-		NumClosedRuns int `xorm:"NOT NULL DEFAULT 0"`
+		NumActionRuns       int `xorm:"NOT NULL DEFAULT 0"`
+		NumClosedActionRuns int `xorm:"NOT NULL DEFAULT 0"`
 	}
 
 	type ActionRunIndex db.ResourceIndex

@@ -106,11 +106,11 @@ func (run *ActionRun) GetPushEventPayload() (*api.PushPayload, error) {
 
 func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) error {
 	_, err := db.GetEngine(ctx).ID(repo.ID).
-		SetExpr("num_runs",
+		SetExpr("num_action_runs",
 			builder.Select("count(*)").From("action_run").
 				Where(builder.Eq{"repo_id": repo.ID}),
 		).
-		SetExpr("num_closed_runs",
+		SetExpr("num_closed_action_runs",
 			builder.Select("count(*)").From("action_run").
 				Where(builder.Eq{
 					"repo_id": repo.ID,

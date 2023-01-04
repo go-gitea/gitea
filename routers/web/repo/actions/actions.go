@@ -96,7 +96,7 @@ func List(ctx *context.Context) {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
-	ctx.Data["NumOpenRuns"] = numOpenRuns
+	ctx.Data["NumOpenActionRuns"] = numOpenRuns
 
 	// closed counts
 	opts.IsClosed = util.OptionalBoolTrue
