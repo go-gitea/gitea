@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/setting"
+	setting_module "code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"strk.kbt.io/projects/go/libravatar"
@@ -184,8 +185,16 @@ func SetSettingNoVersion(key, value string) error {
 
 // SetSetting updates a users' setting for a specific key
 func SetSetting(setting *Setting) error {
-	cache.Remove(genSettingCacheKey(setting.SettingKey))
-	return upsertSettingValue(strings.ToLower(setting.SettingKey), setting.SettingValue, setting.Version)
+	if err := upsertSettingValue(strings.ToLower(setting.SettingKey), setting.SettingValue, setting.Version); err != nil {
+		return err
+	}
+
+	cc := cache.GetCache()
+	if cc != nil {
+		return cc.Put(genSettingCacheKey(setting.SettingKey), setting.SettingValue, setting_module.CacheService.TTLSeconds())
+	}
+
+	return nil
 }
 
 func upsertSettingValue(key, value string, version int) error {
