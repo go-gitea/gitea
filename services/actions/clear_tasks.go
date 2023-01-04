@@ -38,7 +38,7 @@ func StopEndlessTasks(ctx context.Context) error {
 }
 
 func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
-	tasks, _, err := actions_model.FindTasks(ctx, opts)
+	tasks, err := actions_model.FindTasks(ctx, opts)
 	if err != nil {
 		return fmt.Errorf("find tasks: %w", err)
 	}

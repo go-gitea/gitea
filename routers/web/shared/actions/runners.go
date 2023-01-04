@@ -98,7 +98,7 @@ func RunnerDetails(ctx *context.Context, tplName base.TplName, page int, runnerI
 		return
 	}
 
-	tasks, _, err := actions_model.FindTasks(ctx, opts)
+	tasks, err := actions_model.FindTasks(ctx, opts)
 	if err != nil {
 		ctx.ServerError("FindTasks", err)
 		return

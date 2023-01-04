@@ -88,7 +88,7 @@ func (opts FindTaskOptions) toConds() builder.Cond {
 	return cond
 }
 
-func FindTasks(ctx context.Context, opts FindTaskOptions) (TaskList, int64, error) {
+func FindTasks(ctx context.Context, opts FindTaskOptions) (TaskList, error) {
 	e := db.GetEngine(ctx).Where(opts.toConds())
 	if opts.PageSize > 0 && opts.Page >= 1 {
 		e.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
@@ -97,8 +97,7 @@ func FindTasks(ctx context.Context, opts FindTaskOptions) (TaskList, int64, erro
 		e.OrderBy("id DESC")
 	}
 	var tasks TaskList
-	total, err := e.FindAndCount(&tasks)
-	return tasks, total, err
+	return tasks, e.Find(&tasks)
 }
 
 func CountTasks(ctx context.Context, opts FindTaskOptions) (int64, error) {

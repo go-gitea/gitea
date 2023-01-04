@@ -34,7 +34,7 @@ func Init() {
 }
 
 func DeleteResourceOfRepository(ctx context.Context, repo *repo_model.Repository) error {
-	tasks, _, err := actions_model.FindTasks(ctx, actions_model.FindTaskOptions{RepoID: repo.ID})
+	tasks, err := actions_model.FindTasks(ctx, actions_model.FindTaskOptions{RepoID: repo.ID})
 	if err != nil {
 		return fmt.Errorf("find task of repo %v: %w", repo.ID, err)
 	}
