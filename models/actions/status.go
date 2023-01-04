@@ -62,6 +62,7 @@ func (s Status) IsRunning() bool {
 	return s == StatusRunning
 }
 
+// In returns whether s is one of the given statuses
 func (s Status) In(statuses ...Status) bool {
 	for _, v := range statuses {
 		if s == v {
