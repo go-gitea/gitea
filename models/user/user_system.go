@@ -38,6 +38,8 @@ func NewReplaceUser(name string) *User {
 const (
 	ActionsUserID   = -2
 	ActionsUserName = "gitea-actions"
+	ActionsFullName = "Gitea Actions"
+	ActionsEmail = "teabot@gitea.io"
 )
 
 // NewActionsUser creates and returns a fake user for running the actions.
@@ -47,8 +49,8 @@ func NewActionsUser() *User {
 		Name:                    ActionsUserName,
 		LowerName:               ActionsUserName,
 		IsActive:                true,
-		FullName:                "Gitea Actions",
-		Email:                   "teabot@gitea.io",
+		FullName:                ActionsFullName,
+		Email:                   ActionsEmail,
 		KeepEmailPrivate:        true,
 		LoginName:               ActionsUserName,
 		Type:                    UserTypeIndividual,
