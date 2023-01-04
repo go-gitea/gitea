@@ -51,31 +51,31 @@ Gitea supports the following scopes for tokens:
 | &nbsp;&nbsp;&nbsp;&nbsp;**repo:status** | Grants read/write access to commit status in all repositories. |
 | &nbsp;&nbsp;&nbsp;&nbsp;**public_repo** | Grants read/write access to public repositories only. |
 | **admin:repo_hook** | Grants access to repository hooks of all repositories. This is included in the `repo` scope. |
-| &nbsp;&nbsp;&nbsp;&nbsp;**write:repo_hook** | |
-| &nbsp;&nbsp;&nbsp;&nbsp;**read:repo_hook** | |
-| **admin:org** | |
-| &nbsp;&nbsp;&nbsp;&nbsp;**write:org** | |
-| &nbsp;&nbsp;&nbsp;&nbsp;**read:org** | |
-| **admin:public_key** | |
-| &nbsp;&nbsp;&nbsp;&nbsp;**write:public_key** | |
-| &nbsp;&nbsp;&nbsp;&nbsp;**read:public_key** | |
-| **admin:org_hook** | |
-| **notification** | |
-| **user** | |
-| &nbsp;&nbsp;&nbsp;&nbsp;**read:user** | |
-| &nbsp;&nbsp;&nbsp;&nbsp;**user:email** | |
-| &nbsp;&nbsp;&nbsp;&nbsp;**user:follow** | |
-| **delete_repo** | |
-| **package** | |
-| &nbsp;&nbsp;&nbsp;&nbsp;**write:package** | |
-| &nbsp;&nbsp;&nbsp;&nbsp;**read:package** | |
-| &nbsp;&nbsp;&nbsp;&nbsp;**delete:package** | |
-| **admin:gpg_key** | |
-| &nbsp;&nbsp;&nbsp;&nbsp;**write:gpg_key** | |
-| &nbsp;&nbsp;&nbsp;&nbsp;**read:gpg_key** | |
-| **admin:application** | |
-| &nbsp;&nbsp;&nbsp;&nbsp;**write:application** | |
-| &nbsp;&nbsp;&nbsp;&nbsp;**read:application** | |
+| &nbsp;&nbsp;&nbsp;&nbsp;**write:repo_hook** | Grants read/write access to repository hooks |
+| &nbsp;&nbsp;&nbsp;&nbsp;**read:repo_hook** | Grants read-only access to repository hooks |
+| **admin:org** | Grants full access to organization settings |
+| &nbsp;&nbsp;&nbsp;&nbsp;**write:org** | Grants read/write access to organization settings |
+| &nbsp;&nbsp;&nbsp;&nbsp;**read:org** | Grants read-only access to organization settings |
+| **admin:public_key** | Grants full access for managing public keys |
+| &nbsp;&nbsp;&nbsp;&nbsp;**write:public_key** | Grant read/write access to public keys |
+| &nbsp;&nbsp;&nbsp;&nbsp;**read:public_key** | Grant read-only access to public keys |
+| **admin:org_hook** | Grants full access to organizational-level hooks |
+| **notification** | Grants full access to notifications |
+| **user** | Grants full access to user profile info |
+| &nbsp;&nbsp;&nbsp;&nbsp;**read:user** | Grants read access to user's profile |
+| &nbsp;&nbsp;&nbsp;&nbsp;**user:email** | Grants read access to user's email addresses |
+| &nbsp;&nbsp;&nbsp;&nbsp;**user:follow** | Grants access to follow/un-follow a user |
+| **delete_repo** | Grants access to delete repositories as an admin |
+| **package** | Grants full access to hosted packages |
+| &nbsp;&nbsp;&nbsp;&nbsp;**write:package** | Grants read/write access to packages |
+| &nbsp;&nbsp;&nbsp;&nbsp;**read:package** | Grants read access to packages |
+| &nbsp;&nbsp;&nbsp;&nbsp;**delete:package** | Grants delete access to packages |
+| **admin:gpg_key** | Grants full access for managing GPG keys |
+| &nbsp;&nbsp;&nbsp;&nbsp;**write:gpg_key** | Grants read/write access to GPG keys |
+| &nbsp;&nbsp;&nbsp;&nbsp;**read:gpg_key** | Grants read-only access to GPG keys |
+| **admin:application** | Grants full access to manage applications |
+| &nbsp;&nbsp;&nbsp;&nbsp;**write:application** | Grants read/write access for managing applications |
+| &nbsp;&nbsp;&nbsp;&nbsp;**read:application** | Grants read access for managing applications |
 | **sudo** | Allows to perform actions as the site admin. |
 
 ## Client types
