@@ -15,8 +15,8 @@ import (
 type ActionTaskStep struct {
 	ID        int64
 	Name      string `xorm:"VARCHAR(255)"`
-	TaskID    int64  `xorm:"index unique(task_number)"`
-	Number    int64  `xorm:"index unique(task_number)"`
+	TaskID    int64  `xorm:"index unique(task_index)"`
+	Index     int64  `xorm:"index unique(task_index)"`
 	RepoID    int64  `xorm:"index"`
 	Status    Status `xorm:"index"`
 	LogIndex  int64

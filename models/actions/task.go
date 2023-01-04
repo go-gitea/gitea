@@ -331,7 +331,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 			steps[i] = &ActionTaskStep{
 				Name:   v.String(),
 				TaskID: task.ID,
-				Number: int64(i),
+				Index:  int64(i),
 				RepoID: task.RepoID,
 				Status: StatusWaiting,
 			}
@@ -419,7 +419,7 @@ func UpdateTaskByState(ctx context.Context, state *runnerv1.TaskState) (*ActionT
 	prevStepDone := true
 	for _, step := range task.Steps {
 		var result runnerv1.Result
-		if v, ok := stepStates[step.Number]; ok {
+		if v, ok := stepStates[step.Index]; ok {
 			result = v.Result
 			step.LogIndex = v.LogIndex
 			step.LogLength = v.LogLength
