@@ -53,10 +53,10 @@ func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
 			}
 			return CreateCommitStatus(ctx, task.Job)
 		}); err != nil {
-			log.Warn("stop task %v: %v", task.ID, err)
+			log.Warn("Cannot stop task %v: %v", task.ID, err)
 			// go on
 		} else if remove, err := actions.TransferLogs(ctx, task.LogFilename); err != nil {
-			log.Warn("transfer logs of task %v: %v", task.ID, err)
+			log.Warn("Cannot transfer logs of task %v: %v", task.ID, err)
 		} else {
 			remove()
 		}
