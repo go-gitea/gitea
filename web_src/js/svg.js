@@ -33,6 +33,8 @@ import octiconBlocked from '../../public/img/svg/octicon-blocked.svg';
 import octiconSync from '../../public/img/svg/octicon-sync.svg';
 
 export const svgs = {
+  'octicon-blocked': octiconBlocked,
+  'octicon-check-circle-fill': octiconCheckCircleFill,
   'octicon-chevron-down': octiconChevronDown,
   'octicon-chevron-right': octiconChevronRight,
   'octicon-clock': octiconClock,
@@ -50,6 +52,7 @@ export const svgs = {
   'octicon-kebab-horizontal': octiconKebabHorizontal,
   'octicon-link': octiconLink,
   'octicon-lock': octiconLock,
+  'octicon-meter': octiconMeter,
   'octicon-milestone': octiconMilestone,
   'octicon-mirror': octiconMirror,
   'octicon-project': octiconProject,
@@ -58,14 +61,11 @@ export const svgs = {
   'octicon-repo-template': octiconRepoTemplate,
   'octicon-sidebar-collapse': octiconSidebarCollapse,
   'octicon-sidebar-expand': octiconSidebarExpand,
+  'octicon-skip': octiconSkip,
+  'octicon-sync': octiconSync,
   'octicon-triangle-down': octiconTriangleDown,
   'octicon-x': octiconX,
-  'octicon-check-circle-fill': octiconCheckCircleFill,
   'octicon-x-circle-fill': octiconXCircleFill,
-  'octicon-skip': octiconSkip,
-  'octicon-meter': octiconMeter,
-  'octicon-blocked': octiconBlocked,
-  'octicon-sync': octiconSync,
 };
 
 const parser = new DOMParser();
