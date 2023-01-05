@@ -20,22 +20,23 @@ type MigrateOptions struct {
 	// required: true
 	UID int `json:"uid" binding:"Required"`
 	// required: true
-	RepoName        string `json:"repo_name" binding:"Required"`
-	Mirror          bool   `json:"mirror"`
-	LFS             bool   `json:"lfs"`
-	LFSEndpoint     string `json:"lfs_endpoint"`
-	Private         bool   `json:"private"`
-	Description     string `json:"description"`
-	OriginalURL     string
-	GitServiceType  structs.GitServiceType
-	Wiki            bool
-	Issues          bool
-	Milestones      bool
-	Labels          bool
-	Releases        bool
-	Comments        bool
-	PullRequests    bool
-	ReleaseAssets   bool
-	MigrateToRepoID int64
-	MirrorInterval  string `json:"mirror_interval"`
+	RepoName          string `json:"repo_name" binding:"Required"`
+	Mirror            bool   `json:"mirror"`
+	LFS               bool   `json:"lfs"`
+	LFSEndpoint       string `json:"lfs_endpoint"`
+	Private           bool   `json:"private"`
+	Description       string `json:"description"`
+	OriginalURL       string
+	GitServiceType    structs.GitServiceType
+	Wiki              bool
+	Issues            bool
+	Milestones        bool
+	Labels            bool
+	Releases          bool
+	Comments          bool
+	PullRequests      bool
+	ReleaseAssets     bool
+	InitialDateCommit bool `json:"initial_date_commit"`
+	MigrateToRepoID   int64
+	MirrorInterval    string `json:"mirror_interval"`
 }

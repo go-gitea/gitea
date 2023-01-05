@@ -313,18 +313,19 @@ type MigrateRepoOptions struct {
 	AuthPassword string `json:"auth_password"`
 	AuthToken    string `json:"auth_token"`
 
-	Mirror         bool   `json:"mirror"`
-	LFS            bool   `json:"lfs"`
-	LFSEndpoint    string `json:"lfs_endpoint"`
-	Private        bool   `json:"private"`
-	Description    string `json:"description" binding:"MaxSize(2048)"`
-	Wiki           bool   `json:"wiki"`
-	Milestones     bool   `json:"milestones"`
-	Labels         bool   `json:"labels"`
-	Issues         bool   `json:"issues"`
-	PullRequests   bool   `json:"pull_requests"`
-	Releases       bool   `json:"releases"`
-	MirrorInterval string `json:"mirror_interval"`
+	Mirror            bool   `json:"mirror"`
+	LFS               bool   `json:"lfs"`
+	LFSEndpoint       string `json:"lfs_endpoint"`
+	Private           bool   `json:"private"`
+	Description       string `json:"description" binding:"MaxSize(2048)"`
+	Wiki              bool   `json:"wiki"`
+	Milestones        bool   `json:"milestones"`
+	Labels            bool   `json:"labels"`
+	Issues            bool   `json:"issues"`
+	PullRequests      bool   `json:"pull_requests"`
+	Releases          bool   `json:"releases"`
+	MirrorInterval    string `json:"mirror_interval"`
+	InitialDateCommit bool   `json:"initial_date_commit"`
 }
 
 // TokenAuth represents whether a service type supports token-based auth

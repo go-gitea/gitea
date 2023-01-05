@@ -170,6 +170,17 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 				log.Error("Failed to store missing LFS objects for repository: %v", err)
 			}
 		}
+
+		if opts.InitialDateCommit {
+			lastCommit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
+			if err == nil {
+				status, _, err := git_model.GetLatestCommitStatus(db.DefaultContext, repo.ID, lastCommit.ID.String(), db.ListOptions{})
+				if err == nil && len(status) > 0 {
+					repo.CreatedUnix = status[0].UpdatedUnix
+					repo.UpdatedUnix = status[0].UpdatedUnix
+				}
+			}
+		}
 	}
 
 	ctx, committer, err := db.TxContext(db.DefaultContext)
