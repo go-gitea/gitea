@@ -8,9 +8,6 @@
     <div class="action-view-body">
       <div class="action-view-left">
         <div class="job-group-section" v-for="(jobGroup, i) in allJobGroups" :key="i">
-          <!--        <div class="job-group-summary">-->
-          <!--          {{ jobGroup.summary }}-->
-          <!--        </div>-->
           <div class="job-brief-list">
             <a class="job-brief-item" v-for="(job, index) in jobGroup.jobs" :key="job.id" :href="runInfo.htmlurl+'/jobs/'+index">
               <SvgIcon name="octicon-check-circle-fill" class="green" v-if="job.status === 'success'"/>
@@ -59,17 +56,6 @@
 
             <!-- the log elements could be a lot, do not use v-if to destroy/reconstruct the DOM -->
             <div class="job-step-logs" ref="elJobStepLogs" v-show="currentJobStepsStates[i].expanded">
-              <!--
-              possible layouts:
-              <div class="job-log-group">
-                <div class="job-log-group-summary"></div>
-                <div class="job-log-list">
-                  <div class="job-log-line"></div>
-                </div>
-              </div>
-              -- or --
-              <div class="job-log-line"></div>
-              -->
             </div>
           </div>
         </div>
@@ -312,9 +298,6 @@ const sfc = {
         const reqData = {stepLogCursors};
 
         const respData = await this.fetchJobData(reqData);
-        // const respData = this.fetchMockData(reqData);
-
-        // console.log('loadJobData by request', reqData, ', get response ', respData);
 
         // save the stateData to Vue data, then the UI will be updated
         for (const [key, value] of Object.entries(respData.stateData)) {

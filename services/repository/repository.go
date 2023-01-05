@@ -54,7 +54,7 @@ func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_mod
 
 	// deletes actions resource after the repo has been deleted, to avoid new tasks
 	if err := actions_service.DeleteResourceOfRepository(ctx, repo); err != nil {
-		log.Error("delete actions resource failed: %v", err)
+		return fmt.Errorf("delete actions resources failed: %w", err)
 	}
 
 	return packages_model.UnlinkRepositoryFromAllPackages(ctx, repo.ID)

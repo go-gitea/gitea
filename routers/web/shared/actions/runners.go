@@ -125,7 +125,7 @@ func RunnerDetailsEditPost(ctx *context.Context, runnerID, ownerID, repoID int64
 	}
 	if !runner.Editable(ownerID, repoID) {
 		err = errors.New("no permission to edit this runner")
-		ctx.NotFound("RunnerDetailsEditPost.Editable", err)
+		ctx.NotFound("RunnerDetailsEditPost.Editable", util.NewPermissionDeniedErrorf("no permission to edit this runner"))
 		return
 	}
 
