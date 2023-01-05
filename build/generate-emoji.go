@@ -189,6 +189,10 @@ func generate() ([]byte, error) {
 		}
 	}
 
+	sort.Slice(data, func(i, j int) bool {
+		return data[i].Aliases[0] < data[j].Aliases[0]
+	})
+
 	// add header
 	str := replacer.Replace(fmt.Sprintf(hdr, gemojiURL, data))
 
