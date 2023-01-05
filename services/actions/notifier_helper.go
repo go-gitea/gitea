@@ -119,12 +119,12 @@ func notify(ctx context.Context, input *notifyInput) error {
 	// Get the commit object for the ref
 	commit, err := gitRepo.GetCommit(input.Ref)
 	if err != nil {
-		return fmt.Errorf("gitRepo.GetCommit: %v", err)
+		return fmt.Errorf("gitRepo.GetCommit: %w", err)
 	}
 
 	workflows, err := actions_module.DetectWorkflows(commit, input.Event)
 	if err != nil {
-		return fmt.Errorf("DetectWorkflows: %v", err)
+		return fmt.Errorf("DetectWorkflows: %w", err)
 	}
 
 	if len(workflows) == 0 {
@@ -134,7 +134,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 
 	p, err := json.Marshal(input.Payload)
 	if err != nil {
-		return fmt.Errorf("json.Marshal: %v", err)
+		return fmt.Errorf("json.Marshal: %w", err)
 	}
 
 	for id, content := range workflows {
