@@ -23,15 +23,3 @@ func (f *EditRunnerForm) Validate(req *http.Request, errs binding.Errors) bindin
 	ctx := context.GetContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
-
-// CreateRunnerForm form for admin to create runner
-type CreateRunnerForm struct {
-	Name string `binding:"Required"`
-	Type string
-}
-
-// Validate validates form fields
-func (f *CreateRunnerForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
