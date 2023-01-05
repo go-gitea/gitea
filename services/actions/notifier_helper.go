@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	packages_model "code.gitea.io/gitea/models/packages"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -105,7 +104,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 	if unit_model.TypeActions.UnitGlobalDisabled() {
 		return nil
 	}
-	if err := input.Repo.LoadUnits(db.DefaultContext); err != nil {
+	if err := input.Repo.LoadUnits(ctx); err != nil {
 		return fmt.Errorf("repo.LoadUnits: %w", err)
 	} else if !input.Repo.UnitEnabled(ctx, unit_model.TypeActions) {
 		return nil
