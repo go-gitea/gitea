@@ -1,3 +1,9 @@
+// Copyright 2022 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
+// This artifact server is inspired by https://github.com/nektos/act/blob/master/pkg/artifacts/server.go.
+// It updates url setting and uses ObjectStore to handle artifacts persistence.
+
 package actions
 
 import (
