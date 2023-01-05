@@ -37,5 +37,5 @@ func init() {
 
 func GetTaskStepsByTaskID(ctx context.Context, taskID int64) ([]*ActionTaskStep, error) {
 	var steps []*ActionTaskStep
-	return steps, db.GetEngine(ctx).Where("task_id=?", taskID).OrderBy("number").Find(&steps)
+	return steps, db.GetEngine(ctx).Where("task_id=?", taskID).OrderBy("index").Find(&steps)
 }
