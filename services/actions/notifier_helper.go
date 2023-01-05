@@ -221,13 +221,9 @@ func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_mo
 }
 
 func truncateContent(content string, n int) string {
-	truncatedContent, truncatedRight := util.SplitStringAtByteN(content, n)
-	if truncatedRight != "" {
-		// in case the content is in a Latin family language, we remove the last broken word.
-		lastSpaceIdx := strings.LastIndex(truncatedContent, " ")
-		if lastSpaceIdx != -1 && (len(truncatedContent)-lastSpaceIdx < 15) {
-			truncatedContent = truncatedContent[:lastSpaceIdx] + "…"
-		}
+	truncated, omitted := util.SplitStringAtByteN(content, n)
+	if omitted != "" {
+		truncated += "…"
 	}
-	return truncatedContent
+	return truncated
 }
