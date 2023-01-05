@@ -43,16 +43,8 @@ func init() {
 	db.RegisterModel(new(ActionRunJob))
 }
 
-func (job *ActionRunJob) TakeTime() time.Duration {
-	if job.Started == 0 {
-		return 0
-	}
-	started := job.Started.AsTime()
-	if job.Status.IsDone() {
-		return job.Stopped.AsTime().Sub(started)
-	}
-	job.Stopped.AsTime().Sub(started)
-	return time.Since(started).Truncate(time.Second)
+func (job *ActionRunJob) Duration() time.Duration {
+	return calculateDuration(job.Started, job.Stopped, job.Status)
 }
 
 func (job *ActionRunJob) LoadRun(ctx context.Context) error {

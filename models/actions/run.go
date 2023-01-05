@@ -82,15 +82,8 @@ func (run *ActionRun) LoadAttributes(ctx context.Context) error {
 	return nil
 }
 
-func (run *ActionRun) TakeTime() time.Duration {
-	if run.Started == 0 {
-		return 0
-	}
-	started := run.Started.AsTime()
-	if run.Status.IsDone() {
-		return run.Stopped.AsTime().Sub(started)
-	}
-	return time.Since(started).Truncate(time.Second)
+func (run *ActionRun) Duration() time.Duration {
+	return calculateDuration(run.Started, run.Stopped, run.Status)
 }
 
 func (run *ActionRun) GetPushEventPayload() (*api.PushPayload, error) {

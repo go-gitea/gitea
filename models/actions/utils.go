@@ -10,8 +10,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -66,4 +68,17 @@ func (indexes *LogIndexes) ToDB() ([]byte, error) {
 		i += n
 	}
 	return buf[:i], nil
+}
+
+var timeSince = time.Since
+
+func calculateDuration(started, stopped timeutil.TimeStamp, status Status) time.Duration {
+	if started == 0 {
+		return 0
+	}
+	s := started.AsTime()
+	if status.IsDone() {
+		return stopped.AsTime().Sub(s)
+	}
+	return timeSince(s).Truncate(time.Second)
 }

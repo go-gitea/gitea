@@ -27,15 +27,8 @@ type ActionTaskStep struct {
 	Updated   timeutil.TimeStamp `xorm:"updated"`
 }
 
-func (step *ActionTaskStep) TakeTime() time.Duration {
-	if step.Started == 0 {
-		return 0
-	}
-	started := step.Started.AsTime()
-	if step.Status.IsDone() {
-		return step.Stopped.AsTime().Sub(started)
-	}
-	return time.Since(started).Truncate(time.Second)
+func (step *ActionTaskStep) Duration() time.Duration {
+	return calculateDuration(step.Started, step.Stopped, step.Status)
 }
 
 func init() {

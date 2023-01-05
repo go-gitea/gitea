@@ -75,15 +75,8 @@ func init() {
 	})
 }
 
-func (task *ActionTask) TakeTime() time.Duration {
-	if task.Started == 0 {
-		return 0
-	}
-	started := task.Started.AsTime()
-	if task.Status.IsDone() {
-		return task.Stopped.AsTime().Sub(started)
-	}
-	return time.Since(started).Truncate(time.Second)
+func (task *ActionTask) Duration() time.Duration {
+	return calculateDuration(task.Started, task.Stopped, task.Status)
 }
 
 func (task *ActionTask) IsStopped() bool {
