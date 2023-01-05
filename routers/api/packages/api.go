@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/routers/api/packages/composer"
 	"code.gitea.io/gitea/routers/api/packages/conan"
 	"code.gitea.io/gitea/routers/api/packages/container"
+	"code.gitea.io/gitea/routers/api/packages/debian"
 	"code.gitea.io/gitea/routers/api/packages/generic"
 	"code.gitea.io/gitea/routers/api/packages/helm"
 	"code.gitea.io/gitea/routers/api/packages/maven"
@@ -166,6 +167,13 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 					}, conan.ExtractPathParameters)
 				})
 			})
+		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/debian", func() {
+			r.Group("/{packagename}/{packageversion}/{arch}", func() {
+				r.Put("", debian.PutPackage)
+				r.Delete("", debian.DeletePackage)
+			}, reqPackageAccess(perm.AccessModeWrite))
+			r.Get("/pool/{filename}", debian.GetPackage)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/generic", func() {
 			r.Group("/{packagename}/{packageversion}", func() {

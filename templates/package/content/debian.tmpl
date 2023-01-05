@@ -1,0 +1,28 @@
+{{if eq .PackageDescriptor.Package.Type "debian"}}
+	<h4 class="ui top attached header">{{.locale.Tr "packages.installation"}}</h4>
+	<div class="ui attached segment">
+		<div class="ui form">
+			<div class="field">
+				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.generic.download"}}</label>
+				<div class="markup"><pre class="code-block"><code>{{range .PackageDescriptor.Files}}curl -O {{AppUrl}}api/packages/{{$.PackageDescriptor.Owner.Name}}/debian/pool/{{.File.Name}}
+{{end}}
+# install one version
+{{range .PackageDescriptor.Files}}sudo dpkg -i {{.File.Name}}
+{{end}}</code></pre></div>
+			</div>
+			<div class="ui divider"></div>
+			<div class="field">
+				<label>{{svg "gitea-debian"}} Install package using APT</label>
+				<div class="markup">
+					<pre class="code-block"><code>echo "deb {{AppUrl}}api/packages/{{$.PackageDescriptor.Owner.Name}}/debian gitea main" \
+  | sudo tee /etc/apt/sources.list.d/gitea.list
+sudo apt update
+sudo apt install {{$.PackageDescriptor.Package.Name}}</code></pre>
+				</div>
+			</div>
+			<div class="field">
+				<label>{{.locale.Tr "packages.generic.documentation" | Safe}}</label>
+			</div>
+		</div>
+	</div>
+{{end}}
