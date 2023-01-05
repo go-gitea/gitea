@@ -202,10 +202,10 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 		RequiredClaimName:             form.Oauth2RequiredClaimName,
 		RequiredClaimValue:            form.Oauth2RequiredClaimValue,
 		SkipLocalTwoFA:                form.SkipLocalTwoFA,
+		ForceOAuth:                    form.ForceOAuth,
 		GroupClaimName:                form.Oauth2GroupClaimName,
 		RestrictedGroup:               form.Oauth2RestrictedGroup,
 		AdminGroup:                    form.Oauth2AdminGroup,
-		ForceOAuth:                    form.ForceOAuth,
 	}
 }
 

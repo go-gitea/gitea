@@ -155,8 +155,14 @@ func checkForceOAuth(ctx *context.Context) bool {
 	}
 
 	for _, source := range authSources {
-		if source.Cfg.(*oauth2.Source).ForceOAuth {
-			ctx.RedirectToFirst(setting.AppSubURL + "/user/login/openid")
+		if forced, ok := source.Cfg.(auth_service.ForceOAuth); ok && forced.IsOAuthForced() {
+			fmt.Println(source.Cfg)
+			app, err := auth.GetOAuth2ApplicationByID(ctx, 1)
+			if err != nil {
+				return false
+			}
+			url := app.PrimaryRedirectURI()
+			ctx.Redirect(url)
 			return true
 		}
 	}
