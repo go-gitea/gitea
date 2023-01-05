@@ -1,3 +1,6 @@
+// Copyright 2022 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package actions
 
 import (
@@ -42,7 +45,7 @@ func ArtifactsRoutes(goctx gocontext.Context, prefix string) *web.Route {
 	return m
 }
 
-// PackageContexter initializes a package context for a request.
+// withContexter initializes a package context for a request.
 func withContexter(ctx gocontext.Context) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {

@@ -39,6 +39,17 @@
             </div>
           </div>
         </div>
+        <div class="job-artifacts" v-if="artifacts.length > 0">
+          <div class="job-artifacts-title">Artifacts</div>
+          <ul class="job-artifacts-list">
+            <li class="job-artifacts-item" v-for="artifact in artifacts">
+              <a class="job-artifacts-link" target="_blank" :href="run.link+'/artifacts/'+artifact.id">
+                <SvgIcon name="octicon-file" class="ui text black job-artifacts-icon" />
+                {{ artifact.name }}
+              </a>
+            </li>
+          </ul>
+        </div>
       </div>
 
       <div class="action-view-right">
@@ -98,6 +109,7 @@ const sfc = {
       loading: false,
       intervalID: null,
       currentJobStepsStates: [],
+      artifacts: [],
 
       // provided by backend
       run: {
@@ -149,6 +161,8 @@ const sfc = {
     // load job data and then auto-reload periodically
     this.loadJob();
     this.intervalID = setInterval(this.loadJob, 1000);
+    // load artifactss list once
+    this.loadArtifacts();
   },
 
   methods: {
@@ -275,6 +289,13 @@ const sfc = {
       } finally {
         this.loading = false;
       }
+    },
+
+
+    async loadArtifacts() {
+      const resp = await this.fetchPost(`${this.actionsURL}/runs/${this.runIndex}/artifacts`);
+      const artifacts = await resp.json();
+      this.artifacts = artifacts['artifacts'] || [];
     },
 
     fetchPost(url, body) {
@@ -416,6 +437,28 @@ export function ansiLogToHTML(line) {
 .job-group-section .job-group-summary {
   margin: 5px 0;
   padding: 10px;
+}
+.job-artifacts {
+  .job-artifacts-title {
+    font-size: 110%;
+    margin-top: 16px;
+    padding: 16px 10px 0px 20px;
+    border-top: 1px dashed var(--color-secondary);
+  }
+
+  .job-artifacts-item {
+    margin: 5px 0;
+    padding: 6px;
+  }
+
+  .job-artifacts-list {
+    padding-left: 12px;
+    list-style: none;
+  }
+
+  .job-artifacts-icon {
+    padding-right: 3px;
+  }
 }
 
 .job-group-section .job-brief-list .job-brief-item {

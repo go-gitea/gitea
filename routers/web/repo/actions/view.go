@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/base"
 	context_module "code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -380,4 +381,61 @@ func getRunJobs(ctx *context_module.Context, runIndex, jobIndex int64) (*actions
 		return jobs[jobIndex], jobs
 	}
 	return jobs[0], jobs
+}
+
+type ArtifactsViewResponse struct {
+	Artifacts []*ArtifactsViewItem `json:"artifacts"`
+}
+
+type ArtifactsViewItem struct {
+	Name string `json:"name"`
+	Size int64  `json:"size"`
+	ID   int64  `json:"id"`
+}
+
+func ArtifactsView(ctx *context_module.Context) {
+	runIndex := ctx.ParamsInt64("run")
+	artifacts, err := actions_model.ListArtifactByJobID(ctx, runIndex)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+	artifactsResponse := ArtifactsViewResponse{
+		Artifacts: make([]*ArtifactsViewItem, 0, len(artifacts)),
+	}
+	for _, art := range artifacts {
+		artifactsResponse.Artifacts = append(artifactsResponse.Artifacts, &ArtifactsViewItem{
+			Name: art.ArtifactName,
+			Size: art.FileSize,
+			ID:   art.ID,
+		})
+	}
+	ctx.JSON(http.StatusOK, artifactsResponse)
+}
+
+func ArtifactsDownloadView(ctx *context_module.Context) {
+	runIndex := ctx.ParamsInt64("run")
+	artifactID := ctx.ParamsInt64("id")
+
+	artifact, err := actions_model.GetArtifactByID(ctx, artifactID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+	if artifact.JobID != runIndex {
+		ctx.Error(http.StatusNotFound, "artifact not found")
+		return
+	}
+
+	f, err := storage.ActionsArtifacts.Open(artifact.FilePath)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer f.Close()
+
+	ctx.ServeContent(f, &context_module.ServeHeaderOptions{
+		Filename:     artifact.ArtifactName,
+		LastModified: artifact.Created.AsLocalTime(),
+	})
 }
