@@ -240,6 +240,12 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `NOTICE_PAGING_NUM`: **25**: Number of notices that are shown in one page.
 - `ORG_PAGING_NUM`: **50**: Number of organizations that are shown in one page.
 
+### UI - Custom Emoji Aliases (`ui.emoji_aliases`)
+
+Add self-defined emoji aliases into this section, for example,
+**thumbs_up = thumbsup**
+will map the self-defined alias "thumbs_up" to gitea defined alias "thumbsup". Add as many mapping pairs as you need. Please note that self-defined aliases are in priority. Beware that self-defined emoji aliases might conflict with the Unicode standard emoji names (aliases), which might cause incompatibility problems when migrating repositories.
+
 ### UI - User (`ui.user`)
 
 - `REPO_PAGING_NUM`: **15**: Number of repos that are shown in one page.

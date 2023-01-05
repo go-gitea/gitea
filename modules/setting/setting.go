@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -1137,6 +1138,10 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	UI.CustomEmojisMap = make(map[string]string)
 	for _, emoji := range UI.CustomEmojis {
 		UI.CustomEmojisMap[emoji] = ":" + emoji + ":"
+	}
+	customAliases := Cfg.Section("ui.emoji_aliases")
+	for _, i := range customAliases.KeyStrings() {
+		emoji.AddCustomAliasMap(i, customAliases.Key(i).String())
 	}
 }
 

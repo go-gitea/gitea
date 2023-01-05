@@ -30,6 +30,9 @@ var (
 	// aliasMap provides a map of the alias to its emoji data.
 	aliasMap map[string]int
 
+	// customAliasMap maps custom emoji alias to defined emoji alias.
+	customAliasMap map[string]string
+
 	// emptyReplacer is the string replacer for emoji codes.
 	emptyReplacer *strings.Replacer
 
@@ -47,6 +50,7 @@ func loadMap() {
 		// initialize
 		codeMap = make(map[string]int, len(GemojiData))
 		aliasMap = make(map[string]int, len(GemojiData))
+		customAliasMap = make(map[string]string)
 
 		// process emoji codes and aliases
 		codePairs := make([]string, 0)
@@ -106,7 +110,10 @@ func FromAlias(alias string) *Emoji {
 	if strings.HasPrefix(alias, ":") && strings.HasSuffix(alias, ":") {
 		alias = alias[1 : len(alias)-1]
 	}
-
+	customAlias, ok := customAliasMap[alias]
+	if ok {
+		alias = customAlias
+	}
 	i, ok := aliasMap[alias]
 	if !ok {
 		return nil
@@ -183,4 +190,10 @@ func FindEmojiSubmatchIndex(s string) []int {
 	}
 
 	return []int{secondWriteWriter.idx, secondWriteWriter.end}
+}
+
+// AddCustomAliasMap sets up map from custom alias to predefined alias
+func AddCustomAliasMap(c, a string) {
+	loadMap()
+	customAliasMap[c] = a
 }
