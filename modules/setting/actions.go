@@ -10,7 +10,8 @@ import (
 // Actions settings
 var (
 	Actions = struct {
-		Storage           // how the created logs should be stored
+		Storage                   // how the created logs should be stored
+		Artifacts         Storage // how the created artifacts should be stored
 		Enabled           bool
 		DefaultActionsURL string `ini:"DEFAULT_ACTIONS_URL"`
 	}{
@@ -26,4 +27,5 @@ func newActions() {
 	}
 
 	Actions.Storage = getStorage("actions_log", "", nil)
+	Actions.Artifacts = getStorage("actions_artifacts", "", nil)
 }

@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/web"
 )
 
@@ -23,7 +25,9 @@ func ArtifactsRoutes(goctx gocontext.Context, prefix string) *web.Route {
 	m := web.NewRoute()
 	m.Use(withContexter(goctx))
 
-	r := artifactRoutes{prefix: prefix, fs: actions.NewDiskMkdirFs("./artifacts-data")}
+	r := artifactRoutes{
+		prefix: prefix,
+		fs:     storage.ActionsArtifacts}
 
 	// retrieve, list and confirm artifacts
 	m.Post(artifactRouteBase, r.getUploadArtifactURL)
@@ -57,12 +61,16 @@ func withContexter(ctx gocontext.Context) func(next http.Handler) http.Handler {
 
 type artifactRoutes struct {
 	prefix string
-	fs     actions.MkdirFS
+	fs     storage.ObjectStorage
 }
 
-func (ar artifactRoutes) openFile(fpath string, contentRange string) (actions.ArtifactFile, bool, error) {
+func (ar artifactRoutes) openFile(fpath string, contentRange string) (storage.Object, bool, error) {
 	if contentRange != "" && !strings.HasPrefix(contentRange, "bytes 0-") {
-		f, err := ar.fs.OpenAtEnd(fpath)
+		f, err := ar.fs.Open(fpath)
+		if err != nil {
+			return nil, false, err
+		}
+		_, err = f.Seek(0, os.SEEK_END)
 		return f, true, err
 	}
 	f, err := ar.fs.Open(fpath)
@@ -149,8 +157,14 @@ func (ar artifactRoutes) uploadArtifact(ctx *context.Context) {
 		// chunked means it is a continuation of a previous upload
 		fSize = artifact.FileSize
 	}
+	writer, ok := file.(io.Writer)
+	if !ok {
+		log.Error("Error casting file to writer: %v", err)
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
 
-	n, err := io.Copy(file, ctx.Req.Body)
+	n, err := io.Copy(writer, ctx.Req.Body)
 	if err != nil {
 		log.Error("Error copying body to file: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())

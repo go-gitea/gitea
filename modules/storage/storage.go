@@ -128,6 +128,8 @@ var (
 
 	// Actions represents actions storage
 	Actions ObjectStorage = uninitializedStorage
+	// Actions Artifacts represents actions artifacts storage
+	ActionsArtifacts ObjectStorage = uninitializedStorage
 )
 
 // Init init the stoarge
@@ -212,9 +214,14 @@ func initPackages() (err error) {
 func initActions() (err error) {
 	if !setting.Actions.Enabled {
 		Actions = discardStorage("Actions isn't enabled")
+		ActionsArtifacts = discardStorage("ActionsArtifacts isn't enabled")
 		return nil
 	}
 	log.Info("Initialising Actions storage with type: %s", setting.Actions.Storage.Type)
-	Actions, err = NewStorage(setting.Actions.Storage.Type, &setting.Actions.Storage)
+	if Actions, err = NewStorage(setting.Actions.Storage.Type, &setting.Actions.Storage); err != nil {
+		return err
+	}
+	log.Info("Initialising ActionsArtifacts storage with type: %s", setting.Actions.Artifacts.Type)
+	ActionsArtifacts, err = NewStorage(setting.Actions.Artifacts.Type, &setting.Actions.Artifacts)
 	return err
 }
