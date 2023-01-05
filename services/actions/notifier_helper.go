@@ -199,7 +199,9 @@ func notifyRelease(ctx context.Context, doer *user_model.User, rel *repo_model.R
 
 func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_model.PackageDescriptor, action api.HookPackageAction) {
 	if pd.Repository == nil {
-		// TODO https://github.com/go-gitea/gitea/pull/17940
+		// When a package is uploaded to an organization, it could trigger an event to notify.
+		// So the repository could be nil, however, actions can't support that yet.
+		// See https://github.com/go-gitea/gitea/pull/17940
 		return
 	}
 
