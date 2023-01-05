@@ -496,7 +496,7 @@ func isSubset(set, subset []string) bool {
 	}
 
 	for _, v := range subset {
-		if m.Contains(v) {
+		if !m.Contains(v) {
 			return false
 		}
 	}
