@@ -11,6 +11,7 @@ import (
 
 	_ "image/jpeg" // Needed for jpeg support
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	activities_model "code.gitea.io/gitea/models/activities"
 	admin_model "code.gitea.io/gitea/models/admin"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -26,6 +27,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
+	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
@@ -51,6 +53,12 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	}
 	defer committer.Close()
 	sess := db.GetEngine(ctx)
+
+	// Query the action tasks of this repo, they will be needed after they have been deleted to remove the logs
+	tasks, err := actions_model.FindTasks(ctx, actions_model.FindTaskOptions{RepoID: repoID})
+	if err != nil {
+		return fmt.Errorf("find actions tasks of repo %v: %w", repoID, err)
+	}
 
 	// In case is a organization.
 	org, err := user_model.GetUserByID(ctx, uid)
@@ -152,6 +160,11 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		&repo_model.Watch{RepoID: repoID},
 		&webhook.Webhook{RepoID: repoID},
 		&secret_model.Secret{RepoID: repoID},
+		&actions_model.ActionTaskStep{RepoID: repoID},
+		&actions_model.ActionTask{RepoID: repoID},
+		&actions_model.ActionRunJob{RepoID: repoID},
+		&actions_model.ActionRun{RepoID: repoID},
+		&actions_model.ActionRunner{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %w", err)
 	}
@@ -312,6 +325,15 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	if len(repo.Avatar) > 0 {
 		if err := storage.RepoAvatars.Delete(repo.CustomAvatarRelativePath()); err != nil {
 			return fmt.Errorf("Failed to remove %s: %w", repo.Avatar, err)
+		}
+	}
+
+	// Finally, delete action logs after the actions have already been deleted to avoid new log files
+	for _, task := range tasks {
+		err := actions_module.RemoveLogs(ctx, task.LogInStorage, task.LogFilename)
+		if err != nil {
+			log.Error("remove log file %q: %v", task.LogFilename, err)
+			// go on
 		}
 	}
 

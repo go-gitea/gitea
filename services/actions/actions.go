@@ -10,12 +10,9 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	webhook_model "code.gitea.io/gitea/models/webhook"
-	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
@@ -31,46 +28,6 @@ func Init() {
 	go graceful.GetManager().RunWithShutdownFns(jobEmitterQueue.Run)
 
 	notification.RegisterNotifier(NewNotifier())
-}
-
-func DeleteResourceOfRepository(ctx context.Context, repo *repo_model.Repository) error {
-	tasks, err := actions_model.FindTasks(ctx, actions_model.FindTaskOptions{RepoID: repo.ID})
-	if err != nil {
-		return fmt.Errorf("find task of repo %v: %w", repo.ID, err)
-	}
-
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		e := db.GetEngine(ctx)
-		if _, err := e.Delete(&actions_model.ActionTaskStep{RepoID: repo.ID}); err != nil {
-			return fmt.Errorf("delete actions task steps of repo %d: %w", repo.ID, err)
-		}
-		if _, err := e.Delete(&actions_model.ActionTask{RepoID: repo.ID}); err != nil {
-			return fmt.Errorf("delete actions tasks of repo %d: %w", repo.ID, err)
-		}
-		if _, err := e.Delete(&actions_model.ActionRunJob{RepoID: repo.ID}); err != nil {
-			return fmt.Errorf("delete actions run jobs of repo %d: %w", repo.ID, err)
-		}
-		if _, err := e.Delete(&actions_model.ActionRun{RepoID: repo.ID}); err != nil {
-			return fmt.Errorf("delete actions runs of repo %d: %w", repo.ID, err)
-		}
-		if _, err := e.Delete(&actions_model.ActionRunner{RepoID: repo.ID}); err != nil {
-			return fmt.Errorf("delete actions runner of repo %d: %w", repo.ID, err)
-		}
-		return nil
-	}); err != nil {
-		return err
-	}
-
-	// remove logs file after tasks have been deleted, to avoid new log files
-	for _, task := range tasks {
-		err := actions_module.RemoveLogs(ctx, task.LogInStorage, task.LogFilename)
-		if err != nil {
-			log.Error("remove log file %q: %v", task.LogFilename, err)
-			// go on
-		}
-	}
-
-	return nil
 }
 
 func CreateCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) error {

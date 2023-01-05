@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
-	actions_service "code.gitea.io/gitea/services/actions"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -50,11 +49,6 @@ func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_mod
 
 	if err := models.DeleteRepository(doer, repo.OwnerID, repo.ID); err != nil {
 		return err
-	}
-
-	// deletes actions resource after the repo has been deleted, to avoid new tasks
-	if err := actions_service.DeleteResourceOfRepository(ctx, repo); err != nil {
-		return fmt.Errorf("delete actions resources failed: %w", err)
 	}
 
 	return packages_model.UnlinkRepositoryFromAllPackages(ctx, repo.ID)
