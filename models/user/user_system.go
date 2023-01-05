@@ -60,8 +60,5 @@ func NewActionsUser() *User {
 }
 
 func (u *User) IsActions() bool {
-	if u == nil {
-		return false
-	}
-	return u.ID == ActionsUserID
+	return u != nil && u.ID == ActionsUserID
 }
