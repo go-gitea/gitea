@@ -9,10 +9,6 @@ import (
 
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
-
-	_ "code.gitea.io/gitea/models"
-	_ "code.gitea.io/gitea/models/repo"
-	_ "code.gitea.io/gitea/models/user"
 )
 
 func init() {

@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"
 
@@ -27,8 +26,6 @@ func changeDefaultFileBlockSize(n int64) (restore func()) {
 
 func TestDbfsBasic(t *testing.T) {
 	defer changeDefaultFileBlockSize(4)()
-
-	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// test basic write/read
 	f, err := OpenFile(db.DefaultContext, "test.txt", os.O_RDWR|os.O_CREATE)
@@ -121,8 +118,6 @@ func TestDbfsBasic(t *testing.T) {
 func TestDbfsReadWrite(t *testing.T) {
 	defer changeDefaultFileBlockSize(4)()
 
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
 	f1, err := OpenFile(db.DefaultContext, "test.log", os.O_RDWR|os.O_CREATE)
 	assert.NoError(t, err)
 	defer f1.Close()
@@ -154,8 +149,6 @@ func TestDbfsReadWrite(t *testing.T) {
 
 func TestDbfsSeekWrite(t *testing.T) {
 	defer changeDefaultFileBlockSize(4)()
-
-	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	f, err := OpenFile(db.DefaultContext, "test2.log", os.O_RDWR|os.O_CREATE)
 	assert.NoError(t, err)
