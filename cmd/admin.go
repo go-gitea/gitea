@@ -363,6 +363,10 @@ var (
 			Value: "",
 			Usage: "Group Claim value for restricted users",
 		},
+		cli.BoolFlag{
+			Name:  "force-oauth",
+			Usage: "set to force all logins to the configured oauth provider",
+		},
 	}
 
 	microcmdAuthUpdateOauth = cli.Command{
@@ -826,7 +830,7 @@ func parseOAuth2Config(c *cli.Context) *oauth2.Source {
 		CustomURLMapping:              customURLMapping,
 		IconURL:                       c.String("icon-url"),
 		SkipLocalTwoFA:                c.Bool("skip-local-2fa"),
-		ForceOAuth:                    c.Bool("force-configured-oauth"),
+		ForceOAuth:                    c.Bool("force-oauth"),
 		Scopes:                        c.StringSlice("scopes"),
 		RequiredClaimName:             c.String("required-claim-name"),
 		RequiredClaimValue:            c.String("required-claim-value"),
