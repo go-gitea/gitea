@@ -78,7 +78,7 @@
 						<span class="ui label">{{.}}</span>
 						{{end}}
 					</td>
-					<td>{{TimeSinceUnix .LastOnline $.locale}}</td>
+					<td>{{if .LastOnline}}{{TimeSinceUnix .LastOnline $.locale}}{{else}}{{$.locale.Tr "never"}}{{end}}</td>
 					<td class="runner-ops">
 						{{if .Editable $.RunnerOnwerID $.RunnerRepoID}}
 						<a href="{{$.Link}}/{{.ID}}">{{svg "octicon-pencil"}}</a>
