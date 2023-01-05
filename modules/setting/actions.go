@@ -10,7 +10,7 @@ import (
 // Actions settings
 var (
 	Actions = struct {
-		Storage // how the created logs should be stored
+		Storage           // how the created logs should be stored
 		Enabled           bool
 		DefaultActionsURL string
 	}{
