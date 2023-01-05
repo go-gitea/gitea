@@ -55,8 +55,7 @@
             </div>
 
             <!-- the log elements could be a lot, do not use v-if to destroy/reconstruct the DOM -->
-            <div class="job-step-logs" ref="elJobStepLogs" v-show="currentJobStepsStates[i].expanded">
-            </div>
+            <div class="job-step-logs" ref="elJobStepLogs" v-show="currentJobStepsStates[i].expanded"/>
           </div>
         </div>
       </div>
