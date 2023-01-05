@@ -30,6 +30,8 @@ import (
 
 var methodCtxKey struct{}
 
+// withMethod sets the notification method that this context currently executes.
+// Used for debugging/ troubleshooting purposes.
 func withMethod(ctx context.Context, method string) context.Context {
 	// don't overwrite
 	if v := ctx.Value(methodCtxKey); v != nil {
@@ -40,6 +42,9 @@ func withMethod(ctx context.Context, method string) context.Context {
 	return context.WithValue(ctx, methodCtxKey, method)
 }
 
+// getMethod gets the notification method that this context currently executes.
+// Default: "notify"
+// Used for debugging/ troubleshooting purposes.
 func getMethod(ctx context.Context) string {
 	if v := ctx.Value(methodCtxKey); v != nil {
 		if s, ok := v.(string); ok {
