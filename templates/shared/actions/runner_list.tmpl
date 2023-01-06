@@ -55,37 +55,43 @@
 				</tr>
 			</thead>
 			<tbody>
-				{{range .Runners}}
-				<tr>
-					<td>
-						<span class="runner-status-{{if .IsOnline}}online{{else}}offline{{end}}">{{.StatusLocaleName $.locale}}</span>
-					</td>
-					<td>
-						{{if .Editable $.RunnerOnwerID $.RunnerRepoID}}
-						<a href="{{$.Link}}/{{.ID}}" class="tooltip" data-content="{{.Description}}">
-							<span class="runner-id">{{template "shared/actions/runner_id" .ID}}</span>
-							<span class="runner-name">{{.Name}}</span>
-						</a>
-						{{else}}
-						<p class="tooltip" data-content="{{.Description}}">
-							<span class="runner-id">{{template "shared/actions/runner_id" .ID}}</span>
-							<span class="runner-name">{{.Name}}</span>
-						</p>
-						{{end}}
-					</td>
-					<td>{{.OwnType}}</td>
-					<td class="runner-tags">
-						{{range .AllLabels}}
-						<span class="ui label">{{.}}</span>
-						{{end}}
-					</td>
-					<td>{{if .LastOnline}}{{TimeSinceUnix .LastOnline $.locale}}{{else}}{{$.locale.Tr "never"}}{{end}}</td>
-					<td class="runner-ops">
-						{{if .Editable $.RunnerOnwerID $.RunnerRepoID}}
-						<a href="{{$.Link}}/{{.ID}}">{{svg "octicon-pencil"}}</a>
-						{{end}}
-					</td>
-				</tr>
+				{{if .Runners}}
+					{{range .Runners}}
+					<tr>
+						<td>
+							<span class="runner-status-{{if .IsOnline}}online{{else}}offline{{end}}">{{.StatusLocaleName $.locale}}</span>
+						</td>
+						<td>
+							{{if .Editable $.RunnerOnwerID $.RunnerRepoID}}
+							<a href="{{$.Link}}/{{.ID}}" class="tooltip" data-content="{{.Description}}">
+								<span class="runner-id">{{template "shared/actions/runner_id" .ID}}</span>
+								<span class="runner-name">{{.Name}}</span>
+							</a>
+							{{else}}
+							<p class="tooltip" data-content="{{.Description}}">
+								<span class="runner-id">{{template "shared/actions/runner_id" .ID}}</span>
+								<span class="runner-name">{{.Name}}</span>
+							</p>
+							{{end}}
+						</td>
+						<td>{{.OwnType}}</td>
+						<td class="runner-tags">
+							{{range .AllLabels}}
+							<span class="ui label">{{.}}</span>
+							{{end}}
+						</td>
+						<td>{{if .LastOnline}}{{TimeSinceUnix .LastOnline $.locale}}{{else}}{{$.locale.Tr "never"}}{{end}}</td>
+						<td class="runner-ops">
+							{{if .Editable $.RunnerOnwerID $.RunnerRepoID}}
+							<a href="{{$.Link}}/{{.ID}}">{{svg "octicon-pencil"}}</a>
+							{{end}}
+						</td>
+					</tr>
+					{{end}}
+				{{else}}
+					<tr>
+						<td class="center aligned" colspan="6">{{.locale.Tr "actions.runners.none"}}</td>
+					</tr>
 				{{end}}
 			</tbody>
 		</table>
