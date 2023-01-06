@@ -33,7 +33,7 @@ func TestSettings(t *testing.T) {
 	assert.EqualValues(t, newSetting.SettingValue, settings[strings.ToLower(keyName)].SettingValue)
 
 	// updated setting
-	updatedSetting := &system.Setting{SettingKey: keyName, SettingValue: "100", Version: newSetting.Version}
+	updatedSetting := &system.Setting{SettingKey: keyName, SettingValue: "100", Version: settings[strings.ToLower(keyName)].Version}
 	err = system.SetSetting(updatedSetting)
 	assert.NoError(t, err)
 

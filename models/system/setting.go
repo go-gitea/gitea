@@ -88,7 +88,7 @@ func GetSettingNoCache(key string) (*Setting, error) {
 	if len(v) == 0 {
 		return nil, ErrSettingIsNotExist{key}
 	}
-	return v[key], nil
+	return v[strings.ToLower(key)], nil
 }
 
 // GetSetting returns the setting value via the key
@@ -131,7 +131,7 @@ func GetSettings(keys []string) (map[string]*Setting, error) {
 type AllSettings map[string]*Setting
 
 func (settings AllSettings) Get(key string) Setting {
-	if v, ok := settings[key]; ok {
+	if v, ok := settings[strings.ToLower(key)]; ok {
 		return *v
 	}
 	return Setting{}
@@ -187,6 +187,8 @@ func SetSetting(setting *Setting) error {
 	if err := upsertSettingValue(strings.ToLower(setting.SettingKey), setting.SettingValue, setting.Version); err != nil {
 		return err
 	}
+
+	setting.Version++
 
 	cc := cache.GetCache()
 	if cc != nil {
