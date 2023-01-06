@@ -1,4 +1,4 @@
-// Copyright 2022 The Gitea Authors. All rights reserved.
+// Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package actions
@@ -12,23 +12,8 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	user_model "code.gitea.io/gitea/models/user"
 	webhook_model "code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/queue"
-	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 )
-
-func Init() {
-	if !setting.Actions.Enabled {
-		return
-	}
-
-	jobEmitterQueue = queue.CreateUniqueQueue("actions_ready_job", jobEmitterQueueHandle, new(jobUpdate))
-	go graceful.GetManager().RunWithShutdownFns(jobEmitterQueue.Run)
-
-	notification.RegisterNotifier(NewNotifier())
-}
 
 func CreateCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) error {
 	if err := job.LoadAttributes(ctx); err != nil {
