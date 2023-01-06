@@ -105,7 +105,7 @@ func List(ctx *context.Context) {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
-	ctx.Data["NumClosedRuns"] = numClosedRuns
+	ctx.Data["NumClosedActionRuns"] = numClosedRuns
 
 	opts.IsClosed = util.OptionalBoolNone
 	if ctx.FormString("state") == "closed" {
