@@ -123,8 +123,9 @@ func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStor
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("GetUserByName: %v", err)
+			return nil, err
 		}
-		return nil, err
+		return nil, nil
 	}
 
 	log.Trace("OAuth2 Authorization: Logged in user %-v", user)

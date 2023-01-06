@@ -60,9 +60,12 @@ func (r *ReverseProxy) getUserFromAuthUser(req *http.Request) (*user_model.User,
 
 	user, err := user_model.GetUserByName(req.Context(), username)
 	if err != nil {
-		if !user_model.IsErrUserNotExist(err) || !r.isAutoRegisterAllowed() {
+		if !user_model.IsErrUserNotExist(err) {
 			log.Error("GetUserByName: %v", err)
 			return nil, err
+		}
+		if !r.isAutoRegisterAllowed() {
+			return nil, nil
 		}
 		user = r.newUser(req)
 	}

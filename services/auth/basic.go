@@ -113,8 +113,9 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("UserSignIn: %v", err)
+			return nil, err
 		}
-		return nil, err
+		return nil, nil
 	}
 
 	if skipper, ok := source.Cfg.(LocalTwoFASkipper); ok && skipper.IsSkipLocalTwoFA() {
