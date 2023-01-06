@@ -11,8 +11,8 @@
 					</a>
 				</div>
 				<div class="desc issue-item-bottom-row df ac fw my-1">
-					<b>{{if not $.CurWorkflow}}{{.WorkflowID}} {{end}}#{{.Index}}</b>: Commit
-					<a href="{{$.RepoLink}}/commit/{{.CommitSHA}}">{{SubStr .CommitSHA 0 10}}</a>&nbsp; pushed by {{.TriggerUser.GetDisplayName | Escape}}
+					<b>{{if not $.CurWorkflow}}{{.WorkflowID}} {{end}}#{{.Index}}</b>: {{$.locale.Tr "actions.runs.commit"}}
+					<a href="{{$.RepoLink}}/commit/{{.CommitSHA}}">{{SubStr .CommitSHA 0 10}}</a>&nbsp; {{$.locale.Tr "actions.runs.pushed_by"}} {{.TriggerUser.GetDisplayName | Escape}}
 				</div>
 			</div>
 			<div class="issue-item-right">

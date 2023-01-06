@@ -296,7 +296,7 @@ var (
 		TypeActions,
 		"actions.actions",
 		"/actions",
-		"actions.description",
+		"actions.unit.desc",
 		7,
 		perm.AccessModeOwner,
 	}
