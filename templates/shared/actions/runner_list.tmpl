@@ -62,12 +62,12 @@
 					<td>
 						{{if .Editable $.RunnerOnwerID $.RunnerRepoID}}
 						<a href="{{$.Link}}/{{.ID}}" class="tooltip" data-content="{{.Description}}">
-							<span class="runner-id">#{{.ID}}</span>
+							<span class="runner-id">{{template "shared/actions/runner_id" .ID}}</span>
 							<span class="runner-name">{{.Name}}</span>
 						</a>
 						{{else}}
 						<p class="tooltip" data-content="{{.Description}}">
-							<span class="runner-id">#{{.ID}}</span>
+							<span class="runner-id">{{template "shared/actions/runner_id" .ID}}</span>
 							<span class="runner-name">{{.Name}}</span>
 						</p>
 						{{end}}
