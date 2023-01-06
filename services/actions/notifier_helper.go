@@ -96,7 +96,7 @@ func (input *notifyInput) WithPullRequest(pr *issues_model.PullRequest) *notifyI
 
 func (input *notifyInput) Notify(ctx context.Context) {
 	if err := notify(ctx, input); err != nil {
-		log.Error("%s: %v", getMethod(ctx), err)
+		log.Error("an error occurred while executing the %s actions method: %v", getMethod(ctx), err)
 	}
 }
 
