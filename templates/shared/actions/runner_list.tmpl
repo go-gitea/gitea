@@ -58,7 +58,7 @@
 				{{range .Runners}}
 				<tr>
 					<td>
-						<span class="runner-status-{{if .IsOnline}}online{{else}}offline{{end}}">{{.StatusName}}</span>
+						<span class="runner-status-{{if .IsOnline}}online{{else}}offline{{end}}">{{.StatusLocaleName $.locale}}</span>
 					</td>
 					<td>
 						{{if .Editable $.RunnerOnwerID $.RunnerRepoID}}

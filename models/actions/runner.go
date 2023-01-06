@@ -13,6 +13,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
@@ -72,6 +73,10 @@ func (r *ActionRunner) Status() runnerv1.RunnerStatus {
 
 func (r *ActionRunner) StatusName() string {
 	return strings.ToLower(strings.TrimPrefix(r.Status().String(), "RUNNER_STATUS_"))
+}
+
+func (r *ActionRunner) StatusLocaleName(lang translation.Locale) string {
+	return lang.Tr("actions.runners.status." + r.StatusName())
 }
 
 func (r *ActionRunner) IsOnline() bool {
