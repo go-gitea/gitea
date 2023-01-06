@@ -70,7 +70,7 @@
 				{{range .Tasks}}
 				<tr>
 					<td><a href="{{.GetBuildViewLink}}" target="_blank">{{template "shared/actions/runner_id" .ID}}</a></td>
-					<td><span class="ui label task-status-{{.Status.String}}">{{.Status.String}}</span></td>
+					<td><span class="ui label task-status-{{.Status.String}}">{{.Status.LocaleString $.locale}}</span></td>
 					<td>{{.GetRepoName}}</td>
 					<td><strong>
 							<a href="{{.GetCommitLink}}" target="_blank">{{.GetCommitSHAShort}}</a>

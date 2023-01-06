@@ -3,7 +3,11 @@
 
 package actions
 
-import runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
+import (
+	"code.gitea.io/gitea/modules/translation"
+
+	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
+)
 
 // Status represents the status of ActionRun, ActionRunJob, ActionTask, or ActionTaskStep
 type Status int
@@ -33,6 +37,11 @@ var statusNames = map[Status]string{
 // String returns the string name of the Status
 func (s Status) String() string {
 	return statusNames[s]
+}
+
+// LocaleString returns the locale string name of the Status
+func (s Status) LocaleString(lang translation.Locale) string {
+	return lang.Tr("actions.status." + s.String())
 }
 
 // IsDone returns whether the Status is final

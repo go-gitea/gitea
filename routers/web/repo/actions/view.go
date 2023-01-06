@@ -148,7 +148,7 @@ func ViewPost(ctx *context_module.Context) {
 	resp.StateData.CurrentJobInfo.Title = current.Name
 	resp.StateData.CurrentJobSteps = make([]ViewJobStep, 0)
 	resp.LogsData.StreamingLogs = make([]ViewStepLog, 0, len(req.StepLogCursors))
-	resp.StateData.CurrentJobInfo.Detail = current.Status.String()
+	resp.StateData.CurrentJobInfo.Detail = current.Status.LocaleString(ctx.Locale)
 	if task != nil {
 		steps := actions.FullSteps(task)
 
