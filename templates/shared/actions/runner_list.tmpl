@@ -76,9 +76,7 @@
 						</td>
 						<td>{{.OwnType}}</td>
 						<td class="runner-tags">
-							{{range .AllLabels}}
-							<span class="ui label">{{.}}</span>
-							{{end}}
+							{{range .AllLabels}}<span class="ui label">{{.}}</span>{{end}}
 						</td>
 						<td>{{if .LastOnline}}{{TimeSinceUnix .LastOnline $.locale}}{{else}}{{$.locale.Tr "never"}}{{end}}</td>
 						<td class="runner-ops">
