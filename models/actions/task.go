@@ -7,7 +7,6 @@ import (
 	"context"
 	"crypto/subtle"
 	"fmt"
-	"strconv"
 	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -83,40 +82,18 @@ func (task *ActionTask) IsStopped() bool {
 	return task.Stopped > 0
 }
 
-func (task *ActionTask) GetCommitSHA() string {
-	if task.Job == nil {
+func (task *ActionTask) GetRunLink() string {
+	if task.Job == nil || task.Job.Run == nil {
 		return ""
 	}
-	if task.Job.Run == nil {
-		return ""
-	}
-
-	return task.Job.Run.CommitSHA
-}
-
-func (task *ActionTask) GetCommitSHAShort() string {
-	commitSHA := task.GetCommitSHA()
-	if len(commitSHA) > 8 {
-		return commitSHA[:8]
-	}
-	return commitSHA
-}
-
-func (task *ActionTask) GetBuildViewLink() string {
-	if task.Job == nil || task.Job.Run == nil || task.Job.Run.Repo == nil {
-		return ""
-	}
-	return task.Job.Run.Repo.Link() + "/actions/runs/" + strconv.FormatInt(task.ID, 10)
+	return task.Job.Run.Link()
 }
 
 func (task *ActionTask) GetCommitLink() string {
 	if task.Job == nil || task.Job.Run == nil || task.Job.Run.Repo == nil {
 		return ""
 	}
-	if commitSHA := task.GetCommitSHA(); commitSHA != "" {
-		return task.Job.Run.Repo.CommitLink(commitSHA)
-	}
-	return ""
+	return task.Job.Run.Repo.CommitLink(task.CommitSHA)
 }
 
 func (task *ActionTask) GetRepoName() string {

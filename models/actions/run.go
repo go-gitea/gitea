@@ -51,7 +51,17 @@ func init() {
 }
 
 func (run *ActionRun) HTMLURL() string {
+	if run.Repo == nil {
+		return ""
+	}
 	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.HTMLURL(), run.Index)
+}
+
+func (run *ActionRun) Link() string {
+	if run.Repo == nil {
+		return ""
+	}
+	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.Link(), run.Index)
 }
 
 // LoadAttributes load Repo TriggerUser if not loaded

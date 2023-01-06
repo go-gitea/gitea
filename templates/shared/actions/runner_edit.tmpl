@@ -59,7 +59,7 @@
 		<table class="ui very basic striped table unstackable">
 			<thead>
 				<tr>
-					<th>{{.locale.Tr "actions.runners.task_list.job"}}</th>
+					<th>{{.locale.Tr "actions.runners.task_list.run"}}</th>
 					<th>{{.locale.Tr "actions.runners.task_list.status"}}</th>
 					<th>{{.locale.Tr "actions.runners.task_list.repository"}}</th>
 					<th>{{.locale.Tr "actions.runners.task_list.commit"}}</th>
@@ -69,12 +69,12 @@
 			<tbody>
 				{{range .Tasks}}
 				<tr>
-					<td><a href="{{.GetBuildViewLink}}" target="_blank">{{template "shared/actions/runner_id" .ID}}</a></td>
+					<td><a href="{{.GetRunLink}}" target="_blank">{{template "shared/actions/runner_id" .ID}}</a></td>
 					<td><span class="ui label task-status-{{.Status.String}}">{{.Status.LocaleString $.locale}}</span></td>
-					<td>{{.GetRepoName}}</td>
-					<td><strong>
-							<a href="{{.GetCommitLink}}" target="_blank">{{.GetCommitSHAShort}}</a>
-						</strong> </td>
+					<td><a href="{{.GetRepoLink}}" target="_blank">{{.GetRepoName}}</a></td>
+					<td>
+						<strong><a href="{{.GetCommitLink}}" target="_blank">{{ShortSha .CommitSHA}}</a></strong>
+					</td>
 					<td>{{if .IsStopped}}
 						<span>{{TimeSinceUnix .Stopped $.locale}}</span>
 						{{else}}-{{end}}</td>
