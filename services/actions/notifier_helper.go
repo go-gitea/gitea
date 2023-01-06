@@ -94,12 +94,21 @@ func (input *notifyInput) WithPullRequest(pr *issues_model.PullRequest) *notifyI
 }
 
 func (input *notifyInput) Notify(ctx context.Context) {
+	log.Trace("execute %v for event %v whose doer is %v", getMethod(ctx), input.Event, input.Doer.Name)
+
 	if err := notify(ctx, input); err != nil {
 		log.Error("an error occurred while executing the %s actions method: %v", getMethod(ctx), err)
 	}
 }
 
 func notify(ctx context.Context, input *notifyInput) error {
+	if input.Doer.IsActions() {
+		// avoiding triggering cyclically, for example:
+		// a comment of an issue will trigger the runner to add a new comment as reply,
+		// and the new comment will trigger the runner again.
+		log.Debug("ignore executing %v for event %v whose doer is %v", getMethod(ctx), input.Event, input.Doer.Name)
+		return nil
+	}
 	if unit_model.TypeActions.UnitGlobalDisabled() {
 		return nil
 	}
