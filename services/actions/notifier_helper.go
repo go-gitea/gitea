@@ -15,12 +15,12 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	webhook_model "code.gitea.io/gitea/models/webhook"
 	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/services/convert"
 
 	"github.com/nektos/act/pkg/jobparser"
@@ -56,7 +56,7 @@ type notifyInput struct {
 	// required
 	Repo  *repo_model.Repository
 	Doer  *user_model.User
-	Event webhook_model.HookEventType
+	Event webhook_module.HookEventType
 
 	// optional
 	Ref         string
@@ -64,7 +64,7 @@ type notifyInput struct {
 	PullRequest *issues_model.PullRequest
 }
 
-func newNotifyInput(repo *repo_model.Repository, doer *user_model.User, event webhook_model.HookEventType) *notifyInput {
+func newNotifyInput(repo *repo_model.Repository, doer *user_model.User, event webhook_module.HookEventType) *notifyInput {
 	return &notifyInput{
 		Repo:  repo,
 		Ref:   repo.DefaultBranch,
@@ -182,7 +182,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 	return nil
 }
 
-func newNotifyInputFromIssue(issue *issues_model.Issue, event webhook_model.HookEventType) *notifyInput {
+func newNotifyInputFromIssue(issue *issues_model.Issue, event webhook_module.HookEventType) *notifyInput {
 	return newNotifyInput(issue.Repo, issue.Poster, event)
 }
 
@@ -194,7 +194,7 @@ func notifyRelease(ctx context.Context, doer *user_model.User, rel *repo_model.R
 
 	mode, _ := access_model.AccessLevel(ctx, doer, rel.Repo)
 
-	newNotifyInput(rel.Repo, doer, webhook_model.HookEventRelease).
+	newNotifyInput(rel.Repo, doer, webhook_module.HookEventRelease).
 		WithRef(ref).
 		WithPayload(&api.ReleasePayload{
 			Action:     action,
@@ -219,7 +219,7 @@ func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_mo
 		return
 	}
 
-	newNotifyInput(pd.Repository, sender, webhook_model.HookEventPackage).
+	newNotifyInput(pd.Repository, sender, webhook_module.HookEventPackage).
 		WithPayload(&api.PackagePayload{
 			Action:  action,
 			Package: apiPackage,

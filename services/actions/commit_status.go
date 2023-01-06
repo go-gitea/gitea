@@ -11,8 +11,8 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	user_model "code.gitea.io/gitea/models/user"
-	webhook_model "code.gitea.io/gitea/models/webhook"
 	api "code.gitea.io/gitea/modules/structs"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 )
 
 func CreateCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) error {
@@ -21,7 +21,7 @@ func CreateCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 	}
 
 	run := job.Run
-	if run.Event != webhook_model.HookEventPush {
+	if run.Event != webhook_module.HookEventPush {
 		return nil
 	}
 

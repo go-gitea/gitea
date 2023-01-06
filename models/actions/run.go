@@ -11,11 +11,11 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/nektos/act/pkg/jobparser"
 	"golang.org/x/exp/slices"
@@ -36,7 +36,7 @@ type ActionRun struct {
 	Ref               string
 	CommitSHA         string
 	IsForkPullRequest bool
-	Event             webhook.HookEventType
+	Event             webhook_module.HookEventType
 	EventPayload      string `xorm:"LONGTEXT"`
 	Status            Status `xorm:"index"`
 	Started           timeutil.TimeStamp
@@ -97,7 +97,7 @@ func (run *ActionRun) Duration() time.Duration {
 }
 
 func (run *ActionRun) GetPushEventPayload() (*api.PushPayload, error) {
-	if run.Event == webhook.HookEventPush {
+	if run.Event == webhook_module.HookEventPush {
 		var payload api.PushPayload
 		if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
 			return nil, err

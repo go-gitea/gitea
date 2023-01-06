@@ -8,9 +8,9 @@ import (
 	"io"
 	"strings"
 
-	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/nektos/act/pkg/model"
 )
@@ -41,7 +41,7 @@ func ListWorkflows(commit *git.Commit) (git.Entries, error) {
 	return ret, nil
 }
 
-func DetectWorkflows(commit *git.Commit, event webhook.HookEventType) (map[string][]byte, error) {
+func DetectWorkflows(commit *git.Commit, event webhook_module.HookEventType) (map[string][]byte, error) {
 	entries, err := ListWorkflows(commit)
 	if err != nil {
 		return nil, err
