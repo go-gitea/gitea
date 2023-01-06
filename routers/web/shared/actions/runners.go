@@ -130,7 +130,7 @@ func RunnerDetailsEditPost(ctx *context.Context, runnerID, ownerID, repoID int64
 
 	form := web.GetForm(ctx).(*forms.EditRunnerForm)
 	runner.Description = form.Description
-	runner.CustomLabels = strings.Split(form.CustomLabels, ",")
+	runner.CustomLabels = splitLabels(form.CustomLabels)
 
 	err = actions_model.UpdateRunner(ctx, runner, "description", "custom_labels")
 	if err != nil {
@@ -181,4 +181,12 @@ func RunnerDeletePost(ctx *context.Context, runnerID int64,
 
 	ctx.Flash.Success(ctx.Tr("runners.delete_runner_success"))
 	ctx.Redirect(successRedirectTo)
+}
+
+func splitLabels(s string) []string {
+	labels := strings.Split(s, ",")
+	for i, v := range labels {
+		labels[i] = strings.TrimSpace(v)
+	}
+	return labels
 }
