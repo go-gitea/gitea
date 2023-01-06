@@ -216,61 +216,6 @@ const sfc = {
     // the respData has the following fields:
     // * stateData: it will be stored into Vue data and used to update the UI state
     // * logsData: the logs in it will be appended to the UI manually, no touch to Vue data
-    fetchMockData(reqData) {
-      const stateData = {
-        runInfo: {title: 'The Demo Build'},
-        allJobGroups: [
-          {
-            summary: 'Job Group Foo',
-            jobs: [
-              {id: 1, name: 'Job A', status: 'success'},
-              {id: 2, name: 'Job B', status: 'error'},
-            ],
-          },
-          {
-            summary: 'Job Group Bar',
-            jobs: [
-              {id: 3, name: 'Job X', status: 'skipped'},
-              {id: 4, name: 'Job Y', status: 'waiting'},
-              {id: 5, name: 'Job Z', status: 'running'},
-            ],
-          },
-        ],
-        currentJobInfo: {title: 'the job title', detail: 'succeeded 3 hours ago in 11s'},
-        currentJobSteps: [
-          {summary: 'Job Step 1', duration: 0.5, status: 'success'},
-          {summary: 'Job Step 2', duration: 2, status: 'error'},
-          {summary: 'Job Step 3', duration: 64, status: 'skipped'},
-          {summary: 'Job Step 4', duration: 3600 + 60, status: 'waiting'},
-          {summary: 'Job Step 5', duration: 86400 + 60 + 1, status: 'running'},
-        ],
-      };
-      const logsData = {
-        streamingLogs: [
-          // {stepIndex: 0, lines: [{t: timestamp, ln: lineNumber, m: message}, ...]},
-        ]
-      };
-
-      // prepare mock data for logs
-      for (const reqCursor of reqData.stepLogCursors) {
-        if (!reqCursor.expanded) continue; // backend can decide whether send logs for a step
-        if (reqCursor.cursor > 100) continue;
-        let cursor = reqCursor.cursor; // use cursor to send remaining logs
-        const lines = [];
-        for (let i = 0; i < 110; i++) {
-          lines.push({
-            ln: cursor, // demo only, use cursor for line number
-            m: `${' '.repeat(i % 4)}\x1B[1;3;31mDemo Log\x1B[0m, tag test <br>, hello world ${Date.now()}, cursor: ${cursor}`,
-            t: Date.now() / 1000, // use second as unit
-          });
-          cursor++;
-        }
-        logsData.streamingLogs.push({stepIndex: reqCursor.stepIndex, cursor, lines});
-      }
-
-      return {stateData, logsData};
-    },
-
     async fetchJobData(reqData) {
       const resp = await fetch(``, {
         method: 'POST',
