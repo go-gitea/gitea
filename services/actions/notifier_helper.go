@@ -21,7 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/convert"
 
 	"github.com/nektos/act/pkg/jobparser"
@@ -139,7 +138,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 
 	for id, content := range workflows {
 		run := actions_model.ActionRun{
-			Title:             truncateContent(strings.SplitN(commit.CommitMessage, "\n", 2)[0], 255),
+			Title:             strings.SplitN(commit.CommitMessage, "\n", 2)[0],
 			RepoID:            input.Repo.ID,
 			OwnerID:           input.Repo.OwnerID,
 			WorkflowID:        id,
@@ -218,12 +217,4 @@ func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_mo
 			Sender:  convert.ToUser(sender, nil),
 		}).
 		Notify(ctx)
-}
-
-func truncateContent(content string, n int) string {
-	truncated, omitted := util.SplitStringAtByteN(content, n)
-	if omitted != "" {
-		truncated += "…"
-	}
-	return truncated
 }
