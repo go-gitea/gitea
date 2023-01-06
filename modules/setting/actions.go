@@ -12,7 +12,7 @@ var (
 	Actions = struct {
 		Storage           // how the created logs should be stored
 		Enabled           bool
-		DefaultActionsURL string
+		DefaultActionsURL string `ini:"DEFAULT_ACTIONS_URL"`
 	}{
 		Enabled:           false,
 		DefaultActionsURL: "https://gitea.com",
