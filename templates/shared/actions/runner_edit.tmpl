@@ -13,7 +13,7 @@
 					<span class="runner-status-{{if .Runner.IsOnline}}online{{else}}offline{{end}}">{{.Runner.StatusLocaleName $.locale}}</span>
 				</div>
 				<div class="field dib disabled">
-					<label>{{.locale.Tr "actions.runners.latest_online"}}</label>
+					<label>{{.locale.Tr "actions.runners.last_online"}}</label>
 					<span>{{TimeSinceUnix .Runner.LastOnline $.locale}}</span>
 				</div>
 				<div class="field dib disabled">
