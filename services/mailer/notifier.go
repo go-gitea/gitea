@@ -22,7 +22,7 @@ type mailNotifier struct {
 var _ notify.Notifier = &mailNotifier{}
 
 // NewNotifier create a new mailNotifier notifier
-func NewNotifier() notify.Notifier {
+func newNotifier() notify.Notifier {
 	return &mailNotifier{}
 }
 

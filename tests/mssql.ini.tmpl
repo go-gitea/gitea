@@ -64,14 +64,13 @@ FROM = mssql-{{TEST_TYPE}}-test@gitea.io
 [service]
 REGISTER_EMAIL_CONFIRM            = false
 REGISTER_MANUAL_CONFIRM           = false
-ENABLE_NOTIFY_MAIL                = false
 DISABLE_REGISTRATION              = false
 ENABLE_CAPTCHA                    = false
 REQUIRE_SIGNIN_VIEW               = false
 DEFAULT_KEEP_EMAIL_PRIVATE        = false
 DEFAULT_ALLOW_CREATE_ORGANIZATION = true
 NO_REPLY_ADDRESS                  = noreply.example.org
-ENABLE_NOTIFY_MAIL                = true
+ENABLE_NOTIFY_MAIL                = false
 
 [picture]
 DISABLE_GRAVATAR              = false

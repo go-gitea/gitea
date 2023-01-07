@@ -365,6 +365,7 @@ func NewContext(ctx context.Context) {
 	default:
 		Sender = &smtpSender{}
 	}
+	log.Trace("Init mail service %s success", setting.MailService.Protocol)
 
 	mailQueue = queue.CreateQueue("mail", func(data ...queue.Data) []queue.Data {
 		for _, datum := range data {
@@ -385,7 +386,7 @@ func NewContext(ctx context.Context) {
 	subjectTemplates, bodyTemplates = templates.Mailer(ctx)
 
 	if setting.Service.EnableNotifyMail {
-		notify.RegisterNotifier(NewNotifier())
+		notify.RegisterNotifier(newNotifier())
 	}
 }
 
