@@ -169,11 +169,34 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/debian", func() {
-			r.Group("/{packagename}/{packageversion}/{arch}", func() {
+			r.Group("/files/{packagename}/{packageversion}/{arch}", func() {
 				r.Put("", debian.PutPackage)
 				r.Delete("", debian.DeletePackage)
 			}, reqPackageAccess(perm.AccessModeWrite))
-			r.Get("/pool/{filename}", debian.GetPackage)
+
+			r.Get("/", debian.GetIndex)
+			r.Group("/pool", func() {
+				r.Get("/", debian.GetIndex)
+				r.Get("/{filename}", debian.GetPackage)
+			})
+			r.Group("/dists", func() {
+				r.Get("/", debian.GetIndex)
+				r.Group("/gitea", func() {
+					r.Get("/", debian.GetIndex)
+					r.Group("/main", func() {
+						r.Get("/", debian.GetIndex)
+						r.Group("/{packagearch}", func() {
+							r.Get("/", debian.GetArchIndex)
+							r.Get("/Packages", debian.GetPackages)
+							r.Get("/Packages.gz", debian.GetPackagesGZ)
+							r.Get("/Release", debian.GetRelease)
+						})
+					})
+					r.Get("/Release", debian.GetRelease)
+					r.Get("/Release.gpg", debian.GetReleaseGPG)
+					r.Get("/InRelease", debian.GetInRelease)
+				})
+			})
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/generic", func() {
 			r.Group("/{packagename}/{packageversion}", func() {

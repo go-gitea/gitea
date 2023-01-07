@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Gitea Debian Repository</title>
+	</head>
+	<body>
+		<h1>Index of {{.IndexPath}}</h1>
+		<hr>
+		<pre>
+{{range $fn, $fp := .IndexFiles}}<a href="{{$fp}}">{{$fn}}</a>
+{{end}}</pre>
+		<hr>
+	</body>
+</html>

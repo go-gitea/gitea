@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -31,10 +32,7 @@ func apiError(ctx *context.Context, status int, obj interface{}) {
 }
 
 func GetPackage(ctx *context.Context) {
-	// packageName := ctx.Params("packagename")
-	// packageVersion := ctx.Params("packageversion")
-	// packageArch := ctx.Params("arch")
-	// filename := fmt.Sprintf("%s_%s_%s.deb", packageName, packageVersion, packageArch)
+	// Need to parse filename bc of how it's routed
 	filename := ctx.Params("filename")
 	log.Info("Filename: %s", filename)
 
@@ -191,4 +189,174 @@ func DeletePackage(ctx *context.Context) {
 	}
 
 	ctx.Status(http.StatusNoContent)
+}
+
+func GetDebianFileDescriptors(ctx *context.Context) ([]*packages_model.PackageFileDescriptor, error) {
+	pvs, err := packages_model.GetVersionsByPackageType(ctx, ctx.Package.Owner.ID, packages_model.TypeDebian)
+	if err != nil {
+		return nil, err
+	}
+
+	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
+	if err != nil {
+		return nil, err
+	}
+
+	files := make([]*packages_model.PackageFileDescriptor, 0)
+	for _, pd := range pds {
+		files = append(files, pd.Files...)
+	}
+
+	return files, nil
+}
+
+func GetDebianFilesByArch(ctx *context.Context) (map[string][]*packages_model.PackageFileDescriptor, error) {
+	pfds, err := GetDebianFileDescriptors(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	splitter := regexp.MustCompile(`^([^_]+)_([^_]+)_([^.]+).deb$`)
+
+	files := make(map[string][]*packages_model.PackageFileDescriptor)
+
+	for _, pfd := range pfds {
+		filename := pfd.File.Name
+		matches := splitter.FindStringSubmatch(filename)
+		if matches == nil || len(matches) != 4 {
+			log.Error("Found invalid filename: %s", filename)
+			return nil, errors.New("Found invalid filename")
+		}
+
+		arch := matches[3]
+		files[arch] = append(files[arch], pfd)
+	}
+
+	return files, nil
+}
+
+func GetArchIndex(ctx *context.Context) {
+	ctx.Data["IndexFiles"] = map[string]string{
+		"../":         "../",
+		"Packages":    "Packages",
+		"Packages.gz": "Packages.gz",
+		"Release":     "Release",
+	}
+
+	// This does mean that "amd64" and "binary-amd64" can both be used
+	// Don't think that's an issue (?)
+	arch := ctx.Params("packagearch")
+	if len(arch) > 7 && arch[:7] == "binary-" {
+		arch = arch[7:]
+	}
+
+	archs, err := GetDebianFilesByArch(ctx)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	_, exists := archs[arch]
+	if !exists {
+		ctx.Status(http.StatusNotFound)
+		return
+	}
+
+	ctx.Data["IndexPath"] = ctx.Req.URL.Path
+	ctx.HTML(http.StatusOK, "api/packages/debian/index")
+}
+
+func GetIndex(ctx *context.Context) {
+	basePath := "/api/packages/" + ctx.Params("username") + "/debian"
+
+	relPath, err := filepath.Rel(basePath, ctx.Req.URL.Path)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		log.Error("Path '%s' is not inside '%s'?", ctx.Req.URL.Path, basePath)
+		return
+	}
+
+	log.Info("RelPath: %s", relPath)
+
+	switch relPath {
+	case ".":
+		ctx.Data["IndexFiles"] = map[string]string{
+			"../":    "./",
+			"dists/": "dists/",
+			"pool/":  "pool/",
+		}
+	case "pool":
+		files := map[string]string{
+			"../": "../",
+		}
+
+		// Add all the Debian package files
+		pfds, err := GetDebianFileDescriptors(ctx)
+		if err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+
+		for _, pfd := range pfds {
+			files[pfd.File.Name] = pfd.File.Name
+		}
+
+		ctx.Data["IndexFiles"] = files
+	case "dists":
+		ctx.Data["IndexFiles"] = map[string]string{
+			"../":    "../",
+			"gitea/": "gitea/",
+		}
+	case "dists/gitea":
+		ctx.Data["IndexFiles"] = map[string]string{
+			"../":         "../",
+			"main/":       "main/",
+			"InRelease":   "InRelease",
+			"Release":     "Release",
+			"Release.gpg": "Release.gpg",
+		}
+	case "dists/gitea/main":
+		files := map[string]string{
+			"../": "../",
+		}
+
+		// Add directory for each arch
+		archs, err := GetDebianFilesByArch(ctx)
+		if err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+
+		for a := range archs {
+			var name string
+			switch a {
+			case "source":
+				name = a + "/"
+			default:
+				name = "binary-" + a + "/"
+			}
+			files[name] = name
+		}
+
+		ctx.Data["IndexFiles"] = files
+	}
+	ctx.Data["IndexPath"] = ctx.Req.URL.Path
+	ctx.HTML(http.StatusOK, "api/packages/debian/index")
+}
+
+// TODO
+func GetPackages(ctx *context.Context) {
+	ctx.PlainText(http.StatusNotImplemented, "Not yet implemented")
+}
+func GetPackagesGZ(ctx *context.Context) {
+	ctx.PlainText(http.StatusNotImplemented, "Not yet implemented")
+}
+func GetRelease(ctx *context.Context) {
+	ctx.PlainText(http.StatusNotImplemented, "Not yet implemented")
+}
+func GetReleaseGPG(ctx *context.Context) {
+	ctx.PlainText(http.StatusNotImplemented, "Not yet implemented")
+}
+func GetInRelease(ctx *context.Context) {
+	ctx.PlainText(http.StatusNotImplemented, "Not yet implemented")
 }
