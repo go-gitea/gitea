@@ -129,6 +129,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bgentry/speakeasy v0.1.0 // indirect
 	github.com/bits-and-blooms/bitset v1.3.3 // indirect
+	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb // indirect
 	github.com/blevesearch/bleve_index_api v1.0.4 // indirect
 	github.com/blevesearch/geo v0.1.15 // indirect
 	github.com/blevesearch/go-porterstemmer v1.0.3 // indirect

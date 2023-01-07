@@ -175,6 +175,7 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 			}, reqPackageAccess(perm.AccessModeWrite))
 
 			r.Get("/", debian.GetIndex)
+			r.Get("/debian.key", debian.GetPublicKey)
 			r.Group("/pool", func() {
 				r.Get("/", debian.GetIndex)
 				r.Get("/{filename}", debian.GetPackage)
@@ -189,7 +190,7 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 							r.Get("/", debian.GetArchIndex)
 							r.Get("/Packages", debian.GetPackages)
 							r.Get("/Packages.gz", debian.GetPackagesGZ)
-							r.Get("/Release", debian.GetRelease)
+							r.Get("/Release", debian.GetArchRelease)
 						})
 					})
 					r.Get("/Release", debian.GetRelease)

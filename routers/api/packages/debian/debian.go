@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
@@ -139,6 +141,7 @@ func PutPackage(ctx *context.Context) {
 		return
 	}
 
+	DebianRepoUpdate(ctx, packageArch)
 	ctx.Status(http.StatusCreated)
 }
 
@@ -188,6 +191,7 @@ func DeletePackage(ctx *context.Context) {
 		}
 	}
 
+	DebianRepoUpdate(ctx, packageArch)
 	ctx.Status(http.StatusNoContent)
 }
 
@@ -281,9 +285,10 @@ func GetIndex(ctx *context.Context) {
 	switch relPath {
 	case ".":
 		ctx.Data["IndexFiles"] = map[string]string{
-			"../":    "./",
-			"dists/": "dists/",
-			"pool/":  "pool/",
+			"../":        "./",
+			"dists/":     "dists/",
+			"pool/":      "pool/",
+			"debian.key": "debian.key",
 		}
 	case "pool":
 		files := map[string]string{
@@ -344,19 +349,88 @@ func GetIndex(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, "api/packages/debian/index")
 }
 
-// TODO
+func DebianRepoUpdate(ctx *context.Context, arch string) {
+	if err := CreatePackagesGz(ctx, arch); err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if err := CreateRelease(ctx); err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+}
+
+func GetArchRelease(ctx *context.Context) {
+	data := fmt.Sprintf("Component: main\nArchitecture: %s\n", ctx.Params("packagearch"))
+	ctx.PlainText(http.StatusOK, data)
+}
+
 func GetPackages(ctx *context.Context) {
-	ctx.PlainText(http.StatusNotImplemented, "Not yet implemented")
+	basePath := filepath.Join(setting.AppDataPath, "debian_repo")
+	archPath := filepath.Join(basePath, ctx.Package.Owner.Name, ctx.Params("packagearch"))
+	packagesPath := filepath.Join(archPath, "Packages")
+	f, err := os.Open(packagesPath)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+	}
+	ctx.ServeContent(f, &context.ServeHeaderOptions{
+		Filename: "Packages",
+	})
 }
+
 func GetPackagesGZ(ctx *context.Context) {
-	ctx.PlainText(http.StatusNotImplemented, "Not yet implemented")
+	basePath := filepath.Join(setting.AppDataPath, "debian_repo")
+	archPath := filepath.Join(basePath, ctx.Package.Owner.Name, ctx.Params("packagearch"))
+	packagesGzPath := filepath.Join(archPath, "Packages.gz")
+	f, err := os.Open(packagesGzPath)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+	}
+	ctx.ServeContent(f, &context.ServeHeaderOptions{
+		Filename: "Packages.gz",
+	})
 }
+
 func GetRelease(ctx *context.Context) {
-	ctx.PlainText(http.StatusNotImplemented, "Not yet implemented")
+	path := filepath.Join(setting.AppDataPath, "debian_repo", ctx.Package.Owner.Name, "Release")
+	f, err := os.Open(path)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+	}
+	ctx.ServeContent(f, &context.ServeHeaderOptions{
+		Filename: "Release",
+	})
 }
+
 func GetReleaseGPG(ctx *context.Context) {
-	ctx.PlainText(http.StatusNotImplemented, "Not yet implemented")
+	path := filepath.Join(setting.AppDataPath, "debian_repo", ctx.Package.Owner.Name, "Release.gpg")
+	f, err := os.Open(path)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+	}
+	ctx.ServeContent(f, &context.ServeHeaderOptions{
+		Filename: "Release.gpg",
+	})
 }
+
 func GetInRelease(ctx *context.Context) {
-	ctx.PlainText(http.StatusNotImplemented, "Not yet implemented")
+	path := filepath.Join(setting.AppDataPath, "debian_repo", ctx.Package.Owner.Name, "InRelease")
+	f, err := os.Open(path)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+	}
+	ctx.ServeContent(f, &context.ServeHeaderOptions{
+		Filename: "InRelease",
+	})
+}
+
+func GetPublicKey(ctx *context.Context) {
+	path := filepath.Join(setting.AppDataPath, "debian_public.gpg")
+	f, err := os.Open(path)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+	}
+	ctx.ServeContent(f, &context.ServeHeaderOptions{
+		Filename: "debian.key",
+	})
 }

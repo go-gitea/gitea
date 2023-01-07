@@ -14,7 +14,8 @@
 			<div class="field">
 				<label>{{svg "gitea-debian"}} Install package using APT</label>
 				<div class="markup">
-					<pre class="code-block"><code>echo "deb {{AppUrl}}api/packages/{{$.PackageDescriptor.Owner.Name}}/debian gitea main" \
+					<pre class="code-block"><code>curl {{AppUrl}}api/packages/{{$.PackageDescriptor.Owner.Name}}/debian/debian.key | sudo tee /etc/apt/trusted.gpg.d/gitea-repo.asc
+echo "deb {{AppUrl}}api/packages/{{$.PackageDescriptor.Owner.Name}}/debian gitea main" \
   | sudo tee /etc/apt/sources.list.d/gitea.list
 sudo apt update
 sudo apt install {{$.PackageDescriptor.Package.Name}}</code></pre>
