@@ -23,6 +23,10 @@ import (
 	"code.gitea.io/gitea/services/notify"
 )
 
+func init() {
+	notify.RegisterNotifier(&webhookNotifier{})
+}
+
 type webhookNotifier struct {
 	notify.NullNotifier
 }

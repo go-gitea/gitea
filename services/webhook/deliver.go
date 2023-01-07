@@ -27,7 +27,6 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
-	"code.gitea.io/gitea/services/notify"
 
 	"github.com/gobwas/glob"
 )
@@ -290,8 +289,6 @@ func Init() error {
 	go graceful.GetManager().RunWithShutdownFns(hookQueue.Run)
 
 	go graceful.GetManager().RunWithShutdownContext(populateWebhookSendingQueue)
-
-	notify.RegisterNotifier(&webhookNotifier{})
 
 	return nil
 }
