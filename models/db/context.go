@@ -231,7 +231,7 @@ func inTransaction(ctx context.Context) (*xorm.Session, bool) {
 		if t.IsInTx() {
 			return t, true
 		}
-		return t, false
+		return nil, false
 	default:
 		return nil, false
 	}
