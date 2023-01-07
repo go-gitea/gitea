@@ -96,8 +96,7 @@ type Committer interface {
 }
 
 // halfCommitter is a wrapper of Committer.
-// It can be closed early, but can't be committed early.
-// It is useful for passing committer to another function to use the transaction.
+// It can be closed early, but can't be committed early, it is useful for reusing a transaction.
 type halfCommitter struct {
 	Committer
 }
