@@ -6,7 +6,7 @@ package v1_12 //nolint
 import (
 	"fmt"
 	"math"
-	"path/filepath"
+	"path"
 	"strings"
 	"time"
 
@@ -85,12 +85,12 @@ func AddCommitDivergenceToPulls(x *xorm.Engine) error {
 				log.Error("Missing base repo with id %d for PR ID %d", pr.BaseRepoID, pr.ID)
 				continue
 			}
-			userPath := filepath.Join(setting.RepoRootPath, strings.ToLower(baseRepo.OwnerName))
-			repoPath := filepath.Join(userPath, strings.ToLower(baseRepo.Name)+".git")
+
+			repoRelPath := path.Join(strings.ToLower(baseRepo.OwnerName), strings.ToLower(baseRepo.Name)+".git")
 
 			gitRefName := fmt.Sprintf("refs/pull/%d/head", pr.Index)
 
-			divergence, err := git.GetDivergingCommits(graceful.GetManager().HammerContext(), repoPath, pr.BaseBranch, gitRefName)
+			divergence, err := git.GetDivergingCommits(graceful.GetManager().HammerContext(), repoRelPath, pr.BaseBranch, gitRefName)
 			if err != nil {
 				log.Warn("Could not recalculate Divergence for pull: %d", pr.ID)
 				pr.CommitsAhead = 0

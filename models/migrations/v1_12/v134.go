@@ -6,7 +6,7 @@ package v1_12 //nolint
 import (
 	"fmt"
 	"math"
-	"path/filepath"
+	"path"
 	"strings"
 	"time"
 
@@ -74,12 +74,12 @@ func RefixMergeBase(x *xorm.Engine) error {
 				log.Error("Missing base repo with id %d for PR ID %d", pr.BaseRepoID, pr.ID)
 				continue
 			}
-			userPath := filepath.Join(setting.RepoRootPath, strings.ToLower(baseRepo.OwnerName))
-			repoPath := filepath.Join(userPath, strings.ToLower(baseRepo.Name)+".git")
+
+			repoRelPath := path.Join(strings.ToLower(baseRepo.OwnerName), strings.ToLower(baseRepo.Name)+".git")
 
 			gitRefName := fmt.Sprintf("refs/pull/%d/head", pr.Index)
 
-			parentsString, _, err := git.NewCommand(git.DefaultContext, "rev-list", "--parents", "-n", "1").AddDynamicArguments(pr.MergedCommitID).RunStdString(&git.RunOpts{Dir: repoPath})
+			parentsString, _, err := git.NewCommand(git.DefaultContext, "rev-list", "--parents", "-n", "1").AddDynamicArguments(pr.MergedCommitID).RunStdString(&git.RunOpts{Dir: repoRelPath})
 			if err != nil {
 				log.Error("Unable to get parents for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err)
 				continue
@@ -94,7 +94,7 @@ func RefixMergeBase(x *xorm.Engine) error {
 			refs = append(refs, gitRefName)
 			cmd := git.NewCommand(git.DefaultContext, "merge-base").AddDashesAndList(refs...)
 
-			pr.MergeBase, _, err = cmd.RunStdString(&git.RunOpts{Dir: repoPath})
+			pr.MergeBase, _, err = cmd.RunStdString(&git.RunOpts{Dir: repoRelPath})
 			if err != nil {
 				log.Error("Unable to get merge base for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err)
 				continue

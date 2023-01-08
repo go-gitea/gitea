@@ -14,6 +14,7 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git/storage"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -215,16 +216,16 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 		}
 
 		if repoRenamed {
-			if err := util.Rename(repo_model.RepoPath(newOwnerName, repo.Name), repo_model.RepoPath(oldOwnerName, repo.Name)); err != nil {
+			if err := util.Rename(storage.RepoPath(newOwnerName, repo.Name), storage.RepoPath(oldOwnerName, repo.Name)); err != nil {
 				log.Critical("Unable to move repository %s/%s directory from %s back to correct place %s: %v", oldOwnerName, repo.Name,
-					repo_model.RepoPath(newOwnerName, repo.Name), repo_model.RepoPath(oldOwnerName, repo.Name), err)
+					storage.RepoPath(newOwnerName, repo.Name), storage.RepoPath(oldOwnerName, repo.Name), err)
 			}
 		}
 
 		if wikiRenamed {
-			if err := util.Rename(repo_model.WikiPath(newOwnerName, repo.Name), repo_model.WikiPath(oldOwnerName, repo.Name)); err != nil {
+			if err := util.Rename(storage.WikiPath(newOwnerName, repo.Name), storage.WikiPath(oldOwnerName, repo.Name)); err != nil {
 				log.Critical("Unable to move wiki for repository %s/%s directory from %s back to correct place %s: %v", oldOwnerName, repo.Name,
-					repo_model.WikiPath(newOwnerName, repo.Name), repo_model.WikiPath(oldOwnerName, repo.Name), err)
+					storage.WikiPath(newOwnerName, repo.Name), storage.WikiPath(oldOwnerName, repo.Name), err)
 			}
 		}
 
@@ -374,25 +375,25 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 	}
 
 	// Rename remote repository to new path and delete local copy.
-	dir := user_model.UserPath(newOwner.Name)
+	dir := storage.UserPath(newOwner.Name)
 
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		return fmt.Errorf("Failed to create dir %s: %w", dir, err)
 	}
 
-	if err := util.Rename(repo_model.RepoPath(oldOwner.Name, repo.Name), repo_model.RepoPath(newOwner.Name, repo.Name)); err != nil {
+	if err := util.Rename(storage.RepoPath(oldOwner.Name, repo.Name), storage.RepoPath(newOwner.Name, repo.Name)); err != nil {
 		return fmt.Errorf("rename repository directory: %w", err)
 	}
 	repoRenamed = true
 
 	// Rename remote wiki repository to new path and delete local copy.
-	wikiPath := repo_model.WikiPath(oldOwner.Name, repo.Name)
+	wikiPath := storage.WikiPath(oldOwner.Name, repo.Name)
 
 	if isExist, err := util.IsExist(wikiPath); err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", wikiPath, err)
 		return err
 	} else if isExist {
-		if err := util.Rename(wikiPath, repo_model.WikiPath(newOwner.Name, repo.Name)); err != nil {
+		if err := util.Rename(wikiPath, storage.WikiPath(newOwner.Name, repo.Name)); err != nil {
 			return fmt.Errorf("rename repository wiki: %w", err)
 		}
 		wikiRenamed = true

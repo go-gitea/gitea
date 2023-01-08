@@ -9,6 +9,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git/storage"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -100,7 +101,7 @@ func AdoptRepository(ctx *context.APIContext) {
 		ctx.InternalServerError(err)
 		return
 	}
-	isDir, err := util.IsDir(repo_model.RepoPath(ctxUser.Name, repoName))
+	isDir, err := util.IsDir(storage.RepoPath(ctxUser.Name, repoName))
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -162,7 +163,7 @@ func DeleteUnadoptedRepository(ctx *context.APIContext) {
 		ctx.InternalServerError(err)
 		return
 	}
-	isDir, err := util.IsDir(repo_model.RepoPath(ctxUser.Name, repoName))
+	isDir, err := util.IsDir(storage.RepoPath(ctxUser.Name, repoName))
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

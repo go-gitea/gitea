@@ -8,9 +8,11 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 
 	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/hashicorp/go-version"
 )
@@ -89,7 +91,9 @@ func (c *localCommandRunner) Run(ctx context.Context, args []string, opts *RunOp
 
 	process.SetSysProcAttribute(cmd)
 	cmd.Env = append(cmd.Env, CommonGitCmdEnvs()...)
-	cmd.Dir = opts.Dir
+	if !filepath.IsAbs(opts.Dir) {
+		cmd.Dir = filepath.Join(setting.RepoRootPath, opts.Dir)
+	}
 	cmd.Stdout = opts.Stdout
 	cmd.Stderr = opts.Stderr
 	cmd.Stdin = opts.Stdin

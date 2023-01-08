@@ -22,6 +22,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/storage"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -44,7 +45,7 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 		}
 	}
 
-	repoPath := repo_model.RepoPath(u.Name, repo.Name)
+	repoPath := storage.RepoPath(u.Name, repo.Name)
 	isExist, err := util.IsExist(repoPath)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
@@ -220,7 +221,7 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 			return nil
 		}
 
-		repoPath := repo_model.RepoPath(u.Name, repo.Name)
+		repoPath := storage.RepoPath(u.Name, repo.Name)
 		isExist, err := util.IsExist(repoPath)
 		if err != nil {
 			log.Error("Unable to check if %s exists. Error: %v", repoPath, err)

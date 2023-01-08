@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -23,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/auth/openid"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/storage"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -840,7 +840,7 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 	}
 
 	// Do not fail if directory does not exist
-	if err = util.Rename(UserPath(oldUserName), UserPath(newUserName)); err != nil && !os.IsNotExist(err) {
+	if err = storage.Rename(oldUserName, newUserName); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("Rename user directory: %w", err)
 	}
 
@@ -849,7 +849,7 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 	}
 
 	if err = committer.Commit(); err != nil {
-		if err2 := util.Rename(UserPath(newUserName), UserPath(oldUserName)); err2 != nil && !os.IsNotExist(err2) {
+		if err2 := storage.Rename(newUserName, oldUserName); err2 != nil && !os.IsNotExist(err2) {
 			log.Critical("Unable to rollback directory change during failed username change from: %s to: %s. DB Error: %v. Filesystem Error: %v", oldUserName, newUserName, err, err2)
 			return fmt.Errorf("failed to rollback directory change during failed username change from: %s to: %s. DB Error: %w. Filesystem Error: %v", oldUserName, newUserName, err, err2)
 		}
@@ -994,11 +994,6 @@ func GetInactiveUsers(ctx context.Context, olderThan time.Duration) ([]*User, er
 	return users, db.GetEngine(ctx).
 		Where(cond).
 		Find(&users)
-}
-
-// UserPath returns the path absolute path of user repositories.
-func UserPath(userName string) string { //revive:disable-line:exported
-	return filepath.Join(setting.RepoRootPath, strings.ToLower(userName))
 }
 
 // GetUserByID returns the user object by given ID if exists.

@@ -20,9 +20,10 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/eventsource"
+	"code.gitea.io/gitea/modules/git/storage"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
+	object_storage "code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/packages"
 )
@@ -181,7 +182,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 
 	// Note: There are something just cannot be roll back,
 	//	so just keep error logs of those operations.
-	path := user_model.UserPath(u.Name)
+	path := storage.UserPath(u.Name)
 	if err := util.RemoveAll(path); err != nil {
 		err = fmt.Errorf("Failed to RemoveAll %s: %w", path, err)
 		_ = system_model.CreateNotice(ctx, system_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
@@ -190,7 +191,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 
 	if u.Avatar != "" {
 		avatarPath := u.CustomAvatarRelativePath()
-		if err := storage.Avatars.Delete(avatarPath); err != nil {
+		if err := object_storage.Avatars.Delete(avatarPath); err != nil {
 			err = fmt.Errorf("Failed to remove %s: %w", avatarPath, err)
 			_ = system_model.CreateNotice(ctx, system_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
 			return err
@@ -245,7 +246,7 @@ func UploadAvatar(u *user_model.User, data []byte) error {
 		return fmt.Errorf("updateUser: %w", err)
 	}
 
-	if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
+	if err := object_storage.SaveFrom(object_storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
 		if err := png.Encode(w, *m); err != nil {
 			log.Error("Encode: %v", err)
 		}
@@ -262,7 +263,7 @@ func DeleteAvatar(u *user_model.User) error {
 	aPath := u.CustomAvatarRelativePath()
 	log.Trace("DeleteAvatar[%d]: %s", u.ID, aPath)
 	if len(u.Avatar) > 0 {
-		if err := storage.Avatars.Delete(aPath); err != nil {
+		if err := object_storage.Avatars.Delete(aPath); err != nil {
 			return fmt.Errorf("Failed to remove %s: %w", aPath, err)
 		}
 	}

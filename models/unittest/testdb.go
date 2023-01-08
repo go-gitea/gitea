@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"testing"
 
@@ -14,8 +15,9 @@ import (
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/storage"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
+	object_storage "code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -106,7 +108,7 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 
 	setting.Git.HomePath = filepath.Join(setting.AppDataPath, "home")
 
-	if err = storage.Init(); err != nil {
+	if err = object_storage.Init(); err != nil {
 		fatalTestError("storage.Init: %v\n", err)
 	}
 	if err = system_model.Init(); err != nil {
@@ -123,7 +125,7 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 	if err = git.InitFull(context.Background()); err != nil {
 		fatalTestError("git.Init: %v\n", err)
 	}
-	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
+	ownerDirs, err := storage.GetStorage().ReadDir("")
 	if err != nil {
 		fatalTestError("unable to read the new repo root: %v\n", err)
 	}
@@ -131,15 +133,12 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 		if !ownerDir.Type().IsDir() {
 			continue
 		}
-		repoDirs, err := os.ReadDir(filepath.Join(setting.RepoRootPath, ownerDir.Name()))
+		repoDirs, err := storage.GetStorage().ReadDir(ownerDir.Name())
 		if err != nil {
 			fatalTestError("unable to read the new repo root: %v\n", err)
 		}
 		for _, repoDir := range repoDirs {
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0o755)
+			storage.GetStorage().MakeDir(path.Join(ownerDir.Name(), repoDir.Name()))
 		}
 	}
 
@@ -201,22 +200,19 @@ func PrepareTestDatabase() error {
 // by tests that use the above MainTest(..) function.
 func PrepareTestEnv(t testing.TB) {
 	assert.NoError(t, PrepareTestDatabase())
-	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
+	assert.NoError(t, storage.GetStorage().RemoveAll())
 	metaPath := filepath.Join(giteaRoot, "tests", "gitea-repositories-meta")
 	assert.NoError(t, CopyDir(metaPath, setting.RepoRootPath))
-	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
+	ownerDirs, err := storage.GetStorage().ReadDir("")
 	assert.NoError(t, err)
 	for _, ownerDir := range ownerDirs {
 		if !ownerDir.Type().IsDir() {
 			continue
 		}
-		repoDirs, err := os.ReadDir(filepath.Join(setting.RepoRootPath, ownerDir.Name()))
+		repoDirs, err := storage.GetStorage().ReadDir(ownerDir.Name())
 		assert.NoError(t, err)
 		for _, repoDir := range repoDirs {
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0o755)
+			storage.GetStorage().MakeDir(path.Join(ownerDir.Name(), repoDir.Name()))
 		}
 	}
 

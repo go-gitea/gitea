@@ -16,6 +16,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/storage"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -54,7 +55,7 @@ func AdoptRepository(doer, u *user_model.User, opts repo_module.CreateRepoOption
 	}
 
 	if err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
-		repoPath := repo_model.RepoPath(u.Name, repo.Name)
+		repoPath := storage.RepoPath(u.Name, repo.Name)
 		isExist, err := util.IsExist(repoPath)
 		if err != nil {
 			log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
@@ -193,7 +194,7 @@ func DeleteUnadoptedRepository(doer, u *user_model.User, repoName string) error 
 		return err
 	}
 
-	repoPath := repo_model.RepoPath(u.Name, repoName)
+	repoPath := storage.RepoPath(u.Name, repoName)
 	isExist, err := util.IsExist(repoPath)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)

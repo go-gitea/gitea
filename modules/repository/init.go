@@ -18,6 +18,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/storage"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
@@ -362,7 +363,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 
 func checkInitRepository(ctx context.Context, owner, name string) (err error) {
 	// Somehow the directory could exist.
-	repoPath := repo_model.RepoPath(owner, name)
+	repoPath := storage.RepoPath(owner, name)
 	isExist, err := util.IsExist(repoPath)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)

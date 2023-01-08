@@ -14,6 +14,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/storage"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -92,7 +93,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 			return
 		}
 
-		repoPath := repo_model.RepoPath(owner.Name, repo.Name)
+		repoPath := storage.RepoPath(owner.Name, repo.Name)
 
 		if exists, _ := util.IsExist(repoPath); !exists {
 			return
@@ -134,7 +135,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 
 		needsRollback = true
 
-		repoPath := repo_model.RepoPath(owner.Name, repo.Name)
+		repoPath := storage.RepoPath(owner.Name, repo.Name)
 		if stdout, _, err := git.NewCommand(txCtx,
 			"clone", "--bare").AddDynamicArguments(oldRepoPath, repoPath).
 			SetDescription(fmt.Sprintf("ForkRepository(git clone): %s to %s", opts.BaseRepo.FullName(), repo.FullName())).

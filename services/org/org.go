@@ -11,8 +11,8 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/git/storage"
+	object_storage "code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -50,7 +50,7 @@ func DeleteOrganization(org *organization.Organization) error {
 	// FIXME: system notice
 	// Note: There are something just cannot be roll back,
 	//	so just keep error logs of those operations.
-	path := user_model.UserPath(org.Name)
+	path := storage.UserPath(org.Name)
 
 	if err := util.RemoveAll(path); err != nil {
 		return fmt.Errorf("Failed to RemoveAll %s: %w", path, err)
@@ -58,7 +58,7 @@ func DeleteOrganization(org *organization.Organization) error {
 
 	if len(org.Avatar) > 0 {
 		avatarPath := org.CustomAvatarRelativePath()
-		if err := storage.Avatars.Delete(avatarPath); err != nil {
+		if err := object_storage.Avatars.Delete(avatarPath); err != nil {
 			return fmt.Errorf("Failed to remove %s: %w", avatarPath, err)
 		}
 	}
