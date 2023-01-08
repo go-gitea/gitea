@@ -28,8 +28,8 @@ Gitea ist ein [Gogs](http://gogs.io)-Fork.
 * Gitea sollte unter einem seperaten nicht-root Account auf UNIX-Systemen ausgeführt werden.
   * Achtung: Gitea verwaltet die `~/.ssh/authorized_keys` Datei. Gitea unter einem normalen Benutzer auszuführen könnte dazu führen, dass dieser sich nicht mehr anmelden kann.
 * [Git](https://git-scm.com/) Version 2.0 oder aktueller wird benötigt.
-  * Wenn git >= 2.1.2. und [Git LFS](https://git-lfs.github.com/) vorhanden ist, dann wird Git LFS Support automatisch für Gitea aktiviert.
-  * Wenn git >= 2.18, dann wird das Rendern von Commit-Graphen automatisch aktiviert.
+  * Wenn Git >= 2.1.2 und [Git LFS](https://git-lfs.github.com/) vorhanden ist, dann wird Git LFS Support automatisch für Gitea aktiviert.
+  * Wenn Git >= 2.18, dann wird das Rendern von Commit-Graphen automatisch aktiviert.
 
 ## Browser Unterstützung
 
