@@ -5,6 +5,7 @@
 package setting
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"math"
@@ -24,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/services"
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
 
@@ -1329,6 +1331,17 @@ func CreateOrAppendToCustomConf(purpose string, callback func(cfg *ini.File)) {
 			log.Warn("Failed changing conf file permissions to -rw-------. Consider changing them manually.")
 		}
 	}
+}
+
+var ServiceConfig = &services.Config{
+	Name: "setting",
+	Init: func(ctx context.Context) error {
+		NewServices()
+		return nil
+	},
+	Shutdown: func(ctx context.Context) error {
+		return nil
+	},
 }
 
 // NewServices initializes the services

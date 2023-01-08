@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"strings"
 
+	"code.gitea.io/gitea/modules/services"
 	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
@@ -123,6 +124,18 @@ func newXORMEngine() (*xorm.Engine, error) {
 // SyncAllTables sync the schemas of all tables, is required by unit test code
 func SyncAllTables() error {
 	return x.StoreEngine("InnoDB").Sync2(tables...)
+}
+
+var ServiceConfig = &services.Config{
+	Name: "db",
+	Init: InitEngine,
+	Shutdown: func(ctx context.Context) error {
+		if x != nil {
+			return x.Close()
+		}
+		return nil
+	},
+	Dependencies: []string{"setting"},
 }
 
 // InitEngine initializes the xorm.Engine and sets it as db.DefaultContext

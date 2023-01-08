@@ -19,9 +19,21 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/services"
 	"code.gitea.io/gitea/modules/setting"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
+
+var ServiceConfig = &services.Config{
+	Name: "repository",
+	Init: func(ctx context.Context) error {
+		return Init()
+	},
+	Shutdown: func(ctx context.Context) error {
+		return nil
+	},
+	Dependencies: []string{"setting"},
+}
 
 // CreateRepository creates a repository for the user/organization.
 func CreateRepository(doer, owner *user_model.User, opts repo_module.CreateRepoOptions) (*repo_model.Repository, error) {

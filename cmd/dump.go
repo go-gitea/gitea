@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/services"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
@@ -194,17 +195,15 @@ func runDump(ctx *cli.Context) error {
 		log.Error("Is '%s' really the right config path?\n", setting.CustomConf)
 		return fmt.Errorf("gitea is not initialized")
 	}
-	setting.NewServices() // cannot access session settings otherwise
 
 	stdCtx, cancel := installSignals()
 	defer cancel()
 
-	err := db.InitEngine(stdCtx)
+	services.Register(setting.ServiceConfig)
+	services.Register(db.ServiceConfig)
+	services.Register(storage.ServiceConfig)
+	err := services.Init(stdCtx)
 	if err != nil {
-		return err
-	}
-
-	if err := storage.Init(); err != nil {
 		return err
 	}
 

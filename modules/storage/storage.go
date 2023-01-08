@@ -12,6 +12,7 @@ import (
 	"os"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/services"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -126,6 +127,17 @@ var (
 	// Packages represents packages storage
 	Packages ObjectStorage = uninitializedStorage
 )
+
+var ServiceConfig = &services.Config{
+	Name: "storage",
+	Init: func(ctx context.Context) error {
+		return Init()
+	},
+	Shutdown: func(ctx context.Context) error {
+		return nil
+	},
+	Dependencies: []string{"setting"},
+}
 
 // Init init the stoarge
 func Init() error {

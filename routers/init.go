@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
 	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/services"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/storage"
@@ -66,13 +67,6 @@ func mustInitCtx(ctx context.Context, fn func(ctx context.Context) error) {
 		fi := runtime.FuncForPC(ptr)
 		log.Fatal("%s(ctx) failed: %v", fi.Name(), err)
 	}
-}
-
-// InitGitServices init new services for git, this is also called in `contrib/pr/checkout.go`
-func InitGitServices() {
-	setting.NewServices()
-	mustInit(storage.Init)
-	mustInit(repo_service.Init)
 }
 
 func syncAppConfForGit(ctx context.Context) error {
@@ -124,8 +118,9 @@ func GlobalInitInstalled(ctx context.Context) {
 	// Setup i18n
 	translation.InitLocales(ctx)
 
-	setting.NewServices()
-	mustInit(storage.Init)
+	services.Register(setting.ServiceConfig)
+	services.Register(storage.ServiceConfig)
+	mustInitCtx(ctx, services.Init)
 
 	mailer.NewContext(ctx)
 	mustInit(cache.NewContext)

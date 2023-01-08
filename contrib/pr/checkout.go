@@ -29,10 +29,13 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/services"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
 	markup_service "code.gitea.io/gitea/services/markup"
+	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
@@ -86,7 +89,13 @@ func runPR() {
 	dbCfg.NewKey("DB_TYPE", "sqlite3")
 	dbCfg.NewKey("PATH", ":memory:")
 
-	routers.InitGitServices()
+	services.Register(setting.ServiceConfig)
+	services.Register(storage.ServiceConfig)
+	services.Register(repo_service.ServiceConfig)
+	if err := services.Init(context.Background()); err != nil {
+		log.Fatal(err)
+	}
+
 	setting.Database.LogSQL = true
 	// x, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared")
 
