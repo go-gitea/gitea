@@ -71,6 +71,14 @@ type Engined interface {
 
 // GetEngine will get a db Engine from this context or return an Engine restricted to this context
 func GetEngine(ctx context.Context) Engine {
+	if e := getEngine(ctx); e != nil {
+		return e
+	}
+	return x.Context(ctx)
+}
+
+// getEngine will get a db Engine from this context or return nil
+func getEngine(ctx context.Context) Engine {
 	if engined, ok := ctx.(Engined); ok {
 		return engined.Engine()
 	}
@@ -78,7 +86,7 @@ func GetEngine(ctx context.Context) Engine {
 	if enginedInterface != nil {
 		return enginedInterface.(Engined).Engine()
 	}
-	return x.Context(ctx)
+	return nil
 }
 
 // Committer represents an interface to Commit or Close the Context
@@ -87,10 +95,22 @@ type Committer interface {
 	Close() error
 }
 
-// TxContext represents a transaction Context
+// halfCommitter is a wrapper of Committer.
+// It can be closed early, but can't be committed early, it is useful for reusing a transaction.
+type halfCommitter struct {
+	Committer
+}
+
+func (*halfCommitter) Commit() error {
+	// do nothing
+	return nil
+}
+
+// TxContext represents a transaction Context,
+// it will reuse the existing transaction in the parent context or create a new one.
 func TxContext(parentCtx context.Context) (*Context, Committer, error) {
-	if InTransaction(parentCtx) {
-		return nil, nil, ErrAlreadyInTransaction
+	if sess, ok := inTransaction(parentCtx); ok {
+		return newContext(parentCtx, sess, true), &halfCommitter{Committer: sess}, nil
 	}
 
 	sess := x.NewSession()
@@ -102,20 +122,11 @@ func TxContext(parentCtx context.Context) (*Context, Committer, error) {
 	return newContext(DefaultContext, sess, true), sess, nil
 }
 
-// WithTx represents executing database operations on a transaction
-// This function will always open a new transaction, if a transaction exist in parentCtx return an error.
-func WithTx(parentCtx context.Context, f func(ctx context.Context) error) error {
-	if InTransaction(parentCtx) {
-		return ErrAlreadyInTransaction
-	}
-	return txWithNoCheck(parentCtx, f)
-}
-
-// AutoTx represents executing database operations on a transaction, if the transaction exist,
+// WithTx represents executing database operations on a transaction, if the transaction exist,
 // this function will reuse it otherwise will create a new one and close it when finished.
-func AutoTx(parentCtx context.Context, f func(ctx context.Context) error) error {
-	if InTransaction(parentCtx) {
-		return f(newContext(parentCtx, GetEngine(parentCtx), true))
+func WithTx(parentCtx context.Context, f func(ctx context.Context) error) error {
+	if sess, ok := inTransaction(parentCtx); ok {
+		return f(newContext(parentCtx, sess, true))
 	}
 	return txWithNoCheck(parentCtx, f)
 }
@@ -202,25 +213,25 @@ func EstimateCount(ctx context.Context, bean interface{}) (int64, error) {
 
 // InTransaction returns true if the engine is in a transaction otherwise return false
 func InTransaction(ctx context.Context) bool {
-	var e Engine
-	if engined, ok := ctx.(Engined); ok {
-		e = engined.Engine()
-	} else {
-		enginedInterface := ctx.Value(enginedContextKey)
-		if enginedInterface != nil {
-			e = enginedInterface.(Engined).Engine()
-		}
-	}
+	_, ok := inTransaction(ctx)
+	return ok
+}
+
+func inTransaction(ctx context.Context) (*xorm.Session, bool) {
+	e := getEngine(ctx)
 	if e == nil {
-		return false
+		return nil, false
 	}
 
 	switch t := e.(type) {
 	case *xorm.Engine:
-		return false
+		return nil, false
 	case *xorm.Session:
-		return t.IsInTx()
+		if t.IsInTx() {
+			return t, true
+		}
+		return nil, false
 	default:
-		return false
+		return nil, false
 	}
 }
