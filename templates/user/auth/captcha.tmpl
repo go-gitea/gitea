@@ -21,4 +21,8 @@
 		<div class="border-secondary w-100-small" id="mcaptcha__widget-container" style="width: 50%; height: 5em"></div>
 		<div class="m-captcha" data-sitekey="{{.McaptchaSitekey}}" data-instance-url="{{.McaptchaURL}}"></div>
 	</div>
+{{else if eq .CaptchaType "cfturnstile"}}
+	<div class="inline field captcha-field" style="text-align: center">
+		<div class="cf-turnstile" data-sitekey="{{.CfTurnstileSitekey}}"></div>
+	</div>
 {{end}}{{end}}
