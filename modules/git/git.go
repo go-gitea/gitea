@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -26,10 +25,6 @@ import (
 const RequiredVersion = "2.0.0"
 
 var (
-	// GitExecutable is the command name of git
-	// Could be updated to an absolute path while initialization
-	GitExecutable = "git"
-
 	// DefaultContext is the default context to run git commands in, must be initialized by git.InitXxx
 	DefaultContext context.Context
 
@@ -69,43 +64,6 @@ func loadGitVersion() (*version.Version, error) {
 	var err error
 	gitVersion, err = version.NewVersion(versionString)
 	return gitVersion, err
-}
-
-// SetExecutablePath changes the path of git executable and checks the file permission and version.
-func SetExecutablePath(path string) error {
-	// If path is empty, we use the default value of GitExecutable "git" to search for the location of git.
-	if path != "" {
-		GitExecutable = path
-	}
-	absPath, err := exec.LookPath(GitExecutable)
-	if err != nil {
-		return fmt.Errorf("git not found: %w", err)
-	}
-	GitExecutable = absPath
-
-	_, err = loadGitVersion()
-	if err != nil {
-		return fmt.Errorf("unable to load git version: %w", err)
-	}
-
-	versionRequired, err := version.NewVersion(RequiredVersion)
-	if err != nil {
-		return err
-	}
-
-	if gitVersion.LessThan(versionRequired) {
-		moreHint := "get git: https://git-scm.com/download/"
-		if runtime.GOOS == "linux" {
-			// there are a lot of CentOS/RHEL users using old git, so we add a special hint for them
-			if _, err = os.Stat("/etc/redhat-release"); err == nil {
-				// ius.io is the recommended official(git-scm.com) method to install git
-				moreHint = "get git: https://git-scm.com/download/linux and https://ius.io"
-			}
-		}
-		return fmt.Errorf("installed git version %q is not supported, Gitea requires git version >= %q, %s", gitVersion.Original(), RequiredVersion, moreHint)
-	}
-
-	return nil
 }
 
 // VersionInfo returns git version information
