@@ -25,7 +25,7 @@ import (
 
 const (
 	gemojiURL         = "https://raw.githubusercontent.com/github/gemoji/master/db/emoji.json"
-	maxUnicodeVersion = 12
+	maxUnicodeVersion = 14
 )
 
 var flagOut = flag.String("o", "modules/emoji/emoji_data.go", "out")
@@ -188,6 +188,10 @@ func generate() ([]byte, error) {
 			}
 		}
 	}
+
+	sort.Slice(data, func(i, j int) bool {
+		return data[i].Aliases[0] < data[j].Aliases[0]
+	})
 
 	// add header
 	str := replacer.Replace(fmt.Sprintf(hdr, gemojiURL, data))
