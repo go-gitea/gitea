@@ -120,6 +120,7 @@ func GlobalInitInstalled(ctx context.Context) {
 
 	services.Register(setting.ServiceConfig)
 	services.Register(storage.ServiceConfig)
+	services.Register(repo_service.ServiceConfig)
 	mustInitCtx(ctx, services.Init)
 
 	mailer.NewContext(ctx)
@@ -141,9 +142,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	log.Info("ORM engine initialization successful!")
 	mustInit(system.Init)
 	mustInit(oauth2.Init)
-
 	mustInit(models.Init)
-	mustInit(repo_service.Init)
 
 	// Booting long running goroutines.
 	issue_indexer.InitIssueIndexer(false)

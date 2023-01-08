@@ -1335,17 +1335,11 @@ func CreateOrAppendToCustomConf(purpose string, callback func(cfg *ini.File)) {
 
 var ServiceConfig = &services.Config{
 	Name: "setting",
-	Init: func(ctx context.Context) error {
-		NewServices()
-		return nil
-	},
-	Shutdown: func(ctx context.Context) error {
-		return nil
-	},
+	Init: newServices,
 }
 
-// NewServices initializes the services
-func NewServices() {
+// newServices initializes the services
+func newServices(ctx context.Context) error {
 	InitDBConfig()
 	newService()
 	newOAuth2Client()
@@ -1365,6 +1359,7 @@ func NewServices() {
 	newProject()
 	newMimeTypeMap()
 	newFederationService()
+	return nil
 }
 
 // NewServicesForInstall initializes the services for install

@@ -5,6 +5,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 
 	"code.gitea.io/gitea/modules/log"
 )
@@ -42,12 +43,19 @@ func initService(ctx context.Context, service *service) error {
 		return nil
 	}
 	for _, dep := range service.cfg.Dependencies {
-		if err := initService(ctx, services[dep]); err != nil {
+		depService, ok := services[dep]
+		if !ok {
+			return fmt.Errorf("service %s depends on %s which does not exist", service.cfg.Name, dep)
+		}
+		if err := initService(ctx, depService); err != nil {
 			return err
 		}
-		services[dep].dependents = append(services[dep].dependents, service.cfg.Name)
+		depService.dependents = append(depService.dependents, service.cfg.Name)
 	}
 	log.Trace("Initializing service: %s", service.cfg.Name)
+	if service.cfg.Init == nil {
+		return fmt.Errorf("service %s has no init function", service.cfg.Name)
+	}
 	if err := service.cfg.Init(ctx); err != nil {
 		return err
 	}
@@ -68,12 +76,19 @@ func shutdownService(ctx context.Context, service *service) error {
 	if !service.initialized {
 		return nil
 	}
+
 	for _, dep := range service.dependents {
 		if err := shutdownService(ctx, services[dep]); err != nil {
 			return err
 		}
 	}
+
 	log.Trace("Shuting down service: %s", service.cfg.Name)
+	if service.cfg.Shutdown == nil {
+		service.initialized = false
+		return nil
+	}
+
 	if err := service.cfg.Shutdown(ctx); err != nil {
 		return err
 	}

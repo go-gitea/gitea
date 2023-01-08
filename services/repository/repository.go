@@ -27,10 +27,10 @@ import (
 var ServiceConfig = &services.Config{
 	Name: "repository",
 	Init: func(ctx context.Context) error {
-		return Init()
-	},
-	Shutdown: func(ctx context.Context) error {
-		return nil
+		repo_module.LoadRepoConfig()
+		system_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repository uploads", setting.Repository.Upload.TempPath)
+		system_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repositories", repo_module.LocalCopyPath())
+		return initPushQueue()
 	},
 	Dependencies: []string{"setting"},
 }
@@ -89,14 +89,6 @@ func PushCreateRepo(authUser, owner *user_model.User, repoName string) (*repo_mo
 	}
 
 	return repo, nil
-}
-
-// Init start repository service
-func Init() error {
-	repo_module.LoadRepoConfig()
-	system_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repository uploads", setting.Repository.Upload.TempPath)
-	system_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repositories", repo_module.LocalCopyPath())
-	return initPushQueue()
 }
 
 // UpdateRepository updates a repository
