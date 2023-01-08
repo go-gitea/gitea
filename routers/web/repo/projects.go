@@ -310,15 +310,17 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
-	issuesAttachmentMap := make(map[int64][]*attachment_model.Attachment)
-	for _, issuesList := range issuesMap {
-		for _, issue := range issuesList {
-			if issueAttachment, err := attachment_model.GetAttachmentsByIssueIDImagesLatest(ctx, issue.ID); err == nil {
-				issuesAttachmentMap[issue.ID] = issueAttachment
+	if project.CardType != project_model.CardTypeTextOnly {
+		issuesAttachmentMap := make(map[int64][]*attachment_model.Attachment)
+		for _, issuesList := range issuesMap {
+			for _, issue := range issuesList {
+				if issueAttachment, err := attachment_model.GetAttachmentsByIssueIDImagesLatest(ctx, issue.ID); err == nil {
+					issuesAttachmentMap[issue.ID] = issueAttachment
+				}
 			}
 		}
+		ctx.Data["issuesAttachmentMap"] = issuesAttachmentMap
 	}
-	ctx.Data["issuesAttachmentMap"] = issuesAttachmentMap
 
 	linkedPrsMap := make(map[int64][]*issues_model.Issue)
 	for _, issuesList := range issuesMap {
