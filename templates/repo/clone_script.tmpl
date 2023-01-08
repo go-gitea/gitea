@@ -24,5 +24,8 @@
 		for (const el of document.getElementsByClassName('js-clone-url-vsc')) {
 			el['href'] = 'vscode://vscode.git/clone?url=' + encodeURIComponent(link);
 		}
+		for (const el of document.getElementsByClassName('js-clone-url-vsx')) {
+			el['href'] = 'vscodium://vscode.git/clone?url=' + encodeURIComponent(link);
+		}
 	})();
 </script>
