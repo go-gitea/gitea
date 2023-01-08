@@ -279,6 +279,10 @@ func NewCommitStatus(opts NewCommitStatusOptions) error {
 		return fmt.Errorf("NewCommitStatus[%s, %s]: no user specified", repoPath, opts.SHA)
 	}
 
+	if _, err := git.NewIDFromString(opts.SHA); err != nil {
+		return fmt.Errorf("NewCommitStatus[%s, %s]: invalid sha: %w", repoPath, opts.SHA, err)
+	}
+
 	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return fmt.Errorf("NewCommitStatus[repo_id: %d, user_id: %d, sha: %s]: %w", opts.Repo.ID, opts.Creator.ID, opts.SHA, err)
