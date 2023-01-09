@@ -119,7 +119,7 @@ func RenameBranch(repo *repo_model.Repository, doer *user_model.User, gitRepo *g
 		return "from_not_exist", nil
 	}
 
-	if err := git_model.RenameBranch(repo, from, to, func(isDefault bool) error {
+	if err := git_model.RenameBranch(db.DefaultContext, repo, from, to, func(isDefault bool) error {
 		err2 := gitRepo.RenameBranch(from, to)
 		if err2 != nil {
 			return err2
@@ -159,7 +159,7 @@ func DeleteBranch(doer *user_model.User, repo *repo_model.Repository, gitRepo *g
 		return ErrBranchIsDefault
 	}
 
-	isProtected, err := git_model.IsProtectedBranch(repo.ID, branchName)
+	isProtected, err := git_model.IsProtectedBranch(db.DefaultContext, repo.ID, branchName)
 	if err != nil {
 		return err
 	}
@@ -197,7 +197,7 @@ func DeleteBranch(doer *user_model.User, repo *repo_model.Repository, gitRepo *g
 		log.Error("Update: %v", err)
 	}
 
-	if err := git_model.AddDeletedBranch(repo.ID, branchName, commit.ID.String(), doer.ID); err != nil {
+	if err := git_model.AddDeletedBranch(db.DefaultContext, repo.ID, branchName, commit.ID.String(), doer.ID); err != nil {
 		log.Warn("AddDeletedBranch: %v", err)
 	}
 
