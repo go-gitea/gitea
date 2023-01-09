@@ -251,7 +251,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 
 				notification.NotifyPushCommits(db.DefaultContext, pusher, repo, opts, commits)
 
-				if err = git_model.RemoveDeletedBranchByName(repo.ID, branch); err != nil {
+				if err = git_model.RemoveDeletedBranchByName(ctx, repo.ID, branch); err != nil {
 					log.Error("models.RemoveDeletedBranch %s/%s failed: %v", repo.ID, branch, err)
 				}
 
