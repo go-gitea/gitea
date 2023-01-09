@@ -70,10 +70,11 @@ func newMailService() {
 	if sec.HasKey("HOST") && !sec.HasKey("SMTP_ADDR") {
 		givenHost := sec.Key("HOST").String()
 		addr, port, err := net.SplitHostPort(givenHost)
-		if err != nil {
-			if err.Error() != "missing port in address" {
-				log.Fatal("Invalid mailer.HOST (%s): %v", givenHost, err)
-			}
+		if err != nil && err.Error() != "missing port in address" {
+			log.Fatal("Invalid mailer.HOST (%s): %v", givenHost, err)
+		}
+		if addr == "" {
+			addr = "127.0.0.1"
 		}
 		sec.Key("SMTP_ADDR").MustString(addr)
 		sec.Key("SMTP_PORT").MustString(port)
