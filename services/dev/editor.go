@@ -21,7 +21,7 @@ type Editor struct {
 }
 
 func (e *Editor) RenderURL(repoURL string) template.URL {
-	return template.URL(strings.Replace(e.URL, "${repo_url}", repoURL, -1))
+	return template.URL(strings.ReplaceAll(e.URL, "${repo_url}", repoURL))
 }
 
 var defaultEditors = []Editor{
