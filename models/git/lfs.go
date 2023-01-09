@@ -115,6 +115,7 @@ type LFSMetaObject struct {
 	RepositoryID int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	Existing     bool               `xorm:"-"`
 	CreatedUnix  timeutil.TimeStamp `xorm:"created"`
+	UpdatedUnix  timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
 func init() {
@@ -335,7 +336,8 @@ func GetRepoLFSSize(ctx context.Context, repoID int64) (int64, error) {
 }
 
 type IterateLFSMetaObjectsForRepoOptions struct {
-	OlderThan time.Time
+	OlderThan               time.Time
+	UpdatedLessRecentlyThan time.Time
 }
 
 // IterateLFSMetaObjectsForRepo provides a iterator for LFSMetaObjects per Repo
@@ -348,6 +350,8 @@ func IterateLFSMetaObjectsForRepo(ctx context.Context, repoID int64, f func(cont
 		LFSMetaObject
 	}
 
+	id := int64(0)
+
 	for {
 		beans := make([]*CountLFSMetaObject, 0, batchSize)
 		// SELECT `lfs_meta_object`.*, COUNT(`l1`.id) as `count` FROM lfs_meta_object INNER JOIN lfs_meta_object AS l1 ON l1.oid = lfs_meta_object.oid WHERE lfs_meta_object.repository_id = ? GROUP BY lfs_meta_object.id
@@ -357,7 +361,12 @@ func IterateLFSMetaObjectsForRepo(ctx context.Context, repoID int64, f func(cont
 		if !opts.OlderThan.IsZero() {
 			sess.And("`lfs_meta_object`.created_unix < ?", opts.OlderThan)
 		}
+		if !opts.UpdatedLessRecentlyThan.IsZero() {
+			sess.And("`lfs_meta_object`.updated_unix < ?", opts.UpdatedLessRecentlyThan)
+		}
+		sess.And("`lfs_meta_object`.id > ?", id)
 		sess.GroupBy("`lfs_meta_object`.id")
+		sess.OrderBy("`lfs_meta_object`.id ASC")
 		if err := sess.Limit(batchSize, start).Find(&beans); err != nil {
 			return err
 		}
@@ -371,5 +380,18 @@ func IterateLFSMetaObjectsForRepo(ctx context.Context, repoID int64, f func(cont
 				return err
 			}
 		}
+		id = beans[len(beans)-1].ID
 	}
+}
+
+// MarkLFSMetaObject updates the updated time for the provided LFSMetaObject
+func MarkLFSMetaObject(ctx context.Context, id int64) error {
+	obj := &LFSMetaObject{
+		UpdatedUnix: timeutil.TimeStampNow(),
+	}
+	count, err := db.GetEngine(ctx).ID(id).Update(obj)
+	if count != 1 {
+		log.Error("Unexpectedly updated %d LFSMetaObjects with ID: %d", count, id)
+	}
+	return err
 }

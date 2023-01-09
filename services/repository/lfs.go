@@ -14,40 +14,63 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/builder"
 )
 
-func GarbageCollectLFSMetaObjects(ctx context.Context, logger log.Logger, autofix bool) error {
-	log.Trace("Doing: GarbageCollectLFSMetaObjects")
+// GarbageCollectLFSMetaObjectsOptions provides options for GarbageCollectLFSMetaObjects function
+type GarbageCollectLFSMetaObjectsOptions struct {
+	RepoID                 int64
+	Logger                 log.Logger
+	AutoFix                bool
+	OlderThan              time.Duration
+	LastUpdatedMoreThanAgo time.Duration
+}
 
-	if err := db.Iterate(
+// GarbageCollectLFSMetaObjects garbage collects LFS objects for all repositories
+func GarbageCollectLFSMetaObjects(ctx context.Context, opts GarbageCollectLFSMetaObjectsOptions) error {
+	log.Trace("Doing: GarbageCollectLFSMetaObjects")
+	defer log.Trace("Finished: GarbageCollectLFSMetaObjects")
+
+	if !setting.LFS.StartServer {
+		if opts.Logger != nil {
+			opts.Logger.Info("LFS support is disabled")
+		}
+		return nil
+	}
+
+	if opts.RepoID == 0 {
+		repo, err := repo_model.GetRepositoryByID(ctx, opts.RepoID)
+		if err != nil {
+			return err
+		}
+		return GarbageCollectLFSMetaObjectsForRepo(ctx, repo, opts)
+	}
+
+	return db.Iterate(
 		ctx,
 		builder.And(builder.Gt{"id": 0}),
 		func(ctx context.Context, repo *repo_model.Repository) error {
-			return GarbageCollectLFSMetaObjectsForRepo(ctx, repo, logger, autofix)
+			return GarbageCollectLFSMetaObjectsForRepo(ctx, repo, opts)
 		},
-	); err != nil {
-		return err
-	}
-
-	log.Trace("Finished: GarbageCollectLFSMetaObjects")
-	return nil
+	)
 }
 
-func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.Repository, logger log.Logger, autofix bool) error {
-	if logger != nil {
-		logger.Info("Checking %-v", repo)
+// GarbageCollectLFSMetaObjectsForRepo garbage collects LFS objects for a specific repository
+func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.Repository, opts GarbageCollectLFSMetaObjectsOptions) error {
+	if opts.Logger != nil {
+		opts.Logger.Info("Checking %-v", repo)
 	}
 	total, orphaned, collected, deleted := 0, 0, 0, 0
-	if logger != nil {
+	if opts.Logger != nil {
 		defer func() {
 			if orphaned == 0 {
-				logger.Info("Found %d total LFSMetaObjects in %-v", total, repo)
-			} else if !autofix {
-				logger.Info("Found %d/%d orphaned LFSMetaObjects in %-v", orphaned, total, repo)
+				opts.Logger.Info("Found %d total LFSMetaObjects in %-v", total, repo)
+			} else if !opts.AutoFix {
+				opts.Logger.Info("Found %d/%d orphaned LFSMetaObjects in %-v", orphaned, total, repo)
 			} else {
-				logger.Info("Collected %d/%d orphaned/%d total LFSMetaObjects in %-v. %d removed from storage.", collected, orphaned, total, repo, deleted)
+				opts.Logger.Info("Collected %d/%d orphaned/%d total LFSMetaObjects in %-v. %d removed from storage.", collected, orphaned, total, repo, deleted)
 			}
 		}()
 	}
@@ -61,16 +84,26 @@ func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.R
 
 	store := lfs.NewContentStore()
 
+	var olderThan time.Time
+	var updatedLessRecentlyThan time.Time
+
+	if opts.OlderThan > 0 {
+		olderThan = time.Now().Add(opts.OlderThan)
+	}
+	if opts.LastUpdatedMoreThanAgo > 0 {
+		updatedLessRecentlyThan = time.Now().Add(opts.LastUpdatedMoreThanAgo)
+	}
+
 	return git_model.IterateLFSMetaObjectsForRepo(ctx, repo.ID, func(ctx context.Context, metaObject *git_model.LFSMetaObject, count int64) error {
 		total++
 		pointerSha := git.ComputeBlobHash([]byte(metaObject.Pointer.StringContent()))
 
 		if gitRepo.IsObjectExist(pointerSha.String()) {
-			return nil
+			return git_model.MarkLFSMetaObject(ctx, metaObject.ID)
 		}
 		orphaned++
 
-		if !autofix {
+		if !opts.AutoFix {
 			return nil
 		}
 		// Non-existent pointer file
@@ -100,6 +133,7 @@ func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.R
 		//
 		// It is likely that a week is potentially excessive but it should definitely be enough that any
 		// unassociated LFS object is genuinely unassociated.
-		OlderThan: time.Now().Add(-24 * 7 * time.Hour),
+		OlderThan:               olderThan,
+		UpdatedLessRecentlyThan: updatedLessRecentlyThan,
 	})
 }
