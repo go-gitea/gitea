@@ -2365,7 +2365,7 @@ func CountOrphanedIssues(ctx context.Context) (int64, error) {
 // DeleteOrphanedIssues delete issues without a repo
 func DeleteOrphanedIssues(ctx context.Context) error {
 	var attachmentPaths []string
-	err := db.AutoTx(ctx, func(ctx context.Context) error {
+	err := db.WithTx(ctx, func(ctx context.Context) error {
 		var ids []int64
 
 		if err := db.GetEngine(ctx).Table("issue").Distinct("issue.repo_id").
