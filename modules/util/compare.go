@@ -56,7 +56,7 @@ func IsStringInSlice(target string, slice []string, insensitive ...bool) bool {
 }
 
 // IsEqualSlice returns true if slices are equal.
-func IsEqualSlice(target, source []string) bool {
+func IsEqualSlice[T comparable](target, source []T) bool {
 	if len(target) != len(source) {
 		return false
 	}
@@ -65,14 +65,18 @@ func IsEqualSlice(target, source []string) bool {
 		return false
 	}
 
-	sort.Strings(target)
-	sort.Strings(source)
+	counts := make(map[T]int, len(target))
+	for _, v := range target {
+		counts[v]++
+	}
+	for _, v := range source {
+		counts[v]--
+	}
 
-	for i, v := range target {
-		if v != source[i] {
+	for _, v := range counts {
+		if v != 0 {
 			return false
 		}
 	}
-
 	return true
 }
