@@ -67,19 +67,19 @@ func (protectBranch *ProtectedBranch) IsProtected() bool {
 }
 
 // CanUserPush returns if some user could push to this protected branch
-func (protectBranch *ProtectedBranch) CanUserPush(userID int64) bool {
+func (protectBranch *ProtectedBranch) CanUserPush(ctx context.Context, userID int64) bool {
 	if !protectBranch.CanPush {
 		return false
 	}
 
 	if !protectBranch.EnableWhitelist {
-		if user, err := user_model.GetUserByID(db.DefaultContext, userID); err != nil {
+		if user, err := user_model.GetUserByID(ctx, userID); err != nil {
 			log.Error("GetUserByID: %v", err)
 			return false
-		} else if repo, err := repo_model.GetRepositoryByID(db.DefaultContext, protectBranch.RepoID); err != nil {
+		} else if repo, err := repo_model.GetRepositoryByID(ctx, protectBranch.RepoID); err != nil {
 			log.Error("repo_model.GetRepositoryByID: %v", err)
 			return false
-		} else if writeAccess, err := access_model.HasAccessUnit(db.DefaultContext, user, repo, unit.TypeCode, perm.AccessModeWrite); err != nil {
+		} else if writeAccess, err := access_model.HasAccessUnit(ctx, user, repo, unit.TypeCode, perm.AccessModeWrite); err != nil {
 			log.Error("HasAccessUnit: %v", err)
 			return false
 		} else {
@@ -95,7 +95,7 @@ func (protectBranch *ProtectedBranch) CanUserPush(userID int64) bool {
 		return false
 	}
 
-	in, err := organization.IsUserInTeams(db.DefaultContext, userID, protectBranch.WhitelistTeamIDs)
+	in, err := organization.IsUserInTeams(ctx, userID, protectBranch.WhitelistTeamIDs)
 	if err != nil {
 		log.Error("IsUserInTeams: %v", err)
 		return false
@@ -320,19 +320,19 @@ func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, prote
 }
 
 // GetProtectedBranches get all protected branches
-func GetProtectedBranches(repoID int64) ([]*ProtectedBranch, error) {
+func GetProtectedBranches(ctx context.Context, repoID int64) ([]*ProtectedBranch, error) {
 	protectedBranches := make([]*ProtectedBranch, 0)
-	return protectedBranches, db.GetEngine(db.DefaultContext).Find(&protectedBranches, &ProtectedBranch{RepoID: repoID})
+	return protectedBranches, db.GetEngine(ctx).Find(&protectedBranches, &ProtectedBranch{RepoID: repoID})
 }
 
 // IsProtectedBranch checks if branch is protected
-func IsProtectedBranch(repoID int64, branchName string) (bool, error) {
+func IsProtectedBranch(ctx context.Context, repoID int64, branchName string) (bool, error) {
 	protectedBranch := &ProtectedBranch{
 		RepoID:     repoID,
 		BranchName: branchName,
 	}
 
-	has, err := db.GetEngine(db.DefaultContext).Exist(protectedBranch)
+	has, err := db.GetEngine(ctx).Exist(protectedBranch)
 	if err != nil {
 		return true, err
 	}
@@ -413,13 +413,13 @@ func updateTeamWhitelist(ctx context.Context, repo *repo_model.Repository, curre
 }
 
 // DeleteProtectedBranch removes ProtectedBranch relation between the user and repository.
-func DeleteProtectedBranch(repoID, id int64) (err error) {
+func DeleteProtectedBranch(ctx context.Context, repoID, id int64) (err error) {
 	protectedBranch := &ProtectedBranch{
 		RepoID: repoID,
 		ID:     id,
 	}
 
-	if affected, err := db.GetEngine(db.DefaultContext).Delete(protectedBranch); err != nil {
+	if affected, err := db.GetEngine(ctx).Delete(protectedBranch); err != nil {
 		return err
 	} else if affected != 1 {
 		return fmt.Errorf("delete protected branch ID(%v) failed", id)
@@ -440,7 +440,7 @@ type DeletedBranch struct {
 }
 
 // AddDeletedBranch adds a deleted branch to the database
-func AddDeletedBranch(repoID int64, branchName, commit string, deletedByID int64) error {
+func AddDeletedBranch(ctx context.Context, repoID int64, branchName, commit string, deletedByID int64) error {
 	deletedBranch := &DeletedBranch{
 		RepoID:      repoID,
 		Name:        branchName,
@@ -448,20 +448,20 @@ func AddDeletedBranch(repoID int64, branchName, commit string, deletedByID int64
 		DeletedByID: deletedByID,
 	}
 
-	_, err := db.GetEngine(db.DefaultContext).Insert(deletedBranch)
+	_, err := db.GetEngine(ctx).Insert(deletedBranch)
 	return err
 }
 
 // GetDeletedBranches returns all the deleted branches
-func GetDeletedBranches(repoID int64) ([]*DeletedBranch, error) {
+func GetDeletedBranches(ctx context.Context, repoID int64) ([]*DeletedBranch, error) {
 	deletedBranches := make([]*DeletedBranch, 0)
-	return deletedBranches, db.GetEngine(db.DefaultContext).Where("repo_id = ?", repoID).Desc("deleted_unix").Find(&deletedBranches)
+	return deletedBranches, db.GetEngine(ctx).Where("repo_id = ?", repoID).Desc("deleted_unix").Find(&deletedBranches)
 }
 
 // GetDeletedBranchByID get a deleted branch by its ID
-func GetDeletedBranchByID(repoID, id int64) (*DeletedBranch, error) {
+func GetDeletedBranchByID(ctx context.Context, repoID, id int64) (*DeletedBranch, error) {
 	deletedBranch := &DeletedBranch{}
-	has, err := db.GetEngine(db.DefaultContext).Where("repo_id = ?", repoID).And("id = ?", id).Get(deletedBranch)
+	has, err := db.GetEngine(ctx).Where("repo_id = ?", repoID).And("id = ?", id).Get(deletedBranch)
 	if err != nil {
 		return nil, err
 	}
@@ -472,13 +472,13 @@ func GetDeletedBranchByID(repoID, id int64) (*DeletedBranch, error) {
 }
 
 // RemoveDeletedBranchByID removes a deleted branch from the database
-func RemoveDeletedBranchByID(repoID, id int64) (err error) {
+func RemoveDeletedBranchByID(ctx context.Context, repoID, id int64) (err error) {
 	deletedBranch := &DeletedBranch{
 		RepoID: repoID,
 		ID:     id,
 	}
 
-	if affected, err := db.GetEngine(db.DefaultContext).Delete(deletedBranch); err != nil {
+	if affected, err := db.GetEngine(ctx).Delete(deletedBranch); err != nil {
 		return err
 	} else if affected != 1 {
 		return fmt.Errorf("remove deleted branch ID(%v) failed", id)
@@ -498,8 +498,8 @@ func (deletedBranch *DeletedBranch) LoadUser(ctx context.Context) {
 }
 
 // RemoveDeletedBranchByName removes all deleted branches
-func RemoveDeletedBranchByName(repoID int64, branch string) error {
-	_, err := db.GetEngine(db.DefaultContext).Where("repo_id=? AND name=?", repoID, branch).Delete(new(DeletedBranch))
+func RemoveDeletedBranchByName(ctx context.Context, repoID int64, branch string) error {
+	_, err := db.GetEngine(ctx).Where("repo_id=? AND name=?", repoID, branch).Delete(new(DeletedBranch))
 	return err
 }
 
@@ -509,7 +509,7 @@ func RemoveOldDeletedBranches(ctx context.Context, olderThan time.Duration) {
 	log.Trace("Doing: DeletedBranchesCleanup")
 
 	deleteBefore := time.Now().Add(-olderThan)
-	_, err := db.GetEngine(db.DefaultContext).Where("deleted_unix < ?", deleteBefore.Unix()).Delete(new(DeletedBranch))
+	_, err := db.GetEngine(ctx).Where("deleted_unix < ?", deleteBefore.Unix()).Delete(new(DeletedBranch))
 	if err != nil {
 		log.Error("DeletedBranchesCleanup: %v", err)
 	}
@@ -526,19 +526,19 @@ type RenamedBranch struct {
 }
 
 // FindRenamedBranch check if a branch was renamed
-func FindRenamedBranch(repoID int64, from string) (branch *RenamedBranch, exist bool, err error) {
+func FindRenamedBranch(ctx context.Context, repoID int64, from string) (branch *RenamedBranch, exist bool, err error) {
 	branch = &RenamedBranch{
 		RepoID: repoID,
 		From:   from,
 	}
-	exist, err = db.GetEngine(db.DefaultContext).Get(branch)
+	exist, err = db.GetEngine(ctx).Get(branch)
 
 	return branch, exist, err
 }
 
 // RenameBranch rename a branch
-func RenameBranch(repo *repo_model.Repository, from, to string, gitAction func(isDefault bool) error) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to string, gitAction func(isDefault bool) error) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
