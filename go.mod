@@ -303,8 +303,6 @@ replace github.com/hashicorp/go-version => github.com/6543/go-version v1.3.1
 
 replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142115-2c99e1ffdfa0
 
-replace github.com/satori/go.uuid v1.2.0 => github.com/gofrs/uuid v4.2.0+incompatible
-
 replace github.com/blevesearch/zapx/v15 v15.3.6 => github.com/zeripath/zapx/v15 v15.3.6-alignment-fix
 
 exclude github.com/gofrs/uuid v3.2.0+incompatible
@@ -312,3 +310,5 @@ exclude github.com/gofrs/uuid v3.2.0+incompatible
 exclude github.com/gofrs/uuid v4.0.0+incompatible
 
 exclude github.com/goccy/go-json v0.4.11
+
+exclude github.com/satori/go.uuid v1.2.0
