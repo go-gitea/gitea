@@ -41,10 +41,6 @@ func IsEqualSlice[T comparable](target, source []T) bool {
 		return false
 	}
 
-	if (target == nil) != (source == nil) {
-		return false
-	}
-
 	counts := make(map[T]int, len(target))
 	for _, v := range target {
 		counts[v]++

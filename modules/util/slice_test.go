@@ -40,6 +40,8 @@ func TestIsEqualSlice(t *testing.T) {
 	assert.True(t, IsEqualSlice([]int{3, 0, 2, 2}, []int{3, 0, 2, 2}))
 	assert.True(t, IsEqualSlice([]int{}, []int{}))
 	assert.True(t, IsEqualSlice([]int(nil), nil))
+	assert.True(t, IsEqualSlice([]int(nil), []int{}))
+	assert.True(t, IsEqualSlice([]int{}, []int{}))
 
 	assert.True(t, IsEqualSlice([]string{"2", "0", "2", "3"}, []string{"2", "0", "2", "3"}))
 	assert.True(t, IsEqualSlice([]float64{2, 0, 2, 3}, []float64{2, 0, 2, 3}))
@@ -48,7 +50,6 @@ func TestIsEqualSlice(t *testing.T) {
 	assert.False(t, IsEqualSlice([]int{2, 0, 2}, []int{2, 0, 2, 3}))
 	assert.False(t, IsEqualSlice([]int{2, 0, 2, 4}, []int{2, 0, 2, 3}))
 	assert.False(t, IsEqualSlice([]int{2, 0, 0, 3}, []int{2, 0, 2, 3}))
-	assert.False(t, IsEqualSlice([]int(nil), []int{}))
 }
 
 func TestRemoveFromSlice(t *testing.T) {
