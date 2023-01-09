@@ -1156,13 +1156,11 @@ func (ctx *Context) IssueConfigFromDefaultBranch() (api.IssueConfig, error) {
 	}
 
 	for _, configName := range IssueConfigCanidates {
-		_, err := commit.GetTreeEntryByPath(configName + ".yaml")
-		if err == nil {
+		if _, err := commit.GetTreeEntryByPath(configName + ".yaml"); err == nil {
 			return ctx.Repo.GetIssueConfig(configName + ".yaml", commit)
 		}
 
-		_, err2 := commit.GetTreeEntryByPath(configName + ".yml")
-		if err2 == nil {
+		if _, err := commit.GetTreeEntryByPath(configName + ".yml"); err == nil {
 			return ctx.Repo.GetIssueConfig(configName + ".yml", commit)
 		}
 	}
