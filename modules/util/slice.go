@@ -10,10 +10,10 @@ func IsInSlice[T comparable](target T, slice []T) bool {
 	return IsInSliceFunc(func(t T) bool { return t == target }, slice)
 }
 
-// IsInSliceFunc returns true if any element in the slice satisfies the targetF.
-func IsInSliceFunc[T comparable](targetF func(T) bool, slice []T) bool {
+// IsInSliceFunc returns true if any element in the slice satisfies the targetFunc.
+func IsInSliceFunc[T comparable](targetFunc func(T) bool, slice []T) bool {
 	for _, v := range slice {
-		if targetF(v) {
+		if targetFunc(v) {
 			return true
 		}
 	}
@@ -68,4 +68,22 @@ func RemoveIDFromList(list []int64, id int64) ([]int64, bool) {
 		}
 	}
 	return list, false
+}
+
+// RemoveFromSlice removes all the target elements from the slice.
+func RemoveFromSlice[T comparable](target T, slice []T) []T {
+	return RemoveFromSliceFunc(func(t T) bool { return t == target }, slice)
+}
+
+// RemoveFromSliceFunc removes all elements which satisfy the targetFunc from the slice.
+func RemoveFromSliceFunc[T comparable](targetFunc func(T) bool, slice []T) []T {
+	idx := 0
+	for _, v := range slice {
+		if targetFunc(v) {
+			continue
+		}
+		slice[idx] = v
+		idx++
+	}
+	return slice[:idx]
 }
