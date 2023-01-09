@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/system"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/log"
 )
 
 const KeyDevDefaultEditor = "dev.default_editor"
@@ -76,4 +78,48 @@ func SetDefaultEditor(name string) error {
 		}
 	}
 	return nil
+}
+
+type ErrUnknownEditor struct {
+	editorName string
+}
+
+func (e ErrUnknownEditor) Error() string {
+	return "Unknown editor: " + e.editorName
+}
+
+func GetUserDefaultEditor(userID int64) (*Editor, error) {
+	defaultName, err := user_model.GetSetting(userID, KeyDevDefaultEditor)
+	if err != nil {
+		return nil, err
+	}
+	for _, editor := range defaultEditors {
+		if editor.Name == defaultName {
+			return &editor, nil
+		}
+	}
+	return nil, ErrUnknownEditor{defaultName}
+}
+
+func SetUserDefaultEditor(userID int64, name string) error {
+	return user_model.SetUserSetting(userID, KeyDevDefaultEditor, name)
+}
+
+func GetUserDefaultEditorWithFallback(user *user_model.User) (*Editor, error) {
+	if user == nil || user.ID <= 0 {
+		return GetDefaultEditor()
+	}
+	editor, err := GetUserDefaultEditor(user.ID)
+	if err == nil {
+		return editor, nil
+	}
+
+	if theErr, ok := err.(ErrUnknownEditor); ok {
+		log.Error("Unknown editor for user %d: %s, fallback to system default", user.ID, theErr.editorName)
+		return GetDefaultEditor()
+	}
+	if user_model.IsErrUserSettingIsNotExist(err) {
+		return GetDefaultEditor()
+	}
+	return nil, err
 }

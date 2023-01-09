@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/agit"
+	"code.gitea.io/gitea/services/dev"
 	"code.gitea.io/gitea/services/forms"
 	container_service "code.gitea.io/gitea/services/packages/container"
 	user_service "code.gitea.io/gitea/services/user"
@@ -375,7 +376,45 @@ func Appearance(ctx *context.Context) {
 		return forms.IsUserHiddenCommentTypeGroupChecked(commentTypeGroup, hiddenCommentTypes)
 	}
 
+	editors, err := dev.GetEditors()
+	if err != nil {
+		ctx.ServerError("dev.GetEditors", err)
+		return
+	}
+
+	myDefaultEditor, err := dev.GetUserDefaultEditorWithFallback(ctx.Doer)
+	if err != nil {
+		ctx.ServerError("dev.GetEditors", err)
+		return
+	}
+
+	ctx.Data["DevEditors"] = editors
+	ctx.Data["DevDefaultEditor"] = myDefaultEditor
+
 	ctx.HTML(http.StatusOK, tplSettingsAppearance)
+}
+
+func ChangeConfig(ctx *context.Context) {
+	key := strings.TrimSpace(ctx.FormString("key"))
+	if key == "" {
+		ctx.JSON(http.StatusOK, map[string]string{
+			"redirect": ctx.Req.URL.String(),
+		})
+		return
+	}
+	value := ctx.FormString("value")
+
+	if err := user_model.SetUserSetting(ctx.Doer.ID, key, value); err != nil {
+		log.Error("set setting failed: %v", err)
+		ctx.JSON(http.StatusOK, map[string]string{
+			"err": ctx.Tr("admin.config.set_setting_failed", key),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, map[string]interface{}{
+		"version": 1,
+	})
 }
 
 // UpdateUIThemePost is used to update users' specific theme

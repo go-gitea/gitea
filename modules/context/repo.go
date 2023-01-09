@@ -588,7 +588,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	}
 	ctx.Data["CloneButtonShowHTTPS"] = cloneButtonShowHTTPS
 	ctx.Data["CloneButtonShowSSH"] = cloneButtonShowSSH
-	editor, err := dev.GetDefaultEditor()
+	editor, err := dev.GetUserDefaultEditorWithFallback(ctx.Doer)
 	if err != nil {
 		ctx.ServerError("dev.GetDefaultEditor", err)
 		return

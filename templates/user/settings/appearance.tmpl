@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content user settings sshkeys">
+<div class="page-content user settings profile">
 	{{template "user/settings/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -67,6 +67,35 @@
 					<button class="ui green button">{{$.locale.Tr "settings.update_language"}}</button>
 				</div>
 			</form>
+		</div>
+
+		<!-- Show clone editor types -->
+		<h4 class="ui top attached header">
+			{{.locale.Tr "admin.config.dev_config"}}
+		</h4>
+		<div class="ui attached segment">
+			<div class="ui email list">
+				<div class="item">
+					{{$.locale.Tr "admin.config.dev_default_editor"}}
+				</div>
+				<div class="field">
+					<div class="ui floatting selection dropdown">
+						<input type="hidden" name="dev.default_editor" version="{{$.DevDefaultEditorVersion}}">
+						<div class="default text">
+							{{svg $.DevDefaultEditor.Icon 14}}
+							{{$.DevDefaultEditor.Name}} - {{$.DevDefaultEditor.URL}}
+						</div>
+						<div class="menu floatting">
+							{{range .DevEditors}}
+								<div class="item" data-value="{{.Name}}">
+									{{svg .Icon 14}}
+									{{.Name}} - {{.URL}}
+								</div>
+							{{end}}
+						</div>
+					</div>
+				</div>
+			</div>
 		</div>
 
 		<!-- Shown comment event types -->

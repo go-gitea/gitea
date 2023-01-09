@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/cache"
+	setting_module "code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/builder"
 )
@@ -149,16 +150,21 @@ func DeleteUserSetting(userID int64, key string) error {
 }
 
 // SetUserSetting updates a users' setting for a specific key
-func SetUserSetting(userID int64, key, value string) error {
+func SetUserSetting(uid int64, key, value string) error {
 	if err := validateUserSettingKey(key); err != nil {
 		return err
 	}
 
-	_, err := cache.GetString(genSettingCacheKey(userID, key), func() (string, error) {
-		return value, upsertUserSettingValue(userID, key, value)
-	})
+	if err := upsertUserSettingValue(uid, strings.ToLower(key), value); err != nil {
+		return err
+	}
 
-	return err
+	cc := cache.GetCache()
+	if cc != nil {
+		return cc.Put(genSettingCacheKey(uid, key), value, setting_module.CacheService.TTLSeconds())
+	}
+
+	return nil
 }
 
 func upsertUserSettingValue(userID int64, key, value string) error {

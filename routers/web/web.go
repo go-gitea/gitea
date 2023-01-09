@@ -405,6 +405,7 @@ func RegisterRoutes(m *web.Route) {
 	m.Group("/user/settings", func() {
 		m.Get("", user_setting.Profile)
 		m.Post("", web.Bind(forms.UpdateProfileForm{}), user_setting.ProfilePost)
+		m.Post("/config", user_setting.ChangeConfig)
 		m.Get("/change_password", auth.MustChangePassword)
 		m.Post("/change_password", web.Bind(forms.MustChangePasswordForm{}), auth.MustChangePasswordPost)
 		m.Post("/avatar", web.Bind(forms.AvatarForm{}), user_setting.AvatarPost)
@@ -1204,7 +1205,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/commit/{sha:[a-f0-9]{7,40}}.{ext:patch|diff}", repo.RawDiff)
 		}, repo.MustEnableWiki, func(ctx *context.Context) {
 			ctx.Data["PageIsWiki"] = true
-			editor, err := dev.GetDefaultEditor()
+			editor, err := dev.GetUserDefaultEditorWithFallback(ctx.Doer)
 			if err != nil {
 				ctx.ServerError("dev.GetDefaultEditor", err)
 				return
