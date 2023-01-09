@@ -56,7 +56,7 @@ func Test_halfCommitter(t *testing.T) {
 		return committer.Commit()
 	*/
 
-	testWithCommiter := func(committer Committer, f func(committer Committer) error) {
+	testWithCommitter := func(committer Committer, f func(committer Committer) error) {
 		if err := f(&halfCommitter{committer: committer}); err == nil {
 			committer.Commit()
 		}
@@ -66,7 +66,7 @@ func Test_halfCommitter(t *testing.T) {
 	t.Run("commit and close", func(t *testing.T) {
 		mockCommitter := NewMockCommitter("commit", "close")
 
-		testWithCommiter(mockCommitter, func(committer Committer) error {
+		testWithCommitter(mockCommitter, func(committer Committer) error {
 			defer committer.Close()
 			return committer.Commit()
 		})
@@ -77,7 +77,7 @@ func Test_halfCommitter(t *testing.T) {
 	t.Run("rollback and close", func(t *testing.T) {
 		mockCommitter := NewMockCommitter("close", "close")
 
-		testWithCommiter(mockCommitter, func(committer Committer) error {
+		testWithCommitter(mockCommitter, func(committer Committer) error {
 			defer committer.Close()
 			if true {
 				return fmt.Errorf("error")
@@ -91,7 +91,7 @@ func Test_halfCommitter(t *testing.T) {
 	t.Run("close and commit", func(t *testing.T) {
 		mockCommitter := NewMockCommitter("close", "close")
 
-		testWithCommiter(mockCommitter, func(committer Committer) error {
+		testWithCommitter(mockCommitter, func(committer Committer) error {
 			committer.Close()
 			committer.Commit()
 			return fmt.Errorf("error")
