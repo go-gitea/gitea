@@ -53,7 +53,7 @@ func CreateCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 		return fmt.Errorf("GetLatestCommitStatus: %w", err)
 	}
 
-	if err := git_model.NewCommitStatus(git_model.NewCommitStatusOptions{
+	if err := git_model.NewCommitStatus(ctx, git_model.NewCommitStatusOptions{
 		Repo:    repo,
 		SHA:     payload.HeadCommit.ID,
 		Creator: creator,
