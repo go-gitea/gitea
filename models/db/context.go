@@ -138,7 +138,12 @@ func TxContext(parentCtx context.Context) (*Context, Committer, error) {
 // this function will reuse it otherwise will create a new one and close it when finished.
 func WithTx(parentCtx context.Context, f func(ctx context.Context) error) error {
 	if sess, ok := inTransaction(parentCtx); ok {
-		return f(newContext(parentCtx, sess, true))
+		err := f(newContext(parentCtx, sess, true))
+		if err != nil {
+			// rollback immediately, in case the caller ignores returned error and tries to commit the transaction.
+			_ = sess.Close()
+		}
+		return err
 	}
 	return txWithNoCheck(parentCtx, f)
 }
