@@ -6,7 +6,7 @@ export function createTippy(target, opts = {}) {
     placement: target.getAttribute('data-placement') || 'top-start',
     animation: false,
     allowHTML: false,
-    hideOnClick: false,
+    hideOnClick: true,
     interactiveBorder: 30,
     ignoreAttributes: true,
     maxWidth: 500, // increase over default 350px
