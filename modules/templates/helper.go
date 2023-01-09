@@ -106,6 +106,7 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"Safe":           Safe,
 		"SafeJS":         SafeJS,
+		"SafeURL":        SafeURL,
 		"JSEscape":       JSEscape,
 		"Str2html":       Str2html,
 		"TimeSince":      timeutil.TimeSince,
@@ -662,6 +663,11 @@ func AvatarByEmail(email, name string, others ...interface{}) template.HTML {
 // Safe render raw as HTML
 func Safe(raw string) template.HTML {
 	return template.HTML(raw)
+}
+
+// SafeURL render raw as URL
+func SafeURL(raw string) template.URL {
+	return template.URL(raw)
 }
 
 // SafeJS renders raw as JS

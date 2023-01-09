@@ -128,7 +128,7 @@
 										<a class="item" id="cite-repo-button">{{svg "octicon-cross-reference" 16 "mr-3"}}{{.locale.Tr "repo.cite_this_repo"}}</a>
 									{{end}}
 								{{end}}
-								<a class="item js-clone-url-vsc" href="vscode://vscode.git/clone?url={{.CloneButtonOriginLink.HTTPS}}">{{svg "gitea-vscode" 16 "mr-3"}}{{.locale.Tr "repo.clone_in_vsc"}}</a>
+								<a class="item js-clone-url-editor" data-url="{{.CloneEditor.URL | SafeURL}}" href="{{.CloneEditor.RenderURL .CloneButtonOriginLink.HTTPS}}">{{svg .CloneEditor.Icon 16 "mr-3"}}{{.locale.Tr "repo.clone_in_editor" .CloneEditor.Name}}</a>
 							</div>
 						</button>
 						{{template "repo/clone_script" .}}{{/* the script will update `.js-clone-url` and related elements */}}

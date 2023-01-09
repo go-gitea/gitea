@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/dev"
 	"code.gitea.io/gitea/services/mailer"
 
 	"gitea.com/go-chi/session"
@@ -186,6 +187,23 @@ func Config(ctx *context.Context) {
 	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
 	ctx.Data["EnableXORMLog"] = setting.EnableXORMLog
 	ctx.Data["LogSQL"] = setting.Database.LogSQL
+
+	editors, err := dev.GetEditors()
+	if err != nil {
+		ctx.ServerError("system_model.GetAllSettings", err)
+		return
+	}
+
+	defaultEditorS := systemSettings.Get(dev.KeyDevDefaultEditor)
+	if defaultEditorS.SettingValue == "" {
+		defaultEditorS = system_model.Setting{
+			SettingKey:   dev.KeyDevDefaultEditor,
+			SettingValue: dev.DefaultEditorName(),
+		}
+	}
+
+	ctx.Data["DevEditors"] = editors
+	ctx.Data["DevDefaultEditor"] = dev.GetEditorByName(defaultEditorS.SettingValue)
 
 	ctx.HTML(http.StatusOK, tplConfig)
 }

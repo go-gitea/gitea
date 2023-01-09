@@ -39,6 +39,7 @@ import (
 	"code.gitea.io/gitea/routers/web/user/setting/security"
 	auth_service "code.gitea.io/gitea/services/auth"
 	context_service "code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/dev"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/lfs"
 
@@ -1203,6 +1204,12 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/commit/{sha:[a-f0-9]{7,40}}.{ext:patch|diff}", repo.RawDiff)
 		}, repo.MustEnableWiki, func(ctx *context.Context) {
 			ctx.Data["PageIsWiki"] = true
+			editor, err := dev.GetDefaultEditor()
+			if err != nil {
+				ctx.ServerError("dev.GetDefaultEditor", err)
+				return
+			}
+			ctx.Data["CloneEditor"] = editor
 			ctx.Data["CloneButtonOriginLink"] = ctx.Repo.Repository.WikiCloneLink()
 		})
 

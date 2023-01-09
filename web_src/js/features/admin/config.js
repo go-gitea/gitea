@@ -34,4 +34,33 @@ export function initAdminConfigs() {
     e.preventDefault();
     return false;
   });
+
+  $('.selection').dropdown({
+    onChange: (_text, _value, $choice) => {
+      const $this = $choice.parent().parent();
+      const input = $this.find('input');
+      console.info($this, input);
+      $.ajax({
+        url: `${appSubUrl}/admin/config`,
+        type: 'POST',
+        data: {
+          _csrf: csrfToken,
+          key: input.attr('name'),
+          value: input.attr('value'),
+          version: input.attr('version'),
+        }
+      }).done((resp) => {
+        if (resp) {
+          if (resp.redirect) {
+            window.location.href = resp.redirect;
+          } else if (resp.version) {
+            input.attr('version', resp.version);
+          } else if (resp.err) {
+            showTemporaryTooltip($this, resp.err);
+          }
+        }
+      });
+      return false;
+    }
+  });
 }

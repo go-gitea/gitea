@@ -413,6 +413,32 @@
 				{{end}}
 			</dl>
 		</div>
+
+		<h4 class="ui top attached header">
+			{{.locale.Tr "admin.config.dev_config"}}
+		</h4>
+		<div class="ui attached table segment">
+			<dl class="dl-horizontal admin-dl-horizontal">
+				<dt>{{$.locale.Tr "admin.config.dev_default_editor"}}</dt>
+				<dd>
+					<div class="ui floatting selection dropdown">
+						<input type="hidden" name="dev.default_editor" version="{{$.DevDefaultEditorVersion}}">
+						<div class="default text">
+							{{svg $.DevDefaultEditor.Icon 14}}
+							{{$.DevDefaultEditor.Name}} - {{$.DevDefaultEditor.URL}}
+						</div>
+						<div class="menu floatting">
+							{{range .DevEditors}}
+								<div class="item" data-value="{{.Name}}">
+									{{svg .Icon 14}}
+									{{.Name}} - {{.URL}}
+								</div>
+							{{end}}
+						</div>
+					</div>
+				</dd>
+			</dl>
+		</div>
 	</div>
 </div>
 {{template "base/footer" .}}

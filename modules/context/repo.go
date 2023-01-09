@@ -31,6 +31,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/dev"
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
 )
@@ -587,6 +588,12 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	}
 	ctx.Data["CloneButtonShowHTTPS"] = cloneButtonShowHTTPS
 	ctx.Data["CloneButtonShowSSH"] = cloneButtonShowSSH
+	editor, err := dev.GetDefaultEditor()
+	if err != nil {
+		ctx.ServerError("dev.GetDefaultEditor", err)
+		return
+	}
+	ctx.Data["CloneEditor"] = editor
 	ctx.Data["CloneButtonOriginLink"] = ctx.Data["RepoCloneLink"] // it may be rewritten to the WikiCloneLink by the router middleware
 
 	ctx.Data["RepoSearchEnabled"] = setting.Indexer.RepoIndexerEnabled
