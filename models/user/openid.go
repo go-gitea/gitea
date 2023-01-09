@@ -5,7 +5,6 @@ package user
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -13,7 +12,7 @@ import (
 )
 
 // ErrOpenIDNotExist openid is not known
-var ErrOpenIDNotExist = errors.New("OpenID is unknown")
+var ErrOpenIDNotExist = util.NewNotExistErrorf("OpenID is unknown")
 
 // UserOpenID is the list of all OpenID identities of a user.
 // Since this is a middle table, name it OpenID is not suitable, so we ignore the lint here

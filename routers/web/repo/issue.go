@@ -31,7 +31,6 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	issue_template "code.gitea.io/gitea/modules/issue/template"
@@ -47,6 +46,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -1604,7 +1604,7 @@ func ViewIssue(ctx *context.Context) {
 				if perm.CanWrite(unit.TypeCode) {
 					// Check if branch is not protected
 					if pull.HeadBranch != pull.HeadRepo.DefaultBranch {
-						if protected, err := git_model.IsProtectedBranch(pull.HeadRepo.ID, pull.HeadBranch); err != nil {
+						if protected, err := git_model.IsProtectedBranch(ctx, pull.HeadRepo.ID, pull.HeadBranch); err != nil {
 							log.Error("IsProtectedBranch: %v", err)
 						} else if !protected {
 							canDelete = true
@@ -1664,19 +1664,21 @@ func ViewIssue(ctx *context.Context) {
 
 		ctx.Data["MergeStyle"] = mergeStyle
 
-		defaultMergeMessage, err := pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, mergeStyle)
+		defaultMergeMessage, defaultMergeBody, err := pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, mergeStyle)
 		if err != nil {
 			ctx.ServerError("GetDefaultMergeMessage", err)
 			return
 		}
 		ctx.Data["DefaultMergeMessage"] = defaultMergeMessage
+		ctx.Data["DefaultMergeBody"] = defaultMergeBody
 
-		defaultSquashMergeMessage, err := pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, repo_model.MergeStyleSquash)
+		defaultSquashMergeMessage, defaultSquashMergeBody, err := pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, repo_model.MergeStyleSquash)
 		if err != nil {
 			ctx.ServerError("GetDefaultSquashMergeMessage", err)
 			return
 		}
 		ctx.Data["DefaultSquashMergeMessage"] = defaultSquashMergeMessage
+		ctx.Data["DefaultSquashMergeBody"] = defaultSquashMergeBody
 
 		if err = pull.LoadProtectedBranch(ctx); err != nil {
 			ctx.ServerError("LoadProtectedBranch", err)
@@ -1686,7 +1688,7 @@ func ViewIssue(ctx *context.Context) {
 		if pull.ProtectedBranch != nil {
 			var showMergeInstructions bool
 			if ctx.Doer != nil {
-				showMergeInstructions = pull.ProtectedBranch.CanUserPush(ctx.Doer.ID)
+				showMergeInstructions = pull.ProtectedBranch.CanUserPush(ctx, ctx.Doer.ID)
 			}
 			ctx.Data["IsBlockedByApprovals"] = !issues_model.HasEnoughApprovals(ctx, pull.ProtectedBranch, pull)
 			ctx.Data["IsBlockedByRejection"] = issues_model.MergeBlockedByRejectedReview(ctx, pull.ProtectedBranch, pull)

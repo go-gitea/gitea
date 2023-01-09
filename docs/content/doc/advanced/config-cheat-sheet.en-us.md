@@ -112,6 +112,7 @@ In addition there is _`StaticRootPath`_ which can be set as a built-in at build 
 - `ALLOW_ADOPTION_OF_UNADOPTED_REPOSITORIES`: **false**: Allow non-admin users to adopt unadopted repositories
 - `ALLOW_DELETION_OF_UNADOPTED_REPOSITORIES`: **false**: Allow non-admin users to delete unadopted repositories
 - `DISABLE_DOWNLOAD_SOURCE_ARCHIVES`: **false**: Don't allow download source archive files from UI
+- `ALLOW_FORK_WITHOUT_MAXIMUM_LIMIT`: **true**: Allow fork repositories without maximum number limit
 
 ### Repository - Editor (`repository.editor`)
 
@@ -238,6 +239,10 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `REPO_PAGING_NUM`: **50**: Number of repos that are shown in one page.
 - `NOTICE_PAGING_NUM`: **25**: Number of notices that are shown in one page.
 - `ORG_PAGING_NUM`: **50**: Number of organizations that are shown in one page.
+
+### UI - User (`ui.user`)
+
+- `REPO_PAGING_NUM`: **15**: Number of repos that are shown in one page.
 
 ### UI - Metadata (`ui.meta`)
 
@@ -777,9 +782,9 @@ and
 
 - `GRAVATAR_SOURCE`: **gravatar**: Can be `gravatar`, `duoshuo` or anything like
    `http://cn.gravatar.com/avatar/`.
-- `DISABLE_GRAVATAR`: **false**: Enable this to use local avatars only.
+- `DISABLE_GRAVATAR`: **false**: Enable this to use local avatars only. **DEPRECATED [v1.18+]** moved to database. Use admin panel to configure.
 - `ENABLE_FEDERATED_AVATAR`: **false**: Enable support for federated avatars (see
-   [http://www.libravatar.org](http://www.libravatar.org)).
+   [http://www.libravatar.org](http://www.libravatar.org)). **DEPRECATED [v1.18+]** moved to database. Use admin panel to configure.
 
 - `AVATAR_STORAGE_TYPE`: **default**: Storage type defined in `[storage.xxx]`. Default is `default` which will read `[storage]` if no section `[storage]` will be a type `local`.
 - `AVATAR_UPLOAD_PATH`: **data/avatars**: Path to store user avatar image files.

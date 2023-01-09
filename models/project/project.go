@@ -5,7 +5,6 @@ package project
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -176,7 +175,7 @@ func NewProject(p *Project) error {
 	}
 
 	if !IsTypeValid(p.Type) {
-		return errors.New("project type is not valid")
+		return util.NewInvalidArgumentErrorf("project type is not valid")
 	}
 
 	ctx, committer, err := db.TxContext(db.DefaultContext)
@@ -301,7 +300,7 @@ func changeProjectStatus(ctx context.Context, p *Project, isClosed bool) error {
 // DeleteProjectByID deletes a project from a repository. if it's not in a database
 // transaction, it will start a new database transaction
 func DeleteProjectByID(ctx context.Context, id int64) error {
-	return db.AutoTx(ctx, func(ctx context.Context) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
 		p, err := GetProjectByID(ctx, id)
 		if err != nil {
 			if IsErrProjectNotExist(err) {
