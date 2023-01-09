@@ -251,7 +251,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 	if ctx.opts.DeployKeyID != 0 {
 		canPush = !changedProtectedfiles && protectBranch.CanPush && (!protectBranch.EnableWhitelist || protectBranch.WhitelistDeployKeys)
 	} else {
-		canPush = !changedProtectedfiles && protectBranch.CanUserPush(ctx.opts.UserID)
+		canPush = !changedProtectedfiles && protectBranch.CanUserPush(ctx, ctx.opts.UserID)
 	}
 
 	// 6. If we're not allowed to push directly
