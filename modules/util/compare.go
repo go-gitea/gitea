@@ -33,6 +33,7 @@ func IsStringInSlice(target string, slice []string, insensitive ...bool) bool {
 }
 
 // IsEqualSlice returns true if slices are equal.
+// Be careful, two slice has the same elements but different order are considered equal here.
 func IsEqualSlice[T comparable](target, source []T) bool {
 	if len(target) != len(source) {
 		return false
