@@ -1082,6 +1082,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: docker-linux-amd64-release-branch
 
 platform:
@@ -1306,6 +1307,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: docker-linux-arm64-release-branch
 
 platform:
