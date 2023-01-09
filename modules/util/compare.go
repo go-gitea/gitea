@@ -30,34 +30,29 @@ func IsSliceInt64Eq(a, b []int64) bool {
 	return true
 }
 
-// ExistsInSlice returns true if string exists in slice.
-func ExistsInSlice(target string, slice []string) bool {
-	panic("it's incorrect")
-	//i := sort.Search(len(slice),
-	//	func(i int) bool { return slice[i] == target })
-	//return i < len(slice)
+// IsInSlice returns true if the target exists in the slice.
+func IsInSlice[T comparable](target T, slice []T) bool {
+	return IsInSliceFunc(func(t T) bool { return t == target }, slice)
+}
+
+// IsInSliceFunc returns true if any element in the slice satisfies the targetF.
+func IsInSliceFunc[T comparable](targetF func(T) bool, slice []T) bool {
+	for _, v := range slice {
+		if targetF(v) {
+			return true
+		}
+	}
+	return false
 }
 
 // IsStringInSlice sequential searches if string exists in slice.
 func IsStringInSlice(target string, slice []string, insensitive ...bool) bool {
-	caseInsensitive := false
 	if len(insensitive) != 0 && insensitive[0] {
-		caseInsensitive = true
 		target = strings.ToLower(target)
+		return IsInSliceFunc(func(t string) bool { return strings.ToLower(t) == target }, slice)
 	}
 
-	for i := 0; i < len(slice); i++ {
-		if caseInsensitive {
-			if strings.ToLower(slice[i]) == target {
-				return true
-			}
-		} else {
-			if slice[i] == target {
-				return true
-			}
-		}
-	}
-	return false
+	return IsInSlice(target, slice)
 }
 
 // IsInt64InSlice sequential searches if int64 exists in slice.
