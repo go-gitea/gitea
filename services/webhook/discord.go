@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 )
 
 type (
@@ -190,7 +191,7 @@ func (d *DiscordPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, 
 }
 
 // Review implements PayloadConvertor Review method
-func (d *DiscordPayload) Review(p *api.PullRequestPayload, event webhook_model.HookEventType) (api.Payloader, error) {
+func (d *DiscordPayload) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (api.Payloader, error) {
 	var text, title string
 	var color int
 	switch p.Action {
@@ -204,11 +205,11 @@ func (d *DiscordPayload) Review(p *api.PullRequestPayload, event webhook_model.H
 		text = p.Review.Content
 
 		switch event {
-		case webhook_model.HookEventPullRequestReviewApproved:
+		case webhook_module.HookEventPullRequestReviewApproved:
 			color = greenColor
-		case webhook_model.HookEventPullRequestReviewRejected:
+		case webhook_module.HookEventPullRequestReviewRejected:
 			color = redColor
-		case webhook_model.HookEventPullRequestComment:
+		case webhook_module.HookEventPullRequestComment:
 			color = greyColor
 		default:
 			color = yellowColor
@@ -256,7 +257,7 @@ func (d *DiscordPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 }
 
 // GetDiscordPayload converts a discord webhook into a DiscordPayload
-func GetDiscordPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
+func GetDiscordPayload(p api.Payloader, event webhook_module.HookEventType, meta string) (api.Payloader, error) {
 	s := new(DiscordPayload)
 
 	discord := &DiscordMeta{}
@@ -269,14 +270,14 @@ func GetDiscordPayload(p api.Payloader, event webhook_model.HookEventType, meta 
 	return convertPayloader(s, p, event)
 }
 
-func parseHookPullRequestEventType(event webhook_model.HookEventType) (string, error) {
+func parseHookPullRequestEventType(event webhook_module.HookEventType) (string, error) {
 	switch event {
 
-	case webhook_model.HookEventPullRequestReviewApproved:
+	case webhook_module.HookEventPullRequestReviewApproved:
 		return "approved", nil
-	case webhook_model.HookEventPullRequestReviewRejected:
+	case webhook_module.HookEventPullRequestReviewRejected:
 		return "rejected", nil
-	case webhook_model.HookEventPullRequestComment:
+	case webhook_module.HookEventPullRequestComment:
 		return "comment", nil
 
 	default:

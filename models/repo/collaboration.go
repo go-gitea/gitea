@@ -105,7 +105,7 @@ func ChangeCollaborationAccessMode(ctx context.Context, repo *Repository, uid in
 		return nil
 	}
 
-	return db.AutoTx(ctx, func(ctx context.Context) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
 		e := db.GetEngine(ctx)
 
 		collaboration := &Collaboration{
