@@ -57,19 +57,6 @@ func IsEqualSlice[T comparable](target, source []T) bool {
 	return true
 }
 
-// RemoveIDFromList removes the given ID from the slice, if found.
-// It does not preserve order, and assumes the ID is unique.
-func RemoveIDFromList(list []int64, id int64) ([]int64, bool) {
-	n := len(list) - 1
-	for i, item := range list {
-		if item == id {
-			list[i] = list[n]
-			return list[:n], true
-		}
-	}
-	return list, false
-}
-
 // RemoveFromSlice removes all the target elements from the slice.
 func RemoveFromSlice[T comparable](target T, slice []T) []T {
 	return RemoveFromSliceFunc(func(t T) bool { return t == target }, slice)
