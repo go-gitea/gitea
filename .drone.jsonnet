@@ -10,6 +10,16 @@ local goDepVolume = [
   },
 ];
 
+local platformAMD = {
+  arch: 'amd64',
+  os: 'linux',
+};
+
+local platformARM = {
+  arch: 'arm64',
+  os: 'linux',
+};
+
 local deps(end) = {
   commands: [
     'make deps-' + end,
@@ -23,13 +33,102 @@ local deps(end) = {
   volumes: goDepVolume,
 };
 
+local dockerLinuxRelease(suffix, arch) = {
+  depends_on: [
+    'testing-amd64',
+    'testing-arm64',
+  ],
+  kind: 'pipeline',
+  name: 'docker-linux-' + arch + '-release' + if suffix != '' then '-' + suffix else '',
+  platform: if arch == 'amd64' then platformAMD else platformARM,
+  steps: [
+    {
+      commands: [
+        'git config --global --add safe.directory /drone/src',
+        'git fetch --tags --force',
+      ],
+      image: 'docker:git',
+      name: 'fetch-tags',
+      pull: 'always',
+    },
+    {
+      image: 'techknowlogick/drone-docker:latest',
+      name: 'publish',
+      pull: 'always',
+      settings: (if suffix == 'version' then {
+                   auto_tag: true,
+                   auto_tag_suffix: 'linux-' + arch,
+                 } else {
+                   auto_tag: false,
+                   tags: if suffix == 'branch' then '${DRONE_BRANCH##release/v}-dev-linux-' + arch else 'dev-linux-' + arch,
+                 }) + {
+        build_args: [
+          'GOPROXY=https://goproxy.io',
+        ],
+        password: {
+          from_secret: 'docker_password',
+        },
+        repo: 'gitea/gitea',
+        username: {
+          from_secret: 'docker_username',
+        },
+      },
+      when: {
+        event: {
+          exclude: [
+            'pull_request',
+          ],
+        },
+      },
+    },
+    {
+      image: 'techknowlogick/drone-docker:latest',
+      name: 'publish-rootless',
+      settings: (if suffix == 'version' then {
+                   auto_tag: true,
+                   auto_tag_suffix: 'linux-' + arch + '-rootless',
+                 } else {
+                   auto_tag: false,
+                   tags: if suffix == 'branch' then '${DRONE_BRANCH##release/v}-dev-linux-' + arch + '-rootless' else 'dev-linux-' + arch + '-rootless',
+                 }) + {
+        build_args: [
+          'GOPROXY=https://goproxy.io',
+        ],
+        dockerfile: 'Dockerfile.rootless',
+        password: {
+          from_secret: 'docker_password',
+        },
+        repo: 'gitea/gitea',
+        username: {
+          from_secret: 'docker_username',
+        },
+      },
+      when: {
+        event: {
+          exclude: [
+            'pull_request',
+          ],
+        },
+      },
+    },
+  ],
+  trigger: {
+    event: {
+      exclude: [
+        'cron',
+      ],
+    },
+    ref: [
+      if suffix == 'version' then 'refs/tags/**' else if suffix == 'branch' then 'refs/heads/release/v*' else 'refs/heads/main',
+    ],
+  },
+  type: 'docker',
+};
+
 local compliance = {
   kind: 'pipeline',
   name: 'compliance',
-  platform: {
-    arch: 'amd64',
-    os: 'linux',
-  },
+  platform: platformAMD,
   steps: [
     deps('frontend'),
     deps('backend'),
@@ -232,10 +331,7 @@ local testingamd64 = {
   ],
   kind: 'pipeline',
   name: 'testing-amd64',
-  platform: {
-    arch: 'amd64',
-    os: 'linux',
-  },
+  platform: platformAMD,
   services: [
     {
       environment: {
@@ -516,10 +612,7 @@ local testingarm64 = {
   ],
   kind: 'pipeline',
   name: 'testing-arm64',
-  platform: {
-    arch: 'arm64',
-    os: 'linux',
-  },
+  platform: platformARM,
   services: [
     {
       environment: {
@@ -642,10 +735,7 @@ local testinge2e = {
   ],
   kind: 'pipeline',
   name: 'testing-e2e',
-  platform: {
-    arch: 'amd64',
-    os: 'linux',
-  },
+  platform: platformAMD,
   services: [
     {
       environment: {
@@ -713,10 +803,7 @@ local testinge2e = {
 local updatingTranslations = {
   kind: 'pipeline',
   name: 'update_translations',
-  platform: {
-    arch: 'arm64',
-    os: 'linux',
-  },
+  platform: platformARM,
   steps: [
     {
       environment: {
@@ -796,10 +883,7 @@ local updatingTranslations = {
 local updateGitignoreAndLicenses = {
   kind: 'pipeline',
   name: 'update_gitignore_and_licenses',
-  platform: {
-    arch: 'arm64',
-    os: 'linux',
-  },
+  platform: platformARM,
   steps: [
     {
       commands: [
@@ -851,10 +935,7 @@ local releaseLatest = {
   ],
   kind: 'pipeline',
   name: 'release-latest',
-  platform: {
-    arch: 'amd64',
-    os: 'linux',
-  },
+  platform: platformAMD,
   steps: [
     {
       commands: [
@@ -994,10 +1075,7 @@ local releaseVersion = {
   ],
   kind: 'pipeline',
   name: 'release-version',
-  platform: {
-    arch: 'amd64',
-    os: 'linux',
-  },
+  platform: platformAMD,
   steps: [
     {
       commands: [
@@ -1122,10 +1200,7 @@ local docs = {
   ],
   kind: 'pipeline',
   name: 'docs',
-  platform: {
-    arch: 'arm64',
-    os: 'linux',
-  },
+  platform: platformARM,
   steps: [
     {
       commands: [
@@ -1170,276 +1245,13 @@ local docs = {
   type: 'docker',
 };
 
-local dockerLinuxamd64ReleaseVersion = {
-  depends_on: [
-    'testing-amd64',
-    'testing-arm64',
-  ],
-  kind: 'pipeline',
-  name: 'docker-linux-amd64-release-version',
-  platform: {
-    arch: 'amd64',
-    os: 'linux',
-  },
-  steps: [
-    {
-      commands: [
-        'git config --global --add safe.directory /drone/src',
-        'git fetch --tags --force',
-      ],
-      image: 'docker:git',
-      name: 'fetch-tags',
-      pull: 'always',
-    },
-    {
-      image: 'techknowlogick/drone-docker:latest',
-      name: 'publish',
-      pull: 'always',
-      settings: {
-        auto_tag: true,
-        auto_tag_suffix: 'linux-amd64',
-        build_args: [
-          'GOPROXY=https://goproxy.io',
-        ],
-        password: {
-          from_secret: 'docker_password',
-        },
-        repo: 'gitea/gitea',
-        username: {
-          from_secret: 'docker_username',
-        },
-      },
-      when: {
-        event: {
-          exclude: [
-            'pull_request',
-          ],
-        },
-      },
-    },
-    {
-      image: 'techknowlogick/drone-docker:latest',
-      name: 'publish-rootless',
-      settings: {
-        auto_tag: true,
-        auto_tag_suffix: 'linux-amd64-rootless',
-        build_args: [
-          'GOPROXY=https://goproxy.io',
-        ],
-        dockerfile: 'Dockerfile.rootless',
-        password: {
-          from_secret: 'docker_password',
-        },
-        repo: 'gitea/gitea',
-        username: {
-          from_secret: 'docker_username',
-        },
-      },
-      when: {
-        event: {
-          exclude: [
-            'pull_request',
-          ],
-        },
-      },
-    },
-  ],
-  trigger: {
-    event: {
-      exclude: [
-        'cron',
-      ],
-    },
-    ref: [
-      'refs/tags/**',
-    ],
-  },
-  type: 'docker',
-};
-
-local dockerLinuxamd64Release = {
-  depends_on: [
-    'testing-amd64',
-    'testing-arm64',
-  ],
-  kind: 'pipeline',
-  name: 'docker-linux-amd64-release',
-  platform: {
-    arch: 'amd64',
-    os: 'linux',
-  },
-  steps: [
-    {
-      commands: [
-        'git config --global --add safe.directory /drone/src',
-        'git fetch --tags --force',
-      ],
-      image: 'docker:git',
-      name: 'fetch-tags',
-      pull: 'always',
-    },
-    {
-      image: 'techknowlogick/drone-docker:latest',
-      name: 'publish',
-      pull: 'always',
-      settings: {
-        auto_tag: false,
-        build_args: [
-          'GOPROXY=https://goproxy.io',
-        ],
-        password: {
-          from_secret: 'docker_password',
-        },
-        repo: 'gitea/gitea',
-        tags: 'dev-linux-amd64',
-        username: {
-          from_secret: 'docker_username',
-        },
-      },
-      when: {
-        event: {
-          exclude: [
-            'pull_request',
-          ],
-        },
-      },
-    },
-    {
-      image: 'techknowlogick/drone-docker:latest',
-      name: 'publish-rootless',
-      settings: {
-        auto_tag: false,
-        build_args: [
-          'GOPROXY=https://goproxy.io',
-        ],
-        dockerfile: 'Dockerfile.rootless',
-        password: {
-          from_secret: 'docker_password',
-        },
-        repo: 'gitea/gitea',
-        tags: 'dev-linux-amd64-rootless',
-        username: {
-          from_secret: 'docker_username',
-        },
-      },
-      when: {
-        event: {
-          exclude: [
-            'pull_request',
-          ],
-        },
-      },
-    },
-  ],
-  trigger: {
-    event: {
-      exclude: [
-        'cron',
-      ],
-    },
-    ref: [
-      'refs/heads/main',
-    ],
-  },
-  type: 'docker',
-};
-
-local dockerLinuxamd64ReleaseBranch = {
-  depends_on: [
-    'testing-amd64',
-    'testing-arm64',
-  ],
-  kind: 'pipeline',
-  name: 'docker-linux-amd64-release-branch',
-  platform: {
-    arch: 'amd64',
-    os: 'linux',
-  },
-  steps: [
-    {
-      commands: [
-        'git config --global --add safe.directory /drone/src',
-        'git fetch --tags --force',
-      ],
-      image: 'docker:git',
-      name: 'fetch-tags',
-      pull: 'always',
-    },
-    {
-      image: 'techknowlogick/drone-docker:latest',
-      name: 'publish',
-      pull: 'always',
-      settings: {
-        auto_tag: false,
-        build_args: [
-          'GOPROXY=https://goproxy.io',
-        ],
-        password: {
-          from_secret: 'docker_password',
-        },
-        repo: 'gitea/gitea',
-        tags: '${DRONE_BRANCH##release/v}-dev-linux-amd64',
-        username: {
-          from_secret: 'docker_username',
-        },
-      },
-      when: {
-        event: {
-          exclude: [
-            'pull_request',
-          ],
-        },
-      },
-    },
-    {
-      image: 'techknowlogick/drone-docker:latest',
-      name: 'publish-rootless',
-      settings: {
-        auto_tag: false,
-        build_args: [
-          'GOPROXY=https://goproxy.io',
-        ],
-        dockerfile: 'Dockerfile.rootless',
-        password: {
-          from_secret: 'docker_password',
-        },
-        repo: 'gitea/gitea',
-        tags: '${DRONE_BRANCH##release/v}-dev-linux-amd64-rootless',
-        username: {
-          from_secret: 'docker_username',
-        },
-      },
-      when: {
-        event: {
-          exclude: [
-            'pull_request',
-          ],
-        },
-      },
-    },
-  ],
-  trigger: {
-    event: {
-      exclude: [
-        'cron',
-      ],
-    },
-    ref: [
-      'refs/heads/release/v*',
-    ],
-  },
-};
-
 local dockerLinuxarm64DryRun = {
   depends_on: [
     'compliance',
   ],
   kind: 'pipeline',
   name: 'docker-linux-arm64-dry-run',
-  platform: {
-    arch: 'arm64',
-    os: 'linux',
-  },
+  platform: platformARM,
   steps: [
     {
       environment: {
@@ -1473,266 +1285,6 @@ local dockerLinuxarm64DryRun = {
   type: 'docker',
 };
 
-local dockerLinuxarm64ReleaseVersion = {
-  depends_on: [
-    'testing-amd64',
-    'testing-arm64',
-  ],
-  kind: 'pipeline',
-  name: 'docker-linux-arm64-release-version',
-  platform: {
-    arch: 'arm64',
-    os: 'linux',
-  },
-  steps: [
-    {
-      commands: [
-        'git config --global --add safe.directory /drone/src',
-        'git fetch --tags --force',
-      ],
-      image: 'docker:git',
-      name: 'fetch-tags',
-      pull: 'always',
-    },
-    {
-      image: 'techknowlogick/drone-docker:latest',
-      name: 'publish',
-      pull: 'always',
-      settings: {
-        auto_tag: true,
-        auto_tag_suffix: 'linux-arm64',
-        build_args: [
-          'GOPROXY=https://goproxy.io',
-        ],
-        password: {
-          from_secret: 'docker_password',
-        },
-        repo: 'gitea/gitea',
-        username: {
-          from_secret: 'docker_username',
-        },
-      },
-      when: {
-        event: {
-          exclude: [
-            'pull_request',
-          ],
-        },
-      },
-    },
-    {
-      image: 'techknowlogick/drone-docker:latest',
-      name: 'publish-rootless',
-      settings: {
-        auto_tag: true,
-        auto_tag_suffix: 'linux-arm64-rootless',
-        build_args: [
-          'GOPROXY=https://goproxy.io',
-        ],
-        dockerfile: 'Dockerfile.rootless',
-        password: {
-          from_secret: 'docker_password',
-        },
-        repo: 'gitea/gitea',
-        username: {
-          from_secret: 'docker_username',
-        },
-      },
-      when: {
-        event: {
-          exclude: [
-            'pull_request',
-          ],
-        },
-      },
-    },
-  ],
-  trigger: {
-    event: {
-      exclude: [
-        'cron',
-      ],
-    },
-    ref: [
-      'refs/tags/**',
-    ],
-  },
-  type: 'docker',
-};
-
-local dockerLinuxarm64Release = {
-  depends_on: [
-    'testing-amd64',
-    'testing-arm64',
-  ],
-  kind: 'pipeline',
-  name: 'docker-linux-arm64-release',
-  platform: {
-    arch: 'arm64',
-    os: 'linux',
-  },
-  steps: [
-    {
-      commands: [
-        'git config --global --add safe.directory /drone/src',
-        'git fetch --tags --force',
-      ],
-      image: 'docker:git',
-      name: 'fetch-tags',
-      pull: 'always',
-    },
-    {
-      image: 'techknowlogick/drone-docker:latest',
-      name: 'publish',
-      pull: 'always',
-      settings: {
-        auto_tag: false,
-        build_args: [
-          'GOPROXY=https://goproxy.io',
-        ],
-        password: {
-          from_secret: 'docker_password',
-        },
-        repo: 'gitea/gitea',
-        tags: 'dev-linux-arm64',
-        username: {
-          from_secret: 'docker_username',
-        },
-      },
-      when: {
-        event: {
-          exclude: [
-            'pull_request',
-          ],
-        },
-      },
-    },
-    {
-      image: 'techknowlogick/drone-docker:latest',
-      name: 'publish-rootless',
-      settings: {
-        auto_tag: false,
-        build_args: [
-          'GOPROXY=https://goproxy.io',
-        ],
-        dockerfile: 'Dockerfile.rootless',
-        password: {
-          from_secret: 'docker_password',
-        },
-        repo: 'gitea/gitea',
-        tags: 'dev-linux-arm64-rootless',
-        username: {
-          from_secret: 'docker_username',
-        },
-      },
-      when: {
-        event: {
-          exclude: [
-            'pull_request',
-          ],
-        },
-      },
-    },
-  ],
-  trigger: {
-    event: {
-      exclude: [
-        'cron',
-      ],
-    },
-    ref: [
-      'refs/heads/main',
-    ],
-  },
-  type: 'docker',
-};
-
-local dockerLinuxarm64ReleaseBranch = {
-  depends_on: [
-    'testing-amd64',
-    'testing-arm64',
-  ],
-  kind: 'pipeline',
-  name: 'docker-linux-arm64-release-branch',
-  platform: {
-    arch: 'arm64',
-    os: 'linux',
-  },
-  steps: [
-    {
-      commands: [
-        'git config --global --add safe.directory /drone/src',
-        'git fetch --tags --force',
-      ],
-      image: 'docker:git',
-      name: 'fetch-tags',
-      pull: 'always',
-    },
-    {
-      image: 'techknowlogick/drone-docker:latest',
-      name: 'publish',
-      pull: 'always',
-      settings: {
-        auto_tag: false,
-        build_args: [
-          'GOPROXY=https://goproxy.io',
-        ],
-        password: {
-          from_secret: 'docker_password',
-        },
-        repo: 'gitea/gitea',
-        tags: '${DRONE_BRANCH##release/v}-dev-linux-arm64',
-        username: {
-          from_secret: 'docker_username',
-        },
-      },
-      when: {
-        event: {
-          exclude: [
-            'pull_request',
-          ],
-        },
-      },
-    },
-    {
-      image: 'techknowlogick/drone-docker:latest',
-      name: 'publish-rootless',
-      settings: {
-        auto_tag: false,
-        build_args: [
-          'GOPROXY=https://goproxy.io',
-        ],
-        dockerfile: 'Dockerfile.rootless',
-        password: {
-          from_secret: 'docker_password',
-        },
-        repo: 'gitea/gitea',
-        tags: '${DRONE_BRANCH##release/v}-dev-linux-arm64-rootless',
-        username: {
-          from_secret: 'docker_username',
-        },
-      },
-      when: {
-        event: {
-          exclude: [
-            'pull_request',
-          ],
-        },
-      },
-    },
-  ],
-  trigger: {
-    event: {
-      exclude: [
-        'cron',
-      ],
-    },
-    ref: [
-      'refs/heads/release/v*',
-    ],
-  },
-};
-
 local dockerManifestVersion = {
   depends_on: [
     'docker-linux-amd64-release-version',
@@ -1740,10 +1292,7 @@ local dockerManifestVersion = {
   ],
   kind: 'pipeline',
   name: 'docker-manifest-version',
-  platform: {
-    arch: 'amd64',
-    os: 'linux',
-  },
+  platform: platformAMD,
   steps: [
     {
       image: 'plugins/manifest',
@@ -1799,10 +1348,7 @@ local dockerManifest = {
   ],
   kind: 'pipeline',
   name: 'docker-manifest',
-  platform: {
-    arch: 'amd64',
-    os: 'linux',
-  },
+  platform: platformAMD,
   steps: [
     {
       image: 'plugins/manifest',
@@ -1871,10 +1417,7 @@ local notifications = {
   ],
   kind: 'pipeline',
   name: 'notifications',
-  platform: {
-    arch: 'arm64',
-    os: 'linux',
-  },
+  platform: platformARM,
   steps: [
     {
       image: 'appleboy/drone-discord:1.2.4',
@@ -1918,13 +1461,13 @@ local notifications = {
   releaseLatest,
   releaseVersion,
   docs,
-  dockerLinuxamd64ReleaseVersion,
-  dockerLinuxamd64Release,
-  dockerLinuxamd64ReleaseBranch,
+  dockerLinuxRelease('version', 'amd64'),
+  dockerLinuxRelease('', 'amd64'),
+  dockerLinuxRelease('branch', 'amd64'),
   dockerLinuxarm64DryRun,
-  dockerLinuxarm64ReleaseVersion,
-  dockerLinuxarm64Release,
-  dockerLinuxarm64ReleaseBranch,
+  dockerLinuxRelease('version', 'arm64'),
+  dockerLinuxRelease('', 'arm64'),
+  dockerLinuxRelease('branch', 'arm64'),
   dockerManifestVersion,
   dockerManifest,
   notifications,
