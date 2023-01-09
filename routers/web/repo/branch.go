@@ -120,7 +120,7 @@ func RestoreBranchPost(ctx *context.Context) {
 	branchID := ctx.FormInt64("branch_id")
 	branchName := ctx.FormString("name")
 
-	deletedBranch, err := git_model.GetDeletedBranchByID(ctx.Repo.Repository.ID, branchID)
+	deletedBranch, err := git_model.GetDeletedBranchByID(ctx, ctx.Repo.Repository.ID, branchID)
 	if err != nil {
 		log.Error("GetDeletedBranchByID: %v", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.restore_failed", branchName))
@@ -189,7 +189,7 @@ func loadBranches(ctx *context.Context, skip, limit int) (*Branch, []*Branch, in
 		return nil, nil, 0
 	}
 
-	protectedBranches, err := git_model.GetProtectedBranches(ctx.Repo.Repository.ID)
+	protectedBranches, err := git_model.GetProtectedBranches(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("GetProtectedBranches", err)
 		return nil, nil, 0
@@ -331,7 +331,7 @@ func loadOneBranch(ctx *context.Context, rawBranch, defaultBranch *git.Branch, p
 func getDeletedBranches(ctx *context.Context) ([]*Branch, error) {
 	branches := []*Branch{}
 
-	deletedBranches, err := git_model.GetDeletedBranches(ctx.Repo.Repository.ID)
+	deletedBranches, err := git_model.GetDeletedBranches(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		return branches, err
 	}

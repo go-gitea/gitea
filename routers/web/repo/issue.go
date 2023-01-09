@@ -1604,7 +1604,7 @@ func ViewIssue(ctx *context.Context) {
 				if perm.CanWrite(unit.TypeCode) {
 					// Check if branch is not protected
 					if pull.HeadBranch != pull.HeadRepo.DefaultBranch {
-						if protected, err := git_model.IsProtectedBranch(pull.HeadRepo.ID, pull.HeadBranch); err != nil {
+						if protected, err := git_model.IsProtectedBranch(ctx, pull.HeadRepo.ID, pull.HeadBranch); err != nil {
 							log.Error("IsProtectedBranch: %v", err)
 						} else if !protected {
 							canDelete = true
@@ -1688,7 +1688,7 @@ func ViewIssue(ctx *context.Context) {
 		if pull.ProtectedBranch != nil {
 			var showMergeInstructions bool
 			if ctx.Doer != nil {
-				showMergeInstructions = pull.ProtectedBranch.CanUserPush(ctx.Doer.ID)
+				showMergeInstructions = pull.ProtectedBranch.CanUserPush(ctx, ctx.Doer.ID)
 			}
 			ctx.Data["IsBlockedByApprovals"] = !issues_model.HasEnoughApprovals(ctx, pull.ProtectedBranch, pull)
 			ctx.Data["IsBlockedByRejection"] = issues_model.MergeBlockedByRejectedReview(ctx, pull.ProtectedBranch, pull)
