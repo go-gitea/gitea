@@ -387,9 +387,9 @@ func Appearance(ctx *context.Context) {
 	var myEditorNames string
 	for i, editor := range myDefaultEditors {
 		if i > 0 {
-			myEditorNames = myEditorNames + ","
+			myEditorNames += ","
 		}
-		myEditorNames = myEditorNames + editor.Name
+		myEditorNames += editor.Name
 	}
 
 	ctx.Data["DevEditors"] = editors
