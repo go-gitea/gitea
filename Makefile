@@ -240,9 +240,9 @@ node-check:
 	$(eval MIN_NODE_VERSION_STR := $(shell grep -Eo '"node":.*[0-9.]+"' package.json | sed -n 's/.*[^0-9.]\([0-9.]*\)"/\1/p'))
 	$(eval MIN_NODE_VERSION := $(shell printf "%03d%03d%03d" $(shell echo '$(MIN_NODE_VERSION_STR)' | tr '.' ' ')))
 	$(eval NODE_VERSION := $(shell printf "%03d%03d%03d" $(shell node -v | cut -c2- | tr '.' ' ');))
-	$(eval NPM_MISSING := $(shell hash npm > /dev/null 2>&1 || echo 1))
-	@if [ "$(NODE_VERSION)" -lt "$(MIN_NODE_VERSION)" -o "$(NPM_MISSING)" = "1" ]; then \
-		echo "Gitea requires Node.js $(MIN_NODE_VERSION_STR) or greater and npm to build. You can get it at https://nodejs.org/en/download/"; \
+	$(eval PNPM_MISSING := $(shell hash pnpm > /dev/null 2>&1 || echo 1))
+	@if [ "$(NODE_VERSION)" -lt "$(MIN_NODE_VERSION)" -o "$(PNPM_MISSING)" = "1" ]; then \
+		echo "Gitea requires Node.js $(MIN_NODE_VERSION_STR) or greater and pnpm to build. You can get it at https://nodejs.org/en/download/"; \
 		exit 1; \
 	fi
 
@@ -340,10 +340,10 @@ lint: lint-frontend lint-backend
 
 .PHONY: lint-frontend
 lint-frontend: node_modules
-	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js docs/assets/js tests/e2e
-	npx stylelint --color --max-warnings=0 web_src/less
-	npx spectral lint -q -F hint $(SWAGGER_SPEC)
-	npx markdownlint docs *.md
+	pnpm eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js docs/assets/js tests/e2e
+	pnpm stylelint --color --max-warnings=0 web_src/less
+	pnpm spectral lint -q -F hint $(SWAGGER_SPEC)
+	pnpm markdownlint docs *.md
 
 .PHONY: lint-backend
 lint-backend: golangci-lint vet editorconfig-checker
@@ -355,7 +355,7 @@ watch:
 .PHONY: watch-frontend
 watch-frontend: node-check node_modules
 	rm -rf $(WEBPACK_DEST_ENTRIES)
-	NODE_ENV=development npx webpack --watch --progress
+	NODE_ENV=development pnpm webpack --watch --progress
 
 .PHONY: watch-backend
 watch-backend: go-check
@@ -371,7 +371,7 @@ test-backend:
 
 .PHONY: test-frontend
 test-frontend: node_modules
-	npx vitest
+	pnpm vitest
 
 .PHONY: test-check
 test-check:
@@ -532,8 +532,8 @@ test-mssql-migration: migrations.mssql.test migrations.individual.mssql.test
 
 .PHONY: playwright
 playwright: $(PLAYWRIGHT_DIR)
-	npm install --no-save @playwright/test
-	npx playwright install $(PLAYWRIGHT_FLAGS)
+	pnpm install --no-save @playwright/test
+	pnpm playwright install $(PLAYWRIGHT_FLAGS)
 
 .PHONY: test-e2e%
 test-e2e%: TEST_TYPE ?= e2e
@@ -834,34 +834,34 @@ deps-backend:
 	$(GO) install $(GO_LICENSES_PACKAGE)
 	$(GO) install $(GOVULNCHECK_PACKAGE)
 
-node_modules: package-lock.json
-	npm install --no-save
+node_modules: pnpm-lock.yaml
+	pnpm install
 	@touch node_modules
 
 .PHONY: npm-update
 npm-update: node-check | node_modules
-	npx updates -cu
-	rm -rf node_modules package-lock.json
+	pnpm updates -cu
+	rm -rf node_modules pnpm-lock.yaml
 	npm install --package-lock
 	@touch node_modules
 
 .PHONY: fomantic
 fomantic:
 	rm -rf $(FOMANTIC_WORK_DIR)/build
-	cd $(FOMANTIC_WORK_DIR) && npm install --no-save
+	cd $(FOMANTIC_WORK_DIR) && pnpm install --no-save
 	cp -f $(FOMANTIC_WORK_DIR)/theme.config.less $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui/src/theme.config
 	cp -rf $(FOMANTIC_WORK_DIR)/_site $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui/src/
-	cd $(FOMANTIC_WORK_DIR) && npx gulp -f node_modules/fomantic-ui/gulpfile.js build
+	cd $(FOMANTIC_WORK_DIR) && pnpm gulp -f node_modules/fomantic-ui/gulpfile.js build
 	$(SED_INPLACE) -e 's/\r//g' $(FOMANTIC_WORK_DIR)/build/semantic.css $(FOMANTIC_WORK_DIR)/build/semantic.js
 	rm -f $(FOMANTIC_WORK_DIR)/build/*.min.*
 
 .PHONY: webpack
 webpack: $(WEBPACK_DEST)
 
-$(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) package-lock.json
+$(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) pnpm-lock.yaml
 	@$(MAKE) -s node-check node_modules
 	rm -rf $(WEBPACK_DEST_ENTRIES)
-	npx webpack
+	pnpm webpack
 	@touch $(WEBPACK_DEST)
 
 .PHONY: svg
@@ -881,11 +881,11 @@ svg-check: svg
 
 .PHONY: lockfile-check
 lockfile-check:
-	npm install --package-lock-only
-	@diff=$$(git diff package-lock.json); \
+	pnpm install --lockfile-only
+	@diff=$$(git diff pnpm-lock.yaml); \
 	if [ -n "$$diff" ]; then \
-		echo "package-lock.json is inconsistent with package.json"; \
-		echo "Please run 'npm install --package-lock-only' and commit the result:"; \
+		echo "pnpm-lock.yaml is inconsistent with package.json"; \
+		echo "Please run 'pnpm install --lockfile-only' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
 	fi
@@ -910,7 +910,7 @@ generate-gitignore:
 
 .PHONY: generate-images
 generate-images: | node_modules
-	npm install --no-save --no-package-lock fabric@5 imagemin-zopfli@7
+	pnpm install fabric@5 imagemin-zopfli@7
 	node build/generate-images.js $(TAGS)
 
 .PHONY: generate-manpage
