@@ -8,7 +8,7 @@
       <DiffFileTreeItem v-for="item in fileTree" :key="item.name" :item="item" />
     </div>
     <div v-if="isIncomplete" id="diff-too-many-files-stats" class="pt-2">
-      <span>{{ tooManyFilesMessage }}</span><a :class="['ui', 'basic', 'tiny', 'button', isLoadingNewData === true ? 'disabled' : '']" id="diff-show-more-files-stats" @click.stop="loadMoreData">{{ showMoreMessage }}</a>
+      <span class="mr-2">{{ tooManyFilesMessage }}</span><a :class="['ui', 'basic', 'tiny', 'button', isLoadingNewData === true ? 'disabled' : '']" id="diff-show-more-files-stats" @click.stop="loadMoreData">{{ showMoreMessage }}</a>
     </div>
   </div>
 </template>
