@@ -129,7 +129,7 @@
 									{{end}}
 								{{end}}
 								{{range .CloneEditors}}
-									<a class="item js-clone-url-editor" onerror="alert(1);" data-url="{{.URL | SafeURL}}" href="{{.RenderURL $.CloneButtonOriginLink.HTTPS}}">{{svg .Icon 16 "mr-3"}}{{$.locale.Tr "repo.clone_in_editor" .Name}}</a>
+									<a class="item js-clone-url-editor" data-url="{{.URL | SafeURL}}" href="{{.RenderURL $.CloneButtonOriginLink.HTTPS}}">{{svg .Icon 16 "mr-3"}}{{$.locale.Tr "repo.clone_in_editor" .Name}}</a>
 								{{end}}
 							</div>
 						</button>
