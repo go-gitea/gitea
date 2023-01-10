@@ -29,6 +29,7 @@ export default {
   },
   computed: {
     fileTree() {
+      pageData.diffFileInfo.files = this.files;
       const result = [];
       for (const file of this.files) {
         // Split file into directories
