@@ -74,7 +74,10 @@ func DefaultEditorsNames() string {
 
 func GetDefaultEditors() ([]*Editor, error) {
 	defaultNames, err := system.GetSetting(KeyDevDefaultEditors)
-	if err != nil && !system.IsErrSettingIsNotExist(err) {
+	if err != nil {
+		if system.IsErrSettingIsNotExist(err) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	names := strings.Split(defaultNames, ",")
@@ -95,17 +98,12 @@ func SetDefaultEditors(names []string) error {
 	})
 }
 
-type ErrUnknownEditor struct {
-	editorName string
-}
-
-func (e ErrUnknownEditor) Error() string {
-	return "Unknown editor: " + e.editorName
-}
-
 func GetUserDefaultEditors(userID int64) ([]*Editor, error) {
 	defaultNames, err := user_model.GetSetting(userID, KeyDevDefaultEditors)
 	if err != nil {
+		if user_model.IsErrUserSettingIsNotExist(err) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	names := strings.Split(defaultNames, ",")
@@ -131,10 +129,6 @@ func GetUserDefaultEditorsWithFallback(user *user_model.User) ([]*Editor, error)
 		return editor, nil
 	}
 
-	if theErr, ok := err.(ErrUnknownEditor); ok {
-		log.Error("Unknown editor for user %d: %s, fallback to system default", user.ID, theErr.editorName)
-		return GetDefaultEditors()
-	}
 	if user_model.IsErrUserSettingIsNotExist(err) {
 		return GetDefaultEditors()
 	}
