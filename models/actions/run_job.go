@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"golang.org/x/exp/slices"
 	"xorm.io/builder"
 )
 
@@ -108,7 +107,7 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 		return 0, err
 	}
 
-	if affected == 0 || (!slices.Contains(cols, "status") && job.Status == 0) {
+	if affected == 0 || (!util.IsStringInSlice("status", cols) && job.Status == 0) {
 		return affected, nil
 	}
 

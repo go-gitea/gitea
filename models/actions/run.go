@@ -18,7 +18,6 @@ import (
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/nektos/act/pkg/jobparser"
-	"golang.org/x/exp/slices"
 	"xorm.io/builder"
 )
 
@@ -230,7 +229,7 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 	}
 	_, err := sess.Update(run)
 
-	if run.Status != 0 || slices.Contains(cols, "status") {
+	if run.Status != 0 || util.IsStringInSlice("status", cols) {
 		if run.RepoID == 0 {
 			run, err = GetRunByID(ctx, run.ID)
 			if err != nil {
