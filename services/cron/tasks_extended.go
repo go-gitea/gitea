@@ -181,10 +181,12 @@ func registerGCLFS() {
 	}
 	type GCLFSConfig struct {
 		OlderThanConfig
-		LastUpdatedMoreThanAgo time.Duration
+		LastUpdatedMoreThanAgo   time.Duration
+		NumberToCheckPerRepo     int64
+		ProportionToCheckPerRepo float64
 	}
 
-	RegisterTaskFatal("delete_old_system_notices", &GCLFSConfig{
+	RegisterTaskFatal("gc_lfs", &GCLFSConfig{
 		OlderThanConfig: OlderThanConfig{
 			BaseConfig: BaseConfig{
 				Enabled:    false,
@@ -202,13 +204,15 @@ func registerGCLFS() {
 			OlderThan: 24 * time.Hour * 7,
 		},
 		// Only GC things that haven't been looked at in the past 3 days
-		LastUpdatedMoreThanAgo: 24 * time.Hour * 3,
+		LastUpdatedMoreThanAgo:   24 * time.Hour * 3,
+		NumberToCheckPerRepo:     100,
+		ProportionToCheckPerRepo: 0.6,
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		gcLFSConfig := config.(*GCLFSConfig)
 		return repo_service.GarbageCollectLFSMetaObjects(ctx, repo_service.GarbageCollectLFSMetaObjectsOptions{
-			AutoFix:                true,
-			OlderThan:              gcLFSConfig.OlderThan,
-			LastUpdatedMoreThanAgo: gcLFSConfig.LastUpdatedMoreThanAgo,
+			AutoFix:                 true,
+			OlderThan:               time.Now().Add(-gcLFSConfig.OlderThan),
+			UpdatedLessRecentlyThan: time.Now().Add(-gcLFSConfig.LastUpdatedMoreThanAgo),
 		})
 	})
 }

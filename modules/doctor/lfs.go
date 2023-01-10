@@ -41,7 +41,7 @@ func garbageCollectLFSCheck(ctx context.Context, logger log.Logger, autofix bool
 		//
 		// It is likely that a week is potentially excessive but it should definitely be enough that any
 		// unassociated LFS object is genuinely unassociated.
-		OlderThan: 24 * time.Hour * 7,
+		OlderThan: time.Now().Add(-24 * time.Hour * 7),
 		// We don't set the UpdatedLessRecentlyThan because we want to do a full GC
 	}); err != nil {
 		return err

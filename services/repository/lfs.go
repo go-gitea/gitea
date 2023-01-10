@@ -5,27 +5,26 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
-	"xorm.io/builder"
 )
 
 // GarbageCollectLFSMetaObjectsOptions provides options for GarbageCollectLFSMetaObjects function
 type GarbageCollectLFSMetaObjectsOptions struct {
-	RepoID                 int64
-	Logger                 log.Logger
-	AutoFix                bool
-	OlderThan              time.Duration
-	LastUpdatedMoreThanAgo time.Duration
+	Logger                   log.Logger
+	AutoFix                  bool
+	OlderThan                time.Time
+	UpdatedLessRecentlyThan  time.Time
+	NumberToCheckPerRepo     int64
+	ProportionToCheckPerRepo float64
 }
 
 // GarbageCollectLFSMetaObjects garbage collects LFS objects for all repositories
@@ -40,21 +39,17 @@ func GarbageCollectLFSMetaObjects(ctx context.Context, opts GarbageCollectLFSMet
 		return nil
 	}
 
-	if opts.RepoID == 0 {
-		repo, err := repo_model.GetRepositoryByID(ctx, opts.RepoID)
+	return git_model.IterateRepositoryIDsWithLFSMetaObjects(ctx, func(ctx context.Context, repoID, count int64) error {
+		repo, err := repo_model.GetRepositoryByID(ctx, repoID)
 		if err != nil {
 			return err
 		}
-		return GarbageCollectLFSMetaObjectsForRepo(ctx, repo, opts)
-	}
 
-	return db.Iterate(
-		ctx,
-		builder.And(builder.Gt{"id": 0}),
-		func(ctx context.Context, repo *repo_model.Repository) error {
-			return GarbageCollectLFSMetaObjectsForRepo(ctx, repo, opts)
-		},
-	)
+		if newMinimum := int64(float64(count) * opts.ProportionToCheckPerRepo); newMinimum > opts.NumberToCheckPerRepo && opts.NumberToCheckPerRepo != 0 {
+			opts.NumberToCheckPerRepo = newMinimum
+		}
+		return GarbageCollectLFSMetaObjectsForRepo(ctx, repo, opts)
+	})
 }
 
 // GarbageCollectLFSMetaObjectsForRepo garbage collects LFS objects for a specific repository
@@ -62,7 +57,7 @@ func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.R
 	if opts.Logger != nil {
 		opts.Logger.Info("Checking %-v", repo)
 	}
-	total, orphaned, collected, deleted := 0, 0, 0, 0
+	total, orphaned, collected, deleted := int64(0), 0, 0, 0
 	if opts.Logger != nil {
 		defer func() {
 			if orphaned == 0 {
@@ -83,18 +78,12 @@ func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.R
 	defer gitRepo.Close()
 
 	store := lfs.NewContentStore()
+	errStop := errors.New("STOPERR")
 
-	var olderThan time.Time
-	var updatedLessRecentlyThan time.Time
-
-	if opts.OlderThan > 0 {
-		olderThan = time.Now().Add(opts.OlderThan)
-	}
-	if opts.LastUpdatedMoreThanAgo > 0 {
-		updatedLessRecentlyThan = time.Now().Add(opts.LastUpdatedMoreThanAgo)
-	}
-
-	return git_model.IterateLFSMetaObjectsForRepo(ctx, repo.ID, func(ctx context.Context, metaObject *git_model.LFSMetaObject, count int64) error {
+	err = git_model.IterateLFSMetaObjectsForRepo(ctx, repo.ID, func(ctx context.Context, metaObject *git_model.LFSMetaObject, count int64) error {
+		if opts.NumberToCheckPerRepo > 0 && total > opts.NumberToCheckPerRepo {
+			return errStop
+		}
 		total++
 		pointerSha := git.ComputeBlobHash([]byte(metaObject.Pointer.StringContent()))
 
@@ -133,7 +122,19 @@ func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.R
 		//
 		// It is likely that a week is potentially excessive but it should definitely be enough that any
 		// unassociated LFS object is genuinely unassociated.
-		OlderThan:               olderThan,
-		UpdatedLessRecentlyThan: updatedLessRecentlyThan,
+		OlderThan:                 opts.OlderThan,
+		UpdatedLessRecentlyThan:   opts.UpdatedLessRecentlyThan,
+		OrderByUpdated:            true,
+		LoopFunctionAlwaysUpdates: true,
 	})
+
+	if err == errStop {
+		if opts.Logger != nil {
+			opts.Logger.Info("Processing stopped at %d total LFSMetaObjects in %-v", total, repo)
+		}
+		return nil
+	} else if err != nil {
+		return err
+	}
+	return nil
 }
