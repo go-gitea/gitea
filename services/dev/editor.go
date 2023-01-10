@@ -37,7 +37,7 @@ var defaultEditors = []Editor{
 	},
 	{
 		Name: "IDEA",
-		URL:  "jetbrains://idea/checkout/git?idea.required.plugins.id=Git4Idea&checkout.repo=${repo-url}",
+		URL:  "jetbrains://idea/checkout/git?idea.required.plugins.id=Git4Idea&checkout.repo=${repo_url}",
 		Icon: `gitea-idea`,
 	},
 }
