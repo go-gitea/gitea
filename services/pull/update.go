@@ -124,7 +124,7 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 	}
 
 	// Update function need push permission
-	if pr.ProtectedBranch != nil && !pr.ProtectedBranch.CanUserPush(user.ID) {
+	if pr.ProtectedBranch != nil && !pr.ProtectedBranch.CanUserPush(ctx, user.ID) {
 		return false, false, nil
 	}
 
