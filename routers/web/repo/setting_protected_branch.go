@@ -115,7 +115,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	c.Data["whitelist_users"] = strings.Join(base.Int64sToStrings(rule.WhitelistUserIDs), ",")
 	c.Data["merge_whitelist_users"] = strings.Join(base.Int64sToStrings(rule.MergeWhitelistUserIDs), ",")
 	c.Data["approvals_whitelist_users"] = strings.Join(base.Int64sToStrings(rule.ApprovalsWhitelistUserIDs), ",")
-	contexts, _ := git_model.FindRepoRecentCommitStatusContexts(c.Repo.Repository.ID, 7*24*time.Hour) // Find last week status check contexts
+	contexts, _ := git_model.FindRepoRecentCommitStatusContexts(c, c.Repo.Repository.ID, 7*24*time.Hour) // Find last week status check contexts
 	for _, ctx := range rule.StatusCheckContexts {
 		var found bool
 		for i := range contexts {
@@ -301,7 +301,7 @@ func DeleteProtectedBranchRulePost(ctx *context.Context) {
 		return
 	}
 
-	if err := git_model.DeleteProtectedBranch(ctx.Repo.Repository.ID, ruleID); err != nil {
+	if err := git_model.DeleteProtectedBranch(ctx, ctx.Repo.Repository.ID, ruleID); err != nil {
 		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", rule.RuleName))
 		ctx.JSON(http.StatusOK, map[string]interface{}{
 			"redirect": fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink),

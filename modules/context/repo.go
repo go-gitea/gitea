@@ -832,7 +832,7 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 		if len(ref) == 0 {
 			// maybe it's a renamed branch
 			return getRefNameFromPath(ctx, path, func(s string) bool {
-				b, exist, err := git_model.FindRenamedBranch(ctx.Repo.Repository.ID, s)
+				b, exist, err := git_model.FindRenamedBranch(ctx, ctx.Repo.Repository.ID, s)
 				if err != nil {
 					log.Error("FindRenamedBranch", err)
 					return false

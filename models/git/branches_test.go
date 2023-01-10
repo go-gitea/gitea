@@ -20,15 +20,15 @@ func TestAddDeletedBranch(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	firstBranch := unittest.AssertExistsAndLoadBean(t, &git_model.DeletedBranch{ID: 1})
 
-	assert.Error(t, git_model.AddDeletedBranch(repo.ID, firstBranch.Name, firstBranch.Commit, firstBranch.DeletedByID))
-	assert.NoError(t, git_model.AddDeletedBranch(repo.ID, "test", "5655464564554545466464656", int64(1)))
+	assert.Error(t, git_model.AddDeletedBranch(db.DefaultContext, repo.ID, firstBranch.Name, firstBranch.Commit, firstBranch.DeletedByID))
+	assert.NoError(t, git_model.AddDeletedBranch(db.DefaultContext, repo.ID, "test", "5655464564554545466464656", int64(1)))
 }
 
 func TestGetDeletedBranches(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	branches, err := git_model.GetDeletedBranches(repo.ID)
+	branches, err := git_model.GetDeletedBranches(db.DefaultContext, repo.ID)
 	assert.NoError(t, err)
 	assert.Len(t, branches, 2)
 }
@@ -65,7 +65,7 @@ func TestRemoveDeletedBranch(t *testing.T) {
 
 	firstBranch := unittest.AssertExistsAndLoadBean(t, &git_model.DeletedBranch{ID: 1})
 
-	err := git_model.RemoveDeletedBranchByID(repo.ID, 1)
+	err := git_model.RemoveDeletedBranchByID(db.DefaultContext, repo.ID, 1)
 	assert.NoError(t, err)
 	unittest.AssertNotExistsBean(t, firstBranch)
 	unittest.AssertExistsAndLoadBean(t, &git_model.DeletedBranch{ID: 2})
@@ -74,7 +74,7 @@ func TestRemoveDeletedBranch(t *testing.T) {
 func getDeletedBranch(t *testing.T, branch *git_model.DeletedBranch) *git_model.DeletedBranch {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	deletedBranch, err := git_model.GetDeletedBranchByID(repo.ID, branch.ID)
+	deletedBranch, err := git_model.GetDeletedBranchByID(db.DefaultContext, repo.ID, branch.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, branch.ID, deletedBranch.ID)
 	assert.Equal(t, branch.Name, deletedBranch.Name)
@@ -86,12 +86,12 @@ func getDeletedBranch(t *testing.T, branch *git_model.DeletedBranch) *git_model.
 
 func TestFindRenamedBranch(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	branch, exist, err := git_model.FindRenamedBranch(1, "dev")
+	branch, exist, err := git_model.FindRenamedBranch(db.DefaultContext, 1, "dev")
 	assert.NoError(t, err)
 	assert.Equal(t, true, exist)
 	assert.Equal(t, "master", branch.To)
 
-	_, exist, err = git_model.FindRenamedBranch(1, "unknow")
+	_, exist, err = git_model.FindRenamedBranch(db.DefaultContext, 1, "unknow")
 	assert.NoError(t, err)
 	assert.Equal(t, false, exist)
 }
@@ -110,7 +110,7 @@ func TestRenameBranch(t *testing.T) {
 	}, git_model.WhitelistOptions{}))
 	assert.NoError(t, committer.Commit())
 
-	assert.NoError(t, git_model.RenameBranch(repo1, "master", "main", func(isDefault bool) error {
+	assert.NoError(t, git_model.RenameBranch(db.DefaultContext, repo1, "master", "main", func(isDefault bool) error {
 		_isDefault = isDefault
 		return nil
 	}))
@@ -144,7 +144,7 @@ func TestOnlyGetDeletedBranchOnCorrectRepo(t *testing.T) {
 	// is actually on repo with ID 1.
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 
-	deletedBranch, err := git_model.GetDeletedBranchByID(repo2.ID, 1)
+	deletedBranch, err := git_model.GetDeletedBranchByID(db.DefaultContext, repo2.ID, 1)
 
 	// Expect no error, and the returned branch is nil.
 	assert.NoError(t, err)
@@ -154,7 +154,7 @@ func TestOnlyGetDeletedBranchOnCorrectRepo(t *testing.T) {
 	// This should return the deletedBranch.
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	deletedBranch, err = git_model.GetDeletedBranchByID(repo1.ID, 1)
+	deletedBranch, err = git_model.GetDeletedBranchByID(db.DefaultContext, repo1.ID, 1)
 
 	// Expect no error, and the returned branch to be not nil.
 	assert.NoError(t, err)

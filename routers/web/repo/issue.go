@@ -1604,7 +1604,7 @@ func ViewIssue(ctx *context.Context) {
 				if perm.CanWrite(unit.TypeCode) {
 					// Check if branch is not protected
 					if pull.HeadBranch != pull.HeadRepo.DefaultBranch {
-						if protected, err := git_model.IsBranchProtected(pull.HeadRepo.ID, pull.HeadBranch); err != nil {
+						if protected, err := git_model.IsBranchProtected(ctx, pull.HeadRepo.ID, pull.HeadBranch); err != nil {
 							log.Error("IsProtectedBranch: %v", err)
 						} else if !protected {
 							canDelete = true

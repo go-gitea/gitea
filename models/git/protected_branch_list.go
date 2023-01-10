@@ -77,8 +77,8 @@ func GetFirstMatchProtectedBranchRule(ctx context.Context, repoID int64, branchN
 }
 
 // IsBranchProtected checks if branch is protected
-func IsBranchProtected(repoID int64, branchName string) (bool, error) {
-	rule, err := GetFirstMatchProtectedBranchRule(db.DefaultContext, repoID, branchName)
+func IsBranchProtected(ctx context.Context, repoID int64, branchName string) (bool, error) {
+	rule, err := GetFirstMatchProtectedBranchRule(ctx, repoID, branchName)
 	if err != nil {
 		return false, err
 	}

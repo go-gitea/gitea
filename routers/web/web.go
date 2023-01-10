@@ -634,7 +634,7 @@ func RegisterRoutes(m *web.Route) {
 			http.ServeFile(ctx.Resp, ctx.Req, path.Join(setting.StaticRootPath, "public/img/favicon.png"))
 		})
 		m.Group("/{username}", func() {
-			m.Get(".png", func(ctx *context.Context) { ctx.Error(http.StatusNotFound) })
+			m.Get(".png", user.AvatarByUserName)
 			m.Get(".keys", user.ShowSSHKeys)
 			m.Get(".gpg", user.ShowGPGKeys)
 			m.Get(".rss", feedEnabled, feed.ShowUserFeedRSS)

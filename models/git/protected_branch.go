@@ -444,13 +444,13 @@ func updateTeamWhitelist(ctx context.Context, repo *repo_model.Repository, curre
 }
 
 // DeleteProtectedBranch removes ProtectedBranch relation between the user and repository.
-func DeleteProtectedBranch(repoID, id int64) (err error) {
+func DeleteProtectedBranch(ctx context.Context, repoID, id int64) (err error) {
 	protectedBranch := &ProtectedBranch{
 		RepoID: repoID,
 		ID:     id,
 	}
 
-	if affected, err := db.GetEngine(db.DefaultContext).Delete(protectedBranch); err != nil {
+	if affected, err := db.GetEngine(ctx).Delete(protectedBranch); err != nil {
 		return err
 	} else if affected != 1 {
 		return fmt.Errorf("delete protected branch ID(%v) failed", id)
