@@ -188,11 +188,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["EnableXORMLog"] = setting.EnableXORMLog
 	ctx.Data["LogSQL"] = setting.Database.LogSQL
 
-	editors, err := dev.GetEditors()
-	if err != nil {
-		ctx.ServerError("system_model.GetAllSettings", err)
-		return
-	}
+	editors := dev.GetEditors()
 
 	defaultEditorS := systemSettings.Get(dev.KeyDevDefaultEditors)
 	if defaultEditorS.SettingValue == "" {

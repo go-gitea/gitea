@@ -376,11 +376,7 @@ func Appearance(ctx *context.Context) {
 		return forms.IsUserHiddenCommentTypeGroupChecked(commentTypeGroup, hiddenCommentTypes)
 	}
 
-	editors, err := dev.GetEditors()
-	if err != nil {
-		ctx.ServerError("dev.GetEditors", err)
-		return
-	}
+	editors := dev.GetEditors()
 
 	myDefaultEditors, err := dev.GetUserDefaultEditorsWithFallback(ctx.Doer)
 	if err != nil {

@@ -64,8 +64,8 @@ func GetEditorsByNames(names []string) []*Editor {
 }
 
 // GetEditors returns all editors
-func GetEditors() ([]Editor, error) {
-	return defaultEditors, nil
+func GetEditors() []Editor {
+	return defaultEditors
 }
 
 func DefaultEditorsNames() string {
