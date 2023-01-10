@@ -4,7 +4,7 @@
 		{{.locale.Tr "actions.runners.runner_title"}} {{template "shared/actions/runner_id" .Runner.ID}} {{.Runner.Name}}
 	</h4>
 	<div class="ui attached segment">
-		<form class="ui form" action="{{.Link}}" method="post">
+		<form class="ui form" method="post">
 			{{template "base/disable_form_autofill"}}
 			{{.CsrfTokenHtml}}
 			<div class="runner-basic-info">
@@ -45,8 +45,8 @@
 			<div class="ui divider"></div>
 
 			<div class="field">
-				<button type="submit" class="ui green button">{{.locale.Tr "actions.runners.update_runner"}}</button>
-				<button type="button" class="ui red button delete-button show-modal" data-modal="#runner-delete-modal">
+				<button class="ui green button" data-url="{{.Link}}">{{.locale.Tr "actions.runners.update_runner"}}</button>
+				<button class="ui red button delete-button show-modal" data-url="{{.Link}}/delete" data-modal="#runner-delete-modal">
 					{{.locale.Tr "actions.runners.delete_runner"}}</button>
 			</div>
 		</form>
@@ -89,22 +89,14 @@
 		</table>
 		{{template "base/paginate" .}}
 	</div>
-	<div class="ui small modal" id="runner-delete-modal">
-		<div class="header">
+	<div class="ui small basic delete modal" id="runner-delete-modal">
+		<div class="ui icon header">
+			{{svg "octicon-trash"}}
 			{{.locale.Tr "actions.runners.delete_runner_header"}}
 		</div>
 		<div class="content">
-			<div class="ui warning message text left">
-				{{.locale.Tr "actions.runners.delete_runner_notice" | Safe}}
-			</div>
-			<form class="ui form" action="{{.Link}}/delete" method="post">
-				{{.CsrfTokenHtml}}
-				<input type="hidden" name="action" value="delete">
-				<div class="text right actions">
-					<div class="ui cancel button">{{.locale.Tr "settings.cancel"}}</div>
-					<button class="ui red button">{{.locale.Tr "actions.runners.delete_runner_confirm"}}</button>
-				</div>
-			</form>
+			<p>{{.locale.Tr "actions.runners.delete_runner_notice" | Safe}}</p>
 		</div>
+		{{template "base/delete_modal_actions" .}}
 	</div>
 </div>

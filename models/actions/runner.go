@@ -236,9 +236,12 @@ func UpdateRunner(ctx context.Context, r *ActionRunner, cols ...string) error {
 }
 
 // DeleteRunner deletes a runner by given ID.
-func DeleteRunner(ctx context.Context, r *ActionRunner) error {
-	e := db.GetEngine(ctx)
-	_, err := e.Delete(r)
+func DeleteRunner(ctx context.Context, id int64) error {
+	if _, err := GetRunnerByID(ctx, id); err != nil {
+		return err
+	}
+
+	_, err := db.GetEngine(ctx).Delete(&ActionRunner{ID: id})
 	return err
 }
 

@@ -162,25 +162,23 @@ func RunnerResetRegistrationToken(ctx *context.Context, ownerID, repoID int64, r
 func RunnerDeletePost(ctx *context.Context, runnerID int64,
 	successRedirectTo, failedRedirectTo string,
 ) {
-	runner, err := actions_model.GetRunnerByID(ctx, runnerID)
-	if err != nil {
-		log.Warn("DeleteRunnerPost.GetRunnerByID failed: %v, url: %s", err, ctx.Req.URL)
-		ctx.ServerError("DeleteRunnerPost.GetRunnerByID", err)
-		return
-	}
-
-	err = actions_model.DeleteRunner(ctx, runner)
-	if err != nil {
+	if err := actions_model.DeleteRunner(ctx, runnerID); err != nil {
 		log.Warn("DeleteRunnerPost.UpdateRunner failed: %v, url: %s", err, ctx.Req.URL)
-		ctx.Flash.Warning(ctx.Tr("runners.delete_runner_failed"))
-		ctx.Redirect(failedRedirectTo)
+		ctx.Flash.Warning(ctx.Tr("actions.runners.delete_runner_failed"))
+
+		ctx.JSON(http.StatusOK, map[string]interface{}{
+			"redirect": failedRedirectTo,
+		})
 		return
 	}
 
 	log.Info("DeleteRunnerPost success: %s", ctx.Req.URL)
 
-	ctx.Flash.Success(ctx.Tr("runners.delete_runner_success"))
-	ctx.Redirect(successRedirectTo)
+	ctx.Flash.Success(ctx.Tr("actions.runners.delete_runner_success"))
+
+	ctx.JSON(http.StatusOK, map[string]interface{}{
+		"redirect": successRedirectTo,
+	})
 }
 
 func splitLabels(s string) []string {
