@@ -382,14 +382,22 @@ func Appearance(ctx *context.Context) {
 		return
 	}
 
-	myDefaultEditor, err := dev.GetUserDefaultEditorWithFallback(ctx.Doer)
+	myDefaultEditors, err := dev.GetUserDefaultEditorsWithFallback(ctx.Doer)
 	if err != nil {
 		ctx.ServerError("dev.GetEditors", err)
 		return
 	}
 
+	var myEditorNames string
+	for i, editor := range myDefaultEditors {
+		if i > 0 {
+			myEditorNames = myEditorNames + ","
+		}
+		myEditorNames = myEditorNames + editor.Name
+	}
+
 	ctx.Data["DevEditors"] = editors
-	ctx.Data["DevDefaultEditor"] = myDefaultEditor
+	ctx.Data["DevDefaultEditorNames"] = myEditorNames
 
 	ctx.HTML(http.StatusOK, tplSettingsAppearance)
 }

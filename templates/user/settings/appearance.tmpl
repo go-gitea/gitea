@@ -74,18 +74,17 @@
 			{{.locale.Tr "admin.config.dev_config"}}
 		</h4>
 		<div class="ui attached segment">
-			<div class="ui email list">
+			<div class="ui list">
 				<div class="item">
-					{{$.locale.Tr "admin.config.dev_default_editor"}}
+					{{$.locale.Tr "admin.config.dev_default_editors"}}
 				</div>
 				<div class="field">
-					<div class="ui floatting selection dropdown">
-						<input type="hidden" name="dev.default_editor" version="{{$.DevDefaultEditorVersion}}">
+					<div class="ui floating selection dropdown multiple">
+						<input type="hidden" name="dev.default_editors" value="{{$.DevDefaultEditorNames}}" version="{{$.DevDefaultEditorVersion}}">
 						<div class="default text">
-							{{svg $.DevDefaultEditor.Icon 14}}
-							{{$.DevDefaultEditor.Name}} - {{$.DevDefaultEditor.URL}}
+							{{$.locale.Tr "admin.config.dev_default_editors_desc"}}
 						</div>
-						<div class="menu floatting">
+						<div class="menu floating">
 							{{range .DevEditors}}
 								<div class="item" data-value="{{.Name}}">
 									{{svg .Icon 14}}

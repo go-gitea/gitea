@@ -588,12 +588,12 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	}
 	ctx.Data["CloneButtonShowHTTPS"] = cloneButtonShowHTTPS
 	ctx.Data["CloneButtonShowSSH"] = cloneButtonShowSSH
-	editor, err := dev.GetUserDefaultEditorWithFallback(ctx.Doer)
+	editors, err := dev.GetUserDefaultEditorsWithFallback(ctx.Doer)
 	if err != nil {
 		ctx.ServerError("dev.GetDefaultEditor", err)
 		return
 	}
-	ctx.Data["CloneEditor"] = editor
+	ctx.Data["CloneEditors"] = editors
 	ctx.Data["CloneButtonOriginLink"] = ctx.Data["RepoCloneLink"] // it may be rewritten to the WikiCloneLink by the router middleware
 
 	ctx.Data["RepoSearchEnabled"] = setting.Indexer.RepoIndexerEnabled

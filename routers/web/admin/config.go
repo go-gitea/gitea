@@ -194,16 +194,17 @@ func Config(ctx *context.Context) {
 		return
 	}
 
-	defaultEditorS := systemSettings.Get(dev.KeyDevDefaultEditor)
+	defaultEditorS := systemSettings.Get(dev.KeyDevDefaultEditors)
 	if defaultEditorS.SettingValue == "" {
 		defaultEditorS = system_model.Setting{
-			SettingKey:   dev.KeyDevDefaultEditor,
-			SettingValue: dev.DefaultEditorName(),
+			SettingKey:   dev.KeyDevDefaultEditors,
+			SettingValue: dev.DefaultEditorsNames(),
 		}
 	}
 
 	ctx.Data["DevEditors"] = editors
-	ctx.Data["DevDefaultEditor"] = dev.GetEditorByName(defaultEditorS.SettingValue)
+	ctx.Data["DevDefaultEditorNames"] = defaultEditorS.SettingValue
+	ctx.Data["DevDefaultEditorVersion"] = defaultEditorS.Version
 
 	ctx.HTML(http.StatusOK, tplConfig)
 }

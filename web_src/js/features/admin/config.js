@@ -39,14 +39,13 @@ export function initAdminConfigs() {
     onChange: (_text, _value, $choice) => {
       const $this = $choice.parent().parent();
       const input = $this.find('input');
-      console.info($this, input);
       $.ajax({
         url: `${appSubUrl}/admin/config`,
         type: 'POST',
         data: {
           _csrf: csrfToken,
           key: input.attr('name'),
-          value: input.attr('value'),
+          value: _text,
           version: input.attr('version'),
         }
       }).done((resp) => {

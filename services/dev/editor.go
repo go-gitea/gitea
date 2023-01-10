@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-const KeyDevDefaultEditor = "dev.default_editor"
+const KeyDevDefaultEditors = "dev.default_editors"
 
 type Editor struct {
 	Name string
@@ -35,6 +35,11 @@ var defaultEditors = []Editor{
 		URL:  "vscodium://vscode.git/clone?url=${repo_url}",
 		Icon: `gitea-vscodium`,
 	},
+	{
+		Name: "IDEA",
+		URL:  "jetbrains://idea/checkout/git?idea.required.plugins.id=Git4Idea&checkout.repo=${repo-url}",
+		Icon: `gitea-idea`,
+	},
 }
 
 func GetEditorByName(name string) *Editor {
@@ -46,38 +51,48 @@ func GetEditorByName(name string) *Editor {
 	return nil
 }
 
+func GetEditorsByNames(names []string) []*Editor {
+	editors := make([]*Editor, 0, len(names))
+	for _, name := range names {
+		if editor := GetEditorByName(name); editor != nil {
+			editors = append(editors, editor)
+		} else {
+			log.Error("Unknown editor: %s", name)
+		}
+	}
+	return editors
+}
+
 // GetEditors returns all editors
 func GetEditors() ([]Editor, error) {
 	return defaultEditors, nil
 }
 
-func DefaultEditorName() string {
+func DefaultEditorsNames() string {
 	return defaultEditors[0].Name
 }
 
-func GetDefaultEditor() (*Editor, error) {
-	defaultName, err := system.GetSetting(KeyDevDefaultEditor)
+func GetDefaultEditors() ([]*Editor, error) {
+	defaultNames, err := system.GetSetting(KeyDevDefaultEditors)
 	if err != nil && !system.IsErrSettingIsNotExist(err) {
 		return nil, err
 	}
-	for _, editor := range defaultEditors {
-		if editor.Name == defaultName {
-			return &editor, nil
-		}
-	}
-	return &defaultEditors[0], nil
+	names := strings.Split(defaultNames, ",")
+	return GetEditorsByNames(names), nil
 }
 
-func SetDefaultEditor(name string) error {
-	for _, editor := range defaultEditors {
-		if editor.Name == name {
-			return system.SetSetting(&system.Setting{
-				SettingKey:   KeyDevDefaultEditor,
-				SettingValue: name,
-			})
+func SetDefaultEditors(names []string) error {
+	var validateNames []string
+	for _, name := range names {
+		if editor := GetEditorByName(name); editor != nil {
+			validateNames = append(validateNames, name)
 		}
 	}
-	return nil
+
+	return system.SetSetting(&system.Setting{
+		SettingKey:   KeyDevDefaultEditors,
+		SettingValue: strings.Join(validateNames, ","),
+	})
 }
 
 type ErrUnknownEditor struct {
@@ -88,38 +103,40 @@ func (e ErrUnknownEditor) Error() string {
 	return "Unknown editor: " + e.editorName
 }
 
-func GetUserDefaultEditor(userID int64) (*Editor, error) {
-	defaultName, err := user_model.GetSetting(userID, KeyDevDefaultEditor)
+func GetUserDefaultEditors(userID int64) ([]*Editor, error) {
+	defaultNames, err := user_model.GetSetting(userID, KeyDevDefaultEditors)
 	if err != nil {
 		return nil, err
 	}
-	for _, editor := range defaultEditors {
-		if editor.Name == defaultName {
-			return &editor, nil
+	names := strings.Split(defaultNames, ",")
+	return GetEditorsByNames(names), nil
+}
+
+func SetUserDefaultEditors(userID int64, names []string) error {
+	var validateNames []string
+	for _, name := range names {
+		if editor := GetEditorByName(name); editor != nil {
+			validateNames = append(validateNames, name)
 		}
 	}
-	return nil, ErrUnknownEditor{defaultName}
+	return user_model.SetUserSetting(userID, KeyDevDefaultEditors, strings.Join(validateNames, ","))
 }
 
-func SetUserDefaultEditor(userID int64, name string) error {
-	return user_model.SetUserSetting(userID, KeyDevDefaultEditor, name)
-}
-
-func GetUserDefaultEditorWithFallback(user *user_model.User) (*Editor, error) {
+func GetUserDefaultEditorsWithFallback(user *user_model.User) ([]*Editor, error) {
 	if user == nil || user.ID <= 0 {
-		return GetDefaultEditor()
+		return GetDefaultEditors()
 	}
-	editor, err := GetUserDefaultEditor(user.ID)
+	editor, err := GetUserDefaultEditors(user.ID)
 	if err == nil {
 		return editor, nil
 	}
 
 	if theErr, ok := err.(ErrUnknownEditor); ok {
 		log.Error("Unknown editor for user %d: %s, fallback to system default", user.ID, theErr.editorName)
-		return GetDefaultEditor()
+		return GetDefaultEditors()
 	}
 	if user_model.IsErrUserSettingIsNotExist(err) {
-		return GetDefaultEditor()
+		return GetDefaultEditors()
 	}
 	return nil, err
 }

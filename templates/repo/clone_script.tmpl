@@ -23,8 +23,8 @@
 		}
 		for (const el of document.getElementsByClassName('js-clone-url-editor')) {
 			let repo_url = encodeURIComponent(link);
-			console.info(el, el.getAttribute('data-url'), repo_url);
-			el['href'] = el.getAttribute('data-url');
+			let data_url = decodeURI(el.getAttribute('data-url'))
+			el['href'] = data_url.replaceAll('${repo_url}', repo_url);
 		}
 	})();
 </script>
