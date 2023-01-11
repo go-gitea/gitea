@@ -55,7 +55,7 @@
             </div>
 
             <!-- the log elements could be a lot, do not use v-if to destroy/reconstruct the DOM -->
-            <div class="job-step-logs" ref="elJobStepLogs" v-show="currentJobStepsStates[i].expanded"/>
+            <div class="job-step-logs" ref="logs" v-show="currentJobStepsStates[i].expanded"/>
           </div>
         </div>
       </div>
@@ -107,12 +107,12 @@ const sfc = {
   methods: {
     // get the active container element, either the `job-step-logs` or the `job-log-list` in the `job-log-group`
     getLogsContainer(idx) {
-      const el = this.$refs.elJobStepLogs[idx];
+      const el = this.$refs.logs[idx];
       return el.logsContainer ?? el;
     },
     // begin a log group
     beginLogGroup(idx) {
-      const el = this.$refs.elJobStepLogs[idx];
+      const el = this.$refs.logs[idx];
 
       const elJobLogGroup = document.createElement('div');
       elJobLogGroup.classList.add('job-log-group');
@@ -129,7 +129,7 @@ const sfc = {
     },
     // end a log group
     endLogGroup(idx) {
-      const el = this.$refs.elJobStepLogs[idx];
+      const el = this.$refs.logs[idx];
       el.logsContainer = null;
     },
 
