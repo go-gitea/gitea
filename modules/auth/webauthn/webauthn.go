@@ -22,7 +22,7 @@ var WebAuthn *webauthn.WebAuthn
 func Init() {
 	gob.Register(&webauthn.SessionData{})
 
-	appURL, _ := protocol.FullyQualifiedOrigin(string(setting.AppURL))
+	appURL, _ := protocol.FullyQualifiedOrigin(setting.AppURL)
 
 	WebAuthn = &webauthn.WebAuthn{
 		Config: &webauthn.Config{
