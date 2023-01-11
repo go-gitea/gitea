@@ -65,7 +65,7 @@ func InitTest(requireGitea bool) {
 		log.Fatal("git.InitOnceWithSync: %v", err)
 	}
 
-	setting.InitDBConfig()
+	setting.ParseDBSetting()
 	if err := storage.Init(); err != nil {
 		fmt.Printf("Init storage failed: %v", err)
 		os.Exit(1)

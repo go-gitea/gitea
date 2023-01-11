@@ -45,9 +45,8 @@ func (w *wrappedLevelLogger) Log(skip int, level log.Level, format string, v ...
 
 func initDBDisableConsole(ctx context.Context, disableConsole bool) error {
 	setting.LoadFromExisting()
-	setting.InitDBConfig()
-
-	setting.NewXORMLogService(disableConsole)
+	setting.ParseDBSetting()
+	setting.ParseXORMLogSetting(disableConsole)
 	if err := db.InitEngine(ctx); err != nil {
 		return fmt.Errorf("db.InitEngine: %w", err)
 	}

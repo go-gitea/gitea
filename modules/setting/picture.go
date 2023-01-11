@@ -32,10 +32,10 @@ var (
 	}{}
 )
 
-func newPictureService() {
-	sec := Cfg.Section("picture")
+func parsePictureSetting(rootCfg Config) {
+	sec := rootCfg.Section("picture")
 
-	avatarSec := Cfg.Section("avatar")
+	avatarSec := rootCfg.Section("avatar")
 	storageType := sec.Key("AVATAR_STORAGE_TYPE").MustString("")
 	// Specifically default PATH to AVATAR_UPLOAD_PATH
 	avatarSec.Key("PATH").MustString(
@@ -64,7 +64,7 @@ func newPictureService() {
 	EnableFederatedAvatar = sec.Key("ENABLE_FEDERATED_AVATAR").MustBool(GetDefaultEnableFederatedAvatar(DisableGravatar))
 	deprecatedSettingDB("", "ENABLE_FEDERATED_AVATAR")
 
-	newRepoAvatarService()
+	parseRepoAvatarSetting(rootCfg)
 }
 
 func GetDefaultDisableGravatar() bool {
@@ -82,10 +82,10 @@ func GetDefaultEnableFederatedAvatar(disableGravatar bool) bool {
 	return v
 }
 
-func newRepoAvatarService() {
-	sec := Cfg.Section("picture")
+func parseRepoAvatarSetting(rootCfg Config) {
+	sec := rootCfg.Section("picture")
 
-	repoAvatarSec := Cfg.Section("repo-avatar")
+	repoAvatarSec := rootCfg.Section("repo-avatar")
 	storageType := sec.Key("REPOSITORY_AVATAR_STORAGE_TYPE").MustString("")
 	// Specifically default PATH to AVATAR_UPLOAD_PATH
 	repoAvatarSec.Key("PATH").MustString(

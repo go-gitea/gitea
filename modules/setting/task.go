@@ -5,9 +5,9 @@ package setting
 
 // FIXME: DEPRECATED to be removed in v1.18.0
 // - will need to set default for [queue.task] LENGTH to 1000 though
-func newTaskService() {
-	taskSec := Cfg.Section("task")
-	queueTaskSec := Cfg.Section("queue.task")
+func parseTaskSetting(rootCfg Config) {
+	taskSec := rootCfg.Section("task")
+	queueTaskSec := rootCfg.Section("queue.task")
 
 	deprecatedSetting("task", "QUEUE_TYPE", "queue.task", "TYPE")
 	deprecatedSetting("task", "QUEUE_CONN_STR", "queue.task", "CONN_STR")

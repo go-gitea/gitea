@@ -25,6 +25,20 @@ var (
 	logDescriptions = make(map[string]*LogDescription)
 )
 
+var (
+	// Log settings
+	LogLevel           log.Level
+	StacktraceLogLevel string
+	LogRootPath        string
+	EnableSSHLog       bool
+	EnableXORMLog      bool
+
+	DisableRouterLog bool
+
+	EnableAccessLog   bool
+	AccessLogTemplate string
+)
+
 // GetLogDescriptions returns a race safe set of descriptions
 func GetLogDescriptions() map[string]*LogDescription {
 	descriptionLock.RLock()
@@ -253,7 +267,7 @@ func generateNamedLogger(key string, options defaultLogOptions) *LogDescription 
 	return &description
 }
 
-func newAccessLogService() {
+func parseAccessLogSetting() {
 	EnableAccessLog = Cfg.Section("log").Key("ENABLE_ACCESS_LOG").MustBool(false)
 	AccessLogTemplate = Cfg.Section("log").Key("ACCESS_LOG_TEMPLATE").MustString(
 		`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`,
@@ -269,7 +283,7 @@ func newAccessLogService() {
 	}
 }
 
-func newRouterLogService() {
+func parseRouterLogSetting() {
 	Cfg.Section("log").Key("ROUTER").MustString("console")
 	// Allow [log]  DISABLE_ROUTER_LOG to override [server] DISABLE_ROUTER_LOG
 	DisableRouterLog = Cfg.Section("log").Key("DISABLE_ROUTER_LOG").MustBool(DisableRouterLog)
@@ -283,7 +297,7 @@ func newRouterLogService() {
 	}
 }
 
-func newLogService() {
+func parseLogSetting() {
 	options := newDefaultLogOptions()
 	options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
 	EnableSSHLog = Cfg.Section("log").Key("ENABLE_SSH_LOG").MustBool(false)
@@ -340,19 +354,19 @@ func newLogService() {
 // RestartLogsWithPIDSuffix restarts the logs with a PID suffix on files
 func RestartLogsWithPIDSuffix() {
 	filenameSuffix = fmt.Sprintf(".%d", os.Getpid())
-	NewLogServices(false)
+	ParseLogSettings(false)
 }
 
-// NewLogServices creates all the log services
-func NewLogServices(disableConsole bool) {
-	newLogService()
-	newRouterLogService()
-	newAccessLogService()
-	NewXORMLogService(disableConsole)
+// ParseLogSettings creates all the log services
+func ParseLogSettings(disableConsole bool) {
+	parseLogSetting()
+	parseRouterLogSetting()
+	parseAccessLogSetting()
+	ParseXORMLogSetting(disableConsole)
 }
 
-// NewXORMLogService initializes xorm logger service
-func NewXORMLogService(disableConsole bool) {
+// ParseXORMLogSetting initializes xorm logger setting
+func ParseXORMLogSetting(disableConsole bool) {
 	EnableXORMLog = Cfg.Section("log").Key("ENABLE_XORM_LOG").MustBool(true)
 	if EnableXORMLog {
 		options := newDefaultLogOptions()

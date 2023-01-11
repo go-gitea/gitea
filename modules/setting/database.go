@@ -57,7 +57,7 @@ var (
 )
 
 // InitDBConfig loads the database settings
-func InitDBConfig() {
+func ParseDBSetting() {
 	sec := Cfg.Section("database")
 	Database.Type = sec.Key("DB_TYPE").String()
 	defaultCharset := "utf8"

@@ -70,7 +70,7 @@ func mustInitCtx(ctx context.Context, fn func(ctx context.Context) error) {
 
 // InitGitServices init new services for git, this is also called in `contrib/pr/checkout.go`
 func InitGitServices() {
-	setting.NewServices()
+	setting.LoadSettings()
 	mustInit(storage.Init)
 	mustInit(repo_service.Init)
 }
@@ -124,7 +124,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	// Setup i18n
 	translation.InitLocales(ctx)
 
-	setting.NewServices()
+	setting.LoadSettings()
 	mustInit(storage.Init)
 
 	mailer.NewContext(ctx)

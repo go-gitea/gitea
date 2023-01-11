@@ -3,8 +3,6 @@
 
 package setting
 
-import "code.gitea.io/gitea/modules/log"
-
 // Project settings
 var (
 	Project = struct {
@@ -15,9 +13,3 @@ var (
 		ProjectBoardBugTriageType:   []string{"Needs Triage", "High Priority", "Low Priority", "Closed"},
 	}
 )
-
-func newProject() {
-	if err := Cfg.Section("project").MapTo(&Project); err != nil {
-		log.Fatal("Failed to map Project settings: %v", err)
-	}
-}

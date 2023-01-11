@@ -83,8 +83,8 @@ func initMigrationTest(t *testing.T) func() {
 	}
 
 	assert.NoError(t, git.InitFull(context.Background()))
-	setting.InitDBConfig()
-	setting.NewLogServices(true)
+	setting.ParseDBSetting()
+	setting.ParseLogSettings(true)
 	return deferFn
 }
 

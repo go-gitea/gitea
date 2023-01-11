@@ -39,8 +39,8 @@ var SessionConfig = struct {
 	SameSite:    http.SameSiteLaxMode,
 }
 
-func newSessionService() {
-	sec := Cfg.Section("session")
+func parseSessionSetting(rootCfg Config) {
+	sec := rootCfg.Section("session")
 	SessionConfig.Provider = sec.Key("PROVIDER").In("memory",
 		[]string{"memory", "file", "redis", "mysql", "postgres", "couchbase", "memcache", "db"})
 	SessionConfig.ProviderConfig = strings.Trim(sec.Key("PROVIDER_CONFIG").MustString(path.Join(AppDataPath, "sessions")), "\" ")

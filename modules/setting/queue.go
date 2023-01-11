@@ -82,9 +82,9 @@ func GetQueueSettings(name string) QueueSettings {
 	return q
 }
 
-// NewQueueService sets up the default settings for Queues
+// ParseQueueSettings sets up the default settings for Queues
 // This is exported for tests to be able to use the queue
-func NewQueueService() {
+func ParseQueueSettings() {
 	sec := Cfg.Section("queue")
 	Queue.DataDir = filepath.ToSlash(sec.Key("DATADIR").MustString("queues/"))
 	if !filepath.IsAbs(Queue.DataDir) {

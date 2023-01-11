@@ -194,7 +194,7 @@ func runDump(ctx *cli.Context) error {
 		log.Error("Is '%s' really the right config path?\n", setting.CustomConf)
 		return fmt.Errorf("gitea is not initialized")
 	}
-	setting.NewServices() // cannot access session settings otherwise
+	setting.LoadSettings() // cannot access session settings otherwise
 
 	stdCtx, cancel := installSignals()
 	defer cancel()

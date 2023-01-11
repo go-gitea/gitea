@@ -25,13 +25,13 @@ var LFS = struct {
 	Storage
 }{}
 
-func newLFSService() {
-	sec := Cfg.Section("server")
+func parseLFSSetting(rootCfg Config) {
+	sec := rootCfg.Section("server")
 	if err := sec.MapTo(&LFS); err != nil {
 		log.Fatal("Failed to map LFS settings: %v", err)
 	}
 
-	lfsSec := Cfg.Section("lfs")
+	lfsSec := rootCfg.Section("lfs")
 	storageType := lfsSec.Key("STORAGE_TYPE").MustString("")
 
 	// Specifically default PATH to LFS_CONTENT_PATH

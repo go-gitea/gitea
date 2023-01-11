@@ -43,8 +43,8 @@ var (
 	}
 )
 
-func newPackages() {
-	sec := Cfg.Section("packages")
+func parsePackagesSetting(rootCfg Config) {
+	sec := rootCfg.Section("packages")
 	if err := sec.MapTo(&Packages); err != nil {
 		log.Fatal("Failed to map Packages settings: %v", err)
 	}
