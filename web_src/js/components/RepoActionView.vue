@@ -320,7 +320,7 @@ export function initRepositoryActionView() {
       display: block;
       margin: 5px 0;
       padding: 10px;
-      background: #f8f8f8;
+      background: var(--color-info-bg);
       border-radius: 5px;
       text-decoration: none;
       button.job-brief-rerun {
@@ -329,6 +329,9 @@ export function initRepositoryActionView() {
         background-color: transparent;
         outline: none
       };
+    }
+    a.job-brief-item:hover {
+      background-color: var(--color-secondary);
     }
   }
 }
@@ -340,8 +343,8 @@ export function initRepositoryActionView() {
 
 .action-view-right {
   flex: 1;
-  background-color: #262626;
-  color: #d6d6d6;
+  background-color: var(--color-console-bg);
+  color: var(--color-console-fg);
   max-height: 100%;
   margin-right: 10px;
 
@@ -351,13 +354,12 @@ export function initRepositoryActionView() {
 
 .job-info-header {
   .job-info-header-title {
-    color: #fdfdfd;
     font-size: 150%;
     padding: 10px;
   }
   .job-info-header-detail {
     padding: 0 10px 10px;
-    border-bottom: 1px solid #666;
+    border-bottom: 1px solid var(--color-grey);
   }
 }
 
@@ -378,7 +380,7 @@ export function initRepositoryActionView() {
     }
   }
   .job-step-summary:hover {
-    background-color: #333;
+    background-color: var(--color-black-light);
   }
 }
 </style>
@@ -408,11 +410,11 @@ body > div.full.height {
       display: flex;
       line-num {
         width: 48px;
-        color: #555;
+        color: var(--color-grey-light);
         text-align: right;
       }
       log-time {
-        color: #777;
+        color: var(--color-grey-light);
         margin-left: 10px;
         white-space: nowrap;
       }
