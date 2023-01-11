@@ -141,20 +141,13 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 				break
 			}
 			for _, p := range protections {
-				var matched1, matched2, matched3 bool
-				if len(p.WhitelistUserIDs) != 0 {
-					p.WhitelistUserIDs, matched1 = util.RemoveIDFromList(
-						p.WhitelistUserIDs, u.ID)
-				}
-				if len(p.ApprovalsWhitelistUserIDs) != 0 {
-					p.ApprovalsWhitelistUserIDs, matched2 = util.RemoveIDFromList(
-						p.ApprovalsWhitelistUserIDs, u.ID)
-				}
-				if len(p.MergeWhitelistUserIDs) != 0 {
-					p.MergeWhitelistUserIDs, matched3 = util.RemoveIDFromList(
-						p.MergeWhitelistUserIDs, u.ID)
-				}
-				if matched1 || matched2 || matched3 {
+				lenIDs, lenApprovalIDs, lenMergeIDs := len(p.WhitelistUserIDs), len(p.ApprovalsWhitelistUserIDs), len(p.MergeWhitelistUserIDs)
+				p.WhitelistUserIDs = util.SliceRemoveAll(p.WhitelistUserIDs, u.ID)
+				p.ApprovalsWhitelistUserIDs = util.SliceRemoveAll(p.ApprovalsWhitelistUserIDs, u.ID)
+				p.MergeWhitelistUserIDs = util.SliceRemoveAll(p.MergeWhitelistUserIDs, u.ID)
+				if lenIDs != len(p.WhitelistUserIDs) ||
+					lenApprovalIDs != len(p.ApprovalsWhitelistUserIDs) ||
+					lenMergeIDs != len(p.MergeWhitelistUserIDs) {
 					if _, err = e.ID(p.ID).Cols(
 						"whitelist_user_i_ds",
 						"merge_whitelist_user_i_ds",
