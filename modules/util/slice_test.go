@@ -10,17 +10,17 @@ import (
 )
 
 func TestIsInSlice(t *testing.T) {
-	assert.True(t, IsInSlice(2, []int{2, 0, 2, 3}))
-	assert.True(t, IsInSlice(0, []int{2, 0, 2, 3}))
-	assert.True(t, IsInSlice(3, []int{2, 0, 2, 3}))
+	assert.True(t, SliceContains(2, []int{2, 0, 2, 3}))
+	assert.True(t, SliceContains(0, []int{2, 0, 2, 3}))
+	assert.True(t, SliceContains(3, []int{2, 0, 2, 3}))
 
-	assert.True(t, IsInSlice("0", []string{"2", "0", "2", "3"}))
-	assert.True(t, IsInSlice(0, []float64{2, 0, 2, 3}))
-	assert.True(t, IsInSlice(true, []bool{false, true, false}))
+	assert.True(t, SliceContains("0", []string{"2", "0", "2", "3"}))
+	assert.True(t, SliceContains(0, []float64{2, 0, 2, 3}))
+	assert.True(t, SliceContains(true, []bool{false, true, false}))
 
-	assert.False(t, IsInSlice(4, []int{2, 0, 2, 3}))
-	assert.False(t, IsInSlice(4, []int{}))
-	assert.False(t, IsInSlice(4, nil))
+	assert.False(t, SliceContains(4, []int{2, 0, 2, 3}))
+	assert.False(t, SliceContains(4, []int{}))
+	assert.False(t, SliceContains(4, nil))
 }
 
 func TestIsStringInSlice(t *testing.T) {

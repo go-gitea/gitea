@@ -9,13 +9,13 @@ package util
 
 import "strings"
 
-// IsInSlice returns true if the target exists in the slice.
-func IsInSlice[T comparable](target T, slice []T) bool {
-	return IsInSliceFunc(func(t T) bool { return t == target }, slice)
+// SliceContains returns true if the target exists in the slice.
+func SliceContains[T comparable](target T, slice []T) bool {
+	return SliceContainsFunc(func(t T) bool { return t == target }, slice)
 }
 
-// IsInSliceFunc returns true if any element in the slice satisfies the targetFunc.
-func IsInSliceFunc[T comparable](targetFunc func(T) bool, slice []T) bool {
+// SliceContainsFunc returns true if any element in the slice satisfies the targetFunc.
+func SliceContainsFunc[T comparable](targetFunc func(T) bool, slice []T) bool {
 	for _, v := range slice {
 		if targetFunc(v) {
 			return true
@@ -28,10 +28,10 @@ func IsInSliceFunc[T comparable](targetFunc func(T) bool, slice []T) bool {
 func IsStringInSlice(target string, slice []string, insensitive ...bool) bool {
 	if len(insensitive) != 0 && insensitive[0] {
 		target = strings.ToLower(target)
-		return IsInSliceFunc(func(t string) bool { return strings.ToLower(t) == target }, slice)
+		return SliceContainsFunc(func(t string) bool { return strings.ToLower(t) == target }, slice)
 	}
 
-	return IsInSlice(target, slice)
+	return SliceContains(target, slice)
 }
 
 // IsEqualSlice returns true if slices are equal.

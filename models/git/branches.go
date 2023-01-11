@@ -404,7 +404,7 @@ func updateTeamWhitelist(ctx context.Context, repo *repo_model.Repository, curre
 
 	whitelist = make([]int64, 0, len(teams))
 	for i := range teams {
-		if util.IsInSlice(teams[i].ID, newWhitelist) {
+		if util.SliceContains(teams[i].ID, newWhitelist) {
 			whitelist = append(whitelist, teams[i].ID)
 		}
 	}
