@@ -191,17 +191,17 @@ const sfc = {
       }
     },
 
-    // the respData has the following fields:
+    // the requestBody has the following fields:
     // * stateData: it will be stored into Vue data and used to update the UI state
     // * logsData: the logs in it will be appended to the UI manually, no touch to Vue data
-    async fetchJobData(reqData) {
+    async fetchJob(requestBody) {
       const resp = await fetch(`${this.actionsURL}/runs/${this.runIndex}/jobs/${this.jobIndex}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-Csrf-Token': csrfToken,
         },
-        body: JSON.stringify(reqData),
+        body: JSON.stringify(requestBody),
       });
       return await resp.json();
     },
@@ -219,7 +219,7 @@ const sfc = {
         });
         const reqData = {stepLogCursors};
 
-        const respData = await this.fetchJobData(reqData);
+        const respData = await this.fetchJob(reqData);
 
         // save the stateData to Vue data, then the UI will be updated
         for (const [key, value] of Object.entries(respData.stateData)) {
