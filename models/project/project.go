@@ -300,7 +300,7 @@ func changeProjectStatus(ctx context.Context, p *Project, isClosed bool) error {
 // DeleteProjectByID deletes a project from a repository. if it's not in a database
 // transaction, it will start a new database transaction
 func DeleteProjectByID(ctx context.Context, id int64) error {
-	return db.AutoTx(ctx, func(ctx context.Context) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
 		p, err := GetProjectByID(ctx, id)
 		if err != nil {
 			if IsErrProjectNotExist(err) {
