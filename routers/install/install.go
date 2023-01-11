@@ -148,8 +148,8 @@ func Install(ctx *context.Context) {
 
 	// Server and other services settings
 	form.OfflineMode = setting.OfflineMode
-	form.DisableGravatar = false       // when installing, there is no database connection so that given a default value
-	form.EnableFederatedAvatar = false // when installing, there is no database connection so that given a default value
+	form.DisableGravatar = setting.DisableGravatar             // when installing, there is no database connection so that given a default value
+	form.EnableFederatedAvatar = setting.EnableFederatedAvatar // when installing, there is no database connection so that given a default value
 
 	form.EnableOpenIDSignIn = setting.Service.EnableOpenIDSignIn
 	form.EnableOpenIDSignUp = setting.Service.EnableOpenIDSignUp
@@ -442,10 +442,13 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("server").Key("OFFLINE_MODE").SetValue(fmt.Sprint(form.OfflineMode))
 	// if you are reinstalling, this maybe not right because of missing version
 	if err := system_model.SetSettingNoVersion(system_model.KeyPictureDisableGravatar, strconv.FormatBool(form.DisableGravatar)); err != nil {
-		ctx.RenderWithErr(ctx.Tr("install.secret_key_failed", err), tplInstall, &form)
+		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 		return
 	}
-	cfg.Section("picture").Key("ENABLE_FEDERATED_AVATAR").SetValue(fmt.Sprint(form.EnableFederatedAvatar))
+	if err := system_model.SetSettingNoVersion(system_model.KeyPictureEnableFederatedAvatar, strconv.FormatBool(form.EnableFederatedAvatar)); err != nil {
+		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
+		return
+	}
 	cfg.Section("openid").Key("ENABLE_OPENID_SIGNIN").SetValue(fmt.Sprint(form.EnableOpenIDSignIn))
 	cfg.Section("openid").Key("ENABLE_OPENID_SIGNUP").SetValue(fmt.Sprint(form.EnableOpenIDSignUp))
 	cfg.Section("service").Key("DISABLE_REGISTRATION").SetValue(fmt.Sprint(form.DisableRegistration))

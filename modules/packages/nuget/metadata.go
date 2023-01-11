@@ -7,13 +7,13 @@ import (
 	"archive/zip"
 	"bytes"
 	"encoding/xml"
-	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
 	"regexp"
 	"strings"
 
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 
 	"github.com/hashicorp/go-version"
@@ -21,13 +21,13 @@ import (
 
 var (
 	// ErrMissingNuspecFile indicates a missing Nuspec file
-	ErrMissingNuspecFile = errors.New("Nuspec file is missing")
+	ErrMissingNuspecFile = util.NewInvalidArgumentErrorf("Nuspec file is missing")
 	// ErrNuspecFileTooLarge indicates a Nuspec file which is too large
-	ErrNuspecFileTooLarge = errors.New("Nuspec file is too large")
+	ErrNuspecFileTooLarge = util.NewInvalidArgumentErrorf("Nuspec file is too large")
 	// ErrNuspecInvalidID indicates an invalid id in the Nuspec file
-	ErrNuspecInvalidID = errors.New("Nuspec file contains an invalid id")
+	ErrNuspecInvalidID = util.NewInvalidArgumentErrorf("Nuspec file contains an invalid id")
 	// ErrNuspecInvalidVersion indicates an invalid version in the Nuspec file
-	ErrNuspecInvalidVersion = errors.New("Nuspec file contains an invalid version")
+	ErrNuspecInvalidVersion = util.NewInvalidArgumentErrorf("Nuspec file contains an invalid version")
 )
 
 // PackageType specifies the package type the metadata describes
