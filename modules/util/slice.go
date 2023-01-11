@@ -15,7 +15,7 @@ func SliceContains[T comparable](target T, slice []T) bool {
 }
 
 // SliceContainsFunc returns true if any element in the slice satisfies the targetFunc.
-func SliceContainsFunc[T comparable](targetFunc func(T) bool, slice []T) bool {
+func SliceContainsFunc[T any](targetFunc func(T) bool, slice []T) bool {
 	for _, v := range slice {
 		if targetFunc(v) {
 			return true
