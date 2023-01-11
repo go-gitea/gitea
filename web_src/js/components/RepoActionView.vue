@@ -83,6 +83,8 @@ const sfc = {
 
   data() {
     return {
+      ansiToHTML: new AnsiToHTML({escapeXML: true}),
+
       // internal state
       loading: false,
       currentJobStepsStates: [],
@@ -93,10 +95,6 @@ const sfc = {
       currentJobInfo: {},
       currentJobSteps: [],
     };
-  },
-
-  created() {
-    this.ansiToHTML = new AnsiToHTML({escapeXML: true});
   },
 
   mounted() {
