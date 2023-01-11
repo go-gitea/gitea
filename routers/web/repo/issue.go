@@ -139,7 +139,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	viewType := ctx.FormString("type")
 	sortType := ctx.FormString("sort")
 	types := []string{"all", "your_repositories", "assigned", "created_by", "mentioned", "review_requested"}
-	if !util.IsStringInSlice(viewType, types, true) {
+	if !util.SliceContainsString(types, viewType, true) {
 		viewType = "all"
 	}
 
@@ -3087,7 +3087,7 @@ func updateAttachments(ctx *context.Context, item interface{}, files []string) e
 		return fmt.Errorf("unknown Type: %T", content)
 	}
 	for i := 0; i < len(attachments); i++ {
-		if util.IsStringInSlice(attachments[i].UUID, files) {
+		if util.SliceContainsString(files, attachments[i].UUID) {
 			continue
 		}
 		if err := repo_model.DeleteAttachment(attachments[i], true); err != nil {

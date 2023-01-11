@@ -1048,7 +1048,7 @@ Default templates for project boards:
 
 ## Git - Timeout settings (`git.timeout`)
 
-- `DEFAUlT`: **360**: Git operations default timeout seconds.
+- `DEFAULT`: **360**: Git operations default timeout seconds.
 - `MIGRATE`: **600**: Migrate external repositories timeout seconds.
 - `MIRROR`: **300**: Mirror external repositories timeout seconds.
 - `CLONE`: **300**: Git clone from internal repositories timeout seconds.
