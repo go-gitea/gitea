@@ -191,12 +191,14 @@ const sfc = {
       div._jobLogTime = line.t;
 
       const lineNumber = document.createElement('div');
+      lineNumber.className = 'line-num';
       lineNumber.innerText = line.ln;
       div.appendChild(lineNumber);
 
       // TODO: Support displaying time optionally
 
       const logMessage = document.createElement('div');
+      logMessage.className = 'log-msg';
       logMessage.innerHTML = this.ansiToHTML.toHtml(line.m);
       div.appendChild(logMessage);
 
