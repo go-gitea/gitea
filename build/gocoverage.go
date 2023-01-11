@@ -10,12 +10,15 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"os"
+	"path"
 	"sort"
+	"strconv"
+	"strings"
 
 	"golang.org/x/tools/cover"
 )
@@ -99,12 +102,52 @@ func dumpProfiles(profiles []*cover.Profile, out io.Writer) {
 	}
 }
 
-func main() {
-	flag.Parse()
+func parseArgs() (mainOptions map[string]string, subCmd string, subArgs []string) {
+	mainOptions = map[string]string{}
+	for i := 1; i < len(os.Args); i++ {
+		arg := os.Args[i]
+		if arg == "" {
+			break
+		}
+		if arg[0] == '-' {
+			arg = strings.TrimPrefix(arg, "-")
+			arg = strings.TrimPrefix(arg, "-")
+			fields := strings.SplitN(arg, "=", 2)
+			if len(fields) == 1 {
+				mainOptions[fields[0]] = "1"
+			} else {
+				mainOptions[fields[0]] = fields[1]
+			}
+		} else {
+			subCmd = arg
+			subArgs = os.Args[i+1:]
+			break
+		}
+	}
+	return
+}
 
+func showUsage() {
+	fmt.Printf(`Usage: %[1]s {command} [arguments]
+
+Commands:
+  %[1]s merge ...
+  %[1]s check [coverage_file] [package=percent] ...
+
+Arguments:
+  {file-list}     the file list
+
+Example:
+  %[1]s merge -s -d {file-list}
+	%[1]s check coverage.out code.gitea.io/gitea/modules/setting=4%%
+
+`, "gocoverage")
+}
+
+func merge(args []string) {
 	var merged []*cover.Profile
 
-	for _, file := range flag.Args() {
+	for _, file := range args {
 		profiles, err := cover.ParseProfiles(file)
 		if err != nil {
 			log.Fatalf("failed to parse profile '%s': %v", file, err)
@@ -115,4 +158,84 @@ func main() {
 	}
 
 	dumpProfiles(merged, os.Stdout)
+}
+
+func percentToInt64(percent string) int64 {
+	value := strings.ReplaceAll(percent, "%", "")
+	i, err := strconv.ParseFloat(value, 10)
+	if err != nil {
+		log.Fatalf("invalid percent: %s", percent)
+	}
+	return int64(i * 10)
+}
+
+func profileCount(p *cover.Profile) (int64, int64) {
+	blocks := p.Blocks
+	var active, total int64
+	for i := range blocks {
+		stmts := int64(blocks[i].NumStmt)
+		total += stmts
+		if blocks[i].Count > 0 {
+			active += stmts
+		}
+	}
+	return total, active
+}
+
+func checkPackages(args []string) {
+	if len(args) < 2 {
+		log.Fatalf("invalid arguments: %v", args)
+		return
+	}
+	coverageFile, packages := args[0], args[1:]
+	profiles, err := cover.ParseProfiles(coverageFile)
+	if err != nil {
+		log.Fatalf("failed to parse profile '%s': %v", coverageFile, err)
+	}
+	packagesRequirements := make(map[string]int64)
+	for _, p := range packages {
+		parts := strings.Split(p, "=")
+		if len(parts) != 2 {
+			continue
+		}
+		packagesRequirements[parts[0]] = percentToInt64(parts[1])
+	}
+	packagesTotals := make(map[string]int64)
+	packagesActives := make(map[string]int64)
+	for _, p := range profiles {
+		pkg := path.Dir(p.FileName)
+		_, ok := packagesRequirements[pkg]
+		if !ok {
+			continue
+		}
+		total, active := profileCount(p)
+		packagesTotals[pkg] += total
+		packagesActives[pkg] += active
+	}
+	var failed bool
+	for k, v := range packagesRequirements {
+		actual := 100 * float64(packagesActives[k]) / float64(packagesTotals[k])
+		if v > int64(math.Floor(actual*10+0.5)) {
+			log.Printf("package %s coverage is %.1f%%, required %.1f%%\n", k, actual, float64(v)/10.0)
+			failed = true
+		}
+	}
+	if failed {
+		os.Exit(1)
+	}
+}
+
+func main() {
+	_, subCmd, subArgs := parseArgs()
+	if subCmd == "" {
+		showUsage()
+		os.Exit(1)
+	}
+
+	switch subCmd {
+	case "merge":
+		merge(subArgs)
+	case "check":
+		checkPackages(subArgs)
+	}
 }

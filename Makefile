@@ -463,12 +463,18 @@ test\#%:
 coverage:
 	grep '^\(mode: .*\)\|\(.*:[0-9]\+\.[0-9]\+,[0-9]\+\.[0-9]\+ [0-9]\+ [0-9]\+\)$$' coverage.out > coverage-bodged.out
 	grep '^\(mode: .*\)\|\(.*:[0-9]\+\.[0-9]\+,[0-9]\+\.[0-9]\+ [0-9]\+ [0-9]\+\)$$' integration.coverage.out > integration.coverage-bodged.out
-	$(GO) run build/gocovmerge.go integration.coverage-bodged.out coverage-bodged.out > coverage.all
+	$(GO) run build/gocoverage.go merge integration.coverage-bodged.out coverage-bodged.out > coverage.all
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
 	@echo "Running unit-test-coverage $(GOTESTFLAGS) -tags '$(TEST_TAGS)'..."
 	@$(GO) test $(GOTESTFLAGS) -timeout=20m -tags='$(TEST_TAGS)' -cover -coverprofile coverage.out $(GO_TEST_PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
+
+.PHONY: unit-test-coverage-check
+unit-test-coverage-check:
+	@$(GO) run build/gocoverage.go check coverage.out \
+		code.gitea.io/gitea/modules/setting=7.1% \
+		code.gitea.io/gitea/modules/hostmatcher=68.6%
 
 .PHONY: tidy
 tidy:
