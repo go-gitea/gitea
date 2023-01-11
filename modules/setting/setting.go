@@ -1139,7 +1139,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		UI.CustomEmojisMap[emoji] = ":" + emoji + ":"
 	}
 
-	parseSyncSetting()
+	parseSyncConfig(Cfg)
 }
 
 func parseAuthorizedPrincipalsAllow(values []string) ([]string, bool) {

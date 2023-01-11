@@ -3,7 +3,12 @@
 
 package setting
 
-import "code.gitea.io/gitea/modules/log"
+import (
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/nosql"
+
+	ini "gopkg.in/ini.v1"
+)
 
 // Sync represents configuration of sync
 var Sync = struct {
@@ -13,11 +18,22 @@ var Sync = struct {
 	LockServiceType: "memory",
 }
 
-func parseSyncSetting() {
-	sec := Cfg.Section("sync")
+func parseSyncConfig(rootCfg *ini.File) {
+	sec := rootCfg.Section("sync")
 	Sync.LockServiceType = sec.Key("LOCK_SERVICE_TYPE").MustString("memory")
-	if Sync.LockServiceType != "memory" && Sync.LockServiceType != "redis" {
+	switch Sync.LockServiceType {
+	case "memory":
+	case "redis":
+		connStr := sec.Key("LOCK_SERVICE_CONN_STR").String()
+		if connStr == "" {
+			log.Fatal("LOCK_SERVICE_CONN_STR is empty for redis")
+		}
+		u := nosql.ToRedisURI(connStr)
+		if u == nil {
+			log.Fatal("LOCK_SERVICE_CONN_STR %s is not right for redis", connStr)
+		}
+		Sync.LockServiceConnStr = connStr
+	default:
 		log.Fatal("Unknown sync lock service type: %s", Sync.LockServiceType)
 	}
-	Sync.LockServiceConnStr = sec.Key("LOCK_SERVICE_CONN_STR").MustString("")
 }
