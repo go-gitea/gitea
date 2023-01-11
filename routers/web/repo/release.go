@@ -328,6 +328,14 @@ func NewRelease(ctx *context.Context) {
 		}
 	}
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	var err error
+	// Get assignees.
+	ctx.Data["Assignees"], err = repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository)
+	if err != nil {
+		ctx.ServerError("GetAssignees", err)
+		return
+	}
+
 	upload.AddUploadContext(ctx, "release")
 	ctx.HTML(http.StatusOK, tplReleaseNew)
 }
@@ -483,6 +491,13 @@ func EditRelease(ctx *context.Context) {
 		return
 	}
 	ctx.Data["attachments"] = rel.Attachments
+
+	// Get assignees.
+	ctx.Data["Assignees"], err = repo_model.GetRepoAssignees(ctx, rel.Repo)
+	if err != nil {
+		ctx.ServerError("GetAssignees", err)
+		return
+	}
 
 	ctx.HTML(http.StatusOK, tplReleaseNew)
 }
