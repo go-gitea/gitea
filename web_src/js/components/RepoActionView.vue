@@ -111,7 +111,7 @@ const sfc = {
       return el.logsContainer ?? el;
     },
     // begin a log group
-    stepLogsGroupBegin(idx) {
+    beginLogGroup(idx) {
       const el = this.$refs.elJobStepLogs[idx];
 
       const elJobLogGroup = document.createElement('div');
@@ -128,7 +128,7 @@ const sfc = {
       el.logsContainer = elJobLogList;
     },
     // end a log group
-    stepLogsGroupEnd(idx) {
+    endLogGroup(idx) {
       const el = this.$refs.elJobStepLogs[idx];
       el.logsContainer = null;
     },
