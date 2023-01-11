@@ -48,7 +48,7 @@ require (
 	github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f
 	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
 	github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
-	github.com/golang-jwt/jwt/v4 v4.4.2
+	github.com/golang-jwt/jwt/v4 v4.4.3
 	github.com/google/go-github/v45 v45.2.0
 	github.com/google/pprof v0.0.0-20220829040838-70bd9ae97f40
 	github.com/google/uuid v1.3.0
@@ -82,7 +82,7 @@ require (
 	github.com/santhosh-tekuri/jsonschema/v5 v5.0.1
 	github.com/sergi/go-diff v1.2.0
 	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.1
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tstranex/u2f v1.0.0
 	github.com/unrolled/render v1.5.0
@@ -95,11 +95,11 @@ require (
 	github.com/yuin/goldmark-meta v1.1.0
 	go.jolheiser.com/hcaptcha v0.0.4
 	go.jolheiser.com/pwn v0.0.3
-	golang.org/x/crypto v0.2.1-0.20221112162523-6fad3dfc1891
-	golang.org/x/net v0.2.0
+	golang.org/x/crypto v0.4.0
+	golang.org/x/net v0.3.0
 	golang.org/x/oauth2 v0.0.0-20220909003341-f21342109be1
-	golang.org/x/sys v0.2.0
-	golang.org/x/text v0.4.0
+	golang.org/x/sys v0.3.0
+	golang.org/x/text v0.5.0
 	golang.org/x/tools v0.1.12
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gopkg.in/ini.v1 v1.67.0
@@ -183,6 +183,8 @@ require (
 	github.com/go-openapi/strfmt v0.21.3 // indirect
 	github.com/go-openapi/swag v0.22.3 // indirect
 	github.com/go-openapi/validate v0.22.0 // indirect
+	github.com/go-webauthn/revoke v0.1.6 // indirect
+	github.com/go-webauthn/webauthn v0.6.0 // indirect
 	github.com/goccy/go-json v0.10.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
@@ -195,6 +197,7 @@ require (
 	github.com/google/btree v1.0.1 // indirect
 	github.com/google/certificate-transparency-go v1.1.2-0.20210511102531-373a877eec92 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
+	github.com/google/go-tpm v0.3.3 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/gorilla/handlers v1.5.1 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
