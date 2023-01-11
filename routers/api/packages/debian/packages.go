@@ -80,6 +80,10 @@ func CreatePackagesGz(ctx *context.Context, arch string) error {
 		return fmt.Errorf("No files in arch \"%s\"!", arch)
 	}
 
+	if arch != "source" {
+		archFiles = append(archFiles, allFiles["all"]...)
+	}
+
 	for i, file := range archFiles {
 		var packBuf bytes.Buffer
 		tempCtlData, err := InspectPackage(ctx, file)
