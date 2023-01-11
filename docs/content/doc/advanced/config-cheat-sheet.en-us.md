@@ -1293,7 +1293,7 @@ PROXY_HOSTS = *.github.com
 ## Sync (`sync`)
 
 - `LOCK_SERVICE_TYPE`: **memory**: Lock service type, could be `memory` or `redis`
-- `LOCK_SERVICE_CONN_STR`: ****: Ignored when `LOCK_SERVICE_TYPE` is `memory` type, for `redis`, it likes `addrs=127.0.0.1:6379 db=0`
+- `LOCK_SERVICE_CONN_STR`: **\<empty\>**: Ignored when `LOCK_SERVICE_TYPE` is `memory` type, for `redis`, it likes `addrs=127.0.0.1:6379 db=0`
 
 ## Other (`other`)
 

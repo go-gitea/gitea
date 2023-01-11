@@ -456,7 +456,7 @@ PROXY_HOSTS = *.github.com
 ## Sync (`sync`)
 
 - `LOCK_SERVICE_TYPE`: **memory**: 锁服务类型，可以是 `memory` 或 `redis`
-- `LOCK_SERVICE_CONN_STR`: ****: 如果 `LOCK_SERVICE_TYPE` 是 `memory`，则忽略，如果是 `redis`，则支持形式如 `addrs=127.0.0.1:6379 db=0`
+- `LOCK_SERVICE_CONN_STR`: **\<empty\>**: 如果 `LOCK_SERVICE_TYPE` 是 `memory`，则忽略，如果是 `redis`，则支持形式如 `addrs=127.0.0.1:6379 db=0`
 
 ## Other (`other`)
 
