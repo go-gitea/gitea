@@ -51,7 +51,7 @@
               <SvgIcon name="octicon-x-circle-fill" class="red mr-3 " v-else/>
 
               <span class="step-summary-msg">{{ jobStep.summary }}</span>
-              <span class="step-summary-dur">{{ formatDuration(jobStep.duration) }}</span>
+              <span class="step-summary-dur">{{ jobStep.duration }}</span>
             </div>
 
             <!-- the log elements could be a lot, do not use v-if to destroy/reconstruct the DOM -->
@@ -160,27 +160,6 @@ const sfc = {
         },
         body: {},
       });
-    },
-
-    formatDuration(d) {
-      d = Math.round(d);
-      const unitValues = [60, 60, 24];
-      const unitNames = ['s', 'm', 'h', 'd'];
-      const parts = [];
-      for (let i = 0; i < unitValues.length; i++) {
-        parts[i] = d % unitValues[i];
-        d = Math.floor(d / unitValues[i]);
-      }
-      parts.push(d);
-      let res = '', resCount = 0;
-      for (let i = parts.length - 1; i >= 0 && resCount < 2; i--) {
-        if (parts[i] > 0) {
-          res += `${parts[i] + unitNames[i]} `;
-          resCount++;
-        }
-      }
-      if (!res) return '0s';
-      return res.substring(0, res.length - 1);
     },
 
     createLogLine(line) {

@@ -79,9 +79,9 @@ type ViewJob struct {
 }
 
 type ViewJobStep struct {
-	Summary  string  `json:"summary"`
-	Duration float64 `json:"duration"`
-	Status   string  `json:"status"`
+	Summary  string `json:"summary"`
+	Duration string `json:"duration"`
+	Status   string `json:"status"`
 }
 
 type ViewStepLog struct {
@@ -154,7 +154,7 @@ func ViewPost(ctx *context_module.Context) {
 		for i, v := range steps {
 			resp.StateData.CurrentJobSteps[i] = ViewJobStep{
 				Summary:  v.Name,
-				Duration: float64(v.Duration() / time.Second),
+				Duration: v.Duration().Round(time.Second).String(),
 				Status:   v.Status.String(),
 			}
 		}
