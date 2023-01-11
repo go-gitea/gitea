@@ -23,7 +23,7 @@
             </a>
           </div>
           <button class="ui fluid tiny basic red button" @click="cancelRun()" v-if="runInfo.can_cancel">
-            Cancel
+            {{ i18nCancel }}
           </button>
         </div>
       </div>
@@ -68,7 +68,7 @@ import {SvgIcon} from '../svg.js';
 import {createApp} from 'vue';
 import AnsiToHTML from 'ansi-to-html';
 
-const {csrfToken} = window.config;
+const {csrfToken, i18n} = window.config;
 
 const sfc = {
   name: 'RepoActionView',
@@ -84,6 +84,7 @@ const sfc = {
   data() {
     return {
       ansiToHTML: new AnsiToHTML({escapeXML: true}),
+      i18nCancel: i18n.cancel,
 
       // internal state
       loading: false,
