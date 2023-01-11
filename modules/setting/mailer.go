@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	ini "gopkg.in/ini.v1"
 
 	shellquote "github.com/kballard/go-shellquote"
 )
@@ -49,8 +50,8 @@ type Mailer struct {
 // MailService the global mailer
 var MailService *Mailer
 
-func newMailService() {
-	sec := Cfg.Section("mailer")
+func parseMailerConfig(rootCfg *ini.File) {
+	sec := rootCfg.Section("mailer")
 	// Check mailer setting.
 	if !sec.Key("ENABLED").MustBool() {
 		return
@@ -70,7 +71,7 @@ func newMailService() {
 	if sec.HasKey("HOST") && !sec.HasKey("SMTP_ADDR") {
 		givenHost := sec.Key("HOST").String()
 		addr, port, err := net.SplitHostPort(givenHost)
-		if err != nil && err.Error() == "missing port in address" {
+		if err != nil && strings.Contains(err.Error(), "missing port in address") {
 			addr = givenHost
 		} else if err != nil {
 			log.Fatal("Invalid mailer.HOST (%s): %v", givenHost, err)
@@ -177,6 +178,9 @@ func newMailService() {
 			default:
 				log.Error("unable to infer unspecified mailer.PROTOCOL from mailer.SMTP_PORT = %q, assume using smtps", MailService.SMTPPort)
 				MailService.Protocol = "smtps"
+				if MailService.SMTPPort == "" {
+					MailService.SMTPPort = "465"
+				}
 			}
 		}
 	}
