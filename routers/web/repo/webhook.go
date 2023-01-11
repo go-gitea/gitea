@@ -110,7 +110,7 @@ func getOrgRepoCtx(ctx *context.Context) (*orgRepoCtx, error) {
 
 func checkHookType(ctx *context.Context) string {
 	hookType := strings.ToLower(ctx.Params(":type"))
-	if !util.IsStringInSlice(hookType, setting.Webhook.Types, true) {
+	if !util.SliceContainsString(setting.Webhook.Types, hookType, true) {
 		ctx.NotFound("checkHookType", nil)
 		return ""
 	}
