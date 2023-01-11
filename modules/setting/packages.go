@@ -36,6 +36,7 @@ var (
 		LimitSizePub         int64
 		LimitSizePyPI        int64
 		LimitSizeRubyGems    int64
+		LimitSizeSwift       int64
 		LimitSizeVagrant     int64
 	}{
 		Enabled:              true,
@@ -75,6 +76,7 @@ func newPackages() {
 	Packages.LimitSizePub = mustBytes(sec, "LIMIT_SIZE_PUB")
 	Packages.LimitSizePyPI = mustBytes(sec, "LIMIT_SIZE_PYPI")
 	Packages.LimitSizeRubyGems = mustBytes(sec, "LIMIT_SIZE_RUBYGEMS")
+	Packages.LimitSizeSwift = mustBytes(sec, "LIMIT_SIZE_SWIFT")
 	Packages.LimitSizeVagrant = mustBytes(sec, "LIMIT_SIZE_VAGRANT")
 }
 
