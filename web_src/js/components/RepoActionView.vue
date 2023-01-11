@@ -142,25 +142,11 @@ const sfc = {
     },
     // rerun a job
     rerunJob(idx) {
-      fetch(`${this.runInfo.htmlurl}/jobs/${idx}/rerun`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Csrf-Token': csrfToken,
-        },
-        body: {},
-      });
+      this.fetch(`${this.runInfo.htmlurl}/jobs/${idx}/rerun`);
     },
     // cancel a run
     cancelRun() {
-      fetch(`${this.runInfo.htmlurl}/cancel`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Csrf-Token': csrfToken,
-        },
-        body: {},
-      });
+      this.fetch(`${this.runInfo.htmlurl}/cancel`);
     },
 
     createLogLine(line) {
@@ -195,14 +181,10 @@ const sfc = {
     // * stateData: it will be stored into Vue data and used to update the UI state
     // * logsData: the logs in it will be appended to the UI manually, no touch to Vue data
     async fetchJob(requestBody) {
-      const resp = await fetch(`${this.actionsURL}/runs/${this.runIndex}/jobs/${this.jobIndex}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Csrf-Token': csrfToken,
-        },
-        body: JSON.stringify(requestBody),
-      });
+      const resp = await this.fetch(
+        `${this.actionsURL}/runs/${this.runIndex}/jobs/${this.jobIndex}`,
+        JSON.stringify(requestBody),
+      );
       return await resp.json();
     },
 
@@ -241,7 +223,19 @@ const sfc = {
       } finally {
         this.loading = false;
       }
-    }
+    },
+
+    fetch(url, body) {
+      const resp = fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Csrf-Token': csrfToken,
+        },
+        body,
+      });
+      return resp;
+    },
   },
 };
 
