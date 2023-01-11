@@ -386,8 +386,8 @@ func CreateOrAppendToCustomConf(purpose string, callback func(cfg *ini.File)) {
 	}
 }
 
-// LoadSettings initializes the settings for normal start up
-func LoadSettings() {
+// ParseSettings initializes the settings for normal start up
+func ParseSettings() {
 	ParseDBSetting()
 	parseServiceSetting(Cfg)
 	parseOAuth2ClientSetting(Cfg)
@@ -411,8 +411,8 @@ func LoadSettings() {
 	parseFederationSetting(Cfg)
 }
 
-// LoadSettingsForInstall initializes the settings for install
-func LoadSettingsForInstall() {
+// ParseSettingsForInstall initializes the settings for install
+func ParseSettingsForInstall() {
 	ParseDBSetting()
 	parseServiceSetting(Cfg)
 	parseMailerSetting(Cfg)

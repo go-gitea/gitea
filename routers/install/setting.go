@@ -28,7 +28,7 @@ func PreloadSettings(ctx context.Context) bool {
 			log.Info("SQLite3 is supported")
 		}
 
-		setting.LoadSettingsForInstall()
+		setting.ParseSettingsForInstall()
 		svg.Init()
 	}
 
