@@ -185,24 +185,21 @@ const sfc = {
     },
 
     createLogLine(line) {
-      const el = document.createElement('div');
-      el.classList.add('job-log-line');
-      el._jobLogTime = line.t;
+      const div = document.createElement('div');
+      div.classList.add('job-log-line');
+      div._jobLogTime = line.t;
 
-      const elLineNum = document.createElement('line-num');
-      elLineNum.innerText = line.ln;
-      el.appendChild(elLineNum);
+      const lineNumber = document.createElement('div');
+      lineNumber.innerText = line.ln;
+      div.appendChild(lineNumber);
 
       // TODO: Support displaying time optionally
-      // const elLogTime = document.createElement('log-time');
-      // elLogTime.innerText = new Date(line.t * 1000).toISOString();
-      // el.appendChild(elLogTime);
 
-      const elLogMsg = document.createElement('log-msg');
-      elLogMsg.innerHTML = this.ansiToHTML.toHtml(line.m);
-      el.appendChild(elLogMsg);
+      const logMessage = document.createElement('div');
+      logMessage.innerHTML = this.ansiToHTML.toHtml(line.m);
+      div.appendChild(logMessage);
 
-      return el;
+      return div;
     },
 
     appendLogs(stepIndex, logLines) {
