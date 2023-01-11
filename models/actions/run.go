@@ -229,7 +229,7 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 	}
 	_, err := sess.Update(run)
 
-	if run.Status != 0 || util.IsStringInSlice("status", cols) {
+	if run.Status != 0 || util.SliceContains(cols, "status") {
 		if run.RepoID == 0 {
 			run, err = GetRunByID(ctx, run.ID)
 			if err != nil {
