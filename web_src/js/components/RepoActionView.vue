@@ -78,6 +78,7 @@ const sfc = {
   props: {
     runIndex: Number,
     jobIndex: Number,
+    actionsURL: String,
   },
 
   data() {
@@ -214,7 +215,7 @@ const sfc = {
     // * stateData: it will be stored into Vue data and used to update the UI state
     // * logsData: the logs in it will be appended to the UI manually, no touch to Vue data
     async fetchJobData(reqData) {
-      const resp = await fetch(``, {
+      const resp = await fetch(`${this.actionsURL}/runs/${this.runIndex}/jobs/${this.jobIndex}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -271,8 +272,9 @@ export function initRepositoryActionView() {
   if (!el) return;
 
   const view = createApp(sfc, {
-    jobIndex: el.getAttribute('data-job-index'),
     runIndex: el.getAttribute('data-run-index'),
+    jobIndex: el.getAttribute('data-job-index'),
+    actionsURL: el.getAttribute('data-actions-url'),
   });
   view.mount(el);
 }

@@ -30,13 +30,11 @@ func View(ctx *context_module.Context) {
 	jobIndex := ctx.ParamsInt64("job")
 	ctx.Data["RunIndex"] = runIndex
 	ctx.Data["JobIndex"] = jobIndex
+	ctx.Data["ActionsURL"] = ctx.Repo.RepoLink + "/actions"
 
-	job, _ := getRunJobs(ctx, runIndex, jobIndex)
-	if ctx.Written() {
+	if getRunJobs(ctx, runIndex, jobIndex); ctx.Written() {
 		return
 	}
-	run := job.Run
-	ctx.Data["Build"] = run
 
 	ctx.HTML(http.StatusOK, tplViewActions)
 }
