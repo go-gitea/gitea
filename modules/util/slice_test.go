@@ -52,16 +52,16 @@ func TestSliceSortedEqual(t *testing.T) {
 	assert.False(t, SliceSortedEqual([]int{2, 0, 0, 3}, []int{2, 0, 2, 3}))
 }
 
-func TestRemoveFromSlice(t *testing.T) {
-	assert.Equal(t, RemoveFromSlice(0, []int{2, 0, 2, 3}), []int{2, 2, 3})
-	assert.Equal(t, RemoveFromSlice(2, []int{2, 0, 2, 3}), []int{0, 3})
-	assert.Equal(t, RemoveFromSlice(0, []int{0, 0, 0, 0}), []int{})
-	assert.Equal(t, RemoveFromSlice(4, []int{2, 0, 2, 3}), []int{2, 0, 2, 3})
-	assert.Equal(t, RemoveFromSlice(0, []int{}), []int{})
-	assert.Equal(t, RemoveFromSlice(0, []int(nil)), []int(nil))
-	assert.Equal(t, RemoveFromSlice(0, []int{}), []int{})
+func TestSliceRemoveAll(t *testing.T) {
+	assert.Equal(t, SliceRemoveAll([]int{2, 0, 2, 3}, 0), []int{2, 2, 3})
+	assert.Equal(t, SliceRemoveAll([]int{2, 0, 2, 3}, 2), []int{0, 3})
+	assert.Equal(t, SliceRemoveAll([]int{0, 0, 0, 0}, 0), []int{})
+	assert.Equal(t, SliceRemoveAll([]int{2, 0, 2, 3}, 4), []int{2, 0, 2, 3})
+	assert.Equal(t, SliceRemoveAll([]int{}, 0), []int{})
+	assert.Equal(t, SliceRemoveAll([]int(nil), 0), []int(nil))
+	assert.Equal(t, SliceRemoveAll([]int{}, 0), []int{})
 
-	assert.Equal(t, RemoveFromSlice("0", []string{"2", "0", "2", "3"}), []string{"2", "2", "3"})
-	assert.Equal(t, RemoveFromSlice(0, []float64{2, 0, 2, 3}), []float64{2, 2, 3})
-	assert.Equal(t, RemoveFromSlice(true, []bool{false, true, false}), []bool{false, false})
+	assert.Equal(t, SliceRemoveAll([]string{"2", "0", "2", "3"}, "0"), []string{"2", "2", "3"})
+	assert.Equal(t, SliceRemoveAll([]float64{2, 0, 2, 3}, 0), []float64{2, 2, 3})
+	assert.Equal(t, SliceRemoveAll([]bool{false, true, false}, true), []bool{false, false})
 }

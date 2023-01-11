@@ -142,9 +142,9 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 			}
 			for _, p := range protections {
 				lenIDs, lenApprovalIDs, lenMergeIDs := len(p.WhitelistUserIDs), len(p.ApprovalsWhitelistUserIDs), len(p.MergeWhitelistUserIDs)
-				p.WhitelistUserIDs = util.RemoveFromSlice(u.ID, p.WhitelistUserIDs)
-				p.ApprovalsWhitelistUserIDs = util.RemoveFromSlice(u.ID, p.ApprovalsWhitelistUserIDs)
-				p.MergeWhitelistUserIDs = util.RemoveFromSlice(u.ID, p.MergeWhitelistUserIDs)
+				p.WhitelistUserIDs = util.SliceRemoveAll(p.WhitelistUserIDs, u.ID)
+				p.ApprovalsWhitelistUserIDs = util.SliceRemoveAll(p.ApprovalsWhitelistUserIDs, u.ID)
+				p.MergeWhitelistUserIDs = util.SliceRemoveAll(p.MergeWhitelistUserIDs, u.ID)
 				if lenIDs != len(p.WhitelistUserIDs) ||
 					lenApprovalIDs != len(p.ApprovalsWhitelistUserIDs) ||
 					lenMergeIDs != len(p.MergeWhitelistUserIDs) {

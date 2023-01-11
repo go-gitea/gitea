@@ -399,9 +399,9 @@ func DeleteTeam(t *organization.Team) error {
 		}
 		for _, p := range protections {
 			lenIDs, lenApprovalIDs, lenMergeIDs := len(p.WhitelistTeamIDs), len(p.ApprovalsWhitelistTeamIDs), len(p.MergeWhitelistTeamIDs)
-			p.WhitelistTeamIDs = util.RemoveFromSlice(t.ID, p.WhitelistTeamIDs)
-			p.ApprovalsWhitelistTeamIDs = util.RemoveFromSlice(t.ID, p.ApprovalsWhitelistTeamIDs)
-			p.MergeWhitelistTeamIDs = util.RemoveFromSlice(t.ID, p.MergeWhitelistTeamIDs)
+			p.WhitelistTeamIDs = util.SliceRemoveAll(p.WhitelistTeamIDs, t.ID)
+			p.ApprovalsWhitelistTeamIDs = util.SliceRemoveAll(p.ApprovalsWhitelistTeamIDs, t.ID)
+			p.MergeWhitelistTeamIDs = util.SliceRemoveAll(p.MergeWhitelistTeamIDs, t.ID)
 			if lenIDs != len(p.WhitelistTeamIDs) ||
 				lenApprovalIDs != len(p.ApprovalsWhitelistTeamIDs) ||
 				lenMergeIDs != len(p.MergeWhitelistTeamIDs) {

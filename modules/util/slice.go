@@ -71,13 +71,13 @@ func SliceEqual[T comparable](s1, s2 []T) bool {
 	return true
 }
 
-// RemoveFromSlice removes all the target elements from the slice.
-func RemoveFromSlice[T comparable](target T, slice []T) []T {
-	return RemoveFromSliceFunc(func(t T) bool { return t == target }, slice)
+// SliceRemoveAll removes all the target elements from the slice.
+func SliceRemoveAll[T comparable](slice []T, target T) []T {
+	return SliceRemoveAllFunc(slice, func(t T) bool { return t == target })
 }
 
-// RemoveFromSliceFunc removes all elements which satisfy the targetFunc from the slice.
-func RemoveFromSliceFunc[T comparable](targetFunc func(T) bool, slice []T) []T {
+// SliceRemoveAllFunc removes all elements which satisfy the targetFunc from the slice.
+func SliceRemoveAllFunc[T comparable](slice []T, targetFunc func(T) bool) []T {
 	idx := 0
 	for _, v := range slice {
 		if targetFunc(v) {
