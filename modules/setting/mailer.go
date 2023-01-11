@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
-	ini "gopkg.in/ini.v1"
 
 	shellquote "github.com/kballard/go-shellquote"
+	ini "gopkg.in/ini.v1"
 )
 
 // Mailer represents mail service.
