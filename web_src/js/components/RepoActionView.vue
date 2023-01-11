@@ -106,7 +106,7 @@ const sfc = {
 
   methods: {
     // get the active container element, either the `job-step-logs` or the `job-log-list` in the `job-log-group`
-    stepLogsGetActiveContainer(idx) {
+    getLogsContainer(idx) {
       const el = this.$refs.elJobStepLogs[idx];
       return el._stepLogsActiveContainer ?? el;
     },
@@ -205,7 +205,7 @@ const sfc = {
     appendLogs(stepIndex, logLines) {
       for (const line of logLines) {
         // TODO: group support: ##[group]GroupTitle , ##[endgroup]
-        const el = this.stepLogsGetActiveContainer(stepIndex);
+        const el = this.getLogsContainer(stepIndex);
         el.append(this.createLogLine(line));
       }
     },
