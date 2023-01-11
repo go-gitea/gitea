@@ -10,29 +10,29 @@ import (
 )
 
 func TestSliceContains(t *testing.T) {
-	assert.True(t, SliceContains(2, []int{2, 0, 2, 3}))
-	assert.True(t, SliceContains(0, []int{2, 0, 2, 3}))
-	assert.True(t, SliceContains(3, []int{2, 0, 2, 3}))
+	assert.True(t, SliceContains([]int{2, 0, 2, 3}, 2))
+	assert.True(t, SliceContains([]int{2, 0, 2, 3}, 0))
+	assert.True(t, SliceContains([]int{2, 0, 2, 3}, 3))
 
-	assert.True(t, SliceContains("0", []string{"2", "0", "2", "3"}))
-	assert.True(t, SliceContains(0, []float64{2, 0, 2, 3}))
-	assert.True(t, SliceContains(true, []bool{false, true, false}))
+	assert.True(t, SliceContains([]string{"2", "0", "2", "3"}, "0"))
+	assert.True(t, SliceContains([]float64{2, 0, 2, 3}, 0))
+	assert.True(t, SliceContains([]bool{false, true, false}, true))
 
-	assert.False(t, SliceContains(4, []int{2, 0, 2, 3}))
-	assert.False(t, SliceContains(4, []int{}))
-	assert.False(t, SliceContains(4, nil))
+	assert.False(t, SliceContains([]int{2, 0, 2, 3}, 4))
+	assert.False(t, SliceContains([]int{}, 4))
+	assert.False(t, SliceContains(nil, 4))
 }
 
 func TestSliceContainsString(t *testing.T) {
-	assert.True(t, SliceContainsString("a", []string{"c", "b", "a", "b"}))
-	assert.True(t, SliceContainsString("b", []string{"c", "b", "a", "b"}))
-	assert.True(t, SliceContainsString("A", []string{"c", "b", "a", "b"}, true))
-	assert.True(t, SliceContainsString("a", []string{"C", "B", "A", "B"}, true))
+	assert.True(t, SliceContainsString([]string{"c", "b", "a", "b"}, "a"))
+	assert.True(t, SliceContainsString([]string{"c", "b", "a", "b"}, "b"))
+	assert.True(t, SliceContainsString([]string{"c", "b", "a", "b"}, "A", true))
+	assert.True(t, SliceContainsString([]string{"C", "B", "A", "B"}, "a", true))
 
-	assert.False(t, SliceContainsString("z", []string{"c", "b", "a", "b"}))
-	assert.False(t, SliceContainsString("A", []string{"c", "b", "a", "b"}))
-	assert.False(t, SliceContainsString("a", []string{}))
-	assert.False(t, SliceContainsString("a", nil))
+	assert.False(t, SliceContainsString([]string{"c", "b", "a", "b"}, "z"))
+	assert.False(t, SliceContainsString([]string{"c", "b", "a", "b"}, "A"))
+	assert.False(t, SliceContainsString([]string{}, "a"))
+	assert.False(t, SliceContainsString(nil, "a"))
 }
 
 func TestIsEqualSlice(t *testing.T) {

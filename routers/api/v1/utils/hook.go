@@ -107,11 +107,11 @@ func toAPIHook(ctx *context.APIContext, repoLink string, hook *webhook.Webhook) 
 }
 
 func issuesHook(events []string, event string) bool {
-	return util.SliceContainsString(event, events, true) || util.SliceContainsString(string(webhook_module.HookEventIssues), events, true)
+	return util.SliceContainsString(events, event, true) || util.SliceContainsString(events, string(webhook_module.HookEventIssues), true)
 }
 
 func pullHook(events []string, event string) bool {
-	return util.SliceContainsString(event, events, true) || util.SliceContainsString(string(webhook_module.HookEventPullRequest), events, true)
+	return util.SliceContainsString(events, event, true) || util.SliceContainsString(events, string(webhook_module.HookEventPullRequest), true)
 }
 
 // addHook add the hook specified by `form`, `orgID` and `repoID`. If there is
@@ -130,15 +130,15 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 		HookEvent: &webhook_module.HookEvent{
 			ChooseEvents: true,
 			HookEvents: webhook_module.HookEvents{
-				Create:               util.SliceContainsString(string(webhook_module.HookEventCreate), form.Events, true),
-				Delete:               util.SliceContainsString(string(webhook_module.HookEventDelete), form.Events, true),
-				Fork:                 util.SliceContainsString(string(webhook_module.HookEventFork), form.Events, true),
+				Create:               util.SliceContainsString(form.Events, string(webhook_module.HookEventCreate), true),
+				Delete:               util.SliceContainsString(form.Events, string(webhook_module.HookEventDelete), true),
+				Fork:                 util.SliceContainsString(form.Events, string(webhook_module.HookEventFork), true),
 				Issues:               issuesHook(form.Events, "issues_only"),
 				IssueAssign:          issuesHook(form.Events, string(webhook_module.HookEventIssueAssign)),
 				IssueLabel:           issuesHook(form.Events, string(webhook_module.HookEventIssueLabel)),
 				IssueMilestone:       issuesHook(form.Events, string(webhook_module.HookEventIssueMilestone)),
 				IssueComment:         issuesHook(form.Events, string(webhook_module.HookEventIssueComment)),
-				Push:                 util.SliceContainsString(string(webhook_module.HookEventPush), form.Events, true),
+				Push:                 util.SliceContainsString(form.Events, string(webhook_module.HookEventPush), true),
 				PullRequest:          pullHook(form.Events, "pull_request_only"),
 				PullRequestAssign:    pullHook(form.Events, string(webhook_module.HookEventPullRequestAssign)),
 				PullRequestLabel:     pullHook(form.Events, string(webhook_module.HookEventPullRequestLabel)),
@@ -146,9 +146,9 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 				PullRequestComment:   pullHook(form.Events, string(webhook_module.HookEventPullRequestComment)),
 				PullRequestReview:    pullHook(form.Events, "pull_request_review"),
 				PullRequestSync:      pullHook(form.Events, string(webhook_module.HookEventPullRequestSync)),
-				Wiki:                 util.SliceContainsString(string(webhook_module.HookEventWiki), form.Events, true),
-				Repository:           util.SliceContainsString(string(webhook_module.HookEventRepository), form.Events, true),
-				Release:              util.SliceContainsString(string(webhook_module.HookEventRelease), form.Events, true),
+				Wiki:                 util.SliceContainsString(form.Events, string(webhook_module.HookEventWiki), true),
+				Repository:           util.SliceContainsString(form.Events, string(webhook_module.HookEventRepository), true),
+				Release:              util.SliceContainsString(form.Events, string(webhook_module.HookEventRelease), true),
 			},
 			BranchFilter: form.BranchFilter,
 		},
@@ -277,14 +277,14 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 	w.PushOnly = false
 	w.SendEverything = false
 	w.ChooseEvents = true
-	w.Create = util.SliceContainsString(string(webhook_module.HookEventCreate), form.Events, true)
-	w.Push = util.SliceContainsString(string(webhook_module.HookEventPush), form.Events, true)
-	w.Create = util.SliceContainsString(string(webhook_module.HookEventCreate), form.Events, true)
-	w.Delete = util.SliceContainsString(string(webhook_module.HookEventDelete), form.Events, true)
-	w.Fork = util.SliceContainsString(string(webhook_module.HookEventFork), form.Events, true)
-	w.Repository = util.SliceContainsString(string(webhook_module.HookEventRepository), form.Events, true)
-	w.Wiki = util.SliceContainsString(string(webhook_module.HookEventWiki), form.Events, true)
-	w.Release = util.SliceContainsString(string(webhook_module.HookEventRelease), form.Events, true)
+	w.Create = util.SliceContainsString(form.Events, string(webhook_module.HookEventCreate), true)
+	w.Push = util.SliceContainsString(form.Events, string(webhook_module.HookEventPush), true)
+	w.Create = util.SliceContainsString(form.Events, string(webhook_module.HookEventCreate), true)
+	w.Delete = util.SliceContainsString(form.Events, string(webhook_module.HookEventDelete), true)
+	w.Fork = util.SliceContainsString(form.Events, string(webhook_module.HookEventFork), true)
+	w.Repository = util.SliceContainsString(form.Events, string(webhook_module.HookEventRepository), true)
+	w.Wiki = util.SliceContainsString(form.Events, string(webhook_module.HookEventWiki), true)
+	w.Release = util.SliceContainsString(form.Events, string(webhook_module.HookEventRelease), true)
 	w.BranchFilter = form.BranchFilter
 
 	err := w.SetHeaderAuthorization(form.AuthorizationHeader)
