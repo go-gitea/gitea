@@ -416,7 +416,7 @@ func SynchronizePublicKeys(usr *user_model.User, s *auth.Source, sshPublicKeys [
 	}
 
 	// Check if Public Key sync is needed
-	if util.IsEqualSlice(giteaKeys, providedKeys) {
+	if util.SliceSortedEqual(giteaKeys, providedKeys) {
 		log.Trace("synchronizePublicKeys[%s]: Public Keys are already in sync for %s (Source:%v/DB:%v)", s.Name, usr.Name, len(providedKeys), len(giteaKeys))
 		return false
 	}

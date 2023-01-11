@@ -34,23 +34,37 @@ func SliceContainsString(slice []string, target string, insensitive ...bool) boo
 	return SliceContains(slice, target)
 }
 
-// IsEqualSlice returns true if slices are equal.
-// Be careful, two slice which have the same elements but different order are considered equal here.
-func IsEqualSlice[T comparable](target, source []T) bool {
-	if len(target) != len(source) {
+// SliceSortedEqual returns true if the two slices will be equal when they get sorted.
+// It doesn't require that the slices have been sorted, and it doesn't sort them either.
+func SliceSortedEqual[T comparable](s1, s2 []T) bool {
+	if len(s1) != len(s2) {
 		return false
 	}
 
-	counts := make(map[T]int, len(target))
-	for _, v := range target {
+	counts := make(map[T]int, len(s1))
+	for _, v := range s1 {
 		counts[v]++
 	}
-	for _, v := range source {
+	for _, v := range s2 {
 		counts[v]--
 	}
 
 	for _, v := range counts {
 		if v != 0 {
+			return false
+		}
+	}
+	return true
+}
+
+// SliceEqual returns true if the two slices are equal.
+func SliceEqual[T comparable](s1, s2 []T) bool {
+	if len(s1) != len(s2) {
+		return false
+	}
+
+	for i, v := range s1 {
+		if s2[i] != v {
 			return false
 		}
 	}

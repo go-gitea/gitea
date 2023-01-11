@@ -35,21 +35,21 @@ func TestSliceContainsString(t *testing.T) {
 	assert.False(t, SliceContainsString(nil, "a"))
 }
 
-func TestIsEqualSlice(t *testing.T) {
-	assert.True(t, IsEqualSlice([]int{2, 0, 2, 3}, []int{2, 0, 2, 3}))
-	assert.True(t, IsEqualSlice([]int{3, 0, 2, 2}, []int{3, 0, 2, 2}))
-	assert.True(t, IsEqualSlice([]int{}, []int{}))
-	assert.True(t, IsEqualSlice([]int(nil), nil))
-	assert.True(t, IsEqualSlice([]int(nil), []int{}))
-	assert.True(t, IsEqualSlice([]int{}, []int{}))
+func TestSliceSortedEqual(t *testing.T) {
+	assert.True(t, SliceSortedEqual([]int{2, 0, 2, 3}, []int{2, 0, 2, 3}))
+	assert.True(t, SliceSortedEqual([]int{3, 0, 2, 2}, []int{3, 0, 2, 2}))
+	assert.True(t, SliceSortedEqual([]int{}, []int{}))
+	assert.True(t, SliceSortedEqual([]int(nil), nil))
+	assert.True(t, SliceSortedEqual([]int(nil), []int{}))
+	assert.True(t, SliceSortedEqual([]int{}, []int{}))
 
-	assert.True(t, IsEqualSlice([]string{"2", "0", "2", "3"}, []string{"2", "0", "2", "3"}))
-	assert.True(t, IsEqualSlice([]float64{2, 0, 2, 3}, []float64{2, 0, 2, 3}))
-	assert.True(t, IsEqualSlice([]bool{false, true, false}, []bool{false, true, false}))
+	assert.True(t, SliceSortedEqual([]string{"2", "0", "2", "3"}, []string{"2", "0", "2", "3"}))
+	assert.True(t, SliceSortedEqual([]float64{2, 0, 2, 3}, []float64{2, 0, 2, 3}))
+	assert.True(t, SliceSortedEqual([]bool{false, true, false}, []bool{false, true, false}))
 
-	assert.False(t, IsEqualSlice([]int{2, 0, 2}, []int{2, 0, 2, 3}))
-	assert.False(t, IsEqualSlice([]int{2, 0, 2, 4}, []int{2, 0, 2, 3}))
-	assert.False(t, IsEqualSlice([]int{2, 0, 0, 3}, []int{2, 0, 2, 3}))
+	assert.False(t, SliceSortedEqual([]int{2, 0, 2}, []int{2, 0, 2, 3}))
+	assert.False(t, SliceSortedEqual([]int{2, 0, 2, 4}, []int{2, 0, 2, 3}))
+	assert.False(t, SliceSortedEqual([]int{2, 0, 0, 3}, []int{2, 0, 2, 3}))
 }
 
 func TestRemoveFromSlice(t *testing.T) {
