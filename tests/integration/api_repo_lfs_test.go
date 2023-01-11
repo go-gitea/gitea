@@ -77,7 +77,7 @@ func TestAPILFSBatch(t *testing.T) {
 
 	content := []byte("dummy1")
 	oid := storeObjectInRepo(t, repo.ID, &content)
-	defer git_model.RemoveLFSMetaObjectByOid(repo.ID, oid)
+	defer git_model.RemoveLFSMetaObjectByOid(db.DefaultContext, repo.ID, oid)
 
 	session := loginUser(t, "user2")
 
@@ -261,7 +261,7 @@ func TestAPILFSBatch(t *testing.T) {
 			content := []byte("dummy0")
 			storeObjectInRepo(t, repo2.ID, &content)
 
-			meta, err := git_model.GetLFSMetaObjectByOid(repo.ID, p.Oid)
+			meta, err := git_model.GetLFSMetaObjectByOid(db.DefaultContext, repo.ID, p.Oid)
 			assert.Nil(t, meta)
 			assert.Equal(t, git_model.ErrLFSObjectNotExist, err)
 
@@ -276,7 +276,7 @@ func TestAPILFSBatch(t *testing.T) {
 			assert.Nil(t, br.Objects[0].Error)
 			assert.Empty(t, br.Objects[0].Actions)
 
-			meta, err = git_model.GetLFSMetaObjectByOid(repo.ID, p.Oid)
+			meta, err = git_model.GetLFSMetaObjectByOid(db.DefaultContext, repo.ID, p.Oid)
 			assert.NoError(t, err)
 			assert.NotNil(t, meta)
 
@@ -337,7 +337,7 @@ func TestAPILFSUpload(t *testing.T) {
 
 	content := []byte("dummy3")
 	oid := storeObjectInRepo(t, repo.ID, &content)
-	defer git_model.RemoveLFSMetaObjectByOid(repo.ID, oid)
+	defer git_model.RemoveLFSMetaObjectByOid(db.DefaultContext, repo.ID, oid)
 
 	session := loginUser(t, "user2")
 
@@ -366,7 +366,7 @@ func TestAPILFSUpload(t *testing.T) {
 		err = contentStore.Put(p, bytes.NewReader([]byte("dummy5")))
 		assert.NoError(t, err)
 
-		meta, err := git_model.GetLFSMetaObjectByOid(repo.ID, p.Oid)
+		meta, err := git_model.GetLFSMetaObjectByOid(db.DefaultContext, repo.ID, p.Oid)
 		assert.Nil(t, meta)
 		assert.Equal(t, git_model.ErrLFSObjectNotExist, err)
 
@@ -379,7 +379,7 @@ func TestAPILFSUpload(t *testing.T) {
 			req := newRequest(t, p, "dummy5")
 
 			session.MakeRequest(t, req, http.StatusOK)
-			meta, err = git_model.GetLFSMetaObjectByOid(repo.ID, p.Oid)
+			meta, err = git_model.GetLFSMetaObjectByOid(db.DefaultContext, repo.ID, p.Oid)
 			assert.NoError(t, err)
 			assert.NotNil(t, meta)
 		})
@@ -427,7 +427,7 @@ func TestAPILFSUpload(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, exist)
 
-		meta, err := git_model.GetLFSMetaObjectByOid(repo.ID, p.Oid)
+		meta, err := git_model.GetLFSMetaObjectByOid(db.DefaultContext, repo.ID, p.Oid)
 		assert.NoError(t, err)
 		assert.NotNil(t, meta)
 	})
@@ -442,7 +442,7 @@ func TestAPILFSVerify(t *testing.T) {
 
 	content := []byte("dummy3")
 	oid := storeObjectInRepo(t, repo.ID, &content)
-	defer git_model.RemoveLFSMetaObjectByOid(repo.ID, oid)
+	defer git_model.RemoveLFSMetaObjectByOid(db.DefaultContext, repo.ID, oid)
 
 	session := loginUser(t, "user2")
 
