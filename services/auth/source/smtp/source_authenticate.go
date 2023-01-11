@@ -23,7 +23,7 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 		idx := strings.Index(userName, "@")
 		if idx == -1 {
 			return nil, user_model.ErrUserNotExist{Name: userName}
-		} else if !util.IsStringInSlice(userName[idx+1:], strings.Split(source.AllowedDomains, ","), true) {
+		} else if !util.SliceContainsString(userName[idx+1:], strings.Split(source.AllowedDomains, ","), true) {
 			return nil, user_model.ErrUserNotExist{Name: userName}
 		}
 	}

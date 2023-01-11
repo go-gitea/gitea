@@ -24,8 +24,8 @@ func SliceContainsFunc[T any](targetFunc func(T) bool, slice []T) bool {
 	return false
 }
 
-// IsStringInSlice sequential searches if string exists in slice.
-func IsStringInSlice(target string, slice []string, insensitive ...bool) bool {
+// SliceContainsString sequential searches if string exists in slice.
+func SliceContainsString(target string, slice []string, insensitive ...bool) bool {
 	if len(insensitive) != 0 && insensitive[0] {
 		target = strings.ToLower(target)
 		return SliceContainsFunc(func(t string) bool { return strings.ToLower(t) == target }, slice)

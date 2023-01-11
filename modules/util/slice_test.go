@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestIsInSlice(t *testing.T) {
+func TestSliceContains(t *testing.T) {
 	assert.True(t, SliceContains(2, []int{2, 0, 2, 3}))
 	assert.True(t, SliceContains(0, []int{2, 0, 2, 3}))
 	assert.True(t, SliceContains(3, []int{2, 0, 2, 3}))
@@ -23,16 +23,16 @@ func TestIsInSlice(t *testing.T) {
 	assert.False(t, SliceContains(4, nil))
 }
 
-func TestIsStringInSlice(t *testing.T) {
-	assert.True(t, IsStringInSlice("a", []string{"c", "b", "a", "b"}))
-	assert.True(t, IsStringInSlice("b", []string{"c", "b", "a", "b"}))
-	assert.True(t, IsStringInSlice("A", []string{"c", "b", "a", "b"}, true))
-	assert.True(t, IsStringInSlice("a", []string{"C", "B", "A", "B"}, true))
+func TestSliceContainsString(t *testing.T) {
+	assert.True(t, SliceContainsString("a", []string{"c", "b", "a", "b"}))
+	assert.True(t, SliceContainsString("b", []string{"c", "b", "a", "b"}))
+	assert.True(t, SliceContainsString("A", []string{"c", "b", "a", "b"}, true))
+	assert.True(t, SliceContainsString("a", []string{"C", "B", "A", "B"}, true))
 
-	assert.False(t, IsStringInSlice("z", []string{"c", "b", "a", "b"}))
-	assert.False(t, IsStringInSlice("A", []string{"c", "b", "a", "b"}))
-	assert.False(t, IsStringInSlice("a", []string{}))
-	assert.False(t, IsStringInSlice("a", nil))
+	assert.False(t, SliceContainsString("z", []string{"c", "b", "a", "b"}))
+	assert.False(t, SliceContainsString("A", []string{"c", "b", "a", "b"}))
+	assert.False(t, SliceContainsString("a", []string{}))
+	assert.False(t, SliceContainsString("a", nil))
 }
 
 func TestIsEqualSlice(t *testing.T) {

@@ -155,7 +155,7 @@ func MakeIDsFromAPIAssigneesToAdd(ctx context.Context, oneAssignee string, multi
 	var requestAssignees []string
 
 	// Keeping the old assigning method for compatibility reasons
-	if oneAssignee != "" && !util.IsStringInSlice(oneAssignee, multipleAssignees) {
+	if oneAssignee != "" && !util.SliceContainsString(oneAssignee, multipleAssignees) {
 		requestAssignees = append(requestAssignees, oneAssignee)
 	}
 
