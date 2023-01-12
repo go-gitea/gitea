@@ -347,4 +347,4 @@ If set `ENABLE_REVERSE_PROXY_FULL_NAME=true`, a user full name expected in `X-WE
 
 You can also limit the reverse proxy's IP address range with `REVERSE_PROXY_TRUSTED_PROXIES` which default value is `127.0.0.0/8,::1/128`. By `REVERSE_PROXY_LIMIT`, you can limit trusted proxies level.
 
-Notice: Reverse Proxy Auth doesn't support authenticate API, you still need an access token or basic auth to visit API.
+Notice: Reverse Proxy Auth doesn't support the API. You still need an access token or basic auth to make API requests.
