@@ -130,7 +130,7 @@ const sfc = {
     // get the active container element, either the `job-step-logs` or the `job-log-list` in the `job-log-group`
     getLogsContainer(idx) {
       const el = this.$refs.logs[idx];
-      return el.logsContainer ?? el;
+      return el._stepLogsActiveContainer ?? el;
     },
     // begin a log group
     beginLogGroup(idx) {
@@ -147,12 +147,12 @@ const sfc = {
 
       elJobLogGroup.appendChild(elJobLogGroupSummary);
       elJobLogGroup.appendChild(elJobLogList);
-      el.logsContainer = elJobLogList;
+      el._stepLogsActiveContainer = elJobLogList;
     },
     // end a log group
     endLogGroup(idx) {
       const el = this.$refs.logs[idx];
-      el.logsContainer = null;
+      el._stepLogsActiveContainer = null;
     },
 
     // show/hide the step logs for a step
