@@ -34,7 +34,7 @@ func TestParseMailerConfig(t *testing.T) {
 			sec.NewKey("HOST", host)
 
 			// Check mailer setting
-			parseMailerConfig(iniFile)
+			parseMailerSetting(iniFile)
 
 			assert.EqualValues(t, kase.SMTPAddr, MailService.SMTPAddr)
 			assert.EqualValues(t, kase.SMTPPort, MailService.SMTPPort)

@@ -292,7 +292,7 @@ func doMigrationTest(t *testing.T, version string) {
 		return
 	}
 
-	setting.NewXORMLogService(false)
+	setting.ParseXORMLogSetting(false)
 
 	err := db.InitEngineWithMigration(context.Background(), wrappedMigrate)
 	assert.NoError(t, err)

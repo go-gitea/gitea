@@ -339,6 +339,8 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	parseGitSetting(Cfg)
 	parseMirrorSetting(Cfg)
 	parseMarkupSetting(Cfg)
+	parseOtherSetting(Cfg)
+	parseCamoSetting(Cfg)
 }
 
 // CreateOrAppendToCustomConf creates or updates the custom config.

@@ -16,7 +16,7 @@ import (
 
 func TestMain(m *testing.M) {
 	setting.LoadForTest()
-	setting.NewQueueService()
+	setting.ParseQueueSettings()
 
 	// for tests, allow only loopback IPs
 	setting.Webhook.AllowedHostList = hostmatcher.MatchBuiltinLoopback
