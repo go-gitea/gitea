@@ -88,6 +88,7 @@ const sfc = {
 
       // internal state
       loading: false,
+      intervalID: null,
       currentJobStepsStates: [],
 
       // provided by backend
@@ -95,6 +96,7 @@ const sfc = {
         htmlurl: '',
         title: '',
         canCancel: false,
+        done: false,
         jobs: [
           // {
           //   id: 0,
@@ -121,7 +123,7 @@ const sfc = {
   mounted() {
     // load job data and then auto-reload periodically
     this.loadJob();
-    setInterval(() => this.loadJob(), 1000);
+    this.intervalID = setInterval(this.loadJob, 1000);
   },
 
   methods: {
@@ -233,6 +235,11 @@ const sfc = {
           // save the cursor, it will be passed to backend next time
           this.currentJobStepsStates[logs.step].cursor = logs.cursor;
           this.appendLogs(logs.step, logs.lines);
+        }
+
+        if (this.run.done && this.intervalID) {
+          clearInterval(this.intervalID);
+          this.intervalID = null;
         }
       } finally {
         this.loading = false;
