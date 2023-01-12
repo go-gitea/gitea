@@ -29,7 +29,6 @@ export default {
   },
   computed: {
     fileTree() {
-      pageData.diffFileInfo.files = this.files;
       const result = [];
       for (const file of this.files) {
         // Split file into directories
@@ -95,6 +94,9 @@ export default {
   mounted() {
     // ensure correct buttons when we are mounted to the dom
     this.adjustToggleButton(this.fileTreeIsVisible);
+    // replace the pageData.diffFileInfo.files with our watched data so we get updates
+    pageData.diffFileInfo.files = this.files;
+
     document.querySelector('.diff-toggle-file-tree-button').addEventListener('click', this.toggleVisibility);
   },
   unmounted() {
