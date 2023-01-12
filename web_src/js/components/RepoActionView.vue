@@ -120,8 +120,8 @@ const sfc = {
 
   mounted() {
     // load job data and then auto-reload periodically
-    this.loadJobData();
-    setInterval(() => this.loadJobData(), 1000);
+    this.loadJob();
+    setInterval(() => this.loadJob(), 1000);
   },
 
   methods: {
@@ -157,7 +157,7 @@ const sfc = {
     toggleStepLogs(idx) {
       this.currentJobStepsStates[idx].expanded = !this.currentJobStepsStates[idx].expanded;
       if (this.currentJobStepsStates[idx].expanded) {
-        this.loadJobData(); // try to load the data immediately instead of waiting for next timer interval
+        this.loadJob(); // try to load the data immediately instead of waiting for next timer interval
       }
     },
     // rerun a job
@@ -197,34 +197,29 @@ const sfc = {
       }
     },
 
-    // the requestBody has the following fields:
-    // * stateData: it will be stored into Vue data and used to update the UI state
-    // * logsData: the logs in it will be appended to the UI manually, no touch to Vue data
-    async fetchJob(requestBody) {
+    async fetchJob() {
+      const logCursors = this.currentJobStepsStates.map((it, idx) => {
+        // cursor is used to indicate the last position of the logs
+        // it's only used by backend, frontend just reads it and passes it back, it and can be any type.
+        // for example: make cursor=null means the first time to fetch logs, cursor=eof means no more logs, etc
+        return {step: idx, cursor: it.cursor, expanded: it.expanded};
+      });
       const resp = await this.fetch(
         `${this.actionsURL}/runs/${this.runIndex}/jobs/${this.jobIndex}`,
-        JSON.stringify(requestBody),
+        JSON.stringify({logCursors}),
       );
       return await resp.json();
     },
 
-    async loadJobData() {
+    async loadJob() {
       if (this.loading) return;
       try {
         this.loading = true;
 
-        const logCursors = this.currentJobStepsStates.map((it, idx) => {
-          // cursor is used to indicate the last position of the logs
-          // it's only used by backend, frontend just reads it and passes it back, it and can be any type.
-          // for example: make cursor=null means the first time to fetch logs, cursor=eof means no more logs, etc
-          return {step: idx, cursor: it.cursor, expanded: it.expanded};
-        });
-        const reqData = {logCursors};
+        const response = await this.fetchJob();
 
-        const respData = await this.fetchJob(reqData);
-
-        // save the stateData to Vue data, then the UI will be updated
-        for (const [key, value] of Object.entries(respData.state)) {
+        // save the state to Vue data, then the UI will be updated
+        for (const [key, value] of Object.entries(response.state)) {
           this[key] = value;
         }
 
@@ -235,7 +230,7 @@ const sfc = {
           }
         }
         // append logs to the UI
-        for (const logs of respData.logs.steps_log) {
+        for (const logs of response.logs.steps_log) {
           // save the cursor, it will be passed to backend next time
           this.currentJobStepsStates[logs.step].cursor = logs.cursor;
           this.appendLogs(logs.step, logs.lines);
