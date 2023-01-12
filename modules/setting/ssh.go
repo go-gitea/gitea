@@ -125,7 +125,7 @@ func parseSSHSetting(rootCfg Config) {
 		SSH.ServerMACs = serverMACs
 	}
 	SSH.KeyTestPath = os.TempDir()
-	if err = Cfg.Section("server").MapTo(&SSH); err != nil {
+	if err = sec.MapTo(&SSH); err != nil {
 		log.Fatal("Failed to map SSH settings: %v", err)
 	}
 	for i, key := range SSH.ServerHostKeys {
@@ -164,7 +164,7 @@ func parseSSHSetting(rootCfg Config) {
 	SSH.AuthorizedPrincipalsAllow, SSH.AuthorizedPrincipalsEnabled = parseAuthorizedPrincipalsAllow(sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").Strings(","))
 
 	SSH.MinimumKeySizeCheck = sec.Key("MINIMUM_KEY_SIZE_CHECK").MustBool(SSH.MinimumKeySizeCheck)
-	minimumKeySizes := Cfg.Section("ssh.minimum_key_sizes").Keys()
+	minimumKeySizes := rootCfg.Section("ssh.minimum_key_sizes").Keys()
 	for _, key := range minimumKeySizes {
 		if key.MustInt() != -1 {
 			SSH.MinimumKeySizes[strings.ToLower(key.Name())] = key.MustInt()
@@ -190,4 +190,8 @@ func parseSSHSetting(rootCfg Config) {
 
 	SSH.PerWriteTimeout = sec.Key("SSH_PER_WRITE_TIMEOUT").MustDuration(PerWriteTimeout)
 	SSH.PerWritePerKbTimeout = sec.Key("SSH_PER_WRITE_PER_KB_TIMEOUT").MustDuration(PerWritePerKbTimeout)
+
+	// ensure parseRunModeSetting has been executed before this
+	SSH.BuiltinServerUser = rootCfg.Section("server").Key("BUILTIN_SSH_SERVER_USER").MustString(RunUser)
+	SSH.User = rootCfg.Section("server").Key("SSH_USER").MustString(SSH.BuiltinServerUser)
 }

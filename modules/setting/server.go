@@ -7,7 +7,6 @@ import (
 	"encoding/base64"
 	"net"
 	"net/url"
-	"os"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -16,7 +15,6 @@ import (
 
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -81,14 +79,102 @@ func MakeAbsoluteAssetURL(appURL, staticURLPrefix string) string {
 	return strings.TrimSuffix(staticURLPrefix, "/")
 }
 
+// Scheme describes protocol types
+type Scheme string
+
+// enumerates all the scheme types
+const (
+	HTTP     Scheme = "http"
+	HTTPS    Scheme = "https"
+	FCGI     Scheme = "fcgi"
+	FCGIUnix Scheme = "fcgi+unix"
+	HTTPUnix Scheme = "http+unix"
+)
+
+// LandingPage describes the default page
+type LandingPage string
+
+// enumerates all the landing page types
+const (
+	LandingPageHome          LandingPage = "/"
+	LandingPageExplore       LandingPage = "/explore"
+	LandingPageOrganizations LandingPage = "/explore/organizations"
+	LandingPageLogin         LandingPage = "/user/login"
+)
+
+var (
+	// AppName is the Application name, used in the page title.
+	// It maps to ini:"APP_NAME"
+	AppName string
+	// AppURL is the Application ROOT_URL. It always has a '/' suffix
+	// It maps to ini:"ROOT_URL"
+	AppURL string
+	// AppSubURL represents the sub-url mounting point for gitea. It is either "" or starts with '/' and ends without '/', such as '/{subpath}'.
+	// This value is empty if site does not have sub-url.
+	AppSubURL string
+	// AppDataPath is the default path for storing data.
+	// It maps to ini:"APP_DATA_PATH" in [server] and defaults to AppWorkPath + "/data"
+	AppDataPath string
+	// LocalURL is the url for locally running applications to contact Gitea. It always has a '/' suffix
+	// It maps to ini:"LOCAL_ROOT_URL" in [server]
+	LocalURL string
+	// AssetVersion holds a opaque value that is used for cache-busting assets
+	AssetVersion string
+
+	// Server settings
+	Protocol                   Scheme
+	UseProxyProtocol           bool // `ini:"USE_PROXY_PROTOCOL"`
+	ProxyProtocolTLSBridging   bool //`ini:"PROXY_PROTOCOL_TLS_BRIDGING"`
+	ProxyProtocolHeaderTimeout time.Duration
+	ProxyProtocolAcceptUnknown bool
+	Domain                     string
+	HTTPAddr                   string
+	HTTPPort                   string
+	LocalUseProxyProtocol      bool
+	RedirectOtherPort          bool
+	RedirectorUseProxyProtocol bool
+	PortToRedirect             string
+	OfflineMode                bool
+	CertFile                   string
+	KeyFile                    string
+	StaticRootPath             string
+	StaticCacheTime            time.Duration
+	EnableGzip                 bool
+	LandingPageURL             LandingPage
+	LandingPageCustom          string
+	UnixSocketPermission       uint32
+	EnablePprof                bool
+	PprofDataPath              string
+	EnableAcme                 bool
+	AcmeTOS                    bool
+	AcmeLiveDirectory          string
+	AcmeEmail                  string
+	AcmeURL                    string
+	AcmeCARoot                 string
+	SSLMinimumVersion          string
+	SSLMaximumVersion          string
+	SSLCurvePreferences        []string
+	SSLCipherSuites            []string
+	GracefulRestartable        bool
+	GracefulHammerTime         time.Duration
+	StartupTimeout             time.Duration
+	PerWriteTimeout            = 30 * time.Second
+	PerWritePerKbTimeout       = 10 * time.Second
+	StaticURLPrefix            string
+	AbsoluteAssetURL           string
+
+	HasRobotsTxt bool
+)
+
 func parseServerSetting(rootCfg Config) {
-	LogLevel = getLogLevel(Cfg.Section("log"), "LEVEL", log.INFO)
-	StacktraceLogLevel = getStacktraceLogLevel(Cfg.Section("log"), "STACKTRACE_LEVEL", "None")
-	LogRootPath = Cfg.Section("log").Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
+	logSec := rootCfg.Section("log")
+	LogLevel = getLogLevel(logSec, "LEVEL", log.INFO)
+	StacktraceLogLevel = getStacktraceLogLevel(logSec, "STACKTRACE_LEVEL", "None")
+	LogRootPath = logSec.Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
 	forcePathSeparator(LogRootPath)
 
-	sec := Cfg.Section("server")
-	AppName = Cfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")
+	sec := rootCfg.Section("server")
+	AppName = rootCfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")
 
 	Domain = sec.Key("DOMAIN").MustString("localhost")
 	HTTPAddr = sec.Key("HTTP_ADDR").MustString("0.0.0.0")
@@ -270,49 +356,8 @@ func parseServerSetting(rootCfg Config) {
 		LandingPageURL = LandingPage(landingPage)
 	}
 
-	parseRunModeSetting(rootCfg)
-}
-
-// IsRunUserMatchCurrentUser returns false if configured run user does not match
-// actual user that runs the app. The first return value is the actual user name.
-// This check is ignored under Windows since SSH remote login is not the main
-// method to login on Windows.
-func IsRunUserMatchCurrentUser(runUser string) (string, bool) {
-	if IsWindows || SSH.StartBuiltinServer {
-		return "", true
+	HasRobotsTxt, err = util.IsFile(path.Join(CustomPath, "robots.txt"))
+	if err != nil {
+		log.Error("Unable to check if %s is a file. Error: %v", path.Join(CustomPath, "robots.txt"), err)
 	}
-
-	currentUser := user.CurrentUsername()
-	return currentUser, runUser == currentUser
-}
-
-func parseRunModeSetting(rootCfg Config) {
-	RunUser = Cfg.Section("").Key("RUN_USER").MustString(user.CurrentUsername())
-	// The following is a purposefully undocumented option. Please do not run Gitea as root. It will only cause future headaches.
-	// Please don't use root as a bandaid to "fix" something that is broken, instead the broken thing should instead be fixed properly.
-	unsafeAllowRunAsRoot := Cfg.Section("").Key("I_AM_BEING_UNSAFE_RUNNING_AS_ROOT").MustBool(false)
-	RunMode = os.Getenv("GITEA_RUN_MODE")
-	if RunMode == "" {
-		RunMode = Cfg.Section("").Key("RUN_MODE").MustString("prod")
-	}
-	IsProd = strings.EqualFold(RunMode, "prod")
-	// Does not check run user when the install lock is off.
-	if InstallLock {
-		currentUser, match := IsRunUserMatchCurrentUser(RunUser)
-		if !match {
-			log.Fatal("Expect user '%s' but current user is: %s", RunUser, currentUser)
-		}
-	}
-
-	// check if we run as root
-	if os.Getuid() == 0 {
-		if !unsafeAllowRunAsRoot {
-			// Special thanks to VLC which inspired the wording of this messaging.
-			log.Fatal("Gitea is not supposed to be run as root. Sorry. If you need to use privileged TCP ports please instead use setcap and the `cap_net_bind_service` permission")
-		}
-		log.Critical("You are running Gitea using the root user, and have purposely chosen to skip built-in protections around this. You have been warned against this.")
-	}
-
-	SSH.BuiltinServerUser = Cfg.Section("server").Key("BUILTIN_SSH_SERVER_USER").MustString(RunUser)
-	SSH.User = Cfg.Section("server").Key("SSH_USER").MustString(SSH.BuiltinServerUser)
 }

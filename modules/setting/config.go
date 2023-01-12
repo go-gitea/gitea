@@ -5,11 +5,14 @@ package setting
 
 import (
 	"code.gitea.io/gitea/modules/log"
+
 	ini "gopkg.in/ini.v1"
 )
 
 type Config interface {
 	Section(section string) *ini.Section
+	NewSection(name string) (*ini.Section, error)
+	GetSection(name string) (*ini.Section, error)
 }
 
 func mustMapSetting(rootCfg Config, sectionName string, setting interface{}) {

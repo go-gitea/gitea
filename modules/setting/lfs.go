@@ -40,7 +40,7 @@ func parseLFSSetting(rootCfg Config) {
 	lfsSec.Key("PATH").MustString(
 		sec.Key("LFS_CONTENT_PATH").String())
 
-	LFS.Storage = getStorage("lfs", storageType, lfsSec)
+	LFS.Storage = getStorage(rootCfg, "lfs", storageType, lfsSec)
 
 	// Rest of LFS service settings
 	if LFS.LocksPagingNum == 0 {

@@ -49,7 +49,7 @@ func parsePackagesSetting(rootCfg Config) {
 		log.Fatal("Failed to map Packages settings: %v", err)
 	}
 
-	Packages.Storage = getStorage("packages", "", nil)
+	Packages.Storage = getStorage(rootCfg, "packages", "", nil)
 
 	appURL, _ := url.Parse(AppURL)
 	Packages.RegistryHost = appURL.Host

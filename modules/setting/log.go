@@ -227,12 +227,12 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 	return mode, jsonConfig, levelName
 }
 
-func generateNamedLogger(key string, options defaultLogOptions) *LogDescription {
+func generateNamedLogger(rootCfg Config, key string, options defaultLogOptions) *LogDescription {
 	description := LogDescription{
 		Name: key,
 	}
 
-	sections := strings.Split(Cfg.Section("log").Key(strings.ToUpper(key)).MustString(""), ",")
+	sections := strings.Split(rootCfg.Section("log").Key(strings.ToUpper(key)).MustString(""), ",")
 
 	for i := 0; i < len(sections); i++ {
 		sections[i] = strings.TrimSpace(sections[i])
@@ -242,9 +242,9 @@ func generateNamedLogger(key string, options defaultLogOptions) *LogDescription 
 		if len(name) == 0 || (name == "console" && options.disableConsole) {
 			continue
 		}
-		sec, err := Cfg.GetSection("log." + name + "." + key)
+		sec, err := rootCfg.GetSection("log." + name + "." + key)
 		if err != nil {
-			sec, _ = Cfg.NewSection("log." + name + "." + key)
+			sec, _ = rootCfg.NewSection("log." + name + "." + key)
 		}
 
 		provider, config, levelName := generateLogConfig(sec, name, options)
@@ -267,46 +267,49 @@ func generateNamedLogger(key string, options defaultLogOptions) *LogDescription 
 	return &description
 }
 
-func parseAccessLogSetting() {
-	EnableAccessLog = Cfg.Section("log").Key("ENABLE_ACCESS_LOG").MustBool(false)
-	AccessLogTemplate = Cfg.Section("log").Key("ACCESS_LOG_TEMPLATE").MustString(
+func parseAccessLogSetting(rootCfg Config) {
+	sec := rootCfg.Section("log")
+	EnableAccessLog = sec.Key("ENABLE_ACCESS_LOG").MustBool(false)
+	AccessLogTemplate = sec.Key("ACCESS_LOG_TEMPLATE").MustString(
 		`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`,
 	)
 	// the `MustString` updates the default value, and `log.ACCESS` is used by `generateNamedLogger("access")` later
-	_ = Cfg.Section("log").Key("ACCESS").MustString("file")
+	_ = sec.Key("ACCESS").MustString("file")
 	if EnableAccessLog {
 		options := newDefaultLogOptions()
 		options.filename = filepath.Join(LogRootPath, "access.log")
 		options.flags = "" // For the router we don't want any prefixed flags
-		options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
-		generateNamedLogger("access", options)
+		options.bufferLength = sec.Key("BUFFER_LEN").MustInt64(10000)
+		generateNamedLogger(rootCfg, "access", options)
 	}
 }
 
-func parseRouterLogSetting() {
-	Cfg.Section("log").Key("ROUTER").MustString("console")
+func parseRouterLogSetting(rootCfg Config) {
+	sec := rootCfg.Section("log")
+	sec.Key("ROUTER").MustString("console")
 	// Allow [log]  DISABLE_ROUTER_LOG to override [server] DISABLE_ROUTER_LOG
-	DisableRouterLog = Cfg.Section("log").Key("DISABLE_ROUTER_LOG").MustBool(DisableRouterLog)
+	DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool(DisableRouterLog)
 
 	if !DisableRouterLog {
 		options := newDefaultLogOptions()
 		options.filename = filepath.Join(LogRootPath, "router.log")
 		options.flags = "date,time" // For the router we don't want any prefixed flags
-		options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
-		generateNamedLogger("router", options)
+		options.bufferLength = sec.Key("BUFFER_LEN").MustInt64(10000)
+		generateNamedLogger(rootCfg, "router", options)
 	}
 }
 
-func parseLogSetting() {
+func parseLogSetting(rootCfg Config) {
+	sec := rootCfg.Section("log")
 	options := newDefaultLogOptions()
-	options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
-	EnableSSHLog = Cfg.Section("log").Key("ENABLE_SSH_LOG").MustBool(false)
+	options.bufferLength = sec.Key("BUFFER_LEN").MustInt64(10000)
+	EnableSSHLog = sec.Key("ENABLE_SSH_LOG").MustBool(false)
 
 	description := LogDescription{
 		Name: log.DEFAULT,
 	}
 
-	sections := strings.Split(Cfg.Section("log").Key("MODE").MustString("console"), ",")
+	sections := strings.Split(sec.Key("MODE").MustString("console"), ",")
 
 	useConsole := false
 	for _, name := range sections {
@@ -318,11 +321,11 @@ func parseLogSetting() {
 			useConsole = true
 		}
 
-		sec, err := Cfg.GetSection("log." + name + ".default")
+		sec, err := rootCfg.GetSection("log." + name + ".default")
 		if err != nil {
-			sec, err = Cfg.GetSection("log." + name)
+			sec, err = rootCfg.GetSection("log." + name)
 			if err != nil {
-				sec, _ = Cfg.NewSection("log." + name)
+				sec, _ = rootCfg.NewSection("log." + name)
 			}
 		}
 
@@ -359,9 +362,9 @@ func RestartLogsWithPIDSuffix() {
 
 // ParseLogSettings creates all the log services
 func ParseLogSettings(disableConsole bool) {
-	parseLogSetting()
-	parseRouterLogSetting()
-	parseAccessLogSetting()
+	parseLogSetting(Cfg)
+	parseRouterLogSetting(Cfg)
+	parseAccessLogSetting(Cfg)
 	ParseXORMLogSetting(disableConsole)
 }
 
@@ -375,6 +378,6 @@ func ParseXORMLogSetting(disableConsole bool) {
 		options.disableConsole = disableConsole
 
 		Cfg.Section("log").Key("XORM").MustString(",")
-		generateNamedLogger("xorm", options)
+		generateNamedLogger(Cfg, "xorm", options)
 	}
 }

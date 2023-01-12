@@ -79,7 +79,7 @@ func parseCacheSetting(rootCfg Config) {
 		Service.EnableCaptcha = false
 	}
 
-	sec = Cfg.Section("cache.last_commit")
+	sec = rootCfg.Section("cache.last_commit")
 	if !CacheService.Enabled {
 		CacheService.LastCommit.Enabled = false
 	}

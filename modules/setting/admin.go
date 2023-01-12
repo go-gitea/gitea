@@ -11,6 +11,6 @@ var Admin struct {
 
 func parseAdminSetting(rootCfg Config) {
 	mustMapSetting(rootCfg, "admin", &Admin)
-	sec := Cfg.Section("admin")
+	sec := rootCfg.Section("admin")
 	Admin.DefaultEmailNotification = sec.Key("DEFAULT_EMAIL_NOTIFICATIONS").MustString("enabled")
 }

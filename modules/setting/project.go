@@ -13,3 +13,7 @@ var (
 		ProjectBoardBugTriageType:   []string{"Needs Triage", "High Priority", "Low Priority", "Closed"},
 	}
 )
+
+func parseProjectSetting(rootCfg Config) {
+	mustMapSetting(rootCfg, "project", &Project)
+}

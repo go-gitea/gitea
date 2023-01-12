@@ -24,7 +24,7 @@ MINIO_ENDPOINT = my_minio:9000
 
 	sec := Cfg.Section("attachment")
 	storageType := sec.Key("STORAGE_TYPE").MustString("")
-	storage := getStorage("attachments", storageType, sec)
+	storage := getStorage(Cfg, "attachments", storageType, sec)
 
 	assert.EqualValues(t, "minio", storage.Type)
 	assert.EqualValues(t, "my_minio:9000", storage.Section.Key("MINIO_ENDPOINT").String())
@@ -46,7 +46,7 @@ MINIO_BUCKET = gitea
 
 	sec := Cfg.Section("attachment")
 	storageType := sec.Key("STORAGE_TYPE").MustString("")
-	storage := getStorage("attachments", storageType, sec)
+	storage := getStorage(Cfg, "attachments", storageType, sec)
 
 	assert.EqualValues(t, "minio", storage.Type)
 	assert.EqualValues(t, "gitea-attachment", storage.Section.Key("MINIO_BUCKET").String())
@@ -67,7 +67,7 @@ MINIO_BUCKET = gitea
 
 	sec := Cfg.Section("attachment")
 	storageType := sec.Key("STORAGE_TYPE").MustString("")
-	storage := getStorage("attachments", storageType, sec)
+	storage := getStorage(Cfg, "attachments", storageType, sec)
 
 	assert.EqualValues(t, "minio", storage.Type)
 	assert.EqualValues(t, "gitea-minio", storage.Section.Key("MINIO_BUCKET").String())
@@ -89,7 +89,7 @@ STORAGE_TYPE = local
 
 	sec := Cfg.Section("attachment")
 	storageType := sec.Key("STORAGE_TYPE").MustString("")
-	storage := getStorage("attachments", storageType, sec)
+	storage := getStorage(Cfg, "attachments", storageType, sec)
 
 	assert.EqualValues(t, "minio", storage.Type)
 	assert.EqualValues(t, "gitea-attachment", storage.Section.Key("MINIO_BUCKET").String())
@@ -100,7 +100,7 @@ func Test_getStorageGetDefaults(t *testing.T) {
 
 	sec := Cfg.Section("attachment")
 	storageType := sec.Key("STORAGE_TYPE").MustString("")
-	storage := getStorage("attachments", storageType, sec)
+	storage := getStorage(Cfg, "attachments", storageType, sec)
 
 	assert.EqualValues(t, "gitea", storage.Section.Key("MINIO_BUCKET").String())
 }
@@ -121,21 +121,21 @@ MINIO_BUCKET = gitea-storage
 	{
 		sec := Cfg.Section("attachment")
 		storageType := sec.Key("STORAGE_TYPE").MustString("")
-		storage := getStorage("attachments", storageType, sec)
+		storage := getStorage(Cfg, "attachments", storageType, sec)
 
 		assert.EqualValues(t, "gitea-attachment", storage.Section.Key("MINIO_BUCKET").String())
 	}
 	{
 		sec := Cfg.Section("lfs")
 		storageType := sec.Key("STORAGE_TYPE").MustString("")
-		storage := getStorage("lfs", storageType, sec)
+		storage := getStorage(Cfg, "lfs", storageType, sec)
 
 		assert.EqualValues(t, "gitea-lfs", storage.Section.Key("MINIO_BUCKET").String())
 	}
 	{
 		sec := Cfg.Section("avatar")
 		storageType := sec.Key("STORAGE_TYPE").MustString("")
-		storage := getStorage("avatars", storageType, sec)
+		storage := getStorage(Cfg, "avatars", storageType, sec)
 
 		assert.EqualValues(t, "gitea-storage", storage.Section.Key("MINIO_BUCKET").String())
 	}
@@ -154,14 +154,14 @@ MINIO_BUCKET = gitea-storage
 	{
 		sec := Cfg.Section("attachment")
 		storageType := sec.Key("STORAGE_TYPE").MustString("")
-		storage := getStorage("attachments", storageType, sec)
+		storage := getStorage(Cfg, "attachments", storageType, sec)
 
 		assert.EqualValues(t, "gitea-storage", storage.Section.Key("MINIO_BUCKET").String())
 	}
 	{
 		sec := Cfg.Section("lfs")
 		storageType := sec.Key("STORAGE_TYPE").MustString("")
-		storage := getStorage("lfs", storageType, sec)
+		storage := getStorage(Cfg, "lfs", storageType, sec)
 
 		assert.EqualValues(t, "gitea-storage", storage.Section.Key("MINIO_BUCKET").String())
 	}
@@ -176,7 +176,7 @@ STORAGE_TYPE = minio
 
 	sec := Cfg.Section("attachment")
 	storageType := sec.Key("STORAGE_TYPE").MustString("")
-	storage := getStorage("attachments", storageType, sec)
+	storage := getStorage(Cfg, "attachments", storageType, sec)
 
 	assert.EqualValues(t, "minio", storage.Type)
 }
@@ -190,7 +190,7 @@ STORAGE_TYPE = minio
 
 	sec := Cfg.Section("attachment")
 	storageType := sec.Key("STORAGE_TYPE").MustString("")
-	storage := getStorage("attachments", storageType, sec)
+	storage := getStorage(Cfg, "attachments", storageType, sec)
 
 	assert.EqualValues(t, "minio", storage.Type)
 }

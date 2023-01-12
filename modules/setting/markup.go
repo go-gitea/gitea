@@ -61,7 +61,7 @@ type MarkupSanitizerRule struct {
 }
 
 func parseMarkupSetting(rootCfg Config) {
-	mustMapSetting(Cfg, "markdown", &Markdown)
+	mustMapSetting(rootCfg, "markdown", &Markdown)
 
 	MermaidMaxSourceCharacters = rootCfg.Section("markup").Key("MERMAID_MAX_SOURCE_CHARACTERS").MustInt(5000)
 	ExternalMarkupRenderers = make([]*MarkupRenderer, 0, 10)

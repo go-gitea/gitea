@@ -352,5 +352,5 @@ func parseRepositorySetting(rootCfg Config) {
 		Repository.Upload.TempPath = path.Join(AppWorkPath, Repository.Upload.TempPath)
 	}
 
-	RepoArchive.Storage = getStorage("repo-archive", "", nil)
+	RepoArchive.Storage = getStorage(rootCfg, "repo-archive", "", nil)
 }

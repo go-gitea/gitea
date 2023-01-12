@@ -18,6 +18,7 @@ var (
 	// Security settings
 	InstallLock                        bool
 	SecretKey                          string
+	InternalToken                      string // internal access token
 	LogInRememberDays                  int
 	CookieUserName                     string
 	CookieRememberName                 string
@@ -35,6 +36,8 @@ var (
 	PasswordHashAlgo                   string
 	PasswordCheckPwn                   bool
 	SuccessfulTokensCacheSize          int
+	CSRFCookieName                     = "_csrf"
+	CSRFCookieHTTPOnly                 = true
 )
 
 // loadSecret load the secret from ini by uriKey or verbatimKey, only one of them could be set

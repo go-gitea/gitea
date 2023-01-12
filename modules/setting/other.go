@@ -9,10 +9,11 @@ var (
 	ShowFooterVersion          bool
 	ShowFooterTemplateLoadTime bool
 	EnableFeed                 bool
+	EnableSitemap              bool
 )
 
 func parseOtherSetting(rootCfg Config) {
-	sec := Cfg.Section("other")
+	sec := rootCfg.Section("other")
 	ShowFooterBranding = sec.Key("SHOW_FOOTER_BRANDING").MustBool(false)
 	ShowFooterVersion = sec.Key("SHOW_FOOTER_VERSION").MustBool(true)
 	ShowFooterTemplateLoadTime = sec.Key("SHOW_FOOTER_TEMPLATE_LOAD_TIME").MustBool(true)

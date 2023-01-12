@@ -41,7 +41,7 @@ func parsePictureSetting(rootCfg Config) {
 	avatarSec.Key("PATH").MustString(
 		sec.Key("AVATAR_UPLOAD_PATH").String())
 
-	Avatar.Storage = getStorage("avatars", storageType, avatarSec)
+	Avatar.Storage = getStorage(rootCfg, "avatars", storageType, avatarSec)
 
 	Avatar.MaxWidth = sec.Key("AVATAR_MAX_WIDTH").MustInt(4096)
 	Avatar.MaxHeight = sec.Key("AVATAR_MAX_HEIGHT").MustInt(3072)
@@ -91,7 +91,7 @@ func parseRepoAvatarSetting(rootCfg Config) {
 	repoAvatarSec.Key("PATH").MustString(
 		sec.Key("REPOSITORY_AVATAR_UPLOAD_PATH").String())
 
-	RepoAvatar.Storage = getStorage("repo-avatars", storageType, repoAvatarSec)
+	RepoAvatar.Storage = getStorage(rootCfg, "repo-avatars", storageType, repoAvatarSec)
 
 	RepoAvatar.Fallback = sec.Key("REPOSITORY_AVATAR_FALLBACK").MustString("none")
 	RepoAvatar.FallbackImage = sec.Key("REPOSITORY_AVATAR_FALLBACK_IMAGE").MustString("/assets/img/repo_default.png")

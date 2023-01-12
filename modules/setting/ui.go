@@ -4,12 +4,9 @@
 package setting
 
 import (
-	"path"
 	"time"
 
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // UI settings
@@ -151,11 +148,5 @@ func parseUISetting(rootCfg Config) {
 	UI.CustomEmojisMap = make(map[string]string)
 	for _, emoji := range UI.CustomEmojis {
 		UI.CustomEmojisMap[emoji] = ":" + emoji + ":"
-	}
-
-	var err error
-	HasRobotsTxt, err = util.IsFile(path.Join(CustomPath, "robots.txt"))
-	if err != nil {
-		log.Error("Unable to check if %s is a file. Error: %v", path.Join(CustomPath, "robots.txt"), err)
 	}
 }

@@ -17,5 +17,5 @@ var Metrics = struct {
 }
 
 func parseMetricsSetting(rootCfg Config) {
-	mustMapSetting(Cfg, "metrics", &Metrics)
+	mustMapSetting(rootCfg, "metrics", &Metrics)
 }
