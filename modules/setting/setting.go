@@ -46,8 +46,8 @@ var (
 	PIDFile      = "/run/gitea.pid"
 	WritePIDFile bool
 	RunMode      string
-	IsProd       bool
 	RunUser      string
+	IsProd       bool
 	IsWindows    bool
 )
 
@@ -125,6 +125,19 @@ func forcePathSeparator(path string) {
 	if strings.Contains(path, "\\") {
 		log.Fatal("Do not use '\\' or '\\\\' in paths, instead, please use '/' in all places")
 	}
+}
+
+// IsRunUserMatchCurrentUser returns false if configured run user does not match
+// actual user that runs the app. The first return value is the actual user name.
+// This check is ignored under Windows since SSH remote login is not the main
+// method to login on Windows.
+func IsRunUserMatchCurrentUser(runUser string) (string, bool) {
+	if IsWindows || SSH.StartBuiltinServer {
+		return "", true
+	}
+
+	currentUser := user.CurrentUsername()
+	return currentUser, runUser == currentUser
 }
 
 func createPIDFile(pidPath string) {
@@ -254,19 +267,6 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	parseMirrorSetting(Cfg)
 	parseMarkupSetting(Cfg)
 	parseOtherSetting(Cfg)
-}
-
-// IsRunUserMatchCurrentUser returns false if configured run user does not match
-// actual user that runs the app. The first return value is the actual user name.
-// This check is ignored under Windows since SSH remote login is not the main
-// method to login on Windows.
-func IsRunUserMatchCurrentUser(runUser string) (string, bool) {
-	if IsWindows || SSH.StartBuiltinServer {
-		return "", true
-	}
-
-	currentUser := user.CurrentUsername()
-	return currentUser, runUser == currentUser
 }
 
 func parseRunModeSetting(rootCfg Config) {

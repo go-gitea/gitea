@@ -18,67 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-var ManifestData string
-
-// MakeManifestData generates web app manifest JSON
-func MakeManifestData(appName, appURL, absoluteAssetURL string) []byte {
-	type manifestIcon struct {
-		Src   string `json:"src"`
-		Type  string `json:"type"`
-		Sizes string `json:"sizes"`
-	}
-
-	type manifestJSON struct {
-		Name      string         `json:"name"`
-		ShortName string         `json:"short_name"`
-		StartURL  string         `json:"start_url"`
-		Icons     []manifestIcon `json:"icons"`
-	}
-
-	bytes, err := json.Marshal(&manifestJSON{
-		Name:      appName,
-		ShortName: appName,
-		StartURL:  appURL,
-		Icons: []manifestIcon{
-			{
-				Src:   absoluteAssetURL + "/assets/img/logo.png",
-				Type:  "image/png",
-				Sizes: "512x512",
-			},
-			{
-				Src:   absoluteAssetURL + "/assets/img/logo.svg",
-				Type:  "image/svg+xml",
-				Sizes: "512x512",
-			},
-		},
-	})
-	if err != nil {
-		log.Error("unable to marshal manifest JSON. Error: %v", err)
-		return make([]byte, 0)
-	}
-
-	return bytes
-}
-
-// MakeAbsoluteAssetURL returns the absolute asset url prefix without a trailing slash
-func MakeAbsoluteAssetURL(appURL, staticURLPrefix string) string {
-	parsedPrefix, err := url.Parse(strings.TrimSuffix(staticURLPrefix, "/"))
-	if err != nil {
-		log.Fatal("Unable to parse STATIC_URL_PREFIX: %v", err)
-	}
-
-	if err == nil && parsedPrefix.Hostname() == "" {
-		if staticURLPrefix == "" {
-			return strings.TrimSuffix(appURL, "/")
-		}
-
-		// StaticURLPrefix is just a path
-		return util.URLJoin(appURL, strings.TrimSuffix(staticURLPrefix, "/"))
-	}
-
-	return strings.TrimSuffix(staticURLPrefix, "/")
-}
-
 // Scheme describes protocol types
 type Scheme string
 
@@ -164,7 +103,67 @@ var (
 	AbsoluteAssetURL           string
 
 	HasRobotsTxt bool
+	ManifestData string
 )
+
+// MakeManifestData generates web app manifest JSON
+func MakeManifestData(appName, appURL, absoluteAssetURL string) []byte {
+	type manifestIcon struct {
+		Src   string `json:"src"`
+		Type  string `json:"type"`
+		Sizes string `json:"sizes"`
+	}
+
+	type manifestJSON struct {
+		Name      string         `json:"name"`
+		ShortName string         `json:"short_name"`
+		StartURL  string         `json:"start_url"`
+		Icons     []manifestIcon `json:"icons"`
+	}
+
+	bytes, err := json.Marshal(&manifestJSON{
+		Name:      appName,
+		ShortName: appName,
+		StartURL:  appURL,
+		Icons: []manifestIcon{
+			{
+				Src:   absoluteAssetURL + "/assets/img/logo.png",
+				Type:  "image/png",
+				Sizes: "512x512",
+			},
+			{
+				Src:   absoluteAssetURL + "/assets/img/logo.svg",
+				Type:  "image/svg+xml",
+				Sizes: "512x512",
+			},
+		},
+	})
+	if err != nil {
+		log.Error("unable to marshal manifest JSON. Error: %v", err)
+		return make([]byte, 0)
+	}
+
+	return bytes
+}
+
+// MakeAbsoluteAssetURL returns the absolute asset url prefix without a trailing slash
+func MakeAbsoluteAssetURL(appURL, staticURLPrefix string) string {
+	parsedPrefix, err := url.Parse(strings.TrimSuffix(staticURLPrefix, "/"))
+	if err != nil {
+		log.Fatal("Unable to parse STATIC_URL_PREFIX: %v", err)
+	}
+
+	if err == nil && parsedPrefix.Hostname() == "" {
+		if staticURLPrefix == "" {
+			return strings.TrimSuffix(appURL, "/")
+		}
+
+		// StaticURLPrefix is just a path
+		return util.URLJoin(appURL, strings.TrimSuffix(staticURLPrefix, "/"))
+	}
+
+	return strings.TrimSuffix(staticURLPrefix, "/")
+}
 
 func parseServerSetting(rootCfg Config) {
 	logSec := rootCfg.Section("log")
