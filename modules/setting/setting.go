@@ -246,6 +246,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 
 	Cfg.NameMapper = ini.SnackCase
 
+	// WARNNING: don't change the sequence except you know what you are doing.
 	parseRunModeSetting(Cfg)
 	parseServerSetting(Cfg)
 	parseSSHSetting(Cfg)
@@ -281,7 +282,8 @@ func parseRunModeSetting(rootCfg Config) {
 	}
 	IsProd = strings.EqualFold(RunMode, "prod")
 	// Does not check run user when the install lock is off.
-	if InstallLock {
+	installLock := rootCfg.Section("security").Key("INSTALL_LOCK").MustBool(false)
+	if installLock {
 		currentUser, match := IsRunUserMatchCurrentUser(RunUser)
 		if !match {
 			log.Fatal("Expect user '%s' but current user is: %s", RunUser, currentUser)
