@@ -18,6 +18,7 @@ type Downloader interface {
 	GetMilestones() ([]*Milestone, error)
 	GetReleases() ([]*Release, error)
 	GetLabels() ([]*Label, error)
+	GetProjects() ([]*Project, error)
 	GetIssues(page, perPage int) ([]*Issue, bool, error)
 	GetComments(commentable Commentable) ([]*Comment, bool, error)
 	GetAllComments(page, perPage int) ([]*Comment, bool, error)

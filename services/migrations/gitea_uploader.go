@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -44,6 +45,7 @@ type GiteaLocalUploader struct {
 	repoName       string
 	repo           *repo_model.Repository
 	labels         map[string]*issues_model.Label
+	projects       map[string]*project_model.Project
 	milestones     map[string]int64
 	issues         map[int64]*issues_model.Issue
 	gitRepo        *git.Repository
@@ -62,6 +64,7 @@ func NewGiteaLocalUploader(ctx context.Context, doer *user_model.User, repoOwner
 		repoOwner:   repoOwner,
 		repoName:    repoName,
 		labels:      make(map[string]*issues_model.Label),
+		projects:    make(map[string]*project_model.Project),
 		milestones:  make(map[string]int64),
 		issues:      make(map[int64]*issues_model.Issue),
 		prHeadCache: make(map[string]string),
@@ -81,6 +84,8 @@ func (g *GiteaLocalUploader) MaxBatchInsertSize(tp string) int {
 		return db.MaxBatchInsertSize(new(issues_model.Milestone))
 	case "label":
 		return db.MaxBatchInsertSize(new(issues_model.Label))
+	case "project":
+		return db.MaxBatchInsertSize(new(project_model.Project))
 	case "release":
 		return db.MaxBatchInsertSize(new(repo_model.Release))
 	case "pullrequest":
@@ -239,6 +244,38 @@ func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
 	for _, lb := range lbs {
 		g.labels[lb.Name] = lb
 	}
+	return nil
+}
+
+// CreateProjects creates projects
+func (g *GiteaLocalUploader) CreateProjects(projects ...*base.Project) error {
+	for _, project := range projects {
+
+		dbProject := &project_model.Project{
+			RepoID:      g.repo.ID,
+			Title:       project.Title,
+			Description: project.Description,
+		}
+
+		switch project.Type {
+		case "individual":
+			dbProject.Type = project_model.TypeIndividual
+		case "repository":
+			dbProject.Type = project_model.TypeRepository
+		case "organization":
+			dbProject.Type = project_model.TypeOrganization
+		default:
+			return fmt.Errorf("project %q has unknown type %q", project.Title, project.Type)
+		}
+
+		err := project_model.NewProject(dbProject)
+		if err != nil {
+			return err
+		}
+
+		g.projects[dbProject.Title] = dbProject
+	}
+
 	return nil
 }
 

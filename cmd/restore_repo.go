@@ -41,7 +41,7 @@ var CmdRestoreRepository = cli.Command{
 			Name:  "units",
 			Value: "",
 			Usage: `Which items will be restored, one or more units should be separated as comma.
-wiki, issues, labels, releases, release_assets, milestones, pull_requests, comments are allowed. Empty means all units.`,
+wiki, issues, labels, releases, release_assets, milestones, pull_requests, comments, projects are allowed. Empty means all units.`,
 		},
 		cli.BoolFlag{
 			Name:  "validation",

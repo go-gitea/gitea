@@ -159,6 +159,7 @@ func newDownloader(ctx context.Context, ownerName string, opts base.MigrateOptio
 		opts.Wiki = true
 		opts.Milestones = false
 		opts.Labels = false
+		opts.Projects = false
 		opts.Releases = false
 		opts.Comments = false
 		opts.Issues = false
@@ -285,6 +286,30 @@ func migrateRepository(doer *user_model.User, downloader base.Downloader, upload
 				return err
 			}
 			labels = labels[lbBatchSize:]
+		}
+	}
+
+	if opts.Projects {
+		log.Trace("migrating projects")
+		messenger("repo.migrate.migrating_projects")
+		projects, err := downloader.GetProjects()
+		if err != nil {
+			if !base.IsErrNotSupported(err) {
+				return err
+			}
+			log.Warn("migrating projects is not supported, ignored")
+		}
+
+		prjBatchSize := uploader.MaxBatchInsertSize("project")
+		for len(projects) > 0 {
+			if len(projects) < prjBatchSize {
+				prjBatchSize = len(projects)
+			}
+
+			if err := uploader.CreateProjects(projects...); err != nil {
+				return err
+			}
+			projects = projects[prjBatchSize:]
 		}
 	}
 

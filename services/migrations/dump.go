@@ -39,6 +39,7 @@ type RepositoryDumper struct {
 	opts            base.MigrateOptions
 	milestoneFile   *os.File
 	labelFile       *os.File
+	projectFile     *os.File
 	releaseFile     *os.File
 	issueFile       *os.File
 	commentFiles    map[int64]*os.File
@@ -202,6 +203,9 @@ func (g *RepositoryDumper) Close() {
 	if g.labelFile != nil {
 		g.labelFile.Close()
 	}
+	if g.projectFile != nil {
+		g.projectFile.Close()
+	}
 	if g.releaseFile != nil {
 		g.releaseFile.Close()
 	}
@@ -279,6 +283,28 @@ func (g *RepositoryDumper) CreateLabels(labels ...*base.Label) error {
 	}
 
 	if _, err := g.labelFile.Write(bs); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// CreateProjects creates projects
+func (g *RepositoryDumper) CreateProjects(projects ...*base.Project) error {
+	var err error
+	if g.projectFile == nil {
+		g.projectFile, err = os.Create(filepath.Join(g.baseDir, "project.yml"))
+		if err != nil {
+			return err
+		}
+	}
+
+	bs, err := yaml.Marshal(projects)
+	if err != nil {
+		return err
+	}
+
+	if _, err := g.projectFile.Write(bs); err != nil {
 		return err
 	}
 
@@ -674,6 +700,7 @@ func updateOptionsUnits(opts *base.MigrateOptions, units []string) error {
 		opts.Comments = true
 		opts.PullRequests = true
 		opts.ReleaseAssets = true
+		opts.Projects = true
 	} else {
 		for _, unit := range units {
 			switch strings.ToLower(strings.TrimSpace(unit)) {
@@ -695,6 +722,8 @@ func updateOptionsUnits(opts *base.MigrateOptions, units []string) error {
 				opts.Comments = true
 			case "pull_requests":
 				opts.PullRequests = true
+			case "projects":
+				opts.Projects = true
 			default:
 				return errors.New("invalid unit: " + unit)
 			}
