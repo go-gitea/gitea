@@ -76,8 +76,8 @@ const sfc = {
     SvgIcon,
   },
   props: {
-    runIndex: Number,
-    jobIndex: Number,
+    runIndex: String,
+    jobIndex: String,
     actionsURL: String,
   },
 
