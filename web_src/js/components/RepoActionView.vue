@@ -325,7 +325,12 @@ export function initRepositoryActionView() {
         float: right;
         border: none;
         background-color: transparent;
-        outline: none
+        outline: none;
+        cursor: pointer;
+        transition:transform 0.2s;
+      };
+      button.job-brief-rerun:hover{
+        transform:scale(130%);
       };
     }
     a.job-brief-item:hover {
