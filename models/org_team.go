@@ -398,20 +398,13 @@ func DeleteTeam(t *organization.Team) error {
 			return fmt.Errorf("findProtectedBranches: %w", err)
 		}
 		for _, p := range protections {
-			var matched1, matched2, matched3 bool
-			if len(p.WhitelistTeamIDs) != 0 {
-				p.WhitelistTeamIDs, matched1 = util.RemoveIDFromList(
-					p.WhitelistTeamIDs, t.ID)
-			}
-			if len(p.ApprovalsWhitelistTeamIDs) != 0 {
-				p.ApprovalsWhitelistTeamIDs, matched2 = util.RemoveIDFromList(
-					p.ApprovalsWhitelistTeamIDs, t.ID)
-			}
-			if len(p.MergeWhitelistTeamIDs) != 0 {
-				p.MergeWhitelistTeamIDs, matched3 = util.RemoveIDFromList(
-					p.MergeWhitelistTeamIDs, t.ID)
-			}
-			if matched1 || matched2 || matched3 {
+			lenIDs, lenApprovalIDs, lenMergeIDs := len(p.WhitelistTeamIDs), len(p.ApprovalsWhitelistTeamIDs), len(p.MergeWhitelistTeamIDs)
+			p.WhitelistTeamIDs = util.SliceRemoveAll(p.WhitelistTeamIDs, t.ID)
+			p.ApprovalsWhitelistTeamIDs = util.SliceRemoveAll(p.ApprovalsWhitelistTeamIDs, t.ID)
+			p.MergeWhitelistTeamIDs = util.SliceRemoveAll(p.MergeWhitelistTeamIDs, t.ID)
+			if lenIDs != len(p.WhitelistTeamIDs) ||
+				lenApprovalIDs != len(p.ApprovalsWhitelistTeamIDs) ||
+				lenMergeIDs != len(p.MergeWhitelistTeamIDs) {
 				if _, err = sess.ID(p.ID).Cols(
 					"whitelist_team_i_ds",
 					"merge_whitelist_team_i_ds",

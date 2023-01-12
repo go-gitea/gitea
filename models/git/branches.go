@@ -342,7 +342,7 @@ func IsProtectedBranch(ctx context.Context, repoID int64, branchName string) (bo
 // updateApprovalWhitelist checks whether the user whitelist changed and returns a whitelist with
 // the users from newWhitelist which have explicit read or write access to the repo.
 func updateApprovalWhitelist(ctx context.Context, repo *repo_model.Repository, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
-	hasUsersChanged := !util.IsSliceInt64Eq(currentWhitelist, newWhitelist)
+	hasUsersChanged := !util.SliceSortedEqual(currentWhitelist, newWhitelist)
 	if !hasUsersChanged {
 		return currentWhitelist, nil
 	}
@@ -363,7 +363,7 @@ func updateApprovalWhitelist(ctx context.Context, repo *repo_model.Repository, c
 // updateUserWhitelist checks whether the user whitelist changed and returns a whitelist with
 // the users from newWhitelist which have write access to the repo.
 func updateUserWhitelist(ctx context.Context, repo *repo_model.Repository, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
-	hasUsersChanged := !util.IsSliceInt64Eq(currentWhitelist, newWhitelist)
+	hasUsersChanged := !util.SliceSortedEqual(currentWhitelist, newWhitelist)
 	if !hasUsersChanged {
 		return currentWhitelist, nil
 	}
@@ -392,7 +392,7 @@ func updateUserWhitelist(ctx context.Context, repo *repo_model.Repository, curre
 // updateTeamWhitelist checks whether the team whitelist changed and returns a whitelist with
 // the teams from newWhitelist which have write access to the repo.
 func updateTeamWhitelist(ctx context.Context, repo *repo_model.Repository, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
-	hasTeamsChanged := !util.IsSliceInt64Eq(currentWhitelist, newWhitelist)
+	hasTeamsChanged := !util.SliceSortedEqual(currentWhitelist, newWhitelist)
 	if !hasTeamsChanged {
 		return currentWhitelist, nil
 	}
@@ -404,7 +404,7 @@ func updateTeamWhitelist(ctx context.Context, repo *repo_model.Repository, curre
 
 	whitelist = make([]int64, 0, len(teams))
 	for i := range teams {
-		if util.IsInt64InSlice(teams[i].ID, newWhitelist) {
+		if util.SliceContains(newWhitelist, teams[i].ID) {
 			whitelist = append(whitelist, teams[i].ID)
 		}
 	}
