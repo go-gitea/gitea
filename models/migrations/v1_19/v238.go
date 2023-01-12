@@ -117,12 +117,12 @@ func AddActionsTables(x *xorm.Engine) error {
 		TokenSalt      string
 		TokenLastEight string `xorm:"index token_last_eight"`
 
-		LogFilename  string   // file name of log
-		LogInStorage bool     // read log from database or from storage
-		LogLength    int64    // lines count
-		LogSize      int64    // blob size
-		LogIndexes   *[]int64 `xorm:"LONGBLOB"` // line number to offset
-		LogExpired   bool     // files that are too old will be deleted
+		LogFilename  string  // file name of log
+		LogInStorage bool    // read log from database or from storage
+		LogLength    int64   // lines count
+		LogSize      int64   // blob size
+		LogIndexes   []int64 `xorm:"LONGBLOB"` // line number to offset
+		LogExpired   bool    // files that are too old will be deleted
 
 		Created timeutil.TimeStamp `xorm:"created"`
 		Updated timeutil.TimeStamp `xorm:"updated index"`

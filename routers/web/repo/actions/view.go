@@ -157,7 +157,7 @@ func ViewPost(ctx *context_module.Context) {
 			if c := cursor.Cursor; c < step.LogLength && c >= 0 {
 				index := step.LogIndex + c
 				length := step.LogLength - cursor.Cursor
-				offset := (*task.LogIndexes)[index]
+				offset := task.LogIndexes[index]
 				var err error
 				logRows, err := actions.ReadLogs(ctx, task.LogInStorage, task.LogFilename, offset, length)
 				if err != nil {

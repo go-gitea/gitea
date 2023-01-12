@@ -206,11 +206,8 @@ func (s *Service) UpdateLog(
 		return nil, status.Errorf(codes.Internal, "write logs: %v", err)
 	}
 	task.LogLength += int64(len(rows))
-	if task.LogIndexes == nil {
-		task.LogIndexes = &actions_model.LogIndexes{}
-	}
 	for _, n := range ns {
-		*task.LogIndexes = append(*task.LogIndexes, task.LogSize)
+		task.LogIndexes = append(task.LogIndexes, task.LogSize)
 		task.LogSize += int64(n)
 	}
 
