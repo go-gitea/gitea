@@ -17,12 +17,12 @@
               <SvgIcon name="octicon-meter" class="ui text yellow" class-name="job-status-rotate" v-else-if="job.status === 'running'"/>
               <SvgIcon name="octicon-x-circle-fill" class="red" v-else/>
               {{ job.name }}
-              <button class="job-brief-rerun" @click="rerunJob(index)" v-if="job.can_rerun">
+              <button class="job-brief-rerun" @click="rerunJob(index)" v-if="job.canRerun">
                 <SvgIcon name="octicon-sync" class="ui text black"/>
               </button>
             </a>
           </div>
-          <button class="ui fluid tiny basic red button" @click="cancelRun()" v-if="run.can_cancel">
+          <button class="ui fluid tiny basic red button" @click="cancelRun()" v-if="run.canCancel">
             {{ i18nCancel }}
           </button>
         </div>
@@ -94,13 +94,13 @@ const sfc = {
       run: {
         htmlurl: '',
         title: '',
-        can_cancel: false,
+        canCancel: false,
         jobs: [
           // {
           //   id: 0,
           //   name: '',
           //   status: '',
-          //   can_rerun: false,
+          //   canRerun: false,
           // },
         ],
       },
@@ -219,9 +219,8 @@ const sfc = {
         const response = await this.fetchJob();
 
         // save the state to Vue data, then the UI will be updated
-        for (const [key, value] of Object.entries(response.state)) {
-          this[key] = value;
-        }
+        this.run = response.state.run;
+        this.currentJob = response.state.currentJob;
 
         // sync the currentJobStepsStates to store the job step states
         for (let i = 0; i < this.currentJob.steps.length; i++) {
@@ -230,7 +229,7 @@ const sfc = {
           }
         }
         // append logs to the UI
-        for (const logs of response.logs.steps_log) {
+        for (const logs of response.logs.stepsLog) {
           // save the cursor, it will be passed to backend next time
           this.currentJobStepsStates[logs.step].cursor = logs.cursor;
           this.appendLogs(logs.step, logs.lines);

@@ -51,7 +51,7 @@ type ViewResponse struct {
 		Run struct {
 			HTMLURL   string     `json:"htmlurl"`
 			Title     string     `json:"title"`
-			CanCancel bool       `json:"can_cancel"`
+			CanCancel bool       `json:"canCancel"`
 			Jobs      []*ViewJob `json:"jobs"`
 		} `json:"run"`
 		CurrentJob struct {
@@ -61,7 +61,7 @@ type ViewResponse struct {
 		} `json:"currentJob"`
 	} `json:"state"`
 	Logs struct {
-		StepsLog []*ViewStepLog `json:"steps_log"`
+		StepsLog []*ViewStepLog `json:"stepsLog"`
 	} `json:"logs"`
 }
 
@@ -69,7 +69,7 @@ type ViewJob struct {
 	ID       int64  `json:"id"`
 	Name     string `json:"name"`
 	Status   string `json:"status"`
-	CanRerun bool   `json:"can_rerun"`
+	CanRerun bool   `json:"canRerun"`
 }
 
 type ViewJobStep struct {
