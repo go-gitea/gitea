@@ -31,7 +31,7 @@ func TestRepoStatsIndex(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	setting.Cfg = ini.Empty()
 
-	setting.NewQueueService()
+	setting.ParseQueueSettings()
 
 	err := Init()
 	assert.NoError(t, err)
