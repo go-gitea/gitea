@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/modules/actions"
@@ -106,17 +105,6 @@ func (s *Service) FetchTask(
 		return nil, status.Errorf(codes.Internal, "pick task: %v", err)
 	} else if ok {
 		task = t
-	}
-
-	// avoid crazy retry
-	if task == nil {
-		duration := 2 * time.Second
-		if deadline, ok := ctx.Deadline(); ok {
-			if d := time.Until(deadline) - time.Second; d < duration {
-				duration = d
-			}
-		}
-		time.Sleep(duration)
 	}
 
 	res := connect.NewResponse(&runnerv1.FetchTaskResponse{
