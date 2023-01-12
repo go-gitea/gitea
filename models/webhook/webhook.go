@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"xorm.io/builder"
 )
@@ -46,7 +47,7 @@ type ErrHookTaskNotExist struct {
 	UUID   string
 }
 
-// IsErrWebhookNotExist checks if an error is a ErrWebhookNotExist.
+// IsErrHookTaskNotExist checks if an error is a ErrHookTaskNotExist.
 func IsErrHookTaskNotExist(err error) bool {
 	_, ok := err.(ErrHookTaskNotExist)
 	return ok
@@ -117,84 +118,22 @@ func IsValidHookContentType(name string) bool {
 	return ok
 }
 
-// HookEvents is a set of web hook events
-type HookEvents struct {
-	Create               bool `json:"create"`
-	Delete               bool `json:"delete"`
-	Fork                 bool `json:"fork"`
-	Issues               bool `json:"issues"`
-	IssueAssign          bool `json:"issue_assign"`
-	IssueLabel           bool `json:"issue_label"`
-	IssueMilestone       bool `json:"issue_milestone"`
-	IssueComment         bool `json:"issue_comment"`
-	Push                 bool `json:"push"`
-	PullRequest          bool `json:"pull_request"`
-	PullRequestAssign    bool `json:"pull_request_assign"`
-	PullRequestLabel     bool `json:"pull_request_label"`
-	PullRequestMilestone bool `json:"pull_request_milestone"`
-	PullRequestComment   bool `json:"pull_request_comment"`
-	PullRequestReview    bool `json:"pull_request_review"`
-	PullRequestSync      bool `json:"pull_request_sync"`
-	Wiki                 bool `json:"wiki"`
-	Repository           bool `json:"repository"`
-	Release              bool `json:"release"`
-	Package              bool `json:"package"`
-}
-
-// HookEvent represents events that will delivery hook.
-type HookEvent struct {
-	PushOnly       bool   `json:"push_only"`
-	SendEverything bool   `json:"send_everything"`
-	ChooseEvents   bool   `json:"choose_events"`
-	BranchFilter   string `json:"branch_filter"`
-
-	HookEvents `json:"events"`
-}
-
-// HookType is the type of a webhook
-type HookType = string
-
-// Types of webhooks
-const (
-	GITEA      HookType = "gitea"
-	GOGS       HookType = "gogs"
-	SLACK      HookType = "slack"
-	DISCORD    HookType = "discord"
-	DINGTALK   HookType = "dingtalk"
-	TELEGRAM   HookType = "telegram"
-	MSTEAMS    HookType = "msteams"
-	FEISHU     HookType = "feishu"
-	MATRIX     HookType = "matrix"
-	WECHATWORK HookType = "wechatwork"
-	PACKAGIST  HookType = "packagist"
-)
-
-// HookStatus is the status of a web hook
-type HookStatus int
-
-// Possible statuses of a web hook
-const (
-	HookStatusNone = iota
-	HookStatusSucceed
-	HookStatusFail
-)
-
 // Webhook represents a web hook object.
 type Webhook struct {
-	ID              int64 `xorm:"pk autoincr"`
-	RepoID          int64 `xorm:"INDEX"` // An ID of 0 indicates either a default or system webhook
-	OrgID           int64 `xorm:"INDEX"`
-	IsSystemWebhook bool
-	URL             string `xorm:"url TEXT"`
-	HTTPMethod      string `xorm:"http_method"`
-	ContentType     HookContentType
-	Secret          string `xorm:"TEXT"`
-	Events          string `xorm:"TEXT"`
-	*HookEvent      `xorm:"-"`
-	IsActive        bool       `xorm:"INDEX"`
-	Type            HookType   `xorm:"VARCHAR(16) 'type'"`
-	Meta            string     `xorm:"TEXT"` // store hook-specific attributes
-	LastStatus      HookStatus // Last delivery status
+	ID                        int64 `xorm:"pk autoincr"`
+	RepoID                    int64 `xorm:"INDEX"` // An ID of 0 indicates either a default or system webhook
+	OrgID                     int64 `xorm:"INDEX"`
+	IsSystemWebhook           bool
+	URL                       string `xorm:"url TEXT"`
+	HTTPMethod                string `xorm:"http_method"`
+	ContentType               HookContentType
+	Secret                    string `xorm:"TEXT"`
+	Events                    string `xorm:"TEXT"`
+	*webhook_module.HookEvent `xorm:"-"`
+	IsActive                  bool                      `xorm:"INDEX"`
+	Type                      webhook_module.HookType   `xorm:"VARCHAR(16) 'type'"`
+	Meta                      string                    `xorm:"TEXT"` // store hook-specific attributes
+	LastStatus                webhook_module.HookStatus // Last delivery status
 
 	// HeaderAuthorizationEncrypted should be accessed using HeaderAuthorization() and SetHeaderAuthorization()
 	HeaderAuthorizationEncrypted string `xorm:"TEXT"`
@@ -209,7 +148,7 @@ func init() {
 
 // AfterLoad updates the webhook object upon setting a column
 func (w *Webhook) AfterLoad() {
-	w.HookEvent = &HookEvent{}
+	w.HookEvent = &webhook_module.HookEvent{}
 	if err := json.Unmarshal([]byte(w.Events), w.HookEvent); err != nil {
 		log.Error("Unmarshal[%d]: %v", w.ID, err)
 	}
@@ -362,34 +301,34 @@ func (w *Webhook) HasPackageEvent() bool {
 // EventCheckers returns event checkers
 func (w *Webhook) EventCheckers() []struct {
 	Has  func() bool
-	Type HookEventType
+	Type webhook_module.HookEventType
 } {
 	return []struct {
 		Has  func() bool
-		Type HookEventType
+		Type webhook_module.HookEventType
 	}{
-		{w.HasCreateEvent, HookEventCreate},
-		{w.HasDeleteEvent, HookEventDelete},
-		{w.HasForkEvent, HookEventFork},
-		{w.HasPushEvent, HookEventPush},
-		{w.HasIssuesEvent, HookEventIssues},
-		{w.HasIssuesAssignEvent, HookEventIssueAssign},
-		{w.HasIssuesLabelEvent, HookEventIssueLabel},
-		{w.HasIssuesMilestoneEvent, HookEventIssueMilestone},
-		{w.HasIssueCommentEvent, HookEventIssueComment},
-		{w.HasPullRequestEvent, HookEventPullRequest},
-		{w.HasPullRequestAssignEvent, HookEventPullRequestAssign},
-		{w.HasPullRequestLabelEvent, HookEventPullRequestLabel},
-		{w.HasPullRequestMilestoneEvent, HookEventPullRequestMilestone},
-		{w.HasPullRequestCommentEvent, HookEventPullRequestComment},
-		{w.HasPullRequestApprovedEvent, HookEventPullRequestReviewApproved},
-		{w.HasPullRequestRejectedEvent, HookEventPullRequestReviewRejected},
-		{w.HasPullRequestCommentEvent, HookEventPullRequestReviewComment},
-		{w.HasPullRequestSyncEvent, HookEventPullRequestSync},
-		{w.HasWikiEvent, HookEventWiki},
-		{w.HasRepositoryEvent, HookEventRepository},
-		{w.HasReleaseEvent, HookEventRelease},
-		{w.HasPackageEvent, HookEventPackage},
+		{w.HasCreateEvent, webhook_module.HookEventCreate},
+		{w.HasDeleteEvent, webhook_module.HookEventDelete},
+		{w.HasForkEvent, webhook_module.HookEventFork},
+		{w.HasPushEvent, webhook_module.HookEventPush},
+		{w.HasIssuesEvent, webhook_module.HookEventIssues},
+		{w.HasIssuesAssignEvent, webhook_module.HookEventIssueAssign},
+		{w.HasIssuesLabelEvent, webhook_module.HookEventIssueLabel},
+		{w.HasIssuesMilestoneEvent, webhook_module.HookEventIssueMilestone},
+		{w.HasIssueCommentEvent, webhook_module.HookEventIssueComment},
+		{w.HasPullRequestEvent, webhook_module.HookEventPullRequest},
+		{w.HasPullRequestAssignEvent, webhook_module.HookEventPullRequestAssign},
+		{w.HasPullRequestLabelEvent, webhook_module.HookEventPullRequestLabel},
+		{w.HasPullRequestMilestoneEvent, webhook_module.HookEventPullRequestMilestone},
+		{w.HasPullRequestCommentEvent, webhook_module.HookEventPullRequestComment},
+		{w.HasPullRequestApprovedEvent, webhook_module.HookEventPullRequestReviewApproved},
+		{w.HasPullRequestRejectedEvent, webhook_module.HookEventPullRequestReviewRejected},
+		{w.HasPullRequestCommentEvent, webhook_module.HookEventPullRequestReviewComment},
+		{w.HasPullRequestSyncEvent, webhook_module.HookEventPullRequestSync},
+		{w.HasWikiEvent, webhook_module.HookEventWiki},
+		{w.HasRepositoryEvent, webhook_module.HookEventRepository},
+		{w.HasReleaseEvent, webhook_module.HookEventRelease},
+		{w.HasPackageEvent, webhook_module.HookEventPackage},
 	}
 }
 
@@ -453,7 +392,7 @@ func getWebhook(bean *Webhook) (*Webhook, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrWebhookNotExist{bean.ID}
+		return nil, ErrWebhookNotExist{ID: bean.ID}
 	}
 	return bean, nil
 }
@@ -541,7 +480,7 @@ func GetSystemOrDefaultWebhook(id int64) (*Webhook, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrWebhookNotExist{id}
+		return nil, ErrWebhookNotExist{ID: id}
 	}
 	return webhook, nil
 }

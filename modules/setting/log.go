@@ -284,8 +284,6 @@ func newRouterLogService() {
 }
 
 func newLogService() {
-	log.Info("Gitea v%s%s", AppVer, AppBuiltWith)
-
 	options := newDefaultLogOptions()
 	options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
 	EnableSSHLog = Cfg.Section("log").Key("ENABLE_SSH_LOG").MustBool(false)
@@ -297,23 +295,13 @@ func newLogService() {
 	sections := strings.Split(Cfg.Section("log").Key("MODE").MustString("console"), ",")
 
 	useConsole := false
-	for i := 0; i < len(sections); i++ {
-		sections[i] = strings.TrimSpace(sections[i])
-		if sections[i] == "console" {
-			useConsole = true
-		}
-	}
-
-	if !useConsole {
-		err := log.DelLogger("console")
-		if err != nil {
-			log.Fatal("DelLogger: %v", err)
-		}
-	}
-
 	for _, name := range sections {
-		if len(name) == 0 {
+		name = strings.TrimSpace(name)
+		if name == "" {
 			continue
+		}
+		if name == "console" {
+			useConsole = true
 		}
 
 		sec, err := Cfg.GetSection("log." + name + ".default")
@@ -335,6 +323,13 @@ func newLogService() {
 	}
 
 	AddLogDescription(log.DEFAULT, &description)
+
+	if !useConsole {
+		log.Info("According to the configuration, subsequent logs will not be printed to the console")
+		if err := log.DelLogger("console"); err != nil {
+			log.Fatal("Cannot delete console logger: %v", err)
+		}
+	}
 
 	// Finally redirect the default golog to here
 	golog.SetFlags(0)
