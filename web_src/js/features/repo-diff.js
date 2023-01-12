@@ -159,7 +159,7 @@ export function initRepoDiffShowMore() {
     loadMoreFiles($target.data('href'), () => {});
   });
 
-  $(document).on('click', 'a.diff-show-more-button', (e) => {
+  $(document).on('click', 'a.diff-load-button', (e) => {
     e.preventDefault();
     const $target = $(e.target);
 
