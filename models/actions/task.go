@@ -386,7 +386,6 @@ func UpdateTaskByState(ctx context.Context, state *runnerv1.TaskState) (*ActionT
 		return nil, err
 	}
 
-	prevStepDone := true
 	for _, step := range task.Steps {
 		var result runnerv1.Result
 		if v, ok := stepStates[step.Index]; ok {
@@ -398,10 +397,8 @@ func UpdateTaskByState(ctx context.Context, state *runnerv1.TaskState) (*ActionT
 		}
 		if result != runnerv1.Result_RESULT_UNSPECIFIED {
 			step.Status = Status(result)
-			prevStepDone = true
-		} else if prevStepDone {
+		} else if step.Started != 0 {
 			step.Status = StatusRunning
-			prevStepDone = false
 		}
 		if _, err := e.ID(step.ID).Update(step); err != nil {
 			return nil, err
