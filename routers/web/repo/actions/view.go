@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	actions_service "code.gitea.io/gitea/services/actions"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"xorm.io/builder"
 )
 
@@ -40,35 +39,30 @@ func View(ctx *context_module.Context) {
 }
 
 type ViewRequest struct {
-	StepLogCursors []struct {
-		StepIndex int   `json:"stepIndex"`
-		Cursor    int64 `json:"cursor"`
-		Expanded  bool  `json:"expanded"`
-	} `json:"stepLogCursors"`
+	LogCursors []struct {
+		Step     int   `json:"step"`
+		Cursor   int64 `json:"cursor"`
+		Expanded bool  `json:"expanded"`
+	} `json:"logCursors"`
 }
 
 type ViewResponse struct {
-	StateData struct {
-		RunInfo struct {
-			HTMLURL   string `json:"htmlurl"`
-			Title     string `json:"title"`
-			CanCancel bool   `json:"can_cancel"`
-		} `json:"runInfo"`
-		AllJobGroups   []ViewGroup `json:"allJobGroups"`
-		CurrentJobInfo struct {
-			Title  string `json:"title"`
-			Detail string `json:"detail"`
-		} `json:"currentJobInfo"`
-		CurrentJobSteps []ViewJobStep `json:"currentJobSteps"`
-	} `json:"stateData"`
-	LogsData struct {
-		StreamingLogs []ViewStepLog `json:"streamingLogs"`
-	} `json:"logsData"`
-}
-
-type ViewGroup struct {
-	Summary string     `json:"summary"`
-	Jobs    []*ViewJob `json:"jobs"`
+	State struct {
+		Run struct {
+			HTMLURL   string     `json:"htmlurl"`
+			Title     string     `json:"title"`
+			CanCancel bool       `json:"can_cancel"`
+			Jobs      []*ViewJob `json:"jobs"`
+		} `json:"run"`
+		CurrentJob struct {
+			Title  string         `json:"title"`
+			Detail string         `json:"detail"`
+			Steps  []*ViewJobStep `json:"steps"`
+		} `json:"currentJob"`
+	} `json:"state"`
+	Logs struct {
+		StepsLog []*ViewStepLog `json:"steps_log"`
+	} `json:"logs"`
 }
 
 type ViewJob struct {
@@ -85,15 +79,15 @@ type ViewJobStep struct {
 }
 
 type ViewStepLog struct {
-	StepIndex int               `json:"stepIndex"`
-	Cursor    int64             `json:"cursor"`
-	Lines     []ViewStepLogLine `json:"lines"`
+	Step   int                `json:"step"`
+	Cursor int64              `json:"cursor"`
+	Lines  []*ViewStepLogLine `json:"lines"`
 }
 
 type ViewStepLogLine struct {
-	Ln int64   `json:"ln"`
-	M  string  `json:"m"`
-	T  float64 `json:"t"`
+	Index     int64   `json:"index"`
+	Message   string  `json:"message"`
+	Timestamp float64 `json:"timestamp"`
 }
 
 func ViewPost(ctx *context_module.Context) {
@@ -108,24 +102,18 @@ func ViewPost(ctx *context_module.Context) {
 	run := current.Run
 
 	resp := &ViewResponse{}
-	resp.StateData.RunInfo.Title = run.Title
-	resp.StateData.RunInfo.HTMLURL = run.HTMLURL()
-	resp.StateData.RunInfo.CanCancel = !run.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions)
 
-	respJobs := make([]*ViewJob, len(jobs))
-	for i, v := range jobs {
-		respJobs[i] = &ViewJob{
+	resp.State.Run.Title = run.Title
+	resp.State.Run.HTMLURL = run.HTMLURL()
+	resp.State.Run.CanCancel = !run.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions)
+	resp.State.Run.Jobs = make([]*ViewJob, 0, len(jobs)) // marshal to '[]' instead fo 'null' in json
+	for _, v := range jobs {
+		resp.State.Run.Jobs = append(resp.State.Run.Jobs, &ViewJob{
 			ID:       v.ID,
 			Name:     v.Name,
 			Status:   v.Status.String(),
 			CanRerun: v.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions),
-		}
-	}
-
-	resp.StateData.AllJobGroups = []ViewGroup{
-		{
-			Jobs: respJobs,
-		},
+		})
 	}
 
 	var task *actions_model.ActionTask
@@ -143,51 +131,54 @@ func ViewPost(ctx *context_module.Context) {
 		}
 	}
 
-	resp.StateData.CurrentJobInfo.Title = current.Name
-	resp.StateData.CurrentJobSteps = make([]ViewJobStep, 0)
-	resp.LogsData.StreamingLogs = make([]ViewStepLog, 0, len(req.StepLogCursors))
-	resp.StateData.CurrentJobInfo.Detail = current.Status.LocaleString(ctx.Locale)
+	resp.State.CurrentJob.Title = current.Name
+	resp.State.CurrentJob.Detail = current.Status.LocaleString(ctx.Locale)
 	if task != nil {
 		steps := actions.FullSteps(task)
 
-		resp.StateData.CurrentJobSteps = make([]ViewJobStep, len(steps))
-		for i, v := range steps {
-			resp.StateData.CurrentJobSteps[i] = ViewJobStep{
+		resp.State.CurrentJob.Steps = make([]*ViewJobStep, 0, len(steps)) // marshal to '[]' instead fo 'null' in json
+		for _, v := range steps {
+			resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, &ViewJobStep{
 				Summary:  v.Name,
-				Duration: v.Duration().Round(time.Second).String(),
+				Duration: v.Duration().String(),
 				Status:   v.Status.String(),
-			}
+			})
 		}
 
-		for _, cursor := range req.StepLogCursors {
-			if cursor.Expanded {
-				step := steps[cursor.StepIndex]
-				var logRows []*runnerv1.LogRow
-				if cursor.Cursor < step.LogLength || step.LogLength < 0 {
-					index := step.LogIndex + cursor.Cursor
-					length := step.LogLength - cursor.Cursor
-					offset := (*task.LogIndexes)[index]
-					var err error
-					logRows, err = actions.ReadLogs(ctx, task.LogInStorage, task.LogFilename, offset, length)
-					if err != nil {
-						ctx.Error(http.StatusInternalServerError, err.Error())
-						return
-					}
-				}
-				logLines := make([]ViewStepLogLine, len(logRows))
-				for i, row := range logRows {
-					logLines[i] = ViewStepLogLine{
-						Ln: cursor.Cursor + int64(i) + 1, // start at 1
-						M:  row.Content,
-						T:  float64(row.Time.AsTime().UnixNano()) / float64(time.Second),
-					}
-				}
-				resp.LogsData.StreamingLogs = append(resp.LogsData.StreamingLogs, ViewStepLog{
-					StepIndex: cursor.StepIndex,
-					Cursor:    cursor.Cursor + int64(len(logLines)),
-					Lines:     logLines,
-				})
+		resp.Logs.StepsLog = make([]*ViewStepLog, 0, len(req.LogCursors)) // marshal to '[]' instead fo 'null' in json
+		for _, cursor := range req.LogCursors {
+			if !cursor.Expanded {
+				continue
 			}
+
+			step := steps[cursor.Step]
+
+			logLines := make([]*ViewStepLogLine, 0) // marshal to '[]' instead fo 'null' in json
+			if c := cursor.Cursor; c < step.LogLength && c >= 0 {
+				index := step.LogIndex + c
+				length := step.LogLength - cursor.Cursor
+				offset := (*task.LogIndexes)[index]
+				var err error
+				logRows, err := actions.ReadLogs(ctx, task.LogInStorage, task.LogFilename, offset, length)
+				if err != nil {
+					ctx.Error(http.StatusInternalServerError, err.Error())
+					return
+				}
+
+				for i, row := range logRows {
+					logLines = append(logLines, &ViewStepLogLine{
+						Index:     cursor.Cursor + int64(i) + 1, // start at 1
+						Message:   row.Content,
+						Timestamp: float64(row.Time.AsTime().UnixNano()) / float64(time.Second),
+					})
+				}
+			}
+
+			resp.Logs.StepsLog = append(resp.Logs.StepsLog, &ViewStepLog{
+				Step:   cursor.Step,
+				Cursor: cursor.Cursor + int64(len(logLines)),
+				Lines:  logLines,
+			})
 		}
 	}
 

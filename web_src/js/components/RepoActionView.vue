@@ -2,14 +2,14 @@
   <div class="action-view-container">
     <div class="action-view-header">
       <div class="action-info-summary">
-        {{ runInfo.title }}
+        {{ run.title }}
       </div>
     </div>
     <div class="action-view-body">
       <div class="action-view-left">
-        <div class="job-group-section" v-for="(jobGroup, i) in allJobGroups" :key="i">
+        <div class="job-group-section">
           <div class="job-brief-list">
-            <a class="job-brief-item" v-for="(job, index) in jobGroup.jobs" :key="job.id" :href="runInfo.htmlurl+'/jobs/'+index">
+            <a class="job-brief-item" v-for="(job, index) in run.jobs" :key="job.id" :href="run.htmlurl+'/jobs/'+index">
               <SvgIcon name="octicon-check-circle-fill" class="green" v-if="job.status === 'success'"/>
               <SvgIcon name="octicon-skip" class="ui text grey" v-else-if="job.status === 'skipped'"/>
               <SvgIcon name="octicon-clock" class="ui text yellow" v-else-if="job.status === 'waiting'"/>
@@ -22,7 +22,7 @@
               </button>
             </a>
           </div>
-          <button class="ui fluid tiny basic red button" @click="cancelRun()" v-if="runInfo.can_cancel">
+          <button class="ui fluid tiny basic red button" @click="cancelRun()" v-if="run.can_cancel">
             {{ i18nCancel }}
           </button>
         </div>
@@ -31,14 +31,14 @@
       <div class="action-view-right">
         <div class="job-info-header">
           <div class="job-info-header-title">
-            {{ currentJobInfo.title }}
+            {{ currentJob.title }}
           </div>
           <div class="job-info-header-detail">
-            {{ currentJobInfo.detail }}
+            {{ currentJob.detail }}
           </div>
         </div>
         <div class="job-step-container">
-          <div class="job-step-section" v-for="(jobStep, i) in currentJobSteps" :key="i">
+          <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
             <div class="job-step-summary" @click.stop="toggleStepLogs(i)">
               <SvgIcon name="octicon-chevron-down" class="mr-3" v-show="currentJobStepsStates[i].expanded"/>
               <SvgIcon name="octicon-chevron-right" class="mr-3" v-show="!currentJobStepsStates[i].expanded"/>
@@ -91,10 +91,30 @@ const sfc = {
       currentJobStepsStates: [],
 
       // provided by backend
-      runInfo: {},
-      allJobGroups: [],
-      currentJobInfo: {},
-      currentJobSteps: [],
+      run: {
+        htmlurl: '',
+        title: '',
+        can_cancel: false,
+        jobs: [
+          // {
+          //   id: 0,
+          //   name: '',
+          //   status: '',
+          //   can_rerun: false,
+          // },
+        ],
+      },
+      currentJob: {
+        title: '',
+        detail: '',
+        steps: [
+          // {
+          //   summary: '',
+          //   duration: '',
+          //   status: '',
+          // }
+        ],
+      },
     };
   },
 
@@ -142,28 +162,28 @@ const sfc = {
     },
     // rerun a job
     rerunJob(idx) {
-      this.fetch(`${this.runInfo.htmlurl}/jobs/${idx}/rerun`);
+      this.fetch(`${this.run.htmlurl}/jobs/${idx}/rerun`);
     },
     // cancel a run
     cancelRun() {
-      this.fetch(`${this.runInfo.htmlurl}/cancel`);
+      this.fetch(`${this.run.htmlurl}/cancel`);
     },
 
     createLogLine(line) {
       const div = document.createElement('div');
       div.classList.add('job-log-line');
-      div._jobLogTime = line.t;
+      div._jobLogTime = line.timestamp;
 
       const lineNumber = document.createElement('div');
       lineNumber.className = 'line-num';
-      lineNumber.innerText = line.ln;
+      lineNumber.innerText = line.index;
       div.appendChild(lineNumber);
 
       // TODO: Support displaying time optionally
 
       const logMessage = document.createElement('div');
       logMessage.className = 'log-msg';
-      logMessage.innerHTML = this.ansiToHTML.toHtml(line.m);
+      logMessage.innerHTML = this.ansiToHTML.toHtml(line.message);
       div.appendChild(logMessage);
 
       return div;
@@ -193,32 +213,32 @@ const sfc = {
       try {
         this.loading = true;
 
-        const stepLogCursors = this.currentJobStepsStates.map((it, idx) => {
+        const logCursors = this.currentJobStepsStates.map((it, idx) => {
           // cursor is used to indicate the last position of the logs
           // it's only used by backend, frontend just reads it and passes it back, it and can be any type.
           // for example: make cursor=null means the first time to fetch logs, cursor=eof means no more logs, etc
-          return {stepIndex: idx, cursor: it.cursor, expanded: it.expanded};
+          return {step: idx, cursor: it.cursor, expanded: it.expanded};
         });
-        const reqData = {stepLogCursors};
+        const reqData = {logCursors};
 
         const respData = await this.fetchJob(reqData);
 
         // save the stateData to Vue data, then the UI will be updated
-        for (const [key, value] of Object.entries(respData.stateData)) {
+        for (const [key, value] of Object.entries(respData.state)) {
           this[key] = value;
         }
 
         // sync the currentJobStepsStates to store the job step states
-        for (let i = 0; i < this.currentJobSteps.length; i++) {
+        for (let i = 0; i < this.currentJob.steps.length; i++) {
           if (!this.currentJobStepsStates[i]) {
             this.currentJobStepsStates[i] = {cursor: null, expanded: false};
           }
         }
         // append logs to the UI
-        for (const logs of respData.logsData.streamingLogs) {
+        for (const logs of respData.logs.steps_log) {
           // save the cursor, it will be passed to backend next time
-          this.currentJobStepsStates[logs.stepIndex].cursor = logs.cursor;
-          this.appendLogs(logs.stepIndex, logs.lines);
+          this.currentJobStepsStates[logs.step].cursor = logs.cursor;
+          this.appendLogs(logs.step, logs.lines);
         }
       } finally {
         this.loading = false;
@@ -226,7 +246,7 @@ const sfc = {
     },
 
     fetch(url, body) {
-      const resp = fetch(url, {
+      return fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -234,7 +254,6 @@ const sfc = {
         },
         body,
       });
-      return resp;
     },
   },
 };
