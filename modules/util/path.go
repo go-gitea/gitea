@@ -22,8 +22,6 @@ func EnsureAbsolutePath(path, absoluteBase string) string {
 	return filepath.Join(absoluteBase, path)
 }
 
-
-
 // IsDir returns true if given path is a directory,
 // or returns false when it's a file or does not exist.
 func IsDir(dir string) (bool, error) {
