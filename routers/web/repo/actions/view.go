@@ -135,10 +135,11 @@ func ViewPost(ctx *context_module.Context) {
 
 	resp.State.CurrentJob.Title = current.Name
 	resp.State.CurrentJob.Detail = current.Status.LocaleString(ctx.Locale)
+	resp.State.CurrentJob.Steps = make([]*ViewJobStep, 0) // marshal to '[]' instead fo 'null' in json
+	resp.Logs.StepsLog = make([]*ViewStepLog, 0)          // marshal to '[]' instead fo 'null' in json
 	if task != nil {
 		steps := actions.FullSteps(task)
 
-		resp.State.CurrentJob.Steps = make([]*ViewJobStep, 0, len(steps)) // marshal to '[]' instead fo 'null' in json
 		for _, v := range steps {
 			resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, &ViewJobStep{
 				Summary:  v.Name,
@@ -147,7 +148,6 @@ func ViewPost(ctx *context_module.Context) {
 			})
 		}
 
-		resp.Logs.StepsLog = make([]*ViewStepLog, 0, len(req.LogCursors)) // marshal to '[]' instead fo 'null' in json
 		for _, cursor := range req.LogCursors {
 			if !cursor.Expanded {
 				continue
