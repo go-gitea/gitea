@@ -76,13 +76,14 @@ linters-settings:
     extra-rules: true
     lang-version: "1.19"
   depguard:
-    # TODO: use depguard to replace import checks in gitea-vet
     list-type: denylist
     # Check the list against standard lib.
     include-go-root: true
     packages-with-error-message:
       - encoding/json: "use gitea's modules/json instead of encoding/json"
       - github.com/unknwon/com: "use gitea's util and replacements"
+      - io/ioutil: "use os or io instead"
+      - golang.org/x/exp: "it's experimental and unreliable."
 
 issues:
   max-issues-per-linter: 0
