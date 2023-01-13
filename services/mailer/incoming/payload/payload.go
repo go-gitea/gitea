@@ -5,7 +5,6 @@ package payload
 
 import (
 	"context"
-	"fmt"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/util"
@@ -33,7 +32,7 @@ func CreateReferencePayload(reference interface{}) ([]byte, error) {
 		refType = payloadReferenceComment
 		refID = r.ID
 	default:
-		return nil, fmt.Errorf("unsupported reference type")
+		return nil, util.NewInvalidArgumentErrorf("unsupported reference type: %T", r)
 	}
 
 	payload, err := util.PackData(refType, refID)
@@ -47,11 +46,11 @@ func CreateReferencePayload(reference interface{}) ([]byte, error) {
 // GetReferenceFromPayload resolves the reference from the payload
 func GetReferenceFromPayload(ctx context.Context, payload []byte) (interface{}, error) {
 	if len(payload) < 1 {
-		return nil, fmt.Errorf("payload to small")
+		return nil, util.NewInvalidArgumentErrorf("payload to small")
 	}
 
 	if payload[0] != replyPayloadVersion1 {
-		return nil, fmt.Errorf("unsupported payload version")
+		return nil, util.NewInvalidArgumentErrorf("unsupported payload version")
 	}
 
 	var ref payloadReferenceType
@@ -65,7 +64,7 @@ func GetReferenceFromPayload(ctx context.Context, payload []byte) (interface{}, 
 		return issues_model.GetIssueByID(ctx, id)
 	case payloadReferenceComment:
 		return issues_model.GetCommentByID(ctx, id)
+	default:
+		return nil, util.NewInvalidArgumentErrorf("unsupported reference type: %T", ref)
 	}
-
-	return nil, fmt.Errorf("unsupported reference type")
 }

@@ -750,7 +750,7 @@ and
 - `SEND_BUFFER_LEN`: **100**: Buffer length of mailing queue. **DEPRECATED** use `LENGTH` in `[queue.mailer]`
 - `SEND_AS_PLAIN_TEXT`: **false**: Send mails only in plain text, without HTML alternative.
 
-## Incoming Email (`incoming_email`)
+## Incoming Email (`email.incoming`)
 
 - `ENABLED`: **false**: Enable handling of incoming emails.
 - `REPLY_TO_ADDRESS`: **\<empty\>**: The email address including the `%{token}` placeholder that will be replaced per user/action. Example: `incoming+%{token}@example.com`. The placeholder must appear in the user part of the address (before the `@`).
@@ -762,7 +762,7 @@ and
 - `SKIP_TLS_VERIFY`: **false**: If set to `true`, completely ignores server certificate validation errors. This option is unsafe.
 - `MAILBOX`: **INBOX**: The mailbox name where incoming mail will end up.
 - `DELETE_HANDLED_MESSAGE`: **true**: Whether handled messages should be deleted from the mailbox.
-- `MAXIMUM_MESSAGE_SIZE`: **0**: Maximum size of a message to handle. Bigger messages are ignored.
+- `MAXIMUM_MESSAGE_SIZE`: **10485760**: Maximum size of a message to handle. Bigger messages are ignored. Set to 0 to allow every size.
 
 ## Cache (`cache`)
 

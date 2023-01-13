@@ -80,6 +80,13 @@ func TestIncomingEmail(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
 				handler := &incoming.ReplyHandler{}
+
+				payload, err := incoming_payload.CreateReferencePayload(issue)
+				assert.NoError(t, err)
+
+				assert.Error(t, handler.Handle(db.DefaultContext, &incoming.MailContent{}, nil, payload))
+				assert.NoError(t, handler.Handle(db.DefaultContext, &incoming.MailContent{}, user, payload))
+
 				content := &incoming.MailContent{
 					Content: "reply by mail",
 					Attachments: []*incoming.Attachment{
@@ -89,12 +96,6 @@ func TestIncomingEmail(t *testing.T) {
 						},
 					},
 				}
-
-				payload, err := incoming_payload.CreateReferencePayload(issue)
-				assert.NoError(t, err)
-
-				assert.Error(t, handler.Handle(db.DefaultContext, &incoming.MailContent{}, nil, payload))
-				assert.NoError(t, handler.Handle(db.DefaultContext, &incoming.MailContent{}, user, payload))
 
 				assert.NoError(t, handler.Handle(db.DefaultContext, content, user, payload))
 
@@ -175,6 +176,8 @@ func TestIncomingEmail(t *testing.T) {
 	})
 
 	if setting.IncomingEmail.Enabled {
+		// This test connects to the configured email server and is currently only enabled for MySql integration tests.
+		// It sends a reply to create a comment. If the comment is not detected after 10 seconds the test fails.
 		t.Run("IMAP", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
@@ -190,27 +193,23 @@ func TestIncomingEmail(t *testing.T) {
 			err = gomail.Send(&smtpTestSender{}, msg)
 			assert.NoError(t, err)
 
-			for i := 0; i < 5; i++ {
-				time.Sleep(1 * time.Second)
-
+			assert.Eventually(t, func() bool {
 				comments, err := issues_model.FindComments(db.DefaultContext, &issues_model.FindCommentsOptions{
 					IssueID: issue.ID,
 					Type:    issues_model.CommentTypeComment,
 				})
 				assert.NoError(t, err)
 				assert.NotEmpty(t, comments)
+
 				comment := comments[len(comments)-1]
-				if comment.Content == token {
-					assert.Equal(t, user.ID, comment.PosterID)
-					break
-				} else if i == 4 {
-					t.SkipNow()
-				}
-			}
+
+				return comment.PosterID == user.ID && comment.Content == token
+			}, 10*time.Second, 1*time.Second)
 		})
 	}
 }
 
+// A simple SMTP mail sender used for integration tests.
 type smtpTestSender struct{}
 
 func (s *smtpTestSender) Send(from string, to []string, msg io.WriterTo) error {

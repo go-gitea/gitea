@@ -15,6 +15,14 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+// A token is a verifyable container describing an action.
+//
+// A token has a dynamic length depending on the contained data and has the following structure:
+// | Token Version | User ID | HMAC | Payload |
+//
+// The payload is verifyable by the generated HMAC using the user secret. It contains:
+// | Timestamp | Action/Handler Type | Action/Handler Data |
+
 const (
 	tokenVersion1        byte = 1
 	tokenLifetimeInYears int  = 1
@@ -34,8 +42,12 @@ type ErrToken struct {
 	context string
 }
 
-func (p *ErrToken) Error() string {
-	return "invalid email token: " + p.context
+func (err *ErrToken) Error() string {
+	return "invalid email token: " + err.context
+}
+
+func (err *ErrToken) Unwrap() error {
+	return util.ErrInvalidArgument
 }
 
 // CreateToken creates a token for the action/user tuple

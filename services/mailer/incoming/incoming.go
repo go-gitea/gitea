@@ -45,6 +45,9 @@ func Init(ctx context.Context) error {
 		ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Incoming Email", process.SystemProcessType, true)
 		defer finished()
 
+		// This background job processes incoming emails. It uses the IMAP IDLE command to get notified about incoming emails.
+		// The following loop restarts the processing logic after errors until ctx indicates to stop.
+
 		for {
 			select {
 			case <-ctx.Done():
@@ -77,15 +80,15 @@ func processIncomingEmails(ctx context.Context) error {
 		c, err = client.Dial(server)
 	}
 	if err != nil {
-		return fmt.Errorf("connected failed: %w", err)
+		return fmt.Errorf("could not connect to server '%s': %w", server, err)
 	}
 
 	if err := c.Login(setting.IncomingEmail.Username, setting.IncomingEmail.Password); err != nil {
-		return fmt.Errorf("login failed: %w", err)
+		return fmt.Errorf("could not login: %w", err)
 	}
 	defer func() {
 		if err := c.Logout(); err != nil {
-			log.Error("Logout failed: %v", err)
+			log.Error("Logout from incoming email server failed: %v", err)
 		}
 	}()
 
@@ -93,13 +96,16 @@ func processIncomingEmails(ctx context.Context) error {
 		return fmt.Errorf("selecting box '%s' failed: %w", setting.IncomingEmail.Mailbox, err)
 	}
 
+	// The following loop processes messages. If there are no messages available, IMAP IDLE is used to wait for new messages.
+	// This process is repeated until an IMAP error occurs or ctx indicates to stop.
+
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
 		default:
 			if err := processMessages(ctx, c); err != nil {
-				return fmt.Errorf("do it failed: %w", err)
+				return fmt.Errorf("could not process messages: %w", err)
 			}
 			if err := waitForUpdates(ctx, c); err != nil {
 				return fmt.Errorf("wait for updates failed: %w", err)
@@ -153,21 +159,12 @@ func waitForUpdates(ctx context.Context, c *client.Client) error {
 
 // processMessages searches unread mails and processes them.
 func processMessages(ctx context.Context, c *client.Client) error {
-	mbox, err := c.Select(setting.IncomingEmail.Mailbox, false)
-	if err != nil {
-		return fmt.Errorf("selecting box '%s' failed: %w", setting.IncomingEmail.Mailbox, err)
-	}
-
-	if mbox.Messages == 0 {
-		return nil
-	}
-
 	criteria := imap.NewSearchCriteria()
 	criteria.WithoutFlags = []string{imap.SeenFlag}
 	criteria.Smaller = setting.IncomingEmail.MaximumMessageSize
 	ids, err := c.Search(criteria)
 	if err != nil {
-		return fmt.Errorf("search failed: %w", err)
+		return fmt.Errorf("imap search failed: %w", err)
 	}
 
 	if len(ids) == 0 {
@@ -204,11 +201,11 @@ loop:
 						[]interface{}{imap.DeletedFlag},
 						nil,
 					); err != nil {
-						return fmt.Errorf("store failed: %w", err)
+						return fmt.Errorf("imap store failed: %w", err)
 					}
 
 					if err := c.Expunge(nil); err != nil {
-						return fmt.Errorf("expunge failed: %w", err)
+						return fmt.Errorf("imap expunge failed: %w", err)
 					}
 				}
 				return nil
@@ -217,29 +214,29 @@ loop:
 			err := func() error {
 				r := msg.GetBody(section)
 				if r == nil {
-					return fmt.Errorf("get body failed: %w", err)
+					return fmt.Errorf("could not get body from message: %w", err)
 				}
 
 				env, err := enmime.ReadEnvelope(r)
 				if err != nil {
-					return fmt.Errorf("read envelope failed: %w", err)
+					return fmt.Errorf("could not read envelope: %w", err)
 				}
 
 				if isAutomaticReply(env) {
-					log.Debug("Skipping automatic reply")
+					log.Debug("Skipping automatic email reply")
 					return nil
 				}
 
 				t := searchTokenInHeaders(env)
 				if t == "" {
-					log.Debug("Token not found")
+					log.Debug("Incoming email token not found in headers")
 					return nil
 				}
 
 				handlerType, user, payload, err := token.ExtractToken(ctx, t)
 				if err != nil {
 					if _, ok := err.(*token.ErrToken); ok {
-						log.Info("Invalid email token: %v", err)
+						log.Info("Invalid incoming email token: %v", err)
 						return nil
 					}
 					return err
@@ -250,13 +247,10 @@ loop:
 					return fmt.Errorf("unexpected handler type: %v", handlerType)
 				}
 
-				content, err := getContentFromMailReader(env)
-				if err != nil {
-					return fmt.Errorf("getContentFromMailReader failed: %w", err)
-				}
+				content := getContentFromMailReader(env)
 
 				if err := handler.Handle(ctx, content, user, payload); err != nil {
-					return fmt.Errorf("Handle failed: %w", err)
+					return fmt.Errorf("could not handle message: %w", err)
 				}
 
 				handledSet.AddNum(msg.SeqNum)
@@ -264,13 +258,13 @@ loop:
 				return nil
 			}()
 			if err != nil {
-				log.Error("Error while processing message[]: %v", err)
+				log.Error("Error while processing incoming email[%v]: %v", msg.Uid, err)
 			}
 		}
 	}
 
 	if err := <-errs; err != nil {
-		return fmt.Errorf("fetch failed: %w", err)
+		return fmt.Errorf("imap fetch failed: %w", err)
 	}
 
 	return nil
@@ -294,19 +288,17 @@ func isAutomaticReply(env *enmime.Envelope) bool {
 func searchTokenInHeaders(env *enmime.Envelope) string {
 	if addressTokenRegex != nil {
 		to, _ := env.AddressList("To")
-		deliveredTo, _ := env.AddressList("Delivered-To")
-		for _, list := range [][]*net_mail.Address{
-			to,
-			deliveredTo,
-		} {
-			for _, address := range list {
-				match := addressTokenRegex.FindStringSubmatch(address.Address)
-				if len(match) != 2 {
-					continue
-				}
 
-				return match[1]
-			}
+		token := searchTokenInAddresses(to)
+		if token != "" {
+			return token
+		}
+
+		deliveredTo, _ := env.AddressList("Delivered-To")
+
+		token = searchTokenInAddresses(deliveredTo)
+		if token != "" {
+			return token
 		}
 	}
 
@@ -334,6 +326,20 @@ func searchTokenInHeaders(env *enmime.Envelope) string {
 	return ""
 }
 
+// searchTokenInAddresses looks for the token in an address
+func searchTokenInAddresses(addresses []*net_mail.Address) string {
+	for _, address := range addresses {
+		match := addressTokenRegex.FindStringSubmatch(address.Address)
+		if len(match) != 2 {
+			continue
+		}
+
+		return match[1]
+	}
+
+	return ""
+}
+
 type MailContent struct {
 	Content     string
 	Attachments []*Attachment
@@ -346,7 +352,7 @@ type Attachment struct {
 
 // getContentFromMailReader grabs the plain content and the attachments from the mail.
 // A potential reply/signature gets stripped from the content.
-func getContentFromMailReader(env *enmime.Envelope) (*MailContent, error) {
+func getContentFromMailReader(env *enmime.Envelope) *MailContent {
 	attachments := make([]*Attachment, 0, len(env.Attachments))
 	for _, attachment := range env.Attachments {
 		attachments = append(attachments, &Attachment{
@@ -358,5 +364,5 @@ func getContentFromMailReader(env *enmime.Envelope) (*MailContent, error) {
 	return &MailContent{
 		Content:     reply.FromText(env.Text),
 		Attachments: attachments,
-	}, nil
+	}
 }

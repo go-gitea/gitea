@@ -311,7 +311,7 @@ func Test_createReference(t *testing.T) {
 				comment:    comment,
 				actionType: activities_model.ActionCommentPull,
 			},
-			prefix: fmt.Sprintf("<%s/pulls/%d/comment/%d@%s", issue.Repo.FullName(), issue.Index, comment.ID, setting.Domain),
+			prefix: fmt.Sprintf("<%s/pulls/%d/comment/%d@%s>", issue.Repo.FullName(), issue.Index, comment.ID, setting.Domain),
 		},
 		{
 			name: "Close Issue",

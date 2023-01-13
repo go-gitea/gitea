@@ -31,7 +31,7 @@ Gitea tries to detect automatic responses to skip and the email server should be
 
 ## Configuration
 
-To activate the handling of incoming email messages you have to configure the `incoming_email` section in the configuration file.
+To activate the handling of incoming email messages you have to configure the `email.incoming` section in the configuration file.
 
 The `REPLY_TO_ADDRESS` contains the address an email client will respond to.
 This address needs to contain the `%{token}` placeholder which will be replaced with a token describing the user/action.

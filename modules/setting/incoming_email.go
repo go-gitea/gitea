@@ -28,11 +28,12 @@ var IncomingEmail = struct {
 	Mailbox:              "INBOX",
 	DeleteHandledMessage: true,
 	TokenPlaceholder:     "%{token}",
+	MaximumMessageSize:   10485760,
 }
 
 func newIncomingEmail() {
-	if err := Cfg.Section("incoming_email").MapTo(&IncomingEmail); err != nil {
-		log.Fatal("Unable to map [incoming_email] section on to IncomingEmail. Error: %v", err)
+	if err := Cfg.Section("email.incoming").MapTo(&IncomingEmail); err != nil {
+		log.Fatal("Unable to map [email.incoming] section on to IncomingEmail. Error: %v", err)
 	}
 
 	if !IncomingEmail.Enabled {

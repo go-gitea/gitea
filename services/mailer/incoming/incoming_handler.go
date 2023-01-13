@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/upload"
+	"code.gitea.io/gitea/modules/util"
 	attachment_service "code.gitea.io/gitea/services/attachment"
 	issue_service "code.gitea.io/gitea/services/issue"
 	incoming_payload "code.gitea.io/gitea/services/mailer/incoming/payload"
@@ -23,7 +24,7 @@ import (
 )
 
 type MailHandler interface {
-	Handle(ctx context.Context, content *MailContent, user *user_model.User, payload []byte) error
+	Handle(ctx context.Context, content *MailContent, doer *user_model.User, payload []byte) error
 }
 
 var handlers = map[token.HandlerType]MailHandler{
@@ -34,9 +35,9 @@ var handlers = map[token.HandlerType]MailHandler{
 // ReplyHandler handles incoming emails to create a reply from them
 type ReplyHandler struct{}
 
-func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, user *user_model.User, payload []byte) error {
-	if user == nil {
-		return fmt.Errorf("user needed")
+func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, doer *user_model.User, payload []byte) error {
+	if doer == nil {
+		return util.NewInvalidArgumentErrorf("doer can't be nil")
 	}
 
 	ref, err := incoming_payload.GetReferenceFromPayload(ctx, payload)
@@ -58,19 +59,19 @@ func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, user *u
 
 		issue = comment.Issue
 	default:
-		return fmt.Errorf("unsupported reply reference: %v", ref)
+		return util.NewInvalidArgumentErrorf("unsupported reply reference: %v", ref)
 	}
 
 	if err := issue.LoadRepo(ctx); err != nil {
 		return err
 	}
 
-	perm, err := access_model.GetUserRepoPermission(ctx, issue.Repo, user)
+	perm, err := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
 	if err != nil {
 		return err
 	}
 
-	if !perm.CanWriteIssuesOrPulls(issue.IsPull) || issue.IsLocked && !user.IsAdmin {
+	if !perm.CanWriteIssuesOrPulls(issue.IsPull) || issue.IsLocked && !doer.IsAdmin {
 		log.Debug("can't write issue or pull")
 		return nil
 	}
@@ -82,7 +83,7 @@ func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, user *u
 			for _, attachment := range content.Attachments {
 				a, err := attachment_service.UploadAttachment(bytes.NewReader(attachment.Content), setting.Attachment.AllowedTypes, &repo_model.Attachment{
 					Name:       attachment.Name,
-					UploaderID: user.ID,
+					UploaderID: doer.ID,
 					RepoID:     issue.Repo.ID,
 				})
 				if err != nil {
@@ -100,7 +101,7 @@ func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, user *u
 			return nil
 		}
 
-		_, err = issue_service.CreateIssueComment(ctx, user, issue.Repo, issue, content.Content, attachmentIDs)
+		_, err = issue_service.CreateIssueComment(ctx, doer, issue.Repo, issue, content.Content, attachmentIDs)
 		if err != nil {
 			return fmt.Errorf("CreateIssueComment failed: %w", err)
 		}
@@ -114,7 +115,7 @@ func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, user *u
 		if comment.Type == issues_model.CommentTypeCode {
 			_, err := pull_service.CreateCodeComment(
 				ctx,
-				user,
+				doer,
 				nil,
 				issue,
 				comment.Line,
@@ -135,9 +136,9 @@ func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, user *u
 // UnsubscribeHandler handles unwatching issues/pulls
 type UnsubscribeHandler struct{}
 
-func (h *UnsubscribeHandler) Handle(ctx context.Context, _ *MailContent, user *user_model.User, payload []byte) error {
-	if user == nil {
-		return fmt.Errorf("user needed")
+func (h *UnsubscribeHandler) Handle(ctx context.Context, _ *MailContent, doer *user_model.User, payload []byte) error {
+	if doer == nil {
+		return util.NewInvalidArgumentErrorf("doer can't be nil")
 	}
 
 	ref, err := incoming_payload.GetReferenceFromPayload(ctx, payload)
@@ -153,7 +154,7 @@ func (h *UnsubscribeHandler) Handle(ctx context.Context, _ *MailContent, user *u
 			return err
 		}
 
-		perm, err := access_model.GetUserRepoPermission(ctx, issue.Repo, user)
+		perm, err := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
 		if err != nil {
 			return err
 		}
@@ -163,7 +164,7 @@ func (h *UnsubscribeHandler) Handle(ctx context.Context, _ *MailContent, user *u
 			return nil
 		}
 
-		return issues_model.CreateOrUpdateIssueWatch(user.ID, issue.ID, false)
+		return issues_model.CreateOrUpdateIssueWatch(doer.ID, issue.ID, false)
 	}
 
 	return fmt.Errorf("unsupported unsubscribe reference: %v", ref)
