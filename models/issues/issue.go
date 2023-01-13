@@ -1238,7 +1238,11 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 	}
 
 	if len(opts.MilestoneIDs) > 0 {
-		sess.In("issue.milestone_id", opts.MilestoneIDs)
+		if len(opts.MilestoneIDs) == 1 && opts.MilestoneIDs[0] == -1 {
+			sess.And("issue.milestone_id = 0")
+		} else {
+			sess.In("issue.milestone_id", opts.MilestoneIDs)
+		}
 	}
 
 	if opts.UpdatedAfterUnix != 0 {
@@ -1648,6 +1652,8 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 
 		if opts.MilestoneID > 0 {
 			sess.And("issue.milestone_id = ?", opts.MilestoneID)
+		} else if opts.MilestoneID == -1 {
+			sess.And("issue.milestone_id = 0")
 		}
 
 		if opts.AssigneeID > 0 {
