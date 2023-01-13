@@ -292,14 +292,20 @@ const notRegularFileMode os.FileMode = os.ModeSymlink | os.ModeNamedPipe | os.Mo
 func getDirectorySize(path string) (int64, error) {
 	var size int64
 	err := filepath.WalkDir(path, func(_ string, info os.DirEntry, err error) error {
-		if os.IsNotExist(err) || info.IsDir() {
+		if err != nil {
+			if os.IsNotExist(err) { // ignore the error because the file maybe deleted during traversing.
+				return nil
+			}
+			return err
+		}
+		if info.IsDir() {
 			return nil
 		}
 		f, err := info.Info()
 		if err != nil {
 			return err
 		}
-		if info != nil && (f.Mode()&notRegularFileMode) == 0 {
+		if (f.Mode() & notRegularFileMode) == 0 {
 			size += f.Size()
 		}
 		return err
