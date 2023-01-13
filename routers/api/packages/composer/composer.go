@@ -4,6 +4,7 @@
 package composer
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -200,7 +201,11 @@ func UploadPackage(ctx *context.Context) {
 
 	cp, err := composer_module.ParsePackage(buf, buf.Size())
 	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
+		if errors.Is(err, util.ErrInvalidArgument) {
+			apiError(ctx, http.StatusBadRequest, err)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
 		return
 	}
 
