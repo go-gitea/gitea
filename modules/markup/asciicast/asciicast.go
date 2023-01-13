@@ -32,8 +32,8 @@ func (Renderer) Extensions() []string {
 }
 
 const (
-	playerClassName = "asciicast-player-container"
-	playerSrcAttr   = "data-asciicast-player-src"
+	playerClassName = "asciinema-player-container"
+	playerSrcAttr   = "data-asciinema-player-src"
 )
 
 // SanitizerRules implements markup.Renderer
