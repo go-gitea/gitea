@@ -103,11 +103,11 @@ services:
     environment:
       - USER_UID=1000
       - USER_GID=1000
-+     - GITEA__database__DB_TYPE=mysql
-+     - GITEA__database__HOST=db:3306
-+     - GITEA__database__NAME=gitea
-+     - GITEA__database__USER=gitea
-+     - GITEA__database__PASSWD=gitea
++      - GITEA__database__DB_TYPE=mysql
++      - GITEA__database__HOST=db:3306
++      - GITEA__database__NAME=gitea
++      - GITEA__database__USER=gitea
++      - GITEA__database__PASSWD=gitea
     restart: always
     networks:
       - gitea
@@ -153,11 +153,11 @@ services:
     environment:
       - USER_UID=1000
       - USER_GID=1000
-+     - GITEA__database__DB_TYPE=postgres
-+     - GITEA__database__HOST=db:5432
-+     - GITEA__database__NAME=gitea
-+     - GITEA__database__USER=gitea
-+     - GITEA__database__PASSWD=gitea
++      - GITEA__database__DB_TYPE=postgres
++      - GITEA__database__HOST=db:5432
++      - GITEA__database__NAME=gitea
++      - GITEA__database__USER=gitea
++      - GITEA__database__PASSWD=gitea
     restart: always
     networks:
       - gitea
@@ -207,8 +207,8 @@ services:
     networks:
       - gitea
     volumes:
--     - ./gitea:/data
-+     - gitea:/data
+-      - ./gitea:/data
++      - gitea:/data
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
@@ -285,13 +285,13 @@ docker-compose up -d
 services:
   server:
     environment:
-    - GITEA__mailer__ENABLED=true
-    - GITEA__mailer__FROM=${GITEA__mailer__FROM:?GITEA__mailer__FROM not set}
-    - GITEA__mailer__MAILER_TYPE=smtp
-    - GITEA__mailer__HOST=${GITEA__mailer__HOST:?GITEA__mailer__HOST not set}
-    - GITEA__mailer__IS_TLS_ENABLED=true
-    - GITEA__mailer__USER=${GITEA__mailer__USER:-apikey}
-    - GITEA__mailer__PASSWD="""${GITEA__mailer__PASSWD:?GITEA__mailer__PASSWD not set}"""
+      - GITEA__mailer__ENABLED=true
+      - GITEA__mailer__FROM=${GITEA__mailer__FROM:?GITEA__mailer__FROM not set}
+      - GITEA__mailer__MAILER_TYPE=smtp
+      - GITEA__mailer__HOST=${GITEA__mailer__HOST:?GITEA__mailer__HOST not set}
+      - GITEA__mailer__IS_TLS_ENABLED=true
+      - GITEA__mailer__USER=${GITEA__mailer__USER:-apikey}
+      - GITEA__mailer__PASSWD="""${GITEA__mailer__PASSWD:?GITEA__mailer__PASSWD not set}"""
 ```
 
 Gitea 将为每次新安装自动生成新的 `SECRET_KEY` 并将它们写入 `app.ini`。 如果您想手动设置 `SECRET_KEY`，您可以使用以下 docker 命令来使用 Gitea 内置的[方法](https://docs.gitea.io/en-us/command-line/#generate)生成 `SECRET_KEY`。 安装后请妥善保管您的 `SECRET_KEY`，如若丢失则无法解密已加密的数据。

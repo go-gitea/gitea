@@ -24,6 +24,7 @@ export function initStopwatch() {
     trigger: 'click',
     maxWidth: 'none',
     interactive: true,
+    hideOnClick: true,
   });
 
   // global stop watch (in the head_navbar), it should always work in any case either the EventSource or the PeriodicPoller is used.

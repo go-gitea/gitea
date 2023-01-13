@@ -4,14 +4,21 @@
 package auth
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/web/middleware"
 )
 
 // Auth is a middleware to authenticate a web user
 func Auth(authMethod Method) func(*context.Context) {
 	return func(ctx *context.Context) {
-		authShared(ctx, authMethod)
+		if err := authShared(ctx, authMethod); err != nil {
+			log.Error("Failed to verify user: %v", err)
+			ctx.Error(http.StatusUnauthorized, "Verify")
+			return
+		}
 		if ctx.Doer == nil {
 			// ensure the session uid is deleted
 			_ = ctx.Session.Delete("uid")
@@ -22,12 +29,18 @@ func Auth(authMethod Method) func(*context.Context) {
 // APIAuth is a middleware to authenticate an api user
 func APIAuth(authMethod Method) func(*context.APIContext) {
 	return func(ctx *context.APIContext) {
-		authShared(ctx.Context, authMethod)
+		if err := authShared(ctx.Context, authMethod); err != nil {
+			ctx.Error(http.StatusUnauthorized, "APIAuth", err)
+		}
 	}
 }
 
-func authShared(ctx *context.Context, authMethod Method) {
-	ctx.Doer = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+func authShared(ctx *context.Context, authMethod Method) error {
+	var err error
+	ctx.Doer, err = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+	if err != nil {
+		return err
+	}
 	if ctx.Doer != nil {
 		if ctx.Locale.Language() != ctx.Doer.Language {
 			ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
@@ -43,4 +56,5 @@ func authShared(ctx *context.Context, authMethod Method) {
 		ctx.Data["SignedUserID"] = int64(0)
 		ctx.Data["SignedUserName"] = ""
 	}
+	return nil
 }
