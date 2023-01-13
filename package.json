@@ -54,6 +54,7 @@
     "@playwright/test": "1.29.0",
     "@rollup/pluginutils": "5.0.2",
     "@stoplight/spectral-cli": "6.6.0",
+    "asciinema-player": "3.0.1",
     "eslint": "8.30.0",
     "eslint-plugin-import": "2.26.0",
     "eslint-plugin-jquery": "1.5.1",
