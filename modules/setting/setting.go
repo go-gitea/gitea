@@ -218,17 +218,17 @@ func PrepareAppDataPath() error {
 
 // LoadFromExisting initializes setting options from an existing config file (app.ini)
 func LoadFromExisting() {
-	Cfg = loadFromConf(false, "")
+	Cfg = loadFromConf(CustomConf, WritePIDFile, false, PIDFile, "")
 }
 
 // LoadAllowEmpty initializes setting options, it's also fine that if the config file (app.ini) doesn't exist
 func LoadAllowEmpty() {
-	Cfg = loadFromConf(true, "")
+	Cfg = loadFromConf(CustomConf, WritePIDFile, true, PIDFile,"")
 }
 
 // LoadForTest initializes setting options for tests
 func LoadForTest(extraConfigs ...string) {
-	Cfg = loadFromConf(true, strings.Join(extraConfigs, "\n"))
+	Cfg = loadFromConf(CustomConf, WritePIDFile, true, PIDFile,strings.Join(extraConfigs, "\n"))
 	if err := PrepareAppDataPath(); err != nil {
 		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)
 	}
@@ -249,20 +249,20 @@ func deprecatedSettingDB(rootCfg Config, oldSection, oldKey string) {
 
 // loadFromConf initializes configuration context.
 // NOTE: do not print any log except error.
-func loadFromConf(allowEmpty bool, extraConfig string) *ini.File {
+func loadFromConf(customConf string, writePIDFile, allowEmpty bool, pidFile, extraConfig string) *ini.File {
 	cfg := ini.Empty()
 
-	if WritePIDFile && len(PIDFile) > 0 {
-		createPIDFile(PIDFile)
+	if writePIDFile && len(pidFile) > 0 {
+		createPIDFile(pidFile)
 	}
 
-	isFile, err := util.IsFile(CustomConf)
+	isFile, err := util.IsFile(customConf)
 	if err != nil {
-		log.Error("Unable to check if %s is a file. Error: %v", CustomConf, err)
+		log.Error("Unable to check if %s is a file. Error: %v", customConf, err)
 	}
 	if isFile {
-		if err := cfg.Append(CustomConf); err != nil {
-			log.Fatal("Failed to load custom conf '%s': %v", CustomConf, err)
+		if err := cfg.Append(customConf); err != nil {
+			log.Fatal("Failed to load custom conf '%s': %v", customConf, err)
 		}
 	} else if !allowEmpty {
 		log.Fatal("Unable to find configuration file: %q.\nEnsure you are running in the correct environment or set the correct configuration file with -c.", CustomConf)
