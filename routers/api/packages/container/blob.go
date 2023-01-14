@@ -26,7 +26,11 @@ var uploadVersionMutex sync.Mutex
 
 // saveAsPackageBlob creates a package blob from an upload
 // The uploaded blob gets stored in a special upload version to link them to the package/image
-func saveAsPackageBlob(hsr packages_module.HashedSizeReader, pi *packages_service.PackageInfo) (*packages_model.PackageBlob, error) {
+func saveAsPackageBlob(hsr packages_module.HashedSizeReader, pci *packages_service.PackageCreationInfo) (*packages_model.PackageBlob, error) {
+	if err := packages_service.CheckSizeQuotaExceeded(db.DefaultContext, pci.Creator, pci.Owner, packages_model.TypeContainer, hsr.Size()); err != nil {
+		return nil, err
+	}
+
 	pb := packages_service.NewPackageBlob(hsr)
 
 	exists := false
@@ -41,10 +45,10 @@ func saveAsPackageBlob(hsr packages_module.HashedSizeReader, pi *packages_servic
 	err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		created := true
 		p := &packages_model.Package{
-			OwnerID:   pi.Owner.ID,
+			OwnerID:   pci.Owner.ID,
 			Type:      packages_model.TypeContainer,
-			Name:      strings.ToLower(pi.Name),
-			LowerName: strings.ToLower(pi.Name),
+			Name:      strings.ToLower(pci.Name),
+			LowerName: strings.ToLower(pci.Name),
 		}
 		var err error
 		if p, err = packages_model.TryInsertPackage(ctx, p); err != nil {
@@ -57,7 +61,7 @@ func saveAsPackageBlob(hsr packages_module.HashedSizeReader, pi *packages_servic
 		}
 
 		if created {
-			if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypePackage, p.ID, container_module.PropertyRepository, strings.ToLower(pi.Owner.LowerName+"/"+pi.Name)); err != nil {
+			if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypePackage, p.ID, container_module.PropertyRepository, strings.ToLower(pci.Owner.LowerName+"/"+pci.Name)); err != nil {
 				log.Error("Error setting package property: %v", err)
 				return err
 			}
@@ -65,7 +69,7 @@ func saveAsPackageBlob(hsr packages_module.HashedSizeReader, pi *packages_servic
 
 		pv := &packages_model.PackageVersion{
 			PackageID:    p.ID,
-			CreatorID:    pi.Owner.ID,
+			CreatorID:    pci.Creator.ID,
 			Version:      container_model.UploadVersion,
 			LowerVersion: container_model.UploadVersion,
 			IsInternal:   true,

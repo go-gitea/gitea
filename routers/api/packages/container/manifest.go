@@ -327,6 +327,10 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 		}
 	}
 
+	if err := packages_service.CheckCountQuotaExceeded(ctx, mci.Creator, mci.Owner); err != nil {
+		return nil, err
+	}
+
 	if mci.IsTagged {
 		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestTagged, ""); err != nil {
 			log.Error("Error setting package version property: %v", err)
