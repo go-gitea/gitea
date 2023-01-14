@@ -35,7 +35,14 @@ func GetProject(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
+	project_id := ctx.ParamsInt64(":id")
+	project, err := project_model.GetProjectByID(ctx, project_id)
+
+	if project.RepoID != ctx.Repo.Repository.ID {
+		ctx.Error(http.StatusInternalServerError, "GetProjectByID", err)
+		return
+	}
+
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound()
@@ -74,11 +81,17 @@ func UpdateProject(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.UpdateProjectPayload)
 	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
+
+	if project.RepoID != ctx.Repo.Repository.ID {
+		ctx.Error(http.StatusInternalServerError, "UpdateProject", err)
+		return
+	}
+
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetProjectByID", err)
+			ctx.Error(http.StatusInternalServerError, "UpdateProject", err)
 		}
 		return
 	}
@@ -114,7 +127,15 @@ func DeleteProject(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	err := project_model.DeleteProjectByID(ctx, ctx.ParamsInt64(":id"))
+	project_id := ctx.ParamsInt64(":id")
+	project, err := project_model.GetProjectByID(ctx, project_id)
+
+	if project.RepoID != ctx.Repo.Repository.ID {
+		ctx.Error(http.StatusInternalServerError, "DeleteProject", err)
+		return
+	}
+
+	err = project_model.DeleteProjectByID(ctx, project_id)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteProject", err)
 		return
