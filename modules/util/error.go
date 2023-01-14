@@ -5,6 +5,7 @@ package util
 
 import (
 	"errors"
+	"fmt"
 )
 
 // Common Errors forming the base of our error system
@@ -33,4 +34,32 @@ func (w SilentWrap) Error() string {
 // Unwrap returns the underlying error
 func (w SilentWrap) Unwrap() error {
 	return w.Err
+}
+
+// NewSilentWrapErrorf returns an error that formats as the given text but unwraps as the provided error
+func NewSilentWrapErrorf(unwrap error, message string, args ...interface{}) error {
+	if len(args) == 0 {
+		return SilentWrap{Message: message, Err: unwrap}
+	}
+	return SilentWrap{Message: fmt.Sprintf(message, args...), Err: unwrap}
+}
+
+// NewInvalidArgumentErrorf returns an error that formats as the given text but unwraps as an ErrInvalidArgument
+func NewInvalidArgumentErrorf(message string, args ...interface{}) error {
+	return NewSilentWrapErrorf(ErrInvalidArgument, message, args...)
+}
+
+// NewPermissionDeniedErrorf returns an error that formats as the given text but unwraps as an ErrPermissionDenied
+func NewPermissionDeniedErrorf(message string, args ...interface{}) error {
+	return NewSilentWrapErrorf(ErrPermissionDenied, message, args...)
+}
+
+// NewAlreadyExistErrorf returns an error that formats as the given text but unwraps as an ErrAlreadyExist
+func NewAlreadyExistErrorf(message string, args ...interface{}) error {
+	return NewSilentWrapErrorf(ErrAlreadyExist, message, args...)
+}
+
+// NewNotExistErrorf returns an error that formats as the given text but unwraps as an ErrNotExist
+func NewNotExistErrorf(message string, args ...interface{}) error {
+	return NewSilentWrapErrorf(ErrNotExist, message, args...)
 }

@@ -32,12 +32,12 @@ func TestCreateNewTagProtected(t *testing.T) {
 		err := release.CreateNewTag(git.DefaultContext, owner, repo, "master", "v-1", "first tag")
 		assert.NoError(t, err)
 
-		err = git_model.InsertProtectedTag(&git_model.ProtectedTag{
+		err = git_model.InsertProtectedTag(db.DefaultContext, &git_model.ProtectedTag{
 			RepoID:      repo.ID,
 			NamePattern: "v-*",
 		})
 		assert.NoError(t, err)
-		err = git_model.InsertProtectedTag(&git_model.ProtectedTag{
+		err = git_model.InsertProtectedTag(db.DefaultContext, &git_model.ProtectedTag{
 			RepoID:           repo.ID,
 			NamePattern:      "v-1.1",
 			AllowlistUserIDs: []int64{repo.OwnerID},

@@ -7,10 +7,10 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/migrations/base"
-	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -18,9 +18,9 @@ import (
 func Test_AddHeaderAuthorizationEncryptedColWebhook(t *testing.T) {
 	// Create Webhook table
 	type Webhook struct {
-		ID   int64            `xorm:"pk autoincr"`
-		Type webhook.HookType `xorm:"VARCHAR(16) 'type'"`
-		Meta string           `xorm:"TEXT"` // store hook-specific attributes
+		ID   int64                   `xorm:"pk autoincr"`
+		Type webhook_module.HookType `xorm:"VARCHAR(16) 'type'"`
+		Meta string                  `xorm:"TEXT"` // store hook-specific attributes
 
 		// HeaderAuthorizationEncrypted should be accessed using HeaderAuthorization() and SetHeaderAuthorization()
 		HeaderAuthorizationEncrypted string `xorm:"TEXT"`
