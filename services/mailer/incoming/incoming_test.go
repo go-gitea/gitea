@@ -89,8 +89,7 @@ func TestGetContentFromMailReader(t *testing.T) {
 
 	env, err := enmime.ReadEnvelope(strings.NewReader(mailString))
 	assert.NoError(t, err)
-	content, err := getContentFromMailReader(env)
-	assert.NoError(t, err)
+	content := getContentFromMailReader(env)
 	assert.Equal(t, "mail content", content.Content)
 	assert.Len(t, content.Attachments, 1)
 	assert.Equal(t, "attachment.txt", content.Attachments[0].Name)
@@ -111,8 +110,7 @@ func TestGetContentFromMailReader(t *testing.T) {
 
 	env, err = enmime.ReadEnvelope(strings.NewReader(mailString))
 	assert.NoError(t, err)
-	content, err = getContentFromMailReader(env)
-	assert.NoError(t, err)
+	content = getContentFromMailReader(env)
 	assert.Equal(t, "mail content", content.Content)
 	assert.Empty(t, content.Attachments)
 
@@ -133,7 +131,7 @@ func TestGetContentFromMailReader(t *testing.T) {
 
 	env, err = enmime.ReadEnvelope(strings.NewReader(mailString))
 	assert.NoError(t, err)
-	content, err = getContentFromMailReader(env)
+	content = getContentFromMailReader(env)
 	assert.NoError(t, err)
 	assert.Equal(t, "mail content without signature", content.Content)
 	assert.Empty(t, content.Attachments)
