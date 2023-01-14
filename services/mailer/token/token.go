@@ -15,12 +15,12 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-// A token is a verifyable container describing an action.
+// A token is a verifiable container describing an action.
 //
 // A token has a dynamic length depending on the contained data and has the following structure:
 // | Token Version | User ID | HMAC | Payload |
 //
-// The payload is verifyable by the generated HMAC using the user secret. It contains:
+// The payload is verifiable by the generated HMAC using the user secret. It contains:
 // | Timestamp | Action/Handler Type | Action/Handler Data |
 
 const (
