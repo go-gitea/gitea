@@ -9,10 +9,10 @@ import (
 
 	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/convert"
 )
 
 func GetProjectBoard(ctx *context.APIContext) {
@@ -86,9 +86,7 @@ func UpdateProjectBoard(ctx *context.APIContext) {
 		return
 	}
 
-	if board.Title != form.Title {
-		board.Title = form.Title
-	}
+	board.Title = form.Title
 	if board.Color != form.Color {
 		board.Color = form.Color
 	}
