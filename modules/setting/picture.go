@@ -60,9 +60,9 @@ func parsePictureSetting(rootCfg Config) {
 	}
 
 	DisableGravatar = sec.Key("DISABLE_GRAVATAR").MustBool(GetDefaultDisableGravatar())
-	deprecatedSettingDB("", "DISABLE_GRAVATAR")
+	deprecatedSettingDB(rootCfg, "", "DISABLE_GRAVATAR")
 	EnableFederatedAvatar = sec.Key("ENABLE_FEDERATED_AVATAR").MustBool(GetDefaultEnableFederatedAvatar(DisableGravatar))
-	deprecatedSettingDB("", "ENABLE_FEDERATED_AVATAR")
+	deprecatedSettingDB(rootCfg, "", "ENABLE_FEDERATED_AVATAR")
 
 	parseRepoAvatarSetting(rootCfg)
 }

@@ -64,7 +64,7 @@ func parseMailerSetting(rootCfg Config) {
 
 	// Handle Deprecations and map on to new configuration
 	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "MAILER_TYPE", "mailer", "PROTOCOL")
+	deprecatedSetting(rootCfg, "mailer", "MAILER_TYPE", "mailer", "PROTOCOL")
 	if sec.HasKey("MAILER_TYPE") && !sec.HasKey("PROTOCOL") {
 		if sec.Key("MAILER_TYPE").String() == "sendmail" {
 			sec.Key("PROTOCOL").MustString("sendmail")
@@ -72,7 +72,7 @@ func parseMailerSetting(rootCfg Config) {
 	}
 
 	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "HOST", "mailer", "SMTP_ADDR")
+	deprecatedSetting(rootCfg, "mailer", "HOST", "mailer", "SMTP_ADDR")
 	if sec.HasKey("HOST") && !sec.HasKey("SMTP_ADDR") {
 		givenHost := sec.Key("HOST").String()
 		addr, port, err := net.SplitHostPort(givenHost)
@@ -89,7 +89,7 @@ func parseMailerSetting(rootCfg Config) {
 	}
 
 	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "IS_TLS_ENABLED", "mailer", "PROTOCOL")
+	deprecatedSetting(rootCfg, "mailer", "IS_TLS_ENABLED", "mailer", "PROTOCOL")
 	if sec.HasKey("IS_TLS_ENABLED") && !sec.HasKey("PROTOCOL") {
 		if sec.Key("IS_TLS_ENABLED").MustBool() {
 			sec.Key("PROTOCOL").MustString("smtps")
@@ -99,37 +99,37 @@ func parseMailerSetting(rootCfg Config) {
 	}
 
 	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "DISABLE_HELO", "mailer", "ENABLE_HELO")
+	deprecatedSetting(rootCfg, "mailer", "DISABLE_HELO", "mailer", "ENABLE_HELO")
 	if sec.HasKey("DISABLE_HELO") && !sec.HasKey("ENABLE_HELO") {
 		sec.Key("ENABLE_HELO").MustBool(!sec.Key("DISABLE_HELO").MustBool())
 	}
 
 	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "SKIP_VERIFY", "mailer", "FORCE_TRUST_SERVER_CERT")
+	deprecatedSetting(rootCfg, "mailer", "SKIP_VERIFY", "mailer", "FORCE_TRUST_SERVER_CERT")
 	if sec.HasKey("SKIP_VERIFY") && !sec.HasKey("FORCE_TRUST_SERVER_CERT") {
 		sec.Key("FORCE_TRUST_SERVER_CERT").MustBool(sec.Key("SKIP_VERIFY").MustBool())
 	}
 
 	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "USE_CERTIFICATE", "mailer", "USE_CLIENT_CERT")
+	deprecatedSetting(rootCfg, "mailer", "USE_CERTIFICATE", "mailer", "USE_CLIENT_CERT")
 	if sec.HasKey("USE_CERTIFICATE") && !sec.HasKey("USE_CLIENT_CERT") {
 		sec.Key("USE_CLIENT_CERT").MustBool(sec.Key("USE_CERTIFICATE").MustBool())
 	}
 
 	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "CERT_FILE", "mailer", "CLIENT_CERT_FILE")
+	deprecatedSetting(rootCfg, "mailer", "CERT_FILE", "mailer", "CLIENT_CERT_FILE")
 	if sec.HasKey("CERT_FILE") && !sec.HasKey("CLIENT_CERT_FILE") {
 		sec.Key("CERT_FILE").MustString(sec.Key("CERT_FILE").String())
 	}
 
 	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "KEY_FILE", "mailer", "CLIENT_KEY_FILE")
+	deprecatedSetting(rootCfg, "mailer", "KEY_FILE", "mailer", "CLIENT_KEY_FILE")
 	if sec.HasKey("KEY_FILE") && !sec.HasKey("CLIENT_KEY_FILE") {
 		sec.Key("KEY_FILE").MustString(sec.Key("KEY_FILE").String())
 	}
 
 	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "ENABLE_HTML_ALTERNATIVE", "mailer", "SEND_AS_PLAIN_TEXT")
+	deprecatedSetting(rootCfg, "mailer", "ENABLE_HTML_ALTERNATIVE", "mailer", "SEND_AS_PLAIN_TEXT")
 	if sec.HasKey("ENABLE_HTML_ALTERNATIVE") && !sec.HasKey("SEND_AS_PLAIN_TEXT") {
 		sec.Key("SEND_AS_PLAIN_TEXT").MustBool(!sec.Key("ENABLE_HTML_ALTERNATIVE").MustBool(false))
 	}

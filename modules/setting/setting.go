@@ -218,39 +218,39 @@ func PrepareAppDataPath() error {
 
 // LoadFromExisting initializes setting options from an existing config file (app.ini)
 func LoadFromExisting() {
-	loadFromConf(false, "")
+	Cfg = loadFromConf(false, "")
 }
 
 // LoadAllowEmpty initializes setting options, it's also fine that if the config file (app.ini) doesn't exist
 func LoadAllowEmpty() {
-	loadFromConf(true, "")
+	Cfg = loadFromConf(true, "")
 }
 
 // LoadForTest initializes setting options for tests
 func LoadForTest(extraConfigs ...string) {
-	loadFromConf(true, strings.Join(extraConfigs, "\n"))
+	Cfg = loadFromConf(true, strings.Join(extraConfigs, "\n"))
 	if err := PrepareAppDataPath(); err != nil {
 		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)
 	}
 }
 
-func deprecatedSetting(oldSection, oldKey, newSection, newKey string) {
-	if Cfg.Section(oldSection).HasKey(oldKey) {
+func deprecatedSetting(rootCfg Config, oldSection, oldKey, newSection, newKey string) {
+	if rootCfg.Section(oldSection).HasKey(oldKey) {
 		log.Error("Deprecated fallback `[%s]` `%s` present. Use `[%s]` `%s` instead. This fallback will be removed in v1.19.0", oldSection, oldKey, newSection, newKey)
 	}
 }
 
 // deprecatedSettingDB add a hint that the configuration has been moved to database but still kept in app.ini
-func deprecatedSettingDB(oldSection, oldKey string) {
-	if Cfg.Section(oldSection).HasKey(oldKey) {
+func deprecatedSettingDB(rootCfg Config, oldSection, oldKey string) {
+	if rootCfg.Section(oldSection).HasKey(oldKey) {
 		log.Error("Deprecated `[%s]` `%s` present which has been copied to database table sys_setting", oldSection, oldKey)
 	}
 }
 
 // loadFromConf initializes configuration context.
 // NOTE: do not print any log except error.
-func loadFromConf(allowEmpty bool, extraConfig string) {
-	Cfg = ini.Empty()
+func loadFromConf(allowEmpty bool, extraConfig string) *ini.File {
+	cfg := ini.Empty()
 
 	if WritePIDFile && len(PIDFile) > 0 {
 		createPIDFile(PIDFile)
@@ -261,7 +261,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		log.Error("Unable to check if %s is a file. Error: %v", CustomConf, err)
 	}
 	if isFile {
-		if err := Cfg.Append(CustomConf); err != nil {
+		if err := cfg.Append(CustomConf); err != nil {
 			log.Fatal("Failed to load custom conf '%s': %v", CustomConf, err)
 		}
 	} else if !allowEmpty {
@@ -269,35 +269,37 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	} // else: no config file, a config file might be created at CustomConf later (might not)
 
 	if extraConfig != "" {
-		if err = Cfg.Append([]byte(extraConfig)); err != nil {
+		if err = cfg.Append([]byte(extraConfig)); err != nil {
 			log.Fatal("Unable to append more config: %v", err)
 		}
 	}
 
-	Cfg.NameMapper = ini.SnackCase
+	cfg.NameMapper = ini.SnackCase
 
 	// WARNNING: don't change the sequence except you know what you are doing.
-	parseRunModeSetting(Cfg)
-	parseServerSetting(Cfg)
-	parseSSHSetting(Cfg)
-	parseOAuth2Setting(Cfg)
-	parseSecuritySetting(Cfg)
-	parseAttachmentSetting(Cfg)
-	parseLFSSetting(Cfg)
-	parseTimeSetting(Cfg)
-	parseRepositorySetting(Cfg)
-	parsePictureSetting(Cfg)
-	parsePackagesSetting(Cfg)
-	parseUISetting(Cfg)
-	parseAdminSetting(Cfg)
-	parseAPISetting(Cfg)
-	parseMetricsSetting(Cfg)
-	parseCamoSetting(Cfg)
-	parseI18nSetting(Cfg)
-	parseGitSetting(Cfg)
-	parseMirrorSetting(Cfg)
-	parseMarkupSetting(Cfg)
-	parseOtherSetting(Cfg)
+	parseRunModeSetting(cfg)
+	parseServerSetting(cfg)
+	parseSSHSetting(cfg)
+	parseOAuth2Setting(cfg)
+	parseSecuritySetting(cfg)
+	parseAttachmentSetting(cfg)
+	parseLFSSetting(cfg)
+	parseTimeSetting(cfg)
+	parseRepositorySetting(cfg)
+	parsePictureSetting(cfg)
+	parsePackagesSetting(cfg)
+	parseUISetting(cfg)
+	parseAdminSetting(cfg)
+	parseAPISetting(cfg)
+	parseMetricsSetting(cfg)
+	parseCamoSetting(cfg)
+	parseI18nSetting(cfg)
+	parseGitSetting(cfg)
+	parseMirrorSetting(cfg)
+	parseMarkupSetting(cfg)
+	parseOtherSetting(cfg)
+
+	return cfg
 }
 
 func parseRunModeSetting(rootCfg Config) {

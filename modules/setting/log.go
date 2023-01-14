@@ -370,14 +370,18 @@ func ParseLogSettings(disableConsole bool) {
 
 // ParseXORMLogSetting initializes xorm logger setting
 func ParseXORMLogSetting(disableConsole bool) {
-	EnableXORMLog = Cfg.Section("log").Key("ENABLE_XORM_LOG").MustBool(true)
+	parseXORMLogSetting(Cfg, disableConsole)
+}
+
+func parseXORMLogSetting(rootCfg Config, disableConsole bool) {
+	EnableXORMLog = rootCfg.Section("log").Key("ENABLE_XORM_LOG").MustBool(true)
 	if EnableXORMLog {
 		options := newDefaultLogOptions()
 		options.filename = filepath.Join(LogRootPath, "xorm.log")
-		options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
+		options.bufferLength = rootCfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
 		options.disableConsole = disableConsole
 
-		Cfg.Section("log").Key("XORM").MustString(",")
-		generateNamedLogger(Cfg, "xorm", options)
+		rootCfg.Section("log").Key("XORM").MustString(",")
+		generateNamedLogger(rootCfg, "xorm", options)
 	}
 }

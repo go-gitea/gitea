@@ -9,9 +9,9 @@ func parseTaskSetting(rootCfg Config) {
 	taskSec := rootCfg.Section("task")
 	queueTaskSec := rootCfg.Section("queue.task")
 
-	deprecatedSetting("task", "QUEUE_TYPE", "queue.task", "TYPE")
-	deprecatedSetting("task", "QUEUE_CONN_STR", "queue.task", "CONN_STR")
-	deprecatedSetting("task", "QUEUE_LENGTH", "queue.task", "LENGTH")
+	deprecatedSetting(rootCfg, "task", "QUEUE_TYPE", "queue.task", "TYPE")
+	deprecatedSetting(rootCfg, "task", "QUEUE_CONN_STR", "queue.task", "CONN_STR")
+	deprecatedSetting(rootCfg, "task", "QUEUE_LENGTH", "queue.task", "LENGTH")
 
 	switch taskSec.Key("QUEUE_TYPE").MustString("channel") {
 	case "channel":
