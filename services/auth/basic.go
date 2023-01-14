@@ -40,20 +40,20 @@ func (b *Basic) Name() string {
 // "Authorization" header of the request and returns the corresponding user object for that
 // name/token on successful validation.
 // Returns nil if header is empty or validation fails.
-func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *user_model.User {
+func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
 	// Basic authentication should only fire on API, Download or on Git or LFSPaths
 	if !middleware.IsAPIPath(req) && !isContainerPath(req) && !isAttachmentDownload(req) && !isGitRawReleaseOrLFSPath(req) {
-		return nil
+		return nil, nil
 	}
 
 	baHead := req.Header.Get("Authorization")
 	if len(baHead) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	auths := strings.SplitN(baHead, " ", 2)
 	if len(auths) != 2 || (strings.ToLower(auths[0]) != "basic") {
-		return nil
+		return nil, nil
 	}
 
 	uname, passwd, _ := base.BasicAuthDecode(auths[1])
@@ -77,11 +77,11 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		u, err := user_model.GetUserByID(req.Context(), uid)
 		if err != nil {
 			log.Error("GetUserByID:  %v", err)
-			return nil
+			return nil, err
 		}
 
 		store.GetData()["IsApiToken"] = true
-		return u
+		return u, nil
 	}
 
 	token, err := auth_model.GetAccessTokenBySHA(authToken)
@@ -90,7 +90,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		u, err := user_model.GetUserByID(req.Context(), token.UID)
 		if err != nil {
 			log.Error("GetUserByID:  %v", err)
-			return nil
+			return nil, err
 		}
 
 		token.UpdatedUnix = timeutil.TimeStampNow()
@@ -99,13 +99,13 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		}
 
 		store.GetData()["IsApiToken"] = true
-		return u
+		return u, nil
 	} else if !auth_model.IsErrAccessTokenNotExist(err) && !auth_model.IsErrAccessTokenEmpty(err) {
 		log.Error("GetAccessTokenBySha: %v", err)
 	}
 
 	if !setting.Service.EnableBasicAuth {
-		return nil
+		return nil, nil
 	}
 
 	log.Trace("Basic Authorization: Attempting SignIn for %s", uname)
@@ -114,7 +114,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("UserSignIn: %v", err)
 		}
-		return nil
+		return nil, err
 	}
 
 	if skipper, ok := source.Cfg.(LocalTwoFASkipper); ok && skipper.IsSkipLocalTwoFA() {
@@ -123,5 +123,5 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 
 	log.Trace("Basic Authorization: Logged in user %-v", u)
 
-	return u
+	return u, nil
 }

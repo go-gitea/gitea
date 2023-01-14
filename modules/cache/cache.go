@@ -45,39 +45,6 @@ func GetCache() mc.Cache {
 	return conn
 }
 
-// Get returns the key value from cache with callback when no key exists in cache
-func Get[V interface{}](key string, getFunc func() (V, error)) (V, error) {
-	if conn == nil || setting.CacheService.TTL == 0 {
-		return getFunc()
-	}
-
-	cached := conn.Get(key)
-	if value, ok := cached.(V); ok {
-		return value, nil
-	}
-
-	value, err := getFunc()
-	if err != nil {
-		return value, err
-	}
-
-	return value, conn.Put(key, value, setting.CacheService.TTLSeconds())
-}
-
-// Set updates and returns the key value in the cache with callback. The old value is only removed if the updateFunc() is successful
-func Set[V interface{}](key string, valueFunc func() (V, error)) (V, error) {
-	if conn == nil || setting.CacheService.TTL == 0 {
-		return valueFunc()
-	}
-
-	value, err := valueFunc()
-	if err != nil {
-		return value, err
-	}
-
-	return value, conn.Put(key, value, setting.CacheService.TTLSeconds())
-}
-
 // GetString returns the key value from cache with callback when no key exists in cache
 func GetString(key string, getFunc func() (string, error)) (string, error) {
 	if conn == nil || setting.CacheService.TTL == 0 {
