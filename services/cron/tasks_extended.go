@@ -95,6 +95,16 @@ func registerRepositoryUpdateHook() {
 	})
 }
 
+func registerRepositoryUpdateConfig() {
+	RegisterTaskFatal("resync_all_configs", &BaseConfig{
+		Enabled:    false,
+		RunAtStart: false,
+		Schedule:   "@every 72h",
+	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
+		return repo_service.SyncRepositoryConfig(ctx)
+	})
+}
+
 func registerReinitMissingRepositories() {
 	RegisterTaskFatal("reinit_missing_repos", &BaseConfig{
 		Enabled:    false,
@@ -220,6 +230,7 @@ func initExtendedTasks() {
 	registerRewriteAllPublicKeys()
 	registerRewriteAllPrincipalKeys()
 	registerRepositoryUpdateHook()
+	registerRepositoryUpdateConfig()
 	registerReinitMissingRepositories()
 	registerDeleteMissingRepositories()
 	registerRemoveRandomAvatars()

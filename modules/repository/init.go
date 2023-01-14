@@ -277,6 +277,8 @@ func checkInitRepository(ctx context.Context, owner, name string) (err error) {
 	// Init git bare new repository.
 	if err = git.InitRepository(ctx, repoPath, true); err != nil {
 		return fmt.Errorf("git.InitRepository: %w", err)
+	} else if err = git.CreateConfig(repoPath); err != nil {
+		return fmt.Errorf("git.CreateConfig: %v", err)
 	} else if err = createDelegateHooks(repoPath); err != nil {
 		return fmt.Errorf("createDelegateHooks: %w", err)
 	}
