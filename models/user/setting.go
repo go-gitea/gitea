@@ -53,13 +53,13 @@ func genSettingCacheKey(userID int64, key string) string {
 }
 
 // GetSetting returns the setting value via the key
-func GetSetting(uid int64, key string) (*Setting, error) {
-	return cache.Get(genSettingCacheKey(uid, key), func() (*Setting, error) {
+func GetSetting(uid int64, key string) (string, error) {
+	return cache.GetString(genSettingCacheKey(uid, key), func() (string, error) {
 		res, err := GetSettingNoCache(uid, key)
 		if err != nil {
-			return nil, err
+			return "", err
 		}
-		return res, nil
+		return res.SettingValue, nil
 	})
 }
 
@@ -154,7 +154,7 @@ func SetUserSetting(userID int64, key, value string) error {
 		return err
 	}
 
-	_, err := cache.Set(genSettingCacheKey(userID, key), func() (string, error) {
+	_, err := cache.GetString(genSettingCacheKey(userID, key), func() (string, error) {
 		return value, upsertUserSettingValue(userID, key, value)
 	})
 

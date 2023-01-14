@@ -135,10 +135,10 @@ var ErrLFSObjectNotExist = db.ErrNotExist{Resource: "LFS Meta object"}
 
 // NewLFSMetaObject stores a given populated LFSMetaObject structure in the database
 // if it is not already present.
-func NewLFSMetaObject(m *LFSMetaObject) (*LFSMetaObject, error) {
+func NewLFSMetaObject(ctx context.Context, m *LFSMetaObject) (*LFSMetaObject, error) {
 	var err error
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -164,13 +164,13 @@ func NewLFSMetaObject(m *LFSMetaObject) (*LFSMetaObject, error) {
 // GetLFSMetaObjectByOid selects a LFSMetaObject entry from database by its OID.
 // It may return ErrLFSObjectNotExist or a database error. If the error is nil,
 // the returned pointer is a valid LFSMetaObject.
-func GetLFSMetaObjectByOid(repoID int64, oid string) (*LFSMetaObject, error) {
+func GetLFSMetaObjectByOid(ctx context.Context, repoID int64, oid string) (*LFSMetaObject, error) {
 	if len(oid) == 0 {
 		return nil, ErrLFSObjectNotExist
 	}
 
 	m := &LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}, RepositoryID: repoID}
-	has, err := db.GetEngine(db.DefaultContext).Get(m)
+	has, err := db.GetEngine(ctx).Get(m)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -181,18 +181,18 @@ func GetLFSMetaObjectByOid(repoID int64, oid string) (*LFSMetaObject, error) {
 
 // RemoveLFSMetaObjectByOid removes a LFSMetaObject entry from database by its OID.
 // It may return ErrLFSObjectNotExist or a database error.
-func RemoveLFSMetaObjectByOid(repoID int64, oid string) (int64, error) {
-	return RemoveLFSMetaObjectByOidFn(repoID, oid, nil)
+func RemoveLFSMetaObjectByOid(ctx context.Context, repoID int64, oid string) (int64, error) {
+	return RemoveLFSMetaObjectByOidFn(ctx, repoID, oid, nil)
 }
 
 // RemoveLFSMetaObjectByOidFn removes a LFSMetaObject entry from database by its OID.
 // It may return ErrLFSObjectNotExist or a database error. It will run Fn with the current count within the transaction
-func RemoveLFSMetaObjectByOidFn(repoID int64, oid string, fn func(count int64) error) (int64, error) {
+func RemoveLFSMetaObjectByOidFn(ctx context.Context, repoID int64, oid string, fn func(count int64) error) (int64, error) {
 	if len(oid) == 0 {
 		return 0, ErrLFSObjectNotExist
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -218,8 +218,8 @@ func RemoveLFSMetaObjectByOidFn(repoID int64, oid string, fn func(count int64) e
 }
 
 // GetLFSMetaObjects returns all LFSMetaObjects associated with a repository
-func GetLFSMetaObjects(repoID int64, page, pageSize int) ([]*LFSMetaObject, error) {
-	sess := db.GetEngine(db.DefaultContext)
+func GetLFSMetaObjects(ctx context.Context, repoID int64, page, pageSize int) ([]*LFSMetaObject, error) {
+	sess := db.GetEngine(ctx)
 
 	if page >= 0 && pageSize > 0 {
 		start := 0
@@ -233,18 +233,18 @@ func GetLFSMetaObjects(repoID int64, page, pageSize int) ([]*LFSMetaObject, erro
 }
 
 // CountLFSMetaObjects returns a count of all LFSMetaObjects associated with a repository
-func CountLFSMetaObjects(repoID int64) (int64, error) {
-	return db.GetEngine(db.DefaultContext).Count(&LFSMetaObject{RepositoryID: repoID})
+func CountLFSMetaObjects(ctx context.Context, repoID int64) (int64, error) {
+	return db.GetEngine(ctx).Count(&LFSMetaObject{RepositoryID: repoID})
 }
 
 // LFSObjectAccessible checks if a provided Oid is accessible to the user
-func LFSObjectAccessible(user *user_model.User, oid string) (bool, error) {
+func LFSObjectAccessible(ctx context.Context, user *user_model.User, oid string) (bool, error) {
 	if user.IsAdmin {
-		count, err := db.GetEngine(db.DefaultContext).Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
+		count, err := db.GetEngine(ctx).Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
 		return count > 0, err
 	}
 	cond := repo_model.AccessibleRepositoryCondition(user, unit.TypeInvalid)
-	count, err := db.GetEngine(db.DefaultContext).Where(cond).Join("INNER", "repository", "`lfs_meta_object`.repository_id = `repository`.id").Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
+	count, err := db.GetEngine(ctx).Where(cond).Join("INNER", "repository", "`lfs_meta_object`.repository_id = `repository`.id").Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
 	return count > 0, err
 }
 
@@ -254,8 +254,8 @@ func ExistsLFSObject(ctx context.Context, oid string) (bool, error) {
 }
 
 // LFSAutoAssociate auto associates accessible LFSMetaObjects
-func LFSAutoAssociate(metas []*LFSMetaObject, user *user_model.User, repoID int64) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func LFSAutoAssociate(ctx context.Context, metas []*LFSMetaObject, user *user_model.User, repoID int64) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}

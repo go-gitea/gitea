@@ -445,6 +445,8 @@ var migrations = []Migration{
 	// v236 -> v237
 	NewMigration("Create secrets table", v1_19.CreateSecretsTable),
 	// v237 -> v238
+	NewMigration("Drop ForeignReference table", v1_19.DropForeignReferenceTable),
+	// v238 -> v239
 	NewMigration("Rename Webhook org_id to owner_id", v1_19.RenameWebhookOrgToOwner),
 }
 

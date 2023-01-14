@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import attachTribute from '../tribute.js';
+import {attachTribute} from '../tribute.js';
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
 
 /**

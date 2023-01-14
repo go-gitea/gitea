@@ -7,10 +7,10 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
 // ListHooks list an organziation's webhooks
@@ -72,7 +72,7 @@ func GetHook(ctx *context.APIContext) {
 		return
 	}
 
-	apiHook, err := convert.ToHook(ctx.ContextUser.HomeLink(), hook)
+	apiHook, err := webhook_service.ToHook(ctx.ContextUser.HomeLink(), hook)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

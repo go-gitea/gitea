@@ -10,6 +10,7 @@ import (
 	"time"
 
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -41,9 +42,15 @@ func CreateAuthorizationToken(u *user_model.User) (string, error) {
 }
 
 func ParseAuthorizationToken(req *http.Request) (int64, error) {
-	parts := strings.SplitN(req.Header.Get("Authorization"), " ", 2)
+	h := req.Header.Get("Authorization")
+	if h == "" {
+		return 0, nil
+	}
+
+	parts := strings.SplitN(h, " ", 2)
 	if len(parts) != 2 {
-		return 0, fmt.Errorf("no token")
+		log.Error("split token failed: %s", h)
+		return 0, fmt.Errorf("split token failed")
 	}
 
 	token, err := jwt.ParseWithClaims(parts[1], &packageClaims{}, func(t *jwt.Token) (interface{}, error) {
