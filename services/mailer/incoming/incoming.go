@@ -33,13 +33,20 @@ func Init(ctx context.Context) error {
 		return nil
 	}
 
-	addressTokenRegex = regexp.MustCompile(
+	var err error
+	addressTokenRegex, err = regexp.Compile(
 		fmt.Sprintf(
 			`\A%s\z`,
 			strings.Replace(regexp.QuoteMeta(setting.IncomingEmail.ReplyToAddress), regexp.QuoteMeta(setting.IncomingEmail.TokenPlaceholder), "(.+)", 1),
 		),
 	)
-	referenceTokenRegex = regexp.MustCompile(fmt.Sprintf(`\Areply-(.+)@%s\z`, regexp.QuoteMeta(setting.Domain)))
+	if err != nil {
+		return err
+	}
+	referenceTokenRegex, err = regexp.Compile(fmt.Sprintf(`\Areply-(.+)@%s\z`, regexp.QuoteMeta(setting.Domain)))
+	if err != nil {
+		return err
+	}
 
 	go func() {
 		ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Incoming Email", process.SystemProcessType, true)
