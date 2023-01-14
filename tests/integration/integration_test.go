@@ -209,8 +209,6 @@ func (s *TestSession) MakeRequestNilResponseHashSumRecorder(t testing.TB, req *h
 
 const userPassword = "password"
 
-var loginSessionCache = make(map[string]*TestSession, 10)
-
 func emptyTestSession(t testing.TB) *TestSession {
 	t.Helper()
 	jar, err := cookiejar.New(nil)
@@ -225,12 +223,8 @@ func getUserToken(t testing.TB, userName string) string {
 
 func loginUser(t testing.TB, userName string) *TestSession {
 	t.Helper()
-	if session, ok := loginSessionCache[userName]; ok {
-		return session
-	}
-	session := loginUserWithPassword(t, userName, userPassword)
-	loginSessionCache[userName] = session
-	return session
+
+	return loginUserWithPassword(t, userName, userPassword)
 }
 
 func loginUserWithPassword(t testing.TB, userName, password string) *TestSession {
