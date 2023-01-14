@@ -223,12 +223,12 @@ func LoadFromExisting() {
 
 // LoadAllowEmpty initializes setting options, it's also fine that if the config file (app.ini) doesn't exist
 func LoadAllowEmpty() {
-	Cfg = loadFromConf(CustomConf, WritePIDFile, true, PIDFile,"")
+	Cfg = loadFromConf(CustomConf, WritePIDFile, true, PIDFile, "")
 }
 
 // LoadForTest initializes setting options for tests
 func LoadForTest(extraConfigs ...string) {
-	Cfg = loadFromConf(CustomConf, WritePIDFile, true, PIDFile,strings.Join(extraConfigs, "\n"))
+	Cfg = loadFromConf(CustomConf, WritePIDFile, true, PIDFile, strings.Join(extraConfigs, "\n"))
 	if err := PrepareAppDataPath(); err != nil {
 		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)
 	}
