@@ -4,13 +4,11 @@
 package asciicast
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"net/url"
 	"regexp"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -42,20 +40,12 @@ const (
 func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return []setting.MarkupSanitizerRule{
 		{Element: "div", AllowAttr: "class", Regexp: regexp.MustCompile(playerClassName)},
-		{Element: "div", AllowAttr: "style"},
 		{Element: "div", AllowAttr: playerSrcAttr},
 	}
 }
 
 // Render implements markup.Renderer
-func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
-	var h *header
-	if firstLine, err := bufio.NewReader(input).ReadBytes('\n'); err != nil {
-		return err
-	} else if h, err = extractHeader(firstLine); err != nil {
-		log.Warn("extract header from %s: %v", ctx.RelativePath, err)
-	}
-
+func (Renderer) Render(ctx *markup.RenderContext, _ io.Reader, output io.Writer) error {
 	rawURL := fmt.Sprintf("%s/%s/%s/raw/%s/%s",
 		setting.AppSubURL,
 		url.PathEscape(ctx.Metas["user"]),
@@ -64,15 +54,9 @@ func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Wri
 		url.PathEscape(ctx.RelativePath),
 	)
 
-	style := ""
-	if h != nil {
-		style = fmt.Sprintf("aspect-ratio: %d / %d", h.Width, h.Height)
-	}
-
 	_, err := io.WriteString(output, fmt.Sprintf(
-		`<div class="%s" style="%s" %s="%s"></div>`,
+		`<div class="%s" %s="%s"></div>`,
 		playerClassName,
-		style,
 		playerSrcAttr,
 		rawURL,
 	))
