@@ -232,7 +232,12 @@ func InitiateUploadBlob(ctx *context.Context) {
 				Creator: ctx.Doer,
 			},
 		); err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
+			switch err {
+			case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+				apiError(ctx, http.StatusForbidden, err)
+			default:
+				apiError(ctx, http.StatusInternalServerError, err)
+			}
 			return
 		}
 
@@ -372,7 +377,12 @@ func EndUploadBlob(ctx *context.Context) {
 			Creator: ctx.Doer,
 		},
 	); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		switch err {
+		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+			apiError(ctx, http.StatusForbidden, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
 		return
 	}
 
