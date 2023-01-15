@@ -337,7 +337,7 @@
 				<dt>{{.locale.Tr "admin.config.git_enable_reflogs"}}</dt>
 				<dd>{{if .Git.Reflog.Enabled}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 
-				{{if .Git.Reflog.Enabled }}
+				{{if .Git.Reflog.Enabled}}
 					<dt>{{.locale.Tr "admin.config.git_reflog_expiry_time"}}</dt>
 					<dd>{{.locale.Tr "tool.days" .Git.Reflog.Expiration}}</dd>
 				{{end}}
