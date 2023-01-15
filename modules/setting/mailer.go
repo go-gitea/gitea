@@ -53,6 +53,7 @@ func loadMailsFrom(rootCfg Config) {
 	loadMailerFrom(rootCfg)
 	loadRegisterMailFrom(rootCfg)
 	loadNotifyMailFrom(rootCfg)
+	loadIncomingEmailFrom(rootCfg)
 }
 
 func loadMailerFrom(rootCfg Config) {
