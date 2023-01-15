@@ -15,9 +15,7 @@ import (
 
 func RenameWebhookOrgToOwner(x *xorm.Engine) error {
 	type Webhook struct {
-		ID      int64 `xorm:"pk autoincr"`
-		OrgID   int64
-		OwnerID int64 `xorm:"INDEX"`
+		OrgID   int64 `xorm:"INDEX"`
 	}
 
 	// This migration maybe rerun so that we should check if it has been run
