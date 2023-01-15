@@ -497,8 +497,8 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 		// Only show a repo that either has a topic or description.
 		subQueryCond := builder.NewCond()
 
-		// Topic checking. Topics is non-null.
-		if setting.Database.UsePostgreSQL {
+		// Topic checking. Topics are present.
+		if setting.Database.UsePostgreSQL { // postgres stores the topics as json and not as text
 			subQueryCond = subQueryCond.Or(builder.And(builder.NotNull{"topics"}, builder.Neq{"(topics)::text": "[]"}))
 		} else {
 			subQueryCond = subQueryCond.Or(builder.And(builder.Neq{"topics": "null"}, builder.Neq{"topics": "[]"}))
