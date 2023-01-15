@@ -29,6 +29,8 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
+	incoming_payload "code.gitea.io/gitea/services/mailer/incoming/payload"
+	"code.gitea.io/gitea/services/mailer/token"
 
 	"gopkg.in/gomail.v2"
 )
@@ -302,14 +304,57 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	msgID := createReference(ctx.Issue, ctx.Comment, ctx.ActionType)
 	reference := createReference(ctx.Issue, nil, activities_model.ActionType(0))
 
+	var replyPayload []byte
+	if ctx.Comment != nil && ctx.Comment.Type == issues_model.CommentTypeCode {
+		replyPayload, err = incoming_payload.CreateReferencePayload(ctx.Comment)
+	} else {
+		replyPayload, err = incoming_payload.CreateReferencePayload(ctx.Issue)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	unsubscribePayload, err := incoming_payload.CreateReferencePayload(ctx.Issue)
+	if err != nil {
+		return nil, err
+	}
+
 	msgs := make([]*Message, 0, len(recipients))
 	for _, recipient := range recipients {
 		msg := NewMessageFrom([]string{recipient.Email}, ctx.Doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
 		msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
 
-		msg.SetHeader("Message-ID", "<"+msgID+">")
-		msg.SetHeader("In-Reply-To", "<"+reference+">")
-		msg.SetHeader("References", "<"+reference+">")
+		msg.SetHeader("Message-ID", msgID)
+		msg.SetHeader("In-Reply-To", reference)
+
+		references := []string{reference}
+		listUnsubscribe := []string{"<" + ctx.Issue.HTMLURL() + ">"}
+
+		if setting.IncomingEmail.Enabled {
+			if ctx.Comment != nil {
+				token, err := token.CreateToken(token.ReplyHandlerType, recipient, replyPayload)
+				if err != nil {
+					log.Error("CreateToken failed: %v", err)
+				} else {
+					replyAddress := strings.Replace(setting.IncomingEmail.ReplyToAddress, setting.IncomingEmail.TokenPlaceholder, token, 1)
+					msg.ReplyTo = replyAddress
+					msg.SetHeader("List-Post", fmt.Sprintf("<mailto:%s>", replyAddress))
+
+					references = append(references, fmt.Sprintf("<reply-%s@%s>", token, setting.Domain))
+				}
+			}
+
+			token, err := token.CreateToken(token.UnsubscribeHandlerType, recipient, unsubscribePayload)
+			if err != nil {
+				log.Error("CreateToken failed: %v", err)
+			} else {
+				unsubAddress := strings.Replace(setting.IncomingEmail.ReplyToAddress, setting.IncomingEmail.TokenPlaceholder, token, 1)
+				listUnsubscribe = append(listUnsubscribe, "<mailto:"+unsubAddress+">")
+			}
+		}
+
+		msg.SetHeader("References", references...)
+		msg.SetHeader("List-Unsubscribe", listUnsubscribe...)
 
 		for key, value := range generateAdditionalHeaders(ctx, actType, recipient) {
 			msg.SetHeader(key, value)
@@ -345,7 +390,7 @@ func createReference(issue *issues_model.Issue, comment *issues_model.Comment, a
 		}
 	}
 
-	return fmt.Sprintf("%s/%s/%d%s@%s", issue.Repo.FullName(), path, issue.Index, extra, setting.Domain)
+	return fmt.Sprintf("<%s/%s/%d%s@%s>", issue.Repo.FullName(), path, issue.Index, extra, setting.Domain)
 }
 
 func generateAdditionalHeaders(ctx *mailCommentContext, reason string, recipient *user_model.User) map[string]string {
@@ -357,8 +402,6 @@ func generateAdditionalHeaders(ctx *mailCommentContext, reason string, recipient
 
 		// https://datatracker.ietf.org/doc/html/rfc2369
 		"List-Archive": fmt.Sprintf("<%s>", repo.HTMLURL()),
-		//"List-Post": https://github.com/go-gitea/gitea/pull/13585
-		"List-Unsubscribe": ctx.Issue.HTMLURL(),
 
 		"X-Mailer":                  "Gitea",
 		"X-Gitea-Reason":            reason,
