@@ -60,7 +60,7 @@ type MarkupSanitizerRule struct {
 	AllowDataURIImages bool
 }
 
-func parseMarkupSetting(rootCfg Config) {
+func loadMarkupFrom(rootCfg Config) {
 	mustMapSetting(rootCfg, "markdown", &Markdown)
 
 	MermaidMaxSourceCharacters = rootCfg.Section("markup").Key("MERMAID_MAX_SOURCE_CHARACTERS").MustInt(5000)

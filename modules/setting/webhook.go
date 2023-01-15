@@ -29,7 +29,7 @@ var Webhook = struct {
 	ProxyHosts:     []string{},
 }
 
-func parseWebhookSetting(rootCfg Config) {
+func loadWebhookFrom(rootCfg Config) {
 	sec := rootCfg.Section("webhook")
 	Webhook.QueueLength = sec.Key("QUEUE_LENGTH").MustInt(1000)
 	Webhook.DeliverTimeout = sec.Key("DELIVER_TIMEOUT").MustInt(5)

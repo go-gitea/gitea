@@ -86,13 +86,13 @@ func getQueueSettings(rootCfg Config, name string) QueueSettings {
 	return q
 }
 
-// ParseQueueSettings sets up the default settings for Queues
+// LoadQueueSettings sets up the default settings for Queues
 // This is exported for tests to be able to use the queue
-func ParseQueueSettings() {
-	parseQueueSettings(Cfg)
+func LoadQueueSettings() {
+	loadQueueFrom(Cfg)
 }
 
-func parseQueueSettings(rootCfg Config) {
+func loadQueueFrom(rootCfg Config) {
 	sec := rootCfg.Section("queue")
 	Queue.DataDir = filepath.ToSlash(sec.Key("DATADIR").MustString("queues/"))
 	if !filepath.IsAbs(Queue.DataDir) {

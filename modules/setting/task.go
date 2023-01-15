@@ -5,7 +5,7 @@ package setting
 
 // FIXME: DEPRECATED to be removed in v1.18.0
 // - will need to set default for [queue.task] LENGTH to 1000 though
-func parseTaskSetting(rootCfg Config) {
+func loadTaskFrom(rootCfg Config) {
 	taskSec := rootCfg.Section("task")
 	queueTaskSec := rootCfg.Section("queue.task")
 

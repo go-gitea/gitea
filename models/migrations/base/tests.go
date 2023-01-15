@@ -154,8 +154,8 @@ func MainTest(m *testing.M) {
 		fmt.Printf("Unable to InitFull: %v\n", err)
 		os.Exit(1)
 	}
-	setting.ParseDBSetting()
-	setting.ParseLogSettings(true)
+	setting.LoadDBSetting()
+	setting.LoadLogSettings(true)
 
 	exitStatus := m.Run()
 

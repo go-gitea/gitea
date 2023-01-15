@@ -67,7 +67,7 @@ var Git = struct {
 	},
 }
 
-func parseGitSetting(rootCfg Config) {
+func loadGitFrom(rootCfg Config) {
 	sec := rootCfg.Section("git")
 	if err := sec.MapTo(&Git); err != nil {
 		log.Fatal("Failed to map Git settings: %v", err)

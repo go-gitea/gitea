@@ -9,7 +9,7 @@ var Admin struct {
 	DefaultEmailNotification  string
 }
 
-func parseAdminSetting(rootCfg Config) {
+func loadAdminFrom(rootCfg Config) {
 	mustMapSetting(rootCfg, "admin", &Admin)
 	sec := rootCfg.Section("admin")
 	Admin.DefaultEmailNotification = sec.Key("DEFAULT_EMAIL_NOTIFICATIONS").MustString("enabled")

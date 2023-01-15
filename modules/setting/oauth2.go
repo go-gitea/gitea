@@ -62,7 +62,7 @@ var OAuth2Client struct {
 	AccountLinking         OAuth2AccountLinkingType
 }
 
-func parseOAuth2ClientSetting(rootCfg Config) {
+func loadOAuth2ClientFrom(rootCfg Config) {
 	sec := rootCfg.Section("oauth2_client")
 	OAuth2Client.RegisterEmailConfirm = sec.Key("REGISTER_EMAIL_CONFIRM").MustBool(Service.RegisterEmailConfirm)
 	OAuth2Client.OpenIDConnectScopes = parseScopes(sec, "OPENID_CONNECT_SCOPES")
@@ -110,7 +110,7 @@ var OAuth2 = struct {
 	MaxTokenLength:             math.MaxInt16,
 }
 
-func parseOAuth2Setting(rootCfg Config) {
+func loadOAuth2From(rootCfg Config) {
 	if err := rootCfg.Section("oauth2").MapTo(&OAuth2); err != nil {
 		log.Fatal("Failed to OAuth2 settings: %v", err)
 		return

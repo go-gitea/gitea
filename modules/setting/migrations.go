@@ -16,7 +16,7 @@ var Migrations = struct {
 	RetryBackoff: 3,
 }
 
-func parseMigrationsSetting(rootCfg Config) {
+func loadMigrationsFrom(rootCfg Config) {
 	sec := rootCfg.Section("migrations")
 	Migrations.MaxAttempts = sec.Key("MAX_ATTEMPTS").MustInt(Migrations.MaxAttempts)
 	Migrations.RetryBackoff = sec.Key("RETRY_BACKOFF").MustInt(Migrations.RetryBackoff)

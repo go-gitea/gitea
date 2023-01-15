@@ -14,6 +14,6 @@ var (
 	}
 )
 
-func parseProjectSetting(rootCfg Config) {
+func loadProjectFrom(rootCfg Config) {
 	mustMapSetting(rootCfg, "project", &Project)
 }

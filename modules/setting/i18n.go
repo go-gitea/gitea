@@ -54,7 +54,7 @@ var (
 	Names []string
 )
 
-func parseI18nSetting(rootCfg Config) {
+func loadI18nFrom(rootCfg Config) {
 	Langs = rootCfg.Section("i18n").Key("LANGS").Strings(",")
 	if len(Langs) == 0 {
 		Langs = defaultI18nLangs()

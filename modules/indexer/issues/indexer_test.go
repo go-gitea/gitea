@@ -40,7 +40,7 @@ func TestBleveSearchIssues(t *testing.T) {
 	}()
 
 	setting.Indexer.IssueType = "bleve"
-	setting.ParseQueueSettings()
+	setting.LoadQueueSettings()
 	InitIssueIndexer(true)
 	defer func() {
 		indexer := holder.get()

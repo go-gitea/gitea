@@ -14,7 +14,7 @@ var MimeTypeMap = struct {
 	Map:     map[string]string{},
 }
 
-func parseMimeTypeMap(rootCfg Config) {
+func loadMimeTypeMapFrom(rootCfg Config) {
 	sec := rootCfg.Section("repository.mimetype_mapping")
 	keys := sec.Keys()
 	m := make(map[string]string, len(keys))

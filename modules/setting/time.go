@@ -16,7 +16,7 @@ var (
 	DefaultUILocation = time.Local
 )
 
-func parseTimeSetting(rootCfg Config) {
+func loadTimeFrom(rootCfg Config) {
 	timeFormatKey := rootCfg.Section("time").Key("FORMAT").MustString("")
 	if timeFormatKey != "" {
 		TimeFormat = map[string]string{

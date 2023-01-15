@@ -165,7 +165,7 @@ func MakeAbsoluteAssetURL(appURL, staticURLPrefix string) string {
 	return strings.TrimSuffix(staticURLPrefix, "/")
 }
 
-func parseServerSetting(rootCfg Config) {
+func loadServerFrom(rootCfg Config) {
 	logSec := rootCfg.Section("log")
 	LogLevel = getLogLevel(logSec, "LEVEL", log.INFO)
 	StacktraceLogLevel = getStacktraceLogLevel(logSec, "STACKTRACE_LEVEL", "None")

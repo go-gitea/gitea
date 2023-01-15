@@ -267,7 +267,7 @@ func generateNamedLogger(rootCfg Config, key string, options defaultLogOptions) 
 	return &description
 }
 
-func parseAccessLogSetting(rootCfg Config) {
+func loadAccessLogFrom(rootCfg Config) {
 	sec := rootCfg.Section("log")
 	EnableAccessLog = sec.Key("ENABLE_ACCESS_LOG").MustBool(false)
 	AccessLogTemplate = sec.Key("ACCESS_LOG_TEMPLATE").MustString(
@@ -284,7 +284,7 @@ func parseAccessLogSetting(rootCfg Config) {
 	}
 }
 
-func parseRouterLogSetting(rootCfg Config) {
+func loadRouterLogFrom(rootCfg Config) {
 	sec := rootCfg.Section("log")
 	sec.Key("ROUTER").MustString("console")
 	// Allow [log]  DISABLE_ROUTER_LOG to override [server] DISABLE_ROUTER_LOG
@@ -299,7 +299,7 @@ func parseRouterLogSetting(rootCfg Config) {
 	}
 }
 
-func parseLogSetting(rootCfg Config) {
+func loadLogFrom(rootCfg Config) {
 	sec := rootCfg.Section("log")
 	options := newDefaultLogOptions()
 	options.bufferLength = sec.Key("BUFFER_LEN").MustInt64(10000)
@@ -357,23 +357,23 @@ func parseLogSetting(rootCfg Config) {
 // RestartLogsWithPIDSuffix restarts the logs with a PID suffix on files
 func RestartLogsWithPIDSuffix() {
 	filenameSuffix = fmt.Sprintf(".%d", os.Getpid())
-	ParseLogSettings(false)
+	LoadLogSettings(false)
 }
 
-// ParseLogSettings creates all the log services
-func ParseLogSettings(disableConsole bool) {
-	parseLogSetting(Cfg)
-	parseRouterLogSetting(Cfg)
-	parseAccessLogSetting(Cfg)
-	ParseXORMLogSetting(disableConsole)
+// LoadLogSettings creates all the log services
+func LoadLogSettings(disableConsole bool) {
+	loadLogFrom(Cfg)
+	loadRouterLogFrom(Cfg)
+	loadAccessLogFrom(Cfg)
+	LoadSQLLogSetting(disableConsole)
 }
 
-// ParseXORMLogSetting initializes xorm logger setting
-func ParseXORMLogSetting(disableConsole bool) {
-	parseXORMLogSetting(Cfg, disableConsole)
+// LoadSQLLogSetting initializes xorm logger setting
+func LoadSQLLogSetting(disableConsole bool) {
+	loadSQLLogFrom(Cfg, disableConsole)
 }
 
-func parseXORMLogSetting(rootCfg Config, disableConsole bool) {
+func loadSQLLogFrom(rootCfg Config, disableConsole bool) {
 	EnableXORMLog = rootCfg.Section("log").Key("ENABLE_XORM_LOG").MustBool(true)
 	if EnableXORMLog {
 		options := newDefaultLogOptions()

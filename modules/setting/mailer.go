@@ -49,13 +49,13 @@ type Mailer struct {
 // MailService the global mailer
 var MailService *Mailer
 
-func parseMailSettings(rootCfg Config) {
-	parseMailerSetting(rootCfg)
-	parseRegisterMailSetting(rootCfg)
-	parseNotifyMailSetting(rootCfg)
+func loadMailsFrom(rootCfg Config) {
+	loadMailerFrom(rootCfg)
+	loadRegisterMailFrom(rootCfg)
+	loadNotifyMailFrom(rootCfg)
 }
 
-func parseMailerSetting(rootCfg Config) {
+func loadMailerFrom(rootCfg Config) {
 	sec := rootCfg.Section("mailer")
 	// Check mailer setting.
 	if !sec.Key("ENABLED").MustBool() {
@@ -242,7 +242,7 @@ func parseMailerSetting(rootCfg Config) {
 	log.Info("Mail Service Enabled")
 }
 
-func parseRegisterMailSetting(rootCfg Config) {
+func loadRegisterMailFrom(rootCfg Config) {
 	if !rootCfg.Section("service").Key("REGISTER_EMAIL_CONFIRM").MustBool() {
 		return
 	} else if MailService == nil {
@@ -253,7 +253,7 @@ func parseRegisterMailSetting(rootCfg Config) {
 	log.Info("Register Mail Service Enabled")
 }
 
-func parseNotifyMailSetting(rootCfg Config) {
+func loadNotifyMailFrom(rootCfg Config) {
 	if !rootCfg.Section("service").Key("ENABLE_NOTIFY_MAIL").MustBool() {
 		return
 	} else if MailService == nil {

@@ -20,7 +20,7 @@ var Attachment = struct {
 	Enabled:      true,
 }
 
-func parseAttachmentSetting(rootCfg Config) {
+func loadAttachmentFrom(rootCfg Config) {
 	sec := rootCfg.Section("attachment")
 	storageType := sec.Key("STORAGE_TYPE").MustString("")
 

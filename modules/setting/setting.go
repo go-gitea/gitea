@@ -277,32 +277,32 @@ func loadFromConf(customConf string, writePIDFile, allowEmpty bool, pidFile, ext
 	cfg.NameMapper = ini.SnackCase
 
 	// WARNNING: don't change the sequence except you know what you are doing.
-	parseRunModeSetting(cfg)
-	parseServerSetting(cfg)
-	parseSSHSetting(cfg)
-	parseOAuth2Setting(cfg)
-	parseSecuritySetting(cfg)
-	parseAttachmentSetting(cfg)
-	parseLFSSetting(cfg)
-	parseTimeSetting(cfg)
-	parseRepositorySetting(cfg)
-	parsePictureSetting(cfg)
-	parsePackagesSetting(cfg)
-	parseUISetting(cfg)
-	parseAdminSetting(cfg)
-	parseAPISetting(cfg)
-	parseMetricsSetting(cfg)
-	parseCamoSetting(cfg)
-	parseI18nSetting(cfg)
-	parseGitSetting(cfg)
-	parseMirrorSetting(cfg)
-	parseMarkupSetting(cfg)
-	parseOtherSetting(cfg)
+	loadRunModeFrom(cfg)
+	loadServerFrom(cfg)
+	loadSSHFrom(cfg)
+	loadOAuth2From(cfg)
+	loadSecurityFrom(cfg)
+	loadAttachmentFrom(cfg)
+	loadLFSFrom(cfg)
+	loadTimeFrom(cfg)
+	loadRepositoryFrom(cfg)
+	loadPictureFrom(cfg)
+	loadPackagesFrom(cfg)
+	loadUIFrom(cfg)
+	loadAdminFrom(cfg)
+	loadAPIFrom(cfg)
+	loadMetricsFrom(cfg)
+	loadCamoFrom(cfg)
+	loadI18nFrom(cfg)
+	loadGitFrom(cfg)
+	loadMirrorFrom(cfg)
+	loadMarkupFrom(cfg)
+	loadOtherFrom(cfg)
 
 	return cfg
 }
 
-func parseRunModeSetting(rootCfg Config) {
+func loadRunModeFrom(rootCfg Config) {
 	rootSec := rootCfg.Section("")
 	RunUser = rootSec.Key("RUN_USER").MustString(user.CurrentUsername())
 	// The following is a purposefully undocumented option. Please do not run Gitea as root. It will only cause future headaches.
@@ -377,30 +377,30 @@ func CreateOrAppendToCustomConf(purpose string, callback func(cfg *ini.File)) {
 	}
 }
 
-// ParseSettings initializes the settings for normal start up
-func ParseSettings() {
-	ParseDBSetting()
-	parseServiceSetting(Cfg)
-	parseOAuth2ClientSetting(Cfg)
-	ParseLogSettings(false)
-	parseCacheSetting(Cfg)
-	parseSessionSetting(Cfg)
-	parseCorsSetting(Cfg)
-	parseMailSettings(Cfg)
-	parseProxySetting(Cfg)
-	parseWebhookSetting(Cfg)
-	parseMigrationsSetting(Cfg)
-	parseIndexerSetting(Cfg)
-	parseTaskSetting(Cfg)
-	ParseQueueSettings()
-	parseProjectSetting(Cfg)
-	parseMimeTypeMap(Cfg)
-	parseFederationSetting(Cfg)
+// LoadSettings initializes the settings for normal start up
+func LoadSettings() {
+	LoadDBSetting()
+	loadServiceFrom(Cfg)
+	loadOAuth2ClientFrom(Cfg)
+	LoadLogSettings(false)
+	loadCacheFrom(Cfg)
+	loadSessionFrom(Cfg)
+	loadCorsFrom(Cfg)
+	loadMailsFrom(Cfg)
+	loadProxyFrom(Cfg)
+	loadWebhookFrom(Cfg)
+	loadMigrationsFrom(Cfg)
+	loadIndexerFrom(Cfg)
+	loadTaskFrom(Cfg)
+	LoadQueueSettings()
+	loadProjectFrom(Cfg)
+	loadMimeTypeMapFrom(Cfg)
+	loadFederationFrom(Cfg)
 }
 
-// ParseSettingsForInstall initializes the settings for install
-func ParseSettingsForInstall() {
-	ParseDBSetting()
-	parseServiceSetting(Cfg)
-	parseMailerSetting(Cfg)
+// LoadSettingsForInstall initializes the settings for install
+func LoadSettingsForInstall() {
+	LoadDBSetting()
+	loadServiceFrom(Cfg)
+	loadMailerFrom(Cfg)
 }

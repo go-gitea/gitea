@@ -12,7 +12,7 @@ var Camo = struct {
 	Allways   bool
 }{}
 
-func parseCamoSetting(rootCfg Config) {
+func loadCamoFrom(rootCfg Config) {
 	mustMapSetting(rootCfg, "camo", &Camo)
 	if Camo.Enabled {
 		if Camo.ServerURL == "" || Camo.HMACKey == "" {

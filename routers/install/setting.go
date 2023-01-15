@@ -28,7 +28,7 @@ func PreloadSettings(ctx context.Context) bool {
 			log.Info("SQLite3 is supported")
 		}
 
-		setting.ParseSettingsForInstall()
+		setting.LoadSettingsForInstall()
 		svg.Init()
 	}
 
@@ -38,7 +38,7 @@ func PreloadSettings(ctx context.Context) bool {
 // reloadSettings reloads the existing settings and starts up the database
 func reloadSettings(ctx context.Context) {
 	setting.LoadFromExisting()
-	setting.ParseDBSetting()
+	setting.LoadDBSetting()
 	if setting.InstallLock {
 		if err := common.InitDBEngine(ctx); err == nil {
 			log.Info("ORM engine initialization successful!")

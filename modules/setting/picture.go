@@ -32,7 +32,7 @@ var (
 	}{}
 )
 
-func parsePictureSetting(rootCfg Config) {
+func loadPictureFrom(rootCfg Config) {
 	sec := rootCfg.Section("picture")
 
 	avatarSec := rootCfg.Section("avatar")
@@ -64,7 +64,7 @@ func parsePictureSetting(rootCfg Config) {
 	EnableFederatedAvatar = sec.Key("ENABLE_FEDERATED_AVATAR").MustBool(GetDefaultEnableFederatedAvatar(DisableGravatar))
 	deprecatedSettingDB(rootCfg, "", "ENABLE_FEDERATED_AVATAR")
 
-	parseRepoAvatarSetting(rootCfg)
+	loadRepoAvatarFrom(rootCfg)
 }
 
 func GetDefaultDisableGravatar() bool {
@@ -82,7 +82,7 @@ func GetDefaultEnableFederatedAvatar(disableGravatar bool) bool {
 	return v
 }
 
-func parseRepoAvatarSetting(rootCfg Config) {
+func loadRepoAvatarFrom(rootCfg Config) {
 	sec := rootCfg.Section("picture")
 
 	repoAvatarSec := rootCfg.Section("repo-avatar")

@@ -21,7 +21,7 @@ var Proxy = struct {
 	ProxyHosts: []string{},
 }
 
-func parseProxySetting(rootCfg Config) {
+func loadProxyFrom(rootCfg Config) {
 	sec := rootCfg.Section("proxy")
 	Proxy.Enabled = sec.Key("PROXY_ENABLED").MustBool(false)
 	Proxy.ProxyURL = sec.Key("PROXY_URL").MustString("")

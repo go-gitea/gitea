@@ -27,7 +27,7 @@ var CORSConfig = struct {
 	XFrameOptions: "SAMEORIGIN",
 }
 
-func parseCorsSetting(rootCfg Config) {
+func loadCorsFrom(rootCfg Config) {
 	mustMapSetting(rootCfg, "cors", &CORSConfig)
 	if CORSConfig.Enabled {
 		log.Info("CORS Service Enabled")
