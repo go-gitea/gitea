@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -75,7 +76,7 @@ func detectEncodingAndBOM(entry *git.TreeEntry, repo *repo_model.Repository) (st
 	if setting.LFS.StartServer {
 		pointer, _ := lfs.ReadPointerFromBuffer(buf)
 		if pointer.IsValid() {
-			meta, err := git_model.GetLFSMetaObjectByOid(repo.ID, pointer.Oid)
+			meta, err := git_model.GetLFSMetaObjectByOid(db.DefaultContext, repo.ID, pointer.Oid)
 			if err != nil && err != git_model.ErrLFSObjectNotExist {
 				// return default
 				return "UTF-8", false
@@ -423,7 +424,7 @@ func CreateOrUpdateRepoFile(ctx context.Context, repo *repo_model.Repository, do
 
 	if lfsMetaObject != nil {
 		// We have an LFS object - create it
-		lfsMetaObject, err = git_model.NewLFSMetaObject(lfsMetaObject)
+		lfsMetaObject, err = git_model.NewLFSMetaObject(ctx, lfsMetaObject)
 		if err != nil {
 			return nil, err
 		}
@@ -434,7 +435,7 @@ func CreateOrUpdateRepoFile(ctx context.Context, repo *repo_model.Repository, do
 		}
 		if !exist {
 			if err := contentStore.Put(lfsMetaObject.Pointer, strings.NewReader(opts.Content)); err != nil {
-				if _, err2 := git_model.RemoveLFSMetaObjectByOid(repo.ID, lfsMetaObject.Oid); err2 != nil {
+				if _, err2 := git_model.RemoveLFSMetaObjectByOid(ctx, repo.ID, lfsMetaObject.Oid); err2 != nil {
 					return nil, fmt.Errorf("Error whilst removing failed inserted LFS object %s: %v (Prev Error: %w)", lfsMetaObject.Oid, err2, err)
 				}
 				return nil, err
@@ -472,7 +473,7 @@ func VerifyBranchProtection(ctx context.Context, repo *repo_model.Repository, do
 		if len(glob) != 0 {
 			isUnprotectedFile = protectedBranch.IsUnprotectedFile(glob, treePath)
 		}
-		if !protectedBranch.CanUserPush(doer.ID) && !isUnprotectedFile {
+		if !protectedBranch.CanUserPush(ctx, doer.ID) && !isUnprotectedFile {
 			return models.ErrUserCannotCommit{
 				UserName: doer.LowerName,
 			}

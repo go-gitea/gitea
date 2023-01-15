@@ -8,7 +8,7 @@
       <DiffFileTreeItem v-for="item in fileTree" :key="item.name" :item="item" />
     </div>
     <div v-if="isIncomplete" id="diff-too-many-files-stats" class="pt-2">
-      <span>{{ tooManyFilesMessage }}</span><a :class="['ui', 'basic', 'tiny', 'button', isLoadingNewData === true ? 'disabled' : '']" id="diff-show-more-files-stats" @click.stop="loadMoreData">{{ showMoreMessage }}</a>
+      <span class="mr-2">{{ tooManyFilesMessage }}</span><a :class="['ui', 'basic', 'tiny', 'button', isLoadingNewData === true ? 'disabled' : '']" id="diff-show-more-files-stats" @click.stop="loadMoreData">{{ showMoreMessage }}</a>
     </div>
   </div>
 </template>
@@ -21,15 +21,12 @@ const {pageData} = window.config;
 const LOCAL_STORAGE_KEY = 'diff_file_tree_visible';
 
 export default {
-  name: 'DiffFileTree',
   components: {DiffFileTreeItem},
-
   data: () => {
     const fileTreeIsVisible = localStorage.getItem(LOCAL_STORAGE_KEY) === 'true';
     pageData.diffFileInfo.fileTreeIsVisible = fileTreeIsVisible;
     return pageData.diffFileInfo;
   },
-
   computed: {
     fileTree() {
       const result = [];
@@ -94,10 +91,12 @@ export default {
       return result;
     }
   },
-
   mounted() {
     // ensure correct buttons when we are mounted to the dom
     this.adjustToggleButton(this.fileTreeIsVisible);
+    // replace the pageData.diffFileInfo.files with our watched data so we get updates
+    pageData.diffFileInfo.files = this.files;
+
     document.querySelector('.diff-toggle-file-tree-button').addEventListener('click', this.toggleVisibility);
   },
   unmounted() {
@@ -125,7 +124,7 @@ export default {
       doLoadMoreFiles(this.link, this.diffEnd, () => {
         this.isLoadingNewData = false;
       });
-    }
+    },
   },
 };
 </script>

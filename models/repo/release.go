@@ -6,7 +6,6 @@ package repo
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -156,7 +155,7 @@ func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs
 
 	for i := range attachments {
 		if attachments[i].ReleaseID != 0 {
-			return errors.New("release permission denied")
+			return util.NewPermissionDeniedErrorf("release permission denied")
 		}
 		attachments[i].ReleaseID = releaseID
 		// No assign value could be 0, so ignore AllCols().

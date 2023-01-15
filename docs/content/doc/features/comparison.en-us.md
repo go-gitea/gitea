@@ -106,7 +106,7 @@ _Symbols used in table:_
 | Issue search                  | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            |
 | Global issue search           | [/](https://github.com/go-gitea/gitea/issues/2434)  | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            |
 | Issue dependency              | ✓                                                   | ✘    | ✘         | ✘         | ✘         | ✘         | ✘            |
-| Create issue via email        | [✘](https://github.com/go-gitea/gitea/issues/6226)  | ✘    | ✘         | ✘         | ✓         | ✓         | ✘            |
+| Create issue via email        | [✘](https://github.com/go-gitea/gitea/issues/6226)  | ✘    | ✘         | ✓         | ✓         | ✓         | ✘            |
 | Service Desk                  | [✘](https://github.com/go-gitea/gitea/issues/6219)  | ✘    | ✘         | ✓         | ✓         | ✘         | ✘            |
 
 ## Pull/Merge requests

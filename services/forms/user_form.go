@@ -363,6 +363,18 @@ func (f *AddKeyForm) Validate(req *http.Request, errs binding.Errors) binding.Er
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// AddSecretForm for adding secrets
+type AddSecretForm struct {
+	Title   string `binding:"Required;MaxSize(50)"`
+	Content string `binding:"Required"`
+}
+
+// Validate validates the fields
+func (f *AddSecretForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // NewAccessTokenForm form for creating access token
 type NewAccessTokenForm struct {
 	Name string `binding:"Required;MaxSize(255)"`

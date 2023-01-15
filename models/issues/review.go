@@ -733,16 +733,8 @@ func RemoveReviewRequest(issue *Issue, reviewer, doer *user_model.User) (*Commen
 	if err != nil {
 		return nil, err
 	} else if official {
-		// recalculate the latest official review for reviewer
-		review, err := GetReviewByIssueIDAndUserID(ctx, issue.ID, reviewer.ID)
-		if err != nil && !IsErrReviewNotExist(err) {
+		if err := restoreLatestOfficialReview(ctx, issue.ID, reviewer.ID); err != nil {
 			return nil, err
-		}
-
-		if review != nil {
-			if _, err := db.Exec(ctx, "UPDATE `review` SET official=? WHERE id=?", true, review.ID); err != nil {
-				return nil, err
-			}
 		}
 	}
 
@@ -759,6 +751,22 @@ func RemoveReviewRequest(issue *Issue, reviewer, doer *user_model.User) (*Commen
 	}
 
 	return comment, committer.Commit()
+}
+
+// Recalculate the latest official review for reviewer
+func restoreLatestOfficialReview(ctx context.Context, issueID, reviewerID int64) error {
+	review, err := GetReviewByIssueIDAndUserID(ctx, issueID, reviewerID)
+	if err != nil && !IsErrReviewNotExist(err) {
+		return err
+	}
+
+	if review != nil {
+		if _, err := db.Exec(ctx, "UPDATE `review` SET official=? WHERE id=?", true, review.ID); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // AddTeamReviewRequest add a review request from one team
@@ -977,6 +985,12 @@ func DeleteReview(r *Review) error {
 
 	if _, err := sess.ID(r.ID).Delete(new(Review)); err != nil {
 		return err
+	}
+
+	if r.Official {
+		if err := restoreLatestOfficialReview(ctx, r.IssueID, r.ReviewerID); err != nil {
+			return err
+		}
 	}
 
 	return committer.Commit()
