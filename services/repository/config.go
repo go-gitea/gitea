@@ -15,8 +15,8 @@ import (
 	"xorm.io/builder"
 )
 
-// SyncRepositoryConfig rewrites all repositories' pre-receive, update and post-receive hooks
-// to make sure the binary and custom conf path are up-to-date.
+// SyncRepositoryConfig rewrites all repositories' git configurations
+// to make sure the reflog settings are up-to-date.
 func SyncRepositoryConfig(ctx context.Context) error {
 	log.Trace("Doing: SyncRepositoryConfig")
 
