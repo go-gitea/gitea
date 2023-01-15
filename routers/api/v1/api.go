@@ -1061,7 +1061,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 					m.Get("/blobs/{sha}", repo.GetBlob)
 					m.Get("/tags/{sha}", repo.GetAnnotatedTag)
 					m.Get("/notes/{sha}", repo.GetNote)
-				}, context.ReferencesGitRepo(), reqRepoReader(unit.TypeCode))
+				}, context.ReferencesGitRepo(true), reqRepoReader(unit.TypeCode))
 				m.Post("/diffpatch", reqRepoWriter(unit.TypeCode), reqToken(), bind(api.ApplyDiffPatchFileOptions{}), repo.ApplyDiffPatch)
 				m.Group("/contents", func() {
 					m.Get("", repo.GetContentsList)
