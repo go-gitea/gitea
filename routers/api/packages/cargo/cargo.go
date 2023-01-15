@@ -180,6 +180,11 @@ func UploadPackage(ctx *context.Context) {
 	}
 	defer buf.Close()
 
+	if buf.Size() != cp.ContentSize {
+		apiError(ctx, http.StatusBadRequest, "invalid content size")
+		return
+	}
+
 	pv, _, err := packages_service.CreatePackageAndAddFile(
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{

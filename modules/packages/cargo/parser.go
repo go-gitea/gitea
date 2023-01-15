@@ -24,10 +24,11 @@ var (
 
 // Package represents a Cargo package
 type Package struct {
-	Name     string
-	Version  string
-	Metadata *Metadata
-	Content  io.Reader
+	Name        string
+	Version     string
+	Metadata    *Metadata
+	Content     io.Reader
+	ContentSize int64
 }
 
 // Metadata represents the metadata of a Cargo package
@@ -77,6 +78,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 	}
 
 	p.Content = io.LimitReader(r, int64(size))
+	p.ContentSize = int64(size)
 
 	return p, nil
 }

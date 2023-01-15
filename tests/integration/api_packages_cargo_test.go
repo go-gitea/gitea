@@ -133,6 +133,22 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 			assert.False(t, status.OK)
 		})
 
+		t.Run("InvalidContent", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			metadata := `{"name":"test","vers":"1.0.0"}`
+
+			var buf bytes.Buffer
+			binary.Write(&buf, binary.LittleEndian, uint32(len(metadata)))
+			buf.WriteString(metadata)
+			binary.Write(&buf, binary.LittleEndian, uint32(4))
+			buf.WriteString("te")
+
+			req := NewRequestWithBody(t, "PUT", url+"/new", &buf)
+			req = AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusBadRequest)
+		})
+
 		t.Run("Valid", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
