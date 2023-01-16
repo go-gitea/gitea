@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
@@ -217,7 +218,7 @@ func emptyTestSession(t testing.TB) *TestSession {
 	return &TestSession{jar: jar}
 }
 
-func getUserToken(t testing.TB, userName string, scope ...string) string {
+func getUserToken(t testing.TB, userName string, scope ...auth.AccessTokenScope) string {
 	return getTokenForLoggedInUser(t, loginUser(t, userName), scope...)
 }
 
@@ -259,7 +260,7 @@ var tokenCounter int64
 // getTokenForLoggedInUser returns a token for a logged in user.
 // The scope is an optional list of snake_case strings like the frontend form fields,
 // but without the "scope_" prefix.
-func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...string) string {
+func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...auth.AccessTokenScope) string {
 	t.Helper()
 	var token string
 	req := NewRequest(t, "GET", "/user/settings/applications")
@@ -281,7 +282,7 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...strin
 	urlValues.Add("_csrf", csrf)
 	urlValues.Add("name", fmt.Sprintf("api-testing-token-%d", atomic.AddInt64(&tokenCounter, 1)))
 	for _, scope := range scopes {
-		urlValues.Add("scope", scope)
+		urlValues.Add("scope", string(scope))
 	}
 	req = NewRequestWithURLValues(t, "POST", "/user/settings/applications", urlValues)
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
