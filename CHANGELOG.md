@@ -4,6 +4,40 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.18.1](https://github.com/go-gitea/gitea/releases/tag/v1.18.1) - 2023-01-16
+
+* API
+  * Add `sync_on_commit` option for push mirrors api (#22271) (#22292)
+* BUGFIXES
+  * Remove the netgo tag for Windows build (#22467) (#22468)
+  * Prevent panic on looking at api "git" endpoints for empty repos (#22457) (#22458)
+  * Fix PR status layout on mobile (#21547) (#22441)
+  * Fix wechatwork webhook sends empty content in PR review (#21762) (#22440)
+  * Remove duplicate "Actions" label in mobile view (#21974) (#22439)
+  * Fix leaving organization bug on user settings -> orgs (#21983) (#22438)
+  * Fixed colour transparency regex matching in project board sorting (#22092) (#22437)
+  * Correctly handle select on multiple channels in Queues (#22146) (#22428)
+  * Prepend refs/heads/ to issue template refs (#20461) (#22427)
+  * Restore function to "Show more" buttons (#22399) (#22426)
+  * Continue GCing other repos on error in one repo (#22422) (#22425)
+  * Allow HOST has no port (#22280) (#22409)
+  * Fix omit avatar_url in discord payload when empty (#22393) (#22394)
+  * Don't display stop watch top bar icon when disabled and hidden when click other place (#22374) (#22387)
+  * Don't lookup mail server when using sendmail (#22300) (#22383)
+  * Fix gravatar disable bug (#22337)
+  * Fix update settings table on install (#22326) (#22327)
+  * Fix sitemap (#22272) (#22320)
+  * Fix code search title translation (#22285) (#22316)
+  * Fix due date rendering the wrong date in issue (#22302) (#22306)
+  * Fix get system setting bug when enabled redis cache (#22298)
+  * Fix bug of DisableGravatar default value (#22297)
+  * Fix key signature error page (#22229) (#22230)
+* TESTING
+  * Remove test session cache to reduce possible concurrent problem (#22199) (#22429)
+* MISC
+  * Restore previous official review when an official review is deleted (#22449) (#22460)
+  * Log STDERR of external renderer when it fails (#22442) (#22444)
+
 ## [1.18.0](https://github.com/go-gitea/gitea/releases/tag/1.18.0) - 2022-12-22
 
 * SECURITY
