@@ -172,7 +172,7 @@ func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
 
 func TestGetDirectorySize(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo, err := repo_model.GetRepositoryByID(db.DefaultContext, 1)
+	repo, err := repo_model.GetRepositoryByID(1)
 	assert.NoError(t, err)
 
 	size, err := getDirectorySize(repo.RepoPath())
