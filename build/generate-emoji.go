@@ -1,7 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // Copyright 2015 Kenneth Shaw
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 //go:build ignore
 
@@ -26,7 +25,7 @@ import (
 
 const (
 	gemojiURL         = "https://raw.githubusercontent.com/github/gemoji/master/db/emoji.json"
-	maxUnicodeVersion = 12
+	maxUnicodeVersion = 14
 )
 
 var flagOut = flag.String("o", "modules/emoji/emoji_data.go", "out")
@@ -190,6 +189,10 @@ func generate() ([]byte, error) {
 		}
 	}
 
+	sort.Slice(data, func(i, j int) bool {
+		return data[i].Aliases[0] < data[j].Aliases[0]
+	})
+
 	// add header
 	str := replacer.Replace(fmt.Sprintf(hdr, gemojiURL, data))
 
@@ -209,8 +212,8 @@ func generate() ([]byte, error) {
 
 const hdr = `
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
+
 
 package emoji
 

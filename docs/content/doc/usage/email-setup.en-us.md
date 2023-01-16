@@ -47,7 +47,8 @@ Directly use SMTP server as relay. This option is useful if you don't want to se
 ENABLED        = true
 FROM           = gitea@mydomain.com
 MAILER_TYPE    = smtp
-HOST           = mail.mydomain.com:587
+SMTP_ADDR      = mail.mydomain.com
+SMTP_PORT      = 587
 IS_TLS_ENABLED = true
 USER           = gitea@mydomain.com
 PASSWD         = `password`
@@ -75,11 +76,15 @@ The following configuration should work with GMail's SMTP server:
 ```ini
 [mailer]
 ENABLED        = true
-HOST           = smtp.gmail.com:465
-FROM           = example@gmail.com
-USER           = example@gmail.com
+HOST           = smtp.gmail.com:465 ; Remove this line for Gitea >= 1.18.0
+SMTP_ADDR      = smtp.gmail.com
+SMTP_PORT      = 465
+FROM           = example.user@gmail.com
+USER           = example.user
 PASSWD         = ***
 MAILER_TYPE    = smtp
 IS_TLS_ENABLED = true
-HELO_HOSTNAME  = example.com
 ```
+
+Note that you'll need to create and use an [App password](https://support.google.com/accounts/answer/185833?hl=en) by enabling 2FA on your Google
+account. You won't be able to use your Google account password directly.

@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package queue
 
@@ -9,9 +8,9 @@ import (
 	"fmt"
 	"runtime/pprof"
 	"sync"
-	"sync/atomic"
 	"time"
 
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 )
@@ -33,7 +32,7 @@ type ChannelUniqueQueueConfiguration ChannelQueueConfiguration
 type ChannelUniqueQueue struct {
 	*WorkerPool
 	lock               sync.Mutex
-	table              map[string]bool
+	table              container.Set[string]
 	shutdownCtx        context.Context
 	shutdownCtxCancel  context.CancelFunc
 	terminateCtx       context.Context
@@ -58,7 +57,7 @@ func NewChannelUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue
 	shutdownCtx, shutdownCtxCancel := context.WithCancel(terminateCtx)
 
 	queue := &ChannelUniqueQueue{
-		table:              map[string]bool{},
+		table:              make(container.Set[string]),
 		shutdownCtx:        shutdownCtx,
 		shutdownCtxCancel:  shutdownCtxCancel,
 		terminateCtx:       terminateCtx,
@@ -73,7 +72,7 @@ func NewChannelUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue
 			bs, _ := json.Marshal(datum)
 
 			queue.lock.Lock()
-			delete(queue.table, string(bs))
+			queue.table.Remove(string(bs))
 			queue.lock.Unlock()
 
 			if u := handle(datum); u != nil {
@@ -127,16 +126,15 @@ func (q *ChannelUniqueQueue) PushFunc(data Data, fn func() error) error {
 			q.lock.Unlock()
 		}
 	}()
-	if _, ok := q.table[string(bs)]; ok {
+	if !q.table.Add(string(bs)) {
 		return ErrAlreadyInQueue
 	}
 	// FIXME: We probably need to implement some sort of limit here
 	// If the downstream queue blocks this table will grow without limit
-	q.table[string(bs)] = true
 	if fn != nil {
 		err := fn()
 		if err != nil {
-			delete(q.table, string(bs))
+			q.table.Remove(string(bs))
 			return err
 		}
 	}
@@ -155,8 +153,7 @@ func (q *ChannelUniqueQueue) Has(data Data) (bool, error) {
 
 	q.lock.Lock()
 	defer q.lock.Unlock()
-	_, has := q.table[string(bs)]
-	return has, nil
+	return q.table.Contains(string(bs)), nil
 }
 
 // Flush flushes the channel with a timeout - the Flush worker will be registered as a flush worker with the manager
@@ -167,35 +164,6 @@ func (q *ChannelUniqueQueue) Flush(timeout time.Duration) error {
 	ctx, cancel := q.commonRegisterWorkers(1, timeout, true)
 	defer cancel()
 	return q.FlushWithContext(ctx)
-}
-
-// FlushWithContext is very similar to CleanUp but it will return as soon as the dataChan is empty
-func (q *ChannelUniqueQueue) FlushWithContext(ctx context.Context) error {
-	log.Trace("ChannelUniqueQueue: %d Flush", q.qid)
-	paused, _ := q.IsPausedIsResumed()
-	for {
-		select {
-		case <-paused:
-			return nil
-		default:
-		}
-		select {
-		case data, ok := <-q.dataChan:
-			if !ok {
-				return nil
-			}
-			if unhandled := q.handle(data); unhandled != nil {
-				log.Error("Unhandled Data whilst flushing queue %d", q.qid)
-			}
-			atomic.AddInt64(&q.numInQueue, -1)
-		case <-q.baseCtx.Done():
-			return q.baseCtx.Err()
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			return nil
-		}
-	}
 }
 
 // Shutdown processing from this queue

@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package template
 
@@ -11,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/container"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"gitea.com/go-chi/binding"
@@ -43,7 +43,7 @@ func validateYaml(template *api.IssueTemplate) error {
 	if len(template.Fields) == 0 {
 		return fmt.Errorf("'body' is required")
 	}
-	ids := map[string]struct{}{}
+	ids := make(container.Set[string])
 	for idx, field := range template.Fields {
 		if err := validateID(field, idx, ids); err != nil {
 			return err
@@ -125,7 +125,7 @@ func validateRequired(field *api.IssueFormField, idx int) error {
 	return validateBoolItem(newErrorPosition(idx, field.Type), field.Validations, "required")
 }
 
-func validateID(field *api.IssueFormField, idx int, ids map[string]struct{}) error {
+func validateID(field *api.IssueFormField, idx int, ids container.Set[string]) error {
 	if field.Type == api.IssueFormFieldTypeMarkdown {
 		// The ID is not required for a markdown field
 		return nil
@@ -139,10 +139,9 @@ func validateID(field *api.IssueFormField, idx int, ids map[string]struct{}) err
 	if binding.AlphaDashPattern.MatchString(field.ID) {
 		return position.Errorf("'id' should contain only alphanumeric, '-' and '_'")
 	}
-	if _, ok := ids[field.ID]; ok {
+	if !ids.Add(field.ID) {
 		return position.Errorf("'id' should be unique")
 	}
-	ids[field.ID] = struct{}{}
 	return nil
 }
 
@@ -165,7 +164,7 @@ func validateOptions(field *api.IssueFormField, idx int) error {
 				return position.Errorf("should be a string")
 			}
 		case api.IssueFormFieldTypeCheckboxes:
-			opt, ok := option.(map[interface{}]interface{})
+			opt, ok := option.(map[string]interface{})
 			if !ok {
 				return position.Errorf("should be a dictionary")
 			}
@@ -351,7 +350,7 @@ func (o *valuedOption) Label() string {
 			return label
 		}
 	case api.IssueFormFieldTypeCheckboxes:
-		if vs, ok := o.data.(map[interface{}]interface{}); ok {
+		if vs, ok := o.data.(map[string]interface{}); ok {
 			if v, ok := vs["label"].(string); ok {
 				return v
 			}

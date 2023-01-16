@@ -1,6 +1,5 @@
 // Copyright 2019 Gitea. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package admin
 
@@ -165,6 +164,10 @@ func IsErrTaskDoesNotExist(err error) bool {
 func (err ErrTaskDoesNotExist) Error() string {
 	return fmt.Sprintf("task does not exist [id: %d, repo_id: %d, type: %d]",
 		err.ID, err.RepoID, err.Type)
+}
+
+func (err ErrTaskDoesNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // GetMigratingTask returns the migrating task by repo's id

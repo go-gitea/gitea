@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues_test
 
@@ -135,7 +134,7 @@ func TestGetReviewersByIssueID(t *testing.T) {
 
 	allReviews, err := issues_model.GetReviewersByIssueID(issue.ID)
 	for _, reviewer := range allReviews {
-		assert.NoError(t, reviewer.LoadReviewer())
+		assert.NoError(t, reviewer.LoadReviewer(db.DefaultContext))
 	}
 	assert.NoError(t, err)
 	if assert.Len(t, allReviews, 3) {
@@ -200,4 +199,39 @@ func TestDismissReview(t *testing.T) {
 	assert.False(t, rejectReviewExample.Dismissed)
 	assert.False(t, requestReviewExample.Dismissed)
 	assert.True(t, approveReviewExample.Dismissed)
+}
+
+func TestDeleteReview(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	review1, err := issues_model.CreateReview(db.DefaultContext, issues_model.CreateReviewOptions{
+		Content:  "Official rejection",
+		Type:     issues_model.ReviewTypeReject,
+		Official: false,
+		Issue:    issue,
+		Reviewer: user,
+	})
+	assert.NoError(t, err)
+
+	review2, err := issues_model.CreateReview(db.DefaultContext, issues_model.CreateReviewOptions{
+		Content:  "Official approval",
+		Type:     issues_model.ReviewTypeApprove,
+		Official: true,
+		Issue:    issue,
+		Reviewer: user,
+	})
+	assert.NoError(t, err)
+
+	assert.NoError(t, issues_model.DeleteReview(review2))
+
+	_, err = issues_model.GetReviewByID(db.DefaultContext, review2.ID)
+	assert.Error(t, err)
+	assert.True(t, issues_model.IsErrReviewNotExist(err), "IsErrReviewNotExist")
+
+	review1, err = issues_model.GetReviewByID(db.DefaultContext, review1.ID)
+	assert.NoError(t, err)
+	assert.True(t, review1.Official)
 }

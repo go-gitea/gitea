@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user_test
 
@@ -23,7 +22,7 @@ import (
 func TestOAuth2Application_LoadUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	app := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{ID: 1})
-	user, err := user_model.GetUserByID(app.UID)
+	user, err := user_model.GetUserByID(db.DefaultContext, app.UID)
 	assert.NoError(t, err)
 	assert.NotNil(t, user)
 }
@@ -102,7 +101,7 @@ func TestSearchUsers(t *testing.T) {
 		[]int64{9})
 
 	testUserSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}, IsActive: util.OptionalBoolTrue},
-		[]int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 28, 29, 30, 32})
+		[]int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 27, 28, 29, 30, 32})
 
 	testUserSuccess(&user_model.SearchUserOptions{Keyword: "user1", OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}, IsActive: util.OptionalBoolTrue},
 		[]int64{1, 10, 11, 12, 13, 14, 15, 16, 18})
@@ -257,12 +256,12 @@ func TestGetUserIDsByNames(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// ignore non existing
-	IDs, err := user_model.GetUserIDsByNames([]string{"user1", "user2", "none_existing_user"}, true)
+	IDs, err := user_model.GetUserIDsByNames(db.DefaultContext, []string{"user1", "user2", "none_existing_user"}, true)
 	assert.NoError(t, err)
 	assert.Equal(t, []int64{1, 2}, IDs)
 
 	// ignore non existing
-	IDs, err = user_model.GetUserIDsByNames([]string{"user1", "do_not_exist"}, false)
+	IDs, err = user_model.GetUserIDsByNames(db.DefaultContext, []string{"user1", "do_not_exist"}, false)
 	assert.Error(t, err)
 	assert.Equal(t, []int64(nil), IDs)
 }
@@ -270,14 +269,14 @@ func TestGetUserIDsByNames(t *testing.T) {
 func TestGetMaileableUsersByIDs(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	results, err := user_model.GetMaileableUsersByIDs([]int64{1, 4}, false)
+	results, err := user_model.GetMaileableUsersByIDs(db.DefaultContext, []int64{1, 4}, false)
 	assert.NoError(t, err)
 	assert.Len(t, results, 1)
 	if len(results) > 1 {
 		assert.Equal(t, results[0].ID, 1)
 	}
 
-	results, err = user_model.GetMaileableUsersByIDs([]int64{1, 4}, true)
+	results, err = user_model.GetMaileableUsersByIDs(db.DefaultContext, []int64{1, 4}, true)
 	assert.NoError(t, err)
 	assert.Len(t, results, 2)
 	if len(results) > 2 {
@@ -302,8 +301,24 @@ func TestUpdateUser(t *testing.T) {
 	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	assert.True(t, user.KeepActivityPrivate)
 
+	newEmail := "new_" + user.Email
+	user.Email = newEmail
+	assert.NoError(t, user_model.UpdateUser(db.DefaultContext, user, true))
+	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	assert.Equal(t, newEmail, user.Email)
+
 	user.Email = "no mail@mail.org"
 	assert.Error(t, user_model.UpdateUser(db.DefaultContext, user, true))
+}
+
+func TestUpdateUserEmailAlreadyUsed(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+
+	user2.Email = user3.Email
+	err := user_model.UpdateUser(db.DefaultContext, user2, true)
+	assert.True(t, user_model.IsErrEmailAlreadyUsed(err))
 }
 
 func TestNewUserRedirect(t *testing.T) {
@@ -399,4 +414,57 @@ func TestUnfollowUser(t *testing.T) {
 	testSuccess(2, 2)
 
 	unittest.CheckConsistencyFor(t, &user_model.User{})
+}
+
+func TestIsUserVisibleToViewer(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})   // admin, public
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})   // normal, public
+	user20 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 20}) // public, same team as user31
+	user29 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29}) // public, is restricted
+	user31 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 31}) // private, same team as user20
+	user33 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 33}) // limited, follows 31
+
+	test := func(u, viewer *user_model.User, expected bool) {
+		name := func(u *user_model.User) string {
+			if u == nil {
+				return "<nil>"
+			}
+			return u.Name
+		}
+		assert.Equal(t, expected, user_model.IsUserVisibleToViewer(db.DefaultContext, u, viewer), "user %v should be visible to viewer %v: %v", name(u), name(viewer), expected)
+	}
+
+	// admin viewer
+	test(user1, user1, true)
+	test(user20, user1, true)
+	test(user31, user1, true)
+	test(user33, user1, true)
+
+	// non admin viewer
+	test(user4, user4, true)
+	test(user20, user4, true)
+	test(user31, user4, false)
+	test(user33, user4, true)
+	test(user4, nil, true)
+
+	// public user
+	test(user4, user20, true)
+	test(user4, user31, true)
+	test(user4, user33, true)
+
+	// limited user
+	test(user33, user33, true)
+	test(user33, user4, true)
+	test(user33, user29, false)
+	test(user33, nil, false)
+
+	// private user
+	test(user31, user31, true)
+	test(user31, user4, false)
+	test(user31, user20, true)
+	test(user31, user29, false)
+	test(user31, user33, true)
+	test(user31, nil, false)
 }

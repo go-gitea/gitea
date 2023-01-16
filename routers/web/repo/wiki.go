@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -25,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -59,7 +59,7 @@ func MustEnableWiki(ctx *context.Context) {
 		return
 	}
 
-	unit, err := ctx.Repo.Repository.GetUnit(unit.TypeExternalWiki)
+	unit, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypeExternalWiki)
 	if err == nil {
 		ctx.Redirect(unit.ExternalWikiConfig().ExternalWikiURL)
 		return
@@ -98,7 +98,7 @@ func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, err
 		return nil, nil, err
 	}
 
-	commit, err := wikiRepo.GetBranchCommit("master")
+	commit, err := wikiRepo.GetBranchCommit(wiki_service.DefaultBranch)
 	if err != nil {
 		return wikiRepo, nil, err
 	}
@@ -301,7 +301,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	ctx.Data["toc"] = rctx.TableOfContents
 
 	// get commit count - wiki revisions
-	commitsCount, _ := wikiRepo.FileCommitsCount("master", pageFilename)
+	commitsCount, _ := wikiRepo.FileCommitsCount(wiki_service.DefaultBranch, pageFilename)
 	ctx.Data["CommitCount"] = commitsCount
 
 	return wikiRepo, entry
@@ -350,7 +350,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	ctx.Data["footerContent"] = ""
 
 	// get commit count - wiki revisions
-	commitsCount, _ := wikiRepo.FileCommitsCount("master", pageFilename)
+	commitsCount, _ := wikiRepo.FileCommitsCount(wiki_service.DefaultBranch, pageFilename)
 	ctx.Data["CommitCount"] = commitsCount
 
 	// get page
@@ -360,7 +360,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	}
 
 	// get Commit Count
-	commitsHistory, err := wikiRepo.CommitsByFileAndRange("master", pageFilename, page)
+	commitsHistory, err := wikiRepo.CommitsByFileAndRange(wiki_service.DefaultBranch, pageFilename, page)
 	if err != nil {
 		if wikiRepo != nil {
 			wikiRepo.Close()
@@ -368,7 +368,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 		ctx.ServerError("CommitsByFileAndRange", err)
 		return nil, nil
 	}
-	ctx.Data["Commits"] = git_model.ConvertFromGitCommit(commitsHistory, ctx.Repo.Repository)
+	ctx.Data["Commits"] = git_model.ConvertFromGitCommit(ctx, commitsHistory, ctx.Repo.Repository)
 
 	pager := context.NewPagination(int(commitsCount), setting.Git.CommitsRangeSize, page, 5)
 	pager.SetDefaultParams(ctx)
@@ -705,6 +705,8 @@ func NewWikiPost(ctx *context.Context) {
 		return
 	}
 
+	notification.NotifyNewWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName, form.Message)
+
 	ctx.Redirect(ctx.Repo.RepoLink + "/wiki/" + wiki_service.NameToSubURL(wikiName))
 }
 
@@ -747,6 +749,8 @@ func EditWikiPost(ctx *context.Context) {
 		return
 	}
 
+	notification.NotifyEditWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, newWikiName, form.Message)
+
 	ctx.Redirect(ctx.Repo.RepoLink + "/wiki/" + wiki_service.NameToSubURL(newWikiName))
 }
 
@@ -761,6 +765,8 @@ func DeleteWikiPagePost(ctx *context.Context) {
 		ctx.ServerError("DeleteWikiPage", err)
 		return
 	}
+
+	notification.NotifyDeleteWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName)
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/wiki/",

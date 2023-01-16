@@ -151,7 +151,7 @@
 
 				<div class="field">
 					<button class="ui green button">{{.locale.Tr "admin.users.update_profile"}}</button>
-					<div class="ui red button show-modal" data-modal="#delete-user-modal" data-url="{{$.Link}}/delete" data-id="{{.User.ID}}">{{.locale.Tr "admin.users.delete_account"}}</div>
+					<div class="ui red button show-modal" data-modal="#delete-user-modal">{{.locale.Tr "admin.users.delete_account"}}</div>
 				</div>
 			</form>
 		</div>
@@ -206,7 +206,6 @@
 	</div>
 	<form class="ui form" method="POST" action="{{.Link}}/delete">
 		{{$.CsrfTokenHtml}}
-		<input type="hidden" name="id">
 		<div class="field">
 			<div class="ui checkbox">
 				<label for="purge">{{.locale.Tr "admin.users.purge"}}</label>
@@ -214,7 +213,16 @@
 			</div>
 			<p class="help">{{.locale.Tr "admin.users.purge_help"}}</p>
 		</div>
-		{{template "base/delete_modal_actions" .}}
+		<div class="actions">
+			<div class="ui red basic inverted cancel button">
+				{{svg "octicon-x"}}
+				{{.locale.Tr "modal.no"}}
+			</div>
+			<button class="ui green basic inverted ok button">
+				{{svg "octicon-check"}}
+				{{.locale.Tr "modal.yes"}}
+			</button>
+		</div>
 	</form>
 </div>
 {{template "base/footer" .}}

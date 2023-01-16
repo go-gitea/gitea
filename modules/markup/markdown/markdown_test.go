@@ -1,11 +1,11 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package markdown_test
 
 import (
 	"context"
+	"os"
 	"strings"
 	"testing"
 
@@ -29,7 +29,7 @@ const (
 var localMetas = map[string]string{
 	"user":     "gogits",
 	"repo":     "gogs",
-	"repoPath": "../../../integrations/gitea-repositories-meta/user13/repo11.git/",
+	"repoPath": "../../../tests/gitea-repositories-meta/user13/repo11.git/",
 }
 
 func TestMain(m *testing.M) {
@@ -37,6 +37,12 @@ func TestMain(m *testing.M) {
 	if err := git.InitSimple(context.Background()); err != nil {
 		log.Fatal("git init failed, err: %v", err)
 	}
+	markup.Init(&markup.ProcessorHelper{
+		IsUsernameMentionable: func(ctx context.Context, username string) bool {
+			return username == "r-lyeh"
+		},
+	})
+	os.Exit(m.Run())
 }
 
 func TestRender_StandardLinks(t *testing.T) {
@@ -66,28 +72,6 @@ func TestRender_StandardLinks(t *testing.T) {
 	test("[WikiPage](WikiPage)",
 		`<p><a href="`+lnk+`" rel="nofollow">WikiPage</a></p>`,
 		`<p><a href="`+lnkWiki+`" rel="nofollow">WikiPage</a></p>`)
-}
-
-func TestMisc_IsMarkdownFile(t *testing.T) {
-	setting.Markdown.FileExtensions = []string{".md", ".markdown", ".mdown", ".mkd"}
-	trueTestCases := []string{
-		"test.md",
-		"wow.MARKDOWN",
-		"LOL.mDoWn",
-	}
-	falseTestCases := []string{
-		"test",
-		"abcdefg",
-		"abcdefghijklmnopqrstuvwxyz",
-		"test.md.test",
-	}
-
-	for _, testCase := range trueTestCases {
-		assert.True(t, IsMarkdownFile(testCase))
-	}
-	for _, testCase := range falseTestCases {
-		assert.False(t, IsMarkdownFile(testCase))
-	}
 }
 
 func TestRender_Images(t *testing.T) {
@@ -425,4 +409,107 @@ func TestRenderEmojiInLinks_Issue12331(t *testing.T) {
 	res, err := RenderString(&markup.RenderContext{}, testcase)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, res)
+}
+
+func TestColorPreview(t *testing.T) {
+	const nl = "\n"
+	positiveTests := []struct {
+		testcase string
+		expected string
+	}{
+		{ // hex
+			"`#FF0000`",
+			`<p><code>#FF0000<span class="color-preview" style="background-color: #FF0000"></span></code></p>` + nl,
+		},
+		{ // rgb
+			"`rgb(16, 32, 64)`",
+			`<p><code>rgb(16, 32, 64)<span class="color-preview" style="background-color: rgb(16, 32, 64)"></span></code></p>` + nl,
+		},
+		{ // short hex
+			"This is the color white `#000`",
+			`<p>This is the color white <code>#000<span class="color-preview" style="background-color: #000"></span></code></p>` + nl,
+		},
+		{ // hsl
+			"HSL stands for hue, saturation, and lightness. An example: `hsl(0, 100%, 50%)`.",
+			`<p>HSL stands for hue, saturation, and lightness. An example: <code>hsl(0, 100%, 50%)<span class="color-preview" style="background-color: hsl(0, 100%, 50%)"></span></code>.</p>` + nl,
+		},
+		{ // uppercase hsl
+			"HSL stands for hue, saturation, and lightness. An example: `HSL(0, 100%, 50%)`.",
+			`<p>HSL stands for hue, saturation, and lightness. An example: <code>HSL(0, 100%, 50%)<span class="color-preview" style="background-color: HSL(0, 100%, 50%)"></span></code>.</p>` + nl,
+		},
+	}
+
+	for _, test := range positiveTests {
+		res, err := RenderString(&markup.RenderContext{}, test.testcase)
+		assert.NoError(t, err, "Unexpected error in testcase: %q", test.testcase)
+		assert.Equal(t, test.expected, res, "Unexpected result in testcase %q", test.testcase)
+
+	}
+
+	negativeTests := []string{
+		// not a color code
+		"`FF0000`",
+		// inside a code block
+		"```javascript" + nl + `const red = "#FF0000";` + nl + "```",
+		// no backticks
+		"rgb(166, 32, 64)",
+		// typo
+		"`hsI(0, 100%, 50%)`",
+		// looks like a color but not really
+		"`hsl(40, 60, 80)`",
+	}
+
+	for _, test := range negativeTests {
+		res, err := RenderString(&markup.RenderContext{}, test)
+		assert.NoError(t, err, "Unexpected error in testcase: %q", test)
+		assert.NotContains(t, res, `<span class="color-preview" style="background-color: `, "Unexpected result in testcase %q", test)
+	}
+}
+
+func TestMathBlock(t *testing.T) {
+	const nl = "\n"
+	testcases := []struct {
+		testcase string
+		expected string
+	}{
+		{
+			"$a$",
+			`<p><code class="language-math is-loading">a</code></p>` + nl,
+		},
+		{
+			"$ a $",
+			`<p><code class="language-math is-loading">a</code></p>` + nl,
+		},
+		{
+			"$a$ $b$",
+			`<p><code class="language-math is-loading">a</code> <code class="language-math is-loading">b</code></p>` + nl,
+		},
+		{
+			`\(a\) \(b\)`,
+			`<p><code class="language-math is-loading">a</code> <code class="language-math is-loading">b</code></p>` + nl,
+		},
+		{
+			`$a a$b b$`,
+			`<p><code class="language-math is-loading">a a$b b</code></p>` + nl,
+		},
+		{
+			`a a$b b`,
+			`<p>a a$b b</p>` + nl,
+		},
+		{
+			`a$b $a a$b b$`,
+			`<p>a$b <code class="language-math is-loading">a a$b b</code></p>` + nl,
+		},
+		{
+			"$$a$$",
+			`<pre class="code-block is-loading"><code class="chroma language-math display">a</code></pre>` + nl,
+		},
+	}
+
+	for _, test := range testcases {
+		res, err := RenderString(&markup.RenderContext{}, test.testcase)
+		assert.NoError(t, err, "Unexpected error in testcase: %q", test.testcase)
+		assert.Equal(t, test.expected, res, "Unexpected result in testcase %q", test.testcase)
+
+	}
 }

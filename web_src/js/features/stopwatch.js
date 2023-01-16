@@ -24,6 +24,7 @@ export function initStopwatch() {
     trigger: 'click',
     maxWidth: 'none',
     interactive: true,
+    hideOnClick: true,
   });
 
   // global stop watch (in the head_navbar), it should always work in any case either the EventSource or the PeriodicPoller is used.
@@ -135,7 +136,7 @@ function updateStopwatchData(data) {
     updateStopwatchTime(seconds);
     btnEl.removeClass('hidden');
   }
-  return !!data.length;
+  return Boolean(data.length);
 }
 
 let updateTimeIntervalId = null; // holds setInterval id when active

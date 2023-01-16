@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -30,6 +29,10 @@ func (err ErrWikiAlreadyExist) Error() string {
 	return fmt.Sprintf("wiki page already exists [title: %s]", err.Title)
 }
 
+func (err ErrWikiAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
 // ErrWikiReservedName represents a reserved name error.
 type ErrWikiReservedName struct {
 	Title string
@@ -45,6 +48,10 @@ func (err ErrWikiReservedName) Error() string {
 	return fmt.Sprintf("wiki title is reserved: %s", err.Title)
 }
 
+func (err ErrWikiReservedName) Unwrap() error {
+	return util.ErrInvalidArgument
+}
+
 // ErrWikiInvalidFileName represents an invalid wiki file name.
 type ErrWikiInvalidFileName struct {
 	FileName string
@@ -58,6 +65,10 @@ func IsErrWikiInvalidFileName(err error) bool {
 
 func (err ErrWikiInvalidFileName) Error() string {
 	return fmt.Sprintf("Invalid wiki filename: %s", err.FileName)
+}
+
+func (err ErrWikiInvalidFileName) Unwrap() error {
+	return util.ErrInvalidArgument
 }
 
 // WikiCloneLink returns clone URLs of repository wiki.

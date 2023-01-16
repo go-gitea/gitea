@@ -1,15 +1,15 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package rubygems
 
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"io"
 	"reflect"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -32,9 +32,9 @@ const (
 
 var (
 	// ErrUnsupportedType indicates an unsupported type
-	ErrUnsupportedType = errors.New("Type is unsupported")
+	ErrUnsupportedType = util.NewInvalidArgumentErrorf("type is unsupported")
 	// ErrInvalidIntRange indicates an invalid number range
-	ErrInvalidIntRange = errors.New("Number is not in valid range")
+	ErrInvalidIntRange = util.NewInvalidArgumentErrorf("number is not in valid range")
 )
 
 // RubyUserMarshal is a Ruby object that has a marshal_load function.

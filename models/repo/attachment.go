@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -14,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // Attachment represent a attachment of issue/comment/release.
@@ -39,7 +39,7 @@ func init() {
 func (a *Attachment) IncreaseDownloadCount() error {
 	// Update download count.
 	if _, err := db.GetEngine(db.DefaultContext).Exec("UPDATE `attachment` SET download_count=download_count+1 WHERE id=?", a.ID); err != nil {
-		return fmt.Errorf("increase attachment count: %v", err)
+		return fmt.Errorf("increase attachment count: %w", err)
 	}
 
 	return nil
@@ -83,6 +83,10 @@ func (err ErrAttachmentNotExist) Error() string {
 	return fmt.Sprintf("attachment does not exist [id: %d, uuid: %s]", err.ID, err.UUID)
 }
 
+func (err ErrAttachmentNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // GetAttachmentByID returns attachment by given id
 func GetAttachmentByID(ctx context.Context, id int64) (*Attachment, error) {
 	attach := &Attachment{}
@@ -117,9 +121,9 @@ func GetAttachmentsByUUIDs(ctx context.Context, uuids []string) ([]*Attachment, 
 	return attachments, db.GetEngine(ctx).In("uuid", uuids).Find(&attachments)
 }
 
-// ExistAttachmentsByUUID returns true if attachment is exist by given UUID
-func ExistAttachmentsByUUID(uuid string) (bool, error) {
-	return db.GetEngine(db.DefaultContext).Where("`uuid`=?", uuid).Exist(new(Attachment))
+// ExistAttachmentsByUUID returns true if attachment exists with the given UUID
+func ExistAttachmentsByUUID(ctx context.Context, uuid string) (bool, error) {
+	return db.GetEngine(ctx).Where("`uuid`=?", uuid).Exist(new(Attachment))
 }
 
 // GetAttachmentsByIssueID returns all attachments of an issue.
@@ -221,20 +225,20 @@ func UpdateAttachment(ctx context.Context, atta *Attachment) error {
 }
 
 // DeleteAttachmentsByRelease deletes all attachments associated with the given release.
-func DeleteAttachmentsByRelease(releaseID int64) error {
-	_, err := db.GetEngine(db.DefaultContext).Where("release_id = ?", releaseID).Delete(&Attachment{})
+func DeleteAttachmentsByRelease(ctx context.Context, releaseID int64) error {
+	_, err := db.GetEngine(ctx).Where("release_id = ?", releaseID).Delete(&Attachment{})
 	return err
 }
 
 // CountOrphanedAttachments returns the number of bad attachments
-func CountOrphanedAttachments() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where("(issue_id > 0 and issue_id not in (select id from issue)) or (release_id > 0 and release_id not in (select id from `release`))").
+func CountOrphanedAttachments(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).Where("(issue_id > 0 and issue_id not in (select id from issue)) or (release_id > 0 and release_id not in (select id from `release`))").
 		Count(new(Attachment))
 }
 
 // DeleteOrphanedAttachments delete all bad attachments
-func DeleteOrphanedAttachments() error {
-	_, err := db.GetEngine(db.DefaultContext).Where("(issue_id > 0 and issue_id not in (select id from issue)) or (release_id > 0 and release_id not in (select id from `release`))").
+func DeleteOrphanedAttachments(ctx context.Context) error {
+	_, err := db.GetEngine(ctx).Where("(issue_id > 0 and issue_id not in (select id from issue)) or (release_id > 0 and release_id not in (select id from `release`))").
 		Delete(new(Attachment))
 	return err
 }

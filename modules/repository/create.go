@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
@@ -9,8 +8,8 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
-	"unicode/utf8"
 
 	"code.gitea.io/gitea/models"
 	activities_model "code.gitea.io/gitea/models/activities"
@@ -38,7 +37,7 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 
 	has, err := repo_model.IsRepositoryExist(ctx, u, repo.Name)
 	if err != nil {
-		return fmt.Errorf("IsRepositoryExist: %v", err)
+		return fmt.Errorf("IsRepositoryExist: %w", err)
 	} else if has {
 		return repo_model.ErrRepoAlreadyExist{
 			Uname: u.Name,
@@ -101,11 +100,11 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 	// Remember visibility preference.
 	u.LastRepoVisibility = repo.IsPrivate
 	if err = user_model.UpdateUserCols(ctx, u, "last_repo_visibility"); err != nil {
-		return fmt.Errorf("UpdateUserCols: %v", err)
+		return fmt.Errorf("UpdateUserCols: %w", err)
 	}
 
 	if err = user_model.IncrUserRepoNum(ctx, u.ID); err != nil {
-		return fmt.Errorf("IncrUserRepoNum: %v", err)
+		return fmt.Errorf("IncrUserRepoNum: %w", err)
 	}
 	u.NumRepos++
 
@@ -113,40 +112,40 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 	if u.IsOrganization() {
 		teams, err := organization.FindOrgTeams(ctx, u.ID)
 		if err != nil {
-			return fmt.Errorf("FindOrgTeams: %v", err)
+			return fmt.Errorf("FindOrgTeams: %w", err)
 		}
 		for _, t := range teams {
 			if t.IncludesAllRepositories {
 				if err := models.AddRepository(ctx, t, repo); err != nil {
-					return fmt.Errorf("AddRepository: %v", err)
+					return fmt.Errorf("AddRepository: %w", err)
 				}
 			}
 		}
 
 		if isAdmin, err := access_model.IsUserRepoAdmin(ctx, repo, doer); err != nil {
-			return fmt.Errorf("IsUserRepoAdmin: %v", err)
+			return fmt.Errorf("IsUserRepoAdmin: %w", err)
 		} else if !isAdmin {
 			// Make creator repo admin if it wasn't assigned automatically
-			if err = addCollaborator(ctx, repo, doer); err != nil {
-				return fmt.Errorf("addCollaborator: %v", err)
+			if err = AddCollaborator(ctx, repo, doer); err != nil {
+				return fmt.Errorf("AddCollaborator: %w", err)
 			}
-			if err = repo_model.ChangeCollaborationAccessModeCtx(ctx, repo, doer.ID, perm.AccessModeAdmin); err != nil {
-				return fmt.Errorf("ChangeCollaborationAccessModeCtx: %v", err)
+			if err = repo_model.ChangeCollaborationAccessMode(ctx, repo, doer.ID, perm.AccessModeAdmin); err != nil {
+				return fmt.Errorf("ChangeCollaborationAccessModeCtx: %w", err)
 			}
 		}
 	} else if err = access_model.RecalculateAccesses(ctx, repo); err != nil {
 		// Organization automatically called this in AddRepository method.
-		return fmt.Errorf("RecalculateAccesses: %v", err)
+		return fmt.Errorf("RecalculateAccesses: %w", err)
 	}
 
 	if setting.Service.AutoWatchNewRepos {
 		if err = repo_model.WatchRepo(ctx, doer.ID, repo.ID, true); err != nil {
-			return fmt.Errorf("WatchRepo: %v", err)
+			return fmt.Errorf("WatchRepo: %w", err)
 		}
 	}
 
 	if err = webhook.CopyDefaultWebhooksToRepo(ctx, repo.ID); err != nil {
-		return fmt.Errorf("CopyDefaultWebhooksToRepo: %v", err)
+		return fmt.Errorf("CopyDefaultWebhooksToRepo: %w", err)
 	}
 
 	return nil
@@ -212,7 +211,7 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 
 	var rollbackRepo *repo_model.Repository
 
-	if err := db.WithTx(func(ctx context.Context) error {
+	if err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		if err := CreateRepositoryByExample(ctx, doer, u, repo, false); err != nil {
 			return err
 		}
@@ -249,7 +248,7 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 				return fmt.Errorf(
 					"delete repo directory %s/%s failed(2): %v", u.Name, repo.Name, err2)
 			}
-			return fmt.Errorf("initRepository: %v", err)
+			return fmt.Errorf("initRepository: %w", err)
 		}
 
 		// Initialize Issue Labels if selected
@@ -257,12 +256,12 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 			if err = InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
 				rollbackRepo = repo
 				rollbackRepo.OwnerID = u.ID
-				return fmt.Errorf("InitializeLabels: %v", err)
+				return fmt.Errorf("InitializeLabels: %w", err)
 			}
 		}
 
 		if err := CheckDaemonExportOK(ctx, repo); err != nil {
-			return fmt.Errorf("checkDaemonExportOK: %v", err)
+			return fmt.Errorf("checkDaemonExportOK: %w", err)
 		}
 
 		if stdout, _, err := git.NewCommand(ctx, "update-server-info").
@@ -271,7 +270,7 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 			rollbackRepo = repo
 			rollbackRepo.OwnerID = u.ID
-			return fmt.Errorf("CreateRepository(git update-server-info): %v", err)
+			return fmt.Errorf("CreateRepository(git update-server-info): %w", err)
 		}
 		return nil
 	}); err != nil {
@@ -287,16 +286,43 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 	return repo, nil
 }
 
-// UpdateRepoSize updates the repository size, calculating it using util.GetDirectorySize
+const notRegularFileMode = os.ModeSymlink | os.ModeNamedPipe | os.ModeSocket | os.ModeDevice | os.ModeCharDevice | os.ModeIrregular
+
+// getDirectorySize returns the disk consumption for a given path
+func getDirectorySize(path string) (int64, error) {
+	var size int64
+	err := filepath.WalkDir(path, func(_ string, info os.DirEntry, err error) error {
+		if err != nil {
+			if os.IsNotExist(err) { // ignore the error because the file maybe deleted during traversing.
+				return nil
+			}
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		f, err := info.Info()
+		if err != nil {
+			return err
+		}
+		if (f.Mode() & notRegularFileMode) == 0 {
+			size += f.Size()
+		}
+		return err
+	})
+	return size, err
+}
+
+// UpdateRepoSize updates the repository size, calculating it using getDirectorySize
 func UpdateRepoSize(ctx context.Context, repo *repo_model.Repository) error {
-	size, err := util.GetDirectorySize(repo.RepoPath())
+	size, err := getDirectorySize(repo.RepoPath())
 	if err != nil {
-		return fmt.Errorf("updateSize: %v", err)
+		return fmt.Errorf("updateSize: %w", err)
 	}
 
 	lfsSize, err := git_model.GetRepoLFSSize(ctx, repo.ID)
 	if err != nil {
-		return fmt.Errorf("updateSize: GetLFSMetaObjects: %v", err)
+		return fmt.Errorf("updateSize: GetLFSMetaObjects: %w", err)
 	}
 
 	return repo_model.UpdateRepoSize(ctx, repo.ID, size+lfsSize)
@@ -337,17 +363,10 @@ func CheckDaemonExportOK(ctx context.Context, repo *repo_model.Repository) error
 func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibilityChanged bool) (err error) {
 	repo.LowerName = strings.ToLower(repo.Name)
 
-	if utf8.RuneCountInString(repo.Description) > 255 {
-		repo.Description = string([]rune(repo.Description)[:255])
-	}
-	if utf8.RuneCountInString(repo.Website) > 255 {
-		repo.Website = string([]rune(repo.Website)[:255])
-	}
-
 	e := db.GetEngine(ctx)
 
 	if _, err = e.ID(repo.ID).AllCols().Update(repo); err != nil {
-		return fmt.Errorf("update: %v", err)
+		return fmt.Errorf("update: %w", err)
 	}
 
 	if err = UpdateRepoSize(ctx, repo); err != nil {
@@ -356,12 +375,12 @@ func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 
 	if visibilityChanged {
 		if err = repo.GetOwner(ctx); err != nil {
-			return fmt.Errorf("getOwner: %v", err)
+			return fmt.Errorf("getOwner: %w", err)
 		}
 		if repo.Owner.IsOrganization() {
 			// Organization repository need to recalculate access table when visibility is changed.
 			if err = access_model.RecalculateTeamAccesses(ctx, repo, 0); err != nil {
-				return fmt.Errorf("recalculateTeamAccesses: %v", err)
+				return fmt.Errorf("recalculateTeamAccesses: %w", err)
 			}
 		}
 
@@ -382,12 +401,12 @@ func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 
 		forkRepos, err := repo_model.GetRepositoriesByForkID(ctx, repo.ID)
 		if err != nil {
-			return fmt.Errorf("getRepositoriesByForkID: %v", err)
+			return fmt.Errorf("getRepositoriesByForkID: %w", err)
 		}
 		for i := range forkRepos {
 			forkRepos[i].IsPrivate = repo.IsPrivate || repo.Owner.Visibility == api.VisibleTypePrivate
 			if err = UpdateRepository(ctx, forkRepos[i], true); err != nil {
-				return fmt.Errorf("updateRepository[%d]: %v", forkRepos[i].ID, err)
+				return fmt.Errorf("updateRepository[%d]: %w", forkRepos[i].ID, err)
 			}
 		}
 	}

@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issue
 
@@ -18,6 +17,7 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/repository"
@@ -111,7 +111,7 @@ func UpdateIssuesCommit(doer *user_model.User, repo *repo_model.Repository, comm
 			Action references.XRefAction
 		}
 
-		refMarked := make(map[markKey]bool)
+		refMarked := make(container.Set[markKey])
 		var refRepo *repo_model.Repository
 		var refIssue *issues_model.Issue
 		var err error
@@ -119,7 +119,7 @@ func UpdateIssuesCommit(doer *user_model.User, repo *repo_model.Repository, comm
 
 			// issue is from another repo
 			if len(ref.Owner) > 0 && len(ref.Name) > 0 {
-				refRepo, err = repo_model.GetRepositoryByOwnerAndName(ref.Owner, ref.Name)
+				refRepo, err = repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, ref.Owner, ref.Name)
 				if err != nil {
 					if repo_model.IsErrRepoNotExist(err) {
 						log.Warn("Repository referenced in commit but does not exist: %v", err)
@@ -144,10 +144,9 @@ func UpdateIssuesCommit(doer *user_model.User, repo *repo_model.Repository, comm
 			}
 
 			key := markKey{ID: refIssue.ID, Action: ref.Action}
-			if refMarked[key] {
+			if !refMarked.Add(key) {
 				continue
 			}
-			refMarked[key] = true
 
 			// FIXME: this kind of condition is all over the code, it should be consolidated in a single place
 			canclose := perm.IsAdmin() || perm.IsOwner() || perm.CanWriteIssuesOrPulls(refIssue.IsPull) || refIssue.PosterID == doer.ID
@@ -159,7 +158,7 @@ func UpdateIssuesCommit(doer *user_model.User, repo *repo_model.Repository, comm
 			}
 
 			message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, html.EscapeString(repo.Link()), html.EscapeString(url.PathEscape(c.Sha1)), html.EscapeString(strings.SplitN(c.Message, "\n", 2)[0]))
-			if err = issues_model.CreateRefComment(doer, refRepo, refIssue, message, c.Sha1); err != nil {
+			if err = CreateRefComment(doer, refRepo, refIssue, message, c.Sha1); err != nil {
 				return err
 			}
 

@@ -5,15 +5,13 @@
 	{{if .OriginalAuthor}}
 		<span class="avatar"><img src="{{AppSubUrl}}/assets/img/avatar_default.png"></span>
 	{{else}}
-		<a class="avatar" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
-			{{avatar .Poster}}
-		</a>
+		{{template "shared/user/avatarlink" .Poster}}
 	{{end}}
 	<div class="content comment-container">
 		<div class="ui top attached header comment-header df ac sb">
 			<div class="comment-header-left df ac">
 				{{if .OriginalAuthor}}
-					<span class="text black mr-2">
+					<span class="text black bold mr-2">
 						{{svg (MigrationIcon $.root.Repository.GetOriginalURLHostname)}}
 						{{.OriginalAuthor}}
 					</span>
@@ -27,9 +25,7 @@
 					</span>
 				{{else}}
 					<span class="text grey">
-						<a {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
-							{{.Poster.GetDisplayName}}
-						</a>
+						{{template "shared/user/namelink" .Poster}}
 						{{$.root.locale.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr | Safe}}
 					</span>
 				{{end}}
@@ -58,7 +54,7 @@
 				<span class="no-content">{{$.root.locale.Tr "repo.issues.no_content"}}</span>
 			{{end}}
 			</div>
-			<div id="comment-{{.ID}}" class="raw-content hide">{{.Content}}</div>
+			<div id="issuecomment-{{.ID}}-raw" class="raw-content hide">{{.Content}}</div>
 			<div class="edit-content-zone hide" data-write="issuecomment-{{.ID}}-write" data-preview="issuecomment-{{.ID}}-preview" data-update-url="{{$.root.RepoLink}}/comments/{{.ID}}" data-context="{{$.root.RepoLink}}"></div>
 		</div>
 		{{$reactions := .Reactions.GroupByType}}

@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues_test
 
@@ -25,7 +24,7 @@ func TestCreateComment(t *testing.T) {
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	now := time.Now().Unix()
-	comment, err := issues_model.CreateComment(&issues_model.CreateCommentOptions{
+	comment, err := issues_model.CreateComment(db.DefaultContext, &issues_model.CreateCommentOptions{
 		Type:    issues_model.CommentTypeComment,
 		Doer:    doer,
 		Repo:    repo,

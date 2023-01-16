@@ -227,7 +227,7 @@
       border-right: none;
     }
 
-    #download-btn {
+    #more-btn {
       border-left: none;
     }
 
@@ -384,7 +384,7 @@
       }
 
       tr:hover {
-        background-color: #ffffee;
+        background-color: var(--color-hover);
       }
 
       tr.has-parent a {
@@ -407,10 +407,6 @@
 
         .tiny.icon {
           font-size: .5em;
-        }
-
-        .file-info {
-          font-size: 13px;
         }
 
         .file-actions {
@@ -552,7 +548,7 @@
             position: absolute;
             top: 9px;
             left: 10px;
-            color: #b0c4ce;
+            color: var(--color-grey);
           }
         }
       }
@@ -833,7 +829,7 @@
 
         .timeline-avatar {
           position: absolute;
-          left: -72px;
+          left: -68px;
 
           img {
             width: 40px !important;
@@ -846,11 +842,10 @@
           display: none;
         }
 
-        .avatar.image,
-        .avatar.image img {
+        img.avatar,
+        .avatar img {
           width: 20px;
           height: 20px;
-          margin: 0 .25rem;
           vertical-align: middle;
         }
 
@@ -908,8 +903,8 @@
             line-height: 34px; /* this must be same as .badge height, to avoid overflow */
             clear: both; // reset the "float right shabox", in the future, use flexbox instead
 
-            > .avatar.image,
-            > .avatar.image img {
+            > img.avatar,
+            > .avatar img {
               position: relative;
               top: -2px;
             }
@@ -920,8 +915,8 @@
                 border: 1px solid var(--color-light-border);
 
                 &.isSigned.isWarning {
-                  border: 1px solid #db2828;
-                  background: fade(#db2828, 10%);
+                  border: 1px solid var(--color-red-badge);
+                  background: var(--color-red-badge-bg);
 
                   .shortsha {
                     display: inline-block;
@@ -929,13 +924,13 @@
                   }
 
                   &:hover {
-                    background: fade(#db2828, 30%) !important;
+                    background: var(--color-red-badge-hover-bg) !important;
                   }
                 }
 
                 &.isSigned.isVerified {
-                  border: 1px solid #21ba45;
-                  background: fade(#21ba45, 10%);
+                  border: 1px solid var(--color-green-badge);
+                  background: var(--color-green-badge-bg);
 
                   .shortsha {
                     display: inline-block;
@@ -943,13 +938,13 @@
                   }
 
                   &:hover {
-                    background: fade(#21ba45, 30%) !important;
+                    background: var(--color-green-badge-hover-bg) !important;
                   }
                 }
 
                 &.isSigned.isVerifiedUntrusted {
-                  border: 1px solid #fbbd08;
-                  background: fade(#fbbd08, 10%);
+                  border: 1px solid var(--color-yellow-badge);
+                  background: var(--color-yellow-badge-bg);
 
                   .shortsha {
                     display: inline-block;
@@ -957,13 +952,13 @@
                   }
 
                   &:hover {
-                    background: fade(#fbbd08, 30%) !important;
+                    background: var(--color-yellow-badge-hover-bg) !important;
                   }
                 }
 
                 &.isSigned.isVerifiedUnmatched {
-                  border: 1px solid #f2711c;
-                  background: fade(#f2711c, 10%);
+                  border: 1px solid var(--color-orange-badge);
+                  background: var(--color-orange-badge-bg);
 
                   .shortsha {
                     display: inline-block;
@@ -971,7 +966,7 @@
                   }
 
                   &:hover {
-                    background: fade(#f2711c, 30%) !important;
+                    background: var(--color-orange-badge-hover-bg) !important;
                   }
                 }
               }
@@ -985,12 +980,14 @@
           margin-top: 4px;
         }
 
-        .author {
-          font-weight: 600;
-        }
-
         .comment-form-reply .footer {
           padding-bottom: 1em;
+        }
+
+        @media @mediaSm {
+          .ui.segments {
+            margin-left: -2rem;
+          }
         }
       }
 
@@ -1124,8 +1121,11 @@
         .comment-content {
           margin-left: 36px;
         }
+      }
 
-        .avatar.image {
+      .code-comment,
+      .comment {
+        img.avatar {
           width: 28px;
           height: 28px;
         }
@@ -1160,14 +1160,21 @@
         padding-left: 15px;
 
         .detail {
-          font-size: .9rem;
-          margin-top: 5px;
-          margin-left: 8px;
+          margin-top: 4px;
+          margin-left: 14px;
+
+          .svg {
+            margin-right: 2px;
+          }
         }
 
         .segments {
           box-shadow: none;
         }
+      }
+
+      @media @mediaSm {
+        padding: 1rem 0 !important; // Important is required here to override existing fomantic styles.
       }
     }
 
@@ -1426,8 +1433,8 @@
     }
 
     &.isSigned.isWarning {
-      border: 1px solid #db2828;
-      background: fade(#db2828, 10%);
+      border: 1px solid var(--color-red-badge);
+      background: var(--color-red-badge-bg);
 
       .shortsha {
         display: inline-block;
@@ -1435,18 +1442,18 @@
       }
 
       .detail.icon {
-        border-left: 1px solid #db2828;
-        color: #db2828;
+        border-left: 1px solid var(--color-red-badge);
+        color: var(--color-red-badge);
       }
 
       &:hover {
-        background: fade(#db2828, 30%) !important;
+        background: var(--color-red-badge-hover-bg) !important;
       }
     }
 
     &.isSigned.isVerified {
-      border: 1px solid #21ba45;
-      background: fade(#21ba45, 10%);
+      border: 1px solid var(--color-green-badge);
+      background: var(--color-green-badge-bg);
 
       .shortsha {
         display: inline-block;
@@ -1454,18 +1461,18 @@
       }
 
       .detail.icon {
-        border-left: 1px solid #21ba45;
-        color: #21ba45;
+        border-left: 1px solid var(--color-green-badge);
+        color: var(--color-green-badge);
       }
 
       &:hover {
-        background: fade(#21ba45, 30%) !important;
+        background: var(--color-green-badge-hover-bg) !important;
       }
     }
 
     &.isSigned.isVerifiedUntrusted {
-      border: 1px solid #fbbd08;
-      background: fade(#fbbd08, 10%);
+      border: 1px solid var(--color-yellow-badge);
+      background: var(--color-yellow-badge-bg);
 
       .shortsha {
         display: inline-block;
@@ -1473,18 +1480,18 @@
       }
 
       .detail.icon {
-        border-left: 1px solid #fbbd08;
-        color: #fbbd08;
+        border-left: 1px solid var(--color-yellow-badge);
+        color: var(--color-yellow-badge);
       }
 
       &:hover {
-        background: fade(#fbbd08, 30%) !important;
+        background: var(--color-yellow-badge-hover-bg) !important;
       }
     }
 
     &.isSigned.isVerifiedUnmatched {
-      border: 1px solid #f2711c;
-      background: fade(#f2711c, 10%);
+      border: 1px solid var(--color-orange-badge);
+      background: var(--color-orange-badge-bg);
 
       .shortsha {
         display: inline-block;
@@ -1492,12 +1499,12 @@
       }
 
       .detail.icon {
-        border-left: 1px solid #f2711c;
-        color: #f2711c;
+        border-left: 1px solid var(--color-orange-badge);
+        color: var(--color-orange-badge);
       }
 
       &:hover {
-        background: fade(#f2711c, 30%) !important;
+        background: var(--color-orange-badge-hover-bg) !important;
       }
     }
   }
@@ -1588,6 +1595,8 @@
       border-bottom: 1px solid var(--color-secondary);
       padding-left: 2px;
       padding-right: 2px;
+      margin-left: -1px;
+      margin-right: -1px;
     }
 
     > div::after {
@@ -1657,6 +1666,9 @@
       &.rename {
         background-color: var(--color-teal);
       }
+    }
+    .button {
+      padding: 8px 12px;
     }
   }
 
@@ -1848,11 +1860,13 @@
       border-top: 1px solid var(--color-secondary);
       margin-top: 20px;
       padding-top: 15px;
+      padding-left: 0;
 
       .release-list-title {
         font-size: 2rem;
         font-weight: normal;
-        margin-top: -6px;
+        margin-top: -4px;
+        margin-bottom: 0;
       }
 
       > li {
@@ -1870,11 +1884,6 @@
 
           .label {
             margin-right: 0;
-          }
-
-          .tag:not(.icon) {
-            display: block;
-            margin-top: 15px;
           }
 
           .commit {
@@ -1896,7 +1905,7 @@
 
           .author {
             img {
-              margin-bottom: -3px;
+              margin-bottom: 3px;
             }
           }
 
@@ -1938,16 +1947,16 @@
           }
 
           .dot {
-            width: 9px;
-            height: 9px;
-            background-color: #ddd;
+            width: 10px;
+            height: 10px;
+            background-color: var(--color-secondary-dark-3);
             z-index: 9;
             position: absolute;
             display: block;
-            left: -5px;
+            left: -6px;
             top: 40px;
-            border-radius: 6px;
-            border: 1px solid #ffffff;
+            border-radius: 100%;
+            border: 2.5px solid var(--color-body);
           }
         }
       }
@@ -1959,7 +1968,7 @@
       }
 
       .release-tag-name {
-        font-size: 20px;
+        font-size: 18px;
         font-weight: normal;
       }
     }
@@ -2459,6 +2468,56 @@
 
 // End of .repository
 
+#cite-repo-modal {
+  #citation-panel {
+    width: 500px;
+
+    @media @mediaSm {
+      width: 100%;
+    }
+
+    input {
+      border-radius: 0;
+      padding: 5px 10px;
+      width: 50%;
+      line-height: 1.4;
+    }
+
+    .citation.button {
+      font-size: 13px;
+      padding: 7.5px 5px;
+    }
+
+    #citation-copy-content {
+      border-radius: 0;
+      padding: 5px 10px;
+      font-size: 1.2em;
+      line-height: 1.4;
+    }
+
+    #citation-copy-apa,
+    #citation-copy-bibtex {
+      border-right: none;
+    }
+
+    #goto-citation-btn {
+      border-left: none;
+    }
+
+    >:first-child {
+      border-radius: var(--border-radius) 0 0 var(--border-radius) !important;
+    }
+
+    >:last-child {
+      border-radius: 0 var(--border-radius) var(--border-radius) 0 !important;
+    }
+
+    .icon.button {
+      padding: 0 10px;
+    }
+  }
+}
+
 &.user-cards {
   .list {
     padding: 0;
@@ -2497,7 +2556,7 @@
 #search-user-box {
   .results {
     .result {
-      .image {
+      img {
         float: left;
         margin-right: 8px;
         width: 2em;
@@ -2555,12 +2614,18 @@
     }
   }
 
+  &.webhooks .list > .item:not(:first-child),
+  &.githooks .list > .item:not(:first-child) {
+    padding: .25rem 1rem;
+    margin: 12px -1rem -1rem;
+  }
+
   .list {
     > .item {
       &:not(:first-child) {
         border-top: 1px solid var(--color-secondary);
         padding: 1rem;
-        margin: 15px -1rem -1rem;
+        margin: 16px -1rem -1rem;
       }
 
       > .svg {
@@ -2664,12 +2729,10 @@
 
   a {
     color: var(--color-text);
-    text-decoration: none;
   }
 
   a:hover {
     color: var(--color-primary);
-    text-decoration: none;
   }
 }
 
@@ -2798,6 +2861,11 @@
   margin-top: 10px;
 }
 
+.repo-button-row .dropdown > .dropdown.icon {
+  margin-left: .25rem !important;
+  margin-right: 0 !important;
+}
+
 .wiki .repo-button-row {
   margin-bottom: 0;
 }
@@ -2825,6 +2893,11 @@ tbody.commit-list {
   max-width: calc(100% - 50px);
   display: inline-block;
   vertical-align: middle;
+}
+
+// in the commit list, messages can wrap so we can use inline
+.commit-list .message-wrapper {
+  display: inline;
 }
 
 @media @mediaSm {
@@ -2890,6 +2963,24 @@ tbody.commit-list {
 
 .git-notes.top {
   text-align: left;
+}
+
+.comment-diff-data {
+  background: var(--color-code-bg);
+  max-height: calc(100vh - 10.5rem);
+  overflow-y: auto;
+}
+
+.comment-diff-data pre {
+  line-height: 18px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-wrap: break-word;
+}
+
+.content-history-detail-dialog .header .avatar {
+  position: relative;
+  top: -2px;
 }
 
 #topic_edit {
@@ -3012,9 +3103,9 @@ tbody.commit-list {
 }
 
 .tag-code,
-.tag-code td {
-  background-color: #f0f9ff;
-  border-color: #f1f8ff !important;
+.tag-code td,
+.tag-code .blob-excerpt {
+  background-color: var(--color-box-body-highlight);
   vertical-align: middle;
 }
 
@@ -3030,7 +3121,7 @@ tbody.commit-list {
 }
 
 td.blob-excerpt {
-  background-color: #fafafa;
+  background-color: var(--color-secondary-alpha-30);
 }
 
 .issue-keyword {
@@ -3046,7 +3137,8 @@ td.blob-excerpt {
   display: flex;
   justify-content: space-between;
   overflow-x: auto;
-  padding: 8px 12px !important;
+  padding: 6px 12px !important;
+  font-size: 13px !important;
 }
 
 .file-info {
@@ -3064,6 +3156,35 @@ td.blob-excerpt {
   border-left: 1px solid currentcolor;
   margin-left: 8px;
   padding-left: 8px;
+}
+
+#diff-container {
+  display: flex;
+}
+#diff-file-boxes {
+  flex: 1;
+}
+
+#diff-file-tree {
+  width: 20%;
+  max-width: 380px;
+  line-height: inherit;
+  position: sticky;
+  padding-top: 0;
+  top: 47px;
+  max-height: calc(100vh - 50px);
+  height: 100%;
+  overflow-y: auto;
+}
+
+@media @mediaMdAndDown {
+  #diff-file-tree {
+    display: none !important;
+  }
+
+  .diff-toggle-file-tree-button {
+    display: none !important;
+  }
 }
 
 .ui.message.unicode-escape-prompt {
@@ -3220,7 +3341,8 @@ td.blob-excerpt {
   background: var(--color-diff-inactive);
 }
 
-.code-diff-split tbody tr td:nth-child(5) {
+.code-diff-split tbody tr td:nth-child(5),
+.code-diff-split tbody tr td.add-comment-right {
   border-left: 1px solid var(--color-secondary);
 }
 
@@ -3300,7 +3422,7 @@ td.blob-excerpt {
         display: flex;
         margin-bottom: auto;
 
-        img.avatar.image {
+        img.avatar {
           height: 24px;
           width: 24px;
         }
@@ -3425,5 +3547,43 @@ td.blob-excerpt {
   }
   @media @mediaSm {
     max-width: 165px;
+  }
+}
+
+.pr-status {
+  padding: 0 !important; // To clear fomantic's padding on .ui.segment elements
+  display: flex;
+  align-items: center;
+
+  .commit-status {
+    margin: 1em;
+    flex-shrink: 0;
+  }
+
+  .status-context {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+
+    > span {
+      padding: 1em 0;
+    }
+  }
+
+  .status-details {
+    display: flex;
+    padding-right: .5em;
+    align-items: center;
+    justify-content: flex-end;
+
+    @media @mediaSm {
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    > span {
+      padding-right: .5em; // To match the alignment with the "required" label
+    }
   }
 }

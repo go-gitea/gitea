@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -9,10 +8,9 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/validation"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // GetNote Get a note corresponding to a single commit from a repository
@@ -47,7 +45,7 @@ func GetNote(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	sha := ctx.Params(":sha")
-	if (validation.GitRefNamePatternInvalid.MatchString(sha) || !validation.CheckGitRefAdditionalRulesValid(sha)) && !git.SHAPattern.MatchString(sha) {
+	if !git.IsValidRefPattern(sha) {
 		ctx.Error(http.StatusUnprocessableEntity, "no valid ref or sha", fmt.Sprintf("no valid ref or sha: %s", sha))
 		return
 	}
@@ -70,7 +68,7 @@ func getNote(ctx *context.APIContext, identifier string) {
 		return
 	}
 
-	cmt, err := convert.ToCommit(ctx.Repo.Repository, ctx.Repo.GitRepo, note.Commit, nil)
+	cmt, err := convert.ToCommit(ctx.Repo.Repository, ctx.Repo.GitRepo, note.Commit, nil, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ToCommit", err)
 		return

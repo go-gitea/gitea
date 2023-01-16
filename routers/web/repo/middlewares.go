@@ -1,13 +1,12 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
 import (
 	"fmt"
 
-	admin_model "code.gitea.io/gitea/models/admin"
+	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -24,7 +23,7 @@ func SetEditorconfigIfExists(ctx *context.Context) {
 
 	if err != nil && !git.IsErrNotExist(err) {
 		description := fmt.Sprintf("Error while getting .editorconfig file: %v", err)
-		if err := admin_model.CreateRepositoryNotice(description); err != nil {
+		if err := system_model.CreateRepositoryNotice(description); err != nil {
 			ctx.ServerError("ErrCreatingReporitoryNotice", err)
 		}
 		return

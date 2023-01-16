@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package log
 
@@ -54,7 +53,7 @@ func NewConsoleLogger() LoggerProvider {
 func (log *ConsoleLogger) Init(config string) error {
 	err := json.Unmarshal([]byte(config), log)
 	if err != nil {
-		return fmt.Errorf("Unable to parse JSON: %v", err)
+		return fmt.Errorf("Unable to parse JSON: %w", err)
 	}
 	if log.Stderr {
 		log.NewWriterLogger(&nopWriteCloser{

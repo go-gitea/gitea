@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -24,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/web/feed"
 	"code.gitea.io/gitea/services/forms"
 	releaseservice "code.gitea.io/gitea/services/release"
 )
@@ -46,11 +46,11 @@ func calReleaseNumCommitsBehind(repoCtx *context.Repository, release *repo_model
 		if repoCtx.GitRepo.IsBranchExist(release.Target) {
 			commit, err := repoCtx.GitRepo.GetBranchCommit(release.Target)
 			if err != nil {
-				return fmt.Errorf("GetBranchCommit: %v", err)
+				return fmt.Errorf("GetBranchCommit: %w", err)
 			}
 			countCache[release.Target], err = commit.CommitsCount()
 			if err != nil {
-				return fmt.Errorf("CommitsCount: %v", err)
+				return fmt.Errorf("CommitsCount: %w", err)
 			}
 		} else {
 			// Use NumCommits of the newest release on that target
@@ -117,18 +117,26 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
 
 	opts := repo_model.FindReleasesOptions{
-		ListOptions:   listOptions,
-		IncludeDrafts: writeAccess && !isTagList,
-		IncludeTags:   isTagList,
+		ListOptions: listOptions,
+	}
+	if isTagList {
+		// for the tags list page, show all releases with real tags (having real commit-id),
+		// the drafts should also be included because a real tag might be used as a draft.
+		opts.IncludeDrafts = true
+		opts.IncludeTags = true
+		opts.HasSha1 = util.OptionalBoolTrue
+	} else {
+		// only show draft releases for users who can write, read-only users shouldn't see draft releases.
+		opts.IncludeDrafts = writeAccess
 	}
 
-	releases, err := repo_model.GetReleasesByRepoID(ctx.Repo.Repository.ID, opts)
+	releases, err := repo_model.GetReleasesByRepoID(ctx, ctx.Repo.Repository.ID, opts)
 	if err != nil {
 		ctx.ServerError("GetReleasesByRepoID", err)
 		return
 	}
 
-	count, err := repo_model.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, opts)
+	count, err := repo_model.GetReleaseCountByRepoID(ctx, ctx.Repo.Repository.ID, opts)
 	if err != nil {
 		ctx.ServerError("GetReleaseCountByRepoID", err)
 		return
@@ -149,7 +157,7 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 
 	for _, r := range releases {
 		if r.Publisher, ok = cacheUsers[r.PublisherID]; !ok {
-			r.Publisher, err = user_model.GetUserByID(r.PublisherID)
+			r.Publisher, err = user_model.GetUserByID(ctx, r.PublisherID)
 			if err != nil {
 				if user_model.IsErrUserNotExist(err) {
 					r.Publisher = user_model.NewGhostUser()
@@ -192,6 +200,30 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 	ctx.HTML(http.StatusOK, tplReleases)
 }
 
+// ReleasesFeedRSS get feeds for releases in RSS format
+func ReleasesFeedRSS(ctx *context.Context) {
+	releasesOrTagsFeed(ctx, true, "rss")
+}
+
+// TagsListFeedRSS get feeds for tags in RSS format
+func TagsListFeedRSS(ctx *context.Context) {
+	releasesOrTagsFeed(ctx, false, "rss")
+}
+
+// ReleasesFeedAtom get feeds for releases in Atom format
+func ReleasesFeedAtom(ctx *context.Context) {
+	releasesOrTagsFeed(ctx, true, "atom")
+}
+
+// TagsListFeedAtom get feeds for tags in RSS format
+func TagsListFeedAtom(ctx *context.Context) {
+	releasesOrTagsFeed(ctx, false, "atom")
+}
+
+func releasesOrTagsFeed(ctx *context.Context, isReleasesOnly bool, formatType string) {
+	feed.ShowReleaseFeed(ctx, ctx.Repo.Repository, isReleasesOnly, formatType)
+}
+
 // SingleRelease renders a single release's page
 func SingleRelease(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.releases")
@@ -216,7 +248,7 @@ func SingleRelease(ctx *context.Context) {
 		return
 	}
 
-	release.Publisher, err = user_model.GetUserByID(release.PublisherID)
+	release.Publisher, err = user_model.GetUserByID(ctx, release.PublisherID)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			release.Publisher = user_model.NewGhostUser()
@@ -258,7 +290,7 @@ func LatestRelease(ctx *context.Context) {
 		return
 	}
 
-	if err := release.LoadAttributes(); err != nil {
+	if err := release.LoadAttributes(ctx); err != nil {
 		ctx.ServerError("LoadAttributes", err)
 		return
 	}
@@ -281,7 +313,7 @@ func NewRelease(ctx *context.Context) {
 
 		if rel != nil {
 			rel.Repo = ctx.Repo.Repository
-			if err := rel.LoadAttributes(); err != nil {
+			if err := rel.LoadAttributes(ctx); err != nil {
 				ctx.ServerError("LoadAttributes", err)
 				return
 			}
@@ -446,7 +478,7 @@ func EditRelease(ctx *context.Context) {
 	ctx.Data["IsDraft"] = rel.IsDraft
 
 	rel.Repo = ctx.Repo.Repository
-	if err := rel.LoadAttributes(); err != nil {
+	if err := rel.LoadAttributes(ctx); err != nil {
 		ctx.ServerError("LoadAttributes", err)
 		return
 	}

@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user_test
 
@@ -163,7 +162,7 @@ func TestMakeEmailPrimary(t *testing.T) {
 	err = user_model.MakeEmailPrimary(email)
 	assert.NoError(t, err)
 
-	user, _ := user_model.GetUserByID(int64(10))
+	user, _ := user_model.GetUserByID(db.DefaultContext, int64(10))
 	assert.Equal(t, "user101@example.com", user.Email)
 }
 
@@ -281,23 +280,25 @@ func TestEmailAddressValidate(t *testing.T) {
 		`first~last@iana.org`:            nil,
 		`first;last@iana.org`:            user_model.ErrEmailCharIsNotSupported{`first;last@iana.org`},
 		".233@qq.com":                    user_model.ErrEmailInvalid{".233@qq.com"},
-		"!233@qq.com":                    user_model.ErrEmailInvalid{"!233@qq.com"},
-		"#233@qq.com":                    user_model.ErrEmailInvalid{"#233@qq.com"},
-		"$233@qq.com":                    user_model.ErrEmailInvalid{"$233@qq.com"},
-		"%233@qq.com":                    user_model.ErrEmailInvalid{"%233@qq.com"},
-		"&233@qq.com":                    user_model.ErrEmailInvalid{"&233@qq.com"},
-		"'233@qq.com":                    user_model.ErrEmailInvalid{"'233@qq.com"},
-		"*233@qq.com":                    user_model.ErrEmailInvalid{"*233@qq.com"},
-		"+233@qq.com":                    user_model.ErrEmailInvalid{"+233@qq.com"},
-		"/233@qq.com":                    user_model.ErrEmailInvalid{"/233@qq.com"},
-		"=233@qq.com":                    user_model.ErrEmailInvalid{"=233@qq.com"},
-		"?233@qq.com":                    user_model.ErrEmailInvalid{"?233@qq.com"},
-		"^233@qq.com":                    user_model.ErrEmailInvalid{"^233@qq.com"},
-		"`233@qq.com":                    user_model.ErrEmailInvalid{"`233@qq.com"},
-		"{233@qq.com":                    user_model.ErrEmailInvalid{"{233@qq.com"},
-		"|233@qq.com":                    user_model.ErrEmailInvalid{"|233@qq.com"},
-		"}233@qq.com":                    user_model.ErrEmailInvalid{"}233@qq.com"},
-		"~233@qq.com":                    user_model.ErrEmailInvalid{"~233@qq.com"},
+		"!233@qq.com":                    nil,
+		"#233@qq.com":                    nil,
+		"$233@qq.com":                    nil,
+		"%233@qq.com":                    nil,
+		"&233@qq.com":                    nil,
+		"'233@qq.com":                    nil,
+		"*233@qq.com":                    nil,
+		"+233@qq.com":                    nil,
+		"-233@qq.com":                    user_model.ErrEmailInvalid{"-233@qq.com"},
+		"/233@qq.com":                    nil,
+		"=233@qq.com":                    nil,
+		"?233@qq.com":                    nil,
+		"^233@qq.com":                    nil,
+		"_233@qq.com":                    nil,
+		"`233@qq.com":                    nil,
+		"{233@qq.com":                    nil,
+		"|233@qq.com":                    nil,
+		"}233@qq.com":                    nil,
+		"~233@qq.com":                    nil,
 		";233@qq.com":                    user_model.ErrEmailCharIsNotSupported{";233@qq.com"},
 		"Foo <foo@bar.com>":              user_model.ErrEmailCharIsNotSupported{"Foo <foo@bar.com>"},
 		string([]byte{0xE2, 0x84, 0xAA}): user_model.ErrEmailCharIsNotSupported{string([]byte{0xE2, 0x84, 0xAA})},

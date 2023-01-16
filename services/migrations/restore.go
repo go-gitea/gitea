@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migrations
 
@@ -13,7 +12,7 @@ import (
 
 	base "code.gitea.io/gitea/modules/migration"
 
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // RepositoryRestorer implements an Downloader from the local directory
@@ -243,6 +242,7 @@ func (r *RepositoryRestorer) GetPullRequests(page, perPage int) ([]*base.PullReq
 	}
 	for _, pr := range pulls {
 		pr.PatchURL = "file://" + filepath.Join(r.baseDir, pr.PatchURL)
+		CheckAndEnsureSafePR(pr, "", r)
 	}
 	return pulls, true, nil
 }

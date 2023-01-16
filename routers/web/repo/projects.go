@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -197,7 +196,7 @@ func DeleteProject(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.DeleteProjectByID(p.ID); err != nil {
+	if err := project_model.DeleteProjectByID(ctx, p.ID); err != nil {
 		ctx.Flash.Error("DeleteProjectByID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.projects.deletion_success"))
@@ -297,7 +296,7 @@ func ViewProject(ctx *context.Context) {
 		boards[0].Title = ctx.Tr("repo.projects.type.uncategorized")
 	}
 
-	issuesMap, err := issues_model.LoadIssuesFromBoardList(boards)
+	issuesMap, err := issues_model.LoadIssuesFromBoardList(ctx, boards)
 	if err != nil {
 		ctx.ServerError("LoadIssuesOfBoards", err)
 		return
@@ -314,7 +313,7 @@ func ViewProject(ctx *context.Context) {
 			}
 
 			if len(referencedIds) > 0 {
-				if linkedPrs, err := issues_model.Issues(&issues_model.IssuesOptions{
+				if linkedPrs, err := issues_model.Issues(ctx, &issues_model.IssuesOptions{
 					IssueIDs: referencedIds,
 					IsPull:   util.OptionalBoolTrue,
 				}); err == nil {

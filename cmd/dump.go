@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cmd
 
@@ -145,6 +144,10 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 		cli.BoolFlag{
 			Name:  "skip-package-data",
 			Usage: "Skip package data",
+		},
+		cli.BoolFlag{
+			Name:  "skip-index",
+			Usage: "Skip bleve index data",
 		},
 		cli.GenericFlag{
 			Name:  "type",
@@ -327,6 +330,11 @@ func runDump(ctx *cli.Context) error {
 			excludes = append(excludes, opts.ProviderConfig)
 		}
 
+		if ctx.IsSet("skip-index") && ctx.Bool("skip-index") {
+			excludes = append(excludes, setting.Indexer.RepoPath)
+			excludes = append(excludes, setting.Indexer.IssuePath)
+		}
+
 		excludes = append(excludes, setting.RepoRootPath)
 		excludes = append(excludes, setting.LFS.Path)
 		excludes = append(excludes, setting.Attachment.Path)
@@ -401,15 +409,6 @@ func runDump(ctx *cli.Context) error {
 	return nil
 }
 
-func contains(slice []string, s string) bool {
-	for _, v := range slice {
-		if v == s {
-			return true
-		}
-	}
-	return false
-}
-
 // addRecursiveExclude zips absPath to specified insidePath inside writer excluding excludeAbsPath
 func addRecursiveExclude(w archiver.Writer, insidePath, absPath string, excludeAbsPath []string, verbose bool) error {
 	absPath, err := filepath.Abs(absPath)
@@ -430,7 +429,7 @@ func addRecursiveExclude(w archiver.Writer, insidePath, absPath string, excludeA
 		currentAbsPath := path.Join(absPath, file.Name())
 		currentInsidePath := path.Join(insidePath, file.Name())
 		if file.IsDir() {
-			if !contains(excludeAbsPath, currentAbsPath) {
+			if !util.SliceContainsString(excludeAbsPath, currentAbsPath) {
 				if err := addFile(w, currentInsidePath, currentAbsPath, false); err != nil {
 					return err
 				}

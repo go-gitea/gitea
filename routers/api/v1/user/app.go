@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -13,10 +12,10 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // ListAccessTokens list all the access tokens
@@ -213,9 +212,10 @@ func CreateOauth2Application(ctx *context.APIContext) {
 	data := web.GetForm(ctx).(*api.CreateOAuth2ApplicationOptions)
 
 	app, err := auth_model.CreateOAuth2Application(ctx, auth_model.CreateOAuth2ApplicationOptions{
-		Name:         data.Name,
-		UserID:       ctx.Doer.ID,
-		RedirectURIs: data.RedirectURIs,
+		Name:               data.Name,
+		UserID:             ctx.Doer.ID,
+		RedirectURIs:       data.RedirectURIs,
+		ConfidentialClient: data.ConfidentialClient,
 	})
 	if err != nil {
 		ctx.Error(http.StatusBadRequest, "", "error creating oauth2 application")
@@ -363,10 +363,11 @@ func UpdateOauth2Application(ctx *context.APIContext) {
 	data := web.GetForm(ctx).(*api.CreateOAuth2ApplicationOptions)
 
 	app, err := auth_model.UpdateOAuth2Application(auth_model.UpdateOAuth2ApplicationOptions{
-		Name:         data.Name,
-		UserID:       ctx.Doer.ID,
-		ID:           appID,
-		RedirectURIs: data.RedirectURIs,
+		Name:               data.Name,
+		UserID:             ctx.Doer.ID,
+		ID:                 appID,
+		RedirectURIs:       data.RedirectURIs,
+		ConfidentialClient: data.ConfidentialClient,
 	})
 	if err != nil {
 		if auth_model.IsErrOauthClientIDInvalid(err) || auth_model.IsErrOAuthApplicationNotFound(err) {

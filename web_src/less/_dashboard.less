@@ -141,10 +141,9 @@
     }
 
     code {
-      padding: 1px;
-      font-size: 85%;
-      background-color: rgba(0, 0, 0, .04);
+      padding: 2px 4px;
       border-radius: 3px;
+      background-color: var(--color-markup-code-block);
       word-break: break-all;
     }
 
@@ -184,12 +183,16 @@
     }
 
     #privateFilterCheckbox .svg {
-      color: #888888;
+      color: var(--color-grey);
       margin-right: .25rem;
     }
 
     .repo-owner-name-list .item-name {
-      max-width: 70%;
+      min-width: 0;
+    }
+
+    .repo-owner-name-list .item-name svg {
+      min-width: 16px;
     }
   }
 }

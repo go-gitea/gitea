@@ -5,7 +5,7 @@
 	{{end}}
 	<div class="item brand" style="justify-content: space-between;">
 		<a href="{{AppSubUrl}}/" aria-label="{{if .IsSigned}}{{.locale.Tr "dashboard"}}{{else}}{{.locale.Tr "home"}}{{end}}">
-			<img class="ui mini image" width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{.locale.Tr "logo"}}" aria-hidden="true">
+			<img width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{.locale.Tr "logo"}}" aria-hidden="true">
 		</a>
 		{{if .IsSigned}}
 		<a href="{{AppSubUrl}}/notifications" class="tooltip mobile-only" data-content='{{.locale.Tr "notifications"}}'>
@@ -77,6 +77,7 @@
 		</div>
 	{{else if .IsSigned}}
 		<div class="right stackable menu">
+			{{if EnableTimetracking}}
 			<a class="active-stopwatch-trigger item ui label {{if not .ActiveStopwatch}}hidden{{end}}" href="{{.ActiveStopwatch.IssueLink}}">
 				<span class="text">
 					<span class="fitted item">
@@ -115,6 +116,7 @@
 					</form>
 				</div>
 			</div>
+			{{end}}
 
 			<a href="{{AppSubUrl}}/notifications" class="item tooltip not-mobile" data-content="{{.locale.Tr "notifications"}}" aria-label="{{.locale.Tr "notifications"}}">
 				<span class="text">
@@ -171,7 +173,11 @@
 							{{.locale.Tr "your_starred"}}
 						</a>
 					{{end}}
-					<a class="{{if .PageIsUserSettings}}active{{end}} item" href="{{AppSubUrl}}/user/settings">
+					<a class="item" href="{{AppSubUrl}}/notifications/subscriptions">
+						{{svg "octicon-bell"}}
+						{{.locale.Tr "notification.subscriptions"}}<!-- Subscriptions -->
+					</a>
+					<a class="{{if .PageIsUserSettings}}active {{end}}item" href="{{AppSubUrl}}/user/settings">
 						{{svg "octicon-tools"}}
 						{{.locale.Tr "your_settings"}}<!-- Your settings -->
 					</a>
@@ -182,7 +188,7 @@
 					{{if .IsAdmin}}
 						<div class="divider"></div>
 
-						<a class="{{if .PageIsAdmin}}active{{end}} item" href="{{AppSubUrl}}/admin">
+						<a class="{{if .PageIsAdmin}}active {{end}}item" href="{{AppSubUrl}}/admin">
 							{{svg "octicon-server"}}
 							{{.locale.Tr "admin_panel"}}<!-- Admin Panel -->
 						</a>

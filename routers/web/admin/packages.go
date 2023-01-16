@@ -1,6 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package admin
 
@@ -63,6 +62,7 @@ func Packages(ctx *context.Context) {
 	ctx.Data["PageIsAdminPackages"] = true
 	ctx.Data["Query"] = query
 	ctx.Data["PackageType"] = packageType
+	ctx.Data["AvailableTypes"] = packages_model.TypeList
 	ctx.Data["SortType"] = sort
 	ctx.Data["PackageDescriptors"] = pds
 	ctx.Data["Total"] = total

@@ -1,12 +1,10 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package container
 
 import (
 	"context"
-	"errors"
 	"strings"
 	"time"
 
@@ -14,11 +12,12 @@ import (
 	"code.gitea.io/gitea/models/packages"
 	user_model "code.gitea.io/gitea/models/user"
 	container_module "code.gitea.io/gitea/modules/packages/container"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
 
-var ErrContainerBlobNotExist = errors.New("Container blob does not exist")
+var ErrContainerBlobNotExist = util.NewNotExistErrorf("container blob does not exist")
 
 type BlobSearchOptions struct {
 	OwnerID    int64
@@ -165,6 +164,7 @@ type ImageTagsSearchOptions struct {
 	PackageID int64
 	Query     string
 	IsTagged  bool
+	Sort      packages.VersionSort
 	db.Paginator
 }
 
@@ -195,12 +195,26 @@ func (opts *ImageTagsSearchOptions) toConds() builder.Cond {
 	return cond
 }
 
+func (opts *ImageTagsSearchOptions) configureOrderBy(e db.Engine) {
+	switch opts.Sort {
+	case packages.SortVersionDesc:
+		e.Desc("package_version.version")
+	case packages.SortVersionAsc:
+		e.Asc("package_version.version")
+	case packages.SortCreatedAsc:
+		e.Asc("package_version.created_unix")
+	default:
+		e.Desc("package_version.created_unix")
+	}
+}
+
 // SearchImageTags gets a sorted list of the tags of an image
 func SearchImageTags(ctx context.Context, opts *ImageTagsSearchOptions) ([]*packages.PackageVersion, int64, error) {
 	sess := db.GetEngine(ctx).
 		Join("INNER", "package", "package.id = package_version.package_id").
-		Where(opts.toConds()).
-		Desc("package_version.created_unix")
+		Where(opts.toConds())
+
+	opts.configureOrderBy(sess)
 
 	if opts.Paginator != nil {
 		sess = db.SetSessionPagination(sess, opts)

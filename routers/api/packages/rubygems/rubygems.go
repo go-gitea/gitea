@@ -1,12 +1,12 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package rubygems
 
 import (
 	"compress/gzip"
 	"compress/zlib"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -77,7 +77,9 @@ func enumeratePackages(ctx *context.Context, filename string, pvs []*packages_mo
 		})
 	}
 
-	ctx.SetServeHeaders(filename + ".gz")
+	ctx.SetServeHeaders(&context.ServeHeaderOptions{
+		Filename: filename + ".gz",
+	})
 
 	zw := gzip.NewWriter(ctx.Resp)
 	defer zw.Close()
@@ -115,7 +117,9 @@ func ServePackageSpecification(ctx *context.Context) {
 		return
 	}
 
-	ctx.SetServeHeaders(filename)
+	ctx.SetServeHeaders(&context.ServeHeaderOptions{
+		Filename: filename,
+	})
 
 	zw := zlib.NewWriter(ctx.Resp)
 	defer zw.Close()
@@ -188,7 +192,10 @@ func DownloadPackageFile(ctx *context.Context) {
 	}
 	defer s.Close()
 
-	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
+	ctx.ServeContent(s, &context.ServeHeaderOptions{
+		Filename:     pf.Name,
+		LastModified: pf.CreatedUnix.AsLocalTime(),
+	})
 }
 
 // UploadPackageFile adds a file to the package. If the package does not exist, it gets created.
@@ -211,7 +218,11 @@ func UploadPackageFile(ctx *context.Context) {
 
 	rp, err := rubygems_module.ParsePackageMetaData(buf)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		if errors.Is(err, util.ErrInvalidArgument) {
+			apiError(ctx, http.StatusBadRequest, err)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
 		return
 	}
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
@@ -242,16 +253,20 @@ func UploadPackageFile(ctx *context.Context) {
 			PackageFileInfo: packages_service.PackageFileInfo{
 				Filename: filename,
 			},
-			Data:   buf,
-			IsLead: true,
+			Creator: ctx.Doer,
+			Data:    buf,
+			IsLead:  true,
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrDuplicatePackageVersion {
+		switch err {
+		case packages_model.ErrDuplicatePackageVersion:
 			apiError(ctx, http.StatusBadRequest, err)
-			return
+		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+			apiError(ctx, http.StatusForbidden, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
 		}
-		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 

@@ -145,7 +145,8 @@ menu:
 - `ENABLE_NOTIFY_MAIL`: 是否发送工单创建等提醒邮件，需要 `Mailer` 被激活。
 - `ENABLE_REVERSE_PROXY_AUTHENTICATION`: 允许反向代理认证，更多细节见：https://github.com/gogits/gogs/issues/165
 - `ENABLE_REVERSE_PROXY_AUTO_REGISTRATION`: 允许通过反向认证做自动注册。
-- `ENABLE_CAPTCHA`: 注册时使用图片验证码。
+- `ENABLE_CAPTCHA`: **false**: 注册时使用图片验证码。
+- `REQUIRE_CAPTCHA_FOR_LOGIN`: **false**: 登录时需要图片验证码。需要同时开启 `ENABLE_CAPTCHA`。
 
 ### Service - Expore (`service.explore`)
 
@@ -299,7 +300,7 @@ test01.xls: application/vnd.ms-excel; charset=binary
 
 ## API (`api`)
 
-- `ENABLE_SWAGGER`: **true**: 是否启用swagger路由 /api/swagger, /api/v1/swagger etc. endpoints. True 或 false; 默认是  true.
+- `ENABLE_SWAGGER`: **true**: 是否启用swagger路由 /api/swagger, /api/v1/swagger etc. endpoints. True 或 false.
 - `MAX_RESPONSE_ITEMS`: **50**: 一个页面最大的项目数。
 - `DEFAULT_PAGING_NUM`: **30**: API中默认分页条数。
 - `DEFAULT_GIT_TREES_PER_PAGE`: **1000**: GIT TREES API每页的默认最大项数.

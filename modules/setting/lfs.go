@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package setting
 
@@ -62,7 +61,7 @@ func newLFSService() {
 			}
 
 			// Save secret
-			CreateOrAppendToCustomConf(func(cfg *ini.File) {
+			CreateOrAppendToCustomConf("server.LFS_JWT_SECRET", func(cfg *ini.File) {
 				cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
 			})
 		}
