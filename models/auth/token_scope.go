@@ -181,11 +181,11 @@ func (s AccessTokenScope) Parse() (AccessTokenScopeBitmap, error) {
 			continue
 		}
 
-		if bits, ok := allAccessTokenScopeBits[singleScope]; !ok {
+		bits, ok := allAccessTokenScopeBits[singleScope]
+		if !ok {
 			return 0, fmt.Errorf("invalid access token scope: %s", singleScope)
-		} else {
-			bitmap |= bits
 		}
+		bitmap |= bits
 	}
 	return bitmap, nil
 }
