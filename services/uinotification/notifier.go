@@ -248,7 +248,7 @@ func (ns *notificationService) PullReviewRequest(ctx context.Context, doer *user
 }
 
 func (ns *notificationService) RepoPendingTransfer(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) {
-	err := db.AutoTx(ctx, func(ctx context.Context) error {
+	err := db.WithTx(ctx, func(ctx context.Context) error {
 		return activities_model.CreateRepoTransferNotification(ctx, doer, newOwner, repo)
 	})
 	if err != nil {

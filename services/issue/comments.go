@@ -123,7 +123,7 @@ func UpdateComment(ctx context.Context, c *issues_model.Comment, doer *user_mode
 
 // DeleteComment deletes the comment
 func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) error {
-	err := db.AutoTx(ctx, func(ctx context.Context) error {
+	err := db.WithTx(ctx, func(ctx context.Context) error {
 		return issues_model.DeleteComment(ctx, comment)
 	})
 	if err != nil {

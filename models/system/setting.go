@@ -12,7 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/setting"
+	setting_module "code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"strk.kbt.io/projects/go/libravatar"
@@ -88,7 +88,7 @@ func GetSettingNoCache(key string) (*Setting, error) {
 	if len(v) == 0 {
 		return nil, ErrSettingIsNotExist{key}
 	}
-	return v[key], nil
+	return v[strings.ToLower(key)], nil
 }
 
 // GetSetting returns the setting value via the key
@@ -131,7 +131,7 @@ func GetSettings(keys []string) (map[string]*Setting, error) {
 type AllSettings map[string]*Setting
 
 func (settings AllSettings) Get(key string) Setting {
-	if v, ok := settings[key]; ok {
+	if v, ok := settings[strings.ToLower(key)]; ok {
 		return *v
 	}
 	return Setting{}
@@ -184,14 +184,17 @@ func SetSettingNoVersion(key, value string) error {
 
 // SetSetting updates a users' setting for a specific key
 func SetSetting(setting *Setting) error {
-	_, err := cache.GetString(genSettingCacheKey(setting.SettingKey), func() (string, error) {
-		return setting.SettingValue, upsertSettingValue(strings.ToLower(setting.SettingKey), setting.SettingValue, setting.Version)
-	})
-	if err != nil {
+	if err := upsertSettingValue(strings.ToLower(setting.SettingKey), setting.SettingValue, setting.Version); err != nil {
 		return err
 	}
 
 	setting.Version++
+
+	cc := cache.GetCache()
+	if cc != nil {
+		return cc.Put(genSettingCacheKey(setting.SettingKey), setting.SettingValue, setting_module.CacheService.TTLSeconds())
+	}
+
 	return nil
 }
 
@@ -243,7 +246,7 @@ func Init() error {
 	var disableGravatar bool
 	disableGravatarSetting, err := GetSettingNoCache(KeyPictureDisableGravatar)
 	if IsErrSettingIsNotExist(err) {
-		disableGravatar = setting.GetDefaultDisableGravatar()
+		disableGravatar = setting_module.GetDefaultDisableGravatar()
 		disableGravatarSetting = &Setting{SettingValue: strconv.FormatBool(disableGravatar)}
 	} else if err != nil {
 		return err
@@ -254,7 +257,7 @@ func Init() error {
 	var enableFederatedAvatar bool
 	enableFederatedAvatarSetting, err := GetSettingNoCache(KeyPictureEnableFederatedAvatar)
 	if IsErrSettingIsNotExist(err) {
-		enableFederatedAvatar = setting.GetDefaultEnableFederatedAvatar(disableGravatar)
+		enableFederatedAvatar = setting_module.GetDefaultEnableFederatedAvatar(disableGravatar)
 		enableFederatedAvatarSetting = &Setting{SettingValue: strconv.FormatBool(enableFederatedAvatar)}
 	} else if err != nil {
 		return err
@@ -262,16 +265,16 @@ func Init() error {
 		enableFederatedAvatar = disableGravatarSetting.GetValueBool()
 	}
 
-	if setting.OfflineMode {
+	if setting_module.OfflineMode {
 		disableGravatar = true
 		enableFederatedAvatar = false
 	}
 
 	if enableFederatedAvatar || !disableGravatar {
 		var err error
-		GravatarSourceURL, err = url.Parse(setting.GravatarSource)
+		GravatarSourceURL, err = url.Parse(setting_module.GravatarSource)
 		if err != nil {
-			return fmt.Errorf("Failed to parse Gravatar URL(%s): %w", setting.GravatarSource, err)
+			return fmt.Errorf("Failed to parse Gravatar URL(%s): %w", setting_module.GravatarSource, err)
 		}
 	}
 
