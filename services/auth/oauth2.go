@@ -88,7 +88,7 @@ func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
 		uid := CheckOAuthAccessToken(tokenSHA)
 		if uid != 0 {
 			store.GetData()["IsApiToken"] = true
-			store.GetData()["ApiTokenScope"] = auth_model.AccessTokenScope(auth_model.AccessTokenScopeAll) // fallback to all
+			store.GetData()["ApiTokenScope"] = auth_model.AccessTokenScopeAll // fallback to all
 		}
 		return uid
 	}
