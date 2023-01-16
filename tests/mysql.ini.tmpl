@@ -124,3 +124,13 @@ INTERNAL_TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE0OTU1NTE2MTh9.h
 
 [packages]
 ENABLED = true
+
+[email.incoming]
+ENABLED = true
+HOST = smtpimap
+PORT = 993
+USERNAME = debug@localdomain.test
+PASSWORD = debug
+USE_TLS = true
+SKIP_TLS_VERIFY = true
+REPLY_TO_ADDRESS = incoming+%{token}@localhost

@@ -373,7 +373,7 @@ func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, prote
 // updateApprovalWhitelist checks whether the user whitelist changed and returns a whitelist with
 // the users from newWhitelist which have explicit read or write access to the repo.
 func updateApprovalWhitelist(ctx context.Context, repo *repo_model.Repository, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
-	hasUsersChanged := !util.IsSliceInt64Eq(currentWhitelist, newWhitelist)
+	hasUsersChanged := !util.SliceSortedEqual(currentWhitelist, newWhitelist)
 	if !hasUsersChanged {
 		return currentWhitelist, nil
 	}
@@ -394,7 +394,7 @@ func updateApprovalWhitelist(ctx context.Context, repo *repo_model.Repository, c
 // updateUserWhitelist checks whether the user whitelist changed and returns a whitelist with
 // the users from newWhitelist which have write access to the repo.
 func updateUserWhitelist(ctx context.Context, repo *repo_model.Repository, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
-	hasUsersChanged := !util.IsSliceInt64Eq(currentWhitelist, newWhitelist)
+	hasUsersChanged := !util.SliceSortedEqual(currentWhitelist, newWhitelist)
 	if !hasUsersChanged {
 		return currentWhitelist, nil
 	}
@@ -423,7 +423,7 @@ func updateUserWhitelist(ctx context.Context, repo *repo_model.Repository, curre
 // updateTeamWhitelist checks whether the team whitelist changed and returns a whitelist with
 // the teams from newWhitelist which have write access to the repo.
 func updateTeamWhitelist(ctx context.Context, repo *repo_model.Repository, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
-	hasTeamsChanged := !util.IsSliceInt64Eq(currentWhitelist, newWhitelist)
+	hasTeamsChanged := !util.SliceSortedEqual(currentWhitelist, newWhitelist)
 	if !hasTeamsChanged {
 		return currentWhitelist, nil
 	}
@@ -435,7 +435,7 @@ func updateTeamWhitelist(ctx context.Context, repo *repo_model.Repository, curre
 
 	whitelist = make([]int64, 0, len(teams))
 	for i := range teams {
-		if util.IsInt64InSlice(teams[i].ID, newWhitelist) {
+		if util.SliceContains(newWhitelist, teams[i].ID) {
 			whitelist = append(whitelist, teams[i].ID)
 		}
 	}
@@ -461,20 +461,13 @@ func DeleteProtectedBranch(ctx context.Context, repoID, id int64) (err error) {
 
 // RemoveUserIDFromProtectedBranch remove all user ids from protected branch options
 func RemoveUserIDFromProtectedBranch(ctx context.Context, p *ProtectedBranch, userID int64) error {
-	var matched1, matched2, matched3 bool
-	if len(p.WhitelistUserIDs) != 0 {
-		p.WhitelistUserIDs, matched1 = util.RemoveIDFromList(
-			p.WhitelistUserIDs, userID)
-	}
-	if len(p.ApprovalsWhitelistUserIDs) != 0 {
-		p.ApprovalsWhitelistUserIDs, matched2 = util.RemoveIDFromList(
-			p.ApprovalsWhitelistUserIDs, userID)
-	}
-	if len(p.MergeWhitelistUserIDs) != 0 {
-		p.MergeWhitelistUserIDs, matched3 = util.RemoveIDFromList(
-			p.MergeWhitelistUserIDs, userID)
-	}
-	if matched1 || matched2 || matched3 {
+	lenIDs, lenApprovalIDs, lenMergeIDs := len(p.WhitelistUserIDs), len(p.ApprovalsWhitelistUserIDs), len(p.MergeWhitelistUserIDs)
+	p.WhitelistUserIDs = util.SliceRemoveAll(p.WhitelistUserIDs, userID)
+	p.ApprovalsWhitelistUserIDs = util.SliceRemoveAll(p.ApprovalsWhitelistUserIDs, userID)
+	p.MergeWhitelistUserIDs = util.SliceRemoveAll(p.MergeWhitelistUserIDs, userID)
+
+	if lenIDs != len(p.WhitelistUserIDs) || lenApprovalIDs != len(p.ApprovalsWhitelistUserIDs) ||
+		lenMergeIDs != len(p.MergeWhitelistUserIDs) {
 		if _, err := db.GetEngine(ctx).ID(p.ID).Cols(
 			"whitelist_user_i_ds",
 			"merge_whitelist_user_i_ds",
@@ -488,20 +481,14 @@ func RemoveUserIDFromProtectedBranch(ctx context.Context, p *ProtectedBranch, us
 
 // RemoveTeamIDFromProtectedBranch remove all team ids from protected branch options
 func RemoveTeamIDFromProtectedBranch(ctx context.Context, p *ProtectedBranch, teamID int64) error {
-	var matched1, matched2, matched3 bool
-	if len(p.WhitelistTeamIDs) != 0 {
-		p.WhitelistTeamIDs, matched1 = util.RemoveIDFromList(
-			p.WhitelistTeamIDs, teamID)
-	}
-	if len(p.ApprovalsWhitelistTeamIDs) != 0 {
-		p.ApprovalsWhitelistTeamIDs, matched2 = util.RemoveIDFromList(
-			p.ApprovalsWhitelistTeamIDs, teamID)
-	}
-	if len(p.MergeWhitelistTeamIDs) != 0 {
-		p.MergeWhitelistTeamIDs, matched3 = util.RemoveIDFromList(
-			p.MergeWhitelistTeamIDs, teamID)
-	}
-	if matched1 || matched2 || matched3 {
+	lenIDs, lenApprovalIDs, lenMergeIDs := len(p.WhitelistTeamIDs), len(p.ApprovalsWhitelistTeamIDs), len(p.MergeWhitelistTeamIDs)
+	p.WhitelistTeamIDs = util.SliceRemoveAll(p.WhitelistTeamIDs, teamID)
+	p.ApprovalsWhitelistTeamIDs = util.SliceRemoveAll(p.ApprovalsWhitelistTeamIDs, teamID)
+	p.MergeWhitelistTeamIDs = util.SliceRemoveAll(p.MergeWhitelistTeamIDs, teamID)
+
+	if lenIDs != len(p.WhitelistTeamIDs) ||
+		lenApprovalIDs != len(p.ApprovalsWhitelistTeamIDs) ||
+		lenMergeIDs != len(p.MergeWhitelistTeamIDs) {
 		if _, err := db.GetEngine(ctx).ID(p.ID).Cols(
 			"whitelist_team_i_ds",
 			"merge_whitelist_team_i_ds",
