@@ -232,21 +232,20 @@ func (log *FileLogger) deleteOldLog() {
 			}
 		}()
 
-    if err != nil {
-         return err
-    }
+		if returnErr != nil {
+			return returnErr
+		}
 		if d.IsDir() {
 		    return nil
 		}
-			info, err := d.Info()
-			if err != nil {
-				return err
-			}
-			if info.ModTime().Unix() < (time.Now().Unix() - 60*60*24*log.Maxdays) {
-				if strings.HasPrefix(filepath.Base(path), filepath.Base(log.Filename)) {
-					if err := util.Remove(path); err != nil {
-						returnErr = fmt.Errorf("Failed to remove %s: %w", path, err)
-					}
+		info, err := d.Info()
+		if err != nil {
+			return err
+		}
+		if info.ModTime().Unix() < (time.Now().Unix() - 60*60*24*log.Maxdays) {
+			if strings.HasPrefix(filepath.Base(path), filepath.Base(log.Filename)) {
+				if err := util.Remove(path); err != nil {
+					returnErr = fmt.Errorf("Failed to remove %s: %w", path, err)
 				}
 			}
 		}
