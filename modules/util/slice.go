@@ -34,29 +34,6 @@ func SliceContainsString(slice []string, target string, insensitive ...bool) boo
 	return SliceContains(slice, target)
 }
 
-// SliceFindString returns the index of the first occurrence of target in slice.
-// If target is not present in slice, -1 is returned.
-func SliceFindString(target string, slice []string, insensitive ...bool) int {
-	caseInsensitive := false
-	if len(insensitive) != 0 && insensitive[0] {
-		caseInsensitive = true
-		target = strings.ToLower(target)
-	}
-
-	for i, s := range slice {
-		if caseInsensitive {
-			if strings.ToLower(s) == target {
-				return i
-			}
-		} else {
-			if s == target {
-				return i
-			}
-		}
-	}
-	return -1
-}
-
 // SliceSortedEqual returns true if the two slices will be equal when they get sorted.
 // It doesn't require that the slices have been sorted, and it doesn't sort them either.
 func SliceSortedEqual[T comparable](s1, s2 []T) bool {

@@ -35,13 +35,6 @@ func TestSliceContainsString(t *testing.T) {
 	assert.False(t, SliceContainsString(nil, "a"))
 }
 
-func TestSliceFindString(t *testing.T) {
-	assert.Equal(t, 0, SliceFindString("a", []string{"a", "b", "c"}))
-	assert.Equal(t, 2, SliceFindString("c", []string{"a", "b", "c"}))
-	assert.Equal(t, -1, SliceFindString("d", []string{"a", "b", "c"}))
-	assert.Equal(t, 2, SliceFindString("C", []string{"a", "b", "c"}, true))
-}
-
 func TestSliceSortedEqual(t *testing.T) {
 	assert.True(t, SliceSortedEqual([]int{2, 0, 2, 3}, []int{2, 0, 2, 3}))
 	assert.True(t, SliceSortedEqual([]int{3, 0, 2, 2}, []int{2, 0, 2, 3}))

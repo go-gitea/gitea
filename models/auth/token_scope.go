@@ -6,8 +6,6 @@ package auth
 import (
 	"fmt"
 	"strings"
-
-	"code.gitea.io/gitea/modules/util"
 )
 
 // AccessTokenScope represents the scope for an access token.
@@ -119,7 +117,7 @@ const (
 
 // AllAccessTokenScopes contains all access token scopes.
 // The order is important: parent scope must precedes child scopes.
-var AllAccessTokenScopes = []string{
+var allAccessTokenScopes = []string{
 	AccessTokenScopeRepo, AccessTokenScopeRepoStatus, AccessTokenScopePublicRepo,
 	AccessTokenScopeAdminOrg, AccessTokenScopeWriteOrg, AccessTokenScopeReadOrg,
 	AccessTokenScopeAdminPublicKey, AccessTokenScopeWritePublicKey, AccessTokenScopeReadPublicKey,
@@ -135,20 +133,37 @@ var AllAccessTokenScopes = []string{
 }
 
 // AllAccessTokenScopeBits contains all access token scopes.
-// The order must be the same as AllAccessTokenScopeBits.
-var AllAccessTokenScopeBits = []AccessTokenScopeBitmap{
-	AccessTokenScopeRepoBits, AccessTokenScopeRepoStatusBits, AccessTokenScopePublicRepoBits,
-	AccessTokenScopeAdminOrgBits, AccessTokenScopeWriteOrgBits, AccessTokenScopeReadOrgBits,
-	AccessTokenScopeAdminPublicKeyBits, AccessTokenScopeWritePublicKeyBits, AccessTokenScopeReadPublicKeyBits,
-	AccessTokenScopeAdminRepoHookBits, AccessTokenScopeWriteRepoHookBits, AccessTokenScopeReadRepoHookBits,
-	AccessTokenScopeAdminOrgHookBits,
-	AccessTokenScopeNotificationBits,
-	AccessTokenScopeUserBits, AccessTokenScopeReadUserBits, AccessTokenScopeUserEmailBits, AccessTokenScopeUserFollowBits,
-	AccessTokenScopeDeleteRepoBits,
-	AccessTokenScopePackageBits, AccessTokenScopeWritePackageBits, AccessTokenScopeReadPackageBits, AccessTokenScopeDeletePackageBits,
-	AccessTokenScopeAdminGPGKeyBits, AccessTokenScopeWriteGPGKeyBits, AccessTokenScopeReadGPGKeyBits,
-	AccessTokenScopeAdminApplicationBits, AccessTokenScopeWriteApplicationBits, AccessTokenScopeReadApplicationBits,
-	AccessTokenScopeSudoBits,
+var allAccessTokenScopeBits = map[string]AccessTokenScopeBitmap{
+	AccessTokenScopeRepo:             AccessTokenScopeRepoBits,
+	AccessTokenScopeRepoStatus:       AccessTokenScopeRepoStatusBits,
+	AccessTokenScopePublicRepo:       AccessTokenScopePublicRepoBits,
+	AccessTokenScopeAdminOrg:         AccessTokenScopeAdminOrgBits,
+	AccessTokenScopeWriteOrg:         AccessTokenScopeWriteOrgBits,
+	AccessTokenScopeReadOrg:          AccessTokenScopeReadOrgBits,
+	AccessTokenScopeAdminPublicKey:   AccessTokenScopeAdminPublicKeyBits,
+	AccessTokenScopeWritePublicKey:   AccessTokenScopeWritePublicKeyBits,
+	AccessTokenScopeReadPublicKey:    AccessTokenScopeReadPublicKeyBits,
+	AccessTokenScopeAdminRepoHook:    AccessTokenScopeAdminRepoHookBits,
+	AccessTokenScopeWriteRepoHook:    AccessTokenScopeWriteRepoHookBits,
+	AccessTokenScopeReadRepoHook:     AccessTokenScopeReadRepoHookBits,
+	AccessTokenScopeAdminOrgHook:     AccessTokenScopeAdminOrgHookBits,
+	AccessTokenScopeNotification:     AccessTokenScopeNotificationBits,
+	AccessTokenScopeUser:             AccessTokenScopeUserBits,
+	AccessTokenScopeReadUser:         AccessTokenScopeReadUserBits,
+	AccessTokenScopeUserEmail:        AccessTokenScopeUserEmailBits,
+	AccessTokenScopeUserFollow:       AccessTokenScopeUserFollowBits,
+	AccessTokenScopeDeleteRepo:       AccessTokenScopeDeleteRepoBits,
+	AccessTokenScopePackage:          AccessTokenScopePackageBits,
+	AccessTokenScopeWritePackage:     AccessTokenScopeWritePackageBits,
+	AccessTokenScopeReadPackage:      AccessTokenScopeReadPackageBits,
+	AccessTokenScopeDeletePackage:    AccessTokenScopeDeletePackageBits,
+	AccessTokenScopeAdminGPGKey:      AccessTokenScopeAdminGPGKeyBits,
+	AccessTokenScopeWriteGPGKey:      AccessTokenScopeWriteGPGKeyBits,
+	AccessTokenScopeReadGPGKey:       AccessTokenScopeReadGPGKeyBits,
+	AccessTokenScopeAdminApplication: AccessTokenScopeAdminApplicationBits,
+	AccessTokenScopeWriteApplication: AccessTokenScopeWriteApplicationBits,
+	AccessTokenScopeReadApplication:  AccessTokenScopeReadApplicationBits,
+	AccessTokenScopeSudo:             AccessTokenScopeSudoBits,
 }
 
 // Parse parses the scope string into a bitmap, thus removing possible duplicates.
@@ -156,20 +171,20 @@ func (s AccessTokenScope) Parse() (AccessTokenScopeBitmap, error) {
 	list := strings.Split(string(s), ",")
 
 	var bitmap AccessTokenScopeBitmap
-	for _, v := range list {
-		if v == "" {
+	for _, singleScope := range list {
+		if singleScope == "" {
 			continue
 		}
-		if v == AccessTokenScopeAll {
+		if singleScope == AccessTokenScopeAll {
 			bitmap |= AccessTokenScopeAllBits
 			continue
 		}
 
-		idx := util.SliceFindString(v, AllAccessTokenScopes)
-		if idx < 0 {
-			return 0, fmt.Errorf("invalid access token scope: %s", v)
+		if bits, ok := allAccessTokenScopeBits[singleScope]; !ok {
+			return 0, fmt.Errorf("invalid access token scope: %s", singleScope)
+		} else {
+			bitmap |= bits
 		}
-		bitmap |= AllAccessTokenScopeBits[idx]
 	}
 	return bitmap, nil
 }
@@ -196,14 +211,12 @@ func (s AccessTokenScope) HasScope(scope string) (bool, error) {
 
 // HasScope returns true if the string has the given scope
 func (bitmap AccessTokenScopeBitmap) HasScope(scope string) (bool, error) {
-	index := util.SliceFindString(scope, AllAccessTokenScopes)
-	if index == -1 {
+	expectedBits, ok := allAccessTokenScopeBits[scope]
+	if !ok {
 		return false, fmt.Errorf("invalid access token scope: %s", scope)
 	}
 
-	expectedBitmap := AllAccessTokenScopeBits[index]
-
-	return bitmap&expectedBitmap == expectedBitmap, nil
+	return bitmap&expectedBits == expectedBits, nil
 }
 
 // ToScope returns a normalized scope string without any duplicates.
@@ -214,16 +227,16 @@ func (bitmap AccessTokenScopeBitmap) ToScope() AccessTokenScope {
 	// if the reconstructed bitmap doesn't change, then the scope is already included
 	var reconstruct AccessTokenScopeBitmap
 
-	for i, v := range AllAccessTokenScopes {
+	for _, singleScope := range allAccessTokenScopes {
 		// no need for error checking here, since we know the scope is valid
-		if ok, _ := bitmap.HasScope(v); ok {
-			current := reconstruct | AllAccessTokenScopeBits[i]
+		if ok, _ := bitmap.HasScope(singleScope); ok {
+			current := reconstruct | allAccessTokenScopeBits[singleScope]
 			if current == reconstruct {
 				continue
 			}
 
 			reconstruct = current
-			scopes = append(scopes, v)
+			scopes = append(scopes, singleScope)
 		}
 	}
 
