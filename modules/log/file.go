@@ -232,8 +232,8 @@ func (log *FileLogger) deleteOldLog() {
 			}
 		}()
 
-		if returnErr != nil {
-			return returnErr
+		if err != nil {
+			return err
 		}
 		if d.IsDir() {
 		    return nil
