@@ -1341,6 +1341,7 @@ func NewServices() {
 	newSessionService()
 	newCORSService()
 	parseMailerConfig(Cfg)
+	newIncomingEmail()
 	newRegisterMailService()
 	newNotifyMailService()
 	newProxyService()
