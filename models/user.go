@@ -23,7 +23,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // DeleteUser deletes models associated to an user.
@@ -141,20 +140,8 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 				break
 			}
 			for _, p := range protections {
-				lenIDs, lenApprovalIDs, lenMergeIDs := len(p.WhitelistUserIDs), len(p.ApprovalsWhitelistUserIDs), len(p.MergeWhitelistUserIDs)
-				p.WhitelistUserIDs = util.SliceRemoveAll(p.WhitelistUserIDs, u.ID)
-				p.ApprovalsWhitelistUserIDs = util.SliceRemoveAll(p.ApprovalsWhitelistUserIDs, u.ID)
-				p.MergeWhitelistUserIDs = util.SliceRemoveAll(p.MergeWhitelistUserIDs, u.ID)
-				if lenIDs != len(p.WhitelistUserIDs) ||
-					lenApprovalIDs != len(p.ApprovalsWhitelistUserIDs) ||
-					lenMergeIDs != len(p.MergeWhitelistUserIDs) {
-					if _, err = e.ID(p.ID).Cols(
-						"whitelist_user_i_ds",
-						"merge_whitelist_user_i_ds",
-						"approvals_whitelist_user_i_ds",
-					).Update(p); err != nil {
-						return fmt.Errorf("updateProtectedBranches: %w", err)
-					}
+				if err := git_model.RemoveUserIDFromProtectedBranch(ctx, p, u.ID); err != nil {
+					return err
 				}
 			}
 		}
