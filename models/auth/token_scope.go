@@ -62,7 +62,7 @@ type AccessTokenScopeBitmap uint64
 
 // Bitmap of each scope, including the child scopes.
 const (
-	// AccessTokenScopeAllBits is the bitmap of all access token scopes.
+	// AccessTokenScopeAllBits is the bitmap of all access token scopes, except `sudo`.
 	AccessTokenScopeAllBits AccessTokenScopeBitmap = AccessTokenScopeRepoBits |
 		AccessTokenScopeAdminOrgBits | AccessTokenScopeAdminPublicKeyBits | AccessTokenScopeAdminOrgHookBits |
 		AccessTokenScopeNotificationBits | AccessTokenScopeUserBits | AccessTokenScopeDeleteRepoBits |
@@ -228,8 +228,7 @@ func (bitmap AccessTokenScopeBitmap) ToScope() AccessTokenScope {
 	// if the reconstructed bitmap doesn't change, then the scope is already included
 	var reconstruct AccessTokenScopeBitmap
 
-	for _, v := range allAccessTokenScopes {
-		singleScope := AccessTokenScope(v)
+	for _, singleScope := range allAccessTokenScopes {
 		// no need for error checking here, since we know the scope is valid
 		if ok, _ := bitmap.HasScope(singleScope); ok {
 			current := reconstruct | allAccessTokenScopeBits[singleScope]
