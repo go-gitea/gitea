@@ -139,7 +139,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	viewType := ctx.FormString("type")
 	sortType := ctx.FormString("sort")
 	types := []string{"all", "your_repositories", "assigned", "created_by", "mentioned", "review_requested"}
-	if !util.IsStringInSlice(viewType, types, true) {
+	if !util.SliceContainsString(types, viewType, true) {
 		viewType = "all"
 	}
 
@@ -1604,7 +1604,7 @@ func ViewIssue(ctx *context.Context) {
 				if perm.CanWrite(unit.TypeCode) {
 					// Check if branch is not protected
 					if pull.HeadBranch != pull.HeadRepo.DefaultBranch {
-						if protected, err := git_model.IsProtectedBranch(ctx, pull.HeadRepo.ID, pull.HeadBranch); err != nil {
+						if protected, err := git_model.IsBranchProtected(ctx, pull.HeadRepo.ID, pull.HeadBranch); err != nil {
 							log.Error("IsProtectedBranch: %v", err)
 						} else if !protected {
 							canDelete = true
@@ -1680,22 +1680,25 @@ func ViewIssue(ctx *context.Context) {
 		ctx.Data["DefaultSquashMergeMessage"] = defaultSquashMergeMessage
 		ctx.Data["DefaultSquashMergeBody"] = defaultSquashMergeBody
 
-		if err = pull.LoadProtectedBranch(ctx); err != nil {
+		pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pull.BaseRepoID, pull.BaseBranch)
+		if err != nil {
 			ctx.ServerError("LoadProtectedBranch", err)
 			return
 		}
 		ctx.Data["ShowMergeInstructions"] = true
-		if pull.ProtectedBranch != nil {
+		if pb != nil {
+			pb.Repo = pull.BaseRepo
 			var showMergeInstructions bool
 			if ctx.Doer != nil {
-				showMergeInstructions = pull.ProtectedBranch.CanUserPush(ctx, ctx.Doer.ID)
+				showMergeInstructions = pb.CanUserPush(ctx, ctx.Doer)
 			}
-			ctx.Data["IsBlockedByApprovals"] = !issues_model.HasEnoughApprovals(ctx, pull.ProtectedBranch, pull)
-			ctx.Data["IsBlockedByRejection"] = issues_model.MergeBlockedByRejectedReview(ctx, pull.ProtectedBranch, pull)
-			ctx.Data["IsBlockedByOfficialReviewRequests"] = issues_model.MergeBlockedByOfficialReviewRequests(ctx, pull.ProtectedBranch, pull)
-			ctx.Data["IsBlockedByOutdatedBranch"] = issues_model.MergeBlockedByOutdatedBranch(pull.ProtectedBranch, pull)
-			ctx.Data["GrantedApprovals"] = issues_model.GetGrantedApprovalsCount(ctx, pull.ProtectedBranch, pull)
-			ctx.Data["RequireSigned"] = pull.ProtectedBranch.RequireSignedCommits
+			ctx.Data["ProtectedBranch"] = pb
+			ctx.Data["IsBlockedByApprovals"] = !issues_model.HasEnoughApprovals(ctx, pb, pull)
+			ctx.Data["IsBlockedByRejection"] = issues_model.MergeBlockedByRejectedReview(ctx, pb, pull)
+			ctx.Data["IsBlockedByOfficialReviewRequests"] = issues_model.MergeBlockedByOfficialReviewRequests(ctx, pb, pull)
+			ctx.Data["IsBlockedByOutdatedBranch"] = issues_model.MergeBlockedByOutdatedBranch(pb, pull)
+			ctx.Data["GrantedApprovals"] = issues_model.GetGrantedApprovalsCount(ctx, pb, pull)
+			ctx.Data["RequireSigned"] = pb.RequireSignedCommits
 			ctx.Data["ChangedProtectedFiles"] = pull.ChangedProtectedFiles
 			ctx.Data["IsBlockedByChangedProtectedFiles"] = len(pull.ChangedProtectedFiles) != 0
 			ctx.Data["ChangedProtectedFilesNum"] = len(pull.ChangedProtectedFiles)
@@ -3087,7 +3090,7 @@ func updateAttachments(ctx *context.Context, item interface{}, files []string) e
 		return fmt.Errorf("unknown Type: %T", content)
 	}
 	for i := 0; i < len(attachments); i++ {
-		if util.IsStringInSlice(attachments[i].UUID, files) {
+		if util.SliceContainsString(files, attachments[i].UUID) {
 			continue
 		}
 		if err := repo_model.DeleteAttachment(attachments[i], true); err != nil {

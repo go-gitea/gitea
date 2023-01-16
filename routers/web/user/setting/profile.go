@@ -413,7 +413,7 @@ func UpdateUserLang(ctx *context.Context) {
 	ctx.Data["PageIsSettingsAppearance"] = true
 
 	if len(form.Language) != 0 {
-		if !util.IsStringInSlice(form.Language, setting.Langs) {
+		if !util.SliceContainsString(setting.Langs, form.Language) {
 			ctx.Flash.Error(ctx.Tr("settings.update_language_not_found", form.Language))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 			return

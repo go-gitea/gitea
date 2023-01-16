@@ -69,13 +69,13 @@ func (app *OAuth2Application) ContainsRedirectURI(redirectURI string) bool {
 			if ip != nil && ip.IsLoopback() {
 				// strip port
 				uri.Host = uri.Hostname()
-				if util.IsStringInSlice(uri.String(), app.RedirectURIs, true) {
+				if util.SliceContainsString(app.RedirectURIs, uri.String(), true) {
 					return true
 				}
 			}
 		}
 	}
-	return util.IsStringInSlice(redirectURI, app.RedirectURIs, true)
+	return util.SliceContainsString(app.RedirectURIs, redirectURI, true)
 }
 
 // Base32 characters, but lowercased.
