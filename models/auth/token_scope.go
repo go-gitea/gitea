@@ -12,49 +12,49 @@ import (
 type AccessTokenScope string
 
 const (
-	AccessTokenScopeAll = "all"
+	AccessTokenScopeAll AccessTokenScope = "all"
 
-	AccessTokenScopeRepo       = "repo"
-	AccessTokenScopeRepoStatus = "repo:status"
-	AccessTokenScopePublicRepo = "public_repo"
+	AccessTokenScopeRepo       AccessTokenScope = "repo"
+	AccessTokenScopeRepoStatus AccessTokenScope = "repo:status"
+	AccessTokenScopePublicRepo AccessTokenScope = "public_repo"
 
-	AccessTokenScopeAdminOrg = "admin:org"
-	AccessTokenScopeWriteOrg = "write:org"
-	AccessTokenScopeReadOrg  = "read:org"
+	AccessTokenScopeAdminOrg AccessTokenScope = "admin:org"
+	AccessTokenScopeWriteOrg AccessTokenScope = "write:org"
+	AccessTokenScopeReadOrg  AccessTokenScope = "read:org"
 
-	AccessTokenScopeAdminPublicKey = "admin:public_key"
-	AccessTokenScopeWritePublicKey = "write:public_key"
-	AccessTokenScopeReadPublicKey  = "read:public_key"
+	AccessTokenScopeAdminPublicKey AccessTokenScope = "admin:public_key"
+	AccessTokenScopeWritePublicKey AccessTokenScope = "write:public_key"
+	AccessTokenScopeReadPublicKey  AccessTokenScope = "read:public_key"
 
-	AccessTokenScopeAdminRepoHook = "admin:repo_hook"
-	AccessTokenScopeWriteRepoHook = "write:repo_hook"
-	AccessTokenScopeReadRepoHook  = "read:repo_hook"
+	AccessTokenScopeAdminRepoHook AccessTokenScope = "admin:repo_hook"
+	AccessTokenScopeWriteRepoHook AccessTokenScope = "write:repo_hook"
+	AccessTokenScopeReadRepoHook  AccessTokenScope = "read:repo_hook"
 
-	AccessTokenScopeAdminOrgHook = "admin:org_hook"
+	AccessTokenScopeAdminOrgHook AccessTokenScope = "admin:org_hook"
 
-	AccessTokenScopeNotification = "notification"
+	AccessTokenScopeNotification AccessTokenScope = "notification"
 
-	AccessTokenScopeUser       = "user"
-	AccessTokenScopeReadUser   = "read:user"
-	AccessTokenScopeUserEmail  = "user:email"
-	AccessTokenScopeUserFollow = "user:follow"
+	AccessTokenScopeUser       AccessTokenScope = "user"
+	AccessTokenScopeReadUser   AccessTokenScope = "read:user"
+	AccessTokenScopeUserEmail  AccessTokenScope = "user:email"
+	AccessTokenScopeUserFollow AccessTokenScope = "user:follow"
 
-	AccessTokenScopeDeleteRepo = "delete_repo"
+	AccessTokenScopeDeleteRepo AccessTokenScope = "delete_repo"
 
-	AccessTokenScopePackage       = "package"
-	AccessTokenScopeWritePackage  = "write:package"
-	AccessTokenScopeReadPackage   = "read:package"
-	AccessTokenScopeDeletePackage = "delete:package"
+	AccessTokenScopePackage       AccessTokenScope = "package"
+	AccessTokenScopeWritePackage  AccessTokenScope = "write:package"
+	AccessTokenScopeReadPackage   AccessTokenScope = "read:package"
+	AccessTokenScopeDeletePackage AccessTokenScope = "delete:package"
 
-	AccessTokenScopeAdminGPGKey = "admin:gpg_key"
-	AccessTokenScopeWriteGPGKey = "write:gpg_key"
-	AccessTokenScopeReadGPGKey  = "read:gpg_key"
+	AccessTokenScopeAdminGPGKey AccessTokenScope = "admin:gpg_key"
+	AccessTokenScopeWriteGPGKey AccessTokenScope = "write:gpg_key"
+	AccessTokenScopeReadGPGKey  AccessTokenScope = "read:gpg_key"
 
-	AccessTokenScopeAdminApplication = "admin:application"
-	AccessTokenScopeWriteApplication = "write:application"
-	AccessTokenScopeReadApplication  = "read:application"
+	AccessTokenScopeAdminApplication AccessTokenScope = "admin:application"
+	AccessTokenScopeWriteApplication AccessTokenScope = "write:application"
+	AccessTokenScopeReadApplication  AccessTokenScope = "read:application"
 
-	AccessTokenScopeSudo = "sudo"
+	AccessTokenScopeSudo AccessTokenScope = "sudo"
 )
 
 // AccessTokenScopeBitmap represents a bitmap of access token scopes.
@@ -115,9 +115,9 @@ const (
 	// refactoring the whole implementation in this file (and only this file) is needed.
 )
 
-// AllAccessTokenScopes contains all access token scopes.
+// allAccessTokenScopes contains all access token scopes.
 // The order is important: parent scope must precedes child scopes.
-var allAccessTokenScopes = []string{
+var allAccessTokenScopes = []AccessTokenScope{
 	AccessTokenScopeRepo, AccessTokenScopeRepoStatus, AccessTokenScopePublicRepo,
 	AccessTokenScopeAdminOrg, AccessTokenScopeWriteOrg, AccessTokenScopeReadOrg,
 	AccessTokenScopeAdminPublicKey, AccessTokenScopeWritePublicKey, AccessTokenScopeReadPublicKey,
@@ -132,8 +132,8 @@ var allAccessTokenScopes = []string{
 	AccessTokenScopeSudo,
 }
 
-// AllAccessTokenScopeBits contains all access token scopes.
-var allAccessTokenScopeBits = map[string]AccessTokenScopeBitmap{
+// allAccessTokenScopeBits contains all access token scopes.
+var allAccessTokenScopeBits = map[AccessTokenScope]AccessTokenScopeBitmap{
 	AccessTokenScopeRepo:             AccessTokenScopeRepoBits,
 	AccessTokenScopeRepoStatus:       AccessTokenScopeRepoStatusBits,
 	AccessTokenScopePublicRepo:       AccessTokenScopePublicRepoBits,
@@ -171,7 +171,8 @@ func (s AccessTokenScope) Parse() (AccessTokenScopeBitmap, error) {
 	list := strings.Split(string(s), ",")
 
 	var bitmap AccessTokenScopeBitmap
-	for _, singleScope := range list {
+	for _, v := range list {
+		singleScope := AccessTokenScope(v)
 		if singleScope == "" {
 			continue
 		}
@@ -200,7 +201,7 @@ func (s AccessTokenScope) Normalize() (AccessTokenScope, error) {
 }
 
 // HasScope returns true if the string has the given scope
-func (s AccessTokenScope) HasScope(scope string) (bool, error) {
+func (s AccessTokenScope) HasScope(scope AccessTokenScope) (bool, error) {
 	bitmap, err := s.Parse()
 	if err != nil {
 		return false, err
@@ -210,7 +211,7 @@ func (s AccessTokenScope) HasScope(scope string) (bool, error) {
 }
 
 // HasScope returns true if the string has the given scope
-func (bitmap AccessTokenScopeBitmap) HasScope(scope string) (bool, error) {
+func (bitmap AccessTokenScopeBitmap) HasScope(scope AccessTokenScope) (bool, error) {
 	expectedBits, ok := allAccessTokenScopeBits[scope]
 	if !ok {
 		return false, fmt.Errorf("invalid access token scope: %s", scope)
@@ -227,7 +228,8 @@ func (bitmap AccessTokenScopeBitmap) ToScope() AccessTokenScope {
 	// if the reconstructed bitmap doesn't change, then the scope is already included
 	var reconstruct AccessTokenScopeBitmap
 
-	for _, singleScope := range allAccessTokenScopes {
+	for _, v := range allAccessTokenScopes {
+		singleScope := AccessTokenScope(v)
 		// no need for error checking here, since we know the scope is valid
 		if ok, _ := bitmap.HasScope(singleScope); ok {
 			current := reconstruct | allAccessTokenScopeBits[singleScope]
@@ -236,7 +238,7 @@ func (bitmap AccessTokenScopeBitmap) ToScope() AccessTokenScope {
 			}
 
 			reconstruct = current
-			scopes = append(scopes, singleScope)
+			scopes = append(scopes, string(singleScope))
 		}
 	}
 

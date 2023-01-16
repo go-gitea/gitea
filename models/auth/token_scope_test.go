@@ -56,7 +56,7 @@ func TestAccessTokenScope_Normalize(t *testing.T) {
 func TestAccessTokenScope_HasScope(t *testing.T) {
 	tests := []struct {
 		in    AccessTokenScope
-		scope string
+		scope AccessTokenScope
 		out   bool
 		err   error
 	}{
