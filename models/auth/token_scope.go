@@ -63,52 +63,52 @@ type AccessTokenScopeBitmap uint64
 // Bitmap of each scope, including the child scopes.
 const (
 	// AccessTokenScopeAllBits is the bitmap of all access token scopes.
-	AccessTokenScopeAllBits = AccessTokenScopeRepoBits |
+	AccessTokenScopeAllBits AccessTokenScopeBitmap = AccessTokenScopeRepoBits |
 		AccessTokenScopeAdminOrgBits | AccessTokenScopeAdminPublicKeyBits | AccessTokenScopeAdminOrgHookBits |
 		AccessTokenScopeNotificationBits | AccessTokenScopeUserBits | AccessTokenScopeDeleteRepoBits |
 		AccessTokenScopePackageBits | AccessTokenScopeAdminGPGKeyBits | AccessTokenScopeAdminApplicationBits
 
-	AccessTokenScopeRepoBits       = 1<<iota | AccessTokenScopeRepoStatusBits | AccessTokenScopePublicRepoBits | AccessTokenScopeAdminRepoHookBits
-	AccessTokenScopeRepoStatusBits = 1 << iota
-	AccessTokenScopePublicRepoBits = 1 << iota
+	AccessTokenScopeRepoBits       AccessTokenScopeBitmap = 1<<iota | AccessTokenScopeRepoStatusBits | AccessTokenScopePublicRepoBits | AccessTokenScopeAdminRepoHookBits
+	AccessTokenScopeRepoStatusBits AccessTokenScopeBitmap = 1 << iota
+	AccessTokenScopePublicRepoBits AccessTokenScopeBitmap = 1 << iota
 
-	AccessTokenScopeAdminOrgBits = 1<<iota | AccessTokenScopeWriteOrgBits
-	AccessTokenScopeWriteOrgBits = 1<<iota | AccessTokenScopeReadOrgBits
-	AccessTokenScopeReadOrgBits  = 1 << iota
+	AccessTokenScopeAdminOrgBits AccessTokenScopeBitmap = 1<<iota | AccessTokenScopeWriteOrgBits
+	AccessTokenScopeWriteOrgBits AccessTokenScopeBitmap = 1<<iota | AccessTokenScopeReadOrgBits
+	AccessTokenScopeReadOrgBits  AccessTokenScopeBitmap = 1 << iota
 
-	AccessTokenScopeAdminPublicKeyBits = 1<<iota | AccessTokenScopeWritePublicKeyBits
-	AccessTokenScopeWritePublicKeyBits = 1<<iota | AccessTokenScopeReadPublicKeyBits
-	AccessTokenScopeReadPublicKeyBits  = 1 << iota
+	AccessTokenScopeAdminPublicKeyBits AccessTokenScopeBitmap = 1<<iota | AccessTokenScopeWritePublicKeyBits
+	AccessTokenScopeWritePublicKeyBits AccessTokenScopeBitmap = 1<<iota | AccessTokenScopeReadPublicKeyBits
+	AccessTokenScopeReadPublicKeyBits  AccessTokenScopeBitmap = 1 << iota
 
-	AccessTokenScopeAdminRepoHookBits = 1<<iota | AccessTokenScopeWriteRepoHookBits
-	AccessTokenScopeWriteRepoHookBits = 1<<iota | AccessTokenScopeReadRepoHookBits
-	AccessTokenScopeReadRepoHookBits  = 1 << iota
+	AccessTokenScopeAdminRepoHookBits AccessTokenScopeBitmap = 1<<iota | AccessTokenScopeWriteRepoHookBits
+	AccessTokenScopeWriteRepoHookBits AccessTokenScopeBitmap = 1<<iota | AccessTokenScopeReadRepoHookBits
+	AccessTokenScopeReadRepoHookBits  AccessTokenScopeBitmap = 1 << iota
 
-	AccessTokenScopeAdminOrgHookBits = 1 << iota
+	AccessTokenScopeAdminOrgHookBits AccessTokenScopeBitmap = 1 << iota
 
-	AccessTokenScopeNotificationBits = 1 << iota
+	AccessTokenScopeNotificationBits AccessTokenScopeBitmap = 1 << iota
 
-	AccessTokenScopeUserBits       = 1<<iota | AccessTokenScopeReadUserBits | AccessTokenScopeUserEmailBits | AccessTokenScopeUserFollowBits
-	AccessTokenScopeReadUserBits   = 1 << iota
-	AccessTokenScopeUserEmailBits  = 1 << iota
-	AccessTokenScopeUserFollowBits = 1 << iota
+	AccessTokenScopeUserBits       AccessTokenScopeBitmap = 1<<iota | AccessTokenScopeReadUserBits | AccessTokenScopeUserEmailBits | AccessTokenScopeUserFollowBits
+	AccessTokenScopeReadUserBits   AccessTokenScopeBitmap = 1 << iota
+	AccessTokenScopeUserEmailBits  AccessTokenScopeBitmap = 1 << iota
+	AccessTokenScopeUserFollowBits AccessTokenScopeBitmap = 1 << iota
 
-	AccessTokenScopeDeleteRepoBits = 1 << iota
+	AccessTokenScopeDeleteRepoBits AccessTokenScopeBitmap = 1 << iota
 
-	AccessTokenScopePackageBits       = 1<<iota | AccessTokenScopeWritePackageBits | AccessTokenScopeDeletePackageBits
-	AccessTokenScopeWritePackageBits  = 1<<iota | AccessTokenScopeReadPackageBits
-	AccessTokenScopeReadPackageBits   = 1 << iota
-	AccessTokenScopeDeletePackageBits = 1 << iota
+	AccessTokenScopePackageBits       AccessTokenScopeBitmap = 1<<iota | AccessTokenScopeWritePackageBits | AccessTokenScopeDeletePackageBits
+	AccessTokenScopeWritePackageBits  AccessTokenScopeBitmap = 1<<iota | AccessTokenScopeReadPackageBits
+	AccessTokenScopeReadPackageBits   AccessTokenScopeBitmap = 1 << iota
+	AccessTokenScopeDeletePackageBits AccessTokenScopeBitmap = 1 << iota
 
-	AccessTokenScopeAdminGPGKeyBits = 1<<iota | AccessTokenScopeWriteGPGKeyBits
-	AccessTokenScopeWriteGPGKeyBits = 1<<iota | AccessTokenScopeReadGPGKeyBits
-	AccessTokenScopeReadGPGKeyBits  = 1 << iota
+	AccessTokenScopeAdminGPGKeyBits AccessTokenScopeBitmap = 1<<iota | AccessTokenScopeWriteGPGKeyBits
+	AccessTokenScopeWriteGPGKeyBits AccessTokenScopeBitmap = 1<<iota | AccessTokenScopeReadGPGKeyBits
+	AccessTokenScopeReadGPGKeyBits  AccessTokenScopeBitmap = 1 << iota
 
-	AccessTokenScopeAdminApplicationBits = 1<<iota | AccessTokenScopeWriteApplicationBits
-	AccessTokenScopeWriteApplicationBits = 1<<iota | AccessTokenScopeReadApplicationBits
-	AccessTokenScopeReadApplicationBits  = 1 << iota
+	AccessTokenScopeAdminApplicationBits AccessTokenScopeBitmap = 1<<iota | AccessTokenScopeWriteApplicationBits
+	AccessTokenScopeWriteApplicationBits AccessTokenScopeBitmap = 1<<iota | AccessTokenScopeReadApplicationBits
+	AccessTokenScopeReadApplicationBits  AccessTokenScopeBitmap = 1 << iota
 
-	AccessTokenScopeSudoBits = 1 << iota
+	AccessTokenScopeSudoBits AccessTokenScopeBitmap = 1 << iota
 
 	// The current implementation only supports up to 64 token scopes.
 	// If we need to support > 64 scopes,
