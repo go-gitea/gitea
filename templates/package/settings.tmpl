@@ -51,7 +51,7 @@
 						{{.locale.Tr "packages.settings.delete"}}
 					</div>
 					<div class="content">
-						<div class="ui warning message text left">
+						<div class="ui warning message text left word-break">
 							{{.locale.Tr "packages.settings.delete.notice" .PackageDescriptor.Package.Name .PackageDescriptor.Version.Version}}
 						</div>
 						<form class="ui form" action="{{.Link}}" method="post">
