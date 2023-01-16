@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -23,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/migrations"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 func handleCreateError(owner *user_model.User, err error) error {
@@ -69,7 +69,7 @@ func runMigrateTask(t *admin_model.Task) (err error) {
 		}
 
 		if t.Repo != nil {
-			if errDelete := models.DeleteRepository(t.Doer, t.OwnerID, t.Repo.ID); errDelete != nil {
+			if errDelete := repo_service.DeleteRepositoryWithNoNotify(t.Doer, t.OwnerID, t.Repo.ID); errDelete != nil {
 				log.Error("DeleteRepository: %v", errDelete)
 			}
 		}

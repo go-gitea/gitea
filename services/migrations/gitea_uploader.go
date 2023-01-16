@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/uri"
 	"code.gitea.io/gitea/services/pull"
+	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/google/uuid"
 )
@@ -98,7 +99,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 
 	var r *repo_model.Repository
 	if opts.MigrateToRepoID <= 0 {
-		r, err = repo_module.CreateRepository(g.doer, owner, repo_module.CreateRepoOptions{
+		r, err = repo_service.CreateRepositoryWithNoNotify(g.doer, owner, repo_service.CreateRepoOptions{
 			Name:           g.repoName,
 			Description:    repo.Description,
 			OriginalURL:    repo.OriginalURL,
@@ -899,7 +900,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 func (g *GiteaLocalUploader) Rollback() error {
 	if g.repo != nil && g.repo.ID > 0 {
 		g.gitRepo.Close()
-		if err := models.DeleteRepository(g.doer, g.repo.OwnerID, g.repo.ID); err != nil {
+		if err := repo_service.DeleteRepositoryWithNoNotify(g.doer, g.repo.OwnerID, g.repo.ID); err != nil {
 			return err
 		}
 	}

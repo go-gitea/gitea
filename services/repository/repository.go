@@ -7,25 +7,21 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
-	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
-	pull_service "code.gitea.io/gitea/services/pull"
 )
 
 // CreateRepository creates a repository for the user/organization.
-func CreateRepository(doer, owner *user_model.User, opts repo_module.CreateRepoOptions) (*repo_model.Repository, error) {
-	repo, err := repo_module.CreateRepository(doer, owner, opts)
+func CreateRepository(doer, owner *user_model.User, opts CreateRepoOptions) (*repo_model.Repository, error) {
+	repo, err := CreateRepositoryWithNoNotify(doer, owner, opts)
 	if err != nil {
 		// No need to rollback here we should do this in CreateRepository...
 		return nil, err
@@ -34,24 +30,6 @@ func CreateRepository(doer, owner *user_model.User, opts repo_module.CreateRepoO
 	notification.NotifyCreateRepository(db.DefaultContext, doer, owner, repo)
 
 	return repo, nil
-}
-
-// DeleteRepository deletes a repository for a user or organization.
-func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, notify bool) error {
-	if err := pull_service.CloseRepoBranchesPulls(ctx, doer, repo); err != nil {
-		log.Error("CloseRepoBranchesPulls failed: %v", err)
-	}
-
-	if notify {
-		// If the repo itself has webhooks, we need to trigger them before deleting it...
-		notification.NotifyDeleteRepository(ctx, doer, repo)
-	}
-
-	if err := models.DeleteRepository(doer, repo.OwnerID, repo.ID); err != nil {
-		return err
-	}
-
-	return packages_model.UnlinkRepositoryFromAllPackages(ctx, repo.ID)
 }
 
 // PushCreateRepo creates a repository when a new repository is pushed to an appropriate namespace
@@ -68,7 +46,7 @@ func PushCreateRepo(authUser, owner *user_model.User, repoName string) (*repo_mo
 		}
 	}
 
-	repo, err := CreateRepository(authUser, owner, repo_module.CreateRepoOptions{
+	repo, err := CreateRepository(authUser, owner, CreateRepoOptions{
 		Name:      repoName,
 		IsPrivate: setting.Repository.DefaultPushCreatePrivate,
 	})

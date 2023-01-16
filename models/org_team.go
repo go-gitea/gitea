@@ -156,9 +156,9 @@ func HasRepository(t *organization.Team, repoID int64) bool {
 	return organization.HasTeamRepo(db.DefaultContext, t.OrgID, t.ID, repoID)
 }
 
-// removeRepository removes a repository from a team and recalculates access
+// RemoveRepositoryFromTeam removes a repository from a team and recalculates access
 // Note: Repository shall not be removed from team if it includes all repositories (unless the repository is deleted)
-func removeRepository(ctx context.Context, t *organization.Team, repo *repo_model.Repository, recalculate bool) (err error) {
+func RemoveRepositoryFromTeam(ctx context.Context, t *organization.Team, repo *repo_model.Repository, recalculate bool) (err error) {
 	e := db.GetEngine(ctx)
 	if err = organization.RemoveTeamRepo(ctx, t.ID, repo.ID); err != nil {
 		return err
@@ -223,7 +223,7 @@ func RemoveRepository(t *organization.Team, repoID int64) error {
 	}
 	defer committer.Close()
 
-	if err = removeRepository(ctx, t, repo, true); err != nil {
+	if err = RemoveRepositoryFromTeam(ctx, t, repo, true); err != nil {
 		return err
 	}
 
