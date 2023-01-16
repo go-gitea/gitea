@@ -35,6 +35,9 @@ func (f *GitBucketDownloaderFactory) New(ctx context.Context, opts base.MigrateO
 	}
 
 	fields := strings.Split(u.Path, "/")
+	if len(fields) < 2 {
+		return nil, fmt.Errorf("invalid path: %s", u.Path)
+	}
 	baseURL := u.Scheme + "://" + u.Host + strings.TrimSuffix(strings.Join(fields[:len(fields)-2], "/"), "/git")
 
 	oldOwner := fields[len(fields)-2]
