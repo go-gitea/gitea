@@ -1529,7 +1529,7 @@ func IsUserParticipantsOfIssue(user *user_model.User, issue *Issue) bool {
 		log.Error(err.Error())
 		return false
 	}
-	return util.IsInt64InSlice(user.ID, userIDs)
+	return util.SliceContains(userIDs, user.ID)
 }
 
 // UpdateIssueMentions updates issue-user relations for mentioned users.
@@ -2023,7 +2023,7 @@ func (issue *Issue) GetParticipantIDsByIssue(ctx context.Context) ([]int64, erro
 		Find(&userIDs); err != nil {
 		return nil, fmt.Errorf("get poster IDs: %w", err)
 	}
-	if !util.IsInt64InSlice(issue.PosterID, userIDs) {
+	if !util.SliceContains(userIDs, issue.PosterID) {
 		return append(userIDs, issue.PosterID), nil
 	}
 	return userIDs, nil

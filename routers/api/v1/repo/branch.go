@@ -70,7 +70,7 @@ func GetBranch(ctx *context.APIContext) {
 		return
 	}
 
-	branchProtection, err := git_model.GetProtectedBranchBy(ctx, ctx.Repo.Repository.ID, branchName)
+	branchProtection, err := git_model.GetFirstMatchProtectedBranchRule(ctx, ctx.Repo.Repository.ID, branchName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
 		return
@@ -124,7 +124,7 @@ func DeleteBranch(ctx *context.APIContext) {
 			ctx.NotFound(err)
 		case errors.Is(err, repo_service.ErrBranchIsDefault):
 			ctx.Error(http.StatusForbidden, "DefaultBranch", fmt.Errorf("can not delete default branch"))
-		case errors.Is(err, repo_service.ErrBranchIsProtected):
+		case errors.Is(err, git_model.ErrBranchIsProtected):
 			ctx.Error(http.StatusForbidden, "IsProtectedBranch", fmt.Errorf("branch protected"))
 		default:
 			ctx.Error(http.StatusInternalServerError, "DeleteBranch", err)
@@ -206,7 +206,7 @@ func CreateBranch(ctx *context.APIContext) {
 		return
 	}
 
-	branchProtection, err := git_model.GetProtectedBranchBy(ctx, ctx.Repo.Repository.ID, branch.Name)
+	branchProtection, err := git_model.GetFirstMatchProtectedBranchRule(ctx, ctx.Repo.Repository.ID, branch.Name)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
 		return
@@ -257,6 +257,12 @@ func ListBranches(ctx *context.APIContext) {
 	listOptions := utils.GetListOptions(ctx)
 
 	if !ctx.Repo.Repository.IsEmpty && ctx.Repo.GitRepo != nil {
+		rules, err := git_model.FindRepoProtectedBranchRules(ctx, ctx.Repo.Repository.ID)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "FindMatchedProtectedBranchRules", err)
+			return
+		}
+
 		skip, _ := listOptions.GetStartEnd()
 		branches, total, err := ctx.Repo.GitRepo.GetBranches(skip, listOptions.PageSize)
 		if err != nil {
@@ -276,11 +282,8 @@ func ListBranches(ctx *context.APIContext) {
 				ctx.Error(http.StatusInternalServerError, "GetCommit", err)
 				return
 			}
-			branchProtection, err := git_model.GetProtectedBranchBy(ctx, ctx.Repo.Repository.ID, branches[i].Name)
-			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "GetProtectedBranchBy", err)
-				return
-			}
+
+			branchProtection := rules.GetFirstMatched(branches[i].Name)
 			apiBranch, err := convert.ToBranch(ctx.Repo.Repository, branches[i], c, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "convert.ToBranch", err)
@@ -328,7 +331,7 @@ func GetBranchProtection(ctx *context.APIContext) {
 
 	repo := ctx.Repo.Repository
 	bpName := ctx.Params(":name")
-	bp, err := git_model.GetProtectedBranchBy(ctx, repo.ID, bpName)
+	bp, err := git_model.GetProtectedBranchRuleByName(ctx, repo.ID, bpName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectedBranchByID", err)
 		return
@@ -364,7 +367,7 @@ func ListBranchProtections(ctx *context.APIContext) {
 	//     "$ref": "#/responses/BranchProtectionList"
 
 	repo := ctx.Repo.Repository
-	bps, err := git_model.GetProtectedBranches(ctx, repo.ID)
+	bps, err := git_model.FindRepoProtectedBranchRules(ctx, repo.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectedBranches", err)
 		return
@@ -414,13 +417,18 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.CreateBranchProtectionOption)
 	repo := ctx.Repo.Repository
 
-	// Currently protection must match an actual branch
-	if !git.IsBranchExist(ctx.Req.Context(), ctx.Repo.Repository.RepoPath(), form.BranchName) {
-		ctx.NotFound()
-		return
+	ruleName := form.RuleName
+	if ruleName == "" {
+		ruleName = form.BranchName //nolint
 	}
 
-	protectBranch, err := git_model.GetProtectedBranchBy(ctx, repo.ID, form.BranchName)
+	isPlainRule := !git_model.IsRuleNameSpecial(ruleName)
+	var isBranchExist bool
+	if isPlainRule {
+		isBranchExist = git.IsBranchExist(ctx.Req.Context(), ctx.Repo.Repository.RepoPath(), ruleName)
+	}
+
+	protectBranch, err := git_model.GetProtectedBranchRuleByName(ctx, repo.ID, ruleName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectBranchOfRepoByName", err)
 		return
@@ -494,7 +502,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 
 	protectBranch = &git_model.ProtectedBranch{
 		RepoID:                        ctx.Repo.Repository.ID,
-		BranchName:                    form.BranchName,
+		RuleName:                      form.RuleName,
 		CanPush:                       form.EnablePush,
 		EnableWhitelist:               form.EnablePush && form.EnablePushWhitelist,
 		EnableMergeWhitelist:          form.EnableMergeWhitelist,
@@ -525,13 +533,42 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		return
 	}
 
-	if err = pull_service.CheckPrsForBaseBranch(ctx.Repo.Repository, protectBranch.BranchName); err != nil {
-		ctx.Error(http.StatusInternalServerError, "CheckPrsForBaseBranch", err)
-		return
+	if isBranchExist {
+		if err = pull_service.CheckPRsForBaseBranch(ctx.Repo.Repository, form.RuleName); err != nil {
+			ctx.Error(http.StatusInternalServerError, "CheckPRsForBaseBranch", err)
+			return
+		}
+	} else {
+		if !isPlainRule {
+			if ctx.Repo.GitRepo == nil {
+				ctx.Repo.GitRepo, err = git.OpenRepository(ctx, ctx.Repo.Repository.RepoPath())
+				if err != nil {
+					ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
+					return
+				}
+				defer func() {
+					ctx.Repo.GitRepo.Close()
+					ctx.Repo.GitRepo = nil
+				}()
+			}
+			// FIXME: since we only need to recheck files protected rules, we could improve this
+			matchedBranches, err := git_model.FindAllMatchedBranches(ctx, ctx.Repo.GitRepo, form.RuleName)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "FindAllMatchedBranches", err)
+				return
+			}
+
+			for _, branchName := range matchedBranches {
+				if err = pull_service.CheckPRsForBaseBranch(ctx.Repo.Repository, branchName); err != nil {
+					ctx.Error(http.StatusInternalServerError, "CheckPRsForBaseBranch", err)
+					return
+				}
+			}
+		}
 	}
 
 	// Reload from db to get all whitelists
-	bp, err := git_model.GetProtectedBranchBy(ctx, ctx.Repo.Repository.ID, form.BranchName)
+	bp, err := git_model.GetProtectedBranchRuleByName(ctx, ctx.Repo.Repository.ID, form.RuleName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectedBranchByID", err)
 		return
@@ -583,7 +620,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.EditBranchProtectionOption)
 	repo := ctx.Repo.Repository
 	bpName := ctx.Params(":name")
-	protectBranch, err := git_model.GetProtectedBranchBy(ctx, repo.ID, bpName)
+	protectBranch, err := git_model.GetProtectedBranchRuleByName(ctx, repo.ID, bpName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectedBranchByID", err)
 		return
@@ -760,13 +797,49 @@ func EditBranchProtection(ctx *context.APIContext) {
 		return
 	}
 
-	if err = pull_service.CheckPrsForBaseBranch(ctx.Repo.Repository, protectBranch.BranchName); err != nil {
-		ctx.Error(http.StatusInternalServerError, "CheckPrsForBaseBranch", err)
-		return
+	isPlainRule := !git_model.IsRuleNameSpecial(bpName)
+	var isBranchExist bool
+	if isPlainRule {
+		isBranchExist = git.IsBranchExist(ctx.Req.Context(), ctx.Repo.Repository.RepoPath(), bpName)
+	}
+
+	if isBranchExist {
+		if err = pull_service.CheckPRsForBaseBranch(ctx.Repo.Repository, bpName); err != nil {
+			ctx.Error(http.StatusInternalServerError, "CheckPrsForBaseBranch", err)
+			return
+		}
+	} else {
+		if !isPlainRule {
+			if ctx.Repo.GitRepo == nil {
+				ctx.Repo.GitRepo, err = git.OpenRepository(ctx, ctx.Repo.Repository.RepoPath())
+				if err != nil {
+					ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
+					return
+				}
+				defer func() {
+					ctx.Repo.GitRepo.Close()
+					ctx.Repo.GitRepo = nil
+				}()
+			}
+
+			// FIXME: since we only need to recheck files protected rules, we could improve this
+			matchedBranches, err := git_model.FindAllMatchedBranches(ctx, ctx.Repo.GitRepo, protectBranch.RuleName)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "FindAllMatchedBranches", err)
+				return
+			}
+
+			for _, branchName := range matchedBranches {
+				if err = pull_service.CheckPRsForBaseBranch(ctx.Repo.Repository, branchName); err != nil {
+					ctx.Error(http.StatusInternalServerError, "CheckPrsForBaseBranch", err)
+					return
+				}
+			}
+		}
 	}
 
 	// Reload from db to ensure get all whitelists
-	bp, err := git_model.GetProtectedBranchBy(ctx, repo.ID, bpName)
+	bp, err := git_model.GetProtectedBranchRuleByName(ctx, repo.ID, bpName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectedBranchBy", err)
 		return
@@ -810,7 +883,7 @@ func DeleteBranchProtection(ctx *context.APIContext) {
 
 	repo := ctx.Repo.Repository
 	bpName := ctx.Params(":name")
-	bp, err := git_model.GetProtectedBranchBy(ctx, repo.ID, bpName)
+	bp, err := git_model.GetProtectedBranchRuleByName(ctx, repo.ID, bpName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectedBranchByID", err)
 		return

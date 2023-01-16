@@ -165,7 +165,7 @@ func (s AccessTokenScope) Parse() (AccessTokenScopeBitmap, error) {
 			continue
 		}
 
-		idx := util.FindStringInSlice(v, AllAccessTokenScopes)
+		idx := util.SliceFindString(v, AllAccessTokenScopes)
 		if idx < 0 {
 			return 0, fmt.Errorf("invalid access token scope: %s", v)
 		}
@@ -196,7 +196,7 @@ func (s AccessTokenScope) HasScope(scope string) (bool, error) {
 
 // HasScope returns true if the string has the given scope
 func (bitmap AccessTokenScopeBitmap) HasScope(scope string) (bool, error) {
-	index := util.FindStringInSlice(scope, AllAccessTokenScopes)
+	index := util.SliceFindString(scope, AllAccessTokenScopes)
 	if index == -1 {
 		return false, fmt.Errorf("invalid access token scope: %s", scope)
 	}
