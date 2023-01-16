@@ -18,6 +18,7 @@ func AddScopeForAccessTokens(x *xorm.Engine) error {
 		return err
 	}
 
-	_, err := x.Exec("UPDATE access_token SET scope = ? WHERE scope IS NULL OR scope = ''", auth_models.AccessTokenScopeAll)
+	// all previous tokens have `all` and `sudo` scopes
+	_, err := x.Exec("UPDATE access_token SET scope = ? WHERE scope IS NULL OR scope = ''", auth_models.AccessTokenScopeAll+","+auth_models.AccessTokenScopeSudo)
 	return err
 }
