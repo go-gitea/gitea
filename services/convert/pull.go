@@ -88,6 +88,10 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		},
 	}
 
+	if pr.Issue.ClosedUnix != 0 {
+		apiPullRequest.Closed = pr.Issue.ClosedUnix.AsTimePtr()
+	}
+
 	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
 	if err != nil {
 		log.Error("OpenRepository[%s]: %v", pr.BaseRepo.RepoPath(), err)
