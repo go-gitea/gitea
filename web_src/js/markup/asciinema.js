@@ -6,6 +6,8 @@ export async function renderAsciinemaPlayer() {
 
   for (const el of els) {
     player.create(el.getAttribute('data-asciinema-player-src'), el, {
+      // poster (a preview frame) to display until the playback is started.
+      // Set it to 1 hour (also means the end if the video is shorter) to make the preview frame show more.
       poster: 'npt:1:0:0',
     });
   }
