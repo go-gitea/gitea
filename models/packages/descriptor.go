@@ -81,19 +81,23 @@ func (pd *PackageDescriptor) CalculateBlobSize() int64 {
 
 // GetPackageDescriptor gets the package description for a version
 func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDescriptor, error) {
-	p, err := GetPackageByID(ctx, pv.PackageID)
+	return getPackageDescriptor(ctx, pv, newQueryCache())
+}
+
+func getPackageDescriptor(ctx context.Context, pv *PackageVersion, c *cache) (*PackageDescriptor, error) {
+	p, err := c.QueryPackage(ctx, pv.PackageID)
 	if err != nil {
 		return nil, err
 	}
-	o, err := user_model.GetUserByID(ctx, p.OwnerID)
+	o, err := c.QueryUser(ctx, p.OwnerID)
 	if err != nil {
 		return nil, err
 	}
-	repository, err := repo_model.GetRepositoryByID(ctx, p.RepoID)
-	if err != nil && !repo_model.IsErrRepoNotExist(err) {
+	repository, err := c.QueryRepository(ctx, p.RepoID)
+	if err != nil {
 		return nil, err
 	}
-	creator, err := user_model.GetUserByID(ctx, pv.CreatorID)
+	creator, err := c.QueryUser(ctx, pv.CreatorID)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +123,7 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 
 	pfds := make([]*PackageFileDescriptor, 0, len(pfs))
 	for _, pf := range pfs {
-		pfd, err := GetPackageFileDescriptor(ctx, pf)
+		pfd, err := getPackageFileDescriptor(ctx, pf, c)
 		if err != nil {
 			return nil, err
 		}
@@ -177,7 +181,11 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 
 // GetPackageFileDescriptor gets a package file descriptor for a package file
 func GetPackageFileDescriptor(ctx context.Context, pf *PackageFile) (*PackageFileDescriptor, error) {
-	pb, err := GetBlobByID(ctx, pf.BlobID)
+	return getPackageFileDescriptor(ctx, pf, newQueryCache())
+}
+
+func getPackageFileDescriptor(ctx context.Context, pf *PackageFile, c *cache) (*PackageFileDescriptor, error) {
+	pb, err := c.QueryBlob(ctx, pf.BlobID)
 	if err != nil {
 		return nil, err
 	}
@@ -194,13 +202,76 @@ func GetPackageFileDescriptor(ctx context.Context, pf *PackageFile) (*PackageFil
 
 // GetPackageDescriptors gets the package descriptions for the versions
 func GetPackageDescriptors(ctx context.Context, pvs []*PackageVersion) ([]*PackageDescriptor, error) {
+	return getPackageDescriptors(ctx, pvs, newQueryCache())
+}
+
+func getPackageDescriptors(ctx context.Context, pvs []*PackageVersion, c *cache) ([]*PackageDescriptor, error) {
 	pds := make([]*PackageDescriptor, 0, len(pvs))
 	for _, pv := range pvs {
-		pd, err := GetPackageDescriptor(ctx, pv)
+		pd, err := getPackageDescriptor(ctx, pv, c)
 		if err != nil {
 			return nil, err
 		}
 		pds = append(pds, pd)
 	}
 	return pds, nil
+}
+
+type cache struct {
+	Packages     map[int64]*Package
+	Users        map[int64]*user_model.User
+	Repositories map[int64]*repo_model.Repository
+	Blobs        map[int64]*PackageBlob
+}
+
+func newQueryCache() *cache {
+	return &cache{
+		Packages:     make(map[int64]*Package),
+		Users:        make(map[int64]*user_model.User),
+		Repositories: map[int64]*repo_model.Repository{0: nil}, // 0 is an expected value
+		Blobs:        make(map[int64]*PackageBlob),
+	}
+}
+
+func (c *cache) QueryPackage(ctx context.Context, id int64) (*Package, error) {
+	if p, found := c.Packages[id]; found {
+		return p, nil
+	}
+
+	p, err := GetPackageByID(ctx, id)
+	c.Packages[id] = p
+	return p, err
+}
+
+func (c *cache) QueryUser(ctx context.Context, id int64) (*user_model.User, error) {
+	if u, found := c.Users[id]; found {
+		return u, nil
+	}
+
+	u, err := user_model.GetUserByID(ctx, id)
+	c.Users[id] = u
+	return u, err
+}
+
+func (c *cache) QueryRepository(ctx context.Context, id int64) (*repo_model.Repository, error) {
+	if r, found := c.Repositories[id]; found {
+		return r, nil
+	}
+
+	r, err := repo_model.GetRepositoryByID(ctx, id)
+	if err != nil && !repo_model.IsErrRepoNotExist(err) {
+		err = nil
+	}
+	c.Repositories[id] = r
+	return r, err
+}
+
+func (c *cache) QueryBlob(ctx context.Context, id int64) (*PackageBlob, error) {
+	if b, found := c.Blobs[id]; found {
+		return b, nil
+	}
+
+	b, err := GetBlobByID(ctx, id)
+	c.Blobs[id] = b
+	return b, err
 }
