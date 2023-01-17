@@ -1482,8 +1482,8 @@ github.com/yuin/goldmark-highlighting/v2 v2.0.0-20220924101305-151362477c87/go.m
 github.com/yuin/goldmark-meta v1.1.0 h1:pWw+JLHGZe8Rk0EGsMVssiNb/AaPMHfSRszZeUeiOUc=
 github.com/yuin/goldmark-meta v1.1.0/go.mod h1:U4spWENafuA7Zyg+Lj5RqK/MF+ovMYtBvXi1lBb2VP0=
 github.com/zenazn/goji v0.9.0/go.mod h1:7S9M489iMyHBNxwZnk9/EHS098H4/F6TATF2mIxtB1Q=
-github.com/zeripath/zapx/v15 v15.3.6-alignment-fix h1:fKZ9OxEDoJKgM0KBXRbSb5IgKUEXis6C3zEIiMtzzQ0=
-github.com/zeripath/zapx/v15 v15.3.6-alignment-fix/go.mod h1:5DbhhDTGtuQSns1tS2aJxJLPc91boXCvjOMeCLD1saM=
+github.com/zeripath/zapx/v15 v15.3.6-alignment-fix-2 h1:IRB+69BV7fTT5ccw35ca7TCBe2b7dm5Q5y5tUMQmCvU=
+github.com/zeripath/zapx/v15 v15.3.6-alignment-fix-2/go.mod h1:5DbhhDTGtuQSns1tS2aJxJLPc91boXCvjOMeCLD1saM=
 github.com/ziutek/mymysql v1.5.4/go.mod h1:LMSpPZ6DbqWFxNCHW77HeMg9I646SAhApZ/wKdgO/C0=
 github.com/zmap/rc2 v0.0.0-20131011165748-24b9757f5521/go.mod h1:3YZ9o3WnatTIZhuOtot4IcUfzoKVjUHqu6WALIyI0nE=
 github.com/zmap/zcertificate v0.0.0-20180516150559-0e3d58b1bac4/go.mod h1:5iU54tB79AMBcySS0R2XIyZBAVmeHranShAFELYx7is=
