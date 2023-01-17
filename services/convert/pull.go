@@ -72,7 +72,6 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		Deadline:  apiIssue.Deadline,
 		Created:   pr.Issue.CreatedUnix.AsTimePtr(),
 		Updated:   pr.Issue.UpdatedUnix.AsTimePtr(),
-		Closed:    pr.Issue.ClosedUnix.AsTimePtr(),
 
 		AllowMaintainerEdit: pr.AllowMaintainerEdit,
 
@@ -87,6 +86,10 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			Ref:    fmt.Sprintf("%s%d/head", git.PullPrefix, pr.Index),
 			RepoID: -1,
 		},
+	}
+
+	if pr.Issue.ClosedUnix != 0 {
+		apiPullRequest.Closed = pr.Issue.ClosedUnix.AsTimePtr()
 	}
 
 	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
