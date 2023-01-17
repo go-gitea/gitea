@@ -280,17 +280,17 @@ func Repos(ctx *context.Context) {
 		repos := map[string]*repo_model.Repository{}
 		// We're going to iterate by pagesize.
 		root := user_model.UserPath(ctxUser.Name)
-		if err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 			if err != nil {
 				if os.IsNotExist(err) {
 					return nil
 				}
 				return err
 			}
-			if !info.IsDir() || path == root {
+			if !d.IsDir() || path == root {
 				return nil
 			}
-			name := info.Name()
+			name := d.Name()
 			if !strings.HasSuffix(name, ".git") {
 				return filepath.SkipDir
 			}
@@ -304,7 +304,7 @@ func Repos(ctx *context.Context) {
 			count++
 			return filepath.SkipDir
 		}); err != nil {
-			ctx.ServerError("filepath.Walk", err)
+			ctx.ServerError("filepath.WalkDir", err)
 			return
 		}
 

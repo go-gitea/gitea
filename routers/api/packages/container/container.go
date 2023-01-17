@@ -195,10 +195,15 @@ func InitiateUploadBlob(ctx *context.Context) {
 	from := ctx.FormTrim("from")
 	if mount != "" {
 		blob, _ := workaroundGetContainerBlob(ctx, &container_model.BlobSearchOptions{
-			Image:  from,
-			Digest: mount,
+			Repository: from,
+			Digest:     mount,
 		})
 		if blob != nil {
+			if err := mountBlob(&packages_service.PackageInfo{Owner: ctx.Package.Owner, Name: image}, blob.Blob); err != nil {
+				apiError(ctx, http.StatusInternalServerError, err)
+				return
+			}
+
 			setResponseHeaders(ctx.Resp, &containerHeaders{
 				Location:      fmt.Sprintf("/v2/%s/%s/blobs/%s", ctx.Package.Owner.LowerName, image, mount),
 				ContentDigest: mount,

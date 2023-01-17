@@ -179,7 +179,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 		return
 	}
 
-	protectBranch, err := git_model.GetProtectedBranchBy(ctx, repo.ID, branchName)
+	protectBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repo.ID, branchName)
 	if err != nil {
 		log.Error("Unable to get protected branch: %s in %-v Error: %v", branchName, repo, err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -189,9 +189,10 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 	}
 
 	// Allow pushes to non-protected branches
-	if protectBranch == nil || !protectBranch.IsProtected() {
+	if protectBranch == nil {
 		return
 	}
+	protectBranch.Repo = repo
 
 	// This ref is a protected branch.
 	//
@@ -261,7 +262,6 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 					Err: fmt.Sprintf("Unable to check file protection for commits from %s to %s: %v", oldCommitID, newCommitID, err),
 				})
 				return
-
 			}
 
 			changedProtectedfiles = true
@@ -274,7 +274,15 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 	if ctx.opts.DeployKeyID != 0 {
 		canPush = !changedProtectedfiles && protectBranch.CanPush && (!protectBranch.EnableWhitelist || protectBranch.WhitelistDeployKeys)
 	} else {
-		canPush = !changedProtectedfiles && protectBranch.CanUserPush(ctx, ctx.opts.UserID)
+		user, err := user_model.GetUserByID(ctx, ctx.opts.UserID)
+		if err != nil {
+			log.Error("Unable to GetUserByID for commits from %s to %s in %-v: %v", oldCommitID, newCommitID, repo, err)
+			ctx.JSON(http.StatusInternalServerError, private.Response{
+				Err: fmt.Sprintf("Unable to GetUserByID for commits from %s to %s: %v", oldCommitID, newCommitID, err),
+			})
+			return
+		}
+		canPush = !changedProtectedfiles && protectBranch.CanUserPush(ctx, user)
 	}
 
 	// 6. If we're not allowed to push directly
