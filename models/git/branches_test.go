@@ -105,8 +105,8 @@ func TestRenameBranch(t *testing.T) {
 	defer committer.Close()
 	assert.NoError(t, err)
 	assert.NoError(t, git_model.UpdateProtectBranch(ctx, repo1, &git_model.ProtectedBranch{
-		RepoID:     repo1.ID,
-		BranchName: "master",
+		RepoID:   repo1.ID,
+		RuleName: "master",
 	}, git_model.WhitelistOptions{}))
 	assert.NoError(t, committer.Commit())
 
@@ -131,8 +131,8 @@ func TestRenameBranch(t *testing.T) {
 	assert.Equal(t, int64(1), renamedBranch.RepoID)
 
 	unittest.AssertExistsAndLoadBean(t, &git_model.ProtectedBranch{
-		RepoID:     repo1.ID,
-		BranchName: "main",
+		RepoID:   repo1.ID,
+		RuleName: "main",
 	})
 }
 
