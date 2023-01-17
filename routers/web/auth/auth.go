@@ -145,10 +145,12 @@ func checkForceOAuth(ctx *context.Context) bool {
 		return false
 	}
 
+	var OAuthList []int64
+
 	for _, source := range authSources {
 		if forced, ok := source.Cfg.(auth_service.ForceOAuth); ok && forced.IsOAuthForced() {
-			fmt.Println(source.Cfg)
-			app, err := auth.GetOAuth2ApplicationByID(ctx, 1)
+			OAuthList = append(OAuthList, source.ID)
+			app, err := auth.GetOAuth2ApplicationByID(ctx, OAuthList[0])
 			if err != nil {
 				return false
 			}
