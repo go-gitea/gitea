@@ -263,15 +263,17 @@ func IsOfficialReviewer(ctx context.Context, issue *Issue, reviewers ...*user_mo
 	if err != nil {
 		return false, err
 	}
-	if err = pr.LoadProtectedBranch(ctx); err != nil {
+
+	rule, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+	if err != nil {
 		return false, err
 	}
-	if pr.ProtectedBranch == nil {
+	if rule == nil {
 		return false, nil
 	}
 
 	for _, reviewer := range reviewers {
-		official, err := git_model.IsUserOfficialReviewer(ctx, pr.ProtectedBranch, reviewer)
+		official, err := git_model.IsUserOfficialReviewer(ctx, rule, reviewer)
 		if official || err != nil {
 			return official, err
 		}
@@ -286,18 +288,19 @@ func IsOfficialReviewerTeam(ctx context.Context, issue *Issue, team *organizatio
 	if err != nil {
 		return false, err
 	}
-	if err = pr.LoadProtectedBranch(ctx); err != nil {
+	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+	if err != nil {
 		return false, err
 	}
-	if pr.ProtectedBranch == nil {
+	if pb == nil {
 		return false, nil
 	}
 
-	if !pr.ProtectedBranch.EnableApprovalsWhitelist {
+	if !pb.EnableApprovalsWhitelist {
 		return team.UnitAccessMode(ctx, unit.TypeCode) >= perm.AccessModeWrite, nil
 	}
 
-	return base.Int64sContains(pr.ProtectedBranch.ApprovalsWhitelistTeamIDs, team.ID), nil
+	return base.Int64sContains(pb.ApprovalsWhitelistTeamIDs, team.ID), nil
 }
 
 // CreateReview creates a new review based on opts
@@ -733,16 +736,8 @@ func RemoveReviewRequest(issue *Issue, reviewer, doer *user_model.User) (*Commen
 	if err != nil {
 		return nil, err
 	} else if official {
-		// recalculate the latest official review for reviewer
-		review, err := GetReviewByIssueIDAndUserID(ctx, issue.ID, reviewer.ID)
-		if err != nil && !IsErrReviewNotExist(err) {
+		if err := restoreLatestOfficialReview(ctx, issue.ID, reviewer.ID); err != nil {
 			return nil, err
-		}
-
-		if review != nil {
-			if _, err := db.Exec(ctx, "UPDATE `review` SET official=? WHERE id=?", true, review.ID); err != nil {
-				return nil, err
-			}
 		}
 	}
 
@@ -759,6 +754,22 @@ func RemoveReviewRequest(issue *Issue, reviewer, doer *user_model.User) (*Commen
 	}
 
 	return comment, committer.Commit()
+}
+
+// Recalculate the latest official review for reviewer
+func restoreLatestOfficialReview(ctx context.Context, issueID, reviewerID int64) error {
+	review, err := GetReviewByIssueIDAndUserID(ctx, issueID, reviewerID)
+	if err != nil && !IsErrReviewNotExist(err) {
+		return err
+	}
+
+	if review != nil {
+		if _, err := db.Exec(ctx, "UPDATE `review` SET official=? WHERE id=?", true, review.ID); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // AddTeamReviewRequest add a review request from one team
@@ -977,6 +988,12 @@ func DeleteReview(r *Review) error {
 
 	if _, err := sess.ID(r.ID).Delete(new(Review)); err != nil {
 		return err
+	}
+
+	if r.Official {
+		if err := restoreLatestOfficialReview(ctx, r.IssueID, r.ReviewerID); err != nil {
+			return err
+		}
 	}
 
 	return committer.Commit()

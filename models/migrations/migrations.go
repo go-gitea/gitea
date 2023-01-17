@@ -432,6 +432,9 @@ var migrations = []Migration{
 	NewMigration("Update counts of all open milestones", v1_18.UpdateOpenMilestoneCounts),
 	// v230 -> v231
 	NewMigration("Add ConfidentialClient column (default true) to OAuth2Application table", v1_18.AddConfidentialClientColumnToOAuth2ApplicationTable),
+
+	// Gitea 1.18.0 ends at v231
+
 	// v231 -> v232
 	NewMigration("Add index for hook_task", v1_19.AddIndexForHookTask),
 	// v232 -> v233
@@ -446,6 +449,8 @@ var migrations = []Migration{
 	NewMigration("Create secrets table", v1_19.CreateSecretsTable),
 	// v237 -> v238
 	NewMigration("Drop ForeignReference table", v1_19.DropForeignReferenceTable),
+	// v238 -> v239
+	NewMigration("Add updated unix to LFSMetaObject", v1_19.AddUpdatedUnixToLFSMetaObject),
 }
 
 // GetCurrentDBVersion returns the current db version
