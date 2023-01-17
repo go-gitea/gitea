@@ -1,8 +1,7 @@
-// Copyright 2014 The Gogs Authors. All rights reserved.
-// Copyright 2019 The Gitea Authors. All rights reserved.
+// Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package models
+package user
 
 import (
 	"context"
@@ -23,47 +22,50 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+
+	"xorm.io/builder"
 )
 
-// DeleteUser deletes models associated to an user.
-func DeleteUser(ctx context.Context, u *user_model.User, purge bool) (err error) {
+// deleteUser deletes models associated to an user.
+func deleteUser(ctx context.Context, u *user_model.User, purge bool) (err error) {
 	e := db.GetEngine(ctx)
 
 	// ***** START: Watch *****
-	watchedRepoIDs := make([]int64, 0, 10)
-	if err = e.Table("watch").Cols("watch.repo_id").
-		Where("watch.user_id = ?", u.ID).And("watch.mode <>?", repo_model.WatchModeDont).Find(&watchedRepoIDs); err != nil {
+	watchedRepoIDs, err := db.FindIDs(ctx, "watch", "watch.repo_id",
+		builder.Eq{"watch.user_id": u.ID}.
+			And(builder.Neq{"watch.mode": repo_model.WatchModeDont}))
+	if err != nil {
 		return fmt.Errorf("get all watches: %w", err)
 	}
-	if _, err = e.Decr("num_watches").In("id", watchedRepoIDs).NoAutoTime().Update(new(repo_model.Repository)); err != nil {
+	if err = db.DecrByIDs(ctx, watchedRepoIDs, "num_watches", new(repo_model.Repository)); err != nil {
 		return fmt.Errorf("decrease repository num_watches: %w", err)
 	}
 	// ***** END: Watch *****
 
 	// ***** START: Star *****
-	starredRepoIDs := make([]int64, 0, 10)
-	if err = e.Table("star").Cols("star.repo_id").
-		Where("star.uid = ?", u.ID).Find(&starredRepoIDs); err != nil {
+	starredRepoIDs, err := db.FindIDs(ctx, "star", "star.repo_id",
+		builder.Eq{"star.uid": u.ID})
+	if err != nil {
 		return fmt.Errorf("get all stars: %w", err)
-	} else if _, err = e.Decr("num_stars").In("id", starredRepoIDs).NoAutoTime().Update(new(repo_model.Repository)); err != nil {
+	} else if err = db.DecrByIDs(ctx, starredRepoIDs, "num_stars", new(repo_model.Repository)); err != nil {
 		return fmt.Errorf("decrease repository num_stars: %w", err)
 	}
 	// ***** END: Star *****
 
 	// ***** START: Follow *****
-	followeeIDs := make([]int64, 0, 10)
-	if err = e.Table("follow").Cols("follow.follow_id").
-		Where("follow.user_id = ?", u.ID).Find(&followeeIDs); err != nil {
+	followeeIDs, err := db.FindIDs(ctx, "follow", "follow.follow_id",
+		builder.Eq{"follow.user_id": u.ID})
+	if err != nil {
 		return fmt.Errorf("get all followees: %w", err)
-	} else if _, err = e.Decr("num_followers").In("id", followeeIDs).Update(new(user_model.User)); err != nil {
+	} else if err = db.DecrByIDs(ctx, followeeIDs, "num_followers", new(user_model.User)); err != nil {
 		return fmt.Errorf("decrease user num_followers: %w", err)
 	}
 
-	followerIDs := make([]int64, 0, 10)
-	if err = e.Table("follow").Cols("follow.user_id").
-		Where("follow.follow_id = ?", u.ID).Find(&followerIDs); err != nil {
+	followerIDs, err := db.FindIDs(ctx, "follow", "follow.user_id",
+		builder.Eq{"follow.follow_id": u.ID})
+	if err != nil {
 		return fmt.Errorf("get all followers: %w", err)
-	} else if _, err = e.Decr("num_following").In("id", followerIDs).Update(new(user_model.User)); err != nil {
+	} else if err = db.DecrByIDs(ctx, followerIDs, "num_following", new(user_model.User)); err != nil {
 		return fmt.Errorf("decrease user num_following: %w", err)
 	}
 	// ***** END: Follow *****
@@ -181,7 +183,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 	}
 	// ***** END: ExternalLoginUser *****
 
-	if _, err = e.ID(u.ID).Delete(new(user_model.User)); err != nil {
+	if _, err = db.DeleteByID(ctx, u.ID, new(user_model.User)); err != nil {
 		return fmt.Errorf("delete: %w", err)
 	}
 

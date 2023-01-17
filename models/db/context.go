@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 
+	"xorm.io/builder"
 	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
@@ -181,6 +182,24 @@ func GetByBean(ctx context.Context, bean interface{}) (bool, error) {
 // DeleteByBean deletes all records according non-empty fields of the bean as conditions.
 func DeleteByBean(ctx context.Context, bean interface{}) (int64, error) {
 	return GetEngine(ctx).Delete(bean)
+}
+
+func DeleteByID(ctx context.Context, id int64, bean interface{}) (int64, error) {
+	return GetEngine(ctx).ID(id).NoAutoTime().Delete(bean)
+}
+
+func FindIDs(ctx context.Context, tableName, idCol string, cond builder.Cond) ([]int64, error) {
+	ids := make([]int64, 0, 10)
+	if err := GetEngine(ctx).Table(tableName).Cols(idCol).
+		Where(cond).Find(&ids); err != nil {
+		return nil, err
+	}
+	return ids, nil
+}
+
+func DecrByIDs(ctx context.Context, ids []int64, decrCol string, bean interface{}) error {
+	_, err := GetEngine(ctx).Decr(decrCol).In("id", ids).NoAutoCondition().NoAutoTime().Update(bean)
+	return err
 }
 
 // DeleteBeans deletes all given beans, beans should contain delete conditions.
