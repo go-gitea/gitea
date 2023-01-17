@@ -451,6 +451,8 @@ var migrations = []Migration{
 	NewMigration("Drop ForeignReference table", v1_19.DropForeignReferenceTable),
 	// v238 -> v239
 	NewMigration("Add updated unix to LFSMetaObject", v1_19.AddUpdatedUnixToLFSMetaObject),
+	// v239 -> v240
+	NewMigration("Add scope for access_token", v1_19.AddScopeForAccessTokens),
 }
 
 // GetCurrentDBVersion returns the current db version

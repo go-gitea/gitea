@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
@@ -217,8 +218,8 @@ func emptyTestSession(t testing.TB) *TestSession {
 	return &TestSession{jar: jar}
 }
 
-func getUserToken(t testing.TB, userName string) string {
-	return getTokenForLoggedInUser(t, loginUser(t, userName))
+func getUserToken(t testing.TB, userName string, scope ...auth.AccessTokenScope) string {
+	return getTokenForLoggedInUser(t, loginUser(t, userName), scope...)
 }
 
 func loginUser(t testing.TB, userName string) *TestSession {
@@ -256,7 +257,10 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 // token has to be unique this counter take care of
 var tokenCounter int64
 
-func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
+// getTokenForLoggedInUser returns a token for a logged in user.
+// The scope is an optional list of snake_case strings like the frontend form fields,
+// but without the "scope_" prefix.
+func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...auth.AccessTokenScope) string {
 	t.Helper()
 	var token string
 	req := NewRequest(t, "GET", "/user/settings/applications")
@@ -274,10 +278,13 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
 		csrf = doc.GetCSRF()
 	}
 	assert.NotEmpty(t, csrf)
-	req = NewRequestWithValues(t, "POST", "/user/settings/applications", map[string]string{
-		"_csrf": csrf,
-		"name":  fmt.Sprintf("api-testing-token-%d", atomic.AddInt64(&tokenCounter, 1)),
-	})
+	urlValues := url.Values{}
+	urlValues.Add("_csrf", csrf)
+	urlValues.Add("name", fmt.Sprintf("api-testing-token-%d", atomic.AddInt64(&tokenCounter, 1)))
+	for _, scope := range scopes {
+		urlValues.Add("scope", string(scope))
+	}
+	req = NewRequestWithURLValues(t, "POST", "/user/settings/applications", urlValues)
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 
 	// Log the flash values on failure
@@ -317,6 +324,11 @@ func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string
 	for key, value := range values {
 		urlValues[key] = []string{value}
 	}
+	return NewRequestWithURLValues(t, method, urlStr, urlValues)
+}
+
+func NewRequestWithURLValues(t testing.TB, method, urlStr string, urlValues url.Values) *http.Request {
+	t.Helper()
 	req := NewRequestWithBody(t, method, urlStr, bytes.NewBufferString(urlValues.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	return req
