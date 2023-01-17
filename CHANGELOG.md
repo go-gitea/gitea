@@ -9,6 +9,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * API
   * Add `sync_on_commit` option for push mirrors api (#22271) (#22292)
 * BUGFIXES
+  * Update `github.com/zeripath/zapx/v15` (#22485)
   * Fix pull request API field `closed_at` always being `null` (#22482) (#22483)
   * Fix container blob mount (#22226) (#22476)
   * Fix error when calculating repository size (#22392) (#22474)
