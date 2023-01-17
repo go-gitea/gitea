@@ -4,14 +4,12 @@
 package v1_19 //nolint
 
 import (
-	auth_models "code.gitea.io/gitea/models/auth"
-
 	"xorm.io/xorm"
 )
 
 func AddScopeForAccessTokens(x *xorm.Engine) error {
 	type AccessToken struct {
-		Scope auth_models.AccessTokenScope
+		Scope string
 	}
 
 	if err := x.Sync(new(AccessToken)); err != nil {
@@ -19,6 +17,6 @@ func AddScopeForAccessTokens(x *xorm.Engine) error {
 	}
 
 	// all previous tokens have `all` and `sudo` scopes
-	_, err := x.Exec("UPDATE access_token SET scope = ? WHERE scope IS NULL OR scope = ''", auth_models.AccessTokenScopeAll+","+auth_models.AccessTokenScopeSudo)
+	_, err := x.Exec("UPDATE access_token SET scope = ? WHERE scope IS NULL OR scope = ''", "all,sudo")
 	return err
 }
