@@ -149,8 +149,7 @@ func RenameBranch(repo *repo_model.Repository, doer *user_model.User, gitRepo *g
 
 // enmuerates all branch related errors
 var (
-	ErrBranchIsDefault   = errors.New("branch is default")
-	ErrBranchIsProtected = errors.New("branch is protected")
+	ErrBranchIsDefault = errors.New("branch is default")
 )
 
 // DeleteBranch delete branch
@@ -159,13 +158,12 @@ func DeleteBranch(doer *user_model.User, repo *repo_model.Repository, gitRepo *g
 		return ErrBranchIsDefault
 	}
 
-	isProtected, err := git_model.IsProtectedBranch(db.DefaultContext, repo.ID, branchName)
+	isProtected, err := git_model.IsBranchProtected(db.DefaultContext, repo.ID, branchName)
 	if err != nil {
 		return err
 	}
-
 	if isProtected {
-		return ErrBranchIsProtected
+		return git_model.ErrBranchIsProtected
 	}
 
 	commit, err := gitRepo.GetBranchCommit(branchName)

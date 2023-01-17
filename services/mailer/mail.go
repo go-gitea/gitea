@@ -274,6 +274,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 		"ActionName":      actName,
 		"ReviewComments":  reviewComments,
 		"Language":        locale.Language(),
+		"CanReply":        setting.IncomingEmail.Enabled && commentType != issues_model.CommentTypePullRequestPush,
 		// helper
 		"locale":    locale,
 		"Str2html":  templates.Str2html,

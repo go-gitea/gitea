@@ -414,9 +414,9 @@ func doProtectBranch(ctx APITestContext, branch, userToWhitelist, unprotectedFil
 
 		if userToWhitelist == "" {
 			// Change branch to protected
-			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/%s", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), url.PathEscape(branch)), map[string]string{
+			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/edit", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)), map[string]string{
 				"_csrf":                     csrf,
-				"protected":                 "on",
+				"rule_name":                 branch,
 				"unprotected_file_patterns": unprotectedFilePatterns,
 			})
 			ctx.Session.MakeRequest(t, req, http.StatusSeeOther)
@@ -424,9 +424,9 @@ func doProtectBranch(ctx APITestContext, branch, userToWhitelist, unprotectedFil
 			user, err := user_model.GetUserByName(db.DefaultContext, userToWhitelist)
 			assert.NoError(t, err)
 			// Change branch to protected
-			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/%s", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), url.PathEscape(branch)), map[string]string{
+			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/edit", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)), map[string]string{
 				"_csrf":                     csrf,
-				"protected":                 "on",
+				"rule_name":                 branch,
 				"enable_push":               "whitelist",
 				"enable_whitelist":          "on",
 				"whitelist_users":           strconv.FormatInt(user.ID, 10),
@@ -437,7 +437,7 @@ func doProtectBranch(ctx APITestContext, branch, userToWhitelist, unprotectedFil
 		// Check if master branch has been locked successfully
 		flashCookie := ctx.Session.GetCookie("macaron_flash")
 		assert.NotNil(t, flashCookie)
-		assert.EqualValues(t, "success%3DBranch%2Bprotection%2Bfor%2Bbranch%2B%2527"+url.QueryEscape(branch)+"%2527%2Bhas%2Bbeen%2Bupdated.", flashCookie.Value)
+		assert.EqualValues(t, "success%3DBranch%2Bprotection%2Bfor%2Brule%2B%2527"+url.QueryEscape(branch)+"%2527%2Bhas%2Bbeen%2Bupdated.", flashCookie.Value)
 	}
 }
 
