@@ -42,9 +42,15 @@ func ApplicationsPost(ctx *context.Context) {
 		return
 	}
 
+	scope, err := form.GetScope()
+	if err != nil {
+		ctx.ServerError("GetScope", err)
+		return
+	}
 	t := &auth_model.AccessToken{
-		UID:  ctx.Doer.ID,
-		Name: form.Name,
+		UID:   ctx.Doer.ID,
+		Name:  form.Name,
+		Scope: scope,
 	}
 
 	exist, err := auth_model.AccessTokenByNameExists(t)
