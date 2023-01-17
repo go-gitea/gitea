@@ -9,11 +9,13 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * API
   * Add `sync_on_commit` option for push mirrors api (#22271) (#22292)
 * BUGFIXES
+  * Fix pull request API field `closed_at` always being `null` (#22482) (#22483)
   * Fix container blob mount (#22226) (#22476)
   * Fix error when calculating repository size (#22392) (#22474)
   * Fix Operator does not exist bug on explore page with ONLY_SHOW_RELEVANT_REPOS (#22454) (#22472)
   * Fix environments for KaTeX and error reporting (#22453) (#22473)
   * Remove the netgo tag for Windows build (#22467) (#22468)
+  * Fix migration from GitBucket (#22477) (#22465) 
   * Prevent panic on looking at api "git" endpoints for empty repos (#22457) (#22458)
   * Fix PR status layout on mobile (#21547) (#22441)
   * Fix wechatwork webhook sends empty content in PR review (#21762) (#22440)
