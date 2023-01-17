@@ -231,16 +231,14 @@ func ChangeConfig(ctx *context.Context) {
 }
 
 var changeConfigChecks = map[string]func(ctx *context.Context, newValue string) error{
-	system_model.KeyPictureDisableGravatar: func(ctx *context.Context, newValue string) error {
-		v, _ := strconv.ParseBool(newValue)
-		if setting.OfflineMode && !v {
+	system_model.KeyPictureDisableGravatar: func(_ *context.Context, newValue string) error {
+		if v, _ := strconv.ParseBool(newValue); setting.OfflineMode && !v {
 			return fmt.Errorf("%q should be true when OFFLINE_MODE is true", system_model.KeyPictureDisableGravatar)
 		}
 		return nil
 	},
-	system_model.KeyPictureEnableFederatedAvatar: func(ctx *context.Context, newValue string) error {
-		v, _ := strconv.ParseBool(newValue)
-		if setting.OfflineMode && v {
+	system_model.KeyPictureEnableFederatedAvatar: func(_ *context.Context, newValue string) error {
+		if v, _ := strconv.ParseBool(newValue); setting.OfflineMode && v {
 			return fmt.Errorf("%q cannot be false when OFFLINE_MODE is true", system_model.KeyPictureEnableFederatedAvatar)
 		}
 		return nil
