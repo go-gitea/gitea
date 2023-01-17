@@ -760,6 +760,14 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 		ctx.Data[ctxDataKey] = template.Content
 
 		if template.Type() == api.IssueTemplateTypeYaml {
+			// Replace field default values by values from query
+			for _, field := range template.Fields {
+				field_value := ctx.FormString(field.ID)
+				if field_value != "" {
+					field.Attributes["value"] = field_value
+				}
+			}
+
 			ctx.Data["Fields"] = template.Fields
 			ctx.Data["TemplateFile"] = template.FileName
 		}
