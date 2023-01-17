@@ -203,6 +203,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			RepoID:            repo.ID,
 			Labels:            selectLabels,
 			MilestoneID:       milestoneID,
+			ProjectID:         projectID,
 			AssigneeID:        assigneeID,
 			MentionedID:       mentionedID,
 			PosterID:          posterID,
@@ -362,18 +363,16 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		return 0
 	}
 
-	if ctx.Repo.CanWriteIssuesOrPulls(ctx.Params(":type") == "pulls") {
-		projects, _, err := project_model.GetProjects(ctx, project_model.SearchOptions{
-			RepoID:   repo.ID,
-			Type:     project_model.TypeRepository,
-			IsClosed: util.OptionalBoolOf(isShowClosed),
-		})
-		if err != nil {
-			ctx.ServerError("GetProjects", err)
-			return
-		}
-		ctx.Data["Projects"] = projects
+	projects, _, err := project_model.GetProjects(ctx, project_model.SearchOptions{
+		RepoID:   repo.ID,
+		Type:     project_model.TypeRepository,
+		IsClosed: util.OptionalBoolOf(isShowClosed),
+	})
+	if err != nil {
+		ctx.ServerError("GetProjects", err)
+		return
 	}
+	ctx.Data["Projects"] = projects
 
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["SelLabelIDs"] = labelIDs
@@ -381,6 +380,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
 	ctx.Data["MilestoneID"] = milestoneID
+	ctx.Data["ProjectID"] = projectID
 	ctx.Data["AssigneeID"] = assigneeID
 	ctx.Data["PosterID"] = posterID
 	ctx.Data["IsShowClosed"] = isShowClosed
@@ -397,6 +397,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	pager.AddParam(ctx, "state", "State")
 	pager.AddParam(ctx, "labels", "SelectLabels")
 	pager.AddParam(ctx, "milestone", "MilestoneID")
+	pager.AddParam(ctx, "project", "ProjectID")
 	pager.AddParam(ctx, "assignee", "AssigneeID")
 	pager.AddParam(ctx, "poster", "PosterID")
 	ctx.Data["Page"] = pager
@@ -2328,6 +2329,8 @@ func SearchIssues(ctx *context.Context) {
 		includedMilestones = strings.Split(milestones, ",")
 	}
 
+	projectID := ctx.FormInt64("project")
+
 	// this api is also used in UI,
 	// so the default limit is set to fit UI needs
 	limit := ctx.FormInt("limit")
@@ -2350,6 +2353,7 @@ func SearchIssues(ctx *context.Context) {
 			IssueIDs:           issueIDs,
 			IncludedLabelNames: includedLabelNames,
 			IncludeMilestones:  includedMilestones,
+			ProjectID:          projectID,
 			SortType:           "priorityrepo",
 			PriorityRepoID:     ctx.FormInt64("priority_repo_id"),
 			IsPull:             isPull,
@@ -2487,6 +2491,8 @@ func ListIssues(ctx *context.Context) {
 		}
 	}
 
+	projectID := ctx.FormInt64("project")
+
 	listOptions := db.ListOptions{
 		Page:     ctx.FormInt("page"),
 		PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
@@ -2526,6 +2532,7 @@ func ListIssues(ctx *context.Context) {
 			IssueIDs:          issueIDs,
 			LabelIDs:          labelIDs,
 			MilestoneIDs:      mileIDs,
+			ProjectID:         projectID,
 			IsPull:            isPull,
 			UpdatedBeforeUnix: before,
 			UpdatedAfterUnix:  since,
