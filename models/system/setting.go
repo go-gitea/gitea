@@ -268,6 +268,16 @@ func Init() error {
 	if setting_module.OfflineMode {
 		disableGravatar = true
 		enableFederatedAvatar = false
+		if !GetSettingBool(KeyPictureDisableGravatar) {
+			if err := SetSettingNoVersion(KeyPictureDisableGravatar, "true"); err != nil {
+				return fmt.Errorf("Failed to set setting %q: %w", KeyPictureDisableGravatar, err)
+			}
+		}
+		if GetSettingBool(KeyPictureEnableFederatedAvatar) {
+			if err := SetSettingNoVersion(KeyPictureEnableFederatedAvatar, "false"); err != nil {
+				return fmt.Errorf("Failed to set setting %q: %w", KeyPictureEnableFederatedAvatar, err)
+			}
+		}
 	}
 
 	if enableFederatedAvatar || !disableGravatar {
