@@ -256,6 +256,32 @@ func TestPackageContainer(t *testing.T) {
 				})
 			})
 
+			t.Run("UploadBlob/Mount", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				req := NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads?mount=%s", url, unknownDigest))
+				addTokenAuthHeader(req, userToken)
+				MakeRequest(t, req, http.StatusAccepted)
+
+				req = NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads?mount=%s", url, blobDigest))
+				addTokenAuthHeader(req, userToken)
+				resp := MakeRequest(t, req, http.StatusCreated)
+
+				assert.Equal(t, fmt.Sprintf("/v2/%s/%s/blobs/%s", user.Name, image, blobDigest), resp.Header().Get("Location"))
+				assert.Equal(t, blobDigest, resp.Header().Get("Docker-Content-Digest"))
+
+				req = NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads?mount=%s&from=%s", url, unknownDigest, "unknown/image"))
+				addTokenAuthHeader(req, userToken)
+				MakeRequest(t, req, http.StatusAccepted)
+
+				req = NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads?mount=%s&from=%s/%s", url, blobDigest, user.Name, image))
+				addTokenAuthHeader(req, userToken)
+				resp = MakeRequest(t, req, http.StatusCreated)
+
+				assert.Equal(t, fmt.Sprintf("/v2/%s/%s/blobs/%s", user.Name, image, blobDigest), resp.Header().Get("Location"))
+				assert.Equal(t, blobDigest, resp.Header().Get("Docker-Content-Digest"))
+			})
+
 			for _, tag := range tags {
 				t.Run(fmt.Sprintf("[Tag:%s]", tag), func(t *testing.T) {
 					t.Run("UploadManifest", func(t *testing.T) {
@@ -442,21 +468,6 @@ func TestPackageContainer(t *testing.T) {
 				assert.True(t, pd.Files[0].File.IsLead)
 				assert.Equal(t, oci.MediaTypeImageIndex, pd.Files[0].Properties.GetByName(container_module.PropertyMediaType))
 				assert.Equal(t, indexManifestDigest, pd.Files[0].Properties.GetByName(container_module.PropertyDigest))
-			})
-
-			t.Run("UploadBlob/Mount", func(t *testing.T) {
-				defer tests.PrintCurrentTest(t)()
-
-				req := NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads?mount=%s", url, unknownDigest))
-				addTokenAuthHeader(req, userToken)
-				MakeRequest(t, req, http.StatusAccepted)
-
-				req = NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads?mount=%s", url, blobDigest))
-				addTokenAuthHeader(req, userToken)
-				resp := MakeRequest(t, req, http.StatusCreated)
-
-				assert.Equal(t, fmt.Sprintf("/v2/%s/%s/blobs/%s", user.Name, image, blobDigest), resp.Header().Get("Location"))
-				assert.Equal(t, blobDigest, resp.Header().Get("Docker-Content-Digest"))
 			})
 
 			t.Run("HeadBlob", func(t *testing.T) {
