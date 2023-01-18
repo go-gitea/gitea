@@ -57,6 +57,14 @@ func Packages(ctx *context.Context) {
 		return
 	}
 
+	totalAvaibleBlobSize, err := packages_model.CalculateBlobSize(ctx, &packages_model.PackageFileSearchOptions{
+		PackageType: "all",
+	})
+	if err != nil {
+		ctx.ServerError("CalculateBlobSize", err)
+		return
+	}
+
 	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminPackages"] = true
@@ -65,8 +73,9 @@ func Packages(ctx *context.Context) {
 	ctx.Data["AvailableTypes"] = packages_model.TypeList
 	ctx.Data["SortType"] = sort
 	ctx.Data["PackageDescriptors"] = pds
-	ctx.Data["Total"] = total
-	ctx.Data["TotalBlobSize"] = totalBlobSize
+	ctx.Data["TotalCount"] = total
+	ctx.Data["TotalBlobSize"] = totalAvaibleBlobSize
+	ctx.Data["TotalGarbageBlobSize"] = totalBlobSize - totalAvaibleBlobSize
 
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
 	pager.AddParamString("q", query)
