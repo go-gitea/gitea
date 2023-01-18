@@ -90,6 +90,11 @@ var (
 		TypePackages,
 	}
 
+	// ForkRepoUnits contains the default unit types for forks
+	DefaultForkRepoUnits = []Type{
+		TypeCode,
+	}
+
 	// NotAllowedDefaultRepoUnits contains units that can't be default
 	NotAllowedDefaultRepoUnits = []Type{
 		TypeExternalWiki,
