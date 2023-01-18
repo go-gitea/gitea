@@ -1664,6 +1664,14 @@ func ViewIssue(ctx *context.Context) {
 
 		ctx.Data["MergeStyle"] = mergeStyle
 
+		if mergeStyle == repo_model.MergeStyleRebase {
+			ctx.Data["MergeInstructionsCommand"] = "merge --ff-only"
+		} else if mergeStyle == repo_model.MergeStyleSquash {
+			ctx.Data["MergeInstructionsCommand"] = "merge --squash"
+		} else {
+			ctx.Data["MergeInstructionsCommand"] = "merge --no-ff"
+		}
+
 		defaultMergeMessage, defaultMergeBody, err := pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, mergeStyle)
 		if err != nil {
 			ctx.ServerError("GetDefaultMergeMessage", err)
