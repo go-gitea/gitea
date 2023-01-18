@@ -3,6 +3,9 @@
     <div class="action-view-header">
       <div class="action-info-summary">
         {{ run.title }}
+        <button class="run_cancel" @click="cancelRun()" v-if="run.canCancel">
+          <i class="stop circle outline icon"></i>
+        </button>
       </div>
     </div>
     <div class="action-view-body">
@@ -22,9 +25,6 @@
               </button>
             </a>
           </div>
-          <button class="ui fluid tiny basic red button" @click="cancelRun()" v-if="run.canCancel">
-            Cancel
-          </button>
         </div>
       </div>
 
@@ -287,7 +287,18 @@ export function initRepositoryActionView() {
 // action view header
 
 .action-view-header {
-  margin: 0 0 20px 20px;
+  margin: 0 20px 20px 20px;
+  button.run_cancel {
+    border: none;
+    color: var(--color-red);
+    background-color: transparent;
+    outline: none;
+    cursor: pointer;
+    transition:transform 0.2s;
+  };
+  button.run_cancel:hover{
+    transform:scale(130%);
+  };
 }
 
 .action-info-summary {
