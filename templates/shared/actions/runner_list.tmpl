@@ -48,7 +48,8 @@
 				<tr>
 					<th data-sortt-asc="online" data-sortt-desc="offline">{{.locale.Tr "actions.runners.status"}}</th>
 					<th data-sortt-asc="alphabetically">{{.locale.Tr "actions.runners.id"}}</th>
-					<th>{{.locale.Tr "actions.runners.owner_type"}}</th>
+                    <th>{{.locale.Tr "actions.runners.name"}}</th>
+                    <th>{{.locale.Tr "actions.runners.owner_type"}}</th>
 					<th>{{.locale.Tr "actions.runners.labels"}}</th>
 					<th>{{.locale.Tr "actions.runners.last_online"}}</th>
 					<th></th>
@@ -61,12 +62,8 @@
 						<td>
 							<span class="runner-status-{{if .IsOnline}}online{{else}}offline{{end}}">{{.StatusLocaleName $.locale}}</span>
 						</td>
-						<td>
-							<p class="tooltip" data-content="{{.Description}}">
-								<span class="runner-id">{{template "shared/actions/runner_id" .ID}}</span>
-								<span class="runner-name">{{.Name}}</span>
-							</p>
-						</td>
+						<td>{{.ID}}</td>
+						<td><p class="tooltip" data-content="{{.Description}}">{{.Name}}</p></td>
 						<td>{{.OwnType}}</td>
 						<td class="runner-tags">
 							{{range .AllLabels}}<span class="ui label">{{.}}</span>{{end}}

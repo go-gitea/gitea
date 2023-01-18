@@ -1,7 +1,7 @@
 <div class="runner-container">
 	{{template "base/alert" .}}
 	<h4 class="ui top attached header">
-		{{.locale.Tr "actions.runners.runner_title"}} {{template "shared/actions/runner_id" .Runner.ID}} {{.Runner.Name}}
+		{{.locale.Tr "actions.runners.runner_title"}} {{.Runner.ID}} {{.Runner.Name}}
 	</h4>
 	<div class="ui attached segment">
 		<form class="ui form" method="post">
@@ -69,7 +69,7 @@
 			<tbody>
 				{{range .Tasks}}
 				<tr>
-					<td><a href="{{.GetRunLink}}" target="_blank">{{template "shared/actions/runner_id" .ID}}</a></td>
+					<td><a href="{{.GetRunLink}}" target="_blank">{{.ID}}</a></td>
 					<td><span class="ui label task-status-{{.Status.String}}">{{.Status.LocaleString $.locale}}</span></td>
 					<td><a href="{{.GetRepoLink}}" target="_blank">{{.GetRepoName}}</a></td>
 					<td>
