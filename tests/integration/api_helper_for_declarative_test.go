@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/json"
@@ -31,9 +32,9 @@ type APITestContext struct {
 	ExpectedCode int
 }
 
-func NewAPITestContext(t *testing.T, username, reponame string) APITestContext {
+func NewAPITestContext(t *testing.T, username, reponame string, scope ...auth.AccessTokenScope) APITestContext {
 	session := loginUser(t, username)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, scope...)
 	return APITestContext{
 		Session:  session,
 		Token:    token,

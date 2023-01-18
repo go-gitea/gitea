@@ -138,6 +138,8 @@ For more information, refer to Gitea's [API docs]({{< relref "doc/developers/api
 
 You can see the latest API (for example) on <https://try.gitea.io/api/swagger>.
 
+You can also see an example of the `swagger.json` file at <https://try.gitea.io/swagger.v1.json>.
+
 ## Adjusting your server for public/private use
 
 ### Preventing spammers
