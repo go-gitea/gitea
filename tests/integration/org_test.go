@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -158,7 +159,7 @@ func TestOrgRestrictedUser(t *testing.T) {
 
 	// Therefore create a read-only team
 	adminSession := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, adminSession)
+	token := getTokenForLoggedInUser(t, adminSession, auth_model.AccessTokenScopeAdminOrg)
 
 	teamToCreate := &api.CreateTeamOption{
 		Name:                    "codereader",

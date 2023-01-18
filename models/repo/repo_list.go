@@ -5,7 +5,6 @@ package repo
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -14,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
@@ -497,8 +497,12 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 		// Only show a repo that either has a topic or description.
 		subQueryCond := builder.NewCond()
 
-		// Topic checking. Topics is non-null.
-		subQueryCond = subQueryCond.Or(builder.And(builder.Neq{"topics": "null"}, builder.Neq{"topics": "[]"}))
+		// Topic checking. Topics are present.
+		if setting.Database.UsePostgreSQL { // postgres stores the topics as json and not as text
+			subQueryCond = subQueryCond.Or(builder.And(builder.NotNull{"topics"}, builder.Neq{"(topics)::text": "[]"}))
+		} else {
+			subQueryCond = subQueryCond.Or(builder.And(builder.Neq{"topics": "null"}, builder.Neq{"topics": "[]"}))
+		}
 
 		// Description checking. Description not empty.
 		subQueryCond = subQueryCond.Or(builder.Neq{"description": ""})
@@ -708,7 +712,7 @@ func GetUserRepositories(opts *SearchRepoOptions) (RepositoryList, int64, error)
 
 	cond := builder.NewCond()
 	if opts.Actor == nil {
-		return nil, 0, errors.New("GetUserRepositories: Actor is needed but not given")
+		return nil, 0, util.NewInvalidArgumentErrorf("GetUserRepositories: Actor is needed but not given")
 	}
 	cond = cond.And(builder.Eq{"owner_id": opts.Actor.ID})
 	if !opts.Private {

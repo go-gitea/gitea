@@ -59,6 +59,8 @@ func (o *OAuth2) Name() string {
 }
 
 // userIDFromToken returns the user id corresponding to the OAuth token.
+// It will set 'IsApiToken' to true if the token is an API token and
+// set 'ApiTokenScope' to the scope of the access token
 func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
 	_ = req.ParseForm()
 
@@ -86,6 +88,7 @@ func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
 		uid := CheckOAuthAccessToken(tokenSHA)
 		if uid != 0 {
 			store.GetData()["IsApiToken"] = true
+			store.GetData()["ApiTokenScope"] = auth_model.AccessTokenScopeAll // fallback to all
 		}
 		return uid
 	}
@@ -101,6 +104,7 @@ func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
 		log.Error("UpdateAccessToken: %v", err)
 	}
 	store.GetData()["IsApiToken"] = true
+	store.GetData()["ApiTokenScope"] = t.Scope
 	return t.UID
 }
 
@@ -108,18 +112,14 @@ func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
 // or the "Authorization" header and returns the corresponding user object for that ID.
 // If verification is successful returns an existing user object.
 // Returns nil if verification fails.
-func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *user_model.User {
-	if !db.HasEngine {
-		return nil
-	}
-
+func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
 	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isAuthenticatedTokenRequest(req) {
-		return nil
+		return nil, nil
 	}
 
 	id := o.userIDFromToken(req, store)
 	if id <= 0 {
-		return nil
+		return nil, nil
 	}
 	log.Trace("OAuth2 Authorization: Found token for user[%d]", id)
 
@@ -128,11 +128,11 @@ func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStor
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("GetUserByName: %v", err)
 		}
-		return nil
+		return nil, err
 	}
 
 	log.Trace("OAuth2 Authorization: Logged in user %-v", user)
-	return user
+	return user, nil
 }
 
 func isAuthenticatedTokenRequest(req *http.Request) bool {
