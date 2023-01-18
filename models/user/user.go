@@ -1235,7 +1235,7 @@ func GetAdminUser() (*User, error) {
 	var admin User
 	has, err := db.GetEngine(db.DefaultContext).
 		Where("is_admin=?", true).
-		OrderBy("id asc"). // Reliably get the admin with the lowest ID.
+		Asc("id"). // Reliably get the admin with the lowest ID.
 		Get(&admin)
 	if err != nil {
 		return nil, err
