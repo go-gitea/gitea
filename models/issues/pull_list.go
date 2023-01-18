@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 
 	"xorm.io/xorm"
@@ -161,7 +160,7 @@ func (prs PullRequestList) loadAttributes(ctx context.Context) error {
 	}
 
 	// Load issues.
-	issueIDs := prs.getIssueIDs()
+	issueIDs := prs.GetIssueIDs()
 	issues := make([]*Issue, 0, len(issueIDs))
 	if err := db.GetEngine(ctx).
 		Where("id > 0").
@@ -180,7 +179,8 @@ func (prs PullRequestList) loadAttributes(ctx context.Context) error {
 	return nil
 }
 
-func (prs PullRequestList) getIssueIDs() []int64 {
+// GetIssueIDs returns all issue ids
+func (prs PullRequestList) GetIssueIDs() []int64 {
 	issueIDs := make([]int64, 0, len(prs))
 	for i := range prs {
 		issueIDs = append(issueIDs, prs[i].IssueID)
@@ -191,25 +191,4 @@ func (prs PullRequestList) getIssueIDs() []int64 {
 // LoadAttributes load all the prs attributes
 func (prs PullRequestList) LoadAttributes() error {
 	return prs.loadAttributes(db.DefaultContext)
-}
-
-// InvalidateCodeComments will lookup the prs for code comments which got invalidated by change
-func (prs PullRequestList) InvalidateCodeComments(ctx context.Context, doer *user_model.User, repo *git.Repository, branch string) error {
-	if len(prs) == 0 {
-		return nil
-	}
-	issueIDs := prs.getIssueIDs()
-	var codeComments []*Comment
-	if err := db.GetEngine(ctx).
-		Where("type = ? and invalidated = ?", CommentTypeCode, false).
-		In("issue_id", issueIDs).
-		Find(&codeComments); err != nil {
-		return fmt.Errorf("find code comments: %w", err)
-	}
-	for _, comment := range codeComments {
-		if err := comment.CheckInvalidation(repo, doer, branch); err != nil {
-			return err
-		}
-	}
-	return nil
 }

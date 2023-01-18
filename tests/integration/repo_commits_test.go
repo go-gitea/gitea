@@ -11,6 +11,7 @@ import (
 	"sync"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -50,7 +51,8 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 	assert.NotEmpty(t, commitURL)
 
 	// Call API to add status for commit
-	t.Run("CreateStatus", doAPICreateCommitStatus(NewAPITestContext(t, "user2", "repo1"), path.Base(commitURL), api.CommitStatusState(state)))
+	ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeRepo)
+	t.Run("CreateStatus", doAPICreateCommitStatus(ctx, path.Base(commitURL), api.CommitStatusState(state)))
 
 	req = NewRequest(t, "GET", "/user2/repo1/commits/branch/master")
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -142,7 +144,8 @@ func TestRepoCommitsStatusParallel(t *testing.T) {
 		wg.Add(1)
 		go func(parentT *testing.T, i int) {
 			parentT.Run(fmt.Sprintf("ParallelCreateStatus_%d", i), func(t *testing.T) {
-				runBody := doAPICreateCommitStatus(NewAPITestContext(t, "user2", "repo1"), path.Base(commitURL), api.CommitStatusState("pending"))
+				ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeRepoStatus)
+				runBody := doAPICreateCommitStatus(ctx, path.Base(commitURL), api.CommitStatusState("pending"))
 				runBody(t)
 				wg.Done()
 			})

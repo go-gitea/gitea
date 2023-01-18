@@ -24,69 +24,6 @@ import (
 //  \___|_  / \____/ \____/|__|_ \ |____|  (____  /____  >__|_ \
 //        \/                    \/              \/     \/     \/
 
-// HookEventType is the type of an hook event
-type HookEventType string
-
-// Types of hook events
-const (
-	HookEventCreate                    HookEventType = "create"
-	HookEventDelete                    HookEventType = "delete"
-	HookEventFork                      HookEventType = "fork"
-	HookEventPush                      HookEventType = "push"
-	HookEventIssues                    HookEventType = "issues"
-	HookEventIssueAssign               HookEventType = "issue_assign"
-	HookEventIssueLabel                HookEventType = "issue_label"
-	HookEventIssueMilestone            HookEventType = "issue_milestone"
-	HookEventIssueComment              HookEventType = "issue_comment"
-	HookEventPullRequest               HookEventType = "pull_request"
-	HookEventPullRequestAssign         HookEventType = "pull_request_assign"
-	HookEventPullRequestLabel          HookEventType = "pull_request_label"
-	HookEventPullRequestMilestone      HookEventType = "pull_request_milestone"
-	HookEventPullRequestComment        HookEventType = "pull_request_comment"
-	HookEventPullRequestReviewApproved HookEventType = "pull_request_review_approved"
-	HookEventPullRequestReviewRejected HookEventType = "pull_request_review_rejected"
-	HookEventPullRequestReviewComment  HookEventType = "pull_request_review_comment"
-	HookEventPullRequestSync           HookEventType = "pull_request_sync"
-	HookEventWiki                      HookEventType = "wiki"
-	HookEventRepository                HookEventType = "repository"
-	HookEventRelease                   HookEventType = "release"
-	HookEventPackage                   HookEventType = "package"
-)
-
-// Event returns the HookEventType as an event string
-func (h HookEventType) Event() string {
-	switch h {
-	case HookEventCreate:
-		return "create"
-	case HookEventDelete:
-		return "delete"
-	case HookEventFork:
-		return "fork"
-	case HookEventPush:
-		return "push"
-	case HookEventIssues, HookEventIssueAssign, HookEventIssueLabel, HookEventIssueMilestone:
-		return "issues"
-	case HookEventPullRequest, HookEventPullRequestAssign, HookEventPullRequestLabel, HookEventPullRequestMilestone,
-		HookEventPullRequestSync:
-		return "pull_request"
-	case HookEventIssueComment, HookEventPullRequestComment:
-		return "issue_comment"
-	case HookEventPullRequestReviewApproved:
-		return "pull_request_approved"
-	case HookEventPullRequestReviewRejected:
-		return "pull_request_rejected"
-	case HookEventPullRequestReviewComment:
-		return "pull_request_comment"
-	case HookEventWiki:
-		return "wiki"
-	case HookEventRepository:
-		return "repository"
-	case HookEventRelease:
-		return "release"
-	}
-	return ""
-}
-
 // HookRequest represents hook task request information.
 type HookRequest struct {
 	URL        string            `json:"url"`

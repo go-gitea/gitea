@@ -48,7 +48,7 @@ func GetSystemWebhooks(ctx context.Context, isActive util.OptionalBool) ([]*Webh
 
 // DeleteDefaultSystemWebhook deletes an admin-configured default or system webhook (where Org and Repo ID both 0)
 func DeleteDefaultSystemWebhook(ctx context.Context, id int64) error {
-	return db.AutoTx(ctx, func(ctx context.Context) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
 		count, err := db.GetEngine(ctx).
 			Where("repo_id=? AND org_id=?", 0, 0).
 			Delete(&Webhook{ID: id})
