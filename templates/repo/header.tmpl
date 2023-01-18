@@ -187,7 +187,7 @@
 					<a class="{{if .PageIsActions}}active {{end}}item" href="{{.RepoLink}}/actions">
 						{{svg "octicon-play"}} {{.locale.Tr "actions.actions"}}
 						{{if .Repository.NumOpenActionRuns}}
-							<span class="ui blue small label">{{CountFmt .Repository.NumOpenActionRuns}}</span>
+							<span class="ui primary small label">{{CountFmt .Repository.NumOpenActionRuns}}</span>
 						{{end}}
 					</a>
 				{{end}}
