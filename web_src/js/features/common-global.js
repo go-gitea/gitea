@@ -167,20 +167,20 @@ export function initGlobalDropzone() {
           file.uuid = data.uuid;
           const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
           $dropzone.find('.files').append(input);
-          // Create a "Copy Link" element, to conveniently copy the image 
-          // or file link as Markdown to the clipboard 
-          let newNode = document.createElement('a');
-          newNode.className = 'dz-remove';
-          newNode.href = '#';
-          newNode.innerHTML = '<i class="fa fa-copy"></i> Copy link';
-          newNode.onclick = (e) => {
+          // Create a "Copy Link" element, to conveniently copy the image
+          // or file link as Markdown to the clipboard
+          const copyLinkElement = document.createElement('a');
+          copyLinkElement.className = 'dz-remove';
+          copyLinkElement.href = '#';
+          copyLinkElement.innerHTML = '<i class="fa fa-copy"></i> Copy link';
+          copyLinkElement.addEventListener('click', (e) => {
             e.preventDefault();
             let fileMarkdown = `[${file.name}](/attachments/${file.uuid})`;
             if (file.type.startsWith('image/')) {
               fileMarkdown = `!${fileMarkdown}`;
             }
             navigator.clipboard.writeText(fileMarkdown);
-          }
+          });
           file.previewTemplate.appendChild(newNode);
         });
         this.on('removedfile', (file) => {
