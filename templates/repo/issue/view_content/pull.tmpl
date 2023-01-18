@@ -417,7 +417,10 @@
 						<div id="pull-request-merge-form"></div>
 
 						{{if .ShowMergeInstructions}}
-							{{template "repo/issue/view_content/pull_merge_instruction" (dict "locale" .locale "Issue" .Issue)}}
+							{{template "repo/issue/view_content/pull_merge_instruction" (dict "locale" .locale "Issue" .Issue "MergeCommand" .MergeInstructionsCommand)}}
+						{{end}}
+						{{if .ShowRebaseAddMessageHint}}
+							<div class="mt-3"> {{$.locale.Tr "repo.pulls.rebase_add_message_hint" | Safe}} </div>
 						{{end}}
 					{{else}}
 						{{/* no merge style was set in repo setting: not or ($prUnit.PullRequestsConfig.AllowMerge ...) */}}

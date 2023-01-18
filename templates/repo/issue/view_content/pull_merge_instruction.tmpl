@@ -13,7 +13,7 @@
 	<div><h3 class="di">{{$.locale.Tr "step2"}} </h3>{{$.locale.Tr "repo.pulls.merge_instruction_step2_desc"}}</div>
 	<div class="ui secondary segment">
 		<div>git checkout {{$.Issue.PullRequest.BaseBranch}}</div>
-		<div>git merge --no-ff {{if ne $.Issue.PullRequest.HeadRepo.ID $.Issue.PullRequest.BaseRepo.ID}}{{$.Issue.PullRequest.HeadRepo.OwnerName}}-{{end}}{{$.Issue.PullRequest.HeadBranch}}</div>
+		<div>git {{$.MergeCommand}} {{if ne $.Issue.PullRequest.HeadRepo.ID $.Issue.PullRequest.BaseRepo.ID}}{{$.Issue.PullRequest.HeadRepo.OwnerName}}-{{end}}{{$.Issue.PullRequest.HeadBranch}}</div>
 		<div>git push origin {{$.Issue.PullRequest.BaseBranch}}</div>
 	</div>
 </div>
