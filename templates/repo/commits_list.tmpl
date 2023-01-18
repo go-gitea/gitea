@@ -20,7 +20,7 @@
 								{{end}}
 								{{avatar $.Context .User 28 "mr-2"}}<a href="{{.User.HomeLink}}">{{$userName}}</a>
 							{{else}}
-								{{avatarByEmail .Author.Email .Author.Name 28 "mr-2"}}
+								{{avatarByEmail $.Context .Author.Email .Author.Name 28 "mr-2"}}
 								{{$userName}}
 							{{end}}
 						</td>

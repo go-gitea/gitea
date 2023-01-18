@@ -14,7 +14,7 @@
 						{{end}}
 					{{else}}
 						{{if .LatestCommit.Author}}
-							{{avatarByEmail .LatestCommit.Author.Email .LatestCommit.Author.Name 24}}
+							{{avatarByEmail $.Context .LatestCommit.Author.Email .LatestCommit.Author.Name 24}}
 							<strong>{{.LatestCommit.Author.Name}}</strong>
 						{{end}}
 					{{end}}

@@ -10,7 +10,7 @@
 				{{avatar $.Context .User}}
 			</a>
 		{{else}}
-			{{avatarByEmail .Author.Email .Author.Name}}
+			{{avatarByEmail $.Context .Author.Email .Author.Name}}
 		{{end}}
 
 		<span class="ui float right shabox">

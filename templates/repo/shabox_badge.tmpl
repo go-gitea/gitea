@@ -6,7 +6,7 @@
 			{{avatar $.Context .verification.SigningUser 28 "signature"}}
 		{{else}}
 			<span title="{{$.root.locale.Tr "gpg.default_key"}}">{{svg "gitea-lock-cog"}}</span>
-			{{avatarByEmail .verification.SigningEmail "" 28 "signature"}}
+			{{avatarByEmail $.Context .verification.SigningEmail "" 28 "signature"}}
 		{{end}}
 		</div>
 	{{else}}

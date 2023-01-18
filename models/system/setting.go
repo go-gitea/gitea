@@ -126,7 +126,6 @@ func GetSettings(ctx context.Context, keys []string) (map[string]*Setting, error
 	for i := 0; i < len(keys); i++ {
 		keys[i] = strings.ToLower(keys[i])
 	}
-
 	settings := make([]*Setting, 0, len(keys))
 	if err := db.GetEngine(db.DefaultContext).
 		Where(builder.In("setting_key", keys)).
@@ -205,11 +204,11 @@ func SetSetting(ctx context.Context, setting *Setting) error {
 
 	cc := cache.GetCache()
 	if cc != nil {
-		return cc.Put(genSettingCacheKey(setting.SettingKey), setting.SettingValue, setting_module.CacheService.TTLSeconds())
+		if err := cc.Put(genSettingCacheKey(setting.SettingKey), setting.SettingValue, setting_module.CacheService.TTLSeconds()); err != nil {
+			return err
+		}
 	}
-
 	cache.SetContextData(ctx, contextCacheKey, setting.SettingKey, setting.SettingValue)
-
 	return nil
 }
 

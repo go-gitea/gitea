@@ -153,7 +153,7 @@
 							<a href="{{.Author.HomeLink}}"><strong>{{.Commit.Author.Name}}</strong></a>
 						{{end}}
 					{{else}}
-						{{avatarByEmail .Commit.Author.Email .Commit.Author.Email 28 "mr-3"}}
+						{{avatarByEmail $.Context .Commit.Author.Email .Commit.Author.Email 28 "mr-3"}}
 						<strong>{{.Commit.Author.Name}}</strong>
 					{{end}}
 					<span class="text grey ml-3" id="authored-time">{{TimeSince .Commit.Author.When $.locale}}</span>
@@ -163,7 +163,7 @@
 							{{avatar $.Context .Verification.CommittingUser 28 "mx-3"}}
 							<a href="{{.Verification.CommittingUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong></a>
 						{{else}}
-							{{avatarByEmail .Commit.Committer.Email .Commit.Committer.Name 28 "mr-3"}}
+							{{avatarByEmail $.Context .Commit.Committer.Email .Commit.Committer.Name 28 "mr-3"}}
 							<strong>{{.Commit.Committer.Name}}</strong>
 						{{end}}
 					{{end}}
@@ -205,7 +205,7 @@
 						{{else}}
 							<span title="{{.locale.Tr "gpg.default_key"}}">{{svg "gitea-lock-cog" 16 "mr-3"}}</span>
 							<span class="ui text mr-3">{{.locale.Tr "repo.commits.signed_by"}}:</span>
-							{{avatarByEmail .Verification.SigningEmail "" 28}}
+							{{avatarByEmail $.Context .Verification.SigningEmail "" 28}}
 							<strong>{{.Verification.SigningUser.GetDisplayName}}</strong>
 						{{end}}
 					{{else}}
