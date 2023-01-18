@@ -230,6 +230,10 @@ services:
       MINIO_ACCESS_KEY: 123456
       MINIO_SECRET_KEY: 12345678
 
+  - name: smtpimap
+    image: tabascoterrier/docker-imap-devel:latest
+    pull: always
+
 steps:
   - name: fetch-tags
     image: docker:git

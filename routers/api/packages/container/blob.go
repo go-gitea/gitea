@@ -33,6 +33,60 @@ func saveAsPackageBlob(hsr packages_module.HashedSizeReader, pi *packages_servic
 
 	contentStore := packages_module.NewContentStore()
 
+	uploadVersion, err := getOrCreateUploadVersion(pi)
+	if err != nil {
+		return nil, err
+	}
+
+	err = db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+		pb, exists, err = packages_model.GetOrInsertBlob(ctx, pb)
+		if err != nil {
+			log.Error("Error inserting package blob: %v", err)
+			return err
+		}
+		// FIXME: Workaround to be removed in v1.20
+		// https://github.com/go-gitea/gitea/issues/19586
+		if exists {
+			err = contentStore.Has(packages_module.BlobHash256Key(pb.HashSHA256))
+			if err != nil && (errors.Is(err, util.ErrNotExist) || errors.Is(err, os.ErrNotExist)) {
+				log.Debug("Package registry inconsistent: blob %s does not exist on file system", pb.HashSHA256)
+				exists = false
+			}
+		}
+		if !exists {
+			if err := contentStore.Save(packages_module.BlobHash256Key(pb.HashSHA256), hsr, hsr.Size()); err != nil {
+				log.Error("Error saving package blob in content store: %v", err)
+				return err
+			}
+		}
+
+		return createFileForBlob(ctx, uploadVersion, pb)
+	})
+	if err != nil {
+		if !exists {
+			if err := contentStore.Delete(packages_module.BlobHash256Key(pb.HashSHA256)); err != nil {
+				log.Error("Error deleting package blob from content store: %v", err)
+			}
+		}
+		return nil, err
+	}
+
+	return pb, nil
+}
+
+// mountBlob mounts the specific blob to a different package
+func mountBlob(pi *packages_service.PackageInfo, pb *packages_model.PackageBlob) error {
+	uploadVersion, err := getOrCreateUploadVersion(pi)
+	if err != nil {
+		return err
+	}
+
+	return db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+		return createFileForBlob(ctx, uploadVersion, pb)
+	})
+}
+
+func getOrCreateUploadVersion(pi *packages_service.PackageInfo) (*packages_model.PackageVersion, error) {
 	var uploadVersion *packages_model.PackageVersion
 
 	// FIXME: Replace usage of mutex with database transaction
@@ -83,66 +137,35 @@ func saveAsPackageBlob(hsr packages_module.HashedSizeReader, pi *packages_servic
 		return nil
 	})
 	uploadVersionMutex.Unlock()
-	if err != nil {
-		return nil, err
+
+	return uploadVersion, err
+}
+
+func createFileForBlob(ctx context.Context, pv *packages_model.PackageVersion, pb *packages_model.PackageBlob) error {
+	filename := strings.ToLower(fmt.Sprintf("sha256_%s", pb.HashSHA256))
+
+	pf := &packages_model.PackageFile{
+		VersionID:    pv.ID,
+		BlobID:       pb.ID,
+		Name:         filename,
+		LowerName:    filename,
+		CompositeKey: packages_model.EmptyFileKey,
+	}
+	var err error
+	if pf, err = packages_model.TryInsertFile(ctx, pf); err != nil {
+		if err == packages_model.ErrDuplicatePackageFile {
+			return nil
+		}
+		log.Error("Error inserting package file: %v", err)
+		return err
 	}
 
-	err = db.WithTx(db.DefaultContext, func(ctx context.Context) error {
-		pb, exists, err = packages_model.GetOrInsertBlob(ctx, pb)
-		if err != nil {
-			log.Error("Error inserting package blob: %v", err)
-			return err
-		}
-		// FIXME: Workaround to be removed in v1.20
-		// https://github.com/go-gitea/gitea/issues/19586
-		if exists {
-			err = contentStore.Has(packages_module.BlobHash256Key(pb.HashSHA256))
-			if err != nil && (errors.Is(err, util.ErrNotExist) || errors.Is(err, os.ErrNotExist)) {
-				log.Debug("Package registry inconsistent: blob %s does not exist on file system", pb.HashSHA256)
-				exists = false
-			}
-		}
-		if !exists {
-			if err := contentStore.Save(packages_module.BlobHash256Key(pb.HashSHA256), hsr, hsr.Size()); err != nil {
-				log.Error("Error saving package blob in content store: %v", err)
-				return err
-			}
-		}
-
-		filename := strings.ToLower(fmt.Sprintf("sha256_%s", pb.HashSHA256))
-
-		pf := &packages_model.PackageFile{
-			VersionID:    uploadVersion.ID,
-			BlobID:       pb.ID,
-			Name:         filename,
-			LowerName:    filename,
-			CompositeKey: packages_model.EmptyFileKey,
-		}
-		if pf, err = packages_model.TryInsertFile(ctx, pf); err != nil {
-			if err == packages_model.ErrDuplicatePackageFile {
-				return nil
-			}
-			log.Error("Error inserting package file: %v", err)
-			return err
-		}
-
-		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypeFile, pf.ID, container_module.PropertyDigest, digestFromPackageBlob(pb)); err != nil {
-			log.Error("Error setting package file property: %v", err)
-			return err
-		}
-
-		return nil
-	})
-	if err != nil {
-		if !exists {
-			if err := contentStore.Delete(packages_module.BlobHash256Key(pb.HashSHA256)); err != nil {
-				log.Error("Error deleting package blob from content store: %v", err)
-			}
-		}
-		return nil, err
+	if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypeFile, pf.ID, container_module.PropertyDigest, digestFromPackageBlob(pb)); err != nil {
+		log.Error("Error setting package file property: %v", err)
+		return err
 	}
 
-	return pb, nil
+	return nil
 }
 
 func deleteBlob(ownerID int64, image, digest string) error {

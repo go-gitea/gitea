@@ -106,6 +106,8 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 
 	setting.Git.HomePath = filepath.Join(setting.AppDataPath, "home")
 
+	setting.IncomingEmail.ReplyToAddress = "incoming+%{token}@localhost"
+
 	if err = storage.Init(); err != nil {
 		fatalTestError("storage.Init: %v\n", err)
 	}

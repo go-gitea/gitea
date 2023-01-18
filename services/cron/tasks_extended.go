@@ -175,6 +175,48 @@ func registerDeleteOldSystemNotices() {
 	})
 }
 
+func registerGCLFS() {
+	if !setting.LFS.StartServer {
+		return
+	}
+	type GCLFSConfig struct {
+		OlderThanConfig
+		LastUpdatedMoreThanAgo   time.Duration
+		NumberToCheckPerRepo     int64
+		ProportionToCheckPerRepo float64
+	}
+
+	RegisterTaskFatal("gc_lfs", &GCLFSConfig{
+		OlderThanConfig: OlderThanConfig{
+			BaseConfig: BaseConfig{
+				Enabled:    false,
+				RunAtStart: false,
+				Schedule:   "@every 24h",
+			},
+			// Only attempt to garbage collect lfs meta objects older than a week as the order of git lfs upload
+			// and git object upload is not necessarily guaranteed. It's possible to imagine a situation whereby
+			// an LFS object is uploaded but the git branch is not uploaded immediately, or there are some rapid
+			// changes in new branches that might lead to lfs objects becoming temporarily unassociated with git
+			// objects.
+			//
+			// It is likely that a week is potentially excessive but it should definitely be enough that any
+			// unassociated LFS object is genuinely unassociated.
+			OlderThan: 24 * time.Hour * 7,
+		},
+		// Only GC things that haven't been looked at in the past 3 days
+		LastUpdatedMoreThanAgo:   24 * time.Hour * 3,
+		NumberToCheckPerRepo:     100,
+		ProportionToCheckPerRepo: 0.6,
+	}, func(ctx context.Context, _ *user_model.User, config Config) error {
+		gcLFSConfig := config.(*GCLFSConfig)
+		return repo_service.GarbageCollectLFSMetaObjects(ctx, repo_service.GarbageCollectLFSMetaObjectsOptions{
+			AutoFix:                 true,
+			OlderThan:               time.Now().Add(-gcLFSConfig.OlderThan),
+			UpdatedLessRecentlyThan: time.Now().Add(-gcLFSConfig.LastUpdatedMoreThanAgo),
+		})
+	})
+}
+
 func initExtendedTasks() {
 	registerDeleteInactiveUsers()
 	registerDeleteRepositoryArchives()
@@ -188,4 +230,5 @@ func initExtendedTasks() {
 	registerDeleteOldActions()
 	registerUpdateGiteaChecker()
 	registerDeleteOldSystemNotices()
+	registerGCLFS()
 }

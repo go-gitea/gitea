@@ -378,7 +378,6 @@ func DeleteTeam(t *organization.Team) error {
 		return err
 	}
 	defer committer.Close()
-	sess := db.GetEngine(ctx)
 
 	if err := t.LoadRepositories(ctx); err != nil {
 		return err
@@ -391,27 +390,15 @@ func DeleteTeam(t *organization.Team) error {
 	// update branch protections
 	{
 		protections := make([]*git_model.ProtectedBranch, 0, 10)
-		err := sess.In("repo_id",
+		err := db.GetEngine(ctx).In("repo_id",
 			builder.Select("id").From("repository").Where(builder.Eq{"owner_id": t.OrgID})).
 			Find(&protections)
 		if err != nil {
 			return fmt.Errorf("findProtectedBranches: %w", err)
 		}
 		for _, p := range protections {
-			lenIDs, lenApprovalIDs, lenMergeIDs := len(p.WhitelistTeamIDs), len(p.ApprovalsWhitelistTeamIDs), len(p.MergeWhitelistTeamIDs)
-			p.WhitelistTeamIDs = util.SliceRemoveAll(p.WhitelistTeamIDs, t.ID)
-			p.ApprovalsWhitelistTeamIDs = util.SliceRemoveAll(p.ApprovalsWhitelistTeamIDs, t.ID)
-			p.MergeWhitelistTeamIDs = util.SliceRemoveAll(p.MergeWhitelistTeamIDs, t.ID)
-			if lenIDs != len(p.WhitelistTeamIDs) ||
-				lenApprovalIDs != len(p.ApprovalsWhitelistTeamIDs) ||
-				lenMergeIDs != len(p.MergeWhitelistTeamIDs) {
-				if _, err = sess.ID(p.ID).Cols(
-					"whitelist_team_i_ds",
-					"merge_whitelist_team_i_ds",
-					"approvals_whitelist_team_i_ds",
-				).Update(p); err != nil {
-					return fmt.Errorf("updateProtectedBranches: %w", err)
-				}
+			if err := git_model.RemoveTeamIDFromProtectedBranch(ctx, p, t.ID); err != nil {
+				return err
 			}
 		}
 	}
@@ -432,7 +419,7 @@ func DeleteTeam(t *organization.Team) error {
 	}
 
 	// Update organization number of teams.
-	if _, err := sess.Exec("UPDATE `user` SET num_teams=num_teams-1 WHERE id=?", t.OrgID); err != nil {
+	if _, err := db.Exec(ctx, "UPDATE `user` SET num_teams=num_teams-1 WHERE id=?", t.OrgID); err != nil {
 		return err
 	}
 
