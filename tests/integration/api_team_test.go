@@ -9,6 +9,7 @@ import (
 	"sort"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/repo"
@@ -30,7 +31,7 @@ func TestAPITeam(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: teamUser.UID})
 
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAdminOrg)
 	req := NewRequestf(t, "GET", "/api/v1/teams/%d?token="+token, teamUser.TeamID)
 	resp := MakeRequest(t, req, http.StatusOK)
 
@@ -44,7 +45,7 @@ func TestAPITeam(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: teamUser2.UID})
 
 	session = loginUser(t, user2.Name)
-	token = getTokenForLoggedInUser(t, session)
+	token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrg)
 	req = NewRequestf(t, "GET", "/api/v1/teams/%d?token="+token, teamUser.TeamID)
 	_ = MakeRequest(t, req, http.StatusForbidden)
 
@@ -54,7 +55,7 @@ func TestAPITeam(t *testing.T) {
 	// Get an admin user able to create, update and delete teams.
 	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	session = loginUser(t, user.Name)
-	token = getTokenForLoggedInUser(t, session)
+	token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAdminOrg)
 
 	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 6})
 
@@ -228,7 +229,7 @@ func TestAPITeamSearch(t *testing.T) {
 
 	var results TeamSearchResults
 
-	token := getUserToken(t, user.Name)
+	token := getUserToken(t, user.Name, auth_model.AccessTokenScopeReadOrg)
 	req := NewRequestf(t, "GET", "/api/v1/orgs/%s/teams/search?q=%s&token=%s", org.Name, "_team", token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &results)
@@ -238,7 +239,7 @@ func TestAPITeamSearch(t *testing.T) {
 
 	// no access if not organization member
 	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
-	token5 := getUserToken(t, user5.Name)
+	token5 := getUserToken(t, user5.Name, auth_model.AccessTokenScopeReadOrg)
 
 	req = NewRequestf(t, "GET", "/api/v1/orgs/%s/teams/search?q=%s&token=%s", org.Name, "team", token5)
 	MakeRequest(t, req, http.StatusForbidden)
@@ -253,7 +254,7 @@ func TestAPIGetTeamRepo(t *testing.T) {
 
 	var results api.Repository
 
-	token := getUserToken(t, user.Name)
+	token := getUserToken(t, user.Name, auth_model.AccessTokenScopeReadOrg)
 	req := NewRequestf(t, "GET", "/api/v1/teams/%d/repos/%s/?token=%s", team.ID, teamRepo.FullName(), token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &results)
@@ -261,7 +262,7 @@ func TestAPIGetTeamRepo(t *testing.T) {
 
 	// no access if not organization member
 	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
-	token5 := getUserToken(t, user5.Name)
+	token5 := getUserToken(t, user5.Name, auth_model.AccessTokenScopeReadOrg)
 
 	req = NewRequestf(t, "GET", "/api/v1/teams/%d/repos/%s/?token=%s", team.ID, teamRepo.FullName(), token5)
 	MakeRequest(t, req, http.StatusNotFound)

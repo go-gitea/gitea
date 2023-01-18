@@ -22,13 +22,11 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
-	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
 // ToEmail convert models.EmailAddress to api.Email
@@ -81,7 +79,7 @@ func ToBranch(ctx context.Context, repo *repo_model.Repository, b *git.Branch, c
 	}
 
 	if isRepoAdmin {
-		branch.EffectiveBranchProtectionName = bp.BranchName
+		branch.EffectiveBranchProtectionName = bp.RuleName
 	}
 
 	if user != nil {
@@ -89,7 +87,8 @@ func ToBranch(ctx context.Context, repo *repo_model.Repository, b *git.Branch, c
 		if err != nil {
 			return nil, err
 		}
-		branch.UserCanPush = bp.CanUserPush(user.ID)
+		bp.Repo = repo
+		branch.UserCanPush = bp.CanUserPush(db.DefaultContext, user)
 		branch.UserCanMerge = git_model.IsUserMergeWhitelisted(db.DefaultContext, bp, user.ID, permission)
 	}
 
@@ -123,8 +122,14 @@ func ToBranchProtection(bp *git_model.ProtectedBranch) *api.BranchProtection {
 		log.Error("GetTeamNamesByID (ApprovalsWhitelistTeamIDs): %v", err)
 	}
 
+	branchName := ""
+	if !git_model.IsRuleNameSpecial(bp.RuleName) {
+		branchName = bp.RuleName
+	}
+
 	return &api.BranchProtection{
-		BranchName:                    bp.BranchName,
+		BranchName:                    branchName,
+		RuleName:                      bp.RuleName,
 		EnablePush:                    bp.CanPush,
 		EnablePushWhitelist:           bp.EnableWhitelist,
 		PushWhitelistUsernames:        pushWhitelistUsernames,
@@ -240,38 +245,6 @@ func ToGPGKeyEmail(email *user_model.EmailAddress) *api.GPGKeyEmail {
 		Email:    email.Email,
 		Verified: email.IsActivated,
 	}
-}
-
-// ToHook convert models.Webhook to api.Hook
-func ToHook(repoLink string, w *webhook.Webhook) (*api.Hook, error) {
-	config := map[string]string{
-		"url":          w.URL,
-		"content_type": w.ContentType.Name(),
-	}
-	if w.Type == webhook.SLACK {
-		s := webhook_service.GetSlackHook(w)
-		config["channel"] = s.Channel
-		config["username"] = s.Username
-		config["icon_url"] = s.IconURL
-		config["color"] = s.Color
-	}
-
-	authorizationHeader, err := w.HeaderAuthorization()
-	if err != nil {
-		return nil, err
-	}
-
-	return &api.Hook{
-		ID:                  w.ID,
-		Type:                w.Type,
-		URL:                 fmt.Sprintf("%s/settings/hooks/%d", repoLink, w.ID),
-		Active:              w.IsActive,
-		Config:              config,
-		Events:              w.EventsArray(),
-		AuthorizationHeader: authorizationHeader,
-		Updated:             w.UpdatedUnix.AsTime(),
-		Created:             w.CreatedUnix.AsTime(),
-	}, nil
 }
 
 // ToGitHook convert git.Hook to api.GitHook

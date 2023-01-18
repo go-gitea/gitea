@@ -13,6 +13,7 @@ import (
 	"sync"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
@@ -31,6 +32,8 @@ func TestPackageContainer(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadPackage)
 
 	has := func(l packages_model.PackagePropertyList, name string) bool {
 		for _, pp := range l {
@@ -256,6 +259,32 @@ func TestPackageContainer(t *testing.T) {
 				})
 			})
 
+			t.Run("UploadBlob/Mount", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				req := NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads?mount=%s", url, unknownDigest))
+				addTokenAuthHeader(req, userToken)
+				MakeRequest(t, req, http.StatusAccepted)
+
+				req = NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads?mount=%s", url, blobDigest))
+				addTokenAuthHeader(req, userToken)
+				resp := MakeRequest(t, req, http.StatusCreated)
+
+				assert.Equal(t, fmt.Sprintf("/v2/%s/%s/blobs/%s", user.Name, image, blobDigest), resp.Header().Get("Location"))
+				assert.Equal(t, blobDigest, resp.Header().Get("Docker-Content-Digest"))
+
+				req = NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads?mount=%s&from=%s", url, unknownDigest, "unknown/image"))
+				addTokenAuthHeader(req, userToken)
+				MakeRequest(t, req, http.StatusAccepted)
+
+				req = NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads?mount=%s&from=%s/%s", url, blobDigest, user.Name, image))
+				addTokenAuthHeader(req, userToken)
+				resp = MakeRequest(t, req, http.StatusCreated)
+
+				assert.Equal(t, fmt.Sprintf("/v2/%s/%s/blobs/%s", user.Name, image, blobDigest), resp.Header().Get("Location"))
+				assert.Equal(t, blobDigest, resp.Header().Get("Docker-Content-Digest"))
+			})
+
 			for _, tag := range tags {
 				t.Run(fmt.Sprintf("[Tag:%s]", tag), func(t *testing.T) {
 					t.Run("UploadManifest", func(t *testing.T) {
@@ -444,21 +473,6 @@ func TestPackageContainer(t *testing.T) {
 				assert.Equal(t, indexManifestDigest, pd.Files[0].Properties.GetByName(container_module.PropertyDigest))
 			})
 
-			t.Run("UploadBlob/Mount", func(t *testing.T) {
-				defer tests.PrintCurrentTest(t)()
-
-				req := NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads?mount=%s", url, unknownDigest))
-				addTokenAuthHeader(req, userToken)
-				MakeRequest(t, req, http.StatusAccepted)
-
-				req = NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads?mount=%s", url, blobDigest))
-				addTokenAuthHeader(req, userToken)
-				resp := MakeRequest(t, req, http.StatusCreated)
-
-				assert.Equal(t, fmt.Sprintf("/v2/%s/%s/blobs/%s", user.Name, image, blobDigest), resp.Header().Get("Location"))
-				assert.Equal(t, blobDigest, resp.Header().Get("Docker-Content-Digest"))
-			})
-
 			t.Run("HeadBlob", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
@@ -547,7 +561,7 @@ func TestPackageContainer(t *testing.T) {
 					assert.Equal(t, c.ExpectedLink, resp.Header().Get("Link"))
 				}
 
-				req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s?type=container&q=%s", user.Name, image))
+				req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s?type=container&q=%s&token=%s", user.Name, image, token))
 				resp := MakeRequest(t, req, http.StatusOK)
 
 				var apiPackages []*api.Package

@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
@@ -52,7 +53,7 @@ func TestHTTPSigPubKey(t *testing.T) {
 	// Add our public key to user1
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user1")
-	token := url.QueryEscape(getTokenForLoggedInUser(t, session))
+	token := url.QueryEscape(getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAdminPublicKey, auth_model.AccessTokenScopeSudo))
 	keysURL := fmt.Sprintf("/api/v1/user/keys?token=%s", token)
 	keyType := "ssh-rsa"
 	keyContent := "AAAAB3NzaC1yc2EAAAADAQABAAABAQCqOZB5vkRvXFXups1/0StDRdG8plbNSwsWEnNnP4Bvurxa0+z3W9B8GLKnDiLw5MbpbMNyBlpXw13GfuIeciy10DWTz0xUbiy3J3KabCaT36asIw2y7k6Z0jL0UBnrVENwq5/lUbZYqSZ4rRU744wkhh8TULpzM14npQCZwg6aEbG+MwjzddQ72fR+3BPBrKn5dTmmu8rH99O+U+Nuto81Tg7PA+NUupcHOmhdiEGq49plgVFXK98Vks5tiybL4GuzFyWgyX73Dg/QBMn2eMHt1EMv5Gs3i6GFhKKGo4rjDi9qI6PX5oDR4LTNe6cR8td8YhVD8WFZwLLl/vaYyIqd"

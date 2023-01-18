@@ -28,7 +28,7 @@ func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string
 	pointer, err := lfs.GeneratePointer(bytes.NewReader(*content))
 	assert.NoError(t, err)
 
-	_, err = git_model.NewLFSMetaObject(&git_model.LFSMetaObject{Pointer: pointer, RepositoryID: repositoryID})
+	_, err = git_model.NewLFSMetaObject(db.DefaultContext, &git_model.LFSMetaObject{Pointer: pointer, RepositoryID: repositoryID})
 	assert.NoError(t, err)
 	contentStore := lfs.NewContentStore()
 	exist, err := contentStore.Exists(pointer)
@@ -44,7 +44,7 @@ func storeAndGetLfs(t *testing.T, content *[]byte, extraHeader *http.Header, exp
 	repo, err := repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, "user2", "repo1")
 	assert.NoError(t, err)
 	oid := storeObjectInRepo(t, repo.ID, content)
-	defer git_model.RemoveLFSMetaObjectByOid(repo.ID, oid)
+	defer git_model.RemoveLFSMetaObjectByOid(db.DefaultContext, repo.ID, oid)
 
 	session := loginUser(t, "user2")
 

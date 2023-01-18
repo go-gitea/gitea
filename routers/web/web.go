@@ -634,7 +634,7 @@ func RegisterRoutes(m *web.Route) {
 			http.ServeFile(ctx.Resp, ctx.Req, path.Join(setting.StaticRootPath, "public/img/favicon.png"))
 		})
 		m.Group("/{username}", func() {
-			m.Get(".png", func(ctx *context.Context) { ctx.Error(http.StatusNotFound) })
+			m.Get(".png", user.AvatarByUserName)
 			m.Get(".keys", user.ShowSSHKeys)
 			m.Get(".gpg", user.ShowGPGKeys)
 			m.Get(".rss", feedEnabled, feed.ShowUserFeedRSS)
@@ -861,10 +861,16 @@ func RegisterRoutes(m *web.Route) {
 			})
 
 			m.Group("/branches", func() {
-				m.Combo("").Get(repo.ProtectedBranch).Post(repo.ProtectedBranchPost)
-				m.Combo("/*").Get(repo.SettingsProtectedBranch).
-					Post(web.Bind(forms.ProtectBranchForm{}), context.RepoMustNotBeArchived(), repo.SettingsProtectedBranchPost)
+				m.Post("/", repo.SetDefaultBranchPost)
 			}, repo.MustBeNotEmpty)
+
+			m.Group("/branches", func() {
+				m.Get("/", repo.ProtectedBranchRules)
+				m.Combo("/edit").Get(repo.SettingsProtectedBranch).
+					Post(web.Bind(forms.ProtectBranchForm{}), context.RepoMustNotBeArchived(), repo.SettingsProtectedBranchPost)
+				m.Post("/{id}/delete", repo.DeleteProtectedBranchRulePost)
+			}, repo.MustBeNotEmpty)
+
 			m.Post("/rename_branch", web.Bind(forms.RenameBranchForm{}), context.RepoMustNotBeArchived(), repo.RenameBranchPost)
 
 			m.Group("/tags", func() {

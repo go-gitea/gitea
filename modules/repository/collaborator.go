@@ -14,7 +14,7 @@ import (
 )
 
 func AddCollaborator(ctx context.Context, repo *repo_model.Repository, u *user_model.User) error {
-	return db.AutoTx(ctx, func(ctx context.Context) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
 		collaboration := &repo_model.Collaboration{
 			RepoID: repo.ID,
 			UserID: u.ID,
