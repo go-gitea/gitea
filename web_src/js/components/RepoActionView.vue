@@ -4,7 +4,7 @@
       <div class="action-info-summary">
         {{ run.title }}
         <button class="run_cancel" @click="cancelRun()" v-if="run.canCancel">
-          <i class="stop circle outline icon"></i>
+          <i class="stop circle outline icon"/>
         </button>
       </div>
     </div>
