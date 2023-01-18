@@ -174,4 +174,3 @@ func AddActionsTables(x *xorm.Engine) error {
 		new(dbfsData),
 	)
 }
-
