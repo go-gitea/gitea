@@ -1663,9 +1663,11 @@ func ViewIssue(ctx *context.Context) {
 		}
 
 		ctx.Data["MergeStyle"] = mergeStyle
+		ctx.Data["ShowRebaseAddMessageHint"] = false
 
 		if mergeStyle == repo_model.MergeStyleRebase {
 			ctx.Data["MergeInstructionsCommand"] = "merge --ff-only"
+			ctx.Data["ShowRebaseAddMessageHint"] = true
 		} else if mergeStyle == repo_model.MergeStyleSquash {
 			ctx.Data["MergeInstructionsCommand"] = "merge --squash"
 		} else {
