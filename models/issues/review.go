@@ -972,7 +972,7 @@ func DeleteReview(r *Review) error {
 		ReviewID: r.ID,
 	}
 
-	if _, err := sess.Where(opts.toConds()).Delete(new(Comment)); err != nil {
+	if _, err := sess.Where(opts.ToConds()).Delete(new(Comment)); err != nil {
 		return err
 	}
 
@@ -982,7 +982,7 @@ func DeleteReview(r *Review) error {
 		ReviewID: r.ID,
 	}
 
-	if _, err := sess.Where(opts.toConds()).Delete(new(Comment)); err != nil {
+	if _, err := sess.Where(opts.ToConds()).Delete(new(Comment)); err != nil {
 		return err
 	}
 
@@ -1006,7 +1006,7 @@ func (r *Review) GetCodeCommentsCount() int {
 		IssueID:  r.IssueID,
 		ReviewID: r.ID,
 	}
-	conds := opts.toConds()
+	conds := opts.ToConds()
 	if r.ID == 0 {
 		conds = conds.And(builder.Eq{"invalidated": false})
 	}
@@ -1026,7 +1026,7 @@ func (r *Review) HTMLURL() string {
 		ReviewID: r.ID,
 	}
 	comment := new(Comment)
-	has, err := db.GetEngine(db.DefaultContext).Where(opts.toConds()).Get(comment)
+	has, err := db.GetEngine(db.DefaultContext).Where(opts.ToConds()).Get(comment)
 	if err != nil || !has {
 		return ""
 	}
