@@ -7,7 +7,9 @@ package repo
 import (
 	"net/http"
 
+	perm "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -35,6 +37,7 @@ func GetProjectBoard(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
+
 	board, err := project_model.GetBoard(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if project_model.IsErrProjectBoardNotExist(err) {
@@ -45,8 +48,16 @@ func GetProjectBoard(ctx *context.APIContext) {
 		return
 	}
 
-	if board.Project.RepoID != ctx.Repo.Repository.ID {
-		ctx.Error(http.StatusUnauthorized, "GetProjectBoard", "board doesn't belong to the repository")
+	board.LoadProject(ctx)
+	board.Project.LoadRepo(ctx)
+	permission, err := perm.GetUserRepoPermission(ctx, board.Project.Repo, ctx.Doer)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetProjectBoard", err)
+		return
+	}
+
+	if !permission.CanRead(unit.TypeProjects) {
+		ctx.Error(http.StatusUnauthorized, "GetProjectBoard", "board doesn't belong to repository")
 		return
 	}
 
@@ -83,6 +94,19 @@ func UpdateProjectBoard(ctx *context.APIContext) {
 	board, err := project_model.GetBoard(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		ctx.Error(http.StatusNotFound, "GetProjectBoard", err)
+		return
+	}
+
+	board.LoadProject(ctx)
+	board.Project.LoadRepo(ctx)
+	permission, err := perm.GetUserRepoPermission(ctx, board.Project.Repo, ctx.Doer)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetProjectBoard", err)
+		return
+	}
+
+	if !permission.CanWrite(unit.TypeProjects) {
+		ctx.Error(http.StatusUnauthorized, "GetProjectBoard", "board doesn't belong to repository")
 		return
 	}
 
@@ -124,6 +148,25 @@ func DeleteProjectBoard(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	board, err := project_model.GetBoard(ctx, ctx.ParamsInt64(":id"))
+	if err != nil {
+		ctx.Error(http.StatusNotFound, "GetProjectBoard", err)
+		return
+	}
+
+	board.LoadProject(ctx)
+	board.Project.LoadRepo(ctx)
+	permission, err := perm.GetUserRepoPermission(ctx, board.Project.Repo, ctx.Doer)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetProjectBoard", err)
+		return
+	}
+
+	if !permission.CanWrite(unit.TypeProjects) {
+		ctx.Error(http.StatusUnauthorized, "GetProjectBoard", "board doesn't belong to repository")
+		return
+	}
+
 	if err := project_model.DeleteBoardByID(ctx.ParamsInt64(":id")); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteProjectBoard", err)
 		return

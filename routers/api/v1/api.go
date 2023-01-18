@@ -1213,9 +1213,9 @@ func Routes(ctx gocontext.Context) *web.Route {
 
 			m.Group("/boards", func() {
 				m.Combo("/{id}").
-					Get(reqToken(), reqRepoReader(unit.TypeProjects), repo.GetProjectBoard).
-					Patch(reqToken(), reqRepoWriter(unit.TypeProjects), bind(api.UpdateProjectBoardPayload{}), repo.UpdateProjectBoard).
-					Delete(reqToken(), reqRepoWriter(unit.TypeProjects), repo.DeleteProjectBoard)
+					Get(reqToken(), repo.GetProjectBoard).
+					Patch(reqToken(), bind(api.UpdateProjectBoardPayload{}), repo.UpdateProjectBoard).
+					Delete(reqToken(), repo.DeleteProjectBoard)
 			})
 		})
 	}, sudo())

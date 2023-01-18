@@ -91,6 +91,21 @@ func TestAPIGetProjectBoard(t *testing.T) {
 	assert.Equal(t, apiProjectBoard.Sorting, board.Sorting)
 }
 
+func TestAPIGetProjectBoardReqPermission(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	// repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	// owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	board := unittest.AssertExistsAndLoadBean(t, &project_model.Board{ID: 1})
+	other_user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 23})
+
+	session := loginUser(t, other_user.Name)
+	token := getTokenForLoggedInUser(t, session)
+
+	urlStr := fmt.Sprintf("/api/v1/projects/boards/%d?token=%s", board.ID, token)
+	req := NewRequest(t, "GET", urlStr)
+	session.MakeRequest(t, req, http.StatusUnauthorized)
+}
+
 func TestAPIUpdateProjectBoard(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
