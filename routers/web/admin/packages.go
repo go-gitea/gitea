@@ -73,7 +73,7 @@ func Packages(ctx *context.Context) {
 	ctx.Data["PackageDescriptors"] = pds
 	ctx.Data["TotalCount"] = total
 	ctx.Data["TotalBlobSize"] = totalReferencedBlobSize
-	ctx.Data["TotalGarbageBlobSize"] = totalBlobSize - totalReferencedBlobSize
+	ctx.Data["TotalUnreferencedBlobSize"] = totalBlobSize - totalReferencedBlobSize
 
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
 	pager.AddParamString("q", query)
