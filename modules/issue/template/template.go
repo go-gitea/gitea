@@ -259,7 +259,9 @@ func (f *valuedField) WriteTo(builder *strings.Builder) {
 	}
 
 	// write label
-	_, _ = fmt.Fprintf(builder, "### %s\n\n", f.Label())
+	if f.ID != "body" {
+		_, _ = fmt.Fprintf(builder, "### %s\n\n", f.Label())
+	}
 
 	blankPlaceholder := "_No response_\n"
 
