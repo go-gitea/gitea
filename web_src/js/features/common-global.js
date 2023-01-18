@@ -181,7 +181,7 @@ export function initGlobalDropzone() {
             }
             navigator.clipboard.writeText(fileMarkdown);
           });
-          file.previewTemplate.appendChild(newNode);
+          file.previewTemplate.appendChild(copyLinkElement);
         });
         this.on('removedfile', (file) => {
           $(`#${file.uuid}`).remove();
