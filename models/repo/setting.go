@@ -1,10 +1,11 @@
-// Copyright 2022 The Gitea Authors. All rights reserved.
+// Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package repo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	setting_module "code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -51,23 +53,6 @@ func init() {
 	db.RegisterModel(new(Setting))
 }
 
-// ErrSettingIsNotExist represents an error that a setting is not exist with special key
-type ErrSettingIsNotExist struct {
-	RepoID int64
-	Key    string
-}
-
-// Error implements error
-func (err ErrSettingIsNotExist) Error() string {
-	return fmt.Sprintf("Repo[%d] setting[%s] is not exist", err.RepoID, err.Key)
-}
-
-// IsErrSettingIsNotExist return true if err is ErrSettingIsNotExist
-func IsErrSettingIsNotExist(err error) bool {
-	_, ok := err.(ErrSettingIsNotExist)
-	return ok
-}
-
 // GetSettingNoCache returns specific setting without using the cache
 func GetSettingNoCache(repoID int64, key string) (*Setting, error) {
 	v, err := GetSettings(repoID, []string{key})
@@ -75,7 +60,7 @@ func GetSettingNoCache(repoID int64, key string) (*Setting, error) {
 		return nil, err
 	}
 	if len(v) == 0 {
-		return nil, ErrSettingIsNotExist{repoID, key}
+		return nil, fmt.Errorf("repo[%d] setting[%s]: %w", repoID, key, util.ErrNotExist)
 	}
 	return v[strings.ToLower(key)], nil
 }
@@ -176,7 +161,7 @@ func DeleteSetting(repoID int64, key string) error {
 
 func SetSettingNoVersion(repoID int64, key, value string) error {
 	s, err := GetSettingNoCache(repoID, key)
-	if IsErrSettingIsNotExist(err) {
+	if errors.Is(err, util.ErrNotExist) {
 		return SetSetting(&Setting{
 			RepoID:       repoID,
 			SettingKey:   key,

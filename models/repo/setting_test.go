@@ -4,9 +4,11 @@
 package repo
 
 import (
+	"errors"
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -35,11 +37,11 @@ func TestSettings(t *testing.T) {
 	assert.EqualValues(t, newSetting.SettingValue, settingValue)
 
 	settingValue, err = GetSetting(99, "no_such")
-	assert.NoError(t, err)
+	assert.True(t, errors.Is(err, util.ErrNotExist))
 	assert.EqualValues(t, "", settingValue)
 
 	// updated setting
-	updatedSetting := &Setting{RepoID: 99, SettingKey: keyName, SettingValue: "Updated"}
+	updatedSetting := &Setting{RepoID: 99, SettingKey: keyName, SettingValue: "Updated", Version: 2} // updated twice
 	err = SetSetting(updatedSetting)
 	assert.NoError(t, err)
 
