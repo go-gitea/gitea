@@ -109,6 +109,9 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 	if pr.ProtectedBranch == nil {
 		prUnit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests)
 		if err != nil {
+			if repo_model.IsErrUnitTypeNotExist(err) {
+				return false, false, nil
+			}
 			log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %v", err)
 			return false, false, err
 		}
