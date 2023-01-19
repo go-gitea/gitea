@@ -28,7 +28,7 @@ func GetSystemOrDefaultWebhook(ctx context.Context, id int64) (*Webhook, error) 
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrWebhookNotExist{id}
+		return nil, ErrWebhookNotExist{ID: id}
 	}
 	return webhook, nil
 }
