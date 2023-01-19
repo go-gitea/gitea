@@ -90,6 +90,7 @@ import {initRepoCommentForm, initRepository} from './features/repo-legacy.js';
 import {initFormattingReplacements} from './features/formatting.js';
 import {initMcaptcha} from './features/mcaptcha.js';
 import {initCopyContent} from './features/copycontent.js';
+import {initCaptcha} from './features/captcha.js';
 
 // Run time-critical code as soon as possible. This is safe to do because this
 // script appears at the end of <body> and rendered HTML is accessible at that point.
@@ -190,6 +191,7 @@ $(document).ready(() => {
 
   initCommitStatuses();
   initMcaptcha();
+  initCaptcha();
 
   initUserAuthLinkAccountView();
   initUserAuthOauth2();
