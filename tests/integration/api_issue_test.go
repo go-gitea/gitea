@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -29,7 +30,7 @@ func TestAPIListIssues(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/issues", owner.Name, repo.Name))
 
 	link.RawQuery = url.Values{"token": {token}, "state": {"all"}}.Encode()
@@ -80,7 +81,7 @@ func TestAPICreateIssue(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID})
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues?state=all&token=%s", owner.Name, repoBefore.Name, token)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{
 		Body:     body,
@@ -116,7 +117,7 @@ func TestAPIEditIssue(t *testing.T) {
 	assert.Equal(t, api.StateOpen, issueBefore.State())
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
 
 	// update values of issue
 	issueState := "closed"

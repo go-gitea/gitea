@@ -115,6 +115,7 @@ type LFSMetaObject struct {
 	RepositoryID int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	Existing     bool               `xorm:"-"`
 	CreatedUnix  timeutil.TimeStamp `xorm:"created"`
+	UpdatedUnix  timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
 func init() {
@@ -334,8 +335,45 @@ func GetRepoLFSSize(ctx context.Context, repoID int64) (int64, error) {
 	return lfsSize, nil
 }
 
+// IterateRepositoryIDsWithLFSMetaObjects iterates across the repositories that have LFSMetaObjects
+func IterateRepositoryIDsWithLFSMetaObjects(ctx context.Context, f func(ctx context.Context, repoID, count int64) error) error {
+	batchSize := setting.Database.IterateBufferSize
+	sess := db.GetEngine(ctx)
+	id := int64(0)
+	type RepositoryCount struct {
+		RepositoryID int64
+		Count        int64
+	}
+	for {
+		counts := make([]*RepositoryCount, 0, batchSize)
+		sess.Select("repository_id, COUNT(id) AS count").
+			Table("lfs_meta_object").
+			Where("repository_id > ?", id).
+			GroupBy("repository_id").
+			OrderBy("repository_id ASC")
+
+		if err := sess.Limit(batchSize, 0).Find(&counts); err != nil {
+			return err
+		}
+		if len(counts) == 0 {
+			return nil
+		}
+
+		for _, count := range counts {
+			if err := f(ctx, count.RepositoryID, count.Count); err != nil {
+				return err
+			}
+		}
+		id = counts[len(counts)-1].RepositoryID
+	}
+}
+
+// IterateLFSMetaObjectsForRepoOptions provides options for IterateLFSMetaObjectsForRepo
 type IterateLFSMetaObjectsForRepoOptions struct {
-	OlderThan time.Time
+	OlderThan                 time.Time
+	UpdatedLessRecentlyThan   time.Time
+	OrderByUpdated            bool
+	LoopFunctionAlwaysUpdates bool
 }
 
 // IterateLFSMetaObjectsForRepo provides a iterator for LFSMetaObjects per Repo
@@ -348,28 +386,53 @@ func IterateLFSMetaObjectsForRepo(ctx context.Context, repoID int64, f func(cont
 		LFSMetaObject
 	}
 
+	id := int64(0)
+
 	for {
 		beans := make([]*CountLFSMetaObject, 0, batchSize)
-		// SELECT `lfs_meta_object`.*, COUNT(`l1`.id) as `count` FROM lfs_meta_object INNER JOIN lfs_meta_object AS l1 ON l1.oid = lfs_meta_object.oid WHERE lfs_meta_object.repository_id = ? GROUP BY lfs_meta_object.id
 		sess := engine.Select("`lfs_meta_object`.*, COUNT(`l1`.oid) AS `count`").
 			Join("INNER", "`lfs_meta_object` AS l1", "`lfs_meta_object`.oid = `l1`.oid").
 			Where("`lfs_meta_object`.repository_id = ?", repoID)
 		if !opts.OlderThan.IsZero() {
 			sess.And("`lfs_meta_object`.created_unix < ?", opts.OlderThan)
 		}
+		if !opts.UpdatedLessRecentlyThan.IsZero() {
+			sess.And("`lfs_meta_object`.updated_unix < ?", opts.UpdatedLessRecentlyThan)
+		}
 		sess.GroupBy("`lfs_meta_object`.id")
+		if opts.OrderByUpdated {
+			sess.OrderBy("`lfs_meta_object`.updated_unix ASC")
+		} else {
+			sess.And("`lfs_meta_object`.id > ?", id)
+			sess.OrderBy("`lfs_meta_object`.id ASC")
+		}
 		if err := sess.Limit(batchSize, start).Find(&beans); err != nil {
 			return err
 		}
 		if len(beans) == 0 {
 			return nil
 		}
-		start += len(beans)
+		if !opts.LoopFunctionAlwaysUpdates {
+			start += len(beans)
+		}
 
 		for _, bean := range beans {
 			if err := f(ctx, &bean.LFSMetaObject, bean.Count); err != nil {
 				return err
 			}
 		}
+		id = beans[len(beans)-1].ID
 	}
+}
+
+// MarkLFSMetaObject updates the updated time for the provided LFSMetaObject
+func MarkLFSMetaObject(ctx context.Context, id int64) error {
+	obj := &LFSMetaObject{
+		UpdatedUnix: timeutil.TimeStampNow(),
+	}
+	count, err := db.GetEngine(ctx).ID(id).Update(obj)
+	if count != 1 {
+		log.Error("Unexpectedly updated %d LFSMetaObjects with ID: %d", count, id)
+	}
+	return err
 }

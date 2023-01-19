@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -59,7 +60,7 @@ func TestAPILFSMediaType(t *testing.T) {
 }
 
 func createLFSTestRepository(t *testing.T, name string) *repo_model.Repository {
-	ctx := NewAPITestContext(t, "user2", "lfs-"+name+"-repo")
+	ctx := NewAPITestContext(t, "user2", "lfs-"+name+"-repo", auth_model.AccessTokenScopeRepo)
 	t.Run("CreateRepo", doAPICreateRepository(ctx, false))
 
 	repo, err := repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, "user2", "lfs-"+name+"-repo")
