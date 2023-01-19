@@ -7,6 +7,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.18.2](https://github.com/go-gitea/gitea/releases/tag/v1.18.2) - 2023-01-19
 
 * BUGFIXES
+  * When updating by rebase we need to set the environment for head repo (#22535) (#22536)
   * Fix issue not auto-closing when it includes a reference to a branch (#22514) (#22521)
   * Fix invalid issue branch reference if not specified in template (#22513) (#22520)
   * Fix 500 error viewing pull request when fork has pull requests disabled (#22512) (#22515)
