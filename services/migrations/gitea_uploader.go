@@ -468,7 +468,9 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 
 		switch cm.Type {
 		case issues_model.CommentTypeAssignees:
-			cm.AssigneeID = comment.Meta["AssigneeID"].(int64)
+			if assigneeID, ok := comment.Meta["AssigneeID"].(int); ok {
+				cm.AssigneeID = int64(assigneeID)
+			}
 			if comment.Meta["RemovedAssigneeID"] != nil {
 				cm.RemovedAssignee = true
 			}
