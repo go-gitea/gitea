@@ -5,6 +5,7 @@ package context
 
 import (
 	"fmt"
+	"net"
 	"sync"
 
 	"code.gitea.io/gitea/modules/base"
@@ -78,10 +79,9 @@ func VerifyCaptcha(ctx *Context, tpl base.TplName, form interface{}) {
 		valid, err = mcaptcha.Verify(ctx, ctx.Req.Form.Get(mCaptchaResponseField))
 	case setting.CfTurnstile:
 		var ip string
-		if setting.Service.CfReverseProxyHeader == "" {
-			ip = ctx.RemoteAddr()
-		} else {
-			ip = ctx.Req.Header.Get(setting.Service.CfReverseProxyHeader)
+		ip, _, err = net.SplitHostPort(ctx.RemoteAddr())
+		if err != nil {
+			break
 		}
 		valid, err = turnstile.Verify(ctx, ctx.Req.Form.Get(cfTurnstileResponseField), ip)
 	default:

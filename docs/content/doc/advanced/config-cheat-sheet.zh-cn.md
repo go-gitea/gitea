@@ -158,7 +158,6 @@ menu:
 - `MCAPTCHA_URL` **https://demo.mcaptcha.org/**: 设置 remCaptchacaptcha 的 url 。
 - `CF_TURNSTILE_SECRET` **""**: cloudlfare turnstile 服务的密钥，可在 https://dash.cloudflare.com/?to=/:account/turnstile 获取。
 - `CF_TURNSTILE_SITEKEY` **""**: cloudlfare turnstile 服务的网站密钥 ，可在 https://www.google.com/recaptcha/admin 获取。
-- `CF_REVERSE_PROXY_HEADER` **""**: http 的 header 字段，用于获取客户端的 ip 供 cloudflare turnstile 验证时使用。如果没有反向代理设置这里应设置为 `""` 。
 
 ### Service - Expore (`service.explore`)
 

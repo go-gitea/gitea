@@ -52,10 +52,10 @@ func Verify(ctx context.Context, response, ip string) (bool, error) {
 	}
 
 	var jsonResponse Response
-	err = json.Unmarshal(body, &jsonResponse)
-	if err != nil {
+	if err := json.Unmarshal(body, &jsonResponse); err != nil {
 		return false, fmt.Errorf("Failed to parse CAPTCHA response: %s", err)
 	}
+
 	var respErr error
 	if len(jsonResponse.ErrorCodes) > 0 {
 		respErr = jsonResponse.ErrorCodes[0]
