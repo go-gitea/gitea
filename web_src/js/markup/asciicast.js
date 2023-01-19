@@ -2,7 +2,10 @@ export async function renderAsciinemaPlayer() {
   const els = document.querySelectorAll('.asciinema-player-container');
   if (!els.length) return;
 
-  const player = await import(/* webpackChunkName: "asciinema-player" */'asciinema-player');
+  const [player] = await Promise.all([
+    import(/* webpackChunkName: "asciinema-player" */'asciinema-player'),
+    import(/* webpackChunkName: "asciinema-player" */'asciinema-player/dist/bundle/asciinema-player.css'),
+  ]);
 
   for (const el of els) {
     player.create(el.getAttribute('data-asciinema-player-src'), el, {
