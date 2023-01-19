@@ -182,7 +182,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 		AllowRebaseUpdate:             allowRebaseUpdate,
 		DefaultDeleteBranchAfterMerge: defaultDeleteBranchAfterMerge,
 		DefaultMergeStyle:             string(defaultMergeStyle),
-		AvatarURL:                     repo.AvatarLink(),
+		AvatarURL:                     repo.AvatarLink(ctx),
 		Internal:                      !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
 		MirrorInterval:                mirrorInterval,
 		MirrorUpdated:                 mirrorUpdated,

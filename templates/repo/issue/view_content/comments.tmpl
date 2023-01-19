@@ -734,7 +734,7 @@
 			<div class="timeline-item-group">
 				<div class="timeline-item event" id="{{.HashTag}}">
 					<a class="timeline-avatar"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
-						<img src="{{.Poster.AvatarLink}}">
+						<img src="{{.Poster.AvatarLink $.Context}}">
 					</a>
 					<span class="badge grey">{{svg "octicon-x" 16}}</span>
 					<span class="text grey">
