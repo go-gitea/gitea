@@ -24,7 +24,7 @@ type CreateUserOption struct {
 	Visibility         string `json:"visibility" binding:"In(,public,limited,private)"`
 
 	// For back-dating user creation. Useful when users are migrated from other systems.
-	// If nil, the user's creation timestamp will be set to "now".
+	// If omitted, the user's creation timestamp will be set to "now".
 	Created *time.Time `json:"created_at"`
 }
 
