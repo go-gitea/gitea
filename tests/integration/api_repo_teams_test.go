@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
@@ -27,7 +28,7 @@ func TestAPIRepoTeams(t *testing.T) {
 	// user4
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
 
 	// ListTeams
 	url := fmt.Sprintf("/api/v1/repos/%s/teams?token=%s", publicOrgRepo.FullName(), token)
@@ -67,7 +68,7 @@ func TestAPIRepoTeams(t *testing.T) {
 	// AddTeam with user2
 	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session = loginUser(t, user.Name)
-	token = getTokenForLoggedInUser(t, session)
+	token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
 	url = fmt.Sprintf("/api/v1/repos/%s/teams/%s?token=%s", publicOrgRepo.FullName(), "team1", token)
 	req = NewRequest(t, "PUT", url)
 	MakeRequest(t, req, http.StatusNoContent)
