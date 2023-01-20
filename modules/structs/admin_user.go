@@ -4,6 +4,8 @@
 
 package structs
 
+import "time"
+
 // CreateUserOption create user options
 type CreateUserOption struct {
 	SourceID  int64  `json:"source_id"`
@@ -20,6 +22,10 @@ type CreateUserOption struct {
 	SendNotify         bool   `json:"send_notify"`
 	Restricted         *bool  `json:"restricted"`
 	Visibility         string `json:"visibility" binding:"In(,public,limited,private)"`
+
+	// For back-dating user creation. Useful when users are migrated from other systems.
+	// If nil, the user's creation timestamp will be set to "now".
+	Created *time.Time `json:"created_at"`
 }
 
 // EditUserOption edit user options
