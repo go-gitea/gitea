@@ -175,6 +175,15 @@ func (t CommentType) String() string {
 	return commentStrings[t]
 }
 
+func AsCommentType(typeName string) CommentType {
+	for index, name := range commentStrings {
+		if typeName == name {
+			return CommentType(index)
+		}
+	}
+	return CommentTypeUnknown
+}
+
 // RoleDescriptor defines comment tag type
 type RoleDescriptor int
 
