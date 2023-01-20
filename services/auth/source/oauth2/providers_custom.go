@@ -6,6 +6,7 @@ package oauth2
 import (
 	"code.gitea.io/gitea/modules/setting"
 
+  "future.projects.blender.org/blender-migration/goth-provider-blenderid"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/providers/azureadv2"
 	"github.com/markbates/goth/providers/gitea"
@@ -120,4 +121,14 @@ func init() {
 			}), nil
 		},
 	))
+
+  RegisterGothProvider(NewCustomProvider(
+		"blenderid", "Blender ID", &CustomURLSettings{
+			TokenURL:   requiredAttribute(blenderid.TokenURL),
+			AuthURL:    requiredAttribute(blenderid.AuthURL),
+			ProfileURL: requiredAttribute(blenderid.ProfileURL),
+		},
+		func(clientID, secret, callbackURL string, custom *CustomURLMapping, scopes []string) (goth.Provider, error) {
+			return blenderid.NewCustomisedURL(clientID, secret, callbackURL, custom.AuthURL, custom.TokenURL, custom.ProfileURL, scopes...), nil
+  }))
 }
