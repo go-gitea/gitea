@@ -26,6 +26,7 @@ The following package managers are currently supported:
 
 | Name | Language | Package client |
 | ---- | -------- | -------------- |
+| [Chef]({{< relref "doc/packages/chef.en-us.md" >}}) | - | `knife` |
 | [Composer]({{< relref "doc/packages/composer.en-us.md" >}}) | PHP | `composer` |
 | [Conan]({{< relref "doc/packages/conan.en-us.md" >}}) | C++ | `conan` |
 | [Container]({{< relref "doc/packages/container.en-us.md" >}}) | - | any OCI compliant client |

@@ -467,6 +467,7 @@ func RegisterRoutes(m *web.Route) {
 					m.Get("/preview", user_setting.PackagesRulePreview)
 				})
 			})
+			m.Post("/chef/regenerate_keypair", user_setting.RegenerateKeyPair)
 		}, packagesEnabled)
 		m.Get("/organization", user_setting.Organization)
 		m.Get("/repos", user_setting.Repos)
