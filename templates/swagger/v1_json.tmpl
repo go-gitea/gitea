@@ -15623,6 +15623,7 @@
       ],
       "properties": {
         "created_at": {
+          "description": "For back-dating user creation. Useful when users are migrated from other systems.\nIf omitted, the user's creation timestamp will be set to \"now\".",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
