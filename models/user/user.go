@@ -953,6 +953,18 @@ func UpdateUser(ctx context.Context, u *User, changePrimaryEmail bool, cols ...s
 	return err
 }
 
+// UpdateUserCreated stores the user's `CreatedUnix` field in the database.
+// This is intended to allow migration of users from another system while
+// maintaining the user's creation timestamp.
+func UpdateUserCreated(ctx context.Context, u *User) error {
+	if err := validateUser(u); err != nil {
+		return err
+	}
+
+	_, err := db.Exec(ctx, "UPDATE `user` SET created_unix=?  WHERE id=?", u.CreatedUnix, u.ID)
+	return err
+}
+
 // UpdateUserCols update user according special columns
 func UpdateUserCols(ctx context.Context, u *User, cols ...string) error {
 	if err := validateUser(u); err != nil {

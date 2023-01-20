@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
@@ -135,6 +136,16 @@ func CreateUser(ctx *context.APIContext) {
 		return
 	}
 	log.Trace("Account created by admin (%s): %s", ctx.Doer.Name, u.Name)
+
+	// Back-date the user creation.
+	if form.Created != nil {
+		u.CreatedUnix = timeutil.TimeStamp(form.Created.Unix())
+		if err := user_model.UpdateUserCreated(ctx, u); err != nil {
+			ctx.Error(http.StatusInternalServerError, "UpdateUserCreated", err)
+			return
+		}
+		log.Trace("Account profile back-dated by admin (%s): %s", ctx.Doer.Name, u.Name)
+	}
 
 	// Send email notification.
 	if form.SendNotify {
