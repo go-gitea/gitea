@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/forms"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
@@ -83,10 +84,10 @@ func ListPackages(ctx *context.Context) {
 		return
 	}
 
+	shared_user.RenderUserHeader(ctx)
+
 	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["IsPackagesPage"] = true
-	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
-	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["Query"] = query
 	ctx.Data["PackageType"] = packageType
 	ctx.Data["AvailableTypes"] = packages_model.TypeList
@@ -156,10 +157,10 @@ func RedirectToLastVersion(ctx *context.Context) {
 func ViewPackageVersion(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
 
+	shared_user.RenderUserHeader(ctx)
+
 	ctx.Data["Title"] = pd.Package.Name
 	ctx.Data["IsPackagesPage"] = true
-	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
-	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["PackageDescriptor"] = pd
 
 	var (
@@ -235,10 +236,10 @@ func ListPackageVersions(ctx *context.Context) {
 	query := ctx.FormTrim("q")
 	sort := ctx.FormTrim("sort")
 
+	shared_user.RenderUserHeader(ctx)
+
 	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["IsPackagesPage"] = true
-	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
-	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["PackageDescriptor"] = &packages_model.PackageDescriptor{
 		Package: p,
 		Owner:   ctx.Package.Owner,
@@ -311,10 +312,10 @@ func ListPackageVersions(ctx *context.Context) {
 func PackageSettings(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
 
+	shared_user.RenderUserHeader(ctx)
+
 	ctx.Data["Title"] = pd.Package.Name
 	ctx.Data["IsPackagesPage"] = true
-	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
-	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["PackageDescriptor"] = pd
 
 	repos, _, _ := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
