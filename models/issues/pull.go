@@ -202,6 +202,59 @@ func DeletePullsByBaseRepoID(ctx context.Context, repoID int64) error {
 	return err
 }
 
+// ColorFormat writes a colored string to identify this struct
+func (pr *PullRequest) ColorFormat(s fmt.State) {
+	if pr == nil {
+		log.ColorFprintf(s, "PR[%d][%s:%s...%s:%s]",
+			log.NewColoredIDValue(0),
+			log.NewColoredValue("<nil>/<nil>"),
+			log.NewColoredValue("<nil>"),
+			log.NewColoredValue("<nil>/<nil>"),
+			log.NewColoredValue("<nil>"),
+		)
+		return
+	}
+
+	log.ColorFprintf(s, "PR[%d][", log.NewColoredIDValue(pr.ID))
+	if pr.BaseRepo != nil {
+		log.ColorFprintf(s, "%s:%s...", log.NewColoredValue(pr.BaseRepo.FullName()), log.NewColoredValue(pr.BaseBranch))
+	} else {
+		log.ColorFprintf(s, "Repo[%d]:%s...", log.NewColoredIDValue(pr.BaseRepoID), log.NewColoredValue(pr.BaseBranch))
+	}
+	if pr.HeadRepoID == pr.BaseRepoID {
+		log.ColorFprintf(s, "%s]", log.NewColoredValue(pr.HeadBranch))
+	} else if pr.HeadRepo != nil {
+		log.ColorFprintf(s, "%s:%s]", log.NewColoredValue(pr.HeadRepo.FullName()), log.NewColoredValue(pr.HeadBranch))
+	} else {
+		log.ColorFprintf(s, "Repo[%d]:%s]", log.NewColoredIDValue(pr.HeadRepoID), log.NewColoredValue(pr.HeadBranch))
+	}
+}
+
+// String represents the pr as a simple string
+func (pr *PullRequest) String() string {
+	if pr == nil {
+		return "PR[0][<nil>/<nil>:<nil>...<nil>/<nil>:<nil>]"
+	}
+
+	s := new(strings.Builder)
+
+	_, _ = fmt.Fprintf(s, "PR[%d][", pr.ID)
+	if pr.BaseRepo != nil {
+		_, _ = fmt.Fprintf(s, "%s:%s...", pr.BaseRepo.FullName(), pr.BaseBranch)
+	} else {
+		_, _ = fmt.Fprintf(s, "Repo[%d]:%s...", pr.BaseRepoID, pr.BaseBranch)
+	}
+	if pr.HeadRepoID == pr.BaseRepoID {
+		_, _ = fmt.Fprintf(s, "%s]", pr.HeadBranch)
+	} else if pr.HeadRepo != nil {
+		_, _ = fmt.Fprintf(s, "%s:%s]", pr.HeadRepo.FullName(), pr.HeadBranch)
+	} else {
+		_, _ = fmt.Fprintf(s, "Repo[%d]:%s]", pr.HeadRepoID, pr.HeadBranch)
+	}
+
+	return s.String()
+}
+
 // MustHeadUserName returns the HeadRepo's username if failed return blank
 func (pr *PullRequest) MustHeadUserName(ctx context.Context) string {
 	if err := pr.LoadHeadRepo(ctx); err != nil {
@@ -234,7 +287,8 @@ func (pr *PullRequest) LoadAttributes(ctx context.Context) (err error) {
 	return nil
 }
 
-// LoadHeadRepo loads the head repository
+// LoadHeadRepo loads the head repository, pr.HeadRepo will remain nil if it does not exist
+// and thus ErrRepoNotExist will never be returned
 func (pr *PullRequest) LoadHeadRepo(ctx context.Context) (err error) {
 	if !pr.isHeadRepoLoaded && pr.HeadRepo == nil && pr.HeadRepoID > 0 {
 		if pr.HeadRepoID == pr.BaseRepoID {
@@ -249,14 +303,14 @@ func (pr *PullRequest) LoadHeadRepo(ctx context.Context) (err error) {
 
 		pr.HeadRepo, err = repo_model.GetRepositoryByID(ctx, pr.HeadRepoID)
 		if err != nil && !repo_model.IsErrRepoNotExist(err) { // Head repo maybe deleted, but it should still work
-			return fmt.Errorf("GetRepositoryByID(head): %w", err)
+			return fmt.Errorf("pr[%d].LoadHeadRepo[%d]: %w", pr.ID, pr.HeadRepoID, err)
 		}
 		pr.isHeadRepoLoaded = true
 	}
 	return nil
 }
 
-// LoadBaseRepo loads the target repository
+// LoadBaseRepo loads the target repository. ErrRepoNotExist may be returned.
 func (pr *PullRequest) LoadBaseRepo(ctx context.Context) (err error) {
 	if pr.BaseRepo != nil {
 		return nil
@@ -274,7 +328,7 @@ func (pr *PullRequest) LoadBaseRepo(ctx context.Context) (err error) {
 
 	pr.BaseRepo, err = repo_model.GetRepositoryByID(ctx, pr.BaseRepoID)
 	if err != nil {
-		return fmt.Errorf("repo_model.GetRepositoryByID(base): %w", err)
+		return fmt.Errorf("pr[%d].LoadBaseRepo[%d]: %w", pr.ID, pr.BaseRepoID, err)
 	}
 	return nil
 }
