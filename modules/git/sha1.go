@@ -17,6 +17,9 @@ const EmptySHA = "0000000000000000000000000000000000000000"
 // EmptyTreeSHA is the SHA of an empty tree
 const EmptyTreeSHA = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 
+// SHAFullLength is the full length of a git SHA
+const SHAFullLength = 40
+
 // SHAPattern can be used to determine if a string is an valid sha
 var shaPattern = regexp.MustCompile(`^[0-9a-f]{4,40}$`)
 
@@ -50,7 +53,7 @@ func MustIDFromString(s string) SHA1 {
 func NewIDFromString(s string) (SHA1, error) {
 	var id SHA1
 	s = strings.TrimSpace(s)
-	if len(s) != 40 {
+	if len(s) != SHAFullLength {
 		return id, fmt.Errorf("Length must be 40: %s", s)
 	}
 	b, err := hex.DecodeString(s)

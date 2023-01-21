@@ -5,14 +5,13 @@ package repository
 
 import (
 	"bytes"
-	"crypto/md5"
-	"fmt"
 	"image"
 	"image/png"
 	"testing"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/avatar"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -28,7 +27,7 @@ func TestUploadAvatar(t *testing.T) {
 
 	err := UploadAvatar(repo, buff.Bytes())
 	assert.NoError(t, err)
-	assert.Equal(t, fmt.Sprintf("%d-%x", 10, md5.Sum(buff.Bytes())), repo.Avatar)
+	assert.Equal(t, avatar.HashAvatar(10, buff.Bytes()), repo.Avatar)
 }
 
 func TestUploadBigAvatar(t *testing.T) {

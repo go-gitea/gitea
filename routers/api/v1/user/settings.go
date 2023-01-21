@@ -8,9 +8,9 @@ import (
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // GetUserSettings returns user settings

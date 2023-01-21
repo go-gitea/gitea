@@ -18,62 +18,58 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/gobwas/glob"
 )
 
 type webhook struct {
-	name           webhook_model.HookType
-	payloadCreator func(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error)
+	name           webhook_module.HookType
+	payloadCreator func(p api.Payloader, event webhook_module.HookEventType, meta string) (api.Payloader, error)
 }
 
-var webhooks = map[webhook_model.HookType]*webhook{
-	webhook_model.SLACK: {
-		name:           webhook_model.SLACK,
+var webhooks = map[webhook_module.HookType]*webhook{
+	webhook_module.SLACK: {
+		name:           webhook_module.SLACK,
 		payloadCreator: GetSlackPayload,
 	},
-	webhook_model.DISCORD: {
-		name:           webhook_model.DISCORD,
+	webhook_module.DISCORD: {
+		name:           webhook_module.DISCORD,
 		payloadCreator: GetDiscordPayload,
 	},
-	webhook_model.DINGTALK: {
-		name:           webhook_model.DINGTALK,
+	webhook_module.DINGTALK: {
+		name:           webhook_module.DINGTALK,
 		payloadCreator: GetDingtalkPayload,
 	},
-	webhook_model.TELEGRAM: {
-		name:           webhook_model.TELEGRAM,
+	webhook_module.TELEGRAM: {
+		name:           webhook_module.TELEGRAM,
 		payloadCreator: GetTelegramPayload,
 	},
-	webhook_model.MSTEAMS: {
-		name:           webhook_model.MSTEAMS,
+	webhook_module.MSTEAMS: {
+		name:           webhook_module.MSTEAMS,
 		payloadCreator: GetMSTeamsPayload,
 	},
-	webhook_model.FEISHU: {
-		name:           webhook_model.FEISHU,
+	webhook_module.FEISHU: {
+		name:           webhook_module.FEISHU,
 		payloadCreator: GetFeishuPayload,
 	},
-	webhook_model.MATRIX: {
-		name:           webhook_model.MATRIX,
+	webhook_module.MATRIX: {
+		name:           webhook_module.MATRIX,
 		payloadCreator: GetMatrixPayload,
 	},
-	webhook_model.WECHATWORK: {
-		name:           webhook_model.WECHATWORK,
+	webhook_module.WECHATWORK: {
+		name:           webhook_module.WECHATWORK,
 		payloadCreator: GetWechatworkPayload,
 	},
-	webhook_model.PACKAGIST: {
-		name:           webhook_model.PACKAGIST,
+	webhook_module.PACKAGIST: {
+		name:           webhook_module.PACKAGIST,
 		payloadCreator: GetPackagistPayload,
 	},
 }
 
-// RegisterWebhook registers a webhook
-func RegisterWebhook(name string, webhook *webhook) {
-	webhooks[name] = webhook
-}
-
 // IsValidHookTaskType returns true if a webhook registered
 func IsValidHookTaskType(name string) bool {
-	if name == webhook_model.GITEA || name == webhook_model.GOGS {
+	if name == webhook_module.GITEA || name == webhook_module.GOGS {
 		return true
 	}
 	_, ok := webhooks[name]
@@ -157,7 +153,7 @@ func checkBranch(w *webhook_model.Webhook, branch string) bool {
 }
 
 // PrepareWebhook creates a hook task and enqueues it for processing
-func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook_model.HookEventType, p api.Payloader) error {
+func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook_module.HookEventType, p api.Payloader) error {
 	// Skip sending if webhooks are disabled.
 	if setting.DisableWebhooks {
 		return nil
@@ -176,7 +172,7 @@ func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook
 	// Avoid sending "0 new commits" to non-integration relevant webhooks (e.g. slack, discord, etc.).
 	// Integration webhooks (e.g. drone) still receive the required data.
 	if pushEvent, ok := p.(*api.PushPayload); ok &&
-		w.Type != webhook_model.GITEA && w.Type != webhook_model.GOGS &&
+		w.Type != webhook_module.GITEA && w.Type != webhook_module.GOGS &&
 		len(pushEvent.Commits) == 0 {
 		return nil
 	}
@@ -215,7 +211,7 @@ func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook
 }
 
 // PrepareWebhooks adds new webhooks to task queue for given payload.
-func PrepareWebhooks(ctx context.Context, source EventSource, event webhook_model.HookEventType, p api.Payloader) error {
+func PrepareWebhooks(ctx context.Context, source EventSource, event webhook_module.HookEventType, p api.Payloader) error {
 	owner := source.Owner
 
 	var ws []*webhook_model.Webhook

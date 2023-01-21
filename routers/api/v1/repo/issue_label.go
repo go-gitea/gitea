@@ -9,9 +9,9 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/convert"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
 

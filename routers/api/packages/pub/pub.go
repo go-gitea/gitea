@@ -4,6 +4,7 @@
 package pub
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -19,6 +20,7 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	pub_module "code.gitea.io/gitea/modules/packages/pub"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
@@ -173,7 +175,11 @@ func UploadPackageFile(ctx *context.Context) {
 
 	pck, err := pub_module.ParsePackage(buf)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		if errors.Is(err, util.ErrInvalidArgument) {
+			apiError(ctx, http.StatusBadRequest, err)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
 		return
 	}
 

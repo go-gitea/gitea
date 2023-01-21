@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/gobwas/glob"
 )
@@ -89,7 +90,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 		}
 	case http.MethodPut:
 		switch w.Type {
-		case webhook_model.MATRIX:
+		case webhook_module.MATRIX:
 			txnID, err := getMatrixTxnID([]byte(t.PayloadContent))
 			if err != nil {
 				return err
@@ -189,9 +190,9 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 
 		// Update webhook last delivery status.
 		if t.IsSucceed {
-			w.LastStatus = webhook_model.HookStatusSucceed
+			w.LastStatus = webhook_module.HookStatusSucceed
 		} else {
-			w.LastStatus = webhook_model.HookStatusFail
+			w.LastStatus = webhook_module.HookStatusFail
 		}
 		if err = webhook_model.UpdateWebhookLastStatus(w); err != nil {
 			log.Error("UpdateWebhookLastStatus: %v", err)

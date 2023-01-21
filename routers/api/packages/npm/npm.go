@@ -158,7 +158,11 @@ func DownloadPackageFileByName(ctx *context.Context) {
 func UploadPackage(ctx *context.Context) {
 	npmPackage, err := npm_module.ParsePackage(ctx.Req.Body)
 	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
+		if errors.Is(err, util.ErrInvalidArgument) {
+			apiError(ctx, http.StatusBadRequest, err)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
 		return
 	}
 

@@ -409,15 +409,6 @@ func runDump(ctx *cli.Context) error {
 	return nil
 }
 
-func contains(slice []string, s string) bool {
-	for _, v := range slice {
-		if v == s {
-			return true
-		}
-	}
-	return false
-}
-
 // addRecursiveExclude zips absPath to specified insidePath inside writer excluding excludeAbsPath
 func addRecursiveExclude(w archiver.Writer, insidePath, absPath string, excludeAbsPath []string, verbose bool) error {
 	absPath, err := filepath.Abs(absPath)
@@ -438,7 +429,7 @@ func addRecursiveExclude(w archiver.Writer, insidePath, absPath string, excludeA
 		currentAbsPath := path.Join(absPath, file.Name())
 		currentInsidePath := path.Join(insidePath, file.Name())
 		if file.IsDir() {
-			if !contains(excludeAbsPath, currentAbsPath) {
+			if !util.SliceContainsString(excludeAbsPath, currentAbsPath) {
 				if err := addFile(w, currentInsidePath, currentAbsPath, false); err != nil {
 					return err
 				}

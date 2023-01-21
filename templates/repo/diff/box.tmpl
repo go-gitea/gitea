@@ -143,7 +143,7 @@
 													{{$.locale.Tr "repo.diff.file_suppressed_line_too_long"}}
 												{{else}}
 													{{$.locale.Tr "repo.diff.file_suppressed"}}
-													<a class="ui basic tiny button diff-show-more-button" data-href="{{$.Link}}?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{$.locale.Tr "repo.diff.load"}}</a>
+													<a class="ui basic tiny button diff-load-button" data-href="{{$.Link}}?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{$.locale.Tr "repo.diff.load"}}</a>
 												{{end}}
 											{{else}}
 												{{$.locale.Tr "repo.diff.bin_not_shown"}}

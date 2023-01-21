@@ -275,6 +275,15 @@ func (u *User) CanEditGitHook() bool {
 	return !setting.DisableGitHooks && (u.IsAdmin || u.AllowGitHook)
 }
 
+// CanForkRepo returns if user login can fork a repository
+// It checks especially that the user can create repos, and potentially more
+func (u *User) CanForkRepo() bool {
+	if setting.Repository.AllowForkWithoutMaximumLimit {
+		return true
+	}
+	return u.CanCreateRepo()
+}
+
 // CanImportLocal returns true if user can migrate repository by local path.
 func (u *User) CanImportLocal() bool {
 	if !setting.ImportLocalPaths || u == nil {
@@ -1224,7 +1233,10 @@ func GetUserByOpenID(uri string) (*User, error) {
 // GetAdminUser returns the first administrator
 func GetAdminUser() (*User, error) {
 	var admin User
-	has, err := db.GetEngine(db.DefaultContext).Where("is_admin=?", true).Get(&admin)
+	has, err := db.GetEngine(db.DefaultContext).
+		Where("is_admin=?", true).
+		Asc("id"). // Reliably get the admin with the lowest ID.
+		Get(&admin)
 	if err != nil {
 		return nil, err
 	} else if !has {

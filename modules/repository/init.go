@@ -170,7 +170,7 @@ func LoadRepoConfig() {
 			}
 
 			for _, f := range customFiles {
-				if !util.IsStringInSlice(f, files, true) {
+				if !util.SliceContainsString(files, f, true) {
 					files = append(files, f)
 				}
 			}
@@ -200,12 +200,12 @@ func LoadRepoConfig() {
 	// Filter out invalid names and promote preferred licenses.
 	sortedLicenses := make([]string, 0, len(Licenses))
 	for _, name := range setting.Repository.PreferredLicenses {
-		if util.IsStringInSlice(name, Licenses, true) {
+		if util.SliceContainsString(Licenses, name, true) {
 			sortedLicenses = append(sortedLicenses, name)
 		}
 	}
 	for _, name := range Licenses {
-		if !util.IsStringInSlice(name, setting.Repository.PreferredLicenses, true) {
+		if !util.SliceContainsString(setting.Repository.PreferredLicenses, name, true) {
 			sortedLicenses = append(sortedLicenses, name)
 		}
 	}
