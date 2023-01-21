@@ -835,6 +835,46 @@ func RegisterRoutes(m *web.Route) {
 				})
 			}, ignSignIn, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 		}
+
+		m.Group("/projects", func() {
+			m.Get("", org.Projects)
+			m.Get("/{id}", org.ViewProject)
+			m.Group("", func() { //nolint:dupl
+				m.Get("/new", org.NewProject)
+				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
+				m.Group("/{id}", func() {
+					m.Post("", web.Bind(forms.EditProjectBoardForm{}), org.AddBoardToProjectPost)
+					m.Post("/delete", org.DeleteProject)
+
+					m.Get("/edit", org.EditProject)
+					m.Post("/edit", web.Bind(forms.CreateProjectForm{}), org.EditProjectPost)
+					m.Post("/{action:open|close}", org.ChangeProjectStatus)
+
+					m.Group("/{boardID}", func() {
+						m.Put("", web.Bind(forms.EditProjectBoardForm{}), org.EditProjectBoard)
+						m.Delete("", org.DeleteProjectBoard)
+						m.Post("/default", org.SetDefaultProjectBoard)
+
+						m.Post("/move", org.MoveIssues)
+					})
+				})
+			}, reqSignIn, func(ctx *context.Context) {
+				if ctx.ContextUser == nil {
+					ctx.NotFound("NewProject", nil)
+					return
+				}
+				if ctx.ContextUser.IsOrganization() {
+					if !ctx.Org.CanWriteUnit(ctx, unit.TypeProjects) {
+						ctx.NotFound("NewProject", nil)
+						return
+					}
+				} else if ctx.ContextUser.ID != ctx.Doer.ID {
+					ctx.NotFound("NewProject", nil)
+					return
+				}
+			})
+		}, repo.MustEnableProjects)
+
 		m.Get("/code", user.CodeSearch)
 	}, context_service.UserAssignmentWeb())
 
@@ -1168,7 +1208,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/projects", func() {
 			m.Get("", repo.Projects)
 			m.Get("/{id}", repo.ViewProject)
-			m.Group("", func() {
+			m.Group("", func() { //nolint:dupl
 				m.Get("/new", repo.NewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), repo.NewProjectPost)
 				m.Group("/{id}", func() {
