@@ -119,12 +119,12 @@ type Issue struct {
 	Milestone        *Milestone             `xorm:"-"`
 	Project          *project_model.Project `xorm:"-"`
 	Priority         int
-	AssigneeID       int64            `xorm:"-"`
-	Assignee         *user_model.User `xorm:"-"`
-	IsClosed         bool             `xorm:"INDEX"`
-	IsRead           bool             `xorm:"-"`
-	IsPull           bool             `xorm:"INDEX"` // Indicates whether is a pull request or not.
-	PullRequest      *PullRequest     `xorm:"-"`
+	AssigneeID       int64           `xorm:"-"`
+	Assignee         *IssueAssignees `xorm:"-"`
+	IsClosed         bool            `xorm:"INDEX"`
+	IsRead           bool            `xorm:"-"`
+	IsPull           bool            `xorm:"INDEX"` // Indicates whether is a pull request or not.
+	PullRequest      *PullRequest    `xorm:"-"`
 	NumComments      int
 	Ref              string
 
@@ -138,7 +138,7 @@ type Issue struct {
 	Comments         []*Comment               `xorm:"-"`
 	Reactions        ReactionList             `xorm:"-"`
 	TotalTrackedTime int64                    `xorm:"-"`
-	Assignees        []*user_model.User       `xorm:"-"`
+	Assignees        []*IssueAssignees        `xorm:"-"`
 
 	// IsLocked limits commenting abilities to users on an issue
 	// with write access

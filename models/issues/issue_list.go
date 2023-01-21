@@ -261,7 +261,7 @@ func (issues IssueList) loadAssignees(ctx context.Context) error {
 		Assignee      *user_model.User `xorm:"extends"`
 	}
 
-	assignees := make(map[int64][]*user_model.User, len(issues))
+	assignees := make(map[int64][]*IssueAssignees, len(issues))
 	issueIDs := issues.getIssueIDs()
 	left := len(issueIDs)
 	for left > 0 {
@@ -286,8 +286,9 @@ func (issues IssueList) loadAssignees(ctx context.Context) error {
 				}
 				return err
 			}
+			assigneeIssue.IssueAssignee.Assignee = assigneeIssue.Assignee
 
-			assignees[assigneeIssue.IssueAssignee.IssueID] = append(assignees[assigneeIssue.IssueAssignee.IssueID], assigneeIssue.Assignee)
+			assignees[assigneeIssue.IssueAssignee.IssueID] = append(assignees[assigneeIssue.IssueAssignee.IssueID], assigneeIssue.IssueAssignee)
 		}
 		if err1 := rows.Close(); err1 != nil {
 			return fmt.Errorf("IssueList.loadAssignees: Close: %w", err1)

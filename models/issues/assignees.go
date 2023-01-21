@@ -14,9 +14,12 @@ import (
 
 // IssueAssignees saves all issue assignees
 type IssueAssignees struct {
-	ID         int64 `xorm:"pk autoincr"`
-	AssigneeID int64 `xorm:"INDEX"`
-	IssueID    int64 `xorm:"INDEX"`
+	ID                 int64            `xorm:"pk autoincr"`
+	AssigneeID         int64            `xorm:"INDEX"`
+	Assignee           *user_model.User `xorm:"-"`
+	OriginalAssignee   string
+	OriginalAssigneeID int64 `xorm:"index"`
+	IssueID            int64 `xorm:"INDEX"`
 }
 
 func init() {
@@ -24,24 +27,36 @@ func init() {
 }
 
 // LoadAssignees load assignees of this issue.
-func (issue *Issue) LoadAssignees(ctx context.Context) (err error) {
+func (issue *Issue) LoadAssignees(ctx context.Context) error {
 	// Reset maybe preexisting assignees
-	issue.Assignees = []*user_model.User{}
+	issue.Assignees = []*IssueAssignees{}
 	issue.Assignee = nil
 
-	err = db.GetEngine(ctx).Table("`user`").
-		Join("INNER", "issue_assignees", "assignee_id = `user`.id").
+	if err := db.GetEngine(ctx).Table("`user`").
 		Where("issue_assignees.issue_id = ?", issue.ID).
-		Find(&issue.Assignees)
-	if err != nil {
+		Find(&issue.Assignees); err != nil {
 		return err
+	}
+
+	var assigneeIDs []int64
+	for _, assignee := range issue.Assignees {
+		assigneeIDs = append(assigneeIDs, assignee.ID)
+	}
+	assigneesMap := make(map[int64]*user_model.User)
+	if err := db.GetEngine(ctx).In("id", assigneeIDs).Find(&assigneesMap); err != nil {
+		return err
+	}
+	for _, assignee := range issue.Assignees {
+		if assigneesMap[assignee.ID] != nil {
+			assignee.Assignee = assigneesMap[assignee.ID]
+		}
 	}
 
 	// Check if we have at least one assignee and if yes put it in as `Assignee`
 	if len(issue.Assignees) > 0 {
 		issue.Assignee = issue.Assignees[0]
 	}
-	return err
+	return nil
 }
 
 // GetAssigneeIDsByIssue returns the IDs of users assigned to an issue
@@ -118,7 +133,7 @@ func toggleIssueAssignee(ctx context.Context, issue *Issue, doer *user_model.Use
 // toggles user assignee state in database
 func toggleUserAssignee(ctx context.Context, issue *Issue, assigneeID int64) (removed bool, err error) {
 	// Check if the user exists
-	assignee, err := user_model.GetUserByID(ctx, assigneeID)
+	_, err = user_model.GetUserByID(ctx, assigneeID)
 	if err != nil {
 		return false, err
 	}
@@ -141,7 +156,7 @@ func toggleUserAssignee(ctx context.Context, issue *Issue, assigneeID int64) (re
 			return found, err
 		}
 	} else {
-		issue.Assignees = append(issue.Assignees, assignee)
+		issue.Assignees = append(issue.Assignees, &assigneeIn)
 		if err = db.Insert(ctx, &assigneeIn); err != nil {
 			return found, err
 		}

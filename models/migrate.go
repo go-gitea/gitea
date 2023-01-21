@@ -83,6 +83,15 @@ func insertIssue(ctx context.Context, issue *issues_model.Issue) error {
 		}
 	}
 
+	for _, assignee := range issue.Assignees {
+		assignee.IssueID = issue.ID
+	}
+	if len(issue.Assignees) > 0 {
+		if _, err := sess.Insert(issue.Assignees); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

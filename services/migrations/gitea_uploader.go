@@ -422,6 +422,14 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 			}
 			is.Reactions = append(is.Reactions, &res)
 		}
+
+		// add assignee
+		for _, assignee := range issue.Assignees {
+			is.Assignees = append(is.Assignees, &issues_model.IssueAssignees{
+				OriginalAssignee: assignee,
+				// FIXME: we need an external id to unique the user
+			})
+		}
 		iss = append(iss, &is)
 	}
 
