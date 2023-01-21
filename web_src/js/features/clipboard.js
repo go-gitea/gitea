@@ -52,7 +52,7 @@ export function initGlobalCopyToClipboardListener() {
     // up to 3 levels for performance
     for (let i = 0; i < 3 && target; i++) {
       let txt = target.getAttribute('data-clipboard-text');
-      if (txt && target.getAttribute('data-clipboard-text-type') === 'link') {
+      if (txt && target.getAttribute('data-clipboard-text-type') === 'url') {
         txt = getCurAbsUrl(txt);
       }
       const text = txt || document.querySelector(target.getAttribute('data-clipboard-target'))?.value;
