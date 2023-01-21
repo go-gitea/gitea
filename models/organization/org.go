@@ -402,7 +402,10 @@ func GetUsersWhoCanCreateOrgRepo(ctx context.Context, orgID int64) ([]*user_mode
 		Join("INNER", "`team_user`", "`team_user`.uid=`user`.id").
 		Join("INNER", "`team`", "`team`.id=`team_user`.team_id").
 		Where(builder.Eq{"team.can_create_org_repo": true}.Or(builder.Eq{"team.authorize": perm.AccessModeOwner})).
-		And("team_user.org_id = ?", orgID).Asc("`user`.name").Find(&users)
+		And("team_user.org_id = ?", orgID).
+		Asc("`user`.name").
+		Distinct("`user`.id").
+		Find(&users)
 }
 
 // SearchOrganizationsOptions options to filter organizations
