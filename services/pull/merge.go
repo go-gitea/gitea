@@ -595,19 +595,25 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 		headUser = pr.HeadRepo.Owner
 	}
 
-	env = repo_module.FullPushingEnvironment(
-		headUser,
-		doer,
-		pr.BaseRepo,
-		pr.BaseRepo.Name,
-		pr.ID,
-	)
-
 	var pushCmd *git.Command
 	if mergeStyle == repo_model.MergeStyleRebaseUpdate {
 		// force push the rebase result to head branch
+		env = repo_module.FullPushingEnvironment(
+			headUser,
+			doer,
+			pr.HeadRepo,
+			pr.HeadRepo.Name,
+			pr.ID,
+		)
 		pushCmd = git.NewCommand(ctx, "push", "-f", "head_repo").AddDynamicArguments(stagingBranch + ":" + git.BranchPrefix + pr.HeadBranch)
 	} else {
+		env = repo_module.FullPushingEnvironment(
+			headUser,
+			doer,
+			pr.BaseRepo,
+			pr.BaseRepo.Name,
+			pr.ID,
+		)
 		pushCmd = git.NewCommand(ctx, "push", "origin").AddDynamicArguments(baseBranch + ":" + git.BranchPrefix + pr.BaseBranch)
 	}
 
