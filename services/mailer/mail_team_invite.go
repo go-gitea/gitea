@@ -52,7 +52,7 @@ func MailTeamInvite(ctx context.Context, inviter *user_model.User, team *org_mod
 		return err
 	}
 
-	msg := NewMessage([]string{invite.Email}, subject, mailBody.String())
+	msg := NewMessage(invite.Email, subject, mailBody.String())
 	msg.Info = subject
 
 	SendAsync(msg)
