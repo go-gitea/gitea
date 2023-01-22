@@ -7,6 +7,7 @@ import {showGlobalErrorMessage} from '../bootstrap.js';
 import {attachDropdownAria} from './aria.js';
 import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
 import {initTooltip} from '../modules/tippy.js';
+import {svg} from '../svg.js';
 
 const {appUrl, csrfToken} = window.config;
 
@@ -169,10 +170,10 @@ export function initGlobalDropzone() {
           $dropzone.find('.files').append(input);
           // Create a "Copy Link" element, to conveniently copy the image
           // or file link as Markdown to the clipboard
-          const copyLinkElement = document.createElement('a');
-          copyLinkElement.className = 'dz-remove';
-          copyLinkElement.href = '#';
-          copyLinkElement.innerHTML = '<i class="fa fa-copy"></i> Copy link';
+          const copyLinkElement = document.createElement('div');
+          copyLinkElement.className = 'tc';
+          // The a element has a hardcoded cursor: pointer because the default is overridden by .dropzone
+          copyLinkElement.innerHTML = `<a href="#" style="cursor: pointer;">${svg('octicon-copy', 14, 'copy link')} Copy link</a>`;
           copyLinkElement.addEventListener('click', (e) => {
             e.preventDefault();
             let fileMarkdown = `[${file.name}](/attachments/${file.uuid})`;
