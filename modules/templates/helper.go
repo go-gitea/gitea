@@ -1,7 +1,6 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package templates
 
@@ -26,6 +25,7 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/avatars"
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -607,7 +607,7 @@ func AvatarHTML(src string, size int, class, name string) template.HTML {
 
 // Avatar renders user avatars. args: user, size (int), class (string)
 func Avatar(item interface{}, others ...interface{}) template.HTML {
-	size, class := gitea_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, "ui avatar vm", others...)
+	size, class := gitea_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, avatars.DefaultAvatarClass, others...)
 
 	switch t := item.(type) {
 	case *user_model.User:
@@ -632,13 +632,13 @@ func Avatar(item interface{}, others ...interface{}) template.HTML {
 
 // AvatarByAction renders user avatars from action. args: action, size (int), class (string)
 func AvatarByAction(action *activities_model.Action, others ...interface{}) template.HTML {
-	action.LoadActUser()
+	action.LoadActUser(db.DefaultContext)
 	return Avatar(action.ActUser, others...)
 }
 
 // RepoAvatar renders repo avatars. args: repo, size(int), class (string)
 func RepoAvatar(repo *repo_model.Repository, others ...interface{}) template.HTML {
-	size, class := gitea_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, "ui avatar", others...)
+	size, class := gitea_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, avatars.DefaultAvatarClass, others...)
 
 	src := repo.RelAvatarLink()
 	if src != "" {
@@ -649,7 +649,7 @@ func RepoAvatar(repo *repo_model.Repository, others ...interface{}) template.HTM
 
 // AvatarByEmail renders avatars by email address. args: email, name, size (int), class (string)
 func AvatarByEmail(email, name string, others ...interface{}) template.HTML {
-	size, class := gitea_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, "ui avatar", others...)
+	size, class := gitea_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, avatars.DefaultAvatarClass, others...)
 	src := avatars.GenerateEmailAvatarFastLink(email, size*setting.Avatar.RenderedSizeFactor)
 
 	if src != "" {

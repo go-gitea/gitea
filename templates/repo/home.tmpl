@@ -47,7 +47,7 @@
 				</div>
 			</div>
 			<div class="two wide column">
-				<a class="ui button primary" href="javascript:;" id="save_topic"
+				<a class="ui button primary" role="button" tabindex="0" id="save_topic"
 				data-link="{{.RepoLink}}/topics">{{.locale.Tr "repo.topic.done"}}</a>
 			</div>
 		</div>
@@ -117,19 +117,23 @@
 				{{if eq $n 0}}
 					<div class="ui action tiny input" id="clone-panel">
 						{{template "repo/clone_buttons" .}}
-						<button id="download-btn" class="ui basic small compact jump dropdown icon button tooltip" data-content="{{.locale.Tr "repo.download_archive"}}" data-position="top right">
-							{{svg "octicon-download"}}
+						<button id="more-btn" class="ui basic small compact jump dropdown icon button tooltip" data-content="{{.locale.Tr "repo.more_operations"}}" data-position="top right">
+							{{svg "octicon-kebab-horizontal"}}
 							<div class="menu">
 								{{if not $.DisableDownloadSourceArchives}}
 									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16 "mr-3"}}{{.locale.Tr "repo.download_zip"}}</a>
 									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip" 16 "mr-3"}}{{.locale.Tr "repo.download_tar"}}</a>
 									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.bundle" rel="nofollow">{{svg "octicon-package" 16 "mr-3"}}{{.locale.Tr "repo.download_bundle"}}</a>
+									{{if .CitiationExist}}
+										<a class="item" id="cite-repo-button">{{svg "octicon-cross-reference" 16 "mr-3"}}{{.locale.Tr "repo.cite_this_repo"}}</a>
+									{{end}}
 								{{end}}
 								<a class="item js-clone-url-vsc" href="vscode://vscode.git/clone?url={{.CloneButtonOriginLink.HTTPS}}">{{svg "gitea-vscode" 16 "mr-3"}}{{.locale.Tr "repo.clone_in_vsc"}}</a>
 							</div>
 						</button>
 						{{template "repo/clone_script" .}}{{/* the script will update `.js-clone-url` and related elements */}}
 					</div>
+					{{template "repo/cite/cite_modal" .}}
 				{{end}}
 				{{if and (ne $n 0) (not .IsViewFile) (not .IsBlame)}}
 					<a class="ui button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">

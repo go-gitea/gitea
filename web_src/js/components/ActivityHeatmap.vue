@@ -18,7 +18,6 @@
 import {CalendarHeatmap} from 'vue3-calendar-heatmap';
 
 export default {
-  name: 'ActivityHeatmap',
   components: {CalendarHeatmap},
   props: {
     values: {
@@ -32,6 +31,7 @@ export default {
   },
   data: () => ({
     colorRange: [
+      'var(--color-secondary-alpha-70)',
       'var(--color-secondary-alpha-70)',
       'var(--color-primary-light-4)',
       'var(--color-primary-light-2)',
@@ -49,6 +49,12 @@ export default {
       }
       return s;
     }
+  },
+  mounted() {
+    // work around issue with first legend color being rendered twice and legend cut off
+    const legend = document.querySelector('.vch__external-legend-wrapper');
+    legend.setAttribute('viewBox', '12 0 80 10');
+    legend.style.marginRight = '-12px';
   },
   methods: {
     handleDayClick(e) {

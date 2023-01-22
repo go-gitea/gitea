@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package agit
 
@@ -96,7 +95,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			headBranch = curentTopicBranch
 		}
 
-		pr, err := issues_model.GetUnmergedPullRequest(repo.ID, repo.ID, headBranch, baseBranchName, issues_model.PullRequestFlowAGit)
+		pr, err := issues_model.GetUnmergedPullRequest(ctx, repo.ID, repo.ID, headBranch, baseBranchName, issues_model.PullRequestFlowAGit)
 		if err != nil {
 			if !issues_model.IsErrPullRequestNotExist(err) {
 				return nil, fmt.Errorf("Failed to get unmerged agit flow pull request in repository: %s/%s Error: %w", ownerName, repoName, err)
@@ -116,7 +115,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 				description = opts.GitPushOptions["description"]
 			}
 
-			pusher, err := user_model.GetUserByID(opts.UserID)
+			pusher, err := user_model.GetUserByID(ctx, opts.UserID)
 			if err != nil {
 				return nil, fmt.Errorf("Failed to get user. Error: %w", err)
 			}
@@ -159,7 +158,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		}
 
 		// update exist pull request
-		if err := pr.LoadBaseRepoCtx(ctx); err != nil {
+		if err := pr.LoadBaseRepo(ctx); err != nil {
 			return nil, fmt.Errorf("Unable to load base repository for PR[%d] Error: %w", pr.ID, err)
 		}
 
@@ -199,19 +198,19 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		}
 
 		pull_service.AddToTaskQueue(pr)
-		pusher, err := user_model.GetUserByID(opts.UserID)
+		pusher, err := user_model.GetUserByID(ctx, opts.UserID)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to get user. Error: %w", err)
 		}
-		err = pr.LoadIssue()
+		err = pr.LoadIssue(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to load pull issue. Error: %w", err)
 		}
-		comment, err := issues_model.CreatePushPullComment(ctx, pusher, pr, oldCommitID, opts.NewCommitIDs[i])
+		comment, err := pull_service.CreatePushPullComment(ctx, pusher, pr, oldCommitID, opts.NewCommitIDs[i])
 		if err == nil && comment != nil {
-			notification.NotifyPullRequestPushCommits(pusher, pr, comment)
+			notification.NotifyPullRequestPushCommits(ctx, pusher, pr, comment)
 		}
-		notification.NotifyPullRequestSynchronized(pusher, pr)
+		notification.NotifyPullRequestSynchronized(ctx, pusher, pr)
 		isForcePush := comment != nil && comment.IsForcePush
 
 		results = append(results, private.HookProcReceiveRefResult{

@@ -79,6 +79,7 @@
   --color-pink: #e03997;
   --color-brown: #a5673f;
   --color-grey: #888888;
+  --color-black: #1b1c1d;
   /* light variants - produced via Sass scale-color(color, $lightness: +25%) */
   --color-red-light: #e45e5e;
   --color-orange-light: #f59555;
@@ -92,9 +93,9 @@
   --color-pink-light: #e86bb1;
   --color-brown-light: #c58b66;
   --color-grey-light: #a6a6a6;
+  --color-black-light: #525558;
   /* other colors */
   --color-gold: #a1882b;
-  --color-black: #1b1c1d;
   --color-white: #ffffff;
   --color-diff-removed-word-bg: #fdb8c0;
   --color-diff-added-word-bg: #acf2bd;
@@ -107,6 +108,8 @@
   --color-diff-inactive: #f2f2f2;
   --color-error-border: #e0b4b4;
   --color-error-bg: #fff6f6;
+  --color-error-bg-active: #fbb;
+  --color-error-bg-hover: #fdd;
   --color-error-text: #9f3a38;
   --color-success-border: #a3c293;
   --color-success-bg: #fcfff5;
@@ -117,6 +120,20 @@
   --color-info-border: #a9d5de;
   --color-info-bg: #f8ffff;
   --color-info-text: #276f86;
+  --color-red-badge: #db2828;
+  --color-red-badge-bg: #db28281a;
+  --color-red-badge-hover-bg: #db28284d;
+  --color-green-badge: #21ba45;
+  --color-green-badge-bg: #21ba451a;
+  --color-green-badge-hover-bg: #21ba454d;
+  --color-yellow-badge: #fbbd08;
+  --color-yellow-badge-bg: #fbbd081a;
+  --color-yellow-badge-hover-bg: #fbbd084d;
+  --color-orange-badge: #f2711c;
+  --color-orange-badge-bg: #f2711c1a;
+  --color-orange-badge-hover-bg: #f2711c4d;
+  --color-git: #f05133;
+  /* target-based colors */
   --color-body: #ffffff;
   --color-text-dark: #080808;
   --color-text: #212121;
@@ -207,6 +224,13 @@ body {
   overflow-wrap: break-word;
 }
 
+@supports (overflow: overlay) {
+  body {
+    overflow: overlay;
+    scrollbar-gutter: stable;
+  }
+}
+
 img {
   border-radius: 3px;
 }
@@ -293,15 +317,22 @@ a,
   text-decoration-skip-ink: all;
 }
 
-a.muted {
+a.muted,
+.muted-links a {
   color: inherit;
 }
 
 a:hover,
 a.muted:hover,
 a.muted:hover [class*="color-text"],
+.muted-links a:hover,
 .ui.breadcrumb a:hover {
   color: var(--color-primary);
+}
+
+.delete-button,
+.delete-button:hover {
+  color: var(--color-red);
 }
 
 a.label,
@@ -781,6 +812,9 @@ a.commit-statuses-trigger {
   margin-top: -.25rem;
   margin-bottom: -.25rem;
 }
+.ui.dropdown .menu > .item > svg.img {
+  margin-right: .78571429rem;
+}
 
 .ui.selection.dropdown .menu > .item {
   border-color: var(--color-secondary);
@@ -1185,11 +1219,7 @@ a.ui.card:hover,
   }
 
   .searchbox {
-    background-color: #f4f4f4 !important;
-
-    &:focus {
-      background-color: #e9e9e9 !important;
-    }
+    background-color: var(--color-input-background) !important;
   }
 
   .text .svg {
@@ -1265,6 +1295,11 @@ a.ui.card:hover,
 .ui.form .fields.error .field input[type="text"],
 .ui.form .fields.error .field input[type="file"],
 .ui.form .fields.error .field input[type="url"],
+.ui.form .fields.error .field .ui.dropdown,
+.ui.form .fields.error .field .ui.dropdown .item,
+.ui.form .field.error .ui.dropdown,
+.ui.form .field.error .ui.dropdown .text,
+.ui.form .field.error .ui.dropdown .item,
 .ui.form .field.error textarea,
 .ui.form .field.error select,
 .ui.form .field.error input:not([type]),
@@ -1293,13 +1328,57 @@ a.ui.card:hover,
 .ui.form .field.error input[type="file"]:focus,
 .ui.form .field.error input[type="url"]:focus {
   background-color: var(--color-error-bg);
-  border: 1px solid var(--color-error-border);
+  border-color: var(--color-error-border);
   color: var(--color-error-text);
+}
+
+.ui.form .fields.error .field .ui.dropdown,
+.ui.form .field.error .ui.dropdown,
+.ui.form .fields.error .field .ui.dropdown:hover,
+.ui.form .field.error .ui.dropdown:hover {
+  border-color: var(--color-error-border) !important;
+}
+
+.ui.form .fields.error .field .ui.dropdown .menu .item:hover,
+.ui.form .field.error .ui.dropdown .menu .item:hover {
+  background-color: var(--color-error-bg-hover);
+}
+
+.ui.form .fields.error .field .ui.dropdown .menu .active.item,
+.ui.form .field.error .ui.dropdown .menu .active.item {
+  background-color: var(--color-error-bg-active) !important;
+}
+
+.ui.form .fields.error .dropdown .menu,
+.ui.form .field.error .dropdown .menu {
+  border-color: var(--color-error-border) !important;
+}
+
+// A fix for text visibility issue in Chrome autofill in dark mode.
+// It's a problem from Formatic UI, and this rule overrides it.
+.ui.form .field.field input:-webkit-autofill {
+  -webkit-text-fill-color: var(--color-black) !important;
 }
 
 .ui.loading.loading.input > i.icon svg {
   visibility: hidden;
 }
+
+.text.red { color: var(--color-red) !important; }
+.text.orange { color: var(--color-orange) !important; }
+.text.yellow { color: var(--color-yellow) !important; }
+.text.olive { color: var(--color-olive) !important; }
+.text.green { color: var(--color-green) !important; }
+.text.teal { color: var(--color-teal) !important; }
+.text.blue { color: var(--color-blue) !important; }
+.text.violet { color: var(--color-violet) !important; }
+.text.purple { color: var(--color-purple) !important; }
+.text.pink { color: var(--color-pink) !important; }
+.text.brown { color: var(--color-brown) !important; }
+.text.black { color: var(--color-text) !important; }
+.text.grey { color: var(--color-text-light) !important; }
+.text.light.grey { color: var(--color-grey-light) !important; }
+.text.gold { color: var(--color-gold) !important; }
 
 .ui {
   &.left:not(.action) {
@@ -1370,74 +1449,6 @@ a.ui.card:hover,
   }
 
   .text {
-    &.red {
-      color: var(--color-red) !important;
-
-      a {
-        color: inherit !important;
-
-        &:hover {
-          color: var(--color-red-light) !important;
-        }
-      }
-    }
-
-    &.blue {
-      color: var(--color-blue) !important;
-
-      a {
-        color: inherit !important;
-
-        &:hover {
-          color: var(--color-blue-light) !important;
-        }
-      }
-    }
-
-    &.black {
-      color: var(--color-text);
-
-      &:hover {
-        color: var(--color-text-dark);
-      }
-    }
-
-    &.grey {
-      color: var(--color-text-light) !important;
-
-      a {
-        color: var(--color-text) !important;
-
-        &:hover {
-          color: var(--color-primary) !important;
-        }
-      }
-    }
-
-    &.light.grey {
-      color: var(--color-text-light-2) !important;
-    }
-
-    &.green {
-      color: var(--color-green) !important;
-    }
-
-    &.purple {
-      color: var(--color-purple) !important;
-    }
-
-    &.yellow {
-      color: var(--color-yellow) !important;
-    }
-
-    &.orange {
-      color: var(--color-orange) !important;
-    }
-
-    &.gold {
-      color: var(--color-gold) !important;
-    }
-
     &.left {
       text-align: left !important;
     }
@@ -1973,7 +1984,7 @@ footer {
 }
 
 .archived-icon {
-  color: lighten(#000000, 70%) !important;
+  color: var(--color-secondary-dark-2) !important;
 }
 
 .oauth2-authorize-application-box {
@@ -2126,7 +2137,7 @@ a.ui.label:hover {
 .lines-commit {
   &:extend(.unselectable);
   vertical-align: top;
-  color: #999999;
+  color: var(--color-grey);
   padding: 0 !important;
   background: var(--color-code-sidebar-bg);
   width: 1%;
@@ -2202,6 +2213,7 @@ a.ui.label:hover {
   color: var(--color-text);
 }
 
+.ui.active.button,
 .ui.button:active,
 .ui.active.button:active,
 .ui.active.button:hover {
@@ -2353,7 +2365,7 @@ a.ui.basic.label:hover {
 }
 
 .migrate .svg.gitea-git {
-  color: #f05133; /* from https://upload.wikimedia.org/wikipedia/commons/e/e0/Git-logo.svg */
+  color: var(--color-git);
 }
 
 .color-icon {
@@ -2617,6 +2629,7 @@ table th[data-sortt-desc] {
 
 .truncated-item-container {
   display: flex !important;
+  align-items: center;
 }
 
 .ellipsis-button {

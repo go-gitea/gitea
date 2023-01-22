@@ -1,7 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // Copyright 2018 Jonas Franz. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migrations
 
@@ -77,6 +76,7 @@ type GithubDownloaderV3 struct {
 	curClientIdx  int
 	maxPerPage    int
 	SkipReactions bool
+	SkipReviews   bool
 }
 
 // NewGithubDownloaderV3 creates a github Downloader via github v3 API
@@ -810,6 +810,9 @@ func (g *GithubDownloaderV3) convertGithubReviewComments(cs []*github.PullReques
 // GetReviews returns pull requests review
 func (g *GithubDownloaderV3) GetReviews(reviewable base.Reviewable) ([]*base.Review, error) {
 	allReviews := make([]*base.Review, 0, g.maxPerPage)
+	if g.SkipReviews {
+		return allReviews, nil
+	}
 	opt := &github.ListOptions{
 		PerPage: g.maxPerPage,
 	}

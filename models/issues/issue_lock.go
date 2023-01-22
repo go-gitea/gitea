@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -40,7 +39,7 @@ func updateIssueLock(opts *IssueLockOptions, lock bool) error {
 		commentType = CommentTypeUnlock
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -57,7 +56,7 @@ func updateIssueLock(opts *IssueLockOptions, lock bool) error {
 		Type:    commentType,
 		Content: opts.Reason,
 	}
-	if _, err := CreateCommentCtx(ctx, opt); err != nil {
+	if _, err := CreateComment(ctx, opt); err != nil {
 		return err
 	}
 

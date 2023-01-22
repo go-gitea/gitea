@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -111,7 +110,7 @@ func (m *Milestone) State() api.StateType {
 
 // NewMilestone creates new milestone of repository.
 func NewMilestone(m *Milestone) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -161,7 +160,7 @@ func GetMilestoneByRepoIDANDName(repoID int64, name string) (*Milestone, error) 
 
 // UpdateMilestone updates information of given milestone.
 func UpdateMilestone(m *Milestone, oldIsClosed bool) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -219,7 +218,7 @@ func UpdateMilestoneCounters(ctx context.Context, id int64) error {
 
 // ChangeMilestoneStatusByRepoIDAndID changes a milestone open/closed status if the milestone ID is in the repo.
 func ChangeMilestoneStatusByRepoIDAndID(repoID, milestoneID int64, isClosed bool) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -246,7 +245,7 @@ func ChangeMilestoneStatusByRepoIDAndID(repoID, milestoneID int64, isClosed bool
 
 // ChangeMilestoneStatus changes the milestone open/closed status.
 func ChangeMilestoneStatus(m *Milestone, isClosed bool) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -285,12 +284,12 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 		return err
 	}
 
-	repo, err := repo_model.GetRepositoryByID(m.RepoID)
+	repo, err := repo_model.GetRepositoryByID(db.DefaultContext, m.RepoID)
 	if err != nil {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

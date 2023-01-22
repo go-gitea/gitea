@@ -1,23 +1,22 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
 
 // ErrPushMirrorNotExist mirror does not exist error
-var ErrPushMirrorNotExist = errors.New("PushMirror does not exist")
+var ErrPushMirrorNotExist = util.NewNotExistErrorf("PushMirror does not exist")
 
 // PushMirror represents mirror information of a repository.
 type PushMirror struct {
@@ -62,7 +61,7 @@ func (m *PushMirror) GetRepository() *Repository {
 		return m.Repo
 	}
 	var err error
-	m.Repo, err = GetRepositoryByIDCtx(db.DefaultContext, m.RepoID)
+	m.Repo, err = GetRepositoryByID(db.DefaultContext, m.RepoID)
 	if err != nil {
 		log.Error("getRepositoryByID[%d]: %v", m.ID, err)
 	}
@@ -91,7 +90,7 @@ func DeletePushMirrors(ctx context.Context, opts PushMirrorOptions) error {
 		_, err := db.GetEngine(ctx).Where(opts.toConds()).Delete(&PushMirror{})
 		return err
 	}
-	return errors.New("repoID required and must be set")
+	return util.NewInvalidArgumentErrorf("repoID required and must be set")
 }
 
 func GetPushMirror(ctx context.Context, opts PushMirrorOptions) (*PushMirror, error) {
@@ -120,9 +119,9 @@ func GetPushMirrorsByRepoID(ctx context.Context, repoID int64, listOptions db.Li
 }
 
 // GetPushMirrorsSyncedOnCommit returns push-mirrors for this repo that should be updated by new commits
-func GetPushMirrorsSyncedOnCommit(repoID int64) ([]*PushMirror, error) {
+func GetPushMirrorsSyncedOnCommit(ctx context.Context, repoID int64) ([]*PushMirror, error) {
 	mirrors := make([]*PushMirror, 0, 10)
-	return mirrors, db.GetEngine(db.DefaultContext).
+	return mirrors, db.GetEngine(ctx).
 		Where("repo_id=? AND sync_on_commit=?", repoID, true).
 		Find(&mirrors)
 }

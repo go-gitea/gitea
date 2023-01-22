@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package gitdiff
 
@@ -280,7 +279,8 @@ func DiffInlineWithUnicodeEscape(s template.HTML, locale translation.Locale) Dif
 
 // DiffInlineWithHighlightCode makes a DiffInline with code highlight and hidden unicode characters escaped
 func DiffInlineWithHighlightCode(fileName, language, code string, locale translation.Locale) DiffInline {
-	status, content := charset.EscapeControlHTML(highlight.Code(fileName, language, code), locale)
+	highlighted, _ := highlight.Code(fileName, language, code)
+	status, content := charset.EscapeControlHTML(highlighted, locale)
 	return DiffInline{EscapeStatus: status, Content: template.HTML(content)}
 }
 

@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package packages
 
@@ -86,15 +85,15 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 	if err != nil {
 		return nil, err
 	}
-	o, err := user_model.GetUserByIDCtx(ctx, p.OwnerID)
+	o, err := user_model.GetUserByID(ctx, p.OwnerID)
 	if err != nil {
 		return nil, err
 	}
-	repository, err := repo_model.GetRepositoryByIDCtx(ctx, p.RepoID)
+	repository, err := repo_model.GetRepositoryByID(ctx, p.RepoID)
 	if err != nil && !repo_model.IsErrRepoNotExist(err) {
 		return nil, err
 	}
-	creator, err := user_model.GetUserByIDCtx(ctx, pv.CreatorID)
+	creator, err := user_model.GetUserByID(ctx, pv.CreatorID)
 	if err != nil {
 		return nil, err
 	}

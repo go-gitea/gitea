@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package setting
 
@@ -281,17 +280,17 @@ func Repos(ctx *context.Context) {
 		repos := map[string]*repo_model.Repository{}
 		// We're going to iterate by pagesize.
 		root := user_model.UserPath(ctxUser.Name)
-		if err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 			if err != nil {
 				if os.IsNotExist(err) {
 					return nil
 				}
 				return err
 			}
-			if !info.IsDir() || path == root {
+			if !d.IsDir() || path == root {
 				return nil
 			}
-			name := info.Name()
+			name := d.Name()
 			if !strings.HasSuffix(name, ".git") {
 				return filepath.SkipDir
 			}
@@ -305,7 +304,7 @@ func Repos(ctx *context.Context) {
 			count++
 			return filepath.SkipDir
 		}); err != nil {
-			ctx.ServerError("filepath.Walk", err)
+			ctx.ServerError("filepath.WalkDir", err)
 			return
 		}
 
@@ -324,7 +323,7 @@ func Repos(ctx *context.Context) {
 		}
 		for _, repo := range userRepos {
 			if repo.IsFork {
-				if err := repo.GetBaseRepo(); err != nil {
+				if err := repo.GetBaseRepo(ctx); err != nil {
 					ctx.ServerError("GetBaseRepo", err)
 					return
 				}
@@ -343,7 +342,7 @@ func Repos(ctx *context.Context) {
 
 		for i := range repos {
 			if repos[i].IsFork {
-				if err := repos[i].GetBaseRepo(); err != nil {
+				if err := repos[i].GetBaseRepo(ctx); err != nil {
 					ctx.ServerError("GetBaseRepo", err)
 					return
 				}
@@ -414,7 +413,7 @@ func UpdateUserLang(ctx *context.Context) {
 	ctx.Data["PageIsSettingsAppearance"] = true
 
 	if len(form.Language) != 0 {
-		if !util.IsStringInSlice(form.Language, setting.Langs) {
+		if !util.SliceContainsString(setting.Langs, form.Language) {
 			ctx.Flash.Error(ctx.Tr("settings.update_language_not_found", form.Language))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 			return

@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -22,6 +21,13 @@ import (
 // CustomAvatarRelativePath returns repository custom avatar file path.
 func (repo *Repository) CustomAvatarRelativePath() string {
 	return repo.Avatar
+}
+
+// ExistsWithAvatarAtStoragePath returns true if there is a user with this Avatar
+func ExistsWithAvatarAtStoragePath(ctx context.Context, storagePath string) (bool, error) {
+	// See func (repo *Repository) CustomAvatarRelativePath()
+	// repo.Avatar is used directly as the storage path - therefore we can check for existence directly using the path
+	return db.GetEngine(ctx).Where("`avatar`=?", storagePath).Exist(new(Repository))
 }
 
 // RelAvatarLink returns a relative link to the repository's avatar.

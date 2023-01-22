@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package org
 
@@ -19,7 +18,7 @@ import (
 
 // DeleteOrganization completely and permanently deletes everything of organization.
 func DeleteOrganization(org *organization.Organization) error {
-	ctx, commiter, err := db.TxContext()
+	ctx, commiter, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

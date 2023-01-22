@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues_test
 
@@ -19,7 +18,7 @@ import (
 func TestAddTime(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user3, err := user_model.GetUserByID(3)
+	user3, err := user_model.GetUserByID(db.DefaultContext, 3)
 	assert.NoError(t, err)
 
 	issue1, err := issues_model.GetIssueByID(db.DefaultContext, 1)

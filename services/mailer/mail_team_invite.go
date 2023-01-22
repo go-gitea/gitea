@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package mailer
 
@@ -27,7 +26,7 @@ func MailTeamInvite(ctx context.Context, inviter *user_model.User, team *org_mod
 		return nil
 	}
 
-	org, err := user_model.GetUserByIDCtx(ctx, team.OrgID)
+	org, err := user_model.GetUserByID(ctx, team.OrgID)
 	if err != nil {
 		return err
 	}

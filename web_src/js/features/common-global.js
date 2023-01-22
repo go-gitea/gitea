@@ -1,12 +1,13 @@
 import $ from 'jquery';
 import 'jquery.are-you-sure';
 import {mqBinarySearch} from '../utils.js';
-import createDropzone from './dropzone.js';
+import {createDropzone} from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';
 import {attachDropdownAria} from './aria.js';
 import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
 import {initTooltip} from '../modules/tippy.js';
+import {svg} from '../svg.js';
 
 const {appUrl, csrfToken} = window.config;
 
@@ -167,6 +168,21 @@ export function initGlobalDropzone() {
           file.uuid = data.uuid;
           const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
           $dropzone.find('.files').append(input);
+          // Create a "Copy Link" element, to conveniently copy the image
+          // or file link as Markdown to the clipboard
+          const copyLinkElement = document.createElement('div');
+          copyLinkElement.className = 'tc';
+          // The a element has a hardcoded cursor: pointer because the default is overridden by .dropzone
+          copyLinkElement.innerHTML = `<a href="#" style="cursor: pointer;">${svg('octicon-copy', 14, 'copy link')} Copy link</a>`;
+          copyLinkElement.addEventListener('click', (e) => {
+            e.preventDefault();
+            let fileMarkdown = `[${file.name}](/attachments/${file.uuid})`;
+            if (file.type.startsWith('image/')) {
+              fileMarkdown = `!${fileMarkdown}`;
+            }
+            navigator.clipboard.writeText(fileMarkdown);
+          });
+          file.previewTemplate.appendChild(copyLinkElement);
         });
         this.on('removedfile', (file) => {
           $(`#${file.uuid}`).remove();
@@ -260,6 +276,7 @@ export function initGlobalLinkActions() {
     e.preventDefault();
     const $this = $(this);
     const redirect = $this.data('redirect');
+    $this.prop('disabled', true);
     $.post($this.data('url'), {
       _csrf: csrfToken
     }).done((data) => {
@@ -270,6 +287,8 @@ export function initGlobalLinkActions() {
       } else {
         window.location.reload();
       }
+    }).always(() => {
+      $this.prop('disabled', false);
     });
   }
 
@@ -283,11 +302,14 @@ export function initGlobalLinkActions() {
   // FIXME: this is only used once, and should be replace with `link-action` instead
   $('.undo-button').on('click', function () {
     const $this = $(this);
+    $this.prop('disabled', true);
     $.post($this.data('url'), {
       _csrf: csrfToken,
       id: $this.data('id')
     }).done((data) => {
       window.location.href = data.redirect;
+    }).always(() => {
+      $this.prop('disabled', false);
     });
   });
 }

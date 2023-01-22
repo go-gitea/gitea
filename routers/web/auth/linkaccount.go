@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package auth
 
@@ -14,10 +13,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/hcaptcha"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/mcaptcha"
-	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	auth_service "code.gitea.io/gitea/services/auth"
@@ -221,28 +216,8 @@ func LinkAccountPostRegister(ctx *context.Context) {
 	}
 
 	if setting.Service.EnableCaptcha && setting.Service.RequireExternalRegistrationCaptcha {
-		var valid bool
-		var err error
-		switch setting.Service.CaptchaType {
-		case setting.ImageCaptcha:
-			valid = context.GetImageCaptcha().VerifyReq(ctx.Req)
-		case setting.ReCaptcha:
-			valid, err = recaptcha.Verify(ctx, form.GRecaptchaResponse)
-		case setting.HCaptcha:
-			valid, err = hcaptcha.Verify(ctx, form.HcaptchaResponse)
-		case setting.MCaptcha:
-			valid, err = mcaptcha.Verify(ctx, form.McaptchaResponse)
-		default:
-			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
-			return
-		}
-		if err != nil {
-			log.Debug("%s", err.Error())
-		}
-
-		if !valid {
-			ctx.Data["Err_Captcha"] = true
-			ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplLinkAccount, &form)
+		context.VerifyCaptcha(ctx, tplLinkAccount, form)
+		if ctx.Written() {
 			return
 		}
 	}

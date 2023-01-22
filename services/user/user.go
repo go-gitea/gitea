@@ -1,12 +1,10 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
 import (
 	"context"
-	"crypto/md5"
 	"fmt"
 	"image/png"
 	"io"
@@ -78,7 +76,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 				Actor:   u,
 			})
 			if err != nil {
-				return fmt.Errorf("SearchRepositoryByName: %w", err)
+				return fmt.Errorf("GetUserRepositories: %w", err)
 			}
 			if len(repos) == 0 {
 				break
@@ -132,7 +130,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		}
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -235,18 +233,14 @@ func UploadAvatar(u *user_model.User, data []byte) error {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
 	u.UseCustomAvatar = true
-	// Different users can upload same image as avatar
-	// If we prefix it with u.ID, it will be separated
-	// Otherwise, if any of the users delete his avatar
-	// Other users will lose their avatars too.
-	u.Avatar = fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%d-%x", u.ID, md5.Sum(data)))))
+	u.Avatar = avatar.HashAvatar(u.ID, data)
 	if err = user_model.UpdateUserCols(ctx, u, "use_custom_avatar", "avatar"); err != nil {
 		return fmt.Errorf("updateUser: %w", err)
 	}

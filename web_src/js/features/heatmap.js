@@ -1,7 +1,8 @@
 import {createApp} from 'vue';
 import ActivityHeatmap from '../components/ActivityHeatmap.vue';
 import {translateMonth, translateDay} from '../utils.js';
-export default function initHeatmap() {
+
+export function initHeatmap() {
   const el = document.getElementById('user-heatmap');
   if (!el) return;
 

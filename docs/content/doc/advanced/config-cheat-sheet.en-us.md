@@ -112,6 +112,7 @@ In addition there is _`StaticRootPath`_ which can be set as a built-in at build 
 - `ALLOW_ADOPTION_OF_UNADOPTED_REPOSITORIES`: **false**: Allow non-admin users to adopt unadopted repositories
 - `ALLOW_DELETION_OF_UNADOPTED_REPOSITORIES`: **false**: Allow non-admin users to delete unadopted repositories
 - `DISABLE_DOWNLOAD_SOURCE_ARCHIVES`: **false**: Don't allow download source archive files from UI
+- `ALLOW_FORK_WITHOUT_MAXIMUM_LIMIT`: **true**: Allow fork repositories without maximum number limit
 
 ### Repository - Editor (`repository.editor`)
 
@@ -134,6 +135,7 @@ In addition there is _`StaticRootPath`_ which can be set as a built-in at build 
 - `DEFAULT_MERGE_MESSAGE_OFFICIAL_APPROVERS_ONLY`: **true**: In default merge messages only include approvers who are officially allowed to review.
 - `POPULATE_SQUASH_COMMENT_WITH_COMMIT_MESSAGES`: **false**: In default squash-merge messages include the commit message of all commits comprising the pull request.
 - `ADD_CO_COMMITTER_TRAILERS`: **true**: Add co-authored-by and co-committed-by trailers to merge commit messages if committer does not match author.
+- `TEST_CONFLICTING_PATCHES_WITH_GIT_APPLY`: **false**: PR patches are tested using a three-way merge method to discover if there are conflicts. If this setting is set to **true**, conflicting patches will be retested using `git apply` - This was the previous behaviour in 1.18 (and earlier) but is somewhat inefficient. Please report if you find that this setting is required.
 
 ### Repository - Issue (`repository.issue`)
 
@@ -238,6 +240,10 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `NOTICE_PAGING_NUM`: **25**: Number of notices that are shown in one page.
 - `ORG_PAGING_NUM`: **50**: Number of organizations that are shown in one page.
 
+### UI - User (`ui.user`)
+
+- `REPO_PAGING_NUM`: **15**: Number of repos that are shown in one page.
+
 ### UI - Metadata (`ui.meta`)
 
 - `AUTHOR`: **Gitea - Git with a cup of tea**: Author meta tag of the homepage.
@@ -289,8 +295,13 @@ The following configuration set `Content-Type: application/vnd.android.package-a
    This includes CSS files, images, JS files and web fonts.
    Avatar images are dynamic resources and still served by Gitea.
    The option can be just a different path, as in `/static`, or another domain, as in `https://cdn.example.com`.
-   Requests are then made as `%(ROOT_URL)s/static/css/index.css` and `https://cdn.example.com/css/index.css` respective.
+   Requests are then made as `%(ROOT_URL)s/static/assets/css/index.css` or `https://cdn.example.com/assets/css/index.css` respectively.
    The static files are located in the `public/` directory of the Gitea source repository.
+   You can proxy the STATIC_URL_PREFIX requests to Gitea server to serve the static
+   assets, or copy the manually built Gitea assets from `$GITEA_BUILD/public` to
+   the assets location, eg: `/var/www/assets`, make sure `$STATIC_URL_PREFIX/assets/css/index.css`
+   points to `/var/www/assets/css/index.css`.
+
 - `HTTP_ADDR`: **0.0.0.0**: HTTP listen address.
   - If `PROTOCOL` is set to `fcgi`, Gitea will listen for FastCGI requests on TCP socket
      defined by `HTTP_ADDR` and `HTTP_PORT` configuration settings.
@@ -439,6 +450,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `MAX_OPEN_CONNS` **0**: Database maximum open connections - default is 0, meaning there is no limit.
 - `MAX_IDLE_CONNS` **2**: Max idle database connections on connection pool, default is 2 - this will be capped to `MAX_OPEN_CONNS`.
 - `CONN_MAX_LIFETIME` **0 or 3s**: Sets the maximum amount of time a DB connection may be reused - default is 0, meaning there is no limit (except on MySQL where it is 3s - see #6804 & #7071).
+- `AUTO_MIGRATION` **true**: Whether execute database models migrations automatically.
 
 Please see #8540 & #8273 for further discussion of the appropriate values for `MAX_OPEN_CONNS`, `MAX_IDLE_CONNS` & `CONN_MAX_LIFETIME` and their
 relation to port exhaustion.
@@ -629,6 +641,7 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
 - `ENABLE_REVERSE_PROXY_FULL_NAME`: **false**: Enable this to allow to auto-registration with a
    provided full name for the user.
 - `ENABLE_CAPTCHA`: **false**: Enable this to use captcha validation for registration.
+- `REQUIRE_CAPTCHA_FOR_LOGIN`: **false**: Enable this to require captcha validation for login. You also must enable `ENABLE_CAPTCHA`.
 - `REQUIRE_EXTERNAL_REGISTRATION_CAPTCHA`: **false**: Enable this to force captcha validation
    even for External Accounts (i.e. GitHub, OpenID Connect, etc). You also must enable `ENABLE_CAPTCHA`.
 - `CAPTCHA_TYPE`: **image**: \[image, recaptcha, hcaptcha, mcaptcha\]
@@ -707,7 +720,7 @@ and
 [Gitea 1.17 configuration document](https://github.com/go-gitea/gitea/blob/release/v1.17/docs/content/doc/advanced/config-cheat-sheet.en-us.md)
 
 - `ENABLED`: **false**: Enable to use a mail service.
-- `PROTOCOL`: **\<empty\>**: Mail server protocol. One of "smtp", "smtps", "smtp+startls", "smtp+unix", "sendmail", "dummy". _Before 1.18, this was inferred from a combination of `MAILER_TYPE` and `IS_TLS_ENABLED`._
+- `PROTOCOL`: **\<empty\>**: Mail server protocol. One of "smtp", "smtps", "smtp+starttls", "smtp+unix", "sendmail", "dummy". _Before 1.18, this was inferred from a combination of `MAILER_TYPE` and `IS_TLS_ENABLED`._
   - SMTP family, if your provider does not explicitly say which protocol it uses but does provide a port, you can set SMTP_PORT instead and this will be inferred.
   - **sendmail** Use the operating system's `sendmail` command instead of SMTP. This is common on Linux systems.
   - **dummy** Send email messages to the log as a testing phase.
@@ -736,6 +749,20 @@ and
 - `SENDMAIL_CONVERT_CRLF`: **true**: Most versions of sendmail prefer LF line endings rather than CRLF line endings. Set this to false if your version of sendmail requires CRLF line endings.
 - `SEND_BUFFER_LEN`: **100**: Buffer length of mailing queue. **DEPRECATED** use `LENGTH` in `[queue.mailer]`
 - `SEND_AS_PLAIN_TEXT`: **false**: Send mails only in plain text, without HTML alternative.
+
+## Incoming Email (`email.incoming`)
+
+- `ENABLED`: **false**: Enable handling of incoming emails.
+- `REPLY_TO_ADDRESS`: **\<empty\>**: The email address including the `%{token}` placeholder that will be replaced per user/action. Example: `incoming+%{token}@example.com`. The placeholder must appear in the user part of the address (before the `@`).
+- `HOST`: **\<empty\>**: IMAP server host.
+- `PORT`: **\<empty\>**: IMAP server port.
+- `USERNAME`: **\<empty\>**: Username of the receiving account.
+- `PASSWORD`: **\<empty\>**: Password of the receiving account.
+- `USE_TLS`: **false**: Whether the IMAP server uses TLS.
+- `SKIP_TLS_VERIFY`: **false**: If set to `true`, completely ignores server certificate validation errors. This option is unsafe.
+- `MAILBOX`: **INBOX**: The mailbox name where incoming mail will end up.
+- `DELETE_HANDLED_MESSAGE`: **true**: Whether handled messages should be deleted from the mailbox.
+- `MAXIMUM_MESSAGE_SIZE`: **10485760**: Maximum size of a message to handle. Bigger messages are ignored. Set to 0 to allow every size.
 
 ## Cache (`cache`)
 
@@ -769,9 +796,9 @@ and
 
 - `GRAVATAR_SOURCE`: **gravatar**: Can be `gravatar`, `duoshuo` or anything like
    `http://cn.gravatar.com/avatar/`.
-- `DISABLE_GRAVATAR`: **false**: Enable this to use local avatars only.
+- `DISABLE_GRAVATAR`: **false**: Enable this to use local avatars only. **DEPRECATED [v1.18+]** moved to database. Use admin panel to configure.
 - `ENABLE_FEDERATED_AVATAR`: **false**: Enable support for federated avatars (see
-   [http://www.libravatar.org](http://www.libravatar.org)).
+   [http://www.libravatar.org](http://www.libravatar.org)). **DEPRECATED [v1.18+]** moved to database. Use admin panel to configure.
 
 - `AVATAR_STORAGE_TYPE`: **default**: Storage type defined in `[storage.xxx]`. Default is `default` which will read `[storage]` if no section `[storage]` will be a type `local`.
 - `AVATAR_UPLOAD_PATH`: **data/avatars**: Path to store user avatar image files.
@@ -998,7 +1025,7 @@ Default templates for project boards:
 
 #### Cron -  Check for new Gitea versions ('cron.update_checker')
 
-- `ENABLED`: **false**: Enable service.
+- `ENABLED`: **true**: Enable service.
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
 - `ENABLE_SUCCESS_NOTICE`: **true**: Set to false to switch off success notices.
 - `SCHEDULE`: **@every 168h**: Cron syntax for scheduling a work, e.g. `@every 168h`.
@@ -1011,6 +1038,16 @@ Default templates for project boards:
 - `NO_SUCCESS_NOTICE`: **false**: Set to true to switch off success notices.
 - `SCHEDULE`: **@every 168h**: Cron syntax to set how often to check.
 - `OLDER_THAN`: **@every 8760h**: any system notice older than this expression will be deleted from database.
+
+#### Cron -  Garbage collect LFS pointers in repositories ('cron.gc_lfs')
+
+- `ENABLED`: **false**: Enable service.
+- `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
+- `SCHEDULE`: **@every 24h**: Cron syntax to set how often to check.
+- `OLDER_THAN`: **168h**: Only attempt to garbage collect LFSMetaObjects older than this (default 7 days)
+- `LAST_UPDATED_MORE_THAN_AGO`: **72h**: Only attempt to garbage collect LFSMetaObjects that have not been attempted to be garbage collected for this long (default 3 days)
+- `NUMBER_TO_CHECK_PER_REPO`: **100**: Minimum number of stale LFSMetaObjects to check per repo. Set to `0` to always check all.
+- `PROPORTION_TO_CHECK_PER_REPO`: **0.6**: Check at least this proportion of LFSMetaObjects per repo. (This may cause all stale LFSMetaObjects to be checked.)
 
 ## Git (`git`)
 
@@ -1035,7 +1072,7 @@ Default templates for project boards:
 
 ## Git - Timeout settings (`git.timeout`)
 
-- `DEFAUlT`: **360**: Git operations default timeout seconds.
+- `DEFAULT`: **360**: Git operations default timeout seconds.
 - `MIGRATE`: **600**: Migrate external repositories timeout seconds.
 - `MIRROR`: **300**: Mirror external repositories timeout seconds.
 - `CLONE`: **300**: Git clone from internal repositories timeout seconds.
@@ -1137,7 +1174,7 @@ in this mapping or the filetype using heuristics.
 ## Time (`time`)
 
 - `FORMAT`: Time format to display on UI. i.e. RFC1123 or 2006-01-02 15:04:05
-- `DEFAULT_UI_LOCATION`: Default location of time on the UI, so that we can display correct user's time on UI. i.e. Shanghai/Asia
+- `DEFAULT_UI_LOCATION`: Default location of time on the UI, so that we can display correct user's time on UI. i.e. Asia/Shanghai
 
 ## Task (`task`)
 
@@ -1173,20 +1210,20 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 
 - `ENABLED`: **true**: Enable/Disable package registry capabilities
 - `CHUNKED_UPLOAD_PATH`: **tmp/package-upload**: Path for chunked uploads. Defaults to `APP_DATA_PATH` + `tmp/package-upload`
-- `LIMIT_TOTAL_OWNER_COUNT`: **-1**: Maxmimum count of package versions a single owner can have (`-1` means no limits)
-- `LIMIT_TOTAL_OWNER_SIZE`: **-1**: Maxmimum size of packages a single owner can use (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
-- `LIMIT_SIZE_COMPOSER`: **-1**: Maxmimum size of a Composer upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
-- `LIMIT_SIZE_CONAN`: **-1**: Maxmimum size of a Conan upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
-- `LIMIT_SIZE_CONTAINER`: **-1**: Maxmimum size of a Container upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
-- `LIMIT_SIZE_GENERIC`: **-1**: Maxmimum size of a Generic upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
-- `LIMIT_SIZE_HELM`: **-1**: Maxmimum size of a Helm upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
-- `LIMIT_SIZE_MAVEN`: **-1**: Maxmimum size of a Maven upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
-- `LIMIT_SIZE_NPM`: **-1**: Maxmimum size of a npm upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
-- `LIMIT_SIZE_NUGET`: **-1**: Maxmimum size of a NuGet upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
-- `LIMIT_SIZE_PUB`: **-1**: Maxmimum size of a Pub upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
-- `LIMIT_SIZE_PYPI`: **-1**: Maxmimum size of a PyPI upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
-- `LIMIT_SIZE_RUBYGEMS`: **-1**: Maxmimum size of a RubyGems upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
-- `LIMIT_SIZE_VAGRANT`: **-1**: Maxmimum size of a Vagrant upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_TOTAL_OWNER_COUNT`: **-1**: Maximum count of package versions a single owner can have (`-1` means no limits)
+- `LIMIT_TOTAL_OWNER_SIZE`: **-1**: Maximum size of packages a single owner can use (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_COMPOSER`: **-1**: Maximum size of a Composer upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_CONAN`: **-1**: Maximum size of a Conan upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_CONTAINER`: **-1**: Maximum size of a Container upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_GENERIC`: **-1**: Maximum size of a Generic upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_HELM`: **-1**: Maximum size of a Helm upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_MAVEN`: **-1**: Maximum size of a Maven upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_NPM`: **-1**: Maximum size of a npm upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_NUGET`: **-1**: Maximum size of a NuGet upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_PUB`: **-1**: Maximum size of a Pub upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_PYPI`: **-1**: Maximum size of a PyPI upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_RUBYGEMS`: **-1**: Maximum size of a RubyGems upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_VAGRANT`: **-1**: Maximum size of a Vagrant upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 
 ## Mirror (`mirror`)
 
@@ -1283,3 +1320,4 @@ PROXY_HOSTS = *.github.com
 - `SHOW_FOOTER_VERSION`: **true**: Show Gitea and Go version information in the footer.
 - `SHOW_FOOTER_TEMPLATE_LOAD_TIME`: **true**: Show time of template execution in the footer.
 - `ENABLE_SITEMAP`: **true**: Generate sitemap.
+- `ENABLE_FEED`: **true**: Enable/Disable RSS/Atom feed.

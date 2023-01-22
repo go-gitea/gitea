@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -122,7 +121,7 @@ func (issue *Issue) createCrossReferences(stdCtx context.Context, ctx *crossRefe
 			RefAction:    xref.Action,
 			RefIsPull:    ctx.OrigIssue.IsPull,
 		}
-		_, err := CreateCommentCtx(stdCtx, opts)
+		_, err := CreateComment(stdCtx, opts)
 		if err != nil {
 			return err
 		}
@@ -149,7 +148,7 @@ func (issue *Issue) getCrossReferences(stdCtx context.Context, ctx *crossReferen
 			refRepo = ctx.OrigIssue.Repo
 		} else {
 			// Issues in other repositories
-			refRepo, err = repo_model.GetRepositoryByOwnerAndNameCtx(stdCtx, ref.Owner, ref.Name)
+			refRepo, err = repo_model.GetRepositoryByOwnerAndName(stdCtx, ref.Owner, ref.Name)
 			if err != nil {
 				if repo_model.IsErrRepoNotExist(err) {
 					continue
@@ -235,7 +234,7 @@ func (c *Comment) AddCrossReferences(stdCtx context.Context, doer *user_model.Us
 	if c.Type != CommentTypeCode && c.Type != CommentTypeComment {
 		return nil
 	}
-	if err := c.LoadIssueCtx(stdCtx); err != nil {
+	if err := c.LoadIssue(stdCtx); err != nil {
 		return err
 	}
 	ctx := &crossReferencesContext{

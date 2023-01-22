@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
@@ -171,7 +170,7 @@ func LoadRepoConfig() {
 			}
 
 			for _, f := range customFiles {
-				if !util.IsStringInSlice(f, files, true) {
+				if !util.SliceContainsString(files, f, true) {
 					files = append(files, f)
 				}
 			}
@@ -201,12 +200,12 @@ func LoadRepoConfig() {
 	// Filter out invalid names and promote preferred licenses.
 	sortedLicenses := make([]string, 0, len(Licenses))
 	for _, name := range setting.Repository.PreferredLicenses {
-		if util.IsStringInSlice(name, Licenses, true) {
+		if util.SliceContainsString(Licenses, name, true) {
 			sortedLicenses = append(sortedLicenses, name)
 		}
 	}
 	for _, name := range Licenses {
-		if !util.IsStringInSlice(name, setting.Repository.PreferredLicenses, true) {
+		if !util.SliceContainsString(setting.Repository.PreferredLicenses, name, true) {
 			sortedLicenses = append(sortedLicenses, name)
 		}
 	}
@@ -415,7 +414,7 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 
 	// Re-fetch the repository from database before updating it (else it would
 	// override changes that were done earlier with sql)
-	if repo, err = repo_model.GetRepositoryByIDCtx(ctx, repo.ID); err != nil {
+	if repo, err = repo_model.GetRepositoryByID(ctx, repo.ID); err != nil {
 		return fmt.Errorf("getRepositoryByID: %w", err)
 	}
 

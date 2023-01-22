@@ -1,6 +1,5 @@
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package code
 
@@ -85,7 +84,7 @@ type IndexerData struct {
 var indexerQueue queue.UniqueQueue
 
 func index(ctx context.Context, indexer Indexer, repoID int64) error {
-	repo, err := repo_model.GetRepositoryByID(repoID)
+	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
 	if repo_model.IsErrRepoNotExist(err) {
 		return indexer.Delete(repoID)
 	}

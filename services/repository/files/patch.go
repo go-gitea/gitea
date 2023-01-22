@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package files
 
@@ -67,13 +66,16 @@ func (opts *ApplyDiffPatchOptions) Validate(ctx context.Context, repo *repo_mode
 			return err
 		}
 	} else {
-		protectedBranch, err := git_model.GetProtectedBranchBy(ctx, repo.ID, opts.OldBranch)
+		protectedBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repo.ID, opts.OldBranch)
 		if err != nil {
 			return err
 		}
-		if protectedBranch != nil && !protectedBranch.CanUserPush(doer.ID) {
-			return models.ErrUserCannotCommit{
-				UserName: doer.LowerName,
+		if protectedBranch != nil {
+			protectedBranch.Repo = repo
+			if !protectedBranch.CanUserPush(ctx, doer) {
+				return models.ErrUserCannotCommit{
+					UserName: doer.LowerName,
+				}
 			}
 		}
 		if protectedBranch != nil && protectedBranch.RequireSignedCommits {

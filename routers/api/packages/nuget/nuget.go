@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package nuget
 
@@ -342,7 +341,10 @@ func DownloadPackageFile(ctx *context.Context) {
 	}
 	defer s.Close()
 
-	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
+	ctx.ServeContent(s, &context.ServeHeaderOptions{
+		Filename:     pf.Name,
+		LastModified: pf.CreatedUnix.AsLocalTime(),
+	})
 }
 
 // UploadPackage creates a new package with the metadata contained in the uploaded nupgk file
@@ -409,7 +411,11 @@ func UploadSymbolPackage(ctx *context.Context) {
 
 	pdbs, err := nuget_module.ExtractPortablePdb(buf, buf.Size())
 	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
+		if errors.Is(err, util.ErrInvalidArgument) {
+			apiError(ctx, http.StatusBadRequest, err)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
 		return
 	}
 	defer pdbs.Close()
@@ -505,7 +511,7 @@ func processUploadedFile(ctx *context.Context, expectedType nuget_module.Package
 
 	np, err := nuget_module.ParsePackageMetaData(buf, buf.Size())
 	if err != nil {
-		if err == nuget_module.ErrMissingNuspecFile || err == nuget_module.ErrNuspecFileTooLarge || err == nuget_module.ErrNuspecInvalidID || err == nuget_module.ErrNuspecInvalidVersion {
+		if errors.Is(err, util.ErrInvalidArgument) {
 			apiError(ctx, http.StatusBadRequest, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -562,7 +568,10 @@ func DownloadSymbolFile(ctx *context.Context) {
 	}
 	defer s.Close()
 
-	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
+	ctx.ServeContent(s, &context.ServeHeaderOptions{
+		Filename:     pf.Name,
+		LastModified: pf.CreatedUnix.AsLocalTime(),
+	})
 }
 
 // DeletePackage hard deletes the package

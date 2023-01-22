@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -231,7 +230,7 @@ func GetRepoTopicByName(ctx context.Context, repoID int64, topicName string) (*T
 
 // AddTopic adds a topic name to a repository (if it does not already have it)
 func AddTopic(repoID int64, topicName string) (*Topic, error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}
@@ -293,7 +292,7 @@ func SaveTopics(repoID int64, topicNames ...string) error {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

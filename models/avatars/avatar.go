@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package avatars
 
@@ -20,8 +19,12 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-// DefaultAvatarPixelSize is the default size in pixels of a rendered avatar
-const DefaultAvatarPixelSize = 28
+const (
+	// DefaultAvatarClass is the default class of a rendered avatar
+	DefaultAvatarClass = "ui avatar vm"
+	// DefaultAvatarPixelSize is the default size in pixels of a rendered avatar
+	DefaultAvatarPixelSize = 28
+)
 
 // EmailHash represents a pre-generated hash map (mainly used by LibravatarURL, it queries email server's DNS records)
 type EmailHash struct {
@@ -97,7 +100,7 @@ func saveEmailHash(email string) string {
 			Hash:  emailHash,
 		}
 		// OK we're going to open a session just because I think that that might hide away any problems with postgres reporting errors
-		if err := db.WithTx(func(ctx context.Context) error {
+		if err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 			has, err := db.GetEngine(ctx).Where("email = ? AND hash = ?", emailHash.Email, emailHash.Hash).Get(new(EmailHash))
 			if has || err != nil {
 				// Seriously we don't care about any DB problems just return the lowerEmail - we expect the transaction to fail most of the time
@@ -150,8 +153,7 @@ func generateEmailAvatarLink(email string, size int, final bool) string {
 		return DefaultAvatarLink()
 	}
 
-	enableFederatedAvatarSetting, _ := system_model.GetSetting(system_model.KeyPictureEnableFederatedAvatar)
-	enableFederatedAvatar := enableFederatedAvatarSetting.GetValueBool()
+	enableFederatedAvatar := system_model.GetSettingBool(system_model.KeyPictureEnableFederatedAvatar)
 
 	var err error
 	if enableFederatedAvatar && system_model.LibravatarService != nil {
@@ -172,9 +174,7 @@ func generateEmailAvatarLink(email string, size int, final bool) string {
 		return urlStr
 	}
 
-	disableGravatarSetting, _ := system_model.GetSetting(system_model.KeyPictureDisableGravatar)
-
-	disableGravatar := disableGravatarSetting.GetValueBool()
+	disableGravatar := system_model.GetSettingBool(system_model.KeyPictureDisableGravatar)
 	if !disableGravatar {
 		// copy GravatarSourceURL, because we will modify its Path.
 		avatarURLCopy := *system_model.GravatarSourceURL
