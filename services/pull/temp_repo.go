@@ -79,10 +79,11 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 		return nil, nil, err
 	}
 	prCtx = &prContext{
-		Context: ctx,
-		pr:      pr,
-		outbuf:  &strings.Builder{},
-		errbuf:  &strings.Builder{},
+		Context:     ctx,
+		tmpBasePath: tmpBasePath,
+		pr:          pr,
+		outbuf:      &strings.Builder{},
+		errbuf:      &strings.Builder{},
 	}
 	cancel = func() {
 		if err := repo_module.RemoveTemporaryPath(tmpBasePath); err != nil {
