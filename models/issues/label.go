@@ -128,18 +128,22 @@ func (label *Label) CalOpenOrgIssues(ctx context.Context, repoID, labelID int64)
 }
 
 // LoadSelectedLabelsAfterClick calculates the set of selected labels when a label is clicked
-func (label *Label) LoadSelectedLabelsAfterClick(currentSelectedLabels []int64) {
+func (label *Label) LoadSelectedLabelsAfterClick(currentSelectedLabels []int64, currentSelectedScopes []string) {
 	var labelQuerySlice []string
 	labelSelected := false
 	labelID := strconv.FormatInt(label.ID, 10)
-	for _, s := range currentSelectedLabels {
+	labelScope := label.Scope()
+	for i, s := range currentSelectedLabels {
 		if s == label.ID {
 			labelSelected = true
 		} else if -s == label.ID {
 			labelSelected = true
 			label.IsExcluded = true
 		} else if s != 0 {
-			labelQuerySlice = append(labelQuerySlice, strconv.FormatInt(s, 10))
+			// Exclude other labels in the same scope from selection
+			if s < 0 || labelScope == "" || labelScope != currentSelectedScopes[i] {
+				labelQuerySlice = append(labelQuerySlice, strconv.FormatInt(s, 10))
+			}
 		}
 	}
 	if !labelSelected {
@@ -202,6 +206,16 @@ func (label *Label) ForegroundColor() template.CSS {
 
 	// default to black
 	return template.CSS("#000")
+}
+
+// Return scope substring of label name, or empty string if none exists.
+func (label *Label) Scope() string {
+	lastIndex := strings.LastIndex(label.Name, "::")
+	if lastIndex == -1 {
+		return ""
+	}
+
+	return label.Name[:lastIndex+2]
 }
 
 // NewLabel creates a new label
@@ -620,6 +634,29 @@ func newIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *user_m
 	return updateLabelCols(ctx, label, "num_issues", "num_closed_issue")
 }
 
+// Remove all issue labels in the given scope
+func RemoveSameScopeIssueLabels(ctx context.Context, issue *Issue, label *Label, doer *user_model.User) (err error) {
+	scope := label.Scope()
+	if scope == "" {
+		return nil
+	}
+
+	var toRemove []*Label
+	for _, issueLabel := range issue.Labels {
+		if label.ID != issueLabel.ID && issueLabel.Scope() == scope {
+			toRemove = append(toRemove, issueLabel)
+		}
+	}
+
+	for _, issueLabel := range toRemove {
+		if err = deleteIssueLabel(ctx, issue, issueLabel, doer); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // NewIssueLabel creates a new issue-label relation.
 func NewIssueLabel(issue *Issue, label *Label, doer *user_model.User) (err error) {
 	if HasIssueLabel(db.DefaultContext, issue.ID, label.ID) {
@@ -638,6 +675,10 @@ func NewIssueLabel(issue *Issue, label *Label, doer *user_model.User) (err error
 
 	// Do NOT add invalid labels
 	if issue.RepoID != label.RepoID && issue.Repo.OwnerID != label.OrgID {
+		return nil
+	}
+
+	if err = RemoveSameScopeIssueLabels(ctx, issue, label, doer); err != nil {
 		return nil
 	}
 

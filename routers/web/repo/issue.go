@@ -331,8 +331,23 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		labels = append(labels, orgLabels...)
 	}
 
+	var labelScopes []string
+	for _, labelID := range labelIDs {
+		foundScope := false
+		for _, label := range labels {
+			if label.ID == labelID || label.ID == -labelID {
+				labelScopes = append(labelScopes, label.Scope())
+				foundScope = true
+				break
+			}
+		}
+		if !foundScope {
+			labelScopes = append(labelScopes, "")
+		}
+	}
+
 	for _, l := range labels {
-		l.LoadSelectedLabelsAfterClick(labelIDs)
+		l.LoadSelectedLabelsAfterClick(labelIDs, labelScopes)
 	}
 	ctx.Data["Labels"] = labels
 	ctx.Data["NumLabels"] = len(labels)
