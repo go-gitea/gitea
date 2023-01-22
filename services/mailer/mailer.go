@@ -97,7 +97,7 @@ func (m *Message) generateAutoMessageID() string {
 }
 
 // NewMessageFrom creates new mail message object with custom From header.
-func NewMessageFrom(to string, fromDisplayName, fromAddress, subject, body string) *Message {
+func NewMessageFrom(to, fromDisplayName, fromAddress, subject, body string) *Message {
 	log.Trace("NewMessageFrom (body):\n%s", body)
 
 	return &Message{
@@ -112,7 +112,7 @@ func NewMessageFrom(to string, fromDisplayName, fromAddress, subject, body strin
 }
 
 // NewMessage creates new mail message object with default From header.
-func NewMessage(to string, subject, body string) *Message {
+func NewMessage(to, subject, body string) *Message {
 	return NewMessageFrom(to, setting.MailService.FromName, setting.MailService.FromEmail, subject, body)
 }
 
