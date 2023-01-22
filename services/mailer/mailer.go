@@ -35,7 +35,7 @@ type Message struct {
 	Info            string // Message information for log purpose.
 	FromAddress     string
 	FromDisplayName string
-	To              string
+	To              string // Use only one recipient to prevent leaking of addresses
 	ReplyTo         string
 	Subject         string
 	Date            time.Time
