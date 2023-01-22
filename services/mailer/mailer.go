@@ -36,6 +36,7 @@ type Message struct {
 	FromAddress     string
 	FromDisplayName string
 	To              []string
+	ReplyTo         string
 	Subject         string
 	Date            time.Time
 	Body            string
@@ -47,6 +48,9 @@ func (m *Message) ToMessage() *gomail.Message {
 	msg := gomail.NewMessage()
 	msg.SetAddressHeader("From", m.FromAddress, m.FromDisplayName)
 	msg.SetHeader("To", m.To...)
+	if m.ReplyTo != "" {
+		msg.SetHeader("Reply-To", m.ReplyTo)
+	}
 	for header := range m.Headers {
 		msg.SetHeader(header, m.Headers[header]...)
 	}

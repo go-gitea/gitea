@@ -1341,7 +1341,8 @@ func NewServices() {
 	newCacheService()
 	newSessionService()
 	newCORSService()
-	newMailService()
+	parseMailerConfig(Cfg)
+	newIncomingEmail()
 	newRegisterMailService()
 	newNotifyMailService()
 	newProxyService()
@@ -1358,5 +1359,5 @@ func NewServices() {
 // NewServicesForInstall initializes the services for install
 func NewServicesForInstall() {
 	newService()
-	newMailService()
+	parseMailerConfig(Cfg)
 }

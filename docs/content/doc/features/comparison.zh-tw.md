@@ -93,7 +93,7 @@ menu:
 | 問題搜尋             | ✓                                                  | ✘                                             | ✓         | ✓                                                                       | ✓         | ✓         | ✘            |
 | 全域問題搜尋         | [✘](https://github.com/go-gitea/gitea/issues/2434) | ✘                                             | ✓         | ✓                                                                       | ✓         | ✓         | ✘            |
 | 問題相依             | ✓                                                  | ✘                                             | ✘         | ✘                                                                       | ✘         | ✘         | ✘            |
-| 從電子郵件建立問題   | [✘](https://github.com/go-gitea/gitea/issues/6226) | [✘](https://github.com/gogs/gogs/issues/2602) | ✘         | ✘                                                                       | ✓         | ✓         | ✘            |
+| 從電子郵件建立問題   | [✘](https://github.com/go-gitea/gitea/issues/6226) | [✘](https://github.com/gogs/gogs/issues/2602) | ✘         | ✓                                                                       | ✓         | ✓         | ✘            |
 | 服務台               | [✘](https://github.com/go-gitea/gitea/issues/6219) | ✘                                             | ✘         | [✓](https://gitlab.com/groups/gitlab-org/-/epics/3103)                  | ✓         | ✘         | ✘            |
 
 ## 拉取/合併請求
