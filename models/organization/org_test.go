@@ -448,7 +448,7 @@ func TestGetUsersWhoCanCreateOrgRepo(t *testing.T) {
 	users, err = organization.GetUsersWhoCanCreateOrgRepo(db.DefaultContext, 7)
 	assert.NoError(t, err)
 	assert.Len(t, users, 1)
-	assert.EqualValues(t, 5, users[0].ID)
+	assert.NotNil(t, users[5])
 }
 
 func TestUser_RemoveOrgRepo(t *testing.T) {
