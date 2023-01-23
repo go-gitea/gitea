@@ -961,7 +961,7 @@ func UpdateUserCreated(ctx context.Context, u *User) error {
 		return err
 	}
 
-	_, err := db.Exec(ctx, "UPDATE `user` SET created_unix=?  WHERE id=?", u.CreatedUnix, u.ID)
+	_, err := db.Exec(ctx, "UPDATE `user` SET created_unix=? WHERE id=?", u.CreatedUnix, u.ID)
 	return err
 }
 
