@@ -94,6 +94,7 @@ var (
 	LocalURL string
 	// AssetVersion holds a opaque value that is used for cache-busting assets
 	AssetVersion string
+	// NumberRepoFolders holds the number of top-level folders that repos are hashed over
 	NumberRepoFolders int
 
 	// Server settings
