@@ -17,7 +17,7 @@ import (
 // ReadTreeToIndex reads a treeish to the index
 func (repo *Repository) ReadTreeToIndex(treeish string, indexFilename ...string) error {
 	if len(treeish) != SHAFullLength {
-		res, _, err := NewCommand(repo.Ctx, "rev-parse", "--verify").AddDynamicArguments(treeish).RunStdString(&RunOpts{Dir: repo.Path})
+		res, _, err := NewCommand(repo.Ctx, "rev-parse", "--verify").AddUntrustedArguments(treeish).RunStdString(&RunOpts{Dir: repo.Path})
 		if err != nil {
 			return err
 		}
@@ -37,7 +37,7 @@ func (repo *Repository) readTreeToIndex(id SHA1, indexFilename ...string) error 
 	if len(indexFilename) > 0 {
 		env = append(os.Environ(), "GIT_INDEX_FILE="+indexFilename[0])
 	}
-	_, _, err := NewCommand(repo.Ctx, "read-tree").AddDynamicArguments(id.String()).RunStdString(&RunOpts{Dir: repo.Path, Env: env})
+	_, _, err := NewCommand(repo.Ctx, "read-tree").AddUntrustedArguments(id.String()).RunStdString(&RunOpts{Dir: repo.Path, Env: env})
 	if err != nil {
 		return err
 	}
@@ -110,7 +110,7 @@ func (repo *Repository) RemoveFilesFromIndex(filenames ...string) error {
 
 // AddObjectToIndex adds the provided object hash to the index at the provided filename
 func (repo *Repository) AddObjectToIndex(mode string, object SHA1, filename string) error {
-	cmd := NewCommand(repo.Ctx, "update-index", "--add", "--replace", "--cacheinfo").AddDynamicArguments(mode, object.String(), filename)
+	cmd := NewCommand(repo.Ctx, "update-index", "--add", "--replace", "--cacheinfo").AddUntrustedArguments(mode, object.String(), filename)
 	_, _, err := cmd.RunStdString(&RunOpts{Dir: repo.Path})
 	return err
 }

@@ -60,7 +60,7 @@ func (repo *Repository) CreateArchive(ctx context.Context, format ArchiveType, t
 		cmd.AddArguments(CmdArg("--prefix=" + filepath.Base(strings.TrimSuffix(repo.Path, ".git")) + "/"))
 	}
 	cmd.AddArguments(CmdArg("--format=" + format.String()))
-	cmd.AddDynamicArguments(commitID)
+	cmd.AddUntrustedArguments(commitID)
 
 	var stderr strings.Builder
 	err := cmd.Run(&RunOpts{

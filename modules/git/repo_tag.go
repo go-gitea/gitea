@@ -30,7 +30,7 @@ func (repo *Repository) CreateTag(name, revision string) error {
 
 // CreateAnnotatedTag create one annotated tag in the repository
 func (repo *Repository) CreateAnnotatedTag(name, message, revision string) error {
-	_, _, err := NewCommand(repo.Ctx, "tag", "-a", "-m").AddDynamicArguments(message).AddDashesAndList(name, revision).RunStdString(&RunOpts{Dir: repo.Path})
+	_, _, err := NewCommand(repo.Ctx, "tag", "-a", "-m").AddUntrustedArguments(message).AddDashesAndList(name, revision).RunStdString(&RunOpts{Dir: repo.Path})
 	return err
 }
 

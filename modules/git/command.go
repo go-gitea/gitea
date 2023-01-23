@@ -52,7 +52,7 @@ func (c *Command) String() string {
 }
 
 // NewCommand creates and returns a new Git Command based on given command and arguments.
-// Each argument should be safe to be trusted. User-provided arguments should be passed to AddDynamicArguments instead.
+// Each argument should be safe to be trusted. User-provided arguments should be passed to AddUntrustedArguments instead.
 func NewCommand(ctx context.Context, args ...CmdArg) *Command {
 	// Make an explicit copy of globalCommandArgs, otherwise append might overwrite it
 	cargs := make([]string, 0, len(globalCommandArgs)+len(args))
@@ -71,13 +71,13 @@ func NewCommand(ctx context.Context, args ...CmdArg) *Command {
 }
 
 // NewCommandNoGlobals creates and returns a new Git Command based on given command and arguments only with the specify args and don't care global command args
-// Each argument should be safe to be trusted. User-provided arguments should be passed to AddDynamicArguments instead.
+// Each argument should be safe to be trusted. User-provided arguments should be passed to AddUntrustedArguments instead.
 func NewCommandNoGlobals(args ...CmdArg) *Command {
 	return NewCommandContextNoGlobals(DefaultContext, args...)
 }
 
 // NewCommandContextNoGlobals creates and returns a new Git Command based on given command and arguments only with the specify args and don't care global command args
-// Each argument should be safe to be trusted. User-provided arguments should be passed to AddDynamicArguments instead.
+// Each argument should be safe to be trusted. User-provided arguments should be passed to AddUntrustedArguments instead.
 func NewCommandContextNoGlobals(ctx context.Context, args ...CmdArg) *Command {
 	cargs := make([]string, 0, len(args))
 	for _, arg := range args {
@@ -104,7 +104,7 @@ func (c *Command) SetDescription(desc string) *Command {
 }
 
 // AddArguments adds new git argument(s) to the command. Each argument must be safe to be trusted.
-// User-provided arguments should be passed to AddDynamicArguments instead.
+// User-provided arguments should be passed to AddUntrustedArguments instead.
 func (c *Command) AddArguments(args ...CmdArg) *Command {
 	for _, arg := range args {
 		c.args = append(c.args, string(arg))
@@ -112,9 +112,9 @@ func (c *Command) AddArguments(args ...CmdArg) *Command {
 	return c
 }
 
-// AddDynamicArguments adds new dynamic argument(s) to the command.
+// AddUntrustedArguments adds new dynamic argument(s) to the command.
 // The arguments may come from user input and can not be trusted, so no leading '-' is allowed to avoid passing options
-func (c *Command) AddDynamicArguments(args ...string) *Command {
+func (c *Command) AddUntrustedArguments(args ...string) *Command {
 	for _, arg := range args {
 		if arg != "" && arg[0] == '-' {
 			c.brokenArgs = append(c.brokenArgs, arg)

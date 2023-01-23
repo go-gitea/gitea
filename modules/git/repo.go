@@ -58,7 +58,7 @@ func (repo *Repository) parsePrettyFormatLogToList(logs []byte) ([]*Commit, erro
 
 // IsRepoURLAccessible checks if given repository URL is accessible.
 func IsRepoURLAccessible(ctx context.Context, url string) bool {
-	_, _, err := NewCommand(ctx, "ls-remote", "-q", "-h").AddDynamicArguments(url, "HEAD").RunStdString(nil)
+	_, _, err := NewCommand(ctx, "ls-remote", "-q", "-h").AddUntrustedArguments(url, "HEAD").RunStdString(nil)
 	return err == nil
 }
 
@@ -141,13 +141,13 @@ func CloneWithArgs(ctx context.Context, args []CmdArg, from, to string, opts Clo
 		cmd.AddArguments("--no-checkout")
 	}
 	if opts.Depth > 0 {
-		cmd.AddArguments("--depth").AddDynamicArguments(strconv.Itoa(opts.Depth))
+		cmd.AddArguments("--depth").AddUntrustedArguments(strconv.Itoa(opts.Depth))
 	}
 	if opts.Filter != "" {
-		cmd.AddArguments("--filter").AddDynamicArguments(opts.Filter)
+		cmd.AddArguments("--filter").AddUntrustedArguments(opts.Filter)
 	}
 	if len(opts.Branch) > 0 {
-		cmd.AddArguments("-b").AddDynamicArguments(opts.Branch)
+		cmd.AddArguments("-b").AddUntrustedArguments(opts.Branch)
 	}
 	cmd.AddDashesAndList(from, to)
 
@@ -275,7 +275,7 @@ type DivergeObject struct {
 
 func checkDivergence(ctx context.Context, repoPath, baseBranch, targetBranch string) (int, error) {
 	branches := fmt.Sprintf("%s..%s", baseBranch, targetBranch)
-	cmd := NewCommand(ctx, "rev-list", "--count").AddDynamicArguments(branches)
+	cmd := NewCommand(ctx, "rev-list", "--count").AddUntrustedArguments(branches)
 	stdout, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
 	if err != nil {
 		return -1, err
@@ -318,7 +318,7 @@ func (repo *Repository) CreateBundle(ctx context.Context, commit string, out io.
 		return err
 	}
 
-	_, _, err = NewCommand(ctx, "reset", "--soft").AddDynamicArguments(commit).RunStdString(&RunOpts{Dir: tmp, Env: env})
+	_, _, err = NewCommand(ctx, "reset", "--soft").AddUntrustedArguments(commit).RunStdString(&RunOpts{Dir: tmp, Env: env})
 	if err != nil {
 		return err
 	}
@@ -329,7 +329,7 @@ func (repo *Repository) CreateBundle(ctx context.Context, commit string, out io.
 	}
 
 	tmpFile := filepath.Join(tmp, "bundle")
-	_, _, err = NewCommand(ctx, "bundle", "create").AddDynamicArguments(tmpFile, "bundle", "HEAD").RunStdString(&RunOpts{Dir: tmp, Env: env})
+	_, _, err = NewCommand(ctx, "bundle", "create").AddUntrustedArguments(tmpFile, "bundle", "HEAD").RunStdString(&RunOpts{Dir: tmp, Env: env})
 	if err != nil {
 		return err
 	}

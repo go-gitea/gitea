@@ -65,7 +65,7 @@ func (repo *Repository) GetHEADBranch() (*Branch, error) {
 
 // SetDefaultBranch sets default branch of repository.
 func (repo *Repository) SetDefaultBranch(name string) error {
-	_, _, err := NewCommand(repo.Ctx, "symbolic-ref", "HEAD").AddDynamicArguments(BranchPrefix + name).RunStdString(&RunOpts{Dir: repo.Path})
+	_, _, err := NewCommand(repo.Ctx, "symbolic-ref", "HEAD").AddUntrustedArguments(BranchPrefix + name).RunStdString(&RunOpts{Dir: repo.Path})
 	return err
 }
 
@@ -162,7 +162,7 @@ func (repo *Repository) AddRemote(name, url string, fetch bool) error {
 	if fetch {
 		cmd.AddArguments("-f")
 	}
-	cmd.AddDynamicArguments(name, url)
+	cmd.AddUntrustedArguments(name, url)
 
 	_, _, err := cmd.RunStdString(&RunOpts{Dir: repo.Path})
 	return err
@@ -170,7 +170,7 @@ func (repo *Repository) AddRemote(name, url string, fetch bool) error {
 
 // RemoveRemote removes a remote from repository.
 func (repo *Repository) RemoveRemote(name string) error {
-	_, _, err := NewCommand(repo.Ctx, "remote", "rm").AddDynamicArguments(name).RunStdString(&RunOpts{Dir: repo.Path})
+	_, _, err := NewCommand(repo.Ctx, "remote", "rm").AddUntrustedArguments(name).RunStdString(&RunOpts{Dir: repo.Path})
 	return err
 }
 
@@ -181,6 +181,6 @@ func (branch *Branch) GetCommit() (*Commit, error) {
 
 // RenameBranch rename a branch
 func (repo *Repository) RenameBranch(from, to string) error {
-	_, _, err := NewCommand(repo.Ctx, "branch", "-m").AddDynamicArguments(from, to).RunStdString(&RunOpts{Dir: repo.Path})
+	_, _, err := NewCommand(repo.Ctx, "branch", "-m").AddUntrustedArguments(from, to).RunStdString(&RunOpts{Dir: repo.Path})
 	return err
 }

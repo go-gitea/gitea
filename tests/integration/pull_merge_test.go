@@ -310,7 +310,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 		_, _ = messageBytes.WriteString("\n")
 
 		stdout.Reset()
-		err = git.NewCommand(git.DefaultContext, "commit-tree").AddDynamicArguments(treeSha).
+		err = git.NewCommand(git.DefaultContext, "commit-tree").AddUntrustedArguments(treeSha).
 			Run(&git.RunOpts{
 				Env:    env,
 				Dir:    path,
@@ -320,7 +320,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 		assert.NoError(t, err)
 		commitSha := strings.TrimSpace(stdout.String())
 
-		_, _, err = git.NewCommand(git.DefaultContext, "branch", "unrelated").AddDynamicArguments(commitSha).RunStdString(&git.RunOpts{Dir: path})
+		_, _, err = git.NewCommand(git.DefaultContext, "branch", "unrelated").AddUntrustedArguments(commitSha).RunStdString(&git.RunOpts{Dir: path})
 		assert.NoError(t, err)
 
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "conflict", "README.md", "Hello, World (Edited Once)\n")

@@ -79,7 +79,7 @@ func (t *Tree) ListEntries() (Entries, error) {
 		}
 	}
 
-	stdout, _, runErr := NewCommand(t.repo.Ctx, "ls-tree", "-l").AddDynamicArguments(t.ID.String()).RunStdBytes(&RunOpts{Dir: t.repo.Path})
+	stdout, _, runErr := NewCommand(t.repo.Ctx, "ls-tree", "-l").AddUntrustedArguments(t.ID.String()).RunStdBytes(&RunOpts{Dir: t.repo.Path})
 	if runErr != nil {
 		if strings.Contains(runErr.Error(), "fatal: Not a valid object name") || strings.Contains(runErr.Error(), "fatal: not a tree object") {
 			return nil, ErrNotExist{

@@ -34,7 +34,7 @@ func GetRawDiff(repo *Repository, commitID string, diffType RawDiffType, writer 
 // GetReverseRawDiff dumps the reverse diff results of repository in given commit ID to io.Writer.
 func GetReverseRawDiff(ctx context.Context, repoPath, commitID string, writer io.Writer) error {
 	stderr := new(bytes.Buffer)
-	cmd := NewCommand(ctx, "show", "--pretty=format:revert %H%n", "-R").AddDynamicArguments(commitID)
+	cmd := NewCommand(ctx, "show", "--pretty=format:revert %H%n", "-R").AddUntrustedArguments(commitID)
 	if err := cmd.Run(&RunOpts{
 		Dir:    repoPath,
 		Stdout: writer,
@@ -60,23 +60,23 @@ func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diff
 	switch diffType {
 	case RawDiffNormal:
 		if len(startCommit) != 0 {
-			cmd.AddArguments("diff", "-M").AddDynamicArguments(startCommit, endCommit).AddDashesAndList(files...)
+			cmd.AddArguments("diff", "-M").AddUntrustedArguments(startCommit, endCommit).AddDashesAndList(files...)
 		} else if commit.ParentCount() == 0 {
-			cmd.AddArguments("show").AddDynamicArguments(endCommit).AddDashesAndList(files...)
+			cmd.AddArguments("show").AddUntrustedArguments(endCommit).AddDashesAndList(files...)
 		} else {
 			c, _ := commit.Parent(0)
-			cmd.AddArguments("diff", "-M").AddDynamicArguments(c.ID.String(), endCommit).AddDashesAndList(files...)
+			cmd.AddArguments("diff", "-M").AddUntrustedArguments(c.ID.String(), endCommit).AddDashesAndList(files...)
 		}
 	case RawDiffPatch:
 		if len(startCommit) != 0 {
 			query := fmt.Sprintf("%s...%s", endCommit, startCommit)
-			cmd.AddArguments("format-patch", "--no-signature", "--stdout", "--root").AddDynamicArguments(query).AddDashesAndList(files...)
+			cmd.AddArguments("format-patch", "--no-signature", "--stdout", "--root").AddUntrustedArguments(query).AddDashesAndList(files...)
 		} else if commit.ParentCount() == 0 {
-			cmd.AddArguments("format-patch", "--no-signature", "--stdout", "--root").AddDynamicArguments(endCommit).AddDashesAndList(files...)
+			cmd.AddArguments("format-patch", "--no-signature", "--stdout", "--root").AddUntrustedArguments(endCommit).AddDashesAndList(files...)
 		} else {
 			c, _ := commit.Parent(0)
 			query := fmt.Sprintf("%s...%s", endCommit, c.ID.String())
-			cmd.AddArguments("format-patch", "--no-signature", "--stdout").AddDynamicArguments(query).AddDashesAndList(files...)
+			cmd.AddArguments("format-patch", "--no-signature", "--stdout").AddUntrustedArguments(query).AddDashesAndList(files...)
 		}
 	default:
 		return fmt.Errorf("invalid diffType: %s", diffType)
@@ -285,7 +285,7 @@ func GetAffectedFiles(repo *Repository, oldCommitID, newCommitID string, env []s
 	affectedFiles := make([]string, 0, 32)
 
 	// Run `git diff --name-only` to get the names of the changed files
-	err = NewCommand(repo.Ctx, "diff", "--name-only").AddDynamicArguments(oldCommitID, newCommitID).
+	err = NewCommand(repo.Ctx, "diff", "--name-only").AddUntrustedArguments(oldCommitID, newCommitID).
 		Run(&RunOpts{
 			Env:    env,
 			Dir:    repo.Path,

@@ -149,7 +149,7 @@ func doGitInitTestRepository(dstPath string) func(*testing.T) {
 
 func doGitAddRemote(dstPath, remoteName string, u *url.URL) func(*testing.T) {
 	return func(t *testing.T) {
-		_, _, err := git.NewCommand(git.DefaultContext, "remote", "add").AddDynamicArguments(remoteName, u.String()).RunStdString(&git.RunOpts{Dir: dstPath})
+		_, _, err := git.NewCommand(git.DefaultContext, "remote", "add").AddUntrustedArguments(remoteName, u.String()).RunStdString(&git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 	}
 }
@@ -170,7 +170,7 @@ func doGitPushTestRepositoryFail(dstPath string, args ...git.CmdArg) func(*testi
 
 func doGitCreateBranch(dstPath, branch string) func(*testing.T) {
 	return func(t *testing.T) {
-		_, _, err := git.NewCommand(git.DefaultContext, "checkout", "-b").AddDynamicArguments(branch).RunStdString(&git.RunOpts{Dir: dstPath})
+		_, _, err := git.NewCommand(git.DefaultContext, "checkout", "-b").AddUntrustedArguments(branch).RunStdString(&git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 	}
 }

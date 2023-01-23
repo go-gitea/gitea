@@ -41,7 +41,7 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 		git.CmdArg(fmt.Sprintf("--pretty=format:%s", format)))
 
 	if len(branches) > 0 {
-		graphCmd.AddDynamicArguments(branches...)
+		graphCmd.AddUntrustedArguments(branches...)
 	}
 	if len(files) > 0 {
 		graphCmd.AddDashesAndList(files...)

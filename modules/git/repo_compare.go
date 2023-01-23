@@ -39,7 +39,7 @@ func (repo *Repository) GetMergeBase(tmpRemote, base, head string) (string, stri
 	if tmpRemote != "origin" {
 		tmpBaseName := RemotePrefix + tmpRemote + "/tmp_" + base
 		// Fetch commit into a temporary branch in order to be able to handle commits and tags
-		_, _, err := NewCommand(repo.Ctx, "fetch", "--no-tags").AddDynamicArguments(tmpRemote).AddDashesAndList(base + ":" + tmpBaseName).RunStdString(&RunOpts{Dir: repo.Path})
+		_, _, err := NewCommand(repo.Ctx, "fetch", "--no-tags").AddUntrustedArguments(tmpRemote).AddDashesAndList(base + ":" + tmpBaseName).RunStdString(&RunOpts{Dir: repo.Path})
 		if err == nil {
 			base = tmpBaseName
 		}
@@ -93,7 +93,7 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string, 
 		// We have a common base - therefore we know that ... should work
 		if !fileOnly {
 			var logs []byte
-			logs, _, err = NewCommand(repo.Ctx, "log").AddDynamicArguments(baseCommitID + separator + headBranch).AddArguments(prettyLogFormat).RunStdBytes(&RunOpts{Dir: repo.Path})
+			logs, _, err = NewCommand(repo.Ctx, "log").AddUntrustedArguments(baseCommitID + separator + headBranch).AddArguments(prettyLogFormat).RunStdBytes(&RunOpts{Dir: repo.Path})
 			if err != nil {
 				return nil, err
 			}
@@ -146,7 +146,7 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 		separator = ".."
 	}
 
-	if err := NewCommand(repo.Ctx, "diff", "-z", "--name-only").AddDynamicArguments(base + separator + head).
+	if err := NewCommand(repo.Ctx, "diff", "-z", "--name-only").AddUntrustedArguments(base + separator + head).
 		Run(&RunOpts{
 			Dir:    repo.Path,
 			Stdout: w,
@@ -157,7 +157,7 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 			// previously it would return the results of git diff -z --name-only base head so let's try that...
 			w = &lineCountWriter{}
 			stderr.Reset()
-			if err = NewCommand(repo.Ctx, "diff", "-z", "--name-only").AddDynamicArguments(base, head).Run(&RunOpts{
+			if err = NewCommand(repo.Ctx, "diff", "-z", "--name-only").AddUntrustedArguments(base, head).Run(&RunOpts{
 				Dir:    repo.Path,
 				Stdout: w,
 				Stderr: stderr,
@@ -246,7 +246,7 @@ func (repo *Repository) GetDiffOrPatch(base, head string, w io.Writer, patch, bi
 
 // GetDiff generates and returns patch data between given revisions, optimized for human readability
 func (repo *Repository) GetDiff(base, head string, w io.Writer) error {
-	return NewCommand(repo.Ctx, "diff", "-p").AddDynamicArguments(base, head).Run(&RunOpts{
+	return NewCommand(repo.Ctx, "diff", "-p").AddUntrustedArguments(base, head).Run(&RunOpts{
 		Dir:    repo.Path,
 		Stdout: w,
 	})
@@ -254,7 +254,7 @@ func (repo *Repository) GetDiff(base, head string, w io.Writer) error {
 
 // GetDiffBinary generates and returns patch data between given revisions, including binary diffs.
 func (repo *Repository) GetDiffBinary(base, head string, w io.Writer) error {
-	return NewCommand(repo.Ctx, "diff", "-p", "--binary", "--histogram").AddDynamicArguments(base, head).Run(&RunOpts{
+	return NewCommand(repo.Ctx, "diff", "-p", "--binary", "--histogram").AddUntrustedArguments(base, head).Run(&RunOpts{
 		Dir:    repo.Path,
 		Stdout: w,
 	})
@@ -263,14 +263,14 @@ func (repo *Repository) GetDiffBinary(base, head string, w io.Writer) error {
 // GetPatch generates and returns format-patch data between given revisions, able to be used with `git apply`
 func (repo *Repository) GetPatch(base, head string, w io.Writer) error {
 	stderr := new(bytes.Buffer)
-	err := NewCommand(repo.Ctx, "format-patch", "--binary", "--stdout").AddDynamicArguments(base + "..." + head).
+	err := NewCommand(repo.Ctx, "format-patch", "--binary", "--stdout").AddUntrustedArguments(base + "..." + head).
 		Run(&RunOpts{
 			Dir:    repo.Path,
 			Stdout: w,
 			Stderr: stderr,
 		})
 	if err != nil && bytes.Contains(stderr.Bytes(), []byte("no merge base")) {
-		return NewCommand(repo.Ctx, "format-patch", "--binary", "--stdout").AddDynamicArguments(base, head).
+		return NewCommand(repo.Ctx, "format-patch", "--binary", "--stdout").AddUntrustedArguments(base, head).
 			Run(&RunOpts{
 				Dir:    repo.Path,
 				Stdout: w,
@@ -281,7 +281,7 @@ func (repo *Repository) GetPatch(base, head string, w io.Writer) error {
 
 // GetFilesChangedBetween returns a list of all files that have been changed between the given commits
 func (repo *Repository) GetFilesChangedBetween(base, head string) ([]string, error) {
-	stdout, _, err := NewCommand(repo.Ctx, "diff", "--name-only").AddDynamicArguments(base + ".." + head).RunStdString(&RunOpts{Dir: repo.Path})
+	stdout, _, err := NewCommand(repo.Ctx, "diff", "--name-only").AddUntrustedArguments(base + ".." + head).RunStdString(&RunOpts{Dir: repo.Path})
 	if err != nil {
 		return nil, err
 	}
@@ -291,7 +291,7 @@ func (repo *Repository) GetFilesChangedBetween(base, head string) ([]string, err
 // GetDiffFromMergeBase generates and return patch data from merge base to head
 func (repo *Repository) GetDiffFromMergeBase(base, head string, w io.Writer) error {
 	stderr := new(bytes.Buffer)
-	err := NewCommand(repo.Ctx, "diff", "-p", "--binary").AddDynamicArguments(base + "..." + head).
+	err := NewCommand(repo.Ctx, "diff", "-p", "--binary").AddUntrustedArguments(base + "..." + head).
 		Run(&RunOpts{
 			Dir:    repo.Path,
 			Stdout: w,

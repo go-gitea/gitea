@@ -312,7 +312,7 @@ func CheckGitVersionAtLeast(atLeast string) error {
 }
 
 func configSet(key, value string) error {
-	stdout, _, err := NewCommand(DefaultContext, "config", "--get").AddDynamicArguments(key).RunStdString(nil)
+	stdout, _, err := NewCommand(DefaultContext, "config", "--get").AddUntrustedArguments(key).RunStdString(nil)
 	if err != nil && !err.IsExitCode(1) {
 		return fmt.Errorf("failed to get git config %s, err: %w", key, err)
 	}
@@ -322,7 +322,7 @@ func configSet(key, value string) error {
 		return nil
 	}
 
-	_, _, err = NewCommand(DefaultContext, "config", "--global").AddDynamicArguments(key, value).RunStdString(nil)
+	_, _, err = NewCommand(DefaultContext, "config", "--global").AddUntrustedArguments(key, value).RunStdString(nil)
 	if err != nil {
 		return fmt.Errorf("failed to set git global config %s, err: %w", key, err)
 	}
@@ -331,14 +331,14 @@ func configSet(key, value string) error {
 }
 
 func configSetNonExist(key, value string) error {
-	_, _, err := NewCommand(DefaultContext, "config", "--get").AddDynamicArguments(key).RunStdString(nil)
+	_, _, err := NewCommand(DefaultContext, "config", "--get").AddUntrustedArguments(key).RunStdString(nil)
 	if err == nil {
 		// already exist
 		return nil
 	}
 	if err.IsExitCode(1) {
 		// not exist, set new config
-		_, _, err = NewCommand(DefaultContext, "config", "--global").AddDynamicArguments(key, value).RunStdString(nil)
+		_, _, err = NewCommand(DefaultContext, "config", "--global").AddUntrustedArguments(key, value).RunStdString(nil)
 		if err != nil {
 			return fmt.Errorf("failed to set git global config %s, err: %w", key, err)
 		}
@@ -349,14 +349,14 @@ func configSetNonExist(key, value string) error {
 }
 
 func configAddNonExist(key, value string) error {
-	_, _, err := NewCommand(DefaultContext, "config", "--get").AddDynamicArguments(key, regexp.QuoteMeta(value)).RunStdString(nil)
+	_, _, err := NewCommand(DefaultContext, "config", "--get").AddUntrustedArguments(key, regexp.QuoteMeta(value)).RunStdString(nil)
 	if err == nil {
 		// already exist
 		return nil
 	}
 	if err.IsExitCode(1) {
 		// not exist, add new config
-		_, _, err = NewCommand(DefaultContext, "config", "--global", "--add").AddDynamicArguments(key, value).RunStdString(nil)
+		_, _, err = NewCommand(DefaultContext, "config", "--global", "--add").AddUntrustedArguments(key, value).RunStdString(nil)
 		if err != nil {
 			return fmt.Errorf("failed to add git global config %s, err: %w", key, err)
 		}
@@ -366,10 +366,10 @@ func configAddNonExist(key, value string) error {
 }
 
 func configUnsetAll(key, value string) error {
-	_, _, err := NewCommand(DefaultContext, "config", "--get").AddDynamicArguments(key).RunStdString(nil)
+	_, _, err := NewCommand(DefaultContext, "config", "--get").AddUntrustedArguments(key).RunStdString(nil)
 	if err == nil {
 		// exist, need to remove
-		_, _, err = NewCommand(DefaultContext, "config", "--global", "--unset-all").AddDynamicArguments(key, regexp.QuoteMeta(value)).RunStdString(nil)
+		_, _, err = NewCommand(DefaultContext, "config", "--global", "--unset-all").AddUntrustedArguments(key, regexp.QuoteMeta(value)).RunStdString(nil)
 		if err != nil {
 			return fmt.Errorf("failed to unset git global config %s, err: %w", key, err)
 		}

@@ -28,7 +28,7 @@ var stripExitStatus = regexp.MustCompile(`exit status \d+ - `)
 // AddPushMirrorRemote registers the push mirror remote.
 func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr string) error {
 	addRemoteAndConfig := func(addr, path string) error {
-		cmd := git.NewCommand(ctx, "remote", "add", "--mirror=push").AddDynamicArguments(m.RemoteName, addr)
+		cmd := git.NewCommand(ctx, "remote", "add", "--mirror=push").AddUntrustedArguments(m.RemoteName, addr)
 		if strings.Contains(addr, "://") && strings.Contains(addr, "@") {
 			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=push %s [repo_path: %s]", m.RemoteName, util.SanitizeCredentialURLs(addr), path))
 		} else {
@@ -64,7 +64,7 @@ func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr str
 
 // RemovePushMirrorRemote removes the push mirror remote.
 func RemovePushMirrorRemote(ctx context.Context, m *repo_model.PushMirror) error {
-	cmd := git.NewCommand(ctx, "remote", "rm").AddDynamicArguments(m.RemoteName)
+	cmd := git.NewCommand(ctx, "remote", "rm").AddUntrustedArguments(m.RemoteName)
 	_ = m.GetRepository()
 
 	if _, _, err := cmd.RunStdString(&git.RunOpts{Dir: m.Repo.RepoPath()}); err != nil {

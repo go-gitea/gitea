@@ -397,7 +397,7 @@ func (h *serviceHandler) sendFile(contentType, file string) {
 var safeGitProtocolHeader = regexp.MustCompile(`^[0-9a-zA-Z]+=[0-9a-zA-Z]+(:[0-9a-zA-Z]+=[0-9a-zA-Z]+)*$`)
 
 func getGitConfig(ctx gocontext.Context, option, dir string) string {
-	out, _, err := git.NewCommand(ctx, "config").AddDynamicArguments(option).RunStdString(&git.RunOpts{Dir: dir})
+	out, _, err := git.NewCommand(ctx, "config").AddUntrustedArguments(option).RunStdString(&git.RunOpts{Dir: dir})
 	if err != nil {
 		log.Error("%v - %s", err, out)
 	}
@@ -470,7 +470,7 @@ func serviceRPC(ctx gocontext.Context, h serviceHandler, service string) {
 	}
 
 	var stderr bytes.Buffer
-	cmd := git.NewCommand(h.r.Context(), git.CmdArgCheck(service), "--stateless-rpc").AddDynamicArguments(h.dir)
+	cmd := git.NewCommand(h.r.Context(), git.CmdArgCheck(service), "--stateless-rpc").AddUntrustedArguments(h.dir)
 	cmd.SetDescription(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir))
 	if err := cmd.Run(&git.RunOpts{
 		Dir:               h.dir,

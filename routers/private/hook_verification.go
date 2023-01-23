@@ -43,7 +43,7 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 	}()
 
 	// This is safe as force pushes are already forbidden
-	err = git.NewCommand(repo.Ctx, "rev-list").AddDynamicArguments(oldCommitID + "..." + newCommitID).
+	err = git.NewCommand(repo.Ctx, "rev-list").AddUntrustedArguments(oldCommitID + "..." + newCommitID).
 		Run(&git.RunOpts{
 			Env:    env,
 			Dir:    repo.Path,
@@ -90,7 +90,7 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 	}()
 	hash := git.MustIDFromString(sha)
 
-	return git.NewCommand(repo.Ctx, "cat-file", "commit").AddDynamicArguments(sha).
+	return git.NewCommand(repo.Ctx, "cat-file", "commit").AddUntrustedArguments(sha).
 		Run(&git.RunOpts{
 			Env:    env,
 			Dir:    repo.Path,

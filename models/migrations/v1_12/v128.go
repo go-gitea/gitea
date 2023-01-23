@@ -85,14 +85,14 @@ func FixMergeBase(x *xorm.Engine) error {
 				pr.MergeBase, _, err = git.NewCommand(git.DefaultContext, "merge-base").AddDashesAndList(pr.BaseBranch, gitRefName).RunStdString(&git.RunOpts{Dir: repoPath})
 				if err != nil {
 					var err2 error
-					pr.MergeBase, _, err2 = git.NewCommand(git.DefaultContext, "rev-parse").AddDynamicArguments(git.BranchPrefix + pr.BaseBranch).RunStdString(&git.RunOpts{Dir: repoPath})
+					pr.MergeBase, _, err2 = git.NewCommand(git.DefaultContext, "rev-parse").AddUntrustedArguments(git.BranchPrefix + pr.BaseBranch).RunStdString(&git.RunOpts{Dir: repoPath})
 					if err2 != nil {
 						log.Error("Unable to get merge base for PR ID %d, Index %d in %s/%s. Error: %v & %v", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err, err2)
 						continue
 					}
 				}
 			} else {
-				parentsString, _, err := git.NewCommand(git.DefaultContext, "rev-list", "--parents", "-n", "1").AddDynamicArguments(pr.MergedCommitID).RunStdString(&git.RunOpts{Dir: repoPath})
+				parentsString, _, err := git.NewCommand(git.DefaultContext, "rev-list", "--parents", "-n", "1").AddUntrustedArguments(pr.MergedCommitID).RunStdString(&git.RunOpts{Dir: repoPath})
 				if err != nil {
 					log.Error("Unable to get parents for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err)
 					continue
