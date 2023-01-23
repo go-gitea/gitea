@@ -363,16 +363,18 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		return 0
 	}
 
-	projects, _, err := project_model.GetProjects(ctx, project_model.SearchOptions{
-		RepoID:   repo.ID,
-		Type:     project_model.TypeRepository,
-		IsClosed: util.OptionalBoolOf(isShowClosed),
-	})
-	if err != nil {
-		ctx.ServerError("GetProjects", err)
-		return
+	if ctx.Repo.CanWriteIssuesOrPulls(ctx.Params(":type") == "pulls") {
+		projects, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
+			RepoID:   repo.ID,
+			Type:     project_model.TypeRepository,
+			IsClosed: util.OptionalBoolOf(isShowClosed),
+		})
+		if err != nil {
+			ctx.ServerError("GetProjects", err)
+			return
+		}
+		ctx.Data["Projects"] = projects
 	}
-	ctx.Data["Projects"] = projects
 
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["SelLabelIDs"] = labelIDs
@@ -475,8 +477,7 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 
 func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 	var err error
-
-	ctx.Data["OpenProjects"], _, err = project_model.GetProjects(ctx, project_model.SearchOptions{
+	projects, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
 		RepoID:   repo.ID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolFalse,
@@ -486,8 +487,20 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		ctx.ServerError("GetProjects", err)
 		return
 	}
+	projects2, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
+		OwnerID:  repo.OwnerID,
+		Page:     -1,
+		IsClosed: util.OptionalBoolFalse,
+		Type:     project_model.TypeOrganization,
+	})
+	if err != nil {
+		ctx.ServerError("GetProjects", err)
+		return
+	}
 
-	ctx.Data["ClosedProjects"], _, err = project_model.GetProjects(ctx, project_model.SearchOptions{
+	ctx.Data["OpenProjects"] = append(projects, projects2...)
+
+	projects, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
 		RepoID:   repo.ID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolTrue,
@@ -497,6 +510,18 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		ctx.ServerError("GetProjects", err)
 		return
 	}
+	projects2, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
+		OwnerID:  repo.OwnerID,
+		Page:     -1,
+		IsClosed: util.OptionalBoolTrue,
+		Type:     project_model.TypeOrganization,
+	})
+	if err != nil {
+		ctx.ServerError("GetProjects", err)
+		return
+	}
+
+	ctx.Data["ClosedProjects"] = append(projects, projects2...)
 }
 
 // repoReviewerSelection items to bee shown
@@ -997,7 +1022,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 			ctx.ServerError("GetProjectByID", err)
 			return nil, nil, 0, 0
 		}
-		if p.RepoID != ctx.Repo.Repository.ID {
+		if p.RepoID != ctx.Repo.Repository.ID && p.OwnerID != ctx.Repo.Repository.OwnerID {
 			ctx.NotFound("", nil)
 			return nil, nil, 0, 0
 		}
