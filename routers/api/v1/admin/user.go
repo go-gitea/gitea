@@ -137,7 +137,9 @@ func CreateUser(ctx *context.APIContext) {
 	}
 	log.Trace("Account created by admin (%s): %s", ctx.Doer.Name, u.Name)
 
-	// Back-date the user creation.
+	// Update the user creation timestamp. This can only be done after the user
+	// record has been inserted into the database; the insert intself will always
+	// set the creation timestamp to "now".
 	if form.Created != nil {
 		u.CreatedUnix = timeutil.TimeStamp(form.Created.Unix())
 		if err := user_model.UpdateUserCreated(ctx, u); err != nil {
