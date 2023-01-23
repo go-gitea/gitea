@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"hash/fnv"
 
 	_ "image/jpeg" // Needed for jpeg support
 
@@ -998,7 +999,13 @@ func GetInactiveUsers(ctx context.Context, olderThan time.Duration) ([]*User, er
 
 // UserPath returns the path absolute path of user repositories.
 func UserPath(userName string) string { //revive:disable-line:exported
-	return filepath.Join(setting.RepoRootPath, strings.ToLower(userName))
+	if setting.NumberRepoFolders > 1 {
+		hash := fnv.New32()
+		hash.Write([]byte(strings.ToLower(userName)))
+		return filepath.Join(setting.RepoRootPath, fmt.Sprintf("%02x", hash.Sum32() & uint32(setting.NumberRepoFolders - 1)), strings.ToLower(userName))
+	} else {
+		return filepath.Join(setting.RepoRootPath, strings.ToLower(userName))
+	}
 }
 
 // GetUserByID returns the user object by given ID if exists.

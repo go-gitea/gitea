@@ -10,7 +10,9 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"os/exec"
+	"hash/fnv"
 	"regexp"
 	"strconv"
 	"strings"
@@ -303,7 +305,15 @@ func runServ(c *cli.Context) error {
 	}
 
 	process.SetSysProcAttribute(gitcmd)
-	gitcmd.Dir = setting.RepoRootPath
+
+	if setting.NumberRepoFolders > 1 {
+		hash := fnv.New32()
+		hash.Write([]byte(strings.ToLower(results.OwnerName)))
+		gitcmd.Dir = filepath.Join(setting.RepoRootPath, fmt.Sprintf("%02x", hash.Sum32() & uint32(setting.NumberRepoFolders - 1)))
+	} else {
+		gitcmd.Dir = setting.RepoRootPath
+	}
+
 	gitcmd.Stdout = os.Stdout
 	gitcmd.Stdin = os.Stdin
 	gitcmd.Stderr = os.Stderr

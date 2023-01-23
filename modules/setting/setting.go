@@ -94,6 +94,7 @@ var (
 	LocalURL string
 	// AssetVersion holds a opaque value that is used for cache-busting assets
 	AssetVersion string
+	NumberRepoFolders int
 
 	// Server settings
 	Protocol                   Scheme
@@ -936,6 +937,9 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	if !filepath.IsAbs(OAuth2.JWTSigningPrivateKeyFile) {
 		OAuth2.JWTSigningPrivateKeyFile = filepath.Join(AppDataPath, OAuth2.JWTSigningPrivateKeyFile)
 	}
+
+	sec = Cfg.Section("repository")
+	NumberRepoFolders = sec.Key("NUMBER_REPO_FOLDERS").MustInt(1)
 
 	sec = Cfg.Section("admin")
 	Admin.DefaultEmailNotification = sec.Key("DEFAULT_EMAIL_NOTIFICATIONS").MustString("enabled")

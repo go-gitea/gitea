@@ -30,15 +30,16 @@ type InstallForm struct {
 	DbPath   string
 	DbSchema string
 
-	AppName      string `binding:"Required" locale:"install.app_name"`
-	RepoRootPath string `binding:"Required"`
-	LFSRootPath  string
-	RunUser      string `binding:"Required"`
-	Domain       string `binding:"Required"`
-	SSHPort      int
-	HTTPPort     string `binding:"Required"`
-	AppURL       string `binding:"Required"`
-	LogRootPath  string `binding:"Required"`
+	AppName           string `binding:"Required" locale:"install.app_name"`
+	RepoRootPath      string `binding:"Required"`
+	NumberRepoFolders int    `binding:"Requried"`
+	LFSRootPath       string
+	RunUser           string `binding:"Required"`
+	Domain            string `binding:"Required"`
+	SSHPort           int
+	HTTPPort          string `binding:"Required"`
+	AppURL            string `binding:"Required"`
+	LogRootPath       string `binding:"Required"`
 
 	SMTPAddr        string
 	SMTPPort        string

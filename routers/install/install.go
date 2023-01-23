@@ -119,6 +119,7 @@ func Install(ctx *context.Context) {
 	// Application general settings
 	form.AppName = setting.AppName
 	form.RepoRootPath = setting.RepoRootPath
+	form.NumberRepoFolders = setting.NumberRepoFolders
 	form.LFSRootPath = setting.LFS.Path
 
 	// Note(unknown): it's hard for Windows users change a running user,
@@ -296,6 +297,12 @@ func SubmitInstall(ctx *context.Context) {
 		return
 	}
 
+	if form.NumberRepoFolders < 0 || form.NumberRepoFolders > 64 {
+		ctx.Data["Err_NumberRepoFolders"] = true
+		ctx.RenderWithErr(ctx.Tr("install.invalid_number_repo_folders"), tplInstall, &form)
+		return
+	}
+
 	// Test LFS root path if not empty, empty meaning disable LFS
 	if form.LFSRootPath != "" {
 		form.LFSRootPath = strings.ReplaceAll(form.LFSRootPath, "\\", "/")
@@ -400,6 +407,7 @@ func SubmitInstall(ctx *context.Context) {
 
 	cfg.Section("").Key("APP_NAME").SetValue(form.AppName)
 	cfg.Section("repository").Key("ROOT").SetValue(form.RepoRootPath)
+	cfg.Section("repository").Key("NUMBER_REPO_FOLDERS").SetValue(fmt.Sprint(form.NumberRepoFolders))
 	cfg.Section("").Key("RUN_USER").SetValue(form.RunUser)
 	cfg.Section("server").Key("SSH_DOMAIN").SetValue(form.Domain)
 	cfg.Section("server").Key("DOMAIN").SetValue(form.Domain)
