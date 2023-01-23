@@ -458,6 +458,11 @@ local testingAMD64 = {
       name: 'minio',
       pull: 'always',
     },
+    {
+      image: 'tabascoterrier/docker-imap-devel:latest',
+      name: 'smtpimap',
+      pull: 'always',
+    },
   ],
   steps: [
     {
@@ -853,7 +858,7 @@ local testinge2e = {
         TEST_PGSQL_DBNAME: 'testgitea-e2e',
         USE_REPO_TEST_DIR: 1,
       },
-      image: 'mcr.microsoft.com/playwright:v1.28.0-focal',
+      image: 'mcr.microsoft.com/playwright:v1.29.2-focal',
       name: 'test-e2e',
       volumes: goDepVolume,
     },
@@ -1276,13 +1281,11 @@ local docs = {
   steps: [
     {
       commands: [
-        'apk add --no-cache make bash curl',
         'cd docs',
         'make trans-copy clean build',
       ],
-      image: 'plugins/hugo:latest',
+      image: goImage,
       name: 'build-docs',
-      pull: 'always',
     },
     {
       environment: {
