@@ -4,6 +4,14 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.18.3](https://github.com/go-gitea/gitea/releases/tag/v1.18.3) - 2023-01-22
+
+* SECURITY
+  * Prevent multiple `To` recipients (#22566) (#22569)
+* BUGFIXES
+  * Truncate commit summary on repo files table. (#22551) (#22552)
+  * Mute all links in issue timeline (#22534)
+
 ## [1.18.2](https://github.com/go-gitea/gitea/releases/tag/v1.18.2) - 2023-01-19
 
 * BUGFIXES
