@@ -360,7 +360,7 @@ func visitNode(ctx *RenderContext, procs, textProcs []processor, node *html.Node
 			node.Attr[idx].Val = "user-content-" + attr.Val
 		}
 		// Add user-content- to # links too
-		if attr.Key == "href" && (strings.HasPrefix(attr.Val, "#")) && !(strings.HasPrefix(attr.Val, "#user-content-") || blackfridayExtRegex.MatchString(attr.Val)) {
+		if attr.Key == "href" && strings.HasPrefix(attr.Val, "#") && !(strings.HasPrefix(attr.Val, "#user-content-") || blackfridayExtRegex.MatchString(strings.TrimPrefix(attr.Val, "#"))) {
 			node.Attr[idx].Val = "#user-content-" + strings.TrimPrefix(attr.Val, "#")
 		}
 
