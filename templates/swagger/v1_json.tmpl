@@ -4684,6 +4684,23 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/issue_config": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Returns the issue config for a repo",
+        "operationId": "repoGetIssueConfig",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/IssueConfig"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/issue_templates": {
       "get": {
         "produces": [
@@ -4713,39 +4730,6 @@
         "responses": {
           "200": {
             "$ref": "#/responses/IssueTemplates"
-          }
-        }
-      }
-    },
-      "/repos/{owner}/{repo}/issue_config": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Returns the issue config for a repo",
-        "operationId": "repoGetIssueConfig",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/IssueConfig"
           }
         }
       }
@@ -17466,17 +17450,6 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-  "IssueConfig": {
-      "description": "IssueConfig represents an issue config for a repository",
-      "type": "object",
-      "properties": {
-        "blank_issues_enabled": {
-          "type": "boolean",
-          "x-go-name": "BlankIssuesEnabled"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
     "MarkdownOption": {
       "description": "MarkdownOption markdown options",
       "type": "object",
@@ -20261,12 +20234,6 @@
         "items": {
           "$ref": "#/definitions/IssueTemplate"
         }
-      }
-    },
-    "IssueConfig": {
-      "description": "IssueConfig",
-      "schema": {
-        "$ref": "#/definitions/IssueConfig"
       }
     },
     "Label": {
