@@ -14,8 +14,8 @@ func (repo *Repository) FileBlame(revision, path, file string) ([]byte, error) {
 // LineBlame returns the latest commit at the given line
 func (repo *Repository) LineBlame(revision, path, file string, line uint) (*Commit, error) {
 	res, _, err := NewCommand(repo.Ctx, "blame").
-		AddArguments(CmdArg(fmt.Sprintf("-L %d,%d", line, line))).
-		AddArguments("-p").AddUntrustedArguments(revision).
+		AddTrustedArguments(CmdArg(fmt.Sprintf("-L %d,%d", line, line))).
+		AddTrustedArguments("-p").AddUntrustedArguments(revision).
 		AddDashesAndList(file).RunStdString(&RunOpts{Dir: path})
 	if err != nil {
 		return nil, err

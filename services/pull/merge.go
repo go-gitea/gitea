@@ -294,7 +294,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 	}
 
 	// Switch off LFS process (set required, clean and smudge here also)
-	if err := gitConfigCommand().AddArguments("filter.lfs.process", "").
+	if err := gitConfigCommand().AddTrustedArguments("filter.lfs.process", "").
 		Run(&git.RunOpts{
 			Dir:    tmpBasePath,
 			Stdout: &outbuf,
@@ -306,7 +306,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 	outbuf.Reset()
 	errbuf.Reset()
 
-	if err := gitConfigCommand().AddArguments("filter.lfs.required", "false").
+	if err := gitConfigCommand().AddTrustedArguments("filter.lfs.required", "false").
 		Run(&git.RunOpts{
 			Dir:    tmpBasePath,
 			Stdout: &outbuf,
@@ -318,7 +318,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 	outbuf.Reset()
 	errbuf.Reset()
 
-	if err := gitConfigCommand().AddArguments("filter.lfs.clean", "").
+	if err := gitConfigCommand().AddTrustedArguments("filter.lfs.clean", "").
 		Run(&git.RunOpts{
 			Dir:    tmpBasePath,
 			Stdout: &outbuf,
@@ -330,7 +330,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 	outbuf.Reset()
 	errbuf.Reset()
 
-	if err := gitConfigCommand().AddArguments("filter.lfs.smudge", "").
+	if err := gitConfigCommand().AddTrustedArguments("filter.lfs.smudge", "").
 		Run(&git.RunOpts{
 			Dir:    tmpBasePath,
 			Stdout: &outbuf,
@@ -342,7 +342,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 	outbuf.Reset()
 	errbuf.Reset()
 
-	if err := gitConfigCommand().AddArguments("core.sparseCheckout", "true").
+	if err := gitConfigCommand().AddTrustedArguments("core.sparseCheckout", "true").
 		Run(&git.RunOpts{
 			Dir:    tmpBasePath,
 			Stdout: &outbuf,
@@ -493,9 +493,9 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 
 		cmd := git.NewCommand(ctx, "merge")
 		if mergeStyle == repo_model.MergeStyleRebase {
-			cmd.AddArguments("--ff-only")
+			cmd.AddTrustedArguments("--ff-only")
 		} else {
-			cmd.AddArguments("--no-ff", "--no-commit")
+			cmd.AddTrustedArguments("--no-ff", "--no-commit")
 		}
 		cmd.AddUntrustedArguments(stagingBranch)
 
@@ -540,9 +540,9 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 				message += fmt.Sprintf("\nCo-authored-by: %s\nCo-committed-by: %s\n", sig.String(), sig.String())
 			}
 			if err := git.NewCommand(ctx, "commit").
-				AddArguments(signArg).
-				AddArguments(git.CmdArg(fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email))).
-				AddArguments("-m").AddUntrustedArguments(message).
+				AddTrustedArguments(signArg).
+				AddTrustedArguments(git.CmdArg(fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email))).
+				AddTrustedArguments("-m").AddUntrustedArguments(message).
 				Run(&git.RunOpts{
 					Env:    env,
 					Dir:    tmpBasePath,
@@ -663,7 +663,7 @@ func commitAndSignNoAuthor(ctx context.Context, pr *issues_model.PullRequest, me
 			return fmt.Errorf("git commit [%s:%s -> %s:%s]: %w\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
 		}
 	} else {
-		if err := git.NewCommand(ctx, "commit").AddArguments(signArg).AddArguments("-m").AddUntrustedArguments(message).
+		if err := git.NewCommand(ctx, "commit").AddTrustedArguments(signArg).AddTrustedArguments("-m").AddUntrustedArguments(message).
 			Run(&git.RunOpts{
 				Env:    env,
 				Dir:    tmpBasePath,

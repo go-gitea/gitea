@@ -135,9 +135,9 @@ func (repo *Repository) DeleteBranch(name string, opts DeleteBranchOptions) erro
 	cmd := NewCommand(repo.Ctx, "branch")
 
 	if opts.Force {
-		cmd.AddArguments("-D")
+		cmd.AddTrustedArguments("-D")
 	} else {
-		cmd.AddArguments("-d")
+		cmd.AddTrustedArguments("-d")
 	}
 
 	cmd.AddDashesAndList(name)
@@ -160,7 +160,7 @@ func (repo *Repository) CreateBranch(branch, oldbranchOrCommit string) error {
 func (repo *Repository) AddRemote(name, url string, fetch bool) error {
 	cmd := NewCommand(repo.Ctx, "remote", "add")
 	if fetch {
-		cmd.AddArguments("-f")
+		cmd.AddTrustedArguments("-f")
 	}
 	cmd.AddUntrustedArguments(name, url)
 

@@ -323,7 +323,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 
 	sign, keyID, signer, _ := asymkey_service.SignInitialCommit(ctx, tmpPath, u)
 	if sign {
-		cmd.AddArguments(git.CmdArg("-S" + keyID))
+		cmd.AddTrustedArguments(git.CmdArg("-S" + keyID))
 
 		if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			// need to set the committer to the KeyID owner
@@ -331,7 +331,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 			committerEmail = signer.Email
 		}
 	} else {
-		cmd.AddArguments("--no-gpg-sign")
+		cmd.AddTrustedArguments("--no-gpg-sign")
 	}
 
 	env = append(env,

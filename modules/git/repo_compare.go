@@ -93,7 +93,7 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string, 
 		// We have a common base - therefore we know that ... should work
 		if !fileOnly {
 			var logs []byte
-			logs, _, err = NewCommand(repo.Ctx, "log").AddUntrustedArguments(baseCommitID + separator + headBranch).AddArguments(prettyLogFormat).RunStdBytes(&RunOpts{Dir: repo.Path})
+			logs, _, err = NewCommand(repo.Ctx, "log").AddUntrustedArguments(baseCommitID + separator + headBranch).AddTrustedArguments(prettyLogFormat).RunStdBytes(&RunOpts{Dir: repo.Path})
 			if err != nil {
 				return nil, err
 			}

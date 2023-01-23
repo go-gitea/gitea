@@ -103,17 +103,18 @@ func (c *Command) SetDescription(desc string) *Command {
 	return c
 }
 
-// AddArguments adds new git argument(s) to the command. Each argument must be safe to be trusted.
+// AddTrustedArguments adds new git argument(s) to the command.
+// Each argument must be safe to be trusted, so only string literals should be passed.
 // User-provided arguments should be passed to AddUntrustedArguments instead.
-func (c *Command) AddArguments(args ...CmdArg) *Command {
+func (c *Command) AddTrustedArguments(args ...CmdArg) *Command {
 	for _, arg := range args {
 		c.args = append(c.args, string(arg))
 	}
 	return c
 }
 
-// AddUntrustedArguments adds new dynamic argument(s) to the command.
-// The arguments may come from user input and can not be trusted, so no leading '-' is allowed to avoid passing options
+// AddUntrustedArguments adds new argument(s) to the command.
+// The arguments should be user-supplied and hence cannot be trusted, so no leading '-' is allowed to avoid passing options
 func (c *Command) AddUntrustedArguments(args ...string) *Command {
 	for _, arg := range args {
 		if arg != "" && arg[0] == '-' {

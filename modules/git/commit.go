@@ -94,7 +94,7 @@ func AddChanges(repoPath string, all bool, files ...string) error {
 func AddChangesWithArgs(repoPath string, globalArgs []CmdArg, all bool, files ...string) error {
 	cmd := NewCommandNoGlobals(append(globalArgs, "add")...)
 	if all {
-		cmd.AddArguments("--all")
+		cmd.AddTrustedArguments("--all")
 	}
 	cmd.AddDashesAndList(files...)
 	_, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
@@ -121,17 +121,17 @@ func CommitChanges(repoPath string, opts CommitChangesOptions) error {
 func CommitChangesWithArgs(repoPath string, args []CmdArg, opts CommitChangesOptions) error {
 	cmd := NewCommandNoGlobals(args...)
 	if opts.Committer != nil {
-		cmd.AddArguments("-c", CmdArg("user.name="+opts.Committer.Name), "-c", CmdArg("user.email="+opts.Committer.Email))
+		cmd.AddTrustedArguments("-c", CmdArg("user.name="+opts.Committer.Name), "-c", CmdArg("user.email="+opts.Committer.Email))
 	}
-	cmd.AddArguments("commit")
+	cmd.AddTrustedArguments("commit")
 
 	if opts.Author == nil {
 		opts.Author = opts.Committer
 	}
 	if opts.Author != nil {
-		cmd.AddArguments(CmdArg(fmt.Sprintf("--author='%s <%s>'", opts.Author.Name, opts.Author.Email)))
+		cmd.AddTrustedArguments(CmdArg(fmt.Sprintf("--author='%s <%s>'", opts.Author.Name, opts.Author.Email)))
 	}
-	cmd.AddArguments("-m").AddUntrustedArguments(opts.Message)
+	cmd.AddTrustedArguments("-m").AddUntrustedArguments(opts.Message)
 
 	_, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
 	// No stderr but exit status 1 means nothing to commit.
@@ -145,9 +145,9 @@ func CommitChangesWithArgs(repoPath string, args []CmdArg, opts CommitChangesOpt
 func AllCommitsCount(ctx context.Context, repoPath string, hidePRRefs bool, files ...string) (int64, error) {
 	cmd := NewCommand(ctx, "rev-list")
 	if hidePRRefs {
-		cmd.AddArguments("--exclude=" + PullPrefix + "*")
+		cmd.AddTrustedArguments("--exclude=" + PullPrefix + "*")
 	}
-	cmd.AddArguments("--all", "--count")
+	cmd.AddTrustedArguments("--all", "--count")
 	if len(files) > 0 {
 		cmd.AddDashesAndList(files...)
 	}
@@ -390,9 +390,9 @@ func (c *Commit) GetSubModule(entryname string) (*SubModule, error) {
 func (c *Commit) GetBranchName() (string, error) {
 	cmd := NewCommand(c.repo.Ctx, "name-rev")
 	if CheckGitVersionAtLeast("2.13.0") == nil {
-		cmd.AddArguments("--exclude", "refs/tags/*")
+		cmd.AddTrustedArguments("--exclude", "refs/tags/*")
 	}
-	cmd.AddArguments("--name-only", "--no-undefined").AddUntrustedArguments(c.ID.String())
+	cmd.AddTrustedArguments("--name-only", "--no-undefined").AddUntrustedArguments(c.ID.String())
 	data, _, err := cmd.RunStdString(&RunOpts{Dir: c.repo.Path})
 	if err != nil {
 		// handle special case where git can not describe commit

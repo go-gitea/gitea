@@ -44,17 +44,17 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 	cmd := NewCommand(repo.Ctx, "check-attr", "-z")
 
 	if opts.AllAttributes {
-		cmd.AddArguments("-a")
+		cmd.AddTrustedArguments("-a")
 	} else {
 		for _, attribute := range opts.Attributes {
 			if attribute != "" {
-				cmd.AddArguments(attribute)
+				cmd.AddTrustedArguments(attribute)
 			}
 		}
 	}
 
 	if opts.CachedOnly {
-		cmd.AddArguments("--cached")
+		cmd.AddTrustedArguments("--cached")
 	}
 
 	cmd.AddDashesAndList(opts.Filenames...)

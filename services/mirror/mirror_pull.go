@@ -37,7 +37,7 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 		return err
 	}
 
-	cmd := git.NewCommand(ctx, "remote", "add").AddUntrustedArguments(remoteName).AddArguments("--mirror=fetch").AddUntrustedArguments(addr)
+	cmd := git.NewCommand(ctx, "remote", "add").AddUntrustedArguments(remoteName).AddTrustedArguments("--mirror=fetch").AddUntrustedArguments(addr)
 	if strings.Contains(addr, "://") && strings.Contains(addr, "@") {
 		cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=fetch %s [repo_path: %s]", remoteName, util.SanitizeCredentialURLs(addr), repoPath))
 	} else {
@@ -57,7 +57,7 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 			return err
 		}
 
-		cmd = git.NewCommand(ctx, "remote", "add").AddUntrustedArguments(remoteName).AddArguments("--mirror=fetch").AddUntrustedArguments(wikiRemotePath)
+		cmd = git.NewCommand(ctx, "remote", "add").AddUntrustedArguments(remoteName).AddTrustedArguments("--mirror=fetch").AddUntrustedArguments(wikiRemotePath)
 		if strings.Contains(wikiRemotePath, "://") && strings.Contains(wikiRemotePath, "@") {
 			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=fetch %s [repo_path: %s]", remoteName, util.SanitizeCredentialURLs(wikiRemotePath), wikiPath))
 		} else {

@@ -37,7 +37,7 @@ func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opt
 	cmd := NewCommand(repo.Ctx, "commit-tree").AddUntrustedArguments(tree.ID.String())
 
 	for _, parent := range opts.Parents {
-		cmd.AddArguments("-p").AddUntrustedArguments(parent)
+		cmd.AddTrustedArguments("-p").AddUntrustedArguments(parent)
 	}
 
 	messageBytes := new(bytes.Buffer)
@@ -45,11 +45,11 @@ func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opt
 	_, _ = messageBytes.WriteString("\n")
 
 	if opts.KeyID != "" || opts.AlwaysSign {
-		cmd.AddArguments(CmdArg(fmt.Sprintf("-S%s", opts.KeyID)))
+		cmd.AddTrustedArguments(CmdArg(fmt.Sprintf("-S%s", opts.KeyID)))
 	}
 
 	if opts.NoGPGSign {
-		cmd.AddArguments("--no-gpg-sign")
+		cmd.AddTrustedArguments("--no-gpg-sign")
 	}
 
 	stdout := new(bytes.Buffer)

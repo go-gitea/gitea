@@ -60,23 +60,23 @@ func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diff
 	switch diffType {
 	case RawDiffNormal:
 		if len(startCommit) != 0 {
-			cmd.AddArguments("diff", "-M").AddUntrustedArguments(startCommit, endCommit).AddDashesAndList(files...)
+			cmd.AddTrustedArguments("diff", "-M").AddUntrustedArguments(startCommit, endCommit).AddDashesAndList(files...)
 		} else if commit.ParentCount() == 0 {
-			cmd.AddArguments("show").AddUntrustedArguments(endCommit).AddDashesAndList(files...)
+			cmd.AddTrustedArguments("show").AddUntrustedArguments(endCommit).AddDashesAndList(files...)
 		} else {
 			c, _ := commit.Parent(0)
-			cmd.AddArguments("diff", "-M").AddUntrustedArguments(c.ID.String(), endCommit).AddDashesAndList(files...)
+			cmd.AddTrustedArguments("diff", "-M").AddUntrustedArguments(c.ID.String(), endCommit).AddDashesAndList(files...)
 		}
 	case RawDiffPatch:
 		if len(startCommit) != 0 {
 			query := fmt.Sprintf("%s...%s", endCommit, startCommit)
-			cmd.AddArguments("format-patch", "--no-signature", "--stdout", "--root").AddUntrustedArguments(query).AddDashesAndList(files...)
+			cmd.AddTrustedArguments("format-patch", "--no-signature", "--stdout", "--root").AddUntrustedArguments(query).AddDashesAndList(files...)
 		} else if commit.ParentCount() == 0 {
-			cmd.AddArguments("format-patch", "--no-signature", "--stdout", "--root").AddUntrustedArguments(endCommit).AddDashesAndList(files...)
+			cmd.AddTrustedArguments("format-patch", "--no-signature", "--stdout", "--root").AddUntrustedArguments(endCommit).AddDashesAndList(files...)
 		} else {
 			c, _ := commit.Parent(0)
 			query := fmt.Sprintf("%s...%s", endCommit, c.ID.String())
-			cmd.AddArguments("format-patch", "--no-signature", "--stdout").AddUntrustedArguments(query).AddDashesAndList(files...)
+			cmd.AddTrustedArguments("format-patch", "--no-signature", "--stdout").AddUntrustedArguments(query).AddDashesAndList(files...)
 		}
 	default:
 		return fmt.Errorf("invalid diffType: %s", diffType)

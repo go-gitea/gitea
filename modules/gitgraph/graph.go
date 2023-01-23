@@ -26,14 +26,14 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 	graphCmd := git.NewCommand(r.Ctx, "log", "--graph", "--date-order", "--decorate=full")
 
 	if hidePRRefs {
-		graphCmd.AddArguments("--exclude=" + git.PullPrefix + "*")
+		graphCmd.AddTrustedArguments("--exclude=" + git.PullPrefix + "*")
 	}
 
 	if len(branches) == 0 {
-		graphCmd.AddArguments("--all")
+		graphCmd.AddTrustedArguments("--all")
 	}
 
-	graphCmd.AddArguments(
+	graphCmd.AddTrustedArguments(
 		"-C",
 		"-M",
 		git.CmdArg(fmt.Sprintf("-n %d", setting.UI.GraphMaxCommitNum*page)),

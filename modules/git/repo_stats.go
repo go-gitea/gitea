@@ -62,9 +62,9 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 
 	gitCmd := NewCommand(repo.Ctx, "log", "--numstat", "--no-merges", "--pretty=format:---%n%h%n%aN%n%aE%n", "--date=iso", CmdArg(fmt.Sprintf("--since='%s'", since)))
 	if len(branch) == 0 {
-		gitCmd.AddArguments("--branches=*")
+		gitCmd.AddTrustedArguments("--branches=*")
 	} else {
-		gitCmd.AddArguments("--first-parent").AddUntrustedArguments(branch)
+		gitCmd.AddTrustedArguments("--first-parent").AddUntrustedArguments(branch)
 	}
 
 	stderr := new(strings.Builder)

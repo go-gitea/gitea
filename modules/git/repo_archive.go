@@ -57,9 +57,9 @@ func (repo *Repository) CreateArchive(ctx context.Context, format ArchiveType, t
 
 	cmd := NewCommand(ctx, "archive")
 	if usePrefix {
-		cmd.AddArguments(CmdArg("--prefix=" + filepath.Base(strings.TrimSuffix(repo.Path, ".git")) + "/"))
+		cmd.AddTrustedArguments(CmdArg("--prefix=" + filepath.Base(strings.TrimSuffix(repo.Path, ".git")) + "/"))
 	}
-	cmd.AddArguments(CmdArg("--format=" + format.String()))
+	cmd.AddTrustedArguments(CmdArg("--format=" + format.String()))
 	cmd.AddUntrustedArguments(commitID)
 
 	var stderr strings.Builder

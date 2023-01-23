@@ -71,7 +71,7 @@ func InitRepository(ctx context.Context, repoPath string, bare bool) error {
 
 	cmd := NewCommand(ctx, "init")
 	if bare {
-		cmd.AddArguments("--bare")
+		cmd.AddTrustedArguments("--bare")
 	}
 	_, _, err = cmd.RunStdString(&RunOpts{Dir: repoPath})
 	return err
@@ -121,33 +121,33 @@ func CloneWithArgs(ctx context.Context, args []CmdArg, from, to string, opts Clo
 		return err
 	}
 
-	cmd := NewCommandContextNoGlobals(ctx, args...).AddArguments("clone")
+	cmd := NewCommandContextNoGlobals(ctx, args...).AddTrustedArguments("clone")
 	if opts.SkipTLSVerify {
-		cmd.AddArguments("-c", "http.sslVerify=false")
+		cmd.AddTrustedArguments("-c", "http.sslVerify=false")
 	}
 	if opts.Mirror {
-		cmd.AddArguments("--mirror")
+		cmd.AddTrustedArguments("--mirror")
 	}
 	if opts.Bare {
-		cmd.AddArguments("--bare")
+		cmd.AddTrustedArguments("--bare")
 	}
 	if opts.Quiet {
-		cmd.AddArguments("--quiet")
+		cmd.AddTrustedArguments("--quiet")
 	}
 	if opts.Shared {
-		cmd.AddArguments("-s")
+		cmd.AddTrustedArguments("-s")
 	}
 	if opts.NoCheckout {
-		cmd.AddArguments("--no-checkout")
+		cmd.AddTrustedArguments("--no-checkout")
 	}
 	if opts.Depth > 0 {
-		cmd.AddArguments("--depth").AddUntrustedArguments(strconv.Itoa(opts.Depth))
+		cmd.AddTrustedArguments("--depth").AddUntrustedArguments(strconv.Itoa(opts.Depth))
 	}
 	if opts.Filter != "" {
-		cmd.AddArguments("--filter").AddUntrustedArguments(opts.Filter)
+		cmd.AddTrustedArguments("--filter").AddUntrustedArguments(opts.Filter)
 	}
 	if len(opts.Branch) > 0 {
-		cmd.AddArguments("-b").AddUntrustedArguments(opts.Branch)
+		cmd.AddTrustedArguments("-b").AddUntrustedArguments(opts.Branch)
 	}
 	cmd.AddDashesAndList(from, to)
 
@@ -195,10 +195,10 @@ type PushOptions struct {
 func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	cmd := NewCommand(ctx, "push")
 	if opts.Force {
-		cmd.AddArguments("-f")
+		cmd.AddTrustedArguments("-f")
 	}
 	if opts.Mirror {
-		cmd.AddArguments("--mirror")
+		cmd.AddTrustedArguments("--mirror")
 	}
 	remoteBranchArgs := []string{opts.Remote}
 	if len(opts.Branch) > 0 {

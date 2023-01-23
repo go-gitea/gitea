@@ -149,9 +149,9 @@ func lfsCommitAndPushTest(t *testing.T, dstPath string) (littleLFS, bigLFS strin
 	t.Run("LFS", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 		prefix := "lfs-data-file-"
-		err := git.NewCommand(git.DefaultContext, "lfs").AddArguments("install").Run(&git.RunOpts{Dir: dstPath})
+		err := git.NewCommand(git.DefaultContext, "lfs").AddTrustedArguments("install").Run(&git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
-		_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("track").AddUntrustedArguments(prefix + "*").RunStdString(&git.RunOpts{Dir: dstPath})
+		_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddTrustedArguments("track").AddUntrustedArguments(prefix + "*").RunStdString(&git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 		err = git.AddChanges(dstPath, false, ".gitattributes")
 		assert.NoError(t, err)
@@ -277,13 +277,13 @@ func lockTest(t *testing.T, repoPath string) {
 }
 
 func lockFileTest(t *testing.T, filename, repoPath string) {
-	_, _, err := git.NewCommand(git.DefaultContext, "lfs").AddArguments("locks").RunStdString(&git.RunOpts{Dir: repoPath})
+	_, _, err := git.NewCommand(git.DefaultContext, "lfs").AddTrustedArguments("locks").RunStdString(&git.RunOpts{Dir: repoPath})
 	assert.NoError(t, err)
-	_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("lock").AddUntrustedArguments(filename).RunStdString(&git.RunOpts{Dir: repoPath})
+	_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddTrustedArguments("lock").AddUntrustedArguments(filename).RunStdString(&git.RunOpts{Dir: repoPath})
 	assert.NoError(t, err)
-	_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("locks").RunStdString(&git.RunOpts{Dir: repoPath})
+	_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddTrustedArguments("locks").RunStdString(&git.RunOpts{Dir: repoPath})
 	assert.NoError(t, err)
-	_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("unlock").AddUntrustedArguments(filename).RunStdString(&git.RunOpts{Dir: repoPath})
+	_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddTrustedArguments("unlock").AddUntrustedArguments(filename).RunStdString(&git.RunOpts{Dir: repoPath})
 	assert.NoError(t, err)
 }
 

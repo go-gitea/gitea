@@ -93,7 +93,7 @@ func createTemporaryRepo(ctx context.Context, pr *issues_model.PullRequest) (str
 	}
 
 	var outbuf, errbuf strings.Builder
-	if err := git.NewCommand(ctx, "remote", "add", "-t").AddUntrustedArguments(pr.BaseBranch).AddArguments("-m").AddUntrustedArguments(pr.BaseBranch).AddUntrustedArguments("origin", baseRepoPath).
+	if err := git.NewCommand(ctx, "remote", "add", "-t").AddUntrustedArguments(pr.BaseBranch).AddTrustedArguments("-m").AddUntrustedArguments(pr.BaseBranch).AddUntrustedArguments("origin", baseRepoPath).
 		Run(&git.RunOpts{
 			Dir:    tmpBasePath,
 			Stdout: &outbuf,

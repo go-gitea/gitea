@@ -35,7 +35,7 @@ func LogNameStatusRepo(ctx context.Context, repository, head, treepath string, p
 	}
 
 	cmd := NewCommand(ctx)
-	cmd.AddArguments("log", "--name-status", "-c", "--format=commit%x00%H %P%x00", "--parents", "--no-renames", "-t", "-z").AddUntrustedArguments(head)
+	cmd.AddTrustedArguments("log", "--name-status", "-c", "--format=commit%x00%H %P%x00", "--parents", "--no-renames", "-t", "-z").AddUntrustedArguments(head)
 
 	var files []string
 	if len(paths) < 70 {

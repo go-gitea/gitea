@@ -89,7 +89,7 @@ func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
 
 func (repo *Repository) commitsByRange(id SHA1, page, pageSize int) ([]*Commit, error) {
 	stdout, _, err := NewCommand(repo.Ctx, "log").
-		AddArguments(CmdArg("--skip="+strconv.Itoa((page-1)*pageSize)), CmdArg("--max-count="+strconv.Itoa(pageSize)), prettyLogFormat).
+		AddTrustedArguments(CmdArg("--skip="+strconv.Itoa((page-1)*pageSize)), CmdArg("--max-count="+strconv.Itoa(pageSize)), prettyLogFormat).
 		AddUntrustedArguments(id.String()).
 		RunStdBytes(&RunOpts{Dir: repo.Path})
 	if err != nil {
@@ -130,19 +130,19 @@ func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) ([]*Co
 	// https://git-scm.com/docs/git-log#Documentation/git-log.txt---all
 	// note this is done only for command created above
 	if opts.All {
-		cmd.AddArguments("--all")
+		cmd.AddTrustedArguments("--all")
 	}
 
 	// add remaining keywords from search string
 	// note this is done only for command created above
 	if len(opts.Keywords) > 0 {
 		for _, v := range opts.Keywords {
-			cmd.AddArguments(CmdArg("--grep=" + v))
+			cmd.AddTrustedArguments(CmdArg("--grep=" + v))
 		}
 	}
 
 	// search for commits matching given constraints and keywords in commit msg
-	cmd.AddArguments(args...)
+	cmd.AddTrustedArguments(args...)
 	stdout, _, err := cmd.RunStdBytes(&RunOpts{Dir: repo.Path})
 	if err != nil {
 		return nil, err
@@ -160,7 +160,7 @@ func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) ([]*Co
 				// create new git log command with 1 commit limit
 				hashCmd := NewCommand(repo.Ctx, "log", "-1", prettyLogFormat)
 				// add previous arguments except for --grep and --all
-				hashCmd.AddArguments(args...)
+				hashCmd.AddTrustedArguments(args...)
 				// add keyword as <commit>
 				hashCmd.AddUntrustedArguments(v)
 
@@ -213,8 +213,8 @@ func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) (
 	go func() {
 		stderr := strings.Builder{}
 		gitCmd := NewCommand(repo.Ctx, "rev-list").
-			AddArguments(CmdArg("--max-count=" + strconv.Itoa(setting.Git.CommitsRangeSize*page))).
-			AddArguments(CmdArg("--skip=" + strconv.Itoa(skip)))
+			AddTrustedArguments(CmdArg("--max-count=" + strconv.Itoa(setting.Git.CommitsRangeSize*page))).
+			AddTrustedArguments(CmdArg("--skip=" + strconv.Itoa(skip)))
 		gitCmd.AddUntrustedArguments(revision)
 		gitCmd.AddDashesAndList(file)
 		err := gitCmd.Run(&RunOpts{
@@ -351,9 +351,9 @@ func (repo *Repository) CommitsCountBetween(start, end string) (int64, error) {
 func (repo *Repository) commitsBefore(id SHA1, limit int) ([]*Commit, error) {
 	cmd := NewCommand(repo.Ctx, "log")
 	if limit > 0 {
-		cmd.AddArguments(CmdArg("-"+strconv.Itoa(limit)), prettyLogFormat).AddUntrustedArguments(id.String())
+		cmd.AddTrustedArguments(CmdArg("-"+strconv.Itoa(limit)), prettyLogFormat).AddUntrustedArguments(id.String())
 	} else {
-		cmd.AddArguments(prettyLogFormat).AddUntrustedArguments(id.String())
+		cmd.AddTrustedArguments(prettyLogFormat).AddUntrustedArguments(id.String())
 	}
 
 	stdout, _, runErr := cmd.RunStdBytes(&RunOpts{Dir: repo.Path})
