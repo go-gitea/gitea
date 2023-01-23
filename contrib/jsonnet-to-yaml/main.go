@@ -34,18 +34,18 @@ func main() {
 	}
 
 	var jsonnetDoc strings.Builder
+	jsonnetDoc.WriteString("---\n")
+	enc := yaml.NewEncoder(&jsonnetDoc)
+	enc.SetIndent(2)
 	for _, stream := range streams {
 		var j any
 		if err := yaml.Unmarshal([]byte(stream), &j); err != nil {
 			panic(err)
 		}
 
-		b, err := yaml.Marshal(j)
-		if err != nil {
+		if err := enc.Encode(j); err != nil {
 			panic(err)
 		}
-		jsonnetDoc.WriteString("---\n")
-		jsonnetDoc.Write(b)
 	}
 
 	if *compareFlag {
@@ -76,7 +76,10 @@ func compare(eval, outputFile string, diffHTML bool) (string, error) {
 	}
 
 	var currentDoc strings.Builder
+	currentDoc.WriteString("---\n")
 	dec := yaml.NewDecoder(bytes.NewReader(curSource))
+	enc := yaml.NewEncoder(&currentDoc)
+	enc.SetIndent(2)
 	for {
 		var y any
 		err := dec.Decode(&y)
@@ -86,12 +89,9 @@ func compare(eval, outputFile string, diffHTML bool) (string, error) {
 			}
 			break
 		}
-		b, err := yaml.Marshal(y)
-		if err != nil {
-			return "", nil
+		if err := enc.Encode(y); err != nil {
+			return "", err
 		}
-		currentDoc.WriteString("---\n")
-		currentDoc.Write(b)
 	}
 
 	if eval == currentDoc.String() {
