@@ -22,6 +22,23 @@ type IssueAssignees struct {
 	IssueID            int64 `xorm:"INDEX"`
 }
 
+// GetUserID ExternalUserRemappable interface
+func (ia *IssueAssignees) GetUserID() int64 { return ia.AssigneeID }
+
+// GetExternalName ExternalUserRemappable interface
+func (ia *IssueAssignees) GetExternalName() string { return ia.OriginalAssignee }
+
+// GetExternalID ExternalUserRemappable interface
+func (ia *IssueAssignees) GetExternalID() int64 { return ia.OriginalAssigneeID }
+
+// RemapExternalUser ExternalUserRemappable interface
+func (ia *IssueAssignees) RemapExternalUser(externalName string, externalID, userID int64) error {
+	ia.OriginalAssignee = externalName
+	ia.OriginalAssigneeID = externalID
+	ia.AssigneeID = userID
+	return nil
+}
+
 func init() {
 	db.RegisterModel(new(IssueAssignees))
 }

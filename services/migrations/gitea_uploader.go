@@ -425,10 +425,12 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 
 		// add assignee
 		for _, assignee := range issue.Assignees {
-			is.Assignees = append(is.Assignees, &issues_model.IssueAssignees{
-				OriginalAssignee:   assignee.UserName,
-				OriginalAssigneeID: assignee.UserID,
-			})
+			res := issues_model.IssueAssignees{}
+			if err := g.remapUser(assignee, &res); err != nil {
+				return err
+			}
+
+			is.Assignees = append(is.Assignees, &res)
 		}
 		iss = append(iss, &is)
 	}
