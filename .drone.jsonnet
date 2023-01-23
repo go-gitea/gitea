@@ -1,8 +1,11 @@
+// Images
 local minGoImage = 'golang:1.18';
 local goImage = 'golang:1.19';
+local xgoImage = 'techknowlogick/xgo:go-1.19.x';
 local nodeImage = 'node:18';
 local goproxy = 'https://goproxy.io';
 
+// Common objects
 local goDepVolume = [
   {
     name: 'deps',
@@ -20,6 +23,9 @@ local platformARM = {
   os: 'linux',
 };
 
+// Functions
+
+// end: frontend or backend
 local deps(end) = {
   commands: [
     'make deps-' + end,
@@ -33,6 +39,8 @@ local deps(end) = {
   volumes: goDepVolume,
 };
 
+// suffix: blank, version, or branch
+// arch: amd64 or arm64
 local dockerLinuxRelease(suffix, arch) = {
   depends_on: [
     'testing-amd64',
@@ -125,6 +133,70 @@ local dockerLinuxRelease(suffix, arch) = {
   type: 'docker',
 };
 
+// version: true or false
+local dockerManifest(version) = {
+  depends_on: (if version then [
+                 'docker-linux-amd64-release-version',
+                 'docker-linux-arm64-release-version',
+               ] else [
+                 'docker-linux-amd64-release',
+                 'docker-linux-arm64-release',
+                 'docker-linux-amd64-release-branch',
+                 'docker-linux-arm64-release-branch',
+               ]),
+  kind: 'pipeline',
+  name: 'docker-manifest' + if version then '-version' else '',
+  platform: platformAMD,
+  steps: [
+    {
+      image: 'plugins/manifest',
+      name: 'manifest-rootless',
+      pull: 'always',
+      settings: {
+        auto_tag: version,
+        ignore_missing: true,
+        password: {
+          from_secret: 'docker_password',
+        },
+        spec: 'docker/manifest.rootless.tmpl',
+        username: {
+          from_secret: 'docker_username',
+        },
+      },
+    },
+    {
+      image: 'plugins/manifest',
+      name: 'manifest',
+      settings: {
+        auto_tag: version,
+        ignore_missing: true,
+        password: {
+          from_secret: 'docker_password',
+        },
+        spec: 'docker/manifest.tmpl',
+        username: {
+          from_secret: 'docker_username',
+        },
+      },
+    },
+  ],
+  trigger: {
+    event: {
+      exclude: [
+        'cron',
+      ],
+    },
+    ref: (if version then [
+            'refs/tags/**',
+          ] else [
+            'refs/heads/main',
+            'refs/heads/release/v*',
+          ]),
+  },
+  type: 'docker',
+};
+
+// Pipelines
 local compliance = {
   kind: 'pipeline',
   name: 'compliance',
@@ -325,7 +397,7 @@ local compliance = {
   ],
 };
 
-local testingamd64 = {
+local testingAMD64 = {
   depends_on: [
     'compliance',
   ],
@@ -606,7 +678,7 @@ local testingamd64 = {
   ],
 };
 
-local testingarm64 = {
+local testingARM64 = {
   depends_on: [
     'compliance',
   ],
@@ -959,7 +1031,7 @@ local releaseLatest = {
         GOPROXY: goproxy,
         TAGS: 'bindata sqlite sqlite_unlock_notify',
       },
-      image: 'techknowlogick/xgo:go-1.19.x',
+      image: xgoImage,
       name: 'static',
       pull: 'always',
       volumes: goDepVolume,
@@ -1102,7 +1174,7 @@ local releaseVersion = {
         GOPROXY: goproxy,
         TAGS: 'bindata sqlite sqlite_unlock_notify',
       },
-      image: 'techknowlogick/xgo:go-1.19.x',
+      image: xgoImage,
       name: 'static',
       pull: 'always',
       volumes: goDepVolume,
@@ -1285,117 +1357,6 @@ local dockerLinuxarm64DryRun = {
   type: 'docker',
 };
 
-local dockerManifestVersion = {
-  depends_on: [
-    'docker-linux-amd64-release-version',
-    'docker-linux-arm64-release-version',
-  ],
-  kind: 'pipeline',
-  name: 'docker-manifest-version',
-  platform: platformAMD,
-  steps: [
-    {
-      image: 'plugins/manifest',
-      name: 'manifest-rootless',
-      pull: 'always',
-      settings: {
-        auto_tag: true,
-        ignore_missing: true,
-        password: {
-          from_secret: 'docker_password',
-        },
-        spec: 'docker/manifest.rootless.tmpl',
-        username: {
-          from_secret: 'docker_username',
-        },
-      },
-    },
-    {
-      image: 'plugins/manifest',
-      name: 'manifest',
-      settings: {
-        auto_tag: true,
-        ignore_missing: true,
-        password: {
-          from_secret: 'docker_password',
-        },
-        spec: 'docker/manifest.tmpl',
-        username: {
-          from_secret: 'docker_username',
-        },
-      },
-    },
-  ],
-  trigger: {
-    event: {
-      exclude: [
-        'cron',
-      ],
-    },
-    ref: [
-      'refs/tags/**',
-    ],
-  },
-  type: 'docker',
-};
-
-local dockerManifest = {
-  depends_on: [
-    'docker-linux-amd64-release',
-    'docker-linux-arm64-release',
-    'docker-linux-amd64-release-branch',
-    'docker-linux-arm64-release-branch',
-  ],
-  kind: 'pipeline',
-  name: 'docker-manifest',
-  platform: platformAMD,
-  steps: [
-    {
-      image: 'plugins/manifest',
-      name: 'manifest-rootless',
-      pull: 'always',
-      settings: {
-        auto_tag: false,
-        ignore_missing: true,
-        password: {
-          from_secret: 'docker_password',
-        },
-        spec: 'docker/manifest.rootless.tmpl',
-        username: {
-          from_secret: 'docker_username',
-        },
-      },
-    },
-    {
-      image: 'plugins/manifest',
-      name: 'manifest',
-      settings: {
-        auto_tag: false,
-        ignore_missing: true,
-        password: {
-          from_secret: 'docker_password',
-        },
-        spec: 'docker/manifest.tmpl',
-        username: {
-          from_secret: 'docker_username',
-        },
-      },
-    },
-  ],
-  trigger: {
-    event: {
-      exclude: [
-        'cron',
-      ],
-    },
-    ref: [
-      'refs/heads/main',
-      'refs/heads/release/v*',
-    ],
-  },
-  type: 'docker',
-};
-
 local notifications = {
   clone: {
     disable: true,
@@ -1451,10 +1412,11 @@ local notifications = {
   type: 'docker',
 };
 
+// Output
 [
   compliance,
-  testingamd64,
-  testingarm64,
+  testingAMD64,
+  testingARM64,
   testinge2e,
   updatingTranslations,
   updateGitignoreAndLicenses,
@@ -1468,7 +1430,7 @@ local notifications = {
   dockerLinuxRelease('version', 'arm64'),
   dockerLinuxRelease('', 'arm64'),
   dockerLinuxRelease('branch', 'arm64'),
-  dockerManifestVersion,
-  dockerManifest,
+  dockerManifest(true),
+  dockerManifest(false),
   notifications,
 ]
