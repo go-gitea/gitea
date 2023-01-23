@@ -21,4 +21,4 @@ go run ./contrib/jsonnet-to-yaml --compare --html
 
 ## License
 
-[Apache2](https://github.com/google/go-jsonnet/blob/123396675b13d4fd40e9a93a3ae053ee7811efb7/LICENSE)
+[Apache-2.0](https://github.com/google/go-jsonnet/blob/123396675b13d4fd40e9a93a3ae053ee7811efb7/LICENSE)
