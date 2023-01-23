@@ -32,7 +32,7 @@ type InstallForm struct {
 
 	AppName           string `binding:"Required" locale:"install.app_name"`
 	RepoRootPath      string `binding:"Required"`
-	NumberRepoFolders int    `binding:"Requried"`
+	NumberRepoFolders int    `binding:"Required"`
 	LFSRootPath       string
 	RunUser           string `binding:"Required"`
 	Domain            string `binding:"Required"`
