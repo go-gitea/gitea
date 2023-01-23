@@ -1108,8 +1108,7 @@ func (ctx *Context) IssueTemplatesErrorsFromDefaultBranch() ([]*api.IssueTemplat
 	return issueTemplates, invalidFiles
 }
 
-
-func GetDefaultIssueConfig() (api.IssueConfig) {
+func GetDefaultIssueConfig() api.IssueConfig {
 	return api.IssueConfig{
 		BlankIssuesEnabled: true,
 	}
@@ -1158,11 +1157,11 @@ func (ctx *Context) IssueConfigFromDefaultBranch() (api.IssueConfig, error) {
 
 	for _, configName := range IssueConfigCanidates {
 		if _, err := commit.GetTreeEntryByPath(configName + ".yaml"); err == nil {
-			return ctx.Repo.GetIssueConfig(configName + ".yaml", commit)
+			return ctx.Repo.GetIssueConfig(configName+".yaml", commit)
 		}
 
 		if _, err := commit.GetTreeEntryByPath(configName + ".yml"); err == nil {
-			return ctx.Repo.GetIssueConfig(configName + ".yml", commit)
+			return ctx.Repo.GetIssueConfig(configName+".yml", commit)
 		}
 	}
 
@@ -1170,9 +1169,9 @@ func (ctx *Context) IssueConfigFromDefaultBranch() (api.IssueConfig, error) {
 }
 
 // IsIssueConfig returns if the given path is a issue config file.
-func (r *Repository) IsIssueConfig(path string) (bool) {
+func (r *Repository) IsIssueConfig(path string) bool {
 	for _, configName := range IssueConfigCanidates {
-		if path == configName + ".yaml" || path == configName + ".yml" {
+		if path == configName+".yaml" || path == configName+".yml" {
 			return true
 		}
 	}
