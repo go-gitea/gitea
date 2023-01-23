@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -197,7 +196,7 @@ func FinishIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 		return err
 	}
 
-	if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
+	if _, err := CreateComment(ctx, &CreateCommentOptions{
 		Doer:    user,
 		Issue:   issue,
 		Repo:    issue.Repo,
@@ -247,7 +246,7 @@ func CreateIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 		return err
 	}
 
-	if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
+	if _, err := CreateComment(ctx, &CreateCommentOptions{
 		Doer:  user,
 		Issue: issue,
 		Repo:  issue.Repo,
@@ -261,7 +260,7 @@ func CreateIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 
 // CancelStopwatch removes the given stopwatch and logs it into issue's timeline.
 func CancelStopwatch(user *user_model.User, issue *Issue) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -288,7 +287,7 @@ func cancelStopwatch(ctx context.Context, user *user_model.User, issue *Issue) e
 			return err
 		}
 
-		if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
+		if _, err := CreateComment(ctx, &CreateCommentOptions{
 			Doer:  user,
 			Issue: issue,
 			Repo:  issue.Repo,

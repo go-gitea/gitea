@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package pipeline
 
@@ -31,7 +30,7 @@ func RevListAllObjects(ctx context.Context, revListWriter *io.PipeWriter, wg *sy
 		Stderr: stderr,
 	}); err != nil {
 		log.Error("git rev-list --objects --all [%s]: %v - %s", basePath, err, errbuf.String())
-		err = fmt.Errorf("git rev-list --objects --all [%s]: %v - %s", basePath, err, errbuf.String())
+		err = fmt.Errorf("git rev-list --objects --all [%s]: %w - %s", basePath, err, errbuf.String())
 		_ = revListWriter.CloseWithError(err)
 		errChan <- err
 	}
@@ -43,14 +42,14 @@ func RevListObjects(ctx context.Context, revListWriter *io.PipeWriter, wg *sync.
 	defer revListWriter.Close()
 	stderr := new(bytes.Buffer)
 	var errbuf strings.Builder
-	cmd := git.NewCommand(ctx, "rev-list", "--objects", headSHA, "--not", baseSHA)
+	cmd := git.NewCommand(ctx, "rev-list", "--objects").AddDynamicArguments(headSHA).AddArguments("--not").AddDynamicArguments(baseSHA)
 	if err := cmd.Run(&git.RunOpts{
 		Dir:    tmpBasePath,
 		Stdout: revListWriter,
 		Stderr: stderr,
 	}); err != nil {
 		log.Error("git rev-list [%s]: %v - %s", tmpBasePath, err, errbuf.String())
-		errChan <- fmt.Errorf("git rev-list [%s]: %v - %s", tmpBasePath, err, errbuf.String())
+		errChan <- fmt.Errorf("git rev-list [%s]: %w - %s", tmpBasePath, err, errbuf.String())
 	}
 }
 

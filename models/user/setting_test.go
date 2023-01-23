@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user_test
 
@@ -27,7 +26,7 @@ func TestSettings(t *testing.T) {
 	assert.NoError(t, err)
 
 	// get specific setting
-	settings, err := user_model.GetUserSettings(99, []string{keyName})
+	settings, err := user_model.GetSettings(99, []string{keyName})
 	assert.NoError(t, err)
 	assert.Len(t, settings, 1)
 	assert.EqualValues(t, newSetting.SettingValue, settings[keyName].SettingValue)

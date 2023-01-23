@@ -26,9 +26,6 @@ function processWindowErrorEvent(e) {
     return; // ignore such nonsense error event
   }
 
-  // Wait for upstream fix: https://github.com/microsoft/monaco-editor/issues/2962
-  if (e.message.includes('Language id "vs.editor.nullLanguage" is not configured nor known')) return;
-
   showGlobalErrorMessage(`JavaScript error: ${e.message} (${e.filename} @ ${e.lineno}:${e.colno}). Open browser console to see more details.`);
 }
 

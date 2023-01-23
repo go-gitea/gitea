@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -71,7 +70,7 @@ func Projects(ctx *context.Context) {
 		total = repo.NumClosedProjects
 	}
 
-	projects, count, err := project_model.GetProjects(ctx, project_model.SearchOptions{
+	projects, count, err := project_model.FindProjects(ctx, project_model.SearchOptions{
 		RepoID:   repo.ID,
 		Page:     page,
 		IsClosed: util.OptionalBoolOf(isShowClosed),
@@ -113,7 +112,7 @@ func Projects(ctx *context.Context) {
 	pager.AddParam(ctx, "state", "State")
 	ctx.Data["Page"] = pager
 
-	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
+	ctx.Data["CanWriteProjects"] = true
 	ctx.Data["IsShowClosed"] = isShowClosed
 	ctx.Data["IsProjectsPage"] = true
 	ctx.Data["SortType"] = sortType
@@ -197,7 +196,7 @@ func DeleteProject(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.DeleteProjectByID(p.ID); err != nil {
+	if err := project_model.DeleteProjectByID(ctx, p.ID); err != nil {
 		ctx.Flash.Error("DeleteProjectByID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.projects.deletion_success"))
@@ -297,7 +296,7 @@ func ViewProject(ctx *context.Context) {
 		boards[0].Title = ctx.Tr("repo.projects.type.uncategorized")
 	}
 
-	issuesMap, err := issues_model.LoadIssuesFromBoardList(boards)
+	issuesMap, err := issues_model.LoadIssuesFromBoardList(ctx, boards)
 	if err != nil {
 		ctx.ServerError("LoadIssuesOfBoards", err)
 		return
@@ -314,7 +313,7 @@ func ViewProject(ctx *context.Context) {
 			}
 
 			if len(referencedIds) > 0 {
-				if linkedPrs, err := issues_model.Issues(&issues_model.IssuesOptions{
+				if linkedPrs, err := issues_model.Issues(ctx, &issues_model.IssuesOptions{
 					IssueIDs: referencedIds,
 					IsPull:   util.OptionalBoolTrue,
 				}); err == nil {
@@ -653,48 +652,4 @@ func MoveIssues(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok": true,
 	})
-}
-
-// CreateProject renders the generic project creation page
-func CreateProject(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
-	ctx.Data["ProjectTypes"] = project_model.GetProjectsConfig()
-	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
-
-	ctx.HTML(http.StatusOK, tplGenericProjectsNew)
-}
-
-// CreateProjectPost creates an individual and/or organization project
-func CreateProjectPost(ctx *context.Context, form forms.UserCreateProjectForm) {
-	user := checkContextUser(ctx, form.UID)
-	if ctx.Written() {
-		return
-	}
-
-	ctx.Data["ContextUser"] = user
-
-	if ctx.HasError() {
-		ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
-		ctx.HTML(http.StatusOK, tplGenericProjectsNew)
-		return
-	}
-
-	projectType := project_model.TypeIndividual
-	if user.IsOrganization() {
-		projectType = project_model.TypeOrganization
-	}
-
-	if err := project_model.NewProject(&project_model.Project{
-		Title:       form.Title,
-		Description: form.Content,
-		CreatorID:   user.ID,
-		BoardType:   form.BoardType,
-		Type:        projectType,
-	}); err != nil {
-		ctx.ServerError("NewProject", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("repo.projects.create_success", form.Title))
-	ctx.Redirect(setting.AppSubURL + "/")
 }

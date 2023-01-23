@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -18,7 +17,7 @@ func (gpgSettings *GPGSettings) LoadPublicKeyContent() error {
 		"gpg -a --export",
 		"gpg", "-a", "--export", gpgSettings.KeyID)
 	if err != nil {
-		return fmt.Errorf("Unable to get default signing key: %s, %s, %v", gpgSettings.KeyID, stderr, err)
+		return fmt.Errorf("Unable to get default signing key: %s, %s, %w", gpgSettings.KeyID, stderr, err)
 	}
 	gpgSettings.PublicKeyContent = content
 	return nil

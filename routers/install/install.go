@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package install
 
@@ -149,8 +148,8 @@ func Install(ctx *context.Context) {
 
 	// Server and other services settings
 	form.OfflineMode = setting.OfflineMode
-	form.DisableGravatar = false       // when installing, there is no database connection so that given a default value
-	form.EnableFederatedAvatar = false // when installing, there is no database connection so that given a default value
+	form.DisableGravatar = setting.DisableGravatar             // when installing, there is no database connection so that given a default value
+	form.EnableFederatedAvatar = setting.EnableFederatedAvatar // when installing, there is no database connection so that given a default value
 
 	form.EnableOpenIDSignIn = setting.Service.EnableOpenIDSignIn
 	form.EnableOpenIDSignUp = setting.Service.EnableOpenIDSignUp
@@ -443,10 +442,13 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("server").Key("OFFLINE_MODE").SetValue(fmt.Sprint(form.OfflineMode))
 	// if you are reinstalling, this maybe not right because of missing version
 	if err := system_model.SetSettingNoVersion(system_model.KeyPictureDisableGravatar, strconv.FormatBool(form.DisableGravatar)); err != nil {
-		ctx.RenderWithErr(ctx.Tr("install.secret_key_failed", err), tplInstall, &form)
+		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 		return
 	}
-	cfg.Section("picture").Key("ENABLE_FEDERATED_AVATAR").SetValue(fmt.Sprint(form.EnableFederatedAvatar))
+	if err := system_model.SetSettingNoVersion(system_model.KeyPictureEnableFederatedAvatar, strconv.FormatBool(form.EnableFederatedAvatar)); err != nil {
+		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
+		return
+	}
 	cfg.Section("openid").Key("ENABLE_OPENID_SIGNIN").SetValue(fmt.Sprint(form.EnableOpenIDSignIn))
 	cfg.Section("openid").Key("ENABLE_OPENID_SIGNUP").SetValue(fmt.Sprint(form.EnableOpenIDSignUp))
 	cfg.Section("service").Key("DISABLE_REGISTRATION").SetValue(fmt.Sprint(form.DisableRegistration))
@@ -457,6 +459,7 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("service").Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").SetValue(fmt.Sprint(form.DefaultAllowCreateOrganization))
 	cfg.Section("service").Key("DEFAULT_ENABLE_TIMETRACKING").SetValue(fmt.Sprint(form.DefaultEnableTimetracking))
 	cfg.Section("service").Key("NO_REPLY_ADDRESS").SetValue(fmt.Sprint(form.NoReplyAddress))
+	cfg.Section("cron.update_checker").Key("ENABLED").SetValue(fmt.Sprint(form.EnableUpdateChecker))
 
 	cfg.Section("").Key("RUN_MODE").SetValue("prod")
 
@@ -473,12 +476,16 @@ func SubmitInstall(ctx *context.Context) {
 
 	cfg.Section("security").Key("INSTALL_LOCK").SetValue("true")
 
-	var internalToken string
-	if internalToken, err = generate.NewInternalToken(); err != nil {
-		ctx.RenderWithErr(ctx.Tr("install.internal_token_failed", err), tplInstall, &form)
-		return
+	// the internal token could be read from INTERNAL_TOKEN or INTERNAL_TOKEN_URI (the file is guaranteed to be non-empty)
+	// if there is no InternalToken, generate one and save to security.INTERNAL_TOKEN
+	if setting.InternalToken == "" {
+		var internalToken string
+		if internalToken, err = generate.NewInternalToken(); err != nil {
+			ctx.RenderWithErr(ctx.Tr("install.internal_token_failed", err), tplInstall, &form)
+			return
+		}
+		cfg.Section("security").Key("INTERNAL_TOKEN").SetValue(internalToken)
 	}
-	cfg.Section("security").Key("INTERNAL_TOKEN").SetValue(internalToken)
 
 	// if there is already a SECRET_KEY, we should not overwrite it, otherwise the encrypted data will not be able to be decrypted
 	if setting.SecretKey == "" {

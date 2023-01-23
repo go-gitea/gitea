@@ -1,6 +1,5 @@
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 //go:build !bindata
 
@@ -32,12 +31,12 @@ func Dir(name string) ([]string, error) {
 
 	isDir, err := util.IsDir(customDir)
 	if err != nil {
-		return []string{}, fmt.Errorf("Unabe to check if custom directory %s is a directory. %v", customDir, err)
+		return []string{}, fmt.Errorf("Unabe to check if custom directory %s is a directory. %w", customDir, err)
 	}
 	if isDir {
 		files, err := util.StatDir(customDir, true)
 		if err != nil {
-			return []string{}, fmt.Errorf("Failed to read custom directory. %v", err)
+			return []string{}, fmt.Errorf("Failed to read custom directory. %w", err)
 		}
 
 		result = append(result, files...)
@@ -47,12 +46,12 @@ func Dir(name string) ([]string, error) {
 
 	isDir, err = util.IsDir(staticDir)
 	if err != nil {
-		return []string{}, fmt.Errorf("unable to check if static directory %s is a directory. %v", staticDir, err)
+		return []string{}, fmt.Errorf("unable to check if static directory %s is a directory. %w", staticDir, err)
 	}
 	if isDir {
 		files, err := util.StatDir(staticDir, true)
 		if err != nil {
-			return []string{}, fmt.Errorf("Failed to read static directory. %v", err)
+			return []string{}, fmt.Errorf("Failed to read static directory. %w", err)
 		}
 
 		result = append(result, files...)

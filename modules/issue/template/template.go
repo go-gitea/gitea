@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package template
 
@@ -165,7 +164,7 @@ func validateOptions(field *api.IssueFormField, idx int) error {
 				return position.Errorf("should be a string")
 			}
 		case api.IssueFormFieldTypeCheckboxes:
-			opt, ok := option.(map[interface{}]interface{})
+			opt, ok := option.(map[string]interface{})
 			if !ok {
 				return position.Errorf("should be a dictionary")
 			}
@@ -351,7 +350,7 @@ func (o *valuedOption) Label() string {
 			return label
 		}
 	case api.IssueFormFieldTypeCheckboxes:
-		if vs, ok := o.data.(map[interface{}]interface{}); ok {
+		if vs, ok := o.data.(map[string]interface{}); ok {
 			if v, ok := vs["label"].(string); ok {
 				return v
 			}

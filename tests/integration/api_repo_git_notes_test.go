@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -25,14 +24,14 @@ func TestAPIReposGitNotes(t *testing.T) {
 
 		// check invalid requests
 		req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/notes/12345?token=%s", user.Name, token)
-		session.MakeRequest(t, req, http.StatusNotFound)
+		MakeRequest(t, req, http.StatusNotFound)
 
 		req = NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/notes/..?token=%s", user.Name, token)
-		session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+		MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 		// check valid request
 		req = NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/notes/65f1bf27bc3bf70f64657658635e66094edbcb4d?token=%s", user.Name, token)
-		resp := session.MakeRequest(t, req, http.StatusOK)
+		resp := MakeRequest(t, req, http.StatusOK)
 
 		var apiData api.Note
 		DecodeJSON(t, resp, &apiData)

@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package setting
 
@@ -40,6 +39,7 @@ var Service = struct {
 	EnableReverseProxyEmail                 bool
 	EnableReverseProxyFullName              bool
 	EnableCaptcha                           bool
+	RequireCaptchaForLogin                  bool
 	RequireExternalRegistrationCaptcha      bool
 	RequireExternalRegistrationPassword     bool
 	CaptchaType                             string
@@ -130,6 +130,7 @@ func newService() {
 	Service.EnableReverseProxyEmail = sec.Key("ENABLE_REVERSE_PROXY_EMAIL").MustBool()
 	Service.EnableReverseProxyFullName = sec.Key("ENABLE_REVERSE_PROXY_FULL_NAME").MustBool()
 	Service.EnableCaptcha = sec.Key("ENABLE_CAPTCHA").MustBool(false)
+	Service.RequireCaptchaForLogin = sec.Key("REQUIRE_CAPTCHA_FOR_LOGIN").MustBool(false)
 	Service.RequireExternalRegistrationCaptcha = sec.Key("REQUIRE_EXTERNAL_REGISTRATION_CAPTCHA").MustBool(Service.EnableCaptcha)
 	Service.RequireExternalRegistrationPassword = sec.Key("REQUIRE_EXTERNAL_REGISTRATION_PASSWORD").MustBool()
 	Service.CaptchaType = sec.Key("CAPTCHA_TYPE").MustString(ImageCaptcha)

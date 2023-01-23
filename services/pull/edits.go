@@ -1,7 +1,6 @@
 // Copyright 2022 The Gitea Authors.
 // All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package pull
 
@@ -23,7 +22,7 @@ func SetAllowEdits(ctx context.Context, doer *user_model.User, pr *issues_model.
 		return ErrUserHasNoPermissionForAction
 	}
 
-	if err := pr.LoadHeadRepo(); err != nil {
+	if err := pr.LoadHeadRepo(ctx); err != nil {
 		return err
 	}
 

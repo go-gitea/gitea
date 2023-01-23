@@ -1,0 +1,13 @@
+{{template "base/head" .}}
+<div class="page-content organization settings packages admin">
+	{{template "org/header" .}}
+	<div class="ui container">
+		<div class="ui grid">
+			{{template "org/settings/navbar" .}}
+			<div class="twelve wide column content">
+				{{template "package/shared/cleanup_rules/preview" .}}
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}
