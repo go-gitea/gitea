@@ -3,7 +3,12 @@ local minGoImage = 'golang:1.18';
 local goImage = 'golang:1.19';
 local xgoImage = 'techknowlogick/xgo:go-1.19.x';
 local nodeImage = 'node:18';
+// proxy.golang.org is blocked in China, this proxy is not
 local goproxy = 'https://goproxy.io';
+// https://gitea.com/gitea/test-env
+local giteaTestImageAMD64 = 'gitea/test_env:linux-amd64';
+local giteaTestImageARM64 = 'gitea/test_env:linux-arm64';
+local nodesource = 'https://deb.nodesource.com/setup_16.x';
 
 // Common objects
 local goDepVolume = [
@@ -226,7 +231,7 @@ local compliance = {
         GOSUMDB: 'sum.golang.org',
         TAGS: 'bindata sqlite sqlite_unlock_notify',
       },
-      image: 'gitea/test_env:linux-amd64',
+      image: giteaTestImageAMD64,
       name: 'lint-backend',
       pull: 'always',
       volumes: goDepVolume,
@@ -245,7 +250,7 @@ local compliance = {
         GOSUMDB: 'sum.golang.org',
         TAGS: 'bindata sqlite sqlite_unlock_notify',
       },
-      image: 'gitea/test_env:linux-amd64',
+      image: giteaTestImageAMD64,
       name: 'lint-backend-windows',
       volumes: goDepVolume,
     },
@@ -261,7 +266,7 @@ local compliance = {
         GOSUMDB: 'sum.golang.org',
         TAGS: 'bindata gogit sqlite sqlite_unlock_notify',
       },
-      image: 'gitea/test_env:linux-amd64',
+      image: giteaTestImageAMD64,
       name: 'lint-backend-gogit',
       volumes: goDepVolume,
     },
@@ -277,7 +282,7 @@ local compliance = {
     },
     {
       commands: [
-        'make --always-make checks-backend',
+        'make --always-make checks-backend',  // ensure the 'go-licenses' make target runs
       ],
       depends_on: [
         'deps-backend',
@@ -308,7 +313,7 @@ local compliance = {
     },
     {
       commands: [
-        'go build -o gitea_no_gcc',
+        'go build -o gitea_no_gcc',  // test if build succeeds without the sqlite tag
       ],
       depends_on: [
         'deps-backend',
@@ -364,7 +369,7 @@ local compliance = {
     },
     {
       commands: [
-        'go build -o gitea_linux_386',
+        'go build -o gitea_linux_386',  // test if compatible with 32-bit
       ],
       depends_on: [
         'deps-backend',
@@ -494,7 +499,7 @@ local testingAMD64 = {
       commands: [
         './build/test-env-prepare.sh',
       ],
-      image: 'gitea/test_env:linux-amd64',
+      image: giteaTestImageAMD64,
       name: 'prepare-test-env',
       pull: 'always',
     },
@@ -512,7 +517,7 @@ local testingAMD64 = {
         GOSUMDB: 'sum.golang.org',
         TAGS: 'bindata sqlite sqlite_unlock_notify',
       },
-      image: 'gitea/test_env:linux-amd64',
+      image: giteaTestImageAMD64,
       name: 'build',
       user: 'gitea',
       volumes: goDepVolume,
@@ -533,7 +538,7 @@ local testingAMD64 = {
         RACE_ENABLED: true,
         TAGS: 'bindata sqlite sqlite_unlock_notify',
       },
-      image: 'gitea/test_env:linux-amd64',
+      image: giteaTestImageAMD64,
       name: 'unit-test',
       user: 'gitea',
       volumes: goDepVolume,
@@ -554,7 +559,7 @@ local testingAMD64 = {
         RACE_ENABLED: true,
         TAGS: 'bindata gogit sqlite sqlite_unlock_notify',
       },
-      image: 'gitea/test_env:linux-amd64',
+      image: giteaTestImageAMD64,
       name: 'unit-test-gogit',
       user: 'gitea',
       volumes: goDepVolume,
@@ -574,7 +579,7 @@ local testingAMD64 = {
         TEST_LDAP: 1,
         USE_REPO_TEST_DIR: 1,
       },
-      image: 'gitea/test_env:linux-amd64',
+      image: giteaTestImageAMD64,
       name: 'test-mysql',
       user: 'gitea',
       volumes: goDepVolume,
@@ -593,7 +598,7 @@ local testingAMD64 = {
         TEST_LDAP: 1,
         USE_REPO_TEST_DIR: 1,
       },
-      image: 'gitea/test_env:linux-amd64',
+      image: giteaTestImageAMD64,
       name: 'test-mysql8',
       user: 'gitea',
       volumes: goDepVolume,
@@ -612,7 +617,7 @@ local testingAMD64 = {
         TEST_LDAP: 1,
         USE_REPO_TEST_DIR: 1,
       },
-      image: 'gitea/test_env:linux-amd64',
+      image: giteaTestImageAMD64,
       name: 'test-mssql',
       user: 'gitea',
       volumes: goDepVolume,
@@ -728,7 +733,7 @@ local testingARM64 = {
       commands: [
         './build/test-env-prepare.sh',
       ],
-      image: 'gitea/test_env:linux-arm64',
+      image: giteaTestImageARM64,
       name: 'prepare-test-env',
       pull: 'always',
     },
@@ -746,7 +751,7 @@ local testingARM64 = {
         GOSUMDB: 'sum.golang.org',
         TAGS: 'bindata gogit sqlite sqlite_unlock_notify',
       },
-      image: 'gitea/test_env:linux-arm64',
+      image: giteaTestImageARM64,
       name: 'build',
       user: 'gitea',
       volumes: goDepVolume,
@@ -765,7 +770,7 @@ local testingARM64 = {
         TEST_TAGS: 'gogit sqlite sqlite_unlock_notify',
         USE_REPO_TEST_DIR: 1,
       },
-      image: 'gitea/test_env:linux-arm64',
+      image: giteaTestImageARM64,
       name: 'test-sqlite',
       user: 'gitea',
       volumes: goDepVolume,
@@ -785,7 +790,7 @@ local testingARM64 = {
         TEST_TAGS: 'gogit',
         USE_REPO_TEST_DIR: 1,
       },
-      image: 'gitea/test_env:linux-arm64',
+      image: giteaTestImageARM64,
       name: 'test-pgsql',
       user: 'gitea',
       volumes: goDepVolume,
@@ -838,7 +843,7 @@ local testinge2e = {
       name: 'build-frontend',
     },
     deps('backend'),
-    {
+    {  // TODO: We should probably build all dependencies into a test image
       commands: [
         'curl -sLO https://go.dev/dl/go1.19.linux-amd64.tar.gz && tar -C /usr/local -xzf go1.19.linux-amd64.tar.gz',
         'groupadd --gid 1001 gitea && useradd -m --gid 1001 --uid 1001 gitea',
@@ -1027,7 +1032,8 @@ local releaseLatest = {
     deps('backend'),
     {
       commands: [
-        'curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get -qqy install nodejs',
+        // Upgrade to node 18 once https://github.com/techknowlogick/xgo/issues/163 is resolved
+        'curl -sL ' + nodesource + ' | bash - && apt-get -qqy install nodejs',
         'export PATH=$PATH:$GOPATH/bin',
         'make release',
       ],
@@ -1167,7 +1173,7 @@ local releaseVersion = {
     deps('backend'),
     {
       commands: [
-        'curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get -qqy install nodejs',
+        'curl -sL ' + nodesource + ' | bash - && apt-get -qqy install nodejs',
         'export PATH=$PATH:$GOPATH/bin',
         'make release',
       ],
