@@ -66,7 +66,9 @@ func main() {
 		panic(err)
 	}
 	defer fi.Close()
-	fi.WriteString(jsonnetDoc.String())
+	if _, err := fi.WriteString(jsonnetDoc.String()); err != nil {
+		panic(err)
+	}
 }
 
 func compare(eval, outputFile string, diffHTML bool) (string, error) {
