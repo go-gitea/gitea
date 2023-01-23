@@ -68,11 +68,11 @@ func GetRelease(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, convert.ToRelease(release))
 }
 
-// GetLatestRelease gets the latest stable release of a repository
+// GetLatestRelease gets the most recent non-prerelease, non-draft release of a repository, sorted by created_at
 func GetLatestRelease(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/releases/latest repository repoGetLatestRelease
 	// ---
-	// summary: Gets the latest stable release
+	// summary: Gets the most recent non-prerelease, non-draft release of a repository, sorted by created_at
 	// produces:
 	// - application/json
 	// parameters:
