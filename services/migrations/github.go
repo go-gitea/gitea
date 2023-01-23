@@ -472,9 +472,12 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 			}
 		}
 
-		var assignees []string
+		var assignees []*base.Assignee
 		for i := range issue.Assignees {
-			assignees = append(assignees, issue.Assignees[i].GetLogin())
+			assignees = append(assignees, &base.Assignee{
+				UserID:   issue.Assignees[i].GetID(),
+				UserName: issue.Assignees[i].GetLogin(),
+			})
 		}
 
 		allIssues = append(allIssues, &base.Issue{

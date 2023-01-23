@@ -426,9 +426,12 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 			WarnAndNotice("Unable to load reactions during migrating issue #%d in %s. Error: %v", issue.Index, g, err)
 		}
 
-		var assignees []string
+		var assignees []*base.Assignee
 		for i := range issue.Assignees {
-			assignees = append(assignees, issue.Assignees[i].UserName)
+			assignees = append(assignees, &base.Assignee{
+				UserID:   issue.Assignees[i].ID,
+				UserName: issue.Assignees[i].UserName,
+			})
 		}
 
 		allIssues = append(allIssues, &base.Issue{

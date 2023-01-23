@@ -23,7 +23,7 @@ type Issue struct {
 	Closed       *time.Time        `json:"closed"`
 	Labels       []*Label          `json:"labels"`
 	Reactions    []*Reaction       `json:"reactions"`
-	Assignees    []string          `json:"assignees"`
+	Assignees    []*Assignee       `json:"assignees"`
 	ForeignIndex int64             `json:"foreign_id"`
 	Context      DownloaderContext `yaml:"-"`
 }
