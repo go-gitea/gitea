@@ -665,6 +665,13 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 	u.IsRestricted = setting.Service.DefaultUserIsRestricted
 	u.IsActive = !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm)
 
+	if u.CreatedUnix == 0 {
+		u.CreatedUnix = timeutil.TimeStampNow()
+	}
+	if u.UpdatedUnix == 0 {
+		u.UpdatedUnix = u.CreatedUnix
+	}
+
 	// overwrite defaults if set
 	if len(overwriteDefault) != 0 && overwriteDefault[0] != nil {
 		overwrite := overwriteDefault[0]
@@ -742,7 +749,7 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 		return err
 	}
 
-	if err = db.Insert(ctx, u); err != nil {
+	if _, err = db.GetEngine(ctx).NoAutoTime().Insert(u); err != nil {
 		return err
 	}
 
@@ -950,18 +957,6 @@ func UpdateUser(ctx context.Context, u *User, changePrimaryEmail bool, cols ...s
 	} else {
 		_, err = e.ID(u.ID).Cols(cols...).Update(u)
 	}
-	return err
-}
-
-// UpdateUserCreated stores the user's `CreatedUnix` field in the database.
-// This is intended to allow migration of users from another system while
-// maintaining the user's creation timestamp.
-func UpdateUserCreated(ctx context.Context, u *User) error {
-	if err := validateUser(u); err != nil {
-		return err
-	}
-
-	_, err := db.Exec(ctx, "UPDATE `user` SET created_unix=? WHERE id=?", u.CreatedUnix, u.ID)
 	return err
 }
 
