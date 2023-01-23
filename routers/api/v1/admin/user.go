@@ -121,6 +121,13 @@ func CreateUser(ctx *context.APIContext) {
 		overwriteDefault.Visibility = &visibility
 	}
 
+	// Update the user creation timestamp. This can only be done after the user
+	// record has been inserted into the database; the insert intself will always
+	// set the creation timestamp to "now".
+	if form.Created != nil {
+		u.CreatedUnix = timeutil.TimeStamp(form.Created.Unix())
+	}
+
 	if err := user_model.CreateUser(u, overwriteDefault); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) ||
 			user_model.IsErrEmailAlreadyUsed(err) ||
@@ -136,18 +143,6 @@ func CreateUser(ctx *context.APIContext) {
 		return
 	}
 	log.Trace("Account created by admin (%s): %s", ctx.Doer.Name, u.Name)
-
-	// Update the user creation timestamp. This can only be done after the user
-	// record has been inserted into the database; the insert intself will always
-	// set the creation timestamp to "now".
-	if form.Created != nil {
-		u.CreatedUnix = timeutil.TimeStamp(form.Created.Unix())
-		if err := user_model.UpdateUserCreated(ctx, u); err != nil {
-			ctx.Error(http.StatusInternalServerError, "UpdateUserCreated", err)
-			return
-		}
-		log.Trace("Account profile back-dated by admin (%s): %s", ctx.Doer.Name, u.Name)
-	}
 
 	// Send email notification.
 	if form.SendNotify {
