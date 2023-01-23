@@ -309,7 +309,7 @@ func runServ(c *cli.Context) error {
 	if setting.NumberRepoFolders > 1 {
 		hash := fnv.New32()
 		hash.Write([]byte(strings.ToLower(results.OwnerName)))
-		gitcmd.Dir = filepath.Join(setting.RepoRootPath, fmt.Sprintf("%02x", hash.Sum32() & uint32(setting.NumberRepoFolders - 1)))
+		gitcmd.Dir = filepath.Join(setting.RepoRootPath, fmt.Sprintf("%02x", hash.Sum32()&uint32(setting.NumberRepoFolders-1)))
 	} else {
 		gitcmd.Dir = setting.RepoRootPath
 	}

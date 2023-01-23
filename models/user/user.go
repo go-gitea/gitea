@@ -1002,7 +1002,7 @@ func UserPath(userName string) string { //revive:disable-line:exported
 	if setting.NumberRepoFolders > 1 {
 		hash := fnv.New32()
 		hash.Write([]byte(strings.ToLower(userName)))
-		return filepath.Join(setting.RepoRootPath, fmt.Sprintf("%02x", hash.Sum32() & uint32(setting.NumberRepoFolders - 1)), strings.ToLower(userName))
+		return filepath.Join(setting.RepoRootPath, fmt.Sprintf("%02x", hash.Sum32()&uint32(setting.NumberRepoFolders-1)), strings.ToLower(userName))
 	}
 	return filepath.Join(setting.RepoRootPath, strings.ToLower(userName))
 }
