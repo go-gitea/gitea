@@ -27,6 +27,8 @@ func TestNodeinfo(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
 		req := NewRequestf(t, "GET", "/api/v1/nodeinfo")
 		resp := MakeRequest(t, req, http.StatusOK)
+		VerifyJSONSchema(t, resp, "nodeinfo_2.1.json")
+
 		var nodeinfo api.NodeInfo
 		DecodeJSON(t, resp, &nodeinfo)
 		assert.True(t, nodeinfo.OpenRegistrations)

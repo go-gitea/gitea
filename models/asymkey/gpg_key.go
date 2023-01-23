@@ -64,11 +64,16 @@ func (key *GPGKey) AfterLoad(session *xorm.Session) {
 
 // PaddedKeyID show KeyID padded to 16 characters
 func (key *GPGKey) PaddedKeyID() string {
-	if len(key.KeyID) > 15 {
-		return key.KeyID
+	return PaddedKeyID(key.KeyID)
+}
+
+// PaddedKeyID show KeyID padded to 16 characters
+func PaddedKeyID(keyID string) string {
+	if len(keyID) > 15 {
+		return keyID
 	}
 	zeros := "0000000000000000"
-	return zeros[0:16-len(key.KeyID)] + key.KeyID
+	return zeros[0:16-len(keyID)] + keyID
 }
 
 // ListGPGKeys returns a list of public keys belongs to given user.

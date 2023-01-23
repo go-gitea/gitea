@@ -24,3 +24,12 @@
   creator_id: 5
   board_type: 1
   type: 2
+
+-
+  id: 4
+  title: project on user2
+  owner_id: 2
+  is_closed: false
+  creator_id: 2
+  board_type: 1
+  type: 2

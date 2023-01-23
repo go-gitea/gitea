@@ -14,7 +14,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/container"
@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gobwas/glob"
@@ -53,6 +54,8 @@ var patchErrorSuffices = []string{
 	": patch does not apply",
 	": already exists in working directory",
 	"unrecognized input",
+	": No such file or directory",
+	": does not exist in index",
 }
 
 // TestPatch will test whether a simple patch will apply
@@ -103,8 +106,8 @@ func TestPatch(pr *issues_model.PullRequest) error {
 	}
 
 	// 3. Check for protected files changes
-	if err = checkPullFilesProtection(pr, gitRepo); err != nil {
-		return fmt.Errorf("pr.CheckPullFilesProtection(): %w", err)
+	if err = checkPullFilesProtection(ctx, pr, gitRepo); err != nil {
+		return fmt.Errorf("pr.CheckPullFilesProtection(): %v", err)
 	}
 
 	if len(pr.ChangedProtectedFiles) > 0 {
@@ -287,13 +290,15 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 
 	// 2. AttemptThreeWayMerge first - this is much quicker than plain patch to base
 	description := fmt.Sprintf("PR[%d] %s/%s#%d", pr.ID, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Index)
-	conflict, _, err := AttemptThreeWayMerge(ctx,
+	conflict, conflictFiles, err := AttemptThreeWayMerge(ctx,
 		tmpBasePath, gitRepo, pr.MergeBase, "base", "tracking", description)
 	if err != nil {
 		return false, err
 	}
 
 	if !conflict {
+		// No conflicts detected so we need to check if the patch is empty...
+		// a. Write the newly merged tree and check the new tree-hash
 		var treeHash string
 		treeHash, _, err = git.NewCommand(ctx, "write-tree").RunStdString(&git.RunOpts{Dir: tmpBasePath})
 		if err != nil {
@@ -305,6 +310,8 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 		if err != nil {
 			return false, err
 		}
+
+		// b. compare the new tree-hash with the base tree hash
 		if treeHash == baseTree.ID.String() {
 			log.Debug("PullRequest[%d]: Patch is empty - ignoring", pr.ID)
 			pr.Status = issues_model.PullRequestStatusEmpty
@@ -313,9 +320,17 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 		return false, nil
 	}
 
-	// 3. OK read-tree has failed so we need to try a different thing - this might actually succeed where the above fails due to whitespace handling.
+	// 3. OK the three-way merge method has detected conflicts
+	// 3a. Are still testing with GitApply? If not set the conflict status and move on
+	if !setting.Repository.PullRequest.TestConflictingPatchesWithGitApply {
+		pr.Status = issues_model.PullRequestStatusConflict
+		pr.ConflictedFiles = conflictFiles
 
-	// 3a. Create a plain patch from head to base
+		log.Trace("Found %d files conflicted: %v", len(pr.ConflictedFiles), pr.ConflictedFiles)
+		return true, nil
+	}
+
+	// 3b. Create a plain patch from head to base
 	tmpPatchFile, err := os.CreateTemp("", "patch")
 	if err != nil {
 		log.Error("Unable to create temporary patch file! Error: %v", err)
@@ -338,7 +353,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 	patchPath := tmpPatchFile.Name()
 	tmpPatchFile.Close()
 
-	// 3b. if the size of that patch is 0 - there can be no conflicts!
+	// 3c. if the size of that patch is 0 - there can be no conflicts!
 	if stat.Size() == 0 {
 		log.Debug("PullRequest[%d]: Patch is empty - ignoring", pr.ID)
 		pr.Status = issues_model.PullRequestStatusEmpty
@@ -416,6 +431,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 				scanner := bufio.NewScanner(stderrReader)
 				for scanner.Scan() {
 					line := scanner.Text()
+					log.Trace("PullRequest[%d].testPatch: stderr: %s", pr.ID, line)
 					if strings.HasPrefix(line, prefix) {
 						conflict = true
 						filepath := strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0])
@@ -528,23 +544,23 @@ func CheckUnprotectedFiles(repo *git.Repository, oldCommitID, newCommitID string
 }
 
 // checkPullFilesProtection check if pr changed protected files and save results
-func checkPullFilesProtection(pr *issues_model.PullRequest, gitRepo *git.Repository) error {
+func checkPullFilesProtection(ctx context.Context, pr *issues_model.PullRequest, gitRepo *git.Repository) error {
 	if pr.Status == issues_model.PullRequestStatusEmpty {
 		pr.ChangedProtectedFiles = nil
 		return nil
 	}
 
-	if err := pr.LoadProtectedBranch(db.DefaultContext); err != nil {
+	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+	if err != nil {
 		return err
 	}
 
-	if pr.ProtectedBranch == nil {
+	if pb == nil {
 		pr.ChangedProtectedFiles = nil
 		return nil
 	}
 
-	var err error
-	pr.ChangedProtectedFiles, err = CheckFileProtection(gitRepo, pr.MergeBase, "tracking", pr.ProtectedBranch.GetProtectedFilePatterns(), 10, os.Environ())
+	pr.ChangedProtectedFiles, err = CheckFileProtection(gitRepo, pr.MergeBase, "tracking", pb.GetProtectedFilePatterns(), 10, os.Environ())
 	if err != nil && !models.IsErrFilePathProtected(err) {
 		return err
 	}

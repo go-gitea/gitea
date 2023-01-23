@@ -22,7 +22,9 @@ type Branch struct {
 
 // BranchProtection represents a branch protection for a repository
 type BranchProtection struct {
+	// Deprecated: true
 	BranchName                    string   `json:"branch_name"`
+	RuleName                      string   `json:"rule_name"`
 	EnablePush                    bool     `json:"enable_push"`
 	EnablePushWhitelist           bool     `json:"enable_push_whitelist"`
 	PushWhitelistUsernames        []string `json:"push_whitelist_usernames"`
@@ -52,7 +54,9 @@ type BranchProtection struct {
 
 // CreateBranchProtectionOption options for creating a branch protection
 type CreateBranchProtectionOption struct {
+	// Deprecated: true
 	BranchName                    string   `json:"branch_name"`
+	RuleName                      string   `json:"rule_name"`
 	EnablePush                    bool     `json:"enable_push"`
 	EnablePushWhitelist           bool     `json:"enable_push_whitelist"`
 	PushWhitelistUsernames        []string `json:"push_whitelist_usernames"`

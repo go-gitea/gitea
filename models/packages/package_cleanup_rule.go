@@ -5,17 +5,17 @@ package packages
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"regexp"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
 
-var ErrPackageCleanupRuleNotExist = errors.New("Package blob does not exist")
+var ErrPackageCleanupRuleNotExist = util.NewNotExistErrorf("package blob does not exist")
 
 func init() {
 	db.RegisterModel(new(PackageCleanupRule))

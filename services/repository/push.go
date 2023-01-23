@@ -103,6 +103,8 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	var pusher *user_model.User
 
 	for _, opts := range optsList {
+		log.Trace("pushUpdates: %-v %s %s %s", repo, opts.OldCommitID, opts.NewCommitID, opts.RefFullName)
+
 		if opts.IsNewRef() && opts.IsDelRef() {
 			return fmt.Errorf("old and new revisions are both %s", git.EmptySHA)
 		}
@@ -128,7 +130,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 			} else { // is new tag
 				newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
 				if err != nil {
-					return fmt.Errorf("gitRepo.GetCommit: %w", err)
+					return fmt.Errorf("gitRepo.GetCommit(%s) in %s/%s[%d]: %w", opts.NewCommitID, repo.OwnerName, repo.Name, repo.ID, err)
 				}
 
 				commits := repo_module.NewPushCommits()
@@ -161,7 +163,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 
 				newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
 				if err != nil {
-					return fmt.Errorf("gitRepo.GetCommit: %w", err)
+					return fmt.Errorf("gitRepo.GetCommit(%s) in %s/%s[%d]: %w", opts.NewCommitID, repo.OwnerName, repo.Name, repo.ID, err)
 				}
 
 				refName := opts.RefName()
@@ -251,7 +253,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 
 				notification.NotifyPushCommits(db.DefaultContext, pusher, repo, opts, commits)
 
-				if err = git_model.RemoveDeletedBranchByName(repo.ID, branch); err != nil {
+				if err = git_model.RemoveDeletedBranchByName(ctx, repo.ID, branch); err != nil {
 					log.Error("models.RemoveDeletedBranch %s/%s failed: %v", repo.ID, branch, err)
 				}
 

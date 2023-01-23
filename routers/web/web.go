@@ -634,7 +634,7 @@ func RegisterRoutes(m *web.Route) {
 			http.ServeFile(ctx.Resp, ctx.Req, path.Join(setting.StaticRootPath, "public/img/favicon.png"))
 		})
 		m.Group("/{username}", func() {
-			m.Get(".png", func(ctx *context.Context) { ctx.Error(http.StatusNotFound) })
+			m.Get(".png", user.AvatarByUserName)
 			m.Get(".keys", user.ShowSSHKeys)
 			m.Get(".gpg", user.ShowGPGKeys)
 			m.Get(".rss", feedEnabled, feed.ShowUserFeedRSS)
@@ -774,6 +774,12 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/initialize", web.Bind(forms.InitializeLabelsForm{}), org.InitializeLabels)
 				})
 
+				m.Group("/secrets", func() {
+					m.Get("", org.Secrets)
+					m.Post("", web.Bind(forms.AddSecretForm{}), org.SecretsPost)
+					m.Post("/delete", org.SecretsDelete)
+				})
+
 				m.Route("/delete", "GET,POST", org.SettingsDelete)
 
 				m.Group("/packages", func() {
@@ -829,6 +835,46 @@ func RegisterRoutes(m *web.Route) {
 				})
 			}, ignSignIn, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 		}
+
+		m.Group("/projects", func() {
+			m.Get("", org.Projects)
+			m.Get("/{id}", org.ViewProject)
+			m.Group("", func() { //nolint:dupl
+				m.Get("/new", org.NewProject)
+				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
+				m.Group("/{id}", func() {
+					m.Post("", web.Bind(forms.EditProjectBoardForm{}), org.AddBoardToProjectPost)
+					m.Post("/delete", org.DeleteProject)
+
+					m.Get("/edit", org.EditProject)
+					m.Post("/edit", web.Bind(forms.CreateProjectForm{}), org.EditProjectPost)
+					m.Post("/{action:open|close}", org.ChangeProjectStatus)
+
+					m.Group("/{boardID}", func() {
+						m.Put("", web.Bind(forms.EditProjectBoardForm{}), org.EditProjectBoard)
+						m.Delete("", org.DeleteProjectBoard)
+						m.Post("/default", org.SetDefaultProjectBoard)
+
+						m.Post("/move", org.MoveIssues)
+					})
+				})
+			}, reqSignIn, func(ctx *context.Context) {
+				if ctx.ContextUser == nil {
+					ctx.NotFound("NewProject", nil)
+					return
+				}
+				if ctx.ContextUser.IsOrganization() {
+					if !ctx.Org.CanWriteUnit(ctx, unit.TypeProjects) {
+						ctx.NotFound("NewProject", nil)
+						return
+					}
+				} else if ctx.ContextUser.ID != ctx.Doer.ID {
+					ctx.NotFound("NewProject", nil)
+					return
+				}
+			})
+		}, repo.MustEnableProjects)
+
 		m.Get("/code", user.CodeSearch)
 	}, context_service.UserAssignmentWeb())
 
@@ -855,10 +901,16 @@ func RegisterRoutes(m *web.Route) {
 			})
 
 			m.Group("/branches", func() {
-				m.Combo("").Get(repo.ProtectedBranch).Post(repo.ProtectedBranchPost)
-				m.Combo("/*").Get(repo.SettingsProtectedBranch).
-					Post(web.Bind(forms.ProtectBranchForm{}), context.RepoMustNotBeArchived(), repo.SettingsProtectedBranchPost)
+				m.Post("/", repo.SetDefaultBranchPost)
 			}, repo.MustBeNotEmpty)
+
+			m.Group("/branches", func() {
+				m.Get("/", repo.ProtectedBranchRules)
+				m.Combo("/edit").Get(repo.SettingsProtectedBranch).
+					Post(web.Bind(forms.ProtectBranchForm{}), context.RepoMustNotBeArchived(), repo.SettingsProtectedBranchPost)
+				m.Post("/{id}/delete", repo.DeleteProtectedBranchRulePost)
+			}, repo.MustBeNotEmpty)
+
 			m.Post("/rename_branch", web.Bind(forms.RenameBranchForm{}), context.RepoMustNotBeArchived(), repo.RenameBranchPost)
 
 			m.Group("/tags", func() {
@@ -912,6 +964,10 @@ func RegisterRoutes(m *web.Route) {
 				m.Combo("").Get(repo.DeployKeys).
 					Post(web.Bind(forms.AddKeyForm{}), repo.DeployKeysPost)
 				m.Post("/delete", repo.DeleteDeployKey)
+				m.Group("/secrets", func() {
+					m.Post("", web.Bind(forms.AddSecretForm{}), repo.SecretsPost)
+					m.Post("/delete", repo.DeleteSecret)
+				})
 			})
 
 			m.Group("/lfs", func() {
@@ -1077,12 +1133,21 @@ func RegisterRoutes(m *web.Route) {
 
 	// Releases
 	m.Group("/{username}/{reponame}", func() {
-		m.Get("/tags", repo.TagsList, repo.MustBeNotEmpty,
-			reqRepoCodeReader, context.RepoRefByType(context.RepoRefTag))
+		m.Group("/tags", func() {
+			m.Get("", repo.TagsList)
+			m.Get(".rss", feedEnabled, repo.TagsListFeedRSS)
+			m.Get(".atom", feedEnabled, repo.TagsListFeedAtom)
+		}, func(ctx *context.Context) {
+			ctx.Data["EnableFeed"] = setting.EnableFeed
+		}, repo.MustBeNotEmpty, reqRepoCodeReader, context.RepoRefByType(context.RepoRefTag, true))
 		m.Group("/releases", func() {
 			m.Get("/", repo.Releases)
 			m.Get("/tag/*", repo.SingleRelease)
 			m.Get("/latest", repo.LatestRelease)
+			m.Get(".rss", feedEnabled, repo.ReleasesFeedRSS)
+			m.Get(".atom", feedEnabled, repo.ReleasesFeedAtom)
+		}, func(ctx *context.Context) {
+			ctx.Data["EnableFeed"] = setting.EnableFeed
 		}, repo.MustBeNotEmpty, reqRepoReleaseReader, context.RepoRefByType(context.RepoRefTag, true))
 		m.Get("/releases/attachments/{uuid}", repo.GetAttachment, repo.MustBeNotEmpty, reqRepoReleaseReader)
 		m.Group("/releases", func() {
@@ -1143,7 +1208,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/projects", func() {
 			m.Get("", repo.Projects)
 			m.Get("/{id}", repo.ViewProject)
-			m.Group("", func() {
+			m.Group("", func() { //nolint:dupl
 				m.Get("/new", repo.NewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), repo.NewProjectPost)
 				m.Group("/{id}", func() {

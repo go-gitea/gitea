@@ -109,32 +109,6 @@ func (q *ChannelQueue) Flush(timeout time.Duration) error {
 	return q.FlushWithContext(ctx)
 }
 
-// FlushWithContext is very similar to CleanUp but it will return as soon as the dataChan is empty
-func (q *ChannelQueue) FlushWithContext(ctx context.Context) error {
-	log.Trace("ChannelQueue: %d Flush", q.qid)
-	paused, _ := q.IsPausedIsResumed()
-	for {
-		select {
-		case <-paused:
-			return nil
-		case data, ok := <-q.dataChan:
-			if !ok {
-				return nil
-			}
-			if unhandled := q.handle(data); unhandled != nil {
-				log.Error("Unhandled Data whilst flushing queue %d", q.qid)
-			}
-			atomic.AddInt64(&q.numInQueue, -1)
-		case <-q.baseCtx.Done():
-			return q.baseCtx.Err()
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			return nil
-		}
-	}
-}
-
 // Shutdown processing from this queue
 func (q *ChannelQueue) Shutdown() {
 	q.lock.Lock()

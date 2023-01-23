@@ -5,12 +5,12 @@ package composer
 
 import (
 	"archive/zip"
-	"errors"
 	"io"
 	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 
 	"github.com/hashicorp/go-version"
@@ -21,11 +21,11 @@ const TypeProperty = "composer.type"
 
 var (
 	// ErrMissingComposerFile indicates a missing composer.json file
-	ErrMissingComposerFile = errors.New("composer.json file is missing")
+	ErrMissingComposerFile = util.NewInvalidArgumentErrorf("composer.json file is missing")
 	// ErrInvalidName indicates an invalid package name
-	ErrInvalidName = errors.New("package name is invalid")
+	ErrInvalidName = util.NewInvalidArgumentErrorf("package name is invalid")
 	// ErrInvalidVersion indicates an invalid package version
-	ErrInvalidVersion = errors.New("package version is invalid")
+	ErrInvalidVersion = util.NewInvalidArgumentErrorf("package version is invalid")
 )
 
 // Package represents a Composer package

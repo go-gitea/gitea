@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -63,7 +64,7 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 			api.CommitStatusWarning: "gitea-exclamation",
 		}
 
-		testCtx := NewAPITestContext(t, "user1", "repo1")
+		testCtx := NewAPITestContext(t, "user1", "repo1", auth_model.AccessTokenScopeRepo)
 
 		// Update commit status, and check if icon is updated as well
 		for _, status := range statusList {

@@ -44,7 +44,7 @@ function fallbackCopyToClipboard(text) {
 
 // For all DOM elements with [data-clipboard-target] or [data-clipboard-text],
 // this copy-to-clipboard will work for them
-export default function initGlobalCopyToClipboardListener() {
+export function initGlobalCopyToClipboardListener() {
   document.addEventListener('click', (e) => {
     let target = e.target;
     // in case <button data-clipboard-text><svg></button>, so we just search

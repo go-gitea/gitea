@@ -26,7 +26,6 @@ import octiconSidebarExpand from '../../public/img/svg/octicon-sidebar-expand.sv
 import octiconTriangleDown from '../../public/img/svg/octicon-triangle-down.svg';
 import octiconX from '../../public/img/svg/octicon-x.svg';
 
-
 export const svgs = {
   'octicon-chevron-down': octiconChevronDown,
   'octicon-chevron-right': octiconChevronRight,
@@ -56,7 +55,6 @@ export const svgs = {
   'octicon-triangle-down': octiconTriangleDown,
   'octicon-x': octiconX,
 };
-
 
 const parser = new DOMParser();
 const serializer = new XMLSerializer();

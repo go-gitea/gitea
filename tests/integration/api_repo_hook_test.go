@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -25,7 +26,7 @@ func TestAPICreateHook(t *testing.T) {
 
 	// user1 is an admin user
 	session := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepoHook)
 	completeURL := func(lastSegment string) string {
 		return fmt.Sprintf("/api/v1/repos/%s/%s/%s?token=%s", owner.Name, repo.Name, lastSegment, token)
 	}

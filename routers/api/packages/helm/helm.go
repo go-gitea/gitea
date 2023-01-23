@@ -4,6 +4,7 @@
 package helm
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -163,7 +164,11 @@ func UploadPackage(ctx *context.Context) {
 
 	metadata, err := helm_module.ParseChartArchive(buf)
 	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
+		if errors.Is(err, util.ErrInvalidArgument) {
+			apiError(ctx, http.StatusBadRequest, err)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
 		return
 	}
 

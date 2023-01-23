@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -126,11 +127,12 @@ func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *acce
 
 // isSignedIfRequired check if merge will be signed if required
 func isSignedIfRequired(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User) (bool, error) {
-	if err := pr.LoadProtectedBranch(ctx); err != nil {
+	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+	if err != nil {
 		return false, err
 	}
 
-	if pr.ProtectedBranch == nil || !pr.ProtectedBranch.RequireSignedCommits {
+	if pb == nil || !pb.RequireSignedCommits {
 		return true, nil
 	}
 
@@ -199,19 +201,19 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 		return nil, fmt.Errorf("ReadFile(%s): %w", headFile, err)
 	}
 	commitID := string(commitIDBytes)
-	if len(commitID) < 40 {
+	if len(commitID) < git.SHAFullLength {
 		return nil, fmt.Errorf(`ReadFile(%s): invalid commit-ID "%s"`, headFile, commitID)
 	}
-	cmd := commitID[:40] + ".." + pr.BaseBranch
+	cmd := commitID[:git.SHAFullLength] + ".." + pr.BaseBranch
 
 	// Get the commit from BaseBranch where the pull request got merged
 	mergeCommit, _, err := git.NewCommand(ctx, "rev-list", "--ancestry-path", "--merges", "--reverse").AddDynamicArguments(cmd).
 		RunStdString(&git.RunOpts{Dir: "", Env: []string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()}})
 	if err != nil {
 		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %w", err)
-	} else if len(mergeCommit) < 40 {
+	} else if len(mergeCommit) < git.SHAFullLength {
 		// PR was maybe fast-forwarded, so just use last commit of PR
-		mergeCommit = commitID[:40]
+		mergeCommit = commitID[:git.SHAFullLength]
 	}
 
 	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
@@ -220,9 +222,9 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 	}
 	defer gitRepo.Close()
 
-	commit, err := gitRepo.GetCommit(mergeCommit[:40])
+	commit, err := gitRepo.GetCommit(mergeCommit[:git.SHAFullLength])
 	if err != nil {
-		return nil, fmt.Errorf("GetMergeCommit[%v]: %w", mergeCommit[:40], err)
+		return nil, fmt.Errorf("GetMergeCommit[%v]: %w", mergeCommit[:git.SHAFullLength], err)
 	}
 
 	return commit, nil
@@ -348,8 +350,8 @@ func testPR(id int64) {
 	checkAndUpdateStatus(ctx, pr)
 }
 
-// CheckPrsForBaseBranch check all pulls with bseBrannch
-func CheckPrsForBaseBranch(baseRepo *repo_model.Repository, baseBranchName string) error {
+// CheckPRsForBaseBranch check all pulls with baseBrannch
+func CheckPRsForBaseBranch(baseRepo *repo_model.Repository, baseBranchName string) error {
 	prs, err := issues_model.GetUnmergedPullRequestsByBaseInfo(baseRepo.ID, baseBranchName)
 	if err != nil {
 		return err
