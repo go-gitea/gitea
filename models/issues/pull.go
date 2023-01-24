@@ -232,27 +232,7 @@ func (pr *PullRequest) ColorFormat(s fmt.State) {
 
 // String represents the pr as a simple string
 func (pr *PullRequest) String() string {
-	if pr == nil {
-		return "PR[0][<nil>/<nil>:<nil>...<nil>/<nil>:<nil>]"
-	}
-
-	s := new(strings.Builder)
-
-	_, _ = fmt.Fprintf(s, "PR[%d][", pr.ID)
-	if pr.BaseRepo != nil {
-		_, _ = fmt.Fprintf(s, "%s:%s...", pr.BaseRepo.FullName(), pr.BaseBranch)
-	} else {
-		_, _ = fmt.Fprintf(s, "Repo[%d]:%s...", pr.BaseRepoID, pr.BaseBranch)
-	}
-	if pr.HeadRepoID == pr.BaseRepoID {
-		_, _ = fmt.Fprintf(s, "%s]", pr.HeadBranch)
-	} else if pr.HeadRepo != nil {
-		_, _ = fmt.Fprintf(s, "%s:%s]", pr.HeadRepo.FullName(), pr.HeadBranch)
-	} else {
-		_, _ = fmt.Fprintf(s, "Repo[%d]:%s]", pr.HeadRepoID, pr.HeadBranch)
-	}
-
-	return s.String()
+	return log.ColorFormatAsString(pr)
 }
 
 // MustHeadUserName returns the HeadRepo's username if failed return blank
