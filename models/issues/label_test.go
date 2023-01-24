@@ -4,7 +4,6 @@
 package issues_test
 
 import (
-	"html/template"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -25,13 +24,13 @@ func TestLabel_CalOpenIssues(t *testing.T) {
 	assert.EqualValues(t, 2, label.NumOpenIssues)
 }
 
-func TestLabel_ForegroundColor(t *testing.T) {
+func TestLabel_TextColor(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1})
-	assert.Equal(t, template.CSS("#000"), label.ForegroundColor())
+	assert.False(t, label.UseLightTextColor())
 
 	label = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 2})
-	assert.Equal(t, template.CSS("#fff"), label.ForegroundColor())
+	assert.True(t, label.UseLightTextColor())
 }
 
 func TestLabel_Scope(t *testing.T) {
