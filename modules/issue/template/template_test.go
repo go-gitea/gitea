@@ -640,7 +640,7 @@ body:
       description: Description of input
       placeholder: Placeholder of input
       value: Value of input
-	  hide_label: true
+      hide_label: true
     validations:
       required: true
       is_number: true
