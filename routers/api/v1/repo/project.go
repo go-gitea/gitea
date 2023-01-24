@@ -1,4 +1,3 @@
-// Copyright 2022 The Gogs Authors. All rights reserved.
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
