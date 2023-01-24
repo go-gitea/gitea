@@ -379,6 +379,9 @@ func NewFuncMap() []template.FuncMap {
 			// the table is NOT sorted with this header
 			return ""
 		},
+		"RenderLabel": func(label *issues_model.Label) template.HTML {
+			return template.HTML(RenderLabel(label))
+		},
 		"RenderLabels": func(labels []*issues_model.Label, repoLink string) template.HTML {
 			htmlCode := `<span class="labels-list">`
 			for _, label := range labels {
@@ -386,8 +389,8 @@ func NewFuncMap() []template.FuncMap {
 				if label == nil {
 					continue
 				}
-				htmlCode += fmt.Sprintf("<a href='%s/issues?labels=%d' class='ui label' style='color: %s !important; background-color: %s !important' title='%s'>%s</a> ",
-					repoLink, label.ID, label.ForegroundColor(), label.Color, html.EscapeString(label.Description), RenderEmoji(label.Name))
+				htmlCode += fmt.Sprintf("<a href='%s/issues?labels=%d'>%s</a> ",
+					repoLink, label.ID, RenderLabel(label))
 			}
 			htmlCode += "</span>"
 			return template.HTML(htmlCode)
@@ -793,6 +796,30 @@ func RenderIssueTitle(ctx context.Context, text, urlPrefix string, metas map[str
 		return template.HTML("")
 	}
 	return template.HTML(renderedText)
+}
+
+// RenderLabel renders a label
+func RenderLabel(label *issues_model.Label) string {
+	labelScope := label.Scope()
+
+	textColor := "#000"
+	scopeTextColor := "#444"
+	if label.UseLightTextColor() {
+		textColor = "#ddd"
+		scopeTextColor = "#bbb"
+	}
+
+	var text string
+	if labelScope == "" {
+		text = string(RenderEmoji(label.Name))
+	} else {
+		scopeText := strings.ReplaceAll(labelScope, "::", " \u203A ")
+		itemText := label.Name[len(labelScope):]
+		text = fmt.Sprintf("<span style='color: %s !important;'>%s</span> %s", scopeTextColor, RenderEmoji(scopeText), RenderEmoji(itemText))
+	}
+
+	return fmt.Sprintf("<div class='ui label' style='color: %s!important; background-color: %s !important' title='%s'>%s</div>",
+		textColor, label.Color, emoji.ReplaceAliases(label.Description), text)
 }
 
 // RenderEmoji renders html text with emoji post processors

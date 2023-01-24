@@ -34,7 +34,7 @@ func TestNodeinfo(t *testing.T) {
 		assert.True(t, nodeinfo.OpenRegistrations)
 		assert.Equal(t, "gitea", nodeinfo.Software.Name)
 		assert.Equal(t, 24, nodeinfo.Usage.Users.Total)
-		assert.Equal(t, 17, nodeinfo.Usage.LocalPosts)
+		assert.Equal(t, 18, nodeinfo.Usage.LocalPosts)
 		assert.Equal(t, 2, nodeinfo.Usage.LocalComments)
 	})
 }

@@ -175,7 +175,7 @@ func UpdateIssueLabel(ctx *context.Context) {
 				return
 			}
 		}
-	case "attach", "detach", "toggle":
+	case "attach", "detach", "toggle", "toggle-alt":
 		label, err := issues_model.GetLabelByID(ctx, ctx.FormInt64("id"))
 		if err != nil {
 			if issues_model.IsErrRepoLabelNotExist(err) {
@@ -189,12 +189,18 @@ func UpdateIssueLabel(ctx *context.Context) {
 		if action == "toggle" {
 			// detach if any issues already have label, otherwise attach
 			action = "attach"
-			for _, issue := range issues {
-				if issues_model.HasIssueLabel(ctx, issue.ID, label.ID) {
-					action = "detach"
-					break
+			if label.Scope() == "" {
+				for _, issue := range issues {
+					if issues_model.HasIssueLabel(ctx, issue.ID, label.ID) {
+						action = "detach"
+						break
+					}
 				}
 			}
+		} else if action == "toggle-alt" {
+			// always detach with alt key pressed, to be able to remove
+			// scoped labels
+			action = "detach"
 		}
 
 		if action == "attach" {
