@@ -92,6 +92,9 @@
 							{{end}}
 						</div>
 					</div>
+					{{- /*
+					Disabled by Sybren (2023-01-24) to speed up rendering of the issues page.
+					See https://github.com/go-gitea/gitea/issues/22586 for more info.
 
 					<!-- Author -->
 					<div class="ui {{if not .Posters}}disabled{{end}} dropdown jump item">
@@ -132,6 +135,7 @@
 							{{end}}
 						</div>
 					</div>
+					*/ -}}
 
 					{{if .IsSigned}}
 						<!-- Type -->

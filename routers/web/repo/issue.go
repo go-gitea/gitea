@@ -297,18 +297,21 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	ctx.Data["CommitLastStatus"] = lastStatus
 	ctx.Data["CommitStatuses"] = commitStatuses
 
-	// Get assignees.
-	ctx.Data["Assignees"], err = repo_model.GetRepoAssignees(ctx, repo)
-	if err != nil {
-		ctx.ServerError("GetAssignees", err)
-		return
-	}
+	// Disabled by Sybren (2023-01-24) to speed up rendering of the issues page.
+	// See https://github.com/go-gitea/gitea/issues/22586 for more info.
+	//
+	// // Get assignees.
+	// ctx.Data["Assignees"], err = repo_model.GetRepoAssignees(ctx, repo)
+	// if err != nil {
+	// 	ctx.ServerError("GetAssignees", err)
+	// 	return
+	// }
 
-	ctx.Data["Posters"], err = repo_model.GetIssuePosters(ctx, repo, isPullOption.IsTrue())
-	if err != nil {
-		ctx.ServerError("GetIssuePosters", err)
-		return
-	}
+	// ctx.Data["Posters"], err = repo_model.GetIssuePosters(ctx, repo, isPullOption.IsTrue())
+	// if err != nil {
+	// 	ctx.ServerError("GetIssuePosters", err)
+	// 	return
+	// }
 
 	handleTeamMentions(ctx)
 	if ctx.Written() {
