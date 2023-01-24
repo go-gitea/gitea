@@ -4,6 +4,7 @@
 package user_test
 
 import (
+	"context"
 	"math/rand"
 	"strings"
 	"testing"
@@ -14,6 +15,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -250,6 +252,48 @@ func TestCreateUserEmailAlreadyUsed(t *testing.T) {
 	err := user_model.CreateUser(user)
 	assert.Error(t, err)
 	assert.True(t, user_model.IsErrEmailAlreadyUsed(err))
+}
+
+func TestCreateUserCustomTimestamps(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	// Add new user with a custom creation timestamp.
+	user.Name = "testuser"
+	user.LowerName = strings.ToLower(user.Name)
+	user.ID = 0
+	user.Email = "unique@example.com"
+	user.CreatedUnix = 12345 // Long, long time ago...
+	err := user_model.CreateUser(user)
+	assert.NoError(t, err)
+
+	fetched, err := user_model.GetUserByID(context.Background(), user.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, timeutil.TimeStamp(12345), fetched.CreatedUnix)
+	assert.Equal(t, timeutil.TimeStamp(12345), fetched.UpdatedUnix)
+}
+
+func TestCreateUserWithoutCustomTimestamps(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	// Add new user with a custom creation timestamp.
+	user.Name = "testuser"
+	user.LowerName = strings.ToLower(user.Name)
+	user.ID = 0
+	user.Email = "unique@example.com"
+	user.CreatedUnix = 0
+	user.UpdatedUnix = 0
+	err := user_model.CreateUser(user)
+	assert.NoError(t, err)
+
+	fetched, err := user_model.GetUserByID(context.Background(), user.ID)
+	assert.NoError(t, err)
+	// 1674552894 is "now" at the moment of writing this code.
+	assert.Greater(t, fetched.CreatedUnix, timeutil.TimeStamp(1674552894))
+	assert.Greater(t, fetched.UpdatedUnix, timeutil.TimeStamp(1674552894))
 }
 
 func TestGetUserIDsByNames(t *testing.T) {
