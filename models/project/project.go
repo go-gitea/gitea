@@ -123,7 +123,7 @@ func (p *Project) Link() string {
 			log.Error("LoadOwner: %v", err)
 			return ""
 		}
-		return fmt.Sprintf("/%s/-/projects/%d", p.Owner.Name, p.ID)
+		return fmt.Sprintf("%s/-/projects/%d", p.Owner.HomeLink(), p.ID)
 	}
 	if p.RepoID > 0 {
 		err := p.LoadRepo(db.DefaultContext)
@@ -131,7 +131,7 @@ func (p *Project) Link() string {
 			log.Error("LoadRepo: %v", err)
 			return ""
 		}
-		return fmt.Sprintf("/%s/projects/%d", p.Repo.RepoPath(), p.ID)
+		return fmt.Sprintf("%s/projects/%d", p.Repo.Link(), p.ID)
 	}
 	return ""
 }
