@@ -126,6 +126,7 @@ func CreateUser(ctx *context.APIContext) {
 	// set the creation timestamp to "now".
 	if form.Created != nil {
 		u.CreatedUnix = timeutil.TimeStamp(form.Created.Unix())
+		u.UpdatedUnix = u.CreatedUnix
 	}
 
 	if err := user_model.CreateUser(u, overwriteDefault); err != nil {
