@@ -81,7 +81,7 @@ func SendEmail(ctx *context.PrivateContext) {
 
 func sendEmail(ctx *context.PrivateContext, subject, message string, to []string) {
 	for _, email := range to {
-		msg := mailer.NewMessage([]string{email}, subject, message)
+		msg := mailer.NewMessage(email, subject, message)
 		mailer.SendAsync(msg)
 	}
 
