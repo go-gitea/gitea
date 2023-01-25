@@ -98,3 +98,15 @@ function attachOneDropdownAria($dropdown) {
 export function attachDropdownAria($dropdowns) {
   $dropdowns.each((_, e) => attachOneDropdownAria($(e)));
 }
+
+export function attachCheckboxAria($checkboxes) {
+  $checkboxes.checkbox();
+  for (const el of $checkboxes) {
+    const label = el.querySelector('label');
+    const input = el.querySelector('input');
+    if (!label || !input || input.getAttribute('id')) continue;
+    const id = generateAriaId();
+    input.setAttribute('id', id);
+    label.setAttribute('for', id);
+  }
+}
