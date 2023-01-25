@@ -511,18 +511,18 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 			}
 		} else if mergeStyle == repo_model.MergeStyleRebase {
 			// Append Pull Request #123 to commit message
-			var existing_message strings.Builder
-			cmd_show := git.NewCommand(ctx, "show", "--format=%B", "-s")
-			if err := cmd_show.Run(&git.RunOpts{Dir: tmpBasePath, Stdout: &existing_message}); err != nil {
+			var existingMessage strings.Builder
+			cmdShow := git.NewCommand(ctx, "show", "--format=%B", "-s")
+			if err := cmdShow.Run(&git.RunOpts{Dir: tmpBasePath, Stdout: &existingMessage}); err != nil {
 				log.Error("Failed to get commit message for Pull Request #%d: %v", pr.Index, err)
 				return "", err
 			}
 
-			new_message := strings.TrimSpace(existing_message.String())
-			if match, _ := regexp.MatchString(fmt.Sprintf("#\\b%d\\b", pr.Index), new_message); !match {
-				new_message = new_message + fmt.Sprintf("\n\nPull Request #%d", pr.Index)
-				cmd_amend := git.NewCommand(ctx, "commit", "--amend", "-m").AddDynamicArguments(new_message)
-				if err := cmd_amend.Run(&git.RunOpts{Dir: tmpBasePath}); err != nil {
+			newMessage := strings.TrimSpace(existingMessage.String())
+			if match, _ := regexp.MatchString(fmt.Sprintf("#\\b%d\\b", pr.Index), newMessage); !match {
+				newMessage += fmt.Sprintf("\n\nPull Request #%d", pr.Index)
+				cmdAmend := git.NewCommand(ctx, "commit", "--amend", "-m").AddDynamicArguments(newMessage)
+				if err := cmdAmend.Run(&git.RunOpts{Dir: tmpBasePath}); err != nil {
 					log.Error("Failed to amend commit message with Pull Request #%d: %v", pr.Index, err)
 					return "", err
 				}
