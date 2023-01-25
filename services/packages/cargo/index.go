@@ -140,6 +140,7 @@ type IndexVersionEntry struct {
 func addOrUpdatePackageIndex(ctx context.Context, t *files_service.TemporaryUploadRepository, p *packages_model.Package) error {
 	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 		PackageID: p.ID,
+		Sort:      packages_model.SortVersionAsc,
 	})
 	if err != nil {
 		return fmt.Errorf("SearchVersions[%s]: %w", p.Name, err)

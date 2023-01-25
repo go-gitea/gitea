@@ -48,15 +48,14 @@ type Metadata struct {
 }
 
 type Dependency struct {
-	Name               string   `json:"name"`
-	VersionReq         string   `json:"version_req"`
-	Features           []string `json:"features"`
-	Optional           bool     `json:"optional"`
-	DefaultFeatures    bool     `json:"default_features"`
-	Target             string   `json:"target"`
-	Kind               string   `json:"kind"`
-	Registry           string   `json:"registry"`
-	ExplicitNameInToml string   `json:"explicit_name_in_toml"`
+	Name            string   `json:"name"`
+	Req             string   `json:"req"`
+	Features        []string `json:"features"`
+	Optional        bool     `json:"optional"`
+	DefaultFeatures bool     `json:"default_features"`
+	Target          string   `json:"target,omitempty"`
+	Kind            string   `json:"kind"`
+	Registry        string   `json:"registry,omitempty"`
 }
 
 var nameMatch = regexp.MustCompile(`\A[a-zA-Z][a-zA-Z0-9-_]{0,63}\z`)
@@ -85,9 +84,19 @@ func ParsePackage(r io.Reader) (*Package, error) {
 
 func parsePackage(r io.Reader) (*Package, error) {
 	var meta struct {
-		Name          string              `json:"name"`
-		Vers          string              `json:"vers"`
-		Deps          []*Dependency       `json:"deps"`
+		Name string `json:"name"`
+		Vers string `json:"vers"`
+		Deps []struct {
+			Name               string   `json:"name"`
+			VersionReq         string   `json:"version_req"`
+			Features           []string `json:"features"`
+			Optional           bool     `json:"optional"`
+			DefaultFeatures    bool     `json:"default_features"`
+			Target             string   `json:"target"`
+			Kind               string   `json:"kind"`
+			Registry           string   `json:"registry"`
+			ExplicitNameInToml string   `json:"explicit_name_in_toml"`
+		} `json:"deps"`
 		Features      map[string][]string `json:"features"`
 		Authors       []string            `json:"authors"`
 		Description   string              `json:"description"`
@@ -124,11 +133,25 @@ func parsePackage(r io.Reader) (*Package, error) {
 		meta.Repository = ""
 	}
 
+	dependencies := make([]*Dependency, 0, len(meta.Deps))
+	for _, dep := range meta.Deps {
+		dependencies = append(dependencies, &Dependency{
+			Name:            dep.Name,
+			Req:             dep.VersionReq,
+			Features:        dep.Features,
+			Optional:        dep.Optional,
+			DefaultFeatures: dep.DefaultFeatures,
+			Target:          dep.Target,
+			Kind:            dep.Kind,
+			Registry:        dep.Registry,
+		})
+	}
+
 	return &Package{
 		Name:    meta.Name,
 		Version: meta.Vers,
 		Metadata: &Metadata{
-			Dependencies:     meta.Deps,
+			Dependencies:     dependencies,
 			Features:         meta.Features,
 			Authors:          meta.Authors,
 			Description:      meta.Description,
