@@ -987,8 +987,8 @@ func Routes(ctx gocontext.Context) *web.Route {
 				}, mustEnableIssuesOrPulls)
 				m.Group("/projects", func() {
 					m.Combo("").
-						Get(reqToken(), repo.ListRepositoryProjects).
-						Post(reqToken(), mustNotBeArchived, bind(api.NewProjectPayload{}), repo.CreateRepositoryProject)
+						Get(reqToken(auth_model.AccessTokenScopeRepo), repo.ListRepositoryProjects).
+						Post(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, bind(api.NewProjectPayload{}), repo.CreateRepositoryProject)
 				})
 				m.Group("/labels", func() {
 					m.Combo("").Get(repo.ListLabels).
@@ -1236,20 +1236,20 @@ func Routes(ctx gocontext.Context) *web.Route {
 		m.Group("/projects", func() {
 			m.Group("/{id}", func() {
 				m.Combo("").
-					Get(reqToken(), reqRepoReader(unit.TypeProjects), repo.GetProject).
-					Patch(reqToken(), reqRepoWriter(unit.TypeProjects), bind(api.UpdateProjectPayload{}), repo.UpdateProject).
-					Delete(reqToken(), reqRepoWriter(unit.TypeProjects), repo.DeleteProject)
+					Get(reqToken(auth_model.AccessTokenScopeRepo), reqRepoReader(unit.TypeProjects), repo.GetProject).
+					Patch(reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeProjects), bind(api.UpdateProjectPayload{}), repo.UpdateProject).
+					Delete(reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeProjects), repo.DeleteProject)
 
 				m.Combo("/boards").
-					Post(reqToken(), reqRepoWriter(unit.TypeProjects), bind(api.NewProjectBoardPayload{}), repo.CreateProjectBoard).
-					Get(reqToken(), reqRepoReader(unit.TypeProjects), repo.ListProjectBoards)
+					Post(reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeProjects), bind(api.NewProjectBoardPayload{}), repo.CreateProjectBoard).
+					Get(reqToken(auth_model.AccessTokenScopeRepo), reqRepoReader(unit.TypeProjects), repo.ListProjectBoards)
 			})
 
 			m.Group("/boards", func() {
 				m.Combo("/{id}").
-					Get(reqToken(), repo.GetProjectBoard).
-					Patch(reqToken(), bind(api.UpdateProjectBoardPayload{}), repo.UpdateProjectBoard).
-					Delete(reqToken(), repo.DeleteProjectBoard)
+					Get(reqToken(auth_model.AccessTokenScopeRepo), repo.GetProjectBoard).
+					Patch(reqToken(auth_model.AccessTokenScopeRepo), bind(api.UpdateProjectBoardPayload{}), repo.UpdateProjectBoard).
+					Delete(reqToken(auth_model.AccessTokenScopeRepo), repo.DeleteProjectBoard)
 			})
 		})
 	}, sudo())

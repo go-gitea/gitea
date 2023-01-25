@@ -92,7 +92,7 @@ type Project struct {
 	RepoID      int64                  `xorm:"INDEX"`
 	Repo        *repo_model.Repository `xorm:"-"`
 	CreatorID   int64                  `xorm:"NOT NULL"`
-  Creator     *user_model.User       `xorm:"-"`
+	Creator     *user_model.User       `xorm:"-"`
 	IsClosed    bool                   `xorm:"INDEX"`
 	BoardType   BoardType
 	Type        Type
@@ -109,14 +109,6 @@ func (p *Project) LoadOwner(ctx context.Context) (err error) {
 		return nil
 	}
 	p.Owner, err = user_model.GetUserByID(ctx, p.OwnerID)
-	return err
-}
-
-func (p *Project) LoadRepo(ctx context.Context) (err error) {
-	if p.RepoID == 0 || p.Repo != nil {
-		return nil
-	}
-	p.Repo, err = repo_model.GetRepositoryByID(ctx, p.RepoID)
 	return err
 }
 
@@ -414,7 +406,6 @@ func (p *Project) LoadCreator(ctx context.Context) (err error) {
 	}
 	return nil
 }
-
 
 func DeleteProjectByRepoID(ctx context.Context, repoID int64) error {
 	switch {

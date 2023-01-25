@@ -236,7 +236,7 @@ func ListRepositoryProjects(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	fmt.Print(ctx.FormOptionalBool("closed"))
-	projects, count, err := project_model.GetProjects(ctx, project_model.SearchOptions{
+	projects, count, err := project_model.FindProjects(ctx, project_model.SearchOptions{
 		RepoID:   ctx.Repo.Repository.ID,
 		Page:     ctx.FormInt("page"),
 		IsClosed: ctx.FormOptionalBool("closed"),
