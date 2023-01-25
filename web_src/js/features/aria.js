@@ -101,6 +101,11 @@ export function attachDropdownAria($dropdowns) {
 
 export function attachCheckboxAria($checkboxes) {
   $checkboxes.checkbox();
+
+  // Fomantic UI checkbox needs to be something like: <div class="ui checkbox"><label /><input /></div>
+  // It doesn't work well with <label><input />...</label>
+  // To make it work with aria, the "id"/"for" attributes are necessary, so add them automatically if missing.
+  // In the future, refactor to use native checkbox directly, then this patch could be removed.
   for (const el of $checkboxes) {
     const label = el.querySelector('label');
     const input = el.querySelector('input');
