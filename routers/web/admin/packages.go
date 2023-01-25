@@ -51,9 +51,15 @@ func Packages(ctx *context.Context) {
 		return
 	}
 
-	totalBlobSize, err := packages_model.GetTotalBlobSize()
+	totalBlobSize, err := packages_model.GetTotalBlobSize(ctx)
 	if err != nil {
 		ctx.ServerError("GetTotalBlobSize", err)
+		return
+	}
+
+	totalUnreferencedBlobSize, err := packages_model.GetTotalUnreferencedBlobSize(ctx)
+	if err != nil {
+		ctx.ServerError("CalculateBlobSize", err)
 		return
 	}
 
@@ -65,8 +71,9 @@ func Packages(ctx *context.Context) {
 	ctx.Data["AvailableTypes"] = packages_model.TypeList
 	ctx.Data["SortType"] = sort
 	ctx.Data["PackageDescriptors"] = pds
-	ctx.Data["Total"] = total
-	ctx.Data["TotalBlobSize"] = totalBlobSize
+	ctx.Data["TotalCount"] = total
+	ctx.Data["TotalBlobSize"] = totalBlobSize - totalUnreferencedBlobSize
+	ctx.Data["TotalUnreferencedBlobSize"] = totalUnreferencedBlobSize
 
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
 	pager.AddParamString("q", query)

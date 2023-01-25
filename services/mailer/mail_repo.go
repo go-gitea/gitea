@@ -82,9 +82,12 @@ func sendRepoTransferNotifyMailPerLang(lang string, newOwner, doer *user_model.U
 		return err
 	}
 
-	msg := NewMessage(emails, subject, content.String())
-	msg.Info = fmt.Sprintf("UID: %d, repository pending transfer notification", newOwner.ID)
+	for _, to := range emails {
+		msg := NewMessage(to, subject, content.String())
+		msg.Info = fmt.Sprintf("UID: %d, repository pending transfer notification", newOwner.ID)
 
-	SendAsync(msg)
+		SendAsync(msg)
+	}
+
 	return nil
 }
