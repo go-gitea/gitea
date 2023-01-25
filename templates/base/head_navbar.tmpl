@@ -77,6 +77,7 @@
 		</div>
 	{{else if .IsSigned}}
 		<div class="right stackable menu">
+			{{if EnableTimetracking}}
 			<a class="active-stopwatch-trigger item ui label {{if not .ActiveStopwatch}}hidden{{end}}" href="{{.ActiveStopwatch.IssueLink}}">
 				<span class="text">
 					<span class="fitted item">
@@ -115,6 +116,7 @@
 					</form>
 				</div>
 			</div>
+			{{end}}
 
 			<a href="{{AppSubUrl}}/notifications" class="item tooltip not-mobile" data-content="{{.locale.Tr "notifications"}}" aria-label="{{.locale.Tr "notifications"}}">
 				<span class="text">

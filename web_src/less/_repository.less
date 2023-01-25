@@ -470,6 +470,10 @@
       pre {
         overflow: auto;
       }
+
+      .asciicast {
+        padding: 5px !important;
+      }
     }
 
     .sidebar {
@@ -1666,6 +1670,9 @@
       &.rename {
         background-color: var(--color-teal);
       }
+    }
+    .button {
+      padding: 8px 12px;
     }
   }
 
@@ -2895,6 +2902,11 @@ tbody.commit-list {
 // in the commit list, messages can wrap so we can use inline
 .commit-list .message-wrapper {
   display: inline;
+}
+
+// but in the repo-files-table we cannot
+#repo-files-table .commit-list .message-wrapper {
+  display: inline-block;
 }
 
 @media @mediaSm {

@@ -119,14 +119,15 @@ type CanCommitToBranchResults struct {
 //
 // and branch is not protected for push
 func (r *Repository) CanCommitToBranch(ctx context.Context, doer *user_model.User) (CanCommitToBranchResults, error) {
-	protectedBranch, err := git_model.GetProtectedBranchBy(ctx, r.Repository.ID, r.BranchName)
+	protectedBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, r.Repository.ID, r.BranchName)
 	if err != nil {
 		return CanCommitToBranchResults{}, err
 	}
 	userCanPush := true
 	requireSigned := false
 	if protectedBranch != nil {
-		userCanPush = protectedBranch.CanUserPush(doer.ID)
+		protectedBranch.Repo = r.Repository
+		userCanPush = protectedBranch.CanUserPush(ctx, doer)
 		requireSigned = protectedBranch.RequireSignedCommits
 	}
 
@@ -831,7 +832,7 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 		if len(ref) == 0 {
 			// maybe it's a renamed branch
 			return getRefNameFromPath(ctx, path, func(s string) bool {
-				b, exist, err := git_model.FindRenamedBranch(ctx.Repo.Repository.ID, s)
+				b, exist, err := git_model.FindRenamedBranch(ctx, ctx.Repo.Repository.ID, s)
 				if err != nil {
 					log.Error("FindRenamedBranch", err)
 					return false

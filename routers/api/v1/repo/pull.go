@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	activities_model "code.gitea.io/gitea/models/activities"
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	pull_model "code.gitea.io/gitea/models/pull"
@@ -599,7 +600,7 @@ func EditPullRequest(ctx *context.APIContext) {
 	}
 
 	if statusChangeComment != nil {
-		notification.NotifyIssueChangeStatus(ctx, ctx.Doer, issue, statusChangeComment, issue.IsClosed)
+		notification.NotifyIssueChangeStatus(ctx, ctx.Doer, "", issue, statusChangeComment, issue.IsClosed)
 	}
 
 	// change pull target branch
@@ -902,7 +903,7 @@ func MergePullRequest(ctx *context.APIContext) {
 				ctx.NotFound(err)
 			case errors.Is(err, repo_service.ErrBranchIsDefault):
 				ctx.Error(http.StatusForbidden, "DefaultBranch", fmt.Errorf("can not delete default branch"))
-			case errors.Is(err, repo_service.ErrBranchIsProtected):
+			case errors.Is(err, git_model.ErrBranchIsProtected):
 				ctx.Error(http.StatusForbidden, "IsProtectedBranch", fmt.Errorf("branch protected"))
 			default:
 				ctx.Error(http.StatusInternalServerError, "DeleteBranch", err)

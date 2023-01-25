@@ -106,7 +106,7 @@ func GetListLockHandler(ctx *context.Context) {
 	}
 
 	// If no query params path or id
-	lockList, err := git_model.GetLFSLockByRepoID(repository.ID, cursor, limit)
+	lockList, err := git_model.GetLFSLockByRepoID(ctx, repository.ID, cursor, limit)
 	if err != nil {
 		log.Error("Unable to list locks for repository ID[%d]: Error: %v", repository.ID, err)
 		ctx.JSON(http.StatusInternalServerError, api.LFSLockError{
@@ -167,7 +167,7 @@ func PostLockHandler(ctx *context.Context) {
 		return
 	}
 
-	lock, err := git_model.CreateLFSLock(repository, &git_model.LFSLock{
+	lock, err := git_model.CreateLFSLock(ctx, repository, &git_model.LFSLock{
 		Path:    req.Path,
 		OwnerID: ctx.Doer.ID,
 	})
@@ -233,7 +233,7 @@ func VerifyLockHandler(ctx *context.Context) {
 	} else if limit < 0 {
 		limit = 0
 	}
-	lockList, err := git_model.GetLFSLockByRepoID(repository.ID, cursor, limit)
+	lockList, err := git_model.GetLFSLockByRepoID(ctx, repository.ID, cursor, limit)
 	if err != nil {
 		log.Error("Unable to list locks for repository ID[%d]: Error: %v", repository.ID, err)
 		ctx.JSON(http.StatusInternalServerError, api.LFSLockError{
@@ -300,7 +300,7 @@ func UnLockHandler(ctx *context.Context) {
 		return
 	}
 
-	lock, err := git_model.DeleteLFSLockByID(ctx.ParamsInt64("lid"), repository, ctx.Doer, req.Force)
+	lock, err := git_model.DeleteLFSLockByID(ctx, ctx.ParamsInt64("lid"), repository, ctx.Doer, req.Force)
 	if err != nil {
 		if git_model.IsErrLFSUnauthorizedAction(err) {
 			ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")

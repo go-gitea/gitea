@@ -20,7 +20,7 @@ func ToCommitStatus(ctx context.Context, status *git_model.CommitStatus) *api.Co
 		TargetURL:   status.TargetURL,
 		Description: status.Description,
 		ID:          status.Index,
-		URL:         status.APIURL(),
+		URL:         status.APIURL(ctx),
 		Context:     status.Context,
 	}
 

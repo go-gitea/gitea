@@ -59,6 +59,8 @@ func (o *OAuth2) Name() string {
 }
 
 // userIDFromToken returns the user id corresponding to the OAuth token.
+// It will set 'IsApiToken' to true if the token is an API token and
+// set 'ApiTokenScope' to the scope of the access token
 func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
 	_ = req.ParseForm()
 
@@ -86,6 +88,7 @@ func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
 		uid := CheckOAuthAccessToken(tokenSHA)
 		if uid != 0 {
 			store.GetData()["IsApiToken"] = true
+			store.GetData()["ApiTokenScope"] = auth_model.AccessTokenScopeAll // fallback to all
 		}
 		return uid
 	}
@@ -101,6 +104,7 @@ func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
 		log.Error("UpdateAccessToken: %v", err)
 	}
 	store.GetData()["IsApiToken"] = true
+	store.GetData()["ApiTokenScope"] = t.Scope
 	return t.UID
 }
 
