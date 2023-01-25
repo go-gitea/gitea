@@ -363,13 +363,13 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		return 0
 	}
 
-	projects, _, err := project_model.GetProjects(ctx, project_model.SearchOptions{
+	projects, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
 		RepoID:   repo.ID,
 		Type:     project_model.TypeRepository,
 		IsClosed: util.OptionalBoolOf(isShowClosed),
 	})
 	if err != nil {
-		ctx.ServerError("GetProjects", err)
+		ctx.ServerError("FindProjects", err)
 		return
 	}
 	ctx.Data["Projects"] = projects
