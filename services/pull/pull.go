@@ -4,9 +4,11 @@
 package pull
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"regexp"
 	"strings"
 
@@ -371,15 +373,46 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 		return false, fmt.Errorf("GetMergeBase: %w", err)
 	}
 
-	cmd := git.NewCommand(ctx, "diff", "--name-only", "-1").AddDynamicArguments(newCommitID, oldCommitID, base)
-	stdout, stderr, err := cmd.RunStdString(&git.RunOpts{
-		Dir: tmpBasePath,
-	})
+	cmd := git.NewCommand(ctx, "diff", "--name-only").AddDynamicArguments(newCommitID, oldCommitID, base)
+	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
-		log.Error("Unable to run diff on %s %s %s in tempRepo for PR[%d]%s/%s...%s/%s: stdout %s stderr %s Error: %v",
+		return false, fmt.Errorf("unable to open pipe for to run diff: %w", err)
+	}
+
+	changedErr := fmt.Errorf("changed files")
+
+	if err := cmd.Run(&git.RunOpts{
+		Dir:    tmpBasePath,
+		Stdout: stdoutWriter,
+		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
+			_ = stdoutWriter.Close()
+			defer func() {
+				_ = stdoutReader.Close()
+			}()
+			buf := make([]byte, 1024)
+			for {
+				n, err := stdoutReader.Read(buf)
+				if err != nil {
+					if err == io.EOF {
+						return nil
+					}
+					return err
+				}
+
+				ts := bytes.TrimSpace(buf[:n])
+				if len(ts) > 0 {
+					return changedErr
+				}
+			}
+		},
+	}); err != nil {
+		if err == changedErr {
+			return true, nil
+		}
+		log.Error("Unable to run diff on %s %s %s in tempRepo for PR[%d]%s/%s...%s/%s: Error: %v",
 			newCommitID, oldCommitID, base,
 			pr.ID, pr.BaseRepo.FullName(), pr.BaseBranch, pr.HeadRepo.FullName(), pr.HeadBranch,
-			stdout, stderr, err)
+			err)
 
 		// New commit should be found
 		return false, fmt.Errorf("Unable to run diff on %s %s %s in tempRepo for PR[%d]%s/%s...%s/%s: %w",
@@ -388,7 +421,7 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 			err)
 	}
 
-	return strings.TrimSpace(stdout) != "", nil
+	return false, nil
 }
 
 // PushToBaseRepo pushes commits from branches of head repository to
