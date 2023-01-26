@@ -14,27 +14,23 @@ export function initCaptcha() {
 
   switch (captchaEl.getAttribute('captcha-type')) {
     case 'g-recaptcha': {
-      // eslint-disable-next-line no-undef
-      if (grecaptcha) {
-        // eslint-disable-next-line no-undef
-        grecaptcha.ready(() => {
-          // eslint-disable-next-line no-undef
-          grecaptcha.render(captchaEl, params);
+      if (window.grecaptcha) {
+        window.grecaptcha.ready(() => {
+          window.grecaptcha.render(captchaEl, params);
         });
       }
       break;
     }
     case 'cf-turnstile': {
-      // eslint-disable-next-line no-undef
-      if (turnstile) {
-        // eslint-disable-next-line no-undef
-        turnstile.render(captchaEl, params);
+      if (window.turnstile) {
+        window.turnstile.render(captchaEl, params);
       }
       break;
     }
     case 'h-captcha': {
-      // eslint-disable-next-line no-undef
-      hcaptcha.render(captchaEl, params);
+      if (window.hcaptcha) {
+        window.hcaptcha.render(captchaEl, params);
+      }
       break;
     }
     default:
