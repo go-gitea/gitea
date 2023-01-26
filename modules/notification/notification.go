@@ -77,9 +77,9 @@ func NotifyNewIssue(ctx context.Context, issue *issues_model.Issue, mentions []*
 }
 
 // NotifyIssueChangeStatus notifies close or reopen issue to notifiers
-func NotifyIssueChangeStatus(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, actionComment *issues_model.Comment, closeOrReopen bool) {
+func NotifyIssueChangeStatus(ctx context.Context, doer *user_model.User, commitID string, issue *issues_model.Issue, actionComment *issues_model.Comment, closeOrReopen bool) {
 	for _, notifier := range notifiers {
-		notifier.NotifyIssueChangeStatus(ctx, doer, issue, actionComment, closeOrReopen)
+		notifier.NotifyIssueChangeStatus(ctx, doer, commitID, issue, actionComment, closeOrReopen)
 	}
 }
 
