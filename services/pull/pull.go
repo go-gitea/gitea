@@ -388,7 +388,7 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 			err)
 	}
 
-	return strings.TrimSpace(stdout) == "", nil
+	return strings.TrimSpace(stdout) != "", nil
 }
 
 // PushToBaseRepo pushes commits from branches of head repository to
