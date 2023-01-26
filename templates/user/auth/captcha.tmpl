@@ -19,7 +19,7 @@
 	<div class="inline field df ac db-small captcha-field">
 		<span>{{.locale.Tr "captcha"}}</span>
 		<div class="border-secondary w-100-small" id="mcaptcha__widget-container" style="width: 50%; height: 5em"></div>
-		<div id="captcha" class="m-captcha" data-sitekey="{{.McaptchaSitekey}}" data-instance-url="{{.McaptchaURL}}"></div>
+		<div id="captcha" captcha-type="m-captcha" class="m-captcha" data-sitekey="{{.McaptchaSitekey}}" data-instance-url="{{.McaptchaURL}}"></div>
 	</div>
 {{else if eq .CaptchaType "cfturnstile"}}
 	<div class="inline field captcha-field tc">

@@ -1,6 +1,6 @@
 import {isDarkTheme} from '../utils.js';
 
-export function initCaptcha() {
+export async function initCaptcha() {
   const captchaEl = document.querySelector('#captcha');
   if (!captchaEl) return;
 
@@ -31,6 +31,19 @@ export function initCaptcha() {
       if (window.hcaptcha) {
         window.hcaptcha.render(captchaEl, params);
       }
+      break;
+    }
+    case 'm-captcha': {
+      const {default: mCaptcha} = await import(/* webpackChunkName: "mcaptcha-vanilla-glue" */'@mcaptcha/vanilla-glue');
+      mCaptcha.INPUT_NAME = 'm-captcha-response';
+      const instanceURL = captchaEl.getAttribute('data-instance-url');
+
+      mCaptcha.default({
+        siteKey: {
+          instanceUrl: new URL(instanceURL),
+          key: siteKey,
+        }
+      });
       break;
     }
     default:
