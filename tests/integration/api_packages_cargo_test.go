@@ -52,7 +52,10 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
    "deps":[
       {
          "name":"dep",
-         "version_req":"1.0"
+         "version_req":"1.0",
+         "registry": "https://gitea.io/user/_cargo-index",
+         "kind": "normal",
+         "default_features": true
       }
    ],
    "homepage":"` + packageHomepage + `",
@@ -202,6 +205,18 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 					assert.Equal(t, packageVersion, entry.Version)
 					assert.Equal(t, pb.HashSHA256, entry.FileChecksum)
 					assert.False(t, entry.Yanked)
+					assert.Len(t, entry.Dependencies, 1)
+					dep := entry.Dependencies[0]
+					assert.Equal(t, "dep", dep.Name)
+					assert.Equal(t, "1.0", dep.Req)
+					assert.Equal(t, "normal", dep.Kind)
+					assert.True(t, dep.DefaultFeatures)
+					assert.Empty(t, dep.Features)
+					assert.False(t, dep.Optional)
+					assert.Nil(t, dep.Target)
+					assert.NotNil(t, dep.Registry)
+					assert.Equal(t, "https://gitea.io/user/_cargo-index", *dep.Registry)
+					assert.Nil(t, dep.Package)
 				})
 
 				t.Run("Rebuild", func(t *testing.T) {

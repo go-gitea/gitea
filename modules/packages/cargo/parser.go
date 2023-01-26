@@ -53,9 +53,10 @@ type Dependency struct {
 	Features        []string `json:"features"`
 	Optional        bool     `json:"optional"`
 	DefaultFeatures bool     `json:"default_features"`
-	Target          string   `json:"target,omitempty"`
+	Target          *string  `json:"target"`
 	Kind            string   `json:"kind"`
-	Registry        string   `json:"registry,omitempty"`
+	Registry        *string  `json:"registry"`
+	Package         *string  `json:"package"`
 }
 
 var nameMatch = regexp.MustCompile(`\A[a-zA-Z][a-zA-Z0-9-_]{0,63}\z`)
@@ -92,9 +93,9 @@ func parsePackage(r io.Reader) (*Package, error) {
 			Features           []string `json:"features"`
 			Optional           bool     `json:"optional"`
 			DefaultFeatures    bool     `json:"default_features"`
-			Target             string   `json:"target"`
+			Target             *string  `json:"target"`
 			Kind               string   `json:"kind"`
-			Registry           string   `json:"registry"`
+			Registry           *string  `json:"registry"`
 			ExplicitNameInToml string   `json:"explicit_name_in_toml"`
 		} `json:"deps"`
 		Features      map[string][]string `json:"features"`

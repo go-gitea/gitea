@@ -130,9 +130,9 @@ func AddOrUpdatePackageIndex(ctx context.Context, doer, owner *user_model.User, 
 type IndexVersionEntry struct {
 	Name         string                     `json:"name"`
 	Version      string                     `json:"vers"`
-	Dependencies []*cargo_module.Dependency `json:"deps,omitempty"`
+	Dependencies []*cargo_module.Dependency `json:"deps"`
 	FileChecksum string                     `json:"cksum"`
-	Features     map[string][]string        `json:"features,omitempty"`
+	Features     map[string][]string        `json:"features"`
 	Yanked       bool                       `json:"yanked"`
 	Links        string                     `json:"links,omitempty"`
 }
