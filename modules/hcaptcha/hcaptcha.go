@@ -5,12 +5,12 @@ package hcaptcha
 
 import (
 	"context"
-	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -104,7 +104,7 @@ func (c *Client) Verify(token string, opts PostOptions) (*Response, error) {
 		return nil, err
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
