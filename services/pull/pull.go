@@ -4,14 +4,11 @@
 package pull
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"regexp"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
@@ -351,72 +348,47 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 // checkIfPRContentChanged checks if diff to target branch has changed by push
 // A commit can be considered to leave the PR untouched if the patch/diff with its merge base is unchanged
 func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, oldCommitID, newCommitID string) (hasChanged bool, err error) {
-	if err = pr.LoadHeadRepo(ctx); err != nil {
-		return false, fmt.Errorf("LoadHeadRepo: %w", err)
-	} else if pr.HeadRepo == nil {
-		// corrupt data assumed changed
-		return true, nil
+	tmpBasePath, err := createTemporaryRepo(ctx, pr)
+	if err != nil {
+		log.Error("CreateTemporaryPath: %v", err)
+		return false, err
 	}
+	defer func() {
+		if err := repo_module.RemoveTemporaryPath(tmpBasePath); err != nil {
+			log.Error("checkIfPRContentChanged: RemoveTemporaryPath: %s", err)
+		}
+	}()
 
-	if err = pr.LoadBaseRepo(ctx); err != nil {
-		return false, fmt.Errorf("LoadBaseRepo: %w", err)
-	}
-
-	headGitRepo, err := git.OpenRepository(ctx, pr.HeadRepo.RepoPath())
+	tmpRepo, err := git.OpenRepository(ctx, tmpBasePath)
 	if err != nil {
 		return false, fmt.Errorf("OpenRepository: %w", err)
 	}
-	defer headGitRepo.Close()
+	defer tmpRepo.Close()
 
-	// Add a temporary remote.
-	tmpRemote := "checkIfPRContentChanged-" + fmt.Sprint(time.Now().UnixNano())
-	if err = headGitRepo.AddRemote(tmpRemote, pr.BaseRepo.RepoPath(), true); err != nil {
-		return false, fmt.Errorf("AddRemote: %s/%s-%s: %w", pr.HeadRepo.OwnerName, pr.HeadRepo.Name, tmpRemote, err)
-	}
-	defer func() {
-		if err := headGitRepo.RemoveRemote(tmpRemote); err != nil {
-			log.Error("checkIfPRContentChanged: RemoveRemote: %s/%s-%s: %v", pr.HeadRepo.OwnerName, pr.HeadRepo.Name, tmpRemote, err)
-		}
-	}()
-	// To synchronize repo and get a base ref
-	_, base, err := headGitRepo.GetMergeBase(tmpRemote, pr.BaseBranch, pr.HeadBranch)
+	// Find the merge-base
+	_, base, err := tmpRepo.GetMergeBase("", "base", "tracking")
 	if err != nil {
 		return false, fmt.Errorf("GetMergeBase: %w", err)
 	}
 
-	diffBefore := &bytes.Buffer{}
-	diffAfter := &bytes.Buffer{}
-	if err := headGitRepo.GetDiffFromMergeBase(base, oldCommitID, diffBefore); err != nil {
-		// If old commit not found, assume changed.
-		log.Debug("GetDiffFromMergeBase: %v", err)
-		return true, nil
-	}
-	if err := headGitRepo.GetDiffFromMergeBase(base, newCommitID, diffAfter); err != nil {
+	cmd := git.NewCommand(ctx, "diff", "--name-only", "-1").AddDynamicArguments(newCommitID, oldCommitID, base)
+	stdout, stderr, err := cmd.RunStdString(&git.RunOpts{
+		Dir: tmpBasePath,
+	})
+	if err != nil {
+		log.Error("Unable to run diff on %s %s %s in tempRepo for PR[%d]%s/%s...%s/%s: stdout %s stderr %s Error: %v",
+			newCommitID, oldCommitID, base,
+			pr.ID, pr.BaseRepo.FullName(), pr.BaseBranch, pr.HeadRepo.FullName(), pr.HeadBranch,
+			stdout, stderr, err)
+
 		// New commit should be found
-		return false, fmt.Errorf("GetDiffFromMergeBase: %w", err)
+		return false, fmt.Errorf("Unable to run diff on %s %s %s in tempRepo for PR[%d]%s/%s...%s/%s: %w",
+			newCommitID, oldCommitID, base,
+			pr.ID, pr.BaseRepo.FullName(), pr.BaseBranch, pr.HeadRepo.FullName(), pr.HeadBranch,
+			err)
 	}
 
-	diffBeforeLines := bufio.NewScanner(diffBefore)
-	diffAfterLines := bufio.NewScanner(diffAfter)
-
-	for diffBeforeLines.Scan() && diffAfterLines.Scan() {
-		if strings.HasPrefix(diffBeforeLines.Text(), "index") && strings.HasPrefix(diffAfterLines.Text(), "index") {
-			// file hashes can change without the diff changing
-			continue
-		} else if strings.HasPrefix(diffBeforeLines.Text(), "@@") && strings.HasPrefix(diffAfterLines.Text(), "@@") {
-			// the location of the difference may change
-			continue
-		} else if !bytes.Equal(diffBeforeLines.Bytes(), diffAfterLines.Bytes()) {
-			return true, nil
-		}
-	}
-
-	if diffBeforeLines.Scan() || diffAfterLines.Scan() {
-		// Diffs not of equal length
-		return true, nil
-	}
-
-	return false, nil
+	return strings.TrimSpace(stdout) == "", nil
 }
 
 // PushToBaseRepo pushes commits from branches of head repository to
