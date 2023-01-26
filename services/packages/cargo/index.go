@@ -134,7 +134,7 @@ type IndexVersionEntry struct {
 	FileChecksum string                     `json:"cksum"`
 	Features     map[string][]string        `json:"features"`
 	Yanked       bool                       `json:"yanked"`
-	Links        *string                    `json:"links"`
+	Links        string                     `json:"links,omitempty"`
 }
 
 func addOrUpdatePackageIndex(ctx context.Context, t *files_service.TemporaryUploadRepository, p *packages_model.Package) error {
@@ -168,11 +168,6 @@ func addOrUpdatePackageIndex(ctx context.Context, t *files_service.TemporaryUplo
 			features = make(map[string][]string)
 		}
 
-		var links *string
-		if metadata.Links != "" {
-			links = &metadata.Links
-		}
-
 		yanked, _ := strconv.ParseBool(pd.VersionProperties.GetByName(cargo_module.PropertyYanked))
 		entry, err := json.Marshal(&IndexVersionEntry{
 			Name:         pd.Package.Name,
@@ -181,7 +176,7 @@ func addOrUpdatePackageIndex(ctx context.Context, t *files_service.TemporaryUplo
 			FileChecksum: pd.Files[0].Blob.HashSHA256,
 			Features:     features,
 			Yanked:       yanked,
-			Links:        links,
+			Links:        metadata.Links,
 		})
 		if err != nil {
 			return err
