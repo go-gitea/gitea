@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -132,6 +133,27 @@ const (
 	PullRequestStatusAncestor
 )
 
+func (status PullRequestStatus) String() string {
+	switch status {
+	case PullRequestStatusConflict:
+		return "CONFLICT"
+	case PullRequestStatusChecking:
+		return "CHECKING"
+	case PullRequestStatusMergeable:
+		return "MERGEABLE"
+	case PullRequestStatusManuallyMerged:
+		return "MANUALLY_MERGED"
+	case PullRequestStatusError:
+		return "ERROR"
+	case PullRequestStatusEmpty:
+		return "EMPTY"
+	case PullRequestStatusAncestor:
+		return "ANCESTOR"
+	default:
+		return strconv.Itoa(int(status))
+	}
+}
+
 // PullRequestFlow the flow of pull request
 type PullRequestFlow int
 
@@ -205,9 +227,10 @@ func DeletePullsByBaseRepoID(ctx context.Context, repoID int64) error {
 // ColorFormat writes a colored string to identify this struct
 func (pr *PullRequest) ColorFormat(s fmt.State) {
 	if pr == nil {
-		log.ColorFprintf(s, "PR[%d][%s:%s...%s:%s]",
+		log.ColorFprintf(s, "PR[%d]%s#%d[%s...%s:%s]",
 			log.NewColoredIDValue(0),
 			log.NewColoredValue("<nil>/<nil>"),
+			log.NewColoredIDValue(0),
 			log.NewColoredValue("<nil>"),
 			log.NewColoredValue("<nil>/<nil>"),
 			log.NewColoredValue("<nil>"),
@@ -215,11 +238,13 @@ func (pr *PullRequest) ColorFormat(s fmt.State) {
 		return
 	}
 
-	log.ColorFprintf(s, "PR[%d][", log.NewColoredIDValue(pr.ID))
+	log.ColorFprintf(s, "PR[%d]", log.NewColoredIDValue(pr.ID))
 	if pr.BaseRepo != nil {
-		log.ColorFprintf(s, "%s:%s...", log.NewColoredValue(pr.BaseRepo.FullName()), log.NewColoredValue(pr.BaseBranch))
+		log.ColorFprintf(s, "%s#%d[%s...", log.NewColoredValue(pr.BaseRepo.FullName()),
+			log.NewColoredIDValue(pr.Index), log.NewColoredValue(pr.BaseBranch))
 	} else {
-		log.ColorFprintf(s, "Repo[%d]:%s...", log.NewColoredIDValue(pr.BaseRepoID), log.NewColoredValue(pr.BaseBranch))
+		log.ColorFprintf(s, "Repo[%d]#%d[%s...", log.NewColoredIDValue(pr.BaseRepoID),
+			log.NewColoredIDValue(pr.Index), log.NewColoredValue(pr.BaseBranch))
 	}
 	if pr.HeadRepoID == pr.BaseRepoID {
 		log.ColorFprintf(s, "%s]", log.NewColoredValue(pr.HeadBranch))
