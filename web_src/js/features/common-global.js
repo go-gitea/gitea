@@ -4,7 +4,7 @@ import {mqBinarySearch} from '../utils.js';
 import {createDropzone} from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';
-import {attachDropdownAria} from './aria.js';
+import {attachCheckboxAria, attachDropdownAria} from './aria.js';
 import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
 import {initTooltip} from '../modules/tippy.js';
 import {svg} from '../svg.js';
@@ -111,7 +111,7 @@ export function initGlobalCommon() {
   });
   attachDropdownAria($uiDropdowns);
 
-  $('.ui.checkbox').checkbox();
+  attachCheckboxAria($('.ui.checkbox'));
 
   $('.tabular.menu .item').tab();
   $('.tabable.menu .item').tab();
