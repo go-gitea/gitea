@@ -279,7 +279,11 @@ func TestCreateUserWithoutCustomTimestamps(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	// Add new user with a custom creation timestamp.
+	fakeNow := timeutil.TimeStamp(1674552894)
+	timeutil.Set(fakeNow.AsTime())
+	defer timeutil.Unset()
+
+	// Add new user without a custom creation timestamp.
 	user.Name = "testuser"
 	user.LowerName = strings.ToLower(user.Name)
 	user.ID = 0
@@ -291,9 +295,8 @@ func TestCreateUserWithoutCustomTimestamps(t *testing.T) {
 
 	fetched, err := user_model.GetUserByID(context.Background(), user.ID)
 	assert.NoError(t, err)
-	// 1674552894 is "now" at the moment of writing this code.
-	assert.Greater(t, fetched.CreatedUnix, timeutil.TimeStamp(1674552894))
-	assert.Greater(t, fetched.UpdatedUnix, timeutil.TimeStamp(1674552894))
+	assert.Equal(t, fetched.CreatedUnix, fakeNow)
+	assert.Equal(t, fetched.UpdatedUnix, fakeNow)
 }
 
 func TestGetUserIDsByNames(t *testing.T) {
