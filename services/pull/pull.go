@@ -352,7 +352,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, oldCommitID, newCommitID string) (hasChanged bool, err error) {
 	tmpBasePath, err := createTemporaryRepo(ctx, pr)
 	if err != nil {
-		log.Error("CreateTemporaryPath: %v", err)
+		log.Error("CreateTemporaryRepo: %v", err)
 		return false, err
 	}
 	defer func() {
