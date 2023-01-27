@@ -373,13 +373,11 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 		return false, fmt.Errorf("GetMergeBase: %w", err)
 	}
 
-	cmd := git.NewCommand(ctx, "diff", "--name-only").AddDynamicArguments(newCommitID, oldCommitID, base)
+	cmd := git.NewCommand(ctx, "diff", "--name-only", "-z").AddDynamicArguments(newCommitID, oldCommitID, base)
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
 		return false, fmt.Errorf("unable to open pipe for to run diff: %w", err)
 	}
-
-	changedErr := fmt.Errorf("changed files")
 
 	if err := cmd.Run(&git.RunOpts{
 		Dir:    tmpBasePath,
@@ -389,18 +387,18 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 			defer func() {
 				_ = stdoutReader.Close()
 			}()
-			return util.EmptyReader(stdoutReader)
+			return util.IsEmptyReader(stdoutReader)
 		},
 	}); err != nil {
-		if err == changedErr {
+		if err == util.ErrNotEmpty {
 			return true, nil
 		}
+
 		log.Error("Unable to run diff on %s %s %s in tempRepo for PR[%d]%s/%s...%s/%s: Error: %v",
 			newCommitID, oldCommitID, base,
 			pr.ID, pr.BaseRepo.FullName(), pr.BaseBranch, pr.HeadRepo.FullName(), pr.HeadBranch,
 			err)
 
-		// New commit should be found
 		return false, fmt.Errorf("Unable to run diff on %s %s %s in tempRepo for PR[%d]%s/%s...%s/%s: %w",
 			newCommitID, oldCommitID, base,
 			pr.ID, pr.BaseRepo.FullName(), pr.BaseBranch, pr.HeadRepo.FullName(), pr.HeadBranch,

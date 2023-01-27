@@ -22,8 +22,8 @@ func ReadAtMost(r io.Reader, buf []byte) (n int, err error) {
 // ErrNotEmpty is an error reported when there is a non-empty reader
 var ErrNotEmpty = errors.New("not-empty")
 
-// EmptyReader reads a reader and ensures it is empty
-func EmptyReader(r io.Reader) (err error) {
+// IsEmptyReader reads a reader and ensures it is empty
+func IsEmptyReader(r io.Reader) (err error) {
 	var buf [1024]byte
 
 	for {
