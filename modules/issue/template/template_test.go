@@ -640,6 +640,7 @@ body:
       description: Description of input
       placeholder: Placeholder of input
       value: Value of input
+      hide_label: true
     validations:
       required: true
       is_number: true
@@ -680,8 +681,6 @@ body:
 			want: `### Label of textarea
 
 ` + "```bash\nValue of id2\n```" + `
-
-### Label of input
 
 Value of id3
 
