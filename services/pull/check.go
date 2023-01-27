@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
@@ -27,7 +26,6 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 )
 
@@ -162,58 +160,43 @@ func checkAndUpdateStatus(ctx context.Context, pr *issues_model.PullRequest) {
 	}
 }
 
-// getMergeCommit checks if a pull request got merged
+// getMergeCommit checks if a pull request has been merged
 // Returns the git.Commit of the pull request if merged
 func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Commit, error) {
-	if pr.BaseRepo == nil {
-		var err error
-		pr.BaseRepo, err = repo_model.GetRepositoryByID(ctx, pr.BaseRepoID)
-		if err != nil {
-			return nil, fmt.Errorf("GetRepositoryByID: %w", err)
-		}
+	if err := pr.LoadBaseRepo(ctx); err != nil {
+		return nil, fmt.Errorf("unable to load base repo for PR[%d]: %w", pr.ID, err)
 	}
 
-	indexTmpPath, err := os.MkdirTemp(os.TempDir(), "gitea-"+pr.BaseRepo.Name)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to create temp dir for repository %s: %w", pr.BaseRepo.RepoPath(), err)
-	}
-	defer func() {
-		if err := util.RemoveAll(indexTmpPath); err != nil {
-			log.Warn("Unable to remove temporary index path: %s: Error: %v", indexTmpPath, err)
-		}
-	}()
-
-	headFile := pr.GetGitRefName()
+	prHeadRef := pr.GetGitRefName()
 
 	// Check if a pull request is merged into BaseBranch
-	_, _, err = git.NewCommand(ctx, "merge-base", "--is-ancestor").AddDynamicArguments(headFile, pr.BaseBranch).
-		RunStdString(&git.RunOpts{Dir: pr.BaseRepo.RepoPath(), Env: []string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()}})
-	if err != nil {
-		// Errors are signaled by a non-zero status that is not 1
+
+	if _, _, err := git.NewCommand(ctx, "merge-base", "--is-ancestor").
+		AddDynamicArguments(prHeadRef, pr.BaseBranch).
+		RunStdString(&git.RunOpts{Dir: pr.BaseRepo.RepoPath()}); err != nil {
 		if strings.Contains(err.Error(), "exit status 1") {
+			// prHeadRef is not an ancestor of the base branch
 			return nil, nil
 		}
+		// Errors are signaled by a non-zero status that is not 1
 		return nil, fmt.Errorf("git merge-base --is-ancestor: %w", err)
 	}
 
-	commitIDBytes, err := os.ReadFile(pr.BaseRepo.RepoPath() + "/" + headFile)
+	// exit 0 means prHeadRef is an ancestor of pr.BaseBranch - find the head commit id
+	prHeadCommitID, err := git.GetFullCommitID(ctx, pr.BaseRepo.RepoPath(), prHeadRef)
 	if err != nil {
-		return nil, fmt.Errorf("ReadFile(%s): %w", headFile, err)
+		return nil, fmt.Errorf("GetFullCommitID(%s) in %s: %w", prHeadRef, pr.BaseRepo.FullName(), err)
 	}
-	commitID := string(commitIDBytes)
-	if len(commitID) < git.SHAFullLength {
-		return nil, fmt.Errorf(`ReadFile(%s): invalid commit-ID "%s"`, headFile, commitID)
-	}
-	cmd := commitID[:git.SHAFullLength] + ".." + pr.BaseBranch
+	cmd := prHeadCommitID + ".." + pr.BaseBranch
 
 	// Get the commit from BaseBranch where the pull request got merged
 	mergeCommit, _, err := git.NewCommand(ctx, "rev-list", "--ancestry-path", "--merges", "--reverse").AddDynamicArguments(cmd).
-		RunStdString(&git.RunOpts{Dir: "", Env: []string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()}})
+		RunStdString(&git.RunOpts{Dir: pr.BaseRepo.RepoPath()})
 	if err != nil {
 		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %w", err)
 	} else if len(mergeCommit) < git.SHAFullLength {
 		// PR was maybe fast-forwarded, so just use last commit of PR
-		mergeCommit = commitID[:git.SHAFullLength]
+		mergeCommit = prHeadCommitID
 	}
 
 	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
@@ -253,38 +236,41 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 		log.Error("PullRequest[%d].getMergeCommit: %v", pr.ID, err)
 		return false
 	}
-	if commit != nil {
-		pr.MergedCommitID = commit.ID.String()
-		pr.MergedUnix = timeutil.TimeStamp(commit.Author.When.Unix())
-		pr.Status = issues_model.PullRequestStatusManuallyMerged
-		merger, _ := user_model.GetUserByEmail(commit.Author.Email)
 
-		// When the commit author is unknown set the BaseRepo owner as merger
-		if merger == nil {
-			if pr.BaseRepo.Owner == nil {
-				if err = pr.BaseRepo.GetOwner(ctx); err != nil {
-					log.Error("BaseRepo.GetOwner[%d]: %v", pr.ID, err)
-					return false
-				}
-			}
-			merger = pr.BaseRepo.Owner
-		}
-		pr.Merger = merger
-		pr.MergerID = merger.ID
-
-		if merged, err := pr.SetMerged(ctx); err != nil {
-			log.Error("PullRequest[%d].setMerged : %v", pr.ID, err)
-			return false
-		} else if !merged {
-			return false
-		}
-
-		notification.NotifyMergePullRequest(ctx, merger, pr)
-
-		log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commit.ID.String())
-		return true
+	if commit == nil {
+		// no merge commit found
+		return false
 	}
-	return false
+
+	pr.MergedCommitID = commit.ID.String()
+	pr.MergedUnix = timeutil.TimeStamp(commit.Author.When.Unix())
+	pr.Status = issues_model.PullRequestStatusManuallyMerged
+	merger, _ := user_model.GetUserByEmail(commit.Author.Email)
+
+	// When the commit author is unknown set the BaseRepo owner as merger
+	if merger == nil {
+		if pr.BaseRepo.Owner == nil {
+			if err = pr.BaseRepo.GetOwner(ctx); err != nil {
+				log.Error("BaseRepo.GetOwner[%d]: %v", pr.ID, err)
+				return false
+			}
+		}
+		merger = pr.BaseRepo.Owner
+	}
+	pr.Merger = merger
+	pr.MergerID = merger.ID
+
+	if merged, err := pr.SetMerged(ctx); err != nil {
+		log.Error("PullRequest[%d].setMerged : %v", pr.ID, err)
+		return false
+	} else if !merged {
+		return false
+	}
+
+	notification.NotifyMergePullRequest(ctx, merger, pr)
+
+	log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commit.ID.String())
+	return true
 }
 
 // InitializePullRequests checks and tests untested patches of pull requests.
@@ -327,7 +313,7 @@ func testPR(id int64) {
 
 	pr, err := issues_model.GetPullRequestByID(ctx, id)
 	if err != nil {
-		log.Error("GetPullRequestByID[%d]: %v", id, err)
+		log.Error("Unable to GetPullRequestByID[%d]: %v", id, err)
 		return
 	}
 
