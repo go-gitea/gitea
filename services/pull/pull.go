@@ -4,7 +4,6 @@
 package pull
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -28,6 +27,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
+	"code.gitea.io/gitea/modules/util"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
 
@@ -389,21 +389,7 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 			defer func() {
 				_ = stdoutReader.Close()
 			}()
-			buf := make([]byte, 1024)
-			for {
-				n, err := stdoutReader.Read(buf)
-				if err != nil {
-					if err == io.EOF {
-						return nil
-					}
-					return err
-				}
-
-				ts := bytes.TrimSpace(buf[:n])
-				if len(ts) > 0 {
-					return changedErr
-				}
-			}
+			return util.EmptyReader(stdoutReader)
 		},
 	}); err != nil {
 		if err == changedErr {
