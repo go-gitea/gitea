@@ -1134,6 +1134,8 @@ func (r *Repository) GetIssueConfig(path string, commit *git.Commit) (api.IssueC
 		return GetDefaultIssueConfig(), nil
 	}
 
+	defer reader.Close()
+
 	configContent, err := io.ReadAll(reader)
 	if err != nil {
 		return GetDefaultIssueConfig(), err
