@@ -10,10 +10,6 @@
 			<label for="room_id">{{.locale.Tr "repo.settings.matrix.room_id"}}</label>
 			<input id="room_id" name="room_id" type="text" value="{{.MatrixHook.Room}}" required>
 		</div>
-		<div class="required field {{if .Err_AccessToken}}error{{end}}">
-			<label for="access_token">{{.locale.Tr "repo.settings.matrix.access_token"}}</label>
-			<input id="access_token" name="access_token" type="text" value="{{.MatrixHook.AccessToken}}" required>
-		</div>
 		<div class="field">
 			<label>{{.locale.Tr "repo.settings.matrix.message_type"}}</label>
 				<div class="ui selection dropdown">

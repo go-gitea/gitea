@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -35,10 +34,10 @@ func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opt
 		"GIT_COMMITTER_EMAIL="+committer.Email,
 		"GIT_COMMITTER_DATE="+commitTimeStr,
 	)
-	cmd := NewCommand(repo.Ctx, "commit-tree", tree.ID.String())
+	cmd := NewCommand(repo.Ctx, "commit-tree").AddDynamicArguments(tree.ID.String())
 
 	for _, parent := range opts.Parents {
-		cmd.AddArguments("-p", parent)
+		cmd.AddArguments("-p").AddDynamicArguments(parent)
 	}
 
 	messageBytes := new(bytes.Buffer)
@@ -46,7 +45,7 @@ func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opt
 	_, _ = messageBytes.WriteString("\n")
 
 	if opts.KeyID != "" || opts.AlwaysSign {
-		cmd.AddArguments(fmt.Sprintf("-S%s", opts.KeyID))
+		cmd.AddArguments(CmdArg(fmt.Sprintf("-S%s", opts.KeyID)))
 	}
 
 	if opts.NoGPGSign {

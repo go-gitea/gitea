@@ -1,6 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package admin
 
@@ -42,7 +41,7 @@ func Repos(ctx *context.Context) {
 
 // DeleteRepo delete one repository
 func DeleteRepo(ctx *context.Context) {
-	repo, err := repo_model.GetRepositoryByID(ctx.FormInt64("id"))
+	repo, err := repo_model.GetRepositoryByID(ctx, ctx.FormInt64("id"))
 	if err != nil {
 		ctx.ServerError("GetRepositoryByID", err)
 		return

@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -27,7 +26,7 @@ func CodeSearch(ctx *context.Context) {
 
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
-	ctx.Data["Title"] = ctx.Tr("code.title")
+	ctx.Data["Title"] = ctx.Tr("explore.code")
 	ctx.Data["ContextUser"] = ctx.ContextUser
 
 	language := ctx.FormTrim("l")

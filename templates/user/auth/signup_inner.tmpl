@@ -34,34 +34,8 @@
 						<input id="retype" name="retype" type="password" value="{{.retype}}" autocomplete="new-password" required>
 					</div>
 				{{end}}
-				{{if and .EnableCaptcha (eq .CaptchaType "image")}}
-					<div class="inline field">
-						<label></label>
-						{{.Captcha.CreateHTML}}
-					</div>
-					<div class="required inline field {{if .Err_Captcha}}error{{end}}">
-						<label for="captcha">{{.locale.Tr "captcha"}}</label>
-						<input id="captcha" name="captcha" value="{{.captcha}}" autocomplete="off">
-					</div>
-				{{end}}
-				{{if and .EnableCaptcha (eq .CaptchaType "recaptcha")}}
-					<div class="inline field required">
-						<div class="g-recaptcha" data-sitekey="{{.RecaptchaSitekey}}"></div>
-					</div>
-				{{end}}
-				{{if and .EnableCaptcha (eq .CaptchaType "hcaptcha")}}
-					<div class="inline field required">
-						<div class="h-captcha" data-sitekey="{{.HcaptchaSitekey}}"></div>
-					</div>
-				{{end}}
-				{{if and .EnableCaptcha (eq .CaptchaType "mcaptcha")}}
-					<div class="inline field df ac db-small captcha-field">
-						<span>{{.locale.Tr "captcha"}}</span>
-						<div class="border-secondary w-100-small" id="mcaptcha__widget-container" style="width: 50%; height: 5em"></div>
-						<div class="m-captcha" data-sitekey="{{.McaptchaSitekey}}" data-instance-url="{{.McaptchaURL}}"></div>
-					</div>
-				{{end}}
 
+				{{template "user/auth/captcha" .}}
 
 				<div class="inline field">
 					<label></label>

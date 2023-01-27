@@ -1,13 +1,11 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/mail"
 	"regexp"
@@ -23,7 +21,7 @@ import (
 )
 
 // ErrEmailNotActivated e-mail address has not been activated error
-var ErrEmailNotActivated = errors.New("e-mail address has not been activated")
+var ErrEmailNotActivated = util.NewInvalidArgumentErrorf("e-mail address has not been activated")
 
 // ErrEmailCharIsNotSupported e-mail address contains unsupported character
 type ErrEmailCharIsNotSupported struct {
@@ -264,7 +262,7 @@ func AddEmailAddresses(emails []*EmailAddress) error {
 	}
 
 	if err := db.Insert(db.DefaultContext, emails); err != nil {
-		return fmt.Errorf("Insert: %v", err)
+		return fmt.Errorf("Insert: %w", err)
 	}
 
 	return nil
@@ -321,7 +319,7 @@ func DeleteInactiveEmailAddresses(ctx context.Context) error {
 
 // ActivateEmail activates the email address to given user.
 func ActivateEmail(email *EmailAddress) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -333,7 +331,7 @@ func ActivateEmail(email *EmailAddress) error {
 }
 
 func updateActivation(ctx context.Context, email *EmailAddress, activate bool) error {
-	user, err := GetUserByIDCtx(ctx, email.UID)
+	user, err := GetUserByID(ctx, email.UID)
 	if err != nil {
 		return err
 	}
@@ -372,7 +370,7 @@ func MakeEmailPrimary(email *EmailAddress) error {
 		}
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -485,7 +483,7 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 	count, err := db.GetEngine(db.DefaultContext).Join("INNER", "`user`", "`user`.ID = email_address.uid").
 		Where(cond).Count(new(EmailAddress))
 	if err != nil {
-		return nil, 0, fmt.Errorf("Count: %v", err)
+		return nil, 0, fmt.Errorf("Count: %w", err)
 	}
 
 	orderby := opts.SortType.String()
@@ -510,7 +508,7 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 // ActivateUserEmail will change the activated state of an email address,
 // either primary or secondary (all in the email_address table)
 func ActivateUserEmail(userID int64, email string, activate bool) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -530,7 +528,7 @@ func ActivateUserEmail(userID int64, email string, activate bool) (err error) {
 	}
 	if activate {
 		if used, err := IsEmailActive(ctx, email, addr.ID); err != nil {
-			return fmt.Errorf("unable to check isEmailActive() for %s: %v", email, err)
+			return fmt.Errorf("unable to check isEmailActive() for %s: %w", email, err)
 		} else if used {
 			return ErrEmailAlreadyUsed{Email: email}
 		}
@@ -551,10 +549,10 @@ func ActivateUserEmail(userID int64, email string, activate bool) (err error) {
 		if user.IsActive != activate {
 			user.IsActive = activate
 			if user.Rands, err = GetUserSalt(); err != nil {
-				return fmt.Errorf("unable to generate salt: %v", err)
+				return fmt.Errorf("unable to generate salt: %w", err)
 			}
 			if err = UpdateUserCols(ctx, &user, "is_active", "rands"); err != nil {
-				return fmt.Errorf("unable to updateUserCols() for user ID: %d: %v", userID, err)
+				return fmt.Errorf("unable to updateUserCols() for user ID: %d: %w", userID, err)
 			}
 		}
 	}

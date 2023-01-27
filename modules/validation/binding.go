@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package validation
 
@@ -24,6 +23,9 @@ const (
 
 	// ErrRegexPattern is returned when a regex pattern is invalid
 	ErrRegexPattern = "RegexPattern"
+
+	// ErrUsername is username error
+	ErrUsername = "UsernameError"
 )
 
 // AddBindingRules adds additional binding rules
@@ -34,6 +36,7 @@ func AddBindingRules() {
 	addGlobPatternRule()
 	addRegexPatternRule()
 	addGlobOrRegexPatternRule()
+	addUsernamePatternRule()
 }
 
 func addGitRefNameBindingRule() {
@@ -144,6 +147,22 @@ func addGlobOrRegexPatternRule() {
 				return regexPatternValidator(errs, name, str[1:len(str)-1])
 			}
 			return globPatternValidator(errs, name, val)
+		},
+	})
+}
+
+func addUsernamePatternRule() {
+	binding.AddRule(&binding.Rule{
+		IsMatch: func(rule string) bool {
+			return rule == "Username"
+		},
+		IsValid: func(errs binding.Errors, name string, val interface{}) (bool, binding.Errors) {
+			str := fmt.Sprintf("%v", val)
+			if !IsValidUsername(str) {
+				errs.Add([]string{name}, ErrUsername, "invalid username")
+				return false, errs
+			}
+			return true, errs
 		},
 	})
 }

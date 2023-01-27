@@ -13,7 +13,9 @@
 					<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
 					<div class="mx-2">/</div>
 					<a href="{{$.RepoLink}}">{{.Name}}</a>
-					<a href="{{$.RepoLink}}.rss"><i class="ui grey icon tooltip ml-3" data-content="{{$.locale.Tr "rss_feed"}}" data-position="top center">{{svg "octicon-rss" 18}}</i></a>
+					{{if $.EnableFeed}}
+						<a href="{{$.RepoLink}}.rss"><i class="ui grey icon tooltip ml-3" data-content="{{$.locale.Tr "rss_feed"}}" data-position="top center">{{svg "octicon-rss" 18}}</i></a>
+					{{end}}
 					<div class="labels df ac fw">
 						{{if .IsTemplate}}
 							{{if .IsPrivate}}
@@ -152,13 +154,13 @@
 		{{if not (or .Repository.IsBeingCreated .Repository.IsBroken)}}
 			<div class="ui tabular stackable menu navbar">
 				{{if .Permission.CanRead $.UnitTypeCode}}
-				<a class="{{if .PageIsViewCode}}active{{end}} item" href="{{.RepoLink}}{{if (ne .BranchName .Repository.DefaultBranch)}}/src/{{.BranchNameSubURL}}{{end}}">
+				<a class="{{if .PageIsViewCode}}active {{end}}item" href="{{.RepoLink}}{{if (ne .BranchName .Repository.DefaultBranch)}}/src/{{.BranchNameSubURL}}{{end}}">
 					{{svg "octicon-code"}} {{.locale.Tr "repo.code"}}
 				</a>
 				{{end}}
 
 				{{if .Permission.CanRead $.UnitTypeIssues}}
-					<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoLink}}/issues">
+					<a class="{{if .PageIsIssueList}}active {{end}}item" href="{{.RepoLink}}/issues">
 						{{svg "octicon-issue-opened"}} {{.locale.Tr "repo.issues"}}
 						{{if .Repository.NumOpenIssues}}
 							<span class="ui primary small label">{{CountFmt .Repository.NumOpenIssues}}</span>
@@ -167,13 +169,13 @@
 				{{end}}
 
 				{{if .Permission.CanRead $.UnitTypeExternalTracker}}
-					<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoExternalIssuesLink}}" target="_blank" rel="noopener noreferrer">
+					<a class="{{if .PageIsIssueList}}active {{end}}item" href="{{.RepoExternalIssuesLink}}" target="_blank" rel="noopener noreferrer">
 						{{svg "octicon-link-external"}} {{.locale.Tr "repo.issues"}} </span>
 					</a>
 				{{end}}
 
 				{{if and .Repository.CanEnablePulls (.Permission.CanRead $.UnitTypePullRequests)}}
-					<a class="{{if .PageIsPullList}}active{{end}} item" href="{{.RepoLink}}/pulls">
+					<a class="{{if .PageIsPullList}}active {{end}}item" href="{{.RepoLink}}/pulls">
 						{{svg "octicon-git-pull-request"}} {{.locale.Tr "repo.pulls"}}
 						{{if .Repository.NumOpenPulls}}
 							<span class="ui primary small label">{{CountFmt .Repository.NumOpenPulls}}</span>
@@ -182,13 +184,13 @@
 				{{end}}
 
 				{{if .Permission.CanRead $.UnitTypePackages}}
-					<a href="{{.RepoLink}}/packages" class="{{if .IsPackagesPage}}active{{end}} item">
+					<a href="{{.RepoLink}}/packages" class="{{if .IsPackagesPage}}active {{end}}item">
 						{{svg "octicon-package"}} {{.locale.Tr "packages.title"}}
 					</a>
 				{{end}}
 
 				{{if and (not .UnitProjectsGlobalDisabled) (.Permission.CanRead $.UnitTypeProjects)}}
-					<a href="{{.RepoLink}}/projects" class="{{if .IsProjectsPage}}active{{end}} item">
+					<a href="{{.RepoLink}}/projects" class="{{if .IsProjectsPage}}active {{end}}item">
 						{{svg "octicon-project"}} {{.locale.Tr "repo.project_board"}}
 						{{if .Repository.NumOpenProjects}}
 							<span class="ui primary small label">{{CountFmt .Repository.NumOpenProjects}}</span>
@@ -197,7 +199,7 @@
 				{{end}}
 
 				{{if and (.Permission.CanRead $.UnitTypeReleases) (not .IsEmptyRepo)}}
-				<a class="{{if .PageIsReleaseList}}active{{end}} item" href="{{.RepoLink}}/releases">
+				<a class="{{if .PageIsReleaseList}}active {{end}}item" href="{{.RepoLink}}/releases">
 					{{svg "octicon-tag"}} {{.locale.Tr "repo.releases"}}
 					{{if .NumReleases}}
 						<span class="ui primary small label">{{CountFmt .NumReleases}}</span>
@@ -206,13 +208,13 @@
 				{{end}}
 
 				{{if or (.Permission.CanRead $.UnitTypeWiki) (.Permission.CanRead $.UnitTypeExternalWiki)}}
-					<a class="{{if .PageIsWiki}}active{{end}} item" href="{{.RepoLink}}/wiki" {{if and (.Permission.CanRead $.UnitTypeExternalWiki) (not (HasPrefix ((.Repository.MustGetUnit $.UnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL) (.Repository.HTMLURL)))}} target="_blank" rel="noopener noreferrer" {{end}}>
+					<a class="{{if .PageIsWiki}}active {{end}}item" href="{{.RepoLink}}/wiki" {{if and (.Permission.CanRead $.UnitTypeExternalWiki) (not (HasPrefix ((.Repository.MustGetUnit $.Context $.UnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL) (.Repository.HTMLURL)))}} target="_blank" rel="noopener noreferrer" {{end}}>
 						{{svg "octicon-book"}} {{.locale.Tr "repo.wiki"}}
 					</a>
 				{{end}}
 
 				{{if and (.Permission.CanReadAny $.UnitTypePullRequests $.UnitTypeIssues $.UnitTypeReleases) (not .IsEmptyRepo)}}
-					<a class="{{if .PageIsActivity}}active{{end}} item" href="{{.RepoLink}}/activity">
+					<a class="{{if .PageIsActivity}}active {{end}}item" href="{{.RepoLink}}/activity">
 						{{svg "octicon-pulse"}} {{.locale.Tr "repo.activity"}}
 					</a>
 				{{end}}
@@ -221,7 +223,7 @@
 
 				{{if .Permission.IsAdmin}}
 					<div class="right menu">
-						<a class="{{if .PageIsSettings}}active{{end}} item" href="{{.RepoLink}}/settings">
+						<a class="{{if .PageIsSettings}}active {{end}}item" href="{{.RepoLink}}/settings">
 							{{svg "octicon-tools"}} {{.locale.Tr "repo.settings"}}
 						</a>
 					</div>
@@ -230,7 +232,7 @@
 		{{else if .Permission.IsAdmin}}
 			<div class="ui tabular stackable menu navbar">
 				<div class="right menu">
-					<a class="{{if .PageIsSettings}}active{{end}} item" href="{{.RepoLink}}/settings">
+					<a class="{{if .PageIsSettings}}active {{end}}item" href="{{.RepoLink}}/settings">
 						{{svg "octicon-tools"}} {{.locale.Tr "repo.settings"}}
 					</a>
 				</div>

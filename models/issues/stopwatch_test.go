@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues_test
 
@@ -19,7 +18,7 @@ import (
 func TestCancelStopwatch(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user1, err := user_model.GetUserByID(1)
+	user1, err := user_model.GetUserByID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 
 	issue1, err := issues_model.GetIssueByID(db.DefaultContext, 1)
@@ -59,9 +58,9 @@ func TestHasUserStopwatch(t *testing.T) {
 func TestCreateOrStopIssueStopwatch(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user2, err := user_model.GetUserByID(2)
+	user2, err := user_model.GetUserByID(db.DefaultContext, 2)
 	assert.NoError(t, err)
-	user3, err := user_model.GetUserByID(3)
+	user3, err := user_model.GetUserByID(db.DefaultContext, 3)
 	assert.NoError(t, err)
 
 	issue1, err := issues_model.GetIssueByID(db.DefaultContext, 1)

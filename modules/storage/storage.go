@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package storage
 
@@ -111,46 +110,38 @@ func SaveFrom(objStorage ObjectStorage, p string, callback func(w io.Writer) err
 
 var (
 	// Attachments represents attachments storage
-	Attachments ObjectStorage
+	Attachments ObjectStorage = uninitializedStorage
 
 	// LFS represents lfs storage
-	LFS ObjectStorage
+	LFS ObjectStorage = uninitializedStorage
 
 	// Avatars represents user avatars storage
-	Avatars ObjectStorage
+	Avatars ObjectStorage = uninitializedStorage
 	// RepoAvatars represents repository avatars storage
-	RepoAvatars ObjectStorage
+	RepoAvatars ObjectStorage = uninitializedStorage
 
 	// RepoArchives represents repository archives storage
-	RepoArchives ObjectStorage
+	RepoArchives ObjectStorage = uninitializedStorage
 
 	// Packages represents packages storage
-	Packages ObjectStorage
+	Packages ObjectStorage = uninitializedStorage
 )
 
 // Init init the stoarge
 func Init() error {
-	if err := initAttachments(); err != nil {
-		return err
+	for _, f := range []func() error{
+		initAttachments,
+		initAvatars,
+		initRepoAvatars,
+		initLFS,
+		initRepoArchives,
+		initPackages,
+	} {
+		if err := f(); err != nil {
+			return err
+		}
 	}
-
-	if err := initAvatars(); err != nil {
-		return err
-	}
-
-	if err := initRepoAvatars(); err != nil {
-		return err
-	}
-
-	if err := initLFS(); err != nil {
-		return err
-	}
-
-	if err := initRepoArchives(); err != nil {
-		return err
-	}
-
-	return initPackages()
+	return nil
 }
 
 // NewStorage takes a storage type and some config and returns an ObjectStorage or an error
@@ -173,12 +164,20 @@ func initAvatars() (err error) {
 }
 
 func initAttachments() (err error) {
+	if !setting.Attachment.Enabled {
+		Attachments = discardStorage("Attachment isn't enabled")
+		return nil
+	}
 	log.Info("Initialising Attachment storage with type: %s", setting.Attachment.Storage.Type)
 	Attachments, err = NewStorage(setting.Attachment.Storage.Type, &setting.Attachment.Storage)
 	return err
 }
 
 func initLFS() (err error) {
+	if !setting.LFS.StartServer {
+		LFS = discardStorage("LFS isn't enabled")
+		return nil
+	}
 	log.Info("Initialising LFS storage with type: %s", setting.LFS.Storage.Type)
 	LFS, err = NewStorage(setting.LFS.Storage.Type, &setting.LFS.Storage)
 	return err
@@ -197,6 +196,10 @@ func initRepoArchives() (err error) {
 }
 
 func initPackages() (err error) {
+	if !setting.Packages.Enabled {
+		Packages = discardStorage("Packages isn't enabled")
+		return nil
+	}
 	log.Info("Initialising Packages storage with type: %s", setting.Packages.Storage.Type)
 	Packages, err = NewStorage(setting.Packages.Storage.Type, &setting.Packages.Storage)
 	return err

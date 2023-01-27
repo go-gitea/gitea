@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package markdown_test
 
@@ -38,6 +37,11 @@ func TestMain(m *testing.M) {
 	if err := git.InitSimple(context.Background()); err != nil {
 		log.Fatal("git init failed, err: %v", err)
 	}
+	markup.Init(&markup.ProcessorHelper{
+		IsUsernameMentionable: func(ctx context.Context, username string) bool {
+			return username == "r-lyeh"
+		},
+	})
 	os.Exit(m.Run())
 }
 
@@ -68,28 +72,6 @@ func TestRender_StandardLinks(t *testing.T) {
 	test("[WikiPage](WikiPage)",
 		`<p><a href="`+lnk+`" rel="nofollow">WikiPage</a></p>`,
 		`<p><a href="`+lnkWiki+`" rel="nofollow">WikiPage</a></p>`)
-}
-
-func TestMisc_IsMarkdownFile(t *testing.T) {
-	setting.Markdown.FileExtensions = []string{".md", ".markdown", ".mdown", ".mkd"}
-	trueTestCases := []string{
-		"test.md",
-		"wow.MARKDOWN",
-		"LOL.mDoWn",
-	}
-	falseTestCases := []string{
-		"test",
-		"abcdefg",
-		"abcdefghijklmnopqrstuvwxyz",
-		"test.md.test",
-	}
-
-	for _, testCase := range trueTestCases {
-		assert.True(t, IsMarkdownFile(testCase))
-	}
-	for _, testCase := range falseTestCases {
-		assert.False(t, IsMarkdownFile(testCase))
-	}
 }
 
 func TestRender_Images(t *testing.T) {

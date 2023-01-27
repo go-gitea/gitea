@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package unittest
 
@@ -106,6 +105,8 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 	setting.Packages.Storage.Path = filepath.Join(setting.AppDataPath, "packages")
 
 	setting.Git.HomePath = filepath.Join(setting.AppDataPath, "home")
+
+	setting.IncomingEmail.ReplyToAddress = "incoming+%{token}@localhost"
 
 	if err = storage.Init(); err != nil {
 		fatalTestError("storage.Init: %v\n", err)

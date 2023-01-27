@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package activities_test
 
@@ -188,7 +187,7 @@ func TestNotifyWatchers(t *testing.T) {
 		RepoID:    1,
 		OpType:    activities_model.ActionStarRepo,
 	}
-	assert.NoError(t, activities_model.NotifyWatchers(action))
+	assert.NoError(t, activities_model.NotifyWatchers(db.DefaultContext, action))
 
 	// One watchers are inactive, thus action is only created for user 8, 1, 4, 11
 	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
@@ -256,17 +255,17 @@ func TestConsistencyUpdateAction(t *testing.T) {
 	//
 	// Get rid of incorrectly set created_unix
 	//
-	count, err := activities_model.CountActionCreatedUnixString()
+	count, err := activities_model.CountActionCreatedUnixString(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, count)
-	count, err = activities_model.FixActionCreatedUnixString()
+	count, err = activities_model.FixActionCreatedUnixString(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, count)
 
-	count, err = activities_model.CountActionCreatedUnixString()
+	count, err = activities_model.CountActionCreatedUnixString(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, count)
-	count, err = activities_model.FixActionCreatedUnixString()
+	count, err = activities_model.FixActionCreatedUnixString(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, count)
 

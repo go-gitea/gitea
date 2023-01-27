@@ -1,6 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package admin
 
@@ -159,7 +158,7 @@ func parseLDAPConfig(form forms.AuthenticationForm) *ldap.Source {
 func parseSMTPConfig(form forms.AuthenticationForm) *smtp.Source {
 	return &smtp.Source{
 		Auth:           form.SMTPAuth,
-		Addr:           form.SMTPAddr,
+		Host:           form.SMTPHost,
 		Port:           form.SMTPPort,
 		AllowedDomains: form.AllowedDomains,
 		ForceSMTPS:     form.ForceSMTPS,

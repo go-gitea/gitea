@@ -2,11 +2,16 @@ import {showTemporaryTooltip} from '../modules/tippy.js';
 
 const {copy_success, copy_error} = window.config.i18n;
 
-export async function copyToClipboard(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-  } catch {
-    return fallbackCopyToClipboard(text);
+export async function copyToClipboard(content) {
+  if (content instanceof Blob) {
+    const item = new ClipboardItem({[content.type]: content});
+    await navigator.clipboard.write([item]);
+  } else { // text
+    try {
+      await navigator.clipboard.writeText(content);
+    } catch {
+      return fallbackCopyToClipboard(content);
+    }
   }
   return true;
 }
@@ -39,7 +44,7 @@ function fallbackCopyToClipboard(text) {
 
 // For all DOM elements with [data-clipboard-target] or [data-clipboard-text],
 // this copy-to-clipboard will work for them
-export default function initGlobalCopyToClipboardListener() {
+export function initGlobalCopyToClipboardListener() {
   document.addEventListener('click', (e) => {
     let target = e.target;
     // in case <button data-clipboard-text><svg></button>, so we just search

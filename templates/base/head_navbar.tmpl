@@ -77,6 +77,7 @@
 		</div>
 	{{else if .IsSigned}}
 		<div class="right stackable menu">
+			{{if EnableTimetracking}}
 			<a class="active-stopwatch-trigger item ui label {{if not .ActiveStopwatch}}hidden{{end}}" href="{{.ActiveStopwatch.IssueLink}}">
 				<span class="text">
 					<span class="fitted item">
@@ -115,6 +116,7 @@
 					</form>
 				</div>
 			</div>
+			{{end}}
 
 			<a href="{{AppSubUrl}}/notifications" class="item tooltip not-mobile" data-content="{{.locale.Tr "notifications"}}" aria-label="{{.locale.Tr "notifications"}}">
 				<span class="text">
@@ -175,7 +177,7 @@
 						{{svg "octicon-bell"}}
 						{{.locale.Tr "notification.subscriptions"}}<!-- Subscriptions -->
 					</a>
-					<a class="{{if .PageIsUserSettings}}active{{end}} item" href="{{AppSubUrl}}/user/settings">
+					<a class="{{if .PageIsUserSettings}}active {{end}}item" href="{{AppSubUrl}}/user/settings">
 						{{svg "octicon-tools"}}
 						{{.locale.Tr "your_settings"}}<!-- Your settings -->
 					</a>
@@ -186,7 +188,7 @@
 					{{if .IsAdmin}}
 						<div class="divider"></div>
 
-						<a class="{{if .PageIsAdmin}}active{{end}} item" href="{{AppSubUrl}}/admin">
+						<a class="{{if .PageIsAdmin}}active {{end}}item" href="{{AppSubUrl}}/admin">
 							{{svg "octicon-server"}}
 							{{.locale.Tr "admin_panel"}}<!-- Admin Panel -->
 						</a>
