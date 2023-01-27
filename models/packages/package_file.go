@@ -199,9 +199,9 @@ func SearchFiles(ctx context.Context, opts *PackageFileSearchOptions) ([]*Packag
 	return pfs, count, err
 }
 
-// CalculateBlobSize sums up all blob sizes matching the search options.
+// CalculateFileSize sums up all blob sizes matching the search options.
 // It does NOT respect the deduplication of blobs.
-func CalculateBlobSize(ctx context.Context, opts *PackageFileSearchOptions) (int64, error) {
+func CalculateFileSize(ctx context.Context, opts *PackageFileSearchOptions) (int64, error) {
 	return db.GetEngine(ctx).
 		Table("package_file").
 		Where(opts.toConds()).
