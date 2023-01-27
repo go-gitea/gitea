@@ -7,10 +7,6 @@ tasks:
     command: |
       gp sync-done setup
       exit 0
-  - name: Run frontend
-    command: |
-      gp sync-await setup
-      make watch-frontend
   - name: Run backend
     command: |
       gp sync-await setup
@@ -19,9 +15,15 @@ tasks:
       echo -e "\n[database]\nDB_TYPE = sqlite3\nPATH = $GITPOD_REPO_ROOT/data/gitea.db" >> custom/conf/app.ini
       export TAGS="sqlite sqlite_unlock_notify"
       make watch-backend
+  - name: Run frontend
+    command: |
+      gp sync-await setup
+      make watch-frontend
+    openMode: split-right
   - name: Run docs
     before: sudo bash -c "$(grep 'https://github.com/gohugoio/hugo/releases/download' Makefile | tr -d '\')" # install hugo
     command: cd docs && make clean update && hugo server -D -F --baseUrl $(gp url 1313) --liveReloadPort=443 --appendPort=false --bind=0.0.0.0
+    openMode: split-right
 
 vscode:
   extensions:

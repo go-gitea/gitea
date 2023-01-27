@@ -363,7 +363,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	}
 
 	if ctx.Repo.CanWriteIssuesOrPulls(ctx.Params(":type") == "pulls") {
-		projects, _, err := project_model.GetProjects(ctx, project_model.SearchOptions{
+		projects, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
 			RepoID:   repo.ID,
 			Type:     project_model.TypeRepository,
 			IsClosed: util.OptionalBoolOf(isShowClosed),
@@ -474,8 +474,7 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 
 func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 	var err error
-
-	ctx.Data["OpenProjects"], _, err = project_model.GetProjects(ctx, project_model.SearchOptions{
+	projects, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
 		RepoID:   repo.ID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolFalse,
@@ -485,8 +484,20 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		ctx.ServerError("GetProjects", err)
 		return
 	}
+	projects2, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
+		OwnerID:  repo.OwnerID,
+		Page:     -1,
+		IsClosed: util.OptionalBoolFalse,
+		Type:     project_model.TypeOrganization,
+	})
+	if err != nil {
+		ctx.ServerError("GetProjects", err)
+		return
+	}
 
-	ctx.Data["ClosedProjects"], _, err = project_model.GetProjects(ctx, project_model.SearchOptions{
+	ctx.Data["OpenProjects"] = append(projects, projects2...)
+
+	projects, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
 		RepoID:   repo.ID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolTrue,
@@ -496,6 +507,18 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		ctx.ServerError("GetProjects", err)
 		return
 	}
+	projects2, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
+		OwnerID:  repo.OwnerID,
+		Page:     -1,
+		IsClosed: util.OptionalBoolTrue,
+		Type:     project_model.TypeOrganization,
+	})
+	if err != nil {
+		ctx.ServerError("GetProjects", err)
+		return
+	}
+
+	ctx.Data["ClosedProjects"] = append(projects, projects2...)
 }
 
 // repoReviewerSelection items to bee shown
@@ -988,7 +1011,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 			ctx.ServerError("GetProjectByID", err)
 			return nil, nil, 0, 0
 		}
-		if p.RepoID != ctx.Repo.Repository.ID {
+		if p.RepoID != ctx.Repo.Repository.ID && p.OwnerID != ctx.Repo.Repository.OwnerID {
 			ctx.NotFound("", nil)
 			return nil, nil, 0, 0
 		}
@@ -2576,7 +2599,7 @@ func UpdateIssueStatus(ctx *context.Context) {
 	}
 	for _, issue := range issues {
 		if issue.IsClosed != isClosed {
-			if err := issue_service.ChangeStatus(issue, ctx.Doer, isClosed); err != nil {
+			if err := issue_service.ChangeStatus(issue, ctx.Doer, "", isClosed); err != nil {
 				if issues_model.IsErrDependenciesLeft(err) {
 					ctx.JSON(http.StatusPreconditionFailed, map[string]interface{}{
 						"error": "cannot close this issue because it still has open dependencies",
@@ -2673,7 +2696,7 @@ func NewComment(ctx *context.Context) {
 				ctx.Flash.Info(ctx.Tr("repo.pulls.open_unmerged_pull_exists", pr.Index))
 			} else {
 				isClosed := form.Status == "close"
-				if err := issue_service.ChangeStatus(issue, ctx.Doer, isClosed); err != nil {
+				if err := issue_service.ChangeStatus(issue, ctx.Doer, "", isClosed); err != nil {
 					log.Error("ChangeStatus: %v", err)
 
 					if issues_model.IsErrDependenciesLeft(err) {
