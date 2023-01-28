@@ -362,17 +362,9 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		return 0
 	}
 
-	if ctx.Repo.CanWriteIssuesOrPulls(ctx.Params(":type") == "pulls") {
-		projects, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
-			RepoID:   repo.ID,
-			Type:     project_model.TypeRepository,
-			IsClosed: util.OptionalBoolOf(isShowClosed),
-		})
-		if err != nil {
-			ctx.ServerError("GetProjects", err)
-			return
-		}
-		ctx.Data["Projects"] = projects
+	retrieveProjects(ctx, repo)
+	if ctx.Written() {
+		return
 	}
 
 	ctx.Data["IssueStats"] = issueStats
