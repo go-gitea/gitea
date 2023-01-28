@@ -9777,6 +9777,42 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/releases/latest": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Gets the most recent non-prerelease, non-draft release of a repository, sorted by created_at",
+        "operationId": "repoGetLatestRelease",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Release"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/releases/tags/{tag}": {
       "get": {
         "produces": [
@@ -14234,6 +14270,7 @@
           "x-go-name": "BlockOnRejectedReviews"
         },
         "branch_name": {
+          "description": "Deprecated: true",
           "type": "string",
           "x-go-name": "BranchName"
         },
@@ -14310,6 +14347,10 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "RequiredApprovals"
+        },
+        "rule_name": {
+          "type": "string",
+          "x-go-name": "RuleName"
         },
         "status_check_contexts": {
           "type": "array",
@@ -14773,6 +14814,7 @@
           "x-go-name": "BlockOnRejectedReviews"
         },
         "branch_name": {
+          "description": "Deprecated: true",
           "type": "string",
           "x-go-name": "BranchName"
         },
@@ -14844,6 +14886,10 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "RequiredApprovals"
+        },
+        "rule_name": {
+          "type": "string",
+          "x-go-name": "RuleName"
         },
         "status_check_contexts": {
           "type": "array",

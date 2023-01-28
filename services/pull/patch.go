@@ -14,7 +14,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/container"
@@ -106,8 +106,8 @@ func TestPatch(pr *issues_model.PullRequest) error {
 	}
 
 	// 3. Check for protected files changes
-	if err = checkPullFilesProtection(pr, gitRepo); err != nil {
-		return fmt.Errorf("pr.CheckPullFilesProtection(): %w", err)
+	if err = checkPullFilesProtection(ctx, pr, gitRepo); err != nil {
+		return fmt.Errorf("pr.CheckPullFilesProtection(): %v", err)
 	}
 
 	if len(pr.ChangedProtectedFiles) > 0 {
@@ -544,23 +544,23 @@ func CheckUnprotectedFiles(repo *git.Repository, oldCommitID, newCommitID string
 }
 
 // checkPullFilesProtection check if pr changed protected files and save results
-func checkPullFilesProtection(pr *issues_model.PullRequest, gitRepo *git.Repository) error {
+func checkPullFilesProtection(ctx context.Context, pr *issues_model.PullRequest, gitRepo *git.Repository) error {
 	if pr.Status == issues_model.PullRequestStatusEmpty {
 		pr.ChangedProtectedFiles = nil
 		return nil
 	}
 
-	if err := pr.LoadProtectedBranch(db.DefaultContext); err != nil {
+	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+	if err != nil {
 		return err
 	}
 
-	if pr.ProtectedBranch == nil {
+	if pb == nil {
 		pr.ChangedProtectedFiles = nil
 		return nil
 	}
 
-	var err error
-	pr.ChangedProtectedFiles, err = CheckFileProtection(gitRepo, pr.MergeBase, "tracking", pr.ProtectedBranch.GetProtectedFilePatterns(), 10, os.Environ())
+	pr.ChangedProtectedFiles, err = CheckFileProtection(gitRepo, pr.MergeBase, "tracking", pb.GetProtectedFilePatterns(), 10, os.Environ())
 	if err != nil && !models.IsErrFilePathProtected(err) {
 		return err
 	}

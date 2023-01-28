@@ -225,7 +225,7 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 		}
 		close := ref.RefAction == references.XRefActionCloses
 		if close != ref.Issue.IsClosed {
-			if err = issue_service.ChangeStatus(ref.Issue, doer, close); err != nil {
+			if err = issue_service.ChangeStatus(ref.Issue, doer, pr.MergedCommitID, close); err != nil {
 				// Allow ErrDependenciesLeft
 				if !issues_model.IsErrDependenciesLeft(err) {
 					return err
@@ -595,19 +595,25 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 		headUser = pr.HeadRepo.Owner
 	}
 
-	env = repo_module.FullPushingEnvironment(
-		headUser,
-		doer,
-		pr.BaseRepo,
-		pr.BaseRepo.Name,
-		pr.ID,
-	)
-
 	var pushCmd *git.Command
 	if mergeStyle == repo_model.MergeStyleRebaseUpdate {
 		// force push the rebase result to head branch
+		env = repo_module.FullPushingEnvironment(
+			headUser,
+			doer,
+			pr.HeadRepo,
+			pr.HeadRepo.Name,
+			pr.ID,
+		)
 		pushCmd = git.NewCommand(ctx, "push", "-f", "head_repo").AddDynamicArguments(stagingBranch + ":" + git.BranchPrefix + pr.HeadBranch)
 	} else {
+		env = repo_module.FullPushingEnvironment(
+			headUser,
+			doer,
+			pr.BaseRepo,
+			pr.BaseRepo.Name,
+			pr.ID,
+		)
 		pushCmd = git.NewCommand(ctx, "push", "origin").AddDynamicArguments(baseBranch + ":" + git.BranchPrefix + pr.BaseBranch)
 	}
 
@@ -760,12 +766,12 @@ func IsUserAllowedToMerge(ctx context.Context, pr *issues_model.PullRequest, p a
 		return false, nil
 	}
 
-	err := pr.LoadProtectedBranch(ctx)
+	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
 	if err != nil {
 		return false, err
 	}
 
-	if (p.CanWrite(unit.TypeCode) && pr.ProtectedBranch == nil) || (pr.ProtectedBranch != nil && git_model.IsUserMergeWhitelisted(ctx, pr.ProtectedBranch, user.ID, p)) {
+	if (p.CanWrite(unit.TypeCode) && pb == nil) || (pb != nil && git_model.IsUserMergeWhitelisted(ctx, pb, user.ID, p)) {
 		return true, nil
 	}
 
@@ -778,10 +784,11 @@ func CheckPullBranchProtections(ctx context.Context, pr *issues_model.PullReques
 		return fmt.Errorf("LoadBaseRepo: %w", err)
 	}
 
-	if err = pr.LoadProtectedBranch(ctx); err != nil {
-		return fmt.Errorf("LoadProtectedBranch: %w", err)
+	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+	if err != nil {
+		return fmt.Errorf("LoadProtectedBranch: %v", err)
 	}
-	if pr.ProtectedBranch == nil {
+	if pb == nil {
 		return nil
 	}
 
@@ -795,23 +802,23 @@ func CheckPullBranchProtections(ctx context.Context, pr *issues_model.PullReques
 		}
 	}
 
-	if !issues_model.HasEnoughApprovals(ctx, pr.ProtectedBranch, pr) {
+	if !issues_model.HasEnoughApprovals(ctx, pb, pr) {
 		return models.ErrDisallowedToMerge{
 			Reason: "Does not have enough approvals",
 		}
 	}
-	if issues_model.MergeBlockedByRejectedReview(ctx, pr.ProtectedBranch, pr) {
+	if issues_model.MergeBlockedByRejectedReview(ctx, pb, pr) {
 		return models.ErrDisallowedToMerge{
 			Reason: "There are requested changes",
 		}
 	}
-	if issues_model.MergeBlockedByOfficialReviewRequests(ctx, pr.ProtectedBranch, pr) {
+	if issues_model.MergeBlockedByOfficialReviewRequests(ctx, pb, pr) {
 		return models.ErrDisallowedToMerge{
 			Reason: "There are official review requests",
 		}
 	}
 
-	if issues_model.MergeBlockedByOutdatedBranch(pr.ProtectedBranch, pr) {
+	if issues_model.MergeBlockedByOutdatedBranch(pb, pr) {
 		return models.ErrDisallowedToMerge{
 			Reason: "The head branch is behind the base branch",
 		}
@@ -821,7 +828,7 @@ func CheckPullBranchProtections(ctx context.Context, pr *issues_model.PullReques
 		return nil
 	}
 
-	if pr.ProtectedBranch.MergeBlockedByProtectedFiles(pr.ChangedProtectedFiles) {
+	if pb.MergeBlockedByProtectedFiles(pr.ChangedProtectedFiles) {
 		return models.ErrDisallowedToMerge{
 			Reason: "Changed protected files",
 		}
@@ -836,6 +843,9 @@ func MergedManually(pr *issues_model.PullRequest, doer *user_model.User, baseGit
 	defer pullWorkingPool.CheckOut(fmt.Sprint(pr.ID))
 
 	if err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+		if err := pr.LoadBaseRepo(ctx); err != nil {
+			return err
+		}
 		prUnit, err := pr.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
 		if err != nil {
 			return err

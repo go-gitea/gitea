@@ -25,6 +25,7 @@ type BlobSearchOptions struct {
 	Digest     string
 	Tag        string
 	IsManifest bool
+	Repository string
 }
 
 func (opts *BlobSearchOptions) toConds() builder.Cond {
@@ -52,6 +53,15 @@ func (opts *BlobSearchOptions) toConds() builder.Cond {
 		}
 
 		cond = cond.And(builder.In("package_file.id", builder.Select("package_property.ref_id").Where(propsCond).From("package_property")))
+	}
+	if opts.Repository != "" {
+		var propsCond builder.Cond = builder.Eq{
+			"package_property.ref_type": packages.PropertyTypePackage,
+			"package_property.name":     container_module.PropertyRepository,
+			"package_property.value":    opts.Repository,
+		}
+
+		cond = cond.And(builder.In("package.id", builder.Select("package_property.ref_id").Where(propsCond).From("package_property")))
 	}
 
 	return cond

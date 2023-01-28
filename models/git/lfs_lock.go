@@ -42,8 +42,8 @@ func cleanPath(p string) string {
 }
 
 // CreateLFSLock creates a new lock.
-func CreateLFSLock(repo *repo_model.Repository, lock *LFSLock) (*LFSLock, error) {
-	dbCtx, committer, err := db.TxContext(db.DefaultContext)
+func CreateLFSLock(ctx context.Context, repo *repo_model.Repository, lock *LFSLock) (*LFSLock, error) {
+	dbCtx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -98,8 +98,8 @@ func GetLFSLockByID(ctx context.Context, id int64) (*LFSLock, error) {
 }
 
 // GetLFSLockByRepoID returns a list of locks of repository.
-func GetLFSLockByRepoID(repoID int64, page, pageSize int) ([]*LFSLock, error) {
-	e := db.GetEngine(db.DefaultContext)
+func GetLFSLockByRepoID(ctx context.Context, repoID int64, page, pageSize int) ([]*LFSLock, error) {
+	e := db.GetEngine(ctx)
 	if page >= 0 && pageSize > 0 {
 		start := 0
 		if page > 0 {
@@ -112,12 +112,12 @@ func GetLFSLockByRepoID(repoID int64, page, pageSize int) ([]*LFSLock, error) {
 }
 
 // GetTreePathLock returns LSF lock for the treePath
-func GetTreePathLock(repoID int64, treePath string) (*LFSLock, error) {
+func GetTreePathLock(ctx context.Context, repoID int64, treePath string) (*LFSLock, error) {
 	if !setting.LFS.StartServer {
 		return nil, nil
 	}
 
-	locks, err := GetLFSLockByRepoID(repoID, 0, 0)
+	locks, err := GetLFSLockByRepoID(ctx, repoID, 0, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -130,13 +130,13 @@ func GetTreePathLock(repoID int64, treePath string) (*LFSLock, error) {
 }
 
 // CountLFSLockByRepoID returns a count of all LFSLocks associated with a repository.
-func CountLFSLockByRepoID(repoID int64) (int64, error) {
-	return db.GetEngine(db.DefaultContext).Count(&LFSLock{RepoID: repoID})
+func CountLFSLockByRepoID(ctx context.Context, repoID int64) (int64, error) {
+	return db.GetEngine(ctx).Count(&LFSLock{RepoID: repoID})
 }
 
 // DeleteLFSLockByID deletes a lock by given ID.
-func DeleteLFSLockByID(id int64, repo *repo_model.Repository, u *user_model.User, force bool) (*LFSLock, error) {
-	dbCtx, committer, err := db.TxContext(db.DefaultContext)
+func DeleteLFSLockByID(ctx context.Context, id int64, repo *repo_model.Repository, u *user_model.User, force bool) (*LFSLock, error) {
+	dbCtx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
 	}
