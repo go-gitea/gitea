@@ -18,7 +18,7 @@ import (
 
 	"github.com/google/go-github/v45/github"
 	"github.com/urfave/cli"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 const defaultVersion = "v1.18"
