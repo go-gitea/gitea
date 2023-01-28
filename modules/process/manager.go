@@ -44,18 +44,16 @@ type IDType string
 // - it is simply an alias for context.CancelFunc and is only for documentary purposes
 type FinishedFunc = context.CancelFunc
 
-var Trace = defaultTrace
+var Trace = defaultTrace // this global can be overriden by particular logging packages - thus avoiding import cycles
 
 func defaultTrace(start bool, pid IDType, description string, parentPID IDType, typ string) {
-	if start {
-		if parentPID != "" {
-			log.Printf("start process %s: %s (from %s) (%s)", pid, description, parentPID, typ)
-			return
-		}
+	if start && parentPID != "" {
+		log.Printf("start process %s: %s (from %s) (%s)", pid, description, parentPID, typ)
+	} else if start {
 		log.Printf("start process %s: %s (%s)", pid, description, typ)
-		return
+	} else {
+		log.Printf("end process %s: %s", pid, description)
 	}
-	log.Printf("end process %s: %s", pid, description)
 }
 
 // Manager manages all processes and counts PIDs.

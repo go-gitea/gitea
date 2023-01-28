@@ -187,7 +187,7 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 			return nil, nil
 		}
 		// Errors are signaled by a non-zero status that is not 1
-		return nil, fmt.Errorf("git merge-base --is-ancestor: %w", err)
+		return nil, fmt.Errorf("%-v git merge-base --is-ancestor: %w", pr, err)
 	}
 
 	// If merge-base successfully exits then prHeadRef is an ancestor of pr.BaseBranch
