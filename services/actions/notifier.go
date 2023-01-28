@@ -57,7 +57,7 @@ func (n *actionsNotifier) NotifyNewIssue(ctx context.Context, issue *issues_mode
 }
 
 // NotifyIssueChangeStatus notifies close or reopen issue to notifiers
-func (n *actionsNotifier) NotifyIssueChangeStatus(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, _ *issues_model.Comment, isClosed bool) {
+func (n *actionsNotifier) NotifyIssueChangeStatus(ctx context.Context, doer *user_model.User, commitID string, issue *issues_model.Issue, _ *issues_model.Comment, isClosed bool) {
 	ctx = withMethod(ctx, "NotifyIssueChangeStatus")
 	mode, _ := access_model.AccessLevel(ctx, issue.Poster, issue.Repo)
 	if issue.IsPull {
@@ -71,6 +71,7 @@ func (n *actionsNotifier) NotifyIssueChangeStatus(ctx context.Context, doer *use
 			PullRequest: convert.ToAPIPullRequest(db.DefaultContext, issue.PullRequest, nil),
 			Repository:  convert.ToRepo(ctx, issue.Repo, mode),
 			Sender:      convert.ToUser(doer, nil),
+			CommitID:    commitID,
 		}
 		if isClosed {
 			apiPullRequest.Action = api.HookIssueClosed
