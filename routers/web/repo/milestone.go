@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -74,7 +73,7 @@ func Milestones(ctx *context.Context) {
 		ctx.ServerError("GetMilestones", err)
 		return
 	}
-	if ctx.Repo.Repository.IsTimetrackerEnabled() {
+	if ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
 		if err := miles.LoadTotalTrackedTimes(); err != nil {
 			ctx.ServerError("LoadTotalTrackedTimes", err)
 			return

@@ -1,21 +1,21 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package template
 
 import (
 	"fmt"
 	"io"
-	"path/filepath"
+	"path"
 	"strconv"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // CouldBe indicates a file with the filename could be a template,
@@ -43,7 +43,7 @@ func Unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 
 // UnmarshalFromEntry parses out a valid template from the blob in entry
 func UnmarshalFromEntry(entry *git.TreeEntry, dir string) (*api.IssueTemplate, error) {
-	return unmarshalFromEntry(entry, filepath.Join(dir, entry.Name()))
+	return unmarshalFromEntry(entry, path.Join(dir, entry.Name())) // Filepaths in Git are ALWAYS '/' separated do not use filepath here
 }
 
 // UnmarshalFromCommit parses out a valid template from the commit
@@ -95,14 +95,27 @@ func unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 	}{}
 
 	if typ := it.Type(); typ == api.IssueTemplateTypeMarkdown {
-		templateBody, err := markdown.ExtractMetadata(string(content), it)
-		if err != nil {
-			return nil, err
-		}
-		it.Content = templateBody
-		if it.About == "" {
-			if _, err := markdown.ExtractMetadata(string(content), compatibleTemplate); err == nil && compatibleTemplate.About != "" {
-				it.About = compatibleTemplate.About
+		if templateBody, err := markdown.ExtractMetadata(string(content), it); err != nil {
+			// The only thing we know here is that we can't extract metadata from the content,
+			// it's hard to tell if metadata doesn't exist or metadata isn't valid.
+			// There's an example template:
+			//
+			//    ---
+			//    # Title
+			//    ---
+			//    Content
+			//
+			// It could be a valid markdown with two horizontal lines, or an invalid markdown with wrong metadata.
+
+			it.Content = string(content)
+			it.Name = path.Base(it.FileName) // paths in Git are always '/' separated - do not use filepath!
+			it.About, _ = util.SplitStringAtByteN(it.Content, 80)
+		} else {
+			it.Content = templateBody
+			if it.About == "" {
+				if _, err := markdown.ExtractMetadata(string(content), compatibleTemplate); err == nil && compatibleTemplate.About != "" {
+					it.About = compatibleTemplate.About
+				}
 			}
 		}
 	} else if typ == api.IssueTemplateTypeYaml {

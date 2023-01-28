@@ -24,13 +24,19 @@
   animation: isloadingspin 500ms infinite linear;
   border-width: 4px;
   border-style: solid;
-  border-color: #ececec #ececec #666 #666;
+  border-color: var(--color-secondary) var(--color-secondary) var(--color-secondary-dark-8) var(--color-secondary-dark-8);
   border-radius: 100%;
 }
 
 .markup pre.is-loading,
 .editor-loading.is-loading {
   height: var(--height-loading);
+}
+
+.btn-octicon.is-loading::after {
+  border-width: 2px;
+  height: 1.25rem;
+  width: 1.25rem;
 }
 
 code.language-math.is-loading::after {

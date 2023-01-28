@@ -3,208 +3,287 @@
   repo_id: 1
   index: 1
   poster_id: 1
+  original_author_id: 0
   name: issue1
   content: content for the first issue
+  milestone_id: 0
+  priority: 0
   is_closed: false
   is_pull: false
   num_comments: 2
   created_unix: 946684800
   updated_unix: 978307200
+  is_locked: false
 
 -
   id: 2
   repo_id: 1
   index: 2
   poster_id: 1
+  original_author_id: 0
   name: issue2
   content: content for the second issue
   milestone_id: 1
+  priority: 0
   is_closed: false
   is_pull: true
+  num_comments: 0
   created_unix: 946684810
   updated_unix: 978307190
-
+  is_locked: false
 
 -
   id: 3
   repo_id: 1
   index: 3
   poster_id: 1
+  original_author_id: 0
   name: issue3
   content: content for the third issue
   milestone_id: 3
+  priority: 0
   is_closed: false
   is_pull: true
+  num_comments: 0
   created_unix: 946684820
   updated_unix: 978307180
+  is_locked: false
 
 -
   id: 4
   repo_id: 2
   index: 1
   poster_id: 2
+  original_author_id: 0
   name: issue4
   content: content for the fourth issue
+  milestone_id: 0
+  priority: 0
   is_closed: true
   is_pull: false
+  num_comments: 0
   created_unix: 946684830
   updated_unix: 978307200
+  is_locked: false
 
 -
   id: 5
   repo_id: 1
   index: 4
   poster_id: 2
+  original_author_id: 0
   name: issue5
   content: content for the fifth issue
+  milestone_id: 0
+  priority: 0
   is_closed: true
   is_pull: false
+  num_comments: 0
   created_unix: 946684840
   updated_unix: 978307200
+  is_locked: false
 
 -
   id: 6
   repo_id: 3
   index: 1
   poster_id: 1
+  original_author_id: 0
   name: issue6
   content: content6
+  milestone_id: 0
+  priority: 0
   is_closed: false
   is_pull: false
   num_comments: 0
   created_unix: 946684850
   updated_unix: 978307200
+  is_locked: false
 
 -
   id: 7
   repo_id: 2
   index: 2
   poster_id: 2
+  original_author_id: 0
   name: issue7
   content: content for the seventh issue
+  milestone_id: 0
+  priority: 0
   is_closed: false
   is_pull: false
+  num_comments: 0
   created_unix: 946684830
   updated_unix: 978307200
+  is_locked: false
 
 -
   id: 8
   repo_id: 10
   index: 1
   poster_id: 11
+  original_author_id: 0
   name: pr2
   content: a pull request
+  milestone_id: 0
+  priority: 0
   is_closed: false
   is_pull: true
+  num_comments: 0
   created_unix: 946684820
   updated_unix: 978307180
+  is_locked: false
 
 -
   id: 9
   repo_id: 48
   index: 1
   poster_id: 11
+  original_author_id: 0
   name: pr1
   content: a pull request
+  milestone_id: 0
+  priority: 0
   is_closed: false
   is_pull: true
+  num_comments: 0
   created_unix: 946684820
   updated_unix: 978307180
+  is_locked: false
 
 -
   id: 10
   repo_id: 42
   index: 1
   poster_id: 500
+  original_author_id: 0
   name: issue from deleted account
   content: content from deleted account
+  milestone_id: 0
+  priority: 0
   is_closed: false
   is_pull: false
+  num_comments: 0
+  deadline_unix: 1019307200
   created_unix: 946684830
   updated_unix: 999307200
-  deadline_unix: 1019307200
+  is_locked: false
 
 -
   id: 11
   repo_id: 1
   index: 5
   poster_id: 1
+  original_author_id: 0
   name: pull5
   content: content for the a pull request
+  milestone_id: 0
+  priority: 0
   is_closed: false
   is_pull: true
+  num_comments: 0
   created_unix: 1579194806
   updated_unix: 1579194806
+  is_locked: false
 
 -
   id: 12
   repo_id: 3
   index: 2
   poster_id: 2
+  original_author_id: 0
   name: pull6
   content: content for the a pull request
+  milestone_id: 0
+  priority: 0
   is_closed: false
   is_pull: true
+  num_comments: 0
   created_unix: 1602935696
   updated_unix: 1602935696
-
+  is_locked: false
 
 -
   id: 13
   repo_id: 50
   index: 1
   poster_id: 2
+  original_author_id: 0
   name: issue in active repo
   content: we'll be testing github issue 13171 with this.
+  milestone_id: 0
+  priority: 0
   is_closed: false
   is_pull: false
+  num_comments: 0
   created_unix: 1602935696
   updated_unix: 1602935696
+  is_locked: false
 
 -
   id: 14
   repo_id: 51
   index: 1
   poster_id: 2
+  original_author_id: 0
   name: issue in archived repo
   content: we'll be testing github issue 13171 with this.
+  milestone_id: 0
+  priority: 0
   is_closed: false
   is_pull: false
+  num_comments: 0
   created_unix: 1602935696
   updated_unix: 1602935696
+  is_locked: false
 
 -
   id: 15
   repo_id: 5
   index: 1
   poster_id: 2
+  original_author_id: 0
   name: issue in repo not linked to team1
   content: content
+  milestone_id: 0
+  priority: 0
   is_closed: false
   is_pull: false
+  num_comments: 0
   created_unix: 1602935696
   updated_unix: 1602935696
+  is_locked: false
 
 -
   id: 16
   repo_id: 32
   index: 1
   poster_id: 2
+  original_author_id: 0
   name: just a normal issue
   content: content
+  milestone_id: 0
+  priority: 0
   is_closed: false
   is_pull: false
+  num_comments: 0
   created_unix: 1602935696
   updated_unix: 1602935696
+  is_locked: false
 
 -
   id: 17
   repo_id: 32
   index: 2
   poster_id: 15
+  original_author_id: 0
   name: a issue with a assignment
   content: content
+  milestone_id: 0
+  priority: 0
   is_closed: false
   is_pull: false
+  num_comments: 0
   created_unix: 1602935696
   updated_unix: 1602935696
+  is_locked: false

@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migrations
 
@@ -20,6 +19,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
+	migrate_base "code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
@@ -302,7 +302,7 @@ func doMigrationTest(t *testing.T, version string) {
 
 	err = db.InitEngineWithMigration(context.Background(), func(x *xorm.Engine) error {
 		currentEngine = x
-		return migrations.RecreateTables(beans...)(x)
+		return migrate_base.RecreateTables(beans...)(x)
 	})
 	assert.NoError(t, err)
 	currentEngine.Close()
@@ -310,7 +310,7 @@ func doMigrationTest(t *testing.T, version string) {
 	// We do this a second time to ensure that there is not a problem with retained indices
 	err = db.InitEngineWithMigration(context.Background(), func(x *xorm.Engine) error {
 		currentEngine = x
-		return migrations.RecreateTables(beans...)(x)
+		return migrate_base.RecreateTables(beans...)(x)
 	})
 	assert.NoError(t, err)
 

@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -55,7 +54,7 @@ func (users UserList) loadTwoFactorStatus(ctx context.Context) (map[int64]*auth.
 	userIDs := users.GetUserIDs()
 	tokenMaps := make(map[int64]*auth.TwoFactor, len(userIDs))
 	if err := db.GetEngine(ctx).In("uid", userIDs).Find(&tokenMaps); err != nil {
-		return nil, fmt.Errorf("find two factor: %v", err)
+		return nil, fmt.Errorf("find two factor: %w", err)
 	}
 	return tokenMaps, nil
 }
@@ -66,7 +65,7 @@ func (users UserList) userIDsWithWebAuthn(ctx context.Context) ([]int64, error) 
 	}
 	ids := make([]int64, 0, len(users))
 	if err := db.GetEngine(ctx).Table(new(auth.WebAuthnCredential)).In("user_id", users.GetUserIDs()).Select("user_id").Distinct("user_id").Find(&ids); err != nil {
-		return nil, fmt.Errorf("find two factor: %v", err)
+		return nil, fmt.Errorf("find two factor: %w", err)
 	}
 	return ids, nil
 }

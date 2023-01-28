@@ -14,13 +14,15 @@
 {{else}}
 	<div>
 		<div class="diff-detail-box diff-box sticky df sb ac fw">
-			<a class="diff-toggle-file-tree-button">
-				{{/* the icon meaning is reversed here, "octicon-sidebar-collapse" means show the file tree */}}
-				{{svg "octicon-sidebar-collapse" 16 "icon hide"}}
-				{{svg "octicon-sidebar-expand" 16 "icon"}}
-			</a>
-			<div class="diff-detail-stats df ac">
-				{{svg "octicon-diff" 16 "mr-2"}}{{.locale.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
+			<div class="df ac fw">
+				<a class="diff-toggle-file-tree-button muted df ac">
+					{{/* the icon meaning is reversed here, "octicon-sidebar-collapse" means show the file tree */}}
+					{{svg "octicon-sidebar-collapse" 20 "icon hide"}}
+					{{svg "octicon-sidebar-expand" 20 "icon"}}
+				</a>
+				<div class="diff-detail-stats df ac ml-3">
+					{{svg "octicon-diff" 16 "mr-2"}}{{.locale.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
+				</div>
 			</div>
 			<div class="diff-detail-actions df ac">
 				{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
@@ -65,7 +67,7 @@
 				</script>
 		<div id="diff-file-list"></div>
 		<div id="diff-container">
-				<div id="diff-file-tree"></div>
+				<div id="diff-file-tree" class="hide"></div>
 				<div id="diff-file-boxes" class="sixteen wide column">
 					{{range $i, $file := .Diff.Files}}
 						{{/*notice: the index of Diff.Files should not be used for element ID, because the index will be restarted from 0 when doing load-more for PRs with a lot of files*/}}
@@ -141,7 +143,7 @@
 													{{$.locale.Tr "repo.diff.file_suppressed_line_too_long"}}
 												{{else}}
 													{{$.locale.Tr "repo.diff.file_suppressed"}}
-													<a class="ui basic tiny button diff-show-more-button" data-href="{{$.Link}}?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{$.locale.Tr "repo.diff.load"}}</a>
+													<a class="ui basic tiny button diff-load-button" data-href="{{$.Link}}?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{$.locale.Tr "repo.diff.load"}}</a>
 												{{end}}
 											{{else}}
 												{{$.locale.Tr "repo.diff.bin_not_shown"}}

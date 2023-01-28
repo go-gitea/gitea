@@ -3,32 +3,28 @@ import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 import {initEasyMDEImagePaste} from './comp/ImagePaste.js';
 import {
-  initRepoIssueBranchSelect, initRepoIssueCodeCommentCancel,
-  initRepoIssueCommentDelete,
-  initRepoIssueComments, initRepoIssueDependencyDelete,
-  initRepoIssueReferenceIssue, initRepoIssueStatusButton,
-  initRepoIssueTitleEdit,
-  initRepoIssueWipToggle, initRepoPullRequestUpdate,
-  updateIssuesMeta,
+  initRepoIssueBranchSelect, initRepoIssueCodeCommentCancel, initRepoIssueCommentDelete,
+  initRepoIssueComments, initRepoIssueDependencyDelete, initRepoIssueReferenceIssue,
+  initRepoIssueStatusButton, initRepoIssueTitleEdit, initRepoIssueWipToggle,
+  initRepoPullRequestUpdate, updateIssuesMeta,
 } from './repo-issue.js';
 import {initUnicodeEscapeButton} from './repo-unicode-escape.js';
 import {svg} from '../svg.js';
 import {htmlEscape} from 'escape-goat';
 import {initRepoBranchTagDropdown} from '../components/RepoBranchTagDropdown.js';
 import {
-  initRepoCloneLink,
-  initRepoCommonBranchOrTagDropdown,
-  initRepoCommonFilterSearchDropdown,
+  initRepoCloneLink, initRepoCommonBranchOrTagDropdown, initRepoCommonFilterSearchDropdown,
   initRepoCommonLanguageStats,
 } from './repo-common.js';
+import {initCitationFileCopyContent} from './citation.js';
 import {initCompLabelEdit} from './comp/LabelEdit.js';
 import {initRepoDiffConversationNav} from './repo-diff.js';
-import attachTribute from './tribute.js';
-import createDropzone from './dropzone.js';
+import {attachTribute} from './tribute.js';
+import {createDropzone} from './dropzone.js';
 import {initCommentContent, initMarkupContent} from '../markup/content.js';
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoSettingBranches} from './repo-settings.js';
-import initRepoPullRequestMergeForm from './repo-issue-pr-form.js';
+import {initRepoPullRequestMergeForm} from './repo-issue-pr-form.js';
 
 const {csrfToken} = window.config;
 
@@ -462,10 +458,10 @@ export function initRepository() {
     $('.enable-system-radio').on('change', function () {
       if (this.value === 'false') {
         $($(this).data('target')).addClass('disabled');
-        if (typeof $(this).data('context') !== 'undefined') $($(this).data('context')).removeClass('disabled');
+        if ($(this).data('context') !== undefined) $($(this).data('context')).removeClass('disabled');
       } else if (this.value === 'true') {
         $($(this).data('target')).removeClass('disabled');
-        if (typeof $(this).data('context') !== 'undefined') $($(this).data('context')).addClass('disabled');
+        if ($(this).data('context') !== undefined) $($(this).data('context')).addClass('disabled');
       }
     });
     const $trackerIssueStyleRadios = $('.js-tracker-issue-style');
@@ -505,6 +501,7 @@ export function initRepository() {
   }
 
   initRepoCloneLink();
+  initCitationFileCopyContent();
   initRepoCommonLanguageStats();
   initRepoSettingBranches();
 
@@ -564,7 +561,7 @@ function initRepoIssueCommentEdit() {
   $(document).on('click', '.quote-reply', function (event) {
     $(this).closest('.dropdown').find('.menu').toggle('visible');
     const target = $(this).data('target');
-    const quote = $(`#comment-${target}`).text().replace(/\n/g, '\n> ');
+    const quote = $(`#${target}`).text().replace(/\n/g, '\n> ');
     const content = `> ${quote}\n\n`;
     let easyMDE;
     if ($(this).hasClass('quote-reply-diff')) {

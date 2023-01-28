@@ -1,13 +1,11 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 // Package private includes all internal routes. The package name internal is ideal but Golang is not allowed, so we use private as package name instead.
 package private
 
 import (
 	"net/http"
-	"reflect"
 	"strings"
 
 	"code.gitea.io/gitea/modules/context"
@@ -17,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 
 	"gitea.com/go-chi/binding"
+	chi_middleware "github.com/go-chi/chi/v5/middleware"
 )
 
 // CheckInternalToken check internal token is set
@@ -39,13 +38,9 @@ func CheckInternalToken(next http.Handler) http.Handler {
 }
 
 // bind binding an obj to a handler
-func bind(obj interface{}) http.HandlerFunc {
-	tp := reflect.TypeOf(obj)
-	for tp.Kind() == reflect.Ptr {
-		tp = tp.Elem()
-	}
+func bind[T any](obj T) http.HandlerFunc {
 	return web.Wrap(func(ctx *context.PrivateContext) {
-		theObj := reflect.New(tp).Interface() // create a new form obj for every request but not use obj directly
+		theObj := new(T) // create a new form obj for every request but not use obj directly
 		binding.Bind(ctx.Req, theObj)
 		web.SetForm(ctx, theObj)
 	})
@@ -57,6 +52,9 @@ func Routes() *web.Route {
 	r := web.NewRoute()
 	r.Use(context.PrivateContexter())
 	r.Use(CheckInternalToken)
+	// Log the real ip address of the request from SSH is really helpful for diagnosing sometimes.
+	// Since internal API will be sent only from Gitea sub commands and it's under control (checked by InternalToken), we can trust the headers.
+	r.Use(chi_middleware.RealIP)
 
 	r.Post("/ssh/authorized_keys", AuthorizedPublicKeyByContent)
 	r.Post("/ssh/{id}/update/{repoid}", UpdatePublicKeyInRepo)

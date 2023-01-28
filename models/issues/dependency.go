@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -11,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrDependencyExists represents a "DependencyAlreadyExists" kind of error.
@@ -29,6 +29,10 @@ func (err ErrDependencyExists) Error() string {
 	return fmt.Sprintf("issue dependency does already exist [issue id: %d, dependency id: %d]", err.IssueID, err.DependencyID)
 }
 
+func (err ErrDependencyExists) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
 // ErrDependencyNotExists represents a "DependencyAlreadyExists" kind of error.
 type ErrDependencyNotExists struct {
 	IssueID      int64
@@ -43,6 +47,10 @@ func IsErrDependencyNotExists(err error) bool {
 
 func (err ErrDependencyNotExists) Error() string {
 	return fmt.Sprintf("issue dependency does not exist [issue id: %d, dependency id: %d]", err.IssueID, err.DependencyID)
+}
+
+func (err ErrDependencyNotExists) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // ErrCircularDependency represents a "DependencyCircular" kind of error.
@@ -91,6 +99,10 @@ func (err ErrUnknownDependencyType) Error() string {
 	return fmt.Sprintf("unknown dependency type [type: %d]", err.Type)
 }
 
+func (err ErrUnknownDependencyType) Unwrap() error {
+	return util.ErrInvalidArgument
+}
+
 // IssueDependency represents an issue dependency
 type IssueDependency struct {
 	ID           int64              `xorm:"pk autoincr"`
@@ -116,7 +128,7 @@ const (
 
 // CreateIssueDependency creates a new dependency for an issue
 func CreateIssueDependency(user *user_model.User, issue, dep *Issue) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -157,7 +169,7 @@ func CreateIssueDependency(user *user_model.User, issue, dep *Issue) error {
 
 // RemoveIssueDependency removes a dependency from an issue
 func RemoveIssueDependency(user *user_model.User, issue, dep *Issue, depType DependencyType) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

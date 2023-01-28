@@ -10,7 +10,7 @@ const $lfsSettings = $('#lfs_settings');
 const $lfsEndpoint = $('#lfs_endpoint');
 const $items = $('#migrate_items').find('input[type=checkbox]');
 
-export default function initRepoMigration() {
+export function initRepoMigration() {
   checkAuth();
   setLFSSettingsVisibility();
 

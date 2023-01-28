@@ -15,10 +15,11 @@
   color: '#000000'
   num_issues: 1
   num_closed_issues: 1
+
 -
   id: 3
   repo_id: 0
-  org_id:  3
+  org_id: 3
   name: orglabel3
   color: '#abcdef'
   num_issues: 0
@@ -32,7 +33,7 @@
   color: '#000000'
   num_issues: 1
   num_closed_issues: 0
-  
+
 -
   id: 5
   repo_id: 10

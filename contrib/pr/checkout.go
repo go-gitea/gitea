@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package main
 
@@ -14,7 +13,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"os/user"
@@ -34,6 +32,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
+	markup_service "code.gitea.io/gitea/services/markup"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
@@ -62,11 +61,7 @@ func runPR() {
 	}
 	setting.AppWorkPath = curDir
 	setting.StaticRootPath = curDir
-	setting.GravatarSourceURL, err = url.Parse("https://secure.gravatar.com/avatar/")
-	if err != nil {
-		log.Fatalf("url.Parse: %v\n", err)
-	}
-
+	setting.GravatarSource = "https://secure.gravatar.com/avatar/"
 	setting.AppURL = "http://localhost:8080/"
 	setting.HTTPPort = "8080"
 	setting.SSH.Domain = "localhost"
@@ -117,7 +112,7 @@ func runPR() {
 	log.Printf("[PR] Setting up router\n")
 	// routers.GlobalInit()
 	external.RegisterRenderers()
-	markup.Init()
+	markup.Init(markup_service.ProcessorHelper())
 	c := routers.NormalRoutes(graceful.GetManager().HammerContext())
 
 	log.Printf("[PR] Ready for testing !\n")

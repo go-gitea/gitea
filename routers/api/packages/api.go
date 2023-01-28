@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package packages
 
@@ -12,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/packages/composer"
@@ -40,7 +40,9 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 	}
 }
 
-func Routes(ctx gocontext.Context) *web.Route {
+// CommonRoutes provide endpoints for most package managers (except containers - see below)
+// These are mounted on `/api/packages` (not `/api/v1/packages`)
+func CommonRoutes(ctx gocontext.Context) *web.Route {
 	r := web.NewRoute()
 
 	r.Use(context.PackageContexter(ctx))
@@ -57,7 +59,14 @@ func Routes(ctx gocontext.Context) *web.Route {
 
 	authGroup := auth.NewGroup(authMethods...)
 	r.Use(func(ctx *context.Context) {
-		ctx.Doer = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		var err error
+		ctx.Doer, err = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		if err != nil {
+			log.Error("Verify: %v", err)
+			ctx.Error(http.StatusUnauthorized, "authGroup.Verify")
+			return
+		}
+		ctx.IsSigned = ctx.Doer != nil
 	})
 
 	r.Group("/{username}", func() {
@@ -178,17 +187,22 @@ func Routes(ctx gocontext.Context) *web.Route {
 		r.Group("/maven", func() {
 			r.Put("/*", reqPackageAccess(perm.AccessModeWrite), maven.UploadPackageFile)
 			r.Get("/*", maven.DownloadPackageFile)
+			r.Head("/*", maven.ProvidePackageFileHeader)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/nuget", func() {
-			r.Get("/index.json", nuget.ServiceIndex) // Needs to be unauthenticated for the NuGet client.
+			r.Group("", func() { // Needs to be unauthenticated for the NuGet client.
+				r.Get("/", nuget.ServiceIndexV2)
+				r.Get("/index.json", nuget.ServiceIndexV3)
+				r.Get("/$metadata", nuget.FeedCapabilityResource)
+			})
 			r.Group("", func() {
-				r.Get("/query", nuget.SearchService)
+				r.Get("/query", nuget.SearchServiceV3)
 				r.Group("/registration/{id}", func() {
 					r.Get("/index.json", nuget.RegistrationIndex)
-					r.Get("/{version}", nuget.RegistrationLeaf)
+					r.Get("/{version}", nuget.RegistrationLeafV3)
 				})
 				r.Group("/package/{id}", func() {
-					r.Get("/index.json", nuget.EnumeratePackageVersions)
+					r.Get("/index.json", nuget.EnumeratePackageVersionsV3)
 					r.Get("/{version}/{filename}", nuget.DownloadPackageFile)
 				})
 				r.Group("", func() {
@@ -196,7 +210,11 @@ func Routes(ctx gocontext.Context) *web.Route {
 					r.Put("/symbolpackage", nuget.UploadSymbolPackage)
 					r.Delete("/{id}/{version}", nuget.DeletePackage)
 				}, reqPackageAccess(perm.AccessModeWrite))
-				r.Get("/symbols/{filename}/{guid:[0-9a-f]{32}}FFFFFFFF/{filename2}", nuget.DownloadSymbolFile)
+				r.Get("/symbols/{filename}/{guid:[0-9a-fA-F]{32}[fF]{8}}/{filename2}", nuget.DownloadSymbolFile)
+				r.Get("/Packages(Id='{id:[^']+}',Version='{version:[^']+}')", nuget.RegistrationLeafV2)
+				r.Get("/Packages()", nuget.SearchServiceV2)
+				r.Get("/FindPackagesById()", nuget.EnumeratePackageVersionsV2)
+				r.Get("/Search()", nuget.SearchServiceV2)
 			}, reqPackageAccess(perm.AccessModeRead))
 		})
 		r.Group("/npm", func() {
@@ -207,6 +225,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 					r.Get("", npm.DownloadPackageFile)
 					r.Delete("/-rev/{revision}", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
 				})
+				r.Get("/-/{filename}", npm.DownloadPackageFileByName)
 				r.Group("/-rev/{revision}", func() {
 					r.Delete("", npm.DeletePackage)
 					r.Put("", npm.DeletePreview)
@@ -219,6 +238,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 					r.Get("", npm.DownloadPackageFile)
 					r.Delete("/-rev/{revision}", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
 				})
+				r.Get("/-/{filename}", npm.DownloadPackageFileByName)
 				r.Group("/-rev/{revision}", func() {
 					r.Delete("", npm.DeletePackage)
 					r.Put("", npm.DeletePreview)
@@ -290,6 +310,9 @@ func Routes(ctx gocontext.Context) *web.Route {
 	return r
 }
 
+// ContainerRoutes provides endpoints that implement the OCI API to serve containers
+// These have to be mounted on `/v2/...` to comply with the OCI spec:
+// https://github.com/opencontainers/distribution-spec/blob/main/spec.md
 func ContainerRoutes(ctx gocontext.Context) *web.Route {
 	r := web.NewRoute()
 
@@ -305,7 +328,14 @@ func ContainerRoutes(ctx gocontext.Context) *web.Route {
 
 	authGroup := auth.NewGroup(authMethods...)
 	r.Use(func(ctx *context.Context) {
-		ctx.Doer = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		var err error
+		ctx.Doer, err = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		if err != nil {
+			log.Error("Failed to verify user: %v", err)
+			ctx.Error(http.StatusUnauthorized, "Verify")
+			return
+		}
+		ctx.IsSigned = ctx.Doer != nil
 	})
 
 	r.Get("", container.ReqContainerAccess, container.DetermineSupport)

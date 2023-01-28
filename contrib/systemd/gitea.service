@@ -49,12 +49,8 @@ After=network.target
 ###
 
 [Service]
-# Modify these two values and uncomment them if you have
-# repos with lots of files and get an HTTP error 500 because
-# of that
-###
-#LimitMEMLOCK=infinity
-#LimitNOFILE=65535
+# Uncomment the next line if you have repos with lots of files and get a HTTP 500 error because of that
+# LimitNOFILE=524288:524288
 RestartSec=2s
 Type=simple
 User=git

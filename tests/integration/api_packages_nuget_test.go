@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -8,10 +7,13 @@ import (
 	"archive/zip"
 	"bytes"
 	"encoding/base64"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
@@ -31,8 +33,44 @@ func addNuGetAPIKeyHeader(request *http.Request, token string) *http.Request {
 	return request
 }
 
+func decodeXML(t testing.TB, resp *httptest.ResponseRecorder, v interface{}) {
+	t.Helper()
+
+	assert.NoError(t, xml.NewDecoder(resp.Body).Decode(v))
+}
+
 func TestPackageNuGet(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+
+	type FeedEntryProperties struct {
+		Version                  string                      `xml:"Version"`
+		NormalizedVersion        string                      `xml:"NormalizedVersion"`
+		Authors                  string                      `xml:"Authors"`
+		Dependencies             string                      `xml:"Dependencies"`
+		Description              string                      `xml:"Description"`
+		VersionDownloadCount     nuget.TypedValue[int64]     `xml:"VersionDownloadCount"`
+		DownloadCount            nuget.TypedValue[int64]     `xml:"DownloadCount"`
+		PackageSize              nuget.TypedValue[int64]     `xml:"PackageSize"`
+		Created                  nuget.TypedValue[time.Time] `xml:"Created"`
+		LastUpdated              nuget.TypedValue[time.Time] `xml:"LastUpdated"`
+		Published                nuget.TypedValue[time.Time] `xml:"Published"`
+		ProjectURL               string                      `xml:"ProjectUrl,omitempty"`
+		ReleaseNotes             string                      `xml:"ReleaseNotes,omitempty"`
+		RequireLicenseAcceptance nuget.TypedValue[bool]      `xml:"RequireLicenseAcceptance"`
+		Title                    string                      `xml:"Title"`
+	}
+
+	type FeedEntry struct {
+		XMLName    xml.Name             `xml:"entry"`
+		Properties *FeedEntryProperties `xml:"properties"`
+		Content    string               `xml:",innerxml"`
+	}
+
+	type FeedResponse struct {
+		XMLName xml.Name     `xml:"feed"`
+		Entries []*FeedEntry `xml:"entry"`
+		Count   int64        `xml:"count"`
+	}
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	token := getUserToken(t, user.Name)
@@ -44,83 +82,130 @@ func TestPackageNuGet(t *testing.T) {
 	symbolFilename := "test.pdb"
 	symbolID := "d910bb6948bd4c6cb40155bcf52c3c94"
 
-	var buf bytes.Buffer
-	archive := zip.NewWriter(&buf)
-	w, _ := archive.Create("package.nuspec")
-	w.Write([]byte(`<?xml version="1.0" encoding="utf-8"?>
-	<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
-	  <metadata>
-		<id>` + packageName + `</id>
-		<version>` + packageVersion + `</version>
-		<authors>` + packageAuthors + `</authors>
-		<description>` + packageDescription + `</description>
-		<group targetFramework=".NETStandard2.0">
-			<dependency id="Microsoft.CSharp" version="4.5.0" />
-		</group>
-	  </metadata>
-	</package>`))
-	archive.Close()
-	content := buf.Bytes()
+	createPackage := func(id, version string) io.Reader {
+		var buf bytes.Buffer
+		archive := zip.NewWriter(&buf)
+		w, _ := archive.Create("package.nuspec")
+		w.Write([]byte(`<?xml version="1.0" encoding="utf-8"?>
+		<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+			<metadata>
+				<id>` + id + `</id>
+				<version>` + version + `</version>
+				<authors>` + packageAuthors + `</authors>
+				<description>` + packageDescription + `</description>
+				<dependencies>
+					<group targetFramework=".NETStandard2.0">
+						<dependency id="Microsoft.CSharp" version="4.5.0" />
+					</group>
+				</dependencies>
+			</metadata>
+		</package>`))
+		archive.Close()
+		return &buf
+	}
+
+	content, _ := io.ReadAll(createPackage(packageName, packageVersion))
 
 	url := fmt.Sprintf("/api/packages/%s/nuget", user.Name)
 
 	t.Run("ServiceIndex", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		privateUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Visibility: structs.VisibleTypePrivate})
+		t.Run("v2", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
 
-		cases := []struct {
-			Owner        string
-			UseBasicAuth bool
-			UseTokenAuth bool
-		}{
-			{privateUser.Name, false, false},
-			{privateUser.Name, true, false},
-			{privateUser.Name, false, true},
-			{user.Name, false, false},
-			{user.Name, true, false},
-			{user.Name, false, true},
-		}
+			privateUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Visibility: structs.VisibleTypePrivate})
 
-		for _, c := range cases {
-			url := fmt.Sprintf("/api/packages/%s/nuget", c.Owner)
-
-			req := NewRequest(t, "GET", fmt.Sprintf("%s/index.json", url))
-			if c.UseBasicAuth {
-				req = AddBasicAuthHeader(req, user.Name)
-			} else if c.UseTokenAuth {
-				req = addNuGetAPIKeyHeader(req, token)
+			cases := []struct {
+				Owner        string
+				UseBasicAuth bool
+				UseTokenAuth bool
+			}{
+				{privateUser.Name, false, false},
+				{privateUser.Name, true, false},
+				{privateUser.Name, false, true},
+				{user.Name, false, false},
+				{user.Name, true, false},
+				{user.Name, false, true},
 			}
-			resp := MakeRequest(t, req, http.StatusOK)
 
-			var result nuget.ServiceIndexResponse
-			DecodeJSON(t, resp, &result)
+			for _, c := range cases {
+				url := fmt.Sprintf("/api/packages/%s/nuget", c.Owner)
 
-			assert.Equal(t, "3.0.0", result.Version)
-			assert.NotEmpty(t, result.Resources)
+				req := NewRequest(t, "GET", url)
+				if c.UseBasicAuth {
+					req = AddBasicAuthHeader(req, user.Name)
+				} else if c.UseTokenAuth {
+					req = addNuGetAPIKeyHeader(req, token)
+				}
+				resp := MakeRequest(t, req, http.StatusOK)
 
-			root := setting.AppURL + url[1:]
-			for _, r := range result.Resources {
-				switch r.Type {
-				case "SearchQueryService":
-					fallthrough
-				case "SearchQueryService/3.0.0-beta":
-					fallthrough
-				case "SearchQueryService/3.0.0-rc":
-					assert.Equal(t, root+"/query", r.ID)
-				case "RegistrationsBaseUrl":
-					fallthrough
-				case "RegistrationsBaseUrl/3.0.0-beta":
-					fallthrough
-				case "RegistrationsBaseUrl/3.0.0-rc":
-					assert.Equal(t, root+"/registration", r.ID)
-				case "PackageBaseAddress/3.0.0":
-					assert.Equal(t, root+"/package", r.ID)
-				case "PackagePublish/2.0.0":
-					assert.Equal(t, root, r.ID)
+				var result nuget.ServiceIndexResponseV2
+				decodeXML(t, resp, &result)
+
+				assert.Equal(t, setting.AppURL+url[1:], result.Base)
+				assert.Equal(t, "Packages", result.Workspace.Collection.Href)
+			}
+		})
+
+		t.Run("v3", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			privateUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Visibility: structs.VisibleTypePrivate})
+
+			cases := []struct {
+				Owner        string
+				UseBasicAuth bool
+				UseTokenAuth bool
+			}{
+				{privateUser.Name, false, false},
+				{privateUser.Name, true, false},
+				{privateUser.Name, false, true},
+				{user.Name, false, false},
+				{user.Name, true, false},
+				{user.Name, false, true},
+			}
+
+			for _, c := range cases {
+				url := fmt.Sprintf("/api/packages/%s/nuget", c.Owner)
+
+				req := NewRequest(t, "GET", fmt.Sprintf("%s/index.json", url))
+				if c.UseBasicAuth {
+					req = AddBasicAuthHeader(req, user.Name)
+				} else if c.UseTokenAuth {
+					req = addNuGetAPIKeyHeader(req, token)
+				}
+				resp := MakeRequest(t, req, http.StatusOK)
+
+				var result nuget.ServiceIndexResponseV3
+				DecodeJSON(t, resp, &result)
+
+				assert.Equal(t, "3.0.0", result.Version)
+				assert.NotEmpty(t, result.Resources)
+
+				root := setting.AppURL + url[1:]
+				for _, r := range result.Resources {
+					switch r.Type {
+					case "SearchQueryService":
+						fallthrough
+					case "SearchQueryService/3.0.0-beta":
+						fallthrough
+					case "SearchQueryService/3.0.0-rc":
+						assert.Equal(t, root+"/query", r.ID)
+					case "RegistrationsBaseUrl":
+						fallthrough
+					case "RegistrationsBaseUrl/3.0.0-beta":
+						fallthrough
+					case "RegistrationsBaseUrl/3.0.0-rc":
+						assert.Equal(t, root+"/registration", r.ID)
+					case "PackageBaseAddress/3.0.0":
+						assert.Equal(t, root+"/package", r.ID)
+					case "PackagePublish/2.0.0":
+						assert.Equal(t, root, r.ID)
+					}
 				}
 			}
-		}
+		})
 	})
 
 	t.Run("Upload", func(t *testing.T) {
@@ -160,7 +245,7 @@ func TestPackageNuGet(t *testing.T) {
 		t.Run("SymbolPackage", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			createPackage := func(id, packageType string) io.Reader {
+			createSymbolPackage := func(id, packageType string) io.Reader {
 				var buf bytes.Buffer
 				archive := zip.NewWriter(&buf)
 
@@ -186,15 +271,15 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				return &buf
 			}
 
-			req := NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createPackage("unknown-package", "SymbolsPackage"))
+			req := NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createSymbolPackage("unknown-package", "SymbolsPackage"))
 			req = AddBasicAuthHeader(req, user.Name)
 			MakeRequest(t, req, http.StatusNotFound)
 
-			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createPackage(packageName, "DummyPackage"))
+			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createSymbolPackage(packageName, "DummyPackage"))
 			req = AddBasicAuthHeader(req, user.Name)
 			MakeRequest(t, req, http.StatusBadRequest)
 
-			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createPackage(packageName, "SymbolsPackage"))
+			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createSymbolPackage(packageName, "SymbolsPackage"))
 			req = AddBasicAuthHeader(req, user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 
@@ -238,7 +323,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				}
 			}
 
-			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createPackage(packageName, "SymbolsPackage"))
+			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createSymbolPackage(packageName, "SymbolsPackage"))
 			req = AddBasicAuthHeader(req, user.Name)
 			MakeRequest(t, req, http.StatusConflict)
 		})
@@ -280,7 +365,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 			req = AddBasicAuthHeader(req, user.Name)
 			MakeRequest(t, req, http.StatusNotFound)
 
-			req = NewRequest(t, "GET", fmt.Sprintf("%s/symbols/%s/%sFFFFFFFF/%s", url, symbolFilename, symbolID, symbolFilename))
+			req = NewRequest(t, "GET", fmt.Sprintf("%s/symbols/%s/%sFFFFffff/%s", url, symbolFilename, symbolID, symbolFilename))
 			req = AddBasicAuthHeader(req, user.Name)
 			MakeRequest(t, req, http.StatusOK)
 
@@ -305,17 +390,94 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 			{"test", 1, 10, 1, 0},
 		}
 
-		for i, c := range cases {
-			req := NewRequest(t, "GET", fmt.Sprintf("%s/query?q=%s&skip=%d&take=%d", url, c.Query, c.Skip, c.Take))
-			req = AddBasicAuthHeader(req, user.Name)
-			resp := MakeRequest(t, req, http.StatusOK)
+		t.Run("v2", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
 
-			var result nuget.SearchResultResponse
-			DecodeJSON(t, resp, &result)
+			t.Run("Search()", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
 
-			assert.Equal(t, c.ExpectedTotal, result.TotalHits, "case %d: unexpected total hits", i)
-			assert.Len(t, result.Data, c.ExpectedResults, "case %d: unexpected result count", i)
-		}
+				for i, c := range cases {
+					req := NewRequest(t, "GET", fmt.Sprintf("%s/Search()?searchTerm='%s'&skip=%d&take=%d", url, c.Query, c.Skip, c.Take))
+					req = AddBasicAuthHeader(req, user.Name)
+					resp := MakeRequest(t, req, http.StatusOK)
+
+					var result FeedResponse
+					decodeXML(t, resp, &result)
+
+					assert.Equal(t, c.ExpectedTotal, result.Count, "case %d: unexpected total hits", i)
+					assert.Len(t, result.Entries, c.ExpectedResults, "case %d: unexpected result count", i)
+				}
+			})
+
+			t.Run("Packages()", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				for i, c := range cases {
+					req := NewRequest(t, "GET", fmt.Sprintf("%s/Search()?$filter=substringof('%s',tolower(Id))&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take))
+					req = AddBasicAuthHeader(req, user.Name)
+					resp := MakeRequest(t, req, http.StatusOK)
+
+					var result FeedResponse
+					decodeXML(t, resp, &result)
+
+					assert.Equal(t, c.ExpectedTotal, result.Count, "case %d: unexpected total hits", i)
+					assert.Len(t, result.Entries, c.ExpectedResults, "case %d: unexpected result count", i)
+				}
+			})
+		})
+
+		t.Run("v3", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			for i, c := range cases {
+				req := NewRequest(t, "GET", fmt.Sprintf("%s/query?q=%s&skip=%d&take=%d", url, c.Query, c.Skip, c.Take))
+				req = AddBasicAuthHeader(req, user.Name)
+				resp := MakeRequest(t, req, http.StatusOK)
+
+				var result nuget.SearchResultResponse
+				DecodeJSON(t, resp, &result)
+
+				assert.Equal(t, c.ExpectedTotal, result.TotalHits, "case %d: unexpected total hits", i)
+				assert.Len(t, result.Data, c.ExpectedResults, "case %d: unexpected result count", i)
+			}
+
+			t.Run("EnforceGrouped", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				req := NewRequestWithBody(t, "PUT", url, createPackage(packageName+".dummy", "1.0.0"))
+				req = AddBasicAuthHeader(req, user.Name)
+				MakeRequest(t, req, http.StatusCreated)
+
+				req = NewRequestWithBody(t, "PUT", url, createPackage(packageName, "1.0.99"))
+				req = AddBasicAuthHeader(req, user.Name)
+				MakeRequest(t, req, http.StatusCreated)
+
+				req = NewRequest(t, "GET", fmt.Sprintf("%s/query?q=%s", url, packageName))
+				req = AddBasicAuthHeader(req, user.Name)
+				resp := MakeRequest(t, req, http.StatusOK)
+
+				var result nuget.SearchResultResponse
+				DecodeJSON(t, resp, &result)
+
+				assert.EqualValues(t, 3, result.TotalHits)
+				assert.Len(t, result.Data, 2)
+				for _, sr := range result.Data {
+					if sr.ID == packageName {
+						assert.Len(t, sr.Versions, 2)
+					} else {
+						assert.Len(t, sr.Versions, 1)
+					}
+				}
+
+				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s", url, packageName+".dummy", "1.0.0"))
+				req = AddBasicAuthHeader(req, user.Name)
+				MakeRequest(t, req, http.StatusNoContent)
+
+				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s", url, packageName, "1.0.99"))
+				req = AddBasicAuthHeader(req, user.Name)
+				MakeRequest(t, req, http.StatusNoContent)
+			})
+		})
 	})
 
 	t.Run("RegistrationService", func(t *testing.T) {
@@ -352,31 +514,70 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 		t.Run("RegistrationLeaf", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequest(t, "GET", fmt.Sprintf("%s/registration/%s/%s.json", url, packageName, packageVersion))
-			req = AddBasicAuthHeader(req, user.Name)
-			resp := MakeRequest(t, req, http.StatusOK)
+			t.Run("v2", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
 
-			var result nuget.RegistrationLeafResponse
-			DecodeJSON(t, resp, &result)
+				req := NewRequest(t, "GET", fmt.Sprintf("%s/Packages(Id='%s',Version='%s')", url, packageName, packageVersion))
+				req = AddBasicAuthHeader(req, user.Name)
+				resp := MakeRequest(t, req, http.StatusOK)
 
-			assert.Equal(t, leafURL, result.RegistrationLeafURL)
-			assert.Equal(t, contentURL, result.PackageContentURL)
-			assert.Equal(t, indexURL, result.RegistrationIndexURL)
+				var result FeedEntry
+				decodeXML(t, resp, &result)
+
+				assert.Equal(t, packageName, result.Properties.Title)
+				assert.Equal(t, packageVersion, result.Properties.Version)
+				assert.Equal(t, packageAuthors, result.Properties.Authors)
+				assert.Equal(t, packageDescription, result.Properties.Description)
+				assert.Equal(t, "Microsoft.CSharp:4.5.0:.NETStandard2.0", result.Properties.Dependencies)
+			})
+
+			t.Run("v3", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				req := NewRequest(t, "GET", fmt.Sprintf("%s/registration/%s/%s.json", url, packageName, packageVersion))
+				req = AddBasicAuthHeader(req, user.Name)
+				resp := MakeRequest(t, req, http.StatusOK)
+
+				var result nuget.RegistrationLeafResponse
+				DecodeJSON(t, resp, &result)
+
+				assert.Equal(t, leafURL, result.RegistrationLeafURL)
+				assert.Equal(t, contentURL, result.PackageContentURL)
+				assert.Equal(t, indexURL, result.RegistrationIndexURL)
+			})
 		})
 	})
 
 	t.Run("PackageService", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/index.json", url, packageName))
-		req = AddBasicAuthHeader(req, user.Name)
-		resp := MakeRequest(t, req, http.StatusOK)
+		t.Run("v2", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
 
-		var result nuget.PackageVersionsResponse
-		DecodeJSON(t, resp, &result)
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/FindPackagesById()?id='%s'", url, packageName))
+			req = AddBasicAuthHeader(req, user.Name)
+			resp := MakeRequest(t, req, http.StatusOK)
 
-		assert.Len(t, result.Versions, 1)
-		assert.Equal(t, packageVersion, result.Versions[0])
+			var result FeedResponse
+			decodeXML(t, resp, &result)
+
+			assert.Len(t, result.Entries, 1)
+			assert.Equal(t, packageVersion, result.Entries[0].Properties.Version)
+		})
+
+		t.Run("v3", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/index.json", url, packageName))
+			req = AddBasicAuthHeader(req, user.Name)
+			resp := MakeRequest(t, req, http.StatusOK)
+
+			var result nuget.PackageVersionsResponse
+			DecodeJSON(t, resp, &result)
+
+			assert.Len(t, result.Versions, 1)
+			assert.Equal(t, packageVersion, result.Versions[0])
+		})
 	})
 
 	t.Run("Delete", func(t *testing.T) {

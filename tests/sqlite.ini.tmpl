@@ -107,3 +107,10 @@ PATH = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-sqlite/data/lfs
 
 [packages]
 ENABLED = true
+
+[markup.html]
+ENABLED = true
+FILE_EXTENSIONS = .html
+RENDER_COMMAND = `go run tools/external_renderer.go`
+IS_INPUT_FILE = false
+RENDER_CONTENT_MODE=sanitized

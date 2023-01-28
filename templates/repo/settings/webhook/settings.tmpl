@@ -103,8 +103,8 @@
 			<div class="field">
 				<div class="ui checkbox">
 					<input class="hidden" name="wiki" type="checkbox" tabindex="0" {{if .Webhook.Wiki}}checked{{end}}>
-					<label>{{.i18n.Tr "repo.settings.event_wiki"}}</label>
-					<span class="help">{{.i18n.Tr "repo.settings.event_wiki_desc"}}</span>
+					<label>{{.locale.Tr "repo.settings.event_wiki"}}</label>
+					<span class="help">{{.locale.Tr "repo.settings.event_wiki_desc"}}</span>
 				</div>
 			</div>
 		</div>
@@ -246,6 +246,15 @@
 	<label for="branch_filter">{{.locale.Tr "repo.settings.branch_filter"}}</label>
 	<input name="branch_filter" type="text" tabindex="0" value="{{or .Webhook.BranchFilter "*"}}">
 	<span class="help">{{.locale.Tr "repo.settings.branch_filter_desc" | Str2html}}</span>
+</div>
+
+<!-- Authorization Header -->
+<div class="field{{if eq .HookType "matrix"}} required{{end}}">
+	<label for="authorization_header">{{.locale.Tr "repo.settings.authorization_header"}}</label>
+	<input id="authorization_header" name="authorization_header" type="text" value="{{.Webhook.HeaderAuthorization}}"{{if eq .HookType "matrix"}} placeholder="Bearer $access_token" required{{end}}>
+	{{if ne .HookType "matrix"}}{{/* Matrix doesn't make the authorization optional but it is implied by the help string, should be changed.*/}}
+		<span class="help">{{.locale.Tr "repo.settings.authorization_header_desc" "<code>Bearer token123456</code>, <code>Basic YWxhZGRpbjpvcGVuc2VzYW1l</code>" | Str2html}}</span>
+	{{end}}
 </div>
 
 <div class="ui divider"></div>

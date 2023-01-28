@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -31,6 +30,10 @@ func AvatarByUserName(ctx *context.Context) {
 	if strings.ToLower(userName) != "ghost" {
 		var err error
 		if user, err = user_model.GetUserByName(ctx, userName); err != nil {
+			if user_model.IsErrUserNotExist(err) {
+				ctx.NotFound("GetUserByName", err)
+				return
+			}
 			ctx.ServerError("Invalid user: "+userName, err)
 			return
 		}

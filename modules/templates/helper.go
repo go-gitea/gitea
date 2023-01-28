@@ -1,7 +1,6 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package templates
 
@@ -26,14 +25,17 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/avatars"
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
 	giturl "code.gitea.io/gitea/modules/git/url"
+	gitea_html "code.gitea.io/gitea/modules/html"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -85,7 +87,7 @@ func NewFuncMap() []template.FuncMap {
 			return setting.AssetVersion
 		},
 		"DisableGravatar": func() bool {
-			return setting.DisableGravatar
+			return system_model.GetSettingBool(system_model.KeyPictureDisableGravatar)
 		},
 		"DefaultShowFullName": func() bool {
 			return setting.UI.DefaultShowFullName
@@ -161,6 +163,7 @@ func NewFuncMap() []template.FuncMap {
 		"RenderCommitMessageLink":        RenderCommitMessageLink,
 		"RenderCommitMessageLinkSubject": RenderCommitMessageLinkSubject,
 		"RenderCommitBody":               RenderCommitBody,
+		"RenderCodeBlock":                RenderCodeBlock,
 		"RenderIssueTitle":               RenderIssueTitle,
 		"RenderEmoji":                    RenderEmoji,
 		"RenderEmojiPlain":               emoji.ReplaceAliases,
@@ -345,7 +348,7 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return false
 		},
-		"svg":            SVG,
+		"svg":            svg.RenderHTML,
 		"avatar":         Avatar,
 		"avatarHTML":     AvatarHTML,
 		"avatarByAction": AvatarByAction,
@@ -360,17 +363,17 @@ func NewFuncMap() []template.FuncMap {
 			if len(urlSort) == 0 && isDefault {
 				// if sort is sorted as default add arrow tho this table header
 				if isDefault {
-					return SVG("octicon-triangle-down", 16)
+					return svg.RenderHTML("octicon-triangle-down", 16)
 				}
 			} else {
 				// if sort arg is in url test if it correlates with column header sort arguments
 				// the direction of the arrow should indicate the "current sort order", up means ASC(normal), down means DESC(rev)
 				if urlSort == normSort {
 					// the table is sorted with this header normal
-					return SVG("octicon-triangle-up", 16)
+					return svg.RenderHTML("octicon-triangle-up", 16)
 				} else if urlSort == revSort {
 					// the table is sorted with this header reverse
-					return SVG("octicon-triangle-down", 16)
+					return svg.RenderHTML("octicon-triangle-down", 16)
 				}
 			}
 			// the table is NOT sorted with this header
@@ -456,6 +459,19 @@ func NewFuncMap() []template.FuncMap {
 			return items
 		},
 		"HasPrefix": strings.HasPrefix,
+		"CompareLink": func(baseRepo, repo *repo_model.Repository, branchName string) string {
+			var curBranch string
+			if repo.ID != baseRepo.ID {
+				curBranch += fmt.Sprintf("%s/%s:", url.PathEscape(repo.OwnerName), url.PathEscape(repo.Name))
+			}
+			curBranch += util.PathEscapeSegments(branchName)
+
+			return fmt.Sprintf("%s/compare/%s...%s",
+				baseRepo.Link(),
+				util.PathEscapeSegments(baseRepo.DefaultBranch),
+				curBranch,
+			)
+		},
 	}}
 }
 
@@ -578,29 +594,6 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 	}}
 }
 
-var (
-	widthRe  = regexp.MustCompile(`width="[0-9]+?"`)
-	heightRe = regexp.MustCompile(`height="[0-9]+?"`)
-)
-
-func parseOthers(defaultSize int, defaultClass string, others ...interface{}) (int, string) {
-	size := defaultSize
-	if len(others) > 0 && others[0].(int) != 0 {
-		size = others[0].(int)
-	}
-
-	class := defaultClass
-	if len(others) > 1 && others[1].(string) != "" {
-		if defaultClass == "" {
-			class = others[1].(string)
-		} else {
-			class = defaultClass + " " + others[1].(string)
-		}
-	}
-
-	return size, class
-}
-
 // AvatarHTML creates the HTML for an avatar
 func AvatarHTML(src string, size int, class, name string) template.HTML {
 	sizeStr := fmt.Sprintf(`%d`, size)
@@ -612,26 +605,9 @@ func AvatarHTML(src string, size int, class, name string) template.HTML {
 	return template.HTML(`<img class="` + class + `" src="` + src + `" title="` + html.EscapeString(name) + `" width="` + sizeStr + `" height="` + sizeStr + `"/>`)
 }
 
-// SVG render icons - arguments icon name (string), size (int), class (string)
-func SVG(icon string, others ...interface{}) template.HTML {
-	size, class := parseOthers(16, "", others...)
-
-	if svgStr, ok := svg.SVGs[icon]; ok {
-		if size != 16 {
-			svgStr = widthRe.ReplaceAllString(svgStr, fmt.Sprintf(`width="%d"`, size))
-			svgStr = heightRe.ReplaceAllString(svgStr, fmt.Sprintf(`height="%d"`, size))
-		}
-		if class != "" {
-			svgStr = strings.Replace(svgStr, `class="`, fmt.Sprintf(`class="%s `, class), 1)
-		}
-		return template.HTML(svgStr)
-	}
-	return template.HTML("")
-}
-
 // Avatar renders user avatars. args: user, size (int), class (string)
 func Avatar(item interface{}, others ...interface{}) template.HTML {
-	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar vm", others...)
+	size, class := gitea_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, avatars.DefaultAvatarClass, others...)
 
 	switch t := item.(type) {
 	case *user_model.User:
@@ -656,13 +632,13 @@ func Avatar(item interface{}, others ...interface{}) template.HTML {
 
 // AvatarByAction renders user avatars from action. args: action, size (int), class (string)
 func AvatarByAction(action *activities_model.Action, others ...interface{}) template.HTML {
-	action.LoadActUser()
+	action.LoadActUser(db.DefaultContext)
 	return Avatar(action.ActUser, others...)
 }
 
 // RepoAvatar renders repo avatars. args: repo, size(int), class (string)
 func RepoAvatar(repo *repo_model.Repository, others ...interface{}) template.HTML {
-	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar", others...)
+	size, class := gitea_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, avatars.DefaultAvatarClass, others...)
 
 	src := repo.RelAvatarLink()
 	if src != "" {
@@ -673,7 +649,7 @@ func RepoAvatar(repo *repo_model.Repository, others ...interface{}) template.HTM
 
 // AvatarByEmail renders avatars by email address. args: email, name, size (int), class (string)
 func AvatarByEmail(email, name string, others ...interface{}) template.HTML {
-	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar", others...)
+	size, class := gitea_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, avatars.DefaultAvatarClass, others...)
 	src := avatars.GenerateEmailAvatarFastLink(email, size*setting.Avatar.RenderedSizeFactor)
 
 	if src != "" {
@@ -795,6 +771,16 @@ func RenderCommitBody(ctx context.Context, msg, urlPrefix string, metas map[stri
 	return template.HTML(renderedMessage)
 }
 
+// Match text that is between back ticks.
+var codeMatcher = regexp.MustCompile("`([^`]+)`")
+
+// RenderCodeBlock renders "`…`" as highlighted "<code>" block.
+// Intended for issue and PR titles, these containers should have styles for "<code>" elements
+func RenderCodeBlock(htmlEscapedTextToRender template.HTML) template.HTML {
+	htmlWithCodeTags := codeMatcher.ReplaceAllString(string(htmlEscapedTextToRender), "<code>$1</code>") // replace with HTML <code> tags
+	return template.HTML(htmlWithCodeTags)
+}
+
 // RenderIssueTitle renders issue/pull title with defined post processors
 func RenderIssueTitle(ctx context.Context, text, urlPrefix string, metas map[string]string) template.HTML {
 	renderedText, err := markup.RenderIssueTitle(&markup.RenderContext{
@@ -879,7 +865,7 @@ func ActionIcon(opType activities_model.ActionType) string {
 		return "git-pull-request"
 	case activities_model.ActionCommentIssue, activities_model.ActionCommentPull:
 		return "comment-discussion"
-	case activities_model.ActionMergePullRequest:
+	case activities_model.ActionMergePullRequest, activities_model.ActionAutoMergePullRequest:
 		return "git-merge"
 	case activities_model.ActionCloseIssue, activities_model.ActionClosePullRequest:
 		return "issue-closed"
