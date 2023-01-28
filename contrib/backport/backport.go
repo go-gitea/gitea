@@ -127,12 +127,12 @@ func runBackport(c *cli.Context) error {
 		}
 	}
 
-	releaseBranch := c.String("release-branch")
-	if releaseBranch == "" {
-		releaseBranch = path.Join("release", version)
+	upstreamReleaseBranch := c.String("release-branch")
+	if upstreamReleaseBranch == "" {
+		upstreamReleaseBranch = path.Join("release", version)
 	}
 
-	localReleaseBranch := path.Join(upstream, releaseBranch)
+	localReleaseBranch := path.Join(upstream, upstreamReleaseBranch)
 
 	args := c.Args()
 	if len(args) == 0 {
@@ -163,7 +163,7 @@ func runBackport(c *cli.Context) error {
 	}
 
 	if !c.Bool("no-fetch") {
-		if err := fetchRemoteAndMain(ctx, upstream, releaseBranch); err != nil {
+		if err := fetchRemoteAndMain(ctx, upstream, upstreamReleaseBranch); err != nil {
 			return err
 		}
 	}
@@ -183,7 +183,7 @@ func runBackport(c *cli.Context) error {
 	}
 
 	if !c.Bool("no-push") {
-		url := "https://github.com/go-gitea/gitea/compare/" + releaseBranch + "..." + forkUser + ":" + backportBranch
+		url := "https://github.com/go-gitea/gitea/compare/" + upstreamReleaseBranch + "..." + forkUser + ":" + backportBranch
 
 		if err := gitPushUp(ctx, remote, backportBranch); err != nil {
 			return err
