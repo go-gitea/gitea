@@ -16,8 +16,8 @@ be overrided using `--upstream`, and fetching can be avoided using
 
 By default the branch created will be called `backport-$PR-$VERSION`. You
 can override this using the option `--backport-branch`. This branch will
-be created from `--release-branch` which is `$(UPSTREAM)/release/$(VERSION)`
-by default.
+be created from `--release-branch` which is `release/$(VERSION)`
+by default which will be pulled from `$(UPSTREAM)`.
 
 The merge-commit as determined by the github API will be used as the SHA to
 cherry-pick. You can override this using `--cherry-pick`.
