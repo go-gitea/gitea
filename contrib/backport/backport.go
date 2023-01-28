@@ -181,7 +181,9 @@ func runBackport(c *cli.Context) error {
 	}
 
 	if !c.Bool("no-push") {
-		url := "https://github.com/go-gitea/gitea/compare/" + version + "..." + forkUser + ":" + backportBranch
+		upstreamReleaseBranch := strings.TrimPrefix(releaseBranch, upstream+"/")
+
+		url := "https://github.com/go-gitea/gitea/compare/release/" + upstreamReleaseBranch + "..." + forkUser + ":" + backportBranch
 
 		if err := gitPushUp(ctx, remote, backportBranch); err != nil {
 			return err
@@ -246,8 +248,7 @@ func amendCommit(ctx context.Context, pr string) error {
 
 func cherrypick(ctx context.Context, sha string) error {
 	// Check if a CHERRY_PICK_HEAD exists
-	_, err := exec.CommandContext(ctx, "git", "rev-list", "-1", "CHERRY_PICK_HEAD").Output()
-	if err == nil {
+	if _, err := os.Stat(".git/CHERRY_PICK_HEAD"); err == nil {
 		// Assume that we are in the middle of cherry-pick - continue it
 		fmt.Println("* Attempting git cherry-pick --continue")
 		out, err := exec.CommandContext(ctx, "git", "cherry-pick", "--continue").Output()
@@ -268,28 +269,25 @@ func cherrypick(ctx context.Context, sha string) error {
 }
 
 func checkoutBackportBranch(ctx context.Context, backportBranch, releaseBranch string) error {
-	cmd := exec.CommandContext(ctx, "git", "branch", "--show-current")
-	out, err := cmd.Output()
+	out, err := exec.CommandContext(ctx, "git", "branch", "--show-current").Output()
 	if err != nil {
 		return fmt.Errorf("unable to check current branch %w", err)
 	}
 
 	currentBranch := strings.TrimSpace(string(out))
+	fmt.Printf("* Current branch is %s\n", currentBranch)
 	if currentBranch == backportBranch {
 		fmt.Printf("* Current branch is %s - not checking out\n", currentBranch)
 		return nil
 	}
 
-	cmd = exec.CommandContext(ctx, "git", "rev-list", "-1", backportBranch)
-	if _, err := cmd.Output(); err == nil {
+	if _, err := exec.CommandContext(ctx, "git", "rev-list", "-1", backportBranch).Output(); err == nil {
 		fmt.Printf("* Branch %s already exists. Checking it out...\n", backportBranch)
-		cmd = exec.CommandContext(ctx, "git", "checkout", "-f", backportBranch)
-		return cmd.Run()
+		return exec.CommandContext(ctx, "git", "checkout", "-f", backportBranch).Run()
 	}
 
 	fmt.Printf("* `git checkout -b %s %s`\n", backportBranch, releaseBranch)
-	cmd = exec.CommandContext(ctx, "git", "checkout", "-b", backportBranch, releaseBranch)
-	return cmd.Run()
+	return exec.CommandContext(ctx, "git", "checkout", "-b", backportBranch, releaseBranch).Run()
 }
 
 func fetchRemoteAndMain(ctx context.Context, remote, releaseBranch string) error {
@@ -439,5 +437,3 @@ func installSignals() (context.Context, context.CancelFunc) {
 
 	return ctx, cancel
 }
-
-//  git push zeripath backport-$PR-$VERSION && xdg-open https://github.com/go-gitea/gitea/compare/release/"$VERSION"...zeripath:backport-$PR-$VERSION
