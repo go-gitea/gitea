@@ -73,11 +73,11 @@ func main() {
 		},
 		cli.BoolFlag{
 			Name:  "no-push",
-			Usage: "Set this flag to prevent push",
+			Usage: "Set this flag to prevent pushing the backport up to your fork",
 		},
 		cli.BoolFlag{
 			Name:  "no-xdg-open",
-			Usage: "Set this flag to prevent xdg-open",
+			Usage: "Set this flag to not use xdg-open to open the PR URL",
 		},
 	}
 	cli.AppHelpTemplate = `NAME:

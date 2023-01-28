@@ -267,7 +267,7 @@ with the rest of the summary matching the original PR. Similarly for frontports
 
 ---
 
-A command to help create backports can be found in `contrib/backport` and can be installed using:
+A command to help create backports can be found in `contrib/backport` and can be installed (from inside the gitea repo root directory) using:
 
 ```bash
 go install contrib/backport/backport.go
