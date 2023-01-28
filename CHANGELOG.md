@@ -4,6 +4,25 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.18.3](https://github.com/go-gitea/gitea/releases/tag/v1.18.3) - 2023-01-23
+
+* SECURITY
+  * Prevent multiple `To` recipients (#22566) (#22569)
+* BUGFIXES
+  * Truncate commit summary on repo files table. (#22551) (#22552)
+  * Mute all links in issue timeline (#22534)
+
+## [1.18.2](https://github.com/go-gitea/gitea/releases/tag/v1.18.2) - 2023-01-19
+
+* BUGFIXES
+  * Fix issue not auto-closing when it includes a reference to a branch (#22514) (#22521)
+  * Fix invalid issue branch reference if not specified in template (#22513) (#22520)
+  * Fix 500 error viewing pull request when fork has pull requests disabled (#22512) (#22515)
+  * Reliable selection of admin user (#22509) (#22511)
+  * Set disable_gravatar/enable_federated_avatar when offline mode is true (#22479) (#22496)
+* BUILD
+  * cgo cross-compile for freebsd (#22397) (#22519)
+
 ## [1.18.1](https://github.com/go-gitea/gitea/releases/tag/v1.18.1) - 2023-01-17
 
 * API
