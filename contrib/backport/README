@@ -22,8 +22,8 @@ by default and will be pulled from `$(UPSTREAM)`.
 The merge-commit as determined by the github API will be used as the SHA to
 cherry-pick. You can override this using `--cherry-pick`.
 
-The commit meesage will be amended to add the `Backport` header. `--no-amend`
-can be set to stop this from happening.
+The commit meesage will be amended to add the `Backport` header.
+`--no-amend-message` can be set to stop this from happening.
 
 If cherry-pick is successful the backported branch will be pushed up to your
 fork using your remote. These will be determined using `git remote -v`. You

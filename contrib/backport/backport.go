@@ -68,7 +68,7 @@ func main() {
 			Usage: "Set this flag to prevent fetch of remote branches",
 		},
 		cli.BoolFlag{
-			Name:  "no-amend",
+			Name:  "no-amend-message",
 			Usage: "Set this flag to prevent automatic amendment of the commit message",
 		},
 		cli.BoolFlag{
@@ -176,7 +176,7 @@ func runBackport(c *cli.Context) error {
 		return err
 	}
 
-	if !c.Bool("no-amend") {
+	if !c.Bool("no-amend-message") {
 		if err := amendCommit(ctx, pr); err != nil {
 			return err
 		}
