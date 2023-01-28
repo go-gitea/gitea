@@ -21,7 +21,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const defaultVersion = "v1.18"
+const defaultVersion = "v1.18" // to backport to
 
 func main() {
 	app := cli.NewApp()
@@ -69,7 +69,7 @@ func main() {
 		},
 		cli.BoolFlag{
 			Name:  "no-amend",
-			Usage: "Set this flag to prevent amend of the commit",
+			Usage: "Set this flag to prevent automatic amendment of the commit message",
 		},
 		cli.BoolFlag{
 			Name:  "no-push",
