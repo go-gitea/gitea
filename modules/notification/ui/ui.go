@@ -96,6 +96,7 @@ func (ns *notificationService) NotifyIssueChangeStatus(doer *user_model.User, is
 	_ = ns.issueQueue.Push(issueNotificationOpts{
 		IssueID:              issue.ID,
 		NotificationAuthorID: doer.ID,
+		CommentID:            actionComment.ID,
 	})
 }
 
