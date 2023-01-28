@@ -44,7 +44,7 @@ type IDType string
 // - it is simply an alias for context.CancelFunc and is only for documentary purposes
 type FinishedFunc = context.CancelFunc
 
-var Trace = defaultTrace // this global can be overriden by particular logging packages - thus avoiding import cycles
+var Trace = defaultTrace // this global can be overridden by particular logging packages - thus avoiding import cycles
 
 func defaultTrace(start bool, pid IDType, description string, parentPID IDType, typ string) {
 	if start && parentPID != "" {
