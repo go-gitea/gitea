@@ -14,7 +14,7 @@ The upstream branches will be fetched, using the remote `origin`. This can
 be overrided using `--upstream`, and fetching can be avoided using
 `--no-fetch`.
 
-By default the branch created will be called `backport-$PR-$VERSION`. Yoi
+By default the branch created will be called `backport-$PR-$VERSION`. You
 can override this using the option `--backport-branch`. This branch will
 be created from `--release-branch` which is `$(UPSTREAM)/release/$(VERSION)`
 by default.
