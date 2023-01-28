@@ -24,7 +24,7 @@ var ErrNotEmpty = errors.New("not-empty")
 
 // IsEmptyReader reads a reader and ensures it is empty
 func IsEmptyReader(r io.Reader) (err error) {
-	var buf [1024]byte
+	var buf [1]byte
 
 	for {
 		n, err := r.Read(buf[:])
