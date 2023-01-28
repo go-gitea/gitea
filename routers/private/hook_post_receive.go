@@ -184,7 +184,9 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 						})
 						return
 					}
-					baseRepo = repo.BaseRepo
+					if repo.BaseRepo.AllowsPulls() {
+						baseRepo = repo.BaseRepo
+					}
 				}
 
 				if !baseRepo.AllowsPulls() {
