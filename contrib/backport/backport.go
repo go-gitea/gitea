@@ -43,7 +43,7 @@ func main() {
 		cli.StringFlag{
 			Name:  "release-branch",
 			Value: "",
-			Usage: "Release branch to backport on. Will default to <origin>/release/<version>",
+			Usage: "Release branch to backport on. Will default to release/<version>",
 		},
 		cli.StringFlag{
 			Name:  "cherry-pick",
@@ -51,7 +51,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "backport-branch",
-			Usage: "backport branch to backport on to (default: backport-<pr>-<version>",
+			Usage: "Backport branch to backport on to (default: backport-<pr>-<version>",
 		},
 		cli.StringFlag{
 			Name:  "remote",
@@ -65,19 +65,19 @@ func main() {
 		},
 		cli.BoolFlag{
 			Name:  "no-fetch",
-			Usage: "set this flag to prevent fetch of remote branches",
+			Usage: "Set this flag to prevent fetch of remote branches",
 		},
 		cli.BoolFlag{
 			Name:  "no-amend",
-			Usage: "set this flag to prevent amend of the commit",
+			Usage: "Set this flag to prevent amend of the commit",
 		},
 		cli.BoolFlag{
 			Name:  "no-push",
-			Usage: "set this flag to prevent push",
+			Usage: "Set this flag to prevent push",
 		},
 		cli.BoolFlag{
 			Name:  "no-xdg-open",
-			Usage: "set this flag to prevent xdg-open",
+			Usage: "Set this flag to prevent xdg-open",
 		},
 	}
 	cli.AppHelpTemplate = `NAME:
@@ -129,8 +129,10 @@ func runBackport(c *cli.Context) error {
 
 	releaseBranch := c.String("release-branch")
 	if releaseBranch == "" {
-		releaseBranch = path.Join(upstream, "release", version)
+		releaseBranch = path.Join("release", version)
 	}
+
+	localReleaseBranch := path.Join(upstream, releaseBranch)
 
 	args := c.Args()
 	if len(args) == 0 {
@@ -146,7 +148,7 @@ func runBackport(c *cli.Context) error {
 		backportBranch = "backport-" + pr + "-" + version
 	}
 
-	fmt.Printf("* Backporting %s to %s as %s\n", pr, releaseBranch, backportBranch)
+	fmt.Printf("* Backporting %s to %s as %s\n", pr, localReleaseBranch, backportBranch)
 
 	sha := c.String("cherry-pick")
 	if sha == "" {
@@ -166,7 +168,7 @@ func runBackport(c *cli.Context) error {
 		}
 	}
 
-	if err := checkoutBackportBranch(ctx, backportBranch, releaseBranch); err != nil {
+	if err := checkoutBackportBranch(ctx, backportBranch, localReleaseBranch); err != nil {
 		return err
 	}
 
@@ -181,9 +183,7 @@ func runBackport(c *cli.Context) error {
 	}
 
 	if !c.Bool("no-push") {
-		upstreamReleaseBranch := strings.TrimPrefix(releaseBranch, upstream+"/")
-
-		url := "https://github.com/go-gitea/gitea/compare/release/" + upstreamReleaseBranch + "..." + forkUser + ":" + backportBranch
+		url := "https://github.com/go-gitea/gitea/compare/" + releaseBranch + "..." + forkUser + ":" + backportBranch
 
 		if err := gitPushUp(ctx, remote, backportBranch); err != nil {
 			return err
@@ -299,9 +299,8 @@ func fetchRemoteAndMain(ctx context.Context, remote, releaseBranch string) error
 	}
 	fmt.Println(string(out))
 
-	remoteBranch := strings.TrimPrefix(releaseBranch, remote+"/")
-	fmt.Printf("* `git fetch %s %s`\n", remote, remoteBranch)
-	out, err = exec.CommandContext(ctx, "git", "fetch", remote, remoteBranch).Output()
+	fmt.Printf("* `git fetch %s %s`\n", remote, releaseBranch)
+	out, err = exec.CommandContext(ctx, "git", "fetch", remote, releaseBranch).Output()
 	if err != nil {
 		fmt.Println(string(out))
 		return fmt.Errorf("unable to fetch %s from %s: %w", releaseBranch, remote, err)
