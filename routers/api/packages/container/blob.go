@@ -37,7 +37,7 @@ func saveAsPackageBlob(hsr packages_module.HashedSizeReader, pci *packages_servi
 
 	contentStore := packages_module.NewContentStore()
 
-	uploadVersion, err := getOrCreateUploadVersion(pi)
+	uploadVersion, err := getOrCreateUploadVersion(&pci.PackageInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -99,10 +99,10 @@ func getOrCreateUploadVersion(pi *packages_service.PackageInfo) (*packages_model
 	err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		created := true
 		p := &packages_model.Package{
-			OwnerID:   pci.Owner.ID,
+			OwnerID:   pi.Owner.ID,
 			Type:      packages_model.TypeContainer,
-			Name:      strings.ToLower(pci.Name),
-			LowerName: strings.ToLower(pci.Name),
+			Name:      strings.ToLower(pi.Name),
+			LowerName: strings.ToLower(pi.Name),
 		}
 		var err error
 		if p, err = packages_model.TryInsertPackage(ctx, p); err != nil {
@@ -115,7 +115,7 @@ func getOrCreateUploadVersion(pi *packages_service.PackageInfo) (*packages_model
 		}
 
 		if created {
-			if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypePackage, p.ID, container_module.PropertyRepository, strings.ToLower(pci.Owner.LowerName+"/"+pci.Name)); err != nil {
+			if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypePackage, p.ID, container_module.PropertyRepository, strings.ToLower(pi.Owner.LowerName+"/"+pi.Name)); err != nil {
 				log.Error("Error setting package property: %v", err)
 				return err
 			}
@@ -123,7 +123,7 @@ func getOrCreateUploadVersion(pi *packages_service.PackageInfo) (*packages_model
 
 		pv := &packages_model.PackageVersion{
 			PackageID:    p.ID,
-			CreatorID:    pci.Creator.ID,
+			CreatorID:    pi.Owner.ID,
 			Version:      container_model.UploadVersion,
 			LowerVersion: container_model.UploadVersion,
 			IsInternal:   true,
