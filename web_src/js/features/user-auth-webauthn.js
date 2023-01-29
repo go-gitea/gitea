@@ -2,7 +2,7 @@ import $ from 'jquery';
 
 const {appSubUrl, csrfToken} = window.config;
 
-function encodeToBase64(toEncode) {
+function encodeToBase64(toEncode /* Uint8Array */) {
   const output = [];
   for (let i = 0; i < toEncode.length; i++) {
     output.push(String.fromCharCode(toEncode[i]));
