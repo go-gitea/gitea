@@ -14,7 +14,7 @@ export function initUserAuthWebAuthn() {
 
   $.getJSON(`${appSubUrl}/user/webauthn/assertion`, {})
     .done((makeAssertionOptions) => {
-      makeAssertionOptions.publicKey.challenge = decode(makeAssertionOptions.publicKey.challenge);
+      makeAssertionOptions.publicKey.challenge = decode(makeAssertionOptions.publicKey.challenge.replaceAll(/-/g, '+').replaceAll(/_/g, '/'));
       for (let i = 0; i < makeAssertionOptions.publicKey.allowCredentials.length; i++) {
         makeAssertionOptions.publicKey.allowCredentials[i].id = decode(makeAssertionOptions.publicKey.allowCredentials[i].id);
       }
