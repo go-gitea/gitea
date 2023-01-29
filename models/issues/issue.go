@@ -1098,7 +1098,7 @@ func GetIssueWithAttrsByID(id int64) (*Issue, error) {
 }
 
 // GetIssuesByIDs return issues with the given IDs.
-func GetIssuesByIDs(ctx context.Context, issueIDs []int64) ([]*Issue, error) {
+func GetIssuesByIDs(ctx context.Context, issueIDs []int64) (IssueList, error) {
 	issues := make([]*Issue, 0, 10)
 	return issues, db.GetEngine(ctx).In("id", issueIDs).Find(&issues)
 }
