@@ -921,7 +921,7 @@ func commitCrossReferencePatternProcessor(ctx *RenderContext, node *html.Node) {
 		}
 
 		reftext := ref.Owner + "/" + ref.Name + "@" + base.ShortSha(ref.CommitSha)
-		link := createLink(util.URLJoin(setting.AppURL, ref.Owner, ref.Name, "commit", ref.CommitSha), reftext, "commit")
+		link := createLink(util.URLJoin(setting.AppSubURL, ref.Owner, ref.Name, "commit", ref.CommitSha), reftext, "commit")
 
 		replaceContent(node, ref.RefLocation.Start, ref.RefLocation.End, link)
 		node = node.NextSibling.NextSibling
