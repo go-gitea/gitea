@@ -97,6 +97,7 @@ func (ns *notificationService) NotifyIssueChangeStatus(ctx context.Context, doer
 	_ = ns.issueQueue.Push(issueNotificationOpts{
 		IssueID:              issue.ID,
 		NotificationAuthorID: doer.ID,
+		CommentID:            actionComment.ID,
 	})
 }
 

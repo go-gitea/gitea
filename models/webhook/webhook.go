@@ -463,41 +463,6 @@ func CountWebhooksByOpts(opts *ListWebhookOptions) (int64, error) {
 	return db.GetEngine(db.DefaultContext).Where(opts.toCond()).Count(&Webhook{})
 }
 
-// GetDefaultWebhooks returns all admin-default webhooks.
-func GetDefaultWebhooks(ctx context.Context) ([]*Webhook, error) {
-	webhooks := make([]*Webhook, 0, 5)
-	return webhooks, db.GetEngine(ctx).
-		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, false).
-		Find(&webhooks)
-}
-
-// GetSystemOrDefaultWebhook returns admin system or default webhook by given ID.
-func GetSystemOrDefaultWebhook(id int64) (*Webhook, error) {
-	webhook := &Webhook{ID: id}
-	has, err := db.GetEngine(db.DefaultContext).
-		Where("repo_id=? AND org_id=?", 0, 0).
-		Get(webhook)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrWebhookNotExist{ID: id}
-	}
-	return webhook, nil
-}
-
-// GetSystemWebhooks returns all admin system webhooks.
-func GetSystemWebhooks(ctx context.Context, isActive util.OptionalBool) ([]*Webhook, error) {
-	webhooks := make([]*Webhook, 0, 5)
-	if isActive.IsNone() {
-		return webhooks, db.GetEngine(ctx).
-			Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, true).
-			Find(&webhooks)
-	}
-	return webhooks, db.GetEngine(ctx).
-		Where("repo_id=? AND org_id=? AND is_system_webhook=? AND is_active = ?", 0, 0, true, isActive.IsTrue()).
-		Find(&webhooks)
-}
-
 // UpdateWebhook updates information of webhook.
 func UpdateWebhook(w *Webhook) error {
 	_, err := db.GetEngine(db.DefaultContext).ID(w.ID).AllCols().Update(w)
@@ -544,45 +509,4 @@ func DeleteWebhookByOrgID(orgID, id int64) error {
 		ID:    id,
 		OrgID: orgID,
 	})
-}
-
-// DeleteDefaultSystemWebhook deletes an admin-configured default or system webhook (where Org and Repo ID both 0)
-func DeleteDefaultSystemWebhook(id int64) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	count, err := db.GetEngine(ctx).
-		Where("repo_id=? AND org_id=?", 0, 0).
-		Delete(&Webhook{ID: id})
-	if err != nil {
-		return err
-	} else if count == 0 {
-		return ErrWebhookNotExist{ID: id}
-	}
-
-	if _, err := db.DeleteByBean(ctx, &HookTask{HookID: id}); err != nil {
-		return err
-	}
-
-	return committer.Commit()
-}
-
-// CopyDefaultWebhooksToRepo creates copies of the default webhooks in a new repo
-func CopyDefaultWebhooksToRepo(ctx context.Context, repoID int64) error {
-	ws, err := GetDefaultWebhooks(ctx)
-	if err != nil {
-		return fmt.Errorf("GetDefaultWebhooks: %w", err)
-	}
-
-	for _, w := range ws {
-		w.ID = 0
-		w.RepoID = repoID
-		if err := CreateWebhook(ctx, w); err != nil {
-			return fmt.Errorf("CreateWebhook: %w", err)
-		}
-	}
-	return nil
 }
