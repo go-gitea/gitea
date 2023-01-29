@@ -1572,6 +1572,7 @@ type IssueStatsOptions struct {
 	RepoID            int64
 	Labels            string
 	MilestoneID       int64
+	ProjectID         int64
 	AssigneeID        int64
 	MentionedID       int64
 	PosterID          int64
@@ -1648,6 +1649,11 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 
 		if opts.MilestoneID > 0 {
 			sess.And("issue.milestone_id = ?", opts.MilestoneID)
+		}
+
+		if opts.ProjectID > 0 {
+			sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
+				And("project_issue.project_id=?", opts.ProjectID)
 		}
 
 		if opts.AssigneeID > 0 {
