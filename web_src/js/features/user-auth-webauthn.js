@@ -1,7 +1,18 @@
 import $ from 'jquery';
-import {encode, decode} from 'uint8-to-base64';
 
 const {appSubUrl, csrfToken} = window.config;
+
+function encodeToBase64(toEncode) {
+  const output = [];
+  for (let i = 0; i < toEncode.length; i++) {
+    output.push(String.fromCharCode(toEncode[i]));
+  }
+  return window.btoa(output.join(''));
+}
+
+function decodeFromBase64(toDecode) {
+  return Uint8Array.from(window.atob(toDecode), (c) => c.charCodeAt(0));
+}
 
 export function initUserAuthWebAuthn() {
   if ($('.user.signin.webauthn-prompt').length === 0) {
@@ -14,9 +25,9 @@ export function initUserAuthWebAuthn() {
 
   $.getJSON(`${appSubUrl}/user/webauthn/assertion`, {})
     .done((makeAssertionOptions) => {
-      makeAssertionOptions.publicKey.challenge = decode(makeAssertionOptions.publicKey.challenge);
+      makeAssertionOptions.publicKey.challenge = decodeFromBase64(makeAssertionOptions.publicKey.challenge);
       for (let i = 0; i < makeAssertionOptions.publicKey.allowCredentials.length; i++) {
-        makeAssertionOptions.publicKey.allowCredentials[i].id = decode(makeAssertionOptions.publicKey.allowCredentials[i].id);
+        makeAssertionOptions.publicKey.allowCredentials[i].id = decodeFromBase64(makeAssertionOptions.publicKey.allowCredentials[i].id);
       }
       navigator.credentials.get({
         publicKey: makeAssertionOptions.publicKey
@@ -87,7 +98,7 @@ function verifyAssertion(assertedCredential) {
 
 // Encode an ArrayBuffer into a base64 string.
 function bufferEncode(value) {
-  return encode(value)
+  return encodeToBase64(value)
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=/g, '');
@@ -184,11 +195,11 @@ function webAuthnRegisterRequest() {
   }).done((makeCredentialOptions) => {
     $('#nickname').closest('div.field').removeClass('error');
 
-    makeCredentialOptions.publicKey.challenge = decode(makeCredentialOptions.publicKey.challenge);
-    makeCredentialOptions.publicKey.user.id = decode(makeCredentialOptions.publicKey.user.id);
+    makeCredentialOptions.publicKey.challenge = decodeFromBase64(makeCredentialOptions.publicKey.challenge);
+    makeCredentialOptions.publicKey.user.id = decodeFromBase64(makeCredentialOptions.publicKey.user.id);
     if (makeCredentialOptions.publicKey.excludeCredentials) {
       for (let i = 0; i < makeCredentialOptions.publicKey.excludeCredentials.length; i++) {
-        makeCredentialOptions.publicKey.excludeCredentials[i].id = decode(makeCredentialOptions.publicKey.excludeCredentials[i].id);
+        makeCredentialOptions.publicKey.excludeCredentials[i].id = decodeFromBase64(makeCredentialOptions.publicKey.excludeCredentials[i].id);
       }
     }
 
