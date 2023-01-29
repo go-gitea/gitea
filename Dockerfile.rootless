@@ -54,6 +54,7 @@ RUN chown git:git /var/lib/gitea /etc/gitea
 COPY docker/rootless /
 COPY --from=build-env --chown=root:root /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
 COPY --from=build-env --chown=root:root /go/src/code.gitea.io/gitea/environment-to-ini /usr/local/bin/environment-to-ini
+COPY contrib/autocompletion/bash_autocompletion /etc/profile.d/gitea_bash_autocompletion.sh
 RUN chmod 755 /usr/local/bin/docker-entrypoint.sh /usr/local/bin/docker-setup.sh /app/gitea/gitea /usr/local/bin/gitea /usr/local/bin/environment-to-ini
 
 #git:git
