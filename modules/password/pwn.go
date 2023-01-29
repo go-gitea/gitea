@@ -6,9 +6,8 @@ package password
 import (
 	"context"
 
+	"code.gitea.io/gitea/modules/password/pwn"
 	"code.gitea.io/gitea/modules/setting"
-
-	"go.jolheiser.com/pwn"
 )
 
 // IsPwned checks whether a password has been pwned
