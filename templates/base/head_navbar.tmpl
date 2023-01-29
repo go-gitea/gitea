@@ -1,4 +1,4 @@
-<div class="ui container" id="navbar">
+<div class="ui container" id="navbar" role="navigation" aria-label="{{.locale.Tr "aria.navbar"}}">
 	{{$notificationUnreadCount := 0}}
 	{{if .IsSigned}}
 		{{if .NotificationUnreadCount}}{{$notificationUnreadCount = call .NotificationUnreadCount}}{{end}}

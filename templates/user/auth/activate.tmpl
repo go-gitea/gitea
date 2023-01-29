@@ -30,8 +30,10 @@
 							<input id="code" name="code" type="hidden" value="{{.Code}}">
 						{{else if .IsSendRegisterMail}}
 							<p>{{.locale.Tr "auth.confirmation_mail_sent_prompt" (.Email|Escape) .ActiveCodeLives | Str2html}}</p>
-						{{else if .IsActivateFailed}}
+						{{else if .IsCodeInvalid}}
 							<p>{{.locale.Tr "auth.invalid_code"}}</p>
+						{{else if .IsPasswordInvalid}}
+							<p>{{.locale.Tr "auth.invalid_password"}}</p>
 						{{else if .ManualActivationOnly}}
 							<p class="center">{{.locale.Tr "auth.manual_activation_only"}}</p>
 						{{else}}
