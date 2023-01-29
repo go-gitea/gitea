@@ -58,7 +58,7 @@
 					</div>
 
 					<!-- Milestone -->
-					<div class="ui {{if and (not .OpenMilestones) (not .ClosedMilestones)}}disabled{{end}} dropdown jump item">
+					<div class="ui {{if not (or .OpenMilestones .ClosedMilestones)}}disabled{{end}} dropdown jump item">
 						<span class="text">
 							{{.locale.Tr "repo.issues.filter_milestone"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
