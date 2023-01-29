@@ -74,7 +74,7 @@ _Symbols used in table:_
 | Granular user roles (Code, Issues, Wiki, …) | ✓                                                   | ✘    | ✘         | ✓         | ✓         | ✘         | ✘            |
 | Verified Committer                          | ⁄                                                   | ✘    | ?         | ✓         | ✓         | ✓         | ✘            |
 | GPG Signed Commits                          | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
-| SSH Signed Commits                          | ✓                                                   | ✘    | ✓         | ✘         | ✘         | ?         | ?            |
+| SSH Signed Commits                          | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ?         | ?            |
 | Reject unsigned commits                     | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
 | Migrating repos from other services         | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
 | Repository Activity page                    | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |

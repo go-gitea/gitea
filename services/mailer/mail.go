@@ -61,7 +61,7 @@ func SendTestMail(email string) error {
 		// No mail service configured
 		return nil
 	}
-	return gomail.Send(Sender, NewMessage([]string{email}, "Gitea Test Email!", "Gitea Test Email!").ToMessage())
+	return gomail.Send(Sender, NewMessage(email, "Gitea Test Email!", "Gitea Test Email!").ToMessage())
 }
 
 // sendUserMail sends a mail to the user
@@ -86,7 +86,7 @@ func sendUserMail(language string, u *user_model.User, tpl base.TplName, code, s
 		return
 	}
 
-	msg := NewMessage([]string{u.Email}, subject, content.String())
+	msg := NewMessage(u.Email, subject, content.String())
 	msg.Info = fmt.Sprintf("UID: %d, %s", u.ID, info)
 
 	SendAsync(msg)
@@ -137,7 +137,7 @@ func SendActivateEmailMail(u *user_model.User, email *user_model.EmailAddress) {
 		return
 	}
 
-	msg := NewMessage([]string{email.Email}, locale.Tr("mail.activate_email"), content.String())
+	msg := NewMessage(email.Email, locale.Tr("mail.activate_email"), content.String())
 	msg.Info = fmt.Sprintf("UID: %d, activate email", u.ID)
 
 	SendAsync(msg)
@@ -168,7 +168,7 @@ func SendRegisterNotifyMail(u *user_model.User) {
 		return
 	}
 
-	msg := NewMessage([]string{u.Email}, locale.Tr("mail.register_notify"), content.String())
+	msg := NewMessage(u.Email, locale.Tr("mail.register_notify"), content.String())
 	msg.Info = fmt.Sprintf("UID: %d, registration notify", u.ID)
 
 	SendAsync(msg)
@@ -202,7 +202,7 @@ func SendCollaboratorMail(u, doer *user_model.User, repo *repo_model.Repository)
 		return
 	}
 
-	msg := NewMessage([]string{u.Email}, subject, content.String())
+	msg := NewMessage(u.Email, subject, content.String())
 	msg.Info = fmt.Sprintf("UID: %d, add collaborator", u.ID)
 
 	SendAsync(msg)
@@ -322,7 +322,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 
 	msgs := make([]*Message, 0, len(recipients))
 	for _, recipient := range recipients {
-		msg := NewMessageFrom([]string{recipient.Email}, ctx.Doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
+		msg := NewMessageFrom(recipient.Email, ctx.Doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
 		msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
 
 		msg.SetHeader("Message-ID", msgID)
