@@ -600,7 +600,7 @@ func EditPullRequest(ctx *context.APIContext) {
 	}
 
 	if statusChangeComment != nil {
-		notify.IssueChangeStatus(ctx, ctx.Doer, issue, statusChangeComment, issue.IsClosed)
+		notify.IssueChangeStatus(ctx, ctx.Doer, "", issue, statusChangeComment, issue.IsClosed)
 	}
 
 	// change pull target branch

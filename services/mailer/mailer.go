@@ -36,7 +36,7 @@ type Message struct {
 	Info            string // Message information for log purpose.
 	FromAddress     string
 	FromDisplayName string
-	To              []string
+	To              string // Use only one recipient to prevent leaking of addresses
 	ReplyTo         string
 	Subject         string
 	Date            time.Time
@@ -48,7 +48,7 @@ type Message struct {
 func (m *Message) ToMessage() *gomail.Message {
 	msg := gomail.NewMessage()
 	msg.SetAddressHeader("From", m.FromAddress, m.FromDisplayName)
-	msg.SetHeader("To", m.To...)
+	msg.SetHeader("To", m.To)
 	if m.ReplyTo != "" {
 		msg.SetHeader("Reply-To", m.ReplyTo)
 	}
@@ -90,7 +90,7 @@ func (m *Message) generateAutoMessageID() string {
 	dateMs := m.Date.UnixNano() / 1e6
 	h := fnv.New64()
 	if len(m.To) > 0 {
-		_, _ = h.Write([]byte(m.To[0]))
+		_, _ = h.Write([]byte(m.To))
 	}
 	_, _ = h.Write([]byte(m.Subject))
 	_, _ = h.Write([]byte(m.Body))
@@ -98,7 +98,7 @@ func (m *Message) generateAutoMessageID() string {
 }
 
 // NewMessageFrom creates new mail message object with custom From header.
-func NewMessageFrom(to []string, fromDisplayName, fromAddress, subject, body string) *Message {
+func NewMessageFrom(to, fromDisplayName, fromAddress, subject, body string) *Message {
 	log.Trace("NewMessageFrom (body):\n%s", body)
 
 	return &Message{
@@ -113,7 +113,7 @@ func NewMessageFrom(to []string, fromDisplayName, fromAddress, subject, body str
 }
 
 // NewMessage creates new mail message object with default From header.
-func NewMessage(to []string, subject, body string) *Message {
+func NewMessage(to, subject, body string) *Message {
 	return NewMessageFrom(to, setting.MailService.FromName, setting.MailService.FromEmail, subject, body)
 }
 

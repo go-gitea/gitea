@@ -12,14 +12,14 @@
   <a href="https://discord.gg/Gitea" title="Join the Discord chat at https://discord.gg/Gitea">
     <img src="https://img.shields.io/discord/322538954119184384.svg">
   </a>
-  <a href="https://codecov.io/gh/go-gitea/gitea" title="Codecov">
+  <a href="https://app.codecov.io/gh/go-gitea/gitea" title="Codecov">
     <img src="https://codecov.io/gh/go-gitea/gitea/branch/main/graph/badge.svg">
   </a>
   <a href="https://goreportcard.com/report/code.gitea.io/gitea" title="Go Report Card">
     <img src="https://goreportcard.com/badge/code.gitea.io/gitea">
   </a>
-  <a href="https://godoc.org/code.gitea.io/gitea" title="GoDoc">
-    <img src="https://godoc.org/code.gitea.io/gitea?status.svg">
+  <a href="https://pkg.go.dev/code.gitea.io/gitea" title="GoDoc">
+    <img src="https://pkg.go.dev/badge/code.gitea.io/gitea?status.svg">
   </a>
   <a href="https://github.com/go-gitea/gitea/releases/latest" title="GitHub release">
     <img src="https://img.shields.io/github/release/go-gitea/gitea.svg">
@@ -45,7 +45,7 @@
   <a href="https://www.tickgit.com/browse?repo=github.com/go-gitea/gitea&branch=main" title="TODOs">
     <img src="https://badgen.net/https/api.tickgit.com/badgen/github.com/go-gitea/gitea/main">
   </a>
-  <a href="https://img.shields.io/bountysource/team/gitea" title="Bountysource">
+  <a href="https://app.bountysource.com/teams/gitea" title="Bountysource">
     <img src="https://img.shields.io/bountysource/team/gitea/activity">
   </a>
 </p>

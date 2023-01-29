@@ -98,10 +98,11 @@ func (ns *notificationService) NewIssue(ctx context.Context, issue *issues_model
 	}
 }
 
-func (ns *notificationService) IssueChangeStatus(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, actionComment *issues_model.Comment, isClosed bool) {
+func (ns *notificationService) IssueChangeStatus(ctx context.Context, doer *user_model.User, commitID string, issue *issues_model.Issue, actionComment *issues_model.Comment, isClosed bool) {
 	_ = ns.issueQueue.Push(issueNotificationOpts{
 		IssueID:              issue.ID,
 		NotificationAuthorID: doer.ID,
+		CommentID:            actionComment.ID,
 	})
 }
 

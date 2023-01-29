@@ -361,11 +361,11 @@ func checkSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 	}
 
 	if setting.Packages.LimitTotalOwnerSize > -1 {
-		totalSize, err := packages_model.CalculateBlobSize(ctx, &packages_model.PackageFileSearchOptions{
+		totalSize, err := packages_model.CalculateFileSize(ctx, &packages_model.PackageFileSearchOptions{
 			OwnerID: owner.ID,
 		})
 		if err != nil {
-			log.Error("CalculateBlobSize failed: %v", err)
+			log.Error("CalculateFileSize failed: %v", err)
 			return err
 		}
 		if totalSize+uploadSize > setting.Packages.LimitTotalOwnerSize {

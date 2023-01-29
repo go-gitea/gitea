@@ -32,11 +32,15 @@ func needsUpdate(dir, filename string) (bool, []byte) {
 
 	hasher := sha1.New()
 
-	err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+	err = filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		_, _ = hasher.Write([]byte(info.Name()))
+		info, err := d.Info()
+		if err != nil {
+			return err
+		}
+		_, _ = hasher.Write([]byte(d.Name()))
 		_, _ = hasher.Write([]byte(info.ModTime().String()))
 		_, _ = hasher.Write([]byte(strconv.FormatInt(info.Size(), 16)))
 		return nil

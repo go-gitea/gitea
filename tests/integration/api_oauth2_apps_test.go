@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models/auth"
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -49,15 +49,15 @@ func testAPICreateOAuth2Application(t *testing.T) {
 	assert.True(t, createdApp.ConfidentialClient)
 	assert.NotEmpty(t, createdApp.Created)
 	assert.EqualValues(t, appBody.RedirectURIs[0], createdApp.RedirectURIs[0])
-	unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{UID: user.ID, Name: createdApp.Name})
+	unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{UID: user.ID, Name: createdApp.Name})
 }
 
 func testAPIListOAuth2Applications(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadApplication)
 
-	existApp := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{
+	existApp := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{
 		UID:  user.ID,
 		Name: "test-app-1",
 		RedirectURIs: []string{
@@ -80,15 +80,15 @@ func testAPIListOAuth2Applications(t *testing.T) {
 	assert.Len(t, expectedApp.ClientID, 36)
 	assert.Empty(t, expectedApp.ClientSecret)
 	assert.EqualValues(t, existApp.RedirectURIs[0], expectedApp.RedirectURIs[0])
-	unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{ID: expectedApp.ID, Name: expectedApp.Name})
+	unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{ID: expectedApp.ID, Name: expectedApp.Name})
 }
 
 func testAPIDeleteOAuth2Application(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteApplication)
 
-	oldApp := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{
+	oldApp := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{
 		UID:  user.ID,
 		Name: "test-app-1",
 	})
@@ -97,7 +97,7 @@ func testAPIDeleteOAuth2Application(t *testing.T) {
 	req := NewRequest(t, "DELETE", urlStr)
 	MakeRequest(t, req, http.StatusNoContent)
 
-	unittest.AssertNotExistsBean(t, &auth.OAuth2Application{UID: oldApp.UID, Name: oldApp.Name})
+	unittest.AssertNotExistsBean(t, &auth_model.OAuth2Application{UID: oldApp.UID, Name: oldApp.Name})
 
 	// Delete again will return not found
 	req = NewRequest(t, "DELETE", urlStr)
@@ -107,9 +107,9 @@ func testAPIDeleteOAuth2Application(t *testing.T) {
 func testAPIGetOAuth2Application(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadApplication)
 
-	existApp := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{
+	existApp := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{
 		UID:  user.ID,
 		Name: "test-app-1",
 		RedirectURIs: []string{
@@ -133,13 +133,13 @@ func testAPIGetOAuth2Application(t *testing.T) {
 	assert.Empty(t, expectedApp.ClientSecret)
 	assert.Len(t, expectedApp.RedirectURIs, 1)
 	assert.EqualValues(t, existApp.RedirectURIs[0], expectedApp.RedirectURIs[0])
-	unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{ID: expectedApp.ID, Name: expectedApp.Name})
+	unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{ID: expectedApp.ID, Name: expectedApp.Name})
 }
 
 func testAPIUpdateOAuth2Application(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	existApp := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{
+	existApp := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{
 		UID:  user.ID,
 		Name: "test-app-1",
 		RedirectURIs: []string{
@@ -169,5 +169,5 @@ func testAPIUpdateOAuth2Application(t *testing.T) {
 	assert.EqualValues(t, expectedApp.RedirectURIs[0], appBody.RedirectURIs[0])
 	assert.EqualValues(t, expectedApp.RedirectURIs[1], appBody.RedirectURIs[1])
 	assert.Equal(t, expectedApp.ConfidentialClient, appBody.ConfidentialClient)
-	unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{ID: expectedApp.ID, Name: expectedApp.Name})
+	unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{ID: expectedApp.ID, Name: expectedApp.Name})
 }

@@ -103,6 +103,8 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	var pusher *user_model.User
 
 	for _, opts := range optsList {
+		log.Trace("pushUpdates: %-v %s %s %s", repo, opts.OldCommitID, opts.NewCommitID, opts.RefFullName)
+
 		if opts.IsNewRef() && opts.IsDelRef() {
 			return fmt.Errorf("old and new revisions are both %s", git.EmptySHA)
 		}
@@ -128,7 +130,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 			} else { // is new tag
 				newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
 				if err != nil {
-					return fmt.Errorf("gitRepo.GetCommit: %w", err)
+					return fmt.Errorf("gitRepo.GetCommit(%s) in %s/%s[%d]: %w", opts.NewCommitID, repo.OwnerName, repo.Name, repo.ID, err)
 				}
 
 				commits := repo_module.NewPushCommits()
@@ -161,7 +163,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 
 				newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
 				if err != nil {
-					return fmt.Errorf("gitRepo.GetCommit: %w", err)
+					return fmt.Errorf("gitRepo.GetCommit(%s) in %s/%s[%d]: %w", opts.NewCommitID, repo.OwnerName, repo.Name, repo.ID, err)
 				}
 
 				refName := opts.RefName()

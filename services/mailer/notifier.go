@@ -53,7 +53,7 @@ func (m *mailNotifier) NewIssue(ctx context.Context, issue *issues_model.Issue, 
 	}
 }
 
-func (m *mailNotifier) IssueChangeStatus(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, actionComment *issues_model.Comment, isClosed bool) {
+func (m *mailNotifier) IssueChangeStatus(ctx context.Context, doer *user_model.User, commitID string, issue *issues_model.Issue, actionComment *issues_model.Comment, isClosed bool) {
 	var actionType activities_model.ActionType
 	if issue.IsPull {
 		if isClosed {

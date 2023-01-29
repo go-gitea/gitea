@@ -228,7 +228,7 @@ func (m *webhookNotifier) IssueChangeTitle(ctx context.Context, doer *user_model
 	}
 }
 
-func (m *webhookNotifier) IssueChangeStatus(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, actionComment *issues_model.Comment, isClosed bool) {
+func (m *webhookNotifier) IssueChangeStatus(ctx context.Context, doer *user_model.User, commitID string, issue *issues_model.Issue, actionComment *issues_model.Comment, isClosed bool) {
 	mode, _ := access_model.AccessLevel(ctx, issue.Poster, issue.Repo)
 	var err error
 	if issue.IsPull {
@@ -242,6 +242,7 @@ func (m *webhookNotifier) IssueChangeStatus(ctx context.Context, doer *user_mode
 			PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
 			Repository:  convert.ToRepo(ctx, issue.Repo, mode),
 			Sender:      convert.ToUser(doer, nil),
+			CommitID:    commitID,
 		}
 		if isClosed {
 			apiPullRequest.Action = api.HookIssueClosed
@@ -255,6 +256,7 @@ func (m *webhookNotifier) IssueChangeStatus(ctx context.Context, doer *user_mode
 			Issue:      convert.ToAPIIssue(ctx, issue),
 			Repository: convert.ToRepo(ctx, issue.Repo, mode),
 			Sender:     convert.ToUser(doer, nil),
+			CommitID:   commitID,
 		}
 		if isClosed {
 			apiIssue.Action = api.HookIssueClosed
