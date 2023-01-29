@@ -118,13 +118,13 @@
 						{{$rejectOfficial := call $approvalCounts .ID "reject"}}
 						{{$waitingOfficial := call $approvalCounts .ID "waiting"}}
 						{{if gt $approveOfficial 0}}
-							<span class="approvals df ac">
+							<span class="approvals df ac green">
 								{{svg "octicon-check" 14 "mr-1"}}
 								{{$.locale.TrN $approveOfficial "repo.pulls.approve_count_1" "repo.pulls.approve_count_n" $approveOfficial}}
 							</span>
 						{{end}}
 						{{if gt $rejectOfficial 0}}
-							<span class="rejects df ac">
+							<span class="rejects df ac red">
 								{{svg "octicon-diff" 14 "mr-2"}}
 								{{$.locale.TrN $rejectOfficial "repo.pulls.reject_count_1" "repo.pulls.reject_count_n" $rejectOfficial}}
 							</span>

@@ -67,6 +67,47 @@ func GetRelease(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, convert.ToRelease(release))
 }
 
+// GetLatestRelease gets the most recent non-prerelease, non-draft release of a repository, sorted by created_at
+func GetLatestRelease(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/releases/latest repository repoGetLatestRelease
+	// ---
+	// summary: Gets the most recent non-prerelease, non-draft release of a repository, sorted by created_at
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Release"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	release, err := repo_model.GetLatestReleaseByRepoID(ctx.Repo.Repository.ID)
+	if err != nil && !repo_model.IsErrReleaseNotExist(err) {
+		ctx.Error(http.StatusInternalServerError, "GetLatestRelease", err)
+		return
+	}
+	if err != nil && repo_model.IsErrReleaseNotExist(err) ||
+		release.IsTag || release.RepoID != ctx.Repo.Repository.ID {
+		ctx.NotFound()
+		return
+	}
+
+	if err := release.LoadAttributes(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, convert.ToRelease(release))
+}
+
 // ListReleases list a repository's releases
 func ListReleases(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/releases repository repoListReleases

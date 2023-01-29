@@ -138,6 +138,127 @@
         }
       }
     },
+    "/admin/hooks": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "List system's webhooks",
+        "operationId": "adminListHooks",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/HookList"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Create a hook",
+        "operationId": "adminCreateHook",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateHookOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Hook"
+          }
+        }
+      }
+    },
+    "/admin/hooks/{id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get a hook",
+        "operationId": "adminGetHook",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the hook to get",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Hook"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Update a hook",
+        "operationId": "adminEditHook",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the hook to update",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditHookOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Hook"
+          }
+        }
+      }
+    },
     "/admin/orgs": {
       "get": {
         "produces": [
@@ -597,6 +718,33 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/amdin/hooks/{id}": {
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Delete a hook",
+        "operationId": "adminDeleteHook",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the hook to delete",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
           }
         }
       }
@@ -9776,6 +9924,42 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/releases/latest": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Gets the most recent non-prerelease, non-draft release of a repository, sorted by created_at",
+        "operationId": "repoGetLatestRelease",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Release"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/releases/tags/{tag}": {
       "get": {
         "produces": [
@@ -14233,6 +14417,7 @@
           "x-go-name": "BlockOnRejectedReviews"
         },
         "branch_name": {
+          "description": "Deprecated: true",
           "type": "string",
           "x-go-name": "BranchName"
         },
@@ -14309,6 +14494,10 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "RequiredApprovals"
+        },
+        "rule_name": {
+          "type": "string",
+          "x-go-name": "RuleName"
         },
         "status_check_contexts": {
           "type": "array",
@@ -14772,6 +14961,7 @@
           "x-go-name": "BlockOnRejectedReviews"
         },
         "branch_name": {
+          "description": "Deprecated: true",
           "type": "string",
           "x-go-name": "BranchName"
         },
@@ -14843,6 +15033,10 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "RequiredApprovals"
+        },
+        "rule_name": {
+          "type": "string",
+          "x-go-name": "RuleName"
         },
         "status_check_contexts": {
           "type": "array",
