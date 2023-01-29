@@ -298,6 +298,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 						}
 					}
 
+					pr.Issue.PullRequest = pr
 					notification.NotifyPullRequestSynchronized(ctx, doer, pr)
 				}
 			}
