@@ -236,7 +236,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
 
 	var mileIDs []int64
-	if milestoneID > 0 || milestoneID == -1 {
+	if milestoneID > 0 || milestoneID == db.NoneID { // -1 to get those issues which have no any milestone assigned
 		mileIDs = []int64{milestoneID}
 	}
 
@@ -427,7 +427,7 @@ func Issues(ctx *context.Context) {
 		return
 	}
 
-	renderMileStones(ctx)
+	renderMilestones(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -437,7 +437,7 @@ func Issues(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplIssues)
 }
 
-func renderMileStones(ctx *context.Context) {
+func renderMilestones(ctx *context.Context) {
 	// Get milestones
 	milestones, _, err := issues_model.GetMilestones(issues_model.GetMilestonesOption{
 		RepoID: ctx.Repo.Repository.ID,
