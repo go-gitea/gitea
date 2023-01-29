@@ -1,4 +1,4 @@
-#compdef $PROG
+#compdef ${PROG:=gitea}
 
 
 # Heavily inspired by https://github.com/urfave/cli
