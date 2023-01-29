@@ -77,6 +77,8 @@ For example:
 pip install --index-url https://testuser:password123@gitea.example.com/api/packages/testuser/pypi/simple --no-deps test_package
 ```
 
+You can use `--extra-index-url` instead of `--index-url` but that makes you vulnerable to dependency confusion attacks because `pip` checks the official PyPi repository for the package before it checks the specified custom repository. Read the `pip` docs for more information.
+
 ## Supported commands
 
 ```
