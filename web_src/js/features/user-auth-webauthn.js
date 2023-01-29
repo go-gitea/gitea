@@ -25,9 +25,9 @@ export function initUserAuthWebAuthn() {
 
   $.getJSON(`${appSubUrl}/user/webauthn/assertion`, {})
     .done((makeAssertionOptions) => {
-      makeAssertionOptions.publicKey.challenge = decodeFromBase64(makeAssertionOptions.publicKey.challenge);
+      makeAssertionOptions.publicKey.challenge = decodeURLEncodedBase64(makeAssertionOptions.publicKey.challenge);
       for (let i = 0; i < makeAssertionOptions.publicKey.allowCredentials.length; i++) {
-        makeAssertionOptions.publicKey.allowCredentials[i].id = decodeFromBase64(makeAssertionOptions.publicKey.allowCredentials[i].id);
+        makeAssertionOptions.publicKey.allowCredentials[i].id = decodeURLEncodedBase64(makeAssertionOptions.publicKey.allowCredentials[i].id);
       }
       navigator.credentials.get({
         publicKey: makeAssertionOptions.publicKey
@@ -67,14 +67,14 @@ function verifyAssertion(assertedCredential) {
     type: 'POST',
     data: JSON.stringify({
       id: assertedCredential.id,
-      rawId: bufferEncode(rawId),
+      rawId: bufferURLEncodedBase64(rawId),
       type: assertedCredential.type,
       clientExtensionResults: assertedCredential.getClientExtensionResults(),
       response: {
-        authenticatorData: bufferEncode(authData),
-        clientDataJSON: bufferEncode(clientDataJSON),
-        signature: bufferEncode(sig),
-        userHandle: bufferEncode(userHandle),
+        authenticatorData: bufferURLEncodedBase64(authData),
+        clientDataJSON: bufferURLEncodedBase64(clientDataJSON),
+        signature: bufferURLEncodedBase64(sig),
+        userHandle: bufferURLEncodedBase64(userHandle),
       },
     }),
     contentType: 'application/json; charset=utf-8',
@@ -96,12 +96,19 @@ function verifyAssertion(assertedCredential) {
   });
 }
 
-// Encode an ArrayBuffer into a base64 string.
-function bufferEncode(value) {
+// Encode an ArrayBuffer into a URLEncoded base64 string.
+function bufferURLEncodedBase64(value) {
   return encodeToBase64(value)
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=/g, '');
+}
+
+// Dccode a URLEncoded base64 to an ArrayBuffer string.
+function decodeURLEncodedBase64(value) {
+  return decodeFromBase64(value
+    .replace(/_/g, '/')
+    .replace(/-/g, '+'));
 }
 
 function webauthnRegistered(newCredential) {
@@ -115,11 +122,11 @@ function webauthnRegistered(newCredential) {
     headers: {'X-Csrf-Token': csrfToken},
     data: JSON.stringify({
       id: newCredential.id,
-      rawId: bufferEncode(rawId),
+      rawId: bufferURLEncodedBase64(rawId),
       type: newCredential.type,
       response: {
-        attestationObject: bufferEncode(attestationObject),
-        clientDataJSON: bufferEncode(clientDataJSON),
+        attestationObject: bufferURLEncodedBase64(attestationObject),
+        clientDataJSON: bufferURLEncodedBase64(clientDataJSON),
       },
     }),
     dataType: 'json',
@@ -195,11 +202,11 @@ function webAuthnRegisterRequest() {
   }).done((makeCredentialOptions) => {
     $('#nickname').closest('div.field').removeClass('error');
 
-    makeCredentialOptions.publicKey.challenge = decodeFromBase64(makeCredentialOptions.publicKey.challenge);
-    makeCredentialOptions.publicKey.user.id = decodeFromBase64(makeCredentialOptions.publicKey.user.id);
+    makeCredentialOptions.publicKey.challenge = decodeURLEncodedBase64(makeCredentialOptions.publicKey.challenge);
+    makeCredentialOptions.publicKey.user.id = decodeURLEncodedBase64(makeCredentialOptions.publicKey.user.id);
     if (makeCredentialOptions.publicKey.excludeCredentials) {
       for (let i = 0; i < makeCredentialOptions.publicKey.excludeCredentials.length; i++) {
-        makeCredentialOptions.publicKey.excludeCredentials[i].id = decodeFromBase64(makeCredentialOptions.publicKey.excludeCredentials[i].id);
+        makeCredentialOptions.publicKey.excludeCredentials[i].id = decodeURLEncodedBase64(makeCredentialOptions.publicKey.excludeCredentials[i].id);
       }
     }
 
