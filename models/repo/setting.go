@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
 	setting_module "code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -40,7 +41,7 @@ func (s *Setting) TableName() string {
 	return "repo_setting"
 }
 
-func (s *Setting) GetValueBool() bool {
+func (s *Setting) AsBool() bool {
 	if s == nil {
 		return false
 	}
@@ -65,19 +66,9 @@ func GetSettingNoCache(repoID int64, key string) (*Setting, error) {
 	return v[strings.ToLower(key)], nil
 }
 
-func validateRepoSettingKey(key string) error {
-	if len(key) == 0 {
-		return fmt.Errorf("setting key must be set")
-	}
-	if strings.ToLower(key) != key {
-		return fmt.Errorf("setting key should be lowercase")
-	}
-	return nil
-}
-
 // GetSetting returns the setting value via the key
 func GetSetting(repoID int64, key string) (string, error) {
-	if err := validateRepoSettingKey(key); err != nil {
+	if err := user_model.ValidateSettingKey(key); err != nil {
 		return "", err
 	}
 	return cache.GetString(genSettingCacheKey(repoID, key), func() (string, error) {
@@ -151,7 +142,7 @@ func GetAllSettings(repoID int64) (AllSettings, error) {
 
 // DeleteSetting deletes a specific setting for a repo
 func DeleteSetting(repoID int64, key string) error {
-	if err := validateRepoSettingKey(key); err != nil {
+	if err := user_model.ValidateSettingKey(key); err != nil {
 		return err
 	}
 	cache.Remove(genSettingCacheKey(repoID, key))
