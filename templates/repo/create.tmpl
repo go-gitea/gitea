@@ -9,10 +9,7 @@
 				</h3>
 				<div class="ui attached segment">
 					{{template "base/alert" .}}
-
-					{{if not $.DisableMigrations}}
-						<p class="ui center">{{.locale.Tr "repo.new_repo_helper" ((printf "%s%s" AppSubUrl "/repo/migrate")|Escape) | Safe}}</p>
-					{{end}}
+					{{template "repo/create_helper" .}}
 
 					{{if not .CanCreateRepo}}
 						<div class="ui negative message">

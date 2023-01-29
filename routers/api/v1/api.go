@@ -1011,6 +1011,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 				m.Group("/releases", func() {
 					m.Combo("").Get(repo.ListReleases).
 						Post(reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeReleases), context.ReferencesGitRepo(), bind(api.CreateReleaseOption{}), repo.CreateRelease)
+					m.Combo("/latest").Get(repo.GetLatestRelease)
 					m.Group("/{id}", func() {
 						m.Combo("").Get(repo.GetRelease).
 							Patch(reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeReleases), context.ReferencesGitRepo(), bind(api.EditReleaseOption{}), repo.EditRelease).
@@ -1220,6 +1221,13 @@ func Routes(ctx gocontext.Context) *web.Route {
 				m.Get("", admin.ListUnadoptedRepositories)
 				m.Post("/{username}/{reponame}", admin.AdoptRepository)
 				m.Delete("/{username}/{reponame}", admin.DeleteUnadoptedRepository)
+			})
+			m.Group("/hooks", func() {
+				m.Combo("").Get(admin.ListHooks).
+					Post(bind(api.CreateHookOption{}), admin.CreateHook)
+				m.Combo("/{id}").Get(admin.GetHook).
+					Patch(bind(api.EditHookOption{}), admin.EditHook).
+					Delete(admin.DeleteHook)
 			})
 		}, reqToken(auth_model.AccessTokenScopeSudo), reqSiteAdmin())
 
