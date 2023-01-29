@@ -175,6 +175,7 @@ func (prs PullRequestList) loadAttributes(ctx context.Context) error {
 	}
 	for i := range prs {
 		prs[i].Issue = set[prs[i].IssueID]
+		prs[i].Issue.PullRequest = prs[i] // if panic here, means issueIDs and prs are not in sync
 	}
 	return nil
 }
