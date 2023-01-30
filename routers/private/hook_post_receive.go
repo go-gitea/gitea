@@ -184,7 +184,17 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 						})
 						return
 					}
-					baseRepo = repo.BaseRepo
+					if repo.BaseRepo.AllowsPulls() {
+						baseRepo = repo.BaseRepo
+					}
+				}
+
+				if !baseRepo.AllowsPulls() {
+					// We can stop there's no need to go any further
+					ctx.JSON(http.StatusOK, private.HookPostReceiveResult{
+						RepoWasEmpty: wasEmpty,
+					})
+					return
 				}
 
 				if !baseRepo.AllowsPulls() {

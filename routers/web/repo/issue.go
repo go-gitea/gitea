@@ -381,18 +381,16 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		return 0
 	}
 
-	if ctx.Repo.CanWriteIssuesOrPulls(ctx.Params(":type") == "pulls") {
-		projects, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
-			RepoID:   repo.ID,
-			Type:     project_model.TypeRepository,
-			IsClosed: util.OptionalBoolOf(isShowClosed),
-		})
-		if err != nil {
-			ctx.ServerError("GetProjects", err)
-			return
-		}
-		ctx.Data["Projects"] = projects
+	projects, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
+		RepoID:   repo.ID,
+		Type:     project_model.TypeRepository,
+		IsClosed: util.OptionalBoolOf(isShowClosed),
+	})
+	if err != nil {
+		ctx.ServerError("FindProjects", err)
+		return
 	}
+	ctx.Data["Projects"] = projects
 
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["SelLabelIDs"] = labelIDs
@@ -806,9 +804,9 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 		if template.Type() == api.IssueTemplateTypeYaml {
 			// Replace field default values by values from query
 			for _, field := range template.Fields {
-				field_value := ctx.FormString(field.ID)
-				if field_value != "" {
-					field.Attributes["value"] = field_value
+				fieldValue := ctx.FormString("field:" + field.ID)
+				if fieldValue != "" {
+					field.Attributes["value"] = fieldValue
 				}
 			}
 
