@@ -58,29 +58,33 @@ https://github.com/loganinak/MigrateGitlabToGogs
 
 ## Where does Gitea store what file
 
-- WorkPath
-  - Environment variable `GITEA_WORK_DIR`
-  - Else `--work-path` flag
+- _`AppWorkPath`_
+  - The `--work-path` flag
+  - Else Environment variable `GITEA_WORK_DIR`
+  - Else a built-in value set at build time
   - Else the directory that contains the Gitea binary
-- AppDataPath (default for database, indexers, etc.)
+- `%(APP_DATA_PATH)` (default for database, indexers, etc.)
   - `APP_DATA_PATH` from `app.ini`
-  - Else `%(WorkPath)/data`
-- CustomPath (custom templates)
-  - Environment variable `GITEA_CUSTOM`
-  - Else `%(WorkPath)/custom`
+  - Else _`AppWorkPath`_`/data`
+- _`CustomPath`_ (custom templates)
+  - The `--custom-path` flag
+  - Else Environment variable `GITEA_CUSTOM`
+  - Else a built-in value set at build time
+  - Else _`AppWorkPath`_`/custom`
 - HomeDir
   - Unix: Environment variable `HOME`
   - Windows: Environment variable `USERPROFILE`, else environment variables `HOMEDRIVE`+`HOMEPATH`
 - RepoRootPath
   - `ROOT` in the \[repository] section of `app.ini` if absolute
-  - Else `%(AppWorkPath)/ROOT` if `ROOT` in the \[repository] section of `app.ini` if relative
-  - Default `%(AppDataPath)/gitea-repositories`
+  - Else _`AppWorkPath`_`/ROOT` if `ROOT` in the \[repository] section of `app.ini` if relative
+  - Default `%(APP_DATA_PATH)/gitea-repositories`
 - INI (config file)
-  - `-c` flag
-  - Else `%(CustomPath)/conf/app.ini`
+  - `--config` flag
+  - A possible built-in value set a build time
+  - Else _`CustomPath`_`/conf/app.ini`
 - SQLite Database
   - `PATH` in `database` section of `app.ini`
-  - Else `%(AppDataPath)/gitea.db`
+  - Else `%(APP_DATA_PATH)/gitea.db`
 
 ## Not seeing a clone URL or the clone URL being incorrect
 
@@ -126,13 +130,15 @@ A "login prohibited" user is a user that is not allowed to log in to Gitea anymo
 
 ## What is Swagger?
 
-[Swagger](https://swagger.io/) is what Gitea uses for its API.
+[Swagger](https://swagger.io/) is what Gitea uses for its API documentation.
 
-All Gitea instances have the built-in API, though it can be disabled by setting `ENABLE_SWAGGER` to `false` in the `api` section of your `app.ini`
+All Gitea instances have the built-in API and there is no way to disable it completely.
+You can, however, disable showing its documentation by setting `ENABLE_SWAGGER` to `false` in the `api` section of your `app.ini`.
+For more information, refer to Gitea's [API docs]({{< relref "doc/developers/api-usage.en-us.md" >}}).
 
-For more information, refer to Gitea's [API docs]({{< relref "doc/developers/api-usage.en-us.md" >}})
+You can see the latest API (for example) on <https://try.gitea.io/api/swagger>.
 
-[Swagger Example](https://try.gitea.io/api/swagger)
+You can also see an example of the `swagger.json` file at <https://try.gitea.io/swagger.v1.json>.
 
 ## Adjusting your server for public/private use
 
@@ -214,13 +220,13 @@ Our translations are currently crowd-sourced on our [Crowdin project](https://cr
 
 Whether you want to change a translation or add a new one, it will need to be there as all translations are overwritten in our CI via the Crowdin integration.
 
-## Hooks aren't running
+## Push Hook / Webhook aren't running
 
-If Gitea is not running hooks, a common cause is incorrect setup of SSH keys.
+If you can push but can't see push activities on the home dashboard, or the push doesn't trigger webhook, there are a few possibilities:
 
-See [SSH Issues](#ssh-issues) for more information.
-
-You can also try logging into the administration panel and running the `Resynchronize pre-receive, update and post-receive hooks of all repositories.` option.
+1. The git hooks are out of sync: run "Resynchronize pre-receive, update and post-receive hooks of all repositories" on the site admin panel
+2. The git repositories (and hooks) are stored on some filesystems (ex: mounted by NAS) which don't support script execution, make sure the filesystem supports `chmod a+x any-script`
+3. If you are using docker, make sure Docker Server (not the client) >= 20.10.6
 
 ## SSH issues
 

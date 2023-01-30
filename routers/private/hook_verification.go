@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 // Package private includes all internal routes. The package name internal is ideal but Golang is not allowed, so we use private as package name instead.
 package private
@@ -44,7 +43,7 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 	}()
 
 	// This is safe as force pushes are already forbidden
-	err = git.NewCommand(repo.Ctx, "rev-list", oldCommitID+"..."+newCommitID).
+	err = git.NewCommand(repo.Ctx, "rev-list").AddDynamicArguments(oldCommitID + "..." + newCommitID).
 		Run(&git.RunOpts{
 			Env:    env,
 			Dir:    repo.Path,
@@ -91,7 +90,7 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 	}()
 	hash := git.MustIDFromString(sha)
 
-	return git.NewCommand(repo.Ctx, "cat-file", "commit", sha).
+	return git.NewCommand(repo.Ctx, "cat-file", "commit").AddDynamicArguments(sha).
 		Run(&git.RunOpts{
 			Env:    env,
 			Dir:    repo.Path,

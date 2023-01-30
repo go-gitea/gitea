@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package wiki
 
@@ -140,7 +139,7 @@ func TestRepository_AddWikiPage(t *testing.T) {
 			gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
 			assert.NoError(t, err)
 			defer gitRepo.Close()
-			masterTree, err := gitRepo.GetTree("master")
+			masterTree, err := gitRepo.GetTree(DefaultBranch)
 			assert.NoError(t, err)
 			wikiPath := NameToFilename(wikiName)
 			entry, err := masterTree.GetTreeEntryByPath(wikiPath)
@@ -184,7 +183,7 @@ func TestRepository_EditWikiPage(t *testing.T) {
 		// Now need to show that the page has been added:
 		gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
 		assert.NoError(t, err)
-		masterTree, err := gitRepo.GetTree("master")
+		masterTree, err := gitRepo.GetTree(DefaultBranch)
 		assert.NoError(t, err)
 		wikiPath := NameToFilename(newWikiName)
 		entry, err := masterTree.GetTreeEntryByPath(wikiPath)
@@ -209,7 +208,7 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 	gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
 	assert.NoError(t, err)
 	defer gitRepo.Close()
-	masterTree, err := gitRepo.GetTree("master")
+	masterTree, err := gitRepo.GetTree(DefaultBranch)
 	assert.NoError(t, err)
 	wikiPath := NameToFilename("Home")
 	_, err = masterTree.GetTreeEntryByPath(wikiPath)

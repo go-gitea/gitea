@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -12,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -199,6 +199,10 @@ type ErrIssueContentHistoryNotExist struct {
 // Error error string
 func (err ErrIssueContentHistoryNotExist) Error() string {
 	return fmt.Sprintf("issue content history does not exist [id: %d]", err.ID)
+}
+
+func (err ErrIssueContentHistoryNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // GetIssueContentHistoryByID get issue content history

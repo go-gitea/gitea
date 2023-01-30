@@ -271,7 +271,7 @@ Gitea 是從 [Gogs](http://gogs.io) Fork 出來的，請閱讀部落格文章 [G
 - UI 元件：
   - [jQuery](https://jquery.com)
   - [Fomantic UI](https://fomantic-ui.com)
-  - [Vue2](https://vuejs.org)
+  - [Vue3](https://vuejs.org)
   - [CodeMirror](https://codemirror.net)
   - [EasyMDE](https://github.com/Ionaru/easy-markdown-editor)
   - [Monaco Editor](https://microsoft.github.io/monaco-editor)

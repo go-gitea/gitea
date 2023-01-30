@@ -40,8 +40,8 @@
 				</div>
 			</div>
 			<div class="field">
-				{{$pullRequestEnabled := .Repository.UnitEnabled $.UnitTypePullRequests}}
-				{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
+				{{$pullRequestEnabled := .Repository.UnitEnabled $.Context $.UnitTypePullRequests}}
+				{{$prUnit := .Repository.MustGetUnit $.Context $.UnitTypePullRequests}}
 				<div class="ui radio checkbox">
 					{{if $pullRequestEnabled}}
 						<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="commit-to-new-branch" button_text="{{.locale.Tr "repo.editor.propose_file_change"}}" {{if eq .commit_choice "commit-to-new-branch"}}checked{{end}}>

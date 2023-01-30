@@ -76,9 +76,9 @@
 						<th>{{.locale.Tr "admin.users.2fa"}}</th>
 						<th>{{.locale.Tr "admin.users.repos"}}</th>
 						<th>{{.locale.Tr "admin.users.created"}}</th>
-						<th data-sortt-asc="leastupdate" data-sortt-desc="recentupdate">
+						<th data-sortt-asc="lastlogin" data-sortt-desc="reverselastlogin">
 							{{.locale.Tr "admin.users.last_login"}}
-							{{SortArrow "leastupdate" "recentupdate" $.SortType false}}
+							{{SortArrow "lastlogin" "reverselastlogin" $.SortType false}}
 						</th>
 						<th>{{.locale.Tr "admin.users.edit"}}</th>
 					</tr>
@@ -94,9 +94,9 @@
 							<td>{{if .IsRestricted}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td>{{if index $.UsersTwoFaStatus .ID}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td>{{.NumRepos}}</td>
-							<td><span title="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</span></td>
+							<td><span title="{{.CreatedUnix.FormatLong}}"><time data-format="short-date" datetime="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</time></span></td>
 							{{if .LastLoginUnix}}
-								<td><span title="{{.LastLoginUnix.FormatLong}}">{{.LastLoginUnix.FormatShort}}</span></td>
+								<td><span title="{{.LastLoginUnix.FormatLong}}"><time data-format="short-date" datetime="{{.LastLoginUnix.FormatLong}}">{{.LastLoginUnix.FormatShort}}</time></span></td>
 							{{else}}
 								<td><span>{{$.locale.Tr "admin.users.never_login"}}</span></td>
 							{{end}}

@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package i18n
 
@@ -37,9 +36,7 @@ func NewLocaleStore() LocaleStore {
 }
 
 // AddLocaleByIni adds locale by ini into the store
-// if source is a string, then the file is loaded
-// if source is a []byte, then the content is used
-func (store *localeStore) AddLocaleByIni(langName, langDesc string, source interface{}) error {
+func (store *localeStore) AddLocaleByIni(langName, langDesc string, source, moreSource []byte) error {
 	if _, ok := store.localeMap[langName]; ok {
 		return ErrLocaleAlreadyExist
 	}
@@ -53,7 +50,7 @@ func (store *localeStore) AddLocaleByIni(langName, langDesc string, source inter
 	iniFile, err := ini.LoadSources(ini.LoadOptions{
 		IgnoreInlineComment:         true,
 		UnescapeValueCommentSymbols: true,
-	}, source)
+	}, source, moreSource)
 	if err != nil {
 		return fmt.Errorf("unable to load ini: %w", err)
 	}

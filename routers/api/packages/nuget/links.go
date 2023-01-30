@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package nuget
 
@@ -25,4 +24,9 @@ func (l *linkBuilder) GetRegistrationLeafURL(id, version string) string {
 // GetPackageDownloadURL builds the download url
 func (l *linkBuilder) GetPackageDownloadURL(id, version string) string {
 	return fmt.Sprintf("%s/package/%s/%s/%s.%s.nupkg", l.Base, id, version, id, version)
+}
+
+// GetPackageMetadataURL builds the package metadata url
+func (l *linkBuilder) GetPackageMetadataURL(id, version string) string {
+	return fmt.Sprintf("%s/Packages(Id='%s',Version='%s')", l.Base, id, version)
 }

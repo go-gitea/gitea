@@ -1,6 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cmd
 
@@ -203,7 +202,7 @@ func setPort(port string) error {
 		defaultLocalURL += ":" + setting.HTTPPort + "/"
 
 		// Save LOCAL_ROOT_URL if port changed
-		setting.CreateOrAppendToCustomConf(func(cfg *ini.File) {
+		setting.CreateOrAppendToCustomConf("server.LOCAL_ROOT_URL", func(cfg *ini.File) {
 			cfg.Section("server").Key("LOCAL_ROOT_URL").SetValue(defaultLocalURL)
 		})
 	}

@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package swagger
 
@@ -252,6 +251,28 @@ type swaggerCommitList struct {
 
 	// in: body
 	Body []api.Commit `json:"body"`
+}
+
+// ChangedFileList
+// swagger:response ChangedFileList
+type swaggerChangedFileList struct {
+	// The current page
+	Page int `json:"X-Page"`
+
+	// Commits per page
+	PerPage int `json:"X-PerPage"`
+
+	// Total commit count
+	Total int `json:"X-Total"`
+
+	// Total number of pages
+	PageCount int `json:"X-PageCount"`
+
+	// True if there is another page
+	HasMore bool `json:"X-HasMore"`
+
+	// in: body
+	Body []api.ChangedFile `json:"body"`
 }
 
 // Note

@@ -11,7 +11,7 @@
 		<div class="ui top attached header comment-header df ac sb">
 			<div class="comment-header-left df ac">
 				{{if .OriginalAuthor}}
-					<span class="text black mr-2">
+					<span class="text black bold mr-2">
 						{{svg (MigrationIcon $.root.Repository.GetOriginalURLHostname)}}
 						{{.OriginalAuthor}}
 					</span>
@@ -54,7 +54,7 @@
 				<span class="no-content">{{$.root.locale.Tr "repo.issues.no_content"}}</span>
 			{{end}}
 			</div>
-			<div id="comment-{{.ID}}" class="raw-content hide">{{.Content}}</div>
+			<div id="issuecomment-{{.ID}}-raw" class="raw-content hide">{{.Content}}</div>
 			<div class="edit-content-zone hide" data-write="issuecomment-{{.ID}}-write" data-preview="issuecomment-{{.ID}}-preview" data-update-url="{{$.root.RepoLink}}/comments/{{.ID}}" data-context="{{$.root.RepoLink}}"></div>
 		</div>
 		{{$reactions := .Reactions.GroupByType}}

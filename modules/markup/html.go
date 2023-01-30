@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package markup
 
@@ -165,6 +164,7 @@ var defaultProcessors = []processor{
 	linkProcessor,
 	mentionProcessor,
 	issueIndexPatternProcessor,
+	commitCrossReferencePatternProcessor,
 	sha1CurrentPatternProcessor,
 	emailAddressProcessor,
 	emojiProcessor,
@@ -191,6 +191,7 @@ var commitMessageProcessors = []processor{
 	linkProcessor,
 	mentionProcessor,
 	issueIndexPatternProcessor,
+	commitCrossReferencePatternProcessor,
 	sha1CurrentPatternProcessor,
 	emailAddressProcessor,
 	emojiProcessor,
@@ -222,6 +223,7 @@ var commitMessageSubjectProcessors = []processor{
 	linkProcessor,
 	mentionProcessor,
 	issueIndexPatternProcessor,
+	commitCrossReferencePatternProcessor,
 	sha1CurrentPatternProcessor,
 	emojiShortCodeProcessor,
 	emojiProcessor,
@@ -258,6 +260,7 @@ func RenderIssueTitle(
 ) (string, error) {
 	return renderProcessString(ctx, []processor{
 		issueIndexPatternProcessor,
+		commitCrossReferencePatternProcessor,
 		sha1CurrentPatternProcessor,
 		emojiShortCodeProcessor,
 		emojiProcessor,
@@ -306,18 +309,15 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 		return err
 	}
 
-	res := bytes.NewBuffer(make([]byte, 0, len(rawHTML)+50))
-	// prepend "<html><body>"
-	_, _ = res.WriteString("<html><body>")
-
-	// Strip out nuls - they're always invalid
-	_, _ = res.Write(tagCleaner.ReplaceAll([]byte(nulCleaner.Replace(string(rawHTML))), []byte("&lt;$1")))
-
-	// close the tags
-	_, _ = res.WriteString("</body></html>")
-
 	// parse the HTML
-	node, err := html.Parse(res)
+	node, err := html.Parse(io.MultiReader(
+		// prepend "<html><body>"
+		strings.NewReader("<html><body>"),
+		// Strip out nuls - they're always invalid
+		bytes.NewReader(tagCleaner.ReplaceAll([]byte(nulCleaner.Replace(string(rawHTML))), []byte("&lt;$1"))),
+		// close the tags
+		strings.NewReader("</body></html>"),
+	))
 	if err != nil {
 		return &postProcessError{"invalid HTML", err}
 	}
@@ -603,8 +603,14 @@ func mentionProcessor(ctx *RenderContext, node *html.Node) {
 			start = loc.End
 			continue
 		}
-		replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, mention[1:]), mention, "mention"))
-		node = node.NextSibling.NextSibling
+		mentionedUsername := mention[1:]
+
+		if processorHelper.IsUsernameMentionable != nil && processorHelper.IsUsernameMentionable(ctx.Ctx, mentionedUsername) {
+			replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, mentionedUsername), mention, "mention"))
+			node = node.NextSibling.NextSibling
+		} else {
+			node = node.NextSibling
+		}
 		start = 0
 	}
 }
@@ -902,6 +908,23 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 		}
 		replaceContentList(node, ref.ActionLocation.Start, ref.RefLocation.End, []*html.Node{keyword, spaces, link})
 		node = node.NextSibling.NextSibling.NextSibling.NextSibling
+	}
+}
+
+func commitCrossReferencePatternProcessor(ctx *RenderContext, node *html.Node) {
+	next := node.NextSibling
+
+	for node != nil && node != next {
+		found, ref := references.FindRenderizableCommitCrossReference(node.Data)
+		if !found {
+			return
+		}
+
+		reftext := ref.Owner + "/" + ref.Name + "@" + base.ShortSha(ref.CommitSha)
+		link := createLink(util.URLJoin(setting.AppSubURL, ref.Owner, ref.Name, "commit", ref.CommitSha), reftext, "commit")
+
+		replaceContent(node, ref.RefLocation.Start, ref.RefLocation.End, link)
+		node = node.NextSibling.NextSibling
 	}
 }
 

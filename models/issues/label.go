@@ -1,7 +1,6 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -38,6 +37,10 @@ func (err ErrRepoLabelNotExist) Error() string {
 	return fmt.Sprintf("label does not exist [label_id: %d, repo_id: %d]", err.LabelID, err.RepoID)
 }
 
+func (err ErrRepoLabelNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrOrgLabelNotExist represents a "OrgLabelNotExist" kind of error.
 type ErrOrgLabelNotExist struct {
 	LabelID int64
@@ -54,6 +57,10 @@ func (err ErrOrgLabelNotExist) Error() string {
 	return fmt.Sprintf("label does not exist [label_id: %d, org_id: %d]", err.LabelID, err.OrgID)
 }
 
+func (err ErrOrgLabelNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrLabelNotExist represents a "LabelNotExist" kind of error.
 type ErrLabelNotExist struct {
 	LabelID int64
@@ -67,6 +74,10 @@ func IsErrLabelNotExist(err error) bool {
 
 func (err ErrLabelNotExist) Error() string {
 	return fmt.Sprintf("label does not exist [label_id: %d]", err.LabelID)
+}
+
+func (err ErrLabelNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // LabelColorPattern is a regexp witch can validate LabelColor
@@ -104,8 +115,8 @@ func (label *Label) CalOpenIssues() {
 }
 
 // CalOpenOrgIssues calculates the open issues of a label for a specific repo
-func (label *Label) CalOpenOrgIssues(repoID, labelID int64) {
-	counts, _ := CountIssuesByRepo(&IssuesOptions{
+func (label *Label) CalOpenOrgIssues(ctx context.Context, repoID, labelID int64) {
+	counts, _ := CountIssuesByRepo(ctx, &IssuesOptions{
 		RepoID:   repoID,
 		LabelIDs: []int64{labelID},
 		IsClosed: util.OptionalBoolFalse,
@@ -220,7 +231,7 @@ func NewLabel(ctx context.Context, label *Label) error {
 
 // NewLabels creates new labels
 func NewLabels(labels ...*Label) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -255,7 +266,7 @@ func DeleteLabel(id, labelID int64) error {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -383,9 +394,9 @@ func BuildLabelNamesIssueIDsCondition(labelNames []string) *builder.Builder {
 
 // GetLabelsInRepoByIDs returns a list of labels by IDs in given repository,
 // it silently ignores label IDs that do not belong to the repository.
-func GetLabelsInRepoByIDs(repoID int64, labelIDs []int64) ([]*Label, error) {
+func GetLabelsInRepoByIDs(ctx context.Context, repoID int64, labelIDs []int64) ([]*Label, error) {
 	labels := make([]*Label, 0, len(labelIDs))
-	return labels, db.GetEngine(db.DefaultContext).
+	return labels, db.GetEngine(ctx).
 		Where("repo_id = ?", repoID).
 		In("id", labelIDs).
 		Asc("name").
@@ -486,9 +497,9 @@ func GetLabelIDsInOrgByNames(orgID int64, labelNames []string) ([]int64, error) 
 
 // GetLabelsInOrgByIDs returns a list of labels by IDs in given organization,
 // it silently ignores label IDs that do not belong to the organization.
-func GetLabelsInOrgByIDs(orgID int64, labelIDs []int64) ([]*Label, error) {
+func GetLabelsInOrgByIDs(ctx context.Context, orgID int64, labelIDs []int64) ([]*Label, error) {
 	labels := make([]*Label, 0, len(labelIDs))
-	return labels, db.GetEngine(db.DefaultContext).
+	return labels, db.GetEngine(ctx).
 		Where("org_id = ?", orgID).
 		In("id", labelIDs).
 		Asc("name").
@@ -602,7 +613,7 @@ func newIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *user_m
 		Label:   label,
 		Content: "1",
 	}
-	if _, err = CreateCommentCtx(ctx, opts); err != nil {
+	if _, err = CreateComment(ctx, opts); err != nil {
 		return err
 	}
 
@@ -615,7 +626,7 @@ func NewIssueLabel(issue *Issue, label *Label, doer *user_model.User) (err error
 		return nil
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -655,7 +666,7 @@ func newIssueLabels(ctx context.Context, issue *Issue, labels []*Label, doer *us
 		}
 
 		if err = newIssueLabel(ctx, issue, label, doer); err != nil {
-			return fmt.Errorf("newIssueLabel: %v", err)
+			return fmt.Errorf("newIssueLabel: %w", err)
 		}
 	}
 
@@ -664,7 +675,7 @@ func newIssueLabels(ctx context.Context, issue *Issue, labels []*Label, doer *us
 
 // NewIssueLabels creates a list of issue-label relations.
 func NewIssueLabels(issue *Issue, labels []*Label, doer *user_model.User) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -703,7 +714,7 @@ func deleteIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *use
 		Issue: issue,
 		Label: label,
 	}
-	if _, err = CreateCommentCtx(ctx, opts); err != nil {
+	if _, err = CreateComment(ctx, opts); err != nil {
 		return err
 	}
 
@@ -734,13 +745,13 @@ func DeleteLabelsByRepoID(ctx context.Context, repoID int64) error {
 }
 
 // CountOrphanedLabels return count of labels witch are broken and not accessible via ui anymore
-func CountOrphanedLabels() (int64, error) {
-	noref, err := db.GetEngine(db.DefaultContext).Table("label").Where("repo_id=? AND org_id=?", 0, 0).Count()
+func CountOrphanedLabels(ctx context.Context) (int64, error) {
+	noref, err := db.GetEngine(ctx).Table("label").Where("repo_id=? AND org_id=?", 0, 0).Count()
 	if err != nil {
 		return 0, err
 	}
 
-	norepo, err := db.GetEngine(db.DefaultContext).Table("label").
+	norepo, err := db.GetEngine(ctx).Table("label").
 		Where(builder.And(
 			builder.Gt{"repo_id": 0},
 			builder.NotIn("repo_id", builder.Select("id").From("repository")),
@@ -750,7 +761,7 @@ func CountOrphanedLabels() (int64, error) {
 		return 0, err
 	}
 
-	noorg, err := db.GetEngine(db.DefaultContext).Table("label").
+	noorg, err := db.GetEngine(ctx).Table("label").
 		Where(builder.And(
 			builder.Gt{"org_id": 0},
 			builder.NotIn("org_id", builder.Select("id").From("user")),
@@ -764,14 +775,14 @@ func CountOrphanedLabels() (int64, error) {
 }
 
 // DeleteOrphanedLabels delete labels witch are broken and not accessible via ui anymore
-func DeleteOrphanedLabels() error {
+func DeleteOrphanedLabels(ctx context.Context) error {
 	// delete labels with no reference
-	if _, err := db.GetEngine(db.DefaultContext).Table("label").Where("repo_id=? AND org_id=?", 0, 0).Delete(new(Label)); err != nil {
+	if _, err := db.GetEngine(ctx).Table("label").Where("repo_id=? AND org_id=?", 0, 0).Delete(new(Label)); err != nil {
 		return err
 	}
 
 	// delete labels with none existing repos
-	if _, err := db.GetEngine(db.DefaultContext).
+	if _, err := db.GetEngine(ctx).
 		Where(builder.And(
 			builder.Gt{"repo_id": 0},
 			builder.NotIn("repo_id", builder.Select("id").From("repository")),
@@ -781,7 +792,7 @@ func DeleteOrphanedLabels() error {
 	}
 
 	// delete labels with none existing orgs
-	if _, err := db.GetEngine(db.DefaultContext).
+	if _, err := db.GetEngine(ctx).
 		Where(builder.And(
 			builder.Gt{"org_id": 0},
 			builder.NotIn("org_id", builder.Select("id").From("user")),
@@ -794,23 +805,23 @@ func DeleteOrphanedLabels() error {
 }
 
 // CountOrphanedIssueLabels return count of IssueLabels witch have no label behind anymore
-func CountOrphanedIssueLabels() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Table("issue_label").
+func CountOrphanedIssueLabels(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).Table("issue_label").
 		NotIn("label_id", builder.Select("id").From("label")).
 		Count()
 }
 
 // DeleteOrphanedIssueLabels delete IssueLabels witch have no label behind anymore
-func DeleteOrphanedIssueLabels() error {
-	_, err := db.GetEngine(db.DefaultContext).
+func DeleteOrphanedIssueLabels(ctx context.Context) error {
+	_, err := db.GetEngine(ctx).
 		NotIn("label_id", builder.Select("id").From("label")).
 		Delete(IssueLabel{})
 	return err
 }
 
 // CountIssueLabelWithOutsideLabels count label comments with outside label
-func CountIssueLabelWithOutsideLabels() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(builder.Expr("(label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != repository.owner_id)")).
+func CountIssueLabelWithOutsideLabels(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).Where(builder.Expr("(label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != repository.owner_id)")).
 		Table("issue_label").
 		Join("inner", "label", "issue_label.label_id = label.id ").
 		Join("inner", "issue", "issue.id = issue_label.issue_id ").
@@ -819,8 +830,8 @@ func CountIssueLabelWithOutsideLabels() (int64, error) {
 }
 
 // FixIssueLabelWithOutsideLabels fix label comments with outside label
-func FixIssueLabelWithOutsideLabels() (int64, error) {
-	res, err := db.GetEngine(db.DefaultContext).Exec(`DELETE FROM issue_label WHERE issue_label.id IN (
+func FixIssueLabelWithOutsideLabels(ctx context.Context) (int64, error) {
+	res, err := db.GetEngine(ctx).Exec(`DELETE FROM issue_label WHERE issue_label.id IN (
 		SELECT il_too.id FROM (
 			SELECT il_too_too.id
 				FROM issue_label AS il_too_too
