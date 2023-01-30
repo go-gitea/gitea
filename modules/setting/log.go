@@ -145,8 +145,22 @@ func loadLogFrom(rootCfg ConfigProvider) {
 	Log.Level = getLogLevel(sec, "LEVEL", log.INFO)
 	Log.StacktraceLogLevel = getStacktraceLogLevel(sec, "STACKTRACE_LEVEL", "None")
 	Log.RootPath = sec.Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
-	Log.EnableSSHLog = sec.Key("ENABLE_SSH_LOG").MustBool(false)
 	forcePathSeparator(Log.RootPath)
+	Log.BufferLength = sec.Key("BUFFER_LEN").MustInt64(10000)
+
+	Log.EnableSSHLog = sec.Key("ENABLE_SSH_LOG").MustBool(false)
+	Log.EnableAccessLog = sec.Key("ENABLE_ACCESS_LOG").MustBool(false)
+	Log.AccessLogTemplate = sec.Key("ACCESS_LOG_TEMPLATE").MustString(
+		`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`,
+	)
+	// the `MustString` updates the default value, and `log.ACCESS` is used by `generateNamedLogger("access")` later
+	_ = rootCfg.Section("log").Key("ACCESS").MustString("file")
+
+	sec.Key("ROUTER").MustString("console")
+	// Allow [log]  DISABLE_ROUTER_LOG to override [server] DISABLE_ROUTER_LOG
+	Log.DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool(Log.DisableRouterLog)
+
+	Log.EnableXORMLog = rootCfg.Section("log").Key("ENABLE_XORM_LOG").MustBool(true)
 }
 
 func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions) (mode, jsonConfig, levelName string) {
@@ -277,39 +291,6 @@ func generateNamedLogger(rootCfg ConfigProvider, key string, options defaultLogO
 	return &description
 }
 
-func initAccessLogFrom(rootCfg ConfigProvider) {
-	sec := rootCfg.Section("log")
-	Log.EnableAccessLog = sec.Key("ENABLE_ACCESS_LOG").MustBool(false)
-	Log.BufferLength = sec.Key("BUFFER_LEN").MustInt64(10000)
-	Log.AccessLogTemplate = sec.Key("ACCESS_LOG_TEMPLATE").MustString(
-		`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`,
-	)
-	// the `MustString` updates the default value, and `log.ACCESS` is used by `generateNamedLogger("access")` later
-	_ = sec.Key("ACCESS").MustString("file")
-	if Log.EnableAccessLog {
-		options := newDefaultLogOptions()
-		options.filename = filepath.Join(Log.RootPath, "access.log")
-		options.flags = "" // For the router we don't want any prefixed flags
-		options.bufferLength = Log.BufferLength
-		generateNamedLogger(rootCfg, "access", options)
-	}
-}
-
-func initRouterLogFrom(rootCfg ConfigProvider) {
-	sec := rootCfg.Section("log")
-	sec.Key("ROUTER").MustString("console")
-	// Allow [log]  DISABLE_ROUTER_LOG to override [server] DISABLE_ROUTER_LOG
-	Log.DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool(Log.DisableRouterLog)
-
-	if !Log.DisableRouterLog {
-		options := newDefaultLogOptions()
-		options.filename = filepath.Join(Log.RootPath, "router.log")
-		options.flags = "date,time" // For the router we don't want any prefixed flags
-		options.bufferLength = sec.Key("BUFFER_LEN").MustInt64(10000)
-		generateNamedLogger(rootCfg, "router", options)
-	}
-}
-
 // initLogFrom initializes logging with settings from configuration provider
 func initLogFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("log")
@@ -374,8 +355,23 @@ func RestartLogsWithPIDSuffix() {
 // InitLogs creates all the log services
 func InitLogs(disableConsole bool) {
 	initLogFrom(CfgProvider)
-	initRouterLogFrom(CfgProvider)
-	initAccessLogFrom(CfgProvider)
+
+	if !Log.DisableRouterLog {
+		options := newDefaultLogOptions()
+		options.filename = filepath.Join(Log.RootPath, "router.log")
+		options.flags = "date,time" // For the router we don't want any prefixed flags
+		options.bufferLength = Log.BufferLength
+		generateNamedLogger(CfgProvider, "router", options)
+	}
+
+	if Log.EnableAccessLog {
+		options := newDefaultLogOptions()
+		options.filename = filepath.Join(Log.RootPath, "access.log")
+		options.flags = "" // For the router we don't want any prefixed flags
+		options.bufferLength = Log.BufferLength
+		generateNamedLogger(CfgProvider, "access", options)
+	}
+
 	initSQLLogFrom(CfgProvider, disableConsole)
 }
 
@@ -385,11 +381,10 @@ func InitSQLLog(disableConsole bool) {
 }
 
 func initSQLLogFrom(rootCfg ConfigProvider, disableConsole bool) {
-	Log.EnableXORMLog = rootCfg.Section("log").Key("ENABLE_XORM_LOG").MustBool(true)
 	if Log.EnableXORMLog {
 		options := newDefaultLogOptions()
 		options.filename = filepath.Join(Log.RootPath, "xorm.log")
-		options.bufferLength = rootCfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
+		options.bufferLength = Log.BufferLength
 		options.disableConsole = disableConsole
 
 		rootCfg.Section("log").Key("XORM").MustString(",")
