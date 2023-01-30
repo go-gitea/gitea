@@ -3,6 +3,9 @@ import {stripTags} from '../utils.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
+const {lang} = document.documentElement;
+const shortDateFormatter = new Intl.DateTimeFormat(lang, {year: 'numeric', month: 'short', day: 'numeric'});
+
 export function initRepoTopicBar() {
   const mgrBtn = $('#manage_topic');
   const editDiv = $('#topic_edit');
@@ -178,4 +181,17 @@ export function initRepoTopicBar() {
       },
     }
   });
+}
+
+export function initRepoArchiveDateText() {
+  const archiveDateText = document.getElementById("archive-date-text");
+
+  if (!archiveDateText) {
+    return;
+  }
+
+  const archiveDate = new Date(archiveDateText.attributes["date"].value);
+  const archiveText = archiveDateText.attributes["text"].value;
+
+  archiveDateText.innerText = archiveText.replace("%s", shortDateFormatter.format(archiveDate));
 }
