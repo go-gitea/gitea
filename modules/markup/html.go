@@ -164,6 +164,7 @@ var defaultProcessors = []processor{
 	linkProcessor,
 	mentionProcessor,
 	issueIndexPatternProcessor,
+	commitCrossReferencePatternProcessor,
 	sha1CurrentPatternProcessor,
 	emailAddressProcessor,
 	emojiProcessor,
@@ -190,6 +191,7 @@ var commitMessageProcessors = []processor{
 	linkProcessor,
 	mentionProcessor,
 	issueIndexPatternProcessor,
+	commitCrossReferencePatternProcessor,
 	sha1CurrentPatternProcessor,
 	emailAddressProcessor,
 	emojiProcessor,
@@ -221,6 +223,7 @@ var commitMessageSubjectProcessors = []processor{
 	linkProcessor,
 	mentionProcessor,
 	issueIndexPatternProcessor,
+	commitCrossReferencePatternProcessor,
 	sha1CurrentPatternProcessor,
 	emojiShortCodeProcessor,
 	emojiProcessor,
@@ -257,6 +260,7 @@ func RenderIssueTitle(
 ) (string, error) {
 	return renderProcessString(ctx, []processor{
 		issueIndexPatternProcessor,
+		commitCrossReferencePatternProcessor,
 		sha1CurrentPatternProcessor,
 		emojiShortCodeProcessor,
 		emojiProcessor,
@@ -904,6 +908,23 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 		}
 		replaceContentList(node, ref.ActionLocation.Start, ref.RefLocation.End, []*html.Node{keyword, spaces, link})
 		node = node.NextSibling.NextSibling.NextSibling.NextSibling
+	}
+}
+
+func commitCrossReferencePatternProcessor(ctx *RenderContext, node *html.Node) {
+	next := node.NextSibling
+
+	for node != nil && node != next {
+		found, ref := references.FindRenderizableCommitCrossReference(node.Data)
+		if !found {
+			return
+		}
+
+		reftext := ref.Owner + "/" + ref.Name + "@" + base.ShortSha(ref.CommitSha)
+		link := createLink(util.URLJoin(setting.AppSubURL, ref.Owner, ref.Name, "commit", ref.CommitSha), reftext, "commit")
+
+		replaceContent(node, ref.RefLocation.Start, ref.RefLocation.End, link)
+		node = node.NextSibling.NextSibling
 	}
 }
 
