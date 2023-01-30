@@ -84,7 +84,7 @@ func initMigrationTest(t *testing.T) func() {
 
 	assert.NoError(t, git.InitFull(context.Background()))
 	setting.LoadDBSetting()
-	setting.LoadLogSettings(true)
+	setting.InitLogs(true)
 	return deferFn
 }
 
@@ -292,7 +292,7 @@ func doMigrationTest(t *testing.T, version string) {
 		return
 	}
 
-	setting.LoadSQLLogSetting(false)
+	setting.InitSQLLog(false)
 
 	err := db.InitEngineWithMigration(context.Background(), wrappedMigrate)
 	assert.NoError(t, err)
