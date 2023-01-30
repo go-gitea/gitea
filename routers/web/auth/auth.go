@@ -139,6 +139,9 @@ func checkAutoLogin(ctx *context.Context) bool {
 
 func checkForceOAuth(ctx *context.Context) bool {
 	// Check if authentication is forced to OAuth
+	if ctx.FormBool("noredirect") {
+		return false
+	}
 
 	authSources, err := auth.GetActiveOAuth2ProviderSources()
 	if err != nil {
