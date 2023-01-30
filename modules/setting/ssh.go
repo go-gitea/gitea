@@ -99,7 +99,7 @@ func parseAuthorizedPrincipalsAllow(values []string) ([]string, bool) {
 	return authorizedPrincipalsAllow, true
 }
 
-func loadSSHFrom(rootCfg Config) {
+func loadSSHFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("server")
 	if len(SSH.Domain) == 0 {
 		SSH.Domain = Domain

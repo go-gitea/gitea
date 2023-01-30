@@ -15,7 +15,8 @@ import (
 
 // SessionConfig defines Session settings
 var SessionConfig = struct {
-	Provider string
+	OriginalProvider string
+	Provider         string
 	// Provider configuration, it's corresponding to provider.
 	ProviderConfig string
 	// Cookie name to save session ID. Default is "MacaronSession".
@@ -39,7 +40,7 @@ var SessionConfig = struct {
 	SameSite:    http.SameSiteLaxMode,
 }
 
-func loadSessionFrom(rootCfg Config) {
+func loadSessionFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("session")
 	SessionConfig.Provider = sec.Key("PROVIDER").In("memory",
 		[]string{"memory", "file", "redis", "mysql", "postgres", "couchbase", "memcache", "db"})
@@ -67,6 +68,7 @@ func loadSessionFrom(rootCfg Config) {
 		log.Fatal("Can't shadow session config: %v", err)
 	}
 	SessionConfig.ProviderConfig = string(shadowConfig)
+	SessionConfig.OriginalProvider = SessionConfig.Provider
 	SessionConfig.Provider = "VirtualSession"
 
 	log.Info("Session Service Enabled")

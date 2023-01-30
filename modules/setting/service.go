@@ -111,7 +111,7 @@ func (a AllowedVisibility) ToVisibleTypeSlice() (result []structs.VisibleType) {
 	return result
 }
 
-func loadServiceFrom(rootCfg Config) {
+func loadServiceFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("service")
 	Service.ActiveCodeLives = sec.Key("ACTIVE_CODE_LIVE_MINUTES").MustInt(180)
 	Service.ResetPwdCodeLives = sec.Key("RESET_PASSWD_CODE_LIVE_MINUTES").MustInt(180)
@@ -193,7 +193,7 @@ func loadServiceFrom(rootCfg Config) {
 	loadOpenIDSetting(rootCfg)
 }
 
-func loadOpenIDSetting(rootCfg Config) {
+func loadOpenIDSetting(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("openid")
 	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(!InstallLock)
 	Service.EnableOpenIDSignUp = sec.Key("ENABLE_OPENID_SIGNUP").MustBool(!Service.DisableRegistration && Service.EnableOpenIDSignIn)

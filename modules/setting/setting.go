@@ -40,7 +40,7 @@ var (
 	AppWorkPath string
 
 	// Global setting objects
-	Cfg          *ini.File
+	CfgProvider  ConfigProvider
 	CustomPath   string // Custom directory path
 	CustomConf   string
 	PIDFile      = "/run/gitea.pid"
@@ -196,7 +196,6 @@ func PrepareAppDataPath() error {
 	// Now we can take the first step to do correctly (using Mkdir) in other packages, and prepare the AppDataPath here, then make a refactor in future.
 
 	st, err := os.Stat(AppDataPath)
-
 	if os.IsNotExist(err) {
 		err = os.MkdirAll(AppDataPath, os.ModePerm)
 		if err != nil {
@@ -218,38 +217,28 @@ func PrepareAppDataPath() error {
 
 // LoadFromExisting initializes setting options from an existing config file (app.ini)
 func LoadFromExisting() {
-	Cfg = loadFromConf(CustomConf, WritePIDFile, false, PIDFile, "")
+	CfgProvider = newFileProviderFromConf(CustomConf, WritePIDFile, false, PIDFile, "")
+	loadCommonConfigsFrom(CfgProvider)
 }
 
 // LoadAllowEmpty initializes setting options, it's also fine that if the config file (app.ini) doesn't exist
 func LoadAllowEmpty() {
-	Cfg = loadFromConf(CustomConf, WritePIDFile, true, PIDFile, "")
+	CfgProvider = newFileProviderFromConf(CustomConf, WritePIDFile, true, PIDFile, "")
+	loadCommonConfigsFrom(CfgProvider)
 }
 
 // LoadForTest initializes setting options for tests
 func LoadForTest(extraConfigs ...string) {
-	Cfg = loadFromConf(CustomConf, WritePIDFile, true, PIDFile, strings.Join(extraConfigs, "\n"))
+	CfgProvider = newFileProviderFromConf(CustomConf, WritePIDFile, true, PIDFile, strings.Join(extraConfigs, "\n"))
+	loadCommonConfigsFrom(CfgProvider)
 	if err := PrepareAppDataPath(); err != nil {
 		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)
 	}
 }
 
-func deprecatedSetting(rootCfg Config, oldSection, oldKey, newSection, newKey string) {
-	if rootCfg.Section(oldSection).HasKey(oldKey) {
-		log.Error("Deprecated fallback `[%s]` `%s` present. Use `[%s]` `%s` instead. This fallback will be removed in v1.19.0", oldSection, oldKey, newSection, newKey)
-	}
-}
-
-// deprecatedSettingDB add a hint that the configuration has been moved to database but still kept in app.ini
-func deprecatedSettingDB(rootCfg Config, oldSection, oldKey string) {
-	if rootCfg.Section(oldSection).HasKey(oldKey) {
-		log.Error("Deprecated `[%s]` `%s` present which has been copied to database table sys_setting", oldSection, oldKey)
-	}
-}
-
-// loadFromConf initializes configuration context.
+// newFileProviderFromConf initializes configuration context.
 // NOTE: do not print any log except error.
-func loadFromConf(customConf string, writePIDFile, allowEmpty bool, pidFile, extraConfig string) *ini.File {
+func newFileProviderFromConf(customConf string, writePIDFile, allowEmpty bool, pidFile, extraConfig string) *ini.File {
 	cfg := ini.Empty()
 
 	if writePIDFile && len(pidFile) > 0 {
@@ -275,7 +264,11 @@ func loadFromConf(customConf string, writePIDFile, allowEmpty bool, pidFile, ext
 	}
 
 	cfg.NameMapper = ini.SnackCase
+	return cfg
+}
 
+// loadCommonConfigsFrom loads common configurations from a configuration provider.
+func loadCommonConfigsFrom(cfg ConfigProvider) {
 	// WARNNING: don't change the sequence except you know what you are doing.
 	loadRunModeFrom(cfg)
 	loadServerFrom(cfg)
@@ -298,11 +291,9 @@ func loadFromConf(customConf string, writePIDFile, allowEmpty bool, pidFile, ext
 	loadMirrorFrom(cfg)
 	loadMarkupFrom(cfg)
 	loadOtherFrom(cfg)
-
-	return cfg
 }
 
-func loadRunModeFrom(rootCfg Config) {
+func loadRunModeFrom(rootCfg ConfigProvider) {
 	rootSec := rootCfg.Section("")
 	RunUser = rootSec.Key("RUN_USER").MustString(user.CurrentUsername())
 	// The following is a purposefully undocumented option. Please do not run Gitea as root. It will only cause future headaches.
@@ -380,27 +371,27 @@ func CreateOrAppendToCustomConf(purpose string, callback func(cfg *ini.File)) {
 // LoadSettings initializes the settings for normal start up
 func LoadSettings() {
 	LoadDBSetting()
-	loadServiceFrom(Cfg)
-	loadOAuth2ClientFrom(Cfg)
-	LoadLogSettings(false)
-	loadCacheFrom(Cfg)
-	loadSessionFrom(Cfg)
-	loadCorsFrom(Cfg)
-	loadMailsFrom(Cfg)
-	loadProxyFrom(Cfg)
-	loadWebhookFrom(Cfg)
-	loadMigrationsFrom(Cfg)
-	loadIndexerFrom(Cfg)
-	loadTaskFrom(Cfg)
+	loadServiceFrom(CfgProvider)
+	loadOAuth2ClientFrom(CfgProvider)
+	InitLogs(false)
+	loadCacheFrom(CfgProvider)
+	loadSessionFrom(CfgProvider)
+	loadCorsFrom(CfgProvider)
+	loadMailsFrom(CfgProvider)
+	loadProxyFrom(CfgProvider)
+	loadWebhookFrom(CfgProvider)
+	loadMigrationsFrom(CfgProvider)
+	loadIndexerFrom(CfgProvider)
+	loadTaskFrom(CfgProvider)
 	LoadQueueSettings()
-	loadProjectFrom(Cfg)
-	loadMimeTypeMapFrom(Cfg)
-	loadFederationFrom(Cfg)
+	loadProjectFrom(CfgProvider)
+	loadMimeTypeMapFrom(CfgProvider)
+	loadFederationFrom(CfgProvider)
 }
 
 // LoadSettingsForInstall initializes the settings for install
 func LoadSettingsForInstall() {
 	LoadDBSetting()
-	loadServiceFrom(Cfg)
-	loadMailerFrom(Cfg)
+	loadServiceFrom(CfgProvider)
+	loadMailerFrom(CfgProvider)
 }

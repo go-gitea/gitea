@@ -7,10 +7,10 @@ import "reflect"
 
 // GetCronSettings maps the cron subsection to the provided config
 func GetCronSettings(name string, config interface{}) (interface{}, error) {
-	return getCronSettings(Cfg, name, config)
+	return getCronSettings(CfgProvider, name, config)
 }
 
-func getCronSettings(rootCfg Config, name string, config interface{}) (interface{}, error) {
+func getCronSettings(rootCfg ConfigProvider, name string, config interface{}) (interface{}, error) {
 	if err := rootCfg.Section("cron." + name).MapTo(config); err != nil {
 		return config, err
 	}

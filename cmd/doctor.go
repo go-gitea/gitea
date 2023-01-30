@@ -90,9 +90,10 @@ func runRecreateTable(ctx *cli.Context) error {
 	setting.LoadFromExisting()
 	setting.LoadDBSetting()
 
-	setting.EnableXORMLog = ctx.Bool("debug")
+	setting.Log.EnableXORMLog = ctx.Bool("debug")
 	setting.Database.LogSQL = ctx.Bool("debug")
-	setting.Cfg.Section("log").Key("XORM").SetValue(",")
+	// FIXME: don't use CfgProvider directly
+	setting.CfgProvider.Section("log").Key("XORM").SetValue(",")
 
 	setting.LoadSQLLogSetting(!ctx.Bool("debug"))
 	stdCtx, cancel := installSignals()

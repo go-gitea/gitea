@@ -75,7 +75,7 @@ func checkConfigurationFiles(ctx context.Context, logger log.Logger, autofix boo
 		{"Data Root Path", setting.AppDataPath, true, true, true},
 		{"Custom File Root Path", setting.CustomPath, true, false, false},
 		{"Work directory", setting.AppWorkPath, true, true, false},
-		{"Log Root Path", setting.LogRootPath, true, true, true},
+		{"Log Root Path", setting.Log.RootPath, true, true, true},
 	}
 
 	if options.IsDynamic() {

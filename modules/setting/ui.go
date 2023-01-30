@@ -132,7 +132,7 @@ var UI = struct {
 	},
 }
 
-func loadUIFrom(rootCfg Config) {
+func loadUIFrom(rootCfg ConfigProvider) {
 	mustMapSetting(rootCfg, "ui", &UI)
 	sec := rootCfg.Section("ui")
 	UI.ShowUserEmail = sec.Key("SHOW_USER_EMAIL").MustBool(true)

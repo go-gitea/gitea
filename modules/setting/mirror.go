@@ -24,7 +24,7 @@ var Mirror = struct {
 	DefaultInterval: 8 * time.Hour,
 }
 
-func loadMirrorFrom(rootCfg Config) {
+func loadMirrorFrom(rootCfg ConfigProvider) {
 	// Handle old configuration through `[repository]` `DISABLE_MIRRORS`
 	// - please note this was badly named and only disabled the creation of new pull mirrors
 	// FIXME: DEPRECATED to be removed in v1.18.0

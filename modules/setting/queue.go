@@ -39,10 +39,10 @@ var Queue = QueueSettings{}
 
 // GetQueueSettings returns the queue settings for the appropriately named queue
 func GetQueueSettings(name string) QueueSettings {
-	return getQueueSettings(Cfg, name)
+	return getQueueSettings(CfgProvider, name)
 }
 
-func getQueueSettings(rootCfg Config, name string) QueueSettings {
+func getQueueSettings(rootCfg ConfigProvider, name string) QueueSettings {
 	q := QueueSettings{}
 	sec := rootCfg.Section("queue." + name)
 	q.Name = name
@@ -89,10 +89,10 @@ func getQueueSettings(rootCfg Config, name string) QueueSettings {
 // LoadQueueSettings sets up the default settings for Queues
 // This is exported for tests to be able to use the queue
 func LoadQueueSettings() {
-	loadQueueFrom(Cfg)
+	loadQueueFrom(CfgProvider)
 }
 
-func loadQueueFrom(rootCfg Config) {
+func loadQueueFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("queue")
 	Queue.DataDir = filepath.ToSlash(sec.Key("DATADIR").MustString("queues/"))
 	if !filepath.IsAbs(Queue.DataDir) {
@@ -174,7 +174,7 @@ func loadQueueFrom(rootCfg Config) {
 
 // handleOldLengthConfiguration allows fallback to older configuration. `[queue.name]` `LENGTH` will override this configuration, but
 // if that is left unset then we should fallback to the older configuration. (Except where the new length woul be <=0)
-func handleOldLengthConfiguration(rootCfg Config, queueName, oldSection, oldKey string, defaultValue int) {
+func handleOldLengthConfiguration(rootCfg ConfigProvider, queueName, oldSection, oldKey string, defaultValue int) {
 	if rootCfg.Section(oldSection).HasKey(oldKey) {
 		log.Error("Deprecated fallback for %s queue length `[%s]` `%s` present. Use `[queue.%s]` `LENGTH`. This will be removed in v1.18.0", queueName, queueName, oldSection, oldKey)
 	}

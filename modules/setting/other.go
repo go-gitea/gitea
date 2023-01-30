@@ -12,7 +12,7 @@ var (
 	EnableSitemap              bool
 )
 
-func loadOtherFrom(rootCfg Config) {
+func loadOtherFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("other")
 	ShowFooterBranding = sec.Key("SHOW_FOOTER_BRANDING").MustBool(false)
 	ShowFooterVersion = sec.Key("SHOW_FOOTER_VERSION").MustBool(true)

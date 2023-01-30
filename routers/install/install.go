@@ -133,7 +133,7 @@ func Install(ctx *context.Context) {
 	form.SSHPort = setting.SSH.Port
 	form.HTTPPort = setting.HTTPPort
 	form.AppURL = setting.AppURL
-	form.LogRootPath = setting.LogRootPath
+	form.LogRootPath = setting.Log.RootPath
 
 	// E-mail service settings
 	if setting.MailService != nil {
@@ -466,7 +466,7 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("session").Key("PROVIDER").SetValue("file")
 
 	cfg.Section("log").Key("MODE").SetValue("console")
-	cfg.Section("log").Key("LEVEL").SetValue(setting.LogLevel.String())
+	cfg.Section("log").Key("LEVEL").SetValue(setting.Log.Level.String())
 	cfg.Section("log").Key("ROOT_PATH").SetValue(form.LogRootPath)
 	cfg.Section("log").Key("ROUTER").SetValue("console")
 

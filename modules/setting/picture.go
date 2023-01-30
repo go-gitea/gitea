@@ -32,7 +32,7 @@ var (
 	}{}
 )
 
-func loadPictureFrom(rootCfg Config) {
+func loadPictureFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("picture")
 
 	avatarSec := rootCfg.Section("avatar")
@@ -82,7 +82,7 @@ func GetDefaultEnableFederatedAvatar(disableGravatar bool) bool {
 	return v
 }
 
-func loadRepoAvatarFrom(rootCfg Config) {
+func loadRepoAvatarFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("picture")
 
 	repoAvatarSec := rootCfg.Section("repo-avatar")

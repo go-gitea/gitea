@@ -70,7 +70,7 @@ func RunChecks(ctx context.Context, logger log.Logger, autofix bool, checks []*C
 	for i, check := range checks {
 		if !dbIsInit && !check.SkipDatabaseInitialization {
 			// Only open database after the most basic configuration check
-			setting.EnableXORMLog = false
+			setting.Log.EnableXORMLog = false
 			if err := initDBDisableConsole(ctx, true); err != nil {
 				logger.Error("Error whilst initializing the database: %v", err)
 				logger.Error("Check if you are using the right config file. You can use a --config directive to specify one.")

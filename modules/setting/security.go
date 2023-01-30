@@ -95,7 +95,7 @@ func generateSaveInternalToken() {
 	})
 }
 
-func loadSecurityFrom(rootCfg Config) {
+func loadSecurityFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("security")
 	InstallLock = sec.Key("INSTALL_LOCK").MustBool(false)
 	LogInRememberDays = sec.Key("LOGIN_REMEMBER_DAYS").MustInt(7)

@@ -27,7 +27,7 @@ var API = struct {
 	DefaultMaxBlobSize:     10485760,
 }
 
-func loadAPIFrom(rootCfg Config) {
+func loadAPIFrom(rootCfg ConfigProvider) {
 	mustMapSetting(rootCfg, "api", &API)
 
 	defaultAppURL := string(Protocol) + "://" + Domain + ":" + HTTPPort

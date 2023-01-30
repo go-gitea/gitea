@@ -45,7 +45,7 @@ var Indexer = struct {
 	ExcludeVendored:    true,
 }
 
-func loadIndexerFrom(rootCfg Config) {
+func loadIndexerFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("indexer")
 	Indexer.IssueType = sec.Key("ISSUE_INDEXER_TYPE").MustString("bleve")
 	Indexer.IssuePath = filepath.ToSlash(sec.Key("ISSUE_INDEXER_PATH").MustString(filepath.ToSlash(filepath.Join(AppDataPath, "indexers/issues.bleve"))))

@@ -16,6 +16,6 @@ var Metrics = struct {
 	EnabledIssueByRepository: false,
 }
 
-func loadMetricsFrom(rootCfg Config) {
+func loadMetricsFrom(rootCfg ConfigProvider) {
 	mustMapSetting(rootCfg, "metrics", &Metrics)
 }

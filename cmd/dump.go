@@ -184,10 +184,11 @@ func runDump(ctx *cli.Context) error {
 	setting.LoadFromExisting()
 
 	// make sure we are logging to the console no matter what the configuration tells us do to
-	if _, err := setting.Cfg.Section("log").NewKey("MODE", "console"); err != nil {
+	// FIXME: don't use CfgProvider directly
+	if _, err := setting.CfgProvider.Section("log").NewKey("MODE", "console"); err != nil {
 		fatal("Setting logging mode to console failed: %v", err)
 	}
-	if _, err := setting.Cfg.Section("log.console").NewKey("STDERR", "true"); err != nil {
+	if _, err := setting.CfgProvider.Section("log.console").NewKey("STDERR", "true"); err != nil {
 		fatal("Setting console logger to stderr failed: %v", err)
 	}
 	if !setting.InstallLock {
@@ -322,7 +323,7 @@ func runDump(ctx *cli.Context) error {
 		log.Info("Packing data directory...%s", setting.AppDataPath)
 
 		var excludes []string
-		if setting.Cfg.Section("session").Key("PROVIDER").Value() == "file" {
+		if setting.SessionConfig.OriginalProvider == "file" {
 			var opts session.Options
 			if err = json.Unmarshal([]byte(setting.SessionConfig.ProviderConfig), &opts); err != nil {
 				return err
@@ -339,7 +340,7 @@ func runDump(ctx *cli.Context) error {
 		excludes = append(excludes, setting.LFS.Path)
 		excludes = append(excludes, setting.Attachment.Path)
 		excludes = append(excludes, setting.Packages.Path)
-		excludes = append(excludes, setting.LogRootPath)
+		excludes = append(excludes, setting.Log.RootPath)
 		excludes = append(excludes, absFileName)
 		if err := addRecursiveExclude(w, "data", setting.AppDataPath, excludes, verbose); err != nil {
 			fatal("Failed to include data directory: %v", err)
@@ -378,12 +379,12 @@ func runDump(ctx *cli.Context) error {
 	if ctx.IsSet("skip-log") && ctx.Bool("skip-log") {
 		log.Info("Skip dumping log files")
 	} else {
-		isExist, err := util.IsExist(setting.LogRootPath)
+		isExist, err := util.IsExist(setting.Log.RootPath)
 		if err != nil {
-			log.Error("Unable to check if %s exists. Error: %v", setting.LogRootPath, err)
+			log.Error("Unable to check if %s exists. Error: %v", setting.Log.RootPath, err)
 		}
 		if isExist {
-			if err := addRecursiveExclude(w, "log", setting.LogRootPath, []string{absFileName}, verbose); err != nil {
+			if err := addRecursiveExclude(w, "log", setting.Log.RootPath, []string{absFileName}, verbose); err != nil {
 				fatal("Failed to include log: %v", err)
 			}
 		}

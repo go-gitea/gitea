@@ -165,12 +165,12 @@ func MakeAbsoluteAssetURL(appURL, staticURLPrefix string) string {
 	return strings.TrimSuffix(staticURLPrefix, "/")
 }
 
-func loadServerFrom(rootCfg Config) {
+func loadServerFrom(rootCfg ConfigProvider) {
 	logSec := rootCfg.Section("log")
-	LogLevel = getLogLevel(logSec, "LEVEL", log.INFO)
-	StacktraceLogLevel = getStacktraceLogLevel(logSec, "STACKTRACE_LEVEL", "None")
-	LogRootPath = logSec.Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
-	forcePathSeparator(LogRootPath)
+	Log.Level = getLogLevel(logSec, "LEVEL", log.INFO)
+	Log.StacktraceLogLevel = getStacktraceLogLevel(logSec, "STACKTRACE_LEVEL", "None")
+	Log.RootPath = logSec.Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
+	forcePathSeparator(Log.RootPath)
 
 	sec := rootCfg.Section("server")
 	AppName = rootCfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")
@@ -321,7 +321,7 @@ func loadServerFrom(rootCfg Config) {
 	PortToRedirect = sec.Key("PORT_TO_REDIRECT").MustString("80")
 	RedirectorUseProxyProtocol = sec.Key("REDIRECTOR_USE_PROXY_PROTOCOL").MustBool(UseProxyProtocol)
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
-	DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool()
+	Log.DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool()
 	if len(StaticRootPath) == 0 {
 		StaticRootPath = AppWorkPath
 	}

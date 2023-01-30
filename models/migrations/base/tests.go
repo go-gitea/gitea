@@ -155,7 +155,7 @@ func MainTest(m *testing.M) {
 		os.Exit(1)
 	}
 	setting.LoadDBSetting()
-	setting.LoadLogSettings(true)
+	setting.InitLogs(true)
 
 	exitStatus := m.Run()
 

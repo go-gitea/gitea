@@ -20,7 +20,7 @@ func PreloadSettings(ctx context.Context) bool {
 		log.Info("AppPath: %s", setting.AppPath)
 		log.Info("AppWorkPath: %s", setting.AppWorkPath)
 		log.Info("Custom path: %s", setting.CustomPath)
-		log.Info("Log path: %s", setting.LogRootPath)
+		log.Info("Log path: %s", setting.Log.RootPath)
 		log.Info("Configuration file: %s", setting.CustomConf)
 		log.Info("Prepare to run install page")
 		translation.InitLocales(ctx)

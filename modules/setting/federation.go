@@ -33,7 +33,7 @@ var (
 // HttpsigAlgs is a constant slice of httpsig algorithm objects
 var HttpsigAlgs []httpsig.Algorithm
 
-func loadFederationFrom(rootCfg Config) {
+func loadFederationFrom(rootCfg ConfigProvider) {
 	if err := rootCfg.Section("federation").MapTo(&Federation); err != nil {
 		log.Fatal("Failed to map Federation settings: %v", err)
 	} else if !httpsig.IsSupportedDigestAlgorithm(Federation.DigestAlgorithm) {

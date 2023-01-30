@@ -30,7 +30,7 @@ func (s *Storage) MapTo(v interface{}) error {
 	return nil
 }
 
-func getStorage(rootCfg Config, name, typ string, targetSec *ini.Section) Storage {
+func getStorage(rootCfg ConfigProvider, name, typ string, targetSec *ini.Section) Storage {
 	const sectionName = "storage"
 	sec := rootCfg.Section(sectionName)
 

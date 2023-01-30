@@ -25,7 +25,7 @@ var LFS = struct {
 	Storage
 }{}
 
-func loadLFSFrom(rootCfg Config) {
+func loadLFSFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("server")
 	if err := sec.MapTo(&LFS); err != nil {
 		log.Fatal("Failed to map LFS settings: %v", err)

@@ -31,7 +31,7 @@ var IncomingEmail = struct {
 	MaximumMessageSize:   10485760,
 }
 
-func loadIncomingEmailFrom(rootCfg Config) {
+func loadIncomingEmailFrom(rootCfg ConfigProvider) {
 	mustMapSetting(rootCfg, "email.incoming", &IncomingEmail)
 
 	if !IncomingEmail.Enabled {

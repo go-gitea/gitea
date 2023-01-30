@@ -14,6 +14,6 @@ var (
 	}
 )
 
-func loadProjectFrom(rootCfg Config) {
+func loadProjectFrom(rootCfg ConfigProvider) {
 	mustMapSetting(rootCfg, "project", &Project)
 }

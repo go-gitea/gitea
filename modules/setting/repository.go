@@ -268,7 +268,7 @@ var (
 	}{}
 )
 
-func loadRepositoryFrom(rootCfg Config) {
+func loadRepositoryFrom(rootCfg ConfigProvider) {
 	var err error
 	// Determine and create root git repository path.
 	sec := rootCfg.Section("repository")
