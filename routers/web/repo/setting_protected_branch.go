@@ -31,7 +31,7 @@ const (
 
 // ProtectedBranchRules render the page to protect the repository
 func ProtectedBranchRules(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["Title"] = ctx.Tr("repo.settings.branches")
 	ctx.Data["PageIsSettingsBranches"] = true
 
 	rules, err := git_model.FindRepoProtectedBranchRules(ctx, ctx.Repo.Repository.ID)
@@ -46,7 +46,7 @@ func ProtectedBranchRules(ctx *context.Context) {
 
 // SetDefaultBranchPost set default branch
 func SetDefaultBranchPost(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["Title"] = ctx.Tr("repo.settings.branches.update_default_branch")
 	ctx.Data["PageIsSettingsBranches"] = true
 
 	repo := ctx.Repo.Repository
