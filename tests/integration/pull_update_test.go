@@ -53,6 +53,9 @@ func TestAPIPullUpdate(t *testing.T) {
 
 func TestAPIPullUpdateByRebase(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		// debug code, I'll delete it before PR get merged.
+		time.Sleep(5 * time.Second)
+
 		// Create PR to test
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		org26 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26})
@@ -85,6 +88,9 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 		assert.NoError(t, err)
 		assert.EqualValues(t, 0, diffCount.Behind)
 		assert.EqualValues(t, 1, diffCount.Ahead)
+
+		// debug code, I'll delete it before PR get merged.
+		time.Sleep(5 * time.Second)
 	})
 }
 
