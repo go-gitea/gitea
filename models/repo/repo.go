@@ -173,7 +173,7 @@ type Repository struct {
 
 	CreatedUnix  timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix  timeutil.TimeStamp `xorm:"INDEX updated"`
-	ArchivedUnix timeutil.TimeStamp
+	ArchivedUnix timeutil.TimeStamp `xorm:"Default 0"`
 }
 
 func init() {
