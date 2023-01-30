@@ -58,7 +58,11 @@
 		</div>
 		{{if .Repository.IsArchived}}
 			<div class="ui warning message">
-				{{.locale.Tr "repo.archive.title"}}
+				{{if .Repository.ArchivedUnix.IsZero}}
+					{{.locale.Tr "repo.archive.title"}}
+				{{else}}
+					{{.locale.Tr "repo.archive.titleDate" .Repository.ArchivedUnix.FormatDate}}
+				{{end}}
 			</div>
 		{{end}}
 		{{template "repo/sub_menu" .}}

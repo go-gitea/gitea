@@ -166,6 +166,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 		DefaultBranch:                 repo.DefaultBranch,
 		Created:                       repo.CreatedUnix.AsTime(),
 		Updated:                       repo.UpdatedUnix.AsTime(),
+		ArchivedAt:                    repo.ArchivedUnix.AsOptionalTime(),
 		Permissions:                   permission,
 		HasIssues:                     hasIssues,
 		ExternalTracker:               externalTracker,
