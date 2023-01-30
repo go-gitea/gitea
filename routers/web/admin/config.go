@@ -5,9 +5,11 @@
 package admin
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 
 	system_model "code.gitea.io/gitea/models/system"
@@ -201,6 +203,16 @@ func ChangeConfig(ctx *context.Context) {
 	value := ctx.FormString("value")
 	version := ctx.FormInt("version")
 
+	if check, ok := changeConfigChecks[key]; ok {
+		if err := check(ctx, value); err != nil {
+			log.Warn("refused to set setting: %v", err)
+			ctx.JSON(http.StatusOK, map[string]string{
+				"err": ctx.Tr("admin.config.set_setting_failed", key),
+			})
+			return
+		}
+	}
+
 	if err := system_model.SetSetting(&system_model.Setting{
 		SettingKey:   key,
 		SettingValue: value,
@@ -216,4 +228,19 @@ func ChangeConfig(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"version": version + 1,
 	})
+}
+
+var changeConfigChecks = map[string]func(ctx *context.Context, newValue string) error{
+	system_model.KeyPictureDisableGravatar: func(_ *context.Context, newValue string) error {
+		if v, _ := strconv.ParseBool(newValue); setting.OfflineMode && !v {
+			return fmt.Errorf("%q should be true when OFFLINE_MODE is true", system_model.KeyPictureDisableGravatar)
+		}
+		return nil
+	},
+	system_model.KeyPictureEnableFederatedAvatar: func(_ *context.Context, newValue string) error {
+		if v, _ := strconv.ParseBool(newValue); setting.OfflineMode && v {
+			return fmt.Errorf("%q cannot be false when OFFLINE_MODE is true", system_model.KeyPictureEnableFederatedAvatar)
+		}
+		return nil
+	},
 }
