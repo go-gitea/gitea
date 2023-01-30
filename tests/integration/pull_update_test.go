@@ -57,6 +57,8 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		org26 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26})
 		// debug code, I'll delete it before PR get merged.
+		t.Logf("user: %+v", user)
+		t.Logf("org26: %+v", org26)
 		if user.MaxRepoCreation != -1 || org26.MaxRepoCreation != -1 {
 			t.Errorf("cannot create repo: %+v", user)
 			t.Errorf("cannot create repo: %+v", org26)
