@@ -35,6 +35,13 @@
 			<p class="help">{{.locale.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
 		</div>
 	</div>
+	<div class="optional field">
+		<div class="ui checkbox">
+			<label for="force_o_auth"><strong>{{.locale.Tr "admin.auths.force_o_auth"}}</strong></label>
+			<input id="force_o_auth" name="force_o_auth" type="checkbox" {{if .force_o_auth}}checked{{end}}>
+			<p class="help">{{.locale.Tr "admin.auths.force_o_auth_helper"}}</p>
+		</div>
+	</div>
 
 	<div class="oauth2_use_custom_url inline field">
 		<div class="ui checkbox">

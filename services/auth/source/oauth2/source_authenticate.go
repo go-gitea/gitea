@@ -13,5 +13,9 @@ func (source *Source) Authenticate(user *user_model.User, login, password string
 	return db.Authenticate(user, login, password)
 }
 
+func (source *Source) IsOAuthForced() bool {
+	return source.ForceOAuth
+}
+
 // NB: Oauth2 does not implement LocalTwoFASkipper for password authentication
 // as its password authentication drops to db authentication
