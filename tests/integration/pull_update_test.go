@@ -56,13 +56,14 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 		// Create PR to test
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		org26 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26})
-		pr := createOutdatedPR(t, user, org26)
-
 		// debug code, I'll delete it before PR get merged.
-		if user.MaxRepoCreation != -1 {
-			t.Fatalf("cannot create repo: %+v", user)
+		if user.MaxRepoCreation != -1 || org26.MaxRepoCreation != -1 {
+			t.Errorf("cannot create repo: %+v", user)
+			t.Errorf("cannot create repo: %+v", org26)
+			t.FailNow()
 			return
 		}
+		pr := createOutdatedPR(t, user, org26)
 
 		// Test GetDiverging
 		diffCount, err := pull_service.GetDiverging(git.DefaultContext, pr)
