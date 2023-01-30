@@ -61,7 +61,7 @@ func setup(logPath string, debug bool) {
 	} else {
 		_ = log.NewLogger(1000, "console", "console", `{"level":"fatal","stacktracelevel":"NONE","stderr":true}`)
 	}
-	setting.LoadFromExisting()
+	setting.LoadAllFromExistingFile()
 	if debug {
 		setting.RunMode = "dev"
 	}

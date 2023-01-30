@@ -166,12 +166,6 @@ func MakeAbsoluteAssetURL(appURL, staticURLPrefix string) string {
 }
 
 func loadServerFrom(rootCfg ConfigProvider) {
-	logSec := rootCfg.Section("log")
-	Log.Level = getLogLevel(logSec, "LEVEL", log.INFO)
-	Log.StacktraceLogLevel = getStacktraceLogLevel(logSec, "STACKTRACE_LEVEL", "None")
-	Log.RootPath = logSec.Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
-	forcePathSeparator(Log.RootPath)
-
 	sec := rootCfg.Section("server")
 	AppName = rootCfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")
 

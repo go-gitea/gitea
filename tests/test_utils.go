@@ -57,7 +57,7 @@ func InitTest(requireGitea bool) {
 	}
 
 	setting.SetCustomPathAndConf("", "", "")
-	setting.LoadForTest()
+	setting.LoadAllForTest()
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 	_ = util.RemoveAll(repo_module.LocalCopyPath())
 

@@ -13,7 +13,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	setting.LoadForTest()
+	setting.LoadAllForTest()
 	setting.LoadQueueSettings()
 	unittest.MainTest(m, &unittest.TestOptions{
 		GiteaRootPath: filepath.Join("..", "..", "..", ".."),

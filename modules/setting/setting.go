@@ -215,20 +215,20 @@ func PrepareAppDataPath() error {
 	return nil
 }
 
-// LoadFromExisting initializes setting options from an existing config file (app.ini)
-func LoadFromExisting() {
+// LoadAllFromExistingFile initializes setting options from an existing config file (app.ini)
+func LoadAllFromExistingFile() {
 	CfgProvider = newFileProviderFromConf(CustomConf, WritePIDFile, false, PIDFile, "")
 	loadCommonConfigsFrom(CfgProvider)
 }
 
-// LoadAllowEmpty initializes setting options, it's also fine that if the config file (app.ini) doesn't exist
-func LoadAllowEmpty() {
+// LoadAllAllowEmpty initializes setting options, it's also fine that if the config file (app.ini) doesn't exist
+func LoadAllAllowEmpty() {
 	CfgProvider = newFileProviderFromConf(CustomConf, WritePIDFile, true, PIDFile, "")
 	loadCommonConfigsFrom(CfgProvider)
 }
 
-// LoadForTest initializes setting options for tests
-func LoadForTest(extraConfigs ...string) {
+// LoadAllForTest initializes setting options for tests
+func LoadAllForTest(extraConfigs ...string) {
 	CfgProvider = newFileProviderFromConf(CustomConf, WritePIDFile, true, PIDFile, strings.Join(extraConfigs, "\n"))
 	loadCommonConfigsFrom(CfgProvider)
 	if err := PrepareAppDataPath(); err != nil {
@@ -271,6 +271,7 @@ func newFileProviderFromConf(customConf string, writePIDFile, allowEmpty bool, p
 func loadCommonConfigsFrom(cfg ConfigProvider) {
 	// WARNNING: don't change the sequence except you know what you are doing.
 	loadRunModeFrom(cfg)
+	loadLogFrom(cfg)
 	loadServerFrom(cfg)
 	loadSSHFrom(cfg)
 	loadOAuth2From(cfg)

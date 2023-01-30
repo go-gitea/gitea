@@ -140,6 +140,15 @@ func getStacktraceLogLevel(section *ini.Section, key, defaultValue string) strin
 	return log.FromString(value).String()
 }
 
+func loadLogFrom(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("log")
+	Log.Level = getLogLevel(sec, "LEVEL", log.INFO)
+	Log.StacktraceLogLevel = getStacktraceLogLevel(sec, "STACKTRACE_LEVEL", "None")
+	Log.RootPath = sec.Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
+	Log.EnableSSHLog = sec.Key("ENABLE_SSH_LOG").MustBool(false)
+	forcePathSeparator(Log.RootPath)
+}
+
 func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions) (mode, jsonConfig, levelName string) {
 	level := getLogLevel(sec, "LEVEL", Log.Level)
 	levelName = level.String()
@@ -305,8 +314,7 @@ func initRouterLogFrom(rootCfg ConfigProvider) {
 func initLogFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("log")
 	options := newDefaultLogOptions()
-	options.bufferLength = sec.Key("BUFFER_LEN").MustInt64(10000)
-	Log.EnableSSHLog = sec.Key("ENABLE_SSH_LOG").MustBool(false)
+	options.bufferLength = Log.BufferLength
 
 	description := LogDescription{
 		Name: log.DEFAULT,
@@ -371,8 +379,8 @@ func InitLogs(disableConsole bool) {
 	initSQLLogFrom(CfgProvider, disableConsole)
 }
 
-// LoadSQLLogSetting initializes xorm logger setting
-func LoadSQLLogSetting(disableConsole bool) {
+// InitSQLLog initializes xorm logger setting
+func InitSQLLog(disableConsole bool) {
 	initSQLLogFrom(CfgProvider, disableConsole)
 }
 

@@ -57,9 +57,9 @@ func confirm() (bool, error) {
 }
 
 func initDB(ctx context.Context) error {
-	setting.LoadFromExisting()
+	setting.LoadAllFromExistingFile()
 	setting.LoadDBSetting()
-	setting.LoadSQLLogSetting(false)
+	setting.InitSQLLog(false)
 
 	if setting.Database.Type == "" {
 		log.Fatal(`Database settings are missing from the configuration file: %q.
