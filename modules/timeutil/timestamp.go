@@ -62,10 +62,10 @@ func (ts TimeStamp) AsTime() (tm time.Time) {
 func (ts TimeStamp) AsOptionalTime() (tm *time.Time) {
 	if ts.IsZero() {
 		return nil
-	} else {
-		timePointer := ts.AsTimeInLocation(setting.DefaultUILocation)
-		return &timePointer
 	}
+
+	timePointer := ts.AsTimeInLocation(setting.DefaultUILocation)
+	return &timePointer
 }
 
 // AsLocalTime convert timestamp as time.Time in local location
