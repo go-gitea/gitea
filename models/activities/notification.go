@@ -157,7 +157,7 @@ func CreateRepoTransferNotification(doer, newOwner *user_model.User, repo *repo_
 		}
 		for i := range users {
 			notify = append(notify, &Notification{
-				UserID:    users[i].ID,
+				UserID:    i,
 				RepoID:    repo.ID,
 				Status:    NotificationStatusUnread,
 				UpdatedBy: doer.ID,
