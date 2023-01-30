@@ -153,6 +153,6 @@ func SetArchiveRepoState(repo *Repository, isArchived bool) (err error) {
 		repo.ArchivedUnix = timeutil.TimeStamp(0)
 	}
 
-	_, err = db.GetEngine(db.DefaultContext).Where("id = ?", repo.ID).Cols("is_archived", "archived_unix").NoAutoTime().Update(repo)
+	_, err = db.GetEngine(db.DefaultContext).ID(repo.ID).Cols("is_archived", "archived_unix").NoAutoTime().Update(repo)
 	return err
 }
