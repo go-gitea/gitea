@@ -1,18 +1,7 @@
 import $ from 'jquery';
+import {encode, decode} from 'uint8-to-base64';
 
 const {appSubUrl, csrfToken} = window.config;
-
-function encodeToBase64(toEncode /* Uint8Array */) {
-  const output = [];
-  for (let i = 0; i < toEncode.length; i++) {
-    output.push(String.fromCharCode(toEncode[i]));
-  }
-  return window.btoa(output.join(''));
-}
-
-function decodeFromBase64(toDecode) {
-  return Uint8Array.from(window.atob(toDecode), (c) => c.charCodeAt(0));
-}
 
 export function initUserAuthWebAuthn() {
   if ($('.user.signin.webauthn-prompt').length === 0) {
@@ -67,14 +56,14 @@ function verifyAssertion(assertedCredential) {
     type: 'POST',
     data: JSON.stringify({
       id: assertedCredential.id,
-      rawId: bufferURLEncodedBase64(rawId),
+      rawId: encodeURLEncodedBase64(rawId),
       type: assertedCredential.type,
       clientExtensionResults: assertedCredential.getClientExtensionResults(),
       response: {
-        authenticatorData: bufferURLEncodedBase64(authData),
-        clientDataJSON: bufferURLEncodedBase64(clientDataJSON),
-        signature: bufferURLEncodedBase64(sig),
-        userHandle: bufferURLEncodedBase64(userHandle),
+        authenticatorData: encodeURLEncodedBase64(authData),
+        clientDataJSON: encodeURLEncodedBase64(clientDataJSON),
+        signature: encodeURLEncodedBase64(sig),
+        userHandle: encodeURLEncodedBase64(userHandle),
       },
     }),
     contentType: 'application/json; charset=utf-8',
@@ -97,8 +86,8 @@ function verifyAssertion(assertedCredential) {
 }
 
 // Encode an ArrayBuffer into a URLEncoded base64 string.
-function bufferURLEncodedBase64(value) {
-  return encodeToBase64(value)
+function encodeURLEncodedBase64(value) {
+  return encode(value)
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=/g, '');
@@ -106,7 +95,7 @@ function bufferURLEncodedBase64(value) {
 
 // Dccode a URLEncoded base64 to an ArrayBuffer string.
 function decodeURLEncodedBase64(value) {
-  return decodeFromBase64(value
+  return decode(value
     .replace(/_/g, '/')
     .replace(/-/g, '+'));
 }
@@ -122,11 +111,11 @@ function webauthnRegistered(newCredential) {
     headers: {'X-Csrf-Token': csrfToken},
     data: JSON.stringify({
       id: newCredential.id,
-      rawId: bufferURLEncodedBase64(rawId),
+      rawId: encodeURLEncodedBase64(rawId),
       type: newCredential.type,
       response: {
-        attestationObject: bufferURLEncodedBase64(attestationObject),
-        clientDataJSON: bufferURLEncodedBase64(clientDataJSON),
+        attestationObject: encodeURLEncodedBase64(attestationObject),
+        clientDataJSON: encodeURLEncodedBase64(clientDataJSON),
       },
     }),
     dataType: 'json',
