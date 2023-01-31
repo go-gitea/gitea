@@ -376,16 +376,16 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 	prConfig := prUnit.PullRequestsConfig()
 
 	// 6. Prepare the arguments to apply the patch against the index
-	args := []git.CmdArg{"apply", "--check", "--cached"}
+	cmdApply := git.NewCommand(gitRepo.Ctx, "apply", "--check", "--cached")
 	if prConfig.IgnoreWhitespaceConflicts {
-		args = append(args, "--ignore-whitespace")
+		cmdApply.AddArguments("--ignore-whitespace")
 	}
 	is3way := false
 	if git.CheckGitVersionAtLeast("2.32.0") == nil {
-		args = append(args, "--3way")
+		cmdApply.AddArguments("--3way")
 		is3way = true
 	}
-	args = append(args, git.CmdArgCheck(patchPath))
+	cmdApply.AddDynamicArguments(patchPath)
 
 	// 7. Prep the pipe:
 	//   - Here we could do the equivalent of:
@@ -407,71 +407,70 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 
 	// 8. Run the check command
 	conflict = false
-	err = git.NewCommand(gitRepo.Ctx, args...).
-		Run(&git.RunOpts{
-			Dir:    tmpBasePath,
-			Stderr: stderrWriter,
-			PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
-				// Close the writer end of the pipe to begin processing
-				_ = stderrWriter.Close()
-				defer func() {
-					// Close the reader on return to terminate the git command if necessary
-					_ = stderrReader.Close()
-				}()
+	err = cmdApply.Run(&git.RunOpts{
+		Dir:    tmpBasePath,
+		Stderr: stderrWriter,
+		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
+			// Close the writer end of the pipe to begin processing
+			_ = stderrWriter.Close()
+			defer func() {
+				// Close the reader on return to terminate the git command if necessary
+				_ = stderrReader.Close()
+			}()
 
-				const prefix = "error: patch failed:"
-				const errorPrefix = "error: "
-				const threewayFailed = "Failed to perform three-way merge..."
-				const appliedPatchPrefix = "Applied patch to '"
-				const withConflicts = "' with conflicts."
+			const prefix = "error: patch failed:"
+			const errorPrefix = "error: "
+			const threewayFailed = "Failed to perform three-way merge..."
+			const appliedPatchPrefix = "Applied patch to '"
+			const withConflicts = "' with conflicts."
 
-				conflicts := make(container.Set[string])
+			conflicts := make(container.Set[string])
 
-				// Now scan the output from the command
-				scanner := bufio.NewScanner(stderrReader)
-				for scanner.Scan() {
-					line := scanner.Text()
-					log.Trace("PullRequest[%d].testPatch: stderr: %s", pr.ID, line)
-					if strings.HasPrefix(line, prefix) {
-						conflict = true
-						filepath := strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0])
-						conflicts.Add(filepath)
-					} else if is3way && line == threewayFailed {
-						conflict = true
-					} else if strings.HasPrefix(line, errorPrefix) {
-						conflict = true
-						for _, suffix := range patchErrorSuffices {
-							if strings.HasSuffix(line, suffix) {
-								filepath := strings.TrimSpace(strings.TrimSuffix(line[len(errorPrefix):], suffix))
-								if filepath != "" {
-									conflicts.Add(filepath)
-								}
-								break
+			// Now scan the output from the command
+			scanner := bufio.NewScanner(stderrReader)
+			for scanner.Scan() {
+				line := scanner.Text()
+				log.Trace("PullRequest[%d].testPatch: stderr: %s", pr.ID, line)
+				if strings.HasPrefix(line, prefix) {
+					conflict = true
+					filepath := strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0])
+					conflicts.Add(filepath)
+				} else if is3way && line == threewayFailed {
+					conflict = true
+				} else if strings.HasPrefix(line, errorPrefix) {
+					conflict = true
+					for _, suffix := range patchErrorSuffices {
+						if strings.HasSuffix(line, suffix) {
+							filepath := strings.TrimSpace(strings.TrimSuffix(line[len(errorPrefix):], suffix))
+							if filepath != "" {
+								conflicts.Add(filepath)
 							}
-						}
-					} else if is3way && strings.HasPrefix(line, appliedPatchPrefix) && strings.HasSuffix(line, withConflicts) {
-						conflict = true
-						filepath := strings.TrimPrefix(strings.TrimSuffix(line, withConflicts), appliedPatchPrefix)
-						if filepath != "" {
-							conflicts.Add(filepath)
+							break
 						}
 					}
-					// only list 10 conflicted files
-					if len(conflicts) >= 10 {
-						break
+				} else if is3way && strings.HasPrefix(line, appliedPatchPrefix) && strings.HasSuffix(line, withConflicts) {
+					conflict = true
+					filepath := strings.TrimPrefix(strings.TrimSuffix(line, withConflicts), appliedPatchPrefix)
+					if filepath != "" {
+						conflicts.Add(filepath)
 					}
 				}
-
-				if len(conflicts) > 0 {
-					pr.ConflictedFiles = make([]string, 0, len(conflicts))
-					for key := range conflicts {
-						pr.ConflictedFiles = append(pr.ConflictedFiles, key)
-					}
+				// only list 10 conflicted files
+				if len(conflicts) >= 10 {
+					break
 				}
+			}
 
-				return nil
-			},
-		})
+			if len(conflicts) > 0 {
+				pr.ConflictedFiles = make([]string, 0, len(conflicts))
+				for key := range conflicts {
+					pr.ConflictedFiles = append(pr.ConflictedFiles, key)
+				}
+			}
+
+			return nil
+		},
+	})
 
 	// 9. Check if the found conflictedfiles is non-zero, "err" could be non-nil, so we should ignore it if we found conflicts.
 	// Note: `"err" could be non-nil` is due that if enable 3-way merge, it doesn't return any error on found conflicts.

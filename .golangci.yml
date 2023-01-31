@@ -84,6 +84,7 @@ linters-settings:
       - github.com/unknwon/com: "use gitea's util and replacements"
       - io/ioutil: "use os or io instead"
       - golang.org/x/exp: "it's experimental and unreliable."
+      - code.gitea.io/gitea/modules/git/internal: "do not use the internal package, use AddXxx function instead"
 
 issues:
   max-issues-per-linter: 0

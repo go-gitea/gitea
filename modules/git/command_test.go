@@ -41,3 +41,14 @@ func TestRunWithContextStd(t *testing.T) {
 	assert.Empty(t, stderr)
 	assert.Contains(t, stdout, "git version")
 }
+
+func TestGitArgument(t *testing.T) {
+	assert.True(t, isValidOption("-x"))
+	assert.True(t, isValidOption("--xx"))
+	assert.False(t, isValidOption(""))
+	assert.False(t, isValidOption("x"))
+
+	assert.True(t, isSafeDynArg(""))
+	assert.True(t, isSafeDynArg("x"))
+	assert.False(t, isSafeDynArg("-x"))
+}
