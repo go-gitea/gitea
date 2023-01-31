@@ -472,25 +472,41 @@ func (ctx *preReceiveContext) loadPusherAndPermission() bool {
 		return true
 	}
 
-	user, err := user_model.GetUserByID(ctx, ctx.opts.UserID)
-	if err != nil {
-		log.Error("Unable to get User id %d Error: %v", ctx.opts.UserID, err)
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: fmt.Sprintf("Unable to get User id %d Error: %v", ctx.opts.UserID, err),
-		})
-		return false
+	if ctx.opts.UserID == user_model.ActionsUserID {
+		ctx.user = user_model.NewActionsUser()
+		ctx.userPerm.AccessMode = perm_model.AccessMode(ctx.opts.ActionPerm)
+		if err := ctx.Repo.Repository.LoadUnits(ctx); err != nil {
+			log.Error("Unable to get User id %d Error: %v", ctx.opts.UserID, err)
+			ctx.JSON(http.StatusInternalServerError, private.Response{
+				Err: fmt.Sprintf("Unable to get User id %d Error: %v", ctx.opts.UserID, err),
+			})
+			return false
+		}
+		ctx.userPerm.Units = ctx.Repo.Repository.Units
+		ctx.userPerm.UnitsMode = make(map[unit.Type]perm_model.AccessMode)
+		for _, u := range ctx.Repo.Repository.Units {
+			ctx.userPerm.UnitsMode[u.Type] = ctx.userPerm.AccessMode
+		}
+	} else {
+		user, err := user_model.GetUserByID(ctx, ctx.opts.UserID)
+		if err != nil {
+			log.Error("Unable to get User id %d Error: %v", ctx.opts.UserID, err)
+			ctx.JSON(http.StatusInternalServerError, private.Response{
+				Err: fmt.Sprintf("Unable to get User id %d Error: %v", ctx.opts.UserID, err),
+			})
+			return false
+		}
+		ctx.user = user
+		userPerm, err := access_model.GetUserRepoPermission(ctx, ctx.Repo.Repository, user)
+		if err != nil {
+			log.Error("Unable to get Repo permission of repo %s/%s of User %s: %v", ctx.Repo.Repository.OwnerName, ctx.Repo.Repository.Name, user.Name, err)
+			ctx.JSON(http.StatusInternalServerError, private.Response{
+				Err: fmt.Sprintf("Unable to get Repo permission of repo %s/%s of User %s: %v", ctx.Repo.Repository.OwnerName, ctx.Repo.Repository.Name, user.Name, err),
+			})
+			return false
+		}
+		ctx.userPerm = userPerm
 	}
-	ctx.user = user
-
-	userPerm, err := access_model.GetUserRepoPermission(ctx, ctx.Repo.Repository, user)
-	if err != nil {
-		log.Error("Unable to get Repo permission of repo %s/%s of User %s: %v", ctx.Repo.Repository.OwnerName, ctx.Repo.Repository.Name, user.Name, err)
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: fmt.Sprintf("Unable to get Repo permission of repo %s/%s of User %s: %v", ctx.Repo.Repository.OwnerName, ctx.Repo.Repository.Name, user.Name, err),
-		})
-		return false
-	}
-	ctx.userPerm = userPerm
 
 	if ctx.opts.DeployKeyID != 0 {
 		deployKey, err := asymkey_model.GetDeployKeyByID(ctx, ctx.opts.DeployKeyID)
