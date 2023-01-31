@@ -352,7 +352,7 @@ func TestFindRenderizableCommitCrossReference(t *testing.T) {
 				Owner:       "go-gitea",
 				Name:        "gitea",
 				CommitSha:   "abcd1234",
-				RefLocation: &RefSpan{Start: 4, End: 29},
+				RefLocation: &RefSpan{Start: 5, End: 28},
 			},
 		},
 	}
