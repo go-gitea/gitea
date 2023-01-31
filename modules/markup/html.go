@@ -358,7 +358,7 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 }
 
 func visitNode(ctx *RenderContext, procs, textProcs []processor, node *html.Node) {
-	// Add user-content- to IDs if they don't already have them
+	// Add user-content- to IDs and "#" links if they don't already have them
 	for idx, attr := range node.Attr {
 		val := strings.TrimPrefix(attr.Val, "#")
 		notHasPrefix := !(strings.HasPrefix(val, "user-content-") || blackfridayExtRegex.MatchString(val))
@@ -366,7 +366,7 @@ func visitNode(ctx *RenderContext, procs, textProcs []processor, node *html.Node
 		if attr.Key == "id" && notHasPrefix {
 			node.Attr[idx].Val = "user-content-" + attr.Val
 		}
-		// Add user-content- to # links too
+
 		if attr.Key == "href" && strings.HasPrefix(attr.Val, "#") && notHasPrefix {
 			node.Attr[idx].Val = "#user-content-" + val
 		}
