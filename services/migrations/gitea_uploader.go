@@ -498,6 +498,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 	// Only do it after the insert to the database, so that the issue ID is known.
 	for _, issue := range issues {
 		issueID := g.issues[issue.Number].ID
+		issueWatchers := make([]interface{}, 0)
 
 		for _, subscriberUsername := range issue.Subscribers {
 			// Ensure a single user name is queried at a time, so that a single missing
@@ -516,12 +517,13 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 					IsWatching: true,
 				}
 
-				if err := db.Insert(g.ctx, &issue_watch); err != nil {
-					return err
-				}
+				issueWatchers = append(issueWatchers, &issue_watch)
 			}
 		}
 
+		if err := db.Insert(g.ctx, issueWatchers...); err != nil {
+			return err
+		}
 	}
 
 	return nil
