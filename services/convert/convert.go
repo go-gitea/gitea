@@ -79,7 +79,7 @@ func ToBranch(repo *repo_model.Repository, b *git.Branch, c *git.Commit, bp *git
 	}
 
 	if isRepoAdmin {
-		branch.EffectiveBranchProtectionName = bp.BranchName
+		branch.EffectiveBranchProtectionName = bp.RuleName
 	}
 
 	if user != nil {
@@ -87,7 +87,8 @@ func ToBranch(repo *repo_model.Repository, b *git.Branch, c *git.Commit, bp *git
 		if err != nil {
 			return nil, err
 		}
-		branch.UserCanPush = bp.CanUserPush(db.DefaultContext, user.ID)
+		bp.Repo = repo
+		branch.UserCanPush = bp.CanUserPush(db.DefaultContext, user)
 		branch.UserCanMerge = git_model.IsUserMergeWhitelisted(db.DefaultContext, bp, user.ID, permission)
 	}
 
@@ -121,8 +122,14 @@ func ToBranchProtection(bp *git_model.ProtectedBranch) *api.BranchProtection {
 		log.Error("GetTeamNamesByID (ApprovalsWhitelistTeamIDs): %v", err)
 	}
 
+	branchName := ""
+	if !git_model.IsRuleNameSpecial(bp.RuleName) {
+		branchName = bp.RuleName
+	}
+
 	return &api.BranchProtection{
-		BranchName:                    bp.BranchName,
+		BranchName:                    branchName,
+		RuleName:                      bp.RuleName,
 		EnablePush:                    bp.CanPush,
 		EnablePushWhitelist:           bp.EnableWhitelist,
 		PushWhitelistUsernames:        pushWhitelistUsernames,

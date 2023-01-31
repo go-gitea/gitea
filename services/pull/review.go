@@ -23,6 +23,53 @@ import (
 	issue_service "code.gitea.io/gitea/services/issue"
 )
 
+var notEnoughLines = regexp.MustCompile(`fatal: file .* has only \d+ lines?`)
+
+// checkInvalidation checks if the line of code comment got changed by another commit.
+// If the line got changed the comment is going to be invalidated.
+func checkInvalidation(ctx context.Context, c *issues_model.Comment, doer *user_model.User, repo *git.Repository, branch string) error {
+	// FIXME differentiate between previous and proposed line
+	commit, err := repo.LineBlame(branch, repo.Path, c.TreePath, uint(c.UnsignedLine()))
+	if err != nil && (strings.Contains(err.Error(), "fatal: no such path") || notEnoughLines.MatchString(err.Error())) {
+		c.Invalidated = true
+		return issues_model.UpdateCommentInvalidate(ctx, c)
+	}
+	if err != nil {
+		return err
+	}
+	if c.CommitSHA != "" && c.CommitSHA != commit.ID.String() {
+		c.Invalidated = true
+		return issues_model.UpdateCommentInvalidate(ctx, c)
+	}
+	return nil
+}
+
+// InvalidateCodeComments will lookup the prs for code comments which got invalidated by change
+func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestList, doer *user_model.User, repo *git.Repository, branch string) error {
+	if len(prs) == 0 {
+		return nil
+	}
+	issueIDs := prs.GetIssueIDs()
+	var codeComments []*issues_model.Comment
+
+	if err := db.Find(ctx, &issues_model.FindCommentsOptions{
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+		Type:        issues_model.CommentTypeCode,
+		Invalidated: util.OptionalBoolFalse,
+		IssueIDs:    issueIDs,
+	}, &codeComments); err != nil {
+		return fmt.Errorf("find code comments: %v", err)
+	}
+	for _, comment := range codeComments {
+		if err := checkInvalidation(ctx, comment, doer, repo, branch); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // CreateCodeComment creates a comment on the code line
 func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue, line int64, content, treePath string, isReview bool, replyReviewID int64, latestCommitID string) (*issues_model.Comment, error) {
 	var (
@@ -113,8 +160,6 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 
 	return comment, nil
 }
-
-var notEnoughLines = regexp.MustCompile(`exit status 128 - fatal: file .* has only \d+ lines?`)
 
 // createCodeComment creates a plain code comment at the specified line / path
 func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content, treePath string, line, reviewID int64) (*issues_model.Comment, error) {

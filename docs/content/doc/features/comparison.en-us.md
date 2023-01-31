@@ -56,7 +56,7 @@ _Symbols used in table:_
 | Deploy Tokens                                    | ✓                                                   | ✓    | ✓         | ✓         | ✓         | ✓         | ✓            |
 | Repository Tokens with write rights              | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
 | RSS Feeds                                        | ✓                                                   | ✘    | ✓         | ✘         | ✘         | ✘         | ✘            |
-| Built-in CI/CD                                   | [✘](https://github.com/go-gitea/gitea/issues/13539) | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
+| Built-in CI/CD                                   | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
 | Subgroups: groups within groups                  | [✘](https://github.com/go-gitea/gitea/issues/1872)  | ✘    | ✘         | ✓         | ✓         | ✘         | ✓            |
 | Interaction with other instances                 | [/](https://github.com/go-gitea/gitea/issues/18240) | ✘    | ✘         | ✘         | ✘         | ✘         | ✘            |
 | Mermaid diagrams in Markdown                     | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
@@ -74,7 +74,7 @@ _Symbols used in table:_
 | Granular user roles (Code, Issues, Wiki, …) | ✓                                                   | ✘    | ✘         | ✓         | ✓         | ✘         | ✘            |
 | Verified Committer                          | ⁄                                                   | ✘    | ?         | ✓         | ✓         | ✓         | ✘            |
 | GPG Signed Commits                          | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
-| SSH Signed Commits                          | ✓                                                   | ✘    | ✓         | ✘         | ✘         | ?         | ?            |
+| SSH Signed Commits                          | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ?         | ?            |
 | Reject unsigned commits                     | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
 | Migrating repos from other services         | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
 | Repository Activity page                    | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
@@ -106,7 +106,7 @@ _Symbols used in table:_
 | Issue search                  | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            |
 | Global issue search           | [/](https://github.com/go-gitea/gitea/issues/2434)  | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            |
 | Issue dependency              | ✓                                                   | ✘    | ✘         | ✘         | ✘         | ✘         | ✘            |
-| Create issue via email        | [✘](https://github.com/go-gitea/gitea/issues/6226)  | ✘    | ✘         | ✘         | ✓         | ✓         | ✘            |
+| Create issue via email        | [✘](https://github.com/go-gitea/gitea/issues/6226)  | ✘    | ✘         | ✓         | ✓         | ✓         | ✘            |
 | Service Desk                  | [✘](https://github.com/go-gitea/gitea/issues/6219)  | ✘    | ✘         | ✓         | ✓         | ✘         | ✘            |
 
 ## Pull/Merge requests

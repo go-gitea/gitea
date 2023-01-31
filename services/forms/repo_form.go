@@ -148,6 +148,7 @@ type RepoSettingForm struct {
 	EnableProjects                        bool
 	EnablePackages                        bool
 	EnablePulls                           bool
+	EnableActions                         bool
 	PullsIgnoreWhitespace                 bool
 	PullsAllowMerge                       bool
 	PullsAllowRebase                      bool
@@ -186,7 +187,7 @@ func (f *RepoSettingForm) Validate(req *http.Request, errs binding.Errors) bindi
 
 // ProtectBranchForm form for changing protected branch settings
 type ProtectBranchForm struct {
-	Protected                     bool
+	RuleName                      string `binding:"Required"`
 	EnablePush                    string
 	WhitelistUsers                string
 	WhitelistTeams                string

@@ -83,10 +83,11 @@ func IsCommitStatusContextSuccess(commitStatuses []*git_model.CommitStatus, requ
 
 // IsPullCommitStatusPass returns if all required status checks PASS
 func IsPullCommitStatusPass(ctx context.Context, pr *issues_model.PullRequest) (bool, error) {
-	if err := pr.LoadProtectedBranch(ctx); err != nil {
+	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+	if err != nil {
 		return false, errors.Wrap(err, "GetLatestCommitStatus")
 	}
-	if pr.ProtectedBranch == nil || !pr.ProtectedBranch.EnableStatusCheck {
+	if pb == nil || !pb.EnableStatusCheck {
 		return true, nil
 	}
 
@@ -137,12 +138,13 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullR
 		return "", errors.Wrap(err, "GetLatestCommitStatus")
 	}
 
-	if err := pr.LoadProtectedBranch(ctx); err != nil {
+	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+	if err != nil {
 		return "", errors.Wrap(err, "LoadProtectedBranch")
 	}
 	var requiredContexts []string
-	if pr.ProtectedBranch != nil {
-		requiredContexts = pr.ProtectedBranch.StatusCheckContexts
+	if pb != nil {
+		requiredContexts = pb.StatusCheckContexts
 	}
 
 	return MergeRequiredContextsCommitStatus(commitStatuses, requiredContexts), nil
