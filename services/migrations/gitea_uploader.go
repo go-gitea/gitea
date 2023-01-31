@@ -494,6 +494,36 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 		}
 	}
 
+	// Subscriber.
+	// Only do it after the insert to the database, so that the issue ID is known.
+	for _, issue := range issues {
+		issueID := g.issues[issue.Number].ID
+
+		for _, subscriberUsername := range issue.Subscribers {
+			// Ensure a single user name is queried at a time, so that a single missing
+			// user name does not fail the entire query.
+			singleSubscriberUsernameList := []string{subscriberUsername}
+			subscriberIDs, err := issues_model.MakeIDsFromAPIAssigneesToAdd(g.ctx, "", singleSubscriberUsernameList)
+			if err != nil {
+				log.Error("Unable to get ID of user name %s", subscriberUsername)
+				continue
+			}
+
+			for _, subscriberID := range subscriberIDs {
+				issue_watch := issues_model.IssueWatch{
+					UserID:     subscriberID,
+					IssueID:    issueID,
+					IsWatching: true,
+				}
+
+				if err := db.Insert(g.ctx, &issue_watch); err != nil {
+					return err
+				}
+			}
+		}
+
+	}
+
 	return nil
 }
 
