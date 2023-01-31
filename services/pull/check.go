@@ -108,7 +108,7 @@ func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *acce
 			}
 
 			if isRepoAdmin, err2 := access_model.IsUserRepoAdmin(ctx, pr.BaseRepo, doer); err2 != nil {
-				log.Error("Unable to check if %-v is a repo admin in %-v: %v", doer, pr.BaseRepo, err)
+				log.Error("Unable to check if %-v is a repo admin in %-v: %v", doer, pr.BaseRepo, err2)
 				return err2
 			} else if !isRepoAdmin {
 				return err
