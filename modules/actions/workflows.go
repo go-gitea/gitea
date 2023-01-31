@@ -44,7 +44,7 @@ func ListWorkflows(commit *git.Commit) (git.Entries, error) {
 	return ret, nil
 }
 
-func DetectWorkflows(commit *git.Commit, event webhook_module.HookEventType, payload api.Payloader) (map[string][]byte, error) {
+func DetectWorkflows(commit *git.Commit, triggedEvent webhook_module.HookEventType, payload api.Payloader) (map[string][]byte, error) {
 	entries, err := ListWorkflows(commit)
 	if err != nil {
 		return nil, err
@@ -72,11 +72,11 @@ func DetectWorkflows(commit *git.Commit, event webhook_module.HookEventType, pay
 			continue
 		}
 		for _, evt := range events {
-			if evt.Name != event.Event() {
+			if evt.Name != triggedEvent.Event() {
 				continue
 			}
 
-			if detectMatched(commit, evt, event, payload) {
+			if detectMatched(commit, triggedEvent, payload, evt) {
 				workflows[entry.Name()] = content
 			}
 		}
@@ -85,24 +85,24 @@ func DetectWorkflows(commit *git.Commit, event webhook_module.HookEventType, pay
 	return workflows, nil
 }
 
-func detectMatched(commit *git.Commit, triggedEvt *jobparser.Event, event webhook_module.HookEventType, payload api.Payloader) bool {
-	if len(triggedEvt.Acts) == 0 {
+func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType, payload api.Payloader, evt *jobparser.Event) bool {
+	if len(evt.Acts) == 0 {
 		return true
 	}
 
-	switch event {
+	switch triggedEvent {
 	case webhook_module.HookEventCreate:
 		fallthrough
 	case webhook_module.HookEventDelete:
 		fallthrough
 	case webhook_module.HookEventFork:
-		log.Error("unsupported event %q", event.Event())
+		log.Error("unsupported event %q", triggedEvent.Event())
 		return false
 	case webhook_module.HookEventPush:
 		pushPayload := payload.(*api.PushPayload)
 		matchTimes := 0
 		// all acts conditions should be satisfied
-		for cond, vals := range triggedEvt.Acts {
+		for cond, vals := range evt.Acts {
 			switch cond {
 			case "branches", "tags":
 				for _, val := range vals {
@@ -134,7 +134,7 @@ func detectMatched(commit *git.Commit, triggedEvt *jobparser.Event, event webhoo
 				log.Warn("unsupported condition %q", cond)
 			}
 		}
-		return matchTimes == len(triggedEvt.Acts)
+		return matchTimes == len(evt.Acts)
 
 	case webhook_module.HookEventIssues:
 		fallthrough
@@ -150,7 +150,7 @@ func detectMatched(commit *git.Commit, triggedEvt *jobparser.Event, event webhoo
 		prPayload := payload.(*api.PullRequestPayload)
 		matchTimes := 0
 		// all acts conditions should be satisfied
-		for cond, vals := range triggedEvt.Acts {
+		for cond, vals := range evt.Acts {
 			switch cond {
 			case "types":
 				for _, val := range vals {
@@ -189,7 +189,7 @@ func detectMatched(commit *git.Commit, triggedEvt *jobparser.Event, event webhoo
 				log.Warn("unsupported condition %q", cond)
 			}
 		}
-		return matchTimes == len(triggedEvt.Acts)
+		return matchTimes == len(evt.Acts)
 	case webhook_module.HookEventPullRequestAssign:
 		fallthrough
 	case webhook_module.HookEventPullRequestLabel:
@@ -215,7 +215,7 @@ func detectMatched(commit *git.Commit, triggedEvt *jobparser.Event, event webhoo
 	case webhook_module.HookEventPackage:
 		fallthrough
 	default:
-		log.Error("unsupported event %q", event.Event())
+		log.Error("unsupported event %q", triggedEvent.Event())
 	}
 	return false
 }
