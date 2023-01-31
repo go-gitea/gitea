@@ -453,6 +453,8 @@ var migrations = []Migration{
 	NewMigration("Add updated unix to LFSMetaObject", v1_19.AddUpdatedUnixToLFSMetaObject),
 	// v239 -> v240
 	NewMigration("Add scope for access_token", v1_19.AddScopeForAccessTokens),
+	// v240 -> v241
+	NewMigration("Add actions tables", v1_19.AddActionsTables),
 }
 
 // GetCurrentDBVersion returns the current db version
