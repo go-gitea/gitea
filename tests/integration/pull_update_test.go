@@ -48,6 +48,9 @@ func TestAPIPullUpdate(t *testing.T) {
 		assert.NoError(t, err)
 		assert.EqualValues(t, 0, diffCount.Behind)
 		assert.EqualValues(t, 2, diffCount.Ahead)
+
+		// wait for async operations triggered by AddTestPullRequestTask
+		time.Sleep(time.Second)
 	})
 }
 
@@ -76,6 +79,9 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 		assert.NoError(t, err)
 		assert.EqualValues(t, 0, diffCount.Behind)
 		assert.EqualValues(t, 1, diffCount.Ahead)
+
+		// wait for async operations triggered by AddTestPullRequestTask
+		time.Sleep(time.Second)
 	})
 }
 
