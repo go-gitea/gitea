@@ -54,6 +54,7 @@ func TestAPIPullUpdate(t *testing.T) {
 func TestAPIPullUpdateByRebase(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		// debug code, I'll delete it before PR get merged.
+		t.Logf("db.DefaultContext.Err: %#v", db.DefaultContext.Err())
 		time.Sleep(5 * time.Second)
 
 		// Create PR to test
