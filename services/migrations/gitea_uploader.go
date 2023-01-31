@@ -462,8 +462,10 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 
 		// add assignees
 		for _, assigneeUsername := range issue.Assignees {
-			assigneeIDs, err := issues_model.MakeIDsFromAPIAssigneesToAdd(g.ctx, "", issue.Assignees)
-
+			// Ensure a single user name is queried at a time, so that a single missing
+			// user name does not fail the entire query.
+			singleAssigneeUsernameList := []string{assigneeUsername}
+			assigneeIDs, err := issues_model.MakeIDsFromAPIAssigneesToAdd(g.ctx, "", singleAssigneeUsernameList)
 			if err != nil {
 				log.Error("Unable to get ID of user name %s", assigneeUsername)
 				continue
