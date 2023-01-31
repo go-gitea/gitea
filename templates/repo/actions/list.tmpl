@@ -1,0 +1,27 @@
+{{template "base/head" .}}
+<div class="page-content repository">
+	{{template "repo/header" .}}
+
+	<div class="ui container">
+		<div class="ui grid">
+			<div class="four wide column">
+				<div class="ui fluid vertical menu">
+					<a class="item{{if not $.CurWorkflow}} active{{end}}" href="{{$.Link}}">{{.locale.Tr "actions.runs.all_workflows"}}</a>
+					<div class="divider"></div>
+					{{range .workflows}}
+						<a class="item{{if eq .Name $.CurWorkflow}} active{{end}}" href="{{$.Link}}?workflow={{.Name}}">{{.Name}}</a>
+					{{end}}
+				</div>
+			</div>
+			<div class="twelve wide column content">
+				<div id="issue-filters" class="ui stackable grid">
+					<div class="six wide column">
+						{{template "repo/actions/openclose" .}}
+					</div>
+				</div>
+				{{template "repo/actions/runs_list" .}}
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}
