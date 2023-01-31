@@ -1074,6 +1074,8 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 
 	newPackages()
 
+	newActions()
+
 	if err = Cfg.Section("ui").MapTo(&UI); err != nil {
 		log.Fatal("Failed to map UI settings: %v", err)
 	} else if err = Cfg.Section("markdown").MapTo(&Markdown); err != nil {
