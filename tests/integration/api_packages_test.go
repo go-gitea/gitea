@@ -5,8 +5,10 @@ package integration
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -171,34 +173,62 @@ func TestPackageAccess(t *testing.T) {
 func TestPackageQuota(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	limitTotalOwnerCount, limitTotalOwnerSize, limitSizeGeneric := setting.Packages.LimitTotalOwnerCount, setting.Packages.LimitTotalOwnerSize, setting.Packages.LimitSizeGeneric
+	limitTotalOwnerCount, limitTotalOwnerSize := setting.Packages.LimitTotalOwnerCount, setting.Packages.LimitTotalOwnerSize
 
+	// Exceeded quota result in StatusForbidden for normal users but admins are always allowed to upload.
 	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 10})
 
-	uploadPackage := func(doer *user_model.User, version string, expectedStatus int) {
-		url := fmt.Sprintf("/api/packages/%s/generic/test-package/%s/file.bin", user.Name, version)
-		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1}))
-		AddBasicAuthHeader(req, doer.Name)
-		MakeRequest(t, req, expectedStatus)
-	}
+	t.Run("Common", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
 
-	// Exceeded quota result in StatusForbidden for normal users but admins are always allowed to upload.
+		limitSizeGeneric := setting.Packages.LimitSizeGeneric
 
-	setting.Packages.LimitTotalOwnerCount = 0
-	uploadPackage(user, "1.0", http.StatusForbidden)
-	uploadPackage(admin, "1.0", http.StatusCreated)
-	setting.Packages.LimitTotalOwnerCount = limitTotalOwnerCount
+		uploadPackage := func(doer *user_model.User, version string, expectedStatus int) {
+			url := fmt.Sprintf("/api/packages/%s/generic/test-package/%s/file.bin", user.Name, version)
+			req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1}))
+			AddBasicAuthHeader(req, doer.Name)
+			MakeRequest(t, req, expectedStatus)
+		}
 
-	setting.Packages.LimitTotalOwnerSize = 0
-	uploadPackage(user, "1.1", http.StatusForbidden)
-	uploadPackage(admin, "1.1", http.StatusCreated)
-	setting.Packages.LimitTotalOwnerSize = limitTotalOwnerSize
+		setting.Packages.LimitTotalOwnerCount = 0
+		uploadPackage(user, "1.0", http.StatusForbidden)
+		uploadPackage(admin, "1.0", http.StatusCreated)
+		setting.Packages.LimitTotalOwnerCount = limitTotalOwnerCount
 
-	setting.Packages.LimitSizeGeneric = 0
-	uploadPackage(user, "1.2", http.StatusForbidden)
-	uploadPackage(admin, "1.2", http.StatusCreated)
-	setting.Packages.LimitSizeGeneric = limitSizeGeneric
+		setting.Packages.LimitTotalOwnerSize = 0
+		uploadPackage(user, "1.1", http.StatusForbidden)
+		uploadPackage(admin, "1.1", http.StatusCreated)
+		setting.Packages.LimitTotalOwnerSize = limitTotalOwnerSize
+
+		setting.Packages.LimitSizeGeneric = 0
+		uploadPackage(user, "1.2", http.StatusForbidden)
+		uploadPackage(admin, "1.2", http.StatusCreated)
+		setting.Packages.LimitSizeGeneric = limitSizeGeneric
+	})
+
+	t.Run("Container", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		limitSizeContainer := setting.Packages.LimitSizeContainer
+
+		uploadBlob := func(doer *user_model.User, data string, expectedStatus int) {
+			url := fmt.Sprintf("/v2/%s/quota-test/blobs/uploads?digest=sha256:%x", user.Name, sha256.Sum256([]byte(data)))
+			req := NewRequestWithBody(t, "POST", url, strings.NewReader(data))
+			AddBasicAuthHeader(req, doer.Name)
+			MakeRequest(t, req, expectedStatus)
+		}
+
+		setting.Packages.LimitTotalOwnerSize = 0
+		uploadBlob(user, "2", http.StatusForbidden)
+		uploadBlob(admin, "2", http.StatusCreated)
+		setting.Packages.LimitTotalOwnerSize = limitTotalOwnerSize
+
+		setting.Packages.LimitSizeContainer = 0
+		uploadBlob(user, "3", http.StatusForbidden)
+		uploadBlob(admin, "3", http.StatusCreated)
+		setting.Packages.LimitSizeContainer = limitSizeContainer
+	})
 }
 
 func TestPackageCleanup(t *testing.T) {
