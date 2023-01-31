@@ -183,6 +183,15 @@
 					</a>
 				{{end}}
 
+				{{if and .EnableActions (not .UnitActionsGlobalDisabled) (.Permission.CanRead $.UnitTypeActions)}}
+					<a class="{{if .PageIsActions}}active {{end}}item" href="{{.RepoLink}}/actions">
+						{{svg "octicon-play"}} {{.locale.Tr "actions.actions"}}
+						{{if .Repository.NumOpenActionRuns}}
+							<span class="ui primary small label">{{CountFmt .Repository.NumOpenActionRuns}}</span>
+						{{end}}
+					</a>
+				{{end}}
+
 				{{if .Permission.CanRead $.UnitTypePackages}}
 					<a href="{{.RepoLink}}/packages" class="{{if .IsPackagesPage}}active {{end}}item">
 						{{svg "octicon-package"}} {{.locale.Tr "packages.title"}}
