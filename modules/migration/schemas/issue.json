@@ -93,8 +93,16 @@
 		    "description": "Name of a user assigned to the issue.",
 		    "type": "string"
 		}
-	    }
-	},
+	    },
+	    "subscribers": {
+				"description": "List of subscribers.",
+				"type": "array",
+				"items": {
+						"description": "Name of a user subscribed to the issue.",
+						"type": "string"
+				}
+					}
+			},
 	"required": [
 	    "number",
 	    "poster_id",
