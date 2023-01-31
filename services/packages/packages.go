@@ -173,7 +173,7 @@ func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, all
 	}
 
 	if versionCreated {
-		if err := checkCountQuotaExceeded(ctx, pvci.Creator, pvci.Owner); err != nil {
+		if err := CheckCountQuotaExceeded(ctx, pvci.Creator, pvci.Owner); err != nil {
 			return nil, false, err
 		}
 
@@ -240,7 +240,7 @@ func NewPackageBlob(hsr packages_module.HashedSizeReader) *packages_model.Packag
 func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVersion, pvi *PackageInfo, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
 	log.Trace("Adding package file: %v, %s", pv.ID, pfci.Filename)
 
-	if err := checkSizeQuotaExceeded(ctx, pfci.Creator, pvi.Owner, pvi.PackageType, pfci.Data.Size()); err != nil {
+	if err := CheckSizeQuotaExceeded(ctx, pfci.Creator, pvi.Owner, pvi.PackageType, pfci.Data.Size()); err != nil {
 		return nil, nil, false, err
 	}
 
@@ -302,7 +302,9 @@ func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVers
 	return pf, pb, !exists, nil
 }
 
-func checkCountQuotaExceeded(ctx context.Context, doer, owner *user_model.User) error {
+// CheckCountQuotaExceeded checks if the owner has more than the allowed packages
+// The check is skipped if the doer is an admin.
+func CheckCountQuotaExceeded(ctx context.Context, doer, owner *user_model.User) error {
 	if doer.IsAdmin {
 		return nil
 	}
@@ -324,7 +326,9 @@ func checkCountQuotaExceeded(ctx context.Context, doer, owner *user_model.User) 
 	return nil
 }
 
-func checkSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, packageType packages_model.Type, uploadSize int64) error {
+// CheckSizeQuotaExceeded checks if the upload size is bigger than the allowed size
+// The check is skipped if the doer is an admin.
+func CheckSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, packageType packages_model.Type, uploadSize int64) error {
 	if doer.IsAdmin {
 		return nil
 	}
