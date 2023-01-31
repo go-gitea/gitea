@@ -90,7 +90,7 @@ func (input *notifyInput) WithPayload(payload api.Payloader) *notifyInput {
 func (input *notifyInput) WithPullRequest(pr *issues_model.PullRequest) *notifyInput {
 	input.PullRequest = pr
 	if input.Ref == "" {
-		input.Ref = fmt.Sprintf("pull/%d/head", pr.Index)
+		input.Ref = pr.GetGitRefName()
 	}
 	return input
 }
