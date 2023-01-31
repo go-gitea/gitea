@@ -69,6 +69,7 @@ import (
 	"net/http"
 	"strings"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
@@ -184,10 +185,39 @@ func repoAssignment() func(ctx *context.APIContext) {
 		repo.Owner = owner
 		ctx.Repo.Repository = repo
 
-		ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
-			return
+		if ctx.Doer != nil && ctx.Doer.ID == user_model.ActionsUserID {
+			taskID := ctx.Data["ActionsTaskID"].(int64)
+			task, err := actions_model.GetTaskByID(ctx, taskID)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "actions_model.GetTaskByID", err)
+				return
+			}
+			if task.RepoID != repo.ID {
+				ctx.NotFound()
+				return
+			}
+
+			if task.IsForkPullRequest {
+				ctx.Repo.Permission.AccessMode = perm.AccessModeRead
+			} else {
+				ctx.Repo.Permission.AccessMode = perm.AccessModeWrite
+			}
+
+			if err := ctx.Repo.Repository.LoadUnits(ctx); err != nil {
+				ctx.Error(http.StatusInternalServerError, "LoadUnits", err)
+				return
+			}
+			ctx.Repo.Permission.Units = ctx.Repo.Repository.Units
+			ctx.Repo.Permission.UnitsMode = make(map[unit.Type]perm.AccessMode)
+			for _, u := range ctx.Repo.Repository.Units {
+				ctx.Repo.Permission.UnitsMode[u.Type] = ctx.Repo.Permission.AccessMode
+			}
+		} else {
+			ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
+				return
+			}
 		}
 
 		if !ctx.Repo.HasAccess() {
@@ -209,6 +239,11 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.APIContext) 
 // Contexter middleware already checks token for user sign in process.
 func reqToken(requiredScope auth_model.AccessTokenScope) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
+		// If actions token is present
+		if true == ctx.Data["IsActionsToken"] {
+			return
+		}
+
 		// If OAuth2 token is present
 		if _, ok := ctx.Data["ApiTokenScope"]; ctx.Data["IsApiToken"] == true && ok {
 			// no scope required

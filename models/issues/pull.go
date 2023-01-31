@@ -394,6 +394,11 @@ func (pr *PullRequest) IsAncestor() bool {
 	return pr.Status == PullRequestStatusAncestor
 }
 
+// IsFromFork return true if this PR is from a fork.
+func (pr *PullRequest) IsFromFork() bool {
+	return pr.HeadRepoID != pr.BaseRepoID
+}
+
 // SetMerged sets a pull request to merged and closes the corresponding issue
 func (pr *PullRequest) SetMerged(ctx context.Context) (bool, error) {
 	if pr.HasMerged {
