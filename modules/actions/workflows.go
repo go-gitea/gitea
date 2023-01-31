@@ -112,20 +112,22 @@ func detectMatched(commit *git.Commit, triggedEvt *jobparser.Event, event webhoo
 					}
 				}
 			case "paths":
-				filesChanged := append(append(pushPayload.HeadCommit.Added,
-					pushPayload.HeadCommit.Modified...),
-					pushPayload.HeadCommit.Removed...)
-				for _, val := range vals {
-					matched := false
-					for _, file := range filesChanged {
-						if glob.MustCompile(val, '/').Match(file) {
-							matched = true
+				filesChanged, err := commit.GetFilesChangedSinceCommit(pushPayload.Before)
+				if err != nil {
+					log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
+				} else {
+					for _, val := range vals {
+						matched := false
+						for _, file := range filesChanged {
+							if glob.MustCompile(val, '/').Match(file) {
+								matched = true
+								break
+							}
+						}
+						if matched {
+							matchTimes++
 							break
 						}
-					}
-					if matched {
-						matchTimes++
-						break
 					}
 				}
 			default:
@@ -165,7 +167,24 @@ func detectMatched(commit *git.Commit, triggedEvt *jobparser.Event, event webhoo
 					}
 				}
 			case "paths":
-				fallthrough
+				filesChanged, err := commit.GetFilesChangedSinceCommit(prPayload.PullRequest.Base.Ref)
+				if err != nil {
+					log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
+				} else {
+					for _, val := range vals {
+						matched := false
+						for _, file := range filesChanged {
+							if glob.MustCompile(val, '/').Match(file) {
+								matched = true
+								break
+							}
+						}
+						if matched {
+							matchTimes++
+							break
+						}
+					}
+				}
 			default:
 				log.Warn("unsupported condition %q", cond)
 			}
