@@ -149,6 +149,7 @@ type RepoSettingForm struct {
 	EnableReleases                        bool
 	EnablePackages                        bool
 	EnablePulls                           bool
+	EnableActions                         bool
 	PullsIgnoreWhitespace                 bool
 	PullsAllowMerge                       bool
 	PullsAllowRebase                      bool
