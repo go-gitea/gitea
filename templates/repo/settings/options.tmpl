@@ -433,6 +433,21 @@
 					</div>
 				</div>
 
+				{{if .EnableActions}}
+					{{$isActionsEnabled := .Repository.UnitEnabled $.Context $.UnitTypeActions}}
+					<div class="inline field">
+						<label>{{.locale.Tr "actions.actions"}}</label>
+						{{if .UnitTypeActions.UnitGlobalDisabled}}
+							<div class="ui checkbox tooltip disabled" data-content="{{.locale.Tr "repo.unit_disabled"}}">
+						{{else}}
+							<div class="ui checkbox">
+						{{end}}
+							<input class="enable-system" name="enable_actions" type="checkbox" {{if $isActionsEnabled}}checked{{end}}>
+							<label>{{.locale.Tr "repo.settings.actions_desc"}}</label>
+						</div>
+					</div>
+				{{end}}
+
 				{{if not .IsMirror}}
 					<div class="ui divider"></div>
 					{{$pullRequestEnabled := .Repository.UnitEnabled $.Context $.UnitTypePullRequests}}
