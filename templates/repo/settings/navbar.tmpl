@@ -32,5 +32,10 @@
 				{{.locale.Tr "repo.settings.lfs"}}
 			</a>
 		{{end}}
+		{{if and .EnableActions (not .UnitActionsGlobalDisabled) (.Permission.CanRead $.UnitTypeActions)}}
+			<a class="{{if .PageIsSettingsRunners}}active {{end}}item" href="{{.RepoLink}}/settings/runners">
+				{{.locale.Tr "actions.runners"}}
+			</a>
+		{{end}}
 	</div>
 </div>

@@ -397,13 +397,14 @@ func (org *Organization) GetOrgUserMaxAuthorizeLevel(uid int64) (perm.AccessMode
 }
 
 // GetUsersWhoCanCreateOrgRepo returns users which are able to create repo in organization
-func GetUsersWhoCanCreateOrgRepo(ctx context.Context, orgID int64) ([]*user_model.User, error) {
-	users := make([]*user_model.User, 0, 10)
+func GetUsersWhoCanCreateOrgRepo(ctx context.Context, orgID int64) (map[int64]*user_model.User, error) {
+	// Use a map, in order to de-duplicate users.
+	users := make(map[int64]*user_model.User)
 	return users, db.GetEngine(ctx).
 		Join("INNER", "`team_user`", "`team_user`.uid=`user`.id").
 		Join("INNER", "`team`", "`team`.id=`team_user`.team_id").
 		Where(builder.Eq{"team.can_create_org_repo": true}.Or(builder.Eq{"team.authorize": perm.AccessModeOwner})).
-		And("team_user.org_id = ?", orgID).Asc("`user`.name").Find(&users)
+		And("team_user.org_id = ?", orgID).Find(&users)
 }
 
 // SearchOrganizationsOptions options to filter organizations
