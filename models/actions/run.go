@@ -67,15 +67,10 @@ func (run *ActionRun) Link() string {
 
 func (run *ActionRun) RefLink() string {
 	refName := git.RefName(run.Ref)
-	switch refName.RefGroup() {
-	case "heads":
-		return run.Repo.Link() + "/src/branch/" + refName.ShortName()
-	case "tags":
-		return run.Repo.Link() + "/src/tag/" + refName.ShortName()
-	case "pull":
+	if refName.RefGroup() == "pull" {
 		return run.Repo.Link() + "/pulls/" + refName.ShortName()
 	}
-	return ""
+	return git.RefURL(run.Repo.Link(), run.Ref)
 }
 
 func (run *ActionRun) PrettyRef() string {
