@@ -282,6 +282,7 @@ func loadCommonConfigsFrom(cfg ConfigProvider) {
 	loadRepositoryFrom(cfg)
 	loadPictureFrom(cfg)
 	loadPackagesFrom(cfg)
+	loadActionsFrom(cfg)
 	loadUIFrom(cfg)
 	loadAdminFrom(cfg)
 	loadAPIFrom(cfg)

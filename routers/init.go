@@ -30,11 +30,13 @@ import (
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	actions_router "code.gitea.io/gitea/routers/api/actions"
 	packages_router "code.gitea.io/gitea/routers/api/packages"
 	apiv1 "code.gitea.io/gitea/routers/api/v1"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/routers/private"
 	web_routers "code.gitea.io/gitea/routers/web"
+	actions_service "code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/automerge"
@@ -172,6 +174,8 @@ func GlobalInitInstalled(ctx context.Context) {
 	auth.Init()
 	svg.Init()
 
+	actions_service.Init()
+
 	// Finally start up the cron
 	cron.NewContext(ctx)
 }
@@ -197,5 +201,11 @@ func NormalRoutes(ctx context.Context) *web.Route {
 		// This implements the OCI API (Note this is not preceded by /api but is instead /v2)
 		r.Mount("/v2", packages_router.ContainerRoutes(ctx))
 	}
+
+	if setting.Actions.Enabled {
+		prefix := "/api/actions"
+		r.Mount(prefix, actions_router.Routes(ctx, prefix))
+	}
+
 	return r
 }
