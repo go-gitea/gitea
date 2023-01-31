@@ -34,6 +34,7 @@ import (
 	"code.gitea.io/gitea/routers/web/misc"
 	"code.gitea.io/gitea/routers/web/org"
 	"code.gitea.io/gitea/routers/web/repo"
+	"code.gitea.io/gitea/routers/web/repo/actions"
 	"code.gitea.io/gitea/routers/web/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/routers/web/user/setting/security"
@@ -620,6 +621,13 @@ func RegisterRoutes(m *web.Route) {
 				return
 			}
 		})
+
+		m.Group("/runners", func() {
+			m.Get("", admin.Runners)
+			m.Get("/reset_registration_token", admin.ResetRunnerRegistrationToken)
+			m.Combo("/{runnerid}").Get(admin.EditRunner).Post(web.Bind(forms.EditRunnerForm{}), admin.EditRunnerPost)
+			m.Post("/{runnerid}/delete", admin.DeleteRunnerPost)
+		}, actions.MustEnableActions)
 	}, func(ctx *context.Context) {
 		ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
 		ctx.Data["EnablePackages"] = setting.Packages.Enabled
@@ -661,6 +669,8 @@ func RegisterRoutes(m *web.Route) {
 	reqRepoIssuesOrPullsReader := context.RequireRepoReaderOr(unit.TypeIssues, unit.TypePullRequests)
 	reqRepoProjectsReader := context.RequireRepoReader(unit.TypeProjects)
 	reqRepoProjectsWriter := context.RequireRepoWriter(unit.TypeProjects)
+	reqRepoActionsReader := context.RequireRepoReader(unit.TypeActions)
+	reqRepoActionsWriter := context.RequireRepoWriter(unit.TypeActions)
 
 	reqPackageAccess := func(accessMode perm.AccessMode) func(ctx *context.Context) {
 		return func(ctx *context.Context) {
@@ -773,6 +783,14 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/delete", org.DeleteLabel)
 					m.Post("/initialize", web.Bind(forms.InitializeLabelsForm{}), org.InitializeLabels)
 				})
+
+				m.Group("/runners", func() {
+					m.Get("", org.Runners)
+					m.Combo("/{runnerid}").Get(org.RunnersEdit).
+						Post(web.Bind(forms.EditRunnerForm{}), org.RunnersEditPost)
+					m.Post("/{runnerid}/delete", org.RunnerDeletePost)
+					m.Get("/reset_registration_token", org.ResetRunnerRegistrationToken)
+				}, actions.MustEnableActions)
 
 				m.Group("/secrets", func() {
 					m.Get("", org.Secrets)
@@ -983,6 +1001,14 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/{lid}/unlock", repo.LFSUnlock)
 				})
 			})
+
+			m.Group("/runners", func() {
+				m.Get("", repo.Runners)
+				m.Combo("/{runnerid}").Get(repo.RunnersEdit).
+					Post(web.Bind(forms.EditRunnerForm{}), repo.RunnersEditPost)
+				m.Post("/{runnerid}/delete", repo.RunnerDeletePost)
+				m.Get("/reset_registration_token", repo.ResetRunnerRegistrationToken)
+			}, actions.MustEnableActions)
 		}, func(ctx *context.Context) {
 			ctx.Data["PageIsSettings"] = true
 			ctx.Data["LFSStartServer"] = setting.LFS.StartServer
@@ -1229,6 +1255,23 @@ func RegisterRoutes(m *web.Route) {
 				})
 			}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())
 		}, reqRepoProjectsReader, repo.MustEnableProjects)
+
+		m.Group("/actions", func() {
+			m.Get("", actions.List)
+
+			m.Group("/runs/{run}", func() {
+				m.Combo("").
+					Get(actions.View).
+					Post(web.Bind(actions.ViewRequest{}), actions.ViewPost)
+				m.Group("/jobs/{job}", func() {
+					m.Combo("").
+						Get(actions.View).
+						Post(web.Bind(actions.ViewRequest{}), actions.ViewPost)
+					m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
+				})
+				m.Post("/cancel", reqRepoActionsWriter, actions.Cancel)
+			})
+		}, reqRepoActionsReader, actions.MustEnableActions)
 
 		m.Group("/wiki", func() {
 			m.Combo("/").

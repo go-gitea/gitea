@@ -303,6 +303,67 @@ func TestFindAllMentions(t *testing.T) {
 	}, res)
 }
 
+func TestFindRenderizableCommitCrossReference(t *testing.T) {
+	cases := []struct {
+		Input    string
+		Expected *RenderizableReference
+	}{
+		{
+			Input:    "",
+			Expected: nil,
+		},
+		{
+			Input:    "test",
+			Expected: nil,
+		},
+		{
+			Input:    "go-gitea/gitea@test",
+			Expected: nil,
+		},
+		{
+			Input:    "go-gitea/gitea@ab1234",
+			Expected: nil,
+		},
+		{
+			Input: "go-gitea/gitea@abcd1234",
+			Expected: &RenderizableReference{
+				Owner:       "go-gitea",
+				Name:        "gitea",
+				CommitSha:   "abcd1234",
+				RefLocation: &RefSpan{Start: 0, End: 23},
+			},
+		},
+		{
+			Input: "go-gitea/gitea@abcd1234abcd1234abcd1234abcd1234abcd1234",
+			Expected: &RenderizableReference{
+				Owner:       "go-gitea",
+				Name:        "gitea",
+				CommitSha:   "abcd1234abcd1234abcd1234abcd1234abcd1234",
+				RefLocation: &RefSpan{Start: 0, End: 55},
+			},
+		},
+		{
+			Input:    "go-gitea/gitea@abcd1234abcd1234abcd1234abcd1234abcd12340", // longer than 40 characters
+			Expected: nil,
+		},
+		{
+			Input: "test go-gitea/gitea@abcd1234 test",
+			Expected: &RenderizableReference{
+				Owner:       "go-gitea",
+				Name:        "gitea",
+				CommitSha:   "abcd1234",
+				RefLocation: &RefSpan{Start: 4, End: 29},
+			},
+		},
+	}
+
+	for _, c := range cases {
+		found, ref := FindRenderizableCommitCrossReference(c.Input)
+		assert.Equal(t, ref != nil, found)
+		assert.Equal(t, c.Expected, ref)
+	}
+}
+
 func TestRegExp_mentionPattern(t *testing.T) {
 	trueTestCases := []struct {
 		pat string

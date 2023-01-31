@@ -37,6 +37,9 @@ var (
 	// crossReferenceIssueNumericPattern matches string that references a numeric issue in a different repository
 	// e.g. gogits/gogs#12345
 	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+[#!][0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
+	// crossReferenceCommitPattern matches a string that references a commit in a different repository
+	// e.g. go-gitea/gitea@d8a994ef, go-gitea/gitea@d8a994ef243349f321568f9e36d5c3f444b99cae (7-40 characters)
+	crossReferenceCommitPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+)@([0-9a-f]{7,40})(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
 	// spaceTrimmedPattern let's us find the trailing space
 	spaceTrimmedPattern = regexp.MustCompile(`(?:.*[0-9a-zA-Z-_])\s`)
 	// timeLogPattern matches string for time tracking
@@ -92,6 +95,7 @@ type RenderizableReference struct {
 	Issue          string
 	Owner          string
 	Name           string
+	CommitSha      string
 	IsPull         bool
 	RefLocation    *RefSpan
 	Action         XRefAction
@@ -347,6 +351,21 @@ func FindRenderizableReferenceNumeric(content string, prOnly bool) (bool, *Rende
 		RefLocation:    r.refLocation,
 		Action:         r.action,
 		ActionLocation: r.actionLocation,
+	}
+}
+
+// FindRenderizableCommitCrossReference returns the first unvalidated commit cross reference found in a string.
+func FindRenderizableCommitCrossReference(content string) (bool, *RenderizableReference) {
+	m := crossReferenceCommitPattern.FindStringSubmatchIndex(content)
+	if len(m) < 8 {
+		return false, nil
+	}
+
+	return true, &RenderizableReference{
+		Owner:       content[m[2]:m[3]],
+		Name:        content[m[4]:m[5]],
+		CommitSha:   content[m[6]:m[7]],
+		RefLocation: &RefSpan{Start: m[0], End: m[1]},
 	}
 }
 

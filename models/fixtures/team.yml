@@ -140,3 +140,14 @@
   num_members: 1
   includes_all_repositories: false
   can_create_org_repo: false
+
+-
+  id: 14
+  org_id: 3
+  lower_name: teamcreaterepo
+  name: teamCreateRepo
+  authorize: 2 # write
+  num_repos: 0
+  num_members: 1
+  includes_all_repositories: false
+  can_create_org_repo: true
