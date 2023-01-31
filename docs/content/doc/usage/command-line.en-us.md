@@ -382,7 +382,7 @@ Currently there are a check list below:
   Sometimes if you moved or renamed your Gitea binary when upgrade and you haven't run `Update the '.ssh/authorized_keys' file with Gitea SSH keys. (Not needed for the built-in SSH server.)` on your Admin Panel. Then all pull/push via SSH will not be work.
   This check will help you to check if it works well.
 
-For contributors, if you want to add more checks, you can wrie ad new function like `func(ctx *cli.Context) ([]string, error)` and
+For contributors, if you want to add more checks, you can write a new function like `func(ctx *cli.Context) ([]string, error)` and
 append it to `doctor.go`.
 
 ```go
