@@ -29,7 +29,7 @@
 					{{.locale.Tr "notification.no_read"}}
 				{{end}}
 			{{else}}
-				<table class="ui unstackable striped very compact small selectable table" id="notification_table">
+				<table class="ui unstackable striped very compact small table" id="notification_table">
 					<tbody>
 						{{range $notification := .Notifications}}
 							{{$issue := .Issue}}
