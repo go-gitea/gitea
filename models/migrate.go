@@ -84,6 +84,13 @@ func insertIssue(ctx context.Context, issue *issues_model.Issue) error {
 		}
 	}
 
+	for _, assignee := range issue.Assignees {
+		assigneeIn := issues_model.IssueAssignees{AssigneeID: assignee.ID, IssueID: issue.ID}
+		if err := db.Insert(ctx, &assigneeIn); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

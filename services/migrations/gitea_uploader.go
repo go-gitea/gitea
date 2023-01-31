@@ -459,6 +459,26 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 			}
 			is.Reactions = append(is.Reactions, &res)
 		}
+
+		// add assignees
+		for _, assigneeUsername := range issue.Assignees {
+			assigneeIDs, err := issues_model.MakeIDsFromAPIAssigneesToAdd(g.ctx, "", issue.Assignees)
+
+			if err != nil {
+				log.Error("Unable to get ID of user name %s", assigneeUsername)
+				continue
+			}
+
+			for _, assigneeID := range assigneeIDs {
+				assignee, err := user_model.GetUserByID(g.ctx, assigneeID)
+				if err != nil {
+					return err
+				}
+				is.Assignees = append(is.Assignees, assignee)
+			}
+
+		}
+
 		iss = append(iss, &is)
 	}
 
