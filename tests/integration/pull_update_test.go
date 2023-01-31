@@ -53,22 +53,9 @@ func TestAPIPullUpdate(t *testing.T) {
 
 func TestAPIPullUpdateByRebase(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		// debug code, I'll delete it before PR get merged.
-		t.Logf("db.DefaultContext.Err: %#v", db.DefaultContext.Err())
-		time.Sleep(5 * time.Second)
-
 		// Create PR to test
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		org26 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26})
-		// debug code, I'll delete it before PR get merged.
-		t.Logf("user: %+v", user)
-		t.Logf("org26: %+v", org26)
-		if user.MaxRepoCreation != -1 || org26.MaxRepoCreation != -1 {
-			t.Errorf("cannot create repo: %+v", user)
-			t.Errorf("cannot create repo: %+v", org26)
-			t.FailNow()
-			return
-		}
 		pr := createOutdatedPR(t, user, org26)
 
 		// Test GetDiverging
@@ -89,9 +76,6 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 		assert.NoError(t, err)
 		assert.EqualValues(t, 0, diffCount.Behind)
 		assert.EqualValues(t, 1, diffCount.Ahead)
-
-		// debug code, I'll delete it before PR get merged.
-		time.Sleep(5 * time.Second)
 	})
 }
 
