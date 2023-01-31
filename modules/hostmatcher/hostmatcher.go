@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package hostmatcher
 
@@ -76,6 +75,11 @@ func ParseSimpleMatchList(settingKeyHint, matchList string) *HostMatchList {
 // AppendBuiltin appends more builtins to match
 func (hl *HostMatchList) AppendBuiltin(builtin string) {
 	hl.builtins = append(hl.builtins, builtin)
+}
+
+// AppendPattern appends more pattern to match
+func (hl *HostMatchList) AppendPattern(pattern string) {
+	hl.patterns = append(hl.patterns, pattern)
 }
 
 // IsEmpty checks if the checklist is empty

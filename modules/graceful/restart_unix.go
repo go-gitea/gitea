@@ -1,6 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
+
 // This code is heavily inspired by the archived gofacebook/gracenet/net.go handler
 
 //go:build !windows
@@ -12,6 +12,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -74,6 +75,20 @@ func RestartProcess() (int, error) {
 		}
 	}
 	env = append(env, fmt.Sprintf("%s=%d", listenFDs, len(listeners)))
+
+	sb := &strings.Builder{}
+	for i, unlink := range getActiveListenersToUnlink() {
+		if !unlink {
+			continue
+		}
+		_, _ = sb.WriteString(strconv.Itoa(i))
+		_, _ = sb.WriteString(",")
+	}
+	unlinkStr := sb.String()
+	if len(unlinkStr) > 0 {
+		unlinkStr = unlinkStr[:len(unlinkStr)-1]
+		env = append(env, fmt.Sprintf("%s=%s", unlinkFDs, unlinkStr))
+	}
 
 	allFiles := append([]*os.File{os.Stdin, os.Stdout, os.Stderr}, files...)
 	process, err := os.StartProcess(argv0, os.Args, &os.ProcAttr{

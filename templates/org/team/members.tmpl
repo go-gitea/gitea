@@ -9,11 +9,11 @@
 				{{template "org/team/navbar" .}}
 				{{if .IsOrganizationOwner}}
 					<div class="ui attached segment">
-						<form class="ui form" id="add-member-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/add" method="post">
+						<form class="ui form ignore-dirty" id="add-member-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/add" method="post">
 							{{.CsrfTokenHtml}}
 							<input type="hidden" name="uid" value="{{.SignedUser.ID}}">
 							<div class="inline field ui left">
-								<div id="search-user-box" class="ui search">
+								<div id="search-user-box" class="ui search"{{if .IsEmailInviteEnabled}} data-allow-email="true" data-allow-email-description="{{.locale.Tr "org.teams.invite_team_member" $.Team.Name}}"{{end}}>
 									<div class="ui input">
 										<input class="prompt" name="uname" placeholder="{{.locale.Tr "repo.settings.search_user_placeholder"}}" autocomplete="off" required>
 									</div>
@@ -45,6 +45,21 @@
 						</div>
 					{{end}}
 				</div>
+				{{if and .Invites $.IsOrganizationOwner}}
+				<h4 class="ui top attached header">{{$.locale.Tr "org.teams.invite_team_member.list"}}</h4>
+				<div class="ui bottom attached table segment members">
+					{{range .Invites}}
+						<div class="item">
+							<form action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove_invite" method="post">
+								{{$.CsrfTokenHtml}}
+								<input type="hidden" name="iid" value="{{.ID}}" />
+								<button class="ui red button right">{{$.locale.Tr "org.members.remove"}}</button>
+							</form>
+							{{.Email}}
+						</div>
+					{{end}}
+				</div>
+				{{end}}
 			</div>
 		</div>
 	</div>

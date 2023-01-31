@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package explore
 
@@ -48,10 +47,11 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	}
 
 	var (
-		repos   []*repo_model.Repository
-		count   int64
-		err     error
-		orderBy db.SearchOrderBy
+		repos            []*repo_model.Repository
+		count            int64
+		err              error
+		orderBy          db.SearchOrderBy
+		onlyShowRelevant bool
 	)
 
 	ctx.Data["SortType"] = ctx.FormString("sort")
@@ -60,8 +60,6 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		orderBy = db.SearchOrderByNewest
 	case "oldest":
 		orderBy = db.SearchOrderByOldest
-	case "recentupdate":
-		orderBy = db.SearchOrderByRecentUpdated
 	case "leastupdate":
 		orderBy = db.SearchOrderByLeastUpdated
 	case "reversealphabetically":
@@ -83,16 +81,23 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	default:
 		ctx.Data["SortType"] = "recentupdate"
 		orderBy = db.SearchOrderByRecentUpdated
+		onlyShowRelevant = setting.UI.OnlyShowRelevantRepos && !ctx.FormBool("no_filter")
 	}
 
 	keyword := ctx.FormTrim("q")
+	if keyword != "" {
+		onlyShowRelevant = false
+	}
+
+	ctx.Data["OnlyShowRelevant"] = onlyShowRelevant
+
 	topicOnly := ctx.FormBool("topic")
 	ctx.Data["TopicOnly"] = topicOnly
 
 	language := ctx.FormTrim("language")
 	ctx.Data["Language"] = language
 
-	repos, count, err = repo_model.SearchRepository(&repo_model.SearchRepoOptions{
+	repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
 			PageSize: opts.PageSize,
@@ -107,6 +112,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		TopicOnly:          topicOnly,
 		Language:           language,
 		IncludeDescription: setting.UI.SearchRepoDescription,
+		OnlyShowRelevant:   onlyShowRelevant,
 	})
 	if err != nil {
 		ctx.ServerError("SearchRepository", err)
@@ -133,6 +139,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "topic", "TopicOnly")
 	pager.AddParam(ctx, "language", "Language")
+	pager.AddParamString("no_filter", ctx.FormString("no_filter"))
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, opts.TplName)

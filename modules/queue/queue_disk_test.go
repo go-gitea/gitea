@@ -1,16 +1,12 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package queue
 
 import (
-	"os"
 	"sync"
 	"testing"
 	"time"
-
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -30,9 +26,7 @@ func TestLevelQueue(t *testing.T) {
 	queueShutdown := []func(){}
 	queueTerminate := []func(){}
 
-	tmpDir, err := os.MkdirTemp("", "level-queue-test-data")
-	assert.NoError(t, err)
-	defer util.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	queue, err := NewLevelQueue(handle, LevelQueueConfiguration{
 		ByteFIFOQueueConfiguration: ByteFIFOQueueConfiguration{

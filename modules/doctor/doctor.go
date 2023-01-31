@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package doctor
 
@@ -11,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -49,7 +49,11 @@ func initDBDisableConsole(ctx context.Context, disableConsole bool) error {
 
 	setting.NewXORMLogService(disableConsole)
 	if err := db.InitEngine(ctx); err != nil {
-		return fmt.Errorf("models.SetEngine: %v", err)
+		return fmt.Errorf("db.InitEngine: %w", err)
+	}
+	// some doctor sub-commands need to use git command
+	if err := git.InitFull(ctx); err != nil {
+		return fmt.Errorf("git.InitFull: %w", err)
 	}
 	return nil
 }

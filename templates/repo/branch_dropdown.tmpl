@@ -1,31 +1,32 @@
 {{$release := .release}}
 {{$defaultBranch := $.root.BranchName}}{{if and .root.IsViewTag (not .noTag)}}{{$defaultBranch = .root.TagName}}{{end}}{{if eq $defaultBranch ""}}{{$defaultBranch = $.root.Repository.DefaultBranch}}{{end}}
+{{$type := ""}}{{if and .root.IsViewTag (not .noTag)}}{{$type = "tag"}}{{else if .root.IsViewBranch}}{{$type = "branch"}}{{else}}{{$type = "tree"}}{{end}}
 {{$showBranchesInDropdown := not .root.HideBranchesInDropdown}}
-<div class="fitted item choose reference{{if not $release}} mr-1{{end}}">
+<div class="fitted item choose reference">
 	<div class="ui floating filter dropdown custom"
 		data-branch-form="{{if $.branchForm}}{{$.branchForm}}{{end}}"
 		data-can-create-branch="{{if .canCreateBranch}}{{.canCreateBranch}}{{else}}{{.root.CanCreateBranch}}{{end}}"
 		data-no-results="{{.root.locale.Tr "repo.pulls.no_results"}}"
 		data-set-action="{{.setAction}}" data-submit-form="{{.submitForm}}"
-		data-view-type="{{if and .root.IsViewTag (not .noTag)}}tag{{else if .root.IsViewBranch}}branch{{else}}tree{{end}}"
+		data-view-type="{{$type}}"
 		data-ref-name="{{if and .root.IsViewTag (not .noTag)}}{{.root.TagName}}{{else if .root.IsViewBranch}}{{.root.BranchName}}{{else}}{{ShortSha .root.CommitID}}{{end}}"
 		data-branch-url-prefix="{{if .branchURLPrefix}}{{.branchURLPrefix}}{{else}}{{$.root.RepoLink}}/{{if $.root.PageIsCommits}}commits{{else}}src{{end}}/branch/{{end}}"
 		data-branch-url-suffix="{{if .branchURLSuffix}}{{.branchURLSuffix}}{{else}}{{if $.root.TreePath}}/{{PathEscapeSegments $.root.TreePath}}{{end}}{{end}}"
 		data-tag-url-prefix="{{if .tagURLPrefix}}{{.tagURLPrefix}}{{else if $release}}{{$.root.RepoLink}}/compare/{{else}}{{$.root.RepoLink}}/{{if $.root.PageIsCommits}}commits{{else}}src{{end}}/tag/{{end}}"
 		data-tag-url-suffix="{{if .tagURLSuffix}}{{.tagURLSuffix}}{{else if $release}}...{{if $release.IsDraft}}{{PathEscapeSegments $release.Target}}{{else}}{{if $release.TagName}}{{PathEscapeSegments $release.TagName}}{{else}}{{PathEscapeSegments $release.Sha1}}{{end}}{{end}}{{else}}{{if $.root.TreePath}}/{{PathEscapeSegments $.root.TreePath}}{{end}}{{end}}">
-		<div class="ui basic small compact button" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
-			<span class="text">
+		<button class="branch-dropdown-button ellipsis ui basic small compact button df" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
+			<span class="text df ac mr-2">
 				{{if $release}}
 					{{.root.locale.Tr "repo.release.compare"}}
 				{{else}}
-					<span :class="{visible: isViewTag}" v-if="isViewTag" v-cloak>{{svg "octicon-tag"}} {{.root.locale.Tr "repo.tag"}}:</span>
-					<span :class="{visible: isViewBranch}" v-if="isViewBranch" v-cloak>{{svg "octicon-git-branch"}} {{.root.locale.Tr "repo.branch"}}:</span>
-					<span :class="{visible: isViewTree}" v-if="isViewTree" v-cloak>{{svg "octicon-git-branch"}} {{.root.locale.Tr "repo.tree"}}:</span>
-					<strong ref="dropdownRefName">{{if and .root.IsViewTag (not .noTag)}}{{.root.TagName}}{{else if .root.IsViewBranch}}{{.root.BranchName}}{{else}}{{ShortSha .root.CommitID}}{{end}}</strong>
+					<span :class="{visible: isViewTag}" v-if="isViewTag" {{if not (eq $type "tag")}}v-cloak{{end}}>{{svg "octicon-tag"}}</span>
+					<span :class="{visible: isViewBranch}" v-if="isViewBranch" {{if not (eq $type "branch")}}v-cloak{{end}}>{{svg "octicon-git-branch"}}</span>
+					<span :class="{visible: isViewTree}" v-if="isViewTree" {{if not (eq $type "tree")}}v-cloak{{end}}>{{svg "octicon-git-branch"}}</span>
+					<strong ref="dropdownRefName" class="ml-3">{{if and .root.IsViewTag (not .noTag)}}{{.root.TagName}}{{else if .root.IsViewBranch}}{{.root.BranchName}}{{else}}{{ShortSha .root.CommitID}}{{end}}</strong>
 				{{end}}
 			</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-		</div>
+		</button>
 		<div class="data" style="display: none" data-mode="{{if or .root.IsViewTag .isTag}}tags{{else}}branches{{end}}">
 			{{if $showBranchesInDropdown}}
 				{{range .root.Branches}}
@@ -93,6 +94,9 @@
 						{{.root.CsrfTokenHtml}}
 						<input type="hidden" name="new_branch_name" v-model="searchTerm">
 						<input type="hidden" name="create_tag" v-model="createTag">
+						{{if $.root.TreePath}}
+							<input type="hidden" name="current_path" value="{{.root.TreePath}}">
+						{{end}}
 					</form>
 				</div>
 			</div>

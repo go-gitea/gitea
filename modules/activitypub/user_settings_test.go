@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package activitypub
 
@@ -17,7 +16,7 @@ import (
 
 func TestUserSettings(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	pub, priv, err := GetKeyPair(user1)
 	assert.NoError(t, err)
 	pub1, err := GetPublicKey(user1)

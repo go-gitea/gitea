@@ -51,7 +51,7 @@ menu:
 | 內建 Container Registry  | [✘](https://github.com/go-gitea/gitea/issues/2316) | ✘    | ✘         | ✓         | ✓         | ✘         | ✘            |
 | 對外部 Git 鏡像          | ✓                                                  | ✓    | ✘         | ✘         | ✓         | ✓         | ✓            |
 | FIDO (2FA)               | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            |
-| 內建 CI/CD               | ✘                                                  | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
+| 內建 CI/CD               | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
 | 子群組: 群組中的群組     | ✘                                                  | ✘    | ✘         | ✓         | ✓         | ✘         | ✓            |
 
 ## 程式碼管理
@@ -93,7 +93,7 @@ menu:
 | 問題搜尋             | ✓                                                  | ✘                                             | ✓         | ✓                                                                       | ✓         | ✓         | ✘            |
 | 全域問題搜尋         | [✘](https://github.com/go-gitea/gitea/issues/2434) | ✘                                             | ✓         | ✓                                                                       | ✓         | ✓         | ✘            |
 | 問題相依             | ✓                                                  | ✘                                             | ✘         | ✘                                                                       | ✘         | ✘         | ✘            |
-| 從電子郵件建立問題   | [✘](https://github.com/go-gitea/gitea/issues/6226) | [✘](https://github.com/gogs/gogs/issues/2602) | ✘         | ✘                                                                       | ✓         | ✓         | ✘            |
+| 從電子郵件建立問題   | [✘](https://github.com/go-gitea/gitea/issues/6226) | [✘](https://github.com/gogs/gogs/issues/2602) | ✘         | ✓                                                                       | ✓         | ✓         | ✘            |
 | 服務台               | [✘](https://github.com/go-gitea/gitea/issues/6219) | ✘                                             | ✘         | [✓](https://gitlab.com/groups/gitlab-org/-/epics/3103)                  | ✓         | ✘         | ✘            |
 
 ## 拉取/合併請求
@@ -121,6 +121,7 @@ menu:
 | 整合 AD / LDAP            | ✓                                                | ✓    | ✓         | ✓         | ✓         | ✓         | ✓            |
 | 支援多重 LDAP / AD 伺服器 | ✓                                                | ✓    | ✘         | ✘         | ✓         | ✓         | ✓            |
 | 同步 LDAP 使用者          | ✓                                                | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| SAML 2.0 service provider                      | [✘](https://github.com/go-gitea/gitea/issues/5512) | [✘](https://github.com/gogs/gogs/issues/1221) | ✓         | ✓         | ✓         | ✓         | ✘            |
 | 支援 OpenId Connect       | ✓                                                | ✘    | ✓         | ✓         | ✓         | ?         | ✘            |
 | 整合 OAuth 2.0 (外部驗證) | ✓                                                | ✘    | ⁄         | ✓         | ✓         | ?         | ✓            |
 | 成為 OAuth 2.0 提供者     | [✓](https://github.com/go-gitea/gitea/pull/5378) | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            |

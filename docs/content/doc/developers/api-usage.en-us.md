@@ -48,9 +48,8 @@ A new token can be generated with a `POST` request to
 Note that `/users/:name/tokens` is a special endpoint and requires you
 to authenticate using `BasicAuth` and a password, as follows:
 
-
 ```sh
-$ curl -XPOST -H "Content-Type: application/json"  -k -d '{"name":"test"}' -u username:password https://gitea.your.host/api/v1/users/<username>/tokens
+$ curl -H "Content-Type: application/json" -d '{"name":"test"}' -u username:password https://gitea.your.host/api/v1/users/<username>/tokens
 {"id":1,"name":"test","sha1":"9fcb1158165773dd010fca5f0cf7174316c3e37d","token_last_eight":"16c3e37d"}
 ```
 
@@ -59,7 +58,7 @@ plain-text.  It will not be displayed when listing tokens with a `GET`
 request; e.g.
 
 ```sh
-$ curl --request GET --url https://yourusername:password@gitea.your.host/api/v1/users/<username>/tokens
+$ curl --url https://yourusername:password@gitea.your.host/api/v1/users/<username>/tokens
 [{"name":"test","sha1":"","token_last_eight:"........":},{"name":"dev","sha1":"","token_last_eight":"........"}]
 ```
 
@@ -71,7 +70,7 @@ is where you'd place the code from your authenticator.
 Here is how the request would look like in curl:
 
 ```sh
-$ curl -H "X-Gitea-OTP: 123456" --request GET --url https://yourusername:yourpassword@gitea.your.host/api/v1/users/yourusername/tokens
+$ curl -H "X-Gitea-OTP: 123456" --url https://yourusername:yourpassword@gitea.your.host/api/v1/users/yourusername/tokens
 ```
 
 You can also create an API key token via your Gitea installation's web
@@ -97,7 +96,7 @@ Authorization: token 65eaa9c8ef52460d22a93307fe0aee76289dc675
 In a `curl` command, for instance, this would look like:
 
 ```sh
-curl -X POST "http://localhost:4000/api/v1/repos/test1/test1/issues" \
+curl "http://localhost:4000/api/v1/repos/test1/test1/issues" \
     -H "accept: application/json" \
     -H "Authorization: token 65eaa9c8ef52460d22a93307fe0aee76289dc675" \
     -H "Content-Type: application/json" -d "{ \"body\": \"testing\", \"title\": \"test 20\"}" -i
@@ -105,6 +104,18 @@ curl -X POST "http://localhost:4000/api/v1/repos/test1/test1/issues" \
 
 As mentioned above, the token used is the same one you would use in
 the `token=` string in a GET request.
+
+## Pagination
+
+The API supports pagination. The `page` and `limit` parameters are used to specify the page number and the number of items per page. As well, the `Link` header is returned with the next, previous, and last page links if there are more than one pages. The `x-total-count` is also returned to indicate the total number of items.
+
+```sh
+curl -v "http://localhost/api/v1/repos/search?limit=1"
+...
+< link: <http://localhost/api/v1/repos/search?limit=1&page=2>; rel="next",<http://localhost/api/v1/repos/search?limit=1&page=5252>; rel="last"
+...
+< x-total-count: 5252
+```
 
 ## API Guide:
 

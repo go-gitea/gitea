@@ -6,9 +6,9 @@ If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 <script>
 	window.addEventListener('error', function(e) {window._globalHandlerErrors=window._globalHandlerErrors||[]; window._globalHandlerErrors.push(e);});
 	window.config = {
-		appVer: '{{AppVer}}',
 		appUrl: '{{AppUrl}}',
 		appSubUrl: '{{AppSubUrl}}',
+		assetVersionEncoded: encodeURIComponent('{{AssetVersion}}'), // will be used in URL construction directly
 		assetUrlPrefix: '{{AssetUrlPrefix}}',
 		runModeIsProd: {{.RunModeIsProd}},
 		customEmojis: {{CustomEmojis}},
@@ -20,18 +20,18 @@ If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 		enableTimeTracking: {{EnableTimetracking}},
 		{{if .RequireTribute}}
 		tributeValues: Array.from(new Map([
-			{{ range .Participants }}
+			{{range .Participants}}
 			['{{.Name}}', {key: '{{.Name}} {{.FullName}}', value: '{{.Name}}',
 			name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.AvatarLink}}'}],
-			{{ end }}
-			{{ range .Assignees }}
+			{{end}}
+			{{range .Assignees}}
 			['{{.Name}}', {key: '{{.Name}} {{.FullName}}', value: '{{.Name}}',
 			name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.AvatarLink}}'}],
-			{{ end }}
-			{{ range .MentionableTeams }}
+			{{end}}
+			{{range .MentionableTeams}}
 				['{{$.MentionableTeamsOrg}}/{{.Name}}', {key: '{{$.MentionableTeamsOrg}}/{{.Name}}', value: '{{$.MentionableTeamsOrg}}/{{.Name}}',
 				name: '{{$.MentionableTeamsOrg}}/{{.Name}}', avatar: '{{$.MentionableTeamsOrgAvatar}}'}],
-			{{ end }}
+			{{end}}
 		]).values()),
 		{{end}}
 		mermaidMaxSourceCharacters: {{MermaidMaxSourceCharacters}},

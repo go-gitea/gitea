@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package activitypub
 
@@ -23,7 +22,7 @@ import (
 
 func TestActivityPubSignedPost(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	pubID := "https://example.com/pubID"
 	c, err := NewClient(user, pubID)
 	assert.NoError(t, err)
@@ -36,7 +35,7 @@ func TestActivityPubSignedPost(t *testing.T) {
 		body, err := io.ReadAll(r.Body)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, string(body))
-		fmt.Fprintf(w, expected)
+		fmt.Fprint(w, expected)
 	}))
 	defer srv.Close()
 

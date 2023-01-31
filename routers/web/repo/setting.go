@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -20,6 +19,7 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
+	secret_model "code.gitea.io/gitea/models/secret"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -30,7 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	mirror_module "code.gitea.io/gitea/modules/mirror"
-	"code.gitea.io/gitea/modules/repository"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/typesniffer"
@@ -43,6 +43,7 @@ import (
 	"code.gitea.io/gitea/services/mailer"
 	"code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
+	org_service "code.gitea.io/gitea/services/org"
 	repo_service "code.gitea.io/gitea/services/repository"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 )
@@ -55,7 +56,6 @@ const (
 	tplGithooks        base.TplName = "repo/settings/githooks"
 	tplGithookEdit     base.TplName = "repo/settings/githook_edit"
 	tplDeployKeys      base.TplName = "repo/settings/deploy_keys"
-	tplProtectedBranch base.TplName = "repo/settings/protected_branch"
 )
 
 // SettingsCtxData is a middleware that sets all the general context data for the
@@ -90,7 +90,7 @@ func SettingsCtxData(ctx *context.Context) {
 		}
 		ctx.Data["StatsIndexerStatus"] = status
 	}
-	pushMirrors, err := repo_model.GetPushMirrorsByRepoID(ctx.Repo.Repository.ID)
+	pushMirrors, _, err := repo_model.GetPushMirrorsByRepoID(ctx, ctx.Repo.Repository.ID, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetPushMirrorsByRepoID", err)
 		return
@@ -228,14 +228,17 @@ func SettingsPost(ctx *context.Context) {
 			form.MirrorPassword, _ = u.User.Password()
 		}
 
-		err = migrations.IsMigrateURLAllowed(u.String(), ctx.Doer)
+		address, err := forms.ParseRemoteAddr(form.MirrorAddress, form.MirrorUsername, form.MirrorPassword)
+		if err == nil {
+			err = migrations.IsMigrateURLAllowed(address, ctx.Doer)
+		}
 		if err != nil {
 			ctx.Data["Err_MirrorAddress"] = true
 			handleSettingRemoteAddrError(ctx, err, form)
 			return
 		}
 
-		if err := mirror_service.UpdateAddress(ctx, ctx.Repo.Mirror, u.String()); err != nil {
+		if err := mirror_service.UpdateAddress(ctx, ctx.Repo.Mirror, address); err != nil {
 			ctx.ServerError("UpdateAddress", err)
 			return
 		}
@@ -284,7 +287,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		m, err := selectPushMirrorByForm(form, repo)
+		m, err := selectPushMirrorByForm(ctx, form, repo)
 		if err != nil {
 			ctx.NotFound("", nil)
 			return
@@ -305,7 +308,7 @@ func SettingsPost(ctx *context.Context) {
 		// as an error on the UI for this action
 		ctx.Data["Err_RepoName"] = nil
 
-		m, err := selectPushMirrorByForm(form, repo)
+		m, err := selectPushMirrorByForm(ctx, form, repo)
 		if err != nil {
 			ctx.NotFound("", nil)
 			return
@@ -316,7 +319,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err = repo_model.DeletePushMirrorByID(m.ID); err != nil {
+		if err = repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{ID: m.ID, RepoID: m.RepoID}); err != nil {
 			ctx.ServerError("DeletePushMirrorByID", err)
 			return
 		}
@@ -364,14 +367,14 @@ func SettingsPost(ctx *context.Context) {
 			SyncOnCommit: form.PushMirrorSyncOnCommit,
 			Interval:     interval,
 		}
-		if err := repo_model.InsertPushMirror(m); err != nil {
+		if err := repo_model.InsertPushMirror(ctx, m); err != nil {
 			ctx.ServerError("InsertPushMirror", err)
 			return
 		}
 
 		if err := mirror_service.AddPushMirrorRemote(ctx, m, address); err != nil {
-			if err := repo_model.DeletePushMirrorByID(m.ID); err != nil {
-				log.Error("DeletePushMirrorByID %v", err)
+			if err := repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{ID: m.ID, RepoID: m.RepoID}); err != nil {
+				log.Error("DeletePushMirrors %v", err)
 			}
 			ctx.ServerError("AddPushMirrorRemote", err)
 			return
@@ -392,6 +395,15 @@ func SettingsPost(ctx *context.Context) {
 		if repo.CloseIssuesViaCommitInAnyBranch != form.EnableCloseIssuesViaCommitInAnyBranch {
 			repo.CloseIssuesViaCommitInAnyBranch = form.EnableCloseIssuesViaCommitInAnyBranch
 			repoChanged = true
+		}
+
+		if form.EnableCode && !unit_model.TypeCode.UnitGlobalDisabled() {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   unit_model.TypeCode,
+			})
+		} else if !unit_model.TypeCode.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeCode)
 		}
 
 		if form.EnableWiki && form.EnableExternalWiki && !unit_model.TypeExternalWiki.UnitGlobalDisabled() {
@@ -476,13 +488,22 @@ func SettingsPost(ctx *context.Context) {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeProjects)
 		}
 
-		if form.EnablePackages && !unit_model.TypeProjects.UnitGlobalDisabled() {
+		if form.EnablePackages && !unit_model.TypePackages.UnitGlobalDisabled() {
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   unit_model.TypePackages,
 			})
 		} else if !unit_model.TypePackages.UnitGlobalDisabled() {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePackages)
+		}
+
+		if form.EnableActions && !unit_model.TypeActions.UnitGlobalDisabled() {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   unit_model.TypeActions,
+			})
+		} else if !unit_model.TypeActions.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeActions)
 		}
 
 		if form.EnablePulls && !unit_model.TypePullRequests.UnitGlobalDisabled() {
@@ -604,7 +625,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 		repo.IsMirror = false
 
-		if _, err := repository.CleanUpMigrateInfo(ctx, repo); err != nil {
+		if _, err := repo_module.CleanUpMigrateInfo(ctx, repo); err != nil {
 			ctx.ServerError("CleanUpMigrateInfo", err)
 			return
 		} else if err = repo_model.DeleteMirrorByRepoID(ctx.Repo.Repository.ID); err != nil {
@@ -686,7 +707,7 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Repo.GitRepo = nil
 		}
 
-		if err := repo_service.StartRepositoryTransfer(ctx.Doer, newOwner, repo, nil); err != nil {
+		if err := repo_service.StartRepositoryTransfer(ctx, ctx.Doer, newOwner, repo, nil); err != nil {
 			if repo_model.IsErrRepoAlreadyExist(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
 			} else if models.IsErrRepoTransferInProgress(err) {
@@ -708,7 +729,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository)
+		repoTransfer, err := models.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
 		if err != nil {
 			if models.IsErrNoPendingTransfer(err) {
 				ctx.Flash.Error("repo.settings.transfer_abort_invalid")
@@ -720,7 +741,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := repoTransfer.LoadAttributes(); err != nil {
+		if err := repoTransfer.LoadAttributes(ctx); err != nil {
 			ctx.ServerError("LoadRecipient", err)
 			return
 		}
@@ -913,7 +934,20 @@ func CollaborationPost(ctx *context.Context) {
 		return
 	}
 
-	if err = models.AddCollaborator(ctx.Repo.Repository, u); err != nil {
+	// find the owner team of the organization the repo belongs too and
+	// check if the user we're trying to add is an owner.
+	if ctx.Repo.Repository.Owner.IsOrganization() {
+		if isOwner, err := organization.IsOrganizationOwner(ctx, ctx.Repo.Repository.Owner.ID, u.ID); err != nil {
+			ctx.ServerError("IsOrganizationOwner", err)
+			return
+		} else if isOwner {
+			ctx.Flash.Error(ctx.Tr("repo.settings.add_collaborator_owner"))
+			ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
+			return
+		}
+	}
+
+	if err = repo_module.AddCollaborator(ctx, ctx.Repo.Repository, u); err != nil {
 		ctx.ServerError("AddCollaborator", err)
 		return
 	}
@@ -929,6 +963,7 @@ func CollaborationPost(ctx *context.Context) {
 // ChangeCollaborationAccessMode response for changing access of a collaboration
 func ChangeCollaborationAccessMode(ctx *context.Context) {
 	if err := repo_model.ChangeCollaborationAccessMode(
+		ctx,
 		ctx.Repo.Repository,
 		ctx.FormInt64("uid"),
 		perm.AccessMode(ctx.FormInt("mode"))); err != nil {
@@ -986,8 +1021,8 @@ func AddTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if err = models.AddRepository(team, ctx.Repo.Repository); err != nil {
-		ctx.ServerError("team.AddRepository", err)
+	if err = org_service.TeamAddRepository(team, ctx.Repo.Repository); err != nil {
+		ctx.ServerError("TeamAddRepository", err)
 		return
 	}
 
@@ -1087,7 +1122,31 @@ func DeployKeys(ctx *context.Context) {
 	}
 	ctx.Data["Deploykeys"] = keys
 
+	secrets, err := secret_model.FindSecrets(ctx, secret_model.FindSecretsOptions{RepoID: ctx.Repo.Repository.ID})
+	if err != nil {
+		ctx.ServerError("FindSecrets", err)
+		return
+	}
+	ctx.Data["Secrets"] = secrets
+
 	ctx.HTML(http.StatusOK, tplDeployKeys)
+}
+
+// SecretsPost response for creating a new secret
+func SecretsPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.AddSecretForm)
+
+	_, err := secret_model.InsertEncryptedSecret(ctx, 0, ctx.Repo.Repository.ID, form.Title, form.Content)
+	if err != nil {
+		ctx.Flash.Error(ctx.Tr("secrets.creation.failed"))
+		log.Error("validate secret: %v", err)
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
+		return
+	}
+
+	log.Trace("Secret added: %d", ctx.Repo.Repository.ID)
+	ctx.Flash.Success(ctx.Tr("secrets.creation.success", form.Title))
+	ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
 }
 
 // DeployKeysPost response for adding a deploy key of a repository
@@ -1151,6 +1210,20 @@ func DeployKeysPost(ctx *context.Context) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
 }
 
+func DeleteSecret(ctx *context.Context) {
+	id := ctx.FormInt64("id")
+	if _, err := db.DeleteByBean(ctx, &secret_model.Secret{ID: id}); err != nil {
+		ctx.Flash.Error(ctx.Tr("secrets.deletion.failed"))
+		log.Error("delete secret %d: %v", id, err)
+	} else {
+		ctx.Flash.Success(ctx.Tr("secrets.deletion.success"))
+	}
+
+	ctx.JSON(http.StatusOK, map[string]interface{}{
+		"redirect": ctx.Repo.RepoLink + "/settings/keys",
+	})
+}
+
 // DeleteDeployKey response for deleting a deploy key
 func DeleteDeployKey(ctx *context.Context) {
 	if err := asymkey_service.DeleteDeployKey(ctx.Doer, ctx.FormInt64("id")); err != nil {
@@ -1180,7 +1253,7 @@ func UpdateAvatarSetting(ctx *context.Context, form forms.AvatarForm) error {
 
 	r, err := form.Avatar.Open()
 	if err != nil {
-		return fmt.Errorf("Avatar.Open: %v", err)
+		return fmt.Errorf("Avatar.Open: %w", err)
 	}
 	defer r.Close()
 
@@ -1190,14 +1263,14 @@ func UpdateAvatarSetting(ctx *context.Context, form forms.AvatarForm) error {
 
 	data, err := io.ReadAll(r)
 	if err != nil {
-		return fmt.Errorf("io.ReadAll: %v", err)
+		return fmt.Errorf("io.ReadAll: %w", err)
 	}
 	st := typesniffer.DetectContentType(data)
 	if !(st.IsImage() && !st.IsSvgImage()) {
 		return errors.New(ctx.Tr("settings.uploaded_avatar_not_a_image"))
 	}
 	if err = repo_service.UploadAvatar(ctxRepo, data); err != nil {
-		return fmt.Errorf("UploadAvatar: %v", err)
+		return fmt.Errorf("UploadAvatar: %w", err)
 	}
 	return nil
 }
@@ -1222,13 +1295,13 @@ func SettingsDeleteAvatar(ctx *context.Context) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 }
 
-func selectPushMirrorByForm(form *forms.RepoSettingForm, repo *repo_model.Repository) (*repo_model.PushMirror, error) {
+func selectPushMirrorByForm(ctx *context.Context, form *forms.RepoSettingForm, repo *repo_model.Repository) (*repo_model.PushMirror, error) {
 	id, err := strconv.ParseInt(form.PushMirrorID, 10, 64)
 	if err != nil {
 		return nil, err
 	}
 
-	pushMirrors, err := repo_model.GetPushMirrorsByRepoID(repo.ID)
+	pushMirrors, _, err := repo_model.GetPushMirrorsByRepoID(ctx, repo.ID, db.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

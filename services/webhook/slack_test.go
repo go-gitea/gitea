@@ -1,14 +1,13 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package webhook
 
 import (
 	"testing"
 
-	webhook_model "code.gitea.io/gitea/models/webhook"
 	api "code.gitea.io/gitea/modules/structs"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -125,7 +124,7 @@ func TestSlackPayload(t *testing.T) {
 		p.Action = api.HookIssueReviewed
 
 		d := new(SlackPayload)
-		pl, err := d.Review(p, webhook_model.HookEventPullRequestReviewApproved)
+		pl, err := d.Review(p, webhook_module.HookEventPullRequestReviewApproved)
 		require.NoError(t, err)
 		require.NotNil(t, pl)
 		require.IsType(t, &SlackPayload{}, pl)
@@ -143,6 +142,35 @@ func TestSlackPayload(t *testing.T) {
 		require.IsType(t, &SlackPayload{}, pl)
 
 		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Repository created by <https://try.gitea.io/user1|user1>", pl.(*SlackPayload).Text)
+	})
+
+	t.Run("Wiki", func(t *testing.T) {
+		p := wikiTestPayload()
+
+		d := new(SlackPayload)
+		p.Action = api.HookWikiCreated
+		pl, err := d.Wiki(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &SlackPayload{}, pl)
+
+		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] New wiki page '<http://localhost:3000/test/repo/wiki/index|index>' (Wiki change comment) by <https://try.gitea.io/user1|user1>", pl.(*SlackPayload).Text)
+
+		p.Action = api.HookWikiEdited
+		pl, err = d.Wiki(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &SlackPayload{}, pl)
+
+		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Wiki page '<http://localhost:3000/test/repo/wiki/index|index>' edited (Wiki change comment) by <https://try.gitea.io/user1|user1>", pl.(*SlackPayload).Text)
+
+		p.Action = api.HookWikiDeleted
+		pl, err = d.Wiki(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &SlackPayload{}, pl)
+
+		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Wiki page '<http://localhost:3000/test/repo/wiki/index|index>' deleted by <https://try.gitea.io/user1|user1>", pl.(*SlackPayload).Text)
 	})
 
 	t.Run("Release", func(t *testing.T) {
@@ -169,4 +197,23 @@ func TestSlackJSONPayload(t *testing.T) {
 	json, err := pl.JSONPayload()
 	require.NoError(t, err)
 	assert.NotEmpty(t, json)
+}
+
+func TestIsValidSlackChannel(t *testing.T) {
+	tt := []struct {
+		channelName string
+		expected    bool
+	}{
+		{"gitea", true},
+		{"#gitea", true},
+		{"  ", false},
+		{"#", false},
+		{" #", false},
+		{"gitea   ", false},
+		{"  gitea", false},
+	}
+
+	for _, v := range tt {
+		assert.Equal(t, v.expected, IsValidSlackChannel(v.channelName))
+	}
 }

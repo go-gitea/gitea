@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package action
 
@@ -9,7 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -26,8 +26,8 @@ func TestMain(m *testing.M) {
 func TestRenameRepoAction(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user.ID}).(*repo_model.Repository)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user.ID})
 	repo.Owner = user
 
 	oldRepoName := repo.Name
@@ -35,8 +35,8 @@ func TestRenameRepoAction(t *testing.T) {
 	repo.Name = newRepoName
 	repo.LowerName = strings.ToLower(newRepoName)
 
-	actionBean := &models.Action{
-		OpType:    models.ActionRenameRepo,
+	actionBean := &activities_model.Action{
+		OpType:    activities_model.ActionRenameRepo,
 		ActUserID: user.ID,
 		ActUser:   user,
 		RepoID:    repo.ID,
@@ -46,8 +46,8 @@ func TestRenameRepoAction(t *testing.T) {
 	}
 	unittest.AssertNotExistsBean(t, actionBean)
 
-	NewNotifier().NotifyRenameRepository(user, repo, oldRepoName)
+	NewNotifier().NotifyRenameRepository(db.DefaultContext, user, repo, oldRepoName)
 
 	unittest.AssertExistsAndLoadBean(t, actionBean)
-	unittest.CheckConsistencyFor(t, &models.Action{})
+	unittest.CheckConsistencyFor(t, &activities_model.Action{})
 }

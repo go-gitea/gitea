@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package structs
 
@@ -87,9 +86,10 @@ type FileLinksResponse struct {
 
 // ContentsResponse contains information about a repo's entry's (dir, file, symlink, submodule) metadata and content
 type ContentsResponse struct {
-	Name string `json:"name"`
-	Path string `json:"path"`
-	SHA  string `json:"sha"`
+	Name          string `json:"name"`
+	Path          string `json:"path"`
+	SHA           string `json:"sha"`
+	LastCommitSHA string `json:"last_commit_sha"`
 	// `type` will be `file`, `dir`, `symlink`, or `submodule`
 	Type string `json:"type"`
 	Size int64  `json:"size"`

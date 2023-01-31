@@ -1,27 +1,17 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
 import (
 	"context"
-	"os"
 	"testing"
-
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestBleveIndexAndSearch(t *testing.T) {
-	dir, err := os.MkdirTemp("", "bleve.index")
-	assert.NoError(t, err)
-	if err != nil {
-		assert.Fail(t, "Unable to create temporary directory")
-		return
-	}
-	defer util.RemoveAll(dir)
+	dir := t.TempDir()
 	indexer := NewBleveIndexer(dir)
 	defer indexer.Close()
 
@@ -30,7 +20,7 @@ func TestBleveIndexAndSearch(t *testing.T) {
 		return
 	}
 
-	err = indexer.Index([]*IndexerData{
+	err := indexer.Index([]*IndexerData{
 		{
 			ID:      1,
 			RepoID:  2,

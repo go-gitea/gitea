@@ -1,0 +1,59 @@
+<div class="ui attached segment">
+	<div class="ui key list">
+		<div class="item">
+			{{.locale.Tr "settings.oauth2_application_create_description"}}
+		</div>
+		{{range $app := .Applications}}
+			<div class="item">
+				<div class="right floated content">
+					<a href="{{$.Link}}/oauth2/{{$app.ID}}" class="ui primary tiny button">
+						{{svg "octicon-pencil" 16 "mr-2"}}
+						{{$.locale.Tr "settings.oauth2_application_edit"}}
+					</a>
+					<button class="ui red tiny button delete-button" data-modal-id="remove-gitea-oauth2-application"
+							data-url="{{$.Link}}/oauth2/{{$app.ID}}/delete">
+						{{svg "octicon-trash" 16 "mr-2"}}
+						{{$.locale.Tr "settings.delete_key"}}
+					</button>
+				</div>
+				<div class="content">
+					<strong>{{$app.Name}}</strong>
+				</div>
+			</div>
+		{{end}}
+	</div>
+</div>
+<div class="ui attached bottom segment">
+	<h5 class="ui top header">
+		{{.locale.Tr "settings.create_oauth2_application"}}
+	</h5>
+	<form class="ui form ignore-dirty" action="{{.Link}}/oauth2" method="post">
+		{{.CsrfTokenHtml}}
+		<div class="field {{if .Err_AppName}}error{{end}}">
+			<label for="application-name">{{.locale.Tr "settings.oauth2_application_name"}}</label>
+			<input id="application-name" name="application_name" value="{{.application_name}}" required>
+		</div>
+		<div class="field {{if .Err_RedirectURI}}error{{end}}">
+			<label for="redirect-uri">{{.locale.Tr "settings.oauth2_redirect_uri"}}</label>
+			<input type="url" name="redirect_uri" id="redirect-uri">
+		</div>
+		<div class="field ui checkbox {{if .Err_ConfidentialClient}}error{{end}}">
+			<label>{{.locale.Tr "settings.oauth2_confidential_client"}}</label>
+			<input type="checkbox" name="confidential_client" checked>
+		</div>
+		<button class="ui green button">
+			{{.locale.Tr "settings.create_oauth2_application_button"}}
+		</button>
+	</form>
+</div>
+
+<div class="ui small basic delete modal" id="remove-gitea-oauth2-application">
+	<div class="ui icon header">
+		{{svg "octicon-trash"}}
+		{{.locale.Tr "settings.remove_oauth2_application"}}
+	</div>
+	<div class="content">
+		<p>{{.locale.Tr "settings.oauth2_application_remove_description"}}</p>
+	</div>
+	{{template "base/delete_modal_actions" .}}
+</div>

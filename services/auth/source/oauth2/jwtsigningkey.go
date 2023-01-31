@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package oauth2
 
@@ -31,11 +30,11 @@ import (
 
 // ErrInvalidAlgorithmType represents an invalid algorithm error.
 type ErrInvalidAlgorithmType struct {
-	Algorightm string
+	Algorithm string
 }
 
 func (err ErrInvalidAlgorithmType) Error() string {
-	return fmt.Sprintf("JWT signing algorithm is not supported: %s", err.Algorightm)
+	return fmt.Sprintf("JWT signing algorithm is not supported: %s", err.Algorithm)
 }
 
 // JWTSigningKey represents a algorithm/key pair to sign JWTs
@@ -339,7 +338,7 @@ func InitSigningKey() error {
 	}
 
 	if err != nil {
-		return fmt.Errorf("Error while loading or creating JWT key: %v", err)
+		return fmt.Errorf("Error while loading or creating JWT key: %w", err)
 	}
 
 	signingKey, err := CreateJWTSigningKey(setting.OAuth2.JWTSigningAlgorithm, key)
@@ -364,7 +363,7 @@ func loadOrCreateSymmetricKey() (interface{}, error) {
 			return nil, err
 		}
 
-		setting.CreateOrAppendToCustomConf(func(cfg *ini.File) {
+		setting.CreateOrAppendToCustomConf("oauth2.JWT_SECRET", func(cfg *ini.File) {
 			secretBase64 := base64.RawURLEncoding.EncodeToString(key)
 			cfg.Section("oauth2").Key("JWT_SECRET").SetValue(secretBase64)
 		})

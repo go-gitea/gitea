@@ -121,7 +121,7 @@ Apart from `extra_links.tmpl` and `extra_tabs.tmpl`, there are other useful temp
 - `body_inner_pre.tmpl`, before the top navigation bar, but already inside the main container `<div class="full height">`.
 - `body_inner_post.tmpl`, before the end of the main container.
 - `body_outer_post.tmpl`, before the bottom `<footer>` element.
-- `footer.tmpl`, right before the end of the `<body>` tag, a good place for additional Javascript.
+- `footer.tmpl`, right before the end of the `<body>` tag, a good place for additional JavaScript.
 
 #### Example: PlantUML
 
@@ -129,7 +129,7 @@ You can add [PlantUML](https://plantuml.com/) support to Gitea's markdown by usi
 The data is encoded and sent to the PlantUML server which generates the picture. There is an online
 demo server at http://www.plantuml.com/plantuml, but if you (or your users) have sensitive data you
 can set up your own [PlantUML server](https://plantuml.com/server) instead. To set up PlantUML rendering,
-copy javascript files from https://gitea.com/davidsvantesson/plantuml-code-highlight and put them in your
+copy JavaScript files from https://gitea.com/davidsvantesson/plantuml-code-highlight and put them in your
 `$GITEA_CUSTOM/public` folder. Then add the following to `custom/footer.tmpl`:
 
 ```html
@@ -137,9 +137,9 @@ copy javascript files from https://gitea.com/davidsvantesson/plantuml-code-highl
   $(async () => {
     if (!$('.language-plantuml').length) return;
     await Promise.all([
-      $.getScript('https://your-server.com/deflate.js'), 
-      $.getScript('https://your-server.com/encode.js'),
-      $.getScript('https://your-server.com/plantuml_codeblock_parse.js'),
+      $.getScript('https://your-gitea-server.com/assets/deflate.js'),
+      $.getScript('https://your-gitea-server.com/assets/encode.js'),
+      $.getScript('https://your-gitea-server.com/assets/plantuml_codeblock_parse.js'),
     ]);
     // Replace call with address to your plantuml server
     parsePlantumlCodeBlocks("https://www.plantuml.com/plantuml");
@@ -149,13 +149,13 @@ copy javascript files from https://gitea.com/davidsvantesson/plantuml-code-highl
 
 You can then add blocks like the following to your markdown:
 
-    ```plantuml
-        Alice -> Bob: Authentication Request
-        Bob --> Alice: Authentication Response
+```plantuml
+Alice -> Bob: Authentication Request
+Bob --> Alice: Authentication Response
 
-        Alice -> Bob: Another authentication Request
-        Alice <-- Bob: Another authentication Response
-    ```
+Alice -> Bob: Another authentication Request
+Alice <-- Bob: Another authentication Response
+```
 
 The script will detect tags with `class="language-plantuml"`, but you can change this by providing a second argument to `parsePlantumlCodeBlocks`.
 

@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package organization_test
 
@@ -38,7 +37,7 @@ func TestUserIsPublicMember(t *testing.T) {
 }
 
 func testUserIsPublicMember(t *testing.T, uid, orgID int64, expected bool) {
-	user, err := user_model.GetUserByID(uid)
+	user, err := user_model.GetUserByID(db.DefaultContext, uid)
 	assert.NoError(t, err)
 	is, err := organization.IsPublicMembership(orgID, user.ID)
 	assert.NoError(t, err)
@@ -66,7 +65,7 @@ func TestIsUserOrgOwner(t *testing.T) {
 }
 
 func testIsUserOrgOwner(t *testing.T, uid, orgID int64, expected bool) {
-	user, err := user_model.GetUserByID(uid)
+	user, err := user_model.GetUserByID(db.DefaultContext, uid)
 	assert.NoError(t, err)
 	is, err := organization.IsOrganizationOwner(db.DefaultContext, orgID, user.ID)
 	assert.NoError(t, err)
@@ -130,7 +129,7 @@ func testUserListIsUserOrgOwner(t *testing.T, orgID int64, expected map[int64]bo
 func TestAddOrgUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	testSuccess := func(orgID, userID int64, isPublic bool) {
-		org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: orgID}).(*user_model.User)
+		org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: orgID})
 		expectedNumMembers := org.NumMembers
 		if !unittest.BeanExists(t, &organization.OrgUser{OrgID: orgID, UID: userID}) {
 			expectedNumMembers++
@@ -139,7 +138,7 @@ func TestAddOrgUser(t *testing.T) {
 		ou := &organization.OrgUser{OrgID: orgID, UID: userID}
 		unittest.AssertExistsAndLoadBean(t, ou)
 		assert.Equal(t, isPublic, ou.IsPublic)
-		org = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: orgID}).(*user_model.User)
+		org = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: orgID})
 		assert.EqualValues(t, expectedNumMembers, org.NumMembers)
 	}
 

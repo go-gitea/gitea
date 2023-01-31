@@ -3,7 +3,7 @@ import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoIssueContentHistory} from './repo-issue-content.js';
 import {validateTextareaNonEmpty} from './comp/EasyMDE.js';
 import {initViewedCheckboxListenerFor, countAndUpdateViewedFiles} from './pull-view-file.js';
-import {initPopup} from './common-global.js';
+import {initTooltip} from '../modules/tippy.js';
 
 const {csrfToken} = window.config;
 
@@ -44,26 +44,29 @@ export function initRepoDiffConversationForm() {
   $(document).on('submit', '.conversation-holder form', async (e) => {
     e.preventDefault();
 
-    const form = $(e.target);
-    const $textArea = form.find('textarea');
+    const $form = $(e.target);
+    const $textArea = $form.find('textarea');
     if (!validateTextareaNonEmpty($textArea)) {
       return;
     }
 
-    const newConversationHolder = $(await $.post(form.attr('action'), form.serialize()));
-    const {path, side, idx} = newConversationHolder.data();
+    const formDataString = String(new URLSearchParams(new FormData($form[0])));
+    const $newConversationHolder = $(await $.post($form.attr('action'), formDataString));
+    const {path, side, idx} = $newConversationHolder.data();
 
-    initPopup(newConversationHolder.find('.tooltip'));
-    form.closest('.conversation-holder').replaceWith(newConversationHolder);
-    if (form.closest('tr').data('line-type') === 'same') {
+    $newConversationHolder.find('.tooltip').each(function () {
+      initTooltip(this);
+    });
+
+    $form.closest('.conversation-holder').replaceWith($newConversationHolder);
+    if ($form.closest('tr').data('line-type') === 'same') {
       $(`[data-path="${path}"] a.add-code-comment[data-idx="${idx}"]`).addClass('invisible');
     } else {
       $(`[data-path="${path}"] a.add-code-comment[data-side="${side}"][data-idx="${idx}"]`).addClass('invisible');
     }
-    newConversationHolder.find('.dropdown').dropdown();
-    initCompReactionSelector(newConversationHolder);
+    $newConversationHolder.find('.dropdown').dropdown();
+    initCompReactionSelector($newConversationHolder);
   });
-
 
   $(document).on('click', '.resolve-conversation', async function (e) {
     e.preventDefault();
@@ -114,33 +117,49 @@ function onShowMoreFiles() {
   countAndUpdateViewedFiles();
 }
 
-export function initRepoDiffShowMore() {
-  $('#diff-files, #diff-file-boxes').on('click', '#diff-show-more-files, #diff-show-more-files-stats', (e) => {
-    e.preventDefault();
+export function doLoadMoreFiles(link, diffEnd, callback) {
+  const url = `${link}?skip-to=${diffEnd}&file-only=true`;
+  loadMoreFiles(url, callback);
+}
 
-    if ($(e.target).hasClass('disabled')) {
+function loadMoreFiles(url, callback) {
+  const $target = $('a#diff-show-more-files');
+  if ($target.hasClass('disabled')) {
+    callback();
+    return;
+  }
+  $target.addClass('disabled');
+  $.ajax({
+    type: 'GET',
+    url,
+  }).done((resp) => {
+    if (!resp) {
+      $target.removeClass('disabled');
+      callback(resp);
       return;
     }
-    $('#diff-show-more-files, #diff-show-more-files-stats').addClass('disabled');
-
-    const url = $('#diff-show-more-files, #diff-show-more-files-stats').data('href');
-    $.ajax({
-      type: 'GET',
-      url,
-    }).done((resp) => {
-      if (!resp) {
-        $('#diff-show-more-files, #diff-show-more-files-stats').removeClass('disabled');
-        return;
-      }
-      $('#diff-too-many-files-stats').remove();
-      $('#diff-files').append($(resp).find('#diff-files li'));
-      $('#diff-incomplete').replaceWith($(resp).find('#diff-file-boxes').children());
-      onShowMoreFiles();
-    }).fail(() => {
-      $('#diff-show-more-files, #diff-show-more-files-stats').removeClass('disabled');
-    });
+    $('#diff-incomplete').replaceWith($(resp).find('#diff-file-boxes').children());
+    // By simply rerunning the script we add the new data to our existing
+    // pagedata object. this triggers vue and the filetree and filelist will
+    // render the new elements.
+    $('body').append($(resp).find('script#diff-data-script'));
+    onShowMoreFiles();
+    callback(resp);
+  }).fail(() => {
+    $target.removeClass('disabled');
+    callback();
   });
-  $(document).on('click', 'a.diff-show-more-button', (e) => {
+}
+
+export function initRepoDiffShowMore() {
+  $(document).on('click', 'a#diff-show-more-files', (e) => {
+    e.preventDefault();
+
+    const $target = $(e.target);
+    loadMoreFiles($target.data('href'), () => {});
+  });
+
+  $(document).on('click', 'a.diff-load-button', (e) => {
     e.preventDefault();
     const $target = $(e.target);
 
@@ -159,7 +178,6 @@ export function initRepoDiffShowMore() {
         $target.removeClass('disabled');
         return;
       }
-
       $target.parent().replaceWith($(resp).find('#diff-file-boxes .diff-file-body .file-body').children());
       onShowMoreFiles();
     }).fail(() => {

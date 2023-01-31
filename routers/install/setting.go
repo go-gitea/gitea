@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package install
 
@@ -24,7 +23,7 @@ func PreloadSettings(ctx context.Context) bool {
 		log.Info("Log path: %s", setting.LogRootPath)
 		log.Info("Configuration file: %s", setting.CustomConf)
 		log.Info("Prepare to run install page")
-		translation.InitLocales()
+		translation.InitLocales(ctx)
 		if setting.EnableSQLite3 {
 			log.Info("SQLite3 is supported")
 		}

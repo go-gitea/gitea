@@ -1,13 +1,13 @@
 // Copyright 2019 The Gitea Authors.
 // All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package pull
 
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -38,20 +38,20 @@ func TestPullRequest_CommitMessageTrailersPattern(t *testing.T) {
 
 func TestPullRequest_GetDefaultMergeMessage_InternalTracker(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2}).(*issues_model.PullRequest)
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 
-	assert.NoError(t, pr.LoadBaseRepo())
+	assert.NoError(t, pr.LoadBaseRepo(db.DefaultContext))
 	gitRepo, err := git.OpenRepository(git.DefaultContext, pr.BaseRepo.RepoPath())
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
-	mergeMessage, err := GetDefaultMergeMessage(gitRepo, pr, "")
+	mergeMessage, _, err := GetDefaultMergeMessage(db.DefaultContext, gitRepo, pr, "")
 	assert.NoError(t, err)
 	assert.Equal(t, "Merge pull request 'issue3' (#3) from branch2 into master", mergeMessage)
 
 	pr.BaseRepoID = 1
 	pr.HeadRepoID = 2
-	mergeMessage, err = GetDefaultMergeMessage(gitRepo, pr, "")
+	mergeMessage, _, err = GetDefaultMergeMessage(db.DefaultContext, gitRepo, pr, "")
 	assert.NoError(t, err)
 	assert.Equal(t, "Merge pull request 'issue3' (#3) from user2/repo1:branch2 into master", mergeMessage)
 }
@@ -65,17 +65,17 @@ func TestPullRequest_GetDefaultMergeMessage_ExternalTracker(t *testing.T) {
 			ExternalTrackerFormat: "https://someurl.com/{user}/{repo}/{issue}",
 		},
 	}
-	baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	baseRepo.Units = []*repo_model.RepoUnit{&externalTracker}
 
-	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2, BaseRepo: baseRepo}).(*issues_model.PullRequest)
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2, BaseRepo: baseRepo})
 
-	assert.NoError(t, pr.LoadBaseRepo())
+	assert.NoError(t, pr.LoadBaseRepo(db.DefaultContext))
 	gitRepo, err := git.OpenRepository(git.DefaultContext, pr.BaseRepo.RepoPath())
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
-	mergeMessage, err := GetDefaultMergeMessage(gitRepo, pr, "")
+	mergeMessage, _, err := GetDefaultMergeMessage(db.DefaultContext, gitRepo, pr, "")
 	assert.NoError(t, err)
 
 	assert.Equal(t, "Merge pull request 'issue3' (!3) from branch2 into master", mergeMessage)
@@ -84,7 +84,7 @@ func TestPullRequest_GetDefaultMergeMessage_ExternalTracker(t *testing.T) {
 	pr.HeadRepoID = 2
 	pr.BaseRepo = nil
 	pr.HeadRepo = nil
-	mergeMessage, err = GetDefaultMergeMessage(gitRepo, pr, "")
+	mergeMessage, _, err = GetDefaultMergeMessage(db.DefaultContext, gitRepo, pr, "")
 	assert.NoError(t, err)
 
 	assert.Equal(t, "Merge pull request 'issue3' (#3) from user2/repo2:branch2 into master", mergeMessage)

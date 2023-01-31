@@ -1,14 +1,13 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package webhook
 
 import (
 	"testing"
 
-	webhook_model "code.gitea.io/gitea/models/webhook"
 	api "code.gitea.io/gitea/modules/structs"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -102,7 +101,7 @@ func TestPackagistPayload(t *testing.T) {
 		p.Action = api.HookIssueReviewed
 
 		d := new(PackagistPayload)
-		pl, err := d.Review(p, webhook_model.HookEventPullRequestReviewApproved)
+		pl, err := d.Review(p, webhook_module.HookEventPullRequestReviewApproved)
 		require.NoError(t, err)
 		require.Nil(t, pl)
 	})
@@ -112,6 +111,26 @@ func TestPackagistPayload(t *testing.T) {
 
 		d := new(PackagistPayload)
 		pl, err := d.Repository(p)
+		require.NoError(t, err)
+		require.Nil(t, pl)
+	})
+
+	t.Run("Wiki", func(t *testing.T) {
+		p := wikiTestPayload()
+
+		d := new(PackagistPayload)
+		p.Action = api.HookWikiCreated
+		pl, err := d.Wiki(p)
+		require.NoError(t, err)
+		require.Nil(t, pl)
+
+		p.Action = api.HookWikiEdited
+		pl, err = d.Wiki(p)
+		require.NoError(t, err)
+		require.Nil(t, pl)
+
+		p.Action = api.HookWikiDeleted
+		pl, err = d.Wiki(p)
 		require.NoError(t, err)
 		require.Nil(t, pl)
 	})

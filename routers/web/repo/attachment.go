@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -45,7 +44,11 @@ func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 	}
 	defer file.Close()
 
-	attach, err := attachment.UploadAttachment(file, ctx.Doer.ID, repoID, 0, header.Filename, allowedTypes)
+	attach, err := attachment.UploadAttachment(file, allowedTypes, &repo_model.Attachment{
+		Name:       header.Filename,
+		UploaderID: ctx.Doer.ID,
+		RepoID:     repoID,
+	})
 	if err != nil {
 		if upload.IsErrFileTypeForbidden(err) {
 			ctx.Error(http.StatusBadRequest, err.Error())
@@ -83,7 +86,7 @@ func DeleteAttachment(ctx *context.Context) {
 	})
 }
 
-// GetAttachment serve attachements
+// GetAttachment serve attachments
 func GetAttachment(ctx *context.Context) {
 	attach, err := repo_model.GetAttachmentByUUID(ctx, ctx.Params(":uuid"))
 	if err != nil {
@@ -95,7 +98,7 @@ func GetAttachment(ctx *context.Context) {
 		return
 	}
 
-	repository, unitType, err := repo_service.LinkedRepository(attach)
+	repository, unitType, err := repo_service.LinkedRepository(ctx, attach)
 	if err != nil {
 		ctx.ServerError("LinkedRepository", err)
 		return

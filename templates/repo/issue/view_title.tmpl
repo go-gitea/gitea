@@ -6,7 +6,7 @@
 			</div>
 		{{end}}
 		<h1>
-			<span id="issue-title">{{RenderIssueTitle $.Context .Issue.Title $.RepoLink $.Repository.ComposeMetas}}</span>
+			<span id="issue-title">{{RenderIssueTitle $.Context .Issue.Title $.RepoLink $.Repository.ComposeMetas | RenderCodeBlock}}</span>
 			<span class="index">#{{.Issue.Index}}</span>
 			<div id="edit-title-input" class="ui input" style="display: none">
 				<input value="{{.Issue.Title}}" maxlength="255" autocomplete="off">
@@ -44,8 +44,8 @@
 			{{$baseHref = printf "<a href=\"%s\">%s</a>" (.BaseBranchHTMLURL | Escape) $baseHref}}
 		{{end}}
 		{{if .Issue.PullRequest.HasMerged}}
-			{{ $mergedStr:= TimeSinceUnix .Issue.PullRequest.MergedUnix $.locale }}
-			{{if .Issue.OriginalAuthor }}
+			{{$mergedStr:= TimeSinceUnix .Issue.PullRequest.MergedUnix $.locale}}
+			{{if .Issue.OriginalAuthor}}
 				{{.Issue.OriginalAuthor}}
 				<span class="pull-desc">{{$.locale.Tr "repo.pulls.merged_title_desc" .NumCommits $headHref $baseHref $mergedStr | Safe}}</span>
 			{{else}}
@@ -53,7 +53,7 @@
 				<span class="pull-desc">{{$.locale.Tr "repo.pulls.merged_title_desc" .NumCommits $headHref $baseHref $mergedStr | Safe}}</span>
 			{{end}}
 		{{else}}
-			{{if .Issue.OriginalAuthor }}
+			{{if .Issue.OriginalAuthor}}
 				<span id="pull-desc" class="pull-desc">{{.Issue.OriginalAuthor}} {{$.locale.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref | Safe}}</span>
 			{{else}}
 				<span id="pull-desc" class="pull-desc">
@@ -80,11 +80,11 @@
 						</div>
 						<div class="scrolling menu" id="branch-select">
 							{{range .Branches}}
-								{{ $sameBase := ne $.BaseName $.HeadUserName }}
-								{{ $differentBranch := ne . $.HeadBranch }}
-								{{ if or $sameBase $differentBranch }}
+								{{$sameBase := ne $.BaseName $.HeadUserName}}
+								{{$differentBranch := ne . $.HeadBranch}}
+								{{if or $sameBase $differentBranch}}
 									<div class="item {{if eq $.BaseBranch .}}selected{{end}}" data-branch="{{.}}">{{$.BaseName}}{{if $.HeadRepo}}/{{$.HeadRepo}}{{end}}:{{.}}</div>
-								{{ end }}
+								{{end}}
 							{{end}}
 						</div>
 					</div>
@@ -92,9 +92,9 @@
 			</span>
 		{{end}}
 	{{else}}
-		{{ $createdStr:= TimeSinceUnix .Issue.CreatedUnix $.locale }}
+		{{$createdStr:= TimeSinceUnix .Issue.CreatedUnix $.locale}}
 		<span class="time-desc">
-			{{if .Issue.OriginalAuthor }}
+			{{if .Issue.OriginalAuthor}}
 				{{$.locale.Tr "repo.issues.opened_by_fake" $createdStr (.Issue.OriginalAuthor|Escape) | Safe}}
 			{{else if gt .Issue.Poster.ID 0}}
 				{{$.locale.Tr "repo.issues.opened_by" $createdStr (.Issue.Poster.HomeLink|Escape) (.Issue.Poster.GetDisplayName|Escape) | Safe}}

@@ -1,7 +1,6 @@
 // Copyright 2018 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -13,12 +12,11 @@ import (
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // GetSingleCommit get a commit via sha
@@ -53,7 +51,7 @@ func GetSingleCommit(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	sha := ctx.Params(":sha")
-	if (validation.GitRefNamePatternInvalid.MatchString(sha) || !validation.CheckGitRefAdditionalRulesValid(sha)) && !git.SHAPattern.MatchString(sha) {
+	if !git.IsValidRefPattern(sha) {
 		ctx.Error(http.StatusUnprocessableEntity, "no valid ref or sha", fmt.Sprintf("no valid ref or sha: %s", sha))
 		return
 	}
@@ -71,7 +69,7 @@ func getCommit(ctx *context.APIContext, identifier string) {
 		return
 	}
 
-	json, err := convert.ToCommit(ctx.Repo.Repository, ctx.Repo.GitRepo, commit, nil)
+	json, err := convert.ToCommit(ctx.Repo.Repository, ctx.Repo.GitRepo, commit, nil, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "toCommit", err)
 		return
@@ -105,6 +103,10 @@ func GetAllCommits(ctx *context.APIContext) {
 	//   in: query
 	//   description: filepath of a file/dir
 	//   type: string
+	// - name: stat
+	//   in: query
+	//   description: include diff stats for every commit (disable for speedup, default 'true')
+	//   type: boolean
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -210,9 +212,12 @@ func GetAllCommits(ctx *context.APIContext) {
 	userCache := make(map[string]*user_model.User)
 
 	apiCommits := make([]*api.Commit, len(commits))
+
+	stat := ctx.FormString("stat") == "" || ctx.FormBool("stat")
+
 	for i, commit := range commits {
 		// Create json struct
-		apiCommits[i], err = convert.ToCommit(ctx.Repo.Repository, ctx.Repo.GitRepo, commit, userCache)
+		apiCommits[i], err = convert.ToCommit(ctx.Repo.Repository, ctx.Repo.GitRepo, commit, userCache, stat)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "toCommit", err)
 			return

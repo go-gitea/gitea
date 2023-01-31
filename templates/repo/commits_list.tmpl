@@ -2,10 +2,10 @@
 		<table class="ui very basic striped table unstackable fixed" id="commits-table">
 			<thead>
 				<tr>
-					<th class="four wide">{{.locale.Tr "repo.commits.author"}}</th>
+					<th class="three wide">{{.locale.Tr "repo.commits.author"}}</th>
 					<th class="two wide sha">SHA1</th>
-					<th class="seven wide message">{{.locale.Tr "repo.commits.message"}}</th>
-					<th class="three wide right aligned">{{.locale.Tr "repo.commits.date"}}</th>
+					<th class="nine wide message">{{.locale.Tr "repo.commits.message"}}</th>
+					<th class="two wide right aligned">{{.locale.Tr "repo.commits.date"}}</th>
 				</tr>
 			</thead>
 			<tbody class="commit-list">
@@ -62,8 +62,8 @@
 							<span class="message-wrapper">
 							{{if $.PageIsWiki}}
 								<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{.Summary | RenderEmoji}}</span>
-							{{else }}
-								{{ $commitLink:= printf "%s/commit/%s" $commitRepoLink (PathEscape .ID.String) }}
+							{{else}}
+								{{$commitLink:= printf "%s/commit/%s" $commitRepoLink (PathEscape .ID.String)}}
 								<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject $.Context .Message $commitRepoLink $commitLink $.Repository.ComposeMetas}}</span>
 							{{end}}
 							</span>

@@ -1,7 +1,6 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -15,10 +14,10 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -59,12 +58,12 @@ func ListForks(ctx *context.APIContext) {
 	}
 	apiForks := make([]*api.Repository, len(forks))
 	for i, fork := range forks {
-		access, err := access_model.AccessLevel(ctx.Doer, fork)
+		access, err := access_model.AccessLevel(ctx, ctx.Doer, fork)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 			return
 		}
-		apiForks[i] = convert.ToRepo(fork, access)
+		apiForks[i] = convert.ToRepo(ctx, fork, access)
 	}
 
 	ctx.SetTotalCountHeader(int64(ctx.Repo.Repository.NumForks))
@@ -142,7 +141,7 @@ func CreateFork(ctx *context.APIContext) {
 		Description: repo.Description,
 	})
 	if err != nil {
-		if repo_model.IsErrRepoAlreadyExist(err) {
+		if repo_model.IsErrReachLimitOfRepo(err) || repo_model.IsErrRepoAlreadyExist(err) {
 			ctx.Error(http.StatusConflict, "ForkRepository", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "ForkRepository", err)
@@ -151,5 +150,5 @@ func CreateFork(ctx *context.APIContext) {
 	}
 
 	// TODO change back to 201
-	ctx.JSON(http.StatusAccepted, convert.ToRepo(fork, perm.AccessModeOwner))
+	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx, fork, perm.AccessModeOwner))
 }

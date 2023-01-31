@@ -1,4 +1,4 @@
-import Vue from 'vue';
+import {createApp} from 'vue';
 import {svgs} from '../svg.js';
 
 export const vueDelimiters = ['${', '}'];
@@ -8,13 +8,14 @@ export function initVueEnv() {
   if (vueEnvInited) return;
   vueEnvInited = true;
 
-  const isProd = window.config.runModeIsProd;
-  Vue.config.productionTip = false;
-  Vue.config.devtools = !isProd;
+  // As far as I could tell, this is no longer possible.
+  // But there seem not to be a guide what to do instead.
+  // const isProd = window.config.runModeIsProd;
+  // Vue.config.devtools = !isProd;
 }
 
 let vueSvgInited = false;
-export function initVueSvg() {
+export function initVueSvg(app) {
   if (vueSvgInited) return;
   vueSvgInited = true;
 
@@ -24,7 +25,7 @@ export function initVueSvg() {
       .replace(/height="[0-9]+"/, 'v-bind:height="size"')
       .replace(/width="[0-9]+"/, 'v-bind:width="size"');
 
-    Vue.component(name, {
+    app.component(name, {
       props: {
         size: {
           type: String,
@@ -42,8 +43,7 @@ export function initVueApp(el, opts = {}) {
   }
   if (!el) return null;
 
-  return new Vue(Object.assign({
-    el,
-    delimiters: vueDelimiters,
-  }, opts));
+  return createApp(
+    {delimiters: vueDelimiters, ...opts}
+  ).mount(el);
 }

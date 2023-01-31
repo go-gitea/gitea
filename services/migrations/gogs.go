@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migrations
 
@@ -71,6 +70,20 @@ type GogsDownloader struct {
 	openIssuesFinished bool
 	openIssuesPages    int
 	transport          http.RoundTripper
+}
+
+// String implements Stringer
+func (g *GogsDownloader) String() string {
+	return fmt.Sprintf("migration from gogs server %s %s/%s", g.baseURL, g.repoOwner, g.repoName)
+}
+
+// ColorFormat provides a basic color format for a GogsDownloader
+func (g *GogsDownloader) ColorFormat(s fmt.State) {
+	if g == nil {
+		log.ColorFprintf(s, "<nil: GogsDownloader>")
+		return
+	}
+	log.ColorFprintf(s, "migration from gogs server %s %s/%s", g.baseURL, g.repoOwner, g.repoName)
 }
 
 // SetContext set context
@@ -209,7 +222,7 @@ func (g *GogsDownloader) getIssues(page int, state string) ([]*base.Issue, bool,
 		State: state,
 	})
 	if err != nil {
-		return nil, false, fmt.Errorf("error while listing repos: %v", err)
+		return nil, false, fmt.Errorf("error while listing repos: %w", err)
 	}
 
 	for _, issue := range issues {
@@ -228,7 +241,7 @@ func (g *GogsDownloader) GetComments(commentable base.Commentable) ([]*base.Comm
 
 	comments, err := g.client.ListIssueComments(g.repoOwner, g.repoName, commentable.GetForeignIndex())
 	if err != nil {
-		return nil, false, fmt.Errorf("error while listing repos: %v", err)
+		return nil, false, fmt.Errorf("error while listing repos: %w", err)
 	}
 	for _, comment := range comments {
 		if len(comment.Body) == 0 || comment.Poster == nil {

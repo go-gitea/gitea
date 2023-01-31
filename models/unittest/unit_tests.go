@@ -1,6 +1,5 @@
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package unittest
 
@@ -55,7 +54,7 @@ func BeanExists(t assert.TestingT, bean interface{}, conditions ...interface{}) 
 }
 
 // AssertExistsAndLoadBean assert that a bean exists and load it from the test database
-func AssertExistsAndLoadBean(t assert.TestingT, bean interface{}, conditions ...interface{}) interface{} {
+func AssertExistsAndLoadBean[T any](t assert.TestingT, bean T, conditions ...interface{}) T {
 	exists, err := LoadBeanIfExists(bean, conditions...)
 	assert.NoError(t, err)
 	assert.True(t, exists,

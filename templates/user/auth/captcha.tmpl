@@ -1,0 +1,24 @@
+{{if .EnableCaptcha}}{{if eq .CaptchaType "image"}}
+	<div class="inline field">
+		<label>{{/* This is CAPTCHA field */}}</label>
+		{{.Captcha.CreateHTML}}
+	</div>
+	<div class="required inline field {{if .Err_Captcha}}error{{end}}">
+		<label for="captcha">{{.locale.Tr "captcha"}}</label>
+		<input id="captcha" name="captcha" value="{{.captcha}}" autocomplete="off">
+	</div>
+{{else if eq .CaptchaType "recaptcha"}}
+	<div class="inline field required">
+		<div class="g-recaptcha" data-sitekey="{{.RecaptchaSitekey}}"></div>
+	</div>
+{{else if eq .CaptchaType "hcaptcha"}}
+	<div class="inline field required">
+		<div class="h-captcha" data-sitekey="{{.HcaptchaSitekey}}"></div>
+	</div>
+{{else if eq .CaptchaType "mcaptcha"}}
+	<div class="inline field df ac db-small captcha-field">
+		<span>{{.locale.Tr "captcha"}}</span>
+		<div class="border-secondary w-100-small" id="mcaptcha__widget-container" style="width: 50%; height: 5em"></div>
+		<div class="m-captcha" data-sitekey="{{.McaptchaSitekey}}" data-instance-url="{{.McaptchaURL}}"></div>
+	</div>
+{{end}}{{end}}

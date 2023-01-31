@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migrations
 
@@ -19,8 +18,8 @@ import (
 func TestMigrateWhiteBlocklist(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	adminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user1"}).(*user_model.User)
-	nonAdminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"}).(*user_model.User)
+	adminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user1"})
+	nonAdminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
 
 	setting.Migrations.AllowedDomains = "github.com"
 	setting.Migrations.AllowLocalNetworks = false

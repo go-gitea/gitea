@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package activitypub
 
@@ -97,7 +96,6 @@ func PersonInbox(ctx *context.APIContext) {
 	//   description: username of the user
 	//   type: string
 	//   required: true
-	// responses:
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"

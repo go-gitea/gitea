@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package container
 
@@ -16,6 +15,7 @@ import (
 )
 
 const (
+	PropertyRepository        = "container.repository"
 	PropertyDigest            = "container.digest"
 	PropertyMediaType         = "container.mediatype"
 	PropertyManifestTagged    = "container.manifest.tagged"
@@ -94,7 +94,9 @@ func parseOCIImageConfig(r io.Reader) (*Metadata, error) {
 		if i := strings.Index(cmd, "#(nop) "); i != -1 {
 			cmd = strings.TrimSpace(cmd[i+7:])
 		}
-		imageLayers = append(imageLayers, cmd)
+		if cmd != "" {
+			imageLayers = append(imageLayers, cmd)
+		}
 	}
 
 	metadata := &Metadata{

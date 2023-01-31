@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 // Package cmd provides subcommands to the gitea binary - such as "web" or
 // "admin".
@@ -68,7 +67,7 @@ Ensure you are running in the correct environment or set the correct configurati
 If this is the intended configuration file complete the [database] section.`, setting.CustomConf)
 	}
 	if err := db.InitEngine(ctx); err != nil {
-		return fmt.Errorf("unable to initialize the database using the configuration in %q. Error: %v", setting.CustomConf, err)
+		return fmt.Errorf("unable to initialize the database using the configuration in %q. Error: %w", setting.CustomConf, err)
 	}
 	return nil
 }

@@ -5,26 +5,26 @@
 		<div class="ui repo-search">
 			<form class="ui form ignore-dirty" method="get">
 				<div class="ui fluid action input">
-					<input name="q" value="{{.Keyword}}"{{if .CodeIndexerUnavailable }} disabled{{end}} placeholder="{{.locale.Tr "repo.search.search_repo"}}">
-					<div class="ui dropdown selection{{if .CodeIndexerUnavailable }} disabled{{end}}">
-						<input name="t" type="hidden"{{if .CodeIndexerUnavailable }} disabled{{end}} value="{{.queryType}}">{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+					<input name="q" value="{{.Keyword}}"{{if .CodeIndexerUnavailable}} disabled{{end}} placeholder="{{.locale.Tr "repo.search.search_repo"}}">
+					<div class="ui dropdown selection tooltip{{if .CodeIndexerUnavailable}} disabled{{end}}" data-content="{{.locale.Tr "repo.search.type.tooltip"}}">
+						<input name="t" type="hidden"{{if .CodeIndexerUnavailable}} disabled{{end}} value="{{.queryType}}">{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="text">{{.locale.Tr (printf "repo.search.%s" (or .queryType "fuzzy"))}}</div>
 						<div class="menu transition hidden" tabindex="-1" style="display: block !important;">
-							<div class="item" data-value="">{{.locale.Tr "repo.search.fuzzy"}}</div>
-							<div class="item" data-value="match">{{.locale.Tr "repo.search.match"}}</div>
+							<div class="item tooltip" data-value="" data-content="{{.locale.Tr "repo.search.fuzzy.tooltip"}}">{{.locale.Tr "repo.search.fuzzy"}}</div>
+							<div class="item tooltip" data-value="match" data-content="{{.locale.Tr "repo.search.match.tooltip"}}">{{.locale.Tr "repo.search.match"}}</div>
 						</div>
 					</div>
-					<button class="ui icon button"{{if .CodeIndexerUnavailable }} disabled{{end}} type="submit">{{svg "octicon-search" 16}}</button>
+					<button class="ui icon button"{{if .CodeIndexerUnavailable}} disabled{{end}} type="submit">{{svg "octicon-search" 16}}</button>
 				</div>
 			</form>
 		</div>
-		{{if .CodeIndexerUnavailable }}
+		{{if .CodeIndexerUnavailable}}
 			<div class="ui error message">
 				<p>{{$.locale.Tr "repo.search.code_search_unavailable"}}</p>
 			</div>
 		{{else if .Keyword}}
 			<h3>
-				{{.locale.Tr "repo.search.results" (.Keyword|Escape) (.RepoLink|Escape) (.RepoName|Escape) | Str2html }}
+				{{.locale.Tr "repo.search.results" (.Keyword|Escape) (.RepoLink|Escape) (.RepoName|Escape) | Str2html}}
 			</h3>
 			{{if .SearchResults}}
 				<div class="df ac fw">

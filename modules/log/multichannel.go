@@ -1,6 +1,5 @@
 // Copyright 2020 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package log
 
@@ -33,7 +32,7 @@ func newLogger(name string, buffer int64) *MultiChannelledLogger {
 func (l *MultiChannelledLogger) SetLogger(name, provider, config string) error {
 	eventLogger, err := NewChannelledLog(l.ctx, name, provider, config, l.bufferLength)
 	if err != nil {
-		return fmt.Errorf("Failed to create sublogger (%s): %v", name, err)
+		return fmt.Errorf("failed to create sublogger (%s): %w", name, err)
 	}
 
 	l.MultiChannelledLog.DelLogger(name)
@@ -41,9 +40,9 @@ func (l *MultiChannelledLogger) SetLogger(name, provider, config string) error {
 	err = l.MultiChannelledLog.AddLogger(eventLogger)
 	if err != nil {
 		if IsErrDuplicateName(err) {
-			return fmt.Errorf("Duplicate named sublogger %s %v", name, l.MultiChannelledLog.GetEventLoggerNames())
+			return fmt.Errorf("%w other names: %v", err, l.MultiChannelledLog.GetEventLoggerNames())
 		}
-		return fmt.Errorf("Failed to add sublogger (%s): %v", name, err)
+		return fmt.Errorf("failed to add sublogger (%s): %w", name, err)
 	}
 
 	return nil
