@@ -65,6 +65,7 @@ func (run *ActionRun) Link() string {
 	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.Link(), run.Index)
 }
 
+// RefLink return the url of run's ref
 func (run *ActionRun) RefLink() string {
 	refName := git.RefName(run.Ref)
 	if refName.RefGroup() == "pull" {
@@ -73,6 +74,7 @@ func (run *ActionRun) RefLink() string {
 	return git.RefURL(run.Repo.Link(), run.Ref)
 }
 
+// PrettyRef return #id for pull ref or ShortName for others
 func (run *ActionRun) PrettyRef() string {
 	refName := git.RefName(run.Ref)
 	if refName.RefGroup() == "pull" {
