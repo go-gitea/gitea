@@ -246,7 +246,7 @@ func (source *Source) getMappedMemberships(l *ldap.Conn, uid string) (map[string
 	membershipsToAdd := map[string][]string{}
 	membershipsToRemove := map[string][]string{}
 	for group, memberships := range ldapGroupsToTeams {
-		isUserInGroup := util.IsStringInSlice(group, usersLdapGroups)
+		isUserInGroup := util.SliceContainsString(usersLdapGroups, group)
 		if isUserInGroup {
 			for org, teams := range memberships {
 				membershipsToAdd[org] = teams

@@ -173,12 +173,12 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 		// Avoid walking tree if there are no globs
 		if len(gt.Globs()) > 0 {
 			tmpDirSlash := strings.TrimSuffix(filepath.ToSlash(tmpDir), "/") + "/"
-			if err := filepath.Walk(tmpDirSlash, func(path string, info os.FileInfo, walkErr error) error {
+			if err := filepath.WalkDir(tmpDirSlash, func(path string, d os.DirEntry, walkErr error) error {
 				if walkErr != nil {
 					return walkErr
 				}
 
-				if info.IsDir() {
+				if d.IsDir() {
 					return nil
 				}
 

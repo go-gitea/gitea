@@ -110,7 +110,7 @@ func getOrgRepoCtx(ctx *context.Context) (*orgRepoCtx, error) {
 
 func checkHookType(ctx *context.Context) string {
 	hookType := strings.ToLower(ctx.Params(":type"))
-	if !util.IsStringInSlice(hookType, setting.Webhook.Types, true) {
+	if !util.SliceContainsString(setting.Webhook.Types, hookType, true) {
 		ctx.NotFound("checkHookType", nil)
 		return ""
 	}
@@ -591,7 +591,7 @@ func checkWebhook(ctx *context.Context) (*orgRepoCtx, *webhook.Webhook) {
 	} else if orCtx.OrgID > 0 {
 		w, err = webhook.GetWebhookByOrgID(ctx.Org.Organization.ID, ctx.ParamsInt64(":id"))
 	} else if orCtx.IsAdmin {
-		w, err = webhook.GetSystemOrDefaultWebhook(ctx.ParamsInt64(":id"))
+		w, err = webhook.GetSystemOrDefaultWebhook(ctx, ctx.ParamsInt64(":id"))
 	}
 	if err != nil || w == nil {
 		if webhook.IsErrWebhookNotExist(err) {

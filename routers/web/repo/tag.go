@@ -54,7 +54,7 @@ func NewProtectedTagPost(ctx *context.Context) {
 		pt.AllowlistTeamIDs, _ = base.StringsToInt64s(strings.Split(form.AllowlistTeams, ","))
 	}
 
-	if err := git_model.InsertProtectedTag(pt); err != nil {
+	if err := git_model.InsertProtectedTag(ctx, pt); err != nil {
 		ctx.ServerError("InsertProtectedTag", err)
 		return
 	}
@@ -107,7 +107,7 @@ func EditProtectedTagPost(ctx *context.Context) {
 	pt.AllowlistUserIDs, _ = base.StringsToInt64s(strings.Split(form.AllowlistUsers, ","))
 	pt.AllowlistTeamIDs, _ = base.StringsToInt64s(strings.Split(form.AllowlistTeams, ","))
 
-	if err := git_model.UpdateProtectedTag(pt); err != nil {
+	if err := git_model.UpdateProtectedTag(ctx, pt); err != nil {
 		ctx.ServerError("UpdateProtectedTag", err)
 		return
 	}
@@ -168,7 +168,7 @@ func selectProtectedTagByContext(ctx *context.Context) *git_model.ProtectedTag {
 		id = ctx.ParamsInt64(":id")
 	}
 
-	tag, err := git_model.GetProtectedTagByID(id)
+	tag, err := git_model.GetProtectedTagByID(ctx, id)
 	if err != nil {
 		ctx.ServerError("GetProtectedTagByID", err)
 		return nil

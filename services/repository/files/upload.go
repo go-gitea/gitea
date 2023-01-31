@@ -10,6 +10,7 @@ import (
 	"path"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -40,7 +41,7 @@ func cleanUpAfterFailure(infos *[]uploadInfo, t *TemporaryUploadRepository, orig
 			continue
 		}
 		if !info.lfsMetaObject.Existing {
-			if _, err := git_model.RemoveLFSMetaObjectByOid(t.repo.ID, info.lfsMetaObject.Oid); err != nil {
+			if _, err := git_model.RemoveLFSMetaObjectByOid(db.DefaultContext, t.repo.ID, info.lfsMetaObject.Oid); err != nil {
 				original = fmt.Errorf("%w, %v", original, err) // We wrap the original error - as this is the underlying error that required the fallback
 			}
 		}
@@ -64,7 +65,7 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	for i, upload := range uploads {
 		// Check file is not lfs locked, will return nil if lock setting not enabled
 		filepath := path.Join(opts.TreePath, upload.Name)
-		lfsLock, err := git_model.GetTreePathLock(repo.ID, filepath)
+		lfsLock, err := git_model.GetTreePathLock(ctx, repo.ID, filepath)
 		if err != nil {
 			return err
 		}
@@ -132,7 +133,7 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		if infos[i].lfsMetaObject == nil {
 			continue
 		}
-		infos[i].lfsMetaObject, err = git_model.NewLFSMetaObject(infos[i].lfsMetaObject)
+		infos[i].lfsMetaObject, err = git_model.NewLFSMetaObject(ctx, infos[i].lfsMetaObject)
 		if err != nil {
 			// OK Now we need to cleanup
 			return cleanUpAfterFailure(&infos, t, err)

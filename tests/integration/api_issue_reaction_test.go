@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
@@ -28,7 +29,7 @@ func TestAPIIssuesReactions(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/reactions?token=%s",
@@ -87,7 +88,7 @@ func TestAPICommentReactions(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
 
 	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})

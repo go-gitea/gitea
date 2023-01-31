@@ -750,6 +750,20 @@ and
 - `SEND_BUFFER_LEN`: **100**: Buffer length of mailing queue. **DEPRECATED** use `LENGTH` in `[queue.mailer]`
 - `SEND_AS_PLAIN_TEXT`: **false**: Send mails only in plain text, without HTML alternative.
 
+## Incoming Email (`email.incoming`)
+
+- `ENABLED`: **false**: Enable handling of incoming emails.
+- `REPLY_TO_ADDRESS`: **\<empty\>**: The email address including the `%{token}` placeholder that will be replaced per user/action. Example: `incoming+%{token}@example.com`. The placeholder must appear in the user part of the address (before the `@`).
+- `HOST`: **\<empty\>**: IMAP server host.
+- `PORT`: **\<empty\>**: IMAP server port.
+- `USERNAME`: **\<empty\>**: Username of the receiving account.
+- `PASSWORD`: **\<empty\>**: Password of the receiving account.
+- `USE_TLS`: **false**: Whether the IMAP server uses TLS.
+- `SKIP_TLS_VERIFY`: **false**: If set to `true`, completely ignores server certificate validation errors. This option is unsafe.
+- `MAILBOX`: **INBOX**: The mailbox name where incoming mail will end up.
+- `DELETE_HANDLED_MESSAGE`: **true**: Whether handled messages should be deleted from the mailbox.
+- `MAXIMUM_MESSAGE_SIZE`: **10485760**: Maximum size of a message to handle. Bigger messages are ignored. Set to 0 to allow every size.
+
 ## Cache (`cache`)
 
 - `ENABLED`: **true**: Enable the cache.
@@ -1025,6 +1039,16 @@ Default templates for project boards:
 - `SCHEDULE`: **@every 168h**: Cron syntax to set how often to check.
 - `OLDER_THAN`: **@every 8760h**: any system notice older than this expression will be deleted from database.
 
+#### Cron -  Garbage collect LFS pointers in repositories ('cron.gc_lfs')
+
+- `ENABLED`: **false**: Enable service.
+- `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
+- `SCHEDULE`: **@every 24h**: Cron syntax to set how often to check.
+- `OLDER_THAN`: **168h**: Only attempt to garbage collect LFSMetaObjects older than this (default 7 days)
+- `LAST_UPDATED_MORE_THAN_AGO`: **72h**: Only attempt to garbage collect LFSMetaObjects that have not been attempted to be garbage collected for this long (default 3 days)
+- `NUMBER_TO_CHECK_PER_REPO`: **100**: Minimum number of stale LFSMetaObjects to check per repo. Set to `0` to always check all.
+- `PROPORTION_TO_CHECK_PER_REPO`: **0.6**: Check at least this proportion of LFSMetaObjects per repo. (This may cause all stale LFSMetaObjects to be checked.)
+
 ## Git (`git`)
 
 - `PATH`: **""**: The path of Git executable. If empty, Gitea searches through the PATH environment.
@@ -1048,7 +1072,7 @@ Default templates for project boards:
 
 ## Git - Timeout settings (`git.timeout`)
 
-- `DEFAUlT`: **360**: Git operations default timeout seconds.
+- `DEFAULT`: **360**: Git operations default timeout seconds.
 - `MIGRATE`: **600**: Migrate external repositories timeout seconds.
 - `MIRROR`: **300**: Mirror external repositories timeout seconds.
 - `CLONE`: **300**: Git clone from internal repositories timeout seconds.
@@ -1289,6 +1313,41 @@ PROXY_ENABLED = true
 PROXY_URL = socks://127.0.0.1:1080
 PROXY_HOSTS = *.github.com
 ```
+
+## Actions (`actions`)
+
+- `ENABLED`: **false**: Enable/Disable actions capabilities
+- `DEFAULT_ACTIONS_URL`: **https://gitea.com**: Default address to get action plugins, e.g. the default value means downloading from "https://gitea.com/actions/checkout" for "uses: actions/checkout@v3"
+
+`DEFAULT_ACTIONS_URL` indicates where should we find the relative path action plugin. i.e. when use an action in a workflow file like
+
+```yaml
+name: versions
+on:
+  push:
+    branches:
+      - main
+      - releases/*
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+```
+
+Now we need to know how to get actions/checkout, this configuration is the default git server to get it. That means we will get the repository via git clone ${DEFAULT_ACTIONS_URL}/actions/checkout and fetch tag v3.
+
+To help people who don't want to mirror these actions in their git instances, the default value is https://gitea.com
+To help people run actions totally in their network, they can change the value and copy all necessary action repositories into their git server.
+
+Of course we should support the form in future PRs like
+
+```yaml
+steps:
+  - uses: gitea.com/actions/checkout@v3
+```
+
+although Github don't support this form.
 
 ## Other (`other`)
 

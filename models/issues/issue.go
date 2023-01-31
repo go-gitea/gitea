@@ -235,7 +235,7 @@ func (issue *Issue) LoadLabels(ctx context.Context) (err error) {
 // LoadPoster loads poster
 func (issue *Issue) LoadPoster(ctx context.Context) (err error) {
 	if issue.Poster == nil {
-		issue.Poster, err = user_model.GetUserByID(ctx, issue.PosterID)
+		issue.Poster, err = user_model.GetPossibleUserByID(ctx, issue.PosterID)
 		if err != nil {
 			issue.PosterID = -1
 			issue.Poster = user_model.NewGhostUser()
@@ -1098,7 +1098,7 @@ func GetIssueWithAttrsByID(id int64) (*Issue, error) {
 }
 
 // GetIssuesByIDs return issues with the given IDs.
-func GetIssuesByIDs(ctx context.Context, issueIDs []int64) ([]*Issue, error) {
+func GetIssuesByIDs(ctx context.Context, issueIDs []int64) (IssueList, error) {
 	issues := make([]*Issue, 0, 10)
 	return issues, db.GetEngine(ctx).In("id", issueIDs).Find(&issues)
 }
@@ -1529,7 +1529,7 @@ func IsUserParticipantsOfIssue(user *user_model.User, issue *Issue) bool {
 		log.Error(err.Error())
 		return false
 	}
-	return util.IsInt64InSlice(user.ID, userIDs)
+	return util.SliceContains(userIDs, user.ID)
 }
 
 // UpdateIssueMentions updates issue-user relations for mentioned users.
@@ -1572,6 +1572,7 @@ type IssueStatsOptions struct {
 	RepoID            int64
 	Labels            string
 	MilestoneID       int64
+	ProjectID         int64
 	AssigneeID        int64
 	MentionedID       int64
 	PosterID          int64
@@ -1648,6 +1649,11 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 
 		if opts.MilestoneID > 0 {
 			sess.And("issue.milestone_id = ?", opts.MilestoneID)
+		}
+
+		if opts.ProjectID > 0 {
+			sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
+				And("project_issue.project_id=?", opts.ProjectID)
 		}
 
 		if opts.AssigneeID > 0 {
@@ -2023,7 +2029,7 @@ func (issue *Issue) GetParticipantIDsByIssue(ctx context.Context) ([]int64, erro
 		Find(&userIDs); err != nil {
 		return nil, fmt.Errorf("get poster IDs: %w", err)
 	}
-	if !util.IsInt64InSlice(issue.PosterID, userIDs) {
+	if !util.SliceContains(userIDs, issue.PosterID) {
 		return append(userIDs, issue.PosterID), nil
 	}
 	return userIDs, nil
@@ -2365,7 +2371,7 @@ func CountOrphanedIssues(ctx context.Context) (int64, error) {
 // DeleteOrphanedIssues delete issues without a repo
 func DeleteOrphanedIssues(ctx context.Context) error {
 	var attachmentPaths []string
-	err := db.AutoTx(ctx, func(ctx context.Context) error {
+	err := db.WithTx(ctx, func(ctx context.Context) error {
 		var ids []int64
 
 		if err := db.GetEngine(ctx).Table("issue").Distinct("issue.repo_id").
