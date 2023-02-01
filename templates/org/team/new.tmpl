@@ -78,7 +78,7 @@
 										<tr>
 											<th>{{.locale.Tr "units.unit"}}</th>
 											<th class="center aligned">{{.locale.Tr "org.teams.none_access"}}
-											<span class="tooltip vm" data-content="{{.locale.Tr "org.teams.none_access_helper"}}">{{svg "octicon-question" 16 "ml-2"}}</th>
+											<span class="tooltip vm" data-content="{{.locale.Tr "org.teams.none_access_helper"}}">{{svg "octicon-question" 16 "ml-2"}}</span></th>
 											<th class="center aligned">{{.locale.Tr "org.teams.read_access"}}
 											<span class="tooltip vm" data-content="{{.locale.Tr "org.teams.read_access_helper"}}">{{svg "octicon-question" 16 "ml-2"}}</span></th>
 											<th class="center aligned">{{.locale.Tr "org.teams.write_access"}}
@@ -99,17 +99,17 @@
 													</td>
 													<td class="center aligned">
 														<div class="ui radio checkbox">
-															<input type="radio" class="hidden" name="unit_{{$unit.Type.Value}}" value="0"{{if or ($unit.Type.UnitGlobalDisabled) (eq ($.Team.UnitAccessMode $.Context $unit.Type) 0)}} checked{{end}}>
+															<input type="radio" class="hidden" name="unit_{{$unit.Type.Value}}" value="0"{{if or ($unit.Type.UnitGlobalDisabled) (eq ($.Team.UnitAccessMode $.Context $unit.Type) 0)}} checked{{end}} title="{{$.locale.Tr "org.teams.none_access"}}">
 														</div>
 													</td>
 													<td class="center aligned">
 														<div class="ui radio checkbox">
-															<input type="radio" class="hidden" name="unit_{{$unit.Type.Value}}" value="1"{{if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $.Context $unit.Type) 1)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}}>
+															<input type="radio" class="hidden" name="unit_{{$unit.Type.Value}}" value="1"{{if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $.Context $unit.Type) 1)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}} title="{{$.locale.Tr "org.teams.read_access"}}">
 														</div>
 													</td>
 													<td class="center aligned">
 														<div class="ui radio checkbox">
-															<input type="radio" class="hidden" name="unit_{{$unit.Type.Value}}" value="2"{{if (eq ($.Team.UnitAccessMode $.Context $unit.Type) 2)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}}>
+															<input type="radio" class="hidden" name="unit_{{$unit.Type.Value}}" value="2"{{if (eq ($.Team.UnitAccessMode $.Context $unit.Type) 2)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}} title="{{$.locale.Tr "org.teams.write_access"}}">
 														</div>
 													</td>
 												</tr>
