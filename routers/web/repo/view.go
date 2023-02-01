@@ -730,15 +730,8 @@ func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
 
 // Home render repository home page
 func Home(ctx *context.Context) {
-	if setting.EnableFeed {
-		isFeed, _, showFeedType := feed.GetFeedType(ctx.Params(":reponame"), ctx.Req)
-		if isFeed {
-			feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
-			return
-		}
-
-		ctx.Data["EnableFeed"] = true
-		ctx.Data["FeedURL"] = ctx.Repo.Repository.HTMLURL()
+	if feed.RenderFeed(ctx) {
+		return
 	}
 
 	checkHomeCodeViewable(ctx)
