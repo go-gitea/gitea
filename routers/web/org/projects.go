@@ -123,6 +123,7 @@ func NewProject(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
 	ctx.Data["ProjectTypes"] = project_model.GetProjectsConfig()
 	ctx.Data["CanWriteProjects"] = canWriteUnit(ctx)
+	ctx.Data["PageIsViewProjects"] = true
 	ctx.Data["HomeLink"] = ctx.ContextUser.HomeLink()
 	shared_user.RenderUserHeader(ctx)
 	ctx.HTML(http.StatusOK, tplProjectsNew)
