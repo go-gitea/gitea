@@ -51,7 +51,7 @@
 					{{range .Deploykeys}}
 						<div class="item">
 							<div class="right floated content">
-								<button class="ui red tiny button delete-button" data-modal-id="delete-deploy_keys-modal" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
+								<button class="ui red tiny button delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
 									{{$.locale.Tr "settings.delete_key"}}
 								</button>
 							</div>
@@ -75,11 +75,9 @@
 			{{end}}
 		</div>
 	</div>
-	<br/>
-	{{template "repo/settings/secrets" .}}
 </div>
 
-<div class="ui small basic delete modal" id="delete-deploy_keys-modal">
+<div class="ui small basic delete modal">
 	<div class="ui icon header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "repo.settings.deploy_key_deletion"}}
