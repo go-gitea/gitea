@@ -70,8 +70,8 @@ codeberg.org/gusted/mcaptcha v0.0.0-20220723083913-4f3072e1d570/go.mod h1:IIAjsi
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
 git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078 h1:cliQ4HHsCo6xi2oWZYKWW4bly/Ory9FuTpFPRxj/mAg=
 git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078/go.mod h1:g/V2Hjas6Z1UHUp4yIx6bATpNzJ7DYtD0FG3+xARWxs=
-gitea.com/gitea/act v0.234.0 h1:gWgMPMKdNcMrp/o2CF/SyVKiiJLBFl+xmzfvoHCpykU=
-gitea.com/gitea/act v0.234.0/go.mod h1:2C/WbTalu1VPNgbVaZJaZDzlOtAKqkXJhdOClxkMy14=
+gitea.com/gitea/act v0.234.2-0.20230131074955-e46ede1b1744 h1:cqzKmGlX0wynSXO04NILpL25eBGwogDrKpkkbwmIpj4=
+gitea.com/gitea/act v0.234.2-0.20230131074955-e46ede1b1744/go.mod h1:2C/WbTalu1VPNgbVaZJaZDzlOtAKqkXJhdOClxkMy14=
 gitea.com/go-chi/binding v0.0.0-20221013104517-b29891619681 h1:MMSPgnVULVwV9kEBgvyEUhC9v/uviZ55hPJEMjpbNR4=
 gitea.com/go-chi/binding v0.0.0-20221013104517-b29891619681/go.mod h1:77TZu701zMXWJFvB8gvTbQ92zQ3DQq/H7l5wAEjQRKc=
 gitea.com/go-chi/cache v0.0.0-20210110083709-82c4c9ce2d5e/go.mod h1:k2V/gPDEtXGjjMGuBJiapffAXTv76H4snSmlJRLUhH0=
