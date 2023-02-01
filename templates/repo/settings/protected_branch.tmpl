@@ -4,42 +4,43 @@
 	{{template "repo/settings/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
-		<h4 class="ui top attached header">
-			{{.locale.Tr "repo.settings.branch_protection" (.Branch.BranchName|Escape) | Str2html}}
-		</h4>
-		<div class="ui attached segment branch-protection">
-			<form class="ui form" action="{{.Link}}" method="post">
-				{{.CsrfTokenHtml}}
-				<div class="inline field">
-					<div class="ui checkbox">
-						<input class="enable-protection" name="protected" type="checkbox" data-target="#protection_box" {{if .Branch.IsProtected}}checked{{end}}>
-						<label>{{.locale.Tr "repo.settings.protect_this_branch"}}</label>
-						<p class="help">{{.locale.Tr "repo.settings.protect_this_branch_desc"}}</p>
-					</div>
+		<form class="ui form" action="{{.Link}}" method="post">
+			<h4 class="ui top attached header">
+				{{.locale.Tr "repo.settings.branch_protection" (.Rule.RuleName|Escape) | Str2html}}
+			</h4>
+			<div class="ui attached segment branch-protection">
+				<div class="field">
+					<label for="protected_file_patterns">{{.locale.Tr "repo.settings.protect_branch_name_pattern"}}</label>
+					<input name="rule_name" type="text" value="{{.Rule.RuleName}}">
+					<input name="rule_id" type="hidden" value="{{.Rule.ID}}">
 				</div>
-				<div id="protection_box" class="fields {{if not .Branch.IsProtected}}disabled{{end}}">
+
+				<div class="ui divider"></div>
+
+				{{.CsrfTokenHtml}}
+				<div id="protection_box" class="fields">
 					<div class="field">
 						<div class="ui radio checkbox">
-							<input name="enable_push" type="radio" value="none" class="disable-whitelist" data-target="#whitelist_box" {{if not .Branch.CanPush}}checked{{end}}>
+							<input name="enable_push" type="radio" value="none" class="disable-whitelist" data-target="#whitelist_box" {{if not .Rule.CanPush}}checked{{end}}>
 							<label>{{.locale.Tr "repo.settings.protect_disable_push"}}</label>
 							<p class="help">{{.locale.Tr "repo.settings.protect_disable_push_desc"}}</p>
 						</div>
 					</div>
 					<div class="field">
 						<div class="ui radio checkbox">
-							<input name="enable_push" type="radio" value="all" class="disable-whitelist" data-target="#whitelist_box" {{if and (.Branch.CanPush) (not .Branch.EnableWhitelist)}}checked{{end}}>
+							<input name="enable_push" type="radio" value="all" class="disable-whitelist" data-target="#whitelist_box" {{if and (.Rule.CanPush) (not .Rule.EnableWhitelist)}}checked{{end}}>
 							<label>{{.locale.Tr "repo.settings.protect_enable_push"}}</label>
 							<p class="help">{{.locale.Tr "repo.settings.protect_enable_push_desc"}}</p>
 						</div>
 					</div>
 					<div class="field">
 						<div class="ui radio checkbox">
-							<input name="enable_push" type="radio" value="whitelist" class="enable-whitelist" data-target="#whitelist_box" {{if and (.Branch.CanPush) (.Branch.EnableWhitelist)}}checked{{end}}>
+							<input name="enable_push" type="radio" value="whitelist" class="enable-whitelist" data-target="#whitelist_box" {{if and (.Rule.CanPush) (.Rule.EnableWhitelist)}}checked{{end}}>
 							<label>{{.locale.Tr "repo.settings.protect_whitelist_committers"}}</label>
 							<p class="help">{{.locale.Tr "repo.settings.protect_whitelist_committers_desc"}}</p>
 						</div>
 					</div>
-					<div id="whitelist_box" class="fields {{if not .Branch.EnableWhitelist}}disabled{{end}}">
+					<div id="whitelist_box" class="fields {{if not .Rule.EnableWhitelist}}disabled{{end}}">
 						<div class="whitelist field">
 							<label>{{.locale.Tr "repo.settings.protect_whitelist_users"}}</label>
 							<div class="ui multiple search selection dropdown">
@@ -76,20 +77,22 @@
 						<br>
 						<div class="whitelist field">
 							<div class="ui checkbox">
-								<input type="checkbox" name="whitelist_deploy_keys" {{if .Branch.WhitelistDeployKeys}}checked{{end}}>
+								<input type="checkbox" name="whitelist_deploy_keys" {{if .Rule.WhitelistDeployKeys}}checked{{end}}>
 								<label for="whitelist_deploy_keys">{{.locale.Tr "repo.settings.protect_whitelist_deploy_keys"}}</label>
 							</div>
 						</div>
 					</div>
 
+					<div class="ui divider"></div>
+
 					<div class="field">
 						<div class="ui checkbox">
-							<input class="enable-whitelist" name="enable_merge_whitelist" type="checkbox" data-target="#merge_whitelist_box" {{if .Branch.EnableMergeWhitelist}}checked{{end}}>
+							<input class="enable-whitelist" name="enable_merge_whitelist" type="checkbox" data-target="#merge_whitelist_box" {{if .Rule.EnableMergeWhitelist}}checked{{end}}>
 							<label>{{.locale.Tr "repo.settings.protect_merge_whitelist_committers"}}</label>
 							<p class="help">{{.locale.Tr "repo.settings.protect_merge_whitelist_committers_desc"}}</p>
 						</div>
 					</div>
-					<div id="merge_whitelist_box" class="fields {{if not .Branch.EnableMergeWhitelist}}disabled{{end}}">
+					<div id="merge_whitelist_box" class="fields {{if not .Rule.EnableMergeWhitelist}}disabled{{end}}">
 						<div class="whitelist field">
 							<label>{{.locale.Tr "repo.settings.protect_merge_whitelist_users"}}</label>
 							<div class="ui multiple search selection dropdown">
@@ -127,13 +130,13 @@
 
 					<div class="field">
 						<div class="ui checkbox">
-							<input class="enable-statuscheck" name="enable_status_check" type="checkbox" data-target="#statuscheck_contexts_box" {{if eq (len .branch_status_check_contexts) 0}}disabled{{end}} {{if .Branch.EnableStatusCheck}}checked{{end}}>
+							<input class="enable-statuscheck" name="enable_status_check" type="checkbox" data-target="#statuscheck_contexts_box" {{if eq (len .branch_status_check_contexts) 0}}disabled{{end}} {{if .Rule.EnableStatusCheck}}checked{{end}}>
 							<label>{{.locale.Tr "repo.settings.protect_check_status_contexts"}}</label>
 							<p class="help">{{.locale.Tr "repo.settings.protect_check_status_contexts_desc"}}</p>
 						</div>
 					</div>
 
-					<div id="statuscheck_contexts_box" class="fields {{if not .Branch.EnableStatusCheck}}disabled{{end}}">
+					<div id="statuscheck_contexts_box" class="fields {{if not .Rule.EnableStatusCheck}}disabled{{end}}">
 						<div class="field">
 							<table class="ui celled table six column">
 								<thead>
@@ -159,17 +162,17 @@
 
 					<div class="field">
 						<label for="required-approvals">{{.locale.Tr "repo.settings.protect_required_approvals"}}</label>
-						<input name="required_approvals" id="required-approvals" type="number" value="{{.Branch.RequiredApprovals}}">
+						<input name="required_approvals" id="required-approvals" type="number" value="{{.Rule.RequiredApprovals}}">
 						<p class="help">{{.locale.Tr "repo.settings.protect_required_approvals_desc"}}</p>
 					</div>
 					<div class="field">
 						<div class="ui checkbox">
-							<input class="enable-whitelist" name="enable_approvals_whitelist" type="checkbox" data-target="#approvals_whitelist_box" {{if .Branch.EnableApprovalsWhitelist}}checked{{end}}>
+							<input class="enable-whitelist" name="enable_approvals_whitelist" type="checkbox" data-target="#approvals_whitelist_box" {{if .Rule.EnableApprovalsWhitelist}}checked{{end}}>
 							<label>{{.locale.Tr "repo.settings.protect_approvals_whitelist_enabled"}}</label>
 							<p class="help">{{.locale.Tr "repo.settings.protect_approvals_whitelist_enabled_desc"}}</p>
 						</div>
 					</div>
-					<div id="approvals_whitelist_box" class="fields {{if not .Branch.EnableApprovalsWhitelist}}disabled{{end}}">
+					<div id="approvals_whitelist_box" class="fields {{if not .Rule.EnableApprovalsWhitelist}}disabled{{end}}">
 						<div class="whitelist field">
 							<label>{{.locale.Tr "repo.settings.protect_approvals_whitelist_users"}}</label>
 							<div class="ui multiple search selection dropdown">
@@ -206,59 +209,59 @@
 					</div>
 					<div class="field">
 						<div class="ui checkbox">
-							<input name="block_on_rejected_reviews" type="checkbox" {{if .Branch.BlockOnRejectedReviews}}checked{{end}}>
+							<input name="block_on_rejected_reviews" type="checkbox" {{if .Rule.BlockOnRejectedReviews}}checked{{end}}>
 							<label for="block_on_rejected_reviews">{{.locale.Tr "repo.settings.block_rejected_reviews"}}</label>
 							<p class="help">{{.locale.Tr "repo.settings.block_rejected_reviews_desc"}}</p>
 						</div>
 					</div>
 					<div class="field">
 						<div class="ui checkbox">
-							<input name="block_on_official_review_requests" type="checkbox" {{if .Branch.BlockOnOfficialReviewRequests}}checked{{end}}>
+							<input name="block_on_official_review_requests" type="checkbox" {{if .Rule.BlockOnOfficialReviewRequests}}checked{{end}}>
 							<label for="block_on_official_review_requests">{{.locale.Tr "repo.settings.block_on_official_review_requests"}}</label>
 							<p class="help">{{.locale.Tr "repo.settings.block_on_official_review_requests_desc"}}</p>
 						</div>
 					</div>
 					<div class="field">
 						<div class="ui checkbox">
-							<input name="dismiss_stale_approvals" type="checkbox" {{if .Branch.DismissStaleApprovals}}checked{{end}}>
+							<input name="dismiss_stale_approvals" type="checkbox" {{if .Rule.DismissStaleApprovals}}checked{{end}}>
 							<label for="dismiss_stale_approvals">{{.locale.Tr "repo.settings.dismiss_stale_approvals"}}</label>
 							<p class="help">{{.locale.Tr "repo.settings.dismiss_stale_approvals_desc"}}</p>
 						</div>
 					</div>
 					<div class="field">
 						<div class="ui checkbox">
-							<input name="require_signed_commits" type="checkbox" {{if .Branch.RequireSignedCommits}}checked{{end}}>
+							<input name="require_signed_commits" type="checkbox" {{if .Rule.RequireSignedCommits}}checked{{end}}>
 							<label for="require_signed_commits">{{.locale.Tr "repo.settings.require_signed_commits"}}</label>
 							<p class="help">{{.locale.Tr "repo.settings.require_signed_commits_desc"}}</p>
 						</div>
 					</div>
 					<div class="field">
 						<div class="ui checkbox">
-							<input name="block_on_outdated_branch" type="checkbox" {{if .Branch.BlockOnOutdatedBranch}}checked{{end}}>
+							<input name="block_on_outdated_branch" type="checkbox" {{if .Rule.BlockOnOutdatedBranch}}checked{{end}}>
 							<label for="block_on_outdated_branch">{{.locale.Tr "repo.settings.block_outdated_branch"}}</label>
 							<p class="help">{{.locale.Tr "repo.settings.block_outdated_branch_desc"}}</p>
 						</div>
 					</div>
 					<div class="field">
 						<label for="protected_file_patterns">{{.locale.Tr "repo.settings.protect_protected_file_patterns"}}</label>
-						<input name="protected_file_patterns" id="protected_file_patterns" type="text" value="{{.Branch.ProtectedFilePatterns}}">
+						<input name="protected_file_patterns" id="protected_file_patterns" type="text" value="{{.Rule.ProtectedFilePatterns}}">
 						<p class="help">{{.locale.Tr "repo.settings.protect_protected_file_patterns_desc" | Safe}}</p>
 					</div>
 					<div class="field">
 						<label for="unprotected_file_patterns">{{.locale.Tr "repo.settings.protect_unprotected_file_patterns"}}</label>
-						<input name="unprotected_file_patterns" id="unprotected_file_patterns" type="text" value="{{.Branch.UnprotectedFilePatterns}}">
+						<input name="unprotected_file_patterns" id="unprotected_file_patterns" type="text" value="{{.Rule.UnprotectedFilePatterns}}">
 						<p class="help">{{.locale.Tr "repo.settings.protect_unprotected_file_patterns_desc" | Safe}}</p>
 					</div>
-
 				</div>
 
 				<div class="ui divider"></div>
 
 				<div class="field">
-					<button class="ui green button">{{$.locale.Tr "repo.settings.update_settings"}}</button>
+					<button class="ui green button">{{$.locale.Tr "repo.settings.protected_branch.save_rule"}}</button>
+					<button class="ui gray button">{{$.locale.Tr "cancel"}}</button>
 				</div>
-			</form>
-		</div>
+			</div>
+		</form>
 	</div>
 </div>
 {{template "base/footer" .}}

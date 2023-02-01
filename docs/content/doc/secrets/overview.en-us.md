@@ -1,6 +1,6 @@
 ---
 date: "2022-12-19T21:26:00+08:00"
-title: "Encrypted secrets"
+title: "Secrets"
 slug: "secrets/overview"
 draft: false
 toc: false
@@ -12,24 +12,24 @@ menu:
     identifier: "overview"
 ---
 
-# Encrypted secrets
+# Secrets
 
-Encrypted secrets allow you to store sensitive information in your organization or repository.
+Secrets allow you to store sensitive information in your user, organization or repository.
 Secrets are available on Gitea 1.19+.
 
 # Naming your secrets
 
 The following rules apply to secret names:
 
-Secret names can only contain alphanumeric characters (`[a-z]`, `[A-Z]`, `[0-9]`) or underscores (`_`). Spaces are not allowed.
+- Secret names can only contain alphanumeric characters (`[a-z]`, `[A-Z]`, `[0-9]`) or underscores (`_`). Spaces are not allowed.
 
-Secret names must not start with the `GITHUB_` and `GITEA_` prefix.
+- Secret names must not start with the `GITHUB_` and `GITEA_` prefix.
 
-Secret names must not start with a number.
+- Secret names must not start with a number.
 
-Secret names are not case-sensitive.
+- Secret names are not case-sensitive.
 
-Secret names must be unique at the level they are created at.
+- Secret names must be unique at the level they are created at.
 
 For example, a secret created at the repository level must have a unique name in that repository, and a secret created at the organization level must have a unique name at that level.
 

@@ -51,7 +51,7 @@ menu:
 | 內建 Container Registry  | [✘](https://github.com/go-gitea/gitea/issues/2316) | ✘    | ✘         | ✓         | ✓         | ✘         | ✘            |
 | 對外部 Git 鏡像          | ✓                                                  | ✓    | ✘         | ✘         | ✓         | ✓         | ✓            |
 | FIDO (2FA)               | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            |
-| 內建 CI/CD               | ✘                                                  | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
+| 內建 CI/CD               | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
 | 子群組: 群組中的群組     | ✘                                                  | ✘    | ✘         | ✓         | ✓         | ✘         | ✓            |
 
 ## 程式碼管理
@@ -93,7 +93,7 @@ menu:
 | 問題搜尋             | ✓                                                  | ✘                                             | ✓         | ✓                                                                       | ✓         | ✓         | ✘            |
 | 全域問題搜尋         | [✘](https://github.com/go-gitea/gitea/issues/2434) | ✘                                             | ✓         | ✓                                                                       | ✓         | ✓         | ✘            |
 | 問題相依             | ✓                                                  | ✘                                             | ✘         | ✘                                                                       | ✘         | ✘         | ✘            |
-| 從電子郵件建立問題   | [✘](https://github.com/go-gitea/gitea/issues/6226) | [✘](https://github.com/gogs/gogs/issues/2602) | ✘         | ✘                                                                       | ✓         | ✓         | ✘            |
+| 從電子郵件建立問題   | [✘](https://github.com/go-gitea/gitea/issues/6226) | [✘](https://github.com/gogs/gogs/issues/2602) | ✘         | ✓                                                                       | ✓         | ✓         | ✘            |
 | 服務台               | [✘](https://github.com/go-gitea/gitea/issues/6219) | ✘                                             | ✘         | [✓](https://gitlab.com/groups/gitlab-org/-/epics/3103)                  | ✓         | ✘         | ✘            |
 
 ## 拉取/合併請求

@@ -15,8 +15,8 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
 
-	"github.com/duo-labs/webauthn/protocol"
-	"github.com/duo-labs/webauthn/webauthn"
+	"github.com/go-webauthn/webauthn/protocol"
+	"github.com/go-webauthn/webauthn/webauthn"
 )
 
 // WebAuthnRegister initializes the webauthn registration procedure

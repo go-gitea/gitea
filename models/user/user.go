@@ -559,32 +559,6 @@ func GetUserSalt() (string, error) {
 	return hex.EncodeToString(rBytes), nil
 }
 
-// NewGhostUser creates and returns a fake user for someone has deleted their account.
-func NewGhostUser() *User {
-	return &User{
-		ID:        -1,
-		Name:      "Ghost",
-		LowerName: "ghost",
-	}
-}
-
-// NewReplaceUser creates and returns a fake user for external user
-func NewReplaceUser(name string) *User {
-	return &User{
-		ID:        -1,
-		Name:      name,
-		LowerName: strings.ToLower(name),
-	}
-}
-
-// IsGhost check if user is fake user for a deleted account
-func (u *User) IsGhost() bool {
-	if u == nil {
-		return false
-	}
-	return u.ID == -1 && u.Name == "Ghost"
-}
-
 var (
 	reservedUsernames = []string{
 		".",
@@ -622,6 +596,7 @@ var (
 		"swagger.v1.json",
 		"user",
 		"v2",
+		"gitea-actions",
 	}
 
 	reservedUserPatterns = []string{"*.keys", "*.gpg", "*.rss", "*.atom"}
@@ -1013,6 +988,20 @@ func GetUserByID(ctx context.Context, id int64) (*User, error) {
 	return u, nil
 }
 
+// GetPossibleUserByID returns the user if id > 0 or return system usrs if id < 0
+func GetPossibleUserByID(ctx context.Context, id int64) (*User, error) {
+	switch id {
+	case -1:
+		return NewGhostUser(), nil
+	case ActionsUserID:
+		return NewActionsUser(), nil
+	case 0:
+		return nil, ErrUserNotExist{}
+	default:
+		return GetUserByID(ctx, id)
+	}
+}
+
 // GetUserByNameCtx returns user by given name.
 func GetUserByName(ctx context.Context, name string) (*User, error) {
 	if len(name) == 0 {
@@ -1233,7 +1222,10 @@ func GetUserByOpenID(uri string) (*User, error) {
 // GetAdminUser returns the first administrator
 func GetAdminUser() (*User, error) {
 	var admin User
-	has, err := db.GetEngine(db.DefaultContext).Where("is_admin=?", true).Get(&admin)
+	has, err := db.GetEngine(db.DefaultContext).
+		Where("is_admin=?", true).
+		Asc("id"). // Reliably get the admin with the lowest ID.
+		Get(&admin)
 	if err != nil {
 		return nil, err
 	} else if !has {

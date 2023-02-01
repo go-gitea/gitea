@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -285,9 +286,36 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 	return repo, nil
 }
 
-// UpdateRepoSize updates the repository size, calculating it using util.GetDirectorySize
+const notRegularFileMode = os.ModeSymlink | os.ModeNamedPipe | os.ModeSocket | os.ModeDevice | os.ModeCharDevice | os.ModeIrregular
+
+// getDirectorySize returns the disk consumption for a given path
+func getDirectorySize(path string) (int64, error) {
+	var size int64
+	err := filepath.WalkDir(path, func(_ string, info os.DirEntry, err error) error {
+		if err != nil {
+			if os.IsNotExist(err) { // ignore the error because the file maybe deleted during traversing.
+				return nil
+			}
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		f, err := info.Info()
+		if err != nil {
+			return err
+		}
+		if (f.Mode() & notRegularFileMode) == 0 {
+			size += f.Size()
+		}
+		return err
+	})
+	return size, err
+}
+
+// UpdateRepoSize updates the repository size, calculating it using getDirectorySize
 func UpdateRepoSize(ctx context.Context, repo *repo_model.Repository) error {
-	size, err := util.GetDirectorySize(repo.RepoPath())
+	size, err := getDirectorySize(repo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("updateSize: %w", err)
 	}
