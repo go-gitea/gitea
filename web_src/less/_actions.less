@@ -1,0 +1,43 @@
+@import "variables.less";
+
+// TODO: the parent element's full height doesn't work well now
+body > div.full.height {
+  padding-bottom: 0;
+}
+
+.job-status-rotate {
+  animation: job-status-rotate-keyframes 1s linear infinite;
+}
+@keyframes job-status-rotate-keyframes {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.job-step-section {
+  margin: 10px;
+  .job-step-logs {
+    font-family: monospace;
+    .job-log-line {
+      display: flex;
+      .line-num {
+        width: 48px;
+        color: var(--color-grey-light);
+        text-align: right;
+      }
+      .log-time {
+        color: var(--color-grey-light);
+        margin-left: 10px;
+        white-space: nowrap;
+      }
+      .log-msg {
+        flex: 1;
+        word-break: break-all;
+        white-space: break-spaces;
+        margin-left: 10px;
+      }
+    }
+
+    // TODO: group support
+  }
+}
