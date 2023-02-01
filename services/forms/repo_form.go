@@ -146,6 +146,7 @@ type RepoSettingForm struct {
 	ExternalTrackerRegexpPattern          string
 	EnableCloseIssuesViaCommitInAnyBranch bool
 	EnableProjects                        bool
+	EnableReleases                        bool
 	EnablePackages                        bool
 	EnablePulls                           bool
 	EnableActions                         bool

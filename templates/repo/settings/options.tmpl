@@ -420,6 +420,19 @@
 					</div>
 				</div>
 
+				{{$isReleasesEnabled := .Repository.UnitEnabled $.Context $.UnitTypeReleases}}
+				<div class="inline field">
+					<label>{{.locale.Tr "repo.releases"}}</label>
+					{{if .UnitTypeReleases.UnitGlobalDisabled}}
+					<div class="ui checkbox tooltip disabled" data-content="{{.locale.Tr "repo.unit_disabled"}}">
+					{{else}}
+					<div class="ui checkbox">
+					{{end}}
+						<input class="enable-system" name="enable_releases" type="checkbox" {{if $isReleasesEnabled}}checked{{end}}>
+						<label>{{.locale.Tr "repo.settings.releases_desc"}}</label>
+					</div>
+				</div>
+
 				{{$isPackagesEnabled := .Repository.UnitEnabled $.Context $.UnitTypePackages}}
 				<div class="inline field">
 					<label>{{.locale.Tr "repo.packages"}}</label>

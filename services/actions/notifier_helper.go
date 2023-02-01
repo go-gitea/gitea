@@ -67,7 +67,6 @@ type notifyInput struct {
 func newNotifyInput(repo *repo_model.Repository, doer *user_model.User, event webhook_module.HookEventType) *notifyInput {
 	return &notifyInput{
 		Repo:  repo,
-		Ref:   repo.DefaultBranch,
 		Doer:  doer,
 		Event: event,
 	}
@@ -90,6 +89,9 @@ func (input *notifyInput) WithPayload(payload api.Payloader) *notifyInput {
 
 func (input *notifyInput) WithPullRequest(pr *issues_model.PullRequest) *notifyInput {
 	input.PullRequest = pr
+	if input.Ref == "" {
+		input.Ref = pr.GetGitRefName()
+	}
 	return input
 }
 
@@ -124,8 +126,13 @@ func notify(ctx context.Context, input *notifyInput) error {
 	}
 	defer gitRepo.Close()
 
+	ref := input.Ref
+	if ref == "" {
+		ref = input.Repo.DefaultBranch
+	}
+
 	// Get the commit object for the ref
-	commit, err := gitRepo.GetCommit(input.Ref)
+	commit, err := gitRepo.GetCommit(ref)
 	if err != nil {
 		return fmt.Errorf("gitRepo.GetCommit: %w", err)
 	}
@@ -152,7 +159,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 			OwnerID:           input.Repo.OwnerID,
 			WorkflowID:        id,
 			TriggerUserID:     input.Doer.ID,
-			Ref:               input.Ref,
+			Ref:               ref,
 			CommitSHA:         commit.ID.String(),
 			IsForkPullRequest: input.PullRequest != nil && input.PullRequest.IsFromFork(),
 			Event:             input.Event,

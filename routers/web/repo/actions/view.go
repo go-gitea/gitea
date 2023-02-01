@@ -49,7 +49,7 @@ type ViewRequest struct {
 type ViewResponse struct {
 	State struct {
 		Run struct {
-			HTMLURL   string     `json:"htmlurl"`
+			Link      string     `json:"link"`
 			Title     string     `json:"title"`
 			CanCancel bool       `json:"canCancel"`
 			Done      bool       `json:"done"`
@@ -105,7 +105,7 @@ func ViewPost(ctx *context_module.Context) {
 	resp := &ViewResponse{}
 
 	resp.State.Run.Title = run.Title
-	resp.State.Run.HTMLURL = run.HTMLURL()
+	resp.State.Run.Link = run.Link()
 	resp.State.Run.CanCancel = !run.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions)
 	resp.State.Run.Done = run.Status.IsDone()
 	resp.State.Run.Jobs = make([]*ViewJob, 0, len(jobs)) // marshal to '[]' instead fo 'null' in json
