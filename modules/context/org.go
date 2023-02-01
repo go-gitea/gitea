@@ -104,6 +104,9 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	// if Organization is not defined, get it from params
 	if ctx.Org.Organization == nil {
 		GetOrganizationByParams(ctx)
+		if ctx.Written() {
+		    return
+		}
 	}
 
 	org := ctx.Org.Organization
