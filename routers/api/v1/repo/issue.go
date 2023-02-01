@@ -189,9 +189,18 @@ func SearchIssues(ctx *context.APIContext) {
 	if strings.IndexByte(keyword, 0) >= 0 {
 		keyword = ""
 	}
+	// this api is also used in UI,
+	// so the default limit is set to fit UI needs
+	limit := ctx.FormInt("limit")
+	if limit == 0 {
+		limit = setting.UI.IssuePagingNum
+	} else if limit > setting.API.MaxResponseItems {
+		limit = setting.API.MaxResponseItems
+	}
+
 	var issueIDs []int64
 	if len(keyword) > 0 && len(repoIDs) > 0 {
-		if issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, repoIDs, keyword); err != nil {
+		if filteredCount, issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, repoIDs, keyword, limit*ctx.FormInt("page"), limit); err != nil {
 			ctx.Error(http.StatusInternalServerError, "SearchIssuesByKeyword", err)
 			return
 		}
@@ -217,15 +226,6 @@ func SearchIssues(ctx *context.APIContext) {
 	var includedMilestones []string
 	if len(milestones) > 0 {
 		includedMilestones = strings.Split(milestones, ",")
-	}
-
-	// this api is also used in UI,
-	// so the default limit is set to fit UI needs
-	limit := ctx.FormInt("limit")
-	if limit == 0 {
-		limit = setting.UI.IssuePagingNum
-	} else if limit > setting.API.MaxResponseItems {
-		limit = setting.API.MaxResponseItems
 	}
 
 	// Only fetch the issues if we either don't have a keyword or the search returned issues
@@ -272,12 +272,14 @@ func SearchIssues(ctx *context.APIContext) {
 			return
 		}
 
-		issuesOpt.ListOptions = db.ListOptions{
-			Page: -1,
-		}
-		if filteredCount, err = issues_model.CountIssues(ctx, issuesOpt); err != nil {
-			ctx.Error(http.StatusInternalServerError, "CountIssues", err)
-			return
+		if filteredCount == 0 {
+			issuesOpt.ListOptions = db.ListOptions{
+				Page: -1,
+			}
+			if filteredCount, err = issues_model.CountIssues(ctx, issuesOpt); err != nil {
+				ctx.Error(http.StatusInternalServerError, "CountIssues", err)
+				return
+			}
 		}
 	}
 
@@ -386,8 +388,9 @@ func ListIssues(ctx *context.APIContext) {
 	}
 	var issueIDs []int64
 	var labelIDs []int64
+	listOptions := utils.GetListOptions(ctx)
 	if len(keyword) > 0 {
-		issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, []int64{ctx.Repo.Repository.ID}, keyword)
+		filteredCount, issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, []int64{ctx.Repo.Repository.ID}, keyword, listOptions.Page*listOptions.PageSize, listOptions.PageSize)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "SearchIssuesByKeyword", err)
 			return
@@ -431,8 +434,6 @@ func ListIssues(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "GetMilestoneByRepoID", err)
 		}
 	}
-
-	listOptions := utils.GetListOptions(ctx)
 
 	var isPull util.OptionalBool
 	switch ctx.FormString("type") {
@@ -481,12 +482,14 @@ func ListIssues(ctx *context.APIContext) {
 			return
 		}
 
-		issuesOpt.ListOptions = db.ListOptions{
-			Page: -1,
-		}
-		if filteredCount, err = issues_model.CountIssues(ctx, issuesOpt); err != nil {
-			ctx.Error(http.StatusInternalServerError, "CountIssues", err)
-			return
+		if filteredCount == 0 {
+			issuesOpt.ListOptions = db.ListOptions{
+				Page: -1,
+			}
+			if filteredCount, err = issues_model.CountIssues(ctx, issuesOpt); err != nil {
+				ctx.Error(http.StatusInternalServerError, "CountIssues", err)
+				return
+			}
 		}
 	}
 

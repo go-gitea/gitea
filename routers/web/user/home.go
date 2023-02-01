@@ -698,7 +698,7 @@ func issueIDsFromSearch(ctx *context.Context, ctxUser *user_model.User, keyword 
 	if err != nil {
 		return nil, fmt.Errorf("GetRepoIDsForIssuesOptions: %w", err)
 	}
-	issueIDsFromSearch, err := issue_indexer.SearchIssuesByKeyword(ctx, searchRepoIDs, keyword)
+	_, issueIDsFromSearch, err := issue_indexer.SearchIssuesByKeyword(ctx, searchRepoIDs, keyword, 0, 50)
 	if err != nil {
 		return nil, fmt.Errorf("SearchIssuesByKeyword: %w", err)
 	}

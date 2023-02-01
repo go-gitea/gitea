@@ -381,22 +381,22 @@ func DeleteRepoIssueIndexer(ctx context.Context, repo *repo_model.Repository) {
 
 // SearchIssuesByKeyword search issue ids by keywords and repo id
 // WARNNING: You have to ensure user have permission to visit repoIDs' issues
-func SearchIssuesByKeyword(ctx context.Context, repoIDs []int64, keyword string) ([]int64, error) {
+func SearchIssuesByKeyword(ctx context.Context, repoIDs []int64, keyword string, start, limit int) (int64, []int64, error) {
 	var issueIDs []int64
 	indexer := holder.get()
 
 	if indexer == nil {
 		log.Error("SearchIssuesByKeyword(): unable to get indexer!")
-		return nil, fmt.Errorf("unable to get issue indexer")
+		return 0, nil, fmt.Errorf("unable to get issue indexer")
 	}
-	res, err := indexer.Search(ctx, keyword, repoIDs, 50, 0)
+	res, err := indexer.Search(ctx, keyword, repoIDs, limit, start)
 	if err != nil {
-		return nil, err
+		return 0, nil, err
 	}
 	for _, r := range res.Hits {
 		issueIDs = append(issueIDs, r.ID)
 	}
-	return issueIDs, nil
+	return res.Total, issueIDs, nil
 }
 
 // IsAvailable checks if issue indexer is available

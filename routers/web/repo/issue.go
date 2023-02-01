@@ -182,7 +182,8 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 
 	var issueIDs []int64
 	if len(keyword) > 0 {
-		issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, []int64{repo.ID}, keyword)
+		// FIXME: we don't know how many opened/closed
+		_, issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, []int64{repo.ID}, keyword, 0, 50)
 		if err != nil {
 			if issue_indexer.IsAvailable() {
 				ctx.ServerError("issueIndexer.Search", err)
@@ -2327,13 +2328,22 @@ func SearchIssues(ctx *context.Context) {
 	var issues []*issues_model.Issue
 	var filteredCount int64
 
+	// this api is also used in UI,
+	// so the default limit is set to fit UI needs
+	limit := ctx.FormInt("limit")
+	if limit == 0 {
+		limit = setting.UI.IssuePagingNum
+	} else if limit > setting.API.MaxResponseItems {
+		limit = setting.API.MaxResponseItems
+	}
+
 	keyword := ctx.FormTrim("q")
 	if strings.IndexByte(keyword, 0) >= 0 {
 		keyword = ""
 	}
 	var issueIDs []int64
 	if len(keyword) > 0 && len(repoIDs) > 0 {
-		if issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, repoIDs, keyword); err != nil {
+		if filteredCount, issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, repoIDs, keyword, ctx.FormInt("page")*limit, limit); err != nil {
 			ctx.Error(http.StatusInternalServerError, "SearchIssuesByKeyword", err.Error())
 			return
 		}
@@ -2362,15 +2372,6 @@ func SearchIssues(ctx *context.Context) {
 	}
 
 	projectID := ctx.FormInt64("project")
-
-	// this api is also used in UI,
-	// so the default limit is set to fit UI needs
-	limit := ctx.FormInt("limit")
-	if limit == 0 {
-		limit = setting.UI.IssuePagingNum
-	} else if limit > setting.API.MaxResponseItems {
-		limit = setting.API.MaxResponseItems
-	}
 
 	// Only fetch the issues if we either don't have a keyword or the search returned issues
 	// This would otherwise return all issues if no issues were found by the search.
@@ -2417,12 +2418,14 @@ func SearchIssues(ctx *context.Context) {
 			return
 		}
 
-		issuesOpt.ListOptions = db.ListOptions{
-			Page: -1,
-		}
-		if filteredCount, err = issues_model.CountIssues(ctx, issuesOpt); err != nil {
-			ctx.Error(http.StatusInternalServerError, "CountIssues", err.Error())
-			return
+		if filteredCount == 0 {
+			issuesOpt.ListOptions = db.ListOptions{
+				Page: -1,
+			}
+			if filteredCount, err = issues_model.CountIssues(ctx, issuesOpt); err != nil {
+				ctx.Error(http.StatusInternalServerError, "CountIssues", err.Error())
+				return
+			}
 		}
 	}
 
@@ -2475,10 +2478,15 @@ func ListIssues(ctx *context.Context) {
 	if strings.IndexByte(keyword, 0) >= 0 {
 		keyword = ""
 	}
+	listOptions := db.ListOptions{
+		Page:     ctx.FormInt("page"),
+		PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
+	}
+
 	var issueIDs []int64
 	var labelIDs []int64
 	if len(keyword) > 0 {
-		issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, []int64{ctx.Repo.Repository.ID}, keyword)
+		filteredCount, issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, []int64{ctx.Repo.Repository.ID}, keyword, listOptions.Page*listOptions.PageSize, listOptions.PageSize)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 			return
@@ -2524,11 +2532,6 @@ func ListIssues(ctx *context.Context) {
 	}
 
 	projectID := ctx.FormInt64("project")
-
-	listOptions := db.ListOptions{
-		Page:     ctx.FormInt("page"),
-		PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
-	}
 
 	var isPull util.OptionalBool
 	switch ctx.FormString("type") {
@@ -2578,12 +2581,14 @@ func ListIssues(ctx *context.Context) {
 			return
 		}
 
-		issuesOpt.ListOptions = db.ListOptions{
-			Page: -1,
-		}
-		if filteredCount, err = issues_model.CountIssues(ctx, issuesOpt); err != nil {
-			ctx.Error(http.StatusInternalServerError, err.Error())
-			return
+		if filteredCount == 0 {
+			issuesOpt.ListOptions = db.ListOptions{
+				Page: -1,
+			}
+			if filteredCount, err = issues_model.CountIssues(ctx, issuesOpt); err != nil {
+				ctx.Error(http.StatusInternalServerError, err.Error())
+				return
+			}
 		}
 	}
 
