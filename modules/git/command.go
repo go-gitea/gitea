@@ -100,15 +100,18 @@ func (c *Command) SetDescription(desc string) *Command {
 	return c
 }
 
-func isSafeDynArg(s string) bool {
+// isSafeArgumentValue checks if the argument is safe to be used as a value (not an option)
+func isSafeArgumentValue(s string) bool {
 	return s == "" || s[0] != '-'
 }
 
-func isValidOption(s string) bool {
+// isValidArgumentOption checks if the argument is a valid option (starting with '-').
+// It doesn't check whether the option is supported or not
+func isValidArgumentOption(s string) bool {
 	return s != "" && s[0] == '-'
 }
 
-// AddArguments adds new git arguments to the command. It only accepts string literals, or trusted CmdArg.
+// AddArguments adds new git arguments (option/value) to the command. It only accepts string literals, or trusted CmdArg.
 // Type CmdArg is in the internal package, so it can not be used outside of this package directly,
 // it makes sure that user-provided arguments won't cause RCE risks.
 // User-provided arguments should be passed by other AddXxx functions
@@ -121,9 +124,9 @@ func (c *Command) AddArguments(args ...internal.CmdArg) *Command {
 
 // AddOptionValues adds a new option with a list of non-option values
 // For example: AddOptionValues("--opt", val) means 2 arguments: {"--opt", val}.
-// The values are treated as dynamic arguments. It equals to: AddArguments("--opt") then AddDynamicArguments(val).
+// The values are treated as dynamic argument values. It equals to: AddArguments("--opt") then AddDynamicArguments(val).
 func (c *Command) AddOptionValues(opt internal.CmdArg, args ...string) *Command {
-	if !isValidOption(string(opt)) {
+	if !isValidArgumentOption(string(opt)) {
 		c.brokenArgs = append(c.brokenArgs, string(opt))
 		return c
 	}
@@ -135,7 +138,7 @@ func (c *Command) AddOptionValues(opt internal.CmdArg, args ...string) *Command 
 // AddOptionFormat adds a new option with a format string and arguments
 // For example: AddOptionFormat("--opt=%s %s", val1, val2) means 1 argument: {"--opt=val1 val2"}.
 func (c *Command) AddOptionFormat(opt string, args ...any) *Command {
-	if !isValidOption(opt) {
+	if !isValidArgumentOption(opt) {
 		c.brokenArgs = append(c.brokenArgs, opt)
 		return c
 	}
@@ -145,11 +148,12 @@ func (c *Command) AddOptionFormat(opt string, args ...any) *Command {
 	return c
 }
 
-// AddDynamicArguments adds new dynamic arguments to the command.
+// AddDynamicArguments adds new dynamic argument values to the command.
 // The arguments may come from user input and can not be trusted, so no leading '-' is allowed to avoid passing options.
+// TODO: in the future, this function can be renamed to AddArgumentValues
 func (c *Command) AddDynamicArguments(args ...string) *Command {
 	for _, arg := range args {
-		if !isSafeDynArg(arg) {
+		if !isSafeArgumentValue(arg) {
 			c.brokenArgs = append(c.brokenArgs, arg)
 		}
 	}

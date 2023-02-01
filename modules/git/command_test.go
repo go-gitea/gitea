@@ -43,12 +43,12 @@ func TestRunWithContextStd(t *testing.T) {
 }
 
 func TestGitArgument(t *testing.T) {
-	assert.True(t, isValidOption("-x"))
-	assert.True(t, isValidOption("--xx"))
-	assert.False(t, isValidOption(""))
-	assert.False(t, isValidOption("x"))
+	assert.True(t, isValidArgumentOption("-x"))
+	assert.True(t, isValidArgumentOption("--xx"))
+	assert.False(t, isValidArgumentOption(""))
+	assert.False(t, isValidArgumentOption("x"))
 
-	assert.True(t, isSafeDynArg(""))
-	assert.True(t, isSafeDynArg("x"))
-	assert.False(t, isSafeDynArg("-x"))
+	assert.True(t, isSafeArgumentValue(""))
+	assert.True(t, isSafeArgumentValue("x"))
+	assert.False(t, isSafeArgumentValue("-x"))
 }
