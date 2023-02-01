@@ -454,6 +454,8 @@ var migrations = []Migration{
 	// v239 -> v240
 	NewMigration("Add scope for access_token", v1_19.AddScopeForAccessTokens),
 	// v240 -> v241
+	NewMigration("Add actions tables", v1_19.AddActionsTables),
+	// v241 -> v242
 	NewMigration("Rename Webhook org_id to owner_id", v1_19.RenameWebhookOrgToOwner),
 }
 
