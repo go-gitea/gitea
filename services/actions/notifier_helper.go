@@ -137,7 +137,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		return fmt.Errorf("gitRepo.GetCommit: %w", err)
 	}
 
-	workflows, err := actions_module.DetectWorkflows(commit, input.Event)
+	workflows, err := actions_module.DetectWorkflows(commit, input.Event, input.Payload)
 	if err != nil {
 		return fmt.Errorf("DetectWorkflows: %w", err)
 	}
