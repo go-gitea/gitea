@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
-	secret_model "code.gitea.io/gitea/models/secret"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -1131,31 +1130,7 @@ func DeployKeys(ctx *context.Context) {
 	}
 	ctx.Data["Deploykeys"] = keys
 
-	secrets, err := secret_model.FindSecrets(ctx, secret_model.FindSecretsOptions{RepoID: ctx.Repo.Repository.ID})
-	if err != nil {
-		ctx.ServerError("FindSecrets", err)
-		return
-	}
-	ctx.Data["Secrets"] = secrets
-
 	ctx.HTML(http.StatusOK, tplDeployKeys)
-}
-
-// SecretsPost response for creating a new secret
-func SecretsPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.AddSecretForm)
-
-	_, err := secret_model.InsertEncryptedSecret(ctx, 0, ctx.Repo.Repository.ID, form.Title, form.Content)
-	if err != nil {
-		ctx.Flash.Error(ctx.Tr("secrets.creation.failed"))
-		log.Error("validate secret: %v", err)
-		ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
-		return
-	}
-
-	log.Trace("Secret added: %d", ctx.Repo.Repository.ID)
-	ctx.Flash.Success(ctx.Tr("secrets.creation.success", form.Title))
-	ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
 }
 
 // DeployKeysPost response for adding a deploy key of a repository
@@ -1217,20 +1192,6 @@ func DeployKeysPost(ctx *context.Context) {
 	log.Trace("Deploy key added: %d", ctx.Repo.Repository.ID)
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_key_success", key.Name))
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
-}
-
-func DeleteSecret(ctx *context.Context) {
-	id := ctx.FormInt64("id")
-	if _, err := db.DeleteByBean(ctx, &secret_model.Secret{ID: id}); err != nil {
-		ctx.Flash.Error(ctx.Tr("secrets.deletion.failed"))
-		log.Error("delete secret %d: %v", id, err)
-	} else {
-		ctx.Flash.Success(ctx.Tr("secrets.deletion.success"))
-	}
-
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": ctx.Repo.RepoLink + "/settings/keys",
-	})
 }
 
 // DeleteDeployKey response for deleting a deploy key
