@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues_test
 
@@ -121,7 +120,7 @@ func TestGetLabelInRepoByID(t *testing.T) {
 
 func TestGetLabelsInRepoByIDs(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	labels, err := issues_model.GetLabelsInRepoByIDs(1, []int64{1, 2, unittest.NonexistentID})
+	labels, err := issues_model.GetLabelsInRepoByIDs(db.DefaultContext, 1, []int64{1, 2, unittest.NonexistentID})
 	assert.NoError(t, err)
 	if assert.Len(t, labels, 2) {
 		assert.EqualValues(t, 1, labels[0].ID)
@@ -212,7 +211,7 @@ func TestGetLabelInOrgByID(t *testing.T) {
 
 func TestGetLabelsInOrgByIDs(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	labels, err := issues_model.GetLabelsInOrgByIDs(3, []int64{3, 4, unittest.NonexistentID})
+	labels, err := issues_model.GetLabelsInOrgByIDs(db.DefaultContext, 3, []int64{3, 4, unittest.NonexistentID})
 	assert.NoError(t, err)
 	if assert.Len(t, labels, 2) {
 		assert.EqualValues(t, 3, labels[0].ID)
@@ -370,7 +369,7 @@ func TestDeleteIssueLabel(t *testing.T) {
 			}
 		}
 
-		ctx, committer, err := db.TxContext()
+		ctx, committer, err := db.TxContext(db.DefaultContext)
 		defer committer.Close()
 		assert.NoError(t, err)
 		assert.NoError(t, issues_model.DeleteIssueLabel(ctx, issue, label, doer))

@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -88,7 +87,7 @@ func TestPackageVagrant(t *testing.T) {
 
 		req = NewRequest(t, "HEAD", boxURL)
 		resp := MakeRequest(t, req, http.StatusOK)
-		assert.True(t, strings.HasPrefix(resp.HeaderMap.Get("Content-Type"), "application/json"))
+		assert.True(t, strings.HasPrefix(resp.Header().Get("Content-Type"), "application/json"))
 
 		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeVagrant)
 		assert.NoError(t, err)

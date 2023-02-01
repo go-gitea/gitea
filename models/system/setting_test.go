@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package system_test
 
@@ -34,9 +33,13 @@ func TestSettings(t *testing.T) {
 	assert.EqualValues(t, newSetting.SettingValue, settings[strings.ToLower(keyName)].SettingValue)
 
 	// updated setting
-	updatedSetting := &system.Setting{SettingKey: keyName, SettingValue: "100", Version: newSetting.Version}
+	updatedSetting := &system.Setting{SettingKey: keyName, SettingValue: "100", Version: settings[strings.ToLower(keyName)].Version}
 	err = system.SetSetting(updatedSetting)
 	assert.NoError(t, err)
+
+	value, err := system.GetSetting(keyName)
+	assert.NoError(t, err)
+	assert.EqualValues(t, updatedSetting.SettingValue, value)
 
 	// get all settings
 	settings, err = system.GetAllSettings()

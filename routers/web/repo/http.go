@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -19,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -164,7 +164,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 			return
 		}
 
-		if ctx.IsBasicAuth && ctx.Data["IsApiToken"] != true {
+		if ctx.IsBasicAuth && ctx.Data["IsApiToken"] != true && ctx.Data["IsActionsToken"] != true {
 			_, err = auth.GetTwoFactorByUID(ctx.Doer.ID)
 			if err == nil {
 				// TODO: This response should be changed to "invalid credentials" for security reasons once the expectation behind it (creating an app token to authenticate) is properly documented
@@ -181,35 +181,62 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 			return
 		}
 
-		if repoExist {
-			p, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
-			if err != nil {
-				ctx.ServerError("GetUserRepoPermission", err)
-				return
-			}
-
-			// Because of special ref "refs/for" .. , need delay write permission check
-			if git.SupportProcReceive {
-				accessMode = perm.AccessModeRead
-			}
-
-			if !p.CanAccess(accessMode, unitType) {
-				ctx.PlainText(http.StatusForbidden, "User permission denied")
-				return
-			}
-
-			if !isPull && repo.IsMirror {
-				ctx.PlainText(http.StatusForbidden, "mirror repository is read-only")
-				return
-			}
-		}
-
 		environ = []string{
 			repo_module.EnvRepoUsername + "=" + username,
 			repo_module.EnvRepoName + "=" + reponame,
 			repo_module.EnvPusherName + "=" + ctx.Doer.Name,
 			repo_module.EnvPusherID + fmt.Sprintf("=%d", ctx.Doer.ID),
 			repo_module.EnvAppURL + "=" + setting.AppURL,
+		}
+
+		if repoExist {
+			// Because of special ref "refs/for" .. , need delay write permission check
+			if git.SupportProcReceive {
+				accessMode = perm.AccessModeRead
+			}
+
+			if ctx.Data["IsActionsToken"] == true {
+				taskID := ctx.Data["ActionsTaskID"].(int64)
+				task, err := actions_model.GetTaskByID(ctx, taskID)
+				if err != nil {
+					ctx.ServerError("GetTaskByID", err)
+					return
+				}
+				if task.RepoID != repo.ID {
+					ctx.PlainText(http.StatusForbidden, "User permission denied")
+					return
+				}
+
+				if task.IsForkPullRequest {
+					if accessMode > perm.AccessModeRead {
+						ctx.PlainText(http.StatusForbidden, "User permission denied")
+						return
+					}
+					environ = append(environ, fmt.Sprintf("%s=%d", repo_module.EnvActionPerm, perm.AccessModeRead))
+				} else {
+					if accessMode > perm.AccessModeWrite {
+						ctx.PlainText(http.StatusForbidden, "User permission denied")
+						return
+					}
+					environ = append(environ, fmt.Sprintf("%s=%d", repo_module.EnvActionPerm, perm.AccessModeWrite))
+				}
+			} else {
+				p, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+				if err != nil {
+					ctx.ServerError("GetUserRepoPermission", err)
+					return
+				}
+
+				if !p.CanAccess(accessMode, unitType) {
+					ctx.PlainText(http.StatusForbidden, "User permission denied")
+					return
+				}
+			}
+
+			if !isPull && repo.IsMirror {
+				ctx.PlainText(http.StatusForbidden, "mirror repository is read-only")
+				return
+			}
 		}
 
 		if !ctx.Doer.KeepEmailPrivate {
@@ -259,7 +286,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 
 	if isWiki {
 		// Ensure the wiki is enabled before we allow access to it
-		if _, err := repo.GetUnit(unit.TypeWiki); err != nil {
+		if _, err := repo.GetUnit(ctx, unit.TypeWiki); err != nil {
 			if repo_model.IsErrUnitTypeNotExist(err) {
 				ctx.PlainText(http.StatusForbidden, "repository wiki is disabled")
 				return
@@ -398,7 +425,7 @@ func (h *serviceHandler) sendFile(contentType, file string) {
 var safeGitProtocolHeader = regexp.MustCompile(`^[0-9a-zA-Z]+=[0-9a-zA-Z]+(:[0-9a-zA-Z]+=[0-9a-zA-Z]+)*$`)
 
 func getGitConfig(ctx gocontext.Context, option, dir string) string {
-	out, _, err := git.NewCommand(ctx, "config", option).RunStdString(&git.RunOpts{Dir: dir})
+	out, _, err := git.NewCommand(ctx, "config").AddDynamicArguments(option).RunStdString(&git.RunOpts{Dir: dir})
 	if err != nil {
 		log.Error("%v - %s", err, out)
 	}
@@ -471,7 +498,7 @@ func serviceRPC(ctx gocontext.Context, h serviceHandler, service string) {
 	}
 
 	var stderr bytes.Buffer
-	cmd := git.NewCommand(h.r.Context(), service, "--stateless-rpc", h.dir)
+	cmd := git.NewCommand(h.r.Context(), git.CmdArgCheck(service), "--stateless-rpc").AddDynamicArguments(h.dir)
 	cmd.SetDescription(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir))
 	if err := cmd.Run(&git.RunOpts{
 		Dir:               h.dir,
@@ -543,7 +570,7 @@ func GetInfoRefs(ctx *context.Context) {
 		}
 		h.environ = append(os.Environ(), h.environ...)
 
-		refs, _, err := git.NewCommand(ctx, service, "--stateless-rpc", "--advertise-refs", ".").RunStdBytes(&git.RunOpts{Env: h.environ, Dir: h.dir})
+		refs, _, err := git.NewCommand(ctx, git.CmdArgCheck(service), "--stateless-rpc", "--advertise-refs", ".").RunStdBytes(&git.RunOpts{Env: h.environ, Dir: h.dir})
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}

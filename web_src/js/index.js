@@ -6,16 +6,16 @@ import {initVueEnv} from './components/VueComponentLoader.js';
 import {initRepoActivityTopAuthorsChart} from './components/RepoActivityTopAuthors.vue';
 import {initDashboardRepoList} from './components/DashboardRepoList.js';
 
-import attachTribute from './features/tribute.js';
-import initGlobalCopyToClipboardListener from './features/clipboard.js';
-import initContextPopups from './features/contextpopup.js';
-import initRepoGraphGit from './features/repo-graph.js';
-import initHeatmap from './features/heatmap.js';
-import initImageDiff from './features/imagediff.js';
-import initRepoMigration from './features/repo-migration.js';
-import initRepoProject from './features/repo-projects.js';
-import initServiceWorker from './features/serviceworker.js';
-import initTableSort from './features/tablesort.js';
+import {attachTribute} from './features/tribute.js';
+import {initGlobalCopyToClipboardListener} from './features/clipboard.js';
+import {initContextPopups} from './features/contextpopup.js';
+import {initRepoGraphGit} from './features/repo-graph.js';
+import {initHeatmap} from './features/heatmap.js';
+import {initImageDiff} from './features/imagediff.js';
+import {initRepoMigration} from './features/repo-migration.js';
+import {initRepoProject} from './features/repo-projects.js';
+import {initServiceWorker} from './features/serviceworker.js';
+import {initTableSort} from './features/tablesort.js';
 import {initAdminUserListSearchForm} from './features/admin/users.js';
 import {initAdminConfigs} from './features/admin/config.js';
 import {initMarkupAnchors} from './markup/anchors.js';
@@ -24,7 +24,7 @@ import {initRepoIssueContentHistory} from './features/repo-issue-content.js';
 import {initStopwatch} from './features/stopwatch.js';
 import {initFindFileInRepo} from './features/repo-findfile.js';
 import {initCommentContent, initMarkupContent} from './markup/content.js';
-import initDiffFileTree from './features/repo-diff-filetree.js';
+import {initDiffFileTree} from './features/repo-diff-filetree.js';
 
 import {initUserAuthLinkAccountView, initUserAuthOauth2} from './features/user-auth.js';
 import {
@@ -89,6 +89,8 @@ import {initRepoWikiForm} from './features/repo-wiki.js';
 import {initRepoCommentForm, initRepository} from './features/repo-legacy.js';
 import {initFormattingReplacements} from './features/formatting.js';
 import {initMcaptcha} from './features/mcaptcha.js';
+import {initCopyContent} from './features/copycontent.js';
+import {initRepositoryActionView} from './components/RepoActionView.vue';
 
 // Run time-critical code as soon as possible. This is safe to do because this
 // script appears at the end of <body> and rendered HTML is accessible at that point.
@@ -136,6 +138,7 @@ $(document).ready(() => {
   initStopwatch();
   initTableSort();
   initFindFileInRepo();
+  initCopyContent();
 
   initAdminCommon();
   initAdminEmails();
@@ -185,6 +188,7 @@ $(document).ready(() => {
   initRepoTopicBar();
   initRepoWikiForm();
   initRepository();
+  initRepositoryActionView();
 
   initCommitStatuses();
   initMcaptcha();

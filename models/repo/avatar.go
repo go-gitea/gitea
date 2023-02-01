@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -24,6 +23,13 @@ func (repo *Repository) CustomAvatarRelativePath() string {
 	return repo.Avatar
 }
 
+// ExistsWithAvatarAtStoragePath returns true if there is a user with this Avatar
+func ExistsWithAvatarAtStoragePath(ctx context.Context, storagePath string) (bool, error) {
+	// See func (repo *Repository) CustomAvatarRelativePath()
+	// repo.Avatar is used directly as the storage path - therefore we can check for existence directly using the path
+	return db.GetEngine(ctx).Where("`avatar`=?", storagePath).Exist(new(Repository))
+}
+
 // RelAvatarLink returns a relative link to the repository's avatar.
 func (repo *Repository) RelAvatarLink() string {
 	return repo.relAvatarLink(db.DefaultContext)
@@ -36,7 +42,7 @@ func generateRandomAvatar(ctx context.Context, repo *Repository) error {
 	seed := idToString
 	img, err := avatar.RandomImage([]byte(seed))
 	if err != nil {
-		return fmt.Errorf("RandomImage: %v", err)
+		return fmt.Errorf("RandomImage: %w", err)
 	}
 
 	repo.Avatar = idToString
@@ -47,7 +53,7 @@ func generateRandomAvatar(ctx context.Context, repo *Repository) error {
 		}
 		return err
 	}); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %v", repo.CustomAvatarRelativePath(), err)
+		return fmt.Errorf("Failed to create dir %s: %w", repo.CustomAvatarRelativePath(), err)
 	}
 
 	log.Info("New random avatar created for repository: %d", repo.ID)

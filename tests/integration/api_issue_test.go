@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -11,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -30,11 +30,11 @@ func TestAPIListIssues(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/issues", owner.Name, repo.Name))
 
 	link.RawQuery = url.Values{"token": {token}, "state": {"all"}}.Encode()
-	resp := session.MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
+	resp := MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
 	var apiIssues []*api.Issue
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, unittest.GetCount(t, &issues_model.Issue{RepoID: repo.ID}))
@@ -44,7 +44,7 @@ func TestAPIListIssues(t *testing.T) {
 
 	// test milestone filter
 	link.RawQuery = url.Values{"token": {token}, "state": {"all"}, "type": {"all"}, "milestones": {"ignore,milestone1,3,4"}}.Encode()
-	resp = session.MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
+	resp = MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	if assert.Len(t, apiIssues, 2) {
 		assert.EqualValues(t, 3, apiIssues[0].Milestone.ID)
@@ -52,21 +52,21 @@ func TestAPIListIssues(t *testing.T) {
 	}
 
 	link.RawQuery = url.Values{"token": {token}, "state": {"all"}, "created_by": {"user2"}}.Encode()
-	resp = session.MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
+	resp = MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	if assert.Len(t, apiIssues, 1) {
 		assert.EqualValues(t, 5, apiIssues[0].ID)
 	}
 
 	link.RawQuery = url.Values{"token": {token}, "state": {"all"}, "assigned_by": {"user1"}}.Encode()
-	resp = session.MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
+	resp = MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	if assert.Len(t, apiIssues, 1) {
 		assert.EqualValues(t, 1, apiIssues[0].ID)
 	}
 
 	link.RawQuery = url.Values{"token": {token}, "state": {"all"}, "mentioned_by": {"user4"}}.Encode()
-	resp = session.MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
+	resp = MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	if assert.Len(t, apiIssues, 1) {
 		assert.EqualValues(t, 1, apiIssues[0].ID)
@@ -81,14 +81,14 @@ func TestAPICreateIssue(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID})
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues?state=all&token=%s", owner.Name, repoBefore.Name, token)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{
 		Body:     body,
 		Title:    title,
 		Assignee: owner.Name,
 	})
-	resp := session.MakeRequest(t, req, http.StatusCreated)
+	resp := MakeRequest(t, req, http.StatusCreated)
 	var apiIssue api.Issue
 	DecodeJSON(t, resp, &apiIssue)
 	assert.Equal(t, body, apiIssue.Body)
@@ -117,7 +117,7 @@ func TestAPIEditIssue(t *testing.T) {
 	assert.Equal(t, api.StateOpen, issueBefore.State())
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
 
 	// update values of issue
 	issueState := "closed"
@@ -136,7 +136,7 @@ func TestAPIEditIssue(t *testing.T) {
 
 		// ToDo change more
 	})
-	resp := session.MakeRequest(t, req, http.StatusCreated)
+	resp := MakeRequest(t, req, http.StatusCreated)
 	var apiIssue api.Issue
 	DecodeJSON(t, resp, &apiIssue)
 

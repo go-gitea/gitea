@@ -1,7 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // Copyright 2018 Jonas Franz. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migrations
 
@@ -15,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/proxy"
@@ -76,6 +76,7 @@ type GithubDownloaderV3 struct {
 	curClientIdx  int
 	maxPerPage    int
 	SkipReactions bool
+	SkipReviews   bool
 }
 
 // NewGithubDownloaderV3 creates a github Downloader via github v3 API
@@ -307,10 +308,14 @@ func (g *GithubDownloaderV3) GetLabels() ([]*base.Label, error) {
 }
 
 func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease) *base.Release {
+	// GitHub allows commitish to be a reference.
+	// In this case, we need to remove the prefix, i.e. convert "refs/heads/main" to "main".
+	targetCommitish := strings.TrimPrefix(rel.GetTargetCommitish(), git.BranchPrefix)
+
 	r := &base.Release{
 		Name:            rel.GetName(),
 		TagName:         rel.GetTagName(),
-		TargetCommitish: rel.GetTargetCommitish(),
+		TargetCommitish: targetCommitish,
 		Draft:           rel.GetDraft(),
 		Prerelease:      rel.GetPrerelease(),
 		Created:         rel.GetCreatedAt().Time,
@@ -427,7 +432,7 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 	g.waitAndPickClient()
 	issues, resp, err := g.getClient().Issues.ListByRepo(g.ctx, g.repoOwner, g.repoName, opt)
 	if err != nil {
-		return nil, false, fmt.Errorf("error while listing repos: %v", err)
+		return nil, false, fmt.Errorf("error while listing repos: %w", err)
 	}
 	log.Trace("Request get issues %d/%d, but in fact get %d", perPage, page, len(issues))
 	g.setRate(&resp.Rate)
@@ -523,7 +528,7 @@ func (g *GithubDownloaderV3) getComments(opts base.GetCommentOptions) ([]*base.C
 		g.waitAndPickClient()
 		comments, resp, err := g.getClient().Issues.ListComments(g.ctx, g.repoOwner, g.repoName, int(opts.Commentable.GetForeignIndex()), opt)
 		if err != nil {
-			return nil, fmt.Errorf("error while listing repos: %v", err)
+			return nil, fmt.Errorf("error while listing repos: %w", err)
 		}
 		g.setRate(&resp.Rate)
 		for _, comment := range comments {
@@ -595,7 +600,7 @@ func (g *GithubDownloaderV3) GetAllComments(page, perPage int) ([]*base.Comment,
 	g.waitAndPickClient()
 	comments, resp, err := g.getClient().Issues.ListComments(g.ctx, g.repoOwner, g.repoName, 0, opt)
 	if err != nil {
-		return nil, false, fmt.Errorf("error while listing repos: %v", err)
+		return nil, false, fmt.Errorf("error while listing repos: %w", err)
 	}
 	isEnd := resp.NextPage == 0
 
@@ -663,7 +668,7 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 	g.waitAndPickClient()
 	prs, resp, err := g.getClient().PullRequests.List(g.ctx, g.repoOwner, g.repoName, opt)
 	if err != nil {
-		return nil, false, fmt.Errorf("error while listing repos: %v", err)
+		return nil, false, fmt.Errorf("error while listing repos: %w", err)
 	}
 	log.Trace("Request get pull requests %d/%d, but in fact get %d", perPage, page, len(prs))
 	g.setRate(&resp.Rate)
@@ -805,6 +810,9 @@ func (g *GithubDownloaderV3) convertGithubReviewComments(cs []*github.PullReques
 // GetReviews returns pull requests review
 func (g *GithubDownloaderV3) GetReviews(reviewable base.Reviewable) ([]*base.Review, bool, error) {
 	allReviews := make([]*base.Review, 0, g.maxPerPage)
+	if g.SkipReviews {
+		return allReviews, true, nil
+	}
 	opt := &github.ListOptions{
 		PerPage: g.maxPerPage,
 	}
@@ -813,7 +821,7 @@ func (g *GithubDownloaderV3) GetReviews(reviewable base.Reviewable) ([]*base.Rev
 		g.waitAndPickClient()
 		reviews, resp, err := g.getClient().PullRequests.ListReviews(g.ctx, g.repoOwner, g.repoName, int(reviewable.GetForeignIndex()), opt)
 		if err != nil {
-			return nil, true, fmt.Errorf("error while listing repos: %v", err)
+			return nil, true, fmt.Errorf("error while listing repos: %w", err)
 		}
 		g.setRate(&resp.Rate)
 		for _, review := range reviews {
@@ -827,7 +835,7 @@ func (g *GithubDownloaderV3) GetReviews(reviewable base.Reviewable) ([]*base.Rev
 				g.waitAndPickClient()
 				reviewComments, resp, err := g.getClient().PullRequests.ListReviewComments(g.ctx, g.repoOwner, g.repoName, int(reviewable.GetForeignIndex()), review.GetID(), opt2)
 				if err != nil {
-					return nil, true, fmt.Errorf("error while listing repos: %v", err)
+					return nil, true, fmt.Errorf("error while listing repos: %w", err)
 				}
 				g.setRate(&resp.Rate)
 
@@ -853,7 +861,7 @@ func (g *GithubDownloaderV3) GetReviews(reviewable base.Reviewable) ([]*base.Rev
 		g.waitAndPickClient()
 		reviewers, resp, err := g.getClient().PullRequests.ListReviewers(g.ctx, g.repoOwner, g.repoName, int(reviewable.GetForeignIndex()), opt)
 		if err != nil {
-			return nil, false, fmt.Errorf("error while listing repos: %v", err)
+			return nil, false, fmt.Errorf("error while listing repos: %w", err)
 		}
 		g.setRate(&resp.Rate)
 		for _, user := range reviewers.Users {

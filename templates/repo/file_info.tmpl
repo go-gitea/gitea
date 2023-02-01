@@ -1,0 +1,28 @@
+<div class="file-info text grey normal mono">
+	{{if .FileIsSymlink}}
+		<div class="file-info-entry">
+			{{.locale.Tr "repo.symbolic_link"}}
+		</div>
+	{{end}}
+	{{if .NumLinesSet}}{{/* Explicit attribute needed to show 0 line changes */}}
+		<div class="file-info-entry">
+			{{.NumLines}} {{.locale.TrN .NumLines "repo.line" "repo.lines"}}
+		</div>
+	{{end}}
+	{{if .FileSize}}
+		<div class="file-info-entry">
+			{{FileSize .FileSize}}{{if .IsLFSFile}} ({{.locale.Tr "repo.stored_lfs"}}){{end}}
+		</div>
+	{{end}}
+	{{if .LFSLock}}
+		<div class="file-info-entry ui tooltip" data-content="{{.LFSLockHint}}">
+			{{svg "octicon-lock" 16 "mr-2"}}
+			<a href="{{.LFSLockOwnerHomeLink}}">{{.LFSLockOwner}}</a>
+		</div>
+	{{end}}
+	{{if .LexerName}}
+		<div class="file-info-entry">
+			{{.LexerName}}
+		</div>
+	{{end}}
+</div>

@@ -35,7 +35,7 @@ async function checkCacheValidity() {
   }
 }
 
-export default async function initServiceWorker() {
+export async function initServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
 
   if (useServiceWorker) {

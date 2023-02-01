@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -34,7 +33,8 @@ func (issues IssueList) getRepoIDs() []int64 {
 	return repoIDs.Values()
 }
 
-func (issues IssueList) loadRepositories(ctx context.Context) ([]*repo_model.Repository, error) {
+// LoadRepositories loads issues' all repositories
+func (issues IssueList) LoadRepositories(ctx context.Context) ([]*repo_model.Repository, error) {
 	if len(issues) == 0 {
 		return nil, nil
 	}
@@ -51,7 +51,7 @@ func (issues IssueList) loadRepositories(ctx context.Context) ([]*repo_model.Rep
 			In("id", repoIDs[:limit]).
 			Find(&repoMaps)
 		if err != nil {
-			return nil, fmt.Errorf("find repository: %v", err)
+			return nil, fmt.Errorf("find repository: %w", err)
 		}
 		left -= limit
 		repoIDs = repoIDs[limit:]
@@ -73,11 +73,6 @@ func (issues IssueList) loadRepositories(ctx context.Context) ([]*repo_model.Rep
 	return repo_model.ValuesRepository(repoMaps), nil
 }
 
-// LoadRepositories loads issues' all repositories
-func (issues IssueList) LoadRepositories() ([]*repo_model.Repository, error) {
-	return issues.loadRepositories(db.DefaultContext)
-}
-
 func (issues IssueList) getPosterIDs() []int64 {
 	posterIDs := make(container.Set[int64], len(issues))
 	for _, issue := range issues {
@@ -91,7 +86,18 @@ func (issues IssueList) loadPosters(ctx context.Context) error {
 		return nil
 	}
 
-	posterIDs := issues.getPosterIDs()
+	posterMaps, err := getPosters(ctx, issues.getPosterIDs())
+	if err != nil {
+		return err
+	}
+
+	for _, issue := range issues {
+		issue.Poster = getPoster(issue.PosterID, posterMaps)
+	}
+	return nil
+}
+
+func getPosters(ctx context.Context, posterIDs []int64) (map[int64]*user_model.User, error) {
 	posterMaps := make(map[int64]*user_model.User, len(posterIDs))
 	left := len(posterIDs)
 	for left > 0 {
@@ -103,22 +109,26 @@ func (issues IssueList) loadPosters(ctx context.Context) error {
 			In("id", posterIDs[:limit]).
 			Find(&posterMaps)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		left -= limit
 		posterIDs = posterIDs[limit:]
 	}
+	return posterMaps, nil
+}
 
-	for _, issue := range issues {
-		if issue.PosterID <= 0 {
-			continue
-		}
-		var ok bool
-		if issue.Poster, ok = posterMaps[issue.PosterID]; !ok {
-			issue.Poster = user_model.NewGhostUser()
-		}
+func getPoster(posterID int64, posterMaps map[int64]*user_model.User) *user_model.User {
+	if posterID == user_model.ActionsUserID {
+		return user_model.NewActionsUser()
 	}
-	return nil
+	if posterID <= 0 {
+		return nil
+	}
+	poster, ok := posterMaps[posterID]
+	if !ok {
+		return user_model.NewGhostUser()
+	}
+	return poster
 }
 
 func (issues IssueList) getIssueIDs() []int64 {
@@ -161,7 +171,7 @@ func (issues IssueList) loadLabels(ctx context.Context) error {
 			err = rows.Scan(&labelIssue)
 			if err != nil {
 				if err1 := rows.Close(); err1 != nil {
-					return fmt.Errorf("IssueList.loadLabels: Close: %v", err1)
+					return fmt.Errorf("IssueList.loadLabels: Close: %w", err1)
 				}
 				return err
 			}
@@ -170,7 +180,7 @@ func (issues IssueList) loadLabels(ctx context.Context) error {
 		// When there are no rows left and we try to close it.
 		// Since that is not relevant for us, we can safely ignore it.
 		if err1 := rows.Close(); err1 != nil {
-			return fmt.Errorf("IssueList.loadLabels: Close: %v", err1)
+			return fmt.Errorf("IssueList.loadLabels: Close: %w", err1)
 		}
 		left -= limit
 		issueIDs = issueIDs[limit:]
@@ -287,7 +297,7 @@ func (issues IssueList) loadAssignees(ctx context.Context) error {
 			err = rows.Scan(&assigneeIssue)
 			if err != nil {
 				if err1 := rows.Close(); err1 != nil {
-					return fmt.Errorf("IssueList.loadAssignees: Close: %v", err1)
+					return fmt.Errorf("IssueList.loadAssignees: Close: %w", err1)
 				}
 				return err
 			}
@@ -295,7 +305,7 @@ func (issues IssueList) loadAssignees(ctx context.Context) error {
 			assignees[assigneeIssue.IssueAssignee.IssueID] = append(assignees[assigneeIssue.IssueAssignee.IssueID], assigneeIssue.Assignee)
 		}
 		if err1 := rows.Close(); err1 != nil {
-			return fmt.Errorf("IssueList.loadAssignees: Close: %v", err1)
+			return fmt.Errorf("IssueList.loadAssignees: Close: %w", err1)
 		}
 		left -= limit
 		issueIDs = issueIDs[limit:]
@@ -317,7 +327,8 @@ func (issues IssueList) getPullIssueIDs() []int64 {
 	return ids
 }
 
-func (issues IssueList) loadPullRequests(ctx context.Context) error {
+// LoadPullRequests loads pull requests
+func (issues IssueList) LoadPullRequests(ctx context.Context) error {
 	issuesIDs := issues.getPullIssueIDs()
 	if len(issuesIDs) == 0 {
 		return nil
@@ -342,14 +353,14 @@ func (issues IssueList) loadPullRequests(ctx context.Context) error {
 			err = rows.Scan(&pr)
 			if err != nil {
 				if err1 := rows.Close(); err1 != nil {
-					return fmt.Errorf("IssueList.loadPullRequests: Close: %v", err1)
+					return fmt.Errorf("IssueList.loadPullRequests: Close: %w", err1)
 				}
 				return err
 			}
 			pullRequestMaps[pr.IssueID] = &pr
 		}
 		if err1 := rows.Close(); err1 != nil {
-			return fmt.Errorf("IssueList.loadPullRequests: Close: %v", err1)
+			return fmt.Errorf("IssueList.loadPullRequests: Close: %w", err1)
 		}
 		left -= limit
 		issuesIDs = issuesIDs[limit:]
@@ -361,7 +372,8 @@ func (issues IssueList) loadPullRequests(ctx context.Context) error {
 	return nil
 }
 
-func (issues IssueList) loadAttachments(ctx context.Context) (err error) {
+// LoadAttachments loads attachments
+func (issues IssueList) LoadAttachments(ctx context.Context) (err error) {
 	if len(issues) == 0 {
 		return nil
 	}
@@ -387,14 +399,14 @@ func (issues IssueList) loadAttachments(ctx context.Context) (err error) {
 			err = rows.Scan(&attachment)
 			if err != nil {
 				if err1 := rows.Close(); err1 != nil {
-					return fmt.Errorf("IssueList.loadAttachments: Close: %v", err1)
+					return fmt.Errorf("IssueList.loadAttachments: Close: %w", err1)
 				}
 				return err
 			}
 			attachments[attachment.IssueID] = append(attachments[attachment.IssueID], &attachment)
 		}
 		if err1 := rows.Close(); err1 != nil {
-			return fmt.Errorf("IssueList.loadAttachments: Close: %v", err1)
+			return fmt.Errorf("IssueList.loadAttachments: Close: %w", err1)
 		}
 		left -= limit
 		issuesIDs = issuesIDs[limit:]
@@ -433,14 +445,14 @@ func (issues IssueList) loadComments(ctx context.Context, cond builder.Cond) (er
 			err = rows.Scan(&comment)
 			if err != nil {
 				if err1 := rows.Close(); err1 != nil {
-					return fmt.Errorf("IssueList.loadComments: Close: %v", err1)
+					return fmt.Errorf("IssueList.loadComments: Close: %w", err1)
 				}
 				return err
 			}
 			comments[comment.IssueID] = append(comments[comment.IssueID], &comment)
 		}
 		if err1 := rows.Close(); err1 != nil {
-			return fmt.Errorf("IssueList.loadComments: Close: %v", err1)
+			return fmt.Errorf("IssueList.loadComments: Close: %w", err1)
 		}
 		left -= limit
 		issuesIDs = issuesIDs[limit:]
@@ -464,7 +476,7 @@ func (issues IssueList) loadTotalTrackedTimes(ctx context.Context) (err error) {
 
 	ids := make([]int64, 0, len(issues))
 	for _, issue := range issues {
-		if issue.Repo.IsTimetrackerEnabled() {
+		if issue.Repo.IsTimetrackerEnabled(ctx) {
 			ids = append(ids, issue.ID)
 		}
 	}
@@ -492,14 +504,14 @@ func (issues IssueList) loadTotalTrackedTimes(ctx context.Context) (err error) {
 			err = rows.Scan(&totalTime)
 			if err != nil {
 				if err1 := rows.Close(); err1 != nil {
-					return fmt.Errorf("IssueList.loadTotalTrackedTimes: Close: %v", err1)
+					return fmt.Errorf("IssueList.loadTotalTrackedTimes: Close: %w", err1)
 				}
 				return err
 			}
 			trackedTimes[totalTime.IssueID] = totalTime.Time
 		}
 		if err1 := rows.Close(); err1 != nil {
-			return fmt.Errorf("IssueList.loadTotalTrackedTimes: Close: %v", err1)
+			return fmt.Errorf("IssueList.loadTotalTrackedTimes: Close: %w", err1)
 		}
 		left -= limit
 		ids = ids[limit:]
@@ -513,36 +525,36 @@ func (issues IssueList) loadTotalTrackedTimes(ctx context.Context) (err error) {
 
 // loadAttributes loads all attributes, expect for attachments and comments
 func (issues IssueList) loadAttributes(ctx context.Context) error {
-	if _, err := issues.loadRepositories(ctx); err != nil {
-		return fmt.Errorf("issue.loadAttributes: loadRepositories: %v", err)
+	if _, err := issues.LoadRepositories(ctx); err != nil {
+		return fmt.Errorf("issue.loadAttributes: LoadRepositories: %w", err)
 	}
 
 	if err := issues.loadPosters(ctx); err != nil {
-		return fmt.Errorf("issue.loadAttributes: loadPosters: %v", err)
+		return fmt.Errorf("issue.loadAttributes: loadPosters: %w", err)
 	}
 
 	if err := issues.loadLabels(ctx); err != nil {
-		return fmt.Errorf("issue.loadAttributes: loadLabels: %v", err)
+		return fmt.Errorf("issue.loadAttributes: loadLabels: %w", err)
 	}
 
 	if err := issues.loadMilestones(ctx); err != nil {
-		return fmt.Errorf("issue.loadAttributes: loadMilestones: %v", err)
+		return fmt.Errorf("issue.loadAttributes: loadMilestones: %w", err)
 	}
 
 	if err := issues.loadProjects(ctx); err != nil {
-		return fmt.Errorf("issue.loadAttributes: loadProjects: %v", err)
+		return fmt.Errorf("issue.loadAttributes: loadProjects: %w", err)
 	}
 
 	if err := issues.loadAssignees(ctx); err != nil {
-		return fmt.Errorf("issue.loadAttributes: loadAssignees: %v", err)
+		return fmt.Errorf("issue.loadAttributes: loadAssignees: %w", err)
 	}
 
-	if err := issues.loadPullRequests(ctx); err != nil {
-		return fmt.Errorf("issue.loadAttributes: loadPullRequests: %v", err)
+	if err := issues.LoadPullRequests(ctx); err != nil {
+		return fmt.Errorf("issue.loadAttributes: loadPullRequests: %w", err)
 	}
 
 	if err := issues.loadTotalTrackedTimes(ctx); err != nil {
-		return fmt.Errorf("issue.loadAttributes: loadTotalTrackedTimes: %v", err)
+		return fmt.Errorf("issue.loadAttributes: loadTotalTrackedTimes: %w", err)
 	}
 
 	return nil
@@ -554,24 +566,14 @@ func (issues IssueList) LoadAttributes() error {
 	return issues.loadAttributes(db.DefaultContext)
 }
 
-// LoadAttachments loads attachments
-func (issues IssueList) LoadAttachments() error {
-	return issues.loadAttachments(db.DefaultContext)
-}
-
 // LoadComments loads comments
-func (issues IssueList) LoadComments() error {
-	return issues.loadComments(db.DefaultContext, builder.NewCond())
+func (issues IssueList) LoadComments(ctx context.Context) error {
+	return issues.loadComments(ctx, builder.NewCond())
 }
 
 // LoadDiscussComments loads discuss comments
-func (issues IssueList) LoadDiscussComments() error {
-	return issues.loadComments(db.DefaultContext, builder.Eq{"comment.type": CommentTypeComment})
-}
-
-// LoadPullRequests loads pull requests
-func (issues IssueList) LoadPullRequests() error {
-	return issues.loadPullRequests(db.DefaultContext)
+func (issues IssueList) LoadDiscussComments(ctx context.Context) error {
+	return issues.loadComments(ctx, builder.Eq{"comment.type": CommentTypeComment})
 }
 
 // GetApprovalCounts returns a map of issue ID to slice of approval counts

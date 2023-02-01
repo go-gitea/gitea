@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -95,13 +94,13 @@ func GetIndexerStatus(ctx context.Context, repo *Repository, indexerType RepoInd
 func UpdateIndexerStatus(ctx context.Context, repo *Repository, indexerType RepoIndexerType, sha string) error {
 	status, err := GetIndexerStatus(ctx, repo, indexerType)
 	if err != nil {
-		return fmt.Errorf("UpdateIndexerStatus: Unable to getIndexerStatus for repo: %s Error: %v", repo.FullName(), err)
+		return fmt.Errorf("UpdateIndexerStatus: Unable to getIndexerStatus for repo: %s Error: %w", repo.FullName(), err)
 	}
 
 	if len(status.CommitSha) == 0 {
 		status.CommitSha = sha
 		if err := db.Insert(ctx, status); err != nil {
-			return fmt.Errorf("UpdateIndexerStatus: Unable to insert repoIndexerStatus for repo: %s Sha: %s Error: %v", repo.FullName(), sha, err)
+			return fmt.Errorf("UpdateIndexerStatus: Unable to insert repoIndexerStatus for repo: %s Sha: %s Error: %w", repo.FullName(), sha, err)
 		}
 		return nil
 	}
@@ -109,7 +108,7 @@ func UpdateIndexerStatus(ctx context.Context, repo *Repository, indexerType Repo
 	_, err = db.GetEngine(ctx).ID(status.ID).Cols("commit_sha").
 		Update(status)
 	if err != nil {
-		return fmt.Errorf("UpdateIndexerStatus: Unable to update repoIndexerStatus for repo: %s Sha: %s Error: %v", repo.FullName(), sha, err)
+		return fmt.Errorf("UpdateIndexerStatus: Unable to update repoIndexerStatus for repo: %s Sha: %s Error: %w", repo.FullName(), sha, err)
 	}
 	return nil
 }

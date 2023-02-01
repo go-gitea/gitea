@@ -1,6 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package log
 
@@ -219,9 +218,9 @@ func ReleaseReopen() error {
 		logger := value.(*MultiChannelledLogger)
 		if err := logger.ReleaseReopen(); err != nil {
 			if accumulatedErr == nil {
-				accumulatedErr = fmt.Errorf("Error reopening %s: %v", key.(string), err)
+				accumulatedErr = fmt.Errorf("Error reopening %s: %w", key.(string), err)
 			} else {
-				accumulatedErr = fmt.Errorf("Error reopening %s: %v & %v", key.(string), err, accumulatedErr)
+				accumulatedErr = fmt.Errorf("Error reopening %s: %v & %w", key.(string), err, accumulatedErr)
 			}
 		}
 		return true

@@ -1,12 +1,13 @@
 // Copyright 2018 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package forms
 
 import (
+	"strconv"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -82,5 +83,30 @@ func TestRegisterForm_IsDomainAllowed_BlocklistedEmail(t *testing.T) {
 		form := RegisterForm{Email: v.email}
 
 		assert.Equal(t, v.valid, form.IsEmailDomainAllowed())
+	}
+}
+
+func TestNewAccessTokenForm_GetScope(t *testing.T) {
+	tests := []struct {
+		form        NewAccessTokenForm
+		scope       auth_model.AccessTokenScope
+		expectedErr error
+	}{
+		{
+			form:  NewAccessTokenForm{Name: "test", Scope: []string{"repo"}},
+			scope: "repo",
+		},
+		{
+			form:  NewAccessTokenForm{Name: "test", Scope: []string{"repo", "user"}},
+			scope: "repo,user",
+		},
+	}
+
+	for i, test := range tests {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			scope, err := test.form.GetScope()
+			assert.Equal(t, test.expectedErr, err)
+			assert.Equal(t, test.scope, scope)
+		})
 	}
 }

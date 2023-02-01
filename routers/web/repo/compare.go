@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -31,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -270,7 +270,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 				ci.HeadRepo = baseRepo
 			}
 		} else {
-			ci.HeadRepo, err = repo_model.GetRepositoryByOwnerAndName(headInfosSplit[0], headInfosSplit[1])
+			ci.HeadRepo, err = repo_model.GetRepositoryByOwnerAndName(ctx, headInfosSplit[0], headInfosSplit[1])
 			if err != nil {
 				if repo_model.IsErrRepoNotExist(err) {
 					ctx.NotFound("GetRepositoryByOwnerAndName", nil)
@@ -340,7 +340,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	// forked from
 	var rootRepo *repo_model.Repository
 	if baseRepo.IsFork {
-		err = baseRepo.GetBaseRepo()
+		err = baseRepo.GetBaseRepo(ctx)
 		if err != nil {
 			if !repo_model.IsErrRepoNotExist(err) {
 				ctx.ServerError("Unable to find root repo", err)
@@ -560,7 +560,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 func PrepareCompareDiff(
 	ctx *context.Context,
 	ci *CompareInfo,
-	whitespaceBehavior string,
+	whitespaceBehavior git.CmdArg,
 ) bool {
 	var (
 		repo  = ctx.Repo.Repository
@@ -578,7 +578,7 @@ func PrepareCompareDiff(
 	if (headCommitID == ci.CompareInfo.MergeBase && !ci.DirectComparison) ||
 		headCommitID == ci.CompareInfo.BaseCommitID {
 		ctx.Data["IsNothingToCompare"] = true
-		if unit, err := repo.GetUnit(unit.TypePullRequests); err == nil {
+		if unit, err := repo.GetUnit(ctx, unit.TypePullRequests); err == nil {
 			config := unit.PullRequestsConfig()
 
 			if !config.AutodetectManualMerge {
@@ -637,7 +637,7 @@ func PrepareCompareDiff(
 		return false
 	}
 
-	commits := git_model.ConvertFromGitCommit(ci.CompareInfo.Commits, ci.HeadRepo)
+	commits := git_model.ConvertFromGitCommit(ctx, ci.CompareInfo.Commits, ci.HeadRepo)
 	ctx.Data["Commits"] = commits
 	ctx.Data["CommitCount"] = len(commits)
 
@@ -747,7 +747,7 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["HeadTags"] = headTags
 
 	if ctx.Data["PageIsComparePull"] == true {
-		pr, err := issues_model.GetUnmergedPullRequest(ci.HeadRepo.ID, ctx.Repo.Repository.ID, ci.HeadBranch, ci.BaseBranch, issues_model.PullRequestFlowGithub)
+		pr, err := issues_model.GetUnmergedPullRequest(ctx, ci.HeadRepo.ID, ctx.Repo.Repository.ID, ci.HeadBranch, ci.BaseBranch, issues_model.PullRequestFlowGithub)
 		if err != nil {
 			if !issues_model.IsErrPullRequestNotExist(err) {
 				ctx.ServerError("GetUnmergedPullRequest", err)
@@ -755,7 +755,7 @@ func CompareDiff(ctx *context.Context) {
 			}
 		} else {
 			ctx.Data["HasPullRequest"] = true
-			if err := pr.LoadIssue(); err != nil {
+			if err := pr.LoadIssue(ctx); err != nil {
 				ctx.ServerError("LoadIssue", err)
 				return
 			}
@@ -790,15 +790,28 @@ func CompareDiff(ctx *context.Context) {
 		ctx.Flash.Warning(renderErrorOfTemplates(ctx, templateErrs), true)
 	}
 
-	// If a template content is set, prepend the "content". In this case that's only
-	// applicable if you have one commit to compare and that commit has a message.
-	// In that case the commit message will be prepend to the template body.
-	if templateContent, ok := ctx.Data[pullRequestTemplateKey].(string); ok && templateContent != "" {
-		if content, ok := ctx.Data["content"].(string); ok && content != "" {
+	if content, ok := ctx.Data["content"].(string); ok && content != "" {
+		// If a template content is set, prepend the "content". In this case that's only
+		// applicable if you have one commit to compare and that commit has a message.
+		// In that case the commit message will be prepend to the template body.
+		if templateContent, ok := ctx.Data[pullRequestTemplateKey].(string); ok && templateContent != "" {
 			// Re-use the same key as that's priortized over the "content" key.
 			// Add two new lines between the content to ensure there's always at least
 			// one empty line between them.
 			ctx.Data[pullRequestTemplateKey] = content + "\n\n" + templateContent
+		}
+
+		// When using form fields, also add content to field with id "body".
+		if fields, ok := ctx.Data["Fields"].([]*api.IssueFormField); ok {
+			for _, field := range fields {
+				if field.ID == "body" {
+					if fieldValue, ok := field.Attributes["value"].(string); ok && fieldValue != "" {
+						field.Attributes["value"] = content + "\n\n" + fieldValue
+					} else {
+						field.Attributes["value"] = content
+					}
+				}
+			}
 		}
 	}
 

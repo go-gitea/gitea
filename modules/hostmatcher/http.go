@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package hostmatcher
 
@@ -35,7 +34,7 @@ func NewDialContext(usage string, allowList, blockList *HostMatchList) func(ctx 
 				// in Control func, the addr was already resolved to IP:PORT format, there is no cost to do ResolveTCPAddr here
 				tcpAddr, err := net.ResolveTCPAddr(network, ipAddr)
 				if err != nil {
-					return fmt.Errorf("%s can only call HTTP servers via TCP, deny '%s(%s:%s)', err=%v", usage, host, network, ipAddr, err)
+					return fmt.Errorf("%s can only call HTTP servers via TCP, deny '%s(%s:%s)', err=%w", usage, host, network, ipAddr, err)
 				}
 
 				var blockedError error
