@@ -66,10 +66,6 @@ func EscapeControlStringReader(reader io.Reader, writer io.Writer, locale transl
 			}
 			break
 		}
-		if err := streamer.SelfClosingTag("br"); err != nil {
-			streamer.escaped.HasError = true
-			return streamer.escaped, err
-		}
 	}
 	return streamer.escaped, err
 }
