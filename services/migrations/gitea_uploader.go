@@ -394,6 +394,9 @@ func (g *GiteaLocalUploader) SyncTags() error {
 // CreateIssues creates issues
 func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 	iss := make([]*issues_model.Issue, 0, len(issues))
+
+	usernameCache := NewUsernameCache()
+
 	for _, issue := range issues {
 		var labels []*issues_model.Label
 		for _, label := range issue.Labels {
@@ -462,23 +465,25 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 
 		// add assignees
 		for _, assigneeUsername := range issue.Assignees {
-			// Ensure a single user name is queried at a time, so that a single missing
-			// user name does not fail the entire query.
-			singleAssigneeUsernameList := []string{assigneeUsername}
-			assigneeIDs, err := issues_model.MakeIDsFromAPIAssigneesToAdd(g.ctx, "", singleAssigneeUsernameList)
+			assigneeID, err := usernameCache.FindUserIDByName(g.ctx, assigneeUsername)
 			if err != nil {
-				log.Error("Unable to get ID of user name %s", assigneeUsername)
+				log.Debug("Assignees of issue %d: Unable to get ID of user name %s: %v", issue.Number, assigneeUsername, err)
+				continue
+			}
+			if assigneeID == 0 {
 				continue
 			}
 
-			for _, assigneeID := range assigneeIDs {
-				assignee, err := user_model.GetUserByID(g.ctx, assigneeID)
-				if err != nil {
-					return err
-				}
-				is.Assignees = append(is.Assignees, assignee)
+			assignee, err := usernameCache.GetUserByID(g.ctx, assigneeID)
+			if err != nil {
+				log.Error("Assignees of issue %d: Unable to get user with ID %d: %v", issue.Number, assigneeID, err)
+				continue
+			}
+			if assignee == nil {
+				continue
 			}
 
+			is.Assignees = append(is.Assignees, assignee)
 		}
 
 		iss = append(iss, &is)
@@ -501,24 +506,22 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 		issueWatchers := make([]interface{}, 0)
 
 		for _, subscriberUsername := range issue.Subscribers {
-			// Ensure a single user name is queried at a time, so that a single missing
-			// user name does not fail the entire query.
-			singleSubscriberUsernameList := []string{subscriberUsername}
-			subscriberIDs, err := issues_model.MakeIDsFromAPIAssigneesToAdd(g.ctx, "", singleSubscriberUsernameList)
+			subscriberID, err := usernameCache.FindUserIDByName(g.ctx, subscriberUsername)
 			if err != nil {
-				log.Error("Unable to get ID of user name %s", subscriberUsername)
+				log.Debug("Subscribers of issue %d: Unable to get ID of user name %s: %v", issue.Number, subscriberUsername, err)
 				continue
 			}
 
-			for _, subscriberID := range subscriberIDs {
-				issue_watch := issues_model.IssueWatch{
-					UserID:     subscriberID,
-					IssueID:    issueID,
-					IsWatching: true,
-				}
-
-				issueWatchers = append(issueWatchers, &issue_watch)
+			if subscriberID == 0 {
+				continue
 			}
+
+			issueWatch := issues_model.IssueWatch{
+				UserID:     subscriberID,
+				IssueID:    issueID,
+				IsWatching: true,
+			}
+			issueWatchers = append(issueWatchers, &issueWatch)
 		}
 
 		if err := db.Insert(g.ctx, issueWatchers...); err != nil {
