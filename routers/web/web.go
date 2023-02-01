@@ -192,7 +192,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 		rw.WriteHeader(http.StatusOK)
 	})
 
-	routes.Get("/api/healthz", healthcheck.Check)
+	routes.Get("/api/healthz", CorsHandler(), healthcheck.Check)
 
 	// Removed: toolbox.Toolboxer middleware will provide debug information which seems unnecessary
 	common = append(common, context.Contexter(ctx))
