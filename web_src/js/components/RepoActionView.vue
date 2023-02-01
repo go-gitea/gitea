@@ -12,7 +12,7 @@
       <div class="action-view-left">
         <div class="job-group-section">
           <div class="job-brief-list">
-            <a class="job-brief-item" v-for="(job, index) in run.jobs" :key="job.id" :href="run.htmlurl+'/jobs/'+index">
+            <a class="job-brief-item" v-for="(job, index) in run.jobs" :key="job.id" :href="run.link+'/jobs/'+index">
               <SvgIcon name="octicon-check-circle-fill" class="green" v-if="job.status === 'success'"/>
               <SvgIcon name="octicon-skip" class="ui text grey" v-else-if="job.status === 'skipped'"/>
               <SvgIcon name="octicon-clock" class="ui text yellow" v-else-if="job.status === 'waiting'"/>
@@ -92,7 +92,7 @@ const sfc = {
 
       // provided by backend
       run: {
-        htmlurl: '',
+        link: '',
         title: '',
         canCancel: false,
         done: false,
@@ -163,11 +163,11 @@ const sfc = {
     },
     // rerun a job
     rerunJob(idx) {
-      this.fetch(`${this.run.htmlurl}/jobs/${idx}/rerun`);
+      this.fetch(`${this.run.link}/jobs/${idx}/rerun`);
     },
     // cancel a run
     cancelRun() {
-      this.fetch(`${this.run.htmlurl}/cancel`);
+      this.fetch(`${this.run.link}/cancel`);
     },
 
     createLogLine(line) {
