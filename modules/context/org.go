@@ -105,7 +105,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	if ctx.Org.Organization == nil {
 		GetOrganizationByParams(ctx)
 		if ctx.Written() {
-		    return
+			return
 		}
 	}
 
