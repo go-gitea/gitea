@@ -45,7 +45,7 @@ func EscapeControlReader(reader io.Reader, writer io.Writer, locale translation.
 	return streamer.escaped, err
 }
 
-// EscapeControlStringReader escapes the unicode control sequences in a provided reader of string content and writer in a locale and returns the findings as an EscapeStatus and the escaped []byte
+// EscapeControlStringReader escapes the unicode control sequences in a provided reader of string content and writer in a locale and returns the findings as an EscapeStatus and the escaped []byte. HTML line breaks are not inserted after every newline by this method.
 func EscapeControlStringReader(reader io.Reader, writer io.Writer, locale translation.Locale, allowed ...rune) (escaped *EscapeStatus, err error) {
 	bufRd := bufio.NewReader(reader)
 	outputStream := &HTMLStreamerWriter{Writer: writer}
