@@ -7,8 +7,15 @@
 			<div class="issue-item-main f1 fc df">
 				<div class="issue-item-top-row">
 					<a class="index ml-0 mr-2" href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
-						{{.Title}} <span class="ui label">{{RefShortName .Ref}}</span>
+						{{.Title}}
 					</a>
+					<span class="ui label">
+						{{if .RefLink}}
+							<a href="{{.RefLink}}">{{.PrettyRef}}</a>
+						{{else}}
+							{{.PrettyRef}}
+						{{end}}
+					</span>
 				</div>
 				<div class="desc issue-item-bottom-row df ac fw my-1">
 					<b>{{if not $.CurWorkflow}}{{.WorkflowID}} {{end}}#{{.Index}}</b>: {{$.locale.Tr "actions.runs.commit"}}
