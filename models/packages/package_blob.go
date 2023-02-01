@@ -5,15 +5,15 @@ package packages
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrPackageBlobNotExist indicates a package blob not exist error
-var ErrPackageBlobNotExist = errors.New("Package blob does not exist")
+var ErrPackageBlobNotExist = util.NewNotExistErrorf("package blob does not exist")
 
 func init() {
 	db.RegisterModel(new(PackageBlob))
@@ -85,7 +85,16 @@ func DeleteBlobByID(ctx context.Context, blobID int64) error {
 }
 
 // GetTotalBlobSize returns the total blobs size in bytes
-func GetTotalBlobSize() (int64, error) {
-	return db.GetEngine(db.DefaultContext).
+func GetTotalBlobSize(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).
+		SumInt(&PackageBlob{}, "size")
+}
+
+// GetTotalUnreferencedBlobSize returns the total size of all unreferenced blobs in bytes
+func GetTotalUnreferencedBlobSize(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).
+		Table("package_blob").
+		Join("LEFT", "package_file", "package_file.blob_id = package_blob.id").
+		Where("package_file.id IS NULL").
 		SumInt(&PackageBlob{}, "size")
 }

@@ -5,7 +5,6 @@ package packages
 
 import (
 	"context"
-	"errors"
 	"strings"
 	"time"
 
@@ -15,7 +14,7 @@ import (
 )
 
 // ErrPackageBlobUploadNotExist indicates a package blob upload not exist error
-var ErrPackageBlobUploadNotExist = errors.New("Package blob upload does not exist")
+var ErrPackageBlobUploadNotExist = util.NewNotExistErrorf("package blob upload does not exist")
 
 func init() {
 	db.RegisterModel(new(PackageBlobUpload))

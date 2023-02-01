@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	activities_model "code.gitea.io/gitea/models/activities"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -267,4 +268,47 @@ func GetFeedType(name string, req *http.Request) (bool, string, string) {
 	}
 
 	return false, name, ""
+}
+
+// feedActionsToFeedItems convert gitea's Repo's Releases to feeds Item
+func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release, isReleasesOnly bool) (items []*feeds.Item, err error) {
+	for _, rel := range releases {
+		err := rel.LoadAttributes(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		var title, content string
+
+		if rel.IsTag {
+			title = rel.TagName
+		} else {
+			title = rel.Title
+		}
+
+		link := &feeds.Link{Href: rel.HTMLURL()}
+		content, err = markdown.RenderString(&markup.RenderContext{
+			Ctx:       ctx,
+			URLPrefix: rel.Repo.Link(),
+			Metas:     rel.Repo.ComposeMetas(),
+		}, rel.Note)
+
+		if err != nil {
+			return nil, err
+		}
+
+		items = append(items, &feeds.Item{
+			Title:   title,
+			Link:    link,
+			Created: rel.CreatedUnix.AsTime(),
+			Author: &feeds.Author{
+				Name:  rel.Publisher.DisplayName(),
+				Email: rel.Publisher.GetEmail(),
+			},
+			Id:      fmt.Sprintf("%v: %v", strconv.FormatInt(rel.ID, 10), link.Href),
+			Content: content,
+		})
+	}
+
+	return items, err
 }

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"runtime/pprof"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"code.gitea.io/gitea/modules/container"
@@ -165,35 +164,6 @@ func (q *ChannelUniqueQueue) Flush(timeout time.Duration) error {
 	ctx, cancel := q.commonRegisterWorkers(1, timeout, true)
 	defer cancel()
 	return q.FlushWithContext(ctx)
-}
-
-// FlushWithContext is very similar to CleanUp but it will return as soon as the dataChan is empty
-func (q *ChannelUniqueQueue) FlushWithContext(ctx context.Context) error {
-	log.Trace("ChannelUniqueQueue: %d Flush", q.qid)
-	paused, _ := q.IsPausedIsResumed()
-	for {
-		select {
-		case <-paused:
-			return nil
-		default:
-		}
-		select {
-		case data, ok := <-q.dataChan:
-			if !ok {
-				return nil
-			}
-			if unhandled := q.handle(data); unhandled != nil {
-				log.Error("Unhandled Data whilst flushing queue %d", q.qid)
-			}
-			atomic.AddInt64(&q.numInQueue, -1)
-		case <-q.baseCtx.Done():
-			return q.baseCtx.Err()
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			return nil
-		}
-	}
 }
 
 // Shutdown processing from this queue

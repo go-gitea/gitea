@@ -146,6 +146,19 @@ func TestParseNuspecMetaData(t *testing.T) {
 		assert.Len(t, deps, 1)
 		assert.Equal(t, dependencyID, deps[0].ID)
 		assert.Equal(t, dependencyVersion, deps[0].Version)
+
+		t.Run("NormalizedVersion", func(t *testing.T) {
+			np, err := ParseNuspecMetaData(strings.NewReader(`<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+	<id>test</id>
+	<version>1.04.5.2.5-rc.1+metadata</version>
+  </metadata>
+</package>`))
+			assert.NoError(t, err)
+			assert.NotNil(t, np)
+			assert.Equal(t, "1.4.5.2-rc.1", np.Version)
+		})
 	})
 
 	t.Run("Symbols Package", func(t *testing.T) {

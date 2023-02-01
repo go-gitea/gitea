@@ -303,14 +303,14 @@
 				<dt>{{.locale.Tr "admin.config.disable_gravatar"}}</dt>
 				<dd>
 					<div class="ui toggle checkbox">
-						<input type="checkbox" name="picture.disable_gravatar" version="{{.SystemSettings.GetVersion "picture.disable_gravatar"}}"{{if .SystemSettings.GetBool "picture.disable_gravatar"}} checked{{end}}>
+						<input type="checkbox" name="picture.disable_gravatar" version="{{.SystemSettings.GetVersion "picture.disable_gravatar"}}"{{if .SystemSettings.GetBool "picture.disable_gravatar"}} checked{{end}} title="{{.locale.Tr "admin.config.disable_gravatar"}}">
 					</div>
 				</dd>
 				<div class="ui divider"></div>
 				<dt>{{.locale.Tr "admin.config.enable_federated_avatar"}}</dt>
 				<dd>
 					<div class="ui toggle checkbox">
-						<input type="checkbox" name="picture.enable_federated_avatar" version="{{.SystemSettings.GetVersion "picture.enable_federated_avatar"}}"{{if .SystemSettings.GetBool "picture.enable_federated_avatar"}} checked{{end}}>
+						<input type="checkbox" name="picture.enable_federated_avatar" version="{{.SystemSettings.GetVersion "picture.enable_federated_avatar"}}"{{if .SystemSettings.GetBool "picture.enable_federated_avatar"}} checked{{end}} title="{{.locale.Tr "admin.config.enable_federated_avatar"}}">
 					</div>
 				</dd>
 			</dl>

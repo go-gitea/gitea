@@ -10,13 +10,13 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/action"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/notification/indexer"
 	"code.gitea.io/gitea/modules/notification/mail"
 	"code.gitea.io/gitea/modules/notification/mirror"
 	"code.gitea.io/gitea/modules/notification/ui"
-	"code.gitea.io/gitea/modules/notification/webhook"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -36,7 +36,6 @@ func NewContext() {
 		RegisterNotifier(mail.NewNotifier())
 	}
 	RegisterNotifier(indexer.NewNotifier())
-	RegisterNotifier(webhook.NewNotifier())
 	RegisterNotifier(action.NewNotifier())
 	RegisterNotifier(mirror.NewNotifier())
 }
@@ -79,9 +78,9 @@ func NotifyNewIssue(ctx context.Context, issue *issues_model.Issue, mentions []*
 }
 
 // NotifyIssueChangeStatus notifies close or reopen issue to notifiers
-func NotifyIssueChangeStatus(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, actionComment *issues_model.Comment, closeOrReopen bool) {
+func NotifyIssueChangeStatus(ctx context.Context, doer *user_model.User, commitID string, issue *issues_model.Issue, actionComment *issues_model.Comment, closeOrReopen bool) {
 	for _, notifier := range notifiers {
-		notifier.NotifyIssueChangeStatus(ctx, doer, issue, actionComment, closeOrReopen)
+		notifier.NotifyIssueChangeStatus(ctx, doer, commitID, issue, actionComment, closeOrReopen)
 	}
 }
 
@@ -108,6 +107,13 @@ func NotifyAutoMergePullRequest(ctx context.Context, doer *user_model.User, pr *
 
 // NotifyNewPullRequest notifies new pull request to notifiers
 func NotifyNewPullRequest(ctx context.Context, pr *issues_model.PullRequest, mentions []*user_model.User) {
+	if err := pr.LoadIssue(ctx); err != nil {
+		log.Error("%v", err)
+		return
+	}
+	if err := pr.Issue.LoadPoster(ctx); err != nil {
+		return
+	}
 	for _, notifier := range notifiers {
 		notifier.NotifyNewPullRequest(ctx, pr, mentions)
 	}
@@ -122,6 +128,10 @@ func NotifyPullRequestSynchronized(ctx context.Context, doer *user_model.User, p
 
 // NotifyPullRequestReview notifies new pull request review
 func NotifyPullRequestReview(ctx context.Context, pr *issues_model.PullRequest, review *issues_model.Review, comment *issues_model.Comment, mentions []*user_model.User) {
+	if err := review.LoadReviewer(ctx); err != nil {
+		log.Error("%v", err)
+		return
+	}
 	for _, notifier := range notifiers {
 		notifier.NotifyPullRequestReview(ctx, pr, review, comment, mentions)
 	}
@@ -129,6 +139,10 @@ func NotifyPullRequestReview(ctx context.Context, pr *issues_model.PullRequest, 
 
 // NotifyPullRequestCodeComment notifies new pull request code comment
 func NotifyPullRequestCodeComment(ctx context.Context, pr *issues_model.PullRequest, comment *issues_model.Comment, mentions []*user_model.User) {
+	if err := comment.LoadPoster(ctx); err != nil {
+		log.Error("LoadPoster: %v", err)
+		return
+	}
 	for _, notifier := range notifiers {
 		notifier.NotifyPullRequestCodeComment(ctx, pr, comment, mentions)
 	}
@@ -171,6 +185,10 @@ func NotifyDeleteComment(ctx context.Context, doer *user_model.User, c *issues_m
 
 // NotifyNewRelease notifies new release to notifiers
 func NotifyNewRelease(ctx context.Context, rel *repo_model.Release) {
+	if err := rel.LoadAttributes(ctx); err != nil {
+		log.Error("LoadPublisher: %v", err)
+		return
+	}
 	for _, notifier := range notifiers {
 		notifier.NotifyNewRelease(ctx, rel)
 	}

@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
@@ -28,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
 
@@ -654,7 +654,7 @@ func CreateIssue(ctx *context.APIContext) {
 	}
 
 	if form.Closed {
-		if err := issue_service.ChangeStatus(issue, ctx.Doer, true); err != nil {
+		if err := issue_service.ChangeStatus(issue, ctx.Doer, "", true); err != nil {
 			if issues_model.IsErrDependenciesLeft(err) {
 				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
 				return
@@ -826,7 +826,7 @@ func EditIssue(ctx *context.APIContext) {
 	}
 
 	if statusChangeComment != nil {
-		notification.NotifyIssueChangeStatus(ctx, ctx.Doer, issue, statusChangeComment, issue.IsClosed)
+		notification.NotifyIssueChangeStatus(ctx, ctx.Doer, "", issue, statusChangeComment, issue.IsClosed)
 	}
 
 	// Refetch from database to assign some automatic values

@@ -41,7 +41,7 @@ func (repo *Repository) RemoveReference(name string) error {
 
 // ConvertToSHA1 returns a Hash object from a potential ID string
 func (repo *Repository) ConvertToSHA1(commitID string) (SHA1, error) {
-	if len(commitID) == 40 {
+	if len(commitID) == SHAFullLength {
 		sha1, err := NewIDFromString(commitID)
 		if err == nil {
 			return sha1, nil

@@ -55,7 +55,6 @@ const (
 	tplGithooks        base.TplName = "repo/settings/githooks"
 	tplGithookEdit     base.TplName = "repo/settings/githook_edit"
 	tplDeployKeys      base.TplName = "repo/settings/deploy_keys"
-	tplProtectedBranch base.TplName = "repo/settings/protected_branch"
 )
 
 // SettingsCtxData is a middleware that sets all the general context data for the
@@ -488,6 +487,15 @@ func SettingsPost(ctx *context.Context) {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeProjects)
 		}
 
+		if form.EnableReleases && !unit_model.TypeReleases.UnitGlobalDisabled() {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   unit_model.TypeReleases,
+			})
+		} else if !unit_model.TypeReleases.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeReleases)
+		}
+
 		if form.EnablePackages && !unit_model.TypePackages.UnitGlobalDisabled() {
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
@@ -495,6 +503,15 @@ func SettingsPost(ctx *context.Context) {
 			})
 		} else if !unit_model.TypePackages.UnitGlobalDisabled() {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePackages)
+		}
+
+		if form.EnableActions && !unit_model.TypeActions.UnitGlobalDisabled() {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   unit_model.TypeActions,
+			})
+		} else if !unit_model.TypeActions.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeActions)
 		}
 
 		if form.EnablePulls && !unit_model.TypePullRequests.UnitGlobalDisabled() {
@@ -1119,7 +1136,6 @@ func DeployKeys(ctx *context.Context) {
 // DeployKeysPost response for adding a deploy key of a repository
 func DeployKeysPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AddKeyForm)
-
 	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled

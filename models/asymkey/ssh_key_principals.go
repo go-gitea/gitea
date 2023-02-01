@@ -4,7 +4,6 @@
 package asymkey
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -12,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // __________       .__              .__             .__
@@ -70,7 +70,7 @@ func CheckPrincipalKeyString(user *user_model.User, content string) (_ string, e
 
 	content = strings.TrimSpace(content)
 	if strings.ContainsAny(content, "\r\n") {
-		return "", errors.New("only a single line with a single principal please")
+		return "", util.NewInvalidArgumentErrorf("only a single line with a single principal please")
 	}
 
 	// check all the allowed principals, email, username or anything

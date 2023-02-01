@@ -141,7 +141,7 @@ func CountNotifications(ctx context.Context, opts *FindNotificationOptions) (int
 
 // CreateRepoTransferNotification creates  notification for the user a repository was transferred to
 func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) error {
-	return db.AutoTx(ctx, func(ctx context.Context) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
 		var notify []*Notification
 
 		if newOwner.IsOrganization() {
@@ -151,7 +151,7 @@ func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_mo
 			}
 			for i := range users {
 				notify = append(notify, &Notification{
-					UserID:    users[i].ID,
+					UserID:    i,
 					RepoID:    repo.ID,
 					Status:    NotificationStatusUnread,
 					UpdatedBy: doer.ID,

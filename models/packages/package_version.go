@@ -5,7 +5,6 @@ package packages
 
 import (
 	"context"
-	"errors"
 	"strconv"
 	"strings"
 
@@ -17,7 +16,7 @@ import (
 )
 
 // ErrDuplicatePackageVersion indicates a duplicated package version error
-var ErrDuplicatePackageVersion = errors.New("Package version already exists")
+var ErrDuplicatePackageVersion = util.NewAlreadyExistErrorf("package version already exists")
 
 func init() {
 	db.RegisterModel(new(PackageVersion))

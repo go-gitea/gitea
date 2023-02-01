@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
@@ -22,11 +23,12 @@ func TestAPIWatch(t *testing.T) {
 
 	session := loginUser(t, user)
 	token := getTokenForLoggedInUser(t, session)
+	tokenWithRepoScope := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
 
 	t.Run("Watch", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/subscription?token=%s", repo, token))
+		req := NewRequest(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/subscription?token=%s", repo, tokenWithRepoScope))
 		MakeRequest(t, req, http.StatusOK)
 	})
 
@@ -47,7 +49,7 @@ func TestAPIWatch(t *testing.T) {
 	t.Run("GetMyWatchedRepos", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/subscriptions?token=%s", token))
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/subscriptions?token=%s", tokenWithRepoScope))
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		assert.Equal(t, "1", resp.Header().Get("X-Total-Count"))
@@ -61,17 +63,17 @@ func TestAPIWatch(t *testing.T) {
 	t.Run("IsWatching", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/subscription?token=%s", repo, token))
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/subscription?token=%s", repo, tokenWithRepoScope))
 		MakeRequest(t, req, http.StatusOK)
 
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/subscription?token=%s", repo+"notexisting", token))
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/subscription?token=%s", repo+"notexisting", tokenWithRepoScope))
 		MakeRequest(t, req, http.StatusNotFound)
 	})
 
 	t.Run("Unwatch", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/subscription?token=%s", repo, token))
+		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/subscription?token=%s", repo, tokenWithRepoScope))
 		MakeRequest(t, req, http.StatusNoContent)
 	})
 }

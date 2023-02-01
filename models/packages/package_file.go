@@ -5,13 +5,13 @@ package packages
 
 import (
 	"context"
-	"errors"
 	"strconv"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -22,9 +22,9 @@ func init() {
 
 var (
 	// ErrDuplicatePackageFile indicates a duplicated package file error
-	ErrDuplicatePackageFile = errors.New("Package file does exist already")
+	ErrDuplicatePackageFile = util.NewAlreadyExistErrorf("package file already exists")
 	// ErrPackageFileNotExist indicates a package file not exist error
-	ErrPackageFileNotExist = errors.New("Package file does not exist")
+	ErrPackageFileNotExist = util.NewNotExistErrorf("package file does not exist")
 )
 
 // EmptyFileKey is a named constant for an empty file key
@@ -199,9 +199,9 @@ func SearchFiles(ctx context.Context, opts *PackageFileSearchOptions) ([]*Packag
 	return pfs, count, err
 }
 
-// CalculateBlobSize sums up all blob sizes matching the search options.
+// CalculateFileSize sums up all blob sizes matching the search options.
 // It does NOT respect the deduplication of blobs.
-func CalculateBlobSize(ctx context.Context, opts *PackageFileSearchOptions) (int64, error) {
+func CalculateFileSize(ctx context.Context, opts *PackageFileSearchOptions) (int64, error) {
 	return db.GetEngine(ctx).
 		Table("package_file").
 		Where(opts.toConds()).

@@ -25,6 +25,11 @@
 			{{.locale.Tr "packages.title"}}
 		</a>
 		{{end}}
+		{{if .EnableActions}}
+		<a class="{{if .PageIsOrgSettingsRunners}}active {{end}}item" href="{{.OrgLink}}/settings/runners">
+			{{.locale.Tr "actions.runners"}}
+		</a>
+		{{end}}
 		<a class="{{if .PageIsSettingsDelete}}active {{end}}item" href="{{.OrgLink}}/settings/delete">
 			{{.locale.Tr "org.settings.delete"}}
 		</a>

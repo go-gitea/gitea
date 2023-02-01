@@ -633,7 +633,7 @@ func Activate(ctx *context.Context) {
 	user := user_model.VerifyUserActiveCode(code)
 	// if code is wrong
 	if user == nil {
-		ctx.Data["IsActivateFailed"] = true
+		ctx.Data["IsCodeInvalid"] = true
 		ctx.HTML(http.StatusOK, TplActivate)
 		return
 	}
@@ -660,7 +660,7 @@ func ActivatePost(ctx *context.Context) {
 	user := user_model.VerifyUserActiveCode(code)
 	// if code is wrong
 	if user == nil {
-		ctx.Data["IsActivateFailed"] = true
+		ctx.Data["IsCodeInvalid"] = true
 		ctx.HTML(http.StatusOK, TplActivate)
 		return
 	}
@@ -675,7 +675,7 @@ func ActivatePost(ctx *context.Context) {
 			return
 		}
 		if !user.ValidatePassword(password) {
-			ctx.Data["IsActivateFailed"] = true
+			ctx.Data["IsPasswordInvalid"] = true
 			ctx.HTML(http.StatusOK, TplActivate)
 			return
 		}
