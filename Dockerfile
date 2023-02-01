@@ -67,3 +67,4 @@ COPY --from=build-env /go/src/code.gitea.io/gitea/environment-to-ini /usr/local/
 COPY --from=build-env /go/src/code.gitea.io/gitea/contrib/autocompletion/bash_autocomplete /etc/profile.d/gitea_bash_autocomplete.sh
 RUN chmod 755 /usr/bin/entrypoint /app/gitea/gitea /usr/local/bin/gitea /usr/local/bin/environment-to-ini
 RUN chmod 755 /etc/s6/gitea/* /etc/s6/openssh/* /etc/s6/.s6-svscan/*
+RUN chmod 644 /etc/profile.d/gitea_bash_autocomplete.sh
