@@ -96,7 +96,7 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 	case webhook_module.HookEventDelete:
 		fallthrough
 	case webhook_module.HookEventFork:
-		log.Error("unsupported event %q", triggedEvent.Event())
+		log.Warn("unsupported event %q", triggedEvent.Event())
 		return false
 	case webhook_module.HookEventPush:
 		pushPayload := payload.(*api.PushPayload)
