@@ -1,0 +1,51 @@
+package feed
+
+import (
+	"fmt"
+	"strings"
+	"time"
+
+	"code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/context"
+
+	"github.com/gorilla/feeds"
+)
+
+// ShowFileFeed shows tags and/or releases on the repo as RSS / Atom feed
+func ShowFileFeed(ctx *context.Context, repo *repo.Repository, formatType string) {
+	fileName := ctx.Repo.TreePath
+	if len(fileName) == 0 {
+		return
+	}
+	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(ctx.Repo.RefName, fileName, 1)
+	if err != nil {
+		ctx.ServerError("ShowBranchFeed %s", err)
+		return
+	}
+
+	title := fmt.Sprintf("Latest commits for file %s", strings.TrimSpace(ctx.Repo.TreePath))
+	link := &feeds.Link{Href: repo.HTMLURL() + "/branch/" + ctx.Repo.BranchName}
+
+	feed := &feeds.Feed{
+		Title:       title,
+		Link:        link,
+		Description: repo.Description,
+		Created:     time.Now(),
+	}
+
+	for _, commit := range commits {
+		feed.Items = append(feed.Items, &feeds.Item{
+			Id:    commit.ID.String(),
+			Title: strings.TrimSpace(commit.Message()),
+			Link:  &feeds.Link{Href: repo.HTMLURL() + "/commit/" + commit.ID.String()},
+			Author: &feeds.Author{
+				Name:  commit.Author.Name,
+				Email: commit.Author.Email,
+			},
+			Description: commit.Message(),
+			Content:     commit.Message(),
+		})
+	}
+
+	writeFeed(ctx, feed, formatType)
+}
