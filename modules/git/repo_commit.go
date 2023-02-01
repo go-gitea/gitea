@@ -123,7 +123,7 @@ func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) ([]*Co
 			c.AddOptionFormat("--after=%s", opts.After)
 		}
 		if len(opts.Before) > 0 {
-			c.AddOptionFormat("--before=%s" + opts.Before)
+			c.AddOptionFormat("--before=%s", opts.Before)
 		}
 	}
 

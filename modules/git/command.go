@@ -142,7 +142,11 @@ func (c *Command) AddOptionFormat(opt string, args ...any) *Command {
 		c.brokenArgs = append(c.brokenArgs, opt)
 		return c
 	}
-
+	// a quick check to make sure the format string matches the number of arguments, to find low-level mistakes ASAP
+	if strings.Count(strings.ReplaceAll(opt, "%%", ""), "%") != len(args) {
+		c.brokenArgs = append(c.brokenArgs, opt)
+		return c
+	}
 	s := fmt.Sprintf(opt, args...)
 	c.args = append(c.args, s)
 	return c

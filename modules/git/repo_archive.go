@@ -59,7 +59,7 @@ func (repo *Repository) CreateArchive(ctx context.Context, format ArchiveType, t
 	if usePrefix {
 		cmd.AddOptionFormat("--prefix=%s", filepath.Base(strings.TrimSuffix(repo.Path, ".git"))+"/")
 	}
-	cmd.AddOptionFormat("--format=%s" + format.String())
+	cmd.AddOptionFormat("--format=%s", format.String())
 	cmd.AddDynamicArguments(commitID)
 
 	var stderr strings.Builder
