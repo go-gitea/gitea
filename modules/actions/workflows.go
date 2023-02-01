@@ -215,7 +215,7 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 	case webhook_module.HookEventPackage:
 		fallthrough
 	default:
-		log.Error("unsupported event %q", triggedEvent.Event())
+		log.Warn("unsupported event %q", triggedEvent.Event())
 	}
 	return false
 }
