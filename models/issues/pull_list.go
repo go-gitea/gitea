@@ -173,8 +173,9 @@ func (prs PullRequestList) loadAttributes(ctx context.Context) error {
 	for i := range issues {
 		set[issues[i].ID] = issues[i]
 	}
-	for i := range prs {
-		prs[i].Issue = set[prs[i].IssueID]
+	for _, pr := range prs {
+		pr.Issue = set[pr.IssueID]
+		pr.Issue.PullRequest = pr // panic here means issueIDs and prs are not in sync
 	}
 	return nil
 }
