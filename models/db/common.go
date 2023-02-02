@@ -132,7 +132,7 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (int64, er
 			_, _ = sb.WriteString(") ON CONFLICT DO NOTHING")
 		case setting.Database.UseMySQL:
 			if autoIncrCol != nil {
-				_, _ = sb.WriteString(") ON CONFLICT DO DUPLICATE KEY ")
+				_, _ = sb.WriteString(") ON DUPLICATE KEY UPDATE ")
 				_, _ = sb.WriteString(autoIncrCol.Name)
 				_, _ = sb.WriteString(" = ")
 				_, _ = sb.WriteString(autoIncrCol.Name)
@@ -170,7 +170,7 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (int64, er
 		for range colNames[1:] {
 			_, _ = sb.WriteString(",?")
 		}
-		_, _ = sb.WriteString(")")
+		_, _ = sb.WriteString(");")
 		args = append(uniqueArgs, args[1:]...)
 	default:
 		return 0, fmt.Errorf("database type not supported")
