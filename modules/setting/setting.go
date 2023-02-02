@@ -21,6 +21,7 @@ import (
 	"text/template"
 	"time"
 
+	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/json"
@@ -968,7 +969,14 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(true)
 	DisableWebhooks = sec.Key("DISABLE_WEBHOOKS").MustBool(false)
 	OnlyAllowPushIfGiteaEnvironmentSet = sec.Key("ONLY_ALLOW_PUSH_IF_GITEA_ENVIRONMENT_SET").MustBool(true)
-	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("pbkdf2")
+
+	// Ensure that the provided default hash algorithm is a valid hash algorithm
+	var algorithm *hash.PasswordHashAlgorithm
+	PasswordHashAlgo, algorithm = hash.SetDefaultPasswordHashAlgorithm(sec.Key("PASSWORD_HASH_ALGO").MustString(""))
+	if algorithm == nil {
+		log.Fatal("The provided password hash algorithm was invalid: %s", sec.Key("PASSWORD_HASH_ALGO").MustString(""))
+	}
+
 	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
 	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
 	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
