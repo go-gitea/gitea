@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content repository">
+<div role="main" aria-label="{{.Title}}" class="page-content repository">
 	{{template "repo/header" .}}
 	<div class="ui container">
 		<div class="ui three column grid issue-list-headers">
@@ -30,8 +30,7 @@
 			<div class="six wide column">
 				{{if $.CanWriteIssuesOrPulls}}
 					<div class="ui checkbox issue-checkbox-all vm">
-						<input type="checkbox"></input>
-						<label></label>
+						<input type="checkbox" title="{{.locale.Tr "repo.issues.action_check_all"}}">
 					</div>
 				{{end}}
 				{{template "repo/issue/openclose" .}}

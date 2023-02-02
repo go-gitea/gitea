@@ -339,6 +339,8 @@ func CheckSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 		typeSpecificSize = setting.Packages.LimitSizeComposer
 	case packages_model.TypeConan:
 		typeSpecificSize = setting.Packages.LimitSizeConan
+	case packages_model.TypeConda:
+		typeSpecificSize = setting.Packages.LimitSizeConda
 	case packages_model.TypeContainer:
 		typeSpecificSize = setting.Packages.LimitSizeContainer
 	case packages_model.TypeGeneric:

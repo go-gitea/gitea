@@ -32,6 +32,7 @@ type Type string
 const (
 	TypeComposer  Type = "composer"
 	TypeConan     Type = "conan"
+	TypeConda     Type = "conda"
 	TypeContainer Type = "container"
 	TypeGeneric   Type = "generic"
 	TypeHelm      Type = "helm"
@@ -47,6 +48,7 @@ const (
 var TypeList = []Type{
 	TypeComposer,
 	TypeConan,
+	TypeConda,
 	TypeContainer,
 	TypeGeneric,
 	TypeHelm,
@@ -66,6 +68,8 @@ func (pt Type) Name() string {
 		return "Composer"
 	case TypeConan:
 		return "Conan"
+	case TypeConda:
+		return "Conda"
 	case TypeContainer:
 		return "Container"
 	case TypeGeneric:
@@ -97,6 +101,8 @@ func (pt Type) SVGName() string {
 		return "gitea-composer"
 	case TypeConan:
 		return "gitea-conan"
+	case TypeConda:
+		return "gitea-conda"
 	case TypeContainer:
 		return "octicon-container"
 	case TypeGeneric:
