@@ -28,6 +28,7 @@ The following package managers are currently supported:
 | ---- | -------- | -------------- |
 | [Composer]({{< relref "doc/packages/composer.en-us.md" >}}) | PHP | `composer` |
 | [Conan]({{< relref "doc/packages/conan.en-us.md" >}}) | C++ | `conan` |
+| [Conda]({{< relref "doc/packages/conda.en-us.md" >}}) | - | `conda` |
 | [Container]({{< relref "doc/packages/container.en-us.md" >}}) | - | any OCI compliant client |
 | [Generic]({{< relref "doc/packages/generic.en-us.md" >}}) | - | any HTTP client |
 | [Helm]({{< relref "doc/packages/helm.en-us.md" >}}) | - | any HTTP client, `cm-push` |

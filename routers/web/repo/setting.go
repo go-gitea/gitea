@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
-	secret_model "code.gitea.io/gitea/models/secret"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -61,7 +60,7 @@ const (
 // SettingsCtxData is a middleware that sets all the general context data for the
 // settings template.
 func SettingsCtxData(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["Title"] = ctx.Tr("repo.settings.options")
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["ForcePrivate"] = setting.Repository.ForcePrivate
 	ctx.Data["MirrorsEnabled"] = setting.Mirror.Enabled
@@ -488,6 +487,15 @@ func SettingsPost(ctx *context.Context) {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeProjects)
 		}
 
+		if form.EnableReleases && !unit_model.TypeReleases.UnitGlobalDisabled() {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   unit_model.TypeReleases,
+			})
+		} else if !unit_model.TypeReleases.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeReleases)
+		}
+
 		if form.EnablePackages && !unit_model.TypePackages.UnitGlobalDisabled() {
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
@@ -495,6 +503,15 @@ func SettingsPost(ctx *context.Context) {
 			})
 		} else if !unit_model.TypePackages.UnitGlobalDisabled() {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePackages)
+		}
+
+		if form.EnableActions && !unit_model.TypeActions.UnitGlobalDisabled() {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   unit_model.TypeActions,
+			})
+		} else if !unit_model.TypeActions.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeActions)
 		}
 
 		if form.EnablePulls && !unit_model.TypePullRequests.UnitGlobalDisabled() {
@@ -862,7 +879,7 @@ func handleSettingRemoteAddrError(ctx *context.Context, err error, form *forms.R
 
 // Collaboration render a repository's collaboration page
 func Collaboration(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["Title"] = ctx.Tr("repo.settings.collaboration")
 	ctx.Data["PageIsSettingsCollaboration"] = true
 
 	users, err := repo_model.GetCollaborators(ctx, ctx.Repo.Repository.ID, db.ListOptions{})
@@ -1102,7 +1119,7 @@ func GitHooksEditPost(ctx *context.Context) {
 
 // DeployKeys render the deploy keys list of a repository page
 func DeployKeys(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
+	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys") + " / " + ctx.Tr("secrets.secrets")
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 
@@ -1113,37 +1130,12 @@ func DeployKeys(ctx *context.Context) {
 	}
 	ctx.Data["Deploykeys"] = keys
 
-	secrets, err := secret_model.FindSecrets(ctx, secret_model.FindSecretsOptions{RepoID: ctx.Repo.Repository.ID})
-	if err != nil {
-		ctx.ServerError("FindSecrets", err)
-		return
-	}
-	ctx.Data["Secrets"] = secrets
-
 	ctx.HTML(http.StatusOK, tplDeployKeys)
-}
-
-// SecretsPost response for creating a new secret
-func SecretsPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.AddSecretForm)
-
-	_, err := secret_model.InsertEncryptedSecret(ctx, 0, ctx.Repo.Repository.ID, form.Title, form.Content)
-	if err != nil {
-		ctx.Flash.Error(ctx.Tr("secrets.creation.failed"))
-		log.Error("validate secret: %v", err)
-		ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
-		return
-	}
-
-	log.Trace("Secret added: %d", ctx.Repo.Repository.ID)
-	ctx.Flash.Success(ctx.Tr("secrets.creation.success", form.Title))
-	ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
 }
 
 // DeployKeysPost response for adding a deploy key of a repository
 func DeployKeysPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AddKeyForm)
-
 	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
@@ -1200,20 +1192,6 @@ func DeployKeysPost(ctx *context.Context) {
 	log.Trace("Deploy key added: %d", ctx.Repo.Repository.ID)
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_key_success", key.Name))
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
-}
-
-func DeleteSecret(ctx *context.Context) {
-	id := ctx.FormInt64("id")
-	if _, err := db.DeleteByBean(ctx, &secret_model.Secret{ID: id}); err != nil {
-		ctx.Flash.Error(ctx.Tr("secrets.deletion.failed"))
-		log.Error("delete secret %d: %v", id, err)
-	} else {
-		ctx.Flash.Success(ctx.Tr("secrets.deletion.success"))
-	}
-
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": ctx.Repo.RepoLink + "/settings/keys",
-	})
 }
 
 // DeleteDeployKey response for deleting a deploy key

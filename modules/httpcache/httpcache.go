@@ -21,12 +21,12 @@ func AddCacheControlToHeader(h http.Header, maxAge time.Duration, additionalDire
 
 	if setting.IsProd {
 		if maxAge == 0 {
-			directives = append(directives, "no-store")
+			directives = append(directives, "max-age=0", "private", "must-revalidate")
 		} else {
 			directives = append(directives, "private", "max-age="+strconv.Itoa(int(maxAge.Seconds())))
 		}
 	} else {
-		directives = append(directives, "no-store")
+		directives = append(directives, "max-age=0", "private", "must-revalidate")
 
 		// to remind users they are using non-prod setting.
 		h.Add("X-Gitea-Debug", "RUN_MODE="+setting.RunMode)
