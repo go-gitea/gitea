@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -829,9 +828,6 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 		ctx.Repo.TreePath = path
 		return ctx.Repo.Repository.DefaultBranch
 	case RepoRefBranch:
-		if filepath.Ext(path) == ".rss" {
-			path = strings.Replace(path, ".rss", "", -1)
-		}
 		ref := getRefNameFromPath(ctx, path, ctx.Repo.GitRepo.IsBranchExist)
 		if len(ref) == 0 {
 			// maybe it's a renamed branch

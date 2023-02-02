@@ -1411,6 +1411,9 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/cherry-pick/{sha:([a-f0-9]{7,40})$}", repo.SetEditorconfigIfExists, repo.CherryPick)
 		}, repo.MustBeNotEmpty, context.RepoRef(), reqRepoCodeReader)
 
+		m.Get("/rss/branch/*", context.RepoRefByType(context.RepoRefBranch), feed.RenderBranchFeedRss)
+		m.Get("/atom/branch/*", context.RepoRefByType(context.RepoRefBranch), feed.RenderBranchFeedAtom)
+
 		m.Group("/src", func() {
 			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.Home)
 			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.Home)

@@ -730,10 +730,11 @@ func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
 
 // Home render repository home page
 func Home(ctx *context.Context) {
-	if feed.RenderFeed(ctx) {
+	if feed.RenderRepoFeed(ctx) {
 		return
 	}
 
+	feed.InjectContextVariables(ctx)
 	checkHomeCodeViewable(ctx)
 	if ctx.Written() {
 		return
