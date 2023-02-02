@@ -226,11 +226,7 @@ async function webAuthnRegisterRequest() {
       publicKey: options.publicKey
     });
   } catch (err) {
-    if (err?.message) {
-      webAuthnError('general', err.message);
-    } else {
-      webAuthnError('unknown', err);
-    }
+    webAuthnError('unknown', err);
     return;
   }
 
