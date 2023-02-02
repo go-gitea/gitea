@@ -1214,6 +1214,7 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 - `LIMIT_TOTAL_OWNER_SIZE`: **-1**: Maximum size of packages a single owner can use (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_COMPOSER`: **-1**: Maximum size of a Composer upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_CONAN`: **-1**: Maximum size of a Conan upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_CONDA`: **-1**: Maximum size of a Conda upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_CONTAINER`: **-1**: Maximum size of a Container upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_GENERIC`: **-1**: Maximum size of a Generic upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_HELM`: **-1**: Maximum size of a Helm upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
