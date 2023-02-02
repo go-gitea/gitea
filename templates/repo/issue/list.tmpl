@@ -244,7 +244,7 @@
 					</div>
 
 					<!-- Projects -->
-					<div class="ui {{if not (or .OpenProjects .ClosedProjects)}}disabled{{end}} dropdown jump item">
+					<div class="ui{{if not (or .OpenProjects .ClosedProjects)}} disabled{{end}} dropdown jump item">
 						<span class="text">
 							{{.locale.Tr "repo.project_board"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
