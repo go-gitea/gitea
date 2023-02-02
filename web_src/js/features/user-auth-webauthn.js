@@ -98,6 +98,7 @@ async function verifyAssertion(assertedCredential) {
   const reply = await res.json();
 
   window.location.href = reply?.redirect ?? '/';
+}
 
 async function webauthnRegistered(newCredential) {
   const attestationObject = new Uint8Array(newCredential.response.attestationObject);
