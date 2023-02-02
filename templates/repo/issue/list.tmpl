@@ -75,7 +75,7 @@
 					</div>
 
 					<!-- Project -->
-					<div class="ui {{if not (or .OpenProjects .ClosedProjects)}}disabled{{end}} dropdown jump item">
+					<div class="ui{{if not (or .OpenProjects .ClosedProjects)}} disabled{{end}} dropdown jump item">
 						<span class="text">
 							{{.locale.Tr "repo.issues.filter_projects"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
