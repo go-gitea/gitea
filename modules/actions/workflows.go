@@ -75,7 +75,6 @@ func DetectWorkflows(commit *git.Commit, triggedEvent webhook_module.HookEventTy
 			if evt.Name != triggedEvent.Event() {
 				continue
 			}
-
 			if detectMatched(commit, triggedEvent, payload, evt) {
 				workflows[entry.Name()] = content
 			}
@@ -105,8 +104,9 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 		for cond, vals := range evt.Acts {
 			switch cond {
 			case "branches", "tags":
+				refShortName := git.RefName(pushPayload.Ref).ShortName()
 				for _, val := range vals {
-					if glob.MustCompile(val, '/').Match(pushPayload.Ref) {
+					if glob.MustCompile(val, '/').Match(refShortName) {
 						matchTimes++
 						break
 					}
@@ -160,8 +160,9 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 					}
 				}
 			case "branches":
+				refShortName := git.RefName(prPayload.PullRequest.Base.Ref).ShortName()
 				for _, val := range vals {
-					if glob.MustCompile(val, '/').Match(prPayload.PullRequest.Base.Ref) {
+					if glob.MustCompile(val, '/').Match(refShortName) {
 						matchTimes++
 						break
 					}
