@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package container
 
@@ -10,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -24,6 +24,7 @@ import (
 	container_module "code.gitea.io/gitea/modules/packages/container"
 	"code.gitea.io/gitea/modules/packages/container/oci"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
 	container_service "code.gitea.io/gitea/services/packages/container"
@@ -193,11 +194,16 @@ func InitiateUploadBlob(ctx *context.Context) {
 	mount := ctx.FormTrim("mount")
 	from := ctx.FormTrim("from")
 	if mount != "" {
-		blob, _ := container_model.GetContainerBlob(ctx, &container_model.BlobSearchOptions{
-			Image:  from,
-			Digest: mount,
+		blob, _ := workaroundGetContainerBlob(ctx, &container_model.BlobSearchOptions{
+			Repository: from,
+			Digest:     mount,
 		})
 		if blob != nil {
+			if err := mountBlob(&packages_service.PackageInfo{Owner: ctx.Package.Owner, Name: image}, blob.Blob); err != nil {
+				apiError(ctx, http.StatusInternalServerError, err)
+				return
+			}
+
 			setResponseHeaders(ctx.Resp, &containerHeaders{
 				Location:      fmt.Sprintf("/v2/%s/%s/blobs/%s", ctx.Package.Owner.LowerName, image, mount),
 				ContentDigest: mount,
@@ -221,8 +227,22 @@ func InitiateUploadBlob(ctx *context.Context) {
 			return
 		}
 
-		if _, err := saveAsPackageBlob(buf, &packages_service.PackageInfo{Owner: ctx.Package.Owner, Name: image}); err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
+		if _, err := saveAsPackageBlob(
+			buf,
+			&packages_service.PackageCreationInfo{
+				PackageInfo: packages_service.PackageInfo{
+					Owner: ctx.Package.Owner,
+					Name:  image,
+				},
+				Creator: ctx.Doer,
+			},
+		); err != nil {
+			switch err {
+			case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+				apiError(ctx, http.StatusForbidden, err)
+			default:
+				apiError(ctx, http.StatusInternalServerError, err)
+			}
 			return
 		}
 
@@ -245,6 +265,27 @@ func InitiateUploadBlob(ctx *context.Context) {
 		Range:      "0-0",
 		UploadUUID: upload.ID,
 		Status:     http.StatusAccepted,
+	})
+}
+
+// https://docs.docker.com/registry/spec/api/#get-blob-upload
+func GetUploadBlob(ctx *context.Context) {
+	uuid := ctx.Params("uuid")
+
+	upload, err := packages_model.GetBlobUploadByID(ctx, uuid)
+	if err != nil {
+		if err == packages_model.ErrPackageBlobUploadNotExist {
+			apiErrorDefined(ctx, errBlobUploadUnknown)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
+	setResponseHeaders(ctx.Resp, &containerHeaders{
+		Range:      fmt.Sprintf("0-%d", upload.BytesReceived),
+		UploadUUID: upload.ID,
+		Status:     http.StatusNoContent,
 	})
 }
 
@@ -331,8 +372,22 @@ func EndUploadBlob(ctx *context.Context) {
 		return
 	}
 
-	if _, err := saveAsPackageBlob(uploader, &packages_service.PackageInfo{Owner: ctx.Package.Owner, Name: image}); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+	if _, err := saveAsPackageBlob(
+		uploader,
+		&packages_service.PackageCreationInfo{
+			PackageInfo: packages_service.PackageInfo{
+				Owner: ctx.Package.Owner,
+				Name:  image,
+			},
+			Creator: ctx.Doer,
+		},
+	); err != nil {
+		switch err {
+		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+			apiError(ctx, http.StatusForbidden, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
 		return
 	}
 
@@ -354,6 +409,30 @@ func EndUploadBlob(ctx *context.Context) {
 	})
 }
 
+// https://docs.docker.com/registry/spec/api/#delete-blob-upload
+func CancelUploadBlob(ctx *context.Context) {
+	uuid := ctx.Params("uuid")
+
+	_, err := packages_model.GetBlobUploadByID(ctx, uuid)
+	if err != nil {
+		if err == packages_model.ErrPackageBlobUploadNotExist {
+			apiErrorDefined(ctx, errBlobUploadUnknown)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
+	if err := container_service.RemoveBlobUploadByID(ctx, uuid); err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	setResponseHeaders(ctx.Resp, &containerHeaders{
+		Status: http.StatusNoContent,
+	})
+}
+
 func getBlobFromContext(ctx *context.Context) (*packages_model.PackageFileDescriptor, error) {
 	digest := ctx.Params("digest")
 
@@ -361,7 +440,7 @@ func getBlobFromContext(ctx *context.Context) (*packages_model.PackageFileDescri
 		return nil, container_model.ErrContainerBlobNotExist
 	}
 
-	return container_model.GetContainerBlob(ctx, &container_model.BlobSearchOptions{
+	return workaroundGetContainerBlob(ctx, &container_model.BlobSearchOptions{
 		OwnerID: ctx.Package.Owner.ID,
 		Image:   ctx.Params("image"),
 		Digest:  digest,
@@ -475,7 +554,12 @@ func UploadManifest(ctx *context.Context) {
 		} else if errors.Is(err, container_model.ErrContainerBlobNotExist) {
 			apiErrorDefined(ctx, errBlobUnknown)
 		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
+			switch err {
+			case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+				apiError(ctx, http.StatusForbidden, err)
+			default:
+				apiError(ctx, http.StatusInternalServerError, err)
+			}
 		}
 		return
 	}
@@ -503,7 +587,7 @@ func getManifestFromContext(ctx *context.Context) (*packages_model.PackageFileDe
 		return nil, container_model.ErrContainerBlobNotExist
 	}
 
-	return container_model.GetContainerBlob(ctx, opts)
+	return workaroundGetContainerBlob(ctx, opts)
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#checking-if-content-exists-in-the-registry
@@ -642,4 +726,24 @@ func GetTagList(ctx *context.Context) {
 		Name: strings.ToLower(ctx.Package.Owner.LowerName + "/" + image),
 		Tags: tags,
 	})
+}
+
+// FIXME: Workaround to be removed in v1.20
+// https://github.com/go-gitea/gitea/issues/19586
+func workaroundGetContainerBlob(ctx *context.Context, opts *container_model.BlobSearchOptions) (*packages_model.PackageFileDescriptor, error) {
+	blob, err := container_model.GetContainerBlob(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	err = packages_module.NewContentStore().Has(packages_module.BlobHash256Key(blob.Blob.HashSHA256))
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) || errors.Is(err, os.ErrNotExist) {
+			log.Debug("Package registry inconsistent: blob %s does not exist on file system", blob.Blob.HashSHA256)
+			return nil, container_model.ErrContainerBlobNotExist
+		}
+		return nil, err
+	}
+
+	return blob, nil
 }

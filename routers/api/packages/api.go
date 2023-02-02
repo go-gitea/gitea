@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package packages
 
@@ -12,10 +11,12 @@ import (
 
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/packages/composer"
 	"code.gitea.io/gitea/routers/api/packages/conan"
+	"code.gitea.io/gitea/routers/api/packages/conda"
 	"code.gitea.io/gitea/routers/api/packages/container"
 	"code.gitea.io/gitea/routers/api/packages/generic"
 	"code.gitea.io/gitea/routers/api/packages/helm"
@@ -40,7 +41,9 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 	}
 }
 
-func Routes(ctx gocontext.Context) *web.Route {
+// CommonRoutes provide endpoints for most package managers (except containers - see below)
+// These are mounted on `/api/packages` (not `/api/v1/packages`)
+func CommonRoutes(ctx gocontext.Context) *web.Route {
 	r := web.NewRoute()
 
 	r.Use(context.PackageContexter(ctx))
@@ -57,7 +60,14 @@ func Routes(ctx gocontext.Context) *web.Route {
 
 	authGroup := auth.NewGroup(authMethods...)
 	r.Use(func(ctx *context.Context) {
-		ctx.Doer = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		var err error
+		ctx.Doer, err = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		if err != nil {
+			log.Error("Verify: %v", err)
+			ctx.Error(http.StatusUnauthorized, "authGroup.Verify")
+			return
+		}
+		ctx.IsSigned = ctx.Doer != nil
 	})
 
 	r.Group("/{username}", func() {
@@ -69,7 +79,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 			r.Get("/p2/{vendorname}/{projectname}.json", composer.PackageMetadata)
 			r.Get("/files/{package}/{version}/{filename}", composer.DownloadPackageFile)
 			r.Put("", reqPackageAccess(perm.AccessModeWrite), composer.UploadPackage)
-		})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/conan", func() {
 			r.Group("/v1", func() {
 				r.Get("/ping", conan.Ping)
@@ -157,7 +167,44 @@ func Routes(ctx gocontext.Context) *web.Route {
 					}, conan.ExtractPathParameters)
 				})
 			})
-		})
+		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/conda", func() {
+			var (
+				downloadPattern = regexp.MustCompile(`\A(.+/)?(.+)/((?:[^/]+(?:\.tar\.bz2|\.conda))|(?:current_)?repodata\.json(?:\.bz2)?)\z`)
+				uploadPattern   = regexp.MustCompile(`\A(.+/)?([^/]+(?:\.tar\.bz2|\.conda))\z`)
+			)
+
+			r.Get("/*", func(ctx *context.Context) {
+				m := downloadPattern.FindStringSubmatch(ctx.Params("*"))
+				if len(m) == 0 {
+					ctx.Status(http.StatusNotFound)
+					return
+				}
+
+				ctx.SetParams("channel", strings.TrimSuffix(m[1], "/"))
+				ctx.SetParams("architecture", m[2])
+				ctx.SetParams("filename", m[3])
+
+				switch m[3] {
+				case "repodata.json", "repodata.json.bz2", "current_repodata.json", "current_repodata.json.bz2":
+					conda.EnumeratePackages(ctx)
+				default:
+					conda.DownloadPackageFile(ctx)
+				}
+			})
+			r.Put("/*", reqPackageAccess(perm.AccessModeWrite), func(ctx *context.Context) {
+				m := uploadPattern.FindStringSubmatch(ctx.Params("*"))
+				if len(m) == 0 {
+					ctx.Status(http.StatusNotFound)
+					return
+				}
+
+				ctx.SetParams("channel", strings.TrimSuffix(m[1], "/"))
+				ctx.SetParams("filename", m[2])
+
+				conda.UploadPackageFile(ctx)
+			})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/generic", func() {
 			r.Group("/{packagename}/{packageversion}", func() {
 				r.Delete("", reqPackageAccess(perm.AccessModeWrite), generic.DeletePackage)
@@ -169,33 +216,44 @@ func Routes(ctx gocontext.Context) *web.Route {
 					}, reqPackageAccess(perm.AccessModeWrite))
 				})
 			})
-		})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/helm", func() {
 			r.Get("/index.yaml", helm.Index)
 			r.Get("/{filename}", helm.DownloadPackageFile)
 			r.Post("/api/charts", reqPackageAccess(perm.AccessModeWrite), helm.UploadPackage)
-		})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/maven", func() {
 			r.Put("/*", reqPackageAccess(perm.AccessModeWrite), maven.UploadPackageFile)
 			r.Get("/*", maven.DownloadPackageFile)
-		})
+			r.Head("/*", maven.ProvidePackageFileHeader)
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/nuget", func() {
-			r.Get("/index.json", nuget.ServiceIndex)
-			r.Get("/query", nuget.SearchService)
-			r.Group("/registration/{id}", func() {
-				r.Get("/index.json", nuget.RegistrationIndex)
-				r.Get("/{version}", nuget.RegistrationLeaf)
-			})
-			r.Group("/package/{id}", func() {
-				r.Get("/index.json", nuget.EnumeratePackageVersions)
-				r.Get("/{version}/{filename}", nuget.DownloadPackageFile)
+			r.Group("", func() { // Needs to be unauthenticated for the NuGet client.
+				r.Get("/", nuget.ServiceIndexV2)
+				r.Get("/index.json", nuget.ServiceIndexV3)
+				r.Get("/$metadata", nuget.FeedCapabilityResource)
 			})
 			r.Group("", func() {
-				r.Put("/", nuget.UploadPackage)
-				r.Put("/symbolpackage", nuget.UploadSymbolPackage)
-				r.Delete("/{id}/{version}", nuget.DeletePackage)
-			}, reqPackageAccess(perm.AccessModeWrite))
-			r.Get("/symbols/{filename}/{guid:[0-9a-f]{32}}FFFFFFFF/{filename2}", nuget.DownloadSymbolFile)
+				r.Get("/query", nuget.SearchServiceV3)
+				r.Group("/registration/{id}", func() {
+					r.Get("/index.json", nuget.RegistrationIndex)
+					r.Get("/{version}", nuget.RegistrationLeafV3)
+				})
+				r.Group("/package/{id}", func() {
+					r.Get("/index.json", nuget.EnumeratePackageVersionsV3)
+					r.Get("/{version}/{filename}", nuget.DownloadPackageFile)
+				})
+				r.Group("", func() {
+					r.Put("/", nuget.UploadPackage)
+					r.Put("/symbolpackage", nuget.UploadSymbolPackage)
+					r.Delete("/{id}/{version}", nuget.DeletePackage)
+				}, reqPackageAccess(perm.AccessModeWrite))
+				r.Get("/symbols/{filename}/{guid:[0-9a-fA-F]{32}[fF]{8}}/{filename2}", nuget.DownloadSymbolFile)
+				r.Get("/Packages(Id='{id:[^']+}',Version='{version:[^']+}')", nuget.RegistrationLeafV2)
+				r.Get("/Packages()", nuget.SearchServiceV2)
+				r.Get("/FindPackagesById()", nuget.EnumeratePackageVersionsV2)
+				r.Get("/Search()", nuget.SearchServiceV2)
+			}, reqPackageAccess(perm.AccessModeRead))
 		})
 		r.Group("/npm", func() {
 			r.Group("/@{scope}/{id}", func() {
@@ -205,6 +263,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 					r.Get("", npm.DownloadPackageFile)
 					r.Delete("/-rev/{revision}", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
 				})
+				r.Get("/-/{filename}", npm.DownloadPackageFileByName)
 				r.Group("/-rev/{revision}", func() {
 					r.Delete("", npm.DeletePackage)
 					r.Put("", npm.DeletePreview)
@@ -217,6 +276,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 					r.Get("", npm.DownloadPackageFile)
 					r.Delete("/-rev/{revision}", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
 				})
+				r.Get("/-/{filename}", npm.DownloadPackageFileByName)
 				r.Group("/-rev/{revision}", func() {
 					r.Delete("", npm.DeletePackage)
 					r.Put("", npm.DeletePreview)
@@ -236,7 +296,10 @@ func Routes(ctx gocontext.Context) *web.Route {
 					r.Delete("", npm.DeletePackageTag)
 				}, reqPackageAccess(perm.AccessModeWrite))
 			})
-		})
+			r.Group("/-/v1/search", func() {
+				r.Get("", npm.PackageSearch)
+			})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/pub", func() {
 			r.Group("/api/packages", func() {
 				r.Group("/versions/new", func() {
@@ -250,12 +313,12 @@ func Routes(ctx gocontext.Context) *web.Route {
 					r.Get("/{version}", pub.PackageVersionMetadata)
 				})
 			})
-		})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/pypi", func() {
 			r.Post("/", reqPackageAccess(perm.AccessModeWrite), pypi.UploadPackageFile)
 			r.Get("/files/{id}/{version}/{filename}", pypi.DownloadPackageFile)
 			r.Get("/simple/{id}", pypi.PackageMetadata)
-		})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/rubygems", func() {
 			r.Get("/specs.4.8.gz", rubygems.EnumeratePackages)
 			r.Get("/latest_specs.4.8.gz", rubygems.EnumeratePackagesLatest)
@@ -266,7 +329,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 				r.Post("/", rubygems.UploadPackageFile)
 				r.Delete("/yank", rubygems.DeletePackage)
 			}, reqPackageAccess(perm.AccessModeWrite))
-		})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/vagrant", func() {
 			r.Group("/authenticate", func() {
 				r.Get("", vagrant.CheckAuthenticate)
@@ -279,12 +342,15 @@ func Routes(ctx gocontext.Context) *web.Route {
 					r.Put("", reqPackageAccess(perm.AccessModeWrite), vagrant.UploadPackageFile)
 				})
 			})
-		})
-	}, context_service.UserAssignmentWeb(), context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
+		}, reqPackageAccess(perm.AccessModeRead))
+	}, context_service.UserAssignmentWeb(), context.PackageAssignment())
 
 	return r
 }
 
+// ContainerRoutes provides endpoints that implement the OCI API to serve containers
+// These have to be mounted on `/v2/...` to comply with the OCI spec:
+// https://github.com/opencontainers/distribution-spec/blob/main/spec.md
 func ContainerRoutes(ctx gocontext.Context) *web.Route {
 	r := web.NewRoute()
 
@@ -300,7 +366,14 @@ func ContainerRoutes(ctx gocontext.Context) *web.Route {
 
 	authGroup := auth.NewGroup(authMethods...)
 	r.Use(func(ctx *context.Context) {
-		ctx.Doer = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		var err error
+		ctx.Doer, err = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		if err != nil {
+			log.Error("Failed to verify user: %v", err)
+			ctx.Error(http.StatusUnauthorized, "Verify")
+			return
+		}
+		ctx.IsSigned = ctx.Doer != nil
 	})
 
 	r.Get("", container.ReqContainerAccess, container.DetermineSupport)
@@ -311,8 +384,10 @@ func ContainerRoutes(ctx gocontext.Context) *web.Route {
 			r.Group("/blobs/uploads", func() {
 				r.Post("", container.InitiateUploadBlob)
 				r.Group("/{uuid}", func() {
+					r.Get("", container.GetUploadBlob)
 					r.Patch("", container.UploadBlob)
 					r.Put("", container.EndUploadBlob)
+					r.Delete("", container.CancelUploadBlob)
 				})
 			}, reqPackageAccess(perm.AccessModeWrite))
 			r.Group("/blobs/{digest}", func() {
@@ -372,7 +447,7 @@ func ContainerRoutes(ctx gocontext.Context) *web.Route {
 			}
 
 			m := blobsUploadsPattern.FindStringSubmatch(path)
-			if len(m) == 3 && (isPut || isPatch) {
+			if len(m) == 3 && (isGet || isPut || isPatch || isDelete) {
 				reqPackageAccess(perm.AccessModeWrite)(ctx)
 				if ctx.Written() {
 					return
@@ -386,10 +461,14 @@ func ContainerRoutes(ctx gocontext.Context) *web.Route {
 
 				ctx.SetParams("uuid", m[2])
 
-				if isPatch {
+				if isGet {
+					container.GetUploadBlob(ctx)
+				} else if isPatch {
 					container.UploadBlob(ctx)
-				} else {
+				} else if isPut {
 					container.EndUploadBlob(ctx)
+				} else {
+					container.CancelUploadBlob(ctx)
 				}
 				return
 			}

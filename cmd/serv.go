@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cmd
 
@@ -43,7 +42,7 @@ const (
 var CmdServ = cli.Command{
 	Name:        "serv",
 	Usage:       "This command should only be called by SSH shell",
-	Description: `Serv provide access auth for repositories`,
+	Description: "Serv provides access auth for repositories",
 	Action:      runServ,
 	Flags: []cli.Flag{
 		cli.BoolFlag{

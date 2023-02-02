@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import createColorPicker from '../colorpicker.js';
+import {createColorPicker} from '../colorpicker.js';
 
 export function initCompColorPicker() {
   createColorPicker($('.color-picker'));

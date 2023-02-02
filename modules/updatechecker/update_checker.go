@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package updatechecker
 
@@ -8,10 +7,10 @@ import (
 	"io"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/appstate"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/system"
 
 	"github.com/hashicorp/go-version"
 )
@@ -64,13 +63,13 @@ func GiteaUpdateChecker(httpEndpoint string) error {
 
 // UpdateRemoteVersion updates the latest available version of Gitea
 func UpdateRemoteVersion(version string) (err error) {
-	return appstate.AppState.Set(&CheckerState{LatestVersion: version})
+	return system.AppState.Set(&CheckerState{LatestVersion: version})
 }
 
 // GetRemoteVersion returns the current remote version (or currently installed version if fail to fetch from DB)
 func GetRemoteVersion() string {
 	item := new(CheckerState)
-	if err := appstate.AppState.Get(item); err != nil {
+	if err := system.AppState.Get(item); err != nil {
 		return ""
 	}
 	return item.LatestVersion

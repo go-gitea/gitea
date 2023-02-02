@@ -17,6 +17,7 @@ const baseOptions = {
   rulers: false,
   scrollbar: {horizontalScrollbarSize: 6, verticalScrollbarSize: 6},
   scrollBeyondLastLine: false,
+  automaticLayout: true,
 };
 
 function getEditorconfig(input) {
@@ -98,6 +99,10 @@ export async function createMonaco(textarea, filename, editorOpts) {
     }
   });
 
+  // Quick fix: https://github.com/microsoft/monaco-editor/issues/2962
+  monaco.languages.register({id: 'vs.editor.nullLanguage'});
+  monaco.languages.setLanguageConfiguration('vs.editor.nullLanguage', {});
+
   const editor = monaco.editor.create(container, {
     value: textarea.value,
     theme: 'gitea',
@@ -109,10 +114,6 @@ export async function createMonaco(textarea, filename, editorOpts) {
   model.onDidChangeContent(() => {
     textarea.value = editor.getValue();
     textarea.dispatchEvent(new Event('change')); // seems to be needed for jquery-are-you-sure
-  });
-
-  window.addEventListener('resize', () => {
-    editor.layout();
   });
 
   exportEditor(editor);

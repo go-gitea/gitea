@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package organization
 
@@ -71,26 +70,6 @@ func GetTeamMembers(ctx context.Context, opts *SearchMembersOptions) ([]*user_mo
 		return nil, err
 	}
 	return members, nil
-}
-
-// GetUserOrgTeams returns all teams that user belongs to in given organization.
-func GetUserOrgTeams(ctx context.Context, orgID, userID int64) (teams []*Team, err error) {
-	return teams, db.GetEngine(ctx).
-		Join("INNER", "team_user", "team_user.team_id = team.id").
-		Where("team.org_id = ?", orgID).
-		And("team_user.uid=?", userID).
-		Find(&teams)
-}
-
-// GetUserRepoTeams returns user repo's teams
-func GetUserRepoTeams(ctx context.Context, orgID, userID, repoID int64) (teams []*Team, err error) {
-	return teams, db.GetEngine(ctx).
-		Join("INNER", "team_user", "team_user.team_id = team.id").
-		Join("INNER", "team_repo", "team_repo.team_id = team.id").
-		Where("team.org_id = ?", orgID).
-		And("team_user.uid=?", userID).
-		And("team_repo.repo_id=?", repoID).
-		Find(&teams)
 }
 
 // IsUserInTeams returns if a user in some teams

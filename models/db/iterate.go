@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package db
 
@@ -8,25 +7,30 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/modules/setting"
+
+	"xorm.io/builder"
 )
 
-// IterateObjects iterate all the Bean object
-func IterateObjects[Object any](ctx context.Context, f func(repo *Object) error) error {
+// Iterate iterate all the Bean object
+func Iterate[Bean any](ctx context.Context, cond builder.Cond, f func(ctx context.Context, bean *Bean) error) error {
 	var start int
 	batchSize := setting.Database.IterateBufferSize
 	sess := GetEngine(ctx)
 	for {
-		repos := make([]*Object, 0, batchSize)
-		if err := sess.Limit(batchSize, start).Find(&repos); err != nil {
+		beans := make([]*Bean, 0, batchSize)
+		if cond != nil {
+			sess = sess.Where(cond)
+		}
+		if err := sess.Limit(batchSize, start).Find(&beans); err != nil {
 			return err
 		}
-		if len(repos) == 0 {
+		if len(beans) == 0 {
 			return nil
 		}
-		start += len(repos)
+		start += len(beans)
 
-		for _, repo := range repos {
-			if err := f(repo); err != nil {
+		for _, bean := range beans {
+			if err := f(ctx, bean); err != nil {
 				return err
 			}
 		}

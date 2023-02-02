@@ -1,0 +1,22 @@
+<div class="ui tiny modal" id="cite-repo-modal">
+	<div class="header">
+		{{.locale.Tr "repo.cite_this_repo"}}
+	</div>
+	<div class="content">
+		<div class="ui stackable secondary menu mobile--margin-between-items mobile--no-negative-margins no-vertical-tabs">
+			<div class="fitted item">
+				<div class="ui action input" id="citation-panel">
+					{{template "repo/cite/cite_buttons" .}}
+					<a id="goto-citation-btn" class="ui basic jump icon button tooltip" href="{{$.RepoLink}}/src/{{$.BranchName}}/CITATION.cff" data-position="top right" data-content="{{.locale.Tr "repo.find_file.go_to_file"}}">
+						{{svg "octicon-file-moved"}}
+					</a>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="actions">
+		<div class="ui black deny button">
+			{{.locale.Tr "cancel"}}
+		</div>
+	</div>
+</div>

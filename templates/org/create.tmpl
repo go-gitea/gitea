@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content organization new org">
+<div role="main" aria-label="{{.Title}}" class="page-content organization new org">
 	<div class="ui middle very relaxed page grid">
 		<div class="column">
 			<form class="ui form" action="{{.Link}}" method="post">
@@ -48,7 +48,6 @@
 						<button class="ui green button">
 							{{.locale.Tr "org.create_org"}}
 						</button>
-						<a class="ui button" href="{{AppSubUrl}}/">{{.locale.Tr "cancel"}}</a>
 					</div>
 				</div>
 			</form>

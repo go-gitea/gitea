@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package feed
 
@@ -13,6 +12,7 @@ import (
 	"strings"
 
 	activities_model "code.gitea.io/gitea/models/activities"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -24,27 +24,27 @@ import (
 )
 
 func toBranchLink(act *activities_model.Action) string {
-	return act.GetRepoLink() + "/src/branch/" + util.PathEscapeSegments(act.GetBranch())
+	return act.GetRepoAbsoluteLink() + "/src/branch/" + util.PathEscapeSegments(act.GetBranch())
 }
 
 func toTagLink(act *activities_model.Action) string {
-	return act.GetRepoLink() + "/src/tag/" + util.PathEscapeSegments(act.GetTag())
+	return act.GetRepoAbsoluteLink() + "/src/tag/" + util.PathEscapeSegments(act.GetTag())
 }
 
 func toIssueLink(act *activities_model.Action) string {
-	return act.GetRepoLink() + "/issues/" + url.PathEscape(act.GetIssueInfos()[0])
+	return act.GetRepoAbsoluteLink() + "/issues/" + url.PathEscape(act.GetIssueInfos()[0])
 }
 
 func toPullLink(act *activities_model.Action) string {
-	return act.GetRepoLink() + "/pulls/" + url.PathEscape(act.GetIssueInfos()[0])
+	return act.GetRepoAbsoluteLink() + "/pulls/" + url.PathEscape(act.GetIssueInfos()[0])
 }
 
 func toSrcLink(act *activities_model.Action) string {
-	return act.GetRepoLink() + "/src/" + util.PathEscapeSegments(act.GetBranch())
+	return act.GetRepoAbsoluteLink() + "/src/" + util.PathEscapeSegments(act.GetBranch())
 }
 
 func toReleaseLink(act *activities_model.Action) string {
-	return act.GetRepoLink() + "/releases/tag/" + util.PathEscapeSegments(act.GetBranch())
+	return act.GetRepoAbsoluteLink() + "/releases/tag/" + util.PathEscapeSegments(act.GetBranch())
 }
 
 // renderMarkdown creates a minimal markdown render context from an action.
@@ -69,7 +69,7 @@ func renderMarkdown(ctx *context.Context, act *activities_model.Action, content 
 // feedActionsToFeedItems convert gitea's Action feed to feeds Item
 func feedActionsToFeedItems(ctx *context.Context, actions activities_model.ActionList) (items []*feeds.Item, err error) {
 	for _, act := range actions {
-		act.LoadActUser()
+		act.LoadActUser(ctx)
 
 		var content, desc, title string
 
@@ -79,17 +79,17 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 		title = act.ActUser.DisplayName() + " "
 		switch act.OpType {
 		case activities_model.ActionCreateRepo:
-			title += ctx.TrHTMLEscapeArgs("action.create_repo", act.GetRepoLink(), act.ShortRepoPath())
-			link.Href = act.GetRepoLink()
+			title += ctx.TrHTMLEscapeArgs("action.create_repo", act.GetRepoAbsoluteLink(), act.ShortRepoPath())
+			link.Href = act.GetRepoAbsoluteLink()
 		case activities_model.ActionRenameRepo:
-			title += ctx.TrHTMLEscapeArgs("action.rename_repo", act.GetContent(), act.GetRepoLink(), act.ShortRepoPath())
-			link.Href = act.GetRepoLink()
+			title += ctx.TrHTMLEscapeArgs("action.rename_repo", act.GetContent(), act.GetRepoAbsoluteLink(), act.ShortRepoPath())
+			link.Href = act.GetRepoAbsoluteLink()
 		case activities_model.ActionCommitRepo:
 			link.Href = toBranchLink(act)
 			if len(act.Content) != 0 {
-				title += ctx.TrHTMLEscapeArgs("action.commit_repo", act.GetRepoLink(), link.Href, act.GetBranch(), act.ShortRepoPath())
+				title += ctx.TrHTMLEscapeArgs("action.commit_repo", act.GetRepoAbsoluteLink(), link.Href, act.GetBranch(), act.ShortRepoPath())
 			} else {
-				title += ctx.TrHTMLEscapeArgs("action.create_branch", act.GetRepoLink(), link.Href, act.GetBranch(), act.ShortRepoPath())
+				title += ctx.TrHTMLEscapeArgs("action.create_branch", act.GetRepoAbsoluteLink(), link.Href, act.GetBranch(), act.ShortRepoPath())
 			}
 		case activities_model.ActionCreateIssue:
 			link.Href = toIssueLink(act)
@@ -98,11 +98,11 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 			link.Href = toPullLink(act)
 			title += ctx.TrHTMLEscapeArgs("action.create_pull_request", link.Href, act.GetIssueInfos()[0], act.ShortRepoPath())
 		case activities_model.ActionTransferRepo:
-			link.Href = act.GetRepoLink()
-			title += ctx.TrHTMLEscapeArgs("action.transfer_repo", act.GetContent(), act.GetRepoLink(), act.ShortRepoPath())
+			link.Href = act.GetRepoAbsoluteLink()
+			title += ctx.TrHTMLEscapeArgs("action.transfer_repo", act.GetContent(), act.GetRepoAbsoluteLink(), act.ShortRepoPath())
 		case activities_model.ActionPushTag:
 			link.Href = toTagLink(act)
-			title += ctx.TrHTMLEscapeArgs("action.push_tag", act.GetRepoLink(), link.Href, act.GetTag(), act.ShortRepoPath())
+			title += ctx.TrHTMLEscapeArgs("action.push_tag", act.GetRepoAbsoluteLink(), link.Href, act.GetTag(), act.ShortRepoPath())
 		case activities_model.ActionCommentIssue:
 			issueLink := toIssueLink(act)
 			if link.Href == "#" {
@@ -115,6 +115,12 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 				link.Href = pullLink
 			}
 			title += ctx.TrHTMLEscapeArgs("action.merge_pull_request", pullLink, act.GetIssueInfos()[0], act.ShortRepoPath())
+		case activities_model.ActionAutoMergePullRequest:
+			pullLink := toPullLink(act)
+			if link.Href == "#" {
+				link.Href = pullLink
+			}
+			title += ctx.TrHTMLEscapeArgs("action.auto_merge_pull_request", pullLink, act.GetIssueInfos()[0], act.ShortRepoPath())
 		case activities_model.ActionCloseIssue:
 			issueLink := toIssueLink(act)
 			if link.Href == "#" {
@@ -140,26 +146,26 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 			}
 			title += ctx.TrHTMLEscapeArgs("action.reopen_pull_request", pullLink, act.GetIssueInfos()[0], act.ShortRepoPath())
 		case activities_model.ActionDeleteTag:
-			link.Href = act.GetRepoLink()
-			title += ctx.TrHTMLEscapeArgs("action.delete_tag", act.GetRepoLink(), act.GetTag(), act.ShortRepoPath())
+			link.Href = act.GetRepoAbsoluteLink()
+			title += ctx.TrHTMLEscapeArgs("action.delete_tag", act.GetRepoAbsoluteLink(), act.GetTag(), act.ShortRepoPath())
 		case activities_model.ActionDeleteBranch:
-			link.Href = act.GetRepoLink()
-			title += ctx.TrHTMLEscapeArgs("action.delete_branch", act.GetRepoLink(), html.EscapeString(act.GetBranch()), act.ShortRepoPath())
+			link.Href = act.GetRepoAbsoluteLink()
+			title += ctx.TrHTMLEscapeArgs("action.delete_branch", act.GetRepoAbsoluteLink(), html.EscapeString(act.GetBranch()), act.ShortRepoPath())
 		case activities_model.ActionMirrorSyncPush:
 			srcLink := toSrcLink(act)
 			if link.Href == "#" {
 				link.Href = srcLink
 			}
-			title += ctx.TrHTMLEscapeArgs("action.mirror_sync_push", act.GetRepoLink(), srcLink, act.GetBranch(), act.ShortRepoPath())
+			title += ctx.TrHTMLEscapeArgs("action.mirror_sync_push", act.GetRepoAbsoluteLink(), srcLink, act.GetBranch(), act.ShortRepoPath())
 		case activities_model.ActionMirrorSyncCreate:
 			srcLink := toSrcLink(act)
 			if link.Href == "#" {
 				link.Href = srcLink
 			}
-			title += ctx.TrHTMLEscapeArgs("action.mirror_sync_create", act.GetRepoLink(), srcLink, act.GetBranch(), act.ShortRepoPath())
+			title += ctx.TrHTMLEscapeArgs("action.mirror_sync_create", act.GetRepoAbsoluteLink(), srcLink, act.GetBranch(), act.ShortRepoPath())
 		case activities_model.ActionMirrorSyncDelete:
-			link.Href = act.GetRepoLink()
-			title += ctx.TrHTMLEscapeArgs("action.mirror_sync_delete", act.GetRepoLink(), act.GetBranch(), act.ShortRepoPath())
+			link.Href = act.GetRepoAbsoluteLink()
+			title += ctx.TrHTMLEscapeArgs("action.mirror_sync_delete", act.GetRepoAbsoluteLink(), act.GetBranch(), act.ShortRepoPath())
 		case activities_model.ActionApprovePullRequest:
 			pullLink := toPullLink(act)
 			title += ctx.TrHTMLEscapeArgs("action.approve_pull_request", pullLink, act.GetIssueInfos()[0], act.ShortRepoPath())
@@ -174,16 +180,16 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 			if link.Href == "#" {
 				link.Href = releaseLink
 			}
-			title += ctx.TrHTMLEscapeArgs("action.publish_release", act.GetRepoLink(), releaseLink, act.ShortRepoPath(), act.Content)
+			title += ctx.TrHTMLEscapeArgs("action.publish_release", act.GetRepoAbsoluteLink(), releaseLink, act.ShortRepoPath(), act.Content)
 		case activities_model.ActionPullReviewDismissed:
 			pullLink := toPullLink(act)
 			title += ctx.TrHTMLEscapeArgs("action.review_dismissed", pullLink, act.GetIssueInfos()[0], act.ShortRepoPath(), act.GetIssueInfos()[1])
 		case activities_model.ActionStarRepo:
-			link.Href = act.GetRepoLink()
-			title += ctx.TrHTMLEscapeArgs("action.starred_repo", act.GetRepoLink(), act.GetRepoPath())
+			link.Href = act.GetRepoAbsoluteLink()
+			title += ctx.TrHTMLEscapeArgs("action.starred_repo", act.GetRepoAbsoluteLink(), act.GetRepoPath())
 		case activities_model.ActionWatchRepo:
-			link.Href = act.GetRepoLink()
-			title += ctx.TrHTMLEscapeArgs("action.watched_repo", act.GetRepoLink(), act.GetRepoPath())
+			link.Href = act.GetRepoAbsoluteLink()
+			title += ctx.TrHTMLEscapeArgs("action.watched_repo", act.GetRepoAbsoluteLink(), act.GetRepoPath())
 		default:
 			return nil, fmt.Errorf("unknown action type: %v", act.OpType)
 		}
@@ -193,14 +199,14 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 			switch act.OpType {
 			case activities_model.ActionCommitRepo, activities_model.ActionMirrorSyncPush:
 				push := templates.ActionContent2Commits(act)
-				repoLink := act.GetRepoLink()
+				repoLink := act.GetRepoAbsoluteLink()
 
 				for _, commit := range push.Commits {
 					if len(desc) != 0 {
 						desc += "\n\n"
 					}
 					desc += fmt.Sprintf("<a href=\"%s\">%s</a>\n%s",
-						html.EscapeString(fmt.Sprintf("%s/commit/%s", act.GetRepoLink(), commit.Sha1)),
+						html.EscapeString(fmt.Sprintf("%s/commit/%s", act.GetRepoAbsoluteLink(), commit.Sha1)),
 						commit.Sha1,
 						templates.RenderCommitMessage(ctx, commit.Message, repoLink, nil),
 					)
@@ -209,7 +215,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 				if push.Len > 1 {
 					link = &feeds.Link{Href: fmt.Sprintf("%s/%s", setting.AppSubURL, push.CompareURL)}
 				} else if push.Len == 1 {
-					link = &feeds.Link{Href: fmt.Sprintf("%s/commit/%s", act.GetRepoLink(), push.Commits[0].Sha1)}
+					link = &feeds.Link{Href: fmt.Sprintf("%s/commit/%s", act.GetRepoAbsoluteLink(), push.Commits[0].Sha1)}
 				}
 
 			case activities_model.ActionCreateIssue, activities_model.ActionCreatePullRequest:
@@ -221,7 +227,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 				if len(comment) != 0 {
 					desc += "\n\n" + renderMarkdown(ctx, act, comment)
 				}
-			case activities_model.ActionMergePullRequest:
+			case activities_model.ActionMergePullRequest, activities_model.ActionAutoMergePullRequest:
 				desc = act.GetIssueInfos()[1]
 			case activities_model.ActionCloseIssue, activities_model.ActionReopenIssue, activities_model.ActionClosePullRequest, activities_model.ActionReopenPullRequest:
 				desc = act.GetIssueTitle()
@@ -241,7 +247,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 				Name:  act.ActUser.DisplayName(),
 				Email: act.ActUser.GetEmail(),
 			},
-			Id:      strconv.FormatInt(act.ID, 10),
+			Id:      fmt.Sprintf("%v: %v", strconv.FormatInt(act.ID, 10), link.Href),
 			Created: act.CreatedUnix.AsTime(),
 			Content: content,
 		})
@@ -262,4 +268,47 @@ func GetFeedType(name string, req *http.Request) (bool, string, string) {
 	}
 
 	return false, name, ""
+}
+
+// feedActionsToFeedItems convert gitea's Repo's Releases to feeds Item
+func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release, isReleasesOnly bool) (items []*feeds.Item, err error) {
+	for _, rel := range releases {
+		err := rel.LoadAttributes(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		var title, content string
+
+		if rel.IsTag {
+			title = rel.TagName
+		} else {
+			title = rel.Title
+		}
+
+		link := &feeds.Link{Href: rel.HTMLURL()}
+		content, err = markdown.RenderString(&markup.RenderContext{
+			Ctx:       ctx,
+			URLPrefix: rel.Repo.Link(),
+			Metas:     rel.Repo.ComposeMetas(),
+		}, rel.Note)
+
+		if err != nil {
+			return nil, err
+		}
+
+		items = append(items, &feeds.Item{
+			Title:   title,
+			Link:    link,
+			Created: rel.CreatedUnix.AsTime(),
+			Author: &feeds.Author{
+				Name:  rel.Publisher.DisplayName(),
+				Email: rel.Publisher.GetEmail(),
+			},
+			Id:      fmt.Sprintf("%v: %v", strconv.FormatInt(rel.ID, 10), link.Href),
+			Content: content,
+		})
+	}
+
+	return items, err
 }

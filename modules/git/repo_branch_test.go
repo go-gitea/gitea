@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -22,14 +21,14 @@ func TestRepository_GetBranches(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, branches, 2)
 	assert.EqualValues(t, 3, countAll)
-	assert.ElementsMatch(t, []string{"branch1", "branch2"}, branches)
+	assert.ElementsMatch(t, []string{"master", "branch2"}, branches)
 
 	branches, countAll, err = bareRepo1.GetBranchNames(0, 0)
 
 	assert.NoError(t, err)
 	assert.Len(t, branches, 3)
 	assert.EqualValues(t, 3, countAll)
-	assert.ElementsMatch(t, []string{"branch1", "branch2", "master"}, branches)
+	assert.ElementsMatch(t, []string{"master", "branch2", "branch1"}, branches)
 
 	branches, countAll, err = bareRepo1.GetBranchNames(5, 1)
 

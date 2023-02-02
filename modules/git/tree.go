@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -49,12 +48,9 @@ func (t *Tree) SubTree(rpath string) (*Tree, error) {
 
 // LsTree checks if the given filenames are in the tree
 func (repo *Repository) LsTree(ref string, filenames ...string) ([]string, error) {
-	cmd := NewCommand(repo.Ctx, "ls-tree", "-z", "--name-only", "--", ref)
-	for _, arg := range filenames {
-		if arg != "" {
-			cmd.AddArguments(arg)
-		}
-	}
+	cmd := NewCommand(repo.Ctx, "ls-tree", "-z", "--name-only").
+		AddDashesAndList(append([]string{ref}, filenames...)...)
+
 	res, _, err := cmd.RunStdBytes(&RunOpts{Dir: repo.Path})
 	if err != nil {
 		return nil, err

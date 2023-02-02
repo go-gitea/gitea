@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -267,7 +266,7 @@ func TestPackageConan(t *testing.T) {
 
 				pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
 				assert.NoError(t, err)
-				assert.NotNil(t, pd.SemVer)
+				assert.Nil(t, pd.SemVer)
 				assert.Equal(t, name, pd.Package.Name)
 				assert.Equal(t, version1, pd.Version.Version)
 				assert.IsType(t, &conan_module.Metadata{}, pd.Metadata)

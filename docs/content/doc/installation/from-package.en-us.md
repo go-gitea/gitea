@@ -43,6 +43,14 @@ Arch Linux ARM provides packages for [aarch64](https://archlinuxarm.org/packages
 pacman -S gitea
 ```
 
+## Gentoo Linux
+
+The rolling release distribution has [Gitea](https://packages.gentoo.org/packages/www-apps/gitea) in their official community repository and package updates are provided with new Gitea releases.
+
+```sh
+emerge gitea -va
+```
+
 ## Canonical Snap
 
 There is a [Gitea Snap](https://snapcraft.io/gitea) package which follows the latest stable version.

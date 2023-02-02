@@ -1,16 +1,15 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package packages
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -21,9 +20,9 @@ func init() {
 
 var (
 	// ErrDuplicatePackage indicates a duplicated package error
-	ErrDuplicatePackage = errors.New("Package does exist already")
+	ErrDuplicatePackage = util.NewAlreadyExistErrorf("package already exists")
 	// ErrPackageNotExist indicates a package not exist error
-	ErrPackageNotExist = errors.New("Package does not exist")
+	ErrPackageNotExist = util.NewNotExistErrorf("package does not exist")
 )
 
 // Type of a package
@@ -33,6 +32,7 @@ type Type string
 const (
 	TypeComposer  Type = "composer"
 	TypeConan     Type = "conan"
+	TypeConda     Type = "conda"
 	TypeContainer Type = "container"
 	TypeGeneric   Type = "generic"
 	TypeHelm      Type = "helm"
@@ -45,6 +45,22 @@ const (
 	TypeVagrant   Type = "vagrant"
 )
 
+var TypeList = []Type{
+	TypeComposer,
+	TypeConan,
+	TypeConda,
+	TypeContainer,
+	TypeGeneric,
+	TypeHelm,
+	TypeMaven,
+	TypeNpm,
+	TypeNuGet,
+	TypePub,
+	TypePyPI,
+	TypeRubyGems,
+	TypeVagrant,
+}
+
 // Name gets the name of the package type
 func (pt Type) Name() string {
 	switch pt {
@@ -52,6 +68,8 @@ func (pt Type) Name() string {
 		return "Composer"
 	case TypeConan:
 		return "Conan"
+	case TypeConda:
+		return "Conda"
 	case TypeContainer:
 		return "Container"
 	case TypeGeneric:
@@ -83,6 +101,8 @@ func (pt Type) SVGName() string {
 		return "gitea-composer"
 	case TypeConan:
 		return "gitea-conan"
+	case TypeConda:
+		return "gitea-conda"
 	case TypeContainer:
 		return "octicon-container"
 	case TypeGeneric:

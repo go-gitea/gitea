@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -180,7 +179,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	}
 
 	// Now check if there is a meta object for this pointer
-	meta, err := git_model.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
+	meta, err := git_model.GetLFSMetaObjectByOid(ctx, ctx.Repo.Repository.ID, pointer.Oid)
 
 	// If there isn't one just serve the data directly
 	if err == git_model.ErrLFSObjectNotExist {
@@ -341,7 +340,11 @@ func download(ctx *context.APIContext, archiveName string, archiver *repo_model.
 		return
 	}
 	defer fr.Close()
-	ctx.ServeContent(downloadName, fr, archiver.CreatedUnix.AsLocalTime())
+
+	ctx.ServeContent(fr, &context.ServeHeaderOptions{
+		Filename:     downloadName,
+		LastModified: archiver.CreatedUnix.AsLocalTime(),
+	})
 }
 
 // GetEditorconfig get editor config of a repository
