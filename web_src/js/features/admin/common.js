@@ -209,4 +209,18 @@ export function initAdminCommon() {
       });
     });
   }
+
+  $('#download-stacktrace').on('click', () => {
+    $('#download-stacktrace-modal').modal({
+      closable: false,
+      onApprove() {
+        const textToSave = document.getElementById('stacktrace-to-download').innerText;
+        const hiddenElement = document.createElement('a');
+        hiddenElement.href = `data:attachment/text,${encodeURI(textToSave)}`;
+        hiddenElement.target = '_blank';
+        hiddenElement.download = 'stacktraces.txt';
+        hiddenElement.click();
+      }
+    }).modal('show');
+  });
 }

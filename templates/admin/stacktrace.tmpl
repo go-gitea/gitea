@@ -7,6 +7,7 @@
 			{{.locale.Tr "admin.monitor.stacktrace"}}: {{.locale.Tr "admin.monitor.goroutines" .GoroutineCount}}
 			<div class="ui right">
 				<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/monitor">{{.locale.Tr "admin.monitor"}}</a>
+				<a class="ui tiny button" id="download-stacktrace">{{.locale.Tr "admin.monitor.stacktrace.download_stacktrace"}}</a>
 			</div>
 		</h4>
 		<div class="ui attached segment">
@@ -16,6 +17,16 @@
 				{{end}}
 			</div>
 		</div>
+	</div>
+</div>
+<div class="ui small basic modal" id="download-stacktrace-modal">
+	<div class="ui icon header">
+		{{svg "octicon-download" 16 "close inside"}}
+		{{.locale.Tr "admin.monitor.stacktrace.download_stacktrace"}}
+	</div>
+	{{template "base/delete_modal_actions" .}}
+	<div class="hide" id="stacktrace-to-download">
+		{{.StacktraceString}}
 	</div>
 </div>
 <div class="ui small basic delete modal">

@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"net/http"
 	"runtime"
+	"runtime/pprof"
 	"strconv"
+	"strings"
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
@@ -159,9 +161,13 @@ func Monitor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.monitor")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminMonitor"] = true
-	ctx.Data["Processes"], ctx.Data["ProcessCount"] = process.GetManager().Processes(false, true)
+	processes, processCount := process.GetManager().Processes(false, true)
 	ctx.Data["Entries"] = cron.ListTasks()
 	ctx.Data["Queues"] = queue.GetManager().ManagedQueues()
+
+	ctx.Data["Processes"], ctx.Data["ProcessCount"] = processes, processCount
+
+	ctx.Data["Profiles"] = pprof.Profiles()
 
 	ctx.HTML(http.StatusOK, tplMonitor)
 }
@@ -182,6 +188,14 @@ func GoroutineStacktrace(ctx *context.Context) {
 
 	ctx.Data["GoroutineCount"] = goroutineCount
 	ctx.Data["ProcessCount"] = processCount
+	sb := new(strings.Builder)
+
+	if err := process.WriteProcesses(sb, processStacks, processCount, goroutineCount, "", false); err != nil {
+		ctx.ServerError("WriteProcesses", err)
+		return
+	}
+
+	ctx.Data["StacktraceString"] = sb.String()
 
 	ctx.HTML(http.StatusOK, tplStacktrace)
 }

@@ -1,0 +1,28 @@
+<h4 class="ui top attached header">
+	{{.locale.Tr "admin.monitor.pprof"}}
+</h4>
+<div class="ui attached segment">
+	<h4>{{.locale.Tr "admin.monitor.pprof.cpuprofile"}}</h4>
+	<form action="{{AppSubUrl}}/admin/monitor/cpu-profile">
+		<div class="ui form">
+			<div class="field">
+				<label for="pprof-cpuprofile-duration">{{.locale.Tr "admin.monitor.pprof.cpuprofile.duration"}}</label>
+				<input id="pprof-cpuprofile-duration" type="text" name="duration" placeholder="{{.locale.Tr "admin.monitor.pprof.cpuprofile.duration_placeholder"}}">
+			</div>
+			<input class="ui button basic" type="submit" value="{{.locale.Tr "admin.monitor.pprof.download"}}">
+		</div>
+	</form>
+	{{range .Profiles}}
+		<h4>{{$.locale.Tr (printf "admin.monitor.pprof.%s" .Name)}}</h4>
+		<form action="{{AppSubUrl}}/admin/monitor/profile">
+			<div class="ui form">
+				<input type="hidden" name="name" value="{{.Name}}">
+				<div class="field">
+					<label for="pprof-debug-{{.Name}}">{{$.locale.Tr "admin.monitor.pprof.debug"}}</label>
+					<input id="pprof-debug-{{.Name}}" type="text" name="debug" placeholder="{{$.locale.Tr "admin.monitor.pprof.debug_placeholder"}}">
+				</div>
+				<input class="ui button basic" type="submit" value="{{$.locale.Tr "admin.monitor.pprof.download"}}">
+			</div>
+		</form>
+	{{end}}
+</div>
