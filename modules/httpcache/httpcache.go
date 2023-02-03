@@ -19,6 +19,8 @@ import (
 func AddCacheControlToHeader(h http.Header, maxAge time.Duration, additionalDirectives ...string) {
 	directives := make([]string, 0, 2+len(additionalDirectives))
 
+	// "max-age=0 + must-revalidate" (aka "no-cache") is preferred instead of "no-store"
+	// because browsers may restore some input fields after navigate-back / reload a page.
 	if setting.IsProd {
 		if maxAge == 0 {
 			directives = append(directives, "max-age=0", "private", "must-revalidate")

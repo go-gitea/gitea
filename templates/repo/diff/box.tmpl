@@ -76,19 +76,18 @@
 						{{$isImage := or (call $.IsBlobAnImage $blobBase) (call $.IsBlobAnImage $blobHead)}}
 						{{$isCsv := (call $.IsCsvFile $file)}}
 						{{$showFileViewToggle := or $isImage (and (not $file.IsIncomplete) $isCsv)}}
-						<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}} mt-3" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if $file.ShouldBeHidden}}data-folded="true"{{end}}>
+						{{$isExpandable := or (gt $file.Addition 0) (gt $file.Deletion 0) $file.IsBin}}
+						<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}} mt-3" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if or ($file.ShouldBeHidden) (not $isExpandable)}}data-folded="true"{{end}}>
 							<h4 class="diff-file-header sticky-2nd-row ui top attached normal header df ac sb">
 								<div class="df ac">
-									{{if or (gt $file.Addition 0) (gt $file.Deletion 0) $file.IsBin}}
-										<a role="button" class="fold-file muted mr-2">
-											{{if $file.ShouldBeHidden}}
-												{{svg "octicon-chevron-right" 18}}
-											{{else}}
-												{{svg "octicon-chevron-down" 18}}
-											{{end}}
-										</a>
-									{{end}}
-									<div class="bold df ac">
+									<a role="button" class="fold-file muted mr-2" {{if not $isExpandable}}style="visibility: hidden"{{end}}>
+										{{if $file.ShouldBeHidden}}
+											{{svg "octicon-chevron-right" 18}}
+										{{else}}
+											{{svg "octicon-chevron-down" 18}}
+										{{end}}
+									</a>
+									<div class="bold df ac mono">
 										{{if $file.IsBin}}
 											<span class="ml-1 mr-3">
 												{{$.locale.Tr "repo.diff.bin"}}
