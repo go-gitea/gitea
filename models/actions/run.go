@@ -6,11 +6,13 @@ package actions
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -61,6 +63,24 @@ func (run *ActionRun) Link() string {
 		return ""
 	}
 	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.Link(), run.Index)
+}
+
+// RefLink return the url of run's ref
+func (run *ActionRun) RefLink() string {
+	refName := git.RefName(run.Ref)
+	if refName.RefGroup() == "pull" {
+		return run.Repo.Link() + "/pulls/" + refName.ShortName()
+	}
+	return git.RefURL(run.Repo.Link(), run.Ref)
+}
+
+// PrettyRef return #id for pull ref or ShortName for others
+func (run *ActionRun) PrettyRef() string {
+	refName := git.RefName(run.Ref)
+	if refName.RefGroup() == "pull" {
+		return "#" + strings.TrimSuffix(strings.TrimPrefix(run.Ref, git.PullPrefix), "/head")
+	}
+	return refName.ShortName()
 }
 
 // LoadAttributes load Repo TriggerUser if not loaded
