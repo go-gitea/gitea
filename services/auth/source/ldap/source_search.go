@@ -196,22 +196,39 @@ func checkRestricted(l *ldap.Conn, ls *Source, userDN string) bool {
 }
 
 // List all group memberships of a user
-func (source *Source) listLdapGroupMemberships(l *ldap.Conn, uid string) []string {
+func (source *Source) listLdapGroupMemberships(l *ldap.Conn, uid string, applyGroupFilter bool) []string {
 	var ldapGroups []string
-	groupFilter := fmt.Sprintf("(%s=%s)", source.GroupMemberUID, ldap.EscapeFilter(uid))
+	var searchFilter string
+
+	groupFilter, ok := source.sanitizedGroupFilter(source.GroupFilter)
+	if !ok {
+		return ldapGroups
+	}
+
+	groupDN, ok := source.sanitizedGroupDN(source.GroupDN)
+	if !ok {
+		return ldapGroups
+	}
+
+	if applyGroupFilter {
+		searchFilter = fmt.Sprintf("(&(%s)(%s=%s))", groupFilter, source.GroupMemberUID, ldap.EscapeFilter(uid))
+	} else {
+		searchFilter = fmt.Sprintf("(%s=%s)", source.GroupMemberUID, ldap.EscapeFilter(uid))
+	}
+
 	result, err := l.Search(ldap.NewSearchRequest(
-		source.GroupDN,
+		groupDN,
 		ldap.ScopeWholeSubtree,
 		ldap.NeverDerefAliases,
 		0,
 		0,
 		false,
-		groupFilter,
+		searchFilter,
 		[]string{},
 		nil,
 	))
 	if err != nil {
-		log.Error("Failed group search using filter[%s]: %v", groupFilter, err)
+		log.Error("Failed group search in LDAP with filter [%s]: %v", searchFilter, err)
 		return ldapGroups
 	}
 
@@ -238,9 +255,7 @@ func (source *Source) mapLdapGroupsToTeams() map[string]map[string][]string {
 }
 
 // getMappedMemberships : returns the organizations and teams to modify the users membership
-func (source *Source) getMappedMemberships(l *ldap.Conn, uid string) (map[string][]string, map[string][]string) {
-	// get all LDAP group memberships for user
-	usersLdapGroups := source.listLdapGroupMemberships(l, uid)
+func (source *Source) getMappedMemberships(usersLdapGroups []string, uid string) (map[string][]string, map[string][]string) {
 	// unmarshall LDAP group team map from configs
 	ldapGroupsToTeams := source.mapLdapGroupsToTeams()
 	membershipsToAdd := map[string][]string{}
@@ -258,6 +273,14 @@ func (source *Source) getMappedMemberships(l *ldap.Conn, uid string) (map[string
 		}
 	}
 	return membershipsToAdd, membershipsToRemove
+}
+
+func (source *Source) getUserAttributeListedInGroup(entry *ldap.Entry) string {
+	if strings.ToLower(source.UserUID) == "dn" {
+		return entry.DN
+	}
+
+	return entry.GetAttributeValue(source.UserUID)
 }
 
 // SearchEntry : search an LDAP source if an entry (name, passwd) is valid and in the specific filter
@@ -375,58 +398,30 @@ func (source *Source) SearchEntry(name, passwd string, directBind bool) *SearchR
 	firstname := sr.Entries[0].GetAttributeValue(source.AttributeName)
 	surname := sr.Entries[0].GetAttributeValue(source.AttributeSurname)
 	mail := sr.Entries[0].GetAttributeValue(source.AttributeMail)
-	uid := sr.Entries[0].GetAttributeValue(source.UserUID)
-	if source.UserUID == "dn" || source.UserUID == "DN" {
-		uid = sr.Entries[0].DN
-	}
+
+	teamsToAdd := make(map[string][]string)
+	teamsToRemove := make(map[string][]string)
 
 	// Check group membership
-	if source.GroupsEnabled && source.GroupFilter != "" {
-		groupFilter, ok := source.sanitizedGroupFilter(source.GroupFilter)
-		if !ok {
-			return nil
-		}
-		groupDN, ok := source.sanitizedGroupDN(source.GroupDN)
-		if !ok {
+	if source.GroupsEnabled {
+		userAttributeListedInGroup := source.getUserAttributeListedInGroup(sr.Entries[0])
+		usersLdapGroups := source.listLdapGroupMemberships(l, userAttributeListedInGroup, true)
+
+		if source.GroupFilter != "" && len(usersLdapGroups) == 0 {
 			return nil
 		}
 
-		log.Trace("Fetching groups '%v' with filter '%s' and base '%s'", source.GroupMemberUID, groupFilter, groupDN)
-		groupSearch := ldap.NewSearchRequest(
-			groupDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, groupFilter,
-			[]string{source.GroupMemberUID},
-			nil)
-
-		srg, err := l.Search(groupSearch)
-		if err != nil {
-			log.Error("LDAP group search failed: %v", err)
-			return nil
-		} else if len(srg.Entries) < 1 {
-			log.Error("LDAP group search failed: 0 entries")
-			return nil
-		}
-
-		isMember := false
-	Entries:
-		for _, group := range srg.Entries {
-			for _, member := range group.GetAttributeValues(source.GroupMemberUID) {
-				if (source.UserUID == "dn" && member == sr.Entries[0].DN) || member == uid {
-					isMember = true
-					break Entries
-				}
-			}
-		}
-
-		if !isMember {
-			log.Error("LDAP group membership test failed")
-			return nil
+		if source.GroupTeamMap != "" || source.GroupTeamMapRemoval {
+			teamsToAdd, teamsToRemove = source.getMappedMemberships(usersLdapGroups, userAttributeListedInGroup)
 		}
 	}
 
 	if isAttributeSSHPublicKeySet {
 		sshPublicKey = sr.Entries[0].GetAttributeValues(source.AttributeSSHPublicKey)
 	}
+
 	isAdmin := checkAdmin(l, source, userDN)
+
 	var isRestricted bool
 	if !isAdmin {
 		isRestricted = checkRestricted(l, source, userDN)
@@ -434,12 +429,6 @@ func (source *Source) SearchEntry(name, passwd string, directBind bool) *SearchR
 
 	if isAtributeAvatarSet {
 		Avatar = sr.Entries[0].GetRawAttributeValue(source.AttributeAvatar)
-	}
-
-	teamsToAdd := make(map[string][]string)
-	teamsToRemove := make(map[string][]string)
-	if source.GroupsEnabled && (source.GroupTeamMap != "" || source.GroupTeamMapRemoval) {
-		teamsToAdd, teamsToRemove = source.getMappedMemberships(l, uid)
 	}
 
 	if !directBind && source.AttributesInBind {
@@ -520,19 +509,29 @@ func (source *Source) SearchEntries() ([]*SearchResult, error) {
 		return nil, err
 	}
 
-	result := make([]*SearchResult, len(sr.Entries))
+	result := make([]*SearchResult, 0, len(sr.Entries))
 
-	for i, v := range sr.Entries {
+	for _, v := range sr.Entries {
 		teamsToAdd := make(map[string][]string)
 		teamsToRemove := make(map[string][]string)
-		if source.GroupsEnabled && (source.GroupTeamMap != "" || source.GroupTeamMapRemoval) {
-			userAttributeListedInGroup := v.GetAttributeValue(source.UserUID)
-			if source.UserUID == "dn" || source.UserUID == "DN" {
-				userAttributeListedInGroup = v.DN
+
+		if source.GroupsEnabled {
+			userAttributeListedInGroup := source.getUserAttributeListedInGroup(v)
+
+			if source.GroupFilter != "" {
+				usersLdapGroups := source.listLdapGroupMemberships(l, userAttributeListedInGroup, true)
+				if len(usersLdapGroups) == 0 {
+					continue
+				}
 			}
-			teamsToAdd, teamsToRemove = source.getMappedMemberships(l, userAttributeListedInGroup)
+
+			if source.GroupTeamMap != "" || source.GroupTeamMapRemoval {
+				usersLdapGroups := source.listLdapGroupMemberships(l, userAttributeListedInGroup, false)
+				teamsToAdd, teamsToRemove = source.getMappedMemberships(usersLdapGroups, userAttributeListedInGroup)
+			}
 		}
-		result[i] = &SearchResult{
+
+		user := &SearchResult{
 			Username:       v.GetAttributeValue(source.AttributeUsername),
 			Name:           v.GetAttributeValue(source.AttributeName),
 			Surname:        v.GetAttributeValue(source.AttributeSurname),
@@ -541,16 +540,22 @@ func (source *Source) SearchEntries() ([]*SearchResult, error) {
 			LdapTeamAdd:    teamsToAdd,
 			LdapTeamRemove: teamsToRemove,
 		}
-		if !result[i].IsAdmin {
-			result[i].IsRestricted = checkRestricted(l, source, v.DN)
+
+		if !user.IsAdmin {
+			user.IsRestricted = checkRestricted(l, source, v.DN)
 		}
+
 		if isAttributeSSHPublicKeySet {
-			result[i].SSHPublicKey = v.GetAttributeValues(source.AttributeSSHPublicKey)
+			user.SSHPublicKey = v.GetAttributeValues(source.AttributeSSHPublicKey)
 		}
+
 		if isAtributeAvatarSet {
-			result[i].Avatar = v.GetRawAttributeValue(source.AttributeAvatar)
+			user.Avatar = v.GetRawAttributeValue(source.AttributeAvatar)
 		}
-		result[i].LowerName = strings.ToLower(result[i].Username)
+
+		user.LowerName = strings.ToLower(user.Username)
+
+		result = append(result, user)
 	}
 
 	return result, nil
