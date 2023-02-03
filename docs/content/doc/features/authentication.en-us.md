@@ -332,7 +332,7 @@ Before activating SSPI single sign-on authentication (SSO) you have to prepare y
 
 ## Reverse Proxy
 
-Gitea supports Reverse Proxy Header authentication, it will read headers as a trusted login user name or user email address. This hasn't been enabled default, you can enable it with
+Gitea supports Reverse Proxy Header authentication, it will read headers as a trusted login user name or user email address. This hasn't been enabled by default, you can enable it with
 
 ```ini
 [service]
