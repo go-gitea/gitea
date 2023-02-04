@@ -67,7 +67,7 @@ func AdoptRepository(doer, u *user_model.User, opts repo_module.CreateRepoOption
 			}
 		}
 
-		if err := repo_module.CreateRepositoryByExample(ctx, doer, u, repo, true); err != nil {
+		if err := repo_module.CreateRepositoryByExample(ctx, doer, u, repo, true, false); err != nil {
 			return err
 		}
 		if err := adoptRepository(ctx, repoPath, doer, repo, opts); err != nil {
@@ -303,13 +303,15 @@ func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, in
 
 	// We're going to iterate by pagesize.
 	root := filepath.Clean(setting.RepoRootPath)
-	if err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+	if err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if !info.IsDir() || path == root {
+		if !d.IsDir() || path == root {
 			return nil
 		}
+
+		name := d.Name()
 
 		if !strings.ContainsRune(path[len(root)+1:], filepath.Separator) {
 			// Got a new user
@@ -318,15 +320,13 @@ func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, in
 			}
 			repoNamesToCheck = repoNamesToCheck[:0]
 
-			if !globUser.Match(info.Name()) {
+			if !globUser.Match(name) {
 				return filepath.SkipDir
 			}
 
-			userName = info.Name()
+			userName = name
 			return nil
 		}
-
-		name := info.Name()
 
 		if !strings.HasSuffix(name, ".git") {
 			return filepath.SkipDir
