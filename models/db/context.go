@@ -190,8 +190,10 @@ func DeleteByID(ctx context.Context, id int64, bean interface{}) (int64, error) 
 
 func FindIDs(ctx context.Context, tableName, idCol string, cond builder.Cond) ([]int64, error) {
 	ids := make([]int64, 0, 10)
-	if err := GetEngine(ctx).Table(tableName).Cols(idCol).
-		Where(cond).Find(&ids); err != nil {
+	if err := GetEngine(ctx).Table(tableName).
+		Cols(idCol).
+		Where(cond).
+		Find(&ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
