@@ -118,13 +118,9 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 		return nil, err
 	}
 
-	pfds := make([]*PackageFileDescriptor, 0, len(pfs))
-	for _, pf := range pfs {
-		pfd, err := GetPackageFileDescriptor(ctx, pf)
-		if err != nil {
-			return nil, err
-		}
-		pfds = append(pfds, pfd)
+	pfds, err := GetPackageFileDescriptors(ctx, pfs)
+	if err != nil {
+		return nil, err
 	}
 
 	var metadata interface{}
@@ -193,6 +189,19 @@ func GetPackageFileDescriptor(ctx context.Context, pf *PackageFile) (*PackageFil
 		pb,
 		PackagePropertyList(pfps),
 	}, nil
+}
+
+// GetPackageFileDescriptors gets the package file descriptors for the package files
+func GetPackageFileDescriptors(ctx context.Context, pfs []*PackageFile) ([]*PackageFileDescriptor, error) {
+	pfds := make([]*PackageFileDescriptor, 0, len(pfs))
+	for _, pf := range pfs {
+		pfd, err := GetPackageFileDescriptor(ctx, pf)
+		if err != nil {
+			return nil, err
+		}
+		pfds = append(pfds, pfd)
+	}
+	return pfds, nil
 }
 
 // GetPackageDescriptors gets the package descriptions for the versions

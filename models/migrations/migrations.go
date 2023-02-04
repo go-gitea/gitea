@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_17"
 	"code.gitea.io/gitea/models/migrations/v1_18"
 	"code.gitea.io/gitea/models/migrations/v1_19"
+	"code.gitea.io/gitea/models/migrations/v1_20"
 	"code.gitea.io/gitea/models/migrations/v1_6"
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
@@ -453,6 +454,11 @@ var migrations = []Migration{
 	NewMigration("Add updated unix to LFSMetaObject", v1_19.AddUpdatedUnixToLFSMetaObject),
 	// v239 -> v240
 	NewMigration("Add scope for access_token", v1_19.AddScopeForAccessTokens),
+
+	// Gitea 1.19.0 ends at v240
+
+	// v240 -> v241
+	NewMigration("Add is_internal column to package", v1_20.AddIsInternalColumnToPackage),
 }
 
 // GetCurrentDBVersion returns the current db version
