@@ -33,6 +33,11 @@
 				{{.locale.Tr "settings.applications"}}
 			</a>
 		{{end}}
+		{{if .EnableActions}}
+		<a class="{{if .PageIsAdminRunners}}active {{end}}item" href="{{AppSubUrl}}/admin/runners">
+			{{.locale.Tr "actions.runners"}}
+		</a>
+		{{end}}
 		<a class="{{if .PageIsAdminConfig}}active {{end}}item" href="{{AppSubUrl}}/admin/config">
 			{{.locale.Tr "admin.config"}}
 		</a>
