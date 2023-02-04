@@ -241,7 +241,6 @@ var (
 		CustomEmojisMap       map[string]string `ini:"-"`
 		SearchRepoDescription bool
 		UseServiceWorker      bool
-		OnlyShowRelevantRepos bool
 
 		Notification struct {
 			MinTimeout            time.Duration
@@ -1123,7 +1122,6 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	UI.DefaultShowFullName = Cfg.Section("ui").Key("DEFAULT_SHOW_FULL_NAME").MustBool(false)
 	UI.SearchRepoDescription = Cfg.Section("ui").Key("SEARCH_REPO_DESCRIPTION").MustBool(true)
 	UI.UseServiceWorker = Cfg.Section("ui").Key("USE_SERVICE_WORKER").MustBool(false)
-	UI.OnlyShowRelevantRepos = Cfg.Section("ui").Key("ONLY_SHOW_RELEVANT_REPOS").MustBool(false)
 
 	HasRobotsTxt, err = util.IsFile(path.Join(CustomPath, "robots.txt"))
 	if err != nil {
