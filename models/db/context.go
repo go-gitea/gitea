@@ -184,10 +184,13 @@ func DeleteByBean(ctx context.Context, bean interface{}) (int64, error) {
 	return GetEngine(ctx).Delete(bean)
 }
 
+// DeleteByID deletes the given bean with the given ID
 func DeleteByID(ctx context.Context, id int64, bean interface{}) (int64, error) {
 	return GetEngine(ctx).ID(id).NoAutoTime().Delete(bean)
 }
 
+// FindIDs finds the IDs for the given table name satisfying the given condition
+// By passing a different value than "id" for "idCol", you can query for foreign IDs, i.e. the repo IDs which satisfy the condition 
 func FindIDs(ctx context.Context, tableName, idCol string, cond builder.Cond) ([]int64, error) {
 	ids := make([]int64, 0, 10)
 	if err := GetEngine(ctx).Table(tableName).
@@ -199,6 +202,8 @@ func FindIDs(ctx context.Context, tableName, idCol string, cond builder.Cond) ([
 	return ids, nil
 }
 
+// DecrByIDs decreases the given column for entities of the "bean" type with one of the given ids by one 
+// Timestamps of the entities won't be updated
 func DecrByIDs(ctx context.Context, ids []int64, decrCol string, bean interface{}) error {
 	_, err := GetEngine(ctx).Decr(decrCol).In("id", ids).NoAutoCondition().NoAutoTime().Update(bean)
 	return err
