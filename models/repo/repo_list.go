@@ -494,7 +494,7 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 	}
 
 	if opts.OnlyShowRelevant {
-		// Only show a repo that either has a topic or description.
+		// Only show a repo that has at least a topic, an icon, or a description
 		subQueryCond := builder.NewCond()
 
 		// Topic checking. Topics are present.
@@ -504,13 +504,13 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 			subQueryCond = subQueryCond.Or(builder.And(builder.Neq{"topics": "null"}, builder.Neq{"topics": "[]"}))
 		}
 
-		// Description checking. Description not empty.
+		// Description checking. Description not empty
 		subQueryCond = subQueryCond.Or(builder.Neq{"description": ""})
 
-		// Repo has a avatar.
+		// Repo has a avatar
 		subQueryCond = subQueryCond.Or(builder.Neq{"avatar": ""})
 
-		// Always hide repo's that are empty.
+		// Always hide repo's that are empty
 		subQueryCond = subQueryCond.And(builder.Eq{"is_empty": false})
 
 		cond = cond.And(subQueryCond)
