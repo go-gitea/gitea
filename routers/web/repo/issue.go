@@ -203,6 +203,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			RepoID:            repo.ID,
 			Labels:            selectLabels,
 			MilestoneID:       milestoneID,
+			ProjectID:         projectID,
 			AssigneeID:        assigneeID,
 			MentionedID:       mentionedID,
 			PosterID:          posterID,
@@ -362,17 +363,9 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		return 0
 	}
 
-	if ctx.Repo.CanWriteIssuesOrPulls(ctx.Params(":type") == "pulls") {
-		projects, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
-			RepoID:   repo.ID,
-			Type:     project_model.TypeRepository,
-			IsClosed: util.OptionalBoolOf(isShowClosed),
-		})
-		if err != nil {
-			ctx.ServerError("GetProjects", err)
-			return
-		}
-		ctx.Data["Projects"] = projects
+	retrieveProjects(ctx, repo)
+	if ctx.Written() {
+		return
 	}
 
 	ctx.Data["IssueStats"] = issueStats
@@ -381,6 +374,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
 	ctx.Data["MilestoneID"] = milestoneID
+	ctx.Data["ProjectID"] = projectID
 	ctx.Data["AssigneeID"] = assigneeID
 	ctx.Data["PosterID"] = posterID
 	ctx.Data["IsShowClosed"] = isShowClosed
@@ -397,6 +391,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	pager.AddParam(ctx, "state", "State")
 	pager.AddParam(ctx, "labels", "SelectLabels")
 	pager.AddParam(ctx, "milestone", "MilestoneID")
+	pager.AddParam(ctx, "project", "ProjectID")
 	pager.AddParam(ctx, "assignee", "AssigneeID")
 	pager.AddParam(ctx, "poster", "PosterID")
 	ctx.Data["Page"] = pager
@@ -783,6 +778,14 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 		ctx.Data[ctxDataKey] = template.Content
 
 		if template.Type() == api.IssueTemplateTypeYaml {
+			// Replace field default values by values from query
+			for _, field := range template.Fields {
+				fieldValue := ctx.FormString("field:" + field.ID)
+				if fieldValue != "" {
+					field.Attributes["value"] = fieldValue
+				}
+			}
+
 			ctx.Data["Fields"] = template.Fields
 			ctx.Data["TemplateFile"] = template.FileName
 		}
@@ -2352,6 +2355,8 @@ func SearchIssues(ctx *context.Context) {
 		includedMilestones = strings.Split(milestones, ",")
 	}
 
+	projectID := ctx.FormInt64("project")
+
 	// this api is also used in UI,
 	// so the default limit is set to fit UI needs
 	limit := ctx.FormInt("limit")
@@ -2374,6 +2379,7 @@ func SearchIssues(ctx *context.Context) {
 			IssueIDs:           issueIDs,
 			IncludedLabelNames: includedLabelNames,
 			IncludeMilestones:  includedMilestones,
+			ProjectID:          projectID,
 			SortType:           "priorityrepo",
 			PriorityRepoID:     ctx.FormInt64("priority_repo_id"),
 			IsPull:             isPull,
@@ -2511,6 +2517,8 @@ func ListIssues(ctx *context.Context) {
 		}
 	}
 
+	projectID := ctx.FormInt64("project")
+
 	listOptions := db.ListOptions{
 		Page:     ctx.FormInt("page"),
 		PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
@@ -2550,6 +2558,7 @@ func ListIssues(ctx *context.Context) {
 			IssueIDs:          issueIDs,
 			LabelIDs:          labelIDs,
 			MilestoneIDs:      mileIDs,
+			ProjectID:         projectID,
 			IsPull:            isPull,
 			UpdatedBeforeUnix: before,
 			UpdatedAfterUnix:  since,

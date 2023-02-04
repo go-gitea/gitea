@@ -28,6 +28,7 @@ var (
 		LimitSizeCargo       int64
 		LimitSizeComposer    int64
 		LimitSizeConan       int64
+		LimitSizeConda       int64
 		LimitSizeContainer   int64
 		LimitSizeGeneric     int64
 		LimitSizeHelm        int64
@@ -68,6 +69,7 @@ func newPackages() {
 	Packages.LimitSizeCargo = mustBytes(sec, "LIMIT_SIZE_CARGO")
 	Packages.LimitSizeComposer = mustBytes(sec, "LIMIT_SIZE_COMPOSER")
 	Packages.LimitSizeConan = mustBytes(sec, "LIMIT_SIZE_CONAN")
+	Packages.LimitSizeConda = mustBytes(sec, "LIMIT_SIZE_CONDA")
 	Packages.LimitSizeContainer = mustBytes(sec, "LIMIT_SIZE_CONTAINER")
 	Packages.LimitSizeGeneric = mustBytes(sec, "LIMIT_SIZE_GENERIC")
 	Packages.LimitSizeHelm = mustBytes(sec, "LIMIT_SIZE_HELM")
