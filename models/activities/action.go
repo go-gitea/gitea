@@ -228,13 +228,19 @@ func (a *Action) GetCommentHTMLURL() string {
 	return a.getCommentHTMLURL(db.DefaultContext)
 }
 
+func (a *Action) loadComment(ctx context.Context) (err error) {
+	if a.CommentID == 0 || a.Comment != nil {
+		return nil
+	}
+	a.Comment, err = issues_model.GetCommentByID(ctx, a.CommentID)
+	return
+}
+
 func (a *Action) getCommentHTMLURL(ctx context.Context) string {
 	if a == nil {
 		return "#"
 	}
-	if a.Comment == nil && a.CommentID != 0 {
-		a.Comment, _ = issues_model.GetCommentByID(ctx, a.CommentID)
-	}
+	_ = a.loadComment(ctx)
 	if a.Comment != nil {
 		return a.Comment.HTMLURL()
 	}
@@ -269,9 +275,7 @@ func (a *Action) getCommentLink(ctx context.Context) string {
 	if a == nil {
 		return "#"
 	}
-	if a.Comment == nil && a.CommentID != 0 {
-		a.Comment, _ = issues_model.GetCommentByID(ctx, a.CommentID)
-	}
+	_ = a.loadComment(ctx)
 	if a.Comment != nil {
 		return a.Comment.Link()
 	}
