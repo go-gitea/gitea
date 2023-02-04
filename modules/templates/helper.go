@@ -471,6 +471,9 @@ func NewFuncMap() []template.FuncMap {
 				curBranch,
 			)
 		},
+		"RefShortName": func(ref string) string {
+			return git.RefName(ref).ShortName()
+		},
 	}}
 }
 

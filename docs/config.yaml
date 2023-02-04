@@ -19,8 +19,8 @@ params:
   author: The Gitea Authors
   website: https://docs.gitea.io
   version: 1.18.1
-  minGoVersion: 1.18
-  goVersion: 1.19
+  minGoVersion: 1.19
+  goVersion: 1.20
   minNodeVersion: 16
   search: nav
   repo: "https://github.com/go-gitea/gitea"

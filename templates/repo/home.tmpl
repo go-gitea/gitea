@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content repository file list {{if .IsBlame}}blame{{end}}">
+<div role="main" aria-label="{{.Title}}" class="page-content repository file list {{if .IsBlame}}blame{{end}}">
 	{{template "repo/header" .}}
 	<div class="ui container {{if .IsBlame}}fluid padded{{end}}">
 		{{template "base/alert" .}}

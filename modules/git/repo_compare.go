@@ -172,25 +172,21 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 
 // GetDiffShortStat counts number of changed files, number of additions and deletions
 func (repo *Repository) GetDiffShortStat(base, head string) (numFiles, totalAdditions, totalDeletions int, err error) {
-	numFiles, totalAdditions, totalDeletions, err = GetDiffShortStat(repo.Ctx, repo.Path, CmdArgCheck(base+"..."+head))
+	numFiles, totalAdditions, totalDeletions, err = GetDiffShortStat(repo.Ctx, repo.Path, nil, base+"..."+head)
 	if err != nil && strings.Contains(err.Error(), "no merge base") {
-		return GetDiffShortStat(repo.Ctx, repo.Path, CmdArgCheck(base), CmdArgCheck(head))
+		return GetDiffShortStat(repo.Ctx, repo.Path, nil, base, head)
 	}
 	return numFiles, totalAdditions, totalDeletions, err
 }
 
 // GetDiffShortStat counts number of changed files, number of additions and deletions
-func GetDiffShortStat(ctx context.Context, repoPath string, args ...CmdArg) (numFiles, totalAdditions, totalDeletions int, err error) {
+func GetDiffShortStat(ctx context.Context, repoPath string, trustedArgs TrustedCmdArgs, dynamicArgs ...string) (numFiles, totalAdditions, totalDeletions int, err error) {
 	// Now if we call:
 	// $ git diff --shortstat 1ebb35b98889ff77299f24d82da426b434b0cca0...788b8b1440462d477f45b0088875
 	// we get:
 	// " 9902 files changed, 2034198 insertions(+), 298800 deletions(-)\n"
-	args = append([]CmdArg{
-		"diff",
-		"--shortstat",
-	}, args...)
-
-	stdout, _, err := NewCommand(ctx, args...).RunStdString(&RunOpts{Dir: repoPath})
+	cmd := NewCommand(ctx, "diff", "--shortstat").AddArguments(trustedArgs...).AddDynamicArguments(dynamicArgs...)
+	stdout, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
 	if err != nil {
 		return 0, 0, 0, err
 	}
