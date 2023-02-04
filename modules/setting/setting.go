@@ -183,7 +183,7 @@ var (
 		MinimumKeySizeCheck:           true,
 		MinimumKeySizes:               map[string]int{"ed25519": 256, "ed25519-sk": 256, "ecdsa": 256, "ecdsa-sk": 256, "rsa": 2047},
 		ServerHostKeys:                []string{"ssh/gitea.rsa", "ssh/gogs.rsa"},
-		AuthorizedKeysCommandTemplate: "{{.AppPath}} --config={{.CustomConf}} serv key-{{.Key.ID}}",
+		AuthorizedKeysCommandTemplate: "{{.AppPath}} --config={{.CustomConf}} --work-path={{.AppWorkPath}} serv key-{{.Key.ID}}",
 		PerWriteTimeout:               PerWriteTimeout,
 		PerWritePerKbTimeout:          PerWritePerKbTimeout,
 	}
