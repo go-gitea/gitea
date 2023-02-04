@@ -230,3 +230,41 @@ func Processes(ctx context.Context, out io.Writer, flat, noSystem, stacktraces, 
 	}
 	return http.StatusOK, ""
 }
+
+// CPUProfile returns a cpu profile from Gitea
+func CPUProfile(ctx context.Context, out io.Writer, duration time.Duration) (int, string) {
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/manager/cpu-profile?duration=%s", url.QueryEscape(duration.String()))
+	return commonGet(ctx, out, reqURL)
+}
+
+// FGProfile returns the full go profile from Gitea
+func FGProfile(ctx context.Context, out io.Writer, duration time.Duration, format string) (int, string) {
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/manager/fgprof?duration=%s&format=%s", url.QueryEscape(duration.String()), url.QueryEscape(format))
+	return commonGet(ctx, out, reqURL)
+}
+
+// NamedProfile returns the named profile from Gitea
+func NamedProfile(ctx context.Context, out io.Writer, name string, debugLevel int) (int, string) {
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/manager/profile?name=%s&debug=%d", url.QueryEscape(name), debugLevel)
+	return commonGet(ctx, out, reqURL)
+}
+
+// ListNamedProfiles returns a list of named profiles
+func ListNamedProfiles(ctx context.Context, out io.Writer, json bool) (int, string) {
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/manager/list-profiles?json=%t", json)
+	return commonGet(ctx, out, reqURL)
+}
+
+func commonGet(ctx context.Context, out io.Writer, reqURL string) (int, string) {
+	req := newInternalRequest(ctx, reqURL, "GET")
+	resp, err := req.Response()
+	if err != nil {
+		return http.StatusInternalServerError, fmt.Sprintf("Unable to contact gitea: %v", err.Error())
+	}
+	defer resp.Body.Close()
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return http.StatusInternalServerError, err.Error()
+	}
+	return resp.StatusCode, ""
+}

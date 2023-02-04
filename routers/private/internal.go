@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/web/admin"
 
 	"gitea.com/go-chi/binding"
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
@@ -75,6 +76,10 @@ func Routes() *web.Route {
 	r.Post("/manager/add-logger", bind(private.LoggerOptions{}), AddLogger)
 	r.Post("/manager/remove-logger/{group}/{name}", RemoveLogger)
 	r.Get("/manager/processes", Processes)
+	r.Get("/manager/cpu-profile", admin.PProfCPUProfile)
+	r.Get("/manager/profile", admin.PProfNamedProfile)
+	r.Get("/manager/fgprof", admin.PProfFGProfile)
+	r.Get("/manager/list-profiles", ListProfiles)
 	r.Post("/mail/send", SendEmail)
 	r.Post("/restore_repo", RestoreRepo)
 

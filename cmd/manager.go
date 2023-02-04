@@ -26,6 +26,10 @@ var (
 			subcmdFlushQueues,
 			subcmdLogging,
 			subCmdProcesses,
+			subCmdCPUProfile,
+			subCmdFGProfile,
+			subCmdListNamedProfiles,
+			subCmdNamedProfile,
 		},
 	}
 	subcmdShutdown = cli.Command{
@@ -97,6 +101,61 @@ var (
 			},
 		},
 	}
+	subCmdCPUProfile = cli.Command{
+		Name:   "cpu-profile",
+		Usage:  "Return PProf CPU profile",
+		Action: runCPUProfile,
+		Flags: []cli.Flag{
+			cli.DurationFlag{
+				Name:  "duration",
+				Usage: "Duration to collect CPU Profile over",
+				Value: 30 * time.Second,
+			},
+		},
+	}
+	subCmdFGProfile = cli.Command{
+		Name:   "fg-profile",
+		Usage:  "Return PProf Full Go profile",
+		Action: runFGProfile,
+		Flags: []cli.Flag{
+			cli.DurationFlag{
+				Name:  "duration",
+				Usage: "Duration to collect CPU Profile over",
+				Value: 30 * time.Second,
+			},
+			cli.StringFlag{
+				Name:  "format",
+				Usage: "Format to return the profile in: pprof, folded",
+				Value: "pprof",
+			},
+		},
+	}
+	subCmdNamedProfile = cli.Command{
+		Name:   "named-profile",
+		Usage:  "Return PProf named profile",
+		Action: runNamedProfile,
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "name",
+				Usage: "Name of profile to run",
+			},
+			cli.IntFlag{
+				Name:  "debug-level",
+				Usage: "Debug level for the profile",
+			},
+		},
+	}
+	subCmdListNamedProfiles = cli.Command{
+		Name:   "list-named-profiles",
+		Usage:  "Return PProf list of named profiles",
+		Action: runListNamedProfile,
+		Flags: []cli.Flag{
+			cli.BoolFlag{
+				Name:  "json",
+				Usage: "Output as json",
+			},
+		},
+	}
 )
 
 func runShutdown(c *cli.Context) error {
@@ -155,5 +214,53 @@ func runProcesses(c *cli.Context) error {
 		return fail("InternalServerError", msg)
 	}
 
+	return nil
+}
+
+func runCPUProfile(c *cli.Context) error {
+	ctx, cancel := installSignals()
+	defer cancel()
+	setup("manager", c.Bool("debug"))
+	statusCode, msg := private.CPUProfile(ctx, os.Stdout, c.Duration("duration"))
+	switch statusCode {
+	case http.StatusInternalServerError:
+		return fail("InternalServerError", msg)
+	}
+	return nil
+}
+
+func runFGProfile(c *cli.Context) error {
+	ctx, cancel := installSignals()
+	defer cancel()
+	setup("manager", c.Bool("debug"))
+	statusCode, msg := private.FGProfile(ctx, os.Stdout, c.Duration("duration"), c.String("format"))
+	switch statusCode {
+	case http.StatusInternalServerError:
+		return fail("InternalServerError", msg)
+	}
+	return nil
+}
+
+func runNamedProfile(c *cli.Context) error {
+	ctx, cancel := installSignals()
+	defer cancel()
+	setup("manager", c.Bool("debug"))
+	statusCode, msg := private.NamedProfile(ctx, os.Stdout, c.String("name"), c.Int("debug-level"))
+	switch statusCode {
+	case http.StatusInternalServerError:
+		return fail("InternalServerError", msg)
+	}
+	return nil
+}
+
+func runListNamedProfile(c *cli.Context) error {
+	ctx, cancel := installSignals()
+	defer cancel()
+	setup("manager", c.Bool("debug"))
+	statusCode, msg := private.ListNamedProfiles(ctx, os.Stdout, c.Bool("json"))
+	switch statusCode {
+	case http.StatusInternalServerError:
+		return fail("InternalServerError", msg)
+	}
 	return nil
 }

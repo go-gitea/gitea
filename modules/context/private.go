@@ -47,7 +47,7 @@ var privateContextKey interface{} = "default_private_context"
 
 // WithPrivateContext set up private context in request
 func WithPrivateContext(req *http.Request, ctx *PrivateContext) *http.Request {
-	return req.WithContext(context.WithValue(req.Context(), privateContextKey, ctx))
+	return req.WithContext(context.WithValue(context.WithValue(req.Context(), privateContextKey, ctx), contextKey, ctx.Context))
 }
 
 // GetPrivateContext returns a context for Private routes

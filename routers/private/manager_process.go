@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"runtime"
+	"runtime/pprof"
 	"time"
 
 	"code.gitea.io/gitea/modules/context"
@@ -67,4 +68,35 @@ func Processes(ctx *context.PrivateContext) {
 		}
 		return
 	}
+}
+
+// ListProfiles lists the available named pprof profiles
+func ListProfiles(ctx *context.PrivateContext) {
+	json := ctx.FormBool("json")
+	profiles := pprof.Profiles()
+	if json {
+		names := make([]string, len(profiles))
+		for _, profile := range profiles {
+			names = append(names, profile.Name())
+		}
+		ctx.JSON(http.StatusOK, map[string]interface{}{
+			"Names": names,
+		})
+	}
+
+	ctx.Status(http.StatusOK)
+	for _, profile := range profiles {
+		if _, err := ctx.Resp.Write([]byte(profile.Name())); err != nil {
+			log.Error("Unable to write out profile name: %v", err)
+			ctx.Error(http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		if _, err := ctx.Resp.Write([]byte("\n")); err != nil {
+			log.Error("Unable to write out profile name: %v", err)
+			ctx.Error(http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+	ctx.Resp.Flush()
 }
