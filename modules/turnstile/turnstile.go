@@ -48,7 +48,7 @@ func Verify(ctx context.Context, response, ip string) (bool, error) {
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return false, fmt.Errorf("Failed to read CAPTCHA response: %s", err)
+		return false, fmt.Errorf("Failed to read CAPTCHA response: %w", err)
 	}
 
 	var jsonResponse Response
