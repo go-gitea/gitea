@@ -185,7 +185,7 @@ var (
 	subCmdTrace = cli.Command{
 		Name:   "trace",
 		Usage:  "Return PProf trace",
-		Action: runCPUProfile,
+		Action: runTrace,
 		Flags: []cli.Flag{
 			cli.DurationFlag{
 				Name:  "duration",
