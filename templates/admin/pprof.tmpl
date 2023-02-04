@@ -12,17 +12,22 @@
 			<input class="ui button basic" type="submit" value="{{.locale.Tr "admin.monitor.pprof.download"}}">
 		</div>
 	</form>
-	{{range .Profiles}}
-		<h4>{{$.locale.Tr (printf "admin.monitor.pprof.%s" .Name)}}</h4>
-		<form action="{{AppSubUrl}}/admin/monitor/profile">
-			<div class="ui form">
-				<input type="hidden" name="name" value="{{.Name}}">
-				<div class="field">
-					<label for="pprof-debug-{{.Name}}">{{$.locale.Tr "admin.monitor.pprof.debug"}}</label>
-					<input id="pprof-debug-{{.Name}}" type="text" name="debug" placeholder="{{$.locale.Tr "admin.monitor.pprof.debug_placeholder"}}">
-				</div>
-				<input class="ui button basic" type="submit" value="{{$.locale.Tr "admin.monitor.pprof.download"}}">
+	<h4>{{.locale.Tr "admin.monitor.pprof.named_profiles"}}</h4>
+	<form action="{{AppSubUrl}}/admin/monitor/profile">
+		<div class="ui form">
+			<div class="field">
+				<label for="pprof-named_profile-name">{{.locale.Tr "admin.monitor.pprof.named_profiles.name"}}</label>
+				<select class="ui search dropdown" id="pprof-named_profile-name">
+					{{range .Profiles}}
+						<option value="{{.Name}}">{{.Name}}</option>
+					{{end}}
+				</select>
 			</div>
-		</form>
-	{{end}}
+			<div class="field">
+				<label for="pprof-named_profile-debug">{{$.locale.Tr "admin.monitor.pprof.named_profile.debug"}}</label>
+				<input id="pprof-named_profile-debug" type="text" name="debug" placeholder="{{$.locale.Tr "admin.monitor.pprof.named_profile.debug_placeholder"}}">
+			</div>
+			<input class="ui button basic" type="submit" value="{{$.locale.Tr "admin.monitor.pprof.download"}}">
+		</div>
+	</form>
 </div>
