@@ -525,6 +525,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/cpu-profile", admin.PProfCPUProfile)
 			m.Get("/profile", admin.PProfNamedProfile)
 			m.Get("/fgprof", admin.PProfFGProfile)
+			m.Get("/stacktrace-profile", admin.PProfProcessStacktrace)
 			m.Post("/cancel/{pid}", admin.MonitorCancel)
 			m.Group("/queue/{qid}", func() {
 				m.Get("", admin.Queue)
