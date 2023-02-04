@@ -459,7 +459,7 @@ func (n *Notification) HTMLURL() string {
 	return ""
 }
 
-// Link formats a URL-string to the notification
+// Link formats a relative URL-string to the notification
 func (n *Notification) Link() string {
 	switch n.Source {
 	case NotificationSourceIssue, NotificationSourcePullRequest:

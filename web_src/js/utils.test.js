@@ -2,7 +2,7 @@ import {expect, test} from 'vitest';
 import {
   basename, extname, isObject, uniq, stripTags, joinPaths, parseIssueHref,
   prettyNumber, parseUrl, translateMonth, translateDay, blobToDataURI,
-  getCurAbsUrl,
+  toAbsoluteUrl,
 } from './utils.js';
 
 test('basename', () => {
@@ -138,7 +138,7 @@ test('blobToDataURI', async () => {
   expect(await blobToDataURI(blob)).toEqual('data:application/json;base64,eyJ0ZXN0Ijp0cnVlfQ==');
 });
 
-test('getCurAbsUrl', () => {
-  expect(getCurAbsUrl('')).toEqual('http://localhost:3000');
-  expect(getCurAbsUrl('/user/repo')).toEqual('http://localhost:3000/user/repo');
+test('toAbsoluteUrl', () => {
+  expect(toAbsoluteUrl('')).toEqual('http://localhost:3000');
+  expect(toAbsoluteUrl('/user/repo')).toEqual('http://localhost:3000/user/repo');
 });

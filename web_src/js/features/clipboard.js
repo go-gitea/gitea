@@ -1,5 +1,5 @@
 import {showTemporaryTooltip} from '../modules/tippy.js';
-import {getCurAbsUrl} from '../utils.js';
+import {toAbsoluteUrl} from '../utils.js';
 
 const {copy_success, copy_error} = window.config.i18n;
 
@@ -53,7 +53,7 @@ export function initGlobalCopyToClipboardListener() {
     for (let i = 0; i < 3 && target; i++) {
       let txt = target.getAttribute('data-clipboard-text');
       if (txt && target.getAttribute('data-clipboard-text-type') === 'url') {
-        txt = getCurAbsUrl(txt);
+        txt = toAbsoluteUrl(txt);
       }
       const text = txt || document.querySelector(target.getAttribute('data-clipboard-target'))?.value;
 

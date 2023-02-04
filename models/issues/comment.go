@@ -394,7 +394,7 @@ func (c *Comment) HTMLURL() string {
 	return c.Issue.HTMLURL() + c.hashLink()
 }
 
-// Link formats a URL-string to the issue-comment
+// Link formats a relative URL-string to the issue-comment
 func (c *Comment) Link() string {
 	err := c.LoadIssue(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:

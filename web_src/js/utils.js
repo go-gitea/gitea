@@ -134,7 +134,7 @@ export function convertImage(blob, mime) {
   });
 }
 
-export function getCurAbsUrl(relUrl) {
+export function toAbsoluteUrl(relUrl) {
   if (relUrl.startsWith('http://') || relUrl.startsWith('https://')) {
     return relUrl;
   }

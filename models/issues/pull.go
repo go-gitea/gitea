@@ -695,7 +695,7 @@ func GetPullRequestsByHeadBranch(ctx context.Context, headBranch string, headRep
 	return prs, nil
 }
 
-// GetBaseBranchLink returns the relative HTML URL of the base branch
+// GetBaseBranchLink returns the relative URL of the base branch
 func (pr *PullRequest) GetBaseBranchLink() string {
 	if err := pr.LoadBaseRepo(db.DefaultContext); err != nil {
 		log.Error("LoadBaseRepo: %v", err)
@@ -707,7 +707,7 @@ func (pr *PullRequest) GetBaseBranchLink() string {
 	return pr.BaseRepo.Link() + "/src/branch/" + util.PathEscapeSegments(pr.BaseBranch)
 }
 
-// GetHeadBranchLink returns the relative HTML URL of the head branch
+// GetHeadBranchLink returns the relative URL of the head branch
 func (pr *PullRequest) GetHeadBranchLink() string {
 	if pr.Flow == PullRequestFlowAGit {
 		return ""
