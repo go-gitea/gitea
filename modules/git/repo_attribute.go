@@ -17,7 +17,7 @@ import (
 type CheckAttributeOpts struct {
 	CachedOnly    bool
 	AllAttributes bool
-	Attributes    []CmdArg
+	Attributes    []string
 	Filenames     []string
 	IndexFile     string
 	WorkTree      string
@@ -48,7 +48,7 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 	} else {
 		for _, attribute := range opts.Attributes {
 			if attribute != "" {
-				cmd.AddArguments(attribute)
+				cmd.AddDynamicArguments(attribute)
 			}
 		}
 	}
@@ -95,7 +95,7 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 // CheckAttributeReader provides a reader for check-attribute content that can be long running
 type CheckAttributeReader struct {
 	// params
-	Attributes []CmdArg
+	Attributes []string
 	Repo       *Repository
 	IndexFile  string
 	WorkTree   string
@@ -111,19 +111,6 @@ type CheckAttributeReader struct {
 
 // Init initializes the CheckAttributeReader
 func (c *CheckAttributeReader) Init(ctx context.Context) error {
-	cmdArgs := []CmdArg{"check-attr", "--stdin", "-z"}
-
-	if len(c.IndexFile) > 0 {
-		cmdArgs = append(cmdArgs, "--cached")
-		c.env = append(c.env, "GIT_INDEX_FILE="+c.IndexFile)
-	}
-
-	if len(c.WorkTree) > 0 {
-		c.env = append(c.env, "GIT_WORK_TREE="+c.WorkTree)
-	}
-
-	c.env = append(c.env, "GIT_FLUSH=1")
-
 	if len(c.Attributes) == 0 {
 		lw := new(nulSeparatedAttributeWriter)
 		lw.attributes = make(chan attributeTriple)
@@ -134,11 +121,22 @@ func (c *CheckAttributeReader) Init(ctx context.Context) error {
 		return fmt.Errorf("no provided Attributes to check")
 	}
 
-	cmdArgs = append(cmdArgs, c.Attributes...)
-	cmdArgs = append(cmdArgs, "--")
-
 	c.ctx, c.cancel = context.WithCancel(ctx)
-	c.cmd = NewCommand(c.ctx, cmdArgs...)
+	c.cmd = NewCommand(c.ctx, "check-attr", "--stdin", "-z")
+
+	if len(c.IndexFile) > 0 {
+		c.cmd.AddArguments("--cached")
+		c.env = append(c.env, "GIT_INDEX_FILE="+c.IndexFile)
+	}
+
+	if len(c.WorkTree) > 0 {
+		c.env = append(c.env, "GIT_WORK_TREE="+c.WorkTree)
+	}
+
+	c.env = append(c.env, "GIT_FLUSH=1")
+
+	// The empty "--" comes from #16773 , and it seems unnecessary because nothing else would be added later.
+	c.cmd.AddDynamicArguments(c.Attributes...).AddArguments("--")
 
 	var err error
 
@@ -294,7 +292,7 @@ func (repo *Repository) CheckAttributeReader(commitID string) (*CheckAttributeRe
 	}
 
 	checker := &CheckAttributeReader{
-		Attributes: []CmdArg{"linguist-vendored", "linguist-generated", "linguist-language", "gitlab-language"},
+		Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language", "gitlab-language"},
 		Repo:       repo,
 		IndexFile:  indexFilename,
 		WorkTree:   worktree,

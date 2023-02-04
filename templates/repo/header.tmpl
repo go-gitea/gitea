@@ -163,7 +163,7 @@
 					<a class="{{if .PageIsIssueList}}active {{end}}item" href="{{.RepoLink}}/issues">
 						{{svg "octicon-issue-opened"}} {{.locale.Tr "repo.issues"}}
 						{{if .Repository.NumOpenIssues}}
-							<span class="ui primary small label">{{CountFmt .Repository.NumOpenIssues}}</span>
+							<span class="ui small label">{{CountFmt .Repository.NumOpenIssues}}</span>
 						{{end}}
 					</a>
 				{{end}}
@@ -178,7 +178,7 @@
 					<a class="{{if .PageIsPullList}}active {{end}}item" href="{{.RepoLink}}/pulls">
 						{{svg "octicon-git-pull-request"}} {{.locale.Tr "repo.pulls"}}
 						{{if .Repository.NumOpenPulls}}
-							<span class="ui primary small label">{{CountFmt .Repository.NumOpenPulls}}</span>
+							<span class="ui small label">{{CountFmt .Repository.NumOpenPulls}}</span>
 						{{end}}
 					</a>
 				{{end}}
@@ -187,7 +187,7 @@
 					<a class="{{if .PageIsActions}}active {{end}}item" href="{{.RepoLink}}/actions">
 						{{svg "octicon-play"}} {{.locale.Tr "actions.actions"}}
 						{{if .Repository.NumOpenActionRuns}}
-							<span class="ui primary small label">{{CountFmt .Repository.NumOpenActionRuns}}</span>
+							<span class="ui small label">{{CountFmt .Repository.NumOpenActionRuns}}</span>
 						{{end}}
 					</a>
 				{{end}}
@@ -202,7 +202,7 @@
 					<a href="{{.RepoLink}}/projects" class="{{if .IsProjectsPage}}active {{end}}item">
 						{{svg "octicon-project"}} {{.locale.Tr "repo.project_board"}}
 						{{if .Repository.NumOpenProjects}}
-							<span class="ui primary small label">{{CountFmt .Repository.NumOpenProjects}}</span>
+							<span class="ui small label">{{CountFmt .Repository.NumOpenProjects}}</span>
 						{{end}}
 					</a>
 				{{end}}
@@ -211,7 +211,7 @@
 				<a class="{{if .PageIsReleaseList}}active {{end}}item" href="{{.RepoLink}}/releases">
 					{{svg "octicon-tag"}} {{.locale.Tr "repo.releases"}}
 					{{if .NumReleases}}
-						<span class="ui primary small label">{{CountFmt .NumReleases}}</span>
+						<span class="ui small label">{{CountFmt .NumReleases}}</span>
 					{{end}}
 				</a>
 				{{end}}
