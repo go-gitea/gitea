@@ -23,7 +23,7 @@ func PProfFGProfile(ctx *context.Context) {
 		var err error
 		duration, err = time.ParseDuration(durationStr)
 		if err != nil {
-			ctx.Flash.Error(ctx.Tr("monitor.pprof.cpuprofile.duration_invalid"))
+			ctx.Flash.Error(ctx.Tr("monitor.pprof.duration_invalid"))
 			ctx.Redirect(setting.AppSubURL + "/admin/monitor")
 			return
 		}
@@ -63,7 +63,7 @@ func PProfCPUProfile(ctx *context.Context) {
 		var err error
 		duration, err = time.ParseDuration(durationStr)
 		if err != nil {
-			ctx.Flash.Error(ctx.Tr("monitor.pprof.cpuprofile.duration_invalid"))
+			ctx.Flash.Error(ctx.Tr("monitor.pprof.duration_invalid"))
 			ctx.Redirect(setting.AppSubURL + "/admin/monitor")
 			return
 		}
