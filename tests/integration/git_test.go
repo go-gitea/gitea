@@ -509,7 +509,7 @@ func doCreatePRAndSetManuallyMerged(ctx, baseCtx APITestContext, dstPath, baseBr
 		}))
 
 		t.Run("CreateHeadBranch", doGitCreateBranch(dstPath, headBranch))
-		t.Run("PushToHeadBranch", doGitPushTestRepository(dstPath, "origin", git.CmdArgCheck(headBranch)))
+		t.Run("PushToHeadBranch", doGitPushTestRepository(dstPath, "origin", headBranch))
 		t.Run("CreateEmptyPullRequest", func(t *testing.T) {
 			pr, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, baseBranch, headBranch)(t)
 			assert.NoError(t, err)
