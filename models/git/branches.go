@@ -15,6 +15,16 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
+// Branch represents a branch of a repository
+// For those repository who have many branches, stored into database is a good choice
+// for pagination and search
+type Branch struct {
+	ID          int64
+	RepoID      int64              `xorm:"index UNIQUE(s)"`
+	Name        string             `xorm:"UNIQUE(s) NOT NULL"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+}
+
 // DeletedBranch struct
 type DeletedBranch struct {
 	ID          int64              `xorm:"pk autoincr"`
@@ -27,8 +37,31 @@ type DeletedBranch struct {
 }
 
 func init() {
+	db.RegisterModel(new(Branch))
 	db.RegisterModel(new(DeletedBranch))
 	db.RegisterModel(new(RenamedBranch))
+}
+
+func LoadAllBranches(ctx context.Context, repoID int64) ([]*Branch, error) {
+	var branches []*Branch
+	err := db.GetEngine(ctx).Find(&branches)
+	return branches, err
+}
+
+func AddBranches(ctx context.Context, repoID int64, branches []string) error {
+	var dbBranches []*Branch
+	for _, branch := range branches {
+		dbBranches = append(dbBranches, &Branch{
+			RepoID: repoID,
+			Name:   branch,
+		})
+	}
+	return db.Insert(ctx, dbBranches)
+}
+
+func DeleteBranches(ctx context.Context, repoID int64, branches []int64) error {
+	_, err := db.GetEngine(ctx).Where("repo_id=?", repoID).In("id", branches).Delete(new(Branch))
+	return err
 }
 
 // AddDeletedBranch adds a deleted branch to the database
