@@ -125,7 +125,7 @@ func IsBlobAccessibleForUser(ctx context.Context, blobID int64, user *user_model
 		InnerJoin("team_unit", "team_unit.team_id = team.id").
 		Where(builder.Eq{"team_user.uid": user.ID, "team_unit.type": unit.TypePackages}.And(builder.Expr("team_user.org_id = user.id")))
 
-	var cond builder.Cond = builder.Eq{"package_blob.id": blobID}.And(
+	cond := builder.Eq{"package_blob.id": blobID}.And(
 		// owner = user
 		builder.Eq{"`user`.id": user.ID}.
 			// user can see owner
