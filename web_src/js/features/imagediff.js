@@ -34,7 +34,7 @@ function getDefaultSvgBoundsIfUndefined(svgXml, src) {
   return null;
 }
 
-export default function initImageDiff() {
+export function initImageDiff() {
   function createContext(image1, image2) {
     const size1 = {
       width: image1 && image1.width || 0,
@@ -263,7 +263,7 @@ export default function initImageDiff() {
         height: sizes.max.height * factor + 4
       });
 
-      const $range = $container.find("input[type='range'");
+      const $range = $container.find("input[type='range']");
       const onInput = () => sizes.image1.parent().css({
         opacity: $range.val() / 100
       });

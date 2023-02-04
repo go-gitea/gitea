@@ -29,12 +29,12 @@ func (s *Session) Name() string {
 // Verify checks if there is a user uid stored in the session and returns the user
 // object for that uid.
 // Returns nil if there is no user uid stored in the session.
-func (s *Session) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *user_model.User {
+func (s *Session) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
 	user := SessionUser(sess)
 	if user != nil {
-		return user
+		return user, nil
 	}
-	return nil
+	return nil, nil
 }
 
 // SessionUser returns the user object corresponding to the "uid" session variable.

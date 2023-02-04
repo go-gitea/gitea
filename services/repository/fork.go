@@ -51,6 +51,13 @@ type ForkRepoOptions struct {
 
 // ForkRepository forks a repository
 func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts ForkRepoOptions) (*repo_model.Repository, error) {
+	// Fork is prohibited, if user has reached maximum limit of repositories
+	if !owner.CanForkRepo() {
+		return nil, repo_model.ErrReachLimitOfRepo{
+			Limit: owner.MaxRepoCreation,
+		}
+	}
+
 	forkedRepo, err := repo_model.GetUserFork(ctx, opts.BaseRepo.ID, owner.ID)
 	if err != nil {
 		return nil, err
@@ -112,7 +119,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	}()
 
 	err = db.WithTx(ctx, func(txCtx context.Context) error {
-		if err = repo_module.CreateRepositoryByExample(txCtx, doer, owner, repo, false); err != nil {
+		if err = repo_module.CreateRepositoryByExample(txCtx, doer, owner, repo, false, true); err != nil {
 			return err
 		}
 

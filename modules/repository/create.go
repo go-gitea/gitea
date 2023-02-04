@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -29,7 +30,7 @@ import (
 )
 
 // CreateRepositoryByExample creates a repository for the user/organization.
-func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository, overwriteOrAdopt bool) (err error) {
+func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository, overwriteOrAdopt, isFork bool) (err error) {
 	if err = repo_model.IsUsableRepoName(repo.Name); err != nil {
 		return err
 	}
@@ -66,8 +67,12 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 	}
 
 	// insert units for repo
-	units := make([]repo_model.RepoUnit, 0, len(unit.DefaultRepoUnits))
-	for _, tp := range unit.DefaultRepoUnits {
+	defaultUnits := unit.DefaultRepoUnits
+	if isFork {
+		defaultUnits = unit.DefaultForkRepoUnits
+	}
+	units := make([]repo_model.RepoUnit, 0, len(defaultUnits))
+	for _, tp := range defaultUnits {
 		if tp == unit.TypeIssues {
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
@@ -211,7 +216,7 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 	var rollbackRepo *repo_model.Repository
 
 	if err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
-		if err := CreateRepositoryByExample(ctx, doer, u, repo, false); err != nil {
+		if err := CreateRepositoryByExample(ctx, doer, u, repo, false, false); err != nil {
 			return err
 		}
 
@@ -285,9 +290,36 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 	return repo, nil
 }
 
-// UpdateRepoSize updates the repository size, calculating it using util.GetDirectorySize
+const notRegularFileMode = os.ModeSymlink | os.ModeNamedPipe | os.ModeSocket | os.ModeDevice | os.ModeCharDevice | os.ModeIrregular
+
+// getDirectorySize returns the disk consumption for a given path
+func getDirectorySize(path string) (int64, error) {
+	var size int64
+	err := filepath.WalkDir(path, func(_ string, info os.DirEntry, err error) error {
+		if err != nil {
+			if os.IsNotExist(err) { // ignore the error because the file maybe deleted during traversing.
+				return nil
+			}
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		f, err := info.Info()
+		if err != nil {
+			return err
+		}
+		if (f.Mode() & notRegularFileMode) == 0 {
+			size += f.Size()
+		}
+		return err
+	})
+	return size, err
+}
+
+// UpdateRepoSize updates the repository size, calculating it using getDirectorySize
 func UpdateRepoSize(ctx context.Context, repo *repo_model.Repository) error {
-	size, err := util.GetDirectorySize(repo.RepoPath())
+	size, err := getDirectorySize(repo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("updateSize: %w", err)
 	}

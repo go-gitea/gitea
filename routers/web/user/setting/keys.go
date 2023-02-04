@@ -23,7 +23,7 @@ const (
 
 // Keys render user's SSH/GPG public keys page
 func Keys(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings.ssh_gpg_keys")
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 	ctx.Data["BuiltinSSH"] = setting.SSH.StartBuiltinServer
@@ -99,14 +99,18 @@ func KeysPost(ctx *context.Context) {
 				loadKeysData(ctx)
 				ctx.Data["Err_Content"] = true
 				ctx.Data["Err_Signature"] = true
-				ctx.Data["KeyID"] = err.(asymkey_model.ErrGPGInvalidTokenSignature).ID
+				keyID := err.(asymkey_model.ErrGPGInvalidTokenSignature).ID
+				ctx.Data["KeyID"] = keyID
+				ctx.Data["PaddedKeyID"] = asymkey_model.PaddedKeyID(keyID)
 				ctx.RenderWithErr(ctx.Tr("settings.gpg_invalid_token_signature"), tplSettingsKeys, &form)
 			case asymkey_model.IsErrGPGNoEmailFound(err):
 				loadKeysData(ctx)
 
 				ctx.Data["Err_Content"] = true
 				ctx.Data["Err_Signature"] = true
-				ctx.Data["KeyID"] = err.(asymkey_model.ErrGPGNoEmailFound).ID
+				keyID := err.(asymkey_model.ErrGPGNoEmailFound).ID
+				ctx.Data["KeyID"] = keyID
+				ctx.Data["PaddedKeyID"] = asymkey_model.PaddedKeyID(keyID)
 				ctx.RenderWithErr(ctx.Tr("settings.gpg_no_key_email_found"), tplSettingsKeys, &form)
 			default:
 				ctx.ServerError("AddPublicKey", err)
@@ -138,7 +142,9 @@ func KeysPost(ctx *context.Context) {
 				loadKeysData(ctx)
 				ctx.Data["VerifyingID"] = form.KeyID
 				ctx.Data["Err_Signature"] = true
-				ctx.Data["KeyID"] = err.(asymkey_model.ErrGPGInvalidTokenSignature).ID
+				keyID := err.(asymkey_model.ErrGPGInvalidTokenSignature).ID
+				ctx.Data["KeyID"] = keyID
+				ctx.Data["PaddedKeyID"] = asymkey_model.PaddedKeyID(keyID)
 				ctx.RenderWithErr(ctx.Tr("settings.gpg_invalid_token_signature"), tplSettingsKeys, &form)
 			default:
 				ctx.ServerError("VerifyGPG", err)
@@ -153,6 +159,8 @@ func KeysPost(ctx *context.Context) {
 				ctx.Flash.Info(ctx.Tr("settings.ssh_disabled"))
 			} else if asymkey_model.IsErrKeyUnableVerify(err) {
 				ctx.Flash.Info(ctx.Tr("form.unable_verify_ssh_key"))
+			} else if err == asymkey_model.ErrKeyIsPrivate {
+				ctx.Flash.Error(ctx.Tr("form.must_use_public_key"))
 			} else {
 				ctx.Flash.Error(ctx.Tr("form.invalid_ssh_key", err.Error()))
 			}

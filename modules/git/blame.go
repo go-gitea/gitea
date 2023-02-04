@@ -9,10 +9,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"regexp"
-
-	"code.gitea.io/gitea/modules/process"
 )
 
 // BlamePart represents block of blame - continuous lines with one sha
@@ -23,12 +20,11 @@ type BlamePart struct {
 
 // BlameReader returns part of file blame one by one
 type BlameReader struct {
-	cmd      *exec.Cmd
-	output   io.ReadCloser
-	reader   *bufio.Reader
-	lastSha  *string
-	cancel   context.CancelFunc   // Cancels the context that this reader runs in
-	finished process.FinishedFunc // Tells the process manager we're finished and it can remove the associated process from the process table
+	cmd     *Command
+	output  io.WriteCloser
+	reader  io.ReadCloser
+	done    chan error
+	lastSha *string
 }
 
 var shaLineRegex = regexp.MustCompile("^([a-z0-9]{40})")
@@ -37,7 +33,7 @@ var shaLineRegex = regexp.MustCompile("^([a-z0-9]{40})")
 func (r *BlameReader) NextPart() (*BlamePart, error) {
 	var blamePart *BlamePart
 
-	reader := r.reader
+	reader := bufio.NewReader(r.reader)
 
 	if r.lastSha != nil {
 		blamePart = &BlamePart{*r.lastSha, make([]string, 0)}
@@ -99,51 +95,41 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 
 // Close BlameReader - don't run NextPart after invoking that
 func (r *BlameReader) Close() error {
-	defer r.finished() // Only remove the process from the process table when the underlying command is closed
-	r.cancel()         // However, first cancel our own context early
-
+	err := <-r.done
+	_ = r.reader.Close()
 	_ = r.output.Close()
-
-	if err := r.cmd.Wait(); err != nil {
-		return fmt.Errorf("Wait: %w", err)
-	}
-
-	return nil
+	return err
 }
 
 // CreateBlameReader creates reader for given repository, commit and file
 func CreateBlameReader(ctx context.Context, repoPath, commitID, file string) (*BlameReader, error) {
-	return createBlameReader(ctx, repoPath, GitExecutable, "blame", commitID, "--porcelain", "--", file)
-}
-
-func createBlameReader(ctx context.Context, dir string, command ...string) (*BlameReader, error) {
-	// Here we use the provided context - this should be tied to the request performing the blame so that it does not hang around.
-	ctx, cancel, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("GetBlame [repo_path: %s]", dir))
-
-	cmd := exec.CommandContext(ctx, command[0], command[1:]...)
-	cmd.Dir = dir
-	cmd.Stderr = os.Stderr
-	process.SetSysProcAttribute(cmd)
-
-	stdout, err := cmd.StdoutPipe()
+	cmd := NewCommandContextNoGlobals(ctx, "blame", "--porcelain").
+		AddDynamicArguments(commitID).
+		AddDashesAndList(file).
+		SetDescription(fmt.Sprintf("GetBlame [repo_path: %s]", repoPath))
+	reader, stdout, err := os.Pipe()
 	if err != nil {
-		defer finished()
-		return nil, fmt.Errorf("StdoutPipe: %w", err)
+		return nil, err
 	}
 
-	if err = cmd.Start(); err != nil {
-		defer finished()
-		_ = stdout.Close()
-		return nil, fmt.Errorf("Start: %w", err)
-	}
+	done := make(chan error, 1)
 
-	reader := bufio.NewReader(stdout)
+	go func(cmd *Command, dir string, stdout io.WriteCloser, done chan error) {
+		if err := cmd.Run(&RunOpts{
+			UseContextTimeout: true,
+			Dir:               dir,
+			Stdout:            stdout,
+			Stderr:            os.Stderr,
+		}); err == nil {
+			stdout.Close()
+		}
+		done <- err
+	}(cmd, repoPath, stdout, done)
 
 	return &BlameReader{
-		cmd:      cmd,
-		output:   stdout,
-		reader:   reader,
-		cancel:   cancel,
-		finished: finished,
+		cmd:    cmd,
+		output: stdout,
+		reader: reader,
+		done:   done,
 	}, nil
 }

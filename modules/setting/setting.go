@@ -6,6 +6,7 @@ package setting
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"math"
 	"net"
@@ -466,8 +467,7 @@ func getAppPath() (string, error) {
 	}
 
 	if err != nil {
-		// FIXME: Once we switch to go 1.19 use !errors.Is(err, exec.ErrDot)
-		if !strings.Contains(err.Error(), "cannot run executable found relative to current directory") {
+		if !errors.Is(err, exec.ErrDot) {
 			return "", err
 		}
 		appPath, err = filepath.Abs(os.Args[0])
@@ -1043,7 +1043,10 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	// The following is a purposefully undocumented option. Please do not run Gitea as root. It will only cause future headaches.
 	// Please don't use root as a bandaid to "fix" something that is broken, instead the broken thing should instead be fixed properly.
 	unsafeAllowRunAsRoot := Cfg.Section("").Key("I_AM_BEING_UNSAFE_RUNNING_AS_ROOT").MustBool(false)
-	RunMode = Cfg.Section("").Key("RUN_MODE").MustString("prod")
+	RunMode = os.Getenv("GITEA_RUN_MODE")
+	if RunMode == "" {
+		RunMode = Cfg.Section("").Key("RUN_MODE").MustString("prod")
+	}
 	IsProd = strings.EqualFold(RunMode, "prod")
 	// Does not check run user when the install lock is off.
 	if InstallLock {
@@ -1070,6 +1073,8 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	newPictureService()
 
 	newPackages()
+
+	newActions()
 
 	if err = Cfg.Section("ui").MapTo(&UI); err != nil {
 		log.Fatal("Failed to map UI settings: %v", err)
@@ -1337,7 +1342,8 @@ func NewServices() {
 	newCacheService()
 	newSessionService()
 	newCORSService()
-	newMailService()
+	parseMailerConfig(Cfg)
+	newIncomingEmail()
 	newRegisterMailService()
 	newNotifyMailService()
 	newProxyService()
@@ -1354,5 +1360,5 @@ func NewServices() {
 // NewServicesForInstall initializes the services for install
 func NewServicesForInstall() {
 	newService()
-	newMailService()
+	parseMailerConfig(Cfg)
 }

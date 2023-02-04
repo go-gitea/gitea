@@ -35,7 +35,7 @@ const (
 )
 
 func nameAllowed(name string) error {
-	if util.IsStringInSlice(name, reservedWikiNames) {
+	if util.SliceContainsString(reservedWikiNames, name) {
 		return repo_model.ErrWikiReservedName{
 			Title: name,
 		}

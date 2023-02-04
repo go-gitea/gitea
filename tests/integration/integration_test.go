@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
@@ -209,8 +210,6 @@ func (s *TestSession) MakeRequestNilResponseHashSumRecorder(t testing.TB, req *h
 
 const userPassword = "password"
 
-var loginSessionCache = make(map[string]*TestSession, 10)
-
 func emptyTestSession(t testing.TB) *TestSession {
 	t.Helper()
 	jar, err := cookiejar.New(nil)
@@ -219,18 +218,14 @@ func emptyTestSession(t testing.TB) *TestSession {
 	return &TestSession{jar: jar}
 }
 
-func getUserToken(t testing.TB, userName string) string {
-	return getTokenForLoggedInUser(t, loginUser(t, userName))
+func getUserToken(t testing.TB, userName string, scope ...auth.AccessTokenScope) string {
+	return getTokenForLoggedInUser(t, loginUser(t, userName), scope...)
 }
 
 func loginUser(t testing.TB, userName string) *TestSession {
 	t.Helper()
-	if session, ok := loginSessionCache[userName]; ok {
-		return session
-	}
-	session := loginUserWithPassword(t, userName, userPassword)
-	loginSessionCache[userName] = session
-	return session
+
+	return loginUserWithPassword(t, userName, userPassword)
 }
 
 func loginUserWithPassword(t testing.TB, userName, password string) *TestSession {
@@ -262,20 +257,53 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 // token has to be unique this counter take care of
 var tokenCounter int64
 
-func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
+// getTokenForLoggedInUser returns a token for a logged in user.
+// The scope is an optional list of snake_case strings like the frontend form fields,
+// but without the "scope_" prefix.
+func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...auth.AccessTokenScope) string {
 	t.Helper()
+	var token string
 	req := NewRequest(t, "GET", "/user/settings/applications")
 	resp := session.MakeRequest(t, req, http.StatusOK)
-	doc := NewHTMLParser(t, resp.Body)
-	req = NewRequestWithValues(t, "POST", "/user/settings/applications", map[string]string{
-		"_csrf": doc.GetCSRF(),
-		"name":  fmt.Sprintf("api-testing-token-%d", atomic.AddInt64(&tokenCounter, 1)),
-	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	var csrf string
+	for _, cookie := range resp.Result().Cookies() {
+		if cookie.Name != "_csrf" {
+			continue
+		}
+		csrf = cookie.Value
+		break
+	}
+	if csrf == "" {
+		doc := NewHTMLParser(t, resp.Body)
+		csrf = doc.GetCSRF()
+	}
+	assert.NotEmpty(t, csrf)
+	urlValues := url.Values{}
+	urlValues.Add("_csrf", csrf)
+	urlValues.Add("name", fmt.Sprintf("api-testing-token-%d", atomic.AddInt64(&tokenCounter, 1)))
+	for _, scope := range scopes {
+		urlValues.Add("scope", string(scope))
+	}
+	req = NewRequestWithURLValues(t, "POST", "/user/settings/applications", urlValues)
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+
+	// Log the flash values on failure
+	if !assert.Equal(t, resp.Result().Header["Location"], []string{"/user/settings/applications"}) {
+		for _, cookie := range resp.Result().Cookies() {
+			if cookie.Name != "macaron_flash" {
+				continue
+			}
+			flash, _ := url.ParseQuery(cookie.Value)
+			for key, value := range flash {
+				t.Logf("Flash %q: %q", key, value)
+			}
+		}
+	}
+
 	req = NewRequest(t, "GET", "/user/settings/applications")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	token := htmlDoc.doc.Find(".ui.info p").Text()
+	token = htmlDoc.doc.Find(".ui.info p").Text()
 	assert.NotEmpty(t, token)
 	return token
 }
@@ -296,6 +324,11 @@ func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string
 	for key, value := range values {
 		urlValues[key] = []string{value}
 	}
+	return NewRequestWithURLValues(t, method, urlStr, urlValues)
+}
+
+func NewRequestWithURLValues(t testing.TB, method, urlStr string, urlValues url.Values) *http.Request {
+	t.Helper()
 	req := NewRequestWithBody(t, method, urlStr, bytes.NewBufferString(urlValues.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	return req

@@ -7,13 +7,9 @@ import (
 	"xorm.io/xorm"
 )
 
-func AddManuallyMergePullConfirmedToPullRequest(x *xorm.Engine) error {
-	type PullRequest struct {
-		ID int64 `xorm:"pk autoincr"`
-
-		ManuallyMergeConfirmed        bool  `xorm:"NOT NULL DEFAULT false"`
-		ManuallyMergeConfirmedVersion int64 `xorm:"NOT NULL DEFAULT 0"`
-	}
-
-	return x.Sync(new(PullRequest))
+func DropForeignReferenceTable(x *xorm.Engine) error {
+	// Drop the table introduced in `v211`, it's considered badly designed and doesn't look like to be used.
+	// See: https://github.com/go-gitea/gitea/issues/21086#issuecomment-1318217453
+	type ForeignReference struct{}
+	return x.DropTables(new(ForeignReference))
 }

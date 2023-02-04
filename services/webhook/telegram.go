@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	api "code.gitea.io/gitea/modules/structs"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 )
 
 type (
@@ -140,7 +141,7 @@ func (t *TelegramPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader,
 }
 
 // Review implements PayloadConvertor Review method
-func (t *TelegramPayload) Review(p *api.PullRequestPayload, event webhook_model.HookEventType) (api.Payloader, error) {
+func (t *TelegramPayload) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (api.Payloader, error) {
 	var text, attachmentText string
 	switch p.Action {
 	case api.HookIssueReviewed:
@@ -185,7 +186,7 @@ func (t *TelegramPayload) Release(p *api.ReleasePayload) (api.Payloader, error) 
 }
 
 // GetTelegramPayload converts a telegram webhook into a TelegramPayload
-func GetTelegramPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
+func GetTelegramPayload(p api.Payloader, event webhook_module.HookEventType, _ string) (api.Payloader, error) {
 	return convertPayloader(new(TelegramPayload), p, event)
 }
 

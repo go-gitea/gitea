@@ -2,7 +2,6 @@ import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
 
 const {appSubUrl} = window.config;
-
 const looksLikeEmailAddressCheck = /^\S+@\S+$/;
 
 export function initCompSearchUserBox() {

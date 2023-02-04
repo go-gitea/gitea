@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import attachTribute from './tribute.js';
+import {attachTribute} from './tribute.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 import {initEasyMDEImagePaste} from './comp/ImagePaste.js';
 import {createCommentEasyMDE} from './comp/EasyMDE.js';
@@ -17,12 +17,12 @@ export function initRepoRelease() {
 export function initRepoReleaseEditor() {
   const $editor = $('.repository.new.release .content-editor');
   if ($editor.length === 0) {
-    return false;
+    return;
   }
 
   (async () => {
     const $textarea = $editor.find('textarea');
-    await attachTribute($textarea.get(), {mentions: false, emoji: true});
+    await attachTribute($textarea.get(), {mentions: true, emoji: true});
     const easyMDE = await createCommentEasyMDE($textarea);
     initCompMarkupContentPreviewTab($editor);
     const $dropzone = $editor.parent().find('.dropzone');

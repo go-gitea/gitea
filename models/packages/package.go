@@ -5,11 +5,11 @@ package packages
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -20,9 +20,9 @@ func init() {
 
 var (
 	// ErrDuplicatePackage indicates a duplicated package error
-	ErrDuplicatePackage = errors.New("Package does exist already")
+	ErrDuplicatePackage = util.NewAlreadyExistErrorf("package already exists")
 	// ErrPackageNotExist indicates a package not exist error
-	ErrPackageNotExist = errors.New("Package does not exist")
+	ErrPackageNotExist = util.NewNotExistErrorf("package does not exist")
 )
 
 // Type of a package
@@ -32,6 +32,7 @@ type Type string
 const (
 	TypeComposer  Type = "composer"
 	TypeConan     Type = "conan"
+	TypeConda     Type = "conda"
 	TypeContainer Type = "container"
 	TypeGeneric   Type = "generic"
 	TypeHelm      Type = "helm"
@@ -47,6 +48,7 @@ const (
 var TypeList = []Type{
 	TypeComposer,
 	TypeConan,
+	TypeConda,
 	TypeContainer,
 	TypeGeneric,
 	TypeHelm,
@@ -66,6 +68,8 @@ func (pt Type) Name() string {
 		return "Composer"
 	case TypeConan:
 		return "Conan"
+	case TypeConda:
+		return "Conda"
 	case TypeContainer:
 		return "Container"
 	case TypeGeneric:
@@ -97,6 +101,8 @@ func (pt Type) SVGName() string {
 		return "gitea-composer"
 	case TypeConan:
 		return "gitea-conan"
+	case TypeConda:
+		return "gitea-conda"
 	case TypeContainer:
 		return "octicon-container"
 	case TypeGeneric:

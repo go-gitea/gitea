@@ -394,7 +394,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 			defer content.Close()
 
-			_, err := git_model.NewLFSMetaObject(&git_model.LFSMetaObject{Pointer: p, RepositoryID: repo.ID})
+			_, err := git_model.NewLFSMetaObject(ctx, &git_model.LFSMetaObject{Pointer: p, RepositoryID: repo.ID})
 			if err != nil {
 				log.Error("Repo[%-v]: Error creating LFS meta object %-v: %v", repo, p, err)
 				return err
@@ -402,7 +402,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 			if err := contentStore.Put(p, content); err != nil {
 				log.Error("Repo[%-v]: Error storing content for LFS meta object %-v: %v", repo, p, err)
-				if _, err2 := git_model.RemoveLFSMetaObjectByOid(repo.ID, p.Oid); err2 != nil {
+				if _, err2 := git_model.RemoveLFSMetaObjectByOid(ctx, repo.ID, p.Oid); err2 != nil {
 					log.Error("Repo[%-v]: Error removing LFS meta object %-v: %v", repo, p, err2)
 				}
 				return err
@@ -421,7 +421,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 	var batch []lfs.Pointer
 	for pointerBlob := range pointerChan {
-		meta, err := git_model.GetLFSMetaObjectByOid(repo.ID, pointerBlob.Oid)
+		meta, err := git_model.GetLFSMetaObjectByOid(ctx, repo.ID, pointerBlob.Oid)
 		if err != nil && err != git_model.ErrLFSObjectNotExist {
 			log.Error("Repo[%-v]: Error querying LFS meta object %-v: %v", repo, pointerBlob.Pointer, err)
 			return err
@@ -441,7 +441,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 		if exist {
 			log.Trace("Repo[%-v]: LFS object %-v already present; creating meta object", repo, pointerBlob.Pointer)
-			_, err := git_model.NewLFSMetaObject(&git_model.LFSMetaObject{Pointer: pointerBlob.Pointer, RepositoryID: repo.ID})
+			_, err := git_model.NewLFSMetaObject(ctx, &git_model.LFSMetaObject{Pointer: pointerBlob.Pointer, RepositoryID: repo.ID})
 			if err != nil {
 				log.Error("Repo[%-v]: Error creating LFS meta object %-v: %v", repo, pointerBlob.Pointer, err)
 				return err

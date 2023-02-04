@@ -41,6 +41,7 @@ var (
 		EnablePushCreateOrg                     bool
 		DisabledRepoUnits                       []string
 		DefaultRepoUnits                        []string
+		DefaultForkRepoUnits                    []string
 		PrefixArchiveFiles                      bool
 		DisableMigrations                       bool
 		DisableStars                            bool `ini:"DISABLE_STARS"`
@@ -48,6 +49,7 @@ var (
 		AllowAdoptionOfUnadoptedRepositories    bool
 		AllowDeleteOfUnadoptedRepositories      bool
 		DisableDownloadSourceArchives           bool
+		AllowForkWithoutMaximumLimit            bool
 
 		// Repository editor settings
 		Editor struct {
@@ -156,10 +158,12 @@ var (
 		EnablePushCreateOrg:                     false,
 		DisabledRepoUnits:                       []string{},
 		DefaultRepoUnits:                        []string{},
+		DefaultForkRepoUnits:                    []string{},
 		PrefixArchiveFiles:                      true,
 		DisableMigrations:                       false,
 		DisableStars:                            false,
 		DefaultBranch:                           "main",
+		AllowForkWithoutMaximumLimit:            true,
 
 		// Repository editor settings
 		Editor: struct {

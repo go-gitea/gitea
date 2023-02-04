@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
-import attachTribute from './tribute.js';
+import {attachTribute} from './tribute.js';
 import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';
 import {initEasyMDEImagePaste} from './comp/ImagePaste.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';

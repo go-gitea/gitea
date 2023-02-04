@@ -5,9 +5,10 @@ package conan
 
 import (
 	"bufio"
-	"errors"
 	"io"
 	"strings"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 // Conaninfo represents infos of a Conan package
@@ -79,7 +80,7 @@ func readSections(r io.Reader) (map[string][]string, error) {
 			continue
 		}
 		if line != "" {
-			return nil, errors.New("Invalid conaninfo.txt")
+			return nil, util.NewInvalidArgumentErrorf("invalid conaninfo.txt")
 		}
 	}
 	if err := scanner.Err(); err != nil {

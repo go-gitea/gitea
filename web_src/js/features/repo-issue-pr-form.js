@@ -1,7 +1,7 @@
 import {createApp} from 'vue';
 import PullRequestMergeForm from '../components/PullRequestMergeForm.vue';
 
-export default function initPullRequestMergeForm() {
+export function initRepoPullRequestMergeForm() {
   const el = document.getElementById('pull-request-merge-form');
   if (!el) return;
 

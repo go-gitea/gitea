@@ -18,7 +18,6 @@
 import {CalendarHeatmap} from 'vue3-calendar-heatmap';
 
 export default {
-  name: 'ActivityHeatmap',
   components: {CalendarHeatmap},
   props: {
     values: {

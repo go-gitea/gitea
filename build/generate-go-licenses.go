@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"io/fs"
 	"os"
+	goPath "path"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -47,13 +48,15 @@ func main() {
 
 	entries := []LicenseEntry{}
 	for _, path := range paths {
+		path := filepath.ToSlash(path)
+
 		licenseText, err := os.ReadFile(path)
 		if err != nil {
 			panic(err)
 		}
 
-		path := strings.Replace(path, base+string(os.PathSeparator), "", 1)
-		name := filepath.Dir(path)
+		path = strings.Replace(path, base+"/", "", 1)
+		name := goPath.Dir(path)
 
 		// There might be a bug somewhere in go-licenses that sometimes interprets the
 		// root package as "." and sometimes as "code.gitea.io/gitea". Workaround by

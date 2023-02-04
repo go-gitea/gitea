@@ -190,6 +190,8 @@ To maintain understandable code and avoid circular dependencies it is important 
 - **templates:** Golang templates for generating the html output.
 - **tests/e2e:** End to end tests
 - **tests/integration:** Integration tests
+- **tests/gitea-repositories-meta:** Sample repos used in integration tests. Adding a new repo requires editing `models/fixtures/repositories.yml` and `models/fixtures/repo_unit.yml` to match.
+- **tests/gitea-lfs-meta:** Sample LFS objects used in integration tests. Adding a new object requires editing `models/fixtures/lfs_meta_object.yml` to match.
 - **vendor:** External code that Gitea depends on.
 
 ## Documentation
@@ -265,26 +267,10 @@ with the rest of the summary matching the original PR. Similarly for frontports
 
 ---
 
-The below is a script that may be helpful in creating backports. YMMV.
+A command to help create backports can be found in `contrib/backport` and can be installed (from inside the gitea repo root directory) using:
 
 ```bash
-#!/bin/sh
-PR="$1"
-SHA="$2"
-VERSION="$3"
-
-if [ -z "$SHA" ]; then
-    SHA=$(gh api /repos/go-gitea/gitea/pulls/$PR -q '.merge_commit_sha')
-fi
-
-if [ -z "$VERSION" ]; then
-    VERSION="v1.16"
-fi
-
-echo git checkout origin/release/"$VERSION" -b backport-$PR-$VERSION
-git checkout origin/release/"$VERSION" -b backport-$PR-$VERSION
-git cherry-pick $SHA && git commit --amend && git push zeripath backport-$PR-$VERSION && xdg-open https://github.com/go-gitea/gitea/compare/release/"$VERSION"...zeripath:backport-$PR-$VERSION
-
+go install contrib/backport/backport.go
 ```
 
 ## Developer Certificate of Origin (DCO)
@@ -439,7 +425,7 @@ be reviewed by two maintainers and must pass the automatic tests.
 Code that you contribute should use the standard copyright header:
 
 ```
-// Copyright 2022 The Gitea Authors. All rights reserved.
+// Copyright <year> The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 ```

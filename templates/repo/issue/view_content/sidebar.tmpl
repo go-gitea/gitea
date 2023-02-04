@@ -212,6 +212,13 @@
 					{{end}}
 				</a>
 				<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/projects">
+					<div class="header" style="text-transform: none;font-size:16px;">{{.locale.Tr "repo.issues.new.add_project_title"}}</div>
+					{{if or .OpenProjects .ClosedProjects}}
+					<div class="ui icon search input">
+						<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_projects"}}">
+					</div>
+					{{end}}
 					<div class="no-select item">{{.locale.Tr "repo.issues.new.clear_projects"}}</div>
 					{{if .OpenProjects}}
 						<div class="divider"></div>
@@ -219,8 +226,8 @@
 							{{.locale.Tr "repo.issues.new.open_projects"}}
 						</div>
 						{{range .OpenProjects}}
-							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">
-								{{svg "octicon-project" 18 "mr-3"}}
+							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
+								{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "mr-3"}}{{else}}{{svg "octicon-project" 18 "mr-3"}}{{end}}
 								{{.Title}}
 							</a>
 						{{end}}
@@ -231,8 +238,8 @@
 							{{.locale.Tr "repo.issues.new.closed_projects"}}
 						</div>
 						{{range .ClosedProjects}}
-							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">
-								{{svg "octicon-project" 18 "mr-3"}}
+							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
+								{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "mr-3"}}{{else}}{{svg "octicon-project" 18 "mr-3"}}{{end}}
 								{{.Title}}
 							</a>
 						{{end}}
@@ -243,8 +250,8 @@
 				<span class="no-select item {{if .Issue.ProjectID}}hide{{end}}">{{.locale.Tr "repo.issues.new.no_projects"}}</span>
 				<div class="selected">
 					{{if .Issue.ProjectID}}
-						<a class="item muted sidebar-item-link" href="{{.RepoLink}}/projects/{{.Issue.ProjectID}}">
-							{{svg "octicon-project" 18 "mr-3"}}
+						<a class="item muted sidebar-item-link" href="{{.Issue.Project.Link}}">
+							{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "mr-3"}}{{else}}{{svg "octicon-project" 18 "mr-3"}}{{end}}
 							{{.Issue.Project.Title}}
 						</a>
 					{{end}}
@@ -413,7 +420,7 @@
 					<div class="df sb ac">
 						<div class="due-date tooltip {{if .Issue.IsOverdue}}text red{{end}}" {{if .Issue.IsOverdue}}data-content="{{.locale.Tr "repo.issues.due_date_overdue"}}"{{end}}>
 							{{svg "octicon-calendar" 16 "mr-3"}}
-							<time data-format="date" datetime="{{.Issue.DeadlineUnix.FormatLong}}">{{.Issue.DeadlineUnix.FormatDate}}</time>
+							<time data-format="date" datetime="{{.Issue.DeadlineUnix.FormatDate}}">{{.Issue.DeadlineUnix.FormatDate}}</time>
 						</div>
 						<div>
 							{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
