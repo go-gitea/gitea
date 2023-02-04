@@ -43,7 +43,7 @@ func Verify(ctx context.Context, response, ip string) (bool, error) {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return false, fmt.Errorf("Failed to send CAPTCHA response: %s", err)
+		return false, fmt.Errorf("Failed to send CAPTCHA response: %w", err)
 	}
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
