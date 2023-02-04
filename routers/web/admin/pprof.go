@@ -5,13 +5,15 @@ package admin
 
 import (
 	"fmt"
+	"net/http"
 	"runtime/pprof"
 	"strconv"
 	"time"
 
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
-	
+
 	"github.com/felixge/fgprof"
 )
 
@@ -19,7 +21,7 @@ import (
 func PProfProcessStacktrace(ctx *context.Context) {
 	flat := ctx.FormBool("flat")
 	noSystem := ctx.FormBool("no-system")
-	
+
 	format := ctx.FormString("format")
 	jsonFormat := format == "json"
 
@@ -28,7 +30,7 @@ func PProfProcessStacktrace(ctx *context.Context) {
 	if jsonFormat {
 		filename += ".json"
 	}
-	
+
 	processStacks, processCount, goroutineCount, err := process.GetManager().ProcessStacktraces(flat, noSystem)
 	if err != nil {
 		ctx.ServerError("ProcessStacktraces", err)
@@ -43,7 +45,7 @@ func PProfProcessStacktrace(ctx *context.Context) {
 		ctx.JSON(http.StatusOK, map[string]interface{}{
 			"TotalNumberOfGoroutines": goroutineCount,
 			"TotalNumberOfProcesses":  processCount,
-			"Processes":               processes,
+			"Processes":               processStacks,
 		})
 		return
 	}
@@ -53,7 +55,6 @@ func PProfProcessStacktrace(ctx *context.Context) {
 		return
 	}
 }
-
 
 // PProfFGProfile returns the Full Go Profile from fgprof
 func PProfFGProfile(ctx *context.Context) {
@@ -68,8 +69,8 @@ func PProfFGProfile(ctx *context.Context) {
 			return
 		}
 	}
-	
-	format := ctx.FormString("format")
+
+	format := fgprof.Format(ctx.FormString("format"))
 	if format != fgprof.FormatFolded {
 		format = fgprof.FormatPprof
 	}
@@ -82,18 +83,17 @@ func PProfFGProfile(ctx *context.Context) {
 	})
 
 	fn := fgprof.Start(ctx.Resp, format)
-	
+
 	select {
 	case <-time.After(duration):
 	case <-ctx.Done():
 	}
-	
+
 	err := fn()
 	if err != nil {
 		ctx.ServerError("fgprof.Write", err)
 	}
 }
-
 
 // PProfCPUProfile returns the PProf CPU Profile
 func PProfCPUProfile(ctx *context.Context) {
