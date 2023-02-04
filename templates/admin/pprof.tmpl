@@ -6,8 +6,25 @@
 	<form action="{{AppSubUrl}}/admin/monitor/cpu-profile">
 		<div class="ui form">
 			<div class="field">
-				<label for="pprof-cpuprofile-duration">{{.locale.Tr "admin.monitor.pprof.cpuprofile.duration"}}</label>
-				<input id="pprof-cpuprofile-duration" type="text" name="duration" placeholder="{{.locale.Tr "admin.monitor.pprof.cpuprofile.duration_placeholder"}}">
+				<label for="pprof-cpuprofile-duration">{{.locale.Tr "admin.monitor.pprof.duration"}}</label>
+				<input id="pprof-cpuprofile-duration" type="text" name="duration" placeholder="{{.locale.Tr "admin.monitor.pprof.duration_placeholder"}}">
+			</div>
+			<input class="ui button basic" type="submit" value="{{.locale.Tr "admin.monitor.pprof.download"}}">
+		</div>
+	</form>
+	<h4>{{.locale.Tr "admin.monitor.pprof.fgprofile"}}</h4>
+	<form action="{{AppSubUrl}}/admin/monitor/fgprof">
+		<div class="ui form">
+			<div class="field">
+				<label for="pprof-fgprof-duration">{{.locale.Tr "admin.monitor.pprof.duration"}}</label>
+				<input id="pprof-fgprof-duration" type="text" name="duration" placeholder="{{.locale.Tr "admin.monitor.pprof.duration_placeholder"}}">
+			</div>
+			<div class="field">
+				<label for="pprof-fgprof-format">{{.locale.Tr "admin.monitor.pprof.fgprof.format"}}</label>
+				<select class="ui search dropdown" id="pprof-fgprof-format">
+					<option value="pprof" selected>pprof</option>
+					<option value="folded">folded</option>
+				</select>
 			</div>
 			<input class="ui button basic" type="submit" value="{{.locale.Tr "admin.monitor.pprof.download"}}">
 		</div>
