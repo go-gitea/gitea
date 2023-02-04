@@ -25,7 +25,7 @@ steps:
       - make deps-frontend
 
   - name: deps-backend
-    image: golang:1.19
+    image: golang:1.20
     pull: always
     commands:
       - make deps-backend
@@ -88,7 +88,7 @@ steps:
     depends_on: [deps-frontend]
 
   - name: checks-backend
-    image: golang:1.19
+    image: golang:1.20
     commands:
       - make --always-make checks-backend # ensure the 'go-licenses' make target runs
     depends_on: [deps-backend]
@@ -109,7 +109,7 @@ steps:
     depends_on: [deps-frontend]
 
   - name: build-backend-no-gcc
-    image: golang:1.18 # this step is kept as the lowest version of golang that we support
+    image: golang:1.19 # this step is kept as the lowest version of golang that we support
     pull: always
     environment:
       GO111MODULE: on
@@ -122,7 +122,7 @@ steps:
         path: /go
 
   - name: build-backend-arm64
-    image: golang:1.19
+    image: golang:1.20
     environment:
       GO111MODULE: on
       GOPROXY: https://goproxy.io
@@ -138,7 +138,7 @@ steps:
         path: /go
 
   - name: build-backend-windows
-    image: golang:1.19
+    image: golang:1.20
     environment:
       GO111MODULE: on
       GOPROXY: https://goproxy.io
@@ -153,7 +153,7 @@ steps:
         path: /go
 
   - name: build-backend-386
-    image: golang:1.19
+    image: golang:1.20
     environment:
       GO111MODULE: on
       GOPROXY: https://goproxy.io
@@ -247,7 +247,7 @@ steps:
           - pull_request
 
   - name: deps-backend
-    image: golang:1.19
+    image: golang:1.20
     pull: always
     commands:
       - make deps-backend
@@ -364,7 +364,7 @@ steps:
         path: /go
 
   - name: generate-coverage
-    image: golang:1.19
+    image: golang:1.20
     commands:
       - make coverage
     environment:
@@ -440,7 +440,7 @@ steps:
           - pull_request
 
   - name: deps-backend
-    image: golang:1.19
+    image: golang:1.20
     pull: always
     commands:
       - make deps-backend
@@ -557,7 +557,7 @@ steps:
   - name: test-e2e
     image: mcr.microsoft.com/playwright:v1.29.2-focal
     commands:
-      - curl -sLO https://go.dev/dl/go1.19.linux-amd64.tar.gz && tar -C /usr/local -xzf go1.19.linux-amd64.tar.gz
+      - curl -sLO https://go.dev/dl/go1.20.linux-amd64.tar.gz && tar -C /usr/local -xzf go1.20.linux-amd64.tar.gz
       - groupadd --gid 1001 gitea && useradd -m --gid 1001 --uid 1001 gitea
       - apt-get -qq update && apt-get -qqy install build-essential
       - export TEST_PGSQL_SCHEMA=''
@@ -656,7 +656,7 @@ trigger:
 
 steps:
   - name: download
-    image: golang:1.19
+    image: golang:1.20
     pull: always
     commands:
       - timeout -s ABRT 40m make generate-license generate-gitignore
@@ -720,7 +720,7 @@ steps:
       - make deps-frontend
 
   - name: deps-backend
-    image: golang:1.19
+    image: golang:1.20
     pull: always
     commands:
       - make deps-backend
@@ -729,7 +729,7 @@ steps:
         path: /go
 
   - name: static
-    image: techknowlogick/xgo:go-1.19.x
+    image: techknowlogick/xgo:go-1.20.x
     pull: always
     commands:
       # Upgrade to node 18 once https://github.com/techknowlogick/xgo/issues/163 is resolved
@@ -841,7 +841,7 @@ steps:
       - make deps-frontend
 
   - name: deps-backend
-    image: golang:1.19
+    image: golang:1.20
     pull: always
     commands:
       - make deps-backend
@@ -850,7 +850,7 @@ steps:
         path: /go
 
   - name: static
-    image: techknowlogick/xgo:go-1.19.x
+    image: techknowlogick/xgo:go-1.20.x
     pull: always
     commands:
       # Upgrade to node 18 once https://github.com/techknowlogick/xgo/issues/163 is resolved
@@ -932,7 +932,7 @@ trigger:
 
 steps:
   - name: build-docs
-    image: golang:1.19
+    image: golang:1.20
     commands:
       - cd docs
       - make trans-copy clean build
