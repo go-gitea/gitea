@@ -6,6 +6,7 @@ package process
 
 import (
 	"context"
+	"log"
 	"runtime/pprof"
 	"strconv"
 	"sync"
@@ -42,6 +43,18 @@ type IDType string
 // FinishedFunc is a function that marks that the process is finished and can be removed from the process table
 // - it is simply an alias for context.CancelFunc and is only for documentary purposes
 type FinishedFunc = context.CancelFunc
+
+var Trace = defaultTrace // this global can be overridden by particular logging packages - thus avoiding import cycles
+
+func defaultTrace(start bool, pid IDType, description string, parentPID IDType, typ string) {
+	if start && parentPID != "" {
+		log.Printf("start process %s: %s (from %s) (%s)", pid, description, parentPID, typ)
+	} else if start {
+		log.Printf("start process %s: %s (%s)", pid, description, typ)
+	} else {
+		log.Printf("end process %s: %s", pid, description)
+	}
+}
 
 // Manager manages all processes and counts PIDs.
 type Manager struct {
@@ -154,6 +167,7 @@ func (pm *Manager) Add(ctx context.Context, description string, cancel context.C
 
 	pm.processMap[pid] = process
 	pm.mutex.Unlock()
+	Trace(true, pid, description, parentPID, processType)
 
 	pprofCtx := pprof.WithLabels(ctx, pprof.Labels(DescriptionPProfLabel, description, PPIDPProfLabel, string(parentPID), PIDPProfLabel, string(pid), ProcessTypePProfLabel, processType))
 	if currentlyRunning {
@@ -185,18 +199,12 @@ func (pm *Manager) nextPID() (start time.Time, pid IDType) {
 	return start, pid
 }
 
-// Remove a process from the ProcessManager.
-func (pm *Manager) Remove(pid IDType) {
-	pm.mutex.Lock()
-	delete(pm.processMap, pid)
-	pm.mutex.Unlock()
-}
-
 func (pm *Manager) remove(process *process) {
 	pm.mutex.Lock()
 	defer pm.mutex.Unlock()
 	if p := pm.processMap[process.PID]; p == process {
 		delete(pm.processMap, process.PID)
+		Trace(false, process.PID, process.Description, process.ParentPID, process.Type)
 	}
 }
 

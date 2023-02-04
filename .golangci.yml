@@ -28,7 +28,7 @@ linters:
   fast: false
 
 run:
-  go: 1.19
+  go: 1.20
   timeout: 10m
   skip-dirs:
     - node_modules
@@ -74,7 +74,7 @@ linters-settings:
       - name: modifies-value-receiver
   gofumpt:
     extra-rules: true
-    lang-version: "1.19"
+    lang-version: "1.20"
   depguard:
     list-type: denylist
     # Check the list against standard lib.
