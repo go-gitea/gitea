@@ -44,28 +44,41 @@ func ListWorkflows(commit *git.Commit) (git.Entries, error) {
 	return ret, nil
 }
 
-func DetectWorkflows(commit *git.Commit, triggedEvent webhook_module.HookEventType, payload api.Payloader) (map[string][]byte, error) {
+func DetectWorkflows(
+	commit *git.Commit,
+	triggedEvent webhook_module.HookEventType,
+	payload api.Payloader,
+) (map[string][]byte, map[string][]byte, error) {
 	entries, err := ListWorkflows(commit)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	workflows := make(map[string][]byte, len(entries))
+	schedules := make(map[string][]byte, len(entries))
 	for _, entry := range entries {
 		f, err := entry.Blob().DataAsync()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		content, err := io.ReadAll(f)
 		_ = f.Close()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		workflow, err := model.ReadWorkflow(bytes.NewReader(content))
 		if err != nil {
 			log.Warn("ignore invalid workflow %q: %v", entry.Name(), err)
 			continue
 		}
+
+		// fetch all schedule event
+		for _, e := range workflow.On() {
+			if e == "schedule" {
+				schedules[entry.Name()] = content
+			}
+		}
+
 		events, err := jobparser.ParseRawOn(&workflow.RawOn)
 		if err != nil {
 			log.Warn("ignore invalid workflow %q: %v", entry.Name(), err)
@@ -81,7 +94,7 @@ func DetectWorkflows(commit *git.Commit, triggedEvent webhook_module.HookEventTy
 		}
 	}
 
-	return workflows, nil
+	return workflows, schedules, nil
 }
 
 func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType, payload api.Payloader, evt *jobparser.Event) bool {

@@ -19,4 +19,8 @@ func Init() {
 	go graceful.GetManager().RunWithShutdownFns(jobEmitterQueue.Run)
 
 	notification.RegisterNotifier(NewNotifier())
+
+	// initial all schedule task
+	newSchedule()
+	resetSchedule()
 }

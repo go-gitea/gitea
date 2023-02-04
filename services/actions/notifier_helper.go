@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -24,6 +25,7 @@ import (
 	"code.gitea.io/gitea/services/convert"
 
 	"github.com/nektos/act/pkg/jobparser"
+	"github.com/nektos/act/pkg/model"
 )
 
 var methodCtxKey struct{}
@@ -103,6 +105,181 @@ func (input *notifyInput) Notify(ctx context.Context) {
 	}
 }
 
+func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule, spec string) (int, error) {
+	return schedule.AddFunc(spec, func() {
+		run := &actions_model.ActionRun{
+			Title:         cron.Title,
+			RepoID:        cron.RepoID,
+			OwnerID:       cron.OwnerID,
+			WorkflowID:    cron.WorkflowID,
+			TriggerUserID: cron.TriggerUserID,
+			Ref:           cron.Ref,
+			CommitSHA:     cron.CommitSHA,
+			Event:         cron.Event,
+			EventPayload:  cron.EventPayload,
+			Status:        actions_model.StatusWaiting,
+		}
+		jobs, err := jobparser.Parse(cron.Content)
+		if err != nil {
+			log.Error("jobparser.Parse: %v", err)
+			return
+		}
+		if err := actions_model.InsertRun(ctx, run, jobs); err != nil {
+			log.Error("InsertRun: %v", err)
+			return
+		}
+		if jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: run.ID}); err != nil {
+			log.Error("FindRunJobs: %v", err)
+		} else {
+			for _, job := range jobs {
+				if err := CreateCommitStatus(ctx, job); err != nil {
+					log.Error("CreateCommitStatus: %v", err)
+				}
+			}
+		}
+	})
+}
+
+func handleSchedules(
+	ctx context.Context,
+	schedules map[string][]byte,
+	commit *git.Commit,
+	input *notifyInput,
+) error {
+	if commit.Branch != input.Repo.DefaultBranch {
+		log.Trace("commit branch is not default branch in repo")
+		return nil
+	}
+
+	rows, _, err := actions_model.FindSchedules(ctx, actions_model.FindScheduleOptions{RepoID: input.Repo.ID})
+	if err != nil {
+		log.Error("FindCrons: %v", err)
+	}
+
+	for _, row := range rows {
+		schedule.Remove(row.EntryIDs)
+	}
+
+	if len(rows) > 0 {
+		if err := actions_model.DeleteScheduleTaskByRepo(ctx, input.Repo.ID); err != nil {
+			log.Error("DeleteCronTaskByRepo: %v", err)
+		}
+	}
+
+	if len(schedules) == 0 {
+		log.Trace("repo %s with commit %s couldn't find schedules", input.Repo.RepoPath(), commit.ID)
+		return nil
+	}
+
+	p, err := json.Marshal(input.Payload)
+	if err != nil {
+		return fmt.Errorf("json.Marshal: %w", err)
+	}
+
+	crons := make([]*actions_model.ActionSchedule, 0)
+	for id, content := range schedules {
+		log.Debug("workflow: %s, content: %v", id, string(content))
+		// Check cron job condition. Only working in default branch
+		workflow, err := model.ReadWorkflow(bytes.NewReader(content))
+		if err != nil {
+			log.Error("ReadWorkflow: %v", err)
+			continue
+		}
+		schedules := workflow.OnSchedule()
+		if len(schedules) == 0 {
+			log.Warn("no schedule event")
+			continue
+		}
+		log.Debug("schedules: %#v", schedules)
+
+		crons = append(crons, &actions_model.ActionSchedule{
+			Title:         strings.SplitN(commit.CommitMessage, "\n", 2)[0],
+			RepoID:        input.Repo.ID,
+			OwnerID:       input.Repo.OwnerID,
+			WorkflowID:    id,
+			TriggerUserID: input.Doer.ID,
+			Ref:           input.Ref,
+			CommitSHA:     commit.ID.String(),
+			Event:         input.Event,
+			EventPayload:  string(p),
+			Specs:         schedules,
+			Content:       content,
+		})
+	}
+
+	if len(crons) > 0 {
+		for _, cron := range crons {
+			entryIDs := []int{}
+			for _, spec := range cron.Specs {
+				id, err := CreateScheduleTask(ctx, cron, spec)
+				if err != nil {
+					continue
+				}
+				entryIDs = append(entryIDs, id)
+			}
+			cron.EntryIDs = entryIDs
+		}
+
+		if err := actions_model.CreateScheduleTask(ctx, input.Repo.ID, crons); err != nil {
+			log.Error("CreateCronTask: %v", err)
+		}
+	}
+
+	return nil
+}
+
+func handleWorkflows(
+	ctx context.Context,
+	workflows map[string][]byte,
+	commit *git.Commit,
+	input *notifyInput,
+) error {
+	if len(workflows) == 0 {
+		log.Trace("repo %s with commit %s couldn't find workflows", input.Repo.RepoPath(), commit.ID)
+		return nil
+	}
+
+	p, err := json.Marshal(input.Payload)
+	if err != nil {
+		return fmt.Errorf("json.Marshal: %w", err)
+	}
+
+	for id, content := range workflows {
+		run := actions_model.ActionRun{
+			Title:             strings.SplitN(commit.CommitMessage, "\n", 2)[0],
+			RepoID:            input.Repo.ID,
+			OwnerID:           input.Repo.OwnerID,
+			WorkflowID:        id,
+			TriggerUserID:     input.Doer.ID,
+			Ref:               input.Ref,
+			CommitSHA:         commit.ID.String(),
+			IsForkPullRequest: input.PullRequest != nil && input.PullRequest.IsFromFork(),
+			Event:             input.Event,
+			EventPayload:      string(p),
+			Status:            actions_model.StatusWaiting,
+		}
+		jobs, err := jobparser.Parse(content)
+		if err != nil {
+			log.Error("jobparser.Parse: %v", err)
+			continue
+		}
+		if err := actions_model.InsertRun(ctx, &run, jobs); err != nil {
+			log.Error("InsertRun: %v", err)
+			continue
+		}
+		if jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: run.ID}); err != nil {
+			log.Error("FindRunJobs: %v", err)
+		} else {
+			for _, job := range jobs {
+				if err := CreateCommitStatus(ctx, job); err != nil {
+					log.Error("CreateCommitStatus: %v", err)
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func notify(ctx context.Context, input *notifyInput) error {
 	if input.Doer.IsActions() {
 		// avoiding triggering cyclically, for example:
@@ -137,63 +314,24 @@ func notify(ctx context.Context, input *notifyInput) error {
 		return fmt.Errorf("gitRepo.GetCommit: %w", err)
 	}
 
-	workflows, err := actions_module.DetectWorkflows(commit, input.Event, input.Payload)
+	err = commit.LoadBranchName()
+	if err != nil {
+		return fmt.Errorf("commit.GetBranchName: %w", err)
+	}
+
+	workflows, schedules, err := actions_module.DetectWorkflows(commit, input.Event, input.Payload)
 	if err != nil {
 		return fmt.Errorf("DetectWorkflows: %w", err)
 	}
 
-	if len(workflows) == 0 {
-		log.Trace("repo %s with commit %s couldn't find workflows", input.Repo.RepoPath(), commit.ID)
-		return nil
+	if err := handleSchedules(ctx, schedules, commit, input); err != nil {
+		log.Error("handle schedules: %v", err)
 	}
 
-	p, err := json.Marshal(input.Payload)
-	if err != nil {
-		return fmt.Errorf("json.Marshal: %w", err)
+	if err := handleWorkflows(ctx, workflows, commit, input); err != nil {
+		log.Error("handle workflows: %v", err)
 	}
 
-	for id, content := range workflows {
-		run := &actions_model.ActionRun{
-			Title:             strings.SplitN(commit.CommitMessage, "\n", 2)[0],
-			RepoID:            input.Repo.ID,
-			OwnerID:           input.Repo.OwnerID,
-			WorkflowID:        id,
-			TriggerUserID:     input.Doer.ID,
-			Ref:               ref,
-			CommitSHA:         commit.ID.String(),
-			IsForkPullRequest: input.PullRequest != nil && input.PullRequest.IsFromFork(),
-			Event:             input.Event,
-			EventPayload:      string(p),
-			Status:            actions_model.StatusWaiting,
-		}
-		if need, err := ifNeedApproval(ctx, run, input.Repo, input.Doer); err != nil {
-			log.Error("check if need approval for repo %d with user %d: %v", input.Repo.ID, input.Doer.ID, err)
-			continue
-		} else {
-			run.NeedApproval = need
-		}
-
-		jobs, err := jobparser.Parse(content)
-		if err != nil {
-			log.Error("jobparser.Parse: %v", err)
-			continue
-		}
-		if err := actions_model.InsertRun(ctx, run, jobs); err != nil {
-			log.Error("InsertRun: %v", err)
-			continue
-		}
-		if jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: run.ID}); err != nil {
-			log.Error("FindRunJobs: %v", err)
-		} else {
-			for _, job := range jobs {
-				if err := CreateCommitStatus(ctx, job); err != nil {
-					log.Error("Update commit status for job %v failed: %v", job.ID, err)
-					// go on
-				}
-			}
-		}
-
-	}
 	return nil
 }
 

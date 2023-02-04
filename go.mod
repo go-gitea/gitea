@@ -91,6 +91,9 @@ require (
 	github.com/quasoft/websspi v1.1.2
 	github.com/santhosh-tekuri/jsonschema/v5 v5.2.0
 	github.com/sergi/go-diff v1.3.1
+	github.com/robfig/cron/v3 v3.0.1
+	github.com/santhosh-tekuri/jsonschema/v5 v5.1.1
+	github.com/sergi/go-diff v1.2.0
 	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
 	github.com/stretchr/testify v1.8.1
 	github.com/syndtr/goleveldb v1.0.0
