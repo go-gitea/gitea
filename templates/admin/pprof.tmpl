@@ -29,6 +29,31 @@
 			<input class="ui button basic" type="submit" value="{{.locale.Tr "admin.monitor.pprof.download"}}">
 		</div>
 	</form>
+	<h4>{{.locale.Tr "admin.monitor.stacktraces"}}</h4>
+	<form action="{{AppSubUrl}}/admin/monitor/stacktrace-profile">
+		<div class="ui form">
+  		<div class="inline field">
+    		<div class="ui checkbox">
+      		<input id="pprof-stacktrace-flat" type="checkbox" tabindex="0" class="hidden" name="flat">
+      		<label for"pprof-stacktrace-flat">{{.locale.Tr "admin.monitor.pprof.stacktraces.flat}}</label>
+    		</div>
+  		</div>
+  		<div class="inline field">
+    		<div class="ui checkbox">
+      		<input id="pprof-stacktrace-no-system" type="checkbox" tabindex="0" class="hidden" name="no-system">
+      		<label for"pprof-stacktrace-no-system">{{.locale.Tr "admin.monitor.pprof.stacktraces.no-system}}</label>
+    		</div>
+  		</div>
+			<div class="field">
+				<label for="pprof-stacktrace-format">{{.locale.Tr "admin.monitor.pprof.stacktraces.format"}}</label>
+				<select class="ui search dropdown" id="pprof-stacktrace-format">
+					<option value="text" selected>text</option>
+					<option value="json">json</option>
+				</select>
+			</div>
+			<input class="ui button basic" type="submit" value="{{.locale.Tr "admin.monitor.pprof.download"}}">
+		</div>
+	</form>
 	<h4>{{.locale.Tr "admin.monitor.pprof.named_profiles"}}</h4>
 	<form action="{{AppSubUrl}}/admin/monitor/profile">
 		<div class="ui form">
