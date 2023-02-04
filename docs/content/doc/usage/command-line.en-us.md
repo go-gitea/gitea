@@ -515,6 +515,20 @@ Manage running server operations:
       - `--stacktraces`: Show stacktraces for goroutines associated with processes
       - `--json`: Output as json
       - `--cancel PID`: Send cancel to process with PID. (Only for non-system processes.)
+  - `cpu-profile`: Return the PProf CPU profile
+    - Options:
+      - `--duration`: Duration of time to run profile (default: 30s)
+  - `fg-profile`: Returns the PProf Full Go profile
+    - Options:
+      - `--duration`: Duration of time to run profile (default: 30s)
+      - `--format`: Format of profile (default: pprof)
+  - `list-named-profiles`: Returns a list of named profiles
+    - Options:
+      - `json`: Set to true to return a json output
+  - `named-profile`: Returns the output of a named profile
+    - Options:
+      - `name`: Name of the profile
+      - `debug-level`: Debug level for the profile
 
 ### dump-repo
 
