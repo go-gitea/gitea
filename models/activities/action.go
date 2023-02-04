@@ -233,7 +233,7 @@ func (a *Action) loadComment(ctx context.Context) (err error) {
 		return nil
 	}
 	a.Comment, err = issues_model.GetCommentByID(ctx, a.CommentID)
-	return
+	return err
 }
 
 func (a *Action) getCommentHTMLURL(ctx context.Context) string {
