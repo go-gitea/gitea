@@ -30,7 +30,7 @@ import (
 )
 
 // CreateRepositoryByExample creates a repository for the user/organization.
-func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository, overwriteOrAdopt bool) (err error) {
+func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository, overwriteOrAdopt, isFork bool) (err error) {
 	if err = repo_model.IsUsableRepoName(repo.Name); err != nil {
 		return err
 	}
@@ -67,8 +67,12 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 	}
 
 	// insert units for repo
-	units := make([]repo_model.RepoUnit, 0, len(unit.DefaultRepoUnits))
-	for _, tp := range unit.DefaultRepoUnits {
+	defaultUnits := unit.DefaultRepoUnits
+	if isFork {
+		defaultUnits = unit.DefaultForkRepoUnits
+	}
+	units := make([]repo_model.RepoUnit, 0, len(defaultUnits))
+	for _, tp := range defaultUnits {
 		if tp == unit.TypeIssues {
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
@@ -212,7 +216,7 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 	var rollbackRepo *repo_model.Repository
 
 	if err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
-		if err := CreateRepositoryByExample(ctx, doer, u, repo, false); err != nil {
+		if err := CreateRepositoryByExample(ctx, doer, u, repo, false, false); err != nil {
 			return err
 		}
 
