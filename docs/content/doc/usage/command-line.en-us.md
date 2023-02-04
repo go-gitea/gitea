@@ -515,20 +515,25 @@ Manage running server operations:
       - `--stacktraces`: Show stacktraces for goroutines associated with processes
       - `--json`: Output as json
       - `--cancel PID`: Send cancel to process with PID. (Only for non-system processes.)
+      - `--output filename`, `-o filename`: Filename to output to. (Set to `-` to use stdout.)
   - `cpu-profile`: Return the PProf CPU profile
     - Options:
       - `--duration`: Duration of time to run profile (default: 30s)
+      - `--output filename`, `-o filename`: Filename to output to. (Set to `-` to use stdout.)
   - `fg-profile`: Returns the PProf Full Go profile
     - Options:
       - `--duration`: Duration of time to run profile (default: 30s)
       - `--format`: Format of profile (default: pprof)
+      - `--output filename`, `-o filename`: Filename to output to. (Set to `-` to use stdout.)
   - `list-named-profiles`: Returns a list of named profiles
     - Options:
-      - `json`: Set to true to return a json output
+      - `--json`: Set to true to return a json output
+      - `--output filename`, `-o filename`: Filename to output to. (Set to `-` to use stdout.)
   - `named-profile`: Returns the output of a named profile
     - Options:
-      - `name`: Name of the profile
-      - `debug-level`: Debug level for the profile
+      - `--name`: Name of the profile
+      - `--debug-level`: Debug level for the profile
+      - `--output filename`, `-o filename`: Filename to output to. (Set to `-` to use stdout.)
 
 ### dump-repo
 

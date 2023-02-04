@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"time"
@@ -99,6 +100,11 @@ var (
 				Name:  "cancel",
 				Usage: "Process PID to cancel. (Only available for non-system processes.)",
 			},
+			cli.StringFlag{
+				Name:  "output,o",
+				Usage: "File to output to (set to \"-\" for stdout)",
+				Value: "-",
+			},
 		},
 	}
 	subCmdCPUProfile = cli.Command{
@@ -110,6 +116,11 @@ var (
 				Name:  "duration",
 				Usage: "Duration to collect CPU Profile over",
 				Value: 30 * time.Second,
+			},
+			cli.StringFlag{
+				Name:  "output,o",
+				Usage: "File to output to (set to \"-\" for stdout)",
+				Value: "cpu-profile",
 			},
 		},
 	}
@@ -128,6 +139,11 @@ var (
 				Usage: "Format to return the profile in: pprof, folded",
 				Value: "pprof",
 			},
+			cli.StringFlag{
+				Name:  "output,o",
+				Usage: "File to output to (set to \"-\" for stdout)",
+				Value: "fg-profile",
+			},
 		},
 	}
 	subCmdNamedProfile = cli.Command{
@@ -143,6 +159,10 @@ var (
 				Name:  "debug-level",
 				Usage: "Debug level for the profile",
 			},
+			cli.StringFlag{
+				Name:  "output,o",
+				Usage: "File to output to (set to \"-\" for stdout)",
+			},
 		},
 	}
 	subCmdListNamedProfiles = cli.Command{
@@ -153,6 +173,11 @@ var (
 			cli.BoolFlag{
 				Name:  "json",
 				Usage: "Output as json",
+			},
+			cli.StringFlag{
+				Name:  "output,o",
+				Usage: "File to output to (set to \"-\" for stdout)",
+				Value: "-",
 			},
 		},
 	}
@@ -203,12 +228,35 @@ func runFlushQueues(c *cli.Context) error {
 	return nil
 }
 
+func determineOutput(c *cli.Context, defaultFilename string) (io.WriteCloser, error) {
+	out := os.Stdout
+	filename := c.String("output")
+	if filename == "" {
+		filename = defaultFilename
+	}
+	if filename != "-" {
+		var err error
+		out, err = os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+		if err != nil {
+			return nil, fail("Unable to open "+filename, err.Error())
+		}
+		fmt.Printf("Writing to %s\n", filename)
+	}
+	return out, nil
+}
+
 func runProcesses(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
 	setup("manager", c.Bool("debug"))
-	statusCode, msg := private.Processes(ctx, os.Stdout, c.Bool("flat"), c.Bool("no-system"), c.Bool("stacktraces"), c.Bool("json"), c.String("cancel"))
+	out, err := determineOutput(c, "-")
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	statusCode, msg := private.Processes(ctx, out, c.Bool("flat"), c.Bool("no-system"), c.Bool("stacktraces"), c.Bool("json"), c.String("cancel"))
 	switch statusCode {
 	case http.StatusInternalServerError:
 		return fail("InternalServerError", msg)
@@ -221,7 +269,14 @@ func runCPUProfile(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 	setup("manager", c.Bool("debug"))
-	statusCode, msg := private.CPUProfile(ctx, os.Stdout, c.Duration("duration"))
+
+	out, err := determineOutput(c, "cpu-profile")
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	statusCode, msg := private.CPUProfile(ctx, out, c.Duration("duration"))
 	switch statusCode {
 	case http.StatusInternalServerError:
 		return fail("InternalServerError", msg)
@@ -233,7 +288,13 @@ func runFGProfile(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 	setup("manager", c.Bool("debug"))
-	statusCode, msg := private.FGProfile(ctx, os.Stdout, c.Duration("duration"), c.String("format"))
+	out, err := determineOutput(c, "fg-profile")
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	statusCode, msg := private.FGProfile(ctx, out, c.Duration("duration"), c.String("format"))
 	switch statusCode {
 	case http.StatusInternalServerError:
 		return fail("InternalServerError", msg)
@@ -245,7 +306,12 @@ func runNamedProfile(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 	setup("manager", c.Bool("debug"))
-	statusCode, msg := private.NamedProfile(ctx, os.Stdout, c.String("name"), c.Int("debug-level"))
+	out, err := determineOutput(c, c.String("name")+"-profile")
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	statusCode, msg := private.NamedProfile(ctx, out, c.String("name"), c.Int("debug-level"))
 	switch statusCode {
 	case http.StatusInternalServerError:
 		return fail("InternalServerError", msg)
@@ -257,7 +323,14 @@ func runListNamedProfile(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 	setup("manager", c.Bool("debug"))
-	statusCode, msg := private.ListNamedProfiles(ctx, os.Stdout, c.Bool("json"))
+
+	out, err := determineOutput(c, "-")
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	statusCode, msg := private.ListNamedProfiles(ctx, out, c.Bool("json"))
 	switch statusCode {
 	case http.StatusInternalServerError:
 		return fail("InternalServerError", msg)
