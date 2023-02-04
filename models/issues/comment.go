@@ -355,7 +355,7 @@ func (c *Comment) LoadPoster(ctx context.Context) (err error) {
 		return nil
 	}
 
-	c.Poster, err = user_model.GetUserByID(ctx, c.PosterID)
+	c.Poster, err = user_model.GetPossibleUserByID(ctx, c.PosterID)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			c.PosterID = -1

@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/packages/composer"
 	"code.gitea.io/gitea/modules/packages/conan"
+	"code.gitea.io/gitea/modules/packages/conda"
 	"code.gitea.io/gitea/modules/packages/container"
 	"code.gitea.io/gitea/modules/packages/helm"
 	"code.gitea.io/gitea/modules/packages/maven"
@@ -132,6 +133,8 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 		metadata = &composer.Metadata{}
 	case TypeConan:
 		metadata = &conan.Metadata{}
+	case TypeConda:
+		metadata = &conda.VersionMetadata{}
 	case TypeContainer:
 		metadata = &container.Metadata{}
 	case TypeGeneric:

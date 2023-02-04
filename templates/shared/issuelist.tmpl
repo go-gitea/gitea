@@ -5,8 +5,7 @@
 			<div class="issue-item-left df">
 				{{if $.CanWriteIssuesOrPulls}}
 					<div class="ui checkbox issue-checkbox">
-						<input type="checkbox" data-issue-id={{.ID}}></input>
-						<label></label>
+						<input type="checkbox" data-issue-id={{.ID}} title="{{$.locale.Tr "repo.issues.action_check"}} «{{.Title}}»">
 					</div>
 				{{end}}
 				<div class="issue-item-icon">
