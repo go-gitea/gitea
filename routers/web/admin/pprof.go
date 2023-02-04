@@ -18,6 +18,7 @@ import (
 // PProfProcessStacktrace returns the stacktrace similar to GoroutineStacktrace but without rendering it
 func PProfProcessStacktrace(ctx *context.Context) {
 	flat := ctx.FormBool("flat")
+	noSystem := ctx.FormBool("no-system")
 	
 	format := ctx.FormString("format")
 	jsonFormat := format == "json"
@@ -28,7 +29,7 @@ func PProfProcessStacktrace(ctx *context.Context) {
 		filename += ".json"
 	}
 	
-	processStacks, processCount, goroutineCount, err := process.GetManager().ProcessStacktraces(false, false)
+	processStacks, processCount, goroutineCount, err := process.GetManager().ProcessStacktraces(flat, noSystem)
 	if err != nil {
 		ctx.ServerError("ProcessStacktraces", err)
 	}
@@ -47,7 +48,7 @@ func PProfProcessStacktrace(ctx *context.Context) {
 		return
 	}
 
-	if err := process.WriteProcesses(ctx.Resp, processStacks, processCount, goroutineCount, "", false); err != nil {
+	if err := process.WriteProcesses(ctx.Resp, processStacks, processCount, goroutineCount, "", flat); err != nil {
 		ctx.ServerError("WriteProcesses", err)
 		return
 	}
