@@ -31,6 +31,7 @@ var (
 			subCmdFGProfile,
 			subCmdListNamedProfiles,
 			subCmdNamedProfile,
+			subCmdTrace,
 		},
 	}
 	subcmdShutdown = cli.Command{
@@ -178,6 +179,23 @@ var (
 				Name:  "output,o",
 				Usage: "File to output to (set to \"-\" for stdout)",
 				Value: "-",
+			},
+		},
+	}
+	subCmdTrace = cli.Command{
+		Name:   "trace",
+		Usage:  "Return PProf trace",
+		Action: runCPUProfile,
+		Flags: []cli.Flag{
+			cli.DurationFlag{
+				Name:  "duration",
+				Usage: "Duration to collect CPU Profile over",
+				Value: 30 * time.Second,
+			},
+			cli.StringFlag{
+				Name:  "output,o",
+				Usage: "File to output to (set to \"-\" for stdout)",
+				Value: "trace",
 			},
 		},
 	}
@@ -331,6 +349,25 @@ func runListNamedProfile(c *cli.Context) error {
 	defer out.Close()
 
 	statusCode, msg := private.ListNamedProfiles(ctx, out, c.Bool("json"))
+	switch statusCode {
+	case http.StatusInternalServerError:
+		return fail("InternalServerError", msg)
+	}
+	return nil
+}
+
+func runTrace(c *cli.Context) error {
+	ctx, cancel := installSignals()
+	defer cancel()
+	setup("manager", c.Bool("debug"))
+
+	out, err := determineOutput(c, "trace")
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	statusCode, msg := private.Trace(ctx, out, c.Duration("duration"))
 	switch statusCode {
 	case http.StatusInternalServerError:
 		return fail("InternalServerError", msg)

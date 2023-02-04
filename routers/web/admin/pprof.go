@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"runtime/pprof"
+	"runtime/trace"
 	"strconv"
 	"time"
 
@@ -64,7 +65,7 @@ func PProfFGProfile(ctx *context.Context) {
 		var err error
 		duration, err = time.ParseDuration(durationStr)
 		if err != nil {
-			ctx.Flash.Error(ctx.Tr("monitor.pprof.duration_invalid"))
+			ctx.Flash.Error(ctx.Tr("admin.monitor.pprof.duration_invalid"))
 			ctx.Redirect(setting.AppSubURL + "/admin/monitor")
 			return
 		}
@@ -103,7 +104,7 @@ func PProfCPUProfile(ctx *context.Context) {
 		var err error
 		duration, err = time.ParseDuration(durationStr)
 		if err != nil {
-			ctx.Flash.Error(ctx.Tr("monitor.pprof.duration_invalid"))
+			ctx.Flash.Error(ctx.Tr("admin.monitor.pprof.duration_invalid"))
 			ctx.Redirect(setting.AppSubURL + "/admin/monitor")
 			return
 		}
@@ -150,4 +151,38 @@ func PProfNamedProfile(ctx *context.Context) {
 		ctx.ServerError(fmt.Sprintf("PProfNamedProfile(%s).WriteTo", name), err)
 		return
 	}
+}
+
+// Trace returns a trace
+func Trace(ctx *context.Context) {
+	durationStr := ctx.FormString("duration")
+	duration := 30 * time.Second
+	if durationStr != "" {
+		var err error
+		duration, err = time.ParseDuration(durationStr)
+		if err != nil {
+			ctx.Flash.Error(ctx.Tr("admin.monitor.pprof.duration_invalid"))
+			ctx.Redirect(setting.AppSubURL + "/admin/monitor")
+			return
+		}
+	}
+
+	start := time.Now()
+
+	ctx.SetServeHeaders(&context.ServeHeaderOptions{
+		Filename:     "trace-" + strconv.FormatInt(start.Unix(), 10),
+		LastModified: start,
+	})
+
+	err := trace.Start(ctx.Resp)
+	if err != nil {
+		ctx.ServerError("StartCPUProfile", err)
+		return
+	}
+
+	select {
+	case <-time.After(duration):
+	case <-ctx.Done():
+	}
+	trace.Stop()
 }

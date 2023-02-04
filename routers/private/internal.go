@@ -80,6 +80,7 @@ func Routes() *web.Route {
 	r.Get("/manager/profile", admin.PProfNamedProfile)
 	r.Get("/manager/fgprof", admin.PProfFGProfile)
 	r.Get("/manager/list-profiles", ListProfiles)
+	r.Get("/manager/trace", admin.Trace)
 	r.Post("/mail/send", SendEmail)
 	r.Post("/restore_repo", RestoreRepo)
 

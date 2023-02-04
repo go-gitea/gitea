@@ -534,6 +534,10 @@ Manage running server operations:
       - `--name`: Name of the profile
       - `--debug-level`: Debug level for the profile
       - `--output filename`, `-o filename`: Filename to output to. (Set to `-` to use stdout.)
+  - `trace`: Return the PProf trace
+    - Options:
+      - `--duration`: Duration of time to run profile (default: 30s)
+      - `--output filename`, `-o filename`: Filename to output to. (Set to `-` to use stdout.)
 
 ### dump-repo
 

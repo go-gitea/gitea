@@ -255,6 +255,12 @@ func ListNamedProfiles(ctx context.Context, out io.Writer, json bool) (int, stri
 	return commonGet(ctx, out, reqURL)
 }
 
+// Trace returns a trace from Gitea
+func Trace(ctx context.Context, out io.Writer, duration time.Duration) (int, string) {
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/manager/trace?duration=%s", url.QueryEscape(duration.String()))
+	return commonGet(ctx, out, reqURL)
+}
+
 func commonGet(ctx context.Context, out io.Writer, reqURL string) (int, string) {
 	req := newInternalRequest(ctx, reqURL, "GET")
 	resp, err := req.Response()

@@ -21,7 +21,7 @@
 			</div>
 			<div class="field">
 				<label for="pprof-fgprof-format">{{.locale.Tr "admin.monitor.pprof.fgprof.format"}}</label>
-				<select class="ui search dropdown" id="pprof-fgprof-format">
+				<select class="ui search dropdown" id="pprof-fgprof-format" name="format">
 					<option value="pprof" selected>pprof</option>
 					<option value="folded">folded</option>
 				</select>
@@ -50,6 +50,16 @@
 					<option value="text" selected>text</option>
 					<option value="json">json</option>
 				</select>
+			</div>
+			<input class="ui button basic" type="submit" value="{{.locale.Tr "admin.monitor.pprof.download"}}">
+		</div>
+	</form>
+	<h4>{{.locale.Tr "admin.monitor.pprof.trace"}}</h4>
+	<form action="{{AppSubUrl}}/admin/monitor/trace">
+		<div class="ui form">
+			<div class="field">
+				<label for="pprof-trace-duration">{{.locale.Tr "admin.monitor.pprof.duration"}}</label>
+				<input id="pprof-trace-duration" type="text" name="duration" placeholder="{{.locale.Tr "admin.monitor.pprof.duration_placeholder"}}">
 			</div>
 			<input class="ui button basic" type="submit" value="{{.locale.Tr "admin.monitor.pprof.download"}}">
 		</div>
