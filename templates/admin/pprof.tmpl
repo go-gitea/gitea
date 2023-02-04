@@ -59,7 +59,7 @@
 		<div class="ui form">
 			<div class="field">
 				<label for="pprof-named_profiles-name">{{.locale.Tr "admin.monitor.pprof.named_profiles.name"}}</label>
-				<select class="ui search dropdown" id="pprof-named_profiles-name">
+				<select class="ui search dropdown" id="pprof-named_profiles-name" name="name">
 					{{range .Profiles}}
 						<option value="{{.Name}}">{{.Name}}</option>
 					{{end}}
