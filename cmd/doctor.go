@@ -87,7 +87,8 @@ func runRecreateTable(ctx *cli.Context) error {
 	golog.SetPrefix("")
 	golog.SetOutput(log.NewLoggerAsWriter("INFO", log.GetLogger(log.DEFAULT)))
 
-	setting.LoadAllFromExistingFile()
+	setting.InitProviderFromExistingFile()
+	setting.LoadCommonSettings()
 	setting.LoadDBSetting()
 
 	setting.Log.EnableXORMLog = ctx.Bool("debug")

@@ -215,22 +215,19 @@ func PrepareAppDataPath() error {
 	return nil
 }
 
-// LoadAllFromExistingFile initializes setting options from an existing config file (app.ini)
-func LoadAllFromExistingFile() {
+// InitProviderFromExistingFile initializes config provider from an existing config file (app.ini)
+func InitProviderFromExistingFile() {
 	CfgProvider = newFileProviderFromConf(CustomConf, WritePIDFile, false, PIDFile, "")
-	loadCommonConfigsFrom(CfgProvider)
 }
 
-// LoadAllAllowEmpty initializes setting options, it's also fine that if the config file (app.ini) doesn't exist
-func LoadAllAllowEmpty() {
+// InitProviderAllowEmpty initializes config provider from file, it's also fine that if the config file (app.ini) doesn't exist
+func InitProviderAllowEmpty() {
 	CfgProvider = newFileProviderFromConf(CustomConf, WritePIDFile, true, PIDFile, "")
-	loadCommonConfigsFrom(CfgProvider)
 }
 
-// LoadAllForTest initializes setting options for tests
-func LoadAllForTest(extraConfigs ...string) {
+// InitProviderForTest initializes config provider for tests
+func InitProviderForTest(extraConfigs ...string) {
 	CfgProvider = newFileProviderFromConf(CustomConf, WritePIDFile, true, PIDFile, strings.Join(extraConfigs, "\n"))
-	loadCommonConfigsFrom(CfgProvider)
 	if err := PrepareAppDataPath(); err != nil {
 		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)
 	}
@@ -267,8 +264,13 @@ func newFileProviderFromConf(customConf string, writePIDFile, allowEmpty bool, p
 	return cfg
 }
 
-// loadCommonConfigsFrom loads common configurations from a configuration provider.
-func loadCommonConfigsFrom(cfg ConfigProvider) {
+// LoadCommonSettings loads common configurations from a configuration provider.
+func LoadCommonSettings() {
+	loadCommonSettingsFrom(CfgProvider)
+}
+
+// loadCommonSettingsFrom loads common configurations from a configuration provider.
+func loadCommonSettingsFrom(cfg ConfigProvider) {
 	// WARNNING: don't change the sequence except you know what you are doing.
 	loadRunModeFrom(cfg)
 	loadLogFrom(cfg)

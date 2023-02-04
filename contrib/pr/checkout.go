@@ -49,7 +49,8 @@ func runPR() {
 		log.Fatal(err)
 	}
 	setting.SetCustomPathAndConf("", "", "")
-	setting.LoadAllAllowEmpty()
+	setting.InitProviderAllowEmpty()
+	setting.LoadCommonSettings()
 
 	setting.RepoRootPath, err = os.MkdirTemp(os.TempDir(), "repos")
 	if err != nil {

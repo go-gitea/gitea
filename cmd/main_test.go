@@ -12,7 +12,8 @@ import (
 
 func init() {
 	setting.SetCustomPathAndConf("", "", "")
-	setting.LoadAllForTest()
+	setting.InitProviderForTest()
+	setting.LoadCommonSettings()
 }
 
 func TestMain(m *testing.M) {

@@ -20,7 +20,8 @@ import (
 
 func init() {
 	setting.SetCustomPathAndConf("", "", "")
-	setting.LoadAllForTest()
+	setting.InitProviderForTest()
+	setting.LoadCommonSettings()
 }
 
 // TestFixturesAreConsistent assert that test fixtures are consistent
