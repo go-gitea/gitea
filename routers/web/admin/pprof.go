@@ -15,6 +15,45 @@ import (
 	"github.com/felixge/fgprof"
 )
 
+// PProfProcessStacktrace returns the stacktrace similar to GoroutineStacktrace but without rendering it
+func PProfProcessStacktrace(ctx *context.Context) {
+	flat := ctx.FormBool("flat")
+	
+	format := ctx.FormString("format")
+	jsonFormat := format == "json"
+
+	start := time.Now()
+	filename := "process-stacktrace-" + strconv.FormatInt(start.Unix(), 10)
+	if jsonFormat {
+		filename += ".json"
+	}
+	
+	processStacks, processCount, goroutineCount, err := process.GetManager().ProcessStacktraces(false, false)
+	if err != nil {
+		ctx.ServerError("ProcessStacktraces", err)
+	}
+
+	ctx.SetServeHeaders(&context.ServeHeaderOptions{
+		Filename:     filename,
+		LastModified: start,
+	})
+
+	if jsonFormat {
+		ctx.JSON(http.StatusOK, map[string]interface{}{
+			"TotalNumberOfGoroutines": goroutineCount,
+			"TotalNumberOfProcesses":  processCount,
+			"Processes":               processes,
+		})
+		return
+	}
+
+	if err := process.WriteProcesses(ctx.Resp, processStacks, processCount, goroutineCount, "", false); err != nil {
+		ctx.ServerError("WriteProcesses", err)
+		return
+	}
+}
+
+
 // PProfFGProfile returns the Full Go Profile from fgprof
 func PProfFGProfile(ctx *context.Context) {
 	durationStr := ctx.FormString("duration")
