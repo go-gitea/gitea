@@ -115,7 +115,7 @@ func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
 }
 
 // CloneWithArgs original repository to target path.
-func CloneWithArgs(ctx context.Context, args []CmdArg, from, to string, opts CloneRepoOptions) (err error) {
+func CloneWithArgs(ctx context.Context, args TrustedCmdArgs, from, to string, opts CloneRepoOptions) (err error) {
 	toDir := path.Dir(to)
 	if err = os.MkdirAll(toDir, os.ModePerm); err != nil {
 		return err

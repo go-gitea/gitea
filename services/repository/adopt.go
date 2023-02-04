@@ -67,7 +67,7 @@ func AdoptRepository(doer, u *user_model.User, opts repo_module.CreateRepoOption
 			}
 		}
 
-		if err := repo_module.CreateRepositoryByExample(ctx, doer, u, repo, true); err != nil {
+		if err := repo_module.CreateRepositoryByExample(ctx, doer, u, repo, true, false); err != nil {
 			return err
 		}
 		if err := adoptRepository(ctx, repoPath, doer, repo, opts); err != nil {
