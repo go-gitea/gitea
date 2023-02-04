@@ -141,14 +141,12 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 	stdout := &strings.Builder{}
 	stderr := &strings.Builder{}
 
-	args := []git.CmdArg{"apply", "--index", "--recount", "--cached", "--ignore-whitespace", "--whitespace=fix", "--binary"}
-
+	cmdApply := git.NewCommand(ctx, "apply", "--index", "--recount", "--cached", "--ignore-whitespace", "--whitespace=fix", "--binary")
 	if git.CheckGitVersionAtLeast("2.32") == nil {
-		args = append(args, "-3")
+		cmdApply.AddArguments("-3")
 	}
 
-	cmd := git.NewCommand(ctx, args...)
-	if err := cmd.Run(&git.RunOpts{
+	if err := cmdApply.Run(&git.RunOpts{
 		Dir:    t.basePath,
 		Stdout: stdout,
 		Stderr: stderr,
