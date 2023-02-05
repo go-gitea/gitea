@@ -1082,10 +1082,21 @@ local releaseLatest = {
       name: 'release-branch',
       pull: 'always',
       settings: {
-        acl: 'public-read',
-        bucket: 'gitea-artifacts',
-        endpoint: 'https://ams3.digitaloceanspaces.com',
-        path_style: true,
+        acl: {
+                from_secret: 'aws_s3_acl',
+        },
+        region: {
+                from_secret: 'aws_s3_region',
+        },
+        bucket: {
+                from_secret: 'aws_s3_bucket',
+        },
+        endpoint: {
+                from_secret: 'aws_s3_endpoint',
+        },
+        path_style: {
+                from_secret: 'aws_s3_path_style',
+        },
         source: 'dist/release/*',
         strip_prefix: 'dist/release/',
         target: '/gitea/${DRONE_BRANCH##release/v}',
@@ -1111,10 +1122,21 @@ local releaseLatest = {
       image: 'woodpeckerci/plugin-s3:latest',
       name: 'release-main',
       settings: {
-        acl: 'public-read',
-        bucket: 'gitea-artifacts',
-        endpoint: 'https://ams3.digitaloceanspaces.com',
-        path_style: true,
+        acl: {
+                from_secret: 'aws_s3_acl',
+        },
+        region: {
+                from_secret: 'aws_s3_region',
+        },
+        bucket: {
+                from_secret: 'aws_s3_bucket',
+        },
+        endpoint: {
+                from_secret: 'aws_s3_endpoint',
+        },
+        path_style: {
+                from_secret: 'aws_s3_path_style',
+        },
         source: 'dist/release/*',
         strip_prefix: 'dist/release/',
         target: '/gitea/main',
@@ -1231,10 +1253,21 @@ local releaseVersion = {
       name: 'release-tag',
       pull: 'always',
       settings: {
-        acl: 'public-read',
-        bucket: 'gitea-artifacts',
-        endpoint: 'https://ams3.digitaloceanspaces.com',
-        path_style: true,
+        acl: {
+                from_secret: 'aws_s3_acl',
+        },
+        region: {
+                from_secret: 'aws_s3_region',
+        },
+        bucket: {
+                from_secret: 'aws_s3_bucket',
+        },
+        endpoint: {
+                from_secret: 'aws_s3_endpoint',
+        },
+        path_style: {
+                from_secret: 'aws_s3_path_style',
+        },
         source: 'dist/release/*',
         strip_prefix: 'dist/release/',
         target: '/gitea/${DRONE_TAG##v}',
