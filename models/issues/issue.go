@@ -1251,6 +1251,8 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 	if opts.ProjectID > 0 {
 		sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
 			And("project_issue.project_id=?", opts.ProjectID)
+	} else if opts.ProjectID == db.NoneID { // show those that are in no project
+		sess.And(builder.NotIn("issue.id", builder.Select("issue_id").From("project_issue")))
 	}
 
 	if opts.ProjectBoardID != 0 {
