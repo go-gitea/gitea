@@ -4,10 +4,12 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"reflect"
 	"time"
 
 	"code.gitea.io/gitea/modules/private"
@@ -201,11 +203,17 @@ var (
 	}
 )
 
-func runShutdown(c *cli.Context) error {
+func setupManager(c *cli.Context) (context.Context, context.CancelFunc) {
 	ctx, cancel := installSignals()
-	defer cancel()
 
 	setup("manager", c.Bool("debug"))
+	return ctx, cancel
+}
+
+func runShutdown(c *cli.Context) error {
+	ctx, cancel := setupManager(c)
+	defer cancel()
+
 	statusCode, msg := private.Shutdown(ctx)
 	switch statusCode {
 	case http.StatusInternalServerError:
@@ -217,10 +225,9 @@ func runShutdown(c *cli.Context) error {
 }
 
 func runRestart(c *cli.Context) error {
-	ctx, cancel := installSignals()
+	ctx, cancel := setupManager(c)
 	defer cancel()
 
-	setup("manager", c.Bool("debug"))
 	statusCode, msg := private.Restart(ctx)
 	switch statusCode {
 	case http.StatusInternalServerError:
@@ -232,10 +239,9 @@ func runRestart(c *cli.Context) error {
 }
 
 func runFlushQueues(c *cli.Context) error {
-	ctx, cancel := installSignals()
+	ctx, cancel := setupManager(c)
 	defer cancel()
 
-	setup("manager", c.Bool("debug"))
 	statusCode, msg := private.FlushQueues(ctx, c.Duration("timeout"), c.Bool("non-blocking"))
 	switch statusCode {
 	case http.StatusInternalServerError:
@@ -263,114 +269,60 @@ func determineOutput(c *cli.Context, defaultFilename string) (io.WriteCloser, er
 	return out, nil
 }
 
-func runProcesses(c *cli.Context) error {
-	ctx, cancel := installSignals()
+// runManagerPrivateFunc will requires that a provided fn has an interface:
+//
+// func(context.Context, io.Writer, ...argsTypes) (int, string) {
+//
+// but this cann't quite easily be expressed as a generic type
+func runManagerPrivateFunc(c *cli.Context, defaultOutput string, fn interface{}, args ...any) error {
+	ctx, cancel := setupManager(c)
 	defer cancel()
 
-	setup("manager", c.Bool("debug"))
-	out, err := determineOutput(c, "-")
+	out, err := determineOutput(c, defaultOutput)
 	if err != nil {
 		return err
 	}
 	defer out.Close()
 
-	statusCode, msg := private.Processes(ctx, out, c.Bool("flat"), c.Bool("no-system"), c.Bool("stacktraces"), c.Bool("json"), c.String("cancel"))
+	valFn := reflect.ValueOf(fn)
+	callArgs := []reflect.Value{
+		reflect.ValueOf(ctx),
+		reflect.ValueOf(out),
+	}
+	for _, arg := range args {
+		callArgs = append(callArgs, reflect.ValueOf(arg))
+	}
+	outArgs := valFn.Call(callArgs)
+
+	statusCode, msg := outArgs[0].Interface().(int), outArgs[1].Interface().(string)
 	switch statusCode {
 	case http.StatusInternalServerError:
 		return fail("InternalServerError", msg)
 	}
 
 	return nil
+}
+
+func runProcesses(c *cli.Context) error {
+	return runManagerPrivateFunc(c, "-", private.Processes, c.Bool("flat"), c.Bool("no-system"), c.Bool("stacktraces"), c.Bool("json"), c.String("cancel"))
 }
 
 func runCPUProfile(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-	setup("manager", c.Bool("debug"))
-
-	out, err := determineOutput(c, "cpu-profile")
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	statusCode, msg := private.CPUProfile(ctx, out, c.Duration("duration"))
-	switch statusCode {
-	case http.StatusInternalServerError:
-		return fail("InternalServerError", msg)
-	}
-	return nil
+	return runManagerPrivateFunc(c, "cpu-profile", private.CPUProfile, c.Duration("duration"))
 }
 
 func runFGProfile(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-	setup("manager", c.Bool("debug"))
-	out, err := determineOutput(c, "fg-profile")
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	statusCode, msg := private.FGProfile(ctx, out, c.Duration("duration"), c.String("format"))
-	switch statusCode {
-	case http.StatusInternalServerError:
-		return fail("InternalServerError", msg)
-	}
-	return nil
+	return runManagerPrivateFunc(c, "fg-profile", private.FGProfile, c.Duration("duration"), c.String("format"))
 }
 
 func runNamedProfile(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-	setup("manager", c.Bool("debug"))
-	out, err := determineOutput(c, c.String("name")+"-profile")
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-	statusCode, msg := private.NamedProfile(ctx, out, c.String("name"), c.Int("debug-level"))
-	switch statusCode {
-	case http.StatusInternalServerError:
-		return fail("InternalServerError", msg)
-	}
-	return nil
+	return runManagerPrivateFunc(c, c.String("name")+"-profile", private.NamedProfile, c.String("name"), c.Int("debug-level"))
 }
 
 func runListNamedProfile(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-	setup("manager", c.Bool("debug"))
-
-	out, err := determineOutput(c, "-")
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	statusCode, msg := private.ListNamedProfiles(ctx, out, c.Bool("json"))
-	switch statusCode {
-	case http.StatusInternalServerError:
-		return fail("InternalServerError", msg)
-	}
-	return nil
+	return runManagerPrivateFunc(c, "-", private.ListNamedProfiles, c.Bool("json"))
 }
 
 func runTrace(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-	setup("manager", c.Bool("debug"))
-
-	out, err := determineOutput(c, "trace")
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	statusCode, msg := private.Trace(ctx, out, c.Duration("duration"))
-	switch statusCode {
-	case http.StatusInternalServerError:
-		return fail("InternalServerError", msg)
-	}
-	return nil
+	return runManagerPrivateFunc(c, "trace", private.Trace, c.Duration("duration"))
 }

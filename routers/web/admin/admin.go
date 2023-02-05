@@ -165,7 +165,6 @@ func Monitor(ctx *context.Context) {
 	ctx.Data["Entries"] = cron.ListTasks()
 	ctx.Data["Queues"] = queue.GetManager().ManagedQueues()
 
-
 	ctx.Data["Profiles"] = pprof.Profiles()
 
 	ctx.HTML(http.StatusOK, tplMonitor)
