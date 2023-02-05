@@ -263,6 +263,24 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 			return
 		}
 
+		for _, pr := range prs {
+			log.Trace("Updating PR[%d]: composing new test task", pr.ID)
+			if pr.Flow == issues_model.PullRequestFlowGithub {
+				if err := PushToBaseRepo(ctx, pr); err != nil {
+					log.Error("PushToBaseRepo: %v", err)
+					continue
+				}
+			} else {
+				continue
+			}
+
+			AddToTaskQueue(pr)
+			comment, err := CreatePushPullComment(ctx, doer, pr, oldCommitID, newCommitID)
+			if err == nil && comment != nil {
+				notification.NotifyPullRequestPushCommits(ctx, doer, pr, comment)
+			}
+		}
+
 		if isSync {
 			requests := issues_model.PullRequestList(prs)
 			if err = requests.LoadAttributes(); err != nil {
@@ -300,24 +318,6 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 
 					notification.NotifyPullRequestSynchronized(ctx, doer, pr)
 				}
-			}
-		}
-
-		for _, pr := range prs {
-			log.Trace("Updating PR[%d]: composing new test task", pr.ID)
-			if pr.Flow == issues_model.PullRequestFlowGithub {
-				if err := PushToBaseRepo(ctx, pr); err != nil {
-					log.Error("PushToBaseRepo: %v", err)
-					continue
-				}
-			} else {
-				continue
-			}
-
-			AddToTaskQueue(pr)
-			comment, err := CreatePushPullComment(ctx, doer, pr, oldCommitID, newCommitID)
-			if err == nil && comment != nil {
-				notification.NotifyPullRequestPushCommits(ctx, doer, pr, comment)
 			}
 		}
 

@@ -26,6 +26,7 @@ The following package managers are currently supported:
 
 | Name | Language | Package client |
 | ---- | -------- | -------------- |
+| [Cargo]({{< relref "doc/packages/cargo.en-us.md" >}}) | Rust | `cargo` |
 | [Composer]({{< relref "doc/packages/composer.en-us.md" >}}) | PHP | `composer` |
 | [Conan]({{< relref "doc/packages/conan.en-us.md" >}}) | C++ | `conan` |
 | [Conda]({{< relref "doc/packages/conda.en-us.md" >}}) | - | `conda` |

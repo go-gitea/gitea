@@ -578,12 +578,16 @@ func runCreateUser(c *cli.Context) error {
 		restricted = util.OptionalBoolOf(c.Bool("restricted"))
 	}
 
+	// default user visibility in app.ini
+	visibility := setting.Service.DefaultUserVisibilityMode
+
 	u := &user_model.User{
 		Name:               username,
 		Email:              c.String("email"),
 		Passwd:             password,
 		IsAdmin:            c.Bool("admin"),
 		MustChangePassword: changePassword,
+		Visibility:         visibility,
 	}
 
 	overwriteDefault := &user_model.CreateUserOverwriteOptions{

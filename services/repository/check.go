@@ -23,7 +23,7 @@ import (
 )
 
 // GitFsckRepos calls 'git fsck' to check repository health.
-func GitFsckRepos(ctx context.Context, timeout time.Duration, args []git.CmdArg) error {
+func GitFsckRepos(ctx context.Context, timeout time.Duration, args git.TrustedCmdArgs) error {
 	log.Trace("Doing: GitFsck")
 
 	if err := db.Iterate(
@@ -47,10 +47,10 @@ func GitFsckRepos(ctx context.Context, timeout time.Duration, args []git.CmdArg)
 }
 
 // GitFsckRepo calls 'git fsck' to check an individual repository's health.
-func GitFsckRepo(ctx context.Context, repo *repo_model.Repository, timeout time.Duration, args []git.CmdArg) error {
+func GitFsckRepo(ctx context.Context, repo *repo_model.Repository, timeout time.Duration, args git.TrustedCmdArgs) error {
 	log.Trace("Running health check on repository %-v", repo)
 	repoPath := repo.RepoPath()
-	if err := git.Fsck(ctx, repoPath, timeout, args...); err != nil {
+	if err := git.Fsck(ctx, repoPath, timeout, args); err != nil {
 		log.Warn("Failed to health check repository (%-v): %v", repo, err)
 		if err = system_model.CreateRepositoryNotice("Failed to health check repository (%s): %v", repo.FullName(), err); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
@@ -60,9 +60,8 @@ func GitFsckRepo(ctx context.Context, repo *repo_model.Repository, timeout time.
 }
 
 // GitGcRepos calls 'git gc' to remove unnecessary files and optimize the local repository
-func GitGcRepos(ctx context.Context, timeout time.Duration, args ...git.CmdArg) error {
+func GitGcRepos(ctx context.Context, timeout time.Duration, args git.TrustedCmdArgs) error {
 	log.Trace("Doing: GitGcRepos")
-	args = append([]git.CmdArg{"gc"}, args...)
 
 	if err := db.Iterate(
 		ctx,
@@ -86,9 +85,9 @@ func GitGcRepos(ctx context.Context, timeout time.Duration, args ...git.CmdArg) 
 }
 
 // GitGcRepo calls 'git gc' to remove unnecessary files and optimize the local repository
-func GitGcRepo(ctx context.Context, repo *repo_model.Repository, timeout time.Duration, args []git.CmdArg) error {
+func GitGcRepo(ctx context.Context, repo *repo_model.Repository, timeout time.Duration, args git.TrustedCmdArgs) error {
 	log.Trace("Running git gc on %-v", repo)
-	command := git.NewCommand(ctx, args...).
+	command := git.NewCommand(ctx, "gc").AddArguments(args...).
 		SetDescription(fmt.Sprintf("Repository Garbage Collection: %s", repo.FullName()))
 	var stdout string
 	var err error
