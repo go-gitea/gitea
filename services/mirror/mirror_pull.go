@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/proxy"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -216,6 +217,13 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		return nil, false
 	}
 
+	envs := []string{}
+	if strings.EqualFold(remoteURL.Scheme, "http") || strings.EqualFold(remoteURL.Scheme, "https") {
+		if proxy.Match(remoteURL.Host) {
+			envs = append(envs, fmt.Sprintf("https_proxy=%s", proxy.GetProxyURL()))
+		}
+	}
+
 	stdoutBuilder := strings.Builder{}
 	stderrBuilder := strings.Builder{}
 	if err := git.NewCommand(ctx, gitArgs...).
@@ -223,6 +231,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		Run(&git.RunOpts{
 			Timeout: timeout,
 			Dir:     repoPath,
+			Env:     envs,
 			Stdout:  &stdoutBuilder,
 			Stderr:  &stderrBuilder,
 		}); err != nil {
