@@ -17,7 +17,8 @@ import (
 
 const (
 	// tplExploreRepos explore repositories page template
-	tplExploreRepos base.TplName = "explore/repos"
+	tplExploreRepos        base.TplName = "explore/repos"
+	relevantReposOnlyParam string       = "no_filter"
 )
 
 // RepoSearchOptions when calling search repositories
@@ -81,13 +82,11 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	default:
 		ctx.Data["SortType"] = "recentupdate"
 		orderBy = db.SearchOrderByRecentUpdated
-		onlyShowRelevant = setting.UI.OnlyShowRelevantRepos && !ctx.FormBool("no_filter")
 	}
 
+	onlyShowRelevant = !ctx.FormBool(relevantReposOnlyParam)
+
 	keyword := ctx.FormTrim("q")
-	if keyword != "" {
-		onlyShowRelevant = false
-	}
 
 	ctx.Data["OnlyShowRelevant"] = onlyShowRelevant
 
@@ -139,7 +138,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "topic", "TopicOnly")
 	pager.AddParam(ctx, "language", "Language")
-	pager.AddParamString("no_filter", ctx.FormString("no_filter"))
+	pager.AddParamString(relevantReposOnlyParam, ctx.FormString(relevantReposOnlyParam))
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, opts.TplName)

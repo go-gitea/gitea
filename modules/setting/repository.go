@@ -41,6 +41,7 @@ var (
 		EnablePushCreateOrg                     bool
 		DisabledRepoUnits                       []string
 		DefaultRepoUnits                        []string
+		DefaultForkRepoUnits                    []string
 		PrefixArchiveFiles                      bool
 		DisableMigrations                       bool
 		DisableStars                            bool `ini:"DISABLE_STARS"`
@@ -157,6 +158,7 @@ var (
 		EnablePushCreateOrg:                     false,
 		DisabledRepoUnits:                       []string{},
 		DefaultRepoUnits:                        []string{},
+		DefaultForkRepoUnits:                    []string{},
 		PrefixArchiveFiles:                      true,
 		DisableMigrations:                       false,
 		DisableStars:                            false,

@@ -121,7 +121,9 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 	rc := &RunOpts{Dir: repo.Path, Stdout: stdoutWriter, Stderr: &stderr}
 
 	go func() {
-		err := NewCommand(repo.Ctx, "for-each-ref", CmdArg("--format="+forEachRefFmt.Flag()), "--sort", "-*creatordate", "refs/tags").Run(rc)
+		err := NewCommand(repo.Ctx, "for-each-ref").
+			AddOptionFormat("--format=%s", forEachRefFmt.Flag()).
+			AddArguments("--sort", "-*creatordate", "refs/tags").Run(rc)
 		if err != nil {
 			_ = stdoutWriter.CloseWithError(ConcatenateError(err, stderr.String()))
 		} else {
