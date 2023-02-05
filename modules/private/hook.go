@@ -32,7 +32,7 @@ type GitPushOptions map[string]string
 const (
 	GitPushOptionRepoPrivate  = "repo.private"
 	GitPushOptionRepoTemplate = "repo.template"
-	GitPushOptionMergePulls   = "merge-pulls"
+	GitPushOptionMergePulls   = "pulls.merged"
 )
 
 // Bool checks for a key in the map and parses as a boolean
