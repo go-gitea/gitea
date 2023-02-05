@@ -12,7 +12,7 @@ export async function initCaptcha() {
     theme: isDark ? 'dark' : 'light'
   };
 
-  switch (captchaEl.getAttribute('captcha-type')) {
+  switch (captchaEl.getAttribute('data-captcha-type')) {
     case 'g-recaptcha': {
       if (window.grecaptcha) {
         window.grecaptcha.ready(() => {
