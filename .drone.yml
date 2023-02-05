@@ -765,6 +765,8 @@ steps:
     settings:
       acl:
         from_secret: aws_s3_acl
+      region:
+        from_secret: aws_s3_region
       bucket:
         from_secret: aws_s3_bucket
       endpoint:
@@ -790,6 +792,8 @@ steps:
     settings:
       acl:
         from_secret: aws_s3_acl
+      region:
+        from_secret: aws_s3_region
       bucket:
         from_secret: aws_s3_bucket
       endpoint:
@@ -896,6 +900,8 @@ steps:
     settings:
       acl:
         from_secret: aws_s3_acl
+      region:
+        from_secret: aws_s3_region
       bucket:
         from_secret: aws_s3_bucket
       endpoint:
