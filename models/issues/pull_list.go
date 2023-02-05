@@ -13,6 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/xorm"
 )
@@ -175,7 +176,17 @@ func (prs PullRequestList) loadAttributes(ctx context.Context) error {
 	}
 	for _, pr := range prs {
 		pr.Issue = set[pr.IssueID]
-		pr.Issue.PullRequest = pr // panic here means issueIDs and prs are not in sync
+		/*
+			Old code:
+			pr.Issue.PullRequest = pr // panic here means issueIDs and prs are not in sync
+
+			It's worth panic because it's almost impossible to happen under normal use.
+			But in integration testing, an asynchronous task could read a database that has been reset.
+			So returning an error would make more sense, let the caller has a choice to ignore it.
+		*/
+		if pr.Issue == nil {
+			return fmt.Errorf("issues and prs may be not in sync: cannot find issue %v for pr %v: %w", pr.IssueID, pr.ID, util.ErrNotExist)
+		}
 	}
 	return nil
 }
