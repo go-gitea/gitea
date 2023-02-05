@@ -31,3 +31,15 @@ Example of changing a repository's visibility to public:
 ```shell
 git push -o repo.private=false -u origin master
 ```
+
+- `pulls.merged` (pull index0 [, pull index1]*) - manually merge comfirmed pulls
+
+  notify service that these pull requst has been manually merged by this push
+  event. then service will mark these pulls as manually merged if manually merge check pass.
+  if push manually merged pulls without this push option, they maybe will become to empty pulls.
+
+  Example:
+
+  ```shell
+  git push -o pulls.merged=1,2,3 -u origin  master
+  ```
