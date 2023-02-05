@@ -116,14 +116,14 @@ func IsBlobAccessibleForUser(ctx context.Context, blobID int64, user *user_model
 		Select("max(team.authorize)").
 		From("team").
 		InnerJoin("team_user", "team_user.team_id = team.id").
-		Where(builder.Eq{"team_user.uid": user.ID}.And(builder.Expr("team_user.org_id = user.id")))
+		Where(builder.Eq{"team_user.uid": user.ID}.And(builder.Expr("team_user.org_id = `user`.id")))
 
 	maxTeamUnitAccessMode := builder.
 		Select("max(team_unit.access_mode)").
 		From("team").
 		InnerJoin("team_user", "team_user.team_id = team.id").
 		InnerJoin("team_unit", "team_unit.team_id = team.id").
-		Where(builder.Eq{"team_user.uid": user.ID, "team_unit.type": unit.TypePackages}.And(builder.Expr("team_user.org_id = user.id")))
+		Where(builder.Eq{"team_user.uid": user.ID, "team_unit.type": unit.TypePackages}.And(builder.Expr("team_user.org_id = `user`.id")))
 
 	cond := builder.Eq{"package_blob.id": blobID}.And(
 		// owner = user
