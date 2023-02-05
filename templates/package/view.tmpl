@@ -19,6 +19,7 @@
 					<div class="ui divider"></div>
 				</div>
 				<div class="twelve wide column">
+					{{template "package/content/cargo" .}}
 					{{template "package/content/composer" .}}
 					{{template "package/content/conan" .}}
 					{{template "package/content/conda" .}}
@@ -43,6 +44,7 @@
 							{{end}}
 							<div class="item">{{svg "octicon-calendar" 16 "mr-3"}} {{TimeSinceUnix .PackageDescriptor.Version.CreatedUnix $.locale}}</div>
 							<div class="item">{{svg "octicon-download" 16 "mr-3"}} {{.PackageDescriptor.Version.DownloadCount}}</div>
+							{{template "package/metadata/cargo" .}}
 							{{template "package/metadata/composer" .}}
 							{{template "package/metadata/conan" .}}
 							{{template "package/metadata/conda" .}}
