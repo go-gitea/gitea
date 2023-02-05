@@ -1,7 +1,7 @@
 // Images
-local minGoImage = 'golang:1.18';
-local goImage = 'golang:1.19';
-local xgoImage = 'techknowlogick/xgo:go-1.19.x';
+local minGoImage = 'golang:1.19';
+local goImage = 'golang:1.20';
+local xgoImage = 'techknowlogick/xgo:go-1.20.x';
 local nodeImage = 'node:18';
 // proxy.golang.org is blocked in China, this proxy is not
 local goproxy = 'https://goproxy.io';
