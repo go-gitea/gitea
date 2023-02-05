@@ -15347,6 +15347,11 @@
           "type": "string",
           "x-go-name": "Description"
         },
+        "exclusive": {
+          "type": "boolean",
+          "x-go-name": "Exclusive",
+          "example": false
+        },
         "name": {
           "type": "string",
           "x-go-name": "Name"
@@ -16276,11 +16281,17 @@
       "properties": {
         "color": {
           "type": "string",
-          "x-go-name": "Color"
+          "x-go-name": "Color",
+          "example": "#00aabb"
         },
         "description": {
           "type": "string",
           "x-go-name": "Description"
+        },
+        "exclusive": {
+          "type": "boolean",
+          "x-go-name": "Exclusive",
+          "example": false
         },
         "name": {
           "type": "string",
@@ -17602,6 +17613,11 @@
         "description": {
           "type": "string",
           "x-go-name": "Description"
+        },
+        "exclusive": {
+          "type": "boolean",
+          "x-go-name": "Exclusive",
+          "example": false
         },
         "id": {
           "type": "integer",
