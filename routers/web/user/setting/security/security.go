@@ -22,7 +22,7 @@ const (
 
 // Security render change user's password page and 2FA
 func Security(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings.security")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
 	if ctx.FormString("openid.return_to") != "" {

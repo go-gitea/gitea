@@ -67,12 +67,12 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 	}
 
 	// insert units for repo
-	default_units := unit.DefaultRepoUnits
+	defaultUnits := unit.DefaultRepoUnits
 	if isFork {
-		default_units = unit.DefaultForkRepoUnits
+		defaultUnits = unit.DefaultForkRepoUnits
 	}
-	units := make([]repo_model.RepoUnit, 0, len(default_units))
-	for _, tp := range default_units {
+	units := make([]repo_model.RepoUnit, 0, len(defaultUnits))
+	for _, tp := range defaultUnits {
 		if tp == unit.TypeIssues {
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
@@ -211,6 +211,7 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 		IsEmpty:                         !opts.AutoInit,
 		TrustModel:                      opts.TrustModel,
 		IsMirror:                        opts.IsMirror,
+		DefaultBranch:                   opts.DefaultBranch,
 	}
 
 	var rollbackRepo *repo_model.Repository

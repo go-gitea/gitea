@@ -4,6 +4,7 @@
   owner_name: user2
   lower_name: repo1
   name: repo1
+  default_branch: master
   num_watches: 4
   num_stars: 0
   num_forks: 0
@@ -34,6 +35,7 @@
   owner_name: user2
   lower_name: repo2
   name: repo2
+  default_branch: master
   num_watches: 0
   num_stars: 1
   num_forks: 0
@@ -64,6 +66,7 @@
   owner_name: user3
   lower_name: repo3
   name: repo3
+  default_branch: master
   num_watches: 0
   num_stars: 0
   num_forks: 0
@@ -94,6 +97,7 @@
   owner_name: user5
   lower_name: repo4
   name: repo4
+  default_branch: master
   num_watches: 0
   num_stars: 1
   num_forks: 0
@@ -274,6 +278,7 @@
   owner_name: user12
   lower_name: repo10
   name: repo10
+  default_branch: master
   num_watches: 0
   num_stars: 0
   num_forks: 1
@@ -304,6 +309,7 @@
   owner_name: user13
   lower_name: repo11
   name: repo11
+  default_branch: master
   num_watches: 0
   num_stars: 0
   num_forks: 0
@@ -425,6 +431,7 @@
   owner_name: user2
   lower_name: repo15
   name: repo15
+  default_branch: master
   num_watches: 0
   num_stars: 0
   num_forks: 0
@@ -455,6 +462,7 @@
   owner_name: user2
   lower_name: repo16
   name: repo16
+  default_branch: master
   num_watches: 0
   num_stars: 0
   num_forks: 0
@@ -905,6 +913,7 @@
   owner_name: user2
   lower_name: repo20
   name: repo20
+  default_branch: master
   num_watches: 0
   num_stars: 0
   num_forks: 0
@@ -965,6 +974,7 @@
   owner_name: user2
   lower_name: utf8
   name: utf8
+  default_branch: master
   num_watches: 0
   num_stars: 0
   num_forks: 0
@@ -1055,6 +1065,7 @@
   owner_name: user2
   lower_name: commits_search_test
   name: commits_search_test
+  default_branch: master
   num_watches: 0
   num_stars: 0
   num_forks: 0
@@ -1085,6 +1096,7 @@
   owner_name: user2
   lower_name: git_hooks_test
   name: git_hooks_test
+  default_branch: master
   num_watches: 0
   num_stars: 0
   num_forks: 0
@@ -1115,6 +1127,7 @@
   owner_name: limited_org
   lower_name: public_repo_on_limited_org
   name: public_repo_on_limited_org
+  default_branch: master
   num_watches: 0
   num_stars: 0
   num_forks: 0
@@ -1145,6 +1158,7 @@
   owner_name: limited_org
   lower_name: private_repo_on_limited_org
   name: private_repo_on_limited_org
+  default_branch: master
   num_watches: 0
   num_stars: 0
   num_forks: 0
@@ -1175,6 +1189,7 @@
   owner_name: privated_org
   lower_name: public_repo_on_private_org
   name: public_repo_on_private_org
+  default_branch: master
   num_watches: 0
   num_stars: 0
   num_forks: 0
@@ -1205,6 +1220,7 @@
   owner_name: privated_org
   lower_name: private_repo_on_private_org
   name: private_repo_on_private_org
+  default_branch: master
   num_watches: 0
   num_stars: 0
   num_forks: 0
@@ -1235,6 +1251,7 @@
   owner_name: user2
   lower_name: glob
   name: glob
+  default_branch: master
   num_watches: 0
   num_stars: 0
   num_forks: 0
@@ -1295,6 +1312,7 @@
   owner_name: user27
   lower_name: template1
   name: template1
+  default_branch: master
   num_watches: 0
   num_stars: 0
   num_forks: 0
@@ -1355,6 +1373,7 @@
   owner_name: org26
   lower_name: repo_external_tracker
   name: repo_external_tracker
+  default_branch: master
   num_watches: 0
   num_stars: 0
   num_forks: 0
@@ -1385,6 +1404,7 @@
   owner_name: org26
   lower_name: repo_external_tracker_numeric
   name: repo_external_tracker_numeric
+  default_branch: master
   num_watches: 0
   num_stars: 0
   num_forks: 0
@@ -1415,6 +1435,7 @@
   owner_name: org26
   lower_name: repo_external_tracker_alpha
   name: repo_external_tracker_alpha
+  default_branch: master
   num_watches: 0
   num_stars: 0
   num_forks: 0
@@ -1445,6 +1466,7 @@
   owner_name: user27
   lower_name: repo49
   name: repo49
+  default_branch: master
   num_watches: 0
   num_stars: 0
   num_forks: 0
@@ -1475,6 +1497,7 @@
   owner_name: user30
   lower_name: repo50
   name: repo50
+  default_branch: master
   num_watches: 0
   num_stars: 0
   num_forks: 0
@@ -1505,6 +1528,7 @@
   owner_name: user30
   lower_name: repo51
   name: repo51
+  default_branch: master
   num_watches: 0
   num_stars: 0
   num_forks: 0
@@ -1565,6 +1589,7 @@
   owner_name: user30
   lower_name: renderer
   name: renderer
+  default_branch: master
   is_archived: false
   is_empty: false
   is_private: false
@@ -1592,6 +1617,7 @@
   owner_name: user2
   lower_name: lfs
   name: lfs
+  default_branch: master
   is_empty: false
   is_archived: false
   is_private: true
