@@ -379,6 +379,9 @@ func NewFuncMap() []template.FuncMap {
 			// the table is NOT sorted with this header
 			return ""
 		},
+		"RenderLabel": func(label *issues_model.Label) template.HTML {
+			return template.HTML(RenderLabel(label))
+		},
 		"RenderLabels": func(labels []*issues_model.Label, repoLink string) template.HTML {
 			htmlCode := `<span class="labels-list">`
 			for _, label := range labels {
@@ -386,8 +389,8 @@ func NewFuncMap() []template.FuncMap {
 				if label == nil {
 					continue
 				}
-				htmlCode += fmt.Sprintf("<a href='%s/issues?labels=%d' class='ui label' style='color: %s !important; background-color: %s !important' title='%s'>%s</a> ",
-					repoLink, label.ID, label.ForegroundColor(), label.Color, html.EscapeString(label.Description), RenderEmoji(label.Name))
+				htmlCode += fmt.Sprintf("<a href='%s/issues?labels=%d'>%s</a> ",
+					repoLink, label.ID, RenderLabel(label))
 			}
 			htmlCode += "</span>"
 			return template.HTML(htmlCode)
@@ -796,6 +799,19 @@ func RenderIssueTitle(ctx context.Context, text, urlPrefix string, metas map[str
 		return template.HTML("")
 	}
 	return template.HTML(renderedText)
+}
+
+// RenderLabel renders a label
+func RenderLabel(label *issues_model.Label) string {
+	textColor := "#111"
+	if label.UseLightTextColor() {
+		textColor = "#eee"
+	}
+
+	description := emoji.ReplaceAliases(label.Description)
+
+	return fmt.Sprintf("<div class='ui label' style='color: %s !important; background-color: %s !important' title='%s'>%s</div>",
+		textColor, label.Color, description, RenderEmoji(label.Name))
 }
 
 // RenderEmoji renders html text with emoji post processors

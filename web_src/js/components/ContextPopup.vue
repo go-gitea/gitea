@@ -30,20 +30,14 @@ import {SvgIcon} from '../svg.js';
 const {appSubUrl, i18n} = window.config;
 
 // NOTE: see models/issue_label.go for similar implementation
-const srgbToLinear = (color) => {
-  color /= 255;
-  if (color <= 0.04045) {
-    return color / 12.92;
-  }
-  return ((color + 0.055) / 1.055) ** 2.4;
+const useLightTextColor = (label) => {
+  // sRGB color space luminance
+  const r = parseInt(label.color.substring(0, 2), 16);
+  const g = parseInt(label.color.substring(2, 4), 16);
+  const b = parseInt(label.color.substring(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance < 0.35;
 };
-const luminance = (colorString) => {
-  const r = srgbToLinear(parseInt(colorString.substring(0, 2), 16));
-  const g = srgbToLinear(parseInt(colorString.substring(2, 4), 16));
-  const b = srgbToLinear(parseInt(colorString.substring(4, 6), 16));
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-};
-const luminanceThreshold = 0.179;
 
 export default {
   components: {SvgIcon},
@@ -92,10 +86,10 @@ export default {
     labels() {
       return this.issue.labels.map((label) => {
         let textColor;
-        if (luminance(label.color) < luminanceThreshold) {
-          textColor = '#ffffff';
+        if (useLightTextColor(label)) {
+          textColor = '#eeeeee';
         } else {
-          textColor = '#000000';
+          textColor = '#111111';
         }
         return {name: label.name, color: `#${label.color}`, textColor};
       });

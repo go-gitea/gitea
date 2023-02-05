@@ -7,8 +7,6 @@ package issues
 import (
 	"context"
 	"fmt"
-	"html/template"
-	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -159,49 +157,31 @@ func (label *Label) BelongsToRepo() bool {
 	return label.RepoID > 0
 }
 
-// SrgbToLinear converts a component of an sRGB color to its linear intensity
-// See: https://en.wikipedia.org/wiki/SRGB#The_reverse_transformation_(sRGB_to_CIE_XYZ)
-func SrgbToLinear(color uint8) float64 {
-	flt := float64(color) / 255
-	if flt <= 0.04045 {
-		return flt / 12.92
+// Get color as RGB values in 0..255 range
+func (label *Label) ColorRGB() (float64, float64, float64, error) {
+	color, err := strconv.ParseUint(label.Color[1:], 16, 64)
+	if err != nil {
+		return 0, 0, 0, err
 	}
-	return math.Pow((flt+0.055)/1.055, 2.4)
+
+	r := float64(uint8(0xFF & (uint32(color) >> 16)))
+	g := float64(uint8(0xFF & (uint32(color) >> 8)))
+	b := float64(uint8(0xFF & uint32(color)))
+	return r, g, b, nil
 }
 
-// Luminance returns the luminance of an sRGB color
-func Luminance(color uint32) float64 {
-	r := SrgbToLinear(uint8(0xFF & (color >> 16)))
-	g := SrgbToLinear(uint8(0xFF & (color >> 8)))
-	b := SrgbToLinear(uint8(0xFF & color))
-
-	// luminance ratios for sRGB
-	return 0.2126*r + 0.7152*g + 0.0722*b
-}
-
-// LuminanceThreshold is the luminance at which white and black appear to have the same contrast
-// i.e. x such that 1.05 / (x + 0.05) = (x + 0.05) / 0.05
-// i.e. math.Sqrt(1.05*0.05) - 0.05
-const LuminanceThreshold float64 = 0.179
-
-// ForegroundColor calculates the text color for labels based
-// on their background color.
-func (label *Label) ForegroundColor() template.CSS {
+// Determine if label text should be light or dark to be readable on
+// background color.
+func (label *Label) UseLightTextColor() bool {
 	if strings.HasPrefix(label.Color, "#") {
-		if color, err := strconv.ParseUint(label.Color[1:], 16, 64); err == nil {
-			// NOTE: see web_src/js/components/ContextPopup.vue for similar implementation
-			luminance := Luminance(uint32(color))
-
-			// prefer white or black based upon contrast
-			if luminance < LuminanceThreshold {
-				return template.CSS("#fff")
-			}
-			return template.CSS("#000")
+		if r, g, b, err := label.ColorRGB(); err == nil {
+			// sRGB color space luminance
+			luminance := (0.299*r + 0.587*g + 0.114*b) / 255
+			return luminance < 0.35
 		}
 	}
 
-	// default to black
-	return template.CSS("#000")
+	return false
 }
 
 // NewLabel creates a new label
