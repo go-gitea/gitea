@@ -100,14 +100,15 @@ func (t *Tree) ListEntries() (Entries, error) {
 
 // listEntriesRecursive returns all entries of current tree recursively including all subtrees
 // extraArgs could be "-l" to get the size, which is slower
-func (t *Tree) listEntriesRecursive(extraArgs ...CmdArg) (Entries, error) {
+func (t *Tree) listEntriesRecursive(extraArgs TrustedCmdArgs) (Entries, error) {
 	if t.entriesRecursiveParsed {
 		return t.entriesRecursive, nil
 	}
 
-	args := append([]CmdArg{"ls-tree", "-t", "-r"}, extraArgs...)
-	args = append(args, CmdArg(t.ID.String()))
-	stdout, _, runErr := NewCommand(t.repo.Ctx, args...).RunStdBytes(&RunOpts{Dir: t.repo.Path})
+	stdout, _, runErr := NewCommand(t.repo.Ctx, "ls-tree", "-t", "-r").
+		AddArguments(extraArgs...).
+		AddDynamicArguments(t.ID.String()).
+		RunStdBytes(&RunOpts{Dir: t.repo.Path})
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -123,10 +124,10 @@ func (t *Tree) listEntriesRecursive(extraArgs ...CmdArg) (Entries, error) {
 
 // ListEntriesRecursiveFast returns all entries of current tree recursively including all subtrees, no size
 func (t *Tree) ListEntriesRecursiveFast() (Entries, error) {
-	return t.listEntriesRecursive()
+	return t.listEntriesRecursive(nil)
 }
 
 // ListEntriesRecursiveWithSize returns all entries of current tree recursively including all subtrees, with size
 func (t *Tree) ListEntriesRecursiveWithSize() (Entries, error) {
-	return t.listEntriesRecursive("--long")
+	return t.listEntriesRecursive(TrustedCmdArgs{"--long"})
 }

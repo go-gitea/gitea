@@ -25,8 +25,10 @@ var (
 
 		LimitTotalOwnerCount int64
 		LimitTotalOwnerSize  int64
+		LimitSizeCargo       int64
 		LimitSizeComposer    int64
 		LimitSizeConan       int64
+		LimitSizeConda       int64
 		LimitSizeContainer   int64
 		LimitSizeCran        int64
 		LimitSizeGeneric     int64
@@ -65,8 +67,10 @@ func newPackages() {
 	}
 
 	Packages.LimitTotalOwnerSize = mustBytes(sec, "LIMIT_TOTAL_OWNER_SIZE")
+	Packages.LimitSizeCargo = mustBytes(sec, "LIMIT_SIZE_CARGO")
 	Packages.LimitSizeComposer = mustBytes(sec, "LIMIT_SIZE_COMPOSER")
 	Packages.LimitSizeConan = mustBytes(sec, "LIMIT_SIZE_CONAN")
+	Packages.LimitSizeConda = mustBytes(sec, "LIMIT_SIZE_CONDA")
 	Packages.LimitSizeContainer = mustBytes(sec, "LIMIT_SIZE_CONTAINER")
 	Packages.LimitSizeCran = mustBytes(sec, "LIMIT_SIZE_CRAN")
 	Packages.LimitSizeGeneric = mustBytes(sec, "LIMIT_SIZE_GENERIC")
