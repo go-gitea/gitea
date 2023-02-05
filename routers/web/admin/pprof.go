@@ -53,7 +53,6 @@ func PProfProcessStacktrace(ctx *context.Context) {
 
 	if err := process.WriteProcesses(ctx.Resp, processStacks, processCount, goroutineCount, "", flat); err != nil {
 		ctx.ServerError("WriteProcesses", err)
-		return
 	}
 }
 
