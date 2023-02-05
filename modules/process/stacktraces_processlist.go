@@ -20,7 +20,7 @@ func WriteProcesses(out io.Writer, processes []*Process, processCount int, gorou
 		return err
 	}
 	if len(processes) > 0 {
-		if err := WriteProcess(out, processes[0], "  ", flat); err != nil {
+		if err := WriteProcess(out, processes[0], indent+"  ", flat); err != nil {
 			return err
 		}
 	}
@@ -29,7 +29,7 @@ func WriteProcesses(out io.Writer, processes []*Process, processCount int, gorou
 			if _, err := fmt.Fprintf(out, "%s  | \n", indent); err != nil {
 				return err
 			}
-			if err := WriteProcess(out, process, "  ", flat); err != nil {
+			if err := WriteProcess(out, process, indent+"  ", flat); err != nil {
 				return err
 			}
 		}
