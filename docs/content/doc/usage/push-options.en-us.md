@@ -41,5 +41,5 @@ git push -o repo.private=false -u origin master
   Example:
 
   ```shell
-  git push -o pulls.merged=1,2,3 -u origin  master
+  git push -o pulls.merged=1,2,3 -u origin master
   ```
