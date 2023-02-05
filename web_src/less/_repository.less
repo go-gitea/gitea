@@ -2754,7 +2754,7 @@
 }
 
 .edit-label.modal,
-.new-label.segment {
+.new-label.modal {
   .form {
     .column {
       padding-right: 0;
@@ -2766,12 +2766,9 @@
     }
 
     .color.picker.column {
-      width: auto;
-
-      .color-picker {
-        height: 35px;
-        width: auto;
-        padding-left: 30px;
+      display: flex;
+      .minicolors {
+        flex: 1;
       }
     }
 

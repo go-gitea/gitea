@@ -3,17 +3,19 @@ import {initCompColorPicker} from './ColorPicker.js';
 
 export function initCompLabelEdit(selector) {
   if (!$(selector).length) return;
-  // Create label
-  const $newLabelPanel = $('.new-label.segment');
-  $('.new-label.button').on('click', () => {
-    $newLabelPanel.show();
-  });
-  $('.new-label.segment .cancel').on('click', () => {
-    $newLabelPanel.hide();
-  });
-
   initCompColorPicker();
 
+  // Create label
+  $('.new-label.button').on('click', () => {
+    $('.new-label.modal').modal({
+      onApprove() {
+        $('.new-label.form').trigger('submit');
+      }
+    }).modal('show');
+    return false;
+  });
+
+  // Edit label
   $('.edit-label-button').on('click', function () {
     $('.edit-label .color-picker').minicolors('value', $(this).data('color'));
     $('#label-modal-id').val($(this).data('id'));
