@@ -9,16 +9,20 @@
 	</div>
 {{else if eq .CaptchaType "recaptcha"}}
 	<div class="inline field required">
-		<div class="g-recaptcha" data-sitekey="{{.RecaptchaSitekey}}"></div>
+		<div id="captcha" data-captcha-type="g-recaptcha" class="g-recaptcha-style" data-sitekey="{{.RecaptchaSitekey}}"></div>
 	</div>
 {{else if eq .CaptchaType "hcaptcha"}}
 	<div class="inline field required">
-		<div class="h-captcha" data-sitekey="{{.HcaptchaSitekey}}"></div>
+		<div id="captcha" data-captcha-type="h-captcha" class="h-captcha-style" data-sitekey="{{.HcaptchaSitekey}}"></div>
 	</div>
 {{else if eq .CaptchaType "mcaptcha"}}
 	<div class="inline field df ac db-small captcha-field">
 		<span>{{.locale.Tr "captcha"}}</span>
 		<div class="border-secondary w-100-small" id="mcaptcha__widget-container" style="width: 50%; height: 5em"></div>
-		<div class="m-captcha" data-sitekey="{{.McaptchaSitekey}}" data-instance-url="{{.McaptchaURL}}"></div>
+		<div id="captcha" data-captcha-type="m-captcha" class="m-captcha" data-sitekey="{{.McaptchaSitekey}}" data-instance-url="{{.McaptchaURL}}"></div>
+	</div>
+{{else if eq .CaptchaType "cfturnstile"}}
+	<div class="inline field captcha-field tc">
+		<div id="captcha" data-captcha-type="cf-turnstile" data-sitekey="{{.CfTurnstileSitekey}}"></div>
 	</div>
 {{end}}{{end}}
