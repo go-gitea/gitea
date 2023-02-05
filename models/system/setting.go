@@ -95,22 +95,15 @@ const contextCacheKey = "system_setting"
 
 // GetSetting returns the setting value via the key
 func GetSetting(ctx context.Context, key string) (string, error) {
-	v := cache.GetContextData(ctx, contextCacheKey, key)
-	if vv, ok := v.(string); ok {
-		return vv, nil
-	}
-	value, err := cache.GetString(genSettingCacheKey(key), func() (string, error) {
-		res, err := GetSettingNoCache(ctx, key)
-		if err != nil {
-			return "", err
-		}
-		return res.SettingValue, nil
+	return cache.GetWithContextCache(ctx, contextCacheKey, key, func() (string, error) {
+		return cache.GetString(genSettingCacheKey(key), func() (string, error) {
+			res, err := GetSettingNoCache(ctx, key)
+			if err != nil {
+				return "", err
+			}
+			return res.SettingValue, nil
+		})
 	})
-	if err != nil {
-		return "", err
-	}
-	cache.SetContextData(ctx, contextCacheKey, key, value)
-	return value, nil
 }
 
 // GetSettingBool return bool value of setting,
