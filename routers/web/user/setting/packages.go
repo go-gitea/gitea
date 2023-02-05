@@ -82,7 +82,25 @@ func PackagesRulePreview(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplSettingsPackagesRulePreview)
 }
 
-func RegenerateKeyPair(ctx *context.Context) {
+func InitializeCargoIndex(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("packages.title")
+	ctx.Data["PageIsSettingsPackages"] = true
+
+	shared.InitializeCargoIndex(ctx, ctx.Doer)
+
+	ctx.Redirect(setting.AppSubURL + "/user/settings/packages")
+}
+
+func RebuildCargoIndex(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("packages.title")
+	ctx.Data["PageIsSettingsPackages"] = true
+
+	shared.RebuildCargoIndex(ctx, ctx.Doer)
+
+	ctx.Redirect(setting.AppSubURL + "/user/settings/packages")
+}
+
+func RegenerateChefKeyPair(ctx *context.Context) {
 	priv, pub, err := util.GenerateKeyPair(chef_module.KeyBits)
 	if err != nil {
 		ctx.ServerError("GenerateKeyPair", err)

@@ -180,6 +180,11 @@ var (
 				Name:  "raw",
 				Usage: "Display only the token value",
 			},
+			cli.StringFlag{
+				Name:  "scopes",
+				Value: "",
+				Usage: "Comma separated list of scopes to apply to access token",
+			},
 		},
 		Action: runGenerateAccessToken,
 	}
@@ -573,12 +578,16 @@ func runCreateUser(c *cli.Context) error {
 		restricted = util.OptionalBoolOf(c.Bool("restricted"))
 	}
 
+	// default user visibility in app.ini
+	visibility := setting.Service.DefaultUserVisibilityMode
+
 	u := &user_model.User{
 		Name:               username,
 		Email:              c.String("email"),
 		Passwd:             password,
 		IsAdmin:            c.Bool("admin"),
 		MustChangePassword: changePassword,
+		Visibility:         visibility,
 	}
 
 	overwriteDefault := &user_model.CreateUserOverwriteOptions{
@@ -698,9 +707,15 @@ func runGenerateAccessToken(c *cli.Context) error {
 		return err
 	}
 
+	accessTokenScope, err := auth_model.AccessTokenScope(c.String("scopes")).Normalize()
+	if err != nil {
+		return err
+	}
+
 	t := &auth_model.AccessToken{
-		Name: c.String("token-name"),
-		UID:  user.ID,
+		Name:  c.String("token-name"),
+		UID:   user.ID,
+		Scope: accessTokenScope,
 	}
 
 	if err := auth_model.NewAccessToken(t); err != nil {

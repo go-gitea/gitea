@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	KeyBits          = 2048
+	KeyBits          = 4096
 	SettingPublicPem = "chef.public_pem"
 )
 

@@ -11,12 +11,14 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/services/auth"
+	"code.gitea.io/gitea/services/auth/source/ldap"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -102,13 +104,28 @@ func getLDAPServerHost() string {
 	return host
 }
 
-func addAuthSourceLDAP(t *testing.T, sshKeyAttribute string, groupMapParams ...string) {
+func getLDAPServerPort() string {
+	port := os.Getenv("TEST_LDAP_PORT")
+	if len(port) == 0 {
+		port = "389"
+	}
+	return port
+}
+
+func addAuthSourceLDAP(t *testing.T, sshKeyAttribute, groupFilter string, groupMapParams ...string) {
 	groupTeamMapRemoval := "off"
 	groupTeamMap := ""
 	if len(groupMapParams) == 2 {
 		groupTeamMapRemoval = groupMapParams[0]
 		groupTeamMap = groupMapParams[1]
 	}
+
+	// Modify user filter to test group filter explicitly
+	userFilter := "(&(objectClass=inetOrgPerson)(memberOf=cn=git,ou=people,dc=planetexpress,dc=com)(uid=%s))"
+	if groupFilter != "" {
+		userFilter = "(&(objectClass=inetOrgPerson)(uid=%s))"
+	}
+
 	session := loginUser(t, "user1")
 	csrf := GetCSRF(t, session, "/admin/auths/new")
 	req := NewRequestWithValues(t, "POST", "/admin/auths/new", map[string]string{
@@ -116,11 +133,11 @@ func addAuthSourceLDAP(t *testing.T, sshKeyAttribute string, groupMapParams ...s
 		"type":                     "2",
 		"name":                     "ldap",
 		"host":                     getLDAPServerHost(),
-		"port":                     "389",
+		"port":                     getLDAPServerPort(),
 		"bind_dn":                  "uid=gitea,ou=service,dc=planetexpress,dc=com",
 		"bind_password":            "password",
 		"user_base":                "ou=people,dc=planetexpress,dc=com",
-		"filter":                   "(&(objectClass=inetOrgPerson)(memberOf=cn=git,ou=people,dc=planetexpress,dc=com)(uid=%s))",
+		"filter":                   userFilter,
 		"admin_filter":             "(memberOf=cn=admin_staff,ou=people,dc=planetexpress,dc=com)",
 		"restricted_filter":        "(uid=leela)",
 		"attribute_username":       "uid",
@@ -133,6 +150,7 @@ func addAuthSourceLDAP(t *testing.T, sshKeyAttribute string, groupMapParams ...s
 		"groups_enabled":           "on",
 		"group_dn":                 "ou=people,dc=planetexpress,dc=com",
 		"group_member_uid":         "member",
+		"group_filter":             groupFilter,
 		"group_team_map":           groupTeamMap,
 		"group_team_map_removal":   groupTeamMapRemoval,
 		"user_uid":                 "DN",
@@ -146,7 +164,7 @@ func TestLDAPUserSignin(t *testing.T) {
 		return
 	}
 	defer tests.PrepareTestEnv(t)()
-	addAuthSourceLDAP(t, "")
+	addAuthSourceLDAP(t, "", "")
 
 	u := gitLDAPUsers[0]
 
@@ -163,7 +181,7 @@ func TestLDAPUserSignin(t *testing.T) {
 
 func TestLDAPAuthChange(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	addAuthSourceLDAP(t, "")
+	addAuthSourceLDAP(t, "", "")
 
 	session := loginUser(t, "user1")
 	req := NewRequest(t, "GET", "/admin/auths")
@@ -221,7 +239,7 @@ func TestLDAPUserSync(t *testing.T) {
 		return
 	}
 	defer tests.PrepareTestEnv(t)()
-	addAuthSourceLDAP(t, "")
+	addAuthSourceLDAP(t, "", "")
 	auth.SyncExternalUsers(context.Background(), true)
 
 	session := loginUser(t, "user1")
@@ -266,13 +284,72 @@ func TestLDAPUserSync(t *testing.T) {
 	}
 }
 
+func TestLDAPUserSyncWithGroupFilter(t *testing.T) {
+	if skipLDAPTests() {
+		t.Skip()
+		return
+	}
+	defer tests.PrepareTestEnv(t)()
+	addAuthSourceLDAP(t, "", "(cn=git)")
+
+	// Assert a user not a member of the LDAP group "cn=git" cannot login
+	// This test may look like TestLDAPUserSigninFailed but it is not.
+	// The later test uses user filter containing group membership filter (memberOf)
+	// This test is for the case when LDAP user records may not be linked with
+	// all groups the user is a member of, the user filter is modified accordingly inside
+	// the addAuthSourceLDAP based on the value of the groupFilter
+	u := otherLDAPUsers[0]
+	testLoginFailed(t, u.UserName, u.Password, translation.NewLocale("en-US").Tr("form.username_password_incorrect"))
+
+	auth.SyncExternalUsers(context.Background(), true)
+
+	// Assert members of LDAP group "cn=git" are added
+	for _, gitLDAPUser := range gitLDAPUsers {
+		unittest.BeanExists(t, &user_model.User{
+			Name: gitLDAPUser.UserName,
+		})
+	}
+
+	// Assert everyone else is not added
+	for _, gitLDAPUser := range otherLDAPUsers {
+		unittest.AssertNotExistsBean(t, &user_model.User{
+			Name: gitLDAPUser.UserName,
+		})
+	}
+
+	ldapSource := unittest.AssertExistsAndLoadBean(t, &auth_model.Source{
+		Name: "ldap",
+	})
+	ldapConfig := ldapSource.Cfg.(*ldap.Source)
+	ldapConfig.GroupFilter = "(cn=ship_crew)"
+	auth_model.UpdateSource(ldapSource)
+
+	auth.SyncExternalUsers(context.Background(), true)
+
+	for _, gitLDAPUser := range gitLDAPUsers {
+		if gitLDAPUser.UserName == "fry" || gitLDAPUser.UserName == "leela" || gitLDAPUser.UserName == "bender" {
+			// Assert members of the LDAP group "cn-ship_crew" are still active
+			user := unittest.AssertExistsAndLoadBean(t, &user_model.User{
+				Name: gitLDAPUser.UserName,
+			})
+			assert.True(t, user.IsActive, "User %s should be active", gitLDAPUser.UserName)
+		} else {
+			// Assert everyone else is inactive
+			user := unittest.AssertExistsAndLoadBean(t, &user_model.User{
+				Name: gitLDAPUser.UserName,
+			})
+			assert.False(t, user.IsActive, "User %s should be inactive", gitLDAPUser.UserName)
+		}
+	}
+}
+
 func TestLDAPUserSigninFailed(t *testing.T) {
 	if skipLDAPTests() {
 		t.Skip()
 		return
 	}
 	defer tests.PrepareTestEnv(t)()
-	addAuthSourceLDAP(t, "")
+	addAuthSourceLDAP(t, "", "")
 
 	u := otherLDAPUsers[0]
 	testLoginFailed(t, u.UserName, u.Password, translation.NewLocale("en-US").Tr("form.username_password_incorrect"))
@@ -284,7 +361,7 @@ func TestLDAPUserSSHKeySync(t *testing.T) {
 		return
 	}
 	defer tests.PrepareTestEnv(t)()
-	addAuthSourceLDAP(t, "sshPublicKey")
+	addAuthSourceLDAP(t, "sshPublicKey", "")
 
 	auth.SyncExternalUsers(context.Background(), true)
 
@@ -317,7 +394,7 @@ func TestLDAPGroupTeamSyncAddMember(t *testing.T) {
 		return
 	}
 	defer tests.PrepareTestEnv(t)()
-	addAuthSourceLDAP(t, "", "on", `{"cn=ship_crew,ou=people,dc=planetexpress,dc=com":{"org26": ["team11"]},"cn=admin_staff,ou=people,dc=planetexpress,dc=com": {"non-existent": ["non-existent"]}}`)
+	addAuthSourceLDAP(t, "", "", "on", `{"cn=ship_crew,ou=people,dc=planetexpress,dc=com":{"org26": ["team11"]},"cn=admin_staff,ou=people,dc=planetexpress,dc=com": {"non-existent": ["non-existent"]}}`)
 	org, err := organization.GetOrgByName("org26")
 	assert.NoError(t, err)
 	team, err := organization.GetTeam(db.DefaultContext, org.ID, "team11")
@@ -362,7 +439,7 @@ func TestLDAPGroupTeamSyncRemoveMember(t *testing.T) {
 		return
 	}
 	defer tests.PrepareTestEnv(t)()
-	addAuthSourceLDAP(t, "", "on", `{"cn=dispatch,ou=people,dc=planetexpress,dc=com": {"org26": ["team11"]}}`)
+	addAuthSourceLDAP(t, "", "", "on", `{"cn=dispatch,ou=people,dc=planetexpress,dc=com": {"org26": ["team11"]}}`)
 	org, err := organization.GetOrgByName("org26")
 	assert.NoError(t, err)
 	team, err := organization.GetTeam(db.DefaultContext, org.ID, "team11")
@@ -398,7 +475,7 @@ func TestBrokenLDAPMapUserSignin(t *testing.T) {
 		return
 	}
 	defer tests.PrepareTestEnv(t)()
-	addAuthSourceLDAP(t, "", "on", `{"NOT_A_VALID_JSON"["MISSING_DOUBLE_POINT"]}`)
+	addAuthSourceLDAP(t, "", "", "on", `{"NOT_A_VALID_JSON"["MISSING_DOUBLE_POINT"]}`)
 
 	u := gitLDAPUsers[0]
 

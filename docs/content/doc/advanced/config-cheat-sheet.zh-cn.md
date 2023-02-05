@@ -147,6 +147,17 @@ menu:
 - `ENABLE_REVERSE_PROXY_AUTO_REGISTRATION`: 允许通过反向认证做自动注册。
 - `ENABLE_CAPTCHA`: **false**: 注册时使用图片验证码。
 - `REQUIRE_CAPTCHA_FOR_LOGIN`: **false**: 登录时需要图片验证码。需要同时开启 `ENABLE_CAPTCHA`。
+- `CAPTCHA_TYPE`: **image**: \[image, recaptcha, hcaptcha, mcaptcha, cfturnstile\]，人机验证类型，分别表示图片认证、 recaptcha 、 hcaptcha 、mcaptcha 、和 cloudlfare 的 turnstile。
+- `RECAPTCHA_SECRET`: **""**: recaptcha 服务的密钥，可在 https://www.google.com/recaptcha/admin 获取。
+- `RECAPTCHA_SITEKEY`: **""**: recaptcha 服务的网站密钥 ，可在 https://www.google.com/recaptcha/admin 获取。
+- `RECAPTCHA_URL`: **https://www.google.com/recaptcha/**: 设置 recaptcha 的 url 。
+- `HCAPTCHA_SECRET`: **""**: hcaptcha 服务的密钥，可在 https://www.hcaptcha.com/ 获取。
+- `HCAPTCHA_SITEKEY`: **""**: hcaptcha 服务的网站密钥，可在 https://www.hcaptcha.com/ 获取。
+- `MCAPTCHA_SECRET`: **""**: mCaptcha 服务的密钥。
+- `MCAPTCHA_SITEKEY`: **""**: mCaptcha 服务的网站密钥。
+- `MCAPTCHA_URL` **https://demo.mcaptcha.org/**: 设置 remCaptchacaptcha 的 url 。
+- `CF_TURNSTILE_SECRET` **""**: cloudlfare turnstile 服务的密钥，可在 https://dash.cloudflare.com/?to=/:account/turnstile 获取。
+- `CF_TURNSTILE_SITEKEY` **""**: cloudlfare turnstile 服务的网站密钥 ，可在 https://www.google.com/recaptcha/admin 获取。
 
 ### Service - Expore (`service.explore`)
 

@@ -1043,6 +1043,7 @@ func UnitTypes() func(ctx *Context) {
 		ctx.Data["UnitTypeExternalTracker"] = unit_model.TypeExternalTracker
 		ctx.Data["UnitTypeProjects"] = unit_model.TypeProjects
 		ctx.Data["UnitTypePackages"] = unit_model.TypePackages
+		ctx.Data["UnitTypeActions"] = unit_model.TypeActions
 	}
 }
 
