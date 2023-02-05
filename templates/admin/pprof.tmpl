@@ -2,9 +2,12 @@
 	{{.locale.Tr "admin.monitor.pprof"}}
 </h4>
 <div class="ui attached segment">
+	<p>{{.locale.Tr  "admin.monitor.pprof.description"}}</p>
+	<p>{{.locale.Tr  "admin.monitor.pprof.description_2"}}</p>
 	<h4>{{.locale.Tr "admin.monitor.pprof.cpuprofile"}}</h4>
 	<form action="{{AppSubUrl}}/admin/monitor/cpu-profile">
 		<div class="ui form">
+			<div class="help">{{.locale.Tr "admin.monitor.pprof.cpuprofile.description"}}</div>
 			<div class="field">
 				<label for="pprof-cpuprofile-duration">{{.locale.Tr "admin.monitor.pprof.duration"}}</label>
 				<input id="pprof-cpuprofile-duration" type="text" name="duration" placeholder="{{.locale.Tr "admin.monitor.pprof.duration_placeholder"}}">
@@ -15,6 +18,7 @@
 	<h4>{{.locale.Tr "admin.monitor.pprof.fgprof"}}</h4>
 	<form action="{{AppSubUrl}}/admin/monitor/fgprof">
 		<div class="ui form">
+			<div class="help">{{.locale.Tr "admin.monitor.pprof.fgprof.description"}}</div>
 			<div class="field">
 				<label for="pprof-fgprof-duration">{{.locale.Tr "admin.monitor.pprof.duration"}}</label>
 				<input id="pprof-fgprof-duration" type="text" name="duration" placeholder="{{.locale.Tr "admin.monitor.pprof.duration_placeholder"}}">
@@ -32,6 +36,7 @@
 	<h4>{{.locale.Tr "admin.monitor.stacktrace"}}</h4>
 	<form action="{{AppSubUrl}}/admin/monitor/stacktrace-profile">
 		<div class="ui form">
+			<div class="help">{{.locale.Tr "admin.monitor.pprof.stacktrace.description"}}</div>
 			<div class="inline field">
 				<div class="ui checkbox">
 					<input id="pprof-stacktrace-flat" type="checkbox" tabindex="0" class="hidden" name="flat">
@@ -54,19 +59,10 @@
 			<input class="ui button basic" type="submit" value="{{.locale.Tr "admin.monitor.pprof.download"}}">
 		</div>
 	</form>
-	<h4>{{.locale.Tr "admin.monitor.pprof.trace"}}</h4>
-	<form action="{{AppSubUrl}}/admin/monitor/trace">
-		<div class="ui form">
-			<div class="field">
-				<label for="pprof-trace-duration">{{.locale.Tr "admin.monitor.pprof.duration"}}</label>
-				<input id="pprof-trace-duration" type="text" name="duration" placeholder="{{.locale.Tr "admin.monitor.pprof.duration_placeholder"}}">
-			</div>
-			<input class="ui button basic" type="submit" value="{{.locale.Tr "admin.monitor.pprof.download"}}">
-		</div>
-	</form>
 	<h4>{{.locale.Tr "admin.monitor.pprof.named_profiles"}}</h4>
 	<form action="{{AppSubUrl}}/admin/monitor/profile">
 		<div class="ui form">
+			<div class="help">{{.locale.Tr "admin.monitor.pprof.named_profiles.description"}}</div>
 			<div class="field">
 				<label for="pprof-named_profiles-name">{{.locale.Tr "admin.monitor.pprof.named_profiles.name"}}</label>
 				<select class="ui search dropdown" id="pprof-named_profiles-name" name="name">
@@ -84,6 +80,17 @@
 				</select>
 			</div>
 			<input class="ui button basic" type="submit" value="{{$.locale.Tr "admin.monitor.pprof.download"}}">
+		</div>
+	</form>
+	<h4>{{.locale.Tr "admin.monitor.pprof.trace"}}</h4>
+	<form action="{{AppSubUrl}}/admin/monitor/trace">
+		<div class="help">{{.locale.Tr "admin.monitor.pprof.trace.description"}}</div>
+		<div class="ui form">
+			<div class="field">
+				<label for="pprof-trace-duration">{{.locale.Tr "admin.monitor.pprof.duration"}}</label>
+				<input id="pprof-trace-duration" type="text" name="duration" placeholder="{{.locale.Tr "admin.monitor.pprof.duration_placeholder"}}">
+			</div>
+			<input class="ui button basic" type="submit" value="{{.locale.Tr "admin.monitor.pprof.download"}}">
 		</div>
 	</form>
 </div>
