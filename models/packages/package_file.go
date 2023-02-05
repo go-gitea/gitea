@@ -185,7 +185,7 @@ func (opts *PackageFileSearchOptions) toConds() builder.Cond {
 	}
 
 	if opts.Hash != "" && (opts.HashAlgorithmn == "md5" || opts.HashAlgorithmn == "sha1" || opts.HashAlgorithmn == "sha256" || opts.HashAlgorithmn == "sha512") {
-		var innerCond builder.Cond = builder.
+		innerCond := builder.
 			Expr("package_blob.id = package_file.blob_id").
 			And(builder.Eq{
 				"package_blob.hash_" + opts.HashAlgorithmn: opts.Hash,

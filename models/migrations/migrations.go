@@ -454,10 +454,12 @@ var migrations = []Migration{
 	NewMigration("Add updated unix to LFSMetaObject", v1_19.AddUpdatedUnixToLFSMetaObject),
 	// v239 -> v240
 	NewMigration("Add scope for access_token", v1_19.AddScopeForAccessTokens),
-
-	// Gitea 1.19.0 ends at v240
-
 	// v240 -> v241
+	NewMigration("Add actions tables", v1_19.AddActionsTables),
+
+	// Gitea 1.19.0 ends at v241
+
+	// v241 -> v242
 	NewMigration("Add is_internal column to package", v1_20.AddIsInternalColumnToPackage),
 }
 

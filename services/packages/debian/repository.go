@@ -186,7 +186,7 @@ func buildPackagesIndices(ctx context.Context, owner *user_model.User, repoVersi
 		}
 		addSeperator = true
 
-		io.WriteString(w, pfd.Properties.GetByName(debian_module.PropertyControl))
+		fmt.Fprint(w, pfd.Properties.GetByName(debian_module.PropertyControl))
 
 		fmt.Fprintf(w, "Filename: pool/%s/%s/%s\n", distribution, component, pfd.File.Name)
 		fmt.Fprintf(w, "Size: %d\n", pfd.Blob.Size)

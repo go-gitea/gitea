@@ -111,7 +111,7 @@ func getDistinctPropertyValues(ctx context.Context, ownerID int64, distribution,
 		"package.is_internal":         true,
 	}
 	if distribution != "" {
-		var innerCond builder.Cond = builder.
+		innerCond := builder.
 			Expr("pp.ref_id = package_property.ref_id").
 			And(builder.Eq{
 				"package_property.ref_type": packages.PropertyTypeFile,
