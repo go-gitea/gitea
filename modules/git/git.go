@@ -383,6 +383,6 @@ func configUnsetAll(key, value string) error {
 }
 
 // Fsck verifies the connectivity and validity of the objects in the database
-func Fsck(ctx context.Context, repoPath string, timeout time.Duration, args ...CmdArg) error {
+func Fsck(ctx context.Context, repoPath string, timeout time.Duration, args TrustedCmdArgs) error {
 	return NewCommand(ctx, "fsck").AddArguments(args...).Run(&RunOpts{Timeout: timeout, Dir: repoPath})
 }

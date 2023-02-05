@@ -126,7 +126,8 @@ INTERNAL_TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE0OTU1NTE2MTh9.h
 ENABLED = true
 
 [email.incoming]
-ENABLED = true
+; temporarily disabled because the incoming mail tests are flaky due to the IMAP server (during integration tests) couldn't be not ready in time sometimes.
+ENABLED = false
 HOST = smtpimap
 PORT = 993
 USERNAME = debug@localdomain.test
