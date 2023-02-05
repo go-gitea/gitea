@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"reflect"
 	"time"
 
 	"code.gitea.io/gitea/modules/private"
@@ -269,12 +268,7 @@ func determineOutput(c *cli.Context, defaultFilename string) (io.WriteCloser, er
 	return out, nil
 }
 
-// runManagerPrivateFunc will requires that a provided fn has an interface:
-//
-// func(context.Context, io.Writer, ...argsTypes) (int, string) {
-//
-// but this cann't quite easily be expressed as a generic type
-func runManagerPrivateFunc(c *cli.Context, defaultOutput string, fn interface{}, args ...any) error {
+func wrapManagerPrivateFunc(c *cli.Context, defaultOutput string, fn func(ctx context.Context, out io.Writer) (int, string)) error {
 	ctx, cancel := setupManager(c)
 	defer cancel()
 
@@ -284,17 +278,7 @@ func runManagerPrivateFunc(c *cli.Context, defaultOutput string, fn interface{},
 	}
 	defer out.Close()
 
-	valFn := reflect.ValueOf(fn)
-	callArgs := []reflect.Value{
-		reflect.ValueOf(ctx),
-		reflect.ValueOf(out),
-	}
-	for _, arg := range args {
-		callArgs = append(callArgs, reflect.ValueOf(arg))
-	}
-	outArgs := valFn.Call(callArgs)
-
-	statusCode, msg := outArgs[0].Interface().(int), outArgs[1].Interface().(string)
+	statusCode, msg := fn(ctx, out)
 	switch statusCode {
 	case http.StatusInternalServerError:
 		return fail("InternalServerError", msg)
@@ -304,25 +288,37 @@ func runManagerPrivateFunc(c *cli.Context, defaultOutput string, fn interface{},
 }
 
 func runProcesses(c *cli.Context) error {
-	return runManagerPrivateFunc(c, "-", private.Processes, c.Bool("flat"), c.Bool("no-system"), c.Bool("stacktraces"), c.Bool("json"), c.String("cancel"))
+	return wrapManagerPrivateFunc(c, "-", func(ctx context.Context, out io.Writer) (int, string) {
+		return private.Processes(ctx, out, c.Bool("flat"), c.Bool("no-system"), c.Bool("stacktraces"), c.Bool("json"), c.String("cancel"))
+	})
 }
 
 func runCPUProfile(c *cli.Context) error {
-	return runManagerPrivateFunc(c, "cpu-profile", private.CPUProfile, c.Duration("duration"))
+	return wrapManagerPrivateFunc(c, "cpu-profile", func(ctx context.Context, out io.Writer) (int, string) {
+		return private.CPUProfile(ctx, out, c.Duration("duration"))
+	})
 }
 
 func runFGProfile(c *cli.Context) error {
-	return runManagerPrivateFunc(c, "fg-profile", private.FGProfile, c.Duration("duration"), c.String("format"))
+	return wrapManagerPrivateFunc(c, "fg-profile", func(ctx context.Context, out io.Writer) (int, string) {
+		return private.FGProfile(ctx, out, c.Duration("duration"), c.String("format"))
+	})
 }
 
 func runNamedProfile(c *cli.Context) error {
-	return runManagerPrivateFunc(c, c.String("name")+"-profile", private.NamedProfile, c.String("name"), c.Int("debug-level"))
+	return wrapManagerPrivateFunc(c, c.String("name")+"-profile", func(ctx context.Context, out io.Writer) (int, string) {
+		return private.NamedProfile(ctx, out, c.String("name"), c.Int("debug-level"))
+	})
 }
 
 func runListNamedProfile(c *cli.Context) error {
-	return runManagerPrivateFunc(c, "-", private.ListNamedProfiles, c.Bool("json"))
+	return wrapManagerPrivateFunc(c, "-", func(ctx context.Context, out io.Writer) (int, string) {
+		return private.ListNamedProfiles(ctx, out, c.Bool("json"))
+	})
 }
 
 func runTrace(c *cli.Context) error {
-	return runManagerPrivateFunc(c, "trace", private.Trace, c.Duration("duration"))
+	return wrapManagerPrivateFunc(c, "trace", func(ctx context.Context, out io.Writer) (int, string) {
+		return private.Trace(ctx, out, c.Duration("duration"))
+	})
 }
