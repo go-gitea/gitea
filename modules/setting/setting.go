@@ -61,6 +61,7 @@ const (
 	ReCaptcha    = "recaptcha"
 	HCaptcha     = "hcaptcha"
 	MCaptcha     = "mcaptcha"
+	CfTurnstile  = "cfturnstile"
 )
 
 // settings
