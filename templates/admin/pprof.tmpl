@@ -77,7 +77,11 @@
 			</div>
 			<div class="field">
 				<label for="pprof-named_profiles-debug">{{$.locale.Tr "admin.monitor.pprof.named_profiles.debug"}}</label>
-				<input id="pprof-named_profiles-debug" type="text" name="debug" placeholder="{{$.locale.Tr "admin.monitor.pprof.named_profiles.debug_placeholder"}}">
+				<select class="ui search dropdown" id="pprof-named_profiles-debug" name="format">
+					<option value="0" selected>{{.locale.Tr "admin.monitor.pprof.named_profiles.format_pprof"}}</option>
+					<option value="1">{{.locale.Tr "admin.monitor.pprof.named_profiles.format_text"}}</option>
+					<option value="2">{{.locale.Tr "admin.monitor.pprof.named_profiles.format_goroutine"}}</option>
+				</select>
 			</div>
 			<input class="ui button basic" type="submit" value="{{$.locale.Tr "admin.monitor.pprof.download"}}">
 		</div>
