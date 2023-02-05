@@ -643,7 +643,7 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
 - `REQUIRE_CAPTCHA_FOR_LOGIN`: **false**: Enable this to require captcha validation for login. You also must enable `ENABLE_CAPTCHA`.
 - `REQUIRE_EXTERNAL_REGISTRATION_CAPTCHA`: **false**: Enable this to force captcha validation
    even for External Accounts (i.e. GitHub, OpenID Connect, etc). You also must enable `ENABLE_CAPTCHA`.
-- `CAPTCHA_TYPE`: **image**: \[image, recaptcha, hcaptcha, mcaptcha\]
+- `CAPTCHA_TYPE`: **image**: \[image, recaptcha, hcaptcha, mcaptcha, cfturnstile\]
 - `RECAPTCHA_SECRET`: **""**: Go to https://www.google.com/recaptcha/admin to get a secret for recaptcha.
 - `RECAPTCHA_SITEKEY`: **""**: Go to https://www.google.com/recaptcha/admin to get a sitekey for recaptcha.
 - `RECAPTCHA_URL`: **https://www.google.com/recaptcha/**: Set the recaptcha url - allows the use of recaptcha net.
@@ -652,6 +652,8 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
 - `MCAPTCHA_SECRET`: **""**: Go to your mCaptcha instance to get a secret for mCaptcha.
 - `MCAPTCHA_SITEKEY`: **""**: Go to your mCaptcha instance to get a sitekey for mCaptcha.
 - `MCAPTCHA_URL` **https://demo.mcaptcha.org/**: Set the mCaptcha URL.
+- `CF_TURNSTILE_SECRET` **""**: Go to https://dash.cloudflare.com/?to=/:account/turnstile to get a secret for cloudflare turnstile.
+- `CF_TURNSTILE_SITEKEY` **""**: Go to https://dash.cloudflare.com/?to=/:account/turnstile to get a sitekey for cloudflare turnstile.
 - `DEFAULT_KEEP_EMAIL_PRIVATE`: **false**: By default set users to keep their email address private.
 - `DEFAULT_ALLOW_CREATE_ORGANIZATION`: **true**: Allow new users to create organizations by default.
 - `DEFAULT_USER_IS_RESTRICTED`: **false**: Give new users restricted permissions by default
@@ -1211,6 +1213,7 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 - `CHUNKED_UPLOAD_PATH`: **tmp/package-upload**: Path for chunked uploads. Defaults to `APP_DATA_PATH` + `tmp/package-upload`
 - `LIMIT_TOTAL_OWNER_COUNT`: **-1**: Maximum count of package versions a single owner can have (`-1` means no limits)
 - `LIMIT_TOTAL_OWNER_SIZE`: **-1**: Maximum size of packages a single owner can use (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_CARGO`: **-1**: Maximum size of a Cargo upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_COMPOSER`: **-1**: Maximum size of a Composer upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_CONAN`: **-1**: Maximum size of a Conan upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_CONDA`: **-1**: Maximum size of a Conda upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)

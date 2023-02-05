@@ -75,19 +75,41 @@
 					</div>
 
 					<!-- Project -->
-					<div class="ui {{if not .Projects}}disabled{{end}} dropdown jump item">
+					<div class="ui{{if not (or .OpenProjects .ClosedProjects)}} disabled{{end}} dropdown jump item">
 						<span class="text">
-							{{.locale.Tr "repo.issues.filter_project"}}
+							{{.locale.Tr "repo.issues.filter_projects"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						</span>
 						<div class="menu">
 							<div class="ui icon search input">
 								<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
-								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_project"}}">
+								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_projects"}}">
 							</div>
-							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_project_no_select"}}</a>
-							{{range .Projects}}
-								<a class="{{if $.ProjectID}}{{if eq $.ProjectID .ID}}active selected{{end}}{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{.ID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.Title}}</a>
+							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_project_all"}}</a>
+							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&project=-1&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_project_none"}}</a>
+							{{if .OpenProjects}}
+								<div class="divider"></div>
+								<div class="header">
+									{{.locale.Tr "repo.issues.new.open_projects"}}
+								</div>
+								{{range .OpenProjects}}
+									<a class="{{if $.ProjectID}}{{if eq $.ProjectID .ID}}active selected{{end}}{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{.ID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">
+										{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "mr-3"}}{{else}}{{svg "octicon-project" 18 "mr-3"}}{{end}}
+										{{.Title}}
+									</a>
+								{{end}}
+							{{end}}
+							{{if .ClosedProjects}}
+								<div class="divider"></div>
+								<div class="header">
+									{{.locale.Tr "repo.issues.new.closed_projects"}}
+								</div>
+								{{range .ClosedProjects}}
+									<a class="{{if $.ProjectID}}{{if eq $.ProjectID .ID}}active selected{{end}}{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{.ID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">
+										{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "mr-3"}}{{else}}{{svg "octicon-project" 18 "mr-3"}}{{end}}
+										{{.Title}}
+									</a>
+								{{end}}
 							{{end}}
 						</div>
 					</div>
@@ -222,18 +244,38 @@
 					</div>
 
 					<!-- Projects -->
-					<div class="ui {{if not .Projects}}disabled{{end}} dropdown jump item">
+					<div class="ui{{if not (or .OpenProjects .ClosedProjects)}} disabled{{end}} dropdown jump item">
 						<span class="text">
 							{{.locale.Tr "repo.project_board"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						</span>
 						<div class="menu">
 							<div class="item issue-action" data-element-id="0" data-url="{{$.Link}}/projects">
-							{{.locale.Tr "repo.issues.new.no_projects"}}
+							{{.locale.Tr "repo.issues.new.clear_projects"}}
 							</div>
-							{{range .Projects}}
-								<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/projects">
-									{{.Title}}
+							{{if .OpenProjects}}
+								<div class="divider"></div>
+								<div class="header">
+									{{.locale.Tr "repo.issues.new.open_projects"}}
+								</div>
+								{{range .OpenProjects}}
+									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/projects">
+										{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "mr-3"}}{{else}}{{svg "octicon-project" 18 "mr-3"}}{{end}}
+										{{.Title}}
+									</div>
+								{{end}}
+							{{end}}
+							{{if .ClosedProjects}}
+								<div class="divider"></div>
+								<div class="header">
+									{{.locale.Tr "repo.issues.new.closed_projects"}}
+								</div>
+								{{range .ClosedProjects}}
+									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/projects">
+										{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "mr-3"}}{{else}}{{svg "octicon-project" 18 "mr-3"}}{{end}}
+										{{.Title}}
+									</div>
+								{{end}}
 								</div>
 							{{end}}
 						</div>
