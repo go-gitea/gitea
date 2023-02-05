@@ -370,7 +370,7 @@ func CreateOrUpdateRepoFile(ctx context.Context, repo *repo_model.Repository, do
 	if setting.LFS.StartServer && hasOldBranch {
 		// Check there is no way this can return multiple infos
 		filename2attribute2info, err := t.gitRepo.CheckAttribute(git.CheckAttributeOpts{
-			Attributes: []git.CmdArg{"filter"},
+			Attributes: []string{"filter"},
 			Filenames:  []string{treePath},
 			CachedOnly: true,
 		})
