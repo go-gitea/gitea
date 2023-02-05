@@ -30,7 +30,7 @@ func apiError(ctx *context.Context, status int, obj interface{}) {
 }
 
 func GetRepositoryKey(ctx *context.Context) {
-	pv, err := debian_service.GetOrCreateRepositoryVersion(ctx.Package.Owner)
+	pv, err := debian_service.GetOrCreateRepositoryVersion(ctx.Package.Owner.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -55,7 +55,7 @@ func GetRepositoryKey(ctx *context.Context) {
 // https://wiki.debian.org/DebianRepository/Format#A.22Release.22_files
 // https://wiki.debian.org/DebianRepository/Format#A.22Packages.22_Indices
 func GetRepositoryFile(ctx *context.Context) {
-	pv, err := debian_service.GetOrCreateRepositoryVersion(ctx.Package.Owner)
+	pv, err := debian_service.GetOrCreateRepositoryVersion(ctx.Package.Owner.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -95,7 +95,7 @@ func GetRepositoryFile(ctx *context.Context) {
 
 // https://wiki.debian.org/DebianRepository/Format#indices_acquisition_via_hashsums_.28by-hash.29
 func GetRepositoryFileByHash(ctx *context.Context) {
-	pv, err := debian_service.GetOrCreateRepositoryVersion(ctx.Package.Owner)
+	pv, err := debian_service.GetOrCreateRepositoryVersion(ctx.Package.Owner.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -215,7 +215,7 @@ func UploadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	if err := debian_service.GenerateRepositoryFiles(ctx, ctx.Package.Owner, distribution, component, pck.Architecture); err != nil {
+	if err := debian_service.BuildSpecificRepositoryFiles(ctx, ctx.Package.Owner.ID, distribution, component, pck.Architecture); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
@@ -317,7 +317,7 @@ func DeletePackageFile(ctx *context.Context) {
 		notification.NotifyPackageDelete(ctx, ctx.Doer, pd)
 	}
 
-	if err := debian_service.GenerateRepositoryFiles(ctx, ctx.Package.Owner, distribution, component, architecture); err != nil {
+	if err := debian_service.BuildSpecificRepositoryFiles(ctx, ctx.Package.Owner.ID, distribution, component, architecture); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}

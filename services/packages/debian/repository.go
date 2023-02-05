@@ -33,12 +33,12 @@ import (
 
 // GetOrCreateRepositoryVersion gets or creates the internal repository package
 // The Debian registry needs multiple index files which are stored in this package.
-func GetOrCreateRepositoryVersion(owner *user_model.User) (*packages_model.PackageVersion, error) {
+func GetOrCreateRepositoryVersion(ownerID int64) (*packages_model.PackageVersion, error) {
 	var repositoryVersion *packages_model.PackageVersion
 
 	return repositoryVersion, db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		p := &packages_model.Package{
-			OwnerID:    owner.ID,
+			OwnerID:    ownerID,
 			Type:       packages_model.TypeDebian,
 			Name:       debian_module.RepositoryPackage,
 			LowerName:  debian_module.RepositoryPackage,
@@ -55,7 +55,7 @@ func GetOrCreateRepositoryVersion(owner *user_model.User) (*packages_model.Packa
 		created := true
 		pv := &packages_model.PackageVersion{
 			PackageID:    p.ID,
-			CreatorID:    owner.ID,
+			CreatorID:    ownerID,
 			Version:      debian_module.RepositoryVersion,
 			LowerVersion: debian_module.RepositoryVersion,
 			IsInternal:   true,
@@ -123,24 +123,76 @@ func generateKeypair() (string, string, error) {
 	return priv.String(), pub.String(), nil
 }
 
-// GenerateRepositoryFiles generates index files for the repository
-func GenerateRepositoryFiles(ctx context.Context, owner *user_model.User, distribution, component, architecture string) error {
-	pv, err := GetOrCreateRepositoryVersion(owner)
+func BuildAllRepositoryFiles(ctx context.Context, ownerID int64) error {
+	pv, err := GetOrCreateRepositoryVersion(ownerID)
 	if err != nil {
 		return err
 	}
 
-	if err := buildPackagesIndices(ctx, owner, pv, distribution, component, architecture); err != nil {
+	// 1. Delete all existing repository files
+	pfs, err := packages_model.GetFilesByVersionID(ctx, pv.ID)
+	if err != nil {
 		return err
 	}
 
-	return buildReleaseFiles(ctx, owner, pv, distribution)
+	for _, pf := range pfs {
+		if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeFile, pf.ID); err != nil {
+			return err
+		}
+		if err := packages_model.DeleteFileByID(ctx, pf.ID); err != nil {
+			return err
+		}
+	}
+
+	// 2. (Re)Build repository files for existing packages
+	distributions, err := debian_model.GetDistributions(ctx, ownerID)
+	if err != nil {
+		return err
+	}
+	for _, distribution := range distributions {
+		components, err := debian_model.GetComponents(ctx, ownerID, distribution)
+		if err != nil {
+			return err
+		}
+		architectures, err := debian_model.GetArchitectures(ctx, ownerID, distribution)
+		if err != nil {
+			return err
+		}
+
+		for _, component := range components {
+			for _, architecture := range architectures {
+				if err := buildRepositoryFiles(ctx, ownerID, pv, distribution, component, architecture); err != nil {
+					return fmt.Errorf("failed to build repository files [%s/%s/%s]: %w", distribution, component, architecture, err)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// BuildSpecificRepositoryFiles builds index files for the repository
+func BuildSpecificRepositoryFiles(ctx context.Context, ownerID int64, distribution, component, architecture string) error {
+	pv, err := GetOrCreateRepositoryVersion(ownerID)
+	if err != nil {
+		return err
+	}
+
+	return buildRepositoryFiles(ctx, ownerID, pv, distribution, component, architecture)
+}
+
+func buildRepositoryFiles(ctx context.Context, ownerID int64, repoVersion *packages_model.PackageVersion, distribution, component, architecture string) error {
+	if err := buildPackagesIndices(ctx, ownerID, repoVersion, distribution, component, architecture); err != nil {
+		return err
+	}
+
+	return buildReleaseFiles(ctx, ownerID, repoVersion, distribution)
 }
 
 // https://wiki.debian.org/DebianRepository/Format#A.22Packages.22_Indices
-func buildPackagesIndices(ctx context.Context, owner *user_model.User, repoVersion *packages_model.PackageVersion, distribution, component, architecture string) error {
+func buildPackagesIndices(ctx context.Context, ownerID int64, repoVersion *packages_model.PackageVersion, distribution, component, architecture string) error {
 	pfds, err := debian_model.SearchLatestPackages(ctx, &debian_model.PackageSearchOptions{
-		OwnerID:      owner.ID,
+		OwnerID:      ownerID,
 		Distribution: distribution,
 		Component:    component,
 		Architecture: architecture,
@@ -235,7 +287,7 @@ func buildPackagesIndices(ctx context.Context, owner *user_model.User, repoVersi
 }
 
 // https://wiki.debian.org/DebianRepository/Format#A.22Release.22_files
-func buildReleaseFiles(ctx context.Context, owner *user_model.User, repoVersion *packages_model.PackageVersion, distribution string) error {
+func buildReleaseFiles(ctx context.Context, ownerID int64, repoVersion *packages_model.PackageVersion, distribution string) error {
 	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
 		VersionID: repoVersion.ID,
 		Properties: map[string]string{
@@ -266,12 +318,12 @@ func buildReleaseFiles(ctx context.Context, owner *user_model.User, repoVersion 
 		return nil
 	}
 
-	components, err := debian_model.GetComponents(ctx, owner.ID, distribution)
+	components, err := debian_model.GetComponents(ctx, ownerID, distribution)
 	if err != nil {
 		return err
 	}
 
-	architectures, err := debian_model.GetArchitectures(ctx, owner.ID, distribution)
+	architectures, err := debian_model.GetArchitectures(ctx, ownerID, distribution)
 	if err != nil {
 		return err
 	}
