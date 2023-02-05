@@ -161,11 +161,10 @@ func Monitor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.monitor")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminMonitor"] = true
-	processes, processCount := process.GetManager().Processes(false, true)
+	ctx.Data["Processes"], ctx.Data["ProcessCount"] = process.GetManager().Processes(false, true)
 	ctx.Data["Entries"] = cron.ListTasks()
 	ctx.Data["Queues"] = queue.GetManager().ManagedQueues()
 
-	ctx.Data["Processes"], ctx.Data["ProcessCount"] = processes, processCount
 
 	ctx.Data["Profiles"] = pprof.Profiles()
 
