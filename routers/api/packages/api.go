@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/api/packages/cargo"
 	"code.gitea.io/gitea/routers/api/packages/composer"
 	"code.gitea.io/gitea/routers/api/packages/conan"
 	"code.gitea.io/gitea/routers/api/packages/conda"
@@ -71,6 +72,20 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 	})
 
 	r.Group("/{username}", func() {
+		r.Group("/cargo", func() {
+			r.Group("/api/v1/crates", func() {
+				r.Get("", cargo.SearchPackages)
+				r.Put("/new", reqPackageAccess(perm.AccessModeWrite), cargo.UploadPackage)
+				r.Group("/{package}", func() {
+					r.Group("/{version}", func() {
+						r.Get("/download", cargo.DownloadPackageFile)
+						r.Delete("/yank", reqPackageAccess(perm.AccessModeWrite), cargo.YankPackage)
+						r.Put("/unyank", reqPackageAccess(perm.AccessModeWrite), cargo.UnyankPackage)
+					})
+					r.Get("/owners", cargo.ListOwners)
+				})
+			})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/composer", func() {
 			r.Get("/packages.json", composer.ServiceIndex)
 			r.Get("/search.json", composer.SearchPackages)
