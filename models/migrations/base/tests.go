@@ -149,8 +149,7 @@ func MainTest(m *testing.M) {
 	setting.AppDataPath = tmpDataPath
 
 	setting.SetCustomPathAndConf("", "", "")
-	setting.InitProviderForTest()
-	setting.LoadCommonSettings()
+	setting.InitProviderAndLoadCommonSettingsForTest()
 	if err = git.InitFull(context.Background()); err != nil {
 		fmt.Printf("Unable to InitFull: %v\n", err)
 		os.Exit(1)

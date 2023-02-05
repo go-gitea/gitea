@@ -15,8 +15,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	setting.InitProviderForTest()
-	setting.LoadCommonSettings()
+	setting.InitProviderAndLoadCommonSettingsForTest()
 	setting.LoadQueueSettings()
 
 	// for tests, allow only loopback IPs

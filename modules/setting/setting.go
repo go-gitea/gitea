@@ -225,9 +225,10 @@ func InitProviderAllowEmpty() {
 	CfgProvider = newFileProviderFromConf(CustomConf, WritePIDFile, true, PIDFile, "")
 }
 
-// InitProviderForTest initializes config provider for tests
-func InitProviderForTest(extraConfigs ...string) {
+// InitProviderAndLoadCommonSettingsForTest initializes config provider and load common setttings for tests
+func InitProviderAndLoadCommonSettingsForTest(extraConfigs ...string) {
 	CfgProvider = newFileProviderFromConf(CustomConf, WritePIDFile, true, PIDFile, strings.Join(extraConfigs, "\n"))
+	loadCommonSettingsFrom(CfgProvider)
 	if err := PrepareAppDataPath(); err != nil {
 		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)
 	}
