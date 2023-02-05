@@ -6,7 +6,6 @@ package mirror
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
