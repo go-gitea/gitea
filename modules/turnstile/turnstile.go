@@ -26,12 +26,11 @@ type Response struct {
 }
 
 // Verify calls Cloudflare Turnstile API to verify token
-func Verify(ctx context.Context, response, ip string) (bool, error) {
+func Verify(ctx context.Context, response string) (bool, error) {
 	// Cloudflare turnstile official access instruction address: https://developers.cloudflare.com/turnstile/get-started/server-side-validation/
 	post := url.Values{
 		"secret":   {setting.Service.CfTurnstileSecret},
 		"response": {response},
-		"remoteip": {ip},
 	}
 	// Basically a copy of http.PostForm, but with a context
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost,

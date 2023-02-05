@@ -5,7 +5,6 @@ package context
 
 import (
 	"fmt"
-	"net"
 	"sync"
 
 	"code.gitea.io/gitea/modules/base"
@@ -78,12 +77,7 @@ func VerifyCaptcha(ctx *Context, tpl base.TplName, form interface{}) {
 	case setting.MCaptcha:
 		valid, err = mcaptcha.Verify(ctx, ctx.Req.Form.Get(mCaptchaResponseField))
 	case setting.CfTurnstile:
-		var ip string
-		ip, _, err = net.SplitHostPort(ctx.RemoteAddr())
-		if err != nil {
-			break
-		}
-		valid, err = turnstile.Verify(ctx, ctx.Req.Form.Get(cfTurnstileResponseField), ip)
+		valid, err = turnstile.Verify(ctx, ctx.Req.Form.Get(cfTurnstileResponseField))
 	default:
 		ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
 		return
