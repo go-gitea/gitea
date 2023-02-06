@@ -1,7 +1,6 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cmd
 
@@ -181,6 +180,11 @@ var (
 				Name:  "raw",
 				Usage: "Display only the token value",
 			},
+			cli.StringFlag{
+				Name:  "scopes",
+				Value: "",
+				Usage: "Comma separated list of scopes to apply to access token",
+			},
 		},
 		Action: runGenerateAccessToken,
 	}
@@ -303,6 +307,11 @@ var (
 			Name:  "use-custom-urls",
 			Value: "false",
 			Usage: "Use custom URLs for GitLab/GitHub OAuth endpoints",
+		},
+		cli.StringFlag{
+			Name:  "custom-tenant-id",
+			Value: "",
+			Usage: "Use custom Tenant ID for OAuth endpoints",
 		},
 		cli.StringFlag{
 			Name:  "custom-auth-url",
@@ -574,12 +583,16 @@ func runCreateUser(c *cli.Context) error {
 		restricted = util.OptionalBoolOf(c.Bool("restricted"))
 	}
 
+	// default user visibility in app.ini
+	visibility := setting.Service.DefaultUserVisibilityMode
+
 	u := &user_model.User{
 		Name:               username,
 		Email:              c.String("email"),
 		Passwd:             password,
 		IsAdmin:            c.Bool("admin"),
 		MustChangePassword: changePassword,
+		Visibility:         visibility,
 	}
 
 	overwriteDefault := &user_model.CreateUserOverwriteOptions{
@@ -666,7 +679,7 @@ func runDeleteUser(c *cli.Context) error {
 	} else if c.IsSet("username") {
 		user, err = user_model.GetUserByName(ctx, c.String("username"))
 	} else {
-		user, err = user_model.GetUserByID(c.Int64("id"))
+		user, err = user_model.GetUserByID(ctx, c.Int64("id"))
 	}
 	if err != nil {
 		return err
@@ -699,9 +712,15 @@ func runGenerateAccessToken(c *cli.Context) error {
 		return err
 	}
 
+	accessTokenScope, err := auth_model.AccessTokenScope(c.String("scopes")).Normalize()
+	if err != nil {
+		return err
+	}
+
 	t := &auth_model.AccessToken{
-		Name: c.String("token-name"),
-		UID:  user.ID,
+		Name:  c.String("token-name"),
+		UID:   user.ID,
+		Scope: accessTokenScope,
 	}
 
 	if err := auth_model.NewAccessToken(t); err != nil {
@@ -779,6 +798,7 @@ func runRepoSyncReleases(_ *cli.Context) error {
 
 func getReleaseCount(id int64) (int64, error) {
 	return repo_model.GetReleaseCountByRepoID(
+		db.DefaultContext,
 		id,
 		repo_model.FindReleasesOptions{
 			IncludeTags: true,
@@ -814,6 +834,7 @@ func parseOAuth2Config(c *cli.Context) *oauth2.Source {
 			AuthURL:    c.String("custom-auth-url"),
 			ProfileURL: c.String("custom-profile-url"),
 			EmailURL:   c.String("custom-email-url"),
+			Tenant:     c.String("custom-tenant-id"),
 		}
 	} else {
 		customURLMapping = nil
@@ -923,6 +944,7 @@ func runUpdateOauth(c *cli.Context) error {
 		customURLMapping.AuthURL = oAuth2Config.CustomURLMapping.AuthURL
 		customURLMapping.ProfileURL = oAuth2Config.CustomURLMapping.ProfileURL
 		customURLMapping.EmailURL = oAuth2Config.CustomURLMapping.EmailURL
+		customURLMapping.Tenant = oAuth2Config.CustomURLMapping.Tenant
 	}
 	if c.IsSet("use-custom-urls") && c.IsSet("custom-token-url") {
 		customURLMapping.TokenURL = c.String("custom-token-url")
@@ -940,6 +962,10 @@ func runUpdateOauth(c *cli.Context) error {
 		customURLMapping.EmailURL = c.String("custom-email-url")
 	}
 
+	if c.IsSet("use-custom-urls") && c.IsSet("custom-tenant-id") {
+		customURLMapping.Tenant = c.String("custom-tenant-id")
+	}
+
 	oAuth2Config.CustomURLMapping = customURLMapping
 	source.Cfg = oAuth2Config
 
@@ -950,7 +976,7 @@ func parseSMTPConfig(c *cli.Context, conf *smtp.Source) error {
 	if c.IsSet("auth-type") {
 		conf.Auth = c.String("auth-type")
 		validAuthTypes := []string{"PLAIN", "LOGIN", "CRAM-MD5"}
-		if !contains(validAuthTypes, strings.ToUpper(c.String("auth-type"))) {
+		if !util.SliceContainsString(validAuthTypes, strings.ToUpper(c.String("auth-type"))) {
 			return errors.New("Auth must be one of PLAIN/LOGIN/CRAM-MD5")
 		}
 		conf.Auth = c.String("auth-type")

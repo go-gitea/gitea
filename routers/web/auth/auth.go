@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package auth
 
@@ -634,7 +633,7 @@ func Activate(ctx *context.Context) {
 	user := user_model.VerifyUserActiveCode(code)
 	// if code is wrong
 	if user == nil {
-		ctx.Data["IsActivateFailed"] = true
+		ctx.Data["IsCodeInvalid"] = true
 		ctx.HTML(http.StatusOK, TplActivate)
 		return
 	}
@@ -661,7 +660,7 @@ func ActivatePost(ctx *context.Context) {
 	user := user_model.VerifyUserActiveCode(code)
 	// if code is wrong
 	if user == nil {
-		ctx.Data["IsActivateFailed"] = true
+		ctx.Data["IsCodeInvalid"] = true
 		ctx.HTML(http.StatusOK, TplActivate)
 		return
 	}
@@ -676,7 +675,7 @@ func ActivatePost(ctx *context.Context) {
 			return
 		}
 		if !user.ValidatePassword(password) {
-			ctx.Data["IsActivateFailed"] = true
+			ctx.Data["IsPasswordInvalid"] = true
 			ctx.HTML(http.StatusOK, TplActivate)
 			return
 		}
@@ -748,7 +747,7 @@ func ActivateEmail(ctx *context.Context) {
 		log.Trace("Email activated: %s", email.Email)
 		ctx.Flash.Success(ctx.Tr("settings.add_email_success"))
 
-		if u, err := user_model.GetUserByID(email.UID); err != nil {
+		if u, err := user_model.GetUserByID(ctx, email.UID); err != nil {
 			log.Warn("GetUserByID: %d", email.UID)
 		} else if setting.CacheService.Enabled {
 			// Allow user to validate more emails

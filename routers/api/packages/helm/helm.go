@@ -1,10 +1,10 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package helm
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -138,7 +138,10 @@ func DownloadPackageFile(ctx *context.Context) {
 	}
 	defer s.Close()
 
-	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
+	ctx.ServeContent(s, &context.ServeHeaderOptions{
+		Filename:     pf.Name,
+		LastModified: pf.CreatedUnix.AsLocalTime(),
+	})
 }
 
 // UploadPackage creates a new package
@@ -161,7 +164,11 @@ func UploadPackage(ctx *context.Context) {
 
 	metadata, err := helm_module.ParseChartArchive(buf)
 	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
+		if errors.Is(err, util.ErrInvalidArgument) {
+			apiError(ctx, http.StatusBadRequest, err)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
 		return
 	}
 

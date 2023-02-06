@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package access
 
@@ -172,7 +171,7 @@ func RecalculateTeamAccesses(ctx context.Context, repo *repo_model.Repository, i
 			continue
 		}
 
-		if err = t.GetMembersCtx(ctx); err != nil {
+		if err = t.LoadMembers(ctx); err != nil {
 			return fmt.Errorf("getMembers '%d': %w", t.ID, err)
 		}
 		for _, m := range t.Members {

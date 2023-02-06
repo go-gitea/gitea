@@ -1,16 +1,18 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
@@ -19,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	packages_service "code.gitea.io/gitea/services/packages"
+	packages_cleanup_service "code.gitea.io/gitea/services/packages/cleanup"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -29,7 +32,8 @@ func TestPackageAPI(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session)
+	tokenReadPackage := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadPackage)
+	tokenDeletePackage := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeDeletePackage)
 
 	packageName := "test-package"
 	packageVersion := "1.0.3"
@@ -43,7 +47,7 @@ func TestPackageAPI(t *testing.T) {
 	t.Run("ListPackages", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s?token=%s", user.Name, token))
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s?token=%s", user.Name, tokenReadPackage))
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var apiPackages []*api.Package
@@ -60,10 +64,10 @@ func TestPackageAPI(t *testing.T) {
 	t.Run("GetPackage", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/dummy/%s/%s?token=%s", user.Name, packageName, packageVersion, token))
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/dummy/%s/%s?token=%s", user.Name, packageName, packageVersion, tokenReadPackage))
 		MakeRequest(t, req, http.StatusNotFound)
 
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s?token=%s", user.Name, packageName, packageVersion, token))
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s?token=%s", user.Name, packageName, packageVersion, tokenReadPackage))
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var p *api.Package
@@ -82,7 +86,7 @@ func TestPackageAPI(t *testing.T) {
 			assert.NoError(t, err)
 
 			// no repository link
-			req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s?token=%s", user.Name, packageName, packageVersion, token))
+			req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s?token=%s", user.Name, packageName, packageVersion, tokenReadPackage))
 			resp := MakeRequest(t, req, http.StatusOK)
 
 			var ap1 *api.Package
@@ -92,7 +96,7 @@ func TestPackageAPI(t *testing.T) {
 			// link to public repository
 			assert.NoError(t, packages_model.SetRepositoryLink(db.DefaultContext, p.ID, 1))
 
-			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s?token=%s", user.Name, packageName, packageVersion, token))
+			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s?token=%s", user.Name, packageName, packageVersion, tokenReadPackage))
 			resp = MakeRequest(t, req, http.StatusOK)
 
 			var ap2 *api.Package
@@ -103,7 +107,7 @@ func TestPackageAPI(t *testing.T) {
 			// link to private repository
 			assert.NoError(t, packages_model.SetRepositoryLink(db.DefaultContext, p.ID, 2))
 
-			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s?token=%s", user.Name, packageName, packageVersion, token))
+			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s?token=%s", user.Name, packageName, packageVersion, tokenReadPackage))
 			resp = MakeRequest(t, req, http.StatusOK)
 
 			var ap3 *api.Package
@@ -117,10 +121,10 @@ func TestPackageAPI(t *testing.T) {
 	t.Run("ListPackageFiles", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/dummy/%s/%s/files?token=%s", user.Name, packageName, packageVersion, token))
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/dummy/%s/%s/files?token=%s", user.Name, packageName, packageVersion, tokenReadPackage))
 		MakeRequest(t, req, http.StatusNotFound)
 
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s/files?token=%s", user.Name, packageName, packageVersion, token))
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s/files?token=%s", user.Name, packageName, packageVersion, tokenReadPackage))
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var files []*api.PackageFile
@@ -138,10 +142,10 @@ func TestPackageAPI(t *testing.T) {
 	t.Run("DeletePackage", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/dummy/%s/%s?token=%s", user.Name, packageName, packageVersion, token))
+		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/dummy/%s/%s?token=%s", user.Name, packageName, packageVersion, tokenDeletePackage))
 		MakeRequest(t, req, http.StatusNotFound)
 
-		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s?token=%s", user.Name, packageName, packageVersion, token))
+		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s?token=%s", user.Name, packageName, packageVersion, tokenDeletePackage))
 		MakeRequest(t, req, http.StatusNoContent)
 	})
 }
@@ -170,34 +174,62 @@ func TestPackageAccess(t *testing.T) {
 func TestPackageQuota(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	limitTotalOwnerCount, limitTotalOwnerSize, limitSizeGeneric := setting.Packages.LimitTotalOwnerCount, setting.Packages.LimitTotalOwnerSize, setting.Packages.LimitSizeGeneric
+	limitTotalOwnerCount, limitTotalOwnerSize := setting.Packages.LimitTotalOwnerCount, setting.Packages.LimitTotalOwnerSize
 
+	// Exceeded quota result in StatusForbidden for normal users but admins are always allowed to upload.
 	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 10})
 
-	uploadPackage := func(doer *user_model.User, version string, expectedStatus int) {
-		url := fmt.Sprintf("/api/packages/%s/generic/test-package/%s/file.bin", user.Name, version)
-		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1}))
-		AddBasicAuthHeader(req, doer.Name)
-		MakeRequest(t, req, expectedStatus)
-	}
+	t.Run("Common", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
 
-	// Exceeded quota result in StatusForbidden for normal users but admins are always allowed to upload.
+		limitSizeGeneric := setting.Packages.LimitSizeGeneric
 
-	setting.Packages.LimitTotalOwnerCount = 0
-	uploadPackage(user, "1.0", http.StatusForbidden)
-	uploadPackage(admin, "1.0", http.StatusCreated)
-	setting.Packages.LimitTotalOwnerCount = limitTotalOwnerCount
+		uploadPackage := func(doer *user_model.User, version string, expectedStatus int) {
+			url := fmt.Sprintf("/api/packages/%s/generic/test-package/%s/file.bin", user.Name, version)
+			req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1}))
+			AddBasicAuthHeader(req, doer.Name)
+			MakeRequest(t, req, expectedStatus)
+		}
 
-	setting.Packages.LimitTotalOwnerSize = 0
-	uploadPackage(user, "1.1", http.StatusForbidden)
-	uploadPackage(admin, "1.1", http.StatusCreated)
-	setting.Packages.LimitTotalOwnerSize = limitTotalOwnerSize
+		setting.Packages.LimitTotalOwnerCount = 0
+		uploadPackage(user, "1.0", http.StatusForbidden)
+		uploadPackage(admin, "1.0", http.StatusCreated)
+		setting.Packages.LimitTotalOwnerCount = limitTotalOwnerCount
 
-	setting.Packages.LimitSizeGeneric = 0
-	uploadPackage(user, "1.2", http.StatusForbidden)
-	uploadPackage(admin, "1.2", http.StatusCreated)
-	setting.Packages.LimitSizeGeneric = limitSizeGeneric
+		setting.Packages.LimitTotalOwnerSize = 0
+		uploadPackage(user, "1.1", http.StatusForbidden)
+		uploadPackage(admin, "1.1", http.StatusCreated)
+		setting.Packages.LimitTotalOwnerSize = limitTotalOwnerSize
+
+		setting.Packages.LimitSizeGeneric = 0
+		uploadPackage(user, "1.2", http.StatusForbidden)
+		uploadPackage(admin, "1.2", http.StatusCreated)
+		setting.Packages.LimitSizeGeneric = limitSizeGeneric
+	})
+
+	t.Run("Container", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		limitSizeContainer := setting.Packages.LimitSizeContainer
+
+		uploadBlob := func(doer *user_model.User, data string, expectedStatus int) {
+			url := fmt.Sprintf("/v2/%s/quota-test/blobs/uploads?digest=sha256:%x", user.Name, sha256.Sum256([]byte(data)))
+			req := NewRequestWithBody(t, "POST", url, strings.NewReader(data))
+			AddBasicAuthHeader(req, doer.Name)
+			MakeRequest(t, req, expectedStatus)
+		}
+
+		setting.Packages.LimitTotalOwnerSize = 0
+		uploadBlob(user, "2", http.StatusForbidden)
+		uploadBlob(admin, "2", http.StatusCreated)
+		setting.Packages.LimitTotalOwnerSize = limitTotalOwnerSize
+
+		setting.Packages.LimitSizeContainer = 0
+		uploadBlob(user, "3", http.StatusForbidden)
+		uploadBlob(admin, "3", http.StatusCreated)
+		setting.Packages.LimitSizeContainer = limitSizeContainer
+	})
 }
 
 func TestPackageCleanup(t *testing.T) {
@@ -215,7 +247,7 @@ func TestPackageCleanup(t *testing.T) {
 		_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, 2, packages_model.TypeContainer, "test", container_model.UploadVersion)
 		assert.NoError(t, err)
 
-		err = packages_service.Cleanup(db.DefaultContext, duration)
+		err = packages_cleanup_service.Cleanup(db.DefaultContext, duration)
 		assert.NoError(t, err)
 
 		pbs, err = packages_model.FindExpiredUnreferencedBlobs(db.DefaultContext, duration)
@@ -352,7 +384,7 @@ func TestPackageCleanup(t *testing.T) {
 				pcr, err := packages_model.InsertCleanupRule(db.DefaultContext, c.Rule)
 				assert.NoError(t, err)
 
-				err = packages_service.Cleanup(db.DefaultContext, duration)
+				err = packages_cleanup_service.Cleanup(db.DefaultContext, duration)
 				assert.NoError(t, err)
 
 				for _, v := range c.Versions {

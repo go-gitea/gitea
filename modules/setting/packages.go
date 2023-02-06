@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package setting
 
@@ -26,8 +25,11 @@ var (
 
 		LimitTotalOwnerCount int64
 		LimitTotalOwnerSize  int64
+		LimitSizeCargo       int64
+		LimitSizeChef        int64
 		LimitSizeComposer    int64
 		LimitSizeConan       int64
+		LimitSizeConda       int64
 		LimitSizeContainer   int64
 		LimitSizeGeneric     int64
 		LimitSizeHelm        int64
@@ -65,8 +67,11 @@ func newPackages() {
 	}
 
 	Packages.LimitTotalOwnerSize = mustBytes(sec, "LIMIT_TOTAL_OWNER_SIZE")
+	Packages.LimitSizeCargo = mustBytes(sec, "LIMIT_SIZE_CARGO")
+	Packages.LimitSizeChef = mustBytes(sec, "LIMIT_SIZE_CHEF")
 	Packages.LimitSizeComposer = mustBytes(sec, "LIMIT_SIZE_COMPOSER")
 	Packages.LimitSizeConan = mustBytes(sec, "LIMIT_SIZE_CONAN")
+	Packages.LimitSizeConda = mustBytes(sec, "LIMIT_SIZE_CONDA")
 	Packages.LimitSizeContainer = mustBytes(sec, "LIMIT_SIZE_CONTAINER")
 	Packages.LimitSizeGeneric = mustBytes(sec, "LIMIT_SIZE_GENERIC")
 	Packages.LimitSizeHelm = mustBytes(sec, "LIMIT_SIZE_HELM")

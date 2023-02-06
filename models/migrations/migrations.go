@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migrations
 
@@ -433,6 +432,9 @@ var migrations = []Migration{
 	NewMigration("Update counts of all open milestones", v1_18.UpdateOpenMilestoneCounts),
 	// v230 -> v231
 	NewMigration("Add ConfidentialClient column (default true) to OAuth2Application table", v1_18.AddConfidentialClientColumnToOAuth2ApplicationTable),
+
+	// Gitea 1.18.0 ends at v231
+
 	// v231 -> v232
 	NewMigration("Add index for hook_task", v1_19.AddIndexForHookTask),
 	// v232 -> v233
@@ -441,6 +443,18 @@ var migrations = []Migration{
 	NewMigration("Add header_authorization_encrypted column to webhook table", v1_19.AddHeaderAuthorizationEncryptedColWebhook),
 	// v234 -> v235
 	NewMigration("Add package cleanup rule table", v1_19.CreatePackageCleanupRuleTable),
+	// v235 -> v236
+	NewMigration("Add index for access_token", v1_19.AddIndexForAccessToken),
+	// v236 -> v237
+	NewMigration("Create secrets table", v1_19.CreateSecretsTable),
+	// v237 -> v238
+	NewMigration("Drop ForeignReference table", v1_19.DropForeignReferenceTable),
+	// v238 -> v239
+	NewMigration("Add updated unix to LFSMetaObject", v1_19.AddUpdatedUnixToLFSMetaObject),
+	// v239 -> v240
+	NewMigration("Add scope for access_token", v1_19.AddScopeForAccessTokens),
+	// v240 -> v241
+	NewMigration("Add actions tables", v1_19.AddActionsTables),
 }
 
 // GetCurrentDBVersion returns the current db version

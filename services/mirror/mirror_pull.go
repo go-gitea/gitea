@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package mirror
 
@@ -204,11 +203,11 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 
 	log.Trace("SyncMirrors [repo: %-v]: running git remote update...", m.Repo)
 
-	gitArgs := []git.CmdArg{"remote", "update"}
+	cmd := git.NewCommand(ctx, "remote", "update")
 	if m.EnablePrune {
-		gitArgs = append(gitArgs, "--prune")
+		cmd.AddArguments("--prune")
 	}
-	gitArgs = append(gitArgs, git.CmdArgCheck(m.GetRemoteName()))
+	cmd.AddDynamicArguments(m.GetRemoteName())
 
 	remoteURL, remoteErr := git.GetRemoteURL(ctx, repoPath, m.GetRemoteName())
 	if remoteErr != nil {
@@ -218,7 +217,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 
 	stdoutBuilder := strings.Builder{}
 	stderrBuilder := strings.Builder{}
-	if err := git.NewCommand(ctx, gitArgs...).
+	if err := cmd.
 		SetDescription(fmt.Sprintf("Mirror.runSync: %s", m.Repo.FullName())).
 		Run(&git.RunOpts{
 			Timeout: timeout,
@@ -244,7 +243,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 				// Successful prune - reattempt mirror
 				stderrBuilder.Reset()
 				stdoutBuilder.Reset()
-				if err = git.NewCommand(ctx, gitArgs...).
+				if err = cmd.
 					SetDescription(fmt.Sprintf("Mirror.runSync: %s", m.Repo.FullName())).
 					Run(&git.RunOpts{
 						Timeout: timeout,

@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package integration
 
@@ -17,6 +16,7 @@ import (
 	"testing"
 	"time"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/perm"
@@ -43,11 +43,11 @@ func TestGit(t *testing.T) {
 
 func testGit(t *testing.T, u *url.URL) {
 	username := "user2"
-	baseAPITestContext := NewAPITestContext(t, username, "repo1")
+	baseAPITestContext := NewAPITestContext(t, username, "repo1", auth_model.AccessTokenScopeRepo, auth_model.AccessTokenScopeWritePublicKey, auth_model.AccessTokenScopeDeleteRepo)
 
 	u.Path = baseAPITestContext.GitPath()
 
-	forkedUserCtx := NewAPITestContext(t, "user4", "repo1")
+	forkedUserCtx := NewAPITestContext(t, "user4", "repo1", auth_model.AccessTokenScopeRepo)
 
 	t.Run("HTTP", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
@@ -358,7 +358,7 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 		t.Run("CreateBranchProtected", doGitCreateBranch(dstPath, "protected"))
 		t.Run("PushProtectedBranch", doGitPushTestRepository(dstPath, "origin", "protected"))
 
-		ctx := NewAPITestContext(t, baseCtx.Username, baseCtx.Reponame)
+		ctx := NewAPITestContext(t, baseCtx.Username, baseCtx.Reponame, auth_model.AccessTokenScopeRepo)
 		t.Run("ProtectProtectedBranchNoWhitelist", doProtectBranch(ctx, "protected", "", ""))
 		t.Run("GenerateCommit", func(t *testing.T) {
 			_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-")
@@ -415,9 +415,9 @@ func doProtectBranch(ctx APITestContext, branch, userToWhitelist, unprotectedFil
 
 		if userToWhitelist == "" {
 			// Change branch to protected
-			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/%s", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), url.PathEscape(branch)), map[string]string{
+			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/edit", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)), map[string]string{
 				"_csrf":                     csrf,
-				"protected":                 "on",
+				"rule_name":                 branch,
 				"unprotected_file_patterns": unprotectedFilePatterns,
 			})
 			ctx.Session.MakeRequest(t, req, http.StatusSeeOther)
@@ -425,9 +425,9 @@ func doProtectBranch(ctx APITestContext, branch, userToWhitelist, unprotectedFil
 			user, err := user_model.GetUserByName(db.DefaultContext, userToWhitelist)
 			assert.NoError(t, err)
 			// Change branch to protected
-			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/%s", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), url.PathEscape(branch)), map[string]string{
+			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/edit", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)), map[string]string{
 				"_csrf":                     csrf,
-				"protected":                 "on",
+				"rule_name":                 branch,
 				"enable_push":               "whitelist",
 				"enable_whitelist":          "on",
 				"whitelist_users":           strconv.FormatInt(user.ID, 10),
@@ -438,7 +438,7 @@ func doProtectBranch(ctx APITestContext, branch, userToWhitelist, unprotectedFil
 		// Check if master branch has been locked successfully
 		flashCookie := ctx.Session.GetCookie("macaron_flash")
 		assert.NotNil(t, flashCookie)
-		assert.EqualValues(t, "success%3DBranch%2Bprotection%2Bfor%2Bbranch%2B%2527"+url.QueryEscape(branch)+"%2527%2Bhas%2Bbeen%2Bupdated.", flashCookie.Value)
+		assert.EqualValues(t, "success%3DBranch%2Bprotection%2Bfor%2Brule%2B%2527"+url.QueryEscape(branch)+"%2527%2Bhas%2Bbeen%2Bupdated.", flashCookie.Value)
 	}
 }
 
@@ -509,7 +509,7 @@ func doCreatePRAndSetManuallyMerged(ctx, baseCtx APITestContext, dstPath, baseBr
 		}))
 
 		t.Run("CreateHeadBranch", doGitCreateBranch(dstPath, headBranch))
-		t.Run("PushToHeadBranch", doGitPushTestRepository(dstPath, "origin", git.CmdArgCheck(headBranch)))
+		t.Run("PushToHeadBranch", doGitPushTestRepository(dstPath, "origin", headBranch))
 		t.Run("CreateEmptyPullRequest", func(t *testing.T) {
 			pr, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, baseBranch, headBranch)(t)
 			assert.NoError(t, err)
@@ -571,7 +571,7 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 		t.Run("SuccessfullyPushAndCreateTestRepository", doGitPushTestRepository(tmpDir, "origin", "master"))
 
 		// Finally, fetch repo from database and ensure the correct repository has been created
-		repo, err := repo_model.GetRepositoryByOwnerAndName(ctx.Username, ctx.Reponame)
+		repo, err := repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, ctx.Username, ctx.Reponame)
 		assert.NoError(t, err)
 		assert.False(t, repo.IsEmpty)
 		assert.True(t, repo.IsPrivate)
@@ -602,7 +602,7 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 	return func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		ctx := NewAPITestContext(t, baseCtx.Username, baseCtx.Reponame)
+		ctx := NewAPITestContext(t, baseCtx.Username, baseCtx.Reponame, auth_model.AccessTokenScopeRepo)
 
 		t.Run("CheckoutProtected", doGitCheckoutBranch(dstPath, "protected"))
 		t.Run("PullProtected", doGitPull(dstPath, "origin", "protected"))
@@ -699,7 +699,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			pr1, pr2 *issues_model.PullRequest
 			commit   string
 		)
-		repo, err := repo_model.GetRepositoryByOwnerAndName(ctx.Username, ctx.Reponame)
+		repo, err := repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, ctx.Username, ctx.Reponame)
 		if !assert.NoError(t, err) {
 			return
 		}

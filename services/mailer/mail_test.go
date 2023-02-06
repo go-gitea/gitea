@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package mailer
 
@@ -9,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"html/template"
+	"regexp"
 	"strings"
 	"testing"
 	texttmpl "text/template"
@@ -67,6 +67,9 @@ func prepareMailerTest(t *testing.T) (doer *user_model.User, repo *repo_model.Re
 func TestComposeIssueCommentMessage(t *testing.T) {
 	doer, _, issue, comment := prepareMailerTest(t)
 
+	setting.IncomingEmail.Enabled = true
+	defer func() { setting.IncomingEmail.Enabled = false }()
+
 	subjectTemplates = texttmpl.Must(texttmpl.New("issue/comment").Parse(subjectTpl))
 	bodyTemplates = template.Must(template.New("issue/comment").Parse(bodyTpl))
 
@@ -79,18 +82,20 @@ func TestComposeIssueCommentMessage(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, msgs, 2)
 	gomailMsg := msgs[0].ToMessage()
-	mailto := gomailMsg.GetHeader("To")
-	subject := gomailMsg.GetHeader("Subject")
-	messageID := gomailMsg.GetHeader("Message-ID")
-	inReplyTo := gomailMsg.GetHeader("In-Reply-To")
-	references := gomailMsg.GetHeader("References")
+	replyTo := gomailMsg.GetHeader("Reply-To")[0]
+	subject := gomailMsg.GetHeader("Subject")[0]
 
-	assert.Len(t, mailto, 1, "exactly one recipient is expected in the To field")
-	assert.Equal(t, "Re: ", subject[0][:4], "Comment reply subject should contain Re:")
-	assert.Equal(t, "Re: [user2/repo1] @user2 #1 - issue1", subject[0])
-	assert.Equal(t, "<user2/repo1/issues/1@localhost>", inReplyTo[0], "In-Reply-To header doesn't match")
-	assert.Equal(t, "<user2/repo1/issues/1@localhost>", references[0], "References header doesn't match")
-	assert.Equal(t, "<user2/repo1/issues/1/comment/2@localhost>", messageID[0], "Message-ID header doesn't match")
+	assert.Len(t, gomailMsg.GetHeader("To"), 1, "exactly one recipient is expected in the To field")
+	tokenRegex := regexp.MustCompile(`\Aincoming\+(.+)@localhost\z`)
+	assert.Regexp(t, tokenRegex, replyTo)
+	token := tokenRegex.FindAllStringSubmatch(replyTo, 1)[0][1]
+	assert.Equal(t, "Re: ", subject[:4], "Comment reply subject should contain Re:")
+	assert.Equal(t, "Re: [user2/repo1] @user2 #1 - issue1", subject)
+	assert.Equal(t, "<user2/repo1/issues/1@localhost>", gomailMsg.GetHeader("In-Reply-To")[0], "In-Reply-To header doesn't match")
+	assert.ElementsMatch(t, []string{"<user2/repo1/issues/1@localhost>", "<reply-" + token + "@localhost>"}, gomailMsg.GetHeader("References"), "References header doesn't match")
+	assert.Equal(t, "<user2/repo1/issues/1/comment/2@localhost>", gomailMsg.GetHeader("Message-ID")[0], "Message-ID header doesn't match")
+	assert.Equal(t, "<mailto:"+replyTo+">", gomailMsg.GetHeader("List-Post")[0])
+	assert.Len(t, gomailMsg.GetHeader("List-Unsubscribe"), 2) // url + mailto
 }
 
 func TestComposeIssueMessage(t *testing.T) {
@@ -120,6 +125,8 @@ func TestComposeIssueMessage(t *testing.T) {
 	assert.Equal(t, "<user2/repo1/issues/1@localhost>", inReplyTo[0], "In-Reply-To header doesn't match")
 	assert.Equal(t, "<user2/repo1/issues/1@localhost>", references[0], "References header doesn't match")
 	assert.Equal(t, "<user2/repo1/issues/1@localhost>", messageID[0], "Message-ID header doesn't match")
+	assert.Empty(t, gomailMsg.GetHeader("List-Post"))         // incoming mail feature disabled
+	assert.Len(t, gomailMsg.GetHeader("List-Unsubscribe"), 1) // url without mailto
 }
 
 func TestTemplateSelection(t *testing.T) {
@@ -239,7 +246,6 @@ func TestGenerateAdditionalHeaders(t *testing.T) {
 	expected := map[string]string{
 		"List-ID":                   "user2/repo1 <repo1.user2.localhost>",
 		"List-Archive":              "<https://try.gitea.io/user2/repo1>",
-		"List-Unsubscribe":          "https://try.gitea.io/user2/repo1/issues/1",
 		"X-Gitea-Reason":            "dummy-reason",
 		"X-Gitea-Sender":            "< U<se>r Tw<o > ><",
 		"X-Gitea-Recipient":         "Test",
@@ -272,7 +278,6 @@ func Test_createReference(t *testing.T) {
 		name   string
 		args   args
 		prefix string
-		suffix string
 	}{
 		{
 			name: "Open Issue",
@@ -280,7 +285,7 @@ func Test_createReference(t *testing.T) {
 				issue:      issue,
 				actionType: activities_model.ActionCreateIssue,
 			},
-			prefix: fmt.Sprintf("%s/issues/%d@%s", issue.Repo.FullName(), issue.Index, setting.Domain),
+			prefix: fmt.Sprintf("<%s/issues/%d@%s>", issue.Repo.FullName(), issue.Index, setting.Domain),
 		},
 		{
 			name: "Open Pull",
@@ -288,7 +293,7 @@ func Test_createReference(t *testing.T) {
 				issue:      pullIssue,
 				actionType: activities_model.ActionCreatePullRequest,
 			},
-			prefix: fmt.Sprintf("%s/pulls/%d@%s", issue.Repo.FullName(), issue.Index, setting.Domain),
+			prefix: fmt.Sprintf("<%s/pulls/%d@%s>", issue.Repo.FullName(), issue.Index, setting.Domain),
 		},
 		{
 			name: "Comment Issue",
@@ -297,7 +302,7 @@ func Test_createReference(t *testing.T) {
 				comment:    comment,
 				actionType: activities_model.ActionCommentIssue,
 			},
-			prefix: fmt.Sprintf("%s/issues/%d/comment/%d@%s", issue.Repo.FullName(), issue.Index, comment.ID, setting.Domain),
+			prefix: fmt.Sprintf("<%s/issues/%d/comment/%d@%s>", issue.Repo.FullName(), issue.Index, comment.ID, setting.Domain),
 		},
 		{
 			name: "Comment Pull",
@@ -306,7 +311,7 @@ func Test_createReference(t *testing.T) {
 				comment:    comment,
 				actionType: activities_model.ActionCommentPull,
 			},
-			prefix: fmt.Sprintf("%s/pulls/%d/comment/%d@%s", issue.Repo.FullName(), issue.Index, comment.ID, setting.Domain),
+			prefix: fmt.Sprintf("<%s/pulls/%d/comment/%d@%s>", issue.Repo.FullName(), issue.Index, comment.ID, setting.Domain),
 		},
 		{
 			name: "Close Issue",
@@ -314,7 +319,7 @@ func Test_createReference(t *testing.T) {
 				issue:      issue,
 				actionType: activities_model.ActionCloseIssue,
 			},
-			prefix: fmt.Sprintf("%s/issues/%d/close/", issue.Repo.FullName(), issue.Index),
+			prefix: fmt.Sprintf("<%s/issues/%d/close/", issue.Repo.FullName(), issue.Index),
 		},
 		{
 			name: "Close Pull",
@@ -322,7 +327,7 @@ func Test_createReference(t *testing.T) {
 				issue:      pullIssue,
 				actionType: activities_model.ActionClosePullRequest,
 			},
-			prefix: fmt.Sprintf("%s/pulls/%d/close/", issue.Repo.FullName(), issue.Index),
+			prefix: fmt.Sprintf("<%s/pulls/%d/close/", issue.Repo.FullName(), issue.Index),
 		},
 		{
 			name: "Reopen Issue",
@@ -330,7 +335,7 @@ func Test_createReference(t *testing.T) {
 				issue:      issue,
 				actionType: activities_model.ActionReopenIssue,
 			},
-			prefix: fmt.Sprintf("%s/issues/%d/reopen/", issue.Repo.FullName(), issue.Index),
+			prefix: fmt.Sprintf("<%s/issues/%d/reopen/", issue.Repo.FullName(), issue.Index),
 		},
 		{
 			name: "Reopen Pull",
@@ -338,7 +343,7 @@ func Test_createReference(t *testing.T) {
 				issue:      pullIssue,
 				actionType: activities_model.ActionReopenPullRequest,
 			},
-			prefix: fmt.Sprintf("%s/pulls/%d/reopen/", issue.Repo.FullName(), issue.Index),
+			prefix: fmt.Sprintf("<%s/pulls/%d/reopen/", issue.Repo.FullName(), issue.Index),
 		},
 		{
 			name: "Merge Pull",
@@ -346,7 +351,7 @@ func Test_createReference(t *testing.T) {
 				issue:      pullIssue,
 				actionType: activities_model.ActionMergePullRequest,
 			},
-			prefix: fmt.Sprintf("%s/pulls/%d/merge/", issue.Repo.FullName(), issue.Index),
+			prefix: fmt.Sprintf("<%s/pulls/%d/merge/", issue.Repo.FullName(), issue.Index),
 		},
 		{
 			name: "Ready Pull",
@@ -354,16 +359,13 @@ func Test_createReference(t *testing.T) {
 				issue:      pullIssue,
 				actionType: activities_model.ActionPullRequestReadyForReview,
 			},
-			prefix: fmt.Sprintf("%s/pulls/%d/ready/", issue.Repo.FullName(), issue.Index),
+			prefix: fmt.Sprintf("<%s/pulls/%d/ready/", issue.Repo.FullName(), issue.Index),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := createReference(tt.args.issue, tt.args.comment, tt.args.actionType)
 			if !strings.HasPrefix(got, tt.prefix) {
-				t.Errorf("createReference() = %v, want %v", got, tt.prefix)
-			}
-			if !strings.HasSuffix(got, tt.suffix) {
 				t.Errorf("createReference() = %v, want %v", got, tt.prefix)
 			}
 		})

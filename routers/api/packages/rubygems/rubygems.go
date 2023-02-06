@@ -1,12 +1,12 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package rubygems
 
 import (
 	"compress/gzip"
 	"compress/zlib"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -192,7 +192,10 @@ func DownloadPackageFile(ctx *context.Context) {
 	}
 	defer s.Close()
 
-	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
+	ctx.ServeContent(s, &context.ServeHeaderOptions{
+		Filename:     pf.Name,
+		LastModified: pf.CreatedUnix.AsLocalTime(),
+	})
 }
 
 // UploadPackageFile adds a file to the package. If the package does not exist, it gets created.
@@ -215,7 +218,11 @@ func UploadPackageFile(ctx *context.Context) {
 
 	rp, err := rubygems_module.ParsePackageMetaData(buf)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		if errors.Is(err, util.ErrInvalidArgument) {
+			apiError(ctx, http.StatusBadRequest, err)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
 		return
 	}
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {

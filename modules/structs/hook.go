@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package structs
 
@@ -353,6 +352,7 @@ type IssuePayload struct {
 	Issue      *Issue          `json:"issue"`
 	Repository *Repository     `json:"repository"`
 	Sender     *User           `json:"sender"`
+	CommitID   string          `json:"commit_id"`
 }
 
 // JSONPayload encodes the IssuePayload to JSON, with an indentation of two spaces.
@@ -387,6 +387,7 @@ type PullRequestPayload struct {
 	PullRequest *PullRequest    `json:"pull_request"`
 	Repository  *Repository     `json:"repository"`
 	Sender      *User           `json:"sender"`
+	CommitID    string          `json:"commit_id"`
 	Review      *ReviewPayload  `json:"review"`
 }
 

@@ -1,7 +1,6 @@
 // Copyright 2019 The Gitea Authors.
 // All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package pull
 
@@ -167,7 +166,7 @@ func createTemporaryRepo(ctx context.Context, pr *issues_model.PullRequest) (str
 	var headBranch string
 	if pr.Flow == issues_model.PullRequestFlowGithub {
 		headBranch = git.BranchPrefix + pr.HeadBranch
-	} else if len(pr.HeadCommitID) == 40 { // for not created pull request
+	} else if len(pr.HeadCommitID) == git.SHAFullLength { // for not created pull request
 		headBranch = pr.HeadCommitID
 	} else {
 		headBranch = pr.GetGitRefName()

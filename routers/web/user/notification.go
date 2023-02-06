@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -215,7 +214,7 @@ func NotificationSubscriptions(ctx *context.Context) {
 	ctx.Data["SortType"] = sortType
 
 	state := ctx.FormString("state")
-	if !util.IsStringInSlice(state, []string{"all", "open", "closed"}, true) {
+	if !util.SliceContainsString([]string{"all", "open", "closed"}, state, true) {
 		state = "all"
 	}
 	ctx.Data["State"] = state

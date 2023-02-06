@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content repository new fork">
+<div role="main" aria-label="{{.Title}}" class="page-content repository new fork">
 	<div class="ui middle very relaxed page grid">
 		<div class="column">
 			<form class="ui form" action="{{.Link}}" method="post">
@@ -58,10 +58,9 @@
 
 					<div class="inline field">
 						<label></label>
-						<button class="ui green button">
+						<button class="ui green button{{if not .CanForkRepo}} disabled{{end}}">
 							{{.locale.Tr "repo.fork_repo"}}
 						</button>
-						<a class="ui button" href="{{.ForkRepo.Link}}">{{.locale.Tr "cancel"}}</a>
 					</div>
 				</div>
 			</form>

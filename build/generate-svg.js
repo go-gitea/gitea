@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import fastGlob from 'fast-glob';
 import {optimize} from 'svgo';
-import {parse} from 'path';
-import {readFile, writeFile, mkdir} from 'fs/promises';
-import {fileURLToPath} from 'url';
+import {parse} from 'node:path';
+import {readFile, writeFile, mkdir} from 'node:fs/promises';
+import {fileURLToPath} from 'node:url';
 
 const glob = (pattern) => fastGlob.sync(pattern, {
   cwd: fileURLToPath(new URL('..', import.meta.url)),

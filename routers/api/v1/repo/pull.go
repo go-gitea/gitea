@@ -1,6 +1,5 @@
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -15,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	activities_model "code.gitea.io/gitea/models/activities"
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	pull_model "code.gitea.io/gitea/models/pull"
@@ -22,7 +22,6 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
@@ -33,6 +32,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/automerge"
+	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/gitdiff"
 	issue_service "code.gitea.io/gitea/services/issue"
@@ -400,7 +400,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 	}
 	// Check if the passed assignees is assignable
 	for _, aID := range assigneeIDs {
-		assignee, err := user_model.GetUserByIDCtx(ctx, aID)
+		assignee, err := user_model.GetUserByID(ctx, aID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUserByID", err)
 			return
@@ -490,6 +490,11 @@ func EditPullRequest(ctx *context.APIContext) {
 	}
 	issue := pr.Issue
 	issue.Repo = ctx.Repo.Repository
+
+	if err := issue.LoadAttributes(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
+		return
+	}
 
 	if !issue.IsPoster(ctx.Doer.ID) && !ctx.Repo.CanWrite(unit.TypePullRequests) {
 		ctx.Status(http.StatusForbidden)
@@ -595,7 +600,7 @@ func EditPullRequest(ctx *context.APIContext) {
 	}
 
 	if statusChangeComment != nil {
-		notification.NotifyIssueChangeStatus(ctx, ctx.Doer, issue, statusChangeComment, issue.IsClosed)
+		notification.NotifyIssueChangeStatus(ctx, ctx.Doer, "", issue, statusChangeComment, issue.IsClosed)
 	}
 
 	// change pull target branch
@@ -811,7 +816,7 @@ func MergePullRequest(ctx *context.APIContext) {
 
 	message := strings.TrimSpace(form.MergeTitleField)
 	if len(message) == 0 {
-		message, err = pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pr, repo_model.MergeStyle(form.Do))
+		message, _, err = pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pr, repo_model.MergeStyle(form.Do))
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetDefaultMergeMessage", err)
 			return
@@ -898,7 +903,7 @@ func MergePullRequest(ctx *context.APIContext) {
 				ctx.NotFound(err)
 			case errors.Is(err, repo_service.ErrBranchIsDefault):
 				ctx.Error(http.StatusForbidden, "DefaultBranch", fmt.Errorf("can not delete default branch"))
-			case errors.Is(err, repo_service.ErrBranchIsProtected):
+			case errors.Is(err, git_model.ErrBranchIsProtected):
 				ctx.Error(http.StatusForbidden, "IsProtectedBranch", fmt.Errorf("branch protected"))
 			default:
 				ctx.Error(http.StatusInternalServerError, "DeleteBranch", err)

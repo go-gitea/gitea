@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package asymkey
 
@@ -311,7 +310,7 @@ Loop:
 				return false, "", nil, &ErrWontSign{twofa}
 			}
 		case approved:
-			protectedBranch, err := git_model.GetProtectedBranchBy(ctx, repo.ID, pr.BaseBranch)
+			protectedBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repo.ID, pr.BaseBranch)
 			if err != nil {
 				return false, "", nil, err
 			}

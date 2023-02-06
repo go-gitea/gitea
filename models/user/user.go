@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -276,6 +275,15 @@ func (u *User) CanEditGitHook() bool {
 	return !setting.DisableGitHooks && (u.IsAdmin || u.AllowGitHook)
 }
 
+// CanForkRepo returns if user login can fork a repository
+// It checks especially that the user can create repos, and potentially more
+func (u *User) CanForkRepo() bool {
+	if setting.Repository.AllowForkWithoutMaximumLimit {
+		return true
+	}
+	return u.CanCreateRepo()
+}
+
 // CanImportLocal returns true if user can migrate repository by local path.
 func (u *User) CanImportLocal() bool {
 	if !setting.ImportLocalPaths || u == nil {
@@ -402,7 +410,7 @@ func hashPassword(passwd, salt, algo string) (string, error) {
 		tempPasswd = pbkdf2.Key([]byte(passwd), saltBytes, 10000, 50, sha256.New)
 	}
 
-	return fmt.Sprintf("%x", tempPasswd), nil
+	return hex.EncodeToString(tempPasswd), nil
 }
 
 // SetPassword hashes a password using the algorithm defined in the config value of PASSWORD_HASH_ALGO
@@ -551,32 +559,6 @@ func GetUserSalt() (string, error) {
 	return hex.EncodeToString(rBytes), nil
 }
 
-// NewGhostUser creates and returns a fake user for someone has deleted their account.
-func NewGhostUser() *User {
-	return &User{
-		ID:        -1,
-		Name:      "Ghost",
-		LowerName: "ghost",
-	}
-}
-
-// NewReplaceUser creates and returns a fake user for external user
-func NewReplaceUser(name string) *User {
-	return &User{
-		ID:        -1,
-		Name:      name,
-		LowerName: strings.ToLower(name),
-	}
-}
-
-// IsGhost check if user is fake user for a deleted account
-func (u *User) IsGhost() bool {
-	if u == nil {
-		return false
-	}
-	return u.ID == -1 && u.Name == "Ghost"
-}
-
 var (
 	reservedUsernames = []string{
 		".",
@@ -614,6 +596,7 @@ var (
 		"swagger.v1.json",
 		"user",
 		"v2",
+		"gitea-actions",
 	}
 
 	reservedUserPatterns = []string{"*.keys", "*.gpg", "*.rss", "*.atom"}
@@ -994,12 +977,7 @@ func UserPath(userName string) string { //revive:disable-line:exported
 }
 
 // GetUserByID returns the user object by given ID if exists.
-func GetUserByID(id int64) (*User, error) {
-	return GetUserByIDCtx(db.DefaultContext, id)
-}
-
-// GetUserByIDCtx returns the user object by given ID if exists.
-func GetUserByIDCtx(ctx context.Context, id int64) (*User, error) {
+func GetUserByID(ctx context.Context, id int64) (*User, error) {
 	u := new(User)
 	has, err := db.GetEngine(ctx).ID(id).Get(u)
 	if err != nil {
@@ -1008,6 +986,20 @@ func GetUserByIDCtx(ctx context.Context, id int64) (*User, error) {
 		return nil, ErrUserNotExist{id, "", 0}
 	}
 	return u, nil
+}
+
+// GetPossibleUserByID returns the user if id > 0 or return system usrs if id < 0
+func GetPossibleUserByID(ctx context.Context, id int64) (*User, error) {
+	switch id {
+	case -1:
+		return NewGhostUser(), nil
+	case ActionsUserID:
+		return NewActionsUser(), nil
+	case 0:
+		return nil, ErrUserNotExist{}
+	default:
+		return GetUserByID(ctx, id)
+	}
 }
 
 // GetUserByNameCtx returns user by given name.
@@ -1177,7 +1169,7 @@ func GetUserByEmailContext(ctx context.Context, email string) (*User, error) {
 		return nil, err
 	}
 	if has {
-		return GetUserByIDCtx(ctx, emailAddress.UID)
+		return GetUserByID(ctx, emailAddress.UID)
 	}
 
 	// Finally, if email address is the protected email address:
@@ -1221,7 +1213,7 @@ func GetUserByOpenID(uri string) (*User, error) {
 		return nil, err
 	}
 	if has {
-		return GetUserByID(oid.UID)
+		return GetUserByID(db.DefaultContext, oid.UID)
 	}
 
 	return nil, ErrUserNotExist{0, uri, 0}
@@ -1230,7 +1222,10 @@ func GetUserByOpenID(uri string) (*User, error) {
 // GetAdminUser returns the first administrator
 func GetAdminUser() (*User, error) {
 	var admin User
-	has, err := db.GetEngine(db.DefaultContext).Where("is_admin=?", true).Get(&admin)
+	has, err := db.GetEngine(db.DefaultContext).
+		Where("is_admin=?", true).
+		Asc("id"). // Reliably get the admin with the lowest ID.
+		Get(&admin)
 	if err != nil {
 		return nil, err
 	} else if !has {

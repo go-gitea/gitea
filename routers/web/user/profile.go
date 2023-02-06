@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -225,7 +224,7 @@ func Profile(ctx *context.Context) {
 
 		total = int(count)
 	case "projects":
-		ctx.Data["OpenProjects"], _, err = project_model.GetProjects(ctx, project_model.SearchOptions{
+		ctx.Data["OpenProjects"], _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
 			Page:     -1,
 			IsClosed: util.OptionalBoolFalse,
 			Type:     project_model.TypeIndividual,

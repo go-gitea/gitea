@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -10,11 +9,9 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/foreignreference"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -137,12 +134,11 @@ type Issue struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	ClosedUnix  timeutil.TimeStamp `xorm:"INDEX"`
 
-	Attachments      []*repo_model.Attachment           `xorm:"-"`
-	Comments         []*Comment                         `xorm:"-"`
-	Reactions        ReactionList                       `xorm:"-"`
-	TotalTrackedTime int64                              `xorm:"-"`
-	Assignees        []*user_model.User                 `xorm:"-"`
-	ForeignReference *foreignreference.ForeignReference `xorm:"-"`
+	Attachments      []*repo_model.Attachment `xorm:"-"`
+	Comments         []*Comment               `xorm:"-"`
+	Reactions        ReactionList             `xorm:"-"`
+	TotalTrackedTime int64                    `xorm:"-"`
+	Assignees        []*user_model.User       `xorm:"-"`
 
 	// IsLocked limits commenting abilities to users on an issue
 	// with write access
@@ -194,7 +190,7 @@ func (issue *Issue) IsOverdue() bool {
 // LoadRepo loads issue's repository
 func (issue *Issue) LoadRepo(ctx context.Context) (err error) {
 	if issue.Repo == nil {
-		issue.Repo, err = repo_model.GetRepositoryByIDCtx(ctx, issue.RepoID)
+		issue.Repo, err = repo_model.GetRepositoryByID(ctx, issue.RepoID)
 		if err != nil {
 			return fmt.Errorf("getRepositoryByID [%d]: %w", issue.RepoID, err)
 		}
@@ -203,16 +199,12 @@ func (issue *Issue) LoadRepo(ctx context.Context) (err error) {
 }
 
 // IsTimetrackerEnabled returns true if the repo enables timetracking
-func (issue *Issue) IsTimetrackerEnabled() bool {
-	return issue.isTimetrackerEnabled(db.DefaultContext)
-}
-
-func (issue *Issue) isTimetrackerEnabled(ctx context.Context) bool {
+func (issue *Issue) IsTimetrackerEnabled(ctx context.Context) bool {
 	if err := issue.LoadRepo(ctx); err != nil {
 		log.Error(fmt.Sprintf("loadRepo: %v", err))
 		return false
 	}
-	return issue.Repo.IsTimetrackerEnabledCtx(ctx)
+	return issue.Repo.IsTimetrackerEnabled(ctx)
 }
 
 // GetPullRequest returns the issue pull request
@@ -243,7 +235,7 @@ func (issue *Issue) LoadLabels(ctx context.Context) (err error) {
 // LoadPoster loads poster
 func (issue *Issue) LoadPoster(ctx context.Context) (err error) {
 	if issue.Poster == nil {
-		issue.Poster, err = user_model.GetUserByIDCtx(ctx, issue.PosterID)
+		issue.Poster, err = user_model.GetPossibleUserByID(ctx, issue.PosterID)
 		if err != nil {
 			issue.PosterID = -1
 			issue.Poster = user_model.NewGhostUser()
@@ -326,29 +318,6 @@ func (issue *Issue) loadReactions(ctx context.Context) (err error) {
 	return nil
 }
 
-func (issue *Issue) loadForeignReference(ctx context.Context) (err error) {
-	if issue.ForeignReference != nil {
-		return nil
-	}
-	reference := &foreignreference.ForeignReference{
-		RepoID:     issue.RepoID,
-		LocalIndex: issue.Index,
-		Type:       foreignreference.TypeIssue,
-	}
-	has, err := db.GetEngine(ctx).Get(reference)
-	if err != nil {
-		return err
-	} else if !has {
-		return foreignreference.ErrForeignIndexNotExist{
-			RepoID:     issue.RepoID,
-			LocalIndex: issue.Index,
-			Type:       foreignreference.TypeIssue,
-		}
-	}
-	issue.ForeignReference = reference
-	return nil
-}
-
 // LoadMilestone load milestone of this issue.
 func (issue *Issue) LoadMilestone(ctx context.Context) (err error) {
 	if (issue.Milestone == nil || issue.Milestone.ID != issue.MilestoneID) && issue.MilestoneID > 0 {
@@ -405,14 +374,10 @@ func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 	if err = CommentList(issue.Comments).loadAttributes(ctx); err != nil {
 		return err
 	}
-	if issue.isTimetrackerEnabled(ctx) {
+	if issue.IsTimetrackerEnabled(ctx) {
 		if err = issue.LoadTotalTimes(ctx); err != nil {
 			return err
 		}
-	}
-
-	if err = issue.loadForeignReference(ctx); err != nil && !foreignreference.IsErrForeignIndexNotExist(err) {
-		return err
 	}
 
 	return issue.loadReactions(ctx)
@@ -674,7 +639,7 @@ func changeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User,
 
 func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User, isMergePull bool) (*Comment, error) {
 	// Check for open dependencies
-	if issue.IsClosed && issue.Repo.IsDependenciesEnabledCtx(ctx) {
+	if issue.IsClosed && issue.Repo.IsDependenciesEnabled(ctx) {
 		// only check if dependencies are enabled and we're about to close an issue, otherwise reopening an issue would fail when there are unsatisfied dependencies
 		noDeps, err := IssueNoDependenciesLeft(ctx, issue)
 		if err != nil {
@@ -726,7 +691,7 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 		cmtType = CommentTypeMergePull
 	}
 
-	return CreateCommentCtx(ctx, &CreateCommentOptions{
+	return CreateComment(ctx, &CreateCommentOptions{
 		Type:  cmtType,
 		Doer:  doer,
 		Repo:  issue.Repo,
@@ -770,7 +735,7 @@ func ChangeIssueTitle(issue *Issue, doer *user_model.User, oldTitle string) (err
 		OldTitle: oldTitle,
 		NewTitle: issue.Title,
 	}
-	if _, err = CreateCommentCtx(ctx, opts); err != nil {
+	if _, err = CreateComment(ctx, opts); err != nil {
 		return fmt.Errorf("createComment: %w", err)
 	}
 	if err = issue.AddCrossReferences(ctx, doer, true); err != nil {
@@ -806,7 +771,7 @@ func ChangeIssueRef(issue *Issue, doer *user_model.User, oldRef string) (err err
 		OldRef: oldRefFriendly,
 		NewRef: newRefFriendly,
 	}
-	if _, err = CreateCommentCtx(ctx, opts); err != nil {
+	if _, err = CreateComment(ctx, opts); err != nil {
 		return fmt.Errorf("createComment: %w", err)
 	}
 
@@ -826,7 +791,7 @@ func AddDeletePRBranchComment(ctx context.Context, doer *user_model.User, repo *
 		Issue:  issue,
 		OldRef: branchName,
 	}
-	_, err = CreateCommentCtx(ctx, opts)
+	_, err = CreateComment(ctx, opts)
 	return err
 }
 
@@ -993,17 +958,12 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 			OldMilestoneID: 0,
 			MilestoneID:    opts.Issue.MilestoneID,
 		}
-		if _, err = CreateCommentCtx(ctx, opts); err != nil {
+		if _, err = CreateComment(ctx, opts); err != nil {
 			return err
 		}
 	}
 
-	if opts.IsPull {
-		_, err = e.Exec("UPDATE `repository` SET num_pulls = num_pulls + 1 WHERE id = ?", opts.Issue.RepoID)
-	} else {
-		_, err = e.Exec("UPDATE `repository` SET num_issues = num_issues + 1 WHERE id = ?", opts.Issue.RepoID)
-	}
-	if err != nil {
+	if err := repo_model.UpdateRepoIssueNumbers(ctx, opts.Issue.RepoID, opts.IsPull, false); err != nil {
 		return err
 	}
 
@@ -1107,26 +1067,6 @@ func GetIssueByIndex(repoID, index int64) (*Issue, error) {
 	return issue, nil
 }
 
-// GetIssueByForeignIndex returns raw issue by foreign ID
-func GetIssueByForeignIndex(ctx context.Context, repoID, foreignIndex int64) (*Issue, error) {
-	reference := &foreignreference.ForeignReference{
-		RepoID:       repoID,
-		ForeignIndex: strconv.FormatInt(foreignIndex, 10),
-		Type:         foreignreference.TypeIssue,
-	}
-	has, err := db.GetEngine(ctx).Get(reference)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, foreignreference.ErrLocalIndexNotExist{
-			RepoID:       repoID,
-			ForeignIndex: foreignIndex,
-			Type:         foreignreference.TypeIssue,
-		}
-	}
-	return GetIssueByIndex(repoID, reference.LocalIndex)
-}
-
 // GetIssueWithAttrsByIndex returns issue by index in a repository.
 func GetIssueWithAttrsByIndex(repoID, index int64) (*Issue, error) {
 	issue, err := GetIssueByIndex(repoID, index)
@@ -1158,7 +1098,7 @@ func GetIssueWithAttrsByID(id int64) (*Issue, error) {
 }
 
 // GetIssuesByIDs return issues with the given IDs.
-func GetIssuesByIDs(ctx context.Context, issueIDs []int64) ([]*Issue, error) {
+func GetIssuesByIDs(ctx context.Context, issueIDs []int64) (IssueList, error) {
 	issues := make([]*Issue, 0, 10)
 	return issues, db.GetEngine(ctx).In("id", issueIDs).Find(&issues)
 }
@@ -1311,6 +1251,8 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 	if opts.ProjectID > 0 {
 		sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
 			And("project_issue.project_id=?", opts.ProjectID)
+	} else if opts.ProjectID == db.NoneID { // show those that are in no project
+		sess.And(builder.NotIn("issue.id", builder.Select("issue_id").From("project_issue")))
 	}
 
 	if opts.ProjectBoardID != 0 {
@@ -1589,7 +1531,7 @@ func IsUserParticipantsOfIssue(user *user_model.User, issue *Issue) bool {
 		log.Error(err.Error())
 		return false
 	}
-	return util.IsInt64InSlice(user.ID, userIDs)
+	return util.SliceContains(userIDs, user.ID)
 }
 
 // UpdateIssueMentions updates issue-user relations for mentioned users.
@@ -1632,6 +1574,7 @@ type IssueStatsOptions struct {
 	RepoID            int64
 	Labels            string
 	MilestoneID       int64
+	ProjectID         int64
 	AssigneeID        int64
 	MentionedID       int64
 	PosterID          int64
@@ -1708,6 +1651,11 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 
 		if opts.MilestoneID > 0 {
 			sess.And("issue.milestone_id = ?", opts.MilestoneID)
+		}
+
+		if opts.ProjectID > 0 {
+			sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
+				And("project_issue.project_id=?", opts.ProjectID)
 		}
 
 		if opts.AssigneeID > 0 {
@@ -2006,7 +1954,7 @@ func UpdateIssueByAPI(issue *Issue, doer *user_model.User) (statusChangeComment 
 			OldTitle: currentIssue.Title,
 			NewTitle: issue.Title,
 		}
-		_, err := CreateCommentCtx(ctx, opts)
+		_, err := CreateComment(ctx, opts)
 		if err != nil {
 			return nil, false, fmt.Errorf("createComment: %w", err)
 		}
@@ -2083,7 +2031,7 @@ func (issue *Issue) GetParticipantIDsByIssue(ctx context.Context) ([]int64, erro
 		Find(&userIDs); err != nil {
 		return nil, fmt.Errorf("get poster IDs: %w", err)
 	}
-	if !util.IsInt64InSlice(issue.PosterID, userIDs) {
+	if !util.SliceContains(userIDs, issue.PosterID) {
 		return append(userIDs, issue.PosterID), nil
 	}
 	return userIDs, nil
@@ -2425,7 +2373,7 @@ func CountOrphanedIssues(ctx context.Context) (int64, error) {
 // DeleteOrphanedIssues delete issues without a repo
 func DeleteOrphanedIssues(ctx context.Context) error {
 	var attachmentPaths []string
-	err := db.AutoTx(ctx, func(ctx context.Context) error {
+	err := db.WithTx(ctx, func(ctx context.Context) error {
 		var ids []int64
 
 		if err := db.GetEngine(ctx).Table("issue").Distinct("issue.repo_id").

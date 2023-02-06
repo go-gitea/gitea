@@ -27,12 +27,9 @@ import {doLoadMoreFiles} from '../features/repo-diff.js';
 const {pageData} = window.config;
 
 export default {
-  name: 'DiffFileList',
-
   data: () => {
     return pageData.diffFileInfo;
   },
-
   watch: {
     fileListIsVisible(newValue) {
       if (newValue === true) {
@@ -44,15 +41,12 @@ export default {
       }
     }
   },
-
   mounted() {
     document.getElementById('show-file-list-btn').addEventListener('click', this.toggleFileList);
   },
-
   unmounted() {
     document.getElementById('show-file-list-btn').removeEventListener('click', this.toggleFileList);
   },
-
   methods: {
     toggleFileList() {
       this.fileListIsVisible = !this.fileListIsVisible;

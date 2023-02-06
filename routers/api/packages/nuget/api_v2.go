@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package nuget
 
@@ -345,7 +344,7 @@ func createEntry(l *linkBuilder, pd *packages_model.PackageDescriptor, withNames
 		Content: content,
 		Properties: &FeedEntryProperties{
 			Version:                  pd.Version.Version,
-			NormalizedVersion:        normalizeVersion(pd.SemVer),
+			NormalizedVersion:        pd.Version.Version,
 			Authors:                  metadata.Authors,
 			Dependencies:             buildDependencyString(metadata),
 			Description:              metadata.Description,

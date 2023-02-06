@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package organization
 
@@ -13,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
+	secret_model "code.gitea.io/gitea/models/secret"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -107,7 +107,7 @@ func (org *Organization) IsOrgMember(uid int64) (bool, error) {
 
 // CanCreateOrgRepo returns true if given user can create repo in organization
 func (org *Organization) CanCreateOrgRepo(uid int64) (bool, error) {
-	return CanCreateOrgRepo(org.ID, uid)
+	return CanCreateOrgRepo(db.DefaultContext, org.ID, uid)
 }
 
 func (org *Organization) getTeam(ctx context.Context, name string) (*Team, error) {
@@ -371,6 +371,7 @@ func DeleteOrganization(ctx context.Context, org *Organization) error {
 		&TeamUser{OrgID: org.ID},
 		&TeamUnit{OrgID: org.ID},
 		&TeamInvite{OrgID: org.ID},
+		&secret_model.Secret{OwnerID: org.ID},
 	); err != nil {
 		return fmt.Errorf("DeleteBeans: %w", err)
 	}
@@ -396,13 +397,14 @@ func (org *Organization) GetOrgUserMaxAuthorizeLevel(uid int64) (perm.AccessMode
 }
 
 // GetUsersWhoCanCreateOrgRepo returns users which are able to create repo in organization
-func GetUsersWhoCanCreateOrgRepo(ctx context.Context, orgID int64) ([]*user_model.User, error) {
-	users := make([]*user_model.User, 0, 10)
+func GetUsersWhoCanCreateOrgRepo(ctx context.Context, orgID int64) (map[int64]*user_model.User, error) {
+	// Use a map, in order to de-duplicate users.
+	users := make(map[int64]*user_model.User)
 	return users, db.GetEngine(ctx).
 		Join("INNER", "`team_user`", "`team_user`.uid=`user`.id").
 		Join("INNER", "`team`", "`team`.id=`team_user`.team_id").
 		Where(builder.Eq{"team.can_create_org_repo": true}.Or(builder.Eq{"team.authorize": perm.AccessModeOwner})).
-		And("team_user.org_id = ?", orgID).Asc("`user`.name").Find(&users)
+		And("team_user.org_id = ?", orgID).Find(&users)
 }
 
 // SearchOrganizationsOptions options to filter organizations
@@ -702,7 +704,7 @@ func AccessibleReposEnv(ctx context.Context, org *Organization, userID int64) (A
 	var user *user_model.User
 
 	if userID > 0 {
-		u, err := user_model.GetUserByIDCtx(ctx, userID)
+		u, err := user_model.GetUserByID(ctx, userID)
 		if err != nil {
 			return nil, err
 		}

@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -10,7 +9,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"os/exec"
 	"strconv"
@@ -92,8 +90,8 @@ func AddChanges(repoPath string, all bool, files ...string) error {
 }
 
 // AddChangesWithArgs marks local changes to be ready for commit.
-func AddChangesWithArgs(repoPath string, globalArgs []CmdArg, all bool, files ...string) error {
-	cmd := NewCommandNoGlobals(append(globalArgs, "add")...)
+func AddChangesWithArgs(repoPath string, globalArgs TrustedCmdArgs, all bool, files ...string) error {
+	cmd := NewCommandContextNoGlobals(DefaultContext, globalArgs...).AddArguments("add")
 	if all {
 		cmd.AddArguments("--all")
 	}
@@ -112,17 +110,18 @@ type CommitChangesOptions struct {
 // CommitChanges commits local changes with given committer, author and message.
 // If author is nil, it will be the same as committer.
 func CommitChanges(repoPath string, opts CommitChangesOptions) error {
-	cargs := make([]CmdArg, len(globalCommandArgs))
+	cargs := make(TrustedCmdArgs, len(globalCommandArgs))
 	copy(cargs, globalCommandArgs)
 	return CommitChangesWithArgs(repoPath, cargs, opts)
 }
 
 // CommitChangesWithArgs commits local changes with given committer, author and message.
 // If author is nil, it will be the same as committer.
-func CommitChangesWithArgs(repoPath string, args []CmdArg, opts CommitChangesOptions) error {
-	cmd := NewCommandNoGlobals(args...)
+func CommitChangesWithArgs(repoPath string, args TrustedCmdArgs, opts CommitChangesOptions) error {
+	cmd := NewCommandContextNoGlobals(DefaultContext, args...)
 	if opts.Committer != nil {
-		cmd.AddArguments("-c", CmdArg("user.name="+opts.Committer.Name), "-c", CmdArg("user.email="+opts.Committer.Email))
+		cmd.AddOptionValues("-c", "user.name="+opts.Committer.Name)
+		cmd.AddOptionValues("-c", "user.email="+opts.Committer.Email)
 	}
 	cmd.AddArguments("commit")
 
@@ -130,9 +129,9 @@ func CommitChangesWithArgs(repoPath string, args []CmdArg, opts CommitChangesOpt
 		opts.Author = opts.Committer
 	}
 	if opts.Author != nil {
-		cmd.AddArguments(CmdArg(fmt.Sprintf("--author='%s <%s>'", opts.Author.Name, opts.Author.Email)))
+		cmd.AddOptionFormat("--author='%s <%s>'", opts.Author.Name, opts.Author.Email)
 	}
-	cmd.AddArguments("-m").AddDynamicArguments(opts.Message)
+	cmd.AddOptionValues("-m", opts.Message)
 
 	_, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
 	// No stderr but exit status 1 means nothing to commit.

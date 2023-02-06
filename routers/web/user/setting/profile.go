@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package setting
 
@@ -43,7 +42,7 @@ const (
 
 // Profile render user's profile page
 func Profile(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings.profile")
 	ctx.Data["PageIsSettingsProfile"] = true
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 
@@ -138,11 +137,8 @@ func ProfilePost(ctx *context.Context) {
 		return
 	}
 
-	// Update the language to the one we just set
-	middleware.SetLocaleCookie(ctx.Resp, ctx.Doer.Language, 0)
-
 	log.Trace("User settings updated: %s", ctx.Doer.Name)
-	ctx.Flash.Success(translation.NewLocale(ctx.Doer.Language).Tr("settings.update_profile_success"))
+	ctx.Flash.Success(ctx.Tr("settings.update_profile_success"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings")
 }
 
@@ -220,7 +216,7 @@ func DeleteAvatar(ctx *context.Context) {
 
 // Organization render all the organization of the user
 func Organization(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings.organization")
 	ctx.Data["PageIsSettingsOrganization"] = true
 
 	opts := organization.FindOrgOptions{
@@ -255,7 +251,7 @@ func Organization(ctx *context.Context) {
 
 // Repos display a list of all repositories of the user
 func Repos(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings.repos")
 	ctx.Data["PageIsSettingsRepos"] = true
 	ctx.Data["allowAdopt"] = ctx.IsUserSiteAdmin() || setting.Repository.AllowAdoptionOfUnadoptedRepositories
 	ctx.Data["allowDelete"] = ctx.IsUserSiteAdmin() || setting.Repository.AllowDeleteOfUnadoptedRepositories
@@ -281,17 +277,17 @@ func Repos(ctx *context.Context) {
 		repos := map[string]*repo_model.Repository{}
 		// We're going to iterate by pagesize.
 		root := user_model.UserPath(ctxUser.Name)
-		if err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 			if err != nil {
 				if os.IsNotExist(err) {
 					return nil
 				}
 				return err
 			}
-			if !info.IsDir() || path == root {
+			if !d.IsDir() || path == root {
 				return nil
 			}
-			name := info.Name()
+			name := d.Name()
 			if !strings.HasSuffix(name, ".git") {
 				return filepath.SkipDir
 			}
@@ -305,7 +301,7 @@ func Repos(ctx *context.Context) {
 			count++
 			return filepath.SkipDir
 		}); err != nil {
-			ctx.ServerError("filepath.Walk", err)
+			ctx.ServerError("filepath.WalkDir", err)
 			return
 		}
 
@@ -324,7 +320,7 @@ func Repos(ctx *context.Context) {
 		}
 		for _, repo := range userRepos {
 			if repo.IsFork {
-				if err := repo.GetBaseRepo(); err != nil {
+				if err := repo.GetBaseRepo(ctx); err != nil {
 					ctx.ServerError("GetBaseRepo", err)
 					return
 				}
@@ -343,7 +339,7 @@ func Repos(ctx *context.Context) {
 
 		for i := range repos {
 			if repos[i].IsFork {
-				if err := repos[i].GetBaseRepo(); err != nil {
+				if err := repos[i].GetBaseRepo(ctx); err != nil {
 					ctx.ServerError("GetBaseRepo", err)
 					return
 				}
@@ -361,7 +357,7 @@ func Repos(ctx *context.Context) {
 
 // Appearance render user's appearance settings
 func Appearance(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings.appearance")
 	ctx.Data["PageIsSettingsAppearance"] = true
 
 	var hiddenCommentTypes *big.Int
@@ -414,7 +410,7 @@ func UpdateUserLang(ctx *context.Context) {
 	ctx.Data["PageIsSettingsAppearance"] = true
 
 	if len(form.Language) != 0 {
-		if !util.IsStringInSlice(form.Language, setting.Langs) {
+		if !util.SliceContainsString(setting.Langs, form.Language) {
 			ctx.Flash.Error(ctx.Tr("settings.update_language_not_found", form.Language))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 			return

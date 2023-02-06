@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
-import attachTribute from './tribute.js';
+import {attachTribute} from './tribute.js';
 import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';
 import {initEasyMDEImagePaste} from './comp/ImagePaste.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
@@ -553,7 +553,7 @@ export function initRepoIssueReferenceIssue() {
     const $this = $(this);
     $this.closest('.dropdown').find('.menu').toggle('visible');
 
-    const content = $(`#comment-${$this.data('target')}`).text();
+    const content = $(`#${$this.data('target')}`).text();
     const poster = $this.data('poster-username');
     const reference = $this.data('reference');
     const $modal = $($this.data('modal'));

@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package forms
 
@@ -135,6 +134,7 @@ type RepoSettingForm struct {
 	EnablePrune            bool
 
 	// Advanced settings
+	EnableCode                            bool
 	EnableWiki                            bool
 	EnableExternalWiki                    bool
 	ExternalWikiURL                       string
@@ -146,8 +146,10 @@ type RepoSettingForm struct {
 	ExternalTrackerRegexpPattern          string
 	EnableCloseIssuesViaCommitInAnyBranch bool
 	EnableProjects                        bool
+	EnableReleases                        bool
 	EnablePackages                        bool
 	EnablePulls                           bool
+	EnableActions                         bool
 	PullsIgnoreWhitespace                 bool
 	PullsAllowMerge                       bool
 	PullsAllowRebase                      bool
@@ -186,7 +188,7 @@ func (f *RepoSettingForm) Validate(req *http.Request, errs binding.Errors) bindi
 
 // ProtectBranchForm form for changing protected branch settings
 type ProtectBranchForm struct {
-	Protected                     bool
+	RuleName                      string `binding:"Required"`
 	EnablePush                    string
 	WhitelistUsers                string
 	WhitelistTeams                string

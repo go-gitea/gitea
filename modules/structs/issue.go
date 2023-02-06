@@ -1,6 +1,5 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package structs
 
@@ -42,18 +41,19 @@ type RepositoryMeta struct {
 // Issue represents an issue in a repository
 // swagger:model
 type Issue struct {
-	ID               int64      `json:"id"`
-	URL              string     `json:"url"`
-	HTMLURL          string     `json:"html_url"`
-	Index            int64      `json:"number"`
-	Poster           *User      `json:"user"`
-	OriginalAuthor   string     `json:"original_author"`
-	OriginalAuthorID int64      `json:"original_author_id"`
-	Title            string     `json:"title"`
-	Body             string     `json:"body"`
-	Ref              string     `json:"ref"`
-	Labels           []*Label   `json:"labels"`
-	Milestone        *Milestone `json:"milestone"`
+	ID               int64         `json:"id"`
+	URL              string        `json:"url"`
+	HTMLURL          string        `json:"html_url"`
+	Index            int64         `json:"number"`
+	Poster           *User         `json:"user"`
+	OriginalAuthor   string        `json:"original_author"`
+	OriginalAuthorID int64         `json:"original_author_id"`
+	Title            string        `json:"title"`
+	Body             string        `json:"body"`
+	Ref              string        `json:"ref"`
+	Attachments      []*Attachment `json:"assets"`
+	Labels           []*Label      `json:"labels"`
+	Milestone        *Milestone    `json:"milestone"`
 	// deprecated
 	Assignee  *User   `json:"assignee"`
 	Assignees []*User `json:"assignees"`

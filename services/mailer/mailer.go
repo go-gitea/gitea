@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package mailer
 
@@ -36,7 +35,8 @@ type Message struct {
 	Info            string // Message information for log purpose.
 	FromAddress     string
 	FromDisplayName string
-	To              []string
+	To              string // Use only one recipient to prevent leaking of addresses
+	ReplyTo         string
 	Subject         string
 	Date            time.Time
 	Body            string
@@ -47,7 +47,10 @@ type Message struct {
 func (m *Message) ToMessage() *gomail.Message {
 	msg := gomail.NewMessage()
 	msg.SetAddressHeader("From", m.FromAddress, m.FromDisplayName)
-	msg.SetHeader("To", m.To...)
+	msg.SetHeader("To", m.To)
+	if m.ReplyTo != "" {
+		msg.SetHeader("Reply-To", m.ReplyTo)
+	}
 	for header := range m.Headers {
 		msg.SetHeader(header, m.Headers[header]...)
 	}
@@ -86,7 +89,7 @@ func (m *Message) generateAutoMessageID() string {
 	dateMs := m.Date.UnixNano() / 1e6
 	h := fnv.New64()
 	if len(m.To) > 0 {
-		_, _ = h.Write([]byte(m.To[0]))
+		_, _ = h.Write([]byte(m.To))
 	}
 	_, _ = h.Write([]byte(m.Subject))
 	_, _ = h.Write([]byte(m.Body))
@@ -94,7 +97,7 @@ func (m *Message) generateAutoMessageID() string {
 }
 
 // NewMessageFrom creates new mail message object with custom From header.
-func NewMessageFrom(to []string, fromDisplayName, fromAddress, subject, body string) *Message {
+func NewMessageFrom(to, fromDisplayName, fromAddress, subject, body string) *Message {
 	log.Trace("NewMessageFrom (body):\n%s", body)
 
 	return &Message{
@@ -109,7 +112,7 @@ func NewMessageFrom(to []string, fromDisplayName, fromAddress, subject, body str
 }
 
 // NewMessage creates new mail message object with default From header.
-func NewMessage(to []string, subject, body string) *Message {
+func NewMessage(to, subject, body string) *Message {
 	return NewMessageFrom(to, setting.MailService.FromName, setting.MailService.FromEmail, subject, body)
 }
 
@@ -166,7 +169,7 @@ func (s *smtpSender) Send(from string, to []string, msg io.WriterTo) error {
 	defer conn.Close()
 
 	var tlsconfig *tls.Config
-	if opts.Protocol == "smtps" || opts.Protocol == "smtp+startls" {
+	if opts.Protocol == "smtps" || opts.Protocol == "smtp+starttls" {
 		tlsconfig = &tls.Config{
 			InsecureSkipVerify: opts.ForceTrustServerCert,
 			ServerName:         opts.SMTPAddr,
@@ -208,7 +211,7 @@ func (s *smtpSender) Send(from string, to []string, msg io.WriterTo) error {
 		}
 	}
 
-	if opts.Protocol == "smtp+startls" {
+	if opts.Protocol == "smtp+starttls" {
 		hasStartTLS, _ := client.Extension("STARTTLS")
 		if hasStartTLS {
 			if err = client.StartTLS(tlsconfig); err != nil {

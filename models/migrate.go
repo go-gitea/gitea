@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package models
 
@@ -80,13 +79,6 @@ func insertIssue(ctx context.Context, issue *issues_model.Issue) error {
 
 	if len(issue.Reactions) > 0 {
 		if _, err := sess.Insert(issue.Reactions); err != nil {
-			return err
-		}
-	}
-
-	if issue.ForeignReference != nil {
-		issue.ForeignReference.LocalIndex = issue.Index
-		if _, err := sess.Insert(issue.ForeignReference); err != nil {
 			return err
 		}
 	}

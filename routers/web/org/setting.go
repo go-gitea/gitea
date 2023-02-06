@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package org
 
@@ -38,6 +37,10 @@ const (
 	tplSettingsHooks base.TplName = "org/settings/hooks"
 	// tplSettingsLabels template path for render labels settings
 	tplSettingsLabels base.TplName = "org/settings/labels"
+	// tplSettingsRunners template path for render runners settings
+	tplSettingsRunners base.TplName = "org/settings/runners"
+	// tplSettingsRunnersEdit template path for render runners edit settings
+	tplSettingsRunnersEdit base.TplName = "org/settings/runners_edit"
 )
 
 // Settings render the main settings page

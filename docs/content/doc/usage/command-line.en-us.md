@@ -124,6 +124,7 @@ Admin operations:
         - `--secret`: Client Secret.
         - `--auto-discover-url`: OpenID Connect Auto Discovery URL (only required when using OpenID Connect as provider).
         - `--use-custom-urls`: Use custom URLs for GitLab/GitHub OAuth endpoints.
+        - `--custom-tenant-id`: Use custom Tenant ID for OAuth endpoints.
         - `--custom-auth-url`: Use a custom Authorization URL (option for GitLab/GitHub).
         - `--custom-token-url`: Use a custom Token URL (option for GitLab/GitHub).
         - `--custom-profile-url`: Use a custom Profile URL (option for GitLab/GitHub).
@@ -147,6 +148,7 @@ Admin operations:
         - `--secret`: Client Secret.
         - `--auto-discover-url`: OpenID Connect Auto Discovery URL (only required when using OpenID Connect as provider).
         - `--use-custom-urls`: Use custom URLs for GitLab/GitHub OAuth endpoints.
+        - `--custom-tenant-id`: Use custom Tenant ID for OAuth endpoints.
         - `--custom-auth-url`: Use a custom Authorization URL (option for GitLab/GitHub).
         - `--custom-token-url`: Use a custom Token URL (option for GitLab/GitHub).
         - `--custom-profile-url`: Use a custom Profile URL (option for GitLab/GitHub).
@@ -385,6 +387,19 @@ Diagnose and potentially fix problems with the current Gitea instance. Several c
 - `gitea doctor check [check(s)]...` - will run the named checks
 
 Some problems can be automatically fixed by passing the `--fix` option. Extra logging can be set with `--log-file=...` or `--verbose`.
+
+For contributors, if you want to add more checks, you can write a new function like `func(ctx *cli.Context) ([]string, error)` and
+append it to `doctor.go`.
+
+```go
+var checklist = []check{
+	{
+		title: "Check if OpenSSH authorized_keys file id correct",
+		f:     runDoctorLocationMoved,
+    },
+    // more checks please append here
+}
+```
 
 #### doctor recreate-table
 

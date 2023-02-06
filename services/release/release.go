@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package release
 
@@ -22,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
 
 func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Release, msg string) (bool, error) {
@@ -219,7 +219,10 @@ func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *repo_mod
 		}
 		for _, attach := range attachments {
 			if attach.ReleaseID != rel.ID {
-				return errors.New("delete attachement of release permission denied")
+				return util.SilentWrap{
+					Message: "delete attachment of release permission denied",
+					Err:     util.ErrPermissionDenied,
+				}
 			}
 			deletedUUIDs.Add(attach.UUID)
 		}
@@ -241,7 +244,10 @@ func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *repo_mod
 		}
 		for _, attach := range attachments {
 			if attach.ReleaseID != rel.ID {
-				return errors.New("update attachement of release permission denied")
+				return util.SilentWrap{
+					Message: "update attachment of release permission denied",
+					Err:     util.ErrPermissionDenied,
+				}
 			}
 		}
 
@@ -290,7 +296,7 @@ func DeleteReleaseByID(ctx context.Context, id int64, doer *user_model.User, del
 		return fmt.Errorf("GetReleaseByID: %w", err)
 	}
 
-	repo, err := repo_model.GetRepositoryByIDCtx(ctx, rel.RepoID)
+	repo, err := repo_model.GetRepositoryByID(ctx, rel.RepoID)
 	if err != nil {
 		return fmt.Errorf("GetRepositoryByID: %w", err)
 	}

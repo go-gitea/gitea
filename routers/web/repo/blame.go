@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -218,7 +217,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 
 		filename2attribute2info, err := ctx.Repo.GitRepo.CheckAttribute(git.CheckAttributeOpts{
 			CachedOnly: true,
-			Attributes: []git.CmdArg{"linguist-language", "gitlab-language"},
+			Attributes: []string{"linguist-language", "gitlab-language"},
 			Filenames:  []string{ctx.Repo.TreePath},
 			IndexFile:  indexFilename,
 			WorkTree:   worktree,

@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content repository new repo">
+<div role="main" aria-label="{{.Title}}" class="page-content repository new repo">
 	<div class="ui middle very relaxed page one column grid">
 		<div class="column">
 			<form class="ui form" action="{{.Link}}" method="post">
@@ -9,10 +9,7 @@
 				</h3>
 				<div class="ui attached segment">
 					{{template "base/alert" .}}
-
-					{{if not $.DisableMigrations}}
-						<p class="ui center">{{.locale.Tr "repo.new_repo_helper" ((printf "%s%s" AppSubUrl "/repo/migrate")|Escape) | Safe}}</p>
-					{{end}}
+					{{template "repo/create_helper" .}}
 
 					{{if not .CanCreateRepo}}
 						<div class="ui negative message">

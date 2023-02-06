@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package stats
 
@@ -37,7 +36,7 @@ func TestRepoStatsIndex(t *testing.T) {
 	err := Init()
 	assert.NoError(t, err)
 
-	repo, err := repo_model.GetRepositoryByID(1)
+	repo, err := repo_model.GetRepositoryByID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 
 	err = UpdateRepoIndexer(repo)

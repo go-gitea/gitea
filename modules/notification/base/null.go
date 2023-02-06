@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package base
 
@@ -33,7 +32,7 @@ func (*NullNotifier) NotifyNewIssue(ctx context.Context, issue *issues_model.Iss
 }
 
 // NotifyIssueChangeStatus places a place holder function
-func (*NullNotifier) NotifyIssueChangeStatus(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, actionComment *issues_model.Comment, isClosed bool) {
+func (*NullNotifier) NotifyIssueChangeStatus(ctx context.Context, doer *user_model.User, commitID string, issue *issues_model.Issue, actionComment *issues_model.Comment, isClosed bool) {
 }
 
 // NotifyDeleteIssue notify when some issue deleted

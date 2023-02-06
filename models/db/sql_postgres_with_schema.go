@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package db
 
@@ -38,9 +37,7 @@ func (d *postgresSchemaDriver) Open(name string) (driver.Conn, error) {
 	}
 	schemaValue, _ := driver.String.ConvertValue(setting.Database.Schema)
 
-	// golangci lint is incorrect here - there is no benefit to using driver.ExecerContext here
-	// and in any case pq does not implement it
-	if execer, ok := conn.(driver.Execer); ok { //nolint
+	if execer, ok := conn.(driver.Execer); ok {
 		_, err := execer.Exec(`SELECT set_config(
 			'search_path',
 			$1 || ',' || current_setting('search_path'),
@@ -64,8 +61,7 @@ func (d *postgresSchemaDriver) Open(name string) (driver.Conn, error) {
 
 	// driver.String.ConvertValue will never return err for string
 
-	// golangci lint is incorrect here - there is no benefit to using stmt.ExecWithContext here
-	_, err = stmt.Exec([]driver.Value{schemaValue}) //nolint
+	_, err = stmt.Exec([]driver.Value{schemaValue})
 	if err != nil {
 		_ = conn.Close()
 		return nil, err

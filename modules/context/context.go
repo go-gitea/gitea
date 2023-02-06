@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package context
 
@@ -140,7 +139,7 @@ func (ctx *Context) IsUserRepoReaderAny() bool {
 
 // RedirectToUser redirect to a differently-named user
 func RedirectToUser(ctx *Context, userName string, redirectUserID int64) {
-	user, err := user_model.GetUserByID(redirectUserID)
+	user, err := user_model.GetUserByID(ctx, redirectUserID)
 	if err != nil {
 		ctx.ServerError("GetUserByID", err)
 		return
@@ -349,9 +348,11 @@ func (ctx *Context) RespHeader() http.Header {
 type ServeHeaderOptions struct {
 	ContentType        string // defaults to "application/octet-stream"
 	ContentTypeCharset string
+	ContentLength      *int64
 	Disposition        string // defaults to "attachment"
 	Filename           string
 	CacheDuration      time.Duration // defaults to 5 minutes
+	LastModified       time.Time
 }
 
 // SetServeHeaders sets necessary content serve headers
@@ -369,6 +370,10 @@ func (ctx *Context) SetServeHeaders(opts *ServeHeaderOptions) {
 	header.Set("Content-Type", contentType)
 	header.Set("X-Content-Type-Options", "nosniff")
 
+	if opts.ContentLength != nil {
+		header.Set("Content-Length", strconv.FormatInt(*opts.ContentLength, 10))
+	}
+
 	if opts.Filename != "" {
 		disposition := opts.Disposition
 		if disposition == "" {
@@ -385,14 +390,16 @@ func (ctx *Context) SetServeHeaders(opts *ServeHeaderOptions) {
 		duration = 5 * time.Minute
 	}
 	httpcache.AddCacheControlToHeader(header, duration)
+
+	if !opts.LastModified.IsZero() {
+		header.Set("Last-Modified", opts.LastModified.UTC().Format(http.TimeFormat))
+	}
 }
 
 // ServeContent serves content to http request
-func (ctx *Context) ServeContent(name string, r io.ReadSeeker, modTime time.Time) {
-	ctx.SetServeHeaders(&ServeHeaderOptions{
-		Filename: name,
-	})
-	http.ServeContent(ctx.Resp, ctx.Req, name, modTime, r)
+func (ctx *Context) ServeContent(r io.ReadSeeker, opts *ServeHeaderOptions) {
+	ctx.SetServeHeaders(opts)
+	http.ServeContent(ctx.Resp, ctx.Req, opts.Filename, opts.LastModified, r)
 }
 
 // UploadStream returns the request body or the first form file
@@ -655,7 +662,13 @@ func getCsrfOpts() CsrfOptions {
 // Auth converts auth.Auth as a middleware
 func Auth(authMethod auth.Method) func(*Context) {
 	return func(ctx *Context) {
-		ctx.Doer = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		var err error
+		ctx.Doer, err = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		if err != nil {
+			log.Error("Failed to verify user %v: %v", ctx.Req.RemoteAddr, err)
+			ctx.Error(http.StatusUnauthorized, "Verify")
+			return
+		}
 		if ctx.Doer != nil {
 			if ctx.Locale.Language() != ctx.Doer.Language {
 				ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
@@ -792,6 +805,7 @@ func Contexter(ctx context.Context) func(next http.Handler) http.Handler {
 			ctx.Data["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 			ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 			ctx.Data["DisableStars"] = setting.Repository.DisableStars
+			ctx.Data["EnableActions"] = setting.Actions.Enabled
 
 			ctx.Data["ManifestData"] = setting.ManifestData
 
@@ -799,6 +813,7 @@ func Contexter(ctx context.Context) func(next http.Handler) http.Handler {
 			ctx.Data["UnitIssuesGlobalDisabled"] = unit.TypeIssues.UnitGlobalDisabled()
 			ctx.Data["UnitPullsGlobalDisabled"] = unit.TypePullRequests.UnitGlobalDisabled()
 			ctx.Data["UnitProjectsGlobalDisabled"] = unit.TypeProjects.UnitGlobalDisabled()
+			ctx.Data["UnitActionsGlobalDisabled"] = unit.TypeActions.UnitGlobalDisabled()
 
 			ctx.Data["locale"] = locale
 			ctx.Data["AllLangs"] = translation.AllLangs()

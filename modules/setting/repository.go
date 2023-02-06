@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package setting
 
@@ -42,6 +41,7 @@ var (
 		EnablePushCreateOrg                     bool
 		DisabledRepoUnits                       []string
 		DefaultRepoUnits                        []string
+		DefaultForkRepoUnits                    []string
 		PrefixArchiveFiles                      bool
 		DisableMigrations                       bool
 		DisableStars                            bool `ini:"DISABLE_STARS"`
@@ -49,6 +49,7 @@ var (
 		AllowAdoptionOfUnadoptedRepositories    bool
 		AllowDeleteOfUnadoptedRepositories      bool
 		DisableDownloadSourceArchives           bool
+		AllowForkWithoutMaximumLimit            bool
 
 		// Repository editor settings
 		Editor struct {
@@ -83,6 +84,7 @@ var (
 			DefaultMergeMessageOfficialApproversOnly bool
 			PopulateSquashCommentWithCommitMessages  bool
 			AddCoCommitterTrailers                   bool
+			TestConflictingPatchesWithGitApply       bool
 		} `ini:"repository.pull-request"`
 
 		// Issue Setting
@@ -156,10 +158,12 @@ var (
 		EnablePushCreateOrg:                     false,
 		DisabledRepoUnits:                       []string{},
 		DefaultRepoUnits:                        []string{},
+		DefaultForkRepoUnits:                    []string{},
 		PrefixArchiveFiles:                      true,
 		DisableMigrations:                       false,
 		DisableStars:                            false,
 		DefaultBranch:                           "main",
+		AllowForkWithoutMaximumLimit:            true,
 
 		// Repository editor settings
 		Editor: struct {
@@ -205,6 +209,7 @@ var (
 			DefaultMergeMessageOfficialApproversOnly bool
 			PopulateSquashCommentWithCommitMessages  bool
 			AddCoCommitterTrailers                   bool
+			TestConflictingPatchesWithGitApply       bool
 		}{
 			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
 			// Same as GitHub. See

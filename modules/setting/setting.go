@@ -1,12 +1,12 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package setting
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"math"
 	"net"
@@ -61,6 +61,7 @@ const (
 	ReCaptcha    = "recaptcha"
 	HCaptcha     = "hcaptcha"
 	MCaptcha     = "mcaptcha"
+	CfTurnstile  = "cfturnstile"
 )
 
 // settings
@@ -241,7 +242,6 @@ var (
 		CustomEmojisMap       map[string]string `ini:"-"`
 		SearchRepoDescription bool
 		UseServiceWorker      bool
-		OnlyShowRelevantRepos bool
 
 		Notification struct {
 			MinTimeout            time.Duration
@@ -467,6 +467,12 @@ func getAppPath() (string, error) {
 	}
 
 	if err != nil {
+		if !errors.Is(err, exec.ErrDot) {
+			return "", err
+		}
+		appPath, err = filepath.Abs(os.Args[0])
+	}
+	if err != nil {
 		return "", err
 	}
 	appPath, err = filepath.Abs(appPath)
@@ -605,7 +611,7 @@ func LoadForTest(extraConfigs ...string) {
 
 func deprecatedSetting(oldSection, oldKey, newSection, newKey string) {
 	if Cfg.Section(oldSection).HasKey(oldKey) {
-		log.Error("Deprecated fallback `[%s]` `%s` present. Use `[%s]` `%s` instead. This fallback will be removed in v1.18.0", oldSection, oldKey, newSection, newKey)
+		log.Error("Deprecated fallback `[%s]` `%s` present. Use `[%s]` `%s` instead. This fallback will be removed in v1.19.0", oldSection, oldKey, newSection, newKey)
 	}
 }
 
@@ -749,19 +755,22 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	PerWriteTimeout = sec.Key("PER_WRITE_TIMEOUT").MustDuration(PerWriteTimeout)
 	PerWritePerKbTimeout = sec.Key("PER_WRITE_PER_KB_TIMEOUT").MustDuration(PerWritePerKbTimeout)
 
-	defaultAppURL := string(Protocol) + "://" + Domain
-	if (Protocol == HTTP && HTTPPort != "80") || (Protocol == HTTPS && HTTPPort != "443") {
-		defaultAppURL += ":" + HTTPPort
-	}
-	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL + "/")
-	// This should be TrimRight to ensure that there is only a single '/' at the end of AppURL.
-	AppURL = strings.TrimRight(AppURL, "/") + "/"
+	defaultAppURL := string(Protocol) + "://" + Domain + ":" + HTTPPort
+	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL)
 
-	// Check if has app suburl.
+	// Check validity of AppURL
 	appURL, err := url.Parse(AppURL)
 	if err != nil {
 		log.Fatal("Invalid ROOT_URL '%s': %s", AppURL, err)
 	}
+	// Remove default ports from AppURL.
+	// (scheme-based URL normalization, RFC 3986 section 6.2.3)
+	if (appURL.Scheme == string(HTTP) && appURL.Port() == "80") || (appURL.Scheme == string(HTTPS) && appURL.Port() == "443") {
+		appURL.Host = appURL.Hostname()
+	}
+	// This should be TrimRight to ensure that there is only a single '/' at the end of AppURL.
+	AppURL = strings.TrimRight(appURL.String(), "/") + "/"
+
 	// Suburl should start with '/' and end without '/', such as '/{subpath}'.
 	// This value is empty if site does not have sub-url.
 	AppSubURL = strings.TrimSuffix(appURL.Path, "/")
@@ -939,7 +948,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	if SecretKey == "" {
 		// FIXME: https://github.com/go-gitea/gitea/issues/16832
 		// Until it supports rotating an existing secret key, we shouldn't move users off of the widely used default value
-		SecretKey = "!#@FDEWREWR&*(" // nolint:gosec
+		SecretKey = "!#@FDEWREWR&*(" //nolint:gosec
 	}
 
 	CookieRememberName = sec.Key("COOKIE_REMEMBER_NAME").MustString("gitea_incredible")
@@ -1034,7 +1043,10 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	// The following is a purposefully undocumented option. Please do not run Gitea as root. It will only cause future headaches.
 	// Please don't use root as a bandaid to "fix" something that is broken, instead the broken thing should instead be fixed properly.
 	unsafeAllowRunAsRoot := Cfg.Section("").Key("I_AM_BEING_UNSAFE_RUNNING_AS_ROOT").MustBool(false)
-	RunMode = Cfg.Section("").Key("RUN_MODE").MustString("prod")
+	RunMode = os.Getenv("GITEA_RUN_MODE")
+	if RunMode == "" {
+		RunMode = Cfg.Section("").Key("RUN_MODE").MustString("prod")
+	}
 	IsProd = strings.EqualFold(RunMode, "prod")
 	// Does not check run user when the install lock is off.
 	if InstallLock {
@@ -1061,6 +1073,8 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	newPictureService()
 
 	newPackages()
+
+	newActions()
 
 	if err = Cfg.Section("ui").MapTo(&UI); err != nil {
 		log.Fatal("Failed to map UI settings: %v", err)
@@ -1109,7 +1123,6 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	UI.DefaultShowFullName = Cfg.Section("ui").Key("DEFAULT_SHOW_FULL_NAME").MustBool(false)
 	UI.SearchRepoDescription = Cfg.Section("ui").Key("SEARCH_REPO_DESCRIPTION").MustBool(true)
 	UI.UseServiceWorker = Cfg.Section("ui").Key("USE_SERVICE_WORKER").MustBool(false)
-	UI.OnlyShowRelevantRepos = Cfg.Section("ui").Key("ONLY_SHOW_RELEVANT_REPOS").MustBool(false)
 
 	HasRobotsTxt, err = util.IsFile(path.Join(CustomPath, "robots.txt"))
 	if err != nil {
@@ -1328,7 +1341,8 @@ func NewServices() {
 	newCacheService()
 	newSessionService()
 	newCORSService()
-	newMailService()
+	parseMailerConfig(Cfg)
+	newIncomingEmail()
 	newRegisterMailService()
 	newNotifyMailService()
 	newProxyService()
@@ -1345,5 +1359,5 @@ func NewServices() {
 // NewServicesForInstall initializes the services for install
 func NewServicesForInstall() {
 	newService()
-	newMailService()
+	parseMailerConfig(Cfg)
 }

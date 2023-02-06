@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migration
 
@@ -77,7 +76,7 @@ func validate(bs []byte, datatype interface{}, isJSON bool) error {
 	}
 	err = sch.Validate(v)
 	if err != nil {
-		log.Error("migration validation with %s failed for\n%s", schemaFilename, string(bs))
+		log.Error("migration validation with %s failed:\n%#v", schemaFilename, err)
 	}
 	return err
 }

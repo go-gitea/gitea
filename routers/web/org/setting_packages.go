@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package org
 
@@ -84,4 +83,24 @@ func PackagesRulePreview(ctx *context.Context) {
 	shared.SetRulePreviewContext(ctx, ctx.ContextUser)
 
 	ctx.HTML(http.StatusOK, tplSettingsPackagesRulePreview)
+}
+
+func InitializeCargoIndex(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("packages.title")
+	ctx.Data["PageIsOrgSettings"] = true
+	ctx.Data["PageIsSettingsPackages"] = true
+
+	shared.InitializeCargoIndex(ctx, ctx.ContextUser)
+
+	ctx.Redirect(fmt.Sprintf("%s/org/%s/settings/packages", setting.AppSubURL, ctx.ContextUser.Name))
+}
+
+func RebuildCargoIndex(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("packages.title")
+	ctx.Data["PageIsOrgSettings"] = true
+	ctx.Data["PageIsSettingsPackages"] = true
+
+	shared.RebuildCargoIndex(ctx, ctx.ContextUser)
+
+	ctx.Redirect(fmt.Sprintf("%s/org/%s/settings/packages", setting.AppSubURL, ctx.ContextUser.Name))
 }
