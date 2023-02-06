@@ -29,6 +29,8 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
+	incoming_payload "code.gitea.io/gitea/services/mailer/incoming/payload"
+	"code.gitea.io/gitea/services/mailer/token"
 
 	"gopkg.in/gomail.v2"
 )
@@ -59,7 +61,7 @@ func SendTestMail(email string) error {
 		// No mail service configured
 		return nil
 	}
-	return gomail.Send(Sender, NewMessage([]string{email}, "Gitea Test Email!", "Gitea Test Email!").ToMessage())
+	return gomail.Send(Sender, NewMessage(email, "Gitea Test Email!", "Gitea Test Email!").ToMessage())
 }
 
 // sendUserMail sends a mail to the user
@@ -84,7 +86,7 @@ func sendUserMail(language string, u *user_model.User, tpl base.TplName, code, s
 		return
 	}
 
-	msg := NewMessage([]string{u.Email}, subject, content.String())
+	msg := NewMessage(u.Email, subject, content.String())
 	msg.Info = fmt.Sprintf("UID: %d, %s", u.ID, info)
 
 	SendAsync(msg)
@@ -135,7 +137,7 @@ func SendActivateEmailMail(u *user_model.User, email *user_model.EmailAddress) {
 		return
 	}
 
-	msg := NewMessage([]string{email.Email}, locale.Tr("mail.activate_email"), content.String())
+	msg := NewMessage(email.Email, locale.Tr("mail.activate_email"), content.String())
 	msg.Info = fmt.Sprintf("UID: %d, activate email", u.ID)
 
 	SendAsync(msg)
@@ -166,7 +168,7 @@ func SendRegisterNotifyMail(u *user_model.User) {
 		return
 	}
 
-	msg := NewMessage([]string{u.Email}, locale.Tr("mail.register_notify"), content.String())
+	msg := NewMessage(u.Email, locale.Tr("mail.register_notify"), content.String())
 	msg.Info = fmt.Sprintf("UID: %d, registration notify", u.ID)
 
 	SendAsync(msg)
@@ -200,7 +202,7 @@ func SendCollaboratorMail(u, doer *user_model.User, repo *repo_model.Repository)
 		return
 	}
 
-	msg := NewMessage([]string{u.Email}, subject, content.String())
+	msg := NewMessage(u.Email, subject, content.String())
 	msg.Info = fmt.Sprintf("UID: %d, add collaborator", u.ID)
 
 	SendAsync(msg)
@@ -272,6 +274,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 		"ActionName":      actName,
 		"ReviewComments":  reviewComments,
 		"Language":        locale.Language(),
+		"CanReply":        setting.IncomingEmail.Enabled && commentType != issues_model.CommentTypePullRequestPush,
 		// helper
 		"locale":    locale,
 		"Str2html":  templates.Str2html,
@@ -302,14 +305,57 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	msgID := createReference(ctx.Issue, ctx.Comment, ctx.ActionType)
 	reference := createReference(ctx.Issue, nil, activities_model.ActionType(0))
 
+	var replyPayload []byte
+	if ctx.Comment != nil && ctx.Comment.Type == issues_model.CommentTypeCode {
+		replyPayload, err = incoming_payload.CreateReferencePayload(ctx.Comment)
+	} else {
+		replyPayload, err = incoming_payload.CreateReferencePayload(ctx.Issue)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	unsubscribePayload, err := incoming_payload.CreateReferencePayload(ctx.Issue)
+	if err != nil {
+		return nil, err
+	}
+
 	msgs := make([]*Message, 0, len(recipients))
 	for _, recipient := range recipients {
-		msg := NewMessageFrom([]string{recipient.Email}, ctx.Doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
+		msg := NewMessageFrom(recipient.Email, ctx.Doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
 		msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
 
-		msg.SetHeader("Message-ID", "<"+msgID+">")
-		msg.SetHeader("In-Reply-To", "<"+reference+">")
-		msg.SetHeader("References", "<"+reference+">")
+		msg.SetHeader("Message-ID", msgID)
+		msg.SetHeader("In-Reply-To", reference)
+
+		references := []string{reference}
+		listUnsubscribe := []string{"<" + ctx.Issue.HTMLURL() + ">"}
+
+		if setting.IncomingEmail.Enabled {
+			if ctx.Comment != nil {
+				token, err := token.CreateToken(token.ReplyHandlerType, recipient, replyPayload)
+				if err != nil {
+					log.Error("CreateToken failed: %v", err)
+				} else {
+					replyAddress := strings.Replace(setting.IncomingEmail.ReplyToAddress, setting.IncomingEmail.TokenPlaceholder, token, 1)
+					msg.ReplyTo = replyAddress
+					msg.SetHeader("List-Post", fmt.Sprintf("<mailto:%s>", replyAddress))
+
+					references = append(references, fmt.Sprintf("<reply-%s@%s>", token, setting.Domain))
+				}
+			}
+
+			token, err := token.CreateToken(token.UnsubscribeHandlerType, recipient, unsubscribePayload)
+			if err != nil {
+				log.Error("CreateToken failed: %v", err)
+			} else {
+				unsubAddress := strings.Replace(setting.IncomingEmail.ReplyToAddress, setting.IncomingEmail.TokenPlaceholder, token, 1)
+				listUnsubscribe = append(listUnsubscribe, "<mailto:"+unsubAddress+">")
+			}
+		}
+
+		msg.SetHeader("References", references...)
+		msg.SetHeader("List-Unsubscribe", listUnsubscribe...)
 
 		for key, value := range generateAdditionalHeaders(ctx, actType, recipient) {
 			msg.SetHeader(key, value)
@@ -345,7 +391,7 @@ func createReference(issue *issues_model.Issue, comment *issues_model.Comment, a
 		}
 	}
 
-	return fmt.Sprintf("%s/%s/%d%s@%s", issue.Repo.FullName(), path, issue.Index, extra, setting.Domain)
+	return fmt.Sprintf("<%s/%s/%d%s@%s>", issue.Repo.FullName(), path, issue.Index, extra, setting.Domain)
 }
 
 func generateAdditionalHeaders(ctx *mailCommentContext, reason string, recipient *user_model.User) map[string]string {
@@ -357,8 +403,6 @@ func generateAdditionalHeaders(ctx *mailCommentContext, reason string, recipient
 
 		// https://datatracker.ietf.org/doc/html/rfc2369
 		"List-Archive": fmt.Sprintf("<%s>", repo.HTMLURL()),
-		//"List-Post": https://github.com/go-gitea/gitea/pull/13585
-		"List-Unsubscribe": ctx.Issue.HTMLURL(),
 
 		"X-Mailer":                  "Gitea",
 		"X-Gitea-Reason":            reason,

@@ -440,11 +440,12 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 
 	setMergeTarget(ctx, pull)
 
-	if err := pull.LoadProtectedBranch(ctx); err != nil {
+	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repo.ID, pull.BaseBranch)
+	if err != nil {
 		ctx.ServerError("LoadProtectedBranch", err)
 		return nil
 	}
-	ctx.Data["EnableStatusCheck"] = pull.ProtectedBranch != nil && pull.ProtectedBranch.EnableStatusCheck
+	ctx.Data["EnableStatusCheck"] = pb != nil && pb.EnableStatusCheck
 
 	var baseGitRepo *git.Repository
 	if pull.BaseRepoID == ctx.Repo.Repository.ID && ctx.Repo.GitRepo != nil {
@@ -570,16 +571,16 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 		ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(commitStatuses)
 	}
 
-	if pull.ProtectedBranch != nil && pull.ProtectedBranch.EnableStatusCheck {
+	if pb != nil && pb.EnableStatusCheck {
 		ctx.Data["is_context_required"] = func(context string) bool {
-			for _, c := range pull.ProtectedBranch.StatusCheckContexts {
+			for _, c := range pb.StatusCheckContexts {
 				if c == context {
 					return true
 				}
 			}
 			return false
 		}
-		ctx.Data["RequiredStatusCheckState"] = pull_service.MergeRequiredContextsCommitStatus(commitStatuses, pull.ProtectedBranch.StatusCheckContexts)
+		ctx.Data["RequiredStatusCheckState"] = pull_service.MergeRequiredContextsCommitStatus(commitStatuses, pb.StatusCheckContexts)
 	}
 
 	ctx.Data["HeadBranchMovedOn"] = headBranchSha != sha
@@ -752,16 +753,17 @@ func ViewPullFiles(ctx *context.Context) {
 		return
 	}
 
-	if err = pull.LoadProtectedBranch(ctx); err != nil {
+	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pull.BaseRepoID, pull.BaseBranch)
+	if err != nil {
 		ctx.ServerError("LoadProtectedBranch", err)
 		return
 	}
 
-	if pull.ProtectedBranch != nil {
-		glob := pull.ProtectedBranch.GetProtectedFilePatterns()
+	if pb != nil {
+		glob := pb.GetProtectedFilePatterns()
 		if len(glob) != 0 {
 			for _, file := range diff.Files {
-				file.IsProtected = pull.ProtectedBranch.IsProtectedFile(glob, file.Name)
+				file.IsProtected = pb.IsProtectedFile(glob, file.Name)
 			}
 		}
 	}
@@ -924,59 +926,54 @@ func MergePullRequest(ctx *context.Context) {
 	pr := issue.PullRequest
 	pr.Issue = issue
 	pr.Issue.Repo = ctx.Repo.Repository
-	manuallMerge := repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged
+	manualMerge := repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged
 	forceMerge := form.ForceMerge != nil && *form.ForceMerge
 
 	// start with merging by checking
-	if err := pull_service.CheckPullMergable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, manuallMerge, forceMerge); err != nil {
-		if errors.Is(err, pull_service.ErrIsClosed) {
+	if err := pull_service.CheckPullMergable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, manualMerge, forceMerge); err != nil {
+		switch {
+		case errors.Is(err, pull_service.ErrIsClosed):
 			if issue.IsPull {
 				ctx.Flash.Error(ctx.Tr("repo.pulls.is_closed"))
-				ctx.Redirect(issue.Link())
 			} else {
 				ctx.Flash.Error(ctx.Tr("repo.issues.closed_title"))
-				ctx.Redirect(issue.Link())
 			}
-		} else if errors.Is(err, pull_service.ErrUserNotAllowedToMerge) {
+		case errors.Is(err, pull_service.ErrUserNotAllowedToMerge):
 			ctx.Flash.Error(ctx.Tr("repo.pulls.update_not_allowed"))
-			ctx.Redirect(issue.Link())
-		} else if errors.Is(err, pull_service.ErrHasMerged) {
+		case errors.Is(err, pull_service.ErrHasMerged):
 			ctx.Flash.Error(ctx.Tr("repo.pulls.has_merged"))
-			ctx.Redirect(issue.Link())
-		} else if errors.Is(err, pull_service.ErrIsWorkInProgress) {
+		case errors.Is(err, pull_service.ErrIsWorkInProgress):
 			ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_wip"))
-			ctx.Redirect(issue.Link())
-		} else if errors.Is(err, pull_service.ErrNotMergableState) {
+		case errors.Is(err, pull_service.ErrNotMergableState):
 			ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_not_ready"))
-			ctx.Redirect(issue.Link())
-		} else if models.IsErrDisallowedToMerge(err) {
+		case models.IsErrDisallowedToMerge(err):
 			ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_not_ready"))
-			ctx.Redirect(issue.Link())
-		} else if asymkey_service.IsErrWontSign(err) {
-			ctx.Flash.Error(err.Error()) // has not translation ...
-			ctx.Redirect(issue.Link())
-		} else if errors.Is(err, pull_service.ErrDependenciesLeft) {
+		case asymkey_service.IsErrWontSign(err):
+			ctx.Flash.Error(err.Error()) // has no translation ...
+		case errors.Is(err, pull_service.ErrDependenciesLeft):
 			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
-			ctx.Redirect(issue.Link())
-		} else {
+		default:
 			ctx.ServerError("WebCheck", err)
+			return
 		}
+
+		ctx.Redirect(issue.Link())
 		return
 	}
 
 	// handle manually-merged mark
-	if manuallMerge {
+	if manualMerge {
 		if err := pull_service.MergedManually(pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
-			if models.IsErrInvalidMergeStyle(err) {
+			switch {
+
+			case models.IsErrInvalidMergeStyle(err):
 				ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
-				ctx.Redirect(issue.Link())
-			} else if strings.Contains(err.Error(), "Wrong commit ID") {
+			case strings.Contains(err.Error(), "Wrong commit ID"):
 				ctx.Flash.Error(ctx.Tr("repo.pulls.wrong_commit_id"))
-				ctx.Redirect(issue.Link())
-			} else {
+			default:
 				ctx.ServerError("MergedManually", err)
+				return
 			}
-			return
 		}
 
 		ctx.Redirect(issue.Link())
@@ -1393,14 +1390,14 @@ func CleanUpPullRequest(ctx *context.Context) {
 }
 
 func deleteBranch(ctx *context.Context, pr *issues_model.PullRequest, gitRepo *git.Repository) {
-	fullBranchName := pr.HeadRepo.Owner.Name + "/" + pr.HeadBranch
+	fullBranchName := pr.HeadRepo.FullName() + ":" + pr.HeadBranch
 	if err := repo_service.DeleteBranch(ctx.Doer, pr.HeadRepo, gitRepo, pr.HeadBranch); err != nil {
 		switch {
 		case git.IsErrBranchNotExist(err):
 			ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
 		case errors.Is(err, repo_service.ErrBranchIsDefault):
 			ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
-		case errors.Is(err, repo_service.ErrBranchIsProtected):
+		case errors.Is(err, git_model.ErrBranchIsProtected):
 			ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
 		default:
 			log.Error("DeleteBranch: %v", err)

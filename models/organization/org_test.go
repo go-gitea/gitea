@@ -91,11 +91,12 @@ func TestUser_GetTeams(t *testing.T) {
 	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
 	teams, err := org.LoadTeams()
 	assert.NoError(t, err)
-	if assert.Len(t, teams, 4) {
+	if assert.Len(t, teams, 5) {
 		assert.Equal(t, int64(1), teams[0].ID)
 		assert.Equal(t, int64(2), teams[1].ID)
 		assert.Equal(t, int64(12), teams[2].ID)
-		assert.Equal(t, int64(7), teams[3].ID)
+		assert.Equal(t, int64(14), teams[3].ID)
+		assert.Equal(t, int64(7), teams[4].ID)
 	}
 }
 
@@ -292,7 +293,7 @@ func TestUser_GetUserTeamIDs(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, expected, teamIDs)
 	}
-	testSuccess(2, []int64{1, 2})
+	testSuccess(2, []int64{1, 2, 14})
 	testSuccess(4, []int64{2})
 	testSuccess(unittest.NonexistentID, []int64{})
 }
@@ -447,7 +448,7 @@ func TestGetUsersWhoCanCreateOrgRepo(t *testing.T) {
 	users, err = organization.GetUsersWhoCanCreateOrgRepo(db.DefaultContext, 7)
 	assert.NoError(t, err)
 	assert.Len(t, users, 1)
-	assert.EqualValues(t, 5, users[0].ID)
+	assert.NotNil(t, users[5])
 }
 
 func TestUser_RemoveOrgRepo(t *testing.T) {

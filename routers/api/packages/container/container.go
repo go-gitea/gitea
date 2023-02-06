@@ -195,10 +195,15 @@ func InitiateUploadBlob(ctx *context.Context) {
 	from := ctx.FormTrim("from")
 	if mount != "" {
 		blob, _ := workaroundGetContainerBlob(ctx, &container_model.BlobSearchOptions{
-			Image:  from,
-			Digest: mount,
+			Repository: from,
+			Digest:     mount,
 		})
 		if blob != nil {
+			if err := mountBlob(&packages_service.PackageInfo{Owner: ctx.Package.Owner, Name: image}, blob.Blob); err != nil {
+				apiError(ctx, http.StatusInternalServerError, err)
+				return
+			}
+
 			setResponseHeaders(ctx.Resp, &containerHeaders{
 				Location:      fmt.Sprintf("/v2/%s/%s/blobs/%s", ctx.Package.Owner.LowerName, image, mount),
 				ContentDigest: mount,
@@ -222,8 +227,22 @@ func InitiateUploadBlob(ctx *context.Context) {
 			return
 		}
 
-		if _, err := saveAsPackageBlob(buf, &packages_service.PackageInfo{Owner: ctx.Package.Owner, Name: image}); err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
+		if _, err := saveAsPackageBlob(
+			buf,
+			&packages_service.PackageCreationInfo{
+				PackageInfo: packages_service.PackageInfo{
+					Owner: ctx.Package.Owner,
+					Name:  image,
+				},
+				Creator: ctx.Doer,
+			},
+		); err != nil {
+			switch err {
+			case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+				apiError(ctx, http.StatusForbidden, err)
+			default:
+				apiError(ctx, http.StatusInternalServerError, err)
+			}
 			return
 		}
 
@@ -353,8 +372,22 @@ func EndUploadBlob(ctx *context.Context) {
 		return
 	}
 
-	if _, err := saveAsPackageBlob(uploader, &packages_service.PackageInfo{Owner: ctx.Package.Owner, Name: image}); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+	if _, err := saveAsPackageBlob(
+		uploader,
+		&packages_service.PackageCreationInfo{
+			PackageInfo: packages_service.PackageInfo{
+				Owner: ctx.Package.Owner,
+				Name:  image,
+			},
+			Creator: ctx.Doer,
+		},
+	); err != nil {
+		switch err {
+		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+			apiError(ctx, http.StatusForbidden, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
 		return
 	}
 
@@ -521,7 +554,12 @@ func UploadManifest(ctx *context.Context) {
 		} else if errors.Is(err, container_model.ErrContainerBlobNotExist) {
 			apiErrorDefined(ctx, errBlobUnknown)
 		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
+			switch err {
+			case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+				apiError(ctx, http.StatusForbidden, err)
+			default:
+				apiError(ctx, http.StatusInternalServerError, err)
+			}
 		}
 		return
 	}
