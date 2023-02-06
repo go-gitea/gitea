@@ -1185,3 +1185,12 @@ func (r *Repository) IsIssueConfig(path string) bool {
 	}
 	return false
 }
+
+func (ctx *Context) HasIssueTemplatesOrContactLinks() bool {
+	if  len(ctx.IssueTemplatesFromDefaultBranch()) > 0 {
+		return true
+	}
+
+	issueConfig, _ := ctx.IssueConfigFromDefaultBranch()
+	return len(issueConfig.ContactLinks) > 0
+}
