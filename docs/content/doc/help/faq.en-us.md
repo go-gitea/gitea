@@ -452,7 +452,7 @@ If you are using Cloudflare, turn off the auto-minify option in the dashboard.
 
 ## How to adopt repositories from disk
 
-1. Add your repositories to the correct spot for your configuration (`repository.ROOT`).  
+1. Add your (bare) repositories to the correct spot for your configuration (`repository.ROOT`), ensuring they are in the correct layout `<REPO_ROOT>/[user]/[repo].git`.  
 You can also check `<ROOT_URL>/admin/config` for the repository root path.
 2. Ensure that the user/org exists that you want to adopt repositories for
 3. As an admin, go to `<ROOT_URL>/admin/repos/unadopted` and search.  
