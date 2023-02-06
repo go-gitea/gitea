@@ -85,8 +85,10 @@ Then repeat the procedure, but this time using the [latest release](https://dl.g
 
 ## Upgrading from a more recent version of Gogs
 
-Upgrading from a more recent version of Gogs is also possible, but requires a bit more work.
-See [#4286](https://github.com/go-gitea/gitea/issues/4286).
+Upgrading from a more recent version of Gogs (up to `0.11.x`) may also be possible, but will require a bit more work.
+See [#4286](https://github.com/go-gitea/gitea/issues/4286), which includes various Gogs `0.11.x` versions.
+
+Upgrading from Gogs `0.12.x` and above will be increasingly more difficult as the projects diverge further apart in configuration and schema.
 
 ## Troubleshooting
 

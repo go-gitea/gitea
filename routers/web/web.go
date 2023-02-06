@@ -472,6 +472,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/initialize", user_setting.InitializeCargoIndex)
 				m.Post("/rebuild", user_setting.RebuildCargoIndex)
 			})
+			m.Post("/chef/regenerate_keypair", user_setting.RegenerateChefKeyPair)
 		}, packagesEnabled)
 		m.Group("/secrets", func() {
 			m.Get("", user_setting.Secrets)
