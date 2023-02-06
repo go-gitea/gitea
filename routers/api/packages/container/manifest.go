@@ -20,14 +20,28 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	container_module "code.gitea.io/gitea/modules/packages/container"
-	"code.gitea.io/gitea/modules/packages/container/oci"
 	"code.gitea.io/gitea/modules/util"
 	packages_service "code.gitea.io/gitea/services/packages"
+
+	digest "github.com/opencontainers/go-digest"
+	oci "github.com/opencontainers/image-spec/specs-go/v1"
 )
+
+func isValidMediaType(mt string) bool {
+	return strings.HasPrefix(mt, "application/vnd.docker.") || strings.HasPrefix(mt, "application/vnd.oci.")
+}
+
+func isImageManifestMediaType(mt string) bool {
+	return strings.EqualFold(mt, oci.MediaTypeImageManifest) || strings.EqualFold(mt, "application/vnd.docker.distribution.manifest.v2+json")
+}
+
+func isImageIndexMediaType(mt string) bool {
+	return strings.EqualFold(mt, oci.MediaTypeImageIndex) || strings.EqualFold(mt, "application/vnd.docker.distribution.manifest.list.v2+json")
+}
 
 // manifestCreationInfo describes a manifest to create
 type manifestCreationInfo struct {
-	MediaType  oci.MediaType
+	MediaType  string
 	Owner      *user_model.User
 	Creator    *user_model.User
 	Image      string
@@ -37,12 +51,12 @@ type manifestCreationInfo struct {
 }
 
 func processManifest(mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (string, error) {
-	var schema oci.SchemaMediaBase
-	if err := json.NewDecoder(buf).Decode(&schema); err != nil {
+	var index oci.Index
+	if err := json.NewDecoder(buf).Decode(&index); err != nil {
 		return "", err
 	}
 
-	if schema.SchemaVersion != 2 {
+	if index.SchemaVersion != 2 {
 		return "", errUnsupported.WithMessage("Schema version is not supported")
 	}
 
@@ -50,17 +64,17 @@ func processManifest(mci *manifestCreationInfo, buf *packages_module.HashedBuffe
 		return "", err
 	}
 
-	if !mci.MediaType.IsValid() {
-		mci.MediaType = schema.MediaType
-		if !mci.MediaType.IsValid() {
+	if !isValidMediaType(mci.MediaType) {
+		mci.MediaType = index.MediaType
+		if !isValidMediaType(mci.MediaType) {
 			return "", errManifestInvalid.WithMessage("MediaType not recognized")
 		}
 	}
 
-	if mci.MediaType.IsImageManifest() {
+	if isImageManifestMediaType(mci.MediaType) {
 		d, err := processImageManifest(mci, buf)
 		return d, err
-	} else if mci.MediaType.IsImageIndex() {
+	} else if isImageIndexMediaType(mci.MediaType) {
 		d, err := processImageManifestIndex(mci, buf)
 		return d, err
 	}
@@ -205,7 +219,7 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 		}
 
 		for _, manifest := range index.Manifests {
-			if !manifest.MediaType.IsImageManifest() {
+			if !isImageManifestMediaType(manifest.MediaType) {
 				return errManifestInvalid
 			}
 
@@ -345,8 +359,8 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 }
 
 type blobReference struct {
-	Digest       oci.Digest
-	MediaType    oci.MediaType
+	Digest       digest.Digest
+	MediaType    string
 	Name         string
 	File         *packages_model.PackageFileDescriptor
 	ExpectedSize int64
@@ -380,7 +394,7 @@ func createFileFromBlobReference(ctx context.Context, pv, uploadVersion *package
 	}
 
 	props := map[string]string{
-		container_module.PropertyMediaType: string(ref.MediaType),
+		container_module.PropertyMediaType: ref.MediaType,
 		container_module.PropertyDigest:    string(ref.Digest),
 	}
 	for name, value := range props {
@@ -425,7 +439,7 @@ func createManifestBlob(ctx context.Context, mci *manifestCreationInfo, pv *pack
 
 	manifestDigest := digestFromHashSummer(buf)
 	err = createFileFromBlobReference(ctx, pv, nil, &blobReference{
-		Digest:       oci.Digest(manifestDigest),
+		Digest:       digest.Digest(manifestDigest),
 		MediaType:    mci.MediaType,
 		Name:         container_model.ManifestFilename,
 		File:         &packages_model.PackageFileDescriptor{Blob: pb},
