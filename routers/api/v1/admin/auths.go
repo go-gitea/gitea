@@ -7,12 +7,17 @@ package admin
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/auth/source/ldap"
+	"code.gitea.io/gitea/services/auth/source/oauth2"
+	"code.gitea.io/gitea/services/auth/source/pam"
+	"code.gitea.io/gitea/services/auth/source/smtp"
+	"code.gitea.io/gitea/services/auth/source/sspi"
 
 	xorm "xorm.io/xorm/convert"
 )
@@ -29,7 +34,7 @@ func ListAuthSources(ctx *context.APIContext) {
 	//     "$ref": "#/responses/AuthSourcesList"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-	sources, err := models.LoginSources()
+	sources, err := auth.Sources()
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -63,23 +68,23 @@ func CreateAuthSource(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	authSource := web.GetForm(ctx).(*api.CreateAuthSource)
 	var config xorm.Conversion
-	var loginType models.LoginType
-	for key, val := range models.LoginNames {
+	var loginType auth.Type
+	for key, val := range auth.Names {
 		if authSource.Type == val {
 			loginType = key
 			switch key {
-			case models.LoginLDAP:
-				config = &models.LDAPConfig{}
-			case models.LoginSMTP:
-				config = &models.SMTPConfig{}
-			case models.LoginPAM:
-				config = &models.PAMConfig{}
-			case models.LoginDLDAP:
-				config = &models.LDAPConfig{}
-			case models.LoginOAuth2:
-				config = &models.OAuth2Config{}
-			case models.LoginSSPI:
-				config = &models.SSPIConfig{}
+			case auth.LDAP:
+				config = &ldap.Source{}
+			case auth.SMTP:
+				config = &smtp.Source{}
+			case auth.PAM:
+				config = &pam.Source{}
+			case auth.DLDAP:
+				config = &ldap.Source{}
+			case auth.OAuth2:
+				config = &oauth2.Source{}
+			case auth.SSPI:
+				config = &sspi.Source{}
 			}
 			break
 		}
@@ -93,16 +98,16 @@ func CreateAuthSource(ctx *context.APIContext) {
 		return
 	}
 
-	source := &models.LoginSource{
+	source := &auth.Source{
 		Type:          loginType,
 		Cfg:           config,
 		Name:          authSource.Name,
-		IsActived:     authSource.IsActive,
+		IsActive:      authSource.IsActive,
 		IsSyncEnabled: authSource.IsSyncEnabled,
 		CreatedUnix:   timeutil.TimeStampNow(),
 		UpdatedUnix:   timeutil.TimeStampNow(),
 	}
-	if err := models.CreateLoginSource(source); err != nil {
+	if err := auth.CreateSource(source); err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
