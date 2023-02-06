@@ -449,3 +449,12 @@ It is highly recommended to back-up your database before running these commands.
 If you are using Cloudflare, turn off the auto-minify option in the dashboard.
 
 `Speed` -> `Optimization` -> Uncheck `HTML` within the `Auto-Minify` settings.
+
+## How to adopt repositories from disk
+
+1. Add your repositories to the correct spot for your configuration (`repository.ROOT`).  
+You can also check `<ROOT_URL>/admin/config` for the repository root path.
+2. Ensure that the user/org exists that you want to adopt repositories for
+3. As an admin, go to `<ROOT_URL>/admin/repos/unadopted` and search.  
+Users can also be given similar permissions via config [`ALLOW_ADOPTION_OF_UNADOPTED_REPOSITORIES`]({{< relref "doc/advanced/config-cheat-sheet.en-us.md#repository" >}}).
+4. If the above steps are done correctly, you should be able to select repositories to adopt. Otherwise, enable [debug logging]({{< relref "doc/advanced/config-cheat-sheet.en-us.md#repository" >}}) to check for any specific errors.
