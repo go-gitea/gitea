@@ -65,7 +65,7 @@ type PackageFileDescriptor struct {
 
 // PackageWebLink returns the package web link
 func (pd *PackageDescriptor) PackageWebLink() string {
-	return fmt.Sprintf("%s/-/packages/%s/%s", pd.Owner.HTMLURL(), string(pd.Package.Type), url.PathEscape(pd.Package.LowerName))
+	return fmt.Sprintf("%s/-/packages/%s/%s", pd.Owner.HomeLink(), string(pd.Package.Type), url.PathEscape(pd.Package.LowerName))
 }
 
 // FullWebLink returns the package version web link
