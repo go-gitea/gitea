@@ -895,11 +895,8 @@ func SignInOAuthCallback(ctx *context.Context) {
 		return
 	}
 
-	fmt.Println("hier hier")
-
 	u, gothUser, err := oAuth2UserLoginCallback(authSource, ctx.Req, ctx.Resp)
 	if err != nil {
-		fmt.Println("hier hier 2")
 		if user_model.IsErrUserProhibitLogin(err) {
 			uplerr := err.(user_model.ErrUserProhibitLogin)
 			log.Info("Failed authentication attempt for %s from %s: %v", uplerr.Name, ctx.RemoteAddr(), err)
@@ -923,8 +920,6 @@ func SignInOAuthCallback(ctx *context.Context) {
 		ctx.ServerError("UserSignIn", err)
 		return
 	}
-
-	fmt.Println("hier hier 3", u)
 
 	if u == nil {
 		if ctx.Doer != nil {

@@ -133,3 +133,10 @@ export function convertImage(blob, mime) {
     }
   });
 }
+
+export function toAbsoluteUrl(relUrl) {
+  if (relUrl.startsWith('http://') || relUrl.startsWith('https://')) {
+    return relUrl;
+  }
+  return `${window.location.origin}${relUrl}`;
+}

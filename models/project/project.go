@@ -116,6 +116,7 @@ func (p *Project) LoadRepo(ctx context.Context) (err error) {
 	return err
 }
 
+// Link returns the project's relative URL.
 func (p *Project) Link() string {
 	if p.OwnerID > 0 {
 		err := p.LoadOwner(db.DefaultContext)
