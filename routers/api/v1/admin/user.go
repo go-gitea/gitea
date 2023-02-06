@@ -14,6 +14,7 @@ import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -24,9 +25,11 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/agit"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/mailer"
+	container_service "code.gitea.io/gitea/services/packages/container"
 	user_service "code.gitea.io/gitea/services/user"
 )
 
@@ -447,4 +450,84 @@ func GetAllUsers(ctx *context.APIContext) {
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
 	ctx.SetTotalCountHeader(maxResults)
 	ctx.JSON(http.StatusOK, &results)
+}
+
+// RenameUser api for renaming a user
+func RenameUser(ctx *context.APIContext) {
+	// swagger:operation POST /admin/users/{username} admin adminRenameUser
+	// ---
+	// summary: Rename a user
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: existing username of user
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   required: true
+	//   schema:
+	//     "$ref": "#/definitions/RenameUserOption"
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	if ctx.ContextUser.IsOrganization() {
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("%s is an organization not a user", ctx.ContextUser.Name))
+		return
+	}
+
+	newName := web.GetForm(ctx).(*api.RenameUserOption).NewName
+	// Check if user name has been changed
+	if ctx.ContextUser.LowerName != strings.ToLower(newName) {
+		if err := user_model.ChangeUserName(ctx.ContextUser, newName); err != nil {
+			switch {
+			case user_model.IsErrUserAlreadyExist(err):
+				ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("form.username_been_taken"))
+			case user_model.IsErrEmailAlreadyUsed(err):
+				ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("form.email_been_used"))
+			case db.IsErrNameReserved(err):
+				ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("user.form.name_reserved", newName))
+			case db.IsErrNamePatternNotAllowed(err):
+				ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("user.form.name_pattern_not_allowed", newName))
+			case db.IsErrNameCharsNotAllowed(err):
+				ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("user.form.name_chars_not_allowed", newName))
+			default:
+				ctx.ServerError("ChangeUserName", err)
+			}
+			return
+		}
+	} else {
+		if err := repo_model.UpdateRepositoryOwnerNames(ctx.ContextUser.ID, newName); err != nil {
+			fmt.Println("RenameUser 6")
+			ctx.ServerError("UpdateRepository", err)
+			return
+		}
+	}
+	// update all agit flow pull request header
+	err := agit.UserNameChanged(ctx.ContextUser, newName)
+	if err != nil {
+		ctx.ServerError("agit.UserNameChanged", err)
+		return
+	}
+	if err := container_service.UpdateRepositoryNames(ctx, ctx.ContextUser, newName); err != nil {
+		ctx.ServerError("UpdateRepositoryNames", err)
+		return
+	}
+
+	ctx.ContextUser.Name = newName
+	ctx.ContextUser.LowerName = strings.ToLower(newName)
+	if err := user_model.UpdateUser(ctx, ctx.ContextUser, false); err != nil {
+		ctx.ServerError("UpdateUser", err)
+		return
+	}
+
+	log.Trace("User name changed: %s -> %s", ctx.ContextUser.Name, newName)
+	ctx.Status(http.StatusNoContent)
 }

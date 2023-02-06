@@ -93,3 +93,12 @@ type UserSettingsOptions struct {
 	HideEmail    *bool `json:"hide_email"`
 	HideActivity *bool `json:"hide_activity"`
 }
+
+// CreateKeyOption options when creating a key
+type RenameUserOption struct {
+	// New username
+	//
+	// required: true
+	// unique: true
+	NewName string `json:"new_username" binding:"Required"`
+}
