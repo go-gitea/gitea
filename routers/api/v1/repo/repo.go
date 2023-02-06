@@ -1103,9 +1103,20 @@ func GetIssueConfig(ctx *context.APIContext) {
 	// summary: Returns the issue config for a repo
 	// produces:
 	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/IssueConfig"
+	//     "$ref": "#/responses/RepoIssueConfig"
 	issueConfig, _ := ctx.IssueConfigFromDefaultBranch()
 	ctx.JSON(http.StatusOK, issueConfig)
 }

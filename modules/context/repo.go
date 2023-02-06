@@ -49,7 +49,7 @@ var IssueTemplateDirCandidates = []string{
 	".gitlab/issue_template",
 }
 
-var IssueConfigCanidates = []string{
+var IssueConfigCandidates = []string{
 	".gitea/ISSUE_TEMPLATE/config",
 	".gitea/issue_template/config",
 	".github/ISSUE_TEMPLATE/config",
@@ -1112,6 +1112,7 @@ func (ctx *Context) IssueTemplatesErrorsFromDefaultBranch() ([]*api.IssueTemplat
 func GetDefaultIssueConfig() api.IssueConfig {
 	return api.IssueConfig{
 		BlankIssuesEnabled: true,
+		ContactLinks: make([]api.IssueConfigContactLink, 0),
 	}
 }
 
@@ -1153,12 +1154,16 @@ func (r *Repository) GetIssueConfig(path string, commit *git.Commit) (api.IssueC
 // IssueConfigFromDefaultBranch returns the issue config for this repo.
 // It never returns a nil config.
 func (ctx *Context) IssueConfigFromDefaultBranch() (api.IssueConfig, error) {
+	if ctx.Repo.Repository.IsEmpty {
+		return GetDefaultIssueConfig(), nil
+	}
+
 	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
 	if err != nil {
 		return GetDefaultIssueConfig(), err
 	}
 
-	for _, configName := range IssueConfigCanidates {
+	for _, configName := range IssueConfigCandidates {
 		if _, err := commit.GetTreeEntryByPath(configName + ".yaml"); err == nil {
 			return ctx.Repo.GetIssueConfig(configName+".yaml", commit)
 		}
@@ -1173,7 +1178,7 @@ func (ctx *Context) IssueConfigFromDefaultBranch() (api.IssueConfig, error) {
 
 // IsIssueConfig returns if the given path is a issue config file.
 func (r *Repository) IsIssueConfig(path string) bool {
-	for _, configName := range IssueConfigCanidates {
+	for _, configName := range IssueConfigCandidates {
 		if path == configName+".yaml" || path == configName+".yml" {
 			return true
 		}

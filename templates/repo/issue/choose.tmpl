@@ -20,6 +20,19 @@
 				</div>
 			</div>
 		{{end}}
+		{{range .IssueConfig.ContactLinks}}
+			<div class="ui attached segment">
+				<div class="ui two column grid">
+					<div class="column left aligned">
+						<strong>{{.Name | RenderEmojiPlain}}</strong>
+						<br/>{{.About | RenderEmojiPlain}}
+					</div>
+					<div class="column right aligned">
+						<a href="{{.URL}}" class="ui green button">{{svg "octicon-link-external"}} {{$.locale.Tr "repo.issues.choose.open_external_link"}}</a>
+					</div>
+				</div>
+			</div>
+		{{end}}
 		{{if .IssueConfig.BlankIssuesEnabled}}
 			<div class="ui attached segment">
 				<div class="ui two column grid">

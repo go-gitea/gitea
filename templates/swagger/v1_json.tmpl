@@ -4845,9 +4845,25 @@
         ],
         "summary": "Returns the issue config for a repo",
         "operationId": "repoGetIssueConfig",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
         "responses": {
           "200": {
-            "$ref": "#/responses/IssueConfig"
+            "$ref": "#/responses/RepoIssueConfig"
           }
         }
       }
@@ -17503,6 +17519,41 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "IssueConfig": {
+      "type": "object",
+      "properties": {
+        "blank_issues_enabled": {
+          "type": "boolean",
+          "x-go-name": "BlankIssuesEnabled"
+        },
+        "contact_links": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/IssueConfigContactLink"
+          },
+          "x-go-name": "ContactLinks"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "IssueConfigContactLink": {
+      "type": "object",
+      "properties": {
+        "about": {
+          "type": "string",
+          "x-go-name": "About"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "IssueDeadline": {
       "description": "IssueDeadline represents an issue deadline",
       "type": "object",
@@ -20686,6 +20737,12 @@
       "description": "RepoCollaboratorPermission",
       "schema": {
         "$ref": "#/definitions/RepoCollaboratorPermission"
+      }
+    },
+    "RepoIssueConfig": {
+      "description": "RepoIssueConfig",
+      "schema": {
+        "$ref": "#/definitions/IssueConfig"
       }
     },
     "Repository": {
