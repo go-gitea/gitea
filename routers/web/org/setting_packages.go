@@ -84,3 +84,23 @@ func PackagesRulePreview(ctx *context.Context) {
 
 	ctx.HTML(http.StatusOK, tplSettingsPackagesRulePreview)
 }
+
+func InitializeCargoIndex(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("packages.title")
+	ctx.Data["PageIsOrgSettings"] = true
+	ctx.Data["PageIsSettingsPackages"] = true
+
+	shared.InitializeCargoIndex(ctx, ctx.ContextUser)
+
+	ctx.Redirect(fmt.Sprintf("%s/org/%s/settings/packages", setting.AppSubURL, ctx.ContextUser.Name))
+}
+
+func RebuildCargoIndex(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("packages.title")
+	ctx.Data["PageIsOrgSettings"] = true
+	ctx.Data["PageIsSettingsPackages"] = true
+
+	shared.RebuildCargoIndex(ctx, ctx.ContextUser)
+
+	ctx.Redirect(fmt.Sprintf("%s/org/%s/settings/packages", setting.AppSubURL, ctx.ContextUser.Name))
+}
