@@ -10,35 +10,35 @@ import (
 
 type cacheContext struct {
 	ctx  context.Context
-	Data map[any]map[any]any
+	data map[any]map[any]any
 	lock sync.RWMutex
 }
 
 func (cc *cacheContext) Get(tp, key any) any {
 	cc.lock.RLock()
 	defer cc.lock.RUnlock()
-	if cc.Data[tp] == nil {
+	if cc.data[tp] == nil {
 		return nil
 	}
-	return cc.Data[tp][key]
+	return cc.data[tp][key]
 }
 
 func (cc *cacheContext) Put(tp, key, value any) {
 	cc.lock.Lock()
 	defer cc.lock.Unlock()
-	if cc.Data[tp] == nil {
-		cc.Data[tp] = make(map[any]any)
+	if cc.data[tp] == nil {
+		cc.data[tp] = make(map[any]any)
 	}
-	cc.Data[tp][key] = value
+	cc.data[tp][key] = value
 }
 
 func (cc *cacheContext) Delete(tp, key any) {
 	cc.lock.Lock()
 	defer cc.lock.Unlock()
-	if cc.Data[tp] == nil {
-		cc.Data[tp] = make(map[any]any)
+	if cc.data[tp] == nil {
+		cc.data[tp] = make(map[any]any)
 	}
-	delete(cc.Data[tp], key)
+	delete(cc.data[tp], key)
 }
 
 var cacheContextKey = struct{}{}
@@ -46,7 +46,7 @@ var cacheContextKey = struct{}{}
 func WithCacheContext(ctx context.Context) context.Context {
 	return context.WithValue(ctx, cacheContextKey, &cacheContext{
 		ctx:  ctx,
-		Data: make(map[any]map[any]any),
+		data: make(map[any]map[any]any),
 	})
 }
 
