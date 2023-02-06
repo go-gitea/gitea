@@ -160,7 +160,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		&repo_model.Watch{RepoID: repoID},
 		&webhook.Webhook{RepoID: repoID},
 		&secret_model.Secret{RepoID: repoID},
-		&repo_model.Setting{RepoID: repoID},
+		&repo_model.Setting{GroupID: repoID},
 		&actions_model.ActionTaskStep{RepoID: repoID},
 		&actions_model.ActionTask{RepoID: repoID},
 		&actions_model.ActionRunJob{RepoID: repoID},

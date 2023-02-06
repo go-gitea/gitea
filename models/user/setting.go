@@ -6,7 +6,6 @@ package user
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/cache"
@@ -107,19 +106,9 @@ func GetUserAllSettings(uid int64) (map[string]*Setting, error) {
 	return settingsMap, nil
 }
 
-func ValidateSettingKey(key string) error {
-	if len(key) == 0 {
-		return fmt.Errorf("setting key must be set")
-	}
-	if strings.ToLower(key) != key {
-		return fmt.Errorf("setting key should be lowercase")
-	}
-	return nil
-}
-
 // GetUserSetting gets a specific setting for a user
 func GetUserSetting(userID int64, key string, def ...string) (string, error) {
-	if err := ValidateSettingKey(key); err != nil {
+	if err := db.ValidateSettingKey(key); err != nil {
 		return "", err
 	}
 
@@ -139,7 +128,7 @@ func GetUserSetting(userID int64, key string, def ...string) (string, error) {
 
 // DeleteUserSetting deletes a specific setting for a user
 func DeleteUserSetting(userID int64, key string) error {
-	if err := ValidateSettingKey(key); err != nil {
+	if err := db.ValidateSettingKey(key); err != nil {
 		return err
 	}
 
@@ -151,7 +140,7 @@ func DeleteUserSetting(userID int64, key string) error {
 
 // SetUserSetting updates a users' setting for a specific key
 func SetUserSetting(userID int64, key, value string) error {
-	if err := ValidateSettingKey(key); err != nil {
+	if err := db.ValidateSettingKey(key); err != nil {
 		return err
 	}
 

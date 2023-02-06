@@ -17,7 +17,7 @@ func TestSettings(t *testing.T) {
 	keyName := "test_repo_setting"
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	newSetting := &Setting{RepoID: 99, SettingKey: keyName, SettingValue: "Gitea Repo Setting Test"}
+	newSetting := &Setting{GroupID: 99, SettingKey: keyName, SettingValue: "Gitea Repo Setting Test"}
 
 	// create setting
 	err := SetSetting(newSetting)
@@ -41,7 +41,7 @@ func TestSettings(t *testing.T) {
 	assert.EqualValues(t, "", settingValue)
 
 	// updated setting
-	updatedSetting := &Setting{RepoID: 99, SettingKey: keyName, SettingValue: "Updated", Version: 2} // updated twice
+	updatedSetting := &Setting{GroupID: 99, SettingKey: keyName, SettingValue: "Updated", Version: 2} // updated twice
 	err = SetSetting(updatedSetting)
 	assert.NoError(t, err)
 
