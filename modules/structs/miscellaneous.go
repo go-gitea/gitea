@@ -44,6 +44,12 @@ type ServerVersion struct {
 	Version string `json:"version"`
 }
 
+// GitignoreTemplateInfo name and text of a gitignore template
+type GitignoreTemplateInfo struct {
+	Name   string `json:"name"`
+	Source string `json:"source"`
+}
+
 // APIError is an api error with a message
 type APIError struct {
 	Message string `json:"message"`

@@ -749,6 +749,52 @@
         }
       }
     },
+    "/gitignore/templates": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Returns a list of all gitignore templates",
+        "operationId": "listGitignoresTemplates",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/GitignoreTemplateList"
+          }
+        }
+      }
+    },
+    "/gitignore/templates/{name}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Returns information about a gitignore template",
+        "operationId": "getGitignoreTemplateInfo",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the template",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/GitignoreTemplateInfo"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/markdown": {
       "post": {
         "consumes": [
@@ -17286,6 +17332,21 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "GitignoreTemplateInfo": {
+      "description": "GitignoreTemplateInfo name and text of a gitignore template",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "source": {
+          "type": "string",
+          "x-go-name": "Source"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "Hook": {
       "description": "Hook a hook is a web hook when one repository changed",
       "type": "object",
@@ -20359,6 +20420,21 @@
       "description": "GitTreeResponse",
       "schema": {
         "$ref": "#/definitions/GitTreeResponse"
+      }
+    },
+    "GitignoreTemplateInfo": {
+      "description": "GitignoreTemplateInfo",
+      "schema": {
+        "$ref": "#/definitions/GitignoreTemplateInfo"
+      }
+    },
+    "GitignoreTemplateList": {
+      "description": "GitignoreTemplateList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
       }
     },
     "Hook": {

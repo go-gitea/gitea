@@ -713,6 +713,8 @@ func Routes(ctx gocontext.Context) *web.Route {
 		m.Get("/signing-key.gpg", misc.SigningKey)
 		m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)
 		m.Post("/markdown/raw", misc.MarkdownRaw)
+		m.Get("/gitignore/templates", misc.ListGitignoresTemplates)
+		m.Get("/gitignore/templates/{name}", misc.GetGitignoreTemplateInfo)
 		m.Group("/settings", func() {
 			m.Get("/ui", settings.GetGeneralUISettings)
 			m.Get("/api", settings.GetGeneralAPISettings)
