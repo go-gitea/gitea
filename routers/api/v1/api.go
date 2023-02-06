@@ -1252,6 +1252,13 @@ func Routes(ctx gocontext.Context) *web.Route {
 					m.Post("/repos", bind(api.CreateRepoOption{}), admin.CreateRepo)
 				}, context_service.UserAssignmentAPI())
 			})
+			m.Group("/emails", func() {
+				m.Get("", admin.GetAllEmails)
+				m.Get("/search", admin.SearchEmail)
+				m.Group("/{email}", func() {
+					m.Get("", admin.GetEmail)
+				})
+			})
 			m.Group("/unadopted", func() {
 				m.Get("", admin.ListUnadoptedRepositories)
 				m.Post("/{username}/{reponame}", admin.AdoptRepository)

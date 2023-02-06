@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package structs
@@ -6,9 +7,11 @@ package structs
 // Email an email address belonging to a user
 type Email struct {
 	// swagger:strfmt email
-	Email    string `json:"email"`
-	Verified bool   `json:"verified"`
-	Primary  bool   `json:"primary"`
+	Email     string `json:"email"`
+	Verified  bool   `json:"verified"`
+	Primary   bool   `json:"primary"`
+	UserID    int64  `json:"user_id"`
+	LoginName string `json:"login_name"`
 }
 
 // CreateEmailOption options when creating email addresses
