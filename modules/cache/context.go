@@ -6,6 +6,8 @@ package cache
 import (
 	"context"
 	"sync"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 type cacheContext struct {
@@ -36,7 +38,7 @@ func (cc *cacheContext) Delete(tp, key any) {
 	cc.lock.Lock()
 	defer cc.lock.Unlock()
 	if cc.data[tp] == nil {
-		cc.data[tp] = make(map[any]any)
+		return
 	}
 	delete(cc.data[tp], key)
 }
@@ -51,28 +53,22 @@ func WithCacheContext(ctx context.Context) context.Context {
 }
 
 func GetContextData(ctx context.Context, tp, key any) any {
-	if ctx == nil {
-		return nil
-	}
 	if c, ok := ctx.Value(cacheContextKey).(*cacheContext); ok {
 		return c.Get(tp, key)
 	}
+	log.Warn("cannot get cache context when getting data: %v", ctx)
 	return nil
 }
 
 func SetContextData(ctx context.Context, tp, key, value any) {
-	if ctx == nil {
-		return
-	}
 	if c, ok := ctx.Value(cacheContextKey).(*cacheContext); ok {
 		c.Put(tp, key, value)
+		return
 	}
+	log.Warn("cannot get cache context when setting data: %v", ctx)
 }
 
 func RemoveContextData(ctx context.Context, tp, key any) {
-	if ctx == nil {
-		return
-	}
 	if c, ok := ctx.Value(cacheContextKey).(*cacheContext); ok {
 		c.Delete(tp, key)
 	}
