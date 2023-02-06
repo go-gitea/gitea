@@ -263,7 +263,7 @@ export function initImageDiff() {
         height: sizes.max.height * factor + 4
       });
 
-      const $range = $container.find("input[type='range'");
+      const $range = $container.find("input[type='range']");
       const onInput = () => sizes.image1.parent().css({
         opacity: $range.val() / 100
       });
