@@ -82,11 +82,11 @@ func testGit(t *testing.T, u *url.URL) {
 
 		t.Run("SizeLimit", func(t *testing.T) {
 			t.Run("Under", func(t *testing.T) {
-				tests.PrintCurrentTest(t)
+				defer tests.PrintCurrentTest(t)()
 				doCommitAndPush(t, littleSize, dstPath, "data-file-")
 			})
 			t.Run("Over", func(t *testing.T) {
-				tests.PrintCurrentTest(t)
+				defer tests.PrintCurrentTest(t)()
 				u.Path = forkedUserCtx.GitPath()
 				u.User = url.UserPassword(forkedUserCtx.Username, userPassword)
 				t.Run("Clone", doGitClone(dstForkedPath, u))
@@ -94,12 +94,12 @@ func testGit(t *testing.T, u *url.URL) {
 				doCommitAndPushWithExpectedError(t, bigSize, dstForkedPath, "data-file-")
 			})
 			t.Run("UnderAfterResize", func(t *testing.T) {
-				tests.PrintCurrentTest(t)
+				defer tests.PrintCurrentTest(t)()
 				t.Run("APISetRepoSizeLimit", doAPISetRepoSizeLimit(forkedUserCtx, forkedUserCtx.Username, forkedUserCtx.Reponame, bigSize*10))
 				doCommitAndPush(t, littleSize, dstPath, "data-file-")
 			})
 			t.Run("Deletion", func(t *testing.T) {
-				tests.PrintCurrentTest(t)
+				defer tests.PrintCurrentTest(t)()
 				// TODO doDeleteCommitAndPush(t, littleSize, dstPath, "data-file-")
 			})
 			// TODO delete branch
