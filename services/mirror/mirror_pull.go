@@ -217,12 +217,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		return nil, false
 	}
 
-	envs := []string{}
-	if strings.EqualFold(remoteURL.Scheme, "http") || strings.EqualFold(remoteURL.Scheme, "https") {
-		if proxy.Match(remoteURL.Host) {
-			envs = append(envs, fmt.Sprintf("https_proxy=%s", proxy.GetProxyURL()))
-		}
-	}
+	envs := proxy.EnvWithProxy(remoteURL.URL)
 
 	stdoutBuilder := strings.Builder{}
 	stderrBuilder := strings.Builder{}
