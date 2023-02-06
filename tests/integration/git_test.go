@@ -29,6 +29,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
+	"code.gitea.io/gitea/modules/log"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -58,6 +59,8 @@ func testGit(t *testing.T, u *url.URL) {
 
 		dstPath := t.TempDir()
 
+		dstForkedPath := t.TempDir()
+
 		t.Run("CreateRepoInDifferentUser", doAPICreateRepository(forkedUserCtx, false))
 		t.Run("AddUserAsCollaborator", doAPIAddCollaborator(forkedUserCtx, httpContext.Username, perm.AccessModeRead))
 
@@ -84,12 +87,15 @@ func testGit(t *testing.T, u *url.URL) {
 			})
 			t.Run("Over", func(t *testing.T) {
 				tests.PrintCurrentTest(t)
-				doAPISetRepoSizeLimit(forkedUserCtx, forkedUserCtx.Username, forkedUserCtx.Reponame, littleSize)
-				doCommitAndPushWithExpectedError(t, bigSize, dstPath, "data-file-")
+				u.Path = forkedUserCtx.GitPath()
+				u.User = url.UserPassword(forkedUserCtx.Username, userPassword)
+				t.Run("Clone", doGitClone(dstForkedPath, u))
+				t.Run("APISetRepoSizeLimit", doAPISetRepoSizeLimit(forkedUserCtx, forkedUserCtx.Username, forkedUserCtx.Reponame, littleSize))
+				doCommitAndPushWithExpectedError(t, bigSize, dstForkedPath, "data-file-")
 			})
 			t.Run("UnderAfterResize", func(t *testing.T) {
 				tests.PrintCurrentTest(t)
-				doAPISetRepoSizeLimit(forkedUserCtx, forkedUserCtx.Username, forkedUserCtx.Reponame, bigSize*10)
+				t.Run("APISetRepoSizeLimit", doAPISetRepoSizeLimit(forkedUserCtx, forkedUserCtx.Username, forkedUserCtx.Reponame, bigSize*10))
 				doCommitAndPush(t, littleSize, dstPath, "data-file-")
 			})
 			t.Run("Deletion", func(t *testing.T) {
@@ -114,6 +120,8 @@ func testGit(t *testing.T, u *url.URL) {
 			mediaTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
 		})
 
+		u.Path = httpContext.GitPath()
+		u.User = url.UserPassword(username, userPassword)
 		t.Run("PushCreate", doPushCreate(httpContext, u))
 	})
 	t.Run("SSH", func(t *testing.T) {
@@ -212,7 +220,9 @@ func commitAndPushTest(t *testing.T, dstPath, prefix string) (little, big string
 		defer tests.PrintCurrentTest(t)()
 		t.Run("Little", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
+			log.Error("before doCommitAndPush")
 			little = doCommitAndPush(t, littleSize, dstPath, prefix)
+			log.Error("after doCommitAndPush")
 		})
 		t.Run("Big", func(t *testing.T) {
 			if testing.Short() {
