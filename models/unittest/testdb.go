@@ -106,7 +106,11 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 
 	setting.Packages.Storage.Path = filepath.Join(setting.AppDataPath, "packages")
 
+	setting.Actions.Storage.Path = filepath.Join(setting.AppDataPath, "actions_log")
+
 	setting.Git.HomePath = filepath.Join(setting.AppDataPath, "home")
+
+	setting.IncomingEmail.ReplyToAddress = "incoming+%{token}@localhost"
 
 	if err = object_storage.Init(); err != nil {
 		fatalTestError("storage.Init: %v\n", err)

@@ -171,7 +171,7 @@ func LoadRepoConfig() {
 			}
 
 			for _, f := range customFiles {
-				if !util.IsStringInSlice(f, files, true) {
+				if !util.SliceContainsString(files, f, true) {
 					files = append(files, f)
 				}
 			}
@@ -201,12 +201,12 @@ func LoadRepoConfig() {
 	// Filter out invalid names and promote preferred licenses.
 	sortedLicenses := make([]string, 0, len(Licenses))
 	for _, name := range setting.Repository.PreferredLicenses {
-		if util.IsStringInSlice(name, Licenses, true) {
+		if util.SliceContainsString(Licenses, name, true) {
 			sortedLicenses = append(sortedLicenses, name)
 		}
 	}
 	for _, name := range Licenses {
-		if !util.IsStringInSlice(name, setting.Repository.PreferredLicenses, true) {
+		if !util.SliceContainsString(setting.Repository.PreferredLicenses, name, true) {
 			sortedLicenses = append(sortedLicenses, name)
 		}
 	}
@@ -317,14 +317,13 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 		return fmt.Errorf("git add --all: %w", err)
 	}
 
-	cmd := git.NewCommand(ctx,
-		"commit", git.CmdArg(fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email)),
-		"-m", "Initial commit",
-	)
+	cmd := git.NewCommand(ctx, "commit").
+		AddOptionFormat("--author='%s <%s>'", sig.Name, sig.Email).
+		AddOptionValues("-m", "Initial commit")
 
 	sign, keyID, signer, _ := asymkey_service.SignInitialCommit(ctx, tmpPath, u)
 	if sign {
-		cmd.AddArguments(git.CmdArg("-S" + keyID))
+		cmd.AddOptionFormat("-S%s", keyID)
 
 		if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			// need to set the committer to the KeyID owner

@@ -18,6 +18,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/repository"
@@ -175,7 +176,8 @@ func UpdateIssuesCommit(doer *user_model.User, repo *repo_model.Repository, comm
 			if !repo.CloseIssuesViaCommitInAnyBranch {
 				// If the issue was specified to be in a particular branch, don't allow commits in other branches to close it
 				if refIssue.Ref != "" {
-					if branchName != refIssue.Ref {
+					issueBranchName := strings.TrimPrefix(refIssue.Ref, git.BranchPrefix)
+					if branchName != issueBranchName {
 						continue
 					}
 					// Otherwise, only process commits to the default branch
@@ -191,7 +193,7 @@ func UpdateIssuesCommit(doer *user_model.User, repo *repo_model.Repository, comm
 			}
 			if close != refIssue.IsClosed {
 				refIssue.Repo = refRepo
-				if err := ChangeStatus(refIssue, doer, close); err != nil {
+				if err := ChangeStatus(refIssue, doer, c.Sha1, close); err != nil {
 					return err
 				}
 			}

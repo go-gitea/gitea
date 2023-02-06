@@ -54,7 +54,7 @@ To maintain understandable code and avoid circular dependencies it is important 
 
 ### Package Dependencies
 
-Since Golang don't support import cycles, we have to decide the package dependencies carefully. There are some levels between those packages. Below is the ideal package dependencies direction.
+Since Golang doesn't support import cycles, we have to decide the package dependencies carefully. There are some levels between those packages. Below is the ideal package dependencies direction.
 
 `cmd` -> `routers` -> `services` -> `models` -> `modules`
 

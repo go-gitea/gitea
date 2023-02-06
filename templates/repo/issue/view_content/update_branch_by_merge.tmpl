@@ -1,0 +1,39 @@
+{{$canAutoMerge := false}}
+{{if and (gt .Issue.PullRequest.CommitsBehind 0) (not  .Issue.IsClosed) (not .Issue.PullRequest.IsChecking) (not .IsPullFilesConflicted) (not .IsPullRequestBroken) (not $canAutoMerge)}}
+	<div class="ui divider"></div>
+	<div class="item item-section">
+		<div class="item-section-left">
+			<i class="icon icon-octicon">{{svg "octicon-alert"}}</i>
+			{{$.locale.Tr "repo.pulls.outdated_with_base_branch"}}
+		</div>
+		<div class="item-section-right">
+			{{if and .UpdateAllowed .UpdateByRebaseAllowed}}
+				<div class="dib">
+					<div class="ui buttons update-button">
+						<button class="ui button" data-do="{{.Link}}/update" data-redirect="{{.Link}}">
+							<span class="button-text">
+								{{$.locale.Tr "repo.pulls.update_branch"}}
+							</span>
+						</button>
+
+						<div class="ui dropdown icon button no-text">
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+							<div class="menu">
+								<div class="item active selected" data-do="{{.Link}}/update">{{$.locale.Tr "repo.pulls.update_branch"}}</div>
+								<div class="item" data-do="{{.Link}}/update?style=rebase">{{$.locale.Tr "repo.pulls.update_branch_rebase"}}</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			{{end}}
+			{{if and .UpdateAllowed (not .UpdateByRebaseAllowed)}}
+				<form action="{{.Link}}/update" method="post" class="ui update-branch-form">
+					{{.CsrfTokenHtml}}
+					<button class="ui compact button" data-do="update">
+						<span class="ui text">{{$.locale.Tr "repo.pulls.update_branch"}}</span>
+					</button>
+				</form>
+			{{end}}
+		</div>
+	</div>
+{{end}}

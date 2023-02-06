@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -22,7 +23,7 @@ func TestAPITeamUser(t *testing.T) {
 
 	normalUsername := "user2"
 	session := loginUser(t, normalUsername)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrg)
 	req := NewRequest(t, "GET", "/api/v1/teams/1/members/user1?token="+token)
 	MakeRequest(t, req, http.StatusNotFound)
 
