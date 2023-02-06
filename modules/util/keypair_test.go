@@ -1,7 +1,7 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package activitypub
+package util
 
 import (
 	"crypto"
@@ -17,7 +17,7 @@ import (
 )
 
 func TestKeygen(t *testing.T) {
-	priv, pub, err := GenerateKeyPair()
+	priv, pub, err := GenerateKeyPair(2048)
 	assert.NoError(t, err)
 
 	assert.NotEmpty(t, priv)
@@ -28,7 +28,7 @@ func TestKeygen(t *testing.T) {
 }
 
 func TestSignUsingKeys(t *testing.T) {
-	priv, pub, err := GenerateKeyPair()
+	priv, pub, err := GenerateKeyPair(2048)
 	assert.NoError(t, err)
 
 	privPem, _ := pem.Decode([]byte(priv))
