@@ -13,6 +13,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
+	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/ldap"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/auth/source/pam"
@@ -42,6 +43,37 @@ func ListAuthSources(ctx *context.APIContext) {
 	result, err := convert.ToAuthSources(sources)
 	if err != nil {
 		ctx.InternalServerError(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, result)
+}
+
+// GetAuthSource get an authentication source by id
+func GetAuthSource(ctx *context.APIContext) {
+	// swagger:operation GET /admin/auths/{id} admin adminGetAuthSource
+	// ---
+	// summary: Get an authentication source
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: id
+	//   in: path
+	//   description: id of the authentication source to get
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/AuthSource"
+
+	source, err := auth.GetSourceByID(ctx.ParamsInt64(":id"))
+	if err != nil {
+		ctx.ServerError("auth.GetSourceByID", err)
+		return
+	}
+	result, err := convert.ToAuthSource(source)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "convert.ToAuthSource", err)
 		return
 	}
 	ctx.JSON(http.StatusOK, result)
@@ -117,4 +149,39 @@ func CreateAuthSource(ctx *context.APIContext) {
 		return
 	}
 	ctx.JSON(http.StatusCreated, result)
+}
+
+// DeleteAuthSource delete an authentication source
+func DeleteAuthSource(ctx *context.APIContext) {
+	// swagger:operation DELETE /admin/auths/{id} admin adminDeleteAuthSource
+	// ---
+	// summary: Delete an authentication source
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: id
+	//   in: path
+	//   description: id of the authentication source to delete
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+
+	source, err := auth.GetSourceByID(ctx.ParamsInt64(":id"))
+	if err != nil {
+		ctx.ServerError("auth.GetSourceByID", err)
+		return
+	}
+
+	if err = auth_service.DeleteSource(source); err != nil {
+		if auth.IsErrSourceInUse(err) {
+			ctx.Error(http.StatusInternalServerError, "auth_service.DeleteSource", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "auth_service.DeleteSource", err)
+		}
+		return
+	}
+	ctx.Status(http.StatusNoContent)
 }

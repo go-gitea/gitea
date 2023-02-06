@@ -1500,8 +1500,10 @@ func Routes() *web.Route {
 
 		m.Group("/admin", func() {
 			m.Group("/auths", func() {
-				m.Get("", admin.ListAuthSources)
-				m.Post("", bind(api.CreateAuthSource{}), admin.CreateAuthSource)
+				m.Combo("").Get(admin.ListAuthSources).
+					Post(bind(api.CreateAuthSource{}), admin.CreateAuthSource)
+				m.Combo("/{id}").Get(admin.GetAuthSource).
+					Delete(admin.DeleteAuthSource)
 			})
 			m.Group("/cron", func() {
 				m.Get("", admin.ListCronTasks)

@@ -125,6 +125,58 @@
         }
       }
     },
+    "/admin/auths/{id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get an authentication source",
+        "operationId": "adminGetAuthSource",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the authentication source to get",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/AuthSource"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Delete an authentication source",
+        "operationId": "adminDeleteAuthSource",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the authentication source to delete",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      }
+    },
     "/admin/cron": {
       "get": {
         "produces": [
@@ -23384,12 +23436,6 @@
         }
       }
     },
-    "CreateAuthSource": {
-      "description": "CreateAuthSource",
-      "schema": {
-        "$ref": "#/definitions/CreateAuthSource"
-      }
-    },
     "Branch": {
       "description": "Branch",
       "schema": {
@@ -23545,6 +23591,12 @@
       "description": "ContentsResponse",
       "schema": {
         "$ref": "#/definitions/ContentsResponse"
+      }
+    },
+    "CreateAuthSource": {
+      "description": "CreateAuthSource",
+      "schema": {
+        "$ref": "#/definitions/CreateAuthSource"
       }
     },
     "CronList": {
