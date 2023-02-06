@@ -369,7 +369,7 @@ This command is idempotent.
 
 ### convert
 
-(DEPRECATED: moved to doctor convert in 1.19) Converts an existing MySQL database from utf8 to utf8mb4.
+(DEPRECATED: from 1.19 use `gitea doctor convert` instead.) Converts an existing MySQL database from utf8 to utf8mb4.
 
 ### doctor
 
