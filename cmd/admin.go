@@ -309,6 +309,11 @@ var (
 			Usage: "Use custom URLs for GitLab/GitHub OAuth endpoints",
 		},
 		cli.StringFlag{
+			Name:  "custom-tenant-id",
+			Value: "",
+			Usage: "Use custom Tenant ID for OAuth endpoints",
+		},
+		cli.StringFlag{
 			Name:  "custom-auth-url",
 			Value: "",
 			Usage: "Use a custom Authorization URL (option for GitLab/GitHub)",
@@ -838,6 +843,7 @@ func parseOAuth2Config(c *cli.Context) *oauth2.Source {
 			AuthURL:    c.String("custom-auth-url"),
 			ProfileURL: c.String("custom-profile-url"),
 			EmailURL:   c.String("custom-email-url"),
+			Tenant:     c.String("custom-tenant-id"),
 		}
 	} else {
 		customURLMapping = nil
@@ -955,6 +961,7 @@ func runUpdateOauth(c *cli.Context) error {
 		customURLMapping.AuthURL = oAuth2Config.CustomURLMapping.AuthURL
 		customURLMapping.ProfileURL = oAuth2Config.CustomURLMapping.ProfileURL
 		customURLMapping.EmailURL = oAuth2Config.CustomURLMapping.EmailURL
+		customURLMapping.Tenant = oAuth2Config.CustomURLMapping.Tenant
 	}
 	if c.IsSet("use-custom-urls") && c.IsSet("custom-token-url") {
 		customURLMapping.TokenURL = c.String("custom-token-url")
@@ -970,6 +977,10 @@ func runUpdateOauth(c *cli.Context) error {
 
 	if c.IsSet("use-custom-urls") && c.IsSet("custom-email-url") {
 		customURLMapping.EmailURL = c.String("custom-email-url")
+	}
+
+	if c.IsSet("use-custom-urls") && c.IsSet("custom-tenant-id") {
+		customURLMapping.Tenant = c.String("custom-tenant-id")
 	}
 
 	oAuth2Config.CustomURLMapping = customURLMapping

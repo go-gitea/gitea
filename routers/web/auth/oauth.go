@@ -895,8 +895,11 @@ func SignInOAuthCallback(ctx *context.Context) {
 		return
 	}
 
+	fmt.Println("hier hier")
+
 	u, gothUser, err := oAuth2UserLoginCallback(authSource, ctx.Req, ctx.Resp)
 	if err != nil {
+		fmt.Println("hier hier 2")
 		if user_model.IsErrUserProhibitLogin(err) {
 			uplerr := err.(user_model.ErrUserProhibitLogin)
 			log.Info("Failed authentication attempt for %s from %s: %v", uplerr.Name, ctx.RemoteAddr(), err)
@@ -920,6 +923,8 @@ func SignInOAuthCallback(ctx *context.Context) {
 		ctx.ServerError("UserSignIn", err)
 		return
 	}
+
+	fmt.Println("hier hier 3", u)
 
 	if u == nil {
 		if ctx.Doer != nil {
@@ -975,19 +980,9 @@ func SignInOAuthCallback(ctx *context.Context) {
 				return
 			}
 
-			if source.GroupTeamMap != "" || source.GroupTeamMapRemoval {
-				groupTeamMapping, err := auth_module.UnmarshalGroupTeamMapping(source.GroupTeamMap)
-				if err != nil {
-					ctx.ServerError("UnmarshalGroupTeamMapping", err)
-					return
-				}
-
-				groups := getClaimedGroups(source, &gothUser)
-
-				if err := source_service.SyncGroupsToTeams(ctx, u, groups, groupTeamMapping, source.GroupTeamMapRemoval); err != nil {
-					ctx.ServerError("SyncGroupsToTeams", err)
-					return
-				}
+			if err := syncGroupsToTeams(ctx, source, &gothUser, u); err != nil {
+				ctx.ServerError("SyncGroupsToTeams", err)
+				return
 			}
 		} else {
 			// no existing user is found, request attach or new account
@@ -1014,6 +1009,23 @@ func claimValueToStringSet(claimValue interface{}) container.Set[string] {
 		groups = strings.Split(str, ",")
 	}
 	return container.SetOf(groups...)
+}
+
+func syncGroupsToTeams(ctx *context.Context, source *oauth2.Source, gothUser *goth.User, u *user_model.User) error {
+	if source.GroupTeamMap != "" || source.GroupTeamMapRemoval {
+		groupTeamMapping, err := auth_module.UnmarshalGroupTeamMapping(source.GroupTeamMap)
+		if err != nil {
+			return err
+		}
+
+		groups := getClaimedGroups(source, gothUser)
+
+		if err := source_service.SyncGroupsToTeams(ctx, u, groups, groupTeamMapping, source.GroupTeamMapRemoval); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func getClaimedGroups(source *oauth2.Source, gothUser *goth.User) container.Set[string] {
