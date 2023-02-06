@@ -10,6 +10,9 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
+// cacheContext is a context that can be used to cache data in a request level context
+// This is useful for caching data that is expensive to calculate and is likely to be
+// used multiple times in a request.
 type cacheContext struct {
 	ctx  context.Context
 	data map[any]map[any]any

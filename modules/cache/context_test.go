@@ -29,4 +29,13 @@ func TestWithCacheContext(t *testing.T) {
 
 	v = GetContextData(ctx, field, "my_config1")
 	assert.Nil(t, v)
+
+	vInt, err := GetWithContextCache(ctx, field, "my_config1", func() (int, error) {
+		return 1, nil
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, vInt)
+
+	v = GetContextData(ctx, field, "my_config1")
+	assert.EqualValues(t, 1, v)
 }
