@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	packages_service "code.gitea.io/gitea/services/packages"
+	packages_cleanup_service "code.gitea.io/gitea/services/packages/cleanup"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -246,7 +247,7 @@ func TestPackageCleanup(t *testing.T) {
 		_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, 2, packages_model.TypeContainer, "test", container_model.UploadVersion)
 		assert.NoError(t, err)
 
-		err = packages_service.Cleanup(db.DefaultContext, duration)
+		err = packages_cleanup_service.Cleanup(db.DefaultContext, duration)
 		assert.NoError(t, err)
 
 		pbs, err = packages_model.FindExpiredUnreferencedBlobs(db.DefaultContext, duration)
@@ -383,7 +384,7 @@ func TestPackageCleanup(t *testing.T) {
 				pcr, err := packages_model.InsertCleanupRule(db.DefaultContext, c.Rule)
 				assert.NoError(t, err)
 
-				err = packages_service.Cleanup(db.DefaultContext, duration)
+				err = packages_cleanup_service.Cleanup(db.DefaultContext, duration)
 				assert.NoError(t, err)
 
 				for _, v := range c.Versions {
