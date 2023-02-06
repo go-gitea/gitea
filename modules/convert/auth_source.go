@@ -9,7 +9,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-// ToAuthSources convert a list of models.LoginSource to a list of api.AuthSource
+// ToAuthSources convert a list of auth.Source to a list of api.AuthSource
 func ToAuthSources(sources []*auth.Source) ([]*api.AuthSource, error) {
 	result := make([]*api.AuthSource, len(sources))
 	for i, source := range sources {
@@ -22,7 +22,7 @@ func ToAuthSources(sources []*auth.Source) ([]*api.AuthSource, error) {
 	return result, nil
 }
 
-// ToAuthSource convert a auth.LoginSource to a api.AuthSource
+// ToAuthSource convert a auth.Source to a api.AuthSource
 func ToAuthSource(source *auth.Source) (*api.AuthSource, error) {
 	cfg, err := source.Cfg.ToDB()
 	if err != nil {

@@ -176,11 +176,7 @@ func DeleteAuthSource(ctx *context.APIContext) {
 	}
 
 	if err = auth_service.DeleteSource(source); err != nil {
-		if auth.IsErrSourceInUse(err) {
-			ctx.Error(http.StatusInternalServerError, "auth_service.DeleteSource", err)
-		} else {
-			ctx.Error(http.StatusInternalServerError, "auth_service.DeleteSource", err)
-		}
+		ctx.Error(http.StatusInternalServerError, "auth_service.DeleteSource", err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
