@@ -191,14 +191,19 @@ func (l *IssueTemplateLabels) UnmarshalYAML(value *yaml.Node) error {
 }
 
 type IssueConfigContactLink struct {
-	Name string `json:"name" yaml:"name"`
-	URL string `json:"url" yaml:"url"`
+	Name  string `json:"name" yaml:"name"`
+	URL   string `json:"url" yaml:"url"`
 	About string `json:"about" yaml:"about"`
 }
 
 type IssueConfig struct {
-	BlankIssuesEnabled bool `json:"blank_issues_enabled" yaml:"blank_issues_enabled"`
-	ContactLinks []IssueConfigContactLink `json:"contact_links" yaml:"contact_links"`
+	BlankIssuesEnabled bool                     `json:"blank_issues_enabled" yaml:"blank_issues_enabled"`
+	ContactLinks       []IssueConfigContactLink `json:"contact_links" yaml:"contact_links"`
+}
+
+type IssueConfigValidate struct {
+	Valid   bool   `json:"valid"`
+	Message string `json:"message"`
 }
 
 // IssueTemplateType defines issue template type

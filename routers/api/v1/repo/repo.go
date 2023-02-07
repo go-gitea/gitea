@@ -1120,3 +1120,33 @@ func GetIssueConfig(ctx *context.APIContext) {
 	issueConfig, _ := ctx.IssueConfigFromDefaultBranch()
 	ctx.JSON(http.StatusOK, issueConfig)
 }
+
+// ValidateIssueConfig returns validation errors for the issue config
+func ValidateIssueConfig(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/issue_config/validate repository repoValidateIssueConfig
+	// ---
+	// summary: Returns the validation information for a issue config
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/RepoIssueConfigValidate"
+	_, err := ctx.IssueConfigFromDefaultBranch()
+
+	if err == nil {
+		ctx.JSON(http.StatusOK, api.IssueConfigValidate{Valid: true, Message: ""})
+	} else {
+		ctx.JSON(http.StatusOK, api.IssueConfigValidate{Valid: false, Message: err.Error()})
+	}
+}

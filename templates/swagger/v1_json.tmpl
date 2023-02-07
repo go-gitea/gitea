@@ -4868,6 +4868,39 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/issue_config/validate": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Returns the validation information for a issue config",
+        "operationId": "repoValidateIssueConfig",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RepoIssueConfigValidate"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/issue_templates": {
       "get": {
         "produces": [
@@ -17554,6 +17587,20 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "IssueConfigValidate": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "valid": {
+          "type": "boolean",
+          "x-go-name": "Valid"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "IssueDeadline": {
       "description": "IssueDeadline represents an issue deadline",
       "type": "object",
@@ -20743,6 +20790,12 @@
       "description": "RepoIssueConfig",
       "schema": {
         "$ref": "#/definitions/IssueConfig"
+      }
+    },
+    "RepoIssueConfigValidate": {
+      "description": "RepoIssueConfigValidate",
+      "schema": {
+        "$ref": "#/definitions/IssueConfigValidate"
       }
     },
     "Repository": {
