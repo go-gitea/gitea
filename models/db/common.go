@@ -315,12 +315,10 @@ func getValueFromField(fieldVal reflect.Value, col *schemas.Column) (any, error)
 		if setting.Database.UseMSSQL {
 			if valBool {
 				return 1, nil
-			} else {
-				return 0, nil
 			}
-		} else {
-			return valBool, nil
+			return 0, nil
 		}
+		return valBool, nil
 	default:
 	}
 
