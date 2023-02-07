@@ -165,9 +165,6 @@ const sfc = {
     async rerunJob(idx) {
       const jobLink = `${this.run.link}/jobs/${idx}`;
       await this.fetchPost(`${jobLink}/rerun`);
-      // The button to rerun job is under "a" tag, so the browser will refresh the page and cancel fetching "rerun".
-      // However, it should refresh the page because the logs have been reset, or it's another job which has been clicked.
-      // So we prevent the default behavior and refresh the page after the fetching is done.
       window.location.href = jobLink;
     },
     // cancel a run
