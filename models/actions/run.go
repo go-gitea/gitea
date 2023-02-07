@@ -37,6 +37,7 @@ type ActionRun struct {
 	Ref               string
 	CommitSHA         string
 	IsForkPullRequest bool
+	NeedApproval      bool // NeedApproval could be true if IsForkPullRequest is true
 	Event             webhook_module.HookEventType
 	EventPayload      string `xorm:"LONGTEXT"`
 	Status            Status `xorm:"index"`
@@ -164,10 +165,6 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 	}
 	run.Index = index
 
-	if run.Status.IsUnknown() {
-		run.Status = StatusWaiting
-	}
-
 	if err := db.Insert(ctx, run); err != nil {
 		return err
 	}
@@ -191,7 +188,7 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 		job.EraseNeeds()
 		payload, _ := v.Marshal()
 		status := StatusWaiting
-		if len(needs) > 0 {
+		if len(needs) > 0 || run.NeedApproval {
 			status = StatusBlocked
 		}
 		runJobs = append(runJobs, &ActionRunJob{

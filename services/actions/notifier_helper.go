@@ -166,6 +166,9 @@ func notify(ctx context.Context, input *notifyInput) error {
 			EventPayload:      string(p),
 			Status:            actions_model.StatusWaiting,
 		}
+		if run.IsForkPullRequest {
+			run.NeedApproval = true
+		}
 		jobs, err := jobparser.Parse(content)
 		if err != nil {
 			log.Error("jobparser.Parse: %v", err)
