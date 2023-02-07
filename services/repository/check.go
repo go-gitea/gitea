@@ -5,6 +5,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -50,11 +51,20 @@ func GitFsckRepos(ctx context.Context, timeout time.Duration, args git.TrustedCm
 func GitFsckRepo(ctx context.Context, repo *repo_model.Repository, timeout time.Duration, args git.TrustedCmdArgs) error {
 	log.Trace("Running health check on repository %-v", repo)
 	repoPath := repo.RepoPath()
-	if err := git.Fsck(ctx, repoPath, timeout, args); err != nil {
+	err := git.Fsck(ctx, repoPath, timeout, args)
+
+	switch {
+	case err == nil:
+		return nil
+	case errors.Is(err, context.DeadlineExceeded):
+		log.Warn("Timeout after %v on repository health check (%-v): %v", timeout, repo, err)
+	default:
 		log.Warn("Failed to health check repository (%-v): %v", repo, err)
-		if err = system_model.CreateRepositoryNotice("Failed to health check repository (%s): %v", repo.FullName(), err); err != nil {
-			log.Error("CreateRepositoryNotice: %v", err)
-		}
+	}
+
+	noticeErr := system_model.CreateRepositoryNotice("Failed to health check repository (%s): %v", repo.FullName(), err)
+	if noticeErr != nil {
+		log.Error("CreateRepositoryNotice: %v", noticeErr)
 	}
 	return nil
 }
