@@ -10,10 +10,12 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
+	"xorm.io/xorm/convert"
 	"xorm.io/xorm/dialects"
 	"xorm.io/xorm/schemas"
 )
@@ -150,7 +152,13 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (int64, er
 			_, _ = sb.WriteString(",?")
 		}
 		switch {
-		case setting.Database.UseSQLite3 || setting.Database.UsePostgreSQL:
+		case setting.Database.UsePostgreSQL:
+			if autoIncrCol != nil {
+				_, _ = fmt.Fprintf(sb, ") RETURNING %s ON CONFLICT DO NOTHING", x.Dialect().Quoter().Quote(autoIncrCol.Name))
+			} else {
+				_, _ = sb.WriteString(") ON CONFLICT DO NOTHING")
+			}
+		case setting.Database.UseSQLite3:
 			_, _ = sb.WriteString(") ON CONFLICT DO NOTHING")
 		case setting.Database.UseMySQL:
 			if autoIncrCol != nil {
@@ -198,6 +206,31 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (int64, er
 		return 0, fmt.Errorf("database type not supported")
 	}
 	args[0] = sb.String()
+
+	if autoIncrCol != nil {
+		switch {
+		case setting.Database.UsePostgreSQL:
+			res, err := e.Query(args...)
+			if err != nil {
+				return 0, err
+			}
+			if len(res) == 0 {
+				return 0, nil
+			}
+
+			aiValue, err := table.AutoIncrColumn().ValueOf(bean)
+			if err != nil {
+				log.Error("unable to get value for autoincrcol of %#v %v", bean, err)
+			}
+
+			if aiValue == nil || !aiValue.IsValid() || !aiValue.CanSet() {
+				return int64(len(res)), nil
+			}
+
+			id := res[0][autoIncrCol.Name]
+			return int64(len(res)), convert.AssignValue(*aiValue, id)
+		}
+	}
 	res, err := e.Exec(args...)
 	if err != nil {
 		return 0, err
