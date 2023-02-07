@@ -201,7 +201,7 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (int64, er
 		}
 		_, _ = sb.WriteString(")")
 		if autoIncrCol != nil {
-			_, _ = sb.WriteString(" OUTPUT inserted.")
+			_, _ = sb.WriteString(" OUTPUT INSERTED.")
 			_, _ = sb.WriteString(autoIncrCol.Name)
 		}
 		_, _ = sb.WriteString(";")
