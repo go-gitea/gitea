@@ -72,22 +72,41 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (int64, er
 				continue
 			}
 
+			var val any
+			switch fieldVal.Type().Kind() {
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				val = fieldVal.Int()
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+				val = fieldVal.Uint()
+			case reflect.Float32, reflect.Float64:
+				val = fieldVal.Float()
+			case reflect.Complex64, reflect.Complex128:
+				val = fieldVal.Complex()
+			case reflect.String:
+				val = fieldVal.String()
+			case reflect.Bool:
+				valBool := fieldVal.Bool()
+
+				if setting.Database.UseMSSQL {
+					if valBool {
+						val = 1
+					} else {
+						val = 0
+					}
+				} else {
+					val = valBool
+				}
+			default:
+				val = fieldVal.Interface()
+			}
+
 			if fieldVal.IsZero() {
 				emptyColNames = append(emptyColNames, col.Name)
-				switch fieldVal.Type().Kind() {
-				case reflect.Int, reflect.Int8, reflect.Uint8, reflect.Int16, reflect.Uint16, reflect.Int32, reflect.Uint32, reflect.Int64, reflect.Uint64, reflect.Float32, reflect.Float64, reflect.Complex64, reflect.Complex128:
-					emptyArgs = append(emptyArgs, 0)
-				case reflect.String:
-					emptyArgs = append(emptyArgs, "")
-				case reflect.Bool:
-					emptyArgs = append(emptyArgs, false)
-				default:
-					emptyArgs = append(emptyArgs, nil)
-				}
+				emptyArgs = append(emptyArgs, val)
 				continue
 			}
 			colNames = append(colNames, col.Name)
-			args = append(args, fieldVal.Interface())
+			args = append(args, val)
 		}
 	}
 
@@ -186,7 +205,7 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (int64, er
 			_, _ = sb.WriteString(" AND src.")
 			_, _ = sb.WriteString(uniqueCol)
 			_, _ = sb.WriteString("= target.")
-			_, _ = sb.WriteString(uniqueCols[0])
+			_, _ = sb.WriteString(uniqueCol)
 		}
 		_, _ = sb.WriteString(" WHEN NOT MATCHED THEN INSERT (")
 		_, _ = sb.WriteString(colNames[0])
