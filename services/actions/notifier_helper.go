@@ -13,7 +13,6 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	actions_module "code.gitea.io/gitea/modules/actions"
@@ -258,7 +257,7 @@ func ifNeedApproval(ctx context.Context, run *actions_model.ActionRun, repo *rep
 	// don't need approval if the user can write
 	if perm, err := access_model.GetUserRepoPermission(ctx, repo, user); err != nil {
 		return false, fmt.Errorf("GetUserRepoPermission: %w", err)
-	} else if perm.CanWrite(unit.TypeActions) {
+	} else if perm.CanWrite(unit_model.TypeActions) {
 		log.Trace("do not need approval because user %d can write", user.ID)
 		return false, nil
 	}
