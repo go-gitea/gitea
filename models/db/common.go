@@ -155,6 +155,8 @@ func generateInsertNoConflictSQLAndArgs(tableName string, colNames []string, arg
 	case setting.Database.UseMySQL:
 		if autoIncrCol != nil {
 			write(") ON DUPLICATE KEY UPDATE ", quote(autoIncrCol.Name), " = ", quote(autoIncrCol.Name))
+		} else {
+			write(")")
 		}
 	}
 	args[0] = sb.String()
