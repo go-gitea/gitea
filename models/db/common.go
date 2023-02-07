@@ -57,8 +57,8 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (bool, err
 
 	// MSSQL needs to separately pass in the columns with the unique constraint and we need to
 	// include empty columns which are in the constraint in the insert for other dbs
-	uniqueCols, uniqueValues, colNames, values := addInUniqueCols(colNames, values, zeroedColNames, zeroedValues, table)
-	if len(uniqueCols) == 0 {
+	uniqueColValMap, colNames, values := addInUniqueCols(colNames, values, zeroedColNames, zeroedValues, table)
+	if len(uniqueColValMap) == 0 {
 		return false, fmt.Errorf("provided bean has no unique constraints")
 	}
 
@@ -68,7 +68,7 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (bool, err
 	case setting.Database.UseSQLite3 || setting.Database.UsePostgreSQL || setting.Database.UseMySQL:
 		insertArgs = generateInsertNoConflictSQLAndArgs(tableName, colNames, values, autoIncrCol)
 	case setting.Database.UseMSSQL:
-		insertArgs = generateInsertNoConflictSQLAndArgsForMSSQL(tableName, colNames, values, uniqueCols, uniqueValues, autoIncrCol)
+		insertArgs = generateInsertNoConflictSQLAndArgsForMSSQL(table, tableName, colNames, values, uniqueColValMap, autoIncrCol)
 	default:
 		return false, fmt.Errorf("database type not supported")
 	}
@@ -103,7 +103,7 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (bool, err
 		return true, nil
 	}
 
-	res, err := e.Exec(values...)
+	res, err := e.Exec(insertArgs...)
 	if err != nil {
 		return false, err
 	}
@@ -164,7 +164,7 @@ func generateInsertNoConflictSQLAndArgs(tableName string, colNames []string, arg
 // generateInsertNoConflictSQLAndArgsForMSSQL writes the INSERT ...  ON CONFLICT sql variant for MSSQL
 // MSSQL uses MERGE <tablename> WITH <lock> ... but needs to pre-select the unique cols first
 // then WHEN NOT MATCHED INSERT - this is kind of the opposite way round from  INSERT ... ON CONFLICT
-func generateInsertNoConflictSQLAndArgsForMSSQL(tableName string, colNames []string, args []any, uniqueCols []string, uniqueArgs []any, autoIncrCol *schemas.Column) (insertArgs []any) {
+func generateInsertNoConflictSQLAndArgsForMSSQL(table *schemas.Table, tableName string, colNames []string, args []any, uniqueColValMap map[string]any, autoIncrCol *schemas.Column) (insertArgs []any) {
 	sb := &strings.Builder{}
 
 	quote := x.Dialect().Quoter().Quote
@@ -173,14 +173,31 @@ func generateInsertNoConflictSQLAndArgsForMSSQL(tableName string, colNames []str
 			_, _ = sb.WriteString(arg)
 		}
 	}
+	uniqueCols := make([]string, 0, len(uniqueColValMap))
+	for colName := range uniqueColValMap {
+		uniqueCols = append(uniqueCols, colName)
+	}
 
 	write("MERGE ", quote(tableName), " WITH (HOLDLOCK) AS target USING (SELECT ? AS ")
 	_ = x.Dialect().Quoter().JoinWrite(sb, uniqueCols, ", ? AS ")
-	write(") AS src ON src.", quote(uniqueCols[0]), "= target.", quote(uniqueCols[0]))
-	for _, uniqueCol := range uniqueCols[1:] {
-		write(" AND src.", quote(uniqueCol), "= target.", quote(uniqueCol))
+	write(") AS src ON (")
+	countUniques := 0
+	for _, index := range table.Indexes {
+		if index.Type != schemas.UniqueType {
+			continue
+		}
+		if countUniques > 0 {
+			write(" OR ")
+		}
+		countUniques++
+		write("(")
+		write("src.", quote(index.Cols[0]), "= target.", quote(index.Cols[0]))
+		for _, col := range index.Cols[1:] {
+			write(" AND src.", quote(col), "= target.", quote(col))
+		}
+		write(")")
 	}
-	write(" WHEN NOT MATCHED THEN INSERT (")
+	write(") WHEN NOT MATCHED THEN INSERT (")
 	_ = x.Dialect().Quoter().JoinWrite(sb, colNames, ",")
 	write(") VALUES (?")
 	for range colNames[1:] {
@@ -191,16 +208,19 @@ func generateInsertNoConflictSQLAndArgsForMSSQL(tableName string, colNames []str
 		write(" OUTPUT INSERTED.", quote(autoIncrCol.Name))
 	}
 	write(";")
-	uniqueArgs[0] = sb.String()
+	uniqueArgs := make([]any, 0, len(uniqueColValMap)+len(args))
+	uniqueArgs = append(uniqueArgs, sb.String())
+	for _, col := range uniqueCols {
+		uniqueArgs = append(uniqueArgs, uniqueColValMap[col])
+	}
 	return append(uniqueArgs, args[1:]...)
 }
 
 // addInUniqueCols determines the columns that refer to unique constraints and creates slices for these
 // as they're needed by MSSQL. In addition, any columns which are zero-valued but are part of a constraint
 // are added back in to the colNames and args
-func addInUniqueCols(colNames []string, args []any, zeroedColNames []string, emptyArgs []any, table *schemas.Table) (uniqueCols []string, uniqueArgs []any, insertCols []string, insertArgs []any) {
-	uniqueCols = make([]string, 0, len(table.Columns()))
-	uniqueArgs = make([]interface{}, 1, len(uniqueCols)+1) // leave uniqueArgs[0] empty to put the SQL in
+func addInUniqueCols(colNames []string, args []any, zeroedColNames []string, emptyArgs []any, table *schemas.Table) (uniqueColValMap map[string]any, insertCols []string, insertArgs []any) {
+	uniqueColValMap = make(map[string]any)
 
 	// Iterate across the indexes in the provided table
 	for _, index := range table.Indexes {
@@ -211,18 +231,15 @@ func addInUniqueCols(colNames []string, args []any, zeroedColNames []string, emp
 		// index is a Unique constraint
 	indexCol:
 		for _, iCol := range index.Cols {
-			for _, uCol := range uniqueCols {
-				if uCol == iCol {
-					// column is already included in uniqueCols so we don't need to add it again
-					continue indexCol
-				}
+			if _, has := uniqueColValMap[iCol]; has {
+				// column is already included in uniqueCols so we don't need to add it again
+				continue indexCol
 			}
 
 			// Now iterate across colNames and add to the uniqueCols
 			for i, col := range colNames {
 				if col == iCol {
-					uniqueCols = append(uniqueCols, col)
-					uniqueArgs = append(uniqueArgs, args[i+1])
+					uniqueColValMap[col] = args[i+1]
 					continue indexCol
 				}
 			}
@@ -234,14 +251,13 @@ func addInUniqueCols(colNames []string, args []any, zeroedColNames []string, emp
 					// Always include empty unique columns in the insert statement as otherwise the insert no conflict will pass
 					colNames = append(colNames, col)
 					args = append(args, emptyArgs[i])
-					uniqueCols = append(uniqueCols, col)
-					uniqueArgs = append(uniqueArgs, emptyArgs[i])
+					uniqueColValMap[col] = emptyArgs[i]
 					continue indexCol
 				}
 			}
 		}
 	}
-	return uniqueCols, uniqueArgs, colNames, args
+	return uniqueColValMap, colNames, args
 }
 
 // getColNamesAndValuesFromBean reads the provided bean, providing two pairs of linked slices:
