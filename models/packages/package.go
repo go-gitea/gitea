@@ -152,27 +152,31 @@ type Package struct {
 
 // TryInsertPackage inserts a package. If a package exists already, ErrDuplicatePackage is returned
 func TryInsertPackage(ctx context.Context, p *Package) (*Package, error) {
-	n, err := db.InsertOnConflictDoNothing(ctx, p)
-	if err != nil {
-		return nil, err
-	}
-	if n != 0 {
-		return p, nil
-	}
+	for i := 0; i <= 5; i++ {
+		inserted, err := db.InsertOnConflictDoNothing(ctx, p)
+		if err != nil || inserted {
+			return p, err
+		}
 
-	key := &Package{
-		OwnerID:   p.OwnerID,
-		Type:      p.Type,
-		LowerName: p.LowerName,
-	}
+		key := &Package{
+			OwnerID:   p.OwnerID,
+			Type:      p.Type,
+			LowerName: p.LowerName,
+		}
 
-	has, err := db.GetEngine(ctx).Get(key)
-	if has {
-		return key, ErrDuplicatePackage
-	} else if err == nil {
-		return TryInsertPackage(ctx, p)
+		has, err := db.GetEngine(ctx).Get(key)
+		if has {
+			return key, ErrDuplicatePackage
+		} else if err != nil {
+			return key, err
+		}
+		// This really should never happen and can only happen if this function
+		// is being called outside of a transaction and between the on conflict insert failing
+		// the conlicting item is removed.
+		//
 	}
-	return nil, err
+	// If that weird case has happened 5 times in a row - there is something very odd going on!
+	return p, fmt.Errorf("unable to insert on conflict but yet not able to get from the db")
 }
 
 // DeletePackageByID deletes a package by id

@@ -5,6 +5,7 @@ package packages
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -44,27 +45,31 @@ type PackageFile struct {
 
 // TryInsertFile inserts a file. If the file exists already ErrDuplicatePackageFile is returned
 func TryInsertFile(ctx context.Context, pf *PackageFile) (*PackageFile, error) {
-	n, err := db.InsertOnConflictDoNothing(ctx, pf)
-	if err != nil {
-		return nil, err
-	}
-	if n != 0 { // Successful insert
-		return pf, nil
-	}
+	for i := 0; i <= 5; i++ {
+		inserted, err := db.InsertOnConflictDoNothing(ctx, pf)
+		if err != nil || inserted {
+			return pf, err
+		}
 
-	key := &PackageFile{
-		VersionID:    pf.VersionID,
-		LowerName:    pf.LowerName,
-		CompositeKey: pf.CompositeKey,
+		key := &PackageFile{
+			VersionID:    pf.VersionID,
+			LowerName:    pf.LowerName,
+			CompositeKey: pf.CompositeKey,
+		}
+		has, err := db.GetEngine(ctx).Get(key)
+		if has {
+			return key, ErrDuplicatePackageFile
+		}
+		if err != nil {
+			return key, err
+		}
+		// This really should never happen and can only happen if this function
+		// is being called outside of a transaction and between the on conflict insert failing
+		// the conlicting item is removed.
+		//
 	}
-	has, err := db.GetEngine(ctx).Get(key)
-	if has {
-		return key, ErrDuplicatePackageFile
-	} else if err == nil {
-		return TryInsertFile(ctx, pf)
-	}
-
-	return key, err
+	// If that weird case has happened 5 times in a row - there is something very odd going on!
+	return pf, fmt.Errorf("unable to insert on conflict but yet not able to get from the db")
 }
 
 // GetFilesByVersionID gets all files of a version

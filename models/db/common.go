@@ -34,13 +34,13 @@ func BuildCaseInsensitiveLike(key, value string) builder.Cond {
 // This function will update the ID of the provided bean if there is an insertion
 // This does not do all of the conversions that xorm would do automatically but it does quite a number of them
 // once xorm has a working InsertOnConflictDoNothing this function could be removed.
-func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (int64, error) {
+func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (bool, error) {
 	e := GetEngine(ctx)
 
 	tableName := x.TableName(bean, true)
 	table, err := x.TableInfo(bean)
 	if err != nil {
-		return 0, err
+		return false, err
 	}
 
 	autoIncrCol := table.AutoIncrColumn()
@@ -49,18 +49,18 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (int64, er
 
 	colNames, args, emptyColNames, emptyArgs, err := getColNamesAndArgsFromBean(bean, cols)
 	if err != nil {
-		return 0, err
+		return false, err
 	}
 
 	if len(colNames) == 0 {
-		return 0, fmt.Errorf("provided bean to insert has all empty values")
+		return false, fmt.Errorf("provided bean to insert has all empty values")
 	}
 
 	// MSSQL needs to separately pass in the columns with the unique constraint and we need to
 	// include empty columns which are in the constraint in the insert for other dbs
 	uniqueCols, uniqueArgs, colNames, args := addInUniqueCols(colNames, args, emptyColNames, emptyArgs, table)
 	if len(uniqueCols) == 0 {
-		return 0, fmt.Errorf("provided bean has no unique constraints")
+		return false, fmt.Errorf("provided bean has no unique constraints")
 	}
 
 	sb := &strings.Builder{}
@@ -103,7 +103,7 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (int64, er
 		generateInsertNoConflictSQLForMSSQL(sb, tableName, colNames, args, uniqueCols, autoIncrCol)
 		args = append(uniqueArgs, args[1:]...)
 	default:
-		return 0, fmt.Errorf("database type not supported")
+		return false, fmt.Errorf("database type not supported")
 	}
 	args[0] = sb.String()
 
@@ -113,11 +113,11 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (int64, er
 
 		res, err := e.Query(args...)
 		if err != nil {
-			return 0, fmt.Errorf("error in query: %s, %w", args[0], err)
+			return false, fmt.Errorf("error in query: %s, %w", args[0], err)
 		}
 		if len(res) == 0 {
 			// this implies there was a conflict
-			return 0, nil
+			return false, nil
 		}
 
 		aiValue, err := table.AutoIncrColumn().ValueOf(bean)
@@ -126,36 +126,36 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (int64, er
 		}
 
 		if aiValue == nil || !aiValue.IsValid() || !aiValue.CanSet() {
-			return int64(len(res)), nil
+			return true, nil
 		}
 
 		id := res[0][autoIncrCol.Name]
 		err = convert.AssignValue(*aiValue, id)
 		if err != nil {
-			return int64(len(res)), fmt.Errorf("error in assignvalue %v %v %w", id, res, err)
+			return true, fmt.Errorf("error in assignvalue %v %v %w", id, res, err)
 		}
-		return int64(len(res)), convert.AssignValue(*aiValue, id)
+		return true, nil
 	}
 
 	res, err := e.Exec(args...)
 	if err != nil {
-		return 0, err
+		return false, err
 	}
 
 	n, err := res.RowsAffected()
 	if err != nil {
-		return n, err
+		return n != 0, err
 	}
 
 	if n != 0 && autoIncrCol != nil {
 		id, err := res.LastInsertId()
 		if err != nil {
-			return n, err
+			return true, err
 		}
 		reflect.ValueOf(bean).Elem().FieldByName(autoIncrCol.FieldName).SetInt(id)
 	}
 
-	return res.RowsAffected()
+	return n != 0, err
 }
 
 // generateInsertNoConflictSQLForMSSQL writes the INSERT ...  ON CONFLICT sql variant for MSSQL

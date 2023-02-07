@@ -5,6 +5,7 @@ package packages
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -37,26 +38,30 @@ type PackageVersion struct {
 
 // GetOrInsertVersion inserts a version. If the same version exist already ErrDuplicatePackageVersion is returned
 func GetOrInsertVersion(ctx context.Context, pv *PackageVersion) (*PackageVersion, error) {
-	n, err := db.InsertOnConflictDoNothing(ctx, pv)
-	if err != nil {
-		return nil, err
-	}
-	if n != 0 { // Successful insert
-		return pv, nil
-	}
+	for i := 0; i <= 5; i++ {
+		inserted, err := db.InsertOnConflictDoNothing(ctx, pv)
+		if err != nil || inserted {
+			return pv, err
+		}
 
-	key := &PackageVersion{
-		PackageID:    pv.PackageID,
-		LowerVersion: pv.LowerVersion,
-	}
+		key := &PackageVersion{
+			PackageID:    pv.PackageID,
+			LowerVersion: pv.LowerVersion,
+		}
 
-	has, err := db.GetEngine(ctx).Get(key)
-	if has {
-		return key, ErrDuplicatePackageVersion
-	} else if err == nil {
-		return GetOrInsertVersion(ctx, pv)
+		has, err := db.GetEngine(ctx).Get(key)
+		if has {
+			return key, ErrDuplicatePackageVersion
+		} else if err != nil {
+			return key, err
+		}
+		// This really should never happen and can only happen if this function
+		// is being called outside of a transaction and between the on conflict insert failing
+		// the conlicting item is removed.
+		//
 	}
-	return nil, err
+	// If that weird case has happened 5 times in a row - there is something very odd going on!
+	return pv, fmt.Errorf("unable to insert on conflict but yet not able to get from the db")
 }
 
 // UpdateVersion updates a version
