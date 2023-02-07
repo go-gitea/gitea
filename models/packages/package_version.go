@@ -41,7 +41,7 @@ func GetOrInsertVersion(ctx context.Context, pv *PackageVersion) (*PackageVersio
 	if err != nil {
 		return nil, err
 	}
-	if n != 0 {
+	if n != 0 { // Successful insert
 		return pv, nil
 	}
 
@@ -52,10 +52,7 @@ func GetOrInsertVersion(ctx context.Context, pv *PackageVersion) (*PackageVersio
 
 	has, err := db.GetEngine(ctx).Get(key)
 	if has {
-		if n == 0 {
-			err = ErrDuplicatePackageVersion
-		}
-		return key, err
+		return key, ErrDuplicatePackageVersion
 	} else if err == nil {
 		return GetOrInsertVersion(ctx, pv)
 	}

@@ -168,10 +168,7 @@ func TryInsertPackage(ctx context.Context, p *Package) (*Package, error) {
 
 	has, err := db.GetEngine(ctx).Get(key)
 	if has {
-		if n == 0 {
-			err = ErrDuplicatePackage
-		}
-		return key, err
+		return key, ErrDuplicatePackage
 	} else if err == nil {
 		return TryInsertPackage(ctx, p)
 	}

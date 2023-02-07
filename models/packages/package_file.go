@@ -48,7 +48,7 @@ func TryInsertFile(ctx context.Context, pf *PackageFile) (*PackageFile, error) {
 	if err != nil {
 		return nil, err
 	}
-	if n != 0 {
+	if n != 0 { // Successful insert
 		return pf, nil
 	}
 
@@ -59,10 +59,7 @@ func TryInsertFile(ctx context.Context, pf *PackageFile) (*PackageFile, error) {
 	}
 	has, err := db.GetEngine(ctx).Get(key)
 	if has {
-		if n == 0 {
-			err = ErrDuplicatePackageFile
-		}
-		return key, err
+		return key, ErrDuplicatePackageFile
 	} else if err == nil {
 		return TryInsertFile(ctx, pf)
 	}

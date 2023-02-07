@@ -30,10 +30,10 @@ func TestHasOwnerPackages(t *testing.T) {
 
 	p, err := packages_model.TryInsertPackage(db.DefaultContext, &packages_model.Package{
 		OwnerID:   owner.ID,
+		Name:      "package",
 		LowerName: "package",
 	})
 	assert.NotNil(t, p)
-	assert.NoError(t, err)
 
 	// A package without package versions gets automatically cleaned up and should return false
 	has, err := packages_model.HasOwnerPackages(db.DefaultContext, owner.ID)
@@ -42,6 +42,7 @@ func TestHasOwnerPackages(t *testing.T) {
 
 	pv, err := packages_model.GetOrInsertVersion(db.DefaultContext, &packages_model.PackageVersion{
 		PackageID:    p.ID,
+		Version:      "internal",
 		LowerVersion: "internal",
 		IsInternal:   true,
 	})
@@ -55,6 +56,7 @@ func TestHasOwnerPackages(t *testing.T) {
 
 	pv, err = packages_model.GetOrInsertVersion(db.DefaultContext, &packages_model.PackageVersion{
 		PackageID:    p.ID,
+		Version:      "normal",
 		LowerVersion: "normal",
 		IsInternal:   false,
 	})
