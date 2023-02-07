@@ -20,6 +20,7 @@
               <SvgIcon name="octicon-meter" class="ui text yellow" class-name="job-status-rotate" v-else-if="job.status === 'running'"/>
               <SvgIcon name="octicon-x-circle-fill" class="red" v-else/>
               {{ job.name }}
+              <!-- TODO: it will be a better idea to move "button" out from "a", and the ".prevent" will not be needed. But it needs some work with CSS -->
               <button class="job-brief-rerun" @click.prevent="rerunJob(index)" v-if="job.canRerun">
                 <SvgIcon name="octicon-sync" class="ui text black"/>
               </button>
