@@ -759,8 +759,8 @@ func GetPullRequestsByHeadBranch(ctx context.Context, headBranch string, headRep
 	return prs, nil
 }
 
-// GetBaseBranchHTMLURL returns the HTML URL of the base branch
-func (pr *PullRequest) GetBaseBranchHTMLURL() string {
+// GetBaseBranchLink returns the relative URL of the base branch
+func (pr *PullRequest) GetBaseBranchLink() string {
 	if err := pr.LoadBaseRepo(db.DefaultContext); err != nil {
 		log.Error("LoadBaseRepo: %v", err)
 		return ""
@@ -768,11 +768,11 @@ func (pr *PullRequest) GetBaseBranchHTMLURL() string {
 	if pr.BaseRepo == nil {
 		return ""
 	}
-	return pr.BaseRepo.HTMLURL() + "/src/branch/" + util.PathEscapeSegments(pr.BaseBranch)
+	return pr.BaseRepo.Link() + "/src/branch/" + util.PathEscapeSegments(pr.BaseBranch)
 }
 
-// GetHeadBranchHTMLURL returns the HTML URL of the head branch
-func (pr *PullRequest) GetHeadBranchHTMLURL() string {
+// GetHeadBranchLink returns the relative URL of the head branch
+func (pr *PullRequest) GetHeadBranchLink() string {
 	if pr.Flow == PullRequestFlowAGit {
 		return ""
 	}
@@ -784,7 +784,7 @@ func (pr *PullRequest) GetHeadBranchHTMLURL() string {
 	if pr.HeadRepo == nil {
 		return ""
 	}
-	return pr.HeadRepo.HTMLURL() + "/src/branch/" + util.PathEscapeSegments(pr.HeadBranch)
+	return pr.HeadRepo.Link() + "/src/branch/" + util.PathEscapeSegments(pr.HeadBranch)
 }
 
 // UpdateAllowEdits update if PR can be edited from maintainers

@@ -35,7 +35,7 @@
 							{{$issue := .Issue}}
 							{{$repo := .Repository}}
 							<tr id="notification_{{.ID}}">
-								<td class="collapsing" data-href="{{.HTMLURL}}">
+								<td class="collapsing" data-href="{{.Link}}">
 									{{if eq .Status 3}}
 										<span class="blue">{{svg "octicon-pin"}}</span>
 									{{else if not $issue}}
@@ -58,8 +58,8 @@
 										{{end}}
 									{{end}}
 								</td>
-								<td class="eleven wide" data-href="{{.HTMLURL}}">
-									<a class="item" href="{{.HTMLURL}}">
+								<td class="eleven wide" data-href="{{.Link}}">
+									<a class="item" href="{{.Link}}">
 										{{if $issue}}
 											#{{$issue.Index}} - {{$issue.Title}}
 										{{else}}
