@@ -20,7 +20,7 @@
               <SvgIcon name="octicon-meter" class="ui text yellow" class-name="job-status-rotate" v-else-if="job.status === 'running'"/>
               <SvgIcon name="octicon-x-circle-fill" class="red" v-else/>
               {{ job.name }}
-              <button class="job-brief-rerun" @click="rerunJob(index)" v-if="job.canRerun">
+              <button class="job-brief-rerun" @click.prevent="rerunJob(index)" v-if="job.canRerun">
                 <SvgIcon name="octicon-sync" class="ui text black"/>
               </button>
             </a>
@@ -163,7 +163,13 @@ const sfc = {
     },
     // rerun a job
     rerunJob(idx) {
-      this.fetch(`${this.run.link}/jobs/${idx}/rerun`);
+      const jobLink = `${this.run.link}/jobs/${idx}`;
+      this.fetch(`${jobLink}/rerun`, null, () => {
+        // The button to rerun job is under "a" tag, so the browser will refresh the page and cancel fetching "rerun".
+        // However, it should refresh the page because the logs have been reset, or it's another job which has been clicked.
+        // So we prevent the default behavior and refresh the page after the fetching is done.
+        window.location.href = jobLink;
+      });
     },
     // cancel a run
     cancelRun() {
@@ -245,7 +251,7 @@ const sfc = {
       }
     },
 
-    fetch(url, body) {
+    fetch(url, body, callback) {
       return fetch(url, {
         method: 'POST',
         headers: {
@@ -253,6 +259,10 @@ const sfc = {
           'X-Csrf-Token': csrfToken,
         },
         body,
+      }).finally(() => {
+        if (callback) {
+          callback();
+        }
       });
     },
   },
