@@ -139,7 +139,7 @@ test('blobToDataURI', async () => {
 });
 
 test('toAbsoluteUrl', () => {
-  expect(toAbsoluteUrl('//host/dir')).toEqual('//host/dir');
+  expect(toAbsoluteUrl('//host/dir')).toEqual('http://host/dir');
   expect(toAbsoluteUrl('https://host/dir')).toEqual('https://host/dir');
 
   expect(toAbsoluteUrl('')).toEqual('http://localhost:3000');

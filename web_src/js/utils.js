@@ -139,7 +139,7 @@ export function toAbsoluteUrl(url) {
     return url;
   }
   if (url.startsWith('//')) {
-    return url; // it's also a somewhat absolute URL (with the current scheme)
+    return `${window.location.protocol}${url}`; // it's also a somewhat absolute URL (with the current scheme)
   }
   if (url && !url.startsWith('/')) {
     throw new Error('unsupported url, it should either start with / or http(s)://');
