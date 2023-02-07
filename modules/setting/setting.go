@@ -138,6 +138,8 @@ var (
 	PerWritePerKbTimeout       = 10 * time.Second
 	StaticURLPrefix            string
 	AbsoluteAssetURL           string
+	CloneURLOverrideHTTP       string
+	CloneURLOverrideSSH        string
 
 	SSH = struct {
 		Disabled                              bool               `ini:"DISABLE_SSH"`
@@ -822,6 +824,8 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		log.Info("The provided APP_DATA_PATH: %s is not absolute - it will be made absolute against the work path: %s", AppDataPath, AppWorkPath)
 		AppDataPath = filepath.ToSlash(filepath.Join(AppWorkPath, AppDataPath))
 	}
+	CloneURLOverrideHTTP = strings.TrimSuffix(sec.Key("CLONE_URL_OVERRIDE_HTTP").MustString(""), "/")
+	CloneURLOverrideSSH = strings.TrimSuffix(sec.Key("CLONE_URL_OVERRIDE_SSH").MustString(""), "/")
 
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
 	EnablePprof = sec.Key("ENABLE_PPROF").MustBool(false)

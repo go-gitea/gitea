@@ -537,7 +537,13 @@ type CloneLink struct {
 
 // ComposeHTTPSCloneURL returns HTTPS clone URL based on given owner and repository name.
 func ComposeHTTPSCloneURL(owner, repo string) string {
-	return fmt.Sprintf("%s%s/%s.git", setting.AppURL, url.PathEscape(owner), url.PathEscape(repo))
+	cloneURL := setting.AppURL
+
+	if setting.CloneURLOverrideHTTP != "" {
+		cloneURL = setting.CloneURLOverrideHTTP + "/"
+	}
+
+	return fmt.Sprintf("%s%s/%s.git", cloneURL, url.PathEscape(owner), url.PathEscape(repo))
 }
 
 func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
@@ -558,7 +564,9 @@ func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
 		sshDomain = "[" + setting.SSH.Domain + "]"
 	}
 
-	if setting.SSH.Port != 22 {
+	if setting.CloneURLOverrideSSH != "" {
+		cl.SSH = fmt.Sprintf("%s/%s/%s.git", setting.CloneURLOverrideSSH, url.PathEscape(repo.OwnerName), url.PathEscape(repoName))
+	} else if setting.SSH.Port != 22 {
 		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, net.JoinHostPort(setting.SSH.Domain, strconv.Itoa(setting.SSH.Port)), url.PathEscape(repo.OwnerName), url.PathEscape(repoName))
 	} else if setting.Repository.UseCompatSSHURI {
 		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, sshDomain, url.PathEscape(repo.OwnerName), url.PathEscape(repoName))

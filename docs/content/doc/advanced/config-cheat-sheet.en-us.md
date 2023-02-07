@@ -415,6 +415,8 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `ALLOW_GRACEFUL_RESTARTS`: **true**: Perform a graceful restart on SIGHUP
 - `GRACEFUL_HAMMER_TIME`: **60s**: After a restart the parent process will stop accepting new connections and will allow requests to finish before stopping. Shutdown will be forced if it takes longer than this time.
 - `STARTUP_TIMEOUT`: **0**: Shutsdown the server if startup takes longer than the provided time. On Windows setting this sends a waithint to the SVC host to tell the SVC host startup may take some time. Please note startup is determined by the opening of the listeners - HTTP/HTTPS/SSH. Indexers may take longer to startup and can have their own timeouts.
+- `CLONE_URL_OVERRIDE_HTTP`: **\<empty\>**: Display this string as-is for the portion of the HTTP clone URL ahead of `/[user]/[repo].git`. Will supersede all other settings that might otherwise influence the display of the HTTP clone URL. E.g. a value of 'https://example.org' here would result in an HTTP clone URL of 'https://example.org/[user]/[repo].git'
+- `CLONE_URL_OVERRIDE_SSH`: **\<empty\>**: Display this string as-is for the portion of the SSH clone URL ahead of `/[user]/[repo].git`. Will supersede all other settings that might otherwise influence the display of the SSH clone URL. E.g. a value of 'ssh://git@example.org' here would result in an SSH clone URL of 'ssh://git@example.org/[user]/[repo].git'
 
 ## Database (`database`)
 
