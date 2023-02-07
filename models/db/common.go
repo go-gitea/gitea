@@ -153,10 +153,9 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (int64, er
 		}
 		switch {
 		case setting.Database.UsePostgreSQL:
+			_, _ = sb.WriteString(") ON CONFLICT DO NOTHING")
 			if autoIncrCol != nil {
-				_, _ = fmt.Fprintf(sb, ") RETURNING %s ON CONFLICT DO NOTHING", x.Dialect().Quoter().Quote(autoIncrCol.Name))
-			} else {
-				_, _ = sb.WriteString(") ON CONFLICT DO NOTHING")
+				_, _ = fmt.Fprintf(sb, " RETURNING %s", autoIncrCol.Name)
 			}
 		case setting.Database.UseSQLite3:
 			_, _ = sb.WriteString(") ON CONFLICT DO NOTHING")
