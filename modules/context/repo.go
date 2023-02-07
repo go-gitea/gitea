@@ -6,7 +6,6 @@ package context
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"html"
 	"io"
@@ -1151,20 +1150,20 @@ func (r *Repository) GetIssueConfig(path string, commit *git.Commit) (api.IssueC
 
 	for pos, link := range issueConfig.ContactLinks {
 		if link.Name == "" {
-			return GetDefaultIssueConfig(), errors.New(fmt.Sprintf("contact_link at position %d is missing name key", pos+1))
+			return GetDefaultIssueConfig(), fmt.Errorf("contact_link at position %d is missing name key", pos+1)
 		}
 
 		if link.URL == "" {
-			return GetDefaultIssueConfig(), errors.New(fmt.Sprintf("contact_link at position %d is missing url key", pos+1))
+			return GetDefaultIssueConfig(), fmt.Errorf("contact_link at position %d is missing url key", pos+1)
 		}
 
 		if link.About == "" {
-			return GetDefaultIssueConfig(), errors.New(fmt.Sprintf("contact_link at position %d is missing about key", pos+1))
+			return GetDefaultIssueConfig(), fmt.Errorf("contact_link at position %d is missing about key", pos+1)
 		}
 
 		_, err = url.ParseRequestURI(link.URL)
 		if err != nil {
-			return GetDefaultIssueConfig(), errors.New(fmt.Sprintf("%s is not a valid URL", link.URL))
+			return GetDefaultIssueConfig(), fmt.Errorf("%s is not a valid URL", link.URL)
 		}
 	}
 
