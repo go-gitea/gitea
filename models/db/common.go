@@ -191,7 +191,7 @@ func generateInsertNoConflictSQLAndArgsForMSSQL(tableName string, colNames []str
 		write(" OUTPUT INSERTED.", quote(autoIncrCol.Name))
 	}
 	write(";")
-
+	uniqueArgs[0] = sb.String()
 	return append(uniqueArgs, args[1:]...)
 }
 
