@@ -181,7 +181,9 @@ func processImageManifest(mci *manifestCreationInfo, buf *packages_module.Hashed
 			return err
 		}
 
-		notifyPackageCreate(mci.Creator, pv)
+		if err := notifyPackageCreate(mci.Creator, pv); err != nil {
+			return err
+		}
 
 		manifestDigest = digest
 
@@ -272,7 +274,9 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 			return err
 		}
 
-		notifyPackageCreate(mci.Creator, pv)
+		if err := notifyPackageCreate(mci.Creator, pv); err != nil {
+			return err
+		}
 
 		manifestDigest = digest
 
