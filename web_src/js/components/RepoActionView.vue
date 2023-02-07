@@ -3,7 +3,7 @@
     <div class="action-view-header">
       <div class="action-info-summary">
         {{ run.title }}
-        <button class="run_approve" @click="approveRun()" v-if="run.canApproval">
+        <button class="run_approve" @click="approveRun()" v-if="run.canApprove">
           <i class="play circle outline icon"/>
         </button>
         <button class="run_cancel" @click="cancelRun()" v-else-if="run.canCancel">
@@ -98,7 +98,7 @@ const sfc = {
         link: '',
         title: '',
         canCancel: false,
-        canApproval: false,
+        canApprove: false,
         done: false,
         jobs: [
           // {
