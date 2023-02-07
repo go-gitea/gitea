@@ -135,8 +135,7 @@ func (c *CheckAttributeReader) Init(ctx context.Context) error {
 
 	c.env = append(c.env, "GIT_FLUSH=1")
 
-	// The empty "--" comes from #16773 , and it seems unnecessary because nothing else would be added later.
-	c.cmd.AddDynamicArguments(c.Attributes...).AddArguments("--")
+	c.cmd.AddDynamicArguments(c.Attributes...)
 
 	var err error
 
