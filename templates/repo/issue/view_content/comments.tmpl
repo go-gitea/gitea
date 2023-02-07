@@ -123,7 +123,7 @@
 				{{template "shared/user/avatarlink" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{$link := printf "%s/commit/%s" $.Repository.HTMLURL ($.Issue.PullRequest.MergedCommitID|PathEscape)}}
+					{{$link := printf "%s/commit/%s" $.Repository.Link ($.Issue.PullRequest.MergedCommitID|PathEscape)}}
 					{{if eq $.Issue.PullRequest.Status 3}}
 						{{$.locale.Tr "repo.issues.manually_pull_merged_at" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID) ($.BaseTarget|Escape) $createdStr | Str2html}}
 					{{else}}
@@ -329,7 +329,7 @@
 					<div class="detail">
 						{{svg "octicon-plus"}}
 						<span class="text grey muted-links">
-							<a href="{{.DependentIssue.HTMLURL}}">
+							<a href="{{.DependentIssue.Link}}">
 								{{if eq .DependentIssue.RepoID .Issue.RepoID}}
 									#{{.DependentIssue.Index}} {{.DependentIssue.Title}}
 								{{else}}
@@ -352,7 +352,7 @@
 					<div class="detail">
 						<span class="text grey muted-links">{{svg "octicon-trash"}}</span>
 						<span class="text grey muted-links">
-							<a href="{{.DependentIssue.HTMLURL}}">
+							<a href="{{.DependentIssue.Link}}">
 								{{if eq .DependentIssue.RepoID .Issue.RepoID}}
 									#{{.DependentIssue.Index}} {{.DependentIssue.Title}}
 								{{else}}
@@ -476,7 +476,7 @@
 										{{$resolveDoer := (index $comms 0).ResolveDoer}}
 										{{$isNotPending := (not (eq (index $comms 0).Review.Type 0))}}
 										<div class="df ac">
-											<a href="{{(index $comms 0).CodeCommentURL}}" class="file-comment ml-3 word-break">{{$filename}}</a>
+											<a href="{{(index $comms 0).CodeCommentLink}}" class="file-comment ml-3 word-break">{{$filename}}</a>
 											{{if $invalid}}
 												<span class="ui label basic small ml-3">
 													{{$.locale.Tr "repo.issues.review.outdated"}}

@@ -11,7 +11,7 @@
 					<div>
 						{{$timeStr := TimeSinceUnix .PackageDescriptor.Version.CreatedUnix $.locale}}
 						{{if .HasRepositoryAccess}}
-							{{.locale.Tr "packages.published_by_in" $timeStr .PackageDescriptor.Creator.HomeLink (.PackageDescriptor.Creator.GetDisplayName | Escape) .PackageDescriptor.Repository.HTMLURL (.PackageDescriptor.Repository.FullName | Escape) | Safe}}
+							{{.locale.Tr "packages.published_by_in" $timeStr .PackageDescriptor.Creator.HomeLink (.PackageDescriptor.Creator.GetDisplayName | Escape) .PackageDescriptor.Repository.Link (.PackageDescriptor.Repository.FullName | Escape) | Safe}}
 						{{else}}
 							{{.locale.Tr "packages.published_by" $timeStr .PackageDescriptor.Creator.HomeLink (.PackageDescriptor.Creator.GetDisplayName | Escape) | Safe}}
 						{{end}}
@@ -41,7 +41,7 @@
 						<div class="ui relaxed list">
 							<div class="item">{{svg .PackageDescriptor.Package.Type.SVGName 16 "mr-3"}} {{.PackageDescriptor.Package.Type.Name}}</div>
 							{{if .HasRepositoryAccess}}
-							<div class="item">{{svg "octicon-repo" 16 "mr-3"}} <a href="{{.PackageDescriptor.Repository.HTMLURL}}">{{.PackageDescriptor.Repository.FullName}}</a></div>
+							<div class="item">{{svg "octicon-repo" 16 "mr-3"}} <a href="{{.PackageDescriptor.Repository.Link}}">{{.PackageDescriptor.Repository.FullName}}</a></div>
 							{{end}}
 							<div class="item">{{svg "octicon-calendar" 16 "mr-3"}} {{TimeSinceUnix .PackageDescriptor.Version.CreatedUnix $.locale}}</div>
 							<div class="item">{{svg "octicon-download" 16 "mr-3"}} {{.PackageDescriptor.Version.DownloadCount}}</div>
@@ -91,7 +91,7 @@
 							<div class="ui divider"></div>
 							<div class="ui relaxed list">
 								{{if .HasRepositoryAccess}}
-								<div class="item">{{svg "octicon-issue-opened" 16 "mr-3"}} <a href="{{.PackageDescriptor.Repository.HTMLURL}}/issues">{{.locale.Tr "repo.issues"}}</a></div>
+								<div class="item">{{svg "octicon-issue-opened" 16 "mr-3"}} <a href="{{.PackageDescriptor.Repository.Link}}/issues">{{.locale.Tr "repo.issues"}}</a></div>
 								{{end}}
 								{{if .CanWritePackages}}
 								<div class="item">{{svg "octicon-tools" 16 "mr-3"}} <a href="{{.Link}}/settings">{{.locale.Tr "repo.settings"}}</a></div>

@@ -1,4 +1,5 @@
 import {showTemporaryTooltip} from '../modules/tippy.js';
+import {toAbsoluteUrl} from '../utils.js';
 
 const {copy_success, copy_error} = window.config.i18n;
 
@@ -50,7 +51,11 @@ export function initGlobalCopyToClipboardListener() {
     // in case <button data-clipboard-text><svg></button>, so we just search
     // up to 3 levels for performance
     for (let i = 0; i < 3 && target; i++) {
-      const text = target.getAttribute('data-clipboard-text') || document.querySelector(target.getAttribute('data-clipboard-target'))?.value;
+      let txt = target.getAttribute('data-clipboard-text');
+      if (txt && target.getAttribute('data-clipboard-text-type') === 'url') {
+        txt = toAbsoluteUrl(txt);
+      }
+      const text = txt || document.querySelector(target.getAttribute('data-clipboard-target'))?.value;
 
       if (text) {
         e.preventDefault();
