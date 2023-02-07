@@ -138,7 +138,7 @@ func ViewPost(ctx *context_module.Context) {
 	resp.State.CurrentJob.Title = current.Name
 	resp.State.CurrentJob.Detail = current.Status.LocaleString(ctx.Locale)
 	if run.NeedApproval {
-		resp.State.CurrentJob.Detail += ". " + ctx.Locale.Tr("actions.need_approval_desc")
+		resp.State.CurrentJob.Detail = ctx.Locale.Tr("actions.need_approval_desc")
 	}
 	resp.State.CurrentJob.Steps = make([]*ViewJobStep, 0) // marshal to '[]' instead fo 'null' in json
 	resp.Logs.StepsLog = make([]*ViewStepLog, 0)          // marshal to '[]' instead fo 'null' in json
