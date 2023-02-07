@@ -151,7 +151,7 @@
 											{{end}}
 										</div>
 									{{else}}
-										<table class="chroma" data-new-comment-url="{{$.Issue.HTMLURL}}/files/reviews/new_comment" data-path="{{$file.Name}}">
+										<table class="chroma" data-new-comment-url="{{$.Issue.Link}}/files/reviews/new_comment" data-path="{{$file.Name}}">
 											{{if $.IsSplitStyle}}
 												{{template "repo/diff/section_split" dict "file" . "root" $}}
 											{{else}}
@@ -191,7 +191,7 @@
 				<div class="ui comment form">
 					<div class="ui top attached tabular menu">
 						<a class="active write item">{{$.locale.Tr "write"}}</a>
-						<a class="preview item" data-url="{{$.Repository.HTMLURL}}/markdown" data-context="{{$.RepoLink}}">{{$.locale.Tr "preview"}}</a>
+						<a class="preview item" data-url="{{$.Repository.Link}}/markdown" data-context="{{$.RepoLink}}">{{$.locale.Tr "preview"}}</a>
 					</div>
 					<div class="ui bottom attached active write tab segment">
 						<textarea class="review-textarea js-quick-submit" tabindex="1" name="content"></textarea>

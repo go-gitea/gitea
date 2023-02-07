@@ -1,5 +1,5 @@
 import {describe, expect, test} from 'vitest';
-import {strSubMatch, calcMatchedWeight, filterRepoFilesWeighted} from './repo-findfile.js';
+import {strSubMatch, calcMatchedWeight, filterRepoFilesWeighted, escapePath} from './repo-findfile.js';
 
 describe('Repo Find Files', () => {
   test('strSubMatch', () => {
@@ -31,5 +31,10 @@ describe('Repo Find Files', () => {
     res = filterRepoFilesWeighted(['we-got-result.dat', 'word.txt'], 'word');
     expect(res).toHaveLength(2);
     expect(res[0].matchResult).toEqual(['', 'word', '.txt']);
+  });
+
+  test('escapePath', () => {
+    expect(escapePath('a/b/c')).toEqual('a/b/c');
+    expect(escapePath('a/b/ c')).toEqual('a/b/%20c');
   });
 });

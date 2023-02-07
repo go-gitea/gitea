@@ -468,6 +468,11 @@ func RegisterRoutes(m *web.Route) {
 					m.Get("/preview", user_setting.PackagesRulePreview)
 				})
 			})
+			m.Group("/cargo", func() {
+				m.Post("/initialize", user_setting.InitializeCargoIndex)
+				m.Post("/rebuild", user_setting.RebuildCargoIndex)
+			})
+			m.Post("/chef/regenerate_keypair", user_setting.RegenerateChefKeyPair)
 		}, packagesEnabled)
 		m.Group("/secrets", func() {
 			m.Get("", user_setting.Secrets)
@@ -817,6 +822,10 @@ func RegisterRoutes(m *web.Route) {
 							m.Post("", web.Bind(forms.PackageCleanupRuleForm{}), org.PackagesRuleEditPost)
 							m.Get("/preview", org.PackagesRulePreview)
 						})
+					})
+					m.Group("/cargo", func() {
+						m.Post("/initialize", org.InitializeCargoIndex)
+						m.Post("/rebuild", org.RebuildCargoIndex)
 					})
 				}, packagesEnabled)
 			}, func(ctx *context.Context) {

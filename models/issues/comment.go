@@ -391,21 +391,40 @@ func (c *Comment) HTMLURL() string {
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
 	}
+	return c.Issue.HTMLURL() + c.hashLink()
+}
+
+// Link formats a relative URL-string to the issue-comment
+func (c *Comment) Link() string {
+	err := c.LoadIssue(db.DefaultContext)
+	if err != nil { // Silently dropping errors :unamused:
+		log.Error("LoadIssue(%d): %v", c.IssueID, err)
+		return ""
+	}
+	err = c.Issue.LoadRepo(db.DefaultContext)
+	if err != nil { // Silently dropping errors :unamused:
+		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
+		return ""
+	}
+	return c.Issue.Link() + c.hashLink()
+}
+
+func (c *Comment) hashLink() string {
 	if c.Type == CommentTypeCode {
 		if c.ReviewID == 0 {
-			return fmt.Sprintf("%s/files#%s", c.Issue.HTMLURL(), c.HashTag())
+			return "/files#" + c.HashTag()
 		}
 		if c.Review == nil {
 			if err := c.LoadReview(); err != nil {
 				log.Warn("LoadReview(%d): %v", c.ReviewID, err)
-				return fmt.Sprintf("%s/files#%s", c.Issue.HTMLURL(), c.HashTag())
+				return "/files#" + c.HashTag()
 			}
 		}
 		if c.Review.Type <= ReviewTypePending {
-			return fmt.Sprintf("%s/files#%s", c.Issue.HTMLURL(), c.HashTag())
+			return "/files#" + c.HashTag()
 		}
 	}
-	return fmt.Sprintf("%s#%s", c.Issue.HTMLURL(), c.HashTag())
+	return "#" + c.HashTag()
 }
 
 // APIURL formats a API-string to the issue-comment
@@ -708,8 +727,8 @@ func (c *Comment) UnsignedLine() uint64 {
 	return uint64(c.Line)
 }
 
-// CodeCommentURL returns the url to a comment in code
-func (c *Comment) CodeCommentURL() string {
+// CodeCommentLink returns the url to a comment in code
+func (c *Comment) CodeCommentLink() string {
 	err := c.LoadIssue(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("LoadIssue(%d): %v", c.IssueID, err)
@@ -720,7 +739,7 @@ func (c *Comment) CodeCommentURL() string {
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
 	}
-	return fmt.Sprintf("%s/files#%s", c.Issue.HTMLURL(), c.HashTag())
+	return fmt.Sprintf("%s/files#%s", c.Issue.Link(), c.HashTag())
 }
 
 // LoadPushCommits Load push commits
