@@ -1,10 +1,17 @@
 image: gitea/gitea:{{#if build.tag}}{{trimPrefix "v" build.tag}}{{else}}{{#if (hasPrefix "refs/heads/release/v" build.ref)}}{{trimPrefix "refs/heads/release/v" build.ref}}-{{/if}}dev{{/if}}
+{{#if contains "-rc" (first build.tags) }}
+tags:
+{{#each build.tags}}
+  - {{this}}
+{{/each}}
+{{else}}
 {{#if build.tags}}
 tags:
 {{#each build.tags}}
   - {{this}}
 {{/each}}
   - "latest"
+{{/if}}
 {{/if}}
 manifests:
   -
