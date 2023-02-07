@@ -40,7 +40,9 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (int64, er
 
 	cols := table.Columns()
 	colNames := make([]string, 0, len(cols))
-	args := make([]interface{}, 1, len(cols))
+	args := make([]any, 1, len(cols))
+	emptyColNames := make([]string, 0, len(cols))
+	emptyArgs := make([]any, 0, len(cols))
 
 	val := reflect.ValueOf(bean)
 	elem := val.Elem()
@@ -69,6 +71,17 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (int64, er
 			}
 
 			if fieldVal.IsZero() {
+				emptyColNames = append(emptyColNames, col.Name)
+				switch fieldVal.Type().Kind() {
+				case reflect.Int, reflect.Int8, reflect.Uint8, reflect.Int16, reflect.Uint16, reflect.Int32, reflect.Uint32, reflect.Int64, reflect.Uint64, reflect.Float32, reflect.Float64, reflect.Complex64, reflect.Complex128:
+					emptyArgs = append(emptyArgs, 0)
+				case reflect.String:
+					emptyArgs = append(emptyArgs, "")
+				case reflect.Bool:
+					emptyArgs = append(emptyArgs, false)
+				default:
+					emptyArgs = append(emptyArgs, nil)
+				}
 				continue
 			}
 			colNames = append(colNames, col.Name)
@@ -97,6 +110,15 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (int64, er
 				if col == iCol {
 					uniqueCols = append(uniqueCols, col)
 					uniqueArgs = append(uniqueArgs, args[i+1])
+					continue indexCol
+				}
+			}
+			for i, col := range emptyColNames {
+				if col == iCol {
+					colNames = append(colNames, col)
+					args = append(args, emptyArgs[i])
+					uniqueCols = append(uniqueCols, col)
+					uniqueArgs = append(uniqueArgs, emptyArgs[i])
 					continue indexCol
 				}
 			}
