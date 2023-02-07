@@ -8,6 +8,7 @@ import (
 	"io"
 	"strings"
 
+	"code.gitea.io/gitea/modules/actions/workflowpattern"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
@@ -100,39 +101,93 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 	case webhook_module.HookEventPush:
 		pushPayload := payload.(*api.PushPayload)
 		matchTimes := 0
+		hasBranchFilter := false
+		hasTagFilter := false
+		refName := git.RefName(pushPayload.Ref)
 		// all acts conditions should be satisfied
 		for cond, vals := range evt.Acts {
 			switch cond {
-			case "branches", "tags":
-				refShortName := git.RefName(pushPayload.Ref).ShortName()
-				for _, val := range vals {
-					if glob.MustCompile(val, '/').Match(refShortName) {
-						matchTimes++
-						break
-					}
+			case "branches":
+				hasBranchFilter = true
+				if !refName.IsBranch() {
+					break
+				}
+				patterns, err := workflowpattern.CompilePatterns(vals...)
+				if err != nil {
+					break
+				}
+				if !workflowpattern.Skip(patterns, []string{refName.ShortName()}, &workflowpattern.EmptyTraceWriter{}) {
+					matchTimes++
+				}
+			case "branches-ignore":
+				hasBranchFilter = true
+				if !refName.IsBranch() {
+					break
+				}
+				patterns, err := workflowpattern.CompilePatterns(vals...)
+				if err != nil {
+					break
+				}
+				if !workflowpattern.Filter(patterns, []string{refName.ShortName()}, &workflowpattern.EmptyTraceWriter{}) {
+					matchTimes++
+				}
+			case "tags":
+				hasTagFilter = true
+				if !refName.IsTag() {
+					break
+				}
+				patterns, err := workflowpattern.CompilePatterns(vals...)
+				if err != nil {
+					break
+				}
+				if !workflowpattern.Skip(patterns, []string{refName.ShortName()}, &workflowpattern.EmptyTraceWriter{}) {
+					matchTimes++
+				}
+			case "tags-ignore":
+				hasTagFilter = true
+				if !refName.IsTag() {
+					break
+				}
+				patterns, err := workflowpattern.CompilePatterns(vals...)
+				if err != nil {
+					break
+				}
+				if !workflowpattern.Filter(patterns, []string{refName.ShortName()}, &workflowpattern.EmptyTraceWriter{}) {
+					matchTimes++
 				}
 			case "paths":
 				filesChanged, err := commit.GetFilesChangedSinceCommit(pushPayload.Before)
 				if err != nil {
 					log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
 				} else {
-					for _, val := range vals {
-						matched := false
-						for _, file := range filesChanged {
-							if glob.MustCompile(val, '/').Match(file) {
-								matched = true
-								break
-							}
-						}
-						if matched {
-							matchTimes++
-							break
-						}
+					patterns, err := workflowpattern.CompilePatterns(vals...)
+					if err != nil {
+						break
+					}
+					if !workflowpattern.Skip(patterns, filesChanged, &workflowpattern.EmptyTraceWriter{}) {
+						matchTimes++
+					}
+				}
+			case "paths-ignore":
+				filesChanged, err := commit.GetFilesChangedSinceCommit(pushPayload.Before)
+				if err != nil {
+					log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
+				} else {
+					patterns, err := workflowpattern.CompilePatterns(vals...)
+					if err != nil {
+						break
+					}
+					if !workflowpattern.Filter(patterns, filesChanged, &workflowpattern.EmptyTraceWriter{}) {
+						matchTimes++
 					}
 				}
 			default:
 				log.Warn("unsupported condition %q", cond)
 			}
+		}
+		// if both branch and tag filter are defined in the workflow only one needs to match
+		if hasBranchFilter && hasTagFilter {
+			matchTimes++
 		}
 		return matchTimes == len(evt.Acts)
 
@@ -160,30 +215,47 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 					}
 				}
 			case "branches":
-				refShortName := git.RefName(prPayload.PullRequest.Base.Ref).ShortName()
-				for _, val := range vals {
-					if glob.MustCompile(val, '/').Match(refShortName) {
-						matchTimes++
-						break
-					}
+				refName := git.RefName(prPayload.PullRequest.Base.Ref)
+				patterns, err := workflowpattern.CompilePatterns(vals...)
+				if err != nil {
+					break
+				}
+				if !workflowpattern.Skip(patterns, []string{refName.ShortName()}, &workflowpattern.EmptyTraceWriter{}) {
+					matchTimes++
+				}
+			case "branches-ignore":
+				refName := git.RefName(prPayload.PullRequest.Base.Ref)
+				patterns, err := workflowpattern.CompilePatterns(vals...)
+				if err != nil {
+					break
+				}
+				if !workflowpattern.Filter(patterns, []string{refName.ShortName()}, &workflowpattern.EmptyTraceWriter{}) {
+					matchTimes++
 				}
 			case "paths":
 				filesChanged, err := commit.GetFilesChangedSinceCommit(prPayload.PullRequest.Base.Ref)
 				if err != nil {
 					log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
 				} else {
-					for _, val := range vals {
-						matched := false
-						for _, file := range filesChanged {
-							if glob.MustCompile(val, '/').Match(file) {
-								matched = true
-								break
-							}
-						}
-						if matched {
-							matchTimes++
-							break
-						}
+					patterns, err := workflowpattern.CompilePatterns(vals...)
+					if err != nil {
+						break
+					}
+					if !workflowpattern.Skip(patterns, filesChanged, &workflowpattern.EmptyTraceWriter{}) {
+						matchTimes++
+					}
+				}
+			case "paths-ignore":
+				filesChanged, err := commit.GetFilesChangedSinceCommit(prPayload.PullRequest.Base.Ref)
+				if err != nil {
+					log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
+				} else {
+					patterns, err := workflowpattern.CompilePatterns(vals...)
+					if err != nil {
+						break
+					}
+					if !workflowpattern.Filter(patterns, filesChanged, &workflowpattern.EmptyTraceWriter{}) {
+						matchTimes++
 					}
 				}
 			default:
