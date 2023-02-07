@@ -34,6 +34,7 @@ func TestHasOwnerPackages(t *testing.T) {
 		LowerName: "package",
 	})
 	assert.NotNil(t, p)
+	assert.NoError(t, err)
 
 	// A package without package versions gets automatically cleaned up and should return false
 	has, err := packages_model.HasOwnerPackages(db.DefaultContext, owner.ID)
