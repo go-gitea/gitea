@@ -162,18 +162,17 @@ const sfc = {
       }
     },
     // rerun a job
-    rerunJob(idx) {
+    async rerunJob(idx) {
       const jobLink = `${this.run.link}/jobs/${idx}`;
-      this.fetch(`${jobLink}/rerun`, null, () => {
-        // The button to rerun job is under "a" tag, so the browser will refresh the page and cancel fetching "rerun".
-        // However, it should refresh the page because the logs have been reset, or it's another job which has been clicked.
-        // So we prevent the default behavior and refresh the page after the fetching is done.
-        window.location.href = jobLink;
-      });
+      await this.fetchPost(`${jobLink}/rerun`);
+      // The button to rerun job is under "a" tag, so the browser will refresh the page and cancel fetching "rerun".
+      // However, it should refresh the page because the logs have been reset, or it's another job which has been clicked.
+      // So we prevent the default behavior and refresh the page after the fetching is done.
+      window.location.href = jobLink;
     },
     // cancel a run
     cancelRun() {
-      this.fetch(`${this.run.link}/cancel`);
+      this.fetchPost(`${this.run.link}/cancel`);
     },
 
     createLogLine(line) {
@@ -211,7 +210,7 @@ const sfc = {
         // for example: make cursor=null means the first time to fetch logs, cursor=eof means no more logs, etc
         return {step: idx, cursor: it.cursor, expanded: it.expanded};
       });
-      const resp = await this.fetch(
+      const resp = await this.fetchPost(
         `${this.actionsURL}/runs/${this.runIndex}/jobs/${this.jobIndex}`,
         JSON.stringify({logCursors}),
       );
@@ -251,7 +250,7 @@ const sfc = {
       }
     },
 
-    fetch(url, body, callback) {
+    fetchPost(url, body) {
       return fetch(url, {
         method: 'POST',
         headers: {
@@ -259,10 +258,6 @@ const sfc = {
           'X-Csrf-Token': csrfToken,
         },
         body,
-      }).finally(() => {
-        if (callback) {
-          callback();
-        }
       });
     },
   },
