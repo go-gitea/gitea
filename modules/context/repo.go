@@ -6,6 +6,7 @@ package context
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"html"
 	"io"
@@ -1112,7 +1113,7 @@ func (ctx *Context) IssueTemplatesErrorsFromDefaultBranch() ([]*api.IssueTemplat
 func GetDefaultIssueConfig() api.IssueConfig {
 	return api.IssueConfig{
 		BlankIssuesEnabled: true,
-		ContactLinks: make([]api.IssueConfigContactLink, 0),
+		ContactLinks:       make([]api.IssueConfigContactLink, 0),
 	}
 }
 
@@ -1146,6 +1147,25 @@ func (r *Repository) GetIssueConfig(path string, commit *git.Commit) (api.IssueC
 	issueConfig := api.IssueConfig{}
 	if err := yaml.Unmarshal(configContent, &issueConfig); err != nil {
 		return GetDefaultIssueConfig(), err
+	}
+
+	for pos, link := range issueConfig.ContactLinks {
+		if link.Name == "" {
+			return GetDefaultIssueConfig(), errors.New(fmt.Sprintf("contact_link at position %d is missing name key", pos+1))
+		}
+
+		if link.URL == "" {
+			return GetDefaultIssueConfig(), errors.New(fmt.Sprintf("contact_link at position %d is missing url key", pos+1))
+		}
+
+		if link.About == "" {
+			return GetDefaultIssueConfig(), errors.New(fmt.Sprintf("contact_link at position %d is missing about key", pos+1))
+		}
+
+		_, err = url.ParseRequestURI(link.URL)
+		if err != nil {
+			return GetDefaultIssueConfig(), errors.New(fmt.Sprintf("%s is not a valid URL", link.URL))
+		}
 	}
 
 	return issueConfig, nil
@@ -1187,7 +1207,7 @@ func (r *Repository) IsIssueConfig(path string) bool {
 }
 
 func (ctx *Context) HasIssueTemplatesOrContactLinks() bool {
-	if  len(ctx.IssueTemplatesFromDefaultBranch()) > 0 {
+	if len(ctx.IssueTemplatesFromDefaultBranch()) > 0 {
 		return true
 	}
 
