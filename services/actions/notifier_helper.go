@@ -13,6 +13,7 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	actions_module "code.gitea.io/gitea/modules/actions"
@@ -153,7 +154,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 	}
 
 	for id, content := range workflows {
-		run := actions_model.ActionRun{
+		run := &actions_model.ActionRun{
 			Title:             strings.SplitN(commit.CommitMessage, "\n", 2)[0],
 			RepoID:            input.Repo.ID,
 			OwnerID:           input.Repo.OwnerID,
@@ -166,15 +167,19 @@ func notify(ctx context.Context, input *notifyInput) error {
 			EventPayload:      string(p),
 			Status:            actions_model.StatusWaiting,
 		}
-		if run.IsForkPullRequest {
-			run.NeedApproval = true
+		if need, err := ifNeedApproval(ctx, run, input.Repo, input.Doer); err != nil {
+			log.Error("check if need approval for repo %d with user %d: %v", input.Repo.ID, input.Doer.ID, err)
+			continue
+		} else {
+			run.NeedApproval = need
 		}
+
 		jobs, err := jobparser.Parse(content)
 		if err != nil {
 			log.Error("jobparser.Parse: %v", err)
 			continue
 		}
-		if err := actions_model.InsertRun(ctx, &run, jobs); err != nil {
+		if err := actions_model.InsertRun(ctx, run, jobs); err != nil {
 			log.Error("InsertRun: %v", err)
 			continue
 		}
@@ -236,4 +241,41 @@ func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_mo
 			Sender:  convert.ToUser(sender, nil),
 		}).
 		Notify(ctx)
+}
+
+func ifNeedApproval(ctx context.Context, run *actions_model.ActionRun, repo *repo_model.Repository, user *user_model.User) (bool, error) {
+	if !run.IsForkPullRequest {
+		// don't need approval if it's not fork PR
+		return false, nil
+	}
+
+	if user.IsRestricted {
+		// always need approval the user is restricted
+		log.Trace("need approval because user %d is restricted", user.ID)
+		return true, nil
+	}
+
+	// don't need approval if the user can write
+	if perm, err := access_model.GetUserRepoPermission(ctx, repo, user); err != nil {
+		return false, fmt.Errorf("GetUserRepoPermission: %w", err)
+	} else if perm.CanWrite(unit.TypeActions) {
+		log.Trace("do not need approval because user %d can write", user.ID)
+		return false, nil
+	}
+
+	// don't need approval if the user has been approved before
+	if count, err := actions_model.CountRuns(ctx, actions_model.FindRunOptions{
+		RepoID:        repo.ID,
+		TriggerUserID: user.ID,
+		Approved:      true,
+	}); err != nil {
+		return false, fmt.Errorf("CountRuns: %w", err)
+	} else if count > 0 {
+		log.Trace("do not need approval because user %d has been approved before", user.ID)
+		return false, nil
+	}
+
+	log.Trace("need approval because it's the first time user %d triggered actions", user.ID)
+	// otherwise, need approval
+	return true, nil
 }

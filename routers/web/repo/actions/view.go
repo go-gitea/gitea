@@ -274,10 +274,12 @@ func Approve(ctx *context_module.Context) {
 		return
 	}
 	run := current.Run
+	doer := ctx.Doer
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		run.NeedApproval = false
-		if err := actions_model.UpdateRun(ctx, run, "need_approval"); err != nil {
+		run.ApprovedBy = doer.ID
+		if err := actions_model.UpdateRun(ctx, run, "need_approval", "approved_by"); err != nil {
 			return err
 		}
 		for _, job := range jobs {
