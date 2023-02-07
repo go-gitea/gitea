@@ -8,6 +8,16 @@ import "time"
 // Reviewable can be reviewed
 type Reviewable interface {
 	GetLocalIndex() int64
+
+	// GetForeignIndex presents the foreign index, which could be misused:
+	// For example, if there are 2 Gitea sites: site-A exports a dataset, then site-B imports it:
+	// * if site-A exports files by using its LocalIndex
+	// * from site-A's view, LocalIndex is site-A's IssueIndex while ForeignIndex is site-B's IssueIndex
+	// * but from site-B's view, LocalIndex is site-B's IssueIndex while ForeignIndex is site-A's IssueIndex
+	//
+	// So the exporting/importing must be paired, but the meaning of them looks confusing then:
+	// * either site-A and site-B both use LocalIndex during dumping/restoring
+	// * or site-A and site-B both use ForeignIndex
 	GetForeignIndex() int64
 }
 
@@ -37,7 +47,7 @@ type Review struct {
 // GetExternalName ExternalUserMigrated interface
 func (r *Review) GetExternalName() string { return r.ReviewerName }
 
-// ExternalID ExternalUserMigrated interface
+// GetExternalID ExternalUserMigrated interface
 func (r *Review) GetExternalID() int64 { return r.ReviewerID }
 
 // ReviewComment represents a review comment
