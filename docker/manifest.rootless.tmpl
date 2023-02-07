@@ -4,11 +4,10 @@ tags:
 {{#each build.tags}}
   - {{this}}-rootless
 {{/each}}
-{{#if contains "-rc" (first build.tags) }}
+{{#unless contains "-rc" (first build.tags) }}
   - "latest-rootless"
+{{/unless}}
 {{/if}}
-{{/if}}
-
 manifests:
   -
     image: gitea/gitea:{{#if build.tag}}{{trimPrefix "v" build.tag}}{{else}}{{#if (hasPrefix "refs/heads/release/v" build.ref)}}{{trimPrefix "refs/heads/release/v" build.ref}}-{{/if}}dev{{/if}}-linux-amd64-rootless
