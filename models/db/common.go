@@ -216,7 +216,7 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (int64, er
 		case setting.Database.UsePostgreSQL, setting.Database.UseMSSQL:
 			res, err := e.Query(args...)
 			if err != nil {
-				return 0, err
+				return 0, fmt.Errorf("error in query: %s, %w", args[0], err)
 			}
 			if len(res) == 0 {
 				return 0, nil
@@ -232,6 +232,10 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (int64, er
 			}
 
 			id := res[0][autoIncrCol.Name]
+			err = convert.AssignValue(*aiValue, id)
+			if err != nil {
+				return int64(len(res)), fmt.Errorf("error in assignvalue %v %v %w", id, res, err)
+			}
 			return int64(len(res)), convert.AssignValue(*aiValue, id)
 		}
 	}
