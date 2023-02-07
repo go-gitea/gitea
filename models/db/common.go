@@ -200,7 +200,12 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (int64, er
 		for range colNames[1:] {
 			_, _ = sb.WriteString(",?")
 		}
-		_, _ = sb.WriteString(");")
+		_, _ = sb.WriteString(")")
+		if autoIncrCol != nil {
+			_, _ = sb.WriteString(" OUTPUT inserted.")
+			_, _ = sb.WriteString(autoIncrCol.Name)
+		}
+		_, _ = sb.WriteString(";")
 		args = append(uniqueArgs, args[1:]...)
 	default:
 		return 0, fmt.Errorf("database type not supported")
@@ -209,7 +214,7 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (int64, er
 
 	if autoIncrCol != nil {
 		switch {
-		case setting.Database.UsePostgreSQL:
+		case setting.Database.UsePostgreSQL, setting.Database.UseMSSQL:
 			res, err := e.Query(args...)
 			if err != nil {
 				return 0, err
