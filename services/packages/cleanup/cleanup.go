@@ -152,3 +152,15 @@ func Cleanup(taskCtx context.Context, olderThan time.Duration) error {
 
 	return nil
 }
+
+// PostPackageRemoval performs actions after a package was deleted
+// These actions are only needed if a package gets deleted outside of the defined
+// package registry flow, for example when deleting a package from the UI or API.
+func PostPackageRemoval(ctx context.Context, pd *packages_model.PackageDescriptor) error {
+	if pd.Package.Type == packages_model.TypeCargo {
+		if err := cargo_service.AddOrUpdatePackageIndex(ctx, pd.Owner, pd.Owner, pd.Package.ID); err != nil {
+			return fmt.Errorf("cargo.AddOrUpdatePackageIndex failed: %w", err)
+		}
+	}
+	return nil
+}

@@ -11,9 +11,11 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	packages_service "code.gitea.io/gitea/services/packages"
+	cleanup_service "code.gitea.io/gitea/services/packages/cleanup"
 )
 
 const (
@@ -92,9 +94,19 @@ func DeletePackageVersion(ctx *context.Context) {
 		return
 	}
 
+	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
+	if err != nil {
+		ctx.ServerError("GetPackageDescriptor", err)
+		return
+	}
+
 	if err := packages_service.RemovePackageVersion(ctx.Doer, pv); err != nil {
 		ctx.ServerError("RemovePackageVersion", err)
 		return
+	}
+
+	if err := cleanup_service.PostPackageRemoval(ctx, pd); err != nil {
+		log.Error("PostPackageRemoval failed: %v", err)
 	}
 
 	ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))

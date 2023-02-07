@@ -113,6 +113,11 @@ func AddOrUpdatePackageIndex(ctx context.Context, doer, owner *user_model.User, 
 
 	p, err := packages_model.GetPackageByID(ctx, packageID)
 	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			// Ignore the package if it does not exist.
+			// This may leave a dirty index which can be rebuild from user settings.
+			return nil
+		}
 		return fmt.Errorf("GetPackageByID[%d]: %w", packageID, err)
 	}
 
@@ -145,8 +150,11 @@ func addOrUpdatePackageIndex(ctx context.Context, t *files_service.TemporaryUplo
 	if err != nil {
 		return fmt.Errorf("SearchVersions[%s]: %w", p.Name, err)
 	}
+
+	path := BuildPackagePath(p.LowerName)
+
 	if len(pvs) == 0 {
-		return nil
+		return t.RemoveFilesFromIndex(path)
 	}
 
 	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
@@ -186,7 +194,7 @@ func addOrUpdatePackageIndex(ctx context.Context, t *files_service.TemporaryUplo
 		b.WriteString("\n")
 	}
 
-	return writeObjectToIndex(t, BuildPackagePath(pds[0].Package.LowerName), &b)
+	return writeObjectToIndex(t, path, &b)
 }
 
 func getOrCreateIndexRepository(ctx context.Context, doer, owner *user_model.User) (*repo_model.Repository, error) {

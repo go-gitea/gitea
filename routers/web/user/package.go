@@ -22,6 +22,7 @@ import (
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/forms"
 	packages_service "code.gitea.io/gitea/services/packages"
+	cleanup_service "code.gitea.io/gitea/services/packages/cleanup"
 )
 
 const (
@@ -374,6 +375,10 @@ func PackageSettingsPost(ctx *context.Context) {
 			ctx.Flash.Error(ctx.Tr("packages.settings.delete.error"))
 		} else {
 			ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))
+		}
+
+		if err := cleanup_service.PostPackageRemoval(ctx, ctx.Package.Descriptor); err != nil {
+			log.Error("PostPackageRemoval failed: %v", err)
 		}
 
 		ctx.Redirect(ctx.Package.Owner.HTMLURL() + "/-/packages")
