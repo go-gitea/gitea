@@ -44,9 +44,9 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (bool, err
 
 	autoIncrCol := table.AutoIncrColumn()
 
-	cols := table.Columns()
+	columns := table.Columns()
 
-	colNames, args, emptyColNames, emptyArgs, err := getColNamesAndArgsFromBean(bean, cols)
+	colNames, values, zeroedColNames, zeroedValues, err := getColNamesAndValuesFromBean(bean, columns)
 	if err != nil {
 		return false, err
 	}
@@ -57,7 +57,7 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (bool, err
 
 	// MSSQL needs to separately pass in the columns with the unique constraint and we need to
 	// include empty columns which are in the constraint in the insert for other dbs
-	uniqueCols, uniqueArgs, colNames, args := addInUniqueCols(colNames, args, emptyColNames, emptyArgs, table)
+	uniqueCols, uniqueValues, colNames, values := addInUniqueCols(colNames, values, zeroedColNames, zeroedValues, table)
 	if len(uniqueCols) == 0 {
 		return false, fmt.Errorf("provided bean has no unique constraints")
 	}
@@ -65,10 +65,10 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (bool, err
 	var insertArgs []any
 
 	switch {
-	case setting.Database.UseSQLite3 || setting.Database.UsePostgreSQL || setting.Data
-		insertArgs = generateInsertNoConflictSQLAndArgs(tableName, colNames, args, autoIncrCol)
+	case setting.Database.UseSQLite3 || setting.Database.UsePostgreSQL || setting.Database.UseMySQL:
+		insertArgs = generateInsertNoConflictSQLAndArgs(tableName, colNames, values, autoIncrCol)
 	case setting.Database.UseMSSQL:
-		insertArgs = generateInsertNoConflictSQLAndArgsForMSSQL(tableName, colNames, args, uniqueCols, uniqueArgs, autoIncrCol)
+		insertArgs = generateInsertNoConflictSQLAndArgsForMSSQL(tableName, colNames, values, uniqueCols, uniqueValues, autoIncrCol)
 	default:
 		return false, fmt.Errorf("database type not supported")
 	}
@@ -103,7 +103,7 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (bool, err
 		return true, nil
 	}
 
-	res, err := e.Exec(args...)
+	res, err := e.Exec(values...)
 	if err != nil {
 		return false, err
 	}
@@ -195,20 +195,30 @@ func generateInsertNoConflictSQLAndArgsForMSSQL(tableName string, colNames []str
 	return append(uniqueArgs, args[1:]...)
 }
 
-func addInUniqueCols(colNames []string, args []any, emptyColNames []string, emptyArgs []any, table *schemas.Table) (uniqueCols []string, uniqueArgs []any, insertCols []string, insertArgs []any) {
+// addInUniqueCols determines the columns that refer to unique constraints and creates slices for these
+// as they're needed by MSSQL. In addition, any columns which are zero-valued but are part of a constraint
+// are added back in to the colNames and args
+func addInUniqueCols(colNames []string, args []any, zeroedColNames []string, emptyArgs []any, table *schemas.Table) (uniqueCols []string, uniqueArgs []any, insertCols []string, insertArgs []any) {
 	uniqueCols = make([]string, 0, len(table.Columns()))
 	uniqueArgs = make([]interface{}, 1, len(uniqueCols)+1) // leave uniqueArgs[0] empty to put the SQL in
+
+	// Iterate across the indexes in the provided table
 	for _, index := range table.Indexes {
 		if index.Type != schemas.UniqueType {
 			continue
 		}
+
+		// index is a Unique constraint
 	indexCol:
 		for _, iCol := range index.Cols {
 			for _, uCol := range uniqueCols {
 				if uCol == iCol {
+					// column is already included in uniqueCols so we don't need to add it again
 					continue indexCol
 				}
 			}
+
+			// Now iterate across colNames and add to the uniqueCols
 			for i, col := range colNames {
 				if col == iCol {
 					uniqueCols = append(uniqueCols, col)
@@ -216,9 +226,12 @@ func addInUniqueCols(colNames []string, args []any, emptyColNames []string, empt
 					continue indexCol
 				}
 			}
-			for i, col := range emptyColNames {
+
+			// If we still haven't found the column we need to look in the emptyColumns and add
+			// it back into colNames and args as well as uniqueCols/uniqueArgs
+			for i, col := range zeroedColNames {
 				if col == iCol {
-					// Always include empty unique columns in the insert statement
+					// Always include empty unique columns in the insert statement as otherwise the insert no conflict will pass
 					colNames = append(colNames, col)
 					args = append(args, emptyArgs[i])
 					uniqueCols = append(uniqueCols, col)
@@ -231,9 +244,18 @@ func addInUniqueCols(colNames []string, args []any, emptyColNames []string, empt
 	return uniqueCols, uniqueArgs, colNames, args
 }
 
-func getColNamesAndArgsFromBean(bean interface{}, cols []*schemas.Column) (colNames []string, args []any, emptyColNames []string, emptyArgs []any, err error) {
+// getColNamesAndValuesFromBean reads the provided bean, providing two pairs of linked slices:
+//
+// - colNames and values
+// - zeroedColNames and zeroedValues
+//
+// colNames contains the names of the columns that have non-zero values in the provided bean
+// values contains the values - with one exception - values is 1-based so that values[0] is deliberately left zero
+//
+// emptyyColNames and zeroedValues accounts for the other columns - with zeroedValues containing the zero values
+func getColNamesAndValuesFromBean(bean interface{}, cols []*schemas.Column) (colNames []string, values []any, zeroedColNames []string, zeroedValues []any, err error) {
 	colNames = make([]string, len(cols))
-	args = make([]any, len(cols)+1) // Leave args[0] to put the SQL in
+	values = make([]any, len(cols)+1) // Leave args[0] to put the SQL in
 	maxNonEmpty := 0
 	minEmpty := len(cols)
 
@@ -250,7 +272,7 @@ func getColNamesAndArgsFromBean(bean interface{}, cols []*schemas.Column) (colNa
 
 				colNames[maxNonEmpty] = col.Name
 				maxNonEmpty++
-				args[maxNonEmpty] = result
+				values[maxNonEmpty] = result
 				continue
 			}
 
@@ -259,18 +281,18 @@ func getColNamesAndArgsFromBean(bean interface{}, cols []*schemas.Column) (colNa
 				return nil, nil, nil, nil, err
 			}
 			if fieldVal.IsZero() {
-				args[minEmpty] = val // remember args is 1-based not 0-based
+				values[minEmpty] = val // remember args is 1-based not 0-based
 				minEmpty--
 				colNames[minEmpty] = col.Name
 				continue
 			}
 			colNames[maxNonEmpty] = col.Name
 			maxNonEmpty++
-			args[maxNonEmpty] = val
+			values[maxNonEmpty] = val
 		}
 	}
 
-	return colNames[:maxNonEmpty], args[:maxNonEmpty+1], colNames[maxNonEmpty:], args[maxNonEmpty+1:], nil
+	return colNames[:maxNonEmpty], values[:maxNonEmpty+1], colNames[maxNonEmpty:], values[maxNonEmpty+1:], nil
 }
 
 func setCurrentTime(fieldVal reflect.Value, col *schemas.Column) (interface{}, error) {
@@ -291,7 +313,51 @@ func setCurrentTime(fieldVal reflect.Value, col *schemas.Column) (interface{}, e
 	return result, nil
 }
 
+// getValueFromField extracts the reflected value from the provided fieldVal
+// this keeps the type and makes such that zero values work in the SQL Insert above
 func getValueFromField(fieldVal reflect.Value, col *schemas.Column) (any, error) {
+	// Handle pointers to convert.Conversion
+	if fieldVal.CanAddr() {
+		if fieldConvert, ok := fieldVal.Addr().Interface().(convert.Conversion); ok {
+			data, err := fieldConvert.ToDB()
+			if err != nil {
+				return nil, err
+			}
+			if data == nil {
+				if col.Nullable {
+					return nil, nil
+				}
+				data = []byte{}
+			}
+			if col.SQLType.IsBlob() {
+				return data, nil
+			}
+			return string(data), nil
+		}
+	}
+
+	// Handle nil pointer to convert.Conversion
+	isNil := fieldVal.Kind() == reflect.Ptr && fieldVal.IsNil()
+	if !isNil {
+		if fieldConvert, ok := fieldVal.Interface().(convert.Conversion); ok {
+			data, err := fieldConvert.ToDB()
+			if err != nil {
+				return nil, err
+			}
+			if data == nil {
+				if col.Nullable {
+					return nil, nil
+				}
+				data = []byte{}
+			}
+			if col.SQLType.IsBlob() {
+				return data, nil
+			}
+			return string(data), nil
+		}
+	}
+
+	// Handle common primitive types
 	switch fieldVal.Type().Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return fieldVal.Int(), nil
@@ -316,44 +382,6 @@ func getValueFromField(fieldVal reflect.Value, col *schemas.Column) (any, error)
 	default:
 	}
 
-	if fieldVal.CanAddr() {
-		if fieldConvert, ok := fieldVal.Addr().Interface().(convert.Conversion); ok {
-			data, err := fieldConvert.ToDB()
-			if err != nil {
-				return nil, err
-			}
-			if data == nil {
-				if col.Nullable {
-					return nil, nil
-				}
-				data = []byte{}
-			}
-			if col.SQLType.IsBlob() {
-				return data, nil
-			}
-			return string(data), nil
-		}
-	}
-
-	isNil := fieldVal.Kind() == reflect.Ptr && fieldVal.IsNil()
-	if !isNil {
-		if fieldConvert, ok := fieldVal.Interface().(convert.Conversion); ok {
-			data, err := fieldConvert.ToDB()
-			if err != nil {
-				return nil, err
-			}
-			if data == nil {
-				if col.Nullable {
-					return nil, nil
-				}
-				data = []byte{}
-			}
-			if col.SQLType.IsBlob() {
-				return data, nil
-			}
-			return string(data), nil
-		}
-	}
-
+	// just return the interface
 	return fieldVal.Interface(), nil
 }
