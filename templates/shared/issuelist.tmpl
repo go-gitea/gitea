@@ -34,7 +34,7 @@
 			</div>
 			<div class="issue-item-main f1 fc df">
 				<div class="issue-item-top-row">
-					<a class="title tdn issue-title" href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{RenderEmoji .Title | RenderCodeBlock}}</a>
+					<a class="title tdn issue-title" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{RenderEmoji .Title | RenderCodeBlock}}</a>
 					{{if .IsPull}}
 						{{if (index $.CommitStatuses .PullRequest.ID)}}
 							{{template "repo/commit_statuses" dict "Status" (index $.CommitLastStatus .PullRequest.ID) "Statuses" (index $.CommitStatuses .PullRequest.ID) "root" $}}
@@ -47,7 +47,7 @@
 					</span>
 				</div>
 				<div class="desc issue-item-bottom-row df ac fw my-1">
-					<a class="index ml-0 mr-2" href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
+					<a class="index ml-0 mr-2" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
 						{{if eq $.listType "dashboard"}}
 							{{.Repo.FullName}}#{{.Index}}
 						{{else}}
@@ -65,7 +65,7 @@
 					{{if .IsPull}}
 						<div class="branches df ac">
 							<div class="branch">
-								<a href="{{.PullRequest.BaseRepo.HTMLURL}}/src/branch/{{PathEscapeSegments .PullRequest.BaseBranch}}">
+								<a href="{{.PullRequest.BaseRepo.Link}}/src/branch/{{PathEscapeSegments .PullRequest.BaseBranch}}">
 									{{/* inline to remove the spaces between spans */}}
 									{{if ne .RepoID .PullRequest.BaseRepoID}}<span class="truncated-name">{{.PullRequest.BaseRepo.OwnerName}}</span>:{{end}}<span class="truncated-name">{{.PullRequest.BaseBranch}}</span>
 								</a>
@@ -73,7 +73,7 @@
 							{{svg "gitea-double-chevron-left" 12 "mx-1"}}
 							{{if .PullRequest.HeadRepo}}
 							<div class="branch">
-								<a href="{{.PullRequest.HeadRepo.HTMLURL}}/src/branch/{{PathEscapeSegments .PullRequest.HeadBranch}}">
+								<a href="{{.PullRequest.HeadRepo.Link}}/src/branch/{{PathEscapeSegments .PullRequest.HeadBranch}}">
 									{{/* inline to remove the spaces between spans */}}
 									{{if ne .RepoID .PullRequest.HeadRepoID}}<span class="truncated-name">{{.PullRequest.HeadRepo.OwnerName}}</span>:{{end}}<span class="truncated-name">{{.PullRequest.HeadBranch}}</span>
 								</a>
@@ -159,7 +159,7 @@
 				</div>
 				<div class="issue-item-icon-right text grey">
 					{{if .NumComments}}
-						<a class="tdn muted" href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
+						<a class="tdn muted" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
 							{{svg "octicon-comment" 16 "mr-2"}}{{.NumComments}}
 						</a>
 					{{end}}
