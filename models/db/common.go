@@ -6,7 +6,6 @@ package db
 import (
 	"context"
 	"fmt"
-	"io"
 	"reflect"
 	"strings"
 	"time"
@@ -63,57 +62,24 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (bool, err
 		return false, fmt.Errorf("provided bean has no unique constraints")
 	}
 
-	sb := &strings.Builder{}
+	var insertArgs []any
+
 	switch {
-	case setting.Database.UseSQLite3 || setting.Database.UsePostgreSQL || setting.Database.UseMySQL:
-		_, _ = sb.WriteString("INSERT ")
-		if setting.Database.UseMySQL && autoIncrCol == nil {
-			_, _ = sb.WriteString("IGNORE ")
-		}
-		_, _ = sb.WriteString("INTO ")
-		_, _ = sb.WriteString(x.Dialect().Quoter().Quote(tableName))
-		_, _ = sb.WriteString(" (")
-		_, _ = sb.WriteString(colNames[0])
-		for _, colName := range colNames[1:] {
-			_, _ = sb.WriteString(",")
-			_, _ = sb.WriteString(colName)
-		}
-		_, _ = sb.WriteString(") VALUES (")
-		_, _ = sb.WriteString("?")
-		for range colNames[1:] {
-			_, _ = sb.WriteString(",?")
-		}
-		switch {
-		case setting.Database.UsePostgreSQL:
-			_, _ = sb.WriteString(") ON CONFLICT DO NOTHING")
-			if autoIncrCol != nil {
-				_, _ = fmt.Fprintf(sb, " RETURNING %s", autoIncrCol.Name)
-			}
-		case setting.Database.UseSQLite3:
-			_, _ = sb.WriteString(") ON CONFLICT DO NOTHING")
-		case setting.Database.UseMySQL:
-			if autoIncrCol != nil {
-				_, _ = sb.WriteString(") ON DUPLICATE KEY UPDATE ")
-				_, _ = sb.WriteString(autoIncrCol.Name)
-				_, _ = sb.WriteString(" = ")
-				_, _ = sb.WriteString(autoIncrCol.Name)
-			}
-		}
+	case setting.Database.UseSQLite3 || setting.Database.UsePostgreSQL || setting.Data
+		insertArgs = generateInsertNoConflictSQLAndArgs(tableName, colNames, args, autoIncrCol)
 	case setting.Database.UseMSSQL:
-		generateInsertNoConflictSQLForMSSQL(sb, tableName, colNames, args, uniqueCols, autoIncrCol)
-		args = append(uniqueArgs, args[1:]...)
+		insertArgs = generateInsertNoConflictSQLAndArgsForMSSQL(tableName, colNames, args, uniqueCols, uniqueArgs, autoIncrCol)
 	default:
 		return false, fmt.Errorf("database type not supported")
 	}
-	args[0] = sb.String()
 
 	if autoIncrCol != nil && (setting.Database.UsePostgreSQL || setting.Database.UseMSSQL) {
 		// Postgres and MSSQL do not use the LastInsertID mechanism
 		// Therefore use query rather than exec and read the last provided ID back in
 
-		res, err := e.Query(args...)
+		res, err := e.Query(insertArgs...)
 		if err != nil {
-			return false, fmt.Errorf("error in query: %s, %w", args[0], err)
+			return false, fmt.Errorf("error in query: %s, %w", insertArgs[0], err)
 		}
 		if len(res) == 0 {
 			// this implies there was a conflict
@@ -158,47 +124,75 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (bool, err
 	return n != 0, err
 }
 
-// generateInsertNoConflictSQLForMSSQL writes the INSERT ...  ON CONFLICT sql variant for MSSQL
-// MSSQL uses MERGE <tablename> WITH <locK> ... but needs to pre-select the unique cols first
-// then WHEN NOT MATCHED INSERT - this is kind of the opposite way round from  INSERT ... ON CONFLICT
-func generateInsertNoConflictSQLForMSSQL(sb io.StringWriter, tableName string, colNames []string, args []any, uniqueCols []string, autoIncrCol *schemas.Column) {
-	_, _ = sb.WriteString("MERGE ")
-	_, _ = sb.WriteString(x.Dialect().Quoter().Quote(tableName))
-	_, _ = sb.WriteString(" WITH (HOLDLOCK) AS target USING (SELECT ")
+// generateInsertNoConflictSQLAndArgs will create the correct insert code for most of the DBs except MSSQL
+func generateInsertNoConflictSQLAndArgs(tableName string, colNames []string, args []any, autoIncrCol *schemas.Column) (insertArgs []any) {
+	sb := &strings.Builder{}
 
-	_, _ = sb.WriteString("? AS ")
-	_, _ = sb.WriteString(uniqueCols[0])
-	for _, uniqueCol := range uniqueCols[1:] {
-		_, _ = sb.WriteString(", ? AS ")
-		_, _ = sb.WriteString(uniqueCol)
+	quote := x.Dialect().Quoter().Quote
+	write := func(args ...string) {
+		for _, arg := range args {
+			_, _ = sb.WriteString(arg)
+		}
 	}
-	_, _ = sb.WriteString(") AS src ON src.")
-	_, _ = sb.WriteString(uniqueCols[0])
-	_, _ = sb.WriteString("= target.")
-	_, _ = sb.WriteString(uniqueCols[0])
-	for _, uniqueCol := range uniqueCols[1:] {
-		_, _ = sb.WriteString(" AND src.")
-		_, _ = sb.WriteString(uniqueCol)
-		_, _ = sb.WriteString("= target.")
-		_, _ = sb.WriteString(uniqueCol)
+	write("INSERT ")
+	if setting.Database.UseMySQL && autoIncrCol == nil {
+		write("IGNORE ")
 	}
-	_, _ = sb.WriteString(" WHEN NOT MATCHED THEN INSERT (")
-	_, _ = sb.WriteString(colNames[0])
-	for _, colName := range colNames[1:] {
-		_, _ = sb.WriteString(",")
-		_, _ = sb.WriteString(colName)
-	}
-	_, _ = sb.WriteString(") VALUES (")
-	_, _ = sb.WriteString("?")
+	write("INTO ", quote(tableName), " (")
+	_ = x.Dialect().Quoter().JoinWrite(sb, colNames, ",")
+	write(") VALUES (?")
 	for range colNames[1:] {
-		_, _ = sb.WriteString(",?")
+		write(",?")
 	}
-	_, _ = sb.WriteString(")")
+	switch {
+	case setting.Database.UsePostgreSQL:
+		write(") ON CONFLICT DO NOTHING")
+		if autoIncrCol != nil {
+			write(" RETURNING ", quote(autoIncrCol.Name))
+		}
+	case setting.Database.UseSQLite3:
+		write(") ON CONFLICT DO NOTHING")
+	case setting.Database.UseMySQL:
+		if autoIncrCol != nil {
+			write(") ON DUPLICATE KEY UPDATE ", quote(autoIncrCol.Name), " = ", quote(autoIncrCol.Name))
+		}
+	}
+	args[0] = sb.String()
+	return args
+}
+
+// generateInsertNoConflictSQLAndArgsForMSSQL writes the INSERT ...  ON CONFLICT sql variant for MSSQL
+// MSSQL uses MERGE <tablename> WITH <lock> ... but needs to pre-select the unique cols first
+// then WHEN NOT MATCHED INSERT - this is kind of the opposite way round from  INSERT ... ON CONFLICT
+func generateInsertNoConflictSQLAndArgsForMSSQL(tableName string, colNames []string, args []any, uniqueCols []string, uniqueArgs []any, autoIncrCol *schemas.Column) (insertArgs []any) {
+	sb := &strings.Builder{}
+
+	quote := x.Dialect().Quoter().Quote
+	write := func(args ...string) {
+		for _, arg := range args {
+			_, _ = sb.WriteString(arg)
+		}
+	}
+
+	write("MERGE ", quote(tableName), " WITH (HOLDLOCK) AS target USING (SELECT ? AS ")
+	_ = x.Dialect().Quoter().JoinWrite(sb, uniqueCols, ", ? AS ")
+	write(") AS src ON src.", quote(uniqueCols[0]), "= target.", quote(uniqueCols[0]))
+	for _, uniqueCol := range uniqueCols[1:] {
+		write(" AND src.", quote(uniqueCol), "= target.", quote(uniqueCol))
+	}
+	write(" WHEN NOT MATCHED THEN INSERT (")
+	_ = x.Dialect().Quoter().JoinWrite(sb, colNames, ",")
+	write(") VALUES (?")
+	for range colNames[1:] {
+		write(", ?")
+	}
+	write(")")
 	if autoIncrCol != nil {
-		_, _ = sb.WriteString(" OUTPUT INSERTED.")
-		_, _ = sb.WriteString(autoIncrCol.Name)
+		write(" OUTPUT INSERTED.", quote(autoIncrCol.Name))
 	}
-	_, _ = sb.WriteString(";")
+	write(";")
+
+	return append(uniqueArgs, args[1:]...)
 }
 
 func addInUniqueCols(colNames []string, args []any, emptyColNames []string, emptyArgs []any, table *schemas.Table) (uniqueCols []string, uniqueArgs []any, insertCols []string, insertArgs []any) {
