@@ -259,7 +259,7 @@ func (e *escapeStreamer) runeTypes(runes ...rune) (types []runeType, confusables
 			runeCounts.numBrokenRunes++
 		case r == ' ' || r == '\t' || r == '\n':
 			runeCounts.numBasicRunes++
-		case e.isAllowed(r):
+		case e.allowed[r]:
 			if r > 0x7e || r < 0x20 {
 				types[i] = nonBasicASCIIRuneType
 				runeCounts.numNonConfusingNonBasicRunes++
@@ -284,9 +284,4 @@ func (e *escapeStreamer) runeTypes(runes ...rune) (types []runeType, confusables
 		}
 	}
 	return types, confusables, runeCounts
-}
-
-func (e *escapeStreamer) isAllowed(r rune) bool {
-	_, ok := e.allowed[r]
-	return ok
 }
