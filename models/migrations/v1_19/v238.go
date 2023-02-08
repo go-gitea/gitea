@@ -15,8 +15,8 @@ func AddCardTypeToProjectTable(x *xorm.Engine) error {
 		CardType int `xorm:"NOT NULL DEFAULT 1"`
 	}
 
-	if err := x.Sync2(new(Project)); err != nil {
-		return fmt.Errorf("Sync2: %w", err)
+	if err := x.Sync(new(Project)); err != nil {
+		return fmt.Errorf("Sync: %w", err)
 	}
 	return nil
 }
