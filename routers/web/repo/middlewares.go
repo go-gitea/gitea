@@ -60,6 +60,34 @@ func SetDiffViewStyle(ctx *context.Context) {
 	}
 }
 
+// SetDiffViewWidth set the width of the diff view
+func SetDiffViewWidth(ctx *context.Context) {
+	queryWidth := ctx.FormString("width")
+
+	if !ctx.IsSigned {
+		ctx.Data["IsWidthFull"] = queryWidth == "full"
+		return
+	}
+
+	var (
+		userWidth = ctx.Doer.DiffViewWidth
+		width     string
+	)
+
+	if queryWidth == "full" || queryWidth == "compact" {
+		width = queryWidth
+	} else if userWidth == "full" || userWidth == "compact" {
+		width = userWidth
+	} else {
+		width = "compact"
+	}
+
+	ctx.Data["IsWidthFull"] = width == "full"
+	if err := user_model.UpdateUserDiffViewWidth(ctx.Doer, width); err != nil {
+		ctx.ServerError("ErrUpdateDiffViewWidth", err)
+	}
+}
+
 // SetWhitespaceBehavior set whitespace behavior as render variable
 func SetWhitespaceBehavior(ctx *context.Context) {
 	const defaultWhitespaceBehavior = "show-all"
