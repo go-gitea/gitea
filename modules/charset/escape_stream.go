@@ -6,7 +6,6 @@ package charset
 import (
 	"fmt"
 	"regexp"
-	"sort"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -20,15 +19,16 @@ import (
 var defaultWordRegexp = regexp.MustCompile(`(-?\d*\.\d\w*)|([^\` + "`" + `\~\!\@\#\$\%\^\&\*\(\)\-\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\?\s\x00-\x1f]+)`)
 
 func NewEscapeStreamer(locale translation.Locale, next HTMLStreamer, allowed ...rune) HTMLStreamer {
-	sort.Slice(allowed, func(i, j int) bool {
-		return allowed[i] < allowed[j]
-	})
+	allowedM := make(map[rune]struct{}, len(allowed))
+	for _, v := range allowed {
+		allowedM[v] = struct{}{}
+	}
 	return &escapeStreamer{
 		escaped:                 &EscapeStatus{},
 		PassthroughHTMLStreamer: *NewPassthroughStreamer(next),
 		locale:                  locale,
 		ambiguousTables:         AmbiguousTablesForLocale(locale),
-		allowed:                 allowed,
+		allowed:                 allowedM,
 	}
 }
 
@@ -37,7 +37,7 @@ type escapeStreamer struct {
 	escaped         *EscapeStatus
 	locale          translation.Locale
 	ambiguousTables []*AmbiguousTable
-	allowed         []rune
+	allowed         map[rune]struct{}
 }
 
 func (e *escapeStreamer) EscapeStatus() *EscapeStatus {
@@ -287,8 +287,6 @@ func (e *escapeStreamer) runeTypes(runes ...rune) (types []runeType, confusables
 }
 
 func (e *escapeStreamer) isAllowed(r rune) bool {
-	i := sort.Search(len(e.allowed), func(i int) bool {
-		return e.allowed[i] >= r
-	})
-	return i < len(e.allowed) && e.allowed[i] == r
+	_, ok := e.allowed[r]
+	return ok
 }
