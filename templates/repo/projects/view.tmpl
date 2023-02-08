@@ -179,13 +179,13 @@
 
 					<!-- start issue card -->
 					<div class="card board-card" data-issue="{{.ID}}">
-						<div class="card-attachment-images">
-							{{if eq $.Project.CardType 2}}
+						{{if eq $.Project.CardType 2}}
+							<div class="card-attachment-images">
 								{{range (index $.issuesAttachmentMap .ID)}}
 									<img src="{{.DownloadURL}}" alt="{{.Name}}" />
 								{{end}}
-							{{end}}
-						</div>
+							</div>
+						{{end}}
 						<div class="content p-0">
 							<div class="header">
 								<span class="dif ac vm {{if .IsClosed}}red{{else}}green{{end}}">
