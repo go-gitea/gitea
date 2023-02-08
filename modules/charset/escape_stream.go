@@ -20,6 +20,9 @@ import (
 var defaultWordRegexp = regexp.MustCompile(`(-?\d*\.\d\w*)|([^\` + "`" + `\~\!\@\#\$\%\^\&\*\(\)\-\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\?\s\x00-\x1f]+)`)
 
 func NewEscapeStreamer(locale translation.Locale, next HTMLStreamer, allowed ...rune) HTMLStreamer {
+	sort.Slice(allowed, func(i, j int) bool {
+		return allowed[i] < allowed[j]
+	})
 	return &escapeStreamer{
 		escaped:                 &EscapeStatus{},
 		PassthroughHTMLStreamer: *NewPassthroughStreamer(next),
@@ -284,14 +287,8 @@ func (e *escapeStreamer) runeTypes(runes ...rune) (types []runeType, confusables
 }
 
 func (e *escapeStreamer) isAllowed(r rune) bool {
-	if len(e.allowed) == 0 {
-		return false
-	}
-	if len(e.allowed) == 1 {
-		return e.allowed[0] == r
-	}
-
-	return sort.Search(len(e.allowed), func(i int) bool {
+	i := sort.Search(len(e.allowed), func(i int) bool {
 		return e.allowed[i] >= r
-	}) >= 0
+	})
+	return i < len(e.allowed) && e.allowed[i] == r
 }
