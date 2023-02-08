@@ -39,7 +39,7 @@ const (
 
 const (
 	// CardTypeTextOnly is a project board card type that is text only
-	CardTypeTextOnly CardType = iota + 1
+	CardTypeTextOnly CardType = iota
 
 	// CardTypeImagesAndText is a project board card type that has images and text
 	CardTypeImagesAndText
