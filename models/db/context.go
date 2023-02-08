@@ -98,19 +98,31 @@ type Committer interface {
 // halfCommitter is a wrapper of Committer.
 // It can be closed early, but can't be committed early, it is useful for reusing a transaction.
 type halfCommitter struct {
-	Committer
+	committer Committer
+	committed bool
 }
 
-func (*halfCommitter) Commit() error {
-	// do nothing
+func (c *halfCommitter) Commit() error {
+	c.committed = true
+	// should do nothing, and the parent committer will commit later
 	return nil
+}
+
+func (c *halfCommitter) Close() error {
+	if c.committed {
+		// it's "commit and close", should do nothing, and the parent committer will commit later
+		return nil
+	}
+
+	// it's "rollback and close", let the parent committer rollback right now
+	return c.committer.Close()
 }
 
 // TxContext represents a transaction Context,
 // it will reuse the existing transaction in the parent context or create a new one.
 func TxContext(parentCtx context.Context) (*Context, Committer, error) {
 	if sess, ok := inTransaction(parentCtx); ok {
-		return newContext(parentCtx, sess, true), &halfCommitter{Committer: sess}, nil
+		return newContext(parentCtx, sess, true), &halfCommitter{committer: sess}, nil
 	}
 
 	sess := x.NewSession()
@@ -126,7 +138,12 @@ func TxContext(parentCtx context.Context) (*Context, Committer, error) {
 // this function will reuse it otherwise will create a new one and close it when finished.
 func WithTx(parentCtx context.Context, f func(ctx context.Context) error) error {
 	if sess, ok := inTransaction(parentCtx); ok {
-		return f(newContext(parentCtx, sess, true))
+		err := f(newContext(parentCtx, sess, true))
+		if err != nil {
+			// rollback immediately, in case the caller ignores returned error and tries to commit the transaction.
+			_ = sess.Close()
+		}
+		return err
 	}
 	return txWithNoCheck(parentCtx, f)
 }

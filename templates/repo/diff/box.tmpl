@@ -76,17 +76,18 @@
 						{{$isImage := or (call $.IsBlobAnImage $blobBase) (call $.IsBlobAnImage $blobHead)}}
 						{{$isCsv := (call $.IsCsvFile $file)}}
 						{{$showFileViewToggle := or $isImage (and (not $file.IsIncomplete) $isCsv)}}
-						<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}} mt-3" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if $file.ShouldBeHidden}}data-folded="true"{{end}}>
+						{{$isExpandable := or (gt $file.Addition 0) (gt $file.Deletion 0) $file.IsBin}}
+						<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}} mt-3" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if or ($file.ShouldBeHidden) (not $isExpandable)}}data-folded="true"{{end}}>
 							<h4 class="diff-file-header sticky-2nd-row ui top attached normal header df ac sb">
 								<div class="df ac">
-									<a role="button" class="fold-file muted mr-2">
+									<a role="button" class="fold-file muted mr-2" {{if not $isExpandable}}style="visibility: hidden"{{end}}>
 										{{if $file.ShouldBeHidden}}
 											{{svg "octicon-chevron-right" 18}}
 										{{else}}
 											{{svg "octicon-chevron-down" 18}}
 										{{end}}
 									</a>
-									<div class="bold df ac">
+									<div class="bold df ac mono">
 										{{if $file.IsBin}}
 											<span class="ml-1 mr-3">
 												{{$.locale.Tr "repo.diff.bin"}}
@@ -143,14 +144,14 @@
 													{{$.locale.Tr "repo.diff.file_suppressed_line_too_long"}}
 												{{else}}
 													{{$.locale.Tr "repo.diff.file_suppressed"}}
-													<a class="ui basic tiny button diff-show-more-button" data-href="{{$.Link}}?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{$.locale.Tr "repo.diff.load"}}</a>
+													<a class="ui basic tiny button diff-load-button" data-href="{{$.Link}}?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{$.locale.Tr "repo.diff.load"}}</a>
 												{{end}}
 											{{else}}
 												{{$.locale.Tr "repo.diff.bin_not_shown"}}
 											{{end}}
 										</div>
 									{{else}}
-										<table class="chroma" data-new-comment-url="{{$.Issue.HTMLURL}}/files/reviews/new_comment" data-path="{{$file.Name}}">
+										<table class="chroma" data-new-comment-url="{{$.Issue.Link}}/files/reviews/new_comment" data-path="{{$file.Name}}">
 											{{if $.IsSplitStyle}}
 												{{template "repo/diff/section_split" dict "file" . "root" $}}
 											{{else}}
@@ -190,7 +191,7 @@
 				<div class="ui comment form">
 					<div class="ui top attached tabular menu">
 						<a class="active write item">{{$.locale.Tr "write"}}</a>
-						<a class="preview item" data-url="{{$.Repository.HTMLURL}}/markdown" data-context="{{$.RepoLink}}">{{$.locale.Tr "preview"}}</a>
+						<a class="preview item" data-url="{{$.Repository.Link}}/markdown" data-context="{{$.RepoLink}}">{{$.locale.Tr "preview"}}</a>
 					</div>
 					<div class="ui bottom attached active write tab segment">
 						<textarea class="review-textarea js-quick-submit" tabindex="1" name="content"></textarea>

@@ -104,7 +104,8 @@ In addition there is _`StaticRootPath`_ which can be set as a built-in at build 
 - `ENABLE_PUSH_CREATE_USER`:  **false**: Allow users to push local repositories to Gitea and have them automatically created for a user.
 - `ENABLE_PUSH_CREATE_ORG`:  **false**: Allow users to push local repositories to Gitea and have them automatically created for an org.
 - `DISABLED_REPO_UNITS`: **_empty_**: Comma separated list of globally disabled repo units. Allowed values: \[repo.issues, repo.ext_issues, repo.pulls, repo.wiki, repo.ext_wiki, repo.projects\]
-- `DEFAULT_REPO_UNITS`: **repo.code,repo.releases,repo.issues,repo.pulls,repo.wiki,repo.projects**: Comma separated list of default repo units. Allowed values: \[repo.code, repo.releases, repo.issues, repo.pulls, repo.wiki, repo.projects\]. Note: Code and Releases can currently not be deactivated. If you specify default repo units you should still list them for future compatibility. External wiki and issue tracker can't be enabled by default as it requires additional settings. Disabled repo units will not be added to new repositories regardless if it is in the default list.
+- `DEFAULT_REPO_UNITS`: **repo.code,repo.releases,repo.issues,repo.pulls,repo.wiki,repo.projects,repo.packages**: Comma separated list of default new repo units. Allowed values: \[repo.code, repo.releases, repo.issues, repo.pulls, repo.wiki, repo.projects\]. Note: Code and Releases can currently not be deactivated. If you specify default repo units you should still list them for future compatibility. External wiki and issue tracker can't be enabled by default as it requires additional settings. Disabled repo units will not be added to new repositories regardless if it is in the default list.
+- `DEFAULT_FORK_REPO_UNITS`: **repo.code,repo.pulls**: Comma separated list of default forked repo units. The set of allowed values and rules is the same as `DEFAULT_REPO_UNITS`.
 - `PREFIX_ARCHIVE_FILES`: **true**: Prefix archive files by placing them in a directory named after the repository.
 - `DISABLE_MIGRATIONS`: **false**: Disable migrating feature.
 - `DISABLE_STARS`: **false**: Disable stars feature.
@@ -230,8 +231,6 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `DEFAULT_SHOW_FULL_NAME`: **false**: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
 - `SEARCH_REPO_DESCRIPTION`: **true**: Whether to search within description at repository search on explore page.
 - `USE_SERVICE_WORKER`: **false**: Whether to enable a Service Worker to cache frontend assets.
-- `ONLY_SHOW_RELEVANT_REPOS`: **false** Whether to only show relevant repos on the explore page when no keyword is specified and default sorting is used.
-    A repo is considered irrelevant if it's a fork or if it has no metadata (no description, no icon, no topic).
 
 ### UI - Admin (`ui.admin`)
 
@@ -644,7 +643,7 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
 - `REQUIRE_CAPTCHA_FOR_LOGIN`: **false**: Enable this to require captcha validation for login. You also must enable `ENABLE_CAPTCHA`.
 - `REQUIRE_EXTERNAL_REGISTRATION_CAPTCHA`: **false**: Enable this to force captcha validation
    even for External Accounts (i.e. GitHub, OpenID Connect, etc). You also must enable `ENABLE_CAPTCHA`.
-- `CAPTCHA_TYPE`: **image**: \[image, recaptcha, hcaptcha, mcaptcha\]
+- `CAPTCHA_TYPE`: **image**: \[image, recaptcha, hcaptcha, mcaptcha, cfturnstile\]
 - `RECAPTCHA_SECRET`: **""**: Go to https://www.google.com/recaptcha/admin to get a secret for recaptcha.
 - `RECAPTCHA_SITEKEY`: **""**: Go to https://www.google.com/recaptcha/admin to get a sitekey for recaptcha.
 - `RECAPTCHA_URL`: **https://www.google.com/recaptcha/**: Set the recaptcha url - allows the use of recaptcha net.
@@ -653,6 +652,8 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
 - `MCAPTCHA_SECRET`: **""**: Go to your mCaptcha instance to get a secret for mCaptcha.
 - `MCAPTCHA_SITEKEY`: **""**: Go to your mCaptcha instance to get a sitekey for mCaptcha.
 - `MCAPTCHA_URL` **https://demo.mcaptcha.org/**: Set the mCaptcha URL.
+- `CF_TURNSTILE_SECRET` **""**: Go to https://dash.cloudflare.com/?to=/:account/turnstile to get a secret for cloudflare turnstile.
+- `CF_TURNSTILE_SITEKEY` **""**: Go to https://dash.cloudflare.com/?to=/:account/turnstile to get a sitekey for cloudflare turnstile.
 - `DEFAULT_KEEP_EMAIL_PRIVATE`: **false**: By default set users to keep their email address private.
 - `DEFAULT_ALLOW_CREATE_ORGANIZATION`: **true**: Allow new users to create organizations by default.
 - `DEFAULT_USER_IS_RESTRICTED`: **false**: Give new users restricted permissions by default
@@ -749,6 +750,20 @@ and
 - `SENDMAIL_CONVERT_CRLF`: **true**: Most versions of sendmail prefer LF line endings rather than CRLF line endings. Set this to false if your version of sendmail requires CRLF line endings.
 - `SEND_BUFFER_LEN`: **100**: Buffer length of mailing queue. **DEPRECATED** use `LENGTH` in `[queue.mailer]`
 - `SEND_AS_PLAIN_TEXT`: **false**: Send mails only in plain text, without HTML alternative.
+
+## Incoming Email (`email.incoming`)
+
+- `ENABLED`: **false**: Enable handling of incoming emails.
+- `REPLY_TO_ADDRESS`: **\<empty\>**: The email address including the `%{token}` placeholder that will be replaced per user/action. Example: `incoming+%{token}@example.com`. The placeholder must appear in the user part of the address (before the `@`).
+- `HOST`: **\<empty\>**: IMAP server host.
+- `PORT`: **\<empty\>**: IMAP server port.
+- `USERNAME`: **\<empty\>**: Username of the receiving account.
+- `PASSWORD`: **\<empty\>**: Password of the receiving account.
+- `USE_TLS`: **false**: Whether the IMAP server uses TLS.
+- `SKIP_TLS_VERIFY`: **false**: If set to `true`, completely ignores server certificate validation errors. This option is unsafe.
+- `MAILBOX`: **INBOX**: The mailbox name where incoming mail will end up.
+- `DELETE_HANDLED_MESSAGE`: **true**: Whether handled messages should be deleted from the mailbox.
+- `MAXIMUM_MESSAGE_SIZE`: **10485760**: Maximum size of a message to handle. Bigger messages are ignored. Set to 0 to allow every size.
 
 ## Cache (`cache`)
 
@@ -1025,6 +1040,16 @@ Default templates for project boards:
 - `SCHEDULE`: **@every 168h**: Cron syntax to set how often to check.
 - `OLDER_THAN`: **@every 8760h**: any system notice older than this expression will be deleted from database.
 
+#### Cron -  Garbage collect LFS pointers in repositories ('cron.gc_lfs')
+
+- `ENABLED`: **false**: Enable service.
+- `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
+- `SCHEDULE`: **@every 24h**: Cron syntax to set how often to check.
+- `OLDER_THAN`: **168h**: Only attempt to garbage collect LFSMetaObjects older than this (default 7 days)
+- `LAST_UPDATED_MORE_THAN_AGO`: **72h**: Only attempt to garbage collect LFSMetaObjects that have not been attempted to be garbage collected for this long (default 3 days)
+- `NUMBER_TO_CHECK_PER_REPO`: **100**: Minimum number of stale LFSMetaObjects to check per repo. Set to `0` to always check all.
+- `PROPORTION_TO_CHECK_PER_REPO`: **0.6**: Check at least this proportion of LFSMetaObjects per repo. (This may cause all stale LFSMetaObjects to be checked.)
+
 ## Git (`git`)
 
 - `PATH`: **""**: The path of Git executable. If empty, Gitea searches through the PATH environment.
@@ -1048,7 +1073,7 @@ Default templates for project boards:
 
 ## Git - Timeout settings (`git.timeout`)
 
-- `DEFAUlT`: **360**: Git operations default timeout seconds.
+- `DEFAULT`: **360**: Git operations default timeout seconds.
 - `MIGRATE`: **600**: Migrate external repositories timeout seconds.
 - `MIRROR`: **300**: Mirror external repositories timeout seconds.
 - `CLONE`: **300**: Git clone from internal repositories timeout seconds.
@@ -1188,8 +1213,11 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 - `CHUNKED_UPLOAD_PATH`: **tmp/package-upload**: Path for chunked uploads. Defaults to `APP_DATA_PATH` + `tmp/package-upload`
 - `LIMIT_TOTAL_OWNER_COUNT`: **-1**: Maximum count of package versions a single owner can have (`-1` means no limits)
 - `LIMIT_TOTAL_OWNER_SIZE`: **-1**: Maximum size of packages a single owner can use (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_CARGO`: **-1**: Maximum size of a Cargo upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_CHEF`: **-1**: Maximum size of a Chef upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_COMPOSER`: **-1**: Maximum size of a Composer upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_CONAN`: **-1**: Maximum size of a Conan upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
+- `LIMIT_SIZE_CONDA`: **-1**: Maximum size of a Conda upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_CONTAINER`: **-1**: Maximum size of a Container upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_GENERIC`: **-1**: Maximum size of a Generic upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
 - `LIMIT_SIZE_HELM`: **-1**: Maximum size of a Helm upload (`-1` means no limits, format `1000`, `1 MB`, `1 GiB`)
@@ -1289,6 +1317,41 @@ PROXY_ENABLED = true
 PROXY_URL = socks://127.0.0.1:1080
 PROXY_HOSTS = *.github.com
 ```
+
+## Actions (`actions`)
+
+- `ENABLED`: **false**: Enable/Disable actions capabilities
+- `DEFAULT_ACTIONS_URL`: **https://gitea.com**: Default address to get action plugins, e.g. the default value means downloading from "https://gitea.com/actions/checkout" for "uses: actions/checkout@v3"
+
+`DEFAULT_ACTIONS_URL` indicates where should we find the relative path action plugin. i.e. when use an action in a workflow file like
+
+```yaml
+name: versions
+on:
+  push:
+    branches:
+      - main
+      - releases/*
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+```
+
+Now we need to know how to get actions/checkout, this configuration is the default git server to get it. That means we will get the repository via git clone ${DEFAULT_ACTIONS_URL}/actions/checkout and fetch tag v3.
+
+To help people who don't want to mirror these actions in their git instances, the default value is https://gitea.com
+To help people run actions totally in their network, they can change the value and copy all necessary action repositories into their git server.
+
+Of course we should support the form in future PRs like
+
+```yaml
+steps:
+  - uses: gitea.com/actions/checkout@v3
+```
+
+although Github don't support this form.
 
 ## Other (`other`)
 

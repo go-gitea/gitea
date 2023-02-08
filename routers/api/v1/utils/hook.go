@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
@@ -67,6 +68,19 @@ func CheckCreateHookOption(ctx *context.APIContext, form *api.CreateHookOption) 
 	return true
 }
 
+// AddSystemHook add a system hook
+func AddSystemHook(ctx *context.APIContext, form *api.CreateHookOption) {
+	hook, ok := addHook(ctx, form, 0, 0)
+	if ok {
+		h, err := webhook_service.ToHook(setting.AppSubURL+"/admin", hook)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "convert.ToHook", err)
+			return
+		}
+		ctx.JSON(http.StatusCreated, h)
+	}
+}
+
 // AddOrgHook add a hook to an organization. Writes to `ctx` accordingly
 func AddOrgHook(ctx *context.APIContext, form *api.CreateHookOption) {
 	org := ctx.Org.Organization
@@ -107,11 +121,11 @@ func toAPIHook(ctx *context.APIContext, repoLink string, hook *webhook.Webhook) 
 }
 
 func issuesHook(events []string, event string) bool {
-	return util.IsStringInSlice(event, events, true) || util.IsStringInSlice(string(webhook_module.HookEventIssues), events, true)
+	return util.SliceContainsString(events, event, true) || util.SliceContainsString(events, string(webhook_module.HookEventIssues), true)
 }
 
 func pullHook(events []string, event string) bool {
-	return util.IsStringInSlice(event, events, true) || util.IsStringInSlice(string(webhook_module.HookEventPullRequest), events, true)
+	return util.SliceContainsString(events, event, true) || util.SliceContainsString(events, string(webhook_module.HookEventPullRequest), true)
 }
 
 // addHook add the hook specified by `form`, `orgID` and `repoID`. If there is
@@ -130,15 +144,15 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 		HookEvent: &webhook_module.HookEvent{
 			ChooseEvents: true,
 			HookEvents: webhook_module.HookEvents{
-				Create:               util.IsStringInSlice(string(webhook_module.HookEventCreate), form.Events, true),
-				Delete:               util.IsStringInSlice(string(webhook_module.HookEventDelete), form.Events, true),
-				Fork:                 util.IsStringInSlice(string(webhook_module.HookEventFork), form.Events, true),
+				Create:               util.SliceContainsString(form.Events, string(webhook_module.HookEventCreate), true),
+				Delete:               util.SliceContainsString(form.Events, string(webhook_module.HookEventDelete), true),
+				Fork:                 util.SliceContainsString(form.Events, string(webhook_module.HookEventFork), true),
 				Issues:               issuesHook(form.Events, "issues_only"),
 				IssueAssign:          issuesHook(form.Events, string(webhook_module.HookEventIssueAssign)),
 				IssueLabel:           issuesHook(form.Events, string(webhook_module.HookEventIssueLabel)),
 				IssueMilestone:       issuesHook(form.Events, string(webhook_module.HookEventIssueMilestone)),
 				IssueComment:         issuesHook(form.Events, string(webhook_module.HookEventIssueComment)),
-				Push:                 util.IsStringInSlice(string(webhook_module.HookEventPush), form.Events, true),
+				Push:                 util.SliceContainsString(form.Events, string(webhook_module.HookEventPush), true),
 				PullRequest:          pullHook(form.Events, "pull_request_only"),
 				PullRequestAssign:    pullHook(form.Events, string(webhook_module.HookEventPullRequestAssign)),
 				PullRequestLabel:     pullHook(form.Events, string(webhook_module.HookEventPullRequestLabel)),
@@ -146,9 +160,9 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 				PullRequestComment:   pullHook(form.Events, string(webhook_module.HookEventPullRequestComment)),
 				PullRequestReview:    pullHook(form.Events, "pull_request_review"),
 				PullRequestSync:      pullHook(form.Events, string(webhook_module.HookEventPullRequestSync)),
-				Wiki:                 util.IsStringInSlice(string(webhook_module.HookEventWiki), form.Events, true),
-				Repository:           util.IsStringInSlice(string(webhook_module.HookEventRepository), form.Events, true),
-				Release:              util.IsStringInSlice(string(webhook_module.HookEventRelease), form.Events, true),
+				Wiki:                 util.SliceContainsString(form.Events, string(webhook_module.HookEventWiki), true),
+				Repository:           util.SliceContainsString(form.Events, string(webhook_module.HookEventRepository), true),
+				Release:              util.SliceContainsString(form.Events, string(webhook_module.HookEventRelease), true),
 			},
 			BranchFilter: form.BranchFilter,
 		},
@@ -194,6 +208,30 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 		return nil, false
 	}
 	return w, true
+}
+
+// EditSystemHook edit system webhook `w` according to `form`. Writes to `ctx` accordingly
+func EditSystemHook(ctx *context.APIContext, form *api.EditHookOption, hookID int64) {
+	hook, err := webhook.GetSystemOrDefaultWebhook(ctx, hookID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetSystemOrDefaultWebhook", err)
+		return
+	}
+	if !editHook(ctx, form, hook) {
+		ctx.Error(http.StatusInternalServerError, "editHook", err)
+		return
+	}
+	updated, err := webhook.GetSystemOrDefaultWebhook(ctx, hookID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetSystemOrDefaultWebhook", err)
+		return
+	}
+	h, err := webhook_service.ToHook(setting.AppURL+"/admin", updated)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "convert.ToHook", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, h)
 }
 
 // EditOrgHook edit webhook `w` according to `form`. Writes to `ctx` accordingly
@@ -277,14 +315,14 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 	w.PushOnly = false
 	w.SendEverything = false
 	w.ChooseEvents = true
-	w.Create = util.IsStringInSlice(string(webhook_module.HookEventCreate), form.Events, true)
-	w.Push = util.IsStringInSlice(string(webhook_module.HookEventPush), form.Events, true)
-	w.Create = util.IsStringInSlice(string(webhook_module.HookEventCreate), form.Events, true)
-	w.Delete = util.IsStringInSlice(string(webhook_module.HookEventDelete), form.Events, true)
-	w.Fork = util.IsStringInSlice(string(webhook_module.HookEventFork), form.Events, true)
-	w.Repository = util.IsStringInSlice(string(webhook_module.HookEventRepository), form.Events, true)
-	w.Wiki = util.IsStringInSlice(string(webhook_module.HookEventWiki), form.Events, true)
-	w.Release = util.IsStringInSlice(string(webhook_module.HookEventRelease), form.Events, true)
+	w.Create = util.SliceContainsString(form.Events, string(webhook_module.HookEventCreate), true)
+	w.Push = util.SliceContainsString(form.Events, string(webhook_module.HookEventPush), true)
+	w.Create = util.SliceContainsString(form.Events, string(webhook_module.HookEventCreate), true)
+	w.Delete = util.SliceContainsString(form.Events, string(webhook_module.HookEventDelete), true)
+	w.Fork = util.SliceContainsString(form.Events, string(webhook_module.HookEventFork), true)
+	w.Repository = util.SliceContainsString(form.Events, string(webhook_module.HookEventRepository), true)
+	w.Wiki = util.SliceContainsString(form.Events, string(webhook_module.HookEventWiki), true)
+	w.Release = util.SliceContainsString(form.Events, string(webhook_module.HookEventRelease), true)
 	w.BranchFilter = form.BranchFilter
 
 	err := w.SetHeaderAuthorization(form.AuthorizationHeader)

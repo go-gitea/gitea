@@ -130,6 +130,11 @@ func (r *Release) HTMLURL() string {
 	return r.Repo.HTMLURL() + "/releases/tag/" + util.PathEscapeSegments(r.TagName)
 }
 
+// Link the relative url for a release on the web UI. release must have attributes loaded
+func (r *Release) Link() string {
+	return r.Repo.Link() + "/releases/tag/" + util.PathEscapeSegments(r.TagName)
+}
+
 // IsReleaseExist returns true if release with given tag name already exists.
 func IsReleaseExist(ctx context.Context, repoID int64, tagName string) (bool, error) {
 	if len(tagName) == 0 {
