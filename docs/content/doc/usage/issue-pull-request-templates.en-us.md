@@ -55,7 +55,6 @@ Possible file names for issue config:
 - `.gitea/ISSUE_TEMPLATE/config.yaml`
 - `.gitea/ISSUE_TEMPLATE/config.yml`
 - `.gitea/issue_template/config.yaml`
-- `.gitea/issue_template/config.yaml`
 - `.gitea/issue_template/config.yml`
 - `.github/ISSUE_TEMPLATE/config.yaml`
 - `.github/ISSUE_TEMPLATE/config.yml`
