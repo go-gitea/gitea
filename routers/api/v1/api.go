@@ -507,7 +507,7 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 
 		var err error
 		if assignOrg {
-			ctx.Org.Organization, err = organization.GetOrgByName(ctx.Params(":org"))
+			ctx.Org.Organization, err = organization.GetOrgByName(ctx, ctx.Params(":org"))
 			if err != nil {
 				if organization.IsErrOrgNotExist(err) {
 					redirectUserID, err := user_model.LookupUserRedirect(ctx.Params(":org"))
@@ -687,7 +687,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 	}
 
 	// Get user from session if logged in.
-	m.Use(context.APIAuth(group))
+	m.Use(auth.APIAuth(group))
 
 	m.Use(context.ToggleAPI(&context.ToggleOptions{
 		SignInRequired: setting.Service.RequireSignInView,
