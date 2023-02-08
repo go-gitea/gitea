@@ -61,28 +61,28 @@ func TestUser_IsOrgMember(t *testing.T) {
 func TestUser_GetTeam(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
-	team, err := org.GetTeam("team1")
+	team, err := org.GetTeam(db.DefaultContext, "team1")
 	assert.NoError(t, err)
 	assert.Equal(t, org.ID, team.OrgID)
 	assert.Equal(t, "team1", team.LowerName)
 
-	_, err = org.GetTeam("does not exist")
+	_, err = org.GetTeam(db.DefaultContext, "does not exist")
 	assert.True(t, organization.IsErrTeamNotExist(err))
 
 	nonOrg := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 2})
-	_, err = nonOrg.GetTeam("team")
+	_, err = nonOrg.GetTeam(db.DefaultContext, "team")
 	assert.True(t, organization.IsErrTeamNotExist(err))
 }
 
 func TestUser_GetOwnerTeam(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
-	team, err := org.GetOwnerTeam()
+	team, err := org.GetOwnerTeam(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.Equal(t, org.ID, team.OrgID)
 
 	nonOrg := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 2})
-	_, err = nonOrg.GetOwnerTeam()
+	_, err = nonOrg.GetOwnerTeam(db.DefaultContext)
 	assert.True(t, organization.IsErrTeamNotExist(err))
 }
 
@@ -115,15 +115,15 @@ func TestUser_GetMembers(t *testing.T) {
 func TestGetOrgByName(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	org, err := organization.GetOrgByName("user3")
+	org, err := organization.GetOrgByName(db.DefaultContext, "user3")
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, org.ID)
 	assert.Equal(t, "user3", org.Name)
 
-	_, err = organization.GetOrgByName("user2") // user2 is an individual
+	_, err = organization.GetOrgByName(db.DefaultContext, "user2") // user2 is an individual
 	assert.True(t, organization.IsErrOrgNotExist(err))
 
-	_, err = organization.GetOrgByName("") // corner case
+	_, err = organization.GetOrgByName(db.DefaultContext, "") // corner case
 	assert.True(t, organization.IsErrOrgNotExist(err))
 }
 

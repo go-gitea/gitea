@@ -17,7 +17,9 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	org_model "code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
+	auth_module "code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -27,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	auth_service "code.gitea.io/gitea/services/auth"
+	source_service "code.gitea.io/gitea/services/auth/source"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/externalaccount"
 	"code.gitea.io/gitea/services/forms"
@@ -963,10 +966,17 @@ func SignInOAuthCallback(ctx *context.Context) {
 				IsActive: util.OptionalBoolOf(!setting.OAuth2Client.RegisterEmailConfirm),
 			}
 
-			setUserGroupClaims(authSource, u, &gothUser)
+			source := authSource.Cfg.(*oauth2.Source)
+
+			setUserAdminAndRestrictedFromGroupClaims(source, u, &gothUser)
 
 			if !createAndHandleCreatedUser(ctx, base.TplName(""), nil, u, overwriteDefault, &gothUser, setting.OAuth2Client.AccountLinking != setting.OAuth2AccountLinkingDisabled) {
 				// error already handled
+				return
+			}
+
+			if err := syncGroupsToTeams(ctx, source, &gothUser, u); err != nil {
+				ctx.ServerError("SyncGroupsToTeams", err)
 				return
 			}
 		} else {
@@ -979,7 +989,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 	handleOAuth2SignIn(ctx, authSource, u, gothUser)
 }
 
-func claimValueToStringSlice(claimValue interface{}) []string {
+func claimValueToStringSet(claimValue interface{}) container.Set[string] {
 	var groups []string
 
 	switch rawGroup := claimValue.(type) {
@@ -993,37 +1003,45 @@ func claimValueToStringSlice(claimValue interface{}) []string {
 		str := fmt.Sprintf("%s", rawGroup)
 		groups = strings.Split(str, ",")
 	}
-	return groups
+	return container.SetOf(groups...)
 }
 
-func setUserGroupClaims(loginSource *auth.Source, u *user_model.User, gothUser *goth.User) bool {
-	source := loginSource.Cfg.(*oauth2.Source)
-	if source.GroupClaimName == "" || (source.AdminGroup == "" && source.RestrictedGroup == "") {
-		return false
+func syncGroupsToTeams(ctx *context.Context, source *oauth2.Source, gothUser *goth.User, u *user_model.User) error {
+	if source.GroupTeamMap != "" || source.GroupTeamMapRemoval {
+		groupTeamMapping, err := auth_module.UnmarshalGroupTeamMapping(source.GroupTeamMap)
+		if err != nil {
+			return err
+		}
+
+		groups := getClaimedGroups(source, gothUser)
+
+		if err := source_service.SyncGroupsToTeams(ctx, u, groups, groupTeamMapping, source.GroupTeamMapRemoval); err != nil {
+			return err
+		}
 	}
 
+	return nil
+}
+
+func getClaimedGroups(source *oauth2.Source, gothUser *goth.User) container.Set[string] {
 	groupClaims, has := gothUser.RawData[source.GroupClaimName]
 	if !has {
-		return false
+		return nil
 	}
 
-	groups := claimValueToStringSlice(groupClaims)
+	return claimValueToStringSet(groupClaims)
+}
+
+func setUserAdminAndRestrictedFromGroupClaims(source *oauth2.Source, u *user_model.User, gothUser *goth.User) bool {
+	groups := getClaimedGroups(source, gothUser)
 
 	wasAdmin, wasRestricted := u.IsAdmin, u.IsRestricted
 
 	if source.AdminGroup != "" {
-		u.IsAdmin = false
+		u.IsAdmin = groups.Contains(source.AdminGroup)
 	}
 	if source.RestrictedGroup != "" {
-		u.IsRestricted = false
-	}
-
-	for _, g := range groups {
-		if source.AdminGroup != "" && g == source.AdminGroup {
-			u.IsAdmin = true
-		} else if source.RestrictedGroup != "" && g == source.RestrictedGroup {
-			u.IsRestricted = true
-		}
+		u.IsRestricted = groups.Contains(source.RestrictedGroup)
 	}
 
 	return wasAdmin != u.IsAdmin || wasRestricted != u.IsRestricted
@@ -1070,6 +1088,15 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		needs2FA = err == nil
 	}
 
+	oauth2Source := source.Cfg.(*oauth2.Source)
+	groupTeamMapping, err := auth_module.UnmarshalGroupTeamMapping(oauth2Source.GroupTeamMap)
+	if err != nil {
+		ctx.ServerError("UnmarshalGroupTeamMapping", err)
+		return
+	}
+
+	groups := getClaimedGroups(oauth2Source, &gothUser)
+
 	// If this user is enrolled in 2FA and this source doesn't override it,
 	// we can't sign the user in just yet. Instead, redirect them to the 2FA authentication page.
 	if !needs2FA {
@@ -1088,7 +1115,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		u.SetLastLogin()
 
 		// Update GroupClaims
-		changed := setUserGroupClaims(source, u, &gothUser)
+		changed := setUserAdminAndRestrictedFromGroupClaims(oauth2Source, u, &gothUser)
 		cols := []string{"last_login_unix"}
 		if changed {
 			cols = append(cols, "is_admin", "is_restricted")
@@ -1097,6 +1124,13 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		if err := user_model.UpdateUserCols(ctx, u, cols...); err != nil {
 			ctx.ServerError("UpdateUserCols", err)
 			return
+		}
+
+		if oauth2Source.GroupTeamMap != "" || oauth2Source.GroupTeamMapRemoval {
+			if err := source_service.SyncGroupsToTeams(ctx, u, groups, groupTeamMapping, oauth2Source.GroupTeamMapRemoval); err != nil {
+				ctx.ServerError("SyncGroupsToTeams", err)
+				return
+			}
 		}
 
 		// update external user information
@@ -1121,10 +1155,17 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		return
 	}
 
-	changed := setUserGroupClaims(source, u, &gothUser)
+	changed := setUserAdminAndRestrictedFromGroupClaims(oauth2Source, u, &gothUser)
 	if changed {
 		if err := user_model.UpdateUserCols(ctx, u, "is_admin", "is_restricted"); err != nil {
 			ctx.ServerError("UpdateUserCols", err)
+			return
+		}
+	}
+
+	if oauth2Source.GroupTeamMap != "" || oauth2Source.GroupTeamMapRemoval {
+		if err := source_service.SyncGroupsToTeams(ctx, u, groups, groupTeamMapping, oauth2Source.GroupTeamMapRemoval); err != nil {
+			ctx.ServerError("SyncGroupsToTeams", err)
 			return
 		}
 	}
@@ -1188,15 +1229,9 @@ func oAuth2UserLoginCallback(authSource *auth.Source, request *http.Request, res
 		}
 
 		if oauth2Source.RequiredClaimValue != "" {
-			groups := claimValueToStringSlice(claimInterface)
-			found := false
-			for _, group := range groups {
-				if group == oauth2Source.RequiredClaimValue {
-					found = true
-					break
-				}
-			}
-			if !found {
+			groups := claimValueToStringSet(claimInterface)
+
+			if !groups.Contains(oauth2Source.RequiredClaimValue) {
 				return nil, goth.User{}, user_model.ErrUserProhibitLogin{Name: gothUser.UserID}
 			}
 		}
