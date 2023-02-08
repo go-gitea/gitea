@@ -315,7 +315,11 @@ func (pr *PullRequest) LoadHeadRepoCtx(ctx context.Context) (err error) {
 		if err != nil && !repo_model.IsErrRepoNotExist(err) { // Head repo maybe deleted, but it should still work
 			return fmt.Errorf("pr[%d].LoadHeadRepo[%d]: %w", pr.ID, pr.HeadRepoID, err)
 		}
+		pr.isHeadRepoLoaded = true
+	}
+	return nil
 }
+
 // LoadHeadRepo loads the head repository
 func (pr *PullRequest) LoadHeadRepo() error {
 	return pr.LoadHeadRepoCtx(db.DefaultContext)
