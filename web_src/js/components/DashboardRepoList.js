@@ -161,23 +161,23 @@ function initVueComponents(app) {
             return {
               checked: false,
               indeterminate: false
-            }
+            };
           case 'archived':
             return {
               checked: true,
               indeterminate: false
-            }
+            };
           case 'both':
             return {
               checked: false,
               indeterminate: true
-            }
+            };
           default:
             this.archivedFilter = 'unarchived';
             return {
               checked: false,
               indeterminate: true
-            }
+            };
         }
       },
 
@@ -187,23 +187,23 @@ function initVueComponents(app) {
             return {
               checked: false,
               indeterminate: false
-            }
+            };
           case 'private':
             return {
               checked: true,
               indeterminate: false
-            }
+            };
           case 'both':
             return {
               checked: false,
               indeterminate: true
-            }
+            };
           default:
             this.privateFilter = 'both';
             return {
               checked: false,
               indeterminate: true
-            }
+            };
         }
       },
 
