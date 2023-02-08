@@ -127,21 +127,21 @@
 			<div v-if="repos.length" class="ui attached table segment rounded-bottom">
 				<ul class="repo-owner-name-list">
 					<li v-for="repo in repos" :class="{'private': repo.private || repo.internal}">
-						<a class="repo-list-link df ac sb" :href="repo.link">
-							<div class="item-name df ac f1 mr-2">
+						<div class="repo-list-link df ac sb">
+							<a class="item-name df ac f1 mr-2" :href="repo.link">
 								<component v-bind:is="repoIcon(repo)" size="16" class="mr-2"></component>
 								<div class="text bold truncate ml-1">${repo.full_name}</div>
 								<span v-if="repo.archived">
 									{{svg "octicon-archive" 16 "ml-2"}}
 								</span>
-							</div>
+							</a>
 							{{if not .DisableStars}}
-								<div class="text light grey df ac">
+								<a class="text light grey df ac" :href="repo.link + '/stars'">
 									${repo.stars_count}
 									{{svg "octicon-star" 16 "ml-2"}}
-								</div>
+								</a>
 							{{end}}
-						</a>
+						</div>
 					</li>
 				</ul>
 				<div v-if="showMoreReposLink" class="center py-3 border-secondary-top">
