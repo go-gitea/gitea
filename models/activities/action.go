@@ -223,18 +223,24 @@ func (a *Action) GetRepoAbsoluteLink() string {
 	return setting.AppURL + url.PathEscape(a.GetRepoUserName()) + "/" + url.PathEscape(a.GetRepoName())
 }
 
-// GetCommentLink returns link to action comment.
-func (a *Action) GetCommentLink() string {
-	return a.getCommentLink(db.DefaultContext)
+// GetCommentHTMLURL returns link to action comment.
+func (a *Action) GetCommentHTMLURL() string {
+	return a.getCommentHTMLURL(db.DefaultContext)
 }
 
-func (a *Action) getCommentLink(ctx context.Context) string {
+func (a *Action) loadComment(ctx context.Context) (err error) {
+	if a.CommentID == 0 || a.Comment != nil {
+		return nil
+	}
+	a.Comment, err = issues_model.GetCommentByID(ctx, a.CommentID)
+	return err
+}
+
+func (a *Action) getCommentHTMLURL(ctx context.Context) string {
 	if a == nil {
 		return "#"
 	}
-	if a.Comment == nil && a.CommentID != 0 {
-		a.Comment, _ = issues_model.GetCommentByID(ctx, a.CommentID)
-	}
+	_ = a.loadComment(ctx)
 	if a.Comment != nil {
 		return a.Comment.HTMLURL()
 	}
@@ -258,6 +264,41 @@ func (a *Action) getCommentLink(ctx context.Context) string {
 	}
 
 	return issue.HTMLURL()
+}
+
+// GetCommentLink returns link to action comment.
+func (a *Action) GetCommentLink() string {
+	return a.getCommentLink(db.DefaultContext)
+}
+
+func (a *Action) getCommentLink(ctx context.Context) string {
+	if a == nil {
+		return "#"
+	}
+	_ = a.loadComment(ctx)
+	if a.Comment != nil {
+		return a.Comment.Link()
+	}
+	if len(a.GetIssueInfos()) == 0 {
+		return "#"
+	}
+	// Return link to issue
+	issueIDString := a.GetIssueInfos()[0]
+	issueID, err := strconv.ParseInt(issueIDString, 10, 64)
+	if err != nil {
+		return "#"
+	}
+
+	issue, err := issues_model.GetIssueByID(ctx, issueID)
+	if err != nil {
+		return "#"
+	}
+
+	if err = issue.LoadRepo(ctx); err != nil {
+		return "#"
+	}
+
+	return issue.Link()
 }
 
 // GetBranch returns the action's repository branch.
