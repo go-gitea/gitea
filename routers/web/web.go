@@ -203,7 +203,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 	}
 
 	// Get user from session if logged in.
-	common = append(common, context.Auth(group))
+	common = append(common, auth_service.Auth(group))
 
 	// GetHead allows a HEAD request redirect to GET if HEAD method is not defined for that route
 	common = append(common, middleware.GetHead)
