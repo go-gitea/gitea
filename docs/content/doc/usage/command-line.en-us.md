@@ -99,6 +99,13 @@ Admin operations:
         - `--password value`, `-p value`: New password. Required.
       - Examples:
         - `gitea admin user change-password --username myname --password asecurepassword`
+    - `must-change-password`:
+      - Args:
+        - `[username...]`: Users to set MustChangePassword for
+      - Options:
+        - `--all`, `-A`: Set MustChangePassword for all users
+        - `--exclude [username,username...]`, `-e [...]`: Exclude the given users
+        - `--unset`: Instead of setting MustChangePassword, unset it
   - `regenerate`
     - Options:
       - `hooks`: Regenerate Git Hooks for all repositories
