@@ -144,7 +144,6 @@ function initVueComponents(app) {
         initTooltip(elTooltip);
       }
       $(el).find('.dropdown').dropdown();
-      this.setCheckboxes();
       nextTick(() => {
         this.$refs.search.focus();
       });
@@ -156,36 +155,55 @@ function initVueComponents(app) {
         this.updateHistory();
       },
 
-      setCheckboxes() {
+      getArchivedFilterCheckboxState() {
         switch (this.archivedFilter) {
           case 'unarchived':
-            $('#archivedFilterCheckbox').checkbox('set unchecked');
-            break;
+            return {
+              checked: false,
+              indeterminate: false
+            }
           case 'archived':
-            $('#archivedFilterCheckbox').checkbox('set checked');
-            break;
+            return {
+              checked: true,
+              indeterminate: false
+            }
           case 'both':
-            $('#archivedFilterCheckbox').checkbox('set indeterminate');
-            break;
+            return {
+              checked: false,
+              indeterminate: true
+            }
           default:
             this.archivedFilter = 'unarchived';
-            $('#archivedFilterCheckbox').checkbox('set unchecked');
-            break;
+            return {
+              checked: false,
+              indeterminate: true
+            }
         }
+      },
+
+      getPrivateFilterCheckboxState() {
         switch (this.privateFilter) {
           case 'public':
-            $('#privateFilterCheckbox').checkbox('set unchecked');
-            break;
+            return {
+              checked: false,
+              indeterminate: false
+            }
           case 'private':
-            $('#privateFilterCheckbox').checkbox('set checked');
-            break;
+            return {
+              checked: true,
+              indeterminate: false
+            }
           case 'both':
-            $('#privateFilterCheckbox').checkbox('set indeterminate');
-            break;
+            return {
+              checked: false,
+              indeterminate: true
+            }
           default:
             this.privateFilter = 'both';
-            $('#privateFilterCheckbox').checkbox('set indeterminate');
-            break;
+            return {
+              checked: false,
+              indeterminate: true
+            }
         }
       },
 
@@ -261,7 +279,6 @@ function initVueComponents(app) {
         }
         this.page = 1;
         this.repos = [];
-        this.setCheckboxes();
         this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`] = 0;
         this.searchRepos();
       },
@@ -283,7 +300,6 @@ function initVueComponents(app) {
         }
         this.page = 1;
         this.repos = [];
-        this.setCheckboxes();
         this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`] = 0;
         this.searchRepos();
       },

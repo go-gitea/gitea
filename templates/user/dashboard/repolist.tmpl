@@ -48,22 +48,22 @@
 						<div class="menu">
 							<div class="item">
 								<a @click="toggleArchivedFilter()">
-									<div class="ui checkbox" id="archivedFilterCheckbox" title="{{.locale.Tr "home.show_both_archived_unarchived"}}" v-if="archivedFilter === 'both'">
-										<input type="checkbox">
+									<div class="ui checkbox indeterminate" id="archivedFilterCheckbox" title="{{.locale.Tr "home.show_both_archived_unarchived"}}" v-if="archivedFilter === 'both'">
+										<input type="checkbox" v-bind.prop="getArchivedFilterCheckboxState()">
 										<label>
 											{{svg "octicon-archive" 16 "mr-2"}}
 											{{.locale.Tr "home.show_archived"}}
 										</label>
 									</div>
 									<div class="ui checkbox" id="archivedFilterCheckbox" title="{{.locale.Tr "home.show_only_unarchived"}}" v-if="archivedFilter === 'unarchived'">
-										<input type="checkbox">
+										<input type="checkbox" v-bind.prop="getArchivedFilterCheckboxState()">
 										<label>
 											{{svg "octicon-archive" 16 "mr-2"}}
 											{{.locale.Tr "home.show_archived"}}
 										</label>
 									</div>
-									<div class="ui checkbox" id="archivedFilterCheckbox" title="{{.locale.Tr "home.show_only_archived"}}" v-if="archivedFilter === 'archived'">
-										<input type="checkbox">
+									<div class="ui checkbox checked" id="archivedFilterCheckbox" title="{{.locale.Tr "home.show_only_archived"}}" v-if="archivedFilter === 'archived'">
+										<input type="checkbox" v-bind.prop="getArchivedFilterCheckboxState()">
 										<label>
 											{{svg "octicon-archive" 16 "mr-2"}}
 											{{.locale.Tr "home.show_archived"}}
@@ -73,22 +73,22 @@
 							</div>
 							<div class="item">
 								<a @click="togglePrivateFilter()">
-									<div class="ui checkbox" id="privateFilterCheckbox" title="{{.locale.Tr "home.show_both_private_public"}}" v-if="privateFilter === 'both'">
-										<input type="checkbox">
+									<div class="ui checkbox indeterminate" id="privateFilterCheckbox" title="{{.locale.Tr "home.show_both_private_public"}}" v-if="privateFilter === 'both'">
+										<input type="checkbox" v-bind.prop="getPrivateFilterCheckboxState()">
 										<label>
 											{{svg "octicon-lock" 16 "mr-2"}}
 											{{.locale.Tr "home.show_private"}}
 										</label>
 									</div>
 									<div class="ui checkbox" id="privateFilterCheckbox" title="{{.locale.Tr "home.show_only_public"}}" v-if="privateFilter === 'public'">
-										<input type="checkbox">
+										<input type="checkbox" v-bind.prop="getPrivateFilterCheckboxState()">
 										<label>
 											{{svg "octicon-lock" 16 "mr-2"}}
 											{{.locale.Tr "home.show_private"}}
 										</label>
 									</div>
-									<div class="ui checkbox" id="privateFilterCheckbox" title="{{.locale.Tr "home.show_only_private"}}" v-if="privateFilter === 'private'">
-										<input type="checkbox">
+									<div class="ui checkbox checked" id="privateFilterCheckbox" title="{{.locale.Tr "home.show_only_private"}}" v-if="privateFilter === 'private'">
+										<input type="checkbox" v-bind.prop="getPrivateFilterCheckboxState()">
 											<label>
 												{{svg "octicon-lock" 16 "mr-2"}}
 												{{.locale.Tr "home.show_private"}}
