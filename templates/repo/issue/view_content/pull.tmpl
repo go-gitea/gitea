@@ -133,7 +133,7 @@
 			{{if .Issue.PullRequest.HasMerged}}
 				<div class="item text">
 					{{if .Issue.PullRequest.MergedCommitID}}
-						{{$link := printf "%s/commit/%s" $.Repository.HTMLURL (.Issue.PullRequest.MergedCommitID|PathEscape)}}
+						{{$link := printf "%s/commit/%s" $.Repository.Link (.Issue.PullRequest.MergedCommitID|PathEscape)}}
 						{{if eq $.Issue.PullRequest.Status 3}}
 							{{$.locale.Tr "repo.pulls.manually_merged_as" ($link|Escape) (ShortSha .Issue.PullRequest.MergedCommitID) | Safe}}
 						{{else}}
