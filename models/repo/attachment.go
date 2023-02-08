@@ -134,7 +134,7 @@ func GetAttachmentsByIssueID(ctx context.Context, issueID int64) ([]*Attachment,
 
 // GetAttachmentsByIssueIDImagesLatest returns the latest image attachments of an issue.
 func GetAttachmentsByIssueIDImagesLatest(ctx context.Context, issueID int64) ([]*Attachment, error) {
-	attachments := make([]*Attachment, 0, 10)
+	attachments := make([]*Attachment, 0, 5)
 	return attachments, db.GetEngine(ctx).Where(`issue_id = ? AND (name like '%.apng'
 		OR name like '%.avif'
 		OR name like '%.bmp'
