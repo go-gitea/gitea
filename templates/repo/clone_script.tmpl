@@ -19,7 +19,7 @@
 
 		let link = btn.getAttribute('data-link');
 		if (link.startsWith('http://') || link.startsWith('https://')) {
-			// use current host as the clone link
+			// use current protocol/host as the clone link
 			const url = new URL(link);
 			url.protocol = window.location.protocol;
 			url.host = window.location.host;
