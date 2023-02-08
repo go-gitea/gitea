@@ -4,8 +4,6 @@
 package v1_19 //nolint
 
 import (
-	"fmt"
-
 	"xorm.io/xorm"
 )
 
