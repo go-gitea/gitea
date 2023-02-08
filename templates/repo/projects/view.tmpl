@@ -179,7 +179,7 @@
 
 					<!-- start issue card -->
 					<div class="card board-card" data-issue="{{.ID}}">
-						{{if eq $.Project.CardType 2}}{{/* Images and Text*/}}
+						{{if eq $.Project.CardType 1}}{{/* Images and Text*/}}
 							<div class="card-attachment-images">
 								{{range (index $.issuesAttachmentMap .ID)}}
 									<img src="{{.DownloadURL}}" alt="{{.Name}}" />
