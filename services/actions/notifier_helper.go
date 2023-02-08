@@ -243,13 +243,13 @@ func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_mo
 }
 
 func ifNeedApproval(ctx context.Context, run *actions_model.ActionRun, repo *repo_model.Repository, user *user_model.User) (bool, error) {
+	// don't need approval if it's not a fork PR
 	if !run.IsForkPullRequest {
-		// don't need approval if it's not fork PR
 		return false, nil
 	}
 
+	// always need approval if the user is restricted
 	if user.IsRestricted {
-		// always need approval the user is restricted
 		log.Trace("need approval because user %d is restricted", user.ID)
 		return true, nil
 	}
@@ -274,7 +274,7 @@ func ifNeedApproval(ctx context.Context, run *actions_model.ActionRun, repo *rep
 		return false, nil
 	}
 
-	log.Trace("need approval because it's the first time user %d triggered actions", user.ID)
 	// otherwise, need approval
+	log.Trace("need approval because it's the first time user %d triggered actions", user.ID)
 	return true, nil
 }
