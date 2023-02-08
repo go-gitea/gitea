@@ -19,9 +19,9 @@ import (
 var defaultWordRegexp = regexp.MustCompile(`(-?\d*\.\d\w*)|([^\` + "`" + `\~\!\@\#\$\%\^\&\*\(\)\-\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\?\s\x00-\x1f]+)`)
 
 func NewEscapeStreamer(locale translation.Locale, next HTMLStreamer, allowed ...rune) HTMLStreamer {
-	allowedM := make(map[rune]struct{}, len(allowed))
+	allowedM := make(map[rune]bool, len(allowed))
 	for _, v := range allowed {
-		allowedM[v] = struct{}{}
+		allowedM[v] = true
 	}
 	return &escapeStreamer{
 		escaped:                 &EscapeStatus{},
@@ -37,7 +37,7 @@ type escapeStreamer struct {
 	escaped         *EscapeStatus
 	locale          translation.Locale
 	ambiguousTables []*AmbiguousTable
-	allowed         map[rune]struct{}
+	allowed         map[rune]bool
 }
 
 func (e *escapeStreamer) EscapeStatus() *EscapeStatus {
