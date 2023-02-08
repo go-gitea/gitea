@@ -24,13 +24,17 @@ func TestInsertOnConflictDoNothing(t *testing.T) {
 		}
 		_ = e.Sync2(&NoUniques{})
 
-		has, err := db.InsertOnConflictDoNothing(ctx, &NoUniques{Data: "shouldErr"})
+		toInsert := &NoUniques{Data: "shouldErr"}
+		inserted, err := db.InsertOnConflictDoNothing(ctx, toInsert)
 		assert.Error(t, err)
-		assert.False(t, has)
+		assert.False(t, inserted)
+		assert.Equal(t, int64(0), toInsert.ID)
 
-		has, err = db.InsertOnConflictDoNothing(ctx, &NoUniques{Data: ""})
+		toInsert = &NoUniques{Data: ""}
+		inserted, err = db.InsertOnConflictDoNothing(ctx, toInsert)
 		assert.Error(t, err)
-		assert.False(t, has)
+		assert.False(t, inserted)
+		assert.Equal(t, int64(0), toInsert.ID)
 	})
 
 	t.Run("OneUnique", func(t *testing.T) {
@@ -42,24 +46,29 @@ func TestInsertOnConflictDoNothing(t *testing.T) {
 		_ = e.Sync2(&OneUnique{})
 		_, _ = e.Exec("DELETE FROM one_unique")
 
-		has, err := db.InsertOnConflictDoNothing(ctx, &OneUnique{})
+		toInsert := &OneUnique{}
+		inserted, err := db.InsertOnConflictDoNothing(ctx, toInsert)
 		assert.Error(t, err)
-		assert.False(t, has)
+		assert.False(t, inserted)
+		assert.Equal(t, int64(0), toInsert.ID)
 
-		toInsert := &OneUnique{Data: "test"}
-
-		has, err = db.InsertOnConflictDoNothing(ctx, toInsert)
+		toInsert = &OneUnique{Data: "test"}
+		inserted, err = db.InsertOnConflictDoNothing(ctx, toInsert)
 		assert.NoError(t, err)
-		assert.True(t, has)
-		assert.NotEqual(t, 0, toInsert.ID)
+		assert.True(t, inserted)
+		assert.NotEqual(t, int64(0), toInsert.ID)
 
-		has, err = db.InsertOnConflictDoNothing(ctx, &OneUnique{Data: "test2"})
+		toInsert = &OneUnique{Data: "test2"}
+		inserted, err = db.InsertOnConflictDoNothing(ctx, toInsert)
 		assert.NoError(t, err)
-		assert.True(t, has)
+		assert.True(t, inserted)
+		assert.NotEqual(t, int64(0), toInsert.ID)
 
-		has, err = db.InsertOnConflictDoNothing(ctx, &OneUnique{Data: "test"})
+		toInsert = &OneUnique{Data: "test"}
+		inserted, err = db.InsertOnConflictDoNothing(ctx, toInsert)
 		assert.NoError(t, err)
-		assert.False(t, has)
+		assert.False(t, inserted)
+		assert.Equal(t, int64(0), toInsert.ID)
 	})
 
 	t.Run("MultiUnique", func(t *testing.T) {
@@ -73,32 +82,47 @@ func TestInsertOnConflictDoNothing(t *testing.T) {
 		_ = e.Sync2(&MultiUnique{})
 		_, _ = e.Exec("DELETE FROM multi_unique")
 
-		has, err := db.InsertOnConflictDoNothing(ctx, &MultiUnique{})
+		toInsert := &MultiUnique{}
+		inserted, err := db.InsertOnConflictDoNothing(ctx, toInsert)
 		assert.Error(t, err)
-		assert.False(t, has)
+		assert.False(t, inserted)
+		assert.Equal(t, int64(0), toInsert.ID)
 
-		has, err = db.InsertOnConflictDoNothing(ctx, &MultiUnique{Data1: "test", NotUnique: "t1"})
+		toInsert = &MultiUnique{Data1: "test", NotUnique: "t1"}
+		inserted, err = db.InsertOnConflictDoNothing(ctx, toInsert)
 		assert.NoError(t, err)
-		assert.True(t, has)
+		assert.True(t, inserted)
+		assert.NotEqual(t, int64(0), toInsert.ID)
 
-		has, err = db.InsertOnConflictDoNothing(ctx, &MultiUnique{Data2: "test2", NotUnique: "t1"})
+		toInsert = &MultiUnique{Data1: "test2", NotUnique: "t1"}
+		inserted, err = db.InsertOnConflictDoNothing(ctx, toInsert)
 		assert.NoError(t, err)
-		assert.True(t, has)
-		has, err = db.InsertOnConflictDoNothing(ctx, &MultiUnique{Data2: "test2", NotUnique: "t2"})
-		assert.NoError(t, err)
-		assert.False(t, has)
+		assert.True(t, inserted)
+		assert.NotEqual(t, int64(0), toInsert.ID)
 
-		has, err = db.InsertOnConflictDoNothing(ctx, &MultiUnique{Data1: "test", NotUnique: "t2"})
+		toInsert = &MultiUnique{Data1: "test2", NotUnique: "t2"}
+		inserted, err = db.InsertOnConflictDoNothing(ctx, toInsert)
 		assert.NoError(t, err)
-		assert.False(t, has)
+		assert.False(t, inserted)
+		assert.Equal(t, int64(0), toInsert.ID)
 
-		has, err = db.InsertOnConflictDoNothing(ctx, &MultiUnique{Data1: "test", Data2: "test2", NotUnique: "t1"})
+		toInsert = &MultiUnique{Data1: "test", NotUnique: "t2"}
+		inserted, err = db.InsertOnConflictDoNothing(ctx, toInsert)
 		assert.NoError(t, err)
-		assert.True(t, has)
+		assert.False(t, inserted)
+		assert.Equal(t, int64(0), toInsert.ID)
 
-		has, err = db.InsertOnConflictDoNothing(ctx, &MultiUnique{Data1: "test", Data2: "test2", NotUnique: "t2"})
+		toInsert = &MultiUnique{Data1: "test", Data2: "test2", NotUnique: "t1"}
+		inserted, err = db.InsertOnConflictDoNothing(ctx, toInsert)
 		assert.NoError(t, err)
-		assert.False(t, has)
+		assert.True(t, inserted)
+		assert.NotEqual(t, int64(0), toInsert.ID)
+
+		toInsert = &MultiUnique{Data1: "test", Data2: "test2", NotUnique: "t2"}
+		inserted, err = db.InsertOnConflictDoNothing(ctx, toInsert)
+		assert.NoError(t, err)
+		assert.False(t, inserted)
+		assert.Equal(t, int64(0), toInsert.ID)
 	})
 
 	t.Run("MultiMultiUnique", func(t *testing.T) {
@@ -112,37 +136,37 @@ func TestInsertOnConflictDoNothing(t *testing.T) {
 		_ = e.Sync2(&MultiMultiUnique{})
 		_, _ = e.Exec("DELETE FROM multi_multi_unique")
 
-		has, err := db.InsertOnConflictDoNothing(ctx, &MultiMultiUnique{})
+		inserted, err := db.InsertOnConflictDoNothing(ctx, &MultiMultiUnique{})
 		assert.Error(t, err)
-		assert.False(t, has)
+		assert.False(t, inserted)
 
-		has, err = db.InsertOnConflictDoNothing(ctx, &MultiMultiUnique{Data1: "test", Data0: "t1"})
+		inserted, err = db.InsertOnConflictDoNothing(ctx, &MultiMultiUnique{Data1: "test", Data0: "t1"})
 		assert.NoError(t, err)
-		assert.True(t, has)
+		assert.True(t, inserted)
 
-		has, err = db.InsertOnConflictDoNothing(ctx, &MultiMultiUnique{Data2: "test2", Data0: "t1"})
+		inserted, err = db.InsertOnConflictDoNothing(ctx, &MultiMultiUnique{Data2: "test2", Data0: "t1"})
 		assert.NoError(t, err)
-		assert.False(t, has)
+		assert.False(t, inserted)
 
-		has, err = db.InsertOnConflictDoNothing(ctx, &MultiMultiUnique{Data2: "test2", Data0: "t2"})
+		inserted, err = db.InsertOnConflictDoNothing(ctx, &MultiMultiUnique{Data2: "test2", Data0: "t2"})
 		assert.NoError(t, err)
-		assert.True(t, has)
+		assert.True(t, inserted)
 
-		has, err = db.InsertOnConflictDoNothing(ctx, &MultiMultiUnique{Data2: "test2", Data0: "t2"})
+		inserted, err = db.InsertOnConflictDoNothing(ctx, &MultiMultiUnique{Data2: "test2", Data0: "t2"})
 		assert.NoError(t, err)
-		assert.False(t, has)
+		assert.False(t, inserted)
 
-		has, err = db.InsertOnConflictDoNothing(ctx, &MultiMultiUnique{Data1: "test", Data0: "t2"})
+		inserted, err = db.InsertOnConflictDoNothing(ctx, &MultiMultiUnique{Data1: "test", Data0: "t2"})
 		assert.NoError(t, err)
-		assert.False(t, has)
+		assert.False(t, inserted)
 
-		has, err = db.InsertOnConflictDoNothing(ctx, &MultiMultiUnique{Data1: "test", Data2: "test2", Data0: "t3"})
+		inserted, err = db.InsertOnConflictDoNothing(ctx, &MultiMultiUnique{Data1: "test", Data2: "test2", Data0: "t3"})
 		assert.NoError(t, err)
-		assert.True(t, has)
+		assert.True(t, inserted)
 
-		has, err = db.InsertOnConflictDoNothing(ctx, &MultiMultiUnique{Data1: "test", Data2: "test2", Data0: "t2"})
+		inserted, err = db.InsertOnConflictDoNothing(ctx, &MultiMultiUnique{Data1: "test", Data2: "test2", Data0: "t2"})
 		assert.NoError(t, err)
-		assert.False(t, has)
+		assert.False(t, inserted)
 	})
 
 	t.Run("NoPK", func(t *testing.T) {
@@ -156,28 +180,28 @@ func TestInsertOnConflictDoNothing(t *testing.T) {
 		_, _ = e.Exec("DELETE FROM no_primary_key")
 
 		empty := &NoPrimaryKey{}
-		has, err := db.InsertOnConflictDoNothing(ctx, empty)
+		inserted, err := db.InsertOnConflictDoNothing(ctx, empty)
 		assert.Error(t, err)
-		assert.False(t, has)
+		assert.False(t, inserted)
 
-		has, err = db.InsertOnConflictDoNothing(ctx, &NoPrimaryKey{Uniqued: "1"})
+		inserted, err = db.InsertOnConflictDoNothing(ctx, &NoPrimaryKey{Uniqued: "1"})
 		assert.NoError(t, err)
-		assert.True(t, has)
+		assert.True(t, inserted)
 
-		has, err = db.InsertOnConflictDoNothing(ctx, &NoPrimaryKey{NotID: 1})
+		inserted, err = db.InsertOnConflictDoNothing(ctx, &NoPrimaryKey{NotID: 1})
 		assert.NoError(t, err)
-		assert.True(t, has)
+		assert.True(t, inserted)
 
-		has, err = db.InsertOnConflictDoNothing(ctx, &NoPrimaryKey{NotID: 2})
+		inserted, err = db.InsertOnConflictDoNothing(ctx, &NoPrimaryKey{NotID: 2})
 		assert.NoError(t, err)
-		assert.False(t, has)
+		assert.False(t, inserted)
 
-		has, err = db.InsertOnConflictDoNothing(ctx, &NoPrimaryKey{NotID: 2, Uniqued: "2"})
+		inserted, err = db.InsertOnConflictDoNothing(ctx, &NoPrimaryKey{NotID: 2, Uniqued: "2"})
 		assert.NoError(t, err)
-		assert.True(t, has)
+		assert.True(t, inserted)
 
-		has, err = db.InsertOnConflictDoNothing(ctx, &NoPrimaryKey{NotID: 1, Uniqued: "2"})
+		inserted, err = db.InsertOnConflictDoNothing(ctx, &NoPrimaryKey{NotID: 1, Uniqued: "2"})
 		assert.NoError(t, err)
-		assert.False(t, has)
+		assert.False(t, inserted)
 	})
 }
