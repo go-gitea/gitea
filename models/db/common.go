@@ -65,8 +65,12 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (bool, err
 	var insertArgs []any
 
 	switch {
-	case setting.Database.UseSQLite3 || setting.Database.UsePostgreSQL || setting.Database.UseMySQL:
-		insertArgs = generateInsertNoConflictSQLAndArgs(tableName, colNames, values, autoIncrCol)
+	case setting.Database.UseSQLite3:
+		insertArgs = generateInsertNoConflictSQLAndArgsForSQLite(tableName, colNames, values)
+	case setting.Database.UsePostgreSQL:
+		insertArgs = generateInsertNoConflictSQLAndArgsForPostgres(tableName, colNames, values, autoIncrCol)
+	case setting.Database.UseMySQL:
+		insertArgs = generateInsertNoConflictSQLAndArgsForMySQL(tableName, colNames, values)
 	case setting.Database.UseMSSQL:
 		insertArgs = generateInsertNoConflictSQLAndArgsForMSSQL(table, tableName, colNames, values, uniqueColValMap, autoIncrCol)
 	default:
@@ -124,8 +128,8 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (bool, err
 	return n != 0, err
 }
 
-// generateInsertNoConflictSQLAndArgs will create the correct insert code for most of the DBs except MSSQL
-func generateInsertNoConflictSQLAndArgs(tableName string, colNames []string, args []any, autoIncrCol *schemas.Column) (insertArgs []any) {
+// generateInsertNoConflictSQLAndArgsForSQLite will create the correct insert code for SQLite
+func generateInsertNoConflictSQLAndArgsForSQLite(tableName string, colNames []string, args []any) (insertArgs []any) {
 	sb := &strings.Builder{}
 
 	quote := x.Dialect().Quoter().Quote
@@ -134,31 +138,58 @@ func generateInsertNoConflictSQLAndArgs(tableName string, colNames []string, arg
 			_, _ = sb.WriteString(arg)
 		}
 	}
-	write("INSERT ")
-	if setting.Database.UseMySQL && autoIncrCol == nil {
-		write("IGNORE ")
-	}
-	write("INTO ", quote(tableName), " (")
+	write("INSERT INTO ", quote(tableName), " (")
 	_ = x.Dialect().Quoter().JoinWrite(sb, colNames, ",")
 	write(") VALUES (?")
 	for range colNames[1:] {
 		write(",?")
 	}
-	switch {
-	case setting.Database.UsePostgreSQL:
-		write(") ON CONFLICT DO NOTHING")
-		if autoIncrCol != nil {
-			write(" RETURNING ", quote(autoIncrCol.Name))
-		}
-	case setting.Database.UseSQLite3:
-		write(") ON CONFLICT DO NOTHING")
-	case setting.Database.UseMySQL:
-		if autoIncrCol != nil {
-			write(") ON DUPLICATE KEY UPDATE ", quote(autoIncrCol.Name), " = ", quote(autoIncrCol.Name))
-		} else {
-			write(")")
+	write(") ON CONFLICT DO NOTHING")
+	args[0] = sb.String()
+	return args
+}
+
+// generateInsertNoConflictSQLAndArgsForPostgres will create the correct insert code for Postgres
+func generateInsertNoConflictSQLAndArgsForPostgres(tableName string, colNames []string, args []any, autoIncrCol *schemas.Column) (insertArgs []any) {
+	sb := &strings.Builder{}
+
+	quote := x.Dialect().Quoter().Quote
+	write := func(args ...string) {
+		for _, arg := range args {
+			_, _ = sb.WriteString(arg)
 		}
 	}
+	write("INSERT INTO ", quote(tableName), " (")
+	_ = x.Dialect().Quoter().JoinWrite(sb, colNames, ",")
+	write(") VALUES (?")
+	for range colNames[1:] {
+		write(",?")
+	}
+	write(") ON CONFLICT DO NOTHING")
+	if autoIncrCol != nil {
+		write(" RETURNING ", quote(autoIncrCol.Name))
+	}
+	args[0] = sb.String()
+	return args
+}
+
+// generateInsertNoConflictSQLAndArgsForMySQL will create the correct insert code for MySQL
+func generateInsertNoConflictSQLAndArgsForMySQL(tableName string, colNames []string, args []any) (insertArgs []any) {
+	sb := &strings.Builder{}
+
+	quote := x.Dialect().Quoter().Quote
+	write := func(args ...string) {
+		for _, arg := range args {
+			_, _ = sb.WriteString(arg)
+		}
+	}
+	write("INSERT IGNORE INTO ", quote(tableName), " (")
+	_ = x.Dialect().Quoter().JoinWrite(sb, colNames, ",")
+	write(") VALUES (?")
+	for range colNames[1:] {
+		write(",?")
+	}
+	write(")")
 	args[0] = sb.String()
 	return args
 }
