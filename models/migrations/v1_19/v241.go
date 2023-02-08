@@ -1,0 +1,22 @@
+// Copyright 2022 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
+package v1_19 //nolint
+
+import (
+	"fmt"
+
+	"xorm.io/xorm"
+)
+
+// AddCardTypeToProjectTable: add CardType column, setting existing rows to CardTypeTextOnly
+func AddCardTypeToProjectTable(x *xorm.Engine) error {
+	type Project struct {
+		CardType int `xorm:"NOT NULL"`
+	}
+
+	if err := x.Sync(new(Project)); err != nil {
+		return fmt.Errorf("Sync: %w", err)
+	}
+	return nil
+}
