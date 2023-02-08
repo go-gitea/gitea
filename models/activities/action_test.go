@@ -36,7 +36,7 @@ func TestAction_GetRepoLink(t *testing.T) {
 	expected := path.Join(setting.AppSubURL, owner.Name, repo.Name)
 	assert.Equal(t, expected, action.GetRepoLink())
 	assert.Equal(t, repo.HTMLURL(), action.GetRepoAbsoluteLink())
-	assert.Equal(t, comment.HTMLURL(), action.GetCommentLink())
+	assert.Equal(t, comment.HTMLURL(), action.GetCommentHTMLURL())
 }
 
 func TestGetFeeds(t *testing.T) {

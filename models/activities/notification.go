@@ -459,6 +459,22 @@ func (n *Notification) HTMLURL() string {
 	return ""
 }
 
+// Link formats a relative URL-string to the notification
+func (n *Notification) Link() string {
+	switch n.Source {
+	case NotificationSourceIssue, NotificationSourcePullRequest:
+		if n.Comment != nil {
+			return n.Comment.Link()
+		}
+		return n.Issue.Link()
+	case NotificationSourceCommit:
+		return n.Repository.Link() + "/commit/" + url.PathEscape(n.CommitID)
+	case NotificationSourceRepository:
+		return n.Repository.Link()
+	}
+	return ""
+}
+
 // APIURL formats a URL-string to the notification
 func (n *Notification) APIURL() string {
 	return setting.AppURL + "api/v1/notifications/threads/" + strconv.FormatInt(n.ID, 10)
