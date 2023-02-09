@@ -77,13 +77,13 @@
 					<!-- Project -->
 					<div class="ui{{if not (or .OpenProjects .ClosedProjects)}} disabled{{end}} dropdown jump item">
 						<span class="text">
-							{{.locale.Tr "repo.issues.filter_projects"}}
+							{{.locale.Tr "repo.issues.filter_project"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						</span>
 						<div class="menu">
 							<div class="ui icon search input">
 								<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
-								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_projects"}}">
+								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_project"}}">
 							</div>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_project_all"}}</a>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&project=-1&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_project_none"}}</a>
