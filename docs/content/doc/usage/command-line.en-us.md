@@ -137,6 +137,8 @@ Admin operations:
         - `--group-claim-name`: Claim name providing group names for this source. (Optional)
         - `--admin-group`: Group Claim value for administrator users. (Optional)
         - `--restricted-group`: Group Claim value for restricted users. (Optional)
+        - `--group-team-map`: JSON mapping between groups and org teams. (Optional)
+        - `--group-team-map-removal`: Activate automatic team membership removal depending on groups. (Optional)
       - Examples:
         - `gitea admin auth add-oauth --name external-github --provider github --key OBTAIN_FROM_SOURCE --secret OBTAIN_FROM_SOURCE`
     - `update-oauth`:

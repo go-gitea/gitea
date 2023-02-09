@@ -1364,6 +1364,7 @@ a.ui.card:hover,
   visibility: hidden;
 }
 
+.text.primary { color: var(--color-primary) !important; }
 .text.red { color: var(--color-red) !important; }
 .text.orange { color: var(--color-orange) !important; }
 .text.yellow { color: var(--color-yellow) !important; }
@@ -2432,6 +2433,33 @@ a.ui.basic.label:hover {
 /* https://github.com/go-gitea/gitea/issues/10210 */
 .ui.attached.segment ~ .ui.top.attached.header {
   margin-top: 1rem;
+}
+
+.header-stopwatch-dot {
+  position: absolute;
+  left: 8px;
+  top: -8px;
+  width: 13px;
+  height: 13px;
+  background: var(--color-primary);
+  border: 2px solid var(--color-header-bar);
+  border-radius: 100%;
+}
+
+.notification_count {
+  position: absolute;
+  left: 5px;
+  top: -8px;
+  min-width: 1.5em;
+  text-align: center;
+  background: var(--color-primary);
+  border: 2px solid var(--color-header-bar);
+  color: var(--color-header-bar);
+  padding: 2px;
+  border-radius: 1em;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: .7;
 }
 
 table th[data-sortt-asc],
