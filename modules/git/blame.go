@@ -24,12 +24,12 @@ type BlamePart struct {
 
 // BlameReader returns part of file blame one by one
 type BlameReader struct {
-	cmd      *exec.Cmd
-	output   io.ReadCloser
-	reader   *bufio.Reader
-	lastSha  *string
-	cancel   context.CancelFunc   // Cancels the context that this reader runs in
-	finished process.FinishedFunc // Tells the process manager we're finished and it can remove the associated process from the process table
+	cmd            *exec.Cmd
+	reader         io.ReadCloser
+	lastSha        *string
+	cancel         context.CancelFunc   // Cancels the context that this reader runs in
+	finished       process.FinishedFunc // Tells the process manager we're finished and it can remove the associated process from the process table
+	bufferedReader *bufio.Reader
 }
 
 var shaLineRegex = regexp.MustCompile("^([a-z0-9]{40})")
@@ -37,8 +37,6 @@ var shaLineRegex = regexp.MustCompile("^([a-z0-9]{40})")
 // NextPart returns next part of blame (sequential code lines with the same commit)
 func (r *BlameReader) NextPart() (*BlamePart, error) {
 	var blamePart *BlamePart
-
-	reader := r.reader
 
 	if r.lastSha != nil {
 		blamePart = &BlamePart{*r.lastSha, make([]string, 0)}
@@ -49,7 +47,7 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 	var err error
 
 	for err != io.EOF {
-		line, isPrefix, err = reader.ReadLine()
+		line, isPrefix, err = r.bufferedReader.ReadLine()
 		if err != nil && err != io.EOF {
 			return blamePart, err
 		}
@@ -71,7 +69,7 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 				r.lastSha = &sha1
 				// need to munch to end of line...
 				for isPrefix {
-					_, isPrefix, err = reader.ReadLine()
+					_, isPrefix, err = r.bufferedReader.ReadLine()
 					if err != nil && err != io.EOF {
 						return blamePart, err
 					}
@@ -86,7 +84,7 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 
 		// need to munch to end of line...
 		for isPrefix {
-			_, isPrefix, err = reader.ReadLine()
+			_, isPrefix, err = r.bufferedReader.ReadLine()
 			if err != nil && err != io.EOF {
 				return blamePart, err
 			}
@@ -102,9 +100,9 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 func (r *BlameReader) Close() error {
 	defer r.finished() // Only remove the process from the process table when the underlying command is closed
 	r.cancel()         // However, first cancel our own context early
+	r.bufferedReader = nil
 
-	_ = r.output.Close()
-
+	_ = r.reader.Close()
 	if err := r.cmd.Wait(); err != nil {
 		return fmt.Errorf("Wait: %w", err)
 	}
@@ -126,25 +124,27 @@ func createBlameReader(ctx context.Context, dir string, command ...string) (*Bla
 	cmd.Stderr = os.Stderr
 	process.SetSysProcAttribute(cmd)
 
-	stdout, err := cmd.StdoutPipe()
+	reader, stdout, err := os.Pipe()
 	if err != nil {
 		defer finished()
 		return nil, fmt.Errorf("StdoutPipe: %w", err)
 	}
+	cmd.Stdout = stdout
 
 	if err = cmd.Start(); err != nil {
 		defer finished()
 		_ = stdout.Close()
 		return nil, fmt.Errorf("Start: %w", err)
 	}
+	_ = stdout.Close()
 
-	reader := bufio.NewReader(stdout)
+	bufferedReader := bufio.NewReader(reader)
 
 	return &BlameReader{
-		cmd:      cmd,
-		output:   stdout,
-		reader:   reader,
-		cancel:   cancel,
-		finished: finished,
+		cmd:            cmd,
+		reader:         reader,
+		cancel:         cancel,
+		finished:       finished,
+		bufferedReader: bufferedReader,
 	}, nil
 }

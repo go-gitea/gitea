@@ -65,7 +65,7 @@ summary Add code of delete user
 previous be0ba9ea88aff8a658d0495d36accf944b74888d gogs.go
 filename gogs.go
 	// license that can be found in the LICENSE file.
-	
+
 e2aa991e10ffd924a828ec149951f2f20eecead2 6 6 2
 author Lunny Xiao
 author-mail <xiaolunwen@gmail.com>
@@ -111,10 +111,8 @@ func TestReadingBlameOutput(t *testing.T) {
 			},
 		},
 		{
-			"ce21ed6c3490cdfad797319cbb1145e2330a8fef",
-			[]string{
-				"// Copyright 2016 The Gitea Authors. All rights reserved.",
-			},
+			"f32b0a9dfd09a60f616f29158f772cedd89942d2",
+			[]string{"", "Do not make any changes to this repo it is used for unit testing"},
 		},
 		{
 			"4b92a6c2df28054ad766bc262f308db9f6066596",
