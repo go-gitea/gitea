@@ -60,7 +60,8 @@ func GetOrganizationByParams(ctx *Context) {
 	orgName := ctx.Params(":org")
 
 	var err error
-	ctx.Org.Organization, err = organization.GetOrgByName(orgName)
+
+	ctx.Org.Organization, err = organization.GetOrgByName(ctx, orgName)
 	if err != nil {
 		if organization.IsErrOrgNotExist(err) {
 			redirectUserID, err := user_model.LookupUserRedirect(orgName)

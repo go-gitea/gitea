@@ -203,7 +203,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 	}
 
 	// Get user from session if logged in.
-	common = append(common, context.Auth(group))
+	common = append(common, auth_service.Auth(group))
 
 	// GetHead allows a HEAD request redirect to GET if HEAD method is not defined for that route
 	common = append(common, middleware.GetHead)
@@ -468,7 +468,17 @@ func RegisterRoutes(m *web.Route) {
 					m.Get("/preview", user_setting.PackagesRulePreview)
 				})
 			})
+			m.Group("/cargo", func() {
+				m.Post("/initialize", user_setting.InitializeCargoIndex)
+				m.Post("/rebuild", user_setting.RebuildCargoIndex)
+			})
+			m.Post("/chef/regenerate_keypair", user_setting.RegenerateChefKeyPair)
 		}, packagesEnabled)
+		m.Group("/secrets", func() {
+			m.Get("", user_setting.Secrets)
+			m.Post("", web.Bind(forms.AddSecretForm{}), user_setting.SecretsPost)
+			m.Post("/delete", user_setting.SecretsDelete)
+		})
 		m.Get("/organization", user_setting.Organization)
 		m.Get("/repos", user_setting.Repos)
 		m.Post("/repos/unadopted", user_setting.AdoptOrDeleteRepository)
@@ -813,6 +823,10 @@ func RegisterRoutes(m *web.Route) {
 							m.Get("/preview", org.PackagesRulePreview)
 						})
 					})
+					m.Group("/cargo", func() {
+						m.Post("/initialize", org.InitializeCargoIndex)
+						m.Post("/rebuild", org.RebuildCargoIndex)
+					})
 				}, packagesEnabled)
 			}, func(ctx *context.Context) {
 				ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
@@ -982,10 +996,12 @@ func RegisterRoutes(m *web.Route) {
 				m.Combo("").Get(repo.DeployKeys).
 					Post(web.Bind(forms.AddKeyForm{}), repo.DeployKeysPost)
 				m.Post("/delete", repo.DeleteDeployKey)
-				m.Group("/secrets", func() {
-					m.Post("", web.Bind(forms.AddSecretForm{}), repo.SecretsPost)
-					m.Post("/delete", repo.DeleteSecret)
-				})
+			})
+
+			m.Group("/secrets", func() {
+				m.Get("", repo.Secrets)
+				m.Post("", web.Bind(forms.AddSecretForm{}), repo.SecretsPost)
+				m.Post("/delete", repo.DeleteSecret)
 			})
 
 			m.Group("/lfs", func() {

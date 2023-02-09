@@ -88,8 +88,8 @@ import {initCommonOrganization} from './features/common-organization.js';
 import {initRepoWikiForm} from './features/repo-wiki.js';
 import {initRepoCommentForm, initRepository} from './features/repo-legacy.js';
 import {initFormattingReplacements} from './features/formatting.js';
-import {initMcaptcha} from './features/mcaptcha.js';
 import {initCopyContent} from './features/copycontent.js';
+import {initCaptcha} from './features/captcha.js';
 import {initRepositoryActionView} from './components/RepoActionView.vue';
 
 // Run time-critical code as soon as possible. This is safe to do because this
@@ -191,7 +191,7 @@ $(document).ready(() => {
   initRepositoryActionView();
 
   initCommitStatuses();
-  initMcaptcha();
+  initCaptcha();
 
   initUserAuthLinkAccountView();
   initUserAuthOauth2();
