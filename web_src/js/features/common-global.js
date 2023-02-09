@@ -381,9 +381,6 @@ export function checkAppUrl() {
   if (curUrl.startsWith(appUrl) || `${curUrl}/` === appUrl) {
     return;
   }
-  if (document.querySelector('.page-content.install')) {
-    return; // no need to show the message on the installation page
-  }
-  showGlobalErrorMessage(`Your ROOT_URL in app.ini is ${appUrl} but you are visiting ${curUrl}
-You should set ROOT_URL correctly, otherwise the web may not work correctly.`);
+  showGlobalErrorMessage(`Your ROOT_URL in app.ini is "${appUrl}", it's unlikely matching the site you are visiting.
+Mismatched ROOT_URL config causes wrong URL links for web UI/mail content/webhook notification.`);
 }
