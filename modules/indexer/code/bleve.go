@@ -108,7 +108,7 @@ func (d *RepoIndexerData) Type() string {
 const (
 	repoIndexerAnalyzer      = "repoIndexerAnalyzer"
 	repoIndexerDocType       = "repoIndexerDocType"
-	repoIndexerLatestVersion = 5
+	repoIndexerLatestVersion = 6
 )
 
 // createBleveIndexer create a bleve repo indexer if one does not already exist

@@ -28,7 +28,7 @@ import (
 const (
 	issueIndexerAnalyzer      = "issueIndexer"
 	issueIndexerDocType       = "issueIndexerDocType"
-	issueIndexerLatestVersion = 1
+	issueIndexerLatestVersion = 2
 )
 
 // indexerID a bleve-compatible unique identifier for an integer id
