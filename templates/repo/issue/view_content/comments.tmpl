@@ -586,6 +586,7 @@
 																	{{else}}
 																		{{template "shared/user/authorlink" .Poster}}
 																	{{end}}
+																	{{$.locale.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdSubStr | Safe}}
 																</span>
 															</div>
 															<div class="comment-header-right actions df ac">
