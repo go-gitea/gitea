@@ -62,29 +62,24 @@ func SetDiffViewStyle(ctx *context.Context) {
 
 // SetDiffViewWidth set the width of the diff view
 func SetDiffViewWidth(ctx *context.Context) {
-	queryWidth := ctx.FormString("width")
+	const defaultViewWidthBehavior = "full"
+	viewWidthBehavior := ctx.FormString("width")
 
-	if !ctx.IsSigned {
-		ctx.Data["IsWidthFull"] = queryWidth == "full"
-		return
+	if ctx.IsSigned {
+		userViewWidthBehavior, err := user_model.GetUserSetting(ctx.Doer.ID, user_model.SettingsKeyDiffViewWidth, defaultViewWidthBehavior)
+		if err == nil {
+			if viewWidthBehavior == "" {
+				viewWidthBehavior = userViewWidthBehavior
+			} else if viewWidthBehavior != userViewWidthBehavior {
+				_ = user_model.SetUserSetting(ctx.Doer.ID, user_model.SettingsKeyDiffViewWidth, viewWidthBehavior)
+			}
+		} // else: we can ignore the error safely
 	}
 
-	var (
-		userWidth = ctx.Doer.DiffViewWidth
-		width     string
-	)
-
-	if queryWidth == "full" || queryWidth == "compact" {
-		width = queryWidth
-	} else if userWidth == "full" || userWidth == "compact" {
-		width = userWidth
+	if viewWidthBehavior == "" {
+		ctx.Data["IsWidthFull"] = defaultViewWidthBehavior == "full"
 	} else {
-		width = "compact"
-	}
-
-	ctx.Data["IsWidthFull"] = width == "full"
-	if err := user_model.UpdateUserDiffViewWidth(ctx.Doer, width); err != nil {
-		ctx.ServerError("ErrUpdateDiffViewWidth", err)
+		ctx.Data["IsWidthFull"] = viewWidthBehavior == "full"
 	}
 }
 

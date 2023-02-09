@@ -146,7 +146,6 @@ type User struct {
 
 	// Preferences
 	DiffViewStyle       string `xorm:"NOT NULL DEFAULT ''"`
-	DiffViewWidth       string `xorm:"NOT NULL DEFAULT ''"`
 	Theme               string `xorm:"NOT NULL DEFAULT ''"`
 	KeepActivityPrivate bool   `xorm:"NOT NULL DEFAULT false"`
 }
@@ -210,12 +209,6 @@ func (u *User) SetLastLogin() {
 func UpdateUserDiffViewStyle(u *User, style string) error {
 	u.DiffViewStyle = style
 	return UpdateUserCols(db.DefaultContext, u, "diff_view_style")
-}
-
-// UpdateUserDiffViewWidth updates the users diff view width
-func UpdateUserDiffViewWidth(u *User, width string) error {
-	u.DiffViewWidth = width
-	return UpdateUserCols(db.DefaultContext, u, "diff_view_width")
 }
 
 // UpdateUserTheme updates a users' theme irrespective of the site wide theme
