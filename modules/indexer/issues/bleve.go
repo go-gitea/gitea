@@ -135,6 +135,7 @@ func createIssueIndexer(path string, latestVersion int) (bleve.Index, error) {
 		"char_filters":  []string{},
 		"tokenizer":     unicode.Name,
 		"token_filters": []string{unicodeNormalizeName, lowercase.Name},
+		// "token_filters": []string{unicodeNormalizeName, camelcase.Name, lowercase.Name},
 	}); err != nil {
 		return nil, err
 	}
