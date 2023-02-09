@@ -1,7 +1,7 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository diff">
 	{{template "repo/header" .}}
-	<div class="ui container {{if .IsSplitStyle}}fluid padded{{end}}">
+	<div class="ui container fluid padded">
 		{{$class := ""}}
 		{{if .Commit.Signature}}
 			{{$class = (printf "%s%s" $class " isSigned")}}
