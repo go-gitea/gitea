@@ -303,79 +303,78 @@
 							{{$hasPendingPullRequestMergeTip = $.locale.Tr "repo.pulls.auto_merge_has_pending_schedule" .PendingPullRequestMerge.Doer.Name $createdPRMergeStr}}
 						{{end}}
 						<div class="ui divider"></div>
-						<script>
-							(() => {
-								const defaultMergeTitle = {{.DefaultMergeMessage}};
-								const defaultSquashMergeTitle = {{.DefaultSquashMergeMessage}};
-								const defaultMergeMessage = {{if .DefaultMergeBody}}{{.DefaultMergeBody}}{{else}}'Reviewed-on: ' + {{$.Issue.HTMLURL}} + '\n' + {{$approvers}}{{end}};
-								const defaultSquashMergeMessage = {{if .DefaultSquashMergeBody}}{{.DefaultSquashMergeBody}}{{else}}'Reviewed-on: ' + {{$.Issue.HTMLURL}} + '\n' + {{$approvers}}{{end}};
-								const mergeForm = {
-									'baseLink': {{.Link}},
-									'textCancel': {{$.locale.Tr "cancel"}},
-									'textDeleteBranch': {{$.locale.Tr "repo.branch.delete" .HeadTarget}},
-									'textAutoMergeButtonWhenSucceed': {{$.locale.Tr "repo.pulls.auto_merge_button_when_succeed"}},
-									'textAutoMergeWhenSucceed': {{$.locale.Tr "repo.pulls.auto_merge_when_succeed"}},
-									'textAutoMergeCancelSchedule': {{$.locale.Tr "repo.pulls.auto_merge_cancel_schedule"}},
-									'textClearMergeMessage': {{$.locale.Tr "repo.pulls.clear_merge_message"}},
-									'textClearMergeMessageHint': {{$.locale.Tr "repo.pulls.clear_merge_message_hint"}},
+						<script type="module">
+							const issueUrl = window.location.origin + {{$.Issue.Link}};
+							const defaultMergeTitle = {{.DefaultMergeMessage}};
+							const defaultSquashMergeTitle = {{.DefaultSquashMergeMessage}};
+							const defaultMergeMessage = {{if .DefaultMergeBody}}{{.DefaultMergeBody}}{{else}}`Reviewed-on: ${issueUrl}\n` + {{$approvers}}{{end}};
+							const defaultSquashMergeMessage = {{if .DefaultSquashMergeBody}}{{.DefaultSquashMergeBody}}{{else}}`Reviewed-on: ${issueUrl}\n` + {{$approvers}}{{end}};
+							const mergeForm = {
+								'baseLink': {{.Link}},
+								'textCancel': {{$.locale.Tr "cancel"}},
+								'textDeleteBranch': {{$.locale.Tr "repo.branch.delete" .HeadTarget}},
+								'textAutoMergeButtonWhenSucceed': {{$.locale.Tr "repo.pulls.auto_merge_button_when_succeed"}},
+								'textAutoMergeWhenSucceed': {{$.locale.Tr "repo.pulls.auto_merge_when_succeed"}},
+								'textAutoMergeCancelSchedule': {{$.locale.Tr "repo.pulls.auto_merge_cancel_schedule"}},
+								'textClearMergeMessage': {{$.locale.Tr "repo.pulls.clear_merge_message"}},
+								'textClearMergeMessageHint': {{$.locale.Tr "repo.pulls.clear_merge_message_hint"}},
 
-									'canMergeNow': {{$canMergeNow}},
-									'allOverridableChecksOk': {{not $notAllOverridableChecksOk}},
-									'emptyCommit': {{.Issue.PullRequest.IsEmpty}},
-									'pullHeadCommitID': {{.PullHeadCommitID}},
-									'isPullBranchDeletable': {{.IsPullBranchDeletable}},
-									'defaultMergeStyle': {{.MergeStyle}},
-									'defaultDeleteBranchAfterMerge': {{$prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}},
-									'mergeMessageFieldPlaceHolder': {{$.locale.Tr "repo.editor.commit_message_desc"}},
-									'defaultMergeMessage': defaultMergeMessage,
+								'canMergeNow': {{$canMergeNow}},
+								'allOverridableChecksOk': {{not $notAllOverridableChecksOk}},
+								'emptyCommit': {{.Issue.PullRequest.IsEmpty}},
+								'pullHeadCommitID': {{.PullHeadCommitID}},
+								'isPullBranchDeletable': {{.IsPullBranchDeletable}},
+								'defaultMergeStyle': {{.MergeStyle}},
+								'defaultDeleteBranchAfterMerge': {{$prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}},
+								'mergeMessageFieldPlaceHolder': {{$.locale.Tr "repo.editor.commit_message_desc"}},
+								'defaultMergeMessage': defaultMergeMessage,
 
-									'hasPendingPullRequestMerge': {{.HasPendingPullRequestMerge}},
-									'hasPendingPullRequestMergeTip': {{$hasPendingPullRequestMergeTip}},
-								};
+								'hasPendingPullRequestMerge': {{.HasPendingPullRequestMerge}},
+								'hasPendingPullRequestMergeTip': {{$hasPendingPullRequestMergeTip}},
+							};
 
-								const generalHideAutoMerge = mergeForm.canMergeNow && mergeForm.allOverridableChecksOk; // if this PR can be merged now, then hide the auto merge
-								mergeForm['mergeStyles'] = [
-									{
-										'name': 'merge',
-										'allowed': {{$prUnit.PullRequestsConfig.AllowMerge}},
-										'textDoMerge': {{$.locale.Tr "repo.pulls.merge_pull_request"}},
-										'mergeTitleFieldText': defaultMergeTitle,
-										'mergeMessageFieldText': defaultMergeMessage,
-										'hideAutoMerge': generalHideAutoMerge,
-									},
-									{
-										'name': 'rebase',
-										'allowed': {{$prUnit.PullRequestsConfig.AllowRebase}},
-										'textDoMerge': {{$.locale.Tr "repo.pulls.rebase_merge_pull_request"}},
-										'hideMergeMessageTexts': true,
-										'hideAutoMerge': generalHideAutoMerge,
-									},
-									{
-										'name': 'rebase-merge',
-										'allowed': {{$prUnit.PullRequestsConfig.AllowRebaseMerge}},
-										'textDoMerge': {{$.locale.Tr "repo.pulls.rebase_merge_commit_pull_request"}},
-										'mergeTitleFieldText': defaultMergeTitle,
-										'mergeMessageFieldText': defaultMergeMessage,
-										'hideAutoMerge': generalHideAutoMerge,
-									},
-									{
-										'name': 'squash',
-										'allowed': {{$prUnit.PullRequestsConfig.AllowSquash}},
-										'textDoMerge': {{$.locale.Tr "repo.pulls.squash_merge_pull_request"}},
-										'mergeTitleFieldText': defaultSquashMergeTitle,
-										'mergeMessageFieldText': {{.GetCommitMessages}} + defaultSquashMergeMessage,
-										'hideAutoMerge': generalHideAutoMerge,
-									},
-									{
-										'name': 'manually-merged',
-										'allowed': {{and $prUnit.PullRequestsConfig.AllowManualMerge $.IsRepoAdmin}},
-										'textDoMerge': {{$.locale.Tr "repo.pulls.merge_manually"}},
-										'hideMergeMessageTexts': true,
-										'hideAutoMerge': true,
-									}
-								];
-								window.config.pageData.pullRequestMergeForm = mergeForm;
-							})();
+							const generalHideAutoMerge = mergeForm.canMergeNow && mergeForm.allOverridableChecksOk; // if this PR can be merged now, then hide the auto merge
+							mergeForm['mergeStyles'] = [
+								{
+									'name': 'merge',
+									'allowed': {{$prUnit.PullRequestsConfig.AllowMerge}},
+									'textDoMerge': {{$.locale.Tr "repo.pulls.merge_pull_request"}},
+									'mergeTitleFieldText': defaultMergeTitle,
+									'mergeMessageFieldText': defaultMergeMessage,
+									'hideAutoMerge': generalHideAutoMerge,
+								},
+								{
+									'name': 'rebase',
+									'allowed': {{$prUnit.PullRequestsConfig.AllowRebase}},
+									'textDoMerge': {{$.locale.Tr "repo.pulls.rebase_merge_pull_request"}},
+									'hideMergeMessageTexts': true,
+									'hideAutoMerge': generalHideAutoMerge,
+								},
+								{
+									'name': 'rebase-merge',
+									'allowed': {{$prUnit.PullRequestsConfig.AllowRebaseMerge}},
+									'textDoMerge': {{$.locale.Tr "repo.pulls.rebase_merge_commit_pull_request"}},
+									'mergeTitleFieldText': defaultMergeTitle,
+									'mergeMessageFieldText': defaultMergeMessage,
+									'hideAutoMerge': generalHideAutoMerge,
+								},
+								{
+									'name': 'squash',
+									'allowed': {{$prUnit.PullRequestsConfig.AllowSquash}},
+									'textDoMerge': {{$.locale.Tr "repo.pulls.squash_merge_pull_request"}},
+									'mergeTitleFieldText': defaultSquashMergeTitle,
+									'mergeMessageFieldText': {{.GetCommitMessages}} + defaultSquashMergeMessage,
+									'hideAutoMerge': generalHideAutoMerge,
+								},
+								{
+									'name': 'manually-merged',
+									'allowed': {{and $prUnit.PullRequestsConfig.AllowManualMerge $.IsRepoAdmin}},
+									'textDoMerge': {{$.locale.Tr "repo.pulls.merge_manually"}},
+									'hideMergeMessageTexts': true,
+									'hideAutoMerge': true,
+								}
+							];
+							window.config.pageData.pullRequestMergeForm = mergeForm;
 						</script>
 
 						<div id="pull-request-merge-form"></div>
