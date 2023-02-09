@@ -295,7 +295,7 @@ func LatestRelease(ctx *context.Context) {
 		return
 	}
 
-	ctx.Redirect(release.HTMLURL())
+	ctx.Redirect(release.Link())
 }
 
 // NewRelease render creating or edit release page
