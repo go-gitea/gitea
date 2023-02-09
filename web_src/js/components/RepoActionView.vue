@@ -22,7 +22,7 @@
                 <SvgIcon name="octicon-x-circle-fill" class="red" v-else/>
                 <span class="ui text">{{ job.name }}</span>
               </a>
-              <button class="job-brief-rerun" @click.prevent="rerunJob(index)" v-if="job.canRerun">
+              <button class="job-brief-rerun" @click="rerunJob(index)" v-if="job.canRerun">
                 <SvgIcon name="octicon-sync" class="ui text black"/>
               </button>
             </div>
