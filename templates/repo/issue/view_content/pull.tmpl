@@ -304,7 +304,7 @@
 						{{end}}
 						<div class="ui divider"></div>
 						<script type="module">
-							const issueUrl = `${window.location.origin}${window.config.appSubUrl}` + {{$.Issue.Link}};
+							const issueUrl = window.location.origin + {{$.Issue.Link}};
 							const defaultMergeTitle = {{.DefaultMergeMessage}};
 							const defaultSquashMergeTitle = {{.DefaultSquashMergeMessage}};
 							const defaultMergeMessage = {{if .DefaultMergeBody}}{{.DefaultMergeBody}}{{else}}`Reviewed-on: ${issueUrl}\n` + {{$approvers}}{{end}};
