@@ -12,7 +12,7 @@
 		</a>
 		{{end}}
 		{{if .IsRepoIndexerEnabled}}
-		<a class="{{if $.PageIsOrgCode}}active {{end}}item" href="{{$.Org.HomeLink}}/-/code">
+		<a class="item" href="{{$.Org.HomeLink}}/-/code">
 			{{svg "octicon-code"}}&nbsp;{{$.locale.Tr "org.code"}}
 		</a>
 		{{end}}
