@@ -103,20 +103,18 @@ func GetArchitectures(ctx context.Context, ownerID int64, distribution string) (
 
 func getDistinctPropertyValues(ctx context.Context, ownerID int64, distribution, propName string) ([]string, error) {
 	var cond builder.Cond = builder.Eq{
-		"package_property.ref_type":   packages.PropertyTypeFile,
-		"package_property.name":       propName,
-		"package_version.is_internal": true,
-		"package.type":                packages.TypeDebian,
-		"package.owner_id":            ownerID,
-		"package.is_internal":         true,
+		"package_property.ref_type": packages.PropertyTypeFile,
+		"package_property.name":     propName,
+		"package.type":              packages.TypeDebian,
+		"package.owner_id":          ownerID,
 	}
 	if distribution != "" {
 		innerCond := builder.
 			Expr("pp.ref_id = package_property.ref_id").
 			And(builder.Eq{
-				"package_property.ref_type": packages.PropertyTypeFile,
-				"package_property.name":     debian_module.PropertyDistribution,
-				"package_property.value":    distribution,
+				"pp.ref_type": packages.PropertyTypeFile,
+				"pp.name":     debian_module.PropertyDistribution,
+				"pp.value":    distribution,
 			})
 		cond = cond.And(builder.Exists(builder.Select("pp.ref_id").From("package_property pp").Where(innerCond)))
 	}

@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 	"time"
 
@@ -52,7 +53,6 @@ func GetOrCreateRepositoryVersion(ownerID int64) (*packages_model.PackageVersion
 			}
 		}
 
-		created := true
 		pv := &packages_model.PackageVersion{
 			PackageID:    p.ID,
 			CreatorID:    ownerID,
@@ -62,27 +62,8 @@ func GetOrCreateRepositoryVersion(ownerID int64) (*packages_model.PackageVersion
 			MetadataJSON: "null",
 		}
 		if pv, err = packages_model.GetOrInsertVersion(ctx, pv); err != nil {
-			if err == packages_model.ErrDuplicatePackageVersion {
-				created = false
-			} else {
+			if err != packages_model.ErrDuplicatePackageVersion {
 				log.Error("Error inserting package version: %v", err)
-				return err
-			}
-		}
-
-		if created {
-			priv, pub, err := generateKeypair()
-			if err != nil {
-				return err
-			}
-
-			_, err = packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, debian_module.PropertyKeyPrivate, priv)
-			if err != nil {
-				return err
-			}
-
-			_, err = packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, debian_module.PropertyKeyPublic, pub)
-			if err != nil {
 				return err
 			}
 		}
@@ -91,6 +72,36 @@ func GetOrCreateRepositoryVersion(ownerID int64) (*packages_model.PackageVersion
 
 		return nil
 	})
+}
+
+// GetOrCreateKeyPair gets or creates the PGP keys used to sign repository files
+func GetOrCreateKeyPair(ownerID int64) (string, string, error) {
+	priv, err := user_model.GetSetting(ownerID, debian_module.PropertyKeyPrivate)
+	if err != nil && !errors.Is(err, util.ErrNotExist) {
+		return "", "", err
+	}
+
+	pub, err := user_model.GetSetting(ownerID, debian_module.PropertyKeyPublic)
+	if err != nil && !errors.Is(err, util.ErrNotExist) {
+		return "", "", err
+	}
+
+	if priv == "" || pub == "" {
+		priv, pub, err = generateKeypair()
+		if err != nil {
+			return "", "", err
+		}
+
+		if err := user_model.SetUserSetting(ownerID, debian_module.PropertyKeyPrivate, priv); err != nil {
+			return "", "", err
+		}
+
+		if err := user_model.SetUserSetting(ownerID, debian_module.PropertyKeyPublic, pub); err != nil {
+			return "", "", err
+		}
+	}
+
+	return priv, pub, nil
 }
 
 func generateKeypair() (string, string, error) {
@@ -123,6 +134,7 @@ func generateKeypair() (string, string, error) {
 	return priv.String(), pub.String(), nil
 }
 
+// BuildAllRepositoryFiles (re)builds all repository files for every available distributions, components and architectures
 func BuildAllRepositoryFiles(ctx context.Context, ownerID int64) error {
 	pv, err := GetOrCreateRepositoryVersion(ownerID)
 	if err != nil {
@@ -323,20 +335,21 @@ func buildReleaseFiles(ctx context.Context, ownerID int64, repoVersion *packages
 		return err
 	}
 
+	sort.Strings(components)
+
 	architectures, err := debian_model.GetArchitectures(ctx, ownerID, distribution)
 	if err != nil {
 		return err
 	}
 
-	pps, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypeVersion, repoVersion.ID, debian_module.PropertyKeyPrivate)
+	sort.Strings(architectures)
+
+	priv, _, err := GetOrCreateKeyPair(ownerID)
 	if err != nil {
 		return err
 	}
-	if len(pps) != 1 {
-		panic("should have one private key in repository")
-	}
 
-	block, err := armor.Decode(strings.NewReader(pps[0].Value))
+	block, err := armor.Decode(strings.NewReader(priv))
 	if err != nil {
 		return err
 	}

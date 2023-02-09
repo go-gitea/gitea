@@ -30,23 +30,13 @@ func apiError(ctx *context.Context, status int, obj interface{}) {
 }
 
 func GetRepositoryKey(ctx *context.Context) {
-	pv, err := debian_service.GetOrCreateRepositoryVersion(ctx.Package.Owner.ID)
+	_, pub, err := debian_service.GetOrCreateKeyPair(ctx.Package.Owner.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	pps, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypeVersion, pv.ID, debian_module.PropertyKeyPublic)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	if len(pps) != 1 {
-		apiError(ctx, http.StatusInternalServerError, "unknown property")
-		return
-	}
-
-	ctx.ServeContent(strings.NewReader(pps[0].Value), &context.ServeHeaderOptions{
+	ctx.ServeContent(strings.NewReader(pub), &context.ServeHeaderOptions{
 		ContentType: "application/pgp-keys",
 		Filename:    "repository.key",
 	})
@@ -251,6 +241,7 @@ func DownloadPackageFile(ctx *context.Context) {
 	defer s.Close()
 
 	ctx.ServeContent(s, &context.ServeHeaderOptions{
+		ContentType:  "application/vnd.debian.binary-package",
 		Filename:     pf.Name,
 		LastModified: pf.CreatedUnix.AsLocalTime(),
 	})
