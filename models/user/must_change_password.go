@@ -28,7 +28,7 @@ func SetMustChangePassword(ctx context.Context, all, mustChangePassword bool, in
 
 	var cond builder.Cond
 
-	// Only include the users who are not already set to change password
+	// Only include the users where something changes to get an accurate count 
 	cond = builder.Neq{"must_change_password": mustChangePassword}
 
 	if !all {

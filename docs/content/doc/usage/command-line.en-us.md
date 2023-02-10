@@ -104,8 +104,8 @@ Admin operations:
         - `[username...]`: Users that must change their passwords
       - Options:
         - `--all`, `-A`: Force a password change for all users
-        - `--exclude [username,username...]`, `-e [...]`: Exclude the given users
-        - `--unset`: Instead of setting MustChangePassword, unset it
+        - `--exclude username`, `-e username`: Exclude the given user. Can be set multiple times.
+        - `--unset`: Revoke forced password change for the given users
   - `regenerate`
     - Options:
       - `hooks`: Regenerate Git Hooks for all repositories

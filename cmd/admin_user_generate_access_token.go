@@ -14,7 +14,7 @@ import (
 
 var microcmdUserGenerateAccessToken = cli.Command{
 	Name:  "generate-access-token",
-	Usage: "Generate a access token for a specific user",
+	Usage: "Generate an access token for a specific user",
 	Flags: []cli.Flag{
 		cli.StringFlag{
 			Name:  "username,u",
@@ -40,7 +40,7 @@ var microcmdUserGenerateAccessToken = cli.Command{
 
 func runGenerateAccessToken(c *cli.Context) error {
 	if !c.IsSet("username") {
-		return fmt.Errorf("You must provide the username to generate a token for them")
+		return fmt.Errorf("You must provide a username to generate a token for")
 	}
 
 	ctx, cancel := installSignals()
