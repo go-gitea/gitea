@@ -235,7 +235,7 @@ func (issue *Issue) LoadLabels(ctx context.Context) (err error) {
 // LoadPoster loads poster
 func (issue *Issue) LoadPoster(ctx context.Context) (err error) {
 	if issue.Poster == nil {
-		issue.Poster, err = user_model.GetUserByID(ctx, issue.PosterID)
+		issue.Poster, err = user_model.GetPossibleUserByID(ctx, issue.PosterID)
 		if err != nil {
 			issue.PosterID = -1
 			issue.Poster = user_model.NewGhostUser()
@@ -419,7 +419,7 @@ func (issue *Issue) HTMLURL() string {
 	return fmt.Sprintf("%s/%s/%d", issue.Repo.HTMLURL(), path, issue.Index)
 }
 
-// Link returns the Link URL to this issue.
+// Link returns the issue's relative URL.
 func (issue *Issue) Link() string {
 	var path string
 	if issue.IsPull {
@@ -1251,6 +1251,8 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 	if opts.ProjectID > 0 {
 		sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
 			And("project_issue.project_id=?", opts.ProjectID)
+	} else if opts.ProjectID == db.NoneID { // show those that are in no project
+		sess.And(builder.NotIn("issue.id", builder.Select("issue_id").From("project_issue")))
 	}
 
 	if opts.ProjectBoardID != 0 {
@@ -1572,6 +1574,7 @@ type IssueStatsOptions struct {
 	RepoID            int64
 	Labels            string
 	MilestoneID       int64
+	ProjectID         int64
 	AssigneeID        int64
 	MentionedID       int64
 	PosterID          int64
@@ -1648,6 +1651,11 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 
 		if opts.MilestoneID > 0 {
 			sess.And("issue.milestone_id = ?", opts.MilestoneID)
+		}
+
+		if opts.ProjectID > 0 {
+			sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
+				And("project_issue.project_id=?", opts.ProjectID)
 		}
 
 		if opts.AssigneeID > 0 {

@@ -28,7 +28,7 @@ func Init() {
 		Config: &webauthn.Config{
 			RPDisplayName: setting.AppName,
 			RPID:          setting.Domain,
-			RPOrigin:      appURL,
+			RPOrigins:     []string{appURL},
 			AuthenticatorSelection: protocol.AuthenticatorSelection{
 				UserVerification: "discouraged",
 			},
