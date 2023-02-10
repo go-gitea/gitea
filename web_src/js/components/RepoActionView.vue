@@ -292,7 +292,7 @@ export function initRepositoryActionView() {
 
 .action-view-header {
   margin: 0 20px 20px 20px;
-  button.run_cancel {
+  .run_cancel {
     border: none;
     color: var(--color-red);
     background-color: transparent;
@@ -300,7 +300,7 @@ export function initRepositoryActionView() {
     cursor: pointer;
     transition:transform 0.2s;
   };
-  button.run_cancel:hover{
+  .run_cancel:hover{
     transform:scale(130%);
   };
 }
@@ -328,7 +328,7 @@ export function initRepositoryActionView() {
   }
 
   .job-brief-list {
-    div.job-brief-item {
+    .job-brief-item {
       margin: 5px 0;
       padding: 10px;
       background: var(--color-info-bg);
@@ -337,7 +337,7 @@ export function initRepositoryActionView() {
       display: flex;
       justify-items: center;
       flex-wrap: nowrap;
-      button.job-brief-rerun {
+      .job-brief-rerun {
         float: right;
         border: none;
         background-color: transparent;
@@ -345,10 +345,10 @@ export function initRepositoryActionView() {
         cursor: pointer;
         transition:transform 0.2s;
       };
-      button.job-brief-rerun:hover{
+      .job-brief-rerun:hover{
         transform:scale(130%);
       };
-      a.job-brief-link {
+      .job-brief-link {
         flex-grow: 1;
         display: flex;
         span {
