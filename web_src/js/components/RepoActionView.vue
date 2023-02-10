@@ -358,7 +358,7 @@ export function initRepositoryActionView() {
         }
       }
     }
-    div.job-brief-item:hover {
+    .job-brief-item:hover {
       background-color: var(--color-secondary);
     }
   }
