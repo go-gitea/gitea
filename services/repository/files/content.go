@@ -158,7 +158,7 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 		return nil, fmt.Errorf("no commit found for the ref [ref: %s]", ref)
 	}
 
-	selfURL, err := url.Parse(fmt.Sprintf("%s/contents/%s?ref=%s", repo.APIURL(), treePath, origRef))
+	selfURL, err := url.Parse(fmt.Sprintf("%s/contents/%s?ref=%s", repo.APIURL(), url.PathEscape(treePath), origRef))
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +217,7 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 	}
 	// Handle links
 	if entry.IsRegular() || entry.IsLink() {
-		downloadURL, err := url.Parse(fmt.Sprintf("%s/raw/%s/%s/%s", repo.HTMLURL(), refType, ref, treePath))
+		downloadURL, err := url.Parse(fmt.Sprintf("%s/raw/%s/%s/%s", repo.HTMLURL(), refType, ref, url.PathEscape(treePath)))
 		if err != nil {
 			return nil, err
 		}
@@ -225,7 +225,7 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 		contentsResponse.DownloadURL = &downloadURLString
 	}
 	if !entry.IsSubModule() {
-		htmlURL, err := url.Parse(fmt.Sprintf("%s/src/%s/%s/%s", repo.HTMLURL(), refType, ref, treePath))
+		htmlURL, err := url.Parse(fmt.Sprintf("%s/src/%s/%s/%s", repo.HTMLURL(), refType, ref, url.PathEscape(treePath)))
 		if err != nil {
 			return nil, err
 		}
