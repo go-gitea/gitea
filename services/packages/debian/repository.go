@@ -76,12 +76,12 @@ func GetOrCreateRepositoryVersion(ownerID int64) (*packages_model.PackageVersion
 
 // GetOrCreateKeyPair gets or creates the PGP keys used to sign repository files
 func GetOrCreateKeyPair(ownerID int64) (string, string, error) {
-	priv, err := user_model.GetSetting(ownerID, debian_module.PropertyKeyPrivate)
+	priv, err := user_model.GetSetting(ownerID, debian_module.SettingKeyPrivate)
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		return "", "", err
 	}
 
-	pub, err := user_model.GetSetting(ownerID, debian_module.PropertyKeyPublic)
+	pub, err := user_model.GetSetting(ownerID, debian_module.SettingKeyPublic)
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		return "", "", err
 	}
@@ -92,11 +92,11 @@ func GetOrCreateKeyPair(ownerID int64) (string, string, error) {
 			return "", "", err
 		}
 
-		if err := user_model.SetUserSetting(ownerID, debian_module.PropertyKeyPrivate, priv); err != nil {
+		if err := user_model.SetUserSetting(ownerID, debian_module.SettingKeyPrivate, priv); err != nil {
 			return "", "", err
 		}
 
-		if err := user_model.SetUserSetting(ownerID, debian_module.PropertyKeyPublic, pub); err != nil {
+		if err := user_model.SetUserSetting(ownerID, debian_module.SettingKeyPublic, pub); err != nil {
 			return "", "", err
 		}
 	}

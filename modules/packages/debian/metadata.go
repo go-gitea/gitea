@@ -25,9 +25,10 @@ const (
 	PropertyComponent                  = "debian.component"
 	PropertyArchitecture               = "debian.architecture"
 	PropertyControl                    = "debian.control"
-	PropertyKeyPrivate                 = "debian.key.private"
-	PropertyKeyPublic                  = "debian.key.public"
 	PropertyRepositoryIncludeInRelease = "debian.repository.include_in_release"
+
+	SettingKeyPrivate = "debian.key.private"
+	SettingKeyPublic  = "debian.key.public"
 
 	RepositoryPackage = "_debian"
 	RepositoryVersion = "_repository"
