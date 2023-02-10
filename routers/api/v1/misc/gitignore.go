@@ -51,5 +51,5 @@ func GetGitignoreTemplateInfo(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, &structs.GitignoreTemplateInfo{Name: name, Source: string(text[:])})
+	ctx.JSON(http.StatusOK, &structs.GitignoreTemplateInfo{Name: name, Source: string(text)})
 }

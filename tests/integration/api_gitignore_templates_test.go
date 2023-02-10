@@ -49,5 +49,5 @@ func TestAPIGetGitignoreTemplateInfo(t *testing.T) {
 	text, _ := options.Gitignore(templateName)
 
 	assert.Equal(t, templateInfo.Name, templateName)
-	assert.Equal(t, templateInfo.Source, string(text[:]))
+	assert.Equal(t, templateInfo.Source, string(text))
 }
