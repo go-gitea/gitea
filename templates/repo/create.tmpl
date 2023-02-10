@@ -43,7 +43,7 @@
 
 					<div class="inline required field {{if .Err_RepoName}}error{{end}}">
 						<label for="repo_name">{{.locale.Tr "repo.repo_name"}}</label>
-						<input id="repo_name" name="repo_name" value="{{.repo_name}}" autofocus required>
+						<input id="repo_name" name="repo_name" value="{{.RepoName}}" autofocus required>
 						<span class="help">{{.locale.Tr "repo.repo_name_helper"}}</span>
 					</div>
 					<div class="inline field">
@@ -53,7 +53,7 @@
 								<input name="private" type="checkbox" checked readonly>
 								<label>{{.locale.Tr "repo.visibility_helper_forced" | Safe}}</label>
 							{{else}}
-								<input name="private" type="checkbox" {{if .private}}checked{{end}}>
+								<input name="private" type="checkbox" {{if .Private}}checked{{end}}>
 								<label>{{.locale.Tr "repo.visibility_helper" | Safe}}</label>
 							{{end}}
 						</div>
@@ -61,13 +61,13 @@
 					</div>
 					<div class="inline field {{if .Err_Description}}error{{end}}">
 						<label for="description">{{.locale.Tr "repo.repo_desc"}}</label>
-						<textarea id="description" name="description" placeholder="{{.locale.Tr "repo.repo_desc_helper"}}">{{.description}}</textarea>
+						<textarea id="description" name="description" placeholder="{{.locale.Tr "repo.repo_desc_helper"}}">{{.Description}}</textarea>
 					</div>
 					<div class="inline field">
 						<label>{{.locale.Tr "repo.template"}}</label>
 						<div id="repo_template_search" class="ui search normal selection dropdown">
-							<input type="hidden" id="repo_template" name="repo_template" value="{{.repo_template}}">
-							<div class="default text">{{.repo_template_name}}</div>
+							<input type="hidden" id="repo_template" name="repo_template" value="{{.RepoTemplate}}">
+							<div class="default text">{{.RepoTemplateName}}</div>
 							<div class="menu">
 							</div>
 						</div>
@@ -77,33 +77,33 @@
 						<div class="inline field">
 							<label>{{.locale.Tr "repo.template.items"}}</label>
 							<div class="ui checkbox">
-								<input class="hidden" name="git_content" type="checkbox" tabindex="0" {{if .git_content}}checked{{end}}>
+								<input class="hidden" name="git_content" type="checkbox" tabindex="0" {{if .GitContent}}checked{{end}}>
 								<label>{{.locale.Tr "repo.template.git_content"}}</label>
 							</div>
 							<div class="ui checkbox{{if not .SignedUser.CanEditGitHook}} tooltip{{end}}"{{if not .SignedUser.CanEditGitHook}} data-content="{{.locale.Tr "repo.template.git_hooks_tooltip"}}"{{end}}>
-								<input class="hidden" name="git_hooks" type="checkbox" tabindex="0" {{if .git_hooks}}checked{{end}}>
+								<input class="hidden" name="git_hooks" type="checkbox" tabindex="0" {{if .GitHooks}}checked{{end}}>
 								<label>{{.locale.Tr "repo.template.git_hooks"}}</label>
 							</div>
 						</div>
 						<div class="inline field">
 							<label></label>
 							<div class="ui checkbox">
-								<input class="hidden" name="webhooks" type="checkbox" tabindex="0" {{if .webhooks}}checked{{end}}>
+								<input class="hidden" name="webhooks" type="checkbox" tabindex="0" {{if .Webhooks}}checked{{end}}>
 								<label>{{.locale.Tr "repo.template.webhooks"}}</label>
 							</div>
 							<div class="ui checkbox">
-								<input class="hidden" name="topics" type="checkbox" tabindex="0" {{if .topics}}checked{{end}}>
+								<input class="hidden" name="topics" type="checkbox" tabindex="0" {{if .Topics}}checked{{end}}>
 								<label>{{.locale.Tr "repo.template.topics"}}</label>
 							</div>
 						</div>
 						<div class="inline field">
 							<label></label>
 							<div class="ui checkbox">
-								<input class="hidden" name="avatar" type="checkbox" tabindex="0" {{if .avatar}}checked{{end}}>
+								<input class="hidden" name="avatar" type="checkbox" tabindex="0" {{if .Avatar}}checked{{end}}>
 								<label>{{.locale.Tr "repo.template.avatar"}}</label>
 							</div>
 							<div class="ui checkbox">
-								<input class="hidden" name="labels" type="checkbox" tabindex="0" {{if .labels}}checked{{end}}>
+								<input class="hidden" name="labels" type="checkbox" tabindex="0" {{if .Labels}}checked{{end}}>
 								<label>{{.locale.Tr "repo.template.issue_labels"}}</label>
 							</div>
 						</div>
@@ -113,7 +113,7 @@
 						<div class="inline field">
 							<label>{{.locale.Tr "repo.issue_labels"}}</label>
 							<div class="ui search normal selection dropdown">
-								<input type="hidden" name="issue_labels" value="{{.issueLabels}}">
+								<input type="hidden" name="issue_labels" value="{{.IssueLabels}}">
 								<div class="default text">{{.locale.Tr "repo.issue_labels_helper"}}</div>
 								<div class="menu">
 									<div class="item" data-value="">{{.locale.Tr "repo.issue_labels_helper"}}</div>
@@ -129,10 +129,10 @@
 						<div class="inline field">
 							<label>.gitignore</label>
 							<div class="ui multiple search normal selection dropdown">
-								<input type="hidden" name="gitignores" value="{{.gitignores}}">
+								<input type="hidden" name="gitignores" value="{{.Gitignores}}">
 								<div class="default text">{{.locale.Tr "repo.repo_gitignore_helper"}}</div>
 								<div class="menu">
-									{{range .Gitignores}}
+									{{range .DefaultGitignores}}
 										<div class="item" data-value="{{.}}">{{.}}</div>
 									{{end}}
 								</div>
@@ -142,7 +142,7 @@
 						<div class="inline field">
 							<label>{{.locale.Tr "repo.license"}}</label>
 							<div class="ui search selection dropdown">
-								<input type="hidden" name="license" value="{{.license}}">
+								<input type="hidden" name="license" value="{{.License}}">
 								<div class="default text">{{.locale.Tr "repo.license_helper"}}</div>
 								<div class="menu">
 									<div class="item" data-value="">{{.locale.Tr "repo.license_helper"}}</div>
@@ -157,7 +157,7 @@
 						<div class="inline field">
 							<label>{{.locale.Tr "repo.readme"}}</label>
 							<div class="ui selection dropdown">
-								<input type="hidden" name="readme" value="{{.readme}}">
+								<input type="hidden" name="readme" value="{{.Readme}}">
 								<div class="default text">{{.locale.Tr "repo.readme_helper"}}</div>
 								<div class="menu">
 									{{range .Readmes}}
@@ -169,19 +169,19 @@
 						</div>
 						<div class="inline field">
 							<div class="ui checkbox" id="auto-init">
-								<input class="hidden" name="auto_init" type="checkbox" tabindex="0" {{if .auto_init}}checked{{end}}>
+								<input class="hidden" name="auto_init" type="checkbox" tabindex="0" {{if .AutoInit}}checked{{end}}>
 								<label>{{.locale.Tr "repo.auto_init"}}</label>
 							</div>
 						</div>
 						<div class="inline field">
 							<label for="default_branch">{{.locale.Tr "repo.default_branch"}}</label>
-							<input id="default_branch" name="default_branch" value="{{.default_branch}}" placeholder="{{.default_branch}}">
+							<input id="default_branch" name="default_branch" value="{{.DefaultBranch}}" placeholder="{{.DefaultBranch}}">
 							<span class="help">{{.locale.Tr "repo.default_branch_helper"}}</span>
 						</div>
 						<div class="inline field">
 							<label>{{.locale.Tr "repo.settings.trust_model"}}</label>
 							<div class="ui selection owner dropdown">
-								<input type="hidden" id="trust_model" name="trust_model" value="default" required>
+								<input type="hidden" id="trust_model" name="trust_model" value="{{.TrustModel}}" required>
 								<div class="default text">{{.locale.Tr "repo.settings.trust_model"}}</div>
 								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 								<div class="menu">
@@ -204,7 +204,7 @@
 						<div class="inline field">
 							<label>{{.locale.Tr "repo.template"}}</label>
 							<div class="ui checkbox">
-								<input class="hidden" name="template" type="checkbox" tabindex="0">
+								<input class="hidden" name="template" type="checkbox" tabindex="0" {{if .Template}}checked{{end}}>
 								<label>{{.locale.Tr "repo.template_helper"}}</label>
 							</div>
 						</div>
