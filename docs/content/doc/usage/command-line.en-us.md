@@ -101,7 +101,7 @@ Admin operations:
         - `gitea admin user change-password --username myname --password asecurepassword`
     - `must-change-password`:
       - Args:
-        - `[username...]`: Users to set MustChangePassword for
+        - `[username...]`: Users that must change their passwords
       - Options:
         - `--all`, `-A`: Force a password change for all users
         - `--exclude [username,username...]`, `-e [...]`: Exclude the given users
