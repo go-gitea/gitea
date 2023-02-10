@@ -26,27 +26,8 @@ func init() {
 
 // AssignForm assign form values back to the template data.
 func AssignForm(form interface{}, data map[string]interface{}) {
-	typ := reflect.TypeOf(form)
-	val := reflect.ValueOf(form)
-
-	for typ.Kind() == reflect.Ptr {
-		typ = typ.Elem()
-		val = val.Elem()
-	}
-
-	for i := 0; i < typ.NumField(); i++ {
-		field := typ.Field(i)
-
-		fieldName := field.Tag.Get("form")
-		// Allow ignored fields in the struct
-		if fieldName == "-" {
-			continue
-		} else if len(fieldName) == 0 {
-			fieldName = util.ToSnakeCase(field.Name)
-		}
-
-		data[fieldName] = val.Field(i).Interface()
-	}
+	// TODO: Allow ignored fields in the struct?
+	data["Form"] = form
 }
 
 func getRuleBody(field reflect.StructField, prefix string) string {
