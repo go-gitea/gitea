@@ -131,15 +131,14 @@ func Create(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_repo")
 
 	// Give default value for template to render.
-	ctx.Data["DefaultGitignores"] = repo_module.Gitignores
+	ctx.Data["Gitignores"] = repo_module.Gitignores
 	ctx.Data["LabelTemplates"] = repo_module.LabelTemplates
 	ctx.Data["Licenses"] = repo_module.Licenses
 	ctx.Data["Readmes"] = repo_module.Readmes
-	ctx.Data["Readme"] = "Default"
-	ctx.Data["Private"] = getRepoPrivate(ctx)
+	ctx.Data["readme"] = "Default"
+	ctx.Data["private"] = getRepoPrivate(ctx)
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
-	ctx.Data["DefaultBranch"] = setting.Repository.DefaultBranch
-	ctx.Data["TrustModel"] = "Default"
+	ctx.Data["default_branch"] = setting.Repository.DefaultBranch
 
 	ctxUser := checkContextUser(ctx, ctx.FormInt64("org"))
 	if ctx.Written() {
@@ -147,13 +146,13 @@ func Create(ctx *context.Context) {
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
-	ctx.Data["RepoTemplateName"] = ctx.Tr("repo.template_select")
+	ctx.Data["repo_template_name"] = ctx.Tr("repo.template_select")
 	templateID := ctx.FormInt64("template_id")
 	if templateID > 0 {
 		templateRepo, err := repo_model.GetRepositoryByID(ctx, templateID)
 		if err == nil && access_model.CheckRepoUnitUser(ctx, templateRepo, ctxUser, unit.TypeCode) {
-			ctx.Data["RepoTemplate"] = templateID
-			ctx.Data["RepoTemplateName"] = templateRepo.Name
+			ctx.Data["repo_template"] = templateID
+			ctx.Data["repo_template_name"] = templateRepo.Name
 		}
 	}
 
@@ -200,7 +199,7 @@ func CreatePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateRepoForm)
 	ctx.Data["Title"] = ctx.Tr("new_repo")
 
-	ctx.Data["DefaultGitignores"] = repo_module.Gitignores
+	ctx.Data["Gitignores"] = repo_module.Gitignores
 	ctx.Data["LabelTemplates"] = repo_module.LabelTemplates
 	ctx.Data["Licenses"] = repo_module.Licenses
 	ctx.Data["Readmes"] = repo_module.Readmes
