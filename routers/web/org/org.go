@@ -27,7 +27,11 @@ const (
 // Create render the page for create organization
 func Create(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_org")
-	ctx.Data["DefaultOrgVisibilityMode"] = setting.Service.DefaultOrgVisibilityMode
+	ctx.Data["Form"] = forms.CreateOrgForm{
+		Visibility:                setting.Service.DefaultOrgVisibilityMode,
+		RepoAdminChangeTeamAccess: true,
+	}
+
 	if !ctx.Doer.CanCreateOrganization() {
 		ctx.ServerError("Not allowed", errors.New(ctx.Tr("org.form.create_org_not_allowed")))
 		return
