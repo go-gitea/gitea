@@ -48,7 +48,6 @@ import {
   initCommitStatuses,
 } from './features/repo-commit.js';
 import {
-  checkAppUrl,
   initFootLanguageMenu,
   initGlobalButtonClickOnEnter,
   initGlobalButtons,
@@ -199,5 +198,4 @@ $(document).ready(() => {
   initUserAuthWebAuthnRegister();
   initUserSettings();
   initViewedCheckboxListenerFor();
-  checkAppUrl();
 });
