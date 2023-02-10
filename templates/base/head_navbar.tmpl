@@ -3,22 +3,24 @@
 	{{if .IsSigned}}
 		{{if .NotificationUnreadCount}}{{$notificationUnreadCount = call .NotificationUnreadCount}}{{end}}
 	{{end}}
-	<div class="item brand" style="justify-content: space-between;">
+	<div class="item brand sb">
 		<a href="{{AppSubUrl}}/" aria-label="{{if .IsSigned}}{{.locale.Tr "dashboard"}}{{else}}{{.locale.Tr "home"}}{{end}}">
 			<img width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{.locale.Tr "logo"}}" aria-hidden="true">
 		</a>
-		{{if .IsSigned}}
-		<a href="{{AppSubUrl}}/notifications" class="tooltip mobile-only" data-content='{{.locale.Tr "notifications"}}'>
-			<span class="text black">
-				<span class="fitted">{{svg "octicon-bell"}}</span>
-				<span class="ui red label mini{{if not $notificationUnreadCount}} hidden{{end}} notification_count">
-					{{$notificationUnreadCount}}
+		<div class="df ac">
+			{{if .IsSigned}}
+			<a href="{{AppSubUrl}}/notifications" class="tooltip mobile-only mr-4 mt-3" data-content="{{.locale.Tr "notifications"}}" aria-label="{{.locale.Tr "notifications"}}">
+				<span class="fitted item">
+					{{svg "octicon-bell"}}
+					<span class="notification_count{{if not $notificationUnreadCount}} hidden{{end}}">
+						{{$notificationUnreadCount}}
+					</span>
 				</span>
-			</span>
-		</a>
-		{{end}}
-		<div class="ui basic icon button mobile-only" id="navbar-expand-toggle">
-			<i class="sidebar icon"></i>
+			</a>
+			{{end}}
+			<div class="ui icon button mobile-only" id="navbar-expand-toggle">
+				{{svg "octicon-three-bars"}}
+			</div>
 		</div>
 	</div>
 
@@ -78,12 +80,10 @@
 	{{else if .IsSigned}}
 		<div class="right stackable menu">
 			{{if EnableTimetracking}}
-			<a class="active-stopwatch-trigger item ui label {{if not .ActiveStopwatch}}hidden{{end}}" href="{{.ActiveStopwatch.IssueLink}}">
-				<span class="text">
-					<span class="fitted item">
-						{{svg "octicon-stopwatch"}}
-						<span class="red" style="position:absolute; right:-0.6em; top:-0.6em;">{{svg "octicon-dot-fill"}}</span>
-					</span>
+			<a class="active-stopwatch-trigger item ui mx-0{{if not .ActiveStopwatch}} hidden{{end}}" href="{{.ActiveStopwatch.IssueLink}}">
+				<span class="fitted relative">
+					{{svg "octicon-stopwatch"}}
+					<span class="header-stopwatch-dot"></span>
 					<span class="sr-mobile-only">{{.locale.Tr "active_stopwatch"}}</span>
 				</span>
 			</a>
@@ -118,16 +118,16 @@
 			</div>
 			{{end}}
 
-			<a href="{{AppSubUrl}}/notifications" class="item tooltip not-mobile" data-content="{{.locale.Tr "notifications"}}" aria-label="{{.locale.Tr "notifications"}}">
-				<span class="text">
-					<span class="fitted">{{svg "octicon-bell"}}</span>
-					<span class="ui red label {{if not $notificationUnreadCount}}hidden{{end}} notification_count">
+			<a href="{{AppSubUrl}}/notifications" class="item tooltip not-mobile mx-0" data-content="{{.locale.Tr "notifications"}}" aria-label="{{.locale.Tr "notifications"}}">
+				<span class="fitted item">
+					{{svg "octicon-bell"}}
+					<span class="notification_count{{if not $notificationUnreadCount}} hidden{{end}}">
 						{{$notificationUnreadCount}}
 					</span>
 				</span>
 			</a>
 
-			<div class="ui dropdown jump item tooltip" data-content="{{.locale.Tr "create_new"}}">
+			<div class="ui dropdown jump item tooltip mx-0" data-content="{{.locale.Tr "create_new"}}">
 				<span class="text">
 					<span class="fitted">{{svg "octicon-plus"}}</span>
 					<span class="sr-mobile-only">{{.locale.Tr "create_new"}}</span>
@@ -150,7 +150,7 @@
 				</div><!-- end content create new menu -->
 			</div><!-- end dropdown menu create new -->
 
-			<div class="ui dropdown jump item tooltip" tabindex="-1" data-content="{{.locale.Tr "user_profile_and_more"}}">
+			<div class="ui dropdown jump item tooltip mx-0" tabindex="-1" data-content="{{.locale.Tr "user_profile_and_more"}}">
 				<span class="text">
 					{{avatar .SignedUser 24 "tiny"}}
 					<span class="sr-only">{{.locale.Tr "user_profile_and_more"}}</span>

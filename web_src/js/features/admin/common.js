@@ -1,11 +1,16 @@
 import $ from 'jquery';
+import {checkAppUrl} from '../common-global.js';
 
 const {csrfToken} = window.config;
 
 export function initAdminCommon() {
-  if ($('.admin').length === 0) {
+  if ($('.page-content.admin').length === 0) {
     return;
   }
+
+  // check whether appUrl(ROOT_URL) is correct, if not, show an error message
+  // only admin pages need this check because most templates are using relative URLs now
+  checkAppUrl();
 
   // New user
   if ($('.admin.new.user').length > 0 || $('.admin.edit.user').length > 0) {
