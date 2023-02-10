@@ -103,7 +103,7 @@ Admin operations:
       - Args:
         - `[username...]`: Users to set MustChangePassword for
       - Options:
-        - `--all`, `-A`: Set MustChangePassword for all users
+        - `--all`, `-A`: Force a password change for all users
         - `--exclude [username,username...]`, `-e [...]`: Exclude the given users
         - `--unset`: Instead of setting MustChangePassword, unset it
   - `regenerate`
