@@ -42,7 +42,7 @@ func AssignForm(form interface{}, data map[string]interface{}) {
 		if fieldName == "-" {
 			continue
 		} else if len(fieldName) == 0 {
-			fieldName = field.Name
+			fieldName = util.ToSnakeCase(field.Name)
 		}
 
 		data[fieldName] = val.Field(i).Interface()
