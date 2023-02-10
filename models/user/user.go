@@ -640,10 +640,8 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 	u.IsRestricted = setting.Service.DefaultUserIsRestricted
 	u.IsActive = !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm)
 
-	if u.CreatedUnix == 0 {
-		u.CreatedUnix = timeutil.TimeStampNow()
-	}
-	if u.UpdatedUnix == 0 {
+	// Ensure consistency of the dates.
+	if u.UpdatedUnix < u.CreatedUnix {
 		u.UpdatedUnix = u.CreatedUnix
 	}
 
@@ -725,9 +723,11 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 	}
 
 	if u.CreatedUnix == 0 {
+		fmt.Println("u.CreatedUnix == 0")
 		// Caller expects auto-time for creation & update timestamps.
 		err = db.Insert(ctx, u)
 	} else {
+		fmt.Printf("u.CreatedUnix == %d\n", u.CreatedUnix)
 		// Caller sets the timestamps themselves. They are responsible for ensuring
 		// both `CreatedUnix` and `UpdatedUnix` are set appropriately.
 		_, err = db.GetEngine(ctx).NoAutoTime().Insert(u)
