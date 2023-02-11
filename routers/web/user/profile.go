@@ -47,7 +47,7 @@ func Profile(ctx *context.Context) {
 	}
 
 	// advertise feed via meta tag
-	ctx.Data["FeedURL"] = ctx.ContextUser.HTMLURL()
+	ctx.Data["FeedURL"] = ctx.ContextUser.HomeLink()
 
 	// Show OpenID URIs
 	openIDs, err := user_model.GetUserOpenIDs(ctx.ContextUser.ID)
@@ -224,7 +224,7 @@ func Profile(ctx *context.Context) {
 
 		total = int(count)
 	case "projects":
-		ctx.Data["OpenProjects"], _, err = project_model.GetProjects(ctx, project_model.SearchOptions{
+		ctx.Data["OpenProjects"], _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
 			Page:     -1,
 			IsClosed: util.OptionalBoolFalse,
 			Type:     project_model.TypeIndividual,

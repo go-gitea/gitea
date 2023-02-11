@@ -4,9 +4,10 @@ import {mqBinarySearch} from '../utils.js';
 import {createDropzone} from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';
-import {attachDropdownAria} from './aria.js';
+import {attachCheckboxAria, attachDropdownAria} from './aria.js';
 import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
 import {initTooltip} from '../modules/tippy.js';
+import {svg} from '../svg.js';
 
 const {appUrl, csrfToken} = window.config;
 
@@ -59,6 +60,7 @@ export function initGlobalButtonClickOnEnter() {
   $(document).on('keypress', '.ui.button', (e) => {
     if (e.keyCode === 13 || e.keyCode === 32) { // enter key or space bar
       $(e.target).trigger('click');
+      e.preventDefault();
     }
   });
 }
@@ -110,7 +112,7 @@ export function initGlobalCommon() {
   });
   attachDropdownAria($uiDropdowns);
 
-  $('.ui.checkbox').checkbox();
+  attachCheckboxAria($('.ui.checkbox'));
 
   $('.tabular.menu .item').tab();
   $('.tabable.menu .item').tab();
@@ -167,6 +169,21 @@ export function initGlobalDropzone() {
           file.uuid = data.uuid;
           const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
           $dropzone.find('.files').append(input);
+          // Create a "Copy Link" element, to conveniently copy the image
+          // or file link as Markdown to the clipboard
+          const copyLinkElement = document.createElement('div');
+          copyLinkElement.className = 'tc';
+          // The a element has a hardcoded cursor: pointer because the default is overridden by .dropzone
+          copyLinkElement.innerHTML = `<a href="#" style="cursor: pointer;">${svg('octicon-copy', 14, 'copy link')} Copy link</a>`;
+          copyLinkElement.addEventListener('click', (e) => {
+            e.preventDefault();
+            let fileMarkdown = `[${file.name}](/attachments/${file.uuid})`;
+            if (file.type.startsWith('image/')) {
+              fileMarkdown = `!${fileMarkdown}`;
+            }
+            navigator.clipboard.writeText(fileMarkdown);
+          });
+          file.previewTemplate.appendChild(copyLinkElement);
         });
         this.on('removedfile', (file) => {
           $(`#${file.uuid}`).remove();
@@ -365,9 +382,6 @@ export function checkAppUrl() {
   if (curUrl.startsWith(appUrl) || `${curUrl}/` === appUrl) {
     return;
   }
-  if (document.querySelector('.page-content.install')) {
-    return; // no need to show the message on the installation page
-  }
-  showGlobalErrorMessage(`Your ROOT_URL in app.ini is ${appUrl} but you are visiting ${curUrl}
-You should set ROOT_URL correctly, otherwise the web may not work correctly.`);
+  showGlobalErrorMessage(`Your ROOT_URL in app.ini is "${appUrl}", it's unlikely matching the site you are visiting.
+Mismatched ROOT_URL config causes wrong URL links for web UI/mail content/webhook notification.`);
 }

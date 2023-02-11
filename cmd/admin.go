@@ -180,6 +180,11 @@ var (
 				Name:  "raw",
 				Usage: "Display only the token value",
 			},
+			cli.StringFlag{
+				Name:  "scopes",
+				Value: "",
+				Usage: "Comma separated list of scopes to apply to access token",
+			},
 		},
 		Action: runGenerateAccessToken,
 	}
@@ -304,6 +309,11 @@ var (
 			Usage: "Use custom URLs for GitLab/GitHub OAuth endpoints",
 		},
 		cli.StringFlag{
+			Name:  "custom-tenant-id",
+			Value: "",
+			Usage: "Use custom Tenant ID for OAuth endpoints",
+		},
+		cli.StringFlag{
 			Name:  "custom-auth-url",
 			Value: "",
 			Usage: "Use a custom Authorization URL (option for GitLab/GitHub)",
@@ -365,6 +375,15 @@ var (
 		cli.BoolFlag{
 			Name:  "force-oauth",
 			Usage: "set to force all logins to the configured oauth provider",
+		},
+		cli.StringFlag{
+			Name:  "group-team-map",
+			Value: "",
+			Usage: "JSON mapping between groups and org teams",
+		},
+		cli.BoolFlag{
+			Name:  "group-team-map-removal",
+			Usage: "Activate automatic team membership removal depending on groups",
 		},
 	}
 
@@ -577,12 +596,16 @@ func runCreateUser(c *cli.Context) error {
 		restricted = util.OptionalBoolOf(c.Bool("restricted"))
 	}
 
+	// default user visibility in app.ini
+	visibility := setting.Service.DefaultUserVisibilityMode
+
 	u := &user_model.User{
 		Name:               username,
 		Email:              c.String("email"),
 		Passwd:             password,
 		IsAdmin:            c.Bool("admin"),
 		MustChangePassword: changePassword,
+		Visibility:         visibility,
 	}
 
 	overwriteDefault := &user_model.CreateUserOverwriteOptions{
@@ -702,9 +725,15 @@ func runGenerateAccessToken(c *cli.Context) error {
 		return err
 	}
 
+	accessTokenScope, err := auth_model.AccessTokenScope(c.String("scopes")).Normalize()
+	if err != nil {
+		return err
+	}
+
 	t := &auth_model.AccessToken{
-		Name: c.String("token-name"),
-		UID:  user.ID,
+		Name:  c.String("token-name"),
+		UID:   user.ID,
+		Scope: accessTokenScope,
 	}
 
 	if err := auth_model.NewAccessToken(t); err != nil {
@@ -818,6 +847,7 @@ func parseOAuth2Config(c *cli.Context) *oauth2.Source {
 			AuthURL:    c.String("custom-auth-url"),
 			ProfileURL: c.String("custom-profile-url"),
 			EmailURL:   c.String("custom-email-url"),
+			Tenant:     c.String("custom-tenant-id"),
 		}
 	} else {
 		customURLMapping = nil
@@ -837,6 +867,8 @@ func parseOAuth2Config(c *cli.Context) *oauth2.Source {
 		GroupClaimName:                c.String("group-claim-name"),
 		AdminGroup:                    c.String("admin-group"),
 		RestrictedGroup:               c.String("restricted-group"),
+		GroupTeamMap:                  c.String("group-team-map"),
+		GroupTeamMapRemoval:           c.Bool("group-team-map-removal"),
 	}
 }
 
@@ -922,6 +954,12 @@ func runUpdateOauth(c *cli.Context) error {
 	if c.IsSet("force-oauth") {
 		oAuth2Config.ForceOAuth = c.BoolT("force-oauth")
 	}
+	if c.IsSet("group-team-map") {
+		oAuth2Config.GroupTeamMap = c.String("group-team-map")
+	}
+	if c.IsSet("group-team-map-removal") {
+		oAuth2Config.GroupTeamMapRemoval = c.Bool("group-team-map-removal")
+	}
 
 	// update custom URL mapping
 	customURLMapping := &oauth2.CustomURLMapping{}
@@ -931,6 +969,7 @@ func runUpdateOauth(c *cli.Context) error {
 		customURLMapping.AuthURL = oAuth2Config.CustomURLMapping.AuthURL
 		customURLMapping.ProfileURL = oAuth2Config.CustomURLMapping.ProfileURL
 		customURLMapping.EmailURL = oAuth2Config.CustomURLMapping.EmailURL
+		customURLMapping.Tenant = oAuth2Config.CustomURLMapping.Tenant
 	}
 	if c.IsSet("use-custom-urls") && c.IsSet("custom-token-url") {
 		customURLMapping.TokenURL = c.String("custom-token-url")
@@ -946,6 +985,10 @@ func runUpdateOauth(c *cli.Context) error {
 
 	if c.IsSet("use-custom-urls") && c.IsSet("custom-email-url") {
 		customURLMapping.EmailURL = c.String("custom-email-url")
+	}
+
+	if c.IsSet("use-custom-urls") && c.IsSet("custom-tenant-id") {
+		customURLMapping.Tenant = c.String("custom-tenant-id")
 	}
 
 	oAuth2Config.CustomURLMapping = customURLMapping

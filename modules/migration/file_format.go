@@ -76,7 +76,7 @@ func validate(bs []byte, datatype interface{}, isJSON bool) error {
 	}
 	err = sch.Validate(v)
 	if err != nil {
-		log.Error("migration validation with %s failed for\n%s", schemaFilename, string(bs))
+		log.Error("migration validation with %s failed:\n%#v", schemaFilename, err)
 	}
 	return err
 }

@@ -8,6 +8,9 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -16,9 +19,15 @@ import (
 )
 
 type (
-	// ProjectsConfig is used to identify the type of board that is being created
-	ProjectsConfig struct {
+	// BoardConfig is used to identify the type of board that is being created
+	BoardConfig struct {
 		BoardType   BoardType
+		Translation string
+	}
+
+	// CardConfig is used to identify the type of board card that is being used
+	CardConfig struct {
+		CardType    CardType
 		Translation string
 	}
 
@@ -78,13 +87,17 @@ func (err ErrProjectBoardNotExist) Unwrap() error {
 
 // Project represents a project board
 type Project struct {
-	ID          int64  `xorm:"pk autoincr"`
-	Title       string `xorm:"INDEX NOT NULL"`
-	Description string `xorm:"TEXT"`
-	RepoID      int64  `xorm:"INDEX"`
-	CreatorID   int64  `xorm:"NOT NULL"`
-	IsClosed    bool   `xorm:"INDEX"`
+	ID          int64                  `xorm:"pk autoincr"`
+	Title       string                 `xorm:"INDEX NOT NULL"`
+	Description string                 `xorm:"TEXT"`
+	OwnerID     int64                  `xorm:"INDEX"`
+	Owner       *user_model.User       `xorm:"-"`
+	RepoID      int64                  `xorm:"INDEX"`
+	Repo        *repo_model.Repository `xorm:"-"`
+	CreatorID   int64                  `xorm:"NOT NULL"`
+	IsClosed    bool                   `xorm:"INDEX"`
 	BoardType   BoardType
+	CardType    CardType
 	Type        Type
 
 	RenderedContent string `xorm:"-"`
@@ -94,23 +107,72 @@ type Project struct {
 	ClosedDateUnix timeutil.TimeStamp
 }
 
+func (p *Project) LoadOwner(ctx context.Context) (err error) {
+	if p.Owner != nil {
+		return nil
+	}
+	p.Owner, err = user_model.GetUserByID(ctx, p.OwnerID)
+	return err
+}
+
+func (p *Project) LoadRepo(ctx context.Context) (err error) {
+	if p.RepoID == 0 || p.Repo != nil {
+		return nil
+	}
+	p.Repo, err = repo_model.GetRepositoryByID(ctx, p.RepoID)
+	return err
+}
+
+// Link returns the project's relative URL.
+func (p *Project) Link() string {
+	if p.OwnerID > 0 {
+		err := p.LoadOwner(db.DefaultContext)
+		if err != nil {
+			log.Error("LoadOwner: %v", err)
+			return ""
+		}
+		return fmt.Sprintf("%s/-/projects/%d", p.Owner.HomeLink(), p.ID)
+	}
+	if p.RepoID > 0 {
+		err := p.LoadRepo(db.DefaultContext)
+		if err != nil {
+			log.Error("LoadRepo: %v", err)
+			return ""
+		}
+		return fmt.Sprintf("%s/projects/%d", p.Repo.Link(), p.ID)
+	}
+	return ""
+}
+
+func (p *Project) IsOrganizationProject() bool {
+	return p.Type == TypeOrganization
+}
+
 func init() {
 	db.RegisterModel(new(Project))
 }
 
-// GetProjectsConfig retrieves the types of configurations projects could have
-func GetProjectsConfig() []ProjectsConfig {
-	return []ProjectsConfig{
+// GetBoardConfig retrieves the types of configurations project boards could have
+func GetBoardConfig() []BoardConfig {
+	return []BoardConfig{
 		{BoardTypeNone, "repo.projects.type.none"},
 		{BoardTypeBasicKanban, "repo.projects.type.basic_kanban"},
 		{BoardTypeBugTriage, "repo.projects.type.bug_triage"},
 	}
 }
 
+// GetCardConfig retrieves the types of configurations project board cards could have
+func GetCardConfig() []CardConfig {
+	return []CardConfig{
+		{CardTypeTextOnly, "repo.projects.card_type.text_only"},
+		{CardTypeImagesAndText, "repo.projects.card_type.images_and_text"},
+	}
+}
+
 // IsTypeValid checks if a project type is valid
 func IsTypeValid(p Type) bool {
 	switch p {
-	case TypeRepository:
+	case TypeRepository, TypeOrganization:
 		return true
 	default:
 		return false
@@ -119,6 +181,7 @@ func IsTypeValid(p Type) bool {
 
 // SearchOptions are options for GetProjects
 type SearchOptions struct {
+	OwnerID  int64
 	RepoID   int64
 	Page     int
 	IsClosed util.OptionalBool
@@ -126,12 +189,11 @@ type SearchOptions struct {
 	Type     Type
 }
 
-// GetProjects returns a list of all projects that have been created in the repository
-func GetProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, error) {
-	e := db.GetEngine(ctx)
-	projects := make([]*Project, 0, setting.UI.IssuePagingNum)
-
-	var cond builder.Cond = builder.Eq{"repo_id": opts.RepoID}
+func (opts *SearchOptions) toConds() builder.Cond {
+	cond := builder.NewCond()
+	if opts.RepoID > 0 {
+		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	}
 	switch opts.IsClosed {
 	case util.OptionalBoolTrue:
 		cond = cond.And(builder.Eq{"is_closed": true})
@@ -142,6 +204,22 @@ func GetProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, er
 	if opts.Type > 0 {
 		cond = cond.And(builder.Eq{"type": opts.Type})
 	}
+	if opts.OwnerID > 0 {
+		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
+	}
+	return cond
+}
+
+// CountProjects counts projects
+func CountProjects(ctx context.Context, opts SearchOptions) (int64, error) {
+	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(Project))
+}
+
+// FindProjects returns a list of all projects that have been created in the repository
+func FindProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, error) {
+	e := db.GetEngine(ctx)
+	projects := make([]*Project, 0, setting.UI.IssuePagingNum)
+	cond := opts.toConds()
 
 	count, err := e.Where(cond).Count(new(Project))
 	if err != nil {
@@ -174,6 +252,10 @@ func NewProject(p *Project) error {
 		p.BoardType = BoardTypeNone
 	}
 
+	if !IsCardTypeValid(p.CardType) {
+		p.CardType = CardTypeTextOnly
+	}
+
 	if !IsTypeValid(p.Type) {
 		return util.NewInvalidArgumentErrorf("project type is not valid")
 	}
@@ -188,8 +270,10 @@ func NewProject(p *Project) error {
 		return err
 	}
 
-	if _, err := db.Exec(ctx, "UPDATE `repository` SET num_projects = num_projects + 1 WHERE id = ?", p.RepoID); err != nil {
-		return err
+	if p.RepoID > 0 {
+		if _, err := db.Exec(ctx, "UPDATE `repository` SET num_projects = num_projects + 1 WHERE id = ?", p.RepoID); err != nil {
+			return err
+		}
 	}
 
 	if err := createBoardsForProjectsType(ctx, p); err != nil {
@@ -215,9 +299,14 @@ func GetProjectByID(ctx context.Context, id int64) (*Project, error) {
 
 // UpdateProject updates project properties
 func UpdateProject(ctx context.Context, p *Project) error {
+	if !IsCardTypeValid(p.CardType) {
+		p.CardType = CardTypeTextOnly
+	}
+
 	_, err := db.GetEngine(ctx).ID(p.ID).Cols(
 		"title",
 		"description",
+		"card_type",
 	).Update(p)
 	return err
 }

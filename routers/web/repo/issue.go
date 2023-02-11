@@ -100,7 +100,7 @@ func MustAllowUserComment(ctx *context.Context) {
 
 	if issue.IsLocked && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
 		ctx.Flash.Error(ctx.Tr("repo.issues.comment_on_locked"))
-		ctx.Redirect(issue.HTMLURL())
+		ctx.Redirect(issue.Link())
 		return
 	}
 }
@@ -203,6 +203,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			RepoID:            repo.ID,
 			Labels:            selectLabels,
 			MilestoneID:       milestoneID,
+			ProjectID:         projectID,
 			AssigneeID:        assigneeID,
 			MentionedID:       mentionedID,
 			PosterID:          posterID,
@@ -362,17 +363,9 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		return 0
 	}
 
-	if ctx.Repo.CanWriteIssuesOrPulls(ctx.Params(":type") == "pulls") {
-		projects, _, err := project_model.GetProjects(ctx, project_model.SearchOptions{
-			RepoID:   repo.ID,
-			Type:     project_model.TypeRepository,
-			IsClosed: util.OptionalBoolOf(isShowClosed),
-		})
-		if err != nil {
-			ctx.ServerError("GetProjects", err)
-			return
-		}
-		ctx.Data["Projects"] = projects
+	retrieveProjects(ctx, repo)
+	if ctx.Written() {
+		return
 	}
 
 	ctx.Data["IssueStats"] = issueStats
@@ -381,6 +374,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
 	ctx.Data["MilestoneID"] = milestoneID
+	ctx.Data["ProjectID"] = projectID
 	ctx.Data["AssigneeID"] = assigneeID
 	ctx.Data["PosterID"] = posterID
 	ctx.Data["IsShowClosed"] = isShowClosed
@@ -397,6 +391,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	pager.AddParam(ctx, "state", "State")
 	pager.AddParam(ctx, "labels", "SelectLabels")
 	pager.AddParam(ctx, "milestone", "MilestoneID")
+	pager.AddParam(ctx, "project", "ProjectID")
 	pager.AddParam(ctx, "assignee", "AssigneeID")
 	pager.AddParam(ctx, "poster", "PosterID")
 	ctx.Data["Page"] = pager
@@ -474,8 +469,7 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 
 func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 	var err error
-
-	ctx.Data["OpenProjects"], _, err = project_model.GetProjects(ctx, project_model.SearchOptions{
+	projects, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
 		RepoID:   repo.ID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolFalse,
@@ -485,8 +479,20 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		ctx.ServerError("GetProjects", err)
 		return
 	}
+	projects2, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
+		OwnerID:  repo.OwnerID,
+		Page:     -1,
+		IsClosed: util.OptionalBoolFalse,
+		Type:     project_model.TypeOrganization,
+	})
+	if err != nil {
+		ctx.ServerError("GetProjects", err)
+		return
+	}
 
-	ctx.Data["ClosedProjects"], _, err = project_model.GetProjects(ctx, project_model.SearchOptions{
+	ctx.Data["OpenProjects"] = append(projects, projects2...)
+
+	projects, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
 		RepoID:   repo.ID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolTrue,
@@ -496,6 +502,18 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		ctx.ServerError("GetProjects", err)
 		return
 	}
+	projects2, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
+		OwnerID:  repo.OwnerID,
+		Page:     -1,
+		IsClosed: util.OptionalBoolTrue,
+		Type:     project_model.TypeOrganization,
+	})
+	if err != nil {
+		ctx.ServerError("GetProjects", err)
+		return
+	}
+
+	ctx.Data["ClosedProjects"] = append(projects, projects2...)
 }
 
 // repoReviewerSelection items to bee shown
@@ -760,6 +778,14 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 		ctx.Data[ctxDataKey] = template.Content
 
 		if template.Type() == api.IssueTemplateTypeYaml {
+			// Replace field default values by values from query
+			for _, field := range template.Fields {
+				fieldValue := ctx.FormString("field:" + field.ID)
+				if fieldValue != "" {
+					field.Attributes["value"] = fieldValue
+				}
+			}
+
 			ctx.Data["Fields"] = template.Fields
 			ctx.Data["TemplateFile"] = template.FileName
 		}
@@ -784,7 +810,8 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 			}
 
 		}
-		if !strings.HasPrefix(template.Ref, "refs/") { // Assume that the ref intended is always a branch - for tags users should use refs/tags/<ref>
+
+		if template.Ref != "" && !strings.HasPrefix(template.Ref, "refs/") { // Assume that the ref intended is always a branch - for tags users should use refs/tags/<ref>
 			template.Ref = git.BranchPrefix + template.Ref
 		}
 		ctx.Data["HasSelectedLabel"] = len(labelIDs) > 0
@@ -900,7 +927,7 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 
 	if len(issueTemplates) == 0 {
 		// The "issues/new" and "issues/new/choose" share the same query parameters "project" and "milestone", if no template here, just redirect to the "issues/new" page with these parameters.
-		ctx.Redirect(fmt.Sprintf("%s/issues/new?%s", ctx.Repo.Repository.HTMLURL(), ctx.Req.URL.RawQuery), http.StatusSeeOther)
+		ctx.Redirect(fmt.Sprintf("%s/issues/new?%s", ctx.Repo.Repository.Link(), ctx.Req.URL.RawQuery), http.StatusSeeOther)
 		return
 	}
 
@@ -923,11 +950,11 @@ func DeleteIssue(ctx *context.Context) {
 	}
 
 	if issue.IsPull {
-		ctx.Redirect(fmt.Sprintf("%s/pulls", ctx.Repo.Repository.HTMLURL()), http.StatusSeeOther)
+		ctx.Redirect(fmt.Sprintf("%s/pulls", ctx.Repo.Repository.Link()), http.StatusSeeOther)
 		return
 	}
 
-	ctx.Redirect(fmt.Sprintf("%s/issues", ctx.Repo.Repository.HTMLURL()), http.StatusSeeOther)
+	ctx.Redirect(fmt.Sprintf("%s/issues", ctx.Repo.Repository.Link()), http.StatusSeeOther)
 }
 
 // ValidateRepoMetas check and returns repository's meta information
@@ -987,7 +1014,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 			ctx.ServerError("GetProjectByID", err)
 			return nil, nil, 0, 0
 		}
-		if p.RepoID != ctx.Repo.Repository.ID {
+		if p.RepoID != ctx.Repo.Repository.ID && p.OwnerID != ctx.Repo.Repository.OwnerID {
 			ctx.NotFound("", nil)
 			return nil, nil, 0, 0
 		}
@@ -1398,7 +1425,7 @@ func ViewIssue(ctx *context.Context) {
 						return
 					}
 					// Add link to the issue of the already running stopwatch
-					ctx.Data["OtherStopwatchURL"] = otherIssue.HTMLURL()
+					ctx.Data["OtherStopwatchURL"] = otherIssue.Link()
 				}
 			}
 			ctx.Data["CanUseTimetracker"] = ctx.Repo.CanUseTimetracker(issue, ctx.Doer)
@@ -2328,6 +2355,8 @@ func SearchIssues(ctx *context.Context) {
 		includedMilestones = strings.Split(milestones, ",")
 	}
 
+	projectID := ctx.FormInt64("project")
+
 	// this api is also used in UI,
 	// so the default limit is set to fit UI needs
 	limit := ctx.FormInt("limit")
@@ -2350,6 +2379,7 @@ func SearchIssues(ctx *context.Context) {
 			IssueIDs:           issueIDs,
 			IncludedLabelNames: includedLabelNames,
 			IncludeMilestones:  includedMilestones,
+			ProjectID:          projectID,
 			SortType:           "priorityrepo",
 			PriorityRepoID:     ctx.FormInt64("priority_repo_id"),
 			IsPull:             isPull,
@@ -2487,6 +2517,8 @@ func ListIssues(ctx *context.Context) {
 		}
 	}
 
+	projectID := ctx.FormInt64("project")
+
 	listOptions := db.ListOptions{
 		Page:     ctx.FormInt("page"),
 		PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
@@ -2526,6 +2558,7 @@ func ListIssues(ctx *context.Context) {
 			IssueIDs:          issueIDs,
 			LabelIDs:          labelIDs,
 			MilestoneIDs:      mileIDs,
+			ProjectID:         projectID,
 			IsPull:            isPull,
 			UpdatedBeforeUnix: before,
 			UpdatedAfterUnix:  since,
@@ -2575,7 +2608,7 @@ func UpdateIssueStatus(ctx *context.Context) {
 	}
 	for _, issue := range issues {
 		if issue.IsClosed != isClosed {
-			if err := issue_service.ChangeStatus(issue, ctx.Doer, isClosed); err != nil {
+			if err := issue_service.ChangeStatus(issue, ctx.Doer, "", isClosed); err != nil {
 				if issues_model.IsErrDependenciesLeft(err) {
 					ctx.JSON(http.StatusPreconditionFailed, map[string]interface{}{
 						"error": "cannot close this issue because it still has open dependencies",
@@ -2625,7 +2658,7 @@ func NewComment(ctx *context.Context) {
 
 	if issue.IsLocked && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
 		ctx.Flash.Error(ctx.Tr("repo.issues.comment_on_locked"))
-		ctx.Redirect(issue.HTMLURL())
+		ctx.Redirect(issue.Link())
 		return
 	}
 
@@ -2636,7 +2669,7 @@ func NewComment(ctx *context.Context) {
 
 	if ctx.HasError() {
 		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
-		ctx.Redirect(issue.HTMLURL())
+		ctx.Redirect(issue.Link())
 		return
 	}
 
@@ -2672,7 +2705,7 @@ func NewComment(ctx *context.Context) {
 				ctx.Flash.Info(ctx.Tr("repo.pulls.open_unmerged_pull_exists", pr.Index))
 			} else {
 				isClosed := form.Status == "close"
-				if err := issue_service.ChangeStatus(issue, ctx.Doer, isClosed); err != nil {
+				if err := issue_service.ChangeStatus(issue, ctx.Doer, "", isClosed); err != nil {
 					log.Error("ChangeStatus: %v", err)
 
 					if issues_model.IsErrDependenciesLeft(err) {

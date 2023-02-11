@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content user profile">
+<div role="main" aria-label="{{.Title}}" class="page-content user profile">
 	<div class="ui container">
 		<div class="ui stackable grid">
 			<div class="ui five wide column">
@@ -105,6 +105,9 @@
 				<div class="ui secondary stackable pointing tight menu">
 					<a class='{{if and (ne .TabName "activity") (ne .TabName "following") (ne .TabName "followers") (ne .TabName "stars") (ne .TabName "watching") (ne .TabName "projects") (ne .TabName "code")}}active {{end}}item' href="{{.Owner.HomeLink}}">
 						{{svg "octicon-repo"}} {{.locale.Tr "user.repositories"}}
+					</a>
+					<a href="{{.Owner.HomeLink}}/-/projects" class="{{if eq .TabName "projects"}}active {{end}}item">
+						{{svg "octicon-project"}} {{.locale.Tr "user.projects"}}
 					</a>
 					{{if .IsPackageEnabled}}
 					<a class='{{if eq .TabName "packages"}}active {{end}}item' href="{{.Owner.HomeLink}}/-/packages">

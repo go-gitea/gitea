@@ -1,4 +1,4 @@
-<div class="page-content user notification" id="notification_div" data-params="{{.Page.GetParams}}" data-sequence-number="{{.SequenceNumber}}">
+<div role="main" aria-label="{{.Title}}" class="page-content user notification" id="notification_div" data-params="{{.Page.GetParams}}" data-sequence-number="{{.SequenceNumber}}">
 	<div class="ui container">
 		<h1 class="ui dividing header">{{.locale.Tr "notification.notifications"}}</h1>
 		<div class="ui top attached tabular menu">
@@ -35,7 +35,7 @@
 							{{$issue := .Issue}}
 							{{$repo := .Repository}}
 							<tr id="notification_{{.ID}}">
-								<td class="collapsing" data-href="{{.HTMLURL}}">
+								<td class="collapsing" data-href="{{.Link}}">
 									{{if eq .Status 3}}
 										<span class="blue">{{svg "octicon-pin"}}</span>
 									{{else if not $issue}}
@@ -58,8 +58,8 @@
 										{{end}}
 									{{end}}
 								</td>
-								<td class="eleven wide" data-href="{{.HTMLURL}}">
-									<a class="item" href="{{.HTMLURL}}">
+								<td class="eleven wide" data-href="{{.Link}}">
+									<a class="item" href="{{.Link}}">
 										{{if $issue}}
 											#{{$issue.Index}} - {{$issue.Title}}
 										{{else}}

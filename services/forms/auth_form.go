@@ -72,6 +72,8 @@ type AuthenticationForm struct {
 	Oauth2GroupClaimName          string
 	Oauth2AdminGroup              string
 	Oauth2RestrictedGroup         string
+	Oauth2GroupTeamMap            string `binding:"ValidGroupTeamMap"`
+	Oauth2GroupTeamMapRemoval     bool
 	SkipLocalTwoFA                bool
 	ForceOAuth                    bool
 	SSPIAutoCreateUsers           bool
@@ -79,7 +81,7 @@ type AuthenticationForm struct {
 	SSPIStripDomainNames          bool
 	SSPISeparatorReplacement      string `binding:"AlphaDashDot;MaxSize(5)"`
 	SSPIDefaultLanguage           string
-	GroupTeamMap                  string
+	GroupTeamMap                  string `binding:"ValidGroupTeamMap"`
 	GroupTeamMapRemoval           bool
 }
 

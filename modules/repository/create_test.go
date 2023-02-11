@@ -49,7 +49,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	assert.NoError(t, organization.CreateOrganization(org, user), "CreateOrganization")
 
 	// Check Owner team.
-	ownerTeam, err := org.GetOwnerTeam()
+	ownerTeam, err := org.GetOwnerTeam(db.DefaultContext)
 	assert.NoError(t, err, "GetOwnerTeam")
 	assert.True(t, ownerTeam.IncludesAllRepositories, "Owner team includes all repositories")
 
@@ -63,7 +63,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 		}
 	}
 	// Get fresh copy of Owner team after creating repos.
-	ownerTeam, err = org.GetOwnerTeam()
+	ownerTeam, err = org.GetOwnerTeam(db.DefaultContext)
 	assert.NoError(t, err, "GetOwnerTeam")
 
 	// Create teams and check repositories.
