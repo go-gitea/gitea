@@ -56,6 +56,29 @@ func (org *Organization) UnitPermission(ctx *Context, doerID int64, unitType uni
 	return perm.AccessModeNone
 }
 
+func GetOrganizationByParams(ctx *Context) {
+	orgName := ctx.Params(":org")
+
+	var err error
+
+	ctx.Org.Organization, err = organization.GetOrgByName(ctx, orgName)
+	if err != nil {
+		if organization.IsErrOrgNotExist(err) {
+			redirectUserID, err := user_model.LookupUserRedirect(orgName)
+			if err == nil {
+				RedirectToUser(ctx, orgName, redirectUserID)
+			} else if user_model.IsErrUserRedirectNotExist(err) {
+				ctx.NotFound("GetUserByName", err)
+			} else {
+				ctx.ServerError("LookupUserRedirect", err)
+			}
+		} else {
+			ctx.ServerError("GetUserByName", err)
+		}
+		return
+	}
+}
+
 // HandleOrgAssignment handles organization assignment
 func HandleOrgAssignment(ctx *Context, args ...bool) {
 	var (
@@ -77,25 +100,17 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 		requireTeamAdmin = args[3]
 	}
 
-	orgName := ctx.Params(":org")
-
 	var err error
-	ctx.Org.Organization, err = organization.GetOrgByName(ctx, orgName)
-	if err != nil {
-		if organization.IsErrOrgNotExist(err) {
-			redirectUserID, err := user_model.LookupUserRedirect(orgName)
-			if err == nil {
-				RedirectToUser(ctx, orgName, redirectUserID)
-			} else if user_model.IsErrUserRedirectNotExist(err) {
-				ctx.NotFound("GetUserByName", err)
-			} else {
-				ctx.ServerError("LookupUserRedirect", err)
-			}
-		} else {
-			ctx.ServerError("GetUserByName", err)
+
+	// if Organization is not defined, get it from params
+	if ctx.Org.Organization == nil {
+		GetOrganizationByParams(ctx)
+
+		if ctx.Written() {
+			return
 		}
-		return
 	}
+
 	org := ctx.Org.Organization
 
 	// Handle Visibility

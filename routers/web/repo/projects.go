@@ -177,7 +177,7 @@ func ChangeProjectStatus(ctx *context.Context) {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound("", err)
 		} else {
-			ctx.ServerError("ChangeProjectStatusByIDAndRepoID", err)
+			ctx.ServerError("ChangeProjectStatusByRepoIDAndID", err)
 		}
 		return
 	}

@@ -63,7 +63,8 @@ func userAssignment(ctx *context.Context, errCb func(int, string, interface{})) 
 					ctx.Org = &context.Organization{}
 				}
 				ctx.Org.Organization = (*org_model.Organization)(ctx.ContextUser)
-				ctx.Data["Org"] = ctx.Org.Organization
+
+				context.HandleOrgAssignment(ctx)
 			}
 		}
 	}

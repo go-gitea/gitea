@@ -8,12 +8,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/models/unit"
+	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
@@ -33,7 +33,7 @@ const (
 
 // MustEnableProjects check if projects are enabled in settings
 func MustEnableProjects(ctx *context.Context) {
-	if unit.TypeProjects.UnitGlobalDisabled() {
+	if unit_model.TypeProjects.UnitGlobalDisabled() {
 		ctx.NotFound("EnableKanbanBoard", nil)
 		return
 	}
@@ -108,6 +108,17 @@ func Projects(ctx *context.Context) {
 	ctx.Data["PageIsViewProjects"] = true
 	ctx.Data["SortType"] = sortType
 
+	if ctx.ContextUser.IsOrganization() {
+		ctx.Data["IsOwner"] = ctx.Org.IsOwner
+	} else {
+		if ctx.ContextUser.IsAdmin {
+			ctx.Data["IsOwner"] = true
+		} else {
+			ctx.Data["IsOwner"] = ctx.ContextUser.ID == ctx.Doer.ID
+		}
+	}
+	ctx.Data["DoerID"] = ctx.Doer.ID
+
 	ctx.HTML(http.StatusOK, tplProjects)
 }
 
@@ -167,19 +178,19 @@ func ChangeProjectStatus(ctx *context.Context) {
 	case "close":
 		toClose = true
 	default:
-		ctx.Redirect(ctx.Repo.RepoLink + "/projects")
+		ctx.Redirect(ctx.ContextUser.HomeLink() + "/-/projects")
 	}
 	id := ctx.ParamsInt64(":id")
 
-	if err := project_model.ChangeProjectStatusByRepoIDAndID(ctx.Repo.Repository.ID, id, toClose); err != nil {
+	if err := project_model.ChangeProjectStatusByRepoIDAndID(int64(0), id, toClose); err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound("", err)
 		} else {
-			ctx.ServerError("ChangeProjectStatusByIDAndRepoID", err)
+			ctx.ServerError("ChangeProjectStatusByRepoIDAndID", err)
 		}
 		return
 	}
-	ctx.Redirect(ctx.Repo.RepoLink + "/projects?state=" + url.QueryEscape(ctx.Params(":action")))
+	ctx.Redirect(ctx.ContextUser.HomeLink() + "/-/projects?state=" + url.QueryEscape(ctx.Params(":action")))
 }
 
 // DeleteProject delete a project
@@ -193,7 +204,7 @@ func DeleteProject(ctx *context.Context) {
 		}
 		return
 	}
-	if p.RepoID != ctx.Repo.Repository.ID {
+	if p.OwnerID != ctx.ContextUser.ID {
 		ctx.NotFound("", nil)
 		return
 	}
@@ -205,7 +216,7 @@ func DeleteProject(ctx *context.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": ctx.Repo.RepoLink + "/projects",
+		"redirect": ctx.ContextUser.HomeLink() + "/-/projects",
 	})
 }
 
@@ -226,7 +237,8 @@ func EditProject(ctx *context.Context) {
 		}
 		return
 	}
-	if p.RepoID != ctx.Repo.Repository.ID {
+
+	if p.OwnerID != ctx.ContextUser.ID {
 		ctx.NotFound("", nil)
 		return
 	}
@@ -260,7 +272,8 @@ func EditProjectPost(ctx *context.Context) {
 		}
 		return
 	}
-	if p.RepoID != ctx.Repo.Repository.ID {
+
+	if p.OwnerID != ctx.ContextUser.ID {
 		ctx.NotFound("", nil)
 		return
 	}
@@ -273,7 +286,7 @@ func EditProjectPost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.projects.edit_success", p.Title))
-	ctx.Redirect(ctx.Repo.RepoLink + "/projects")
+	ctx.Redirect(ctx.ContextUser.HomeLink() + "/-/projects")
 }
 
 // ViewProject renders the project board for a project
@@ -336,73 +349,21 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["Project"] = project
 	ctx.Data["IssuesMap"] = issuesMap
 	ctx.Data["Boards"] = boards
+
+	if ctx.ContextUser.IsOrganization() {
+		ctx.Data["IsOwner"] = ctx.Org.IsOwner
+	} else {
+		if ctx.ContextUser.IsAdmin {
+			ctx.Data["IsOwner"] = true
+		} else {
+			ctx.Data["IsOwner"] = ctx.ContextUser.ID == ctx.Doer.ID
+		}
+	}
+	ctx.Data["IsProjectCreator"] = project.CreatorID == ctx.Doer.ID
+
 	shared_user.RenderUserHeader(ctx)
 
 	ctx.HTML(http.StatusOK, tplProjectsView)
-}
-
-func getActionIssues(ctx *context.Context) []*issues_model.Issue {
-	commaSeparatedIssueIDs := ctx.FormString("issue_ids")
-	if len(commaSeparatedIssueIDs) == 0 {
-		return nil
-	}
-	issueIDs := make([]int64, 0, 10)
-	for _, stringIssueID := range strings.Split(commaSeparatedIssueIDs, ",") {
-		issueID, err := strconv.ParseInt(stringIssueID, 10, 64)
-		if err != nil {
-			ctx.ServerError("ParseInt", err)
-			return nil
-		}
-		issueIDs = append(issueIDs, issueID)
-	}
-	issues, err := issues_model.GetIssuesByIDs(ctx, issueIDs)
-	if err != nil {
-		ctx.ServerError("GetIssuesByIDs", err)
-		return nil
-	}
-	// Check access rights for all issues
-	issueUnitEnabled := ctx.Repo.CanRead(unit.TypeIssues)
-	prUnitEnabled := ctx.Repo.CanRead(unit.TypePullRequests)
-	for _, issue := range issues {
-		if issue.RepoID != ctx.Repo.Repository.ID {
-			ctx.NotFound("some issue's RepoID is incorrect", errors.New("some issue's RepoID is incorrect"))
-			return nil
-		}
-		if issue.IsPull && !prUnitEnabled || !issue.IsPull && !issueUnitEnabled {
-			ctx.NotFound("IssueOrPullRequestUnitNotAllowed", nil)
-			return nil
-		}
-		if err = issue.LoadAttributes(ctx); err != nil {
-			ctx.ServerError("LoadAttributes", err)
-			return nil
-		}
-	}
-	return issues
-}
-
-// UpdateIssueProject change an issue's project
-func UpdateIssueProject(ctx *context.Context) {
-	issues := getActionIssues(ctx)
-	if ctx.Written() {
-		return
-	}
-
-	projectID := ctx.FormInt64("id")
-	for _, issue := range issues {
-		oldProjectID := issue.ProjectID()
-		if oldProjectID == projectID {
-			continue
-		}
-
-		if err := issues_model.ChangeProjectAssign(issue, ctx.Doer, projectID); err != nil {
-			ctx.ServerError("ChangeProjectAssign", err)
-			return
-		}
-	}
-
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"ok": true,
-	})
 }
 
 // DeleteProjectBoard allows for the deletion of a project board
