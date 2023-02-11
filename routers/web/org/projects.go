@@ -12,7 +12,6 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
-	"code.gitea.io/gitea/models/unit"
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -111,7 +110,7 @@ func Projects(ctx *context.Context) {
 	if ctx.ContextUser.IsOrganization() {
 		ctx.Data["IsOwner"] = ctx.Org.IsOwner
 	} else {
-		if ctx.ContextUser.IsAdmin {
+		if ctx.Doer.IsAdmin {
 			ctx.Data["IsOwner"] = true
 		} else {
 			ctx.Data["IsOwner"] = ctx.ContextUser.ID == ctx.Doer.ID
@@ -124,7 +123,7 @@ func Projects(ctx *context.Context) {
 
 func canWriteUnit(ctx *context.Context) bool {
 	if ctx.ContextUser.IsOrganization() {
-		return ctx.Org.CanWriteUnit(ctx, unit.TypeProjects)
+		return ctx.Org.CanWriteUnit(ctx, unit_model.TypeProjects)
 	}
 	return ctx.Doer != nil && ctx.ContextUser.ID == ctx.Doer.ID
 }
@@ -353,7 +352,7 @@ func ViewProject(ctx *context.Context) {
 	if ctx.ContextUser.IsOrganization() {
 		ctx.Data["IsOwner"] = ctx.Org.IsOwner
 	} else {
-		if ctx.ContextUser.IsAdmin {
+		if ctx.Doer.IsAdmin {
 			ctx.Data["IsOwner"] = true
 		} else {
 			ctx.Data["IsOwner"] = ctx.ContextUser.ID == ctx.Doer.ID
