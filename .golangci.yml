@@ -173,3 +173,6 @@ issues:
       linters:
         - revive
       text: "exported: type name will be used as user.UserBadge by other packages, and that stutters; consider calling this Badge"
+    - path: models/db/sql_postgres_with_schema.go
+      linters:
+        - nolintlint
