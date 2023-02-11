@@ -10,7 +10,7 @@
       />
       <a
         v-if="item.isFile"
-        class="file ellipsis"
+        class="file ellipsis muted"
         :href="item.isFile ? '#diff-' + item.file.NameHash : ''"
       >{{ item.name }}</a>
       <SvgIcon
@@ -86,10 +86,6 @@ span.svg-icon.status {
 
 span.svg-icon.file {
   color: var(--color-secondary-dark-7);
-}
-
-a.file {
-  color: var(--color-text);
 }
 
 span.svg-icon.directory {
