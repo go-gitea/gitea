@@ -330,13 +330,13 @@ func (repo *Repository) CommitsBetweenSkipBase(last, before *Commit, baseBranch 
 	var stdout []byte
 	var err error
 	if before == nil {
-		stdout, _, err = NewCommand(repo.Ctx, "rev-list").AddDynamicArguments(last.ID.String()).AddArguments("--not").AddDynamicArguments(baseBranch).RunStdBytes(&RunOpts{Dir: repo.Path})
+		stdout, _, err = NewCommand(repo.Ctx, "rev-list").AddDynamicArguments(last.ID.String()).AddOptionValues("--not", baseBranch).RunStdBytes(&RunOpts{Dir: repo.Path})
 	} else {
-		stdout, _, err = NewCommand(repo.Ctx, "rev-list").AddDynamicArguments(before.ID.String() + ".." + last.ID.String()).AddArguments("--not").AddDynamicArguments(baseBranch).RunStdBytes(&RunOpts{Dir: repo.Path})
+		stdout, _, err = NewCommand(repo.Ctx, "rev-list").AddDynamicArguments(before.ID.String()+".."+last.ID.String()).AddOptionValues("--not", baseBranch).RunStdBytes(&RunOpts{Dir: repo.Path})
 		if err != nil && strings.Contains(err.Error(), "no merge base") {
 			// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
 			// previously it would return the results of git rev-list before last so let's try that...
-			stdout, _, err = NewCommand(repo.Ctx, "rev-list").AddDynamicArguments(before.ID.String(), last.ID.String()).AddArguments("--not").AddDynamicArguments(baseBranch).RunStdBytes(&RunOpts{Dir: repo.Path})
+			stdout, _, err = NewCommand(repo.Ctx, "rev-list").AddDynamicArguments(before.ID.String(), last.ID.String()).AddOptionValues("--not", baseBranch).RunStdBytes(&RunOpts{Dir: repo.Path})
 		}
 	}
 	if err != nil {
