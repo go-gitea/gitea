@@ -63,7 +63,7 @@ export default {
       if (itemIsFile) {
         return;
       }
-      this.$set(this, 'collapsed', !this.collapsed);
+      this.collapsed = !this.collapsed;
     },
     getIconForDiffType(pType) {
       const diffTypes = {
@@ -122,6 +122,8 @@ span.svg-icon.octicon-diff-renamed {
 div.directory {
   display: grid;
   grid-template-columns: 18px 20px auto;
+  user-select: none;
+  cursor: pointer;
 }
 
 div.directory:hover {
