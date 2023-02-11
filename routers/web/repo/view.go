@@ -318,7 +318,7 @@ func renderReadmeFile(ctx *context.Context, readmeFile *namedBlob, readmeTreelin
 
 	if fInfo.isLFSFile {
 		filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(readmeFile.name))
-		ctx.Data["RawFileLink"] = fmt.Sprintf("%s.git/info/lfs/objects/%s/%s", ctx.Repo.Repository.HTMLURL(), url.PathEscape(fInfo.lfsMeta.Oid), url.PathEscape(filenameBase64))
+		ctx.Data["RawFileLink"] = fmt.Sprintf("%s.git/info/lfs/objects/%s/%s", ctx.Repo.Repository.Link(), url.PathEscape(fInfo.lfsMeta.Oid), url.PathEscape(filenameBase64))
 	}
 
 	if !fInfo.isTextFile {
@@ -738,7 +738,7 @@ func Home(ctx *context.Context) {
 		}
 
 		ctx.Data["EnableFeed"] = true
-		ctx.Data["FeedURL"] = ctx.Repo.Repository.HTMLURL()
+		ctx.Data["FeedURL"] = ctx.Repo.Repository.Link()
 	}
 
 	checkHomeCodeViewable(ctx)

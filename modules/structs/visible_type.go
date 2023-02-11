@@ -3,7 +3,7 @@
 
 package structs
 
-// VisibleType defines the visibility (Organization only)
+// VisibleType defines the visibility of user and org
 type VisibleType int
 
 const (
@@ -13,11 +13,11 @@ const (
 	// VisibleTypeLimited Visible for every connected user
 	VisibleTypeLimited
 
-	// VisibleTypePrivate Visible only for organization's members
+	// VisibleTypePrivate Visible only for self or admin user
 	VisibleTypePrivate
 )
 
-// VisibilityModes is a map of org Visibility types
+// VisibilityModes is a map of Visibility types
 var VisibilityModes = map[string]VisibleType{
 	"public":  VisibleTypePublic,
 	"limited": VisibleTypeLimited,

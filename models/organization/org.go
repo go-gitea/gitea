@@ -110,22 +110,14 @@ func (org *Organization) CanCreateOrgRepo(uid int64) (bool, error) {
 	return CanCreateOrgRepo(db.DefaultContext, org.ID, uid)
 }
 
-func (org *Organization) getTeam(ctx context.Context, name string) (*Team, error) {
+// GetTeam returns named team of organization.
+func (org *Organization) GetTeam(ctx context.Context, name string) (*Team, error) {
 	return GetTeam(ctx, org.ID, name)
 }
 
-// GetTeam returns named team of organization.
-func (org *Organization) GetTeam(name string) (*Team, error) {
-	return org.getTeam(db.DefaultContext, name)
-}
-
-func (org *Organization) getOwnerTeam(ctx context.Context) (*Team, error) {
-	return org.getTeam(ctx, OwnerTeamName)
-}
-
 // GetOwnerTeam returns owner team of organization.
-func (org *Organization) GetOwnerTeam() (*Team, error) {
-	return org.getOwnerTeam(db.DefaultContext)
+func (org *Organization) GetOwnerTeam(ctx context.Context) (*Team, error) {
+	return org.GetTeam(ctx, OwnerTeamName)
 }
 
 // FindOrgTeams returns all teams of a given organization
@@ -342,7 +334,7 @@ func CreateOrganization(org *Organization, owner *user_model.User) (err error) {
 }
 
 // GetOrgByName returns organization by given name.
-func GetOrgByName(name string) (*Organization, error) {
+func GetOrgByName(ctx context.Context, name string) (*Organization, error) {
 	if len(name) == 0 {
 		return nil, ErrOrgNotExist{0, name}
 	}
@@ -350,7 +342,7 @@ func GetOrgByName(name string) (*Organization, error) {
 		LowerName: strings.ToLower(name),
 		Type:      user_model.UserTypeOrganization,
 	}
-	has, err := db.GetEngine(db.DefaultContext).Get(u)
+	has, err := db.GetEngine(ctx).Get(u)
 	if err != nil {
 		return nil, err
 	} else if !has {
