@@ -743,9 +743,9 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 
 	if ctx.FormString("go-get") == "1" {
 		ctx.Data["GoGetImport"] = ComposeGoGetImport(owner.Name, repo.Name)
-		prefix := repo.HTMLURL() + "/src/branch/" + util.PathEscapeSegments(ctx.Repo.BranchName)
-		ctx.Data["GoDocDirectory"] = prefix + "{/dir}"
-		ctx.Data["GoDocFile"] = prefix + "{/dir}/{file}#L{line}"
+		fullURLPrefix := repo.HTMLURL() + "/src/branch/" + util.PathEscapeSegments(ctx.Repo.BranchName)
+		ctx.Data["GoDocDirectory"] = fullURLPrefix + "{/dir}"
+		ctx.Data["GoDocFile"] = fullURLPrefix + "{/dir}/{file}#L{line}"
 	}
 	return cancel
 }
