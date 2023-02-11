@@ -2,20 +2,20 @@
 	<div class="issue-title" id="issue-title-wrapper">
 		{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}
 			<div class="edit-button">
-				<div id="edit-title" class="ui basic secondary not-in-edit button">{{.locale.Tr "repo.issues.edit"}}</div>
+				<button id="edit-title" class="ui basic button secondary not-in-edit">{{.locale.Tr "repo.issues.edit"}}</button>
 			</div>
 		{{end}}
 		<h1>
 			<span id="issue-title">{{RenderIssueTitle $.Context .Issue.Title $.RepoLink $.Repository.ComposeMetas | RenderCodeBlock}}</span>
 			<span class="index">#{{.Issue.Index}}</span>
-			<div id="edit-title-input" class="ui input" style="display: none">
+			<div id="edit-title-input" class="ui input ml-4" style="display: none">
 				<input value="{{.Issue.Title}}" maxlength="255" autocomplete="off">
 			</div>
 		</h1>
 		{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}
 			<div class="edit-buttons">
-				<div id="cancel-edit-title" class="ui basic secondary in-edit button" style="display: none">{{.locale.Tr "repo.issues.cancel"}}</div>
-				<div id="save-edit-title" class="ui primary in-edit button" style="display: none" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title" {{if .Issue.IsPull}}data-target-update-url="{{$.RepoLink}}/pull/{{.Issue.Index}}/target_branch"{{end}}>{{.locale.Tr "repo.issues.save"}}</div>
+				<button id="cancel-edit-title" class="ui basic button secondary in-edit" style="display: none">{{.locale.Tr "repo.issues.cancel"}}</button>
+				<button id="save-edit-title" class="ui primary button in-edit" style="display: none" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title" {{if .Issue.IsPull}}data-target-update-url="{{$.RepoLink}}/pull/{{.Issue.Index}}/target_branch"{{end}}>{{.locale.Tr "repo.issues.save"}}</button>
 			</div>
 		{{end}}
 	</div>
