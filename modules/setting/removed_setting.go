@@ -4,6 +4,7 @@
 package setting
 
 import (
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -14,8 +15,15 @@ type settingExistType int
 
 const (
 	settingRemoved settingExistType = iota
-	settingDeprecatedInIni
+	settingReplaced
 	settingMovedToDB
+)
+
+type whenChanged int
+
+const (
+	pastVersion whenChanged = iota
+	nextVersion
 )
 
 type removedSetting struct {
@@ -24,38 +32,46 @@ type removedSetting struct {
 	key                string // Exact key in the app.ini, so should be uppercased
 	replacementSection string
 	replacementKey     string
-	existType          settingExistType // In what form does this setting still exist?
+	existType          settingExistType  // In what form does this setting still exist?
+	when               whenChanged // When did/will this change happen?
 }
 
-// getReplacementHint returns a hint about how to replace this setting.
-// The return value can be printed to the logs.
-func (r *removedSetting) getReplacementHint() string {
-	if r.existType == settingMovedToDB {
-		return "This setting has been copied and moved to the database table 'sys_setting' under the key " + toDBSection(r.section, r.key)
-	} else if r.replacementKey != "" && r.replacementSection != "" {
-		return "Please replace this setting with " + toIniSection(r.replacementSection, r.replacementKey)
-	} else {
-		return "This setting has no documented replacement"
+// getTemplateLogMessage returns an unformated log message for this setting.
+// The returned template accepts the following commands:
+// - %[1]s: old [section].key
+// - %[2]s: correct tense of "is"
+// - %[3]s: gitea version
+// -
+func (r *removedSetting) getTemplateLogMessage() string {
+	switch r.existType {
+	case settingMovedToDB:
+		return "The setting %[1]s in your config file has been copied and moved to the database table 'sys_setting' under the key "
+	case settingReplaced:
+		return "The setting %[1]s in your config file %[2]s removed in Gitea %[3]s. %s."
+	case settingRemoved:
+		return "The setting %[1]s in your config file is no longer used since Gitea %[3]s. It has no documented replacement."
+	default:
+		panic("Missing setting replacement type: " + strconv.Itoa(int(r.existType)) + " cannot be converted to a log message.")
 	}
 }
 
 // getTense returns the correct tense of "is" for this removed setting
 func (r *removedSetting) getTense() string {
-	if r.existType != settingRemoved {
+	switch r.when {
+	case nextVersion:
 		return "will be"
+	case pastVersion:
+		return "was"
+	default:
+		panic("Unknown setting changed time: " + strconv.Itoa(int(r.when)))
 	}
-	return "was"
 }
+
 func (r *removedSetting) validate() {
-	if !strings.HasPrefix(r.version, "v") {
-		r.version = "v" + r.version
-	}
-	r.section = strings.ToLower(r.section)
-	r.replacementSection = strings.ToLower(r.replacementSection)
 	if r.existType == settingMovedToDB {
 		r.replacementKey = strings.ToLower(r.replacementKey)
 		r.key = strings.ToLower(r.key)
-	} else if r.existType == settingDeprecatedInIni {
+	} else {
 		r.replacementKey = strings.ToUpper(r.replacementKey)
 		r.key = strings.ToUpper(r.key)
 	}
@@ -71,7 +87,7 @@ func toDBSection(section, key string) string {
 
 var removedSettings map[string][]removedSetting // ordered by section (for performance)
 
-func addRemovedSetting(setting *removedSetting) {
+func removeSetting(setting *removedSetting) {
 	setting.validate()
 	// Append the setting at the corresponding entry
 	sectionList := removedSettings[setting.section]
@@ -79,58 +95,78 @@ func addRemovedSetting(setting *removedSetting) {
 	removedSettings[setting.section] = sectionList
 }
 
-// Adds the given setting under "[section].key" to the removed settings
-// "key" and "replacementKey" should be uppercased so that they are exactly like in the app.ini
-func AddRemovedSetting(version, section, key, replacementSection, replacementKey string) {
-	addRemovedSetting(&removedSetting{
+// Adds a notice that the given setting under "[section].key" has been replaced by "[replacementSection].replacementKey"
+// "key" and "replacementKey" should be exactly like they are in the app.ini
+func MoveSetting(version, section, key, replacementSection, replacementKey string) {
+	removeSetting(&removedSetting{
 		version:            version,
 		section:            section,
 		key:                key,
 		replacementSection: replacementSection,
 		replacementKey:     replacementKey,
+		when:               past,
 	})
 }
 
-// Adds the given setting under "[section].key" to the removed settings
-func AddRemovedSettingWithoutReplacement(version, section, key string) {
-	addRemovedSetting(&removedSetting{
-		version: version,
-		section: section,
-		key:     key,
-	})
+// Adds a notice that the given setting under "[section].key" has been replaced by "[section].replacementKey"
+// "key" and "replacementKey" should be exactly like they are in the app.ini
+func MoveSettingInSection(version, section, key, replacementKey string) {
+	MoveSetting(version, section, key, section, replacementKey)
 }
 
-// Deprecates the given (still accepted and existing) setting under "[section].key" for removal
-func AddDeprecatedSetting(version, section, key, replacementSection, replacementKey string) {
-	addRemovedSetting(&removedSetting{
+// Adds a notice that the given settings under "[section].key(s)" have been removed without any replacement
+// "key"s should be exactly like they are in the app.ini
+func PurgeSettings(version, section string, keys ...string) {
+	for _, key := range keys {
+		removeSetting(&removedSetting{
+			version: version,
+			section: section,
+			key:     key,
+		})
+	}
+}
+
+// Adds a notice that the given setting under "[section].key" has been deprecated and should be replaced with "[replacementSection].replacementKey" soon
+func DeprecateSetting(version, section, key, replacementSection, replacementKey string) {
+	removeSetting(&removedSetting{
 		version:            version,
 		section:            section,
 		key:                key,
 		replacementSection: replacementSection,
 		replacementKey:     replacementKey,
-		existType:          settingDeprecatedInIni,
+		existType:          settingToBeRemoved,
 	})
 }
 
-// Deprecates the given (still accepted and existing) setting under "[section].key" for removal
-// "key" should be uppercased so that it is exactly like in the app.ini
-func AddDeprecatedSettingWithoutReplacement(version, section, key string) {
-	addRemovedSetting(&removedSetting{
-		version:   version,
-		section:   section,
-		key:       key,
-		existType: settingDeprecatedInIni,
-	})
+// Adds a notice that the given setting under "[section].key" has been deprecated and should be replaced with "[section].replacementKey" soon
+func DeprecateSettingSameSection(version, section, key, replacementKey string) {
+	DeprecateSetting(version, section, key, section, replacementKey)
 }
 
-// Marks this setting as moved to the database.
-func AddDBSettingWarning(version, section, key string) {
-	addRemovedSetting(&removedSetting{
-		version:   version,
-		section:   section,
-		key:       key,
-		existType: settingMovedToDB,
-	})
+// Deprecates the given (still accepted and existing) settings under "[section].key" for removal
+// keys should be formatted exactly like they are in the app.ini
+func DeprecateSettingsForRemoval(version, section string, keys ...string) {
+	for _, key := range keys {
+		removeSetting(&removedSetting{
+			version:   version,
+			section:   section,
+			key:       key,
+			existType: settingToBeRemoved,
+		})
+	}
+}
+
+// Marks all given setting keys in the given section as moved to the database.
+// keys should be formatted exactly like they are in the app.ini
+func MoveSettingsToDB(version, section string, keys ...string) {
+	for _, key := range keys {
+		removeSetting(&removedSetting{
+			version:   version,
+			section:   section,
+			key:       key,
+			existType: settingMovedToDB,
+		})
+	}
 }
 
 // Adds a warning in the logs for all settings that are still present despite not being used anymore
@@ -142,9 +178,57 @@ func PrintRemovedSettings(cfg *ini.File) {
 		}
 		for _, removed := range removedList {
 			if section.HasKey(removed.key) {
-				log.Error("Support for the setting %s in your config file %s removed in %s. %s.", toIniSection(removed.section, removed.key), removed.getTense(), removed.version, removed.getReplacementHint())
+				log.Error(removed.getLogTemplate(), toIniSection(removed.section, removed.key), removed.getTense(), removed.version)
 			}
 		}
 	}
 }
 
+// Adds all previously removed settings
+func init() {
+	MoveSettingInSection("6", "api", "ENABLE_SWAGGER_ENDPOINT", "ENABLE_SWAGGER")
+
+	PurgeSettings("9", "log.database", "LEVEL", "DRIVER", "CONN")
+
+	MoveSetting("12", "markup.sanitizer", "ELEMENT", "markup.sanitizer.1", "ELEMENT")
+	MoveSetting("12", "markup.sanitizer", "ALLOW_ATTR", "markup.sanitizer.1", "ALLOW_ATTR")
+	MoveSetting("12", "markup.sanitizer", "REGEXP", "markup.sanitizer.1", "REGEXP")
+
+	PurgeSettings("14", "log", "MACARON", "REDIRECT_MACARON_LOG")
+
+	MoveSetting("15", "indexer", "ISSUE_INDEXER_QUEUE_TYPE", "queue.issue_indexer", "TYPE")
+	MoveSetting("15", "indexer", "ISSUE_INDEXER_QUEUE_DIR", "queue.issue_indexer", "DATADIR")
+	MoveSetting("15", "indexer", "ISSUE_INDEXER_QUEUE_CONN_STR", "queue.issue_indexer", "CONN_STR")
+	MoveSetting("15", "indexer", "ISSUE_INDEXER_QUEUE_BATCH_NUMBER", "queue.issue_indexer", "BATCH_LENGTH")
+	MoveSetting("15", "indexer", "UPDATE_BUFFER_LEN", "queue.issue_indexer", "LENGTH")
+
+	MoveSettingInSection("17", "cron.archive_cleanup", "NO_SUCCESS_NOTICE", "NOTIFY_ON_SUCCESS")
+	MoveSettingInSection("17", "cron.update_mirrors", "NO_SUCCESS_NOTICE", "NOTIFY_ON_SUCCESS")
+	MoveSettingInSection("17", "cron.repo_health_check", "NO_SUCCESS_NOTICE", "NOTIFY_ON_SUCCESS")
+	MoveSettingInSection("17", "cron.check_repo_stats", "NO_SUCCESS_NOTICE", "NOTIFY_ON_SUCCESS")
+	MoveSettingInSection("17", "cron.update_migration_poster_id", "NO_SUCCESS_NOTICE", "NOTIFY_ON_SUCCESS")
+	MoveSettingInSection("17", "cron.sync_external_users", "NO_SUCCESS_NOTICE", "NOTIFY_ON_SUCCESS")
+	MoveSettingInSection("17", "cron.deleted_branches_cleanup", "NO_SUCCESS_NOTICE", "NOTIFY_ON_SUCCESS")
+	MoveSettingInSection("17", "cron.delete_inactive_accounts", "NO_SUCCESS_NOTICE", "NOTIFY_ON_SUCCESS")
+	MoveSettingInSection("17", "cron.delete_repo_archives", "NO_SUCCESS_NOTICE", "NOTIFY_ON_SUCCESS")
+	MoveSettingInSection("17", "cron.git_gc_repos", "NO_SUCCESS_NOTICE", "NOTIFY_ON_SUCCESS")
+	MoveSettingInSection("17", "cron.resync_all_sshkeys", "NO_SUCCESS_NOTICE", "NOTIFY_ON_SUCCESS")
+	MoveSettingInSection("17", "cron.resync_all_hooks", "NO_SUCCESS_NOTICE", "NOTIFY_ON_SUCCESS")
+	MoveSettingInSection("17", "cron.reinit_missing_repos", "NO_SUCCESS_NOTICE", "NOTIFY_ON_SUCCESS")
+	MoveSettingInSection("17", "cron.delete_missing_repos", "NO_SUCCESS_NOTICE", "NOTIFY_ON_SUCCESS")
+	MoveSettingInSection("17", "cron.delete_generated_repository_avatars", "NO_SUCCESS_NOTICE", "NOTIFY_ON_SUCCESS")
+	MoveSettingInSection("17", "cron.delete_old_actions", "NO_SUCCESS_NOTICE", "NOTIFY_ON_SUCCESS")
+
+	DeprecateSettingsForRemoval("18", "U2F", "APP_ID")
+	MoveSettingsToDB("18", "picture", "ENABLE_FEDERATED_AVATAR", "DISABLE_GRAVATAR")
+	DeprecateSettingSameSection("18", "mailer", "HOST","SMTP_ADDR+SMTP_PORT")
+	DeprecateSettingSameSection("18", "mailer", "MAILER_TYPE","PROTOCOL")
+	DeprecateSettingSameSection("18", "mailer", "IS_TLS_ENABLED","PROTOCOL")
+	DeprecateSettingSameSection("18", "mailer", "DISABLE_HELO","ENABLE_HELO")
+	DeprecateSettingSameSection("18", "mailer", "SKIP_VERIFY","FORCE_TRUST_SERVER_CERT")
+	DeprecateSettingSameSection("18", "mailer", "USE_CERTIFICATE","USE_CLIENT_CERT")
+	DeprecateSettingSameSection("18", "mailer", "CERT_FILE","CLIENT_CERT_FILE")
+	DeprecateSettingSameSection("18", "mailer", "KEY_FILE","CLIENT_KEY_FILE")
+
+	DeprecateSettingsForRemoval("19", "ui", "ONLY_SHOW_RELEVANT_REPOS")
+}
