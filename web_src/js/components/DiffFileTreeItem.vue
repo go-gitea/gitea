@@ -10,7 +10,7 @@
       />
       <a
         v-if="item.isFile"
-        class="file ellipsis" :class="[getFileClassForDiffType(item.file.Type)]"
+        class="file ellipsis"
         :href="item.isFile ? '#diff-' + item.file.NameHash : ''"
       >{{ item.name }}</a>
       <SvgIcon
@@ -75,16 +75,6 @@ export default {
       };
       return diffTypes[pType];
     },
-    getFileClassForDiffType(pType) {
-      const diffTypes = {
-        1: 'file-diff-added',
-        2: 'file-diff-modified',
-        3: 'file-diff-removed',
-        4: 'file-diff-renamed',
-        5: 'file-diff-copied',
-      };
-      return diffTypes[pType];
-    }
   },
 };
 </script>
@@ -93,8 +83,13 @@ export default {
 span.svg-icon.status {
   float: right;
 }
+
 span.svg-icon.file {
   color: var(--color-secondary-dark-7);
+}
+
+a.file {
+  color: var(--color-text);
 }
 
 span.svg-icon.directory {
@@ -127,26 +122,6 @@ span.svg-icon.octicon-diff-renamed {
   color: var(--color-text);
   background: var(--color-hover);
   border-radius: 4px;
-}
-
-.file.file-diff-added {
-  color: var(--color-green);
-}
-
-.file.file-diff-modified {
-  color: var(--color-yellow);
-}
-
-.file.file-diff-removed {
-  color: var(--color-red);
-}
-
-.file.file-diff-renamed {
-  color: var(--color-yellow);
-}
-
-.file.file-diff-copied {
-  color: var(--color-yellow);
 }
 
 div.directory {
