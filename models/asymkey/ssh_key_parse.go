@@ -96,6 +96,9 @@ func parseKeyString(content string) (string, error) {
 			if block == nil {
 				return "", fmt.Errorf("failed to parse PEM block containing the public key")
 			}
+			if strings.Contains(block.Type, "PRIVATE") {
+				return "", ErrKeyIsPrivate
+			}
 
 			pub, err := x509.ParsePKIXPublicKey(block.Bytes)
 			if err != nil {

@@ -6,6 +6,7 @@ package setting
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"math"
 	"net"
@@ -60,6 +61,7 @@ const (
 	ReCaptcha    = "recaptcha"
 	HCaptcha     = "hcaptcha"
 	MCaptcha     = "mcaptcha"
+	CfTurnstile  = "cfturnstile"
 )
 
 // settings
@@ -240,7 +242,6 @@ var (
 		CustomEmojisMap       map[string]string `ini:"-"`
 		SearchRepoDescription bool
 		UseServiceWorker      bool
-		OnlyShowRelevantRepos bool
 
 		Notification struct {
 			MinTimeout            time.Duration
@@ -466,8 +467,7 @@ func getAppPath() (string, error) {
 	}
 
 	if err != nil {
-		// FIXME: Once we switch to go 1.19 use !errors.Is(err, exec.ErrDot)
-		if !strings.Contains(err.Error(), "cannot run executable found relative to current directory") {
+		if !errors.Is(err, exec.ErrDot) {
 			return "", err
 		}
 		appPath, err = filepath.Abs(os.Args[0])
@@ -1123,7 +1123,6 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	UI.DefaultShowFullName = Cfg.Section("ui").Key("DEFAULT_SHOW_FULL_NAME").MustBool(false)
 	UI.SearchRepoDescription = Cfg.Section("ui").Key("SEARCH_REPO_DESCRIPTION").MustBool(true)
 	UI.UseServiceWorker = Cfg.Section("ui").Key("USE_SERVICE_WORKER").MustBool(false)
-	UI.OnlyShowRelevantRepos = Cfg.Section("ui").Key("ONLY_SHOW_RELEVANT_REPOS").MustBool(false)
 
 	HasRobotsTxt, err = util.IsFile(path.Join(CustomPath, "robots.txt"))
 	if err != nil {

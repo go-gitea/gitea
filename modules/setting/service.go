@@ -46,6 +46,8 @@ var Service = struct {
 	RecaptchaSecret                         string
 	RecaptchaSitekey                        string
 	RecaptchaURL                            string
+	CfTurnstileSecret                       string
+	CfTurnstileSitekey                      string
 	HcaptchaSecret                          string
 	HcaptchaSitekey                         string
 	McaptchaSecret                          string
@@ -137,6 +139,8 @@ func newService() {
 	Service.RecaptchaSecret = sec.Key("RECAPTCHA_SECRET").MustString("")
 	Service.RecaptchaSitekey = sec.Key("RECAPTCHA_SITEKEY").MustString("")
 	Service.RecaptchaURL = sec.Key("RECAPTCHA_URL").MustString("https://www.google.com/recaptcha/")
+	Service.CfTurnstileSecret = sec.Key("CF_TURNSTILE_SECRET").MustString("")
+	Service.CfTurnstileSitekey = sec.Key("CF_TURNSTILE_SITEKEY").MustString("")
 	Service.HcaptchaSecret = sec.Key("HCAPTCHA_SECRET").MustString("")
 	Service.HcaptchaSitekey = sec.Key("HCAPTCHA_SITEKEY").MustString("")
 	Service.McaptchaURL = sec.Key("MCAPTCHA_URL").MustString("https://demo.mcaptcha.org/")

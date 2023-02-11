@@ -20,7 +20,8 @@
               <SvgIcon name="octicon-meter" class="ui text yellow" class-name="job-status-rotate" v-else-if="job.status === 'running'"/>
               <SvgIcon name="octicon-x-circle-fill" class="red" v-else/>
               {{ job.name }}
-              <button class="job-brief-rerun" @click="rerunJob(index)" v-if="job.canRerun">
+              <!-- TODO: it will be a better idea to move "button" out from "a", and the ".prevent" will not be needed. But it needs some work with CSS -->
+              <button class="job-brief-rerun" @click.prevent="rerunJob(index)" v-if="job.canRerun">
                 <SvgIcon name="octicon-sync" class="ui text black"/>
               </button>
             </a>
@@ -162,12 +163,14 @@ const sfc = {
       }
     },
     // rerun a job
-    rerunJob(idx) {
-      this.fetch(`${this.run.link}/jobs/${idx}/rerun`);
+    async rerunJob(idx) {
+      const jobLink = `${this.run.link}/jobs/${idx}`;
+      await this.fetchPost(`${jobLink}/rerun`);
+      window.location.href = jobLink;
     },
     // cancel a run
     cancelRun() {
-      this.fetch(`${this.run.link}/cancel`);
+      this.fetchPost(`${this.run.link}/cancel`);
     },
 
     createLogLine(line) {
@@ -205,7 +208,7 @@ const sfc = {
         // for example: make cursor=null means the first time to fetch logs, cursor=eof means no more logs, etc
         return {step: idx, cursor: it.cursor, expanded: it.expanded};
       });
-      const resp = await this.fetch(
+      const resp = await this.fetchPost(
         `${this.actionsURL}/runs/${this.runIndex}/jobs/${this.jobIndex}`,
         JSON.stringify({logCursors}),
       );
@@ -245,7 +248,7 @@ const sfc = {
       }
     },
 
-    fetch(url, body) {
+    fetchPost(url, body) {
       return fetch(url, {
         method: 'POST',
         headers: {
