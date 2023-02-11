@@ -4,8 +4,8 @@
 		<div class="ui form">
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.debian.registry"}}</label>
-				<div class="markup"><pre class="code-block"><code>curl {{AppUrl}}api/packages/{{$.PackageDescriptor.Owner.Name}}/debian/repository.key | sudo apt-key add -
-echo "deb {{AppUrl}}api/packages/{{$.PackageDescriptor.Owner.Name}}/debian &lt;distribution&gt; &lt;component&gt;" >> /etc/apt/sources.list
+				<div class="markup"><pre class="code-block"><code>sudo curl {{AppUrl}}api/packages/{{$.PackageDescriptor.Owner.Name}}/debian/repository.key -o /etc/apt/trusted.gpg.d/gitea-{{$.PackageDescriptor.Owner.Name}}.asc
+echo "deb {{AppUrl}}api/packages/{{$.PackageDescriptor.Owner.Name}}/debian &lt;distribution&gt; &lt;component&gt;" | sudo tee -a /etc/apt/sources.list.d/gitea.list
 sudo apt update</code></pre></div>
 				<p>{{.locale.Tr "packages.debian.registry.info" | Safe}}</p>
 			</div>

@@ -31,7 +31,7 @@ The following examples use `apt`.
 To register the Debian registry add the url to the list of known apt sources:
 
 ```shell
-echo "deb https://gitea.example.com/api/packages/{owner}/debian {distribution} {component}" >> /etc/apt/sources.list
+echo "deb https://gitea.example.com/api/packages/{owner}/debian {distribution} {component}" | sudo tee -a /etc/apt/sources.list.d/gitea.list
 ```
 
 | Placeholder    | Description |
@@ -43,13 +43,13 @@ echo "deb https://gitea.example.com/api/packages/{owner}/debian {distribution} {
 If the registry is private, provide credentials in the url:
 
 ```shell
-echo "deb https://{username}:{password}@gitea.example.com/api/packages/{owner}/debian {distribution} {component}" >> /etc/apt/sources.list
+echo "deb https://{username}:{password}@gitea.example.com/api/packages/{owner}/debian {distribution} {component}" | sudo tee -a /etc/apt/sources.list.d/gitea.list
 ```
 
 The Debian registry files are signed with a PGP key which must be known to apt:
 
 ```shell
-curl https://gitea.example.com/api/packages/{owner}/debian/repository.key | sudo apt-key add -
+sudo curl https://gitea.example.com/api/packages/{owner}/debian/repository.key -o /etc/apt/trusted.gpg.d/gitea-{owner}.asc
 ```
 
 Afterwards update the local package index:
