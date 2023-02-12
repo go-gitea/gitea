@@ -44,6 +44,12 @@ func (org *Organization) UnitPermission(ctx *Context, doerID int64, unitType uni
 			log.Error("GetUserOrgTeams: %v", err)
 			return perm.AccessModeNone
 		}
+
+		if err := teams.LoadUnits(ctx); err != nil {
+			log.Error("LoadUnits: %v", err)
+			return perm.AccessModeNone
+		}
+
 		if len(teams) > 0 {
 			return teams.UnitMaxAccess(unitType)
 		}
