@@ -1614,6 +1614,20 @@
       margin-right: .25rem;
     }
 
+    // Because the translations contain the <strong> we need to style with nth-of-type
+
+    .diff-detail-stats strong:nth-of-type(1) {
+      color: var(--color-yellow);
+    }
+
+    .diff-detail-stats strong:nth-of-type(2) {
+      color: var(--color-green);
+    }
+
+    .diff-detail-stats strong:nth-of-type(3) {
+      color: var(--color-red);
+    }
+
     .diff-detail-stats {
       @media (max-width: 480px) {
         font-size: 0;
