@@ -919,8 +919,20 @@ func RegisterRoutes(m *web.Route) {
 				}
 			})
 		}, repo.MustEnableProjects)
-
-		m.Get("/code", user.CodeSearch)
+		m.Group("", func() {
+			m.Get("/code", user.CodeSearch)
+		}, func(ctx *context.Context) {
+			if ctx.ContextUser == nil {
+				ctx.NotFound("Code", nil)
+				return
+			}
+			if ctx.ContextUser.IsOrganization() {
+				if !ctx.Org.CanAccessUnit(ctx, unit.TypeCode) {
+					ctx.NotFound("Code", nil)
+					return
+				}
+			}
+		})
 	}, context_service.UserAssignmentWeb())
 
 	// ***** Release Attachment Download without Signin
