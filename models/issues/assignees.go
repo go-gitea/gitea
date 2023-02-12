@@ -7,8 +7,8 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	db "code.gitea.io/gitea/modules/db"
 	"code.gitea.io/gitea/modules/util"
 )
 

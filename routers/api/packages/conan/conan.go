@@ -10,11 +10,11 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	conan_model "code.gitea.io/gitea/models/packages/conan"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/db"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"

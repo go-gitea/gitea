@@ -3,7 +3,7 @@
 
 package asymkey
 
-import "code.gitea.io/gitea/models/db"
+import "code.gitea.io/gitea/modules/db"
 
 //    __________________  ________   ____  __.
 //   /  _____/\______   \/  _____/  |    |/ _|____ ___.__.

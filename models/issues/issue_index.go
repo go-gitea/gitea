@@ -3,7 +3,7 @@
 
 package issues
 
-import "code.gitea.io/gitea/models/db"
+import "code.gitea.io/gitea/modules/db"
 
 // RecalculateIssueIndexForRepo create issue_index for repo if not exist and
 // update it based on highest index of existing issues assigned to a repo

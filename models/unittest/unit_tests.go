@@ -6,7 +6,7 @@ package unittest
 import (
 	"math"
 
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/db"
 
 	"github.com/stretchr/testify/assert"
 	"xorm.io/builder"

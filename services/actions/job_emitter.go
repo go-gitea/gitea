@@ -9,7 +9,7 @@ import (
 	"fmt"
 
 	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/db"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/queue"
 

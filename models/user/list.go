@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/db"
 )
 
 // UserList is a list of user.

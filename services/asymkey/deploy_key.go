@@ -6,8 +6,8 @@ package asymkey
 import (
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/db"
 )
 
 // DeleteDeployKey deletes deploy key from its repository authorized_keys file if needed.

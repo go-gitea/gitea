@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/db"
 	"code.gitea.io/gitea/modules/setting"
 
 	_ "code.gitea.io/gitea/cmd" // for TestPrimaryKeys

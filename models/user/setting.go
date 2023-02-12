@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/db"
 	setting_module "code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/builder"

@@ -6,10 +6,10 @@ package models
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/db"
 	"code.gitea.io/gitea/modules/structs"
 )
 

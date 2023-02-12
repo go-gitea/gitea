@@ -4,10 +4,10 @@
 package repository
 
 import (
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/db"
 )
 
 // CanUserDelete returns true if user could delete the repository

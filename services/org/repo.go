@@ -8,9 +8,9 @@ import (
 	"errors"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/db"
 )
 
 // TeamAddRepository adds new repository to team of organization.

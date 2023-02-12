@@ -7,8 +7,8 @@ import (
 	"net/url"
 
 	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/modules/db"
 	api "code.gitea.io/gitea/modules/structs"
 )
 

@@ -6,12 +6,12 @@ package access_test
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	perm_model "code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/db"
 
 	"github.com/stretchr/testify/assert"
 )

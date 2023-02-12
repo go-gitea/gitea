@@ -4,6 +4,7 @@
 package migrations
 
 import (
+	"code.gitea.io/gitea/modules/db"
 	"compress/gzip"
 	"context"
 	"database/sql"
@@ -17,7 +18,6 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
 	migrate_base "code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/models/unittest"
