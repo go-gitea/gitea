@@ -116,7 +116,7 @@ export function initRepoCommentForm() {
       const canRemoveScope = e.altKey;
 
       $(this).parent().find('.item').each(function () {
-        if (scope !== '') {
+        if (scope) {
           /* Enable only clicked item for scoped labels. */
           if ($(this).attr('data-scope') !== scope) {
             return true;
