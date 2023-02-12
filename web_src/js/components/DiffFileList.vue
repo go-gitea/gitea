@@ -13,7 +13,7 @@
       <a class="file gt-mono" :href="'#diff-' + file.NameHash">{{ file.Name }}</a>
     </li>
     <li v-if="isIncomplete" id="diff-too-many-files-stats" class="gt-pt-2">
-      <span class="file gt-df gt-ac sb">{{ tooManyFilesMessage }}
+      <span class="file gt-df gt-ac gt-sb">{{ tooManyFilesMessage }}
         <a :class="['ui', 'basic', 'tiny', 'button', isLoadingNewData === true ? 'disabled' : '']" id="diff-show-more-files-stats" @click.stop="loadMoreData">{{ showMoreMessage }}</a>
       </span>
     </li>
