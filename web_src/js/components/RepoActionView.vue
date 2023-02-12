@@ -12,19 +12,20 @@
       <div class="action-view-left">
         <div class="job-group-section">
           <div class="job-brief-list">
-            <a class="job-brief-item" v-for="(job, index) in run.jobs" :key="job.id" :href="run.link+'/jobs/'+index">
-              <SvgIcon name="octicon-check-circle-fill" class="green" v-if="job.status === 'success'"/>
-              <SvgIcon name="octicon-skip" class="ui text grey" v-else-if="job.status === 'skipped'"/>
-              <SvgIcon name="octicon-clock" class="ui text yellow" v-else-if="job.status === 'waiting'"/>
-              <SvgIcon name="octicon-blocked" class="ui text yellow" v-else-if="job.status === 'blocked'"/>
-              <SvgIcon name="octicon-meter" class="ui text yellow" class-name="job-status-rotate" v-else-if="job.status === 'running'"/>
-              <SvgIcon name="octicon-x-circle-fill" class="red" v-else/>
-              {{ job.name }}
-              <!-- TODO: it will be a better idea to move "button" out from "a", and the ".prevent" will not be needed. But it needs some work with CSS -->
-              <button class="job-brief-rerun" @click.prevent="rerunJob(index)" v-if="job.canRerun">
+            <div class="job-brief-item" v-for="(job, index) in run.jobs" :key="job.id">
+              <a class="job-brief-link" :href="run.link+'/jobs/'+index">
+                <SvgIcon name="octicon-check-circle-fill" class="green" v-if="job.status === 'success'"/>
+                <SvgIcon name="octicon-skip" class="ui text grey" v-else-if="job.status === 'skipped'"/>
+                <SvgIcon name="octicon-clock" class="ui text yellow" v-else-if="job.status === 'waiting'"/>
+                <SvgIcon name="octicon-blocked" class="ui text yellow" v-else-if="job.status === 'blocked'"/>
+                <SvgIcon name="octicon-meter" class="ui text yellow" class-name="job-status-rotate" v-else-if="job.status === 'running'"/>
+                <SvgIcon name="octicon-x-circle-fill" class="red" v-else/>
+                <span class="ui text">{{ job.name }}</span>
+              </a>
+              <button class="job-brief-rerun" @click="rerunJob(index)" v-if="job.canRerun">
                 <SvgIcon name="octicon-sync" class="ui text black"/>
               </button>
-            </a>
+            </div>
           </div>
         </div>
       </div>
@@ -291,7 +292,7 @@ export function initRepositoryActionView() {
 
 .action-view-header {
   margin: 0 20px 20px 20px;
-  button.run_cancel {
+  .run_cancel {
     border: none;
     color: var(--color-red);
     background-color: transparent;
@@ -299,7 +300,7 @@ export function initRepositoryActionView() {
     cursor: pointer;
     transition:transform 0.2s;
   };
-  button.run_cancel:hover{
+  .run_cancel:hover{
     transform:scale(130%);
   };
 }
@@ -327,14 +328,16 @@ export function initRepositoryActionView() {
   }
 
   .job-brief-list {
-    a.job-brief-item {
-      display: block;
+    .job-brief-item {
       margin: 5px 0;
       padding: 10px;
       background: var(--color-info-bg);
       border-radius: 5px;
       text-decoration: none;
-      button.job-brief-rerun {
+      display: flex;
+      justify-items: center;
+      flex-wrap: nowrap;
+      .job-brief-rerun {
         float: right;
         border: none;
         background-color: transparent;
@@ -342,11 +345,20 @@ export function initRepositoryActionView() {
         cursor: pointer;
         transition:transform 0.2s;
       };
-      button.job-brief-rerun:hover{
+      .job-brief-rerun:hover{
         transform:scale(130%);
       };
+      .job-brief-link {
+        flex-grow: 1;
+        display: flex;
+        span {
+          margin-right: 8px;
+          display: flex;
+          align-items: center;
+        }
+      }
     }
-    a.job-brief-item:hover {
+    .job-brief-item:hover {
       background-color: var(--color-secondary);
     }
   }
