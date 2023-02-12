@@ -45,13 +45,6 @@ func canWriteProjects(ctx *context.Context) bool {
 	return ctx.Doer != nil && ctx.ContextUser.ID == ctx.Doer.ID
 }
 
-func canAccessProjects(ctx *context.Context) bool {
-	if ctx.ContextUser.IsOrganization() {
-		return ctx.Org.CanAccessUnit(ctx, unit_model.TypeProjects)
-	}
-	return ctx.Doer != nil && ctx.ContextUser.ID == ctx.Doer.ID
-}
-
 // Projects renders the home page of projects
 func Projects(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.project_board")
