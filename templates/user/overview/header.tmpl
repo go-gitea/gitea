@@ -32,7 +32,7 @@
 					{{svg "octicon-package"}} {{.locale.Tr "packages.title"}}
 				</a>
 			{{end}}
-			{{if .IsRepoIndexerEnabled}}
+			{{if and .IsRepoIndexerEnabled (or (not .ContextUser.IsOrganization) (and .ContextUser.IsOrganization .CanAccessCode))}}
 				<a href="{{.ContextUser.HomeLink}}/-/code" class="{{if .IsCodePage}}active {{end}}item">
 					{{svg "octicon-code"}} {{.locale.Tr "user.code"}}
 				</a>

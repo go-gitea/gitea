@@ -260,9 +260,9 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 		}
 	}
 
-	// Project and Pakcages Access
 	ctx.Data["CanAccessProjects"] = ctx.Org.CanAccessUnit(ctx, unit.TypeProjects)
 	ctx.Data["CanAccessPackages"] = ctx.Org.CanAccessUnit(ctx, unit.TypePackages)
+	ctx.Data["CanAccessCode"] = ctx.Org.CanAccessUnit(ctx, unit.TypeCode)
 }
 
 // OrgAssignment returns a middleware to handle organization assignment

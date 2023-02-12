@@ -13,7 +13,7 @@
 			{{svg "octicon-package"}} {{.locale.Tr "packages.title"}}
 		</a>
 		{{end}}
-		{{if .IsRepoIndexerEnabled}}
+		{{if and .IsRepoIndexerEnabled .CanAccessCode}}
 		<a class="{{if $.PageIsOrgCode}}active {{end}}item" href="{{$.Org.HomeLink}}/-/code">
 			{{svg "octicon-code"}}&nbsp;{{$.locale.Tr "org.code"}}
 		</a>
