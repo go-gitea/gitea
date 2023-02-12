@@ -107,17 +107,6 @@ func Projects(ctx *context.Context) {
 	ctx.Data["PageIsViewProjects"] = true
 	ctx.Data["SortType"] = sortType
 
-	if ctx.ContextUser.IsOrganization() {
-		ctx.Data["IsOwner"] = ctx.Org.IsOwner
-	} else {
-		if ctx.Doer.IsAdmin {
-			ctx.Data["IsOwner"] = true
-		} else {
-			ctx.Data["IsOwner"] = ctx.ContextUser.ID == ctx.Doer.ID
-		}
-	}
-	ctx.Data["DoerID"] = ctx.Doer.ID
-
 	ctx.HTML(http.StatusOK, tplProjects)
 }
 
@@ -348,17 +337,6 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["Project"] = project
 	ctx.Data["IssuesMap"] = issuesMap
 	ctx.Data["Boards"] = boards
-
-	if ctx.ContextUser.IsOrganization() {
-		ctx.Data["IsOwner"] = ctx.Org.IsOwner
-	} else {
-		if ctx.Doer.IsAdmin {
-			ctx.Data["IsOwner"] = true
-		} else {
-			ctx.Data["IsOwner"] = ctx.ContextUser.ID == ctx.Doer.ID
-		}
-	}
-	ctx.Data["IsProjectCreator"] = project.CreatorID == ctx.Doer.ID
 
 	shared_user.RenderUserHeader(ctx)
 
