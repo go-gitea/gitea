@@ -67,7 +67,7 @@
 				{{template "repo/branch_dropdown" dict "root" .}}
 				{{$n := len .TreeNames}}
 				{{$l := Subtract $n 1}}
-				<!-- If home page, show new gt-pr. If not, show breadcrumb -->
+				<!-- If home page, show new pr. If not, show breadcrumb -->
 				{{if eq $n 0}}
 					{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
 						<a href="{{CompareLink .BaseRepo .Repository .BranchName}}">
