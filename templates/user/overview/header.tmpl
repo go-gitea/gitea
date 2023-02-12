@@ -22,10 +22,12 @@
 			<a class="item" href="{{.ContextUser.HomeLink}}">
 				{{svg "octicon-repo"}} {{.locale.Tr "user.repositories"}}
 			</a>
+			{{if or (not .ContextUser.IsOrganization) (and .ContextUser.IsOrganization .CanAccessProjects)}}
 			<a href="{{.ContextUser.HomeLink}}/-/projects" class="{{if .PageIsViewProjects}}active {{end}}item">
 				{{svg "octicon-project"}} {{.locale.Tr "user.projects"}}
 			</a>
-			{{if (not .UnitPackagesGlobalDisabled)}}
+			{{end}}
+			{{if and (not .UnitPackagesGlobalDisabled) (or (not .ContextUser.IsOrganization) (and .ContextUser.IsOrganization .CanAccessPackages))}}
 				<a href="{{.ContextUser.HomeLink}}/-/packages" class="{{if .IsPackagesPage}}active {{end}}item">
 					{{svg "octicon-package"}} {{.locale.Tr "packages.title"}}
 				</a>

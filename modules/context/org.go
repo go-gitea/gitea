@@ -37,6 +37,13 @@ func (org *Organization) CanWriteUnit(ctx *Context, unitType unit.Type) bool {
 	return org.UnitPermission(ctx, ctx.Doer.ID, unitType) >= perm.AccessModeWrite
 }
 
+func (org *Organization) CanAccessUnit(ctx *Context, unitType unit.Type) bool {
+	if ctx.Doer == nil {
+		return false
+	}
+	return org.UnitPermission(ctx, ctx.Doer.ID, unitType) >= perm.AccessModeRead
+}
+
 func (org *Organization) UnitPermission(ctx *Context, doerID int64, unitType unit.Type) perm.AccessMode {
 	if doerID > 0 {
 		teams, err := organization.GetUserOrgTeams(ctx, org.Organization.ID, doerID)
@@ -252,6 +259,10 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 			return
 		}
 	}
+
+	// Project and Pakcages Access
+	ctx.Data["CanAccessProjects"] = ctx.Org.CanAccessUnit(ctx, unit.TypeProjects)
+	ctx.Data["CanAccessPackages"] = ctx.Org.CanAccessUnit(ctx, unit.TypePackages)
 }
 
 // OrgAssignment returns a middleware to handle organization assignment
