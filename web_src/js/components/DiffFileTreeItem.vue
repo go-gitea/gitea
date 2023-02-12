@@ -10,7 +10,7 @@
       />
       <a
         v-if="item.isFile"
-        class="file ellipsis"
+        class="file ellipsis muted"
         :href="item.isFile ? '#diff-' + item.file.NameHash : ''"
       >{{ item.name }}</a>
       <SvgIcon
@@ -68,7 +68,7 @@ export default {
       if (itemIsFile) {
         return;
       }
-      this.$set(this, 'collapsed', !this.collapsed);
+      this.collapsed = !this.collapsed;
     },
     getIconForDiffType(pType) {
       const diffTypes = {
@@ -88,6 +88,7 @@ export default {
 span.svg-icon.status {
   float: right;
 }
+
 span.svg-icon.file {
   color: var(--color-secondary-dark-7);
 }
@@ -127,6 +128,8 @@ span.svg-icon.octicon-diff-renamed {
 div.directory {
   display: grid;
   grid-template-columns: 18px 20px auto;
+  user-select: none;
+  cursor: pointer;
 }
 
 div.directory:hover {
