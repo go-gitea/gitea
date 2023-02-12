@@ -12,7 +12,7 @@
 			<a href="{{AppSubUrl}}/notifications" class="tooltip mobile-only gt-mr-4 gt-mt-3" data-content="{{.locale.Tr "notifications"}}" aria-label="{{.locale.Tr "notifications"}}">
 				<span class="fitted item">
 					{{svg "octicon-bell"}}
-					<span class="notification_count{{if not $notificationUnreadCount}} hidden{{end}}">
+					<span class="notification_count{{if not $notificationUnreadCount}} gt-hidden{{end}}">
 						{{$notificationUnreadCount}}
 					</span>
 				</span>
@@ -80,7 +80,7 @@
 	{{else if .IsSigned}}
 		<div class="right stackable menu">
 			{{if EnableTimetracking}}
-			<a class="active-stopwatch-trigger item ui gt-mx-0{{if not .ActiveStopwatch}} hidden{{end}}" href="{{.ActiveStopwatch.IssueLink}}">
+			<a class="active-stopwatch-trigger item ui gt-mx-0{{if not .ActiveStopwatch}} gt-hidden{{end}}" href="{{.ActiveStopwatch.IssueLink}}">
 				<span class="fitted gt-relative">
 					{{svg "octicon-stopwatch"}}
 					<span class="header-stopwatch-dot"></span>
