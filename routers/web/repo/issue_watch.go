@@ -52,5 +52,5 @@ func IssueWatch(ctx *context.Context) {
 		return
 	}
 
-	ctx.Redirect(issue.HTMLURL())
+	ctx.Redirect(issue.Link())
 }

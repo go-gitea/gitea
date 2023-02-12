@@ -78,7 +78,7 @@ func RetrieveLabels(ctx *context.Context) {
 		}
 		ctx.Data["OrgLabels"] = orgLabels
 
-		org, err := organization.GetOrgByName(ctx.Repo.Owner.LowerName)
+		org, err := organization.GetOrgByName(ctx, ctx.Repo.Owner.LowerName)
 		if err != nil {
 			ctx.ServerError("GetOrgByName", err)
 			return

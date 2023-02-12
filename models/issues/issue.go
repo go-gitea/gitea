@@ -419,7 +419,7 @@ func (issue *Issue) HTMLURL() string {
 	return fmt.Sprintf("%s/%s/%d", issue.Repo.HTMLURL(), path, issue.Index)
 }
 
-// Link returns the Link URL to this issue.
+// Link returns the issue's relative URL.
 func (issue *Issue) Link() string {
 	var path string
 	if issue.IsPull {
