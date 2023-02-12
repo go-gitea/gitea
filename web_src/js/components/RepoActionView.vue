@@ -42,15 +42,15 @@
         <div class="job-step-container">
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
             <div class="job-step-summary" @click.stop="toggleStepLogs(i)">
-              <SvgIcon name="octicon-chevron-down" class="mr-3" v-show="currentJobStepsStates[i].expanded"/>
-              <SvgIcon name="octicon-chevron-right" class="mr-3" v-show="!currentJobStepsStates[i].expanded"/>
+              <SvgIcon name="octicon-chevron-down" class="gt-mr-3" v-show="currentJobStepsStates[i].expanded"/>
+              <SvgIcon name="octicon-chevron-right" class="gt-mr-3" v-show="!currentJobStepsStates[i].expanded"/>
 
-              <SvgIcon name="octicon-check-circle-fill" class="green mr-3" v-if="jobStep.status === 'success'"/>
-              <SvgIcon name="octicon-skip" class="ui text grey mr-3" v-else-if="jobStep.status === 'skipped'"/>
-              <SvgIcon name="octicon-clock" class="ui text yellow mr-3" v-else-if="jobStep.status === 'waiting'"/>
-              <SvgIcon name="octicon-blocked" class="ui text yellow mr-3" v-else-if="jobStep.status === 'blocked'"/>
-              <SvgIcon name="octicon-meter" class="ui text yellow mr-3" class-name="job-status-rotate" v-else-if="jobStep.status === 'running'"/>
-              <SvgIcon name="octicon-x-circle-fill" class="red mr-3 " v-else/>
+              <SvgIcon name="octicon-check-circle-fill" class="green gt-mr-3" v-if="jobStep.status === 'success'"/>
+              <SvgIcon name="octicon-skip" class="ui text grey gt-mr-3" v-else-if="jobStep.status === 'skipped'"/>
+              <SvgIcon name="octicon-clock" class="ui text yellow gt-mr-3" v-else-if="jobStep.status === 'waiting'"/>
+              <SvgIcon name="octicon-blocked" class="ui text yellow gt-mr-3" v-else-if="jobStep.status === 'blocked'"/>
+              <SvgIcon name="octicon-meter" class="ui text yellow gt-mr-3" class-name="job-status-rotate" v-else-if="jobStep.status === 'running'"/>
+              <SvgIcon name="octicon-x-circle-fill" class="red gt-mr-3 " v-else/>
 
               <span class="step-summary-msg">{{ jobStep.summary }}</span>
               <span class="step-summary-dur">{{ jobStep.duration }}</span>

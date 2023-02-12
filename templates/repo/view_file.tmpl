@@ -6,16 +6,16 @@
 			</div>
 		</div>
 	{{end}}
-	<h4 class="file-header ui top attached header df ac sb fw">
-		<div class="file-header-left df ac py-3 pr-4">
+	<h4 class="file-header ui top attached header gt-df gt-ac gt-sb gt-fw">
+		<div class="file-header-left gt-df gt-ac gt-py-3 gt-pr-4">
 			{{if .ReadmeInList}}
-				{{svg "octicon-book" 16 "mr-3"}}
+				{{svg "octicon-book" 16 "gt-mr-3"}}
 				<strong>{{.FileName}}</strong>
 			{{else}}
 				{{template "repo/file_info" .}}
 			{{end}}
 		</div>
-		<div class="file-header-right file-actions df ac fw">
+		<div class="file-header-right file-actions gt-df gt-ac gt-fw">
 			{{if .HasSourceRenderedToggle}}
 				<div class="ui compact icon buttons two-toggle-buttons">
 					<a href="{{$.Link}}?display=source" class="ui mini basic button tooltip {{if .IsDisplayingSource}}active{{end}}" data-content="{{.locale.Tr "repo.file_view_source"}}" data-position="bottom center">{{svg "octicon-code" 15}}</a>
@@ -23,7 +23,7 @@
 				</div>
 			{{end}}
 			{{if not .ReadmeInList}}
-				<div class="ui buttons mr-2">
+				<div class="ui buttons gt-mr-2">
 					<a class="ui mini basic button" href="{{$.RawFileLink}}">{{.locale.Tr "repo.file_raw"}}</a>
 					{{if not .IsViewCommit}}
 						<a class="ui mini basic button" href="{{.RepoLink}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}">{{.locale.Tr "repo.file_permalink"}}</a>
@@ -52,8 +52,8 @@
 					{{end}}
 				{{end}}
 			{{else if .EscapeStatus.Escaped}}
-				<a class="ui mini basic button unescape-button mr-2" style="display: none;">{{.locale.Tr "repo.unescape_control_characters"}}</a>
-				<a class="ui mini basic button escape-button mr-2">{{.locale.Tr "repo.escape_control_characters"}}</a>
+				<a class="ui mini basic button unescape-button gt-mr-2" style="display: none;">{{.locale.Tr "repo.unescape_control_characters"}}</a>
+				<a class="ui mini basic button escape-button gt-mr-2">{{.locale.Tr "repo.escape_control_characters"}}</a>
 			{{end}}
 		</div>
 	</h4>

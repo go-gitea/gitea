@@ -18,7 +18,7 @@
 	{{end}}
 
 	{{range $.LatestCommitStatuses}}
-		<div class="ui attached segment pr-status">
+		<div class="ui attached segment gt-pr-status">
 			{{template "repo/commit_status" .}}
 			<div class="status-context">
 				<span>{{.Context}} <span class="text grey">{{.Description}}</span></span>

@@ -7,12 +7,12 @@ describe('Repo Find Files', () => {
     expect(strSubMatch('abc', 'a')).toEqual(['', 'a', 'bc']);
     expect(strSubMatch('abc', 'b')).toEqual(['a', 'b', 'c']);
     expect(strSubMatch('abc', 'c')).toEqual(['ab', 'c']);
-    expect(strSubMatch('abc', 'ac')).toEqual(['', 'a', 'b', 'c']);
+    expect(strSubMatch('abc', 'gt-ac')).toEqual(['', 'a', 'b', 'c']);
     expect(strSubMatch('abc', 'z')).toEqual(['abc']);
     expect(strSubMatch('abc', 'az')).toEqual(['abc']);
 
-    expect(strSubMatch('ABc', 'ac')).toEqual(['', 'A', 'B', 'c']);
-    expect(strSubMatch('abC', 'ac')).toEqual(['', 'a', 'b', 'C']);
+    expect(strSubMatch('ABc', 'gt-ac')).toEqual(['', 'A', 'B', 'c']);
+    expect(strSubMatch('abC', 'gt-ac')).toEqual(['', 'a', 'b', 'C']);
 
     expect(strSubMatch('aabbcc', 'abc')).toEqual(['', 'a', 'a', 'b', 'b', 'c', 'c']);
     expect(strSubMatch('the/directory', 'hedir')).toEqual(['t', 'he', '/', 'dir', 'ectory']);
