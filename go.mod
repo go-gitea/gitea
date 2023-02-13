@@ -91,7 +91,6 @@ require (
 	github.com/quasoft/websspi v1.1.2
 	github.com/santhosh-tekuri/jsonschema/v5 v5.1.1
 	github.com/sergi/go-diff v1.2.0
-	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
 	github.com/stretchr/testify v1.8.1
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tstranex/u2f v1.0.0
@@ -246,7 +245,6 @@ require (
 	github.com/rs/xid v1.4.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
-	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/skeema/knownhosts v1.1.0 // indirect
 	github.com/spf13/afero v1.8.2 // indirect
@@ -281,8 +279,6 @@ require (
 )
 
 replace github.com/hashicorp/go-version => github.com/6543/go-version v1.3.1
-
-replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142115-2c99e1ffdfa0
 
 replace github.com/blevesearch/zapx/v15 v15.3.6 => github.com/zeripath/zapx/v15 v15.3.6-alignment-fix
 

@@ -1,7 +1,7 @@
 // Copyright 2016 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-//go:build !bindata
+//go:build servedynamic
 
 package options
 
@@ -122,7 +122,7 @@ func fileFromDir(name string) ([]byte, error) {
 	return []byte{}, fmt.Errorf("Asset file does not exist: %s", name)
 }
 
-// IsDynamic will return false when using embedded data (-tags bindata)
+// IsDynamic will return false when using embedded data.
 func IsDynamic() bool {
 	return true
 }

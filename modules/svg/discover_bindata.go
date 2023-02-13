@@ -1,17 +1,17 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-//go:build bindata
+//go:build !servedynamic
 
 package svg
 
 import (
 	"path/filepath"
 
-	"code.gitea.io/gitea/modules/public"
+	"code.gitea.io/gitea/public"
 )
 
-// Discover returns a map of discovered SVG icons in bindata
+// Discover returns a map of discovered SVG icons in embedded assets.
 func Discover() map[string]string {
 	svgs := make(map[string]string)
 

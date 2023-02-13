@@ -1,7 +1,7 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-//go:build bindata
+//go:build !servedynamic
 
 package cmd
 
@@ -89,8 +89,7 @@ var (
 		},
 	}
 
-	sections map[string]*section
-	assets   []asset
+	assets []asset
 )
 
 type section struct {
@@ -227,7 +226,7 @@ func runExtractDo(c *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("%s: %s", destdir, err)
 	} else if !fi.IsDir() {
-		return fmt.Errorf("%s is not a directory.", destdir)
+		return fmt.Errorf("%s is not a directory", destdir)
 	}
 
 	fmt.Printf("Extracting to %s:\n", destdir)
@@ -324,11 +323,11 @@ func getPatterns(args []string) ([]glob.Glob, error) {
 	}
 	pat := make([]glob.Glob, len(args))
 	for i := range args {
-		if g, err := glob.Compile(args[i], '/'); err != nil {
+		g, err := glob.Compile(args[i], '/')
+		if err != nil {
 			return nil, fmt.Errorf("'%s': Invalid glob pattern: %w", args[i], err)
-		} else {
-			pat[i] = g
 		}
+		pat[i] = g
 	}
 	return pat, nil
 }

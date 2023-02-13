@@ -1,7 +1,7 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-//go:build bindata
+//go:build !servedynamic
 
 package options
 
@@ -16,11 +16,12 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/options"
 )
 
 var directories = make(directorySet)
 
-// Dir returns all files from bindata or custom directory.
+// Dir returns all files from embedded assets or custom directory.
 func Dir(name string) ([]string, error) {
 	if directories.Filled(name) {
 		return directories.Get(name), nil
@@ -52,24 +53,10 @@ func Dir(name string) ([]string, error) {
 }
 
 func AssetDir(dirName string) ([]string, error) {
-	d, err := Assets.Open(dirName)
-	if err != nil {
-		return nil, err
-	}
-	defer d.Close()
-
-	files, err := d.Readdir(-1)
-	if err != nil {
-		return nil, err
-	}
-	results := make([]string, 0, len(files))
-	for _, file := range files {
-		results = append(results, file.Name())
-	}
-	return results, nil
+	return options.AssetDir(dirName)
 }
 
-// Locale reads the content of a specific locale from bindata or custom path.
+// Locale reads the content of a specific locale from embedded assets or custom path.
 func Locale(name string) ([]byte, error) {
 	return fileFromDir(path.Join("locale", name))
 }
@@ -82,17 +69,17 @@ func WalkLocales(callback func(path, name string, d fs.DirEntry, err error) erro
 	return nil
 }
 
-// Readme reads the content of a specific readme from bindata or custom path.
+// Readme reads the content of a specific readme from embedded assets or custom path.
 func Readme(name string) ([]byte, error) {
 	return fileFromDir(path.Join("readme", name))
 }
 
-// Gitignore reads the content of a gitignore locale from bindata or custom path.
+// Gitignore reads the content of a gitignore locale from embedded assets or custom path.
 func Gitignore(name string) ([]byte, error) {
 	return fileFromDir(path.Join("gitignore", name))
 }
 
-// License reads the content of a specific license from bindata or custom path.
+// License reads the content of a specific license from embedded assets or custom path.
 func License(name string) ([]byte, error) {
 	return fileFromDir(path.Join("license", name))
 }
@@ -102,7 +89,7 @@ func Labels(name string) ([]byte, error) {
 	return fileFromDir(path.Join("label", name))
 }
 
-// fileFromDir is a helper to read files from bindata or custom path.
+// fileFromDir is a helper to read files from embedded assets or custom path.
 func fileFromDir(name string) ([]byte, error) {
 	customPath := path.Join(setting.CustomPath, "options", name)
 
@@ -114,7 +101,7 @@ func fileFromDir(name string) ([]byte, error) {
 		return os.ReadFile(customPath)
 	}
 
-	f, err := Assets.Open(name)
+	f, err := options.OptionsFS.Open(name)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +111,7 @@ func fileFromDir(name string) ([]byte, error) {
 }
 
 func Asset(name string) ([]byte, error) {
-	f, err := Assets.Open("/" + name)
+	f, err := options.OptionsFS.Open(name)
 	if err != nil {
 		return nil, err
 	}
@@ -133,28 +120,23 @@ func Asset(name string) ([]byte, error) {
 }
 
 func AssetNames() []string {
-	realFS := Assets.(vfsgen۰FS)
-	results := make([]string, 0, len(realFS))
-	for k := range realFS {
-		results = append(results, k[1:])
-	}
-	return results
+	return options.AssetNames()
 }
 
 func AssetIsDir(name string) (bool, error) {
-	if f, err := Assets.Open("/" + name); err != nil {
+	f, err := options.OptionsFS.Open(name)
+	if err != nil {
 		return false, err
-	} else {
-		defer f.Close()
-		if fi, err := f.Stat(); err != nil {
-			return false, err
-		} else {
-			return fi.IsDir(), nil
-		}
 	}
+	defer f.Close()
+	fi, err := f.Stat()
+	if err != nil {
+		return false, err
+	}
+	return fi.IsDir(), nil
 }
 
-// IsDynamic will return false when using embedded data (-tags bindata)
+// IsDynamic will return false when using embedded data.
 func IsDynamic() bool {
 	return false
 }

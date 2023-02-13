@@ -81,7 +81,7 @@ One of these three distributions of Make will run on Windows:
   - To compile Gitea with CGO_ENABLED (eg: SQLite3), you might need to use [tdm-gcc](https://jmeubank.github.io/tdm-gcc/) instead of MSYS2 gcc, because MSYS2 gcc headers lack some Windows-only CRT functions like `_beginthread`.
 - [Chocolatey package](https://chocolatey.org/packages/make). Run `choco install make`
 
-**Note**: If you are attempting to build using make with Windows Command Prompt, you may run into issues. The above prompts (Git bash, or MinGW) are recommended, however if you only have command prompt (or potentially PowerShell) you can set environment variables using the [set](https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/set_1) command, e.g. `set TAGS=bindata`.
+**Note**: If you are attempting to build using make with Windows Command Prompt, you may run into issues. The above prompts (Git bash, or MinGW) are recommended, however if you only have command prompt (or potentially PowerShell) you can set environment variables using the [set](https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/set_1) command, e.g. `set TAGS=servedynamic`.
 
 ## Downloading and cloning the Gitea source code
 
@@ -128,10 +128,10 @@ from source</a>.
 The simplest recommended way to build from source is:
 
 ```bash
-TAGS="bindata sqlite sqlite_unlock_notify" make build
+TAGS="sqlite sqlite_unlock_notify" make build
 ```
 
-The `build` target will execute both `frontend` and `backend` sub-targets. If the `bindata` tag is present, the frontend files will be compiled into the binary. It is recommended to leave out the tag when doing frontend development so that changes will be reflected.
+The `build` target will execute both `frontend` and `backend` sub-targets. If the `servedynamic` tag is present, the frontend files will not be compiled into the binary. It is recommended to set `servedynamic` tag when doing frontend development so that changes will be reflected.
 
 See `make help` for all available `make` targets. Also see [`.drone.yml`](https://github.com/go-gitea/gitea/blob/main/.drone.yml) to see how our continuous integration works.
 
@@ -299,7 +299,7 @@ Unit tests are covered by `*_test.go` in `go test` system.
 You can set the environment variable `GITEA_UNIT_TESTS_LOG_SQL=1` to display all SQL statements when running the tests in verbose mode (i.e. when `GOTESTFLAGS=-v` is set).
 
 ```bash
-TAGS="bindata sqlite sqlite_unlock_notify" make test # Runs the unit tests
+TAGS="sqlite sqlite_unlock_notify" make test # Runs the unit tests
 ```
 
 ### Integration Tests
@@ -308,7 +308,7 @@ Unit tests will not and cannot completely test Gitea alone. Therefore, we
 have written integration tests; however, these are database dependent.
 
 ```bash
-TAGS="bindata sqlite sqlite_unlock_notify" make build test-sqlite
+TAGS="sqlite sqlite_unlock_notify" make build test-sqlite
 ```
 
 will run the integration tests in an SQLite environment. Integration tests

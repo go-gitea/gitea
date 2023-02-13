@@ -1,7 +1,7 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-//go:build !bindata
+//go:build servedynamic
 
 package cmd
 
@@ -23,7 +23,7 @@ var (
 )
 
 func extractorNotImplemented(c *cli.Context) error {
-	err := fmt.Errorf("Sorry: the 'embedded' subcommand is not available in builds without bindata")
+	err := fmt.Errorf("Sorry: the 'embedded' subcommand is not available in servedynamic builds")
 	fmt.Fprintf(os.Stderr, "%s\n", err)
 	return err
 }

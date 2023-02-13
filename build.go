@@ -1,7 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-
 //go:build vendor
 
 package main
@@ -10,9 +9,6 @@ package main
 // These libraries will not be included in a normal compilation.
 
 import (
-	// for embed
-	_ "github.com/shurcooL/vfsgen"
-
 	// for cover merge
 	_ "golang.org/x/tools/cover"
 

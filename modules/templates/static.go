@@ -1,7 +1,7 @@
 // Copyright 2016 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-//go:build bindata
+//go:build !servedynamic
 
 package templates
 
@@ -18,6 +18,7 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/templates"
 )
 
 var (
@@ -61,15 +62,13 @@ func walkTemplateFiles(callback func(path, name string, d fs.DirEntry, err error
 	return nil
 }
 
-// GetTemplateAssetNames only for chi
 func GetTemplateAssetNames() []string {
-	realFS := Assets.(vfsgen۰FS)
-	tmpls := make([]string, 0, len(realFS))
-	for k := range realFS {
-		if strings.HasPrefix(k, "/mail/") {
+	var tmpls []string
+	for _, k := range templates.AssetNames() {
+		if strings.HasPrefix(k, "mail/") {
 			continue
 		}
-		tmpls = append(tmpls, "templates/"+k[1:])
+		tmpls = append(tmpls, path.Join("templates", k))
 	}
 
 	customDir := path.Join(setting.CustomPath, "templates")
@@ -86,7 +85,7 @@ func walkMailerTemplates(callback func(path, name string, d fs.DirEntry, err err
 
 // BuiltinAsset reads the provided asset from the builtin embedded assets
 func BuiltinAsset(name string) ([]byte, error) {
-	f, err := Assets.Open("/" + name)
+	f, err := templates.TemplatesFS.Open(name)
 	if err != nil {
 		return nil, err
 	}
@@ -96,24 +95,19 @@ func BuiltinAsset(name string) ([]byte, error) {
 
 // BuiltinAssetNames returns the names of the built-in embedded assets
 func BuiltinAssetNames() []string {
-	realFS := Assets.(vfsgen۰FS)
-	results := make([]string, 0, len(realFS))
-	for k := range realFS {
-		results = append(results, k[1:])
-	}
-	return results
+	return templates.AssetNames()
 }
 
 // BuiltinAssetIsDir returns if a provided asset is a directory
 func BuiltinAssetIsDir(name string) (bool, error) {
-	if f, err := Assets.Open("/" + name); err != nil {
+	f, err := templates.TemplatesFS.Open(name)
+	if err != nil {
 		return false, err
-	} else {
-		defer f.Close()
-		if fi, err := f.Stat(); err != nil {
-			return false, err
-		} else {
-			return fi.IsDir(), nil
-		}
 	}
+	defer f.Close()
+	fi, err := f.Stat()
+	if err != nil {
+		return false, err
+	}
+	return fi.IsDir(), nil
 }

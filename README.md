@@ -71,11 +71,11 @@ This project has been
 
 From the root of the source tree, run:
 
-    TAGS="bindata" make build
+    make build
 
 or if SQLite support is required:
 
-    TAGS="bindata sqlite sqlite_unlock_notify" make build
+    TAGS="sqlite sqlite_unlock_notify" make build
 
 The `build` target is split into two sub-targets:
 
