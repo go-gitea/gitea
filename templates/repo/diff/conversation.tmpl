@@ -3,18 +3,18 @@
 {{$isNotPending := (not (eq (index .comments 0).Review.Type 0))}}
 <div class="conversation-holder" data-path="{{(index .comments 0).TreePath}}" data-side="{{if lt (index .comments 0).Line 0}}left{{else}}right{{end}}" data-idx="{{(index .comments 0).UnsignedLine}}">
 	{{if $resolved}}
-		<div class="ui attached header resolved-placeholder df ac sb">
+		<div class="ui attached header resolved-placeholder gt-df gt-ac gt-sb">
 			<div class="ui grey text">
-				{{svg "octicon-check" 16 "icon mr-2"}}
+				{{svg "octicon-check" 16 "icon gt-mr-2"}}
 				<b>{{$resolveDoer.Name}}</b> {{$.locale.Tr "repo.issues.review.resolved_by"}}
 			</div>
 			<div>
-				<button id="show-outdated-{{(index .comments 0).ID}}" data-comment="{{(index .comments 0).ID}}" class="ui tiny right labeled button show-outdated df ac">
-					{{svg "octicon-unfold" 16 "mr-3"}}
+				<button id="show-outdated-{{(index .comments 0).ID}}" data-comment="{{(index .comments 0).ID}}" class="ui tiny right labeled button show-outdated gt-df gt-ac">
+					{{svg "octicon-unfold" 16 "gt-mr-3"}}
 					{{$.locale.Tr "repo.issues.review.show_resolved"}}
 				</button>
-				<button id="hide-outdated-{{(index .comments 0).ID}}" data-comment="{{(index .comments 0).ID}}" class="hide ui tiny right labeled button hide-outdated df ac">
-					{{svg "octicon-fold" 16 "mr-3"}}
+				<button id="hide-outdated-{{(index .comments 0).ID}}" data-comment="{{(index .comments 0).ID}}" class="hide ui tiny right labeled button hide-outdated gt-df gt-ac">
+					{{svg "octicon-fold" 16 "gt-mr-3"}}
 					{{$.locale.Tr "repo.issues.review.hide_resolved"}}
 				</button>
 			</div>
@@ -26,8 +26,8 @@
 				{{template "repo/diff/comments" dict "root" $ "comments" .comments}}
 			</ui>
 		</div>
-		<div class="df je js-small ac fw mt-3">
-			<div class="ui buttons mr-2">
+		<div class="gt-df gt-je gt-js-small gt-ac gt-fw gt-mt-3">
+			<div class="ui buttons gt-mr-2">
 				<button class="ui icon tiny basic button previous-conversation">
 					{{svg "octicon-arrow-up" 12 "icon"}} {{$.locale.Tr "repo.issues.previous"}}
 				</button>
@@ -45,8 +45,8 @@
 				</button>
 			{{end}}
 			{{if and $.SignedUserID (not $.Repository.IsArchived)}}
-				<button class="comment-form-reply ui green tiny labeled icon button ml-2 mr-0">
-					{{svg "octicon-reply" 16 "reply icon mr-2"}}{{$.locale.Tr "repo.diff.comment.reply"}}
+				<button class="comment-form-reply ui green tiny labeled icon button gt-ml-2 gt-mr-0">
+					{{svg "octicon-reply" 16 "reply icon gt-mr-2"}}{{$.locale.Tr "repo.diff.comment.reply"}}
 				</button>
 			{{end}}
 		</div>

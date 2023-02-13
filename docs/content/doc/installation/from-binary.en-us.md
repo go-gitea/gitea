@@ -16,7 +16,7 @@ menu:
 # Installation from binary
 
 All downloads come with SQLite, MySQL and PostgreSQL support, and are built with
-embedded assets. This can be different for older releases.
+embedded assets. This can be different from Gogs.
 
 **Table of Contents**
 
@@ -24,7 +24,7 @@ embedded assets. This can be different for older releases.
 
 ## Download
 
-You can find the file matching your platform from the [downloads page](https://dl.gitea.io/gitea/) after navigating to the version you want to download.
+You can find the file matching your platform from the [downloads page](https://dl.gitea.com/gitea/) after navigating to the version you want to download.
 
 ### Choosing the right file
 
@@ -36,12 +36,14 @@ You can find the file matching your platform from the [downloads page](https://d
 
 **For macOS**, you should choose `darwin-arm64` if your hardware uses Apple Silicon, or `darwin-amd64` for Intel.
 
+**For FreeBSD**, you should choose `freebsd12-amd64` for 64-bit Intel/AMD platforms.
+
 ### Downloading with wget
 
 Copy the commands below and replace the URL within the one you wish to download.
 
 ```sh
-wget -O gitea https://dl.gitea.io/gitea/{{< version >}}/gitea-{{< version >}}-linux-amd64
+wget -O gitea https://dl.gitea.com/gitea/{{< version >}}/gitea-{{< version >}}-linux-amd64
 chmod +x gitea
 ```
 
@@ -173,7 +175,7 @@ an update of your Gitea version.
 Older Linux distributions (such as Debian 7 and CentOS 6) may not be able to load the
 Gitea binary, usually producing an error such as `./gitea: /lib/x86_64-linux-gnu/libc.so.6:
 version 'GLIBC\_2.14' not found (required by ./gitea)`. This is due to the integrated
-SQLite support in the binaries provided by dl.gitea.io. In this situation, it is usually
+SQLite support in the binaries provided by dl.gitea.com. In this situation, it is usually
 possible to [install from source]({{< relref "from-source.en-us.md" >}}), without including
 SQLite support.
 
