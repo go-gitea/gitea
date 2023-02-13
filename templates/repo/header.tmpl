@@ -2,21 +2,21 @@
 {{with .Repository}}
 	<div class="ui container">
 		<div class="repo-header">
-			<div class="repo-title-wrap df fc">
+			<div class="repo-title-wrap gt-df gt-fc">
 				<div class="repo-title" role="heading" aria-level="1">
-					{{$avatar := (repoAvatar . 32 "mr-3")}}
+					{{$avatar := (repoAvatar . 32 "gt-mr-3")}}
 					{{if $avatar}}
 						{{$avatar}}
 					{{else}}
 						{{template "repo/icon" .}}
 					{{end}}
 					<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
-					<div class="mx-2">/</div>
+					<div class="gt-mx-2">/</div>
 					<a href="{{$.RepoLink}}">{{.Name}}</a>
 					{{if $.EnableFeed}}
-						<a href="{{$.RepoLink}}.rss"><i class="ui grey icon tooltip ml-3" data-content="{{$.locale.Tr "rss_feed"}}" data-position="top center">{{svg "octicon-rss" 18}}</i></a>
+						<a href="{{$.RepoLink}}.rss"><i class="ui grey icon tooltip gt-ml-3" data-content="{{$.locale.Tr "rss_feed"}}" data-position="top center">{{svg "octicon-rss" 18}}</i></a>
 					{{end}}
-					<div class="labels df ac fw">
+					<div class="labels gt-df gt-ac gt-fw">
 						{{if .IsTemplate}}
 							{{if .IsPrivate}}
 								<span class="ui basic label">{{$.locale.Tr "repo.desc.private_template"}}</span>
@@ -122,12 +122,12 @@
 								<div class="header">
 									{{$.locale.Tr "repo.already_forked" .Name}}
 								</div>
-								<div class="content tl">
+								<div class="content gt-tl">
 									<div class="ui list">
 										{{range $.UserAndOrgForks}}
-											<div class="ui item py-3">
+											<div class="ui item gt-py-3">
 												<a href="{{.Link}}">
-													{{svg "octicon-repo-forked" 16 "mr-3"}}{{.FullName}}
+													{{svg "octicon-repo-forked" 16 "gt-mr-3"}}{{.FullName}}
 												</a>
 											</div>
 										{{end}}

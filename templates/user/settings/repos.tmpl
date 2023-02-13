@@ -109,15 +109,15 @@
 							<div class="item">
 								<div class="content">
 									{{if .IsPrivate}}
-										{{svg "octicon-lock" 16 "mr-2 iconFloat text gold"}}
+										{{svg "octicon-lock" 16 "gt-mr-2 iconFloat text gold"}}
 									{{else if .IsFork}}
-										{{svg "octicon-repo-forked" 16 "mr-2 iconFloat"}}
+										{{svg "octicon-repo-forked" 16 "gt-mr-2 iconFloat"}}
 									{{else if .IsMirror}}
-										{{svg "octicon-mirror" 16 "mr-2 iconFloat"}}
+										{{svg "octicon-mirror" 16 "gt-mr-2 iconFloat"}}
 									{{else if .IsTemplate}}
-										{{svg "octicon-repo-template" 16 "mr-2 iconFloat"}}
+										{{svg "octicon-repo-template" 16 "gt-mr-2 iconFloat"}}
 									{{else}}
-										{{svg "octicon-repo" 16 "mr-2 iconFloat"}}
+										{{svg "octicon-repo" 16 "gt-mr-2 iconFloat"}}
 									{{end}}
 									<a class="name" href="{{.Link}}">{{.OwnerName}}/{{.Name}}</a>
 									<span>{{FileSize .Size}}</span>

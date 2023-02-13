@@ -177,7 +177,7 @@
 					{{$.locale.Tr "repo.pulls.data_broken"}}
 				</div>
 			{{else if .IsPullWorkInProgress}}
-				<div class="item toggle-wip df ac sb" data-title="{{.Issue.Title}}" data-wip-prefix="{{(.WorkInProgressPrefix|Escape)}}" data-update-url="{{.Issue.Link}}/title">
+				<div class="item toggle-wip gt-df gt-ac gt-sb" data-title="{{.Issue.Title}}" data-wip-prefix="{{(.WorkInProgressPrefix|Escape)}}" data-update-url="{{.Issue.Link}}/title">
 					<div>
 						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
 						{{$.locale.Tr "repo.pulls.cannot_merge_work_in_progress"}}
@@ -333,7 +333,7 @@
 								'hasPendingPullRequestMergeTip': {{$hasPendingPullRequestMergeTip}},
 							};
 
-							const generalHideAutoMerge = mergeForm.canMergeNow && mergeForm.allOverridableChecksOk; // if this PR can be merged now, then hide the auto merge
+							const generalHideAutoMerge = mergeForm.canMergeNow && mergeForm.allOverridableChecksOk; // if this pr can be merged now, then hide the auto merge
 							mergeForm['mergeStyles'] = [
 								{
 									'name': 'merge',
