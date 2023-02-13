@@ -43,9 +43,11 @@ function showHide(elements, show) {
   return elements;
 }
 
-function warnDeprecated(fn) {
+function warnDeprecated(_fn) {
   if (!window.config?.runModeIsProd) {
-    console.warn(`jQuery.${fn}() is deprecated, add/remove Gitea specialized helper "gt-hidden" class instead`);
+    // TODO: not sure whether it is really necessary to deprecated these methods now
+    // It seems better to introduce Gitea's own helper methods to replace jQuery, instead of adding/removing the class again and again
+    // console.warn(`jQuery.${fn}() is deprecated`);
   }
 }
 
