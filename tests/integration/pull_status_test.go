@@ -93,15 +93,6 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 	})
 }
 
-func doAPICreateCommitStatusDefault(ctx APITestContext, commitID string, status api.CommitStatusState) func(*testing.T) {
-	return doAPICreateCommitStatus(ctx, commitID, api.CreateStatusOption{
-		State:       status,
-		TargetURL:   "http://test.ci/",
-		Description: "",
-		Context:     "testci",
-	})
-}
-
 func doAPICreateCommitStatus(ctx APITestContext, commitID string, data api.CreateStatusOption) func(*testing.T) {
 	return func(t *testing.T) {
 		req := NewRequestWithJSON(
