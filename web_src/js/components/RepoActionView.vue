@@ -280,8 +280,6 @@ export function initRepositoryActionView() {
 
 <style scoped lang="less">
 
-// some elements are not managed by vue, so we need to use _actions.less in addition.
-
 .action-view-body {
   display: flex;
   height: calc(100vh - 266px); // fine tune this value to make the main view has full height
@@ -411,3 +409,56 @@ export function initRepositoryActionView() {
 }
 </style>
 
+<style lang="less">
+// some elements are not managed by vue, so we need to use global style
+
+// TODO: the parent element's full height doesn't work well now
+body > div.full.height {
+  padding-bottom: 0;
+}
+
+.job-status-rotate {
+  animation: job-status-rotate-keyframes 1s linear infinite;
+}
+@keyframes job-status-rotate-keyframes {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.job-step-section {
+  margin: 10px;
+  .job-step-logs {
+    font-family: monospace, monospace;
+    .job-log-line {
+      display: flex;
+      .line-num {
+        width: 48px;
+        color: var(--color-grey-light);
+        text-align: right;
+      }
+      .log-time {
+        color: var(--color-grey-light);
+        margin-left: 10px;
+        white-space: nowrap;
+      }
+      .log-msg {
+        flex: 1;
+        word-break: break-all;
+        white-space: break-spaces;
+        margin-left: 10px;
+      }
+    }
+
+    // TODO: group support
+    .job-log-group {
+    }
+
+    .job-log-group-summary {
+    }
+
+    .job-log-list {
+    }
+  }
+}
+</style>
