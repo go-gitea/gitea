@@ -1,12 +1,12 @@
 <div class="issue list">
 	{{range .Runs}}
-		<li class="item df py-3">
-			<div class="issue-item-left df">
+		<li class="item gt-df gt-py-3">
+			<div class="issue-item-left gt-df">
 				{{template "repo/actions/status" .Status}}
 			</div>
-			<div class="issue-item-main f1 fc df">
+			<div class="issue-item-main gt-f1 gt-fc gt-df">
 				<div class="issue-item-top-row">
-					<a class="index ml-0 mr-2" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
+					<a class="index gt-ml-0 gt-mr-2" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
 						{{.Title}}
 					</a>
 					<span class="ui label">
@@ -17,7 +17,7 @@
 						{{end}}
 					</span>
 				</div>
-				<div class="desc issue-item-bottom-row df ac fw my-1">
+				<div class="desc issue-item-bottom-row gt-df gt-ac gt-fw gt-my-1">
 					<b>{{if not $.CurWorkflow}}{{.WorkflowID}} {{end}}#{{.Index}}</b>: {{$.locale.Tr "actions.runs.commit"}}
 					<a href="{{$.RepoLink}}/commit/{{.CommitSHA}}">{{ShortSha .CommitSHA}}</a>&nbsp; {{$.locale.Tr "actions.runs.pushed_by"}} {{.TriggerUser.GetDisplayName | Escape}}
 				</div>
