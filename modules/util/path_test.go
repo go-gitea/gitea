@@ -56,8 +56,6 @@ func TestFileURLToPath(t *testing.T) {
 	}
 }
 
-
-
 func TestMisc_IsReadmeFileName(t *testing.T) {
 	trueTestCases := []string{
 		"readme",

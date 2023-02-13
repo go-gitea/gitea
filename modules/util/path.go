@@ -203,7 +203,6 @@ func CommonSkip(name string) bool {
 	return false
 }
 
-
 // IsReadmeFileName reports whether name looks like a README file
 // based on its name.
 func IsReadmeFileName(name string) bool {
