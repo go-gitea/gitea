@@ -52,7 +52,12 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 
 	// Call API to add status for commit
 	ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeRepo)
-	t.Run("CreateStatus", doAPICreateCommitStatus(ctx, path.Base(commitURL), api.CommitStatusState(state)))
+	t.Run("CreateStatus", doAPICreateCommitStatus(ctx, path.Base(commitURL), api.CreateStatusOption{
+		State:       api.CommitStatusState(state),
+		TargetURL:   "http://test.ci/",
+		Description: "",
+		Context:     "testci",
+	}))
 
 	req = NewRequest(t, "GET", "/user2/repo1/commits/branch/master")
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -145,11 +150,56 @@ func TestRepoCommitsStatusParallel(t *testing.T) {
 		go func(parentT *testing.T, i int) {
 			parentT.Run(fmt.Sprintf("ParallelCreateStatus_%d", i), func(t *testing.T) {
 				ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeRepoStatus)
-				runBody := doAPICreateCommitStatus(ctx, path.Base(commitURL), api.CommitStatusState("pending"))
+				runBody := doAPICreateCommitStatus(ctx, path.Base(commitURL), api.CreateStatusOption{
+					State:       api.CommitStatusPending,
+					TargetURL:   "http://test.ci/",
+					Description: "",
+					Context:     "testci",
+				})
 				runBody(t)
 				wg.Done()
 			})
 		}(t, i)
 	}
 	wg.Wait()
+}
+
+func TestRepoCommitsStatusMultiple(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+
+	// Request repository commits page
+	req := NewRequest(t, "GET", "/user2/repo1/commits/branch/master")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	doc := NewHTMLParser(t, resp.Body)
+	// Get first commit URL
+	commitURL, exists := doc.doc.Find("#commits-table tbody tr td.sha a").Attr("href")
+	assert.True(t, exists)
+	assert.NotEmpty(t, commitURL)
+
+	// Call API to add status for commit
+	ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeRepo)
+	t.Run("CreateStatus", doAPICreateCommitStatus(ctx, path.Base(commitURL), api.CreateStatusOption{
+		State:       api.CommitStatusSuccess,
+		TargetURL:   "http://test.ci/",
+		Description: "",
+		Context:     "testci",
+	}))
+
+	t.Run("CreateStatus", doAPICreateCommitStatus(ctx, path.Base(commitURL), api.CreateStatusOption{
+		State:       api.CommitStatusSuccess,
+		TargetURL:   "http://test.ci/",
+		Description: "",
+		Context:     "other_context",
+	}))
+
+	req = NewRequest(t, "GET", "/user2/repo1/commits/branch/master")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	doc = NewHTMLParser(t, resp.Body)
+	// Check that the commit-statuses-trigger (for tooltip) and commit-status (svg) are present
+	sel := doc.doc.Find("#commits-table tbody tr td.message .commit-statuses-trigger .commit-status")
+	assert.Equal(t, 1, sel.Length())
 }
