@@ -19,9 +19,15 @@ import (
 )
 
 type (
-	// ProjectsConfig is used to identify the type of board that is being created
-	ProjectsConfig struct {
+	// BoardConfig is used to identify the type of board that is being created
+	BoardConfig struct {
 		BoardType   BoardType
+		Translation string
+	}
+
+	// CardConfig is used to identify the type of board card that is being used
+	CardConfig struct {
+		CardType    CardType
 		Translation string
 	}
 
@@ -91,6 +97,7 @@ type Project struct {
 	CreatorID   int64                  `xorm:"NOT NULL"`
 	IsClosed    bool                   `xorm:"INDEX"`
 	BoardType   BoardType
+	CardType    CardType
 	Type        Type
 
 	RenderedContent string `xorm:"-"`
@@ -145,12 +152,20 @@ func init() {
 	db.RegisterModel(new(Project))
 }
 
-// GetProjectsConfig retrieves the types of configurations projects could have
-func GetProjectsConfig() []ProjectsConfig {
-	return []ProjectsConfig{
+// GetBoardConfig retrieves the types of configurations project boards could have
+func GetBoardConfig() []BoardConfig {
+	return []BoardConfig{
 		{BoardTypeNone, "repo.projects.type.none"},
 		{BoardTypeBasicKanban, "repo.projects.type.basic_kanban"},
 		{BoardTypeBugTriage, "repo.projects.type.bug_triage"},
+	}
+}
+
+// GetCardConfig retrieves the types of configurations project board cards could have
+func GetCardConfig() []CardConfig {
+	return []CardConfig{
+		{CardTypeTextOnly, "repo.projects.card_type.text_only"},
+		{CardTypeImagesAndText, "repo.projects.card_type.images_and_text"},
 	}
 }
 
@@ -237,6 +252,10 @@ func NewProject(p *Project) error {
 		p.BoardType = BoardTypeNone
 	}
 
+	if !IsCardTypeValid(p.CardType) {
+		p.CardType = CardTypeTextOnly
+	}
+
 	if !IsTypeValid(p.Type) {
 		return util.NewInvalidArgumentErrorf("project type is not valid")
 	}
@@ -280,9 +299,14 @@ func GetProjectByID(ctx context.Context, id int64) (*Project, error) {
 
 // UpdateProject updates project properties
 func UpdateProject(ctx context.Context, p *Project) error {
+	if !IsCardTypeValid(p.CardType) {
+		p.CardType = CardTypeTextOnly
+	}
+
 	_, err := db.GetEngine(ctx).ID(p.ID).Cols(
 		"title",
 		"description",
+		"card_type",
 	).Update(p)
 	return err
 }
