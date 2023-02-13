@@ -29,7 +29,7 @@
 		<div id="issue-filters" class="ui stackable grid">
 			<div class="six wide column">
 				{{if $.CanWriteIssuesOrPulls}}
-					<div class="ui checkbox issue-checkbox-all vm">
+					<div class="ui checkbox issue-checkbox-all gt-vm">
 						<input type="checkbox" title="{{.locale.Tr "repo.issues.action_check_all"}}">
 					</div>
 				{{end}}
@@ -45,7 +45,7 @@
 						</span>
 						<div class="menu">
 							<div class="ui icon search input">
-								<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+								<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_label"}}">
 							</div>
 							<span class="info">{{.locale.Tr "repo.issues.filter_label_exclude" | Safe}}</span>
@@ -64,7 +64,7 @@
 						</span>
 						<div class="menu">
 							<div class="ui icon search input">
-								<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+								<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_milestone"}}">
 							</div>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_milestone_no_select"}}</a>
@@ -82,7 +82,7 @@
 						</span>
 						<div class="menu">
 							<div class="ui icon search input">
-								<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+								<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_project"}}">
 							</div>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_project_all"}}</a>
@@ -94,7 +94,7 @@
 								</div>
 								{{range .OpenProjects}}
 									<a class="{{if $.ProjectID}}{{if eq $.ProjectID .ID}}active selected{{end}}{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{.ID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">
-										{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "mr-3"}}{{else}}{{svg "octicon-project" 18 "mr-3"}}{{end}}
+										{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
 										{{.Title}}
 									</a>
 								{{end}}
@@ -106,7 +106,7 @@
 								</div>
 								{{range .ClosedProjects}}
 									<a class="{{if $.ProjectID}}{{if eq $.ProjectID .ID}}active selected{{end}}{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{.ID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">
-										{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "mr-3"}}{{else}}{{svg "octicon-project" 18 "mr-3"}}{{end}}
+										{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
 										{{.Title}}
 									</a>
 								{{end}}
@@ -122,7 +122,7 @@
 						</span>
 						<div class="menu">
 							<div class="ui icon search input">
-								<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+								<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_poster"}}">
 							</div>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}">{{.locale.Tr "repo.issues.filter_poster_no_select"}}</a>
@@ -142,7 +142,7 @@
 						</span>
 						<div class="menu">
 							<div class="ui icon search input">
-								<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+								<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_assignee"}}">
 							</div>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_assginee_no_select"}}</a>
@@ -260,7 +260,7 @@
 								</div>
 								{{range .OpenProjects}}
 									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/projects">
-										{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "mr-3"}}{{else}}{{svg "octicon-project" 18 "mr-3"}}{{end}}
+										{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
 										{{.Title}}
 									</div>
 								{{end}}
@@ -272,7 +272,7 @@
 								</div>
 								{{range .ClosedProjects}}
 									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/projects">
-										{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "mr-3"}}{{else}}{{svg "octicon-project" 18 "mr-3"}}{{end}}
+										{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
 										{{.Title}}
 									</div>
 								{{end}}
