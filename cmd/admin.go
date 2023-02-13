@@ -372,6 +372,15 @@ var (
 			Value: "",
 			Usage: "Group Claim value for restricted users",
 		},
+		cli.StringFlag{
+			Name:  "group-team-map",
+			Value: "",
+			Usage: "JSON mapping between groups and org teams",
+		},
+		cli.BoolFlag{
+			Name:  "group-team-map-removal",
+			Usage: "Activate automatic team membership removal depending on groups",
+		},
 	}
 
 	microcmdAuthUpdateOauth = cli.Command{
@@ -853,6 +862,8 @@ func parseOAuth2Config(c *cli.Context) *oauth2.Source {
 		GroupClaimName:                c.String("group-claim-name"),
 		AdminGroup:                    c.String("admin-group"),
 		RestrictedGroup:               c.String("restricted-group"),
+		GroupTeamMap:                  c.String("group-team-map"),
+		GroupTeamMapRemoval:           c.Bool("group-team-map-removal"),
 	}
 }
 
@@ -934,6 +945,12 @@ func runUpdateOauth(c *cli.Context) error {
 	}
 	if c.IsSet("restricted-group") {
 		oAuth2Config.RestrictedGroup = c.String("restricted-group")
+	}
+	if c.IsSet("group-team-map") {
+		oAuth2Config.GroupTeamMap = c.String("group-team-map")
+	}
+	if c.IsSet("group-team-map-removal") {
+		oAuth2Config.GroupTeamMapRemoval = c.Bool("group-team-map-removal")
 	}
 
 	// update custom URL mapping

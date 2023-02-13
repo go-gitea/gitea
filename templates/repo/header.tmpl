@@ -3,7 +3,7 @@
 	<div class="ui container">
 		<div class="repo-header">
 			<div class="repo-title-wrap df fc">
-				<div class="repo-title">
+				<div class="repo-title" role="heading" aria-level="1">
 					{{$avatar := (repoAvatar . 32 "mr-3")}}
 					{{if $avatar}}
 						{{$avatar}}
@@ -217,7 +217,7 @@
 				{{end}}
 
 				{{if or (.Permission.CanRead $.UnitTypeWiki) (.Permission.CanRead $.UnitTypeExternalWiki)}}
-					<a class="{{if .PageIsWiki}}active {{end}}item" href="{{.RepoLink}}/wiki" {{if and (.Permission.CanRead $.UnitTypeExternalWiki) (not (HasPrefix ((.Repository.MustGetUnit $.Context $.UnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL) (.Repository.HTMLURL)))}} target="_blank" rel="noopener noreferrer" {{end}}>
+					<a class="{{if .PageIsWiki}}active {{end}}item" href="{{.RepoLink}}/wiki" {{if and (.Permission.CanRead $.UnitTypeExternalWiki) (not (HasPrefix ((.Repository.MustGetUnit $.Context $.UnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL) (.Repository.Link)))}} target="_blank" rel="noopener noreferrer" {{end}}>
 						{{svg "octicon-book"}} {{.locale.Tr "repo.wiki"}}
 					</a>
 				{{end}}
