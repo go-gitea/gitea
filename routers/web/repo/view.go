@@ -56,44 +56,6 @@ type namedBlob struct {
 	blob      *git.Blob
 }
 
-// isReadmeFile reports whether name looks like a README file
-// based on its name.
-func isReadmeFile(name string) bool {
-	name = strings.ToLower(name)
-	if len(name) < 6 {
-		return false
-	} else if len(name) == 6 {
-		return name == "readme"
-	}
-	return name[:7] == "readme."
-}
-
-// isReadmeFileExtension reports whether name looks like a README file
-// based on its name. It will look through the provided extensions and check if the file matches
-// one of the extensions and provide the index in the extension list.
-// If the filename is `readme.` with an unmatched extension it will match with the index equaling
-// the length of the provided extension list.
-// Note that the '.' should be provided in ext, e.g ".md"
-func isReadmeFileExtension(name string, ext ...string) (int, bool) {
-	name = strings.ToLower(name)
-	if len(name) < 6 || name[:6] != "readme" {
-		return 0, false
-	}
-
-	for i, extension := range ext {
-		extension = strings.ToLower(extension)
-		if name[6:] == extension {
-			return i, true
-		}
-	}
-
-	if name[6] == '.' {
-		return len(ext), true
-	}
-
-	return 0, false
-}
-
 // locate a README for a tree in one of the supported paths.
 //
 // entries is passed to reduce calls to ListEntries(), so
@@ -134,7 +96,7 @@ func findReadmeFileInEntries(ctx *context.Context, entries []*git.TreeEntry) (*n
 			}
 			continue
 		}
-		if i, ok := isReadmeFileExtension(entry.Name(), exts...); ok {
+		if i, ok := util.IsReadmeFileExtension(entry.Name(), exts...); ok {
 			log.Debug("Potential readme file: %s", entry.Name())
 			if readmeFiles[i] == nil || base.NaturalSortLess(readmeFiles[i].name, entry.Blob().Name()) {
 				name := entry.Name()
@@ -461,7 +423,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
 
 		shouldRenderSource := ctx.FormString("display") == "source"
-		readmeExist := isReadmeFile(blob.Name())
+		readmeExist := util.IsReadmeFileName(blob.Name())
 		ctx.Data["ReadmeExist"] = readmeExist
 
 		markupType := markup.Type(blob.Name())
