@@ -1,12 +1,12 @@
-{{if eq (len .Statuses) 1}}{{$status := index .Statuses 0}}{{if $status.TargetURL}}<a class="ui link commit-statuses-trigger vm" href="{{$status.TargetURL}}">{{template "repo/commit_status" .Status}}</a>{{end}}{{end}}
+{{if eq (len .Statuses) 1}}{{$status := index .Statuses 0}}{{if $status.TargetURL}}<a class="ui link commit-statuses-trigger gt-vm" href="{{$status.TargetURL}}">{{template "repo/commit_status" .Status}}</a>{{end}}{{end}}
 <div class="ui commit-statuses-popup commit-statuses tippy-target">
 	<div class="ui relaxed list divided">
 		{{range .Statuses}}
-			<div class="ui item singular-status df">
+			<div class="ui item singular-status gt-df">
 				{{template "repo/commit_status" .}}
-				<span class="ui ml-3 f1">{{.Context}} <span class="text grey">{{.Description}}</span></span>
+				<span class="ui gt-ml-3 gt-f1">{{.Context}} <span class="text grey">{{.Description}}</span></span>
 				{{if .TargetURL}}
-					<a class="ml-3" href="{{.TargetURL}}" target="_blank" rel="noopener noreferrer">{{$.root.locale.Tr "repo.pulls.status_checks_details"}}</a>
+					<a class="gt-ml-3" href="{{.TargetURL}}" target="_blank" rel="noopener noreferrer">{{$.root.locale.Tr "repo.pulls.status_checks_details"}}</a>
 				{{end}}
 			</div>
 		{{end}}

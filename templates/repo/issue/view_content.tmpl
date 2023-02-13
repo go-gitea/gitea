@@ -27,10 +27,10 @@
 				</a>
 			{{end}}
 				<div class="content comment-container">
-					<div class="ui top attached header comment-header df ac sb">
-						<div class="comment-header-left df ac">
+					<div class="ui top attached header comment-header gt-df gt-ac gt-sb">
+						<div class="comment-header-left gt-df gt-ac">
 							{{if .Issue.OriginalAuthor}}
-								<span class="text black bold">
+								<span class="text black gt-bold">
 									{{svg (MigrationIcon .Repository.GetOriginalURLHostname)}}
 									{{.Issue.OriginalAuthor}}
 								</span>
@@ -50,7 +50,7 @@
 								</span>
 							{{end}}
 						</div>
-						<div class="comment-header-right actions df ac">
+						<div class="comment-header-right actions gt-df gt-ac">
 							{{if gt .Issue.ShowRole 0}}
 								{{if (.Issue.ShowRole.HasRole "Writer")}}
 									<div class="ui basic label role-label">

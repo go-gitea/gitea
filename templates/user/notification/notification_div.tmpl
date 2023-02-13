@@ -5,7 +5,7 @@
 			{{$notificationUnreadCount := call .NotificationUnreadCount}}
 			<a href="{{AppSubUrl}}/notifications?q=unread" class="{{if eq .Status 1}}active {{end}}item">
 				{{.locale.Tr "notification.unread"}}
-				<div class="ui label {{if not $notificationUnreadCount}}hidden{{end}}">{{$notificationUnreadCount}}</div>
+				<div class="ui label {{if not $notificationUnreadCount}}gt-hidden{{end}}">{{$notificationUnreadCount}}</div>
 			</a>
 			<a href="{{AppSubUrl}}/notifications?q=read" class="{{if eq .Status 2}}active {{end}}item">
 				{{.locale.Tr "notification.read"}}
