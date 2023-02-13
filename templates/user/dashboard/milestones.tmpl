@@ -81,10 +81,10 @@
 					{{range .Milestones}}
 						<li class="item">
 							<div class="df ac sb">
-								<h2 class="df ac m-0 fw">
+								<h3 class="df ac m-0 fw">
 									<span class="ui large label">{{.Repo.FullName}}</span>
 									{{svg "octicon-milestone" 16 "mr-3"}}<a class="muted" href="{{.Repo.Link}}/milestone/{{.ID}}">{{.Name}}</a>
-								</h2>
+								</h3>
 								<div class="df ac">
 									<span class="mr-3">{{.Completeness}}%</span>
 									<progress value="{{.Completeness}}" max="100"></progress>
