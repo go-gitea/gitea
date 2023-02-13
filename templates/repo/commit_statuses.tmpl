@@ -1,4 +1,4 @@
-{{ if .Statuses }}
+{{if .Statuses}}
 	<span class="commit-statuses-trigger vm">
 		{{if eq (len .Statuses) 1}}
 			{{$status := index .Statuses 0}}
@@ -24,4 +24,4 @@
 			{{end}}
 		</div>
 	</div>
-{{ end }}
+{{end}}
