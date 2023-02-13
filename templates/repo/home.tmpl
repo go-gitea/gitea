@@ -17,7 +17,7 @@
 							<div class="ui action input{{if .CodeIndexerUnavailable}} disabled left icon tooltip{{end}}"{{if .CodeIndexerUnavailable}} data-content="{{.locale.Tr "repo.search.code_search_unavailable"}}"{{end}}>
 								<input name="q" value="{{.Keyword}}"{{if .CodeIndexerUnavailable}} disabled{{end}} placeholder="{{.locale.Tr "repo.search.search_repo"}}">
 								{{if .CodeIndexerUnavailable}}
-									<i class="icon df ac jc">{{svg "octicon-alert"}}</i>
+									<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-alert"}}</i>
 								{{end}}
 								<button class="ui icon button"{{if .CodeIndexerUnavailable}} disabled{{end}} type="submit">
 									{{svg "octicon-search"}}
@@ -28,7 +28,7 @@
 				</div>
 			{{end}}
 		</div>
-		<div class="mt-3" id="repo-topics">
+		<div class="gt-mt-3" id="repo-topics">
 		{{range .Topics}}<a class="ui repo-topic large label topic" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
 		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}<a id="manage_topic" class="muted">{{.locale.Tr "repo.topic.manage_topics"}}</a>{{end}}
 		</div>
@@ -40,7 +40,7 @@
 					<div class="ui fluid multiple search selection dropdown">
 						<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if lt (Add $i 1) (len $.Topics)}},{{end}}{{end}}">
 						{{range .Topics}}
-						<div class="ui small label topic transition visible" data-value="{{.Name}}" style="display: inline-block !important; cursor: default;">{{.Name}}{{svg "octicon-x" 16 "delete icon ml-3 mt-1"}}</div>
+						<div class="ui small label topic transition visible" data-value="{{.Name}}" style="display: inline-block !important; cursor: default;">{{.Name}}{{svg "octicon-x" 16 "delete icon gt-ml-3 gt-mt-1"}}</div>
 						{{end}}
 						<div class="text"></div>
 					</div>
@@ -62,12 +62,12 @@
 			</div>
 		{{end}}
 		{{template "repo/sub_menu" .}}
-		<div class="repo-button-row df ac sb fw">
-			<div class="df ac">
+		<div class="repo-button-row gt-df gt-ac gt-sb gt-fw">
+			<div class="gt-df gt-ac">
 				{{template "repo/branch_dropdown" dict "root" .}}
 				{{$n := len .TreeNames}}
 				{{$l := Subtract $n 1}}
-				<!-- If home page, show new PR. If not, show breadcrumb -->
+				<!-- If home page, show new pr. If not, show breadcrumb -->
 				{{if eq $n 0}}
 					{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
 						<a href="{{CompareLink .BaseRepo .Repository .BranchName}}">
@@ -77,7 +77,7 @@
 					<a href="{{.Repository.Link}}/find/{{.BranchNameSubURL}}" class="ui compact basic button">{{.locale.Tr "repo.find_file.go_to_file"}}</a>
 				{{end}}
 				{{if or .CanAddFile .CanUploadFile}}
-					<button class="ui basic small compact dropdown jump icon button mr-2"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
+					<button class="ui basic small compact dropdown jump icon button gt-mr-2"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
 						<span class="text">{{.locale.Tr "repo.editor.add_file"}}</span>
 						<div class="menu">
 							{{if .CanAddFile}}
@@ -100,10 +100,10 @@
 					</button>
 				{{end}}
 				{{if ne $n 0}}
-					<span class="ui breadcrumb repo-path ml-2"><a class="section" href="{{.RepoLink}}/src/{{.BranchNameSubURL}}" title="{{.Repository.Name}}">{{EllipsisString .Repository.Name 30}}</a>{{range $i, $v := .TreeNames}}<span class="divider">/</span>{{if eq $i $l}}<span class="active section" title="{{$v}}">{{EllipsisString $v 30}}</span>{{else}}{{$p := index $.Paths $i}}<span class="section"><a href="{{$.BranchLink}}/{{PathEscapeSegments $p}}" title="{{$v}}">{{EllipsisString $v 30}}</a></span>{{end}}{{end}}</span>
+					<span class="ui breadcrumb repo-path gt-ml-2"><a class="section" href="{{.RepoLink}}/src/{{.BranchNameSubURL}}" title="{{.Repository.Name}}">{{EllipsisString .Repository.Name 30}}</a>{{range $i, $v := .TreeNames}}<span class="divider">/</span>{{if eq $i $l}}<span class="active section" title="{{$v}}">{{EllipsisString $v 30}}</span>{{else}}{{$p := index $.Paths $i}}<span class="section"><a href="{{$.BranchLink}}/{{PathEscapeSegments $p}}" title="{{$v}}">{{EllipsisString $v 30}}</a></span>{{end}}{{end}}</span>
 				{{end}}
 			</div>
-			<div class="df ac">
+			<div class="gt-df gt-ac">
 				{{if eq $n 0}}
 					{{if .Repository.IsTemplate}}
 						<div class="ui tiny primary buttons">
@@ -121,14 +121,14 @@
 							{{svg "octicon-kebab-horizontal"}}
 							<div class="menu">
 								{{if not $.DisableDownloadSourceArchives}}
-									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16 "mr-3"}}{{.locale.Tr "repo.download_zip"}}</a>
-									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip" 16 "mr-3"}}{{.locale.Tr "repo.download_tar"}}</a>
-									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.bundle" rel="nofollow">{{svg "octicon-package" 16 "mr-3"}}{{.locale.Tr "repo.download_bundle"}}</a>
+									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16 "gt-mr-3"}}{{.locale.Tr "repo.download_zip"}}</a>
+									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip" 16 "gt-mr-3"}}{{.locale.Tr "repo.download_tar"}}</a>
+									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.bundle" rel="nofollow">{{svg "octicon-package" 16 "gt-mr-3"}}{{.locale.Tr "repo.download_bundle"}}</a>
 									{{if .CitiationExist}}
-										<a class="item" id="cite-repo-button">{{svg "octicon-cross-reference" 16 "mr-3"}}{{.locale.Tr "repo.cite_this_repo"}}</a>
+										<a class="item" id="cite-repo-button">{{svg "octicon-cross-reference" 16 "gt-mr-3"}}{{.locale.Tr "repo.cite_this_repo"}}</a>
 									{{end}}
 								{{end}}
-								<a class="item js-clone-url-vsc" href="vscode://vscode.git/clone?url={{.CloneButtonOriginLink.HTTPS}}">{{svg "gitea-vscode" 16 "mr-3"}}{{.locale.Tr "repo.clone_in_vsc"}}</a>
+								<a class="item js-clone-url-vsc" href="vscode://vscode.git/clone?url={{.CloneButtonOriginLink.HTTPS}}">{{svg "gitea-vscode" 16 "gt-mr-3"}}{{.locale.Tr "repo.clone_in_vsc"}}</a>
 							</div>
 						</button>
 						{{template "repo/clone_script" .}}{{/* the script will update `.js-clone-url` and related elements */}}
@@ -137,7 +137,7 @@
 				{{end}}
 				{{if and (ne $n 0) (not .IsViewFile) (not .IsBlame)}}
 					<a class="ui button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">
-						{{svg "octicon-history" 16 "mr-3"}}{{.locale.Tr "repo.file_history"}}
+						{{svg "octicon-history" 16 "gt-mr-3"}}{{.locale.Tr "repo.file_history"}}
 					</a>
 				{{end}}
 			</div>

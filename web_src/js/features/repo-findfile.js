@@ -88,7 +88,7 @@ function filterRepoFiles(filter) {
     const $row = $(tmplRow);
     const $a = $row.find('a');
     $a.attr('href', `${treeLink}/${escapePath(r.matchResult.join(''))}`);
-    const $octiconFile = $(svg('octicon-file')).addClass('mr-3');
+    const $octiconFile = $(svg('octicon-file')).addClass('gt-mr-3');
     $a.append($octiconFile);
     // if the target file path is "abc/xyz", to search "bx", then the matchResult is ['a', 'b', 'c/', 'x', 'yz']
     // the matchResult[odd] is matched and highlighted to red.
