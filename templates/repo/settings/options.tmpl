@@ -478,59 +478,41 @@
 					</div>
 					<div class="field{{if not $pullRequestEnabled}} disabled{{end}}" id="pull_box">
 						<div class="field">
-							<div class="ui checkbox">
-								<input name="pulls_ignore_whitespace" type="checkbox" {{if and $pullRequestEnabled ($prUnit.PullRequestsConfig.IgnoreWhitespaceConflicts)}}checked{{end}}>
-								<label>{{.locale.Tr "repo.settings.pulls.ignore_whitespace"}}</label>
-							</div>
+							<p>
+								{{.locale.Tr "repo.settings.merge_style_desc"}}
+							</p>
 						</div>
 						<div class="field">
 							<div class="ui checkbox">
 								<input name="pulls_allow_merge" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowMerge)}}checked{{end}}>
-								<label>{{.locale.Tr "repo.settings.pulls.allow_merge_commits"}}</label>
+								<label>{{.locale.Tr "repo.pulls.merge_pull_request"}}</label>
 							</div>
 						</div>
 						<div class="field">
 							<div class="ui checkbox">
 								<input name="pulls_allow_rebase" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowRebase)}}checked{{end}}>
-								<label>{{.locale.Tr "repo.settings.pulls.allow_rebase_merge"}}</label>
+								<label>{{.locale.Tr "repo.pulls.rebase_merge_pull_request"}}</label>
 							</div>
 						</div>
 						<div class="field">
 							<div class="ui checkbox">
 								<input name="pulls_allow_rebase_merge" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowRebaseMerge)}}checked{{end}}>
-								<label>{{.locale.Tr "repo.settings.pulls.allow_rebase_merge_commit"}}</label>
+								<label>{{.locale.Tr "repo.pulls.rebase_merge_commit_pull_request"}}</label>
 							</div>
 						</div>
 						<div class="field">
 							<div class="ui checkbox">
 								<input name="pulls_allow_squash" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowSquash)}}checked{{end}}>
-								<label>{{.locale.Tr "repo.settings.pulls.allow_squash_commits"}}</label>
+								<label>{{.locale.Tr "repo.pulls.squash_merge_pull_request"}}</label>
 							</div>
 						</div>
 						<div class="field">
 							<div class="ui checkbox">
 								<input name="pulls_allow_manual_merge" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowManualMerge)}}checked{{end}}>
-								<label>{{.locale.Tr "repo.settings.pulls.allow_manual_merge"}}</label>
+								<label>{{.locale.Tr "repo.pulls.merge_manually"}}</label>
 							</div>
 						</div>
-						<div class="field">
-							<div class="ui checkbox">
-								<input name="enable_autodetect_manual_merge" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AutodetectManualMerge)}}checked{{end}}>
-								<label>{{.locale.Tr "repo.settings.pulls.enable_autodetect_manual_merge"}}</label>
-							</div>
-						</div>
-						<div class="field">
-							<div class="ui checkbox">
-								<input name="pulls_allow_rebase_update" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowRebaseUpdate)}}checked{{end}}>
-								<label>{{.locale.Tr "repo.settings.pulls.allow_rebase_update"}}</label>
-							</div>
-						</div>
-						<div class="field">
-							<div class="ui checkbox">
-								<input name="default_delete_branch_after_merge" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge)}}checked{{end}}>
-								<label>{{.locale.Tr "repo.settings.pulls.default_delete_branch_after_merge"}}</label>
-							</div>
-						</div>
+
 						<div class="field">
 							<p>
 								{{.locale.Tr "repo.settings.default_merge_style_desc"}}
@@ -562,6 +544,36 @@
 									<div class="item" data-value="rebase-merge">{{.locale.Tr "repo.pulls.rebase_merge_commit_pull_request"}}</div>
 									<div class="item" data-value="squash">{{.locale.Tr "repo.pulls.squash_merge_pull_request"}}</div>
 								</div>
+							</div>
+						</div>
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="default_allow_maintainer_edit" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.DefaultAllowMaintainerEdit)}}checked{{end}}>
+								<label>{{.locale.Tr "repo.settings.pulls.default_allow_edits_from_maintainers"}}</label>
+							</div>
+						</div>
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="pulls_allow_rebase_update" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowRebaseUpdate)}}checked{{end}}>
+								<label>{{.locale.Tr "repo.settings.pulls.allow_rebase_update"}}</label>
+							</div>
+						</div>
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="default_delete_branch_after_merge" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge)}}checked{{end}}>
+								<label>{{.locale.Tr "repo.settings.pulls.default_delete_branch_after_merge"}}</label>
+							</div>
+						</div>
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="enable_autodetect_manual_merge" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AutodetectManualMerge)}}checked{{end}}>
+								<label>{{.locale.Tr "repo.settings.pulls.enable_autodetect_manual_merge"}}</label>
+							</div>
+						</div>
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="pulls_ignore_whitespace" type="checkbox" {{if and $pullRequestEnabled ($prUnit.PullRequestsConfig.IgnoreWhitespaceConflicts)}}checked{{end}}>
+								<label>{{.locale.Tr "repo.settings.pulls.ignore_whitespace"}}</label>
 							</div>
 						</div>
 					</div>
