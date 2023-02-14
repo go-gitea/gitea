@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/packages/cargo"
+	"code.gitea.io/gitea/routers/api/packages/chef"
 	"code.gitea.io/gitea/routers/api/packages/composer"
 	"code.gitea.io/gitea/routers/api/packages/conan"
 	"code.gitea.io/gitea/routers/api/packages/conda"
@@ -54,6 +55,7 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 		&auth.Basic{},
 		&nuget.Auth{},
 		&conan.Auth{},
+		&chef.Auth{},
 	}
 	if setting.Service.EnableReverseProxyAuth {
 		authMethods = append(authMethods, &auth.ReverseProxy{})
@@ -83,6 +85,25 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 						r.Put("/unyank", reqPackageAccess(perm.AccessModeWrite), cargo.UnyankPackage)
 					})
 					r.Get("/owners", cargo.ListOwners)
+				})
+			})
+		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/chef", func() {
+			r.Group("/api/v1", func() {
+				r.Get("/universe", chef.PackagesUniverse)
+				r.Get("/search", chef.EnumeratePackages)
+				r.Group("/cookbooks", func() {
+					r.Get("", chef.EnumeratePackages)
+					r.Post("", reqPackageAccess(perm.AccessModeWrite), chef.UploadPackage)
+					r.Group("/{name}", func() {
+						r.Get("", chef.PackageMetadata)
+						r.Group("/versions/{version}", func() {
+							r.Get("", chef.PackageVersionMetadata)
+							r.Delete("", reqPackageAccess(perm.AccessModeWrite), chef.DeletePackageVersion)
+							r.Get("/download", chef.DownloadPackage)
+						})
+						r.Delete("", reqPackageAccess(perm.AccessModeWrite), chef.DeletePackage)
+					})
 				})
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
@@ -265,9 +286,18 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 				}, reqPackageAccess(perm.AccessModeWrite))
 				r.Get("/symbols/{filename}/{guid:[0-9a-fA-F]{32}[fF]{8}}/{filename2}", nuget.DownloadSymbolFile)
 				r.Get("/Packages(Id='{id:[^']+}',Version='{version:[^']+}')", nuget.RegistrationLeafV2)
-				r.Get("/Packages()", nuget.SearchServiceV2)
-				r.Get("/FindPackagesById()", nuget.EnumeratePackageVersionsV2)
-				r.Get("/Search()", nuget.SearchServiceV2)
+				r.Group("/Packages()", func() {
+					r.Get("", nuget.SearchServiceV2)
+					r.Get("/$count", nuget.SearchServiceV2Count)
+				})
+				r.Group("/FindPackagesById()", func() {
+					r.Get("", nuget.EnumeratePackageVersionsV2)
+					r.Get("/$count", nuget.EnumeratePackageVersionsV2Count)
+				})
+				r.Group("/Search()", func() {
+					r.Get("", nuget.SearchServiceV2)
+					r.Get("/$count", nuget.SearchServiceV2Count)
+				})
 			}, reqPackageAccess(perm.AccessModeRead))
 		})
 		r.Group("/npm", func() {

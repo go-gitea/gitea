@@ -5,7 +5,7 @@
 	</div>
 </h4>
 <div class="ui attached segment">
-	<div class="{{if not .HasGPGError}}hide{{end}} mb-4" id="add-gpg-key-panel">
+	<div class="{{if not .HasGPGError}}hide{{end}} gt-mb-4" id="add-gpg-key-panel">
 		<form class="ui form{{if .HasGPGError}} error{{end}}" action="{{.Link}}" method="post">
 			{{.CsrfTokenHtml}}
 			<input type="hidden" name="title" value="none">
@@ -39,7 +39,7 @@
 			</button>
 		</form>
 	</div>
-	<div class="ui key list mt-0">
+	<div class="ui key list gt-mt-0">
 		<div class="item">
 			{{.locale.Tr "settings.gpg_desc"}}
 		</div>

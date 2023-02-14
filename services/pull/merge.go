@@ -98,6 +98,9 @@ func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr
 				}
 				for _, ref := range refs {
 					if ref.RefAction == references.XRefActionCloses {
+						if err := ref.LoadIssue(ctx); err != nil {
+							return "", "", err
+						}
 						closeIssueIndexes = append(closeIssueIndexes, fmt.Sprintf("%s %s%d", closeWord, issueReference, ref.Issue.Index))
 					}
 				}
