@@ -123,6 +123,7 @@ func MigrateRepository(ctx context.Context, doer *user_model.User, ownerName str
 	if err != nil {
 		return nil, err
 	}
+	defer downloader.CleanUp()
 
 	uploader := NewGiteaLocalUploader(ctx, doer, ownerName, opts.RepoName)
 	uploader.gitServiceType = opts.GitServiceType
@@ -347,7 +348,9 @@ func migrateRepository(doer *user_model.User, downloader base.Downloader, upload
 				allComments := make([]*base.Comment, 0, commentBatchSize)
 				for _, issue := range issues {
 					log.Trace("migrating issue %d's comments", issue.Number)
-					comments, _, err := downloader.GetComments(issue)
+					comments, _, err := downloader.GetComments(base.GetCommentOptions{
+						Commentable: issue,
+					})
 					if err != nil {
 						if !base.IsErrNotSupported(err) {
 							return err
@@ -379,6 +382,8 @@ func migrateRepository(doer *user_model.User, downloader base.Downloader, upload
 		}
 	}
 
+	supportAllReviews := downloader.SupportGetRepoReviews()
+
 	if opts.PullRequests {
 		log.Trace("migrating pull requests and comments")
 		messenger("repo.migrate.migrating_pulls")
@@ -403,7 +408,9 @@ func migrateRepository(doer *user_model.User, downloader base.Downloader, upload
 					allComments := make([]*base.Comment, 0, commentBatchSize)
 					for _, pr := range prs {
 						log.Trace("migrating pull request %d's comments", pr.Number)
-						comments, _, err := downloader.GetComments(pr)
+						comments, _, err := downloader.GetComments(base.GetCommentOptions{
+							Commentable: pr,
+						})
 						if err != nil {
 							if !base.IsErrNotSupported(err) {
 								return err
@@ -427,30 +434,34 @@ func migrateRepository(doer *user_model.User, downloader base.Downloader, upload
 					}
 				}
 
-				// migrate reviews
-				allReviews := make([]*base.Review, 0, reviewBatchSize)
-				for _, pr := range prs {
-					reviews, err := downloader.GetReviews(pr)
-					if err != nil {
-						if !base.IsErrNotSupported(err) {
+				if !supportAllComments {
+					// migrate reviews
+					allReviews := make([]*base.Review, 0, reviewBatchSize)
+					for _, pr := range prs {
+						reviews, _, err := downloader.GetReviews(base.GetReviewOptions{
+							Reviewable: pr,
+						})
+						if err != nil {
+							if !base.IsErrNotSupported(err) {
+								return err
+							}
+							log.Warn("migrating reviews is not supported, ignored")
+							break
+						}
+
+						allReviews = append(allReviews, reviews...)
+
+						if len(allReviews) >= reviewBatchSize {
+							if err = uploader.CreateReviews(allReviews[:reviewBatchSize]...); err != nil {
+								return err
+							}
+							allReviews = allReviews[reviewBatchSize:]
+						}
+					}
+					if len(allReviews) > 0 {
+						if err = uploader.CreateReviews(allReviews...); err != nil {
 							return err
 						}
-						log.Warn("migrating reviews is not supported, ignored")
-						break
-					}
-
-					allReviews = append(allReviews, reviews...)
-
-					if len(allReviews) >= reviewBatchSize {
-						if err = uploader.CreateReviews(allReviews[:reviewBatchSize]...); err != nil {
-							return err
-						}
-						allReviews = allReviews[reviewBatchSize:]
-					}
-				}
-				if len(allReviews) > 0 {
-					if err = uploader.CreateReviews(allReviews...); err != nil {
-						return err
 					}
 				}
 			}
@@ -470,6 +481,32 @@ func migrateRepository(doer *user_model.User, downloader base.Downloader, upload
 			}
 
 			if err := uploader.CreateComments(comments...); err != nil {
+				return err
+			}
+
+			if isEnd {
+				break
+			}
+		}
+	}
+
+	if supportAllReviews {
+		log.Trace("migrating reviews")
+		for i := 1; ; i++ {
+			// migrate reviews
+			reviews, isEnd, err := downloader.GetReviews(base.GetReviewOptions{
+				Page:     i,
+				PageSize: commentBatchSize,
+			})
+			if err != nil {
+				if !base.IsErrNotSupported(err) {
+					return err
+				}
+				log.Warn("migrating reviews is not supported, ignored")
+				break
+			}
+
+			if err = uploader.CreateReviews(reviews...); err != nil {
 				return err
 			}
 

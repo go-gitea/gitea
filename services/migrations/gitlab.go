@@ -311,7 +311,7 @@ func (g *GitlabDownloader) convertGitlabRelease(rel *gitlab.Release) *base.Relea
 	httpClient := NewMigrationHTTPClient()
 
 	for k, asset := range rel.Assets.Links {
-		r.Assets = append(r.Assets, &base.ReleaseAsset{
+		r.Assets = append(r.Assets, &base.Asset{
 			ID:            int64(asset.ID),
 			Name:          asset.Name,
 			ContentType:   &rel.Assets.Sources[k].Format,
@@ -461,10 +461,10 @@ func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 
 // GetComments returns comments according issueNumber
 // TODO: figure out how to transfer comment reactions
-func (g *GitlabDownloader) GetComments(commentable base.Commentable) ([]*base.Comment, bool, error) {
-	context, ok := commentable.GetContext().(gitlabIssueContext)
+func (g *GitlabDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Comment, bool, error) {
+	context, ok := opts.Commentable.GetContext().(gitlabIssueContext)
 	if !ok {
-		return nil, false, fmt.Errorf("unexpected context: %+v", commentable.GetContext())
+		return nil, false, fmt.Errorf("unexpected context: %+v", opts.Commentable.GetContext())
 	}
 
 	allComments := make([]*base.Comment, 0, g.maxPerPage)
@@ -476,12 +476,12 @@ func (g *GitlabDownloader) GetComments(commentable base.Commentable) ([]*base.Co
 		var resp *gitlab.Response
 		var err error
 		if !context.IsMergeRequest {
-			comments, resp, err = g.client.Discussions.ListIssueDiscussions(g.repoID, int(commentable.GetForeignIndex()), &gitlab.ListIssueDiscussionsOptions{
+			comments, resp, err = g.client.Discussions.ListIssueDiscussions(g.repoID, int(opts.Commentable.GetForeignIndex()), &gitlab.ListIssueDiscussionsOptions{
 				Page:    page,
 				PerPage: g.maxPerPage,
 			}, nil, gitlab.WithContext(g.ctx))
 		} else {
-			comments, resp, err = g.client.Discussions.ListMergeRequestDiscussions(g.repoID, int(commentable.GetForeignIndex()), &gitlab.ListMergeRequestDiscussionsOptions{
+			comments, resp, err = g.client.Discussions.ListMergeRequestDiscussions(g.repoID, int(opts.Commentable.GetForeignIndex()), &gitlab.ListMergeRequestDiscussionsOptions{
 				Page:    page,
 				PerPage: g.maxPerPage,
 			}, nil, gitlab.WithContext(g.ctx))
@@ -495,7 +495,7 @@ func (g *GitlabDownloader) GetComments(commentable base.Commentable) ([]*base.Co
 			if !comment.IndividualNote {
 				for _, note := range comment.Notes {
 					allComments = append(allComments, &base.Comment{
-						IssueIndex:  commentable.GetLocalIndex(),
+						IssueIndex:  opts.Commentable.GetLocalIndex(),
 						Index:       int64(note.ID),
 						PosterID:    int64(note.Author.ID),
 						PosterName:  note.Author.Username,
@@ -507,7 +507,7 @@ func (g *GitlabDownloader) GetComments(commentable base.Commentable) ([]*base.Co
 			} else {
 				c := comment.Notes[0]
 				allComments = append(allComments, &base.Comment{
-					IssueIndex:  commentable.GetLocalIndex(),
+					IssueIndex:  opts.Commentable.GetLocalIndex(),
 					Index:       int64(c.ID),
 					PosterID:    int64(c.Author.ID),
 					PosterName:  c.Author.Username,
@@ -643,14 +643,14 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 }
 
 // GetReviews returns pull requests review
-func (g *GitlabDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review, error) {
+func (g *GitlabDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review, bool, error) {
 	approvals, resp, err := g.client.MergeRequestApprovals.GetConfiguration(g.repoID, int(reviewable.GetForeignIndex()), gitlab.WithContext(g.ctx))
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			log.Error(fmt.Sprintf("GitlabDownloader: while migrating a error occurred: '%s'", err.Error()))
-			return []*base.Review{}, nil
+			return []*base.Review{}, true, nil
 		}
-		return nil, err
+		return nil, true, err
 	}
 
 	var createdAt time.Time
@@ -674,7 +674,7 @@ func (g *GitlabDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Revie
 		})
 	}
 
-	return reviews, nil
+	return reviews, true, nil
 }
 
 func (g *GitlabDownloader) awardToReaction(award *gitlab.AwardEmoji) *base.Reaction {

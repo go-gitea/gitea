@@ -196,9 +196,9 @@ func (r *RepositoryRestorer) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 }
 
 // GetComments returns comments according issueNumber
-func (r *RepositoryRestorer) GetComments(commentable base.Commentable) ([]*base.Comment, bool, error) {
+func (r *RepositoryRestorer) GetComments(opts base.GetCommentOptions) ([]*base.Comment, bool, error) {
 	comments := make([]*base.Comment, 0, 10)
-	p := filepath.Join(r.commentDir(), fmt.Sprintf("%d.yml", commentable.GetForeignIndex()))
+	p := filepath.Join(r.commentDir(), fmt.Sprintf("%d.yml", opts.Commentable.GetForeignIndex()))
 	_, err := os.Stat(p)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -248,25 +248,25 @@ func (r *RepositoryRestorer) GetPullRequests(page, perPage int) ([]*base.PullReq
 }
 
 // GetReviews returns pull requests review
-func (r *RepositoryRestorer) GetReviews(reviewable base.Reviewable) ([]*base.Review, error) {
+func (r *RepositoryRestorer) GetReviews(reviewable base.Reviewable) ([]*base.Review, bool, error) {
 	reviews := make([]*base.Review, 0, 10)
 	p := filepath.Join(r.reviewDir(), fmt.Sprintf("%d.yml", reviewable.GetForeignIndex()))
 	_, err := os.Stat(p)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, nil
+			return nil, true, nil
 		}
-		return nil, err
+		return nil, true, err
 	}
 
 	bs, err := os.ReadFile(p)
 	if err != nil {
-		return nil, err
+		return nil, true, err
 	}
 
 	err = yaml.Unmarshal(bs, &reviews)
 	if err != nil {
-		return nil, err
+		return nil, true, err
 	}
-	return reviews, nil
+	return reviews, true, nil
 }

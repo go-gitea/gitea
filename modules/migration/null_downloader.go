@@ -47,7 +47,7 @@ func (n NullDownloader) GetIssues(page, perPage int) ([]*Issue, bool, error) {
 }
 
 // GetComments returns comments of an issue or PR
-func (n NullDownloader) GetComments(commentable Commentable) ([]*Comment, bool, error) {
+func (n NullDownloader) GetComments(commentable GetCommentOptions) ([]*Comment, bool, error) {
 	return nil, false, ErrNotSupported{Entity: "Comments"}
 }
 
@@ -62,8 +62,8 @@ func (n NullDownloader) GetPullRequests(page, perPage int) ([]*PullRequest, bool
 }
 
 // GetReviews returns pull requests review
-func (n NullDownloader) GetReviews(reviewable Reviewable) ([]*Review, error) {
-	return nil, ErrNotSupported{Entity: "Reviews"}
+func (n NullDownloader) GetReviews(reviewable Reviewable) ([]*Review, bool, error) {
+	return nil, false, ErrNotSupported{Entity: "Reviews"}
 }
 
 // FormatCloneURL add authentication into remote URLs
@@ -85,4 +85,13 @@ func (n NullDownloader) FormatCloneURL(opts MigrateOptions, remoteAddr string) (
 // SupportGetRepoComments return true if it supports get repo comments
 func (n NullDownloader) SupportGetRepoComments() bool {
 	return false
+}
+
+// SupportGetRepoReviews return true if it supports get repo pullrequest reviews
+func (n NullDownloader) SupportGetRepoReviews() bool {
+	return false
+}
+
+// CleanUp clean the downloader temporary resources
+func (n NullDownloader) CleanUp() {
 }

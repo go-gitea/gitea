@@ -197,7 +197,9 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		},
 	}, issues)
 
-	comments, _, err := downloader.GetComments(&base.Issue{Number: 4, ForeignIndex: 4})
+	comments, _, err := downloader.GetComments(base.GetCommentOptions{
+		Commentable: &base.Issue{Number: 4, ForeignIndex: 4},
+	})
 	assert.NoError(t, err)
 	assertCommentsEqual(t, []*base.Comment{
 		{
@@ -262,7 +264,9 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		PatchURL:       "https://gitea.com/gitea/test_repo/pulls/12.patch",
 	}, prs[1])
 
-	reviews, err := downloader.GetReviews(&base.Issue{Number: 7, ForeignIndex: 7})
+	reviews, _, err := downloader.GetReviews(base.GetReviewOptions{
+		Reviewable: &base.Issue{Number: 7, ForeignIndex: 7},
+	})
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{

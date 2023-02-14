@@ -44,6 +44,8 @@ func TestGiteaUploadRepo(t *testing.T) {
 		uploader   = NewGiteaLocalUploader(graceful.GetManager().HammerContext(), user, user.Name, repoName)
 	)
 
+	defer downloader.CleanUp()
+
 	err := migrateRepository(user, downloader, uploader, base.MigrateOptions{
 		CloneAddr:    "https://github.com/go-xorm/builder",
 		RepoName:     repoName,
@@ -342,7 +344,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 		},
 		{
 			name: "fork, invalid Head.Ref",
-			head: "unknown repository",
+			head: "user10/INVALID",
 			pr: base.PullRequest{
 				PatchURL: "",
 				Number:   1,
@@ -368,7 +370,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 		},
 		{
 			name: "invalid fork CloneURL",
-			head: "unknown repository",
+			head: "WRONG/branch2",
 			pr: base.PullRequest{
 				PatchURL: "",
 				Number:   1,

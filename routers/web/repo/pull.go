@@ -519,17 +519,16 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 		if headBranchExist {
 			if pull.Flow != issues_model.PullRequestFlowGithub {
 				headBranchSha, err = baseGitRepo.GetRefCommitID(pull.GetGitRefName())
-			} else {
-				headBranchSha, err = headGitRepo.GetBranchCommitID(pull.HeadBranch)
-			}
-			if err != nil {
-				ctx.ServerError("GetBranchCommitID", err)
-				return nil
+				if err != nil {
+					ctx.ServerError("GetBranchCommitID", err)
+					return nil
+				}
 			}
 		}
+		headGitRepo.Close()
 	}
 
-	if headBranchExist {
+	if headBranchSha != "" {
 		var err error
 		ctx.Data["UpdateAllowed"], ctx.Data["UpdateByRebaseAllowed"], err = pull_service.IsUserAllowedToUpdate(ctx, pull, ctx.Doer)
 		if err != nil {
@@ -587,7 +586,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 	ctx.Data["HeadBranchCommitID"] = headBranchSha
 	ctx.Data["PullHeadCommitID"] = sha
 
-	if pull.HeadRepo == nil || !headBranchExist || headBranchSha != sha {
+	if pull.HeadRepo == nil || headBranchSha == "" || headBranchSha != sha {
 		ctx.Data["IsPullRequestBroken"] = true
 		if pull.IsSameRepo() {
 			ctx.Data["HeadTarget"] = pull.HeadBranch

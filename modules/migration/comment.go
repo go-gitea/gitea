@@ -12,6 +12,43 @@ type Commentable interface {
 	GetContext() DownloaderContext
 }
 
+/*
+"comment",
+	"reopen",
+	"close",
+	"issue_ref",
+	"commit_ref",
+	"comment_ref",
+	"pull_ref",
+	"label",
+	"milestone",
+	"assignees",
+	"change_title",
+	"delete_branch",
+	"start_tracking",
+	"stop_tracking",
+	"add_time_manual",
+	"cancel_tracking",
+	"added_deadline",
+	"modified_deadline",
+	"removed_deadline",
+	"add_dependency",
+	"remove_dependency",
+	"code",
+	"review",
+	"lock",
+	"unlock",
+	"change_target_branch",
+	"delete_time_manual",
+	"review_request",
+	"merge_pull",
+	"pull_push",
+	"project",
+	"project_board",
+	"dismiss_review",
+	"change_issue_ref",
+*/
+
 // Comment is a standard comment information
 type Comment struct {
 	IssueIndex  int64 `yaml:"issue_index"`
@@ -25,6 +62,7 @@ type Comment struct {
 	Content     string
 	Reactions   []*Reaction
 	Meta        map[string]interface{} `yaml:"meta,omitempty"` // see models/issues/comment.go for fields in Comment struct
+	Assets      []*Asset
 }
 
 // GetExternalName ExternalUserMigrated interface

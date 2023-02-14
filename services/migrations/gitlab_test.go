@@ -213,10 +213,12 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		},
 	}, issues)
 
-	comments, _, err := downloader.GetComments(&base.Issue{
-		Number:       2,
-		ForeignIndex: 2,
-		Context:      gitlabIssueContext{IsMergeRequest: false},
+	comments, _, err := downloader.GetComments(base.GetCommentOptions{
+		Commentable: &base.Issue{
+			Number:       2,
+			ForeignIndex: 2,
+			Context:      gitlabIssueContext{IsMergeRequest: false},
+		},
 	})
 	assert.NoError(t, err)
 	assertCommentsEqual(t, []*base.Comment{
@@ -303,7 +305,9 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		},
 	}, prs)
 
-	rvs, err := downloader.GetReviews(&base.PullRequest{Number: 1, ForeignIndex: 1})
+	rvs, _, err := downloader.GetReviews(base.GetReviewOptions{
+		Reviewable: &base.PullRequest{Number: 1, ForeignIndex: 1},
+	})
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{
@@ -322,7 +326,9 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		},
 	}, rvs)
 
-	rvs, err = downloader.GetReviews(&base.PullRequest{Number: 2, ForeignIndex: 2})
+	rvs, _, err = downloader.GetReviews(base.GetReviewOptions{
+		Reviewable: &base.PullRequest{Number: 2, ForeignIndex: 2},
+	})
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{
@@ -464,7 +470,9 @@ func TestGitlabGetReviews(t *testing.T) {
 		mux.HandleFunc(fmt.Sprintf("/api/v4/projects/%d/merge_requests/%d/approvals", testCase.repoID, testCase.prID), mock)
 
 		id := int64(testCase.prID)
-		rvs, err := downloader.GetReviews(&base.Issue{Number: id, ForeignIndex: id})
+		rvs, _, err := downloader.GetReviews(base.GetReviewOptions{
+			Reviewable: &base.Issue{Number: id, ForeignIndex: id},
+		})
 		assert.NoError(t, err)
 		assertReviewsEqual(t, []*base.Review{&review}, rvs)
 	}

@@ -83,6 +83,16 @@ func insertIssue(ctx context.Context, issue *issues_model.Issue) error {
 		}
 	}
 
+	for _, attach := range issue.Attachments {
+		attach.IssueID = issue.ID
+	}
+
+	if len(issue.Attachments) > 0 {
+		if _, err := sess.Insert(issue.Attachments); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -113,6 +123,16 @@ func InsertIssueComments(comments []*issues_model.Comment) error {
 		}
 		if len(comment.Reactions) > 0 {
 			if err := db.Insert(ctx, comment.Reactions); err != nil {
+				return err
+			}
+		}
+
+		for _, attach := range comment.Attachments {
+			attach.IssueID = comment.IssueID
+			attach.CommentID = comment.ID
+		}
+		if len(comment.Attachments) > 0 {
+			if err := db.Insert(ctx, comment.Attachments); err != nil {
 				return err
 			}
 		}

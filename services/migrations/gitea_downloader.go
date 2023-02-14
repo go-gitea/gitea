@@ -286,7 +286,7 @@ func (g *GiteaDownloader) convertGiteaRelease(rel *gitea_sdk.Release) *base.Rele
 	for _, asset := range rel.Attachments {
 		size := int(asset.Size)
 		dlCount := int(asset.DownloadCount)
-		r.Assets = append(r.Assets, &base.ReleaseAsset{
+		r.Assets = append(r.Assets, &base.Asset{
 			ID:            asset.ID,
 			Name:          asset.Name,
 			Size:          &size,
@@ -459,7 +459,7 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 }
 
 // GetComments returns comments according issueNumber
-func (g *GiteaDownloader) GetComments(commentable base.Commentable) ([]*base.Comment, bool, error) {
+func (g *GiteaDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Comment, bool, error) {
 	allComments := make([]*base.Comment, 0, g.maxPerPage)
 
 	for i := 1; ; i++ {
@@ -470,22 +470,22 @@ func (g *GiteaDownloader) GetComments(commentable base.Commentable) ([]*base.Com
 		default:
 		}
 
-		comments, _, err := g.client.ListIssueComments(g.repoOwner, g.repoName, commentable.GetForeignIndex(), gitea_sdk.ListIssueCommentOptions{ListOptions: gitea_sdk.ListOptions{
+		comments, _, err := g.client.ListIssueComments(g.repoOwner, g.repoName, opts.Commentable.GetForeignIndex(), gitea_sdk.ListIssueCommentOptions{ListOptions: gitea_sdk.ListOptions{
 			PageSize: g.maxPerPage,
 			Page:     i,
 		}})
 		if err != nil {
-			return nil, false, fmt.Errorf("error while listing comments for issue #%d. Error: %w", commentable.GetForeignIndex(), err)
+			return nil, false, fmt.Errorf("error while listing comments for issue #%d. Error: %w", opts.Commentable.GetForeignIndex(), err)
 		}
 
 		for _, comment := range comments {
 			reactions, err := g.getCommentReactions(comment.ID)
 			if err != nil {
-				WarnAndNotice("Unable to load comment reactions during migrating issue #%d for comment %d in %s. Error: %v", commentable.GetForeignIndex(), comment.ID, g, err)
+				WarnAndNotice("Unable to load comment reactions during migrating issue #%d for comment %d in %s. Error: %v", opts.Commentable.GetForeignIndex(), comment.ID, g, err)
 			}
 
 			allComments = append(allComments, &base.Comment{
-				IssueIndex:  commentable.GetLocalIndex(),
+				IssueIndex:  opts.Commentable.GetLocalIndex(),
 				Index:       comment.ID,
 				PosterID:    comment.Poster.ID,
 				PosterName:  comment.Poster.UserName,
@@ -625,10 +625,10 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 }
 
 // GetReviews returns pull requests review
-func (g *GiteaDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review, error) {
+func (g *GiteaDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review, bool, error) {
 	if err := g.client.CheckServerVersionConstraint(">=1.12"); err != nil {
 		log.Info("GiteaDownloader: instance to old, skip GetReviews")
-		return nil, nil
+		return nil, true, nil
 	}
 
 	allReviews := make([]*base.Review, 0, g.maxPerPage)
@@ -637,7 +637,7 @@ func (g *GiteaDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review
 		// make sure gitea can shutdown gracefully
 		select {
 		case <-g.ctx.Done():
-			return nil, nil
+			return nil, true, nil
 		default:
 		}
 
@@ -646,7 +646,7 @@ func (g *GiteaDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review
 			PageSize: g.maxPerPage,
 		}})
 		if err != nil {
-			return nil, err
+			return nil, true, err
 		}
 
 		for _, pr := range prl {
@@ -658,7 +658,7 @@ func (g *GiteaDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review
 
 			rcl, _, err := g.client.ListPullReviewComments(g.repoOwner, g.repoName, reviewable.GetForeignIndex(), pr.ID)
 			if err != nil {
-				return nil, err
+				return nil, true, err
 			}
 			var reviewComments []*base.ReviewComment
 			for i := range rcl {
@@ -700,5 +700,5 @@ func (g *GiteaDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review
 			break
 		}
 	}
-	return allReviews, nil
+	return allReviews, true, nil
 }

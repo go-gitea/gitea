@@ -21,6 +21,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -242,6 +243,50 @@ func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
 	return nil
 }
 
+func (g *GiteaLocalUploader) uploadAttachment(asset *base.Asset) (*repo_model.Attachment, error) {
+	var downloadCnt, size int64
+	if asset.DownloadCount != nil {
+		downloadCnt = int64(*asset.DownloadCount)
+	}
+	if asset.Size != nil {
+		size = int64(*asset.Size)
+	}
+
+	attach := repo_model.Attachment{
+		UUID:          uuid.New().String(),
+		Name:          asset.Name,
+		DownloadCount: downloadCnt,
+		Size:          size,
+		CreatedUnix:   timeutil.TimeStamp(asset.Created.Unix()),
+	}
+
+	// SECURITY: We cannot check the DownloadURL and DownloadFunc are safe here
+	// ... we must assume that they are safe and simply download the attachment
+	// asset.DownloadURL maybe a local file
+	var rc io.ReadCloser
+	var err error
+	if asset.DownloadFunc != nil {
+		rc, err = asset.DownloadFunc()
+		if err != nil {
+			return nil, err
+		}
+	} else if asset.DownloadURL != nil {
+		rc, err = uri.Open(*asset.DownloadURL)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if rc == nil {
+		return nil, nil
+	}
+	defer rc.Close()
+	_, err = storage.Attachments.Save(attach.RelativePath(), rc, int64(*asset.Size))
+	if err != nil {
+		return nil, err
+	}
+	return &attach, nil
+}
+
 // CreateReleases creates releases
 func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 	rels := make([]*repo_model.Release, 0, len(releases))
@@ -304,43 +349,13 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 					asset.Created = release.Created
 				}
 			}
-			attach := repo_model.Attachment{
-				UUID:          uuid.New().String(),
-				Name:          asset.Name,
-				DownloadCount: int64(*asset.DownloadCount),
-				Size:          int64(*asset.Size),
-				CreatedUnix:   timeutil.TimeStamp(asset.Created.Unix()),
-			}
-
-			// SECURITY: We cannot check the DownloadURL and DownloadFunc are safe here
-			// ... we must assume that they are safe and simply download the attachment
-			err := func() error {
-				// asset.DownloadURL maybe a local file
-				var rc io.ReadCloser
-				var err error
-				if asset.DownloadFunc != nil {
-					rc, err = asset.DownloadFunc()
-					if err != nil {
-						return err
-					}
-				} else if asset.DownloadURL != nil {
-					rc, err = uri.Open(*asset.DownloadURL)
-					if err != nil {
-						return err
-					}
-				}
-				if rc == nil {
-					return nil
-				}
-				_, err = storage.Attachments.Save(attach.RelativePath(), rc, int64(*asset.Size))
-				rc.Close()
-				return err
-			}()
+			attach, err := g.uploadAttachment(asset)
 			if err != nil {
 				return err
 			}
-
-			rel.Attachments = append(rel.Attachments, &attach)
+			if attach != nil {
+				rel.Attachments = append(rel.Attachments, attach)
+			}
 		}
 
 		rels = append(rels, &rel)
@@ -422,6 +437,27 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 			}
 			is.Reactions = append(is.Reactions, &res)
 		}
+
+		for _, asset := range issue.Assets {
+			if asset.Created.IsZero() {
+				if !asset.Updated.IsZero() {
+					asset.Created = asset.Updated
+				} else {
+					asset.Created = issue.Updated
+				}
+			}
+			attach, err := g.uploadAttachment(asset)
+			if err != nil {
+				return err
+			}
+			if attach != nil {
+				is.Attachments = append(is.Attachments, attach)
+				if asset.OriginalURL != "" {
+					is.Content = strings.ReplaceAll(is.Content, asset.OriginalURL, fmt.Sprintf("/attachments/%s", attach.UUID))
+				}
+			}
+		}
+
 		iss = append(iss, &is)
 	}
 
@@ -488,6 +524,79 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 			return err
 		}
 
+		switch cm.Type {
+		/*{"Label":"https://github.com/go-gitea/test_repo/labels/duplicate","LabelColor":"cfd3d7","LabelName":"duplicate","LabelTextColor":"000000"}*/
+		case issues_model.CommentTypeLabel:
+			data := make(map[string]string)
+			if err := json.Unmarshal([]byte(cm.Content), &data); err != nil {
+				log.Error("unmarshal %s failed: %v", cm.Content, err)
+				continue
+			} else {
+				lb, err := issues_model.GetLabelByRepoIDAndName(issue.RepoID, data["LabelName"])
+				if err != nil {
+					if issues_model.IsErrLabelNotExist(err) {
+						continue
+					}
+					return err
+				}
+				cm.LabelID = lb.ID
+				if data["type"] == "add" {
+					cm.Content = "1"
+				} else {
+					cm.Content = ""
+				}
+			}
+
+			/*{"MilestoneTitle":"1.1.0"}*/
+		case issues_model.CommentTypeMilestone:
+			data := make(map[string]string)
+			if err := json.Unmarshal([]byte(cm.Content), &data); err != nil {
+				log.Error("unmarshal %s failed: %v", cm.Content, err)
+				continue
+			} else {
+				milestone, err := issues_model.GetMilestoneByRepoIDANDName(issue.RepoID, data["MilestoneTitle"])
+				if err != nil {
+					log.Error("GetMilestoneByRepoIDANDName %d, %s failed: %v", issue.RepoID, data["MilestoneTitle"], err)
+					continue
+				} else {
+					if data["type"] == "add" {
+						cm.MilestoneID = milestone.ID
+					} else if data["type"] == "remove" {
+						cm.OldMilestoneID = milestone.ID
+					}
+				}
+			}
+		case issues_model.CommentTypeChangeTitle:
+			data := make(map[string]string)
+			if err := json.Unmarshal([]byte(cm.Content), &data); err != nil {
+				log.Error("unmarshal %s failed: %v", cm.Content, err)
+				continue
+			} else {
+				cm.OldTitle = data["OldTitle"]
+				cm.NewTitle = data["NewTitle"]
+			}
+		case issues_model.CommentTypeCommitRef:
+			data := make(map[string]string)
+			if err := json.Unmarshal([]byte(cm.Content), &data); err != nil {
+				log.Error("unmarshal %s failed: %v", cm.Content, err)
+			} else {
+				cm.CommitSHA = data["CommitID"]
+			}
+			continue
+		/*{
+			"Actor":   g.Actor,
+			"Subject": g.Subject,
+		}*/
+		case issues_model.CommentTypeAssignees:
+			continue
+		case issues_model.CommentTypeCommentRef, issues_model.CommentTypeIssueRef, issues_model.CommentTypePullRef:
+			continue
+		case issues_model.CommentTypeDeleteBranch:
+			continue
+		case issues_model.CommentTypePullRequestPush:
+			continue
+		}
+
 		// add reactions
 		for _, reaction := range comment.Reactions {
 			res := issues_model.Reaction{
@@ -498,6 +607,26 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 				return err
 			}
 			cm.Reactions = append(cm.Reactions, &res)
+		}
+
+		for _, asset := range comment.Assets {
+			if asset.Created.IsZero() {
+				if !asset.Updated.IsZero() {
+					asset.Created = asset.Updated
+				} else {
+					asset.Created = comment.Updated
+				}
+			}
+			attach, err := g.uploadAttachment(asset)
+			if err != nil {
+				return err
+			}
+			if attach != nil {
+				cm.Attachments = append(cm.Attachments, attach)
+				if asset.OriginalURL != "" {
+					cm.Content = strings.ReplaceAll(cm.Content, asset.OriginalURL, fmt.Sprintf("/attachments/%s", attach.UUID))
+				}
+			}
 		}
 
 		cms = append(cms, &cm)
@@ -522,6 +651,26 @@ func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error 
 			return err
 		}
 
+		for _, asset := range pr.Assets {
+			if asset.Created.IsZero() {
+				if !asset.Updated.IsZero() {
+					asset.Created = asset.Updated
+				} else {
+					asset.Created = pr.Updated
+				}
+			}
+			attach, err := g.uploadAttachment(asset)
+			if err != nil {
+				return err
+			}
+			if attach != nil {
+				gpr.Issue.Attachments = append(gpr.Issue.Attachments, attach)
+				if asset.OriginalURL != "" {
+					gpr.Issue.Content = strings.ReplaceAll(gpr.Issue.Content, asset.OriginalURL, fmt.Sprintf("/attachments/%s", attach.UUID))
+				}
+			}
+		}
+
 		gprs = append(gprs, gpr)
 	}
 	if err := models.InsertPullRequests(gprs...); err != nil {
@@ -532,6 +681,28 @@ func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error 
 		pull.AddToTaskQueue(pr)
 	}
 	return nil
+}
+
+func getHeadBranch(pr *base.PullRequest) string {
+	if pr.IsForkPullRequest() {
+		return pr.Head.OwnerName + "/" + pr.Head.Ref
+	}
+	return pr.Head.Ref
+}
+
+func (g *GiteaLocalUploader) createHeadBranch(pr *base.PullRequest) error {
+	branchName := getHeadBranch(pr)
+	headBranch := filepath.Join(g.repo.RepoPath(), "refs", "heads", branchName)
+	if err := os.MkdirAll(filepath.Dir(headBranch), os.ModePerm); err != nil {
+		return err
+	}
+	b, err := os.Create(headBranch)
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString(pr.Head.SHA)
+	b.Close()
+	return err
 }
 
 func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head string, err error) {
@@ -574,6 +745,33 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head
 	}()
 	if err != nil {
 		return "", err
+	}
+
+	// set head information
+	pullHead := filepath.Join(g.repo.RepoPath(), "refs", "pull", fmt.Sprintf("%d", pr.Number))
+	if err := os.MkdirAll(pullHead, os.ModePerm); err != nil {
+		return "", err
+	}
+	p, err := os.Create(filepath.Join(pullHead, "head"))
+	if err != nil {
+		return "", err
+	}
+	_, err = p.WriteString(pr.Head.SHA)
+	p.Close()
+	if err != nil {
+		return "", err
+	}
+
+	// create branch directly if commit exists in the repository
+	_, err = g.gitRepo.GetCommit(pr.Head.SHA)
+	if git.IsErrNotExist(err) {
+	} else if err != nil {
+		return "", err
+	} else {
+		if err := g.createHeadBranch(pr); err != nil {
+			return "", err
+		}
+		return getHeadBranch(pr), nil
 	}
 
 	head = "unknown repository"
@@ -822,6 +1020,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			IssueID:     issue.ID,
 			Content:     review.Content,
 			Official:    review.Official,
+			CommitID:    review.CommitID,
 			CreatedUnix: timeutil.TimeStamp(review.CreatedAt.Unix()),
 			UpdatedUnix: timeutil.TimeStamp(review.CreatedAt.Unix()),
 		}
@@ -857,7 +1056,9 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 		for _, comment := range review.Comments {
 			line := comment.Line
 			if line != 0 {
-				comment.Position = 1
+				if comment.Position == 0 {
+					comment.Position = 1
+				}
 			} else {
 				_, _, line, _ = git.ParseDiffHunkString(comment.DiffHunk)
 			}
@@ -865,7 +1066,6 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			// SECURITY: The TreePath must be cleaned!
 			comment.TreePath = path.Clean("/" + comment.TreePath)[1:]
 
-			var patch string
 			reader, writer := io.Pipe()
 			defer func() {
 				_ = reader.Close()
@@ -879,7 +1079,15 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 				_ = writer.Close()
 			}(comment)
 
-			patch, _ = git.CutDiffAroundLine(reader, int64((&issues_model.Comment{Line: int64(line + comment.Position - 1)}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
+			unsignedLine := int64((&issues_model.Comment{Line: int64(line + comment.Position - 1)}).UnsignedLine())
+			patch, err := git.CutDiffAroundLine(reader, unsignedLine, line < 0, setting.UI.CodeCommentLines)
+			if err != nil {
+				log.Warn("CutDiffAroundLine failed when migrating [%s, %d, %v]", g.gitRepo.Path, unsignedLine, line < 0)
+			}
+			if patch == "" {
+				patch = fmt.Sprintf("diff --git a/%s b/%s\n--- a/%s\n+++ b/%s\n%s", comment.TreePath, comment.TreePath, comment.TreePath, comment.TreePath, comment.DiffHunk)
+			}
+			_ = reader.Close()
 
 			if comment.CreatedAt.IsZero() {
 				comment.CreatedAt = review.CreatedAt

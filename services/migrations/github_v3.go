@@ -333,7 +333,7 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 
 	for _, asset := range rel.Assets {
 		assetID := *asset.ID // Don't optimize this, for closure we need a local variable
-		r.Assets = append(r.Assets, &base.ReleaseAsset{
+		r.Assets = append(r.Assets, &base.Asset{
 			ID:            asset.GetID(),
 			Name:          asset.GetName(),
 			ContentType:   asset.ContentType,
@@ -506,12 +506,12 @@ func (g *GithubDownloaderV3) SupportGetRepoComments() bool {
 }
 
 // GetComments returns comments according issueNumber
-func (g *GithubDownloaderV3) GetComments(commentable base.Commentable) ([]*base.Comment, bool, error) {
-	comments, err := g.getComments(commentable)
+func (g *GithubDownloaderV3) GetComments(opts base.GetCommentOptions) ([]*base.Comment, bool, error) {
+	comments, err := g.getComments(opts)
 	return comments, false, err
 }
 
-func (g *GithubDownloaderV3) getComments(commentable base.Commentable) ([]*base.Comment, error) {
+func (g *GithubDownloaderV3) getComments(opts base.GetCommentOptions) ([]*base.Comment, error) {
 	var (
 		allComments = make([]*base.Comment, 0, g.maxPerPage)
 		created     = "created"
@@ -526,7 +526,7 @@ func (g *GithubDownloaderV3) getComments(commentable base.Commentable) ([]*base.
 	}
 	for {
 		g.waitAndPickClient()
-		comments, resp, err := g.getClient().Issues.ListComments(g.ctx, g.repoOwner, g.repoName, int(commentable.GetForeignIndex()), opt)
+		comments, resp, err := g.getClient().Issues.ListComments(g.ctx, g.repoOwner, g.repoName, int(opts.Commentable.GetForeignIndex()), opt)
 		if err != nil {
 			return nil, fmt.Errorf("error while listing repos: %w", err)
 		}
@@ -559,7 +559,7 @@ func (g *GithubDownloaderV3) getComments(commentable base.Commentable) ([]*base.
 			}
 
 			allComments = append(allComments, &base.Comment{
-				IssueIndex:  commentable.GetLocalIndex(),
+				IssueIndex:  opts.Commentable.GetLocalIndex(),
 				Index:       comment.GetID(),
 				PosterID:    comment.GetUser().GetID(),
 				PosterName:  comment.GetUser().GetLogin(),
@@ -808,10 +808,10 @@ func (g *GithubDownloaderV3) convertGithubReviewComments(cs []*github.PullReques
 }
 
 // GetReviews returns pull requests review
-func (g *GithubDownloaderV3) GetReviews(reviewable base.Reviewable) ([]*base.Review, error) {
+func (g *GithubDownloaderV3) GetReviews(reviewable base.Reviewable) ([]*base.Review, bool, error) {
 	allReviews := make([]*base.Review, 0, g.maxPerPage)
 	if g.SkipReviews {
-		return allReviews, nil
+		return allReviews, true, nil
 	}
 	opt := &github.ListOptions{
 		PerPage: g.maxPerPage,
@@ -821,7 +821,7 @@ func (g *GithubDownloaderV3) GetReviews(reviewable base.Reviewable) ([]*base.Rev
 		g.waitAndPickClient()
 		reviews, resp, err := g.getClient().PullRequests.ListReviews(g.ctx, g.repoOwner, g.repoName, int(reviewable.GetForeignIndex()), opt)
 		if err != nil {
-			return nil, fmt.Errorf("error while listing repos: %w", err)
+			return nil, true, fmt.Errorf("error while listing repos: %w", err)
 		}
 		g.setRate(&resp.Rate)
 		for _, review := range reviews {
@@ -835,13 +835,13 @@ func (g *GithubDownloaderV3) GetReviews(reviewable base.Reviewable) ([]*base.Rev
 				g.waitAndPickClient()
 				reviewComments, resp, err := g.getClient().PullRequests.ListReviewComments(g.ctx, g.repoOwner, g.repoName, int(reviewable.GetForeignIndex()), review.GetID(), opt2)
 				if err != nil {
-					return nil, fmt.Errorf("error while listing repos: %w", err)
+					return nil, true, fmt.Errorf("error while listing repos: %w", err)
 				}
 				g.setRate(&resp.Rate)
 
 				cs, err := g.convertGithubReviewComments(reviewComments)
 				if err != nil {
-					return nil, err
+					return nil, true, err
 				}
 				r.Comments = append(r.Comments, cs...)
 				if resp.NextPage == 0 {
@@ -861,7 +861,7 @@ func (g *GithubDownloaderV3) GetReviews(reviewable base.Reviewable) ([]*base.Rev
 		g.waitAndPickClient()
 		reviewers, resp, err := g.getClient().PullRequests.ListReviewers(g.ctx, g.repoOwner, g.repoName, int(reviewable.GetForeignIndex()), opt)
 		if err != nil {
-			return nil, fmt.Errorf("error while listing repos: %w", err)
+			return nil, false, fmt.Errorf("error while listing repos: %w", err)
 		}
 		g.setRate(&resp.Rate)
 		for _, user := range reviewers.Users {
@@ -879,5 +879,5 @@ func (g *GithubDownloaderV3) GetReviews(reviewable base.Reviewable) ([]*base.Rev
 		}
 		opt.Page = resp.NextPage
 	}
-	return allReviews, nil
+	return allReviews, true, nil
 }

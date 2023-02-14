@@ -372,10 +372,10 @@ func (d *OneDevDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 }
 
 // GetComments returns comments
-func (d *OneDevDownloader) GetComments(commentable base.Commentable) ([]*base.Comment, bool, error) {
-	context, ok := commentable.GetContext().(onedevIssueContext)
+func (d *OneDevDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Comment, bool, error) {
+	context, ok := opts.Commentable.GetContext().(onedevIssueContext)
 	if !ok {
-		return nil, false, fmt.Errorf("unexpected context: %+v", commentable.GetContext())
+		return nil, false, fmt.Errorf("unexpected context: %+v", opts.Commentable.GetContext())
 	}
 
 	rawComments := make([]struct {
@@ -387,9 +387,9 @@ func (d *OneDevDownloader) GetComments(commentable base.Commentable) ([]*base.Co
 
 	var endpoint string
 	if context.IsPullRequest {
-		endpoint = fmt.Sprintf("/api/pull-requests/%d/comments", commentable.GetForeignIndex())
+		endpoint = fmt.Sprintf("/api/pull-requests/%d/comments", opts.Commentable.GetForeignIndex())
 	} else {
-		endpoint = fmt.Sprintf("/api/issues/%d/comments", commentable.GetForeignIndex())
+		endpoint = fmt.Sprintf("/api/issues/%d/comments", opts.Commentable.GetForeignIndex())
 	}
 
 	err := d.callAPI(
@@ -408,9 +408,9 @@ func (d *OneDevDownloader) GetComments(commentable base.Commentable) ([]*base.Co
 	}, 0, 100)
 
 	if context.IsPullRequest {
-		endpoint = fmt.Sprintf("/api/pull-requests/%d/changes", commentable.GetForeignIndex())
+		endpoint = fmt.Sprintf("/api/pull-requests/%d/changes", opts.Commentable.GetForeignIndex())
 	} else {
-		endpoint = fmt.Sprintf("/api/issues/%d/changes", commentable.GetForeignIndex())
+		endpoint = fmt.Sprintf("/api/issues/%d/changes", opts.Commentable.GetForeignIndex())
 	}
 
 	err = d.callAPI(
@@ -429,7 +429,7 @@ func (d *OneDevDownloader) GetComments(commentable base.Commentable) ([]*base.Co
 		}
 		poster := d.tryGetUser(comment.UserID)
 		comments = append(comments, &base.Comment{
-			IssueIndex:  commentable.GetLocalIndex(),
+			IssueIndex:  opts.Commentable.GetLocalIndex(),
 			Index:       comment.ID,
 			PosterID:    poster.ID,
 			PosterName:  poster.Name,
@@ -454,7 +454,7 @@ func (d *OneDevDownloader) GetComments(commentable base.Commentable) ([]*base.Co
 
 		poster := d.tryGetUser(change.UserID)
 		comments = append(comments, &base.Comment{
-			IssueIndex:  commentable.GetLocalIndex(),
+			IssueIndex:  opts.Commentable.GetLocalIndex(),
 			PosterID:    poster.ID,
 			PosterName:  poster.Name,
 			PosterEmail: poster.Email,
@@ -564,7 +564,7 @@ func (d *OneDevDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 }
 
 // GetReviews returns pull requests reviews
-func (d *OneDevDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review, error) {
+func (d *OneDevDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review, bool, error) {
 	rawReviews := make([]struct {
 		ID     int64 `json:"id"`
 		UserID int64 `json:"userId"`
@@ -581,7 +581,7 @@ func (d *OneDevDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Revie
 		&rawReviews,
 	)
 	if err != nil {
-		return nil, err
+		return nil, true, err
 	}
 
 	reviews := make([]*base.Review, 0, len(rawReviews))
@@ -608,7 +608,7 @@ func (d *OneDevDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Revie
 		})
 	}
 
-	return reviews, nil
+	return reviews, true, nil
 }
 
 // GetTopics return repository topics

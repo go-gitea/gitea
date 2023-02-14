@@ -115,7 +115,19 @@
 					{{else}}
 						{{$.locale.Tr "repo.issues.closed_at" .EventTag $createdStr | Safe}}
 					{{end}}
-				</span>
+				{{else}}
+					<a href="{{.Poster.HomeLink}}">
+						{{avatar .Poster}}
+					</a>
+					<span class="text grey">
+						<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+						{{if .Issue.IsPull}}
+							{{$.locale.Tr "repo.pulls.closed_at" .EventTag $createdStr | Safe}}
+						{{else}}
+							{{$.locale.Tr "repo.issues.closed_at" .EventTag $createdStr | Safe}}
+						{{end}}
+					</span>
+				{{end}}
 			</div>
 		{{else if eq .Type 28}}
 			<div class="timeline-item event" id="{{.HashTag}}">
@@ -129,7 +141,20 @@
 					{{else}}
 						{{$.locale.Tr "repo.issues.pull_merged_at" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID) ($.BaseTarget|Escape) $createdStr | Str2html}}
 					{{end}}
-				</span>
+				{{else}}
+					<a href="{{.Poster.HomeLink}}">
+						{{avatar .Poster}}
+					</a>
+					<span class="text grey">
+						<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+						{{$link := printf "%s/commit/%s" $.Repository.HTMLURL ($.Issue.PullRequest.MergedCommitID|PathEscape)}}
+						{{if eq $.Issue.PullRequest.Status 3}}
+							{{$.locale.Tr "repo.issues.manually_pull_merged_at" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID) ($.BaseTarget|Escape) $createdStr | Str2html}}
+						{{else}}
+							{{$.locale.Tr "repo.issues.pull_merged_at" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID) ($.BaseTarget|Escape) $createdStr | Str2html}}
+						{{end}}
+					</span>
+				{{end}}
 			</div>
 		{{else if eq .Type 3 5 6}}
 			{{$refFrom:= ""}}
@@ -186,7 +211,21 @@
 						{{else}}
 							{{$.locale.Tr "repo.issues.add_remove_labels" (RenderLabels .AddedLabels $.RepoLink) (RenderLabels .RemovedLabels $.RepoLink) $createdStr | Safe}}
 						{{end}}
-					</span>
+					{{else}}
+						<a href="{{.Poster.HomeLink}}">
+							{{avatar .Poster}}
+						</a>
+						<span class="text grey">
+							<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+							{{if and .AddedLabels (not .RemovedLabels)}}
+								{{$.locale.TrN (len .AddedLabels) "repo.issues.add_label" "repo.issues.add_labels" (RenderLabels .AddedLabels) $createdStr | Safe}}
+							{{else if and (not .AddedLabels) .RemovedLabels}}
+								{{$.locale.TrN (len .RemovedLabels) "repo.issues.remove_label" "repo.issues.remove_labels" (RenderLabels .RemovedLabels) $createdStr | Safe}}
+							{{else}}
+								{{$.locale.Tr "repo.issues.add_remove_labels" (RenderLabels .AddedLabels) (RenderLabels .RemovedLabels) $createdStr | Safe}}
+							{{end}}
+						</span>
+					{{end}}
 				</div>
 			{{end}}
 		{{else if eq .Type 8}}
@@ -233,6 +272,7 @@
 					{{template "shared/user/authorlink" .Poster}}
 					{{$.locale.Tr "repo.issues.change_title_at" (.OldTitle|RenderEmoji) (.NewTitle|RenderEmoji) $createdStr | Safe}}
 				</span>
+				{{end}}
 			</div>
 		{{else if eq .Type 11}}
 			<div class="timeline-item event" id="{{.HashTag}}">
@@ -368,9 +408,9 @@
 				<div class="timeline-item event">
 					{{if .OriginalAuthor}}
 					{{else}}
-					<a class="timeline-avatar"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
-						{{avatar .Poster}}
-					</a>
+						<a class="timeline-avatar"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
+							{{avatar .Poster}}
+						</a>
 					{{end}}
 					<span class="badge{{if eq .Review.Type 1}} gt-bg-green gt-text-white{{else if eq .Review.Type 3}} gt-bg-red gt-text-white{{end}}">{{svg (printf "octicon-%s" .Review.Type.Icon)}}</span>
 					<span class="text grey muted-links">
@@ -396,6 +436,9 @@
 						{{end}}
 						{{if .Review.Dismissed}}
 							<div class="ui small label">{{$.locale.Tr "repo.issues.review.dismissed_label"}}</div>
+						{{end}}
+						{{if $.Repository.OriginalURL}}
+							<span class="text migrate">({{$.locale.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe}})</span>
 						{{end}}
 					</span>
 				</div>
