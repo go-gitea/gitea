@@ -14,8 +14,8 @@ import (
 )
 
 func SetMustChangePassword(ctx context.Context, all, mustChangePassword bool, include, exclude []string) (int64, error) {
-	toInterfaceSlice := func(input []string) []interface{} {
-		output := make([]interface{}, 0, len(input))
+	sliceTrimSpaceDropEmpty := func(input []string) []string {
+		output := make([]string, 0, len(input))
 		for _, in := range input {
 			in = strings.ToLower(strings.TrimSpace(in))
 			if in == "" {
@@ -32,17 +32,17 @@ func SetMustChangePassword(ctx context.Context, all, mustChangePassword bool, in
 	cond = builder.Neq{"must_change_password": mustChangePassword}
 
 	if !all {
-		toInclude := toInterfaceSlice(include)
-		if len(toInclude) == 0 {
+		include = sliceTrimSpaceDropEmpty(include)
+		if len(include) == 0 {
 			return 0, util.NewSilentWrapErrorf(util.ErrInvalidArgument, "no users to include provided")
 		}
 
-		cond = cond.And(builder.In("lower_name", toInclude...))
+		cond = cond.And(builder.In("lower_name", include))
 	}
 
-	toExclude := toInterfaceSlice(exclude)
-	if len(toExclude) > 0 {
-		cond = cond.And(builder.NotIn("lower_name", toExclude...))
+	exclude = sliceTrimSpaceDropEmpty(exclude)
+	if len(exclude) > 0 {
+		cond = cond.And(builder.NotIn("lower_name", exclude))
 	}
 
 	return db.GetEngine(ctx).Where(cond).MustCols("must_change_password").Update(&User{MustChangePassword: mustChangePassword})
