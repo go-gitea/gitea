@@ -456,6 +456,8 @@ var migrations = []Migration{
 	// v240 -> v241
 	NewMigration("Add actions tables", v1_19.AddActionsTables),
 	// v241 -> v242
+	NewMigration("Add card_type column to project table", v1_19.AddCardTypeToProjectTable),
+	// v242 -> v243
 	NewMigration("Create key/value table for repo settings", v1_19.CreateRepoSettingsTable),
 }
 
