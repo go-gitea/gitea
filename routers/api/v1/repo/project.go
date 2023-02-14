@@ -4,7 +4,6 @@
 package repo
 
 import (
-	"fmt"
 	"net/http"
 
 	project_model "code.gitea.io/gitea/models/project"
@@ -235,7 +234,7 @@ func ListRepositoryProjects(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	fmt.Print(ctx.FormOptionalBool("closed"))
+
 	projects, count, err := project_model.FindProjects(ctx, project_model.SearchOptions{
 		RepoID:   ctx.Repo.Repository.ID,
 		Page:     ctx.FormInt("page"),
