@@ -120,18 +120,22 @@ func NewFuncMap() []template.FuncMap {
 		"Subtract":       base.Subtract,
 		"EntryIcon":      base.EntryIcon,
 		"MigrationIcon":  MigrationIcon,
-		"Add": func(a ...int) int {
-			sum := 0
-			for _, val := range a {
-				sum += val
-			}
-			return sum
-		},
-		"Add64": func(a ...int64) int64 {
+		"Add": func(a ...interface{}) int64 {
 			sum := int64(0)
+
 			for _, val := range a {
-				sum += val
+				switch v := val.(type) {
+				case int:
+					sum += int64(v)
+				case int32:
+					sum += int64(v)
+				case int64:
+					sum += v
+				default:
+					return -1
+				}
 			}
+
 			return sum
 		},
 		"Mul": func(a ...int) int {

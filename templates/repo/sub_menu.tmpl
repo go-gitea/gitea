@@ -15,9 +15,9 @@
 					</div>
 				{{end}}
 				<div class="item">
-					<span class="ui" title="git: {{FileSize .Repository.Size}}, lfs: {{FileSize .Repository.LFSSize}}">
+					<span class="ui" {{if not (eq .Repository.LFSSize 0)}}title="git: {{FileSize .Repository.Size}}, lfs: {{FileSize .Repository.LFSSize}}"{{end}}>
 						{{svg "octicon-database"}}
-						<b>{{FileSize (Add64 .Repository.Size .Repository.LFSSize)}}</b>
+						<b>{{FileSize (Add .Repository.Size .Repository.LFSSize)}}</b>
 					</span>
 				</div>
 			{{end}}
