@@ -167,9 +167,11 @@
 				<div class="item text">
 					{{svg "octicon-x"}}
 					{{$.locale.Tr "repo.pulls.files_conflicted"}}
+					<ul>
 					{{range .ConflictedFiles}}
-						<div>{{.}}</div>
+						<li>{{.}}</li>
 					{{end}}
+					</ul>
 				</div>
 			{{else if .IsPullRequestBroken}}
 				<div class="item">
@@ -378,10 +380,6 @@
 						</script>
 
 						<div id="pull-request-merge-form"></div>
-
-						{{if .ShowMergeInstructions}}
-							{{template "repo/issue/view_content/pull_merge_instruction" (dict "locale" .locale "Issue" .Issue)}}
-						{{end}}
 					{{else}}
 						{{/* no merge style was set in repo setting: not or ($prUnit.PullRequestsConfig.AllowMerge ...) */}}
 						<div class="ui divider"></div>
@@ -478,6 +476,10 @@
 						{{$.locale.Tr "repo.pulls.merge_manually"}}
 					</button>
 				</div>
+			{{end}}
+
+			{{if .ShowMergeInstructions}}
+					{{template "repo/issue/view_content/pull_merge_instruction" (dict "locale" .locale "Issue" .Issue)}}
 			{{end}}
 		</div>
 	</div>
