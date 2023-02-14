@@ -127,6 +127,13 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return sum
 		},
+		"Add64": func(a ...int64) int64 {
+			sum := int64(0)
+			for _, val := range a {
+				sum += val
+			}
+			return sum
+		},
 		"Mul": func(a ...int) int {
 			sum := 1
 			for _, val := range a {

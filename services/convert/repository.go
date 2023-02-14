@@ -148,7 +148,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 		Template:                      repo.IsTemplate,
 		Empty:                         repo.IsEmpty,
 		Archived:                      repo.IsArchived,
-		Size:                          int(repo.Size / 1024),
+		Size:                          int((repo.Size + repo.LFSSize) / 1024),
 		Fork:                          repo.IsFork,
 		Parent:                        parent,
 		Mirror:                        repo.IsMirror,
