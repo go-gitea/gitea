@@ -2,21 +2,21 @@
 {{with .Repository}}
 	<div class="ui container">
 		<div class="repo-header">
-			<div class="repo-title-wrap df fc">
-				<div class="repo-title">
-					{{$avatar := (repoAvatar . 32 "mr-3")}}
+			<div class="repo-title-wrap gt-df gt-fc">
+				<div class="repo-title" role="heading" aria-level="1">
+					{{$avatar := (repoAvatar . 32 "gt-mr-3")}}
 					{{if $avatar}}
 						{{$avatar}}
 					{{else}}
 						{{template "repo/icon" .}}
 					{{end}}
 					<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
-					<div class="mx-2">/</div>
+					<div class="gt-mx-2">/</div>
 					<a href="{{$.RepoLink}}">{{.Name}}</a>
 					{{if $.EnableFeed}}
-						<a href="{{$.RepoLink}}.rss"><i class="ui grey icon tooltip ml-3" data-content="{{$.locale.Tr "rss_feed"}}" data-position="top center">{{svg "octicon-rss" 18}}</i></a>
+						<a href="{{$.RepoLink}}.rss"><i class="ui grey icon tooltip gt-ml-3" data-content="{{$.locale.Tr "rss_feed"}}" data-position="top center">{{svg "octicon-rss" 18}}</i></a>
 					{{end}}
-					<div class="labels df ac fw">
+					<div class="labels gt-df gt-ac gt-fw">
 						{{if .IsTemplate}}
 							{{if .IsPrivate}}
 								<span class="ui basic label">{{$.locale.Tr "repo.desc.private_template"}}</span>
@@ -122,12 +122,12 @@
 								<div class="header">
 									{{$.locale.Tr "repo.already_forked" .Name}}
 								</div>
-								<div class="content tl">
+								<div class="content gt-tl">
 									<div class="ui list">
 										{{range $.UserAndOrgForks}}
-											<div class="ui item py-3">
+											<div class="ui item gt-py-3">
 												<a href="{{.Link}}">
-													{{svg "octicon-repo-forked" 16 "mr-3"}}{{.FullName}}
+													{{svg "octicon-repo-forked" 16 "gt-mr-3"}}{{.FullName}}
 												</a>
 											</div>
 										{{end}}
@@ -163,7 +163,7 @@
 					<a class="{{if .PageIsIssueList}}active {{end}}item" href="{{.RepoLink}}/issues">
 						{{svg "octicon-issue-opened"}} {{.locale.Tr "repo.issues"}}
 						{{if .Repository.NumOpenIssues}}
-							<span class="ui primary small label">{{CountFmt .Repository.NumOpenIssues}}</span>
+							<span class="ui small label">{{CountFmt .Repository.NumOpenIssues}}</span>
 						{{end}}
 					</a>
 				{{end}}
@@ -178,7 +178,7 @@
 					<a class="{{if .PageIsPullList}}active {{end}}item" href="{{.RepoLink}}/pulls">
 						{{svg "octicon-git-pull-request"}} {{.locale.Tr "repo.pulls"}}
 						{{if .Repository.NumOpenPulls}}
-							<span class="ui primary small label">{{CountFmt .Repository.NumOpenPulls}}</span>
+							<span class="ui small label">{{CountFmt .Repository.NumOpenPulls}}</span>
 						{{end}}
 					</a>
 				{{end}}
@@ -187,7 +187,7 @@
 					<a class="{{if .PageIsActions}}active {{end}}item" href="{{.RepoLink}}/actions">
 						{{svg "octicon-play"}} {{.locale.Tr "actions.actions"}}
 						{{if .Repository.NumOpenActionRuns}}
-							<span class="ui primary small label">{{CountFmt .Repository.NumOpenActionRuns}}</span>
+							<span class="ui small label">{{CountFmt .Repository.NumOpenActionRuns}}</span>
 						{{end}}
 					</a>
 				{{end}}
@@ -202,7 +202,7 @@
 					<a href="{{.RepoLink}}/projects" class="{{if .IsProjectsPage}}active {{end}}item">
 						{{svg "octicon-project"}} {{.locale.Tr "repo.project_board"}}
 						{{if .Repository.NumOpenProjects}}
-							<span class="ui primary small label">{{CountFmt .Repository.NumOpenProjects}}</span>
+							<span class="ui small label">{{CountFmt .Repository.NumOpenProjects}}</span>
 						{{end}}
 					</a>
 				{{end}}
@@ -211,13 +211,13 @@
 				<a class="{{if .PageIsReleaseList}}active {{end}}item" href="{{.RepoLink}}/releases">
 					{{svg "octicon-tag"}} {{.locale.Tr "repo.releases"}}
 					{{if .NumReleases}}
-						<span class="ui primary small label">{{CountFmt .NumReleases}}</span>
+						<span class="ui small label">{{CountFmt .NumReleases}}</span>
 					{{end}}
 				</a>
 				{{end}}
 
 				{{if or (.Permission.CanRead $.UnitTypeWiki) (.Permission.CanRead $.UnitTypeExternalWiki)}}
-					<a class="{{if .PageIsWiki}}active {{end}}item" href="{{.RepoLink}}/wiki" {{if and (.Permission.CanRead $.UnitTypeExternalWiki) (not (HasPrefix ((.Repository.MustGetUnit $.Context $.UnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL) (.Repository.HTMLURL)))}} target="_blank" rel="noopener noreferrer" {{end}}>
+					<a class="{{if .PageIsWiki}}active {{end}}item" href="{{.RepoLink}}/wiki" {{if and (.Permission.CanRead $.UnitTypeExternalWiki) (not (HasPrefix ((.Repository.MustGetUnit $.Context $.UnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL) (.Repository.Link)))}} target="_blank" rel="noopener noreferrer" {{end}}>
 						{{svg "octicon-book"}} {{.locale.Tr "repo.wiki"}}
 					</a>
 				{{end}}

@@ -217,7 +217,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 
 		filename2attribute2info, err := ctx.Repo.GitRepo.CheckAttribute(git.CheckAttributeOpts{
 			CachedOnly: true,
-			Attributes: []git.CmdArg{"linguist-language", "gitlab-language"},
+			Attributes: []string{"linguist-language", "gitlab-language"},
 			Filenames:  []string{ctx.Repo.TreePath},
 			IndexFile:  indexFilename,
 			WorkTree:   worktree,
@@ -262,9 +262,9 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 
 				var avatar string
 				if commit.User != nil {
-					avatar = string(templates.Avatar(commit.User, 18, "mr-3"))
+					avatar = string(templates.Avatar(commit.User, 18, "gt-mr-3"))
 				} else {
-					avatar = string(templates.AvatarByEmail(commit.Author.Email, commit.Author.Name, 18, "mr-3"))
+					avatar = string(templates.AvatarByEmail(commit.Author.Email, commit.Author.Name, 18, "gt-mr-3"))
 				}
 
 				br.Avatar = gotemplate.HTML(avatar)

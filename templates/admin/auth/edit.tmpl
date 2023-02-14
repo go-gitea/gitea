@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content admin edit authentication">
+<div role="main" aria-label="{{.Title}}" class="page-content admin edit authentication">
 	{{template "admin/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -360,6 +360,14 @@
 					<div class="field">
 						<label for="oauth2_restricted_group">{{.locale.Tr "admin.auths.oauth2_restricted_group"}}</label>
 						<input id="oauth2_restricted_group" name="oauth2_restricted_group" value="{{$cfg.RestrictedGroup}}">
+					</div>
+					<div class="field">
+						<label>{{.locale.Tr "admin.auths.oauth2_map_group_to_team"}}</label>
+						<input name="oauth2_group_team_map" value="{{$cfg.GroupTeamMap}}" placeholder='e.g. {"Developer": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2"]}}'>
+					</div>
+					<div class="ui checkbox">
+						<label>{{.locale.Tr "admin.auths.oauth2_map_group_to_team_removal"}}</label>
+						<input name="oauth2_group_team_map_removal" type="checkbox" {{if $cfg.GroupTeamMapRemoval}}checked{{end}}>
 					</div>
 				{{end}}
 
