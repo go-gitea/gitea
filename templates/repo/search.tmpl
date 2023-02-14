@@ -9,7 +9,7 @@
 					<div class="ui dropdown selection tooltip{{if .CodeIndexerUnavailable}} disabled{{end}}" data-content="{{.locale.Tr "repo.search.type.tooltip"}}">
 						<input name="t" type="hidden"{{if .CodeIndexerUnavailable}} disabled{{end}} value="{{.queryType}}">{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="text">{{.locale.Tr (printf "repo.search.%s" (or .queryType "fuzzy"))}}</div>
-						<div class="menu transition hidden" tabindex="-1" style="display: block !important;">
+						<div class="menu">
 							<div class="item tooltip" data-value="" data-content="{{.locale.Tr "repo.search.fuzzy.tooltip"}}">{{.locale.Tr "repo.search.fuzzy"}}</div>
 							<div class="item tooltip" data-value="match" data-content="{{.locale.Tr "repo.search.match.tooltip"}}">{{.locale.Tr "repo.search.match"}}</div>
 						</div>
