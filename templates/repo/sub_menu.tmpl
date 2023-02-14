@@ -15,10 +15,10 @@
 					</div>
 				{{end}}
 				<div class="item">
-					<span class="ui" title="git: {{FileSize .Repository.Size }}, lfs: {{FileSize .Repository.LFSSize}}">
-                        {{svg "octicon-database"}} 
-                        <b>{{FileSize (Add64 .Repository.Size .Repository.LFSSize)}}</b>
-                    </span>
+					<span class="ui" title="git: {{FileSize .Repository.Size}}, lfs: {{FileSize .Repository.LFSSize}}">
+						{{svg "octicon-database"}}
+						<b>{{FileSize (Add64 .Repository.Size .Repository.LFSSize)}}</b>
+					</span>
 				</div>
 			{{end}}
 		</div>
