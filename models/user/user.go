@@ -723,11 +723,9 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 	}
 
 	if u.CreatedUnix == 0 {
-		fmt.Println("u.CreatedUnix == 0")
 		// Caller expects auto-time for creation & update timestamps.
 		err = db.Insert(ctx, u)
 	} else {
-		fmt.Printf("u.CreatedUnix == %d\n", u.CreatedUnix)
 		// Caller sets the timestamps themselves. They are responsible for ensuring
 		// both `CreatedUnix` and `UpdatedUnix` are set appropriately.
 		_, err = db.GetEngine(ctx).NoAutoTime().Insert(u)
