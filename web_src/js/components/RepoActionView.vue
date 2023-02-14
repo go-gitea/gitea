@@ -268,6 +268,11 @@ export function initRepositoryActionView() {
   const el = document.getElementById('repo-action-view');
   if (!el) return;
 
+  // TODO: the parent element's full height doesn't work well now,
+  // but we can not pollute the global style at the moment, only fix the height problem for pages with this component
+  const parentFullHeight = document.querySelector('body > div.full.height');
+  if (parentFullHeight) parentFullHeight.style.paddingBottom = '0';
+
   const view = createApp(sfc, {
     runIndex: el.getAttribute('data-run-index'),
     jobIndex: el.getAttribute('data-job-index'),
@@ -411,11 +416,6 @@ export function initRepositoryActionView() {
 
 <style lang="less">
 // some elements are not managed by vue, so we need to use global style
-
-// TODO: the parent element's full height doesn't work well now
-body > div.full.height {
-  padding-bottom: 0;
-}
 
 .job-status-rotate {
   animation: job-status-rotate-keyframes 1s linear infinite;
