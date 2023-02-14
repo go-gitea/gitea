@@ -286,9 +286,18 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 				}, reqPackageAccess(perm.AccessModeWrite))
 				r.Get("/symbols/{filename}/{guid:[0-9a-fA-F]{32}[fF]{8}}/{filename2}", nuget.DownloadSymbolFile)
 				r.Get("/Packages(Id='{id:[^']+}',Version='{version:[^']+}')", nuget.RegistrationLeafV2)
-				r.Get("/Packages()", nuget.SearchServiceV2)
-				r.Get("/FindPackagesById()", nuget.EnumeratePackageVersionsV2)
-				r.Get("/Search()", nuget.SearchServiceV2)
+				r.Group("/Packages()", func() {
+					r.Get("", nuget.SearchServiceV2)
+					r.Get("/$count", nuget.SearchServiceV2Count)
+				})
+				r.Group("/FindPackagesById()", func() {
+					r.Get("", nuget.EnumeratePackageVersionsV2)
+					r.Get("/$count", nuget.EnumeratePackageVersionsV2Count)
+				})
+				r.Group("/Search()", func() {
+					r.Get("", nuget.SearchServiceV2)
+					r.Get("/$count", nuget.SearchServiceV2Count)
+				})
 			}, reqPackageAccess(perm.AccessModeRead))
 		})
 		r.Group("/npm", func() {

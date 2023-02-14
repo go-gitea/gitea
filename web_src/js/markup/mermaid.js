@@ -12,7 +12,7 @@ const iframeCss = `
 function displayError(el, err) {
   el.closest('pre').classList.remove('is-loading');
   const errorNode = document.createElement('div');
-  errorNode.setAttribute('class', 'ui message error markup-block-error mono');
+  errorNode.setAttribute('class', 'ui message error markup-block-error gt-mono');
   errorNode.textContent = err.str || err.message || String(err);
   el.closest('pre').before(errorNode);
 }

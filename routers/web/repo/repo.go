@@ -344,7 +344,7 @@ func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.rejected"))
 	}
 
-	ctx.Redirect(ctx.Repo.Repository.HTMLURL())
+	ctx.Redirect(ctx.Repo.Repository.Link())
 	return nil
 }
 

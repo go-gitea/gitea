@@ -70,7 +70,7 @@ func List(ctx *context.Context) {
 	}
 
 	ctx.Data["workflows"] = workflows
-	ctx.Data["RepoLink"] = ctx.Repo.Repository.HTMLURL()
+	ctx.Data["RepoLink"] = ctx.Repo.Repository.Link()
 
 	page := ctx.FormInt("page")
 	if page <= 0 {

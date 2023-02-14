@@ -100,7 +100,7 @@ func MustAllowUserComment(ctx *context.Context) {
 
 	if issue.IsLocked && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
 		ctx.Flash.Error(ctx.Tr("repo.issues.comment_on_locked"))
-		ctx.Redirect(issue.HTMLURL())
+		ctx.Redirect(issue.Link())
 		return
 	}
 }
@@ -927,7 +927,7 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 
 	if len(issueTemplates) == 0 {
 		// The "issues/new" and "issues/new/choose" share the same query parameters "project" and "milestone", if no template here, just redirect to the "issues/new" page with these parameters.
-		ctx.Redirect(fmt.Sprintf("%s/issues/new?%s", ctx.Repo.Repository.HTMLURL(), ctx.Req.URL.RawQuery), http.StatusSeeOther)
+		ctx.Redirect(fmt.Sprintf("%s/issues/new?%s", ctx.Repo.Repository.Link(), ctx.Req.URL.RawQuery), http.StatusSeeOther)
 		return
 	}
 
@@ -950,11 +950,11 @@ func DeleteIssue(ctx *context.Context) {
 	}
 
 	if issue.IsPull {
-		ctx.Redirect(fmt.Sprintf("%s/pulls", ctx.Repo.Repository.HTMLURL()), http.StatusSeeOther)
+		ctx.Redirect(fmt.Sprintf("%s/pulls", ctx.Repo.Repository.Link()), http.StatusSeeOther)
 		return
 	}
 
-	ctx.Redirect(fmt.Sprintf("%s/issues", ctx.Repo.Repository.HTMLURL()), http.StatusSeeOther)
+	ctx.Redirect(fmt.Sprintf("%s/issues", ctx.Repo.Repository.Link()), http.StatusSeeOther)
 }
 
 // ValidateRepoMetas check and returns repository's meta information
@@ -1425,7 +1425,7 @@ func ViewIssue(ctx *context.Context) {
 						return
 					}
 					// Add link to the issue of the already running stopwatch
-					ctx.Data["OtherStopwatchURL"] = otherIssue.HTMLURL()
+					ctx.Data["OtherStopwatchURL"] = otherIssue.Link()
 				}
 			}
 			ctx.Data["CanUseTimetracker"] = ctx.Repo.CanUseTimetracker(issue, ctx.Doer)
@@ -2658,7 +2658,7 @@ func NewComment(ctx *context.Context) {
 
 	if issue.IsLocked && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
 		ctx.Flash.Error(ctx.Tr("repo.issues.comment_on_locked"))
-		ctx.Redirect(issue.HTMLURL())
+		ctx.Redirect(issue.Link())
 		return
 	}
 
@@ -2669,7 +2669,7 @@ func NewComment(ctx *context.Context) {
 
 	if ctx.HasError() {
 		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
-		ctx.Redirect(issue.HTMLURL())
+		ctx.Redirect(issue.Link())
 		return
 	}
 
