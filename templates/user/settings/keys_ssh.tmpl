@@ -11,7 +11,7 @@
 	</div>
 </h4>
 <div class="ui attached segment">
-	<div class="{{if not .HasSSHError}}hide{{end}} mb-4" id="add-ssh-key-panel">
+	<div class="{{if not .HasSSHError}}hide{{end}} gt-mb-4" id="add-ssh-key-panel">
 		<form class="ui form" action="{{.Link}}" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="field {{if .Err_Title}}error{{end}}">
@@ -31,7 +31,7 @@
 			</button>
 		</form>
 	</div>
-	<div class="ui key list mt-0">
+	<div class="ui key list gt-mt-0">
 		<div class="item">
 			{{.locale.Tr "settings.ssh_desc"}}
 		</div>

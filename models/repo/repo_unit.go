@@ -125,6 +125,7 @@ type PullRequestsConfig struct {
 	AllowRebaseUpdate             bool
 	DefaultDeleteBranchAfterMerge bool
 	DefaultMergeStyle             MergeStyle
+	DefaultAllowMaintainerEdit    bool
 }
 
 // FromDB fills up a PullRequestsConfig from serialized format.
@@ -174,7 +175,7 @@ func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 			r.Config = new(PullRequestsConfig)
 		case unit.TypeIssues:
 			r.Config = new(IssuesConfig)
-		case unit.TypeCode, unit.TypeReleases, unit.TypeWiki, unit.TypeProjects, unit.TypePackages:
+		case unit.TypeCode, unit.TypeReleases, unit.TypeWiki, unit.TypeProjects, unit.TypePackages, unit.TypeActions:
 			fallthrough
 		default:
 			r.Config = new(UnitConfig)

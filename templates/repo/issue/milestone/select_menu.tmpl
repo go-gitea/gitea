@@ -1,7 +1,7 @@
 <div class="header" style="text-transform: none;font-size:16px;">{{.locale.Tr "repo.issues.new.add_milestone_title"}}</div>
 {{if or .OpenMilestones .ClosedMilestones}}
 <div class="ui icon search input">
-	<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+	<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 	<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_milestones"}}">
 </div>
 {{end}}
@@ -18,7 +18,7 @@
 		</div>
 		{{range .OpenMilestones}}
 			<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}">
-				{{svg "octicon-milestone" 16 "mr-2"}}
+				{{svg "octicon-milestone" 16 "gt-mr-2"}}
 				{{.Name}}
 			</a>
 		{{end}}
@@ -30,7 +30,7 @@
 		</div>
 		{{range .ClosedMilestones}}
 			<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}">
-				{{svg "octicon-milestone" 16 "mr-2"}}
+				{{svg "octicon-milestone" 16 "gt-mr-2"}}
 				{{.Name}}
 			</a>
 		{{end}}
