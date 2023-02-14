@@ -219,11 +219,11 @@ export function initRepoCommentForm() {
 
       let icon = '';
       if (input_id === '#milestone_id') {
-        icon = svg('octicon-milestone', 18, 'mr-3');
+        icon = svg('octicon-milestone', 18, 'gt-mr-3');
       } else if (input_id === '#project_id') {
-        icon = svg('octicon-project', 18, 'mr-3');
+        icon = svg('octicon-project', 18, 'gt-mr-3');
       } else if (input_id === '#assignee_id') {
-        icon = `<img class="ui avatar image mr-3" src=${$(this).data('avatar')}>`;
+        icon = `<img class="ui avatar image gt-mr-3" src=${$(this).data('avatar')}>`;
       }
 
       $list.find('.selected').html(`
