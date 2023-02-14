@@ -47,7 +47,7 @@ reported as part of the default configuration when running `gitea --help` or on 
   - A built-in value set at build time (see building from source)
   - Otherwise it defaults to the directory of the _`AppPath`_
   - If any of the above are relative paths then they are made absolute against the
-the directory of the _`AppPath`_
+  the directory of the _`AppPath`_
 - _`CustomPath`_: This is the base directory for custom templates and other options.
 It is determined by using the first set thing in the following hierarchy:
   - The `--custom-path` flag passed to the binary
@@ -61,7 +61,7 @@ the directory of the _`AppWorkPath`_
   - A built-in value set at build time (see building from source)
   - Otherwise it defaults to _`CustomPath`_`/conf/app.ini`
   - If any of the above are relative paths then they are made absolute against the
-the directory of the _`CustomPath`_
+  the directory of the _`CustomPath`_
 
 In addition there is _`StaticRootPath`_ which can be set as a built-in at build time, but will otherwise default to _`AppWorkPath`_
 
@@ -854,19 +854,44 @@ Default templates for project boards:
 - `DISABLE_ROUTER_LOG`: **false**: Mute printing of the router log.
 - `ROUTER`: **console**: The mode or name of the log the router should log to. (If you set this to `,` it will log to default Gitea logger.)
   NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take effect. Configure each mode in per mode log subsections `\[log.modename.router\]`.
-- `REQUEST_ID_HEADERS`: **\<empty\>**: You can configure multiple values that are splited by comma here. It will match in the order of configuration, and the first match will be finally printed in the log. You can refer to the `app.example.ini` file for examples
 
 ### Access Log (`log`)
 
 - `ENABLE_ACCESS_LOG`: **false**: Creates an access.log in NCSA common log format, or as per the following template
+
 - `ACCESS`: **file**: Logging mode for the access logger, use a comma to separate values. Configure each mode in per mode log subsections `\[log.modename.access\]`. By default the file mode will log to `$ROOT_PATH/access.log`. (If you set this to `,` it will log to the default Gitea logger.)
+
 - `ACCESS_LOG_TEMPLATE`: **`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`**: Sets the template used to create the access log.
+
   - The following variables are available:
   - `Ctx`: the `context.Context` of the request.
   - `Identity`: the SignedUserName or `"-"` if not logged in.
   - `Start`: the start time of the request.
   - `ResponseWriter`: the responseWriter from the request.
+  - `RequestID`: the value matching REQUEST_ID_HEADERS（default: `-`, if not matched）.
   - You must be very careful to ensure that this template does not throw errors or panics as this template runs outside of the panic/recovery script.
+
+- `REQUEST_ID_HEADERS`: **\<empty\>**: You can configure multiple values that are splited by comma here. It will match in the order of configuration, and the first match will be finally printed in the access log.
+
+  E.g 1：
+
+  In the Request Header： 		X-Request-ID: **test-id-123**
+
+  Configuration in app.ini: 		REQUEST_ID_HEADERS = X-Request-ID
+
+  Print in log:  							 127.0.0.1:58384 - - [14/Feb/2023:16:33:51 &#43;0800]  "**test-id-123**" ...
+
+  
+
+  E.g 2：
+
+  In the Request Header： 		X-Trace-ID: **trace-id-1q2w3e4r**
+
+  Configuration in app.ini: 		REQUEST_ID_HEADERS = X-Request-ID, X-Trace-ID
+
+  Print in log:  							 127.0.0.1:58384 - - [14/Feb/2023:16:33:51 &#43;0800]  "**trace-id-1q2w3e4r**" ...
+
+  
 
 ### Log subsections (`log.name`, `log.name.*`)
 

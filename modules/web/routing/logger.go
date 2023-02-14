@@ -9,7 +9,6 @@ import (
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 )
 
 // NewLoggerHandler is a handler that will log routing to the router log taking account of
@@ -36,34 +35,15 @@ var (
 
 func logPrinter(logger log.Logger) func(trigger Event, record *requestRecord) {
 	return func(trigger Event, record *requestRecord) {
-		if trigger == StartEvent && !logger.IsTrace() {
-			// for performance, if the "started" message shouldn't be logged, we just return as early as possible
-			// developers can set the router log level to TRACE to get the "started" request messages.
-			return
-		}
-
-		var requestID string
-		if len(setting.RequestIDHeaders) > 0 {
-			for _, key := range setting.RequestIDHeaders {
-				headerVal := record.request.Header.Get(key)
-				if record.request.Header.Get(key) != "" {
-					requestID = headerVal
-					break
-				}
-			}
-		}
-		var format string
-		var v []interface{}
-		if requestID != "" {
-			format = "[%s] "
-			v = append(v, requestID)
-		}
 		if trigger == StartEvent {
+			if !logger.IsTrace() {
+				// for performance, if the "started" message shouldn't be logged, we just return as early as possible
+				// developers can set the router log level to TRACE to get the "started" request messages.
+				return
+			}
 			// when a request starts, we have no information about the handler function information, we only have the request path
 			req := record.request
-			format += "router: %s %v %s for %s"
-			v = append(v, startMessage, log.ColoredMethod(req.Method), req.RequestURI, req.RemoteAddr)
-			logger.Trace(format, v...)
+			logger.Trace("router: %s %v %s for %s", startMessage, log.ColoredMethod(req.Method), req.RequestURI, req.RemoteAddr)
 			return
 		}
 
@@ -84,21 +64,23 @@ func logPrinter(logger log.Logger) func(trigger Event, record *requestRecord) {
 				level = log.INFO
 				message = pollingMessage
 			}
-			format += "router: %s %v %s for %s, elapsed %v @ %s"
-			v = append(v, message, log.ColoredMethod(req.Method), req.RequestURI,
-				req.RemoteAddr, log.ColoredTime(time.Since(record.startTime)), handlerFuncInfo)
-			_ = logger.Log(0, level, format, v...)
+			_ = logger.Log(0, level, "router: %s %v %s for %s, elapsed %v @ %s",
+				message,
+				log.ColoredMethod(req.Method), req.RequestURI, req.RemoteAddr,
+				log.ColoredTime(time.Since(record.startTime)),
+				handlerFuncInfo,
+			)
 			return
 		}
 
 		if panicErr != nil {
-			format += "router: %s %v %s for %s, panic in %v @ %s, err=%v"
-			v = append(v, failedMessage,
+			_ = logger.Log(0, log.WARN, "router: %s %v %s for %s, panic in %v @ %s, err=%v",
+				failedMessage,
 				log.ColoredMethod(req.Method), req.RequestURI, req.RemoteAddr,
 				log.ColoredTime(time.Since(record.startTime)),
 				handlerFuncInfo,
-				panicErr)
-			_ = logger.Log(0, log.WARN, format, v...)
+				panicErr,
+			)
 			return
 		}
 
@@ -113,11 +95,11 @@ func logPrinter(logger log.Logger) func(trigger Event, record *requestRecord) {
 			message = unknownHandlerMessage
 		}
 
-		format += "router: %s %v %s for %s, %v %v in %v @ %s"
-		v = append(v, message,
+		_ = logger.Log(0, level, "router: %s %v %s for %s, %v %v in %v @ %s",
+			message,
 			log.ColoredMethod(req.Method), req.RequestURI, req.RemoteAddr,
 			log.ColoredStatus(status), log.ColoredStatus(status, http.StatusText(status)), log.ColoredTime(time.Since(record.startTime)),
-			handlerFuncInfo)
-		_ = logger.Log(0, level, format, v...)
+			handlerFuncInfo,
+		)
 	}
 }

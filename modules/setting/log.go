@@ -261,6 +261,7 @@ func newAccessLogService() {
 	// the `MustString` updates the default value, and `log.ACCESS` is used by `generateNamedLogger("access")` later
 	_ = Cfg.Section("log").Key("ACCESS").MustString("file")
 	if EnableAccessLog {
+		RequestIDHeaders = Cfg.Section("log").Key("REQUEST_ID_HEADERS").Strings(",")
 		options := newDefaultLogOptions()
 		options.filename = filepath.Join(LogRootPath, "access.log")
 		options.flags = "" // For the router we don't want any prefixed flags
@@ -273,7 +274,6 @@ func newRouterLogService() {
 	Cfg.Section("log").Key("ROUTER").MustString("console")
 	// Allow [log]  DISABLE_ROUTER_LOG to override [server] DISABLE_ROUTER_LOG
 	DisableRouterLog = Cfg.Section("log").Key("DISABLE_ROUTER_LOG").MustBool(DisableRouterLog)
-	RequestIDHeaders = Cfg.Section("log").Key("REQUEST_ID_HEADERS").Strings(",")
 
 	if !DisableRouterLog {
 		options := newDefaultLogOptions()

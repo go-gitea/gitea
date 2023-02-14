@@ -20,6 +20,7 @@ type routerLoggerOptions struct {
 	Start          *time.Time
 	ResponseWriter http.ResponseWriter
 	Ctx            map[string]interface{}
+	RequestID      *string
 }
 
 var signedUserNameStringPointerKey interface{} = "signedUserNameStringPointerKey"
@@ -34,6 +35,15 @@ func AccessLogger() func(http.Handler) http.Handler {
 			identity := "-"
 			r := req.WithContext(context.WithValue(req.Context(), signedUserNameStringPointerKey, &identity))
 
+			requestID := "-"
+			for _, key := range setting.RequestIDHeaders {
+				headerVal := req.Header.Get(key)
+				if headerVal != "" {
+					requestID = headerVal
+					break
+				}
+			}
+
 			next.ServeHTTP(w, r)
 			rw := w.(ResponseWriter)
 
@@ -47,6 +57,7 @@ func AccessLogger() func(http.Handler) http.Handler {
 					"RemoteAddr": req.RemoteAddr,
 					"Req":        req,
 				},
+				RequestID: &requestID,
 			})
 			if err != nil {
 				log.Error("Could not set up chi access logger: %v", err.Error())

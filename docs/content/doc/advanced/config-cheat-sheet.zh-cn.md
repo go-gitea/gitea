@@ -77,6 +77,7 @@ menu:
 - `START_SSH_SERVER`: 是否启用内部SSH服务器。
 - `SSH_PORT`: SSH端口，默认为 `22`。
 - `OFFLINE_MODE`: 针对静态和头像文件禁用 CDN。
+- `DISABLE_ROUTER_LOG`: 关闭日志中的路由日志。
 - `CERT_FILE`: 启用HTTPS的证书文件。
 - `KEY_FILE`: 启用HTTPS的密钥文件。
 - `STATIC_ROOT_PATH`: 存放模板和静态文件的根目录，默认是 Gitea 的根目录。
@@ -259,14 +260,59 @@ test01.xls: application/vnd.ms-excel; charset=binary
 ## Log (`log`)
 
 - `ROOT_PATH`: 日志文件根目录。
+
 - `MODE`: 日志记录模式，默认是为 `console`。如果要写到多个通道，用逗号分隔
+
 - `LEVEL`: 日志级别，默认为`Trace`。
+
 - `DISABLE_ROUTER_LOG`: 关闭日志中的路由日志。
-- `REQUEST_ID_HEADERS`: 从Request Header中匹配指定Key，并将匹配到的值输出到router log中。如果在该参数中配置多个Key， 请用逗号分割，程序将按照配置的顺序进行匹配，示例可以参考`app.example.ini`文件。
+
+- `ENABLE_ACCESS_LOG`: 是否开启Access Log, 默认为false。
+
+- `ACCESS_LOG_TEMPLATE`:
+
+  默认模板：
+
+  ```golang
+  default := `{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`
+  ```
+
+  模板支持以下参数
+
+  - `Ctx`: 请求上下文
+  - `Identity`: 登录用户名，默认: “`-`”.
+  - `Start`: 请求开始时间.
+  - `ResponseWriter`: 
+  - `RequestID`:从请求头中解析得到的与 `REQUEST_ID_HEADERS`匹配的值（默认: “`-`”）.
+  - 一定要谨慎配置该模板，否则可能会引起panic.
+
+- `REQUEST_ID_HEADERS`: 从Request Header中匹配指定Key，并将匹配到的值输出到acces log中(需要在ACCESS_LOG_TEMPLATE中指定输出位置)。如果在该参数中配置多个Key， 请用逗号分割，程序将按照配置的顺序进行匹配。
+
+  例1：
+
+  请求头： 			X-Request-ID: **test-id-123**
+
+  配置文件：		 REQUEST_ID_HEADERS = X-Request-ID
+
+  日志输出：		 127.0.0.1:58384 - - [14/Feb/2023:16:33:51 &#43;0800]  "**test-id-123**" ...
+
+  
+
+  例2:
+
+  请求头： 			X-Trace-ID: **trace-id-1q2w3e4r**
+
+  配置文件：		 REQUEST_ID_HEADERS = X-Request-ID, X-Trace-ID
+
+  日志输出：		 127.0.0.1:58384 - - [14/Feb/2023:16:33:51 &#43;0800]  "**trace-id-1q2w3e4r**" ...
+
+  
+
+  
 
 ## Cron (`cron`)
 
-- `ENABLED`: 是否在后台运行定期任务。
+- `ENABLED`: 是否在后台运行定期任务。s
 - `RUN_AT_START`: 是否启动时自动运行。
 - `SCHEDULE` 所接受的格式
   - 完整 crontab 控制, 例如 `* * * * * ?`
