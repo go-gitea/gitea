@@ -282,33 +282,19 @@ test01.xls: application/vnd.ms-excel; charset=binary
   - `Ctx`: 请求上下文
   - `Identity`: 登录用户名，默认: “`-`”.
   - `Start`: 请求开始时间.
-  - `ResponseWriter`: 
-  - `RequestID`:从请求头中解析得到的与 `REQUEST_ID_HEADERS`匹配的值（默认: “`-`”）.
+  - `ResponseWriter`:
+  - `RequestID`: 从请求头中解析得到的与 `REQUEST_ID_HEADERS`匹配的值（默认: “`-`”）.
   - 一定要谨慎配置该模板，否则可能会引起panic.
 
 - `REQUEST_ID_HEADERS`: 从Request Header中匹配指定Key，并将匹配到的值输出到acces log中(需要在ACCESS_LOG_TEMPLATE中指定输出位置)。如果在该参数中配置多个Key， 请用逗号分割，程序将按照配置的顺序进行匹配。
-
   例1：
-
-  请求头： 			X-Request-ID: **test-id-123**
-
-  配置文件：		 REQUEST_ID_HEADERS = X-Request-ID
-
-  日志输出：		 127.0.0.1:58384 - - [14/Feb/2023:16:33:51 &#43;0800]  "**test-id-123**" ...
-
-  
-
+  请求头：       X-Request-ID: **test-id-123**
+  配置文件：     REQUEST_ID_HEADERS = X-Request-ID
+  日志输出：     127.0.0.1:58384 - - [14/Feb/2023:16:33:51 &#43;0800]  "**test-id-123**" ...
   例2:
-
-  请求头： 			X-Trace-ID: **trace-id-1q2w3e4r**
-
-  配置文件：		 REQUEST_ID_HEADERS = X-Request-ID, X-Trace-ID
-
-  日志输出：		 127.0.0.1:58384 - - [14/Feb/2023:16:33:51 &#43;0800]  "**trace-id-1q2w3e4r**" ...
-
-  
-
-  
+  请求头：       X-Trace-ID: **trace-id-1q2w3e4r**
+  配置文件：     REQUEST_ID_HEADERS = X-Request-ID, X-Trace-ID
+  日志输出：     127.0.0.1:58384 - - [14/Feb/2023:16:33:51 &#43;0800]  "**trace-id-1q2w3e4r**" ...
 
 ## Cron (`cron`)
 

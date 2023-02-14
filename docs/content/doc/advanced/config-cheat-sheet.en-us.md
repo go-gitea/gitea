@@ -872,26 +872,14 @@ Default templates for project boards:
   - You must be very careful to ensure that this template does not throw errors or panics as this template runs outside of the panic/recovery script.
 
 - `REQUEST_ID_HEADERS`: **\<empty\>**: You can configure multiple values that are splited by comma here. It will match in the order of configuration, and the first match will be finally printed in the access log.
-
-  E.g 1：
-
-  In the Request Header： 		X-Request-ID: **test-id-123**
-
-  Configuration in app.ini: 		REQUEST_ID_HEADERS = X-Request-ID
-
-  Print in log:  							 127.0.0.1:58384 - - [14/Feb/2023:16:33:51 &#43;0800]  "**test-id-123**" ...
-
-  
-
-  E.g 2：
-
-  In the Request Header： 		X-Trace-ID: **trace-id-1q2w3e4r**
-
-  Configuration in app.ini: 		REQUEST_ID_HEADERS = X-Request-ID, X-Trace-ID
-
-  Print in log:  							 127.0.0.1:58384 - - [14/Feb/2023:16:33:51 &#43;0800]  "**trace-id-1q2w3e4r**" ...
-
-  
+  E.g1:
+  In the Request Header:        X-Request-ID: **test-id-123**
+  Configuration in app.ini:     REQUEST_ID_HEADERS = X-Request-ID
+  Print in log:                 127.0.0.1:58384 - - [14/Feb/2023:16:33:51 &#43;0800]  "**test-id-123**" ...
+  E.g 2:
+  In the Request Header:        X-Trace-ID: **trace-id-1q2w3e4r**
+  Configuration in app.ini:     REQUEST_ID_HEADERS = X-Request-ID, X-Trace-ID
+  Print in log:                 127.0.0.1:58384 - - [14/Feb/2023:16:33:51 &#43;0800]  "**trace-id-1q2w3e4r**" ...
 
 ### Log subsections (`log.name`, `log.name.*`)
 
