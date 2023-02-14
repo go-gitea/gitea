@@ -44,6 +44,9 @@ const (
 
 	// TypeOrganization is a project that is tied to an organisation
 	TypeOrganization
+
+	// TypeUser is a project that is tied to a user
+	TypeUser
 )
 
 // ErrProjectNotExist represents a "ProjectNotExist" kind of error.
@@ -148,6 +151,19 @@ func (p *Project) IsOrganizationProject() bool {
 	return p.Type == TypeOrganization
 }
 
+func (p *Project) IsUserProject() bool {
+	return p.Type == TypeUser
+}
+
+// GetProjectTypeByContextUser retrieves the types of configurations project by user
+func GetProjectTypeByUser(user *user_model.User) Type {
+	if user.IsOrganization() {
+		return TypeOrganization
+	} else {
+		return TypeUser
+	}
+}
+
 func init() {
 	db.RegisterModel(new(Project))
 }
@@ -172,7 +188,7 @@ func GetCardConfig() []CardConfig {
 // IsTypeValid checks if a project type is valid
 func IsTypeValid(p Type) bool {
 	switch p {
-	case TypeRepository, TypeOrganization:
+	case TypeRepository, TypeOrganization, TypeUser:
 		return true
 	default:
 		return false

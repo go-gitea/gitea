@@ -147,7 +147,7 @@ func NewProjectPost(ctx *context.Context) {
 		Description: form.Content,
 		CreatorID:   ctx.Doer.ID,
 		BoardType:   form.BoardType,
-		Type:        project_model.TypeOrganization,
+		Type:        project_model.GetProjectTypeByUser(ctx.ContextUser),
 	}); err != nil {
 		ctx.ServerError("NewProject", err)
 		return

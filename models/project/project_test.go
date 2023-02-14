@@ -23,6 +23,7 @@ func TestIsProjectTypeValid(t *testing.T) {
 		{TypeIndividual, false},
 		{TypeRepository, true},
 		{TypeOrganization, true},
+		{TypeUser, true},
 		{UnknownType, false},
 	}
 
