@@ -365,11 +365,10 @@ var (
 	LogRootPath        string
 	EnableSSHLog       bool
 	EnableXORMLog      bool
-
-	DisableRouterLog bool
-
-	EnableAccessLog   bool
-	AccessLogTemplate string
+	DisableRouterLog   bool
+	EnableAccessLog    bool
+	AccessLogTemplate  string
+	RequestIDHeaders   []string
 
 	// Time settings
 	TimeFormat string

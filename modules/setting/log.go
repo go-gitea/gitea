@@ -273,6 +273,7 @@ func newRouterLogService() {
 	Cfg.Section("log").Key("ROUTER").MustString("console")
 	// Allow [log]  DISABLE_ROUTER_LOG to override [server] DISABLE_ROUTER_LOG
 	DisableRouterLog = Cfg.Section("log").Key("DISABLE_ROUTER_LOG").MustBool(DisableRouterLog)
+	RequestIDHeaders = Cfg.Section("log").Key("REQUEST_ID_HEADERS").Strings(",")
 
 	if !DisableRouterLog {
 		options := newDefaultLogOptions()
