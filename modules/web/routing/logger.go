@@ -36,6 +36,12 @@ var (
 
 func logPrinter(logger log.Logger) func(trigger Event, record *requestRecord) {
 	return func(trigger Event, record *requestRecord) {
+		if trigger == StartEvent && !logger.IsTrace() {
+			// for performance, if the "started" message shouldn't be logged, we just return as early as possible
+			// developers can set the router log level to TRACE to get the "started" request messages.
+			return
+		}
+
 		var requestID string
 		if len(setting.RequestIDHeaders) > 0 {
 			for _, key := range setting.RequestIDHeaders {
@@ -53,11 +59,6 @@ func logPrinter(logger log.Logger) func(trigger Event, record *requestRecord) {
 			v = append(v, requestID)
 		}
 		if trigger == StartEvent {
-			if !logger.IsTrace() {
-				// for performance, if the "started" message shouldn't be logged, we just return as early as possible
-				// developers can set the router log level to TRACE to get the "started" request messages.
-				return
-			}
 			// when a request starts, we have no information about the handler function information, we only have the request path
 			req := record.request
 			format += "router: %s %v %s for %s"
