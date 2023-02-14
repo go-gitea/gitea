@@ -1,12 +1,12 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content organization profile">
-	<div class="ui container df">
+	<div class="ui container gt-df">
 		{{avatar .Org 140 "org-avatar"}}
 		<div id="org-info">
 			<div class="ui header">
 				{{.Org.DisplayName}}
 				{{if .EnableFeed}}
-					<a href="{{.Org.HomeLink}}.rss"><i class="ui grey icon tooltip ml-3" data-content="{{.locale.Tr "rss_feed"}}" data-position="top center">{{svg "octicon-rss" 36}}</i></a>
+					<a href="{{.Org.HomeLink}}.rss"><i class="ui grey icon tooltip gt-ml-3" data-content="{{.locale.Tr "rss_feed"}}" data-position="top center">{{svg "octicon-rss" 36}}</i></a>
 				{{end}}
 				<span class="org-visibility">
 					{{if .Org.Visibility.IsLimited}}<div class="ui large basic horizontal label">{{.locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
@@ -41,10 +41,10 @@
 					</div>
 					<div class="ui divider"></div>
 				{{end}}
-				<h4 class="ui top attached header df">
-					<strong class="f1">{{.locale.Tr "org.people"}}</strong>
+				<h4 class="ui top attached header gt-df">
+					<strong class="gt-f1">{{.locale.Tr "org.people"}}</strong>
 					<div class="ui">
-						<a class="text grey dif ac" href="{{.OrgLink}}/members"><span>{{.MembersTotal}}</span> {{svg "octicon-chevron-right"}}</a>
+						<a class="text grey gt-dif gt-ac" href="{{.OrgLink}}/members"><span>{{.MembersTotal}}</span> {{svg "octicon-chevron-right"}}</a>
 					</div>
 				</h4>
 				<div class="ui attached segment members">
@@ -59,10 +59,10 @@
 				</div>
 
 				{{if .IsOrganizationMember}}
-					<div class="ui top attached header df">
-						<strong class="f1">{{.locale.Tr "org.teams"}}</strong>
+					<div class="ui top attached header gt-df">
+						<strong class="gt-f1">{{.locale.Tr "org.teams"}}</strong>
 						<div class="ui">
-							<a class="text grey dif ac" href="{{.OrgLink}}/teams"><span>{{.Org.NumTeams}}</span> {{svg "octicon-chevron-right"}}</a>
+							<a class="text grey gt-dif gt-ac" href="{{.OrgLink}}/teams"><span>{{.Org.NumTeams}}</span> {{svg "octicon-chevron-right"}}</a>
 						</div>
 					</div>
 					<div class="ui attached table segment teams">

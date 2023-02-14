@@ -17,11 +17,11 @@
 			<div class="column">
 				<div class="ui compact tiny menu">
 					<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/milestones?state=open&q={{$.Keyword}}">
-						{{svg "octicon-milestone" 16 "mr-3"}}
+						{{svg "octicon-milestone" 16 "gt-mr-3"}}
 						{{JsPrettyNumber .OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
 					</a>
 					<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/milestones?state=closed&q={{$.Keyword}}">
-						{{svg "octicon-check" 16 "mr-3"}}
+						{{svg "octicon-check" 16 "gt-mr-3"}}
 						{{JsPrettyNumber .ClosedCount}}&nbsp;{{.locale.Tr "repo.issues.closed_title"}}
 					</a>
 				</div>
@@ -38,7 +38,7 @@
 				</form>
 			</div>
 
-			<div class="column right aligned df ac je">
+			<div class="column right aligned gt-df gt-ac gt-je">
 				<!-- Sort -->
 				<div class="ui dropdown type jump item">
 					<span class="text">
@@ -61,12 +61,12 @@
 		<div class="milestone list">
 			{{range .Milestones}}
 				<li class="item">
-					<div class="df ac sb">
-						<h3 class="df ac m-0 fw">
-							{{svg "octicon-milestone" 16 "mr-3"}}<a class="muted" href="{{$.RepoLink}}/milestone/{{.ID}}">{{.Name}}</a>
+					<div class="gt-df gt-ac gt-sb">
+						<h3 class="gt-df gt-ac gt-m-0 gt-fw">
+							{{svg "octicon-milestone" 16 "gt-mr-3"}}<a class="muted" href="{{$.RepoLink}}/milestone/{{.ID}}">{{.Name}}</a>
 						</h3>
-						<div class="df ac">
-							<span class="mr-3">{{.Completeness}}%</span>
+						<div class="gt-df gt-ac">
+							<span class="gt-mr-3">{{.Completeness}}%</span>
 							<progress value="{{.Completeness}}" max="100"></progress>
 						</div>
 					</div>
@@ -83,9 +83,9 @@
 							{{end}}
 						{{end}}
 						<span class="issue-stats">
-							{{svg "octicon-issue-opened" 16 "mr-3"}}
+							{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
 							{{JsPrettyNumber .NumOpenIssues}}&nbsp;{{$.locale.Tr "repo.issues.open_title"}}
-							{{svg "octicon-check" 16 "mr-3"}}
+							{{svg "octicon-check" 16 "gt-mr-3"}}
 							{{JsPrettyNumber .NumClosedIssues}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
 							{{if .TotalTrackedTime}}{{svg "octicon-clock"}} {{.TotalTrackedTime|Sec2Time}}{{end}}
 							{{if .UpdatedUnix}}{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.update_ago" (.TimeSinceUpdate|Sec2Time)}}{{end}}

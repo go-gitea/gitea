@@ -3,16 +3,16 @@
 	{{if .IsSigned}}
 		{{if .NotificationUnreadCount}}{{$notificationUnreadCount = call .NotificationUnreadCount}}{{end}}
 	{{end}}
-	<div class="item brand sb">
+	<div class="item brand gt-sb">
 		<a href="{{AppSubUrl}}/" aria-label="{{if .IsSigned}}{{.locale.Tr "dashboard"}}{{else}}{{.locale.Tr "home"}}{{end}}">
 			<img width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{.locale.Tr "logo"}}" aria-hidden="true">
 		</a>
-		<div class="df ac">
+		<div class="gt-df gt-ac">
 			{{if .IsSigned}}
-			<a href="{{AppSubUrl}}/notifications" class="tooltip mobile-only mr-4 mt-3" data-content="{{.locale.Tr "notifications"}}" aria-label="{{.locale.Tr "notifications"}}">
+			<a href="{{AppSubUrl}}/notifications" class="tooltip mobile-only gt-mr-4 gt-mt-3" data-content="{{.locale.Tr "notifications"}}" aria-label="{{.locale.Tr "notifications"}}">
 				<span class="fitted item">
 					{{svg "octicon-bell"}}
-					<span class="notification_count{{if not $notificationUnreadCount}} hidden{{end}}">
+					<span class="notification_count{{if not $notificationUnreadCount}} gt-hidden{{end}}">
 						{{$notificationUnreadCount}}
 					</span>
 				</span>
@@ -49,7 +49,7 @@
 		<div class="item">
 		<div class="ui icon input">
 		<input class="searchbox" type="text" placeholder="{{.locale.Tr "search_project"}}">
-		<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+		<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 		</div>
 		</div>
 	*/}}
@@ -80,19 +80,19 @@
 	{{else if .IsSigned}}
 		<div class="right stackable menu">
 			{{if EnableTimetracking}}
-			<a class="active-stopwatch-trigger item ui mx-0{{if not .ActiveStopwatch}} hidden{{end}}" href="{{.ActiveStopwatch.IssueLink}}">
-				<span class="fitted relative">
+			<a class="active-stopwatch-trigger item ui gt-mx-0{{if not .ActiveStopwatch}} gt-hidden{{end}}" href="{{.ActiveStopwatch.IssueLink}}">
+				<span class="fitted gt-relative">
 					{{svg "octicon-stopwatch"}}
 					<span class="header-stopwatch-dot"></span>
 					<span class="sr-mobile-only">{{.locale.Tr "active_stopwatch"}}</span>
 				</span>
 			</a>
 			<div class="active-stopwatch-popup tippy-target">
-				<div class="df ac">
-					<a class="stopwatch-link df ac" href="{{.ActiveStopwatch.IssueLink}}">
-						{{svg "octicon-issue-opened" 16 "mr-3"}}
+				<div class="gt-df gt-ac">
+					<a class="stopwatch-link gt-df gt-ac" href="{{.ActiveStopwatch.IssueLink}}">
+						{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
 						<span class="stopwatch-issue">{{.ActiveStopwatch.RepoSlug}}#{{.ActiveStopwatch.IssueIndex}}</span>
-						<span class="ui primary label stopwatch-time my-0 mx-4" data-seconds="{{.ActiveStopwatch.Seconds}}">
+						<span class="ui primary label stopwatch-time gt-my-0 gt-mx-4" data-seconds="{{.ActiveStopwatch.Seconds}}">
 							{{if .ActiveStopwatch}}{{Sec2Time .ActiveStopwatch.Seconds}}{{end}}
 						</span>
 					</a>
@@ -118,16 +118,16 @@
 			</div>
 			{{end}}
 
-			<a href="{{AppSubUrl}}/notifications" class="item tooltip not-mobile mx-0" data-content="{{.locale.Tr "notifications"}}" aria-label="{{.locale.Tr "notifications"}}">
+			<a href="{{AppSubUrl}}/notifications" class="item tooltip not-mobile gt-mx-0" data-content="{{.locale.Tr "notifications"}}" aria-label="{{.locale.Tr "notifications"}}">
 				<span class="fitted item">
 					{{svg "octicon-bell"}}
-					<span class="notification_count{{if not $notificationUnreadCount}} hidden{{end}}">
+					<span class="notification_count{{if not $notificationUnreadCount}} gt-hidden{{end}}">
 						{{$notificationUnreadCount}}
 					</span>
 				</span>
 			</a>
 
-			<div class="ui dropdown jump item tooltip mx-0" data-content="{{.locale.Tr "create_new"}}">
+			<div class="ui dropdown jump item tooltip gt-mx-0" data-content="{{.locale.Tr "create_new"}}">
 				<span class="text">
 					<span class="fitted">{{svg "octicon-plus"}}</span>
 					<span class="sr-mobile-only">{{.locale.Tr "create_new"}}</span>
@@ -150,7 +150,7 @@
 				</div><!-- end content create new menu -->
 			</div><!-- end dropdown menu create new -->
 
-			<div class="ui dropdown jump item tooltip mx-0" tabindex="-1" data-content="{{.locale.Tr "user_profile_and_more"}}">
+			<div class="ui dropdown jump item tooltip gt-mx-0" tabindex="-1" data-content="{{.locale.Tr "user_profile_and_more"}}">
 				<span class="text">
 					{{avatar .SignedUser 24 "tiny"}}
 					<span class="sr-only">{{.locale.Tr "user_profile_and_more"}}</span>
