@@ -479,7 +479,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		ctx.ServerError("GetProjects", err)
 		return
 	}
-	projects2, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
+	projectsOrg, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
 		OwnerID:  repo.OwnerID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolFalse,
@@ -489,8 +489,18 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		ctx.ServerError("GetProjects", err)
 		return
 	}
-
-	ctx.Data["OpenProjects"] = append(projects, projects2...)
+	projects = append(projects, projectsOrg...)
+	projectsUser, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
+		OwnerID:  ctx.Doer.ID,
+		Page:     -1,
+		IsClosed: util.OptionalBoolFalse,
+		Type:     project_model.TypeIndividual,
+	})
+	if err != nil {
+		ctx.ServerError("GetProjects", err)
+		return
+	}
+	ctx.Data["OpenProjects"] = append(projects, projectsUser...)
 
 	projects, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
 		RepoID:   repo.ID,
@@ -502,7 +512,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		ctx.ServerError("GetProjects", err)
 		return
 	}
-	projects2, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
+	projectsOrg, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
 		OwnerID:  repo.OwnerID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolTrue,
@@ -512,8 +522,19 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		ctx.ServerError("GetProjects", err)
 		return
 	}
+	projects = append(projects, projectsOrg...)
+	projectsUser, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
+		OwnerID:  ctx.Doer.ID,
+		Page:     -1,
+		IsClosed: util.OptionalBoolTrue,
+		Type:     project_model.TypeIndividual,
+	})
+	if err != nil {
+		ctx.ServerError("GetProjects", err)
+		return
+	}
 
-	ctx.Data["ClosedProjects"] = append(projects, projects2...)
+	ctx.Data["ClosedProjects"] = append(projects, projectsUser...)
 }
 
 // repoReviewerSelection items to bee shown
@@ -857,7 +878,7 @@ func NewIssue(ctx *context.Context) {
 		if err != nil {
 			log.Error("GetProjectByID: %d: %v", projectID, err)
 		} else if project.RepoID != ctx.Repo.Repository.ID {
-			log.Error("GetProjectByID: %d: %v", projectID, fmt.Errorf("project[%d] not in repo [%d]", project.ID, ctx.Repo.Repository.ID))
+			log.Error("GetProjectByID: %d: %v", projectID, fmt.Errorf("project[%d] not found", project.ID))
 		} else {
 			ctx.Data["project_id"] = projectID
 			ctx.Data["Project"] = project
@@ -958,7 +979,7 @@ func DeleteIssue(ctx *context.Context) {
 }
 
 // ValidateRepoMetas check and returns repository's meta information
-func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull bool) ([]int64, []int64, int64, int64) {
+func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull bool) ([]int64, []int64, int64, int64, string) {
 	var (
 		repo = ctx.Repo.Repository
 		err  error
@@ -966,7 +987,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 
 	labels := RetrieveRepoMetas(ctx, ctx.Repo.Repository, isPull)
 	if ctx.Written() {
-		return nil, nil, 0, 0
+		return nil, nil, 0, 0, ""
 	}
 
 	var labelIDs []int64
@@ -975,7 +996,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 	if len(form.LabelIDs) > 0 {
 		labelIDs, err = base.StringsToInt64s(strings.Split(form.LabelIDs, ","))
 		if err != nil {
-			return nil, nil, 0, 0
+			return nil, nil, 0, 0, ""
 		}
 		labelIDMark := make(container.Set[int64])
 		labelIDMark.AddMultiple(labelIDs...)
@@ -998,29 +1019,32 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 		milestone, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, milestoneID)
 		if err != nil {
 			ctx.ServerError("GetMilestoneByID", err)
-			return nil, nil, 0, 0
+			return nil, nil, 0, 0, ""
 		}
 		if milestone.RepoID != repo.ID {
 			ctx.ServerError("GetMilestoneByID", err)
-			return nil, nil, 0, 0
+			return nil, nil, 0, 0, ""
 		}
 		ctx.Data["Milestone"] = milestone
 		ctx.Data["milestone_id"] = milestoneID
 	}
 
+	projectLink := ""
 	if form.ProjectID > 0 {
 		p, err := project_model.GetProjectByID(ctx, form.ProjectID)
 		if err != nil {
 			ctx.ServerError("GetProjectByID", err)
-			return nil, nil, 0, 0
+			return nil, nil, 0, 0, ""
 		}
 		if p.RepoID != ctx.Repo.Repository.ID && p.OwnerID != ctx.Repo.Repository.OwnerID {
 			ctx.NotFound("", nil)
-			return nil, nil, 0, 0
+			return nil, nil, 0, 0, ""
 		}
 
 		ctx.Data["Project"] = p
 		ctx.Data["project_id"] = form.ProjectID
+
+		projectLink = p.Link()
 	}
 
 	// Check assignees
@@ -1028,7 +1052,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 	if len(form.AssigneeIDs) > 0 {
 		assigneeIDs, err = base.StringsToInt64s(strings.Split(form.AssigneeIDs, ","))
 		if err != nil {
-			return nil, nil, 0, 0
+			return nil, nil, 0, 0, ""
 		}
 
 		// Check if the passed assignees actually exists and is assignable
@@ -1036,18 +1060,18 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 			assignee, err := user_model.GetUserByID(ctx, aID)
 			if err != nil {
 				ctx.ServerError("GetUserByID", err)
-				return nil, nil, 0, 0
+				return nil, nil, 0, 0, ""
 			}
 
 			valid, err := access_model.CanBeAssigned(ctx, assignee, repo, isPull)
 			if err != nil {
 				ctx.ServerError("CanBeAssigned", err)
-				return nil, nil, 0, 0
+				return nil, nil, 0, 0, ""
 			}
 
 			if !valid {
 				ctx.ServerError("canBeAssigned", repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: repo.Name})
-				return nil, nil, 0, 0
+				return nil, nil, 0, 0, ""
 			}
 		}
 	}
@@ -1057,7 +1081,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 		assigneeIDs = append(assigneeIDs, form.AssigneeID)
 	}
 
-	return labelIDs, assigneeIDs, milestoneID, form.ProjectID
+	return labelIDs, assigneeIDs, milestoneID, form.ProjectID, projectLink
 }
 
 // NewIssuePost response for creating new issue
@@ -1075,7 +1099,7 @@ func NewIssuePost(ctx *context.Context) {
 		attachments []string
 	)
 
-	labelIDs, assigneeIDs, milestoneID, projectID := ValidateRepoMetas(ctx, *form, false)
+	labelIDs, assigneeIDs, milestoneID, projectID, projectLink := ValidateRepoMetas(ctx, *form, false)
 	if ctx.Written() {
 		return
 	}
@@ -1135,7 +1159,7 @@ func NewIssuePost(ctx *context.Context) {
 
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)
 	if ctx.FormString("redirect_after_creation") == "project" {
-		ctx.Redirect(ctx.Repo.RepoLink + "/projects/" + strconv.FormatInt(form.ProjectID, 10))
+		ctx.Redirect(projectLink)
 	} else {
 		ctx.Redirect(issue.Link())
 	}

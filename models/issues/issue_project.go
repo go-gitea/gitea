@@ -135,6 +135,7 @@ func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.U
 		if err != nil {
 			return err
 		}
+		// TODO: repoID is 0 in user/org projects
 		if newProject.RepoID != issue.RepoID && newProject.OwnerID != issue.Repo.OwnerID {
 			return fmt.Errorf("issue's repository is not the same as project's repository")
 		}

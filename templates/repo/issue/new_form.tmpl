@@ -164,10 +164,17 @@
 								{{.locale.Tr "repo.issues.new.open_projects"}}
 							</div>
 							{{range .OpenProjects}}
+								{{if .RepoID}}
 								<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">
 									{{svg "octicon-project" 18 "mr-3"}}
-									{{.Title}}
+									{{.Owner.Name}}/{{.Repo.Name}}/{{.Title}}
 								</a>
+								{{else}}
+								<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Owner.HomeLink}}/-/projects/{{.ID}}">
+									{{svg "octicon-project" 18 "mr-3"}}
+									{{.Owner.Name}}/-/{{.Title}}
+								</a>
+								{{end}}
 							{{end}}
 						{{end}}
 						{{if .ClosedProjects}}
@@ -176,10 +183,17 @@
 								{{.locale.Tr "repo.issues.new.closed_projects"}}
 							</div>
 							{{range .ClosedProjects}}
+								{{if .RepoID}}
 								<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">
 									{{svg "octicon-project" 18 "mr-3"}}
 									{{.Title}}
 								</a>
+								{{else}}
+								<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Owner.HomeLink}}/-/projects/{{.ID}}">
+									{{svg "octicon-project" 18 "mr-3"}}
+									{{.Owner.Name}}/-/{{.Title}}
+								</a>
+								{{end}}
 							{{end}}
 						{{end}}
 					{{end}}
