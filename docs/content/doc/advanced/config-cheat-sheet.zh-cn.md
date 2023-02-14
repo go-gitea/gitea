@@ -312,7 +312,7 @@ test01.xls: application/vnd.ms-excel; charset=binary
 
 ## Cron (`cron`)
 
-- `ENABLED`: 是否在后台运行定期任务。s
+- `ENABLED`: 是否在后台运行定期任务。
 - `RUN_AT_START`: 是否启动时自动运行。
 - `SCHEDULE` 所接受的格式
   - 完整 crontab 控制, 例如 `* * * * * ?`
