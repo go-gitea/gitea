@@ -77,14 +77,12 @@ menu:
 - `START_SSH_SERVER`: 是否启用内部SSH服务器。
 - `SSH_PORT`: SSH端口，默认为 `22`。
 - `OFFLINE_MODE`: 针对静态和头像文件禁用 CDN。
-- `DISABLE_ROUTER_LOG`: 关闭日志中的路由日志。
 - `CERT_FILE`: 启用HTTPS的证书文件。
 - `KEY_FILE`: 启用HTTPS的密钥文件。
 - `STATIC_ROOT_PATH`: 存放模板和静态文件的根目录，默认是 Gitea 的根目录。
 - `STATIC_CACHE_TIME`: **6h**: 静态资源文件，包括 `custom/`, `public/` 和所有上传的头像的浏览器缓存时间。
 - `ENABLE_GZIP`: 启用实时生成的数据启用 GZIP 压缩，不包括静态资源。
 - `LANDING_PAGE`: 未登录用户的默认页面，可选 `home` 或 `explore`。
-
 - `LFS_START_SERVER`: 是否启用 git-lfs 支持. 可以为 `true` 或 `false`， 默认是 `false`。
 - `LFS_JWT_SECRET`: LFS 认证密钥，改成自己的。
 - `LFS_CONTENT_PATH`: **已废弃**, 存放 lfs 命令上传的文件的地方，默认是 `data/lfs`。**废弃** 请使用 `[lfs]` 的设置。
@@ -263,6 +261,8 @@ test01.xls: application/vnd.ms-excel; charset=binary
 - `ROOT_PATH`: 日志文件根目录。
 - `MODE`: 日志记录模式，默认是为 `console`。如果要写到多个通道，用逗号分隔
 - `LEVEL`: 日志级别，默认为`Trace`。
+- `DISABLE_ROUTER_LOG`: 关闭日志中的路由日志。
+- `REQUEST_ID_HEADERS`: 从Request Header中匹配指定Key，并将匹配到的值输出到router log中。如果在该参数中配置多个Key， 请用逗号分割，程序将按照配置的顺序进行匹配，示例可以参考`app.example.ini`文件。
 
 ## Cron (`cron`)
 

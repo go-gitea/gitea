@@ -854,6 +854,7 @@ Default templates for project boards:
 - `DISABLE_ROUTER_LOG`: **false**: Mute printing of the router log.
 - `ROUTER`: **console**: The mode or name of the log the router should log to. (If you set this to `,` it will log to default Gitea logger.)
   NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take effect. Configure each mode in per mode log subsections `\[log.modename.router\]`.
+- `REQUEST_ID_HEADERS`: **\<empty\>**: You can configure multiple values that are splited by comma here. It will match in the order of configuration, and the first match will be finally printed in the log. You can refer to the `app.example.ini` file for examples
 
 ### Access Log (`log`)
 
