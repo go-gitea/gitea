@@ -60,11 +60,11 @@
 					<div class="column">
 						<div class="ui compact tiny menu">
 							<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
-								{{svg "octicon-issue-opened" 16 "mr-3"}}
+								{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
 								{{JsPrettyNumber .IssueStats.OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
 							</a>
 							<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed&q={{$.Keyword}}">
-								{{svg "octicon-issue-closed" 16 "mr-3"}}
+								{{svg "octicon-issue-closed" 16 "gt-mr-3"}}
 								{{JsPrettyNumber .IssueStats.ClosedCount}}&nbsp;{{.locale.Tr "repo.issues.closed_title"}}
 							</a>
 						</div>
@@ -81,7 +81,7 @@
 							</div>
 						</form>
 					</div>
-					<div class="column right aligned df ac je">
+					<div class="column right aligned gt-df gt-ac gt-je">
 						<!-- Sort -->
 						<div class="ui dropdown type jump item">
 							<span class="text">

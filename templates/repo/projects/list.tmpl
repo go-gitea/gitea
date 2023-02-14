@@ -14,11 +14,11 @@
 		{{template "base/alert" .}}
 		<div class="ui compact tiny menu">
 			<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/projects?state=open">
-				{{svg "octicon-project" 16 "mr-3"}}
+				{{svg "octicon-project" 16 "gt-mr-3"}}
 				{{JsPrettyNumber .OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
 			</a>
 			<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/projects?state=closed">
-				{{svg "octicon-check" 16 "mr-3"}}
+				{{svg "octicon-check" 16 "gt-mr-3"}}
 				{{JsPrettyNumber .ClosedCount}}&nbsp;{{.locale.Tr "repo.issues.closed_title"}}
 			</a>
 		</div>
@@ -47,9 +47,9 @@
 							{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.closed" $closedDate|Str2html}}
 						{{end}}
 						<span class="issue-stats">
-							{{svg "octicon-issue-opened" 16 "mr-3"}}
+							{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
 							{{JsPrettyNumber .NumOpenIssues}}&nbsp;{{$.locale.Tr "repo.issues.open_title"}}
-							{{svg "octicon-check" 16 "mr-3"}}
+							{{svg "octicon-check" 16 "gt-mr-3"}}
 							{{JsPrettyNumber .NumClosedIssues}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
 						</span>
 					</div>

@@ -1,5 +1,5 @@
-<h4 class="ui top attached header commits-table df ac sb">
-	<div class="commits-table-left df ac">
+<h4 class="ui top attached header commits-table gt-df gt-ac gt-sb">
+	<div class="commits-table-left gt-df gt-ac">
 		{{if or .PageIsCommits (gt .CommitCount 0)}}
 			{{.CommitCount}} {{.locale.Tr "repo.commits.commits"}} {{if .RefName}}({{.RefName}}){{end}}
 		{{else if .IsNothingToCompare}}
@@ -8,7 +8,7 @@
 			{{.locale.Tr "repo.commits.no_commits" $.BaseBranch $.HeadBranch}} {{if .RefName}}({{.RefName}}){{end}}
 		{{end}}
 	</div>
-	<div class="commits-table-right df ac">
+	<div class="commits-table-right gt-df gt-ac">
 		{{if .PageIsCommits}}
 			<form class="ignore-dirty" action="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/search">
 				<div class="ui tiny search input">
@@ -19,7 +19,7 @@
 					<input type="checkbox" name="all" id="all" value="true" {{.All}}>
 					<label for="all">{{.locale.Tr "repo.commits.search_all"}} &nbsp;&nbsp;</label>
 				</div>
-				<button class="ui primary tiny button mr-0 tooltip" data-panel="#add-deploy-key-panel" data-content={{.locale.Tr "repo.commits.search.tooltip"}}>{{.locale.Tr "repo.commits.find"}}</button>
+				<button class="ui primary tiny button gt-mr-0 tooltip" data-panel="#add-deploy-key-panel" data-content={{.locale.Tr "repo.commits.search.tooltip"}}>{{.locale.Tr "repo.commits.find"}}</button>
 			</form>
 		{{else if .IsDiffCompare}}
 			<a href="{{$.CommitRepoLink}}/commit/{{.BeforeCommitID | PathEscape}}" class="ui green sha label">{{if not .BaseIsCommit}}{{if .BaseIsBranch}}{{svg "octicon-git-branch"}}{{else if .BaseIsTag}}{{svg "octicon-tag"}}{{end}}{{.BaseBranch}}{{else}}{{ShortSha .BaseBranch}}{{end}}</a>
