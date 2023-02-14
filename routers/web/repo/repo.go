@@ -345,7 +345,7 @@ func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.rejected"))
 	}
 
-	ctx.Redirect(ctx.Repo.Repository.HTMLURL())
+	ctx.Redirect(ctx.Repo.Repository.Link())
 	return nil
 }
 
@@ -570,6 +570,7 @@ func SearchRepo(ctx *context.Context) {
 			Mirror:   repo.IsMirror,
 			Stars:    repo.NumStars,
 			HTMLURL:  repo.HTMLURL(),
+			Link:     repo.Link(),
 			Internal: !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
 		}
 	}

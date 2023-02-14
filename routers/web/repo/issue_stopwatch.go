@@ -40,7 +40,7 @@ func IssueStopwatch(c *context.Context) {
 		c.Flash.Success(c.Tr("repo.issues.tracker_auto_close"))
 	}
 
-	url := issue.HTMLURL()
+	url := issue.Link()
 	c.Redirect(url, http.StatusSeeOther)
 }
 
@@ -72,7 +72,7 @@ func CancelStopwatch(c *context.Context) {
 		})
 	}
 
-	url := issue.HTMLURL()
+	url := issue.Link()
 	c.Redirect(url, http.StatusSeeOther)
 }
 

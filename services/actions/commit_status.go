@@ -59,7 +59,7 @@ func CreateCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 		Creator: creator,
 		CommitStatus: &git_model.CommitStatus{
 			SHA:         sha,
-			TargetURL:   run.HTMLURL(),
+			TargetURL:   run.Link(),
 			Description: "",
 			Context:     ctxname,
 			CreatorID:   payload.Pusher.ID,

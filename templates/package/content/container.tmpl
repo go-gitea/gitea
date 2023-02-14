@@ -46,7 +46,7 @@
 	{{end}}
 	{{if .PackageDescriptor.Metadata.ImageLayers}}
 		<h4 class="ui top attached header">{{.locale.Tr "packages.container.layers"}}</h4>
-		<div class="ui attached segment word-break">
+		<div class="ui attached segment gt-word-break">
 			<table class="ui very basic compact table">
 				<tbody>
 					{{range .PackageDescriptor.Metadata.ImageLayers}}
