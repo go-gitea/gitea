@@ -120,7 +120,7 @@ func NewFuncMap() []template.FuncMap {
 		"Subtract":       base.Subtract,
 		"EntryIcon":      base.EntryIcon,
 		"MigrationIcon":  MigrationIcon,
-		"Add": func(a ...interface{}) int64 {
+		"Add": func(a ...interface{}) interface{} {
 			sum := int64(0)
 
 			for _, val := range a {
@@ -133,6 +133,15 @@ func NewFuncMap() []template.FuncMap {
 					sum += v
 				default:
 					return -1
+				}
+			}
+
+			if len(a) > 0 {
+				switch a[0].(type) {
+				case int:
+					return int(sum)
+				case int32:
+					return int32(sum)
 				}
 			}
 
