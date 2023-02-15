@@ -1226,7 +1226,7 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 	}
 
 	if opts.MentionedID > 0 {
-		applyMentionedCondition(sess, opts.MentionedID)
+		applyMentionedCondition(sess, opts.MentionedID, opts.IsPull.IsTrue())
 	}
 
 	if opts.ReviewRequestedID > 0 {
@@ -1388,10 +1388,43 @@ func applyPosterCondition(sess *xorm.Session, posterID int64) *xorm.Session {
 	return sess.And("issue.poster_id=?", posterID)
 }
 
-func applyMentionedCondition(sess *xorm.Session, mentionedID int64) *xorm.Session {
-	return sess.Join("INNER", "issue_user", "issue.id = issue_user.issue_id").
-		And("issue_user.is_mentioned = ?", true).
-		And("issue_user.uid = ?", mentionedID)
+func applyMentionedCondition(sess *xorm.Session, mentionedID int64, isPull bool) *xorm.Session {
+	// Query for any type of relation to the user, not just @ mention
+	poster := builder.Eq{"issue.poster_id": mentionedID}
+	assignee := builder.In("issue.id", builder.
+		Select("issue_id").
+		From("issue_assignees").
+		Where(builder.Eq{"assignee_id": mentionedID}),
+	)
+	mention := builder.In("issue.id", builder.
+		Select("issue_id").
+		From("issue_user").
+		Where(builder.Eq{"is_mentioned": true, "uid": mentionedID}),
+	)
+	comment := builder.In("issue.id", builder.
+		Select("issue_id").
+		From("comment").
+		Where(builder.Eq{"poster_id": mentionedID}),
+	)
+
+	if !isPull {
+		return sess.And(builder.Or(poster, assignee, mention, comment))
+	}
+
+	reviewer := builder.In("issue.id", builder.
+		Select("issue_id").
+		From("review").
+		Where(builder.Or(
+			builder.Eq{"reviewer_id": mentionedID},
+			builder.In("reviewer_team_id", builder.
+				Select("team_id").
+				From("team_user").
+				Where(builder.Eq{"uid": mentionedID}),
+			),
+		)),
+	)
+
+	return sess.And(builder.Or(poster, assignee, mention, comment, reviewer))
 }
 
 func applyReviewRequestedCondition(sess *xorm.Session, reviewRequestedID int64) *xorm.Session {
@@ -1667,7 +1700,7 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 		}
 
 		if opts.MentionedID > 0 {
-			applyMentionedCondition(sess, opts.MentionedID)
+			applyMentionedCondition(sess, opts.MentionedID, opts.IsPull.IsTrue())
 		}
 
 		if opts.ReviewRequestedID > 0 {
@@ -1789,13 +1822,13 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 			return nil, err
 		}
 	case FilterModeMention:
-		stats.OpenCount, err = applyMentionedCondition(sess(cond), opts.UserID).
+		stats.OpenCount, err = applyMentionedCondition(sess(cond), opts.UserID, opts.IsPull).
 			And("issue.is_closed = ?", false).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
-		stats.ClosedCount, err = applyMentionedCondition(sess(cond), opts.UserID).
+		stats.ClosedCount, err = applyMentionedCondition(sess(cond), opts.UserID, opts.IsPull).
 			And("issue.is_closed = ?", true).
 			Count(new(Issue))
 		if err != nil {
@@ -1827,7 +1860,7 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 		return nil, err
 	}
 
-	stats.MentionCount, err = applyMentionedCondition(sess(cond), opts.UserID).Count(new(Issue))
+	stats.MentionCount, err = applyMentionedCondition(sess(cond), opts.UserID, opts.IsPull).Count(new(Issue))
 	if err != nil {
 		return nil, err
 	}
