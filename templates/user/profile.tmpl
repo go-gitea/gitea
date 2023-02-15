@@ -7,11 +7,11 @@
 					<div id="profile-avatar" class="content gt-df"/>
 					{{if eq .SignedUserName .Owner.Name}}
 						<a class="image tooltip" href="{{AppSubUrl}}/user/settings" data-content="{{.locale.Tr "user.change_avatar"}}" data-position="bottom center">
-							{{avatar .Owner 290}}
+							{{avatar $.Context .Owner 290}}
 						</a>
 					{{else}}
 						<span class="image">
-							{{avatar .Owner 290}}
+							{{avatar $.Context .Owner 290}}
 						</span>
 					{{end}}
 					</div>
@@ -63,7 +63,7 @@
 									{{if (or .Visibility.IsPublic (and ($.SignedUser) (or .Visibility.IsLimited (and (.HasMemberWithUserID $.SignedUserID) .Visibility.IsPrivate) ($.IsAdmin))))}}
 									<li>
 										<a class="tooltip" href="{{.HomeLink}}" data-content="{{.Name}}" data-position="top center">
-											{{avatar .}}
+											{{avatar $.Context .}}
 										</a>
 									</li>
 									{{end}}
