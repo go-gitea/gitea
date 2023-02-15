@@ -59,8 +59,8 @@ export default {
       fileURLToPath(new URL('web_src/fomantic/build/semantic.css', import.meta.url)),
       fileURLToPath(new URL('web_src/less/index.less', import.meta.url)),
     ],
-    custcomp: [
-      fileURLToPath(new URL('web_src/js/custcomp/GiteaOriginUrl.js', import.meta.url)),
+    webcomponents: [
+      fileURLToPath(new URL('web_src/js/webcomponents/GiteaOriginUrl.js', import.meta.url)),
     ],
     swagger: [
       fileURLToPath(new URL('web_src/js/standalone/swagger.js', import.meta.url)),
