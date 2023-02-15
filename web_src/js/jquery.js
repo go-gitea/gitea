@@ -2,6 +2,8 @@ import $ from 'jquery';
 
 window.$ = window.jQuery = $;
 
+// to remove the calls to "getComputedStyle", it requires that there is no element with "display: none" in its own CSS classes
+// for example: `.popup { display: none; ... } <div class="popup">` should be rewritten to `.popup { ... } <div class="popup gt-hidden">`
 function getComputedStyleProperty(el, prop) {
   const cs = el ? window.getComputedStyle(el) : null;
   return cs ? cs[prop] : null;
