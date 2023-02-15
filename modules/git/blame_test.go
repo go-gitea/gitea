@@ -111,8 +111,8 @@ func TestReadingBlameOutput(t *testing.T) {
 			},
 		},
 		{
-			"f32b0a9dfd09a60f616f29158f772cedd89942d2",
-			[]string{"", "Do not make any changes to this repo it is used for unit testing"},
+			"ce21ed6c3490cdfad797319cbb1145e2330a8fef",
+			[]string{"// Copyright 2016 The Gitea Authors. All rights reserved."},
 		},
 		{
 			"4b92a6c2df28054ad766bc262f308db9f6066596",
