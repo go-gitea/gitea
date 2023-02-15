@@ -164,17 +164,16 @@
 								{{.locale.Tr "repo.issues.new.open_projects"}}
 							</div>
 							{{range .OpenProjects}}
-								{{if .RepoID}}
-								<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">
-									{{svg "octicon-project" 18 "mr-3"}}
-									{{.Owner.Name}}/{{.Repo.Name}}/{{.Title}}
+								<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
+									{{if .IsOrganizationProject}}
+										{{svg "octicon-project-symlink" 18 "mr-3"}}
+									{{else if .IsIndividualProject}}
+										{{svg "octicon-project-symlink" 18 "mr-3"}}{{/*TODO: Change Individual Project Icon*/}}
+									{{else}}
+										{{svg "octicon-project" 18 "mr-3"}}
+									{{end}}
+									{{.Name}}
 								</a>
-								{{else}}
-								<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Owner.HomeLink}}/-/projects/{{.ID}}">
-									{{svg "octicon-project" 18 "mr-3"}}
-									{{.Owner.Name}}/-/{{.Title}}
-								</a>
-								{{end}}
 							{{end}}
 						{{end}}
 						{{if .ClosedProjects}}
@@ -183,17 +182,16 @@
 								{{.locale.Tr "repo.issues.new.closed_projects"}}
 							</div>
 							{{range .ClosedProjects}}
-								{{if .RepoID}}
-								<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">
-									{{svg "octicon-project" 18 "mr-3"}}
-									{{.Title}}
+								<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
+									{{if .IsOrganizationProject}}
+										{{svg "octicon-project-symlink" 18 "mr-3"}}
+									{{else if .IsIndividualProject}}
+										{{svg "octicon-project-symlink" 18 "mr-3"}}{{/*TODO: Change Individual Project Icon*/}}
+									{{else}}
+										{{svg "octicon-project" 18 "mr-3"}}
+									{{end}}
+									{{.Name}}
 								</a>
-								{{else}}
-								<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Owner.HomeLink}}/-/projects/{{.ID}}">
-									{{svg "octicon-project" 18 "mr-3"}}
-									{{.Owner.Name}}/-/{{.Title}}
-								</a>
-								{{end}}
 							{{end}}
 						{{end}}
 					{{end}}
@@ -203,9 +201,15 @@
 				<span class="no-select item {{if .Project}}hide{{end}}">{{.locale.Tr "repo.issues.new.no_projects"}}</span>
 				<div class="selected">
 					{{if .Project}}
-						<a class="item muted sidebar-item-link" href="{{.RepoLink}}/projects/{{.Project.ID}}">
-							{{svg "octicon-project" 18 "mr-3"}}
-							{{.Project.Title}}
+						<a class="item muted sidebar-item-link" href="{{.Project.Link}}">
+							{{if .Project.IsOrganizationProject}}
+								{{svg "octicon-project-symlink" 18 "mr-3"}}
+							{{else if .Project.IsIndividualProject}}
+								{{svg "octicon-project-symlink" 18 "mr-3"}}{{/*TODO: Change Individual Project Icon*/}}
+							{{else}}
+								{{svg "octicon-project" 18 "mr-3"}}
+							{{end}}
+							{{.Project.Name}}
 						</a>
 					{{end}}
 				</div>

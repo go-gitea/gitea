@@ -57,12 +57,17 @@ func Projects(ctx *context.Context) {
 		page = 1
 	}
 
+	projectType, err := project_model.GetProjectTypeByUser(ctx.ContextUser)
+	if err != nil {
+		ctx.ServerError("GetProjectTypeByUser", err)
+		return
+	}
 	projects, total, err := project_model.FindProjects(ctx, project_model.SearchOptions{
 		OwnerID:  ctx.ContextUser.ID,
 		Page:     page,
 		IsClosed: util.OptionalBoolOf(isShowClosed),
 		SortType: sortType,
-		Type:     project_model.TypeOrganization,
+		Type:     projectType,
 	})
 	if err != nil {
 		ctx.ServerError("FindProjects", err)
@@ -141,13 +146,18 @@ func NewProjectPost(ctx *context.Context) {
 		return
 	}
 
+	projectType, err := project_model.GetProjectTypeByUser(ctx.ContextUser)
+	if err != nil {
+		ctx.ServerError("GetProjectTypeByUser", err)
+		return
+	}
 	if err := project_model.NewProject(&project_model.Project{
 		OwnerID:     ctx.ContextUser.ID,
 		Title:       form.Title,
 		Description: form.Content,
 		CreatorID:   ctx.Doer.ID,
 		BoardType:   form.BoardType,
-		Type:        project_model.GetProjectTypeByUser(ctx.ContextUser),
+		Type:        projectType,
 	}); err != nil {
 		ctx.ServerError("NewProject", err)
 		return
@@ -233,6 +243,7 @@ func EditProject(ctx *context.Context) {
 
 	ctx.Data["title"] = p.Title
 	ctx.Data["content"] = p.Description
+	ctx.Data["redirect"] = ctx.FormString("redirect")
 
 	ctx.HTML(http.StatusOK, tplProjectsNew)
 }
@@ -274,7 +285,11 @@ func EditProjectPost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.projects.edit_success", p.Title))
-	ctx.Redirect(ctx.ContextUser.HomeLink() + "/-/projects")
+	if ctx.FormString("redirect") == "project" {
+		ctx.Redirect(p.Link())
+	} else {
+		ctx.Redirect(ctx.ContextUser.HomeLink() + "/-/projects")
+	}
 }
 
 // ViewProject renders the project board for a project

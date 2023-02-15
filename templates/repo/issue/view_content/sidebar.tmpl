@@ -227,8 +227,14 @@
 						</div>
 						{{range .OpenProjects}}
 							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
-								{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "mr-3"}}{{else}}{{svg "octicon-project" 18 "mr-3"}}{{end}}
-								{{.Title}}
+								{{if .IsOrganizationProject}}
+									{{svg "octicon-project-symlink" 18 "mr-3"}}
+								{{else if .IsIndividualProject}}
+									{{svg "octicon-project-symlink" 18 "mr-3"}}{{/*TODO: Change Individual Project Icon*/}}
+								{{else}}
+									{{svg "octicon-project" 18 "mr-3"}}
+								{{end}}
+								{{.Name}}
 							</a>
 						{{end}}
 					{{end}}
@@ -239,8 +245,14 @@
 						</div>
 						{{range .ClosedProjects}}
 							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
-								{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "mr-3"}}{{else}}{{svg "octicon-project" 18 "mr-3"}}{{end}}
-								{{.Title}}
+								{{if .IsOrganizationProject}}
+									{{svg "octicon-project-symlink" 18 "mr-3"}}
+								{{else if .IsIndividualProject}}
+									{{svg "octicon-project-symlink" 18 "mr-3"}}{{/*TODO: Change Individual Project Icon*/}}
+								{{else}}
+									{{svg "octicon-project" 18 "mr-3"}}
+								{{end}}
+								{{.Name}}
 							</a>
 						{{end}}
 					{{end}}
@@ -251,8 +263,14 @@
 				<div class="selected">
 					{{if .Issue.ProjectID}}
 						<a class="item muted sidebar-item-link" href="{{.Issue.Project.Link}}">
-							{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "mr-3"}}{{else}}{{svg "octicon-project" 18 "mr-3"}}{{end}}
-							{{.Issue.Project.Title}}
+							{{if .Issue.Project.IsOrganizationProject}}
+								{{svg "octicon-project-symlink" 18 "mr-3"}}
+							{{else if .Issue.Project.IsIndividualProject}}
+								{{svg "octicon-project-symlink" 18 "mr-3"}}{{/*TODO: Change Individual Project Icon*/}}
+							{{else}}
+								{{svg "octicon-project" 18 "mr-3"}}
+							{{end}}
+							{{.Issue.Project.Name}}
 						</a>
 					{{end}}
 				</div>

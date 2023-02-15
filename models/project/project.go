@@ -33,6 +33,9 @@ type (
 
 	// Type is used to identify the type of project in question and ownership
 	Type uint8
+
+	// ProjectList is used to identify a list of projects
+	ProjectList []*Project
 )
 
 const (
@@ -44,9 +47,6 @@ const (
 
 	// TypeOrganization is a project that is tied to an organisation
 	TypeOrganization
-
-	// TypeUser is a project that is tied to a user
-	TypeUser
 )
 
 // ErrProjectNotExist represents a "ProjectNotExist" kind of error.
@@ -88,6 +88,25 @@ func (err ErrProjectBoardNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
+// ErrUserType represents a "ErrUserType" kind of error.
+type ErrUserType struct {
+	UserType user_model.UserType
+}
+
+// IsErrUserType checks if an error is a ErrUserType
+func IsErrUserType(err error) bool {
+	_, ok := err.(ErrUserType)
+	return ok
+}
+
+func (err ErrUserType) Error() string {
+	return fmt.Sprintf("projects does not support user type: %d", err.UserType)
+}
+
+func (err ErrUserType) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // Project represents a project board
 type Project struct {
 	ID          int64                  `xorm:"pk autoincr"`
@@ -118,6 +137,18 @@ func (p *Project) LoadOwner(ctx context.Context) (err error) {
 	return err
 }
 
+func (pl ProjectList) LoadOwners(ctx context.Context) (err error) {
+	for _, p := range pl {
+		if p.Owner != nil {
+			continue
+		}
+		if p.Owner, err = user_model.GetUserByID(ctx, p.OwnerID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (p *Project) LoadRepo(ctx context.Context) (err error) {
 	if p.RepoID == 0 || p.Repo != nil {
 		return nil
@@ -126,19 +157,29 @@ func (p *Project) LoadRepo(ctx context.Context) (err error) {
 	return err
 }
 
+func (pl ProjectList) LoadRepos(ctx context.Context) (err error) {
+	for _, p := range pl {
+		if p.RepoID == 0 || p.Repo != nil {
+			continue
+		}
+		if p.Repo, err = repo_model.GetRepositoryByID(ctx, p.RepoID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Link returns the project's relative URL.
 func (p *Project) Link() string {
 	if p.OwnerID > 0 {
-		err := p.LoadOwner(db.DefaultContext)
-		if err != nil {
+		if err := p.LoadOwner(db.DefaultContext); err != nil {
 			log.Error("LoadOwner: %v", err)
 			return ""
 		}
 		return fmt.Sprintf("%s/-/projects/%d", p.Owner.HomeLink(), p.ID)
 	}
 	if p.RepoID > 0 {
-		err := p.LoadRepo(db.DefaultContext)
-		if err != nil {
+		if err := p.LoadRepo(db.DefaultContext); err != nil {
 			log.Error("LoadRepo: %v", err)
 			return ""
 		}
@@ -147,20 +188,43 @@ func (p *Project) Link() string {
 	return ""
 }
 
+// Name return the project's name which is combined with owner/repo/project's name
+func (p *Project) Name() string {
+	if p.OwnerID > 0 {
+		if err := p.LoadOwner(db.DefaultContext); err != nil {
+			log.Error("LoadOwner: %v", err)
+			return ""
+		}
+		return fmt.Sprintf("%s/-/%s", p.Owner.Name, p.Title)
+	}
+	if p.RepoID > 0 {
+		if err := p.LoadRepo(db.DefaultContext); err != nil {
+			log.Error("LoadRepo: %v", err)
+			return ""
+		}
+
+		return fmt.Sprintf("%s/%s/%s", p.Repo.OwnerName, p.Repo.Name, p.Title)
+	}
+	return ""
+}
+
 func (p *Project) IsOrganizationProject() bool {
 	return p.Type == TypeOrganization
 }
 
-func (p *Project) IsUserProject() bool {
-	return p.Type == TypeUser
+func (p *Project) IsIndividualProject() bool {
+	return p.Type == TypeIndividual
 }
 
-// GetProjectTypeByContextUser retrieves the types of configurations project by user
-func GetProjectTypeByUser(user *user_model.User) Type {
-	if user.IsOrganization() {
-		return TypeOrganization
-	} else {
-		return TypeUser
+// GetProjectTypeByUser retrieves the type of a project by user's type
+func GetProjectTypeByUser(user *user_model.User) (Type, error) {
+	switch user.Type {
+	case user_model.UserTypeIndividual:
+		return TypeIndividual, nil
+	case user_model.UserTypeOrganization:
+		return TypeOrganization, nil
+	default:
+		return 0, ErrUserType{UserType: user.Type}
 	}
 }
 
@@ -188,7 +252,7 @@ func GetCardConfig() []CardConfig {
 // IsTypeValid checks if a project type is valid
 func IsTypeValid(p Type) bool {
 	switch p {
-	case TypeRepository, TypeOrganization, TypeUser:
+	case TypeIndividual, TypeRepository, TypeOrganization:
 		return true
 	default:
 		return false
@@ -232,9 +296,9 @@ func CountProjects(ctx context.Context, opts SearchOptions) (int64, error) {
 }
 
 // FindProjects returns a list of all projects that have been created in the repository
-func FindProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, error) {
+func FindProjects(ctx context.Context, opts SearchOptions) (ProjectList, int64, error) {
 	e := db.GetEngine(ctx)
-	projects := make([]*Project, 0, setting.UI.IssuePagingNum)
+	projects := make(ProjectList, 0, setting.UI.IssuePagingNum)
 	cond := opts.toConds()
 
 	count, err := e.Where(cond).Count(new(Project))

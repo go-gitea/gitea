@@ -87,8 +87,15 @@
 						</a>
 					{{end}}
 					{{if .Project}}
-						<a class="project" {{if $.RepoLink}}href="{{$.RepoLink}}/projects/{{.Project.ID}}"{{else}}href="{{.Repo.Link}}/projects/{{.Project.ID}}"{{end}}>
-							{{svg "octicon-project" 14 "mr-2"}}{{.Project.Title}}
+						<a class="project" href="{{$.Project.Link}}">
+							{{if .Project.IsOrganizationProject}}
+								{{svg "octicon-project-symlink" 14 "mr-2"}}
+							{{else if .Project.IsIndividualProject}}
+								{{svg "octicon-project-symlink" 14 "mr-2"}}{{/*TODO: Change Individual Project Icon*/}}
+							{{else}}
+								{{svg "octicon-project" 14 "mr-2"}}
+							{{end}}
+							{{.Project.Name}}
 						</a>
 					{{end}}
 					{{if .Ref}}

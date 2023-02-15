@@ -235,6 +235,7 @@ func EditProject(ctx *context.Context) {
 	ctx.Data["title"] = p.Title
 	ctx.Data["content"] = p.Description
 	ctx.Data["card_type"] = p.CardType
+	ctx.Data["redirect"] = ctx.FormString("redirect")
 
 	ctx.HTML(http.StatusOK, tplProjectsNew)
 }
@@ -275,7 +276,11 @@ func EditProjectPost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.projects.edit_success", p.Title))
-	ctx.Redirect(ctx.Repo.RepoLink + "/projects")
+	if ctx.FormString("redirect") == "project" {
+		ctx.Redirect(p.Link())
+	} else {
+		ctx.Redirect(ctx.Repo.RepoLink + "/projects")
+	}
 }
 
 // ViewProject renders the project board for a project
