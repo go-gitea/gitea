@@ -9,8 +9,8 @@ import (
 	"xorm.io/xorm"
 )
 
-// AlterPublicGPGImportKeyContentFieldToMediumText: set GPGImportKey Content field to MEDIUMTEXT
-func AlterPublicGPGImportKeyContentFieldToMediumText(x *xorm.Engine) error {
+// AlterPublicGPGKeyImportContentFieldToMediumText: set GPGKeyImport Content field to MEDIUMTEXT
+func AlterPublicGPGKeyImportContentFieldToMediumText(x *xorm.Engine) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
