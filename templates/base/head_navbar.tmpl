@@ -59,7 +59,7 @@
 		<div class="right stackable menu">
 			<div class="ui dropdown jump item tooltip" tabindex="-1" data-content="{{.locale.Tr "user_profile_and_more"}}">
 				<span class="text">
-					{{avatar .SignedUser 24 "tiny"}}
+					{{avatar $.Context .SignedUser 24 "tiny"}}
 					<span class="sr-only">{{.locale.Tr "user_profile_and_more"}}</span>
 					<span class="mobile-only">{{.SignedUser.Name}}</span>
 					<span class="fitted not-mobile" tabindex="-1">{{svg "octicon-triangle-down"}}</span>
@@ -152,7 +152,7 @@
 
 			<div class="ui dropdown jump item tooltip gt-mx-0" tabindex="-1" data-content="{{.locale.Tr "user_profile_and_more"}}">
 				<span class="text">
-					{{avatar .SignedUser 24 "tiny"}}
+					{{avatar $.Context .SignedUser 24 "tiny"}}
 					<span class="sr-only">{{.locale.Tr "user_profile_and_more"}}</span>
 					<span class="mobile-only">{{.SignedUser.Name}}</span>
 					<span class="fitted not-mobile" tabindex="-1">{{svg "octicon-triangle-down"}}</span>

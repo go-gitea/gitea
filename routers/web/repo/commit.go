@@ -138,7 +138,7 @@ func Graph(ctx *context.Context) {
 		return
 	}
 
-	if err := graph.LoadAndProcessCommits(ctx.Repo.Repository, ctx.Repo.GitRepo); err != nil {
+	if err := graph.LoadAndProcessCommits(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo); err != nil {
 		ctx.ServerError("LoadAndProcessCommits", err)
 		return
 	}
@@ -343,9 +343,9 @@ func Diff(ctx *context.Context) {
 	ctx.Data["CommitStatus"] = git_model.CalcCommitStatus(statuses)
 	ctx.Data["CommitStatuses"] = statuses
 
-	verification := asymkey_model.ParseCommitWithSignature(commit)
+	verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
 	ctx.Data["Verification"] = verification
-	ctx.Data["Author"] = user_model.ValidateCommitWithEmail(commit)
+	ctx.Data["Author"] = user_model.ValidateCommitWithEmail(ctx, commit)
 	ctx.Data["Parents"] = parents
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles == 0
 
@@ -361,7 +361,7 @@ func Diff(ctx *context.Context) {
 	if err == nil {
 		ctx.Data["Note"] = string(charset.ToUTF8WithFallback(note.Message))
 		ctx.Data["NoteCommit"] = note.Commit
-		ctx.Data["NoteAuthor"] = user_model.ValidateCommitWithEmail(note.Commit)
+		ctx.Data["NoteAuthor"] = user_model.ValidateCommitWithEmail(ctx, note.Commit)
 	}
 
 	ctx.Data["BranchName"], err = commit.GetBranchName()

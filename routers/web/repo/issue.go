@@ -3272,5 +3272,5 @@ func handleTeamMentions(ctx *context.Context) {
 
 	ctx.Data["MentionableTeams"] = teams
 	ctx.Data["MentionableTeamsOrg"] = ctx.Repo.Owner.Name
-	ctx.Data["MentionableTeamsOrgAvatar"] = ctx.Repo.Owner.AvatarLink()
+	ctx.Data["MentionableTeamsOrgAvatar"] = ctx.Repo.Owner.AvatarLink(ctx)
 }
