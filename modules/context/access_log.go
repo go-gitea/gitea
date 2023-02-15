@@ -32,8 +32,8 @@ const keyOfRequestIDInTemplate = ".RequestID"
 // According to:
 // In OpenTracing and OpenTelemetry, the maximum length of trace id is 256 bits (32 bytes).
 // MD5 output is 16 or 32 bytes.
-// UUID ouput is 36 bytes (including four ‘-’)
-// SHA1 outpu is 40 bytes
+// UUID output is 36 bytes (including four ‘-’)
+// SHA1 output is 40 bytes
 // So, we accept a Request ID with a maximum character length of 40
 const maxRequestIDBtyeLength = 40
 
