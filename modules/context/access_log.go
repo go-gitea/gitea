@@ -29,10 +29,13 @@ var signedUserNameStringPointerKey interface{} = "signedUserNameStringPointerKey
 
 const keyOfRequestIDInTemplate = ".RequestID"
 
-// According to OpenTracing and OpenTelemetry, the maximum length of trace id is 256 bits.
-// (32 bytes = 32 * 8 = 256 bits)
-// So we accept a Request ID with a maximum character length of 32
-const maxRequestIDBtyeLength = 32
+// According to:
+// In OpenTracing and OpenTelemetry, the maximum length of trace id is 256 bits (32 bytes).
+// MD5 output is 16 or 32 bytes.
+// UUID ouput is 36 bytes (including four ‘-’)
+// SHA1 outpu is 40 bytes
+// So, we accept a Request ID with a maximum character length of 40
+const maxRequestIDBtyeLength = 40
 
 func parseRequestIDFromRequestHeader(req *http.Request) string {
 	requestID := "-"
