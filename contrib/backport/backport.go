@@ -382,7 +382,7 @@ func readCurrentBranch(ctx context.Context) (pr, version string, err error) {
 
 	if len(parts) != 3 || parts[0] != "backport" {
 		fmt.Fprintf(os.Stderr, "Unable to continue from git branch:\n%s\n", string(out))
-		return "", "", fmt.Errorf("unable to continue from git branch:\n%s\n", string(out))
+		return "", "", fmt.Errorf("unable to continue from git branch:\n%s", string(out))
 	}
 
 	return parts[1], parts[2], nil
