@@ -212,6 +212,7 @@ func TestGetUserIssueStats(t *testing.T) {
 				YourRepositoriesCount: 1, // 6
 				AssignCount:           1, // 6
 				CreateCount:           1, // 6
+				MentionCount:          1, // 6
 				OpenCount:             1, // 6
 				ClosedCount:           1, // 1
 			},
@@ -227,6 +228,7 @@ func TestGetUserIssueStats(t *testing.T) {
 				YourRepositoriesCount: 1, // 6
 				AssignCount:           0,
 				CreateCount:           0,
+				MentionCount:          0,
 				OpenCount:             1, // 6
 				ClosedCount:           1, // 1
 			},
@@ -240,6 +242,7 @@ func TestGetUserIssueStats(t *testing.T) {
 				YourRepositoriesCount: 1, // 6
 				AssignCount:           1, // 6
 				CreateCount:           1, // 6
+				MentionCount:          1, // 6
 				OpenCount:             1, // 6
 				ClosedCount:           0,
 			},
@@ -253,6 +256,7 @@ func TestGetUserIssueStats(t *testing.T) {
 				YourRepositoriesCount: 1, // 6
 				AssignCount:           1, // 6
 				CreateCount:           1, // 6
+				MentionCount:          1, // 6
 				OpenCount:             1, // 6
 				ClosedCount:           0,
 			},
@@ -266,8 +270,8 @@ func TestGetUserIssueStats(t *testing.T) {
 				YourRepositoriesCount: 1, // 6
 				AssignCount:           1, // 6
 				CreateCount:           1, // 6
-				MentionCount:          0,
-				OpenCount:             0,
+				MentionCount:          1, // 6
+				OpenCount:             1, // 6
 				ClosedCount:           0,
 			},
 		},
@@ -281,6 +285,7 @@ func TestGetUserIssueStats(t *testing.T) {
 				YourRepositoriesCount: 1, // 1
 				AssignCount:           1, // 1
 				CreateCount:           1, // 1
+				MentionCount:          1, // 1
 				OpenCount:             1, // 1
 				ClosedCount:           0,
 			},
@@ -296,6 +301,7 @@ func TestGetUserIssueStats(t *testing.T) {
 				YourRepositoriesCount: 2,
 				AssignCount:           1,
 				CreateCount:           1,
+				MentionCount:          2,
 				OpenCount:             2,
 			},
 		},
