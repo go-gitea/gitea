@@ -34,12 +34,10 @@ const keyOfRequestIDInTemplate = ".RequestID"
 // So we accept a Request ID with a maximum character length of 32
 const maxRequestIDBtyeLength = 32
 
-func parseRequestIDFromRequestHeader(req *http.Request) (string, string) {
-	requestHeader := "-"
+func parseRequestIDFromRequestHeader(req *http.Request) string {
 	requestID := "-"
 	for _, key := range setting.RequestIDHeaders {
 		if req.Header.Get(key) != "" {
-			requestHeader = key
 			requestID = req.Header.Get(key)
 			break
 		}
@@ -47,7 +45,7 @@ func parseRequestIDFromRequestHeader(req *http.Request) (string, string) {
 	if len(requestID) > maxRequestIDBtyeLength {
 		requestID = fmt.Sprintf("%s...", requestID[:maxRequestIDBtyeLength])
 	}
-	return requestHeader, requestID
+	return requestID
 }
 
 // AccessLogger returns a middleware to log access logger
@@ -63,7 +61,7 @@ func AccessLogger() func(http.Handler) http.Handler {
 
 			var requestID string
 			if needRequestID {
-				_, requestID = parseRequestIDFromRequestHeader(req)
+				requestID = parseRequestIDFromRequestHeader(req)
 			}
 
 			next.ServeHTTP(w, r)
