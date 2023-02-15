@@ -59,7 +59,7 @@ func LinkAccount(ctx *context.Context) {
 	ctx.Data["email"] = email
 
 	if len(email) != 0 {
-		u, err := user_model.GetUserByEmail(email)
+		u, err := user_model.GetUserByEmail(ctx, email)
 		if err != nil && !user_model.IsErrUserNotExist(err) {
 			ctx.ServerError("UserSignIn", err)
 			return
