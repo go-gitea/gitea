@@ -135,9 +135,26 @@ func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.U
 		if err != nil {
 			return err
 		}
-		// TODO: repoID is 0 in user/org projects
-		if newProject.RepoID != issue.RepoID && newProject.OwnerID != issue.Repo.OwnerID {
-			return fmt.Errorf("issue's repository is not the same as project's repository")
+
+		switch newProject.Type {
+		case project_model.TypeRepository:
+			if newProject.RepoID != issue.RepoID && newProject.OwnerID != issue.Repo.OwnerID {
+				return fmt.Errorf("issue's repository is not the same as project's repository")
+			}
+			break
+		case project_model.TypeOrganization:
+			// TODO: org team permission check
+			if newProject.OwnerID != issue.Repo.OwnerID {
+				return fmt.Errorf("issue's repository's owner is not the same as project's repository's owner")
+			}
+			break
+		case project_model.TypeIndividual:
+			if newProject.OwnerID != doer.ID {
+				return fmt.Errorf("user does not have the project [id: %d]", newProjectID)
+			}
+			break
+		default:
+			return fmt.Errorf("unknown project type: %d", newProject.Type)
 		}
 	}
 
