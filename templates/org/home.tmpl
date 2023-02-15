@@ -1,7 +1,7 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content organization profile">
 	<div class="ui container gt-df">
-		{{avatar .Org 140 "org-avatar"}}
+		{{avatar $.Context .Org 140 "org-avatar"}}
 		<div id="org-info">
 			<div class="ui header">
 				{{.Org.DisplayName}}
@@ -52,7 +52,7 @@
 					{{range .Members}}
 						{{if or $isMember (call $.IsPublicMember .ID)}}
 							<a href="{{.HomeLink}}" title="{{.Name}}{{if .FullName}} ({{.FullName}}){{end}}">
-								{{avatar .}}
+								{{avatar $.Context .}}
 							</a>
 						{{end}}
 					{{end}}

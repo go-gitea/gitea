@@ -156,8 +156,8 @@ func (org *Organization) hasMemberWithUserID(ctx context.Context, userID int64) 
 }
 
 // AvatarLink returns the full avatar link with http host
-func (org *Organization) AvatarLink() string {
-	return org.AsUser().AvatarLink()
+func (org *Organization) AvatarLink(ctx context.Context) string {
+	return org.AsUser().AvatarLink(ctx)
 }
 
 // HTMLURL returns the organization's full link.

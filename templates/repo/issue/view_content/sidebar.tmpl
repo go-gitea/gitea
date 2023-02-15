@@ -26,7 +26,7 @@
 								<a class="{{if not .CanChange}}ui tooltip{{end}} item {{if .Checked}} checked {{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_{{.ItemID}}" {{if not .CanChange}} data-content="{{$.locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
 									<span class="octicon-check {{if not .Checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
 									<span class="text">
-										{{avatar .User 28 "gt-mr-3"}}
+										{{avatar $.Context .User 28 "gt-mr-3"}}
 										{{.User.GetDisplayName}}
 									</span>
 								</a>
@@ -56,7 +56,7 @@
 						<div class="item gt-mb-2">
 							{{if .User}}
 								<a class="muted sidebar-item-link" href="{{.User.HomeLink}}">
-									{{avatar .User 28 "gt-mr-3"}}
+									{{avatar $.Context .User 28 "gt-mr-3"}}
 									{{.User.GetDisplayName}}
 								</a>
 							{{else if .Team}}
@@ -288,7 +288,7 @@
 						{{end}}
 						<span class="octicon-check {{if not $checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
 						<span class="text">
-							{{avatar . 28 "gt-mr-3"}}
+							{{avatar $.Context . 28 "gt-mr-3"}}
 							{{.GetDisplayName}}
 						</span>
 					</a>
@@ -301,7 +301,7 @@
 				{{range .Issue.Assignees}}
 					<div class="item">
 						<a class="muted sidebar-item-link" href="{{$.RepoLink}}/{{if $.Issue.IsPull}}pulls{{else}}issues{{end}}?assignee={{.ID}}">
-							{{avatar . 28 "gt-mr-3"}}
+							{{avatar $.Context . 28 "gt-mr-3"}}
 							{{.GetDisplayName}}
 						</a>
 					</div>
@@ -316,7 +316,7 @@
 			<div class="ui list gt-df gt-fw">
 				{{range .Participants}}
 					<a class="ui tooltip" {{if gt .ID 0}}href="{{.HomeLink}}"{{end}} data-content="{{.GetDisplayName}}" data-position="top center">
-						{{avatar . 28 "gt-my-1 gt-mr-2"}}
+						{{avatar $.Context . 28 "gt-my-1 gt-mr-2"}}
 					</a>
 				{{end}}
 			</div>
@@ -393,7 +393,7 @@
 						{{range $user, $trackedtime := .WorkingUsers}}
 							<div class="comment gt-mt-3">
 								<a class="avatar">
-									{{avatar $user}}
+									{{avatar $.Context $user}}
 								</a>
 								<div class="content">
 									{{template "shared/user/authorlink" $user}}
