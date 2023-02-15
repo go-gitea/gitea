@@ -1,5 +1,6 @@
 <template>
-  <div v-show="show" class="tooltip" :title="item.name"><!--title instead of tooltip as the tooltip needs too much adaption with the current methods, i.e. not being loaded or staying open for "too long" (even over the next item)-->
+  <div v-show="show" class="tooltip" :title="item.name">
+  <!--title instead of tooltip above as the tooltip needs too much work with the current methods, i.e. not being loaded or staying open for "too long"-->
     <div class="item" :class="item.isFile ? 'filewrapper gt-p-1' : ''">
       <!-- Files -->
       <SvgIcon
