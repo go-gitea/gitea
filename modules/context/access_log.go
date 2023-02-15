@@ -6,8 +6,10 @@ package context
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"html/template"
 	"net/http"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -25,23 +27,43 @@ type routerLoggerOptions struct {
 
 var signedUserNameStringPointerKey interface{} = "signedUserNameStringPointerKey"
 
+const keyOfRequestIDInTemplate = ".RequestID"
+
+// According to OpenTracing and OpenTelemetry, the maximum length of trace id is 256 bits.
+// (32 bytes = 32 * 8 = 256 bits)
+// So we accept a Request ID with a maximum character length of 32
+const maxRequestIDBtyeLength = 32
+
+func parseRequestIDFromRequestHeader(req *http.Request) (string, string) {
+	requestHeader := "-"
+	requestID := "-"
+	for _, key := range setting.RequestIDHeaders {
+		if req.Header.Get(key) != "" {
+			requestHeader = key
+			requestID = req.Header.Get(key)
+			break
+		}
+	}
+	if len(requestID) > maxRequestIDBtyeLength {
+		requestID = fmt.Sprintf("%s...", requestID[:maxRequestIDBtyeLength])
+	}
+	return requestHeader, requestID
+}
+
 // AccessLogger returns a middleware to log access logger
 func AccessLogger() func(http.Handler) http.Handler {
 	logger := log.GetLogger("access")
 	logTemplate, _ := template.New("log").Parse(setting.AccessLogTemplate)
+	needRequestID := strings.Contains(setting.AccessLogTemplate, keyOfRequestIDInTemplate)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			start := time.Now()
 			identity := "-"
 			r := req.WithContext(context.WithValue(req.Context(), signedUserNameStringPointerKey, &identity))
 
-			requestID := "-"
-			for _, key := range setting.RequestIDHeaders {
-				headerVal := req.Header.Get(key)
-				if headerVal != "" {
-					requestID = headerVal
-					break
-				}
+			var requestID string
+			if needRequestID {
+				_, requestID = parseRequestIDFromRequestHeader(req)
 			}
 
 			next.ServeHTTP(w, r)
