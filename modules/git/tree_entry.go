@@ -101,12 +101,13 @@ func (te *TreeEntry) FollowLinks() (*TreeEntry, error) {
 	return entry, nil
 }
 
-// returns the subtree, or nil if this is not a tree
+// returns the Tree pointed to by this TreeEntry, or nil if this is not a tree
 func (te *TreeEntry) Tree() *Tree {
 	t, err := te.ptree.repo.getTree(te.ID)
 	if err != nil {
 		return nil
 	}
+	t.ptree = te.ptree
 	return t
 }
 
