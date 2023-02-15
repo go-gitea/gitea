@@ -2403,3 +2403,8 @@ func DeleteOrphanedIssues(ctx context.Context) error {
 	}
 	return nil
 }
+
+// HasOriginalAuthor returns if an issue was migrated and has an original author.
+func (c *Issue) HasOriginalAuthor() bool {
+	return c.OriginalAuthor != "" && c.OriginalAuthorID != 0
+}
