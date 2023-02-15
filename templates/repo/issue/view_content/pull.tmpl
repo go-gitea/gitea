@@ -167,9 +167,11 @@
 				<div class="item text">
 					{{svg "octicon-x"}}
 					{{$.locale.Tr "repo.pulls.files_conflicted"}}
-					{{range .ConflictedFiles}}
-						<div>{{.}}</div>
-					{{end}}
+					<ul>
+						{{range .ConflictedFiles}}
+							<li>{{.}}</li>
+						{{end}}
+					</ul>
 				</div>
 			{{else if .IsPullRequestBroken}}
 				<div class="item">
@@ -226,11 +228,11 @@
 					<div class="item">
 						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
 						{{$.locale.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n" | Safe}}
-						<div class="ui ordered list">
+						<ul>
 							{{range .ChangedProtectedFiles}}
-								<div data-value="-" class="item">{{.}}</div>
+								<li>{{.}}</li>
 							{{end}}
-						</div>
+						</ul>
 					</div>
 				{{else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsError .RequiredStatusCheckState.IsFailure)}}
 					<div class="item">
@@ -378,10 +380,6 @@
 						</script>
 
 						<div id="pull-request-merge-form"></div>
-
-						{{if .ShowMergeInstructions}}
-							{{template "repo/issue/view_content/pull_merge_instruction" (dict "locale" .locale "Issue" .Issue)}}
-						{{end}}
 					{{else}}
 						{{/* no merge style was set in repo setting: not or ($prUnit.PullRequestsConfig.AllowMerge ...) */}}
 						<div class="ui divider"></div>
@@ -428,11 +426,11 @@
 					<div class="item text red">
 						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
 						{{$.locale.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n" | Safe}}
-						<div class="ui ordered list">
+						<ul>
 							{{range .ChangedProtectedFiles}}
-								<div data-value="-" class="item">{{.}}</div>
+								<li>{{.}}</li>
 							{{end}}
-						</div>
+						</ul>
 					</div>
 				{{else if and .EnableStatusCheck (not .RequiredStatusCheckState.IsSuccess)}}
 					<div class="item text red">
@@ -478,6 +476,10 @@
 						{{$.locale.Tr "repo.pulls.merge_manually"}}
 					</button>
 				</div>
+			{{end}}
+
+			{{if and .ShowMergeInstructions .Issue.PullRequest.HeadRepo}}
+				{{template "repo/issue/view_content/pull_merge_instruction" (dict "locale" .locale "Issue" .Issue)}}
 			{{end}}
 		</div>
 	</div>
