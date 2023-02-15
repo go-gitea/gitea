@@ -157,12 +157,12 @@ type Repository struct {
 	Units                  []*RepoUnit       `xorm:"-"`
 	PrimaryLanguage        *LanguageStat     `xorm:"-"`
 
-	IsFork                          bool               `xorm:"INDEX NOT NULL DEFAULT false"`
-	ForkID                          int64              `xorm:"INDEX"`
-	BaseRepo                        *Repository        `xorm:"-"`
-	IsTemplate                      bool               `xorm:"INDEX NOT NULL DEFAULT false"`
-	TemplateID                      int64              `xorm:"INDEX"`
-        // the size of git repository directory itself, not include lfs/package/attachment size
+	IsFork     bool        `xorm:"INDEX NOT NULL DEFAULT false"`
+	ForkID     int64       `xorm:"INDEX"`
+	BaseRepo   *Repository `xorm:"-"`
+	IsTemplate bool        `xorm:"INDEX NOT NULL DEFAULT false"`
+	TemplateID int64       `xorm:"INDEX"`
+	// the size of git repository directory itself, not include lfs/package/attachment size
 	Size                            int64              `xorm:"NOT NULL DEFAULT 0"`
 	LFSSize                         int64              `xorm:"NOT NULL DEFAULT 0"`
 	CodeIndexerStatus               *RepoIndexerStatus `xorm:"-"`
