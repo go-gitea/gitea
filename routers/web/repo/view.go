@@ -811,7 +811,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 	ctx.Data["LatestCommit"] = latestCommit
 	if latestCommit != nil {
 
-		verification := asymkey_model.ParseCommitWithSignature(latestCommit)
+		verification := asymkey_model.ParseCommitWithSignature(ctx, latestCommit)
 
 		if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
 			return repo_model.IsOwnerMemberCollaborator(ctx.Repo.Repository, user.ID)
@@ -820,7 +820,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 			return nil
 		}
 		ctx.Data["LatestCommitVerification"] = verification
-		ctx.Data["LatestCommitUser"] = user_model.ValidateCommitWithEmail(latestCommit)
+		ctx.Data["LatestCommitUser"] = user_model.ValidateCommitWithEmail(ctx, latestCommit)
 
 		statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, latestCommit.ID.String(), db.ListOptions{})
 		if err != nil {
