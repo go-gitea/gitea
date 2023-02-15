@@ -96,7 +96,7 @@ func findReadmeFileInEntries(ctx *context.Context, entries []*git.TreeEntry) (*n
 			}
 			continue
 		}
-		if i, ok := markup.IsReadmeFileExtension(entry.Name(), exts...); ok {
+		if i, ok := util.IsReadmeFileExtension(entry.Name(), exts...); ok {
 			log.Debug("Potential readme file: %s", entry.Name())
 			if readmeFiles[i] == nil || base.NaturalSortLess(readmeFiles[i].name, entry.Blob().Name()) {
 				name := entry.Name()
@@ -423,7 +423,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
 
 		shouldRenderSource := ctx.FormString("display") == "source"
-		readmeExist := markup.IsReadmeFile(blob.Name())
+		readmeExist := util.IsReadmeFileName(blob.Name())
 		ctx.Data["ReadmeExist"] = readmeExist
 
 		markupType := markup.Type(blob.Name())
@@ -811,7 +811,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 	ctx.Data["LatestCommit"] = latestCommit
 	if latestCommit != nil {
 
-		verification := asymkey_model.ParseCommitWithSignature(latestCommit)
+		verification := asymkey_model.ParseCommitWithSignature(ctx, latestCommit)
 
 		if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
 			return repo_model.IsOwnerMemberCollaborator(ctx.Repo.Repository, user.ID)
@@ -820,7 +820,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 			return nil
 		}
 		ctx.Data["LatestCommitVerification"] = verification
-		ctx.Data["LatestCommitUser"] = user_model.ValidateCommitWithEmail(latestCommit)
+		ctx.Data["LatestCommitUser"] = user_model.ValidateCommitWithEmail(ctx, latestCommit)
 
 		statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, latestCommit.ID.String(), db.ListOptions{})
 		if err != nil {
