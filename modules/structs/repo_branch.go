@@ -25,6 +25,7 @@ type BranchProtection struct {
 	// Deprecated: true
 	BranchName                    string   `json:"branch_name"`
 	RuleName                      string   `json:"rule_name"`
+	RuleID                        string   `json:"rule_id"`
 	EnablePush                    bool     `json:"enable_push"`
 	EnablePushWhitelist           bool     `json:"enable_push_whitelist"`
 	PushWhitelistUsernames        []string `json:"push_whitelist_usernames"`
