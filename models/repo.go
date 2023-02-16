@@ -346,8 +346,8 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 
 	// delete actions artifacts in ObjectStorage after the repo have already been deleted
 	for _, art := range artifacts {
-		if err := storage.ActionsArtifacts.Delete(art.FilePath); err != nil {
-			log.Error("remove artifact file %q: %v", art.FilePath, err)
+		if err := storage.ActionsArtifacts.Delete(art.StoragePath); err != nil {
+			log.Error("remove artifact file %q: %v", art.StoragePath, err)
 			// go on
 		}
 	}

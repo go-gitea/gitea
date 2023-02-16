@@ -88,14 +88,6 @@ func (ar artifactRoutes) buildArtifactUrl(taskID int64, artifactID int64, suffix
 	if err != nil {
 		return "", err
 	}
-	// FIXME: fix localhost ?? act starts docker container to run action.
-	// It can't visit host network in container.
-	if strings.Contains(u.Host, "localhost") {
-		u.Host = strings.ReplaceAll(u.Host, "localhost", actions.GetOutboundIP().String())
-	}
-	if strings.Contains(u.Host, "127.0.0.1") {
-		u.Host = strings.ReplaceAll(u.Host, "127.0.0.1", actions.GetOutboundIP().String())
-	}
 	return u.String(), nil
 }
 
@@ -123,7 +115,7 @@ func (ar artifactRoutes) getUploadArtifactURL(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"fileContainerResourceUrl": url,
 	})
 }
@@ -174,7 +166,7 @@ func (ar artifactRoutes) uploadArtifact(ctx *context.Context) {
 		return
 	}
 	fSize += n
-	artifact.FilePath = filePath // path in storage
+	artifact.StoragePath = filePath // path in storage
 	artifact.ArtifactName = artifactName
 	artifact.ArtifactPath = itemPath // path in container
 	artifact.FileSize = fSize
@@ -275,7 +267,7 @@ func (ar artifactRoutes) downloadArtifact(ctx *context.Context) {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
-	fd, err := ar.fs.Open(artifact.FilePath)
+	fd, err := ar.fs.Open(artifact.StoragePath)
 	if err != nil {
 		log.Error("Error opening file: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())

@@ -39,14 +39,14 @@ func init() {
 type ActionArtifact struct {
 	ID           int64
 	JobID        int64
-	RunnerID     int64  `xorm:"index"`
-	RepoID       int64  `xorm:"index"`
-	OwnerID      int64  `xorm:"index"`
-	CommitSHA    string `xorm:"index"`
-	FilePath     string
-	FileSize     int64
-	ArtifactPath string
-	ArtifactName string
+	RunnerID     int64              `xorm:"index"`
+	RepoID       int64              `xorm:"index"`
+	OwnerID      int64              `xorm:"index"`
+	CommitSHA    string             `xorm:"index"`
+	StoragePath  string             // The path to the artifact in the storage
+	FileSize     int64              // The size of the artifact in bytes
+	ArtifactPath string             // The path to the artifact when runner uploads it
+	ArtifactName string             // The name of the artifact when runner uploads it
 	Created      timeutil.TimeStamp `xorm:"created"`
 	Updated      timeutil.TimeStamp `xorm:"updated index"`
 }

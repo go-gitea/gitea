@@ -427,7 +427,7 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 		return
 	}
 
-	f, err := storage.ActionsArtifacts.Open(artifact.FilePath)
+	f, err := storage.ActionsArtifacts.Open(artifact.StoragePath)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
