@@ -137,8 +137,8 @@ func (p *Project) LoadOwner(ctx context.Context) (err error) {
 	return err
 }
 
-func (pl List) LoadOwners(ctx context.Context) (err error) {
-	for _, p := range pl {
+func (ps List) LoadOwners(ctx context.Context) (err error) {
+	for _, p := range ps {
 		if err := p.LoadOwner(ctx); err != nil {
 			return err
 		}
@@ -154,8 +154,8 @@ func (p *Project) LoadRepo(ctx context.Context) (err error) {
 	return err
 }
 
-func (pl List) LoadRepos(ctx context.Context) (err error) {
-	for _, p := range pl {
+func (ps List) LoadRepos(ctx context.Context) (err error) {
+	for _, p := range ps {
 		if err := p.LoadRepo(ctx); err != nil {
 			return err
 		}
