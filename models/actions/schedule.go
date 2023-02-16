@@ -39,14 +39,20 @@ func init() {
 }
 
 // CreateScheduleTask creates new schedule task.
-func CreateScheduleTask(ctx context.Context, id int64, rows []*ActionSchedule) error {
-	for _, row := range rows {
-		if _, err := db.GetEngine(ctx).Insert(row); err != nil {
+func CreateScheduleTask(ctx context.Context, rows []*ActionSchedule) error {
+	ctx, committer, err := db.TxContext(db.DefaultContext)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if len(rows) > 0 {
+		if err = db.Insert(ctx, rows); err != nil {
 			return err
 		}
 	}
 
-	return nil
+	return committer.Commit()
 }
 
 func DeleteScheduleTaskByRepo(ctx context.Context, id int64) error {

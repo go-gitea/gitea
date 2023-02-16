@@ -220,8 +220,8 @@ func handleSchedules(
 			cron.EntryIDs = entryIDs
 		}
 
-		if err := actions_model.CreateScheduleTask(ctx, input.Repo.ID, crons); err != nil {
-			log.Error("CreateCronTask: %v", err)
+		if err := actions_model.CreateScheduleTask(ctx, crons); err != nil {
+			log.Error("CreateScheduleTask: %v", err)
 		}
 	}
 
