@@ -187,19 +187,25 @@ func Profile(ctx *context.Context) {
 
 		total = int(count)
 	case "activity":
-		ctx.Data["Feeds"], err = activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
+		items, count, err := activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
 			RequestedUser:   ctx.ContextUser,
 			Actor:           ctx.Doer,
 			IncludePrivate:  showPrivate,
 			OnlyPerformedBy: true,
 			IncludeDeleted:  false,
 			Date:            ctx.FormString("date"),
-			ListOptions:     db.ListOptions{PageSize: setting.UI.FeedPagingNum},
+			ListOptions: db.ListOptions{
+				PageSize: setting.UI.FeedPagingNum,
+				Page:     page,
+			},
 		})
 		if err != nil {
 			ctx.ServerError("GetFeeds", err)
 			return
 		}
+		ctx.Data["Feeds"] = items
+
+		total = int(count)
 	case "stars":
 		ctx.Data["PageIsProfileStarList"] = true
 		repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
