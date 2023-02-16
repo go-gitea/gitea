@@ -168,13 +168,13 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	var err error
 	protectBranch, err = git_model.GetProtectedBranchRuleByName(ctx, ctx.Repo.Repository.ID, f.RuleName)
 	if err != nil {
-		ctx.ServerError("GetProtectedBranchRuleByName", err)
+		ctx.ServerError("GetProtectBranchOfRepoByName", err)
 		return
 	}
 	if protectBranch == nil && f.RuleID > 0 {
 		protectBranch, err = git_model.GetProtectedBranchRuleByID(ctx, ctx.Repo.Repository.ID, f.RuleID)
 		if err != nil {
-			ctx.ServerError("GetProtectedBranchRuleByID", err)
+			ctx.ServerError("GetProtectBranchOfRepoByID", err)
 			return
 		}
 	}
