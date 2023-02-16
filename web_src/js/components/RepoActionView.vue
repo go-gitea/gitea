@@ -179,7 +179,7 @@ const sfc = {
     },
     // approve a run
     approveRun() {
-      this.fetch(`${this.run.link}/approve`);
+      this.fetchPost(`${this.run.link}/approve`);
     },
 
     createLogLine(line) {
