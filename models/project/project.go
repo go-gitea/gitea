@@ -34,8 +34,8 @@ type (
 	// Type is used to identify the type of project in question and ownership
 	Type uint8
 
-	// ProjectList is used to identify a list of projects
-	ProjectList []*Project
+	// List is used to identify a list of projects
+	List []*Project
 )
 
 const (
@@ -137,12 +137,9 @@ func (p *Project) LoadOwner(ctx context.Context) (err error) {
 	return err
 }
 
-func (pl ProjectList) LoadOwners(ctx context.Context) (err error) {
+func (pl List) LoadOwners(ctx context.Context) (err error) {
 	for _, p := range pl {
-		if p.Owner != nil {
-			continue
-		}
-		if p.Owner, err = user_model.GetUserByID(ctx, p.OwnerID); err != nil {
+		if err := p.LoadOwner(ctx); err != nil {
 			return err
 		}
 	}
@@ -157,12 +154,9 @@ func (p *Project) LoadRepo(ctx context.Context) (err error) {
 	return err
 }
 
-func (pl ProjectList) LoadRepos(ctx context.Context) (err error) {
+func (pl List) LoadRepos(ctx context.Context) (err error) {
 	for _, p := range pl {
-		if p.RepoID == 0 || p.Repo != nil {
-			continue
-		}
-		if p.Repo, err = repo_model.GetRepositoryByID(ctx, p.RepoID); err != nil {
+		if err := p.LoadRepo(ctx); err != nil {
 			return err
 		}
 	}
@@ -296,9 +290,9 @@ func CountProjects(ctx context.Context, opts SearchOptions) (int64, error) {
 }
 
 // FindProjects returns a list of all projects that have been created in the repository
-func FindProjects(ctx context.Context, opts SearchOptions) (ProjectList, int64, error) {
+func FindProjects(ctx context.Context, opts SearchOptions) (List, int64, error) {
 	e := db.GetEngine(ctx)
-	projects := make(ProjectList, 0, setting.UI.IssuePagingNum)
+	projects := make(List, 0, setting.UI.IssuePagingNum)
 	cond := opts.toConds()
 
 	count, err := e.Where(cond).Count(new(Project))
