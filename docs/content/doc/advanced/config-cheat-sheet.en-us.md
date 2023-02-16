@@ -527,16 +527,16 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
   - Note: The default parameters for `pbkdf2` hashing have changed - the previous settings are available as `pbkdf2_v1` but are not recommended.
   - The hash functions may be tuned by using `$` after the algorithm:
     - `argon2$<time>$<memory>$<threads>$<key-length>`
+    - `bcrypt$<cost>`
     - `pbkdf2$<iterations>$<key-length>`
     - `scrypt$<n>$<r>$<p>$<key-length>`
-    - `bcrypt$<cost>`
   - The defaults are:
     - `argon2`:    `argon2$2$65536$8$50`
     - `bcrypt`:    `bcrypt$10`
-    - `scrypt`:    `scrypt$65536$16$2$50`
     - `pbkdf2`:    `pbkdf2$320000$50`
     - `pbkdf2_v1`: `pbkdf2$10000$50`
     - `pbkdf2_v2`: `pbkdf2$320000$50`
+    - `scrypt`:    `scrypt$65536$16$2$50`
   - Adjusting the algorithm parameters using this functionality is done at your own risk.
 - `CSRF_COOKIE_HTTP_ONLY`: **true**: Set false to allow JavaScript to read CSRF cookie.
 - `MIN_PASSWORD_LENGTH`: **6**: Minimum password length for new users.
