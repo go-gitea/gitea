@@ -89,3 +89,9 @@ func ListArtifactByJobID(ctx context.Context, jobID int64) ([]*ActionArtifact, e
 	arts := make([]*ActionArtifact, 0, 10)
 	return arts, db.GetEngine(ctx).Where("job_id=?", jobID).Find(&arts)
 }
+
+// ListArtifactsByRepoID returns all artifacts of a repo
+func ListArtifactsByRepoID(ctx context.Context, repoID int64) ([]*ActionArtifact, error) {
+	arts := make([]*ActionArtifact, 0, 10)
+	return arts, db.GetEngine(ctx).Where("repo_id=?", repoID).Find(&arts)
+}
