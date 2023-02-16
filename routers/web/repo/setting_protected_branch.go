@@ -167,7 +167,8 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 
 	// FIXME: If a new ProtectBranch has a duplicate RuleName, an error should be returned.
 
-	// Currently an existing ProtectBranch will be updated according to the new one has the same name.
+	// Currently, if a new ProtectBranch with the same name is created,
+	// the existing ProtectBranch will be updated.
 	// But we cannot modify this logic now because many unit tests rely on it.
 
 	var err error
