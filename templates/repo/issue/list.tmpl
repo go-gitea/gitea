@@ -271,7 +271,7 @@
 									{{.locale.Tr "repo.issues.new.open_projects"}}
 								</div>
 								{{range .OpenProjects}}
-									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{.Link}}">
+									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/projects">
 										{{if .IsOrganizationProject}}
 											{{svg "octicon-project-symlink" 18 "mr-3"}}
 										{{else if .IsIndividualProject}}
@@ -289,7 +289,7 @@
 									{{.locale.Tr "repo.issues.new.closed_projects"}}
 								</div>
 								{{range .ClosedProjects}}
-									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{.Link}}">
+									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/projects">
 										{{if .IsOrganizationProject}}
 											{{svg "octicon-project-symlink" 18 "mr-3"}}
 										{{else if .IsIndividualProject}}
