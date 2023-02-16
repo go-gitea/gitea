@@ -8,7 +8,7 @@
 	<div class="twelve wide column">
 		<div class="ui comments">
 			<div class="comment">
-				{{template "shared/user/avatarlink" .SignedUser}}
+				{{template "shared/user/avatarlink" Dict "Context" $.Context "user" .SignedUser}}
 				<div class="ui segment content">
 					<div class="field">
 						<input name="title" id="issue_title" placeholder="{{.locale.Tr "repo.milestones.title"}}" value="{{if .TitleQuery}}{{.TitleQuery}}{{else if .IssueTemplateTitle}}{{.IssueTemplateTitle}}{{else}}{{.title}}{{end}}" tabindex="3" autofocus required maxlength="255" autocomplete="off">
@@ -47,7 +47,7 @@
 					<div class="header" style="text-transform: none;font-size:16px;">{{.locale.Tr "repo.issues.new.add_labels_title"}}</div>
 					{{if or .Labels .OrgLabels}}
 					<div class="ui icon search input">
-						<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_labels"}}">
 					</div>
 					{{end}}
@@ -84,7 +84,7 @@
 					<div class="header" style="text-transform: none;font-size:16px;">{{.locale.Tr "repo.issues.new.add_milestone_title"}}</div>
 					{{if or .OpenMilestones .ClosedMilestones}}
 					<div class="ui icon search input">
-						<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_milestones"}}">
 					</div>
 					{{end}}
@@ -101,7 +101,7 @@
 							</div>
 							{{range .OpenMilestones}}
 								<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}">
-									{{svg "octicon-milestone" 16 "mr-2"}}
+									{{svg "octicon-milestone" 16 "gt-mr-2"}}
 									{{.Name}}
 								</a>
 							{{end}}
@@ -113,7 +113,7 @@
 							</div>
 							{{range .ClosedMilestones}}
 								<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}">
-									{{svg "octicon-milestone" 16 "mr-2"}}
+									{{svg "octicon-milestone" 16 "gt-mr-2"}}
 									{{.Name}}
 								</a>
 							{{end}}
@@ -126,7 +126,7 @@
 				<div class="selected">
 					{{if .Milestone}}
 						<a class="item muted sidebar-item-link" href="{{.RepoLink}}/issues?milestone={{.Milestone.ID}}">
-							{{svg "octicon-milestone" 18 "mr-3"}}
+							{{svg "octicon-milestone" 18 "gt-mr-3"}}
 							{{.Milestone.Name}}
 						</a>
 					{{end}}
@@ -148,7 +148,7 @@
 					<div class="header" style="text-transform: none;font-size:16px;">{{.locale.Tr "repo.issues.new.add_project_title"}}</div>
 					{{if or .OpenProjects .ClosedProjects}}
 					<div class="ui icon search input">
-						<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_projects"}}">
 					</div>
 					{{end}}
@@ -227,7 +227,7 @@
 					<div class="filter menu" data-id="#assignee_ids">
 						<div class="header" style="text-transform: none;font-size:16px;">{{.locale.Tr "repo.issues.new.add_assignees_title"}}</div>
 						<div class="ui icon search input">
-							<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+							<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 							<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_assignees"}}">
 						</div>
 						<div class="no-select item">{{.locale.Tr "repo.issues.new.clear_assignees"}}</div>
@@ -235,7 +235,7 @@
 							<a class="item muted" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
 								<span class="octicon-check invisible">{{svg "octicon-check"}}</span>
 								<span class="text">
-									{{avatar . 28 "mr-3"}}{{.GetDisplayName}}
+									{{avatar $.Context . 28 "gt-mr-3"}}{{.GetDisplayName}}
 								</span>
 							</a>
 						{{end}}
@@ -246,8 +246,8 @@
 						{{.locale.Tr "repo.issues.new.no_assignees"}}
 					</span>
 					{{range .Assignees}}
-						<a class="hide item p-2 muted" id="assignee_{{.ID}}" href="{{$.RepoLink}}/issues?assignee={{.ID}}">
-							{{avatar . 28 "mr-3 vm"}}{{.GetDisplayName}}
+						<a class="hide item gt-p-2 muted" id="assignee_{{.ID}}" href="{{$.RepoLink}}/issues?assignee={{.ID}}">
+							{{avatar $.Context . 28 "gt-mr-3 gt-vm"}}{{.GetDisplayName}}
 						</a>
 					{{end}}
 				</div>
@@ -256,7 +256,7 @@
 				<div class="inline field">
 					<div class="ui checkbox">
 						<label class="tooltip" data-content="{{.locale.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"><strong>{{.locale.Tr "repo.pulls.allow_edits_from_maintainers"}}</strong></label>
-						<input name="allow_maintainer_edit" type="checkbox">
+						<input name="allow_maintainer_edit" type="checkbox" {{if .AllowMaintainerEdit}}checked{{end}}>
 					</div>
 				</div>
 			{{end}}

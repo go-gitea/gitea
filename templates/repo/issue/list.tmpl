@@ -29,7 +29,7 @@
 		<div id="issue-filters" class="ui stackable grid">
 			<div class="six wide column">
 				{{if $.CanWriteIssuesOrPulls}}
-					<div class="ui checkbox issue-checkbox-all vm">
+					<div class="ui checkbox issue-checkbox-all gt-vm">
 						<input type="checkbox" title="{{.locale.Tr "repo.issues.action_check_all"}}">
 					</div>
 				{{end}}
@@ -45,7 +45,7 @@
 						</span>
 						<div class="menu">
 							<div class="ui icon search input">
-								<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+								<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_label"}}">
 							</div>
 							<span class="info">{{.locale.Tr "repo.issues.filter_label_exclude" | Safe}}</span>
@@ -64,7 +64,7 @@
 						</span>
 						<div class="menu">
 							<div class="ui icon search input">
-								<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+								<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_milestone"}}">
 							</div>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_milestone_no_select"}}</a>
@@ -82,7 +82,7 @@
 						</span>
 						<div class="menu">
 							<div class="ui icon search input">
-								<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+								<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_project"}}">
 							</div>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_project_all"}}</a>
@@ -134,13 +134,13 @@
 						</span>
 						<div class="menu">
 							<div class="ui icon search input">
-								<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+								<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_poster"}}">
 							</div>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}">{{.locale.Tr "repo.issues.filter_poster_no_select"}}</a>
 							{{range .Posters}}
 								<a class="{{if eq $.PosterID .ID}}active selected{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{.ID}}">
-									{{avatar .}} {{.GetDisplayName}}
+									{{avatar $.Context .}} {{.GetDisplayName}}
 								</a>
 							{{end}}
 						</div>
@@ -154,13 +154,13 @@
 						</span>
 						<div class="menu">
 							<div class="ui icon search input">
-								<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+								<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_assignee"}}">
 							</div>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_assginee_no_select"}}</a>
 							{{range .Assignees}}
 								<a class="{{if eq $.AssigneeID .ID}}active selected{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{.ID}}&poster={{$.PosterID}}">
-									{{avatar .}} {{.GetDisplayName}}
+									{{avatar $.Context .}} {{.GetDisplayName}}
 								</a>
 							{{end}}
 						</div>
@@ -316,7 +316,7 @@
 							</div>
 							{{range .Assignees}}
 								<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/assignee">
-									{{avatar .}} {{.GetDisplayName}}
+									{{avatar $.Context .}} {{.GetDisplayName}}
 								</div>
 							{{end}}
 						</div>

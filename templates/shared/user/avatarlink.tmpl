@@ -1,1 +1,1 @@
-<a class="avatar"{{if gt .ID 0}} href="{{.HomeLink}}"{{end}}>{{avatar .}}</a>
+<a class="avatar"{{if gt .user.ID 0}} href="{{.user.HomeLink}}"{{end}}>{{avatar $.Context .}}</a>
