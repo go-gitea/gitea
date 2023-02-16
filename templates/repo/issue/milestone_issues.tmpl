@@ -73,7 +73,7 @@
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}">{{.locale.Tr "repo.issues.filter_poster_no_select"}}</a>
 							{{range .Posters}}
 								<a class="{{if eq $.PosterID .ID}}active selected{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&assignee={{$.AssigneeID}}&poster={{.ID}}">
-									{{avatar .}} {{.GetDisplayName}}
+									{{avatar $.Context .}} {{.GetDisplayName}}
 								</a>
 							{{end}}
 						</div>
@@ -93,7 +93,7 @@
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_assginee_no_select"}}</a>
 							{{range .Assignees}}
 								<a class="{{if eq $.AssigneeID .ID}}active selected{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&assignee={{.ID}}&poster={{$.PosterID}}">
-									{{avatar . 28 "gt-mr-2"}}
+									{{avatar $.Context . 28 "gt-mr-2"}}
 									{{.GetDisplayName}}
 								</a>
 							{{end}}
@@ -179,7 +179,7 @@
 							</div>
 							{{range .Assignees}}
 								<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/assignee">
-									{{avatar . 28 "gt-mr-2"}}
+									{{avatar $.Context . 28 "gt-mr-2"}}
 									{{.GetDisplayName}}
 								</div>
 							{{end}}

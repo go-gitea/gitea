@@ -147,13 +147,13 @@ func generateRecognizedAvatarURL(u url.URL, size int) string {
 // generateEmailAvatarLink returns a email avatar link.
 // if final is true, it may use a slow path (eg: query DNS).
 // if final is false, it always uses a fast path.
-func generateEmailAvatarLink(email string, size int, final bool) string {
+func generateEmailAvatarLink(ctx context.Context, email string, size int, final bool) string {
 	email = strings.TrimSpace(email)
 	if email == "" {
 		return DefaultAvatarLink()
 	}
 
-	enableFederatedAvatar := system_model.GetSettingBool(system_model.KeyPictureEnableFederatedAvatar)
+	enableFederatedAvatar := system_model.GetSettingBool(ctx, system_model.KeyPictureEnableFederatedAvatar)
 
 	var err error
 	if enableFederatedAvatar && system_model.LibravatarService != nil {
@@ -174,7 +174,7 @@ func generateEmailAvatarLink(email string, size int, final bool) string {
 		return urlStr
 	}
 
-	disableGravatar := system_model.GetSettingBool(system_model.KeyPictureDisableGravatar)
+	disableGravatar := system_model.GetSettingBool(ctx, system_model.KeyPictureDisableGravatar)
 	if !disableGravatar {
 		// copy GravatarSourceURL, because we will modify its Path.
 		avatarURLCopy := *system_model.GravatarSourceURL
@@ -186,11 +186,11 @@ func generateEmailAvatarLink(email string, size int, final bool) string {
 }
 
 // GenerateEmailAvatarFastLink returns a avatar link (fast, the link may be a delegated one: "/avatar/${hash}")
-func GenerateEmailAvatarFastLink(email string, size int) string {
-	return generateEmailAvatarLink(email, size, false)
+func GenerateEmailAvatarFastLink(ctx context.Context, email string, size int) string {
+	return generateEmailAvatarLink(ctx, email, size, false)
 }
 
 // GenerateEmailAvatarFinalLink returns a avatar final link (maybe slow)
-func GenerateEmailAvatarFinalLink(email string, size int) string {
-	return generateEmailAvatarLink(email, size, true)
+func GenerateEmailAvatarFinalLink(ctx context.Context, email string, size int) string {
+	return generateEmailAvatarLink(ctx, email, size, true)
 }

@@ -7,10 +7,10 @@
 		<span class="badge badge-commit">{{svg "octicon-git-commit"}}</span>
 		{{if .User}}
 			<a href="{{.User.HomeLink}}">
-				{{avatar .User}}
+				{{avatar $.root.Context .User}}
 			</a>
 		{{else}}
-			{{avatarByEmail .Author.Email .Author.Name}}
+			{{avatarByEmail $.root.Context .Author.Email .Author.Name}}
 		{{end}}
 
 		<span class="ui float right shabox">

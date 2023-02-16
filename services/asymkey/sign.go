@@ -207,7 +207,7 @@ Loop:
 			if commit.Signature == nil {
 				return false, "", nil, &ErrWontSign{parentSigned}
 			}
-			verification := asymkey_model.ParseCommitWithSignature(commit)
+			verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
 			if !verification.Verified {
 				return false, "", nil, &ErrWontSign{parentSigned}
 			}
@@ -260,7 +260,7 @@ Loop:
 			if commit.Signature == nil {
 				return false, "", nil, &ErrWontSign{parentSigned}
 			}
-			verification := asymkey_model.ParseCommitWithSignature(commit)
+			verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
 			if !verification.Verified {
 				return false, "", nil, &ErrWontSign{parentSigned}
 			}
@@ -332,7 +332,7 @@ Loop:
 			if err != nil {
 				return false, "", nil, err
 			}
-			verification := asymkey_model.ParseCommitWithSignature(commit)
+			verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
 			if !verification.Verified {
 				return false, "", nil, &ErrWontSign{baseSigned}
 			}
@@ -348,7 +348,7 @@ Loop:
 			if err != nil {
 				return false, "", nil, err
 			}
-			verification := asymkey_model.ParseCommitWithSignature(commit)
+			verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
 			if !verification.Verified {
 				return false, "", nil, &ErrWontSign{headSigned}
 			}
@@ -364,7 +364,7 @@ Loop:
 			if err != nil {
 				return false, "", nil, err
 			}
-			verification := asymkey_model.ParseCommitWithSignature(commit)
+			verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
 			if !verification.Verified {
 				return false, "", nil, &ErrWontSign{commitsSigned}
 			}
@@ -378,7 +378,7 @@ Loop:
 				return false, "", nil, err
 			}
 			for _, commit := range commitList {
-				verification := asymkey_model.ParseCommitWithSignature(commit)
+				verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
 				if !verification.Verified {
 					return false, "", nil, &ErrWontSign{commitsSigned}
 				}
