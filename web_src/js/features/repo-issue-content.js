@@ -14,16 +14,16 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
   $dialog = $(`
 <div class="ui modal content-history-detail-dialog">
   ${svg('octicon-x', 16, 'close icon inside')}
-  <div class="header df ac sb">
+  <div class="header gt-df gt-ac gt-sb">
     <div>${itemTitleHtml}</div>
-    <div class="ui dropdown dialog-header-options df ac mr-5 hide">
+    <div class="ui dropdown dialog-header-options gt-df gt-ac gt-mr-5 hide">
       ${i18nTextOptions}${svg('octicon-triangle-down', 14, 'dropdown icon')}
       <div class="menu">
         <div class="item red text" data-option-item="delete">${i18nTextDeleteFromHistory}</div>
       </div>
     </div>
   </div>
-  <div class="comment-diff-data tl p-3 is-loading"></div>
+  <div class="comment-diff-data gt-tl gt-p-3 is-loading"></div>
 </div>`);
   $dialog.appendTo($('body'));
   $dialog.find('.dialog-header-options').dropdown({
@@ -76,7 +76,7 @@ function showContentHistoryMenu(issueBaseUrl, $item, commentId) {
   const $headerLeft = $item.find('.comment-header-left');
   const menuHtml = `
   <div class="ui pointing dropdown top left content-history-menu" data-comment-id="${commentId}">
-    &bull; <a>${i18nTextEdited}${svg('octicon-triangle-down', 14, 'dropdown icon ml-1 mt-1')}</a>
+    &bull; <a>${i18nTextEdited}${svg('octicon-triangle-down', 14, 'dropdown icon gt-ml-1 gt-mt-1')}</a>
     <div class="menu">
     </div>
   </div>`;

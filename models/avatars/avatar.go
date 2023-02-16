@@ -21,7 +21,7 @@ import (
 
 const (
 	// DefaultAvatarClass is the default class of a rendered avatar
-	DefaultAvatarClass = "ui avatar vm"
+	DefaultAvatarClass = "ui avatar gt-vm"
 	// DefaultAvatarPixelSize is the default size in pixels of a rendered avatar
 	DefaultAvatarPixelSize = 28
 )

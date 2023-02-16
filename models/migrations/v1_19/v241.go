@@ -1,4 +1,4 @@
-// Copyright 2023 The Gitea Authors. All rights reserved.
+// Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package v1_19 //nolint
@@ -7,16 +7,11 @@ import (
 	"xorm.io/xorm"
 )
 
-func AddNeedApprovalForActionRun(x *xorm.Engine) error {
-	/*
-		New index: TriggerUserID
-		New fields: NeedApproval, ApprovedBy
-	*/
-	type ActionRun struct {
-		TriggerUserID int64 `xorm:"index"`
-		NeedApproval  bool  // may need approval if it's a fork pull request
-		ApprovedBy    int64 `xorm:"index"` // who approved
+// AddCardTypeToProjectTable: add CardType column, setting existing rows to CardTypeTextOnly
+func AddCardTypeToProjectTable(x *xorm.Engine) error {
+	type Project struct {
+		CardType int `xorm:"NOT NULL DEFAULT 0"`
 	}
 
-	return x.Sync(new(ActionRun))
+	return x.Sync(new(Project))
 }

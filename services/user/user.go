@@ -163,7 +163,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		return models.ErrUserOwnPackages{UID: u.ID}
 	}
 
-	if err := models.DeleteUser(ctx, u, purge); err != nil {
+	if err := deleteUser(ctx, u, purge); err != nil {
 		return fmt.Errorf("DeleteUser: %w", err)
 	}
 

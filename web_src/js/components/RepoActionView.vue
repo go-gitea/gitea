@@ -15,18 +15,20 @@
       <div class="action-view-left">
         <div class="job-group-section">
           <div class="job-brief-list">
-            <a class="job-brief-item" v-for="(job, index) in run.jobs" :key="job.id" :href="run.link+'/jobs/'+index">
-              <SvgIcon name="octicon-check-circle-fill" class="green" v-if="job.status === 'success'"/>
-              <SvgIcon name="octicon-skip" class="ui text grey" v-else-if="job.status === 'skipped'"/>
-              <SvgIcon name="octicon-clock" class="ui text yellow" v-else-if="job.status === 'waiting'"/>
-              <SvgIcon name="octicon-blocked" class="ui text yellow" v-else-if="job.status === 'blocked'"/>
-              <SvgIcon name="octicon-meter" class="ui text yellow" class-name="job-status-rotate" v-else-if="job.status === 'running'"/>
-              <SvgIcon name="octicon-x-circle-fill" class="red" v-else/>
-              {{ job.name }}
+            <div class="job-brief-item" v-for="(job, index) in run.jobs" :key="job.id">
+              <a class="job-brief-link" :href="run.link+'/jobs/'+index">
+                <SvgIcon name="octicon-check-circle-fill" class="green" v-if="job.status === 'success'"/>
+                <SvgIcon name="octicon-skip" class="ui text grey" v-else-if="job.status === 'skipped'"/>
+                <SvgIcon name="octicon-clock" class="ui text yellow" v-else-if="job.status === 'waiting'"/>
+                <SvgIcon name="octicon-blocked" class="ui text yellow" v-else-if="job.status === 'blocked'"/>
+                <SvgIcon name="octicon-meter" class="ui text yellow" class-name="job-status-rotate" v-else-if="job.status === 'running'"/>
+                <SvgIcon name="octicon-x-circle-fill" class="red" v-else/>
+                <span class="ui text">{{ job.name }}</span>
+              </a>
               <button class="job-brief-rerun" @click="rerunJob(index)" v-if="job.canRerun">
                 <SvgIcon name="octicon-sync" class="ui text black"/>
               </button>
-            </a>
+            </div>
           </div>
         </div>
       </div>
@@ -43,15 +45,15 @@
         <div class="job-step-container">
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
             <div class="job-step-summary" @click.stop="toggleStepLogs(i)">
-              <SvgIcon name="octicon-chevron-down" class="mr-3" v-show="currentJobStepsStates[i].expanded"/>
-              <SvgIcon name="octicon-chevron-right" class="mr-3" v-show="!currentJobStepsStates[i].expanded"/>
+              <SvgIcon name="octicon-chevron-down" class="gt-mr-3" v-show="currentJobStepsStates[i].expanded"/>
+              <SvgIcon name="octicon-chevron-right" class="gt-mr-3" v-show="!currentJobStepsStates[i].expanded"/>
 
-              <SvgIcon name="octicon-check-circle-fill" class="green mr-3" v-if="jobStep.status === 'success'"/>
-              <SvgIcon name="octicon-skip" class="ui text grey mr-3" v-else-if="jobStep.status === 'skipped'"/>
-              <SvgIcon name="octicon-clock" class="ui text yellow mr-3" v-else-if="jobStep.status === 'waiting'"/>
-              <SvgIcon name="octicon-blocked" class="ui text yellow mr-3" v-else-if="jobStep.status === 'blocked'"/>
-              <SvgIcon name="octicon-meter" class="ui text yellow mr-3" class-name="job-status-rotate" v-else-if="jobStep.status === 'running'"/>
-              <SvgIcon name="octicon-x-circle-fill" class="red mr-3 " v-else/>
+              <SvgIcon name="octicon-check-circle-fill" class="green gt-mr-3" v-if="jobStep.status === 'success'"/>
+              <SvgIcon name="octicon-skip" class="ui text grey gt-mr-3" v-else-if="jobStep.status === 'skipped'"/>
+              <SvgIcon name="octicon-clock" class="ui text yellow gt-mr-3" v-else-if="jobStep.status === 'waiting'"/>
+              <SvgIcon name="octicon-blocked" class="ui text yellow gt-mr-3" v-else-if="jobStep.status === 'blocked'"/>
+              <SvgIcon name="octicon-meter" class="ui text yellow gt-mr-3" class-name="job-status-rotate" v-else-if="jobStep.status === 'running'"/>
+              <SvgIcon name="octicon-x-circle-fill" class="red gt-mr-3 " v-else/>
 
               <span class="step-summary-msg">{{ jobStep.summary }}</span>
               <span class="step-summary-dur">{{ jobStep.duration }}</span>
@@ -166,12 +168,14 @@ const sfc = {
       }
     },
     // rerun a job
-    rerunJob(idx) {
-      this.fetch(`${this.run.link}/jobs/${idx}/rerun`);
+    async rerunJob(idx) {
+      const jobLink = `${this.run.link}/jobs/${idx}`;
+      await this.fetchPost(`${jobLink}/rerun`);
+      window.location.href = jobLink;
     },
     // cancel a run
     cancelRun() {
-      this.fetch(`${this.run.link}/cancel`);
+      this.fetchPost(`${this.run.link}/cancel`);
     },
     // approve a run
     approveRun() {
@@ -213,7 +217,7 @@ const sfc = {
         // for example: make cursor=null means the first time to fetch logs, cursor=eof means no more logs, etc
         return {step: idx, cursor: it.cursor, expanded: it.expanded};
       });
-      const resp = await this.fetch(
+      const resp = await this.fetchPost(
         `${this.actionsURL}/runs/${this.runIndex}/jobs/${this.jobIndex}`,
         JSON.stringify({logCursors}),
       );
@@ -253,7 +257,7 @@ const sfc = {
       }
     },
 
-    fetch(url, body) {
+    fetchPost(url, body) {
       return fetch(url, {
         method: 'POST',
         headers: {
@@ -284,8 +288,6 @@ export function initRepositoryActionView() {
 
 <style scoped lang="less">
 
-// some elements are not managed by vue, so we need to use _actions.less in addition.
-
 .action-view-body {
   display: flex;
   height: calc(100vh - 266px); // fine tune this value to make the main view has full height
@@ -296,7 +298,7 @@ export function initRepositoryActionView() {
 
 .action-view-header {
   margin: 0 20px 20px 20px;
-  button.run_cancel {
+  .run_cancel {
     border: none;
     color: var(--color-red);
     background-color: transparent;
@@ -304,7 +306,7 @@ export function initRepositoryActionView() {
     cursor: pointer;
     transition:transform 0.2s;
   };
-  button.run_approve {
+  .run_approve {
     border: none;
     color: var(--color-green);
     background-color: transparent;
@@ -312,7 +314,7 @@ export function initRepositoryActionView() {
     cursor: pointer;
     transition:transform 0.2s;
   };
-  button.run_cancel:hover, button.run_approve:hover {
+  .run_cancel:hover, .run_approve:hover {
     transform:scale(130%);
   };
 }
@@ -340,14 +342,16 @@ export function initRepositoryActionView() {
   }
 
   .job-brief-list {
-    a.job-brief-item {
-      display: block;
+    .job-brief-item {
       margin: 5px 0;
       padding: 10px;
       background: var(--color-info-bg);
       border-radius: 5px;
       text-decoration: none;
-      button.job-brief-rerun {
+      display: flex;
+      justify-items: center;
+      flex-wrap: nowrap;
+      .job-brief-rerun {
         float: right;
         border: none;
         background-color: transparent;
@@ -355,11 +359,20 @@ export function initRepositoryActionView() {
         cursor: pointer;
         transition:transform 0.2s;
       };
-      button.job-brief-rerun:hover{
+      .job-brief-rerun:hover{
         transform:scale(130%);
       };
+      .job-brief-link {
+        flex-grow: 1;
+        display: flex;
+        span {
+          margin-right: 8px;
+          display: flex;
+          align-items: center;
+        }
+      }
     }
-    a.job-brief-item:hover {
+    .job-brief-item:hover {
       background-color: var(--color-secondary);
     }
   }
@@ -412,3 +425,56 @@ export function initRepositoryActionView() {
 }
 </style>
 
+<style lang="less">
+// some elements are not managed by vue, so we need to use global style
+
+// TODO: the parent element's full height doesn't work well now
+body > div.full.height {
+  padding-bottom: 0;
+}
+
+.job-status-rotate {
+  animation: job-status-rotate-keyframes 1s linear infinite;
+}
+@keyframes job-status-rotate-keyframes {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.job-step-section {
+  margin: 10px;
+  .job-step-logs {
+    font-family: monospace, monospace;
+    .job-log-line {
+      display: flex;
+      .line-num {
+        width: 48px;
+        color: var(--color-grey-light);
+        text-align: right;
+      }
+      .log-time {
+        color: var(--color-grey-light);
+        margin-left: 10px;
+        white-space: nowrap;
+      }
+      .log-msg {
+        flex: 1;
+        word-break: break-all;
+        white-space: break-spaces;
+        margin-left: 10px;
+      }
+    }
+
+    // TODO: group support
+    .job-log-group {
+    }
+
+    .job-log-group-summary {
+    }
+
+    .job-log-list {
+    }
+  }
+}
+</style>

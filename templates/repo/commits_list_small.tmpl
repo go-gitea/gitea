@@ -47,7 +47,7 @@
 		</span>
 
 		{{$commitLink:= printf "%s/commit/%s" $.comment.Issue.PullRequest.BaseRepo.Link (PathEscape .ID.String)}}
-		<span class="mono commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject $.root.Context .Message ($.comment.Issue.PullRequest.BaseRepo.Link|Escape) $commitLink $.comment.Issue.PullRequest.BaseRepo.ComposeMetas}}</span>
+		<span class="gt-mono commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject $.root.Context .Message ($.comment.Issue.PullRequest.BaseRepo.Link|Escape) $commitLink $.comment.Issue.PullRequest.BaseRepo.ComposeMetas}}</span>
 		{{if IsMultilineCommitMessage .Message}}
 			<button class="ui button ellipsis-button" aria-expanded="false">...</button>
 		{{end}}
