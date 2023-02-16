@@ -213,7 +213,7 @@
 							{{end}}
 						</span>
 					{{else}}
-						{{template "shared/user/avatarlink"  "user" .Assignee}}
+						{{template "shared/user/avatarlink" Dict "Context" $.Context "user" .Assignee}}
 						<span class="text grey muted-links">
 							{{template "shared/user/authorlink" .Assignee}}
 							{{if eq .Poster.ID .AssigneeID}}
