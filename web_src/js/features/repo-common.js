@@ -54,8 +54,8 @@ export function initRepoCloneLink() {
 
   // restore animation after first init
   setTimeout(() => {
-    $repoCloneSsh.removeClass('no-transition');
-    $repoCloneHttps.removeClass('no-transition');
+    $repoCloneSsh.removeClass('gt-no-transition');
+    $repoCloneHttps.removeClass('gt-no-transition');
   }, 100);
 
   $repoCloneSsh.on('click', () => {
