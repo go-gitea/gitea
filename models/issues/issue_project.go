@@ -63,6 +63,7 @@ func (issue *Issue) projectBoardID(ctx context.Context) int64 {
 func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board) (IssueList, error) {
 	issueList := make([]*Issue, 0, 10)
 
+	// FIXME: add a opts arg to check org/team/user permission
 	if b.ID != 0 {
 		issues, err := Issues(ctx, &IssuesOptions{
 			ProjectBoardID: b.ID,
@@ -142,7 +143,6 @@ func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.U
 				return fmt.Errorf("issue's repository is not the same as project's repository")
 			}
 		case project_model.TypeOrganization:
-			// TODO: org team permission check
 			if newProject.OwnerID != issue.Repo.OwnerID {
 				return fmt.Errorf("issue's repository's owner is not the same as project's repository's owner")
 			}

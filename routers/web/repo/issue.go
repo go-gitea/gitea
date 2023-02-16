@@ -872,6 +872,7 @@ func NewIssue(ctx *context.Context) {
 		}
 	}
 
+	// TODO: add org/user project support
 	projectID := ctx.FormInt64("project")
 	if projectID > 0 && isProjectsEnabled {
 		project, err := project_model.GetProjectByID(ctx, projectID)
@@ -1030,6 +1031,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 	}
 
 	projectLink := ""
+	projectId := int64(0)
 	if form.ProjectID > 0 {
 		p, err := project_model.GetProjectByID(ctx, form.ProjectID)
 		if err != nil {
@@ -1041,9 +1043,12 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 			return nil, nil, 0, 0, ""
 		}
 
+		// TODO: check project accessibility, if it is not accessable, return 0
+
 		ctx.Data["Project"] = p
 		ctx.Data["project_id"] = form.ProjectID
 
+		projectId = form.ProjectID
 		projectLink = p.Link()
 	}
 
@@ -1081,7 +1086,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 		assigneeIDs = append(assigneeIDs, form.AssigneeID)
 	}
 
-	return labelIDs, assigneeIDs, milestoneID, form.ProjectID, projectLink
+	return labelIDs, assigneeIDs, milestoneID, projectId, projectLink
 }
 
 // NewIssuePost response for creating new issue
