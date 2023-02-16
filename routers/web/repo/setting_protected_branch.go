@@ -165,8 +165,8 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 		return
 	}
 
-	var err error
 	if f.RuleID > 0 {
+		var err error
 		protectBranch, err = git_model.GetProtectedBranchRuleByID(ctx, ctx.Repo.Repository.ID, f.RuleID)
 		if err != nil {
 			ctx.ServerError("GetProtectedBranchRuleByID", err)
@@ -245,7 +245,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	protectBranch.UnprotectedFilePatterns = f.UnprotectedFilePatterns
 	protectBranch.BlockOnOutdatedBranch = f.BlockOnOutdatedBranch
 
-	err = git_model.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
+	err := git_model.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
 		UserIDs:          whitelistUsers,
 		TeamIDs:          whitelistTeams,
 		MergeUserIDs:     mergeWhitelistUsers,
