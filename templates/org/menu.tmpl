@@ -29,6 +29,11 @@
 					<div class="ui primary label">{{.NumTeams}}</div>
 				{{end}}
 			</a>
+			{{if .IsOrganizationOwner}}
+				<a class="{{if $.PageIsOrgTimes}}active{{end}} item" href="{{$.OrgLink}}/times/by_repos">
+					{{svg "octicon-clock"}}&nbsp;{{$.locale.Tr "org.worktime"}}
+				</a>
+			{{end}}
 		{{end}}
 
 		{{if .IsOrganizationOwner}}
