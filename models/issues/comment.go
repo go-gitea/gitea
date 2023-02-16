@@ -1549,3 +1549,8 @@ func FixCommentTypeLabelWithOutsideLabels() (int64, error) {
 
 	return res.RowsAffected()
 }
+
+// HasOriginalAuthor returns if a comment was migrated and has an original author.
+func (c *Comment) HasOriginalAuthor() bool {
+	return c.OriginalAuthor != "" && c.OriginalAuthorID != 0
+}
