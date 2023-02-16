@@ -33,7 +33,7 @@ type ResultTimesByMembers struct {
 }
 
 // GetTimesByRepos fetches data from DB to serve TimesByRepos.
-func (org *Organization) GetTimesByRepos(unixfrom, unixto int64) (results []ResultTimesByRepos, err error) {
+func GetTimesByRepos(org *Organization, unixfrom, unixto int64) (results []ResultTimesByRepos, err error) {
 	// Get the data from the DB
 	err = db.GetEngine(db.DefaultContext).
 		Select("repository.name, SUM(tracked_time.time) AS sum_time").
@@ -51,7 +51,7 @@ func (org *Organization) GetTimesByRepos(unixfrom, unixto int64) (results []Resu
 }
 
 // GetTimesByMilestones gets the actual data from the DB to serve TimesByMilestones.
-func (org *Organization) GetTimesByMilestones(unixfrom, unixto int64) (results []ResultTimesByMilestones, err error) {
+func GetTimesByMilestones(org *Organization, unixfrom, unixto int64) (results []ResultTimesByMilestones, err error) {
 	err = db.GetEngine(db.DefaultContext).
 		Select("repository.name AS repo_name, milestone.name, milestone.id, SUM(tracked_time.time) AS sum_time").
 		Table("tracked_time").
@@ -70,7 +70,7 @@ func (org *Organization) GetTimesByMilestones(unixfrom, unixto int64) (results [
 }
 
 // getTimesByMembers gets the actual data from the DB to serve TimesByMembers.
-func (org *Organization) GetTimesByMembers(unixfrom, unixto int64) (results []ResultTimesByMembers, err error) {
+func GetTimesByMembers(org *Organization, unixfrom, unixto int64) (results []ResultTimesByMembers, err error) {
 	err = db.GetEngine(db.DefaultContext).
 		Select("user.name, SUM(tracked_time.time) AS sum_time").
 		Table("tracked_time").

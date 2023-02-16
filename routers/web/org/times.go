@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -70,7 +71,7 @@ func TimesByRepos(ctx *context.Context) {
 	// Set submenu tab
 	ctx.Data["TabIsByRepos"] = true
 
-	results, err := ctx.Org.Organization.GetTimesByRepos(unixfrom, unixto)
+	results, err := organization.GetTimesByRepos(ctx.Org.Organization, unixfrom, unixto)
 	if err != nil {
 		ctx.ServerError("getTimesByRepos", err)
 		return
@@ -97,7 +98,7 @@ func TimesByMilestones(ctx *context.Context) {
 	ctx.Data["TabIsByMilestones"] = true
 
 	// Get the data from the DB
-	results, err := ctx.Org.Organization.GetTimesByMilestones(unixfrom, unixto)
+	results, err := organization.GetTimesByMilestones(ctx.Org.Organization, unixfrom, unixto)
 	if err != nil {
 		ctx.ServerError("getTimesByMilestones", err)
 		return
@@ -136,7 +137,7 @@ func TimesByMembers(ctx *context.Context) {
 	ctx.Data["TabIsByMembers"] = true
 
 	// Get the data from the DB
-	results, err := ctx.Org.Organization.GetTimesByMembers(unixfrom, unixto)
+	results, err := organization.GetTimesByMembers(ctx.Org.Organization, unixfrom, unixto)
 	if err != nil {
 		ctx.ServerError("getTimesByMembers", err)
 		return

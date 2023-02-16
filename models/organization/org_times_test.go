@@ -3,10 +3,9 @@
 // license that can be found in the LICENSE file.
 // SPDX-License-Identifier: MIT
 
-package orgtime_test
+package organization_test
 
 import (
-	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -17,21 +16,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
-
-// TestMain sets up the testing environment specifically for testing org times.
-func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", "..", ".."),
-		FixtureFiles: []string{
-			"user.yml",
-			"org_user.yml",
-			"repository.yml",
-			"issue.yml",
-			"milestone.yml",
-			"tracked_time.yml",
-		},
-	})
-}
 
 // TestTimesPrepareDB prepares the database for the following tests.
 func TestTimesPrepareDB(t *testing.T) {
@@ -113,7 +97,7 @@ func TestTimesByRepos(t *testing.T) {
 		t.Run(kase.name, func(t *testing.T) {
 			org, err := organization.GetOrgByID(db.DefaultContext, kase.orgname)
 			assert.NoError(t, err)
-			results, err := org.GetTimesByRepos(kase.unixfrom, kase.unixto)
+			results, err := organization.GetTimesByRepos(org, kase.unixfrom, kase.unixto)
 			assert.NoError(t, err)
 			assert.Equal(t, kase.expected, results)
 		})
@@ -217,7 +201,7 @@ func TestTimesByMilestones(t *testing.T) {
 		t.Run(kase.name, func(t *testing.T) {
 			org, err := organization.GetOrgByID(db.DefaultContext, kase.orgname)
 			assert.NoError(t, err)
-			results, err := org.GetTimesByMilestones(kase.unixfrom, kase.unixto)
+			results, err := organization.GetTimesByMilestones(org, kase.unixfrom, kase.unixto)
 			assert.NoError(t, err)
 			assert.Equal(t, kase.expected, results)
 		})
@@ -300,7 +284,7 @@ func TestTimesByMembers(t *testing.T) {
 		t.Run(kase.name, func(t *testing.T) {
 			org, err := organization.GetOrgByID(db.DefaultContext, kase.orgname)
 			assert.NoError(t, err)
-			results, err := org.GetTimesByMembers(kase.unixfrom, kase.unixto)
+			results, err := organization.GetTimesByMembers(org, kase.unixfrom, kase.unixto)
 			assert.NoError(t, err)
 			assert.Equal(t, kase.expected, results)
 		})
