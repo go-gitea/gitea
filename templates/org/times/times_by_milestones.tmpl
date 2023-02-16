@@ -23,17 +23,17 @@
 						<tr>
 							<td>
 								{{if not .HideRepoName}}
-									{{svg "octicon-repo" 16 "mr-2"}}<a href="{{$.Org.HomeLink}}/{{.RepoName}}/issues">{{.RepoName}}
+									{{svg "octicon-repo" 16 "gt-mr-2"}}<a href="{{$.Org.HomeLink}}/{{.RepoName}}/issues">{{.RepoName}}
 								{{end}}
 							</td>
 							<td>
 								{{if .Name}}
-									{{svg "octicon-milestone" 16 "mr-2"}}<a href="{{$.Org.HomeLink}}/{{.RepoName}}/milestone/{{.ID}}">{{.Name}}</a></td>
+									{{svg "octicon-milestone" 16 "gt-mr-2"}}<a href="{{$.Org.HomeLink}}/{{.RepoName}}/milestone/{{.ID}}">{{.Name}}</a></td>
 								{{else}}
 									—
 								{{end}}
 							<td>
-								{{svg "octicon-clock" 16 "mr-2"}}
+								{{svg "octicon-clock" 16 "gt-mr-2"}}
 								{{.SumTime | Sec2Hour}}
 							</td>
 						</tr>

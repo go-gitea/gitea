@@ -20,9 +20,9 @@
 						<tbody>
 						{{range $.results}}
 						<tr>
-							<td>{{svg "octicon-repo" 16 "mr-2"}}<a href="{{$.Org.HomeLink}}/{{.Name}}/issues">{{.Name}}</a></td>
+							<td>{{svg "octicon-repo" 16 "gt-mr-2"}}<a href="{{$.Org.HomeLink}}/{{.Name}}/issues">{{.Name}}</a></td>
 							<td>
-								{{svg "octicon-clock" 16 "mr-2"}}
+								{{svg "octicon-clock" 16 "gt-mr-2"}}
 								{{.SumTime | Sec2Hour}}
 							</td>
 						</tr>
