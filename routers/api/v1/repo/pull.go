@@ -1423,7 +1423,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 		&gitdiff.DiffOptions{
 			BeforeCommitID:     startCommitID,
 			AfterCommitID:      endCommitID,
-			SkipTo:             ctx.FormString("skip-to"),
+			SkipTo:             "",
 			MaxLines:           maxLines,
 			MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
 			MaxFiles:           maxFiles,
