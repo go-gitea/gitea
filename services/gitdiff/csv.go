@@ -119,8 +119,12 @@ func CreateCsvDiff(diffFile *DiffFile, baseReader, headReader *csv.Reader) ([]*T
 
 	if baseReader != nil {
 		return createCsvDiffSingle(baseReader, TableDiffCellDel)
+	} else if headReader != nil {
+		return createCsvDiffSingle(headReader, TableDiffCellAdd)
 	}
-	return createCsvDiffSingle(headReader, TableDiffCellAdd)
+	// If a CSV file was deleted from both branches, then baseReader and headReader are nil, no need to "diff" them
+	// The UI will show a "deleted" change correctly.
+	return nil, nil
 }
 
 // createCsvDiffSingle creates a tabular diff based on a single CSV reader. All cells are added or deleted.
