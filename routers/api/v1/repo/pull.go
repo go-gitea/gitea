@@ -28,7 +28,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
@@ -1356,10 +1355,6 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	//   required: true
-	// - name: skip-to
-	//   in: query
-	//   description: skip to given file
-	//   type: string
 	// - name: whitespace
 	//   in: query
 	//   description: whitespace behavior
@@ -1421,7 +1416,8 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 	startCommitID := prInfo.MergeBase
 	endCommitID := headCommitID
 
-	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
+	maxLines := setting.Git.MaxGitDiffLines
+	maxFiles := -1 // GetDiff will return all files
 
 	diff, err := gitdiff.GetDiff(baseGitRepo,
 		&gitdiff.DiffOptions{
@@ -1438,23 +1434,35 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 		return
 	}
 
+	listOptions := utils.GetListOptions(ctx)
+
 	totalNumberOfFiles := diff.NumFiles
-	totalNumberOfPages := int(math.Ceil(float64(totalNumberOfFiles) / float64(maxFiles)))
-	lenFiles := len(diff.Files)
+	totalNumberOfPages := int(math.Ceil(float64(totalNumberOfFiles) / float64(listOptions.PageSize)))
+
+	start, end := listOptions.GetStartEnd()
+
+	if end > totalNumberOfFiles {
+		end = totalNumberOfFiles
+	}
+
+	lenFiles := end - start
+	if lenFiles < 0 {
+		lenFiles = 0
+	}
 
 	apiFiles := make([]*api.ChangedFile, 0, lenFiles)
-	for i := 0; i < lenFiles; i++ {
+	for i := start; i < end; i++ {
 		apiFiles = append(apiFiles, convert.ToChangedFile(diff.Files[i], pr.HeadRepo, endCommitID))
 	}
 
-	ctx.SetLinkHeader(totalNumberOfFiles, maxFiles)
+	ctx.SetLinkHeader(totalNumberOfFiles, listOptions.PageSize)
 	ctx.SetTotalCountHeader(int64(totalNumberOfFiles))
 
-	ctx.RespHeader().Set("X-Diff-End", diff.End)
-	ctx.RespHeader().Set("X-PerPage", strconv.Itoa(maxFiles))
+	ctx.RespHeader().Set("X-Page", strconv.Itoa(listOptions.Page))
+	ctx.RespHeader().Set("X-PerPage", strconv.Itoa(listOptions.PageSize))
 	ctx.RespHeader().Set("X-PageCount", strconv.Itoa(totalNumberOfPages))
-	ctx.RespHeader().Set("X-HasMore", strconv.FormatBool(!util.IsEmptyString(diff.End)))
-	ctx.AppendAccessControlExposeHeaders("X-Diff-End", "X-PerPage", "X-PageCount", "X-HasMore")
+	ctx.RespHeader().Set("X-HasMore", strconv.FormatBool(listOptions.Page < totalNumberOfPages))
+	ctx.AppendAccessControlExposeHeaders("X-Page", "X-PerPage", "X-PageCount", "X-HasMore")
 
 	ctx.JSON(http.StatusOK, &apiFiles)
 }
