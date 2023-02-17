@@ -1,14 +1,14 @@
 <template>
   <div
     v-if="fileTreeIsVisible"
-    class="mr-3 mt-3 diff-detail-box"
+    class="gt-mr-3 gt-mt-3 diff-detail-box"
   >
     <!-- only render the tree if we're visible. in many cases this is something that doesn't change very often -->
     <div class="ui list">
       <DiffFileTreeItem v-for="item in fileTree" :key="item.name" :item="item" />
     </div>
-    <div v-if="isIncomplete" id="diff-too-many-files-stats" class="pt-2">
-      <span class="mr-2">{{ tooManyFilesMessage }}</span><a :class="['ui', 'basic', 'tiny', 'button', isLoadingNewData === true ? 'disabled' : '']" id="diff-show-more-files-stats" @click.stop="loadMoreData">{{ showMoreMessage }}</a>
+    <div v-if="isIncomplete" id="diff-too-many-files-stats" class="gt-pt-2">
+      <span class="gt-mr-2">{{ tooManyFilesMessage }}</span><a :class="['ui', 'basic', 'tiny', 'button', isLoadingNewData === true ? 'disabled' : '']" id="diff-show-more-files-stats" @click.stop="loadMoreData">{{ showMoreMessage }}</a>
     </div>
   </div>
 </template>
