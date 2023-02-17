@@ -173,11 +173,17 @@ func CreateBranch(ctx *context.APIContext) {
 		return
 	}
 
-	if len(opt.OldBranchName) == 0 {
-		opt.OldBranchName = ctx.Repo.Repository.DefaultBranch
+	if len(opt.OldRefName) == 0 {
+		opt.OldRefName = ctx.Repo.Repository.DefaultBranch
 	}
 
-	err := repo_service.CreateNewBranch(ctx, ctx.Doer, ctx.Repo.Repository, opt.OldBranchName, opt.BranchName)
+	oldCommit, err := ctx.Repo.GitRepo.GetCommit(opt.OldRefName)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetCommit", err)
+		return
+	}
+
+	err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, oldCommit.ID.String(), opt.BranchName)
 	if err != nil {
 		if models.IsErrBranchDoesNotExist(err) {
 			ctx.Error(http.StatusNotFound, "", "The old branch does not exist")
@@ -189,7 +195,7 @@ func CreateBranch(ctx *context.APIContext) {
 		} else if models.IsErrBranchNameConflict(err) {
 			ctx.Error(http.StatusConflict, "", "The branch with the same name already exists.")
 		} else {
-			ctx.Error(http.StatusInternalServerError, "CreateRepoBranch", err)
+			ctx.Error(http.StatusInternalServerError, "CreateNewBranchFromCommit", err)
 		}
 		return
 	}
