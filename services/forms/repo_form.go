@@ -160,6 +160,7 @@ type RepoSettingForm struct {
 	EnableAutodetectManualMerge           bool
 	PullsAllowRebaseUpdate                bool
 	DefaultDeleteBranchAfterMerge         bool
+	DefaultAllowMaintainerEdit            bool
 	EnableTimetracker                     bool
 	AllowOnlyContributorsToTrackTime      bool
 	EnableIssueDependencies               bool

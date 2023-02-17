@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_17"
 	"code.gitea.io/gitea/models/migrations/v1_18"
 	"code.gitea.io/gitea/models/migrations/v1_19"
+	"code.gitea.io/gitea/models/migrations/v1_20"
 	"code.gitea.io/gitea/models/migrations/v1_6"
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
@@ -458,7 +459,9 @@ var migrations = []Migration{
 	// v241 -> v242
 	NewMigration("Add card_type column to project table", v1_19.AddCardTypeToProjectTable),
 	// v242 -> v243
-	NewMigration("Add exclusive label", v1_19.AddExclusiveLabel),
+	NewMigration("Alter gpg_key_import content TEXT field to MEDIUMTEXT", v1_19.AlterPublicGPGKeyImportContentFieldToMediumText),
+	// v243 -> v244
+	NewMigration("Add exclusive label", v1_20.AddExclusiveLabel),
 }
 
 // GetCurrentDBVersion returns the current db version

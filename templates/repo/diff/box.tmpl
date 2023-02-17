@@ -13,21 +13,21 @@
 	<h4>{{.locale.Tr "repo.diff.data_not_available"}}</h4>
 {{else}}
 	<div>
-		<div class="diff-detail-box diff-box sticky df sb ac fw">
-			<div class="df ac fw">
-				<a class="diff-toggle-file-tree-button muted df ac">
+		<div class="diff-detail-box diff-box sticky gt-df gt-sb gt-ac gt-fw">
+			<div class="gt-df gt-ac gt-fw">
+				<a class="diff-toggle-file-tree-button muted gt-df gt-ac">
 					{{/* the icon meaning is reversed here, "octicon-sidebar-collapse" means show the file tree */}}
 					{{svg "octicon-sidebar-collapse" 20 "icon hide"}}
 					{{svg "octicon-sidebar-expand" 20 "icon"}}
 				</a>
-				<div class="diff-detail-stats df ac ml-3">
-					{{svg "octicon-diff" 16 "mr-2"}}{{.locale.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
+				<div class="diff-detail-stats gt-df gt-ac gt-ml-3">
+					{{svg "octicon-diff" 16 "gt-mr-2"}}{{.locale.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
 				</div>
 			</div>
-			<div class="diff-detail-actions df ac">
+			<div class="diff-detail-actions gt-df gt-ac">
 				{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
-					<progress id="viewed-files-summary" class="mr-2" value="{{.Diff.NumViewedFiles}}" max="{{.Diff.NumFiles}}"></progress>
-					<label for="viewed-files-summary" id="viewed-files-summary-label" class="mr-3" data-text-changed-template="{{.locale.Tr "repo.pulls.viewed_files_label"}}">
+					<progress id="viewed-files-summary" class="gt-mr-2" value="{{.Diff.NumViewedFiles}}" max="{{.Diff.NumFiles}}"></progress>
+					<label for="viewed-files-summary" id="viewed-files-summary-label" class="gt-mr-3" data-text-changed-template="{{.locale.Tr "repo.pulls.viewed_files_label"}}">
 						{{.locale.Tr "repo.pulls.viewed_files_label" .Diff.NumViewedFiles .Diff.NumFiles}}
 					</label>
 				{{end}}
@@ -77,34 +77,34 @@
 						{{$isCsv := (call $.IsCsvFile $file)}}
 						{{$showFileViewToggle := or $isImage (and (not $file.IsIncomplete) $isCsv)}}
 						{{$isExpandable := or (gt $file.Addition 0) (gt $file.Deletion 0) $file.IsBin}}
-						<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}} mt-3" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if or ($file.ShouldBeHidden) (not $isExpandable)}}data-folded="true"{{end}}>
-							<h4 class="diff-file-header sticky-2nd-row ui top attached normal header df ac sb">
-								<div class="df ac">
-									<a role="button" class="fold-file muted mr-2" {{if not $isExpandable}}style="visibility: hidden"{{end}}>
+						<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}} gt-mt-3" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if or ($file.ShouldBeHidden) (not $isExpandable)}}data-folded="true"{{end}}>
+							<h4 class="diff-file-header sticky-2nd-row ui top attached normal header gt-df gt-ac gt-sb">
+								<div class="gt-df gt-ac">
+									<a role="button" class="fold-file muted gt-mr-2" {{if not $isExpandable}}style="visibility: hidden"{{end}}>
 										{{if $file.ShouldBeHidden}}
 											{{svg "octicon-chevron-right" 18}}
 										{{else}}
 											{{svg "octicon-chevron-down" 18}}
 										{{end}}
 									</a>
-									<div class="bold df ac mono">
+									<div class="gt-bold gt-df gt-ac gt-mono">
 										{{if $file.IsBin}}
-											<span class="ml-1 mr-3">
+											<span class="gt-ml-1 gt-mr-3">
 												{{$.locale.Tr "repo.diff.bin"}}
 											</span>
 										{{else}}
 											{{template "repo/diff/stats" dict "file" . "root" $}}
 										{{end}}
 									</div>
-									<span class="file mono"><a class="muted" href="#diff-{{$file.NameHash}}">{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}</a>{{if .IsLFSFile}} ({{$.locale.Tr "repo.stored_lfs"}}){{end}}</span>
+									<span class="file gt-mono"><a class="muted" href="#diff-{{$file.NameHash}}">{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}</a>{{if .IsLFSFile}} ({{$.locale.Tr "repo.stored_lfs"}}){{end}}</span>
 									{{if $file.IsGenerated}}
-										<span class="ui label ml-3">{{$.locale.Tr "repo.diff.generated"}}</span>
+										<span class="ui label gt-ml-3">{{$.locale.Tr "repo.diff.generated"}}</span>
 									{{end}}
 									{{if $file.IsVendored}}
-										<span class="ui label ml-3">{{$.locale.Tr "repo.diff.vendored"}}</span>
+										<span class="ui label gt-ml-3">{{$.locale.Tr "repo.diff.vendored"}}</span>
 									{{end}}
 								</div>
-								<div class="diff-file-header-actions df ac">
+								<div class="diff-file-header-actions gt-df gt-ac">
 									{{if $showFileViewToggle}}
 										<div class="ui compact icon buttons">
 											<span class="ui tiny basic button tooltip file-view-toggle" data-toggle-selector="#diff-source-{{$file.NameHash}}" data-content="{{$.locale.Tr "repo.file_view_source"}}" data-position="bottom center">{{svg "octicon-code"}}</span>
@@ -162,7 +162,7 @@
 								</div>
 								{{if $showFileViewToggle}}
 									<div id="diff-rendered-{{$file.NameHash}}" class="file-body file-code {{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}">
-										<table class="chroma w-100">
+										<table class="chroma gt-w-100">
 											{{if $isImage}}
 												{{template "repo/diff/image_diff" dict "file" . "root" $ "blobBase" $blobBase "blobHead" $blobHead}}
 											{{else}}
@@ -176,8 +176,8 @@
 					{{end}}
 
 					{{if .Diff.IsIncomplete}}
-						<div class="diff-file-box diff-box file-content mt-3" id="diff-incomplete">
-							<h4 class="ui top attached normal header df ac sb">
+						<div class="diff-file-box diff-box file-content gt-mt-3" id="diff-incomplete">
+							<h4 class="ui top attached normal header gt-df gt-ac gt-sb">
 								{{$.locale.Tr "repo.diff.too_many_files"}}
 								<a class="ui basic tiny button" id="diff-show-more-files" data-href="{{$.Link}}?skip-to={{.Diff.End}}&file-only=true">{{.locale.Tr "repo.diff.show_more"}}</a>
 							</h4>

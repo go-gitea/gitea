@@ -205,9 +205,9 @@ func notifyRelease(ctx context.Context, doer *user_model.User, rel *repo_model.R
 		WithRef(ref).
 		WithPayload(&api.ReleasePayload{
 			Action:     action,
-			Release:    convert.ToRelease(rel),
+			Release:    convert.ToRelease(ctx, rel),
 			Repository: convert.ToRepo(ctx, rel.Repo, mode),
-			Sender:     convert.ToUser(doer, nil),
+			Sender:     convert.ToUser(ctx, doer, nil),
 		}).
 		Notify(ctx)
 }
@@ -230,7 +230,7 @@ func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_mo
 		WithPayload(&api.PackagePayload{
 			Action:  action,
 			Package: apiPackage,
-			Sender:  convert.ToUser(sender, nil),
+			Sender:  convert.ToUser(ctx, sender, nil),
 		}).
 		Notify(ctx)
 }

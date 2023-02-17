@@ -820,6 +820,13 @@ func CompareDiff(ctx *context.Context) {
 
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(unit.TypePullRequests)
 
+	if unit, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypePullRequests); err == nil {
+		config := unit.PullRequestsConfig()
+		ctx.Data["AllowMaintainerEdit"] = config.DefaultAllowMaintainerEdit
+	} else {
+		ctx.Data["AllowMaintainerEdit"] = false
+	}
+
 	ctx.HTML(http.StatusOK, tplCompare)
 }
 
