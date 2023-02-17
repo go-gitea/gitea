@@ -199,7 +199,7 @@ func processBlameParts(ctx *context.Context, blameParts []git.BlamePart) (map[st
 	}
 
 	// populate commit email addresses to later look up avatars.
-	for _, c := range user_model.ValidateCommitsWithEmails(commits) {
+	for _, c := range user_model.ValidateCommitsWithEmails(ctx, commits) {
 		commitNames[c.ID.String()] = c
 	}
 
@@ -262,9 +262,9 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 
 				var avatar string
 				if commit.User != nil {
-					avatar = string(templates.Avatar(commit.User, 18, "gt-mr-3"))
+					avatar = string(templates.Avatar(ctx, commit.User, 18, "gt-mr-3"))
 				} else {
-					avatar = string(templates.AvatarByEmail(commit.Author.Email, commit.Author.Name, 18, "gt-mr-3"))
+					avatar = string(templates.AvatarByEmail(ctx, commit.Author.Email, commit.Author.Name, 18, "gt-mr-3"))
 				}
 
 				br.Avatar = gotemplate.HTML(avatar)
