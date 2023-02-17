@@ -4,14 +4,23 @@
 package v1_19 //nolint
 
 import (
+	"code.gitea.io/gitea/modules/setting"
+
 	"xorm.io/xorm"
 )
 
-// AddLFSSizeToRepositoryTable: add LFSSize column to Repository
-func AddLFSSizeToRepositoryTable(x *xorm.Engine) error {
-	type Repository struct {
-		LFSSize int64 `xorm:"NOT NULL DEFAULT 0"`
+// AlterPublicGPGKeyImportContentFieldToMediumText: set GPGKeyImport Content field to MEDIUMTEXT
+func AlterPublicGPGKeyImportContentFieldToMediumText(x *xorm.Engine) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
 	}
 
-	return x.Sync2(new(Repository))
+	if setting.Database.UseMySQL {
+		if _, err := sess.Exec("ALTER TABLE `gpg_key_import` CHANGE `content` `content` MEDIUMTEXT"); err != nil {
+			return err
+		}
+	}
+	return sess.Commit()
 }

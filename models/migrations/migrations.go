@@ -458,6 +458,8 @@ var migrations = []Migration{
 	// v241 -> v242
 	NewMigration("Add card_type column to project table", v1_19.AddCardTypeToProjectTable),
 	// v242 -> v243
+	NewMigration("Alter gpg_key_import content TEXT field to MEDIUMTEXT", v1_19.AlterPublicGPGKeyImportContentFieldToMediumText),
+	// v243 -> v244
 	NewMigration("Add lfs_size column to repository table", v1_19.AddLFSSizeToRepositoryTable),
 }
 

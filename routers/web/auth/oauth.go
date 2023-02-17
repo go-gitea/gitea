@@ -225,7 +225,7 @@ func newAccessTokenResponse(ctx stdContext.Context, grant *auth.OAuth2Grant, ser
 			idToken.Name = user.GetDisplayName()
 			idToken.PreferredUsername = user.Name
 			idToken.Profile = user.HTMLURL()
-			idToken.Picture = user.AvatarLink()
+			idToken.Picture = user.AvatarLink(ctx)
 			idToken.Website = user.Website
 			idToken.Locale = user.Language
 			idToken.UpdatedAt = user.UpdatedUnix
@@ -286,7 +286,7 @@ func InfoOAuth(ctx *context.Context) {
 		Name:     ctx.Doer.FullName,
 		Username: ctx.Doer.Name,
 		Email:    ctx.Doer.Email,
-		Picture:  ctx.Doer.AvatarLink(),
+		Picture:  ctx.Doer.AvatarLink(ctx),
 	}
 
 	groups, err := getOAuthGroupsForUser(ctx.Doer)
