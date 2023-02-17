@@ -1355,6 +1355,10 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	//   required: true
+	// - name: skip-to
+	//   in: query
+	//   description: skip to given file
+	//   type: string
 	// - name: whitespace
 	//   in: query
 	//   description: whitespace behavior
