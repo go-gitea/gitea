@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -210,7 +211,7 @@ func checkTeamResponse(t *testing.T, testName string, apiTeam *api.Team, name, d
 func checkTeamBean(t *testing.T, id int64, name, description string, includesAllRepositories bool, permission string, units []string, unitsMap map[string]string) {
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: id})
 	assert.NoError(t, team.GetUnits(), "GetUnits")
-	apiTeam, err := convert.ToTeam(team)
+	apiTeam, err := convert.ToTeam(db.DefaultContext, team)
 	assert.NoError(t, err)
 	checkTeamResponse(t, fmt.Sprintf("checkTeamBean/%s_%s", name, description), apiTeam, name, description, includesAllRepositories, permission, units, unitsMap)
 }

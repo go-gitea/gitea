@@ -651,6 +651,10 @@ a.commit-statuses-trigger {
   color: var(--color-text-dark);
 }
 
+.ui.search > .results .result .description {
+  color: var(--color-text-light-2);
+}
+
 .ui.search > .results .result .image {
   width: auto;
   height: auto;
@@ -1803,16 +1807,9 @@ footer {
   }
 }
 
+// TODO: refactor to use ".gt-hidden" instead (a simple search&replace should do the trick)
 .hide {
   display: none;
-
-  &.show-outdated {
-    display: none !important;
-  }
-
-  &.hide-outdated {
-    display: none !important;
-  }
 }
 
 .center:not(.popup) {
