@@ -15,7 +15,7 @@
 					<div class="item">
 						<div class="right floated content">
 								<button class="ui red tiny button delete-button" data-modal-id="delete-token" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
-									{{svg "octicon-trash" 16 "mr-2"}}
+									{{svg "octicon-trash" 16 "gt-mr-2"}}
 									{{$.locale.Tr "settings.delete_token"}}
 								</button>
 						</div>
@@ -42,16 +42,16 @@
 					<input id="name" name="name" value="{{.name}}" autofocus required>
 				</div>
 				<details class="ui optional field">
-					<summary class="p-2">
+					<summary class="gt-p-2">
 						{{.locale.Tr "settings.select_scopes"}}
 					</summary>
-					<div class="field pl-2">
+					<div class="field gt-pl-2">
 						<div class="ui checkbox">
 							<input class="enable-system" type="checkbox" name="scope" value="repo">
 							<label>repo</label>
 						</div>
 					</div>
-					<div class="field pl-4">
+					<div class="field gt-pl-4">
 						<div class="field">
 							<div class="ui checkbox">
 								<input class="enable-system" type="checkbox" name="scope" value="repo:status">
@@ -71,7 +71,7 @@
 							<label>admin:org</label>
 						</div>
 					</div>
-					<div class="field pl-4">
+					<div class="field gt-pl-4">
 						<div class="field">
 							<div class="ui checkbox">
 								<input class="enable-system" type="checkbox" name="scope" value="write:org">
@@ -91,7 +91,7 @@
 							<label>admin:public_key</label>
 						</div>
 					</div>
-					<div class="field pl-4">
+					<div class="field gt-pl-4">
 						<div class="field">
 							<div class="ui checkbox">
 								<input class="enable-system" type="checkbox" name="scope" value="write:public_key">
@@ -111,7 +111,7 @@
 							<label>admin:repo_hook</label>
 						</div>
 					</div>
-					<div class="field pl-4">
+					<div class="field gt-pl-4">
 						<div class="field">
 							<div class="ui checkbox">
 								<input class="enable-system" type="checkbox" name="scope" value="write:repo_hook">
@@ -143,7 +143,7 @@
 							<label>user</label>
 						</div>
 					</div>
-					<div class="field pl-4">
+					<div class="field gt-pl-4">
 						<div class="field">
 							<div class="ui checkbox">
 								<input class="enable-system" type="checkbox" name="scope" value="read:user">
@@ -175,7 +175,7 @@
 							<label>package</label>
 						</div>
 					</div>
-					<div class="field pl-4">
+					<div class="field gt-pl-4">
 						<div class="field">
 							<div class="ui checkbox">
 								<input class="enable-system" type="checkbox" name="scope" value="write:package">
@@ -201,7 +201,7 @@
 							<label>admin:gpg_key</label>
 						</div>
 					</div>
-					<div class="field pl-4">
+					<div class="field gt-pl-4">
 						<div class="field">
 							<div class="ui checkbox">
 								<input class="enable-system" type="checkbox" name="scope" value="write:gpg_key">
@@ -221,7 +221,7 @@
 							<label>admin:application</label>
 						</div>
 					</div>
-					<div class="field pl-4">
+					<div class="field gt-pl-4">
 						<div class="field">
 							<div class="ui checkbox">
 								<input class="enable-system" type="checkbox" name="scope" value="write:application">

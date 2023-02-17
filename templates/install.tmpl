@@ -176,7 +176,7 @@
 
 					<!-- Email -->
 					<details class="optional field">
-						<summary class="title py-3{{if .Err_SMTP}} text red{{end}}">
+						<summary class="title gt-py-3{{if .Err_SMTP}} text red{{end}}">
 							{{.locale.Tr "install.email_title"}}
 						</summary>
 						<div class="inline field">
@@ -216,7 +216,7 @@
 
 					<!-- Server and other services -->
 					<details class="optional field">
-						<summary class="title py-3{{if .Err_Services}} text red{{end}}">
+						<summary class="title gt-py-3{{if .Err_Services}} text red{{end}}">
 							{{.locale.Tr "install.server_service_title"}}
 						</summary>
 						<div class="inline field">
@@ -314,7 +314,7 @@
 
 					<!-- Admin -->
 					<details class="optional field">
-						<summary class="title py-3{{if .Err_Admin}} text red{{end}}">
+						<summary class="title gt-py-3{{if .Err_Admin}} text red{{end}}">
 							{{.locale.Tr "install.admin_title"}}
 						</summary>
 						<p class="center">{{.locale.Tr "install.admin_setting_desc"}}</p>

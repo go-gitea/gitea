@@ -101,7 +101,7 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 				if err != nil {
 					return err
 				}
-				verification := asymkey_model.ParseCommitWithSignature(commit)
+				verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
 				if !verification.Verified {
 					cancel()
 					return &errUnverifiedCommit{

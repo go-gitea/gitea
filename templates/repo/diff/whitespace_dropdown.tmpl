@@ -3,26 +3,26 @@
 	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 	<div class="menu">
 		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=show-all">
-			<label class="pointer-events-none">
-				<input class="mr-3 pointer-events-none" type="radio"{{if eq .WhitespaceBehavior "show-all"}} checked{{end}}>
+			<label class="gt-pointer-events-none">
+				<input class="gt-mr-3 gt-pointer-events-none" type="radio"{{if eq .WhitespaceBehavior "show-all"}} checked{{end}}>
 				{{.locale.Tr "repo.diff.whitespace_show_everything"}}
 			</label>
 		</a>
 		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-all">
-			<label class="pointer-events-none">
-				<input class="mr-3 pointer-events-none" type="radio"{{if eq .WhitespaceBehavior "ignore-all"}} checked{{end}}>
+			<label class="gt-pointer-events-none">
+				<input class="gt-mr-3 gt-pointer-events-none" type="radio"{{if eq .WhitespaceBehavior "ignore-all"}} checked{{end}}>
 				{{.locale.Tr "repo.diff.whitespace_ignore_all_whitespace"}}
 				<label>
 		</a>
 		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-change">
-			<label class="pointer-events-none">
-				<input class="mr-3 pointer-events-none" type="radio"{{if eq .WhitespaceBehavior "ignore-change"}} checked{{end}}>
+			<label class="gt-pointer-events-none">
+				<input class="gt-mr-3 gt-pointer-events-none" type="radio"{{if eq .WhitespaceBehavior "ignore-change"}} checked{{end}}>
 				{{.locale.Tr "repo.diff.whitespace_ignore_amount_changes"}}
 			</label>
 		</a>
 		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-eol">
-			<label class="pointer-events-none">
-				<input class="mr-3 pointer-events-none" type="radio"{{if eq .WhitespaceBehavior "ignore-eol"}} checked{{end}}>
+			<label class="gt-pointer-events-none">
+				<input class="gt-mr-3 gt-pointer-events-none" type="radio"{{if eq .WhitespaceBehavior "ignore-eol"}} checked{{end}}>
 				{{.locale.Tr "repo.diff.whitespace_ignore_at_eol"}}
 			</label>
 		</a>
