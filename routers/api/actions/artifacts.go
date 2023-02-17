@@ -4,7 +4,9 @@
 package actions
 
 import (
+	"bytes"
 	gocontext "context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -30,7 +32,8 @@ func ArtifactsRoutes(goctx gocontext.Context, prefix string) *web.Route {
 
 	r := artifactRoutes{
 		prefix: prefix,
-		fs:     storage.ActionsArtifacts}
+		fs:     storage.ActionsArtifacts,
+	}
 
 	// retrieve, list and confirm artifacts
 	m.Post(artifactRouteBase, r.getUploadArtifactURL)
@@ -68,6 +71,13 @@ type artifactRoutes struct {
 }
 
 func (ar artifactRoutes) openFile(fpath string, contentRange string) (storage.Object, bool, error) {
+	// if fpath is not exist, it should use Save to create a new file
+	if _, err := ar.fs.Stat(fpath); err != nil && errors.Is(err, os.ErrNotExist) {
+		if _, err = ar.fs.Save(fpath, bytes.NewBuffer(nil), -1); err != nil {
+			return nil, false, err
+		}
+	}
+
 	if contentRange != "" && !strings.HasPrefix(contentRange, "bytes 0-") {
 		f, err := ar.fs.Open(fpath)
 		if err != nil {
@@ -177,14 +187,14 @@ func (ar artifactRoutes) uploadArtifact(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(200, map[string]string{
+	ctx.JSON(http.StatusOK, map[string]string{
 		"message": "success",
 	})
 }
 
 // TODO: why it is used? confirm artifact uploaded successfully?
 func (ar artifactRoutes) patchArtifact(ctx *context.Context) {
-	ctx.JSON(200, map[string]string{
+	ctx.JSON(http.StatusOK, map[string]string{
 		"message": "success",
 	})
 }
@@ -223,7 +233,7 @@ func (ar artifactRoutes) listArtifacts(ctx *context.Context) {
 		"count": len(artficatsData),
 		"value": artficatsData,
 	}
-	ctx.JSON(200, respData)
+	ctx.JSON(http.StatusOK, respData)
 }
 
 func (ar artifactRoutes) getDownloadArtifactURL(ctx *context.Context) {
@@ -250,7 +260,7 @@ func (ar artifactRoutes) getDownloadArtifactURL(ctx *context.Context) {
 	respData := map[string]interface{}{
 		"value": []interface{}{artifactData},
 	}
-	ctx.JSON(200, respData)
+	ctx.JSON(http.StatusOK, respData)
 }
 
 func (ar artifactRoutes) downloadArtifact(ctx *context.Context) {
