@@ -239,6 +239,31 @@ func (org *Organization) CustomAvatarRelativePath() string {
 	return org.Avatar
 }
 
+func (org *Organization) UnitPermission(ctx context.Context, doerID int64, unitType unit.Type) perm.AccessMode {
+	if doerID > 0 {
+		teams, err := GetUserOrgTeams(ctx, org.ID, doerID)
+		if err != nil {
+			log.Error("GetUserOrgTeams: %v", err)
+			return perm.AccessModeNone
+		}
+
+		if err := teams.LoadUnits(ctx); err != nil {
+			log.Error("LoadUnits: %v", err)
+			return perm.AccessModeNone
+		}
+
+		if len(teams) > 0 {
+			return teams.UnitMaxAccess(unitType)
+		}
+	}
+
+	if org.Visibility == structs.VisibleTypePublic {
+		return perm.AccessModeRead
+	}
+
+	return perm.AccessModeNone
+}
+
 // CreateOrganization creates record of a new organization.
 func CreateOrganization(org *Organization, owner *user_model.User) (err error) {
 	if !owner.CanCreateOrganization() {

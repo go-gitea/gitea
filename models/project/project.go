@@ -8,7 +8,10 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	org_model "code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -208,6 +211,38 @@ func (p *Project) IsOrganizationProject() bool {
 
 func (p *Project) IsIndividualProject() bool {
 	return p.Type == TypeIndividual
+}
+
+func (p *Project) IsRepositoryProject() bool {
+	return p.Type == TypeRepository
+}
+
+// CanRetrievedByDoer return whether project can retrieved by a doer in a repo
+func (p *Project) CanRetrievedByDoer(ctx context.Context, repo *repo_model.Repository, doerID int64) (bool, error) {
+	if err := repo.GetOwner(ctx); err != nil {
+		return false, fmt.Errorf("GetOwner: %w", err)
+	}
+
+	if p.RepoID > 0 {
+		// repo's project
+		if p.RepoID != repo.ID {
+			return false, nil
+		}
+	} else {
+		// individual/org's project
+		if p.OwnerID != repo.OwnerID {
+			return false, nil
+		}
+
+		if repo.Owner.IsOrganization() {
+			// check doer read permission
+			if (*org_model.Organization)(repo.Owner).UnitPermission(ctx, doerID, unit.TypeProjects) < perm.AccessModeRead {
+				return false, nil
+			}
+		}
+	}
+
+	return true, nil
 }
 
 // GetProjectTypeByUser retrieves the type of a project by user's type

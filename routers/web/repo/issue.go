@@ -468,39 +468,63 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 }
 
 func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
+	var projects project_model.List
 	var err error
-	projects, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
-		RepoID:   repo.ID,
-		Page:     -1,
-		IsClosed: util.OptionalBoolFalse,
-		Type:     project_model.TypeRepository,
-	})
-	if err != nil {
-		ctx.ServerError("GetProjects", err)
+
+	if err := repo.GetOwner(ctx); err != nil {
+		ctx.ServerError("GetOwner", err)
 		return
 	}
-	projectsOrg, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
-		OwnerID:  repo.OwnerID,
-		Page:     -1,
-		IsClosed: util.OptionalBoolFalse,
-		Type:     project_model.TypeOrganization,
-	})
-	if err != nil {
-		ctx.ServerError("GetProjects", err)
-		return
+
+	// retrieve this repo's projects
+	if ctx.Repo.CanRead(unit.TypeProjects) {
+		projects, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
+			RepoID:   repo.ID,
+			Page:     -1,
+			IsClosed: util.OptionalBoolFalse,
+			Type:     project_model.TypeRepository,
+		})
+		if err != nil {
+			ctx.ServerError("GetProjects", err)
+			return
+		}
 	}
-	projects = append(projects, projectsOrg...)
-	projectsUser, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
-		OwnerID:  ctx.Doer.ID,
-		Page:     -1,
-		IsClosed: util.OptionalBoolFalse,
-		Type:     project_model.TypeIndividual,
-	})
-	if err != nil {
-		ctx.ServerError("GetProjects", err)
-		return
+	// repo's owner can retrieve his individual projects
+	if ctx.Doer.ID == repo.OwnerID {
+		projectsRepoOwner, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
+			OwnerID:  repo.OwnerID,
+			Page:     -1,
+			IsClosed: util.OptionalBoolFalse,
+			Type:     project_model.TypeIndividual,
+		})
+		if err != nil {
+			ctx.ServerError("GetProjects", err)
+			return
+		}
+		projects = append(projects, projectsRepoOwner...)
 	}
-	ctx.Data["OpenProjects"] = append(projects, projectsUser...)
+	// org repo's projects
+	if ctx.ContextUser.IsOrganization() {
+		projectsOrg, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
+			OwnerID:  repo.OwnerID,
+			Page:     -1,
+			IsClosed: util.OptionalBoolFalse,
+			Type:     project_model.TypeOrganization,
+		})
+		if err != nil {
+			ctx.ServerError("GetProjects", err)
+			return
+		}
+		for _, p := range projectsOrg {
+			if canRetrievedByDoer, err := p.CanRetrievedByDoer(ctx, repo, ctx.Doer.ID); err != nil {
+				ctx.ServerError("CanRetrievedByDoer", err)
+				return
+			} else if canRetrievedByDoer {
+				projects = append(projects, p)
+			}
+		}
+	}
+	ctx.Data["OpenProjects"] = projects
 
 	projects, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
 		RepoID:   repo.ID,
@@ -512,29 +536,41 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		ctx.ServerError("GetProjects", err)
 		return
 	}
-	projectsOrg, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
-		OwnerID:  repo.OwnerID,
-		Page:     -1,
-		IsClosed: util.OptionalBoolTrue,
-		Type:     project_model.TypeOrganization,
-	})
-	if err != nil {
-		ctx.ServerError("GetProjects", err)
-		return
+	// repo's owner can retrieve his individual projects
+	if ctx.Doer.ID == repo.OwnerID {
+		projectsRepoOwner, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
+			OwnerID:  repo.OwnerID,
+			Page:     -1,
+			IsClosed: util.OptionalBoolTrue,
+			Type:     project_model.TypeIndividual,
+		})
+		if err != nil {
+			ctx.ServerError("GetProjects", err)
+			return
+		}
+		projects = append(projects, projectsRepoOwner...)
 	}
-	projects = append(projects, projectsOrg...)
-	projectsUser, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
-		OwnerID:  ctx.Doer.ID,
-		Page:     -1,
-		IsClosed: util.OptionalBoolTrue,
-		Type:     project_model.TypeIndividual,
-	})
-	if err != nil {
-		ctx.ServerError("GetProjects", err)
-		return
+	if ctx.ContextUser.IsOrganization() {
+		projectsOrg, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
+			OwnerID:  repo.OwnerID,
+			Page:     -1,
+			IsClosed: util.OptionalBoolTrue,
+			Type:     project_model.TypeOrganization,
+		})
+		if err != nil {
+			ctx.ServerError("GetProjects", err)
+			return
+		}
+		for _, p := range projectsOrg {
+			if canRetrievedByDoer, err := p.CanRetrievedByDoer(ctx, repo, ctx.Doer.ID); err != nil {
+				ctx.ServerError("CanRetrievedByDoer", err)
+				return
+			} else if canRetrievedByDoer {
+				projects = append(projects, p)
+			}
+		}
 	}
-
-	ctx.Data["ClosedProjects"] = append(projects, projectsUser...)
+	ctx.Data["ClosedProjects"] = projects
 }
 
 // repoReviewerSelection items to bee shown
@@ -872,17 +908,23 @@ func NewIssue(ctx *context.Context) {
 		}
 	}
 
-	// TODO: add org/user project support
 	projectID := ctx.FormInt64("project")
-	if projectID > 0 && isProjectsEnabled {
+	if projectID > 0 {
 		project, err := project_model.GetProjectByID(ctx, projectID)
 		if err != nil {
 			log.Error("GetProjectByID: %d: %v", projectID, err)
-		} else if project.RepoID != ctx.Repo.Repository.ID {
-			log.Error("GetProjectByID: %d: %v", projectID, fmt.Errorf("project[%d] not found", project.ID))
 		} else {
-			ctx.Data["project_id"] = projectID
-			ctx.Data["Project"] = project
+			canRetrievedByDoer, err := project.CanRetrievedByDoer(ctx, ctx.Repo.Repository, ctx.Doer.ID)
+			if err != nil {
+				log.Error("CanRetrievedByDoer: %d: %v", projectID, err)
+			} else if !canRetrievedByDoer {
+				log.Error("CanRetrievedByDoer: %d: %v", projectID, fmt.Errorf("project[%d] not found", project.ID))
+			} else if project.IsRepositoryProject() && !isProjectsEnabled {
+				log.Error("CanRetrievedByDoer: %d: %v", projectID, fmt.Errorf("projects is not enabled in repo[%d]", ctx.Repo.Repository.ID))
+			} else {
+				ctx.Data["project_id"] = projectID
+				ctx.Data["Project"] = project
+			}
 		}
 
 		if len(ctx.Req.URL.Query().Get("project")) > 0 {
@@ -954,6 +996,7 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 	}
 
 	ctx.Data["milestone"] = ctx.FormInt64("milestone")
+	// TODO: invaild projectid check?
 	ctx.Data["project"] = ctx.FormInt64("project")
 
 	ctx.HTML(http.StatusOK, tplIssueChoose)
@@ -1043,13 +1086,21 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 			return nil, nil, 0, 0, ""
 		}
 
-		// TODO: check project accessibility, if it is not accessable, return 0
+		// if projects unit of this repo is disabled in the repo, it will redirect to a 404 page
+		// if user have no access permission to the project, it will alse redirect to a 404 page
+		// so we need to return empty projectLink here
+		if canRetrievedByDoer, err := p.CanRetrievedByDoer(ctx, ctx.Repo.Repository, ctx.Doer.ID); err != nil {
+			ctx.ServerError("CanRetrievedByDoer", err)
+			return nil, nil, 0, 0, ""
+		} else if canRetrievedByDoer {
+			if !(p.IsRepositoryProject() && !ctx.Repo.CanRead(unit.TypeProjects)) {
+				ctx.Data["Project"] = p
+				ctx.Data["project_id"] = form.ProjectID
 
-		ctx.Data["Project"] = p
-		ctx.Data["project_id"] = form.ProjectID
-
-		projectId = form.ProjectID
-		projectLink = p.Link()
+				projectId = form.ProjectID
+				projectLink = p.Link()
+			}
+		}
 	}
 
 	// Check assignees
@@ -1163,7 +1214,7 @@ func NewIssuePost(ctx *context.Context) {
 	}
 
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)
-	if ctx.FormString("redirect_after_creation") == "project" {
+	if ctx.FormString("redirect_after_creation") == "project" && projectLink != "" {
 		ctx.Redirect(projectLink)
 	} else {
 		ctx.Redirect(issue.Link())
@@ -2388,6 +2439,7 @@ func SearchIssues(ctx *context.Context) {
 		includedMilestones = strings.Split(milestones, ",")
 	}
 
+	// TODO:invaild projectid check?
 	projectID := ctx.FormInt64("project")
 
 	// this api is also used in UI,
@@ -2550,6 +2602,7 @@ func ListIssues(ctx *context.Context) {
 		}
 	}
 
+	// TODO: invaild projectid check?
 	projectID := ctx.FormInt64("project")
 
 	listOptions := db.ListOptions{
