@@ -30,12 +30,12 @@ var signedUserNameStringPointerKey interface{} = "signedUserNameStringPointerKey
 const keyOfRequestIDInTemplate = ".RequestID"
 
 // According to:
-// In OpenTracing and OpenTelemetry, the maximum length of trace id is 256 bits (32 bytes).
-// MD5 output is 16 or 32 bytes.
-// UUID output is 36 bytes (including four ‘-’)
-// SHA1 output is 40 bytes
+// TraceId: A valid trace identifier is a 16-byte array with at least one non-zero byte. So it's 128bit, while it's hex string is 32bytes (256-bit is not true for OpenTracing/OpenTelemetry)
+// MD5 output is 16 or 32 bytes: md5-bytes is 16, md5-hex is 32
+// SHA1: similar, SHA1-bytes is 20, SHA1-hex is 40.
+// UUID is 128-bit, 32 hex chars, 36 ASCII chars with 4 dashes
 // So, we accept a Request ID with a maximum character length of 40
-const maxRequestIDBtyeLength = 40
+const maxRequestIDByteLength = 40
 
 func parseRequestIDFromRequestHeader(req *http.Request) string {
 	requestID := "-"
@@ -45,8 +45,8 @@ func parseRequestIDFromRequestHeader(req *http.Request) string {
 			break
 		}
 	}
-	if len(requestID) > maxRequestIDBtyeLength {
-		requestID = fmt.Sprintf("%s...", requestID[:maxRequestIDBtyeLength])
+	if len(requestID) > maxRequestIDByteLength {
+		requestID = fmt.Sprintf("%s...", requestID[:maxRequestIDByteLength])
 	}
 	return requestID
 }
@@ -55,7 +55,7 @@ func parseRequestIDFromRequestHeader(req *http.Request) string {
 func AccessLogger() func(http.Handler) http.Handler {
 	logger := log.GetLogger("access")
 	logTemplate, _ := template.New("log").Parse(setting.AccessLogTemplate)
-	needRequestID := strings.Contains(setting.AccessLogTemplate, keyOfRequestIDInTemplate)
+	needRequestID := len(setting.RequestIDHeaders) > 0 && strings.Contains(setting.AccessLogTemplate, keyOfRequestIDInTemplate)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			start := time.Now()
