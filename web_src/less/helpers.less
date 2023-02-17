@@ -22,7 +22,6 @@
 /* below class names match Tailwind CSS */
 .gt-pointer-events-none { pointer-events: none !important; }
 .gt-relative { position: relative !important; }
-.gt-hidden { display: none !important; }
 
 .gt-mono {
   font-family: var(--fonts-monospace) !important;
@@ -181,3 +180,6 @@
   .gt-w-100-small { width: 100% !important; }
   .gt-js-small { justify-content: flex-start !important; }
 }
+
+// gt-hidden must be placed after all other "display: xxx !important" classes to win the hidden chance
+.gt-hidden { display: none !important; }
