@@ -30,7 +30,7 @@ var signedUserNameStringPointerKey interface{} = "signedUserNameStringPointerKey
 const keyOfRequestIDInTemplate = ".RequestID"
 
 // According to:
-// TraceId: A valid trace identifier is a 16-byte array with at least one non-zero byte. So it's 128bit, while it's hex string is 32bytes (256-bit is not true for OpenTracing/OpenTelemetry)
+// TraceId: A valid trace identifier is a 16-byte array with at least one non-zero byte
 // MD5 output is 16 or 32 bytes: md5-bytes is 16, md5-hex is 32
 // SHA1: similar, SHA1-bytes is 20, SHA1-hex is 40.
 // UUID is 128-bit, 32 hex chars, 36 ASCII chars with 4 dashes
