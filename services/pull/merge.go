@@ -239,6 +239,38 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	return nil
 }
 
+// Get commit author signature for squash commits
+func getSquashAuthorSignature(ctx context.Context, pr *issues_model.PullRequest, repoBasePath, newCommit, oldCommit string) (*git.Signature, error) {
+	if err := pr.Issue.LoadPoster(ctx); err != nil {
+		return nil, fmt.Errorf("LoadPoster: %w", err)
+	}
+
+	// Try to get an signature from the same user in one of the commits, as the
+	// poster email might be private or commits with a different signature than
+	// the primary email address in their account.
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repoBasePath)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to open repository: Error %v", err)
+	}
+	defer closer.Close()
+
+	commits, err := gitRepo.CommitsBetweenIDs(newCommit, oldCommit)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to get commits between: %s %s Error %v", oldCommit, newCommit, err)
+	}
+
+	for _, commit := range commits {
+		if commit.Author != nil {
+			commitUser, _ := user_model.GetUserByEmail(ctx, commit.Author.Email)
+			if commitUser != nil && commitUser.ID == pr.Issue.Poster.ID {
+				return commit.Author, nil
+			}
+		}
+	}
+
+	return pr.Issue.Poster.NewGitSig(), nil
+}
+
 // rawMerge perform the merge operation without changing any pull information in database
 func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string) (string, error) {
 	// Clone base repo.
@@ -514,6 +546,12 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 			}
 		}
 	case repo_model.MergeStyleSquash:
+		sig, err := getSquashAuthorSignature(ctx, pr, tmpBasePath, trackingBranch, "HEAD")
+		if err != nil {
+			log.Error("getSquashAuthorSignature: %v", err)
+			return "", err
+		}
+
 		// Merge with squash
 		cmd := git.NewCommand(ctx, "merge", "--squash").AddDynamicArguments(trackingBranch)
 		if err := runMergeCommand(pr, mergeStyle, cmd, tmpBasePath); err != nil {
@@ -521,11 +559,6 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 			return "", err
 		}
 
-		if err = pr.Issue.LoadPoster(ctx); err != nil {
-			log.Error("LoadPoster: %v", err)
-			return "", fmt.Errorf("LoadPoster: %w", err)
-		}
-		sig := pr.Issue.Poster.NewGitSig()
 		if setting.Repository.PullRequest.AddCoCommitterTrailers && committer.String() != sig.String() {
 			// add trailer
 			message += fmt.Sprintf("\nCo-authored-by: %s\nCo-committed-by: %s\n", sig.String(), sig.String())
