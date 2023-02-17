@@ -166,21 +166,23 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	}
 
 	// FIXME: If a new ProtectBranch has a duplicate RuleName, an error should be returned.
-
 	// Currently, if a new ProtectBranch with the same name is created,
 	// the existing ProtectBranch will be updated.
 	// But we cannot modify this logic now because many unit tests rely on it.
 
 	var err error
-	protectBranch, err = git_model.GetProtectedBranchRuleByName(ctx, ctx.Repo.Repository.ID, f.RuleName)
-	if err != nil {
-		ctx.ServerError("GetProtectBranchOfRepoByName", err)
-		return
-	}
-	if protectBranch == nil && f.RuleID > 0 {
+	if f.RuleID > 0 {
+		// If the RuleID isn't 0, it must be an edit operation. So we get rule by id.
 		protectBranch, err = git_model.GetProtectedBranchRuleByID(ctx, ctx.Repo.Repository.ID, f.RuleID)
 		if err != nil {
 			ctx.ServerError("GetProtectBranchOfRepoByID", err)
+			return
+		}
+	} else {
+		// The RuleID is 0, it should be a create operation. We can only get rule by name.
+		protectBranch, err = git_model.GetProtectedBranchRuleByName(ctx, ctx.Repo.Repository.ID, f.RuleName)
+		if err != nil {
+			ctx.ServerError("GetProtectBranchOfRepoByName", err)
 			return
 		}
 	}
