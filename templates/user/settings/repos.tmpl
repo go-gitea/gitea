@@ -27,8 +27,8 @@
 											<span class="icon">{{svg "octicon-repo"}}</span>
 										{{end}}
 										<a class="name" href="{{$repo.Link}}">{{$repo.OwnerName}}/{{$repo.Name}}</a>
-										<span  class="ui{{if not (eq $repo.LFSSize 0)}} tooltip{{end}}"{{if not (eq $repo.LFSSize 0)}} data-content="git: {{FileSize $repo.Size}}, lfs: {{FileSize $repo.LFSSize}}"{{end}}>
-											{{FileSize (Add $repo.Size $repo.LFSSize)}}
+										<span  class="ui{{if not (eq $repo.SizeDetails.LFSSize 0)}} tooltip{{end}}"{{if not (eq $repo.SizeDetails.LFSSize 0)}} data-content="{{$repo.SizeDetails.String}}"{{end}}>
+											{{FileSize $repo.Size}}
 										</span>
 										{{if $repo.IsFork}}
 											{{$.locale.Tr "repo.forked_from"}}

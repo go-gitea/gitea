@@ -460,7 +460,7 @@ var migrations = []Migration{
 	// v242 -> v243
 	NewMigration("Alter gpg_key_import content TEXT field to MEDIUMTEXT", v1_19.AlterPublicGPGKeyImportContentFieldToMediumText),
 	// v243 -> v244
-	NewMigration("Add lfs_size column to repository table", v1_19.AddLFSSizeToRepositoryTable),
+	NewMigration("Add size_details column to repository table", v1_19.AddSizeDetailsToRepositoryTable),
 }
 
 // GetCurrentDBVersion returns the current db version

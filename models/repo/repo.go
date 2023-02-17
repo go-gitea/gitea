@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
@@ -112,6 +113,17 @@ const (
 	RepositoryBroken                                  // repository is in a permanently broken state
 )
 
+// SizeDetails represents size of each part for a Repository
+type SizeDetails struct {
+	GitSize int64
+	LFSSize int64
+	// TODO: size of more parts.
+}
+
+func (s SizeDetails) String() string {
+	return fmt.Sprintf("git: " + base.FileSize(s.GitSize) + ", lfs: " + base.FileSize(s.LFSSize))
+}
+
 // Repository represents a git repository.
 type Repository struct {
 	ID                  int64 `xorm:"pk autoincr"`
@@ -157,14 +169,13 @@ type Repository struct {
 	Units                  []*RepoUnit       `xorm:"-"`
 	PrimaryLanguage        *LanguageStat     `xorm:"-"`
 
-	IsFork     bool        `xorm:"INDEX NOT NULL DEFAULT false"`
-	ForkID     int64       `xorm:"INDEX"`
-	BaseRepo   *Repository `xorm:"-"`
-	IsTemplate bool        `xorm:"INDEX NOT NULL DEFAULT false"`
-	TemplateID int64       `xorm:"INDEX"`
-	// the size of git repository directory itself, not include lfs/package/attachment size
+	IsFork                          bool               `xorm:"INDEX NOT NULL DEFAULT false"`
+	ForkID                          int64              `xorm:"INDEX"`
+	BaseRepo                        *Repository        `xorm:"-"`
+	IsTemplate                      bool               `xorm:"INDEX NOT NULL DEFAULT false"`
+	TemplateID                      int64              `xorm:"INDEX"`
 	Size                            int64              `xorm:"NOT NULL DEFAULT 0"`
-	LFSSize                         int64              `xorm:"NOT NULL DEFAULT 0"`
+	SizeDetails                     SizeDetails        `xorm:"TEXT JSON"`
 	CodeIndexerStatus               *RepoIndexerStatus `xorm:"-"`
 	StatsIndexerStatus              *RepoIndexerStatus `xorm:"-"`
 	IsFsckEnabled                   bool               `xorm:"NOT NULL DEFAULT true"`

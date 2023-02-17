@@ -7,10 +7,16 @@ import (
 	"xorm.io/xorm"
 )
 
-// AddLFSSizeToRepositoryTable: add LFSSize column to Repository
-func AddLFSSizeToRepositoryTable(x *xorm.Engine) error {
+type SizeDetails struct {
+	GitSize int64
+	LFSSize int64
+	// TODO: size of more parts.
+}
+
+// AddSizeDetailsToRepositoryTable: add LFSSize column to Repository
+func AddSizeDetailsToRepositoryTable(x *xorm.Engine) error {
 	type Repository struct {
-		LFSSize int64 `xorm:"NOT NULL DEFAULT 0"`
+		SizeDetails SizeDetails `xorm:"TEXT JSON"`
 	}
 
 	return x.Sync2(new(Repository))
