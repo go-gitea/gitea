@@ -419,7 +419,7 @@ func (issue *Issue) HTMLURL() string {
 	return fmt.Sprintf("%s/%s/%d", issue.Repo.HTMLURL(), path, issue.Index)
 }
 
-// Link returns the Link URL to this issue.
+// Link returns the issue's relative URL.
 func (issue *Issue) Link() string {
 	var path string
 	if issue.IsPull {
@@ -2402,4 +2402,9 @@ func DeleteOrphanedIssues(ctx context.Context) error {
 		system_model.RemoveAllWithNotice(db.DefaultContext, "Delete issue attachment", attachmentPaths[i])
 	}
 	return nil
+}
+
+// HasOriginalAuthor returns if an issue was migrated and has an original author.
+func (issue *Issue) HasOriginalAuthor() bool {
+	return issue.OriginalAuthor != "" && issue.OriginalAuthorID != 0
 }

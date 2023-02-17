@@ -651,6 +651,10 @@ a.commit-statuses-trigger {
   color: var(--color-text-dark);
 }
 
+.ui.search > .results .result .description {
+  color: var(--color-text-light-2);
+}
+
 .ui.search > .results .result .image {
   width: auto;
   height: auto;
@@ -1364,6 +1368,7 @@ a.ui.card:hover,
   visibility: hidden;
 }
 
+.text.primary { color: var(--color-primary) !important; }
 .text.red { color: var(--color-red) !important; }
 .text.orange { color: var(--color-orange) !important; }
 .text.yellow { color: var(--color-yellow) !important; }
@@ -1802,16 +1807,9 @@ footer {
   }
 }
 
+// TODO: refactor to use ".gt-hidden" instead (a simple search&replace should do the trick)
 .hide {
   display: none;
-
-  &.show-outdated {
-    display: none !important;
-  }
-
-  &.hide-outdated {
-    display: none !important;
-  }
 }
 
 .center:not(.popup) {
@@ -2315,6 +2313,13 @@ a.ui.label:hover {
 .ui.basic.secondary.buttons .button:active,
 .ui.basic.secondary.button:active {
   color: var(--color-secondary-dark-8) !important;
+  border-color: var(--color-secondary-dark-1) !important;
+}
+
+.ui.basic.secondary.button:focus,
+.ui.basic.secondary.buttons .button:focus {
+  color: var(--color-secondary-dark-8) !important;
+  border-color: var(--color-secondary-dark-3) !important;
 }
 
 .ui.tertiary.button {
@@ -2432,6 +2437,33 @@ a.ui.basic.label:hover {
 /* https://github.com/go-gitea/gitea/issues/10210 */
 .ui.attached.segment ~ .ui.top.attached.header {
   margin-top: 1rem;
+}
+
+.header-stopwatch-dot {
+  position: absolute;
+  left: 8px;
+  top: -8px;
+  width: 13px;
+  height: 13px;
+  background: var(--color-primary);
+  border: 2px solid var(--color-header-bar);
+  border-radius: 100%;
+}
+
+.notification_count {
+  position: absolute;
+  left: 5px;
+  top: -8px;
+  min-width: 1.5em;
+  text-align: center;
+  background: var(--color-primary);
+  border: 2px solid var(--color-header-bar);
+  color: var(--color-header-bar);
+  padding: 2px;
+  border-radius: 1em;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: .7;
 }
 
 table th[data-sortt-asc],

@@ -1,4 +1,4 @@
-<table id="repo-files-table" class="ui single line table mt-0" data-last-commit-loader-url="{{.LastCommitLoaderURL}}">
+<table id="repo-files-table" class="ui single line table gt-mt-0" data-last-commit-loader-url="{{.LastCommitLoaderURL}}">
 	<thead>
 		<tr class="commit-list">
 			<th colspan="2" {{if not .LatestCommit}}class="notready"{{end}}>
@@ -6,7 +6,7 @@
 					<div class="ui active tiny slow centered inline">…</div>
 				{{else}}
 					{{if .LatestCommitUser}}
-						{{avatar .LatestCommitUser 24}}
+						{{avatar $.Context .LatestCommitUser 24}}
 						{{if .LatestCommitUser.FullName}}
 							<a class="muted" href="{{.LatestCommitUser.HomeLink}}"><strong>{{.LatestCommitUser.FullName}}</strong></a>
 						{{else}}
@@ -14,7 +14,7 @@
 						{{end}}
 					{{else}}
 						{{if .LatestCommit.Author}}
-							{{avatarByEmail .LatestCommit.Author.Email .LatestCommit.Author.Name 24}}
+							{{avatarByEmail $.Context .LatestCommit.Author.Email .LatestCommit.Author.Name 24}}
 							<strong>{{.LatestCommit.Author.Name}}</strong>
 						{{end}}
 					{{end}}

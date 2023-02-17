@@ -456,6 +456,10 @@ var migrations = []Migration{
 	// v240 -> v241
 	NewMigration("Add actions tables", v1_19.AddActionsTables),
 	// v241 -> v242
+	NewMigration("Add card_type column to project table", v1_19.AddCardTypeToProjectTable),
+	// v242 -> v243
+	NewMigration("Alter gpg_key_import content TEXT field to MEDIUMTEXT", v1_19.AlterPublicGPGKeyImportContentFieldToMediumText),
+	// v243 -> v244
 	NewMigration("Rename Webhook org_id to owner_id", v1_19.RenameWebhookOrgToOwner),
 }
 

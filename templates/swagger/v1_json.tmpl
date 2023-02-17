@@ -15955,6 +15955,12 @@
         "password"
       ],
       "properties": {
+        "created_at": {
+          "description": "For explicitly setting the user creation timestamp. Useful when users are\nmigrated from other systems. When omitted, the user's creation timestamp\nwill be set to \"now\".",
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
         "email": {
           "type": "string",
           "format": "email",
@@ -16642,6 +16648,11 @@
           "description": "either `true` to enable AutodetectManualMerge, or `false` to prevent it. Note: In some special cases, misjudgments can occur.",
           "type": "boolean",
           "x-go-name": "AutodetectManualMerge"
+        },
+        "default_allow_maintainer_edit": {
+          "description": "set to `true` to allow edits from maintainers by default",
+          "type": "boolean",
+          "x-go-name": "DefaultAllowMaintainerEdit"
         },
         "default_branch": {
           "description": "sets the default branch for this repository.",
@@ -19161,6 +19172,10 @@
           "format": "date-time",
           "x-go-name": "Created"
         },
+        "default_allow_maintainer_edit": {
+          "type": "boolean",
+          "x-go-name": "DefaultAllowMaintainerEdit"
+        },
         "default_branch": {
           "type": "string",
           "x-go-name": "DefaultBranch"
@@ -19243,6 +19258,10 @@
         "languages_url": {
           "type": "string",
           "x-go-name": "LanguagesURL"
+        },
+        "link": {
+          "type": "string",
+          "x-go-name": "Link"
         },
         "mirror": {
           "type": "boolean",
