@@ -137,21 +137,10 @@ func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.U
 			return err
 		}
 
-		switch newProject.Type {
-		case project_model.TypeRepository:
-			if newProject.RepoID != issue.RepoID && newProject.OwnerID != issue.Repo.OwnerID {
-				return fmt.Errorf("issue's repository is not the same as project's repository")
-			}
-		case project_model.TypeOrganization:
-			if newProject.OwnerID != issue.Repo.OwnerID {
-				return fmt.Errorf("issue's repository's owner is not the same as project's repository's owner")
-			}
-		case project_model.TypeIndividual:
-			if newProject.OwnerID != doer.ID {
-				return fmt.Errorf("user does not have the project [id: %d]", newProjectID)
-			}
-		default:
-			return fmt.Errorf("unknown project type: %d", newProject.Type)
+		if canRetrievedByDoer, err := newProject.CanRetrievedByDoer(ctx, issue.Repo, doer.ID); err != nil {
+			return err
+		} else if !canRetrievedByDoer {
+			return fmt.Errorf("issue's repository can't be retrieved by doer")
 		}
 	}
 

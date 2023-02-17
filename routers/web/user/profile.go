@@ -225,9 +225,10 @@ func Profile(ctx *context.Context) {
 		total = int(count)
 	case "projects":
 		ctx.Data["OpenProjects"], _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
+			OwnerID:  ctx.ContextUser.ID,
 			Page:     -1,
 			IsClosed: util.OptionalBoolFalse,
-			Type:     project_model.TypeIndividual,
+			Type:     project_model.TypeUser,
 		})
 		if err != nil {
 			ctx.ServerError("GetProjects", err)

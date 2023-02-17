@@ -94,10 +94,8 @@
 								</div>
 								{{range .OpenProjects}}
 									<a class="{{if $.ProjectID}}{{if eq $.ProjectID .ID}}active selected{{end}}{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{.ID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">
-										{{if .IsOrganizationProject}}
+										{{if .IsUserProject}}
 											{{svg "octicon-project-symlink" 18 "mr-3"}}
-										{{else if .IsIndividualProject}}
-											{{svg "octicon-project-symlink" 18 "mr-3"}}{{/*TODO: Change Individual Project Icon*/}}
 										{{else}}
 											{{svg "octicon-project" 18 "mr-3"}}
 										{{end}}
@@ -112,10 +110,8 @@
 								</div>
 								{{range .ClosedProjects}}
 									<a class="{{if $.ProjectID}}{{if eq $.ProjectID .ID}}active selected{{end}}{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{.ID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">
-										{{if .IsOrganizationProject}}
+										{{if .IsUserProject}}
 											{{svg "octicon-project-symlink" 18 "mr-3"}}
-										{{else if .IsIndividualProject}}
-											{{svg "octicon-project-symlink" 18 "mr-3"}}{{/*TODO: Change Individual Project Icon*/}}
 										{{else}}
 											{{svg "octicon-project" 18 "mr-3"}}
 										{{end}}
@@ -272,10 +268,8 @@
 								</div>
 								{{range .OpenProjects}}
 									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/projects">
-										{{if .IsOrganizationProject}}
+										{{if .IsUserProject}}
 											{{svg "octicon-project-symlink" 18 "mr-3"}}
-										{{else if .IsIndividualProject}}
-											{{svg "octicon-project-symlink" 18 "mr-3"}}{{/*TODO: Change Individual Project Icon*/}}
 										{{else}}
 											{{svg "octicon-project" 18 "mr-3"}}
 										{{end}}
@@ -290,10 +284,8 @@
 								</div>
 								{{range .ClosedProjects}}
 									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/projects">
-										{{if .IsOrganizationProject}}
+										{{if .IsUserProject}}
 											{{svg "octicon-project-symlink" 18 "mr-3"}}
-										{{else if .IsIndividualProject}}
-											{{svg "octicon-project-symlink" 18 "mr-3"}}{{/*TODO: Change Individual Project Icon*/}}
 										{{else}}
 											{{svg "octicon-project" 18 "mr-3"}}
 										{{end}}

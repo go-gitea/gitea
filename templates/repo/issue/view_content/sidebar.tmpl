@@ -227,10 +227,8 @@
 						</div>
 						{{range .OpenProjects}}
 							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
-								{{if .IsOrganizationProject}}
+								{{if .IsUserProject}}
 									{{svg "octicon-project-symlink" 18 "mr-3"}}
-								{{else if .IsIndividualProject}}
-									{{svg "octicon-project-symlink" 18 "mr-3"}}{{/*TODO: Change Individual Project Icon*/}}
 								{{else}}
 									{{svg "octicon-project" 18 "mr-3"}}
 								{{end}}
@@ -245,10 +243,8 @@
 						</div>
 						{{range .ClosedProjects}}
 							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
-								{{if .IsOrganizationProject}}
+								{{if .IsUserProject}}
 									{{svg "octicon-project-symlink" 18 "mr-3"}}
-								{{else if .IsIndividualProject}}
-									{{svg "octicon-project-symlink" 18 "mr-3"}}{{/*TODO: Change Individual Project Icon*/}}
 								{{else}}
 									{{svg "octicon-project" 18 "mr-3"}}
 								{{end}}
@@ -263,10 +259,8 @@
 				<div class="selected">
 					{{if .Issue.ProjectID}}
 						<a class="item muted sidebar-item-link" href="{{.Issue.Project.Link}}">
-							{{if .Issue.Project.IsOrganizationProject}}
+							{{if .Issue.Project.IsUserProject}}
 								{{svg "octicon-project-symlink" 18 "mr-3"}}
-							{{else if .Issue.Project.IsIndividualProject}}
-								{{svg "octicon-project-symlink" 18 "mr-3"}}{{/*TODO: Change Individual Project Icon*/}}
 							{{else}}
 								{{svg "octicon-project" 18 "mr-3"}}
 							{{end}}

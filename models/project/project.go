@@ -42,14 +42,11 @@ type (
 )
 
 const (
-	// TypeIndividual is a type of project board that is owned by an individual
-	TypeIndividual Type = iota + 1
+	// TypeUser is a type of project board that is owned by a User (individual and organization)
+	TypeUser Type = iota + 1
 
-	// TypeRepository is a project that is tied to a repository
+	// TypeRepository is a project that is tied to a Repository
 	TypeRepository
-
-	// TypeOrganization is a project that is tied to an organisation
-	TypeOrganization
 )
 
 // ErrProjectNotExist represents a "ProjectNotExist" kind of error.
@@ -205,12 +202,8 @@ func (p *Project) Name() string {
 	return ""
 }
 
-func (p *Project) IsOrganizationProject() bool {
-	return p.Type == TypeOrganization
-}
-
-func (p *Project) IsIndividualProject() bool {
-	return p.Type == TypeIndividual
+func (p *Project) IsUserProject() bool {
+	return p.Type == TypeUser
 }
 
 func (p *Project) IsRepositoryProject() bool {
@@ -224,13 +217,16 @@ func (p *Project) CanRetrievedByDoer(ctx context.Context, repo *repo_model.Repos
 	}
 
 	if p.RepoID > 0 {
-		// repo's project
 		if p.RepoID != repo.ID {
 			return false, nil
 		}
 	} else {
 		// individual/org's project
 		if p.OwnerID != repo.OwnerID {
+			return false, nil
+		}
+
+		if repo.Owner.IsIndividual() && repo.Owner.ID != doerID {
 			return false, nil
 		}
 
@@ -243,18 +239,6 @@ func (p *Project) CanRetrievedByDoer(ctx context.Context, repo *repo_model.Repos
 	}
 
 	return true, nil
-}
-
-// GetProjectTypeByUser retrieves the type of a project by user's type
-func GetProjectTypeByUser(user *user_model.User) (Type, error) {
-	switch user.Type {
-	case user_model.UserTypeIndividual:
-		return TypeIndividual, nil
-	case user_model.UserTypeOrganization:
-		return TypeOrganization, nil
-	default:
-		return 0, ErrUserType{UserType: user.Type}
-	}
 }
 
 func init() {
@@ -281,7 +265,7 @@ func GetCardConfig() []CardConfig {
 // IsTypeValid checks if a project type is valid
 func IsTypeValid(p Type) bool {
 	switch p {
-	case TypeIndividual, TypeRepository, TypeOrganization:
+	case TypeUser, TypeRepository:
 		return true
 	default:
 		return false

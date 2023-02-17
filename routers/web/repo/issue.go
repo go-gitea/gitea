@@ -468,7 +468,8 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 }
 
 func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
-	var projects project_model.List
+	var openProjects project_model.List
+	var closedProjects project_model.List
 	var err error
 
 	if err := repo.GetOwner(ctx); err != nil {
@@ -478,7 +479,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 
 	// retrieve this repo's projects
 	if ctx.Repo.CanRead(unit.TypeProjects) {
-		projects, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
+		openProjects, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
 			RepoID:   repo.ID,
 			Page:     -1,
 			IsClosed: util.OptionalBoolFalse,
@@ -489,88 +490,60 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 			return
 		}
 	}
-	// repo's owner can retrieve his individual projects
-	if ctx.Doer.ID == repo.OwnerID {
-		projectsRepoOwner, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
-			OwnerID:  repo.OwnerID,
-			Page:     -1,
-			IsClosed: util.OptionalBoolFalse,
-			Type:     project_model.TypeIndividual,
-		})
-		if err != nil {
-			ctx.ServerError("GetProjects", err)
-			return
-		}
-		projects = append(projects, projectsRepoOwner...)
-	}
-	// org repo's projects
-	if ctx.ContextUser.IsOrganization() {
-		projectsOrg, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
-			OwnerID:  repo.OwnerID,
-			Page:     -1,
-			IsClosed: util.OptionalBoolFalse,
-			Type:     project_model.TypeOrganization,
-		})
-		if err != nil {
-			ctx.ServerError("GetProjects", err)
-			return
-		}
-		for _, p := range projectsOrg {
-			if canRetrievedByDoer, err := p.CanRetrievedByDoer(ctx, repo, ctx.Doer.ID); err != nil {
-				ctx.ServerError("CanRetrievedByDoer", err)
-				return
-			} else if canRetrievedByDoer {
-				projects = append(projects, p)
-			}
-		}
-	}
-	ctx.Data["OpenProjects"] = projects
-
-	projects, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
-		RepoID:   repo.ID,
+	// individual/org's project
+	openProjectsUser, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
+		OwnerID:  repo.OwnerID,
 		Page:     -1,
-		IsClosed: util.OptionalBoolTrue,
-		Type:     project_model.TypeRepository,
+		IsClosed: util.OptionalBoolFalse,
+		Type:     project_model.TypeUser,
 	})
 	if err != nil {
 		ctx.ServerError("GetProjects", err)
 		return
 	}
-	// repo's owner can retrieve his individual projects
-	if ctx.Doer.ID == repo.OwnerID {
-		projectsRepoOwner, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
-			OwnerID:  repo.OwnerID,
+	for _, p := range openProjectsUser {
+		if canRetrievedByDoer, err := p.CanRetrievedByDoer(ctx, repo, ctx.Doer.ID); err != nil {
+			ctx.ServerError("CanRetrievedByDoer", err)
+			return
+		} else if canRetrievedByDoer {
+			openProjects = append(openProjects, p)
+		}
+	}
+	ctx.Data["OpenProjects"] = openProjects
+
+	// retrieve this repo's projects
+	if ctx.Repo.CanRead(unit.TypeProjects) {
+		closedProjects, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
+			RepoID:   repo.ID,
 			Page:     -1,
 			IsClosed: util.OptionalBoolTrue,
-			Type:     project_model.TypeIndividual,
+			Type:     project_model.TypeRepository,
 		})
 		if err != nil {
 			ctx.ServerError("GetProjects", err)
 			return
 		}
-		projects = append(projects, projectsRepoOwner...)
 	}
-	if ctx.ContextUser.IsOrganization() {
-		projectsOrg, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
-			OwnerID:  repo.OwnerID,
-			Page:     -1,
-			IsClosed: util.OptionalBoolTrue,
-			Type:     project_model.TypeOrganization,
-		})
-		if err != nil {
-			ctx.ServerError("GetProjects", err)
+	// individual/org's project
+	closedProjectsUser, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
+		OwnerID:  repo.OwnerID,
+		Page:     -1,
+		IsClosed: util.OptionalBoolTrue,
+		Type:     project_model.TypeUser,
+	})
+	if err != nil {
+		ctx.ServerError("GetProjects", err)
+		return
+	}
+	for _, p := range closedProjectsUser {
+		if canRetrievedByDoer, err := p.CanRetrievedByDoer(ctx, repo, ctx.Doer.ID); err != nil {
+			ctx.ServerError("CanRetrievedByDoer", err)
 			return
-		}
-		for _, p := range projectsOrg {
-			if canRetrievedByDoer, err := p.CanRetrievedByDoer(ctx, repo, ctx.Doer.ID); err != nil {
-				ctx.ServerError("CanRetrievedByDoer", err)
-				return
-			} else if canRetrievedByDoer {
-				projects = append(projects, p)
-			}
+		} else if canRetrievedByDoer {
+			closedProjects = append(closedProjects, p)
 		}
 	}
-	ctx.Data["ClosedProjects"] = projects
+	ctx.Data["ClosedProjects"] = closedProjects
 }
 
 // repoReviewerSelection items to bee shown

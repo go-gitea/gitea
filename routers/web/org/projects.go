@@ -57,17 +57,12 @@ func Projects(ctx *context.Context) {
 		page = 1
 	}
 
-	projectType, err := project_model.GetProjectTypeByUser(ctx.ContextUser)
-	if err != nil {
-		ctx.ServerError("GetProjectTypeByUser", err)
-		return
-	}
 	projects, total, err := project_model.FindProjects(ctx, project_model.SearchOptions{
 		OwnerID:  ctx.ContextUser.ID,
 		Page:     page,
 		IsClosed: util.OptionalBoolOf(isShowClosed),
 		SortType: sortType,
-		Type:     projectType,
+		Type:     project_model.TypeUser,
 	})
 	if err != nil {
 		ctx.ServerError("FindProjects", err)
@@ -77,7 +72,7 @@ func Projects(ctx *context.Context) {
 	opTotal, err := project_model.CountProjects(ctx, project_model.SearchOptions{
 		OwnerID:  ctx.ContextUser.ID,
 		IsClosed: util.OptionalBoolOf(!isShowClosed),
-		Type:     project_model.TypeOrganization,
+		Type:     project_model.TypeUser,
 	})
 	if err != nil {
 		ctx.ServerError("CountProjects", err)
@@ -146,18 +141,13 @@ func NewProjectPost(ctx *context.Context) {
 		return
 	}
 
-	projectType, err := project_model.GetProjectTypeByUser(ctx.ContextUser)
-	if err != nil {
-		ctx.ServerError("GetProjectTypeByUser", err)
-		return
-	}
 	if err := project_model.NewProject(&project_model.Project{
 		OwnerID:     ctx.ContextUser.ID,
 		Title:       form.Title,
 		Description: form.Content,
 		CreatorID:   ctx.Doer.ID,
 		BoardType:   form.BoardType,
-		Type:        projectType,
+		Type:        project_model.TypeUser,
 	}); err != nil {
 		ctx.ServerError("NewProject", err)
 		return
