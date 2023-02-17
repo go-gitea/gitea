@@ -4,19 +4,23 @@
 package v1_19 //nolint
 
 import (
+	"code.gitea.io/gitea/modules/setting"
+
 	"xorm.io/xorm"
 )
 
-func AddNeedApprovalToActionRun(x *xorm.Engine) error {
-	/*
-		New index: TriggerUserID
-		New fields: NeedApproval, ApprovedBy
-	*/
-	type ActionRun struct {
-		TriggerUserID int64 `xorm:"index"`
-		NeedApproval  bool  // may need approval if it's a fork pull request
-		ApprovedBy    int64 `xorm:"index"` // who approved
+// AlterPublicGPGKeyImportContentFieldToMediumText: set GPGKeyImport Content field to MEDIUMTEXT
+func AlterPublicGPGKeyImportContentFieldToMediumText(x *xorm.Engine) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
 	}
 
-	return x.Sync(new(ActionRun))
+	if setting.Database.UseMySQL {
+		if _, err := sess.Exec("ALTER TABLE `gpg_key_import` CHANGE `content` `content` MEDIUMTEXT"); err != nil {
+			return err
+		}
+	}
+	return sess.Commit()
 }
