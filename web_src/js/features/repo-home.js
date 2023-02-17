@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import {stripTags} from '../utils.js';
+import {hideElem, showElem} from '../utils/dom.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -13,8 +14,8 @@ export function initRepoTopicBar() {
   const topicPrompts = getPrompts();
 
   mgrBtn.on('click', () => {
-    viewDiv.hide();
-    editDiv.css('display', ''); // show Semantic UI Grid
+    hideElem(viewDiv);
+    showElem(editDiv);
   });
 
   function getPrompts() {
@@ -47,8 +48,8 @@ export function initRepoTopicBar() {
             link.insertBefore(last);
           }
         }
-        editDiv.css('display', 'none');
-        viewDiv.show();
+        hideElem(editDiv);
+        showElem(viewDiv);
       }
     }).fail((xhr) => {
       if (xhr.status === 422) {

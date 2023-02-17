@@ -35,8 +35,8 @@ export function initRepoDiffFileViewToggle() {
     $this.addClass('active');
 
     const $target = $($this.data('toggle-selector'));
-    $target.parent().children().addClass('hide');
-    $target.removeClass('hide');
+    $target.parent().children().addClass('gt-hidden');
+    $target.removeClass('gt-hidden');
   });
 }
 

@@ -62,7 +62,7 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
         $dialog.find('.comment-diff-data').removeClass('is-loading').html(resp.diffHtml);
         // there is only one option "item[data-option-item=delete]", so the dropdown can be entirely shown/hidden.
         if (resp.canSoftDelete) {
-          $dialog.find('.dialog-header-options').removeClass('hide');
+          $dialog.find('.dialog-header-options').removeClass('gt-hidden');
         }
       });
     },

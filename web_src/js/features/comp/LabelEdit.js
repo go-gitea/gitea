@@ -1,15 +1,16 @@
 import $ from 'jquery';
 import {initCompColorPicker} from './ColorPicker.js';
+import {hideElem, showElem} from '../../utils/dom.js';
 
 export function initCompLabelEdit(selector) {
   if (!$(selector).length) return;
   // Create label
   const $newLabelPanel = $('.new-label.segment');
   $('.new-label.button').on('click', () => {
-    $newLabelPanel.show();
+    showElem($newLabelPanel);
   });
   $('.new-label.segment .cancel').on('click', () => {
-    $newLabelPanel.hide();
+    hideElem($newLabelPanel);
   });
 
   initCompColorPicker();
