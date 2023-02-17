@@ -63,8 +63,8 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	doc = NewHTMLParser(t, resp.Body)
-	// Check if commit status is displayed in message column
-	sel := doc.doc.Find("#commits-table tbody tr td.message .commit-statuses-trigger .commit-status")
+	// Check if commit status is displayed in message column (.tippy-target to ignore the tippy trigger)
+	sel := doc.doc.Find("#commits-table tbody tr td.message .tippy-target .commit-status")
 	assert.Equal(t, 1, sel.Length())
 	for _, class := range classes {
 		assert.True(t, sel.HasClass(class))
@@ -199,7 +199,7 @@ func TestRepoCommitsStatusMultiple(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	doc = NewHTMLParser(t, resp.Body)
-	// Check that the commit-statuses-trigger (for tooltip) and commit-status (svg) are present
-	sel := doc.doc.Find("#commits-table tbody tr td.message .commit-statuses-trigger .commit-status")
+	// Check that the data-tippy="commit-statuses" (for trigger) and commit-status (svg) are present
+	sel := doc.doc.Find("#commits-table tbody tr td.message [data-tippy=\"commit-statuses\"] .commit-status")
 	assert.Equal(t, 1, sel.Length())
 }
