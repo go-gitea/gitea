@@ -947,6 +947,9 @@ trigger:
     - push
     - tag
     - pull_request
+  paths:
+    include:
+      - docs/**
 
 steps:
   - name: build-docs
