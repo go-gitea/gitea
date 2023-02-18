@@ -3,7 +3,7 @@
 
 package hash
 
-// DefaultHashAlgorithmName represents the defualt value of PASSWORD_HASH_ALGO
+// DefaultHashAlgorithmName represents the default value of PASSWORD_HASH_ALGO
 // configured in app.ini.
 //
 // It is NOT the same and does NOT map to the defaultEmptyHashAlgorithmSpecification.
