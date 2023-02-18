@@ -1060,7 +1060,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 		}
 
 		// if projects unit of this repo is disabled in the repo, it will redirect to a 404 page
-		// if user have no access permission to the project, it will alse redirect to a 404 page
+		// if user have no access permission to the project, it will also redirect to a 404 page
 		// so we need to return empty projectLink here
 		if canRetrievedByDoer, err := p.CanRetrievedByDoer(ctx, ctx.Repo.Repository, ctx.Doer.ID); err != nil {
 			ctx.ServerError("CanRetrievedByDoer", err)
