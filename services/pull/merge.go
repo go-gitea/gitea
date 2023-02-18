@@ -199,8 +199,8 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	if err := pr.Issue.LoadRepo(hammerCtx); err != nil {
 		log.Error("LoadRepo for issue [%d]: %v", pr.ID, err)
 	}
-	if err := pr.Issue.Repo.GetOwner(hammerCtx); err != nil {
-		log.Error("GetOwner for PR [%d]: %v", pr.ID, err)
+	if err := pr.Issue.Repo.LoadOwner(hammerCtx); err != nil {
+		log.Error("LoadOwner for PR [%d]: %v", pr.ID, err)
 	}
 
 	if wasAutoMerged {
@@ -573,7 +573,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 	}
 
 	var headUser *user_model.User
-	err = pr.HeadRepo.GetOwner(ctx)
+	err = pr.HeadRepo.LoadOwner(ctx)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("Can't find user: %d for head repository - %v", pr.HeadRepo.OwnerID, err)

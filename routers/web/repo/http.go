@@ -146,8 +146,8 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 
 	// don't allow anonymous pulls if organization is not public
 	if isPublicPull {
-		if err := repo.GetOwner(ctx); err != nil {
-			ctx.ServerError("GetOwner", err)
+		if err := repo.LoadOwner(ctx); err != nil {
+			ctx.ServerError("LoadOwner", err)
 			return
 		}
 

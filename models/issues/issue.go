@@ -2099,7 +2099,7 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 	resolved := make(map[string]bool, 10)
 	var mentionTeams []string
 
-	if err := issue.Repo.GetOwner(ctx); err != nil {
+	if err := issue.Repo.LoadOwner(ctx); err != nil {
 		return nil, err
 	}
 
