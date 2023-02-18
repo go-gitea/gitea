@@ -3,10 +3,22 @@
 
 package hash
 
+// DefaultHashAlgorithmName represents the defualt value of PASSWORD_HASH_ALGO
+// configured in app.ini.
+//
+// It is NOT the same and does NOT map to the defaultEmptyHashAlgorithmSpecification.
+//
+// It will be dealiased as per aliasAlgorithmNames whereas
+// defaultEmptyHashAlgorithmSpecification does not undergo dealiasing.
 const DefaultHashAlgorithmName = "pbkdf2"
 
 var DefaultHashAlgorithm *PasswordHashAlgorithm
 
+// aliasAlgorithNames provides a mapping between the value of PASSWORD_HASH_ALGO
+// configured in the app.ini and the parameters used within the hashers internally.
+//
+// If it is necessary to change the default parameters for any hasher in future you
+// should change these values and not those in argon2.go etc.
 var aliasAlgorithmNames = map[string]string{
 	"argon2":    "argon2$2$65536$8$50",
 	"bcrypt":    "bcrypt$10",
@@ -29,6 +41,8 @@ var RecommendedHashAlgorithms = []string{
 	"pbkdf2_hi",
 }
 
+// SetDefaultPasswordHashAlgorithm will take a provided algorithmName and dealias it to
+// a complete algorithm specification.
 func SetDefaultPasswordHashAlgorithm(algorithmName string) (string, *PasswordHashAlgorithm) {
 	if algorithmName == "" {
 		algorithmName = DefaultHashAlgorithmName
@@ -38,6 +52,9 @@ func SetDefaultPasswordHashAlgorithm(algorithmName string) (string, *PasswordHas
 		algorithmName = alias
 		alias, has = aliasAlgorithmNames[algorithmName]
 	}
+
+	// algorithmName should now be a full algorithm specification
+	// e.g. pbkdf2$50000$50 rather than pbdkf2
 	DefaultHashAlgorithm = Parse(algorithmName)
 
 	return algorithmName, DefaultHashAlgorithm

@@ -15,7 +15,7 @@ func TestCheckSettingPasswordHashAlgorithm(t *testing.T) {
 		pbkdf2Config, pbkdf2Algo := SetDefaultPasswordHashAlgorithm("pbkdf2")
 
 		assert.Equal(t, pbkdf2v2Config, pbkdf2Config)
-		assert.Equal(t, pbkdf2v2Algo.Name, pbkdf2Algo.Name)
+		assert.Equal(t, pbkdf2v2Algo.Specification, pbkdf2Algo.Specification)
 	})
 
 	for a, b := range aliasAlgorithmNames {
@@ -24,7 +24,7 @@ func TestCheckSettingPasswordHashAlgorithm(t *testing.T) {
 			bConfig, bAlgo := SetDefaultPasswordHashAlgorithm(b)
 
 			assert.Equal(t, bConfig, aConfig)
-			assert.Equal(t, aAlgo.Name, bAlgo.Name)
+			assert.Equal(t, aAlgo.Specification, bAlgo.Specification)
 		})
 	}
 
@@ -33,6 +33,6 @@ func TestCheckSettingPasswordHashAlgorithm(t *testing.T) {
 		pbkdf2v2Config, pbkdf2v2Algo := SetDefaultPasswordHashAlgorithm("pbkdf2_v2")
 
 		assert.Equal(t, pbkdf2v2Config, emptyConfig)
-		assert.Equal(t, pbkdf2v2Algo.Name, emptyAlgo.Name)
+		assert.Equal(t, pbkdf2v2Algo.Specification, emptyAlgo.Specification)
 	})
 }

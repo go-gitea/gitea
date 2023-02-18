@@ -36,6 +36,11 @@ func (hasher *PBKDF2Hasher) HashWithSaltBytes(password string, salt []byte) stri
 // "<iter>$<keyLen>", where <x> is the string representation
 // of an integer
 func NewPBKDF2Hasher(config string) *PBKDF2Hasher {
+	// This default configuration uses the following parameters:
+	// iter=10000, keyLen=50.
+	// This matches the original configuration for `pbkdf2` prior to storing parameters
+	// in the database.
+	// THESE VALUES MUST NOT BE CHANGED OR BACKWARDS COMPATIBILITY WILL BREAK
 	hasher := &PBKDF2Hasher{
 		iter:   10_000,
 		keyLen: 50,

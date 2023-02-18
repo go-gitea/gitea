@@ -36,6 +36,9 @@ func (hasher *ScryptHasher) HashWithSaltBytes(password string, salt []byte) stri
 // "<n>$<r>$<p>$<keyLen>", where <x> is the string representation
 // of an integer
 func NewScryptHasher(config string) *ScryptHasher {
+	// This matches the original configuration for `scrypt` prior to storing hash parameters
+	// in the database.
+	// THESE VALUES MUST NOT BE CHANGED OR BACKWARDS COMPATIBILITY WILL BREAK
 	hasher := &ScryptHasher{
 		n:      1 << 16,
 		r:      16,
