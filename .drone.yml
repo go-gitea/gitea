@@ -112,7 +112,6 @@ steps:
     image: golang:1.19 # this step is kept as the lowest version of golang that we support
     pull: always
     environment:
-      GO111MODULE: on
       GOPROXY: https://goproxy.io
     commands:
       - go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
@@ -124,7 +123,6 @@ steps:
   - name: build-backend-arm64
     image: golang:1.20
     environment:
-      GO111MODULE: on
       GOPROXY: https://goproxy.io
       GOOS: linux
       GOARCH: arm64
@@ -140,7 +138,6 @@ steps:
   - name: build-backend-windows
     image: golang:1.20
     environment:
-      GO111MODULE: on
       GOPROXY: https://goproxy.io
       GOOS: windows
       GOARCH: amd64
@@ -155,7 +152,6 @@ steps:
   - name: build-backend-386
     image: golang:1.20
     environment:
-      GO111MODULE: on
       GOPROXY: https://goproxy.io
       GOOS: linux
       GOARCH: 386
