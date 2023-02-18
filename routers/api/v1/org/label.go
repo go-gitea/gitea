@@ -11,6 +11,7 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/label"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -87,7 +88,7 @@ func CreateLabel(ctx *context.APIContext) {
 	if len(form.Color) == 6 {
 		form.Color = "#" + form.Color
 	}
-	if !issues_model.LabelColorPattern.MatchString(form.Color) {
+	if !label.ColorPattern.MatchString(form.Color) {
 		ctx.Error(http.StatusUnprocessableEntity, "ColorPattern", fmt.Errorf("bad color code: %s", form.Color))
 		return
 	}
@@ -183,7 +184,7 @@ func EditLabel(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.EditLabelOption)
-	label, err := issues_model.GetLabelInOrgByID(ctx, ctx.Org.Organization.ID, ctx.ParamsInt64(":id"))
+	l, err := issues_model.GetLabelInOrgByID(ctx, ctx.Org.Organization.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if issues_model.IsErrOrgLabelNotExist(err) {
 			ctx.NotFound()
@@ -194,30 +195,30 @@ func EditLabel(ctx *context.APIContext) {
 	}
 
 	if form.Name != nil {
-		label.Name = *form.Name
+		l.Name = *form.Name
 	}
 	if form.Exclusive != nil {
-		label.Exclusive = *form.Exclusive
+		l.Exclusive = *form.Exclusive
 	}
 	if form.Color != nil {
-		label.Color = strings.Trim(*form.Color, " ")
-		if len(label.Color) == 6 {
-			label.Color = "#" + label.Color
+		l.Color = strings.Trim(*form.Color, " ")
+		if len(l.Color) == 6 {
+			l.Color = "#" + l.Color
 		}
-		if !issues_model.LabelColorPattern.MatchString(label.Color) {
-			ctx.Error(http.StatusUnprocessableEntity, "ColorPattern", fmt.Errorf("bad color code: %s", label.Color))
+		if !label.ColorPattern.MatchString(l.Color) {
+			ctx.Error(http.StatusUnprocessableEntity, "ColorPattern", fmt.Errorf("bad color code: %s", l.Color))
 			return
 		}
 	}
 	if form.Description != nil {
-		label.Description = *form.Description
+		l.Description = *form.Description
 	}
-	if err := issues_model.UpdateLabel(label); err != nil {
+	if err := issues_model.UpdateLabel(l); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateLabel", err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToLabel(label, nil, ctx.Org.Organization.AsUser()))
+	ctx.JSON(http.StatusOK, convert.ToLabel(l, nil, ctx.Org.Organization.AsUser()))
 }
 
 // DeleteLabel delete a label for an organization
