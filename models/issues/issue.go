@@ -476,6 +476,49 @@ func (issue *Issue) getLabels(ctx context.Context) (err error) {
 	return nil
 }
 
+// CanRetrievedByDoer returns whether doer can retrieve the issue
+func (issue *Issue) CanRetrievedByDoer(ctx context.Context, p *project_model.Project, doerID int64) (bool, error) {
+	if err := issue.LoadRepo(ctx); err != nil {
+		return false, err
+	}
+
+	if unit.TypeIssues.UnitGlobalDisabled() {
+		return false, nil
+	}
+
+	if err := issue.Repo.GetOwner(ctx); err != nil {
+		return false, err
+	}
+
+	if !issue.Repo.UnitEnabled(ctx, unit.TypeIssues) {
+		return false, nil
+	}
+
+	if p.RepoID > 0 {
+		if p.RepoID != issue.RepoID {
+			return false, nil
+		}
+	} else {
+		// individual/org's project
+		if p.OwnerID != issue.Repo.OwnerID {
+			return false, nil
+		}
+
+		if issue.Repo.Owner.IsIndividual() && issue.Repo.Owner.ID != doerID {
+			return false, nil
+		}
+
+		if issue.Repo.Owner.IsOrganization() {
+			// check doer read permission
+			if (*organization.Organization)(issue.Repo.Owner).UnitPermission(ctx, doerID, unit.TypeIssues) < perm.AccessModeRead {
+				return false, nil
+			}
+		}
+	}
+
+	return true, nil
+}
+
 func clearIssueLabels(ctx context.Context, issue *Issue, doer *user_model.User) (err error) {
 	if err = issue.getLabels(ctx); err != nil {
 		return fmt.Errorf("getLabels: %w", err)

@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
-	org_model "code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -210,14 +210,21 @@ func (p *Project) IsRepositoryProject() bool {
 	return p.Type == TypeRepository
 }
 
-// CanRetrievedByDoer return whether project can retrieved by a doer in a repo
+// CanRetrievedByDoer return whether project can be retrieved by a doer in a repo
 func (p *Project) CanRetrievedByDoer(ctx context.Context, repo *repo_model.Repository, doerID int64) (bool, error) {
 	if err := repo.GetOwner(ctx); err != nil {
 		return false, fmt.Errorf("GetOwner: %w", err)
 	}
 
+	if unit.TypeProjects.UnitGlobalDisabled() {
+		return false, nil
+	}
+
 	if p.RepoID > 0 {
 		if p.RepoID != repo.ID {
+			return false, nil
+		}
+		if !repo.UnitEnabled(ctx, unit.TypeProjects) {
 			return false, nil
 		}
 	} else {
@@ -232,7 +239,7 @@ func (p *Project) CanRetrievedByDoer(ctx context.Context, repo *repo_model.Repos
 
 		if repo.Owner.IsOrganization() {
 			// check doer read permission
-			if (*org_model.Organization)(repo.Owner).UnitPermission(ctx, doerID, unit.TypeProjects) < perm.AccessModeRead {
+			if (*organization.Organization)(repo.Owner).UnitPermission(ctx, doerID, unit.TypeProjects) < perm.AccessModeRead {
 				return false, nil
 			}
 		}

@@ -60,10 +60,9 @@ func (issue *Issue) projectBoardID(ctx context.Context) int64 {
 }
 
 // LoadIssuesFromBoard load issues assigned to this board
-func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board) (IssueList, error) {
+func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, p *project_model.Project, doerID int64) (IssueList, error) {
 	issueList := make([]*Issue, 0, 10)
 
-	// FIXME: add a opts arg to check org/team/user permission
 	if b.ID != 0 {
 		issues, err := Issues(ctx, &IssuesOptions{
 			ProjectBoardID: b.ID,
@@ -73,7 +72,13 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board) (IssueList
 		if err != nil {
 			return nil, err
 		}
-		issueList = issues
+		for _, issue := range issues {
+			if canRetrievedByDoer, err := issue.CanRetrievedByDoer(ctx, p, doerID); err != nil {
+				return nil, err
+			} else if canRetrievedByDoer {
+				issueList = append(issueList, issue)
+			}
+		}
 	}
 
 	if b.Default {
@@ -85,7 +90,13 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board) (IssueList
 		if err != nil {
 			return nil, err
 		}
-		issueList = append(issueList, issues...)
+		for _, issue := range issues {
+			if canRetrievedByDoer, err := issue.CanRetrievedByDoer(ctx, p, doerID); err != nil {
+				return nil, err
+			} else if canRetrievedByDoer {
+				issueList = append(issueList, issue)
+			}
+		}
 	}
 
 	if err := IssueList(issueList).LoadComments(ctx); err != nil {
@@ -96,10 +107,10 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board) (IssueList
 }
 
 // LoadIssuesFromBoardList load issues assigned to the boards
-func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList) (map[int64]IssueList, error) {
+func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList, p *project_model.Project, doerID int64) (map[int64]IssueList, error) {
 	issuesMap := make(map[int64]IssueList, len(bs))
 	for i := range bs {
-		il, err := LoadIssuesFromBoard(ctx, bs[i])
+		il, err := LoadIssuesFromBoard(ctx, bs[i], p, doerID)
 		if err != nil {
 			return nil, err
 		}
