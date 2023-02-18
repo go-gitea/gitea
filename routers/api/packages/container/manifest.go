@@ -296,7 +296,7 @@ func notifyPackageCreate(doer *user_model.User, pv *packages_model.PackageVersio
 		return err
 	}
 
-	notification.NotifyPackageCreate(db.DefaultContext, doer, pd)
+	notification.NotifyPackageCreate(doer, pd)
 
 	return nil
 }
