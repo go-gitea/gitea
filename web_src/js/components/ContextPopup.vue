@@ -26,18 +26,9 @@
 <script>
 import $ from 'jquery';
 import {SvgIcon} from '../svg.js';
+import {useLightTextOnBackground} from '../utils.js';
 
 const {appSubUrl, i18n} = window.config;
-
-// NOTE: see models/issue_label.go for similar implementation
-const useLightTextColor = (label) => {
-  // sRGB color space luminance
-  const r = parseInt(label.color.substring(0, 2), 16);
-  const g = parseInt(label.color.substring(2, 4), 16);
-  const b = parseInt(label.color.substring(4, 6), 16);
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance < 0.35;
-};
 
 export default {
   components: {SvgIcon},
@@ -86,7 +77,7 @@ export default {
     labels() {
       return this.issue.labels.map((label) => {
         let textColor;
-        if (useLightTextColor(label)) {
+        if (useLightTextOnBackground(label.color)) {
           textColor = '#eeeeee';
         } else {
           textColor = '#111111';

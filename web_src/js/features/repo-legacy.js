@@ -117,7 +117,7 @@ export function initRepoCommentForm() {
 
       $(this).parent().find('.item').each(function () {
         if (scope) {
-          /* Enable only clicked item for scoped labels. */
+          // Enable only clicked item for scoped labels
           if ($(this).attr('data-scope') !== scope) {
             return true;
           }
@@ -129,7 +129,7 @@ export function initRepoCommentForm() {
             return true;
           }
         } else if (!$(this).is(clickedItem)) {
-          /* Toggle for other labels. */
+          // Toggle for other labels
           return true;
         }
 

@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import {useLightTextOnBackground} from '../utils.js';
 
 const {csrfToken} = window.config;
 
@@ -183,13 +184,7 @@ export function initRepoProject() {
 }
 
 function setLabelColor(label, color) {
-  // sRGB color space luminance
-  const r = parseInt(color.slice(1, 3), 16);
-  const g = parseInt(color.slice(3, 5), 16);
-  const b = parseInt(color.slice(5, 7), 16);
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-
-  if (luminance < 0.35) {
+  if (useLightTextOnBackground(color)) {
     label.removeClass('dark-label').addClass('light-label');
   } else {
     label.removeClass('light-label').addClass('dark-label');

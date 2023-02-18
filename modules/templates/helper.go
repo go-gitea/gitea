@@ -815,7 +815,7 @@ func RenderLabel(label *issues_model.Label) string {
 		textColor = "#eee"
 	}
 
-	description := emoji.ReplaceAliases(label.Description)
+	description := emoji.ReplaceAliases(template.HTMLEscapeString(label.Description))
 
 	if labelScope == "" {
 		// Regular label

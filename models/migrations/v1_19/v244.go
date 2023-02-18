@@ -4,8 +4,6 @@
 package v1_19 //nolint
 
 import (
-	"fmt"
-
 	"xorm.io/xorm"
 )
 
@@ -14,8 +12,5 @@ func AddExclusiveLabel(x *xorm.Engine) error {
 		Exclusive bool
 	}
 
-	if err := x.Sync2(new(Label)); err != nil {
-		return fmt.Errorf("Sync2: %w", err)
-	}
-	return nil
+	return x.Sync(new(Label))
 }

@@ -332,7 +332,8 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		labels = append(labels, orgLabels...)
 	}
 
-	var labelExclusiveScopes []string
+	// Get the exclusive scope for every label ID
+	labelExclusiveScopes := make([]string, 0, len(labelIDs))
 	for _, labelID := range labelIDs {
 		foundExclusiveScope := false
 		for _, label := range labels {

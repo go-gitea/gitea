@@ -175,21 +175,21 @@ func (label *Label) ColorRGB() (float64, float64, float64, error) {
 	return r, g, b, nil
 }
 
-// Determine if label text should be light or dark to be readable on
-// background color.
+// Determine if label text should be light or dark to be readable on background color
 func (label *Label) UseLightTextColor() bool {
 	if strings.HasPrefix(label.Color, "#") {
 		if r, g, b, err := label.ColorRGB(); err == nil {
-			// sRGB color space luminance
-			luminance := (0.299*r + 0.587*g + 0.114*b) / 255
-			return luminance < 0.35
+			// Perceived brightness from: https://www.w3.org/TR/AERT/#color-contrast
+			// In the future WCAG 3 APCA may be a better solution
+			brightness := (0.299*r + 0.587*g + 0.114*b) / 255
+			return brightness < 0.35
 		}
 	}
 
 	return false
 }
 
-// Return scope substring of label name, or empty string if none exists.
+// Return scope substring of label name, or empty string if none exists
 func (label *Label) ExclusiveScope() string {
 	if !label.Exclusive {
 		return ""

@@ -541,7 +541,7 @@ func (ts labelSorter) Swap(i, j int) {
 // Ensure only one label of a given scope exists, with labels at the end of the
 // array getting preference over earlier ones.
 func RemoveDuplicateExclusiveLabels(labels []*Label) []*Label {
-	var validLabels []*Label
+	validLabels := make([]*Label, 0, len(labels))
 
 	for i, label := range labels {
 		scope := label.ExclusiveScope()
