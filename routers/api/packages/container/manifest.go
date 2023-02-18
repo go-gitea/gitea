@@ -17,6 +17,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	container_module "code.gitea.io/gitea/modules/packages/container"
 	"code.gitea.io/gitea/modules/util"
@@ -71,11 +72,9 @@ func processManifest(mci *manifestCreationInfo, buf *packages_module.HashedBuffe
 	}
 
 	if isImageManifestMediaType(mci.MediaType) {
-		d, err := processImageManifest(mci, buf)
-		return d, err
+		return processImageManifest(mci, buf)
 	} else if isImageIndexMediaType(mci.MediaType) {
-		d, err := processImageManifestIndex(mci, buf)
-		return d, err
+		return processImageManifestIndex(mci, buf)
 	}
 	return "", errManifestInvalid
 }
@@ -182,6 +181,10 @@ func processImageManifest(mci *manifestCreationInfo, buf *packages_module.Hashed
 			return err
 		}
 
+		if err := notifyPackageCreate(mci.Creator, pv); err != nil {
+			return err
+		}
+
 		manifestDigest = digest
 
 		return nil
@@ -271,6 +274,10 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 			return err
 		}
 
+		if err := notifyPackageCreate(mci.Creator, pv); err != nil {
+			return err
+		}
+
 		manifestDigest = digest
 
 		return nil
@@ -280,6 +287,17 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 	}
 
 	return manifestDigest, nil
+}
+
+func notifyPackageCreate(doer *user_model.User, pv *packages_model.PackageVersion) error {
+	pd, err := packages_model.GetPackageDescriptor(db.DefaultContext, pv)
+	if err != nil {
+		return err
+	}
+
+	notification.NotifyPackageCreate(db.DefaultContext, doer, pd)
+
+	return nil
 }
 
 func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, metadata *container_module.Metadata) (*packages_model.PackageVersion, error) {
