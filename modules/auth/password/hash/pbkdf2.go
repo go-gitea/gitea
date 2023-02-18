@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	Register("pbkdf2", NewPBKDF2Hasher)
+	RegisterPanic("pbkdf2", NewPBKDF2Hasher)
 }
 
 // PBKDF2Hasher implements PasswordHasher

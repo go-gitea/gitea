@@ -608,6 +608,10 @@ func LoadForTest(extraConfigs ...string) {
 	if err := PrepareAppDataPath(); err != nil {
 		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)
 	}
+	// register the dummy hash algorithm function used in the test fixtures
+	_ = hash.Register("dummy", hash.NewDummyHasher)
+
+	PasswordHashAlgo, _ = hash.SetDefaultPasswordHashAlgorithm("dummy")
 }
 
 func deprecatedSetting(oldSection, oldKey, newSection, newKey string) {

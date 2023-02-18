@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	Register("bcrypt", NewBcryptHasher)
+	RegisterPanic("bcrypt", NewBcryptHasher)
 }
 
 // BcryptHasher implements PasswordHasher

@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	Register("scrypt", NewScryptHasher)
+	RegisterPanic("scrypt", NewScryptHasher)
 }
 
 // ScryptHasher implements PasswordHasher
