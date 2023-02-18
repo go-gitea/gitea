@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	registerHasher("pbkdf2", NewPBKDF2Hasher)
+	Register("pbkdf2", NewPBKDF2Hasher)
 }
 
 // PBKDF2Hasher implements PasswordHasher
