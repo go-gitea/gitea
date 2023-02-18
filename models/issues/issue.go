@@ -477,12 +477,25 @@ func (issue *Issue) getLabels(ctx context.Context) (err error) {
 }
 
 // CanRetrievedByDoer returns whether doer can retrieve the issue
-func (issue *Issue) CanRetrievedByDoer(ctx context.Context, p *project_model.Project, doerID int64) (bool, error) {
+func (issue *Issue) CanRetrievedByDoer(ctx context.Context, p *project_model.Project, doer *user_model.User) (bool, error) {
 	if err := issue.LoadRepo(ctx); err != nil {
 		return false, err
 	}
 
+	if perm, err := access_model.GetUserRepoPermission(ctx, issue.Repo, doer); err != nil {
+		return false, err
+	} else if !perm.HasAccess() {
+		return false, nil
+	}
+
 	if unit.TypeIssues.UnitGlobalDisabled() {
+		return false, nil
+	}
+	if !issue.Repo.UnitEnabled(ctx, unit.TypeIssues) {
+		return false, nil
+	}
+	// TODO: how about Mirror repo
+	if issue.Repo.IsArchived {
 		return false, nil
 	}
 
@@ -490,11 +503,8 @@ func (issue *Issue) CanRetrievedByDoer(ctx context.Context, p *project_model.Pro
 		return false, err
 	}
 
-	if !issue.Repo.UnitEnabled(ctx, unit.TypeIssues) {
-		return false, nil
-	}
-
 	if p.RepoID > 0 {
+		// repo project
 		if p.RepoID != issue.RepoID {
 			return false, nil
 		}
@@ -504,15 +514,13 @@ func (issue *Issue) CanRetrievedByDoer(ctx context.Context, p *project_model.Pro
 			return false, nil
 		}
 
-		if issue.Repo.Owner.IsIndividual() && issue.Repo.Owner.ID != doerID {
+		if issue.Repo.Owner.IsIndividual() && issue.Repo.Owner.ID != doer.ID {
 			return false, nil
 		}
 
-		if issue.Repo.Owner.IsOrganization() {
-			// check doer read permission
-			if (*organization.Organization)(issue.Repo.Owner).UnitPermission(ctx, doerID, unit.TypeIssues) < perm.AccessModeRead {
-				return false, nil
-			}
+		// check doer read permission
+		if issue.Repo.Owner.IsOrganization() && (*organization.Organization)(issue.Repo.Owner).UnitPermission(ctx, doer.ID, unit.TypeIssues) < perm.AccessModeRead {
+			return false, nil
 		}
 	}
 

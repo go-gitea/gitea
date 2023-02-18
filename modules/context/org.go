@@ -38,7 +38,7 @@ func (org *Organization) CanWriteUnit(ctx *Context, unitType unit.Type) bool {
 
 func (org *Organization) CanAccessUnit(ctx *Context, unitType unit.Type) bool {
 	if ctx.Doer == nil {
-		return false
+		return org.Organization.Visibility.IsPublic()
 	}
 	return org.Organization.UnitPermission(ctx, ctx.Doer.ID, unitType) >= perm.AccessModeRead
 }

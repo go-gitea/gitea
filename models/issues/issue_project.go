@@ -60,7 +60,7 @@ func (issue *Issue) projectBoardID(ctx context.Context) int64 {
 }
 
 // LoadIssuesFromBoard load issues assigned to this board
-func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, p *project_model.Project, doerID int64) (IssueList, error) {
+func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, p *project_model.Project, doer *user_model.User) (IssueList, error) {
 	issueList := make([]*Issue, 0, 10)
 
 	if b.ID != 0 {
@@ -73,7 +73,7 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, p *project
 			return nil, err
 		}
 		for _, issue := range issues {
-			if canRetrievedByDoer, err := issue.CanRetrievedByDoer(ctx, p, doerID); err != nil {
+			if canRetrievedByDoer, err := issue.CanRetrievedByDoer(ctx, p, doer); err != nil {
 				return nil, err
 			} else if canRetrievedByDoer {
 				issueList = append(issueList, issue)
@@ -91,7 +91,7 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, p *project
 			return nil, err
 		}
 		for _, issue := range issues {
-			if canRetrievedByDoer, err := issue.CanRetrievedByDoer(ctx, p, doerID); err != nil {
+			if canRetrievedByDoer, err := issue.CanRetrievedByDoer(ctx, p, doer); err != nil {
 				return nil, err
 			} else if canRetrievedByDoer {
 				issueList = append(issueList, issue)
@@ -107,10 +107,10 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, p *project
 }
 
 // LoadIssuesFromBoardList load issues assigned to the boards
-func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList, p *project_model.Project, doerID int64) (map[int64]IssueList, error) {
+func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList, p *project_model.Project, doer *user_model.User) (map[int64]IssueList, error) {
 	issuesMap := make(map[int64]IssueList, len(bs))
 	for i := range bs {
-		il, err := LoadIssuesFromBoard(ctx, bs[i], p, doerID)
+		il, err := LoadIssuesFromBoard(ctx, bs[i], p, doer)
 		if err != nil {
 			return nil, err
 		}
