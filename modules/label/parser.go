@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/options"
+
 	"gopkg.in/yaml.v3"
 )
 
