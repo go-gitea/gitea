@@ -83,7 +83,9 @@ var (
 	availableHasherFactories = map[string]func(string) PasswordSaltHasher{}
 )
 
-func registerHasher[T PasswordSaltHasher](name string, newFn func(config string) T) {
+// Register registers a PasswordSaltHasher with the availableHasherFactories
+// This is not thread safe.
+func Register[T PasswordSaltHasher](name string, newFn func(config string) T) {
 	if _, has := availableHasherFactories[name]; has {
 		panic(fmt.Errorf("duplicate registration of password salt hasher: %s", name))
 	}
@@ -122,9 +124,7 @@ func Parse(algorithm string) *PasswordHashAlgorithm {
 	if len(vals) == 0 {
 		return nil
 	}
-	if len(vals) > 0 {
-		name = vals[0]
-	}
+	name = vals[0]
 	if len(vals) > 1 {
 		config = vals[1]
 	}

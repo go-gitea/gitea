@@ -19,12 +19,12 @@ func (t testSaltHasher) HashWithSaltBytes(password string, salt []byte) string {
 }
 
 func Test_registerHasher(t *testing.T) {
-	registerHasher("Test_registerHasher", func(config string) testSaltHasher {
+	Register("Test_registerHasher", func(config string) testSaltHasher {
 		return testSaltHasher(config)
 	})
 
 	assert.Panics(t, func() {
-		registerHasher("Test_registerHasher", func(config string) testSaltHasher {
+		Register("Test_registerHasher", func(config string) testSaltHasher {
 			return testSaltHasher(config)
 		})
 	})
@@ -183,4 +183,9 @@ func TestVectors(t *testing.T) {
 			})
 		}
 	}
+}
+
+func TestPassword(t *testing.T) {
+	hash, err := Parse("pbkdf2$50000$50").Hash("password", "ZogKvWdyEx")
+	assert.Fail(t, hash, "%s %v", hash, err)
 }

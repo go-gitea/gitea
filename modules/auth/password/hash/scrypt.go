@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	registerHasher("scrypt", NewScryptHasher)
+	Register("scrypt", NewScryptHasher)
 }
 
 // ScryptHasher implements PasswordHasher
