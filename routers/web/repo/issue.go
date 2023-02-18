@@ -1047,7 +1047,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 	}
 
 	projectLink := ""
-	projectId := int64(0)
+	projectID := int64(0)
 	if form.ProjectID > 0 {
 		p, err := project_model.GetProjectByID(ctx, form.ProjectID)
 		if err != nil {
@@ -1070,7 +1070,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 				ctx.Data["Project"] = p
 				ctx.Data["project_id"] = form.ProjectID
 
-				projectId = form.ProjectID
+				projectID = form.ProjectID
 				projectLink = p.Link()
 			}
 		}
@@ -1110,7 +1110,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 		assigneeIDs = append(assigneeIDs, form.AssigneeID)
 	}
 
-	return labelIDs, assigneeIDs, milestoneID, projectId, projectLink
+	return labelIDs, assigneeIDs, milestoneID, projectID, projectLink
 }
 
 // NewIssuePost response for creating new issue
