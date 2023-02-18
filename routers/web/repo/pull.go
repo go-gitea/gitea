@@ -119,8 +119,8 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 		return nil
 	}
 
-	if err := forkRepo.GetOwner(ctx); err != nil {
-		ctx.ServerError("GetOwner", err)
+	if err := forkRepo.LoadOwner(ctx); err != nil {
+		ctx.ServerError("LoadOwner", err)
 		return nil
 	}
 
@@ -1315,8 +1315,8 @@ func CleanUpPullRequest(ctx *context.Context) {
 	} else if err = pr.LoadBaseRepo(ctx); err != nil {
 		ctx.ServerError("LoadBaseRepo", err)
 		return
-	} else if err = pr.HeadRepo.GetOwner(ctx); err != nil {
-		ctx.ServerError("HeadRepo.GetOwner", err)
+	} else if err = pr.HeadRepo.LoadOwner(ctx); err != nil {
+		ctx.ServerError("HeadRepo.LoadOwner", err)
 		return
 	}
 

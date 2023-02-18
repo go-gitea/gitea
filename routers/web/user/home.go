@@ -338,6 +338,11 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		filterMode int
 	)
 
+	// Default to recently updated, unlike repository issues list
+	if sortType == "" {
+		sortType = "recentupdate"
+	}
+
 	// --------------------------------------------------------------------------------
 	// Distinguish User from Organization.
 	// Org:
