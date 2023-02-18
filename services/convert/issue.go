@@ -32,7 +32,7 @@ func ToAPIIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
 	if err := issue.LoadRepo(ctx); err != nil {
 		return &api.Issue{}
 	}
-	if err := issue.Repo.GetOwner(ctx); err != nil {
+	if err := issue.Repo.LoadOwner(ctx); err != nil {
 		return &api.Issue{}
 	}
 

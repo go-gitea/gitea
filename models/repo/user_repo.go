@@ -61,7 +61,7 @@ func GetWatchedRepos(ctx context.Context, userID int64, private bool, listOption
 // GetRepoAssignees returns all users that have write access and can be assigned to issues
 // of the repository,
 func GetRepoAssignees(ctx context.Context, repo *Repository) (_ []*user_model.User, err error) {
-	if err = repo.GetOwner(ctx); err != nil {
+	if err = repo.LoadOwner(ctx); err != nil {
 		return nil, err
 	}
 
@@ -111,7 +111,7 @@ func GetRepoAssignees(ctx context.Context, repo *Repository) (_ []*user_model.Us
 // TODO: may be we should have a busy choice for users to block review request to them.
 func GetReviewers(ctx context.Context, repo *Repository, doerID, posterID int64) ([]*user_model.User, error) {
 	// Get the owner of the repository - this often already pre-cached and if so saves complexity for the following queries
-	if err := repo.GetOwner(ctx); err != nil {
+	if err := repo.LoadOwner(ctx); err != nil {
 		return nil, err
 	}
 

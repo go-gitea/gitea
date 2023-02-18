@@ -273,8 +273,8 @@ func RetrieveBaseRepo(ctx *Context, repo *repo_model.Repository) {
 		}
 		ctx.ServerError("GetBaseRepo", err)
 		return
-	} else if err = repo.BaseRepo.GetOwner(ctx); err != nil {
-		ctx.ServerError("BaseRepo.GetOwner", err)
+	} else if err = repo.BaseRepo.LoadOwner(ctx); err != nil {
+		ctx.ServerError("BaseRepo.LoadOwner", err)
 		return
 	}
 }
@@ -290,8 +290,8 @@ func RetrieveTemplateRepo(ctx *Context, repo *repo_model.Repository) {
 		}
 		ctx.ServerError("GetTemplateRepo", err)
 		return
-	} else if err = templateRepo.GetOwner(ctx); err != nil {
-		ctx.ServerError("TemplateRepo.GetOwner", err)
+	} else if err = templateRepo.LoadOwner(ctx); err != nil {
+		ctx.ServerError("TemplateRepo.LoadOwner", err)
 		return
 	}
 
@@ -356,8 +356,8 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 
 func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 	var err error
-	if err = repo.GetOwner(ctx); err != nil {
-		ctx.ServerError("GetOwner", err)
+	if err = repo.LoadOwner(ctx); err != nil {
+		ctx.ServerError("LoadOwner", err)
 		return
 	}
 

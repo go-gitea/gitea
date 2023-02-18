@@ -175,7 +175,7 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 		}
 	}
 
-	if err = repo.GetOwner(ctx); err != nil {
+	if err = repo.LoadOwner(ctx); err != nil {
 		return
 	}
 
@@ -210,7 +210,7 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 		return
 	}
 
-	if err = repo.GetOwner(ctx); err != nil {
+	if err = repo.LoadOwner(ctx); err != nil {
 		return
 	}
 	if !repo.Owner.IsOrganization() {
@@ -281,7 +281,7 @@ func IsUserRealRepoAdmin(repo *repo_model.Repository, user *user_model.User) (bo
 		return true, nil
 	}
 
-	if err := repo.GetOwner(db.DefaultContext); err != nil {
+	if err := repo.LoadOwner(db.DefaultContext); err != nil {
 		return false, err
 	}
 
@@ -378,7 +378,7 @@ func HasAccess(ctx context.Context, userID int64, repo *repo_model.Repository) (
 
 // getUsersWithAccessMode returns users that have at least given access mode to the repository.
 func getUsersWithAccessMode(ctx context.Context, repo *repo_model.Repository, mode perm_model.AccessMode) (_ []*user_model.User, err error) {
-	if err = repo.GetOwner(ctx); err != nil {
+	if err = repo.LoadOwner(ctx); err != nil {
 		return nil, err
 	}
 
