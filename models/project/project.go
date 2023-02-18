@@ -88,25 +88,6 @@ func (err ErrProjectBoardNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// ErrUserType represents a "ErrUserType" kind of error.
-type ErrUserType struct {
-	UserType user_model.UserType
-}
-
-// IsErrUserType checks if an error is a ErrUserType
-func IsErrUserType(err error) bool {
-	_, ok := err.(ErrUserType)
-	return ok
-}
-
-func (err ErrUserType) Error() string {
-	return fmt.Sprintf("projects does not support user type: %d", err.UserType)
-}
-
-func (err ErrUserType) Unwrap() error {
-	return util.ErrNotExist
-}
-
 // Project represents a project board
 type Project struct {
 	ID          int64                  `xorm:"pk autoincr"`
@@ -137,30 +118,12 @@ func (p *Project) LoadOwner(ctx context.Context) (err error) {
 	return err
 }
 
-func (ps List) LoadOwners(ctx context.Context) (err error) {
-	for _, p := range ps {
-		if err := p.LoadOwner(ctx); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (p *Project) LoadRepo(ctx context.Context) (err error) {
 	if p.RepoID == 0 || p.Repo != nil {
 		return nil
 	}
 	p.Repo, err = repo_model.GetRepositoryByID(ctx, p.RepoID)
 	return err
-}
-
-func (ps List) LoadRepos(ctx context.Context) (err error) {
-	for _, p := range ps {
-		if err := p.LoadRepo(ctx); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // Link returns the project's relative URL.
