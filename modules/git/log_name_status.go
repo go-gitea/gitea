@@ -56,11 +56,9 @@ func LogNameStatusRepo(ctx context.Context, repository, head, treepath string, p
 	} else if treepath != "" {
 		files = append(files, treepath)
 	}
-	// Escape colons at the start of filenames, because `git log -- :filename` returns nothing
+	// Use the :(literal) pathspec magic to handle edge cases with files named like ":file.txt" or "*.jpg"
 	for i, file := range files {
-		if strings.HasPrefix(file, ":") {
-			files[i] = "\\" + file
-		}
+		files[i] = ":(literal)" + file
 	}
 	cmd.AddDashesAndList(files...)
 
