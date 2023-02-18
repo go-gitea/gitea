@@ -147,7 +147,7 @@ func CreateLabel(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.CreateLabelOption)
 	form.Color = strings.Trim(form.Color, " ")
-	if len(form.Color) == 6 {
+	if len(form.Color) == 6 || len(form.Color) == 3 {
 		form.Color = "#" + form.Color
 	}
 	if !label.ColorPattern.MatchString(form.Color) {
@@ -158,7 +158,7 @@ func CreateLabel(ctx *context.APIContext) {
 	l := &issues_model.Label{
 		Name:        form.Name,
 		Exclusive:   form.Exclusive,
-		Color:       form.Color,
+		Color:       label.NormalizeColor(form.Color),
 		RepoID:      ctx.Repo.Repository.ID,
 		Description: form.Description,
 	}
@@ -225,13 +225,14 @@ func EditLabel(ctx *context.APIContext) {
 	}
 	if form.Color != nil {
 		l.Color = strings.Trim(*form.Color, " ")
-		if len(l.Color) == 6 {
+		if len(l.Color) == 6 || len(l.Color) == 3 {
 			l.Color = "#" + l.Color
 		}
 		if !label.ColorPattern.MatchString(l.Color) {
 			ctx.Error(http.StatusUnprocessableEntity, "ColorPattern", fmt.Errorf("bad color code: %s", l.Color))
 			return
 		}
+		l.Color = label.NormalizeColor(l.Color)
 	}
 	if form.Description != nil {
 		l.Description = *form.Description
