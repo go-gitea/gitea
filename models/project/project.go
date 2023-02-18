@@ -175,8 +175,8 @@ func (p *Project) IsRepositoryProject() bool {
 
 // CanRetrievedByDoer return whether project can be retrieved by a doer in a repo
 func (p *Project) CanRetrievedByDoer(ctx context.Context, repo *repo_model.Repository, doerID int64) (bool, error) {
-	if err := repo.GetOwner(ctx); err != nil {
-		return false, fmt.Errorf("GetOwner: %w", err)
+	if err := repo.LoadOwner(ctx); err != nil {
+		return false, fmt.Errorf("LoadOwner: %w", err)
 	}
 
 	if unit.TypeProjects.UnitGlobalDisabled() {
