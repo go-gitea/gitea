@@ -32,7 +32,7 @@ export function initCommonIssue() {
     syncIssueSelectionState();
   });
 
-  $('.issue-action').on('click', async function () {
+  $('.issue-action').on('click', async function (e) {
     let action = this.getAttribute('data-action');
     let elementId = this.getAttribute('data-element-id');
     const url = this.getAttribute('data-url');
@@ -42,6 +42,9 @@ export function initCommonIssue() {
     if (elementId === '0' && url.slice(-9) === '/assignee') {
       elementId = '';
       action = 'clear';
+    }
+    if (action === 'toggle' && e.altKey) {
+      action = 'toggle-alt';
     }
     updateIssuesMeta(
       url,

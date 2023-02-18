@@ -7,10 +7,12 @@ package templates
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"html"
 	"html/template"
+	"math"
 	"mime"
 	"net/url"
 	"path/filepath"
@@ -382,6 +384,9 @@ func NewFuncMap() []template.FuncMap {
 			// the table is NOT sorted with this header
 			return ""
 		},
+		"RenderLabel": func(label *issues_model.Label) template.HTML {
+			return template.HTML(RenderLabel(label))
+		},
 		"RenderLabels": func(labels []*issues_model.Label, repoLink string) template.HTML {
 			htmlCode := `<span class="labels-list">`
 			for _, label := range labels {
@@ -389,8 +394,8 @@ func NewFuncMap() []template.FuncMap {
 				if label == nil {
 					continue
 				}
-				htmlCode += fmt.Sprintf("<a href='%s/issues?labels=%d' class='ui label' style='color: %s !important; background-color: %s !important' title='%s'>%s</a> ",
-					repoLink, label.ID, label.ForegroundColor(), label.Color, html.EscapeString(label.Description), RenderEmoji(label.Name))
+				htmlCode += fmt.Sprintf("<a href='%s/issues?labels=%d'>%s</a> ",
+					repoLink, label.ID, RenderLabel(label))
 			}
 			htmlCode += "</span>"
 			return template.HTML(htmlCode)
@@ -799,6 +804,67 @@ func RenderIssueTitle(ctx context.Context, text, urlPrefix string, metas map[str
 		return template.HTML("")
 	}
 	return template.HTML(renderedText)
+}
+
+// RenderLabel renders a label
+func RenderLabel(label *issues_model.Label) string {
+	labelScope := label.ExclusiveScope()
+
+	textColor := "#111"
+	if label.UseLightTextColor() {
+		textColor = "#eee"
+	}
+
+	description := emoji.ReplaceAliases(template.HTMLEscapeString(label.Description))
+
+	if labelScope == "" {
+		// Regular label
+		return fmt.Sprintf("<div class='ui label' style='color: %s !important; background-color: %s !important' title='%s'>%s</div>",
+			textColor, label.Color, description, RenderEmoji(label.Name))
+	}
+
+	// Scoped label
+	scopeText := RenderEmoji(labelScope)
+	itemText := RenderEmoji(label.Name[len(labelScope)+1:])
+
+	itemColor := label.Color
+	scopeColor := label.Color
+	if r, g, b, err := label.ColorRGB(); err == nil {
+		// Make scope and item background colors slightly darker and lighter respectively.
+		// More contrast needed with higher luminance, empirically tweaked.
+		luminance := (0.299*r + 0.587*g + 0.114*b) / 255
+		contrast := 0.01 + luminance*0.06
+		// Ensure we add the same amount of contrast also near 0 and 1.
+		darken := contrast + math.Max(luminance+contrast-1.0, 0.0)
+		lighten := contrast + math.Max(contrast-luminance, 0.0)
+		// Compute factor to keep RGB values proportional.
+		darkenFactor := math.Max(luminance-darken, 0.0) / math.Max(luminance, 1.0/255.0)
+		lightenFactor := math.Min(luminance+lighten, 1.0) / math.Max(luminance, 1.0/255.0)
+
+		scopeBytes := []byte{
+			uint8(math.Min(math.Round(r*darkenFactor), 255)),
+			uint8(math.Min(math.Round(g*darkenFactor), 255)),
+			uint8(math.Min(math.Round(b*darkenFactor), 255)),
+		}
+		itemBytes := []byte{
+			uint8(math.Min(math.Round(r*lightenFactor), 255)),
+			uint8(math.Min(math.Round(g*lightenFactor), 255)),
+			uint8(math.Min(math.Round(b*lightenFactor), 255)),
+		}
+
+		itemColor = "#" + hex.EncodeToString(itemBytes)
+		scopeColor = "#" + hex.EncodeToString(scopeBytes)
+	}
+
+	return fmt.Sprintf("<span class='ui label scope-parent' title='%s'>"+
+		"<div class='ui label scope-left' style='color: %s !important; background-color: %s !important'>%s</div>"+
+		"<div class='ui label scope-middle' style='background: linear-gradient(-80deg, %s 48%%, %s 52%% 0%%);'>&nbsp;</div>"+
+		"<div class='ui label scope-right' style='color: %s !important; background-color: %s !important''>%s</div>"+
+		"</span>",
+		description,
+		textColor, scopeColor, scopeText,
+		itemColor, scopeColor,
+		textColor, itemColor, itemText)
 }
 
 // RenderEmoji renders html text with emoji post processors
