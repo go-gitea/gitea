@@ -380,7 +380,7 @@ func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 
 	if visibilityChanged {
 		if err = repo.LoadOwner(ctx); err != nil {
-			return fmt.Errorf("getOwner: %w", err)
+			return fmt.Errorf("LoadOwner: %w", err)
 		}
 		if repo.Owner.IsOrganization() {
 			// Organization repository need to recalculate access table when visibility is changed.
