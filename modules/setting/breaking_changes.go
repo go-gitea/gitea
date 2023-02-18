@@ -1,7 +1,7 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package setting
+package history
 
 import (
 	"strconv"
@@ -11,13 +11,61 @@ import (
 	ini "gopkg.in/ini.v1"
 )
 
-type settingExistType int
+type setting interface {
+	String() string // Returns a string representation of the given setting that can be found like that in the given settings source
+	IsNormalized() bool
+	Normalize()
+}
 
-const (
-	settingRemoved settingExistType = iota
-	settingReplaced
-	settingMovedToDB
-)
+type iniSetting struct {
+	section, key string
+	isNormalized bool
+}
+
+var _ setting = &iniSetting{}
+
+func (s *iniSetting) Normalize() {
+	if s.IsNormalized() {
+		return
+	}
+	s.section = strings.ToLower(s.section)
+	s.key = strings.ToUpper(s.key)
+	s.isNormalized = true
+}
+
+func (s *iniSetting) IsNormalized() bool {
+	return s.isNormalized
+}
+
+func (s *iniSetting) String() string {
+	s.Normalize()
+	return "[" + s.section + "]." + s.key
+}
+
+type dbSetting struct {
+	section, key string
+	isNormalized bool
+}
+
+var _ setting = &dbSetting{}
+
+func (s *dbSetting) Normalize() {
+	if s.IsNormalized() {
+		return
+	}
+	s.section = strings.ToLower(s.section)
+	s.key = strings.ToLower(s.key)
+	s.isNormalized = true
+}
+
+func (s *dbSetting) IsNormalized() bool {
+	return s.isNormalized
+}
+
+func (s *dbSetting) String() string {
+	s.Normalize()
+	return s.section + "." + s.key
+}
 
 type whenChanged int
 
@@ -26,79 +74,54 @@ const (
 	nextVersion
 )
 
-type removedSetting struct {
-	version            string // Gitea version that removed it / will remove it
-	section            string // Corresponding section in the app.ini without the parentheses
-	key                string // Exact key in the app.ini, so should be uppercased
-	replacementSection string
-	replacementKey     string
-	existType          settingExistType  // In what form does this setting still exist?
-	when               whenChanged // When did/will this change happen?
+type historyEntry struct {
+	version  string // Gitea version that removed it / will remove it
+	oldValue *setting
+	newValue *setting // nil means removed without replacement
+	when     whenChanged // When did/will this change happen?
 }
 
 // getTemplateLogMessage returns an unformated log message for this setting.
 // The returned template accepts the following commands:
-// - %[1]s: old [section].key
-// - %[2]s: correct tense of "is"
-// - %[3]s: gitea version
+// - %[1]s: old settings value
+// - %[2]s: setting source
+// - %[3]s: correct tense of "is"
+// - %[4]s: gitea version
 // -
-func (r *removedSetting) getTemplateLogMessage() string {
-	switch r.existType {
-	case settingMovedToDB:
-		return "The setting %[1]s in your config file has been copied and moved to the database table 'sys_setting' under the key "
-	case settingReplaced:
-		return "The setting %[1]s in your config file %[2]s removed in Gitea %[3]s. %s."
-	case settingRemoved:
-		return "The setting %[1]s in your config file is no longer used since Gitea %[3]s. It has no documented replacement."
-	default:
-		panic("Missing setting replacement type: " + strconv.Itoa(int(r.existType)) + " cannot be converted to a log message.")
+func (e *historyEntry) getTemplateLogMessage() string {
+	sentence := "The setting %[1]s in %[2]s is no longer used since Gitea %[3]s. "
+	if e.newValue == nil {
+		return sentence + "It has no documented replacement."
 	}
+	return sentence + e.getReplacementHint()
 }
 
 // getTense returns the correct tense of "is" for this removed setting
-func (r *removedSetting) getTense() string {
-	switch r.when {
+func (e *historyEntry) getTense() string {
+	switch e.when {
 	case nextVersion:
 		return "will be"
 	case pastVersion:
 		return "was"
 	default:
-		panic("Unknown setting changed time: " + strconv.Itoa(int(r.when)))
+		panic("Unknown setting changed time: " + strconv.Itoa(int(e.when)))
 	}
 }
 
-func (r *removedSetting) validate() {
-	if r.existType == settingMovedToDB {
-		r.replacementKey = strings.ToLower(r.replacementKey)
-		r.key = strings.ToLower(r.key)
-	} else {
-		r.replacementKey = strings.ToUpper(r.replacementKey)
-		r.key = strings.ToUpper(r.key)
-	}
-}
+var removedSettings map[string][]historyEntry // ordered by section (for performance)
 
-func toIniSection(section, key string) string {
-	return "[" + section + "]." + strings.ToUpper(key)
-}
-
-func toDBSection(section, key string) string {
-	return section + "." + key
-}
-
-var removedSettings map[string][]removedSetting // ordered by section (for performance)
-
-func removeSetting(setting *removedSetting) {
-	setting.validate()
+func removeSetting(entry *historyEntry) {
+	entry.Normalize()
 	// Append the setting at the corresponding entry
-	sectionList := removedSettings[setting.section]
-	sectionList = append(sectionList, *setting)
-	removedSettings[setting.section] = sectionList
+	sectionList := removedSettings[entry.section]
+	sectionList = append(sectionList, *entry)
+	removedSettings[entry.section] = sectionList
 }
 
 // Adds a notice that the given setting under "[section].key" has been replaced by "[replacementSection].replacementKey"
 // "key" and "replacementKey" should be exactly like they are in the app.ini
 func MoveSetting(version, section, key, replacementSection, replacementKey string) {
-	removeSetting(&removedSetting{
+	removeSetting(&historyEntry{
 		version:            version,
 		section:            section,
 		key:                key,
@@ -118,7 +141,7 @@ func MoveSettingInSection(version, section, key, replacementKey string) {
 // "key"s should be exactly like they are in the app.ini
 func PurgeSettings(version, section string, keys ...string) {
 	for _, key := range keys {
-		removeSetting(&removedSetting{
+		removeSetting(&historyEntry{
 			version: version,
 			section: section,
 			key:     key,
@@ -128,7 +151,7 @@ func PurgeSettings(version, section string, keys ...string) {
 
 // Adds a notice that the given setting under "[section].key" has been deprecated and should be replaced with "[replacementSection].replacementKey" soon
 func DeprecateSetting(version, section, key, replacementSection, replacementKey string) {
-	removeSetting(&removedSetting{
+	removeSetting(&historyEntry{
 		version:            version,
 		section:            section,
 		key:                key,
@@ -147,7 +170,7 @@ func DeprecateSettingSameSection(version, section, key, replacementKey string) {
 // keys should be formatted exactly like they are in the app.ini
 func DeprecateSettingsForRemoval(version, section string, keys ...string) {
 	for _, key := range keys {
-		removeSetting(&removedSetting{
+		removeSetting(&historyEntry{
 			version:   version,
 			section:   section,
 			key:       key,
@@ -160,7 +183,7 @@ func DeprecateSettingsForRemoval(version, section string, keys ...string) {
 // keys should be formatted exactly like they are in the app.ini
 func MoveSettingsToDB(version, section string, keys ...string) {
 	for _, key := range keys {
-		removeSetting(&removedSetting{
+		removeSetting(&historyEntry{
 			version:   version,
 			section:   section,
 			key:       key,
@@ -221,14 +244,14 @@ func init() {
 
 	DeprecateSettingsForRemoval("18", "U2F", "APP_ID")
 	MoveSettingsToDB("18", "picture", "ENABLE_FEDERATED_AVATAR", "DISABLE_GRAVATAR")
-	DeprecateSettingSameSection("18", "mailer", "HOST","SMTP_ADDR+SMTP_PORT")
-	DeprecateSettingSameSection("18", "mailer", "MAILER_TYPE","PROTOCOL")
-	DeprecateSettingSameSection("18", "mailer", "IS_TLS_ENABLED","PROTOCOL")
-	DeprecateSettingSameSection("18", "mailer", "DISABLE_HELO","ENABLE_HELO")
-	DeprecateSettingSameSection("18", "mailer", "SKIP_VERIFY","FORCE_TRUST_SERVER_CERT")
-	DeprecateSettingSameSection("18", "mailer", "USE_CERTIFICATE","USE_CLIENT_CERT")
-	DeprecateSettingSameSection("18", "mailer", "CERT_FILE","CLIENT_CERT_FILE")
-	DeprecateSettingSameSection("18", "mailer", "KEY_FILE","CLIENT_KEY_FILE")
+	DeprecateSettingSameSection("18", "mailer", "HOST", "SMTP_ADDR+SMTP_PORT")
+	DeprecateSettingSameSection("18", "mailer", "MAILER_TYPE", "PROTOCOL")
+	DeprecateSettingSameSection("18", "mailer", "IS_TLS_ENABLED", "PROTOCOL")
+	DeprecateSettingSameSection("18", "mailer", "DISABLE_HELO", "ENABLE_HELO")
+	DeprecateSettingSameSection("18", "mailer", "SKIP_VERIFY", "FORCE_TRUST_SERVER_CERT")
+	DeprecateSettingSameSection("18", "mailer", "USE_CERTIFICATE", "USE_CLIENT_CERT")
+	DeprecateSettingSameSection("18", "mailer", "CERT_FILE", "CLIENT_CERT_FILE")
+	DeprecateSettingSameSection("18", "mailer", "KEY_FILE", "CLIENT_KEY_FILE")
 
 	DeprecateSettingsForRemoval("19", "ui", "ONLY_SHOW_RELEVANT_REPOS")
 }
