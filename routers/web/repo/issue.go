@@ -2157,8 +2157,8 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 		}
 		if reviewID < 0 {
 			// negative reviewIDs represent team requests
-			if err := issue.Repo.GetOwner(ctx); err != nil {
-				ctx.ServerError("issue.Repo.GetOwner", err)
+			if err := issue.Repo.LoadOwner(ctx); err != nil {
+				ctx.ServerError("issue.Repo.LoadOwner", err)
 				return
 			}
 
