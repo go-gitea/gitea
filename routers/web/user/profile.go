@@ -47,7 +47,7 @@ func Profile(ctx *context.Context) {
 	}
 
 	// advertise feed via meta tag
-	ctx.Data["FeedURL"] = ctx.ContextUser.HTMLURL()
+	ctx.Data["FeedURL"] = ctx.ContextUser.HomeLink()
 
 	// Show OpenID URIs
 	openIDs, err := user_model.GetUserOpenIDs(ctx.ContextUser.ID)

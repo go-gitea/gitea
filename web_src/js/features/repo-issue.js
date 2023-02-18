@@ -425,10 +425,10 @@ export function initRepoPullRequestReview() {
       const groupID = commentDiv.closest('div[id^="code-comments-"]').attr('id');
       if (groupID && groupID.startsWith('code-comments-')) {
         const id = groupID.slice(14);
-        $(`#show-outdated-${id}`).addClass('hide');
-        $(`#code-comments-${id}`).removeClass('hide');
-        $(`#code-preview-${id}`).removeClass('hide');
-        $(`#hide-outdated-${id}`).removeClass('hide');
+        $(`#show-outdated-${id}`).addClass('gt-hidden');
+        $(`#code-comments-${id}`).removeClass('gt-hidden');
+        $(`#code-preview-${id}`).removeClass('gt-hidden');
+        $(`#hide-outdated-${id}`).removeClass('gt-hidden');
         commentDiv[0].scrollIntoView();
       }
     }
@@ -437,19 +437,19 @@ export function initRepoPullRequestReview() {
   $(document).on('click', '.show-outdated', function (e) {
     e.preventDefault();
     const id = $(this).data('comment');
-    $(this).addClass('hide');
-    $(`#code-comments-${id}`).removeClass('hide');
-    $(`#code-preview-${id}`).removeClass('hide');
-    $(`#hide-outdated-${id}`).removeClass('hide');
+    $(this).addClass('gt-hidden');
+    $(`#code-comments-${id}`).removeClass('gt-hidden');
+    $(`#code-preview-${id}`).removeClass('gt-hidden');
+    $(`#hide-outdated-${id}`).removeClass('gt-hidden');
   });
 
   $(document).on('click', '.hide-outdated', function (e) {
     e.preventDefault();
     const id = $(this).data('comment');
-    $(this).addClass('hide');
-    $(`#code-comments-${id}`).addClass('hide');
-    $(`#code-preview-${id}`).addClass('hide');
-    $(`#show-outdated-${id}`).removeClass('hide');
+    $(this).addClass('gt-hidden');
+    $(`#code-comments-${id}`).addClass('gt-hidden');
+    $(`#code-preview-${id}`).addClass('gt-hidden');
+    $(`#show-outdated-${id}`).removeClass('gt-hidden');
   });
 
   $(document).on('click', 'button.comment-form-reply', async function (e) {
@@ -605,6 +605,7 @@ export function initRepoIssueTitleEdit() {
       const targetBranch = $('#pull-target-branch').data('branch');
       const $branchTarget = $('#branch_target');
       if (targetBranch === $branchTarget.text()) {
+        window.location.reload();
         return false;
       }
       $.post(update_url, {
@@ -617,19 +618,22 @@ export function initRepoIssueTitleEdit() {
       });
     };
 
-    const pullrequest_target_update_url = $(this).data('target-update-url');
+    const pullrequest_target_update_url = $(this).attr('data-target-update-url');
     if ($editInput.val().length === 0 || $editInput.val() === $issueTitle.text()) {
       $editInput.val($issueTitle.text());
       pullrequest_targetbranch_change(pullrequest_target_update_url);
     } else {
-      $.post($(this).data('update-url'), {
+      $.post($(this).attr('data-update-url'), {
         _csrf: csrfToken,
         title: $editInput.val()
       }, (data) => {
         $editInput.val(data.title);
         $issueTitle.text(data.title);
-        pullrequest_targetbranch_change(pullrequest_target_update_url);
-        window.location.reload();
+        if (pullrequest_target_update_url) {
+          pullrequest_targetbranch_change(pullrequest_target_update_url); // it will reload the window
+        } else {
+          window.location.reload();
+        }
       });
     }
     return false;

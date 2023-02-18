@@ -18,7 +18,7 @@
 									{{svg "octicon-shield-lock"}}
 								{{end}}
 								<a href="{{.RepoLink}}/src/branch/{{PathEscapeSegments .DefaultBranch}}">{{.DefaultBranch}}</a>
-								<p class="info df ac my-2">{{svg "octicon-git-commit" 16 "mr-2"}}<a href="{{.RepoLink}}/commit/{{PathEscape .DefaultBranchBranch.Commit.ID.String}}">{{ShortSha .DefaultBranchBranch.Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .DefaultBranchBranch.Commit.CommitMessage .RepoLink .Repository.ComposeMetas}}</span> · {{.locale.Tr "org.repo_updated"}} {{TimeSince .DefaultBranchBranch.Commit.Committer.When .locale}}</p>
+								<p class="info gt-df gt-ac gt-my-2">{{svg "octicon-git-commit" 16 "gt-mr-2"}}<a href="{{.RepoLink}}/commit/{{PathEscape .DefaultBranchBranch.Commit.ID.String}}">{{ShortSha .DefaultBranchBranch.Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .DefaultBranchBranch.Commit.CommitMessage .RepoLink .Repository.ComposeMetas}}</span> · {{.locale.Tr "org.repo_updated"}} {{TimeSince .DefaultBranchBranch.Commit.Committer.When .locale}}</p>
 							</td>
 							<td class="right aligned overflow-visible">
 								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
@@ -61,7 +61,7 @@
 											{{svg "octicon-shield-lock"}}
 										{{end}}
 										<a href="{{$.RepoLink}}/src/branch/{{PathEscapeSegments .Name}}">{{.Name}}</a>
-										<p class="info df ac my-2">{{svg "octicon-git-commit" 16 "mr-2"}}<a href="{{$.RepoLink}}/commit/{{PathEscape .Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.locale.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.locale}}</p>
+										<p class="info gt-df gt-ac gt-my-2">{{svg "octicon-git-commit" 16 "gt-mr-2"}}<a href="{{$.RepoLink}}/commit/{{PathEscape .Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.locale.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.locale}}</p>
 									{{end}}
 									</td>
 									<td class="three wide ui">
@@ -86,23 +86,23 @@
 												</a>
 											{{else if and (not .IsDeleted) $.AllowsPulls (gt .CommitsAhead 0)}}
 											<a href="{{$.RepoLink}}/compare/{{PathEscapeSegments $.DefaultBranch}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{PathEscape $.Owner.Name}}:{{end}}{{PathEscapeSegments .Name}}">
-												<button id="new-pull-request" class="ui compact basic button mr-0">{{if $.CanPull}}{{$.locale.Tr "repo.pulls.compare_changes"}}{{else}}{{$.locale.Tr "action.compare_branch"}}{{end}}</button>
+												<button id="new-pull-request" class="ui compact basic button gt-mr-0">{{if $.CanPull}}{{$.locale.Tr "repo.pulls.compare_changes"}}{{else}}{{$.locale.Tr "action.compare_branch"}}{{end}}</button>
 											</a>
 											{{end}}
 										{{else if and .LatestPullRequest.HasMerged .MergeMovedOn}}
 											{{if and (not .IsDeleted) $.AllowsPulls (gt .CommitsAhead 0)}}
 											<a href="{{$.RepoLink}}/compare/{{PathEscapeSegments $.DefaultBranch}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{$.Owner.Name}}:{{end}}{{.Name | PathEscapeSegments}}">
-												<button id="new-pull-request" class="ui compact basic button mr-0">{{if $.CanPull}}{{$.locale.Tr "repo.pulls.compare_changes"}}{{else}}{{$.locale.Tr "action.compare_branch"}}{{end}}</button>
+												<button id="new-pull-request" class="ui compact basic button gt-mr-0">{{if $.CanPull}}{{$.locale.Tr "repo.pulls.compare_changes"}}{{else}}{{$.locale.Tr "action.compare_branch"}}{{end}}</button>
 											</a>
 											{{end}}
 										{{else}}
-											<a href="{{.LatestPullRequest.Issue.Link}}" class="vm ref-issue">{{if not .LatestPullRequest.IsSameRepo}}{{.LatestPullRequest.BaseRepo.FullName}}{{end}}#{{.LatestPullRequest.Issue.Index}}</a>
+											<a href="{{.LatestPullRequest.Issue.Link}}" class="gt-vm ref-issue">{{if not .LatestPullRequest.IsSameRepo}}{{.LatestPullRequest.BaseRepo.FullName}}{{end}}#{{.LatestPullRequest.Issue.Index}}</a>
 											{{if .LatestPullRequest.HasMerged}}
-												<a href="{{.LatestPullRequest.Issue.Link}}" class="ui text-label purple large label vm">{{svg "octicon-git-merge" 16 "mr-2"}}{{$.locale.Tr "repo.pulls.merged"}}</a>
+												<a href="{{.LatestPullRequest.Issue.Link}}" class="ui text-label purple large label gt-vm">{{svg "octicon-git-merge" 16 "gt-mr-2"}}{{$.locale.Tr "repo.pulls.merged"}}</a>
 											{{else if .LatestPullRequest.Issue.IsClosed}}
-												<a href="{{.LatestPullRequest.Issue.Link}}" class="ui text-label red large label vm">{{svg "octicon-git-pull-request" 16 "mr-2"}}{{$.locale.Tr "repo.issues.closed_title"}}</a>
+												<a href="{{.LatestPullRequest.Issue.Link}}" class="ui text-label red large label gt-vm">{{svg "octicon-git-pull-request" 16 "gt-mr-2"}}{{$.locale.Tr "repo.issues.closed_title"}}</a>
 											{{else}}
-												<a href="{{.LatestPullRequest.Issue.Link}}" class="ui text-label green large label vm">{{svg "octicon-git-pull-request" 16 "mr-2"}}{{$.locale.Tr "repo.issues.open_title"}}</a>
+												<a href="{{.LatestPullRequest.Issue.Link}}" class="ui text-label green large label gt-vm">{{svg "octicon-git-pull-request" 16 "gt-mr-2"}}{{$.locale.Tr "repo.issues.open_title"}}</a>
 											{{end}}
 										{{end}}
 									</td>

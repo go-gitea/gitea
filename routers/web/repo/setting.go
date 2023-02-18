@@ -529,6 +529,7 @@ func SettingsPost(ctx *context.Context) {
 					AllowRebaseUpdate:             form.PullsAllowRebaseUpdate,
 					DefaultDeleteBranchAfterMerge: form.DefaultDeleteBranchAfterMerge,
 					DefaultMergeStyle:             repo_model.MergeStyle(form.PullsDefaultMergeStyle),
+					DefaultAllowMaintainerEdit:    form.DefaultAllowMaintainerEdit,
 				},
 			})
 		} else if !unit_model.TypePullRequests.UnitGlobalDisabled() {
@@ -1006,7 +1007,7 @@ func AddTeamPost(ctx *context.Context) {
 		return
 	}
 
-	team, err := organization.OrgFromUser(ctx.Repo.Owner).GetTeam(name)
+	team, err := organization.OrgFromUser(ctx.Repo.Owner).GetTeam(ctx, name)
 	if err != nil {
 		if organization.IsErrTeamNotExist(err) {
 			ctx.Flash.Error(ctx.Tr("form.team_not_exist"))

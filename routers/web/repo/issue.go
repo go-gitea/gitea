@@ -100,7 +100,7 @@ func MustAllowUserComment(ctx *context.Context) {
 
 	if issue.IsLocked && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
 		ctx.Flash.Error(ctx.Tr("repo.issues.comment_on_locked"))
-		ctx.Redirect(issue.HTMLURL())
+		ctx.Redirect(issue.Link())
 		return
 	}
 }
@@ -927,7 +927,7 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 
 	if len(issueTemplates) == 0 {
 		// The "issues/new" and "issues/new/choose" share the same query parameters "project" and "milestone", if no template here, just redirect to the "issues/new" page with these parameters.
-		ctx.Redirect(fmt.Sprintf("%s/issues/new?%s", ctx.Repo.Repository.HTMLURL(), ctx.Req.URL.RawQuery), http.StatusSeeOther)
+		ctx.Redirect(fmt.Sprintf("%s/issues/new?%s", ctx.Repo.Repository.Link(), ctx.Req.URL.RawQuery), http.StatusSeeOther)
 		return
 	}
 
@@ -950,11 +950,11 @@ func DeleteIssue(ctx *context.Context) {
 	}
 
 	if issue.IsPull {
-		ctx.Redirect(fmt.Sprintf("%s/pulls", ctx.Repo.Repository.HTMLURL()), http.StatusSeeOther)
+		ctx.Redirect(fmt.Sprintf("%s/pulls", ctx.Repo.Repository.Link()), http.StatusSeeOther)
 		return
 	}
 
-	ctx.Redirect(fmt.Sprintf("%s/issues", ctx.Repo.Repository.HTMLURL()), http.StatusSeeOther)
+	ctx.Redirect(fmt.Sprintf("%s/issues", ctx.Repo.Repository.Link()), http.StatusSeeOther)
 }
 
 // ValidateRepoMetas check and returns repository's meta information
@@ -1142,7 +1142,11 @@ func NewIssuePost(ctx *context.Context) {
 }
 
 // roleDescriptor returns the Role Descriptor for a comment in/with the given repo, poster and issue
-func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *user_model.User, issue *issues_model.Issue) (issues_model.RoleDescriptor, error) {
+func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *user_model.User, issue *issues_model.Issue, hasOriginalAuthor bool) (issues_model.RoleDescriptor, error) {
+	if hasOriginalAuthor {
+		return issues_model.RoleDescriptorNone, nil
+	}
+
 	perm, err := access_model.GetUserRepoPermission(ctx, repo, poster)
 	if err != nil {
 		return issues_model.RoleDescriptorNone, err
@@ -1425,7 +1429,7 @@ func ViewIssue(ctx *context.Context) {
 						return
 					}
 					// Add link to the issue of the already running stopwatch
-					ctx.Data["OtherStopwatchURL"] = otherIssue.HTMLURL()
+					ctx.Data["OtherStopwatchURL"] = otherIssue.Link()
 				}
 			}
 			ctx.Data["CanUseTimetracker"] = ctx.Repo.CanUseTimetracker(issue, ctx.Doer)
@@ -1444,7 +1448,7 @@ func ViewIssue(ctx *context.Context) {
 	// check if dependencies can be created across repositories
 	ctx.Data["AllowCrossRepositoryDependencies"] = setting.Service.AllowCrossRepositoryDependencies
 
-	if issue.ShowRole, err = roleDescriptor(ctx, repo, issue.Poster, issue); err != nil {
+	if issue.ShowRole, err = roleDescriptor(ctx, repo, issue.Poster, issue, issue.HasOriginalAuthor()); err != nil {
 		ctx.ServerError("roleDescriptor", err)
 		return
 	}
@@ -1483,7 +1487,7 @@ func ViewIssue(ctx *context.Context) {
 				continue
 			}
 
-			comment.ShowRole, err = roleDescriptor(ctx, repo, comment.Poster, issue)
+			comment.ShowRole, err = roleDescriptor(ctx, repo, comment.Poster, issue, comment.HasOriginalAuthor())
 			if err != nil {
 				ctx.ServerError("roleDescriptor", err)
 				return
@@ -1582,7 +1586,7 @@ func ViewIssue(ctx *context.Context) {
 							continue
 						}
 
-						c.ShowRole, err = roleDescriptor(ctx, repo, c.Poster, issue)
+						c.ShowRole, err = roleDescriptor(ctx, repo, c.Poster, issue, c.HasOriginalAuthor())
 						if err != nil {
 							ctx.ServerError("roleDescriptor", err)
 							return
@@ -2658,7 +2662,7 @@ func NewComment(ctx *context.Context) {
 
 	if issue.IsLocked && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
 		ctx.Flash.Error(ctx.Tr("repo.issues.comment_on_locked"))
-		ctx.Redirect(issue.HTMLURL())
+		ctx.Redirect(issue.Link())
 		return
 	}
 
@@ -2669,7 +2673,7 @@ func NewComment(ctx *context.Context) {
 
 	if ctx.HasError() {
 		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
-		ctx.Redirect(issue.HTMLURL())
+		ctx.Redirect(issue.Link())
 		return
 	}
 
@@ -3272,5 +3276,5 @@ func handleTeamMentions(ctx *context.Context) {
 
 	ctx.Data["MentionableTeams"] = teams
 	ctx.Data["MentionableTeamsOrg"] = ctx.Repo.Owner.Name
-	ctx.Data["MentionableTeamsOrgAvatar"] = ctx.Repo.Owner.AvatarLink()
+	ctx.Data["MentionableTeamsOrgAvatar"] = ctx.Repo.Owner.AvatarLink(ctx)
 }
