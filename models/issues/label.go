@@ -194,11 +194,11 @@ func (label *Label) ExclusiveScope() string {
 	if !label.Exclusive {
 		return ""
 	}
-	lastIndex := strings.LastIndex(label.Name, "/")
-	if lastIndex == -1 {
+	index := strings.Index(label.Name, "/")
+	if index == -1 || index == 0 || index == len(label.Name)-1 {
 		return ""
 	}
-	return label.Name[:lastIndex]
+	return label.Name[:index]
 }
 
 // NewLabel creates a new label
