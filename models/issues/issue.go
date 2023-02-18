@@ -499,7 +499,7 @@ func (issue *Issue) CanRetrievedByDoer(ctx context.Context, p *project_model.Pro
 		return false, nil
 	}
 
-	if err := issue.Repo.GetOwner(ctx); err != nil {
+	if err := issue.Repo.LoadOwner(ctx); err != nil {
 		return false, err
 	}
 

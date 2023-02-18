@@ -472,8 +472,8 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 	var closedProjects project_model.List
 	var err error
 
-	if err := repo.GetOwner(ctx); err != nil {
-		ctx.ServerError("GetOwner", err)
+	if err := repo.LoadOwner(ctx); err != nil {
+		ctx.ServerError("LoadOwner", err)
 		return
 	}
 
