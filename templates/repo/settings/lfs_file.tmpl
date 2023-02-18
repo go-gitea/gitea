@@ -35,7 +35,7 @@
 									<strong>{{.locale.Tr "repo.audio_not_supported_in_browser"}}</strong>
 								</audio>
 							{{else if .IsPDFFile}}
-								<iframe width="100%" height="600px" src="{{AppSubUrl}}/vendor/plugins/pdfjs/web/viewer.html?file={{$.RawFileLink}}"></iframe>
+								<iframe width="100%" height="600px" src="{{AssetUrlPrefix}}/vendor/plugins/pdfjs/web/viewer.html?file={{$.RawFileLink}}"></iframe>
 							{{else}}
 								<a href="{{$.RawFileLink}}" rel="nofollow" class="btn btn-gray btn-radius">{{.locale.Tr "repo.file_view_raw"}}</a>
 							{{end}}
