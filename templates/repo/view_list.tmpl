@@ -6,7 +6,7 @@
 					<div class="ui active tiny slow centered inline">…</div>
 				{{else}}
 					{{if .LatestCommitUser}}
-						{{avatar .LatestCommitUser 24}}
+						{{avatar $.Context .LatestCommitUser 24}}
 						{{if .LatestCommitUser.FullName}}
 							<a class="muted" href="{{.LatestCommitUser.HomeLink}}"><strong>{{.LatestCommitUser.FullName}}</strong></a>
 						{{else}}
@@ -14,7 +14,7 @@
 						{{end}}
 					{{else}}
 						{{if .LatestCommit.Author}}
-							{{avatarByEmail .LatestCommit.Author.Email .LatestCommit.Author.Name 24}}
+							{{avatarByEmail $.Context .LatestCommit.Author.Email .LatestCommit.Author.Name 24}}
 							<strong>{{.LatestCommit.Author.Name}}</strong>
 						{{end}}
 					{{end}}
@@ -52,7 +52,7 @@
 					<span class="truncate">
 						{{if $entry.IsSubModule}}
 							{{svg "octicon-file-submodule"}}
-							{{$refURL := $subModuleFile.RefURL AppUrl $.Repository.FullName $.SSHDomain}}
+							{{$refURL := $subModuleFile.RefURL AppUrl $.Repository.FullName $.SSHDomain}} {{/* FIXME: the usage of AppUrl seems incorrect, it would be fixed in the future, use AppSubUrl instead */}}
 							{{if $refURL}}
 								<a class="muted" href="{{$refURL}}">{{$entry.Name}}</a><span class="at">@</span><a href="{{$refURL}}/commit/{{PathEscape $subModuleFile.RefID}}">{{ShortSha $subModuleFile.RefID}}</a>
 							{{else}}

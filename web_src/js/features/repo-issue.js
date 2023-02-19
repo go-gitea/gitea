@@ -425,10 +425,10 @@ export function initRepoPullRequestReview() {
       const groupID = commentDiv.closest('div[id^="code-comments-"]').attr('id');
       if (groupID && groupID.startsWith('code-comments-')) {
         const id = groupID.slice(14);
-        $(`#show-outdated-${id}`).addClass('hide');
-        $(`#code-comments-${id}`).removeClass('hide');
-        $(`#code-preview-${id}`).removeClass('hide');
-        $(`#hide-outdated-${id}`).removeClass('hide');
+        $(`#show-outdated-${id}`).addClass('gt-hidden');
+        $(`#code-comments-${id}`).removeClass('gt-hidden');
+        $(`#code-preview-${id}`).removeClass('gt-hidden');
+        $(`#hide-outdated-${id}`).removeClass('gt-hidden');
         commentDiv[0].scrollIntoView();
       }
     }
@@ -437,19 +437,19 @@ export function initRepoPullRequestReview() {
   $(document).on('click', '.show-outdated', function (e) {
     e.preventDefault();
     const id = $(this).data('comment');
-    $(this).addClass('hide');
-    $(`#code-comments-${id}`).removeClass('hide');
-    $(`#code-preview-${id}`).removeClass('hide');
-    $(`#hide-outdated-${id}`).removeClass('hide');
+    $(this).addClass('gt-hidden');
+    $(`#code-comments-${id}`).removeClass('gt-hidden');
+    $(`#code-preview-${id}`).removeClass('gt-hidden');
+    $(`#hide-outdated-${id}`).removeClass('gt-hidden');
   });
 
   $(document).on('click', '.hide-outdated', function (e) {
     e.preventDefault();
     const id = $(this).data('comment');
-    $(this).addClass('hide');
-    $(`#code-comments-${id}`).addClass('hide');
-    $(`#code-preview-${id}`).addClass('hide');
-    $(`#show-outdated-${id}`).removeClass('hide');
+    $(this).addClass('gt-hidden');
+    $(`#code-comments-${id}`).addClass('gt-hidden');
+    $(`#code-preview-${id}`).addClass('gt-hidden');
+    $(`#show-outdated-${id}`).removeClass('gt-hidden');
   });
 
   $(document).on('click', 'button.comment-form-reply', async function (e) {

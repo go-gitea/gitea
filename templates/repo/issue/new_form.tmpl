@@ -8,7 +8,7 @@
 	<div class="twelve wide column">
 		<div class="ui comments">
 			<div class="comment">
-				{{template "shared/user/avatarlink" .SignedUser}}
+				{{template "shared/user/avatarlink" Dict "Context" $.Context "user" .SignedUser}}
 				<div class="ui segment content">
 					<div class="field">
 						<input name="title" id="issue_title" placeholder="{{.locale.Tr "repo.milestones.title"}}" value="{{if .TitleQuery}}{{.TitleQuery}}{{else if .IssueTemplateTitle}}{{.IssueTemplateTitle}}{{else}}{{.title}}{{end}}" tabindex="3" autofocus required maxlength="255" autocomplete="off">
@@ -53,14 +53,26 @@
 					{{end}}
 					<div class="no-select item">{{.locale.Tr "repo.issues.new.clear_labels"}}</div>
 					{{if or .Labels .OrgLabels}}
+						{{$previousExclusiveScope := "_no_scope"}}
 						{{range .Labels}}
-							<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check"}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
+							{{$exclusiveScope := .ExclusiveScope}}
+							{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
+								<div class="ui divider"></div>
+							{{end}}
+							{{$previousExclusiveScope = $exclusiveScope}}
+							<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}</span>&nbsp;&nbsp;{{RenderLabel .}}
 							{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
 						{{end}}
 
 						<div class="ui divider"></div>
+						{{$previousExclusiveScope := "_no_scope"}}
 						{{range .OrgLabels}}
-							<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check"}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
+							{{$exclusiveScope := .ExclusiveScope}}
+							{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
+								<div class="ui divider"></div>
+							{{end}}
+							{{$previousExclusiveScope = $exclusiveScope}}
+							<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}</span>&nbsp;&nbsp;{{RenderLabel .}}
 							{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
 						{{end}}
 					{{else}}
@@ -217,7 +229,7 @@
 							<a class="item muted" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
 								<span class="octicon-check invisible">{{svg "octicon-check"}}</span>
 								<span class="text">
-									{{avatar . 28 "gt-mr-3"}}{{.GetDisplayName}}
+									{{avatar $.Context . 28 "gt-mr-3"}}{{.GetDisplayName}}
 								</span>
 							</a>
 						{{end}}
@@ -229,7 +241,7 @@
 					</span>
 					{{range .Assignees}}
 						<a class="hide item gt-p-2 muted" id="assignee_{{.ID}}" href="{{$.RepoLink}}/issues?assignee={{.ID}}">
-							{{avatar . 28 "gt-mr-3 gt-vm"}}{{.GetDisplayName}}
+							{{avatar $.Context . 28 "gt-mr-3 gt-vm"}}{{.GetDisplayName}}
 						</a>
 					{{end}}
 				</div>

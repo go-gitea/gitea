@@ -110,35 +110,59 @@ export function initRepoCommentForm() {
       }
 
       hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
-      if ($(this).hasClass('checked')) {
-        $(this).removeClass('checked');
-        $(this).find('.octicon-check').addClass('invisible');
-        if (hasUpdateAction) {
-          if (!($(this).data('id') in items)) {
-            items[$(this).data('id')] = {
-              'update-url': $listMenu.data('update-url'),
-              action: 'detach',
-              'issue-id': $listMenu.data('issue-id'),
-            };
-          } else {
-            delete items[$(this).data('id')];
+
+      const clickedItem = $(this);
+      const scope = $(this).attr('data-scope');
+      const canRemoveScope = e.altKey;
+
+      $(this).parent().find('.item').each(function () {
+        if (scope) {
+          // Enable only clicked item for scoped labels
+          if ($(this).attr('data-scope') !== scope) {
+            return true;
+          }
+          if ($(this).is(clickedItem)) {
+            if (!canRemoveScope && $(this).hasClass('checked')) {
+              return true;
+            }
+          } else if (!$(this).hasClass('checked')) {
+            return true;
+          }
+        } else if (!$(this).is(clickedItem)) {
+          // Toggle for other labels
+          return true;
+        }
+
+        if ($(this).hasClass('checked')) {
+          $(this).removeClass('checked');
+          $(this).find('.octicon-check').addClass('invisible');
+          if (hasUpdateAction) {
+            if (!($(this).data('id') in items)) {
+              items[$(this).data('id')] = {
+                'update-url': $listMenu.data('update-url'),
+                action: 'detach',
+                'issue-id': $listMenu.data('issue-id'),
+              };
+            } else {
+              delete items[$(this).data('id')];
+            }
+          }
+        } else {
+          $(this).addClass('checked');
+          $(this).find('.octicon-check').removeClass('invisible');
+          if (hasUpdateAction) {
+            if (!($(this).data('id') in items)) {
+              items[$(this).data('id')] = {
+                'update-url': $listMenu.data('update-url'),
+                action: 'attach',
+                'issue-id': $listMenu.data('issue-id'),
+              };
+            } else {
+              delete items[$(this).data('id')];
+            }
           }
         }
-      } else {
-        $(this).addClass('checked');
-        $(this).find('.octicon-check').removeClass('invisible');
-        if (hasUpdateAction) {
-          if (!($(this).data('id') in items)) {
-            items[$(this).data('id')] = {
-              'update-url': $listMenu.data('update-url'),
-              action: 'attach',
-              'issue-id': $listMenu.data('issue-id'),
-            };
-          } else {
-            delete items[$(this).data('id')];
-          }
-        }
-      }
+      });
 
       // TODO: Which thing should be done for choosing review requests
       // to make chosen items be shown on time here?
