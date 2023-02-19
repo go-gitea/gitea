@@ -92,7 +92,7 @@
   .metas {
     .menu {
       overflow-x: auto;
-      max-height: 300px;
+      max-height: 500px;
     }
 
     .ui.list {
@@ -155,12 +155,6 @@
   }
 
   .filter.menu {
-    .label.color {
-      border-radius: 3px;
-      margin-left: 15px;
-      padding: 0 8px;
-    }
-
     &.labels {
       .label-filter .menu .info {
         display: inline-block;
@@ -181,7 +175,7 @@
     }
 
     .menu {
-      max-height: 300px;
+      max-height: 500px;
       overflow-x: auto;
       right: 0 !important;
       left: auto !important;
@@ -190,7 +184,7 @@
 
   .select-label {
     .desc {
-      padding-left: 16px;
+      padding-left: 23px;
     }
   }
 
@@ -607,7 +601,7 @@
         min-width: 220px;
 
         .filter.menu {
-          max-height: 300px;
+          max-height: 500px;
           overflow-x: auto;
         }
       }
@@ -2774,7 +2768,7 @@
 }
 
 .edit-label.modal,
-.new-label.segment {
+.new-label.modal {
   .form {
     .column {
       padding-right: 0;
@@ -2786,12 +2780,9 @@
     }
 
     .color.picker.column {
-      width: auto;
-
-      .color-picker {
-        height: 35px;
-        width: auto;
-        padding-left: 30px;
+      display: flex;
+      .minicolors {
+        flex: 1;
       }
     }
 
@@ -2870,6 +2861,35 @@
   margin: 2px 0;
   display: inline-block !important;
   line-height: 1.3em; // there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly
+}
+
+// Scoped labels with different colors on left and right, and slanted divider in the middle
+.scope-parent {
+  background: none !important;
+  padding: 0 !important;
+}
+
+.ui.label.scope-left {
+  border-bottom-right-radius: 0;
+  border-top-right-radius: 0;
+  padding-right: 0;
+  margin-right: 0;
+}
+
+.ui.label.scope-middle {
+  width: 12px;
+  border-radius: 0;
+  padding-left: 0;
+  padding-right: 0;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.ui.label.scope-right {
+  border-bottom-left-radius: 0;
+  border-top-left-radius: 0;
+  padding-left: 0;
+  margin-left: 0;
 }
 
 .repo-button-row {

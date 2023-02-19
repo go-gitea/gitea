@@ -7,8 +7,6 @@ package issues
 import (
 	"context"
 	"fmt"
-	"html/template"
-	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -89,6 +87,7 @@ type Label struct {
 	RepoID          int64 `xorm:"INDEX"`
 	OrgID           int64 `xorm:"INDEX"`
 	Name            string
+	Exclusive       bool
 	Description     string
 	Color           string `xorm:"VARCHAR(7)"`
 	NumIssues       int
@@ -128,18 +127,22 @@ func (label *Label) CalOpenOrgIssues(ctx context.Context, repoID, labelID int64)
 }
 
 // LoadSelectedLabelsAfterClick calculates the set of selected labels when a label is clicked
-func (label *Label) LoadSelectedLabelsAfterClick(currentSelectedLabels []int64) {
+func (label *Label) LoadSelectedLabelsAfterClick(currentSelectedLabels []int64, currentSelectedExclusiveScopes []string) {
 	var labelQuerySlice []string
 	labelSelected := false
 	labelID := strconv.FormatInt(label.ID, 10)
-	for _, s := range currentSelectedLabels {
+	labelScope := label.ExclusiveScope()
+	for i, s := range currentSelectedLabels {
 		if s == label.ID {
 			labelSelected = true
 		} else if -s == label.ID {
 			labelSelected = true
 			label.IsExcluded = true
 		} else if s != 0 {
-			labelQuerySlice = append(labelQuerySlice, strconv.FormatInt(s, 10))
+			// Exclude other labels in the same scope from selection
+			if s < 0 || labelScope == "" || labelScope != currentSelectedExclusiveScopes[i] {
+				labelQuerySlice = append(labelQuerySlice, strconv.FormatInt(s, 10))
+			}
 		}
 	}
 	if !labelSelected {
@@ -159,49 +162,43 @@ func (label *Label) BelongsToRepo() bool {
 	return label.RepoID > 0
 }
 
-// SrgbToLinear converts a component of an sRGB color to its linear intensity
-// See: https://en.wikipedia.org/wiki/SRGB#The_reverse_transformation_(sRGB_to_CIE_XYZ)
-func SrgbToLinear(color uint8) float64 {
-	flt := float64(color) / 255
-	if flt <= 0.04045 {
-		return flt / 12.92
+// Get color as RGB values in 0..255 range
+func (label *Label) ColorRGB() (float64, float64, float64, error) {
+	color, err := strconv.ParseUint(label.Color[1:], 16, 64)
+	if err != nil {
+		return 0, 0, 0, err
 	}
-	return math.Pow((flt+0.055)/1.055, 2.4)
+
+	r := float64(uint8(0xFF & (uint32(color) >> 16)))
+	g := float64(uint8(0xFF & (uint32(color) >> 8)))
+	b := float64(uint8(0xFF & uint32(color)))
+	return r, g, b, nil
 }
 
-// Luminance returns the luminance of an sRGB color
-func Luminance(color uint32) float64 {
-	r := SrgbToLinear(uint8(0xFF & (color >> 16)))
-	g := SrgbToLinear(uint8(0xFF & (color >> 8)))
-	b := SrgbToLinear(uint8(0xFF & color))
-
-	// luminance ratios for sRGB
-	return 0.2126*r + 0.7152*g + 0.0722*b
-}
-
-// LuminanceThreshold is the luminance at which white and black appear to have the same contrast
-// i.e. x such that 1.05 / (x + 0.05) = (x + 0.05) / 0.05
-// i.e. math.Sqrt(1.05*0.05) - 0.05
-const LuminanceThreshold float64 = 0.179
-
-// ForegroundColor calculates the text color for labels based
-// on their background color.
-func (label *Label) ForegroundColor() template.CSS {
+// Determine if label text should be light or dark to be readable on background color
+func (label *Label) UseLightTextColor() bool {
 	if strings.HasPrefix(label.Color, "#") {
-		if color, err := strconv.ParseUint(label.Color[1:], 16, 64); err == nil {
-			// NOTE: see web_src/js/components/ContextPopup.vue for similar implementation
-			luminance := Luminance(uint32(color))
-
-			// prefer white or black based upon contrast
-			if luminance < LuminanceThreshold {
-				return template.CSS("#fff")
-			}
-			return template.CSS("#000")
+		if r, g, b, err := label.ColorRGB(); err == nil {
+			// Perceived brightness from: https://www.w3.org/TR/AERT/#color-contrast
+			// In the future WCAG 3 APCA may be a better solution
+			brightness := (0.299*r + 0.587*g + 0.114*b) / 255
+			return brightness < 0.35
 		}
 	}
 
-	// default to black
-	return template.CSS("#000")
+	return false
+}
+
+// Return scope substring of label name, or empty string if none exists
+func (label *Label) ExclusiveScope() string {
+	if !label.Exclusive {
+		return ""
+	}
+	lastIndex := strings.LastIndex(label.Name, "/")
+	if lastIndex == -1 || lastIndex == 0 || lastIndex == len(label.Name)-1 {
+		return ""
+	}
+	return label.Name[:lastIndex]
 }
 
 // NewLabel creates a new label
@@ -253,7 +250,7 @@ func UpdateLabel(l *Label) error {
 	if !LabelColorPattern.MatchString(l.Color) {
 		return fmt.Errorf("bad color code: %s", l.Color)
 	}
-	return updateLabelCols(db.DefaultContext, l, "name", "description", "color")
+	return updateLabelCols(db.DefaultContext, l, "name", "description", "color", "exclusive")
 }
 
 // DeleteLabel delete a label
@@ -620,6 +617,29 @@ func newIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *user_m
 	return updateLabelCols(ctx, label, "num_issues", "num_closed_issue")
 }
 
+// Remove all issue labels in the given exclusive scope
+func RemoveDuplicateExclusiveIssueLabels(ctx context.Context, issue *Issue, label *Label, doer *user_model.User) (err error) {
+	scope := label.ExclusiveScope()
+	if scope == "" {
+		return nil
+	}
+
+	var toRemove []*Label
+	for _, issueLabel := range issue.Labels {
+		if label.ID != issueLabel.ID && issueLabel.ExclusiveScope() == scope {
+			toRemove = append(toRemove, issueLabel)
+		}
+	}
+
+	for _, issueLabel := range toRemove {
+		if err = deleteIssueLabel(ctx, issue, issueLabel, doer); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // NewIssueLabel creates a new issue-label relation.
 func NewIssueLabel(issue *Issue, label *Label, doer *user_model.User) (err error) {
 	if HasIssueLabel(db.DefaultContext, issue.ID, label.ID) {
@@ -638,6 +658,10 @@ func NewIssueLabel(issue *Issue, label *Label, doer *user_model.User) (err error
 
 	// Do NOT add invalid labels
 	if issue.RepoID != label.RepoID && issue.Repo.OwnerID != label.OrgID {
+		return nil
+	}
+
+	if err = RemoveDuplicateExclusiveIssueLabels(ctx, issue, label, doer); err != nil {
 		return nil
 	}
 
