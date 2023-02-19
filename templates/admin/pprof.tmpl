@@ -84,8 +84,8 @@
 	</form>
 	<h4>{{.locale.Tr "admin.monitor.pprof.trace"}}</h4>
 	<form action="{{AppSubUrl}}/admin/monitor/trace">
-		<div class="help">{{.locale.Tr "admin.monitor.pprof.trace.description"}}</div>
 		<div class="ui form">
+			<div class="help">{{.locale.Tr "admin.monitor.pprof.trace.description"}}</div>
 			<div class="field">
 				<label for="pprof-trace-duration">{{.locale.Tr "admin.monitor.pprof.duration"}}</label>
 				<input id="pprof-trace-duration" type="text" name="duration" placeholder="{{.locale.Tr "admin.monitor.pprof.duration_placeholder"}}">
