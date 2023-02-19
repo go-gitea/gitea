@@ -3,7 +3,8 @@
 
 package setting
 
-// FIXME: DEPRECATED to be removed in v1.18.0
+// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
+// if these are removed, the warning will not be shown
 // - will need to set default for [queue.task] LENGTH to 1000 though
 func loadTaskFrom(rootCfg ConfigProvider) {
 	taskSec := rootCfg.Section("task")

@@ -64,7 +64,7 @@ func loadMailerFrom(rootCfg ConfigProvider) {
 	}
 
 	// Handle Deprecations and map on to new configuration
-	// DEPRECATED should not be removed because users maybe upgrade from lower version upgrade to the latest version
+	// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
 	// if these are removed, the warning will not be shown
 	deprecatedSetting(rootCfg, "mailer", "MAILER_TYPE", "mailer", "PROTOCOL", "v1.19.0")
 	if sec.HasKey("MAILER_TYPE") && !sec.HasKey("PROTOCOL") {

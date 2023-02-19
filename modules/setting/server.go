@@ -179,7 +179,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	case "https":
 		Protocol = HTTPS
 
-		// DEPRECATED should not be removed because users maybe upgrade from lower version upgrade to the latest version
+		// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
 		// if these are removed, the warning will not be shown
 		if sec.HasKey("ENABLE_ACME") {
 			EnableAcme = sec.Key("ENABLE_ACME").MustBool(false)

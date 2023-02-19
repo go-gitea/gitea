@@ -56,7 +56,7 @@ func loadIndexerFrom(rootCfg ConfigProvider) {
 	Indexer.IssueIndexerName = sec.Key("ISSUE_INDEXER_NAME").MustString(Indexer.IssueIndexerName)
 
 	// The following settings are deprecated and can be overridden by settings in [queue] or [queue.issue_indexer]
-	// DEPRECATED should not be removed because users maybe upgrade from lower version upgrade to the latest version
+	// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
 	// if these are removed, the warning will not be shown
 	deprecatedSetting(rootCfg, "indexer", "ISSUE_INDEXER_QUEUE_TYPE", "queue.issue_indexer", "TYPE", "v1.19.0")
 	deprecatedSetting(rootCfg, "indexer", "ISSUE_INDEXER_QUEUE_DIR", "queue.issue_indexer", "DATADIR", "v1.19.0")
