@@ -26,27 +26,63 @@ var (
 )
 
 // CheckOAuthAccessToken returns uid of user from oauth token
-func CheckOAuthAccessToken(accessToken string) int64 {
+func CheckOAuthAccessToken(tokenString string) (int64, auth_model.AccessTokenScope) {
 	// JWT tokens require a "."
-	if !strings.Contains(accessToken, ".") {
-		return 0
+	if !strings.Contains(tokenString, ".") {
+		return 0, ""
 	}
-	token, err := oauth2.ParseToken(accessToken, oauth2.DefaultSigningKey)
+
+	token, err := oauth2.ParseToken(tokenString, oauth2.DefaultSigningKey)
 	if err != nil {
 		log.Trace("oauth2.ParseToken: %v", err)
-		return 0
+		return 0, ""
 	}
-	var grant *auth_model.OAuth2Grant
-	if grant, err = auth_model.GetOAuth2GrantByID(db.DefaultContext, token.GrantID); err != nil || grant == nil {
-		return 0
-	}
+
+	// Only permit AccessTokens
 	if token.Type != oauth2.TypeAccessToken {
-		return 0
+		return 0, ""
 	}
-	if token.ExpiresAt.Before(time.Now()) || token.IssuedAt.After(time.Now()) {
-		return 0
+
+	// Ensure that the token is not expired or issued earlier than the current time
+	if (token.ExpiresAt != nil && !token.ExpiresAt.IsZero() && token.ExpiresAt.Before(time.Now())) || token.IssuedAt.After(time.Now()) {
+		return 0, ""
 	}
-	return grant.UserID
+
+	// Now we overload the token types
+	if strings.HasPrefix(token.ID, "token-") {
+		// If the provided grant ID is 0 then we're an invalid token
+		if token.GrantID == 0 {
+			return 0, ""
+		}
+
+		// This is an access-token
+		accessToken, err := auth_model.GetAccessTokenByID(db.DefaultContext, token.GrantID)
+		if err != nil || accessToken == nil {
+			return 0, ""
+		}
+
+		// Update the last access time
+		accessToken.UpdatedUnix = timeutil.TimeStampNow()
+		if err = auth_model.UpdateAccessToken(accessToken); err != nil {
+			log.Error("UpdateAccessToken:  %v", err)
+		}
+
+		return accessToken.UID, accessToken.Scope
+	}
+
+	// This is an oauth2 grant
+	grant, err := auth_model.GetOAuth2GrantByID(db.DefaultContext, token.GrantID)
+	if err != nil || grant == nil {
+		return 0, ""
+	}
+
+	// convert the scopes of this grant to access token scopes and normalize
+	scope, err := grant.AccessTokenScope().Normalize()
+	if err != nil {
+		return 0, ""
+	}
+
+	return grant.UserID, scope
 }
 
 // OAuth2 implements the Auth interface and authenticates requests
@@ -86,10 +122,10 @@ func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
 
 	// Let's see if token is valid.
 	if strings.Contains(tokenSHA, ".") {
-		uid := CheckOAuthAccessToken(tokenSHA)
+		uid, scope := CheckOAuthAccessToken(tokenSHA)
 		if uid != 0 {
 			store.GetData()["IsApiToken"] = true
-			store.GetData()["ApiTokenScope"] = auth_model.AccessTokenScopeAll // fallback to all
+			store.GetData()["ApiTokenScope"] = scope
 		}
 		return uid
 	}

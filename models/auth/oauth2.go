@@ -446,6 +446,11 @@ func (grant *OAuth2Grant) SetNonce(ctx context.Context, nonce string) error {
 	return nil
 }
 
+// AccessTokenScope returns the Scope in OAuth2 form
+func (grant *OAuth2Grant) AccessTokenScope() AccessTokenScope {
+	return AccessTokenScope(strings.ReplaceAll(grant.Scope, " ", ","))
+}
+
 // GetOAuth2GrantByID returns the grant with the given ID
 func GetOAuth2GrantByID(ctx context.Context, id int64) (grant *OAuth2Grant, err error) {
 	grant = new(OAuth2Grant)

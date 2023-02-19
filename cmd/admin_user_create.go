@@ -13,6 +13,7 @@ import (
 	pwd "code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/auth"
 
 	"github.com/urfave/cli"
 )
@@ -157,7 +158,7 @@ func runCreateUser(c *cli.Context) error {
 			UID:  u.ID,
 		}
 
-		if err := auth_model.NewAccessToken(t); err != nil {
+		if err := auth.NewAccessToken(t); err != nil {
 			return err
 		}
 

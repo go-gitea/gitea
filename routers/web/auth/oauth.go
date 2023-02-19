@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/auth"
@@ -323,6 +324,12 @@ func getOAuthGroupsForUser(user *user_model.User) ([]string, error) {
 	return groups, nil
 }
 
+type IntrospectOAuthResponse struct {
+	Active bool   `json:"active"`
+	Scope  string `json:"scope,omitempty"`
+	jwt.RegisteredClaims
+}
+
 // IntrospectOAuth introspects an oauth token
 func IntrospectOAuth(ctx *context.Context) {
 	if ctx.Doer == nil {
@@ -338,24 +345,49 @@ func IntrospectOAuth(ctx *context.Context) {
 	}
 
 	form := web.GetForm(ctx).(*forms.IntrospectTokenForm)
-	token, err := oauth2.ParseToken(form.Token, oauth2.DefaultSigningKey)
-	if err == nil {
-		if token.Valid() == nil {
-			grant, err := auth.GetOAuth2GrantByID(ctx, token.GrantID)
-			if err == nil && grant != nil {
-				app, err := auth.GetOAuth2ApplicationByID(ctx, grant.ApplicationID)
-				if err == nil && app != nil {
-					response.Active = true
-					response.Scope = grant.Scope
-					response.Issuer = setting.AppURL
-					response.Audience = []string{app.ClientID}
-					response.Subject = fmt.Sprint(grant.UserID)
-				}
-			}
-		}
+	response = introspectOAuth(ctx, form.Token)
+	ctx.JSON(http.StatusOK, response)
+}
+
+func introspectOAuth(ctx *context.Context, tokenStr string) (response IntrospectOAuthResponse) {
+	token, err := oauth2.ParseToken(tokenStr, oauth2.DefaultSigningKey)
+	if err != nil || token.Valid() != nil {
+		return response
 	}
 
-	ctx.JSON(http.StatusOK, response)
+	if strings.HasPrefix(token.ID, "token-") {
+		if token.GrantID == 0 {
+			return response
+		}
+		accessToken, err := auth.GetAccessTokenByID(ctx, token.GrantID)
+		if err != nil {
+			return response
+		}
+		response.Active = true
+		// convert the scope to OAuth2 style
+		response.Scope = accessToken.OAuth2Scope()
+		response.Issuer = setting.AppURL
+		response.Subject = strconv.FormatInt(accessToken.UID, 10)
+		return response
+	}
+
+	grant, err := auth.GetOAuth2GrantByID(ctx, token.GrantID)
+	if err != nil || grant == nil {
+		return response
+	}
+
+	app, err := auth.GetOAuth2ApplicationByID(ctx, grant.ApplicationID)
+	if err != nil || app == nil {
+		return response
+	}
+
+	response.Active = true
+	response.Scope = grant.Scope
+	response.Issuer = setting.AppURL
+	response.Audience = []string{app.ClientID}
+	response.Subject = strconv.FormatInt(grant.UserID, 10)
+
+	return response
 }
 
 // AuthorizeOAuth manages authorize requests

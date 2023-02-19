@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/forms"
 )
 
@@ -47,6 +48,8 @@ func ApplicationsPost(ctx *context.Context) {
 		ctx.ServerError("GetScope", err)
 		return
 	}
+
+	// Previously we would create Tokens but now we create OAuthGrants
 	t := &auth_model.AccessToken{
 		UID:   ctx.Doer.ID,
 		Name:  form.Name,
@@ -64,7 +67,7 @@ func ApplicationsPost(ctx *context.Context) {
 		return
 	}
 
-	if err := auth_model.NewAccessToken(t); err != nil {
+	if err := auth.NewAccessToken(t); err != nil {
 		ctx.ServerError("NewAccessToken", err)
 		return
 	}

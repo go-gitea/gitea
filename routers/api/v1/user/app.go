@@ -16,6 +16,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -120,15 +121,17 @@ func CreateAccessToken(ctx *context.APIContext) {
 	}
 	t.Scope = scope
 
-	if err := auth_model.NewAccessToken(t); err != nil {
+	if err := auth.NewAccessToken(t); err != nil {
 		ctx.Error(http.StatusInternalServerError, "NewAccessToken", err)
 		return
 	}
+
 	ctx.JSON(http.StatusCreated, &api.AccessToken{
 		Name:           t.Name,
 		Token:          t.Token,
 		ID:             t.ID,
 		TokenLastEight: t.TokenLastEight,
+		Scopes:         t.Scope.StringSlice(),
 	})
 }
 

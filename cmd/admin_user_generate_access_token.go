@@ -8,6 +8,7 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/services/auth"
 
 	"github.com/urfave/cli"
 )
@@ -66,7 +67,7 @@ func runGenerateAccessToken(c *cli.Context) error {
 		Scope: accessTokenScope,
 	}
 
-	if err := auth_model.NewAccessToken(t); err != nil {
+	if err := auth.NewAccessToken(t); err != nil {
 		return err
 	}
 

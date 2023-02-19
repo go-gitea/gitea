@@ -5,9 +5,11 @@
 package auth
 
 import (
+	"context"
 	"crypto/subtle"
-	"encoding/hex"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -62,7 +64,7 @@ type AccessToken struct {
 	UID            int64 `xorm:"INDEX"`
 	Name           string
 	Token          string `xorm:"-"`
-	TokenHash      string `xorm:"UNIQUE"` // sha256 of token
+	TokenHash      string `xorm:"UNIQUE"` // sha256 of token for legacy tokens
 	TokenSalt      string
 	TokenLastEight string `xorm:"INDEX token_last_eight"`
 	Scope          AccessTokenScope
@@ -77,6 +79,11 @@ type AccessToken struct {
 func (t *AccessToken) AfterLoad() {
 	t.HasUsed = t.UpdatedUnix > t.CreatedUnix
 	t.HasRecentActivity = t.UpdatedUnix.AddDuration(7*24*time.Hour) > timeutil.TimeStampNow()
+}
+
+// OAuth2Scope returns the Scope in OAuth2 form
+func (t *AccessToken) OAuth2Scope() string {
+	return strings.ReplaceAll(string(t.Scope), ",", " ")
 }
 
 func init() {
@@ -96,19 +103,9 @@ func init() {
 
 // NewAccessToken creates new access token.
 func NewAccessToken(t *AccessToken) error {
-	salt, err := util.CryptoRandomString(10)
-	if err != nil {
-		return err
-	}
-	token, err := util.CryptoRandomBytes(20)
-	if err != nil {
-		return err
-	}
-	t.TokenSalt = salt
-	t.Token = hex.EncodeToString(token)
-	t.TokenHash = HashToken(t.Token, t.TokenSalt)
-	t.TokenLastEight = t.Token[len(t.Token)-8:]
-	_, err = db.GetEngine(db.DefaultContext).Insert(t)
+	// previously we would have created pbkdf2 hash but we're using JWT now
+	t.TokenHash = "token-" + strconv.FormatInt(t.UID, 10) + "-" + t.Name
+	_, err := db.GetEngine(db.DefaultContext).Insert(t)
 	return err
 }
 
@@ -125,6 +122,23 @@ func getAccessTokenIDFromCache(token string) int64 {
 		return 0
 	}
 	return t
+}
+
+// GetAccessTokenByID returns access token by given token value
+func GetAccessTokenByID(ctx context.Context, id int64) (*AccessToken, error) {
+	if id == 0 {
+		return nil, ErrAccessTokenNotExist{}
+	}
+
+	token := &AccessToken{ID: id}
+	has, err := db.GetEngine(ctx).Get(token)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, ErrAccessTokenNotExist{}
+	}
+	return token, nil
 }
 
 // GetAccessTokenBySHA returns access token by given token value
