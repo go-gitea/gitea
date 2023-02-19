@@ -5,6 +5,7 @@ import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';
 import {initEasyMDEImagePaste} from './comp/ImagePaste.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 import {initTooltip, showTemporaryTooltip} from '../modules/tippy.js';
+import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -40,7 +41,7 @@ export function initRepoIssueTimeTracking() {
 }
 
 function updateDeadline(deadlineString) {
-  $('#deadline-err-invalid-date').hide();
+  hideElem($('#deadline-err-invalid-date'));
   $('#deadline-loader').addClass('loading');
 
   let realDeadline = null;
@@ -49,7 +50,7 @@ function updateDeadline(deadlineString) {
 
     if (Number.isNaN(newDate)) {
       $('#deadline-loader').removeClass('loading');
-      $('#deadline-err-invalid-date').show();
+      showElem($('#deadline-err-invalid-date'));
       return false;
     }
     realDeadline = new Date(newDate);
@@ -69,7 +70,7 @@ function updateDeadline(deadlineString) {
     },
     error() {
       $('#deadline-loader').removeClass('loading');
-      $('#deadline-err-invalid-date').show();
+      showElem($('#deadline-err-invalid-date'));
     },
   });
 }
@@ -213,8 +214,8 @@ export function initRepoIssueCodeCommentCancel() {
   $(document).on('click', '.cancel-code-comment', (e) => {
     const form = $(e.currentTarget).closest('form');
     if (form.length > 0 && form.hasClass('comment-form')) {
-      form.addClass('hide');
-      form.closest('.comment-code-cloud').find('button.comment-form-reply').show();
+      form.addClass('gt-hidden');
+      showElem(form.closest('.comment-code-cloud').find('button.comment-form-reply'));
     } else {
       form.closest('.comment-code-cloud').remove();
     }
@@ -269,7 +270,7 @@ export function initRepoPullRequestUpdate() {
 
 export function initRepoPullRequestMergeInstruction() {
   $('.show-instruction').on('click', () => {
-    $('.instruct-content').toggle();
+    toggleElem($('.instruct-content'));
   });
 }
 
@@ -425,10 +426,10 @@ export function initRepoPullRequestReview() {
       const groupID = commentDiv.closest('div[id^="code-comments-"]').attr('id');
       if (groupID && groupID.startsWith('code-comments-')) {
         const id = groupID.slice(14);
-        $(`#show-outdated-${id}`).addClass('hide');
-        $(`#code-comments-${id}`).removeClass('hide');
-        $(`#code-preview-${id}`).removeClass('hide');
-        $(`#hide-outdated-${id}`).removeClass('hide');
+        $(`#show-outdated-${id}`).addClass('gt-hidden');
+        $(`#code-comments-${id}`).removeClass('gt-hidden');
+        $(`#code-preview-${id}`).removeClass('gt-hidden');
+        $(`#hide-outdated-${id}`).removeClass('gt-hidden');
         commentDiv[0].scrollIntoView();
       }
     }
@@ -437,27 +438,27 @@ export function initRepoPullRequestReview() {
   $(document).on('click', '.show-outdated', function (e) {
     e.preventDefault();
     const id = $(this).data('comment');
-    $(this).addClass('hide');
-    $(`#code-comments-${id}`).removeClass('hide');
-    $(`#code-preview-${id}`).removeClass('hide');
-    $(`#hide-outdated-${id}`).removeClass('hide');
+    $(this).addClass('gt-hidden');
+    $(`#code-comments-${id}`).removeClass('gt-hidden');
+    $(`#code-preview-${id}`).removeClass('gt-hidden');
+    $(`#hide-outdated-${id}`).removeClass('gt-hidden');
   });
 
   $(document).on('click', '.hide-outdated', function (e) {
     e.preventDefault();
     const id = $(this).data('comment');
-    $(this).addClass('hide');
-    $(`#code-comments-${id}`).addClass('hide');
-    $(`#code-preview-${id}`).addClass('hide');
-    $(`#show-outdated-${id}`).removeClass('hide');
+    $(this).addClass('gt-hidden');
+    $(`#code-comments-${id}`).addClass('gt-hidden');
+    $(`#code-preview-${id}`).addClass('gt-hidden');
+    $(`#show-outdated-${id}`).removeClass('gt-hidden');
   });
 
   $(document).on('click', 'button.comment-form-reply', async function (e) {
     e.preventDefault();
 
-    $(this).hide();
+    hideElem($(this));
     const form = $(this).closest('.comment-code-cloud').find('.comment-form');
-    form.removeClass('hide');
+    form.removeClass('gt-hidden');
     const $textarea = form.find('textarea');
     let easyMDE = getAttachedEasyMDE($textarea);
     if (!easyMDE) {
@@ -488,10 +489,10 @@ export function initRepoPullRequestReview() {
 
   $('.btn-review').on('click', function (e) {
     e.preventDefault();
-    $(this).closest('.dropdown').find('.menu').toggle('visible');
+    $(this).closest('.dropdown').find('.menu').toggle('visible'); // eslint-disable-line
   }).closest('.dropdown').find('.close').on('click', function (e) {
     e.preventDefault();
-    $(this).closest('.menu').toggle('visible');
+    $(this).closest('.menu').toggle('visible'); // eslint-disable-line
   });
 
   $(document).on('click', 'a.add-code-comment', async function (e) {
@@ -551,7 +552,7 @@ export function initRepoIssueReferenceIssue() {
   // Reference issue
   $(document).on('click', '.reference-issue', function (event) {
     const $this = $(this);
-    $this.closest('.dropdown').find('.menu').toggle('visible');
+    $this.closest('.dropdown').find('.menu').toggle('visible');  // eslint-disable-line
 
     const content = $(`#${$this.data('target')}`).text();
     const poster = $this.data('poster-username');
@@ -587,12 +588,12 @@ export function initRepoIssueTitleEdit() {
   const $editInput = $('#edit-title-input input');
 
   const editTitleToggle = function () {
-    $issueTitle.toggle();
-    $('.not-in-edit').toggle();
-    $('#edit-title-input').toggle();
-    $('#pull-desc').toggle();
-    $('#pull-desc-edit').toggle();
-    $('.in-edit').toggle();
+    toggleElem($issueTitle);
+    toggleElem($('.not-in-edit'));
+    toggleElem($('#edit-title-input'));
+    toggleElem($('#pull-desc'));
+    toggleElem($('#pull-desc-edit'));
+    toggleElem($('.in-edit'));
     $('#issue-title-wrapper').toggleClass('edit-active');
     $editInput.focus();
     return false;
@@ -605,6 +606,7 @@ export function initRepoIssueTitleEdit() {
       const targetBranch = $('#pull-target-branch').data('branch');
       const $branchTarget = $('#branch_target');
       if (targetBranch === $branchTarget.text()) {
+        window.location.reload();
         return false;
       }
       $.post(update_url, {
@@ -617,19 +619,22 @@ export function initRepoIssueTitleEdit() {
       });
     };
 
-    const pullrequest_target_update_url = $(this).data('target-update-url');
+    const pullrequest_target_update_url = $(this).attr('data-target-update-url');
     if ($editInput.val().length === 0 || $editInput.val() === $issueTitle.text()) {
       $editInput.val($issueTitle.text());
       pullrequest_targetbranch_change(pullrequest_target_update_url);
     } else {
-      $.post($(this).data('update-url'), {
+      $.post($(this).attr('data-update-url'), {
         _csrf: csrfToken,
         title: $editInput.val()
       }, (data) => {
         $editInput.val(data.title);
         $issueTitle.text(data.title);
-        pullrequest_targetbranch_change(pullrequest_target_update_url);
-        window.location.reload();
+        if (pullrequest_target_update_url) {
+          pullrequest_targetbranch_change(pullrequest_target_update_url); // it will reload the window
+        } else {
+          window.location.reload();
+        }
       });
     }
     return false;

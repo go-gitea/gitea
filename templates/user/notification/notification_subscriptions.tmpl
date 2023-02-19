@@ -18,11 +18,11 @@
 								{{.locale.Tr "all"}}
 							</a>
 							<a class="{{if eq .State "open"}}active {{end}}item" href="{{$.Link}}?sort={{$.SortType}}&state=open&issueType={{$.IssueType}}&labels={{$.Labels}}">
-								{{svg "octicon-issue-opened" 16 "mr-3"}}
+								{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
 								{{.locale.Tr "repo.issues.open_title"}}
 							</a>
 							<a class="{{if eq .State "closed"}}active {{end}}item" href="{{$.Link}}?sort={{$.SortType}}&state=closed&issueType={{$.IssueType}}&labels={{$.Labels}}">
-								{{svg "octicon-issue-closed" 16 "mr-3"}}
+								{{svg "octicon-issue-closed" 16 "gt-mr-3"}}
 								{{.locale.Tr "repo.issues.closed_title"}}
 							</a>
 						</div>
