@@ -118,12 +118,12 @@ func Projects(ctx *context.Context) {
 	ctx.Data["IsProjectsPage"] = true
 	ctx.Data["SortType"] = sortType
 
-	numOpenIssues, err := issues_model.NumIssuesInProjects(ctx, projects, ctx.Doer, util.OptionalBoolTrue)
+	numOpenIssues, err := issues_model.NumIssuesInProjects(ctx, projects, ctx.Doer, util.OptionalBoolFalse)
 	if err != nil {
 		ctx.ServerError("NumIssuesInProjects", err)
 		return
 	}
-	numClosedIssues, err := issues_model.NumIssuesInProjects(ctx, projects, ctx.Doer, util.OptionalBoolFalse)
+	numClosedIssues, err := issues_model.NumIssuesInProjects(ctx, projects, ctx.Doer, util.OptionalBoolTrue)
 	if err != nil {
 		ctx.ServerError("NumIssuesInProjects", err)
 		return
