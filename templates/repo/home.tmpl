@@ -34,7 +34,7 @@
 		</div>
 		{{end}}
 		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}
-		<div class="ui repo-topic-edit grid form" id="topic_edit" style="display:none">
+		<div class="ui repo-topic-edit grid form gt-hidden" id="topic_edit">
 			<div class="fourteen wide column">
 				<div class="field">
 					<div class="ui fluid multiple search selection dropdown">
@@ -52,7 +52,7 @@
 			</div>
 		</div>
 		{{end}}
-		<div class="hide" id="validate_prompt">
+		<div class="gt-hidden" id="validate_prompt">
 			<span id="count_prompt">{{.locale.Tr "repo.topic.count_prompt"}}</span>
 			<span id="format_prompt">{{.locale.Tr "repo.topic.format_prompt"}}</span>
 		</div>

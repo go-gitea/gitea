@@ -538,6 +538,31 @@ func (ts labelSorter) Swap(i, j int) {
 	[]*Label(ts)[i], []*Label(ts)[j] = []*Label(ts)[j], []*Label(ts)[i]
 }
 
+// Ensure only one label of a given scope exists, with labels at the end of the
+// array getting preference over earlier ones.
+func RemoveDuplicateExclusiveLabels(labels []*Label) []*Label {
+	validLabels := make([]*Label, 0, len(labels))
+
+	for i, label := range labels {
+		scope := label.ExclusiveScope()
+		if scope != "" {
+			foundOther := false
+			for _, otherLabel := range labels[i+1:] {
+				if otherLabel.ExclusiveScope() == scope {
+					foundOther = true
+					break
+				}
+			}
+			if foundOther {
+				continue
+			}
+		}
+		validLabels = append(validLabels, label)
+	}
+
+	return validLabels
+}
+
 // ReplaceIssueLabels removes all current labels and add new labels to the issue.
 // Triggers appropriate WebHooks, if any.
 func ReplaceIssueLabels(issue *Issue, labels []*Label, doer *user_model.User) (err error) {
@@ -554,6 +579,8 @@ func ReplaceIssueLabels(issue *Issue, labels []*Label, doer *user_model.User) (e
 	if err = issue.LoadLabels(ctx); err != nil {
 		return err
 	}
+
+	labels = RemoveDuplicateExclusiveLabels(labels)
 
 	sort.Sort(labelSorter(labels))
 	sort.Sort(labelSorter(issue.Labels))
