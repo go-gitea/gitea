@@ -63,7 +63,7 @@ func ListAccessTokens(ctx *context.APIContext) {
 			ID:             tokens[i].ID,
 			Name:           tokens[i].Name,
 			TokenLastEight: tokens[i].TokenLastEight,
-			Scope:          tokens[i].Scope.StringSlice(),
+			Scopes:         tokens[i].Scope.StringSlice(),
 		}
 	}
 
@@ -113,7 +113,7 @@ func CreateAccessToken(ctx *context.APIContext) {
 		return
 	}
 
-	scope, err := auth_model.AccessTokenScope(strings.Join(form.Scope, ",")).Normalize()
+	scope, err := auth_model.AccessTokenScope(strings.Join(form.Scopes, ",")).Normalize()
 	if err != nil {
 		ctx.Error(http.StatusBadRequest, "AccessTokenScope.Normalize", fmt.Errorf("invalid access token scope provided: %w", err))
 		return

@@ -14095,6 +14095,7 @@
             "items": {
               "type": "string"
             },
+            "x-go-name": "Scopes",
             "name": "userCreateToken",
             "in": "body",
             "schema": {
@@ -14198,12 +14199,12 @@
           "type": "string",
           "x-go-name": "Name"
         },
-        "scope": {
+        "scopes": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "x-go-name": "Scope"
+          "x-go-name": "Scopes"
         },
         "sha1": {
           "type": "string",
@@ -14937,15 +14938,16 @@
       "description": "CreateAccessTokenOption options when create access token",
       "type": "object",
       "properties": {
-        "Scope": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
         "name": {
           "type": "string",
           "x-go-name": "Name"
+        },
+        "scopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Scopes"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"

@@ -15,7 +15,7 @@ type AccessToken struct {
 	Name           string   `json:"name"`
 	Token          string   `json:"sha1"`
 	TokenLastEight string   `json:"token_last_eight"`
-	Scope          []string `json:"scope"`
+	Scopes         []string `json:"scopes"`
 }
 
 // AccessTokenList represents a list of API access token.
@@ -25,8 +25,8 @@ type AccessTokenList []*AccessToken
 // CreateAccessTokenOption options when create access token
 // swagger:parameters userCreateToken
 type CreateAccessTokenOption struct {
-	Name  string `json:"name" binding:"Required"`
-	Scope []string
+	Name   string   `json:"name" binding:"Required"`
+	Scopes []string `json:"scopes"`
 }
 
 // CreateOAuth2ApplicationOptions holds options to create an oauth2 application
