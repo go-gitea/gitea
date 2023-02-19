@@ -12,7 +12,7 @@
 				<a class="ui tiny button" href="{{.RepoLink}}/src/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">{{.locale.Tr "repo.normal_view"}}</a>
 				<a class="ui tiny button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">{{.locale.Tr "repo.file_history"}}</a>
 				<a class="ui tiny button unescape-button">{{.locale.Tr "repo.unescape_control_characters"}}</a>
-				<a class="ui tiny button escape-button" style="display: none;">{{.locale.Tr "repo.escape_control_characters"}}</a>
+				<a class="ui tiny button escape-button gt-hidden">{{.locale.Tr "repo.escape_control_characters"}}</a>
 			</div>
 		</div>
 	</h4>

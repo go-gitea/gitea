@@ -11,8 +11,8 @@ import (
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/translation"
 )
 
 // complexity contains information about a particular kind of password complexity
@@ -112,13 +112,13 @@ func Generate(n int) (string, error) {
 }
 
 // BuildComplexityError builds the error message when password complexity checks fail
-func BuildComplexityError(ctx *context.Context) string {
+func BuildComplexityError(locale translation.Locale) string {
 	var buffer bytes.Buffer
-	buffer.WriteString(ctx.Tr("form.password_complexity"))
+	buffer.WriteString(locale.Tr("form.password_complexity"))
 	buffer.WriteString("<ul>")
 	for _, c := range requiredList {
 		buffer.WriteString("<li>")
-		buffer.WriteString(ctx.Tr(c.TrNameOne))
+		buffer.WriteString(locale.Tr(c.TrNameOne))
 		buffer.WriteString("</li>")
 	}
 	buffer.WriteString("</ul>")

@@ -45,7 +45,7 @@
 						<label for="port">{{.locale.Tr "admin.auths.port"}}</label>
 						<input id="port" name="port" value="{{$cfg.Port}}"  placeholder="e.g. 636" required>
 					</div>
-					<div class="has-tls inline field {{if not .HasTLS}}hide{{end}}">
+					<div class="has-tls inline field {{if not .HasTLS}}gt-hidden{{end}}">
 						<div class="ui checkbox">
 							<label><strong>{{.locale.Tr "admin.auths.skip_tls_verify"}}</strong></label>
 							<input name="skip_verify" type="checkbox" {{if .Source.SkipVerify}}checked{{end}}>
@@ -152,7 +152,7 @@
 								<input id="use_paged_search" name="use_paged_search" type="checkbox" {{if $cfg.UsePagedSearch}}checked{{end}}>
 							</div>
 						</div>
-						<div class="field required search-page-size{{if not $cfg.UsePagedSearch}} hide{{end}}">
+						<div class="field required search-page-size{{if not $cfg.UsePagedSearch}} gt-hidden{{end}}">
 							<label for="search_page_size">{{.locale.Tr "admin.auths.search_page_size"}}</label>
 							<input id="search_page_size" name="search_page_size" value="{{if $cfg.UsePagedSearch}}{{$cfg.SearchPageSize}}{{end}}">
 						</div>
@@ -209,7 +209,7 @@
 						</div>
 						<p class="help">{{.locale.Tr "admin.auths.force_smtps_helper"}}</p>
 					</div>
-					<div class="has-tls inline field {{if not .HasTLS}}hide{{end}}">
+					<div class="has-tls inline field {{if not .HasTLS}}gt-hidden{{end}}">
 						<div class="ui checkbox">
 							<label><strong>{{.locale.Tr "admin.auths.skip_tls_verify"}}</strong></label>
 							<input name="skip_verify" type="checkbox" {{if .Source.SkipVerify}}checked{{end}}>

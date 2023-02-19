@@ -460,6 +460,8 @@ var migrations = []Migration{
 	// v242 -> v243
 	NewMigration("Alter gpg_key_import content TEXT field to MEDIUMTEXT", v1_19.AlterPublicGPGKeyImportContentFieldToMediumText),
 	// v243 -> v244
+	NewMigration("Add exclusive label", v1_19.AddExclusiveLabel),
+	// v244 -> v245
 	NewMigration("Rename Webhook org_id to owner_id", v1_19.RenameWebhookOrgToOwner),
 }
 
