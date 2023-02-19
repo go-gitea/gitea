@@ -63,7 +63,8 @@ func inspectCompare(t *testing.T, htmlDoc *HTMLDoc, diffCount int, diffChanges [
 // * 808038d (HEAD -> master, origin/master, origin/HEAD) Added test links
 
 // Inderect compare remove-files-b (head) with add-csv (base) branch
-//   'link_hi' and 'test.csv' are deleted, 'test.txt' is added
+//
+//	'link_hi' and 'test.csv' are deleted, 'test.txt' is added
 func TestCompareBranches(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
@@ -79,7 +80,8 @@ func TestCompareBranches(t *testing.T) {
 }
 
 // Inderect compare remove-files-b (head) with remove-files-a (base) branch
-//   'link_hi' and 'test.csv' are deleted, 'test.txt' is added
+//
+//	'link_hi' and 'test.csv' are deleted, 'test.txt' is added
 func TestCompareDeleted(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
@@ -95,7 +97,8 @@ func TestCompareDeleted(t *testing.T) {
 }
 
 // Inderect compare remove-files-a (head) with remove-files-b (base) branch
-//   'link_hi' and 'test.csv' are deleted
+//
+//	'link_hi' and 'test.csv' are deleted
 func TestCompareDeletedReverse(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
@@ -111,7 +114,8 @@ func TestCompareDeletedReverse(t *testing.T) {
 }
 
 // Direct compare remove-files-b (head) with remove-files-a (base) branch
-//   'test.txt' is deleted
+//
+//	'test.txt' is deleted
 func TestDirectCompareDeleted(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
