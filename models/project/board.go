@@ -236,7 +236,7 @@ func (p *Project) GetBoards(ctx context.Context) (BoardList, error) {
 		return nil, err
 	}
 
-	defaultB, err := getDefaultBoard(ctx, p.ID)
+	defaultB, err := p.getDefaultBoard(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -245,9 +245,9 @@ func (p *Project) GetBoards(ctx context.Context) (BoardList, error) {
 }
 
 // getDefaultBoard return default board and create a dummy if none exist
-func getDefaultBoard(ctx context.Context, projectID int64) (*Board, error) {
+func (p *Project) getDefaultBoard(ctx context.Context) (*Board, error) {
 	var board Board
-	exist, err := db.GetEngine(ctx).Where("project_id=? AND `default`=?", projectID, true).Get(&board)
+	exist, err := db.GetEngine(ctx).Where("project_id=? AND `default`=?", p.ID, true).Get(&board)
 	if err != nil {
 		return nil, err
 	}
@@ -257,7 +257,7 @@ func getDefaultBoard(ctx context.Context, projectID int64) (*Board, error) {
 
 	// represents a board for issues not assigned to one
 	return &Board{
-		ProjectID: projectID,
+		ProjectID: p.ID,
 		Title:     "Uncategorized",
 		Default:   true,
 	}, nil
