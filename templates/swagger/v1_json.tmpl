@@ -14091,6 +14091,10 @@
             "required": true
           },
           {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
             "name": "userCreateToken",
             "in": "body",
             "schema": {
@@ -14193,6 +14197,13 @@
         "name": {
           "type": "string",
           "x-go-name": "Name"
+        },
+        "scope": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Scope"
         },
         "sha1": {
           "type": "string",
@@ -14926,6 +14937,12 @@
       "description": "CreateAccessTokenOption options when create access token",
       "type": "object",
       "properties": {
+        "Scope": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "name": {
           "type": "string",
           "x-go-name": "Name"
