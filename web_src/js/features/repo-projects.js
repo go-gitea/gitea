@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import {useLightTextOnBackground} from '../utils.js';
 
 const {csrfToken} = window.config;
 
@@ -183,24 +184,11 @@ export function initRepoProject() {
 }
 
 function setLabelColor(label, color) {
-  const red = getRelativeColor(parseInt(color.slice(1, 3), 16));
-  const green = getRelativeColor(parseInt(color.slice(3, 5), 16));
-  const blue = getRelativeColor(parseInt(color.slice(5, 7), 16));
-  const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
-
-  if (luminance > 0.179) {
-    label.removeClass('light-label').addClass('dark-label');
-  } else {
+  if (useLightTextOnBackground(color)) {
     label.removeClass('dark-label').addClass('light-label');
+  } else {
+    label.removeClass('light-label').addClass('dark-label');
   }
-}
-
-/**
- * Inspired by W3C recommendation https://www.w3.org/TR/WCAG20/#relativeluminancedef
- */
-function getRelativeColor(color) {
-  color /= 255;
-  return color <= 0.03928 ? color / 12.92 : ((color + 0.055) / 1.055) ** 2.4;
 }
 
 function rgbToHex(rgb) {

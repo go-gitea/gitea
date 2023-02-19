@@ -22,7 +22,6 @@
 /* below class names match Tailwind CSS */
 .gt-pointer-events-none { pointer-events: none !important; }
 .gt-relative { position: relative !important; }
-.gt-hidden { display: none !important; }
 
 .gt-mono {
   font-family: var(--fonts-monospace) !important;
@@ -181,3 +180,16 @@
   .gt-w-100-small { width: 100% !important; }
   .gt-js-small { justify-content: flex-start !important; }
 }
+
+/*
+gt-hidden must be placed after all other "display: xxx !important" classes to win the chance
+do not use:
+* "[hidden]" attribute: it's too weak, can not be applied to an element with "display: flex"
+* ".hidden" class: it has been polluted by Fomantic UI in many cases
+* inline style="display: none": it's difficult to tweak
+* jQuery's show/hide/toggle: it can not show/hide elements with "display: xxx !important"
+only use:
+* this ".gt-hidden" class
+* showElem/hideElem/toggleElem functions in "utils/dom.js"
+*/
+.gt-hidden { display: none !important; }

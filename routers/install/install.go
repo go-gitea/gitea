@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/models/migrations"
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/generate"
@@ -79,7 +80,7 @@ func Init(ctx goctx.Context) func(next http.Handler) http.Handler {
 					"AllLangs":      translation.AllLangs(),
 					"PageStartTime": startTime,
 
-					"PasswordHashAlgorithms": user_model.AvailableHashAlgorithms,
+					"PasswordHashAlgorithms": hash.RecommendedHashAlgorithms,
 				},
 			}
 			defer ctx.Close()
@@ -441,11 +442,11 @@ func SubmitInstall(ctx *context.Context) {
 
 	cfg.Section("server").Key("OFFLINE_MODE").SetValue(fmt.Sprint(form.OfflineMode))
 	// if you are reinstalling, this maybe not right because of missing version
-	if err := system_model.SetSettingNoVersion(system_model.KeyPictureDisableGravatar, strconv.FormatBool(form.DisableGravatar)); err != nil {
+	if err := system_model.SetSettingNoVersion(ctx, system_model.KeyPictureDisableGravatar, strconv.FormatBool(form.DisableGravatar)); err != nil {
 		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 		return
 	}
-	if err := system_model.SetSettingNoVersion(system_model.KeyPictureEnableFederatedAvatar, strconv.FormatBool(form.EnableFederatedAvatar)); err != nil {
+	if err := system_model.SetSettingNoVersion(ctx, system_model.KeyPictureEnableFederatedAvatar, strconv.FormatBool(form.EnableFederatedAvatar)); err != nil {
 		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 		return
 	}
