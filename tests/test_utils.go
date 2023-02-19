@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -24,7 +25,9 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
+	"go.uber.org/atomic"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -160,6 +163,95 @@ func InitTest(requireGitea bool) {
 	routers.GlobalInitInstalled(graceful.GetManager().HammerContext())
 }
 
+type RepoFixtureWatcher struct {
+	changed *atomic.Bool
+	watcher *atomic.Value
+}
+
+var repoFixtureWatcher = RepoFixtureWatcher{
+	changed: &atomic.Bool{},
+	watcher: &atomic.Value{},
+}
+
+func (r *RepoFixtureWatcher) PrepareRepoFixtures() error {
+	_, err := os.Stat(setting.RepoRootPath)
+	if err == nil && !r.changed.Load() {
+		return nil
+	}
+	watcherVal := r.watcher.Load()
+	if watcherVal != nil {
+		if watcher, ok := watcherVal.(*fsnotify.Watcher); ok {
+			watcher.Close()
+		}
+	}
+	if err := resetFixtureRepositories(); err != nil {
+		return err
+	}
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		if err := filepath.WalkDir(setting.RepoRootPath, func(path string, _ fs.DirEntry, err error) error {
+			if err != nil && !os.IsNotExist(err) {
+				return err
+			}
+			_ = watcher.Add(path)
+			return nil
+		}); err != nil {
+			r.changed.Store(true)
+			return
+		}
+
+		select {
+		case _, ok := <-watcher.Events:
+			if !ok {
+				_ = watcher.Close()
+				return
+			}
+		case _, ok := <-watcher.Errors:
+			if !ok {
+				_ = watcher.Close()
+				return
+			}
+		}
+		_ = watcher.Close()
+		r.changed.Store(true)
+	}()
+
+	return nil
+}
+
+func resetFixtureRepositories() error {
+	if err := util.RemoveAll(setting.RepoRootPath); err != nil {
+		return err
+	}
+	if err := unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath); err != nil {
+		return err
+	}
+	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
+	if err != nil {
+		return fmt.Errorf("unable to read the new repo root: %w", err)
+	}
+	for _, ownerDir := range ownerDirs {
+		if !ownerDir.Type().IsDir() {
+			continue
+		}
+		repoDirs, err := os.ReadDir(filepath.Join(setting.RepoRootPath, ownerDir.Name()))
+		if err != nil {
+			return fmt.Errorf("unable to read the new repo root: %w", err)
+		}
+		for _, repoDir := range repoDirs {
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0o755)
+		}
+	}
+	return nil
+}
+
 func PrepareTestEnv(t testing.TB, skip ...int) func() {
 	t.Helper()
 	ourSkip := 2
@@ -172,27 +264,7 @@ func PrepareTestEnv(t testing.TB, skip ...int) func() {
 	assert.NoError(t, unittest.LoadFixtures())
 
 	// load git repo fixtures
-	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
-	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
-	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
-	if err != nil {
-		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
-	}
-	for _, ownerDir := range ownerDirs {
-		if !ownerDir.Type().IsDir() {
-			continue
-		}
-		repoDirs, err := os.ReadDir(filepath.Join(setting.RepoRootPath, ownerDir.Name()))
-		if err != nil {
-			assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
-		}
-		for _, repoDir := range repoDirs {
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0o755)
-		}
-	}
+	assert.NoError(t, repoFixtureWatcher.PrepareRepoFixtures())
 
 	// load LFS object fixtures
 	// (LFS storage can be on any of several backends, including remote servers, so we init it with the storage API)
@@ -217,27 +289,7 @@ func ResetFixtures(t *testing.T) {
 	assert.NoError(t, unittest.LoadFixtures())
 
 	// load git repo fixtures
-	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
-	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
-	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
-	if err != nil {
-		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
-	}
-	for _, ownerDir := range ownerDirs {
-		if !ownerDir.Type().IsDir() {
-			continue
-		}
-		repoDirs, err := os.ReadDir(filepath.Join(setting.RepoRootPath, ownerDir.Name()))
-		if err != nil {
-			assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
-		}
-		for _, repoDir := range repoDirs {
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0o755)
-		}
-	}
+	assert.NoError(t, repoFixtureWatcher.PrepareRepoFixtures())
 
 	// load LFS object fixtures
 	// (LFS storage can be on any of several backends, including remote servers, so we init it with the storage API)

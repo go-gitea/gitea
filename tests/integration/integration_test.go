@@ -123,6 +123,11 @@ func TestMain(m *testing.M) {
 		fmt.Printf("Error initializing test database: %v\n", err)
 		os.Exit(1)
 	}
+	if err := util.RemoveAll(setting.RepoRootPath); err != nil {
+		fmt.Printf("Error removing old repo store: %v\n", err)
+		os.Exit(1)
+	}
+
 	exitCode := m.Run()
 
 	tests.WriterCloser.Reset()

@@ -95,7 +95,7 @@ func run(ctx context.Context, desc string, opts *CreateWatcherOpts) {
 			return
 		}
 		if err := opts.PathsCallback(func(path, _ string, _ fs.DirEntry, err error) error {
-			if err != nil {
+			if err != nil && !os.IsNotExist(err) {
 				return err
 			}
 			_ = watcher.Add(path)
