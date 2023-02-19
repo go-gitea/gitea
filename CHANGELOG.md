@@ -8,8 +8,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 * SECURITY
   * Provide the ability to set password hash algorithm parameters (#22942) (#22943)
-* ENHANCEMENTS
   * Add command to bulk set must-change-password (#22823) (#22928)
+* ENHANCEMENTS
   * Use import of OCI structs (#22765) (#22805)
   * Fix color of tertiary button on dark theme (#22739) (#22744)
   * Link issue and pull requests status change in UI notifications directly to their event in the timelined view. (#22627) (#22642)
