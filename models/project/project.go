@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -174,19 +175,30 @@ func (p *Project) IsRepositoryProject() bool {
 }
 
 // CanRetrievedByDoer return whether project can be retrieved by a doer in a repo
-func (p *Project) CanRetrievedByDoer(ctx context.Context, repo *repo_model.Repository, doerID int64) (bool, error) {
-	if err := repo.LoadOwner(ctx); err != nil {
-		return false, fmt.Errorf("LoadOwner: %w", err)
-	}
-
+func (p *Project) CanWriteByDoer(ctx context.Context, repo *repo_model.Repository, doer *user_model.User) (bool, error) {
 	if unit.TypeProjects.UnitGlobalDisabled() {
 		return false, nil
 	}
 
+	if err := repo.LoadOwner(ctx); err != nil {
+		return false, fmt.Errorf("LoadOwner: %w", err)
+	}
+
 	if p.RepoID > 0 {
+		// repo projects
 		if p.RepoID != repo.ID {
 			return false, nil
 		}
+
+		if err := p.LoadRepo(ctx); err != nil {
+			return false, fmt.Errorf("LoadOwner: %w", err)
+		}
+		if perm, err := access_model.GetUserRepoPermission(ctx, p.Repo, doer); err != nil {
+			return false, err
+		} else if !perm.HasAccess() {
+			return false, nil
+		}
+
 		if !repo.UnitEnabled(ctx, unit.TypeProjects) {
 			return false, nil
 		}
@@ -196,13 +208,16 @@ func (p *Project) CanRetrievedByDoer(ctx context.Context, repo *repo_model.Repos
 			return false, nil
 		}
 
-		if repo.Owner.IsIndividual() && repo.Owner.ID != doerID {
+		if doer == nil {
+			return false, nil
+		}
+
+		if repo.Owner.IsIndividual() && repo.Owner.ID != doer.ID {
 			return false, nil
 		}
 
 		if repo.Owner.IsOrganization() {
-			// check doer read permission
-			if (*organization.Organization)(repo.Owner).UnitPermission(ctx, doerID, unit.TypeProjects) < perm.AccessModeRead {
+			if (*organization.Organization)(repo.Owner).UnitPermission(ctx, doer.ID, unit.TypeProjects) < perm.AccessModeWrite {
 				return false, nil
 			}
 		}

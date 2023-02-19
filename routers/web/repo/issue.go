@@ -502,10 +502,10 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		return
 	}
 	for _, p := range openProjectsUser {
-		if canRetrievedByDoer, err := p.CanRetrievedByDoer(ctx, repo, ctx.Doer.ID); err != nil {
-			ctx.ServerError("CanRetrievedByDoer", err)
+		if canWriteByDoer, err := p.CanWriteByDoer(ctx, repo, ctx.Doer); err != nil {
+			ctx.ServerError("CanWriteByDoer", err)
 			return
-		} else if canRetrievedByDoer {
+		} else if canWriteByDoer {
 			openProjects = append(openProjects, p)
 		}
 	}
@@ -536,10 +536,10 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		return
 	}
 	for _, p := range closedProjectsUser {
-		if canRetrievedByDoer, err := p.CanRetrievedByDoer(ctx, repo, ctx.Doer.ID); err != nil {
-			ctx.ServerError("CanRetrievedByDoer", err)
+		if canWriteByDoer, err := p.CanWriteByDoer(ctx, repo, ctx.Doer); err != nil {
+			ctx.ServerError("CanWriteByDoer", err)
 			return
-		} else if canRetrievedByDoer {
+		} else if canWriteByDoer {
 			closedProjects = append(closedProjects, p)
 		}
 	}
@@ -887,13 +887,13 @@ func NewIssue(ctx *context.Context) {
 		if err != nil {
 			log.Error("GetProjectByID: %d: %v", projectID, err)
 		} else {
-			canRetrievedByDoer, err := project.CanRetrievedByDoer(ctx, ctx.Repo.Repository, ctx.Doer.ID)
+			canWriteByDoer, err := project.CanWriteByDoer(ctx, ctx.Repo.Repository, ctx.Doer)
 			if err != nil {
-				log.Error("CanRetrievedByDoer: %d: %v", projectID, err)
-			} else if !canRetrievedByDoer {
-				log.Error("CanRetrievedByDoer: %d: %v", projectID, fmt.Errorf("project[%d] not found", project.ID))
+				log.Error("CanWriteByDoer: %d: %v", projectID, err)
+			} else if !canWriteByDoer {
+				log.Error("CanWriteByDoer: %d: %v", projectID, fmt.Errorf("project[%d] not found", project.ID))
 			} else if project.IsRepositoryProject() && !isProjectsEnabled {
-				log.Error("CanRetrievedByDoer: %d: %v", projectID, fmt.Errorf("projects is not enabled in repo[%d]", ctx.Repo.Repository.ID))
+				log.Error("CanWriteByDoer: %d: %v", projectID, fmt.Errorf("projects is not enabled in repo[%d]", ctx.Repo.Repository.ID))
 			} else {
 				ctx.Data["project_id"] = projectID
 				ctx.Data["Project"] = project
@@ -1062,10 +1062,10 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 		// if projects unit of this repo is disabled in the repo, it will redirect to a 404 page
 		// if user have no access permission to the project, it will also redirect to a 404 page
 		// so we need to return empty projectLink here
-		if canRetrievedByDoer, err := p.CanRetrievedByDoer(ctx, ctx.Repo.Repository, ctx.Doer.ID); err != nil {
-			ctx.ServerError("CanRetrievedByDoer", err)
+		if canWriteByDoer, err := p.CanWriteByDoer(ctx, ctx.Repo.Repository, ctx.Doer); err != nil {
+			ctx.ServerError("CanWriteByDoer", err)
 			return nil, nil, 0, 0, ""
-		} else if canRetrievedByDoer {
+		} else if canWriteByDoer {
 			if !(p.IsRepositoryProject() && !ctx.Repo.CanRead(unit.TypeProjects)) {
 				ctx.Data["Project"] = p
 				ctx.Data["project_id"] = form.ProjectID

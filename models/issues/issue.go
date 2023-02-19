@@ -503,7 +503,8 @@ func (issue *Issue) CanRetrievedByDoer(ctx context.Context, p *project_model.Pro
 		return false, err
 	}
 
-	if issue.Repo.Owner.IsOrganization() && (*organization.Organization)(issue.Repo.Owner).UnitPermission(ctx, doer.ID, unit.TypeIssues) < perm.AccessModeRead {
+	if issue.Repo.Owner.IsOrganization() && issue.Repo.IsPrivate &&
+		(*organization.Organization)(issue.Repo.Owner).UnitPermission(ctx, doer.ID, unit.TypeIssues) < perm.AccessModeRead {
 		return false, nil
 	}
 
