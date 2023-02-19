@@ -28,7 +28,6 @@ To make the codebase more maintainable and make Gitea better, developers should 
 
 This document is a collection of guidelines for refactoring the codebase.
 
-
 ## Refactoring Suggestions
 
 * Design more about the future, but not only resolve the current problem.
