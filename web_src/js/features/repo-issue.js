@@ -5,6 +5,7 @@ import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';
 import {initEasyMDEImagePaste} from './comp/ImagePaste.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 import {initTooltip, showTemporaryTooltip} from '../modules/tippy.js';
+import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -40,7 +41,7 @@ export function initRepoIssueTimeTracking() {
 }
 
 function updateDeadline(deadlineString) {
-  $('#deadline-err-invalid-date').hide();
+  hideElem($('#deadline-err-invalid-date'));
   $('#deadline-loader').addClass('loading');
 
   let realDeadline = null;
@@ -49,7 +50,7 @@ function updateDeadline(deadlineString) {
 
     if (Number.isNaN(newDate)) {
       $('#deadline-loader').removeClass('loading');
-      $('#deadline-err-invalid-date').show();
+      showElem($('#deadline-err-invalid-date'));
       return false;
     }
     realDeadline = new Date(newDate);
@@ -69,7 +70,7 @@ function updateDeadline(deadlineString) {
     },
     error() {
       $('#deadline-loader').removeClass('loading');
-      $('#deadline-err-invalid-date').show();
+      showElem($('#deadline-err-invalid-date'));
     },
   });
 }
@@ -213,8 +214,8 @@ export function initRepoIssueCodeCommentCancel() {
   $(document).on('click', '.cancel-code-comment', (e) => {
     const form = $(e.currentTarget).closest('form');
     if (form.length > 0 && form.hasClass('comment-form')) {
-      form.addClass('hide');
-      form.closest('.comment-code-cloud').find('button.comment-form-reply').show();
+      form.addClass('gt-hidden');
+      showElem(form.closest('.comment-code-cloud').find('button.comment-form-reply'));
     } else {
       form.closest('.comment-code-cloud').remove();
     }
@@ -269,7 +270,7 @@ export function initRepoPullRequestUpdate() {
 
 export function initRepoPullRequestMergeInstruction() {
   $('.show-instruction').on('click', () => {
-    $('.instruct-content').toggle();
+    toggleElem($('.instruct-content'));
   });
 }
 
@@ -455,9 +456,9 @@ export function initRepoPullRequestReview() {
   $(document).on('click', 'button.comment-form-reply', async function (e) {
     e.preventDefault();
 
-    $(this).hide();
+    hideElem($(this));
     const form = $(this).closest('.comment-code-cloud').find('.comment-form');
-    form.removeClass('hide');
+    form.removeClass('gt-hidden');
     const $textarea = form.find('textarea');
     let easyMDE = getAttachedEasyMDE($textarea);
     if (!easyMDE) {
@@ -488,10 +489,10 @@ export function initRepoPullRequestReview() {
 
   $('.btn-review').on('click', function (e) {
     e.preventDefault();
-    $(this).closest('.dropdown').find('.menu').toggle('visible');
+    $(this).closest('.dropdown').find('.menu').toggle('visible'); // eslint-disable-line
   }).closest('.dropdown').find('.close').on('click', function (e) {
     e.preventDefault();
-    $(this).closest('.menu').toggle('visible');
+    $(this).closest('.menu').toggle('visible'); // eslint-disable-line
   });
 
   $(document).on('click', 'a.add-code-comment', async function (e) {
@@ -551,7 +552,7 @@ export function initRepoIssueReferenceIssue() {
   // Reference issue
   $(document).on('click', '.reference-issue', function (event) {
     const $this = $(this);
-    $this.closest('.dropdown').find('.menu').toggle('visible');
+    $this.closest('.dropdown').find('.menu').toggle('visible');  // eslint-disable-line
 
     const content = $(`#${$this.data('target')}`).text();
     const poster = $this.data('poster-username');
@@ -587,12 +588,12 @@ export function initRepoIssueTitleEdit() {
   const $editInput = $('#edit-title-input input');
 
   const editTitleToggle = function () {
-    $issueTitle.toggle();
-    $('.not-in-edit').toggle();
-    $('#edit-title-input').toggle();
-    $('#pull-desc').toggle();
-    $('#pull-desc-edit').toggle();
-    $('.in-edit').toggle();
+    toggleElem($issueTitle);
+    toggleElem($('.not-in-edit'));
+    toggleElem($('#edit-title-input'));
+    toggleElem($('#pull-desc'));
+    toggleElem($('#pull-desc-edit'));
+    toggleElem($('.in-edit'));
     $('#issue-title-wrapper').toggleClass('edit-active');
     $editInput.focus();
     return false;

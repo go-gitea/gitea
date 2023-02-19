@@ -113,11 +113,11 @@ export default {
     },
     adjustToggleButton(visible) {
       const [toShow, toHide] = document.querySelectorAll('.diff-toggle-file-tree-button .icon');
-      toShow.classList.toggle('hide', visible);  // hide the toShow icon if the tree is visible
-      toHide.classList.toggle('hide', !visible); // similarly
+      toShow.classList.toggle('gt-hidden', visible);  // hide the toShow icon if the tree is visible
+      toHide.classList.toggle('gt-hidden', !visible); // similarly
 
       const diffTree = document.getElementById('diff-file-tree');
-      diffTree.classList.toggle('hide', !visible);
+      diffTree.classList.toggle('gt-hidden', !visible);
     },
     loadMoreData() {
       this.isLoadingNewData = true;

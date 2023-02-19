@@ -88,7 +88,7 @@
 						{{end}}
 					{{end}}
 				</div>
-				<div class="scrolling menu reference-list-menu base-tag-list" style="display: none">
+				<div class="scrolling menu reference-list-menu base-tag-list gt-hidden">
 					{{range .Tags}}
 						<div class="item {{if eq $.BaseBranch .}}selected{{end}}" data-url="{{$.RepoLink}}/compare/{{PathEscapeSegments .}}{{$.CompareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.HeadUser.Name}}/{{PathEscape $.HeadRepo.Name}}:{{end}}{{PathEscapeSegments $.HeadBranch}}">{{$BaseCompareName}}:{{.}}</div>
 					{{end}}
@@ -157,7 +157,7 @@
 						{{end}}
 					{{end}}
 				</div>
-				<div class="scrolling menu reference-list-menu head-tag-list" style="display: none">
+				<div class="scrolling menu reference-list-menu head-tag-list gt-hidden">
 					{{range .HeadTags}}
 						<div class="{{if eq $.HeadBranch .}}selected{{end}} item" data-url="{{$.RepoLink}}/compare/{{PathEscapeSegments $.BaseBranch}}{{$.CompareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.HeadUser.Name}}/{{PathEscape $.HeadRepo.Name}}:{{end}}{{PathEscapeSegments .}}">{{$HeadCompareName}}:{{.}}</div>
 					{{end}}
@@ -184,10 +184,10 @@
 	{{if .IsNothingToCompare}}
 		{{if and $.IsSigned $.AllowEmptyPr (not .Repository.IsArchived)}}
 			<div class="ui segment">{{.locale.Tr "repo.pulls.nothing_to_compare_and_allow_empty_pr"}}</div>
-			<div class="ui info message show-form-container" {{if .Flash}}style="display: none"{{end}}>
+			<div class="ui info message show-form-container {{if .Flash}}gt-hidden{{end}}">
 				<button class="ui button green show-form">{{.locale.Tr "repo.pulls.new"}}</button>
 			</div>
-			<div class="pullrequest-form" {{if not .Flash}}style="display: none"{{end}}>
+			<div class="pullrequest-form {{if not .Flash}}gt-hidden{{end}}">
 				{{template "repo/issue/new_form" .}}
 			</div>
 		{{else}}
@@ -214,7 +214,7 @@
 			</div>
 		{{else}}
 			{{if and $.IsSigned (not .Repository.IsArchived)}}
-				<div class="ui info message show-form-container" {{if .Flash}}style="display: none"{{end}}>
+				<div class="ui info message show-form-container {{if .Flash}}gt-hidden{{end}}">
 					<button class="ui button green show-form">{{.locale.Tr "repo.pulls.new"}}</button>
 				</div>
 			{{else if .Repository.IsArchived}}
@@ -223,7 +223,7 @@
 				</div>
 			{{end}}
 			{{if $.IsSigned}}
-				<div class="pullrequest-form" {{if not .Flash}}style="display: none"{{end}}>
+				<div class="pullrequest-form {{if not .Flash}}gt-hidden{{end}}">
 					{{template "repo/issue/new_form" .}}
 				</div>
 			{{end}}
