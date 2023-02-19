@@ -84,7 +84,7 @@
 				<div class="board-column-header gt-df gt-ac gt-sb">
 					<div class="ui large label board-label gt-py-2">
 						<div class="ui small circular grey label board-card-cnt">
-							{{.NumIssues}}
+							{{len (index $.IssuesMap .ID)}}
 						</div>
 						{{.Title}}
 					</div>

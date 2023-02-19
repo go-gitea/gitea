@@ -503,6 +503,10 @@ func (issue *Issue) CanRetrievedByDoer(ctx context.Context, p *project_model.Pro
 		return false, err
 	}
 
+	if issue.Repo.Owner.IsOrganization() && (*organization.Organization)(issue.Repo.Owner).UnitPermission(ctx, doer.ID, unit.TypeIssues) < perm.AccessModeRead {
+		return false, nil
+	}
+
 	if p.RepoID > 0 {
 		// repo project
 		if p.RepoID != issue.RepoID {
@@ -511,11 +515,6 @@ func (issue *Issue) CanRetrievedByDoer(ctx context.Context, p *project_model.Pro
 	} else {
 		// individual/org's project
 		if p.OwnerID != issue.Repo.OwnerID {
-			return false, nil
-		}
-
-		// check doer read permission
-		if issue.Repo.Owner.IsOrganization() && (*organization.Organization)(issue.Repo.Owner).UnitPermission(ctx, doer.ID, unit.TypeIssues) < perm.AccessModeRead {
 			return false, nil
 		}
 	}
