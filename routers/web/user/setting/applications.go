@@ -48,6 +48,9 @@ func ApplicationsPost(ctx *context.Context) {
 		ctx.ServerError("GetScope", err)
 		return
 	}
+	if len(scope) == 0 {
+		scope = auth_model.AccessTokenScopeAll
+	}
 
 	// Previously we would create Tokens but now we create OAuthGrants
 	t := &auth_model.AccessToken{
