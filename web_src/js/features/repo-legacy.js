@@ -25,6 +25,7 @@ import {initCommentContent, initMarkupContent} from '../markup/content.js';
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoSettingBranches} from './repo-settings.js';
 import {initRepoPullRequestMergeForm} from './repo-issue-pr-form.js';
+import {hideElem, showElem} from '../utils/dom.js';
 
 const {csrfToken} = window.config;
 
@@ -55,9 +56,9 @@ export function initRepoCommentForm() {
       }
     });
     $selectBranch.find('.reference.column').on('click', function () {
-      $selectBranch.find('.scrolling.reference-list-menu').css('display', 'none');
+      hideElem($selectBranch.find('.scrolling.reference-list-menu'));
       $selectBranch.find('.reference .text').removeClass('black');
-      $($(this).data('target')).css('display', 'block');
+      showElem($($(this).data('target')));
       $(this).find('.text').addClass('black');
       return false;
     });
@@ -174,15 +175,15 @@ export function initRepoCommentForm() {
       $(this).parent().find('.item').each(function () {
         if ($(this).hasClass('checked')) {
           listIds.push($(this).data('id'));
-          $($(this).data('id-selector')).removeClass('hide');
+          $($(this).data('id-selector')).removeClass('gt-hidden');
         } else {
-          $($(this).data('id-selector')).addClass('hide');
+          $($(this).data('id-selector')).addClass('gt-hidden');
         }
       });
       if (listIds.length === 0) {
-        $noSelect.removeClass('hide');
+        $noSelect.removeClass('gt-hidden');
       } else {
-        $noSelect.addClass('hide');
+        $noSelect.addClass('gt-hidden');
       }
       $($(this).parent().data('id')).val(listIds.join(','));
       return false;
@@ -208,9 +209,9 @@ export function initRepoCommentForm() {
       }
 
       $list.find('.item').each(function () {
-        $(this).addClass('hide');
+        $(this).addClass('gt-hidden');
       });
-      $noSelect.removeClass('hide');
+      $noSelect.removeClass('gt-hidden');
       $($(this).parent().data('id')).val('');
     });
   }
@@ -257,7 +258,7 @@ export function initRepoCommentForm() {
         </a>
       `);
 
-      $(`.ui${select_id}.list .no-select`).addClass('hide');
+      $(`.ui${select_id}.list .no-select`).addClass('gt-hidden');
       $(input_id).val($(this).data('id'));
     });
     $menu.find('.no-select.item').on('click', function () {
@@ -275,7 +276,7 @@ export function initRepoCommentForm() {
       }
 
       $list.find('.selected').html('');
-      $list.find('.no-select').removeClass('hide');
+      $list.find('.no-select').removeClass('gt-hidden');
       $(input_id).val('');
     });
   }
@@ -290,7 +291,7 @@ export function initRepoCommentForm() {
 async function onEditContent(event) {
   event.preventDefault();
 
-  $(this).closest('.dropdown').find('.menu').toggle('visible');
+  $(this).closest('.dropdown').find('.menu').toggle('visible'); // eslint-disable-line
   const $segment = $(this).closest('.header').next();
   const $editContentZone = $segment.find('.edit-content-zone');
   const $renderContent = $segment.find('.render-content');
@@ -387,16 +388,16 @@ async function onEditContent(event) {
     });
 
     $editContentZone.find('.cancel.button').on('click', () => {
-      $renderContent.show();
-      $editContentZone.hide();
+      showElem($renderContent);
+      hideElem($editContentZone);
       if (dz) {
         dz.emit('reload');
       }
     });
 
     $saveButton.on('click', () => {
-      $renderContent.show();
-      $editContentZone.hide();
+      showElem($renderContent);
+      hideElem($editContentZone);
       const $attachments = $dropzone.find('.files').find('[name=files]').map(function () {
         return $(this).val();
       }).get();
@@ -438,8 +439,8 @@ async function onEditContent(event) {
   }
 
   // Show write/preview tab and copy raw content as needed
-  $editContentZone.show();
-  $renderContent.hide();
+  showElem($editContentZone);
+  hideElem($renderContent);
   if ($textarea.val().length === 0) {
     $textarea.val($rawContent.text());
     easyMDE.value($rawContent.text());
@@ -558,10 +559,10 @@ export function initRepository() {
     // show pull request form
     $repoComparePull.find('button.show-form').on('click', function (e) {
       e.preventDefault();
-      $(this).parent().hide();
+      hideElem($(this).parent());
 
       const $form = $repoComparePull.find('.pullrequest-form');
-      $form.show();
+      showElem($form);
       $form.find('textarea.edit_area').each(function() {
         const easyMDE = getAttachedEasyMDE($(this));
         if (easyMDE) {
@@ -583,7 +584,7 @@ function initRepoIssueCommentEdit() {
 
   // Quote reply
   $(document).on('click', '.quote-reply', function (event) {
-    $(this).closest('.dropdown').find('.menu').toggle('visible');
+    $(this).closest('.dropdown').find('.menu').toggle('visible'); // eslint-disable-line
     const target = $(this).data('target');
     const quote = $(`#${target}`).text().replace(/\n/g, '\n> ');
     const content = `> ${quote}\n\n`;
