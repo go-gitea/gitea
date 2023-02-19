@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	project_model "code.gitea.io/gitea/models/project"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // LoadProject load the project the issue was assigned to
@@ -60,7 +61,7 @@ func (issue *Issue) projectBoardID(ctx context.Context) int64 {
 }
 
 // LoadIssuesFromBoard load issues assigned to this board
-func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, doer *user_model.User) (IssueList, error) {
+func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, doer *user_model.User, isClosed util.OptionalBool) (IssueList, error) {
 	issueList := make([]*Issue, 0, 10)
 
 	if err := b.LoadProject(ctx); err != nil {
@@ -72,6 +73,7 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, doer *user
 			ProjectBoardID: b.ID,
 			ProjectID:      b.ProjectID,
 			SortType:       "project-column-sorting",
+			IsClosed:       isClosed,
 		})
 		if err != nil {
 			return nil, err
@@ -90,6 +92,7 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, doer *user
 			ProjectBoardID: -1, // Issues without ProjectBoardID
 			ProjectID:      b.ProjectID,
 			SortType:       "project-column-sorting",
+			IsClosed:       isClosed,
 		})
 		if err != nil {
 			return nil, err
@@ -111,10 +114,10 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, doer *user
 }
 
 // LoadIssuesFromBoardList load issues assigned to the boards
-func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList, doer *user_model.User) (map[int64]IssueList, error) {
+func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList, doer *user_model.User, isClosed util.OptionalBool) (map[int64]IssueList, error) {
 	issuesMap := make(map[int64]IssueList, len(bs))
 	for _, b := range bs {
-		il, err := LoadIssuesFromBoard(ctx, b, doer)
+		il, err := LoadIssuesFromBoard(ctx, b, doer, isClosed)
 		if err != nil {
 			return nil, err
 		}
@@ -124,10 +127,10 @@ func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList, do
 }
 
 // NumIssuesInProjects returns counter of all issues assigned to a project list which doer can access
-func NumIssuesInProjects(ctx context.Context, pl project_model.List, doer *user_model.User) (int, error) {
+func NumIssuesInProjects(ctx context.Context, pl project_model.List, doer *user_model.User, isClosed util.OptionalBool) (int, error) {
 	numIssuesInProjects := int(0)
 	for _, p := range pl {
-		numIssuesInProject, err := NumIssuesInProject(ctx, p, doer)
+		numIssuesInProject, err := NumIssuesInProject(ctx, p, doer, isClosed)
 		if err != nil {
 			return 0, err
 		}
@@ -138,13 +141,13 @@ func NumIssuesInProjects(ctx context.Context, pl project_model.List, doer *user_
 }
 
 // NumIssuesInProject returns counter of all issues assigned to a project which doer can access
-func NumIssuesInProject(ctx context.Context, p *project_model.Project, doer *user_model.User) (int, error) {
+func NumIssuesInProject(ctx context.Context, p *project_model.Project, doer *user_model.User, isClosed util.OptionalBool) (int, error) {
 	numIssuesInProject := int(0)
 	bs, err := project_model.GetBoards(ctx, p.ID)
 	if err != nil {
 		return 0, err
 	}
-	im, err := LoadIssuesFromBoardList(ctx, bs, doer)
+	im, err := LoadIssuesFromBoardList(ctx, bs, doer, isClosed)
 	if err != nil {
 		return 0, err
 	}

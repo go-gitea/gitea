@@ -114,12 +114,18 @@ func Projects(ctx *context.Context) {
 	ctx.Data["PageIsViewProjects"] = true
 	ctx.Data["SortType"] = sortType
 
-	numIssuesInProjects, err := issues_model.NumIssuesInProjects(ctx, projects, ctx.Doer)
+	numOpenIssues, err := issues_model.NumIssuesInProjects(ctx, projects, ctx.Doer, util.OptionalBoolTrue)
 	if err != nil {
 		ctx.ServerError("NumIssuesInProjects", err)
 		return
 	}
-	ctx.Data["NumIssuesInProjects"] = numIssuesInProjects
+	numClosedIssues, err := issues_model.NumIssuesInProjects(ctx, projects, ctx.Doer, util.OptionalBoolFalse)
+	if err != nil {
+		ctx.ServerError("NumIssuesInProjects", err)
+		return
+	}
+	ctx.Data["NumOpenIssuesInProjects"] = numOpenIssues
+	ctx.Data["NumClosedIssuesInProjects"] = numClosedIssues
 
 	ctx.HTML(http.StatusOK, tplProjects)
 }
@@ -318,7 +324,7 @@ func ViewProject(ctx *context.Context) {
 	// avild multiple loading of project in LoadIssuesFromBoardList
 	boards.SetProject(project)
 
-	issuesMap, err := issues_model.LoadIssuesFromBoardList(ctx, boards, ctx.Doer)
+	issuesMap, err := issues_model.LoadIssuesFromBoardList(ctx, boards, ctx.Doer, util.OptionalBoolNone)
 	if err != nil {
 		ctx.ServerError("LoadIssuesOfBoards", err)
 		return
