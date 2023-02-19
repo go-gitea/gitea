@@ -21,7 +21,7 @@
 		</div>
 	</div>
 	{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo) .LanguageStats}}
-	<div class="ui segment sub-menu language-stats-details" style="display: none">
+	<div class="ui segment sub-menu language-stats-details gt-hidden">
 		<div class="ui horizontal center link list">
 			{{range .LanguageStats}}
 			<div class="item gt-df gt-ac gt-jc">

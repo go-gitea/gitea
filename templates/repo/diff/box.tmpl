@@ -67,7 +67,7 @@
 				</script>
 		<div id="diff-file-list"></div>
 		<div id="diff-container">
-				<div id="diff-file-tree" class="hide"></div>
+				<div id="diff-file-tree" class="gt-hidden"></div>
 				<div id="diff-file-boxes" class="sixteen wide column">
 					{{range $i, $file := .Diff.Files}}
 						{{/*notice: the index of Diff.Files should not be used for element ID, because the index will be restarted from 0 when doing load-more for PRs with a lot of files*/}}
@@ -116,7 +116,7 @@
 									{{end}}
 									{{if not (or $file.IsIncomplete $file.IsBin $file.IsSubmodule)}}
 										<a class="ui basic tiny button unescape-button">{{$.locale.Tr "repo.unescape_control_characters"}}</a>
-										<a class="ui basic tiny button escape-button" style="display: none;">{{$.locale.Tr "repo.escape_control_characters"}}</a>
+										<a class="ui basic tiny button escape-button gt-hidden">{{$.locale.Tr "repo.escape_control_characters"}}</a>
 									{{end}}
 									{{if and (not $file.IsSubmodule) (not $.PageIsWiki)}}
 										{{if $file.IsDeleted}}
@@ -136,7 +136,7 @@
 								</div>
 							</h4>
 							<div class="diff-file-body ui attached unstackable table segment" {{if $file.IsViewed}}data-folded="true"{{end}}>
-								<div id="diff-source-{{$file.NameHash}}" class="file-body file-code unicode-escaped code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if $showFileViewToggle}} hide{{end}}">
+								<div id="diff-source-{{$file.NameHash}}" class="file-body file-code unicode-escaped code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if $showFileViewToggle}} gt-hidden{{end}}">
 									{{if or $file.IsIncomplete $file.IsBin}}
 										<div class="diff-file-body binary" style="padding: 5px 10px;">
 											{{if $file.IsIncomplete}}
@@ -187,7 +187,7 @@
 		</div>
 
 		{{if not $.Repository.IsArchived}}
-			<div class="hide" id="edit-content-form">
+			<div class="gt-hidden" id="edit-content-form">
 				<div class="ui comment form">
 					<div class="ui top attached tabular menu">
 						<a class="active write item">{{$.locale.Tr "write"}}</a>

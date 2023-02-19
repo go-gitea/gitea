@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/models/migrations"
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/generate"
@@ -79,7 +80,7 @@ func Init(ctx goctx.Context) func(next http.Handler) http.Handler {
 					"AllLangs":      translation.AllLangs(),
 					"PageStartTime": startTime,
 
-					"PasswordHashAlgorithms": user_model.AvailableHashAlgorithms,
+					"PasswordHashAlgorithms": hash.RecommendedHashAlgorithms,
 				},
 			}
 			defer ctx.Close()
