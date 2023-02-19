@@ -332,8 +332,24 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		labels = append(labels, orgLabels...)
 	}
 
+	// Get the exclusive scope for every label ID
+	labelExclusiveScopes := make([]string, 0, len(labelIDs))
+	for _, labelID := range labelIDs {
+		foundExclusiveScope := false
+		for _, label := range labels {
+			if label.ID == labelID || label.ID == -labelID {
+				labelExclusiveScopes = append(labelExclusiveScopes, label.ExclusiveScope())
+				foundExclusiveScope = true
+				break
+			}
+		}
+		if !foundExclusiveScope {
+			labelExclusiveScopes = append(labelExclusiveScopes, "")
+		}
+	}
+
 	for _, l := range labels {
-		l.LoadSelectedLabelsAfterClick(labelIDs)
+		l.LoadSelectedLabelsAfterClick(labelIDs, labelExclusiveScopes)
 	}
 	ctx.Data["Labels"] = labels
 	ctx.Data["NumLabels"] = len(labels)

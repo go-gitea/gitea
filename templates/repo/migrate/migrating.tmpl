@@ -12,7 +12,7 @@
 								<img src="{{AssetUrlPrefix}}/img/loading.png"/>
 							</div>
 						</div>
-						<div id="repo_migrating_failed_image" class="sixteen wide center aligned centered column" style="display: none;">
+						<div id="repo_migrating_failed_image" class="sixteen wide center aligned centered column gt-hidden">
 							<div>
 								<img src="{{AssetUrlPrefix}}/img/failed.png"/>
 							</div>
@@ -24,7 +24,7 @@
 								<p>{{.locale.Tr "repo.migrate.migrating" .CloneAddr | Safe}}</p>
 								<p id="repo_migrating_progress_message"></p>
 							</div>
-							<div id="repo_migrating_failed" hidden>
+							<div id="repo_migrating_failed" class="gt-hidden">
 								{{if .CloneAddr}}
 									<p>{{.locale.Tr "repo.migrate.migrating_failed" .CloneAddr | Safe}}</p>
 								{{else}}

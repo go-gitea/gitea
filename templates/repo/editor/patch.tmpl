@@ -25,7 +25,7 @@
 					<a class="active item" data-tab="write">{{svg "octicon-code" 16 "gt-mr-2"}}{{.locale.Tr "repo.editor.new_patch"}}</a>
 				</div>
 				<div class="ui bottom attached active tab segment" data-tab="write">
-					<textarea id="edit_area" name="content" class="hide" data-id="repo-{{.Repository.Name}}-patch"
+					<textarea id="edit_area" name="content" class="gt-hidden" data-id="repo-{{.Repository.Name}}-patch"
 						data-context="{{.RepoLink}}"
 						data-line-wrap-extensions="{{.LineWrapExtensions}}">
 {{.FileContent}}</textarea>
