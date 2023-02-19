@@ -83,9 +83,9 @@ var (
 	availableHasherFactories = map[string]func(string) PasswordSaltHasher{}
 )
 
-// RegisterPanic registers a PasswordSaltHasher with the availableHasherFactories
+// MustRegister registers a PasswordSaltHasher with the availableHasherFactories
 // Caution: This is not thread safe.
-func RegisterPanic[T PasswordSaltHasher](name string, newFn func(config string) T) {
+func MustRegister[T PasswordSaltHasher](name string, newFn func(config string) T) {
 	if err := Register(name, newFn); err != nil {
 		panic(err)
 	}

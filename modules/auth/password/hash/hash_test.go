@@ -19,12 +19,12 @@ func (t testSaltHasher) HashWithSaltBytes(password string, salt []byte) string {
 }
 
 func Test_registerHasher(t *testing.T) {
-	RegisterPanic("Test_registerHasher", func(config string) testSaltHasher {
+	MustRegister("Test_registerHasher", func(config string) testSaltHasher {
 		return testSaltHasher(config)
 	})
 
 	assert.Panics(t, func() {
-		RegisterPanic("Test_registerHasher", func(config string) testSaltHasher {
+		MustRegister("Test_registerHasher", func(config string) testSaltHasher {
 			return testSaltHasher(config)
 		})
 	})

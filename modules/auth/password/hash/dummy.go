@@ -28,6 +28,6 @@ func (hasher *DummyHasher) HashWithSaltBytes(password string, salt []byte) strin
 
 // NewDummyHasher is a factory method to create a DummyHasher
 // Any provided configuration is ignored
-func NewDummyHasher(config string) *DummyHasher {
+func NewDummyHasher(_ string) *DummyHasher {
 	return &DummyHasher{}
 }

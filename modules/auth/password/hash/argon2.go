@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	RegisterPanic("argon2", NewArgon2Hasher)
+	MustRegister("argon2", NewArgon2Hasher)
 }
 
 // Argon2Hasher implements PasswordHasher
