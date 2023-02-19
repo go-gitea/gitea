@@ -4,6 +4,9 @@
 package setting
 
 import (
+	"math"
+	"path/filepath"
+
 	"code.gitea.io/gitea/modules/log"
 
 	"gopkg.in/ini.v1"
@@ -59,8 +62,8 @@ var OAuth2Client struct {
 	AccountLinking         OAuth2AccountLinkingType
 }
 
-func newOAuth2Client() {
-	sec := Cfg.Section("oauth2_client")
+func loadOAuth2ClientFrom(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("oauth2_client")
 	OAuth2Client.RegisterEmailConfirm = sec.Key("REGISTER_EMAIL_CONFIRM").MustBool(Service.RegisterEmailConfirm)
 	OAuth2Client.OpenIDConnectScopes = parseScopes(sec, "OPENID_CONNECT_SCOPES")
 	OAuth2Client.EnableAutoRegistration = sec.Key("ENABLE_AUTO_REGISTRATION").MustBool()
@@ -86,4 +89,34 @@ func parseScopes(sec *ini.Section, name string) []string {
 		}
 	}
 	return scopes
+}
+
+var OAuth2 = struct {
+	Enable                     bool
+	AccessTokenExpirationTime  int64
+	RefreshTokenExpirationTime int64
+	InvalidateRefreshTokens    bool
+	JWTSigningAlgorithm        string `ini:"JWT_SIGNING_ALGORITHM"`
+	JWTSecretBase64            string `ini:"JWT_SECRET"`
+	JWTSigningPrivateKeyFile   string `ini:"JWT_SIGNING_PRIVATE_KEY_FILE"`
+	MaxTokenLength             int
+}{
+	Enable:                     true,
+	AccessTokenExpirationTime:  3600,
+	RefreshTokenExpirationTime: 730,
+	InvalidateRefreshTokens:    false,
+	JWTSigningAlgorithm:        "RS256",
+	JWTSigningPrivateKeyFile:   "jwt/private.pem",
+	MaxTokenLength:             math.MaxInt16,
+}
+
+func loadOAuth2From(rootCfg ConfigProvider) {
+	if err := rootCfg.Section("oauth2").MapTo(&OAuth2); err != nil {
+		log.Fatal("Failed to OAuth2 settings: %v", err)
+		return
+	}
+
+	if !filepath.IsAbs(OAuth2.JWTSigningPrivateKeyFile) {
+		OAuth2.JWTSigningPrivateKeyFile = filepath.Join(AppDataPath, OAuth2.JWTSigningPrivateKeyFile)
+	}
 }
