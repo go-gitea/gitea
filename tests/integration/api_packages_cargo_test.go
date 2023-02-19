@@ -30,6 +30,8 @@ import (
 )
 
 func TestPackageCargo(t *testing.T) {
+	defer removeAllPackageData(t)
+
 	onGiteaRun(t, testPackageCargo)
 }
 

@@ -18,8 +18,10 @@ import (
 	container_model "code.gitea.io/gitea/models/packages/container"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	packages_module "code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	packages_service "code.gitea.io/gitea/services/packages"
 	packages_cleanup_service "code.gitea.io/gitea/services/packages/cleanup"
 	"code.gitea.io/gitea/tests"
@@ -29,6 +31,7 @@ import (
 
 func TestPackageAPI(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	defer removeAllPackageData(t)
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 	session := loginUser(t, user.Name)
@@ -152,6 +155,7 @@ func TestPackageAPI(t *testing.T) {
 
 func TestPackageAccess(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	defer removeAllPackageData(t)
 
 	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
@@ -173,6 +177,7 @@ func TestPackageAccess(t *testing.T) {
 
 func TestPackageQuota(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	defer removeAllPackageData(t)
 
 	limitTotalOwnerCount, limitTotalOwnerSize := setting.Packages.LimitTotalOwnerCount, setting.Packages.LimitTotalOwnerSize
 
@@ -234,17 +239,37 @@ func TestPackageQuota(t *testing.T) {
 
 func TestPackageCleanup(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	defer removeAllPackageData(t)
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	duration, _ := time.ParseDuration("-1h")
 
 	t.Run("Common", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
+		// Upload and delete a generic package and upload a container blob
+		data, _ := util.CryptoRandomBytes(5)
+		url := fmt.Sprintf("/api/packages/%s/generic/cleanup-test/1.1.1/file.bin", user.Name)
+		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(data))
+		AddBasicAuthHeader(req, user.Name)
+		MakeRequest(t, req, http.StatusCreated)
+
+		req = NewRequest(t, "DELETE", url)
+		AddBasicAuthHeader(req, user.Name)
+		MakeRequest(t, req, http.StatusNoContent)
+
+		data, _ = util.CryptoRandomBytes(5)
+		url = fmt.Sprintf("/v2/%s/cleanup-test/blobs/uploads?digest=sha256:%x", user.Name, sha256.Sum256(data))
+		req = NewRequestWithBody(t, "POST", url, bytes.NewReader(data))
+		AddBasicAuthHeader(req, user.Name)
+		MakeRequest(t, req, http.StatusCreated)
+
 		pbs, err := packages_model.FindExpiredUnreferencedBlobs(db.DefaultContext, duration)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, pbs)
 
-		_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, 2, packages_model.TypeContainer, "test", container_model.UploadVersion)
+		_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, "cleanup-test", container_model.UploadVersion)
 		assert.NoError(t, err)
 
 		err = packages_cleanup_service.Cleanup(db.DefaultContext, duration)
@@ -254,14 +279,12 @@ func TestPackageCleanup(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Empty(t, pbs)
 
-		_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, 2, packages_model.TypeContainer, "test", container_model.UploadVersion)
+		_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, "cleanup-test", container_model.UploadVersion)
 		assert.ErrorIs(t, err, packages_model.ErrPackageNotExist)
 	})
 
 	t.Run("CleanupRules", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 		type version struct {
 			Version     string
@@ -402,4 +425,26 @@ func TestPackageCleanup(t *testing.T) {
 			})
 		}
 	})
+}
+
+// This method removes all package related data (database and files)
+func removeAllPackageData(t *testing.T) {
+	assert.NoError(t, db.DeleteAllRecords("package"))
+	assert.NoError(t, db.DeleteAllRecords("package_version"))
+	assert.NoError(t, db.DeleteAllRecords("package_file"))
+	assert.NoError(t, db.DeleteAllRecords("package_property"))
+	assert.NoError(t, db.DeleteAllRecords("package_blob_upload"))
+	assert.NoError(t, db.DeleteAllRecords("package_cleanup_rule"))
+
+	duration, _ := time.ParseDuration("-10h")
+
+	pbs, err := packages_model.FindExpiredUnreferencedBlobs(db.DefaultContext, duration)
+	assert.NoError(t, err)
+
+	contentStore := packages_module.NewContentStore()
+	for _, pb := range pbs {
+		contentStore.Delete(packages_module.BlobHash256Key(pb.HashSHA256))
+	}
+
+	assert.NoError(t, db.DeleteAllRecords("package_blob"))
 }
