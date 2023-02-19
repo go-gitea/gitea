@@ -14084,19 +14084,13 @@
         "parameters": [
           {
             "type": "string",
-            "x-go-name": "Name",
             "description": "username of user",
             "name": "username",
             "in": "path",
             "required": true
           },
           {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "x-go-name": "Scopes",
-            "name": "userCreateToken",
+            "name": "body",
             "in": "body",
             "schema": {
               "$ref": "#/definitions/CreateAccessTokenOption"
@@ -14937,6 +14931,9 @@
     "CreateAccessTokenOption": {
       "description": "CreateAccessTokenOption options when create access token",
       "type": "object",
+      "required": [
+        "name"
+      ],
       "properties": {
         "name": {
           "type": "string",

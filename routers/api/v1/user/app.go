@@ -84,9 +84,9 @@ func CreateAccessToken(ctx *context.APIContext) {
 	// - name: username
 	//   in: path
 	//   description: username of user
-	//   type: string
 	//   required: true
-	// - name: userCreateToken
+	//   type: string
+	// - name: body
 	//   in: body
 	//   schema:
 	//     "$ref": "#/definitions/CreateAccessTokenOption"
