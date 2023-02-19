@@ -29,7 +29,7 @@
 		<div id="issue-filters" class="ui stackable grid">
 			<div class="six wide column">
 				{{if $.CanWriteIssuesOrPulls}}
-					<div class="ui checkbox issue-checkbox-all vm">
+					<div class="ui checkbox issue-checkbox-all gt-vm">
 						<input type="checkbox" title="{{.locale.Tr "repo.issues.action_check_all"}}">
 					</div>
 				{{end}}
@@ -45,13 +45,19 @@
 						</span>
 						<div class="menu">
 							<div class="ui icon search input">
-								<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+								<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_label"}}">
 							</div>
 							<span class="info">{{.locale.Tr "repo.issues.filter_label_exclude" | Safe}}</span>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_label_no_select"}}</a>
+							{{$previousExclusiveScope := "_no_scope"}}
 							{{range .Labels}}
-								<a class="item label-filter-item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}" data-label-id="{{.ID}}">{{if .IsExcluded}}{{svg "octicon-circle-slash"}}{{else if .IsSelected}}{{svg "octicon-check"}}{{end}}<span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}</a>
+								{{$exclusiveScope := .ExclusiveScope}}
+								{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
+									<div class="ui divider"></div>
+								{{end}}
+								{{$previousExclusiveScope = $exclusiveScope}}
+								<a class="item label-filter-item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}" data-label-id="{{.ID}}">{{if .IsExcluded}}{{svg "octicon-circle-slash"}}{{else if .IsSelected}}{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}{{end}} {{RenderLabel .}}</a>
 							{{end}}
 						</div>
 					</div>
@@ -64,7 +70,7 @@
 						</span>
 						<div class="menu">
 							<div class="ui icon search input">
-								<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+								<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_milestone"}}">
 							</div>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_milestone_no_select"}}</a>
@@ -77,13 +83,13 @@
 					<!-- Project -->
 					<div class="ui{{if not (or .OpenProjects .ClosedProjects)}} disabled{{end}} dropdown jump item">
 						<span class="text">
-							{{.locale.Tr "repo.issues.filter_projects"}}
+							{{.locale.Tr "repo.issues.filter_project"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						</span>
 						<div class="menu">
 							<div class="ui icon search input">
-								<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
-								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_projects"}}">
+								<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_project"}}">
 							</div>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_project_all"}}</a>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&project=-1&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_project_none"}}</a>
@@ -94,7 +100,7 @@
 								</div>
 								{{range .OpenProjects}}
 									<a class="{{if $.ProjectID}}{{if eq $.ProjectID .ID}}active selected{{end}}{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{.ID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">
-										{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "mr-3"}}{{else}}{{svg "octicon-project" 18 "mr-3"}}{{end}}
+										{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
 										{{.Title}}
 									</a>
 								{{end}}
@@ -106,7 +112,7 @@
 								</div>
 								{{range .ClosedProjects}}
 									<a class="{{if $.ProjectID}}{{if eq $.ProjectID .ID}}active selected{{end}}{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{.ID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">
-										{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "mr-3"}}{{else}}{{svg "octicon-project" 18 "mr-3"}}{{end}}
+										{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
 										{{.Title}}
 									</a>
 								{{end}}
@@ -122,13 +128,13 @@
 						</span>
 						<div class="menu">
 							<div class="ui icon search input">
-								<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+								<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_poster"}}">
 							</div>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}">{{.locale.Tr "repo.issues.filter_poster_no_select"}}</a>
 							{{range .Posters}}
 								<a class="{{if eq $.PosterID .ID}}active selected{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{.ID}}">
-									{{avatar .}} {{.GetDisplayName}}
+									{{avatar $.Context .}} {{.GetDisplayName}}
 								</a>
 							{{end}}
 						</div>
@@ -142,13 +148,13 @@
 						</span>
 						<div class="menu">
 							<div class="ui icon search input">
-								<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+								<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_assignee"}}">
 							</div>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_assginee_no_select"}}</a>
 							{{range .Assignees}}
 								<a class="{{if eq $.AssigneeID .ID}}active selected{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{.ID}}&poster={{$.PosterID}}">
-									{{avatar .}} {{.GetDisplayName}}
+									{{avatar $.Context .}} {{.GetDisplayName}}
 								</a>
 							{{end}}
 						</div>
@@ -193,7 +199,7 @@
 				</div>
 			</div>
 		</div>
-		<div id="issue-actions" class="ui stackable grid hide">
+		<div id="issue-actions" class="ui stackable grid gt-hidden">
 			<div class="six wide column">
 				{{template "repo/issue/openclose" .}}
 			</div>
@@ -217,9 +223,15 @@
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						</span>
 						<div class="menu">
+							{{$previousExclusiveScope := "_no_scope"}}
 							{{range .Labels}}
+								{{$exclusiveScope := .ExclusiveScope}}
+								{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
+									<div class="ui divider"></div>
+								{{end}}
+								{{$previousExclusiveScope = $exclusiveScope}}
 								<div class="item issue-action" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
-									{{if contain $.SelLabelIDs .ID}}{{svg "octicon-check"}}{{end}}<span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
+									{{if contain $.SelLabelIDs .ID}}{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}{{end}} {{RenderLabel .}}
 								</div>
 							{{end}}
 						</div>
@@ -260,7 +272,7 @@
 								</div>
 								{{range .OpenProjects}}
 									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/projects">
-										{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "mr-3"}}{{else}}{{svg "octicon-project" 18 "mr-3"}}{{end}}
+										{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
 										{{.Title}}
 									</div>
 								{{end}}
@@ -272,11 +284,10 @@
 								</div>
 								{{range .ClosedProjects}}
 									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/projects">
-										{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "mr-3"}}{{else}}{{svg "octicon-project" 18 "mr-3"}}{{end}}
+										{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
 										{{.Title}}
 									</div>
 								{{end}}
-								</div>
 							{{end}}
 						</div>
 					</div>
@@ -293,7 +304,7 @@
 							</div>
 							{{range .Assignees}}
 								<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/assignee">
-									{{avatar .}} {{.GetDisplayName}}
+									{{avatar $.Context .}} {{.GetDisplayName}}
 								</div>
 							{{end}}
 						</div>

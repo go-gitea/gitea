@@ -6,7 +6,7 @@ package password
 import (
 	"context"
 
-	"code.gitea.io/gitea/modules/password/pwn"
+	"code.gitea.io/gitea/modules/auth/password/pwn"
 	"code.gitea.io/gitea/modules/setting"
 )
 

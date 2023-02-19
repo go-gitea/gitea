@@ -187,6 +187,7 @@ func (prs PullRequestList) loadAttributes(ctx context.Context) error {
 		if pr.Issue == nil {
 			return fmt.Errorf("issues and prs may be not in sync: cannot find issue %v for pr %v: %w", pr.IssueID, pr.ID, util.ErrNotExist)
 		}
+		pr.Issue.PullRequest = pr
 	}
 	return nil
 }
