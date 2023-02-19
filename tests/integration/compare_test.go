@@ -54,6 +54,14 @@ func inspectCompare(t *testing.T, htmlDoc *HTMLDoc, diffCount int, diffChanges [
 	}
 }
 
+// Git commit graph for repo20
+// * 8babce9 (origin/remove-files-b) Add a dummy file
+// * b67e43a Delete test.csv and link_hi
+// | * cfe3b3c (origin/remove-files-a) Delete test.csv and link_hi
+// |/
+// * c8e31bc (origin/add-csv) Add test csv file
+// * 808038d (HEAD -> master, origin/master, origin/HEAD) Added test links
+
 // Inderect compare remove-files-b (head) with add-csv (base) branch
 //   'link_hi' and 'test.csv' are deleted, 'test.txt' is added
 func TestCompareBranches(t *testing.T) {
