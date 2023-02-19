@@ -123,13 +123,25 @@
 				{{end}}
 				<div class="no-select item">{{.locale.Tr "repo.issues.new.clear_labels"}}</div>
 				{{if or .Labels .OrgLabels}}
+					{{$previousExclusiveScope := "_no_scope"}}
 					{{range .Labels}}
-						<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check"}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
+						{{$exclusiveScope := .ExclusiveScope}}
+						{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
+							<div class="ui divider"></div>
+						{{end}}
+						{{$previousExclusiveScope = $exclusiveScope}}
+						<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}</span>&nbsp;&nbsp;{{RenderLabel .}}
 						{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
 					{{end}}
 					<div class="ui divider"></div>
+					{{$previousExclusiveScope := "_no_scope"}}
 					{{range .OrgLabels}}
-						<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check"}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
+						{{$exclusiveScope := .ExclusiveScope}}
+						{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
+							<div class="ui divider"></div>
+						{{end}}
+						{{$previousExclusiveScope = $exclusiveScope}}
+						<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}</span>&nbsp;&nbsp;{{RenderLabel .}}
 						{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
 					{{end}}
 				{{else}}

@@ -182,6 +182,7 @@ func ToLabel(label *issues_model.Label, repo *repo_model.Repository, org *user_m
 	result := &api.Label{
 		ID:          label.ID,
 		Name:        label.Name,
+		Exclusive:   label.Exclusive,
 		Color:       strings.TrimLeft(label.Color, "#"),
 		Description: label.Description,
 	}
