@@ -149,13 +149,13 @@ func MainTest(m *testing.M) {
 	setting.AppDataPath = tmpDataPath
 
 	setting.SetCustomPathAndConf("", "", "")
-	setting.LoadForTest()
+	setting.InitProviderAndLoadCommonSettingsForTest()
 	if err = git.InitFull(context.Background()); err != nil {
 		fmt.Printf("Unable to InitFull: %v\n", err)
 		os.Exit(1)
 	}
-	setting.InitDBConfig()
-	setting.NewLogServices(true)
+	setting.LoadDBSetting()
+	setting.InitLogs(true)
 
 	exitStatus := m.Run()
 
