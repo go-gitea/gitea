@@ -449,7 +449,7 @@
 									<span class="no-content">{{$.locale.Tr "repo.issues.no_content"}}</span>
 								{{end}}
 							</div>
-							<div id="issuecomment-{{.ID}}-raw" class="raw-content hide">{{.Content}}</div>
+							<div id="issuecomment-{{.ID}}-raw" class="raw-content gt-hidden">{{.Content}}</div>
 							<div class="edit-content-zone gt-hidden" data-write="issuecomment-{{.ID}}-write" data-preview="issuecomment-{{.ID}}-preview" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
 							{{if .Attachments}}
 								{{template "repo/issue/view_content/attachments" Dict "ctx" $ "Attachments" .Attachments "Content" .RenderedContent}}

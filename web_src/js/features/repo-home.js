@@ -19,7 +19,7 @@ export function initRepoTopicBar() {
   });
 
   function getPrompts() {
-    const hidePrompt = $('div.hide#validate_prompt');
+    const hidePrompt = $('#validate_prompt');
     const prompts = {
       countPrompt: hidePrompt.children('#count_prompt').text(),
       formatPrompt: hidePrompt.children('#format_prompt').text()

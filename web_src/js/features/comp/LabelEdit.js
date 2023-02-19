@@ -1,6 +1,5 @@
 import $ from 'jquery';
 import {initCompColorPicker} from './ColorPicker.js';
-import {hideElem, showElem} from '../../utils/dom.js';
 
 function isExclusiveScopeName(name) {
   return /.*[^/]\/[^/].*/.test(name);

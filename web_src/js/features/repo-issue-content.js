@@ -16,7 +16,7 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
   ${svg('octicon-x', 16, 'close icon inside')}
   <div class="header gt-df gt-ac gt-sb">
     <div>${itemTitleHtml}</div>
-    <div class="ui dropdown dialog-header-options gt-df gt-ac gt-mr-5 hide">
+    <div class="ui dropdown dialog-header-options gt-df gt-ac gt-mr-5 gt-hidden">
       ${i18nTextOptions}${svg('octicon-triangle-down', 14, 'dropdown icon')}
       <div class="menu">
         <div class="item red text" data-option-item="delete">${i18nTextDeleteFromHistory}</div>
