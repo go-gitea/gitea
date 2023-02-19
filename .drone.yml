@@ -12,6 +12,9 @@ trigger:
     - push
     - tag
     - pull_request
+  paths:
+    exclude:
+      - docs/**
 
 volumes:
   - name: deps
@@ -179,6 +182,9 @@ trigger:
     - push
     - tag
     - pull_request
+  paths:
+    exclude:
+      - docs/**
 
 volumes:
   - name: deps
@@ -406,6 +412,9 @@ trigger:
     - push
     - tag
     - pull_request
+  paths:
+    exclude:
+      - docs/**
 
 volumes:
   - name: deps
@@ -513,6 +522,9 @@ depends_on:
 trigger:
   event:
     - pull_request
+  paths:
+    exclude:
+      - docs/**
 
 volumes:
   - name: deps
@@ -692,6 +704,9 @@ trigger:
     - "release/*"
   event:
     - push
+  paths:
+    exclude:
+      - docs/**
 
 depends_on:
   - testing-amd64
@@ -1175,6 +1190,9 @@ depends_on:
 trigger:
   ref:
   - "refs/pull/**"
+  paths:
+    exclude:
+      - docs/**
 
 steps:
   - name: dryrun
