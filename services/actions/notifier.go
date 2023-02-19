@@ -52,7 +52,7 @@ func (n *actionsNotifier) NotifyNewIssue(ctx context.Context, issue *issues_mode
 		Index:      issue.Index,
 		Issue:      convert.ToAPIIssue(ctx, issue),
 		Repository: convert.ToRepo(ctx, issue.Repo, mode),
-		Sender:     convert.ToUser(issue.Poster, nil),
+		Sender:     convert.ToUser(ctx, issue.Poster, nil),
 	}).Notify(withMethod(ctx, "NotifyNewIssue"))
 }
 
@@ -70,7 +70,7 @@ func (n *actionsNotifier) NotifyIssueChangeStatus(ctx context.Context, doer *use
 			Index:       issue.Index,
 			PullRequest: convert.ToAPIPullRequest(db.DefaultContext, issue.PullRequest, nil),
 			Repository:  convert.ToRepo(ctx, issue.Repo, mode),
-			Sender:      convert.ToUser(doer, nil),
+			Sender:      convert.ToUser(ctx, doer, nil),
 			CommitID:    commitID,
 		}
 		if isClosed {
@@ -88,7 +88,7 @@ func (n *actionsNotifier) NotifyIssueChangeStatus(ctx context.Context, doer *use
 		Index:      issue.Index,
 		Issue:      convert.ToAPIIssue(ctx, issue),
 		Repository: convert.ToRepo(ctx, issue.Repo, mode),
-		Sender:     convert.ToUser(doer, nil),
+		Sender:     convert.ToUser(ctx, doer, nil),
 	}
 	if isClosed {
 		apiIssue.Action = api.HookIssueClosed
@@ -134,7 +134,7 @@ func (n *actionsNotifier) NotifyIssueChangeLabels(ctx context.Context, doer *use
 				Index:       issue.Index,
 				PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
 				Repository:  convert.ToRepo(ctx, issue.Repo, perm_model.AccessModeNone),
-				Sender:      convert.ToUser(doer, nil),
+				Sender:      convert.ToUser(ctx, doer, nil),
 			}).
 			Notify(ctx)
 		return
@@ -146,7 +146,7 @@ func (n *actionsNotifier) NotifyIssueChangeLabels(ctx context.Context, doer *use
 			Index:      issue.Index,
 			Issue:      convert.ToAPIIssue(ctx, issue),
 			Repository: convert.ToRepo(ctx, issue.Repo, mode),
-			Sender:     convert.ToUser(doer, nil),
+			Sender:     convert.ToUser(ctx, doer, nil),
 		}).
 		Notify(ctx)
 }
@@ -165,9 +165,9 @@ func (n *actionsNotifier) NotifyCreateIssueComment(ctx context.Context, doer *us
 			WithPayload(&api.IssueCommentPayload{
 				Action:     api.HookIssueCommentCreated,
 				Issue:      convert.ToAPIIssue(ctx, issue),
-				Comment:    convert.ToComment(comment),
+				Comment:    convert.ToComment(ctx, comment),
 				Repository: convert.ToRepo(ctx, repo, mode),
-				Sender:     convert.ToUser(doer, nil),
+				Sender:     convert.ToUser(ctx, doer, nil),
 				IsPull:     true,
 			}).
 			Notify(ctx)
@@ -178,9 +178,9 @@ func (n *actionsNotifier) NotifyCreateIssueComment(ctx context.Context, doer *us
 		WithPayload(&api.IssueCommentPayload{
 			Action:     api.HookIssueCommentCreated,
 			Issue:      convert.ToAPIIssue(ctx, issue),
-			Comment:    convert.ToComment(comment),
+			Comment:    convert.ToComment(ctx, comment),
 			Repository: convert.ToRepo(ctx, repo, mode),
-			Sender:     convert.ToUser(doer, nil),
+			Sender:     convert.ToUser(ctx, doer, nil),
 			IsPull:     false,
 		}).
 		Notify(ctx)
@@ -210,7 +210,7 @@ func (n *actionsNotifier) NotifyNewPullRequest(ctx context.Context, pull *issues
 			Index:       pull.Issue.Index,
 			PullRequest: convert.ToAPIPullRequest(ctx, pull, nil),
 			Repository:  convert.ToRepo(ctx, pull.Issue.Repo, mode),
-			Sender:      convert.ToUser(pull.Issue.Poster, nil),
+			Sender:      convert.ToUser(ctx, pull.Issue.Poster, nil),
 		}).
 		WithPullRequest(pull).
 		Notify(ctx)
@@ -222,8 +222,8 @@ func (n *actionsNotifier) NotifyCreateRepository(ctx context.Context, doer, u *u
 	newNotifyInput(repo, doer, webhook_module.HookEventRepository).WithPayload(&api.RepositoryPayload{
 		Action:       api.HookRepoCreated,
 		Repository:   convert.ToRepo(ctx, repo, perm_model.AccessModeOwner),
-		Organization: convert.ToUser(u, nil),
-		Sender:       convert.ToUser(doer, nil),
+		Organization: convert.ToUser(ctx, u, nil),
+		Sender:       convert.ToUser(ctx, doer, nil),
 	}).Notify(ctx)
 }
 
@@ -237,7 +237,7 @@ func (n *actionsNotifier) NotifyForkRepository(ctx context.Context, doer *user_m
 	newNotifyInput(oldRepo, doer, webhook_module.HookEventFork).WithPayload(&api.ForkPayload{
 		Forkee: convert.ToRepo(ctx, oldRepo, oldMode),
 		Repo:   convert.ToRepo(ctx, repo, mode),
-		Sender: convert.ToUser(doer, nil),
+		Sender: convert.ToUser(ctx, doer, nil),
 	}).Notify(ctx)
 
 	u := repo.MustOwner(ctx)
@@ -249,8 +249,8 @@ func (n *actionsNotifier) NotifyForkRepository(ctx context.Context, doer *user_m
 			WithPayload(&api.RepositoryPayload{
 				Action:       api.HookRepoCreated,
 				Repository:   convert.ToRepo(ctx, repo, perm_model.AccessModeOwner),
-				Organization: convert.ToUser(u, nil),
-				Sender:       convert.ToUser(doer, nil),
+				Organization: convert.ToUser(ctx, u, nil),
+				Sender:       convert.ToUser(ctx, doer, nil),
 			}).Notify(ctx)
 	}
 }
@@ -291,7 +291,7 @@ func (n *actionsNotifier) NotifyPullRequestReview(ctx context.Context, pr *issue
 			Index:       review.Issue.Index,
 			PullRequest: convert.ToAPIPullRequest(db.DefaultContext, pr, nil),
 			Repository:  convert.ToRepo(ctx, review.Issue.Repo, mode),
-			Sender:      convert.ToUser(review.Reviewer, nil),
+			Sender:      convert.ToUser(ctx, review.Reviewer, nil),
 			Review: &api.ReviewPayload{
 				Type:    string(reviewHookType),
 				Content: review.Content,
@@ -329,7 +329,7 @@ func (*actionsNotifier) NotifyMergePullRequest(ctx context.Context, doer *user_m
 		Index:       pr.Issue.Index,
 		PullRequest: convert.ToAPIPullRequest(db.DefaultContext, pr, nil),
 		Repository:  convert.ToRepo(ctx, pr.Issue.Repo, mode),
-		Sender:      convert.ToUser(doer, nil),
+		Sender:      convert.ToUser(ctx, doer, nil),
 		Action:      api.HookIssueClosed,
 	}
 
@@ -343,7 +343,7 @@ func (*actionsNotifier) NotifyMergePullRequest(ctx context.Context, doer *user_m
 func (n *actionsNotifier) NotifyPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	ctx = withMethod(ctx, "NotifyPushCommits")
 
-	apiPusher := convert.ToUser(pusher, nil)
+	apiPusher := convert.ToUser(ctx, pusher, nil)
 	apiCommits, apiHeadCommit, err := commits.ToAPIPayloadCommits(ctx, repo.RepoPath(), repo.HTMLURL())
 	if err != nil {
 		log.Error("commits.ToAPIPayloadCommits failed: %v", err)
@@ -369,7 +369,7 @@ func (n *actionsNotifier) NotifyPushCommits(ctx context.Context, pusher *user_mo
 func (n *actionsNotifier) NotifyCreateRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
 	ctx = withMethod(ctx, "NotifyCreateRef")
 
-	apiPusher := convert.ToUser(pusher, nil)
+	apiPusher := convert.ToUser(ctx, pusher, nil)
 	apiRepo := convert.ToRepo(ctx, repo, perm_model.AccessModeNone)
 	refName := git.RefEndName(refFullName)
 
@@ -388,7 +388,7 @@ func (n *actionsNotifier) NotifyCreateRef(ctx context.Context, pusher *user_mode
 func (n *actionsNotifier) NotifyDeleteRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
 	ctx = withMethod(ctx, "NotifyDeleteRef")
 
-	apiPusher := convert.ToUser(pusher, nil)
+	apiPusher := convert.ToUser(ctx, pusher, nil)
 	apiRepo := convert.ToRepo(ctx, repo, perm_model.AccessModeNone)
 	refName := git.RefEndName(refFullName)
 
@@ -407,7 +407,7 @@ func (n *actionsNotifier) NotifyDeleteRef(ctx context.Context, pusher *user_mode
 func (n *actionsNotifier) NotifySyncPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	ctx = withMethod(ctx, "NotifySyncPushCommits")
 
-	apiPusher := convert.ToUser(pusher, nil)
+	apiPusher := convert.ToUser(ctx, pusher, nil)
 	apiCommits, apiHeadCommit, err := commits.ToAPIPayloadCommits(db.DefaultContext, repo.RepoPath(), repo.HTMLURL())
 	if err != nil {
 		log.Error("commits.ToAPIPayloadCommits failed: %v", err)
@@ -490,7 +490,7 @@ func (n *actionsNotifier) NotifyPullRequestSynchronized(ctx context.Context, doe
 			Index:       pr.Issue.Index,
 			PullRequest: convert.ToAPIPullRequest(ctx, pr, nil),
 			Repository:  convert.ToRepo(ctx, pr.Issue.Repo, perm_model.AccessModeNone),
-			Sender:      convert.ToUser(doer, nil),
+			Sender:      convert.ToUser(ctx, doer, nil),
 		}).
 		WithPullRequest(pr).
 		Notify(ctx)
@@ -521,7 +521,7 @@ func (n *actionsNotifier) NotifyPullRequestChangeTargetBranch(ctx context.Contex
 			},
 			PullRequest: convert.ToAPIPullRequest(ctx, pr, nil),
 			Repository:  convert.ToRepo(ctx, pr.Issue.Repo, mode),
-			Sender:      convert.ToUser(doer, nil),
+			Sender:      convert.ToUser(ctx, doer, nil),
 		}).
 		WithPullRequest(pr).
 		Notify(ctx)

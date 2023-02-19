@@ -498,7 +498,7 @@ func (pr *PullRequest) SetMerged(ctx context.Context) (bool, error) {
 		return false, err
 	}
 
-	if err := pr.Issue.Repo.GetOwner(ctx); err != nil {
+	if err := pr.Issue.Repo.LoadOwner(ctx); err != nil {
 		return false, err
 	}
 

@@ -42,7 +42,7 @@ func listUserOrgs(ctx *context.APIContext, u *user_model.User) {
 
 	apiOrgs := make([]*api.Organization, len(orgs))
 	for i := range orgs {
-		apiOrgs[i] = convert.ToOrganization(orgs[i])
+		apiOrgs[i] = convert.ToOrganization(ctx, orgs[i])
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
@@ -211,7 +211,7 @@ func GetAll(ctx *context.APIContext) {
 	}
 	orgs := make([]*api.Organization, len(publicOrgs))
 	for i := range publicOrgs {
-		orgs[i] = convert.ToOrganization(organization.OrgFromUser(publicOrgs[i]))
+		orgs[i] = convert.ToOrganization(ctx, organization.OrgFromUser(publicOrgs[i]))
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
@@ -274,7 +274,7 @@ func Create(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToOrganization(org))
+	ctx.JSON(http.StatusCreated, convert.ToOrganization(ctx, org))
 }
 
 // Get get an organization
@@ -298,7 +298,7 @@ func Get(ctx *context.APIContext) {
 		ctx.NotFound("HasOrgOrUserVisible", nil)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToOrganization(ctx.Org.Organization))
+	ctx.JSON(http.StatusOK, convert.ToOrganization(ctx, ctx.Org.Organization))
 }
 
 // Edit change an organization's information
@@ -344,7 +344,7 @@ func Edit(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToOrganization(org))
+	ctx.JSON(http.StatusOK, convert.ToOrganization(ctx, org))
 }
 
 // Delete an organization
