@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import {hideElem, showElem} from '../utils/dom.js';
 
 export function initInstall() {
   if ($('.page-content.install').length === 0) {
@@ -21,12 +22,12 @@ export function initInstall() {
   // Database type change detection.
   $('#db_type').on('change', function () {
     const dbType = $(this).val();
-    $('div[data-db-setting-for]').hide();
-    $(`div[data-db-setting-for=${dbType}]`).show();
+    hideElem($('div[data-db-setting-for]'));
+    showElem($(`div[data-db-setting-for=${dbType}]`));
 
     if (dbType !== 'sqlite3') {
       // for most remote database servers
-      $(`div[data-db-setting-for=common-host]`).show();
+      showElem($(`div[data-db-setting-for=common-host]`));
       const lastDbHost = $dbHost.val();
       const isDbHostDefault = !lastDbHost || Object.values(defaultDbHosts).includes(lastDbHost);
       if (isDbHostDefault) {

@@ -134,7 +134,7 @@
 				</div>
 			</div>
 			<div class="ui select-milestone list">
-				<span class="no-select item {{if .Milestone}}hide{{end}}">{{.locale.Tr "repo.issues.new.no_milestone"}}</span>
+				<span class="no-select item {{if .Milestone}}gt-hidden{{end}}">{{.locale.Tr "repo.issues.new.no_milestone"}}</span>
 				<div class="selected">
 					{{if .Milestone}}
 						<a class="item muted sidebar-item-link" href="{{.RepoLink}}/issues?milestone={{.Milestone.ID}}">
@@ -198,7 +198,7 @@
 				</div>
 			</div>
 			<div class="ui select-project list">
-				<span class="no-select item {{if .Project}}hide{{end}}">{{.locale.Tr "repo.issues.new.no_projects"}}</span>
+				<span class="no-select item {{if .Project}}gt-hidden{{end}}">{{.locale.Tr "repo.issues.new.no_projects"}}</span>
 				<div class="selected">
 					{{if .Project}}
 						<a class="item muted sidebar-item-link" href="{{.RepoLink}}/projects/{{.Project.ID}}">
@@ -236,11 +236,11 @@
 					</div>
 				</div>
 				<div class="ui assignees list">
-					<span class="no-select item {{if .HasSelectedLabel}}hide{{end}}">
+					<span class="no-select item {{if .HasSelectedLabel}}gt-hidden{{end}}">
 						{{.locale.Tr "repo.issues.new.no_assignees"}}
 					</span>
 					{{range .Assignees}}
-						<a class="hide item gt-p-2 muted" id="assignee_{{.ID}}" href="{{$.RepoLink}}/issues?assignee={{.ID}}">
+						<a class="item gt-p-2 muted gt-hidden" id="assignee_{{.ID}}" href="{{$.RepoLink}}/issues?assignee={{.ID}}">
 							{{avatar $.Context . 28 "gt-mr-3 gt-vm"}}{{.GetDisplayName}}
 						</a>
 					{{end}}

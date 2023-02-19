@@ -14,8 +14,8 @@
 						{{.CsrfTokenHtml}}
 						<div class="required field {{if .Err_Name}}error{{end}}">
 							<label for="org_name">{{.locale.Tr "org.org_name_holder"}}
-								<span class="text red hide" id="org-name-change-prompt"> {{.locale.Tr "org.settings.change_orgname_prompt"}}</span>
-								<span class="text red hide" id="org-name-change-redirect-prompt"> {{.locale.Tr "org.settings.change_orgname_redirect_prompt"}}</span>
+								<span class="text red gt-hidden" id="org-name-change-prompt"> {{.locale.Tr "org.settings.change_orgname_prompt"}}</span>
+								<span class="text red gt-hidden" id="org-name-change-redirect-prompt"> {{.locale.Tr "org.settings.change_orgname_redirect_prompt"}}</span>
 							</label>
 							<input id="org_name" name="name" value="{{.Org.Name}}" data-org-name="{{.Org.Name}}" autofocus required>
 						</div>
