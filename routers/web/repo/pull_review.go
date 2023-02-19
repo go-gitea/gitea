@@ -98,7 +98,7 @@ func CreateCodeComment(ctx *context.Context) {
 		renderConversation(ctx, comment)
 		return
 	}
-	ctx.Redirect(comment.HTMLURL())
+	ctx.Redirect(comment.Link())
 }
 
 // UpdateResolveConversation add or remove an Conversation resolved mark

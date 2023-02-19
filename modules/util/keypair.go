@@ -1,7 +1,7 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package activitypub
+package util
 
 import (
 	"crypto/rand"
@@ -10,11 +10,9 @@ import (
 	"encoding/pem"
 )
 
-const rsaBits = 2048
-
-// GenerateKeyPair generates a public and private keypair for signing actions by users for activitypub purposes
-func GenerateKeyPair() (string, string, error) {
-	priv, _ := rsa.GenerateKey(rand.Reader, rsaBits)
+// GenerateKeyPair generates a public and private keypair
+func GenerateKeyPair(bits int) (string, string, error) {
+	priv, _ := rsa.GenerateKey(rand.Reader, bits)
 	privPem, err := pemBlockForPriv(priv)
 	if err != nil {
 		return "", "", err
