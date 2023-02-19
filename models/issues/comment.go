@@ -620,7 +620,7 @@ func (c *Comment) LoadAssigneeUserAndTeam() error {
 			return err
 		}
 
-		if err = c.Issue.Repo.GetOwner(db.DefaultContext); err != nil {
+		if err = c.Issue.Repo.LoadOwner(db.DefaultContext); err != nil {
 			return err
 		}
 
@@ -824,7 +824,7 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 		return nil, err
 	}
 
-	if err = opts.Repo.GetOwner(ctx); err != nil {
+	if err = opts.Repo.LoadOwner(ctx); err != nil {
 		return nil, err
 	}
 

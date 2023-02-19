@@ -459,6 +459,8 @@ var migrations = []Migration{
 	NewMigration("Add card_type column to project table", v1_19.AddCardTypeToProjectTable),
 	// v242 -> v243
 	NewMigration("Alter gpg_key_import content TEXT field to MEDIUMTEXT", v1_19.AlterPublicGPGKeyImportContentFieldToMediumText),
+	// v243 -> v244
+	NewMigration("Add exclusive label", v1_19.AddExclusiveLabel),
 }
 
 // GetCurrentDBVersion returns the current db version
