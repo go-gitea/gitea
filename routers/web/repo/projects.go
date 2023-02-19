@@ -118,6 +118,13 @@ func Projects(ctx *context.Context) {
 	ctx.Data["IsProjectsPage"] = true
 	ctx.Data["SortType"] = sortType
 
+	numIssuesInProjects, err := issues_model.NumIssuesInProjects(ctx, projects, ctx.Doer)
+	if err != nil {
+		ctx.ServerError("NumIssuesInProjects", err)
+		return
+	}
+	ctx.Data["NumIssuesInProjects"] = numIssuesInProjects
+
 	ctx.HTML(http.StatusOK, tplProjects)
 }
 
@@ -309,7 +316,10 @@ func ViewProject(ctx *context.Context) {
 		boards[0].Title = ctx.Tr("repo.projects.type.uncategorized")
 	}
 
-	issuesMap, err := issues_model.LoadIssuesFromBoardList(ctx, boards, project, ctx.Doer)
+	// avild multiple loading of project in LoadIssuesFromBoardList
+	boards.SetProject(project)
+
+	issuesMap, err := issues_model.LoadIssuesFromBoardList(ctx, boards, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("LoadIssuesOfBoards", err)
 		return

@@ -60,8 +60,12 @@ func (issue *Issue) projectBoardID(ctx context.Context) int64 {
 }
 
 // LoadIssuesFromBoard load issues assigned to this board
-func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, p *project_model.Project, doer *user_model.User) (IssueList, error) {
+func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, doer *user_model.User) (IssueList, error) {
 	issueList := make([]*Issue, 0, 10)
+
+	if err := b.LoadProject(ctx); err != nil {
+		return nil, err
+	}
 
 	if b.ID != 0 {
 		issues, err := Issues(ctx, &IssuesOptions{
@@ -73,7 +77,7 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, p *project
 			return nil, err
 		}
 		for _, issue := range issues {
-			if canRetrievedByDoer, err := issue.CanRetrievedByDoer(ctx, p, doer); err != nil {
+			if canRetrievedByDoer, err := issue.CanRetrievedByDoer(ctx, b.Project, doer); err != nil {
 				return nil, err
 			} else if canRetrievedByDoer {
 				issueList = append(issueList, issue)
@@ -91,7 +95,7 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, p *project
 			return nil, err
 		}
 		for _, issue := range issues {
-			if canRetrievedByDoer, err := issue.CanRetrievedByDoer(ctx, p, doer); err != nil {
+			if canRetrievedByDoer, err := issue.CanRetrievedByDoer(ctx, b.Project, doer); err != nil {
 				return nil, err
 			} else if canRetrievedByDoer {
 				issueList = append(issueList, issue)
@@ -107,16 +111,47 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, p *project
 }
 
 // LoadIssuesFromBoardList load issues assigned to the boards
-func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList, p *project_model.Project, doer *user_model.User) (map[int64]IssueList, error) {
+func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList, doer *user_model.User) (map[int64]IssueList, error) {
 	issuesMap := make(map[int64]IssueList, len(bs))
-	for i := range bs {
-		il, err := LoadIssuesFromBoard(ctx, bs[i], p, doer)
+	for _, b := range bs {
+		il, err := LoadIssuesFromBoard(ctx, b, doer)
 		if err != nil {
 			return nil, err
 		}
-		issuesMap[bs[i].ID] = il
+		issuesMap[b.ID] = il
 	}
 	return issuesMap, nil
+}
+
+// NumIssuesInProjects returns counter of all issues assigned to a project list which doer can access
+func NumIssuesInProjects(ctx context.Context, pl project_model.List, doer *user_model.User) (int, error) {
+	numIssuesInProjects := int(0)
+	for _, p := range pl {
+		numIssuesInProject, err := NumIssuesInProject(ctx, p, doer)
+		if err != nil {
+			return 0, err
+		}
+		numIssuesInProjects += numIssuesInProject
+	}
+
+	return numIssuesInProjects, nil
+}
+
+// NumIssuesInProject returns counter of all issues assigned to a project which doer can access
+func NumIssuesInProject(ctx context.Context, p *project_model.Project, doer *user_model.User) (int, error) {
+	numIssuesInProject := int(0)
+	bs, err := project_model.GetBoards(ctx, p.ID)
+	if err != nil {
+		return 0, err
+	}
+	im, err := LoadIssuesFromBoardList(ctx, bs, doer)
+	if err != nil {
+		return 0, err
+	}
+	for _, il := range im {
+		numIssuesInProject += len(il)
+	}
+	return numIssuesInProject, nil
 }
 
 // ChangeProjectAssign changes the project associated with an issue

@@ -494,7 +494,7 @@ func (issue *Issue) CanRetrievedByDoer(ctx context.Context, p *project_model.Pro
 	if !issue.Repo.UnitEnabled(ctx, unit.TypeIssues) {
 		return false, nil
 	}
-	// TODO: how about Mirror repo
+	// TODO: what about Mirror repo
 	if issue.Repo.IsArchived {
 		return false, nil
 	}
@@ -511,10 +511,6 @@ func (issue *Issue) CanRetrievedByDoer(ctx context.Context, p *project_model.Pro
 	} else {
 		// individual/org's project
 		if p.OwnerID != issue.Repo.OwnerID {
-			return false, nil
-		}
-
-		if issue.Repo.Owner.IsIndividual() && issue.Repo.Owner.ID != doer.ID {
 			return false, nil
 		}
 
