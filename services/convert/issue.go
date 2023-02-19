@@ -32,7 +32,7 @@ func ToAPIIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
 	if err := issue.LoadRepo(ctx); err != nil {
 		return &api.Issue{}
 	}
-	if err := issue.Repo.GetOwner(ctx); err != nil {
+	if err := issue.Repo.LoadOwner(ctx); err != nil {
 		return &api.Issue{}
 	}
 
@@ -182,6 +182,7 @@ func ToLabel(label *issues_model.Label, repo *repo_model.Repository, org *user_m
 	result := &api.Label{
 		ID:          label.ID,
 		Name:        label.Name,
+		Exclusive:   label.Exclusive,
 		Color:       strings.TrimLeft(label.Color, "#"),
 		Description: label.Description,
 	}

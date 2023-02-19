@@ -45,6 +45,7 @@ func NewLabel(ctx *context.Context) {
 	l := &issues_model.Label{
 		OrgID:       ctx.Org.Organization.ID,
 		Name:        form.Title,
+		Exclusive:   form.Exclusive,
 		Description: form.Description,
 		Color:       form.Color,
 	}
@@ -70,6 +71,7 @@ func UpdateLabel(ctx *context.Context) {
 	}
 
 	l.Name = form.Title
+	l.Exclusive = form.Exclusive
 	l.Description = form.Description
 	l.Color = form.Color
 	if err := issues_model.UpdateLabel(l); err != nil {
