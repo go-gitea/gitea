@@ -16,7 +16,7 @@ type ConfigProvider interface {
 	GetSection(name string) (*ini.Section, error)
 }
 
-// a file is an implementation ConfigProvider and others implementation are possible, i.e. from docker/k8s and etc.
+// a file is an implementation ConfigProvider and other implementations are possible, i.e. from docker, k8s, …
 var _ ConfigProvider = &ini.File{}
 
 func mustMapSetting(rootCfg ConfigProvider, sectionName string, setting interface{}) {

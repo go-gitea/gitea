@@ -10,8 +10,8 @@ func GetHighlightMapping() map[string]string {
 	}
 
 	keys := CfgProvider.Section("highlight.mapping").Keys()
-	for i := range keys {
-		highlightMapping[keys[i].Name()] = keys[i].Value()
+	for _, key := range keys {
+		highlightMapping[key.Name()] = key.Value()
 	}
 	return highlightMapping
 }
