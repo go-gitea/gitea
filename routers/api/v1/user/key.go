@@ -4,6 +4,7 @@
 package user
 
 import (
+	std_ctx "context"
 	"net/http"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -21,20 +22,20 @@ import (
 )
 
 // appendPrivateInformation appends the owner and key type information to api.PublicKey
-func appendPrivateInformation(apiKey *api.PublicKey, key *asymkey_model.PublicKey, defaultUser *user_model.User) (*api.PublicKey, error) {
+func appendPrivateInformation(ctx std_ctx.Context, apiKey *api.PublicKey, key *asymkey_model.PublicKey, defaultUser *user_model.User) (*api.PublicKey, error) {
 	if key.Type == asymkey_model.KeyTypeDeploy {
 		apiKey.KeyType = "deploy"
 	} else if key.Type == asymkey_model.KeyTypeUser {
 		apiKey.KeyType = "user"
 
 		if defaultUser.ID == key.OwnerID {
-			apiKey.Owner = convert.ToUser(defaultUser, defaultUser)
+			apiKey.Owner = convert.ToUser(ctx, defaultUser, defaultUser)
 		} else {
 			user, err := user_model.GetUserByID(db.DefaultContext, key.OwnerID)
 			if err != nil {
 				return apiKey, err
 			}
-			apiKey.Owner = convert.ToUser(user, user)
+			apiKey.Owner = convert.ToUser(ctx, user, user)
 		}
 	} else {
 		apiKey.KeyType = "unknown"
@@ -87,7 +88,7 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 	for i := range keys {
 		apiKeys[i] = convert.ToPublicKey(apiLink, keys[i])
 		if ctx.Doer.IsAdmin || ctx.Doer.ID == keys[i].OwnerID {
-			apiKeys[i], _ = appendPrivateInformation(apiKeys[i], keys[i], user)
+			apiKeys[i], _ = appendPrivateInformation(ctx, apiKeys[i], keys[i], user)
 		}
 	}
 
@@ -187,7 +188,7 @@ func GetPublicKey(ctx *context.APIContext) {
 	apiLink := composePublicKeysAPILink()
 	apiKey := convert.ToPublicKey(apiLink, key)
 	if ctx.Doer.IsAdmin || ctx.Doer.ID == key.OwnerID {
-		apiKey, _ = appendPrivateInformation(apiKey, key, ctx.Doer)
+		apiKey, _ = appendPrivateInformation(ctx, apiKey, key, ctx.Doer)
 	}
 	ctx.JSON(http.StatusOK, apiKey)
 }
@@ -208,7 +209,7 @@ func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid 
 	apiLink := composePublicKeysAPILink()
 	apiKey := convert.ToPublicKey(apiLink, key)
 	if ctx.Doer.IsAdmin || ctx.Doer.ID == key.OwnerID {
-		apiKey, _ = appendPrivateInformation(apiKey, key, ctx.Doer)
+		apiKey, _ = appendPrivateInformation(ctx, apiKey, key, ctx.Doer)
 	}
 	ctx.JSON(http.StatusCreated, apiKey)
 }

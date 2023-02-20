@@ -46,13 +46,13 @@ var (
 	}
 )
 
-func newPackages() {
-	sec := Cfg.Section("packages")
+func loadPackagesFrom(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("packages")
 	if err := sec.MapTo(&Packages); err != nil {
 		log.Fatal("Failed to map Packages settings: %v", err)
 	}
 
-	Packages.Storage = getStorage("packages", "", nil)
+	Packages.Storage = getStorage(rootCfg, "packages", "", nil)
 
 	appURL, _ := url.Parse(AppURL)
 	Packages.RegistryHost = appURL.Host

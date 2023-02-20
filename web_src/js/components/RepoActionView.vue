@@ -12,19 +12,20 @@
       <div class="action-view-left">
         <div class="job-group-section">
           <div class="job-brief-list">
-            <a class="job-brief-item" v-for="(job, index) in run.jobs" :key="job.id" :href="run.link+'/jobs/'+index">
-              <SvgIcon name="octicon-check-circle-fill" class="green" v-if="job.status === 'success'"/>
-              <SvgIcon name="octicon-skip" class="ui text grey" v-else-if="job.status === 'skipped'"/>
-              <SvgIcon name="octicon-clock" class="ui text yellow" v-else-if="job.status === 'waiting'"/>
-              <SvgIcon name="octicon-blocked" class="ui text yellow" v-else-if="job.status === 'blocked'"/>
-              <SvgIcon name="octicon-meter" class="ui text yellow" class-name="job-status-rotate" v-else-if="job.status === 'running'"/>
-              <SvgIcon name="octicon-x-circle-fill" class="red" v-else/>
-              {{ job.name }}
-              <!-- TODO: it will be a better idea to move "button" out from "a", and the ".prevent" will not be needed. But it needs some work with CSS -->
-              <button class="job-brief-rerun" @click.prevent="rerunJob(index)" v-if="job.canRerun">
+            <div class="job-brief-item" v-for="(job, index) in run.jobs" :key="job.id">
+              <a class="job-brief-link" :href="run.link+'/jobs/'+index">
+                <SvgIcon name="octicon-check-circle-fill" class="green" v-if="job.status === 'success'"/>
+                <SvgIcon name="octicon-skip" class="ui text grey" v-else-if="job.status === 'skipped'"/>
+                <SvgIcon name="octicon-clock" class="ui text yellow" v-else-if="job.status === 'waiting'"/>
+                <SvgIcon name="octicon-blocked" class="ui text yellow" v-else-if="job.status === 'blocked'"/>
+                <SvgIcon name="octicon-meter" class="ui text yellow" class-name="job-status-rotate" v-else-if="job.status === 'running'"/>
+                <SvgIcon name="octicon-x-circle-fill" class="red" v-else/>
+                <span class="ui text">{{ job.name }}</span>
+              </a>
+              <button class="job-brief-rerun" @click="rerunJob(index)" v-if="job.canRerun">
                 <SvgIcon name="octicon-sync" class="ui text black"/>
               </button>
-            </a>
+            </div>
           </div>
         </div>
       </div>
@@ -41,15 +42,15 @@
         <div class="job-step-container">
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
             <div class="job-step-summary" @click.stop="toggleStepLogs(i)">
-              <SvgIcon name="octicon-chevron-down" class="mr-3" v-show="currentJobStepsStates[i].expanded"/>
-              <SvgIcon name="octicon-chevron-right" class="mr-3" v-show="!currentJobStepsStates[i].expanded"/>
+              <SvgIcon name="octicon-chevron-down" class="gt-mr-3" v-show="currentJobStepsStates[i].expanded"/>
+              <SvgIcon name="octicon-chevron-right" class="gt-mr-3" v-show="!currentJobStepsStates[i].expanded"/>
 
-              <SvgIcon name="octicon-check-circle-fill" class="green mr-3" v-if="jobStep.status === 'success'"/>
-              <SvgIcon name="octicon-skip" class="ui text grey mr-3" v-else-if="jobStep.status === 'skipped'"/>
-              <SvgIcon name="octicon-clock" class="ui text yellow mr-3" v-else-if="jobStep.status === 'waiting'"/>
-              <SvgIcon name="octicon-blocked" class="ui text yellow mr-3" v-else-if="jobStep.status === 'blocked'"/>
-              <SvgIcon name="octicon-meter" class="ui text yellow mr-3" class-name="job-status-rotate" v-else-if="jobStep.status === 'running'"/>
-              <SvgIcon name="octicon-x-circle-fill" class="red mr-3 " v-else/>
+              <SvgIcon name="octicon-check-circle-fill" class="green gt-mr-3" v-if="jobStep.status === 'success'"/>
+              <SvgIcon name="octicon-skip" class="ui text grey gt-mr-3" v-else-if="jobStep.status === 'skipped'"/>
+              <SvgIcon name="octicon-clock" class="ui text yellow gt-mr-3" v-else-if="jobStep.status === 'waiting'"/>
+              <SvgIcon name="octicon-blocked" class="ui text yellow gt-mr-3" v-else-if="jobStep.status === 'blocked'"/>
+              <SvgIcon name="octicon-meter" class="ui text yellow gt-mr-3" class-name="job-status-rotate" v-else-if="jobStep.status === 'running'"/>
+              <SvgIcon name="octicon-x-circle-fill" class="red gt-mr-3 " v-else/>
 
               <span class="step-summary-msg">{{ jobStep.summary }}</span>
               <span class="step-summary-dur">{{ jobStep.duration }}</span>
@@ -267,6 +268,11 @@ export function initRepositoryActionView() {
   const el = document.getElementById('repo-action-view');
   if (!el) return;
 
+  // TODO: the parent element's full height doesn't work well now,
+  // but we can not pollute the global style at the moment, only fix the height problem for pages with this component
+  const parentFullHeight = document.querySelector('body > div.full.height');
+  if (parentFullHeight) parentFullHeight.style.paddingBottom = '0';
+
   const view = createApp(sfc, {
     runIndex: el.getAttribute('data-run-index'),
     jobIndex: el.getAttribute('data-job-index'),
@@ -279,8 +285,6 @@ export function initRepositoryActionView() {
 
 <style scoped lang="less">
 
-// some elements are not managed by vue, so we need to use _actions.less in addition.
-
 .action-view-body {
   display: flex;
   height: calc(100vh - 266px); // fine tune this value to make the main view has full height
@@ -291,7 +295,7 @@ export function initRepositoryActionView() {
 
 .action-view-header {
   margin: 0 20px 20px 20px;
-  button.run_cancel {
+  .run_cancel {
     border: none;
     color: var(--color-red);
     background-color: transparent;
@@ -299,7 +303,7 @@ export function initRepositoryActionView() {
     cursor: pointer;
     transition:transform 0.2s;
   };
-  button.run_cancel:hover{
+  .run_cancel:hover{
     transform:scale(130%);
   };
 }
@@ -327,14 +331,16 @@ export function initRepositoryActionView() {
   }
 
   .job-brief-list {
-    a.job-brief-item {
-      display: block;
+    .job-brief-item {
       margin: 5px 0;
       padding: 10px;
       background: var(--color-info-bg);
       border-radius: 5px;
       text-decoration: none;
-      button.job-brief-rerun {
+      display: flex;
+      justify-items: center;
+      flex-wrap: nowrap;
+      .job-brief-rerun {
         float: right;
         border: none;
         background-color: transparent;
@@ -342,11 +348,20 @@ export function initRepositoryActionView() {
         cursor: pointer;
         transition:transform 0.2s;
       };
-      button.job-brief-rerun:hover{
+      .job-brief-rerun:hover{
         transform:scale(130%);
       };
+      .job-brief-link {
+        flex-grow: 1;
+        display: flex;
+        span {
+          margin-right: 8px;
+          display: flex;
+          align-items: center;
+        }
+      }
     }
-    a.job-brief-item:hover {
+    .job-brief-item:hover {
       background-color: var(--color-secondary);
     }
   }
@@ -399,3 +414,51 @@ export function initRepositoryActionView() {
 }
 </style>
 
+<style lang="less">
+// some elements are not managed by vue, so we need to use global style
+
+.job-status-rotate {
+  animation: job-status-rotate-keyframes 1s linear infinite;
+}
+@keyframes job-status-rotate-keyframes {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.job-step-section {
+  margin: 10px;
+  .job-step-logs {
+    font-family: monospace, monospace;
+    .job-log-line {
+      display: flex;
+      .line-num {
+        width: 48px;
+        color: var(--color-grey-light);
+        text-align: right;
+      }
+      .log-time {
+        color: var(--color-grey-light);
+        margin-left: 10px;
+        white-space: nowrap;
+      }
+      .log-msg {
+        flex: 1;
+        word-break: break-all;
+        white-space: break-spaces;
+        margin-left: 10px;
+      }
+    }
+
+    // TODO: group support
+    .job-log-group {
+    }
+
+    .job-log-group-summary {
+    }
+
+    .job-log-list {
+    }
+  }
+}
+</style>

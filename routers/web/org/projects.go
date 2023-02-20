@@ -121,7 +121,7 @@ func canWriteUnit(ctx *context.Context) bool {
 // NewProject render creating a project page
 func NewProject(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
-	ctx.Data["ProjectTypes"] = project_model.GetProjectsConfig()
+	ctx.Data["BoardTypes"] = project_model.GetBoardConfig()
 	ctx.Data["CanWriteProjects"] = canWriteUnit(ctx)
 	ctx.Data["PageIsViewProjects"] = true
 	ctx.Data["HomeLink"] = ctx.ContextUser.HomeLink()
@@ -138,7 +138,7 @@ func NewProjectPost(ctx *context.Context) {
 	if ctx.HasError() {
 		ctx.Data["CanWriteProjects"] = canWriteUnit(ctx)
 		ctx.Data["PageIsViewProjects"] = true
-		ctx.Data["ProjectTypes"] = project_model.GetProjectsConfig()
+		ctx.Data["BoardTypes"] = project_model.GetBoardConfig()
 		ctx.HTML(http.StatusOK, tplProjectsNew)
 		return
 	}

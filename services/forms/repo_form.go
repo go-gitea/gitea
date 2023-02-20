@@ -160,6 +160,7 @@ type RepoSettingForm struct {
 	EnableAutodetectManualMerge           bool
 	PullsAllowRebaseUpdate                bool
 	DefaultDeleteBranchAfterMerge         bool
+	DefaultAllowMaintainerEdit            bool
 	EnableTimetracker                     bool
 	AllowOnlyContributorsToTrackTime      bool
 	EnableIssueDependencies               bool
@@ -512,6 +513,7 @@ type CreateProjectForm struct {
 	Title     string `binding:"Required;MaxSize(100)"`
 	Content   string
 	BoardType project_model.BoardType
+	CardType  project_model.CardType
 }
 
 // UserCreateProjectForm is a from for creating an individual or organization
@@ -520,6 +522,7 @@ type UserCreateProjectForm struct {
 	Title     string `binding:"Required;MaxSize(100)"`
 	Content   string
 	BoardType project_model.BoardType
+	CardType  project_model.CardType
 	UID       int64 `binding:"Required"`
 }
 
@@ -561,6 +564,7 @@ func (f *CreateMilestoneForm) Validate(req *http.Request, errs binding.Errors) b
 type CreateLabelForm struct {
 	ID          int64
 	Title       string `binding:"Required;MaxSize(50)" locale:"repo.issues.label_title"`
+	Exclusive   bool   `form:"exclusive"`
 	Description string `binding:"MaxSize(200)" locale:"repo.issues.label_description"`
 	Color       string `binding:"Required;MaxSize(7)" locale:"repo.issues.label_color"`
 }

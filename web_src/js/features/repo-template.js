@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
+import {hideElem, showElem} from '../utils/dom.js';
 
 const {appSubUrl} = window.config;
 
@@ -9,11 +10,11 @@ export function initRepoTemplateSearch() {
     const $templateUnits = $('#template_units');
     const $nonTemplate = $('#non_template');
     if ($repoTemplate.val() !== '' && $repoTemplate.val() !== '0') {
-      $templateUnits.show();
-      $nonTemplate.hide();
+      showElem($templateUnits);
+      hideElem($nonTemplate);
     } else {
-      $templateUnits.hide();
-      $nonTemplate.show();
+      hideElem($templateUnits);
+      showElem($nonTemplate);
     }
   };
   $repoTemplate.on('change', checkTemplate);
