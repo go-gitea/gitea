@@ -86,11 +86,12 @@ export function initRepoCommentForm() {
     let hasUpdateAction = $listMenu.data('action') === 'update';
     const items = {};
 
-    $(`.${selector}`).dropdown('setting', 'onHide', () => {
-      hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
-      if (hasUpdateAction) {
-        // TODO: Add batch functionality and make this 1 network request.
-        (async function() {
+    $(`.${selector}`).dropdown({
+      'action': 'nothing', // do not hide the menu if user presses Enter
+      async onHide() {
+        hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
+        if (hasUpdateAction) {
+          // TODO: Add batch functionality and make this 1 network request.
           for (const [elementId, item] of Object.entries(items)) {
             await updateIssuesMeta(
               item['update-url'],
@@ -100,8 +101,8 @@ export function initRepoCommentForm() {
             );
           }
           window.location.reload();
-        })();
-      }
+        }
+      },
     });
 
     $listMenu.find('.item:not(.no-select)').on('click', function (e) {
