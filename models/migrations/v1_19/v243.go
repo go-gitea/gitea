@@ -7,16 +7,10 @@ import (
 	"xorm.io/xorm"
 )
 
-func AddNeedApprovalToActionRun(x *xorm.Engine) error {
-	/*
-		New index: TriggerUserID
-		New fields: NeedApproval, ApprovedBy
-	*/
-	type ActionRun struct {
-		TriggerUserID int64 `xorm:"index"`
-		NeedApproval  bool  // may need approval if it's a fork pull request
-		ApprovedBy    int64 `xorm:"index"` // who approved
+func AddExclusiveLabel(x *xorm.Engine) error {
+	type Label struct {
+		Exclusive bool
 	}
 
-	return x.Sync(new(ActionRun))
+	return x.Sync(new(Label))
 }

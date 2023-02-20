@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -164,7 +165,7 @@ func TestEmailNotificationPreferences(t *testing.T) {
 func TestHashPasswordDeterministic(t *testing.T) {
 	b := make([]byte, 16)
 	u := &user_model.User{}
-	algos := []string{"argon2", "pbkdf2", "scrypt", "bcrypt"}
+	algos := hash.RecommendedHashAlgorithms
 	for j := 0; j < len(algos); j++ {
 		u.PasswdHashAlgo = algos[j]
 		for i := 0; i < 50; i++ {

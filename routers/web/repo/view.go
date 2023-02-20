@@ -1033,8 +1033,8 @@ func Forks(ctx *context.Context) {
 	}
 
 	for _, fork := range forks {
-		if err = fork.GetOwner(ctx); err != nil {
-			ctx.ServerError("GetOwner", err)
+		if err = fork.LoadOwner(ctx); err != nil {
+			ctx.ServerError("LoadOwner", err)
 			return
 		}
 	}

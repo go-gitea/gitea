@@ -39,7 +39,7 @@
 			{{if .ContextUser.IsOrganization}}
 				{{if .IsOrganizationMember}}
 					<a class="item" href="{{$.OrgLink}}/members">
-						{{svg "octicon-organization"}}&nbsp;{{$.locale.Tr "org.people"}}
+						{{svg "octicon-person"}}&nbsp;{{$.locale.Tr "org.members"}}
 						{{if .NumMembers}}
 							<div class="ui primary label">{{.NumMembers}}</div>
 						{{end}}

@@ -460,7 +460,11 @@ var migrations = []Migration{
 	// v242 -> v243
 	NewMigration("Alter gpg_key_import content TEXT field to MEDIUMTEXT", v1_19.AlterPublicGPGKeyImportContentFieldToMediumText),
 	// v243 -> v244
+	NewMigration("Add exclusive label", v1_19.AddExclusiveLabel),
+	// v244 -> v245
 	NewMigration("Add NeedApproval to actions tables", v1_19.AddNeedApprovalToActionRun),
+
+	// Gitea 1.19.0 ends at v245
 }
 
 // GetCurrentDBVersion returns the current db version
