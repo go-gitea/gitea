@@ -28,7 +28,7 @@ func TestReadingBlameOutput(t *testing.T) {
 		},
 		{
 			"f32b0a9dfd09a60f616f29158f772cedd89942d2",
-			[]string{},
+			[]string{"", "Do not make any changes to this repo it is used for unit testing"},
 		},
 	}
 

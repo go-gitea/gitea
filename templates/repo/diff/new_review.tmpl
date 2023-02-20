@@ -1,5 +1,5 @@
 <div class="ui top right pointing dropdown custom" id="review-box">
-	<div class="ui tiny green button btn-review ml-2 mr-0">
+	<div class="ui tiny green button btn-review gt-ml-2 gt-mr-0">
 		{{.locale.Tr "repo.diff.review"}}
 		<span class="ui small label review-comments-counter" data-pending-comment-number="{{.PendingCodeCommentNumber}}">{{.PendingCodeCommentNumber}}</span>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -9,9 +9,9 @@
 			<form class="ui form" action="{{.Link}}/reviews/submit" method="post">
 			{{.CsrfTokenHtml}}
 				<input type="hidden" name="commit_id" value="{{.AfterCommitID}}"/>
-				<div class="header df ac pb-3">
-					<div class="f1">{{$.locale.Tr "repo.diff.review.header"}}</div>
-					<a class="muted close px-3">{{svg "octicon-x" 16}}</a>
+				<div class="header gt-df gt-ac gt-pb-3">
+					<div class="gt-f1">{{$.locale.Tr "repo.diff.review.header"}}</div>
+					<a class="muted close gt-px-3">{{svg "octicon-x" 16}}</a>
 				</div>
 				<div class="ui field">
 					<textarea name="content" tabindex="0" rows="2" placeholder="{{$.locale.Tr "repo.diff.review.placeholder"}}"></textarea>
