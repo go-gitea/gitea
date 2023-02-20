@@ -291,7 +291,6 @@ export function initRepoCommentForm() {
 async function onEditContent(event) {
   event.preventDefault();
 
-  $(this).closest('.dropdown').find('.menu').toggle('visible'); // eslint-disable-line
   const $segment = $(this).closest('.header').next();
   const $editContentZone = $segment.find('.edit-content-zone');
   const $renderContent = $segment.find('.render-content');
@@ -584,7 +583,6 @@ function initRepoIssueCommentEdit() {
 
   // Quote reply
   $(document).on('click', '.quote-reply', function (event) {
-    $(this).closest('.dropdown').find('.menu').toggle('visible'); // eslint-disable-line
     const target = $(this).data('target');
     const quote = $(`#${target}`).text().replace(/\n/g, '\n> ');
     const content = `> ${quote}\n\n`;
