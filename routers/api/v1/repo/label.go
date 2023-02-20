@@ -156,6 +156,7 @@ func CreateLabel(ctx *context.APIContext) {
 
 	label := &issues_model.Label{
 		Name:        form.Name,
+		Exclusive:   form.Exclusive,
 		Color:       form.Color,
 		RepoID:      ctx.Repo.Repository.ID,
 		Description: form.Description,
@@ -217,6 +218,9 @@ func EditLabel(ctx *context.APIContext) {
 
 	if form.Name != nil {
 		label.Name = *form.Name
+	}
+	if form.Exclusive != nil {
+		label.Exclusive = *form.Exclusive
 	}
 	if form.Color != nil {
 		label.Color = strings.Trim(*form.Color, " ")
