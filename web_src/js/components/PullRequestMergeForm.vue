@@ -18,6 +18,7 @@
         <input type="hidden" name="_csrf" :value="csrfToken">
         <input type="hidden" name="head_commit_id" v-model="mergeForm.pullHeadCommitID">
         <input type="hidden" name="merge_when_checks_succeed" v-model="autoMergeWhenSucceed">
+        <input type="hidden" name="force_merge" v-model="forceMerge">
 
         <template v-if="!mergeStyleDetail.hideMergeMessageTexts">
           <div class="field">
@@ -116,6 +117,7 @@ export default {
     mergeMessageFieldValue: '',
     deleteBranchAfterMerge: false,
     autoMergeWhenSucceed: false,
+    forceMerge: false,
 
     mergeStyle: '',
     mergeStyleDetail: { // dummy only, these values will come from one of the mergeForm.mergeStyles
@@ -169,6 +171,7 @@ export default {
       this.deleteBranchAfterMerge = this.mergeForm.defaultDeleteBranchAfterMerge;
       this.mergeTitleFieldValue = this.mergeStyleDetail.mergeTitleFieldText;
       this.mergeMessageFieldValue = this.mergeStyleDetail.mergeMessageFieldText;
+      this.forceMerge = this.mergeForm.canMergeNow && !this.mergeForm.allOverridableChecksOk;
     },
     switchMergeStyle(name, autoMerge = false) {
       this.mergeStyle = name;
