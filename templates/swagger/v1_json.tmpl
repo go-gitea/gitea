@@ -15348,6 +15348,11 @@
           "type": "string",
           "x-go-name": "Description"
         },
+        "exclusive": {
+          "type": "boolean",
+          "x-go-name": "Exclusive",
+          "example": false
+        },
         "name": {
           "type": "string",
           "x-go-name": "Name"
@@ -15809,6 +15814,12 @@
         "password"
       ],
       "properties": {
+        "created_at": {
+          "description": "For explicitly setting the user creation timestamp. Useful when users are\nmigrated from other systems. When omitted, the user's creation timestamp\nwill be set to \"now\".",
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
         "email": {
           "type": "string",
           "format": "email",
@@ -16277,11 +16288,17 @@
       "properties": {
         "color": {
           "type": "string",
-          "x-go-name": "Color"
+          "x-go-name": "Color",
+          "example": "#00aabb"
         },
         "description": {
           "type": "string",
           "x-go-name": "Description"
+        },
+        "exclusive": {
+          "type": "boolean",
+          "x-go-name": "Exclusive",
+          "example": false
         },
         "name": {
           "type": "string",
@@ -17608,6 +17625,11 @@
         "description": {
           "type": "string",
           "x-go-name": "Description"
+        },
+        "exclusive": {
+          "type": "boolean",
+          "x-go-name": "Exclusive",
+          "example": false
         },
         "id": {
           "type": "integer",

@@ -38,12 +38,12 @@ func createTemporaryRepo(ctx context.Context, pr *issues_model.PullRequest) (str
 		return "", &repo_model.ErrRepoNotExist{
 			ID: pr.BaseRepoID,
 		}
-	} else if err := pr.HeadRepo.GetOwner(ctx); err != nil {
-		log.Error("HeadRepo.GetOwner: %v", err)
-		return "", fmt.Errorf("HeadRepo.GetOwner: %w", err)
-	} else if err := pr.BaseRepo.GetOwner(ctx); err != nil {
-		log.Error("BaseRepo.GetOwner: %v", err)
-		return "", fmt.Errorf("BaseRepo.GetOwner: %w", err)
+	} else if err := pr.HeadRepo.LoadOwner(ctx); err != nil {
+		log.Error("HeadRepo.LoadOwner: %v", err)
+		return "", fmt.Errorf("HeadRepo.LoadOwner: %w", err)
+	} else if err := pr.BaseRepo.LoadOwner(ctx); err != nil {
+		log.Error("BaseRepo.LoadOwner: %v", err)
+		return "", fmt.Errorf("BaseRepo.LoadOwner: %w", err)
 	}
 
 	// Clone base repo.
