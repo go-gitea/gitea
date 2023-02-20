@@ -199,7 +199,7 @@ func runDump(ctx *cli.Context) error {
 
 	// Set loglevel to Warn if quiet-mode is requested
 	if ctx.Bool("quiet") {
-		if _, err := setting.Cfg.Section("log.console").NewKey("LEVEL", "Warn"); err != nil {
+		if _, err := setting.CfgProvider.Section("log.console").NewKey("LEVEL", "Warn"); err != nil {
 			fatal("Setting console log-level failed: %v", err)
 		}
 	}
