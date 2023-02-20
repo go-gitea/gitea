@@ -170,6 +170,7 @@ var allAccessTokenScopeBits = map[AccessTokenScope]AccessTokenScopeBitmap{
 func (s AccessTokenScope) Parse() (AccessTokenScopeBitmap, error) {
 	var bitmap AccessTokenScopeBitmap
 
+	// The following is the more performant equivalent of 'for _, v := range strings.Split(remainingScope, ",")' as this is hot code
 	remainingScopes := string(s)
 	for len(remainingScopes) > 0 {
 		i := strings.IndexByte(remainingScopes, ',')
