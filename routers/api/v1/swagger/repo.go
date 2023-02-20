@@ -389,7 +389,7 @@ type swaggerRepoCollaboratorPermission struct {
 
 // RepoCodeSearch
 // swagger:response RepoCodeSearch
-type swaggerRepoCodeSearcg struct {
+type swaggerRepoCodeSearch struct {
 	// in:body
 	Body api.RepoCodeSearchAPIResponse `json:"body"`
 }
