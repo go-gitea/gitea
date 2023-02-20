@@ -25,10 +25,10 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
-	"go.uber.org/atomic"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/atomic"
 )
 
 func InitTest(requireGitea bool) {
