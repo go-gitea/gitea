@@ -304,7 +304,7 @@ func ToTeams(ctx context.Context, teams []*organization.Team, loadOrgs bool) ([]
 	cache := make(map[int64]*api.Organization)
 	apiTeams := make([]*api.Team, len(teams))
 	for i := range teams {
-		if err := teams[i].GetUnits(); err != nil {
+		if err := teams[i].LoadUnits(ctx); err != nil {
 			return nil, err
 		}
 
