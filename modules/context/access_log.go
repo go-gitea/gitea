@@ -39,7 +39,7 @@ const maxRequestIDByteLength = 40
 
 func parseRequestIDFromRequestHeader(req *http.Request) string {
 	requestID := "-"
-	for _, key := range setting.RequestIDHeaders {
+	for _, key := range setting.Log.RequestIDHeaders {
 		if req.Header.Get(key) != "" {
 			requestID = req.Header.Get(key)
 			break
@@ -54,8 +54,8 @@ func parseRequestIDFromRequestHeader(req *http.Request) string {
 // AccessLogger returns a middleware to log access logger
 func AccessLogger() func(http.Handler) http.Handler {
 	logger := log.GetLogger("access")
-	logTemplate, _ := template.New("log").Parse(setting.AccessLogTemplate)
-	needRequestID := len(setting.RequestIDHeaders) > 0 && strings.Contains(setting.AccessLogTemplate, keyOfRequestIDInTemplate)
+	needRequestID := len(setting.Log.RequestIDHeaders) > 0 && strings.Contains(setting.Log.AccessLogTemplate, keyOfRequestIDInTemplate)
+	logTemplate, _ := template.New("log").Parse(setting.Log.AccessLogTemplate)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			start := time.Now()

@@ -67,9 +67,8 @@ var Git = struct {
 	},
 }
 
-func newGit() {
-	sec := Cfg.Section("git")
-
+func loadGitFrom(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("git")
 	if err := sec.MapTo(&Git); err != nil {
 		log.Fatal("Failed to map Git settings: %v", err)
 	}
