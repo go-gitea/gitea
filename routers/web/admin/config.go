@@ -117,7 +117,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["AppUrl"] = setting.AppURL
 	ctx.Data["Domain"] = setting.Domain
 	ctx.Data["OfflineMode"] = setting.OfflineMode
-	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
+	ctx.Data["DisableRouterLog"] = setting.Log.DisableRouterLog
 	ctx.Data["RunUser"] = setting.RunUser
 	ctx.Data["RunMode"] = util.ToTitleCase(setting.RunMode)
 	ctx.Data["GitVersion"] = git.VersionInfo()
@@ -125,7 +125,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["RepoRootPath"] = setting.RepoRootPath
 	ctx.Data["CustomRootPath"] = setting.CustomPath
 	ctx.Data["StaticRootPath"] = setting.StaticRootPath
-	ctx.Data["LogRootPath"] = setting.LogRootPath
+	ctx.Data["LogRootPath"] = setting.Log.RootPath
 	ctx.Data["ScriptType"] = setting.ScriptType
 	ctx.Data["ReverseProxyAuthUser"] = setting.ReverseProxyAuthUser
 	ctx.Data["ReverseProxyAuthEmail"] = setting.ReverseProxyAuthEmail
@@ -183,10 +183,10 @@ func Config(ctx *context.Context) {
 
 	ctx.Data["EnvVars"] = envVars
 	ctx.Data["Loggers"] = setting.GetLogDescriptions()
-	ctx.Data["EnableAccessLog"] = setting.EnableAccessLog
-	ctx.Data["AccessLogTemplate"] = setting.AccessLogTemplate
-	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
-	ctx.Data["EnableXORMLog"] = setting.EnableXORMLog
+	ctx.Data["EnableAccessLog"] = setting.Log.EnableAccessLog
+	ctx.Data["AccessLogTemplate"] = setting.Log.AccessLogTemplate
+	ctx.Data["DisableRouterLog"] = setting.Log.DisableRouterLog
+	ctx.Data["EnableXORMLog"] = setting.Log.EnableXORMLog
 	ctx.Data["LogSQL"] = setting.Database.LogSQL
 
 	ctx.HTML(http.StatusOK, tplConfig)
