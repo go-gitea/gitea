@@ -1427,12 +1427,15 @@ func applyReviewedCondition(sess *xorm.Session, reviewedID int64) *xorm.Session 
 			),
 		)),
 	)
-	comment := builder.In("issue.id", builder.
+	commented := builder.In("issue.id", builder.
 		Select("issue_id").
 		From("comment").
-		Where(builder.Eq{"poster_id": reviewedID}),
+		Where(builder.And(
+			builder.Eq{"poster_id": reviewedID},
+			builder.In("type", CommentTypeComment, CommentTypeCode, CommentTypeReview),
+		)),
 	)
-	return sess.And(notPoster, builder.Or(reviewed, comment))
+	return sess.And(notPoster, builder.Or(reviewed, commented))
 }
 
 func applySubscribedCondition(sess *xorm.Session, subscriberID int64) *xorm.Session {
