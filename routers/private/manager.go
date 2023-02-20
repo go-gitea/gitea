@@ -116,11 +116,11 @@ func AddLogger(ctx *context.PrivateContext) {
 	}
 
 	if _, ok := opts.Config["level"]; !ok {
-		opts.Config["level"] = setting.LogLevel
+		opts.Config["level"] = setting.Log.Level
 	}
 
 	if _, ok := opts.Config["stacktraceLevel"]; !ok {
-		opts.Config["stacktraceLevel"] = setting.StacktraceLogLevel
+		opts.Config["stacktraceLevel"] = setting.Log.StacktraceLogLevel
 	}
 
 	if opts.Mode == "file" {
@@ -135,7 +135,7 @@ func AddLogger(ctx *context.PrivateContext) {
 		}
 	}
 
-	bufferLen := setting.Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
+	bufferLen := setting.Log.BufferLength
 	byteConfig, err := json.Marshal(opts.Config)
 	if err != nil {
 		log.Error("Failed to marshal log configuration: %v %v", opts.Config, err)
