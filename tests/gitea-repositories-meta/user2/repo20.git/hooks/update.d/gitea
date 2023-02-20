@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-"/home/tris/Projects/go/src/code.gitea.io/gitea/gitea" hook --config='/home/tris/Projects/go/src/code.gitea.io/gitea/custom/conf/app.ini' update $1 $2 $3
+"$GITEA_ROOT/gitea" hook --config="$GITEA_ROOT/$GITEA_CONF" update $1 $2 $3
