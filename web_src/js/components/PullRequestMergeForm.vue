@@ -121,7 +121,6 @@ export default {
     mergeMessageFieldValue: '',
     deleteBranchAfterMerge: false,
     autoMergeWhenSucceed: false,
-    forceMerge: false,
 
     mergeStyle: '',
     mergeStyleDetail: { // dummy only, these values will come from one of the mergeForm.mergeStyles
@@ -139,7 +138,10 @@ export default {
     mergeButtonStyleClass() {
       if (this.mergeForm.allOverridableChecksOk) return 'green';
       return this.autoMergeWhenSucceed ? 'blue' : 'red';
-    }
+    },
+    forceMerge() {
+      return this.mergeForm.canMergeNow && !this.mergeForm.allOverridableChecksOk;
+    },
   },
   watch: {
     mergeStyle(val) {
@@ -169,7 +171,6 @@ export default {
       this.deleteBranchAfterMerge = this.mergeForm.defaultDeleteBranchAfterMerge;
       this.mergeTitleFieldValue = this.mergeStyleDetail.mergeTitleFieldText;
       this.mergeMessageFieldValue = this.mergeStyleDetail.mergeMessageFieldText;
-      this.forceMerge = this.mergeForm.canMergeNow && !this.mergeForm.allOverridableChecksOk;
     },
     switchMergeStyle(name, autoMerge = false) {
       this.mergeStyle = name;
