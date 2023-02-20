@@ -45,7 +45,7 @@ var Git = struct {
 		Enabled    bool
 		Expiration int
 	}{
-		Enabled:    false,
+		Enabled:    true,
 		Expiration: 90,
 	},
 	DisableDiffHighlight:      false,
