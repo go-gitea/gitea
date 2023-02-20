@@ -8,6 +8,7 @@ if [ ! -w ${HOME} ]; then echo "${HOME} is not writable"; exit 1; fi
 mkdir -p ${GITEA_CUSTOM} && chmod 0700 ${GITEA_CUSTOM}
 
 # Prepare temp folder
+mkdir -p ${GITEA_CUSTOM} && chmod 0700 ${GITEA_CUSTOM}
 mkdir -p ${GITEA_TEMP} && chmod 0700 ${GITEA_TEMP}
 if [ ! -w ${GITEA_TEMP} ]; then echo "${GITEA_TEMP} is not writable"; exit 1; fi
 
@@ -17,6 +18,8 @@ if [ ! -f ${GITEA_APP_INI} ]; then
     #Prepare config file folder
     GITEA_APP_INI_DIR=$(dirname ${GITEA_APP_INI})
     mkdir -p ${GITEA_APP_INI_DIR} && chmod 0700 ${GITEA_APP_INI_DIR}
+
+    
     if [ ! -w ${GITEA_APP_INI_DIR} ]; then echo "${GITEA_APP_INI_DIR} is not writable"; exit 1; fi
 
     # Set INSTALL_LOCK to true only if SECRET_KEY is not empty and

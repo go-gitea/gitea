@@ -224,6 +224,29 @@ func syncGitConfig() (err error) {
 		return err
 	}
 
+	if setting.Git.Reflog.Enabled {
+		if err := configSet("core.logAllRefUpdates", "true"); err != nil {
+			return err
+		}
+		if setting.Git.Reflog.Expiration != 90 {
+			if err := configSet("gc.reflogExpire", fmt.Sprintf("%d", setting.Git.Reflog.Expiration)); err != nil {
+				return err
+			}
+		} else {
+			if err := configUnsetAll("gc.reflogExpire", ""); err != nil {
+				return err
+			}
+		}
+	} else {
+		if err := configUnsetAll("core.logAllRefUpdates", "true"); err != nil {
+			return err
+		} else {
+			if err := configUnsetAll("gc.reflogExpire", ""); err != nil {
+				return err
+			}
+		}
+	}
+
 	if CheckGitVersionAtLeast("2.10") == nil {
 		if err := configSet("receive.advertisePushOptions", "true"); err != nil {
 			return err

@@ -1011,13 +1011,6 @@ Default templates for project boards:
 - `NOTICE_ON_SUCCESS`: **false**: Set to true to switch on success notices.
 - `SCHEDULE`: **@every 72h**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
 
-#### Cron - Resynchronize Git configs of all repositories ('cron.resync_all_configs')
-
-- `ENABLED`: **false**: Enable service.
-- `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
-- `NOTICE_ON_SUCCESS`: **false**: Set to true to switch on success notices.
-- `SCHEDULE`: **@every 72h**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
-
 #### Cron - Reinitialize all missing Git repositories for which records exist ('cron.reinit_missing_repos')
 
 - `ENABLED`: **false**: Enable service.

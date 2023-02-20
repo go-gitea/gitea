@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/proxy"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -301,47 +300,6 @@ func GetDivergingCommits(ctx context.Context, repoPath, baseBranch, targetBranch
 	}
 
 	return DivergeObject{ahead, behind}, nil
-}
-
-// CreateConfig creates a git config for the repo
-func CreateConfig(repoPath string) error {
-	return createConfig(repoPath)
-}
-
-// createConfig creates a git config for the repo
-func createConfig(repoPath string) (err error) {
-	gitConfigPath := filepath.Join(repoPath, "config")
-
-	reflogEnabled := setting.Git.Reflog.Enabled
-	reflogExpirationDays := setting.Git.Reflog.Expiration
-
-	configStr := strings.TrimSpace(`
-[core]
-	repositoryformatversion = 0
-	filemode = true
-	bare = true
-	ignorecase = true
-	precomposeunicode = true
-`)
-
-	if reflogEnabled {
-		configStr += "\n	logAllRefUpdates = true"
-		if reflogExpirationDays != 90 {
-			configStr += "\n[gc]"
-			configStr += fmt.Sprintf("\n	reflogExpire = %d", reflogExpirationDays)
-		}
-	}
-
-	configStr += "\n"
-
-	if err = util.Remove(gitConfigPath); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("unable to pre-remove config file '%s' prior to rewriting: %w ", gitConfigPath, err)
-	}
-	if err = os.WriteFile(gitConfigPath, []byte(configStr), 0o644); err != nil {
-		return fmt.Errorf("write config file '%s': %w", gitConfigPath, err)
-	}
-
-	return nil
 }
 
 // CreateBundle create bundle content to the target path
