@@ -73,7 +73,7 @@ func mustInitCtx(ctx context.Context, fn func(ctx context.Context) error) {
 
 // InitGitServices init new services for git, this is also called in `contrib/pr/checkout.go`
 func InitGitServices() {
-	setting.NewServices()
+	setting.LoadSettings()
 	mustInit(storage.Init)
 	mustInit(repo_service.Init)
 }
@@ -119,7 +119,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	log.Info("AppPath: %s", setting.AppPath)
 	log.Info("AppWorkPath: %s", setting.AppWorkPath)
 	log.Info("Custom path: %s", setting.CustomPath)
-	log.Info("Log path: %s", setting.LogRootPath)
+	log.Info("Log path: %s", setting.Log.RootPath)
 	log.Info("Configuration file: %s", setting.CustomConf)
 	log.Info("Run Mode: %s", util.ToTitleCase(setting.RunMode))
 	log.Info("Gitea v%s%s", setting.AppVer, setting.AppBuiltWith)
@@ -127,7 +127,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	// Setup i18n
 	translation.InitLocales(ctx)
 
-	setting.NewServices()
+	setting.LoadSettings()
 	mustInit(storage.Init)
 
 	mailer.NewContext(ctx)
