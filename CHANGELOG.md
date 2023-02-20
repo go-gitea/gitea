@@ -4,6 +4,43 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.18.4](https://github.com/go-gitea/gitea/releases/tag/1.18.4) - 2023-02-20
+
+* SECURITY
+  * Provide the ability to set password hash algorithm parameters (#22942) (#22943)
+  * Add command to bulk set must-change-password (#22823) (#22928)
+* ENHANCEMENTS
+  * Use import of OCI structs (#22765) (#22805)
+  * Fix color of tertiary button on dark theme (#22739) (#22744)
+  * Link issue and pull requests status change in UI notifications directly to their event in the timelined view. (#22627) (#22642)
+* BUGFIXES
+  * Notify on container image create (#22806) (#22965)
+  * Fix blame view missing lines (#22826) (#22929)
+  * Fix incorrect role labels for migrated issues and comments (#22914) (#22923)
+  * Fix PR file tree folders no longer collapsing (#22864) (#22872)
+  * Escape filename when assemble URL (#22850) (#22871)
+  * Fix isAllowed of escapeStreamer (#22814) (#22837)
+  * Load issue before accessing index in merge message (#22822) (#22830)
+  * Improve trace logging for pulls and processes (#22633) (#22812)
+  * Fix restore repo bug, clarify the problem of ForeignIndex (#22776) (#22794)
+  * Add default user visibility to cli command "admin user create" (#22750) (#22760)
+  * Escape path for the file list (#22741) (#22757)
+  * Fix bugs with WebAuthn preventing sign in and registration. (#22651) (#22721)
+  * Add missing close bracket in imagediff (#22710) (#22712)
+  * Move code comments to a standalone file and fix the bug when adding a reply to an outdated review appears to not post(#20821) (#22707)
+  * Fix line spacing for plaintext previews (#22699) (#22701)
+  * Fix wrong hint when deleting a branch successfully from pull request UI (#22673) (#22698)
+  * Fix README TOC links (#22577) (#22677)
+  * Fix missing message in git hook when pull requests disabled on fork (#22625) (#22658)
+  * Improve checkIfPRContentChanged (#22611) (#22644)
+  * Prevent duplicate labels when importing more than 99 (#22591) (#22598)
+  * Don't return duplicated users who can create org repo (#22560) (#22562)
+* BUILD
+  * Upgrade golangcilint to v1.51.0 (#22764)
+* MISC
+  * Use proxy for pull mirror (#22771) (#22772)
+  * Use `--index-url` in PyPi description (#22620) (#22636)
+
 ## [1.18.3](https://github.com/go-gitea/gitea/releases/tag/v1.18.3) - 2023-01-23
 
 * SECURITY
