@@ -25,7 +25,7 @@ func TestIterate(t *testing.T) {
 		return nil
 	})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 81, repoCnt)
+	assert.EqualValues(t, 83, repoCnt)
 
 	err = db.Iterate(db.DefaultContext, nil, func(ctx context.Context, repoUnit *repo_model.RepoUnit) error {
 		reopUnit2 := repo_model.RepoUnit{ID: repoUnit.ID}
