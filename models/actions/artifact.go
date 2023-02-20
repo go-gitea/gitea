@@ -17,6 +17,13 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+const (
+	// ArtifactUploadStatusPending is the status of an artifact upload that is pending
+	ArtifactUploadStatusPending = -1
+	// ArtifactUploadStatusConfirmed is the status of an artifact upload that is confirmed
+	ArtifactUploadStatusConfirmed = 1
+)
+
 // https://stackoverflow.com/a/37382208
 // Get preferred outbound ip of this machine
 func GetOutboundIP() net.IP {
@@ -37,28 +44,32 @@ func init() {
 
 // ActionArtifact is a file that is stored in the artifact storage.
 type ActionArtifact struct {
-	ID           int64
-	JobID        int64
-	RunnerID     int64              `xorm:"index"`
-	RepoID       int64              `xorm:"index"`
-	OwnerID      int64              `xorm:"index"`
-	CommitSHA    string             `xorm:"index"`
-	StoragePath  string             // The path to the artifact in the storage
-	FileSize     int64              // The size of the artifact in bytes
-	ArtifactPath string             // The path to the artifact when runner uploads it
-	ArtifactName string             // The name of the artifact when runner uploads it
-	Created      timeutil.TimeStamp `xorm:"created"`
-	Updated      timeutil.TimeStamp `xorm:"updated index"`
+	ID               int64
+	JobID            int64
+	RunnerID         int64              `xorm:"index"`
+	RepoID           int64              `xorm:"index"`
+	OwnerID          int64              `xorm:"index"`
+	CommitSHA        string             `xorm:"index"`
+	StoragePath      string             // The path to the artifact in the storage
+	FileSize         int64              // The size of the artifact in bytes
+	FileGzipSize     int64              // The size of the artifact in bytes after gzip compression
+	ContentEncnoding string             // The content encoding of the artifact
+	ArtifactPath     string             // The path to the artifact when runner uploads it
+	ArtifactName     string             // The name of the artifact when runner uploads it
+	UploadStatus     int64              `xorm:"index"` // The status of the artifact upload
+	Created          timeutil.TimeStamp `xorm:"created"`
+	Updated          timeutil.TimeStamp `xorm:"updated index"`
 }
 
 // CreateArtifact creates a new artifact with task info
 func CreateArtifact(ctx context.Context, t *ActionTask) (*ActionArtifact, error) {
 	artifact := &ActionArtifact{
-		JobID:     t.JobID,
-		RunnerID:  t.RunnerID,
-		RepoID:    t.RepoID,
-		OwnerID:   t.OwnerID,
-		CommitSHA: t.CommitSHA,
+		JobID:        t.JobID,
+		RunnerID:     t.RunnerID,
+		RepoID:       t.RepoID,
+		OwnerID:      t.OwnerID,
+		CommitSHA:    t.CommitSHA,
+		UploadStatus: ArtifactUploadStatusPending,
 	}
 	_, err := db.GetEngine(ctx).Insert(artifact)
 	return artifact, err
