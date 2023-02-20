@@ -10,7 +10,7 @@ type Email struct {
 	Email     string `json:"email"`
 	Verified  bool   `json:"verified"`
 	Primary   bool   `json:"primary"`
-	UserID    int64  `json:"user_id"`
+    UserID    int64  `json:"user_id"`
     UserName  string `json:"username"`
 }
 
