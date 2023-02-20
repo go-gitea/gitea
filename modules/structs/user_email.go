@@ -11,7 +11,7 @@ type Email struct {
 	Verified  bool   `json:"verified"`
 	Primary   bool   `json:"primary"`
 	UserID    int64  `json:"user_id"`
-	LoginName string `json:"login_name"`
+    UserName  string `json:"username"`
 }
 
 // CreateEmailOption options when creating email addresses
