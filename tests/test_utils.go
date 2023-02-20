@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path"
@@ -163,22 +164,38 @@ func InitTest(requireGitea bool) {
 	routers.GlobalInitInstalled(graceful.GetManager().HammerContext())
 }
 
-type RepoFixtureWatcher struct {
+type ShadowStorage struct {
+	storage.ObjectStorage
 	changed *atomic.Bool
-	watcher *atomic.Value
 }
 
-var repoFixtureWatcher = RepoFixtureWatcher{
-	changed: &atomic.Bool{},
-	watcher: &atomic.Value{},
+// Save store a object, if size is unknown set -1
+func (s *ShadowStorage) Save(path string, r io.Reader, size int64) (int64, error) {
+	s.changed.Store(true)
+	return s.ObjectStorage.Save(path, r, size)
 }
 
-func (r *RepoFixtureWatcher) PrepareRepoFixtures() error {
+func (s *ShadowStorage) Delete(path string) error {
+	s.changed.Store(true)
+	return s.ObjectStorage.Delete(path)
+}
+
+type FixtureWatcher struct {
+	reposChanged *atomic.Bool
+	reposWatcher *atomic.Value
+}
+
+var fixtureWatcher = FixtureWatcher{
+	reposChanged: &atomic.Bool{},
+	reposWatcher: &atomic.Value{},
+}
+
+func (r *FixtureWatcher) PrepareRepoFixtures() error {
 	_, err := os.Stat(setting.RepoRootPath)
-	if err == nil && !r.changed.Load() {
+	if err == nil && !r.reposChanged.Load() {
 		return nil
 	}
-	watcherVal := r.watcher.Load()
+	watcherVal := r.reposWatcher.Load()
 	if watcherVal != nil {
 		if watcher, ok := watcherVal.(*fsnotify.Watcher); ok {
 			watcher.Close()
@@ -187,6 +204,8 @@ func (r *RepoFixtureWatcher) PrepareRepoFixtures() error {
 	if err := resetFixtureRepositories(); err != nil {
 		return err
 	}
+	r.reposChanged.Store(false)
+
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return err
@@ -200,7 +219,7 @@ func (r *RepoFixtureWatcher) PrepareRepoFixtures() error {
 			_ = watcher.Add(path)
 			return nil
 		}); err != nil {
-			r.changed.Store(true)
+			r.reposChanged.Store(true)
 			return
 		}
 
@@ -217,8 +236,38 @@ func (r *RepoFixtureWatcher) PrepareRepoFixtures() error {
 			}
 		}
 		_ = watcher.Close()
-		r.changed.Store(true)
+		r.reposChanged.Store(true)
 	}()
+
+	shadowStorage, ok := storage.LFS.(*ShadowStorage)
+	if !ok {
+		changed := &atomic.Bool{}
+		changed.Store(true)
+		shadowStorage = &ShadowStorage{
+			ObjectStorage: storage.LFS,
+			changed:       changed,
+		}
+		storage.LFS = shadowStorage
+	}
+
+	if shadowStorage.changed.Load() {
+		// load LFS object fixtures
+		// (LFS storage can be on any of several backends, including remote servers, so we init it with the storage API)
+		lfsFixtures, err := storage.NewStorage("", storage.LocalStorageConfig{Path: path.Join(filepath.Dir(setting.AppPath), "tests/gitea-lfs-meta")})
+		if err != nil {
+			return err
+		}
+		if err := storage.Clean(shadowStorage.ObjectStorage); err != nil {
+			return err
+		}
+		if err := lfsFixtures.IterateObjects(func(path string, _ storage.Object) error {
+			_, err := storage.Copy(shadowStorage.ObjectStorage, path, lfsFixtures, path)
+			return err
+		}); err != nil {
+			return err
+		}
+		shadowStorage.changed.Store(false)
+	}
 
 	return nil
 }
@@ -264,17 +313,7 @@ func PrepareTestEnv(t testing.TB, skip ...int) func() {
 	assert.NoError(t, unittest.LoadFixtures())
 
 	// load git repo fixtures
-	assert.NoError(t, repoFixtureWatcher.PrepareRepoFixtures())
-
-	// load LFS object fixtures
-	// (LFS storage can be on any of several backends, including remote servers, so we init it with the storage API)
-	lfsFixtures, err := storage.NewStorage("", storage.LocalStorageConfig{Path: path.Join(filepath.Dir(setting.AppPath), "tests/gitea-lfs-meta")})
-	assert.NoError(t, err)
-	assert.NoError(t, storage.Clean(storage.LFS))
-	assert.NoError(t, lfsFixtures.IterateObjects(func(path string, _ storage.Object) error {
-		_, err := storage.Copy(storage.LFS, path, lfsFixtures, path)
-		return err
-	}))
+	assert.NoError(t, fixtureWatcher.PrepareRepoFixtures())
 
 	return deferFn
 }
@@ -289,15 +328,5 @@ func ResetFixtures(t *testing.T) {
 	assert.NoError(t, unittest.LoadFixtures())
 
 	// load git repo fixtures
-	assert.NoError(t, repoFixtureWatcher.PrepareRepoFixtures())
-
-	// load LFS object fixtures
-	// (LFS storage can be on any of several backends, including remote servers, so we init it with the storage API)
-	lfsFixtures, err := storage.NewStorage("", storage.LocalStorageConfig{Path: path.Join(filepath.Dir(setting.AppPath), "tests/gitea-lfs-meta")})
-	assert.NoError(t, err)
-	assert.NoError(t, storage.Clean(storage.LFS))
-	assert.NoError(t, lfsFixtures.IterateObjects(func(path string, _ storage.Object) error {
-		_, err := storage.Copy(storage.LFS, path, lfsFixtures, path)
-		return err
-	}))
+	assert.NoError(t, fixtureWatcher.PrepareRepoFixtures())
 }
