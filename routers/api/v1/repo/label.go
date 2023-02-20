@@ -5,10 +5,8 @@
 package repo
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/context"
@@ -146,19 +144,18 @@ func CreateLabel(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	form := web.GetForm(ctx).(*api.CreateLabelOption)
-	form.Color = strings.Trim(form.Color, " ")
-	if len(form.Color) == 6 || len(form.Color) == 3 {
-		form.Color = "#" + form.Color
-	}
-	if !label.ColorPattern.MatchString(form.Color) {
-		ctx.Error(http.StatusUnprocessableEntity, "ColorPattern", fmt.Errorf("bad color code: %s", form.Color))
+
+	if color, err := label.NormalizeColor(form.Color); err != nil {
+		ctx.Error(http.StatusUnprocessableEntity, "StringToColor", err)
 		return
+	} else {
+		form.Color = color
 	}
 
 	l := &issues_model.Label{
 		Name:        form.Name,
 		Exclusive:   form.Exclusive,
-		Color:       label.NormalizeColor(form.Color),
+		Color:       form.Color,
 		RepoID:      ctx.Repo.Repository.ID,
 		Description: form.Description,
 	}
@@ -224,15 +221,12 @@ func EditLabel(ctx *context.APIContext) {
 		l.Exclusive = *form.Exclusive
 	}
 	if form.Color != nil {
-		l.Color = strings.Trim(*form.Color, " ")
-		if len(l.Color) == 6 || len(l.Color) == 3 {
-			l.Color = "#" + l.Color
-		}
-		if !label.ColorPattern.MatchString(l.Color) {
-			ctx.Error(http.StatusUnprocessableEntity, "ColorPattern", fmt.Errorf("bad color code: %s", l.Color))
+		if color, err := label.NormalizeColor(*form.Color); err != nil {
+			ctx.Error(http.StatusUnprocessableEntity, "StringToColor", err)
 			return
+		} else {
+			l.Color = color
 		}
-		l.Color = label.NormalizeColor(l.Color)
 	}
 	if form.Description != nil {
 		l.Description = *form.Description

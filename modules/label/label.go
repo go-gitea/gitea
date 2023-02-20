@@ -9,8 +9,8 @@ import (
 	"strings"
 )
 
-// ColorPattern is a regexp witch can validate label color
-var ColorPattern = regexp.MustCompile("^#?(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})$")
+// colorPattern is a regexp witch can validate label color
+var colorPattern = regexp.MustCompile("^#?(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})$")
 
 // Label represents label information loaded from template
 type Label struct {
@@ -21,13 +21,17 @@ type Label struct {
 }
 
 // NormalizeColor normalizes a color string to a 6-character hex code
-func NormalizeColor(color string) string {
+func NormalizeColor(color string) (string, error) {
 	// normalize case
-	color = strings.ToLower(color)
+	color = strings.TrimSpace(strings.ToLower(color))
 
 	// add leading hash
-	if color[0] != '#' {
+	if len(color) == 6 || len(color) == 3 {
 		color = "#" + color
+	}
+
+	if !colorPattern.MatchString(color) {
+		return "", fmt.Errorf("bad color code: %s", color)
 	}
 
 	// convert 3-character shorthand into 6-character version
@@ -38,5 +42,5 @@ func NormalizeColor(color string) string {
 		color = fmt.Sprintf("#%c%c%c%c%c%c", r, r, g, g, b, b)
 	}
 
-	return color
+	return color, nil
 }

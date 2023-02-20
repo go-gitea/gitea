@@ -50,9 +50,9 @@ func TestYamlParser(t *testing.T) {
 }
 
 func TestDefaultParser(t *testing.T) {
-	data := []byte(`#ee0701 bug ; Something is not working
-#cccccc duplicate ; This issue or pull request already exists
-#84b6eb enhancement ; New feature`)
+	data := []byte(`#ee0701 bug   ;   Something is not working
+#cccccc   duplicate ; This issue or pull request already exists
+#84b6eb enhancement`)
 
 	labels, err := parseDefaultFormat("test", data)
 	require.NoError(t, err)
@@ -68,5 +68,5 @@ func TestDefaultParser(t *testing.T) {
 	assert.Equal(t, "enhancement", labels[2].Name)
 	assert.False(t, labels[2].Exclusive)
 	assert.Equal(t, "#84b6eb", labels[2].Color)
-	assert.Equal(t, "New feature", labels[2].Description)
+	assert.Empty(t, labels[2].Description)
 }

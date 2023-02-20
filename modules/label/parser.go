@@ -67,13 +67,11 @@ func parseYamlFormat(name string, data []byte) ([]*Label, error) {
 		if len(l.Name) == 0 || len(l.Color) == 0 {
 			return nil, ErrTemplateLoad{name, errors.New("label name and color are required fields")}
 		}
-		if len(l.Color) == 6 || len(l.Color) == 3 {
-			l.Color = "#" + l.Color
-		}
-		if !ColorPattern.MatchString(l.Color) {
+		if color, err := NormalizeColor(l.Color); err != nil {
 			return nil, ErrTemplateLoad{name, fmt.Errorf("bad HTML color code in label: %s", l.Name)}
+		} else {
+			l.Color = color
 		}
-		l.Color = NormalizeColor(l.Color)
 	}
 
 	return lf.Labels, nil
@@ -88,32 +86,22 @@ func parseDefaultFormat(name string, data []byte) ([]*Label, error) {
 			continue
 		}
 
-		parts := strings.SplitN(line, ";", 2)
+		parts, description, _ := strings.Cut(line, ";")
 
-		fields := strings.SplitN(parts[0], " ", 2)
-		if len(fields) != 2 {
+		color, name, ok := strings.Cut(parts, " ")
+		if !ok {
 			return nil, ErrTemplateLoad{name, fmt.Errorf("line is malformed: %s", line)}
 		}
 
-		color := strings.Trim(fields[0], " ")
-		if len(color) == 6 {
-			color = "#" + color
-		}
-		if !ColorPattern.MatchString(color) {
+		color, err := NormalizeColor(color)
+		if err != nil {
 			return nil, ErrTemplateLoad{name, fmt.Errorf("bad HTML color code in line: %s", line)}
 		}
 
-		var description string
-
-		if len(parts) > 1 {
-			description = strings.TrimSpace(parts[1])
-		}
-
-		fields[1] = strings.TrimSpace(fields[1])
 		list = append(list, &Label{
-			Name:        fields[1],
-			Color:       NormalizeColor(color),
-			Description: description,
+			Name:        strings.TrimSpace(name),
+			Color:       color,
+			Description: strings.TrimSpace(description),
 		})
 	}
 

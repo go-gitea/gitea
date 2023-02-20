@@ -219,10 +219,11 @@ func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) err
 func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
 	lbs := make([]*issues_model.Label, 0, len(labels))
 	for _, l := range labels {
-		// We must validate color here:
-		if !label.ColorPattern.MatchString("#" + l.Color) {
+		if color, err := label.NormalizeColor(l.Color); err != nil {
 			log.Warn("Invalid label color: #%s for label: %s in migration to %s/%s", l.Color, l.Name, g.repoOwner, g.repoName)
-			l.Color = "ffffff"
+			l.Color = "#ffffff"
+		} else {
+			l.Color = color
 		}
 
 		lbs = append(lbs, &issues_model.Label{
@@ -230,7 +231,7 @@ func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
 			Name:        l.Name,
 			Exclusive:   l.Exclusive,
 			Description: l.Description,
-			Color:       "#" + l.Color,
+			Color:       l.Color,
 		})
 	}
 

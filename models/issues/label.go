@@ -200,11 +200,11 @@ func (l *Label) ExclusiveScope() string {
 
 // NewLabel creates a new label
 func NewLabel(ctx context.Context, l *Label) error {
-	if !label.ColorPattern.MatchString(l.Color) {
-		return fmt.Errorf("bad color code: %s", l.Color)
+	if color, err := label.NormalizeColor(l.Color); err != nil {
+		return err
+	} else {
+		l.Color = color
 	}
-
-	l.Color = label.NormalizeColor(l.Color)
 
 	return db.Insert(ctx, l)
 }
@@ -218,11 +218,11 @@ func NewLabels(labels ...*Label) error {
 	defer committer.Close()
 
 	for _, l := range labels {
-		if !label.ColorPattern.MatchString(l.Color) {
-			return fmt.Errorf("bad color code: %s", l.Color)
+		if color, err := label.NormalizeColor(l.Color); err != nil {
+			return err
+		} else {
+			l.Color = color
 		}
-
-		l.Color = label.NormalizeColor(l.Color)
 
 		if err := db.Insert(ctx, l); err != nil {
 			return err
@@ -233,11 +233,11 @@ func NewLabels(labels ...*Label) error {
 
 // UpdateLabel updates label information.
 func UpdateLabel(l *Label) error {
-	if !label.ColorPattern.MatchString(l.Color) {
-		return fmt.Errorf("bad color code: %s", l.Color)
+	if color, err := label.NormalizeColor(l.Color); err != nil {
+		return err
+	} else {
+		l.Color = color
 	}
-
-	l.Color = label.NormalizeColor(l.Color)
 
 	return updateLabelCols(db.DefaultContext, l, "name", "description", "color", "exclusive")
 }
