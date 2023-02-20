@@ -68,7 +68,7 @@
   .metas {
     .menu {
       overflow-x: auto;
-      max-height: 300px;
+      max-height: 500px;
     }
 
     .ui.list {
@@ -80,10 +80,6 @@
         margin-top: .125rem;
         margin-left: 6.75px;
         margin-right: 8.75px;
-      }
-
-      .hide {
-        display: none !important;
       }
 
       .dependency {
@@ -131,12 +127,6 @@
   }
 
   .filter.menu {
-    .label.color {
-      border-radius: 3px;
-      margin-left: 15px;
-      padding: 0 8px;
-    }
-
     &.labels {
       .label-filter .menu .info {
         display: inline-block;
@@ -157,7 +147,7 @@
     }
 
     .menu {
-      max-height: 300px;
+      max-height: 500px;
       overflow-x: auto;
       right: 0 !important;
       left: auto !important;
@@ -166,7 +156,7 @@
 
   .select-label {
     .desc {
-      padding-left: 16px;
+      padding-left: 23px;
     }
   }
 
@@ -583,7 +573,7 @@
         min-width: 220px;
 
         .filter.menu {
-          max-height: 300px;
+          max-height: 500px;
           overflow-x: auto;
         }
       }
@@ -2574,16 +2564,8 @@
   }
 }
 
-#issue-filters.hide {
-  display: none;
-}
-
 #issue-actions {
   margin-top: -1rem !important; // counteract padding from Semantic
-}
-
-#issue-actions.hide {
-  display: none;
 }
 
 .ui.menu .item > img:not(.ui) {
@@ -2750,7 +2732,7 @@
 }
 
 .edit-label.modal,
-.new-label.segment {
+.new-label.modal {
   .form {
     .column {
       padding-right: 0;
@@ -2762,12 +2744,9 @@
     }
 
     .color.picker.column {
-      width: auto;
-
-      .color-picker {
-        height: 35px;
-        width: auto;
-        padding-left: 30px;
+      display: flex;
+      .minicolors {
+        flex: 1;
       }
     }
 
@@ -2846,6 +2825,35 @@
   margin: 2px 0;
   display: inline-block !important;
   line-height: 1.3em; // there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly
+}
+
+// Scoped labels with different colors on left and right, and slanted divider in the middle
+.scope-parent {
+  background: none !important;
+  padding: 0 !important;
+}
+
+.ui.label.scope-left {
+  border-bottom-right-radius: 0;
+  border-top-right-radius: 0;
+  padding-right: 0;
+  margin-right: 0;
+}
+
+.ui.label.scope-middle {
+  width: 12px;
+  border-radius: 0;
+  padding-left: 0;
+  padding-right: 0;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.ui.label.scope-right {
+  border-bottom-left-radius: 0;
+  border-top-left-radius: 0;
+  padding-left: 0;
+  margin-left: 0;
 }
 
 .repo-button-row {
@@ -3163,6 +3171,7 @@ td.blob-excerpt {
 }
 #diff-file-boxes {
   flex: 1;
+  max-width: 100%;
 }
 
 #diff-file-tree {
@@ -3269,6 +3278,10 @@ td.blob-excerpt {
       position: static;
     }
   }
+}
+
+.diff-file-body {
+  overflow-x: scroll;
 }
 
 .diff-stats-bar {

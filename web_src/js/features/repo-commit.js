@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import {createTippy} from '../modules/tippy.js';
+import {toggleElem} from '../utils/dom.js';
 
 const {csrfToken} = window.config;
 
@@ -7,7 +8,7 @@ export function initRepoEllipsisButton() {
   $('.ellipsis-button').on('click', function (e) {
     e.preventDefault();
     const expanded = $(this).attr('aria-expanded') === 'true';
-    $(this).parent().find('.commit-body').toggle();
+    toggleElem($(this).parent().find('.commit-body'));
     $(this).attr('aria-expanded', String(!expanded));
   });
 }

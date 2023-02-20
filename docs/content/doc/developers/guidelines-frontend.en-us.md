@@ -93,6 +93,11 @@ However, there are still some special cases, so the current guideline is:
   * `node.dataset` should not be used, use `node.getAttribute` instead.
   * never bind any user data to a DOM node, use a suitable design pattern to describe the relation between node and data.
 
+### Show/Hide Elements
+
+* Vue components are recommended to use `v-if` and `v-show` to show/hide elements.
+* Go template code should use Gitea's `.gt-hidden` and `showElem()/hideElem()/toggleElem()`, see more details in `.gt-hidden`'s comment.
+
 ### Legacy Code
 
 A lot of legacy code already existed before this document's written. It's recommended to refactor legacy code to follow the guidelines.
