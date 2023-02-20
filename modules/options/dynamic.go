@@ -79,7 +79,7 @@ func WalkLocales(callback func(path, name string, d fs.DirEntry, err error) erro
 
 // Readme reads the content of a specific readme from static or custom path.
 func Readme(name string) ([]byte, error) {
-	return fileFromDir(path.Join("readme", path.base(name)))
+	return fileFromDir(path.Join("readme", path.Base(name)))
 }
 
 // Gitignore reads the content of a specific gitignore from static or custom path.
