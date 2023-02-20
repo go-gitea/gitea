@@ -43,8 +43,8 @@ const (
 )
 
 // setCompareContext sets context data.
-func setCompareContext(ctx *context.Context, base, head *git.Commit, headOwner, headName string) {
-	ctx.Data["BaseCommit"] = base
+func setCompareContext(ctx *context.Context, before, head *git.Commit, headOwner, headName string) {
+	ctx.Data["BeforeCommit"] = before
 	ctx.Data["HeadCommit"] = head
 
 	ctx.Data["GetBlobByPathForCommit"] = func(commit *git.Commit, path string) *git.Blob {
@@ -59,7 +59,7 @@ func setCompareContext(ctx *context.Context, base, head *git.Commit, headOwner, 
 		return blob
 	}
 
-	setPathsCompareContext(ctx, base, head, headOwner, headName)
+	setPathsCompareContext(ctx, before, head, headOwner, headName)
 	setImageCompareContext(ctx)
 	setCsvCompareContext(ctx)
 }
@@ -629,9 +629,8 @@ func PrepareCompareDiff(
 	}
 
 	baseGitRepo := ctx.Repo.GitRepo
-	baseCommitID := ci.CompareInfo.BaseCommitID
 
-	baseCommit, err := baseGitRepo.GetCommit(baseCommitID)
+	beforeCommit, err := baseGitRepo.GetCommit(beforeCommitID)
 	if err != nil {
 		ctx.ServerError("GetCommit", err)
 		return false
@@ -668,7 +667,7 @@ func PrepareCompareDiff(
 	ctx.Data["Username"] = ci.HeadUser.Name
 	ctx.Data["Reponame"] = ci.HeadRepo.Name
 
-	setCompareContext(ctx, baseCommit, headCommit, ci.HeadUser.Name, repo.Name)
+	setCompareContext(ctx, beforeCommit, headCommit, ci.HeadUser.Name, repo.Name)
 
 	return false
 }
