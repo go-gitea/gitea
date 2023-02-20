@@ -178,6 +178,20 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 			ctx.ServerError("GetProtectBranchOfRepoByID", err)
 			return
 		}
+		if protectBranch != nil && protectBranch.RuleName != f.RuleName {
+			// RuleName changed. We need to check if there is a rule with the same name.
+			// If a rule with the same name exists, an error should be returned.
+			sameNameProtectBranch, err := git_model.GetProtectedBranchRuleByName(ctx, ctx.Repo.Repository.ID, f.RuleName)
+			if err != nil {
+				ctx.ServerError("GetProtectBranchOfRepoByName", err)
+				return
+			}
+			if sameNameProtectBranch != nil {
+				ctx.Flash.Error(ctx.Tr("repo.settings.protected_branch_duplicate_rule_name"))
+				ctx.Redirect(fmt.Sprintf("%s/settings/branches/edit?rule_name=%s", ctx.Repo.RepoLink, protectBranch.RuleName))
+				return
+			}
+		}
 	} else {
 		// The RuleID is 0, it should be a create operation. We can only get rule by name.
 		protectBranch, err = git_model.GetProtectedBranchRuleByName(ctx, ctx.Repo.Repository.ID, f.RuleName)
