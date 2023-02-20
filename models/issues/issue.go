@@ -251,13 +251,15 @@ func (issue *Issue) LoadPoster(ctx context.Context) (err error) {
 
 // LoadPullRequest loads pull request info
 func (issue *Issue) LoadPullRequest(ctx context.Context) (err error) {
-	if issue.IsPull && issue.PullRequest == nil {
-		issue.PullRequest, err = GetPullRequestByIssueID(ctx, issue.ID)
-		if err != nil {
-			if IsErrPullRequestNotExist(err) {
-				return err
+	if issue.IsPull {
+		if issue.PullRequest == nil {
+			issue.PullRequest, err = GetPullRequestByIssueID(ctx, issue.ID)
+			if err != nil {
+				if IsErrPullRequestNotExist(err) {
+					return err
+				}
+				return fmt.Errorf("getPullRequestByIssueID [%d]: %w", issue.ID, err)
 			}
-			return fmt.Errorf("getPullRequestByIssueID [%d]: %w", issue.ID, err)
 		}
 		issue.PullRequest.Issue = issue
 	}
