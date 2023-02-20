@@ -50,11 +50,11 @@ func Middlewares() []func(http.Handler) http.Handler {
 
 	handlers = append(handlers, middleware.StripSlashes)
 
-	if !setting.DisableRouterLog {
+	if !setting.Log.DisableRouterLog {
 		handlers = append(handlers, routing.NewLoggerHandler())
 	}
 
-	if setting.EnableAccessLog {
+	if setting.Log.EnableAccessLog {
 		handlers = append(handlers, context.AccessLogger())
 	}
 

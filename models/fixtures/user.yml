@@ -8,8 +8,8 @@
   email: user1@example.com
   keep_email_private: false
   email_notifications_preference: enabled
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: user1
@@ -45,8 +45,8 @@
   email: user2@example.com
   keep_email_private: true
   email_notifications_preference: enabled
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: user2
@@ -82,8 +82,8 @@
   email: user3@example.com
   keep_email_private: false
   email_notifications_preference: onmention
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: user3
@@ -119,8 +119,8 @@
   email: user4@example.com
   keep_email_private: false
   email_notifications_preference: onmention
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: user4
@@ -156,8 +156,8 @@
   email: user5@example.com
   keep_email_private: false
   email_notifications_preference: enabled
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: user5
@@ -193,8 +193,8 @@
   email: user6@example.com
   keep_email_private: false
   email_notifications_preference: enabled
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: user6
@@ -230,8 +230,8 @@
   email: user7@example.com
   keep_email_private: false
   email_notifications_preference: disabled
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: user7
@@ -267,8 +267,8 @@
   email: user8@example.com
   keep_email_private: false
   email_notifications_preference: enabled
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: user8
@@ -304,8 +304,8 @@
   email: user9@example.com
   keep_email_private: false
   email_notifications_preference: onmention
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: user9
@@ -341,8 +341,8 @@
   email: user10@example.com
   keep_email_private: false
   email_notifications_preference: enabled
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: user10
@@ -378,8 +378,8 @@
   email: user11@example.com
   keep_email_private: false
   email_notifications_preference: enabled
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: user11
@@ -415,8 +415,8 @@
   email: user12@example.com
   keep_email_private: false
   email_notifications_preference: enabled
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: user12
@@ -452,8 +452,8 @@
   email: user13@example.com
   keep_email_private: false
   email_notifications_preference: enabled
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: user13
@@ -489,8 +489,8 @@
   email: user14@example.com
   keep_email_private: false
   email_notifications_preference: enabled
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: user14
@@ -526,8 +526,8 @@
   email: user15@example.com
   keep_email_private: false
   email_notifications_preference: enabled
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: user15
@@ -563,8 +563,8 @@
   email: user16@example.com
   keep_email_private: false
   email_notifications_preference: enabled
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: user16
@@ -600,8 +600,8 @@
   email: user17@example.com
   keep_email_private: false
   email_notifications_preference: enabled
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: user17
@@ -637,8 +637,8 @@
   email: user18@example.com
   keep_email_private: false
   email_notifications_preference: enabled
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: user18
@@ -674,8 +674,8 @@
   email: user19@example.com
   keep_email_private: false
   email_notifications_preference: enabled
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: user19
@@ -711,8 +711,8 @@
   email: user20@example.com
   keep_email_private: false
   email_notifications_preference: enabled
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: user20
@@ -748,8 +748,8 @@
   email: user21@example.com
   keep_email_private: false
   email_notifications_preference: enabled
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: user21
@@ -785,8 +785,8 @@
   email: limited_org@example.com
   keep_email_private: false
   email_notifications_preference: enabled
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: limited_org
@@ -822,8 +822,8 @@
   email: privated_org@example.com
   keep_email_private: false
   email_notifications_preference: enabled
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: privated_org
@@ -859,8 +859,8 @@
   email: user24@example.com
   keep_email_private: true
   email_notifications_preference: enabled
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: user24
@@ -896,8 +896,8 @@
   email: org25@example.com
   keep_email_private: false
   email_notifications_preference: enabled
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: org25
@@ -933,8 +933,8 @@
   email: org26@example.com
   keep_email_private: false
   email_notifications_preference: onmention
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: org26
@@ -970,8 +970,8 @@
   email: user27@example.com
   keep_email_private: false
   email_notifications_preference: enabled
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: user27
@@ -1007,8 +1007,8 @@
   email: user28@example.com
   keep_email_private: true
   email_notifications_preference: enabled
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: user28
@@ -1044,8 +1044,8 @@
   email: user29@example.com
   keep_email_private: false
   email_notifications_preference: enabled
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: user29
@@ -1081,8 +1081,8 @@
   email: user30@example.com
   keep_email_private: false
   email_notifications_preference: enabled
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: user30
@@ -1118,8 +1118,8 @@
   email: user31@example.com
   keep_email_private: false
   email_notifications_preference: enabled
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: user31
@@ -1155,8 +1155,8 @@
   email: user32@example.com
   keep_email_private: false
   email_notifications_preference: enabled
-  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f47017
-  passwd_hash_algo: argon2
+  passwd: ZogKvWdyEx:notpassword
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: user32
@@ -1192,8 +1192,8 @@
   email: user33@example.com
   keep_email_private: false
   email_notifications_preference: enabled
-  passwd: e82bc8ae42a53b98c3bd0f941aacc4aa2a264407534b0a11bf270137f67af912f694b67951f92148c45f91717e1478ca7889
-  passwd_hash_algo: pbkdf2$50000$50
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
   login_name: user33

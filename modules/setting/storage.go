@@ -30,9 +30,9 @@ func (s *Storage) MapTo(v interface{}) error {
 	return nil
 }
 
-func getStorage(name, typ string, targetSec *ini.Section) Storage {
+func getStorage(rootCfg ConfigProvider, name, typ string, targetSec *ini.Section) Storage {
 	const sectionName = "storage"
-	sec := Cfg.Section(sectionName)
+	sec := rootCfg.Section(sectionName)
 
 	// Global Defaults
 	sec.Key("MINIO_ENDPOINT").MustString("localhost:9000")
@@ -43,7 +43,7 @@ func getStorage(name, typ string, targetSec *ini.Section) Storage {
 	sec.Key("MINIO_USE_SSL").MustBool(false)
 
 	if targetSec == nil {
-		targetSec, _ = Cfg.NewSection(name)
+		targetSec, _ = rootCfg.NewSection(name)
 	}
 
 	var storage Storage
@@ -51,12 +51,12 @@ func getStorage(name, typ string, targetSec *ini.Section) Storage {
 	storage.Type = typ
 
 	overrides := make([]*ini.Section, 0, 3)
-	nameSec, err := Cfg.GetSection(sectionName + "." + name)
+	nameSec, err := rootCfg.GetSection(sectionName + "." + name)
 	if err == nil {
 		overrides = append(overrides, nameSec)
 	}
 
-	typeSec, err := Cfg.GetSection(sectionName + "." + typ)
+	typeSec, err := rootCfg.GetSection(sectionName + "." + typ)
 	if err == nil {
 		overrides = append(overrides, typeSec)
 		nextType := typeSec.Key("STORAGE_TYPE").String()
