@@ -27,7 +27,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Escape path for the file list (#22741) (#22757)
   * Fix bugs with WebAuthn preventing sign in and registration. (#22651) (#22721)
   * Add missing close bracket in imagediff (#22710) (#22712)
-  * Move code comments to a standalone file(#20821) (#22707)
+  * Move code comments to a standalone file and fix the bug when adding a reply to an outdated review appears to not post(#20821) (#22707)
   * Fix line spacing for plaintext previews (#22699) (#22701)
   * Fix wrong hint when deleting a branch successfully from pull request UI (#22673) (#22698)
   * Fix README TOC links (#22577) (#22677)
