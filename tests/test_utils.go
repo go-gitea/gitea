@@ -57,7 +57,7 @@ func InitTest(requireGitea bool) {
 	}
 
 	setting.SetCustomPathAndConf("", "", "")
-	setting.LoadForTest()
+	setting.InitProviderAndLoadCommonSettingsForTest()
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 	_ = util.RemoveAll(repo_module.LocalCopyPath())
 
@@ -65,7 +65,7 @@ func InitTest(requireGitea bool) {
 		log.Fatal("git.InitOnceWithSync: %v", err)
 	}
 
-	setting.InitDBConfig()
+	setting.LoadDBSetting()
 	if err := storage.Init(); err != nil {
 		fmt.Printf("Init storage failed: %v", err)
 		os.Exit(1)
