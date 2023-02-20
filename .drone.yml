@@ -187,6 +187,9 @@ trigger:
 volumes:
   - name: deps
     temp: {}
+  - name: tmp-mysql
+    temp:
+      medium: memory
 
 services:
   - name: mysql
@@ -330,6 +333,8 @@ steps:
     volumes:
       - name: deps
         path: /go
+      - name: tmp-mysql
+        path: /tmp
 
   - name: test-mysql8
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
