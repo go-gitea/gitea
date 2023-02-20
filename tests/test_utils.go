@@ -12,6 +12,7 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"sync/atomic"
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
@@ -28,7 +29,6 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/atomic"
 )
 
 func InitTest(requireGitea bool) {
