@@ -8,7 +8,7 @@
 default = "gitea"
 
 [registries.gitea]
-index = "{{AppUrl}}{{.PackageDescriptor.Owner.Name}}/_cargo-index.git"
+index = "<gitea-origin-url data-url="{{AppSubUrl}}/{{.PackageDescriptor.Owner.Name}}/_cargo-index.git"></gitea-origin-url>"
 
 [net]
 git-fetch-with-cli = true</code></pre></div>

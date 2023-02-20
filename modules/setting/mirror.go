@@ -24,16 +24,16 @@ var Mirror = struct {
 	DefaultInterval: 8 * time.Hour,
 }
 
-func newMirror() {
+func loadMirrorFrom(rootCfg ConfigProvider) {
 	// Handle old configuration through `[repository]` `DISABLE_MIRRORS`
 	// - please note this was badly named and only disabled the creation of new pull mirrors
 	// FIXME: DEPRECATED to be removed in v1.18.0
-	deprecatedSetting("repository", "DISABLE_MIRRORS", "mirror", "ENABLED")
-	if Cfg.Section("repository").Key("DISABLE_MIRRORS").MustBool(false) {
+	deprecatedSetting(rootCfg, "repository", "DISABLE_MIRRORS", "mirror", "ENABLED")
+	if rootCfg.Section("repository").Key("DISABLE_MIRRORS").MustBool(false) {
 		Mirror.DisableNewPull = true
 	}
 
-	if err := Cfg.Section("mirror").MapTo(&Mirror); err != nil {
+	if err := rootCfg.Section("mirror").MapTo(&Mirror); err != nil {
 		log.Fatal("Failed to map Mirror settings: %v", err)
 	}
 

@@ -534,7 +534,7 @@ func NotifyWatchers(ctx context.Context, actions ...*Action) error {
 			repo = act.Repo
 
 			// check repo owner exist.
-			if err := act.Repo.GetOwner(ctx); err != nil {
+			if err := act.Repo.LoadOwner(ctx); err != nil {
 				return fmt.Errorf("can't get repo owner: %w", err)
 			}
 		} else if act.Repo == nil {

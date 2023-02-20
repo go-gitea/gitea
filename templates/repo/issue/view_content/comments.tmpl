@@ -77,8 +77,8 @@
 								<span class="no-content">{{$.locale.Tr "repo.issues.no_content"}}</span>
 							{{end}}
 						</div>
-						<div id="issuecomment-{{.ID}}-raw" class="raw-content hide">{{.Content}}</div>
-						<div class="edit-content-zone hide" data-write="issuecomment-{{.ID}}-write" data-preview="issuecomment-{{.ID}}-preview" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
+						<div id="issuecomment-{{.ID}}-raw" class="raw-content gt-hidden">{{.Content}}</div>
+						<div class="edit-content-zone gt-hidden" data-write="issuecomment-{{.ID}}-write" data-preview="issuecomment-{{.ID}}-preview" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
 						{{if .Attachments}}
 							{{template "repo/issue/view_content/attachments" Dict "ctx" $ "Attachments" .Attachments "Content" .RenderedContent}}
 						{{end}}
@@ -213,7 +213,7 @@
 							{{end}}
 						</span>
 					{{else}}
-						{{template "shared/user/avatarlink"  "user" .Assignee}}
+						{{template "shared/user/avatarlink" Dict "Context" $.Context "user" .Assignee}}
 						<span class="text grey muted-links">
 							{{template "shared/user/authorlink" .Assignee}}
 							{{if eq .Poster.ID .AssigneeID}}
@@ -449,8 +449,8 @@
 									<span class="no-content">{{$.locale.Tr "repo.issues.no_content"}}</span>
 								{{end}}
 							</div>
-							<div id="issuecomment-{{.ID}}-raw" class="raw-content hide">{{.Content}}</div>
-							<div class="edit-content-zone hide" data-write="issuecomment-{{.ID}}-write" data-preview="issuecomment-{{.ID}}-preview" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
+							<div id="issuecomment-{{.ID}}-raw" class="raw-content gt-hidden">{{.Content}}</div>
+							<div class="edit-content-zone gt-hidden" data-write="issuecomment-{{.ID}}-write" data-preview="issuecomment-{{.ID}}-preview" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
 							{{if .Attachments}}
 								{{template "repo/issue/view_content/attachments" Dict "ctx" $ "Attachments" .Attachments "Content" .RenderedContent}}
 							{{end}}
@@ -485,7 +485,7 @@
 										</div>
 										<div>
 											{{if or $invalid $resolved}}
-												<button id="show-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="{{if not $resolved}}hide {{end}}ui compact right labeled button show-outdated gt-df gt-ac">
+												<button id="show-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="{{if not $resolved}}gt-hidden {{end}}ui compact right labeled button show-outdated gt-df gt-ac">
 													{{svg "octicon-unfold" 16 "gt-mr-3"}}
 													{{if $resolved}}
 														{{$.locale.Tr "repo.issues.review.show_resolved"}}
@@ -493,7 +493,7 @@
 														{{$.locale.Tr "repo.issues.review.show_outdated"}}
 													{{end}}
 												</button>
-												<button id="hide-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="{{if $resolved}}hide {{end}}ui compact right labeled button hide-outdated gt-df gt-ac">
+												<button id="hide-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="{{if $resolved}}gt-hidden {{end}}ui compact right labeled button hide-outdated gt-df gt-ac">
 													{{svg "octicon-fold" 16 "gt-mr-3"}}
 													{{if $resolved}}
 														{{$.locale.Tr "repo.issues.review.hide_resolved"}}
@@ -507,7 +507,7 @@
 									{{$diff := (CommentMustAsDiff (index $comms 0))}}
 									{{if $diff}}
 										{{$file := (index $diff.Files 0)}}
-										<div id="code-preview-{{(index $comms 0).ID}}" class="ui table segment{{if $resolved}} hide{{end}}">
+										<div id="code-preview-{{(index $comms 0).ID}}" class="ui table segment{{if $resolved}} gt-hidden{{end}}">
 											<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}}">
 												<div class="file-body file-code code-view code-diff code-diff-unified unicode-escaped">
 													<table>
@@ -519,7 +519,7 @@
 											</div>
 										</div>
 									{{end}}
-									<div id="code-comments-{{(index $comms 0).ID}}" class="comment-code-cloud ui segment{{if $resolved}} hide{{end}}">
+									<div id="code-comments-{{(index $comms 0).ID}}" class="comment-code-cloud ui segment{{if $resolved}} gt-hidden{{end}}">
 										<div class="ui comments gt-mb-0">
 											{{range $comms}}
 												{{$createdSubStr:= TimeSinceUnix .CreatedUnix $.locale}}
@@ -576,8 +576,8 @@
 																<span class="no-content">{{$.locale.Tr "repo.issues.no_content"}}</span>
 															{{end}}
 															</div>
-															<div id="issuecomment-{{.ID}}-raw" class="raw-content hide">{{.Content}}</div>
-															<div class="edit-content-zone hide" data-write="issuecomment-{{.ID}}-write" data-preview="issuecomment-{{.ID}}-preview" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
+															<div id="issuecomment-{{.ID}}-raw" class="raw-content gt-hidden">{{.Content}}</div>
+															<div class="edit-content-zone gt-hidden" data-write="issuecomment-{{.ID}}-write" data-preview="issuecomment-{{.ID}}-preview" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
 														</div>
 														{{$reactions := .Reactions.GroupByType}}
 														{{if $reactions}}

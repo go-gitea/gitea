@@ -15,11 +15,12 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
@@ -118,6 +119,14 @@ func CreateUser(ctx *context.APIContext) {
 	if form.Visibility != "" {
 		visibility := api.VisibilityModes[form.Visibility]
 		overwriteDefault.Visibility = &visibility
+	}
+
+	// Update the user creation timestamp. This can only be done after the user
+	// record has been inserted into the database; the insert intself will always
+	// set the creation timestamp to "now".
+	if form.Created != nil {
+		u.CreatedUnix = timeutil.TimeStamp(form.Created.Unix())
+		u.UpdatedUnix = u.CreatedUnix
 	}
 
 	if err := user_model.CreateUser(u, overwriteDefault); err != nil {
