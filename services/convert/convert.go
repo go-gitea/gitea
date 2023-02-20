@@ -45,7 +45,7 @@ func ToEmailSearch(email *user_model.SearchEmailResult) *api.Email {
 		Verified:  email.IsActivated,
 		Primary:   email.IsPrimary,
 		UserID:    email.UID,
-		LoginName: email.Name,
+		UserName: email.Name,
 	}
 }
 
