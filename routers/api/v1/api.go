@@ -1153,6 +1153,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 				}, reqAnyRepoReader())
 				m.Get("/issue_templates", context.ReferencesGitRepo(), repo.GetIssueTemplates)
 				m.Get("/languages", reqRepoReader(unit.TypeCode), repo.GetLanguages)
+				m.Get("/code_search", repo.CodeSearch)
 			}, repoAssignment())
 		})
 

@@ -358,3 +358,10 @@ type RepoTransfer struct {
 	Recipient *User   `json:"recipient"`
 	Teams     []*Team `json:"teams"`
 }
+
+// RepoCodeSearchAPIResponse represents the resposne of the code_search API endpoint
+type RepoCodeSearchAPIResponse struct {
+	Total                 int                             `json:"total"`
+	SearchResults         []*IndexerResult                `json:"search_results"`
+	SearchResultLanguages []*IndexerSearchResultLanguages `json:"search_results_language"`
+}
