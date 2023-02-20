@@ -286,10 +286,10 @@ To add a custom label set, add a file that follows the [yaml label format](https
 
 ```
 labels:
-  -name: "foo/bar"  # name of the label that will appear in the dropdown
-  exclusive: true # whether to use the exclusive namespace for scoped labels. scoped delimiter is /
-  color: aabbcc # hex colour coding
-  description: Some label # long description of label intent
+  - name: "foo/bar"  # name of the label that will appear in the dropdown
+    exclusive: true # whether to use the exclusive namespace for scoped labels. scoped delimiter is /
+    color: aabbcc # hex colour coding
+    description: Some label # long description of label intent
  ```
 
 the legacy semi-colon delimited file format can be used that follows [label format](https://github.com/go-gitea/gitea/blob/main/options/label/Default) to `$GITEA_CUSTOM/options/label`
