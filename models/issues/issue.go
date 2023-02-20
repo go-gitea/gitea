@@ -349,7 +349,7 @@ func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 		return
 	}
 
-	if err = issue.loadProject(ctx); err != nil {
+	if err = issue.LoadProject(ctx); err != nil {
 		return
 	}
 
