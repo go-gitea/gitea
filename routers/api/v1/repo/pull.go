@@ -1421,16 +1421,16 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 	endCommitID := headCommitID
 
 	maxLines := setting.Git.MaxGitDiffLines
-	maxFiles := -1 // GetDiff will return all files
 
+	// FIXME: If there are too many files in the repo, may cause some unpredictable issues.
 	diff, err := gitdiff.GetDiff(baseGitRepo,
 		&gitdiff.DiffOptions{
 			BeforeCommitID:     startCommitID,
 			AfterCommitID:      endCommitID,
-			SkipTo:             "",
+			SkipTo:             ctx.FormString("skip-to"),
 			MaxLines:           maxLines,
 			MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
-			MaxFiles:           maxFiles,
+			MaxFiles:           -1, // GetDiff() will return all files
 			WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.FormString("whitespace")),
 		})
 	if err != nil {
