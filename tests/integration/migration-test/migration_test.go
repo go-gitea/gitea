@@ -57,7 +57,7 @@ func initMigrationTest(t *testing.T) func() {
 		setting.CustomConf = giteaConf
 	}
 
-	setting.LoadForTest()
+	setting.InitProviderAndLoadCommonSettingsForTest()
 
 	assert.True(t, len(setting.RepoRootPath) != 0)
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
@@ -83,8 +83,8 @@ func initMigrationTest(t *testing.T) func() {
 	}
 
 	assert.NoError(t, git.InitFull(context.Background()))
-	setting.InitDBConfig()
-	setting.NewLogServices(true)
+	setting.LoadDBSetting()
+	setting.InitLogs(true)
 	return deferFn
 }
 
@@ -292,7 +292,7 @@ func doMigrationTest(t *testing.T, version string) {
 		return
 	}
 
-	setting.NewXORMLogService(false)
+	setting.InitSQLLog(false)
 
 	err := db.InitEngineWithMigration(context.Background(), wrappedMigrate)
 	assert.NoError(t, err)

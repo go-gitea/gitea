@@ -8,14 +8,14 @@
 		<h1>
 			<span id="issue-title">{{RenderIssueTitle $.Context .Issue.Title $.RepoLink $.Repository.ComposeMetas | RenderCodeBlock}}</span>
 			<span class="index">#{{.Issue.Index}}</span>
-			<div id="edit-title-input" class="ui input gt-ml-4" style="display: none">
+			<div id="edit-title-input" class="ui input gt-ml-4 gt-hidden">
 				<input value="{{.Issue.Title}}" maxlength="255" autocomplete="off">
 			</div>
 		</h1>
 		{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}
 			<div class="edit-buttons">
-				<button id="cancel-edit-title" class="ui basic button secondary in-edit" style="display: none">{{.locale.Tr "repo.issues.cancel"}}</button>
-				<button id="save-edit-title" class="ui primary button in-edit" style="display: none" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title" {{if .Issue.IsPull}}data-target-update-url="{{$.RepoLink}}/pull/{{.Issue.Index}}/target_branch"{{end}}>{{.locale.Tr "repo.issues.save"}}</button>
+				<button id="cancel-edit-title" class="ui basic button secondary in-edit gt-hidden">{{.locale.Tr "repo.issues.cancel"}}</button>
+				<button id="save-edit-title" class="ui primary button in-edit gt-hidden" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title" {{if .Issue.IsPull}}data-target-update-url="{{$.RepoLink}}/pull/{{.Issue.Index}}/target_branch"{{end}}>{{.locale.Tr "repo.issues.save"}}</button>
 			</div>
 		{{end}}
 	</div>
@@ -61,7 +61,7 @@
 					{{$.locale.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref | Safe}}
 				</span>
 			{{end}}
-			<span id="pull-desc-edit" style="display: none">
+			<span id="pull-desc-edit gt-hidden">
 				<div class="ui floating filter dropdown">
 					<div class="ui basic small button">
 						<span class="text">{{.locale.Tr "repo.pulls.compare_compare"}}: {{$.HeadTarget}}</span>
