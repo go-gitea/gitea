@@ -182,9 +182,7 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 func Fork(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_fork")
 
-	if ctx.Doer.CanForkRepo() {
-		ctx.Data["CanForkRepo"] = true
-	} else {
+	if !ctx.Doer.CanForkRepo() {
 		maxCreationLimit := ctx.Doer.MaxCreationLimit()
 		msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
 		ctx.Data["Flash"] = ctx.Flash
