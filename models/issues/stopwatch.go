@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -46,6 +47,7 @@ func (err ErrIssueStopwatchAlreadyExist) Unwrap() error {
 type Stopwatch struct {
 	ID          int64              `xorm:"pk autoincr"`
 	IssueID     int64              `xorm:"INDEX"`
+	Issue       *Issue             `xorm:"-"`
 	UserID      int64              `xorm:"INDEX"`
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 }
@@ -133,10 +135,24 @@ func StopwatchExists(userID, issueID int64) bool {
 
 // HasUserStopwatch returns true if the user has a stopwatch
 func HasUserStopwatch(ctx context.Context, userID int64) (exists bool, sw *Stopwatch, err error) {
-	sw = new(Stopwatch)
+	type stopwatchIssueRepo struct {
+		Stopwatch       `xorm:"extends"`
+		Issue           `xorm:"extends"`
+		repo.Repository `xorm:"extends"`
+	}
+
+	swIR := new(stopwatchIssueRepo)
 	exists, err = db.GetEngine(ctx).
+		Table("stopwatch").
 		Where("user_id = ?", userID).
-		Get(sw)
+		Join("INNER", "issue", "issue.id = stopwatch.issue_id").
+		Join("INNER", "repository", "repository.id = issue.repo_id").
+		Get(swIR)
+	if exists {
+		sw = &swIR.Stopwatch
+		sw.Issue = &swIR.Issue
+		sw.Issue.Repo = &swIR.Repository
+	}
 	return exists, sw, err
 }
 
@@ -222,12 +238,7 @@ func CreateIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 		return err
 	}
 	if exists {
-		issue, err := GetIssueByID(ctx, sw.IssueID)
-		if err != nil {
-			return err
-		}
-
-		if err := FinishIssueStopwatch(ctx, user, issue); err != nil {
+		if err := FinishIssueStopwatch(ctx, user, sw.Issue); err != nil {
 			return err
 		}
 	}

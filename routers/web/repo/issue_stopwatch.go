@@ -96,22 +96,10 @@ func GetActiveStopwatch(ctx *context.Context) {
 		return
 	}
 
-	issue, err := issues_model.GetIssueByID(ctx, sw.IssueID)
-	if err != nil || issue == nil {
-		if !issues_model.IsErrIssueNotExist(err) {
-			ctx.ServerError("GetIssueByID", err)
-		}
-		return
-	}
-	if err = issue.LoadRepo(ctx); err != nil {
-		ctx.ServerError("LoadRepo", err)
-		return
-	}
-
 	ctx.Data["ActiveStopwatch"] = StopwatchTmplInfo{
-		issue.Link(),
-		issue.Repo.FullName(),
-		issue.Index,
+		sw.Issue.Link(),
+		sw.Issue.Repo.FullName(),
+		sw.Issue.Index,
 		sw.Seconds() + 1, // ensure time is never zero in ui
 	}
 }
