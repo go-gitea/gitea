@@ -11,7 +11,6 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 )
@@ -31,29 +30,11 @@ type Organization struct {
 }
 
 func (org *Organization) CanWriteUnit(ctx *Context, unitType unit.Type) bool {
-	if ctx.Doer == nil {
-		return false
-	}
-	return org.UnitPermission(ctx, ctx.Doer.ID, unitType) >= perm.AccessModeWrite
+	return org.Organization.UnitPermission(ctx, ctx.Doer, unitType) >= perm.AccessModeWrite
 }
 
-func (org *Organization) UnitPermission(ctx *Context, doerID int64, unitType unit.Type) perm.AccessMode {
-	if doerID > 0 {
-		teams, err := organization.GetUserOrgTeams(ctx, org.Organization.ID, doerID)
-		if err != nil {
-			log.Error("GetUserOrgTeams: %v", err)
-			return perm.AccessModeNone
-		}
-		if len(teams) > 0 {
-			return teams.UnitMaxAccess(unitType)
-		}
-	}
-
-	if org.Organization.Visibility == structs.VisibleTypePublic {
-		return perm.AccessModeRead
-	}
-
-	return perm.AccessModeNone
+func (org *Organization) CanReadUnit(ctx *Context, unitType unit.Type) bool {
+	return org.Organization.UnitPermission(ctx, ctx.Doer, unitType) >= perm.AccessModeRead
 }
 
 func GetOrganizationByParams(ctx *Context) {
@@ -170,6 +151,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	}
 	ctx.Data["IsOrganizationOwner"] = ctx.Org.IsOwner
 	ctx.Data["IsOrganizationMember"] = ctx.Org.IsMember
+	ctx.Data["IsProjectEnabled"] = true
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["IsPublicMember"] = func(uid int64) bool {
@@ -245,6 +227,10 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 			return
 		}
 	}
+
+	ctx.Data["CanReadProjects"] = ctx.Org.CanReadUnit(ctx, unit.TypeProjects)
+	ctx.Data["CanReadPackages"] = ctx.Org.CanReadUnit(ctx, unit.TypePackages)
+	ctx.Data["CanReadCode"] = ctx.Org.CanReadUnit(ctx, unit.TypeCode)
 }
 
 // OrgAssignment returns a middleware to handle organization assignment

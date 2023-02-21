@@ -3,15 +3,17 @@
 		<a class="{{if .PageIsViewRepositories}}active {{end}}item" href="{{$.Org.HomeLink}}">
 			{{svg "octicon-repo"}} {{.locale.Tr "user.repositories"}}
 		</a>
+		{{if and .IsProjectEnabled (and .ContextUser.IsOrganization .CanReadProjects)}}
 		<a class="{{if .PageIsViewProjects}}active {{end}}item" href="{{$.Org.HomeLink}}/-/projects">
 			{{svg "octicon-project"}} {{.locale.Tr "user.projects"}}
 		</a>
-		{{if .IsPackageEnabled}}
+		{{end}}
+		{{if and .IsPackageEnabled (and .ContextUser.IsOrganization .CanReadPackages)}}
 		<a class="item" href="{{$.Org.HomeLink}}/-/packages">
 			{{svg "octicon-package"}} {{.locale.Tr "packages.title"}}
 		</a>
 		{{end}}
-		{{if .IsRepoIndexerEnabled}}
+		{{if and .IsRepoIndexerEnabled (and .ContextUser.IsOrganization .CanReadCode)}}
 		<a class="item" href="{{$.Org.HomeLink}}/-/code">
 			{{svg "octicon-code"}}&nbsp;{{$.locale.Tr "org.code"}}
 		</a>

@@ -869,8 +869,21 @@ func RegisterRoutes(m *web.Route) {
 		}
 
 		m.Group("/projects", func() {
-			m.Get("", org.Projects)
-			m.Get("/{id}", org.ViewProject)
+			m.Group("", func() {
+				m.Get("", org.Projects)
+				m.Get("/{id}", org.ViewProject)
+			}, func(ctx *context.Context) {
+				if ctx.ContextUser == nil {
+					ctx.NotFound("Project", nil)
+					return
+				}
+				if ctx.ContextUser.IsOrganization() {
+					if !ctx.Org.CanReadUnit(ctx, unit.TypeProjects) {
+						ctx.NotFound("Project", nil)
+						return
+					}
+				}
+			})
 			m.Group("", func() { //nolint:dupl
 				m.Get("/new", org.NewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
@@ -907,7 +920,20 @@ func RegisterRoutes(m *web.Route) {
 			})
 		}, repo.MustEnableProjects)
 
-		m.Get("/code", user.CodeSearch)
+		m.Group("", func() {
+			m.Get("/code", user.CodeSearch)
+		}, func(ctx *context.Context) {
+			if ctx.ContextUser == nil {
+				ctx.NotFound("Code", nil)
+				return
+			}
+			if ctx.ContextUser.IsOrganization() {
+				if !ctx.Org.CanReadUnit(ctx, unit.TypeCode) {
+					ctx.NotFound("Code", nil)
+					return
+				}
+			}
+		})
 	}, context_service.UserAssignmentWeb())
 
 	// ***** Release Attachment Download without Signin
