@@ -35,8 +35,9 @@ func loadLFSFrom(rootCfg ConfigProvider) {
 	storageType := lfsSec.Key("STORAGE_TYPE").MustString("")
 
 	// Specifically default PATH to LFS_CONTENT_PATH
-	// FIXME: DEPRECATED to be removed in v1.18.0
-	deprecatedSetting(rootCfg, "server", "LFS_CONTENT_PATH", "lfs", "PATH")
+	// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
+	// if these are removed, the warning will not be shown
+	deprecatedSetting(rootCfg, "server", "LFS_CONTENT_PATH", "lfs", "PATH", "v1.19.0")
 	lfsSec.Key("PATH").MustString(
 		sec.Key("LFS_CONTENT_PATH").String())
 
