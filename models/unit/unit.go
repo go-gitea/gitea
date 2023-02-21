@@ -156,7 +156,11 @@ func LoadUnitConfig() {
 	for i, disabledU := range DisabledRepoUnits {
 		if !disabledU.CanDisable() || disabledU.IsInvalid() {
 			log.Warn("Not allowed to global disable unit %s", disabledU.String())
-			DisabledRepoUnits = append(DisabledRepoUnits[:i], DisabledRepoUnits[i+1:]...)
+			if i == 0 {
+				DisabledRepoUnits = DisabledRepoUnits[i:]
+			} else {
+				DisabledRepoUnits = append(DisabledRepoUnits[:i], DisabledRepoUnits[i+1:]...)
+			}
 		}
 	}
 
