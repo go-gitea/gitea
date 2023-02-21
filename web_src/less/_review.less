@@ -220,47 +220,45 @@ a.blob-excerpt:hover {
 
 // See the comment of createCommentEasyMDE() for the review editor
 // EasyMDE's options can not handle minHeight & maxHeight together correctly, we have to set minHeight in JS code
-#review-box .CodeMirror-scroll {
+.review-box-panel .CodeMirror-scroll {
   min-height: 80px;
   max-height: calc(100vh - 360px);
 }
 
 @media @mediaSm {
-  #review-box > .menu {
-    > .ui.segment {
-      width: 94vw;
-    }
-
-    .editor-toolbar {
-      overflow-x: auto;
-    }
-  }
-
-  #review-box .CodeMirror-scroll {
+  .review-box-panel .CodeMirror-scroll {
     max-width: calc(100vw - 70px);
   }
 }
 
 @media @mediaMd {
-  #review-box .CodeMirror-scroll {
+  .review-box-panel .CodeMirror-scroll {
     max-width: 700px;
   }
 }
 
 @media @mediaLg {
-  #review-box .CodeMirror-scroll {
+  .review-box-panel .CodeMirror-scroll {
     max-width: 800px;
   }
 }
 
 @media @mediaXl {
-  #review-box .CodeMirror-scroll {
+  .review-box-panel .CodeMirror-scroll {
     max-width: 900px;
   }
 }
 
-.review-box > .segment {
-  border: none !important;
+#review-box {
+  position: relative;
+}
+
+.review-box-panel {
+  position: absolute;
+  min-width: max-content;
+  top: 45px;
+  right: -5px;
+  z-index: 2;
 }
 
 #review-box .review-comments-counter {
