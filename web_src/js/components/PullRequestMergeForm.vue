@@ -124,6 +124,7 @@ export default {
       textDoMerge: '',
       mergeTitleFieldText: '',
       mergeMessageFieldText: '',
+      hideAutoMerge: false,
     },
     mergeStyleAllowedCount: 0,
 
