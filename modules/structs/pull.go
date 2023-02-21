@@ -97,6 +97,7 @@ type EditPullRequestOption struct {
 
 // ChangedFile store information about files affected by the pull request
 type ChangedFile struct {
+	HasConflict      bool   `json:"has_conflict"`
 	Filename         string `json:"filename"`
 	PreviousFilename string `json:"previous_filename,omitempty"`
 	Status           string `json:"status"`

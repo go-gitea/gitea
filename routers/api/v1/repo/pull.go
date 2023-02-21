@@ -1461,9 +1461,10 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 		lenFiles = 0
 	}
 
+	fmt.Println("INSIDE THE FUNCTION")
 	apiFiles := make([]*api.ChangedFile, 0, lenFiles)
 	for i := start; i < end; i++ {
-		apiFiles = append(apiFiles, convert.ToChangedFile(diff.Files[i], pr.HeadRepo, endCommitID))
+		apiFiles = append(apiFiles, convert.ToChangedFile(diff.Files[i], pr.HeadRepo, endCommitID, pr.ConflictedFiles))
 	}
 
 	ctx.SetLinkHeader(totalNumberOfFiles, listOptions.PageSize)
