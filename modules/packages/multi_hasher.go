@@ -6,12 +6,13 @@ package packages
 import (
 	"crypto/md5"
 	"crypto/sha1"
-	"crypto/sha256"
 	"crypto/sha512"
 	"encoding"
 	"errors"
 	"hash"
 	"io"
+
+	"github.com/minio/sha256-simd"
 )
 
 const (
