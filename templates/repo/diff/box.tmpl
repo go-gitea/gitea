@@ -71,7 +71,7 @@
 				<div id="diff-file-boxes" class="sixteen wide column">
 					{{range $i, $file := .Diff.Files}}
 						{{/*notice: the index of Diff.Files should not be used for element ID, because the index will be restarted from 0 when doing load-more for PRs with a lot of files*/}}
-						{{$blobBase := call $.GetBlobByPathForCommit $.BaseCommit $file.OldName}}
+						{{$blobBase := call $.GetBlobByPathForCommit $.BeforeCommit $file.OldName}}
 						{{$blobHead := call $.GetBlobByPathForCommit $.HeadCommit $file.Name}}
 						{{$isImage := or (call $.IsBlobAnImage $blobBase) (call $.IsBlobAnImage $blobHead)}}
 						{{$isCsv := (call $.IsCsvFile $file)}}
