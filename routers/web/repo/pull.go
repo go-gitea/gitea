@@ -927,11 +927,13 @@ func MergePullRequest(ctx *context.Context) {
 	pr.Issue = issue
 	pr.Issue.Repo = ctx.Repo.Repository
 
+	manuallyMerged := repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged
+
 	mergeCheckType := pull_service.MergeCheckTypeGeneral
 	if form.MergeWhenChecksSucceed {
 		mergeCheckType = pull_service.MergeCheckTypeAuto
 	}
-	if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged {
+	if manuallyMerged {
 		mergeCheckType = pull_service.MergeCheckTypeManually
 	}
 
@@ -968,7 +970,7 @@ func MergePullRequest(ctx *context.Context) {
 	}
 
 	// handle manually-merged mark
-	if mergeCheckType == pull_service.MergeCheckTypeManually {
+	if manuallyMerged {
 		if err := pull_service.MergedManually(pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
 			switch {
 
