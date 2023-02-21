@@ -42,7 +42,6 @@ func decodeXML(t testing.TB, resp *httptest.ResponseRecorder, v interface{}) {
 
 func TestPackageNuGet(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	defer removeAllPackageData(t)
 
 	type FeedEntryProperties struct {
 		Version                  string                      `xml:"Version"`

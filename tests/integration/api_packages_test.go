@@ -18,7 +18,6 @@ import (
 	container_model "code.gitea.io/gitea/models/packages/container"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	packages_module "code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -31,7 +30,6 @@ import (
 
 func TestPackageAPI(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	defer removeAllPackageData(t)
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 	session := loginUser(t, user.Name)
@@ -155,7 +153,6 @@ func TestPackageAPI(t *testing.T) {
 
 func TestPackageAccess(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	defer removeAllPackageData(t)
 
 	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
@@ -177,7 +174,6 @@ func TestPackageAccess(t *testing.T) {
 
 func TestPackageQuota(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	defer removeAllPackageData(t)
 
 	limitTotalOwnerCount, limitTotalOwnerSize := setting.Packages.LimitTotalOwnerCount, setting.Packages.LimitTotalOwnerSize
 
@@ -239,7 +235,6 @@ func TestPackageQuota(t *testing.T) {
 
 func TestPackageCleanup(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	defer removeAllPackageData(t)
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
@@ -425,26 +420,4 @@ func TestPackageCleanup(t *testing.T) {
 			})
 		}
 	})
-}
-
-// This method removes all package related data (database and files)
-func removeAllPackageData(t *testing.T) {
-	assert.NoError(t, db.DeleteAllRecords("package"))
-	assert.NoError(t, db.DeleteAllRecords("package_version"))
-	assert.NoError(t, db.DeleteAllRecords("package_file"))
-	assert.NoError(t, db.DeleteAllRecords("package_property"))
-	assert.NoError(t, db.DeleteAllRecords("package_blob_upload"))
-	assert.NoError(t, db.DeleteAllRecords("package_cleanup_rule"))
-
-	duration, _ := time.ParseDuration("-10h")
-
-	pbs, err := packages_model.FindExpiredUnreferencedBlobs(db.DefaultContext, duration)
-	assert.NoError(t, err)
-
-	contentStore := packages_module.NewContentStore()
-	for _, pb := range pbs {
-		contentStore.Delete(packages_module.BlobHash256Key(pb.HashSHA256))
-	}
-
-	assert.NoError(t, db.DeleteAllRecords("package_blob"))
 }
