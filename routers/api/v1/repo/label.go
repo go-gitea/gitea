@@ -145,12 +145,12 @@ func CreateLabel(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.CreateLabelOption)
 
-	if color, err := label.NormalizeColor(form.Color); err != nil {
+	color, err := label.NormalizeColor(form.Color)
+	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "StringToColor", err)
 		return
-	} else {
-		form.Color = color
 	}
+	form.Color = color
 
 	l := &issues_model.Label{
 		Name:        form.Name,
@@ -221,12 +221,12 @@ func EditLabel(ctx *context.APIContext) {
 		l.Exclusive = *form.Exclusive
 	}
 	if form.Color != nil {
-		if color, err := label.NormalizeColor(*form.Color); err != nil {
+		color, err := label.NormalizeColor(*form.Color)
+		if err != nil {
 			ctx.Error(http.StatusUnprocessableEntity, "StringToColor", err)
 			return
-		} else {
-			l.Color = color
 		}
+		l.Color = color
 	}
 	if form.Description != nil {
 		l.Description = *form.Description

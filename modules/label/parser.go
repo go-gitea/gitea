@@ -67,11 +67,11 @@ func parseYamlFormat(name string, data []byte) ([]*Label, error) {
 		if len(l.Name) == 0 || len(l.Color) == 0 {
 			return nil, ErrTemplateLoad{name, errors.New("label name and color are required fields")}
 		}
-		if color, err := NormalizeColor(l.Color); err != nil {
+		color, err := NormalizeColor(l.Color)
+		if err != nil {
 			return nil, ErrTemplateLoad{name, fmt.Errorf("bad HTML color code in label: %s", l.Name)}
-		} else {
-			l.Color = color
 		}
+		l.Color = color
 	}
 
 	return lf.Labels, nil

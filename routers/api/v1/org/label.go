@@ -84,12 +84,12 @@ func CreateLabel(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.CreateLabelOption)
 	form.Color = strings.Trim(form.Color, " ")
-	if color, err := label.NormalizeColor(form.Color); err != nil {
+	color, err := label.NormalizeColor(form.Color)
+	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "Color", err)
 		return
-	} else {
-		form.Color = color
 	}
+	form.Color = color
 
 	label := &issues_model.Label{
 		Name:        form.Name,
@@ -199,12 +199,12 @@ func EditLabel(ctx *context.APIContext) {
 		l.Exclusive = *form.Exclusive
 	}
 	if form.Color != nil {
-		if color, err := label.NormalizeColor(*form.Color); err != nil {
+		color, err := label.NormalizeColor(*form.Color)
+		if err != nil {
 			ctx.Error(http.StatusUnprocessableEntity, "Color", err)
 			return
-		} else {
-			l.Color = color
 		}
+		l.Color = color
 	}
 	if form.Description != nil {
 		l.Description = *form.Description
