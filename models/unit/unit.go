@@ -151,16 +151,13 @@ func validateDefaultRepoUnits(defaultUnits, settingDefaultUnits []Type) []Type {
 
 // LoadUnitConfig load units from settings
 func LoadUnitConfig() {
-	DisabledRepoUnits = FindUnitTypes(setting.Repository.DisabledRepoUnits...)
+	disabledRepoUnits := FindUnitTypes(setting.Repository.DisabledRepoUnits...)
 	// Check that must units are not disabled
-	for i, disabledU := range DisabledRepoUnits {
+	DisabledRepoUnits = disabledRepoUnits[:0]
+	for _, disabledU := range disabledRepoUnits {
 		if !disabledU.CanDisable() || disabledU.IsInvalid() {
 			log.Warn("Not allowed to global disable unit %s", disabledU.String())
-			if i == 0 {
-				DisabledRepoUnits = DisabledRepoUnits[i:]
-			} else {
-				DisabledRepoUnits = append(DisabledRepoUnits[:i], DisabledRepoUnits[i+1:]...)
-			}
+			DisabledRepoUnits = append(DisabledRepoUnits, disabledU)
 		}
 	}
 
