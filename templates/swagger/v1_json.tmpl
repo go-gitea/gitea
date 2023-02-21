@@ -14084,14 +14084,13 @@
         "parameters": [
           {
             "type": "string",
-            "x-go-name": "Name",
             "description": "username of user",
             "name": "username",
             "in": "path",
             "required": true
           },
           {
-            "name": "userCreateToken",
+            "name": "body",
             "in": "body",
             "schema": {
               "$ref": "#/definitions/CreateAccessTokenOption"
@@ -14193,6 +14192,13 @@
         "name": {
           "type": "string",
           "x-go-name": "Name"
+        },
+        "scopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Scopes"
         },
         "sha1": {
           "type": "string",
@@ -14925,10 +14931,20 @@
     "CreateAccessTokenOption": {
       "description": "CreateAccessTokenOption options when create access token",
       "type": "object",
+      "required": [
+        "name"
+      ],
       "properties": {
         "name": {
           "type": "string",
           "x-go-name": "Name"
+        },
+        "scopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Scopes"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
