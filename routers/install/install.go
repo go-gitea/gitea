@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/models/migrations"
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/generate"
@@ -79,7 +80,7 @@ func Init(ctx goctx.Context) func(next http.Handler) http.Handler {
 					"AllLangs":      translation.AllLangs(),
 					"PageStartTime": startTime,
 
-					"PasswordHashAlgorithms": user_model.AvailableHashAlgorithms,
+					"PasswordHashAlgorithms": hash.RecommendedHashAlgorithms,
 				},
 			}
 			defer ctx.Close()
@@ -133,7 +134,7 @@ func Install(ctx *context.Context) {
 	form.SSHPort = setting.SSH.Port
 	form.HTTPPort = setting.HTTPPort
 	form.AppURL = setting.AppURL
-	form.LogRootPath = setting.LogRootPath
+	form.LogRootPath = setting.Log.RootPath
 
 	// E-mail service settings
 	if setting.MailService != nil {
@@ -466,7 +467,7 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("session").Key("PROVIDER").SetValue("file")
 
 	cfg.Section("log").Key("MODE").SetValue("console")
-	cfg.Section("log").Key("LEVEL").SetValue(setting.LogLevel.String())
+	cfg.Section("log").Key("LEVEL").SetValue(setting.Log.Level.String())
 	cfg.Section("log").Key("ROOT_PATH").SetValue(form.LogRootPath)
 	cfg.Section("log").Key("ROUTER").SetValue("console")
 

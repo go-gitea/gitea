@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import {checkAppUrl} from '../common-global.js';
+import {hideElem, showElem, toggleElem} from '../../utils/dom.js';
 
 const {csrfToken} = window.config;
 
@@ -18,8 +19,8 @@ export function initAdminCommon() {
       if ($(this).val().substring(0, 1) === '0') {
         $('#user_name').removeAttr('disabled');
         $('#login_name').removeAttr('required');
-        $('.non-local').hide();
-        $('.local').show();
+        hideElem($('.non-local'));
+        showElem($('.local'));
         $('#user_name').focus();
 
         if ($(this).data('password') === 'required') {
@@ -30,8 +31,8 @@ export function initAdminCommon() {
           $('#user_name').attr('disabled', 'disabled');
         }
         $('#login_name').attr('required', 'required');
-        $('.non-local').show();
-        $('.local').hide();
+        showElem($('.non-local'));
+        hideElem($('.local'));
         $('#login_name').focus();
 
         $('#password').removeAttr('required');
@@ -41,38 +42,38 @@ export function initAdminCommon() {
 
   function onSecurityProtocolChange() {
     if ($('#security_protocol').val() > 0) {
-      $('.has-tls').show();
+      showElem($('.has-tls'));
     } else {
-      $('.has-tls').hide();
+      hideElem($('.has-tls'));
     }
   }
 
   function onUsePagedSearchChange() {
     if ($('#use_paged_search').prop('checked')) {
-      $('.search-page-size').show()
+      showElem($('.search-page-size'))
         .find('input').attr('required', 'required');
     } else {
-      $('.search-page-size').hide()
+      hideElem($('.search-page-size'))
         .find('input').removeAttr('required');
     }
   }
 
   function onOAuth2Change(applyDefaultValues) {
-    $('.open_id_connect_auto_discovery_url, .oauth2_use_custom_url').hide();
+    hideElem($('.open_id_connect_auto_discovery_url, .oauth2_use_custom_url'));
     $('.open_id_connect_auto_discovery_url input[required]').removeAttr('required');
 
     const provider = $('#oauth2_provider').val();
     switch (provider) {
       case 'openidConnect':
         $('.open_id_connect_auto_discovery_url input').attr('required', 'required');
-        $('.open_id_connect_auto_discovery_url').show();
+        showElem($('.open_id_connect_auto_discovery_url'));
         break;
       default:
         if ($(`#${provider}_customURLSettings`).data('required')) {
           $('#oauth2_use_custom_url').attr('checked', 'checked');
         }
         if ($(`#${provider}_customURLSettings`).data('available')) {
-          $('.oauth2_use_custom_url').show();
+          showElem($('.oauth2_use_custom_url'));
         }
     }
     onOAuth2UseCustomURLChange(applyDefaultValues);
@@ -80,7 +81,7 @@ export function initAdminCommon() {
 
   function onOAuth2UseCustomURLChange(applyDefaultValues) {
     const provider = $('#oauth2_provider').val();
-    $('.oauth2_use_custom_url_field').hide();
+    hideElem($('.oauth2_use_custom_url_field'));
     $('.oauth2_use_custom_url_field input[required]').removeAttr('required');
 
     if ($('#oauth2_use_custom_url').is(':checked')) {
@@ -90,20 +91,20 @@ export function initAdminCommon() {
         }
         if ($(`#${provider}_${custom}`).data('available')) {
           $(`.oauth2_${custom} input`).attr('required', 'required');
-          $(`.oauth2_${custom}`).show();
+          showElem($(`.oauth2_${custom}`));
         }
       }
     }
   }
 
   function onEnableLdapGroupsChange() {
-    $('#ldap-group-options').toggle($('.js-ldap-group-toggle').is(':checked'));
+    toggleElem($('#ldap-group-options'), $('.js-ldap-group-toggle').is(':checked'));
   }
 
   // New authentication
   if ($('.admin.new.authentication').length > 0) {
     $('#auth_type').on('change', function () {
-      $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls, .search-page-size, .sspi').hide();
+      hideElem($('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls, .search-page-size, .sspi'));
 
       $('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required], .sspi input[required]').removeAttr('required');
       $('.binddnrequired').removeClass('required');
@@ -111,30 +112,30 @@ export function initAdminCommon() {
       const authType = $(this).val();
       switch (authType) {
         case '2': // LDAP
-          $('.ldap').show();
+          showElem($('.ldap'));
           $('.binddnrequired input, .ldap div.required:not(.dldap) input').attr('required', 'required');
           $('.binddnrequired').addClass('required');
           break;
         case '3': // SMTP
-          $('.smtp').show();
-          $('.has-tls').show();
+          showElem($('.smtp'));
+          showElem($('.has-tls'));
           $('.smtp div.required input, .has-tls').attr('required', 'required');
           break;
         case '4': // PAM
-          $('.pam').show();
+          showElem($('.pam'));
           $('.pam input').attr('required', 'required');
           break;
         case '5': // LDAP
-          $('.dldap').show();
+          showElem($('.dldap'));
           $('.dldap div.required:not(.ldap) input').attr('required', 'required');
           break;
         case '6': // OAuth2
-          $('.oauth2').show();
+          showElem($('.oauth2'));
           $('.oauth2 div.required:not(.oauth2_use_custom_url,.oauth2_use_custom_url_field,.open_id_connect_auto_discovery_url) input').attr('required', 'required');
           onOAuth2Change(true);
           break;
         case '7': // SSPI
-          $('.sspi').show();
+          showElem($('.sspi'));
           $('.sspi div.required input').attr('required', 'required');
           break;
       }

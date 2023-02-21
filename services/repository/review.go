@@ -12,7 +12,7 @@ import (
 
 // GetReviewerTeams get all teams can be requested to review
 func GetReviewerTeams(repo *repo_model.Repository) ([]*organization.Team, error) {
-	if err := repo.GetOwner(db.DefaultContext); err != nil {
+	if err := repo.LoadOwner(db.DefaultContext); err != nil {
 		return nil, err
 	}
 	if !repo.Owner.IsOrganization() {

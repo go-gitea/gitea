@@ -251,13 +251,15 @@ func (issue *Issue) LoadPoster(ctx context.Context) (err error) {
 
 // LoadPullRequest loads pull request info
 func (issue *Issue) LoadPullRequest(ctx context.Context) (err error) {
-	if issue.IsPull && issue.PullRequest == nil {
-		issue.PullRequest, err = GetPullRequestByIssueID(ctx, issue.ID)
-		if err != nil {
-			if IsErrPullRequestNotExist(err) {
-				return err
+	if issue.IsPull {
+		if issue.PullRequest == nil {
+			issue.PullRequest, err = GetPullRequestByIssueID(ctx, issue.ID)
+			if err != nil {
+				if IsErrPullRequestNotExist(err) {
+					return err
+				}
+				return fmt.Errorf("getPullRequestByIssueID [%d]: %w", issue.ID, err)
 			}
-			return fmt.Errorf("getPullRequestByIssueID [%d]: %w", issue.ID, err)
 		}
 		issue.PullRequest.Issue = issue
 	}
@@ -347,7 +349,7 @@ func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 		return
 	}
 
-	if err = issue.loadProject(ctx); err != nil {
+	if err = issue.LoadProject(ctx); err != nil {
 		return
 	}
 
@@ -538,6 +540,31 @@ func (ts labelSorter) Swap(i, j int) {
 	[]*Label(ts)[i], []*Label(ts)[j] = []*Label(ts)[j], []*Label(ts)[i]
 }
 
+// Ensure only one label of a given scope exists, with labels at the end of the
+// array getting preference over earlier ones.
+func RemoveDuplicateExclusiveLabels(labels []*Label) []*Label {
+	validLabels := make([]*Label, 0, len(labels))
+
+	for i, label := range labels {
+		scope := label.ExclusiveScope()
+		if scope != "" {
+			foundOther := false
+			for _, otherLabel := range labels[i+1:] {
+				if otherLabel.ExclusiveScope() == scope {
+					foundOther = true
+					break
+				}
+			}
+			if foundOther {
+				continue
+			}
+		}
+		validLabels = append(validLabels, label)
+	}
+
+	return validLabels
+}
+
 // ReplaceIssueLabels removes all current labels and add new labels to the issue.
 // Triggers appropriate WebHooks, if any.
 func ReplaceIssueLabels(issue *Issue, labels []*Label, doer *user_model.User) (err error) {
@@ -554,6 +581,8 @@ func ReplaceIssueLabels(issue *Issue, labels []*Label, doer *user_model.User) (e
 	if err = issue.LoadLabels(ctx); err != nil {
 		return err
 	}
+
+	labels = RemoveDuplicateExclusiveLabels(labels)
 
 	sort.Sort(labelSorter(labels))
 	sort.Sort(labelSorter(issue.Labels))
@@ -2099,7 +2128,7 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 	resolved := make(map[string]bool, 10)
 	var mentionTeams []string
 
-	if err := issue.Repo.GetOwner(ctx); err != nil {
+	if err := issue.Repo.LoadOwner(ctx); err != nil {
 		return nil, err
 	}
 
