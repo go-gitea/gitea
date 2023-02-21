@@ -186,9 +186,21 @@ trigger:
     exclude:
       - docs/**
 
+workspace:
+  path: /drone/src
+
 volumes:
   - name: deps
     temp: {}
+  - name: integrations_tmpfs_mysql
+    temp:
+      medium: memory
+  - name: integrations_tmpfs_mysql8
+    temp:
+      medium: memory
+  - name: integrations_tmpfs_mssql
+    temp:
+      medium: memory
 
 services:
   - name: mysql
@@ -320,6 +332,7 @@ steps:
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
+      - git checkout -f -- integrations/
       - make test-mysql-migration integration-test-coverage
     environment:
       GOPROXY: https://goproxy.io
@@ -332,11 +345,14 @@ steps:
     volumes:
       - name: deps
         path: /go
+      - name: integrations_tmpfs_mysql
+        path: /drone/src/integrations
 
   - name: test-mysql8
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
+      - git checkout -f -- integrations/
       - timeout -s ABRT 50m make test-mysql8-migration test-mysql8
     environment:
       GOPROXY: https://goproxy.io
@@ -348,11 +364,14 @@ steps:
     volumes:
       - name: deps
         path: /go
+      - name: integrations_tmpfs_mysql8
+        path: /drone/src/integrations
 
   - name: test-mssql
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
+      - git checkout -f -- integrations/
       - make test-mssql-migration test-mssql
     environment:
       GOPROXY: https://goproxy.io
@@ -364,6 +383,8 @@ steps:
     volumes:
       - name: deps
         path: /go
+      - name: integrations_tmpfs_mssql
+        path: /drone/src/integrations
 
   - name: generate-coverage
     image: golang:1.20
@@ -416,9 +437,18 @@ trigger:
     exclude:
       - docs/**
 
+workspace:
+  path: /drone/src
+
 volumes:
   - name: deps
     temp: {}
+  - name: integrations_tmpfs_sqlite
+    temp:
+      medium: memory
+  - name: integrations_tmpfs_pgsql
+    temp:
+      medium: memory
 
 services:
   - name: pgsql
@@ -478,6 +508,7 @@ steps:
     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
+      - git checkout -f -- integrations/
       - timeout -s ABRT 50m make test-sqlite-migration test-sqlite
     environment:
       GOPROXY: https://goproxy.io
@@ -489,11 +520,14 @@ steps:
     volumes:
       - name: deps
         path: /go
+      - name: integrations_tmpfs_sqlite
+        path: /drone/src/integrations
 
   - name: test-pgsql
     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
+      - git checkout -f -- integrations/
       - timeout -s ABRT 50m make test-pgsql-migration test-pgsql
     environment:
       GOPROXY: https://goproxy.io
@@ -506,6 +540,8 @@ steps:
     volumes:
       - name: deps
         path: /go
+      - name: integrations_tmpfs_pgsql
+        path: /drone/src/integrations
 
 ---
 kind: pipeline
