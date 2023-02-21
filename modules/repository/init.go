@@ -319,7 +319,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 
 	cmd := git.NewCommand(ctx,
 		"commit", git.CmdArg(fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email)),
-		"-m", "Initial commit",
+		"--message=Initial commit",
 	)
 
 	sign, keyID, signer, _ := asymkey_service.SignInitialCommit(ctx, tmpPath, u)

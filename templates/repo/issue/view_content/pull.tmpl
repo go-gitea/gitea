@@ -129,6 +129,7 @@
 	<div class="content">
 		{{template "repo/pulls/status" .}}
 		{{$canAutoMerge := false}}
+		{{$showGeneralMergeForm := false}}
 		<div class="ui attached merge-section segment {{if not $.LatestCommitStatus}}no-header{{end}}">
 			{{if .Issue.PullRequest.HasMerged}}
 				<div class="item text">
@@ -351,6 +352,7 @@
 									'textAutoMergeButtonWhenSucceed': {{$.locale.Tr "repo.pulls.auto_merge_button_when_succeed"}},
 									'textAutoMergeWhenSucceed': {{$.locale.Tr "repo.pulls.auto_merge_when_succeed"}},
 									'textAutoMergeCancelSchedule': {{$.locale.Tr "repo.pulls.auto_merge_cancel_schedule"}},
+									'textMergeCommitId': {{$.locale.Tr "repo.pulls.merge_commit_id"}},
 
 									'canMergeNow': {{$canMergeNow}},
 									'allOverridableChecksOk': {{not $notAllOverridableChecksOk}},
@@ -410,6 +412,7 @@
 							})();
 						</script>
 
+						{{$showGeneralMergeForm = true}}
 						<div id="pull-request-merge-form"></div>
 
 						{{if .ShowMergeInstructions}}
@@ -487,29 +490,20 @@
 						{{$.locale.Tr "repo.pulls.cannot_auto_merge_helper"}}
 					</div>
 				{{end}}
-			{{end}}
+			{{end}}{{/* end if: pull request status */}}
 
-			{{if $.StillCanManualMerge}}
+			{{if and $.StillCanManualMerge (not $showGeneralMergeForm)}}
 				<div class="ui divider"></div>
-				<div class="ui form manually-merged-fields" style="display: none">
+				<div class="ui form">
 					<form action="{{.Link}}/merge" method="post">
 						{{.CsrfTokenHtml}}
 						<div class="field">
-							<input type="text" name="merge_commit_id"  placeholder="{{$.locale.Tr "repo.pulls.merge_commit_id"}}">
+							<input type="text" name="merge_commit_id" placeholder="{{$.locale.Tr "repo.pulls.merge_commit_id"}}">
 						</div>
 						<button class="ui red button" type="submit" name="do" value="manually-merged">
 							{{$.locale.Tr "repo.pulls.merge_manually"}}
 						</button>
-						<button class="ui button merge-cancel">
-							{{$.locale.Tr "cancel"}}
-						</button>
 					</form>
-				</div>
-
-				<div class="ui red buttons merge-button">
-					<button class="ui button" data-do="manually-merged">
-						{{$.locale.Tr "repo.pulls.merge_manually"}}
-					</button>
 				</div>
 			{{end}}
 		</div>
