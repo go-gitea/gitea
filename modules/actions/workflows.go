@@ -95,6 +95,55 @@ func DetectWorkflows(commit *git.Commit, triggedEvent webhook_module.HookEventTy
 	return workflows, nil
 }
 
+func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType, payload api.Payloader, evt *jobparser.Event) bool {
+	if converGithubEvent2GiteaEvent(evt) != triggedEvent.Event() {
+		return false
+	}
+
+	// with no special filter parameters
+	if len(evt.Acts) == 0 {
+		return true
+	}
+
+	switch triggedEvent {
+	case webhook_module.HookEventCreate,
+		webhook_module.HookEventDelete,
+		webhook_module.HookEventFork,
+		webhook_module.HookEventIssueAssign,
+		webhook_module.HookEventIssueLabel,
+		webhook_module.HookEventIssueMilestone,
+		webhook_module.HookEventPullRequestAssign,
+		webhook_module.HookEventPullRequestLabel,
+		webhook_module.HookEventPullRequestMilestone,
+		webhook_module.HookEventPullRequestComment,
+		webhook_module.HookEventPullRequestReviewApproved,
+		webhook_module.HookEventPullRequestReviewRejected,
+		webhook_module.HookEventPullRequestReviewComment,
+		webhook_module.HookEventWiki,
+		webhook_module.HookEventRepository,
+		webhook_module.HookEventRelease,
+		webhook_module.HookEventPackage:
+		// no special filter parameters for these events, just return true if name matched
+		return true
+
+	case webhook_module.HookEventPush:
+		return matchPushEvent(commit, payload.(*api.PushPayload), evt)
+
+	case webhook_module.HookEventIssues:
+		return matchIssuesEvent(commit, payload.(*api.IssuePayload), evt)
+
+	case webhook_module.HookEventPullRequest, webhook_module.HookEventPullRequestSync:
+		return matchPullRequestEvent(commit, payload.(*api.PullRequestPayload), evt)
+
+	case webhook_module.HookEventIssueComment:
+		return matchIssueCommentEvent(commit, payload.(*api.IssueCommentPayload), evt)
+
+	default:
+		log.Warn("unsupported event %q", triggedEvent.Event())
+		return false
+	}
+}
+
 func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobparser.Event) bool {
 	matchTimes := 0
 	// all acts conditions should be satisfied
@@ -221,53 +270,4 @@ func matchIssueCommentEvent(commit *git.Commit, issueCommentPayload *api.IssueCo
 		}
 	}
 	return matchTimes == len(evt.Acts)
-}
-
-func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType, payload api.Payloader, evt *jobparser.Event) bool {
-	if converGithubEvent2GiteaEvent(evt) != triggedEvent.Event() {
-		return false
-	}
-
-	// with no special filter parameters
-	if len(evt.Acts) == 0 {
-		return true
-	}
-
-	switch triggedEvent {
-	case webhook_module.HookEventCreate,
-		webhook_module.HookEventDelete,
-		webhook_module.HookEventFork,
-		webhook_module.HookEventIssueAssign,
-		webhook_module.HookEventIssueLabel,
-		webhook_module.HookEventIssueMilestone,
-		webhook_module.HookEventPullRequestAssign,
-		webhook_module.HookEventPullRequestLabel,
-		webhook_module.HookEventPullRequestMilestone,
-		webhook_module.HookEventPullRequestComment,
-		webhook_module.HookEventPullRequestReviewApproved,
-		webhook_module.HookEventPullRequestReviewRejected,
-		webhook_module.HookEventPullRequestReviewComment,
-		webhook_module.HookEventWiki,
-		webhook_module.HookEventRepository,
-		webhook_module.HookEventRelease,
-		webhook_module.HookEventPackage:
-		// no special filter parameters for these events, just return true if name matched
-		return true
-
-	case webhook_module.HookEventPush:
-		return matchPushEvent(commit, payload.(*api.PushPayload), evt)
-
-	case webhook_module.HookEventIssues:
-		return matchIssuesEvent(commit, payload.(*api.IssuePayload), evt)
-
-	case webhook_module.HookEventPullRequest, webhook_module.HookEventPullRequestSync:
-		return matchPullRequestEvent(commit, payload.(*api.PullRequestPayload), evt)
-
-	case webhook_module.HookEventIssueComment:
-		return matchIssueCommentEvent(commit, payload.(*api.IssueCommentPayload), evt)
-
-	default:
-		log.Warn("unsupported event %q", triggedEvent.Event())
-		return false
-	}
 }
