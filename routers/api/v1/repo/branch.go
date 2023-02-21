@@ -173,14 +173,49 @@ func CreateBranch(ctx *context.APIContext) {
 		return
 	}
 
-	if len(opt.OldRefName) == 0 {
-		opt.OldRefName = ctx.Repo.Repository.DefaultBranch
-	}
+	var oldCommit *git.Commit
+	var err error
 
-	oldCommit, err := ctx.Repo.GitRepo.GetCommit(opt.OldRefName)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetCommit", err)
+	if len(opt.OldRefName) > 0 && len(opt.OldBranchName) > 0 {
+		ctx.Error(http.StatusInternalServerError, "", "OldRefName And OldBranchName can not be both exist.")
 		return
+	} else if len(opt.OldRefName) > 0 {
+		if ctx.Repo.GitRepo.IsBranchExist(opt.OldRefName) {
+			oldCommit, err = ctx.Repo.GitRepo.GetBranchCommit(opt.OldRefName)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetBranchCommit", err)
+				return
+			}
+		} else if ctx.Repo.GitRepo.IsTagExist(opt.OldRefName) {
+			oldCommit, err = ctx.Repo.GitRepo.GetTagCommit(opt.OldRefName)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetTagCommit", err)
+				return
+			}
+		} else if len(opt.OldRefName) == git.SHAFullLength {
+			oldCommit, err = ctx.Repo.GitRepo.GetCommit(opt.OldRefName)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetCommit", err)
+				return
+			}
+		} else {
+			ctx.Error(http.StatusNotFound, "", "OldRefName is not exits.")
+			return
+		}
+	} else if len(opt.OldBranchName) > 0 {
+		if ctx.Repo.GitRepo.IsBranchExist(opt.OldBranchName) {
+			oldCommit, err = ctx.Repo.GitRepo.GetBranchCommit(opt.OldBranchName)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetBranchCommit", err)
+				return
+			}
+		}
+	} else {
+		oldCommit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetBranchCommit", err)
+			return
+		}
 	}
 
 	err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, oldCommit.ID.String(), opt.BranchName)
