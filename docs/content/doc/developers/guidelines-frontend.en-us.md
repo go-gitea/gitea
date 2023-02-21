@@ -39,12 +39,20 @@ We recommend [Google HTML/CSS Style Guide](https://google.github.io/styleguide/h
 ### Gitea specific guidelines:
 
 1. Every feature (Fomantic-UI/jQuery module) should be put in separate files/directories.
-2. HTML ids and classes should use kebab-case.
+2. HTML ids and classes should use kebab-case, it's preferred to contain 2-3 feature related keywords.
 3. HTML ids and classes used in JavaScript should be unique for the whole project, and should contain 2-3 feature related keywords. We recommend to use the `js-` prefix for classes that are only used in JavaScript.
-4. jQuery events across different features could use their own namespaces if there are potential conflicts.
-5. CSS styling for classes provided by frameworks should not be overwritten. Always use new class-names with 2-3 feature related keywords to overwrite framework styles.
-6. The backend can pass complex data to the frontend by using `ctx.PageData["myModuleData"] = map[]{}`
-7. Simple pages and SEO-related pages use Go HTML Template render to generate static Fomantic-UI HTML output. Complex pages can use Vue3.
+4. CSS styling for classes provided by frameworks should not be overwritten. Always use new class names with 2-3 feature related keywords to overwrite framework styles. Gitea's helper CSS classes in `helpers.less` could be helpful.
+5. The backend can pass complex data to the frontend by using `ctx.PageData["myModuleData"] = map[]{}`, but do not expose whole models to the frontend to avoid leaking sensitive data.
+6. Simple pages and SEO-related pages use Go HTML Template render to generate static Fomantic-UI HTML output. Complex pages can use Vue3.
+7. Clarify variable types, prefer `elem.disabled = true` instead of `elem.setAttribute('disabled', 'anything')`, prefer `$el.prop('checked', var === 'yes')` instead of `$el.prop('checked', var)`.
+8. Use semantic elements, prefer `<button class="ui button">` instead of `<div class="ui button">`.
+9. Avoid unnecessary `!important` in CSS, add comments to explain why it's necessary if it can't be avoided.
+
+### Accessibility / ARIA
+
+In history, Gitea heavily uses Fomantic UI which is not an accessibility-friendly framework.
+Gitea uses some patches to make Fomantic UI more accessible (see the `aria.js` and `aria.md`),
+but there are still many problems which need a lot of work and time to fix.
 
 ### Framework Usage
 
