@@ -886,7 +886,7 @@ Default templates for project boards:
   - e.g.
   - In the Request Header:        X-Request-ID: **test-id-123**
   - Configuration in app.ini:     REQUEST_ID_HEADERS = X-Request-ID
-  - Print in log:                 127.0.0.1:58384 - - [14/Feb/2023:16:33:51 &#43;0800]  "**test-id-123**" ...
+  - Print in log:                 127.0.0.1:58384 - - [14/Feb/2023:16:33:51 +0800]  "**test-id-123**" ...
 
 ### Log subsections (`log.name`, `log.name.*`)
 

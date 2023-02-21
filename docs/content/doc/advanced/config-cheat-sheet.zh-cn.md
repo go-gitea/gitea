@@ -277,7 +277,7 @@ test01.xls: application/vnd.ms-excel; charset=binary
   - 示例：
   - 请求头：       X-Request-ID: **test-id-123**
   - 配置文件：     REQUEST_ID_HEADERS = X-Request-ID
-  - 日志输出：     127.0.0.1:58384 - - [14/Feb/2023:16:33:51 &#43;0800]  "**test-id-123**" ...
+  - 日志输出：     127.0.0.1:58384 - - [14/Feb/2023:16:33:51 +0800]  "**test-id-123**" ...
 
 ## Cron (`cron`)
 
