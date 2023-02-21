@@ -132,7 +132,7 @@ func CommitChangesWithArgs(repoPath string, args []CmdArg, opts CommitChangesOpt
 	if opts.Author != nil {
 		cmd.AddArguments(CmdArg(fmt.Sprintf("--author='%s <%s>'", opts.Author.Name, opts.Author.Email)))
 	}
-	cmd.AddArguments("-m").AddDynamicArguments(opts.Message)
+	cmd.AddArguments(CmdArg("--message=" + opts.Message))
 
 	_, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
 	// No stderr but exit status 1 means nothing to commit.
