@@ -36,6 +36,10 @@
           </div>
         </template>
 
+        <div class="field" v-if="mergeStyle === 'manually-merged'">
+          <input type="text" name="merge_commit_id" :placeholder="mergeForm.textMergeCommitId">
+        </div>
+
         <button class="ui button" :class="mergeButtonStyleClass" type="submit" name="do" :value="mergeStyle">
           {{ mergeStyleDetail.textDoMerge }}
           <template v-if="autoMergeWhenSucceed">
