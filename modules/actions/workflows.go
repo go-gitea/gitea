@@ -46,51 +46,11 @@ func ListWorkflows(commit *git.Commit) (git.Entries, error) {
 
 func converGithubEvent2GiteaEvent(evt *jobparser.Event) string {
 	switch evt.Name {
-	case "create":
-		return string(webhook_module.HookEventCreate)
-	case "delete":
-		return string(webhook_module.HookEventDelete)
-	case "fork":
-		return string(webhook_module.HookEventFork)
-	case "issue_comment":
-		return string(webhook_module.HookEventIssueComment)
-	case "issues":
-		for _, tp := range evt.Acts["types"] {
-			switch tp {
-			case "assigned":
-				return string(webhook_module.HookEventIssueAssign)
-			case "milestoned":
-				return string(webhook_module.HookEventIssueMilestone)
-			case "labeled":
-				return string(webhook_module.HookEventIssueLabel)
-			}
-		}
-		return string(webhook_module.HookEventIssues)
-	case "pull_request", "pull_request_target":
-		for _, tp := range evt.Acts["types"] {
-			switch tp {
-			case "assigned":
-				return string(webhook_module.HookEventPullRequestAssign)
-			case "milestoned":
-				return string(webhook_module.HookEventPullRequestMilestone)
-			case "labeled":
-				return string(webhook_module.HookEventPullRequestLabel)
-			case "synchronize":
-				return string(webhook_module.HookEventPullRequestSync)
-			}
-		}
+	case "pull_request", "pull_request_target", "pull_request_review_comment", "pull_request_review":
 		return string(webhook_module.HookEventPullRequest)
-	case "pull_request_comment":
-		return string(webhook_module.HookEventPullRequestComment)
-	case "pull_request_review_comment":
-		return string(webhook_module.HookEventPullRequestReviewComment)
-	case "push":
-		return string(webhook_module.HookEventPush)
 	case "registry_package":
 		return string(webhook_module.HookEventPackage)
-	case "release":
-		return string(webhook_module.HookEventRelease)
-	case "pull_request_review", "milestone", "label", "project", "project_card", "project_column":
+	case "create", "delete", "fork", "push", "issues", "issue_comment", "release", "pull_request_comment":
 		fallthrough
 	default:
 		return evt.Name
@@ -125,7 +85,7 @@ func DetectWorkflows(commit *git.Commit, triggedEvent webhook_module.HookEventTy
 			continue
 		}
 		for _, evt := range events {
-			log.Trace("detect workflow %q for event %q matching %q", entry.Name(), evt.Name, triggedEvent)
+			log.Trace("detect workflow %q for event %#v matching %q", entry.Name(), evt, triggedEvent)
 			if detectMatched(commit, triggedEvent, payload, evt) {
 				workflows[entry.Name()] = content
 			}
@@ -199,8 +159,13 @@ func matchPullRequestEvent(commit *git.Commit, prPayload *api.PullRequestPayload
 	for cond, vals := range evt.Acts {
 		switch cond {
 		case "types":
+			action := prPayload.Action
+			if prPayload.Action == api.HookIssueSynchronized {
+				action = "synchronize"
+			}
+			log.Trace("matching pull_request %s with %v", action, vals)
 			for _, val := range vals {
-				if glob.MustCompile(val, '/').Match(string(prPayload.Action)) {
+				if glob.MustCompile(val, '/').Match(string(action)) {
 					matchTimes++
 					break
 				}
