@@ -176,10 +176,7 @@ func CreateBranch(ctx *context.APIContext) {
 	var oldCommit *git.Commit
 	var err error
 
-	if len(opt.OldRefName) > 0 && len(opt.OldBranchName) > 0 {
-		ctx.Error(http.StatusInternalServerError, "", "OldRefName And OldBranchName can not be both exist.")
-		return
-	} else if len(opt.OldRefName) > 0 {
+	if len(opt.OldRefName) > 0 {
 		if ctx.Repo.GitRepo.IsBranchExist(opt.OldRefName) {
 			oldCommit, err = ctx.Repo.GitRepo.GetBranchCommit(opt.OldRefName)
 			if err != nil {
