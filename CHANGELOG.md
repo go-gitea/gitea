@@ -14,6 +14,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Render access log template as text instead of HTML (#23013) (#23025)
   * Fix the Manually Merged form (#23015) (#23017)
   * Use beforeCommit instead of baseCommit (#22949) (#22996)
+  * Display attachments of review comment when comment content is blank (#23035) (#23046) 
 
 ## [1.18.4](https://github.com/go-gitea/gitea/releases/tag/1.18.4) - 2023-02-20
 
