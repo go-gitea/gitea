@@ -178,7 +178,7 @@
 							{{range .OpenProjects}}
 								<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">
 									{{svg "octicon-project" 18 "gt-mr-3"}}
-									{{.Title}}
+									{{.Name}}
 								</a>
 							{{end}}
 						{{end}}
@@ -190,7 +190,7 @@
 							{{range .ClosedProjects}}
 								<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">
 									{{svg "octicon-project" 18 "gt-mr-3"}}
-									{{.Title}}
+									{{.Name}}
 								</a>
 							{{end}}
 						{{end}}
@@ -203,7 +203,7 @@
 					{{if .Project}}
 						<a class="item muted sidebar-item-link" href="{{.RepoLink}}/projects/{{.Project.ID}}">
 							{{svg "octicon-project" 18 "gt-mr-3"}}
-							{{.Project.Title}}
+							{{.Project.Name}}
 						</a>
 					{{end}}
 				</div>
