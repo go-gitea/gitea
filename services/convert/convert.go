@@ -41,10 +41,10 @@ func ToEmail(email *user_model.EmailAddress) *api.Email {
 // ToEmail convert models.EmailAddress to api.Email
 func ToEmailSearch(email *user_model.SearchEmailResult) *api.Email {
 	return &api.Email{
-		Email:     email.Email,
-		Verified:  email.IsActivated,
-		Primary:   email.IsPrimary,
-		UserID:    email.UID,
+		Email:    email.Email,
+		Verified: email.IsActivated,
+		Primary:  email.IsPrimary,
+		UserID:   email.UID,
 		UserName: email.Name,
 	}
 }

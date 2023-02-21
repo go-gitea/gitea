@@ -15,7 +15,6 @@ import (
 
 // GetAllEmails
 func GetAllEmails(ctx *context.APIContext) {
-
 	listOptions := utils.GetListOptions(ctx)
 
 	emails, maxResults, err := user_model.SearchEmails(&user_model.SearchEmailOptions{
