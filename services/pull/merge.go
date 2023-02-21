@@ -655,7 +655,7 @@ func commitAndSignNoAuthor(ctx context.Context, pr *issues_model.PullRequest, me
 			return fmt.Errorf("git commit [%s:%s -> %s:%s]: %w\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
 		}
 	} else {
-		if err := git.NewCommand(ctx, "commit").AddArguments(signArg).AddArguments(git.CmdArg("--message=" + message)).AddDynamicArguments(message).
+		if err := git.NewCommand(ctx, "commit").AddArguments(signArg).AddArguments(git.CmdArg("--message=" + message)).
 			Run(&git.RunOpts{
 				Env:    env,
 				Dir:    tmpBasePath,
