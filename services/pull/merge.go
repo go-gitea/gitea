@@ -516,7 +516,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 		}
 		sig := pr.Issue.Poster.NewGitSig()
 		if signArg == "" {
-			if err := git.NewCommand(ctx, "commit", git.CmdArg(fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email)), "-m").AddDynamicArguments(message).
+			if err := git.NewCommand(ctx, "commit", git.CmdArg(fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email)), git.CmdArg("--message="+message)).
 				Run(&git.RunOpts{
 					Env:    env,
 					Dir:    tmpBasePath,
@@ -534,7 +534,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 			if err := git.NewCommand(ctx, "commit").
 				AddArguments(signArg).
 				AddArguments(git.CmdArg(fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email))).
-				AddArguments("-m").AddDynamicArguments(message).
+				AddArguments(git.CmdArg("--message=" + message)).
 				Run(&git.RunOpts{
 					Env:    env,
 					Dir:    tmpBasePath,
@@ -644,7 +644,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 func commitAndSignNoAuthor(ctx context.Context, pr *issues_model.PullRequest, message string, signArg git.CmdArg, tmpBasePath string, env []string) error {
 	var outbuf, errbuf strings.Builder
 	if signArg == "" {
-		if err := git.NewCommand(ctx, "commit", "-m").AddDynamicArguments(message).
+		if err := git.NewCommand(ctx, "commit", git.CmdArg("--message="+message)).
 			Run(&git.RunOpts{
 				Env:    env,
 				Dir:    tmpBasePath,
@@ -655,7 +655,7 @@ func commitAndSignNoAuthor(ctx context.Context, pr *issues_model.PullRequest, me
 			return fmt.Errorf("git commit [%s:%s -> %s:%s]: %w\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
 		}
 	} else {
-		if err := git.NewCommand(ctx, "commit").AddArguments(signArg).AddArguments("-m").AddDynamicArguments(message).
+		if err := git.NewCommand(ctx, "commit").AddArguments(signArg).AddArguments(git.CmdArg("--message=" + message)).
 			Run(&git.RunOpts{
 				Env:    env,
 				Dir:    tmpBasePath,
