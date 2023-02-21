@@ -7,9 +7,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"html/template"
 	"net/http"
 	"strings"
+	"text/template"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"

@@ -27,8 +27,9 @@ var Mirror = struct {
 func loadMirrorFrom(rootCfg ConfigProvider) {
 	// Handle old configuration through `[repository]` `DISABLE_MIRRORS`
 	// - please note this was badly named and only disabled the creation of new pull mirrors
-	// FIXME: DEPRECATED to be removed in v1.18.0
-	deprecatedSetting(rootCfg, "repository", "DISABLE_MIRRORS", "mirror", "ENABLED")
+	// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
+	// if these are removed, the warning will not be shown
+	deprecatedSetting(rootCfg, "repository", "DISABLE_MIRRORS", "mirror", "ENABLED", "v1.19.0")
 	if rootCfg.Section("repository").Key("DISABLE_MIRRORS").MustBool(false) {
 		Mirror.DisableNewPull = true
 	}

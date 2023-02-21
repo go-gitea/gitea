@@ -552,8 +552,6 @@ export function initRepoIssueReferenceIssue() {
   // Reference issue
   $(document).on('click', '.reference-issue', function (event) {
     const $this = $(this);
-    $this.closest('.dropdown').find('.menu').toggle('visible');  // eslint-disable-line
-
     const content = $(`#${$this.data('target')}`).text();
     const poster = $this.data('poster-username');
     const reference = $this.data('reference');
