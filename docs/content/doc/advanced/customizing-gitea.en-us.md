@@ -282,7 +282,7 @@ To add custom .gitignore, add a file with existing [.gitignore rules](https://gi
 
 ### Labels
 
-To add a custom label set, add a file that follows the [yaml label format](https://github.com/go-gitea/gitea/blob/main/options/label/Advanced.yaml) to `$GITEA_CUSTOM/options/label`
+To add a custom label set, add a file that follows the [YAML label format](https://github.com/go-gitea/gitea/blob/main/options/label/Advanced.yaml) to `$GITEA_CUSTOM/options/label`:
 
 ```
 labels:
