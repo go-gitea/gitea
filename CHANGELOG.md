@@ -6,14 +6,14 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 ## [1.18.5](https://github.com/go-gitea/gitea/releases/tag/v1.18.5) - 2023-02-21
 
+* ENHANCEMENTS
+  * Hide 2FA status from other members in organization members list (#22999) (#23023)
 * BUGFIXES
   * Add force_merge to merge request and fix checking mergable (#23010) (#23032)
   * Use `--message=%s` for git commit message (#23028) (#23029)
   * Render access log template as text instead of HTML (#23013) (#23025)
   * Fix the Manually Merged form (#23015) (#23017)
   * Use beforeCommit instead of baseCommit (#22949) (#22996)
-* MISC
-  * Hide 2FA status from other members in organization members list (#22999) (#23023)
 
 ## [1.18.4](https://github.com/go-gitea/gitea/releases/tag/1.18.4) - 2023-02-20
 
