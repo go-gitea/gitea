@@ -85,6 +85,8 @@ func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		if entries[e].IsDir() {
 			copy(treeURL[copyPos:], entries[e].ID.String())
 			tree.Entries[i].URL = string(treeURL)
+		} else if entries[e].IsSubModule() {
+			tree.Entries[i].URL = ""
 		} else {
 			copy(blobURL[copyPos:], entries[e].ID.String())
 			tree.Entries[i].URL = string(blobURL)
