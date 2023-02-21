@@ -2914,12 +2914,16 @@ tbody.commit-list {
   vertical-align: baseline;
 }
 
-.message-wrapper {
+.message-wrapper, .author-wrapper {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: calc(100% - 50px);
   display: inline-block;
   vertical-align: middle;
+}
+
+.author-wrapper {
+  max-width: 200px;
 }
 
 // in the commit list, messages can wrap so we can use inline
@@ -2940,6 +2944,10 @@ tbody.commit-list {
   th .message-wrapper {
     display: block;
     max-width: calc(100vw - 70px);
+  }
+
+  .author-wrapper {
+    max-width: 100px;
   }
 }
 
