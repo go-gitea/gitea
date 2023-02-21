@@ -533,7 +533,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 		if err := git.NewCommand(ctx, "commit").
 			AddArguments(signArgs...).
 			AddOptionFormat("--author='%s <%s>'", sig.Name, sig.Email).
-			AddOptionValues("-m", message).
+			AddOptionFormat("--message=%s", message).
 			Run(&git.RunOpts{
 				Env:    env,
 				Dir:    tmpBasePath,
@@ -641,7 +641,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 
 func commitAndSignNoAuthor(ctx context.Context, pr *issues_model.PullRequest, message string, signArgs git.TrustedCmdArgs, tmpBasePath string, env []string) error {
 	var outbuf, errbuf strings.Builder
-	if err := git.NewCommand(ctx, "commit").AddArguments(signArgs...).AddOptionValues("-m", message).
+	if err := git.NewCommand(ctx, "commit").AddArguments(signArgs...).AddOptionFormat("--message=%s", message).
 		Run(&git.RunOpts{
 			Env:    env,
 			Dir:    tmpBasePath,

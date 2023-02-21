@@ -6,8 +6,8 @@ package context
 import (
 	"bytes"
 	"context"
-	"html/template"
 	"net/http"
+	"text/template"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"

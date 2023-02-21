@@ -190,6 +190,7 @@ func (f *RepoSettingForm) Validate(req *http.Request, errs binding.Errors) bindi
 // ProtectBranchForm form for changing protected branch settings
 type ProtectBranchForm struct {
 	RuleName                      string `binding:"Required"`
+	RuleID                        int64
 	EnablePush                    string
 	WhitelistUsers                string
 	WhitelistTeams                string
