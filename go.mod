@@ -103,10 +103,10 @@ require (
 	github.com/yuin/goldmark-highlighting/v2 v2.0.0-20220924101305-151362477c87
 	github.com/yuin/goldmark-meta v1.1.0
 	golang.org/x/crypto v0.4.0
-	golang.org/x/net v0.4.0
+	golang.org/x/net v0.7.0
 	golang.org/x/oauth2 v0.3.0
-	golang.org/x/sys v0.3.0
-	golang.org/x/text v0.5.0
+	golang.org/x/sys v0.5.0
+	golang.org/x/text v0.7.0
 	golang.org/x/tools v0.1.12
 	google.golang.org/grpc v1.47.0
 	google.golang.org/protobuf v1.28.1

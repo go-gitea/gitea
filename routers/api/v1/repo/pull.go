@@ -1427,8 +1427,9 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 	startCommitID := prInfo.MergeBase
 	endCommitID := headCommitID
 
-	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
+	maxLines := setting.Git.MaxGitDiffLines
 
+	// FIXME: If there are too many files in the repo, may cause some unpredictable issues.
 	diff, err := gitdiff.GetDiff(baseGitRepo,
 		&gitdiff.DiffOptions{
 			BeforeCommitID:     startCommitID,
@@ -1436,7 +1437,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 			SkipTo:             ctx.FormString("skip-to"),
 			MaxLines:           maxLines,
 			MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
-			MaxFiles:           maxFiles,
+			MaxFiles:           -1, // GetDiff() will return all files
 			WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.FormString("whitespace")),
 		})
 	if err != nil {
@@ -1459,6 +1460,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 	if lenFiles < 0 {
 		lenFiles = 0
 	}
+
 	apiFiles := make([]*api.ChangedFile, 0, lenFiles)
 	for i := start; i < end; i++ {
 		apiFiles = append(apiFiles, convert.ToChangedFile(diff.Files[i], pr.HeadRepo, endCommitID))
