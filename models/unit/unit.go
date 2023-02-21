@@ -154,7 +154,7 @@ func LoadUnitConfig() {
 	DisabledRepoUnits = FindUnitTypes(setting.Repository.DisabledRepoUnits...)
 	// Check that must units are not disabled
 	for i, disabledU := range DisabledRepoUnits {
-		if !disabledU.CanDisable() {
+		if !disabledU.CanDisable() || disabledU.IsInvalid() {
 			log.Warn("Not allowed to global disable unit %s", disabledU.String())
 			DisabledRepoUnits = append(DisabledRepoUnits[:i], DisabledRepoUnits[i+1:]...)
 		}
@@ -174,6 +174,11 @@ func (u Type) UnitGlobalDisabled() bool {
 		}
 	}
 	return false
+}
+
+// IsInvalid checks if this unit type is invalid.
+func (u *Type) IsInvalid() bool {
+	return *u == TypeInvalid
 }
 
 // CanDisable checks if this unit type can be disabled.
