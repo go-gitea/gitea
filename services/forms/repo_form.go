@@ -160,6 +160,7 @@ type RepoSettingForm struct {
 	EnableAutodetectManualMerge           bool
 	PullsAllowRebaseUpdate                bool
 	DefaultDeleteBranchAfterMerge         bool
+	DefaultAllowMaintainerEdit            bool
 	EnableTimetracker                     bool
 	AllowOnlyContributorsToTrackTime      bool
 	EnableIssueDependencies               bool
@@ -189,6 +190,7 @@ func (f *RepoSettingForm) Validate(req *http.Request, errs binding.Errors) bindi
 // ProtectBranchForm form for changing protected branch settings
 type ProtectBranchForm struct {
 	RuleName                      string `binding:"Required"`
+	RuleID                        int64
 	EnablePush                    string
 	WhitelistUsers                string
 	WhitelistTeams                string
@@ -563,6 +565,7 @@ func (f *CreateMilestoneForm) Validate(req *http.Request, errs binding.Errors) b
 type CreateLabelForm struct {
 	ID          int64
 	Title       string `binding:"Required;MaxSize(50)" locale:"repo.issues.label_title"`
+	Exclusive   bool   `form:"exclusive"`
 	Description string `binding:"MaxSize(200)" locale:"repo.issues.label_description"`
 	Color       string `binding:"Required;MaxSize(7)" locale:"repo.issues.label_color"`
 }

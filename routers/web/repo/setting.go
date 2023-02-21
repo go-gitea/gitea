@@ -529,6 +529,7 @@ func SettingsPost(ctx *context.Context) {
 					AllowRebaseUpdate:             form.PullsAllowRebaseUpdate,
 					DefaultDeleteBranchAfterMerge: form.DefaultDeleteBranchAfterMerge,
 					DefaultMergeStyle:             repo_model.MergeStyle(form.PullsDefaultMergeStyle),
+					DefaultAllowMaintainerEdit:    form.DefaultAllowMaintainerEdit,
 				},
 			})
 		} else if !unit_model.TypePullRequests.UnitGlobalDisabled() {
@@ -649,7 +650,7 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		if err := repo.GetOwner(ctx); err != nil {
+		if err := repo.LoadOwner(ctx); err != nil {
 			ctx.ServerError("Convert Fork", err)
 			return
 		}

@@ -458,10 +458,14 @@ var migrations = []Migration{
 	NewMigration("Add actions tables", v1_19.AddActionsTables),
 	// v241 -> v242
 	NewMigration("Add card_type column to project table", v1_19.AddCardTypeToProjectTable),
-
-	// Gitea 1.19.0 ends at v242
-
 	// v242 -> v243
+	NewMigration("Alter gpg_key_import content TEXT field to MEDIUMTEXT", v1_19.AlterPublicGPGKeyImportContentFieldToMediumText),
+	// v243 -> v244
+	NewMigration("Add exclusive label", v1_19.AddExclusiveLabel),
+
+	// Gitea 1.19.0 ends at v244
+
+	// v244 -> v245
 	NewMigration("Add is_internal column to package", v1_20.AddIsInternalColumnToPackage),
 }
 

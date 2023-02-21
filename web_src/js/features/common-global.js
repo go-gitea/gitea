@@ -8,6 +8,7 @@ import {attachCheckboxAria, attachDropdownAria} from './aria.js';
 import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
 import {initTooltip} from '../modules/tippy.js';
 import {svg} from '../svg.js';
+import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 
 const {appUrl, csrfToken} = window.config;
 
@@ -118,7 +119,7 @@ export function initGlobalCommon() {
   $('.tabable.menu .item').tab();
 
   $('.toggle.button').on('click', function () {
-    $($(this).data('target')).slideToggle(100);
+    toggleElem($($(this).data('target')));
   });
 
   // make table <tr> and <td> elements clickable like a link
@@ -172,7 +173,7 @@ export function initGlobalDropzone() {
           // Create a "Copy Link" element, to conveniently copy the image
           // or file link as Markdown to the clipboard
           const copyLinkElement = document.createElement('div');
-          copyLinkElement.className = 'tc';
+          copyLinkElement.className = 'gt-tc';
           // The a element has a hardcoded cursor: pointer because the default is overridden by .dropzone
           copyLinkElement.innerHTML = `<a href="#" style="cursor: pointer;">${svg('octicon-copy', 14, 'copy link')} Copy link</a>`;
           copyLinkElement.addEventListener('click', (e) => {
@@ -317,7 +318,7 @@ export function initGlobalLinkActions() {
 
 export function initGlobalButtons() {
   $('.show-panel.button').on('click', function () {
-    $($(this).data('panel')).show();
+    showElem($(this).data('panel'));
   });
 
   $('.hide-panel.button').on('click', function (event) {
@@ -325,12 +326,12 @@ export function initGlobalButtons() {
     event.preventDefault();
     let sel = $(this).attr('data-panel');
     if (sel) {
-      $(sel).hide();
+      hideElem($(sel));
       return;
     }
     sel = $(this).attr('data-panel-closest');
     if (sel) {
-      $(this).closest(sel).hide();
+      hideElem($(this).closest(sel));
       return;
     }
     // should never happen, otherwise there is a bug in code

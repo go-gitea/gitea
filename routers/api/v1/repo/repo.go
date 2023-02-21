@@ -201,7 +201,7 @@ func Search(ctx *context.APIContext) {
 
 	results := make([]*api.Repository, len(repos))
 	for i, repo := range repos {
-		if err = repo.GetOwner(ctx); err != nil {
+		if err = repo.LoadOwner(ctx); err != nil {
 			ctx.JSON(http.StatusInternalServerError, api.SearchError{
 				OK:    false,
 				Error: err.Error(),
@@ -863,6 +863,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 					AllowRebaseUpdate:             true,
 					DefaultDeleteBranchAfterMerge: false,
 					DefaultMergeStyle:             repo_model.MergeStyleMerge,
+					DefaultAllowMaintainerEdit:    false,
 				}
 			} else {
 				config = unit.PullRequestsConfig()
@@ -897,6 +898,9 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			}
 			if opts.DefaultMergeStyle != nil {
 				config.DefaultMergeStyle = repo_model.MergeStyle(*opts.DefaultMergeStyle)
+			}
+			if opts.DefaultAllowMaintainerEdit != nil {
+				config.DefaultAllowMaintainerEdit = *opts.DefaultAllowMaintainerEdit
 			}
 
 			units = append(units, repo_model.RepoUnit{
