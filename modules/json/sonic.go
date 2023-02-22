@@ -1,8 +1,8 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-//go:build !exp_json
-// +build !exp_json
+//go:build exp_json
+// +build exp_json
 
 package json
 
@@ -13,7 +13,9 @@ import (
 	"encoding/json" //nolint:depguard
 	"io"
 
-	jsoniter "github.com/json-iterator/go"
+	"github.com/bytedance/sonic"
+	"github.com/bytedance/sonic/decoder"
+	"github.com/bytedance/sonic/encoder"
 )
 
 // Encoder represents an encoder for json
@@ -37,10 +39,10 @@ type Interface interface {
 
 var (
 	// DefaultJSONHandler default json handler
-	DefaultJSONHandler Interface = JSONiter{jsoniter.ConfigCompatibleWithStandardLibrary}
+	DefaultJSONHandler Interface = Sonic{}
 
 	_ Interface = StdJSON{}
-	_ Interface = JSONiter{}
+	_ Interface = Sonic{}
 )
 
 // StdJSON implements Interface via encoding/json
@@ -48,22 +50,22 @@ type StdJSON struct{}
 
 // Marshal implements Interface
 func (StdJSON) Marshal(v interface{}) ([]byte, error) {
-	return json.Marshal(v)
+	return sonic.Marshal(v)
 }
 
 // Unmarshal implements Interface
 func (StdJSON) Unmarshal(data []byte, v interface{}) error {
-	return json.Unmarshal(data, v)
+	return sonic.Unmarshal(data, v)
 }
 
 // NewEncoder implements Interface
 func (StdJSON) NewEncoder(writer io.Writer) Encoder {
-	return json.NewEncoder(writer)
+	return encoder.NewStreamEncoder(writer)
 }
 
 // NewDecoder implements Interface
 func (StdJSON) NewDecoder(reader io.Reader) Decoder {
-	return json.NewDecoder(reader)
+	return decoder.NewStreamDecoder(reader)
 }
 
 // Indent implements Interface
@@ -71,33 +73,33 @@ func (StdJSON) Indent(dst *bytes.Buffer, src []byte, prefix, indent string) erro
 	return json.Indent(dst, src, prefix, indent)
 }
 
-// JSONiter implements Interface via jsoniter
-type JSONiter struct {
-	jsoniter.API
+// Sonic implements Interface via jsoniter
+type Sonic struct {
+	sonic.API
 }
 
 // Marshal implements Interface
-func (j JSONiter) Marshal(v interface{}) ([]byte, error) {
-	return j.API.Marshal(v)
+func (s Sonic) Marshal(v interface{}) ([]byte, error) {
+	return s.Marshal(v)
 }
 
 // Unmarshal implements Interface
-func (j JSONiter) Unmarshal(data []byte, v interface{}) error {
-	return j.API.Unmarshal(data, v)
+func (s Sonic) Unmarshal(data []byte, v interface{}) error {
+	return s.Unmarshal(data, v)
 }
 
 // NewEncoder implements Interface
-func (j JSONiter) NewEncoder(writer io.Writer) Encoder {
-	return j.API.NewEncoder(writer)
+func (s Sonic) NewEncoder(writer io.Writer) Encoder {
+	return s.NewEncoder(writer)
 }
 
 // NewDecoder implements Interface
-func (j JSONiter) NewDecoder(reader io.Reader) Decoder {
-	return j.API.NewDecoder(reader)
+func (s Sonic) NewDecoder(reader io.Reader) Decoder {
+	return s.NewDecoder(reader)
 }
 
 // Indent implements Interface, since jsoniter don't support Indent, just use encoding/json's
-func (j JSONiter) Indent(dst *bytes.Buffer, src []byte, prefix, indent string) error {
+func (s Sonic) Indent(dst *bytes.Buffer, src []byte, prefix, indent string) error {
 	return json.Indent(dst, src, prefix, indent)
 }
 
