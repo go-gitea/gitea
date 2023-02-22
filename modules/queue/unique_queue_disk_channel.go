@@ -103,7 +103,7 @@ func NewPersistableChannelUniqueQueue(handle HandlerFunc, cfg, exemplar interfac
 		for _, datum := range data {
 			err := queue.Push(datum)
 			if err != nil && err != ErrAlreadyInQueue {
-				log.Error("Unable push to channelled queue: %v", err)
+				log.Error("Unable push to channelled queue: %w", err)
 			}
 		}
 		return nil
@@ -192,14 +192,14 @@ func (q *PersistableChannelUniqueQueue) Run(atShutdown, atTerminate func(func())
 			for _, datum := range data {
 				err := q.Push(datum)
 				if err != nil && err != ErrAlreadyInQueue {
-					log.Error("Unable push to channelled queue: %v", err)
+					log.Error("Unable push to channelled queue: %w", err)
 				}
 			}
 			return nil
 		}, q.channelQueue.exemplar)
 		q.lock.Unlock()
 		if err != nil {
-			log.Fatal("Unable to create internal queue for %s Error: %v", q.Name(), err)
+			log.Fatal("Unable to create internal queue for %s Error: %w", q.Name(), err)
 			return
 		}
 	} else {

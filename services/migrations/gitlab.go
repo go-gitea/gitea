@@ -82,7 +82,7 @@ func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, username, passw
 	}
 
 	if err != nil {
-		log.Trace("Error logging into gitlab: %v", err)
+		log.Trace("Error logging into gitlab: %w", err)
 		return nil, err
 	}
 
@@ -104,7 +104,7 @@ func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, username, passw
 		repoPath = strings.Join(pathParts, "/")
 	}
 	if err != nil {
-		log.Trace("Error could not get gitlab version: %v", err)
+		log.Trace("Error could not get gitlab version: %w", err)
 		return nil, err
 	}
 
@@ -113,7 +113,7 @@ func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, username, passw
 	// Grab and store project/repo ID here, due to issues using the URL escaped path
 	gr, _, err := gitlabClient.Projects.GetProject(repoPath, nil, nil, gitlab.WithContext(ctx))
 	if err != nil {
-		log.Trace("Error retrieving project: %v", err)
+		log.Trace("Error retrieving project: %w", err)
 		return nil, err
 	}
 

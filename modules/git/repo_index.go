@@ -55,7 +55,7 @@ func (repo *Repository) ReadTreeToTemporaryIndex(treeish string) (filename, tmpD
 	cancel = func() {
 		err := util.RemoveAll(tmpDir)
 		if err != nil {
-			log.Error("failed to remove tmp index file: %v", err)
+			log.Error("failed to remove tmp index file: %w", err)
 		}
 	}
 	err = repo.ReadTreeToIndex(treeish, filename)

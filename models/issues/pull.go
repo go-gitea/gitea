@@ -264,9 +264,9 @@ func (pr *PullRequest) String() string {
 func (pr *PullRequest) MustHeadUserName(ctx context.Context) string {
 	if err := pr.LoadHeadRepo(ctx); err != nil {
 		if !repo_model.IsErrRepoNotExist(err) {
-			log.Error("LoadHeadRepo: %v", err)
+			log.Error("LoadHeadRepo: %w", err)
 		} else {
-			log.Warn("LoadHeadRepo %d but repository does not exist: %v", pr.HeadRepoID, err)
+			log.Warn("LoadHeadRepo %d but repository does not exist: %w", pr.HeadRepoID, err)
 		}
 		return ""
 	}
@@ -370,7 +370,7 @@ func (pr *PullRequest) GetApprovalCounts(ctx context.Context) ([]*ReviewCount, e
 func (pr *PullRequest) GetApprovers() string {
 	stringBuilder := strings.Builder{}
 	if err := pr.getReviewedByLines(&stringBuilder); err != nil {
-		log.Error("Unable to getReviewedByLines: Error: %v", err)
+		log.Error("Unable to getReviewedByLines: Error: %w", err)
 		return ""
 	}
 
@@ -397,7 +397,7 @@ func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
 		OfficialOnly: setting.Repository.PullRequest.DefaultMergeMessageOfficialApproversOnly,
 	})
 	if err != nil {
-		log.Error("Unable to FindReviews for PR ID %d: %v", pr.ID, err)
+		log.Error("Unable to FindReviews for PR ID %d: %w", pr.ID, err)
 		return err
 	}
 
@@ -409,7 +409,7 @@ func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
 		}
 
 		if err := review.LoadReviewer(ctx); err != nil && !user_model.IsErrUserNotExist(err) {
-			log.Error("Unable to LoadReviewer[%d] for PR ID %d : %v", review.ReviewerID, pr.ID, err)
+			log.Error("Unable to LoadReviewer[%d] for PR ID %d : %w", review.ReviewerID, pr.ID, err)
 			return err
 		} else if review.Reviewer == nil {
 			continue
@@ -694,7 +694,7 @@ func (pr *PullRequest) UpdateColsIfNotMerged(ctx context.Context, cols ...string
 // Issue must be set before this method can be called.
 func (pr *PullRequest) IsWorkInProgress() bool {
 	if err := pr.LoadIssue(db.DefaultContext); err != nil {
-		log.Error("LoadIssue: %v", err)
+		log.Error("LoadIssue: %w", err)
 		return false
 	}
 	return HasWorkInProgressPrefix(pr.Issue.Title)
@@ -719,7 +719,7 @@ func (pr *PullRequest) IsFilesConflicted() bool {
 // It returns an empty string when none were found
 func (pr *PullRequest) GetWorkInProgressPrefix(ctx context.Context) string {
 	if err := pr.LoadIssue(ctx); err != nil {
-		log.Error("LoadIssue: %v", err)
+		log.Error("LoadIssue: %w", err)
 		return ""
 	}
 
@@ -762,7 +762,7 @@ func GetPullRequestsByHeadBranch(ctx context.Context, headBranch string, headRep
 // GetBaseBranchLink returns the relative URL of the base branch
 func (pr *PullRequest) GetBaseBranchLink() string {
 	if err := pr.LoadBaseRepo(db.DefaultContext); err != nil {
-		log.Error("LoadBaseRepo: %v", err)
+		log.Error("LoadBaseRepo: %w", err)
 		return ""
 	}
 	if pr.BaseRepo == nil {
@@ -778,7 +778,7 @@ func (pr *PullRequest) GetHeadBranchLink() string {
 	}
 
 	if err := pr.LoadHeadRepo(db.DefaultContext); err != nil {
-		log.Error("LoadHeadRepo: %v", err)
+		log.Error("LoadHeadRepo: %w", err)
 		return ""
 	}
 	if pr.HeadRepo == nil {
@@ -825,7 +825,7 @@ func GetGrantedApprovalsCount(ctx context.Context, protectBranch *git_model.Prot
 	}
 	approvals, err := sess.Count(new(Review))
 	if err != nil {
-		log.Error("GetGrantedApprovalsCount: %v", err)
+		log.Error("GetGrantedApprovalsCount: %w", err)
 		return 0
 	}
 
@@ -843,7 +843,7 @@ func MergeBlockedByRejectedReview(ctx context.Context, protectBranch *git_model.
 		And("dismissed = ?", false).
 		Exist(new(Review))
 	if err != nil {
-		log.Error("MergeBlockedByRejectedReview: %v", err)
+		log.Error("MergeBlockedByRejectedReview: %w", err)
 		return true
 	}
 
@@ -861,7 +861,7 @@ func MergeBlockedByOfficialReviewRequests(ctx context.Context, protectBranch *gi
 		And("official = ?", true).
 		Exist(new(Review))
 	if err != nil {
-		log.Error("MergeBlockedByOfficialReviewRequests: %v", err)
+		log.Error("MergeBlockedByOfficialReviewRequests: %w", err)
 		return true
 	}
 

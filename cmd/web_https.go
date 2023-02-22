@@ -167,19 +167,19 @@ func runHTTPS(network, listenAddr, name, certFile, keyFile string, m http.Handle
 
 	certPEMBlock, err := os.ReadFile(certFile)
 	if err != nil {
-		log.Error("Failed to load https cert file %s for %s:%s: %v", certFile, network, listenAddr, err)
+		log.Error("Failed to load https cert file %s for %s:%s: %w", certFile, network, listenAddr, err)
 		return err
 	}
 
 	keyPEMBlock, err := os.ReadFile(keyFile)
 	if err != nil {
-		log.Error("Failed to load https key file %s for %s:%s: %v", keyFile, network, listenAddr, err)
+		log.Error("Failed to load https key file %s for %s:%s: %w", keyFile, network, listenAddr, err)
 		return err
 	}
 
 	tlsConfig.Certificates[0], err = tls.X509KeyPair(certPEMBlock, keyPEMBlock)
 	if err != nil {
-		log.Error("Failed to create certificate from cert file %s and key file %s for %s:%s: %v", certFile, keyFile, network, listenAddr, err)
+		log.Error("Failed to create certificate from cert file %s and key file %s for %s:%s: %w", certFile, keyFile, network, listenAddr, err)
 		return err
 	}
 

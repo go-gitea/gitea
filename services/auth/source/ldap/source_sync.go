@@ -31,7 +31,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 	// Find all users with this login type - FIXME: Should this be an iterator?
 	users, err := user_model.GetUsersBySource(source.authSource)
 	if err != nil {
-		log.Error("SyncExternalUsers: %v", err)
+		log.Error("SyncExternalUsers: %w", err)
 		return err
 	}
 	select {
@@ -80,7 +80,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			if sshKeysNeedUpdate {
 				err = asymkey_model.RewriteAllPublicKeys()
 				if err != nil {
-					log.Error("RewriteAllPublicKeys: %v", err)
+					log.Error("RewriteAllPublicKeys: %w", err)
 				}
 			}
 			return db.ErrCancelledf("During update of %s before completed update of users", source.authSource.Name)
@@ -125,7 +125,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 			err = user_model.CreateUser(usr, overwriteDefault)
 			if err != nil {
-				log.Error("SyncExternalUsers[%s]: Error creating user %s: %v", source.authSource.Name, su.Username, err)
+				log.Error("SyncExternalUsers[%s]: Error creating user %s: %w", source.authSource.Name, su.Username, err)
 			}
 
 			if err == nil && isAttributeSSHPublicKeySet {
@@ -168,7 +168,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 				err = user_model.UpdateUser(ctx, usr, emailChanged, "full_name", "email", "is_admin", "is_restricted", "is_active")
 				if err != nil {
-					log.Error("SyncExternalUsers[%s]: Error updating user %s: %v", source.authSource.Name, usr.Name, err)
+					log.Error("SyncExternalUsers[%s]: Error updating user %s: %w", source.authSource.Name, usr.Name, err)
 				}
 			}
 
@@ -181,7 +181,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 		// Synchronize LDAP groups with organization and team memberships
 		if source.GroupsEnabled && (source.GroupTeamMap != "" || source.GroupTeamMapRemoval) {
 			if err := source_service.SyncGroupsToTeamsCached(ctx, usr, su.Groups, groupTeamMapping, source.GroupTeamMapRemoval, orgCache, teamCache); err != nil {
-				log.Error("SyncGroupsToTeamsCached: %v", err)
+				log.Error("SyncGroupsToTeamsCached: %w", err)
 			}
 		}
 	}
@@ -190,7 +190,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 	if sshKeysNeedUpdate {
 		err = asymkey_model.RewriteAllPublicKeys()
 		if err != nil {
-			log.Error("RewriteAllPublicKeys: %v", err)
+			log.Error("RewriteAllPublicKeys: %w", err)
 		}
 	}
 
@@ -214,7 +214,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				usr.IsActive = false
 				err = user_model.UpdateUserCols(ctx, usr, "is_active")
 				if err != nil {
-					log.Error("SyncExternalUsers[%s]: Error deactivating user %s: %v", source.authSource.Name, usr.Name, err)
+					log.Error("SyncExternalUsers[%s]: Error deactivating user %s: %w", source.authSource.Name, usr.Name, err)
 				}
 			}
 		}

@@ -65,7 +65,7 @@ func GetRepoInitFile(tp, name string) ([]byte, error) {
 	customPath := path.Join(setting.CustomPath, relPath)
 	isFile, err := util.IsFile(customPath)
 	if err != nil {
-		log.Error("Unable to check if %s is a file. Error: %v", customPath, err)
+		log.Error("Unable to check if %s is a file. Error: %w", customPath, err)
 	}
 	if isFile {
 		return os.ReadFile(customPath)
@@ -156,17 +156,17 @@ func LoadRepoConfig() {
 	for i, t := range types {
 		files, err := options.Dir(t)
 		if err != nil {
-			log.Fatal("Failed to get %s files: %v", t, err)
+			log.Fatal("Failed to get %s files: %w", t, err)
 		}
 		customPath := path.Join(setting.CustomPath, "options", t)
 		isDir, err := util.IsDir(customPath)
 		if err != nil {
-			log.Fatal("Failed to get custom %s files: %v", t, err)
+			log.Fatal("Failed to get custom %s files: %w", t, err)
 		}
 		if isDir {
 			customFiles, err := util.StatDir(customPath)
 			if err != nil {
-				log.Fatal("Failed to get custom %s files: %v", t, err)
+				log.Fatal("Failed to get custom %s files: %w", t, err)
 			}
 
 			for _, f := range customFiles {
@@ -192,7 +192,7 @@ func LoadRepoConfig() {
 	for _, templateFile := range LabelTemplatesFiles {
 		labels, err := LoadLabelsFormatted(templateFile)
 		if err != nil {
-			log.Error("Failed to load labels: %v", err)
+			log.Error("Failed to load labels: %w", err)
 		}
 		LabelTemplates[templateFile] = labels
 	}
@@ -230,7 +230,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 	if stdout, _, err := git.NewCommand(ctx, "clone").AddDynamicArguments(repoPath, tmpDir).
 		SetDescription(fmt.Sprintf("prepareRepoCommit (git clone): %s to %s", repoPath, tmpDir)).
 		RunStdString(&git.RunOpts{Dir: "", Env: env}); err != nil {
-		log.Error("Failed to clone from %v into %s: stdout: %s\nError: %v", repo, tmpDir, stdout, err)
+		log.Error("Failed to clone from %v into %s: stdout: %s\nError: %w", repo, tmpDir, stdout, err)
 		return fmt.Errorf("git clone: %w", err)
 	}
 
@@ -251,7 +251,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 	res, err := vars.Expand(string(data), match)
 	if err != nil {
 		// here we could just log the error and continue the rendering
-		log.Error("unable to expand template vars for repo README: %s, err: %v", opts.Readme, err)
+		log.Error("unable to expand template vars for repo README: %s, err: %w", opts.Readme, err)
 	}
 	if err = os.WriteFile(filepath.Join(tmpDir, "README.md"),
 		[]byte(res), 0o644); err != nil {
@@ -312,7 +312,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 	if stdout, _, err := git.NewCommand(ctx, "add", "--all").
 		SetDescription(fmt.Sprintf("initRepoCommit (git add): %s", tmpPath)).
 		RunStdString(&git.RunOpts{Dir: tmpPath}); err != nil {
-		log.Error("git add --all failed: Stdout: %s\nError: %v", stdout, err)
+		log.Error("git add --all failed: Stdout: %s\nError: %w", stdout, err)
 		return fmt.Errorf("git add --all: %w", err)
 	}
 
@@ -340,7 +340,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 	if stdout, _, err := cmd.
 		SetDescription(fmt.Sprintf("initRepoCommit (git commit): %s", tmpPath)).
 		RunStdString(&git.RunOpts{Dir: tmpPath, Env: env}); err != nil {
-		log.Error("Failed to commit: %v: Stdout: %s\nError: %v", cmd.String(), stdout, err)
+		log.Error("Failed to commit: %v: Stdout: %s\nError: %w", cmd.String(), stdout, err)
 		return fmt.Errorf("git commit: %w", err)
 	}
 
@@ -351,7 +351,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 	if stdout, _, err := git.NewCommand(ctx, "push", "origin").AddDynamicArguments("HEAD:" + defaultBranch).
 		SetDescription(fmt.Sprintf("initRepoCommit (git push): %s", tmpPath)).
 		RunStdString(&git.RunOpts{Dir: tmpPath, Env: InternalPushingEnvironment(u, repo)}); err != nil {
-		log.Error("Failed to push back to HEAD: Stdout: %s\nError: %v", stdout, err)
+		log.Error("Failed to push back to HEAD: Stdout: %s\nError: %w", stdout, err)
 		return fmt.Errorf("git push: %w", err)
 	}
 
@@ -363,7 +363,7 @@ func checkInitRepository(ctx context.Context, owner, name string) (err error) {
 	repoPath := repo_model.RepoPath(owner, name)
 	isExist, err := util.IsExist(repoPath)
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+		log.Error("Unable to check if %s exists. Error: %w", repoPath, err)
 		return err
 	}
 	if isExist {
@@ -396,7 +396,7 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 		}
 		defer func() {
 			if err := util.RemoveAll(tmpDir); err != nil {
-				log.Warn("Unable to remove temporary directory: %s: Error: %v", tmpDir, err)
+				log.Warn("Unable to remove temporary directory: %s: Error: %w", tmpDir, err)
 			}
 		}()
 

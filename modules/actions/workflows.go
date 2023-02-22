@@ -63,12 +63,12 @@ func DetectWorkflows(commit *git.Commit, triggedEvent webhook_module.HookEventTy
 		}
 		workflow, err := model.ReadWorkflow(bytes.NewReader(content))
 		if err != nil {
-			log.Warn("ignore invalid workflow %q: %v", entry.Name(), err)
+			log.Warn("ignore invalid workflow %q: %w", entry.Name(), err)
 			continue
 		}
 		events, err := jobparser.ParseRawOn(&workflow.RawOn)
 		if err != nil {
-			log.Warn("ignore invalid workflow %q: %v", entry.Name(), err)
+			log.Warn("ignore invalid workflow %q: %w", entry.Name(), err)
 			continue
 		}
 		for _, evt := range events {
@@ -114,7 +114,7 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 			case "paths":
 				filesChanged, err := commit.GetFilesChangedSinceCommit(pushPayload.Before)
 				if err != nil {
-					log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
+					log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %w", commit.ID.String(), err)
 				} else {
 					for _, val := range vals {
 						matched := false
@@ -170,7 +170,7 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 			case "paths":
 				filesChanged, err := commit.GetFilesChangedSinceCommit(prPayload.PullRequest.Base.Ref)
 				if err != nil {
-					log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
+					log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %w", commit.ID.String(), err)
 				} else {
 					for _, val := range vals {
 						matched := false

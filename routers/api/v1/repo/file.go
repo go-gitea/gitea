@@ -158,7 +158,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	}
 
 	if err := dataRc.Close(); err != nil {
-		log.Error("Error whilst closing blob %s reader in %-v. Error: %v", blob.ID, ctx.Context.Repo.Repository, err)
+		log.Error("Error whilst closing blob %s reader in %-v. Error: %w", blob.ID, ctx.Context.Repo.Repository, err)
 	}
 
 	// Check if the blob represents a pointer

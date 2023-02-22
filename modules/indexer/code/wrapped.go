@@ -60,7 +60,7 @@ func (w *wrappedIndexer) get() (Indexer, error) {
 func (w *wrappedIndexer) SetAvailabilityChangeCallback(callback func(bool)) {
 	indexer, err := w.get()
 	if err != nil {
-		log.Error("Failed to get indexer: %v", err)
+		log.Error("Failed to get indexer: %w", err)
 		return
 	}
 	indexer.SetAvailabilityChangeCallback(callback)
@@ -70,7 +70,7 @@ func (w *wrappedIndexer) SetAvailabilityChangeCallback(callback func(bool)) {
 func (w *wrappedIndexer) Ping() bool {
 	indexer, err := w.get()
 	if err != nil {
-		log.Warn("Failed to get indexer: %v", err)
+		log.Warn("Failed to get indexer: %w", err)
 		return false
 	}
 	return indexer.Ping()

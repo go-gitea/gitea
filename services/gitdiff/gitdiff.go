@@ -1258,7 +1258,7 @@ outer:
 	if len(filesChangedSinceLastDiff) > 0 {
 		err := pull_model.UpdateReviewState(ctx, review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff)
 		if err != nil {
-			log.Warn("Could not update review for user %d, pull %d, commit %s and the changed files %v: %v", review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff, err)
+			log.Warn("Could not update review for user %d, pull %d, commit %s and the changed files %v: %w", review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff, err)
 			return nil, err
 		}
 	}
@@ -1271,7 +1271,7 @@ func CommentAsDiff(c *issues_model.Comment) (*Diff, error) {
 	diff, err := ParsePatch(setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.Patch), "")
 	if err != nil {
-		log.Error("Unable to parse patch: %v", err)
+		log.Error("Unable to parse patch: %w", err)
 		return nil, err
 	}
 	if len(diff.Files) == 0 {
@@ -1296,7 +1296,7 @@ func CommentMustAsDiff(c *issues_model.Comment) *Diff {
 	}()
 	diff, err := CommentAsDiff(c)
 	if err != nil {
-		log.Warn("CommentMustAsDiff: %v", err)
+		log.Warn("CommentMustAsDiff: %w", err)
 	}
 	return diff
 }

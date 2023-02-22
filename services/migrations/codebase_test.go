@@ -38,7 +38,7 @@ func TestCodebaseDownloadRepo(t *testing.T) {
 		AuthPassword: apiPassword,
 	})
 	if err != nil {
-		t.Fatalf("Error creating Codebase downloader: %v", err)
+		t.Fatalf("Error creating Codebase downloader: %w", err)
 	}
 	repo, err := downloader.GetRepoInfo()
 	assert.NoError(t, err)

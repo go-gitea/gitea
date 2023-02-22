@@ -62,7 +62,7 @@ func runACME(listenAddr string, m http.Handler) error {
 		var err error
 		certPool, err = getCARoot(setting.AcmeCARoot)
 		if err != nil {
-			log.Warn("Failed to parse CA Root certificate, using default CA trust: %v", err)
+			log.Warn("Failed to parse CA Root certificate, using default CA trust: %w", err)
 		}
 	}
 	myACME := certmagic.NewACMEIssuer(magic, certmagic.ACMEIssuer{
@@ -114,7 +114,7 @@ func runACME(listenAddr string, m http.Handler) error {
 			// all traffic coming into HTTP will be redirect to HTTPS automatically (LE HTTP-01 validation happens here)
 			err := runHTTP("tcp", setting.HTTPAddr+":"+setting.PortToRedirect, "Let's Encrypt HTTP Challenge", myACME.HTTPChallengeHandler(http.HandlerFunc(runLetsEncryptFallbackHandler)), setting.RedirectorUseProxyProtocol)
 			if err != nil {
-				log.Fatal("Failed to start the Let's Encrypt handler on port %s: %v", setting.PortToRedirect, err)
+				log.Fatal("Failed to start the Let's Encrypt handler on port %s: %w", setting.PortToRedirect, err)
 			}
 		}()
 	}

@@ -139,7 +139,7 @@ func MakeManifestData(appName, appURL, absoluteAssetURL string) []byte {
 		},
 	})
 	if err != nil {
-		log.Error("unable to marshal manifest JSON. Error: %v", err)
+		log.Error("unable to marshal manifest JSON. Error: %w", err)
 		return make([]byte, 0)
 	}
 
@@ -150,7 +150,7 @@ func MakeManifestData(appName, appURL, absoluteAssetURL string) []byte {
 func MakeAbsoluteAssetURL(appURL, staticURLPrefix string) string {
 	parsedPrefix, err := url.Parse(strings.TrimSuffix(staticURLPrefix, "/"))
 	if err != nil {
-		log.Fatal("Unable to parse STATIC_URL_PREFIX: %v", err)
+		log.Fatal("Unable to parse STATIC_URL_PREFIX: %w", err)
 	}
 
 	if err == nil && parsedPrefix.Hostname() == "" {
@@ -353,6 +353,6 @@ func loadServerFrom(rootCfg ConfigProvider) {
 
 	HasRobotsTxt, err = util.IsFile(path.Join(CustomPath, "robots.txt"))
 	if err != nil {
-		log.Error("Unable to check if %s is a file. Error: %v", path.Join(CustomPath, "robots.txt"), err)
+		log.Error("Unable to check if %s is a file. Error: %w", path.Join(CustomPath, "robots.txt"), err)
 	}
 }

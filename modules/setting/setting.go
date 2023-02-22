@@ -117,7 +117,7 @@ func init() {
 
 	var err error
 	if AppPath, err = getAppPath(); err != nil {
-		log.Fatal("Failed to get app path: %v", err)
+		log.Fatal("Failed to get app path: %w", err)
 	}
 	AppWorkPath = getWorkPath(AppPath)
 }
@@ -144,16 +144,16 @@ func IsRunUserMatchCurrentUser(runUser string) (string, bool) {
 func createPIDFile(pidPath string) {
 	currentPid := os.Getpid()
 	if err := os.MkdirAll(filepath.Dir(pidPath), os.ModePerm); err != nil {
-		log.Fatal("Failed to create PID folder: %v", err)
+		log.Fatal("Failed to create PID folder: %w", err)
 	}
 
 	file, err := os.Create(pidPath)
 	if err != nil {
-		log.Fatal("Failed to create PID file: %v", err)
+		log.Fatal("Failed to create PID file: %w", err)
 	}
 	defer file.Close()
 	if _, err := file.WriteString(strconv.FormatInt(int64(currentPid), 10)); err != nil {
-		log.Fatal("Failed to write PID information: %v", err)
+		log.Fatal("Failed to write PID information: %w", err)
 	}
 }
 
@@ -231,7 +231,7 @@ func InitProviderAndLoadCommonSettingsForTest(extraConfigs ...string) {
 	CfgProvider = newFileProviderFromConf(CustomConf, WritePIDFile, true, PIDFile, strings.Join(extraConfigs, "\n"))
 	loadCommonSettingsFrom(CfgProvider)
 	if err := PrepareAppDataPath(); err != nil {
-		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)
+		log.Fatal("Can not prepare APP_DATA_PATH: %w", err)
 	}
 	// register the dummy hash algorithm function used in the test fixtures
 	_ = hash.Register("dummy", hash.NewDummyHasher)
@@ -250,11 +250,11 @@ func newFileProviderFromConf(customConf string, writePIDFile, allowEmpty bool, p
 
 	isFile, err := util.IsFile(customConf)
 	if err != nil {
-		log.Error("Unable to check if %s is a file. Error: %v", customConf, err)
+		log.Error("Unable to check if %s is a file. Error: %w", customConf, err)
 	}
 	if isFile {
 		if err := cfg.Append(customConf); err != nil {
-			log.Fatal("Failed to load custom conf '%s': %v", customConf, err)
+			log.Fatal("Failed to load custom conf '%s': %w", customConf, err)
 		}
 	} else if !allowEmpty {
 		log.Fatal("Unable to find configuration file: %q.\nEnsure you are running in the correct environment or set the correct configuration file with -c.", CustomConf)
@@ -262,7 +262,7 @@ func newFileProviderFromConf(customConf string, writePIDFile, allowEmpty bool, p
 
 	if extraConfig != "" {
 		if err = cfg.Append([]byte(extraConfig)); err != nil {
-			log.Fatal("Unable to append more config: %v", err)
+			log.Fatal("Unable to append more config: %w", err)
 		}
 	}
 
@@ -344,11 +344,11 @@ func CreateOrAppendToCustomConf(purpose string, callback func(cfg *ini.File)) {
 	cfg := ini.Empty()
 	isFile, err := util.IsFile(CustomConf)
 	if err != nil {
-		log.Error("Unable to check if %s is a file. Error: %v", CustomConf, err)
+		log.Error("Unable to check if %s is a file. Error: %w", CustomConf, err)
 	}
 	if isFile {
 		if err := cfg.Append(CustomConf); err != nil {
-			log.Error("failed to load custom conf %s: %v", CustomConf, err)
+			log.Error("failed to load custom conf %s: %w", CustomConf, err)
 			return
 		}
 	}
@@ -356,18 +356,18 @@ func CreateOrAppendToCustomConf(purpose string, callback func(cfg *ini.File)) {
 	callback(cfg)
 
 	if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
-		log.Fatal("failed to create '%s': %v", CustomConf, err)
+		log.Fatal("failed to create '%s': %w", CustomConf, err)
 		return
 	}
 	if err := cfg.SaveTo(CustomConf); err != nil {
-		log.Fatal("error saving to custom config: %v", err)
+		log.Fatal("error saving to custom config: %w", err)
 	}
 	log.Info("Settings for %s saved to: %q", purpose, CustomConf)
 
 	// Change permissions to be more restrictive
 	fi, err := os.Stat(CustomConf)
 	if err != nil {
-		log.Error("Failed to determine current conf file permissions: %v", err)
+		log.Error("Failed to determine current conf file permissions: %w", err)
 		return
 	}
 

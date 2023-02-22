@@ -29,7 +29,7 @@ func FixPostgresIDSequences(x *xorm.Engine) error {
 
 	sess.Engine().SetSchema("")
 	if err := sess.Table("information_schema.sequences").Cols("sequence_name").Where("sequence_name LIKE 'tmp_recreate__%_id_seq%' AND sequence_catalog = ?", setting.Database.Name).Find(&sequences); err != nil {
-		log.Error("Unable to find sequences: %v", err)
+		log.Error("Unable to find sequences: %w", err)
 		return err
 	}
 	sess.Engine().SetSchema(schema)
@@ -40,11 +40,11 @@ func FixPostgresIDSequences(x *xorm.Engine) error {
 		tableName := sequenceRegexp.FindStringSubmatch(sequence)[1]
 		newSequenceName := tableName + "_id_seq"
 		if _, err := sess.Exec(fmt.Sprintf("ALTER SEQUENCE `%s` RENAME TO `%s`", sequence, newSequenceName)); err != nil {
-			log.Error("Unable to rename %s to %s. Error: %v", sequence, newSequenceName, err)
+			log.Error("Unable to rename %s to %s. Error: %w", sequence, newSequenceName, err)
 			return err
 		}
 		if _, err := sess.Exec(fmt.Sprintf("SELECT setval('%s', COALESCE((SELECT MAX(id)+1 FROM `%s`), 1), false)", newSequenceName, tableName)); err != nil {
-			log.Error("Unable to reset sequence %s for %s. Error: %v", newSequenceName, tableName, err)
+			log.Error("Unable to reset sequence %s for %s. Error: %w", newSequenceName, tableName, err)
 			return err
 		}
 	}

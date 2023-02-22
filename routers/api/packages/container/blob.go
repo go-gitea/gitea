@@ -45,7 +45,7 @@ func saveAsPackageBlob(hsr packages_module.HashedSizeReader, pci *packages_servi
 	err = db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		pb, exists, err = packages_model.GetOrInsertBlob(ctx, pb)
 		if err != nil {
-			log.Error("Error inserting package blob: %v", err)
+			log.Error("Error inserting package blob: %w", err)
 			return err
 		}
 		// FIXME: Workaround to be removed in v1.20
@@ -59,7 +59,7 @@ func saveAsPackageBlob(hsr packages_module.HashedSizeReader, pci *packages_servi
 		}
 		if !exists {
 			if err := contentStore.Save(packages_module.BlobHash256Key(pb.HashSHA256), hsr, hsr.Size()); err != nil {
-				log.Error("Error saving package blob in content store: %v", err)
+				log.Error("Error saving package blob in content store: %w", err)
 				return err
 			}
 		}
@@ -69,7 +69,7 @@ func saveAsPackageBlob(hsr packages_module.HashedSizeReader, pci *packages_servi
 	if err != nil {
 		if !exists {
 			if err := contentStore.Delete(packages_module.BlobHash256Key(pb.HashSHA256)); err != nil {
-				log.Error("Error deleting package blob from content store: %v", err)
+				log.Error("Error deleting package blob from content store: %w", err)
 			}
 		}
 		return nil, err
@@ -109,14 +109,14 @@ func getOrCreateUploadVersion(pi *packages_service.PackageInfo) (*packages_model
 			if err == packages_model.ErrDuplicatePackage {
 				created = false
 			} else {
-				log.Error("Error inserting package: %v", err)
+				log.Error("Error inserting package: %w", err)
 				return err
 			}
 		}
 
 		if created {
 			if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypePackage, p.ID, container_module.PropertyRepository, strings.ToLower(pi.Owner.LowerName+"/"+pi.Name)); err != nil {
-				log.Error("Error setting package property: %v", err)
+				log.Error("Error setting package property: %w", err)
 				return err
 			}
 		}
@@ -131,7 +131,7 @@ func getOrCreateUploadVersion(pi *packages_service.PackageInfo) (*packages_model
 		}
 		if pv, err = packages_model.GetOrInsertVersion(ctx, pv); err != nil {
 			if err != packages_model.ErrDuplicatePackageVersion {
-				log.Error("Error inserting package: %v", err)
+				log.Error("Error inserting package: %w", err)
 				return err
 			}
 		}
@@ -160,12 +160,12 @@ func createFileForBlob(ctx context.Context, pv *packages_model.PackageVersion, p
 		if err == packages_model.ErrDuplicatePackageFile {
 			return nil
 		}
-		log.Error("Error inserting package file: %v", err)
+		log.Error("Error inserting package file: %w", err)
 		return err
 	}
 
 	if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypeFile, pf.ID, container_module.PropertyDigest, digestFromPackageBlob(pb)); err != nil {
-		log.Error("Error setting package file property: %v", err)
+		log.Error("Error setting package file property: %w", err)
 		return err
 	}
 

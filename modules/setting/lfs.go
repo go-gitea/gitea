@@ -28,7 +28,7 @@ var LFS = struct {
 func loadLFSFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("server")
 	if err := sec.MapTo(&LFS); err != nil {
-		log.Fatal("Failed to map LFS settings: %v", err)
+		log.Fatal("Failed to map LFS settings: %w", err)
 	}
 
 	lfsSec := rootCfg.Section("lfs")
@@ -57,7 +57,7 @@ func loadLFSFrom(rootCfg ConfigProvider) {
 		if err != nil || n != 32 {
 			LFS.JWTSecretBase64, err = generate.NewJwtSecretBase64()
 			if err != nil {
-				log.Fatal("Error generating JWT Secret for custom config: %v", err)
+				log.Fatal("Error generating JWT Secret for custom config: %w", err)
 				return
 			}
 

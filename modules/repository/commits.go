@@ -151,7 +151,7 @@ func (pc *PushCommits) AvatarLink(ctx context.Context, email string) string {
 		if err != nil {
 			pc.avatars[email] = avatars.GenerateEmailAvatarFastLink(ctx, email, size)
 			if !user_model.IsErrUserNotExist(err) {
-				log.Error("GetUserByEmail: %v", err)
+				log.Error("GetUserByEmail: %w", err)
 				return ""
 			}
 		} else {

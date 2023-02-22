@@ -235,7 +235,7 @@ func Test_getTxnID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := getMatrixTxnID(tt.args.payload)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("getMatrixTxnID() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("getMatrixTxnID() error = %v, wantErr %w", err, tt.wantErr)
 				return
 			}
 			assert.Equal(t, tt.want, got)

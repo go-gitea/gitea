@@ -65,7 +65,7 @@ func loadSessionFrom(rootCfg ConfigProvider) {
 	}
 	shadowConfig, err := json.Marshal(SessionConfig)
 	if err != nil {
-		log.Fatal("Can't shadow session config: %v", err)
+		log.Fatal("Can't shadow session config: %w", err)
 	}
 	SessionConfig.ProviderConfig = string(shadowConfig)
 	SessionConfig.OriginalProvider = SessionConfig.Provider

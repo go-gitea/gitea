@@ -411,7 +411,7 @@ Gitea or set your environment appropriately.`, "")
 			// We need to tell the repo to reset the default branch to master
 			err := private.SetDefaultBranch(ctx, repoUser, repoName, "master")
 			if err != nil {
-				return fail("Internal Server Error", "SetDefaultBranch failed with Error: %v", err)
+				return fail("Internal Server Error", "SetDefaultBranch failed with Error: %w", err)
 			}
 		}
 		fmt.Fprintf(out, "Processed %d references in total\n", total)
@@ -442,7 +442,7 @@ Gitea or set your environment appropriately.`, "")
 		// We need to tell the repo to reset the default branch to master
 		err := private.SetDefaultBranch(ctx, repoUser, repoName, "master")
 		if err != nil {
-			return fail("Internal Server Error", "SetDefaultBranch failed with Error: %v", err)
+			return fail("Internal Server Error", "SetDefaultBranch failed with Error: %w", err)
 		}
 	}
 	_ = dWriter.Close()
@@ -628,7 +628,7 @@ Gitea or set your environment appropriately.`, "")
 	// 3. run hook
 	resp, err := private.HookProcReceive(ctx, repoUser, repoName, hookOptions)
 	if err != nil {
-		return fail("Internal Server Error", "run proc-receive hook failed :%v", err)
+		return fail("Internal Server Error", "run proc-receive hook failed :%w", err)
 	}
 
 	// 4. response result to service
@@ -729,14 +729,14 @@ func readPktLine(in *bufio.Reader, requestType pktLineType) (*gitPktLine, error)
 	for i := 0; i < 4; i++ {
 		lengthBytes[i], err = in.ReadByte()
 		if err != nil {
-			return nil, fail("Internal Server Error", "Pkt-Line: read stdin failed : %v", err)
+			return nil, fail("Internal Server Error", "Pkt-Line: read stdin failed : %w", err)
 		}
 	}
 
 	r = new(gitPktLine)
 	r.Length, err = strconv.ParseUint(string(lengthBytes), 16, 32)
 	if err != nil {
-		return nil, fail("Internal Server Error", "Pkt-Line format is wrong :%v", err)
+		return nil, fail("Internal Server Error", "Pkt-Line format is wrong :%w", err)
 	}
 
 	if r.Length == 0 {
@@ -755,7 +755,7 @@ func readPktLine(in *bufio.Reader, requestType pktLineType) (*gitPktLine, error)
 	for i := range r.Data {
 		r.Data[i], err = in.ReadByte()
 		if err != nil {
-			return nil, fail("Internal Server Error", "Pkt-Line: read stdin failed : %v", err)
+			return nil, fail("Internal Server Error", "Pkt-Line: read stdin failed : %w", err)
 		}
 	}
 
@@ -767,10 +767,10 @@ func readPktLine(in *bufio.Reader, requestType pktLineType) (*gitPktLine, error)
 func writeFlushPktLine(out io.Writer) error {
 	l, err := out.Write([]byte("0000"))
 	if err != nil {
-		return fail("Internal Server Error", "Pkt-Line response failed: %v", err)
+		return fail("Internal Server Error", "Pkt-Line response failed: %w", err)
 	}
 	if l != 4 {
-		return fail("Internal Server Error", "Pkt-Line response failed: %v", err)
+		return fail("Internal Server Error", "Pkt-Line response failed: %w", err)
 	}
 
 	return nil
@@ -791,18 +791,18 @@ func writeDataPktLine(out io.Writer, data []byte) error {
 
 	lr, err := out.Write(tmp)
 	if err != nil {
-		return fail("Internal Server Error", "Pkt-Line response failed: %v", err)
+		return fail("Internal Server Error", "Pkt-Line response failed: %w", err)
 	}
 	if lr != 4 {
-		return fail("Internal Server Error", "Pkt-Line response failed: %v", err)
+		return fail("Internal Server Error", "Pkt-Line response failed: %w", err)
 	}
 
 	lr, err = out.Write(data)
 	if err != nil {
-		return fail("Internal Server Error", "Pkt-Line response failed: %v", err)
+		return fail("Internal Server Error", "Pkt-Line response failed: %w", err)
 	}
 	if int(length-4) != lr {
-		return fail("Internal Server Error", "Pkt-Line response failed: %v", err)
+		return fail("Internal Server Error", "Pkt-Line response failed: %w", err)
 	}
 
 	return nil

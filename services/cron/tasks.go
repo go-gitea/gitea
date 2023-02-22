@@ -83,7 +83,7 @@ func (t *Task) RunWithUser(doer *user_model.User, config Config) {
 		if err := recover(); err != nil {
 			// Recover a panic within the
 			combinedErr := fmt.Errorf("%s\n%s", err, log.Stack(2))
-			log.Error("PANIC whilst running task: %s Value: %v", t.Name, combinedErr)
+			log.Error("PANIC whilst running task: %s Value: %w", t.Name, combinedErr)
 		}
 	}()
 	graceful.GetManager().RunWithShutdownContext(func(baseCtx context.Context) {
@@ -114,7 +114,7 @@ func (t *Task) RunWithUser(doer *user_model.User, config Config) {
 			t.lock.Unlock()
 
 			if err := system_model.CreateNotice(ctx, system_model.NoticeTask, config.FormatMessage(translation.NewLocale("en-US"), t.Name, "cancelled", doerName, message)); err != nil {
-				log.Error("CreateNotice: %v", err)
+				log.Error("CreateNotice: %w", err)
 			}
 			return
 		}
@@ -127,7 +127,7 @@ func (t *Task) RunWithUser(doer *user_model.User, config Config) {
 
 		if config.DoNoticeOnSuccess() {
 			if err := system_model.CreateNotice(ctx, system_model.NoticeTask, config.FormatMessage(translation.NewLocale("en-US"), t.Name, "finished", doerName)); err != nil {
-				log.Error("CreateNotice: %v", err)
+				log.Error("CreateNotice: %w", err)
 			}
 		}
 	})
@@ -153,7 +153,7 @@ func RegisterTask(name string, config Config, fun func(context.Context, *user_mo
 
 	_, err := setting.GetCronSettings(name, config)
 	if err != nil {
-		log.Error("Unable to register cron task with name: %s Error: %v", name, err)
+		log.Error("Unable to register cron task with name: %s Error: %w", name, err)
 		return err
 	}
 
@@ -177,7 +177,7 @@ func RegisterTask(name string, config Config, fun func(context.Context, *user_mo
 	if config.IsEnabled() {
 		// We cannot use the entry return as there is no way to lock it
 		if _, err = c.AddJob(name, config.GetSchedule(), task); err != nil {
-			log.Error("Unable to register cron task with name: %s Error: %v", name, err)
+			log.Error("Unable to register cron task with name: %s Error: %w", name, err)
 			return err
 		}
 	}
@@ -196,6 +196,6 @@ func RegisterTask(name string, config Config, fun func(context.Context, *user_mo
 // RegisterTaskFatal will register a task but if there is an error log.Fatal
 func RegisterTaskFatal(name string, config Config, fun func(context.Context, *user_model.User, Config) error) {
 	if err := RegisterTask(name, config, fun); err != nil {
-		log.Fatal("Unable to register cron task %s Error: %v", name, err)
+		log.Fatal("Unable to register cron task %s Error: %w", name, err)
 	}
 }

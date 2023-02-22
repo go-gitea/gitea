@@ -96,7 +96,7 @@ func CloseProvidedListeners() error {
 	for _, l := range providedListeners {
 		err := l.Close()
 		if err != nil {
-			log.Error("Error in closing unused provided listener: %v", err)
+			log.Error("Error in closing unused provided listener: %w", err)
 			if returnableError != nil {
 				returnableError = fmt.Errorf("%v & %w", returnableError, err)
 			} else {

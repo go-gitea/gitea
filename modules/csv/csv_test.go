@@ -97,10 +97,10 @@ j, ,\x20
 
 	for n, c := range cases {
 		rd, err := CreateReaderAndDetermineDelimiter(nil, strings.NewReader(decodeSlashes(t, c.csv)))
-		assert.NoError(t, err, "case %d: should not throw error: %v\n", n, err)
+		assert.NoError(t, err, "case %d: should not throw error: %w\n", n, err)
 		assert.EqualValues(t, c.expectedDelimiter, rd.Comma, "case %d: delimiter should be '%c', got '%c'", n, c.expectedDelimiter, rd.Comma)
 		rows, err := rd.ReadAll()
-		assert.NoError(t, err, "case %d: should not throw error: %v\n", n, err)
+		assert.NoError(t, err, "case %d: should not throw error: %w\n", n, err)
 		assert.EqualValues(t, c.expectedRows, rows, "case %d: rows should be equal", n)
 	}
 }
@@ -591,7 +591,7 @@ func TestFormatError(t *testing.T) {
 		if c.expectsError {
 			assert.Error(t, err, "case %d: expected an error to be returned", n)
 		} else {
-			assert.NoError(t, err, "case %d: no error was expected, got error: %v", n, err)
+			assert.NoError(t, err, "case %d: no error was expected, got error: %w", n, err)
 			assert.EqualValues(t, c.expectedMessage, message, "case %d: messages should be equal, expected '%s' got '%s'", n, c.expectedMessage, message)
 		}
 	}

@@ -301,7 +301,7 @@ func LFSAutoAssociate(ctx context.Context, metas []*LFSMetaObject, user *user_mo
 				RepositoryID: repoID,
 			})
 			if err != nil {
-				log.Warn("failed to insert LFS meta object %-v for repo_id: %d into database, err=%v", p, repoID, err)
+				log.Warn("failed to insert LFS meta object %-v for repo_id: %d into database, err=%w", p, repoID, err)
 			}
 		}
 	}

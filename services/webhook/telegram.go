@@ -35,7 +35,7 @@ type (
 func GetTelegramHook(w *webhook_model.Webhook) *TelegramMeta {
 	s := &TelegramMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
-		log.Error("webhook.GetTelegramHook(%d): %v", w.ID, err)
+		log.Error("webhook.GetTelegramHook(%d): %w", w.ID, err)
 	}
 	return s
 }

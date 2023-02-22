@@ -17,7 +17,7 @@ func SyncExternalUsers(ctx context.Context, updateExisting bool) error {
 
 	ls, err := auth.Sources()
 	if err != nil {
-		log.Error("SyncExternalUsers: %v", err)
+		log.Error("SyncExternalUsers: %w", err)
 		return err
 	}
 

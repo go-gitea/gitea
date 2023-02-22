@@ -432,7 +432,7 @@ func DeleteAuthSource(ctx *context.Context) {
 		if auth.IsErrSourceInUse(err) {
 			ctx.Flash.Error(ctx.Tr("admin.auths.still_in_used"))
 		} else {
-			ctx.Flash.Error(fmt.Sprintf("auth_service.DeleteSource: %v", err))
+			ctx.Flash.Error(fmt.Sprintf("auth_service.DeleteSource: %w", err))
 		}
 		ctx.JSON(http.StatusOK, map[string]interface{}{
 			"redirect": setting.AppSubURL + "/admin/auths/" + url.PathEscape(ctx.Params(":authid")),

@@ -860,7 +860,7 @@ func NewIssue(ctx *context.Context) {
 	if milestoneID > 0 {
 		milestone, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, milestoneID)
 		if err != nil {
-			log.Error("GetMilestoneByID: %d: %v", milestoneID, err)
+			log.Error("GetMilestoneByID: %d: %w", milestoneID, err)
 		} else {
 			ctx.Data["milestone_id"] = milestoneID
 			ctx.Data["Milestone"] = milestone
@@ -871,7 +871,7 @@ func NewIssue(ctx *context.Context) {
 	if projectID > 0 && isProjectsEnabled {
 		project, err := project_model.GetProjectByID(ctx, projectID)
 		if err != nil {
-			log.Error("GetProjectByID: %d: %v", projectID, err)
+			log.Error("GetProjectByID: %d: %w", projectID, err)
 		} else if project.RepoID != ctx.Repo.Repository.ID {
 			log.Error("GetProjectByID: %d: %v", projectID, fmt.Errorf("project[%d] not in repo [%d]", project.ID, ctx.Repo.Repository.ID))
 		} else {
@@ -923,7 +923,7 @@ func renderErrorOfTemplates(ctx *context.Context, errs map[string]error) string 
 		"Details": utils.SanitizeFlashErrorString(strings.Join(lines, "\n")),
 	})
 	if err != nil {
-		log.Debug("render flash error: %v", err)
+		log.Debug("render flash error: %w", err)
 		flashError = ctx.Tr("repo.issues.choose.ignore_invalid_templates")
 	}
 	return flashError
@@ -1227,7 +1227,7 @@ func ViewIssue(ctx *context.Context) {
 				metas["index"] = ctx.Params(":index")
 				res, err := vars.Expand(extIssueUnit.ExternalTrackerConfig().ExternalTrackerFormat, metas)
 				if err != nil {
-					log.Error("unable to expand template vars for issue url. issue: %s, err: %v", metas["index"], err)
+					log.Error("unable to expand template vars for issue url. issue: %s, err: %w", metas["index"], err)
 					ctx.ServerError("Expand", err)
 					return
 				}
@@ -1641,7 +1641,7 @@ func ViewIssue(ctx *context.Context) {
 
 		if ctx.IsSigned {
 			if err := pull.LoadHeadRepo(ctx); err != nil {
-				log.Error("LoadHeadRepo: %v", err)
+				log.Error("LoadHeadRepo: %w", err)
 			} else if pull.HeadRepo != nil {
 				perm, err := access_model.GetUserRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
 				if err != nil {
@@ -1652,7 +1652,7 @@ func ViewIssue(ctx *context.Context) {
 					// Check if branch is not protected
 					if pull.HeadBranch != pull.HeadRepo.DefaultBranch {
 						if protected, err := git_model.IsBranchProtected(ctx, pull.HeadRepo.ID, pull.HeadBranch); err != nil {
-							log.Error("IsProtectedBranch: %v", err)
+							log.Error("IsProtectedBranch: %w", err)
 						} else if !protected {
 							canDelete = true
 							ctx.Data["DeleteBranchLink"] = issue.Link() + "/cleanup"
@@ -1663,7 +1663,7 @@ func ViewIssue(ctx *context.Context) {
 			}
 
 			if err := pull.LoadBaseRepo(ctx); err != nil {
-				log.Error("LoadBaseRepo: %v", err)
+				log.Error("LoadBaseRepo: %w", err)
 			}
 			perm, err := access_model.GetUserRepoPermission(ctx, pull.BaseRepo, ctx.Doer)
 			if err != nil {
@@ -1761,7 +1761,7 @@ func ViewIssue(ctx *context.Context) {
 					ctx.Data["WontSignReason"] = err.(*asymkey_service.ErrWontSign).Reason
 				} else {
 					ctx.Data["WontSignReason"] = "error"
-					log.Error("Error whilst checking if could sign pr %d in repo %s. Error: %v", pull.ID, pull.BaseRepo.FullName(), err)
+					log.Error("Error whilst checking if could sign pr %d in repo %s. Error: %w", pull.ID, pull.BaseRepo.FullName(), err)
 				}
 			}
 		} else {
@@ -2726,7 +2726,7 @@ func NewComment(ctx *context.Context) {
 			} else {
 				isClosed := form.Status == "close"
 				if err := issue_service.ChangeStatus(issue, ctx.Doer, "", isClosed); err != nil {
-					log.Error("ChangeStatus: %v", err)
+					log.Error("ChangeStatus: %w", err)
 
 					if issues_model.IsErrDependenciesLeft(err) {
 						if issue.IsPull {

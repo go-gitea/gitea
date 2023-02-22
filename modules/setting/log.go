@@ -244,7 +244,7 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 	logConfig["colorize"] = sec.Key("COLORIZE").MustBool(false)
 	byteConfig, err := json.Marshal(logConfig)
 	if err != nil {
-		log.Error("Failed to marshal log configuration: %v %v", logConfig, err)
+		log.Error("Failed to marshal log configuration: %v %w", logConfig, err)
 		return
 	}
 	jsonConfig = string(byteConfig)
@@ -336,7 +336,7 @@ func initLogFrom(rootCfg ConfigProvider) {
 	if !useConsole {
 		log.Info("According to the configuration, subsequent logs will not be printed to the console")
 		if err := log.DelLogger("console"); err != nil {
-			log.Fatal("Cannot delete console logger: %v", err)
+			log.Fatal("Cannot delete console logger: %w", err)
 		}
 	}
 

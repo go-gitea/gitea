@@ -267,7 +267,7 @@ func (b *BleveIndexer) Close() {
 	if b.indexer != nil {
 		err := b.indexer.Close()
 		if err != nil {
-			log.Error("Error whilst closing the repository indexer: %v", err)
+			log.Error("Error whilst closing the repository indexer: %w", err)
 		}
 	}
 	log.Info("PID: %d Repository Indexer closed", os.Getpid())
@@ -289,7 +289,7 @@ func (b *BleveIndexer) Index(ctx context.Context, repo *repo_model.Repository, s
 
 		// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
 		if err := git.EnsureValidGitRepository(ctx, repo.RepoPath()); err != nil {
-			log.Error("Unable to open git repo: %s for %-v: %v", repo.RepoPath(), repo, err)
+			log.Error("Unable to open git repo: %s for %-v: %w", repo.RepoPath(), repo, err)
 			return err
 		}
 

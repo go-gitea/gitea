@@ -36,7 +36,7 @@ func (m *mirrorNotifier) NotifySyncPushCommits(ctx context.Context, _ *user_mode
 func syncPushMirrorWithSyncOnCommit(ctx context.Context, repoID int64) {
 	pushMirrors, err := repo_model.GetPushMirrorsSyncedOnCommit(ctx, repoID)
 	if err != nil {
-		log.Error("repo_model.GetPushMirrorsSyncedOnCommit failed: %v", err)
+		log.Error("repo_model.GetPushMirrorsSyncedOnCommit failed: %w", err)
 		return
 	}
 

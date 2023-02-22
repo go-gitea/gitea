@@ -124,7 +124,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		}
 		ctx.Resp.Header().Set("Content-Type", "text/xml")
 		if _, err := m.WriteTo(ctx.Resp); err != nil {
-			log.Error("Failed writing sitemap: %v", err)
+			log.Error("Failed writing sitemap: %w", err)
 		}
 		return
 	}

@@ -182,7 +182,7 @@ func TestEscapeControlReader(t *testing.T) {
 			status, err := EscapeControlReader(input, output, nullLocale{})
 			result := output.String()
 			if err != nil {
-				t.Errorf("EscapeControlReader(): err = %v", err)
+				t.Errorf("EscapeControlReader(): err = %w", err)
 			}
 
 			if !reflect.DeepEqual(*status, tt.status) {

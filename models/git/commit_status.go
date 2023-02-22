@@ -174,7 +174,7 @@ func GetCommitStatuses(ctx context.Context, repo *repo_model.Repository, sha str
 	countSession = db.SetSessionPagination(countSession, opts)
 	maxResults, err := countSession.Count(new(CommitStatus))
 	if err != nil {
-		log.Error("Count PRs: %v", err)
+		log.Error("Count PRs: %w", err)
 		return nil, maxResults, err
 	}
 
@@ -331,7 +331,7 @@ func ParseCommitsWithStatus(ctx context.Context, oldCommits []*asymkey_model.Sig
 		}
 		statuses, _, err := GetLatestCommitStatus(ctx, repo.ID, commit.ID.String(), db.ListOptions{})
 		if err != nil {
-			log.Error("GetLatestCommitStatus: %v", err)
+			log.Error("GetLatestCommitStatus: %w", err)
 		} else {
 			commit.Statuses = statuses
 			commit.Status = CalcCommitStatus(statuses)

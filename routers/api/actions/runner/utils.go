@@ -45,18 +45,18 @@ func getSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) map[s
 
 	ownerSecrets, err := secret_model.FindSecrets(ctx, secret_model.FindSecretsOptions{OwnerID: task.Job.Run.Repo.OwnerID})
 	if err != nil {
-		log.Error("find secrets of owner %v: %v", task.Job.Run.Repo.OwnerID, err)
+		log.Error("find secrets of owner %v: %w", task.Job.Run.Repo.OwnerID, err)
 		// go on
 	}
 	repoSecrets, err := secret_model.FindSecrets(ctx, secret_model.FindSecretsOptions{RepoID: task.Job.Run.RepoID})
 	if err != nil {
-		log.Error("find secrets of repo %v: %v", task.Job.Run.RepoID, err)
+		log.Error("find secrets of repo %v: %w", task.Job.Run.RepoID, err)
 		// go on
 	}
 
 	for _, secret := range append(ownerSecrets, repoSecrets...) {
 		if v, err := secret_module.DecryptSecret(setting.SecretKey, secret.Data); err != nil {
-			log.Error("decrypt secret %v %q: %v", secret.ID, secret.Name, err)
+			log.Error("decrypt secret %v %q: %w", secret.ID, secret.Name, err)
 			// go on
 		} else {
 			secrets[secret.Name] = v

@@ -91,7 +91,7 @@ func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, erro
 			signer, err = openpgp.CheckArmoredDetachedSignature(ekeys, strings.NewReader(token+"\r\n"), strings.NewReader(signature))
 		}
 		if err != nil {
-			log.Error("Unable to validate token signature. Error: %v", err)
+			log.Error("Unable to validate token signature. Error: %w", err)
 			return nil, ErrGPGInvalidTokenSignature{
 				ID:      ekeys[0].PrimaryKey.KeyIdString(),
 				Wrapped: err,

@@ -167,7 +167,7 @@ func processImageManifest(mci *manifestCreationInfo, buf *packages_module.Hashed
 			if removeBlob {
 				contentStore := packages_module.NewContentStore()
 				if err := contentStore.Delete(packages_module.BlobHash256Key(pb.HashSHA256)); err != nil {
-					log.Error("Error deleting package blob from content store: %v", err)
+					log.Error("Error deleting package blob from content store: %w", err)
 				}
 			}
 		}()
@@ -260,7 +260,7 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 			if removeBlob {
 				contentStore := packages_module.NewContentStore()
 				if err := contentStore.Delete(packages_module.BlobHash256Key(pb.HashSHA256)); err != nil {
-					log.Error("Error deleting package blob from content store: %v", err)
+					log.Error("Error deleting package blob from content store: %w", err)
 				}
 			}
 		}()
@@ -313,14 +313,14 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 		if err == packages_model.ErrDuplicatePackage {
 			created = false
 		} else {
-			log.Error("Error inserting package: %v", err)
+			log.Error("Error inserting package: %w", err)
 			return nil, err
 		}
 	}
 
 	if created {
 		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypePackage, p.ID, container_module.PropertyRepository, strings.ToLower(mci.Owner.LowerName+"/"+mci.Image)); err != nil {
-			log.Error("Error setting package property: %v", err)
+			log.Error("Error setting package property: %w", err)
 			return nil, err
 		}
 	}
@@ -350,11 +350,11 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 			_pv.DownloadCount = pv.DownloadCount
 
 			if pv, err = packages_model.GetOrInsertVersion(ctx, _pv); err != nil {
-				log.Error("Error inserting package: %v", err)
+				log.Error("Error inserting package: %w", err)
 				return nil, err
 			}
 		} else {
-			log.Error("Error inserting package: %v", err)
+			log.Error("Error inserting package: %w", err)
 			return nil, err
 		}
 	}
@@ -365,13 +365,13 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 
 	if mci.IsTagged {
 		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestTagged, ""); err != nil {
-			log.Error("Error setting package version property: %v", err)
+			log.Error("Error setting package version property: %w", err)
 			return nil, err
 		}
 	}
 	for _, digest := range metadata.MultiArch {
 		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestReference, digest); err != nil {
-			log.Error("Error setting package version property: %v", err)
+			log.Error("Error setting package version property: %w", err)
 			return nil, err
 		}
 	}
@@ -410,7 +410,7 @@ func createFileFromBlobReference(ctx context.Context, pv, uploadVersion *package
 			// Skip this blob because the manifest contains the same filesystem layer multiple times.
 			return nil
 		}
-		log.Error("Error inserting package file: %v", err)
+		log.Error("Error inserting package file: %w", err)
 		return err
 	}
 
@@ -420,7 +420,7 @@ func createFileFromBlobReference(ctx context.Context, pv, uploadVersion *package
 	}
 	for name, value := range props {
 		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypeFile, pf.ID, name, value); err != nil {
-			log.Error("Error setting package file property: %v", err)
+			log.Error("Error setting package file property: %w", err)
 			return err
 		}
 	}
@@ -438,7 +438,7 @@ func createFileFromBlobReference(ctx context.Context, pv, uploadVersion *package
 func createManifestBlob(ctx context.Context, mci *manifestCreationInfo, pv *packages_model.PackageVersion, buf *packages_module.HashedBuffer) (*packages_model.PackageBlob, bool, string, error) {
 	pb, exists, err := packages_model.GetOrInsertBlob(ctx, packages_service.NewPackageBlob(buf))
 	if err != nil {
-		log.Error("Error inserting package blob: %v", err)
+		log.Error("Error inserting package blob: %w", err)
 		return nil, false, "", err
 	}
 	// FIXME: Workaround to be removed in v1.20
@@ -453,7 +453,7 @@ func createManifestBlob(ctx context.Context, mci *manifestCreationInfo, pv *pack
 	if !exists {
 		contentStore := packages_module.NewContentStore()
 		if err := contentStore.Save(packages_module.BlobHash256Key(pb.HashSHA256), buf, buf.Size()); err != nil {
-			log.Error("Error saving package blob in content store: %v", err)
+			log.Error("Error saving package blob in content store: %w", err)
 			return nil, false, "", err
 		}
 	}

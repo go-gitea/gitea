@@ -41,7 +41,7 @@ var messageTypeText = map[int]string{
 func GetMatrixHook(w *webhook_model.Webhook) *MatrixMeta {
 	s := &MatrixMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
-		log.Error("webhook.GetMatrixHook(%d): %v", w.ID, err)
+		log.Error("webhook.GetMatrixHook(%d): %w", w.ID, err)
 	}
 	return s
 }

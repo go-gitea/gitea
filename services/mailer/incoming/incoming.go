@@ -61,7 +61,7 @@ func Init(ctx context.Context) error {
 				return
 			default:
 				if err := processIncomingEmails(ctx); err != nil {
-					log.Error("Error while processing incoming emails: %v", err)
+					log.Error("Error while processing incoming emails: %w", err)
 				}
 				select {
 				case <-ctx.Done():
@@ -95,7 +95,7 @@ func processIncomingEmails(ctx context.Context) error {
 	}
 	defer func() {
 		if err := c.Logout(); err != nil {
-			log.Error("Logout from incoming email server failed: %v", err)
+			log.Error("Logout from incoming email server failed: %w", err)
 		}
 	}()
 
@@ -243,7 +243,7 @@ loop:
 				handlerType, user, payload, err := token.ExtractToken(ctx, t)
 				if err != nil {
 					if _, ok := err.(*token.ErrToken); ok {
-						log.Info("Invalid incoming email token: %v", err)
+						log.Info("Invalid incoming email token: %w", err)
 						return nil
 					}
 					return err
@@ -265,7 +265,7 @@ loop:
 				return nil
 			}()
 			if err != nil {
-				log.Error("Error while processing incoming email[%v]: %v", msg.Uid, err)
+				log.Error("Error while processing incoming email[%v]: %w", msg.Uid, err)
 			}
 		}
 	}

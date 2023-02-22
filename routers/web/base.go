@@ -53,7 +53,7 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 						http.Error(w, "file not found", http.StatusNotFound)
 						return
 					}
-					log.Error("Error whilst getting URL for %s %s. Error: %v", prefix, rPath, err)
+					log.Error("Error whilst getting URL for %s %s. Error: %w", prefix, rPath, err)
 					http.Error(w, fmt.Sprintf("Error whilst getting URL for %s %s", prefix, rPath), http.StatusInternalServerError)
 					return
 				}
@@ -99,7 +99,7 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 					http.Error(w, "file not found", http.StatusNotFound)
 					return
 				}
-				log.Error("Error whilst opening %s %s. Error: %v", prefix, rPath, err)
+				log.Error("Error whilst opening %s %s. Error: %w", prefix, rPath, err)
 				http.Error(w, fmt.Sprintf("Error whilst opening %s %s", prefix, rPath), http.StatusInternalServerError)
 				return
 			}
@@ -107,7 +107,7 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 
 			_, err = io.Copy(w, fr)
 			if err != nil {
-				log.Error("Error whilst rendering %s %s. Error: %v", prefix, rPath, err)
+				log.Error("Error whilst rendering %s %s. Error: %w", prefix, rPath, err)
 				http.Error(w, fmt.Sprintf("Error whilst rendering %s %s", prefix, rPath), http.StatusInternalServerError)
 				return
 			}
@@ -166,7 +166,7 @@ func Recovery(ctx goctx.Context) func(next http.Handler) http.Handler {
 					}
 					err = rnd.HTML(w, http.StatusInternalServerError, "status/500", templates.BaseVars().Merge(store))
 					if err != nil {
-						log.Error("%v", err)
+						log.Error("%w", err)
 					}
 				}
 			}()

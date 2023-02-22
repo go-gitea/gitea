@@ -49,7 +49,7 @@ func generateRandomAvatar(ctx context.Context, repo *Repository) error {
 
 	if err := storage.SaveFrom(storage.RepoAvatars, repo.CustomAvatarRelativePath(), func(w io.Writer) error {
 		if err := png.Encode(w, img); err != nil {
-			log.Error("Encode: %v", err)
+			log.Error("Encode: %w", err)
 		}
 		return err
 	}); err != nil {
@@ -74,7 +74,7 @@ func (repo *Repository) relAvatarLink(ctx context.Context) string {
 			return setting.RepoAvatar.FallbackImage
 		case "random":
 			if err := generateRandomAvatar(ctx, repo); err != nil {
-				log.Error("generateRandomAvatar: %v", err)
+				log.Error("generateRandomAvatar: %w", err)
 			}
 		default:
 			// default behaviour: do not display avatar

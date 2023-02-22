@@ -150,7 +150,7 @@ func init() {
 func (w *Webhook) AfterLoad() {
 	w.HookEvent = &webhook_module.HookEvent{}
 	if err := json.Unmarshal([]byte(w.Events), w.HookEvent); err != nil {
-		log.Error("Unmarshal[%d]: %v", w.ID, err)
+		log.Error("Unmarshal[%d]: %w", w.ID, err)
 	}
 }
 

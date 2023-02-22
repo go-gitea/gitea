@@ -146,7 +146,7 @@ func Cleanup(taskCtx context.Context, olderThan time.Duration) error {
 	contentStore := packages_module.NewContentStore()
 	for _, pb := range pbs {
 		if err := contentStore.Delete(packages_module.BlobHash256Key(pb.HashSHA256)); err != nil {
-			log.Error("Error deleting package blob [%v]: %v", pb.ID, err)
+			log.Error("Error deleting package blob [%v]: %w", pb.ID, err)
 		}
 	}
 

@@ -105,7 +105,7 @@ func (l *Level) UnmarshalJSON(b []byte) error {
 	var tmp interface{}
 	err := json.Unmarshal(b, &tmp)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Err: %v", err)
+		fmt.Fprintf(os.Stderr, "Err: %w", err)
 		return err
 	}
 

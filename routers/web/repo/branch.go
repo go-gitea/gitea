@@ -103,7 +103,7 @@ func DeleteBranchPost(ctx *context.Context) {
 			log.Debug("DeleteBranch: Can't delete protected branch '%s'", branchName)
 			ctx.Flash.Error(ctx.Tr("repo.branch.protected_deletion_failed", branchName))
 		default:
-			log.Error("DeleteBranch: %v", err)
+			log.Error("DeleteBranch: %w", err)
 			ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", branchName))
 		}
 
@@ -122,7 +122,7 @@ func RestoreBranchPost(ctx *context.Context) {
 
 	deletedBranch, err := git_model.GetDeletedBranchByID(ctx, ctx.Repo.Repository.ID, branchID)
 	if err != nil {
-		log.Error("GetDeletedBranchByID: %v", err)
+		log.Error("GetDeletedBranchByID: %w", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.restore_failed", branchName))
 		return
 	} else if deletedBranch == nil {
@@ -141,7 +141,7 @@ func RestoreBranchPost(ctx *context.Context) {
 			ctx.Flash.Error(ctx.Tr("repo.branch.already_exists", deletedBranch.Name))
 			return
 		}
-		log.Error("RestoreBranch: CreateBranch: %v", err)
+		log.Error("RestoreBranch: CreateBranch: %w", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.restore_failed", deletedBranch.Name))
 		return
 	}
@@ -157,7 +157,7 @@ func RestoreBranchPost(ctx *context.Context) {
 			RepoUserName: ctx.Repo.Owner.Name,
 			RepoName:     ctx.Repo.Repository.Name,
 		}); err != nil {
-		log.Error("RestoreBranch: Update: %v", err)
+		log.Error("RestoreBranch: Update: %w", err)
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.branch.restore_success", deletedBranch.Name))
@@ -175,7 +175,7 @@ func loadBranches(ctx *context.Context, skip, limit int) (*Branch, []*Branch, in
 	defaultBranch, err := ctx.Repo.GitRepo.GetBranch(ctx.Repo.Repository.DefaultBranch)
 	if err != nil {
 		if !git.IsErrBranchNotExist(err) {
-			log.Error("loadBranches: get default branch: %v", err)
+			log.Error("loadBranches: get default branch: %w", err)
 			ctx.ServerError("GetDefaultBranch", err)
 			return nil, nil, 0
 		}
@@ -184,7 +184,7 @@ func loadBranches(ctx *context.Context, skip, limit int) (*Branch, []*Branch, in
 
 	rawBranches, totalNumOfBranches, err := ctx.Repo.GitRepo.GetBranches(skip, limit)
 	if err != nil {
-		log.Error("GetBranches: %v", err)
+		log.Error("GetBranches: %w", err)
 		ctx.ServerError("GetBranches", err)
 		return nil, nil, 0
 	}

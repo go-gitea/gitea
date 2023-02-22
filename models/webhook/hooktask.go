@@ -83,13 +83,13 @@ func (t *HookTask) AfterLoad() {
 
 	t.RequestInfo = &HookRequest{}
 	if err := json.Unmarshal([]byte(t.RequestContent), t.RequestInfo); err != nil {
-		log.Error("Unmarshal RequestContent[%d]: %v", t.ID, err)
+		log.Error("Unmarshal RequestContent[%d]: %w", t.ID, err)
 	}
 
 	if len(t.ResponseContent) > 0 {
 		t.ResponseInfo = &HookResponse{}
 		if err := json.Unmarshal([]byte(t.ResponseContent), t.ResponseInfo); err != nil {
-			log.Error("Unmarshal ResponseContent[%d]: %v", t.ID, err)
+			log.Error("Unmarshal ResponseContent[%d]: %w", t.ID, err)
 		}
 	}
 }
@@ -97,7 +97,7 @@ func (t *HookTask) AfterLoad() {
 func (t *HookTask) simpleMarshalJSON(v interface{}) string {
 	p, err := json.Marshal(v)
 	if err != nil {
-		log.Error("Marshal [%d]: %v", t.ID, err)
+		log.Error("Marshal [%d]: %w", t.ID, err)
 	}
 	return string(p)
 }

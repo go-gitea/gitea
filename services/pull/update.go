@@ -49,10 +49,10 @@ func Update(ctx context.Context, pull *issues_model.PullRequest, doer *user_mode
 	}
 
 	if err := pr.LoadHeadRepo(ctx); err != nil {
-		log.Error("LoadHeadRepo: %v", err)
+		log.Error("LoadHeadRepo: %w", err)
 		return fmt.Errorf("LoadHeadRepo: %w", err)
 	} else if err = pr.LoadBaseRepo(ctx); err != nil {
-		log.Error("LoadBaseRepo: %v", err)
+		log.Error("LoadBaseRepo: %w", err)
 		return fmt.Errorf("LoadBaseRepo: %w", err)
 	}
 
@@ -121,7 +121,7 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 			if repo_model.IsErrUnitTypeNotExist(err) {
 				return false, false, nil
 			}
-			log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %v", err)
+			log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %w", err)
 			return false, false, err
 		}
 		rebaseAllowed = prUnit.PullRequestsConfig().AllowRebaseUpdate
@@ -170,7 +170,7 @@ func GetDiverging(ctx context.Context, pr *issues_model.PullRequest) (*git.Diver
 	tmpRepo, err := createTemporaryRepo(ctx, pr)
 	if err != nil {
 		if !models.IsErrBranchDoesNotExist(err) {
-			log.Error("CreateTemporaryRepo: %v", err)
+			log.Error("CreateTemporaryRepo: %w", err)
 		}
 		return nil, err
 	}

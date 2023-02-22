@@ -15,7 +15,7 @@ func UnmarshalGroupTeamMapping(raw string) (map[string]map[string][]string, erro
 	}
 	err := json.Unmarshal([]byte(raw), &groupTeamMapping)
 	if err != nil {
-		log.Error("Failed to unmarshal group team mapping: %v", err)
+		log.Error("Failed to unmarshal group team mapping: %w", err)
 		return nil, err
 	}
 	return groupTeamMapping, nil

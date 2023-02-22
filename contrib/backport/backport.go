@@ -100,7 +100,7 @@ OPTIONS:
 	app.Action = runBackport
 
 	if err := app.Run(os.Args); err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to backport: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Unable to backport: %w\n", err)
 	}
 }
 
@@ -395,7 +395,7 @@ func readVersion() string {
 			log.Println("`docs/config.yaml` not present")
 			return ""
 		}
-		fmt.Fprintf(os.Stderr, "Unable to read `docs/config.yaml`: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Unable to read `docs/config.yaml`: %w\n", err)
 		return ""
 	}
 
@@ -407,7 +407,7 @@ func readVersion() string {
 	}
 	dc := &docConfig{}
 	if err := yaml.Unmarshal(bs, dc); err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to read `docs/config.yaml`: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Unable to read `docs/config.yaml`: %w\n", err)
 		return ""
 	}
 

@@ -43,14 +43,14 @@ func ToPayloadCommit(ctx context.Context, repo *repo_model.Repository, c *git.Co
 	if author, err := user_model.GetUserByEmail(ctx, c.Author.Email); err == nil {
 		authorUsername = author.Name
 	} else if !user_model.IsErrUserNotExist(err) {
-		log.Error("GetUserByEmail: %v", err)
+		log.Error("GetUserByEmail: %w", err)
 	}
 
 	committerUsername := ""
 	if committer, err := user_model.GetUserByEmail(ctx, c.Committer.Email); err == nil {
 		committerUsername = committer.Name
 	} else if !user_model.IsErrUserNotExist(err) {
-		log.Error("GetUserByEmail: %v", err)
+		log.Error("GetUserByEmail: %w", err)
 	}
 
 	return &api.PayloadCommit{

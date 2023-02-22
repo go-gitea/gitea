@@ -29,7 +29,7 @@ func PerformSecretsPost(ctx *context.Context, ownerID, repoID int64, redirectURL
 
 	s, err := secret_model.InsertEncryptedSecret(ctx, ownerID, repoID, form.Title, form.Content)
 	if err != nil {
-		log.Error("InsertEncryptedSecret: %v", err)
+		log.Error("InsertEncryptedSecret: %w", err)
 		ctx.Flash.Error(ctx.Tr("secrets.creation.failed"))
 	} else {
 		ctx.Flash.Success(ctx.Tr("secrets.creation.success", s.Name))
@@ -42,7 +42,7 @@ func PerformSecretsDelete(ctx *context.Context, redirectURL string) {
 	id := ctx.FormInt64("id")
 
 	if _, err := db.DeleteByBean(ctx, &secret_model.Secret{ID: id}); err != nil {
-		log.Error("Delete secret %d failed: %v", id, err)
+		log.Error("Delete secret %d failed: %w", id, err)
 		ctx.Flash.Error(ctx.Tr("secrets.deletion.failed"))
 	} else {
 		ctx.Flash.Success(ctx.Tr("secrets.deletion.success"))

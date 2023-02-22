@@ -32,7 +32,7 @@ func ServeBlob(ctx *context.Context, blob *git.Blob, lastModified time.Time) err
 	}
 	defer func() {
 		if err = dataRc.Close(); err != nil {
-			log.Error("ServeBlob: Close: %v", err)
+			log.Error("ServeBlob: Close: %w", err)
 		}
 	}()
 

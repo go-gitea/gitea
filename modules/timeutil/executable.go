@@ -22,25 +22,25 @@ func GetExecutableModTime() time.Time {
 	executablModTimeOnce.Do(func() {
 		exePath, err := os.Executable()
 		if err != nil {
-			log.Error("os.Executable: %v", err)
+			log.Error("os.Executable: %w", err)
 			return
 		}
 
 		exePath, err = filepath.Abs(exePath)
 		if err != nil {
-			log.Error("filepath.Abs: %v", err)
+			log.Error("filepath.Abs: %w", err)
 			return
 		}
 
 		exePath, err = filepath.EvalSymlinks(exePath)
 		if err != nil {
-			log.Error("filepath.EvalSymlinks: %v", err)
+			log.Error("filepath.EvalSymlinks: %w", err)
 			return
 		}
 
 		st, err := os.Stat(exePath)
 		if err != nil {
-			log.Error("os.Stat: %v", err)
+			log.Error("os.Stat: %w", err)
 			return
 		}
 

@@ -125,7 +125,7 @@ func (a *Action) LoadActUser(ctx context.Context) {
 	} else if user_model.IsErrUserNotExist(err) {
 		a.ActUser = user_model.NewGhostUser()
 	} else {
-		log.Error("GetUserByID(%d): %v", a.ActUserID, err)
+		log.Error("GetUserByID(%d): %w", a.ActUserID, err)
 	}
 }
 
@@ -136,7 +136,7 @@ func (a *Action) loadRepo(ctx context.Context) {
 	var err error
 	a.Repo, err = repo_model.GetRepositoryByID(ctx, a.RepoID)
 	if err != nil {
-		log.Error("repo_model.GetRepositoryByID(%d): %v", a.RepoID, err)
+		log.Error("repo_model.GetRepositoryByID(%d): %w", a.RepoID, err)
 	}
 }
 
@@ -348,7 +348,7 @@ func (a *Action) GetIssueTitle() string {
 	index, _ := strconv.ParseInt(a.GetIssueInfos()[0], 10, 64)
 	issue, err := issues_model.GetIssueByIndex(a.RepoID, index)
 	if err != nil {
-		log.Error("GetIssueByIndex: %v", err)
+		log.Error("GetIssueByIndex: %w", err)
 		return "500 when get issue"
 	}
 	return issue.Title
@@ -360,7 +360,7 @@ func (a *Action) GetIssueContent() string {
 	index, _ := strconv.ParseInt(a.GetIssueInfos()[0], 10, 64)
 	issue, err := issues_model.GetIssueByIndex(a.RepoID, index)
 	if err != nil {
-		log.Error("GetIssueByIndex: %v", err)
+		log.Error("GetIssueByIndex: %w", err)
 		return "500 when get issue"
 	}
 	return issue.Content
@@ -479,7 +479,7 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 	if opts.Date != "" {
 		dateLow, err := time.ParseInLocation("2006-01-02", opts.Date, setting.DefaultUILocation)
 		if err != nil {
-			log.Warn("Unable to parse %s, filter not applied: %v", opts.Date, err)
+			log.Warn("Unable to parse %s, filter not applied: %w", opts.Date, err)
 		} else {
 			dateHigh := dateLow.Add(86399000000000) // 23h59m59s
 

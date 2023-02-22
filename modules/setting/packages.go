@@ -49,7 +49,7 @@ var (
 func loadPackagesFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("packages")
 	if err := sec.MapTo(&Packages); err != nil {
-		log.Fatal("Failed to map Packages settings: %v", err)
+		log.Fatal("Failed to map Packages settings: %w", err)
 	}
 
 	Packages.Storage = getStorage(rootCfg, "packages", "", nil)

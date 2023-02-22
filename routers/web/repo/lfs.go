@@ -106,13 +106,13 @@ func LFSLocks(ctx *context.Context) {
 	// Clone base repo.
 	tmpBasePath, err := repo_module.CreateTemporaryPath("locks")
 	if err != nil {
-		log.Error("Failed to create temporary path: %v", err)
+		log.Error("Failed to create temporary path: %w", err)
 		ctx.ServerError("LFSLocks", err)
 		return
 	}
 	defer func() {
 		if err := repo_module.RemoveTemporaryPath(tmpBasePath); err != nil {
-			log.Error("LFSLocks: RemoveTemporaryPath: %v", err)
+			log.Error("LFSLocks: RemoveTemporaryPath: %w", err)
 		}
 	}()
 
@@ -403,7 +403,7 @@ func LFSFileFind(ctx *context.Context) {
 
 	results, err := pipeline.FindLFSFile(ctx.Repo.GitRepo, hash)
 	if err != nil && err != io.EOF {
-		log.Error("Failure in FindLFSFile: %v", err)
+		log.Error("Failure in FindLFSFile: %w", err)
 		ctx.ServerError("LFSFind: FindLFSFile.", err)
 		return
 	}

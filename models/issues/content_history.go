@@ -48,7 +48,7 @@ func SaveIssueContentHistory(ctx context.Context, posterID, issueID, commentID i
 		IsFirstCreated: isFirstCreated,
 	}
 	if err := db.Insert(ctx, ch); err != nil {
-		log.Error("can not save issue content history. err=%v", err)
+		log.Error("can not save issue content history. err=%w", err)
 		return err
 	}
 	// We only keep at most 20 history revisions now. It is enough in most cases.
@@ -71,7 +71,7 @@ func KeepLimitedContentHistory(ctx context.Context, issueID, commentID int64, li
 		OrderBy("edited_unix ASC").
 		Find(&res)
 	if err != nil {
-		log.Error("can not query content history for deletion, err=%v", err)
+		log.Error("can not query content history for deletion, err=%w", err)
 		return
 	}
 	if len(res) <= 2 {
@@ -97,7 +97,7 @@ func KeepLimitedContentHistory(ctx context.Context, issueID, commentID int64, li
 		// hard delete the found one
 		_, err = db.GetEngine(ctx).Delete(&ContentHistory{ID: res[indexToDelete].ID})
 		if err != nil {
-			log.Error("can not delete out-dated content history, err=%v", err)
+			log.Error("can not delete out-dated content history, err=%w", err)
 			break
 		}
 		res = append(res[:indexToDelete], res[indexToDelete+1:]...)
@@ -121,7 +121,7 @@ func QueryIssueContentHistoryEditedCountMap(dbCtx context.Context, issueID int64
 		Having("count(1) > 1").
 		Find(&records)
 	if err != nil {
-		log.Error("can not query issue content history count map. err=%v", err)
+		log.Error("can not query issue content history count map. err=%w", err)
 		return nil, err
 	}
 
@@ -156,7 +156,7 @@ func FetchIssueContentHistoryList(dbCtx context.Context, issueID, commentID int6
 		OrderBy("edited_unix DESC").
 		Find(&res)
 	if err != nil {
-		log.Error("can not fetch issue content history list. err=%v", err)
+		log.Error("can not fetch issue content history list. err=%w", err)
 		return nil, err
 	}
 
@@ -173,7 +173,7 @@ func HasIssueContentHistory(dbCtx context.Context, issueID, commentID int64) (bo
 		CommentID: commentID,
 	})
 	if err != nil {
-		log.Error("can not fetch issue content history. err=%v", err)
+		log.Error("can not fetch issue content history. err=%w", err)
 		return false, err
 	}
 	return exists, err
@@ -185,7 +185,7 @@ func SoftDeleteIssueContentHistory(dbCtx context.Context, historyID int64) error
 		IsDeleted:   true,
 		ContentText: "",
 	}); err != nil {
-		log.Error("failed to soft delete issue content history. err=%v", err)
+		log.Error("failed to soft delete issue content history. err=%w", err)
 		return err
 	}
 	return nil
@@ -222,10 +222,10 @@ func GetIssueContentHistoryAndPrev(dbCtx context.Context, id int64) (history, pr
 	history = &ContentHistory{}
 	has, err := db.GetEngine(dbCtx).ID(id).Get(history)
 	if err != nil {
-		log.Error("failed to get issue content history %v. err=%v", id, err)
+		log.Error("failed to get issue content history %v. err=%w", id, err)
 		return nil, nil, err
 	} else if !has {
-		log.Error("issue content history does not exist. id=%v. err=%v", id, err)
+		log.Error("issue content history does not exist. id=%v. err=%w", id, err)
 		return nil, nil, &ErrIssueContentHistoryNotExist{id}
 	}
 
@@ -236,7 +236,7 @@ func GetIssueContentHistoryAndPrev(dbCtx context.Context, id int64) (history, pr
 		Get(prevHistory)
 
 	if err != nil {
-		log.Error("failed to get issue content history %v. err=%v", id, err)
+		log.Error("failed to get issue content history %v. err=%w", id, err)
 		return nil, nil, err
 	} else if !has {
 		return history, nil, nil

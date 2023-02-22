@@ -79,7 +79,7 @@ func Person(ctx *context.APIContext) {
 	ctx.Resp.Header().Add("Content-Type", activitypub.ActivityStreamsContentType)
 	ctx.Resp.WriteHeader(http.StatusOK)
 	if _, err = ctx.Resp.Write(binary); err != nil {
-		log.Error("write to resp err: %v", err)
+		log.Error("write to resp err: %w", err)
 	}
 }
 

@@ -39,7 +39,7 @@ func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 
 	file, header, err := ctx.Req.FormFile("file")
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("FormFile: %v", err))
+		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("FormFile: %w", err))
 		return
 	}
 	defer file.Close()
@@ -54,7 +54,7 @@ func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 			ctx.Error(http.StatusBadRequest, err.Error())
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("NewAttachment: %v", err))
+		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("NewAttachment: %w", err))
 		return
 	}
 
@@ -78,7 +78,7 @@ func DeleteAttachment(ctx *context.Context) {
 	}
 	err = repo_model.DeleteAttachment(attach, true)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("DeleteAttachment: %v", err))
+		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("DeleteAttachment: %w", err))
 		return
 	}
 	ctx.JSON(http.StatusOK, map[string]string{

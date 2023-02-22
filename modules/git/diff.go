@@ -310,7 +310,7 @@ func GetAffectedFiles(repo *Repository, oldCommitID, newCommitID string, env []s
 			},
 		})
 	if err != nil {
-		log.Error("Unable to get affected files for commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
+		log.Error("Unable to get affected files for commits from %s to %s in %s: %w", oldCommitID, newCommitID, repo.Path, err)
 	}
 
 	return affectedFiles, err

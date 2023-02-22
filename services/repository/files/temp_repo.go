@@ -46,7 +46,7 @@ func NewTemporaryUploadRepository(ctx context.Context, repo *repo_model.Reposito
 func (t *TemporaryUploadRepository) Close() {
 	defer t.gitRepo.Close()
 	if err := repo_module.RemoveTemporaryPath(t.basePath); err != nil {
-		log.Error("Failed to remove temporary path %s: %v", t.basePath, err)
+		log.Error("Failed to remove temporary path %s: %w", t.basePath, err)
 	}
 }
 
@@ -177,7 +177,7 @@ func (t *TemporaryUploadRepository) AddObjectToIndex(mode, objectHash, objectPat
 				Path:    objectPath,
 			}
 		}
-		log.Error("Unable to add object to index: %s %s %s in temporary repo %s(%s) Error: %v", mode, objectHash, objectPath, t.repo.FullName(), t.basePath, err)
+		log.Error("Unable to add object to index: %s %s %s in temporary repo %s(%s) Error: %w", mode, objectHash, objectPath, t.repo.FullName(), t.basePath, err)
 		return fmt.Errorf("Unable to add object to index at %s in temporary repo %s Error: %w", objectPath, t.repo.FullName(), err)
 	}
 	return nil
@@ -187,7 +187,7 @@ func (t *TemporaryUploadRepository) AddObjectToIndex(mode, objectHash, objectPat
 func (t *TemporaryUploadRepository) WriteTree() (string, error) {
 	stdout, _, err := git.NewCommand(t.ctx, "write-tree").RunStdString(&git.RunOpts{Dir: t.basePath})
 	if err != nil {
-		log.Error("Unable to write tree in temporary repo: %s(%s): Error: %v", t.repo.FullName(), t.basePath, err)
+		log.Error("Unable to write tree in temporary repo: %s(%s): Error: %w", t.repo.FullName(), t.basePath, err)
 		return "", fmt.Errorf("Unable to write-tree in temporary repo for: %s Error: %w", t.repo.FullName(), err)
 	}
 	return strings.TrimSpace(stdout), nil
@@ -205,7 +205,7 @@ func (t *TemporaryUploadRepository) GetLastCommitByRef(ref string) (string, erro
 	}
 	stdout, _, err := git.NewCommand(t.ctx, "rev-parse").AddDynamicArguments(ref).RunStdString(&git.RunOpts{Dir: t.basePath})
 	if err != nil {
-		log.Error("Unable to get last ref for %s in temporary repo: %s(%s): Error: %v", ref, t.repo.FullName(), t.basePath, err)
+		log.Error("Unable to get last ref for %s in temporary repo: %s(%s): Error: %w", ref, t.repo.FullName(), t.basePath, err)
 		return "", fmt.Errorf("Unable to rev-parse %s in temporary repo for: %s Error: %w", ref, t.repo.FullName(), err)
 	}
 	return strings.TrimSpace(stdout), nil
@@ -324,7 +324,7 @@ func (t *TemporaryUploadRepository) Push(doer *user_model.User, commitHash, bran
 func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
-		log.Error("Unable to open stdout pipe: %v", err)
+		log.Error("Unable to open stdout pipe: %w", err)
 		return nil, fmt.Errorf("Unable to open stdout pipe: %w", err)
 	}
 	defer func() {
@@ -345,7 +345,7 @@ func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
 				_ = stdoutWriter.Close()
 				diff, finalErr = gitdiff.ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, stdoutReader, "")
 				if finalErr != nil {
-					log.Error("ParsePatch: %v", finalErr)
+					log.Error("ParsePatch: %w", finalErr)
 					cancel()
 				}
 				_ = stdoutReader.Close()
@@ -353,7 +353,7 @@ func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
 			},
 		}); err != nil {
 		if finalErr != nil {
-			log.Error("Unable to ParsePatch in temporary repo %s (%s). Error: %v", t.repo.FullName(), t.basePath, finalErr)
+			log.Error("Unable to ParsePatch in temporary repo %s (%s). Error: %w", t.repo.FullName(), t.basePath, finalErr)
 			return nil, finalErr
 		}
 		log.Error("Unable to run diff-index pipeline in temporary repo %s (%s). Error: %v\nStderr: %s",

@@ -45,7 +45,7 @@ func GetNotificationCount(ctx *context.Context) {
 		count, err := activities_model.GetNotificationCount(ctx, ctx.Doer, activities_model.NotificationStatusUnread)
 		if err != nil {
 			if err != goctx.Canceled {
-				log.Error("Unable to GetNotificationCount for user:%-v: %v", ctx.Doer, err)
+				log.Error("Unable to GetNotificationCount for user:%-v: %w", ctx.Doer, err)
 			}
 			return -1
 		}

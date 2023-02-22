@@ -78,7 +78,7 @@ func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Poin
 	payload := new(bytes.Buffer)
 	err := json.NewEncoder(payload).Encode(request)
 	if err != nil {
-		log.Error("Error encoding json: %v", err)
+		log.Error("Error encoding json: %w", err)
 		return nil, err
 	}
 
@@ -86,7 +86,7 @@ func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Poin
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, payload)
 	if err != nil {
-		log.Error("Error creating request: %v", err)
+		log.Error("Error creating request: %w", err)
 		return nil, err
 	}
 	req.Header.Set("Content-type", MediaType)
@@ -99,7 +99,7 @@ func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Poin
 			return nil, ctx.Err()
 		default:
 		}
-		log.Error("Error while processing request: %v", err)
+		log.Error("Error while processing request: %w", err)
 		return nil, err
 	}
 	defer res.Body.Close()
@@ -111,7 +111,7 @@ func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Poin
 	var response BatchResponse
 	err = json.NewDecoder(res.Body).Decode(&response)
 	if err != nil {
-		log.Error("Error decoding json: %v", err)
+		log.Error("Error decoding json: %w", err)
 		return nil, err
 	}
 

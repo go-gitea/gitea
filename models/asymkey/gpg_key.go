@@ -58,7 +58,7 @@ func (key *GPGKey) BeforeInsert() {
 func (key *GPGKey) AfterLoad(session *xorm.Session) {
 	err := session.Where("primary_key_id=?", key.KeyID).Find(&key.SubsKey)
 	if err != nil {
-		log.Error("Find Sub GPGkeys[%s]: %v", key.KeyID, err)
+		log.Error("Find Sub GPGkeys[%s]: %w", key.KeyID, err)
 	}
 }
 

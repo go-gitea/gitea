@@ -41,7 +41,7 @@ func (org *Organization) UnitPermission(ctx *Context, doerID int64, unitType uni
 	if doerID > 0 {
 		teams, err := organization.GetUserOrgTeams(ctx, org.Organization.ID, doerID)
 		if err != nil {
-			log.Error("GetUserOrgTeams: %v", err)
+			log.Error("GetUserOrgTeams: %w", err)
 			return perm.AccessModeNone
 		}
 		if len(teams) > 0 {

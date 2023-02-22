@@ -123,7 +123,7 @@ func createMarkupSanitizerRule(name string, sec *ini.Section) (MarkupSanitizerRu
 			// expression. Then we can use regexp.MustCompile(...) later.
 			compiled, err := regexp.Compile(regexpStr)
 			if err != nil {
-				log.Error("In markup.%s: REGEXP (%s) failed to compile: %v", name, regexpStr, err)
+				log.Error("In markup.%s: REGEXP (%s) failed to compile: %w", name, regexpStr, err)
 				return rule, false
 			}
 

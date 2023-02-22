@@ -128,7 +128,7 @@ func (p *Project) Link() string {
 	if p.OwnerID > 0 {
 		err := p.LoadOwner(db.DefaultContext)
 		if err != nil {
-			log.Error("LoadOwner: %v", err)
+			log.Error("LoadOwner: %w", err)
 			return ""
 		}
 		return fmt.Sprintf("%s/-/projects/%d", p.Owner.HomeLink(), p.ID)
@@ -136,7 +136,7 @@ func (p *Project) Link() string {
 	if p.RepoID > 0 {
 		err := p.LoadRepo(db.DefaultContext)
 		if err != nil {
-			log.Error("LoadRepo: %v", err)
+			log.Error("LoadRepo: %w", err)
 			return ""
 		}
 		return fmt.Sprintf("%s/projects/%d", p.Repo.Link(), p.ID)

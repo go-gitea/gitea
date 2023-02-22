@@ -45,7 +45,7 @@ func (ns *notificationService) handle(data ...queue.Data) []queue.Data {
 	for _, datum := range data {
 		opts := datum.(issueNotificationOpts)
 		if err := activities_model.CreateOrUpdateIssueNotifications(opts.IssueID, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID); err != nil {
-			log.Error("Was unable to create issue notification: %v", err)
+			log.Error("Was unable to create issue notification: %w", err)
 		}
 	}
 	return nil
@@ -103,7 +103,7 @@ func (ns *notificationService) NotifyIssueChangeStatus(ctx context.Context, doer
 
 func (ns *notificationService) NotifyIssueChangeTitle(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
 	if err := issue.LoadPullRequest(ctx); err != nil {
-		log.Error("issue.LoadPullRequest: %v", err)
+		log.Error("issue.LoadPullRequest: %w", err)
 		return
 	}
 	if issue.IsPull && issues_model.HasWorkInProgressPrefix(oldTitle) && !issue.PullRequest.IsWorkInProgress() {
@@ -127,13 +127,13 @@ func (ns *notificationService) NotifyAutoMergePullRequest(ctx context.Context, d
 
 func (ns *notificationService) NotifyNewPullRequest(ctx context.Context, pr *issues_model.PullRequest, mentions []*user_model.User) {
 	if err := pr.LoadIssue(ctx); err != nil {
-		log.Error("Unable to load issue: %d for pr: %d: Error: %v", pr.IssueID, pr.ID, err)
+		log.Error("Unable to load issue: %d for pr: %d: Error: %w", pr.IssueID, pr.ID, err)
 		return
 	}
 	toNotify := make(container.Set[int64], 32)
 	repoWatchers, err := repo_model.GetRepoWatchersIDs(ctx, pr.Issue.RepoID)
 	if err != nil {
-		log.Error("GetRepoWatchersIDs: %v", err)
+		log.Error("GetRepoWatchersIDs: %w", err)
 		return
 	}
 	for _, id := range repoWatchers {
@@ -141,7 +141,7 @@ func (ns *notificationService) NotifyNewPullRequest(ctx context.Context, pr *iss
 	}
 	issueParticipants, err := issues_model.GetParticipantsIDsByIssueID(ctx, pr.IssueID)
 	if err != nil {
-		log.Error("GetParticipantsIDsByIssueID: %v", err)
+		log.Error("GetParticipantsIDsByIssueID: %w", err)
 		return
 	}
 	for _, id := range issueParticipants {
@@ -248,6 +248,6 @@ func (ns *notificationService) NotifyRepoPendingTransfer(ctx context.Context, do
 		return activities_model.CreateRepoTransferNotification(ctx, doer, newOwner, repo)
 	})
 	if err != nil {
-		log.Error("CreateRepoTransferNotification: %v", err)
+		log.Error("CreateRepoTransferNotification: %w", err)
 	}
 }

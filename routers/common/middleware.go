@@ -68,7 +68,7 @@ func Middlewares() []func(http.Handler) http.Handler {
 				if err := recover(); err != nil {
 					routing.UpdatePanicError(req.Context(), err)
 					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, log.Stack(2))
-					log.Error("%v", combinedErr)
+					log.Error("%w", combinedErr)
 					if setting.IsProd {
 						http.Error(resp, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 					} else {

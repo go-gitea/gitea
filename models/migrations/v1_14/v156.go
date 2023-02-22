@@ -87,7 +87,7 @@ func FixPublisherIDforTagReleases(x *xorm.Engine) error {
 				repo = new(Repository)
 				has, err := sess.ID(release.RepoID).Get(repo)
 				if err != nil {
-					log.Error("Error whilst loading repository[%d] for release[%d] with tag name %s. Error: %v", release.RepoID, release.ID, release.TagName, err)
+					log.Error("Error whilst loading repository[%d] for release[%d] with tag name %s. Error: %w", release.RepoID, release.ID, release.TagName, err)
 					return err
 				} else if !has {
 					log.Warn("Release[%d] is orphaned and refers to non-existing repository %d", release.ID, release.RepoID)
@@ -104,13 +104,13 @@ func FixPublisherIDforTagReleases(x *xorm.Engine) error {
 					}
 
 					if _, err := sess.ID(release.RepoID).Get(repo); err != nil {
-						log.Error("Error whilst loading repository[%d] for release[%d] with tag name %s. Error: %v", release.RepoID, release.ID, release.TagName, err)
+						log.Error("Error whilst loading repository[%d] for release[%d] with tag name %s. Error: %w", release.RepoID, release.ID, release.TagName, err)
 						return err
 					}
 				}
 				gitRepo, err = git.OpenRepository(git.DefaultContext, repoPath(repo.OwnerName, repo.Name))
 				if err != nil {
-					log.Error("Error whilst opening git repo for [%d]%s/%s. Error: %v", repo.ID, repo.OwnerName, repo.Name, err)
+					log.Error("Error whilst opening git repo for [%d]%s/%s. Error: %w", repo.ID, repo.OwnerName, repo.Name, err)
 					return err
 				}
 			}
@@ -121,7 +121,7 @@ func FixPublisherIDforTagReleases(x *xorm.Engine) error {
 					log.Warn("Unable to find commit %s for Tag: %s in [%d]%s/%s. Cannot update publisher ID.", err.(git.ErrNotExist).ID, release.TagName, repo.ID, repo.OwnerName, repo.Name)
 					continue
 				}
-				log.Error("Error whilst getting commit for Tag: %s in [%d]%s/%s. Error: %v", release.TagName, repo.ID, repo.OwnerName, repo.Name, err)
+				log.Error("Error whilst getting commit for Tag: %s in [%d]%s/%s. Error: %w", release.TagName, repo.ID, repo.OwnerName, repo.Name, err)
 				return fmt.Errorf("GetTagCommit: %w", err)
 			}
 
@@ -133,7 +133,7 @@ func FixPublisherIDforTagReleases(x *xorm.Engine) error {
 						log.Warn("Unable to find commit %s for Tag: %s in [%d]%s/%s. Cannot update publisher ID.", err.(git.ErrNotExist).ID, release.TagName, repo.ID, repo.OwnerName, repo.Name)
 						continue
 					}
-					log.Error("Error whilst getting commit for Tag: %s in [%d]%s/%s. Error: %v", release.TagName, repo.ID, repo.OwnerName, repo.Name, err)
+					log.Error("Error whilst getting commit for Tag: %s in [%d]%s/%s. Error: %w", release.TagName, repo.ID, repo.OwnerName, repo.Name, err)
 					return fmt.Errorf("GetCommit: %w", err)
 				}
 			}
@@ -147,7 +147,7 @@ func FixPublisherIDforTagReleases(x *xorm.Engine) error {
 				user = new(User)
 				_, err = sess.Where("email=?", commit.Author.Email).Get(user)
 				if err != nil {
-					log.Error("Error whilst getting commit author by email: %s for Tag: %s in [%d]%s/%s. Error: %v", commit.Author.Email, release.TagName, repo.ID, repo.OwnerName, repo.Name, err)
+					log.Error("Error whilst getting commit author by email: %s for Tag: %s in [%d]%s/%s. Error: %w", commit.Author.Email, release.TagName, repo.ID, repo.OwnerName, repo.Name, err)
 					return err
 				}
 
@@ -160,7 +160,7 @@ func FixPublisherIDforTagReleases(x *xorm.Engine) error {
 
 			release.PublisherID = user.ID
 			if _, err := sess.ID(release.ID).Cols("publisher_id").Update(release); err != nil {
-				log.Error("Error whilst updating publisher[%d] for release[%d] with tag name %s. Error: %v", release.PublisherID, release.ID, release.TagName, err)
+				log.Error("Error whilst updating publisher[%d] for release[%d] with tag name %s. Error: %w", release.PublisherID, release.ID, release.TagName, err)
 				return err
 			}
 		}

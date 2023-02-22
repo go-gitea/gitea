@@ -41,7 +41,7 @@ func runConvert(ctx *cli.Context) error {
 	}
 
 	if err := db.ConvertUtf8ToUtf8mb4(); err != nil {
-		log.Fatal("Failed to convert database from utf8 to utf8mb4: %v", err)
+		log.Fatal("Failed to convert database from utf8 to utf8mb4: %w", err)
 		return err
 	}
 

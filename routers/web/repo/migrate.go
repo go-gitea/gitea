@@ -137,11 +137,11 @@ func handleMigrateRemoteAddrError(ctx *context.Context, err error, tpl base.TplN
 		case addrErr.IsInvalidPath:
 			ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_local_path"), tpl, form)
 		default:
-			log.Error("Error whilst updating url: %v", err)
+			log.Error("Error whilst updating url: %w", err)
 			ctx.RenderWithErr(ctx.Tr("form.url_error", "unknown"), tpl, form)
 		}
 	} else {
-		log.Error("Error whilst updating url: %v", err)
+		log.Error("Error whilst updating url: %w", err)
 		ctx.RenderWithErr(ctx.Tr("form.url_error", "unknown"), tpl, form)
 	}
 }

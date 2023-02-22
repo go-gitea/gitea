@@ -50,7 +50,7 @@ func endpointFromURL(rawurl string) *url.URL {
 
 	u, err := url.Parse(rawurl)
 	if err != nil {
-		log.Error("lfs.endpointFromUrl: %v", err)
+		log.Error("lfs.endpointFromUrl: %w", err)
 		return nil
 	}
 

@@ -52,7 +52,7 @@ const MemcacheMaxTTL = 30 * 24 * time.Hour
 func loadCacheFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("cache")
 	if err := sec.MapTo(&CacheService); err != nil {
-		log.Fatal("Failed to map Cache settings: %v", err)
+		log.Fatal("Failed to map Cache settings: %w", err)
 	}
 
 	CacheService.Adapter = sec.Key("ADAPTER").In("memory", []string{"memory", "redis", "memcache", "twoqueue"})

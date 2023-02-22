@@ -296,15 +296,15 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 	}
 
 	if err = sec.MapTo(&Repository); err != nil {
-		log.Fatal("Failed to map Repository settings: %v", err)
+		log.Fatal("Failed to map Repository settings: %w", err)
 	} else if err = rootCfg.Section("repository.editor").MapTo(&Repository.Editor); err != nil {
-		log.Fatal("Failed to map Repository.Editor settings: %v", err)
+		log.Fatal("Failed to map Repository.Editor settings: %w", err)
 	} else if err = rootCfg.Section("repository.upload").MapTo(&Repository.Upload); err != nil {
-		log.Fatal("Failed to map Repository.Upload settings: %v", err)
+		log.Fatal("Failed to map Repository.Upload settings: %w", err)
 	} else if err = rootCfg.Section("repository.local").MapTo(&Repository.Local); err != nil {
-		log.Fatal("Failed to map Repository.Local settings: %v", err)
+		log.Fatal("Failed to map Repository.Local settings: %w", err)
 	} else if err = rootCfg.Section("repository.pull-request").MapTo(&Repository.PullRequest); err != nil {
-		log.Fatal("Failed to map Repository.PullRequest settings: %v", err)
+		log.Fatal("Failed to map Repository.PullRequest settings: %w", err)
 	}
 
 	if !rootCfg.Section("packages").Key("ENABLED").MustBool(true) {

@@ -55,7 +55,7 @@ func TestRepository_GetTag(t *testing.T) {
 	// Create the lightweight tag
 	err = bareRepo1.CreateTag(lTagName, lTagCommitID)
 	if err != nil {
-		assert.NoError(t, err, "Unable to create the lightweight tag: %s for ID: %s. Error: %v", lTagName, lTagCommitID, err)
+		assert.NoError(t, err, "Unable to create the lightweight tag: %s for ID: %s. Error: %w", lTagName, lTagCommitID, err)
 		return
 	}
 
@@ -83,7 +83,7 @@ func TestRepository_GetTag(t *testing.T) {
 	// Create the annotated tag
 	err = bareRepo1.CreateAnnotatedTag(aTagName, aTagMessage, aTagCommitID)
 	if err != nil {
-		assert.NoError(t, err, "Unable to create the annotated tag: %s for ID: %s. Error: %v", aTagName, aTagCommitID, err)
+		assert.NoError(t, err, "Unable to create the annotated tag: %s for ID: %s. Error: %w", aTagName, aTagCommitID, err)
 		return
 	}
 
@@ -117,7 +117,7 @@ func TestRepository_GetTag(t *testing.T) {
 
 	err = bareRepo1.CreateTag(rTagName, rTagCommitID)
 	if err != nil {
-		assert.NoError(t, err, "Unable to create the  tag: %s for ID: %s. Error: %v", rTagName, rTagCommitID, err)
+		assert.NoError(t, err, "Unable to create the  tag: %s for ID: %s. Error: %w", rTagName, rTagCommitID, err)
 		return
 	}
 
@@ -367,7 +367,7 @@ func parseAuthorLine(t *testing.T, committer string) *Signature {
 
 	sig, err := newSignatureFromCommitline([]byte(committer))
 	if err != nil {
-		t.Fatalf("parse author line '%s': %v", committer, err)
+		t.Fatalf("parse author line '%s': %w", committer, err)
 	}
 
 	return sig

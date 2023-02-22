@@ -161,7 +161,7 @@ func (p *DBProvider) Count() int {
 // GC calls GC to clean expired sessions.
 func (p *DBProvider) GC() {
 	if err := auth.CleanupSessions(p.maxLifetime); err != nil {
-		log.Printf("session/DB: error garbage collecting: %v", err)
+		log.Printf("session/DB: error garbage collecting: %w", err)
 	}
 }
 

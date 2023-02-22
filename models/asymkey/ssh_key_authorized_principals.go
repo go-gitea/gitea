@@ -58,7 +58,7 @@ func RewriteAllPrincipalKeys(ctx context.Context) error {
 		// right user it will at least be created properly.
 		err := os.MkdirAll(setting.SSH.RootPath, 0o700)
 		if err != nil {
-			log.Error("Unable to MkdirAll(%s): %v", setting.SSH.RootPath, err)
+			log.Error("Unable to MkdirAll(%s): %w", setting.SSH.RootPath, err)
 			return err
 		}
 	}
@@ -77,7 +77,7 @@ func RewriteAllPrincipalKeys(ctx context.Context) error {
 	if setting.SSH.AuthorizedPrincipalsBackup {
 		isExist, err := util.IsExist(fPath)
 		if err != nil {
-			log.Error("Unable to check if %s exists. Error: %v", fPath, err)
+			log.Error("Unable to check if %s exists. Error: %w", fPath, err)
 			return err
 		}
 		if isExist {
@@ -107,7 +107,7 @@ func regeneratePrincipalKeys(ctx context.Context, t io.StringWriter) error {
 	fPath := filepath.Join(setting.SSH.RootPath, authorizedPrincipalsFile)
 	isExist, err := util.IsExist(fPath)
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", fPath, err)
+		log.Error("Unable to check if %s exists. Error: %w", fPath, err)
 		return err
 	}
 	if isExist {

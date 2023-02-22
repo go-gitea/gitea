@@ -48,14 +48,14 @@ func synchronizeRepoHeads(ctx context.Context, logger log.Logger, autofix bool) 
 		// otherwise, let's try fixing HEAD
 		err := git.NewCommand(ctx, "symbolic-ref").AddDashesAndList("HEAD", git.BranchPrefix+repo.DefaultBranch).Run(&git.RunOpts{Dir: repo.RepoPath()})
 		if err != nil {
-			logger.Warn("Failed to fix HEAD for %s/%s: %v", repo.OwnerName, repo.Name, err)
+			logger.Warn("Failed to fix HEAD for %s/%s: %w", repo.OwnerName, repo.Name, err)
 			return nil
 		}
 		numReposUpdated++
 		return nil
 	})
 	if err != nil {
-		logger.Critical("Error when fixing repo HEADs: %v", err)
+		logger.Critical("Error when fixing repo HEADs: %w", err)
 	}
 
 	if autofix {

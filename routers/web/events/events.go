@@ -58,7 +58,7 @@ func Events(ctx *context.Context) {
 	}
 
 	if _, err := ctx.Resp.Write([]byte("\n")); err != nil {
-		log.Error("Unable to write to EventStream: %v", err)
+		log.Error("Unable to write to EventStream: %w", err)
 		unregister()
 		return
 	}
@@ -74,7 +74,7 @@ loop:
 			}
 			_, err := event.WriteTo(ctx.Resp)
 			if err != nil {
-				log.Error("Unable to write to EventStream for user %s: %v", ctx.Doer.Name, err)
+				log.Error("Unable to write to EventStream for user %s: %w", ctx.Doer.Name, err)
 				go unregister()
 				break loop
 			}
@@ -111,7 +111,7 @@ loop:
 
 			_, err := event.WriteTo(ctx.Resp)
 			if err != nil {
-				log.Error("Unable to write to EventStream for user %s: %v", ctx.Doer.Name, err)
+				log.Error("Unable to write to EventStream for user %s: %w", ctx.Doer.Name, err)
 				go unregister()
 				break loop
 			}

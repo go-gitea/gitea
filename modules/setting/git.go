@@ -70,7 +70,7 @@ var Git = struct {
 func loadGitFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("git")
 	if err := sec.MapTo(&Git); err != nil {
-		log.Fatal("Failed to map Git settings: %v", err)
+		log.Fatal("Failed to map Git settings: %w", err)
 	}
 
 	Git.HomePath = sec.Key("HOME_PATH").MustString("home")

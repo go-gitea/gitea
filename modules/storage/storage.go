@@ -26,7 +26,7 @@ type ErrInvalidConfiguration struct {
 
 func (err ErrInvalidConfiguration) Error() string {
 	if err.err != nil {
-		return fmt.Sprintf("Invalid Configuration Argument: %v: Error: %v", err.cfg, err.err)
+		return fmt.Sprintf("Invalid Configuration Argument: %v: Error: %w", err.cfg, err.err)
 	}
 	return fmt.Sprintf("Invalid Configuration Argument: %v", err.cfg)
 }

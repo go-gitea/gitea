@@ -177,7 +177,7 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 				Branch:        "master",
 				SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 			}); err != nil {
-				log.Warn("Clone wiki: %v", err)
+				log.Warn("Clone wiki: %w", err)
 				if err := os.RemoveAll(wikiPath); err != nil {
 					return fmt.Errorf("Failed to remove %s: %w", wikiPath, err)
 				}
@@ -469,7 +469,7 @@ func (g *RepositoryDumper) handlePullRequest(pr *base.PullRequest) error {
 		return nil
 	}()
 	if err != nil {
-		log.Error("PR #%d in %s/%s unable to download patch: %v", pr.Number, g.repoOwner, g.repoName, err)
+		log.Error("PR #%d in %s/%s unable to download patch: %w", pr.Number, g.repoOwner, g.repoName, err)
 		return err
 	}
 
@@ -492,7 +492,7 @@ func (g *RepositoryDumper) handlePullRequest(pr *base.PullRequest) error {
 		if pr.Head.SHA != "" {
 			_, _, err = git.NewCommand(g.ctx, "update-ref", "--no-deref").AddDynamicArguments(pr.GetGitRefName(), pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.gitPath()})
 			if err != nil {
-				log.Error("PR #%d in %s/%s unable to update-ref for pr HEAD: %v", pr.Number, g.repoOwner, g.repoName, err)
+				log.Error("PR #%d in %s/%s unable to update-ref for pr HEAD: %w", pr.Number, g.repoOwner, g.repoName, err)
 			}
 		}
 		return nil
@@ -511,7 +511,7 @@ func (g *RepositoryDumper) handlePullRequest(pr *base.PullRequest) error {
 		// ... now add the remote
 		err := g.gitRepo.AddRemote(remote, pr.Head.CloneURL, true)
 		if err != nil {
-			log.Error("PR #%d in %s/%s AddRemote[%s] failed: %v", pr.Number, g.repoOwner, g.repoName, remote, err)
+			log.Error("PR #%d in %s/%s AddRemote[%s] failed: %w", pr.Number, g.repoOwner, g.repoName, remote, err)
 		} else {
 			g.prHeadCache[pr.Head.CloneURL+":"] = remote
 			ok = true
@@ -522,7 +522,7 @@ func (g *RepositoryDumper) handlePullRequest(pr *base.PullRequest) error {
 		if pr.Head.SHA != "" {
 			_, _, err = git.NewCommand(g.ctx, "update-ref", "--no-deref").AddDynamicArguments(pr.GetGitRefName(), pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.gitPath()})
 			if err != nil {
-				log.Error("PR #%d in %s/%s unable to update-ref for pr HEAD: %v", pr.Number, g.repoOwner, g.repoName, err)
+				log.Error("PR #%d in %s/%s unable to update-ref for pr HEAD: %w", pr.Number, g.repoOwner, g.repoName, err)
 			}
 		}
 
@@ -557,7 +557,7 @@ func (g *RepositoryDumper) handlePullRequest(pr *base.PullRequest) error {
 
 		_, _, err = git.NewCommand(g.ctx, "fetch", "--no-tags").AddDashesAndList(remote, fetchArg).RunStdString(&git.RunOpts{Dir: g.gitPath()})
 		if err != nil {
-			log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
+			log.Error("Fetch branch from %s failed: %w", pr.Head.CloneURL, err)
 			// We need to continue here so that the Head.Ref is reset and we attempt to set the gitref for the PR
 			// (This last step will likely fail but we should try to do as much as we can.)
 		} else {
@@ -573,7 +573,7 @@ func (g *RepositoryDumper) handlePullRequest(pr *base.PullRequest) error {
 	if pr.Head.SHA == "" {
 		headSha, err := g.gitRepo.GetBranchCommitID(localRef)
 		if err != nil {
-			log.Error("unable to get head SHA of local head for PR #%d from %s in %s/%s. Error: %v", pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
+			log.Error("unable to get head SHA of local head for PR #%d from %s in %s/%s. Error: %w", pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
 			return nil
 		}
 		pr.Head.SHA = headSha
@@ -581,7 +581,7 @@ func (g *RepositoryDumper) handlePullRequest(pr *base.PullRequest) error {
 	if pr.Head.SHA != "" {
 		_, _, err = git.NewCommand(g.ctx, "update-ref", "--no-deref").AddDynamicArguments(pr.GetGitRefName(), pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.gitPath()})
 		if err != nil {
-			log.Error("unable to set %s as the local head for PR #%d from %s in %s/%s. Error: %v", pr.Head.SHA, pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
+			log.Error("unable to set %s as the local head for PR #%d from %s in %s/%s. Error: %w", pr.Head.SHA, pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
 		}
 	}
 

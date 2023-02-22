@@ -52,7 +52,7 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 				_ = stdoutWriter.Close()
 				err := readAndVerifyCommitsFromShaReader(stdoutReader, repo, env)
 				if err != nil {
-					log.Error("%v", err)
+					log.Error("%w", err)
 					cancel()
 				}
 				_ = stdoutReader.Close()
@@ -60,7 +60,7 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 			},
 		})
 	if err != nil && !isErrUnverifiedCommit(err) {
-		log.Error("Unable to check commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
+		log.Error("Unable to check commits from %s to %s in %s: %w", oldCommitID, newCommitID, repo.Path, err)
 	}
 	return err
 }
@@ -71,7 +71,7 @@ func readAndVerifyCommitsFromShaReader(input io.ReadCloser, repo *git.Repository
 		line := scanner.Text()
 		err := readAndVerifyCommit(line, repo, env)
 		if err != nil {
-			log.Error("%v", err)
+			log.Error("%w", err)
 			return err
 		}
 	}
@@ -81,7 +81,7 @@ func readAndVerifyCommitsFromShaReader(input io.ReadCloser, repo *git.Repository
 func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
-		log.Error("Unable to create pipe for %s: %v", repo.Path, err)
+		log.Error("Unable to create pipe for %s: %w", repo.Path, err)
 		return err
 	}
 	defer func() {

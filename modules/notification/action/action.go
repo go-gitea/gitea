@@ -33,11 +33,11 @@ func NewNotifier() base.Notifier {
 
 func (a *actionNotifier) NotifyNewIssue(ctx context.Context, issue *issues_model.Issue, mentions []*user_model.User) {
 	if err := issue.LoadPoster(ctx); err != nil {
-		log.Error("issue.LoadPoster: %v", err)
+		log.Error("issue.LoadPoster: %w", err)
 		return
 	}
 	if err := issue.LoadRepo(ctx); err != nil {
-		log.Error("issue.LoadRepo: %v", err)
+		log.Error("issue.LoadRepo: %w", err)
 		return
 	}
 	repo := issue.Repo
@@ -51,7 +51,7 @@ func (a *actionNotifier) NotifyNewIssue(ctx context.Context, issue *issues_model
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
 	}); err != nil {
-		log.Error("NotifyWatchers: %v", err)
+		log.Error("NotifyWatchers: %w", err)
 	}
 }
 
@@ -84,7 +84,7 @@ func (a *actionNotifier) NotifyIssueChangeStatus(ctx context.Context, doer *user
 
 	// Notify watchers for whatever action comes in, ignore if no action type.
 	if err := activities_model.NotifyWatchers(ctx, act); err != nil {
-		log.Error("NotifyWatchers: %v", err)
+		log.Error("NotifyWatchers: %w", err)
 	}
 }
 
@@ -120,21 +120,21 @@ func (a *actionNotifier) NotifyCreateIssueComment(ctx context.Context, doer *use
 
 	// Notify watchers for whatever action comes in, ignore if no action type.
 	if err := activities_model.NotifyWatchers(ctx, act); err != nil {
-		log.Error("NotifyWatchers: %v", err)
+		log.Error("NotifyWatchers: %w", err)
 	}
 }
 
 func (a *actionNotifier) NotifyNewPullRequest(ctx context.Context, pull *issues_model.PullRequest, mentions []*user_model.User) {
 	if err := pull.LoadIssue(ctx); err != nil {
-		log.Error("pull.LoadIssue: %v", err)
+		log.Error("pull.LoadIssue: %w", err)
 		return
 	}
 	if err := pull.Issue.LoadRepo(ctx); err != nil {
-		log.Error("pull.Issue.LoadRepo: %v", err)
+		log.Error("pull.Issue.LoadRepo: %w", err)
 		return
 	}
 	if err := pull.Issue.LoadPoster(ctx); err != nil {
-		log.Error("pull.Issue.LoadPoster: %v", err)
+		log.Error("pull.Issue.LoadPoster: %w", err)
 		return
 	}
 
@@ -147,7 +147,7 @@ func (a *actionNotifier) NotifyNewPullRequest(ctx context.Context, pull *issues_
 		Repo:      pull.Issue.Repo,
 		IsPrivate: pull.Issue.Repo.IsPrivate,
 	}); err != nil {
-		log.Error("NotifyWatchers: %v", err)
+		log.Error("NotifyWatchers: %w", err)
 	}
 }
 
@@ -161,7 +161,7 @@ func (a *actionNotifier) NotifyRenameRepository(ctx context.Context, doer *user_
 		IsPrivate: repo.IsPrivate,
 		Content:   oldRepoName,
 	}); err != nil {
-		log.Error("NotifyWatchers: %v", err)
+		log.Error("NotifyWatchers: %w", err)
 	}
 }
 
@@ -175,7 +175,7 @@ func (a *actionNotifier) NotifyTransferRepository(ctx context.Context, doer *use
 		IsPrivate: repo.IsPrivate,
 		Content:   path.Join(oldOwnerName, repo.Name),
 	}); err != nil {
-		log.Error("NotifyWatchers: %v", err)
+		log.Error("NotifyWatchers: %w", err)
 	}
 }
 
@@ -188,7 +188,7 @@ func (a *actionNotifier) NotifyCreateRepository(ctx context.Context, doer, u *us
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
 	}); err != nil {
-		log.Error("notify watchers '%d/%d': %v", doer.ID, repo.ID, err)
+		log.Error("notify watchers '%d/%d': %w", doer.ID, repo.ID, err)
 	}
 }
 
@@ -201,17 +201,17 @@ func (a *actionNotifier) NotifyForkRepository(ctx context.Context, doer *user_mo
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
 	}); err != nil {
-		log.Error("notify watchers '%d/%d': %v", doer.ID, repo.ID, err)
+		log.Error("notify watchers '%d/%d': %w", doer.ID, repo.ID, err)
 	}
 }
 
 func (a *actionNotifier) NotifyPullRequestReview(ctx context.Context, pr *issues_model.PullRequest, review *issues_model.Review, comment *issues_model.Comment, mentions []*user_model.User) {
 	if err := review.LoadReviewer(ctx); err != nil {
-		log.Error("LoadReviewer '%d/%d': %v", review.ID, review.ReviewerID, err)
+		log.Error("LoadReviewer '%d/%d': %w", review.ID, review.ReviewerID, err)
 		return
 	}
 	if err := review.LoadCodeComments(ctx); err != nil {
-		log.Error("LoadCodeComments '%d/%d': %v", review.Reviewer.ID, review.ID, err)
+		log.Error("LoadCodeComments '%d/%d': %w", review.Reviewer.ID, review.ID, err)
 		return
 	}
 
@@ -259,7 +259,7 @@ func (a *actionNotifier) NotifyPullRequestReview(ctx context.Context, pr *issues
 	}
 
 	if err := activities_model.NotifyWatchersActions(actions); err != nil {
-		log.Error("notify watchers '%d/%d': %v", review.Reviewer.ID, review.Issue.RepoID, err)
+		log.Error("notify watchers '%d/%d': %w", review.Reviewer.ID, review.Issue.RepoID, err)
 	}
 }
 
@@ -273,7 +273,7 @@ func (*actionNotifier) NotifyMergePullRequest(ctx context.Context, doer *user_mo
 		Repo:      pr.Issue.Repo,
 		IsPrivate: pr.Issue.Repo.IsPrivate,
 	}); err != nil {
-		log.Error("NotifyWatchers [%d]: %v", pr.ID, err)
+		log.Error("NotifyWatchers [%d]: %w", pr.ID, err)
 	}
 }
 
@@ -287,7 +287,7 @@ func (*actionNotifier) NotifyAutoMergePullRequest(ctx context.Context, doer *use
 		Repo:      pr.Issue.Repo,
 		IsPrivate: pr.Issue.Repo.IsPrivate,
 	}); err != nil {
-		log.Error("NotifyWatchers [%d]: %v", pr.ID, err)
+		log.Error("NotifyWatchers [%d]: %w", pr.ID, err)
 	}
 }
 
@@ -307,14 +307,14 @@ func (*actionNotifier) NotifyPullRevieweDismiss(ctx context.Context, doer *user_
 		CommentID: comment.ID,
 		Comment:   comment,
 	}); err != nil {
-		log.Error("NotifyWatchers [%d]: %v", review.Issue.ID, err)
+		log.Error("NotifyWatchers [%d]: %w", review.Issue.ID, err)
 	}
 }
 
 func (a *actionNotifier) NotifyPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	data, err := json.Marshal(commits)
 	if err != nil {
-		log.Error("Marshal: %v", err)
+		log.Error("Marshal: %w", err)
 		return
 	}
 
@@ -340,7 +340,7 @@ func (a *actionNotifier) NotifyPushCommits(ctx context.Context, pusher *user_mod
 		RefName:   opts.RefFullName,
 		IsPrivate: repo.IsPrivate,
 	}); err != nil {
-		log.Error("NotifyWatchers: %v", err)
+		log.Error("NotifyWatchers: %w", err)
 	}
 }
 
@@ -359,7 +359,7 @@ func (a *actionNotifier) NotifyCreateRef(ctx context.Context, doer *user_model.U
 		IsPrivate: repo.IsPrivate,
 		RefName:   refFullName,
 	}); err != nil {
-		log.Error("NotifyWatchers: %v", err)
+		log.Error("NotifyWatchers: %w", err)
 	}
 }
 
@@ -378,14 +378,14 @@ func (a *actionNotifier) NotifyDeleteRef(ctx context.Context, doer *user_model.U
 		IsPrivate: repo.IsPrivate,
 		RefName:   refFullName,
 	}); err != nil {
-		log.Error("NotifyWatchers: %v", err)
+		log.Error("NotifyWatchers: %w", err)
 	}
 }
 
 func (a *actionNotifier) NotifySyncPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	data, err := json.Marshal(commits)
 	if err != nil {
-		log.Error("json.Marshal: %v", err)
+		log.Error("json.Marshal: %w", err)
 		return
 	}
 
@@ -399,7 +399,7 @@ func (a *actionNotifier) NotifySyncPushCommits(ctx context.Context, pusher *user
 		RefName:   opts.RefFullName,
 		Content:   string(data),
 	}); err != nil {
-		log.Error("NotifyWatchers: %v", err)
+		log.Error("NotifyWatchers: %w", err)
 	}
 }
 
@@ -413,7 +413,7 @@ func (a *actionNotifier) NotifySyncCreateRef(ctx context.Context, doer *user_mod
 		IsPrivate: repo.IsPrivate,
 		RefName:   refFullName,
 	}); err != nil {
-		log.Error("NotifyWatchers: %v", err)
+		log.Error("NotifyWatchers: %w", err)
 	}
 }
 
@@ -427,13 +427,13 @@ func (a *actionNotifier) NotifySyncDeleteRef(ctx context.Context, doer *user_mod
 		IsPrivate: repo.IsPrivate,
 		RefName:   refFullName,
 	}); err != nil {
-		log.Error("NotifyWatchers: %v", err)
+		log.Error("NotifyWatchers: %w", err)
 	}
 }
 
 func (a *actionNotifier) NotifyNewRelease(ctx context.Context, rel *repo_model.Release) {
 	if err := rel.LoadAttributes(ctx); err != nil {
-		log.Error("LoadAttributes: %v", err)
+		log.Error("LoadAttributes: %w", err)
 		return
 	}
 	if err := activities_model.NotifyWatchers(ctx, &activities_model.Action{
@@ -446,6 +446,6 @@ func (a *actionNotifier) NotifyNewRelease(ctx context.Context, rel *repo_model.R
 		Content:   rel.Title,
 		RefName:   rel.TagName,
 	}); err != nil {
-		log.Error("NotifyWatchers: %v", err)
+		log.Error("NotifyWatchers: %w", err)
 	}
 }

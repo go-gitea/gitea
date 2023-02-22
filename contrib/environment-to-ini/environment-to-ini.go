@@ -85,7 +85,7 @@ func main() {
 
 	err := app.Run(os.Args)
 	if err != nil {
-		log.Fatal("Failed to run app with %s: %v", os.Args, err)
+		log.Fatal("Failed to run app with %s: %w", os.Args, err)
 	}
 }
 
@@ -98,11 +98,11 @@ func runEnvironmentToIni(c *cli.Context) error {
 	cfg := ini.Empty()
 	isFile, err := util.IsFile(setting.CustomConf)
 	if err != nil {
-		log.Fatal("Unable to check if %s is a file. Error: %v", setting.CustomConf, err)
+		log.Fatal("Unable to check if %s is a file. Error: %w", setting.CustomConf, err)
 	}
 	if isFile {
 		if err := cfg.Append(setting.CustomConf); err != nil {
-			log.Fatal("Failed to load custom conf '%s': %v", setting.CustomConf, err)
+			log.Fatal("Failed to load custom conf '%s': %w", setting.CustomConf, err)
 		}
 	} else {
 		log.Warn("Custom config '%s' not found, ignore this if you're running first time", setting.CustomConf)
@@ -132,7 +132,7 @@ func runEnvironmentToIni(c *cli.Context) error {
 		if err != nil {
 			section, err = cfg.NewSection(sectionName)
 			if err != nil {
-				log.Error("Error creating section: %s : %v", sectionName, err)
+				log.Error("Error creating section: %s : %w", sectionName, err)
 				continue
 			}
 		}
@@ -140,7 +140,7 @@ func runEnvironmentToIni(c *cli.Context) error {
 		if key == nil {
 			key, err = section.NewKey(keyName, value)
 			if err != nil {
-				log.Error("Error creating key: %s in section: %s with value: %s : %v", keyName, sectionName, value, err)
+				log.Error("Error creating key: %s in section: %s with value: %s : %w", keyName, sectionName, value, err)
 				continue
 			}
 		}

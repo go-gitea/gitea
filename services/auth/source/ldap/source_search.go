@@ -92,7 +92,7 @@ func (source *Source) findUserDN(l *ldap.Conn, name string) (string, bool) {
 	// Ensure we found a user
 	sr, err := l.Search(search)
 	if err != nil || len(sr.Entries) < 1 {
-		log.Debug("Failed search using filter[%s]: %v", userFilter, err)
+		log.Debug("Failed search using filter[%s]: %w", userFilter, err)
 		return "", false
 	} else if len(sr.Entries) > 1 {
 		log.Debug("Filter '%s' returned more than one user.", userFilter)
@@ -139,7 +139,7 @@ func bindUser(l *ldap.Conn, userDN, passwd string) error {
 	log.Trace("Binding with userDN: %s", userDN)
 	err := l.Bind(userDN, passwd)
 	if err != nil {
-		log.Debug("LDAP auth. failed for %s, reason: %v", userDN, err)
+		log.Debug("LDAP auth. failed for %s, reason: %w", userDN, err)
 		return err
 	}
 	log.Trace("Bound successfully with userDN: %s", userDN)
@@ -225,7 +225,7 @@ func (source *Source) listLdapGroupMemberships(l *ldap.Conn, uid string, applyGr
 		nil,
 	))
 	if err != nil {
-		log.Error("Failed group search in LDAP with filter [%s]: %v", searchFilter, err)
+		log.Error("Failed group search in LDAP with filter [%s]: %w", searchFilter, err)
 		return ldapGroups
 	}
 
@@ -257,7 +257,7 @@ func (source *Source) SearchEntry(name, passwd string, directBind bool) *SearchR
 	}
 	l, err := dial(source)
 	if err != nil {
-		log.Error("LDAP Connect error, %s:%v", source.Host, err)
+		log.Error("LDAP Connect error, %s:%w", source.Host, err)
 		source.Enabled = false
 		return nil
 	}
@@ -296,7 +296,7 @@ func (source *Source) SearchEntry(name, passwd string, directBind bool) *SearchR
 		if source.BindDN != "" && source.BindPassword != "" {
 			err := l.Bind(source.BindDN, source.BindPassword)
 			if err != nil {
-				log.Debug("Failed to bind as BindDN[%s]: %v", source.BindDN, err)
+				log.Debug("Failed to bind as BindDN[%s]: %w", source.BindDN, err)
 				return nil
 			}
 			log.Trace("Bound as BindDN %s", source.BindDN)
@@ -421,7 +421,7 @@ func (source *Source) UsePagedSearch() bool {
 func (source *Source) SearchEntries() ([]*SearchResult, error) {
 	l, err := dial(source)
 	if err != nil {
-		log.Error("LDAP Connect error, %s:%v", source.Host, err)
+		log.Error("LDAP Connect error, %s:%w", source.Host, err)
 		source.Enabled = false
 		return nil, err
 	}
@@ -430,7 +430,7 @@ func (source *Source) SearchEntries() ([]*SearchResult, error) {
 	if source.BindDN != "" && source.BindPassword != "" {
 		err := l.Bind(source.BindDN, source.BindPassword)
 		if err != nil {
-			log.Debug("Failed to bind as BindDN[%s]: %v", source.BindDN, err)
+			log.Debug("Failed to bind as BindDN[%s]: %w", source.BindDN, err)
 			return nil, err
 		}
 		log.Trace("Bound as BindDN %s", source.BindDN)

@@ -106,7 +106,7 @@ func SetDefaultPasswordToArgon2(x *xorm.Engine) error {
 	}
 	for _, index := range table.Indexes {
 		if _, err := sess.Exec(x.Dialect().CreateIndexSQL(tempTableName, index)); err != nil {
-			log.Error("Unable to create indexes on temporary table %s. Error: %v", tempTableName, err)
+			log.Error("Unable to create indexes on temporary table %s. Error: %w", tempTableName, err)
 			return err
 		}
 	}
@@ -163,31 +163,31 @@ func SetDefaultPasswordToArgon2(x *xorm.Engine) error {
 	_, _ = sqlStringBuilder.WriteString("`")
 
 	if _, err := sess.Exec(sqlStringBuilder.String()); err != nil {
-		log.Error("Unable to set copy data in to temp table %s. Error: %v", tempTableName, err)
+		log.Error("Unable to set copy data in to temp table %s. Error: %w", tempTableName, err)
 		return err
 	}
 
 	// SQLite will drop all the constraints on the old table
 	if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s`", tableName)); err != nil {
-		log.Error("Unable to drop old table %s. Error: %v", tableName, err)
+		log.Error("Unable to drop old table %s. Error: %w", tableName, err)
 		return err
 	}
 
 	for _, index := range table.Indexes {
 		if _, err := sess.Exec(x.Dialect().DropIndexSQL(tempTableName, index)); err != nil {
-			log.Error("Unable to drop indexes on temporary table %s. Error: %v", tempTableName, err)
+			log.Error("Unable to drop indexes on temporary table %s. Error: %w", tempTableName, err)
 			return err
 		}
 	}
 
 	if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` RENAME TO `%s`", tempTableName, tableName)); err != nil {
-		log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
+		log.Error("Unable to rename %s to %s. Error: %w", tempTableName, tableName, err)
 		return err
 	}
 
 	for _, index := range table.Indexes {
 		if _, err := sess.Exec(x.Dialect().CreateIndexSQL(tableName, index)); err != nil {
-			log.Error("Unable to recreate indexes on table %s. Error: %v", tableName, err)
+			log.Error("Unable to recreate indexes on table %s. Error: %w", tableName, err)
 			return err
 		}
 	}

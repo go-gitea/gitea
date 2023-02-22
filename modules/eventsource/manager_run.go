@@ -73,7 +73,7 @@ loop:
 
 			uidCounts, err := activities_model.GetUIDsAndNotificationCounts(then, now)
 			if err != nil {
-				log.Error("Unable to get UIDcounts: %v", err)
+				log.Error("Unable to get UIDcounts: %w", err)
 			}
 			for _, uidCount := range uidCounts {
 				m.SendMessage(uidCount.UserID, &Event{
@@ -86,7 +86,7 @@ loop:
 			if setting.Service.EnableTimetracking {
 				usersStopwatches, err := issues_model.GetUIDsAndStopwatch()
 				if err != nil {
-					log.Error("Unable to get GetUIDsAndStopwatch: %v", err)
+					log.Error("Unable to get GetUIDsAndStopwatch: %w", err)
 					return
 				}
 
@@ -94,13 +94,13 @@ loop:
 					apiSWs, err := convert.ToStopWatches(userStopwatches.StopWatches)
 					if err != nil {
 						if !issues_model.IsErrIssueNotExist(err) {
-							log.Error("Unable to APIFormat stopwatches: %v", err)
+							log.Error("Unable to APIFormat stopwatches: %w", err)
 						}
 						continue
 					}
 					dataBs, err := json.Marshal(apiSWs)
 					if err != nil {
-						log.Error("Unable to marshal stopwatches: %v", err)
+						log.Error("Unable to marshal stopwatches: %w", err)
 						continue
 					}
 					m.SendMessage(userStopwatches.UserID, &Event{

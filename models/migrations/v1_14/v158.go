@@ -86,13 +86,13 @@ func UpdateCodeCommentReplies(x *xorm.Engine) error {
 		}
 
 		if err := sess.SQL(sqlCmd).Find(&comments); err != nil {
-			log.Error("failed to select: %v", err)
+			log.Error("failed to select: %w", err)
 			return err
 		}
 
 		for _, comment := range comments {
 			if _, err := sess.Table("comment").ID(comment.ID).Cols("commit_sha", "patch", "invalidated").Update(comment); err != nil {
-				log.Error("failed to update comment[%d]: %v %v", comment.ID, comment, err)
+				log.Error("failed to update comment[%d]: %v %w", comment.ID, comment, err)
 				return err
 			}
 		}

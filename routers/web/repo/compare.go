@@ -93,7 +93,7 @@ func setImageCompareContext(ctx *context.Context) {
 
 		st, err := blob.GuessContentType()
 		if err != nil {
-			log.Error("GuessContentType failed: %v", err)
+			log.Error("GuessContentType failed: %w", err)
 			return false
 		}
 		return st.IsImage() && (setting.UI.SVG.Enabled || !st.IsSvgImage())
@@ -146,7 +146,7 @@ func setCsvCompareContext(ctx *context.Context) {
 			if err == errTooLarge {
 				return CsvDiffResult{nil, err.Error()}
 			}
-			log.Error("error whilst creating csv.Reader from file %s in base commit %s in %s: %v", diffFile.Name, baseBlob.ID.String(), ctx.Repo.Repository.Name, err)
+			log.Error("error whilst creating csv.Reader from file %s in base commit %s in %s: %w", diffFile.Name, baseBlob.ID.String(), ctx.Repo.Repository.Name, err)
 			return CsvDiffResult{nil, "unable to load file"}
 		}
 
@@ -158,7 +158,7 @@ func setCsvCompareContext(ctx *context.Context) {
 			if err == errTooLarge {
 				return CsvDiffResult{nil, err.Error()}
 			}
-			log.Error("error whilst creating csv.Reader from file %s in head commit %s in %s: %v", diffFile.Name, headBlob.ID.String(), ctx.Repo.Repository.Name, err)
+			log.Error("error whilst creating csv.Reader from file %s in head commit %s in %s: %w", diffFile.Name, headBlob.ID.String(), ctx.Repo.Repository.Name, err)
 			return CsvDiffResult{nil, "unable to load file"}
 		}
 
@@ -166,7 +166,7 @@ func setCsvCompareContext(ctx *context.Context) {
 		if err != nil {
 			errMessage, err := csv_module.FormatError(err, ctx.Locale)
 			if err != nil {
-				log.Error("CreateCsvDiff FormatError failed: %v", err)
+				log.Error("CreateCsvDiff FormatError failed: %w", err)
 				return CsvDiffResult{nil, "unknown csv diff error"}
 			}
 			return CsvDiffResult{nil, errMessage}

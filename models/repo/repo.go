@@ -523,7 +523,7 @@ func (repo *Repository) DescriptionHTML(ctx context.Context) template.HTML {
 		// Don't use Metas to speedup requests
 	}, repo.Description)
 	if err != nil {
-		log.Error("Failed to render description for %s (ID: %d): %v", repo.Name, repo.ID, err)
+		log.Error("Failed to render description for %s (ID: %d): %w", repo.Name, repo.ID, err)
 		return template.HTML(markup.Sanitize(repo.Description))
 	}
 	return template.HTML(markup.Sanitize(desc))
@@ -704,7 +704,7 @@ func GetTemplateRepo(ctx context.Context, repo *Repository) (*Repository, error)
 func (repo *Repository) TemplateRepo() *Repository {
 	repo, err := GetTemplateRepo(db.DefaultContext, repo)
 	if err != nil {
-		log.Error("TemplateRepo: %v", err)
+		log.Error("TemplateRepo: %w", err)
 		return nil
 	}
 	return repo

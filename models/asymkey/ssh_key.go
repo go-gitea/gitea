@@ -331,11 +331,11 @@ func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
 	for _, KeyToDelete := range keys {
 		key, err := SearchPublicKeyByContent(ctx, KeyToDelete)
 		if err != nil {
-			log.Error("SearchPublicKeyByContent: %v", err)
+			log.Error("SearchPublicKeyByContent: %w", err)
 			continue
 		}
 		if err = DeletePublicKeys(ctx, key.ID); err != nil {
-			log.Error("deletePublicKeys: %v", err)
+			log.Error("deletePublicKeys: %w", err)
 			continue
 		}
 		sshKeysNeedUpdate = true
@@ -372,7 +372,7 @@ func AddPublicKeysBySource(usr *user_model.User, s *auth.Source, sshPublicKeys [
 				if IsErrKeyAlreadyExist(err) {
 					log.Trace("AddPublicKeysBySource[%s]: Public SSH Key %s already exists for user", sshKeyName, usr.Name)
 				} else {
-					log.Error("AddPublicKeysBySource[%s]: Error adding Public SSH Key for user %s: %v", sshKeyName, usr.Name, err)
+					log.Error("AddPublicKeysBySource[%s]: Error adding Public SSH Key for user %s: %w", sshKeyName, usr.Name, err)
 				}
 			} else {
 				log.Trace("AddPublicKeysBySource[%s]: Added Public SSH Key for user %s", sshKeyName, usr.Name)
@@ -396,7 +396,7 @@ func SynchronizePublicKeys(usr *user_model.User, s *auth.Source, sshPublicKeys [
 	var giteaKeys []string
 	keys, err := ListPublicKeysBySource(usr.ID, s.ID)
 	if err != nil {
-		log.Error("synchronizePublicKeys[%s]: Error listing Public SSH Keys for user %s: %v", s.Name, usr.Name, err)
+		log.Error("synchronizePublicKeys[%s]: Error listing Public SSH Keys for user %s: %w", s.Name, usr.Name, err)
 	}
 
 	for _, v := range keys {
@@ -445,7 +445,7 @@ func SynchronizePublicKeys(usr *user_model.User, s *auth.Source, sshPublicKeys [
 	// Delete keys from DB that no longer exist in the source
 	needUpd, err := deleteKeysMarkedForDeletion(giteaKeysToDelete)
 	if err != nil {
-		log.Error("synchronizePublicKeys[%s]: Error deleting Public Keys marked for deletion for user %s: %v", s.Name, usr.Name, err)
+		log.Error("synchronizePublicKeys[%s]: Error deleting Public Keys marked for deletion for user %s: %w", s.Name, usr.Name, err)
 	}
 	if needUpd {
 		sshKeysNeedUpdate = true

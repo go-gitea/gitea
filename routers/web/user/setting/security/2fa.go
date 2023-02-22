@@ -135,7 +135,7 @@ func twofaGenerateSecretAndQr(ctx *context.Context) bool {
 	// Here we're just going to try to release the session early
 	if err := ctx.Session.Release(); err != nil {
 		// we'll tolerate errors here as they *should* get saved elsewhere
-		log.Error("Unable to save changes to the session: %v", err)
+		log.Error("Unable to save changes to the session: %w", err)
 	}
 	return true
 }
@@ -226,15 +226,15 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 	// If we can detect the unique constraint failure below we can move this to after the NewTwoFactor
 	if err := ctx.Session.Delete("twofaSecret"); err != nil {
 		// tolerate this failure - it's more important to continue
-		log.Error("Unable to delete twofaSecret from the session: Error: %v", err)
+		log.Error("Unable to delete twofaSecret from the session: Error: %w", err)
 	}
 	if err := ctx.Session.Delete("twofaUri"); err != nil {
 		// tolerate this failure - it's more important to continue
-		log.Error("Unable to delete twofaUri from the session: Error: %v", err)
+		log.Error("Unable to delete twofaUri from the session: Error: %w", err)
 	}
 	if err := ctx.Session.Release(); err != nil {
 		// tolerate this failure - it's more important to continue
-		log.Error("Unable to save changes to the session: %v", err)
+		log.Error("Unable to save changes to the session: %w", err)
 	}
 
 	if err = auth.NewTwoFactor(t); err != nil {

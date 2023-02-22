@@ -18,7 +18,7 @@ func TestBleveIndexAndSearch(t *testing.T) {
 
 	idx, _, err := NewBleveIndexer(dir)
 	if err != nil {
-		assert.Fail(t, "Unable to create bleve indexer Error: %v", err)
+		assert.Fail(t, "Unable to create bleve indexer Error: %w", err)
 		if idx != nil {
 			idx.Close()
 		}

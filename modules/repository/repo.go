@@ -104,7 +104,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 				Branch:        "master",
 				SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 			}); err != nil {
-				log.Warn("Clone wiki: %v", err)
+				log.Warn("Clone wiki: %w", err)
 				if err := util.RemoveAll(wikiPath); err != nil {
 					return repo, fmt.Errorf("Failed to remove %s: %w", wikiPath, err)
 				}
@@ -127,7 +127,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	if stdout, _, err := git.NewCommand(ctx, "update-server-info").
 		SetDescription(fmt.Sprintf("MigrateRepositoryGitData(git update-server-info): %s", repoPath)).
 		RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
-		log.Error("MigrateRepositoryGitData(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
+		log.Error("MigrateRepositoryGitData(git update-server-info) in %v: Stdout: %s\nError: %w", repo, stdout, err)
 		return repo, fmt.Errorf("error in MigrateRepositoryGitData(git update-server-info): %w", err)
 	}
 
@@ -159,7 +159,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			// for pull-mirrors with many tags
 			repo.IsMirror = opts.Mirror
 			if err = SyncReleasesWithTags(repo, gitRepo); err != nil {
-				log.Error("Failed to synchronize tags to releases for repository: %v", err)
+				log.Error("Failed to synchronize tags to releases for repository: %w", err)
 			}
 		}
 
@@ -167,7 +167,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			endpoint := lfs.DetermineEndpoint(opts.CloneAddr, opts.LFSEndpoint)
 			lfsClient := lfs.NewClient(endpoint, httpTransport)
 			if err = StoreMissingLfsObjectsInRepository(ctx, repo, gitRepo, lfsClient); err != nil {
-				log.Error("Failed to store missing LFS objects for repository: %v", err)
+				log.Error("Failed to store missing LFS objects for repository: %w", err)
 			}
 		}
 	}
@@ -193,7 +193,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		if opts.MirrorInterval != "" {
 			parsedInterval, err := time.ParseDuration(opts.MirrorInterval)
 			if err != nil {
-				log.Error("Failed to set Interval: %v", err)
+				log.Error("Failed to set Interval: %w", err)
 				return repo, err
 			}
 			if parsedInterval == 0 {
@@ -219,7 +219,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		}
 	} else {
 		if err = UpdateRepoSize(ctx, repo); err != nil {
-			log.Error("Failed to update size for repository: %v", err)
+			log.Error("Failed to update size for repository: %w", err)
 		}
 		if repo, err = CleanUpMigrateInfo(ctx, repo); err != nil {
 			return nil, err
@@ -396,12 +396,12 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 			_, err := git_model.NewLFSMetaObject(ctx, &git_model.LFSMetaObject{Pointer: p, RepositoryID: repo.ID})
 			if err != nil {
-				log.Error("Repo[%-v]: Error creating LFS meta object %-v: %v", repo, p, err)
+				log.Error("Repo[%-v]: Error creating LFS meta object %-v: %w", repo, p, err)
 				return err
 			}
 
 			if err := contentStore.Put(p, content); err != nil {
-				log.Error("Repo[%-v]: Error storing content for LFS meta object %-v: %v", repo, p, err)
+				log.Error("Repo[%-v]: Error storing content for LFS meta object %-v: %w", repo, p, err)
 				if _, err2 := git_model.RemoveLFSMetaObjectByOid(ctx, repo.ID, p.Oid); err2 != nil {
 					log.Error("Repo[%-v]: Error removing LFS meta object %-v: %v", repo, p, err2)
 				}
@@ -423,7 +423,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 	for pointerBlob := range pointerChan {
 		meta, err := git_model.GetLFSMetaObjectByOid(ctx, repo.ID, pointerBlob.Oid)
 		if err != nil && err != git_model.ErrLFSObjectNotExist {
-			log.Error("Repo[%-v]: Error querying LFS meta object %-v: %v", repo, pointerBlob.Pointer, err)
+			log.Error("Repo[%-v]: Error querying LFS meta object %-v: %w", repo, pointerBlob.Pointer, err)
 			return err
 		}
 		if meta != nil {
@@ -435,7 +435,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 		exist, err := contentStore.Exists(pointerBlob.Pointer)
 		if err != nil {
-			log.Error("Repo[%-v]: Error checking if LFS object %-v exists: %v", repo, pointerBlob.Pointer, err)
+			log.Error("Repo[%-v]: Error checking if LFS object %-v exists: %w", repo, pointerBlob.Pointer, err)
 			return err
 		}
 
@@ -443,7 +443,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 			log.Trace("Repo[%-v]: LFS object %-v already present; creating meta object", repo, pointerBlob.Pointer)
 			_, err := git_model.NewLFSMetaObject(ctx, &git_model.LFSMetaObject{Pointer: pointerBlob.Pointer, RepositoryID: repo.ID})
 			if err != nil {
-				log.Error("Repo[%-v]: Error creating LFS meta object %-v: %v", repo, pointerBlob.Pointer, err)
+				log.Error("Repo[%-v]: Error creating LFS meta object %-v: %w", repo, pointerBlob.Pointer, err)
 				return err
 			}
 		} else {
@@ -469,7 +469,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 	err, has := <-errChan
 	if has {
-		log.Error("Repo[%-v]: Error enumerating LFS objects for repository: %v", repo, err)
+		log.Error("Repo[%-v]: Error enumerating LFS objects for repository: %w", repo, err)
 		return err
 	}
 

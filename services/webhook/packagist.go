@@ -33,7 +33,7 @@ type (
 func GetPackagistHook(w *webhook_model.Webhook) *PackagistMeta {
 	s := &PackagistMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
-		log.Error("webhook.GetPackagistHook(%d): %v", w.ID, err)
+		log.Error("webhook.GetPackagistHook(%d): %w", w.ID, err)
 	}
 	return s
 }

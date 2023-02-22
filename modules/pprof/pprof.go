@@ -33,13 +33,13 @@ func DumpCPUProfileForUsername(pprofDataPath, username string) (func(), error) {
 
 	err = pprof.StartCPUProfile(f)
 	if err != nil {
-		log.Fatal("StartCPUProfile: %v", err)
+		log.Fatal("StartCPUProfile: %w", err)
 	}
 	return func() {
 		pprof.StopCPUProfile()
 		err = f.Close()
 		if err != nil {
-			log.Fatal("StopCPUProfile Close: %v", err)
+			log.Fatal("StopCPUProfile Close: %w", err)
 		}
 	}, nil
 }

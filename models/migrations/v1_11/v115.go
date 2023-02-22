@@ -65,7 +65,7 @@ func RenameExistingUserAvatarName(x *xorm.Engine) error {
 				if err == nil {
 					err = fmt.Errorf("Error: \"%s\" is not a regular file", oldAvatar)
 				}
-				log.Warn("[user: %s] os.Stat: %v", user.LowerName, err)
+				log.Warn("[user: %s] os.Stat: %w", user.LowerName, err)
 				// avatar doesn't exist in the storage
 				// no need to move avatar and update database
 				// we can just skip this
@@ -112,7 +112,7 @@ func RenameExistingUserAvatarName(x *xorm.Engine) error {
 	i := 0
 	for file := range deleteList {
 		if err := util.Remove(file); err != nil {
-			log.Warn("util.Remove: %v", err)
+			log.Warn("util.Remove: %w", err)
 		}
 		i++
 		select {

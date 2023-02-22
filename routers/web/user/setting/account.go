@@ -114,7 +114,7 @@ func EmailPost(ctx *context.Context) {
 		id := ctx.FormInt64("id")
 		email, err := user_model.GetEmailAddressByID(ctx.Doer.ID, id)
 		if err != nil {
-			log.Error("GetEmailAddressByID(%d,%d) error: %v", ctx.Doer.ID, id, err)
+			log.Error("GetEmailAddressByID(%d,%d) error: %w", ctx.Doer.ID, id, err)
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 			return
 		}
@@ -143,7 +143,7 @@ func EmailPost(ctx *context.Context) {
 
 		if setting.CacheService.Enabled {
 			if err := ctx.Cache.Put("MailResendLimit_"+ctx.Doer.LowerName, ctx.Doer.LowerName, 180); err != nil {
-				log.Error("Set cache(MailResendLimit) fail: %v", err)
+				log.Error("Set cache(MailResendLimit) fail: %w", err)
 			}
 		}
 		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", address, timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale)))
@@ -162,7 +162,7 @@ func EmailPost(ctx *context.Context) {
 			return
 		}
 		if err := user_model.SetEmailNotifications(ctx.Doer, preference); err != nil {
-			log.Error("Set Email Notifications failed: %v", err)
+			log.Error("Set Email Notifications failed: %w", err)
 			ctx.ServerError("SetEmailNotifications", err)
 			return
 		}
@@ -206,7 +206,7 @@ func EmailPost(ctx *context.Context) {
 		mailer.SendActivateEmailMail(ctx.Doer, email)
 		if setting.CacheService.Enabled {
 			if err := ctx.Cache.Put("MailResendLimit_"+ctx.Doer.LowerName, ctx.Doer.LowerName, 180); err != nil {
-				log.Error("Set cache(MailResendLimit) fail: %v", err)
+				log.Error("Set cache(MailResendLimit) fail: %w", err)
 			}
 		}
 		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", email.Email, timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale)))

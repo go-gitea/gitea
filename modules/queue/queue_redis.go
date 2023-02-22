@@ -126,7 +126,7 @@ func (fifo *RedisByteFIFO) Close() error {
 func (fifo *RedisByteFIFO) Len(ctx context.Context) int64 {
 	val, err := fifo.client.LLen(ctx, fifo.queueName).Result()
 	if err != nil {
-		log.Error("Error whilst getting length of redis queue %s: Error: %v", fifo.queueName, err)
+		log.Error("Error whilst getting length of redis queue %s: Error: %w", fifo.queueName, err)
 		return -1
 	}
 	return val

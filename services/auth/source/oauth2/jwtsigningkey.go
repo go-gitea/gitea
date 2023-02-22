@@ -359,7 +359,7 @@ func loadOrCreateSymmetricKey() (interface{}, error) {
 	if err != nil || n != 32 {
 		key, err = generate.NewJwtSecret()
 		if err != nil {
-			log.Fatal("error generating JWT secret: %v", err)
+			log.Fatal("error generating JWT secret: %w", err)
 			return nil, err
 		}
 
@@ -379,7 +379,7 @@ func loadOrCreateAsymmetricKey() (interface{}, error) {
 
 	isExist, err := util.IsExist(keyPath)
 	if err != nil {
-		log.Fatal("Unable to check if %s exists. Error: %v", keyPath, err)
+		log.Fatal("Unable to check if %s exists. Error: %w", keyPath, err)
 	}
 	if !isExist {
 		err := func() error {
@@ -415,14 +415,14 @@ func loadOrCreateAsymmetricKey() (interface{}, error) {
 			}
 			defer func() {
 				if err = f.Close(); err != nil {
-					log.Error("Close: %v", err)
+					log.Error("Close: %w", err)
 				}
 			}()
 
 			return pem.Encode(f, privateKeyPEM)
 		}()
 		if err != nil {
-			log.Fatal("Error generating private key: %v", err)
+			log.Fatal("Error generating private key: %w", err)
 			return nil, err
 		}
 	}

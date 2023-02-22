@@ -37,7 +37,7 @@ func Mailer(ctx context.Context) (*texttmpl.Template, *template.Template) {
 
 			content, err := BuiltinAsset(assetPath)
 			if err != nil {
-				log.Warn("Failed to read embedded %s template. %v", assetPath, err)
+				log.Warn("Failed to read embedded %s template. %w", assetPath, err)
 				continue
 			}
 
@@ -60,7 +60,7 @@ func Mailer(ctx context.Context) (*texttmpl.Template, *template.Template) {
 
 			content, err := os.ReadFile(path)
 			if err != nil {
-				log.Warn("Failed to read custom %s template. %v", path, err)
+				log.Warn("Failed to read custom %s template. %w", path, err)
 				return nil
 			}
 
@@ -72,7 +72,7 @@ func Mailer(ctx context.Context) (*texttmpl.Template, *template.Template) {
 				content)
 			return nil
 		}); err != nil && !os.IsNotExist(err) {
-			log.Warn("Error whilst walking mailer templates directories. %v", err)
+			log.Warn("Error whilst walking mailer templates directories. %w", err)
 		}
 	}
 

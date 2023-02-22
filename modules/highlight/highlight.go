@@ -117,13 +117,13 @@ func CodeFromLexer(lexer chroma.Lexer, code string) string {
 
 	iterator, err := lexer.Tokenise(nil, code)
 	if err != nil {
-		log.Error("Can't tokenize code: %v", err)
+		log.Error("Can't tokenize code: %w", err)
 		return code
 	}
 	// style not used for live site but need to pass something
 	err = formatter.Format(htmlw, styles.GitHub, iterator)
 	if err != nil {
-		log.Error("Can't format code: %v", err)
+		log.Error("Can't format code: %w", err)
 		return code
 	}
 
@@ -202,7 +202,7 @@ func PlainText(code []byte) []string {
 	for {
 		content, err := r.ReadString('\n')
 		if err != nil && err != io.EOF {
-			log.Error("failed to read string from buffer: %v", err)
+			log.Error("failed to read string from buffer: %w", err)
 			break
 		}
 		if content == "" && err == io.EOF {

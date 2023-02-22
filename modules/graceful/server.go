@@ -85,7 +85,7 @@ func (srv *Server) ListenAndServe(serve ServeFunction, useProxyProtocol bool) er
 
 	listener, err := GetListener(srv.network, srv.address)
 	if err != nil {
-		log.Error("Unable to GetListener: %v", err)
+		log.Error("Unable to GetListener: %w", err)
 		return err
 	}
 
@@ -118,7 +118,7 @@ func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFun
 
 	listener, err := GetListener(srv.network, srv.address)
 	if err != nil {
-		log.Error("Unable to get Listener: %v", err)
+		log.Error("Unable to get Listener: %w", err)
 		return err
 	}
 
@@ -286,7 +286,7 @@ func (w *wrappedConn) Close() error {
 					// Likely deadlocked request released at hammertime
 					log.Warn("Panic during connection close! %v. Likely there has been a deadlocked request which has been released by forced shutdown.", err)
 				default:
-					log.Error("Panic during connection close! %v", err)
+					log.Error("Panic during connection close! %w", err)
 				}
 			}
 		}()

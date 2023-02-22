@@ -118,7 +118,7 @@ func UpdateTopics(ctx *context.APIContext) {
 
 	err := repo_model.SaveTopics(ctx.Repo.Repository.ID, validTopics...)
 	if err != nil {
-		log.Error("SaveTopics failed: %v", err)
+		log.Error("SaveTopics failed: %w", err)
 		ctx.InternalServerError(err)
 		return
 	}
@@ -170,7 +170,7 @@ func AddTopic(ctx *context.APIContext) {
 		RepoID: ctx.Repo.Repository.ID,
 	})
 	if err != nil {
-		log.Error("CountTopics failed: %v", err)
+		log.Error("CountTopics failed: %w", err)
 		ctx.InternalServerError(err)
 		return
 	}
@@ -183,7 +183,7 @@ func AddTopic(ctx *context.APIContext) {
 
 	_, err = repo_model.AddTopic(ctx.Repo.Repository.ID, topicName)
 	if err != nil {
-		log.Error("AddTopic failed: %v", err)
+		log.Error("AddTopic failed: %w", err)
 		ctx.InternalServerError(err)
 		return
 	}
@@ -232,7 +232,7 @@ func DeleteTopic(ctx *context.APIContext) {
 
 	topic, err := repo_model.DeleteTopic(ctx.Repo.Repository.ID, topicName)
 	if err != nil {
-		log.Error("DeleteTopic failed: %v", err)
+		log.Error("DeleteTopic failed: %w", err)
 		ctx.InternalServerError(err)
 		return
 	}

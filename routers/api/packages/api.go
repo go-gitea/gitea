@@ -66,7 +66,7 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 		var err error
 		ctx.Doer, err = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
 		if err != nil {
-			log.Error("Verify: %v", err)
+			log.Error("Verify: %w", err)
 			ctx.Error(http.StatusUnauthorized, "authGroup.Verify")
 			return
 		}
@@ -414,7 +414,7 @@ func ContainerRoutes(ctx gocontext.Context) *web.Route {
 		var err error
 		ctx.Doer, err = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
 		if err != nil {
-			log.Error("Failed to verify user: %v", err)
+			log.Error("Failed to verify user: %w", err)
 			ctx.Error(http.StatusUnauthorized, "Verify")
 			return
 		}

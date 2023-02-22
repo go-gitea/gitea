@@ -148,7 +148,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 	if setting.EnableGzip {
 		h, err := gziphandler.GzipHandlerWithOpts(gziphandler.MinSize(GzipMinSize))
 		if err != nil {
-			log.Fatal("GzipHandlerWithOpts failed: %v", err)
+			log.Fatal("GzipHandlerWithOpts failed: %w", err)
 		}
 		common = append(common, h)
 	}
@@ -185,7 +185,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 		rw.Header().Set("content-type", "text/json;charset=UTF-8")
 		_, err := rw.Write([]byte(`{"type":"gitea","version":1}`))
 		if err != nil {
-			log.Error("fail to write result: err: %v", err)
+			log.Error("fail to write result: err: %w", err)
 			rw.WriteHeader(http.StatusInternalServerError)
 			return
 		}

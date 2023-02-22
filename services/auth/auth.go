@@ -55,7 +55,7 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 	// We need to regenerate the session...
 	newSess, err := session.RegenerateSession(resp, req)
 	if err != nil {
-		log.Error(fmt.Sprintf("Error regenerating session: %v", err))
+		log.Error(fmt.Sprintf("Error regenerating session: %w", err))
 	} else {
 		sess = newSess
 	}
@@ -70,11 +70,11 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 	_ = sess.Delete("linkAccount")
 	err = sess.Set("uid", user.ID)
 	if err != nil {
-		log.Error(fmt.Sprintf("Error setting session: %v", err))
+		log.Error(fmt.Sprintf("Error setting session: %w", err))
 	}
 	err = sess.Set("uname", user.Name)
 	if err != nil {
-		log.Error(fmt.Sprintf("Error setting session: %v", err))
+		log.Error(fmt.Sprintf("Error setting session: %w", err))
 	}
 
 	// Language setting of the user overwrites the one previously set

@@ -51,7 +51,7 @@ func Test_SSHParsePublicKey(t *testing.T) {
 				if err != nil {
 					// Some servers do not support ecdsa format.
 					if !strings.Contains(err.Error(), "line 1 too long:") {
-						assert.Fail(t, "%v", err)
+						assert.Fail(t, "%w", err)
 					}
 				}
 				assert.Equal(t, tc.keyType, keyTypeK)

@@ -80,7 +80,7 @@ func (protectBranch *ProtectedBranch) loadGlob() {
 		var err error
 		protectBranch.globRule, err = glob.Compile(protectBranch.RuleName, '/')
 		if err != nil {
-			log.Warn("Invalid glob rule for ProtectedBranch[%d]: %s %v", protectBranch.ID, protectBranch.RuleName, err)
+			log.Warn("Invalid glob rule for ProtectedBranch[%d]: %s %w", protectBranch.ID, protectBranch.RuleName, err)
 			protectBranch.globRule = glob.MustCompile(glob.QuoteMeta(protectBranch.RuleName), '/')
 		}
 		protectBranch.isPlainName = !IsRuleNameSpecial(protectBranch.RuleName)
@@ -113,13 +113,13 @@ func (protectBranch *ProtectedBranch) CanUserPush(ctx context.Context, user *use
 
 	if !protectBranch.EnableWhitelist {
 		if err := protectBranch.LoadRepo(ctx); err != nil {
-			log.Error("LoadRepo: %v", err)
+			log.Error("LoadRepo: %w", err)
 			return false
 		}
 
 		writeAccess, err := access_model.HasAccessUnit(ctx, user, protectBranch.Repo, unit.TypeCode, perm.AccessModeWrite)
 		if err != nil {
-			log.Error("HasAccessUnit: %v", err)
+			log.Error("HasAccessUnit: %w", err)
 			return false
 		}
 		return writeAccess
@@ -135,7 +135,7 @@ func (protectBranch *ProtectedBranch) CanUserPush(ctx context.Context, user *use
 
 	in, err := organization.IsUserInTeams(ctx, user.ID, protectBranch.WhitelistTeamIDs)
 	if err != nil {
-		log.Error("IsUserInTeams: %v", err)
+		log.Error("IsUserInTeams: %w", err)
 		return false
 	}
 	return in
@@ -158,7 +158,7 @@ func IsUserMergeWhitelisted(ctx context.Context, protectBranch *ProtectedBranch,
 
 	in, err := organization.IsUserInTeams(ctx, userID, protectBranch.MergeWhitelistTeamIDs)
 	if err != nil {
-		log.Error("IsUserInTeams: %v", err)
+		log.Error("IsUserInTeams: %w", err)
 		return false
 	}
 	return in
@@ -208,7 +208,7 @@ func getFilePatterns(filePatterns string) []glob.Glob {
 		expr = strings.TrimSpace(expr)
 		if expr != "" {
 			if g, err := glob.Compile(expr, '.', '/'); err != nil {
-				log.Info("Invalid glob expression '%s' (skipped): %v", expr, err)
+				log.Info("Invalid glob expression '%s' (skipped): %w", expr, err)
 			} else {
 				extarr = append(extarr, g)
 			}
@@ -315,7 +315,7 @@ type WhitelistOptions struct {
 // to avoid unnecessary whitelist delete and regenerate.
 func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, protectBranch *ProtectedBranch, opts WhitelistOptions) (err error) {
 	if err = repo.LoadOwner(ctx); err != nil {
-		return fmt.Errorf("LoadOwner: %v", err)
+		return fmt.Errorf("LoadOwner: %w", err)
 	}
 
 	whitelist, err := updateUserWhitelist(ctx, repo, protectBranch.WhitelistUserIDs, opts.UserIDs)
@@ -358,13 +358,13 @@ func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, prote
 	// Make sure protectBranch.ID is not 0 for whitelists
 	if protectBranch.ID == 0 {
 		if _, err = db.GetEngine(ctx).Insert(protectBranch); err != nil {
-			return fmt.Errorf("Insert: %v", err)
+			return fmt.Errorf("Insert: %w", err)
 		}
 		return nil
 	}
 
 	if _, err = db.GetEngine(ctx).ID(protectBranch.ID).AllCols().Update(protectBranch); err != nil {
-		return fmt.Errorf("Update: %v", err)
+		return fmt.Errorf("Update: %w", err)
 	}
 
 	return nil
@@ -403,11 +403,11 @@ func updateUserWhitelist(ctx context.Context, repo *repo_model.Repository, curre
 	for _, userID := range newWhitelist {
 		user, err := user_model.GetUserByID(ctx, userID)
 		if err != nil {
-			return nil, fmt.Errorf("GetUserByID [user_id: %d, repo_id: %d]: %v", userID, repo.ID, err)
+			return nil, fmt.Errorf("GetUserByID [user_id: %d, repo_id: %d]: %w", userID, repo.ID, err)
 		}
 		perm, err := access_model.GetUserRepoPermission(ctx, repo, user)
 		if err != nil {
-			return nil, fmt.Errorf("GetUserRepoPermission [user_id: %d, repo_id: %d]: %v", userID, repo.ID, err)
+			return nil, fmt.Errorf("GetUserRepoPermission [user_id: %d, repo_id: %d]: %w", userID, repo.ID, err)
 		}
 
 		if !perm.CanWrite(unit.TypeCode) {
@@ -430,7 +430,7 @@ func updateTeamWhitelist(ctx context.Context, repo *repo_model.Repository, curre
 
 	teams, err := organization.GetTeamsWithAccessToRepo(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead)
 	if err != nil {
-		return nil, fmt.Errorf("GetTeamsWithAccessToRepo [org_id: %d, repo_id: %d]: %v", repo.OwnerID, repo.ID, err)
+		return nil, fmt.Errorf("GetTeamsWithAccessToRepo [org_id: %d, repo_id: %d]: %w", repo.OwnerID, repo.ID, err)
 	}
 
 	whitelist = make([]int64, 0, len(teams))
@@ -473,7 +473,7 @@ func RemoveUserIDFromProtectedBranch(ctx context.Context, p *ProtectedBranch, us
 			"merge_whitelist_user_i_ds",
 			"approvals_whitelist_user_i_ds",
 		).Update(p); err != nil {
-			return fmt.Errorf("updateProtectedBranches: %v", err)
+			return fmt.Errorf("updateProtectedBranches: %w", err)
 		}
 	}
 	return nil
@@ -494,7 +494,7 @@ func RemoveTeamIDFromProtectedBranch(ctx context.Context, p *ProtectedBranch, te
 			"merge_whitelist_team_i_ds",
 			"approvals_whitelist_team_i_ds",
 		).Update(p); err != nil {
-			return fmt.Errorf("updateProtectedBranches: %v", err)
+			return fmt.Errorf("updateProtectedBranches: %w", err)
 		}
 	}
 	return nil

@@ -108,7 +108,7 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revisio
 	if runErr != nil {
 		// previous commit sha may have been removed by a force push, so
 		// try rebuilding from scratch
-		log.Warn("git diff: %v", runErr)
+		log.Warn("git diff: %w", runErr)
 		if err := indexer.Delete(repo.ID); err != nil {
 			return nil, err
 		}

@@ -30,7 +30,7 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 	if !rel.IsDraft {
 		if !gitRepo.IsTagExist(rel.TagName) {
 			if err := rel.LoadAttributes(ctx); err != nil {
-				log.Error("LoadAttributes: %v", err)
+				log.Error("LoadAttributes: %w", err)
 				return false, err
 			}
 
@@ -273,7 +273,7 @@ func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *repo_mod
 			// should not return error but only record the error on logs.
 			// users have to delete this attachments manually or we should have a
 			// synchronize between database attachment table and attachment storage
-			log.Error("delete attachment[uuid: %s] failed: %v", uuid, err)
+			log.Error("delete attachment[uuid: %s] failed: %w", uuid, err)
 		}
 	}
 
@@ -319,7 +319,7 @@ func DeleteReleaseByID(ctx context.Context, id int64, doer *user_model.User, del
 		if stdout, _, err := git.NewCommand(ctx, "tag", "-d").AddDashesAndList(rel.TagName).
 			SetDescription(fmt.Sprintf("DeleteReleaseByID (git tag -d): %d", rel.ID)).
 			RunStdString(&git.RunOpts{Dir: repo.RepoPath()}); err != nil && !strings.Contains(err.Error(), "not found") {
-			log.Error("DeleteReleaseByID (git tag -d): %d in %v Failed:\nStdout: %s\nError: %v", rel.ID, repo, stdout, err)
+			log.Error("DeleteReleaseByID (git tag -d): %d in %v Failed:\nStdout: %s\nError: %w", rel.ID, repo, stdout, err)
 			return fmt.Errorf("git tag -d: %w", err)
 		}
 
@@ -355,7 +355,7 @@ func DeleteReleaseByID(ctx context.Context, id int64, doer *user_model.User, del
 	for i := range rel.Attachments {
 		attachment := rel.Attachments[i]
 		if err := storage.Attachments.Delete(attachment.RelativePath()); err != nil {
-			log.Error("Delete attachment %s of release %s failed: %v", attachment.UUID, rel.ID, err)
+			log.Error("Delete attachment %s of release %s failed: %w", attachment.UUID, rel.ID, err)
 		}
 	}
 

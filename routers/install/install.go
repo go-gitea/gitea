@@ -380,12 +380,12 @@ func SubmitInstall(ctx *context.Context) {
 	cfg := ini.Empty()
 	isFile, err := util.IsFile(setting.CustomConf)
 	if err != nil {
-		log.Error("Unable to check if %s is a file. Error: %v", setting.CustomConf, err)
+		log.Error("Unable to check if %s is a file. Error: %w", setting.CustomConf, err)
 	}
 	if isFile {
 		// Keeps custom settings if there is already something.
 		if err = cfg.Append(setting.CustomConf); err != nil {
-			log.Error("Failed to load custom conf '%s': %v", setting.CustomConf, err)
+			log.Error("Failed to load custom conf '%s': %w", setting.CustomConf, err)
 		}
 	}
 	cfg.Section("database").Key("DB_TYPE").SetValue(setting.Database.Type)
@@ -582,7 +582,7 @@ func SubmitInstall(ctx *context.Context) {
 	srv := ctx.Value(http.ServerContextKey).(*http.Server)
 	go func() {
 		if err := srv.Shutdown(graceful.GetManager().HammerContext()); err != nil {
-			log.Error("Unable to shutdown the install server! Error: %v", err)
+			log.Error("Unable to shutdown the install server! Error: %w", err)
 		}
 	}()
 }

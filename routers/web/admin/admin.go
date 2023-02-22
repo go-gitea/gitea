@@ -242,7 +242,7 @@ func Flush(ctx *context.Context) {
 	go func() {
 		err := mq.Flush(timeout)
 		if err != nil {
-			log.Error("Flushing failure for %s: Error %v", mq.Name, err)
+			log.Error("Flushing failure for %s: Error %w", mq.Name, err)
 		}
 	}()
 	ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))

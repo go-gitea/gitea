@@ -47,7 +47,7 @@ func Test_fixUnitConfig_16961(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			gotFixed, err := fixUnitConfig16961([]byte(tt.bs), &repo_model.UnitConfig{})
 			if (err != nil) != tt.wantErr {
-				t.Errorf("fixUnitConfig_16961() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("fixUnitConfig_16961() error = %v, wantErr %w", err, tt.wantErr)
 				return
 			}
 			if gotFixed != tt.wantFixed {
@@ -91,7 +91,7 @@ func Test_fixExternalWikiConfig_16961(t *testing.T) {
 			cfg := &repo_model.ExternalWikiConfig{}
 			gotFixed, err := fixExternalWikiConfig16961([]byte(tt.bs), cfg)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("fixExternalWikiConfig_16961() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("fixExternalWikiConfig_16961() error = %v, wantErr %w", err, tt.wantErr)
 				return
 			}
 			if gotFixed != tt.wantFixed {
@@ -152,7 +152,7 @@ func Test_fixExternalTrackerConfig_16961(t *testing.T) {
 			cfg := &repo_model.ExternalTrackerConfig{}
 			gotFixed, err := fixExternalTrackerConfig16961([]byte(tt.bs), cfg)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("fixExternalTrackerConfig_16961() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("fixExternalTrackerConfig_16961() error = %v, wantErr %w", err, tt.wantErr)
 				return
 			}
 			if gotFixed != tt.wantFixed {
@@ -215,7 +215,7 @@ func Test_fixPullRequestsConfig_16961(t *testing.T) {
 			cfg := &repo_model.PullRequestsConfig{}
 			gotFixed, err := fixPullRequestsConfig16961([]byte(tt.bs), cfg)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("fixPullRequestsConfig_16961() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("fixPullRequestsConfig_16961() error = %v, wantErr %w", err, tt.wantErr)
 				return
 			}
 			if gotFixed != tt.wantFixed {
@@ -259,7 +259,7 @@ func Test_fixIssuesConfig_16961(t *testing.T) {
 			cfg := &repo_model.IssuesConfig{}
 			gotFixed, err := fixIssuesConfig16961([]byte(tt.bs), cfg)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("fixIssuesConfig_16961() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("fixIssuesConfig_16961() error = %v, wantErr %w", err, tt.wantErr)
 				return
 			}
 			if gotFixed != tt.wantFixed {

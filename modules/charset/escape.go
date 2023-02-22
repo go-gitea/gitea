@@ -27,7 +27,7 @@ func EscapeControlHTML(text string, locale translation.Locale, allowed ...rune) 
 
 	if err := StreamHTML(strings.NewReader(text), streamer); err != nil {
 		streamer.escaped.HasError = true
-		log.Error("Error whilst escaping: %v", err)
+		log.Error("Error whilst escaping: %w", err)
 	}
 	return streamer.escaped, sb.String()
 }
@@ -39,7 +39,7 @@ func EscapeControlReader(reader io.Reader, writer io.Writer, locale translation.
 
 	if err = StreamHTML(reader, streamer); err != nil {
 		streamer.escaped.HasError = true
-		log.Error("Error whilst escaping: %v", err)
+		log.Error("Error whilst escaping: %w", err)
 	}
 	return streamer.escaped, err
 }
@@ -55,7 +55,7 @@ func EscapeControlStringReader(reader io.Reader, writer io.Writer, locale transl
 		if len(line) > 0 {
 			if err := streamer.Text(line); err != nil {
 				streamer.escaped.HasError = true
-				log.Error("Error whilst escaping: %v", err)
+				log.Error("Error whilst escaping: %w", err)
 				return streamer.escaped, err
 			}
 		}
@@ -77,7 +77,7 @@ func EscapeControlString(text string, locale translation.Locale, allowed ...rune
 
 	if err := streamer.Text(text); err != nil {
 		streamer.escaped.HasError = true
-		log.Error("Error whilst escaping: %v", err)
+		log.Error("Error whilst escaping: %w", err)
 	}
 	return streamer.escaped, sb.String()
 }

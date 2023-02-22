@@ -107,7 +107,7 @@ func loadSSHFrom(rootCfg ConfigProvider) {
 
 	homeDir, err := util.HomeDir()
 	if err != nil {
-		log.Fatal("Failed to get home directory: %v", err)
+		log.Fatal("Failed to get home directory: %w", err)
 	}
 	homeDir = strings.ReplaceAll(homeDir, "\\", "/")
 
@@ -126,7 +126,7 @@ func loadSSHFrom(rootCfg ConfigProvider) {
 	}
 	SSH.KeyTestPath = os.TempDir()
 	if err = sec.MapTo(&SSH); err != nil {
-		log.Fatal("Failed to map SSH settings: %v", err)
+		log.Fatal("Failed to map SSH settings: %w", err)
 	}
 	for i, key := range SSH.ServerHostKeys {
 		if !filepath.IsAbs(key) {
@@ -149,7 +149,7 @@ func loadSSHFrom(rootCfg ConfigProvider) {
 	for _, caKey := range SSH.TrustedUserCAKeys {
 		pubKey, _, _, _, err := gossh.ParseAuthorizedKey([]byte(caKey))
 		if err != nil {
-			log.Fatal("Failed to parse TrustedUserCaKeys: %s %v", caKey, err)
+			log.Fatal("Failed to parse TrustedUserCaKeys: %s %w", caKey, err)
 		}
 
 		SSH.TrustedUserCAKeysParsed = append(SSH.TrustedUserCAKeysParsed, pubKey)

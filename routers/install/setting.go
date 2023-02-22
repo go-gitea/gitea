@@ -45,7 +45,7 @@ func reloadSettings(ctx context.Context) {
 		if err := common.InitDBEngine(ctx); err == nil {
 			log.Info("ORM engine initialization successful!")
 		} else {
-			log.Fatal("ORM engine initialization failed: %v", err)
+			log.Fatal("ORM engine initialization failed: %w", err)
 		}
 		svg.Init()
 	}

@@ -35,7 +35,7 @@ var HttpsigAlgs []httpsig.Algorithm
 
 func loadFederationFrom(rootCfg ConfigProvider) {
 	if err := rootCfg.Section("federation").MapTo(&Federation); err != nil {
-		log.Fatal("Failed to map Federation settings: %v", err)
+		log.Fatal("Failed to map Federation settings: %w", err)
 	} else if !httpsig.IsSupportedDigestAlgorithm(Federation.DigestAlgorithm) {
 		log.Fatal("unsupported digest algorithm: %s", Federation.DigestAlgorithm)
 		return

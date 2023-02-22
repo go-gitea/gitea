@@ -340,7 +340,7 @@ func PackageSettingsPost(ctx *context.Context) {
 			if form.RepoID != 0 {
 				repo, err := repo_model.GetRepositoryByID(ctx, form.RepoID)
 				if err != nil {
-					log.Error("Error getting repository: %v", err)
+					log.Error("Error getting repository: %w", err)
 					return false
 				}
 
@@ -352,7 +352,7 @@ func PackageSettingsPost(ctx *context.Context) {
 			}
 
 			if err := packages_model.SetRepositoryLink(ctx, pd.Package.ID, repoID); err != nil {
-				log.Error("Error updating package: %v", err)
+				log.Error("Error updating package: %w", err)
 				return false
 			}
 
@@ -370,7 +370,7 @@ func PackageSettingsPost(ctx *context.Context) {
 	case "delete":
 		err := packages_service.RemovePackageVersion(ctx.Doer, ctx.Package.Descriptor.Version)
 		if err != nil {
-			log.Error("Error deleting package: %v", err)
+			log.Error("Error deleting package: %w", err)
 			ctx.Flash.Error(ctx.Tr("packages.settings.delete.error"))
 		} else {
 			ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))

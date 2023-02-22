@@ -43,7 +43,7 @@ func DownloadDiffOrPatch(ctx context.Context, pr *issues_model.PullRequest, w io
 	defer closer.Close()
 
 	if err := gitRepo.GetDiffOrPatch(pr.MergeBase, pr.GetGitRefName(), w, patch, binary); err != nil {
-		log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
+		log.Error("Unable to get patch file from %s to %s in %s Error: %w", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 		return fmt.Errorf("Unable to get patch file from %s to %s in %s Error: %w", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 	}
 	return nil
@@ -66,7 +66,7 @@ func TestPatch(pr *issues_model.PullRequest) error {
 	// Clone base repo.
 	tmpBasePath, err := createTemporaryRepo(ctx, pr)
 	if err != nil {
-		log.Error("CreateTemporaryPath: %v", err)
+		log.Error("CreateTemporaryPath: %w", err)
 		return err
 	}
 	defer func() {
@@ -107,7 +107,7 @@ func TestPatch(pr *issues_model.PullRequest) error {
 
 	// 3. Check for protected files changes
 	if err = checkPullFilesProtection(ctx, pr, gitRepo); err != nil {
-		return fmt.Errorf("pr.CheckPullFilesProtection(): %v", err)
+		return fmt.Errorf("pr.CheckPullFilesProtection(): %w", err)
 	}
 
 	if len(pr.ChangedProtectedFiles) > 0 {
@@ -239,7 +239,7 @@ func AttemptThreeWayMerge(ctx context.Context, gitPath string, gitRepo *git.Repo
 
 	// First we use read-tree to do a simple three-way merge
 	if _, _, err := git.NewCommand(ctx, "read-tree", "-m").AddDynamicArguments(base, ours, theirs).RunStdString(&git.RunOpts{Dir: gitPath}); err != nil {
-		log.Error("Unable to run read-tree -m! Error: %v", err)
+		log.Error("Unable to run read-tree -m! Error: %w", err)
 		return false, nil, fmt.Errorf("unable to run read-tree -m! Error: %w", err)
 	}
 
@@ -333,7 +333,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 	// 3b. Create a plain patch from head to base
 	tmpPatchFile, err := os.CreateTemp("", "patch")
 	if err != nil {
-		log.Error("Unable to create temporary patch file! Error: %v", err)
+		log.Error("Unable to create temporary patch file! Error: %w", err)
 		return false, fmt.Errorf("unable to create temporary patch file! Error: %w", err)
 	}
 	defer func() {
@@ -342,7 +342,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 
 	if err := gitRepo.GetDiffBinary(pr.MergeBase, "tracking", tmpPatchFile); err != nil {
 		tmpPatchFile.Close()
-		log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
+		log.Error("Unable to get patch file from %s to %s in %s Error: %w", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 		return false, fmt.Errorf("unable to get patch file from %s to %s in %s Error: %w", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 	}
 	stat, err := tmpPatchFile.Stat()
@@ -397,7 +397,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 	//     meaning we don't store all of the conflicts unnecessarily.
 	stderrReader, stderrWriter, err := os.Pipe()
 	if err != nil {
-		log.Error("Unable to open stderr pipe: %v", err)
+		log.Error("Unable to open stderr pipe: %w", err)
 		return false, fmt.Errorf("unable to open stderr pipe: %w", err)
 	}
 	defer func() {

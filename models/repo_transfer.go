@@ -81,7 +81,7 @@ func (r *RepoTransfer) LoadAttributes(ctx context.Context) error {
 // For organizations, it checks if the user is able to create repos
 func (r *RepoTransfer) CanUserAcceptTransfer(u *user_model.User) bool {
 	if err := r.LoadAttributes(db.DefaultContext); err != nil {
-		log.Error("LoadAttributes: %v", err)
+		log.Error("LoadAttributes: %w", err)
 		return false
 	}
 
@@ -91,7 +91,7 @@ func (r *RepoTransfer) CanUserAcceptTransfer(u *user_model.User) bool {
 
 	allowed, err := organization.CanCreateOrgRepo(db.DefaultContext, r.RecipientID, u.ID)
 	if err != nil {
-		log.Error("CanCreateOrgRepo: %v", err)
+		log.Error("CanCreateOrgRepo: %w", err)
 		return false
 	}
 
@@ -389,7 +389,7 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 	wikiPath := repo_model.WikiPath(oldOwner.Name, repo.Name)
 
 	if isExist, err := util.IsExist(wikiPath); err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", wikiPath, err)
+		log.Error("Unable to check if %s exists. Error: %w", wikiPath, err)
 		return err
 	} else if isExist {
 		if err := util.Rename(wikiPath, repo_model.WikiPath(newOwner.Name, repo.Name)); err != nil {

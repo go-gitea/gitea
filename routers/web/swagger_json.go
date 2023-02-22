@@ -19,7 +19,7 @@ func SwaggerV1Json(ctx *context.Context) {
 	t := ctx.Render.TemplateLookup(string(tplSwaggerV1Json))
 	ctx.Resp.Header().Set("Content-Type", "application/json")
 	if err := t.Execute(ctx.Resp, ctx.Data); err != nil {
-		log.Error("%v", err)
+		log.Error("%w", err)
 		ctx.Error(http.StatusInternalServerError)
 	}
 }

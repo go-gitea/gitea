@@ -42,7 +42,7 @@ func ServNoCommand(ctx *context.PrivateContext) {
 			})
 			return
 		}
-		log.Error("Unable to get public key: %d Error: %v", keyID, err)
+		log.Error("Unable to get public key: %d Error: %w", keyID, err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: err.Error(),
 		})
@@ -59,7 +59,7 @@ func ServNoCommand(ctx *context.PrivateContext) {
 				})
 				return
 			}
-			log.Error("Unable to get owner with id: %d for public key: %d Error: %v", key.OwnerID, keyID, err)
+			log.Error("Unable to get owner with id: %d for public key: %d Error: %w", key.OwnerID, keyID, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
 				Err: err.Error(),
 			})
@@ -119,10 +119,10 @@ func ServCommand(ctx *context.PrivateContext) {
 			})
 			return
 		}
-		log.Error("Unable to get repository owner: %s/%s Error: %v", results.OwnerName, results.RepoName, err)
+		log.Error("Unable to get repository owner: %s/%s Error: %w", results.OwnerName, results.RepoName, err)
 		ctx.JSON(http.StatusForbidden, private.ErrServCommand{
 			Results: results,
-			Err:     fmt.Sprintf("Unable to get repository owner: %s/%s %v", results.OwnerName, results.RepoName, err),
+			Err:     fmt.Sprintf("Unable to get repository owner: %s/%s %w", results.OwnerName, results.RepoName, err),
 		})
 		return
 	}
@@ -152,10 +152,10 @@ func ServCommand(ctx *context.PrivateContext) {
 				}
 			}
 		} else {
-			log.Error("Unable to get repository: %s/%s Error: %v", results.OwnerName, results.RepoName, err)
+			log.Error("Unable to get repository: %s/%s Error: %w", results.OwnerName, results.RepoName, err)
 			ctx.JSON(http.StatusInternalServerError, private.ErrServCommand{
 				Results: results,
-				Err:     fmt.Sprintf("Unable to get repository: %s/%s %v", results.OwnerName, results.RepoName, err),
+				Err:     fmt.Sprintf("Unable to get repository: %s/%s %w", results.OwnerName, results.RepoName, err),
 			})
 			return
 		}
@@ -202,10 +202,10 @@ func ServCommand(ctx *context.PrivateContext) {
 			})
 			return
 		}
-		log.Error("Unable to get public key: %d Error: %v", keyID, err)
+		log.Error("Unable to get public key: %d Error: %w", keyID, err)
 		ctx.JSON(http.StatusInternalServerError, private.ErrServCommand{
 			Results: results,
-			Err:     fmt.Sprintf("Unable to get key: %d  Error: %v", keyID, err),
+			Err:     fmt.Sprintf("Unable to get key: %d  Error: %w", keyID, err),
 		})
 		return
 	}
@@ -238,7 +238,7 @@ func ServCommand(ctx *context.PrivateContext) {
 				})
 				return
 			}
-			log.Error("Unable to get deploy for public (deploy) key: %d in %-v Error: %v", key.ID, repo, err)
+			log.Error("Unable to get deploy for public (deploy) key: %d in %-v Error: %w", key.ID, repo, err)
 			ctx.JSON(http.StatusInternalServerError, private.ErrServCommand{
 				Results: results,
 				Err:     fmt.Sprintf("Unable to get Deploy Key for Public Key: %d:%s in %s/%s.", key.ID, key.Name, results.OwnerName, results.RepoName),
@@ -268,7 +268,7 @@ func ServCommand(ctx *context.PrivateContext) {
 				})
 				return
 			}
-			log.Error("Unable to get owner: %d for public key: %d:%s Error: %v", key.OwnerID, key.ID, key.Name, err)
+			log.Error("Unable to get owner: %d for public key: %d:%s Error: %w", key.OwnerID, key.ID, key.Name, err)
 			ctx.JSON(http.StatusInternalServerError, private.ErrServCommand{
 				Results: results,
 				Err:     fmt.Sprintf("Unable to get Owner: %d for Deploy Key: %d:%s in %s/%s.", key.OwnerID, key.ID, key.Name, ownerName, repoName),
@@ -321,10 +321,10 @@ func ServCommand(ctx *context.PrivateContext) {
 
 			perm, err := access_model.GetUserRepoPermission(ctx, repo, user)
 			if err != nil {
-				log.Error("Unable to get permissions for %-v with key %d in %-v Error: %v", user, key.ID, repo, err)
+				log.Error("Unable to get permissions for %-v with key %d in %-v Error: %w", user, key.ID, repo, err)
 				ctx.JSON(http.StatusInternalServerError, private.ErrServCommand{
 					Results: results,
-					Err:     fmt.Sprintf("Unable to get permissions for user %d:%s with key %d in %s/%s Error: %v", user.ID, user.Name, key.ID, results.OwnerName, results.RepoName, err),
+					Err:     fmt.Sprintf("Unable to get permissions for user %d:%s with key %d in %s/%s Error: %w", user.ID, user.Name, key.ID, results.OwnerName, results.RepoName, err),
 				})
 				return
 			}
@@ -348,7 +348,7 @@ func ServCommand(ctx *context.PrivateContext) {
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, private.ErrServCommand{
 				Results: results,
-				Err:     fmt.Sprintf("Unable to get owner: %s %v", results.OwnerName, err),
+				Err:     fmt.Sprintf("Unable to get owner: %s %w", results.OwnerName, err),
 			})
 			return
 		}
@@ -370,7 +370,7 @@ func ServCommand(ctx *context.PrivateContext) {
 
 		repo, err = repo_service.PushCreateRepo(user, owner, results.RepoName)
 		if err != nil {
-			log.Error("pushCreateRepo: %v", err)
+			log.Error("pushCreateRepo: %w", err)
 			ctx.JSON(http.StatusNotFound, private.ErrServCommand{
 				Results: results,
 				Err:     fmt.Sprintf("Cannot find repository: %s/%s", results.OwnerName, results.RepoName),
@@ -390,20 +390,20 @@ func ServCommand(ctx *context.PrivateContext) {
 				})
 				return
 			}
-			log.Error("Failed to get the wiki unit in %-v Error: %v", repo, err)
+			log.Error("Failed to get the wiki unit in %-v Error: %w", repo, err)
 			ctx.JSON(http.StatusInternalServerError, private.ErrServCommand{
 				Results: results,
-				Err:     fmt.Sprintf("Failed to get the wiki unit in %s/%s Error: %v", ownerName, repoName, err),
+				Err:     fmt.Sprintf("Failed to get the wiki unit in %s/%s Error: %w", ownerName, repoName, err),
 			})
 			return
 		}
 
 		// Finally if we're trying to touch the wiki we should init it
 		if err = wiki_service.InitWiki(ctx, repo); err != nil {
-			log.Error("Failed to initialize the wiki in %-v Error: %v", repo, err)
+			log.Error("Failed to initialize the wiki in %-v Error: %w", repo, err)
 			ctx.JSON(http.StatusInternalServerError, private.ErrServCommand{
 				Results: results,
-				Err:     fmt.Sprintf("Failed to initialize the wiki in %s/%s Error: %v", ownerName, repoName, err),
+				Err:     fmt.Sprintf("Failed to initialize the wiki in %s/%s Error: %w", ownerName, repoName, err),
 			})
 			return
 		}

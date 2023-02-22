@@ -71,7 +71,7 @@ type (
 func GetDiscordHook(w *webhook_model.Webhook) *DiscordMeta {
 	s := &DiscordMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
-		log.Error("webhook.GetDiscordHook(%d): %v", w.ID, err)
+		log.Error("webhook.GetDiscordHook(%d): %w", w.ID, err)
 	}
 	return s
 }

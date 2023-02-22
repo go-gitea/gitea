@@ -77,7 +77,7 @@ func runHTTPRedirector() {
 
 	err := runHTTP("tcp", source, "HTTP Redirector", handler, setting.RedirectorUseProxyProtocol)
 	if err != nil {
-		log.Fatal("Failed to start port redirection: %v", err)
+		log.Fatal("Failed to start port redirection: %w", err)
 	}
 }
 
@@ -266,7 +266,7 @@ func listen(m http.Handler, handleRedirector bool) error {
 		log.Fatal("Invalid protocol: %s", setting.Protocol)
 	}
 	if err != nil {
-		log.Critical("Failed to start server: %v", err)
+		log.Critical("Failed to start server: %w", err)
 	}
 	log.Info("HTTP Listener: %s Closed", listenAddr)
 	return err

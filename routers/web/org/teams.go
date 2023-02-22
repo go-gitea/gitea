@@ -76,7 +76,7 @@ func TeamsAction(ctx *context.Context) {
 			if org_model.IsErrLastOrgOwner(err) {
 				ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
 			} else {
-				log.Error("Action(%s): %v", ctx.Params(":action"), err)
+				log.Error("Action(%s): %w", ctx.Params(":action"), err)
 				ctx.JSON(http.StatusOK, map[string]interface{}{
 					"ok":  false,
 					"err": err.Error(),
@@ -106,7 +106,7 @@ func TeamsAction(ctx *context.Context) {
 			if org_model.IsErrLastOrgOwner(err) {
 				ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
 			} else {
-				log.Error("Action(%s): %v", ctx.Params(":action"), err)
+				log.Error("Action(%s): %w", ctx.Params(":action"), err)
 				ctx.JSON(http.StatusOK, map[string]interface{}{
 					"ok":  false,
 					"err": err.Error(),
@@ -176,7 +176,7 @@ func TeamsAction(ctx *context.Context) {
 		}
 
 		if err := org_model.RemoveInviteByID(ctx, iid, ctx.Org.Team.ID); err != nil {
-			log.Error("Action(%s): %v", ctx.Params(":action"), err)
+			log.Error("Action(%s): %w", ctx.Params(":action"), err)
 			ctx.ServerError("RemoveInviteByID", err)
 			return
 		}
@@ -188,7 +188,7 @@ func TeamsAction(ctx *context.Context) {
 		if org_model.IsErrLastOrgOwner(err) {
 			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
 		} else {
-			log.Error("Action(%s): %v", ctx.Params(":action"), err)
+			log.Error("Action(%s): %w", ctx.Params(":action"), err)
 			ctx.JSON(http.StatusOK, map[string]interface{}{
 				"ok":  false,
 				"err": err.Error(),
@@ -240,7 +240,7 @@ func TeamsRepoAction(ctx *context.Context) {
 	}
 
 	if err != nil {
-		log.Error("Action(%s): '%s' %v", ctx.Params(":action"), ctx.Org.Team.Name, err)
+		log.Error("Action(%s): '%s' %w", ctx.Params(":action"), ctx.Org.Team.Name, err)
 		ctx.ServerError("TeamsRepoAction", err)
 		return
 	}
@@ -393,7 +393,7 @@ func SearchTeam(ctx *context.Context) {
 
 	teams, maxResults, err := org_model.SearchTeam(opts)
 	if err != nil {
-		log.Error("SearchTeam failed: %v", err)
+		log.Error("SearchTeam failed: %w", err)
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"ok":    false,
 			"error": "SearchTeam internal failure",
@@ -403,7 +403,7 @@ func SearchTeam(ctx *context.Context) {
 
 	apiTeams, err := convert.ToTeams(ctx, teams, false)
 	if err != nil {
-		log.Error("convert ToTeams failed: %v", err)
+		log.Error("convert ToTeams failed: %w", err)
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"ok":    false,
 			"error": "SearchTeam failed to get units",
@@ -558,7 +558,7 @@ func TeamInvitePost(ctx *context.Context) {
 	}
 
 	if err := org_model.RemoveInviteByID(ctx, invite.ID, team.ID); err != nil {
-		log.Error("RemoveInviteByID: %v", err)
+		log.Error("RemoveInviteByID: %w", err)
 	}
 
 	ctx.Redirect(org.OrganisationLink() + "/teams/" + url.PathEscape(team.LowerName))

@@ -90,7 +90,7 @@ func (repo *Repository) WikiPath() string {
 func (repo *Repository) HasWiki() bool {
 	isDir, err := util.IsDir(repo.WikiPath())
 	if err != nil {
-		log.Error("Unable to check if %s is a directory: %v", repo.WikiPath(), err)
+		log.Error("Unable to check if %s is a directory: %w", repo.WikiPath(), err)
 	}
 	return isDir
 }

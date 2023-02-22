@@ -223,7 +223,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 			WorkTree:   worktree,
 		})
 		if err != nil {
-			log.Error("Unable to load attributes for %-v:%s. Error: %v", ctx.Repo.Repository, ctx.Repo.TreePath, err)
+			log.Error("Unable to load attributes for %-v:%s. Error: %w", ctx.Repo.Repository, ctx.Repo.TreePath, err)
 		}
 
 		language = filename2attribute2info[ctx.Repo.TreePath]["linguist-language"]

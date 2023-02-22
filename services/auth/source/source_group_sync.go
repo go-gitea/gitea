@@ -72,7 +72,7 @@ func syncGroupsToTeamsCached(ctx context.Context, user *user_model.User, orgTeam
 			if err != nil {
 				if organization.IsErrOrgNotExist(err) {
 					// organization must be created before group sync
-					log.Warn("group sync: Could not find organisation %s: %v", orgName, err)
+					log.Warn("group sync: Could not find organisation %s: %w", orgName, err)
 					continue
 				}
 				return err
@@ -86,7 +86,7 @@ func syncGroupsToTeamsCached(ctx context.Context, user *user_model.User, orgTeam
 				if err != nil {
 					if organization.IsErrTeamNotExist(err) {
 						// team must be created before group sync
-						log.Warn("group sync: Could not find team %s: %v", teamName, err)
+						log.Warn("group sync: Could not find team %s: %w", teamName, err)
 						continue
 					}
 					return err
@@ -101,12 +101,12 @@ func syncGroupsToTeamsCached(ctx context.Context, user *user_model.User, orgTeam
 
 			if action == syncAdd && !isMember {
 				if err := models.AddTeamMember(team, user.ID); err != nil {
-					log.Error("group sync: Could not add user to team: %v", err)
+					log.Error("group sync: Could not add user to team: %w", err)
 					return err
 				}
 			} else if action == syncRemove && isMember {
 				if err := models.RemoveTeamMember(team, user.ID); err != nil {
-					log.Error("group sync: Could not remove user from team: %v", err)
+					log.Error("group sync: Could not remove user from team: %w", err)
 					return err
 				}
 			}

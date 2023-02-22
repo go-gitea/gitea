@@ -157,7 +157,7 @@ func (t *Team) IsOwnerTeam() bool {
 func (t *Team) IsMember(userID int64) bool {
 	isMember, err := IsTeamMember(db.DefaultContext, t.OrgID, t.ID, userID)
 	if err != nil {
-		log.Error("IsMember: %v", err)
+		log.Error("IsMember: %w", err)
 		return false
 	}
 	return isMember

@@ -67,9 +67,9 @@ func (q *delayedStarter) setInternal(atShutdown func(func()), handle HandlerFunc
 			}
 			if err.Error() != "resource temporarily unavailable" {
 				if bs, ok := q.cfg.([]byte); ok {
-					log.Warn("[Attempt: %d] Failed to create queue: %v for %s cfg: %s error: %v", i, q.underlying, q.name, string(bs), err)
+					log.Warn("[Attempt: %d] Failed to create queue: %v for %s cfg: %s error: %w", i, q.underlying, q.name, string(bs), err)
 				} else {
-					log.Warn("[Attempt: %d] Failed to create queue: %v for %s cfg: %#v error: %v", i, q.underlying, q.name, q.cfg, err)
+					log.Warn("[Attempt: %d] Failed to create queue: %v for %s cfg: %#v error: %w", i, q.underlying, q.name, q.cfg, err)
 				}
 			}
 			i++
@@ -225,7 +225,7 @@ func (q *WrappedQueue) Run(atShutdown, atTerminate func(func())) {
 		err := q.setInternal(atShutdown, q.handle, q.exemplar)
 		q.lock.Unlock()
 		if err != nil {
-			log.Fatal("Unable to set the internal queue for %s Error: %v", q.Name(), err)
+			log.Fatal("Unable to set the internal queue for %s Error: %w", q.Name(), err)
 			return
 		}
 		go func() {

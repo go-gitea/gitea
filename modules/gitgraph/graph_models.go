@@ -121,7 +121,7 @@ func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_
 
 		statuses, _, err := git_model.GetLatestCommitStatus(db.DefaultContext, repository.ID, c.Commit.ID.String(), db.ListOptions{})
 		if err != nil {
-			log.Error("GetLatestCommitStatus: %v", err)
+			log.Error("GetLatestCommitStatus: %w", err)
 		} else {
 			c.Status = git_model.CalcCommitStatus(statuses)
 		}

@@ -107,7 +107,7 @@ func main() {
 	for _, file := range flag.Args() {
 		profiles, err := cover.ParseProfiles(file)
 		if err != nil {
-			log.Fatalf("failed to parse profile '%s': %v", file, err)
+			log.Fatalf("failed to parse profile '%s': %w", file, err)
 		}
 		for _, p := range profiles {
 			merged = addProfile(merged, p)

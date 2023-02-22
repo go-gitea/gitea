@@ -256,7 +256,7 @@ func (ctx *Context) NotFound(logMsg string, logErr error) {
 
 func (ctx *Context) notFoundInternal(logMsg string, logErr error) {
 	if logErr != nil {
-		log.Log(2, log.DEBUG, "%s: %v", logMsg, logErr)
+		log.Log(2, log.DEBUG, "%s: %w", logMsg, logErr)
 		if !setting.IsProd {
 			ctx.Data["ErrorMsg"] = logErr
 		}
@@ -288,7 +288,7 @@ func (ctx *Context) ServerError(logMsg string, logErr error) {
 
 func (ctx *Context) serverErrorInternal(logMsg string, logErr error) {
 	if logErr != nil {
-		log.ErrorWithSkip(2, "%s: %v", logMsg, logErr)
+		log.ErrorWithSkip(2, "%s: %w", logMsg, logErr)
 		if _, ok := logErr.(*net.OpError); ok || errors.Is(logErr, &net.OpError{}) {
 			// This is an error within the underlying connection
 			// and further rendering will not work so just return
@@ -325,7 +325,7 @@ func (ctx *Context) plainTextInternal(skip, status int, bs []byte) {
 	ctx.Resp.Header().Set("X-Content-Type-Options", "nosniff")
 	ctx.Resp.WriteHeader(status)
 	if _, err := ctx.Resp.Write(bs); err != nil {
-		log.ErrorWithSkip(skip, "plainTextInternal (status=%d): write bytes failed: %v", status, err)
+		log.ErrorWithSkip(skip, "plainTextInternal (status=%d): write bytes failed: %w", status, err)
 	}
 }
 

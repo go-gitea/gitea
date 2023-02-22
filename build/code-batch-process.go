@@ -207,7 +207,7 @@ Example:
 func getGoVersion() string {
 	goModFile, err := os.ReadFile("go.mod")
 	if err != nil {
-		log.Fatalf(`Faild to read "go.mod": %v`, err)
+		log.Fatalf(`Faild to read "go.mod": %w`, err)
 		os.Exit(1)
 	}
 	goModVersionRegex := regexp.MustCompile(`go \d+\.\d+`)
@@ -240,7 +240,7 @@ func containsString(a []string, s string) bool {
 func giteaFormatGoImports(files []string, doWriteFile bool) error {
 	for _, file := range files {
 		if err := codeformat.FormatGoImports(file, doWriteFile); err != nil {
-			log.Printf("failed to format go imports: %s, err=%v", file, err)
+			log.Printf("failed to format go imports: %s, err=%w", file, err)
 			return err
 		}
 	}

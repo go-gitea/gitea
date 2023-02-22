@@ -184,7 +184,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 	path := user_model.UserPath(u.Name)
 	if err := util.RemoveAll(path); err != nil {
 		err = fmt.Errorf("Failed to RemoveAll %s: %w", path, err)
-		_ = system_model.CreateNotice(ctx, system_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
+		_ = system_model.CreateNotice(ctx, system_model.NoticeTask, fmt.Sprintf("delete user '%s': %w", u.Name, err))
 		return err
 	}
 
@@ -192,7 +192,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		avatarPath := u.CustomAvatarRelativePath()
 		if err := storage.Avatars.Delete(avatarPath); err != nil {
 			err = fmt.Errorf("Failed to remove %s: %w", avatarPath, err)
-			_ = system_model.CreateNotice(ctx, system_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
+			_ = system_model.CreateNotice(ctx, system_model.NoticeTask, fmt.Sprintf("delete user '%s': %w", u.Name, err))
 			return err
 		}
 	}
@@ -247,7 +247,7 @@ func UploadAvatar(u *user_model.User, data []byte) error {
 
 	if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
 		if err := png.Encode(w, *m); err != nil {
-			log.Error("Encode: %v", err)
+			log.Error("Encode: %w", err)
 		}
 		return err
 	}); err != nil {

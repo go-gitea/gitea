@@ -51,7 +51,7 @@ func TestMain(m *testing.M) {
 		},
 	)
 	if err != nil {
-		fmt.Printf("Error initializing test database: %v\n", err)
+		fmt.Printf("Error initializing test database: %w\n", err)
 		os.Exit(1)
 	}
 
@@ -60,11 +60,11 @@ func TestMain(m *testing.M) {
 	tests.WriterCloser.Reset()
 
 	if err = util.RemoveAll(setting.Indexer.IssuePath); err != nil {
-		fmt.Printf("util.RemoveAll: %v\n", err)
+		fmt.Printf("util.RemoveAll: %w\n", err)
 		os.Exit(1)
 	}
 	if err = util.RemoveAll(setting.Indexer.RepoPath); err != nil {
-		fmt.Printf("Unable to remove repo indexer: %v\n", err)
+		fmt.Printf("Unable to remove repo indexer: %w\n", err)
 		os.Exit(1)
 	}
 

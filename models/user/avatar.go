@@ -42,7 +42,7 @@ func GenerateRandomAvatar(ctx context.Context, u *User) error {
 	// Don't share the images so that we can delete them easily
 	if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
 		if err := png.Encode(w, img); err != nil {
-			log.Error("Encode: %v", err)
+			log.Error("Encode: %w", err)
 		}
 		return err
 	}); err != nil {
@@ -80,7 +80,7 @@ func (u *User) AvatarLinkWithSize(ctx context.Context, size int) string {
 	if useLocalAvatar {
 		if u.Avatar == "" && autoGenerateAvatar {
 			if err := GenerateRandomAvatar(ctx, u); err != nil {
-				log.Error("GenerateRandomAvatar: %v", err)
+				log.Error("GenerateRandomAvatar: %w", err)
 			}
 		}
 		if u.Avatar == "" {

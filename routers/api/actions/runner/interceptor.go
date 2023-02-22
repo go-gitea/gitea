@@ -51,7 +51,7 @@ var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 			cols = append(cols, "last_active")
 		}
 		if err := actions_model.UpdateRunner(ctx, runner, cols...); err != nil {
-			log.Error("can't update runner status: %v", err)
+			log.Error("can't update runner status: %w", err)
 		}
 
 		ctx = context.WithValue(ctx, runnerCtxKey{}, runner)

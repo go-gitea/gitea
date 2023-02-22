@@ -375,7 +375,7 @@ func NewContext(ctx context.Context) {
 			gomailMsg := msg.ToMessage()
 			log.Trace("New e-mail sending request %s: %s", gomailMsg.GetHeader("To"), msg.Info)
 			if err := gomail.Send(Sender, gomailMsg); err != nil {
-				log.Error("Failed to send emails %s: %s - %v", gomailMsg.GetHeader("To"), msg.Info, err)
+				log.Error("Failed to send emails %s: %s - %w", gomailMsg.GetHeader("To"), msg.Info, err)
 			} else {
 				log.Trace("E-mails sent %s: %s", gomailMsg.GetHeader("To"), msg.Info)
 			}

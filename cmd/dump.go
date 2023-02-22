@@ -170,7 +170,7 @@ func runDump(ctx *cli.Context) error {
 		file = os.Stdout
 		err := log.DelLogger("console")
 		if err != nil {
-			fatal("Deleting default logger failed. Can not write to stdout: %v", err)
+			fatal("Deleting default logger failed. Can not write to stdout: %w", err)
 		}
 	} else {
 		for _, suffix := range outputTypeEnum.Enum {
@@ -187,10 +187,10 @@ func runDump(ctx *cli.Context) error {
 	// make sure we are logging to the console no matter what the configuration tells us do to
 	// FIXME: don't use CfgProvider directly
 	if _, err := setting.CfgProvider.Section("log").NewKey("MODE", "console"); err != nil {
-		fatal("Setting logging mode to console failed: %v", err)
+		fatal("Setting logging mode to console failed: %w", err)
 	}
 	if _, err := setting.CfgProvider.Section("log.console").NewKey("STDERR", "true"); err != nil {
-		fatal("Setting console logger to stderr failed: %v", err)
+		fatal("Setting console logger to stderr failed: %w", err)
 	}
 	if !setting.InstallLock {
 		log.Error("Is '%s' really the right config path?\n", setting.CustomConf)
@@ -213,7 +213,7 @@ func runDump(ctx *cli.Context) error {
 	if file == nil {
 		file, err = os.Create(fileName)
 		if err != nil {
-			fatal("Unable to open %s: %v", fileName, err)
+			fatal("Unable to open %s: %w", fileName, err)
 		}
 	}
 	defer file.Close()
@@ -231,12 +231,12 @@ func runDump(ctx *cli.Context) error {
 		iface, err = archiver.ByExtension(fileName)
 	}
 	if err != nil {
-		fatal("Unable to get archiver for extension: %v", err)
+		fatal("Unable to get archiver for extension: %w", err)
 	}
 
 	w, _ := iface.(archiver.Writer)
 	if err := w.Create(file); err != nil {
-		fatal("Creating archiver.Writer failed: %v", err)
+		fatal("Creating archiver.Writer failed: %w", err)
 	}
 	defer w.Close()
 
@@ -245,7 +245,7 @@ func runDump(ctx *cli.Context) error {
 	} else {
 		log.Info("Dumping local repositories... %s", setting.RepoRootPath)
 		if err := addRecursiveExclude(w, "repos", setting.RepoRootPath, []string{absFileName}, verbose); err != nil {
-			fatal("Failed to include repositories: %v", err)
+			fatal("Failed to include repositories: %w", err)
 		}
 
 		if ctx.IsSet("skip-lfs-data") && ctx.Bool("skip-lfs-data") {
@@ -258,7 +258,7 @@ func runDump(ctx *cli.Context) error {
 
 			return addReader(w, object, info, path.Join("data", "lfs", objPath), verbose)
 		}); err != nil {
-			fatal("Failed to dump LFS objects: %v", err)
+			fatal("Failed to dump LFS objects: %w", err)
 		}
 	}
 
@@ -269,11 +269,11 @@ func runDump(ctx *cli.Context) error {
 
 	dbDump, err := os.CreateTemp(tmpDir, "gitea-db.sql")
 	if err != nil {
-		fatal("Failed to create tmp file: %v", err)
+		fatal("Failed to create tmp file: %w", err)
 	}
 	defer func() {
 		if err := util.Remove(dbDump.Name()); err != nil {
-			log.Warn("Unable to remove temporary file: %s: Error: %v", dbDump.Name(), err)
+			log.Warn("Unable to remove temporary file: %s: Error: %w", dbDump.Name(), err)
 		}
 	}()
 
@@ -285,17 +285,17 @@ func runDump(ctx *cli.Context) error {
 	}
 
 	if err := db.DumpDatabase(dbDump.Name(), targetDBType); err != nil {
-		fatal("Failed to dump database: %v", err)
+		fatal("Failed to dump database: %w", err)
 	}
 
 	if err := addFile(w, "gitea-db.sql", dbDump.Name(), verbose); err != nil {
-		fatal("Failed to include gitea-db.sql: %v", err)
+		fatal("Failed to include gitea-db.sql: %w", err)
 	}
 
 	if len(setting.CustomConf) > 0 {
 		log.Info("Adding custom configuration file from %s", setting.CustomConf)
 		if err := addFile(w, "app.ini", setting.CustomConf, verbose); err != nil {
-			fatal("Failed to include specified app.ini: %v", err)
+			fatal("Failed to include specified app.ini: %w", err)
 		}
 	}
 
@@ -306,7 +306,7 @@ func runDump(ctx *cli.Context) error {
 		if err == nil && customDir.IsDir() {
 			if is, _ := isSubdir(setting.AppDataPath, setting.CustomPath); !is {
 				if err := addRecursiveExclude(w, "custom", setting.CustomPath, []string{absFileName}, verbose); err != nil {
-					fatal("Failed to include custom: %v", err)
+					fatal("Failed to include custom: %w", err)
 				}
 			} else {
 				log.Info("Custom dir %s is inside data dir %s, skipped", setting.CustomPath, setting.AppDataPath)
@@ -318,7 +318,7 @@ func runDump(ctx *cli.Context) error {
 
 	isExist, err := util.IsExist(setting.AppDataPath)
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", setting.AppDataPath, err)
+		log.Error("Unable to check if %s exists. Error: %w", setting.AppDataPath, err)
 	}
 	if isExist {
 		log.Info("Packing data directory...%s", setting.AppDataPath)
@@ -344,7 +344,7 @@ func runDump(ctx *cli.Context) error {
 		excludes = append(excludes, setting.Log.RootPath)
 		excludes = append(excludes, absFileName)
 		if err := addRecursiveExclude(w, "data", setting.AppDataPath, excludes, verbose); err != nil {
-			fatal("Failed to include data directory: %v", err)
+			fatal("Failed to include data directory: %w", err)
 		}
 	}
 
@@ -358,7 +358,7 @@ func runDump(ctx *cli.Context) error {
 
 		return addReader(w, object, info, path.Join("data", "attachments", objPath), verbose)
 	}); err != nil {
-		fatal("Failed to dump attachments: %v", err)
+		fatal("Failed to dump attachments: %w", err)
 	}
 
 	if ctx.IsSet("skip-package-data") && ctx.Bool("skip-package-data") {
@@ -371,7 +371,7 @@ func runDump(ctx *cli.Context) error {
 
 		return addReader(w, object, info, path.Join("data", "packages", objPath), verbose)
 	}); err != nil {
-		fatal("Failed to dump packages: %v", err)
+		fatal("Failed to dump packages: %w", err)
 	}
 
 	// Doesn't check if LogRootPath exists before processing --skip-log intentionally,
@@ -382,11 +382,11 @@ func runDump(ctx *cli.Context) error {
 	} else {
 		isExist, err := util.IsExist(setting.Log.RootPath)
 		if err != nil {
-			log.Error("Unable to check if %s exists. Error: %v", setting.Log.RootPath, err)
+			log.Error("Unable to check if %s exists. Error: %w", setting.Log.RootPath, err)
 		}
 		if isExist {
 			if err := addRecursiveExclude(w, "log", setting.Log.RootPath, []string{absFileName}, verbose); err != nil {
-				fatal("Failed to include log: %v", err)
+				fatal("Failed to include log: %w", err)
 			}
 		}
 	}
@@ -394,11 +394,11 @@ func runDump(ctx *cli.Context) error {
 	if fileName != "-" {
 		if err = w.Close(); err != nil {
 			_ = util.Remove(fileName)
-			fatal("Failed to save %s: %v", fileName, err)
+			fatal("Failed to save %s: %w", fileName, err)
 		}
 
 		if err := os.Chmod(fileName, 0o600); err != nil {
-			log.Info("Can't change file access permissions mask to 0600: %v", err)
+			log.Info("Can't change file access permissions mask to 0600: %w", err)
 		}
 	}
 

@@ -62,12 +62,12 @@ func InitTest(requireGitea bool) {
 	_ = util.RemoveAll(repo_module.LocalCopyPath())
 
 	if err := git.InitFull(context.Background()); err != nil {
-		log.Fatal("git.InitOnceWithSync: %v", err)
+		log.Fatal("git.InitOnceWithSync: %w", err)
 	}
 
 	setting.LoadDBSetting()
 	if err := storage.Init(); err != nil {
-		fmt.Printf("Init storage failed: %v", err)
+		fmt.Printf("Init storage failed: %w", err)
 		os.Exit(1)
 	}
 
@@ -82,10 +82,10 @@ func InitTest(requireGitea bool) {
 			setting.Database.User, setting.Database.Passwd, connType, setting.Database.Host))
 		defer db.Close()
 		if err != nil {
-			log.Fatal("sql.Open: %v", err)
+			log.Fatal("sql.Open: %w", err)
 		}
 		if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", setting.Database.Name)); err != nil {
-			log.Fatal("db.Exec: %v", err)
+			log.Fatal("db.Exec: %w", err)
 		}
 	case setting.Database.UsePostgreSQL:
 		var db *sql.DB
@@ -100,17 +100,17 @@ func InitTest(requireGitea bool) {
 
 		defer db.Close()
 		if err != nil {
-			log.Fatal("sql.Open: %v", err)
+			log.Fatal("sql.Open: %w", err)
 		}
 		dbrows, err := db.Query(fmt.Sprintf("SELECT 1 FROM pg_database WHERE datname = '%s'", setting.Database.Name))
 		if err != nil {
-			log.Fatal("db.Query: %v", err)
+			log.Fatal("db.Query: %w", err)
 		}
 		defer dbrows.Close()
 
 		if !dbrows.Next() {
 			if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", setting.Database.Name)); err != nil {
-				log.Fatal("db.Exec: CREATE DATABASE: %v", err)
+				log.Fatal("db.Exec: CREATE DATABASE: %w", err)
 			}
 		}
 		// Check if we need to setup a specific schema
@@ -129,18 +129,18 @@ func InitTest(requireGitea bool) {
 		// This is a different db object; requires a different Close()
 		defer db.Close()
 		if err != nil {
-			log.Fatal("sql.Open: %v", err)
+			log.Fatal("sql.Open: %w", err)
 		}
 		schrows, err := db.Query(fmt.Sprintf("SELECT 1 FROM information_schema.schemata WHERE schema_name = '%s'", setting.Database.Schema))
 		if err != nil {
-			log.Fatal("db.Query: %v", err)
+			log.Fatal("db.Query: %w", err)
 		}
 		defer schrows.Close()
 
 		if !schrows.Next() {
 			// Create and setup a DB schema
 			if _, err = db.Exec(fmt.Sprintf("CREATE SCHEMA %s", setting.Database.Schema)); err != nil {
-				log.Fatal("db.Exec: CREATE SCHEMA: %v", err)
+				log.Fatal("db.Exec: CREATE SCHEMA: %w", err)
 			}
 		}
 
@@ -149,10 +149,10 @@ func InitTest(requireGitea bool) {
 		db, err := sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
 			host, port, "master", setting.Database.User, setting.Database.Passwd))
 		if err != nil {
-			log.Fatal("sql.Open: %v", err)
+			log.Fatal("sql.Open: %w", err)
 		}
 		if _, err := db.Exec(fmt.Sprintf("If(db_id(N'%s') IS NULL) BEGIN CREATE DATABASE %s; END;", setting.Database.Name, setting.Database.Name)); err != nil {
-			log.Fatal("db.Exec: %v", err)
+			log.Fatal("db.Exec: %w", err)
 		}
 		defer db.Close()
 	}
@@ -176,7 +176,7 @@ func PrepareTestEnv(t testing.TB, skip ...int) func() {
 	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {
-		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
+		assert.NoError(t, err, "unable to read the new repo root: %w\n", err)
 	}
 	for _, ownerDir := range ownerDirs {
 		if !ownerDir.Type().IsDir() {
@@ -184,7 +184,7 @@ func PrepareTestEnv(t testing.TB, skip ...int) func() {
 		}
 		repoDirs, err := os.ReadDir(filepath.Join(setting.RepoRootPath, ownerDir.Name()))
 		if err != nil {
-			assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
+			assert.NoError(t, err, "unable to read the new repo root: %w\n", err)
 		}
 		for _, repoDir := range repoDirs {
 			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0o755)
@@ -221,7 +221,7 @@ func ResetFixtures(t *testing.T) {
 	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {
-		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
+		assert.NoError(t, err, "unable to read the new repo root: %w\n", err)
 	}
 	for _, ownerDir := range ownerDirs {
 		if !ownerDir.Type().IsDir() {
@@ -229,7 +229,7 @@ func ResetFixtures(t *testing.T) {
 		}
 		repoDirs, err := os.ReadDir(filepath.Join(setting.RepoRootPath, ownerDir.Name()))
 		if err != nil {
-			assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
+			assert.NoError(t, err, "unable to read the new repo root: %w\n", err)
 		}
 		for _, repoDir := range repoDirs {
 			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0o755)

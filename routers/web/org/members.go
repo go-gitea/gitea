@@ -118,13 +118,13 @@ func MembersAction(ctx *context.Context) {
 				"redirect": ctx.Org.OrgLink + "/members",
 			})
 		} else {
-			log.Error("RemoveOrgUser(%d,%d): %v", org.ID, ctx.Doer.ID, err)
+			log.Error("RemoveOrgUser(%d,%d): %w", org.ID, ctx.Doer.ID, err)
 		}
 		return
 	}
 
 	if err != nil {
-		log.Error("Action(%s): %v", ctx.Params(":action"), err)
+		log.Error("Action(%s): %w", ctx.Params(":action"), err)
 		ctx.JSON(http.StatusOK, map[string]interface{}{
 			"ok":  false,
 			"err": err.Error(),

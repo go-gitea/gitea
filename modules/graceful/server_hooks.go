@@ -41,7 +41,7 @@ func (srv *Server) doShutdown() {
 	}
 	err := srv.listener.Close()
 	if err != nil {
-		log.Error("PID: %d Listener.Close() error: %v", os.Getpid(), err)
+		log.Error("PID: %d Listener.Close() error: %w", os.Getpid(), err)
 	} else {
 		log.Info("PID: %d Listener (%s) closed.", os.Getpid(), srv.listener.Addr())
 	}

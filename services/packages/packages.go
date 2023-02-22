@@ -91,7 +91,7 @@ func createPackageAndAddFile(pvci *PackageCreationInfo, pfci *PackageFileCreatio
 		if blobCreated && removeBlob {
 			contentStore := packages_module.NewContentStore()
 			if err := contentStore.Delete(packages_module.BlobHash256Key(pb.HashSHA256)); err != nil {
-				log.Error("Error deleting package blob from content store: %v", err)
+				log.Error("Error deleting package blob from content store: %w", err)
 			}
 		}
 	}()
@@ -133,7 +133,7 @@ func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, all
 		if err == packages_model.ErrDuplicatePackage {
 			packageCreated = false
 		} else {
-			log.Error("Error inserting package: %v", err)
+			log.Error("Error inserting package: %w", err)
 			return nil, false, err
 		}
 	}
@@ -141,7 +141,7 @@ func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, all
 	if packageCreated {
 		for name, value := range pvci.PackageProperties {
 			if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypePackage, p.ID, name, value); err != nil {
-				log.Error("Error setting package property: %v", err)
+				log.Error("Error setting package property: %w", err)
 				return nil, false, err
 			}
 		}
@@ -165,7 +165,7 @@ func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, all
 			versionCreated = false
 		}
 		if err != packages_model.ErrDuplicatePackageVersion || !allowDuplicate {
-			log.Error("Error inserting package: %v", err)
+			log.Error("Error inserting package: %w", err)
 			return nil, false, err
 		}
 	}
@@ -177,7 +177,7 @@ func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, all
 
 		for name, value := range pvci.VersionProperties {
 			if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, name, value); err != nil {
-				log.Error("Error setting package version property: %v", err)
+				log.Error("Error setting package version property: %w", err)
 				return nil, false, err
 			}
 		}
@@ -205,7 +205,7 @@ func AddFileToExistingPackage(pvi *PackageInfo, pfci *PackageFileCreationInfo) (
 		if removeBlob {
 			contentStore := packages_module.NewContentStore()
 			if err := contentStore.Delete(packages_module.BlobHash256Key(pb.HashSHA256)); err != nil {
-				log.Error("Error deleting package blob from content store: %v", err)
+				log.Error("Error deleting package blob from content store: %w", err)
 			}
 		}
 	}()
@@ -244,13 +244,13 @@ func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVers
 
 	pb, exists, err := packages_model.GetOrInsertBlob(ctx, NewPackageBlob(pfci.Data))
 	if err != nil {
-		log.Error("Error inserting package blob: %v", err)
+		log.Error("Error inserting package blob: %w", err)
 		return nil, nil, false, err
 	}
 	if !exists {
 		contentStore := packages_module.NewContentStore()
 		if err := contentStore.Save(packages_module.BlobHash256Key(pb.HashSHA256), pfci.Data, pfci.Data.Size()); err != nil {
-			log.Error("Error saving package blob in content store: %v", err)
+			log.Error("Error saving package blob in content store: %w", err)
 			return nil, nil, false, err
 		}
 	}
@@ -285,14 +285,14 @@ func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVers
 	}
 	if pf, err = packages_model.TryInsertFile(ctx, pf); err != nil {
 		if err != packages_model.ErrDuplicatePackageFile {
-			log.Error("Error inserting package file: %v", err)
+			log.Error("Error inserting package file: %w", err)
 		}
 		return nil, pb, !exists, err
 	}
 
 	for name, value := range pfci.Properties {
 		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypeFile, pf.ID, name, value); err != nil {
-			log.Error("Error setting package file property: %v", err)
+			log.Error("Error setting package file property: %w", err)
 			return pf, pb, !exists, err
 		}
 	}
@@ -313,7 +313,7 @@ func CheckCountQuotaExceeded(ctx context.Context, doer, owner *user_model.User) 
 			IsInternal: util.OptionalBoolFalse,
 		})
 		if err != nil {
-			log.Error("CountVersions failed: %v", err)
+			log.Error("CountVersions failed: %w", err)
 			return err
 		}
 		if totalCount > setting.Packages.LimitTotalOwnerCount {
@@ -373,7 +373,7 @@ func CheckSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 			OwnerID: owner.ID,
 		})
 		if err != nil {
-			log.Error("CalculateFileSize failed: %v", err)
+			log.Error("CalculateFileSize failed: %w", err)
 			return err
 		}
 		if totalSize+uploadSize > setting.Packages.LimitTotalOwnerSize {
@@ -459,7 +459,7 @@ func GetFileStreamByPackageNameAndVersion(ctx context.Context, pvi *PackageInfo,
 		if err == packages_model.ErrPackageNotExist {
 			return nil, nil, err
 		}
-		log.Error("Error getting package: %v", err)
+		log.Error("Error getting package: %w", err)
 		return nil, nil, err
 	}
 
@@ -473,14 +473,14 @@ func GetFileStreamByPackageVersionAndFileID(ctx context.Context, owner *user_mod
 	pv, err := packages_model.GetVersionByID(ctx, versionID)
 	if err != nil {
 		if err != packages_model.ErrPackageNotExist {
-			log.Error("Error getting package version: %v", err)
+			log.Error("Error getting package version: %w", err)
 		}
 		return nil, nil, err
 	}
 
 	p, err := packages_model.GetPackageByID(ctx, pv.PackageID)
 	if err != nil {
-		log.Error("Error getting package: %v", err)
+		log.Error("Error getting package: %w", err)
 		return nil, nil, err
 	}
 
@@ -490,7 +490,7 @@ func GetFileStreamByPackageVersionAndFileID(ctx context.Context, owner *user_mod
 
 	pf, err := packages_model.GetFileForVersionByID(ctx, versionID, fileID)
 	if err != nil {
-		log.Error("Error getting file: %v", err)
+		log.Error("Error getting file: %w", err)
 		return nil, nil, err
 	}
 
@@ -518,7 +518,7 @@ func GetPackageFileStream(ctx context.Context, pf *packages_model.PackageFile) (
 	if err == nil {
 		if pf.IsLead {
 			if err := packages_model.IncrementDownloadCounter(ctx, pf.VersionID); err != nil {
-				log.Error("Error incrementing download counter: %v", err)
+				log.Error("Error incrementing download counter: %w", err)
 			}
 		}
 	}

@@ -114,7 +114,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 		sig256 := hmac.New(sha256.New, []byte(w.Secret))
 		_, err = io.MultiWriter(sig1, sig256).Write([]byte(t.PayloadContent))
 		if err != nil {
-			log.Error("prepareWebhooks.sigWrite: %v", err)
+			log.Error("prepareWebhooks.sigWrite: %w", err)
 		}
 		signatureSHA1 = hex.EncodeToString(sig1.Sum(nil))
 		signatureSHA256 = hex.EncodeToString(sig256.Sum(nil))
@@ -139,7 +139,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 	// Add Authorization Header
 	authorization, err := w.HeaderAuthorization()
 	if err != nil {
-		log.Error("Webhook could not get Authorization header [%d]: %v", w.ID, err)
+		log.Error("Webhook could not get Authorization header [%d]: %w", w.ID, err)
 		return err
 	}
 	if authorization != "" {
@@ -164,7 +164,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 	// has not been delivered in the meantime
 	updated, err := webhook_model.MarkTaskDelivered(ctx, t)
 	if err != nil {
-		log.Error("MarkTaskDelivered[%d]: %v", t.ID, err)
+		log.Error("MarkTaskDelivered[%d]: %w", t.ID, err)
 		return fmt.Errorf("unable to mark task[%d] delivered in the db: %w", t.ID, err)
 	}
 	if !updated {
@@ -185,7 +185,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 		}
 
 		if err := webhook_model.UpdateHookTask(t); err != nil {
-			log.Error("UpdateHookTask [%d]: %v", t.ID, err)
+			log.Error("UpdateHookTask [%d]: %w", t.ID, err)
 		}
 
 		// Update webhook last delivery status.
@@ -195,7 +195,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 			w.LastStatus = webhook_module.HookStatusFail
 		}
 		if err = webhook_model.UpdateWebhookLastStatus(w); err != nil {
-			log.Error("UpdateWebhookLastStatus: %v", err)
+			log.Error("UpdateWebhookLastStatus: %w", err)
 			return
 		}
 	}()
@@ -211,7 +211,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 
 	resp, err := webhookHTTPClient.Do(req.WithContext(ctx))
 	if err != nil {
-		t.ResponseInfo.Body = fmt.Sprintf("Delivery: %v", err)
+		t.ResponseInfo.Body = fmt.Sprintf("Delivery: %w", err)
 		return fmt.Errorf("unable to deliver webhook task[%d] in %s due to error in http client: %w", t.ID, w.URL, err)
 	}
 	defer resp.Body.Close()
@@ -248,7 +248,7 @@ func webhookProxy() func(req *http.Request) (*url.URL, error) {
 			if g, err := glob.Compile(h); err == nil {
 				hostMatchers = append(hostMatchers, g)
 			} else {
-				log.Error("glob.Compile %s failed: %v", h, err)
+				log.Error("glob.Compile %s failed: %w", h, err)
 			}
 		}
 	})
@@ -301,7 +301,7 @@ func populateWebhookSendingQueue(ctx context.Context) {
 	for {
 		taskIDs, err := webhook_model.FindUndeliveredHookTaskIDs(ctx, lowerID)
 		if err != nil {
-			log.Error("Unable to populate webhook queue as FindUndeliveredHookTaskIDs failed: %v", err)
+			log.Error("Unable to populate webhook queue as FindUndeliveredHookTaskIDs failed: %w", err)
 			return
 		}
 		if len(taskIDs) == 0 {
@@ -317,7 +317,7 @@ func populateWebhookSendingQueue(ctx context.Context) {
 			default:
 			}
 			if err := enqueueHookTask(taskID); err != nil {
-				log.Error("Unable to push HookTask[%d] to the Webhook Sending queue: %v", taskID, err)
+				log.Error("Unable to push HookTask[%d] to the Webhook Sending queue: %w", taskID, err)
 			}
 		}
 	}

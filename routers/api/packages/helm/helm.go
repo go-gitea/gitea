@@ -94,7 +94,7 @@ func Index(ctx *context.Context) {
 			ContextPath: setting.AppSubURL + "/api/packages/" + url.PathEscape(ctx.Package.Owner.Name) + "/helm",
 		},
 	}); err != nil {
-		log.Error("YAML encode failed: %v", err)
+		log.Error("YAML encode failed: %w", err)
 	}
 }
 

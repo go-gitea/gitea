@@ -50,7 +50,7 @@ func (db *DBIndexer) Index(id int64) error {
 			log.Debug("Unable to get commit ID for default branch %s in %s ... skipping this repository", repo.DefaultBranch, repo.RepoPath())
 			return nil
 		}
-		log.Error("Unable to get commit ID for default branch %s in %s. Error: %v", repo.DefaultBranch, repo.RepoPath(), err)
+		log.Error("Unable to get commit ID for default branch %s in %s. Error: %w", repo.DefaultBranch, repo.RepoPath(), err)
 		return err
 	}
 
@@ -62,12 +62,12 @@ func (db *DBIndexer) Index(id int64) error {
 	// Calculate and save language statistics to database
 	stats, err := gitRepo.GetLanguageStats(commitID)
 	if err != nil {
-		log.Error("Unable to get language stats for ID %s for default branch %s in %s. Error: %v", commitID, repo.DefaultBranch, repo.RepoPath(), err)
+		log.Error("Unable to get language stats for ID %s for default branch %s in %s. Error: %w", commitID, repo.DefaultBranch, repo.RepoPath(), err)
 		return err
 	}
 	err = repo_model.UpdateLanguageStats(repo, commitID, stats)
 	if err != nil {
-		log.Error("Unable to update language stats for ID %s for default branch %s in %s. Error: %v", commitID, repo.DefaultBranch, repo.RepoPath(), err)
+		log.Error("Unable to update language stats for ID %s for default branch %s in %s. Error: %w", commitID, repo.DefaultBranch, repo.RepoPath(), err)
 		return err
 	}
 

@@ -65,7 +65,7 @@ func init() {
 			var err error
 			successfulTokenTaskCache, err = lru.New(setting.SuccessfulTokensCacheSize)
 			if err != nil {
-				return fmt.Errorf("unable to allocate Task cache: %v", err)
+				return fmt.Errorf("unable to allocate Task cache: %w", err)
 			}
 		} else {
 			successfulTokenTaskCache = nil

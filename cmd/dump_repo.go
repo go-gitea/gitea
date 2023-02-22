@@ -181,7 +181,7 @@ func runDumpRepository(ctx *cli.Context) error {
 		ctx.String("owner_name"),
 		opts,
 	); err != nil {
-		log.Fatal("Failed to dump repository: %v", err)
+		log.Fatal("Failed to dump repository: %w", err)
 		return err
 	}
 

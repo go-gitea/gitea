@@ -48,14 +48,14 @@ func AddToTaskQueue(pr *issues_model.PullRequest) {
 		pr.Status = issues_model.PullRequestStatusChecking
 		err := pr.UpdateColsIfNotMerged(db.DefaultContext, "status")
 		if err != nil {
-			log.Error("AddToTaskQueue(%-v).UpdateCols.(add to queue): %v", pr, err)
+			log.Error("AddToTaskQueue(%-v).UpdateCols.(add to queue): %w", pr, err)
 		} else {
 			log.Trace("Adding %-v to the test pull requests queue", pr)
 		}
 		return err
 	})
 	if err != nil && err != queue.ErrAlreadyInQueue {
-		log.Error("Error adding %-v to the test pull requests queue: %v", pr, err)
+		log.Error("Error adding %-v to the test pull requests queue: %w", pr, err)
 	}
 }
 
@@ -75,14 +75,14 @@ func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *acce
 		}
 
 		if err := pr.LoadIssue(ctx); err != nil {
-			log.Error("Unable to load issue[%d] for %-v: %v", pr.IssueID, pr, err)
+			log.Error("Unable to load issue[%d] for %-v: %w", pr.IssueID, pr, err)
 			return err
 		} else if pr.Issue.IsClosed {
 			return ErrIsClosed
 		}
 
 		if allowedMerge, err := IsUserAllowedToMerge(ctx, pr, *perm, doer); err != nil {
-			log.Error("Error whilst checking if %-v is allowed to merge %-v: %v", doer, pr, err)
+			log.Error("Error whilst checking if %-v is allowed to merge %-v: %w", doer, pr, err)
 			return err
 		} else if !allowedMerge {
 			return ErrUserNotAllowedToMerge
@@ -107,7 +107,7 @@ func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *acce
 
 		if err := CheckPullBranchProtections(ctx, pr, false); err != nil {
 			if !models.IsErrDisallowedToMerge(err) {
-				log.Error("Error whilst checking pull branch protection for %-v: %v", pr, err)
+				log.Error("Error whilst checking pull branch protection for %-v: %w", pr, err)
 				return err
 			}
 
@@ -175,7 +175,7 @@ func checkAndUpdateStatus(ctx context.Context, pr *issues_model.PullRequest) {
 	// Make sure there is no waiting test to process before leaving the checking status.
 	has, err := prPatchCheckerQueue.Has(strconv.FormatInt(pr.ID, 10))
 	if err != nil {
-		log.Error("Unable to check if the queue is waiting to reprocess %-v. Error: %v", pr, err)
+		log.Error("Unable to check if the queue is waiting to reprocess %-v. Error: %w", pr, err)
 	}
 
 	if has {
@@ -184,7 +184,7 @@ func checkAndUpdateStatus(ctx context.Context, pr *issues_model.PullRequest) {
 	}
 
 	if err := pr.UpdateColsIfNotMerged(ctx, "merge_base", "status", "conflicted_files", "changed_protected_files"); err != nil {
-		log.Error("Update[%-v]: %v", pr, err)
+		log.Error("Update[%-v]: %w", pr, err)
 	}
 }
 
@@ -247,7 +247,7 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 // When a pull request got manually merged mark the pull request as merged
 func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 	if err := pr.LoadBaseRepo(ctx); err != nil {
-		log.Error("%-v LoadBaseRepo: %v", pr, err)
+		log.Error("%-v LoadBaseRepo: %w", pr, err)
 		return false
 	}
 
@@ -257,13 +257,13 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 			return false
 		}
 	} else {
-		log.Error("%-v BaseRepo.GetUnit(unit.TypePullRequests): %v", pr, err)
+		log.Error("%-v BaseRepo.GetUnit(unit.TypePullRequests): %w", pr, err)
 		return false
 	}
 
 	commit, err := getMergeCommit(ctx, pr)
 	if err != nil {
-		log.Error("%-v getMergeCommit: %v", pr, err)
+		log.Error("%-v getMergeCommit: %w", pr, err)
 		return false
 	}
 
@@ -281,7 +281,7 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 	if merger == nil {
 		if pr.BaseRepo.Owner == nil {
 			if err = pr.BaseRepo.LoadOwner(ctx); err != nil {
-				log.Error("%-v BaseRepo.LoadOwner: %v", pr, err)
+				log.Error("%-v BaseRepo.LoadOwner: %w", pr, err)
 				return false
 			}
 		}
@@ -291,7 +291,7 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 	pr.MergerID = merger.ID
 
 	if merged, err := pr.SetMerged(ctx); err != nil {
-		log.Error("%-v setMerged : %v", pr, err)
+		log.Error("%-v setMerged : %w", pr, err)
 		return false
 	} else if !merged {
 		return false
@@ -307,7 +307,7 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 func InitializePullRequests(ctx context.Context) {
 	prs, err := issues_model.GetPullRequestIDsByCheckStatus(issues_model.PullRequestStatusChecking)
 	if err != nil {
-		log.Error("Find Checking PRs: %v", err)
+		log.Error("Find Checking PRs: %w", err)
 		return
 	}
 	for _, prID := range prs {
@@ -319,7 +319,7 @@ func InitializePullRequests(ctx context.Context) {
 				log.Trace("Adding PR[%d] to the pull requests patch checking queue", prID)
 				return nil
 			}); err != nil {
-				log.Error("Error adding PR[%d] to the pull requests patch checking queue %v", prID, err)
+				log.Error("Error adding PR[%d] to the pull requests patch checking queue %w", prID, err)
 			}
 		}
 	}
@@ -343,7 +343,7 @@ func testPR(id int64) {
 
 	pr, err := issues_model.GetPullRequestByID(ctx, id)
 	if err != nil {
-		log.Error("Unable to GetPullRequestByID[%d] for testPR: %v", id, err)
+		log.Error("Unable to GetPullRequestByID[%d] for testPR: %w", id, err)
 		return
 	}
 
@@ -363,10 +363,10 @@ func testPR(id int64) {
 	}
 
 	if err := TestPatch(pr); err != nil {
-		log.Error("testPatch[%-v]: %v", pr, err)
+		log.Error("testPatch[%-v]: %w", pr, err)
 		pr.Status = issues_model.PullRequestStatusError
 		if err := pr.UpdateCols("status"); err != nil {
-			log.Error("update pr [%-v] status to PullRequestStatusError failed: %v", pr, err)
+			log.Error("update pr [%-v] status to PullRequestStatusError failed: %w", pr, err)
 		}
 		return
 	}

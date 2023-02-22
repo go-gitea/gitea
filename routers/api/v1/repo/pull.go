@@ -919,7 +919,7 @@ func MergePullRequest(ctx *context.APIContext) {
 		}
 		if err := issues_model.AddDeletePRBranchComment(ctx, ctx.Doer, pr.BaseRepo, pr.Issue.ID, pr.HeadBranch); err != nil {
 			// Do not fail here as branch has already been deleted
-			log.Error("DeleteBranch: %v", err)
+			log.Error("DeleteBranch: %w", err)
 		}
 	}
 

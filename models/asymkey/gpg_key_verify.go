@@ -81,7 +81,7 @@ func VerifyGPGKey(ownerID int64, keyID, token, signature string) (string, error)
 	}
 
 	if signer == nil {
-		log.Error("Unable to validate token signature. Error: %v", err)
+		log.Error("Unable to validate token signature. Error: %w", err)
 		return "", ErrGPGInvalidTokenSignature{
 			ID: key.KeyID,
 		}

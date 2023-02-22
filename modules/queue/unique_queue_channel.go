@@ -80,7 +80,7 @@ func NewChannelUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue
 					// We can only pushback to the channel if we're paused.
 					go func() {
 						if err := queue.Push(u[0]); err != nil {
-							log.Error("Unable to push back to queue %d. Error: %v", queue.qid, err)
+							log.Error("Unable to push back to queue %d. Error: %w", queue.qid, err)
 						}
 					}()
 				} else {

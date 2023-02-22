@@ -24,7 +24,7 @@ func checkOldArchives(ctx context.Context, logger log.Logger, autofix bool) erro
 		p := filepath.Join(repo.RepoPath(), "archives")
 		isDir, err := util.IsDir(p)
 		if err != nil {
-			log.Warn("check if %s is directory failed: %v", p, err)
+			log.Warn("check if %s is directory failed: %w", p, err)
 		}
 		if isDir {
 			numRepos++
@@ -32,7 +32,7 @@ func checkOldArchives(ctx context.Context, logger log.Logger, autofix bool) erro
 				if err := os.RemoveAll(p); err == nil {
 					numReposUpdated++
 				} else {
-					log.Warn("remove %s failed: %v", p, err)
+					log.Warn("remove %s failed: %w", p, err)
 				}
 			}
 		}

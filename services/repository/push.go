@@ -36,7 +36,7 @@ func handle(data ...queue.Data) []queue.Data {
 	for _, datum := range data {
 		opts := datum.([]*repo_module.PushUpdateOptions)
 		if err := pushUpdates(opts); err != nil {
-			log.Error("pushUpdate failed: %v", err)
+			log.Error("pushUpdate failed: %w", err)
 		}
 	}
 	return nil
@@ -95,7 +95,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	defer gitRepo.Close()
 
 	if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
-		log.Error("Failed to update size for repository: %v", err)
+		log.Error("Failed to update size for repository: %w", err)
 	}
 
 	addTags := make([]string, 0, len(optsList))
@@ -208,7 +208,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 
 					isForce, err := repo_module.IsForcePush(ctx, opts)
 					if err != nil {
-						log.Error("isForcePush %s:%s failed: %v", repo.FullName(), branch, err)
+						log.Error("isForcePush %s:%s failed: %w", repo.FullName(), branch, err)
 					}
 
 					if isForce {
@@ -225,14 +225,14 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				commits.HeadCommit = repo_module.CommitToPushCommit(newCommit)
 
 				if err := issue_service.UpdateIssuesCommit(pusher, repo, commits.Commits, refName); err != nil {
-					log.Error("updateIssuesCommit: %v", err)
+					log.Error("updateIssuesCommit: %w", err)
 				}
 
 				oldCommitID := opts.OldCommitID
 				if oldCommitID == git.EmptySHA && len(commits.Commits) > 0 {
 					oldCommit, err := gitRepo.GetCommit(commits.Commits[len(commits.Commits)-1].Sha1)
 					if err != nil && !git.IsErrNotExist(err) {
-						log.Error("unable to GetCommit %s from %-v: %v", oldCommitID, repo, err)
+						log.Error("unable to GetCommit %s from %-v: %w", oldCommitID, repo, err)
 					}
 					if oldCommit != nil {
 						for i := 0; i < oldCommit.ParentCount(); i++ {
@@ -262,24 +262,24 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				notification.NotifyPushCommits(db.DefaultContext, pusher, repo, opts, commits)
 
 				if err = git_model.RemoveDeletedBranchByName(ctx, repo.ID, branch); err != nil {
-					log.Error("models.RemoveDeletedBranch %s/%s failed: %v", repo.ID, branch, err)
+					log.Error("models.RemoveDeletedBranch %s/%s failed: %w", repo.ID, branch, err)
 				}
 
 				// Cache for big repository
 				if err := CacheRef(graceful.GetManager().HammerContext(), repo, gitRepo, opts.RefFullName); err != nil {
-					log.Error("repo_module.CacheRef %s/%s failed: %v", repo.ID, branch, err)
+					log.Error("repo_module.CacheRef %s/%s failed: %w", repo.ID, branch, err)
 				}
 			} else {
 				notification.NotifyDeleteRef(db.DefaultContext, pusher, repo, "branch", opts.RefFullName)
 				if err = pull_service.CloseBranchPulls(pusher, repo.ID, branch); err != nil {
 					// close all related pulls
-					log.Error("close related pull request failed: %v", err)
+					log.Error("close related pull request failed: %w", err)
 				}
 			}
 
 			// Even if user delete a branch on a repository which he didn't watch, he will be watch that.
 			if err = repo_model.WatchIfAuto(db.DefaultContext, opts.PusherID, repo.ID, true); err != nil {
-				log.Warn("Fail to perform auto watch on user %v for repo %v: %v", opts.PusherID, repo.ID, err)
+				log.Warn("Fail to perform auto watch on user %v for repo %v: %w", opts.PusherID, repo.ID, err)
 			}
 		} else {
 			log.Trace("Non-tag and non-branch commits pushed.")

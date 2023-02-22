@@ -203,12 +203,12 @@ func SignInPost(ctx *context.Context) {
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) || user_model.IsErrEmailAddressNotExist(err) {
 			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplSignIn, &form)
-			log.Info("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
+			log.Info("Failed authentication attempt for %s from %s: %w", form.UserName, ctx.RemoteAddr(), err)
 		} else if user_model.IsErrEmailAlreadyUsed(err) {
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSignIn, &form)
-			log.Info("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
+			log.Info("Failed authentication attempt for %s from %s: %w", form.UserName, ctx.RemoteAddr(), err)
 		} else if user_model.IsErrUserProhibitLogin(err) {
-			log.Info("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
+			log.Info("Failed authentication attempt for %s from %s: %w", form.UserName, ctx.RemoteAddr(), err)
 			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 			ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
 		} else if user_model.IsErrUserInactive(err) {
@@ -216,7 +216,7 @@ func SignInPost(ctx *context.Context) {
 				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
 				ctx.HTML(http.StatusOK, TplActivate)
 			} else {
-				log.Info("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
+				log.Info("Failed authentication attempt for %s from %s: %w", form.UserName, ctx.RemoteAddr(), err)
 				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 				ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
 			}
@@ -568,7 +568,7 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.
 	if gothUser != nil {
 		if err := externalaccount.UpdateExternalUser(u, *gothUser); err != nil {
 			if !errors.Is(err, util.ErrNotExist) {
-				log.Error("UpdateExternalUser failed: %v", err)
+				log.Error("UpdateExternalUser failed: %w", err)
 			}
 		}
 	}
@@ -590,7 +590,7 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.
 
 		if setting.CacheService.Enabled {
 			if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
-				log.Error("Set cache(MailResendLimit) fail: %v", err)
+				log.Error("Set cache(MailResendLimit) fail: %w", err)
 			}
 		}
 		return
@@ -619,7 +619,7 @@ func Activate(ctx *context.Context) {
 
 				if setting.CacheService.Enabled {
 					if err := ctx.Cache.Put("MailResendLimit_"+ctx.Doer.LowerName, ctx.Doer.LowerName, 180); err != nil {
-						log.Error("Set cache(MailResendLimit) fail: %v", err)
+						log.Error("Set cache(MailResendLimit) fail: %w", err)
 					}
 				}
 			}
@@ -701,7 +701,7 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 	}
 
 	if err := user_model.ActivateUserEmail(user.ID, user.Email, true); err != nil {
-		log.Error("Unable to activate email for user: %-v with email: %s: %v", user, user.Email, err)
+		log.Error("Unable to activate email for user: %-v with email: %s: %w", user, user.Email, err)
 		ctx.ServerError("ActivateUserEmail", err)
 		return
 	}
@@ -712,7 +712,7 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 		"uid":   user.ID,
 		"uname": user.Name,
 	}); err != nil {
-		log.Error("Unable to regenerate session for user: %-v with email: %s: %v", user, user.Email, err)
+		log.Error("Unable to regenerate session for user: %-v with email: %s: %w", user, user.Email, err)
 		ctx.ServerError("ActivateUserEmail", err)
 		return
 	}

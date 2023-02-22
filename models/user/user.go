@@ -458,7 +458,7 @@ func (u *User) EmailNotifications() string {
 func SetEmailNotifications(u *User, set string) error {
 	u.EmailNotificationsPreference = set
 	if err := UpdateUserCols(db.DefaultContext, u, "email_notifications_preference"); err != nil {
-		log.Error("SetEmailNotifications: %v", err)
+		log.Error("SetEmailNotifications: %w", err)
 		return err
 	}
 	return nil
@@ -714,7 +714,7 @@ func GetVerifyUser(code string) (user *User) {
 		if user, err = GetUserByName(db.DefaultContext, string(b)); user != nil {
 			return user
 		}
-		log.Error("user.getVerifyUser: %v", err)
+		log.Error("user.getVerifyUser: %w", err)
 	}
 
 	return nil

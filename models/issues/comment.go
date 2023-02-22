@@ -361,7 +361,7 @@ func (c *Comment) LoadPoster(ctx context.Context) (err error) {
 			c.PosterID = -1
 			c.Poster = user_model.NewGhostUser()
 		} else {
-			log.Error("getUserByID[%d]: %v", c.ID, err)
+			log.Error("getUserByID[%d]: %w", c.ID, err)
 		}
 	}
 	return err
@@ -383,12 +383,12 @@ func (c *Comment) AfterDelete() {
 func (c *Comment) HTMLURL() string {
 	err := c.LoadIssue(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error("LoadIssue(%d): %v", c.IssueID, err)
+		log.Error("LoadIssue(%d): %w", c.IssueID, err)
 		return ""
 	}
 	err = c.Issue.LoadRepo(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
+		log.Error("loadRepo(%d): %w", c.Issue.RepoID, err)
 		return ""
 	}
 	return c.Issue.HTMLURL() + c.hashLink()
@@ -398,12 +398,12 @@ func (c *Comment) HTMLURL() string {
 func (c *Comment) Link() string {
 	err := c.LoadIssue(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error("LoadIssue(%d): %v", c.IssueID, err)
+		log.Error("LoadIssue(%d): %w", c.IssueID, err)
 		return ""
 	}
 	err = c.Issue.LoadRepo(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
+		log.Error("loadRepo(%d): %w", c.Issue.RepoID, err)
 		return ""
 	}
 	return c.Issue.Link() + c.hashLink()
@@ -416,7 +416,7 @@ func (c *Comment) hashLink() string {
 		}
 		if c.Review == nil {
 			if err := c.LoadReview(); err != nil {
-				log.Warn("LoadReview(%d): %v", c.ReviewID, err)
+				log.Warn("LoadReview(%d): %w", c.ReviewID, err)
 				return "/files#" + c.HashTag()
 			}
 		}
@@ -431,12 +431,12 @@ func (c *Comment) hashLink() string {
 func (c *Comment) APIURL() string {
 	err := c.LoadIssue(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error("LoadIssue(%d): %v", c.IssueID, err)
+		log.Error("LoadIssue(%d): %w", c.IssueID, err)
 		return ""
 	}
 	err = c.Issue.LoadRepo(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
+		log.Error("loadRepo(%d): %w", c.Issue.RepoID, err)
 		return ""
 	}
 
@@ -447,7 +447,7 @@ func (c *Comment) APIURL() string {
 func (c *Comment) IssueURL() string {
 	err := c.LoadIssue(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error("LoadIssue(%d): %v", c.IssueID, err)
+		log.Error("LoadIssue(%d): %w", c.IssueID, err)
 		return ""
 	}
 
@@ -457,7 +457,7 @@ func (c *Comment) IssueURL() string {
 
 	err = c.Issue.LoadRepo(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
+		log.Error("loadRepo(%d): %w", c.Issue.RepoID, err)
 		return ""
 	}
 	return c.Issue.HTMLURL()
@@ -467,13 +467,13 @@ func (c *Comment) IssueURL() string {
 func (c *Comment) PRURL() string {
 	err := c.LoadIssue(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error("LoadIssue(%d): %v", c.IssueID, err)
+		log.Error("LoadIssue(%d): %w", c.IssueID, err)
 		return ""
 	}
 
 	err = c.Issue.LoadRepo(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
+		log.Error("loadRepo(%d): %w", c.Issue.RepoID, err)
 		return ""
 	}
 
@@ -572,7 +572,7 @@ func (c *Comment) LoadAttachments(ctx context.Context) error {
 	var err error
 	c.Attachments, err = repo_model.GetAttachmentsByCommentID(ctx, c.ID)
 	if err != nil {
-		log.Error("getAttachmentsByCommentID[%d]: %v", c.ID, err)
+		log.Error("getAttachmentsByCommentID[%d]: %w", c.ID, err)
 	}
 	return nil
 }
@@ -731,12 +731,12 @@ func (c *Comment) UnsignedLine() uint64 {
 func (c *Comment) CodeCommentLink() string {
 	err := c.LoadIssue(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error("LoadIssue(%d): %v", c.IssueID, err)
+		log.Error("LoadIssue(%d): %w", c.IssueID, err)
 		return ""
 	}
 	err = c.Issue.LoadRepo(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
+		log.Error("loadRepo(%d): %w", c.Issue.RepoID, err)
 		return ""
 	}
 	return fmt.Sprintf("%s/files#%s", c.Issue.Link(), c.HashTag())

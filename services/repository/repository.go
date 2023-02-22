@@ -39,7 +39,7 @@ func CreateRepository(doer, owner *user_model.User, opts repo_module.CreateRepoO
 // DeleteRepository deletes a repository for a user or organization.
 func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, notify bool) error {
 	if err := pull_service.CloseRepoBranchesPulls(ctx, doer, repo); err != nil {
-		log.Error("CloseRepoBranchesPulls failed: %v", err)
+		log.Error("CloseRepoBranchesPulls failed: %w", err)
 	}
 
 	if notify {

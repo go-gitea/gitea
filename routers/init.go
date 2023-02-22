@@ -58,7 +58,7 @@ func mustInit(fn func() error) {
 	if err != nil {
 		ptr := reflect.ValueOf(fn).Pointer()
 		fi := runtime.FuncForPC(ptr)
-		log.Fatal("%s failed: %v", fi.Name(), err)
+		log.Fatal("%s failed: %w", fi.Name(), err)
 	}
 }
 
@@ -67,7 +67,7 @@ func mustInitCtx(ctx context.Context, fn func(ctx context.Context) error) {
 	if err != nil {
 		ptr := reflect.ValueOf(fn).Pointer()
 		fi := runtime.FuncForPC(ptr)
-		log.Fatal("%s(ctx) failed: %v", fi.Name(), err)
+		log.Fatal("%s(ctx) failed: %w", fi.Name(), err)
 	}
 }
 

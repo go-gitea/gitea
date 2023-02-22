@@ -22,7 +22,7 @@ func ParseCommitWithSSHSignature(c *git.Commit, committer *user_model.User) *Com
 	if committer.ID != 0 {
 		keys, err := ListPublicKeys(committer.ID, db.ListOptions{})
 		if err != nil { // Skipping failed to get ssh keys of user
-			log.Error("ListPublicKeys: %v", err)
+			log.Error("ListPublicKeys: %w", err)
 			return &CommitVerification{
 				CommittingUser: committer,
 				Verified:       false,
@@ -32,7 +32,7 @@ func ParseCommitWithSSHSignature(c *git.Commit, committer *user_model.User) *Com
 
 		committerEmailAddresses, err := user_model.GetEmailAddresses(committer.ID)
 		if err != nil {
-			log.Error("GetEmailAddresses: %v", err)
+			log.Error("GetEmailAddresses: %w", err)
 		}
 
 		activated := false

@@ -195,7 +195,7 @@ func MailParticipants(ctx context.Context, issue *issues_model.Issue, doer *user
 			Comment:               nil,
 			ForceDoerNotification: forceDoerNotification,
 		}, mentions); err != nil {
-		log.Error("mailIssueCommentToParticipants: %v", err)
+		log.Error("mailIssueCommentToParticipants: %w", err)
 	}
 	return nil
 }

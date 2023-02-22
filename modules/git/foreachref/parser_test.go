@@ -210,7 +210,7 @@ func TestParser(t *testing.T) {
 				require.Error(t, err)
 				require.EqualError(t, err, tc.expectedErr.Error())
 			} else {
-				require.NoError(t, err, "for-each-ref parser unexpectedly failed with: %v", err)
+				require.NoError(t, err, "for-each-ref parser unexpectedly failed with: %w", err)
 				require.Equal(t, tc.wantRefs, gotRefs, "for-each-ref parser produced unexpected reference set. wanted: %v, got: %v", pretty(tc.wantRefs), pretty(gotRefs))
 			}
 		})
@@ -221,7 +221,7 @@ func pretty(v interface{}) string {
 	data, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		// shouldn't happen
-		panic(fmt.Sprintf("json-marshalling failed: %v", err))
+		panic(fmt.Sprintf("json-marshalling failed: %w", err))
 	}
 	return string(data)
 }

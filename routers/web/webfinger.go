@@ -72,7 +72,7 @@ func WebfingerQuery(ctx *context.Context) {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusNotFound)
 		} else {
-			log.Error("Error getting user: %s Error: %v", resource.Opaque, err)
+			log.Error("Error getting user: %s Error: %w", resource.Opaque, err)
 			ctx.Error(http.StatusInternalServerError)
 		}
 		return

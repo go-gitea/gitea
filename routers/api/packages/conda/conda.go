@@ -169,7 +169,7 @@ func EnumeratePackages(ctx *context.Context) {
 	resp.WriteHeader(http.StatusOK)
 
 	if err := json.NewEncoder(w).Encode(repoData); err != nil {
-		log.Error("JSON encode: %v", err)
+		log.Error("JSON encode: %w", err)
 	}
 }
 

@@ -189,7 +189,7 @@ func CreateOrUpdateRepoFile(ctx context.Context, repo *repo_model.Repository, do
 
 	t, err := NewTemporaryUploadRepository(ctx, repo)
 	if err != nil {
-		log.Error("%v", err)
+		log.Error("%w", err)
 	}
 	defer t.Close()
 	hasOldBranch := true
@@ -355,7 +355,7 @@ func CreateOrUpdateRepoFile(ctx context.Context, repo *repo_model.Repository, do
 			result, _, err := transform.String(charsetEncoding.NewEncoder(), content)
 			if err != nil {
 				// Look if we can't encode back in to the original we should just stick with utf-8
-				log.Error("Error re-encoding %s (%s) as %s - will stay as UTF-8: %v", opts.TreePath, opts.FromTreePath, encoding, err)
+				log.Error("Error re-encoding %s (%s) as %s - will stay as UTF-8: %w", opts.TreePath, opts.FromTreePath, encoding, err)
 				result = content
 			}
 			content = result
@@ -445,7 +445,7 @@ func CreateOrUpdateRepoFile(ctx context.Context, repo *repo_model.Repository, do
 
 	// Then push this tree to NewBranch
 	if err := t.Push(doer, commitHash, opts.NewBranch); err != nil {
-		log.Error("%T %v", err, err)
+		log.Error("%T %w", err, err)
 		return nil, err
 	}
 

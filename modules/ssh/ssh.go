@@ -92,21 +92,21 @@ func sessionHandler(session ssh.Session) {
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		log.Error("SSH: StdoutPipe: %v", err)
+		log.Error("SSH: StdoutPipe: %w", err)
 		return
 	}
 	defer stdout.Close()
 
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
-		log.Error("SSH: StderrPipe: %v", err)
+		log.Error("SSH: StderrPipe: %w", err)
 		return
 	}
 	defer stderr.Close()
 
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		log.Error("SSH: StdinPipe: %v", err)
+		log.Error("SSH: StdinPipe: %w", err)
 		return
 	}
 	defer stdin.Close()
@@ -117,7 +117,7 @@ func sessionHandler(session ssh.Session) {
 	wg.Add(2)
 
 	if err = cmd.Start(); err != nil {
-		log.Error("SSH: Start: %v", err)
+		log.Error("SSH: Start: %w", err)
 		return
 	}
 
@@ -154,7 +154,7 @@ func sessionHandler(session ssh.Session) {
 		// Cannot use errors.Is here because ExitError doesn't implement Is
 		// Thus errors.Is will do equality test NOT type comparison
 		if _, ok := err.(*exec.ExitError); !ok {
-			log.Error("SSH: Wait: %v", err)
+			log.Error("SSH: Wait: %w", err)
 		}
 	}
 
@@ -195,7 +195,7 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 					log.Debug("Principal Rejected: %s Unknown Principal: %s", ctx.RemoteAddr(), principal)
 					continue principalLoop
 				}
-				log.Error("SearchPublicKeyByContentExact: %v", err)
+				log.Error("SearchPublicKeyByContentExact: %w", err)
 				return false
 			}
 
@@ -259,7 +259,7 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 			}
 			return false
 		}
-		log.Error("SearchPublicKeyByContent: %v", err)
+		log.Error("SearchPublicKeyByContent: %w", err)
 		return false
 	}
 
@@ -275,7 +275,7 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 // -  this mainly exists to give a nice function name in logging
 func sshConnectionFailed(conn net.Conn, err error) {
 	// Log the underlying error with a specific message
-	log.Warn("Failed connection from %s with error: %v", conn.RemoteAddr(), err)
+	log.Warn("Failed connection from %s with error: %w", conn.RemoteAddr(), err)
 	// Log with the standard failed authentication from message for simpler fail2ban configuration
 	log.Warn("Failed authentication attempt from %s", conn.RemoteAddr())
 }
@@ -305,7 +305,7 @@ func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 	for _, key := range setting.SSH.ServerHostKeys {
 		isExist, err := util.IsExist(key)
 		if err != nil {
-			log.Fatal("Unable to check if %s exists. Error: %v", setting.SSH.ServerHostKeys, err)
+			log.Fatal("Unable to check if %s exists. Error: %w", setting.SSH.ServerHostKeys, err)
 		}
 		if isExist {
 			keys = append(keys, key)
@@ -316,12 +316,12 @@ func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 		filePath := filepath.Dir(setting.SSH.ServerHostKeys[0])
 
 		if err := os.MkdirAll(filePath, os.ModePerm); err != nil {
-			log.Error("Failed to create dir %s: %v", filePath, err)
+			log.Error("Failed to create dir %s: %w", filePath, err)
 		}
 
 		err := GenKeyPair(setting.SSH.ServerHostKeys[0])
 		if err != nil {
-			log.Fatal("Failed to generate private key: %v", err)
+			log.Fatal("Failed to generate private key: %w", err)
 		}
 		log.Trace("New private key is generated: %s", setting.SSH.ServerHostKeys[0])
 		keys = append(keys, setting.SSH.ServerHostKeys[0])
@@ -358,7 +358,7 @@ func GenKeyPair(keyPath string) error {
 	}
 	defer func() {
 		if err = f.Close(); err != nil {
-			log.Error("Close: %v", err)
+			log.Error("Close: %w", err)
 		}
 	}()
 
@@ -379,7 +379,7 @@ func GenKeyPair(keyPath string) error {
 	}
 	defer func() {
 		if err = p.Close(); err != nil {
-			log.Error("Close: %v", err)
+			log.Error("Close: %w", err)
 		}
 	}()
 	_, err = p.Write(public)

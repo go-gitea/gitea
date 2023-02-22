@@ -179,7 +179,7 @@ func NewFuncMap() []template.FuncMap {
 				URLPrefix: setting.AppSubURL,
 			}, input)
 			if err != nil {
-				log.Error("RenderString: %v", err)
+				log.Error("RenderString: %w", err)
 			}
 			return template.HTML(output)
 		},
@@ -217,7 +217,7 @@ func NewFuncMap() []template.FuncMap {
 				}
 				def, err := value.GetDefinitionForFilename(filename)
 				if err != nil {
-					log.Error("tab size class: getting definition for filename: %v", err)
+					log.Error("tab size class: getting definition for filename: %w", err)
 					return "tab-size-8"
 				}
 				if def.TabWidth > 0 {
@@ -718,7 +718,7 @@ func RenderCommitMessageLink(ctx context.Context, msg, urlPrefix, urlDefault str
 		Metas:       metas,
 	}, cleanMsg)
 	if err != nil {
-		log.Error("RenderCommitMessage: %v", err)
+		log.Error("RenderCommitMessage: %w", err)
 		return ""
 	}
 	msgLines := strings.Split(strings.TrimSpace(fullMessage), "\n")
@@ -750,7 +750,7 @@ func RenderCommitMessageLinkSubject(ctx context.Context, msg, urlPrefix, urlDefa
 		Metas:       metas,
 	}, template.HTMLEscapeString(msgLine))
 	if err != nil {
-		log.Error("RenderCommitMessageSubject: %v", err)
+		log.Error("RenderCommitMessageSubject: %w", err)
 		return template.HTML("")
 	}
 	return template.HTML(renderedMessage)
@@ -776,7 +776,7 @@ func RenderCommitBody(ctx context.Context, msg, urlPrefix string, metas map[stri
 		Metas:     metas,
 	}, template.HTMLEscapeString(msgLine))
 	if err != nil {
-		log.Error("RenderCommitMessage: %v", err)
+		log.Error("RenderCommitMessage: %w", err)
 		return ""
 	}
 	return template.HTML(renderedMessage)
@@ -800,7 +800,7 @@ func RenderIssueTitle(ctx context.Context, text, urlPrefix string, metas map[str
 		Metas:     metas,
 	}, template.HTMLEscapeString(text))
 	if err != nil {
-		log.Error("RenderIssueTitle: %v", err)
+		log.Error("RenderIssueTitle: %w", err)
 		return template.HTML("")
 	}
 	return template.HTML(renderedText)
@@ -871,7 +871,7 @@ func RenderLabel(label *issues_model.Label) string {
 func RenderEmoji(text string) template.HTML {
 	renderedText, err := markup.RenderEmoji(template.HTMLEscapeString(text))
 	if err != nil {
-		log.Error("RenderEmoji: %v", err)
+		log.Error("RenderEmoji: %w", err)
 		return template.HTML("")
 	}
 	return template.HTML(renderedText)
@@ -899,7 +899,7 @@ func RenderNote(ctx context.Context, msg, urlPrefix string, metas map[string]str
 		Metas:     metas,
 	}, cleanMsg)
 	if err != nil {
-		log.Error("RenderNote: %v", err)
+		log.Error("RenderNote: %w", err)
 		return ""
 	}
 	return template.HTML(fullMessage)
@@ -967,7 +967,7 @@ func ActionContent2Commits(act Actioner) *repository.PushCommits {
 	}
 
 	if err := json.Unmarshal([]byte(act.GetContent()), push); err != nil {
-		log.Error("json.Unmarshal:\n%s\nERROR: %v", act.GetContent(), err)
+		log.Error("json.Unmarshal:\n%s\nERROR: %w", act.GetContent(), err)
 	}
 
 	if push.Len == 0 {
@@ -1019,11 +1019,11 @@ func buildSubjectBodyTemplate(stpl *texttmpl.Template, btpl *template.Template, 
 	}
 	if _, err := stpl.New(name).
 		Parse(string(subjectContent)); err != nil {
-		log.Warn("Failed to parse template [%s/subject]: %v", name, err)
+		log.Warn("Failed to parse template [%s/subject]: %w", name, err)
 	}
 	if _, err := btpl.New(name).
 		Parse(string(bodyContent)); err != nil {
-		log.Warn("Failed to parse template [%s/body]: %v", name, err)
+		log.Warn("Failed to parse template [%s/body]: %w", name, err)
 	}
 }
 
@@ -1041,14 +1041,14 @@ func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteNa
 		var err error
 		remoteURL, err = git.GetRemoteAddress(ctx, m.RepoPath(), remoteName)
 		if err != nil {
-			log.Error("GetRemoteURL %v", err)
+			log.Error("GetRemoteURL %w", err)
 			return a
 		}
 	}
 
 	u, err := giturl.Parse(remoteURL)
 	if err != nil {
-		log.Error("giturl.Parse %v", err)
+		log.Error("giturl.Parse %w", err)
 		return a
 	}
 

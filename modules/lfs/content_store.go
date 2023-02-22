@@ -38,7 +38,7 @@ func NewContentStore() *ContentStore {
 func (s *ContentStore) Get(pointer Pointer) (storage.Object, error) {
 	f, err := s.Open(pointer.RelativePath())
 	if err != nil {
-		log.Error("Whilst trying to read LFS OID[%s]: Unable to open Error: %v", pointer.Oid, err)
+		log.Error("Whilst trying to read LFS OID[%s]: Unable to open Error: %w", pointer.Oid, err)
 		return nil, err
 	}
 	return f, err
@@ -55,14 +55,14 @@ func (s *ContentStore) Put(pointer Pointer, r io.Reader) error {
 	// the errors returned by the newHashingReader should percolate up to here
 	written, err := s.Save(p, wrappedRd, pointer.Size)
 	if err != nil {
-		log.Error("Whilst putting LFS OID[%s]: Failed to copy to tmpPath: %s Error: %v", pointer.Oid, p, err)
+		log.Error("Whilst putting LFS OID[%s]: Failed to copy to tmpPath: %s Error: %w", pointer.Oid, p, err)
 		return err
 	}
 
 	// This shouldn't happen but it is sensible to test
 	if written != pointer.Size {
 		if err := s.Delete(p); err != nil {
-			log.Error("Cleaning the LFS OID[%s] failed: %v", pointer.Oid, err)
+			log.Error("Cleaning the LFS OID[%s] failed: %w", pointer.Oid, err)
 		}
 		return ErrSizeMismatch
 	}
@@ -89,7 +89,7 @@ func (s *ContentStore) Verify(pointer Pointer) (bool, error) {
 	if os.IsNotExist(err) || (err == nil && fi.Size() != pointer.Size) {
 		return false, nil
 	} else if err != nil {
-		log.Error("Unable stat file: %s for LFS OID[%s] Error: %v", p, pointer.Oid, err)
+		log.Error("Unable stat file: %s for LFS OID[%s] Error: %w", p, pointer.Oid, err)
 		return false, err
 	}
 

@@ -38,7 +38,7 @@ func (o *OpenIDProvider) CreateGothProvider(providerName, callbackURL string, so
 
 	provider, err := openidConnect.New(source.ClientID, source.ClientSecret, callbackURL, source.OpenIDConnectAutoDiscoveryURL, scopes...)
 	if err != nil {
-		log.Warn("Failed to create OpenID Connect Provider with name '%s' with url '%s': %v", providerName, source.OpenIDConnectAutoDiscoveryURL, err)
+		log.Warn("Failed to create OpenID Connect Provider with name '%s' with url '%s': %w", providerName, source.OpenIDConnectAutoDiscoveryURL, err)
 	}
 	return provider, err
 }

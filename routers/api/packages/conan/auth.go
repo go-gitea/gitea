@@ -22,7 +22,7 @@ func (a *Auth) Name() string {
 func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataStore, sess auth.SessionStore) (*user_model.User, error) {
 	uid, err := packages.ParseAuthorizationToken(req)
 	if err != nil {
-		log.Trace("ParseAuthorizationToken: %v", err)
+		log.Trace("ParseAuthorizationToken: %w", err)
 		return nil, err
 	}
 
@@ -32,7 +32,7 @@ func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataS
 
 	u, err := user_model.GetUserByID(req.Context(), uid)
 	if err != nil {
-		log.Error("GetUserByID:  %v", err)
+		log.Error("GetUserByID:  %w", err)
 		return nil, err
 	}
 

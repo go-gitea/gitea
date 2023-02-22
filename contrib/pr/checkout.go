@@ -54,11 +54,11 @@ func runPR() {
 
 	setting.RepoRootPath, err = os.MkdirTemp(os.TempDir(), "repos")
 	if err != nil {
-		log.Fatalf("TempDir: %v\n", err)
+		log.Fatalf("TempDir: %w\n", err)
 	}
 	setting.AppDataPath, err = os.MkdirTemp(os.TempDir(), "appdata")
 	if err != nil {
-		log.Fatalf("TempDir: %v\n", err)
+		log.Fatalf("TempDir: %w\n", err)
 	}
 	setting.AppWorkPath = curDir
 	setting.StaticRootPath = curDir
@@ -102,7 +102,7 @@ func runPR() {
 		},
 	)
 	if err != nil {
-		fmt.Printf("Error initializing test database: %v\n", err)
+		fmt.Printf("Error initializing test database: %w\n", err)
 		os.Exit(1)
 	}
 	unittest.LoadFixtures()
@@ -139,19 +139,19 @@ func runPR() {
 	log.Printf("[PR] Cleaning up ...\n")
 	/*
 		if err = util.RemoveAll(setting.Indexer.IssuePath); err != nil {
-			fmt.Printf("util.RemoveAll: %v\n", err)
+			fmt.Printf("util.RemoveAll: %w\n", err)
 			os.Exit(1)
 		}
 		if err = util.RemoveAll(setting.Indexer.RepoPath); err != nil {
-			fmt.Printf("Unable to remove repo indexer: %v\n", err)
+			fmt.Printf("Unable to remove repo indexer: %w\n", err)
 			os.Exit(1)
 		}
 	*/
 	if err = util.RemoveAll(setting.RepoRootPath); err != nil {
-		log.Fatalf("util.RemoveAll: %v\n", err)
+		log.Fatalf("util.RemoveAll: %w\n", err)
 	}
 	if err = util.RemoveAll(setting.AppDataPath); err != nil {
-		log.Fatalf("util.RemoveAll: %v\n", err)
+		log.Fatalf("util.RemoveAll: %w\n", err)
 	}
 }
 
@@ -180,18 +180,18 @@ func main() {
 	// Copy this file if it will not exist in the PR branch
 	dat, err := os.ReadFile(codeFilePath)
 	if err != nil {
-		log.Fatalf("Failed to cache this code file : %v", err)
+		log.Fatalf("Failed to cache this code file : %w", err)
 	}
 
 	repo, err := git.PlainOpen(".")
 	if err != nil {
-		log.Fatalf("Failed to open the repo : %v", err)
+		log.Fatalf("Failed to open the repo : %w", err)
 	}
 
 	// Find remote upstream
 	remotes, err := repo.Remotes()
 	if err != nil {
-		log.Fatalf("Failed to list remotes of repo : %v", err)
+		log.Fatalf("Failed to list remotes of repo : %w", err)
 	}
 	remoteUpstream := "origin" // Default
 	for _, r := range remotes {
@@ -219,13 +219,13 @@ func main() {
 			},
 		})
 		if err != nil {
-			log.Fatalf("Failed to fetch %s from %s : %v", ref, remoteUpstream, err)
+			log.Fatalf("Failed to fetch %s from %s : %w", ref, remoteUpstream, err)
 		}
 	}
 
 	tree, err := repo.Worktree()
 	if err != nil {
-		log.Fatalf("Failed to parse git tree : %v", err)
+		log.Fatalf("Failed to parse git tree : %w", err)
 	}
 	log.Printf("Checkout PR #%s in %s\n", pr, branch)
 	err = tree.Checkout(&git.CheckoutOptions{
@@ -233,18 +233,18 @@ func main() {
 		Force:  force,
 	})
 	if err != nil {
-		log.Fatalf("Failed to checkout %s : %v", branch, err)
+		log.Fatalf("Failed to checkout %s : %w", branch, err)
 	}
 
 	// Copy this file if not exist
 	if _, err := os.Stat(codeFilePath); os.IsNotExist(err) {
 		err = os.MkdirAll(filepath.Dir(codeFilePath), 0o755)
 		if err != nil {
-			log.Fatalf("Failed to duplicate this code file in PR : %v", err)
+			log.Fatalf("Failed to duplicate this code file in PR : %w", err)
 		}
 		err = os.WriteFile(codeFilePath, dat, 0o644)
 		if err != nil {
-			log.Fatalf("Failed to duplicate this code file in PR : %v", err)
+			log.Fatalf("Failed to duplicate this code file in PR : %w", err)
 		}
 	}
 	// Force build of js, css, bin, ...

@@ -628,7 +628,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	gitRepo, err := git.OpenRepository(ctx, repo_model.RepoPath(userName, repoName))
 	if err != nil {
 		if strings.Contains(err.Error(), "repository does not exist") || strings.Contains(err.Error(), "no such file or directory") {
-			log.Error("Repository %-v has a broken repository on the file system: %s Error: %v", ctx.Repo.Repository, ctx.Repo.Repository.RepoPath(), err)
+			log.Error("Repository %-v has a broken repository on the file system: %s Error: %w", ctx.Repo.Repository, ctx.Repo.Repository.RepoPath(), err)
 			ctx.Repo.Repository.Status = repo_model.RepositoryBroken
 			ctx.Repo.Repository.IsEmpty = true
 			ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
@@ -663,7 +663,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	tags, err := ctx.Repo.GitRepo.GetTags(0, 0)
 	if err != nil {
 		if strings.Contains(err.Error(), "fatal: not a git repository ") {
-			log.Error("Repository %-v has a broken repository on the file system: %s Error: %v", ctx.Repo.Repository, ctx.Repo.Repository.RepoPath(), err)
+			log.Error("Repository %-v has a broken repository on the file system: %s Error: %w", ctx.Repo.Repository, ctx.Repo.Repository.RepoPath(), err)
 			ctx.Repo.Repository.Status = repo_model.RepositoryBroken
 			ctx.Repo.Repository.IsEmpty = true
 			ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
@@ -1074,12 +1074,12 @@ func (ctx *Context) IssueTemplatesErrorsFromDefaultBranch() ([]*api.IssueTemplat
 	for _, dirName := range IssueTemplateDirCandidates {
 		tree, err := ctx.Repo.Commit.SubTree(dirName)
 		if err != nil {
-			log.Debug("get sub tree of %s: %v", dirName, err)
+			log.Debug("get sub tree of %s: %w", dirName, err)
 			continue
 		}
 		entries, err := tree.ListEntries()
 		if err != nil {
-			log.Debug("list entries in %s: %v", dirName, err)
+			log.Debug("list entries in %s: %w", dirName, err)
 			return issueTemplates, nil
 		}
 		for _, entry := range entries {

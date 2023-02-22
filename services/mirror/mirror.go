@@ -98,7 +98,7 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 			pullMirrorsRequested++
 			return nil
 		}); err != nil && err != errLimit {
-			log.Error("MirrorsIterate: %v", err)
+			log.Error("MirrorsIterate: %w", err)
 			return err
 		}
 	}
@@ -112,7 +112,7 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 			pushMirrorsRequested++
 			return nil
 		}); err != nil && err != errLimit {
-			log.Error("PushMirrorsIterate: %v", err)
+			log.Error("PushMirrorsIterate: %w", err)
 			return err
 		}
 	}

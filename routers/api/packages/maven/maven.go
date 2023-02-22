@@ -136,7 +136,7 @@ func serveMavenMetadata(ctx *context.Context, params parameters) {
 	ctx.Resp.Header().Set("Content-Type", contentTypeXML)
 
 	if _, err := ctx.Resp.Write(xmlMetadataWithHeader); err != nil {
-		log.Error("write bytes failed: %v", err)
+		log.Error("write bytes failed: %w", err)
 	}
 }
 
@@ -217,7 +217,7 @@ func servePackageFile(ctx *context.Context, params parameters, serveContent bool
 
 	if pf.IsLead {
 		if err := packages_model.IncrementDownloadCounter(ctx, pv.ID); err != nil {
-			log.Error("Error incrementing download counter: %v", err)
+			log.Error("Error incrementing download counter: %w", err)
 		}
 	}
 
@@ -325,7 +325,7 @@ func UploadPackageFile(ctx *context.Context) {
 		var err error
 		pvci.Metadata, err = maven_module.ParsePackageMetaData(buf)
 		if err != nil {
-			log.Error("Error parsing package metadata: %v", err)
+			log.Error("Error parsing package metadata: %w", err)
 		}
 
 		if pvci.Metadata != nil {

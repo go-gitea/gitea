@@ -86,7 +86,7 @@ func UploadPackage(ctx *context.Context) {
 
 	buf, err := packages_module.CreateHashedBufferFromReader(upload, 32*1024*1024)
 	if err != nil {
-		log.Error("Error creating hashed buffer: %v", err)
+		log.Error("Error creating hashed buffer: %w", err)
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}

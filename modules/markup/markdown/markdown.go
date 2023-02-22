@@ -158,7 +158,7 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 			return
 		}
 
-		log.Warn("Unable to render markdown due to panic in goldmark: %v", err)
+		log.Warn("Unable to render markdown due to panic in goldmark: %w", err)
 		if log.IsDebug() {
 			log.Debug("Panic in markdown: %v\n%s", err, log.Stack(2))
 		}
@@ -168,7 +168,7 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 	pc := newParserContext(ctx)
 	buf, err := io.ReadAll(input)
 	if err != nil {
-		log.Error("Unable to ReadAll: %v", err)
+		log.Error("Unable to ReadAll: %w", err)
 		return err
 	}
 	buf = giteautil.NormalizeEOL(buf)
@@ -183,7 +183,7 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 	pc.Set(renderConfigKey, rc)
 
 	if err := converter.Convert(buf, lw, parser.WithContext(pc)); err != nil {
-		log.Error("Unable to render: %v", err)
+		log.Error("Unable to render: %w", err)
 		return err
 	}
 
@@ -204,7 +204,7 @@ func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 		}
 		_, err = io.Copy(output, input)
 		if err != nil {
-			log.Error("io.Copy failed: %v", err)
+			log.Error("io.Copy failed: %w", err)
 		}
 	}()
 	return actualRender(ctx, input, output)

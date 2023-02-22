@@ -166,7 +166,7 @@ func (p *Conn) SetWriteDeadline(t time.Time) error {
 func (p *Conn) readProxyHeaderOnce() (err error) {
 	p.once.Do(func() {
 		if err = p.readProxyHeader(); err != nil && err != io.EOF {
-			log.Error("Failed to read proxy prefix: %v", err)
+			log.Error("Failed to read proxy prefix: %w", err)
 			p.Close()
 			p.bufReader = bufio.NewReader(p.conn)
 		}

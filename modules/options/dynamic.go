@@ -103,7 +103,7 @@ func fileFromDir(name string) ([]byte, error) {
 
 	isFile, err := util.IsFile(customPath)
 	if err != nil {
-		log.Error("Unable to check if %s is a file. Error: %v", customPath, err)
+		log.Error("Unable to check if %s is a file. Error: %w", customPath, err)
 	}
 	if isFile {
 		return os.ReadFile(customPath)
@@ -113,7 +113,7 @@ func fileFromDir(name string) ([]byte, error) {
 
 	isFile, err = util.IsFile(staticPath)
 	if err != nil {
-		log.Error("Unable to check if %s is a file. Error: %v", staticPath, err)
+		log.Error("Unable to check if %s is a file. Error: %w", staticPath, err)
 	}
 	if isFile {
 		return os.ReadFile(staticPath)

@@ -373,7 +373,7 @@ func SettingsPost(ctx *context.Context) {
 
 		if err := mirror_service.AddPushMirrorRemote(ctx, m, address); err != nil {
 			if err := repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{ID: m.ID, RepoID: m.RepoID}); err != nil {
-				log.Error("DeletePushMirrors %v", err)
+				log.Error("DeletePushMirrors %w", err)
 			}
 			ctx.ServerError("AddPushMirrorRemote", err)
 			return
@@ -673,7 +673,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		if err := repo_service.ConvertForkToNormalRepository(repo); err != nil {
-			log.Error("Unable to convert repository %-v from fork. Error: %v", repo, err)
+			log.Error("Unable to convert repository %-v from fork. Error: %w", repo, err)
 			ctx.ServerError("Convert Fork", err)
 			return
 		}
@@ -976,7 +976,7 @@ func ChangeCollaborationAccessMode(ctx *context.Context) {
 		ctx.Repo.Repository,
 		ctx.FormInt64("uid"),
 		perm.AccessMode(ctx.FormInt("mode"))); err != nil {
-		log.Error("ChangeCollaborationAccessMode: %v", err)
+		log.Error("ChangeCollaborationAccessMode: %w", err)
 	}
 }
 
@@ -1265,7 +1265,7 @@ func SettingsAvatar(ctx *context.Context) {
 // SettingsDeleteAvatar delete repository avatar
 func SettingsDeleteAvatar(ctx *context.Context) {
 	if err := repo_service.DeleteAvatar(ctx.Repo.Repository); err != nil {
-		ctx.Flash.Error(fmt.Sprintf("DeleteAvatar: %v", err))
+		ctx.Flash.Error(fmt.Sprintf("DeleteAvatar: %w", err))
 	}
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 }

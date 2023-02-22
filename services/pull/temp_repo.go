@@ -23,7 +23,7 @@ import (
 // it also create a second base branch called "original_base"
 func createTemporaryRepo(ctx context.Context, pr *issues_model.PullRequest) (string, error) {
 	if err := pr.LoadHeadRepo(ctx); err != nil {
-		log.Error("LoadHeadRepo: %v", err)
+		log.Error("LoadHeadRepo: %w", err)
 		return "", fmt.Errorf("LoadHeadRepo: %w", err)
 	} else if pr.HeadRepo == nil {
 		log.Error("Pr %d HeadRepo %d does not exist", pr.ID, pr.HeadRepoID)
@@ -31,7 +31,7 @@ func createTemporaryRepo(ctx context.Context, pr *issues_model.PullRequest) (str
 			ID: pr.HeadRepoID,
 		}
 	} else if err := pr.LoadBaseRepo(ctx); err != nil {
-		log.Error("LoadBaseRepo: %v", err)
+		log.Error("LoadBaseRepo: %w", err)
 		return "", fmt.Errorf("LoadBaseRepo: %w", err)
 	} else if pr.BaseRepo == nil {
 		log.Error("Pr %d BaseRepo %d does not exist", pr.ID, pr.BaseRepoID)
@@ -39,17 +39,17 @@ func createTemporaryRepo(ctx context.Context, pr *issues_model.PullRequest) (str
 			ID: pr.BaseRepoID,
 		}
 	} else if err := pr.HeadRepo.LoadOwner(ctx); err != nil {
-		log.Error("HeadRepo.LoadOwner: %v", err)
+		log.Error("HeadRepo.LoadOwner: %w", err)
 		return "", fmt.Errorf("HeadRepo.LoadOwner: %w", err)
 	} else if err := pr.BaseRepo.LoadOwner(ctx); err != nil {
-		log.Error("BaseRepo.LoadOwner: %v", err)
+		log.Error("BaseRepo.LoadOwner: %w", err)
 		return "", fmt.Errorf("BaseRepo.LoadOwner: %w", err)
 	}
 
 	// Clone base repo.
 	tmpBasePath, err := repo_module.CreateTemporaryPath("pull")
 	if err != nil {
-		log.Error("CreateTemporaryPath: %v", err)
+		log.Error("CreateTemporaryPath: %w", err)
 		return "", err
 	}
 
@@ -57,7 +57,7 @@ func createTemporaryRepo(ctx context.Context, pr *issues_model.PullRequest) (str
 	headRepoPath := pr.HeadRepo.RepoPath()
 
 	if err := git.InitRepository(ctx, tmpBasePath, false); err != nil {
-		log.Error("git init tmpBasePath: %v", err)
+		log.Error("git init tmpBasePath: %w", err)
 		if err := repo_module.RemoveTemporaryPath(tmpBasePath); err != nil {
 			log.Error("CreateTempRepo: RemoveTemporaryPath: %s", err)
 		}
@@ -72,20 +72,20 @@ func createTemporaryRepo(ctx context.Context, pr *issues_model.PullRequest) (str
 		p := filepath.Join(staging, ".git", "objects", "info", "alternates")
 		f, err := os.OpenFile(p, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
 		if err != nil {
-			log.Error("Could not create .git/objects/info/alternates file in %s: %v", staging, err)
+			log.Error("Could not create .git/objects/info/alternates file in %s: %w", staging, err)
 			return err
 		}
 		defer f.Close()
 		data := filepath.Join(cache, "objects")
 		if _, err := fmt.Fprintln(f, data); err != nil {
-			log.Error("Could not write to .git/objects/info/alternates file in %s: %v", staging, err)
+			log.Error("Could not write to .git/objects/info/alternates file in %s: %w", staging, err)
 			return err
 		}
 		return nil
 	}
 
 	if err := addCacheRepo(tmpBasePath, baseRepoPath); err != nil {
-		log.Error("Unable to add base repository to temporary repo [%s -> %s]: %v", pr.BaseRepo.FullName(), tmpBasePath, err)
+		log.Error("Unable to add base repository to temporary repo [%s -> %s]: %w", pr.BaseRepo.FullName(), tmpBasePath, err)
 		if err := repo_module.RemoveTemporaryPath(tmpBasePath); err != nil {
 			log.Error("CreateTempRepo: RemoveTemporaryPath: %s", err)
 		}
@@ -139,7 +139,7 @@ func createTemporaryRepo(ctx context.Context, pr *issues_model.PullRequest) (str
 	errbuf.Reset()
 
 	if err := addCacheRepo(tmpBasePath, headRepoPath); err != nil {
-		log.Error("Unable to add head repository to temporary repo [%s -> %s]: %v", pr.HeadRepo.FullName(), tmpBasePath, err)
+		log.Error("Unable to add head repository to temporary repo [%s -> %s]: %w", pr.HeadRepo.FullName(), tmpBasePath, err)
 		if err := repo_module.RemoveTemporaryPath(tmpBasePath); err != nil {
 			log.Error("CreateTempRepo: RemoveTemporaryPath: %s", err)
 		}

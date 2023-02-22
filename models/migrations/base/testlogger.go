@@ -121,7 +121,7 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 			}
 		})
 		if err := queue.GetManager().FlushAll(context.Background(), -1); err != nil {
-			t.Errorf("Flushing queues failed with error %v", err)
+			t.Errorf("Flushing queues failed with error %w", err)
 		}
 		timer.Stop()
 		flushTook := time.Since(start) - took

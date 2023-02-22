@@ -28,7 +28,7 @@ func getQueueSettings(name string) (setting.QueueSettings, []byte) {
 	q := setting.GetQueueSettings(name)
 	cfg, err := json.Marshal(q)
 	if err != nil {
-		log.Error("Unable to marshall generic options: %v Error: %v", q, err)
+		log.Error("Unable to marshall generic options: %v Error: %w", q, err)
 		log.Error("Unable to create queue for %s", name, err)
 		return q, []byte{}
 	}
@@ -49,7 +49,7 @@ func CreateQueue(name string, handle HandlerFunc, exemplar interface{}) Queue {
 
 	returnable, err := NewQueue(typ, handle, cfg, exemplar)
 	if q.WrapIfNecessary && err != nil {
-		log.Warn("Unable to create queue for %s: %v", name, err)
+		log.Warn("Unable to create queue for %s: %w", name, err)
 		log.Warn("Attempting to create wrapped queue")
 		returnable, err = NewQueue(WrappedQueueType, handle, WrappedQueueConfiguration{
 			Underlying:  typ,
@@ -61,7 +61,7 @@ func CreateQueue(name string, handle HandlerFunc, exemplar interface{}) Queue {
 		}, exemplar)
 	}
 	if err != nil {
-		log.Error("Unable to create queue for %s: %v", name, err)
+		log.Error("Unable to create queue for %s: %w", name, err)
 		return nil
 	}
 
@@ -98,7 +98,7 @@ func CreateUniqueQueue(name string, handle HandlerFunc, exemplar interface{}) Un
 
 	returnable, err := NewQueue(typ, handle, cfg, exemplar)
 	if q.WrapIfNecessary && err != nil {
-		log.Warn("Unable to create unique queue for %s: %v", name, err)
+		log.Warn("Unable to create unique queue for %s: %w", name, err)
 		log.Warn("Attempting to create wrapped queue")
 		returnable, err = NewQueue(WrappedUniqueQueueType, handle, WrappedUniqueQueueConfiguration{
 			Underlying:  typ,
@@ -109,7 +109,7 @@ func CreateUniqueQueue(name string, handle HandlerFunc, exemplar interface{}) Un
 		}, exemplar)
 	}
 	if err != nil {
-		log.Error("Unable to create unique queue for %s: %v", name, err)
+		log.Error("Unable to create unique queue for %s: %w", name, err)
 		return nil
 	}
 

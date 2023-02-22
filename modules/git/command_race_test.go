@@ -31,7 +31,7 @@ func TestRunWithContextTimeout(t *testing.T) {
 	for i := 0; i < maxLoops; i++ {
 		if err := cmd.Run(&RunOpts{Timeout: 1 * time.Millisecond}); err != nil {
 			if err != context.DeadlineExceeded {
-				t.Fatalf("Testing %d/%d: %v", i, maxLoops, err)
+				t.Fatalf("Testing %d/%d: %w", i, maxLoops, err)
 			}
 		}
 	}

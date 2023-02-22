@@ -108,7 +108,7 @@ func fileFromDir(name string) ([]byte, error) {
 
 	isFile, err := util.IsFile(customPath)
 	if err != nil {
-		log.Error("Unable to check if %s is a file. Error: %v", customPath, err)
+		log.Error("Unable to check if %s is a file. Error: %w", customPath, err)
 	}
 	if isFile {
 		return os.ReadFile(customPath)

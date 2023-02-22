@@ -41,14 +41,14 @@ func populateRepoIndexer() {
 
 	exist, err := db.IsTableNotEmpty("repository")
 	if err != nil {
-		log.Fatal("System error: %v", err)
+		log.Fatal("System error: %w", err)
 	} else if !exist {
 		return
 	}
 
 	var maxRepoID int64
 	if maxRepoID, err = db.GetMaxID("repository"); err != nil {
-		log.Fatal("System error: %v", err)
+		log.Fatal("System error: %w", err)
 	}
 
 	// start with the maximum existing repo ID and work backwards, so that we
@@ -63,7 +63,7 @@ func populateRepoIndexer() {
 		}
 		ids, err := repo_model.GetUnindexedRepos(repo_model.RepoIndexerTypeStats, maxRepoID, 0, 50)
 		if err != nil {
-			log.Error("populateRepoIndexer: %v", err)
+			log.Error("populateRepoIndexer: %w", err)
 			return
 		} else if len(ids) == 0 {
 			break
@@ -76,7 +76,7 @@ func populateRepoIndexer() {
 			default:
 			}
 			if err := statsQueue.Push(id); err != nil {
-				log.Error("statsQueue.Push: %v", err)
+				log.Error("statsQueue.Push: %w", err)
 			}
 			maxRepoID = id - 1
 		}

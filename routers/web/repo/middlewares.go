@@ -22,7 +22,7 @@ func SetEditorconfigIfExists(ctx *context.Context) {
 	ec, err := ctx.Repo.GetEditorconfig()
 
 	if err != nil && !git.IsErrNotExist(err) {
-		description := fmt.Sprintf("Error while getting .editorconfig file: %v", err)
+		description := fmt.Sprintf("Error while getting .editorconfig file: %w", err)
 		if err := system_model.CreateRepositoryNotice(description); err != nil {
 			ctx.ServerError("ErrCreatingReporitoryNotice", err)
 		}

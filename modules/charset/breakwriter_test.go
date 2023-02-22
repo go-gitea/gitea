@@ -54,7 +54,7 @@ func TestBreakWriter_Write(t *testing.T) {
 			}
 			n, err := b.Write([]byte(tt.kase))
 			if (err != nil) != tt.wantErr {
-				t.Errorf("BreakWriter.Write() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("BreakWriter.Write() error = %v, wantErr %w", err, tt.wantErr)
 				return
 			}
 			if n != len(tt.kase) {

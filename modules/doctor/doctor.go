@@ -73,7 +73,7 @@ func RunChecks(ctx context.Context, logger log.Logger, autofix bool, checks []*C
 			// Only open database after the most basic configuration check
 			setting.Log.EnableXORMLog = false
 			if err := initDBDisableConsole(ctx, true); err != nil {
-				logger.Error("Error whilst initializing the database: %v", err)
+				logger.Error("Error whilst initializing the database: %w", err)
 				logger.Error("Check if you are using the right config file. You can use a --config directive to specify one.")
 				return nil
 			}

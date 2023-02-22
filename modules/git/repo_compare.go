@@ -65,7 +65,7 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string, 
 		}
 		defer func() {
 			if err := repo.RemoveRemote(tmpRemote); err != nil {
-				logger.Error("GetPullRequestInfo: RemoveRemote: %v", err)
+				logger.Error("GetPullRequestInfo: RemoveRemote: %w", err)
 			}
 		}()
 	}

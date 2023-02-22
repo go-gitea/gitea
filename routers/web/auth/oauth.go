@@ -205,7 +205,7 @@ func newAccessTokenResponse(ctx stdContext.Context, grant *auth.OAuth2Grant, ser
 					ErrorDescription: "cannot find user",
 				}
 			}
-			log.Error("Error loading user: %v", err)
+			log.Error("Error loading user: %w", err)
 			return nil, &AccessTokenError{
 				ErrorCode:        AccessTokenErrorCodeInvalidRequest,
 				ErrorDescription: "server error",
@@ -237,7 +237,7 @@ func newAccessTokenResponse(ctx stdContext.Context, grant *auth.OAuth2Grant, ser
 		if grant.ScopeContains("groups") {
 			groups, err := getOAuthGroupsForUser(user)
 			if err != nil {
-				log.Error("Error getting groups: %v", err)
+				log.Error("Error getting groups: %w", err)
 				return nil, &AccessTokenError{
 					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
 					ErrorDescription: "server error",
@@ -436,7 +436,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 		// Here we're just going to try to release the session early
 		if err := ctx.Session.Release(); err != nil {
 			// we'll tolerate errors here as they *should* get saved elsewhere
-			log.Error("Unable to save changes to the session: %v", err)
+			log.Error("Unable to save changes to the session: %w", err)
 		}
 	case "":
 		// "Authorization servers SHOULD reject authorization requests from native apps that don't use PKCE by returning an error message"
@@ -484,7 +484,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 		if len(form.Nonce) > 0 {
 			err := grant.SetNonce(ctx, form.Nonce)
 			if err != nil {
-				log.Error("Unable to update nonce: %v", err)
+				log.Error("Unable to update nonce: %w", err)
 			}
 		}
 		ctx.Redirect(redirect.String())
@@ -525,7 +525,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 	// Here we're just going to try to release the session early
 	if err := ctx.Session.Release(); err != nil {
 		// we'll tolerate errors here as they *should* get saved elsewhere
-		log.Error("Unable to save changes to the session: %v", err)
+		log.Error("Unable to save changes to the session: %w", err)
 	}
 	ctx.HTML(http.StatusOK, tplGrantAccess)
 }
@@ -555,7 +555,7 @@ func GrantApplicationOAuth(ctx *context.Context) {
 	if len(form.Nonce) > 0 {
 		err := grant.SetNonce(ctx, form.Nonce)
 		if err != nil {
-			log.Error("Unable to update nonce: %v", err)
+			log.Error("Unable to update nonce: %w", err)
 		}
 	}
 
@@ -582,7 +582,7 @@ func OIDCWellKnown(ctx *context.Context) {
 	ctx.Resp.Header().Set("Content-Type", "application/json")
 	ctx.Data["SigningKey"] = oauth2.DefaultSigningKey
 	if err := t.Execute(ctx.Resp, ctx.Data); err != nil {
-		log.Error("%v", err)
+		log.Error("%w", err)
 		ctx.Error(http.StatusInternalServerError)
 	}
 }
@@ -591,7 +591,7 @@ func OIDCWellKnown(ctx *context.Context) {
 func OIDCKeys(ctx *context.Context) {
 	jwk, err := oauth2.DefaultSigningKey.ToJWK()
 	if err != nil {
-		log.Error("Error converting signing key to JWK: %v", err)
+		log.Error("Error converting signing key to JWK: %w", err)
 		ctx.Error(http.StatusInternalServerError)
 		return
 	}
@@ -607,7 +607,7 @@ func OIDCKeys(ctx *context.Context) {
 	ctx.Resp.Header().Set("Content-Type", "application/json")
 	enc := json.NewEncoder(ctx.Resp)
 	if err := enc.Encode(jwks); err != nil {
-		log.Error("Failed to encode representation as json. Error: %v", err)
+		log.Error("Failed to encode representation as json. Error: %w", err)
 	}
 }
 
@@ -899,7 +899,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 	if err != nil {
 		if user_model.IsErrUserProhibitLogin(err) {
 			uplerr := err.(user_model.ErrUserProhibitLogin)
-			log.Info("Failed authentication attempt for %s from %s: %v", uplerr.Name, ctx.RemoteAddr(), err)
+			log.Info("Failed authentication attempt for %s from %s: %w", uplerr.Name, ctx.RemoteAddr(), err)
 			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 			ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
 			return
@@ -1136,7 +1136,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		// update external user information
 		if err := externalaccount.UpdateExternalUser(u, gothUser); err != nil {
 			if !errors.Is(err, util.ErrNotExist) {
-				log.Error("UpdateExternalUser failed: %v", err)
+				log.Error("UpdateExternalUser failed: %w", err)
 			}
 		}
 

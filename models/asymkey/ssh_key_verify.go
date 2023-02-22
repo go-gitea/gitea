@@ -30,7 +30,7 @@ func VerifySSHKey(ownerID int64, fingerprint, token, signature string) (string, 
 	}
 
 	if err := sshsig.Verify(bytes.NewBuffer([]byte(token)), []byte(signature), []byte(key.Content), "gitea"); err != nil {
-		log.Error("Unable to validate token signature. Error: %v", err)
+		log.Error("Unable to validate token signature. Error: %w", err)
 		return "", ErrSSHInvalidTokenSignature{
 			Fingerprint: key.Fingerprint,
 		}

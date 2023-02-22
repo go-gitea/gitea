@@ -80,7 +80,7 @@ func loadMailerFrom(rootCfg ConfigProvider) {
 		if err != nil && strings.Contains(err.Error(), "missing port in address") {
 			addr = givenHost
 		} else if err != nil {
-			log.Fatal("Invalid mailer.HOST (%s): %v", givenHost, err)
+			log.Fatal("Invalid mailer.HOST (%s): %w", givenHost, err)
 		}
 		if addr == "" {
 			addr = "127.0.0.1"
@@ -147,7 +147,7 @@ func loadMailerFrom(rootCfg ConfigProvider) {
 	// Now map the values on to the MailService
 	MailService = &Mailer{}
 	if err := sec.MapTo(MailService); err != nil {
-		log.Fatal("Unable to map [mailer] section on to MailService. Error: %v", err)
+		log.Fatal("Unable to map [mailer] section on to MailService. Error: %w", err)
 	}
 
 	// Infer SMTPPort if not set
@@ -192,7 +192,7 @@ func loadMailerFrom(rootCfg ConfigProvider) {
 		var err error
 		MailService.SendmailArgs, err = shellquote.Split(sec.Key("SENDMAIL_ARGS").String())
 		if err != nil {
-			log.Error("Failed to parse Sendmail args: '%s' with error %v", sec.Key("SENDMAIL_ARGS").String(), err)
+			log.Error("Failed to parse Sendmail args: '%s' with error %w", sec.Key("SENDMAIL_ARGS").String(), err)
 		}
 	case "smtp", "smtps", "smtp+starttls", "smtp+unix":
 		ips := tryResolveAddr(MailService.SMTPAddr)
@@ -210,7 +210,7 @@ func loadMailerFrom(rootCfg ConfigProvider) {
 	if MailService.From != "" {
 		parsed, err := mail.ParseAddress(MailService.From)
 		if err != nil {
-			log.Fatal("Invalid mailer.FROM (%s): %v", MailService.From, err)
+			log.Fatal("Invalid mailer.FROM (%s): %w", MailService.From, err)
 		}
 		MailService.FromName = parsed.Name
 		MailService.FromEmail = parsed.Address
@@ -227,7 +227,7 @@ func loadMailerFrom(rootCfg ConfigProvider) {
 	default:
 		parsed, err := mail.ParseAddress(MailService.EnvelopeFrom)
 		if err != nil {
-			log.Fatal("Invalid mailer.ENVELOPE_FROM (%s): %v", MailService.EnvelopeFrom, err)
+			log.Fatal("Invalid mailer.ENVELOPE_FROM (%s): %w", MailService.EnvelopeFrom, err)
 		}
 		MailService.OverrideEnvelopeFrom = true
 		MailService.EnvelopeFrom = parsed.Address
@@ -270,7 +270,7 @@ func tryResolveAddr(addr string) []net.IP {
 	}
 	ips, err := net.LookupIP(addr)
 	if err != nil {
-		log.Warn("could not look up mailer.SMTP_ADDR: %v", err)
+		log.Warn("could not look up mailer.SMTP_ADDR: %w", err)
 		return make([]net.IP, 0)
 	}
 	return ips

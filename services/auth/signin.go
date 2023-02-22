@@ -110,9 +110,9 @@ func UserSignIn(username, password string) (*user_model.User, *auth.Source, erro
 		}
 
 		if user_model.IsErrUserNotExist(err) {
-			log.Debug("Failed to login '%s' via '%s': %v", username, source.Name, err)
+			log.Debug("Failed to login '%s' via '%s': %w", username, source.Name, err)
 		} else {
-			log.Warn("Failed to login '%s' via '%s': %v", username, source.Name, err)
+			log.Warn("Failed to login '%s' via '%s': %w", username, source.Name, err)
 		}
 	}
 

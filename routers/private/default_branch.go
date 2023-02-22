@@ -37,7 +37,7 @@ func SetDefaultBranch(ctx *gitea_context.PrivateContext) {
 	if err := ctx.Repo.GitRepo.SetDefaultBranch(ctx.Repo.Repository.DefaultBranch); err != nil {
 		if !git.IsErrUnsupportedVersion(err) {
 			ctx.JSON(http.StatusInternalServerError, private.Response{
-				Err: fmt.Sprintf("Unable to set default branch on repository: %s/%s Error: %v", ownerName, repoName, err),
+				Err: fmt.Sprintf("Unable to set default branch on repository: %s/%s Error: %w", ownerName, repoName, err),
 			})
 			return
 		}
@@ -45,7 +45,7 @@ func SetDefaultBranch(ctx *gitea_context.PrivateContext) {
 
 	if err := repo_model.UpdateDefaultBranch(ctx.Repo.Repository); err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: fmt.Sprintf("Unable to set default branch on repository: %s/%s Error: %v", ownerName, repoName, err),
+			Err: fmt.Sprintf("Unable to set default branch on repository: %s/%s Error: %w", ownerName, repoName, err),
 		})
 		return
 	}

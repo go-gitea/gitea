@@ -39,56 +39,56 @@ func Test_DropTableColumns(t *testing.T) {
 	for i := range columns {
 		x.SetMapper(names.GonicMapper{})
 		if err := x.Sync2(new(DropTest)); err != nil {
-			t.Errorf("unable to create DropTest table: %v", err)
+			t.Errorf("unable to create DropTest table: %w", err)
 			return
 		}
 		sess := x.NewSession()
 		if err := sess.Begin(); err != nil {
 			sess.Close()
-			t.Errorf("unable to begin transaction: %v", err)
+			t.Errorf("unable to begin transaction: %w", err)
 			return
 		}
 		if err := DropTableColumns(sess, "drop_test", columns[i:]...); err != nil {
 			sess.Close()
-			t.Errorf("Unable to drop columns[%d:]: %s from drop_test: %v", i, columns[i:], err)
+			t.Errorf("Unable to drop columns[%d:]: %s from drop_test: %w", i, columns[i:], err)
 			return
 		}
 		if err := sess.Commit(); err != nil {
 			sess.Close()
-			t.Errorf("unable to commit transaction: %v", err)
+			t.Errorf("unable to commit transaction: %w", err)
 			return
 		}
 		sess.Close()
 		if err := x.DropTables(new(DropTest)); err != nil {
-			t.Errorf("unable to drop table: %v", err)
+			t.Errorf("unable to drop table: %w", err)
 			return
 		}
 		for j := range columns[i+1:] {
 			x.SetMapper(names.GonicMapper{})
 			if err := x.Sync2(new(DropTest)); err != nil {
-				t.Errorf("unable to create DropTest table: %v", err)
+				t.Errorf("unable to create DropTest table: %w", err)
 				return
 			}
 			dropcols := append([]string{columns[i]}, columns[j+i+1:]...)
 			sess := x.NewSession()
 			if err := sess.Begin(); err != nil {
 				sess.Close()
-				t.Errorf("unable to begin transaction: %v", err)
+				t.Errorf("unable to begin transaction: %w", err)
 				return
 			}
 			if err := DropTableColumns(sess, "drop_test", dropcols...); err != nil {
 				sess.Close()
-				t.Errorf("Unable to drop columns: %s from drop_test: %v", dropcols, err)
+				t.Errorf("Unable to drop columns: %s from drop_test: %w", dropcols, err)
 				return
 			}
 			if err := sess.Commit(); err != nil {
 				sess.Close()
-				t.Errorf("unable to commit transaction: %v", err)
+				t.Errorf("unable to commit transaction: %w", err)
 				return
 			}
 			sess.Close()
 			if err := x.DropTables(new(DropTest)); err != nil {
-				t.Errorf("unable to drop table: %v", err)
+				t.Errorf("unable to drop table: %w", err)
 				return
 			}
 		}

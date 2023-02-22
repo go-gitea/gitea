@@ -149,7 +149,7 @@ func (org *Organization) HasMemberWithUserID(userID int64) bool {
 func (org *Organization) hasMemberWithUserID(ctx context.Context, userID int64) bool {
 	isMember, err := IsOrganizationMember(ctx, org.ID, userID)
 	if err != nil {
-		log.Error("IsOrganizationMember: %v", err)
+		log.Error("IsOrganizationMember: %w", err)
 		return false
 	}
 	return isMember

@@ -59,24 +59,24 @@ func RecreateTable(sess *xorm.Session, bean interface{}) error {
 	//
 	// First create the temporary table
 	if err := sess.Table(tempTableName).CreateTable(bean); err != nil {
-		log.Error("Unable to create table %s. Error: %v", tempTableName, err)
+		log.Error("Unable to create table %s. Error: %w", tempTableName, err)
 		return err
 	}
 
 	if err := sess.Table(tempTableName).CreateUniques(bean); err != nil {
-		log.Error("Unable to create uniques for table %s. Error: %v", tempTableName, err)
+		log.Error("Unable to create uniques for table %s. Error: %w", tempTableName, err)
 		return err
 	}
 
 	if err := sess.Table(tempTableName).CreateIndexes(bean); err != nil {
-		log.Error("Unable to create indexes for table %s. Error: %v", tempTableName, err)
+		log.Error("Unable to create indexes for table %s. Error: %w", tempTableName, err)
 		return err
 	}
 
 	// Work out the column names from the bean - these are the columns to select from the old table and install into the new table
 	table, err := sess.Engine().TableInfo(bean)
 	if err != nil {
-		log.Error("Unable to get table info. Error: %v", err)
+		log.Error("Unable to get table info. Error: %w", err)
 
 		return err
 	}
@@ -91,7 +91,7 @@ func RecreateTable(sess *xorm.Session, bean interface{}) error {
 
 	if hasID && setting.Database.UseMSSQL {
 		if _, err := sess.Exec(fmt.Sprintf("SET IDENTITY_INSERT `%s` ON", tempTableName)); err != nil {
-			log.Error("Unable to set identity insert for table %s. Error: %v", tempTableName, err)
+			log.Error("Unable to set identity insert for table %s. Error: %w", tempTableName, err)
 			return err
 		}
 	}
@@ -139,13 +139,13 @@ func RecreateTable(sess *xorm.Session, bean interface{}) error {
 	_, _ = sqlStringBuilder.WriteString("`")
 
 	if _, err := sess.Exec(sqlStringBuilder.String()); err != nil {
-		log.Error("Unable to set copy data in to temp table %s. Error: %v", tempTableName, err)
+		log.Error("Unable to set copy data in to temp table %s. Error: %w", tempTableName, err)
 		return err
 	}
 
 	if hasID && setting.Database.UseMSSQL {
 		if _, err := sess.Exec(fmt.Sprintf("SET IDENTITY_INSERT `%s` OFF", tempTableName)); err != nil {
-			log.Error("Unable to switch off identity insert for table %s. Error: %v", tempTableName, err)
+			log.Error("Unable to switch off identity insert for table %s. Error: %w", tempTableName, err)
 			return err
 		}
 	}
@@ -154,55 +154,55 @@ func RecreateTable(sess *xorm.Session, bean interface{}) error {
 	case setting.Database.UseSQLite3:
 		// SQLite will drop all the constraints on the old table
 		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s`", tableName)); err != nil {
-			log.Error("Unable to drop old table %s. Error: %v", tableName, err)
+			log.Error("Unable to drop old table %s. Error: %w", tableName, err)
 			return err
 		}
 
 		if err := sess.Table(tempTableName).DropIndexes(bean); err != nil {
-			log.Error("Unable to drop indexes on temporary table %s. Error: %v", tempTableName, err)
+			log.Error("Unable to drop indexes on temporary table %s. Error: %w", tempTableName, err)
 			return err
 		}
 
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` RENAME TO `%s`", tempTableName, tableName)); err != nil {
-			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
+			log.Error("Unable to rename %s to %s. Error: %w", tempTableName, tableName, err)
 			return err
 		}
 
 		if err := sess.Table(tableName).CreateIndexes(bean); err != nil {
-			log.Error("Unable to recreate indexes on table %s. Error: %v", tableName, err)
+			log.Error("Unable to recreate indexes on table %s. Error: %w", tableName, err)
 			return err
 		}
 
 		if err := sess.Table(tableName).CreateUniques(bean); err != nil {
-			log.Error("Unable to recreate uniques on table %s. Error: %v", tableName, err)
+			log.Error("Unable to recreate uniques on table %s. Error: %w", tableName, err)
 			return err
 		}
 
 	case setting.Database.UseMySQL:
 		// MySQL will drop all the constraints on the old table
 		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s`", tableName)); err != nil {
-			log.Error("Unable to drop old table %s. Error: %v", tableName, err)
+			log.Error("Unable to drop old table %s. Error: %w", tableName, err)
 			return err
 		}
 
 		if err := sess.Table(tempTableName).DropIndexes(bean); err != nil {
-			log.Error("Unable to drop indexes on temporary table %s. Error: %v", tempTableName, err)
+			log.Error("Unable to drop indexes on temporary table %s. Error: %w", tempTableName, err)
 			return err
 		}
 
 		// SQLite and MySQL will move all the constraints from the temporary table to the new table
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` RENAME TO `%s`", tempTableName, tableName)); err != nil {
-			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
+			log.Error("Unable to rename %s to %s. Error: %w", tempTableName, tableName, err)
 			return err
 		}
 
 		if err := sess.Table(tableName).CreateIndexes(bean); err != nil {
-			log.Error("Unable to recreate indexes on table %s. Error: %v", tableName, err)
+			log.Error("Unable to recreate indexes on table %s. Error: %w", tableName, err)
 			return err
 		}
 
 		if err := sess.Table(tableName).CreateUniques(bean); err != nil {
-			log.Error("Unable to recreate uniques on table %s. Error: %v", tableName, err)
+			log.Error("Unable to recreate uniques on table %s. Error: %w", tableName, err)
 			return err
 		}
 	case setting.Database.UsePostgreSQL:
@@ -216,7 +216,7 @@ func RecreateTable(sess *xorm.Session, bean interface{}) error {
 		schema := sess.Engine().Dialect().URI().Schema
 		sess.Engine().SetSchema("")
 		if err := sess.Table("information_schema.sequences").Cols("sequence_name").Where("sequence_name LIKE ? || '_%' AND sequence_catalog = ?", tableName, setting.Database.Name).Find(&originalSequences); err != nil {
-			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
+			log.Error("Unable to rename %s to %s. Error: %w", tempTableName, tableName, err)
 			return err
 		}
 		sess.Engine().SetSchema(schema)
@@ -224,7 +224,7 @@ func RecreateTable(sess *xorm.Session, bean interface{}) error {
 		for _, sequence := range originalSequences {
 			sequenceData := sequenceData{}
 			if _, err := sess.Table(sequence).Cols("last_value", "is_called").Get(&sequenceData); err != nil {
-				log.Error("Unable to get last_value and is_called from %s. Error: %v", sequence, err)
+				log.Error("Unable to get last_value and is_called from %s. Error: %w", sequence, err)
 				return err
 			}
 			sequenceMap[sequence] = sequenceData
@@ -233,20 +233,20 @@ func RecreateTable(sess *xorm.Session, bean interface{}) error {
 
 		// CASCADE causes postgres to drop all the constraints on the old table
 		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s` CASCADE", tableName)); err != nil {
-			log.Error("Unable to drop old table %s. Error: %v", tableName, err)
+			log.Error("Unable to drop old table %s. Error: %w", tableName, err)
 			return err
 		}
 
 		// CASCADE causes postgres to move all the constraints from the temporary table to the new table
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` RENAME TO `%s`", tempTableName, tableName)); err != nil {
-			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
+			log.Error("Unable to rename %s to %s. Error: %w", tempTableName, tableName, err)
 			return err
 		}
 
 		var indices []string
 		sess.Engine().SetSchema("")
 		if err := sess.Table("pg_indexes").Cols("indexname").Where("tablename = ? ", tableName).Find(&indices); err != nil {
-			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
+			log.Error("Unable to rename %s to %s. Error: %w", tempTableName, tableName, err)
 			return err
 		}
 		sess.Engine().SetSchema(schema)
@@ -254,7 +254,7 @@ func RecreateTable(sess *xorm.Session, bean interface{}) error {
 		for _, index := range indices {
 			newIndexName := strings.Replace(index, "tmp_recreate__", "", 1)
 			if _, err := sess.Exec(fmt.Sprintf("ALTER INDEX `%s` RENAME TO `%s`", index, newIndexName)); err != nil {
-				log.Error("Unable to rename %s to %s. Error: %v", index, newIndexName, err)
+				log.Error("Unable to rename %s to %s. Error: %w", index, newIndexName, err)
 				return err
 			}
 		}
@@ -262,7 +262,7 @@ func RecreateTable(sess *xorm.Session, bean interface{}) error {
 		var sequences []string
 		sess.Engine().SetSchema("")
 		if err := sess.Table("information_schema.sequences").Cols("sequence_name").Where("sequence_name LIKE 'tmp_recreate__' || ? || '_%' AND sequence_catalog = ?", tableName, setting.Database.Name).Find(&sequences); err != nil {
-			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
+			log.Error("Unable to rename %s to %s. Error: %w", tempTableName, tableName, err)
 			return err
 		}
 		sess.Engine().SetSchema(schema)
@@ -270,26 +270,26 @@ func RecreateTable(sess *xorm.Session, bean interface{}) error {
 		for _, sequence := range sequences {
 			newSequenceName := strings.Replace(sequence, "tmp_recreate__", "", 1)
 			if _, err := sess.Exec(fmt.Sprintf("ALTER SEQUENCE `%s` RENAME TO `%s`", sequence, newSequenceName)); err != nil {
-				log.Error("Unable to rename %s sequence to %s. Error: %v", sequence, newSequenceName, err)
+				log.Error("Unable to rename %s sequence to %s. Error: %w", sequence, newSequenceName, err)
 				return err
 			}
 			val, ok := sequenceMap[newSequenceName]
 			if newSequenceName == tableName+"_id_seq" {
 				if ok && val.LastValue != 0 {
 					if _, err := sess.Exec(fmt.Sprintf("SELECT setval('%s', %d, %t)", newSequenceName, val.LastValue, val.IsCalled)); err != nil {
-						log.Error("Unable to reset %s to %d. Error: %v", newSequenceName, val, err)
+						log.Error("Unable to reset %s to %d. Error: %w", newSequenceName, val, err)
 						return err
 					}
 				} else {
 					// We're going to try to guess this
 					if _, err := sess.Exec(fmt.Sprintf("SELECT setval('%s', COALESCE((SELECT MAX(id)+1 FROM `%s`), 1), false)", newSequenceName, tableName)); err != nil {
-						log.Error("Unable to reset %s. Error: %v", newSequenceName, err)
+						log.Error("Unable to reset %s. Error: %w", newSequenceName, err)
 						return err
 					}
 				}
 			} else if ok {
 				if _, err := sess.Exec(fmt.Sprintf("SELECT setval('%s', %d, %t)", newSequenceName, val.LastValue, val.IsCalled)); err != nil {
-					log.Error("Unable to reset %s to %d. Error: %v", newSequenceName, val, err)
+					log.Error("Unable to reset %s to %d. Error: %w", newSequenceName, val, err)
 					return err
 				}
 			}
@@ -299,13 +299,13 @@ func RecreateTable(sess *xorm.Session, bean interface{}) error {
 	case setting.Database.UseMSSQL:
 		// MSSQL will drop all the constraints on the old table
 		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s`", tableName)); err != nil {
-			log.Error("Unable to drop old table %s. Error: %v", tableName, err)
+			log.Error("Unable to drop old table %s. Error: %w", tableName, err)
 			return err
 		}
 
 		// MSSQL sp_rename will move all the constraints from the temporary table to the new table
 		if _, err := sess.Exec(fmt.Sprintf("sp_rename `%s`,`%s`", tempTableName, tableName)); err != nil {
-			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
+			log.Error("Unable to rename %s to %s. Error: %w", tempTableName, tableName, err)
 			return err
 		}
 
@@ -414,7 +414,7 @@ func DropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 			cols += "DROP COLUMN `" + col + "` CASCADE"
 		}
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` %s", tableName, cols)); err != nil {
-			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
+			return fmt.Errorf("Drop table `%s` columns %v: %w", tableName, columnNames, err)
 		}
 	case setting.Database.UseMySQL:
 		// Drop indexes on columns first
@@ -442,7 +442,7 @@ func DropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 			cols += "DROP COLUMN `" + col + "`"
 		}
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` %s", tableName, cols)); err != nil {
-			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
+			return fmt.Errorf("Drop table `%s` columns %v: %w", tableName, columnNames, err)
 		}
 	case setting.Database.UseMSSQL:
 		cols := ""
@@ -456,27 +456,27 @@ func DropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 			tableName, strings.ReplaceAll(cols, "`", "'"))
 		constraints := make([]string, 0)
 		if err := sess.SQL(sql).Find(&constraints); err != nil {
-			return fmt.Errorf("Find constraints: %v", err)
+			return fmt.Errorf("Find constraints: %w", err)
 		}
 		for _, constraint := range constraints {
 			if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` DROP CONSTRAINT `%s`", tableName, constraint)); err != nil {
-				return fmt.Errorf("Drop table `%s` default constraint `%s`: %v", tableName, constraint, err)
+				return fmt.Errorf("Drop table `%s` default constraint `%s`: %w", tableName, constraint, err)
 			}
 		}
 		sql = fmt.Sprintf("SELECT DISTINCT Name FROM sys.indexes INNER JOIN sys.index_columns ON indexes.index_id = index_columns.index_id AND indexes.object_id = index_columns.object_id WHERE indexes.object_id = OBJECT_ID('%[1]s') AND index_columns.column_id IN (SELECT column_id FROM sys.columns WHERE LOWER(name) IN (%[2]s) AND object_id = OBJECT_ID('%[1]s'))",
 			tableName, strings.ReplaceAll(cols, "`", "'"))
 		constraints = make([]string, 0)
 		if err := sess.SQL(sql).Find(&constraints); err != nil {
-			return fmt.Errorf("Find constraints: %v", err)
+			return fmt.Errorf("Find constraints: %w", err)
 		}
 		for _, constraint := range constraints {
 			if _, err := sess.Exec(fmt.Sprintf("DROP INDEX `%[2]s` ON `%[1]s`", tableName, constraint)); err != nil {
-				return fmt.Errorf("Drop index `%[2]s` on `%[1]s`: %v", tableName, constraint, err)
+				return fmt.Errorf("Drop index `%[2]s` on `%[1]s`: %w", tableName, constraint, err)
 			}
 		}
 
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` DROP COLUMN %s", tableName, cols)); err != nil {
-			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
+			return fmt.Errorf("Drop table `%s` columns %v: %w", tableName, columnNames, err)
 		}
 	default:
 		log.Fatal("Unrecognized DB")
@@ -509,7 +509,7 @@ func ModifyColumn(x *xorm.Engine, tableName string, col *schemas.Column) error {
 		for _, index := range indexes {
 			_, err = x.Exec(x.Dialect().CreateIndexSQL(tableName, index))
 			if err != nil {
-				log.Error("Create index %s on table %s failed: %v", index.Name, tableName, err)
+				log.Error("Create index %s on table %s failed: %w", index.Name, tableName, err)
 			}
 		}
 	}()

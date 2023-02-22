@@ -30,7 +30,7 @@ func jsonResponse(ctx *context.Context, status int, obj interface{}) {
 	resp.Header().Set("Content-Type", "application/vnd.pub.v2+json")
 	resp.WriteHeader(status)
 	if err := json.NewEncoder(resp).Encode(obj); err != nil {
-		log.Error("JSON encode: %v", err)
+		log.Error("JSON encode: %w", err)
 	}
 }
 

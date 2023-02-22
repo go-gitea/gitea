@@ -81,7 +81,7 @@ func jsonResponse(ctx *context.Context, status int, obj interface{}) {
 		ContentType: "application/json",
 	})
 	if err := json.NewEncoder(ctx.Resp).Encode(obj); err != nil {
-		log.Error("JSON encode: %v", err)
+		log.Error("JSON encode: %w", err)
 	}
 }
 
@@ -496,7 +496,7 @@ func GetBlob(ctx *context.Context) {
 		Status:        http.StatusOK,
 	})
 	if _, err := io.Copy(ctx.Resp, s); err != nil {
-		log.Error("Error whilst copying content to response: %v", err)
+		log.Error("Error whilst copying content to response: %w", err)
 	}
 }
 
@@ -650,7 +650,7 @@ func GetManifest(ctx *context.Context) {
 		Status:        http.StatusOK,
 	})
 	if _, err := io.Copy(ctx.Resp, s); err != nil {
-		log.Error("Error whilst copying content to response: %v", err)
+		log.Error("Error whilst copying content to response: %w", err)
 	}
 }
 

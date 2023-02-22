@@ -54,7 +54,7 @@ func commonCheckStorage(ctx context.Context, logger log.Logger, autofix bool, op
 		}
 		return nil
 	}); err != nil {
-		logger.Error("Error whilst iterating %s storage: %v", opts.name, err)
+		logger.Error("Error whilst iterating %s storage: %w", opts.name, err)
 		return err
 	}
 
@@ -63,7 +63,7 @@ func commonCheckStorage(ctx context.Context, logger log.Logger, autofix bool, op
 			var deletedNum int
 			for _, p := range pathsToDelete {
 				if err := opts.storer.Delete(p); err != nil {
-					log.Error("Error whilst deleting %s from %s storage: %v", p, opts.name, err)
+					log.Error("Error whilst deleting %s from %s storage: %w", p, opts.name, err)
 				} else {
 					deletedNum++
 				}
@@ -92,7 +92,7 @@ type checkStorageOptions struct {
 func checkStorage(opts *checkStorageOptions) func(ctx context.Context, logger log.Logger, autofix bool) error {
 	return func(ctx context.Context, logger log.Logger, autofix bool) error {
 		if err := storage.Init(); err != nil {
-			logger.Error("storage.Init failed: %v", err)
+			logger.Error("storage.Init failed: %w", err)
 			return err
 		}
 

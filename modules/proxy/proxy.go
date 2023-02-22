@@ -69,7 +69,7 @@ func Proxy() func(req *http.Request) (*url.URL, error) {
 			if g, err := glob.Compile(h); err == nil {
 				hostMatchers = append(hostMatchers, g)
 			} else {
-				log.Error("glob.Compile %s failed: %v", h, err)
+				log.Error("glob.Compile %s failed: %w", h, err)
 			}
 		}
 	})

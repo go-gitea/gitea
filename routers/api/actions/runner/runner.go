@@ -101,8 +101,8 @@ func (s *Service) FetchTask(
 
 	var task *runnerv1.Task
 	if t, ok, err := pickTask(ctx, runner); err != nil {
-		log.Error("pick task failed: %v", err)
-		return nil, status.Errorf(codes.Internal, "pick task: %v", err)
+		log.Error("pick task failed: %w", err)
+		return nil, status.Errorf(codes.Internal, "pick task: %w", err)
 	} else if ok {
 		task = t
 	}
@@ -127,7 +127,7 @@ func (s *Service) UpdateTask(
 	// Get Task first
 	task, err := actions_model.GetTaskByID(ctx, req.Msg.State.Id)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "can't find the task: %v", err)
+		return nil, status.Errorf(codes.Internal, "can't find the task: %w", err)
 	}
 	if task.Status.IsCancelled() {
 		return connect.NewResponse(&runnerv1.UpdateTaskResponse{
@@ -140,21 +140,21 @@ func (s *Service) UpdateTask(
 
 	task, err = actions_model.UpdateTaskByState(ctx, req.Msg.State)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "update task: %v", err)
+		return nil, status.Errorf(codes.Internal, "update task: %w", err)
 	}
 
 	if err := task.LoadJob(ctx); err != nil {
-		return nil, status.Errorf(codes.Internal, "load job: %v", err)
+		return nil, status.Errorf(codes.Internal, "load job: %w", err)
 	}
 
 	if err := actions_service.CreateCommitStatus(ctx, task.Job); err != nil {
-		log.Error("Update commit status failed: %v", err)
+		log.Error("Update commit status failed: %w", err)
 		// go on
 	}
 
 	if req.Msg.State.Result != runnerv1.Result_RESULT_UNSPECIFIED {
 		if err := actions_service.EmitJobsIfReady(task.Job.RunID); err != nil {
-			log.Error("Emit ready jobs of run %d: %v", task.Job.RunID, err)
+			log.Error("Emit ready jobs of run %d: %w", task.Job.RunID, err)
 		}
 	}
 
@@ -175,7 +175,7 @@ func (s *Service) UpdateLog(
 
 	task, err := actions_model.GetTaskByID(ctx, req.Msg.TaskId)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "get task: %v", err)
+		return nil, status.Errorf(codes.Internal, "get task: %w", err)
 	}
 	ack := task.LogLength
 
@@ -191,7 +191,7 @@ func (s *Service) UpdateLog(
 	rows := req.Msg.Rows[ack-req.Msg.Index:]
 	ns, err := actions.WriteLogs(ctx, task.LogFilename, task.LogSize, rows)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "write logs: %v", err)
+		return nil, status.Errorf(codes.Internal, "write logs: %w", err)
 	}
 	task.LogLength += int64(len(rows))
 	for _, n := range ns {
@@ -206,12 +206,12 @@ func (s *Service) UpdateLog(
 		task.LogInStorage = true
 		remove, err = actions.TransferLogs(ctx, task.LogFilename)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "transfer logs: %v", err)
+			return nil, status.Errorf(codes.Internal, "transfer logs: %w", err)
 		}
 	}
 
 	if err := actions_model.UpdateTask(ctx, task, "log_indexes", "log_length", "log_size", "log_in_storage"); err != nil {
-		return nil, status.Errorf(codes.Internal, "update task: %v", err)
+		return nil, status.Errorf(codes.Internal, "update task: %w", err)
 	}
 	if remove != nil {
 		remove()

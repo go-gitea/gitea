@@ -56,14 +56,14 @@ func InitLocales(ctx context.Context) {
 		i18n.ResetDefaultLocales()
 		localeNames, err := options.Dir("locale")
 		if err != nil {
-			log.Fatal("Failed to list locale files: %v", err)
+			log.Fatal("Failed to list locale files: %w", err)
 		}
 
 		localeData := make(map[string][]byte, len(localeNames))
 		for _, name := range localeNames {
 			localeData[name], err = options.Locale(name)
 			if err != nil {
-				log.Fatal("Failed to load %s locale file. %v", name, err)
+				log.Fatal("Failed to load %s locale file. %w", name, err)
 			}
 		}
 
@@ -85,7 +85,7 @@ func InitLocales(ctx context.Context) {
 
 			key := "locale_" + setting.Langs[i] + ".ini"
 			if err = i18n.DefaultLocales.AddLocaleByIni(setting.Langs[i], setting.Names[i], localeDataBase, localeData[key]); err != nil {
-				log.Error("Failed to set messages to %s: %v", setting.Langs[i], err)
+				log.Error("Failed to set messages to %s: %w", setting.Langs[i], err)
 			}
 		}
 		if len(setting.Langs) != 0 {

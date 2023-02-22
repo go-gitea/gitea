@@ -301,7 +301,7 @@ func (q *ByteFIFOQueue) doPop() error {
 			q.baseCtxCancel()
 			return err
 		}
-		log.Error("%s: %s Error on Pop: %v", q.typ, q.name, err)
+		log.Error("%s: %s Error on Pop: %w", q.typ, q.name, err)
 		return err
 	}
 	if len(bs) == 0 {
@@ -313,7 +313,7 @@ func (q *ByteFIFOQueue) doPop() error {
 
 	data, err := unmarshalAs(bs, q.exemplar)
 	if err != nil {
-		log.Error("%s: %s Failed to unmarshal with error: %v", q.typ, q.name, err)
+		log.Error("%s: %s Failed to unmarshal with error: %w", q.typ, q.name, err)
 		return errUnmarshal
 	}
 
@@ -353,7 +353,7 @@ func (q *ByteFIFOQueue) Terminate() {
 	}
 	q.terminateCtxCancel()
 	if err := q.byteFIFO.Close(); err != nil {
-		log.Error("Error whilst closing internal byte fifo in %s: %s: %v", q.typ, q.name, err)
+		log.Error("Error whilst closing internal byte fifo in %s: %s: %w", q.typ, q.name, err)
 	}
 	q.baseCtxFinished()
 	log.Debug("%s: %s Terminated", q.typ, q.name)

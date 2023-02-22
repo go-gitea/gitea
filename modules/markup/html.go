@@ -874,7 +874,7 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 			res, err := vars.Expand(ctx.Metas["format"], ctx.Metas)
 			if err != nil {
 				// here we could just log the error and continue the rendering
-				log.Error("unable to expand template vars for ref %s, err: %v", ref.Issue, err)
+				log.Error("unable to expand template vars for ref %s, err: %w", ref.Issue, err)
 			}
 
 			link = createLink(res, reftext, "ref-issue ref-external-issue")
@@ -1137,7 +1137,7 @@ func sha1CurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 				var err error
 				ctx.GitRepo, err = git.OpenRepository(ctx.Ctx, ctx.Metas["repoPath"])
 				if err != nil {
-					log.Error("unable to open repository: %s Error: %v", ctx.Metas["repoPath"], err)
+					log.Error("unable to open repository: %s Error: %w", ctx.Metas["repoPath"], err)
 					return
 				}
 				ctx.AddCancel(func() {

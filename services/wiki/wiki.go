@@ -103,7 +103,7 @@ func prepareWikiFileName(gitRepo *git.Repository, wikiName string) (bool, string
 		if strings.Contains(err.Error(), "Not a valid object name master") {
 			return false, escaped, nil
 		}
-		log.Error("%v", err)
+		log.Error("%w", err)
 		return false, escaped, err
 	}
 
@@ -169,7 +169,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	if hasMasterBranch {
 		if err := gitRepo.ReadTreeToIndex("HEAD"); err != nil {
-			log.Error("Unable to read HEAD tree to index in: %s %v", basePath, err)
+			log.Error("Unable to read HEAD tree to index in: %s %w", basePath, err)
 			return fmt.Errorf("Unable to read HEAD tree to index in: %s %w", basePath, err)
 		}
 	}
@@ -199,7 +199,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		if isOldWikiExist {
 			err := gitRepo.RemoveFilesFromIndex(oldWikiPath)
 			if err != nil {
-				log.Error("%v", err)
+				log.Error("%w", err)
 				return err
 			}
 		}
@@ -209,18 +209,18 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	objectHash, err := gitRepo.HashObject(strings.NewReader(content))
 	if err != nil {
-		log.Error("%v", err)
+		log.Error("%w", err)
 		return err
 	}
 
 	if err := gitRepo.AddObjectToIndex("100644", objectHash, newWikiPath); err != nil {
-		log.Error("%v", err)
+		log.Error("%w", err)
 		return err
 	}
 
 	tree, err := gitRepo.WriteTree()
 	if err != nil {
-		log.Error("%v", err)
+		log.Error("%w", err)
 		return err
 	}
 
@@ -245,7 +245,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	commitHash, err := gitRepo.CommitTree(doer.NewGitSig(), committer, tree, commitTreeOpts)
 	if err != nil {
-		log.Error("%v", err)
+		log.Error("%w", err)
 		return err
 	}
 
@@ -260,7 +260,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 			0,
 		),
 	}); err != nil {
-		log.Error("%v", err)
+		log.Error("%w", err)
 		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
 			return err
 		}
@@ -317,7 +317,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	defer gitRepo.Close()
 
 	if err := gitRepo.ReadTreeToIndex("HEAD"); err != nil {
-		log.Error("Unable to read HEAD tree to index in: %s %v", basePath, err)
+		log.Error("Unable to read HEAD tree to index in: %s %w", basePath, err)
 		return fmt.Errorf("Unable to read HEAD tree to index in: %s %w", basePath, err)
 	}
 

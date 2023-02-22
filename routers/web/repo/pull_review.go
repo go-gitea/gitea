@@ -268,7 +268,7 @@ func UpdateViewedFiles(ctx *context.Context) {
 	var data *viewedFilesUpdate
 	err := json.NewDecoder(ctx.Req.Body).Decode(&data)
 	if err != nil {
-		log.Warn("Attempted to update a review but could not parse request body: %v", err)
+		log.Warn("Attempted to update a review but could not parse request body: %w", err)
 		ctx.Resp.WriteHeader(http.StatusBadRequest)
 		return
 	}

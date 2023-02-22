@@ -233,7 +233,7 @@ func CreateSource(source *Source) error {
 	if err != nil {
 		// remove the AuthSource in case of errors while registering configuration
 		if _, err := db.GetEngine(db.DefaultContext).Delete(source); err != nil {
-			log.Error("CreateSource: Error while wrapOpenIDConnectInitializeError: %v", err)
+			log.Error("CreateSource: Error while wrapOpenIDConnectInitializeError: %w", err)
 		}
 	}
 	return err
@@ -280,7 +280,7 @@ func IsSSPIEnabled() bool {
 	}
 	sources, err := ActiveSources(SSPI)
 	if err != nil {
-		log.Error("ActiveSources: %v", err)
+		log.Error("ActiveSources: %w", err)
 		return false
 	}
 	return len(sources) > 0
@@ -339,7 +339,7 @@ func UpdateSource(source *Source) error {
 	if err != nil {
 		// restore original values since we cannot update the provider it self
 		if _, err := db.GetEngine(db.DefaultContext).ID(source.ID).AllCols().Update(originalSource); err != nil {
-			log.Error("UpdateSource: Error while wrapOpenIDConnectInitializeError: %v", err)
+			log.Error("UpdateSource: Error while wrapOpenIDConnectInitializeError: %w", err)
 		}
 	}
 	return err

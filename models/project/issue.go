@@ -41,7 +41,7 @@ func (p *Project) NumIssues() int {
 		Cols("issue_id").
 		Count()
 	if err != nil {
-		log.Error("NumIssues: %v", err)
+		log.Error("NumIssues: %w", err)
 		return 0
 	}
 	return int(c)
@@ -55,7 +55,7 @@ func (p *Project) NumClosedIssues() int {
 		Cols("issue_id").
 		Count()
 	if err != nil {
-		log.Error("NumClosedIssues: %v", err)
+		log.Error("NumClosedIssues: %w", err)
 		return 0
 	}
 	return int(c)
@@ -69,7 +69,7 @@ func (p *Project) NumOpenIssues() int {
 		Cols("issue_id").
 		Count()
 	if err != nil {
-		log.Error("NumOpenIssues: %v", err)
+		log.Error("NumOpenIssues: %w", err)
 		return 0
 	}
 	return int(c)

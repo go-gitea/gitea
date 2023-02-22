@@ -58,7 +58,7 @@ func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataSt
 
 		publicKey, err = VerifyCert(req)
 		if err != nil {
-			log.Debug("VerifyCert on request from %s: failed: %v", req.RemoteAddr, err)
+			log.Debug("VerifyCert on request from %s: failed: %w", req.RemoteAddr, err)
 			log.Warn("Failed authentication attempt from %s", req.RemoteAddr)
 			return nil, nil
 		}
@@ -66,7 +66,7 @@ func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataSt
 		// Handle Signature signed by Public Key
 		publicKey, err = VerifyPubKey(req)
 		if err != nil {
-			log.Debug("VerifyPubKey on request from %s: failed: %v", req.RemoteAddr, err)
+			log.Debug("VerifyPubKey on request from %s: failed: %w", req.RemoteAddr, err)
 			log.Warn("Failed authentication attempt from %s", req.RemoteAddr)
 			return nil, nil
 		}
@@ -74,7 +74,7 @@ func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataSt
 
 	u, err := user_model.GetUserByID(req.Context(), publicKey.OwnerID)
 	if err != nil {
-		log.Error("GetUserByID:  %v", err)
+		log.Error("GetUserByID:  %w", err)
 		return nil, err
 	}
 
@@ -174,7 +174,7 @@ func VerifyCert(r *http.Request) (*asymkey_model.PublicKey, error) {
 			continue
 		} else if err != nil {
 			// this error will be a db error therefore we can't solve this and we should abort
-			log.Error("SearchPublicKeyByContentExact: %v", err)
+			log.Error("SearchPublicKeyByContentExact: %w", err)
 			return nil, err
 		}
 

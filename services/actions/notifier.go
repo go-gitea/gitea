@@ -38,11 +38,11 @@ func NewNotifier() base.Notifier {
 func (n *actionsNotifier) NotifyNewIssue(ctx context.Context, issue *issues_model.Issue, _ []*user_model.User) {
 	ctx = withMethod(ctx, "NotifyNewIssue")
 	if err := issue.LoadRepo(ctx); err != nil {
-		log.Error("issue.LoadRepo: %v", err)
+		log.Error("issue.LoadRepo: %w", err)
 		return
 	}
 	if err := issue.LoadPoster(ctx); err != nil {
-		log.Error("issue.LoadPoster: %v", err)
+		log.Error("issue.LoadPoster: %w", err)
 		return
 	}
 	mode, _ := access_model.AccessLevel(ctx, issue.Poster, issue.Repo)
@@ -62,7 +62,7 @@ func (n *actionsNotifier) NotifyIssueChangeStatus(ctx context.Context, doer *use
 	mode, _ := access_model.AccessLevel(ctx, issue.Poster, issue.Repo)
 	if issue.IsPull {
 		if err := issue.LoadPullRequest(ctx); err != nil {
-			log.Error("LoadPullRequest: %v", err)
+			log.Error("LoadPullRequest: %w", err)
 			return
 		}
 		// Merge pull request calls issue.changeStatus so we need to handle separately.
@@ -108,23 +108,23 @@ func (n *actionsNotifier) NotifyIssueChangeLabels(ctx context.Context, doer *use
 
 	var err error
 	if err = issue.LoadRepo(ctx); err != nil {
-		log.Error("LoadRepo: %v", err)
+		log.Error("LoadRepo: %w", err)
 		return
 	}
 
 	if err = issue.LoadPoster(ctx); err != nil {
-		log.Error("LoadPoster: %v", err)
+		log.Error("LoadPoster: %w", err)
 		return
 	}
 
 	mode, _ := access_model.AccessLevel(ctx, issue.Poster, issue.Repo)
 	if issue.IsPull {
 		if err = issue.LoadPullRequest(ctx); err != nil {
-			log.Error("loadPullRequest: %v", err)
+			log.Error("loadPullRequest: %w", err)
 			return
 		}
 		if err = issue.PullRequest.LoadIssue(ctx); err != nil {
-			log.Error("LoadIssue: %v", err)
+			log.Error("LoadIssue: %w", err)
 			return
 		}
 		newNotifyInputFromIssue(issue, webhook_module.HookEventPullRequestLabel).
@@ -190,15 +190,15 @@ func (n *actionsNotifier) NotifyNewPullRequest(ctx context.Context, pull *issues
 	ctx = withMethod(ctx, "NotifyNewPullRequest")
 
 	if err := pull.LoadIssue(ctx); err != nil {
-		log.Error("pull.LoadIssue: %v", err)
+		log.Error("pull.LoadIssue: %w", err)
 		return
 	}
 	if err := pull.Issue.LoadRepo(ctx); err != nil {
-		log.Error("pull.Issue.LoadRepo: %v", err)
+		log.Error("pull.Issue.LoadRepo: %w", err)
 		return
 	}
 	if err := pull.Issue.LoadPoster(ctx); err != nil {
-		log.Error("pull.Issue.LoadPoster: %v", err)
+		log.Error("pull.Issue.LoadPoster: %w", err)
 		return
 	}
 
@@ -274,13 +274,13 @@ func (n *actionsNotifier) NotifyPullRequestReview(ctx context.Context, pr *issue
 	}
 
 	if err := pr.LoadIssue(ctx); err != nil {
-		log.Error("pr.LoadIssue: %v", err)
+		log.Error("pr.LoadIssue: %w", err)
 		return
 	}
 
 	mode, err := access_model.AccessLevel(ctx, review.Issue.Poster, review.Issue.Repo)
 	if err != nil {
-		log.Error("models.AccessLevel: %v", err)
+		log.Error("models.AccessLevel: %w", err)
 		return
 	}
 
@@ -304,23 +304,23 @@ func (*actionsNotifier) NotifyMergePullRequest(ctx context.Context, doer *user_m
 
 	// Reload pull request information.
 	if err := pr.LoadAttributes(ctx); err != nil {
-		log.Error("LoadAttributes: %v", err)
+		log.Error("LoadAttributes: %w", err)
 		return
 	}
 
 	if err := pr.LoadIssue(ctx); err != nil {
-		log.Error("LoadAttributes: %v", err)
+		log.Error("LoadAttributes: %w", err)
 		return
 	}
 
 	if err := pr.Issue.LoadRepo(db.DefaultContext); err != nil {
-		log.Error("pr.Issue.LoadRepo: %v", err)
+		log.Error("pr.Issue.LoadRepo: %w", err)
 		return
 	}
 
 	mode, err := access_model.AccessLevel(ctx, doer, pr.Issue.Repo)
 	if err != nil {
-		log.Error("models.AccessLevel: %v", err)
+		log.Error("models.AccessLevel: %w", err)
 		return
 	}
 
@@ -346,7 +346,7 @@ func (n *actionsNotifier) NotifyPushCommits(ctx context.Context, pusher *user_mo
 	apiPusher := convert.ToUser(ctx, pusher, nil)
 	apiCommits, apiHeadCommit, err := commits.ToAPIPayloadCommits(ctx, repo.RepoPath(), repo.HTMLURL())
 	if err != nil {
-		log.Error("commits.ToAPIPayloadCommits failed: %v", err)
+		log.Error("commits.ToAPIPayloadCommits failed: %w", err)
 		return
 	}
 
@@ -410,7 +410,7 @@ func (n *actionsNotifier) NotifySyncPushCommits(ctx context.Context, pusher *use
 	apiPusher := convert.ToUser(ctx, pusher, nil)
 	apiCommits, apiHeadCommit, err := commits.ToAPIPayloadCommits(db.DefaultContext, repo.RepoPath(), repo.HTMLURL())
 	if err != nil {
-		log.Error("commits.ToAPIPayloadCommits failed: %v", err)
+		log.Error("commits.ToAPIPayloadCommits failed: %w", err)
 		return
 	}
 
@@ -475,12 +475,12 @@ func (n *actionsNotifier) NotifyPullRequestSynchronized(ctx context.Context, doe
 	ctx = withMethod(ctx, "NotifyPullRequestSynchronized")
 
 	if err := pr.LoadIssue(ctx); err != nil {
-		log.Error("LoadAttributes: %v", err)
+		log.Error("LoadAttributes: %w", err)
 		return
 	}
 
 	if err := pr.Issue.LoadRepo(db.DefaultContext); err != nil {
-		log.Error("pr.Issue.LoadRepo: %v", err)
+		log.Error("pr.Issue.LoadRepo: %w", err)
 		return
 	}
 
@@ -500,12 +500,12 @@ func (n *actionsNotifier) NotifyPullRequestChangeTargetBranch(ctx context.Contex
 	ctx = withMethod(ctx, "NotifyPullRequestChangeTargetBranch")
 
 	if err := pr.LoadIssue(ctx); err != nil {
-		log.Error("LoadAttributes: %v", err)
+		log.Error("LoadAttributes: %w", err)
 		return
 	}
 
 	if err := pr.Issue.LoadRepo(db.DefaultContext); err != nil {
-		log.Error("pr.Issue.LoadRepo: %v", err)
+		log.Error("pr.Issue.LoadRepo: %w", err)
 		return
 	}
 

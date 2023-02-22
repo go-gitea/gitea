@@ -223,7 +223,7 @@ func UploadPackage(ctx *context.Context) {
 
 	if err := cargo_service.AddOrUpdatePackageIndex(ctx, ctx.Doer, ctx.Package.Owner, pv.PackageID); err != nil {
 		if err := packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
-			log.Error("Rollback creation of package version: %v", err)
+			log.Error("Rollback creation of package version: %w", err)
 		}
 
 		apiError(ctx, http.StatusInternalServerError, err)

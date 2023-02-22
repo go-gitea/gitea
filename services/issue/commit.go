@@ -123,9 +123,9 @@ func UpdateIssuesCommit(doer *user_model.User, repo *repo_model.Repository, comm
 				refRepo, err = repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, ref.Owner, ref.Name)
 				if err != nil {
 					if repo_model.IsErrRepoNotExist(err) {
-						log.Warn("Repository referenced in commit but does not exist: %v", err)
+						log.Warn("Repository referenced in commit but does not exist: %w", err)
 					} else {
-						log.Error("repo_model.GetRepositoryByOwnerAndName: %v", err)
+						log.Error("repo_model.GetRepositoryByOwnerAndName: %w", err)
 					}
 					continue
 				}

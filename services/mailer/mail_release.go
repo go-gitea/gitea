@@ -31,13 +31,13 @@ func MailNewRelease(ctx context.Context, rel *repo_model.Release) {
 
 	watcherIDList, err := repo_model.GetRepoWatchersIDs(ctx, rel.RepoID)
 	if err != nil {
-		log.Error("GetRepoWatchersIDs(%d): %v", rel.RepoID, err)
+		log.Error("GetRepoWatchersIDs(%d): %w", rel.RepoID, err)
 		return
 	}
 
 	recipients, err := user_model.GetMaileableUsersByIDs(ctx, watcherIDList, false)
 	if err != nil {
-		log.Error("user_model.GetMaileableUsersByIDs: %v", err)
+		log.Error("user_model.GetMaileableUsersByIDs: %w", err)
 		return
 	}
 
@@ -63,7 +63,7 @@ func mailNewRelease(ctx context.Context, lang string, tos []string, rel *repo_mo
 		Metas:     rel.Repo.ComposeMetas(),
 	}, rel.Note)
 	if err != nil {
-		log.Error("markdown.RenderString(%d): %v", rel.RepoID, err)
+		log.Error("markdown.RenderString(%d): %w", rel.RepoID, err)
 		return
 	}
 
@@ -81,7 +81,7 @@ func mailNewRelease(ctx context.Context, lang string, tos []string, rel *repo_mo
 	var mailBody bytes.Buffer
 
 	if err := bodyTemplates.ExecuteTemplate(&mailBody, string(tplNewReleaseMail), mailMeta); err != nil {
-		log.Error("ExecuteTemplate [%s]: %v", string(tplNewReleaseMail)+"/body", err)
+		log.Error("ExecuteTemplate [%s]: %w", string(tplNewReleaseMail)+"/body", err)
 		return
 	}
 

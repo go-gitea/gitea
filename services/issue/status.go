@@ -25,7 +25,7 @@ func changeStatusCtx(ctx context.Context, issue *issues_model.Issue, doer *user_
 	if err != nil {
 		if issues_model.IsErrDependenciesLeft(err) && closed {
 			if err := issues_model.FinishIssueStopwatchIfPossible(ctx, doer, issue); err != nil {
-				log.Error("Unable to stop stopwatch for issue[%d]#%d: %v", issue.ID, issue.Index, err)
+				log.Error("Unable to stop stopwatch for issue[%d]#%d: %w", issue.ID, issue.Index, err)
 			}
 		}
 		return err

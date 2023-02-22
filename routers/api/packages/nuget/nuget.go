@@ -37,10 +37,10 @@ func xmlResponse(ctx *context.Context, status int, obj interface{}) {
 	ctx.Resp.Header().Set("Content-Type", "application/atom+xml; charset=utf-8")
 	ctx.Resp.WriteHeader(status)
 	if _, err := ctx.Resp.Write([]byte(xml.Header)); err != nil {
-		log.Error("Write failed: %v", err)
+		log.Error("Write failed: %w", err)
 	}
 	if err := xml.NewEncoder(ctx.Resp).Encode(obj); err != nil {
-		log.Error("XML encode failed: %v", err)
+		log.Error("XML encode failed: %w", err)
 	}
 }
 

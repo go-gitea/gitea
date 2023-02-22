@@ -182,7 +182,7 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 		// No avatar is uploaded but setting has been changed to enable,
 		// generate a random one when needed.
 		if err := user_model.GenerateRandomAvatar(ctx, ctxUser); err != nil {
-			log.Error("GenerateRandomAvatar[%d]: %v", ctxUser.ID, err)
+			log.Error("GenerateRandomAvatar[%d]: %w", ctxUser.ID, err)
 		}
 	}
 

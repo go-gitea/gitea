@@ -48,7 +48,7 @@ func UploadAvatar(repo *repo_model.Repository, data []byte) error {
 
 	if err := storage.SaveFrom(storage.RepoAvatars, repo.CustomAvatarRelativePath(), func(w io.Writer) error {
 		if err := png.Encode(w, *m); err != nil {
-			log.Error("Encode: %v", err)
+			log.Error("Encode: %w", err)
 		}
 		return err
 	}); err != nil {

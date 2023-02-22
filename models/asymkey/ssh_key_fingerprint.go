@@ -50,7 +50,7 @@ func calcFingerprintSSHKeygen(publicKeyContent string) (string, error) {
 	}
 	defer func() {
 		if err := util.Remove(tmpPath); err != nil {
-			log.Warn("Unable to remove temporary key file: %s: Error: %v", tmpPath, err)
+			log.Warn("Unable to remove temporary key file: %s: Error: %w", tmpPath, err)
 		}
 	}()
 	stdout, stderr, err := process.GetManager().Exec("AddPublicKey", "ssh-keygen", "-lf", tmpPath)

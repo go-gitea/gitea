@@ -62,7 +62,7 @@ func getDirAssetNames(dir string, mailer bool) []string {
 		if os.IsNotExist(err) {
 			return tmpls
 		}
-		log.Warn("Unable to check if templates dir %s is a directory. Error: %v", dir, err)
+		log.Warn("Unable to check if templates dir %s is a directory. Error: %w", dir, err)
 		return tmpls
 	}
 	if !f.IsDir() {
@@ -72,7 +72,7 @@ func getDirAssetNames(dir string, mailer bool) []string {
 
 	files, err := util.StatDir(dir)
 	if err != nil {
-		log.Warn("Failed to read %s templates dir. %v", dir, err)
+		log.Warn("Failed to read %s templates dir. %w", dir, err)
 		return tmpls
 	}
 

@@ -95,7 +95,7 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 		tmpPath := f.Name()
 		defer func() {
 			if err := util.Remove(tmpPath); err != nil {
-				log.Warn("Unable to remove temporary file: %s: Error: %v", tmpPath, err)
+				log.Warn("Unable to remove temporary file: %s: Error: %w", tmpPath, err)
 			}
 		}()
 

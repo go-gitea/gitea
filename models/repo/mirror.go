@@ -54,7 +54,7 @@ func (m *Mirror) GetRepository() *Repository {
 	var err error
 	m.Repo, err = GetRepositoryByID(db.DefaultContext, m.RepoID)
 	if err != nil {
-		log.Error("getRepositoryByID[%d]: %v", m.ID, err)
+		log.Error("getRepositoryByID[%d]: %w", m.ID, err)
 	}
 	return m.Repo
 }

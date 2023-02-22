@@ -109,7 +109,7 @@ func (opts *Options) handle(w http.ResponseWriter, req *http.Request, fs http.Fi
 			return false
 		}
 		w.WriteHeader(http.StatusInternalServerError)
-		log.Error("[Static] Open %q failed: %v", file, err)
+		log.Error("[Static] Open %q failed: %w", file, err)
 		return true
 	}
 	defer f.Close()
@@ -117,7 +117,7 @@ func (opts *Options) handle(w http.ResponseWriter, req *http.Request, fs http.Fi
 	fi, err := f.Stat()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		log.Error("[Static] %q exists, but fails to open: %v", file, err)
+		log.Error("[Static] %q exists, but fails to open: %w", file, err)
 		return true
 	}
 

@@ -54,7 +54,7 @@ func checkPRMergeBase(ctx context.Context, logger log.Logger, autofix bool) erro
 			} else {
 				parentsString, _, err := git.NewCommand(ctx, "rev-list", "--parents", "-n", "1").AddDynamicArguments(pr.MergedCommitID).RunStdString(&git.RunOpts{Dir: repoPath})
 				if err != nil {
-					logger.Warn("Unable to get parents for merged PR ID %d, #%d onto %s in %s/%s. Error: %v", pr.ID, pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err)
+					logger.Warn("Unable to get parents for merged PR ID %d, #%d onto %s in %s/%s. Error: %w", pr.ID, pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err)
 					return nil
 				}
 				parents := strings.Split(strings.TrimSpace(parentsString), " ")
@@ -67,7 +67,7 @@ func checkPRMergeBase(ctx context.Context, logger log.Logger, autofix bool) erro
 				cmd := git.NewCommand(ctx, "merge-base").AddDashesAndList(refs...)
 				pr.MergeBase, _, err = cmd.RunStdString(&git.RunOpts{Dir: repoPath})
 				if err != nil {
-					logger.Warn("Unable to get merge base for merged PR ID %d, #%d onto %s in %s/%s. Error: %v", pr.ID, pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err)
+					logger.Warn("Unable to get merge base for merged PR ID %d, #%d onto %s in %s/%s. Error: %w", pr.ID, pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err)
 					return nil
 				}
 			}
@@ -75,7 +75,7 @@ func checkPRMergeBase(ctx context.Context, logger log.Logger, autofix bool) erro
 			if pr.MergeBase != oldMergeBase {
 				if autofix {
 					if err := pr.UpdateCols("merge_base"); err != nil {
-						logger.Critical("Failed to update merge_base. ERROR: %v", err)
+						logger.Critical("Failed to update merge_base. ERROR: %w", err)
 						return fmt.Errorf("Failed to update merge_base. ERROR: %w", err)
 					}
 				} else {

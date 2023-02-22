@@ -36,7 +36,7 @@ func TestMain(m *testing.M) {
 	setting.InitProviderAllowEmpty()
 	setting.LoadCommonSettings()
 	if err := git.InitSimple(context.Background()); err != nil {
-		log.Fatal("git init failed, err: %v", err)
+		log.Fatal("git init failed, err: %w", err)
 	}
 	markup.Init(&markup.ProcessorHelper{
 		IsUsernameMentionable: func(ctx context.Context, username string) bool {

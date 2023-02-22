@@ -55,17 +55,17 @@ Usage: %[1]s [-v] [-o output.go] ambiguous.json
 
 	bs, err := os.ReadFile(input)
 	if err != nil {
-		fatalf("Unable to read: %s Err: %v", input, err)
+		fatalf("Unable to read: %s Err: %w", input, err)
 	}
 
 	var unwrapped string
 	if err := json.Unmarshal(bs, &unwrapped); err != nil {
-		fatalf("Unable to unwrap content in: %s Err: %v", input, err)
+		fatalf("Unable to unwrap content in: %s Err: %w", input, err)
 	}
 
 	fromJSON := map[string][]uint32{}
 	if err := json.Unmarshal([]byte(unwrapped), &fromJSON); err != nil {
-		fatalf("Unable to unmarshal content in: %s Err: %v", input, err)
+		fatalf("Unable to unmarshal content in: %s Err: %w", input, err)
 	}
 
 	tables := make([]*AmbiguousTable, 0, len(fromJSON))
@@ -95,7 +95,7 @@ Usage: %[1]s [-v] [-o output.go] ambiguous.json
 	}
 
 	if err := runTemplate(generatorTemplate, output, &data); err != nil {
-		fatalf("Unable to run template: %v", err)
+		fatalf("Unable to run template: %w", err)
 	}
 }
 

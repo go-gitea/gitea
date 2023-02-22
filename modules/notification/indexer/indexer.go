@@ -36,7 +36,7 @@ func (r *indexerNotifier) NotifyCreateIssueComment(ctx context.Context, doer *us
 	if comment.Type == issues_model.CommentTypeComment {
 		if issue.Comments == nil {
 			if err := issue.LoadDiscussComments(ctx); err != nil {
-				log.Error("LoadDiscussComments failed: %v", err)
+				log.Error("LoadDiscussComments failed: %w", err)
 				return
 			}
 		} else {
@@ -70,7 +70,7 @@ func (r *indexerNotifier) NotifyUpdateComment(ctx context.Context, doer *user_mo
 
 		if !found {
 			if err := c.Issue.LoadDiscussComments(ctx); err != nil {
-				log.Error("LoadDiscussComments failed: %v", err)
+				log.Error("LoadDiscussComments failed: %w", err)
 				return
 			}
 		}
@@ -82,7 +82,7 @@ func (r *indexerNotifier) NotifyUpdateComment(ctx context.Context, doer *user_mo
 func (r *indexerNotifier) NotifyDeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) {
 	if comment.Type == issues_model.CommentTypeComment {
 		if err := comment.LoadIssue(ctx); err != nil {
-			log.Error("LoadIssue: %v", err)
+			log.Error("LoadIssue: %w", err)
 			return
 		}
 
@@ -99,7 +99,7 @@ func (r *indexerNotifier) NotifyDeleteComment(ctx context.Context, doer *user_mo
 
 		if !found {
 			if err := comment.Issue.LoadDiscussComments(ctx); err != nil {
-				log.Error("LoadDiscussComments failed: %v", err)
+				log.Error("LoadDiscussComments failed: %w", err)
 				return
 			}
 		}
@@ -121,7 +121,7 @@ func (r *indexerNotifier) NotifyMigrateRepository(ctx context.Context, doer, u *
 		code_indexer.UpdateRepoIndexer(repo)
 	}
 	if err := stats_indexer.UpdateRepoIndexer(repo); err != nil {
-		log.Error("stats_indexer.UpdateRepoIndexer(%d) failed: %v", repo.ID, err)
+		log.Error("stats_indexer.UpdateRepoIndexer(%d) failed: %w", repo.ID, err)
 	}
 }
 
@@ -130,7 +130,7 @@ func (r *indexerNotifier) NotifyPushCommits(ctx context.Context, pusher *user_mo
 		code_indexer.UpdateRepoIndexer(repo)
 	}
 	if err := stats_indexer.UpdateRepoIndexer(repo); err != nil {
-		log.Error("stats_indexer.UpdateRepoIndexer(%d) failed: %v", repo.ID, err)
+		log.Error("stats_indexer.UpdateRepoIndexer(%d) failed: %w", repo.ID, err)
 	}
 }
 
@@ -139,7 +139,7 @@ func (r *indexerNotifier) NotifySyncPushCommits(ctx context.Context, pusher *use
 		code_indexer.UpdateRepoIndexer(repo)
 	}
 	if err := stats_indexer.UpdateRepoIndexer(repo); err != nil {
-		log.Error("stats_indexer.UpdateRepoIndexer(%d) failed: %v", repo.ID, err)
+		log.Error("stats_indexer.UpdateRepoIndexer(%d) failed: %w", repo.ID, err)
 	}
 }
 

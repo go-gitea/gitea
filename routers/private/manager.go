@@ -27,7 +27,7 @@ func FlushQueues(ctx *context.PrivateContext) {
 		go func() {
 			err := queue.GetManager().FlushAll(baseCtx, opts.Timeout)
 			if err != nil {
-				log.Error("Flushing request timed-out with error: %v", err)
+				log.Error("Flushing request timed-out with error: %w", err)
 			}
 		}()
 		ctx.JSON(http.StatusAccepted, private.Response{
@@ -38,7 +38,7 @@ func FlushQueues(ctx *context.PrivateContext) {
 	err := queue.GetManager().FlushAll(ctx, opts.Timeout)
 	if err != nil {
 		ctx.JSON(http.StatusRequestTimeout, private.Response{
-			Err: fmt.Sprintf("%v", err),
+			Err: fmt.Sprintf("%w", err),
 		})
 	}
 	ctx.PlainText(http.StatusOK, "success")
@@ -60,7 +60,7 @@ func ResumeLogging(ctx *context.PrivateContext) {
 func ReleaseReopenLogging(ctx *context.PrivateContext) {
 	if err := log.ReleaseReopen(); err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: fmt.Sprintf("Error during release and reopen: %v", err),
+			Err: fmt.Sprintf("Error during release and reopen: %w", err),
 		})
 		return
 	}
@@ -80,7 +80,7 @@ func RemoveLogger(ctx *context.PrivateContext) {
 	ok, err := log.GetLogger(group).DelLogger(name)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: fmt.Sprintf("Failed to remove logger: %s %s %v", group, name, err),
+			Err: fmt.Sprintf("Failed to remove logger: %s %s %w", group, name, err),
 		})
 		return
 	}
@@ -138,18 +138,18 @@ func AddLogger(ctx *context.PrivateContext) {
 	bufferLen := setting.Log.BufferLength
 	byteConfig, err := json.Marshal(opts.Config)
 	if err != nil {
-		log.Error("Failed to marshal log configuration: %v %v", opts.Config, err)
+		log.Error("Failed to marshal log configuration: %v %w", opts.Config, err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: fmt.Sprintf("Failed to marshal log configuration: %v %v", opts.Config, err),
+			Err: fmt.Sprintf("Failed to marshal log configuration: %v %w", opts.Config, err),
 		})
 		return
 	}
 	config := string(byteConfig)
 
 	if err := log.NewNamedLogger(opts.Group, bufferLen, opts.Name, opts.Mode, config); err != nil {
-		log.Error("Failed to create new named logger: %s %v", config, err)
+		log.Error("Failed to create new named logger: %s %w", config, err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: fmt.Sprintf("Failed to create new named logger: %s %v", config, err),
+			Err: fmt.Sprintf("Failed to create new named logger: %s %w", config, err),
 		})
 		return
 	}

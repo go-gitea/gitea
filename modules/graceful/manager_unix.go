@@ -137,7 +137,7 @@ func (g *Manager) handleSignals(ctx context.Context) {
 			case syscall.SIGUSR1:
 				log.Warn("PID %d. Received SIGUSR1. Releasing and reopening logs", pid)
 				if err := log.ReleaseReopen(); err != nil {
-					log.Error("Error whilst releasing and reopening logs: %v", err)
+					log.Error("Error whilst releasing and reopening logs: %w", err)
 				}
 			case syscall.SIGUSR2:
 				log.Warn("PID %d. Received SIGUSR2. Hammering...", pid)
@@ -186,7 +186,7 @@ func (g *Manager) DoGracefulRestart() {
 			if err.Error() == "another process already forked. Ignoring this one" {
 				g.DoImmediateHammer()
 			} else {
-				log.Error("Error whilst forking from PID: %d : %v", os.Getpid(), err)
+				log.Error("Error whilst forking from PID: %d : %w", os.Getpid(), err)
 			}
 		}
 	} else {

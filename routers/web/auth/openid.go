@@ -128,10 +128,10 @@ func SignInOpenIDPost(ctx *context.Context) {
 	log.Trace("Form-passed openid-remember: %t", form.Remember)
 
 	if err := ctx.Session.Set("openid_signin_remember", form.Remember); err != nil {
-		log.Error("SignInOpenIDPost: Could not set openid_signin_remember in session: %v", err)
+		log.Error("SignInOpenIDPost: Could not set openid_signin_remember in session: %w", err)
 	}
 	if err := ctx.Session.Release(); err != nil {
-		log.Error("SignInOpenIDPost: Unable to save changes to the session: %v", err)
+		log.Error("SignInOpenIDPost: Unable to save changes to the session: %w", err)
 	}
 
 	ctx.Redirect(url)
@@ -165,7 +165,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 			})
 			return
 		}
-		log.Error("signInOpenIDVerify: %v", err)
+		log.Error("signInOpenIDVerify: %w", err)
 	}
 	if u != nil {
 		log.Trace("User exists, logging in")
@@ -205,7 +205,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 				})
 				return
 			}
-			log.Error("signInOpenIDVerify: %v", err)
+			log.Error("signInOpenIDVerify: %w", err)
 		}
 		if u != nil {
 			log.Trace("Local user %s has OpenID provided email %s", u.LowerName, email)

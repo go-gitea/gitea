@@ -88,7 +88,7 @@ func LoadFixtures(engine ...*xorm.Engine) error {
 		time.Sleep(200 * time.Millisecond)
 	}
 	if err != nil {
-		fmt.Printf("LoadFixtures failed after retries: %v\n", err)
+		fmt.Printf("LoadFixtures failed after retries: %w\n", err)
 	}
 	// Now if we're running postgres we need to tell it to update the sequences
 	if e.Dialect().URI().DBType == schemas.POSTGRES {
@@ -109,14 +109,14 @@ func LoadFixtures(engine ...*xorm.Engine) error {
 	     AND T.relname = PGT.tablename
 	 ORDER BY S.relname;`)
 		if err != nil {
-			fmt.Printf("Failed to generate sequence update: %v\n", err)
+			fmt.Printf("Failed to generate sequence update: %w\n", err)
 			return err
 		}
 		for _, r := range results {
 			for _, value := range r {
 				_, err = e.Exec(value)
 				if err != nil {
-					fmt.Printf("Failed to update sequence: %s Error: %v\n", value, err)
+					fmt.Printf("Failed to update sequence: %s Error: %w\n", value, err)
 					return err
 				}
 			}

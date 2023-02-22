@@ -46,7 +46,7 @@ var (
 func NewLogger(bufLen int64, name, provider, config string) *MultiChannelledLogger {
 	err := NewNamedLogger(DEFAULT, bufLen, name, provider, config)
 	if err != nil {
-		CriticalWithSkip(1, "Unable to create default logger: %v", err)
+		CriticalWithSkip(1, "Unable to create default logger: %w", err)
 		panic(err)
 	}
 	l, _ := NamedLoggers.Load(DEFAULT)

@@ -65,7 +65,7 @@ func (a *BasicTransferAdapter) Upload(ctx context.Context, l *Link, p Pointer, r
 func (a *BasicTransferAdapter) Verify(ctx context.Context, l *Link, p Pointer) error {
 	b, err := json.Marshal(p)
 	if err != nil {
-		log.Error("Error encoding json: %v", err)
+		log.Error("Error encoding json: %w", err)
 		return err
 	}
 
@@ -83,7 +83,7 @@ func (a *BasicTransferAdapter) performRequest(ctx context.Context, method string
 
 	req, err := http.NewRequestWithContext(ctx, method, l.Href, body)
 	if err != nil {
-		log.Error("Error creating request: %v", err)
+		log.Error("Error creating request: %w", err)
 		return nil, err
 	}
 	for key, value := range l.Header {
@@ -102,7 +102,7 @@ func (a *BasicTransferAdapter) performRequest(ctx context.Context, method string
 			return res, ctx.Err()
 		default:
 		}
-		log.Error("Error while processing request: %v", err)
+		log.Error("Error while processing request: %w", err)
 		return res, err
 	}
 
@@ -128,7 +128,7 @@ func decodeResponseError(r io.Reader) (ErrorResponse, error) {
 	var er ErrorResponse
 	err := json.NewDecoder(r).Decode(&er)
 	if err != nil {
-		log.Error("Error decoding json: %v", err)
+		log.Error("Error decoding json: %w", err)
 	}
 	return er, err
 }

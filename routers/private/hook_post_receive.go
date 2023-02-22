@@ -82,10 +82,10 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			for i, update := range updates {
 				log.Error("Failed to Update: %s/%s Update: %d/%d: Branch: %s", ownerName, repoName, i, len(updates), update.BranchName())
 			}
-			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
+			log.Error("Failed to Update: %s/%s Error: %w", ownerName, repoName, err)
 
 			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-				Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
+				Err: fmt.Sprintf("Failed to Update: %s/%s Error: %w", ownerName, repoName, err),
 			})
 			return
 		}
@@ -106,9 +106,9 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		repo.IsPrivate = opts.GitPushOptions.Bool(private.GitPushOptionRepoPrivate, repo.IsPrivate)
 		repo.IsTemplate = opts.GitPushOptions.Bool(private.GitPushOptionRepoTemplate, repo.IsTemplate)
 		if err := repo_model.UpdateRepositoryCols(ctx, repo, "is_private", "is_template"); err != nil {
-			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
+			log.Error("Failed to Update: %s/%s Error: %w", ownerName, repoName, err)
 			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-				Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
+				Err: fmt.Sprintf("Failed to Update: %s/%s Error: %w", ownerName, repoName, err),
 			})
 		}
 	}
@@ -142,9 +142,9 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 
 			pr, err := issues_model.GetPullRequestByIndex(ctx, repo.ID, pullIndex)
 			if err != nil && !issues_model.IsErrPullRequestNotExist(err) {
-				log.Error("Failed to get PR by index %v Error: %v", pullIndex, err)
+				log.Error("Failed to get PR by index %v Error: %w", pullIndex, err)
 				ctx.JSON(http.StatusInternalServerError, private.Response{
-					Err: fmt.Sprintf("Failed to get PR by index %v Error: %v", pullIndex, err),
+					Err: fmt.Sprintf("Failed to get PR by index %v Error: %w", pullIndex, err),
 				})
 				return
 			}
@@ -177,9 +177,9 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 
 				if repo.IsFork {
 					if err := repo.GetBaseRepo(ctx); err != nil {
-						log.Error("Failed to get Base Repository of Forked repository: %-v Error: %v", repo, err)
+						log.Error("Failed to get Base Repository of Forked repository: %-v Error: %w", repo, err)
 						ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-							Err:          fmt.Sprintf("Failed to get Base Repository of Forked repository: %-v Error: %v", repo, err),
+							Err:          fmt.Sprintf("Failed to get Base Repository of Forked repository: %-v Error: %w", repo, err),
 							RepoWasEmpty: wasEmpty,
 						})
 						return
@@ -206,10 +206,10 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 
 			pr, err := issues_model.GetUnmergedPullRequest(ctx, repo.ID, baseRepo.ID, branch, baseRepo.DefaultBranch, issues_model.PullRequestFlowGithub)
 			if err != nil && !issues_model.IsErrPullRequestNotExist(err) {
-				log.Error("Failed to get active PR in: %-v Branch: %s to: %-v Branch: %s Error: %v", repo, branch, baseRepo, baseRepo.DefaultBranch, err)
+				log.Error("Failed to get active PR in: %-v Branch: %s to: %-v Branch: %s Error: %w", repo, branch, baseRepo, baseRepo.DefaultBranch, err)
 				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
 					Err: fmt.Sprintf(
-						"Failed to get active PR in: %-v Branch: %s to: %-v Branch: %s Error: %v", repo, branch, baseRepo, baseRepo.DefaultBranch, err),
+						"Failed to get active PR in: %-v Branch: %s to: %-v Branch: %s Error: %w", repo, branch, baseRepo, baseRepo.DefaultBranch, err),
 					RepoWasEmpty: wasEmpty,
 				})
 				return

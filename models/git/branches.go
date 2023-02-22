@@ -103,7 +103,7 @@ func RemoveOldDeletedBranches(ctx context.Context, olderThan time.Duration) {
 	deleteBefore := time.Now().Add(-olderThan)
 	_, err := db.GetEngine(ctx).Where("deleted_unix < ?", deleteBefore.Unix()).Delete(new(DeletedBranch))
 	if err != nil {
-		log.Error("DeletedBranchesCleanup: %v", err)
+		log.Error("DeletedBranchesCleanup: %w", err)
 	}
 }
 

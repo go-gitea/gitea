@@ -86,7 +86,7 @@ func main() {
 		UseGlobalModTime: useGlobalModTime,
 	})
 	if err != nil {
-		log.Fatalf("%v\n", err)
+		log.Fatalf("%w\n", err)
 	}
 	_ = os.WriteFile(filename+".hash", newHash, 0o666)
 }

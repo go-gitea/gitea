@@ -26,7 +26,7 @@ func (repo *Repository) IsObjectExist(name string) bool {
 	defer cancel()
 	_, err := wr.Write([]byte(name + "\n"))
 	if err != nil {
-		log.Debug("Error writing to CatFileBatchCheck %v", err)
+		log.Debug("Error writing to CatFileBatchCheck %w", err)
 		return false
 	}
 	sha, _, _, err := ReadBatchLine(rd)
@@ -43,7 +43,7 @@ func (repo *Repository) IsReferenceExist(name string) bool {
 	defer cancel()
 	_, err := wr.Write([]byte(name + "\n"))
 	if err != nil {
-		log.Debug("Error writing to CatFileBatchCheck %v", err)
+		log.Debug("Error writing to CatFileBatchCheck %w", err)
 		return false
 	}
 	_, _, _, err = ReadBatchLine(rd)

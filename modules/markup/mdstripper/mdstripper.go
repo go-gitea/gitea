@@ -182,7 +182,7 @@ func StripMarkdownBytes(rawBytes []byte) ([]byte, []string) {
 	doc := stripParser.Parse(reader)
 	var buf bytes.Buffer
 	if err := stripper.Render(&buf, rawBytes, doc); err != nil {
-		log.Error("Unable to strip: %v", err)
+		log.Error("Unable to strip: %w", err)
 	}
 	return buf.Bytes(), stripper.GetLinks()
 }

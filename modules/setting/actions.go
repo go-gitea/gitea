@@ -22,7 +22,7 @@ var (
 func loadActionsFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("actions")
 	if err := sec.MapTo(&Actions); err != nil {
-		log.Fatal("Failed to map Actions settings: %v", err)
+		log.Fatal("Failed to map Actions settings: %w", err)
 	}
 
 	Actions.Storage = getStorage(rootCfg, "actions_log", "", nil)

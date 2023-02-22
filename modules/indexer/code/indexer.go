@@ -154,7 +154,7 @@ func Init() {
 				log.Trace("IndexerData Process Repo: %d", indexerData.RepoID)
 
 				if err := index(ctx, indexer, indexerData.RepoID); err != nil {
-					log.Error("index: %v", err)
+					log.Error("index: %w", err)
 					if indexer.Ping() {
 						continue
 					}
@@ -197,7 +197,7 @@ func Init() {
 				cancel()
 				indexer.Close()
 				close(waitChannel)
-				log.Fatal("PID: %d Unable to initialize the bleve Repository Indexer at path: %s Error: %v", os.Getpid(), setting.Indexer.RepoPath, err)
+				log.Fatal("PID: %d Unable to initialize the bleve Repository Indexer at path: %s Error: %w", os.Getpid(), setting.Indexer.RepoPath, err)
 			}
 		case "elasticsearch":
 			log.Info("PID: %d Initializing Repository Indexer at: %s", os.Getpid(), setting.Indexer.RepoConnStr)
@@ -214,7 +214,7 @@ func Init() {
 				cancel()
 				indexer.Close()
 				close(waitChannel)
-				log.Fatal("PID: %d Unable to initialize the elasticsearch Repository Indexer connstr: %s Error: %v", os.Getpid(), setting.Indexer.RepoConnStr, err)
+				log.Fatal("PID: %d Unable to initialize the elasticsearch Repository Indexer connstr: %s Error: %w", os.Getpid(), setting.Indexer.RepoConnStr, err)
 			}
 		default:
 			log.Fatal("PID: %d Unknown Indexer type: %s", os.Getpid(), setting.Indexer.RepoType)
@@ -281,7 +281,7 @@ func Init() {
 func UpdateRepoIndexer(repo *repo_model.Repository) {
 	indexData := &IndexerData{RepoID: repo.ID}
 	if err := indexerQueue.Push(indexData); err != nil {
-		log.Error("Update repo index data %v failed: %v", indexData, err)
+		log.Error("Update repo index data %v failed: %w", indexData, err)
 	}
 }
 
@@ -289,7 +289,7 @@ func UpdateRepoIndexer(repo *repo_model.Repository) {
 func IsAvailable() bool {
 	idx, err := indexer.get()
 	if err != nil {
-		log.Error("IsAvailable(): unable to get indexer: %v", err)
+		log.Error("IsAvailable(): unable to get indexer: %w", err)
 		return false
 	}
 
@@ -303,7 +303,7 @@ func populateRepoIndexer(ctx context.Context) {
 
 	exist, err := db.IsTableNotEmpty("repository")
 	if err != nil {
-		log.Fatal("System error: %v", err)
+		log.Fatal("System error: %w", err)
 	} else if !exist {
 		return
 	}
@@ -312,12 +312,12 @@ func populateRepoIndexer(ctx context.Context) {
 	// since we are starting afresh. Also, xorm requires deletes to have a
 	// condition, and we want to delete everything, thus 1=1.
 	if err := db.DeleteAllRecords("repo_indexer_status"); err != nil {
-		log.Fatal("System error: %v", err)
+		log.Fatal("System error: %w", err)
 	}
 
 	var maxRepoID int64
 	if maxRepoID, err = db.GetMaxID("repository"); err != nil {
-		log.Fatal("System error: %v", err)
+		log.Fatal("System error: %w", err)
 	}
 
 	// start with the maximum existing repo ID and work backwards, so that we
@@ -332,7 +332,7 @@ func populateRepoIndexer(ctx context.Context) {
 		}
 		ids, err := repo_model.GetUnindexedRepos(repo_model.RepoIndexerTypeCode, maxRepoID, 0, 50)
 		if err != nil {
-			log.Error("populateRepoIndexer: %v", err)
+			log.Error("populateRepoIndexer: %w", err)
 			return
 		} else if len(ids) == 0 {
 			break
@@ -345,7 +345,7 @@ func populateRepoIndexer(ctx context.Context) {
 			default:
 			}
 			if err := indexerQueue.Push(&IndexerData{RepoID: id}); err != nil {
-				log.Error("indexerQueue.Push: %v", err)
+				log.Error("indexerQueue.Push: %w", err)
 				return
 			}
 			maxRepoID = id - 1

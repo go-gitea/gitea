@@ -47,7 +47,7 @@ func (line *lsFileLine) String() string {
 		return "<nil>"
 	}
 	if line.err != nil {
-		return fmt.Sprintf("%d %s %s %s %v", line.stage, line.mode, line.path, line.sha, line.err)
+		return fmt.Sprintf("%d %s %s %s %w", line.stage, line.mode, line.path, line.sha, line.err)
 	}
 	return fmt.Sprintf("%d %s %s %s", line.stage, line.mode, line.path, line.sha)
 }
@@ -62,7 +62,7 @@ func readUnmergedLsFileLines(ctx context.Context, tmpBasePath string, outputChan
 
 	lsFilesReader, lsFilesWriter, err := os.Pipe()
 	if err != nil {
-		log.Error("Unable to open stderr pipe: %v", err)
+		log.Error("Unable to open stderr pipe: %w", err)
 		outputChan <- &lsFileLine{err: fmt.Errorf("unable to open stderr pipe: %w", err)}
 		return
 	}
@@ -161,7 +161,7 @@ func unmergedFiles(ctx context.Context, tmpBasePath string, unmerged chan *unmer
 	for line := range lsFileLineChan {
 		log.Trace("Got line: %v Current State:\n%v", line, next)
 		if line.err != nil {
-			log.Error("Unable to run ls-files -u -z! Error: %v", line.err)
+			log.Error("Unable to run ls-files -u -z! Error: %w", line.err)
 			unmerged <- &unmergedFile{err: fmt.Errorf("unable to run ls-files -u -z! Error: %w", line.err)}
 			return
 		}

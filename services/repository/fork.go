@@ -139,7 +139,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 			"clone", "--bare").AddDynamicArguments(oldRepoPath, repoPath).
 			SetDescription(fmt.Sprintf("ForkRepository(git clone): %s to %s", opts.BaseRepo.FullName(), repo.FullName())).
 			RunStdBytes(&git.RunOpts{Timeout: 10 * time.Minute}); err != nil {
-			log.Error("Fork Repository (git clone) Failed for %v (from %v):\nStdout: %s\nError: %v", repo, opts.BaseRepo, stdout, err)
+			log.Error("Fork Repository (git clone) Failed for %v (from %v):\nStdout: %s\nError: %w", repo, opts.BaseRepo, stdout, err)
 			return fmt.Errorf("git clone: %w", err)
 		}
 
@@ -150,7 +150,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		if stdout, _, err := git.NewCommand(txCtx, "update-server-info").
 			SetDescription(fmt.Sprintf("ForkRepository(git update-server-info): %s", repo.FullName())).
 			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
-			log.Error("Fork Repository (git update-server-info) failed for %v:\nStdout: %s\nError: %v", repo, stdout, err)
+			log.Error("Fork Repository (git update-server-info) failed for %v:\nStdout: %s\nError: %w", repo, stdout, err)
 			return fmt.Errorf("git update-server-info: %w", err)
 		}
 
@@ -167,19 +167,19 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 
 	// even if below operations failed, it could be ignored. And they will be retried
 	if err := repo_module.UpdateRepoSize(ctx, repo); err != nil {
-		log.Error("Failed to update size for repository: %v", err)
+		log.Error("Failed to update size for repository: %w", err)
 	}
 	if err := repo_model.CopyLanguageStat(opts.BaseRepo, repo); err != nil {
-		log.Error("Copy language stat from oldRepo failed: %v", err)
+		log.Error("Copy language stat from oldRepo failed: %w", err)
 	}
 
 	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 	if err != nil {
-		log.Error("Open created git repository failed: %v", err)
+		log.Error("Open created git repository failed: %w", err)
 	} else {
 		defer gitRepo.Close()
 		if err := repo_module.SyncReleasesWithTags(repo, gitRepo); err != nil {
-			log.Error("Sync releases from git tags failed: %v", err)
+			log.Error("Sync releases from git tags failed: %w", err)
 		}
 	}
 
@@ -201,7 +201,7 @@ func ConvertForkToNormalRepository(repo *repo_model.Repository) error {
 		}
 
 		if err := repo_model.DecrementRepoForkNum(ctx, repo.ForkID); err != nil {
-			log.Error("Unable to decrement repo fork num for old root repo %d of repository %-v whilst converting from fork. Error: %v", repo.ForkID, repo, err)
+			log.Error("Unable to decrement repo fork num for old root repo %d of repository %-v whilst converting from fork. Error: %w", repo.ForkID, repo, err)
 			return err
 		}
 
@@ -209,7 +209,7 @@ func ConvertForkToNormalRepository(repo *repo_model.Repository) error {
 		repo.ForkID = 0
 
 		if err := repo_module.UpdateRepository(ctx, repo, false); err != nil {
-			log.Error("Unable to update repository %-v whilst converting from fork. Error: %v", repo, err)
+			log.Error("Unable to update repository %-v whilst converting from fork. Error: %w", repo, err)
 			return err
 		}
 

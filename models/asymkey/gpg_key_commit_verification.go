@@ -103,7 +103,7 @@ func ParseCommitWithSignature(ctx context.Context, c *git.Commit) *CommitVerific
 			// We can expect this to often be an ErrUserNotExist. in the case
 			// it is not, however, it is important to log it.
 			if !user_model.IsErrUserNotExist(err) {
-				log.Error("GetUserByEmail: %v", err)
+				log.Error("GetUserByEmail: %w", err)
 				return &CommitVerification{
 					CommittingUser: committer,
 					Verified:       false,
@@ -131,7 +131,7 @@ func ParseCommitWithSignature(ctx context.Context, c *git.Commit) *CommitVerific
 	// Parsing signature
 	sig, err := extractSignature(c.Signature.Signature)
 	if err != nil { // Skipping failed to extract sign
-		log.Error("SignatureRead err: %v", err)
+		log.Error("SignatureRead err: %w", err)
 		return &CommitVerification{
 			CommittingUser: committer,
 			Verified:       false,
@@ -167,7 +167,7 @@ func ParseCommitWithSignature(ctx context.Context, c *git.Commit) *CommitVerific
 	if committer.ID != 0 {
 		keys, err := ListGPGKeys(db.DefaultContext, committer.ID, db.ListOptions{})
 		if err != nil { // Skipping failed to get gpg keys of user
-			log.Error("ListGPGKeys: %v", err)
+			log.Error("ListGPGKeys: %w", err)
 			return &CommitVerification{
 				CommittingUser: committer,
 				Verified:       false,
@@ -221,7 +221,7 @@ func ParseCommitWithSignature(ctx context.Context, c *git.Commit) *CommitVerific
 			Email: setting.Repository.Signing.SigningEmail,
 		}
 		if err := gpgSettings.LoadPublicKeyContent(); err != nil {
-			log.Error("Error getting default signing key: %s %v", gpgSettings.KeyID, err)
+			log.Error("Error getting default signing key: %s %w", gpgSettings.KeyID, err)
 		} else if commitVerification := verifyWithGPGSettings(&gpgSettings, sig, c.Signature.Payload, committer, keyID); commitVerification != nil {
 			if commitVerification.Reason == BadSignature {
 				defaultReason = BadSignature
@@ -233,7 +233,7 @@ func ParseCommitWithSignature(ctx context.Context, c *git.Commit) *CommitVerific
 
 	defaultGPGSettings, err := c.GetRepositoryDefaultPublicGPGKey(false)
 	if err != nil {
-		log.Error("Error getting default public gpg key: %v", err)
+		log.Error("Error getting default public gpg key: %w", err)
 	} else if defaultGPGSettings == nil {
 		log.Warn("Unable to get defaultGPGSettings for unattached commit: %s", c.ID.String())
 	} else if defaultGPGSettings.Sign {
@@ -266,7 +266,7 @@ func verifyWithGPGSettings(gpgSettings *git.GPGSettings, sig *packet.Signature, 
 	// Otherwise we have to parse the key
 	ekeys, err := checkArmoredGPGKeyString(gpgSettings.PublicKeyContent)
 	if err != nil {
-		log.Error("Unable to get default signing key: %v", err)
+		log.Error("Unable to get default signing key: %w", err)
 		return &CommitVerification{
 			CommittingUser: committer,
 			Verified:       false,
@@ -339,7 +339,7 @@ func hashAndVerify(sig *packet.Signature, payload string, k *GPGKey) (*GPGKey, e
 	// Generating hash of commit
 	hash, err := populateHash(sig.Hash, []byte(payload))
 	if err != nil { // Skipping as failed to generate hash
-		log.Error("PopulateHash: %v", err)
+		log.Error("PopulateHash: %w", err)
 		return nil, err
 	}
 	// We will ignore errors in verification as they don't need to be propagated up
@@ -393,7 +393,7 @@ func hashAndVerifyForKeyID(sig *packet.Signature, payload string, committer *use
 	}
 	keys, err := GetGPGKeysByKeyID(keyID)
 	if err != nil {
-		log.Error("GetGPGKeysByKeyID: %v", err)
+		log.Error("GetGPGKeysByKeyID: %w", err)
 		return &CommitVerification{
 			CommittingUser: committer,
 			Verified:       false,
@@ -408,7 +408,7 @@ func hashAndVerifyForKeyID(sig *packet.Signature, payload string, committer *use
 		if key.PrimaryKeyID != "" {
 			primaryKeys, err = GetGPGKeysByKeyID(key.PrimaryKeyID)
 			if err != nil {
-				log.Error("GetGPGKeysByKeyID: %v", err)
+				log.Error("GetGPGKeysByKeyID: %w", err)
 				return &CommitVerification{
 					CommittingUser: committer,
 					Verified:       false,
@@ -431,7 +431,7 @@ func hashAndVerifyForKeyID(sig *packet.Signature, payload string, committer *use
 			if err == nil {
 				signer = owner
 			} else if !user_model.IsErrUserNotExist(err) {
-				log.Error("Failed to user_model.GetUserByID: %d for key ID: %d (%s) %v", key.OwnerID, key.ID, key.KeyID, err)
+				log.Error("Failed to user_model.GetUserByID: %d for key ID: %d (%s) %w", key.OwnerID, key.ID, key.KeyID, err)
 				return &CommitVerification{
 					CommittingUser: committer,
 					Verified:       false,

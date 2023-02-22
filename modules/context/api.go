@@ -111,7 +111,7 @@ func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 // InternalServerError responds with an error message to the client with the error as a message
 // and the file and line of the caller.
 func (ctx *APIContext) InternalServerError(err error) {
-	log.ErrorWithSkip(1, "InternalServerError: %v", err)
+	log.ErrorWithSkip(1, "InternalServerError: %w", err)
 
 	var message string
 	if !setting.IsProd || (ctx.Doer != nil && ctx.Doer.IsAdmin) {

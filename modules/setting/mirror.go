@@ -35,7 +35,7 @@ func loadMirrorFrom(rootCfg ConfigProvider) {
 	}
 
 	if err := rootCfg.Section("mirror").MapTo(&Mirror); err != nil {
-		log.Fatal("Failed to map Mirror settings: %v", err)
+		log.Fatal("Failed to map Mirror settings: %w", err)
 	}
 
 	if !Mirror.Enabled {

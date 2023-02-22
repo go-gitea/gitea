@@ -73,13 +73,13 @@ func setup(logPath string, debug bool) {
 		if os.IsNotExist(err) {
 			_ = fail("Incorrect configuration, no repository directory.", "Directory `[repository].ROOT` %q was not found, please check if $GITEA_WORK_DIR is passed to the SSH connection or make `[repository].ROOT` an absolute value.", setting.RepoRootPath)
 		} else {
-			_ = fail("Incorrect configuration, repository directory is inaccessible", "Directory `[repository].ROOT` %q is inaccessible. err: %v", setting.RepoRootPath, err)
+			_ = fail("Incorrect configuration, repository directory is inaccessible", "Directory `[repository].ROOT` %q is inaccessible. err: %w", setting.RepoRootPath, err)
 		}
 		return
 	}
 
 	if err := git.InitSimple(context.Background()); err != nil {
-		_ = fail("Failed to init git", "Failed to init git, err: %v", err)
+		_ = fail("Failed to init git", "Failed to init git, err: %w", err)
 	}
 }
 
@@ -127,7 +127,7 @@ func runServ(c *cli.Context) error {
 
 	if len(c.Args()) < 1 {
 		if err := cli.ShowSubcommandHelp(c); err != nil {
-			fmt.Printf("error showing subcommand help: %v\n", err)
+			fmt.Printf("error showing subcommand help: %w\n", err)
 		}
 		return nil
 	}
@@ -145,7 +145,7 @@ func runServ(c *cli.Context) error {
 	if len(cmd) == 0 {
 		key, user, err := private.ServNoCommand(ctx, keyID)
 		if err != nil {
-			return fail("Internal error", "Failed to check provided key: %v", err)
+			return fail("Internal error", "Failed to check provided key: %w", err)
 		}
 		switch key.Type {
 		case asymkey_model.KeyTypeDeploy:
@@ -163,7 +163,7 @@ func runServ(c *cli.Context) error {
 
 	words, err := shellquote.Split(cmd)
 	if err != nil {
-		return fail("Error parsing arguments", "Failed to parse arguments: %v", err)
+		return fail("Error parsing arguments", "Failed to parse arguments: %w", err)
 	}
 
 	if len(words) < 2 {
@@ -211,18 +211,18 @@ func runServ(c *cli.Context) error {
 
 	if c.Bool("enable-pprof") {
 		if err := os.MkdirAll(setting.PprofDataPath, os.ModePerm); err != nil {
-			return fail("Error while trying to create PPROF_DATA_PATH", "Error while trying to create PPROF_DATA_PATH: %v", err)
+			return fail("Error while trying to create PPROF_DATA_PATH", "Error while trying to create PPROF_DATA_PATH: %w", err)
 		}
 
 		stopCPUProfiler, err := pprof.DumpCPUProfileForUsername(setting.PprofDataPath, username)
 		if err != nil {
-			return fail("Internal Server Error", "Unable to start CPU profile: %v", err)
+			return fail("Internal Server Error", "Unable to start CPU profile: %w", err)
 		}
 		defer func() {
 			stopCPUProfiler()
 			err := pprof.DumpMemProfileForUsername(setting.PprofDataPath, username)
 			if err != nil {
-				_ = fail("Internal Server Error", "Unable to dump Mem Profile: %v", err)
+				_ = fail("Internal Server Error", "Unable to dump Mem Profile: %w", err)
 			}
 		}()
 	}
@@ -273,7 +273,7 @@ func runServ(c *cli.Context) error {
 		// Sign and get the complete encoded token as a string using the secret
 		tokenString, err := token.SignedString(setting.LFS.JWTSecretBytes)
 		if err != nil {
-			return fail("Internal error", "Failed to sign JWT token: %v", err)
+			return fail("Internal error", "Failed to sign JWT token: %w", err)
 		}
 
 		tokenAuthentication := &git_model.LFSTokenResponse{
@@ -285,7 +285,7 @@ func runServ(c *cli.Context) error {
 		enc := json.NewEncoder(os.Stdout)
 		err = enc.Encode(tokenAuthentication)
 		if err != nil {
-			return fail("Internal error", "Failed to encode LFS json response: %v", err)
+			return fail("Internal error", "Failed to encode LFS json response: %w", err)
 		}
 		return nil
 	}
@@ -327,13 +327,13 @@ func runServ(c *cli.Context) error {
 	gitcmd.Env = append(gitcmd.Env, git.CommonCmdServEnvs()...)
 
 	if err = gitcmd.Run(); err != nil {
-		return fail("Internal error", "Failed to execute git command: %v", err)
+		return fail("Internal error", "Failed to execute git command: %w", err)
 	}
 
 	// Update user key activity.
 	if results.KeyID > 0 {
 		if err = private.UpdatePublicKeyInRepo(ctx, results.KeyID, results.RepoID); err != nil {
-			return fail("Internal error", "UpdatePublicKeyInRepo: %v", err)
+			return fail("Internal error", "UpdatePublicKeyInRepo: %w", err)
 		}
 	}
 

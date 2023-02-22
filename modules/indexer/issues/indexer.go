@@ -126,7 +126,7 @@ func InitIssueIndexer(syncReindex bool) {
 				log.Trace("IndexerData Process: %d %v %t", indexerData.ID, indexerData.IDs, indexerData.IsDelete)
 				if indexerData.IsDelete {
 					if err := indexer.Delete(indexerData.IDs...); err != nil {
-						log.Error("Error whilst deleting from index: %v Error: %v", indexerData.IDs, err)
+						log.Error("Error whilst deleting from index: %v Error: %w", indexerData.IDs, err)
 						if indexer.Ping() {
 							continue
 						}
@@ -144,7 +144,7 @@ func InitIssueIndexer(syncReindex bool) {
 				return unhandled
 			}
 			if err := indexer.Index(iData); err != nil {
-				log.Error("Error whilst indexing: %v Error: %v", iData, err)
+				log.Error("Error whilst indexing: %v Error: %w", iData, err)
 				if indexer.Ping() {
 					return nil
 				}
@@ -180,14 +180,14 @@ func InitIssueIndexer(syncReindex bool) {
 					log.Error("The indexer files are likely corrupted and may need to be deleted")
 					log.Error("You can completely remove the %q directory to make Gitea recreate the indexes", setting.Indexer.IssuePath)
 					holder.cancel()
-					log.Fatal("PID: %d Unable to initialize the Bleve Issue Indexer at path: %s Error: %v", os.Getpid(), setting.Indexer.IssuePath, err)
+					log.Fatal("PID: %d Unable to initialize the Bleve Issue Indexer at path: %s Error: %w", os.Getpid(), setting.Indexer.IssuePath, err)
 				}
 			}()
 			issueIndexer := NewBleveIndexer(setting.Indexer.IssuePath)
 			exist, err := issueIndexer.Init()
 			if err != nil {
 				holder.cancel()
-				log.Fatal("Unable to initialize Bleve Issue Indexer at path: %s Error: %v", setting.Indexer.IssuePath, err)
+				log.Fatal("Unable to initialize Bleve Issue Indexer at path: %s Error: %w", setting.Indexer.IssuePath, err)
 			}
 			populate = !exist
 			holder.set(issueIndexer)
@@ -206,11 +206,11 @@ func InitIssueIndexer(syncReindex bool) {
 				pprof.SetGoroutineLabels(ctx)
 				issueIndexer, err := NewElasticSearchIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueIndexerName)
 				if err != nil {
-					log.Fatal("Unable to initialize Elastic Search Issue Indexer at connection: %s Error: %v", setting.Indexer.IssueConnStr, err)
+					log.Fatal("Unable to initialize Elastic Search Issue Indexer at connection: %s Error: %w", setting.Indexer.IssueConnStr, err)
 				}
 				exist, err := issueIndexer.Init()
 				if err != nil {
-					log.Fatal("Unable to issueIndexer.Init with connection %s Error: %v", setting.Indexer.IssueConnStr, err)
+					log.Fatal("Unable to issueIndexer.Init with connection %s Error: %w", setting.Indexer.IssueConnStr, err)
 				}
 				populate = !exist
 				holder.set(issueIndexer)
@@ -297,7 +297,7 @@ func populateIssueIndexer(ctx context.Context) {
 			Collaborate: util.OptionalBoolFalse,
 		})
 		if err != nil {
-			log.Error("SearchRepositoryByName: %v", err)
+			log.Error("SearchRepositoryByName: %w", err)
 			continue
 		}
 		if len(repos) == 0 {
@@ -325,11 +325,11 @@ func UpdateRepoIndexer(ctx context.Context, repo *repo_model.Repository) {
 		IsPull:   util.OptionalBoolNone,
 	})
 	if err != nil {
-		log.Error("Issues: %v", err)
+		log.Error("Issues: %w", err)
 		return
 	}
 	if err = issues_model.IssueList(is).LoadDiscussComments(ctx); err != nil {
-		log.Error("LoadDiscussComments: %v", err)
+		log.Error("LoadDiscussComments: %w", err)
 		return
 	}
 	for _, issue := range is {
@@ -354,7 +354,7 @@ func UpdateIssueIndexer(issue *issues_model.Issue) {
 	}
 	log.Debug("Adding to channel: %v", indexerData)
 	if err := issueIndexerQueue.Push(indexerData); err != nil {
-		log.Error("Unable to push to issue indexer: %v: Error: %v", indexerData, err)
+		log.Error("Unable to push to issue indexer: %v: Error: %w", indexerData, err)
 	}
 }
 
@@ -363,7 +363,7 @@ func DeleteRepoIssueIndexer(ctx context.Context, repo *repo_model.Repository) {
 	var ids []int64
 	ids, err := issues_model.GetIssueIDsByRepoID(ctx, repo.ID)
 	if err != nil {
-		log.Error("GetIssueIDsByRepoID failed: %v", err)
+		log.Error("GetIssueIDsByRepoID failed: %w", err)
 		return
 	}
 
@@ -375,7 +375,7 @@ func DeleteRepoIssueIndexer(ctx context.Context, repo *repo_model.Repository) {
 		IsDelete: true,
 	}
 	if err := issueIndexerQueue.Push(indexerData); err != nil {
-		log.Error("Unable to push to issue indexer: %v: Error: %v", indexerData, err)
+		log.Error("Unable to push to issue indexer: %v: Error: %w", indexerData, err)
 	}
 }
 

@@ -70,7 +70,7 @@ func (algorithm *PasswordHashAlgorithm) VerifyPassword(providedPassword, hashedP
 	// Compute the hash of the password.
 	providedPasswordHash, err := algorithm.Hash(providedPassword, salt)
 	if err != nil {
-		log.Error("passwordhash: %v.Hash(): %v", algorithm.Specification, err)
+		log.Error("passwordhash: %v.Hash(): %w", algorithm.Specification, err)
 		return false
 	}
 

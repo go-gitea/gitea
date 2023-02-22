@@ -104,7 +104,7 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 	parsedResponse, err := protocol.ParseCredentialRequestResponse(ctx.Req)
 	if err != nil {
 		// Failed authentication attempt.
-		log.Info("Failed authentication attempt for %s from %s: %v", user.Name, ctx.RemoteAddr(), err)
+		log.Info("Failed authentication attempt for %s from %s: %w", user.Name, ctx.RemoteAddr(), err)
 		ctx.Status(http.StatusForbidden)
 		return
 	}
@@ -113,7 +113,7 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 	cred, err := wa.WebAuthn.ValidateLogin((*wa.User)(user), *sessionData, parsedResponse)
 	if err != nil {
 		// Failed authentication attempt.
-		log.Info("Failed authentication attempt for %s from %s: %v", user.Name, ctx.RemoteAddr(), err)
+		log.Info("Failed authentication attempt for %s from %s: %w", user.Name, ctx.RemoteAddr(), err)
 		ctx.Status(http.StatusForbidden)
 		return
 	}

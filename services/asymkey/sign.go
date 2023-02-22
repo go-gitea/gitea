@@ -121,7 +121,7 @@ func PublicSigningKey(ctx context.Context, repoPath string) (string, error) {
 	content, stderr, err := process.GetManager().ExecDir(ctx, -1, repoPath,
 		"gpg --export -a", "gpg", "--export", "-a", signingKey)
 	if err != nil {
-		log.Error("Unable to get default signing key in %s: %s, %s, %v", repoPath, signingKey, stderr, err)
+		log.Error("Unable to get default signing key in %s: %s, %s, %w", repoPath, signingKey, stderr, err)
 		return "", err
 	}
 	return content, nil

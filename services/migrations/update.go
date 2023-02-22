@@ -23,7 +23,7 @@ func UpdateMigrationPosterID(ctx context.Context) error {
 		default:
 		}
 		if err := updateMigrationPosterIDByGitService(ctx, gitService); err != nil {
-			log.Error("updateMigrationPosterIDByGitService failed: %v", err)
+			log.Error("updateMigrationPosterIDByGitService failed: %w", err)
 		}
 	}
 	return nil
@@ -63,7 +63,7 @@ func updateMigrationPosterIDByGitService(ctx context.Context, tp structs.GitServ
 			}
 			externalUserID := user.ExternalID
 			if err := models.UpdateMigrationsByType(tp, externalUserID, user.UserID); err != nil {
-				log.Error("UpdateMigrationsByType type %s external user id %v to local user id %v failed: %v", tp.Name(), user.ExternalID, user.UserID, err)
+				log.Error("UpdateMigrationsByType type %s external user id %v to local user id %v failed: %w", tp.Name(), user.ExternalID, user.UserID, err)
 			}
 		}
 

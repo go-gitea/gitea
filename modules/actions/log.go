@@ -94,7 +94,7 @@ func TransferLogs(ctx context.Context, filename string) (func(), error) {
 	name := DBFSPrefix + filename
 	remove := func() {
 		if err := dbfs.Remove(ctx, name); err != nil {
-			log.Warn("dbfs remove %q: %v", name, err)
+			log.Warn("dbfs remove %q: %w", name, err)
 		}
 	}
 	f, err := dbfs.Open(ctx, name)

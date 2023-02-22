@@ -20,9 +20,9 @@ func listen(server *ssh.Server) {
 	if err != nil {
 		select {
 		case <-graceful.GetManager().IsShutdown():
-			log.Critical("Failed to start SSH server: %v", err)
+			log.Critical("Failed to start SSH server: %w", err)
 		default:
-			log.Fatal("Failed to start SSH server: %v", err)
+			log.Fatal("Failed to start SSH server: %w", err)
 		}
 	}
 	log.Info("SSH Listener: %s Closed", server.Addr)

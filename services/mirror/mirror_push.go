@@ -74,7 +74,7 @@ func RemovePushMirrorRemote(ctx context.Context, m *repo_model.PushMirror) error
 	if m.Repo.HasWiki() {
 		if _, _, err := cmd.RunStdString(&git.RunOpts{Dir: m.Repo.WikiPath()}); err != nil {
 			// The wiki remote may not exist
-			log.Warn("Wiki Remote[%d] could not be removed: %v", m.ID, err)
+			log.Warn("Wiki Remote[%d] could not be removed: %w", m.ID, err)
 		}
 	}
 
@@ -95,7 +95,7 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 
 	m, err := repo_model.GetPushMirror(ctx, repo_model.PushMirrorOptions{ID: mirrorID})
 	if err != nil {
-		log.Error("GetPushMirrorByID [%d]: %v", mirrorID, err)
+		log.Error("GetPushMirrorByID [%d]: %w", mirrorID, err)
 		return false
 	}
 
@@ -109,14 +109,14 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 	log.Trace("SyncPushMirror [mirror: %d][repo: %-v]: Running Sync", m.ID, m.Repo)
 	err = runPushSync(ctx, m)
 	if err != nil {
-		log.Error("SyncPushMirror [mirror: %d][repo: %-v]: %v", m.ID, m.Repo, err)
+		log.Error("SyncPushMirror [mirror: %d][repo: %-v]: %w", m.ID, m.Repo, err)
 		m.LastError = stripExitStatus.ReplaceAllLiteralString(err.Error(), "")
 	}
 
 	m.LastUpdateUnix = timeutil.TimeStampNow()
 
 	if err := repo_model.UpdatePushMirror(ctx, m); err != nil {
-		log.Error("UpdatePushMirror [%d]: %v", m.ID, err)
+		log.Error("UpdatePushMirror [%d]: %w", m.ID, err)
 
 		return false
 	}
@@ -132,7 +132,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 	performPush := func(path string) error {
 		remoteURL, err := git.GetRemoteURL(ctx, path, m.RemoteName)
 		if err != nil {
-			log.Error("GetRemoteAddress(%s) Error %v", path, err)
+			log.Error("GetRemoteAddress(%s) Error %w", path, err)
 			return errors.New("Unexpected error")
 		}
 
@@ -141,7 +141,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 
 			gitRepo, err := git.OpenRepository(ctx, path)
 			if err != nil {
-				log.Error("OpenRepository: %v", err)
+				log.Error("OpenRepository: %w", err)
 				return errors.New("Unexpected error")
 			}
 			defer gitRepo.Close()
@@ -161,7 +161,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 			Mirror:  true,
 			Timeout: timeout,
 		}); err != nil {
-			log.Error("Error pushing %s mirror[%d] remote %s: %v", path, m.ID, m.RemoteName, err)
+			log.Error("Error pushing %s mirror[%d] remote %s: %w", path, m.ID, m.RemoteName, err)
 
 			return util.SanitizeErrorCredentialURLs(err)
 		}
@@ -205,7 +205,7 @@ func pushAllLFSObjects(ctx context.Context, gitRepo *git.Repository, lfsClient l
 
 			content, err := contentStore.Get(p)
 			if err != nil {
-				log.Error("Error reading LFS object %v: %v", p, err)
+				log.Error("Error reading LFS object %v: %w", p, err)
 			}
 			return content, err
 		})
@@ -223,7 +223,7 @@ func pushAllLFSObjects(ctx context.Context, gitRepo *git.Repository, lfsClient l
 	for pointerBlob := range pointerChan {
 		exists, err := contentStore.Exists(pointerBlob.Pointer)
 		if err != nil {
-			log.Error("Error checking if LFS object %v exists: %v", pointerBlob.Pointer, err)
+			log.Error("Error checking if LFS object %v exists: %w", pointerBlob.Pointer, err)
 			return err
 		}
 		if !exists {
@@ -247,7 +247,7 @@ func pushAllLFSObjects(ctx context.Context, gitRepo *git.Repository, lfsClient l
 
 	err, has := <-errChan
 	if has {
-		log.Error("Error enumerating LFS objects for repository: %v", err)
+		log.Error("Error enumerating LFS objects for repository: %w", err)
 		return err
 	}
 

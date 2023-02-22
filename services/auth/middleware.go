@@ -15,7 +15,7 @@ import (
 func Auth(authMethod Method) func(*context.Context) {
 	return func(ctx *context.Context) {
 		if err := authShared(ctx, authMethod); err != nil {
-			log.Error("Failed to verify user: %v", err)
+			log.Error("Failed to verify user: %w", err)
 			ctx.Error(http.StatusUnauthorized, "Verify")
 			return
 		}

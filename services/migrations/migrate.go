@@ -56,7 +56,7 @@ func IsMigrateURLAllowed(remoteURL string, doer *user_model.User) error {
 		}
 		isDir, err := util.IsDir(u.Host + u.Path)
 		if err != nil {
-			log.Error("Unable to check if %s is a directory: %v", u.Host+u.Path, err)
+			log.Error("Unable to check if %s is a directory: %w", u.Host+u.Path, err)
 			return err
 		}
 		if !isDir {
@@ -131,7 +131,7 @@ func MigrateRepository(ctx context.Context, doer *user_model.User, ownerName str
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
 		}
-		if err2 := system_model.CreateRepositoryNotice(fmt.Sprintf("Migrate repository from %s failed: %v", opts.OriginalURL, err)); err2 != nil {
+		if err2 := system_model.CreateRepositoryNotice(fmt.Sprintf("Migrate repository from %s failed: %w", opts.OriginalURL, err)); err2 != nil {
 			log.Error("create respotiry notice failed: ", err2)
 		}
 		return nil, err

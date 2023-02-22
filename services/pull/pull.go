@@ -241,7 +241,7 @@ func checkForInvalidation(ctx context.Context, requests issues_model.PullRequest
 		// FIXME: graceful: We need to tell the manager we're doing something...
 		err := InvalidateCodeComments(ctx, requests, doer, gitRepo, branch)
 		if err != nil {
-			log.Error("PullRequestList.InvalidateCodeComments: %v", err)
+			log.Error("PullRequestList.InvalidateCodeComments: %w", err)
 		}
 		gitRepo.Close()
 	}()
@@ -259,7 +259,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 
 		prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(repoID, branch)
 		if err != nil {
-			log.Error("Find pull requests [head_repo_id: %d, head_branch: %s]: %v", repoID, branch, err)
+			log.Error("Find pull requests [head_repo_id: %d, head_branch: %s]: %w", repoID, branch, err)
 			return
 		}
 
@@ -267,7 +267,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 			log.Trace("Updating PR[%d]: composing new test task", pr.ID)
 			if pr.Flow == issues_model.PullRequestFlowGithub {
 				if err := PushToBaseRepo(ctx, pr); err != nil {
-					log.Error("PushToBaseRepo: %v", err)
+					log.Error("PushToBaseRepo: %w", err)
 					continue
 				}
 			} else {
@@ -284,34 +284,34 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 		if isSync {
 			requests := issues_model.PullRequestList(prs)
 			if err = requests.LoadAttributes(); err != nil {
-				log.Error("PullRequestList.LoadAttributes: %v", err)
+				log.Error("PullRequestList.LoadAttributes: %w", err)
 			}
 			if invalidationErr := checkForInvalidation(ctx, requests, repoID, doer, branch); invalidationErr != nil {
-				log.Error("checkForInvalidation: %v", invalidationErr)
+				log.Error("checkForInvalidation: %w", invalidationErr)
 			}
 			if err == nil {
 				for _, pr := range prs {
 					if newCommitID != "" && newCommitID != git.EmptySHA {
 						changed, err := checkIfPRContentChanged(ctx, pr, oldCommitID, newCommitID)
 						if err != nil {
-							log.Error("checkIfPRContentChanged: %v", err)
+							log.Error("checkIfPRContentChanged: %w", err)
 						}
 						if changed {
 							// Mark old reviews as stale if diff to mergebase has changed
 							if err := issues_model.MarkReviewsAsStale(pr.IssueID); err != nil {
-								log.Error("MarkReviewsAsStale: %v", err)
+								log.Error("MarkReviewsAsStale: %w", err)
 							}
 						}
 						if err := issues_model.MarkReviewsAsNotStale(pr.IssueID, newCommitID); err != nil {
-							log.Error("MarkReviewsAsNotStale: %v", err)
+							log.Error("MarkReviewsAsNotStale: %w", err)
 						}
 						divergence, err := GetDiverging(ctx, pr)
 						if err != nil {
-							log.Error("GetDiverging: %v", err)
+							log.Error("GetDiverging: %w", err)
 						} else {
 							err = pr.UpdateCommitDivergence(ctx, divergence.Ahead, divergence.Behind)
 							if err != nil {
-								log.Error("UpdateCommitDivergence: %v", err)
+								log.Error("UpdateCommitDivergence: %w", err)
 							}
 						}
 					}
@@ -324,7 +324,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 		log.Trace("AddTestPullRequestTask [base_repo_id: %d, base_branch: %s]: finding pull requests", repoID, branch)
 		prs, err = issues_model.GetUnmergedPullRequestsByBaseInfo(repoID, branch)
 		if err != nil {
-			log.Error("Find pull requests [base_repo_id: %d, base_branch: %s]: %v", repoID, branch, err)
+			log.Error("Find pull requests [base_repo_id: %d, base_branch: %s]: %w", repoID, branch, err)
 			return
 		}
 		for _, pr := range prs {
@@ -333,12 +333,12 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 				if models.IsErrBranchDoesNotExist(err) && !git.IsBranchExist(ctx, pr.HeadRepo.RepoPath(), pr.HeadBranch) {
 					log.Warn("Cannot test PR %s/%d: head_branch %s no longer exists", pr.BaseRepo.Name, pr.IssueID, pr.HeadBranch)
 				} else {
-					log.Error("GetDiverging: %v", err)
+					log.Error("GetDiverging: %w", err)
 				}
 			} else {
 				err = pr.UpdateCommitDivergence(ctx, divergence.Ahead, divergence.Behind)
 				if err != nil {
-					log.Error("UpdateCommitDivergence: %v", err)
+					log.Error("UpdateCommitDivergence: %w", err)
 				}
 			}
 			AddToTaskQueue(pr)
@@ -351,7 +351,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, oldCommitID, newCommitID string) (hasChanged bool, err error) {
 	tmpBasePath, err := createTemporaryRepo(ctx, pr)
 	if err != nil {
-		log.Error("CreateTemporaryRepo: %v", err)
+		log.Error("CreateTemporaryRepo: %w", err)
 		return false, err
 	}
 	defer func() {
@@ -415,13 +415,13 @@ func pushToBaseRepoHelper(ctx context.Context, pr *issues_model.PullRequest, pre
 	log.Trace("PushToBaseRepo[%d]: pushing commits to base repo '%s'", pr.BaseRepoID, pr.GetGitRefName())
 
 	if err := pr.LoadHeadRepo(ctx); err != nil {
-		log.Error("Unable to load head repository for PR[%d] Error: %v", pr.ID, err)
+		log.Error("Unable to load head repository for PR[%d] Error: %w", pr.ID, err)
 		return err
 	}
 	headRepoPath := pr.HeadRepo.RepoPath()
 
 	if err := pr.LoadBaseRepo(ctx); err != nil {
-		log.Error("Unable to load base repository for PR[%d] Error: %v", pr.ID, err)
+		log.Error("Unable to load base repository for PR[%d] Error: %w", pr.ID, err)
 		return err
 	}
 	baseRepoPath := pr.BaseRepo.RepoPath()
@@ -444,11 +444,11 @@ func pushToBaseRepoHelper(ctx context.Context, pr *issues_model.PullRequest, pre
 	}); err != nil {
 		if git.IsErrPushOutOfDate(err) {
 			// This should not happen as we're using force!
-			log.Error("Unable to push PR head for %s#%d (%-v:%s) due to ErrPushOfDate: %v", pr.BaseRepo.FullName(), pr.Index, pr.BaseRepo, gitRefName, err)
+			log.Error("Unable to push PR head for %s#%d (%-v:%s) due to ErrPushOfDate: %w", pr.BaseRepo.FullName(), pr.Index, pr.BaseRepo, gitRefName, err)
 			return err
 		} else if git.IsErrPushRejected(err) {
 			rejectErr := err.(*git.ErrPushRejected)
-			log.Info("Unable to push PR head for %s#%d (%-v:%s) due to rejection:\nStdout: %s\nStderr: %s\nError: %v", pr.BaseRepo.FullName(), pr.Index, pr.BaseRepo, gitRefName, rejectErr.StdOut, rejectErr.StdErr, rejectErr.Err)
+			log.Info("Unable to push PR head for %s#%d (%-v:%s) due to rejection:\nStdout: %s\nStderr: %s\nError: %w", pr.BaseRepo.FullName(), pr.Index, pr.BaseRepo, gitRefName, rejectErr.StdOut, rejectErr.StdErr, rejectErr.Err)
 			return err
 		} else if git.IsErrMoreThanOne(err) {
 			if prefixHeadBranch != "" {
@@ -459,7 +459,7 @@ func pushToBaseRepoHelper(ctx context.Context, pr *issues_model.PullRequest, pre
 			err = pushToBaseRepoHelper(ctx, pr, git.BranchPrefix)
 			return err
 		}
-		log.Error("Unable to push PR head for %s#%d (%-v:%s) due to Error: %v", pr.BaseRepo.FullName(), pr.Index, pr.BaseRepo, gitRefName, err)
+		log.Error("Unable to push PR head for %s#%d (%-v:%s) due to Error: %w", pr.BaseRepo.FullName(), pr.Index, pr.BaseRepo, gitRefName, err)
 		return fmt.Errorf("Push: %s:%s %s:%s %w", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), gitRefName, err)
 	}
 
@@ -470,13 +470,13 @@ func pushToBaseRepoHelper(ctx context.Context, pr *issues_model.PullRequest, pre
 func UpdateRef(ctx context.Context, pr *issues_model.PullRequest) (err error) {
 	log.Trace("UpdateRef[%d]: upgate pull request ref in base repo '%s'", pr.ID, pr.GetGitRefName())
 	if err := pr.LoadBaseRepo(ctx); err != nil {
-		log.Error("Unable to load base repository for PR[%d] Error: %v", pr.ID, err)
+		log.Error("Unable to load base repository for PR[%d] Error: %w", pr.ID, err)
 		return err
 	}
 
 	_, _, err = git.NewCommand(ctx, "update-ref").AddDynamicArguments(pr.GetGitRefName(), pr.HeadCommitID).RunStdString(&git.RunOpts{Dir: pr.BaseRepo.RepoPath()})
 	if err != nil {
-		log.Error("Unable to update ref in base repository for PR[%d] Error: %v", pr.ID, err)
+		log.Error("Unable to update ref in base repository for PR[%d] Error: %w", pr.ID, err)
 	}
 
 	return err
@@ -568,12 +568,12 @@ var commitMessageTrailersPattern = regexp.MustCompile(`(?:^|\n\n)(?:[\w-]+[ \t]*
 // GetSquashMergeCommitMessages returns the commit messages between head and merge base (if there is one)
 func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequest) string {
 	if err := pr.LoadIssue(ctx); err != nil {
-		log.Error("Cannot load issue %d for PR id %d: Error: %v", pr.IssueID, pr.ID, err)
+		log.Error("Cannot load issue %d for PR id %d: Error: %w", pr.IssueID, pr.ID, err)
 		return ""
 	}
 
 	if err := pr.Issue.LoadPoster(ctx); err != nil {
-		log.Error("Cannot load poster %d for pr id %d, index %d Error: %v", pr.Issue.PosterID, pr.ID, pr.Index, err)
+		log.Error("Cannot load poster %d for pr id %d, index %d Error: %w", pr.Issue.PosterID, pr.ID, pr.Index, err)
 		return ""
 	}
 
@@ -581,14 +581,14 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		var err error
 		pr.HeadRepo, err = repo_model.GetRepositoryByID(ctx, pr.HeadRepoID)
 		if err != nil {
-			log.Error("GetRepositoryByIdCtx[%d]: %v", pr.HeadRepoID, err)
+			log.Error("GetRepositoryByIdCtx[%d]: %w", pr.HeadRepoID, err)
 			return ""
 		}
 	}
 
 	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.HeadRepo.RepoPath())
 	if err != nil {
-		log.Error("Unable to open head repository: Error: %v", err)
+		log.Error("Unable to open head repository: Error: %w", err)
 		return ""
 	}
 	defer closer.Close()
@@ -599,19 +599,19 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	} else {
 		pr.HeadCommitID, err = gitRepo.GetRefCommitID(pr.GetGitRefName())
 		if err != nil {
-			log.Error("Unable to get head commit: %s Error: %v", pr.GetGitRefName(), err)
+			log.Error("Unable to get head commit: %s Error: %w", pr.GetGitRefName(), err)
 			return ""
 		}
 		headCommit, err = gitRepo.GetCommit(pr.HeadCommitID)
 	}
 	if err != nil {
-		log.Error("Unable to get head commit: %s Error: %v", pr.HeadBranch, err)
+		log.Error("Unable to get head commit: %s Error: %w", pr.HeadBranch, err)
 		return ""
 	}
 
 	mergeBase, err := gitRepo.GetCommit(pr.MergeBase)
 	if err != nil {
-		log.Error("Unable to get merge base commit: %s Error: %v", pr.MergeBase, err)
+		log.Error("Unable to get merge base commit: %s Error: %w", pr.MergeBase, err)
 		return ""
 	}
 
@@ -619,7 +619,7 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 
 	commits, err := gitRepo.CommitsBetweenLimit(headCommit, mergeBase, limit, 0)
 	if err != nil {
-		log.Error("Unable to get commits between: %s %s Error: %v", pr.HeadBranch, pr.MergeBase, err)
+		log.Error("Unable to get commits between: %s %s Error: %w", pr.HeadBranch, pr.MergeBase, err)
 		return ""
 	}
 
@@ -660,12 +660,12 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 					toWrite = append(toWrite[:maxSize-stringBuilder.Len()], "..."...)
 				}
 				if _, err := stringBuilder.Write(toWrite); err != nil {
-					log.Error("Unable to write commit message Error: %v", err)
+					log.Error("Unable to write commit message Error: %w", err)
 					return ""
 				}
 
 				if _, err := stringBuilder.WriteRune('\n'); err != nil {
-					log.Error("Unable to write commit message Error: %v", err)
+					log.Error("Unable to write commit message Error: %w", err)
 					return ""
 				}
 			}
@@ -684,7 +684,7 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		for {
 			commits, err := gitRepo.CommitsBetweenLimit(headCommit, mergeBase, limit, skip)
 			if err != nil {
-				log.Error("Unable to get commits between: %s %s Error: %v", pr.HeadBranch, pr.MergeBase, err)
+				log.Error("Unable to get commits between: %s %s Error: %w", pr.HeadBranch, pr.MergeBase, err)
 				return ""
 
 			}
@@ -703,15 +703,15 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 
 	for _, author := range authors {
 		if _, err := stringBuilder.Write([]byte("Co-authored-by: ")); err != nil {
-			log.Error("Unable to write to string builder Error: %v", err)
+			log.Error("Unable to write to string builder Error: %w", err)
 			return ""
 		}
 		if _, err := stringBuilder.Write([]byte(author)); err != nil {
-			log.Error("Unable to write to string builder Error: %v", err)
+			log.Error("Unable to write to string builder Error: %w", err)
 			return ""
 		}
 		if _, err := stringBuilder.WriteRune('\n'); err != nil {
-			log.Error("Unable to write to string builder Error: %v", err)
+			log.Error("Unable to write to string builder Error: %w", err)
 			return ""
 		}
 	}
@@ -754,7 +754,7 @@ func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList
 		if !ok {
 			gitRepo, err = git.OpenRepository(ctx, issue.Repo.RepoPath())
 			if err != nil {
-				log.Error("Cannot open git repository %-v for issue #%d[%d]. Error: %v", issue.Repo, issue.Index, issue.ID, err)
+				log.Error("Cannot open git repository %-v for issue #%d[%d]. Error: %w", issue.Repo, issue.Index, issue.ID, err)
 				continue
 			}
 			gitRepos[issue.RepoID] = gitRepo
@@ -762,7 +762,7 @@ func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList
 
 		statuses, lastStatus, err := getAllCommitStatus(gitRepo, issue.PullRequest)
 		if err != nil {
-			log.Error("getAllCommitStatus: cant get commit statuses of pull [%d]: %v", issue.PullRequest.ID, err)
+			log.Error("getAllCommitStatus: cant get commit statuses of pull [%d]: %w", issue.PullRequest.ID, err)
 			continue
 		}
 		res[issue.PullRequest.ID] = statuses

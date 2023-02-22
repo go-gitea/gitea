@@ -367,25 +367,25 @@ func runRepoSyncReleases(_ *cli.Context) error {
 			log.Trace("Synchronizing repo %s with path %s", repo.FullName(), repo.RepoPath())
 			gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 			if err != nil {
-				log.Warn("OpenRepository: %v", err)
+				log.Warn("OpenRepository: %w", err)
 				continue
 			}
 
 			oldnum, err := getReleaseCount(repo.ID)
 			if err != nil {
-				log.Warn(" GetReleaseCountByRepoID: %v", err)
+				log.Warn(" GetReleaseCountByRepoID: %w", err)
 			}
 			log.Trace(" currentNumReleases is %d, running SyncReleasesWithTags", oldnum)
 
 			if err = repo_module.SyncReleasesWithTags(repo, gitRepo); err != nil {
-				log.Warn(" SyncReleasesWithTags: %v", err)
+				log.Warn(" SyncReleasesWithTags: %w", err)
 				gitRepo.Close()
 				continue
 			}
 
 			count, err = getReleaseCount(repo.ID)
 			if err != nil {
-				log.Warn(" GetReleaseCountByRepoID: %v", err)
+				log.Warn(" GetReleaseCountByRepoID: %w", err)
 				gitRepo.Close()
 				continue
 			}

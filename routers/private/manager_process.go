@@ -38,9 +38,9 @@ func Processes(ctx *context.PrivateContext) {
 	if stacktraces {
 		processes, processCount, goroutineCount, err = process_module.GetManager().ProcessStacktraces(flat, noSystem)
 		if err != nil {
-			log.Error("Unable to get stacktrace: %v", err)
+			log.Error("Unable to get stacktrace: %w", err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
-				Err: fmt.Sprintf("Failed to get stacktraces: %v", err),
+				Err: fmt.Sprintf("Failed to get stacktraces: %w", err),
 			})
 			return
 		}
@@ -61,10 +61,10 @@ func Processes(ctx *context.PrivateContext) {
 	ctx.Resp.WriteHeader(http.StatusOK)
 
 	if err := writeProcesses(ctx.Resp, processes, processCount, goroutineCount, "", flat); err != nil {
-		log.Error("Unable to write out process stacktrace: %v", err)
+		log.Error("Unable to write out process stacktrace: %w", err)
 		if !ctx.Written() {
 			ctx.JSON(http.StatusInternalServerError, private.Response{
-				Err: fmt.Sprintf("Failed to get stacktraces: %v", err),
+				Err: fmt.Sprintf("Failed to get stacktraces: %w", err),
 			})
 		}
 		return

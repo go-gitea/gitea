@@ -39,7 +39,7 @@ func loadIncomingEmailFrom(rootCfg ConfigProvider) {
 	}
 
 	if err := checkReplyToAddress(IncomingEmail.ReplyToAddress); err != nil {
-		log.Fatal("Invalid incoming_mail.REPLY_TO_ADDRESS (%s): %v", IncomingEmail.ReplyToAddress, err)
+		log.Fatal("Invalid incoming_mail.REPLY_TO_ADDRESS (%s): %w", IncomingEmail.ReplyToAddress, err)
 	}
 }
 

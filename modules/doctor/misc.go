@@ -40,7 +40,7 @@ func iterateRepositories(ctx context.Context, each func(*repo_model.Repository) 
 func checkScriptType(ctx context.Context, logger log.Logger, autofix bool) error {
 	path, err := exec.LookPath(setting.ScriptType)
 	if err != nil {
-		logger.Critical("ScriptType \"%q\" is not on the current PATH. Error: %v", setting.ScriptType, err)
+		logger.Critical("ScriptType \"%q\" is not on the current PATH. Error: %w", setting.ScriptType, err)
 		return fmt.Errorf("ScriptType \"%q\" is not on the current PATH. Error: %w", setting.ScriptType, err)
 	}
 	logger.Info("ScriptType %s is on the current PATH at %s", setting.ScriptType, path)
@@ -51,13 +51,13 @@ func checkHooks(ctx context.Context, logger log.Logger, autofix bool) error {
 	if err := iterateRepositories(ctx, func(repo *repo_model.Repository) error {
 		results, err := repository.CheckDelegateHooks(repo.RepoPath())
 		if err != nil {
-			logger.Critical("Unable to check delegate hooks for repo %-v. ERROR: %v", repo, err)
+			logger.Critical("Unable to check delegate hooks for repo %-v. ERROR: %w", repo, err)
 			return fmt.Errorf("Unable to check delegate hooks for repo %-v. ERROR: %w", repo, err)
 		}
 		if len(results) > 0 && autofix {
 			logger.Warn("Regenerated hooks for %s", repo.FullName())
 			if err := repository.CreateDelegateHooks(repo.RepoPath()); err != nil {
-				logger.Critical("Unable to recreate delegate hooks for %-v. ERROR: %v", repo, err)
+				logger.Critical("Unable to recreate delegate hooks for %-v. ERROR: %w", repo, err)
 				return fmt.Errorf("Unable to recreate delegate hooks for %-v. ERROR: %w", repo, err)
 			}
 		}
@@ -114,7 +114,7 @@ func checkEnablePushOptions(ctx context.Context, logger log.Logger, autofix bool
 		}
 		return nil
 	}); err != nil {
-		logger.Critical("Unable to EnablePushOptions: %v", err)
+		logger.Critical("Unable to EnablePushOptions: %w", err)
 		return err
 	}
 
@@ -132,7 +132,7 @@ func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) err
 	numNeedUpdate := 0
 	cache, err := lru.New(512)
 	if err != nil {
-		logger.Critical("Unable to create cache: %v", err)
+		logger.Critical("Unable to create cache: %w", err)
 		return err
 	}
 	if err := iterateRepositories(ctx, func(repo *repo_model.Repository) error {
@@ -151,7 +151,7 @@ func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) err
 		daemonExportFile := path.Join(repo.RepoPath(), `git-daemon-export-ok`)
 		isExist, err := util.IsExist(daemonExportFile)
 		if err != nil {
-			log.Error("Unable to check if %s exists. Error: %v", daemonExportFile, err)
+			log.Error("Unable to check if %s exists. Error: %w", daemonExportFile, err)
 			return err
 		}
 		isPublic := !repo.IsPrivate && repo.Owner.Visibility == structs.VisibleTypePublic
@@ -161,11 +161,11 @@ func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) err
 			if autofix {
 				if !isPublic && isExist {
 					if err = util.Remove(daemonExportFile); err != nil {
-						log.Error("Failed to remove %s: %v", daemonExportFile, err)
+						log.Error("Failed to remove %s: %w", daemonExportFile, err)
 					}
 				} else if isPublic && !isExist {
 					if f, err := os.Create(daemonExportFile); err != nil {
-						log.Error("Failed to create %s: %v", daemonExportFile, err)
+						log.Error("Failed to create %s: %w", daemonExportFile, err)
 					} else {
 						f.Close()
 					}
@@ -174,7 +174,7 @@ func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) err
 		}
 		return nil
 	}); err != nil {
-		logger.Critical("Unable to checkDaemonExport: %v", err)
+		logger.Critical("Unable to checkDaemonExport: %w", err)
 		return err
 	}
 
@@ -199,7 +199,7 @@ func checkCommitGraph(ctx context.Context, logger log.Logger, autofix bool) erro
 			commitGraphFile := path.Join(repo.RepoPath(), `objects/info/commit-graph`)
 			isExist, err := util.IsExist(commitGraphFile)
 			if err != nil {
-				logger.Error("Unable to check if %s exists. Error: %v", commitGraphFile, err)
+				logger.Error("Unable to check if %s exists. Error: %w", commitGraphFile, err)
 				return false, err
 			}
 
@@ -207,7 +207,7 @@ func checkCommitGraph(ctx context.Context, logger log.Logger, autofix bool) erro
 				commitGraphsDir := path.Join(repo.RepoPath(), `objects/info/commit-graphs`)
 				isExist, err = util.IsExist(commitGraphsDir)
 				if err != nil {
-					logger.Error("Unable to check if %s exists. Error: %v", commitGraphsDir, err)
+					logger.Error("Unable to check if %s exists. Error: %w", commitGraphsDir, err)
 					return false, err
 				}
 			}
@@ -222,7 +222,7 @@ func checkCommitGraph(ctx context.Context, logger log.Logger, autofix bool) erro
 			numNeedUpdate++
 			if autofix {
 				if err := git.WriteCommitGraph(ctx, repo.RepoPath()); err != nil {
-					logger.Error("Unable to write commit-graph in %s. Error: %v", repo.FullName(), err)
+					logger.Error("Unable to write commit-graph in %s. Error: %w", repo.FullName(), err)
 					return err
 				}
 				isExist, err := commitGraphExists()
@@ -239,7 +239,7 @@ func checkCommitGraph(ctx context.Context, logger log.Logger, autofix bool) erro
 		}
 		return nil
 	}); err != nil {
-		logger.Critical("Unable to checkCommitGraph: %v", err)
+		logger.Critical("Unable to checkCommitGraph: %w", err)
 		return err
 	}
 

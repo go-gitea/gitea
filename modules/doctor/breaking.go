@@ -41,7 +41,7 @@ func checkUserEmail(ctx context.Context, logger log.Logger, _ bool) error {
 
 		if err := user.ValidateEmail(u.Email); err != nil {
 			invalidUserCount++
-			logger.Warn("User[id=%d name=%q] have not a valid e-mail: %v", u.ID, u.Name, err)
+			logger.Warn("User[id=%d name=%q] have not a valid e-mail: %w", u.ID, u.Name, err)
 		}
 		return nil
 	}); err != nil {
@@ -64,7 +64,7 @@ func checkUserName(ctx context.Context, logger log.Logger, _ bool) error {
 	if err := iterateUserAccounts(ctx, func(u *user.User) error {
 		if err := user.IsUsableUsername(u.Name); err != nil {
 			invalidUserCount++
-			logger.Warn("User[id=%d] does not have a valid username: %v", u.ID, err)
+			logger.Warn("User[id=%d] does not have a valid username: %w", u.ID, err)
 		}
 		return nil
 	}); err != nil {

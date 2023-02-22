@@ -152,9 +152,9 @@ func setDoctorLogger(ctx *cli.Context) {
 			panic(recovered)
 		}
 		if errors.Is(err, os.ErrPermission) {
-			fmt.Fprintf(os.Stderr, "ERROR: Unable to write logs to provided file due to permissions error: %s\n       %v\n", logFile, err)
+			fmt.Fprintf(os.Stderr, "ERROR: Unable to write logs to provided file due to permissions error: %s\n       %w\n", logFile, err)
 		} else {
-			fmt.Fprintf(os.Stderr, "ERROR: Unable to write logs to provided file: %s\n       %v\n", logFile, err)
+			fmt.Fprintf(os.Stderr, "ERROR: Unable to write logs to provided file: %s\n       %w\n", logFile, err)
 		}
 		fmt.Fprintf(os.Stderr, "WARN: Logging will be disabled\n       Use `--log-file` to configure log file location\n")
 		log.NewLogger(1000, "doctor", "console", fmt.Sprintf(`{"level":"NONE","stacktracelevel":"NONE","colorize":%t}`, colorize))

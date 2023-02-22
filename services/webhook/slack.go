@@ -30,7 +30,7 @@ type SlackMeta struct {
 func GetSlackHook(w *webhook_model.Webhook) *SlackMeta {
 	s := &SlackMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
-		log.Error("webhook.GetSlackHook(%d): %v", w.ID, err)
+		log.Error("webhook.GetSlackHook(%d): %w", w.ID, err)
 	}
 	return s
 }

@@ -53,10 +53,10 @@ func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
 			}
 			return CreateCommitStatus(ctx, task.Job)
 		}); err != nil {
-			log.Warn("Cannot stop task %v: %v", task.ID, err)
+			log.Warn("Cannot stop task %v: %w", task.ID, err)
 			// go on
 		} else if remove, err := actions.TransferLogs(ctx, task.LogFilename); err != nil {
-			log.Warn("Cannot transfer logs of task %v: %v", task.ID, err)
+			log.Warn("Cannot transfer logs of task %v: %w", task.ID, err)
 		} else {
 			remove()
 		}
@@ -71,7 +71,7 @@ func CancelAbandonedJobs(ctx context.Context) error {
 		UpdatedBefore: timeutil.TimeStamp(time.Now().Add(-abandonedJobTimeout).Unix()),
 	})
 	if err != nil {
-		log.Warn("find abandoned tasks: %v", err)
+		log.Warn("find abandoned tasks: %w", err)
 		return err
 	}
 
@@ -85,7 +85,7 @@ func CancelAbandonedJobs(ctx context.Context) error {
 			}
 			return CreateCommitStatus(ctx, job)
 		}); err != nil {
-			log.Warn("cancel abandoned job %v: %v", job.ID, err)
+			log.Warn("cancel abandoned job %v: %w", job.ID, err)
 			// go on
 		}
 	}

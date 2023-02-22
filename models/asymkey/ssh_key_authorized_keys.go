@@ -75,7 +75,7 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 		// right user it will at least be created properly.
 		err := os.MkdirAll(setting.SSH.RootPath, 0o700)
 		if err != nil {
-			log.Error("Unable to MkdirAll(%s): %v", setting.SSH.RootPath, err)
+			log.Error("Unable to MkdirAll(%s): %w", setting.SSH.RootPath, err)
 			return err
 		}
 	}
@@ -133,7 +133,7 @@ func RewriteAllPublicKeys() error {
 		// right user it will at least be created properly.
 		err := os.MkdirAll(setting.SSH.RootPath, 0o700)
 		if err != nil {
-			log.Error("Unable to MkdirAll(%s): %v", setting.SSH.RootPath, err)
+			log.Error("Unable to MkdirAll(%s): %w", setting.SSH.RootPath, err)
 			return err
 		}
 	}
@@ -147,14 +147,14 @@ func RewriteAllPublicKeys() error {
 	defer func() {
 		t.Close()
 		if err := util.Remove(tmpPath); err != nil {
-			log.Warn("Unable to remove temporary authorized keys file: %s: Error: %v", tmpPath, err)
+			log.Warn("Unable to remove temporary authorized keys file: %s: Error: %w", tmpPath, err)
 		}
 	}()
 
 	if setting.SSH.AuthorizedKeysBackup {
 		isExist, err := util.IsExist(fPath)
 		if err != nil {
-			log.Error("Unable to check if %s exists. Error: %v", fPath, err)
+			log.Error("Unable to check if %s exists. Error: %w", fPath, err)
 			return err
 		}
 		if isExist {
@@ -185,7 +185,7 @@ func RegeneratePublicKeys(ctx context.Context, t io.StringWriter) error {
 	fPath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
 	isExist, err := util.IsExist(fPath)
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", fPath, err)
+		log.Error("Unable to check if %s exists. Error: %w", fPath, err)
 		return err
 	}
 	if isExist {

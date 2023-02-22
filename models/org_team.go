@@ -505,12 +505,12 @@ func AddTeamMember(team *organization.Team, userID int64) error {
 	if setting.Service.AutoWatchNewRepos {
 		// Get team and its repositories.
 		if err := team.LoadRepositories(db.DefaultContext); err != nil {
-			log.Error("getRepositories failed: %v", err)
+			log.Error("getRepositories failed: %w", err)
 		}
 		go func(repos []*repo_model.Repository) {
 			for _, repo := range repos {
 				if err = repo_model.WatchRepo(db.DefaultContext, userID, repo.ID, true); err != nil {
-					log.Error("watch repo failed: %v", err)
+					log.Error("watch repo failed: %w", err)
 				}
 			}
 		}(team.Repos)

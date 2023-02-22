@@ -46,7 +46,7 @@ func DefaultAvatarLink() string {
 	once.Do(func() {
 		u, err := url.Parse(setting.AppSubURL)
 		if err != nil {
-			log.Error("Can not parse AppSubURL: %v", err)
+			log.Error("Can not parse AppSubURL: %w", err)
 			return
 		}
 
@@ -78,12 +78,12 @@ func GetEmailForHash(md5Sum string) (string, error) {
 func LibravatarURL(email string) (*url.URL, error) {
 	urlStr, err := system_model.LibravatarService.FromEmail(email)
 	if err != nil {
-		log.Error("LibravatarService.FromEmail(email=%s): error %v", email, err)
+		log.Error("LibravatarService.FromEmail(email=%s): error %w", email, err)
 		return nil, err
 	}
 	u, err := url.Parse(urlStr)
 	if err != nil {
-		log.Error("Failed to parse libravatar url(%s): error %v", urlStr, err)
+		log.Error("Failed to parse libravatar url(%s): error %w", urlStr, err)
 		return nil, err
 	}
 	return u, nil

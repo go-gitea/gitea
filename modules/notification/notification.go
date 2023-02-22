@@ -108,7 +108,7 @@ func NotifyAutoMergePullRequest(ctx context.Context, doer *user_model.User, pr *
 // NotifyNewPullRequest notifies new pull request to notifiers
 func NotifyNewPullRequest(ctx context.Context, pr *issues_model.PullRequest, mentions []*user_model.User) {
 	if err := pr.LoadIssue(ctx); err != nil {
-		log.Error("%v", err)
+		log.Error("%w", err)
 		return
 	}
 	if err := pr.Issue.LoadPoster(ctx); err != nil {
@@ -129,7 +129,7 @@ func NotifyPullRequestSynchronized(ctx context.Context, doer *user_model.User, p
 // NotifyPullRequestReview notifies new pull request review
 func NotifyPullRequestReview(ctx context.Context, pr *issues_model.PullRequest, review *issues_model.Review, comment *issues_model.Comment, mentions []*user_model.User) {
 	if err := review.LoadReviewer(ctx); err != nil {
-		log.Error("%v", err)
+		log.Error("%w", err)
 		return
 	}
 	for _, notifier := range notifiers {
@@ -140,7 +140,7 @@ func NotifyPullRequestReview(ctx context.Context, pr *issues_model.PullRequest, 
 // NotifyPullRequestCodeComment notifies new pull request code comment
 func NotifyPullRequestCodeComment(ctx context.Context, pr *issues_model.PullRequest, comment *issues_model.Comment, mentions []*user_model.User) {
 	if err := comment.LoadPoster(ctx); err != nil {
-		log.Error("LoadPoster: %v", err)
+		log.Error("LoadPoster: %w", err)
 		return
 	}
 	for _, notifier := range notifiers {
@@ -186,7 +186,7 @@ func NotifyDeleteComment(ctx context.Context, doer *user_model.User, c *issues_m
 // NotifyNewRelease notifies new release to notifiers
 func NotifyNewRelease(ctx context.Context, rel *repo_model.Release) {
 	if err := rel.LoadAttributes(ctx); err != nil {
-		log.Error("LoadPublisher: %v", err)
+		log.Error("LoadPublisher: %w", err)
 		return
 	}
 	for _, notifier := range notifiers {

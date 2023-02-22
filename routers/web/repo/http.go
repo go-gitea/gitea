@@ -278,7 +278,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 
 		repo, err = repo_service.PushCreateRepo(ctx.Doer, owner, reponame)
 		if err != nil {
-			log.Error("pushCreateRepo: %v", err)
+			log.Error("pushCreateRepo: %w", err)
 			ctx.Status(http.StatusNotFound)
 			return
 		}
@@ -291,7 +291,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 				ctx.PlainText(http.StatusForbidden, "repository wiki is disabled")
 				return
 			}
-			log.Error("Failed to get the wiki unit in %-v Error: %v", repo, err)
+			log.Error("Failed to get the wiki unit in %-v Error: %w", repo, err)
 			ctx.ServerError("GetUnit(UnitTypeWiki) for "+repo.FullName(), err)
 			return
 		}
@@ -326,18 +326,18 @@ func dummyInfoRefs(ctx *context.Context) {
 	infoRefsOnce.Do(func() {
 		tmpDir, err := os.MkdirTemp(os.TempDir(), "gitea-info-refs-cache")
 		if err != nil {
-			log.Error("Failed to create temp dir for git-receive-pack cache: %v", err)
+			log.Error("Failed to create temp dir for git-receive-pack cache: %w", err)
 			return
 		}
 
 		defer func() {
 			if err := util.RemoveAll(tmpDir); err != nil {
-				log.Error("RemoveAll: %v", err)
+				log.Error("RemoveAll: %w", err)
 			}
 		}()
 
 		if err := git.InitRepository(ctx, tmpDir, true); err != nil {
-			log.Error("Failed to init bare repo for git-receive-pack cache: %v", err)
+			log.Error("Failed to init bare repo for git-receive-pack cache: %w", err)
 			return
 		}
 
@@ -438,7 +438,7 @@ func prepareGitCmdWithAllowedService(service string, h *serviceHandler) (*git.Co
 func serviceRPC(h *serviceHandler, service string) {
 	defer func() {
 		if err := h.r.Body.Close(); err != nil {
-			log.Error("serviceRPC: Close: %v", err)
+			log.Error("serviceRPC: Close: %w", err)
 		}
 	}()
 
@@ -451,7 +451,7 @@ func serviceRPC(h *serviceHandler, service string) {
 
 	cmd, err := prepareGitCmdWithAllowedService(service, h)
 	if err != nil {
-		log.Error("Failed to prepareGitCmdWithService: %v", err)
+		log.Error("Failed to prepareGitCmdWithService: %w", err)
 		h.w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -464,7 +464,7 @@ func serviceRPC(h *serviceHandler, service string) {
 	if h.r.Header.Get("Content-Encoding") == "gzip" {
 		reqBody, err = gzip.NewReader(reqBody)
 		if err != nil {
-			log.Error("Fail to create gzip reader: %v", err)
+			log.Error("Fail to create gzip reader: %w", err)
 			h.w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

@@ -84,14 +84,14 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 
 	cfg, err := s.getConfig()
 	if err != nil {
-		log.Error("could not get SSPI config: %v", err)
+		log.Error("could not get SSPI config: %w", err)
 		return nil, err
 	}
 
 	log.Trace("SSPI Authorization: Attempting to authenticate")
 	userInfo, outToken, err := sspiAuth.Authenticate(req, w)
 	if err != nil {
-		log.Warn("Authentication failed with error: %v\n", err)
+		log.Warn("Authentication failed with error: %w\n", err)
 		sspiAuth.AppendAuthenticateHeader(w, outToken)
 
 		// Include the user login page in the 401 response to allow the user
@@ -105,7 +105,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 
 		err := s.rnd.HTML(w, http.StatusUnauthorized, string(tplSignIn), templates.BaseVars().Merge(store.GetData()))
 		if err != nil {
-			log.Error("%v", err)
+			log.Error("%w", err)
 		}
 
 		return nil, err
@@ -123,7 +123,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 	user, err := user_model.GetUserByName(req.Context(), username)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
-			log.Error("GetUserByName: %v", err)
+			log.Error("GetUserByName: %w", err)
 			return nil, err
 		}
 		if !cfg.AutoCreateUsers {
@@ -132,7 +132,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 		}
 		user, err = s.newUser(username, cfg)
 		if err != nil {
-			log.Error("CreateUser: %v", err)
+			log.Error("CreateUser: %w", err)
 			return nil, err
 		}
 	}

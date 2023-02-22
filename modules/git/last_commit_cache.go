@@ -107,7 +107,7 @@ func (c *LastCommitCache) GetCommitByPath(commitID, entryPath string) (*Commit, 
 	}
 
 	if err := c.Put(commitID, entryPath, lastCommit.ID.String()); err != nil {
-		log.Error("Unable to cache %s as the last commit for %q in %s %s. Error %v", lastCommit.ID.String(), entryPath, commitID, c.repoPath, err)
+		log.Error("Unable to cache %s as the last commit for %q in %s %s. Error %w", lastCommit.ID.String(), entryPath, commitID, c.repoPath, err)
 	}
 
 	return lastCommit, nil

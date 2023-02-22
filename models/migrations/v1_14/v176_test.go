@@ -64,14 +64,14 @@ func Test_RemoveInvalidLabels(t *testing.T) {
 
 	// Get pre migration values
 	if err := x.Find(&issueLabels); err != nil {
-		t.Errorf("Unable to find issueLabels: %v", err)
+		t.Errorf("Unable to find issueLabels: %w", err)
 		return
 	}
 	for _, issueLabel := range issueLabels {
 		ilPreMigration[issueLabel.ID] = issueLabel
 	}
 	if err := x.Find(&comments); err != nil {
-		t.Errorf("Unable to find comments: %v", err)
+		t.Errorf("Unable to find comments: %w", err)
 		return
 	}
 	for _, comment := range comments {
@@ -80,13 +80,13 @@ func Test_RemoveInvalidLabels(t *testing.T) {
 
 	// Run the migration
 	if err := RemoveInvalidLabels(x); err != nil {
-		t.Errorf("unable to RemoveInvalidLabels: %v", err)
+		t.Errorf("unable to RemoveInvalidLabels: %w", err)
 	}
 
 	// Get the post migration values
 	issueLabels = issueLabels[:0]
 	if err := x.Find(&issueLabels); err != nil {
-		t.Errorf("Unable to find issueLabels: %v", err)
+		t.Errorf("Unable to find issueLabels: %w", err)
 		return
 	}
 	for _, issueLabel := range issueLabels {
@@ -94,7 +94,7 @@ func Test_RemoveInvalidLabels(t *testing.T) {
 	}
 	comments = comments[:0]
 	if err := x.Find(&comments); err != nil {
-		t.Errorf("Unable to find comments: %v", err)
+		t.Errorf("Unable to find comments: %w", err)
 		return
 	}
 	for _, comment := range comments {

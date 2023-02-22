@@ -89,7 +89,7 @@ func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, passwo
 		gitea_sdk.SetHTTPClient(NewMigrationHTTPClient()),
 	)
 	if err != nil {
-		log.Error(fmt.Sprintf("Failed to create NewGiteaDownloader for: %s. Error: %v", baseURL, err))
+		log.Error(fmt.Sprintf("Failed to create NewGiteaDownloader for: %s. Error: %w", baseURL, err))
 		return nil, err
 	}
 
@@ -107,7 +107,7 @@ func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, passwo
 	apiConf, _, err := giteaClient.GetGlobalAPISettings()
 	if err != nil {
 		log.Info("Unable to get global API settings. Ignoring these.")
-		log.Debug("giteaClient.GetGlobalAPISettings. Error: %v", err)
+		log.Debug("giteaClient.GetGlobalAPISettings. Error: %w", err)
 	}
 	if apiConf != nil {
 		maxPerPage = apiConf.MaxResponseItems
@@ -423,7 +423,7 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 
 		reactions, err := g.getIssueReactions(issue.Index)
 		if err != nil {
-			WarnAndNotice("Unable to load reactions during migrating issue #%d in %s. Error: %v", issue.Index, g, err)
+			WarnAndNotice("Unable to load reactions during migrating issue #%d in %s. Error: %w", issue.Index, g, err)
 		}
 
 		var assignees []string
@@ -481,7 +481,7 @@ func (g *GiteaDownloader) GetComments(commentable base.Commentable) ([]*base.Com
 		for _, comment := range comments {
 			reactions, err := g.getCommentReactions(comment.ID)
 			if err != nil {
-				WarnAndNotice("Unable to load comment reactions during migrating issue #%d for comment %d in %s. Error: %v", commentable.GetForeignIndex(), comment.ID, g, err)
+				WarnAndNotice("Unable to load comment reactions during migrating issue #%d for comment %d in %s. Error: %w", commentable.GetForeignIndex(), comment.ID, g, err)
 			}
 
 			allComments = append(allComments, &base.Comment{
@@ -556,7 +556,7 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 
 		reactions, err := g.getIssueReactions(pr.Index)
 		if err != nil {
-			WarnAndNotice("Unable to load reactions during migrating pull #%d in %s. Error: %v", pr.Index, g, err)
+			WarnAndNotice("Unable to load reactions during migrating pull #%d in %s. Error: %w", pr.Index, g, err)
 		}
 
 		var assignees []string

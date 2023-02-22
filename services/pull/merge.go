@@ -145,10 +145,10 @@ func expandDefaultMergeMessage(template string, vars map[string]string) (message
 // Caller should check PR is ready to be merged (review and status checks)
 func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, wasAutoMerged bool) error {
 	if err := pr.LoadHeadRepo(ctx); err != nil {
-		log.Error("LoadHeadRepo: %v", err)
+		log.Error("LoadHeadRepo: %w", err)
 		return fmt.Errorf("LoadHeadRepo: %w", err)
 	} else if err := pr.LoadBaseRepo(ctx); err != nil {
-		log.Error("LoadBaseRepo: %v", err)
+		log.Error("LoadBaseRepo: %w", err)
 		return fmt.Errorf("LoadBaseRepo: %w", err)
 	}
 
@@ -162,7 +162,7 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 
 	prUnit, err := pr.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
 	if err != nil {
-		log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %v", err)
+		log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %w", err)
 		return err
 	}
 	prConfig := prUnit.PullRequestsConfig()
@@ -189,18 +189,18 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	pr.MergerID = doer.ID
 
 	if _, err := pr.SetMerged(hammerCtx); err != nil {
-		log.Error("SetMerged [%d]: %v", pr.ID, err)
+		log.Error("SetMerged [%d]: %w", pr.ID, err)
 	}
 
 	if err := pr.LoadIssue(hammerCtx); err != nil {
-		log.Error("LoadIssue [%d]: %v", pr.ID, err)
+		log.Error("LoadIssue [%d]: %w", pr.ID, err)
 	}
 
 	if err := pr.Issue.LoadRepo(hammerCtx); err != nil {
-		log.Error("LoadRepo for issue [%d]: %v", pr.ID, err)
+		log.Error("LoadRepo for issue [%d]: %w", pr.ID, err)
 	}
 	if err := pr.Issue.Repo.LoadOwner(hammerCtx); err != nil {
-		log.Error("LoadOwner for PR [%d]: %v", pr.ID, err)
+		log.Error("LoadOwner for PR [%d]: %w", pr.ID, err)
 	}
 
 	if wasAutoMerged {
@@ -215,7 +215,7 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	// Resolve cross references
 	refs, err := pr.ResolveCrossReferences(hammerCtx)
 	if err != nil {
-		log.Error("ResolveCrossReferences: %v", err)
+		log.Error("ResolveCrossReferences: %w", err)
 		return nil
 	}
 
@@ -244,7 +244,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 	// Clone base repo.
 	tmpBasePath, err := createTemporaryRepo(ctx, pr)
 	if err != nil {
-		log.Error("CreateTemporaryPath: %v", err)
+		log.Error("CreateTemporaryPath: %w", err)
 		return "", err
 	}
 	defer func() {
@@ -260,7 +260,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 	if expectedHeadCommitID != "" {
 		trackingCommitID, _, err := git.NewCommand(ctx, "show-ref", "--hash").AddDynamicArguments(git.BranchPrefix + trackingBranch).RunStdString(&git.RunOpts{Dir: tmpBasePath})
 		if err != nil {
-			log.Error("show-ref[%s] --hash refs/heads/trackingn: %v", tmpBasePath, git.BranchPrefix+trackingBranch, err)
+			log.Error("show-ref[%s] --hash refs/heads/trackingn: %w", tmpBasePath, git.BranchPrefix+trackingBranch, err)
 			return "", fmt.Errorf("getDiffTree: %w", err)
 		}
 		if strings.TrimSpace(trackingCommitID) != expectedHeadCommitID {
@@ -276,19 +276,19 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 	// Enable sparse-checkout
 	sparseCheckoutList, err := getDiffTree(ctx, tmpBasePath, baseBranch, trackingBranch)
 	if err != nil {
-		log.Error("getDiffTree(%s, %s, %s): %v", tmpBasePath, baseBranch, trackingBranch, err)
+		log.Error("getDiffTree(%s, %s, %s): %w", tmpBasePath, baseBranch, trackingBranch, err)
 		return "", fmt.Errorf("getDiffTree: %w", err)
 	}
 
 	infoPath := filepath.Join(tmpBasePath, ".git", "info")
 	if err := os.MkdirAll(infoPath, 0o700); err != nil {
-		log.Error("Unable to create .git/info in %s: %v", tmpBasePath, err)
+		log.Error("Unable to create .git/info in %s: %w", tmpBasePath, err)
 		return "", fmt.Errorf("Unable to create .git/info in tmpBasePath: %w", err)
 	}
 
 	sparseCheckoutListPath := filepath.Join(infoPath, "sparse-checkout")
 	if err := os.WriteFile(sparseCheckoutListPath, []byte(sparseCheckoutList), 0o600); err != nil {
-		log.Error("Unable to write .git/info/sparse-checkout file in %s: %v", tmpBasePath, err)
+		log.Error("Unable to write .git/info/sparse-checkout file in %s: %w", tmpBasePath, err)
 		return "", fmt.Errorf("Unable to write .git/info/sparse-checkout file in tmpBasePath: %w", err)
 	}
 
@@ -402,12 +402,12 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 	case repo_model.MergeStyleMerge:
 		cmd := git.NewCommand(ctx, "merge", "--no-ff", "--no-commit").AddDynamicArguments(trackingBranch)
 		if err := runMergeCommand(pr, mergeStyle, cmd, tmpBasePath); err != nil {
-			log.Error("Unable to merge tracking into base: %v", err)
+			log.Error("Unable to merge tracking into base: %w", err)
 			return "", err
 		}
 
 		if err := commitAndSignNoAuthor(ctx, pr, message, signArgs, tmpBasePath, env); err != nil {
-			log.Error("Unable to make final commit: %v", err)
+			log.Error("Unable to make final commit: %w", err)
 			return "", err
 		}
 	case repo_model.MergeStyleRebase:
@@ -504,12 +504,12 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 
 		// Prepare merge with commit
 		if err := runMergeCommand(pr, mergeStyle, cmd, tmpBasePath); err != nil {
-			log.Error("Unable to merge staging into base: %v", err)
+			log.Error("Unable to merge staging into base: %w", err)
 			return "", err
 		}
 		if mergeStyle == repo_model.MergeStyleRebaseMerge {
 			if err := commitAndSignNoAuthor(ctx, pr, message, signArgs, tmpBasePath, env); err != nil {
-				log.Error("Unable to make final commit: %v", err)
+				log.Error("Unable to make final commit: %w", err)
 				return "", err
 			}
 		}
@@ -517,12 +517,12 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 		// Merge with squash
 		cmd := git.NewCommand(ctx, "merge", "--squash").AddDynamicArguments(trackingBranch)
 		if err := runMergeCommand(pr, mergeStyle, cmd, tmpBasePath); err != nil {
-			log.Error("Unable to merge --squash tracking into base: %v", err)
+			log.Error("Unable to merge --squash tracking into base: %w", err)
 			return "", err
 		}
 
 		if err = pr.Issue.LoadPoster(ctx); err != nil {
-			log.Error("LoadPoster: %v", err)
+			log.Error("LoadPoster: %w", err)
 			return "", fmt.Errorf("LoadPoster: %w", err)
 		}
 		sig := pr.Issue.Poster.NewGitSig()
@@ -576,10 +576,10 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 	err = pr.HeadRepo.LoadOwner(ctx)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
-			log.Error("Can't find user: %d for head repository - %v", pr.HeadRepo.OwnerID, err)
+			log.Error("Can't find user: %d for head repository - %w", pr.HeadRepo.OwnerID, err)
 			return "", err
 		}
-		log.Error("Can't find user: %d for head repository - defaulting to doer: %s - %v", pr.HeadRepo.OwnerID, doer.Name, err)
+		log.Error("Can't find user: %d for head repository - defaulting to doer: %s - %w", pr.HeadRepo.OwnerID, doer.Name, err)
 		headUser = doer
 	} else {
 		headUser = pr.HeadRepo.Owner
@@ -763,7 +763,7 @@ func CheckPullBranchProtections(ctx context.Context, pr *issues_model.PullReques
 
 	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
 	if err != nil {
-		return fmt.Errorf("LoadProtectedBranch: %v", err)
+		return fmt.Errorf("LoadProtectedBranch: %w", err)
 	}
 	if pb == nil {
 		return nil

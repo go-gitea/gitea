@@ -82,7 +82,7 @@ func sendUserMail(language string, u *user_model.User, tpl base.TplName, code, s
 	var content bytes.Buffer
 
 	if err := bodyTemplates.ExecuteTemplate(&content, string(tpl), data); err != nil {
-		log.Error("Template: %v", err)
+		log.Error("Template: %w", err)
 		return
 	}
 
@@ -133,7 +133,7 @@ func SendActivateEmailMail(u *user_model.User, email *user_model.EmailAddress) {
 	var content bytes.Buffer
 
 	if err := bodyTemplates.ExecuteTemplate(&content, string(mailAuthActivateEmail), data); err != nil {
-		log.Error("Template: %v", err)
+		log.Error("Template: %w", err)
 		return
 	}
 
@@ -164,7 +164,7 @@ func SendRegisterNotifyMail(u *user_model.User) {
 	var content bytes.Buffer
 
 	if err := bodyTemplates.ExecuteTemplate(&content, string(mailAuthRegisterNotify), data); err != nil {
-		log.Error("Template: %v", err)
+		log.Error("Template: %w", err)
 		return
 	}
 
@@ -198,7 +198,7 @@ func SendCollaboratorMail(u, doer *user_model.User, repo *repo_model.Repository)
 	var content bytes.Buffer
 
 	if err := bodyTemplates.ExecuteTemplate(&content, string(mailNotifyCollaborator), data); err != nil {
-		log.Error("Template: %v", err)
+		log.Error("Template: %w", err)
 		return
 	}
 
@@ -288,7 +288,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 			subject = fallback
 		}
 	} else {
-		log.Error("ExecuteTemplate [%s]: %v", tplName+"/subject", err)
+		log.Error("ExecuteTemplate [%s]: %w", tplName+"/subject", err)
 	}
 
 	subject = emoji.ReplaceAliases(subject)
@@ -298,7 +298,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	var mailBody bytes.Buffer
 
 	if err := bodyTemplates.ExecuteTemplate(&mailBody, tplName, mailMeta); err != nil {
-		log.Error("ExecuteTemplate [%s]: %v", tplName+"/body", err)
+		log.Error("ExecuteTemplate [%s]: %w", tplName+"/body", err)
 	}
 
 	// Make sure to compose independent messages to avoid leaking user emails
@@ -335,7 +335,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 			if ctx.Comment != nil {
 				token, err := token.CreateToken(token.ReplyHandlerType, recipient, replyPayload)
 				if err != nil {
-					log.Error("CreateToken failed: %v", err)
+					log.Error("CreateToken failed: %w", err)
 				} else {
 					replyAddress := strings.Replace(setting.IncomingEmail.ReplyToAddress, setting.IncomingEmail.TokenPlaceholder, token, 1)
 					msg.ReplyTo = replyAddress
@@ -347,7 +347,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 
 			token, err := token.CreateToken(token.UnsubscribeHandlerType, recipient, unsubscribePayload)
 			if err != nil {
-				log.Error("CreateToken failed: %v", err)
+				log.Error("CreateToken failed: %w", err)
 			} else {
 				unsubAddress := strings.Replace(setting.IncomingEmail.ReplyToAddress, setting.IncomingEmail.TokenPlaceholder, token, 1)
 				listUnsubscribe = append(listUnsubscribe, "<mailto:"+unsubAddress+">")
@@ -444,7 +444,7 @@ func SendIssueAssignedMail(ctx context.Context, issue *issues_model.Issue, doer 
 	}
 
 	if err := issue.LoadRepo(ctx); err != nil {
-		log.Error("Unable to load repo [%d] for issue #%d [%d]. Error: %v", issue.RepoID, issue.Index, issue.ID, err)
+		log.Error("Unable to load repo [%d] for issue #%d [%d]. Error: %w", issue.RepoID, issue.Index, issue.ID, err)
 		return err
 	}
 

@@ -57,7 +57,7 @@ func AdoptRepository(doer, u *user_model.User, opts repo_module.CreateRepoOption
 		repoPath := repo_model.RepoPath(u.Name, repo.Name)
 		isExist, err := util.IsExist(repoPath)
 		if err != nil {
-			log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+			log.Error("Unable to check if %s exists. Error: %w", repoPath, err)
 			return err
 		}
 		if !isExist {
@@ -87,7 +87,7 @@ func AdoptRepository(doer, u *user_model.User, opts repo_module.CreateRepoOption
 		if stdout, _, err := git.NewCommand(ctx, "update-server-info").
 			SetDescription(fmt.Sprintf("CreateRepository(git update-server-info): %s", repoPath)).
 			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
-			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
+			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %w", repo, stdout, err)
 			return fmt.Errorf("CreateRepository(git update-server-info): %w", err)
 		}
 		return nil
@@ -103,7 +103,7 @@ func AdoptRepository(doer, u *user_model.User, opts repo_module.CreateRepoOption
 func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, repo *repo_model.Repository, opts repo_module.CreateRepoOptions) (err error) {
 	isExist, err := util.IsExist(repoPath)
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+		log.Error("Unable to check if %s exists. Error: %w", repoPath, err)
 		return err
 	}
 	if !isExist {
@@ -196,7 +196,7 @@ func DeleteUnadoptedRepository(doer, u *user_model.User, repoName string) error 
 	repoPath := repo_model.RepoPath(u.Name, repoName)
 	isExist, err := util.IsExist(repoPath)
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+		log.Error("Unable to check if %s exists. Error: %w", repoPath, err)
 		return err
 	}
 	if !isExist {
@@ -280,12 +280,12 @@ func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, in
 		var err error
 		globUser, err = glob.Compile(qsplit[0])
 		if err != nil {
-			log.Info("Invalid glob expression '%s' (skipped): %v", qsplit[0], err)
+			log.Info("Invalid glob expression '%s' (skipped): %w", qsplit[0], err)
 		}
 		if len(qsplit) > 1 {
 			globRepo, err = glob.Compile(qsplit[1])
 			if err != nil {
-				log.Info("Invalid glob expression '%s' (skipped): %v", qsplit[1], err)
+				log.Info("Invalid glob expression '%s' (skipped): %w", qsplit[1], err)
 			}
 		}
 	}

@@ -58,13 +58,13 @@ func loadSecret(sec *ini.Section, uriKey, verbatimKey string) string {
 
 	tempURI, err := url.Parse(uri)
 	if err != nil {
-		log.Fatal("Failed to parse %s (%s): %v", uriKey, uri, err)
+		log.Fatal("Failed to parse %s (%s): %w", uriKey, uri, err)
 	}
 	switch tempURI.Scheme {
 	case "file":
 		buf, err := os.ReadFile(tempURI.RequestURI())
 		if err != nil {
-			log.Fatal("Failed to read %s (%s): %v", uriKey, tempURI.RequestURI(), err)
+			log.Fatal("Failed to read %s (%s): %w", uriKey, tempURI.RequestURI(), err)
 		}
 		val := strings.TrimSpace(string(buf))
 		if val == "" {
@@ -87,7 +87,7 @@ func loadSecret(sec *ini.Section, uriKey, verbatimKey string) string {
 func generateSaveInternalToken() {
 	token, err := generate.NewInternalToken()
 	if err != nil {
-		log.Fatal("Error generate internal token: %v", err)
+		log.Fatal("Error generate internal token: %w", err)
 	}
 
 	InternalToken = token

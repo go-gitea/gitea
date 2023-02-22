@@ -35,7 +35,7 @@ func SendEmail(ctx *context.PrivateContext) {
 	defer rd.Close()
 
 	if err := json.NewDecoder(rd).Decode(&mail); err != nil {
-		log.Error("%v", err)
+		log.Error("%w", err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: err.Error(),
 		})
@@ -47,7 +47,7 @@ func SendEmail(ctx *context.PrivateContext) {
 		for _, uname := range mail.To {
 			user, err := user_model.GetUserByName(ctx, uname)
 			if err != nil {
-				err := fmt.Sprintf("Failed to get user information: %v", err)
+				err := fmt.Sprintf("Failed to get user information: %w", err)
 				log.Error(err)
 				ctx.JSON(http.StatusInternalServerError, private.Response{
 					Err: err,
@@ -67,7 +67,7 @@ func SendEmail(ctx *context.PrivateContext) {
 			return nil
 		})
 		if err != nil {
-			err := fmt.Sprintf("Failed to find users: %v", err)
+			err := fmt.Sprintf("Failed to find users: %w", err)
 			log.Error(err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
 				Err: err,

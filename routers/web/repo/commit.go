@@ -120,7 +120,7 @@ func Graph(ctx *context.Context) {
 
 	graphCommitsCount, err := ctx.Repo.GetCommitGraphsCount(ctx, hidePRRefs, realBranches, files)
 	if err != nil {
-		log.Warn("GetCommitGraphsCount error for generate graph exclude prs: %t branches: %s in %-v, Will Ignore branches and try again. Underlying Error: %v", hidePRRefs, branches, ctx.Repo.Repository, err)
+		log.Warn("GetCommitGraphsCount error for generate graph exclude prs: %t branches: %s in %-v, Will Ignore branches and try again. Underlying Error: %w", hidePRRefs, branches, ctx.Repo.Repository, err)
 		realBranches = []string{}
 		branches = []string{}
 		graphCommitsCount, err = ctx.Repo.GetCommitGraphsCount(ctx, hidePRRefs, realBranches, files)
@@ -337,7 +337,7 @@ func Diff(ctx *context.Context) {
 
 	statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, commitID, db.ListOptions{})
 	if err != nil {
-		log.Error("GetLatestCommitStatus: %v", err)
+		log.Error("GetLatestCommitStatus: %w", err)
 	}
 
 	ctx.Data["CommitStatus"] = git_model.CalcCommitStatus(statuses)

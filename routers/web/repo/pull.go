@@ -377,7 +377,7 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *issues_model.Issue) 
 			}
 			// Special case on Git < 2.25 that doesn't fail on immediate empty history
 			if err != nil || parentCommit == "" {
-				log.Info("No known parent commit for PR %d, error: %v", pull.Index, err)
+				log.Info("No known parent commit for PR %d, error: %w", pull.Index, err)
 				// bring at least partial history if it can work
 				parentCommit = commitSHA
 			}
@@ -1050,19 +1050,19 @@ func MergePullRequest(ctx *context.Context) {
 			ctx.Flash.Error(flashError)
 			ctx.Redirect(issue.Link())
 		} else if models.IsErrMergeUnrelatedHistories(err) {
-			log.Debug("MergeUnrelatedHistories error: %v", err)
+			log.Debug("MergeUnrelatedHistories error: %w", err)
 			ctx.Flash.Error(ctx.Tr("repo.pulls.unrelated_histories"))
 			ctx.Redirect(issue.Link())
 		} else if git.IsErrPushOutOfDate(err) {
-			log.Debug("MergePushOutOfDate error: %v", err)
+			log.Debug("MergePushOutOfDate error: %w", err)
 			ctx.Flash.Error(ctx.Tr("repo.pulls.merge_out_of_date"))
 			ctx.Redirect(issue.Link())
 		} else if models.IsErrSHADoesNotMatch(err) {
-			log.Debug("MergeHeadOutOfDate error: %v", err)
+			log.Debug("MergeHeadOutOfDate error: %w", err)
 			ctx.Flash.Error(ctx.Tr("repo.pulls.head_out_of_date"))
 			ctx.Redirect(issue.Link())
 		} else if git.IsErrPushRejected(err) {
-			log.Debug("MergePushRejected error: %v", err)
+			log.Debug("MergePushRejected error: %w", err)
 			pushrejErr := err.(*git.ErrPushRejected)
 			message := pushrejErr.Message
 			if len(message) == 0 {
@@ -1379,13 +1379,13 @@ func CleanUpPullRequest(ctx *context.Context) {
 	// Check if branch has no new commits
 	headCommitID, err := gitBaseRepo.GetRefCommitID(pr.GetGitRefName())
 	if err != nil {
-		log.Error("GetRefCommitID: %v", err)
+		log.Error("GetRefCommitID: %w", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
 		return
 	}
 	branchCommitID, err := gitRepo.GetBranchCommitID(pr.HeadBranch)
 	if err != nil {
-		log.Error("GetBranchCommitID: %v", err)
+		log.Error("GetBranchCommitID: %w", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
 		return
 	}
@@ -1408,7 +1408,7 @@ func deleteBranch(ctx *context.Context, pr *issues_model.PullRequest, gitRepo *g
 		case errors.Is(err, git_model.ErrBranchIsProtected):
 			ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
 		default:
-			log.Error("DeleteBranch: %v", err)
+			log.Error("DeleteBranch: %w", err)
 			ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
 		}
 		return
@@ -1416,7 +1416,7 @@ func deleteBranch(ctx *context.Context, pr *issues_model.PullRequest, gitRepo *g
 
 	if err := issues_model.AddDeletePRBranchComment(ctx, ctx.Doer, pr.BaseRepo, pr.IssueID, pr.HeadBranch); err != nil {
 		// Do not fail here as branch has already been deleted
-		log.Error("DeleteBranch: %v", err)
+		log.Error("DeleteBranch: %w", err)
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.branch.deletion_success", fullBranchName))

@@ -48,7 +48,7 @@ func runFCGI(network, listenAddr, name string, m http.Handler, useProxyProtocol 
 		}))
 	}, useProxyProtocol)
 	if err != nil {
-		log.Fatal("Failed to start FCGI main server: %v", err)
+		log.Fatal("Failed to start FCGI main server: %w", err)
 	}
 	log.Info("FCGI Listener: %s Closed", listenAddr)
 	return err

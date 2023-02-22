@@ -126,7 +126,7 @@ func CheckCreateRepository(doer, u *user_model.User, name string, overwriteOrAdo
 	repoPath := RepoPath(u.Name, name)
 	isExist, err := util.IsExist(repoPath)
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+		log.Error("Unable to check if %s exists. Error: %w", repoPath, err)
 		return err
 	}
 	if !overwriteOrAdopt && isExist {
@@ -162,7 +162,7 @@ func ChangeRepositoryName(doer *user_model.User, repo *Repository, newRepoName s
 	wikiPath := repo.WikiPath()
 	isExist, err := util.IsExist(wikiPath)
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", wikiPath, err)
+		log.Error("Unable to check if %s exists. Error: %w", wikiPath, err)
 		return err
 	}
 	if isExist {

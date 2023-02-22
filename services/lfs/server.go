@@ -124,7 +124,7 @@ func DownloadHandler(ctx *context.Context) {
 	if fromByte > 0 {
 		_, err = content.Seek(fromByte, io.SeekStart)
 		if err != nil {
-			log.Error("Whilst trying to read LFS OID[%s]: Unable to seek to %d Error: %v", meta.Oid, fromByte, err)
+			log.Error("Whilst trying to read LFS OID[%s]: Unable to seek to %d Error: %w", meta.Oid, fromByte, err)
 
 			writeStatus(ctx, http.StatusInternalServerError)
 			return
@@ -146,7 +146,7 @@ func DownloadHandler(ctx *context.Context) {
 
 	ctx.Resp.WriteHeader(statusCode)
 	if written, err := io.CopyN(ctx.Resp, content, contentLength); err != nil {
-		log.Error("Error whilst copying LFS OID[%s] to the response after %d bytes. Error: %v", meta.Oid, written, err)
+		log.Error("Error whilst copying LFS OID[%s] to the response after %d bytes. Error: %w", meta.Oid, written, err)
 	}
 }
 
@@ -154,7 +154,7 @@ func DownloadHandler(ctx *context.Context) {
 func BatchHandler(ctx *context.Context) {
 	var br lfs_module.BatchRequest
 	if err := decodeJSON(ctx.Req, &br); err != nil {
-		log.Trace("Unable to decode BATCH request vars: Error: %v", err)
+		log.Trace("Unable to decode BATCH request vars: Error: %w", err)
 		writeStatus(ctx, http.StatusBadRequest)
 		return
 	}
@@ -192,14 +192,14 @@ func BatchHandler(ctx *context.Context) {
 
 		exists, err := contentStore.Exists(p)
 		if err != nil {
-			log.Error("Unable to check if LFS OID[%s] exist. Error: %v", p.Oid, rc.User, rc.Repo, err)
+			log.Error("Unable to check if LFS OID[%s] exist. Error: %w", p.Oid, rc.User, rc.Repo, err)
 			writeStatus(ctx, http.StatusInternalServerError)
 			return
 		}
 
 		meta, err := git_model.GetLFSMetaObjectByOid(ctx, repository.ID, p.Oid)
 		if err != nil && err != git_model.ErrLFSObjectNotExist {
-			log.Error("Unable to get LFS MetaObject [%s] for %s/%s. Error: %v", p.Oid, rc.User, rc.Repo, err)
+			log.Error("Unable to get LFS MetaObject [%s] for %s/%s. Error: %w", p.Oid, rc.User, rc.Repo, err)
 			writeStatus(ctx, http.StatusInternalServerError)
 			return
 		}
@@ -225,14 +225,14 @@ func BatchHandler(ctx *context.Context) {
 			if exists && meta == nil {
 				accessible, err := git_model.LFSObjectAccessible(ctx, ctx.Doer, p.Oid)
 				if err != nil {
-					log.Error("Unable to check if LFS MetaObject [%s] is accessible. Error: %v", p.Oid, err)
+					log.Error("Unable to check if LFS MetaObject [%s] is accessible. Error: %w", p.Oid, err)
 					writeStatus(ctx, http.StatusInternalServerError)
 					return
 				}
 				if accessible {
 					_, err := git_model.NewLFSMetaObject(ctx, &git_model.LFSMetaObject{Pointer: p, RepositoryID: repository.ID})
 					if err != nil {
-						log.Error("Unable to create LFS MetaObject [%s] for %s/%s. Error: %v", p.Oid, rc.User, rc.Repo, err)
+						log.Error("Unable to create LFS MetaObject [%s] for %s/%s. Error: %w", p.Oid, rc.User, rc.Repo, err)
 						writeStatus(ctx, http.StatusInternalServerError)
 						return
 					}
@@ -262,7 +262,7 @@ func BatchHandler(ctx *context.Context) {
 
 	enc := json.NewEncoder(ctx.Resp)
 	if err := enc.Encode(respobj); err != nil {
-		log.Error("Failed to encode representation as json. Error: %v", err)
+		log.Error("Failed to encode representation as json. Error: %w", err)
 	}
 }
 
@@ -290,7 +290,7 @@ func UploadHandler(ctx *context.Context) {
 	contentStore := lfs_module.NewContentStore()
 	exists, err := contentStore.Exists(p)
 	if err != nil {
-		log.Error("Unable to check if LFS OID[%s] exist. Error: %v", p.Oid, err)
+		log.Error("Unable to check if LFS OID[%s] exist. Error: %w", p.Oid, err)
 		writeStatus(ctx, http.StatusInternalServerError)
 		return
 	}
@@ -299,7 +299,7 @@ func UploadHandler(ctx *context.Context) {
 		if exists {
 			accessible, err := git_model.LFSObjectAccessible(ctx, ctx.Doer, p.Oid)
 			if err != nil {
-				log.Error("Unable to check if LFS MetaObject [%s] is accessible. Error: %v", p.Oid, err)
+				log.Error("Unable to check if LFS MetaObject [%s] is accessible. Error: %w", p.Oid, err)
 				return err
 			}
 			if !accessible {
@@ -308,7 +308,7 @@ func UploadHandler(ctx *context.Context) {
 				hash := sha256.New()
 				written, err := io.Copy(hash, ctx.Req.Body)
 				if err != nil {
-					log.Error("Error creating hash. Error: %v", err)
+					log.Error("Error creating hash. Error: %w", err)
 					return err
 				}
 
@@ -320,7 +320,7 @@ func UploadHandler(ctx *context.Context) {
 				}
 			}
 		} else if err := contentStore.Put(p, ctx.Req.Body); err != nil {
-			log.Error("Error putting LFS MetaObject [%s] into content store. Error: %v", p.Oid, err)
+			log.Error("Error putting LFS MetaObject [%s] into content store. Error: %w", p.Oid, err)
 			return err
 		}
 		_, err := git_model.NewLFSMetaObject(ctx, &git_model.LFSMetaObject{Pointer: p, RepositoryID: repository.ID})
@@ -330,13 +330,13 @@ func UploadHandler(ctx *context.Context) {
 	defer ctx.Req.Body.Close()
 	if err := uploadOrVerify(); err != nil {
 		if errors.Is(err, lfs_module.ErrSizeMismatch) || errors.Is(err, lfs_module.ErrHashMismatch) {
-			log.Error("Upload does not match LFS MetaObject [%s]. Error: %v", p.Oid, err)
+			log.Error("Upload does not match LFS MetaObject [%s]. Error: %w", p.Oid, err)
 			writeStatusMessage(ctx, http.StatusUnprocessableEntity, err.Error())
 		} else {
 			writeStatus(ctx, http.StatusInternalServerError)
 		}
 		if _, err = git_model.RemoveLFSMetaObjectByOid(ctx, repository.ID, p.Oid); err != nil {
-			log.Error("Error whilst removing metaobject for LFS OID[%s]: %v", p.Oid, err)
+			log.Error("Error whilst removing metaobject for LFS OID[%s]: %w", p.Oid, err)
 		}
 		return
 	}
@@ -400,7 +400,7 @@ func getAuthenticatedMeta(ctx *context.Context, rc *requestContext, p lfs_module
 
 	meta, err := git_model.GetLFSMetaObjectByOid(ctx, repository.ID, p.Oid)
 	if err != nil {
-		log.Error("Unable to get LFS OID[%s] Error: %v", p.Oid, err)
+		log.Error("Unable to get LFS OID[%s] Error: %w", p.Oid, err)
 		writeStatus(ctx, http.StatusNotFound)
 		return nil
 	}
@@ -411,7 +411,7 @@ func getAuthenticatedMeta(ctx *context.Context, rc *requestContext, p lfs_module
 func getAuthenticatedRepository(ctx *context.Context, rc *requestContext, requireWrite bool) *repo_model.Repository {
 	repository, err := repo_model.GetRepositoryByOwnerAndName(ctx, rc.User, rc.Repo)
 	if err != nil {
-		log.Error("Unable to get repository: %s/%s Error: %v", rc.User, rc.Repo, err)
+		log.Error("Unable to get repository: %s/%s Error: %w", rc.User, rc.Repo, err)
 		writeStatus(ctx, http.StatusNotFound)
 		return nil
 	}
@@ -483,7 +483,7 @@ func writeStatusMessage(ctx *context.Context, status int, message string) {
 
 	enc := json.NewEncoder(ctx.Resp)
 	if err := enc.Encode(er); err != nil {
-		log.Error("Failed to encode error response as json. Error: %v", err)
+		log.Error("Failed to encode error response as json. Error: %w", err)
 	}
 }
 
@@ -510,7 +510,7 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 	user, err := parseToken(ctx, authorization, repository, accessMode)
 	if err != nil {
 		// Most of these are Warn level - the true internal server errors are logged in parseToken already
-		log.Warn("Authentication failure for provided token with Error: %v", err)
+		log.Warn("Authentication failure for provided token with Error: %w", err)
 		return false
 	}
 	ctx.Doer = user
@@ -546,7 +546,7 @@ func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repo
 
 	u, err := user_model.GetUserByID(ctx, claims.UserID)
 	if err != nil {
-		log.Error("Unable to GetUserById[%d]: Error: %v", claims.UserID, err)
+		log.Error("Unable to GetUserById[%d]: Error: %w", claims.UserID, err)
 		return nil, err
 	}
 	return u, nil

@@ -144,7 +144,7 @@ func DeleteUploads(uploads ...*Upload) (err error) {
 		localPath := upload.LocalPath()
 		isFile, err := util.IsFile(localPath)
 		if err != nil {
-			log.Error("Unable to check if %s is a file. Error: %v", localPath, err)
+			log.Error("Unable to check if %s is a file. Error: %w", localPath, err)
 		}
 		if !isFile {
 			continue

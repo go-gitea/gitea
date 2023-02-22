@@ -54,7 +54,7 @@ func shadowPasswordKV(cfgItem, splitter string) string {
 func shadowURL(provider, cfgItem string) string {
 	u, err := url.Parse(cfgItem)
 	if err != nil {
-		log.Error("Shadowing Password for %v failed: %v", provider, err)
+		log.Error("Shadowing Password for %v failed: %w", provider, err)
 		return cfgItem
 	}
 	if u.User != nil {
@@ -153,7 +153,7 @@ func Config(ctx *context.Context) {
 	if sessionCfg.Provider == "VirtualSession" {
 		var realSession session.Options
 		if err := json.Unmarshal([]byte(sessionCfg.ProviderConfig), &realSession); err != nil {
-			log.Error("Unable to unmarshall session config for virtual provider config: %s\nError: %v", sessionCfg.ProviderConfig, err)
+			log.Error("Unable to unmarshall session config for virtual provider config: %s\nError: %w", sessionCfg.ProviderConfig, err)
 		}
 		sessionCfg.Provider = realSession.Provider
 		sessionCfg.ProviderConfig = realSession.ProviderConfig
@@ -205,7 +205,7 @@ func ChangeConfig(ctx *context.Context) {
 
 	if check, ok := changeConfigChecks[key]; ok {
 		if err := check(ctx, value); err != nil {
-			log.Warn("refused to set setting: %v", err)
+			log.Warn("refused to set setting: %w", err)
 			ctx.JSON(http.StatusOK, map[string]string{
 				"err": ctx.Tr("admin.config.set_setting_failed", key),
 			})
@@ -218,7 +218,7 @@ func ChangeConfig(ctx *context.Context) {
 		SettingValue: value,
 		Version:      version,
 	}); err != nil {
-		log.Error("set setting failed: %v", err)
+		log.Error("set setting failed: %w", err)
 		ctx.JSON(http.StatusOK, map[string]string{
 			"err": ctx.Tr("admin.config.set_setting_failed", key),
 		})

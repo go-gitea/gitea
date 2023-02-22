@@ -193,7 +193,7 @@ func SetDefaultBranch(ctx context.Context, ownerName, repoName, branch string) e
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Error returned from gitea: %v", decodeJSONError(resp).Err)
+		return fmt.Errorf("Error returned from gitea: %w", decodeJSONError(resp).Err)
 	}
 	return nil
 }
@@ -218,7 +218,7 @@ func SSHLog(ctx context.Context, isErr bool, msg string) error {
 
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Error returned from gitea: %v", decodeJSONError(resp).Err)
+		return fmt.Errorf("Error returned from gitea: %w", decodeJSONError(resp).Err)
 	}
 	return nil
 }

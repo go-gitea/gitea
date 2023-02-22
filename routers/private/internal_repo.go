@@ -44,9 +44,9 @@ func RepoAssignment(ctx *gitea_context.PrivateContext) context.CancelFunc {
 
 	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 	if err != nil {
-		log.Error("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err)
+		log.Error("Failed to open repository: %s/%s Error: %w", ownerName, repoName, err)
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"Err": fmt.Sprintf("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err),
+			"Err": fmt.Sprintf("Failed to open repository: %s/%s Error: %w", ownerName, repoName, err),
 		})
 		return nil
 	}
@@ -70,9 +70,9 @@ func RepoAssignment(ctx *gitea_context.PrivateContext) context.CancelFunc {
 func loadRepository(ctx *gitea_context.PrivateContext, ownerName, repoName string) *repo_model.Repository {
 	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ownerName, repoName)
 	if err != nil {
-		log.Error("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err)
+		log.Error("Failed to get repository: %s/%s Error: %w", ownerName, repoName, err)
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"Err": fmt.Sprintf("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err),
+			"Err": fmt.Sprintf("Failed to get repository: %s/%s Error: %w", ownerName, repoName, err),
 		})
 		return nil
 	}

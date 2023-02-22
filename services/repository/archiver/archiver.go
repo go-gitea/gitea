@@ -308,7 +308,7 @@ func Init() error {
 			}
 			log.Trace("ArchiverData Process: %#v", archiveReq)
 			if _, err := doArchive(archiveReq); err != nil {
-				log.Error("Archive %v failed: %v", datum, err)
+				log.Error("Archive %v failed: %w", datum, err)
 			}
 		}
 		return nil
@@ -342,7 +342,7 @@ func deleteOldRepoArchiver(ctx context.Context, archiver *repo_model.RepoArchive
 	}
 	p := archiver.RelativePath()
 	if err := storage.RepoArchives.Delete(p); err != nil {
-		log.Error("delete repo archive file failed: %v", err)
+		log.Error("delete repo archive file failed: %w", err)
 	}
 	return nil
 }
@@ -360,7 +360,7 @@ func DeleteOldRepositoryArchives(ctx context.Context, olderThan time.Duration) e
 			OlderThan: olderThan,
 		})
 		if err != nil {
-			log.Trace("Error: ArchiveClean: %v", err)
+			log.Trace("Error: ArchiveClean: %w", err)
 			return err
 		}
 

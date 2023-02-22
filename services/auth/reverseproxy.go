@@ -61,7 +61,7 @@ func (r *ReverseProxy) getUserFromAuthUser(req *http.Request) (*user_model.User,
 	user, err := user_model.GetUserByName(req.Context(), username)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) || !r.isAutoRegisterAllowed() {
-			log.Error("GetUserByName: %v", err)
+			log.Error("GetUserByName: %w", err)
 			return nil, err
 		}
 		user = r.newUser(req)
@@ -95,7 +95,7 @@ func (r *ReverseProxy) getUserFromAuthEmail(req *http.Request) *user_model.User 
 	if err != nil {
 		// Do not allow auto-registration, we don't have a username here
 		if !user_model.IsErrUserNotExist(err) {
-			log.Error("GetUserByEmail: %v", err)
+			log.Error("GetUserByEmail: %w", err)
 		}
 		return nil
 	}
@@ -168,7 +168,7 @@ func (r *ReverseProxy) newUser(req *http.Request) *user_model.User {
 
 	if err := user_model.CreateUser(user, &overwriteDefault); err != nil {
 		// FIXME: should I create a system notice?
-		log.Error("CreateUser: %v", err)
+		log.Error("CreateUser: %w", err)
 		return nil
 	}
 

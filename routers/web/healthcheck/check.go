@@ -94,7 +94,7 @@ func checkDatabase(checks checks) status {
 	if err := db.GetEngine(db.DefaultContext).Ping(); err != nil {
 		st.Status = fail
 		st.Time = getCheckTime()
-		log.Error("database ping failed with error: %v", err)
+		log.Error("database ping failed with error: %w", err)
 	} else {
 		st.Status = pass
 		st.Time = getCheckTime()
@@ -109,7 +109,7 @@ func checkDatabase(checks checks) status {
 			if _, err := os.Stat(setting.Database.Path); err != nil {
 				st.Status = fail
 				st.Time = getCheckTime()
-				log.Error("SQLite3 file exists check failed with error: %v", err)
+				log.Error("SQLite3 file exists check failed with error: %w", err)
 			}
 		}
 	}
@@ -128,7 +128,7 @@ func checkCache(checks checks) status {
 	if err := cache.GetCache().Ping(); err != nil {
 		st.Status = fail
 		st.Time = getCheckTime()
-		log.Error("cache ping failed with error: %v", err)
+		log.Error("cache ping failed with error: %w", err)
 	} else {
 		st.Status = pass
 		st.Time = getCheckTime()

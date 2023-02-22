@@ -72,7 +72,7 @@ func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.R
 
 	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 	if err != nil {
-		log.Error("Unable to open git repository %-v: %v", repo, err)
+		log.Error("Unable to open git repository %-v: %w", repo, err)
 		return err
 	}
 	defer gitRepo.Close()
@@ -102,7 +102,7 @@ func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.R
 			}
 
 			if err := store.Delete(metaObject.RelativePath()); err != nil {
-				log.Error("Unable to remove lfs metaobject %s from store: %v", metaObject.Oid, err)
+				log.Error("Unable to remove lfs metaobject %s from store: %w", metaObject.Oid, err)
 			}
 			deleted++
 			return nil

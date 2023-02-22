@@ -142,7 +142,7 @@ func (l *locale) Tr(trKey string, trArgs ...interface{}) string {
 
 	msg, err := Format(format, trArgs...)
 	if err != nil {
-		log.Error("Error whilst formatting %q in %s: %v", trKey, l.langName, err)
+		log.Error("Error whilst formatting %q in %s: %w", trKey, l.langName, err)
 	}
 	return msg
 }

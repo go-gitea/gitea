@@ -599,7 +599,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head
 			// ... now add the remote
 			err := g.gitRepo.AddRemote(remote, pr.Head.CloneURL, true)
 			if err != nil {
-				log.Error("PR #%d in %s/%s AddRemote[%s] failed: %v", pr.Number, g.repoOwner, g.repoName, remote, err)
+				log.Error("PR #%d in %s/%s AddRemote[%s] failed: %w", pr.Number, g.repoOwner, g.repoName, remote, err)
 			} else {
 				g.prHeadCache[pr.Head.CloneURL+":"] = remote
 				ok = true
@@ -637,7 +637,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head
 
 			_, _, err = git.NewCommand(g.ctx, "fetch", "--no-tags").AddDashesAndList(remote, fetchArg).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
 			if err != nil {
-				log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
+				log.Error("Fetch branch from %s failed: %w", pr.Head.CloneURL, err)
 				return head, nil
 			}
 			g.prHeadCache[pr.Head.CloneURL+":"+pr.Head.Ref] = localRef
@@ -648,7 +648,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head
 		if pr.Head.SHA == "" {
 			headSha, err := g.gitRepo.GetBranchCommitID(localRef)
 			if err != nil {
-				log.Error("unable to get head SHA of local head for PR #%d from %s in %s/%s. Error: %v", pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
+				log.Error("unable to get head SHA of local head for PR #%d from %s in %s/%s. Error: %w", pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
 				return head, nil
 			}
 			pr.Head.SHA = headSha
@@ -679,7 +679,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head
 			// set head information
 			_, _, err = git.NewCommand(g.ctx, "update-ref", "--no-deref").AddDynamicArguments(pr.GetGitRefName(), pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
 			if err != nil {
-				log.Error("unable to set %s as the local head for PR #%d from %s in %s/%s. Error: %v", pr.Head.SHA, pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
+				log.Error("unable to set %s as the local head for PR #%d from %s in %s/%s. Error: %w", pr.Head.SHA, pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
 			}
 		}
 	}
@@ -710,7 +710,7 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*issues_model
 			// TODO: should we be checking for the refs/heads/ prefix on the pr.Base.Ref? (i.e. are these actually branches or refs)
 			pr.Base.SHA, _, err = g.gitRepo.GetMergeBase("", git.BranchPrefix+pr.Base.Ref, pr.Head.SHA)
 			if err != nil {
-				log.Error("Cannot determine the merge base for PR #%d in %s/%s. Error: %v", pr.Number, g.repoOwner, g.repoName, err)
+				log.Error("Cannot determine the merge base for PR #%d in %s/%s. Error: %w", pr.Number, g.repoOwner, g.repoName, err)
 			}
 		} else {
 			log.Error("Cannot determine the merge base for PR #%d in %s/%s. Not enough information", pr.Number, g.repoOwner, g.repoName)
@@ -874,7 +874,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			go func(comment *base.ReviewComment) {
 				if err := git.GetRepoRawDiffForFile(g.gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, comment.TreePath, writer); err != nil {
 					// We should ignore the error since the commit maybe removed when force push to the pull request
-					log.Warn("GetRepoRawDiffForFile failed when migrating [%s, %s, %s, %s]: %v", g.gitRepo.Path, pr.MergeBase, headCommitID, comment.TreePath, err)
+					log.Warn("GetRepoRawDiffForFile failed when migrating [%s, %s, %s, %s]: %w", g.gitRepo.Path, pr.MergeBase, headCommitID, comment.TreePath, err)
 				}
 				_ = writer.Close()
 			}(comment)
@@ -988,7 +988,7 @@ func (g *GiteaLocalUploader) remapExternalUser(source user_model.ExternalUserMig
 	if !ok {
 		userid, err = user_model.GetUserIDByExternalUserID(g.gitServiceType.Name(), fmt.Sprintf("%d", source.GetExternalID()))
 		if err != nil {
-			log.Error("GetUserIDByExternalUserID: %v", err)
+			log.Error("GetUserIDByExternalUserID: %w", err)
 			return 0, err
 		}
 		g.userMap[source.GetExternalID()] = userid

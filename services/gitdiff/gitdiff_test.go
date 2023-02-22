@@ -177,7 +177,7 @@ diff --git "\\a/README.md" "\\b/README.md"
 		t.Run(testcase.name, func(t *testing.T) {
 			got, err := ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff), testcase.skipTo)
 			if (err != nil) != testcase.wantErr {
-				t.Errorf("ParsePatch(%q) error = %v, wantErr %v", testcase.name, err, testcase.wantErr)
+				t.Errorf("ParsePatch(%q) error = %v, wantErr %w", testcase.name, err, testcase.wantErr)
 				return
 			}
 
@@ -402,7 +402,7 @@ index 6961180..9ba1a00 100644
 		t.Run(testcase.name, func(t *testing.T) {
 			got, err := ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff), "")
 			if (err != nil) != testcase.wantErr {
-				t.Errorf("ParsePatch(%q) error = %v, wantErr %v", testcase.name, err, testcase.wantErr)
+				t.Errorf("ParsePatch(%q) error = %v, wantErr %w", testcase.name, err, testcase.wantErr)
 				return
 			}
 
@@ -451,21 +451,21 @@ index 0000000..6bb8f39
 	diff = diffBuilder.String()
 	result, err := ParsePatch(20, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
 	if err != nil {
-		t.Errorf("There should not be an error: %v", err)
+		t.Errorf("There should not be an error: %w", err)
 	}
 	if !result.Files[0].IsIncomplete {
 		t.Errorf("Files should be incomplete! %v", result.Files[0])
 	}
 	result, err = ParsePatch(40, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
 	if err != nil {
-		t.Errorf("There should not be an error: %v", err)
+		t.Errorf("There should not be an error: %w", err)
 	}
 	if result.Files[0].IsIncomplete {
 		t.Errorf("Files should not be incomplete! %v", result.Files[0])
 	}
 	result, err = ParsePatch(40, 5, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
 	if err != nil {
-		t.Errorf("There should not be an error: %v", err)
+		t.Errorf("There should not be an error: %w", err)
 	}
 	if !result.Files[0].IsIncomplete {
 		t.Errorf("Files should be incomplete! %v", result.Files[0])
@@ -496,14 +496,14 @@ index 0000000..6bb8f39
 
 	result, err = ParsePatch(20, 4096, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
 	if err != nil {
-		t.Errorf("There should not be an error: %v", err)
+		t.Errorf("There should not be an error: %w", err)
 	}
 	if !result.Files[0].IsIncomplete {
 		t.Errorf("Files should be incomplete! %v", result.Files[0])
 	}
 	result, err = ParsePatch(40, 4096, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
 	if err != nil {
-		t.Errorf("There should not be an error: %v", err)
+		t.Errorf("There should not be an error: %w", err)
 	}
 	if !result.Files[0].IsIncomplete {
 		t.Errorf("Files should be incomplete! %v", result.Files[0])

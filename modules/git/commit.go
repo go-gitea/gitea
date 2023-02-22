@@ -451,7 +451,7 @@ func parseCommitFileStatus(fileStatus *CommitFileStatus, stdout io.Reader) {
 	peek, err := rd.Peek(1)
 	if err != nil {
 		if err != io.EOF {
-			log.Error("Unexpected error whilst reading from git log --name-status. Error: %v", err)
+			log.Error("Unexpected error whilst reading from git log --name-status. Error: %w", err)
 		}
 		return
 	}
@@ -462,14 +462,14 @@ func parseCommitFileStatus(fileStatus *CommitFileStatus, stdout io.Reader) {
 		modifier, err := rd.ReadSlice('\x00')
 		if err != nil {
 			if err != io.EOF {
-				log.Error("Unexpected error whilst reading from git log --name-status. Error: %v", err)
+				log.Error("Unexpected error whilst reading from git log --name-status. Error: %w", err)
 			}
 			return
 		}
 		file, err := rd.ReadString('\x00')
 		if err != nil {
 			if err != io.EOF {
-				log.Error("Unexpected error whilst reading from git log --name-status. Error: %v", err)
+				log.Error("Unexpected error whilst reading from git log --name-status. Error: %w", err)
 			}
 			return
 		}

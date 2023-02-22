@@ -78,7 +78,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 
 		u, err := user_model.GetUserByID(req.Context(), uid)
 		if err != nil {
-			log.Error("GetUserByID:  %v", err)
+			log.Error("GetUserByID:  %w", err)
 			return nil, err
 		}
 
@@ -92,19 +92,19 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		log.Trace("Basic Authorization: Valid AccessToken for user[%d]", uid)
 		u, err := user_model.GetUserByID(req.Context(), token.UID)
 		if err != nil {
-			log.Error("GetUserByID:  %v", err)
+			log.Error("GetUserByID:  %w", err)
 			return nil, err
 		}
 
 		token.UpdatedUnix = timeutil.TimeStampNow()
 		if err = auth_model.UpdateAccessToken(token); err != nil {
-			log.Error("UpdateAccessToken:  %v", err)
+			log.Error("UpdateAccessToken:  %w", err)
 		}
 
 		store.GetData()["IsApiToken"] = true
 		return u, nil
 	} else if !auth_model.IsErrAccessTokenNotExist(err) && !auth_model.IsErrAccessTokenEmpty(err) {
-		log.Error("GetAccessTokenBySha: %v", err)
+		log.Error("GetAccessTokenBySha: %w", err)
 	}
 
 	// check task token
@@ -126,7 +126,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	u, source, err := UserSignIn(uname, passwd)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
-			log.Error("UserSignIn: %v", err)
+			log.Error("UserSignIn: %w", err)
 		}
 		return nil, err
 	}

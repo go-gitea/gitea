@@ -52,7 +52,7 @@ func jsonResponse(ctx *context.Context, status int, obj interface{}) {
 	ctx.Resp.Header().Set("Content-Type", "application/json")
 	ctx.Status(status)
 	if err := json.NewEncoder(ctx.Resp).Encode(obj); err != nil {
-		log.Error("JSON encode: %v", err)
+		log.Error("JSON encode: %w", err)
 	}
 }
 
@@ -367,7 +367,7 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 		if isConanfileFile {
 			metadata, err := conan_module.ParseConanfile(buf)
 			if err != nil {
-				log.Error("Error parsing package metadata: %v", err)
+				log.Error("Error parsing package metadata: %w", err)
 				apiError(ctx, http.StatusInternalServerError, err)
 				return
 			}
@@ -393,7 +393,7 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 		} else {
 			info, err := conan_module.ParseConaninfo(buf)
 			if err != nil {
-				log.Error("Error parsing conan info: %v", err)
+				log.Error("Error parsing conan info: %w", err)
 				apiError(ctx, http.StatusInternalServerError, err)
 				return
 			}

@@ -77,7 +77,7 @@ func (repo *Repository) Close() (err error) {
 		return
 	}
 	if err := repo.gogitStorage.Close(); err != nil {
-		gitealog.Error("Error closing storage: %v", err)
+		gitealog.Error("Error closing storage: %w", err)
 	}
 	repo.LastCommitCache = nil
 	repo.tagCache = nil

@@ -111,7 +111,7 @@ func handle(data ...queue.Data) []queue.Data {
 	for _, taskID := range data {
 		task, err := webhook_model.GetHookTaskByID(ctx, taskID.(int64))
 		if err != nil {
-			log.Error("GetHookTaskByID[%d] failed: %v", taskID.(int64), err)
+			log.Error("GetHookTaskByID[%d] failed: %w", taskID.(int64), err)
 			continue
 		}
 
@@ -122,7 +122,7 @@ func handle(data ...queue.Data) []queue.Data {
 		}
 
 		if err := Deliver(ctx, task); err != nil {
-			log.Error("Unable to deliver webhook task[%d]: %v", task.ID, err)
+			log.Error("Unable to deliver webhook task[%d]: %w", task.ID, err)
 		}
 	}
 

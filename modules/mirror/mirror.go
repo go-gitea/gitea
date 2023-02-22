@@ -54,7 +54,7 @@ func addMirrorToQueue(syncType SyncType, referenceID int64) {
 	}
 	go func() {
 		if err := PushToQueue(syncType, referenceID); err != nil {
-			log.Error("Unable to push sync request for to the queue for pull mirror repo[%d]. Error: %v", referenceID, err)
+			log.Error("Unable to push sync request for to the queue for pull mirror repo[%d]. Error: %w", referenceID, err)
 		}
 	}()
 }

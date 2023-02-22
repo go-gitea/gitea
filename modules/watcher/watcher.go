@@ -50,7 +50,7 @@ func run(ctx context.Context, desc string, opts *CreateWatcherOpts) {
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		log.Error("Unable to create watcher for %s: %v", desc, err)
+		log.Error("Unable to create watcher for %s: %w", desc, err)
 		return
 	}
 	if err := opts.PathsCallback(func(path, _ string, d fs.DirEntry, err error) error {
@@ -61,7 +61,7 @@ func run(ctx context.Context, desc string, opts *CreateWatcherOpts) {
 		_ = watcher.Add(path)
 		return nil
 	}); err != nil {
-		log.Error("Unable to create watcher for %s: %v", desc, err)
+		log.Error("Unable to create watcher for %s: %w", desc, err)
 		_ = watcher.Close()
 		return
 	}
@@ -81,7 +81,7 @@ func run(ctx context.Context, desc string, opts *CreateWatcherOpts) {
 				_ = watcher.Close()
 				return
 			}
-			log.Error("Error whilst watching files for %s: %v", desc, err)
+			log.Error("Error whilst watching files for %s: %w", desc, err)
 		case <-ctx.Done():
 			_ = watcher.Close()
 			return
@@ -91,7 +91,7 @@ func run(ctx context.Context, desc string, opts *CreateWatcherOpts) {
 		_ = watcher.Close()
 		watcher, err = fsnotify.NewWatcher()
 		if err != nil {
-			log.Error("Unable to create watcher for %s: %v", desc, err)
+			log.Error("Unable to create watcher for %s: %w", desc, err)
 			return
 		}
 		if err := opts.PathsCallback(func(path, _ string, _ fs.DirEntry, err error) error {
@@ -101,7 +101,7 @@ func run(ctx context.Context, desc string, opts *CreateWatcherOpts) {
 			_ = watcher.Add(path)
 			return nil
 		}); err != nil {
-			log.Error("Unable to create watcher for %s: %v", desc, err)
+			log.Error("Unable to create watcher for %s: %w", desc, err)
 			_ = watcher.Close()
 			return
 		}

@@ -54,7 +54,7 @@ func runMigrateTask(t *admin_model.Task) (err error) {
 				return
 			}
 
-			log.Error("FinishMigrateTask[%d] by DoerID[%d] to RepoID[%d] for OwnerID[%d] failed: %v", t.ID, t.DoerID, t.RepoID, t.OwnerID, err)
+			log.Error("FinishMigrateTask[%d] by DoerID[%d] to RepoID[%d] for OwnerID[%d] failed: %w", t.ID, t.DoerID, t.RepoID, t.OwnerID, err)
 		}
 
 		t.EndTime = timeutil.TimeStampNow()
@@ -65,7 +65,7 @@ func runMigrateTask(t *admin_model.Task) (err error) {
 
 		t.RepoID = 0
 		if err := t.UpdateCols("status", "errors", "repo_id", "end_time"); err != nil {
-			log.Error("Task UpdateCols failed: %v", err)
+			log.Error("Task UpdateCols failed: %w", err)
 		}
 
 		if t.Repo != nil {

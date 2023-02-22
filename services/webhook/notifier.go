@@ -41,12 +41,12 @@ func NewNotifier() base.Notifier {
 
 func (m *webhookNotifier) NotifyIssueClearLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) {
 	if err := issue.LoadPoster(ctx); err != nil {
-		log.Error("LoadPoster: %v", err)
+		log.Error("LoadPoster: %w", err)
 		return
 	}
 
 	if err := issue.LoadRepo(ctx); err != nil {
-		log.Error("LoadRepo: %v", err)
+		log.Error("LoadRepo: %w", err)
 		return
 	}
 
@@ -54,7 +54,7 @@ func (m *webhookNotifier) NotifyIssueClearLabels(ctx context.Context, doer *user
 	var err error
 	if issue.IsPull {
 		if err = issue.LoadPullRequest(ctx); err != nil {
-			log.Error("LoadPullRequest: %v", err)
+			log.Error("LoadPullRequest: %w", err)
 			return
 		}
 
@@ -75,7 +75,7 @@ func (m *webhookNotifier) NotifyIssueClearLabels(ctx context.Context, doer *user
 		})
 	}
 	if err != nil {
-		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
+		log.Error("PrepareWebhooks [is_pull: %v]: %w", issue.IsPull, err)
 	}
 }
 
@@ -89,7 +89,7 @@ func (m *webhookNotifier) NotifyForkRepository(ctx context.Context, doer *user_m
 		Repo:   convert.ToRepo(ctx, repo, mode),
 		Sender: convert.ToUser(ctx, doer, nil),
 	}); err != nil {
-		log.Error("PrepareWebhooks [repo_id: %d]: %v", oldRepo.ID, err)
+		log.Error("PrepareWebhooks [repo_id: %d]: %w", oldRepo.ID, err)
 	}
 
 	u := repo.MustOwner(ctx)
@@ -102,7 +102,7 @@ func (m *webhookNotifier) NotifyForkRepository(ctx context.Context, doer *user_m
 			Organization: convert.ToUser(ctx, u, nil),
 			Sender:       convert.ToUser(ctx, doer, nil),
 		}); err != nil {
-			log.Error("PrepareWebhooks [repo_id: %d]: %v", repo.ID, err)
+			log.Error("PrepareWebhooks [repo_id: %d]: %w", repo.ID, err)
 		}
 	}
 }
@@ -115,7 +115,7 @@ func (m *webhookNotifier) NotifyCreateRepository(ctx context.Context, doer, u *u
 		Organization: convert.ToUser(ctx, u, nil),
 		Sender:       convert.ToUser(ctx, doer, nil),
 	}); err != nil {
-		log.Error("PrepareWebhooks [repo_id: %d]: %v", repo.ID, err)
+		log.Error("PrepareWebhooks [repo_id: %d]: %w", repo.ID, err)
 	}
 }
 
@@ -126,7 +126,7 @@ func (m *webhookNotifier) NotifyDeleteRepository(ctx context.Context, doer *user
 		Organization: convert.ToUser(ctx, repo.MustOwner(ctx), nil),
 		Sender:       convert.ToUser(ctx, doer, nil),
 	}); err != nil {
-		log.Error("PrepareWebhooks [repo_id: %d]: %v", repo.ID, err)
+		log.Error("PrepareWebhooks [repo_id: %d]: %w", repo.ID, err)
 	}
 }
 
@@ -138,7 +138,7 @@ func (m *webhookNotifier) NotifyMigrateRepository(ctx context.Context, doer, u *
 		Organization: convert.ToUser(ctx, u, nil),
 		Sender:       convert.ToUser(ctx, doer, nil),
 	}); err != nil {
-		log.Error("PrepareWebhooks [repo_id: %d]: %v", repo.ID, err)
+		log.Error("PrepareWebhooks [repo_id: %d]: %w", repo.ID, err)
 	}
 }
 
@@ -147,7 +147,7 @@ func (m *webhookNotifier) NotifyIssueChangeAssignee(ctx context.Context, doer *u
 		mode, _ := access_model.AccessLevelUnit(ctx, doer, issue.Repo, unit.TypePullRequests)
 
 		if err := issue.LoadPullRequest(ctx); err != nil {
-			log.Error("LoadPullRequest failed: %v", err)
+			log.Error("LoadPullRequest failed: %w", err)
 			return
 		}
 		apiPullRequest := &api.PullRequestPayload{
@@ -163,7 +163,7 @@ func (m *webhookNotifier) NotifyIssueChangeAssignee(ctx context.Context, doer *u
 		}
 		// Assignee comment triggers a webhook
 		if err := PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventPullRequestAssign, apiPullRequest); err != nil {
-			log.Error("PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, removed, err)
+			log.Error("PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %w", issue.IsPull, removed, err)
 			return
 		}
 	} else {
@@ -181,7 +181,7 @@ func (m *webhookNotifier) NotifyIssueChangeAssignee(ctx context.Context, doer *u
 		}
 		// Assignee comment triggers a webhook
 		if err := PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventIssueAssign, apiIssue); err != nil {
-			log.Error("PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, removed, err)
+			log.Error("PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %w", issue.IsPull, removed, err)
 			return
 		}
 	}
@@ -192,7 +192,7 @@ func (m *webhookNotifier) NotifyIssueChangeTitle(ctx context.Context, doer *user
 	var err error
 	if issue.IsPull {
 		if err = issue.LoadPullRequest(ctx); err != nil {
-			log.Error("LoadPullRequest failed: %v", err)
+			log.Error("LoadPullRequest failed: %w", err)
 			return
 		}
 		err = PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventPullRequest, &api.PullRequestPayload{
@@ -223,7 +223,7 @@ func (m *webhookNotifier) NotifyIssueChangeTitle(ctx context.Context, doer *user
 	}
 
 	if err != nil {
-		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
+		log.Error("PrepareWebhooks [is_pull: %v]: %w", issue.IsPull, err)
 	}
 }
 
@@ -232,7 +232,7 @@ func (m *webhookNotifier) NotifyIssueChangeStatus(ctx context.Context, doer *use
 	var err error
 	if issue.IsPull {
 		if err = issue.LoadPullRequest(ctx); err != nil {
-			log.Error("LoadPullRequest: %v", err)
+			log.Error("LoadPullRequest: %w", err)
 			return
 		}
 		// Merge pull request calls issue.changeStatus so we need to handle separately.
@@ -265,17 +265,17 @@ func (m *webhookNotifier) NotifyIssueChangeStatus(ctx context.Context, doer *use
 		err = PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventIssues, apiIssue)
 	}
 	if err != nil {
-		log.Error("PrepareWebhooks [is_pull: %v, is_closed: %v]: %v", issue.IsPull, isClosed, err)
+		log.Error("PrepareWebhooks [is_pull: %v, is_closed: %v]: %w", issue.IsPull, isClosed, err)
 	}
 }
 
 func (m *webhookNotifier) NotifyNewIssue(ctx context.Context, issue *issues_model.Issue, mentions []*user_model.User) {
 	if err := issue.LoadRepo(ctx); err != nil {
-		log.Error("issue.LoadRepo: %v", err)
+		log.Error("issue.LoadRepo: %w", err)
 		return
 	}
 	if err := issue.LoadPoster(ctx); err != nil {
-		log.Error("issue.LoadPoster: %v", err)
+		log.Error("issue.LoadPoster: %w", err)
 		return
 	}
 
@@ -287,21 +287,21 @@ func (m *webhookNotifier) NotifyNewIssue(ctx context.Context, issue *issues_mode
 		Repository: convert.ToRepo(ctx, issue.Repo, mode),
 		Sender:     convert.ToUser(ctx, issue.Poster, nil),
 	}); err != nil {
-		log.Error("PrepareWebhooks: %v", err)
+		log.Error("PrepareWebhooks: %w", err)
 	}
 }
 
 func (m *webhookNotifier) NotifyNewPullRequest(ctx context.Context, pull *issues_model.PullRequest, mentions []*user_model.User) {
 	if err := pull.LoadIssue(ctx); err != nil {
-		log.Error("pull.LoadIssue: %v", err)
+		log.Error("pull.LoadIssue: %w", err)
 		return
 	}
 	if err := pull.Issue.LoadRepo(ctx); err != nil {
-		log.Error("pull.Issue.LoadRepo: %v", err)
+		log.Error("pull.Issue.LoadRepo: %w", err)
 		return
 	}
 	if err := pull.Issue.LoadPoster(ctx); err != nil {
-		log.Error("pull.Issue.LoadPoster: %v", err)
+		log.Error("pull.Issue.LoadPoster: %w", err)
 		return
 	}
 
@@ -313,13 +313,13 @@ func (m *webhookNotifier) NotifyNewPullRequest(ctx context.Context, pull *issues
 		Repository:  convert.ToRepo(ctx, pull.Issue.Repo, mode),
 		Sender:      convert.ToUser(ctx, pull.Issue.Poster, nil),
 	}); err != nil {
-		log.Error("PrepareWebhooks: %v", err)
+		log.Error("PrepareWebhooks: %w", err)
 	}
 }
 
 func (m *webhookNotifier) NotifyIssueChangeContent(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldContent string) {
 	if err := issue.LoadRepo(ctx); err != nil {
-		log.Error("LoadRepo: %v", err)
+		log.Error("LoadRepo: %w", err)
 		return
 	}
 
@@ -327,7 +327,7 @@ func (m *webhookNotifier) NotifyIssueChangeContent(ctx context.Context, doer *us
 	var err error
 	if issue.IsPull {
 		if err := issue.LoadPullRequest(ctx); err != nil {
-			log.Error("LoadPullRequest: %v", err)
+			log.Error("LoadPullRequest: %w", err)
 			return
 		}
 		err = PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventPullRequest, &api.PullRequestPayload{
@@ -357,22 +357,22 @@ func (m *webhookNotifier) NotifyIssueChangeContent(ctx context.Context, doer *us
 		})
 	}
 	if err != nil {
-		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
+		log.Error("PrepareWebhooks [is_pull: %v]: %w", issue.IsPull, err)
 	}
 }
 
 func (m *webhookNotifier) NotifyUpdateComment(ctx context.Context, doer *user_model.User, c *issues_model.Comment, oldContent string) {
 	if err := c.LoadPoster(ctx); err != nil {
-		log.Error("LoadPoster: %v", err)
+		log.Error("LoadPoster: %w", err)
 		return
 	}
 	if err := c.LoadIssue(ctx); err != nil {
-		log.Error("LoadIssue: %v", err)
+		log.Error("LoadIssue: %w", err)
 		return
 	}
 
 	if err := c.Issue.LoadAttributes(ctx); err != nil {
-		log.Error("LoadAttributes: %v", err)
+		log.Error("LoadAttributes: %w", err)
 		return
 	}
 
@@ -397,7 +397,7 @@ func (m *webhookNotifier) NotifyUpdateComment(ctx context.Context, doer *user_mo
 		Sender:     convert.ToUser(ctx, doer, nil),
 		IsPull:     c.Issue.IsPull,
 	}); err != nil {
-		log.Error("PrepareWebhooks [comment_id: %d]: %v", c.ID, err)
+		log.Error("PrepareWebhooks [comment_id: %d]: %w", c.ID, err)
 	}
 }
 
@@ -420,7 +420,7 @@ func (m *webhookNotifier) NotifyCreateIssueComment(ctx context.Context, doer *us
 		Sender:     convert.ToUser(ctx, doer, nil),
 		IsPull:     issue.IsPull,
 	}); err != nil {
-		log.Error("PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
+		log.Error("PrepareWebhooks [comment_id: %d]: %w", comment.ID, err)
 	}
 }
 
@@ -428,16 +428,16 @@ func (m *webhookNotifier) NotifyDeleteComment(ctx context.Context, doer *user_mo
 	var err error
 
 	if err = comment.LoadPoster(ctx); err != nil {
-		log.Error("LoadPoster: %v", err)
+		log.Error("LoadPoster: %w", err)
 		return
 	}
 	if err = comment.LoadIssue(ctx); err != nil {
-		log.Error("LoadIssue: %v", err)
+		log.Error("LoadIssue: %w", err)
 		return
 	}
 
 	if err = comment.Issue.LoadAttributes(ctx); err != nil {
-		log.Error("LoadAttributes: %v", err)
+		log.Error("LoadAttributes: %w", err)
 		return
 	}
 
@@ -457,7 +457,7 @@ func (m *webhookNotifier) NotifyDeleteComment(ctx context.Context, doer *user_mo
 		Sender:     convert.ToUser(ctx, doer, nil),
 		IsPull:     comment.Issue.IsPull,
 	}); err != nil {
-		log.Error("PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
+		log.Error("PrepareWebhooks [comment_id: %d]: %w", comment.ID, err)
 	}
 }
 
@@ -470,7 +470,7 @@ func (m *webhookNotifier) NotifyNewWikiPage(ctx context.Context, doer *user_mode
 		Page:       page,
 		Comment:    comment,
 	}); err != nil {
-		log.Error("PrepareWebhooks [repo_id: %d]: %v", repo.ID, err)
+		log.Error("PrepareWebhooks [repo_id: %d]: %w", repo.ID, err)
 	}
 }
 
@@ -483,7 +483,7 @@ func (m *webhookNotifier) NotifyEditWikiPage(ctx context.Context, doer *user_mod
 		Page:       page,
 		Comment:    comment,
 	}); err != nil {
-		log.Error("PrepareWebhooks [repo_id: %d]: %v", repo.ID, err)
+		log.Error("PrepareWebhooks [repo_id: %d]: %w", repo.ID, err)
 	}
 }
 
@@ -495,7 +495,7 @@ func (m *webhookNotifier) NotifyDeleteWikiPage(ctx context.Context, doer *user_m
 		Sender:     convert.ToUser(ctx, doer, nil),
 		Page:       page,
 	}); err != nil {
-		log.Error("PrepareWebhooks [repo_id: %d]: %v", repo.ID, err)
+		log.Error("PrepareWebhooks [repo_id: %d]: %w", repo.ID, err)
 	}
 }
 
@@ -505,23 +505,23 @@ func (m *webhookNotifier) NotifyIssueChangeLabels(ctx context.Context, doer *use
 	var err error
 
 	if err = issue.LoadRepo(ctx); err != nil {
-		log.Error("LoadRepo: %v", err)
+		log.Error("LoadRepo: %w", err)
 		return
 	}
 
 	if err = issue.LoadPoster(ctx); err != nil {
-		log.Error("LoadPoster: %v", err)
+		log.Error("LoadPoster: %w", err)
 		return
 	}
 
 	mode, _ := access_model.AccessLevel(ctx, issue.Poster, issue.Repo)
 	if issue.IsPull {
 		if err = issue.LoadPullRequest(ctx); err != nil {
-			log.Error("loadPullRequest: %v", err)
+			log.Error("loadPullRequest: %w", err)
 			return
 		}
 		if err = issue.PullRequest.LoadIssue(ctx); err != nil {
-			log.Error("LoadIssue: %v", err)
+			log.Error("LoadIssue: %w", err)
 			return
 		}
 		err = PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventPullRequestLabel, &api.PullRequestPayload{
@@ -541,7 +541,7 @@ func (m *webhookNotifier) NotifyIssueChangeLabels(ctx context.Context, doer *use
 		})
 	}
 	if err != nil {
-		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
+		log.Error("PrepareWebhooks [is_pull: %v]: %w", issue.IsPull, err)
 	}
 }
 
@@ -555,7 +555,7 @@ func (m *webhookNotifier) NotifyIssueChangeMilestone(ctx context.Context, doer *
 	}
 
 	if err = issue.LoadAttributes(ctx); err != nil {
-		log.Error("issue.LoadAttributes failed: %v", err)
+		log.Error("issue.LoadAttributes failed: %w", err)
 		return
 	}
 
@@ -563,7 +563,7 @@ func (m *webhookNotifier) NotifyIssueChangeMilestone(ctx context.Context, doer *
 	if issue.IsPull {
 		err = issue.PullRequest.LoadIssue(ctx)
 		if err != nil {
-			log.Error("LoadIssue: %v", err)
+			log.Error("LoadIssue: %w", err)
 			return
 		}
 		err = PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventPullRequestMilestone, &api.PullRequestPayload{
@@ -583,7 +583,7 @@ func (m *webhookNotifier) NotifyIssueChangeMilestone(ctx context.Context, doer *
 		})
 	}
 	if err != nil {
-		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
+		log.Error("PrepareWebhooks [is_pull: %v]: %w", issue.IsPull, err)
 	}
 }
 
@@ -591,7 +591,7 @@ func (m *webhookNotifier) NotifyPushCommits(ctx context.Context, pusher *user_mo
 	apiPusher := convert.ToUser(ctx, pusher, nil)
 	apiCommits, apiHeadCommit, err := commits.ToAPIPayloadCommits(ctx, repo.RepoPath(), repo.HTMLURL())
 	if err != nil {
-		log.Error("commits.ToAPIPayloadCommits failed: %v", err)
+		log.Error("commits.ToAPIPayloadCommits failed: %w", err)
 		return
 	}
 
@@ -607,7 +607,7 @@ func (m *webhookNotifier) NotifyPushCommits(ctx context.Context, pusher *user_mo
 		Pusher:       apiPusher,
 		Sender:       apiPusher,
 	}); err != nil {
-		log.Error("PrepareWebhooks: %v", err)
+		log.Error("PrepareWebhooks: %w", err)
 	}
 }
 
@@ -619,23 +619,23 @@ func (m *webhookNotifier) NotifyAutoMergePullRequest(ctx context.Context, doer *
 func (*webhookNotifier) NotifyMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
 	// Reload pull request information.
 	if err := pr.LoadAttributes(ctx); err != nil {
-		log.Error("LoadAttributes: %v", err)
+		log.Error("LoadAttributes: %w", err)
 		return
 	}
 
 	if err := pr.LoadIssue(ctx); err != nil {
-		log.Error("LoadIssue: %v", err)
+		log.Error("LoadIssue: %w", err)
 		return
 	}
 
 	if err := pr.Issue.LoadRepo(ctx); err != nil {
-		log.Error("pr.Issue.LoadRepo: %v", err)
+		log.Error("pr.Issue.LoadRepo: %w", err)
 		return
 	}
 
 	mode, err := access_model.AccessLevel(ctx, doer, pr.Issue.Repo)
 	if err != nil {
-		log.Error("models.AccessLevel: %v", err)
+		log.Error("models.AccessLevel: %w", err)
 		return
 	}
 
@@ -649,13 +649,13 @@ func (*webhookNotifier) NotifyMergePullRequest(ctx context.Context, doer *user_m
 	}
 
 	if err := PrepareWebhooks(ctx, EventSource{Repository: pr.Issue.Repo}, webhook_module.HookEventPullRequest, apiPullRequest); err != nil {
-		log.Error("PrepareWebhooks: %v", err)
+		log.Error("PrepareWebhooks: %w", err)
 	}
 }
 
 func (m *webhookNotifier) NotifyPullRequestChangeTargetBranch(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, oldBranch string) {
 	if err := pr.LoadIssue(ctx); err != nil {
-		log.Error("LoadIssue: %v", err)
+		log.Error("LoadIssue: %w", err)
 		return
 	}
 
@@ -674,7 +674,7 @@ func (m *webhookNotifier) NotifyPullRequestChangeTargetBranch(ctx context.Contex
 		Repository:  convert.ToRepo(ctx, issue.Repo, mode),
 		Sender:      convert.ToUser(ctx, doer, nil),
 	}); err != nil {
-		log.Error("PrepareWebhooks [pr: %d]: %v", pr.ID, err)
+		log.Error("PrepareWebhooks [pr: %d]: %w", pr.ID, err)
 	}
 }
 
@@ -695,13 +695,13 @@ func (m *webhookNotifier) NotifyPullRequestReview(ctx context.Context, pr *issue
 	}
 
 	if err := pr.LoadIssue(ctx); err != nil {
-		log.Error("LoadIssue: %v", err)
+		log.Error("LoadIssue: %w", err)
 		return
 	}
 
 	mode, err := access_model.AccessLevel(ctx, review.Issue.Poster, review.Issue.Repo)
 	if err != nil {
-		log.Error("models.AccessLevel: %v", err)
+		log.Error("models.AccessLevel: %w", err)
 		return
 	}
 	if err := PrepareWebhooks(ctx, EventSource{Repository: review.Issue.Repo}, reviewHookType, &api.PullRequestPayload{
@@ -715,7 +715,7 @@ func (m *webhookNotifier) NotifyPullRequestReview(ctx context.Context, pr *issue
 			Content: review.Content,
 		},
 	}); err != nil {
-		log.Error("PrepareWebhooks: %v", err)
+		log.Error("PrepareWebhooks: %w", err)
 	}
 }
 
@@ -731,17 +731,17 @@ func (m *webhookNotifier) NotifyCreateRef(ctx context.Context, pusher *user_mode
 		Repo:    apiRepo,
 		Sender:  apiPusher,
 	}); err != nil {
-		log.Error("PrepareWebhooks: %v", err)
+		log.Error("PrepareWebhooks: %w", err)
 	}
 }
 
 func (m *webhookNotifier) NotifyPullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
 	if err := pr.LoadIssue(ctx); err != nil {
-		log.Error("LoadIssue: %v", err)
+		log.Error("LoadIssue: %w", err)
 		return
 	}
 	if err := pr.Issue.LoadAttributes(ctx); err != nil {
-		log.Error("LoadAttributes: %v", err)
+		log.Error("LoadAttributes: %w", err)
 		return
 	}
 
@@ -752,7 +752,7 @@ func (m *webhookNotifier) NotifyPullRequestSynchronized(ctx context.Context, doe
 		Repository:  convert.ToRepo(ctx, pr.Issue.Repo, perm.AccessModeNone),
 		Sender:      convert.ToUser(ctx, doer, nil),
 	}); err != nil {
-		log.Error("PrepareWebhooks [pull_id: %v]: %v", pr.ID, err)
+		log.Error("PrepareWebhooks [pull_id: %v]: %w", pr.ID, err)
 	}
 }
 
@@ -768,13 +768,13 @@ func (m *webhookNotifier) NotifyDeleteRef(ctx context.Context, pusher *user_mode
 		Repo:       apiRepo,
 		Sender:     apiPusher,
 	}); err != nil {
-		log.Error("PrepareWebhooks.(delete %s): %v", refType, err)
+		log.Error("PrepareWebhooks.(delete %s): %w", refType, err)
 	}
 }
 
 func sendReleaseHook(ctx context.Context, doer *user_model.User, rel *repo_model.Release, action api.HookReleaseAction) {
 	if err := rel.LoadAttributes(ctx); err != nil {
-		log.Error("LoadAttributes: %v", err)
+		log.Error("LoadAttributes: %w", err)
 		return
 	}
 
@@ -785,7 +785,7 @@ func sendReleaseHook(ctx context.Context, doer *user_model.User, rel *repo_model
 		Repository: convert.ToRepo(ctx, rel.Repo, mode),
 		Sender:     convert.ToUser(ctx, doer, nil),
 	}); err != nil {
-		log.Error("PrepareWebhooks: %v", err)
+		log.Error("PrepareWebhooks: %w", err)
 	}
 }
 
@@ -805,7 +805,7 @@ func (m *webhookNotifier) NotifySyncPushCommits(ctx context.Context, pusher *use
 	apiPusher := convert.ToUser(ctx, pusher, nil)
 	apiCommits, apiHeadCommit, err := commits.ToAPIPayloadCommits(ctx, repo.RepoPath(), repo.HTMLURL())
 	if err != nil {
-		log.Error("commits.ToAPIPayloadCommits failed: %v", err)
+		log.Error("commits.ToAPIPayloadCommits failed: %w", err)
 		return
 	}
 
@@ -821,7 +821,7 @@ func (m *webhookNotifier) NotifySyncPushCommits(ctx context.Context, pusher *use
 		Pusher:       apiPusher,
 		Sender:       apiPusher,
 	}); err != nil {
-		log.Error("PrepareWebhooks: %v", err)
+		log.Error("PrepareWebhooks: %w", err)
 	}
 }
 
@@ -849,7 +849,7 @@ func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_mo
 
 	apiPackage, err := convert.ToPackage(ctx, pd, sender)
 	if err != nil {
-		log.Error("Error converting package: %v", err)
+		log.Error("Error converting package: %w", err)
 		return
 	}
 
@@ -858,6 +858,6 @@ func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_mo
 		Package: apiPackage,
 		Sender:  convert.ToUser(ctx, sender, nil),
 	}); err != nil {
-		log.Error("PrepareWebhooks: %v", err)
+		log.Error("PrepareWebhooks: %w", err)
 	}
 }

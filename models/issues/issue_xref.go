@@ -284,7 +284,7 @@ func (c *Comment) RefCommentLink() string {
 		return c.RefIssueLink()
 	}
 	if err := c.LoadRefComment(); err != nil { // Silently dropping errors :unamused:
-		log.Error("LoadRefComment(%d): %v", c.RefCommentID, err)
+		log.Error("LoadRefComment(%d): %w", c.RefCommentID, err)
 		return ""
 	}
 	return c.RefComment.Link()
@@ -293,7 +293,7 @@ func (c *Comment) RefCommentLink() string {
 // RefIssueLink returns the relative URL of the issue where this reference was created
 func (c *Comment) RefIssueLink() string {
 	if err := c.LoadRefIssue(); err != nil { // Silently dropping errors :unamused:
-		log.Error("LoadRefIssue(%d): %v", c.RefCommentID, err)
+		log.Error("LoadRefIssue(%d): %w", c.RefCommentID, err)
 		return ""
 	}
 	return c.RefIssue.Link()
@@ -302,7 +302,7 @@ func (c *Comment) RefIssueLink() string {
 // RefIssueTitle returns the title of the issue where this reference was created
 func (c *Comment) RefIssueTitle() string {
 	if err := c.LoadRefIssue(); err != nil { // Silently dropping errors :unamused:
-		log.Error("LoadRefIssue(%d): %v", c.RefCommentID, err)
+		log.Error("LoadRefIssue(%d): %w", c.RefCommentID, err)
 		return ""
 	}
 	return c.RefIssue.Title
@@ -311,7 +311,7 @@ func (c *Comment) RefIssueTitle() string {
 // RefIssueIdent returns the user friendly identity (e.g. "#1234") of the issue where this reference was created
 func (c *Comment) RefIssueIdent() string {
 	if err := c.LoadRefIssue(); err != nil { // Silently dropping errors :unamused:
-		log.Error("LoadRefIssue(%d): %v", c.RefCommentID, err)
+		log.Error("LoadRefIssue(%d): %w", c.RefCommentID, err)
 		return ""
 	}
 	// FIXME: check this name for cross-repository references (#7901 if it gets merged)

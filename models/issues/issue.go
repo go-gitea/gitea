@@ -201,7 +201,7 @@ func (issue *Issue) LoadRepo(ctx context.Context) (err error) {
 // IsTimetrackerEnabled returns true if the repo enables timetracking
 func (issue *Issue) IsTimetrackerEnabled(ctx context.Context) bool {
 	if err := issue.LoadRepo(ctx); err != nil {
-		log.Error(fmt.Sprintf("loadRepo: %v", err))
+		log.Error(fmt.Sprintf("loadRepo: %w", err))
 		return false
 	}
 	return issue.Repo.IsTimetrackerEnabled(ctx)
@@ -403,7 +403,7 @@ func (issue *Issue) APIURL() string {
 	if issue.Repo == nil {
 		err := issue.LoadRepo(db.DefaultContext)
 		if err != nil {
-			log.Error("Issue[%d].APIURL(): %v", issue.ID, err)
+			log.Error("Issue[%d].APIURL(): %w", issue.ID, err)
 			return ""
 		}
 	}

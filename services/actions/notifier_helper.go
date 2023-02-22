@@ -99,7 +99,7 @@ func (input *notifyInput) Notify(ctx context.Context) {
 	log.Trace("execute %v for event %v whose doer is %v", getMethod(ctx), input.Event, input.Doer.Name)
 
 	if err := notify(ctx, input); err != nil {
-		log.Error("an error occurred while executing the %s actions method: %v", getMethod(ctx), err)
+		log.Error("an error occurred while executing the %s actions method: %w", getMethod(ctx), err)
 	}
 }
 
@@ -168,19 +168,19 @@ func notify(ctx context.Context, input *notifyInput) error {
 		}
 		jobs, err := jobparser.Parse(content)
 		if err != nil {
-			log.Error("jobparser.Parse: %v", err)
+			log.Error("jobparser.Parse: %w", err)
 			continue
 		}
 		if err := actions_model.InsertRun(ctx, &run, jobs); err != nil {
-			log.Error("InsertRun: %v", err)
+			log.Error("InsertRun: %w", err)
 			continue
 		}
 		if jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: run.ID}); err != nil {
-			log.Error("FindRunJobs: %v", err)
+			log.Error("FindRunJobs: %w", err)
 		} else {
 			for _, job := range jobs {
 				if err := CreateCommitStatus(ctx, job); err != nil {
-					log.Error("CreateCommitStatus: %v", err)
+					log.Error("CreateCommitStatus: %w", err)
 				}
 			}
 		}
@@ -195,7 +195,7 @@ func newNotifyInputFromIssue(issue *issues_model.Issue, event webhook_module.Hoo
 
 func notifyRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release, ref string, action api.HookReleaseAction) {
 	if err := rel.LoadAttributes(ctx); err != nil {
-		log.Error("LoadAttributes: %v", err)
+		log.Error("LoadAttributes: %w", err)
 		return
 	}
 
@@ -222,7 +222,7 @@ func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_mo
 
 	apiPackage, err := convert.ToPackage(ctx, pd, sender)
 	if err != nil {
-		log.Error("Error converting package: %v", err)
+		log.Error("Error converting package: %w", err)
 		return
 	}
 

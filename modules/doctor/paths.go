@@ -27,7 +27,7 @@ func checkConfigurationFile(logger log.Logger, autofix bool, fileOpts configurat
 	if err != nil {
 		if os.IsNotExist(err) && autofix && fileOpts.IsDirectory {
 			if err := os.MkdirAll(fileOpts.Path, 0o777); err != nil {
-				logger.Error("    Directory does not exist and could not be created. ERROR: %v", err)
+				logger.Error("    Directory does not exist and could not be created. ERROR: %w", err)
 				return fmt.Errorf("Configuration directory: \"%q\" does not exist and could not be created. ERROR: %w", fileOpts.Path, err)
 			}
 			fi, err = os.Stat(fileOpts.Path)
@@ -35,7 +35,7 @@ func checkConfigurationFile(logger log.Logger, autofix bool, fileOpts configurat
 	}
 	if err != nil {
 		if fileOpts.Required {
-			logger.Error("    Is REQUIRED but is not accessible. ERROR: %v", err)
+			logger.Error("    Is REQUIRED but is not accessible. ERROR: %w", err)
 			return fmt.Errorf("Configuration file \"%q\" is not accessible but is required. Error: %w", fileOpts.Path, err)
 		}
 		logger.Warn("    NOTICE: is not accessible (Error: %v)", err)
@@ -51,7 +51,7 @@ func checkConfigurationFile(logger log.Logger, autofix bool, fileOpts configurat
 		return fmt.Errorf("Configuration file \"%q\" is not a regular file. Error: %w", fileOpts.Path, err)
 	} else if fileOpts.Writable {
 		if err := isWritableDir(fileOpts.Path); err != nil {
-			logger.Error("    ERROR: is required to be writable but is not writable: %v", err)
+			logger.Error("    ERROR: is required to be writable but is not writable: %w", err)
 			return fmt.Errorf("Configuration file \"%q\" is required to be writable but is not. Error: %w", fileOpts.Path, err)
 		}
 	}

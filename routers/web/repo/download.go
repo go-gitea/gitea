@@ -35,7 +35,7 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob, lastModified time.Time
 			return
 		}
 		if err = dataRc.Close(); err != nil {
-			log.Error("ServeBlobOrLFS: Close: %v", err)
+			log.Error("ServeBlobOrLFS: Close: %w", err)
 		}
 	}()
 
@@ -44,7 +44,7 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob, lastModified time.Time
 		meta, _ := git_model.GetLFSMetaObjectByOid(ctx, ctx.Repo.Repository.ID, pointer.Oid)
 		if meta == nil {
 			if err = dataRc.Close(); err != nil {
-				log.Error("ServeBlobOrLFS: Close: %v", err)
+				log.Error("ServeBlobOrLFS: Close: %w", err)
 			}
 			closed = true
 			return common.ServeBlob(ctx, blob, lastModified)
@@ -68,13 +68,13 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob, lastModified time.Time
 		}
 		defer func() {
 			if err = lfsDataRc.Close(); err != nil {
-				log.Error("ServeBlobOrLFS: Close: %v", err)
+				log.Error("ServeBlobOrLFS: Close: %w", err)
 			}
 		}()
 		return common.ServeData(ctx, ctx.Repo.TreePath, meta.Size, lfsDataRc)
 	}
 	if err = dataRc.Close(); err != nil {
-		log.Error("ServeBlobOrLFS: Close: %v", err)
+		log.Error("ServeBlobOrLFS: Close: %w", err)
 	}
 	closed = true
 

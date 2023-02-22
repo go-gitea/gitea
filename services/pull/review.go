@@ -60,7 +60,7 @@ func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestLis
 		Invalidated: util.OptionalBoolFalse,
 		IssueIDs:    issueIDs,
 	}, &codeComments); err != nil {
-		return fmt.Errorf("find code comments: %v", err)
+		return fmt.Errorf("find code comments: %w", err)
 	}
 	for _, comment := range codeComments {
 		if err := checkInvalidation(ctx, comment, doer, repo, branch); err != nil {
@@ -244,7 +244,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 
 		patch, err = git.CutDiffAroundLine(reader, int64((&issues_model.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
 		if err != nil {
-			log.Error("Error whilst generating patch: %v", err)
+			log.Error("Error whilst generating patch: %w", err)
 			return nil, err
 		}
 	}

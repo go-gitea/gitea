@@ -59,7 +59,7 @@ func SessionUser(sess SessionStore) *user_model.User {
 	user, err := user_model.GetUserByID(db.DefaultContext, id)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
-			log.Error("GetUserById: %v", err)
+			log.Error("GetUserById: %w", err)
 		}
 		return nil
 	}

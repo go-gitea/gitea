@@ -33,7 +33,7 @@ func CheckOAuthAccessToken(accessToken string) int64 {
 	}
 	token, err := oauth2.ParseToken(accessToken, oauth2.DefaultSigningKey)
 	if err != nil {
-		log.Trace("oauth2.ParseToken: %v", err)
+		log.Trace("oauth2.ParseToken: %w", err)
 		return 0
 	}
 	var grant *auth_model.OAuth2Grant
@@ -107,13 +107,13 @@ func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
 				return user_model.ActionsUserID
 			}
 		} else if !auth_model.IsErrAccessTokenNotExist(err) && !auth_model.IsErrAccessTokenEmpty(err) {
-			log.Error("GetAccessTokenBySHA: %v", err)
+			log.Error("GetAccessTokenBySHA: %w", err)
 		}
 		return 0
 	}
 	t.UpdatedUnix = timeutil.TimeStampNow()
 	if err = auth_model.UpdateAccessToken(t); err != nil {
-		log.Error("UpdateAccessToken: %v", err)
+		log.Error("UpdateAccessToken: %w", err)
 	}
 	store.GetData()["IsApiToken"] = true
 	store.GetData()["ApiTokenScope"] = t.Scope
@@ -139,7 +139,7 @@ func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStor
 	user, err := user_model.GetPossibleUserByID(req.Context(), id)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
-			log.Error("GetUserByName: %v", err)
+			log.Error("GetUserByName: %w", err)
 		}
 		return nil, err
 	}

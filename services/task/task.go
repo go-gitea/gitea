@@ -52,7 +52,7 @@ func handle(data ...queue.Data) []queue.Data {
 	for _, datum := range data {
 		task := datum.(*admin_model.Task)
 		if err := Run(task); err != nil {
-			log.Error("Run task failed: %v", err)
+			log.Error("Run task failed: %w", err)
 		}
 	}
 	return nil

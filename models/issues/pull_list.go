@@ -132,19 +132,19 @@ func PullRequests(baseRepoID int64, opts *PullRequestsOptions) ([]*PullRequest, 
 
 	countSession, err := listPullRequestStatement(baseRepoID, opts)
 	if err != nil {
-		log.Error("listPullRequestStatement: %v", err)
+		log.Error("listPullRequestStatement: %w", err)
 		return nil, 0, err
 	}
 	maxResults, err := countSession.Count(new(PullRequest))
 	if err != nil {
-		log.Error("Count PRs: %v", err)
+		log.Error("Count PRs: %w", err)
 		return nil, maxResults, err
 	}
 
 	findSession, err := listPullRequestStatement(baseRepoID, opts)
 	sortIssuesSession(findSession, opts.SortType, 0)
 	if err != nil {
-		log.Error("listPullRequestStatement: %v", err)
+		log.Error("listPullRequestStatement: %w", err)
 		return nil, maxResults, err
 	}
 	findSession = db.SetSessionPagination(findSession, opts)

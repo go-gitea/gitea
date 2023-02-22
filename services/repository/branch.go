@@ -192,11 +192,11 @@ func DeleteBranch(doer *user_model.User, repo *repo_model.Repository, gitRepo *g
 			RepoUserName: repo.OwnerName,
 			RepoName:     repo.Name,
 		}); err != nil {
-		log.Error("Update: %v", err)
+		log.Error("Update: %w", err)
 	}
 
 	if err := git_model.AddDeletedBranch(db.DefaultContext, repo.ID, branchName, commit.ID.String(), doer.ID); err != nil {
-		log.Warn("AddDeletedBranch: %v", err)
+		log.Warn("AddDeletedBranch: %w", err)
 	}
 
 	return nil

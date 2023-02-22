@@ -36,7 +36,7 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {
-		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
+		assert.NoError(t, err, "unable to read the new repo root: %w\n", err)
 	}
 	for _, ownerDir := range ownerDirs {
 		if !ownerDir.Type().IsDir() {
@@ -44,7 +44,7 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 		}
 		repoDirs, err := os.ReadDir(filepath.Join(setting.RepoRootPath, ownerDir.Name()))
 		if err != nil {
-			assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
+			assert.NoError(t, err, "unable to read the new repo root: %w\n", err)
 		}
 		for _, repoDir := range repoDirs {
 			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0o755)
@@ -55,7 +55,7 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 	}
 
 	if err := deleteDB(); err != nil {
-		t.Errorf("unable to reset database: %v", err)
+		t.Errorf("unable to reset database: %w", err)
 		return nil, deferFn
 	}
 
@@ -66,10 +66,10 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 		deferFn = func() {
 			oldDefer()
 			if err := x.Close(); err != nil {
-				t.Errorf("error during close: %v", err)
+				t.Errorf("error during close: %w", err)
 			}
 			if err := deleteDB(); err != nil {
-				t.Errorf("unable to reset database: %v", err)
+				t.Errorf("unable to reset database: %w", err)
 			}
 		}
 	}
@@ -79,7 +79,7 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 
 	if len(syncModels) > 0 {
 		if err := x.Sync2(syncModels...); err != nil {
-			t.Errorf("error during sync: %v", err)
+			t.Errorf("error during sync: %w", err)
 			return x, deferFn
 		}
 	}
@@ -92,15 +92,15 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 			unittest.FixturesOptions{
 				Dir: fixturesDir,
 			}, x); err != nil {
-			t.Errorf("error whilst initializing fixtures from %s: %v", fixturesDir, err)
+			t.Errorf("error whilst initializing fixtures from %s: %w", fixturesDir, err)
 			return x, deferFn
 		}
 		if err := unittest.LoadFixtures(x); err != nil {
-			t.Errorf("error whilst loading fixtures from %s: %v", fixturesDir, err)
+			t.Errorf("error whilst loading fixtures from %s: %w", fixturesDir, err)
 			return x, deferFn
 		}
 	} else if !os.IsNotExist(err) {
-		t.Errorf("unexpected error whilst checking for existence of fixtures: %v", err)
+		t.Errorf("unexpected error whilst checking for existence of fixtures: %w", err)
 	} else {
 		t.Logf("no fixtures found in: %s", fixturesDir)
 	}
@@ -142,7 +142,7 @@ func MainTest(m *testing.M) {
 
 	tmpDataPath, err := os.MkdirTemp("", "data")
 	if err != nil {
-		fmt.Printf("Unable to create temporary data path %v\n", err)
+		fmt.Printf("Unable to create temporary data path %w\n", err)
 		os.Exit(1)
 	}
 
@@ -151,7 +151,7 @@ func MainTest(m *testing.M) {
 	setting.SetCustomPathAndConf("", "", "")
 	setting.InitProviderAndLoadCommonSettingsForTest()
 	if err = git.InitFull(context.Background()); err != nil {
-		fmt.Printf("Unable to InitFull: %v\n", err)
+		fmt.Printf("Unable to InitFull: %w\n", err)
 		os.Exit(1)
 	}
 	setting.LoadDBSetting()
@@ -160,10 +160,10 @@ func MainTest(m *testing.M) {
 	exitStatus := m.Run()
 
 	if err := removeAllWithRetry(setting.RepoRootPath); err != nil {
-		fmt.Fprintf(os.Stderr, "os.RemoveAll: %v\n", err)
+		fmt.Fprintf(os.Stderr, "os.RemoveAll: %w\n", err)
 	}
 	if err := removeAllWithRetry(tmpDataPath); err != nil {
-		fmt.Fprintf(os.Stderr, "os.RemoveAll: %v\n", err)
+		fmt.Fprintf(os.Stderr, "os.RemoveAll: %w\n", err)
 	}
 	os.Exit(exitStatus)
 }

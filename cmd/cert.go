@@ -81,7 +81,7 @@ func pemBlockForKey(priv interface{}) *pem.Block {
 	case *ecdsa.PrivateKey:
 		b, err := x509.MarshalECPrivateKey(k)
 		if err != nil {
-			log.Fatalf("Unable to marshal ECDSA private key: %v", err)
+			log.Fatalf("Unable to marshal ECDSA private key: %w", err)
 		}
 		return &pem.Block{Type: "EC PRIVATE KEY", Bytes: b}
 	default:
@@ -111,14 +111,14 @@ func runCert(c *cli.Context) error {
 		log.Fatalf("Unrecognized elliptic curve: %q", c.String("ecdsa-curve"))
 	}
 	if err != nil {
-		log.Fatalf("Failed to generate private key: %v", err)
+		log.Fatalf("Failed to generate private key: %w", err)
 	}
 
 	var notBefore time.Time
 	if startDate := c.String("start-date"); startDate != "" {
 		notBefore, err = time.Parse("Jan 2 15:04:05 2006", startDate)
 		if err != nil {
-			log.Fatalf("Failed to parse creation date: %v", err)
+			log.Fatalf("Failed to parse creation date: %w", err)
 		}
 	} else {
 		notBefore = time.Now()
@@ -129,7 +129,7 @@ func runCert(c *cli.Context) error {
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
-		log.Fatalf("Failed to generate serial number: %v", err)
+		log.Fatalf("Failed to generate serial number: %w", err)
 	}
 
 	template := x509.Certificate{
@@ -162,34 +162,34 @@ func runCert(c *cli.Context) error {
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, publicKey(priv), priv)
 	if err != nil {
-		log.Fatalf("Failed to create certificate: %v", err)
+		log.Fatalf("Failed to create certificate: %w", err)
 	}
 
 	certOut, err := os.Create("cert.pem")
 	if err != nil {
-		log.Fatalf("Failed to open cert.pem for writing: %v", err)
+		log.Fatalf("Failed to open cert.pem for writing: %w", err)
 	}
 	err = pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
 	if err != nil {
-		log.Fatalf("Failed to encode certificate: %v", err)
+		log.Fatalf("Failed to encode certificate: %w", err)
 	}
 	err = certOut.Close()
 	if err != nil {
-		log.Fatalf("Failed to write cert: %v", err)
+		log.Fatalf("Failed to write cert: %w", err)
 	}
 	log.Println("Written cert.pem")
 
 	keyOut, err := os.OpenFile("key.pem", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
-		log.Fatalf("Failed to open key.pem for writing: %v", err)
+		log.Fatalf("Failed to open key.pem for writing: %w", err)
 	}
 	err = pem.Encode(keyOut, pemBlockForKey(priv))
 	if err != nil {
-		log.Fatalf("Failed to encode key: %v", err)
+		log.Fatalf("Failed to encode key: %w", err)
 	}
 	err = keyOut.Close()
 	if err != nil {
-		log.Fatalf("Failed to write key: %v", err)
+		log.Fatalf("Failed to write key: %w", err)
 	}
 	log.Println("Written key.pem")
 	return nil

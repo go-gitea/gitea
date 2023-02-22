@@ -275,7 +275,7 @@ func (log *FileLogger) ReleaseReopen() error {
 	startingErr := log.StartLogger()
 	if startingErr != nil {
 		if closingErr != nil {
-			return fmt.Errorf("Error during closing: %v Error during starting: %v", closingErr, startingErr)
+			return fmt.Errorf("Error during closing: %v Error during starting: %w", closingErr, startingErr)
 		}
 		return startingErr
 	}

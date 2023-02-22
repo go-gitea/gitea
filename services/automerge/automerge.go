@@ -43,7 +43,7 @@ func handle(data ...queue.Data) []queue.Data {
 		var id int64
 		var sha string
 		if _, err := fmt.Sscanf(d.(string), "%d_%s", &id, &sha); err != nil {
-			log.Error("could not parse data from pr_auto_merge queue (%v): %v", d, err)
+			log.Error("could not parse data from pr_auto_merge queue (%v): %w", d, err)
 			continue
 		}
 		handlePull(id, sha)
@@ -56,7 +56,7 @@ func addToQueue(pr *issues_model.PullRequest, sha string) {
 		log.Trace("Adding pullID: %d to the pull requests patch checking queue with sha %s", pr.ID, sha)
 		return nil
 	}); err != nil {
-		log.Error("Error adding pullID: %d to the pull requests patch checking queue %v", pr.ID, err)
+		log.Error("Error adding pullID: %d to the pull requests patch checking queue %w", pr.ID, err)
 	}
 }
 
@@ -169,14 +169,14 @@ func handlePull(pullID int64, sha string) {
 
 	pr, err := issues_model.GetPullRequestByID(ctx, pullID)
 	if err != nil {
-		log.Error("GetPullRequestByID[%d]: %v", pullID, err)
+		log.Error("GetPullRequestByID[%d]: %w", pullID, err)
 		return
 	}
 
 	// Check if there is a scheduled pr in the db
 	exists, scheduledPRM, err := pull_model.GetScheduledMergeByPullID(ctx, pr.ID)
 	if err != nil {
-		log.Error("%-v GetScheduledMergeByPullID: %v", pr, err)
+		log.Error("%-v GetScheduledMergeByPullID: %w", pr, err)
 		return
 	}
 	if !exists {
@@ -188,13 +188,13 @@ func handlePull(pullID int64, sha string) {
 	// did not succeed or was not finished yet.
 
 	if err = pr.LoadHeadRepo(ctx); err != nil {
-		log.Error("%-v LoadHeadRepo: %v", pr, err)
+		log.Error("%-v LoadHeadRepo: %w", pr, err)
 		return
 	}
 
 	headGitRepo, err := git.OpenRepository(ctx, pr.HeadRepo.RepoPath())
 	if err != nil {
-		log.Error("OpenRepository %-v: %v", pr.HeadRepo, err)
+		log.Error("OpenRepository %-v: %w", pr.HeadRepo, err)
 		return
 	}
 	defer headGitRepo.Close()
@@ -209,7 +209,7 @@ func handlePull(pullID int64, sha string) {
 	// Check if all checks succeeded
 	pass, err := pull_service.IsPullCommitStatusPass(ctx, pr)
 	if err != nil {
-		log.Error("%-v IsPullCommitStatusPass: %v", pr, err)
+		log.Error("%-v IsPullCommitStatusPass: %w", pr, err)
 		return
 	}
 	if !pass {
@@ -220,13 +220,13 @@ func handlePull(pullID int64, sha string) {
 	// Merge if all checks succeeded
 	doer, err := user_model.GetUserByID(ctx, scheduledPRM.DoerID)
 	if err != nil {
-		log.Error("Unable to get scheduled User[%d]: %v", scheduledPRM.DoerID, err)
+		log.Error("Unable to get scheduled User[%d]: %w", scheduledPRM.DoerID, err)
 		return
 	}
 
 	perm, err := access_model.GetUserRepoPermission(ctx, pr.HeadRepo, doer)
 	if err != nil {
-		log.Error("GetUserRepoPermission %-v: %v", pr.HeadRepo, err)
+		log.Error("GetUserRepoPermission %-v: %w", pr.HeadRepo, err)
 		return
 	}
 
@@ -235,7 +235,7 @@ func handlePull(pullID int64, sha string) {
 			log.Info("%-v was scheduled to automerge by an unauthorized user", pr)
 			return
 		}
-		log.Error("%-v CheckPullMergable: %v", pr, err)
+		log.Error("%-v CheckPullMergable: %w", pr, err)
 		return
 	}
 
@@ -244,20 +244,20 @@ func handlePull(pullID int64, sha string) {
 		baseGitRepo = headGitRepo
 	} else {
 		if err = pr.LoadBaseRepo(ctx); err != nil {
-			log.Error("%-v LoadBaseRepo: %v", pr, err)
+			log.Error("%-v LoadBaseRepo: %w", pr, err)
 			return
 		}
 
 		baseGitRepo, err = git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
 		if err != nil {
-			log.Error("OpenRepository %-v: %v", pr.BaseRepo, err)
+			log.Error("OpenRepository %-v: %w", pr.BaseRepo, err)
 			return
 		}
 		defer baseGitRepo.Close()
 	}
 
 	if err := pull_service.Merge(ctx, pr, doer, baseGitRepo, scheduledPRM.MergeStyle, "", scheduledPRM.Message, true); err != nil {
-		log.Error("pull_service.Merge: %v", err)
+		log.Error("pull_service.Merge: %w", err)
 		return
 	}
 }

@@ -33,7 +33,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 
 	downloader, err := NewGitlabDownloader(context.Background(), "https://gitlab.com", "gitea/test_repo", "", "", gitlabPersonalAccessToken)
 	if err != nil {
-		t.Fatalf("NewGitlabDownloader is nil: %v", err)
+		t.Fatalf("NewGitlabDownloader is nil: %w", err)
 	}
 	repo, err := downloader.GetRepoInfo()
 	assert.NoError(t, err)
@@ -346,7 +346,7 @@ func gitlabClientMockSetup(t *testing.T) (*http.ServeMux, *httptest.Server, *git
 	client, err := gitlab.NewClient("", gitlab.WithBaseURL(server.URL))
 	if err != nil {
 		server.Close()
-		t.Fatalf("Failed to create client: %v", err)
+		t.Fatalf("Failed to create client: %w", err)
 	}
 
 	return mux, server, client

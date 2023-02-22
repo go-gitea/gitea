@@ -288,7 +288,7 @@ func TestCreateOrUpdateRepoFileForUpdateWithFileMove(t *testing.T) {
 		case git.ErrNotExist:
 			// correct, continue
 		default:
-			t.Fatalf("expected git.ErrNotExist, got:%v", err)
+			t.Fatalf("expected git.ErrNotExist, got:%w", err)
 		}
 		toEntry, err := commit.GetTreeEntryByPath(opts.TreePath)
 		assert.NoError(t, err)

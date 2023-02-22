@@ -23,7 +23,7 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 		if IsErrNotExist(err) {
 			return err
 		}
-		log.Error("Unable to get commit from ref %q. Error: %v", NotesRef, err)
+		log.Error("Unable to get commit from ref %q. Error: %w", NotesRef, err)
 		return err
 	}
 
@@ -47,7 +47,7 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 			if err == object.ErrDirectoryNotFound {
 				return ErrNotExist{ID: remainingCommitID, RelPath: path}
 			}
-			log.Error("Unable to find git note corresponding to the commit %q. Error: %v", commitID, err)
+			log.Error("Unable to find git note corresponding to the commit %q. Error: %w", commitID, err)
 			return err
 		}
 	}
@@ -55,14 +55,14 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 	blob := file.Blob
 	dataRc, err := blob.Reader()
 	if err != nil {
-		log.Error("Unable to read blob with ID %q. Error: %v", blob.ID, err)
+		log.Error("Unable to read blob with ID %q. Error: %w", blob.ID, err)
 		return err
 	}
 
 	defer dataRc.Close()
 	d, err := io.ReadAll(dataRc)
 	if err != nil {
-		log.Error("Unable to read blob with ID %q. Error: %v", blob.ID, err)
+		log.Error("Unable to read blob with ID %q. Error: %w", blob.ID, err)
 		return err
 	}
 	note.Message = d
@@ -79,7 +79,7 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 
 	lastCommits, err := GetLastCommitForPaths(ctx, nil, commitNode, "", []string{path})
 	if err != nil {
-		log.Error("Unable to get the commit for the path %q. Error: %v", path, err)
+		log.Error("Unable to get the commit for the path %q. Error: %w", path, err)
 		return err
 	}
 	note.Commit = lastCommits[path]

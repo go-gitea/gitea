@@ -200,7 +200,7 @@ func (b *BleveIndexer) Ping() bool {
 func (b *BleveIndexer) Close() {
 	if b.indexer != nil {
 		if err := b.indexer.Close(); err != nil {
-			log.Error("Error whilst closing indexer: %v", err)
+			log.Error("Error whilst closing indexer: %w", err)
 		}
 	}
 }

@@ -128,7 +128,7 @@ func SetUpdateHook(repoPath, content string) (err error) {
 	hookPath := path.Join(repoPath, HookPathUpdate)
 	isExist, err := util.IsExist(hookPath)
 	if err != nil {
-		log.Debug("Unable to check if %s exists. Error: %v", hookPath, err)
+		log.Debug("Unable to check if %s exists. Error: %w", hookPath, err)
 		return err
 	}
 	if isExist {

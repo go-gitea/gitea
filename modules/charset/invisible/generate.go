@@ -48,7 +48,7 @@ Usage: %[1]s [-v] [-o output.go]
 
 	table := rangetable.New(filtered...)
 	if err := runTemplate(generatorTemplate, output, table); err != nil {
-		fatalf("Unable to run template: %v", err)
+		fatalf("Unable to run template: %w", err)
 	}
 }
 

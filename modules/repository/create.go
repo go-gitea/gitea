@@ -48,7 +48,7 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 	repoPath := repo_model.RepoPath(u.Name, repo.Name)
 	isExist, err := util.IsExist(repoPath)
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+		log.Error("Unable to check if %s exists. Error: %w", repoPath, err)
 		return err
 	}
 	if !overwriteOrAdopt && isExist {
@@ -229,7 +229,7 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 		repoPath := repo_model.RepoPath(u.Name, repo.Name)
 		isExist, err := util.IsExist(repoPath)
 		if err != nil {
-			log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+			log.Error("Unable to check if %s exists. Error: %w", repoPath, err)
 			return err
 		}
 		if isExist {
@@ -249,7 +249,7 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 
 		if err = initRepository(ctx, repoPath, doer, repo, opts); err != nil {
 			if err2 := util.RemoveAll(repoPath); err2 != nil {
-				log.Error("initRepository: %v", err)
+				log.Error("initRepository: %w", err)
 				return fmt.Errorf(
 					"delete repo directory %s/%s failed(2): %v", u.Name, repo.Name, err2)
 			}
@@ -272,7 +272,7 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 		if stdout, _, err := git.NewCommand(ctx, "update-server-info").
 			SetDescription(fmt.Sprintf("CreateRepository(git update-server-info): %s", repoPath)).
 			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
-			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
+			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %w", repo, stdout, err)
 			rollbackRepo = repo
 			rollbackRepo.OwnerID = u.ID
 			return fmt.Errorf("CreateRepository(git update-server-info): %w", err)
@@ -344,18 +344,18 @@ func CheckDaemonExportOK(ctx context.Context, repo *repo_model.Repository) error
 
 	isExist, err := util.IsExist(daemonExportFile)
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", daemonExportFile, err)
+		log.Error("Unable to check if %s exists. Error: %w", daemonExportFile, err)
 		return err
 	}
 
 	isPublic := !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePublic
 	if !isPublic && isExist {
 		if err = util.Remove(daemonExportFile); err != nil {
-			log.Error("Failed to remove %s: %v", daemonExportFile, err)
+			log.Error("Failed to remove %s: %w", daemonExportFile, err)
 		}
 	} else if isPublic && !isExist {
 		if f, err := os.Create(daemonExportFile); err != nil {
-			log.Error("Failed to create %s: %v", daemonExportFile, err)
+			log.Error("Failed to create %s: %w", daemonExportFile, err)
 		} else {
 			f.Close()
 		}
@@ -375,7 +375,7 @@ func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 	}
 
 	if err = UpdateRepoSize(ctx, repo); err != nil {
-		log.Error("Failed to update size for repository: %v", err)
+		log.Error("Failed to update size for repository: %w", err)
 	}
 
 	if visibilityChanged {

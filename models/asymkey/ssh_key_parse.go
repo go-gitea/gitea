@@ -286,7 +286,7 @@ func SSHKeyGenParsePublicKey(key string) (string, int, error) {
 	}
 	defer func() {
 		if err := util.Remove(tmpName); err != nil {
-			log.Warn("Unable to remove temporary key file: %s: Error: %v", tmpName, err)
+			log.Warn("Unable to remove temporary key file: %s: Error: %w", tmpName, err)
 		}
 	}()
 

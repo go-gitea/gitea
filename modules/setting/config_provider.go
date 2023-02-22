@@ -21,7 +21,7 @@ var _ ConfigProvider = &ini.File{}
 
 func mustMapSetting(rootCfg ConfigProvider, sectionName string, setting interface{}) {
 	if err := rootCfg.Section(sectionName).MapTo(setting); err != nil {
-		log.Fatal("Failed to map %s settings: %v", sectionName, err)
+		log.Fatal("Failed to map %s settings: %w", sectionName, err)
 	}
 }
 

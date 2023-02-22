@@ -40,7 +40,7 @@ func testRun(m *testing.M) error {
 
 func TestMain(m *testing.M) {
 	if err := testRun(m); err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "Test failed: %v", err)
+		_, _ = fmt.Fprintf(os.Stderr, "Test failed: %w", err)
 		os.Exit(1)
 	}
 }

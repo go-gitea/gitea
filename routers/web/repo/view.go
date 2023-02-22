@@ -328,7 +328,7 @@ func renderReadmeFile(ctx *context.Context, readmeFile *namedBlob, readmeTreelin
 		buf := &bytes.Buffer{}
 		ctx.Data["EscapeStatus"], err = charset.EscapeControlStringReader(rd, buf, ctx.Locale)
 		if err != nil {
-			log.Error("Read failed: %v", err)
+			log.Error("Read failed: %w", err)
 		}
 
 		ctx.Data["FileContent"] = buf.String()
@@ -486,7 +486,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 					WorkTree:   worktree,
 				})
 				if err != nil {
-					log.Error("Unable to load attributes for %-v:%s. Error: %v", ctx.Repo.Repository, ctx.Repo.TreePath, err)
+					log.Error("Unable to load attributes for %-v:%s. Error: %w", ctx.Repo.Repository, ctx.Repo.TreePath, err)
 				}
 
 				language = filename2attribute2info[ctx.Repo.TreePath]["linguist-language"]
@@ -500,7 +500,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			fileContent, lexerName, err := highlight.File(blob.Name(), language, buf)
 			ctx.Data["LexerName"] = lexerName
 			if err != nil {
-				log.Error("highlight.File failed, fallback to plain text: %v", err)
+				log.Error("highlight.File failed, fallback to plain text: %w", err)
 				fileContent = highlight.PlainText(buf)
 			}
 			status := &charset.EscapeStatus{}
@@ -824,7 +824,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 
 		statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, latestCommit.ID.String(), db.ListOptions{})
 		if err != nil {
-			log.Error("GetLatestCommitStatus: %v", err)
+			log.Error("GetLatestCommitStatus: %w", err)
 		}
 
 		ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(statuses)

@@ -112,7 +112,7 @@ var OAuth2 = struct {
 
 func loadOAuth2From(rootCfg ConfigProvider) {
 	if err := rootCfg.Section("oauth2").MapTo(&OAuth2); err != nil {
-		log.Fatal("Failed to OAuth2 settings: %v", err)
+		log.Fatal("Failed to OAuth2 settings: %w", err)
 		return
 	}
 

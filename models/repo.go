@@ -250,7 +250,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 
 	if repo.NumForks > 0 {
 		if _, err = sess.Exec("UPDATE `repository` SET fork_id=0,is_fork=? WHERE fork_id=?", false, repo.ID); err != nil {
-			log.Error("reset 'fork_id' and 'is_fork': %v", err)
+			log.Error("reset 'fork_id' and 'is_fork': %w", err)
 		}
 	}
 
@@ -281,7 +281,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 
 	if needRewriteKeysFile {
 		if err := asymkey_model.RewriteAllPublicKeys(); err != nil {
-			log.Error("RewriteAllPublicKeys failed: %v", err)
+			log.Error("RewriteAllPublicKeys failed: %w", err)
 		}
 	}
 
@@ -332,7 +332,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	for _, task := range tasks {
 		err := actions_module.RemoveLogs(ctx, task.LogInStorage, task.LogFilename)
 		if err != nil {
-			log.Error("remove log file %q: %v", task.LogFilename, err)
+			log.Error("remove log file %q: %w", task.LogFilename, err)
 			// go on
 		}
 	}
@@ -349,7 +349,7 @@ type repoChecker struct {
 func repoStatsCheck(ctx context.Context, checker *repoChecker) {
 	results, err := checker.querySQL(ctx)
 	if err != nil {
-		log.Error("Select %s: %v", checker.desc, err)
+		log.Error("Select %s: %w", checker.desc, err)
 		return
 	}
 	for _, result := range results {
@@ -363,7 +363,7 @@ func repoStatsCheck(ctx context.Context, checker *repoChecker) {
 		log.Trace("Updating %s: %d", checker.desc, id)
 		err = checker.correctSQL(ctx, id)
 		if err != nil {
-			log.Error("Update %s[%d]: %v", checker.desc, id, err)
+			log.Error("Update %s[%d]: %w", checker.desc, id, err)
 		}
 	}
 }
@@ -535,7 +535,7 @@ func CheckRepoStats(ctx context.Context) error {
 	e := db.GetEngine(ctx)
 	results, err := e.Query("SELECT repo.id FROM `repository` repo WHERE repo.num_forks!=(SELECT COUNT(*) FROM `repository` WHERE fork_id=repo.id)")
 	if err != nil {
-		log.Error("Select repository count 'num_forks': %v", err)
+		log.Error("Select repository count 'num_forks': %w", err)
 	} else {
 		for _, result := range results {
 			id, _ := strconv.ParseInt(string(result["id"]), 10, 64)
@@ -549,18 +549,18 @@ func CheckRepoStats(ctx context.Context) error {
 
 			repo, err := repo_model.GetRepositoryByID(ctx, id)
 			if err != nil {
-				log.Error("repo_model.GetRepositoryByID[%d]: %v", id, err)
+				log.Error("repo_model.GetRepositoryByID[%d]: %w", id, err)
 				continue
 			}
 
 			_, err = e.SQL("SELECT COUNT(*) FROM `repository` WHERE fork_id=?", repo.ID).Get(&repo.NumForks)
 			if err != nil {
-				log.Error("Select count of forks[%d]: %v", repo.ID, err)
+				log.Error("Select count of forks[%d]: %w", repo.ID, err)
 				continue
 			}
 
 			if _, err = e.ID(repo.ID).Cols("num_forks").Update(repo); err != nil {
-				log.Error("UpdateRepository[%d]: %v", id, err)
+				log.Error("UpdateRepository[%d]: %w", id, err)
 				continue
 			}
 		}

@@ -39,7 +39,7 @@ func Test_wrapNewlines(t *testing.T) {
 			w := &bytes.Buffer{}
 			gotSum, err := wrapNewlines(w, []byte(tt.prefix), []byte(tt.value))
 			if err != nil {
-				t.Errorf("wrapNewlines() error = %v", err)
+				t.Errorf("wrapNewlines() error = %w", err)
 				return
 			}
 			if gotSum != int64(len(tt.output)) {

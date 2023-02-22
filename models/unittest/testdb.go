@@ -67,7 +67,7 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 	}
 
 	if err = CreateTestEngine(opts); err != nil {
-		fatalTestError("Error creating test engine: %v\n", err)
+		fatalTestError("Error creating test engine: %w\n", err)
 	}
 
 	setting.AppURL = "https://try.gitea.io/"
@@ -80,12 +80,12 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 	repoRootPath, err := os.MkdirTemp(os.TempDir(), "repos")
 	if err != nil {
-		fatalTestError("TempDir: %v\n", err)
+		fatalTestError("TempDir: %w\n", err)
 	}
 	setting.RepoRootPath = repoRootPath
 	appDataPath, err := os.MkdirTemp(os.TempDir(), "appdata")
 	if err != nil {
-		fatalTestError("TempDir: %v\n", err)
+		fatalTestError("TempDir: %w\n", err)
 	}
 	setting.AppDataPath = appDataPath
 	setting.AppWorkPath = testOpts.GiteaRootPath
@@ -111,25 +111,25 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 	setting.IncomingEmail.ReplyToAddress = "incoming+%{token}@localhost"
 
 	if err = storage.Init(); err != nil {
-		fatalTestError("storage.Init: %v\n", err)
+		fatalTestError("storage.Init: %w\n", err)
 	}
 	if err = system_model.Init(); err != nil {
-		fatalTestError("models.Init: %v\n", err)
+		fatalTestError("models.Init: %w\n", err)
 	}
 
 	if err = util.RemoveAll(repoRootPath); err != nil {
-		fatalTestError("util.RemoveAll: %v\n", err)
+		fatalTestError("util.RemoveAll: %w\n", err)
 	}
 	if err = CopyDir(filepath.Join(testOpts.GiteaRootPath, "tests", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
-		fatalTestError("util.CopyDir: %v\n", err)
+		fatalTestError("util.CopyDir: %w\n", err)
 	}
 
 	if err = git.InitFull(context.Background()); err != nil {
-		fatalTestError("git.Init: %v\n", err)
+		fatalTestError("git.Init: %w\n", err)
 	}
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {
-		fatalTestError("unable to read the new repo root: %v\n", err)
+		fatalTestError("unable to read the new repo root: %w\n", err)
 	}
 	for _, ownerDir := range ownerDirs {
 		if !ownerDir.Type().IsDir() {
@@ -137,7 +137,7 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 		}
 		repoDirs, err := os.ReadDir(filepath.Join(setting.RepoRootPath, ownerDir.Name()))
 		if err != nil {
-			fatalTestError("unable to read the new repo root: %v\n", err)
+			fatalTestError("unable to read the new repo root: %w\n", err)
 		}
 		for _, repoDir := range repoDirs {
 			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0o755)
@@ -149,7 +149,7 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 
 	if testOpts.SetUp != nil {
 		if err := testOpts.SetUp(); err != nil {
-			fatalTestError("set up failed: %v\n", err)
+			fatalTestError("set up failed: %w\n", err)
 		}
 	}
 
@@ -157,15 +157,15 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 
 	if testOpts.TearDown != nil {
 		if err := testOpts.TearDown(); err != nil {
-			fatalTestError("tear down failed: %v\n", err)
+			fatalTestError("tear down failed: %w\n", err)
 		}
 	}
 
 	if err = util.RemoveAll(repoRootPath); err != nil {
-		fatalTestError("util.RemoveAll: %v\n", err)
+		fatalTestError("util.RemoveAll: %w\n", err)
 	}
 	if err = util.RemoveAll(appDataPath); err != nil {
-		fatalTestError("util.RemoveAll: %v\n", err)
+		fatalTestError("util.RemoveAll: %w\n", err)
 	}
 	os.Exit(exitStatus)
 }

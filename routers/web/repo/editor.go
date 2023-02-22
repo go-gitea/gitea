@@ -43,7 +43,7 @@ const (
 func renderCommitRights(ctx *context.Context) bool {
 	canCommitToBranch, err := ctx.Repo.CanCommitToBranch(ctx, ctx.Doer)
 	if err != nil {
-		log.Error("CanCommitToBranch: %v", err)
+		log.Error("CanCommitToBranch: %w", err)
 	}
 	ctx.Data["CanCommitToBranch"] = canCommitToBranch
 
@@ -128,12 +128,12 @@ func editFile(ctx *context.Context, isNewFile bool) {
 
 		d, _ := io.ReadAll(dataRc)
 		if err := dataRc.Close(); err != nil {
-			log.Error("Error whilst closing blob data: %v", err)
+			log.Error("Error whilst closing blob data: %w", err)
 		}
 
 		buf = append(buf, d...)
 		if content, err := charset.ToUTF8WithErr(buf); err != nil {
-			log.Error("ToUTF8WithErr: %v", err)
+			log.Error("ToUTF8WithErr: %w", err)
 			ctx.Data["FileContent"] = string(buf)
 		} else {
 			ctx.Data["FileContent"] = content
@@ -711,7 +711,7 @@ func UploadFilePost(ctx *context.Context) {
 			}
 		} else {
 			// os.ErrNotExist - upload file missing in the intervening time?!
-			log.Error("Error during upload to repo: %-v to filepath: %s on %s from %s: %v", ctx.Repo.Repository, form.TreePath, oldBranchName, form.NewBranchName, err)
+			log.Error("Error during upload to repo: %-v to filepath: %s on %s from %s: %w", ctx.Repo.Repository, form.TreePath, oldBranchName, form.NewBranchName, err)
 			ctx.RenderWithErr(ctx.Tr("repo.editor.unable_to_upload_files", form.TreePath, err), tplUploadFile, &form)
 		}
 		return
@@ -740,7 +740,7 @@ func cleanUploadFileName(name string) string {
 func UploadFileToServer(ctx *context.Context) {
 	file, header, err := ctx.Req.FormFile("file")
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("FormFile: %v", err))
+		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("FormFile: %w", err))
 		return
 	}
 	defer file.Close()
@@ -765,7 +765,7 @@ func UploadFileToServer(ctx *context.Context) {
 
 	upload, err := repo_model.NewUpload(name, buf, file)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("NewUpload: %v", err))
+		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("NewUpload: %w", err))
 		return
 	}
 
@@ -784,7 +784,7 @@ func RemoveUploadFileFromServer(ctx *context.Context) {
 	}
 
 	if err := repo_model.DeleteUploadByUUID(form.File); err != nil {
-		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("DeleteUploadByUUID: %v", err))
+		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("DeleteUploadByUUID: %w", err))
 		return
 	}
 
@@ -804,7 +804,7 @@ func GetUniquePatchBranchName(ctx *context.Context) string {
 			if git.IsErrBranchNotExist(err) {
 				return branchName
 			}
-			log.Error("GetUniquePatchBranchName: %v", err)
+			log.Error("GetUniquePatchBranchName: %w", err)
 			return ""
 		}
 	}

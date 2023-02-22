@@ -771,7 +771,7 @@ func SearchTeam(ctx *context.APIContext) {
 
 	teams, maxResults, err := organization.SearchTeam(opts)
 	if err != nil {
-		log.Error("SearchTeam failed: %v", err)
+		log.Error("SearchTeam failed: %w", err)
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"ok":    false,
 			"error": "SearchTeam internal failure",

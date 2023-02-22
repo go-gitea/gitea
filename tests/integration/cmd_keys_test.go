@@ -47,7 +47,7 @@ func Test_CmdKeys(t *testing.T) {
 				context := cli.NewContext(&cli.App{Writer: os.Stdout}, set, nil)
 				err := cmd.CmdKeys.Run(context)
 				if (err != nil) != tt.wantErr {
-					t.Errorf("CmdKeys.Run() error = %v, wantErr %v", err, tt.wantErr)
+					t.Errorf("CmdKeys.Run() error = %v, wantErr %w", err, tt.wantErr)
 				}
 				w.Close()
 				var buf bytes.Buffer

@@ -17,7 +17,7 @@ func init() {
 	var err error
 	lruCache, err = lru.New(1000)
 	if err != nil {
-		log.Fatal("failed to new LRU cache, err: %v", err)
+		log.Fatal("failed to new LRU cache, err: %w", err)
 	}
 }
 
