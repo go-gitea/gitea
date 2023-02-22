@@ -39,7 +39,6 @@ var (
 	ErrIsWorkInProgress      = errors.New("work in progress PRs cannot be merged")
 	ErrIsChecking            = errors.New("cannot merge while conflict checking is in progress")
 	ErrNotMergableState      = errors.New("not in mergeable state")
-	ErrConflicts             = errors.New("conflicts exist")
 	ErrDependenciesLeft      = errors.New("is blocked by an open dependency")
 )
 

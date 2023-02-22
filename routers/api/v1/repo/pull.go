@@ -700,37 +700,6 @@ func IsPullRequestMerged(ctx *context.APIContext) {
 	ctx.NotFound()
 }
 
-func ResolveMerge(ctx *context.APIContext) {
-	// 	// TODO: Need to specify in the body how to resolve
-	// 	// form := web.GetForm(ctx).(*forms.MergePullRequestForm)
-	// 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
-	// 	if err != nil {
-	// 		if issues_model.IsErrPullRequestNotExist(err) {
-	// 			ctx.NotFound("GetPullRequestByIndex", err)
-	// 		} else {
-	// 			ctx.Error(http.StatusInternalServerError, "GetPullRequestByIndex", err)
-	// 		}
-	// 		return
-	// 	}
-
-	// 	if err := pr.LoadHeadRepo(ctx); err != nil {
-	// 		ctx.Error(http.StatusInternalServerError, "LoadHeadRepo", err)
-	// 		return
-	// 	}
-
-	// 	if err := pr.LoadIssue(ctx); err != nil {
-	// 		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
-	// 		return
-	// 	}
-	// 	pr.Issue.Repo = ctx.Repo.Repository
-
-	// // TODO: Go through the body and run the commands to create the commit
-	//
-	//	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
-	//		log.error("ERR")
-	//	}
-}
-
 // MergePullRequest merges a PR given an index
 func MergePullRequest(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/merge repository repoMergePullRequest
@@ -766,10 +735,6 @@ func MergePullRequest(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "409":
 	//     "$ref": "#/responses/error"
-
-	fmt.Println("AT THE START")
-	log.Warn("START OF FUNC")
-
 	form := web.GetForm(ctx).(*forms.MergePullRequestForm)
 
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
@@ -815,20 +780,15 @@ func MergePullRequest(ctx *context.APIContext) {
 	if err := pull_service.CheckPullMergable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, mergeCheckType, form.ForceMerge); err != nil {
 
 		// If there are conflicts, they might be solved by the resolution strategy
-		// TODO: Remove redudnat case here
 		if !errors.Is(err, pull_service.ErrNotMergableState) {
 			if errors.Is(err, pull_service.ErrIsClosed) {
 				ctx.NotFound()
-			} else if errors.Is(err, pull_service.ErrConflicts) {
-				ctx.Error(http.StatusMethodNotAllowed, "Merge", "Conflicts exist")
 			} else if errors.Is(err, pull_service.ErrUserNotAllowedToMerge) {
 				ctx.Error(http.StatusMethodNotAllowed, "Merge", "User not allowed to merge PR")
 			} else if errors.Is(err, pull_service.ErrHasMerged) {
 				ctx.Error(http.StatusMethodNotAllowed, "PR already merged", "")
 			} else if errors.Is(err, pull_service.ErrIsWorkInProgress) {
 				ctx.Error(http.StatusMethodNotAllowed, "PR is a work in progress", "Work in progress PRs cannot be merged")
-			} else if errors.Is(err, pull_service.ErrNotMergableState) {
-				ctx.Error(http.StatusMethodNotAllowed, "PR not in mergeable state", "Please try again later")
 			} else if models.IsErrDisallowedToMerge(err) {
 				ctx.Error(http.StatusMethodNotAllowed, "PR is not ready to be merged", err)
 			} else if asymkey_service.IsErrWontSign(err) {
@@ -893,12 +853,13 @@ func MergePullRequest(ctx *context.APIContext) {
 		}
 	}
 
-	// TODO: Delete extras
-	// TODO: Add validation to strategy types
+	// Verify that the merge strategy is valid
 	strategy := form.Strategy
-	log.Info("THIS IS THE STRAT, %v", strategy)
 	for _, s := range strategy {
-		log.Info("Path %s has strategy %s", s.Path, s.Strategy)
+		if s.Strategy != "theirs" && s.Strategy != "ours" {
+			log.Warn("Path %s has invalid strategy %s", s.Path, s.Strategy)
+			return
+		}
 	}
 
 	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false, strategy); err != nil {

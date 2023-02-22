@@ -1086,7 +1086,6 @@ func Routes(ctx gocontext.Context) *web.Route {
 						m.Post("/update", reqToken(auth_model.AccessTokenScopeRepo), repo.UpdatePullRequest)
 						m.Get("/commits", repo.GetPullRequestCommits)
 						m.Get("/files", repo.GetPullRequestFiles)
-						// m.Post("/resolve", repo.ResolveMerge)
 						m.Combo("/merge").Get(repo.IsPullRequestMerged).
 							Post(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, bind(forms.MergePullRequestForm{}), repo.MergePullRequest).
 							Delete(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, repo.CancelScheduledAutoMerge)

@@ -412,8 +412,6 @@ func ToChangedFile(f *gitdiff.DiffFile, repo *repo_model.Repository, commit stri
 		status = "unchanged"
 	}
 
-	fmt.Printf("Files %v: Name %v", conflictingFiles, f.Name)
-
 	file := &api.ChangedFile{
 		HasConflict: util.SliceContainsString(conflictingFiles, f.Name),
 		Filename:    f.GetDiffFileName(),
