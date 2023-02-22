@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/convert"
 	pull_service "code.gitea.io/gitea/services/pull"
-	"code.gitea.io/gitea/services/repository"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -356,7 +355,7 @@ func RenameBranch(ctx *context.APIContext) {
 		return
 	}
 
-	msg, err := repository.RenameBranch(ctx.Repo.Repository, ctx.Doer, ctx.Repo.GitRepo, ctx.Params("name"), opt.NewName)
+	msg, err := repo_service.RenameBranch(ctx.Repo.Repository, ctx.Doer, ctx.Repo.GitRepo, ctx.Params("name"), opt.NewName)
 	if err != nil {
 		ctx.Error(http.StatusBadRequest, "", msg)
 		return
