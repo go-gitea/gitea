@@ -50,7 +50,7 @@ steps:
     environment:
       GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
-      TAGS: bindata sqlite sqlite_unlock_notify
+      TAGS: exp_json bindata sqlite sqlite_unlock_notify
     depends_on: [deps-backend]
     volumes:
       - name: deps
@@ -63,7 +63,7 @@ steps:
     environment:
       GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
-      TAGS: bindata sqlite sqlite_unlock_notify
+      TAGS: exp_json bindata sqlite sqlite_unlock_notify
       GOOS: windows
       GOARCH: amd64
     depends_on: [deps-backend]
@@ -78,7 +78,7 @@ steps:
     environment:
       GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
-      TAGS: bindata gogit sqlite sqlite_unlock_notify
+      TAGS: exp_json bindata gogit sqlite sqlite_unlock_notify
     depends_on: [deps-backend]
     volumes:
       - name: deps
@@ -129,7 +129,7 @@ steps:
       GOPROXY: https://goproxy.io
       GOOS: linux
       GOARCH: arm64
-      TAGS: bindata gogit
+      TAGS: exp_json bindata gogit
     commands:
       - make backend # test cross compile
       - rm ./gitea # clean
@@ -144,7 +144,7 @@ steps:
       GOPROXY: https://goproxy.io
       GOOS: windows
       GOARCH: amd64
-      TAGS: bindata gogit
+      TAGS: exp_json bindata gogit
     commands:
       - go build -o gitea_windows
     depends_on: [deps-backend, checks-backend]
@@ -278,7 +278,7 @@ steps:
     environment:
       GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
-      TAGS: bindata sqlite sqlite_unlock_notify
+      TAGS: exp_json bindata sqlite sqlite_unlock_notify
     depends_on: [deps-backend, prepare-test-env]
     volumes:
       - name: deps
@@ -291,7 +291,7 @@ steps:
       - make unit-test-coverage test-check
     environment:
       GOPROXY: https://goproxy.io
-      TAGS: bindata sqlite sqlite_unlock_notify
+      TAGS: exp_json bindata sqlite sqlite_unlock_notify
       RACE_ENABLED: true
       GITHUB_READ_TOKEN:
         from_secret: github_read_token
@@ -307,7 +307,7 @@ steps:
       - make unit-test-coverage test-check
     environment:
       GOPROXY: https://goproxy.io
-      TAGS: bindata gogit sqlite sqlite_unlock_notify
+      TAGS: exp_json bindata gogit sqlite sqlite_unlock_notify
       RACE_ENABLED: true
       GITHUB_READ_TOKEN:
         from_secret: github_read_token
@@ -323,7 +323,7 @@ steps:
       - make test-mysql-migration integration-test-coverage
     environment:
       GOPROXY: https://goproxy.io
-      TAGS: bindata
+      TAGS: exp_json bindata
       RACE_ENABLED: true
       TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
@@ -340,7 +340,7 @@ steps:
       - timeout -s ABRT 50m make test-mysql8-migration test-mysql8
     environment:
       GOPROXY: https://goproxy.io
-      TAGS: bindata
+      TAGS: exp_json bindata
       RACE_ENABLED: true
       TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
@@ -356,7 +356,7 @@ steps:
       - make test-mssql-migration test-mssql
     environment:
       GOPROXY: https://goproxy.io
-      TAGS: bindata
+      TAGS: exp_json bindata
       RACE_ENABLED: true
       TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
@@ -371,7 +371,7 @@ steps:
       - make coverage
     environment:
       GOPROXY: https://goproxy.io
-      TAGS: bindata
+      TAGS: exp_json bindata
     depends_on: [unit-test, test-mysql]
     when:
       branch:
@@ -468,7 +468,7 @@ steps:
     environment:
       GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
-      TAGS: bindata gogit sqlite sqlite_unlock_notify
+      TAGS: exp_json bindata gogit sqlite sqlite_unlock_notify
     depends_on: [deps-backend, prepare-test-env]
     volumes:
       - name: deps
@@ -481,9 +481,9 @@ steps:
       - timeout -s ABRT 50m make test-sqlite-migration test-sqlite
     environment:
       GOPROXY: https://goproxy.io
-      TAGS: bindata gogit sqlite sqlite_unlock_notify
+      TAGS: exp_json bindata gogit sqlite sqlite_unlock_notify
       RACE_ENABLED: true
-      TEST_TAGS: gogit sqlite sqlite_unlock_notify
+      TEST_TAGS: exp_json gogit sqlite sqlite_unlock_notify
       USE_REPO_TEST_DIR: 1
     depends_on: [build]
     volumes:
@@ -497,9 +497,9 @@ steps:
       - timeout -s ABRT 50m make test-pgsql-migration test-pgsql
     environment:
       GOPROXY: https://goproxy.io
-      TAGS: bindata gogit
+      TAGS: exp_json bindata gogit
       RACE_ENABLED: true
-      TEST_TAGS: gogit
+      TEST_TAGS: exp_json gogit
       TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
     depends_on: [build]
@@ -749,7 +749,7 @@ steps:
       - make release
     environment:
       GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
-      TAGS: bindata sqlite sqlite_unlock_notify
+      TAGS: exp_json bindata sqlite sqlite_unlock_notify
       DEBIAN_FRONTEND: noninteractive
     volumes:
       - name: deps
@@ -882,7 +882,7 @@ steps:
       - make release
     environment:
       GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
-      TAGS: bindata sqlite sqlite_unlock_notify
+      TAGS: exp_json bindata sqlite sqlite_unlock_notify
       DEBIAN_FRONTEND: noninteractive
     depends_on: [fetch-tags]
     volumes:
