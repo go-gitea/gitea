@@ -411,7 +411,6 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 
 		// Apply the strategy
 		for _, strat := range strategy {
-			// versionToTake := fmt.Sprintf("--%s", strat.strategy)
 			if strat.Strategy == "ours" {
 				log.Debug("Running OURS on file %s", strat.Path)
 				if err := git.NewCommand(ctx, "checkout", "--ours").AddDynamicArguments(strat.Path).Run(&git.RunOpts{
