@@ -895,11 +895,11 @@ func MergePullRequest(ctx *context.APIContext) {
 
 	// TODO: Delete extras
 	// TODO: Add validation to strategy types
-	fmt.Println("MADE IT HERE")
-	log.Warn("TEST WARNING")
-	log.Info("MADE IT HERE")
 	strategy := form.Strategy
 	log.Info("THIS IS THE STRAT, %v", strategy)
+	for _, s := range strategy {
+		log.Info("Path %s has strategy %s", s.Path, s.Strategy)
+	}
 
 	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false, strategy); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {

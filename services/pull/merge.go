@@ -503,6 +503,7 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 
 // rawMerge perform the merge operation without changing any pull information in database
 func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, strategy []structs.MergeStrategy) (string, error) {
+	fmt.Printf("INSIDE THE RAW MERGE")
 	// Clone base repo.
 	tmpBasePath, err := createTemporaryRepo(ctx, pr)
 	if err != nil {
@@ -663,40 +664,52 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 	switch mergeStyle {
 	case repo_model.MergeStyleMerge:
 		// Do the merge
+		fmt.Printf("STARTING THE MERGE")
 		cmd := git.NewCommand(ctx, "merge", "--no-ff", "--no-commit").AddDynamicArguments(trackingBranch)
 		if err := runMergeCommand(pr, mergeStyle, cmd, tmpBasePath); err != nil {
-			log.Error("Unable to merge tracking into base: %v", err)
-			return "", err
+			// If the error was from a merge conflict, that's okay. The strategy might fix it
+			if !models.IsErrMergeConflicts(err) {
+				log.Error("Unable to merge tracking into base: %v", err)
+				return "", err
+			}
 		}
+		fmt.Printf("CONTINUING TO RESOLVE THE CONFLICTS")
 
 		// Apply the strategy
 		for _, strat := range strategy {
 			// versionToTake := fmt.Sprintf("--%s", strat.strategy)
 			if strat.Strategy == "ours" {
+				fmt.Printf("Running OURS on file %s", strat.Path)
 				if err := git.NewCommand(ctx, "checkout", "--ours").AddDynamicArguments(strat.Path).Run(&git.RunOpts{
 					Dir:    tmpBasePath,
 					Stdout: &outbuf,
 					Stderr: &errbuf,
 				}); err != nil {
 					log.Error("Could not checkout file: %v", err)
+					return "", err
 				}
 			} else {
+				fmt.Printf("Running THEIRS on file %s", strat.Path)
 				if err := git.NewCommand(ctx, "checkout", "--theirs").AddDynamicArguments(strat.Path).Run(&git.RunOpts{
 					Dir:    tmpBasePath,
 					Stdout: &outbuf,
 					Stderr: &errbuf,
 				}); err != nil {
 					log.Error("Could not checkout file: %v", err)
+					return "", err
 				}
 			}
 
+			fmt.Printf("Running ADD on file %s", strat.Path)
 			if err := git.NewCommand(ctx, "add").AddDynamicArguments(strat.Path).Run(&git.RunOpts{
 				Dir:    tmpBasePath,
 				Stdout: &outbuf,
 				Stderr: &errbuf,
 			}); err != nil {
 				log.Error("Could not add file: %v", err)
+				return "", err
 			}
+			fmt.Printf("Done with file %s", strat.Path)
 		}
 
 		// Commit the result
