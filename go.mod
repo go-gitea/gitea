@@ -20,6 +20,7 @@ require (
 	github.com/blevesearch/bleve/v2 v2.3.6
 	github.com/bufbuild/connect-go v1.3.1
 	github.com/buildkite/terminal-to-html/v3 v3.7.0
+	github.com/bytedance/sonic v1.8.1
 	github.com/caddyserver/certmagic v0.17.2
 	github.com/chi-middleware/proxy v1.1.1
 	github.com/denisenkom/go-mssqldb v0.12.2
@@ -154,7 +155,6 @@ require (
 	github.com/blevesearch/zapx/v15 v15.3.8 // indirect
 	github.com/boombuler/barcode v1.0.1 // indirect
 	github.com/bradfitz/gomemcache v0.0.0-20190913173617-a41fca850d0b // indirect
-	github.com/bytedance/sonic v1.8.1 // indirect
 	github.com/cention-sany/utf7 v0.0.0-20170124080048-26cad61bd60a // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
