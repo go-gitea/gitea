@@ -356,9 +356,12 @@ func RenameBranch(ctx *context.APIContext) {
 	}
 
 	msg, err := repo_service.RenameBranch(ctx.Repo.Repository, ctx.Doer, ctx.Repo.GitRepo, ctx.Params("name"), opt.NewName)
-	if err != nil {
+	if msg != "" {
 		ctx.Error(http.StatusBadRequest, "", msg)
 		return
+	}
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "", err)
 	}
 
 	branch, err := ctx.Repo.GitRepo.GetBranch(opt.NewName)
