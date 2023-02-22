@@ -485,51 +485,51 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 
 func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 	var err error
-	projects, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
+	ptdl, _, err := project_model.GetProjectsTmplData(ctx, project_model.SearchOptions{
 		RepoID:   repo.ID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolFalse,
 		Type:     project_model.TypeRepository,
 	})
 	if err != nil {
-		ctx.ServerError("GetProjects", err)
+		ctx.ServerError("GetProjectsTmplData", err)
 		return
 	}
-	projects2, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
+	ptdl2, _, err := project_model.GetProjectsTmplData(ctx, project_model.SearchOptions{
 		OwnerID:  repo.OwnerID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolFalse,
 		Type:     project_model.TypeOrganization,
 	})
 	if err != nil {
-		ctx.ServerError("GetProjects", err)
+		ctx.ServerError("GetProjectsTmplData", err)
 		return
 	}
 
-	ctx.Data["OpenProjects"] = append(projects, projects2...)
+	ctx.Data["OpenProjectsTmplData"] = append(ptdl, ptdl2...)
 
-	projects, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
+	ptdl, _, err = project_model.GetProjectsTmplData(ctx, project_model.SearchOptions{
 		RepoID:   repo.ID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolTrue,
 		Type:     project_model.TypeRepository,
 	})
 	if err != nil {
-		ctx.ServerError("GetProjects", err)
+		ctx.ServerError("GetProjectsTmplData", err)
 		return
 	}
-	projects2, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
+	ptdl2, _, err = project_model.GetProjectsTmplData(ctx, project_model.SearchOptions{
 		OwnerID:  repo.OwnerID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolTrue,
 		Type:     project_model.TypeOrganization,
 	})
 	if err != nil {
-		ctx.ServerError("GetProjects", err)
+		ctx.ServerError("GetProjectsTmplData", err)
 		return
 	}
 
-	ctx.Data["ClosedProjects"] = append(projects, projects2...)
+	ctx.Data["ClosedProjectsTmplData"] = append(ptdl, ptdl2...)
 }
 
 // repoReviewerSelection items to bee shown

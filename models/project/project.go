@@ -200,31 +200,35 @@ func IsTypeValid(p Type) bool {
 
 // SearchOptions are options for GetProjects
 type SearchOptions struct {
-	OwnerID  int64
-	RepoID   int64
-	Page     int
-	IsClosed util.OptionalBool
-	SortType string
-	Type     Type
+	ProjectID int64
+	OwnerID   int64
+	RepoID    int64
+	Page      int
+	IsClosed  util.OptionalBool
+	SortType  string
+	Type      Type
 }
 
 func (opts *SearchOptions) toConds() builder.Cond {
 	cond := builder.NewCond()
+	if opts.ProjectID > 0 {
+		cond = cond.And(builder.Eq{"project.id": opts.ProjectID})
+	}
 	if opts.RepoID > 0 {
-		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+		cond = cond.And(builder.Eq{"project.repo_id": opts.RepoID})
 	}
 	switch opts.IsClosed {
 	case util.OptionalBoolTrue:
-		cond = cond.And(builder.Eq{"is_closed": true})
+		cond = cond.And(builder.Eq{"project.is_closed": true})
 	case util.OptionalBoolFalse:
-		cond = cond.And(builder.Eq{"is_closed": false})
+		cond = cond.And(builder.Eq{"project.is_closed": false})
 	}
 
 	if opts.Type > 0 {
-		cond = cond.And(builder.Eq{"type": opts.Type})
+		cond = cond.And(builder.Eq{"project.type": opts.Type})
 	}
 	if opts.OwnerID > 0 {
-		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
+		cond = cond.And(builder.Eq{"project.owner_id": opts.OwnerID})
 	}
 	return cond
 }
@@ -263,6 +267,60 @@ func FindProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, e
 	}
 
 	return projects, count, e.Find(&projects)
+}
+
+type ProjcetTmplData struct {
+	Project Project               `xorm:"extends"`
+	Repo    repo_model.Repository `xorm:"extends"`
+	Owner   user_model.User       `xorm:"extends"`
+}
+
+func (ptd *ProjcetTmplData) GetFullTitle() string {
+	if ptd.Project.OwnerID > 0 {
+		return fmt.Sprintf("%s/-/%s", ptd.Owner.Name, ptd.Project.Title)
+	}
+	if ptd.Project.RepoID > 0 {
+		return fmt.Sprintf("%s/%s/%s", ptd.Repo.OwnerName, ptd.Repo.Name, ptd.Project.Title)
+	}
+	return ptd.Project.Title
+}
+
+// GetProjectsTmplData returns a list of all projects that have been created in the repository
+func GetProjectsTmplData(ctx context.Context, opts SearchOptions) ([]*ProjcetTmplData, int64, error) {
+	e := db.GetEngine(db.DefaultContext).Table("project")
+	ptdl := make([]*ProjcetTmplData, 0, setting.UI.IssuePagingNum)
+	cond := opts.toConds()
+
+	if opts.RepoID > 0 {
+		e = e.Select("project.*, repository.*").Join("INNER", "repository", "repository.id = project.repo_id")
+	}
+	if opts.OwnerID > 0 {
+		e = e.Select("project.*, user.*").Join("INNER", "user", "user.id = project.owner_id")
+	}
+
+	e = e.Where(cond)
+
+	if opts.Page > 0 {
+		e = e.Limit(setting.UI.IssuePagingNum, (opts.Page-1)*setting.UI.IssuePagingNum)
+	}
+
+	switch opts.SortType {
+	case "oldest":
+		e.Desc("created_unix")
+	case "recentupdate":
+		e.Desc("updated_unix")
+	case "leastupdate":
+		e.Asc("updated_unix")
+	default:
+		e.Asc("created_unix")
+	}
+
+	count, err := e.FindAndCount(&ptdl)
+	if err != nil {
+		return nil, 0, fmt.Errorf("FindAndCount: %w", err)
+	}
+
+	return ptdl, count, nil
 }
 
 // NewProject creates a new Project
