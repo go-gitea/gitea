@@ -200,20 +200,16 @@ func IsTypeValid(p Type) bool {
 
 // SearchOptions are options for GetProjects
 type SearchOptions struct {
-	ProjectID int64
-	OwnerID   int64
-	RepoID    int64
-	Page      int
-	IsClosed  util.OptionalBool
-	SortType  string
-	Type      Type
+	OwnerID  int64
+	RepoID   int64
+	Page     int
+	IsClosed util.OptionalBool
+	SortType string
+	Type     Type
 }
 
 func (opts *SearchOptions) toConds() builder.Cond {
 	cond := builder.NewCond()
-	if opts.ProjectID > 0 {
-		cond = cond.And(builder.Eq{"project.id": opts.ProjectID})
-	}
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"project.repo_id": opts.RepoID})
 	}
