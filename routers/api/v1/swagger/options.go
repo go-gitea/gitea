@@ -131,6 +131,9 @@ type swaggerParameterBodies struct {
 	CreateBranchRepoOption api.CreateBranchRepoOption
 
 	// in:body
+	RenameBranchReopOption api.RenameBranchReopOption
+
+	// in:body
 	CreateBranchProtectionOption api.CreateBranchProtectionOption
 
 	// in:body

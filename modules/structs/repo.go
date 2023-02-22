@@ -245,6 +245,16 @@ type CreateBranchRepoOption struct {
 	OldBranchName string `json:"old_branch_name" binding:"GitRefName;MaxSize(100)"`
 }
 
+// RenameBranchOption options when rename a branch in a repository
+// swagger:model
+type RenameBranchReopOption struct {
+	// Name of the branch after modified
+	//
+	// required: true
+	// unique: true
+	NewName string `json:"new_name" binding:"Required;GitRefName;MaxSize(100)"`
+}
+
 // TransferRepoOption options when transfer a repository's ownership
 // swagger:model
 type TransferRepoOption struct {

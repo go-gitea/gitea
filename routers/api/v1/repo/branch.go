@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/convert"
 	pull_service "code.gitea.io/gitea/services/pull"
+	"code.gitea.io/gitea/services/repository"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -298,6 +299,94 @@ func ListBranches(ctx *context.APIContext) {
 	ctx.SetLinkHeader(totalNumOfBranches, listOptions.PageSize)
 	ctx.SetTotalCountHeader(int64(totalNumOfBranches))
 	ctx.JSON(http.StatusOK, apiBranches)
+}
+
+// RenameBranch rename a branch for a user's repository
+func RenameBranch(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/branches/{name}/rename repository repoRenameBranch
+	// ---
+	// summary: Rename a branch
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: name
+	//   in: path
+	//   description: original name of the branch
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/RenameBranchReopOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/Branch"
+	//   "403":
+	// 	   description: Forbidden
+	//   "400":
+	//     description: Bad request(target exist, branch not exist,)
+	//   "409":
+	//     description: The branch with the same name already exists.
+
+	opt := web.GetForm(ctx).(*api.RenameBranchReopOption)
+	if ctx.Repo.Repository.IsEmpty {
+		ctx.Error(http.StatusNotFound, "", "Git Repository is empty.")
+		return
+	}
+
+	if !ctx.Repo.CanCreateBranch() {
+		ctx.Error(http.StatusForbidden, "", "Access Forbidden")
+		return
+	}
+
+	if ctx.HasError() {
+		ctx.Error(http.StatusInternalServerError, "", ctx.GetErrMsg())
+		return
+	}
+
+	msg, err := repository.RenameBranch(ctx.Repo.Repository, ctx.Doer, ctx.Repo.GitRepo, ctx.Params("name"), opt.NewName)
+	if err != nil {
+		ctx.Error(http.StatusBadRequest, "", msg)
+		return
+	}
+
+	branch, err := ctx.Repo.GitRepo.GetBranch(opt.NewName)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetBranch", err)
+		return
+	}
+
+	commit, err := branch.GetCommit()
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetCommit", err)
+		return
+	}
+
+	bp, err := git_model.GetFirstMatchProtectedBranchRule(ctx, ctx.Repo.Repository.ID, branch.Name)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetFirstMatchProtectedBranchRule", err)
+		return
+	}
+
+	br, err := convert.ToBranch(ctx, ctx.Repo.Repository, branch, commit, bp, ctx.Doer, ctx.Repo.IsAdmin())
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "convert.ToBranch", err)
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, br)
 }
 
 // GetBranchProtection gets a branch protection
