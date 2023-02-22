@@ -93,7 +93,8 @@ export function initRepoCommentForm() {
         hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
         if (hasUpdateAction) {
           // TODO: Add batch functionality and make this 1 network request.
-          for (const [elementId, item] of Object.entries(items)) {
+          const itemEntries = Object.entries(items);
+          for (const [elementId, item] of itemEntries) {
             await updateIssuesMeta(
               item['update-url'],
               item.action,
@@ -101,7 +102,9 @@ export function initRepoCommentForm() {
               elementId,
             );
           }
-          window.location.reload();
+          if (itemEntries.length) {
+            window.location.reload();
+          }
         }
       },
     });
