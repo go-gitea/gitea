@@ -159,6 +159,8 @@ func KeysPost(ctx *context.Context) {
 				ctx.Flash.Info(ctx.Tr("settings.ssh_disabled"))
 			} else if asymkey_model.IsErrKeyUnableVerify(err) {
 				ctx.Flash.Info(ctx.Tr("form.unable_verify_ssh_key"))
+			} else if err == asymkey_model.ErrKeyIsPrivate {
+				ctx.Flash.Error(ctx.Tr("form.must_use_public_key"))
 			} else {
 				ctx.Flash.Error(ctx.Tr("form.invalid_ssh_key", err.Error()))
 			}
