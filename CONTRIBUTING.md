@@ -310,11 +310,12 @@ v1.2, then minor changes for the previous release—e.g., v1.1.0 -> v1.1.1—are
 still possible.
 
 The previous release gets fixes for:
-* Security issues
-* Critical bugs
-* Regressions
-* Build issues
-* Necessary enhancements (including necessary UI/UX fixes)
+
+- Security issues
+- Critical bugs
+- Regressions
+- Build issues
+- Necessary enhancements (including necessary UI/UX fixes)
 
 The backported fixes should avoid breaking downgrade between minor releases as much as possible.
 
