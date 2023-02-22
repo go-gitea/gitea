@@ -117,7 +117,7 @@
 							<input type="checkbox" name="groups_enabled" class="js-ldap-group-toggle" {{if $cfg.GroupsEnabled}}checked{{end}}>
 						</div>
 					</div>
-					<div id="ldap-group-options" class="ui segment secondary" {{if not $cfg.GroupsEnabled}}hidden{{end}}>
+					<div id="ldap-group-options" class="ui segment secondary {{if not $cfg.GroupsEnabled}}gt-hidden{{end}}">
 						<div class="field">
 							<label>{{.locale.Tr "admin.auths.group_search_base"}}</label>
 							<input name="group_dn" value="{{$cfg.GroupDN}}" placeholder="e.g. ou=group,dc=mydomain,dc=com">
