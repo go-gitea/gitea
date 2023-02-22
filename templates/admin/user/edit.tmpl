@@ -122,7 +122,7 @@
 						<input name="allow_git_hook" type="checkbox" {{if .User.CanEditGitHook}}checked{{end}} {{if DisableGitHooks}}disabled{{end}}>
 					</div>
 				</div>
-				<div class="inline field" {{if or (DisableImportLocal) (.DisableMigrations)}}hidden{{end}}>
+				<div class="inline field {{if or (DisableImportLocal) (.DisableMigrations)}}gt-hidden{{end}}">
 					<div class="ui checkbox">
 						<label><strong>{{.locale.Tr "admin.users.allow_import_local"}}</strong></label>
 						<input name="allow_import_local" type="checkbox" {{if .User.CanImportLocal}}checked{{end}} {{if DisableImportLocal}}disabled{{end}}>
