@@ -47,7 +47,6 @@ func (err ErrIssueStopwatchAlreadyExist) Unwrap() error {
 type Stopwatch struct {
 	ID          int64              `xorm:"pk autoincr"`
 	IssueID     int64              `xorm:"INDEX"`
-	Issue       *Issue             `xorm:"-"`
 	UserID      int64              `xorm:"INDEX"`
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 }
@@ -134,7 +133,7 @@ func StopwatchExists(userID, issueID int64) bool {
 }
 
 // HasUserStopwatch returns true if the user has a stopwatch
-func HasUserStopwatch(ctx context.Context, userID int64) (exists bool, sw *Stopwatch, err error) {
+func HasUserStopwatch(ctx context.Context, userID int64) (exists bool, sw *Stopwatch, issue *Issue, err error) {
 	type stopwatchIssueRepo struct {
 		Stopwatch       `xorm:"extends"`
 		Issue           `xorm:"extends"`
@@ -150,10 +149,10 @@ func HasUserStopwatch(ctx context.Context, userID int64) (exists bool, sw *Stopw
 		Get(swIR)
 	if exists {
 		sw = &swIR.Stopwatch
-		sw.Issue = &swIR.Issue
-		sw.Issue.Repo = &swIR.Repository
+		issue = &swIR.Issue
+		issue.Repo = &swIR.Repository
 	}
-	return exists, sw, err
+	return exists, sw, issue, err
 }
 
 // FinishIssueStopwatchIfPossible if stopwatch exist then finish it otherwise ignore
@@ -233,12 +232,12 @@ func CreateIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 	}
 
 	// if another stopwatch is running: stop it
-	exists, sw, err := HasUserStopwatch(ctx, user.ID)
+	exists, sw, issue, err := HasUserStopwatch(ctx, user.ID)
 	if err != nil {
 		return err
 	}
 	if exists {
-		if err := FinishIssueStopwatch(ctx, user, sw.Issue); err != nil {
+		if err := FinishIssueStopwatch(ctx, user, issue); err != nil {
 			return err
 		}
 	}

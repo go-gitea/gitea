@@ -1427,8 +1427,8 @@ func ViewIssue(ctx *context.Context) {
 			ctx.Data["IsStopwatchRunning"] = issues_model.StopwatchExists(ctx.Doer.ID, issue.ID)
 			if !ctx.Data["IsStopwatchRunning"].(bool) {
 				var exists bool
-				var sw *issues_model.Stopwatch
-				if exists, sw, err = issues_model.HasUserStopwatch(ctx, ctx.Doer.ID); err != nil {
+				var swIssue *issues_model.Issue
+				if exists, _, swIssue, err = issues_model.HasUserStopwatch(ctx, ctx.Doer.ID); err != nil {
 					ctx.ServerError("HasUserStopwatch", err)
 					return
 				}
@@ -1436,7 +1436,7 @@ func ViewIssue(ctx *context.Context) {
 				if exists {
 					// Add warning if the user has already a stopwatch
 					// Add link to the issue of the already running stopwatch
-					ctx.Data["OtherStopwatchURL"] = sw.Issue.Link()
+					ctx.Data["OtherStopwatchURL"] = swIssue.Link()
 				}
 			}
 			ctx.Data["CanUseTimetracker"] = ctx.Repo.CanUseTimetracker(issue, ctx.Doer)

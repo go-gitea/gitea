@@ -86,7 +86,7 @@ func GetActiveStopwatch(ctx *context.Context) {
 		return
 	}
 
-	_, sw, err := issues_model.HasUserStopwatch(ctx, ctx.Doer.ID)
+	_, sw, issue, err := issues_model.HasUserStopwatch(ctx, ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("HasUserStopwatch", err)
 		return
@@ -97,9 +97,9 @@ func GetActiveStopwatch(ctx *context.Context) {
 	}
 
 	ctx.Data["ActiveStopwatch"] = StopwatchTmplInfo{
-		sw.Issue.Link(),
-		sw.Issue.Repo.FullName(),
-		sw.Issue.Index,
+		issue.Link(),
+		issue.Repo.FullName(),
+		issue.Index,
 		sw.Seconds() + 1, // ensure time is never zero in ui
 	}
 }
