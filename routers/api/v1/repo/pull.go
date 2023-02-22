@@ -856,7 +856,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	// Verify that the merge strategy is valid
 	strategy := form.Strategy
 	for _, s := range strategy {
-		if s.Strategy != "theirs" && s.Strategy != "ours" {
+		if !pull_service.IsStrategyValid(s.Strategy) {
 			log.Warn("Path %s has invalid strategy %s", s.Path, s.Strategy)
 			return
 		}
