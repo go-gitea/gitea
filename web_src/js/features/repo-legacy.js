@@ -29,6 +29,24 @@ import {hideElem, showElem} from '../utils/dom.js';
 
 const {csrfToken} = window.config;
 
+// if there are draft comments (more than 20 chars), confirm before reloading, to avoid losing comments
+function reloadConfirmDraftComment() {
+  const commentTextareas = [
+    document.querySelector('.edit-content-zone:not(.gt-hidden) textarea'),
+    document.querySelector('.edit_area'),
+  ];
+  for (const textarea of commentTextareas) {
+    if (textarea && textarea.value.trim().length > 20) {
+      textarea.parentElement.scrollIntoView();
+      if (!window.confirm('Page will be reloaded, but there are draft comments. Continuing to reload will discard the comments. Continue?')) {
+        return;
+      }
+      break;
+    }
+  }
+  window.location.reload();
+}
+
 export function initRepoCommentForm() {
   const $commentForm = $('.comment.form');
   if ($commentForm.length === 0) {
@@ -103,7 +121,7 @@ export function initRepoCommentForm() {
             );
           }
           if (itemEntries.length) {
-            window.location.reload();
+            reloadConfirmDraftComment();
           }
         }
       },
@@ -201,7 +219,7 @@ export function initRepoCommentForm() {
           'clear',
           $listMenu.data('issue-id'),
           '',
-        ).then(() => window.location.reload());
+        ).then(reloadConfirmDraftComment);
       }
 
       $(this).parent().find('.item').each(function () {
@@ -244,7 +262,7 @@ export function initRepoCommentForm() {
           '',
           $menu.data('issue-id'),
           $(this).data('id'),
-        ).then(() => window.location.reload());
+        ).then(reloadConfirmDraftComment);
       }
 
       let icon = '';
@@ -277,7 +295,7 @@ export function initRepoCommentForm() {
           '',
           $menu.data('issue-id'),
           $(this).data('id'),
-        ).then(() => window.location.reload());
+        ).then(reloadConfirmDraftComment);
       }
 
       $list.find('.selected').html('');
