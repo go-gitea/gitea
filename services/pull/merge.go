@@ -33,6 +33,7 @@ import (
 	"code.gitea.io/gitea/modules/references"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	issue_service "code.gitea.io/gitea/services/issue"
@@ -141,9 +142,7 @@ func expandDefaultMergeMessage(template string, vars map[string]string) (message
 	return os.Expand(message, mapping), os.Expand(body, mapping)
 }
 
-// Merge merges pull request to base repository.
-// Caller should check PR is ready to be merged (review and status checks)
-func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, wasAutoMerged bool) error {
+func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, wasAutoMerged bool, strategy []structs.MergeStrategy) error {
 	if err := pr.LoadHeadRepo(ctx); err != nil {
 		log.Error("LoadHeadRepo: %v", err)
 		return fmt.Errorf("LoadHeadRepo: %w", err)
@@ -179,7 +178,7 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	// Run the merge in the hammer context to prevent cancellation
 	hammerCtx := graceful.GetManager().HammerContext()
 
-	pr.MergedCommitID, err = rawMerge(hammerCtx, pr, doer, mergeStyle, expectedHeadCommitID, message)
+	pr.MergedCommitID, err = rawMerge(hammerCtx, pr, doer, mergeStyle, expectedHeadCommitID, message, strategy)
 	if err != nil {
 		return err
 	}
@@ -239,8 +238,271 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	return nil
 }
 
+// Merge merges pull request to base repository.
+// Caller should check PR is ready to be merged (review and status checks)
+
+// func rawMergeWithStrategy(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, expectedHeadCommitID, message string, strategy []MergeStrategy) (string, error) {
+// // Clone base repo.
+// tmpBasePath, err := createTemporaryRepo(ctx, pr)
+// if err != nil {
+// 	log.Error("CreateTemporaryPath: %v", err)
+// 	return "", err
+// }
+// defer func() {
+// 	if err := repo_module.RemoveTemporaryPath(tmpBasePath); err != nil {
+// 		log.Error("Merge: RemoveTemporaryPath: %s", err)
+// 	}
+// }()
+
+// baseBranch := "base"
+// trackingBranch := "tracking"
+
+// if expectedHeadCommitID != "" {
+// 	trackingCommitID, _, err := git.NewCommand(ctx, "show-ref", "--hash").AddDynamicArguments(git.BranchPrefix + trackingBranch).RunStdString(&git.RunOpts{Dir: tmpBasePath})
+// 	if err != nil {
+// 		log.Error("show-ref[%s] --hash refs/heads/trackingn: %v", tmpBasePath, git.BranchPrefix+trackingBranch, err)
+// 		return "", fmt.Errorf("getDiffTree: %w", err)
+// 	}
+// 	if strings.TrimSpace(trackingCommitID) != expectedHeadCommitID {
+// 		return "", models.ErrSHADoesNotMatch{
+// 			GivenSHA:   expectedHeadCommitID,
+// 			CurrentSHA: trackingCommitID,
+// 		}
+// 	}
+// }
+
+// var outbuf, errbuf strings.Builder
+
+// // Enable sparse-checkout
+// sparseCheckoutList, err := getDiffTree(ctx, tmpBasePath, baseBranch, trackingBranch)
+// if err != nil {
+// 	log.Error("getDiffTree(%s, %s, %s): %v", tmpBasePath, baseBranch, trackingBranch, err)
+// 	return "", fmt.Errorf("getDiffTree: %w", err)
+// }
+
+// infoPath := filepath.Join(tmpBasePath, ".git", "info")
+// if err := os.MkdirAll(infoPath, 0o700); err != nil {
+// 	log.Error("Unable to create .git/info in %s: %v", tmpBasePath, err)
+// 	return "", fmt.Errorf("Unable to create .git/info in tmpBasePath: %w", err)
+// }
+
+// sparseCheckoutListPath := filepath.Join(infoPath, "sparse-checkout")
+// if err := os.WriteFile(sparseCheckoutListPath, []byte(sparseCheckoutList), 0o600); err != nil {
+// 	log.Error("Unable to write .git/info/sparse-checkout file in %s: %v", tmpBasePath, err)
+// 	return "", fmt.Errorf("Unable to write .git/info/sparse-checkout file in tmpBasePath: %w", err)
+// }
+
+// gitConfigCommand := func() *git.Command {
+// 	return git.NewCommand(ctx, "config", "--local")
+// }
+
+// // Switch off LFS process (set required, clean and smudge here also)
+// if err := gitConfigCommand().AddArguments("filter.lfs.process", "").
+// 	Run(&git.RunOpts{
+// 		Dir:    tmpBasePath,
+// 		Stdout: &outbuf,
+// 		Stderr: &errbuf,
+// 	}); err != nil {
+// 	log.Error("git config [filter.lfs.process -> <> ]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
+// 	return "", fmt.Errorf("git config [filter.lfs.process -> <> ]: %w\n%s\n%s", err, outbuf.String(), errbuf.String())
+// }
+// outbuf.Reset()
+// errbuf.Reset()
+
+// if err := gitConfigCommand().AddArguments("filter.lfs.required", "false").
+// 	Run(&git.RunOpts{
+// 		Dir:    tmpBasePath,
+// 		Stdout: &outbuf,
+// 		Stderr: &errbuf,
+// 	}); err != nil {
+// 	log.Error("git config [filter.lfs.required -> <false> ]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
+// 	return "", fmt.Errorf("git config [filter.lfs.required -> <false> ]: %w\n%s\n%s", err, outbuf.String(), errbuf.String())
+// }
+// outbuf.Reset()
+// errbuf.Reset()
+
+// if err := gitConfigCommand().AddArguments("filter.lfs.clean", "").
+// 	Run(&git.RunOpts{
+// 		Dir:    tmpBasePath,
+// 		Stdout: &outbuf,
+// 		Stderr: &errbuf,
+// 	}); err != nil {
+// 	log.Error("git config [filter.lfs.clean -> <> ]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
+// 	return "", fmt.Errorf("git config [filter.lfs.clean -> <> ]: %w\n%s\n%s", err, outbuf.String(), errbuf.String())
+// }
+// outbuf.Reset()
+// errbuf.Reset()
+
+// if err := gitConfigCommand().AddArguments("filter.lfs.smudge", "").
+// 	Run(&git.RunOpts{
+// 		Dir:    tmpBasePath,
+// 		Stdout: &outbuf,
+// 		Stderr: &errbuf,
+// 	}); err != nil {
+// 	log.Error("git config [filter.lfs.smudge -> <> ]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
+// 	return "", fmt.Errorf("git config [filter.lfs.smudge -> <> ]: %w\n%s\n%s", err, outbuf.String(), errbuf.String())
+// }
+// outbuf.Reset()
+// errbuf.Reset()
+
+// if err := gitConfigCommand().AddArguments("core.sparseCheckout", "true").
+// 	Run(&git.RunOpts{
+// 		Dir:    tmpBasePath,
+// 		Stdout: &outbuf,
+// 		Stderr: &errbuf,
+// 	}); err != nil {
+// 	log.Error("git config [core.sparseCheckout -> true ]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
+// 	return "", fmt.Errorf("git config [core.sparsecheckout -> true]: %w\n%s\n%s", err, outbuf.String(), errbuf.String())
+// }
+// outbuf.Reset()
+// errbuf.Reset()
+
+// // Read base branch index
+// if err := git.NewCommand(ctx, "read-tree", "HEAD").
+// 	Run(&git.RunOpts{
+// 		Dir:    tmpBasePath,
+// 		Stdout: &outbuf,
+// 		Stderr: &errbuf,
+// 	}); err != nil {
+// 	log.Error("git read-tree HEAD: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
+// 	return "", fmt.Errorf("Unable to read base branch in to the index: %w\n%s\n%s", err, outbuf.String(), errbuf.String())
+// }
+// outbuf.Reset()
+// errbuf.Reset()
+
+// sig := doer.NewGitSig()
+// committer := sig
+
+// // Determine if we should sign. If no signKeyID, use --no-gpg-sign to countermand the sign config (from gitconfig)
+// var signArgs git.TrustedCmdArgs
+// sign, signKeyID, signer, _ := asymkey_service.SignMerge(ctx, pr, doer, tmpBasePath, "HEAD", trackingBranch)
+// if sign {
+// 	if pr.BaseRepo.GetTrustModel() == repo_model.CommitterTrustModel || pr.BaseRepo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
+// 		committer = signer
+// 	}
+// 	signArgs = git.ToTrustedCmdArgs([]string{"-S" + signKeyID})
+// } else {
+// 	signArgs = append(signArgs, "--no-gpg-sign")
+// }
+
+// commitTimeStr := time.Now().Format(time.RFC3339)
+
+// // Because this may call hooks we should pass in the environment
+// env := append(os.Environ(),
+// 	"GIT_AUTHOR_NAME="+sig.Name,
+// 	"GIT_AUTHOR_EMAIL="+sig.Email,
+// 	"GIT_AUTHOR_DATE="+commitTimeStr,
+// 	"GIT_COMMITTER_NAME="+committer.Name,
+// 	"GIT_COMMITTER_EMAIL="+committer.Email,
+// 	"GIT_COMMITTER_DATE="+commitTimeStr,
+// )
+
+// // Merge commits.
+// if err := git.NewCommand(ctx, "merge", "--no-ff", "--no-commit").AddDynamicArguments(trackingBranch).Run(&git.RunOpts{
+// 	Dir:    tmpBasePath,
+// 	Stdout: &outbuf,
+// 	Stderr: &errbuf,
+// }); err != nil {
+// 	log.Error("Could not initiate merge: %v", err)
+// 	return "", err
+// }
+
+// // Do the checkouts
+// for _, strat := range strategy {
+// 	versionToTake := internal.CmdArg(fmt.Sprintf("--%s", strat.strategy))
+// 	if err := git.NewCommand(ctx, "checkout", versionToTake).AddDynamicArguments(strat.path).Run(&git.RunOpts{
+// 		Dir:    tmpBasePath,
+// 		Stdout: &outbuf,
+// 		Stderr: &errbuf,
+// 	}); err != nil {
+// 		log.Error("Could not checkout file: %v", err)
+// 	}
+
+// 	if err := git.NewCommand(ctx, "add").AddDynamicArguments(strat.path).Run(&git.RunOpts{
+// 		Dir:    tmpBasePath,
+// 		Stdout: &outbuf,
+// 		Stderr: &errbuf,
+// 	}); err != nil {
+// 		log.Error("Could not add file: %v", err)
+// 	}
+// }
+
+// if err := commitAndSignNoAuthor(ctx, pr, message, signArgs, tmpBasePath, env); err != nil {
+// 	log.Error("Unable to make final commit: %v", err)
+// 	return "", err
+// }
+
+// mergeCommitID, err := git.GetFullCommitID(ctx, tmpBasePath, baseBranch)
+// if err != nil {
+// 	return "", fmt.Errorf("Failed to get full commit id for the new merge: %w", err)
+// }
+
+// // Now it's questionable about where this should go - either after or before the push
+// // I think in the interests of data safety - failures to push to the lfs should prevent
+// // the merge as you can always remerge.
+// // if setting.LFS.StartServer {
+// // 	if err := LFSPush(ctx, tmpBasePath, mergeHeadSHA, mergeBaseSHA, pr); err != nil {
+// // 		return "", err
+// // 	}
+// // }
+
+// var headUser *user_model.User
+// err = pr.HeadRepo.LoadOwner(ctx)
+// if err != nil {
+// 	if !user_model.IsErrUserNotExist(err) {
+// 		log.Error("Can't find user: %d for head repository - %v", pr.HeadRepo.OwnerID, err)
+// 		return "", err
+// 	}
+// 	log.Error("Can't find user: %d for head repository - defaulting to doer: %s - %v", pr.HeadRepo.OwnerID, doer.Name, err)
+// 	headUser = doer
+// } else {
+// 	headUser = pr.HeadRepo.Owner
+// }
+
+// var pushCmd *git.Command
+// env = repo_module.FullPushingEnvironment(
+// 	headUser,
+// 	doer,
+// 	pr.BaseRepo,
+// 	pr.BaseRepo.Name,
+// 	pr.ID,
+// )
+// pushCmd = git.NewCommand(ctx, "push", "origin").AddDynamicArguments(baseBranch + ":" + git.BranchPrefix + pr.BaseBranch)
+
+// // Push back to upstream.
+// // TODO: this cause an api call to "/api/internal/hook/post-receive/...",
+// //       that prevents us from doint the whole merge in one db transaction
+// if err := pushCmd.Run(&git.RunOpts{
+// 	Env:    env,
+// 	Dir:    tmpBasePath,
+// 	Stdout: &outbuf,
+// 	Stderr: &errbuf,
+// }); err != nil {
+// 	if strings.Contains(errbuf.String(), "non-fast-forward") {
+// 		return "", &git.ErrPushOutOfDate{
+// 			StdOut: outbuf.String(),
+// 			StdErr: errbuf.String(),
+// 			Err:    err,
+// 		}
+// 	} else if strings.Contains(errbuf.String(), "! [remote rejected]") {
+// 		err := &git.ErrPushRejected{
+// 			StdOut: outbuf.String(),
+// 			StdErr: errbuf.String(),
+// 			Err:    err,
+// 		}
+// 		err.GenerateMessage()
+// 		return "", err
+// 	}
+// 	return "", fmt.Errorf("git push: %s", errbuf.String())
+// }
+// outbuf.Reset()
+// errbuf.Reset()
+
+// return mergeCommitID, nil
+// }
+
 // rawMerge perform the merge operation without changing any pull information in database
-func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string) (string, error) {
+func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, strategy []structs.MergeStrategy) (string, error) {
 	// Clone base repo.
 	tmpBasePath, err := createTemporaryRepo(ctx, pr)
 	if err != nil {
@@ -400,12 +662,44 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 	// Merge commits.
 	switch mergeStyle {
 	case repo_model.MergeStyleMerge:
+		// Do the merge
 		cmd := git.NewCommand(ctx, "merge", "--no-ff", "--no-commit").AddDynamicArguments(trackingBranch)
 		if err := runMergeCommand(pr, mergeStyle, cmd, tmpBasePath); err != nil {
 			log.Error("Unable to merge tracking into base: %v", err)
 			return "", err
 		}
 
+		// Apply the strategy
+		for _, strat := range strategy {
+			// versionToTake := fmt.Sprintf("--%s", strat.strategy)
+			if strat.Strategy == "ours" {
+				if err := git.NewCommand(ctx, "checkout", "--ours").AddDynamicArguments(strat.Path).Run(&git.RunOpts{
+					Dir:    tmpBasePath,
+					Stdout: &outbuf,
+					Stderr: &errbuf,
+				}); err != nil {
+					log.Error("Could not checkout file: %v", err)
+				}
+			} else {
+				if err := git.NewCommand(ctx, "checkout", "--theirs").AddDynamicArguments(strat.Path).Run(&git.RunOpts{
+					Dir:    tmpBasePath,
+					Stdout: &outbuf,
+					Stderr: &errbuf,
+				}); err != nil {
+					log.Error("Could not checkout file: %v", err)
+				}
+			}
+
+			if err := git.NewCommand(ctx, "add").AddDynamicArguments(strat.Path).Run(&git.RunOpts{
+				Dir:    tmpBasePath,
+				Stdout: &outbuf,
+				Stderr: &errbuf,
+			}); err != nil {
+				log.Error("Could not add file: %v", err)
+			}
+		}
+
+		// Commit the result
 		if err := commitAndSignNoAuthor(ctx, pr, message, signArgs, tmpBasePath, env); err != nil {
 			log.Error("Unable to make final commit: %v", err)
 			return "", err

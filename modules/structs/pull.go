@@ -65,6 +65,11 @@ type ListPullRequestsOptions struct {
 	State string `json:"state"`
 }
 
+type MergeStrategy struct {
+	Path     string `json:"path"`
+	Strategy string `json:"strategy"`
+}
+
 // CreatePullRequestOption options when creating a pull request
 type CreatePullRequestOption struct {
 	Head      string   `json:"head" binding:"Required"`
