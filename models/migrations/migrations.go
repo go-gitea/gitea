@@ -463,6 +463,23 @@ var migrations = []Migration{
 	NewMigration("Add exclusive label", v1_19.AddExclusiveLabel),
 
 	// Gitea 1.19.0 ends at v244
+
+	// v244 -> v259
+	NewMigration("Noop DB Migration to allow for DB backports", v1_20.NoopDBMigrations),
+	NewMigration("Noop DB Migration to allow for DB backports", v1_20.NoopDBMigrations),
+	NewMigration("Noop DB Migration to allow for DB backports", v1_20.NoopDBMigrations),
+	NewMigration("Noop DB Migration to allow for DB backports", v1_20.NoopDBMigrations),
+	NewMigration("Noop DB Migration to allow for DB backports", v1_20.NoopDBMigrations),
+	NewMigration("Noop DB Migration to allow for DB backports", v1_20.NoopDBMigrations),
+	NewMigration("Noop DB Migration to allow for DB backports", v1_20.NoopDBMigrations),
+	NewMigration("Noop DB Migration to allow for DB backports", v1_20.NoopDBMigrations),
+	NewMigration("Noop DB Migration to allow for DB backports", v1_20.NoopDBMigrations),
+	NewMigration("Noop DB Migration to allow for DB backports", v1_20.NoopDBMigrations),
+	NewMigration("Noop DB Migration to allow for DB backports", v1_20.NoopDBMigrations),
+	NewMigration("Noop DB Migration to allow for DB backports", v1_20.NoopDBMigrations),
+	NewMigration("Noop DB Migration to allow for DB backports", v1_20.NoopDBMigrations),
+	NewMigration("Noop DB Migration to allow for DB backports", v1_20.NoopDBMigrations),
+	NewMigration("Noop DB Migration to allow for DB backports", v1_20.NoopDBMigrations),
 }
 
 // GetCurrentDBVersion returns the current db version
