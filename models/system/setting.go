@@ -108,7 +108,7 @@ func GetSettingWithCache(ctx context.Context, key string) (string, error) {
 
 // GetSettingBool return bool value of setting,
 // none existing keys and errors are ignored and result in false
-func GetSettingWithBool(ctx context.Context, key string) bool {
+func GetSettingBool(ctx context.Context, key string) bool {
 	s, _ := GetSetting(ctx, key)
 	if s == nil {
 		return false
@@ -284,12 +284,12 @@ func Init(ctx context.Context) error {
 	if setting_module.OfflineMode {
 		disableGravatar = true
 		enableFederatedAvatar = false
-		if !GetSettingWithBool(ctx, KeyPictureDisableGravatar) {
+		if !GetSettingBool(ctx, KeyPictureDisableGravatar) {
 			if err := SetSettingNoVersion(ctx, KeyPictureDisableGravatar, "true"); err != nil {
 				return fmt.Errorf("Failed to set setting %q: %w", KeyPictureDisableGravatar, err)
 			}
 		}
-		if GetSettingWithBool(ctx, KeyPictureEnableFederatedAvatar) {
+		if GetSettingBool(ctx, KeyPictureEnableFederatedAvatar) {
 			if err := SetSettingNoVersion(ctx, KeyPictureEnableFederatedAvatar, "false"); err != nil {
 				return fmt.Errorf("Failed to set setting %q: %w", KeyPictureEnableFederatedAvatar, err)
 			}
