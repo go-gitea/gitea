@@ -40,7 +40,7 @@ func TestSettings(t *testing.T) {
 
 	value, err := system.GetSetting(db.DefaultContext, keyName)
 	assert.NoError(t, err)
-	assert.EqualValues(t, updatedSetting.SettingValue, value)
+	assert.EqualValues(t, updatedSetting.SettingValue, value.SettingValue)
 
 	// get all settings
 	settings, err = system.GetAllSettings(db.DefaultContext)
