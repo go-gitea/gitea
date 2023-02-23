@@ -217,11 +217,8 @@ func CountProjects(ctx context.Context, opts SearchOptions) (int64, error) {
 
 // FindProjects returns a list of all projects that have been created in the repository
 func FindProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, error) {
-	e := db.GetEngine(ctx).Table("project")
+	e := db.GetEngine(ctx).Where(opts.toConds())
 	projects := make([]*Project, 0, setting.UI.IssuePagingNum)
-	cond := opts.toConds()
-
-	e = e.Where(cond)
 
 	if opts.Page > 0 {
 		e = e.Limit(setting.UI.IssuePagingNum, (opts.Page-1)*setting.UI.IssuePagingNum)
