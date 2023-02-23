@@ -35,8 +35,6 @@ steps:
     volumes:
       - name: deps
         path: /go
-    environment:
-      GOPROXY: https://goproxy.io
 
   - name: lint-frontend
     image: node:18
@@ -50,8 +48,6 @@ steps:
     commands:
       - make lint-backend
     environment:
-      GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
-      GOSUMDB: sum.golang.org
       TAGS: bindata sqlite sqlite_unlock_notify
     depends_on: [deps-backend]
     volumes:
@@ -63,8 +59,6 @@ steps:
     commands:
       - make golangci-lint-windows vet
     environment:
-      GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
-      GOSUMDB: sum.golang.org
       TAGS: bindata sqlite sqlite_unlock_notify
       GOOS: windows
       GOARCH: amd64
@@ -78,8 +72,6 @@ steps:
     commands:
       - make lint-backend
     environment:
-      GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
-      GOSUMDB: sum.golang.org
       TAGS: bindata gogit sqlite sqlite_unlock_notify
     depends_on: [deps-backend]
     volumes:
@@ -116,8 +108,6 @@ steps:
   - name: build-backend-no-gcc
     image: golang:1.19 # this step is kept as the lowest version of golang that we support
     pull: always
-    environment:
-      GOPROXY: https://goproxy.io
     commands:
       - go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
     depends_on: [deps-backend, checks-backend]
@@ -128,7 +118,6 @@ steps:
   - name: build-backend-arm64
     image: golang:1.20
     environment:
-      GOPROXY: https://goproxy.io
       GOOS: linux
       GOARCH: arm64
       TAGS: bindata gogit
@@ -143,7 +132,6 @@ steps:
   - name: build-backend-windows
     image: golang:1.20
     environment:
-      GOPROXY: https://goproxy.io
       GOOS: windows
       GOARCH: amd64
       TAGS: bindata gogit
@@ -157,7 +145,6 @@ steps:
   - name: build-backend-386
     image: golang:1.20
     environment:
-      GOPROXY: https://goproxy.io
       GOOS: linux
       GOARCH: 386
     commands:
@@ -258,8 +245,6 @@ steps:
     volumes:
       - name: deps
         path: /go
-    environment:
-      GOPROXY: https://goproxy.io
 
   - name: tag-pre-condition
     image: drone/git
@@ -280,8 +265,6 @@ steps:
       - ./build/test-env-check.sh
       - make backend
     environment:
-      GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
-      GOSUMDB: sum.golang.org
       TAGS: bindata sqlite sqlite_unlock_notify
     depends_on: [deps-backend, prepare-test-env]
     volumes:
@@ -294,7 +277,6 @@ steps:
     commands:
       - make unit-test-coverage test-check
     environment:
-      GOPROXY: https://goproxy.io
       TAGS: bindata sqlite sqlite_unlock_notify
       RACE_ENABLED: true
       GITHUB_READ_TOKEN:
@@ -310,7 +292,6 @@ steps:
     commands:
       - make unit-test-coverage test-check
     environment:
-      GOPROXY: https://goproxy.io
       TAGS: bindata gogit sqlite sqlite_unlock_notify
       RACE_ENABLED: true
       GITHUB_READ_TOKEN:
@@ -326,7 +307,6 @@ steps:
     commands:
       - make test-mysql-migration integration-test-coverage
     environment:
-      GOPROXY: https://goproxy.io
       TAGS: bindata
       RACE_ENABLED: true
       TEST_LDAP: 1
@@ -343,7 +323,6 @@ steps:
     commands:
       - timeout -s ABRT 50m make test-mysql8-migration test-mysql8
     environment:
-      GOPROXY: https://goproxy.io
       TAGS: bindata
       RACE_ENABLED: true
       TEST_LDAP: 1
@@ -359,7 +338,6 @@ steps:
     commands:
       - make test-mssql-migration test-mssql
     environment:
-      GOPROXY: https://goproxy.io
       TAGS: bindata
       RACE_ENABLED: true
       TEST_LDAP: 1
@@ -374,7 +352,6 @@ steps:
     commands:
       - make coverage
     environment:
-      GOPROXY: https://goproxy.io
       TAGS: bindata
     depends_on: [unit-test, test-mysql]
     when:
@@ -456,8 +433,6 @@ steps:
     volumes:
       - name: deps
         path: /go
-    environment:
-      GOPROXY: https://goproxy.io
 
   - name: prepare-test-env
     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
@@ -472,8 +447,6 @@ steps:
       - ./build/test-env-check.sh
       - make backend
     environment:
-      GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
-      GOSUMDB: sum.golang.org
       TAGS: bindata gogit sqlite sqlite_unlock_notify
     depends_on: [deps-backend, prepare-test-env]
     volumes:
@@ -486,7 +459,6 @@ steps:
     commands:
       - timeout -s ABRT 50m make test-sqlite-migration test-sqlite
     environment:
-      GOPROXY: https://goproxy.io
       TAGS: bindata gogit sqlite sqlite_unlock_notify
       RACE_ENABLED: true
       TEST_TAGS: gogit sqlite sqlite_unlock_notify
@@ -502,7 +474,6 @@ steps:
     commands:
       - timeout -s ABRT 50m make test-pgsql-migration test-pgsql
     environment:
-      GOPROXY: https://goproxy.io
       TAGS: bindata gogit
       RACE_ENABLED: true
       TEST_TAGS: gogit
@@ -566,8 +537,6 @@ steps:
     volumes:
       - name: deps
         path: /go
-    environment:
-      GOPROXY: https://goproxy.io
 
   # TODO: We should probably build all dependencies into a test image
   - name: test-e2e
@@ -580,8 +549,6 @@ steps:
       - ./build/test-env-prepare.sh
       - su gitea bash -c "export PATH=$PATH:/usr/local/go/bin && timeout -s ABRT 40m make test-e2e-pgsql"
     environment:
-      GOPROXY: https://goproxy.io
-      GOSUMDB: sum.golang.org
       USE_REPO_TEST_DIR: 1
       TEST_PGSQL_DBNAME: 'testgitea-e2e'
       DEBIAN_FRONTEND: noninteractive
@@ -746,8 +713,6 @@ steps:
     volumes:
       - name: deps
         path: /go
-    environment:
-      GOPROXY: https://goproxy.io
 
   - name: static
     image: techknowlogick/xgo:go-1.20.x
@@ -758,7 +723,6 @@ steps:
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:
-      GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
       TAGS: bindata sqlite sqlite_unlock_notify
       DEBIAN_FRONTEND: noninteractive
     volumes:
@@ -881,8 +845,6 @@ steps:
     volumes:
       - name: deps
         path: /go
-    environment:
-      GOPROXY: https://goproxy.io
 
   - name: static
     image: techknowlogick/xgo:go-1.20.x
@@ -893,7 +855,6 @@ steps:
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:
-      GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
       TAGS: bindata sqlite sqlite_unlock_notify
       DEBIAN_FRONTEND: noninteractive
     depends_on: [fetch-tags]
@@ -1034,8 +995,6 @@ steps:
       auto_tag: true
       auto_tag_suffix: linux-amd64
       repo: gitea/gitea
-      build_args:
-        - GOPROXY=https://goproxy.io
       password:
         from_secret: docker_password
       username:
@@ -1052,8 +1011,6 @@ steps:
       auto_tag: true
       auto_tag_suffix: linux-amd64-rootless
       repo: gitea/gitea
-      build_args:
-        - GOPROXY=https://goproxy.io
       password:
         from_secret: docker_password
       username:
@@ -1097,8 +1054,6 @@ steps:
     settings:
       tags: ${DRONE_TAG##v}-linux-amd64
       repo: gitea/gitea
-      build_args:
-        - GOPROXY=https://goproxy.io
       password:
         from_secret: docker_password
       username:
@@ -1114,8 +1069,6 @@ steps:
       dockerfile: Dockerfile.rootless
       tags: ${DRONE_TAG##v}-linux-amd64-rootless
       repo: gitea/gitea
-      build_args:
-        - GOPROXY=https://goproxy.io
       password:
         from_secret: docker_password
       username:
@@ -1160,8 +1113,6 @@ steps:
       auto_tag: false
       tags: dev-linux-amd64
       repo: gitea/gitea
-      build_args:
-        - GOPROXY=https://goproxy.io
       password:
         from_secret: docker_password
       username:
@@ -1178,8 +1129,6 @@ steps:
       auto_tag: false
       tags: dev-linux-amd64-rootless
       repo: gitea/gitea
-      build_args:
-        - GOPROXY=https://goproxy.io
       password:
         from_secret: docker_password
       username:
@@ -1223,8 +1172,6 @@ steps:
       auto_tag: false
       tags: ${DRONE_BRANCH##release/v}-dev-linux-amd64
       repo: gitea/gitea
-      build_args:
-        - GOPROXY=https://goproxy.io
       password:
         from_secret: docker_password
       username:
@@ -1241,8 +1188,6 @@ steps:
       auto_tag: false
       tags: ${DRONE_BRANCH##release/v}-dev-linux-amd64-rootless
       repo: gitea/gitea
-      build_args:
-        - GOPROXY=https://goproxy.io
       password:
         from_secret: docker_password
       username:
@@ -1279,8 +1224,6 @@ steps:
       dry_run: true
       repo: gitea/gitea
       tags: linux-arm64
-      build_args:
-        - GOPROXY=https://goproxy.io
     environment:
       PLUGIN_MIRROR:
         from_secret: plugin_mirror
@@ -1326,8 +1269,6 @@ steps:
       auto_tag: true
       auto_tag_suffix: linux-arm64
       repo: gitea/gitea
-      build_args:
-        - GOPROXY=https://goproxy.io
       password:
         from_secret: docker_password
       username:
@@ -1344,8 +1285,6 @@ steps:
       auto_tag: true
       auto_tag_suffix: linux-arm64-rootless
       repo: gitea/gitea
-      build_args:
-        - GOPROXY=https://goproxy.io
       password:
         from_secret: docker_password
       username:
@@ -1389,8 +1328,6 @@ steps:
     settings:
       tags: ${DRONE_TAG##v}-linux-arm64
       repo: gitea/gitea
-      build_args:
-        - GOPROXY=https://goproxy.io
       password:
         from_secret: docker_password
       username:
@@ -1406,8 +1343,6 @@ steps:
       dockerfile: Dockerfile.rootless
       tags: ${DRONE_TAG##v}-linux-arm64-rootless
       repo: gitea/gitea
-      build_args:
-        - GOPROXY=https://goproxy.io
       password:
         from_secret: docker_password
       username:
@@ -1452,8 +1387,6 @@ steps:
       auto_tag: false
       tags: dev-linux-arm64
       repo: gitea/gitea
-      build_args:
-        - GOPROXY=https://goproxy.io
       password:
         from_secret: docker_password
       username:
@@ -1470,8 +1403,6 @@ steps:
       auto_tag: false
       tags: dev-linux-arm64-rootless
       repo: gitea/gitea
-      build_args:
-        - GOPROXY=https://goproxy.io
       password:
         from_secret: docker_password
       username:
@@ -1515,8 +1446,6 @@ steps:
       auto_tag: false
       tags: ${DRONE_BRANCH##release/v}-dev-linux-arm64
       repo: gitea/gitea
-      build_args:
-        - GOPROXY=https://goproxy.io
       password:
         from_secret: docker_password
       username:
@@ -1533,8 +1462,6 @@ steps:
       auto_tag: false
       tags: ${DRONE_BRANCH##release/v}-dev-linux-arm64-rootless
       repo: gitea/gitea
-      build_args:
-        - GOPROXY=https://goproxy.io
       password:
         from_secret: docker_password
       username:
