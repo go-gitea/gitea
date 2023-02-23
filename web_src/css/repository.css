@@ -1806,8 +1806,14 @@
   padding: 0 !important;
 }
 
-.repository .diff-file-box .code-diff tbody tr td.halfwidth {
-  width: 49%; /* halfwidth is used in split view - and in that case, 1% of each */
+.repository .diff-file-box .code-diff table {
+  table-layout: fixed;
+}
+
+.repository .diff-file-box .code-diff tbody tr td.lines-num,
+.repository .diff-file-box .code-diff tbody tr td.lines-escape,
+.repository .diff-file-box .code-diff tbody tr td.lines-type-marker {
+  white-space: nowrap;
 }
 
 .repository .diff-file-box .code-diff tbody tr td.center {
