@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
+	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -608,6 +609,13 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	ctx.Data["IssueRefEndNames"], ctx.Data["IssueRefURLs"] = issue_service.GetRefEndNamesAndURLs(issues, ctx.FormString("RepoLink"))
 
 	ctx.Data["Issues"] = issues
+
+	projects := issues_model.IssueList(issues).GetProjects()
+	ctx.Data["ProjectTmplData"], err = project_model.GetProjectTmplData(projects)
+	if err != nil {
+		ctx.ServerError("GetProjectTmplData", err)
+		return
+	}
 
 	approvalCounts, err := issues_model.IssueList(issues).GetApprovalCounts(ctx)
 	if err != nil {

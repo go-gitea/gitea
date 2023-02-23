@@ -81,3 +81,9 @@ func GetUsersByIDs(ids []int64) (UserList, error) {
 		Find(&ous)
 	return ous, err
 }
+
+// GetUsersMapByIDs returns all resolved users from a list of Ids.
+func GetUsersMapByIDs(ids []int64) (map[int64]*User, error) {
+	usm := make(map[int64]*User, len(ids))
+	return usm, db.GetEngine(db.DefaultContext).In("id", ids).Find(&usm)
+}

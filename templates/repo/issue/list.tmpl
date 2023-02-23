@@ -81,7 +81,7 @@
 					</div>
 
 					<!-- Project -->
-					<div class="ui{{if not (or .OpenProjectsTmplData .ClosedProjectsTmplData)}} disabled{{end}} dropdown jump item">
+					<div class="ui{{if not (or .OpenProjects .ClosedProjects)}} disabled{{end}} dropdown jump item">
 						<span class="text">
 							{{.locale.Tr "repo.issues.filter_project"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -93,27 +93,27 @@
 							</div>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_project_all"}}</a>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&project=-1&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_project_none"}}</a>
-							{{if .OpenProjectsTmplData}}
+							{{if .OpenProjects}}
 								<div class="divider"></div>
 								<div class="header">
 									{{.locale.Tr "repo.issues.new.open_projects"}}
 								</div>
-								{{range .OpenProjectsTmplData}}
-									<a class="{{if $.ProjectID}}{{if eq $.ProjectID .ID}}active selected{{end}}{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{.Project.ID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">
-										{{if .Project.IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
-										{{.GetFullTitle}}
+								{{range .OpenProjects}}
+									<a class="{{if $.ProjectID}}{{if eq $.ProjectID .ID}}active selected{{end}}{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{.ID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">
+										{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
+										{{$.ProjectTmplData.RenderFullTitle .}}
 									</a>
 								{{end}}
 							{{end}}
-							{{if .ClosedProjectsTmplData}}
+							{{if .ClosedProjects}}
 								<div class="divider"></div>
 								<div class="header">
 									{{.locale.Tr "repo.issues.new.closed_projects"}}
 								</div>
-								{{range .ClosedProjectsTmplData}}
-									<a class="{{if $.ProjectID}}{{if eq $.ProjectID .ID}}active selected{{end}}{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{.Project.ID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">
-										{{if .Project.IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
-										{{.GetFullTitle}}
+								{{range .ClosedProjects}}
+									<a class="{{if $.ProjectID}}{{if eq $.ProjectID .ID}}active selected{{end}}{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{.ID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">
+										{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
+										{{$.ProjectTmplData.RenderFullTitle .}}
 									</a>
 								{{end}}
 							{{end}}
@@ -249,14 +249,14 @@
 							</div>
 							{{range .Milestones}}
 								<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/milestone">
-									{{.GetFullTitle}}
+									{{$.ProjectTmplData.RenderFullTitle .}}
 								</div>
 							{{end}}
 						</div>
 					</div>
 
 					<!-- Projects -->
-					<div class="ui{{if not (or .OpenProjectsTmplData .ClosedProjectsTmplData)}} disabled{{end}} dropdown jump item">
+					<div class="ui{{if not (or .OpenProjects .ClosedProjects)}} disabled{{end}} dropdown jump item">
 						<span class="text">
 							{{.locale.Tr "repo.project_board"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -265,27 +265,27 @@
 							<div class="item issue-action" data-element-id="0" data-url="{{$.Link}}/projects">
 							{{.locale.Tr "repo.issues.new.clear_projects"}}
 							</div>
-							{{if .OpenProjectsTmplData}}
+							{{if .OpenProjects}}
 								<div class="divider"></div>
 								<div class="header">
 									{{.locale.Tr "repo.issues.new.open_projects"}}
 								</div>
-								{{range .OpenProjectsTmplData}}
-									<div class="item issue-action" data-element-id="{{.Project.ID}}" data-url="{{$.RepoLink}}/issues/projects">
-										{{if .Project.IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
-										{{.GetFullTitle}}
+								{{range .OpenProjects}}
+									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/projects">
+										{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
+										{{$.ProjectTmplData.RenderFullTitle .}}
 									</div>
 								{{end}}
 							{{end}}
-							{{if .ClosedProjectsTmplData}}
+							{{if .ClosedProjects}}
 								<div class="divider"></div>
 								<div class="header">
 									{{.locale.Tr "repo.issues.new.closed_projects"}}
 								</div>
-								{{range .ClosedProjectsTmplData}}
-									<div class="item issue-action" data-element-id="{{.Project.ID}}" data-url="{{$.RepoLink}}/issues/projects">
-										{{if .Project.IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
-										{{.GetFullTitle}}
+								{{range .ClosedProjects}}
+									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/projects">
+										{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
+										{{$.ProjectTmplData.RenderFullTitle .}}
 									</div>
 								{{end}}
 							{{end}}

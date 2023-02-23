@@ -229,6 +229,15 @@ func (issues IssueList) loadMilestones(ctx context.Context) error {
 	return nil
 }
 
+func (issues IssueList) GetProjects() (pl project_model.ProjectList) {
+	for _, issue := range issues {
+		if issue.Project != nil {
+			pl = append(pl, issue.Project)
+		}
+	}
+	return pl
+}
+
 func (issues IssueList) getProjectIDs() []int64 {
 	ids := make(container.Set[int64], len(issues))
 	for _, issue := range issues {

@@ -87,8 +87,8 @@
 						</a>
 					{{end}}
 					{{if .Project}}
-						<a class="project" {{if $.RepoLink}}href="{{$.RepoLink}}/projects/{{.Project.ID}}"{{else}}href="{{.Repo.Link}}/projects/{{.Project.ID}}"{{end}}>
-							{{svg "octicon-project" 14 "gt-mr-2"}}{{.Project.Name}}
+						<a class="project" href="{{.Project.Link}}">
+							{{svg "octicon-project" 14 "gt-mr-2"}}{{$.ProjectTmplData.RenderFullTitle .Project}}
 						</a>
 					{{end}}
 					{{if .Ref}}

@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -33,6 +34,9 @@ type (
 
 	// Type is used to identify the type of project in question and ownership
 	Type uint8
+
+	// ProjectList defines a list of projects
+	ProjectList []*Project
 )
 
 const (
@@ -235,9 +239,9 @@ func CountProjects(ctx context.Context, opts SearchOptions) (int64, error) {
 }
 
 // FindProjects returns a list of all projects that have been created in the repository
-func FindProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, error) {
+func FindProjects(ctx context.Context, opts SearchOptions) (ProjectList, int64, error) {
 	e := db.GetEngine(ctx)
-	projects := make([]*Project, 0, setting.UI.IssuePagingNum)
+	projects := make(ProjectList, 0, setting.UI.IssuePagingNum)
 	cond := opts.toConds()
 
 	count, err := e.Where(cond).Count(new(Project))
@@ -265,58 +269,63 @@ func FindProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, e
 	return projects, count, e.Find(&projects)
 }
 
-type ProjcetTmplData struct {
-	Project Project               `xorm:"extends"`
-	Repo    repo_model.Repository `xorm:"extends"`
-	Owner   user_model.User       `xorm:"extends"`
+type ProjectsTmplData struct {
+	ProjectRepos  map[int64]*repo_model.Repository
+	ProjectOwners map[int64]*user_model.User
 }
 
-func (ptd *ProjcetTmplData) GetFullTitle() string {
-	if ptd.Project.OwnerID > 0 {
-		return fmt.Sprintf("%s/-/%s", ptd.Owner.Name, ptd.Project.Title)
+func (pl ProjectList) getRepoIDs() []int64 {
+	ids := make(container.Set[int64], len(pl))
+	for _, p := range pl {
+		if p.RepoID > 0 {
+			ids.Add(p.RepoID)
+		}
 	}
-	if ptd.Project.RepoID > 0 {
-		return fmt.Sprintf("%s/%s/%s", ptd.Repo.OwnerName, ptd.Repo.Name, ptd.Project.Title)
-	}
-	return ptd.Project.Title
+	return ids.Values()
 }
 
-// GetProjectsTmplData returns a list of all projects that have been created in the repository
-func GetProjectsTmplData(ctx context.Context, opts SearchOptions) ([]*ProjcetTmplData, int64, error) {
-	e := db.GetEngine(db.DefaultContext).Table("project")
-	ptdl := make([]*ProjcetTmplData, 0, setting.UI.IssuePagingNum)
-	cond := opts.toConds()
-
-	if opts.RepoID > 0 {
-		e = e.Select("project.*, repository.*").Join("INNER", "repository", "repository.id = project.repo_id")
+func (pl ProjectList) getOwnerIDs() []int64 {
+	ids := make(container.Set[int64], len(pl))
+	for _, p := range pl {
+		if p.OwnerID > 0 {
+			ids.Add(p.OwnerID)
+		}
 	}
-	if opts.OwnerID > 0 {
-		e = e.Select("project.*, user.*").Join("INNER", "user", "user.id = project.owner_id")
-	}
+	return ids.Values()
+}
 
-	e = e.Where(cond)
+func GetProjectTmplData(ps ProjectList) (*ProjectsTmplData, error) {
+	var err error
+	ptd := new(ProjectsTmplData)
 
-	if opts.Page > 0 {
-		e = e.Limit(setting.UI.IssuePagingNum, (opts.Page-1)*setting.UI.IssuePagingNum)
-	}
-
-	switch opts.SortType {
-	case "oldest":
-		e.Desc("created_unix")
-	case "recentupdate":
-		e.Desc("updated_unix")
-	case "leastupdate":
-		e.Asc("updated_unix")
-	default:
-		e.Asc("created_unix")
-	}
-
-	count, err := e.FindAndCount(&ptdl)
+	ptd.ProjectRepos, err = repo_model.GetRepositoriesMapByIDs(ps.getRepoIDs())
 	if err != nil {
-		return nil, 0, fmt.Errorf("FindAndCount: %w", err)
+		return nil, err
 	}
 
-	return ptdl, count, nil
+	ptd.ProjectOwners, err = user_model.GetUsersMapByIDs(ps.getOwnerIDs())
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(ptd)
+	return ptd, nil
+}
+
+func (ptd *ProjectsTmplData) RenderFullTitle(p *Project) string {
+	if p.RepoID > 0 {
+		repo, ok := ptd.ProjectRepos[p.RepoID]
+		if ok {
+			return fmt.Sprintf("%s/%s/%s", repo.OwnerName, repo.Name, p.Title)
+		}
+	}
+	if p.OwnerID > 0 {
+		fmt.Println(ptd.ProjectOwners)
+		owner, ok := ptd.ProjectOwners[p.OwnerID]
+		if ok {
+			return fmt.Sprintf("%s/-/%s", owner.Name, p.Title)
+		}
+	}
+	return ""
 }
 
 // NewProject creates a new Project

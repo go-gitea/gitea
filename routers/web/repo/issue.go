@@ -379,8 +379,16 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		return 0
 	}
 
-	retrieveProjects(ctx, repo)
+	ps := retrieveProjects(ctx, repo)
 	if ctx.Written() {
+		return
+	}
+
+	// Get ProjectTmplData
+	ps = append(ps, issueList.GetProjects()...)
+	ctx.Data["ProjectTmplData"], err = project_model.GetProjectTmplData(ps)
+	if err != nil {
+		ctx.ServerError("GetProjectTmplData", err)
 		return
 	}
 
@@ -483,53 +491,55 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 	handleTeamMentions(ctx)
 }
 
-func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
+func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) project_model.ProjectList {
 	var err error
-	ptdl, _, err := project_model.GetProjectsTmplData(ctx, project_model.SearchOptions{
+	ops, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
 		RepoID:   repo.ID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolFalse,
 		Type:     project_model.TypeRepository,
 	})
 	if err != nil {
-		ctx.ServerError("GetProjectsTmplData", err)
-		return
+		ctx.ServerError("FindProjects", err)
+		return nil
 	}
-	ptdl2, _, err := project_model.GetProjectsTmplData(ctx, project_model.SearchOptions{
+	ops2, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
 		OwnerID:  repo.OwnerID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolFalse,
 		Type:     project_model.TypeOrganization,
 	})
 	if err != nil {
-		ctx.ServerError("GetProjectsTmplData", err)
-		return
+		ctx.ServerError("FindProjects", err)
+		return nil
 	}
+	ops = append(ops, ops2...)
+	ctx.Data["OpenProjects"] = ops
 
-	ctx.Data["OpenProjectsTmplData"] = append(ptdl, ptdl2...)
-
-	ptdl, _, err = project_model.GetProjectsTmplData(ctx, project_model.SearchOptions{
+	cps, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
 		RepoID:   repo.ID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolTrue,
 		Type:     project_model.TypeRepository,
 	})
 	if err != nil {
-		ctx.ServerError("GetProjectsTmplData", err)
-		return
+		ctx.ServerError("FindProjects", err)
+		return nil
 	}
-	ptdl2, _, err = project_model.GetProjectsTmplData(ctx, project_model.SearchOptions{
+	cps2, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
 		OwnerID:  repo.OwnerID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolTrue,
 		Type:     project_model.TypeOrganization,
 	})
 	if err != nil {
-		ctx.ServerError("GetProjectsTmplData", err)
-		return
+		ctx.ServerError("FindProjects", err)
+		return nil
 	}
+	cps = append(cps, cps2...)
+	ctx.Data["ClosedProjects"] = cps
 
-	ctx.Data["ClosedProjectsTmplData"] = append(ptdl, ptdl2...)
+	return append(ops, cps...)
 }
 
 // repoReviewerSelection items to bee shown
@@ -750,8 +760,13 @@ func RetrieveRepoMetas(ctx *context.Context, repo *repo_model.Repository, isPull
 		return nil
 	}
 
-	retrieveProjects(ctx, repo)
+	ps := retrieveProjects(ctx, repo)
 	if ctx.Written() {
+		return nil
+	}
+	ctx.Data["ProjectTmplData"], err = project_model.GetProjectTmplData(ps)
+	if err != nil {
+		ctx.ServerError("GetProjectTmplData", err)
 		return nil
 	}
 
@@ -1376,13 +1391,20 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["HasSelectedLabel"] = hasSelected
 
 	// Check milestone and assignee.
+	var ps project_model.ProjectList
 	if ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
 		RetrieveRepoMilestonesAndAssignees(ctx, repo)
-		retrieveProjects(ctx, repo)
-
+		ps = retrieveProjects(ctx, repo)
 		if ctx.Written() {
 			return
 		}
+
+	}
+
+	ctx.Data["ProjectTmplData"], err = project_model.GetProjectTmplData(append(ps, issue.Project))
+	if err != nil {
+		ctx.ServerError("GetProjectTmplData", err)
+		return
 	}
 
 	if issue.IsPull {
