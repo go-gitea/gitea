@@ -209,11 +209,22 @@ func DecrByIDs(ctx context.Context, ids []int64, decrCol string, bean interface{
 	return err
 }
 
-// DeleteBeans deletes all given beans, beans should contain delete conditions.
+// DeleteBeans deletes all given beans, beans must contain delete conditions.
 func DeleteBeans(ctx context.Context, beans ...interface{}) (err error) {
 	e := GetEngine(ctx)
 	for i := range beans {
 		if _, err = e.Delete(beans[i]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// TruncateBeans deletes all given beans, beans may contain delete conditions.
+func TruncateBeans(ctx context.Context, beans ...interface{}) (err error) {
+	e := GetEngine(ctx)
+	for i := range beans {
+		if _, err = e.Truncate(beans[i]); err != nil {
 			return err
 		}
 	}
