@@ -249,7 +249,7 @@
 							</div>
 							{{range .Milestones}}
 								<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/milestone">
-									{{$.ProjectTmplData.RenderFullTitle .}}
+									{{.Name}}
 								</div>
 							{{end}}
 						</div>
