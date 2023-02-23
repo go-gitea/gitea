@@ -22,7 +22,7 @@
 				</a>
 			{{end}}
 				<div class="content comment-container">
-					<div class="ui top attached header comment-header gt-df gt-ac gt-sb">
+					<div class="ui top attached header comment-header gt-df gt-ac gt-sb" role="heading" aria-level="3">
 						<div class="comment-header-left gt-df gt-ac">
 							{{if .OriginalAuthor}}
 								<span class="text black gt-bold gt-mr-2">
@@ -69,7 +69,7 @@
 							{{end}}
 						</div>
 					</div>
-					<div class="ui attached segment comment-body">
+					<div class="ui attached segment comment-body" role="article">
 						<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.IsSigned (eq $.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
 							{{if .RenderedContent}}
 								{{.RenderedContent|Str2html}}
@@ -85,7 +85,7 @@
 					</div>
 					{{$reactions := .Reactions.GroupByType}}
 					{{if $reactions}}
-						<div class="ui attached segment reactions">
+						<div class="ui attached segment reactions" role="note">
 							{{template "repo/issue/view_content/reactions" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
 						</div>
 					{{end}}
