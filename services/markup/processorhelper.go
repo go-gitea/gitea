@@ -14,6 +14,9 @@ import (
 func ProcessorHelper() *markup.ProcessorHelper {
 	return &markup.ProcessorHelper{
 		IsUsernameMentionable: func(ctx context.Context, username string) bool {
+			if ctx == nil {
+				return false
+			}
 			mentionedUser, err := user.GetUserByName(ctx, username)
 			if err != nil {
 				return false
