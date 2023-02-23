@@ -640,7 +640,7 @@ func TestPackageContainer(t *testing.T) {
 
 		checkCatalog := func(owner string) func(t *testing.T) {
 			return func(t *testing.T) {
-				defer tests.PrepareTestEnv(t)()
+				defer tests.PrintCurrentTest(t)()
 
 				req := NewRequest(t, "GET", fmt.Sprintf("%sv2/_catalog", setting.AppURL))
 				addTokenAuthHeader(req, userToken)
