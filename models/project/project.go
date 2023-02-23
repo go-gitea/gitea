@@ -36,7 +36,7 @@ type (
 	Type uint8
 
 	// ProjectList defines a list of projects
-	ProjectList []*Project
+	ProjectList []*Project //nolint
 )
 
 const (
