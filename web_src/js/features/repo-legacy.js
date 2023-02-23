@@ -36,6 +36,8 @@ function reloadConfirmDraftComment() {
     document.querySelector('.edit_area'),
   ];
   for (const textarea of commentTextareas) {
+    // Most users won't feel too sad if they lose a comment with 10 or 20 chars, they can re-type these in seconds.
+    // But if they have typed more (like 50) chars and the comment is lost, they will be very unhappy.
     if (textarea && textarea.value.trim().length > 20) {
       textarea.parentElement.scrollIntoView();
       if (!window.confirm('Page will be reloaded, but there are draft comments. Continuing to reload will discard the comments. Continue?')) {
