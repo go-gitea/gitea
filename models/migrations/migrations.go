@@ -463,7 +463,7 @@ var migrations = []Migration{
 	// v243 -> v244
 	NewMigration("Add exclusive label", v1_19.AddExclusiveLabel),
 
-	// Gitea 1.19.0 ends at v245
+	// Gitea 1.19.0 ends at v244
 
 	// v244 -> v245
 	NewMigration("Add NeedApproval to actions tables", v1_20.AddNeedApprovalToActionRun),
