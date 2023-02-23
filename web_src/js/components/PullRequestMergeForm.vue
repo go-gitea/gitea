@@ -18,6 +18,7 @@
         <input type="hidden" name="_csrf" :value="csrfToken">
         <input type="hidden" name="head_commit_id" v-model="mergeForm.pullHeadCommitID">
         <input type="hidden" name="merge_when_checks_succeed" v-model="autoMergeWhenSucceed">
+        <input type="hidden" name="force_merge" v-model="forceMerge">
 
         <template v-if="!mergeStyleDetail.hideMergeMessageTexts">
           <div class="field">
@@ -131,6 +132,7 @@ export default {
       textDoMerge: '',
       mergeTitleFieldText: '',
       mergeMessageFieldText: '',
+      hideAutoMerge: false,
     },
     mergeStyleAllowedCount: 0,
 
@@ -141,7 +143,10 @@ export default {
     mergeButtonStyleClass() {
       if (this.mergeForm.allOverridableChecksOk) return 'green';
       return this.autoMergeWhenSucceed ? 'blue' : 'red';
-    }
+    },
+    forceMerge() {
+      return this.mergeForm.canMergeNow && !this.mergeForm.allOverridableChecksOk;
+    },
   },
   watch: {
     mergeStyle(val) {
