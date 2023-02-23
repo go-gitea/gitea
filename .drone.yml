@@ -35,6 +35,8 @@ steps:
     volumes:
       - name: deps
         path: /go
+    environment:
+      GOPROXY: https://goproxy.io
 
   - name: lint-frontend
     image: node:18
@@ -256,6 +258,8 @@ steps:
     volumes:
       - name: deps
         path: /go
+    environment:
+      GOPROXY: https://goproxy.io
 
   - name: tag-pre-condition
     image: drone/git
@@ -452,6 +456,8 @@ steps:
     volumes:
       - name: deps
         path: /go
+    environment:
+      GOPROXY: https://goproxy.io
 
   - name: prepare-test-env
     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
@@ -560,6 +566,8 @@ steps:
     volumes:
       - name: deps
         path: /go
+    environment:
+      GOPROXY: https://goproxy.io
 
   # TODO: We should probably build all dependencies into a test image
   - name: test-e2e
@@ -738,6 +746,8 @@ steps:
     volumes:
       - name: deps
         path: /go
+    environment:
+      GOPROXY: https://goproxy.io
 
   - name: static
     image: techknowlogick/xgo:go-1.20.x
@@ -871,6 +881,8 @@ steps:
     volumes:
       - name: deps
         path: /go
+    environment:
+      GOPROXY: https://goproxy.io
 
   - name: static
     image: techknowlogick/xgo:go-1.20.x
