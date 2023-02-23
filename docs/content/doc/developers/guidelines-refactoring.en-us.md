@@ -6,11 +6,11 @@ weight: 20
 toc: false
 draft: false
 menu:
-sidebar:
-parent: "developers"
-name: "Guidelines for Refactoring"
-weight: 20
-identifier: "guidelines-refactoring"
+  sidebar:
+    parent: "developers"
+    name: "Guidelines for Refactoring"
+    weight: 20
+    identifier: "guidelines-refactoring"
 ---
 
 # Guidelines for Refactoring
