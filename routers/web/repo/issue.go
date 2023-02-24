@@ -1985,14 +1985,20 @@ func UpdateIssuePlanTime(ctx *context.Context) {
 	planTimeHours := ctx.FormInt("plan_time_hours")
 	planTimeMinutes := ctx.FormInt("plan_time_minutes")
 
+	if issue.PlanTimeHours == planTimeHours && issue.PlanTimeMinutes == planTimeMinutes {
+		ctx.JSON(http.StatusOK, map[string]interface{}{
+			"status": "ok",
+		})
+		return
+	}
+
 	if err := issue_service.ChangePlanTime(issue, ctx.Doer, planTimeHours, planTimeMinutes); err != nil {
 		ctx.ServerError("ChangePlanTime", err)
 		return
 	}
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"plan_time_hours":   issue.PlanTimeHours,
-		"plan_time_minutes": issue.PlanTimeMinutes,
+		"status": "ok",
 	})
 }
 
