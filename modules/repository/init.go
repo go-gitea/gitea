@@ -316,14 +316,12 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 		return fmt.Errorf("git add --all: %w", err)
 	}
 
-	cmd := git.NewCommand(ctx,
-		"commit", git.CmdArg(fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email)),
-		"-m", "Initial commit",
-	)
+	cmd := git.NewCommand(ctx, "commit", "--message=Initial commit").
+		AddOptionFormat("--author='%s <%s>'", sig.Name, sig.Email)
 
 	sign, keyID, signer, _ := asymkey_service.SignInitialCommit(ctx, tmpPath, u)
 	if sign {
-		cmd.AddArguments(git.CmdArg("-S" + keyID))
+		cmd.AddOptionFormat("-S%s", keyID)
 
 		if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			// need to set the committer to the KeyID owner

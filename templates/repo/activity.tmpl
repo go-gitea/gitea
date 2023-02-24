@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content repository commits">
+<div role="main" aria-label="{{.Title}}" class="page-content repository commits">
 	{{template "repo/header" .}}
 	<div class="ui container">
 		<h2 class="ui header"><time data-format="date" datetime="{{.DateFrom}}">{{.DateFrom}}</time> - <time data-format="date" datetime="{{.DateUntil}}">{{.DateUntil}}</time>

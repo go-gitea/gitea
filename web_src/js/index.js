@@ -48,7 +48,6 @@ import {
   initCommitStatuses,
 } from './features/repo-commit.js';
 import {
-  checkAppUrl,
   initFootLanguageMenu,
   initGlobalButtonClickOnEnter,
   initGlobalButtons,
@@ -88,8 +87,9 @@ import {initCommonOrganization} from './features/common-organization.js';
 import {initRepoWikiForm} from './features/repo-wiki.js';
 import {initRepoCommentForm, initRepository} from './features/repo-legacy.js';
 import {initFormattingReplacements} from './features/formatting.js';
-import {initMcaptcha} from './features/mcaptcha.js';
 import {initCopyContent} from './features/copycontent.js';
+import {initCaptcha} from './features/captcha.js';
+import {initRepositoryActionView} from './components/RepoActionView.vue';
 
 // Run time-critical code as soon as possible. This is safe to do because this
 // script appears at the end of <body> and rendered HTML is accessible at that point.
@@ -187,9 +187,10 @@ $(document).ready(() => {
   initRepoTopicBar();
   initRepoWikiForm();
   initRepository();
+  initRepositoryActionView();
 
   initCommitStatuses();
-  initMcaptcha();
+  initCaptcha();
 
   initUserAuthLinkAccountView();
   initUserAuthOauth2();
@@ -197,5 +198,4 @@ $(document).ready(() => {
   initUserAuthWebAuthnRegister();
   initUserSettings();
   initViewedCheckboxListenerFor();
-  checkAppUrl();
 });

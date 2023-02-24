@@ -104,6 +104,9 @@ func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issue
 				}
 				for _, ref := range refs {
 					if ref.RefAction == references.XRefActionCloses {
+						if err := ref.LoadIssue(ctx); err != nil {
+							return "", "", err
+						}
 						closeIssueIndexes = append(closeIssueIndexes, fmt.Sprintf("%s %s%d", closeWord, issueReference, ref.Issue.Index))
 					}
 				}
@@ -207,8 +210,8 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	if err := pr.Issue.LoadRepo(hammerCtx); err != nil {
 		log.Error("LoadRepo for issue [%d]: %v", pr.ID, err)
 	}
-	if err := pr.Issue.Repo.GetOwner(hammerCtx); err != nil {
-		log.Error("GetOwner for PR [%d]: %v", pr.ID, err)
+	if err := pr.Issue.Repo.LoadOwner(hammerCtx); err != nil {
+		log.Error("LoadOwner for PR [%d]: %v", pr.ID, err)
 	}
 
 	if wasAutoMerged {
@@ -381,16 +384,16 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 	sig := doer.NewGitSig()
 	committer := sig
 
-	// Determine if we should sign
-	var signArg git.CmdArg
-	sign, keyID, signer, _ := asymkey_service.SignMerge(ctx, pr, doer, tmpBasePath, "HEAD", trackingBranch)
+	// Determine if we should sign. If no signKeyID, use --no-gpg-sign to countermand the sign config (from gitconfig)
+	var signArgs git.TrustedCmdArgs
+	sign, signKeyID, signer, _ := asymkey_service.SignMerge(ctx, pr, doer, tmpBasePath, "HEAD", trackingBranch)
 	if sign {
-		signArg = git.CmdArg("-S" + keyID)
 		if pr.BaseRepo.GetTrustModel() == repo_model.CommitterTrustModel || pr.BaseRepo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			committer = signer
 		}
+		signArgs = git.ToTrustedCmdArgs([]string{"-S" + signKeyID})
 	} else {
-		signArg = git.CmdArg("--no-gpg-sign")
+		signArgs = append(signArgs, "--no-gpg-sign")
 	}
 
 	commitTimeStr := time.Now().Format(time.RFC3339)
@@ -414,7 +417,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 			return "", err
 		}
 
-		if err := commitAndSignNoAuthor(ctx, pr, message, signArg, tmpBasePath, env); err != nil {
+		if err := commitAndSignNoAuthor(ctx, pr, message, signArgs, tmpBasePath, env); err != nil {
 			log.Error("Unable to make final commit: %v", err)
 			return "", err
 		}
@@ -515,7 +518,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 				return "", err
 			}
 			if mergeStyle == repo_model.MergeStyleRebaseMerge {
-				if err := commitAndSignNoAuthor(ctx, pr, message, signArg, tmpBasePath, env); err != nil {
+				if err := commitAndSignNoAuthor(ctx, pr, message, signArgs, tmpBasePath, env); err != nil {
 					log.Error("Unable to make final commit: %v", err)
 					return "", err
 				}
@@ -534,35 +537,22 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 			return "", fmt.Errorf("LoadPoster: %w", err)
 		}
 		sig := pr.Issue.Poster.NewGitSig()
-		if signArg == "" {
-			if err := git.NewCommand(ctx, "commit", git.CmdArg(fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email)), "-m").AddDynamicArguments(message).
-				Run(&git.RunOpts{
-					Env:    env,
-					Dir:    tmpBasePath,
-					Stdout: &outbuf,
-					Stderr: &errbuf,
-				}); err != nil {
-				log.Error("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-				return "", fmt.Errorf("git commit [%s:%s -> %s:%s]: %w\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-			}
-		} else {
-			if setting.Repository.PullRequest.AddCoCommitterTrailers && committer.String() != sig.String() {
-				// add trailer
-				message += fmt.Sprintf("\nCo-authored-by: %s\nCo-committed-by: %s\n", sig.String(), sig.String())
-			}
-			if err := git.NewCommand(ctx, "commit").
-				AddArguments(signArg).
-				AddArguments(git.CmdArg(fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email))).
-				AddArguments("-m").AddDynamicArguments(message).
-				Run(&git.RunOpts{
-					Env:    env,
-					Dir:    tmpBasePath,
-					Stdout: &outbuf,
-					Stderr: &errbuf,
-				}); err != nil {
-				log.Error("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-				return "", fmt.Errorf("git commit [%s:%s -> %s:%s]: %w\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-			}
+		if setting.Repository.PullRequest.AddCoCommitterTrailers && committer.String() != sig.String() {
+			// add trailer
+			message += fmt.Sprintf("\nCo-authored-by: %s\nCo-committed-by: %s\n", sig.String(), sig.String())
+		}
+		if err := git.NewCommand(ctx, "commit").
+			AddArguments(signArgs...).
+			AddOptionFormat("--author='%s <%s>'", sig.Name, sig.Email).
+			AddOptionFormat("--message=%s", message).
+			Run(&git.RunOpts{
+				Env:    env,
+				Dir:    tmpBasePath,
+				Stdout: &outbuf,
+				Stderr: &errbuf,
+			}); err != nil {
+			log.Error("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
+			return "", fmt.Errorf("git commit [%s:%s -> %s:%s]: %w\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
 		}
 		outbuf.Reset()
 		errbuf.Reset()
@@ -594,7 +584,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 	}
 
 	var headUser *user_model.User
-	err = pr.HeadRepo.GetOwner(ctx)
+	err = pr.HeadRepo.LoadOwner(ctx)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("Can't find user: %d for head repository - %v", pr.HeadRepo.OwnerID, err)
@@ -722,7 +712,7 @@ func rebaseMerge(ctx context.Context, pr *issues_model.PullRequest, tmpBasePath,
 	}
 
 	if newMessage != "" {
-		cmdAmend := git.NewCommand(ctx, "commit", "--amend", "-m").AddDynamicArguments(newMessage)
+		cmdAmend := git.NewCommand(ctx, "commit", "--amend").AddOptionFormat("--message=%s", newMessage)
 		if err := cmdAmend.Run(&git.RunOpts{Dir: tmpBasePath}); err != nil {
 			log.Error("Unable to amend commit message: %v", err)
 			return err
@@ -732,30 +722,17 @@ func rebaseMerge(ctx context.Context, pr *issues_model.PullRequest, tmpBasePath,
 	return nil
 }
 
-func commitAndSignNoAuthor(ctx context.Context, pr *issues_model.PullRequest, message string, signArg git.CmdArg, tmpBasePath string, env []string) error {
+func commitAndSignNoAuthor(ctx context.Context, pr *issues_model.PullRequest, message string, signArgs git.TrustedCmdArgs, tmpBasePath string, env []string) error {
 	var outbuf, errbuf strings.Builder
-	if signArg == "" {
-		if err := git.NewCommand(ctx, "commit", "-m").AddDynamicArguments(message).
-			Run(&git.RunOpts{
-				Env:    env,
-				Dir:    tmpBasePath,
-				Stdout: &outbuf,
-				Stderr: &errbuf,
-			}); err != nil {
-			log.Error("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-			return fmt.Errorf("git commit [%s:%s -> %s:%s]: %w\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-		}
-	} else {
-		if err := git.NewCommand(ctx, "commit").AddArguments(signArg).AddArguments("-m").AddDynamicArguments(message).
-			Run(&git.RunOpts{
-				Env:    env,
-				Dir:    tmpBasePath,
-				Stdout: &outbuf,
-				Stderr: &errbuf,
-			}); err != nil {
-			log.Error("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-			return fmt.Errorf("git commit [%s:%s -> %s:%s]: %w\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-		}
+	if err := git.NewCommand(ctx, "commit").AddArguments(signArgs...).AddOptionFormat("--message=%s", message).
+		Run(&git.RunOpts{
+			Env:    env,
+			Dir:    tmpBasePath,
+			Stdout: &outbuf,
+			Stderr: &errbuf,
+		}); err != nil {
+		log.Error("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
+		return fmt.Errorf("git commit [%s:%s -> %s:%s]: %w\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
 	}
 	return nil
 }
