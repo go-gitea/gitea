@@ -75,7 +75,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/mholt/archiver/v3 v3.5.1
 	github.com/microcosm-cc/bluemonday v1.0.22
-	github.com/minio/minio-go/v7 v7.0.46
+	github.com/minio/minio-go/v7 v7.0.49
 	github.com/minio/sha256-simd v1.0.0
 	github.com/msteinert/pam v1.1.0
 	github.com/nektos/act v0.0.0
@@ -89,18 +89,18 @@ require (
 	github.com/pquerna/otp v1.4.0
 	github.com/prometheus/client_golang v1.14.0
 	github.com/quasoft/websspi v1.1.2
-	github.com/santhosh-tekuri/jsonschema/v5 v5.1.1
+	github.com/santhosh-tekuri/jsonschema/v5 v5.2.0
 	github.com/sergi/go-diff v1.3.1
 	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
 	github.com/stretchr/testify v1.8.1
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tstranex/u2f v1.0.0
 	github.com/unrolled/render v1.5.0
-	github.com/urfave/cli v1.22.10
-	github.com/xanzy/go-gitlab v0.78.0
+	github.com/urfave/cli v1.22.12
+	github.com/xanzy/go-gitlab v0.80.2
 	github.com/xeipuuv/gojsonschema v1.2.0
 	github.com/yohcop/openid-go v1.0.0
-	github.com/yuin/goldmark v1.5.3
+	github.com/yuin/goldmark v1.5.4
 	github.com/yuin/goldmark-highlighting/v2 v2.0.0-20220924101305-151362477c87
 	github.com/yuin/goldmark-meta v1.1.0
 	golang.org/x/crypto v0.6.0
@@ -109,7 +109,7 @@ require (
 	golang.org/x/sys v0.5.0
 	golang.org/x/text v0.7.0
 	golang.org/x/tools v0.6.0
-	google.golang.org/grpc v1.50.1
+	google.golang.org/grpc v1.53.0
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gopkg.in/ini.v1 v1.67.0
@@ -121,8 +121,8 @@ require (
 )
 
 require (
-	cloud.google.com/go/compute v1.12.1 // indirect
-	cloud.google.com/go/compute/metadata v0.2.1 // indirect
+	cloud.google.com/go/compute v1.18.0 // indirect
+	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078 // indirect
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
@@ -275,7 +275,7 @@ require (
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20221024183307-1bc688fe9f3e // indirect
+	google.golang.org/genproto v0.0.0-20230223222841-637eb2293923 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
