@@ -650,8 +650,6 @@ export function initRepoIssuePlanTimeEdit() {
       _csrf: csrfToken,
       plan_time_hours: planTimeHours,
       plan_time_minutes: planTimeMinutes,
-    }).done((data) => {
-      console.log('ok')
     }).always(() => {
       window.location.reload();
     });
