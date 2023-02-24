@@ -362,11 +362,11 @@
 				<div>
 					<span class="text"><strong>{{.locale.Tr "repo.issues.tracker_time_estimate"}}</strong></span>
 
-					<form method="POST" id="set_plan_time_form" class="gt-mt-3" action="{{.Issue.Link}}/plan_time">
+					<form method="POST" id="set_time_estimate_form" class="gt-mt-3" action="{{.Issue.Link}}/time_estimate">
 						{{$.CsrfTokenHtml}}
 							<div class="ui action input fluid">
 								<input placeholder='{{.locale.Tr "repo.issues.add_time_hours"}}' type="number" min="0" value="{{ ($.Issue.TimeEstimateHours) }}" name="time_estimate_hours">
-								<input placeholder='{{.locale.Tr "repo.issues.add_time_minutes"}}' type="number" min="0" max="59" value="{{ ($.Issue.TimeEstimateMinutes) }}" name="plan_time_minutes" class="ui compact">
+								<input placeholder='{{.locale.Tr "repo.issues.add_time_minutes"}}' type="number" min="0" max="59" value="{{ ($.Issue.TimeEstimateMinutes) }}" name="time_estimate_minutes" class="ui compact">
 							</div>
 							<button class="ui fluid button green tooltip gt-mt-3">
 								{{.locale.Tr "repo.issues.save"}}

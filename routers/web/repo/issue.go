@@ -1970,8 +1970,8 @@ func UpdateIssueTitle(ctx *context.Context) {
 	})
 }
 
-// UpdateIssuePlanTime change issue's planned time
-func UpdateIssuePlanTime(ctx *context.Context) {
+// UpdateIssueTimeEstimate change issue's planned time
+func UpdateIssueTimeEstimate(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
 	if ctx.Written() {
 		return
@@ -1982,18 +1982,18 @@ func UpdateIssuePlanTime(ctx *context.Context) {
 		return
 	}
 
-	planTimeHours := ctx.FormInt("time_estimate_hours")
-	planTimeMinutes := ctx.FormInt("plan_time_minutes")
+	timeEstimateHours := ctx.FormInt("time_estimate_hours")
+	timeEstimateMinutes := ctx.FormInt("time_estimate_minutes")
 
-	if issue.TimeEstimateHours == planTimeHours && issue.TimeEstimateMinutes == planTimeMinutes {
+	if issue.TimeEstimateHours == timeEstimateHours && issue.TimeEstimateMinutes == timeEstimateMinutes {
 		ctx.JSON(http.StatusOK, map[string]interface{}{
 			"status": "ok",
 		})
 		return
 	}
 
-	if err := issue_service.ChangePlanTime(issue, ctx.Doer, planTimeHours, planTimeMinutes); err != nil {
-		ctx.ServerError("ChangePlanTime", err)
+	if err := issue_service.ChangeTimeEstimate(issue, ctx.Doer, timeEstimateHours, timeEstimateMinutes); err != nil {
+		ctx.ServerError("ChangeTimeEstimate", err)
 		return
 	}
 

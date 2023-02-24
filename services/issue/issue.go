@@ -62,11 +62,11 @@ func ChangeTitle(issue *issues_model.Issue, doer *user_model.User, title string)
 }
 
 // ChangeTitle changes the title of this issue, as the given user.
-func ChangePlanTime(issue *issues_model.Issue, doer *user_model.User, planTimeHours, planTimeMinutes int) (err error) {
-	issue.TimeEstimateHours = planTimeHours
-	issue.TimeEstimateMinutes = planTimeMinutes
+func ChangeTimeEstimate(issue *issues_model.Issue, doer *user_model.User, timeEstimateHours, timeEstimateMinutes int) (err error) {
+	issue.TimeEstimateHours = timeEstimateHours
+	issue.TimeEstimateMinutes = timeEstimateMinutes
 
-	if err = issues_model.ChangeIssueTimeEstimate(issue, doer, planTimeHours, planTimeMinutes); err != nil {
+	if err = issues_model.ChangeIssueTimeEstimate(issue, doer, timeEstimateHours, timeEstimateMinutes); err != nil {
 		return
 	}
 

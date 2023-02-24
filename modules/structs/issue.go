@@ -55,7 +55,7 @@ type Issue struct {
 	Labels              []*Label      `json:"labels"`
 	Milestone           *Milestone    `json:"milestone"`
 	TimeEstimateHours   int64         `json:"time_estimate_hours"`
-	TimeEstimateMinutes int64         `json:"plan_time_minutes"`
+	TimeEstimateMinutes int64         `json:"time_estimate_minutes"`
 	// deprecated
 	Assignee  *User   `json:"assignee"`
 	Assignees []*User `json:"assignees"`
@@ -110,7 +110,7 @@ type EditIssueOption struct {
 	// swagger:strfmt date-time
 	Deadline            *time.Time `json:"due_date"`
 	TimeEstimateHours   int        `json:"time_estimate_hours"`
-	TimeEstimateMinutes int        `json:"plan_time_minutes"`
+	TimeEstimateMinutes int        `json:"time_estimate_minutes"`
 	RemoveDeadline      *bool      `json:"unset_due_date"`
 }
 

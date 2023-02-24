@@ -147,7 +147,7 @@ type Issue struct {
 	// For view issue page.
 	ShowRole RoleDescriptor `xorm:"-"`
 
-	// Plan time
+	// Time estimate
 	TimeEstimateHours   int
 	TimeEstimateMinutes int
 }
@@ -779,14 +779,14 @@ func ChangeIssueTitle(issue *Issue, doer *user_model.User, oldTitle string) (err
 }
 
 // ChangeIssueTimeEstimate changes the plan time of this issue, as the given user.
-func ChangeIssueTimeEstimate(issue *Issue, doer *user_model.User, planTimeHours, planTimeMinutes int) (err error) {
+func ChangeIssueTimeEstimate(issue *Issue, doer *user_model.User, timeEstimateHours, timeEstimateMinutes int) (err error) {
 	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	if err = UpdateIssueCols(ctx, &Issue{ID: issue.ID, TimeEstimateHours: planTimeHours, TimeEstimateMinutes: planTimeMinutes}, "time_estimate_hours", "plan_time_minutes"); err != nil {
+	if err = UpdateIssueCols(ctx, &Issue{ID: issue.ID, TimeEstimateHours: timeEstimateHours, TimeEstimateMinutes: timeEstimateMinutes}, "time_estimate_hours", "time_estimate_minutes"); err != nil {
 		return fmt.Errorf("updateIssueCols: %w", err)
 	}
 
@@ -799,8 +799,8 @@ func ChangeIssueTimeEstimate(issue *Issue, doer *user_model.User, planTimeHours,
 		Doer:                doer,
 		Repo:                issue.Repo,
 		Issue:               issue,
-		TimeEstimateHours:   planTimeHours,
-		TimeEstimateMinutes: planTimeMinutes,
+		TimeEstimateHours:   timeEstimateHours,
+		TimeEstimateMinutes: timeEstimateMinutes,
 	}
 	if _, err = CreateComment(ctx, opts); err != nil {
 		return fmt.Errorf("createComment: %w", err)

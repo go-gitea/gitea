@@ -640,16 +640,16 @@ export function initRepoIssueTitleEdit() {
 }
 
 export function initRepoIssuePlanTimeEdit() {
-  $('#set_plan_time_form').on('submit', function(e) {
+  $('#set_time_estimate_form').on('submit', function(e) {
     e.preventDefault();
 
-    const planTimeHours = $(this).find('[name=time_estimate_hours]').val();
-    const planTimeMinutes = $(this).find('[name=plan_time_minutes]').val();
+    const timeEstimateHours = $(this).find('[name=time_estimate_hours]').val();
+    const timeEstimateMinutes = $(this).find('[name=time_estimate_minutes]').val();
 
     $.post($(this).attr('action'), {
       _csrf: csrfToken,
-      time_estimate_hours: planTimeHours,
-      plan_time_minutes: planTimeMinutes,
+      time_estimate_hours: timeEstimateHours,
+      time_estimate_minutes: timeEstimateMinutes,
     }).always(() => {
       window.location.reload();
     });
