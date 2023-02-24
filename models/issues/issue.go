@@ -795,7 +795,7 @@ func ChangeIssuePlanTime(issue *Issue, doer *user_model.User, planTimeHours, pla
 	}
 
 	opts := &CreateCommentOptions{
-		Type:            CommentTypeChangePlanTime,
+		Type:            CommentTypeChangeTimeEstimate,
 		Doer:            doer,
 		Repo:            issue.Repo,
 		Issue:           issue,

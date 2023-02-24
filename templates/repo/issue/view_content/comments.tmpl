@@ -793,16 +793,16 @@
 					{{else}}{{$.locale.Tr "repo.pulls.auto_merge_canceled_schedule_comment" $createdStr | Safe}}{{end}}
 				</span>
 			</div>
-		{{else if eq .Type 1001}}
+		{{else if eq .Type 36}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-clock"}}</span>
 				{{template "shared/user/avatarlink" Dict "Context" $.Context "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
 					{{if and (eq .PlanTimeHours 0) (eq .PlanTimeMinutes 0)}}
-						{{$.locale.Tr "repo.issues.remove_plan_time" $createdStr | Safe}}
+						{{$.locale.Tr "repo.issues.remove_time_estimate" $createdStr | Safe}}
 					{{else}}
-						{{$.locale.Tr "repo.issues.change_plan_time_at" (.PlanTimeHours) (.PlanTimeMinutes) $createdStr | Safe}}
+						{{$.locale.Tr "repo.issues.change_time_estimate_at" (.PlanTimeHours) (.PlanTimeMinutes) $createdStr | Safe}}
 					{{end}}
 				</span>
 			</div>

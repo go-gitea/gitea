@@ -131,7 +131,7 @@ const (
 	// 35 pr was un scheduled to auto merge when checks succeed
 	CommentTypePRUnScheduledToAutoMerge
 	// 36 Change plan time
-	CommentTypeChangePlanTime
+	CommentTypeChangeTimeEstimate
 )
 
 var commentStrings = []string{
