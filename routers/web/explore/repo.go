@@ -31,7 +31,9 @@ type RepoSearchOptions struct {
 }
 
 // RenderRepoSearch render repositories search page
-func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
+// This function is also used to render the Admin Repository Management page.
+// The isAdmin param should be set to true when rendering the Admin page.
+func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions, isAdmin bool) {
 	// Sitemap index for sitemap paths
 	page := int(ctx.ParamsInt64("idx"))
 	isSitemap := ctx.Params("idx") != ""
@@ -84,7 +86,9 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		orderBy = db.SearchOrderByRecentUpdated
 	}
 
-	onlyShowRelevant = !ctx.FormBool(relevantReposOnlyParam)
+	if !isAdmin {
+		onlyShowRelevant = !ctx.FormBool(relevantReposOnlyParam)
+	}
 
 	keyword := ctx.FormTrim("q")
 
@@ -162,5 +166,5 @@ func Repos(ctx *context.Context) {
 		OwnerID:  ownerID,
 		Private:  ctx.Doer != nil,
 		TplName:  tplExploreRepos,
-	})
+	}, false)
 }

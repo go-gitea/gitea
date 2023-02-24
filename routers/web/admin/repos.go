@@ -36,7 +36,7 @@ func Repos(ctx *context.Context) {
 		Private:  true,
 		PageSize: setting.UI.Admin.RepoPagingNum,
 		TplName:  tplRepos,
-	})
+	}, true)
 }
 
 // DeleteRepo delete one repository
