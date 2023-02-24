@@ -174,8 +174,9 @@ func NewFuncMap() []template.FuncMap {
 		"RenderEmojiPlain":               emoji.ReplaceAliases,
 		"ReactionToEmoji":                ReactionToEmoji,
 		"RenderNote":                     RenderNote,
-		"RenderMarkdownToHtml": func(input string) template.HTML {
+		"RenderMarkdownToHtml": func(ctx context.Context, input string) template.HTML {
 			output, err := markdown.RenderString(&markup.RenderContext{
+				Ctx:       ctx,
 				URLPrefix: setting.AppSubURL,
 			}, input)
 			if err != nil {

@@ -1336,7 +1336,7 @@ PROXY_HOSTS = *.github.com
 ## Actions (`actions`)
 
 - `ENABLED`: **false**: Enable/Disable actions capabilities
-- `DEFAULT_ACTIONS_URL`: **https://gitea.com**: Default address to get action plugins, e.g. the default value means downloading from "https://gitea.com/actions/checkout" for "uses: actions/checkout@v3"
+- `DEFAULT_ACTIONS_URL`: **https://gitea.com**: Default address to get action plugins, e.g. the default value means downloading from "<https://gitea.com/actions/checkout>" for "uses: actions/checkout@v3"
 
 `DEFAULT_ACTIONS_URL` indicates where should we find the relative path action plugin. i.e. when use an action in a workflow file like
 
