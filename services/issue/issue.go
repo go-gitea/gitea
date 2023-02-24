@@ -62,7 +62,7 @@ func ChangeTitle(issue *issues_model.Issue, doer *user_model.User, title string)
 }
 
 // ChangeTitle changes the title of this issue, as the given user.
-func ChangePlanTime(issue *issues_model.Issue, doer *user_model.User, planTimeHours int, planTimeMinutes int) (err error) {
+func ChangePlanTime(issue *issues_model.Issue, doer *user_model.User, planTimeHours, planTimeMinutes int) (err error) {
 	issue.PlanTimeHours = planTimeHours
 	issue.PlanTimeMinutes = planTimeMinutes
 

@@ -779,7 +779,7 @@ func ChangeIssueTitle(issue *Issue, doer *user_model.User, oldTitle string) (err
 }
 
 // ChangeIssuePlanTime changes the plan time of this issue, as the given user.
-func ChangeIssuePlanTime(issue *Issue, doer *user_model.User, planTimeHours int, planTimeMinutes int) (err error) {
+func ChangeIssuePlanTime(issue *Issue, doer *user_model.User, planTimeHours, planTimeMinutes int) (err error) {
 	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
