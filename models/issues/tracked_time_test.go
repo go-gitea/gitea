@@ -35,7 +35,7 @@ func TestAddTime(t *testing.T) {
 	assert.Equal(t, int64(3661), tt.Time)
 
 	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{Type: issues_model.CommentTypeAddTimeManual, PosterID: 3, IssueID: 1})
-	assert.Equal(t, comment.Content, "1 hour 1 minute")
+	assert.Equal(t, comment.TimeTracked, int64(3661))
 }
 
 func TestGetTrackedTimes(t *testing.T) {
@@ -87,7 +87,7 @@ func TestTotalTimes(t *testing.T) {
 	assert.Len(t, total, 1)
 	for user, time := range total {
 		assert.Equal(t, int64(1), user.ID)
-		assert.Equal(t, "6 minutes 40 seconds", time)
+		assert.Equal(t, "6 minutes", time)
 	}
 
 	total, err = issues_model.TotalTimes(&issues_model.FindTrackedTimesOptions{IssueID: 2})

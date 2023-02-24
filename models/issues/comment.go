@@ -146,7 +146,6 @@ var commentStrings = []string{
 	"milestone",
 	"assignees",
 	"change_title",
-	"change_time_estimate",
 	"delete_branch",
 	"start_tracking",
 	"stop_tracking",
@@ -172,6 +171,7 @@ var commentStrings = []string{
 	"change_issue_ref",
 	"pull_scheduled_merge",
 	"pull_cancel_scheduled_merge",
+	"change_time_estimate",
 }
 
 func (t CommentType) String() string {
