@@ -10,7 +10,7 @@ import (
 	ini "gopkg.in/ini.v1"
 )
 
-func Test_GetCronSettings(t *testing.T) {
+func Test_getCronSettings(t *testing.T) {
 	type BaseStruct struct {
 		Base   bool
 		Second string
@@ -27,7 +27,8 @@ Base = true
 Second = white rabbit
 Extend = true
 `
-	Cfg, _ = ini.Load([]byte(iniStr))
+	cfg, err := ini.Load([]byte(iniStr))
+	assert.NoError(t, err)
 
 	extended := &Extended{
 		BaseStruct: BaseStruct{
@@ -35,8 +36,7 @@ Extend = true
 		},
 	}
 
-	_, err := GetCronSettings("test", extended)
-
+	_, err = getCronSettings(cfg, "test", extended)
 	assert.NoError(t, err)
 	assert.True(t, extended.Base)
 	assert.EqualValues(t, extended.Second, "white rabbit")

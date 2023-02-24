@@ -6,11 +6,13 @@ package actions
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -30,11 +32,13 @@ type ActionRun struct {
 	OwnerID           int64                  `xorm:"index"`
 	WorkflowID        string                 `xorm:"index"`                    // the name of workflow file
 	Index             int64                  `xorm:"index unique(repo_index)"` // a unique number for each run of a repository
-	TriggerUserID     int64
-	TriggerUser       *user_model.User `xorm:"-"`
+	TriggerUserID     int64                  `xorm:"index"`
+	TriggerUser       *user_model.User       `xorm:"-"`
 	Ref               string
 	CommitSHA         string
 	IsForkPullRequest bool
+	NeedApproval      bool  // may need approval if it's a fork pull request
+	ApprovedBy        int64 `xorm:"index"` // who approved
 	Event             webhook_module.HookEventType
 	EventPayload      string `xorm:"LONGTEXT"`
 	Status            Status `xorm:"index"`
@@ -61,6 +65,24 @@ func (run *ActionRun) Link() string {
 		return ""
 	}
 	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.Link(), run.Index)
+}
+
+// RefLink return the url of run's ref
+func (run *ActionRun) RefLink() string {
+	refName := git.RefName(run.Ref)
+	if refName.RefGroup() == "pull" {
+		return run.Repo.Link() + "/pulls/" + refName.ShortName()
+	}
+	return git.RefURL(run.Repo.Link(), run.Ref)
+}
+
+// PrettyRef return #id for pull ref or ShortName for others
+func (run *ActionRun) PrettyRef() string {
+	refName := git.RefName(run.Ref)
+	if refName.RefGroup() == "pull" {
+		return "#" + strings.TrimSuffix(strings.TrimPrefix(run.Ref, git.PullPrefix), "/head")
+	}
+	return refName.ShortName()
 }
 
 // LoadAttributes load Repo TriggerUser if not loaded
@@ -144,10 +166,6 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 	}
 	run.Index = index
 
-	if run.Status.IsUnknown() {
-		run.Status = StatusWaiting
-	}
-
 	if err := db.Insert(ctx, run); err != nil {
 		return err
 	}
@@ -171,7 +189,7 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 		job.EraseNeeds()
 		payload, _ := v.Marshal()
 		status := StatusWaiting
-		if len(needs) > 0 {
+		if len(needs) > 0 || run.NeedApproval {
 			status = StatusBlocked
 		}
 		runJobs = append(runJobs, &ActionRunJob{

@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content repository settings edit">
+<div role="main" aria-label="{{.Title}}" class="page-content repository settings edit">
 	{{template "repo/header" .}}
 	{{template "repo/settings/navbar" .}}
 	<div class="ui container">
@@ -29,7 +29,7 @@
 								{{end}}
 							</select>{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="default text">{{.Repository.DefaultBranch}}</div>
-							<div class="menu transition hidden" tabindex="-1" style="display: block !important;">
+							<div class="menu">
 								{{range .Branches}}
 									<div class="item" data-value="{{.}}">{{.}}</div>
 								{{end}}
@@ -98,7 +98,7 @@
 
 <div class="ui small basic delete modal">
 	<div class="ui header">
-		{{svg "octicon-trash" 16 "mr-2"}}
+		{{svg "octicon-trash" 16 "gt-mr-2"}}
 		{{.locale.Tr "repo.settings.protected_branch_deletion"}}
 	</div>
 	<div class="content">

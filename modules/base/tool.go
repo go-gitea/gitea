@@ -6,7 +6,6 @@ package base
 import (
 	"crypto/md5"
 	"crypto/sha1"
-	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
@@ -26,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/dustin/go-humanize"
+	"github.com/minio/sha256-simd"
 )
 
 // EncodeMD5 encodes string to md5 hex value.

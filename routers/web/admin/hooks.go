@@ -22,6 +22,7 @@ const (
 func DefaultOrSystemWebhooks(ctx *context.Context) {
 	var err error
 
+	ctx.Data["Title"] = ctx.Tr("admin.hooks")
 	ctx.Data["PageIsAdminSystemHooks"] = true
 	ctx.Data["PageIsAdminDefaultHooks"] = true
 

@@ -626,7 +626,7 @@ func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
 		return
 	}
 	defer gitRepo.Close()
-	for _, behavior := range []git.CmdArg{"-w", "--ignore-space-at-eol", "-b", ""} {
+	for _, behavior := range []git.TrustedCmdArgs{{"-w"}, {"--ignore-space-at-eol"}, {"-b"}, nil} {
 		diffs, err := GetDiff(gitRepo,
 			&DiffOptions{
 				AfterCommitID:      "bd7063cc7c04689c4d082183d32a604ed27a24f9",
