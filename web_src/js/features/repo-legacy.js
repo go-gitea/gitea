@@ -614,7 +614,7 @@ function initRepoIssueCommentEdit() {
     let easyMDE;
     if ($(this).hasClass('quote-reply-diff')) {
       const $parent = $(this).closest('.comment-code-cloud');
-      $parent.find('button.comment-form-reply').trigger('click');
+      $parent.find('button.comment-form-reply').trigger('click', [content]);
       easyMDE = getAttachedEasyMDE($parent.find('[name="content"]'));
     } else {
       // for normal issue/comment page
