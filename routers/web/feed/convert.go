@@ -73,7 +73,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 
 		var content, desc, title string
 
-		link := &feeds.Link{Href: act.GetCommentLink()}
+		link := &feeds.Link{Href: act.GetCommentHTMLURL()}
 
 		// title
 		title = act.ActUser.DisplayName() + " "

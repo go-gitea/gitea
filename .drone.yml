@@ -12,6 +12,9 @@ trigger:
     - push
     - tag
     - pull_request
+  paths:
+    exclude:
+      - docs/**
 
 volumes:
   - name: deps
@@ -112,7 +115,6 @@ steps:
     image: golang:1.19 # this step is kept as the lowest version of golang that we support
     pull: always
     environment:
-      GO111MODULE: on
       GOPROXY: https://goproxy.io
     commands:
       - go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
@@ -124,7 +126,6 @@ steps:
   - name: build-backend-arm64
     image: golang:1.20
     environment:
-      GO111MODULE: on
       GOPROXY: https://goproxy.io
       GOOS: linux
       GOARCH: arm64
@@ -140,7 +141,6 @@ steps:
   - name: build-backend-windows
     image: golang:1.20
     environment:
-      GO111MODULE: on
       GOPROXY: https://goproxy.io
       GOOS: windows
       GOARCH: amd64
@@ -155,7 +155,6 @@ steps:
   - name: build-backend-386
     image: golang:1.20
     environment:
-      GO111MODULE: on
       GOPROXY: https://goproxy.io
       GOOS: linux
       GOARCH: 386
@@ -183,6 +182,9 @@ trigger:
     - push
     - tag
     - pull_request
+  paths:
+    exclude:
+      - docs/**
 
 volumes:
   - name: deps
@@ -410,6 +412,9 @@ trigger:
     - push
     - tag
     - pull_request
+  paths:
+    exclude:
+      - docs/**
 
 volumes:
   - name: deps
@@ -517,6 +522,9 @@ depends_on:
 trigger:
   event:
     - pull_request
+  paths:
+    exclude:
+      - docs/**
 
 volumes:
   - name: deps
@@ -696,6 +704,9 @@ trigger:
     - "release/*"
   event:
     - push
+  paths:
+    exclude:
+      - docs/**
 
 depends_on:
   - testing-amd64
@@ -763,10 +774,16 @@ steps:
     image: woodpeckerci/plugin-s3:latest
     pull: always
     settings:
-      acl: public-read
-      bucket: gitea-artifacts
-      endpoint: https://ams3.digitaloceanspaces.com
-      path_style: true
+      acl:
+        from_secret: aws_s3_acl
+      region:
+        from_secret: aws_s3_region
+      bucket:
+        from_secret: aws_s3_bucket
+      endpoint:
+        from_secret: aws_s3_endpoint
+      path_style:
+        from_secret: aws_s3_path_style
       source: "dist/release/*"
       strip_prefix: dist/release/
       target: "/gitea/${DRONE_BRANCH##release/v}"
@@ -784,10 +801,16 @@ steps:
   - name: release-main
     image: woodpeckerci/plugin-s3:latest
     settings:
-      acl: public-read
-      bucket: gitea-artifacts
-      endpoint: https://ams3.digitaloceanspaces.com
-      path_style: true
+      acl:
+        from_secret: aws_s3_acl
+      region:
+        from_secret: aws_s3_region
+      bucket:
+        from_secret: aws_s3_bucket
+      endpoint:
+        from_secret: aws_s3_endpoint
+      path_style:
+        from_secret: aws_s3_path_style
       source: "dist/release/*"
       strip_prefix: dist/release/
       target: /gitea/main
@@ -886,10 +909,16 @@ steps:
     image: woodpeckerci/plugin-s3:latest
     pull: always
     settings:
-      acl: public-read
-      bucket: gitea-artifacts
-      endpoint: https://ams3.digitaloceanspaces.com
-      path_style: true
+      acl:
+        from_secret: aws_s3_acl
+      region:
+        from_secret: aws_s3_region
+      bucket:
+        from_secret: aws_s3_bucket
+      endpoint:
+        from_secret: aws_s3_endpoint
+      path_style:
+        from_secret: aws_s3_path_style
       source: "dist/release/*"
       strip_prefix: dist/release/
       target: "/gitea/${DRONE_TAG##v}"
@@ -929,6 +958,9 @@ trigger:
     - push
     - tag
     - pull_request
+  paths:
+    include:
+      - docs/**
 
 steps:
   - name: build-docs
@@ -967,7 +999,10 @@ depends_on:
 
 trigger:
   ref:
-  - "refs/tags/**"
+    include:
+      - "refs/tags/**"
+    exclude:
+      - "refs/tags/**-rc*"
   event:
     exclude:
     - cron
@@ -1004,6 +1039,68 @@ steps:
       dockerfile: Dockerfile.rootless
       auto_tag: true
       auto_tag_suffix: linux-amd64-rootless
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=https://goproxy.io
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    when:
+      event:
+        exclude:
+        - pull_request
+---
+
+kind: pipeline
+type: docker
+name: docker-linux-amd64-release-candidate-version
+
+platform:
+  os: linux
+  arch: amd64
+
+depends_on:
+  - testing-amd64
+  - testing-arm64
+
+trigger:
+  ref:
+    - "refs/tags/**-rc*"
+  event:
+    exclude:
+    - cron
+
+steps:
+  - name: fetch-tags
+    image: docker:git
+    pull: always
+    commands:
+      - git config --global --add safe.directory /drone/src
+      - git fetch --tags --force
+
+  - name: publish
+    image: techknowlogick/drone-docker:latest
+    pull: always
+    settings:
+      tags: ${DRONE_TAG##v}-linux-amd64
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=https://goproxy.io
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    when:
+      event:
+        exclude:
+        - pull_request
+
+  - name: publish-rootless
+    image: techknowlogick/drone-docker:latest
+    settings:
+      dockerfile: Dockerfile.rootless
+      tags: ${DRONE_TAG##v}-linux-amd64-rootless
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1158,6 +1255,9 @@ depends_on:
 trigger:
   ref:
   - "refs/pull/**"
+  paths:
+    exclude:
+      - docs/**
 
 steps:
   - name: dryrun
@@ -1191,7 +1291,10 @@ depends_on:
 
 trigger:
   ref:
-  - "refs/tags/**"
+    include:
+      - "refs/tags/**"
+    exclude:
+      - "refs/tags/**-rc*"
   event:
     exclude:
     - cron
@@ -1228,6 +1331,68 @@ steps:
       dockerfile: Dockerfile.rootless
       auto_tag: true
       auto_tag_suffix: linux-arm64-rootless
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=https://goproxy.io
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    when:
+      event:
+        exclude:
+        - pull_request
+
+---
+kind: pipeline
+type: docker
+name: docker-linux-arm64-release-candidate-version
+
+platform:
+  os: linux
+  arch: arm64
+
+depends_on:
+  - testing-amd64
+  - testing-arm64
+
+trigger:
+  ref:
+    - "refs/tags/**-rc*"
+  event:
+    exclude:
+    - cron
+
+steps:
+  - name: fetch-tags
+    image: docker:git
+    pull: always
+    commands:
+      - git config --global --add safe.directory /drone/src
+      - git fetch --tags --force
+
+  - name: publish
+    image: techknowlogick/drone-docker:latest
+    pull: always
+    settings:
+      tags: ${DRONE_TAG##v}-linux-arm64
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=https://goproxy.io
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    when:
+      event:
+        exclude:
+        - pull_request
+
+  - name: publish-rootless
+    image: techknowlogick/drone-docker:latest
+    settings:
+      dockerfile: Dockerfile.rootless
+      tags: ${DRONE_TAG##v}-linux-arm64-rootless
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1409,7 +1574,9 @@ trigger:
 
 depends_on:
   - docker-linux-amd64-release-version
+  - docker-linux-amd64-release-candidate-version
   - docker-linux-arm64-release-version
+  - docker-linux-arm64-release-candidate-version
 
 ---
 kind: pipeline
@@ -1491,6 +1658,8 @@ depends_on:
   - docker-linux-arm64-release
   - docker-linux-amd64-release-version
   - docker-linux-arm64-release-version
+  - docker-linux-amd64-release-candidate-version
+  - docker-linux-arm64-release-candidate-version
   - docker-linux-amd64-release-branch
   - docker-linux-arm64-release-branch
   - docker-manifest

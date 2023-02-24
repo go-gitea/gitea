@@ -23,14 +23,17 @@ const (
 
 // RepoSearchOptions when calling search repositories
 type RepoSearchOptions struct {
-	OwnerID    int64
-	Private    bool
-	Restricted bool
-	PageSize   int
-	TplName    base.TplName
+	OwnerID          int64
+	Private          bool
+	Restricted       bool
+	PageSize         int
+	OnlyShowRelevant bool
+	TplName          base.TplName
 }
 
 // RenderRepoSearch render repositories search page
+// This function is also used to render the Admin Repository Management page.
+// The isAdmin param should be set to true when rendering the Admin page.
 func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	// Sitemap index for sitemap paths
 	page := int(ctx.ParamsInt64("idx"))
@@ -48,11 +51,10 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	}
 
 	var (
-		repos            []*repo_model.Repository
-		count            int64
-		err              error
-		orderBy          db.SearchOrderBy
-		onlyShowRelevant bool
+		repos   []*repo_model.Repository
+		count   int64
+		err     error
+		orderBy db.SearchOrderBy
 	)
 
 	ctx.Data["SortType"] = ctx.FormString("sort")
@@ -84,11 +86,9 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		orderBy = db.SearchOrderByRecentUpdated
 	}
 
-	onlyShowRelevant = !ctx.FormBool(relevantReposOnlyParam)
-
 	keyword := ctx.FormTrim("q")
 
-	ctx.Data["OnlyShowRelevant"] = onlyShowRelevant
+	ctx.Data["OnlyShowRelevant"] = opts.OnlyShowRelevant
 
 	topicOnly := ctx.FormBool("topic")
 	ctx.Data["TopicOnly"] = topicOnly
@@ -111,7 +111,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		TopicOnly:          topicOnly,
 		Language:           language,
 		IncludeDescription: setting.UI.SearchRepoDescription,
-		OnlyShowRelevant:   onlyShowRelevant,
+		OnlyShowRelevant:   opts.OnlyShowRelevant,
 	})
 	if err != nil {
 		ctx.ServerError("SearchRepository", err)
@@ -158,9 +158,10 @@ func Repos(ctx *context.Context) {
 	}
 
 	RenderRepoSearch(ctx, &RepoSearchOptions{
-		PageSize: setting.UI.ExplorePagingNum,
-		OwnerID:  ownerID,
-		Private:  ctx.Doer != nil,
-		TplName:  tplExploreRepos,
+		PageSize:         setting.UI.ExplorePagingNum,
+		OwnerID:          ownerID,
+		Private:          ctx.Doer != nil,
+		TplName:          tplExploreRepos,
+		OnlyShowRelevant: !ctx.FormBool(relevantReposOnlyParam),
 	})
 }
