@@ -33,10 +33,11 @@ func Repos(ctx *context.Context) {
 	ctx.Data["PageIsAdminRepositories"] = true
 
 	explore.RenderRepoSearch(ctx, &explore.RepoSearchOptions{
-		Private:  true,
-		PageSize: setting.UI.Admin.RepoPagingNum,
-		TplName:  tplRepos,
-	}, true)
+		Private:          true,
+		PageSize:         setting.UI.Admin.RepoPagingNum,
+		TplName:          tplRepos,
+		OnlyShowRelevant: false,
+	})
 }
 
 // DeleteRepo delete one repository
