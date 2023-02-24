@@ -237,6 +237,8 @@
     }
 
     #repo-files-table {
+      table-layout: fixed;
+
       thead {
         th {
           padding-top: 8px;
@@ -2885,12 +2887,17 @@ tbody.commit-list {
   vertical-align: baseline;
 }
 
-.message-wrapper {
+.message-wrapper,
+.author-wrapper {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: calc(100% - 50px);
   display: inline-block;
   vertical-align: middle;
+}
+
+.author-wrapper {
+  max-width: 180px;
 }
 
 // in the commit list, messages can wrap so we can use inline
@@ -2912,6 +2919,10 @@ tbody.commit-list {
     display: block;
     max-width: calc(100vw - 70px);
   }
+
+  .author-wrapper {
+    max-width: 80px;
+  }
 }
 
 @media @mediaMd {
@@ -2920,7 +2931,7 @@ tbody.commit-list {
   }
 
   th .message-wrapper {
-    max-width: 280px;
+    max-width: 120px;
   }
 }
 
@@ -2930,7 +2941,7 @@ tbody.commit-list {
   }
 
   th .message-wrapper {
-    max-width: 490px;
+    max-width: 350px;
   }
 }
 
@@ -2940,7 +2951,7 @@ tbody.commit-list {
   }
 
   th .message-wrapper {
-    max-width: 680px;
+    max-width: 525px;
   }
 }
 
