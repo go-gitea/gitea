@@ -117,7 +117,7 @@ require (
 	mvdan.cc/xurls/v2 v2.4.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 	xorm.io/builder v0.3.12
-	xorm.io/xorm v1.3.3-0.20221209153726-f1bfc5ce9830
+	xorm.io/xorm v1.3.3-0.20230219231735-056cecc97e9e
 )
 
 require (
