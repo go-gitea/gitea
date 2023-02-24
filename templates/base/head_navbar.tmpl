@@ -121,7 +121,7 @@
 			<a href="{{AppSubUrl}}/notifications" class="item tooltip not-mobile gt-mx-0" data-content="{{.locale.Tr "notifications"}}" aria-label="{{.locale.Tr "notifications"}}">
 				<span class="fitted item">
 					{{svg "octicon-bell"}}
-					<span class="notification_count{{if not $notificationUnreadCount}} gt-hidden{{end}}"><!-- Nested because the rendering breaks otherwise-->
+					<span class="notification_count{{if not $notificationUnreadCount}} gt-hidden{{end}}">
 						{{$notificationUnreadCount}}
 					</span>
 				</span>
