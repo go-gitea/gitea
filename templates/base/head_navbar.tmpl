@@ -127,7 +127,7 @@
 				</span>
 			</a>
 
-			<button class="ui dropdown jump item tooltip gt-mx-0" role="menu" data-content="{{.locale.Tr "create_new"}}">
+			<div class="ui dropdown jump item tooltip gt-mx-0" data-content="{{.locale.Tr "create_new"}}">
 				<span class="text">
 					<span class="fitted">{{svg "octicon-plus"}}</span>
 					<span class="sr-mobile-only">{{.locale.Tr "create_new"}}</span>
@@ -148,9 +148,9 @@
 					</a>
 					{{end}}
 				</div><!-- end content create new menu -->
-			</button><!-- end dropdown menu create new -->
+			</div><!-- end dropdown menu create new -->
 
-			<button class="ui dropdown jump item tooltip gt-mx-0" role="menu" data-content="{{.locale.Tr "user_profile_and_more"}}">
+			<class="ui dropdown jump item tooltip gt-mx-0" data-content="{{.locale.Tr "user_profile_and_more"}}">
 				<span class="text">
 					{{avatar $.Context .SignedUser 24 "tiny"}}
 					<span class="sr-only">{{.locale.Tr "user_profile_and_more"}}</span>
@@ -200,7 +200,7 @@
 						{{.locale.Tr "sign_out"}}
 					</a>
 				</div><!-- end content avatar menu -->
-			</button><!-- end dropdown avatar menu -->
+			</div><!-- end dropdown avatar menu -->
 		</div><!-- end signed user right menu -->
 	{{else}}
 		<a class="item" target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io">{{.locale.Tr "help"}}</a>
