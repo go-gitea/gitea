@@ -32,11 +32,13 @@ type ActionRun struct {
 	OwnerID           int64                  `xorm:"index"`
 	WorkflowID        string                 `xorm:"index"`                    // the name of workflow file
 	Index             int64                  `xorm:"index unique(repo_index)"` // a unique number for each run of a repository
-	TriggerUserID     int64
-	TriggerUser       *user_model.User `xorm:"-"`
+	TriggerUserID     int64                  `xorm:"index"`
+	TriggerUser       *user_model.User       `xorm:"-"`
 	Ref               string
 	CommitSHA         string
 	IsForkPullRequest bool
+	NeedApproval      bool  // may need approval if it's a fork pull request
+	ApprovedBy        int64 `xorm:"index"` // who approved
 	Event             webhook_module.HookEventType
 	EventPayload      string `xorm:"LONGTEXT"`
 	Status            Status `xorm:"index"`
@@ -164,10 +166,6 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 	}
 	run.Index = index
 
-	if run.Status.IsUnknown() {
-		run.Status = StatusWaiting
-	}
-
 	if err := db.Insert(ctx, run); err != nil {
 		return err
 	}
@@ -191,7 +189,7 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 		job.EraseNeeds()
 		payload, _ := v.Marshal()
 		status := StatusWaiting
-		if len(needs) > 0 {
+		if len(needs) > 0 || run.NeedApproval {
 			status = StatusBlocked
 		}
 		runJobs = append(runJobs, &ActionRunJob{
