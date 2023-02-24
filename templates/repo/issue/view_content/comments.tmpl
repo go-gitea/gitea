@@ -799,10 +799,11 @@
 				{{template "shared/user/avatarlink" Dict "Context" $.Context "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{if and (eq .TimeEstimateHours 0) (eq .TimeEstimateMinutes 0)}}
+					{{if and (eq .TimeEstimate 0)}}
 						{{$.locale.Tr "repo.issues.remove_time_estimate" $createdStr | Safe}}
 					{{else}}
-						{{$.locale.Tr "repo.issues.change_time_estimate_at" (.TimeEstimateHours) (.TimeEstimateMinutes) $createdStr | Safe}}
+						{{$timeStr := .TimeEstimateToStrTranslated $.locale}}
+						{{$.locale.Tr "repo.issues.change_time_estimate_at" $timeStr  $createdStr | Safe}}
 					{{end}}
 				</span>
 			</div>

@@ -643,13 +643,11 @@ export function initRepoIssueTimeEstimateEdit() {
   $('#set_time_estimate_form').on('submit', function(e) {
     e.preventDefault();
 
-    const timeEstimateHours = $(this).find('[name=time_estimate_hours]').val();
-    const timeEstimateMinutes = $(this).find('[name=time_estimate_minutes]').val();
+    const timeEstimate = $(this).find('[name=time_estimate]').val();
 
     $.post($(this).attr('action'), {
       _csrf: csrfToken,
-      time_estimate_hours: timeEstimateHours,
-      time_estimate_minutes: timeEstimateMinutes,
+      time_estimate: timeEstimate,
     }).always(() => {
       window.location.reload();
     });

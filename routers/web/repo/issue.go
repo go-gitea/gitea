@@ -1982,17 +1982,16 @@ func UpdateIssueTimeEstimate(ctx *context.Context) {
 		return
 	}
 
-	timeEstimateHours := ctx.FormInt("time_estimate_hours")
-	timeEstimateMinutes := ctx.FormInt("time_estimate_minutes")
+	total := issue.TimeEstimateFromStr(ctx.FormString("time_estimate"))
 
-	if issue.TimeEstimateHours == timeEstimateHours && issue.TimeEstimateMinutes == timeEstimateMinutes {
+	if issue.TimeEstimate == total {
 		ctx.JSON(http.StatusOK, map[string]interface{}{
 			"status": "ok",
 		})
 		return
 	}
 
-	if err := issue_service.ChangeTimeEstimate(issue, ctx.Doer, timeEstimateHours, timeEstimateMinutes); err != nil {
+	if err := issue_service.ChangeTimeEstimate(issue, ctx.Doer, total); err != nil {
 		ctx.ServerError("ChangeTimeEstimate", err)
 		return
 	}

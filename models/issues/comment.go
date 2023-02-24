@@ -6,9 +6,12 @@
 package issues
 
 import (
+	"code.gitea.io/gitea/modules/translation"
 	"context"
 	"fmt"
+	"math"
 	"strconv"
+	"strings"
 	"unicode/utf8"
 
 	"code.gitea.io/gitea/models/db"
@@ -305,8 +308,7 @@ type Comment struct {
 	CommitsNum  int64                               `xorm:"-"`
 	IsForcePush bool                                `xorm:"-"`
 
-	TimeEstimateHours   int
-	TimeEstimateMinutes int
+	TimeEstimate int64
 }
 
 func init() {
@@ -793,40 +795,39 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 	}
 
 	comment := &Comment{
-		Type:                opts.Type,
-		PosterID:            opts.Doer.ID,
-		Poster:              opts.Doer,
-		IssueID:             opts.Issue.ID,
-		LabelID:             LabelID,
-		OldMilestoneID:      opts.OldMilestoneID,
-		MilestoneID:         opts.MilestoneID,
-		OldProjectID:        opts.OldProjectID,
-		ProjectID:           opts.ProjectID,
-		TimeID:              opts.TimeID,
-		RemovedAssignee:     opts.RemovedAssignee,
-		AssigneeID:          opts.AssigneeID,
-		AssigneeTeamID:      opts.AssigneeTeamID,
-		CommitID:            opts.CommitID,
-		CommitSHA:           opts.CommitSHA,
-		Line:                opts.LineNum,
-		Content:             opts.Content,
-		OldTitle:            opts.OldTitle,
-		NewTitle:            opts.NewTitle,
-		OldRef:              opts.OldRef,
-		NewRef:              opts.NewRef,
-		DependentIssueID:    opts.DependentIssueID,
-		TreePath:            opts.TreePath,
-		ReviewID:            opts.ReviewID,
-		Patch:               opts.Patch,
-		RefRepoID:           opts.RefRepoID,
-		RefIssueID:          opts.RefIssueID,
-		RefCommentID:        opts.RefCommentID,
-		RefAction:           opts.RefAction,
-		RefIsPull:           opts.RefIsPull,
-		IsForcePush:         opts.IsForcePush,
-		Invalidated:         opts.Invalidated,
-		TimeEstimateHours:   opts.TimeEstimateHours,
-		TimeEstimateMinutes: opts.TimeEstimateMinutes,
+		Type:             opts.Type,
+		PosterID:         opts.Doer.ID,
+		Poster:           opts.Doer,
+		IssueID:          opts.Issue.ID,
+		LabelID:          LabelID,
+		OldMilestoneID:   opts.OldMilestoneID,
+		MilestoneID:      opts.MilestoneID,
+		OldProjectID:     opts.OldProjectID,
+		ProjectID:        opts.ProjectID,
+		TimeID:           opts.TimeID,
+		RemovedAssignee:  opts.RemovedAssignee,
+		AssigneeID:       opts.AssigneeID,
+		AssigneeTeamID:   opts.AssigneeTeamID,
+		CommitID:         opts.CommitID,
+		CommitSHA:        opts.CommitSHA,
+		Line:             opts.LineNum,
+		Content:          opts.Content,
+		OldTitle:         opts.OldTitle,
+		NewTitle:         opts.NewTitle,
+		OldRef:           opts.OldRef,
+		NewRef:           opts.NewRef,
+		DependentIssueID: opts.DependentIssueID,
+		TreePath:         opts.TreePath,
+		ReviewID:         opts.ReviewID,
+		Patch:            opts.Patch,
+		RefRepoID:        opts.RefRepoID,
+		RefIssueID:       opts.RefIssueID,
+		RefCommentID:     opts.RefCommentID,
+		RefAction:        opts.RefAction,
+		RefIsPull:        opts.RefIsPull,
+		IsForcePush:      opts.IsForcePush,
+		Invalidated:      opts.Invalidated,
+		TimeEstimate:     opts.TimeEstimate,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -970,36 +971,35 @@ type CreateCommentOptions struct {
 	Issue *Issue
 	Label *Label
 
-	DependentIssueID    int64
-	OldMilestoneID      int64
-	MilestoneID         int64
-	OldProjectID        int64
-	ProjectID           int64
-	TimeID              int64
-	AssigneeID          int64
-	AssigneeTeamID      int64
-	RemovedAssignee     bool
-	OldTitle            string
-	NewTitle            string
-	OldRef              string
-	NewRef              string
-	CommitID            int64
-	CommitSHA           string
-	Patch               string
-	LineNum             int64
-	TreePath            string
-	ReviewID            int64
-	Content             string
-	Attachments         []string // UUIDs of attachments
-	RefRepoID           int64
-	RefIssueID          int64
-	RefCommentID        int64
-	RefAction           references.XRefAction
-	RefIsPull           bool
-	IsForcePush         bool
-	Invalidated         bool
-	TimeEstimateHours   int
-	TimeEstimateMinutes int
+	DependentIssueID int64
+	OldMilestoneID   int64
+	MilestoneID      int64
+	OldProjectID     int64
+	ProjectID        int64
+	TimeID           int64
+	AssigneeID       int64
+	AssigneeTeamID   int64
+	RemovedAssignee  bool
+	OldTitle         string
+	NewTitle         string
+	OldRef           string
+	NewRef           string
+	CommitID         int64
+	CommitSHA        string
+	Patch            string
+	LineNum          int64
+	TreePath         string
+	ReviewID         int64
+	Content          string
+	Attachments      []string // UUIDs of attachments
+	RefRepoID        int64
+	RefIssueID       int64
+	RefCommentID     int64
+	RefAction        references.XRefAction
+	RefIsPull        bool
+	IsForcePush      bool
+	Invalidated      bool
+	TimeEstimate     int64
 }
 
 // GetCommentByID returns the comment by given ID.
@@ -1258,4 +1258,41 @@ func FixCommentTypeLabelWithOutsideLabels(ctx context.Context) (int64, error) {
 // HasOriginalAuthor returns if a comment was migrated and has an original author.
 func (c *Comment) HasOriginalAuthor() bool {
 	return c.OriginalAuthor != "" && c.OriginalAuthorID != 0
+}
+
+// TimeEstimateStr returns formatted time estimate string from seconds (e.g. "2 weeks 4 days 12 hours 5 minutes")
+func (c *Comment) TimeEstimateToStrTranslated(lang translation.Locale) string {
+	var timeParts []string
+
+	timeSeconds := float64(c.TimeEstimate)
+
+	// Format weeks
+	weeks := math.Floor(timeSeconds / (60 * 60 * 24 * 7))
+	if weeks > 0 {
+		timeParts = append(timeParts, lang.Tr("tool.hours", int64(weeks)))
+	}
+	timeSeconds -= weeks * (60 * 60 * 24 * 7)
+
+	// Format days
+	days := math.Floor(timeSeconds / (60 * 60 * 24))
+	if days > 0 {
+		timeParts = append(timeParts, lang.Tr("tool.days", int64(days)))
+	}
+	timeSeconds -= days * (60 * 60 * 24)
+
+	// Format hours
+	hours := math.Floor(timeSeconds / (60 * 60))
+	if hours > 0 {
+		timeParts = append(timeParts, lang.Tr("tool.hours", int64(hours)))
+	}
+	timeSeconds -= hours * (60 * 60)
+
+	// Format minutes
+	minutes := math.Floor(timeSeconds / (60))
+	if minutes > 0 {
+		timeParts = append(timeParts, lang.Tr("tool.minutes", int64(minutes)))
+	}
+	timeSeconds -= minutes * (60)
+
+	return strings.Join(timeParts[:], " ")
 }

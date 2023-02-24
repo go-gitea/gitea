@@ -364,9 +364,8 @@
 
 					<form method="POST" id="set_time_estimate_form" class="gt-mt-3" action="{{.Issue.Link}}/time_estimate">
 						{{$.CsrfTokenHtml}}
-							<div class="ui action input fluid">
-								<input placeholder='{{.locale.Tr "repo.issues.add_time_hours"}}' type="number" min="0" value="{{ ($.Issue.TimeEstimateHours) }}" name="time_estimate_hours">
-								<input placeholder='{{.locale.Tr "repo.issues.add_time_minutes"}}' type="number" min="0" max="59" value="{{ ($.Issue.TimeEstimateMinutes) }}" name="time_estimate_minutes" class="ui compact">
+							<div class="ui input fluid">
+								<input name="time_estimate" placeholder='{{.locale.Tr "repo.issues.add_time_estimate"}}' value="{{ ($.Issue.TimeEstimateToStr) }}" type="text" >
 							</div>
 							<button class="ui fluid button green tooltip gt-mt-3">
 								{{.locale.Tr "repo.issues.save"}}
@@ -396,10 +395,9 @@
 							<div class="ui mini modal issue-start-time-modal">
 								<div class="header">{{.locale.Tr "repo.issues.add_time"}}</div>
 								<div class="content">
-									<form method="POST" id="add_time_manual_form" action="{{.Issue.Link}}/times/add" class="ui action input fluid">
+									<form method="POST" id="add_time_manual_form" action="{{.Issue.Link}}/times/add" class="ui input fluid">
 										{{$.CsrfTokenHtml}}
-										<input placeholder='{{.locale.Tr "repo.issues.add_time_hours"}}' type="number" name="hours">
-										<input placeholder='{{.locale.Tr "repo.issues.add_time_minutes"}}' type="number" name="minutes" class="ui compact">
+										<input placeholder='{{.locale.Tr "repo.issues.add_time_estimate"}}' type="text" name="time_string">
 									</form>
 								</div>
 								<div class="actions">

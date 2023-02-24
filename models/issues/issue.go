@@ -7,8 +7,10 @@ package issues
 import (
 	"context"
 	"fmt"
+	"math"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -148,8 +150,7 @@ type Issue struct {
 	ShowRole RoleDescriptor `xorm:"-"`
 
 	// Time estimate
-	TimeEstimateHours   int
-	TimeEstimateMinutes int
+	TimeEstimate int64
 }
 
 var (
@@ -779,14 +780,14 @@ func ChangeIssueTitle(issue *Issue, doer *user_model.User, oldTitle string) (err
 }
 
 // ChangeIssueTimeEstimate changes the plan time of this issue, as the given user.
-func ChangeIssueTimeEstimate(issue *Issue, doer *user_model.User, timeEstimateHours, timeEstimateMinutes int) (err error) {
+func ChangeIssueTimeEstimate(issue *Issue, doer *user_model.User, timeEstimate int64) (err error) {
 	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	if err = UpdateIssueCols(ctx, &Issue{ID: issue.ID, TimeEstimateHours: timeEstimateHours, TimeEstimateMinutes: timeEstimateMinutes}, "time_estimate_hours", "time_estimate_minutes"); err != nil {
+	if err = UpdateIssueCols(ctx, &Issue{ID: issue.ID, TimeEstimate: timeEstimate}, "time_estimate"); err != nil {
 		return fmt.Errorf("updateIssueCols: %w", err)
 	}
 
@@ -795,12 +796,12 @@ func ChangeIssueTimeEstimate(issue *Issue, doer *user_model.User, timeEstimateHo
 	}
 
 	opts := &CreateCommentOptions{
-		Type:                CommentTypeChangeTimeEstimate,
-		Doer:                doer,
-		Repo:                issue.Repo,
-		Issue:               issue,
-		TimeEstimateHours:   timeEstimateHours,
-		TimeEstimateMinutes: timeEstimateMinutes,
+		Type:         CommentTypeChangeTimeEstimate,
+		Doer:         doer,
+		Repo:         issue.Repo,
+		Issue:        issue,
+		Content:      util.SecToTime(timeEstimate),
+		TimeEstimate: timeEstimate,
 	}
 	if _, err = CreateComment(ctx, opts); err != nil {
 		return fmt.Errorf("createComment: %w", err)
@@ -2471,4 +2472,82 @@ func DeleteOrphanedIssues(ctx context.Context) error {
 // HasOriginalAuthor returns if an issue was migrated and has an original author.
 func (issue *Issue) HasOriginalAuthor() bool {
 	return issue.OriginalAuthor != "" && issue.OriginalAuthorID != 0
+}
+
+// TimeEstimateFromStr returns time estimate in seconds from formatted string
+func (issue *Issue) TimeEstimateFromStr(timeStr string) int64 {
+	timeTotal := 0
+
+	// Time match regex
+	rWeeks, _ := regexp.Compile("([\\d]+)w")
+	rDays, _ := regexp.Compile("([\\d]+)d")
+	rHours, _ := regexp.Compile("([\\d]+)h")
+	rMinutes, _ := regexp.Compile("([\\d]+)m")
+
+	// Find time weeks
+	timeStrMatches := rWeeks.FindStringSubmatch(timeStr)
+	if len(timeStrMatches) > 0 {
+		raw, _ := strconv.Atoi(timeStrMatches[1])
+		timeTotal += raw * (60 * 60 * 24 * 7)
+	}
+
+	// Find time days
+	timeStrMatches = rDays.FindStringSubmatch(timeStr)
+	if len(timeStrMatches) > 0 {
+		raw, _ := strconv.Atoi(timeStrMatches[1])
+		timeTotal += raw * (60 * 60 * 24)
+	}
+
+	// Find time hours
+	timeStrMatches = rHours.FindStringSubmatch(timeStr)
+	if len(timeStrMatches) > 0 {
+		raw, _ := strconv.Atoi(timeStrMatches[1])
+		timeTotal += raw * (60 * 60)
+	}
+
+	// Find time minutes
+	timeStrMatches = rMinutes.FindStringSubmatch(timeStr)
+	if len(timeStrMatches) > 0 {
+		raw, _ := strconv.Atoi(timeStrMatches[1])
+		timeTotal += raw * (60)
+	}
+
+	return int64(timeTotal)
+}
+
+// TimeEstimateStr returns formatted time estimate string from seconds (e.g. "2w 4d 12h 5m")
+func (issue *Issue) TimeEstimateToStr() string {
+	var timeParts []string
+
+	timeSeconds := float64(issue.TimeEstimate)
+
+	// Format weeks
+	weeks := math.Floor(timeSeconds / (60 * 60 * 24 * 7))
+	if weeks > 0 {
+		timeParts = append(timeParts, fmt.Sprintf("%dw", int64(weeks)))
+	}
+	timeSeconds -= weeks * (60 * 60 * 24 * 7)
+
+	// Format days
+	days := math.Floor(timeSeconds / (60 * 60 * 24))
+	if days > 0 {
+		timeParts = append(timeParts, fmt.Sprintf("%dd", int64(days)))
+	}
+	timeSeconds -= days * (60 * 60 * 24)
+
+	// Format hours
+	hours := math.Floor(timeSeconds / (60 * 60))
+	if hours > 0 {
+		timeParts = append(timeParts, fmt.Sprintf("%dh", int64(hours)))
+	}
+	timeSeconds -= hours * (60 * 60)
+
+	// Format minutes
+	minutes := math.Floor(timeSeconds / (60))
+	if minutes > 0 {
+		timeParts = append(timeParts, fmt.Sprintf("%dm", int64(minutes)))
+	}
+	timeSeconds -= minutes * (60)
+
+	return strings.Join(timeParts[:], " ")
 }
