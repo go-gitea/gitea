@@ -119,6 +119,11 @@ func Profile(ctx *context.Context) {
 		page = 1
 	}
 
+	pagingNum := setting.UI.User.RepoPagingNum
+	if tab == "activity" {
+		pagingNum = setting.UI.FeedPagingNum
+	}
+
 	topicOnly := ctx.FormBool("topic")
 
 	var (
@@ -164,7 +169,7 @@ func Profile(ctx *context.Context) {
 	switch tab {
 	case "followers":
 		items, count, err := user_model.GetUserFollowers(ctx, ctx.ContextUser, ctx.Doer, db.ListOptions{
-			PageSize: setting.UI.User.RepoPagingNum,
+			PageSize: pagingNum,
 			Page:     page,
 		})
 		if err != nil {
@@ -176,7 +181,7 @@ func Profile(ctx *context.Context) {
 		total = int(count)
 	case "following":
 		items, count, err := user_model.GetUserFollowing(ctx, ctx.ContextUser, ctx.Doer, db.ListOptions{
-			PageSize: setting.UI.User.RepoPagingNum,
+			PageSize: pagingNum,
 			Page:     page,
 		})
 		if err != nil {
@@ -187,24 +192,32 @@ func Profile(ctx *context.Context) {
 
 		total = int(count)
 	case "activity":
-		ctx.Data["Feeds"], err = activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
+		date := ctx.FormString("date")
+		items, count, err := activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
 			RequestedUser:   ctx.ContextUser,
 			Actor:           ctx.Doer,
 			IncludePrivate:  showPrivate,
 			OnlyPerformedBy: true,
 			IncludeDeleted:  false,
-			Date:            ctx.FormString("date"),
-			ListOptions:     db.ListOptions{PageSize: setting.UI.FeedPagingNum},
+			Date:            date,
+			ListOptions: db.ListOptions{
+				PageSize: pagingNum,
+				Page:     page,
+			},
 		})
 		if err != nil {
 			ctx.ServerError("GetFeeds", err)
 			return
 		}
+		ctx.Data["Feeds"] = items
+		ctx.Data["Date"] = date
+
+		total = int(count)
 	case "stars":
 		ctx.Data["PageIsProfileStarList"] = true
 		repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
-				PageSize: setting.UI.User.RepoPagingNum,
+				PageSize: pagingNum,
 				Page:     page,
 			},
 			Actor:              ctx.Doer,
@@ -236,7 +249,7 @@ func Profile(ctx *context.Context) {
 	case "watching":
 		repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
-				PageSize: setting.UI.User.RepoPagingNum,
+				PageSize: pagingNum,
 				Page:     page,
 			},
 			Actor:              ctx.Doer,
@@ -258,7 +271,7 @@ func Profile(ctx *context.Context) {
 	default:
 		repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
-				PageSize: setting.UI.User.RepoPagingNum,
+				PageSize: pagingNum,
 				Page:     page,
 			},
 			Actor:              ctx.Doer,
@@ -281,11 +294,14 @@ func Profile(ctx *context.Context) {
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = total
 
-	pager := context.NewPagination(total, setting.UI.User.RepoPagingNum, page, 5)
+	pager := context.NewPagination(total, pagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "tab", "TabName")
 	if tab != "followers" && tab != "following" && tab != "activity" && tab != "projects" {
 		pager.AddParam(ctx, "language", "Language")
+	}
+	if tab == "activity" {
+		pager.AddParam(ctx, "date", "Date")
 	}
 	ctx.Data["Page"] = pager
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled

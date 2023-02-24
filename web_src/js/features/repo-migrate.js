@@ -1,12 +1,13 @@
 import $ from 'jquery';
+import {hideElem, showElem} from '../utils/dom.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
 export function initRepoMigrationStatusChecker() {
   const migrating = $('#repo_migrating');
-  $('#repo_migrating_failed').hide();
-  $('#repo_migrating_failed_image').hide();
-  $('#repo_migrating_progress_message').hide();
+  hideElem($('#repo_migrating_failed'));
+  hideElem($('#repo_migrating_failed_image'));
+  hideElem($('#repo_migrating_progress_message'));
   if (migrating) {
     const task = migrating.attr('task');
     if (task === undefined) {
@@ -24,15 +25,15 @@ export function initRepoMigrationStatusChecker() {
             window.location.reload();
             return;
           } else if (xhr.responseJSON.status === 3) {
-            $('#repo_migrating_progress').hide();
-            $('#repo_migrating').hide();
-            $('#repo_migrating_failed').show();
-            $('#repo_migrating_failed_image').show();
+            hideElem($('#repo_migrating_progress'));
+            hideElem($('#repo_migrating'));
+            showElem($('#repo_migrating_failed'));
+            showElem($('#repo_migrating_failed_image'));
             $('#repo_migrating_failed_error').text(xhr.responseJSON.message);
             return;
           }
           if (xhr.responseJSON.message) {
-            $('#repo_migrating_progress_message').show();
+            showElem($('#repo_migrating_progress_message'));
             $('#repo_migrating_progress_message').text(xhr.responseJSON.message);
           }
           setTimeout(() => {
@@ -40,10 +41,10 @@ export function initRepoMigrationStatusChecker() {
           }, 2000);
           return;
         }
-        $('#repo_migrating_progress').hide();
-        $('#repo_migrating').hide();
-        $('#repo_migrating_failed').show();
-        $('#repo_migrating_failed_image').show();
+        hideElem($('#repo_migrating_progress'));
+        hideElem($('#repo_migrating'));
+        showElem($('#repo_migrating_failed'));
+        showElem($('#repo_migrating_failed_image'));
       }
     });
   }

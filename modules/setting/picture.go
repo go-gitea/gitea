@@ -32,16 +32,16 @@ var (
 	}{}
 )
 
-func newPictureService() {
-	sec := Cfg.Section("picture")
+func loadPictureFrom(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("picture")
 
-	avatarSec := Cfg.Section("avatar")
+	avatarSec := rootCfg.Section("avatar")
 	storageType := sec.Key("AVATAR_STORAGE_TYPE").MustString("")
 	// Specifically default PATH to AVATAR_UPLOAD_PATH
 	avatarSec.Key("PATH").MustString(
 		sec.Key("AVATAR_UPLOAD_PATH").String())
 
-	Avatar.Storage = getStorage("avatars", storageType, avatarSec)
+	Avatar.Storage = getStorage(rootCfg, "avatars", storageType, avatarSec)
 
 	Avatar.MaxWidth = sec.Key("AVATAR_MAX_WIDTH").MustInt(4096)
 	Avatar.MaxHeight = sec.Key("AVATAR_MAX_HEIGHT").MustInt(3072)
@@ -60,11 +60,11 @@ func newPictureService() {
 	}
 
 	DisableGravatar = sec.Key("DISABLE_GRAVATAR").MustBool(GetDefaultDisableGravatar())
-	deprecatedSettingDB("", "DISABLE_GRAVATAR")
+	deprecatedSettingDB(rootCfg, "", "DISABLE_GRAVATAR")
 	EnableFederatedAvatar = sec.Key("ENABLE_FEDERATED_AVATAR").MustBool(GetDefaultEnableFederatedAvatar(DisableGravatar))
-	deprecatedSettingDB("", "ENABLE_FEDERATED_AVATAR")
+	deprecatedSettingDB(rootCfg, "", "ENABLE_FEDERATED_AVATAR")
 
-	newRepoAvatarService()
+	loadRepoAvatarFrom(rootCfg)
 }
 
 func GetDefaultDisableGravatar() bool {
@@ -82,16 +82,16 @@ func GetDefaultEnableFederatedAvatar(disableGravatar bool) bool {
 	return v
 }
 
-func newRepoAvatarService() {
-	sec := Cfg.Section("picture")
+func loadRepoAvatarFrom(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("picture")
 
-	repoAvatarSec := Cfg.Section("repo-avatar")
+	repoAvatarSec := rootCfg.Section("repo-avatar")
 	storageType := sec.Key("REPOSITORY_AVATAR_STORAGE_TYPE").MustString("")
 	// Specifically default PATH to AVATAR_UPLOAD_PATH
 	repoAvatarSec.Key("PATH").MustString(
 		sec.Key("REPOSITORY_AVATAR_UPLOAD_PATH").String())
 
-	RepoAvatar.Storage = getStorage("repo-avatars", storageType, repoAvatarSec)
+	RepoAvatar.Storage = getStorage(rootCfg, "repo-avatars", storageType, repoAvatarSec)
 
 	RepoAvatar.Fallback = sec.Key("REPOSITORY_AVATAR_FALLBACK").MustString("none")
 	RepoAvatar.FallbackImage = sec.Key("REPOSITORY_AVATAR_FALLBACK_IMAGE").MustString("/assets/img/repo_default.png")

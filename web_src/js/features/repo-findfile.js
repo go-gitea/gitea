@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import {svg} from '../svg.js';
+import {toggleElem} from '../utils/dom.js';
 
 const {csrf} = window.config;
 
@@ -83,7 +84,7 @@ function filterRepoFiles(filter) {
   const filterResult = filterRepoFilesWeighted(files, filter);
   const tmplRow = `<tr><td><a></a></td></tr>`;
 
-  $repoFindFileNoResult.toggle(filterResult.length === 0);
+  toggleElem($repoFindFileNoResult, filterResult.length === 0);
   for (const r of filterResult) {
     const $row = $(tmplRow);
     const $a = $row.find('a');

@@ -10,16 +10,16 @@
 		{{else}}
 			{{$referenceUrl = Printf "%s/files#%s" .ctx.Issue.Link .item.HashTag}}
 		{{end}}
-		<div class="item context" data-clipboard-text-type="url" data-clipboard-text="{{AppSubUrl}}{{$referenceUrl}}">{{.ctx.locale.Tr "repo.issues.context.copy_link"}}</div>
-		<div class="item context quote-reply {{if .diff}}quote-reply-diff{{end}}" data-target="{{.item.HashTag}}-raw">{{.ctx.locale.Tr "repo.issues.context.quote_reply"}}</div>
+		<a class="item context" data-clipboard-text-type="url" data-clipboard-text="{{AppSubUrl}}{{$referenceUrl}}">{{.ctx.locale.Tr "repo.issues.context.copy_link"}}</a>
+		<a class="item context quote-reply {{if .diff}}quote-reply-diff{{end}}" data-target="{{.item.HashTag}}-raw">{{.ctx.locale.Tr "repo.issues.context.quote_reply"}}</a>
 		{{if not .ctx.UnitIssuesGlobalDisabled}}
-			<div class="item context reference-issue" data-target="{{.item.HashTag}}-raw" data-modal="#reference-issue-modal" data-poster="{{.item.Poster.GetDisplayName}}" data-poster-username="{{.item.Poster.Name}}" data-reference="{{$referenceUrl}}">{{.ctx.locale.Tr "repo.issues.context.reference_issue"}}</div>
+			<a class="item context reference-issue" data-target="{{.item.HashTag}}-raw" data-modal="#reference-issue-modal" data-poster="{{.item.Poster.GetDisplayName}}" data-poster-username="{{.item.Poster.Name}}" data-reference="{{$referenceUrl}}">{{.ctx.locale.Tr "repo.issues.context.reference_issue"}}</a>
 		{{end}}
 		{{if or .ctx.Permission.IsAdmin .IsCommentPoster .ctx.HasIssuesOrPullsWritePermission}}
 			<div class="divider"></div>
-			<div class="item context edit-content">{{.ctx.locale.Tr "repo.issues.context.edit"}}</div>
+			<a class="item context edit-content">{{.ctx.locale.Tr "repo.issues.context.edit"}}</a>
 			{{if .delete}}
-				<div class="item context delete-comment" data-comment-id={{.item.HashTag}} data-url="{{.ctx.RepoLink}}/comments/{{.item.ID}}/delete" data-locale="{{.ctx.locale.Tr "repo.issues.delete_comment_confirm"}}">{{.ctx.locale.Tr "repo.issues.context.delete"}}</div>
+				<a class="item context delete-comment" data-comment-id={{.item.HashTag}} data-url="{{.ctx.RepoLink}}/comments/{{.item.ID}}/delete" data-locale="{{.ctx.locale.Tr "repo.issues.delete_comment_confirm"}}">{{.ctx.locale.Tr "repo.issues.context.delete"}}</a>
 			{{end}}
 		{{end}}
 	</div>

@@ -150,7 +150,6 @@ func (m *webhookNotifier) NotifyIssueChangeAssignee(ctx context.Context, doer *u
 			log.Error("LoadPullRequest failed: %v", err)
 			return
 		}
-		issue.PullRequest.Issue = issue
 		apiPullRequest := &api.PullRequestPayload{
 			Index:       issue.Index,
 			PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
@@ -196,7 +195,6 @@ func (m *webhookNotifier) NotifyIssueChangeTitle(ctx context.Context, doer *user
 			log.Error("LoadPullRequest failed: %v", err)
 			return
 		}
-		issue.PullRequest.Issue = issue
 		err = PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventPullRequest, &api.PullRequestPayload{
 			Action: api.HookIssueEdited,
 			Index:  issue.Index,
@@ -328,7 +326,10 @@ func (m *webhookNotifier) NotifyIssueChangeContent(ctx context.Context, doer *us
 	mode, _ := access_model.AccessLevel(ctx, issue.Poster, issue.Repo)
 	var err error
 	if issue.IsPull {
-		issue.PullRequest.Issue = issue
+		if err := issue.LoadPullRequest(ctx); err != nil {
+			log.Error("LoadPullRequest: %v", err)
+			return
+		}
 		err = PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventPullRequest, &api.PullRequestPayload{
 			Action: api.HookIssueEdited,
 			Index:  issue.Index,

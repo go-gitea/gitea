@@ -3,13 +3,14 @@ import {attachTribute} from './tribute.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 import {initEasyMDEImagePaste} from './comp/ImagePaste.js';
 import {createCommentEasyMDE} from './comp/EasyMDE.js';
+import {hideElem} from '../utils/dom.js';
 
 export function initRepoRelease() {
   $(document).on('click', '.remove-rel-attach', function() {
     const uuid = $(this).data('uuid');
     const id = $(this).data('id');
     $(`input[name='attachment-del-${uuid}']`).attr('value', true);
-    $(`#attachment-${id}`).hide();
+    hideElem($(`#attachment-${id}`));
   });
 }
 

@@ -25,22 +25,23 @@ var LFS = struct {
 	Storage
 }{}
 
-func newLFSService() {
-	sec := Cfg.Section("server")
+func loadLFSFrom(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("server")
 	if err := sec.MapTo(&LFS); err != nil {
 		log.Fatal("Failed to map LFS settings: %v", err)
 	}
 
-	lfsSec := Cfg.Section("lfs")
+	lfsSec := rootCfg.Section("lfs")
 	storageType := lfsSec.Key("STORAGE_TYPE").MustString("")
 
 	// Specifically default PATH to LFS_CONTENT_PATH
-	// FIXME: DEPRECATED to be removed in v1.18.0
-	deprecatedSetting("server", "LFS_CONTENT_PATH", "lfs", "PATH")
+	// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
+	// if these are removed, the warning will not be shown
+	deprecatedSetting(rootCfg, "server", "LFS_CONTENT_PATH", "lfs", "PATH", "v1.19.0")
 	lfsSec.Key("PATH").MustString(
 		sec.Key("LFS_CONTENT_PATH").String())
 
-	LFS.Storage = getStorage("lfs", storageType, lfsSec)
+	LFS.Storage = getStorage(rootCfg, "lfs", storageType, lfsSec)
 
 	// Rest of LFS service settings
 	if LFS.LocksPagingNum == 0 {

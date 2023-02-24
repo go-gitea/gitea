@@ -111,12 +111,8 @@ func (t *Team) ColorFormat(s fmt.State) {
 		t.AccessMode)
 }
 
-// GetUnits return a list of available units for a team
-func (t *Team) GetUnits() error {
-	return t.getUnits(db.DefaultContext)
-}
-
-func (t *Team) getUnits(ctx context.Context) (err error) {
+// LoadUnits load a list of available units for a team
+func (t *Team) LoadUnits(ctx context.Context) (err error) {
 	if t.Units != nil {
 		return nil
 	}
@@ -193,7 +189,7 @@ func (t *Team) UnitEnabled(ctx context.Context, tp unit.Type) bool {
 
 // UnitAccessMode returns if the team has the given unit type enabled
 func (t *Team) UnitAccessMode(ctx context.Context, tp unit.Type) perm.AccessMode {
-	if err := t.getUnits(ctx); err != nil {
+	if err := t.LoadUnits(ctx); err != nil {
 		log.Warn("Error loading team (ID: %d) units: %s", t.ID, err.Error())
 	}
 
