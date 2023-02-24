@@ -1970,7 +1970,7 @@ func UpdateIssueTitle(ctx *context.Context) {
 	})
 }
 
-// UpdateIssuePlanTime change issue's title
+// UpdateIssuePlanTime change issue's planned time
 func UpdateIssuePlanTime(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
 	if ctx.Written() {
