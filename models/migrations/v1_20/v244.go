@@ -20,20 +20,3 @@ func AddNeedApprovalToActionRun(x *xorm.Engine) error {
 
 	return x.Sync(new(ActionRun))
 }
-
-func AddTimeEstimateColumnToIssueTable(x *xorm.Engine) error {
-	type Issue struct {
-		TimeEstimate int64
-	}
-
-	return x.Sync(new(Issue))
-}
-
-func AddColumnsToCommentTable(x *xorm.Engine) error {
-	type Comment struct {
-		TimeTracked  int64
-		TimeEstimate int64
-	}
-
-	return x.Sync(new(Comment))
-}

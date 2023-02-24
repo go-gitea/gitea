@@ -467,6 +467,8 @@ var migrations = []Migration{
 
 	// v244 -> v245
 	NewMigration("Add NeedApproval to actions tables", v1_20.AddNeedApprovalToActionRun),
+
+	// v245 -> v246
 	NewMigration("Add TimeEstimate to issue table", v1_20.AddTimeEstimateColumnToIssueTable),
 	NewMigration("Add TimeTracked, TimeEstimate to comment table", v1_20.AddColumnsToCommentTable),
 }
