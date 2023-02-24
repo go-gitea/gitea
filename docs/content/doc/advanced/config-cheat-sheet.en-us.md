@@ -1090,7 +1090,7 @@ Default templates for project boards:
 ## Git - Reflog settings (`git.reflog`)
 
 - `ENABLED`: **true** Set to true to enable Git to write changes to reflogs in each repo.
-- `EXPIRATION`: **90** Number of days reflog entries should live before they are opportunistically removed.
+- `EXPIRATION`: **90** Reflog entry lifetime, in days. Entries are removed opportunistically by Git.
 
 ## Git - Timeout settings (`git.timeout`)
 
