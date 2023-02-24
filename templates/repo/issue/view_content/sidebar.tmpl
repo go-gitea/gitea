@@ -360,7 +360,7 @@
 			{{if and .CanUseTimetracker (not .Repository.IsArchived)}}
 				<div class="ui divider"></div>
 				<div>
-					<span class="text"><strong>{{.locale.Tr "repo.issues.tracker_time_estimate"}}</strong></span>
+					<span class="text"><strong>{{.locale.Tr "repo.issues.time_estimate"}}</strong></span>
 
 					<form method="POST" id="set_time_estimate_form" class="gt-mt-3" action="{{.Issue.Link}}/time_estimate">
 						{{$.CsrfTokenHtml}}
