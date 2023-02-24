@@ -150,7 +150,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	mustInit(system.Init)
 	mustInit(oauth2.Init)
 
-	mustInit(models.Init)
+	mustInitCtx(ctx, models.Init)
 	mustInit(repo_service.Init)
 
 	// Booting long running goroutines.
