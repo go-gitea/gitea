@@ -639,7 +639,7 @@ export function initRepoIssueTitleEdit() {
   });
 }
 
-export function initRepoIssuePlanTimeEdit() {
+export function initRepoIssueTimeEstimateEdit() {
   $('#set_time_estimate_form').on('submit', function(e) {
     e.preventDefault();
 
