@@ -29,6 +29,26 @@ import {hideElem, showElem} from '../utils/dom.js';
 
 const {csrfToken} = window.config;
 
+// if there are draft comments (more than 20 chars), confirm before reloading, to avoid losing comments
+function reloadConfirmDraftComment() {
+  const commentTextareas = [
+    document.querySelector('.edit-content-zone:not(.gt-hidden) textarea'),
+    document.querySelector('.edit_area'),
+  ];
+  for (const textarea of commentTextareas) {
+    // Most users won't feel too sad if they lose a comment with 10 or 20 chars, they can re-type these in seconds.
+    // But if they have typed more (like 50) chars and the comment is lost, they will be very unhappy.
+    if (textarea && textarea.value.trim().length > 20) {
+      textarea.parentElement.scrollIntoView();
+      if (!window.confirm('Page will be reloaded, but there are draft comments. Continuing to reload will discard the comments. Continue?')) {
+        return;
+      }
+      break;
+    }
+  }
+  window.location.reload();
+}
+
 export function initRepoCommentForm() {
   const $commentForm = $('.comment.form');
   if ($commentForm.length === 0) {
@@ -86,12 +106,15 @@ export function initRepoCommentForm() {
     let hasUpdateAction = $listMenu.data('action') === 'update';
     const items = {};
 
-    $(`.${selector}`).dropdown('setting', 'onHide', () => {
-      hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
-      if (hasUpdateAction) {
-        // TODO: Add batch functionality and make this 1 network request.
-        (async function() {
-          for (const [elementId, item] of Object.entries(items)) {
+    $(`.${selector}`).dropdown({
+      'action': 'nothing', // do not hide the menu if user presses Enter
+      fullTextSearch: 'exact',
+      async onHide() {
+        hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
+        if (hasUpdateAction) {
+          // TODO: Add batch functionality and make this 1 network request.
+          const itemEntries = Object.entries(items);
+          for (const [elementId, item] of itemEntries) {
             await updateIssuesMeta(
               item['update-url'],
               item.action,
@@ -99,9 +122,11 @@ export function initRepoCommentForm() {
               elementId,
             );
           }
-          window.location.reload();
-        })();
-      }
+          if (itemEntries.length) {
+            reloadConfirmDraftComment();
+          }
+        }
+      },
     });
 
     $listMenu.find('.item:not(.no-select)').on('click', function (e) {
@@ -196,7 +221,7 @@ export function initRepoCommentForm() {
           'clear',
           $listMenu.data('issue-id'),
           '',
-        ).then(() => window.location.reload());
+        ).then(reloadConfirmDraftComment);
       }
 
       $(this).parent().find('.item').each(function () {
@@ -239,7 +264,7 @@ export function initRepoCommentForm() {
           '',
           $menu.data('issue-id'),
           $(this).data('id'),
-        ).then(() => window.location.reload());
+        ).then(reloadConfirmDraftComment);
       }
 
       let icon = '';
@@ -272,7 +297,7 @@ export function initRepoCommentForm() {
           '',
           $menu.data('issue-id'),
           $(this).data('id'),
-        ).then(() => window.location.reload());
+        ).then(reloadConfirmDraftComment);
       }
 
       $list.find('.selected').html('');
