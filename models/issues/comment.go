@@ -130,6 +130,8 @@ const (
 	CommentTypePRScheduledToAutoMerge
 	// 35 pr was un scheduled to auto merge when checks succeed
 	CommentTypePRUnScheduledToAutoMerge
+	// 36 Change plan time
+	CommentTypeChangePlanTime
 )
 
 var commentStrings = []string{
@@ -144,6 +146,7 @@ var commentStrings = []string{
 	"milestone",
 	"assignees",
 	"change_title",
+	"change_plan_time",
 	"delete_branch",
 	"start_tracking",
 	"stop_tracking",
@@ -301,6 +304,9 @@ type Comment struct {
 	NewCommit   string                              `xorm:"-"`
 	CommitsNum  int64                               `xorm:"-"`
 	IsForcePush bool                                `xorm:"-"`
+
+	PlanTimeHours   int
+	PlanTimeMinutes int
 }
 
 func init() {
@@ -819,6 +825,8 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 		RefIsPull:        opts.RefIsPull,
 		IsForcePush:      opts.IsForcePush,
 		Invalidated:      opts.Invalidated,
+		PlanTimeHours:    opts.PlanTimeHours,
+		PlanTimeMinutes:  opts.PlanTimeMinutes,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -990,6 +998,8 @@ type CreateCommentOptions struct {
 	RefIsPull        bool
 	IsForcePush      bool
 	Invalidated      bool
+	PlanTimeHours    int
+	PlanTimeMinutes  int
 }
 
 // GetCommentByID returns the comment by given ID.

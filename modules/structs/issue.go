@@ -54,6 +54,8 @@ type Issue struct {
 	Attachments      []*Attachment `json:"assets"`
 	Labels           []*Label      `json:"labels"`
 	Milestone        *Milestone    `json:"milestone"`
+	PlanTimeHours    int64         `json:"plan_time_hours"`
+	PlanTimeMinutes  int64         `json:"plan_time_minutes"`
 	// deprecated
 	Assignee  *User   `json:"assignee"`
 	Assignees []*User `json:"assignees"`
@@ -106,8 +108,10 @@ type EditIssueOption struct {
 	Milestone *int64   `json:"milestone"`
 	State     *string  `json:"state"`
 	// swagger:strfmt date-time
-	Deadline       *time.Time `json:"due_date"`
-	RemoveDeadline *bool      `json:"unset_due_date"`
+	Deadline        *time.Time `json:"due_date"`
+	PlanTimeHours   int        `json:"plan_time_hours"`
+	PlanTimeMinutes int        `json:"plan_time_minutes"`
+	RemoveDeadline  *bool      `json:"unset_due_date"`
 }
 
 // EditDeadlineOption options for creating a deadline

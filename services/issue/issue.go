@@ -61,6 +61,21 @@ func ChangeTitle(issue *issues_model.Issue, doer *user_model.User, title string)
 	return nil
 }
 
+// ChangeTitle changes the title of this issue, as the given user.
+func ChangePlanTime(issue *issues_model.Issue, doer *user_model.User, planTimeHours int, planTimeMinutes int) (err error) {
+	//oldTitle := issue.Title
+	issue.PlanTimeHours = planTimeHours
+	issue.PlanTimeMinutes = planTimeMinutes
+
+	if err = issues_model.ChangeIssuePlanTime(issue, doer, planTimeHours, planTimeMinutes); err != nil {
+		return
+	}
+
+	//notification.NotifyIssueChangeTitle(db.DefaultContext, doer, issue, oldTitle)
+
+	return nil
+}
+
 // ChangeIssueRef changes the branch of this issue, as the given user.
 func ChangeIssueRef(issue *issues_model.Issue, doer *user_model.User, ref string) error {
 	oldRef := issue.Ref

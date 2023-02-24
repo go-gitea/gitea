@@ -639,6 +639,27 @@ export function initRepoIssueTitleEdit() {
   });
 }
 
+export function initRepoIssuePlanTimeEdit() {
+  $('#set_plan_time_form').on('submit', function(e) {
+    e.preventDefault();
+
+    const planTimeHours = $(this).find('[name=plan_time_hours]').val();
+    const planTimeMinutes = $(this).find('[name=plan_time_minutes]').val();
+
+    $.post($(this).attr('action'), {
+      _csrf: csrfToken,
+      plan_time_hours: planTimeHours,
+      plan_time_minutes: planTimeMinutes,
+    }).done((data) => {
+      console.log('ok')
+    }).always(() => {
+      window.location.reload();
+    });
+
+    return false;
+  });
+}
+
 export function initRepoIssueBranchSelect() {
   const changeBranchSelect = function () {
     const selectionTextField = $('#pull-target-branch');

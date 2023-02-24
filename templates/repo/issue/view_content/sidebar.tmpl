@@ -359,6 +359,21 @@
 		{{if .Repository.IsTimetrackerEnabled $.Context}}
 			{{if and .CanUseTimetracker (not .Repository.IsArchived)}}
 				<div class="ui divider"></div>
+				<div>
+					<span class="text"><strong>{{.locale.Tr "repo.issues.tracker_plan_time"}}</strong></span>
+
+					<form method="POST" id="set_plan_time_form" class="gt-mt-3" action="{{.Issue.Link}}/plan_time">
+						{{$.CsrfTokenHtml}}
+							<div class="ui action input fluid">
+								<input placeholder='{{.locale.Tr "repo.issues.add_time_hours"}}' type="number" min="0" value="{{ ($.Issue.PlanTimeHours) }}" name="plan_time_hours">
+								<input placeholder='{{.locale.Tr "repo.issues.add_time_minutes"}}' type="number" min="0" max="59" value="{{ ($.Issue.PlanTimeMinutes) }}" name="plan_time_minutes" class="ui compact">
+							</div>
+							<button class="ui fluid button green tooltip issue-add-time gt-mt-3">
+								{{.locale.Tr "repo.issues.save"}}
+							</button>
+					</form>
+				</div>
+				<div class="ui divider"></div>
 				<div class="ui timetrack">
 					<span class="text"><strong>{{.locale.Tr "repo.issues.tracker"}}</strong></span>
 					<div class="gt-mt-3">

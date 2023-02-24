@@ -1970,6 +1970,32 @@ func UpdateIssueTitle(ctx *context.Context) {
 	})
 }
 
+// UpdateIssuePlanTime change issue's title
+func UpdateIssuePlanTime(ctx *context.Context) {
+	issue := GetActionIssue(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if !ctx.IsSigned || (!issue.IsPoster(ctx.Doer.ID) && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
+		ctx.Error(http.StatusForbidden)
+		return
+	}
+
+	planTimeHours := ctx.FormInt("plan_time_hours")
+	planTimeMinutes := ctx.FormInt("plan_time_minutes")
+
+	if err := issue_service.ChangePlanTime(issue, ctx.Doer, planTimeHours, planTimeMinutes); err != nil {
+		ctx.ServerError("ChangePlanTime", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, map[string]interface{}{
+		"plan_time_hours":   issue.PlanTimeHours,
+		"plan_time_minutes": issue.PlanTimeMinutes,
+	})
+}
+
 // UpdateIssueRef change issue's ref (branch)
 func UpdateIssueRef(ctx *context.Context) {
 	issue := GetActionIssue(ctx)

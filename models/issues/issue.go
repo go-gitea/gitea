@@ -146,6 +146,10 @@ type Issue struct {
 
 	// For view issue page.
 	ShowRole RoleDescriptor `xorm:"-"`
+
+	// Plan time
+	PlanTimeHours   int
+	PlanTimeMinutes int
 }
 
 var (
@@ -769,6 +773,37 @@ func ChangeIssueTitle(issue *Issue, doer *user_model.User, oldTitle string) (err
 	}
 	if err = issue.AddCrossReferences(ctx, doer, true); err != nil {
 		return err
+	}
+
+	return committer.Commit()
+}
+
+// ChangeIssuePlanTime changes the plan time of this issue, as the given user.
+func ChangeIssuePlanTime(issue *Issue, doer *user_model.User, planTimeHours int, planTimeMinutes int) (err error) {
+	ctx, committer, err := db.TxContext(db.DefaultContext)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err = UpdateIssueCols(ctx, &Issue{ID: issue.ID, PlanTimeHours: planTimeHours, PlanTimeMinutes: planTimeMinutes}, "plan_time_hours", "plan_time_minutes"); err != nil {
+		return fmt.Errorf("updateIssueCols: %w", err)
+	}
+
+	if err = issue.LoadRepo(ctx); err != nil {
+		return fmt.Errorf("loadRepo: %w", err)
+	}
+
+	opts := &CreateCommentOptions{
+		Type:            CommentTypeChangePlanTime,
+		Doer:            doer,
+		Repo:            issue.Repo,
+		Issue:           issue,
+		PlanTimeHours:   planTimeHours,
+		PlanTimeMinutes: planTimeMinutes,
+	}
+	if _, err = CreateComment(ctx, opts); err != nil {
+		return fmt.Errorf("createComment: %w", err)
 	}
 
 	return committer.Commit()
