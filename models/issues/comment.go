@@ -146,7 +146,7 @@ var commentStrings = []string{
 	"milestone",
 	"assignees",
 	"change_title",
-	"change_plan_time",
+	"change_time_estimate",
 	"delete_branch",
 	"start_tracking",
 	"stop_tracking",
@@ -305,8 +305,8 @@ type Comment struct {
 	CommitsNum  int64                               `xorm:"-"`
 	IsForcePush bool                                `xorm:"-"`
 
-	PlanTimeHours   int
-	PlanTimeMinutes int
+	TimeEstimateHours   int
+	TimeEstimateMinutes int
 }
 
 func init() {
@@ -793,40 +793,40 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 	}
 
 	comment := &Comment{
-		Type:             opts.Type,
-		PosterID:         opts.Doer.ID,
-		Poster:           opts.Doer,
-		IssueID:          opts.Issue.ID,
-		LabelID:          LabelID,
-		OldMilestoneID:   opts.OldMilestoneID,
-		MilestoneID:      opts.MilestoneID,
-		OldProjectID:     opts.OldProjectID,
-		ProjectID:        opts.ProjectID,
-		TimeID:           opts.TimeID,
-		RemovedAssignee:  opts.RemovedAssignee,
-		AssigneeID:       opts.AssigneeID,
-		AssigneeTeamID:   opts.AssigneeTeamID,
-		CommitID:         opts.CommitID,
-		CommitSHA:        opts.CommitSHA,
-		Line:             opts.LineNum,
-		Content:          opts.Content,
-		OldTitle:         opts.OldTitle,
-		NewTitle:         opts.NewTitle,
-		OldRef:           opts.OldRef,
-		NewRef:           opts.NewRef,
-		DependentIssueID: opts.DependentIssueID,
-		TreePath:         opts.TreePath,
-		ReviewID:         opts.ReviewID,
-		Patch:            opts.Patch,
-		RefRepoID:        opts.RefRepoID,
-		RefIssueID:       opts.RefIssueID,
-		RefCommentID:     opts.RefCommentID,
-		RefAction:        opts.RefAction,
-		RefIsPull:        opts.RefIsPull,
-		IsForcePush:      opts.IsForcePush,
-		Invalidated:      opts.Invalidated,
-		PlanTimeHours:    opts.PlanTimeHours,
-		PlanTimeMinutes:  opts.PlanTimeMinutes,
+		Type:                opts.Type,
+		PosterID:            opts.Doer.ID,
+		Poster:              opts.Doer,
+		IssueID:             opts.Issue.ID,
+		LabelID:             LabelID,
+		OldMilestoneID:      opts.OldMilestoneID,
+		MilestoneID:         opts.MilestoneID,
+		OldProjectID:        opts.OldProjectID,
+		ProjectID:           opts.ProjectID,
+		TimeID:              opts.TimeID,
+		RemovedAssignee:     opts.RemovedAssignee,
+		AssigneeID:          opts.AssigneeID,
+		AssigneeTeamID:      opts.AssigneeTeamID,
+		CommitID:            opts.CommitID,
+		CommitSHA:           opts.CommitSHA,
+		Line:                opts.LineNum,
+		Content:             opts.Content,
+		OldTitle:            opts.OldTitle,
+		NewTitle:            opts.NewTitle,
+		OldRef:              opts.OldRef,
+		NewRef:              opts.NewRef,
+		DependentIssueID:    opts.DependentIssueID,
+		TreePath:            opts.TreePath,
+		ReviewID:            opts.ReviewID,
+		Patch:               opts.Patch,
+		RefRepoID:           opts.RefRepoID,
+		RefIssueID:          opts.RefIssueID,
+		RefCommentID:        opts.RefCommentID,
+		RefAction:           opts.RefAction,
+		RefIsPull:           opts.RefIsPull,
+		IsForcePush:         opts.IsForcePush,
+		Invalidated:         opts.Invalidated,
+		TimeEstimateHours:   opts.TimeEstimateHours,
+		TimeEstimateMinutes: opts.TimeEstimateMinutes,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -970,36 +970,36 @@ type CreateCommentOptions struct {
 	Issue *Issue
 	Label *Label
 
-	DependentIssueID int64
-	OldMilestoneID   int64
-	MilestoneID      int64
-	OldProjectID     int64
-	ProjectID        int64
-	TimeID           int64
-	AssigneeID       int64
-	AssigneeTeamID   int64
-	RemovedAssignee  bool
-	OldTitle         string
-	NewTitle         string
-	OldRef           string
-	NewRef           string
-	CommitID         int64
-	CommitSHA        string
-	Patch            string
-	LineNum          int64
-	TreePath         string
-	ReviewID         int64
-	Content          string
-	Attachments      []string // UUIDs of attachments
-	RefRepoID        int64
-	RefIssueID       int64
-	RefCommentID     int64
-	RefAction        references.XRefAction
-	RefIsPull        bool
-	IsForcePush      bool
-	Invalidated      bool
-	PlanTimeHours    int
-	PlanTimeMinutes  int
+	DependentIssueID    int64
+	OldMilestoneID      int64
+	MilestoneID         int64
+	OldProjectID        int64
+	ProjectID           int64
+	TimeID              int64
+	AssigneeID          int64
+	AssigneeTeamID      int64
+	RemovedAssignee     bool
+	OldTitle            string
+	NewTitle            string
+	OldRef              string
+	NewRef              string
+	CommitID            int64
+	CommitSHA           string
+	Patch               string
+	LineNum             int64
+	TreePath            string
+	ReviewID            int64
+	Content             string
+	Attachments         []string // UUIDs of attachments
+	RefRepoID           int64
+	RefIssueID          int64
+	RefCommentID        int64
+	RefAction           references.XRefAction
+	RefIsPull           bool
+	IsForcePush         bool
+	Invalidated         bool
+	TimeEstimateHours   int
+	TimeEstimateMinutes int
 }
 
 // GetCommentByID returns the comment by given ID.

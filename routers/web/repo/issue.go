@@ -1982,10 +1982,10 @@ func UpdateIssuePlanTime(ctx *context.Context) {
 		return
 	}
 
-	planTimeHours := ctx.FormInt("plan_time_hours")
+	planTimeHours := ctx.FormInt("time_estimate_hours")
 	planTimeMinutes := ctx.FormInt("plan_time_minutes")
 
-	if issue.PlanTimeHours == planTimeHours && issue.PlanTimeMinutes == planTimeMinutes {
+	if issue.TimeEstimateHours == planTimeHours && issue.TimeEstimateMinutes == planTimeMinutes {
 		ctx.JSON(http.StatusOK, map[string]interface{}{
 			"status": "ok",
 		})

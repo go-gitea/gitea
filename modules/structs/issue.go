@@ -41,21 +41,21 @@ type RepositoryMeta struct {
 // Issue represents an issue in a repository
 // swagger:model
 type Issue struct {
-	ID               int64         `json:"id"`
-	URL              string        `json:"url"`
-	HTMLURL          string        `json:"html_url"`
-	Index            int64         `json:"number"`
-	Poster           *User         `json:"user"`
-	OriginalAuthor   string        `json:"original_author"`
-	OriginalAuthorID int64         `json:"original_author_id"`
-	Title            string        `json:"title"`
-	Body             string        `json:"body"`
-	Ref              string        `json:"ref"`
-	Attachments      []*Attachment `json:"assets"`
-	Labels           []*Label      `json:"labels"`
-	Milestone        *Milestone    `json:"milestone"`
-	PlanTimeHours    int64         `json:"plan_time_hours"`
-	PlanTimeMinutes  int64         `json:"plan_time_minutes"`
+	ID                  int64         `json:"id"`
+	URL                 string        `json:"url"`
+	HTMLURL             string        `json:"html_url"`
+	Index               int64         `json:"number"`
+	Poster              *User         `json:"user"`
+	OriginalAuthor      string        `json:"original_author"`
+	OriginalAuthorID    int64         `json:"original_author_id"`
+	Title               string        `json:"title"`
+	Body                string        `json:"body"`
+	Ref                 string        `json:"ref"`
+	Attachments         []*Attachment `json:"assets"`
+	Labels              []*Label      `json:"labels"`
+	Milestone           *Milestone    `json:"milestone"`
+	TimeEstimateHours   int64         `json:"time_estimate_hours"`
+	TimeEstimateMinutes int64         `json:"plan_time_minutes"`
 	// deprecated
 	Assignee  *User   `json:"assignee"`
 	Assignees []*User `json:"assignees"`
@@ -108,10 +108,10 @@ type EditIssueOption struct {
 	Milestone *int64   `json:"milestone"`
 	State     *string  `json:"state"`
 	// swagger:strfmt date-time
-	Deadline        *time.Time `json:"due_date"`
-	PlanTimeHours   int        `json:"plan_time_hours"`
-	PlanTimeMinutes int        `json:"plan_time_minutes"`
-	RemoveDeadline  *bool      `json:"unset_due_date"`
+	Deadline            *time.Time `json:"due_date"`
+	TimeEstimateHours   int        `json:"time_estimate_hours"`
+	TimeEstimateMinutes int        `json:"plan_time_minutes"`
+	RemoveDeadline      *bool      `json:"unset_due_date"`
 }
 
 // EditDeadlineOption options for creating a deadline

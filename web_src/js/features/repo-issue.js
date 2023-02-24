@@ -643,12 +643,12 @@ export function initRepoIssuePlanTimeEdit() {
   $('#set_plan_time_form').on('submit', function(e) {
     e.preventDefault();
 
-    const planTimeHours = $(this).find('[name=plan_time_hours]').val();
+    const planTimeHours = $(this).find('[name=time_estimate_hours]').val();
     const planTimeMinutes = $(this).find('[name=plan_time_minutes]').val();
 
     $.post($(this).attr('action'), {
       _csrf: csrfToken,
-      plan_time_hours: planTimeHours,
+      time_estimate_hours: planTimeHours,
       plan_time_minutes: planTimeMinutes,
     }).always(() => {
       window.location.reload();
