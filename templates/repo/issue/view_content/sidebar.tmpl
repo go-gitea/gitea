@@ -121,7 +121,7 @@
 						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_labels"}}">
 					</div>
 				{{end}}
-				<div class="no-select item">{{.locale.Tr "repo.issues.new.clear_labels"}}</div>
+				<a class="no-select item" href="#">{{.locale.Tr "repo.issues.new.clear_labels"}}</a>
 				{{if or .Labels .OrgLabels}}
 					{{$previousExclusiveScope := "_no_scope"}}
 					{{range .Labels}}
