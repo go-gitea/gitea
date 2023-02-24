@@ -25,6 +25,8 @@ const (
 func NewDiffPatch(ctx *context.Context) {
 	canCommit := renderCommitRights(ctx)
 
+	ctx.Data["PageIsPatch"] = true
+
 	ctx.Data["TreePath"] = ""
 
 	ctx.Data["commit_summary"] = ""
@@ -51,6 +53,7 @@ func NewDiffPatchPost(ctx *context.Context) {
 	if form.CommitChoice == frmCommitChoiceNewBranch {
 		branchName = form.NewBranchName
 	}
+	ctx.Data["PageIsPatch"] = true
 	ctx.Data["TreePath"] = ""
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
 	ctx.Data["FileContent"] = form.Content
