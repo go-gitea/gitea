@@ -232,12 +232,12 @@ func CreateIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 	}
 
 	// if another stopwatch is running: stop it
-	exists, _, issue, err := HasUserStopwatch(ctx, user.ID)
+	exists, _, otherIssue, err := HasUserStopwatch(ctx, user.ID)
 	if err != nil {
 		return err
 	}
 	if exists {
-		if err := FinishIssueStopwatch(ctx, user, issue); err != nil {
+		if err := FinishIssueStopwatch(ctx, user, otherIssue); err != nil {
 			return err
 		}
 	}
