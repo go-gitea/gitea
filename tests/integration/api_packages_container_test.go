@@ -5,7 +5,6 @@ package integration
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -24,6 +23,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
+	"github.com/minio/sha256-simd"
 	oci "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/stretchr/testify/assert"
 )
@@ -640,7 +640,7 @@ func TestPackageContainer(t *testing.T) {
 
 		checkCatalog := func(owner string) func(t *testing.T) {
 			return func(t *testing.T) {
-				defer tests.PrepareTestEnv(t)()
+				defer tests.PrintCurrentTest(t)()
 
 				req := NewRequest(t, "GET", fmt.Sprintf("%sv2/_catalog", setting.AppURL))
 				addTokenAuthHeader(req, userToken)
