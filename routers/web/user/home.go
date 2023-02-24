@@ -72,12 +72,23 @@ func Dashboard(ctx *context.Context) {
 		return
 	}
 
+	var (
+		date = ctx.FormString("date")
+		page = ctx.FormInt("page")
+	)
+
+	// Make sure page number is at least 1. Will be posted to ctx.Data.
+	if page <= 1 {
+		page = 1
+	}
+
 	ctx.Data["Title"] = ctxUser.DisplayName() + " - " + ctx.Tr("dashboard")
 	ctx.Data["PageIsDashboard"] = true
 	ctx.Data["PageIsNews"] = true
 	cnt, _ := organization.GetOrganizationCount(ctx, ctxUser)
 	ctx.Data["UserOrgsCount"] = cnt
 	ctx.Data["MirrorsEnabled"] = setting.Mirror.Enabled
+	ctx.Data["Date"] = date
 
 	var uid int64
 	if ctxUser != nil {
@@ -98,8 +109,7 @@ func Dashboard(ctx *context.Context) {
 		ctx.Data["HeatmapData"] = data
 	}
 
-	var err error
-	ctx.Data["Feeds"], err = activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
+	feeds, count, err := activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
 		RequestedUser:   ctxUser,
 		RequestedTeam:   ctx.Org.Team,
 		Actor:           ctx.Doer,
@@ -107,12 +117,21 @@ func Dashboard(ctx *context.Context) {
 		OnlyPerformedBy: false,
 		IncludeDeleted:  false,
 		Date:            ctx.FormString("date"),
-		ListOptions:     db.ListOptions{PageSize: setting.UI.FeedPagingNum},
+		ListOptions: db.ListOptions{
+			Page:     page,
+			PageSize: setting.UI.FeedPagingNum,
+		},
 	})
 	if err != nil {
 		ctx.ServerError("GetFeeds", err)
 		return
 	}
+
+	ctx.Data["Feeds"] = feeds
+
+	pager := context.NewPagination(int(count), setting.UI.FeedPagingNum, page, 5)
+	pager.AddParam(ctx, "date", "Date")
+	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplDashboard)
 }
