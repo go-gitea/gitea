@@ -113,7 +113,7 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 	if err = storage.Init(); err != nil {
 		fatalTestError("storage.Init: %v\n", err)
 	}
-	if err = system_model.Init(); err != nil {
+	if err = system_model.Init(db.DefaultContext); err != nil {
 		fatalTestError("models.Init: %v\n", err)
 	}
 
