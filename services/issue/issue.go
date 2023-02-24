@@ -70,8 +70,6 @@ func ChangePlanTime(issue *issues_model.Issue, doer *user_model.User, planTimeHo
 		return
 	}
 
-	//notification.NotifyIssueChangeTitle(db.DefaultContext, doer, issue, oldTitle)
-
 	return nil
 }
 
