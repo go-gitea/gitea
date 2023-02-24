@@ -467,6 +467,8 @@ var migrations = []Migration{
 
 	// v244 -> v245
 	NewMigration("Add NeedApproval to actions tables", v1_20.AddNeedApprovalToActionRun),
+	NewMigration("Add TimeEstimate to issue table", v1_20.AddTimeEstimateColumnToIssueTable),
+	NewMigration("Add TimeTracked, TimeEstimate to comment table", v1_20.AddColumnsToCommentTable),
 }
 
 // GetCurrentDBVersion returns the current db version
