@@ -130,7 +130,7 @@ const (
 	CommentTypePRScheduledToAutoMerge
 	// 35 pr was un scheduled to auto merge when checks succeed
 	CommentTypePRUnScheduledToAutoMerge
-	// 36 Change plan time
+	// 36 Change time estimate
 	CommentTypeChangeTimeEstimate
 )
 
