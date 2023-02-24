@@ -221,7 +221,7 @@ func TotalTimes(options *FindTrackedTimesOptions) (map[*user_model.User]string, 
 			}
 			return nil, err
 		}
-		totalTimes[user] = util.SecToTimeExact(total)
+		totalTimes[user] = util.SecToTimeExact(total, false)
 	}
 	return totalTimes, nil
 }

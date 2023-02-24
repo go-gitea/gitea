@@ -64,7 +64,7 @@ func SecToTime(duration int64) string {
 	return strings.TrimRight(formattedTime, " ")
 }
 
-func SecToTimeExact(duration int64) string {
+func SecToTimeExact(duration int64, withSeconds bool) string {
 	formattedTime := ""
 
 	// The following four variables are calculated by taking
@@ -93,7 +93,9 @@ func SecToTimeExact(duration int64) string {
 	formattedTime = formatTime(days, "day", formattedTime)
 	formattedTime = formatTime(hours, "hour", formattedTime)
 	formattedTime = formatTime(minutes, "minute", formattedTime)
-	formattedTime = formatTime(seconds, "second", formattedTime)
+	if withSeconds {
+		formattedTime = formatTime(seconds, "second", formattedTime)
+	}
 
 	// The formatTime() function always appends a space at the end. This will be trimmed
 	return strings.TrimRight(formattedTime, " ")

@@ -365,7 +365,7 @@
 					<form method="POST" id="set_time_estimate_form" class="gt-mt-3" action="{{.Issue.Link}}/time_estimate">
 						{{$.CsrfTokenHtml}}
 							<div class="ui input fluid">
-								<input name="time_estimate" placeholder='{{.locale.Tr "repo.issues.add_time_estimate"}}' value="{{ ($.Issue.TimeEstimateToStr) }}" type="text" >
+								<input name="time_estimate" placeholder='{{.locale.Tr "repo.issues.add_time_estimate"}}' value="{{($.Issue.TimeEstimateToStr)}}" type="text" >
 							</div>
 							<button class="ui fluid button green tooltip gt-mt-3">
 								{{.locale.Tr "repo.issues.save"}}
@@ -414,7 +414,7 @@
 				<div class="ui divider"></div>
 				<div class="ui comments">
 					<div class="text"><strong>{{.locale.Tr "repo.issues.time_spent_from_all_authors" | Safe}}</strong></div>
-					<div>{{SecToTimeExact .Issue.TotalTrackedTime}}</div>
+					<div>{{SecToTimeExact .Issue.TotalTrackedTime false}}</div>
 					<div class="gt-mt-3">
 						{{range $user, $trackedtime := .WorkingUsers}}
 							<div class="comment gt-mt-3">

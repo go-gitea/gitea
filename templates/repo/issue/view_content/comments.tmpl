@@ -263,7 +263,7 @@
 				{{template "repo/issue/view_content/comments_delete_time" Dict "ctx" $ "comment" .}}
 				<div class="detail">
 					{{svg "octicon-clock"}}
-					<span class="text grey muted-links">{{SecToTimeExact .TimeTracked}}</span>
+					<span class="text grey muted-links">{{SecToTimeExact .TimeTracked false}}</span>
 				</div>
 			</div>
 		{{else if eq .Type 14}}
@@ -277,7 +277,7 @@
 				{{template "repo/issue/view_content/comments_delete_time" Dict "ctx" $ "comment" .}}
 				<div class="detail">
 					{{svg "octicon-clock"}}
-					<span class="text grey muted-links">{{SecToTimeExact .TimeTracked}}</span>
+					<span class="text grey muted-links">{{SecToTimeExact .TimeTracked false}}</span>
 				</div>
 			</div>
 		{{else if eq .Type 15}}
@@ -668,7 +668,7 @@
 				</span>
 				<div class="detail">
 					{{svg "octicon-clock"}}
-					<span class="text grey muted-links">- {{SecToTimeExact .TimeTracked}}</span>
+					<span class="text grey muted-links">- {{SecToTimeExact .TimeTracked false}}</span>
 				</div>
 			</div>
 		{{else if eq .Type 27}}
@@ -802,7 +802,7 @@
 					{{if and (eq .TimeEstimate 0)}}
 						{{$.locale.Tr "repo.issues.remove_time_estimate" $createdStr | Safe}}
 					{{else}}
-						{{$.locale.Tr "repo.issues.change_time_estimate_at" (SecToTimeExact .TimeEstimate)  $createdStr | Safe}}
+						{{$.locale.Tr "repo.issues.change_time_estimate_at" (SecToTimeExact .TimeEstimate false)  $createdStr | Safe}}
 					{{end}}
 				</span>
 			</div>
