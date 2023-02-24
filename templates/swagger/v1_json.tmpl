@@ -16287,6 +16287,10 @@
           "type": "string",
           "x-go-name": "State"
         },
+        "time_estimate": {
+          "type": "string",
+          "x-go-name": "TimeEstimate"
+        },
         "title": {
           "type": "string",
           "x-go-name": "Title"
@@ -17504,6 +17508,11 @@
         },
         "state": {
           "$ref": "#/definitions/StateType"
+        },
+        "time_estimate": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TimeEstimate"
         },
         "title": {
           "type": "string",
