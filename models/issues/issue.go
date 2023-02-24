@@ -2479,10 +2479,10 @@ func (issue *Issue) TimeEstimateFromStr(timeStr string) int64 {
 	timeTotal := 0
 
 	// Time match regex
-	rWeeks, _ := regexp.Compile("([\\d]+)w")
-	rDays, _ := regexp.Compile("([\\d]+)d")
-	rHours, _ := regexp.Compile("([\\d]+)h")
-	rMinutes, _ := regexp.Compile("([\\d]+)m")
+	rWeeks := regexp.MustCompile(`([\d]+)w`)
+	rDays := regexp.MustCompile(`([\d]+)d`)
+	rHours := regexp.MustCompile(`([\d]+)h`)
+	rMinutes := regexp.MustCompile(`([\d]+)m`)
 
 	// Find time weeks
 	timeStrMatches := rWeeks.FindStringSubmatch(timeStr)
@@ -2547,7 +2547,6 @@ func (issue *Issue) TimeEstimateToStr() string {
 	if minutes > 0 {
 		timeParts = append(timeParts, fmt.Sprintf("%dm", int64(minutes)))
 	}
-	timeSeconds -= minutes * (60)
 
-	return strings.Join(timeParts[:], " ")
+	return strings.Join(timeParts, " ")
 }
