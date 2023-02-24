@@ -453,9 +453,8 @@ export function initRepoPullRequestReview() {
     $(`#show-outdated-${id}`).removeClass('gt-hidden');
   });
 
-  $(document).on('click', 'button.comment-form-reply', async function (e, content) {
+  $(document).on('click', 'button.comment-form-reply', async function (e, content=null) {
     e.preventDefault();
-
     hideElem($(this));
     const form = $(this).closest('.comment-code-cloud').find('.comment-form');
     form.removeClass('gt-hidden');
@@ -464,10 +463,13 @@ export function initRepoPullRequestReview() {
     if (!easyMDE) {
       await attachTribute($textarea.get(), {mentions: true, emoji: true});
       easyMDE = await createCommentEasyMDE($textarea);
-      if (easyMDE.value() !== '') {
-        easyMDE.value(`${easyMDE.value()}\n\n${content}`);
-      } else {
-        easyMDE.value(`${content}`);
+      // The first time quote reply is clicked, content is not null
+      if (content != null) {
+        if (easyMDE.value() !== '') {
+          easyMDE.value(`${easyMDE.value()}\n\n${content}`);
+        } else {
+          easyMDE.value(`${content}`);
+        }
       }
     }
     $textarea.focus();
