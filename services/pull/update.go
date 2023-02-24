@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/structs"
 )
 
 // Update updates pull request with base branch.
@@ -63,7 +64,7 @@ func Update(ctx context.Context, pull *issues_model.PullRequest, doer *user_mode
 		return fmt.Errorf("HeadBranch of PR %d is up to date", pull.Index)
 	}
 
-	_, err = rawMerge(ctx, pr, doer, style, "", message)
+	_, err = rawMerge(ctx, pr, doer, style, "", message, make([]structs.MergeStrategy, 0))
 
 	defer func() {
 		if rebase {
