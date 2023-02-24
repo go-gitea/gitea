@@ -6,12 +6,9 @@
 package issues
 
 import (
-	"code.gitea.io/gitea/modules/translation"
 	"context"
 	"fmt"
-	"math"
 	"strconv"
-	"strings"
 	"unicode/utf8"
 
 	"code.gitea.io/gitea/models/db"
@@ -250,6 +247,7 @@ type Comment struct {
 	Milestone        *Milestone `xorm:"-"`
 	TimeID           int64
 	Time             *TrackedTime `xorm:"-"`
+	TimeTracked      int64
 	AssigneeID       int64
 	RemovedAssignee  bool
 	Assignee         *user_model.User   `xorm:"-"`
@@ -805,6 +803,7 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 		OldProjectID:     opts.OldProjectID,
 		ProjectID:        opts.ProjectID,
 		TimeID:           opts.TimeID,
+		TimeTracked:      opts.TimeTracked,
 		RemovedAssignee:  opts.RemovedAssignee,
 		AssigneeID:       opts.AssigneeID,
 		AssigneeTeamID:   opts.AssigneeTeamID,
@@ -977,6 +976,7 @@ type CreateCommentOptions struct {
 	OldProjectID     int64
 	ProjectID        int64
 	TimeID           int64
+	TimeTracked      int64
 	AssigneeID       int64
 	AssigneeTeamID   int64
 	RemovedAssignee  bool
@@ -1258,41 +1258,4 @@ func FixCommentTypeLabelWithOutsideLabels(ctx context.Context) (int64, error) {
 // HasOriginalAuthor returns if a comment was migrated and has an original author.
 func (c *Comment) HasOriginalAuthor() bool {
 	return c.OriginalAuthor != "" && c.OriginalAuthorID != 0
-}
-
-// TimeEstimateStr returns formatted time estimate string from seconds (e.g. "2 weeks 4 days 12 hours 5 minutes")
-func (c *Comment) TimeEstimateToStrTranslated(lang translation.Locale) string {
-	var timeParts []string
-
-	timeSeconds := float64(c.TimeEstimate)
-
-	// Format weeks
-	weeks := math.Floor(timeSeconds / (60 * 60 * 24 * 7))
-	if weeks > 0 {
-		timeParts = append(timeParts, lang.Tr("tool.hours", int64(weeks)))
-	}
-	timeSeconds -= weeks * (60 * 60 * 24 * 7)
-
-	// Format days
-	days := math.Floor(timeSeconds / (60 * 60 * 24))
-	if days > 0 {
-		timeParts = append(timeParts, lang.Tr("tool.days", int64(days)))
-	}
-	timeSeconds -= days * (60 * 60 * 24)
-
-	// Format hours
-	hours := math.Floor(timeSeconds / (60 * 60))
-	if hours > 0 {
-		timeParts = append(timeParts, lang.Tr("tool.hours", int64(hours)))
-	}
-	timeSeconds -= hours * (60 * 60)
-
-	// Format minutes
-	minutes := math.Floor(timeSeconds / (60))
-	if minutes > 0 {
-		timeParts = append(timeParts, lang.Tr("tool.minutes", int64(minutes)))
-	}
-	timeSeconds -= minutes * (60)
-
-	return strings.Join(timeParts[:], " ")
 }

@@ -413,8 +413,9 @@
 			{{if gt (len .WorkingUsers) 0}}
 				<div class="ui divider"></div>
 				<div class="ui comments">
-					<span class="text"><strong>{{.locale.Tr "repo.issues.time_spent_from_all_authors"  ($.Issue.TotalTrackedTime | Sec2Time) | Safe}}</strong></span>
-					<div>
+					<div class="text"><strong>{{.locale.Tr "repo.issues.time_spent_from_all_authors" | Safe}}</strong></div>
+					<div>{{SecToTimeExact .Issue.TotalTrackedTime}}</div>
+					<div class="gt-mt-3">
 						{{range $user, $trackedtime := .WorkingUsers}}
 							<div class="comment gt-mt-3">
 								<a class="avatar">

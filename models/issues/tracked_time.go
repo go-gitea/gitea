@@ -173,12 +173,12 @@ func AddTime(user *user_model.User, issue *Issue, amount int64, created time.Tim
 	}
 
 	if _, err := CreateComment(ctx, &CreateCommentOptions{
-		Issue:   issue,
-		Repo:    issue.Repo,
-		Doer:    user,
-		Content: util.SecToTime(amount),
-		Type:    CommentTypeAddTimeManual,
-		TimeID:  t.ID,
+		Issue:       issue,
+		Repo:        issue.Repo,
+		Doer:        user,
+		Type:        CommentTypeAddTimeManual,
+		TimeID:      t.ID,
+		TimeTracked: t.Time,
 	}); err != nil {
 		return nil, err
 	}
@@ -221,7 +221,7 @@ func TotalTimes(options *FindTrackedTimesOptions) (map[*user_model.User]string, 
 			}
 			return nil, err
 		}
-		totalTimes[user] = util.SecToTime(total)
+		totalTimes[user] = util.SecToTimeExact(total)
 	}
 	return totalTimes, nil
 }
@@ -251,11 +251,11 @@ func DeleteIssueUserTimes(issue *Issue, user *user_model.User) error {
 		return err
 	}
 	if _, err := CreateComment(ctx, &CreateCommentOptions{
-		Issue:   issue,
-		Repo:    issue.Repo,
-		Doer:    user,
-		Content: "- " + util.SecToTime(removedTime),
-		Type:    CommentTypeDeleteTimeManual,
+		Issue:       issue,
+		Repo:        issue.Repo,
+		Doer:        user,
+		TimeTracked: removedTime,
+		Type:        CommentTypeDeleteTimeManual,
 	}); err != nil {
 		return err
 	}
@@ -280,11 +280,11 @@ func DeleteTime(t *TrackedTime) error {
 	}
 
 	if _, err := CreateComment(ctx, &CreateCommentOptions{
-		Issue:   t.Issue,
-		Repo:    t.Issue.Repo,
-		Doer:    t.User,
-		Content: "- " + util.SecToTime(t.Time),
-		Type:    CommentTypeDeleteTimeManual,
+		Issue:       t.Issue,
+		Repo:        t.Issue.Repo,
+		Doer:        t.User,
+		TimeTracked: t.Time,
+		Type:        CommentTypeDeleteTimeManual,
 	}); err != nil {
 		return err
 	}
