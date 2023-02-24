@@ -109,9 +109,9 @@ type EditIssueOption struct {
 	State     *string  `json:"state"`
 	// swagger:strfmt date-time
 	Deadline            *time.Time `json:"due_date"`
+	RemoveDeadline      *bool      `json:"unset_due_date"`
 	TimeEstimateHours   int        `json:"time_estimate_hours"`
 	TimeEstimateMinutes int        `json:"time_estimate_minutes"`
-	RemoveDeadline      *bool      `json:"unset_due_date"`
 }
 
 // EditDeadlineOption options for creating a deadline
