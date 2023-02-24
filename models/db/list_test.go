@@ -9,9 +9,9 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
-	"xorm.io/builder"
 
 	"github.com/stretchr/testify/assert"
+	"xorm.io/builder"
 )
 
 type mockListOptions struct {
