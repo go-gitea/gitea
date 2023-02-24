@@ -795,7 +795,7 @@
 			</div>
 		{{else if eq .Type 1001}}
 			<div class="timeline-item event" id="{{.HashTag}}">
-				<span class="badge">{{svg "octicon-pencil"}}</span>
+				<span class="badge">{{svg "octicon-clock"}}</span>
 				{{template "shared/user/avatarlink" Dict "Context" $.Context "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
