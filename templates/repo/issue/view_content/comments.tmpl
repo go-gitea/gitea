@@ -264,7 +264,7 @@
 				<div class="detail">
 					{{svg "octicon-clock"}}
 					{{if eq .Content ""}}
-						<span class="text grey muted-links">{{SecToTimeExact .TimeTracked false}}</span>
+						<span class="text grey muted-links">{{if lt .TimeTracked 60}}{{SecToTimeExact .TimeTracked true}}{{else}}{{SecToTimeExact .TimeTracked false}}{{end}}</span>
 					{{else}}
 						<!-- legacy support -->
 						<span class="text grey muted-links">{{.Content}}</span>
@@ -283,7 +283,7 @@
 				<div class="detail">
 					{{svg "octicon-clock"}}
 					{{if eq .Content ""}}
-						<span class="text grey muted-links">{{SecToTimeExact .TimeTracked false}}</span>
+						<span class="text grey muted-links">{{if lt .TimeTracked 60}}{{SecToTimeExact .TimeTracked true}}{{else}}{{SecToTimeExact .TimeTracked false}}{{end}}</span>
 					{{else}}
 						<!-- legacy support -->
 						<span class="text grey muted-links">{{.Content}}</span>
@@ -679,7 +679,7 @@
 				<div class="detail">
 					{{svg "octicon-clock"}}
 					{{if eq .Content ""}}
-						<span class="text grey muted-links">{{SecToTimeExact .TimeTracked false}}</span>
+						<span class="text grey muted-links">{{if lt .TimeTracked 60}}{{SecToTimeExact .TimeTracked true}}{{else}}{{SecToTimeExact .TimeTracked false}}{{end}}</span>
 					{{else}}
 						<!-- legacy support -->
 						<span class="text grey muted-links">{{.Content}}</span>
