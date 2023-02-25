@@ -17,16 +17,20 @@
 						{{.locale.Tr "repo.issues.filter_type.created_by_you"}}
 						<strong class="ui right">{{CountFmt .IssueStats.CreateCount}}</strong>
 					</a>
-					<a class="{{if eq .ViewType "mentioned"}}ui basic primary button{{end}} item" href="{{.Link}}?type=mentioned&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
-						{{.locale.Tr "repo.issues.filter_type.mentioning_you"}}
-						<strong class="ui right">{{CountFmt .IssueStats.MentionCount}}</strong>
-					</a>
 					{{if .PageIsPulls}}
 						<a class="{{if eq .ViewType "review_requested"}}ui basic primary button{{end}} item" href="{{.Link}}?type=review_requested&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
 							{{.locale.Tr "repo.issues.filter_type.review_requested"}}
 							<strong class="ui right">{{CountFmt .IssueStats.ReviewRequestedCount}}</strong>
 						</a>
+						<a class="{{if eq .ViewType "reviewed_by"}}ui basic primary button{{end}} item" href="{{.Link}}?type=reviewed_by&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
+							{{.locale.Tr "repo.issues.filter_type.reviewed_by_you"}}
+							<strong class="ui right">{{CountFmt .IssueStats.ReviewedCount}}</strong>
+						</a>
 					{{end}}
+					<a class="{{if eq .ViewType "mentioned"}}ui basic primary button{{end}} item" href="{{.Link}}?type=mentioned&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
+						{{.locale.Tr "repo.issues.filter_type.mentioning_you"}}
+						<strong class="ui right">{{CountFmt .IssueStats.MentionCount}}</strong>
+					</a>
 					<div class="ui divider"></div>
 					<a class="{{if not $.RepoIDs}}ui basic primary button{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&q={{$.Keyword}}">
 						<span class="text truncate">All</span>

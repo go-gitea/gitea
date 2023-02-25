@@ -31,14 +31,16 @@
 				</div>
 
 				{{if not .PageIsEditProjects}}
-					<label>{{.locale.Tr "repo.projects.template.desc"}}</label>
-					<div class="ui selection dropdown">
-						<input type="hidden" name="board_type" value="{{.type}}">
-						<div class="default text">{{.locale.Tr "repo.projects.template.desc_helper"}}</div>
-						<div class="menu">
-							{{range $element := .BoardTypes}}
-								<div class="item" data-id="{{$element.BoardType}}" data-value="{{$element.BoardType}}">{{$.locale.Tr $element.Translation}}</div>
-							{{end}}
+					<div class="field">
+						<label>{{.locale.Tr "repo.projects.template.desc"}}</label>
+						<div class="ui selection dropdown">
+							<input type="hidden" name="board_type" value="{{.type}}">
+							<div class="default text">{{.locale.Tr "repo.projects.template.desc_helper"}}</div>
+							<div class="menu">
+								{{range $element := .ProjectTypes}}
+									<div class="item" data-id="{{$element.BoardType}}" data-value="{{$element.BoardType}}">{{$.locale.Tr $element.Translation}}</div>
+								{{end}}
+							</div>
 						</div>
 					</div>
 				{{end}}
@@ -47,14 +49,14 @@
 				<div class="ui divider"></div>
 				<div class="ui left">
 					{{if .PageIsEditProjects}}
-					<a class="ui primary basic button" href="{{.RepoLink}}/projects">
+					<a class="ui cancel button" href="{{.RepoLink}}/projects">
 						{{.locale.Tr "repo.milestones.cancel"}}
 					</a>
-					<button class="ui green button">
+					<button class="ui primary button">
 						{{.locale.Tr "repo.projects.modify"}}
 					</button>
 					{{else}}
-						<button class="ui green button">
+						<button class="ui primary button">
 							{{.locale.Tr "repo.projects.create"}}
 						</button>
 					{{end}}

@@ -15,7 +15,7 @@ import (
 
 // ShowRepoFeed shows user activity on the repo as RSS / Atom feed
 func ShowRepoFeed(ctx *context.Context, repo *repo_model.Repository, formatType string) {
-	actions, err := activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
+	actions, _, err := activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
 		RequestedRepo:  repo,
 		Actor:          ctx.Doer,
 		IncludePrivate: true,
