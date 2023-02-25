@@ -385,6 +385,8 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		filterMode = issues_model.FilterModeMention
 	case "review_requested":
 		filterMode = issues_model.FilterModeReviewRequested
+	case "reviewed_by":
+		filterMode = issues_model.FilterModeReviewed
 	case "your_repositories":
 		fallthrough
 	default:
@@ -453,6 +455,8 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		opts.MentionedID = ctx.Doer.ID
 	case issues_model.FilterModeReviewRequested:
 		opts.ReviewRequestedID = ctx.Doer.ID
+	case issues_model.FilterModeReviewed:
+		opts.ReviewedID = ctx.Doer.ID
 	}
 
 	// keyword holds the search term entered into the search field.
