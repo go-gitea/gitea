@@ -2,6 +2,7 @@ import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
 import {initMarkupContent} from '../markup/content.js';
 import {createCodeEditor} from './codeeditor.js';
+import {hideElem, showElem} from '../utils/dom.js';
 
 const {csrfToken} = window.config;
 let previewFileModes;
@@ -81,10 +82,10 @@ export function initRepoEditor() {
 
   $('.js-quick-pull-choice-option').on('change', function () {
     if ($(this).val() === 'commit-to-new-branch') {
-      $('.quick-pull-branch-name').show();
+      showElem($('.quick-pull-branch-name'));
       $('.quick-pull-branch-name input').prop('required', true);
     } else {
-      $('.quick-pull-branch-name').hide();
+      hideElem($('.quick-pull-branch-name'));
       $('.quick-pull-branch-name input').prop('required', false);
     }
     $('#commit-button').text($(this).attr('button_text'));

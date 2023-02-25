@@ -299,9 +299,7 @@ known as the release freeze. All the feature pull requests should be
 merged before feature freeze. And, during the frozen period, a corresponding
 release branch is open for fixes backported from main branch. Release candidates
 are made during this period for user testing to
-obtain a final version that is maintained in this branch. A release is
-maintained by issuing patch releases to only correct critical problems
-such as crashes or security issues.
+obtain a final version that is maintained in this branch.
 
 Major release cycles are seasonal. They always begin on the 25th and end on
 the 24th (i.e., the 25th of December to March 24th).
@@ -310,6 +308,16 @@ During a development cycle, we may also publish any necessary minor releases
 for the previous version. For example, if the latest, published release is
 v1.2, then minor changes for the previous release—e.g., v1.1.0 -> v1.1.1—are
 still possible.
+
+The previous release gets fixes for:
+
+- Security issues
+- Critical bugs
+- Regressions
+- Build issues
+- Necessary enhancements (including necessary UI/UX fixes)
+
+The backported fixes should avoid breaking downgrade between minor releases as much as possible.
 
 ## Maintainers
 

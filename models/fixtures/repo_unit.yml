@@ -556,3 +556,16 @@
   repo_id: 54
   type: 1
   created_unix: 946684810
+
+-
+  id: 82
+  repo_id: 31
+  type: 1
+  created_unix: 946684810
+
+-
+  id: 83
+  repo_id: 31
+  type: 3
+  config: "{\"IgnoreWhitespaceConflicts\":false,\"AllowMerge\":true,\"AllowRebase\":true,\"AllowRebaseMerge\":true,\"AllowSquash\":true}"
+  created_unix: 946684810

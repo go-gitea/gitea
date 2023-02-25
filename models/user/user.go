@@ -6,8 +6,6 @@ package user
 
 import (
 	"context"
-	"crypto/sha256"
-	"crypto/subtle"
 	"encoding/hex"
 	"fmt"
 	"net/url"
@@ -21,6 +19,7 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/auth/openid"
+	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -30,10 +29,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 
-	"golang.org/x/crypto/argon2"
-	"golang.org/x/crypto/bcrypt"
-	"golang.org/x/crypto/pbkdf2"
-	"golang.org/x/crypto/scrypt"
 	"xorm.io/builder"
 )
 
@@ -47,21 +42,6 @@ const (
 	// UserTypeOrganization defines an organization
 	UserTypeOrganization
 )
-
-const (
-	algoBcrypt = "bcrypt"
-	algoScrypt = "scrypt"
-	algoArgon2 = "argon2"
-	algoPbkdf2 = "pbkdf2"
-)
-
-// AvailableHashAlgorithms represents the available password hashing algorithms
-var AvailableHashAlgorithms = []string{
-	algoPbkdf2,
-	algoArgon2,
-	algoScrypt,
-	algoBcrypt,
-}
 
 const (
 	// EmailNotificationsEnabled indicates that the user would like to receive all email notifications except your own
@@ -377,42 +357,6 @@ func (u *User) NewGitSig() *git.Signature {
 	}
 }
 
-func hashPassword(passwd, salt, algo string) (string, error) {
-	var tempPasswd []byte
-	var saltBytes []byte
-
-	// There are two formats for the Salt value:
-	// * The new format is a (32+)-byte hex-encoded string
-	// * The old format was a 10-byte binary format
-	// We have to tolerate both here but Authenticate should
-	// regenerate the Salt following a successful validation.
-	if len(salt) == 10 {
-		saltBytes = []byte(salt)
-	} else {
-		var err error
-		saltBytes, err = hex.DecodeString(salt)
-		if err != nil {
-			return "", err
-		}
-	}
-
-	switch algo {
-	case algoBcrypt:
-		tempPasswd, _ = bcrypt.GenerateFromPassword([]byte(passwd), bcrypt.DefaultCost)
-		return string(tempPasswd), nil
-	case algoScrypt:
-		tempPasswd, _ = scrypt.Key([]byte(passwd), saltBytes, 65536, 16, 2, 50)
-	case algoArgon2:
-		tempPasswd = argon2.IDKey([]byte(passwd), saltBytes, 2, 65536, 8, 50)
-	case algoPbkdf2:
-		fallthrough
-	default:
-		tempPasswd = pbkdf2.Key([]byte(passwd), saltBytes, 10000, 50, sha256.New)
-	}
-
-	return hex.EncodeToString(tempPasswd), nil
-}
-
 // SetPassword hashes a password using the algorithm defined in the config value of PASSWORD_HASH_ALGO
 // change passwd, salt and passwd_hash_algo fields
 func (u *User) SetPassword(passwd string) (err error) {
@@ -426,7 +370,7 @@ func (u *User) SetPassword(passwd string) (err error) {
 	if u.Salt, err = GetUserSalt(); err != nil {
 		return err
 	}
-	if u.Passwd, err = hashPassword(passwd, u.Salt, setting.PasswordHashAlgo); err != nil {
+	if u.Passwd, err = hash.Parse(setting.PasswordHashAlgo).Hash(passwd, u.Salt); err != nil {
 		return err
 	}
 	u.PasswdHashAlgo = setting.PasswordHashAlgo
@@ -434,20 +378,9 @@ func (u *User) SetPassword(passwd string) (err error) {
 	return nil
 }
 
-// ValidatePassword checks if given password matches the one belongs to the user.
+// ValidatePassword checks if the given password matches the one belonging to the user.
 func (u *User) ValidatePassword(passwd string) bool {
-	tempHash, err := hashPassword(passwd, u.Salt, u.PasswdHashAlgo)
-	if err != nil {
-		return false
-	}
-
-	if u.PasswdHashAlgo != algoBcrypt && subtle.ConstantTimeCompare([]byte(u.Passwd), []byte(tempHash)) == 1 {
-		return true
-	}
-	if u.PasswdHashAlgo == algoBcrypt && bcrypt.CompareHashAndPassword([]byte(u.Passwd), []byte(passwd)) == nil {
-		return true
-	}
-	return false
+	return hash.Parse(u.PasswdHashAlgo).VerifyPassword(passwd, u.Passwd, u.Salt)
 }
 
 // IsPasswordSet checks if the password is set or left empty
