@@ -468,7 +468,7 @@ var migrations = []Migration{
 	// v244 -> v245
 	NewMigration("Add NeedApproval to actions tables", v1_20.AddNeedApprovalToActionRun),
 	// v245 -> v246
-	NewMigration("Add size_details column to repository table", v1_20.AddGitSizeAndLFSSizeToRepositoryTable),
+	NewMigration("Add git_size and lfs_size columns to repository table", v1_20.AddGitSizeAndLFSSizeToRepositoryTable),
 }
 
 // GetCurrentDBVersion returns the current db version
