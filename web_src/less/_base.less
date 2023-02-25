@@ -226,7 +226,7 @@ body {
 
 @supports (overflow: overlay) {
   body {
-    overflow: overlay;
+    overflow: overlay; // stylelint-disable-line
     scrollbar-gutter: stable;
   }
 }
@@ -340,8 +340,7 @@ a.label,
 .ui.search .results a,
 .ui .menu a,
 .ui.cards a.card,
-.issue-keyword a,
-a.commit-statuses-trigger {
+.issue-keyword a {
   text-decoration: none !important;
 }
 
@@ -649,6 +648,10 @@ a.commit-statuses-trigger {
 
 .ui.search > .results .result .title {
   color: var(--color-text-dark);
+}
+
+.ui.search > .results .result .description {
+  color: var(--color-text-light-2);
 }
 
 .ui.search > .results .result .image {
@@ -1112,6 +1115,7 @@ a.ui.card:hover,
 
 .ui.modal > .content {
   background: var(--color-body);
+  text-align: left !important;
 }
 
 .ui.modal > .actions {
@@ -1360,10 +1364,15 @@ a.ui.card:hover,
   -webkit-text-fill-color: var(--color-black) !important;
 }
 
+.ui.form .field.muted {
+  opacity: var(--opacity-disabled);
+}
+
 .ui.loading.loading.input > i.icon svg {
   visibility: hidden;
 }
 
+.text.primary { color: var(--color-primary) !important; }
 .text.red { color: var(--color-red) !important; }
 .text.orange { color: var(--color-orange) !important; }
 .text.yellow { color: var(--color-yellow) !important; }
@@ -1799,18 +1808,6 @@ footer {
     &.right {
       line-height: 39px; // there  is a border-top on the footer, so make the line-height 1px less
     }
-  }
-}
-
-.hide {
-  display: none;
-
-  &.show-outdated {
-    display: none !important;
-  }
-
-  &.hide-outdated {
-    display: none !important;
   }
 }
 
@@ -2315,6 +2312,13 @@ a.ui.label:hover {
 .ui.basic.secondary.buttons .button:active,
 .ui.basic.secondary.button:active {
   color: var(--color-secondary-dark-8) !important;
+  border-color: var(--color-secondary-dark-1) !important;
+}
+
+.ui.basic.secondary.button:focus,
+.ui.basic.secondary.buttons .button:focus {
+  color: var(--color-secondary-dark-8) !important;
+  border-color: var(--color-secondary-dark-3) !important;
 }
 
 .ui.tertiary.button {
@@ -2434,6 +2438,33 @@ a.ui.basic.label:hover {
   margin-top: 1rem;
 }
 
+.header-stopwatch-dot {
+  position: absolute;
+  left: 8px;
+  top: -8px;
+  width: 13px;
+  height: 13px;
+  background: var(--color-primary);
+  border: 2px solid var(--color-header-bar);
+  border-radius: 100%;
+}
+
+.notification_count {
+  position: absolute;
+  left: 5px;
+  top: -8px;
+  min-width: 1.5em;
+  text-align: center;
+  background: var(--color-primary);
+  border: 2px solid var(--color-header-bar);
+  color: var(--color-header-bar);
+  padding: 2px;
+  border-radius: 1em;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: .7;
+}
+
 table th[data-sortt-asc],
 table th[data-sortt-desc] {
   &:hover {
@@ -2445,24 +2476,13 @@ table th[data-sortt-desc] {
   }
 }
 
-/* fix up SVG dropdown triangles because fomantic thinks they are icon fonts */
-/* see https://github.com/go-gitea/gitea/issues/14014 */
-.ui.dropdown > .dropdown.icon,
-.btn-review > .dropdown.icon {
-  height: auto !important;
-  margin-left: .5rem !important;
-  margin-top: -1px !important;
-  margin-bottom: -1px !important;
-  margin-right: -.5rem !important;
+.ui.dropdown .svg.dropdown.icon,
+.svg.dropdown.icon {
+  margin-top: 0 !important; // reset the "ui.selection.dropdown > .dropdown.icon {margin-top}", for the Issue Dependencies dropdown
+  margin-right: -.5rem !important; // fix up SVG dropdown triangles because Fomantic thinks they are icon fonts
+  height: auto; // reset the ".ui.dropdown > .dropdown.icon {height}", otherwise the icon would be too small
 }
-.ui.button.dropdown > .dropdown.icon,
-.btn-review > .dropdown.icon {
-  float: right !important;
 
-  @media (max-width: 480px) {
-    display: none;
-  }
-}
 .ui.selection.dropdown > .search.icon,
 .ui.selection.dropdown > .delete.icon,
 .ui.selection.dropdown > .dropdown.icon {
@@ -2536,8 +2556,7 @@ table th[data-sortt-desc] {
     border-top: none;
 
     a {
-      font-size: 15px;
-      padding-top: 5px;
+      font-size: 12px;
       padding-right: 10px;
       color: var(--color-text-light);
 
@@ -2548,10 +2567,6 @@ table th[data-sortt-desc] {
       &.open-issues {
         margin-right: 30px;
       }
-    }
-
-    .ui.label {
-      font-size: 1em;
     }
   }
 

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -35,7 +36,7 @@ func TestUserOrgs(t *testing.T) {
 			Name:        user17.Name,
 			UserName:    user17.Name,
 			FullName:    user17.FullName,
-			AvatarURL:   user17.AvatarLink(),
+			AvatarURL:   user17.AvatarLink(db.DefaultContext),
 			Description: "",
 			Website:     "",
 			Location:    "",
@@ -46,7 +47,7 @@ func TestUserOrgs(t *testing.T) {
 			Name:        user3.Name,
 			UserName:    user3.Name,
 			FullName:    user3.FullName,
-			AvatarURL:   user3.AvatarLink(),
+			AvatarURL:   user3.AvatarLink(db.DefaultContext),
 			Description: "",
 			Website:     "",
 			Location:    "",
@@ -105,7 +106,7 @@ func TestMyOrgs(t *testing.T) {
 			Name:        user17.Name,
 			UserName:    user17.Name,
 			FullName:    user17.FullName,
-			AvatarURL:   user17.AvatarLink(),
+			AvatarURL:   user17.AvatarLink(db.DefaultContext),
 			Description: "",
 			Website:     "",
 			Location:    "",
@@ -116,7 +117,7 @@ func TestMyOrgs(t *testing.T) {
 			Name:        user3.Name,
 			UserName:    user3.Name,
 			FullName:    user3.FullName,
-			AvatarURL:   user3.AvatarLink(),
+			AvatarURL:   user3.AvatarLink(db.DefaultContext),
 			Description: "",
 			Website:     "",
 			Location:    "",

@@ -6,17 +6,17 @@
 
 			<input id="reviewer_id" name="reviewer_id" type="hidden" value="{{.reviewer_id}}">
 			<div class="ui {{if or (not .Reviewers) (not .CanChooseReviewer) .Repository.IsArchived}}disabled{{end}} floating jump select-reviewers-modify dropdown">
-				<a class="text df ac muted">
+				<a class="text gt-df gt-ac muted">
 					<strong>{{.locale.Tr "repo.issues.review.reviewers"}}</strong>
 					{{if and .CanChooseReviewer (not .Repository.IsArchived)}}
-						{{svg "octicon-gear" 16 "ml-2"}}
+						{{svg "octicon-gear" 16 "gt-ml-2"}}
 					{{end}}
 				</a>
 				<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
 					<div class="header" style="text-transform: none;font-size:16px;">{{.locale.Tr "repo.issues.new.add_reviewer_title"}}</div>
 					{{if .Reviewers}}
 						<div class="ui icon search input">
-							<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+							<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 							<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_reviewers"}}">
 						</div>
 					{{end}}
@@ -26,7 +26,7 @@
 								<a class="{{if not .CanChange}}ui tooltip{{end}} item {{if .Checked}} checked {{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_{{.ItemID}}" {{if not .CanChange}} data-content="{{$.locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
 									<span class="octicon-check {{if not .Checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
 									<span class="text">
-										{{avatar .User 28 "mr-3"}}
+										{{avatar $.Context .User 28 "gt-mr-3"}}
 										{{.User.GetDisplayName}}
 									</span>
 								</a>
@@ -40,7 +40,7 @@
 								<a class="{{if not .CanChange}}ui tooltip{{end}} item {{if .Checked}} checked {{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_team_{{.Team.ID}}" {{if not .CanChange}} data-content="{{$.locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
 									<span class="octicon-check {{if not .Checked}}invisible{{end}}">{{svg "octicon-check" 16}}</span>
 									<span class="text">
-										{{svg "octicon-people" 16 "ml-4 mr-2"}}{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}
+										{{svg "octicon-people" 16 "gt-ml-4 gt-mr-2"}}{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}
 									</span>
 								</a>
 							{{end}}
@@ -50,13 +50,13 @@
 			</div>
 
 			<div class="ui assignees list">
-				<span class="no-select item {{if or .OriginalReviews .PullReviewers}}hide{{end}}">{{.locale.Tr "repo.issues.new.no_reviewers"}}</span>
+				<span class="no-select item {{if or .OriginalReviews .PullReviewers}}gt-hidden{{end}}">{{.locale.Tr "repo.issues.new.no_reviewers"}}</span>
 				<div class="selected">
 					{{range .PullReviewers}}
-						<div class="item mb-2">
+						<div class="item gt-mb-2">
 							{{if .User}}
 								<a class="muted sidebar-item-link" href="{{.User.HomeLink}}">
-									{{avatar .User 28 "mr-3"}}
+									{{avatar $.Context .User 28 "gt-mr-3"}}
 									{{.User.GetDisplayName}}
 								</a>
 							{{else if .Team}}
@@ -107,29 +107,41 @@
 		{{end}}
 
 		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-label dropdown">
-			<a class="text df ac muted">
+			<a class="text gt-df gt-ac muted">
 				<strong>{{.locale.Tr "repo.issues.new.labels"}}</strong>
 				{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
-					{{svg "octicon-gear" 16 "ml-2"}}
+					{{svg "octicon-gear" 16 "gt-ml-2"}}
 				{{end}}
 			</a>
 			<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/labels">
 				<div class="header" style="text-transform: none;font-size:16px;">{{.locale.Tr "repo.issues.new.add_labels_title"}}</div>
 				{{if or .Labels .OrgLabels}}
 					<div class="ui icon search input">
-						<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_labels"}}">
 					</div>
 				{{end}}
-				<div class="no-select item">{{.locale.Tr "repo.issues.new.clear_labels"}}</div>
+				<a class="no-select item" href="#">{{.locale.Tr "repo.issues.new.clear_labels"}}</a>
 				{{if or .Labels .OrgLabels}}
+					{{$previousExclusiveScope := "_no_scope"}}
 					{{range .Labels}}
-						<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check"}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
+						{{$exclusiveScope := .ExclusiveScope}}
+						{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
+							<div class="ui divider"></div>
+						{{end}}
+						{{$previousExclusiveScope = $exclusiveScope}}
+						<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}</span>&nbsp;&nbsp;{{RenderLabel .}}
 						{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
 					{{end}}
 					<div class="ui divider"></div>
+					{{$previousExclusiveScope := "_no_scope"}}
 					{{range .OrgLabels}}
-						<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check"}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
+						{{$exclusiveScope := .ExclusiveScope}}
+						{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
+							<div class="ui divider"></div>
+						{{end}}
+						{{$previousExclusiveScope = $exclusiveScope}}
+						<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}</span>&nbsp;&nbsp;{{RenderLabel .}}
 						{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
 					{{end}}
 				{{else}}
@@ -142,17 +154,17 @@
 		<div class="ui divider"></div>
 
 		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-milestone dropdown">
-			<a class="text df ac muted">
+			<a class="text gt-df gt-ac muted">
 				<strong>{{.locale.Tr "repo.issues.new.milestone"}}</strong>
 				{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
-					{{svg "octicon-gear" 16 "ml-2"}}
+					{{svg "octicon-gear" 16 "gt-ml-2"}}
 				{{end}}
 			</a>
 			<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/milestone">
 				<div class="header" style="text-transform: none;font-size:16px;">{{.locale.Tr "repo.issues.new.add_milestone_title"}}</div>
 				{{if or .OpenMilestones .ClosedMilestones}}
 				<div class="ui icon search input">
-					<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+					<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 					<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_milestones"}}">
 				</div>
 				{{end}}
@@ -169,7 +181,7 @@
 						</div>
 						{{range .OpenMilestones}}
 							<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}">
-								{{svg "octicon-milestone" 16 "mr-2"}}
+								{{svg "octicon-milestone" 16 "gt-mr-2"}}
 								{{.Name}}
 							</a>
 						{{end}}
@@ -181,7 +193,7 @@
 						</div>
 						{{range .ClosedMilestones}}
 							<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}">
-								{{svg "octicon-milestone" 16 "mr-2"}}
+								{{svg "octicon-milestone" 16 "gt-mr-2"}}
 								{{.Name}}
 							</a>
 						{{end}}
@@ -190,11 +202,11 @@
 			</div>
 		</div>
 		<div class="ui select-milestone list">
-			<span class="no-select item {{if .Issue.Milestone}}hide{{end}}">{{.locale.Tr "repo.issues.new.no_milestone"}}</span>
+			<span class="no-select item {{if .Issue.Milestone}}gt-hidden{{end}}">{{.locale.Tr "repo.issues.new.no_milestone"}}</span>
 			<div class="selected">
 				{{if .Issue.Milestone}}
 					<a class="item muted sidebar-item-link" href="{{.RepoLink}}/milestone/{{.Issue.Milestone.ID}}">
-						{{svg "octicon-milestone" 18 "mr-3"}}
+						{{svg "octicon-milestone" 18 "gt-mr-3"}}
 						{{.Issue.Milestone.Name}}
 					</a>
 				{{end}}
@@ -205,17 +217,17 @@
 			<div class="ui divider"></div>
 
 			<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-project dropdown">
-				<a class="text df ac muted">
+				<a class="text gt-df gt-ac muted">
 					<strong>{{.locale.Tr "repo.issues.new.projects"}}</strong>
 					{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
-						{{svg "octicon-gear" 16 "ml-2"}}
+						{{svg "octicon-gear" 16 "gt-ml-2"}}
 					{{end}}
 				</a>
 				<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/projects">
 					<div class="header" style="text-transform: none;font-size:16px;">{{.locale.Tr "repo.issues.new.add_project_title"}}</div>
 					{{if or .OpenProjects .ClosedProjects}}
 					<div class="ui icon search input">
-						<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_projects"}}">
 					</div>
 					{{end}}
@@ -227,7 +239,7 @@
 						</div>
 						{{range .OpenProjects}}
 							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
-								{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "mr-3"}}{{else}}{{svg "octicon-project" 18 "mr-3"}}{{end}}
+								{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
 								{{.Title}}
 							</a>
 						{{end}}
@@ -239,7 +251,7 @@
 						</div>
 						{{range .ClosedProjects}}
 							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
-								{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "mr-3"}}{{else}}{{svg "octicon-project" 18 "mr-3"}}{{end}}
+								{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
 								{{.Title}}
 							</a>
 						{{end}}
@@ -247,11 +259,11 @@
 				</div>
 			</div>
 			<div class="ui select-project list">
-				<span class="no-select item {{if .Issue.ProjectID}}hide{{end}}">{{.locale.Tr "repo.issues.new.no_projects"}}</span>
+				<span class="no-select item {{if .Issue.ProjectID}}gt-hidden{{end}}">{{.locale.Tr "repo.issues.new.no_projects"}}</span>
 				<div class="selected">
 					{{if .Issue.ProjectID}}
 						<a class="item muted sidebar-item-link" href="{{.Issue.Project.Link}}">
-							{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "mr-3"}}{{else}}{{svg "octicon-project" 18 "mr-3"}}{{end}}
+							{{if .IsOrganizationProject}}{{svg "octicon-project-symlink" 18 "gt-mr-3"}}{{else}}{{svg "octicon-project" 18 "gt-mr-3"}}{{end}}
 							{{.Issue.Project.Title}}
 						</a>
 					{{end}}
@@ -263,16 +275,16 @@
 
 		<input id="assignee_id" name="assignee_id" type="hidden" value="{{.assignee_id}}">
 		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-assignees-modify dropdown">
-			<a class="text df ac muted">
+			<a class="text gt-df gt-ac muted">
 				<strong>{{.locale.Tr "repo.issues.new.assignees"}}</strong>
 				{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
-					{{svg "octicon-gear" 16 "ml-2"}}
+					{{svg "octicon-gear" 16 "gt-ml-2"}}
 				{{end}}
 			</a>
 			<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/assignee">
 				<div class="header" style="text-transform: none;font-size:16px;">{{.locale.Tr "repo.issues.new.add_assignees_title"}}</div>
 				<div class="ui icon search input">
-					<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+					<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 					<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_assignees"}}">
 				</div>
 				<div class="no-select item">{{.locale.Tr "repo.issues.new.clear_assignees"}}</div>
@@ -288,7 +300,7 @@
 						{{end}}
 						<span class="octicon-check {{if not $checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
 						<span class="text">
-							{{avatar . 28 "mr-3"}}
+							{{avatar $.Context . 28 "gt-mr-3"}}
 							{{.GetDisplayName}}
 						</span>
 					</a>
@@ -296,12 +308,12 @@
 			</div>
 		</div>
 		<div class="ui assignees list">
-			<span class="no-select item {{if .Issue.Assignees}}hide{{end}}">{{.locale.Tr "repo.issues.new.no_assignees"}}</span>
+			<span class="no-select item {{if .Issue.Assignees}}gt-hidden{{end}}">{{.locale.Tr "repo.issues.new.no_assignees"}}</span>
 			<div class="selected">
 				{{range .Issue.Assignees}}
 					<div class="item">
 						<a class="muted sidebar-item-link" href="{{$.RepoLink}}/{{if $.Issue.IsPull}}pulls{{else}}issues{{end}}?assignee={{.ID}}">
-							{{avatar . 28 "mr-3"}}
+							{{avatar $.Context . 28 "gt-mr-3"}}
 							{{.GetDisplayName}}
 						</a>
 					</div>
@@ -313,10 +325,10 @@
 
 		{{if .Participants}}
 			<span class="text"><strong>{{.locale.Tr "repo.issues.num_participants" .NumParticipants}}</strong></span>
-			<div class="ui list df fw">
+			<div class="ui list gt-df gt-fw">
 				{{range .Participants}}
 					<a class="ui tooltip" {{if gt .ID 0}}href="{{.HomeLink}}"{{end}} data-content="{{.GetDisplayName}}" data-position="top center">
-						{{avatar . 28 "my-1 mr-2"}}
+						{{avatar $.Context . 28 "gt-my-1 gt-mr-2"}}
 					</a>
 				{{end}}
 			</div>
@@ -327,16 +339,16 @@
 
 			<div class="ui watching">
 				<span class="text"><strong>{{.locale.Tr "notification.notifications"}}</strong></span>
-				<div class="mt-3">
+				<div class="gt-mt-3">
 					<form method="POST" action="{{.Issue.Link}}/watch">
 						<input type="hidden" name="watch" value="{{if $.IssueWatch.IsWatching}}0{{else}}1{{end}}" />
 						{{$.CsrfTokenHtml}}
-						<button class="fluid ui button df jc">
+						<button class="fluid ui button gt-df gt-jc">
 							{{if $.IssueWatch.IsWatching}}
-								{{svg "octicon-mute" 16 "mr-3"}}
+								{{svg "octicon-mute" 16 "gt-mr-3"}}
 								{{.locale.Tr "repo.issues.unsubscribe"}}
 							{{else}}
-								{{svg "octicon-unmute" 16 "mr-3"}}
+								{{svg "octicon-unmute" 16 "gt-mr-3"}}
 								{{.locale.Tr "repo.issues.subscribe"}}
 							{{end}}
 						</button>
@@ -349,7 +361,7 @@
 				<div class="ui divider"></div>
 				<div class="ui timetrack">
 					<span class="text"><strong>{{.locale.Tr "repo.issues.tracker"}}</strong></span>
-					<div class="mt-3">
+					<div class="gt-mt-3">
 						<form method="POST" action="{{.Issue.Link}}/times/stopwatch/toggle" id="toggle_stopwatch_form">
 							{{$.CsrfTokenHtml}}
 						</form>
@@ -358,7 +370,7 @@
 						</form>
 						{{if  $.IsStopwatchRunning}}
 							<button class="ui fluid button issue-stop-time">{{.locale.Tr "repo.issues.stop_tracking"}}</button>
-							<button class="ui fluid negative button issue-cancel-time mt-3">{{.locale.Tr "repo.issues.cancel_tracking"}}</button>
+							<button class="ui fluid negative button issue-cancel-time gt-mt-3">{{.locale.Tr "repo.issues.cancel_tracking"}}</button>
 						{{else}}
 							{{if .HasUserStopwatch}}
 								<div class="ui warning message">
@@ -380,7 +392,7 @@
 									<div class="ui red cancel button">{{.locale.Tr "repo.issues.add_time_cancel"}}</div>
 								</div>
 							</div>
-							<button class="ui fluid button green tooltip issue-add-time mt-3" data-content='{{.locale.Tr "repo.issues.add_time"}}' data-position="top center">{{.locale.Tr "repo.issues.add_time_short"}}</button>
+							<button class="ui fluid button green tooltip issue-add-time gt-mt-3" data-content='{{.locale.Tr "repo.issues.add_time"}}' data-position="top center">{{.locale.Tr "repo.issues.add_time_short"}}</button>
 						{{end}}
 					</div>
 				</div>
@@ -391,9 +403,9 @@
 					<span class="text"><strong>{{.locale.Tr "repo.issues.time_spent_from_all_authors"  ($.Issue.TotalTrackedTime | Sec2Time) | Safe}}</strong></span>
 					<div>
 						{{range $user, $trackedtime := .WorkingUsers}}
-							<div class="comment mt-3">
+							<div class="comment gt-mt-3">
 								<a class="avatar">
-									{{avatar $user}}
+									{{avatar $.Context $user}}
 								</a>
 								<div class="content">
 									{{template "shared/user/authorlink" $user}}
@@ -411,20 +423,20 @@
 		<div class="ui divider"></div>
 		<span class="text"><strong>{{.locale.Tr "repo.issues.due_date"}}</strong></span>
 		<div class="ui form" id="deadline-loader">
-			<div class="ui negative message" id="deadline-err-invalid-date" style="display: none;">
+			<div class="ui negative message gt-hidden" id="deadline-err-invalid-date">
 				{{svg "octicon-x" 16 "close icon"}}
 				{{.locale.Tr "repo.issues.due_date_invalid"}}
 			</div>
 			{{if ne .Issue.DeadlineUnix 0}}
 				<p>
-					<div class="df sb ac">
+					<div class="gt-df gt-sb gt-ac">
 						<div class="due-date tooltip {{if .Issue.IsOverdue}}text red{{end}}" {{if .Issue.IsOverdue}}data-content="{{.locale.Tr "repo.issues.due_date_overdue"}}"{{end}}>
-							{{svg "octicon-calendar" 16 "mr-3"}}
+							{{svg "octicon-calendar" 16 "gt-mr-3"}}
 							<time data-format="date" datetime="{{.Issue.DeadlineUnix.FormatDate}}">{{.Issue.DeadlineUnix.FormatDate}}</time>
 						</div>
 						<div>
 							{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
-								<a class="issue-due-edit tooltip muted" data-content="{{$.locale.Tr "repo.issues.due_date_form_edit"}}">{{svg "octicon-pencil" 16 "mr-2"}}</a>
+								<a class="issue-due-edit tooltip muted" data-content="{{$.locale.Tr "repo.issues.due_date_form_edit"}}">{{svg "octicon-pencil" 16 "gt-mr-2"}}</a>
 								<a class="issue-due-remove tooltip muted" data-content="{{$.locale.Tr "repo.issues.due_date_form_remove"}}">{{svg "octicon-trash"}}</a>
 							{{end}}
 						</div>
@@ -435,7 +447,7 @@
 			{{end}}
 
 			{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
-				<div {{if ne .Issue.DeadlineUnix 0}} style="display: none;"{{end}} id="deadlineForm">
+				<div {{if ne .Issue.DeadlineUnix 0}} class="gt-hidden"{{end}} id="deadlineForm">
 					<form class="ui fluid action input issue-due-form" action="{{AppSubUrl}}/{{PathEscape .Repository.Owner.Name}}/{{PathEscape .Repository.Name}}/issues/{{.Issue.Index}}/deadline" method="post" id="update-issue-deadline-form">
 						{{$.CsrfTokenHtml}}
 						<input required placeholder="{{.locale.Tr "repo.issues.due_date_form"}}" {{if gt .Issue.DeadlineUnix 0}}value="{{.Issue.DeadlineUnix.Format "2006-01-02"}}"{{end}} type="date" name="deadlineDate" id="deadlineDate">
@@ -473,8 +485,8 @@
 					</span>
 					<div class="ui relaxed divided list">
 						{{range .BlockingDependencies}}
-							<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} df ac sb">
-								<div class="item-left df jc fc f1">
+							<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} gt-df gt-ac gt-sb">
+								<div class="item-left gt-df gt-jc gt-fc gt-f1">
 									<a class="title tooltip" href="{{.Issue.Link}}" data-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}">
 										#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}
 									</a>
@@ -482,7 +494,7 @@
 										{{.Repository.OwnerName}}/{{.Repository.Name}}
 									</div>
 								</div>
-								<div class="item-right df ac">
+								<div class="item-right gt-df gt-ac">
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 										<a class="delete-dependency-button tooltip ci muted" data-id="{{.Issue.ID}}" data-type="blocking" data-content="{{$.locale.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
 											{{svg "octicon-trash" 16}}
@@ -500,8 +512,8 @@
 					</span>
 					<div class="ui relaxed divided list">
 						{{range .BlockedByDependencies}}
-							<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} df ac sb">
-								<div class="item-left df jc fc f1">
+							<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} gt-df gt-ac gt-sb">
+								<div class="item-left gt-df gt-jc gt-fc gt-f1">
 									<a class="title tooltip" href="{{.Issue.Link}}" data-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}">
 										#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}
 									</a>
@@ -509,7 +521,7 @@
 										{{.Repository.OwnerName}}/{{.Repository.Name}}
 									</div>
 								</div>
-								<div class="item-right df ac">
+								<div class="item-right gt-df gt-ac">
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 										<a class="delete-dependency-button tooltip ci muted" data-id="{{.Issue.ID}}" data-type="blockedBy" data-content="{{$.locale.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
 											{{svg "octicon-trash" 16}}
@@ -577,10 +589,10 @@
 
 		<div class="ui divider"></div>
 		<div class="ui equal width compact grid">
-			<div class="row ac">
-				{{$issueReferenceLink := printf "%s#%d" .Issue.Repo.FullName .Issue.Index}}
+			{{$issueReferenceLink := printf "%s#%d" .Issue.Repo.FullName .Issue.Index}}
+			<div class="row gt-ac tooltip" data-content="{{$issueReferenceLink}}">
 				<span class="text column truncate">{{.locale.Tr "repo.issues.reference_link" $issueReferenceLink}}</span>
-				<button class="ui two wide button column p-3" data-clipboard-text="{{$issueReferenceLink}}">{{svg "octicon-copy" 14}}</button>
+				<button class="ui two wide button column gt-p-3" data-clipboard-text="{{$issueReferenceLink}}">{{svg "octicon-copy" 14}}</button>
 			</div>
 		</div>
 
@@ -639,7 +651,7 @@
 
 									<div class="default text"> </div>
 
-									<div class="menu transition hidden" tabindex="-1" style="display: block !important;">
+									<div class="menu">
 										{{range .LockReasons}}
 											<div class="item" data-value="{{.}}">{{.}}</div>
 										{{end}}
@@ -661,7 +673,7 @@
 					</form>
 				</div>
 			</div>
-			<button class="fluid ui show-modal button negative mt-3" data-modal="#delete">
+			<button class="fluid ui show-modal button negative gt-mt-3" data-modal="#delete">
 				{{svg "octicon-trash"}}
 				{{.locale.Tr "repo.issues.delete"}}
 			</button>
