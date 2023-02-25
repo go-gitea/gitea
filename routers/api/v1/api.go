@@ -1381,7 +1381,7 @@ func Routes() *web.Route {
 				m.Post("/{username}/{reponame}", admin.AdoptRepository)
 				m.Delete("/{username}/{reponame}", admin.DeleteUnadoptedRepository)
 			})
-			m.Group("/hooks", func() {
+			m.Group("/hooks/{configType:system|default}", func() {
 				m.Combo("").Get(admin.ListHooks).
 					Post(bind(api.CreateHookOption{}), admin.CreateHook)
 				m.Combo("/{id}").Get(admin.GetHook).

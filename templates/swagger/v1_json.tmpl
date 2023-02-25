@@ -212,7 +212,7 @@
         }
       }
     },
-    "/admin/hooks": {
+    "/admin/hooks/{configType}": {
       "get": {
         "produces": [
           "application/json"
@@ -224,16 +224,15 @@
         "operationId": "adminListHooks",
         "parameters": [
           {
-            "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page size of results",
-            "name": "limit",
-            "in": "query"
+            "enum": [
+              "system",
+              "default"
+            ],
+            "type": "string",
+            "description": "whether the hook is system-wide or copied-to-each-new-repo",
+            "name": "configType",
+            "in": "path",
+            "required": true
           }
         ],
         "responses": {
@@ -256,6 +255,17 @@
         "operationId": "adminCreateHook",
         "parameters": [
           {
+            "enum": [
+              "system",
+              "default"
+            ],
+            "type": "string",
+            "description": "whether the hook is system-wide or copied-to-each-new-repo",
+            "name": "configType",
+            "in": "path",
+            "required": true
+          },
+          {
             "name": "body",
             "in": "body",
             "required": true,
@@ -271,7 +281,7 @@
         }
       }
     },
-    "/admin/hooks/{id}": {
+    "/admin/hooks/{configType}/{id}": {
       "get": {
         "produces": [
           "application/json"
@@ -282,6 +292,17 @@
         "summary": "Get a hook",
         "operationId": "adminGetHook",
         "parameters": [
+          {
+            "enum": [
+              "system",
+              "default"
+            ],
+            "type": "string",
+            "description": "whether the hook is system-wide or copied-to-each-new-repo",
+            "name": "configType",
+            "in": "path",
+            "required": true
+          },
           {
             "type": "integer",
             "format": "int64",
@@ -307,6 +328,17 @@
         "summary": "Delete a hook",
         "operationId": "adminDeleteHook",
         "parameters": [
+          {
+            "enum": [
+              "system",
+              "default"
+            ],
+            "type": "string",
+            "description": "whether the hook is system-wide or copied-to-each-new-repo",
+            "name": "configType",
+            "in": "path",
+            "required": true
+          },
           {
             "type": "integer",
             "format": "int64",
@@ -335,6 +367,17 @@
         "summary": "Update a hook",
         "operationId": "adminEditHook",
         "parameters": [
+          {
+            "enum": [
+              "system",
+              "default"
+            ],
+            "type": "string",
+            "description": "whether the hook is system-wide or copied-to-each-new-repo",
+            "name": "configType",
+            "in": "path",
+            "required": true
+          },
           {
             "type": "integer",
             "format": "int64",

@@ -18,8 +18,8 @@ const (
 	tplAdminHooks base.TplName = "admin/hooks"
 )
 
-// DefaultOrSystemWebhooks renders both admin default and system webhook list pages
-func DefaultOrSystemWebhooks(ctx *context.Context) {
+// renders both admin default and system webhook list pages
+func Webhooks(ctx *context.Context) {
 	var err error
 
 	ctx.Data["Title"] = ctx.Tr("admin.hooks")
@@ -36,20 +36,20 @@ func DefaultOrSystemWebhooks(ctx *context.Context) {
 	sys["Title"] = ctx.Tr("admin.systemhooks")
 	sys["Description"] = ctx.Tr("admin.systemhooks.desc")
 	sys["Webhooks"], err = webhook.GetSystemWebhooks(ctx, util.OptionalBoolNone)
-	sys["BaseLink"] = setting.AppSubURL + "/admin/hooks"
-	sys["BaseLinkNew"] = setting.AppSubURL + "/admin/system-hooks"
+	sys["BaseLink"] = setting.AppSubURL + "/admin/hooks/system"
+	sys["BaseLinkNew"] = setting.AppSubURL + "/admin/hooks/system"
 	if err != nil {
-		ctx.ServerError("GetWebhooksAdmin", err)
+		ctx.ServerError("GetSystemWebhooks", err)
 		return
 	}
 
 	def["Title"] = ctx.Tr("admin.defaulthooks")
 	def["Description"] = ctx.Tr("admin.defaulthooks.desc")
 	def["Webhooks"], err = webhook.GetDefaultWebhooks(ctx)
-	def["BaseLink"] = setting.AppSubURL + "/admin/hooks"
-	def["BaseLinkNew"] = setting.AppSubURL + "/admin/default-hooks"
+	def["BaseLink"] = setting.AppSubURL + "/admin/hooks/default"
+	def["BaseLinkNew"] = setting.AppSubURL + "/admin/hooks/default"
 	if err != nil {
-		ctx.ServerError("GetWebhooksAdmin", err)
+		ctx.ServerError("GetDefaultWebhooks", err)
 		return
 	}
 
@@ -59,9 +59,10 @@ func DefaultOrSystemWebhooks(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplAdminHooks)
 }
 
-// DeleteDefaultOrSystemWebhook handler to delete an admin-defined system or default webhook
-func DeleteDefaultOrSystemWebhook(ctx *context.Context) {
-	if err := webhook.DeleteDefaultSystemWebhook(ctx, ctx.FormInt64("id")); err != nil {
+// handler to delete an admin-defined system or default webhook
+func DeleteWebhook(ctx *context.Context) {
+	isSystemWebhook := ctx.Params(":configType") == "system"
+	if err := webhook.DeleteAdminWebhook(ctx, ctx.FormInt64("id"), isSystemWebhook); err != nil {
 		ctx.Flash.Error("DeleteDefaultWebhook: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))

@@ -601,18 +601,17 @@ func registerRoutes(m *web.Route) {
 		}, packagesEnabled)
 
 		m.Group("/hooks", func() {
-			m.Get("", admin.DefaultOrSystemWebhooks)
-			m.Post("/delete", admin.DeleteDefaultOrSystemWebhook)
-			m.Group("/{id}", func() {
-				m.Get("", repo_setting.WebHooksEdit)
-				m.Post("/replay/{uuid}", repo_setting.ReplayWebhook)
+			m.Get("", admin.Webhooks)
+			m.Group("/{configType:system|default}", func() {
+				m.Post("/delete", admin.DeleteWebhook)
+				m.Group("/{id}", func() {
+					m.Get("", repo_setting.WebHooksEdit)
+					m.Post("/replay/{uuid}", repo_setting.ReplayWebhook)
+				})
+				addWebhookAddRoutes()
+				addWebhookEditRoutes()
 			})
-			addWebhookEditRoutes()
 		}, webhooksEnabled)
-
-		m.Group("/{configType:default-hooks|system-hooks}", func() {
-			addWebhookAddRoutes()
-		})
 
 		m.Group("/auths", func() {
 			m.Get("", admin.Authentications)

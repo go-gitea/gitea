@@ -61,9 +61,11 @@ type ownerRepoCtx struct {
 	RepoID          int64
 	IsAdmin         bool
 	IsSystemWebhook bool
-	Link            string
-	LinkNew         string
-	NewTemplate     base.TplName
+	// Link is the page that list all hooks -- whether that's for the current repo, the org, or the site
+	Link string
+	// LinkNew and NewTemplate double as LinkEdit and EditTemplate
+	LinkNew     string
+	NewTemplate base.TplName
 }
 
 // getOwnerRepoCtx determines whether this is a repo, owner, or admin (both default and system) context.
@@ -98,9 +100,9 @@ func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 	if ctx.Data["PageIsAdmin"] == true {
 		return &ownerRepoCtx{
 			IsAdmin:         true,
-			IsSystemWebhook: ctx.Params(":configType") == "system-hooks",
+			IsSystemWebhook: ctx.Params(":configType") == "system",
 			Link:            path.Join(setting.AppSubURL, "/admin/hooks"),
-			LinkNew:         path.Join(setting.AppSubURL, "/admin/", ctx.Params(":configType")),
+			LinkNew:         path.Join(setting.AppSubURL, "/admin/hooks/", ctx.Params(":configType")),
 			NewTemplate:     tplAdminHookNew,
 		}, nil
 	}
@@ -306,7 +308,7 @@ func editWebhook(ctx *context.Context, params webhookParams) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
-	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
+	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.LinkNew, w.ID))
 }
 
 // GiteaHooksNewPost response for creating Gitea webhook
@@ -584,7 +586,7 @@ func checkWebhook(ctx *context.Context) (*ownerRepoCtx, *webhook.Webhook) {
 		ctx.ServerError("getOwnerRepoCtx", err)
 		return nil, nil
 	}
-	ctx.Data["BaseLink"] = orCtx.Link
+	ctx.Data["BaseLink"] = orCtx.LinkNew
 
 	var w *webhook.Webhook
 	if orCtx.RepoID > 0 {
@@ -592,7 +594,7 @@ func checkWebhook(ctx *context.Context) (*ownerRepoCtx, *webhook.Webhook) {
 	} else if orCtx.OwnerID > 0 {
 		w, err = webhook.GetWebhookByOwnerID(orCtx.OwnerID, ctx.ParamsInt64(":id"))
 	} else if orCtx.IsAdmin {
-		w, err = webhook.GetSystemOrDefaultWebhook(ctx, ctx.ParamsInt64(":id"))
+		w, err = webhook.GetAdminWebhook(ctx, ctx.ParamsInt64(":id"), orCtx.IsSystemWebhook)
 	}
 	if err != nil || w == nil {
 		if webhook.IsErrWebhookNotExist(err) {
@@ -718,7 +720,7 @@ func ReplayWebhook(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.webhook.delivery.success"))
-	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
+	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.LinkNew, w.ID))
 }
 
 // DeleteWebhook delete a webhook
