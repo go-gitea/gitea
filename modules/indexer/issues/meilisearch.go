@@ -9,8 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"code.gitea.io/gitea/modules/log"
-
 	"github.com/meilisearch/meilisearch-go"
 )
 
@@ -24,14 +22,6 @@ type MeilisearchIndexer struct {
 	availabilityCallback func(bool)
 	stopTimer            chan struct{}
 	lock                 sync.RWMutex
-}
-
-type meilisearchLogger struct {
-	log.LevelLogger
-}
-
-func (l meilisearchLogger) Printf(format string, args ...interface{}) {
-	_ = l.Log(2, l.GetLevel(), format, args...)
 }
 
 // MeilisearchIndexer creates a new meilisearch indexer
@@ -67,16 +57,19 @@ func NewMeilisearchIndexer(url, apiKey, indexerName string) (*MeilisearchIndexer
 // Init will initialize the indexer
 func (b *MeilisearchIndexer) Init() (bool, error) {
 	_, err := b.client.GetIndex(b.indexerName)
+	if err == nil {
+		return true, nil
+	}
+	_, err = b.client.CreateIndex(&meilisearch.IndexConfig{
+		Uid:        b.indexerName,
+		PrimaryKey: "id",
+	})
 	if err != nil {
-		request := &meilisearch.IndexConfig{
-			Uid:        b.indexerName,
-			PrimaryKey: "id",
-		}
-		b.client.CreateIndex(request)
-		b.client.Index(b.indexerName).UpdateFilterableAttributes(&[]string{"repo_id"})
 		return false, b.checkError(err)
 	}
-	return true, nil
+
+	_, err = b.client.Index(b.indexerName).UpdateFilterableAttributes(&[]string{"repo_id"})
+	return false, b.checkError(err)
 }
 
 // SetAvailabilityChangeCallback sets callback that will be triggered when availability changes
