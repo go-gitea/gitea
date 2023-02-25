@@ -113,17 +113,6 @@ const (
 	RepositoryBroken                                  // repository is in a permanently broken state
 )
 
-// SizeDetails represents size of each part for a Repository
-type SizeDetails struct {
-	GitSize int64
-	LFSSize int64
-	// TODO: size of more parts.
-}
-
-func (s SizeDetails) String() string {
-	return fmt.Sprintf("git: " + base.FileSize(s.GitSize) + ", lfs: " + base.FileSize(s.LFSSize))
-}
-
 // Repository represents a git repository.
 type Repository struct {
 	ID                  int64 `xorm:"pk autoincr"`
@@ -175,7 +164,8 @@ type Repository struct {
 	IsTemplate                      bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	TemplateID                      int64              `xorm:"INDEX"`
 	Size                            int64              `xorm:"NOT NULL DEFAULT 0"`
-	SizeDetails                     SizeDetails        `xorm:"TEXT JSON"`
+	GitSize                         int64              `xorm:"NOT NULL DEFAULT 0"`
+	LFSSize                         int64              `xorm:"NOT NULL DEFAULT 0"`
 	CodeIndexerStatus               *RepoIndexerStatus `xorm:"-"`
 	StatsIndexerStatus              *RepoIndexerStatus `xorm:"-"`
 	IsFsckEnabled                   bool               `xorm:"NOT NULL DEFAULT true"`
@@ -206,6 +196,10 @@ func (repo *Repository) SanitizedOriginalURL() string {
 	}
 	u.User = nil
 	return u.String()
+}
+
+func (repo *Repository) SizeDetailsString() string {
+	return fmt.Sprintf("git: " + base.FileSize(repo.GitSize) + ", lfs: " + base.FileSize(repo.LFSSize))
 }
 
 // ColorFormat returns a colored string to represent this repo

@@ -15,7 +15,7 @@
 					</div>
 				{{end}}
 				<div class="item">
-					<span class="ui{{if not (eq .Repository.SizeDetails.LFSSize 0)}} tooltip{{end}}"{{if not (eq .Repository.SizeDetails.LFSSize 0)}} data-content="{{.Repository.SizeDetails.String}}"{{end}}>
+					<span class="ui{{if not (eq .Repository.LFSSize 0)}} tooltip{{end}}"{{if not (eq .Repository.LFSSize 0)}} data-content="{{.Repository.SizeDetailsString}}"{{end}}>
 						{{svg "octicon-database"}}
 						<span>{{FileSize .Repository.Size}}</span>
 					</span>

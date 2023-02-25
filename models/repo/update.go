@@ -186,12 +186,10 @@ func ChangeRepositoryName(doer *user_model.User, repo *Repository, newRepoName s
 
 // UpdateRepoSize updates the repository size, calculating it using getDirectorySize
 func UpdateRepoSize(ctx context.Context, repoID, gitSize, lfsSize int64) error {
-	_, err := db.GetEngine(ctx).ID(repoID).Cols("size", "size_details").NoAutoTime().Update(&Repository{
-		Size: gitSize + lfsSize,
-		SizeDetails: SizeDetails{
-			GitSize: gitSize,
-			LFSSize: lfsSize,
-		},
+	_, err := db.GetEngine(ctx).ID(repoID).Cols("size", "git_size", "lfs_size").NoAutoTime().Update(&Repository{
+		Size:    gitSize + lfsSize,
+		GitSize: gitSize,
+		LFSSize: lfsSize,
 	})
 	return err
 }
