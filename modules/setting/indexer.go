@@ -18,6 +18,7 @@ var Indexer = struct {
 	IssueType        string
 	IssuePath        string
 	IssueConnStr     string
+	IssueConnAuth    string
 	IssueIndexerName string
 	StartupTimeout   time.Duration
 
@@ -34,6 +35,7 @@ var Indexer = struct {
 	IssueType:        "bleve",
 	IssuePath:        "indexers/issues.bleve",
 	IssueConnStr:     "",
+	IssueConnAuth:    "",
 	IssueIndexerName: "gitea_issues",
 
 	RepoIndexerEnabled: false,
@@ -53,6 +55,7 @@ func loadIndexerFrom(rootCfg ConfigProvider) {
 		Indexer.IssuePath = filepath.ToSlash(filepath.Join(AppWorkPath, Indexer.IssuePath))
 	}
 	Indexer.IssueConnStr = sec.Key("ISSUE_INDEXER_CONN_STR").MustString(Indexer.IssueConnStr)
+	Indexer.IssueConnAuth = sec.Key("ISSUE_INDEXER_CONN_AUTH").MustString(Indexer.IssueConnAuth)
 	Indexer.IssueIndexerName = sec.Key("ISSUE_INDEXER_NAME").MustString(Indexer.IssueIndexerName)
 
 	// The following settings are deprecated and can be overridden by settings in [queue] or [queue.issue_indexer]
