@@ -92,7 +92,7 @@ func NewFuncMap() []template.FuncMap {
 			return setting.AssetVersion
 		},
 		"DisableGravatar": func(ctx context.Context) bool {
-			return system_model.GetSettingBool(ctx, system_model.KeyPictureDisableGravatar)
+			return system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar)
 		},
 		"DefaultShowFullName": func() bool {
 			return setting.UI.DefaultShowFullName

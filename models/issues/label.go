@@ -778,7 +778,7 @@ func CountOrphanedLabels(ctx context.Context) (int64, error) {
 	norepo, err := db.GetEngine(ctx).Table("label").
 		Where(builder.And(
 			builder.Gt{"repo_id": 0},
-			builder.NotIn("repo_id", builder.Select("id").From("repository")),
+			builder.NotIn("repo_id", builder.Select("id").From("`repository`")),
 		)).
 		Count()
 	if err != nil {
@@ -788,7 +788,7 @@ func CountOrphanedLabels(ctx context.Context) (int64, error) {
 	noorg, err := db.GetEngine(ctx).Table("label").
 		Where(builder.And(
 			builder.Gt{"org_id": 0},
-			builder.NotIn("org_id", builder.Select("id").From("user")),
+			builder.NotIn("org_id", builder.Select("id").From("`user`")),
 		)).
 		Count()
 	if err != nil {
@@ -809,7 +809,7 @@ func DeleteOrphanedLabels(ctx context.Context) error {
 	if _, err := db.GetEngine(ctx).
 		Where(builder.And(
 			builder.Gt{"repo_id": 0},
-			builder.NotIn("repo_id", builder.Select("id").From("repository")),
+			builder.NotIn("repo_id", builder.Select("id").From("`repository`")),
 		)).
 		Delete(Label{}); err != nil {
 		return err
@@ -819,7 +819,7 @@ func DeleteOrphanedLabels(ctx context.Context) error {
 	if _, err := db.GetEngine(ctx).
 		Where(builder.And(
 			builder.Gt{"org_id": 0},
-			builder.NotIn("org_id", builder.Select("id").From("user")),
+			builder.NotIn("org_id", builder.Select("id").From("`user`")),
 		)).
 		Delete(Label{}); err != nil {
 		return err
