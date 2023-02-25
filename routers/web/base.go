@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/services/auth"
 
 	"gitea.com/go-chi/session"
+	"go.opentelemetry.io/otel"
 )
 
 func storageHandler(storageSetting setting.Storage, prefix string, objStore storage.ObjectStorage) func(next http.Handler) http.Handler {
@@ -41,7 +42,9 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 					next.ServeHTTP(w, req)
 					return
 				}
-				routing.UpdateFuncInfo(req.Context(), funcInfo)
+				traceCtx, cancelSpan := routing.UpdateFuncInfo(req.Context(), funcInfo)
+				defer cancelSpan()
+				wrappedReq := req.WithContext(traceCtx)
 
 				rPath := strings.TrimPrefix(req.URL.Path, "/"+prefix+"/")
 				rPath = path.Clean("/" + strings.ReplaceAll(rPath, "\\", "/"))[1:]
@@ -60,7 +63,7 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 
 				http.Redirect(
 					w,
-					req,
+					wrappedReq,
 					u.String(),
 					http.StatusTemporaryRedirect,
 				)
@@ -77,7 +80,9 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 				next.ServeHTTP(w, req)
 				return
 			}
-			routing.UpdateFuncInfo(req.Context(), funcInfo)
+			traceCtx, cancelSpan := routing.UpdateFuncInfo(req.Context(), funcInfo)
+			defer cancelSpan()
+			wrappedReq := req.WithContext(traceCtx)
 
 			rPath := strings.TrimPrefix(req.URL.Path, "/"+prefix+"/")
 			rPath = path.Clean("/" + strings.ReplaceAll(rPath, "\\", "/"))[1:]
@@ -87,7 +92,7 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 			}
 
 			fi, err := objStore.Stat(rPath)
-			if err == nil && httpcache.HandleTimeCache(req, w, fi) {
+			if err == nil && httpcache.HandleTimeCache(wrappedReq, w, fi) {
 				return
 			}
 
@@ -124,12 +129,17 @@ func (d *dataStore) GetData() map[string]interface{} {
 // Recovery returns a middleware that recovers from any panics and writes a 500 and a log if so.
 // This error will be created with the gitea 500 page.
 func Recovery(ctx goctx.Context) func(next http.Handler) http.Handler {
+	tracer := otel.GetTracerProvider().Tracer("routing")
+
 	_, rnd := templates.HTMLRenderer(ctx)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			defer func() {
 				if err := recover(); err != nil {
 					routing.UpdatePanicError(req.Context(), err)
+					traceCtx, span := tracer.Start(ctx, "panic handler")
+					req = req.WithContext(traceCtx)
+					defer span.End()
 					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, log.Stack(2))
 					log.Error("%s", combinedErr)
 

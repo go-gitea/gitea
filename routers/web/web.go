@@ -51,6 +51,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/riandyrn/otelchi"
 )
 
 const (
@@ -100,12 +101,15 @@ func buildAuthGroup() *auth_service.Group {
 // Routes returns all web routes
 func Routes(ctx gocontext.Context) *web.Route {
 	routes := web.NewRoute()
-
-	routes.Use(web.WrapWithPrefix(public.AssetsURLPathPrefix, public.AssetsHandlerFunc(&public.Options{
+	routes.Use(otelchi.Middleware(setting.Telemetry.ServiceName, otelchi.WithChiRoutes(routes.R)))
+	routes.Route("/assets/*", "GET, HEAD", web.WithFriendlyName(public.AssetsHandlerFunc(&public.Options{
 		Directory:   path.Join(setting.StaticRootPath, "public"),
 		Prefix:      public.AssetsURLPathPrefix,
 		CorsHandler: CorsHandler(),
 	}), "AssetsHandler"))
+
+	sessioned := web.NewRoute()
+	routes.Mount("", sessioned)
 
 	sessioner := session.Sessioner(session.Options{
 		Provider:       setting.SessionConfig.Provider,
@@ -118,28 +122,28 @@ func Routes(ctx gocontext.Context) *web.Route {
 		SameSite:       setting.SessionConfig.SameSite,
 		Domain:         setting.SessionConfig.Domain,
 	})
-	routes.Use(sessioner)
+	sessioned.Use(sessioner)
 
 	ctx, _ = templates.HTMLRenderer(ctx)
 
-	routes.Use(Recovery(ctx))
+	sessioned.Use(Recovery(ctx))
 
 	// We use r.Route here over r.Use because this prevents requests that are not for avatars having to go through this additional handler
-	routes.Route("/avatars/*", "GET, HEAD", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
-	routes.Route("/repo-avatars/*", "GET, HEAD", storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
+	sessioned.Route("/avatars/*", "GET, HEAD", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
+	sessioned.Route("/repo-avatars/*", "GET, HEAD", storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 
 	// for health check - doesn't need to be passed through gzip handler
-	routes.Head("/", func(w http.ResponseWriter, req *http.Request) {
+	sessioned.Head("/", func(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
 	// this png is very likely to always be below the limit for gzip so it doesn't need to pass through gzip
-	routes.Get("/apple-touch-icon.png", func(w http.ResponseWriter, req *http.Request) {
+	sessioned.Get("/apple-touch-icon.png", func(w http.ResponseWriter, req *http.Request) {
 		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "/assets/img/apple-touch-icon.png"), http.StatusPermanentRedirect)
 	})
 
 	// redirect default favicon to the path of the custom favicon with a default as a fallback
-	routes.Get("/favicon.ico", func(w http.ResponseWriter, req *http.Request) {
+	sessioned.Get("/favicon.ico", func(w http.ResponseWriter, req *http.Request) {
 		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "/assets/img/favicon.png"), http.StatusMovedPermanently)
 	})
 
@@ -155,11 +159,11 @@ func Routes(ctx gocontext.Context) *web.Route {
 
 	if setting.Service.EnableCaptcha {
 		// The captcha http.Handler should only fire on /captcha/* so we can just mount this on that url
-		routes.Route("/captcha/*", "GET,HEAD", append(common, captcha.Captchaer(context.GetImageCaptcha()))...)
+		sessioned.Route("/captcha/*", "GET,HEAD", append(common, captcha.Captchaer(context.GetImageCaptcha()))...)
 	}
 
 	if setting.HasRobotsTxt {
-		routes.Get("/robots.txt", append(common, func(w http.ResponseWriter, req *http.Request) {
+		sessioned.Get("/robots.txt", append(common, func(w http.ResponseWriter, req *http.Request) {
 			filePath := path.Join(setting.CustomPath, "robots.txt")
 			fi, err := os.Stat(filePath)
 			if err == nil && httpcache.HandleTimeCache(req, w, fi) {
@@ -174,10 +178,10 @@ func Routes(ctx gocontext.Context) *web.Route {
 		c := metrics.NewCollector()
 		prometheus.MustRegister(c)
 
-		routes.Get("/metrics", append(common, Metrics)...)
+		sessioned.Get("/metrics", append(common, Metrics)...)
 	}
 
-	routes.Get("/ssh_info", func(rw http.ResponseWriter, req *http.Request) {
+	sessioned.Get("/ssh_info", func(rw http.ResponseWriter, req *http.Request) {
 		if !git.SupportProcReceive {
 			rw.WriteHeader(http.StatusNotFound)
 			return
@@ -192,7 +196,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 		rw.WriteHeader(http.StatusOK)
 	})
 
-	routes.Get("/api/healthz", healthcheck.Check)
+	sessioned.Get("/api/healthz", healthcheck.Check)
 
 	// Removed: toolbox.Toolboxer middleware will provide debug information which seems unnecessary
 	common = append(common, context.Contexter(ctx))
@@ -210,7 +214,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 
 	if setting.API.EnableSwagger {
 		// Note: The route moved from apiroutes because it's in fact want to render a web page
-		routes.Get("/api/swagger", append(common, misc.Swagger)...) // Render V1 by default
+		sessioned.Get("/api/swagger", append(common, misc.Swagger)...) // Render V1 by default
 	}
 
 	// TODO: These really seem like things that could be folded into Contexter or as helper functions
@@ -224,7 +228,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 	}
 
 	RegisterRoutes(others)
-	routes.Mount("", others)
+	sessioned.Mount("", others)
 	return routes
 }
 

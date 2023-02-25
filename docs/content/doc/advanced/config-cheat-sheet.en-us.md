@@ -1103,6 +1103,18 @@ Default templates for project boards:
 - `ENABLED_ISSUE_BY_REPOSITORY`: **false**: Enable issue by repository metrics with format `gitea_issues_by_repository{repository="org/repo"} 5`.
 - `TOKEN`: **\<empty\>**: You need to specify the token, if you want to include in the authorization the metrics . The same token need to be used in prometheus parameters `bearer_token` or `bearer_token_file`.
 
+## Telemetry (`telemetry`)
+
+Gitea can now be configured to support OpenTelemetry tracing
+
+- `ENABLED`: **false**: Enables telemetry support
+- `SERVICE_NAME`: **gitea**: Service name for the OpenTelemetry data
+- `ENDPOINT_TYPE`: **stdout**: \[ "grpc", "http", "https", "jaeger", "file", "stdout", "stderr" \]: Type of endpoint to use
+- `ENDPOINT`: **""**: Sets the enpdoint for the telemetry - will fall back to OTEL environment variable control.
+- `USE_TLS`: **true**: Set to false to use insecure connections for `https` and `grpc`. (Falls back to OTEL environment variables).
+- `PRETTY_PRINT`: **true**: for `stdout`, `stderr`, `file` controls prettyprinting
+- `TIMESTAMPS`: **true**: for `stdout`, `stderr`, `file` controls timestamps
+
 ## API (`api`)
 
 - `ENABLE_SWAGGER`: **true**: Enables the API documentation endpoints (`/api/swagger`, `/api/v1/swagger`, …). True or false.

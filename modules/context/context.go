@@ -35,6 +35,7 @@ import (
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"go.opentelemetry.io/otel/trace"
 
 	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
@@ -287,6 +288,8 @@ func (ctx *Context) ServerError(logMsg string, logErr error) {
 }
 
 func (ctx *Context) serverErrorInternal(logMsg string, logErr error) {
+	span := trace.SpanFromContext(ctx)
+
 	if logErr != nil {
 		log.ErrorWithSkip(2, "%s: %v", logMsg, logErr)
 		if _, ok := logErr.(*net.OpError); ok || errors.Is(logErr, &net.OpError{}) {
@@ -294,10 +297,13 @@ func (ctx *Context) serverErrorInternal(logMsg string, logErr error) {
 			// and further rendering will not work so just return
 			return
 		}
+		span.RecordError(fmt.Errorf("%s: %w", logMsg, logErr))
 
 		if !setting.IsProd {
 			ctx.Data["ErrorMsg"] = logErr
 		}
+	} else {
+		span.RecordError(errors.New(logMsg))
 	}
 
 	ctx.Data["Title"] = "Internal Server Error"

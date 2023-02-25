@@ -295,6 +295,7 @@ func loadCommonSettingsFrom(cfg ConfigProvider) {
 	loadAdminFrom(cfg)
 	loadAPIFrom(cfg)
 	loadMetricsFrom(cfg)
+	loadTelemetryFrom(cfg)
 	loadCamoFrom(cfg)
 	loadI18nFrom(cfg)
 	loadGitFrom(cfg)

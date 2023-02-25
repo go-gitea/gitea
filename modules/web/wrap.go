@@ -51,15 +51,23 @@ func wrapInternal(handlers []wrappedHandlerFunc) http.HandlerFunc {
 // Middle wrap a context function as a chi middleware
 func Middle(f func(ctx *context.Context)) func(next http.Handler) http.Handler {
 	funcInfo := routing.GetFuncInfo(f)
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			routing.UpdateFuncInfo(req.Context(), funcInfo)
 			ctx := context.GetContext(req)
-			f(ctx)
+			traceCtx, cancelSpan := routing.UpdateFuncInfo(req.Context(), funcInfo)
+			ctx.Req = req.WithContext(traceCtx)
+
+			// Ensure the span is cancelled even if there is a panic
+			func() {
+				defer cancelSpan()
+				f(ctx)
+			}()
+
 			if ctx.Written() {
 				return
 			}
-			next.ServeHTTP(ctx.Resp, ctx.Req)
+			next.ServeHTTP(ctx.Resp, req)
 		})
 	}
 }
@@ -67,18 +75,27 @@ func Middle(f func(ctx *context.Context)) func(next http.Handler) http.Handler {
 // MiddleCancel wrap a context function as a chi middleware
 func MiddleCancel(f func(ctx *context.Context) goctx.CancelFunc) func(netx http.Handler) http.Handler {
 	funcInfo := routing.GetFuncInfo(f)
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			routing.UpdateFuncInfo(req.Context(), funcInfo)
 			ctx := context.GetContext(req)
-			cancel := f(ctx)
-			if cancel != nil {
-				defer cancel()
+			traceCtx, cancelSpan := routing.UpdateFuncInfo(req.Context(), funcInfo)
+			ctx.Req = req.WithContext(traceCtx)
+
+			// Ensure the span is cancelled even if there is a panic
+			var deferrable goctx.CancelFunc
+			func() {
+				defer cancelSpan()
+				deferrable = f(ctx)
+			}()
+
+			if deferrable != nil {
+				defer deferrable()
 			}
 			if ctx.Written() {
 				return
 			}
-			next.ServeHTTP(ctx.Resp, ctx.Req)
+			next.ServeHTTP(ctx.Resp, req)
 		})
 	}
 }
@@ -86,15 +103,39 @@ func MiddleCancel(f func(ctx *context.Context) goctx.CancelFunc) func(netx http.
 // MiddleAPI wrap a context function as a chi middleware
 func MiddleAPI(f func(ctx *context.APIContext)) func(next http.Handler) http.Handler {
 	funcInfo := routing.GetFuncInfo(f)
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			routing.UpdateFuncInfo(req.Context(), funcInfo)
 			ctx := context.GetAPIContext(req)
-			f(ctx)
+			traceCtx, cancelSpan := routing.UpdateFuncInfo(req.Context(), funcInfo)
+			ctx.Req = req.WithContext(traceCtx)
+
+			// Ensure the span is cancelled even if there is a panic
+			func() {
+				defer cancelSpan()
+				f(ctx)
+			}()
+
 			if ctx.Written() {
 				return
 			}
-			next.ServeHTTP(ctx.Resp, ctx.Req)
+
+			next.ServeHTTP(ctx.Resp, req)
+		})
+	}
+}
+
+// MiddleHandler wraps a provided handler function with or without a prefix
+func MiddleHandler(handler http.HandlerFunc, friendlyName ...string) func(next http.Handler) http.Handler {
+	funcInfo := routing.GetFuncInfo(handler, friendlyName...)
+
+	return func(_ http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			traceCtx, cancelSpan := routing.UpdateFuncInfo(req.Context(), funcInfo)
+			wrappedReq := req.WithContext(traceCtx)
+
+			defer cancelSpan()
+			handler(resp, wrappedReq)
 		})
 	}
 }
@@ -109,8 +150,11 @@ func WrapWithPrefix(pathPrefix string, handler http.HandlerFunc, friendlyName ..
 				next.ServeHTTP(resp, req)
 				return
 			}
-			routing.UpdateFuncInfo(req.Context(), funcInfo)
-			handler(resp, req)
+			traceCtx, cancelSpan := routing.UpdateFuncInfo(req.Context(), funcInfo)
+			wrappedReq := req.WithContext(traceCtx)
+
+			defer cancelSpan()
+			handler(resp, wrappedReq)
 		})
 	}
 }

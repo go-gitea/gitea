@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/telemetry"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/install"
 
@@ -174,6 +175,19 @@ func runWeb(ctx *cli.Context) error {
 		if err := setPort(ctx.String("port")); err != nil {
 			return err
 		}
+	}
+
+	if setting.Telemetry.Enabled {
+		shutdown, err := telemetry.InitProvider(graceful.GetManager().TerminateContext())
+		if err != nil {
+			log.Fatal("Unable to start-up telemetry provider: %v", err)
+		}
+		graceful.GetManager().RunAtTerminate(func() {
+			err := shutdown(graceful.GetManager().TerminateContext())
+			if err != nil {
+				log.Error("Error during shutdown of telemetry provider: %v", err)
+			}
+		})
 	}
 
 	// Set up Chi routes
