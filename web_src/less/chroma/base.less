@@ -4,12 +4,19 @@ maintain the themes:
 2. Output CSS styles (https://github.com/alecthomas/chroma/tree/master/styles)
   * ./chroma --html-styles --style=github
   * ./chroma --html-styles --style=github-dark
-3. Remove unnecessary styles like ".bg"
-4. Add the style name to the code
+3. Remove unnecessary styles like ".bg", ".chroma { background-color }"
+4. Add the style name to the code comment
 */
 
 .chroma {
   background-color: var(--color-code-bg);
+}
+
+// do not want to use any Chroma font style, overwrite them
+.chroma * {
+  font-weight: normal !important;
+  font-style: normal !important;
+  text-decoration: none !important;
 }
 
 /* LineTableTD */
