@@ -36,7 +36,7 @@ func ListHooks(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/HookList"
 
-	sysHooks, err := webhook.GetSystemWebhooks(ctx, util.OptionalBoolNone)
+	sysHooks, err := webhook.GetSystemOrDefaultWebhooks(ctx, util.OptionalBoolNone)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetSystemWebhooks", err)
 		return

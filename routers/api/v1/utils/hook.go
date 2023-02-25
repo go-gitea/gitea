@@ -170,12 +170,13 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 		form.Events = []string{"push"}
 	}
 	w := &webhook.Webhook{
-		OwnerID:     ownerID,
-		RepoID:      repoID,
-		URL:         form.Config["url"],
-		ContentType: webhook.ToHookContentType(form.Config["content_type"]),
-		Secret:      form.Config["secret"],
-		HTTPMethod:  "POST",
+		OwnerID:         ownerID,
+		RepoID:          repoID,
+		URL:             form.Config["url"],
+		ContentType:     webhook.ToHookContentType(form.Config["content_type"]),
+		Secret:          form.Config["secret"],
+		IsSystemWebhook: form.IsSystemWebhook,
+		HTTPMethod:      "POST",
 		HookEvent: &webhook_module.HookEvent{
 			ChooseEvents: true,
 			HookEvents: webhook_module.HookEvents{
@@ -324,6 +325,9 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 			}
 			w.ContentType = webhook.ToHookContentType(ct)
 		}
+		if secret, ok := form.Config["secret"]; ok {
+			w.Secret = secret
+		}
 
 		if w.Type == webhook_module.SLACK {
 			if channel, ok := form.Config["channel"]; ok {
@@ -384,6 +388,10 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 	if err := w.UpdateEvent(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateEvent", err)
 		return false
+	}
+
+	if form.IsSystemWebhook != nil {
+		w.IsSystemWebhook = *form.IsSystemWebhook
 	}
 
 	if form.Active != nil {

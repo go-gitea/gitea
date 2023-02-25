@@ -46,6 +46,19 @@ func GetSystemWebhooks(ctx context.Context, isActive util.OptionalBool) ([]*Webh
 		Find(&webhooks)
 }
 
+// GetSystemOrDefaultWebhooks returns all admin webhooks.
+func GetSystemOrDefaultWebhooks(ctx context.Context, isActive util.OptionalBool) ([]*Webhook, error) {
+	webhooks := make([]*Webhook, 0, 5)
+	if isActive.IsNone() {
+		return webhooks, db.GetEngine(ctx).
+			Where("repo_id=? AND org_id=?", 0, 0).
+			Find(&webhooks)
+	}
+	return webhooks, db.GetEngine(ctx).
+		Where("repo_id=? AND org_id=? AND is_active = ?", 0, 0, isActive.IsTrue()).
+		Find(&webhooks)
+}
+
 // DeleteDefaultSystemWebhook deletes an admin-configured default or system webhook (where Org and Repo ID both 0)
 func DeleteDefaultSystemWebhook(ctx context.Context, id int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {

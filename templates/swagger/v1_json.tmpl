@@ -15903,6 +15903,10 @@
           },
           "x-go-name": "Events"
         },
+        "is_system_webhook": {
+          "type": "boolean",
+          "x-go-name": "IsSystemWebhook"
+        },
         "type": {
           "type": "string",
           "enum": [
@@ -16914,6 +16918,10 @@
             "type": "string"
           },
           "x-go-name": "Events"
+        },
+        "is_system_webhook": {
+          "type": "boolean",
+          "x-go-name": "IsSystemWebhook"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -18066,6 +18074,10 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
+        },
+        "is_system_webhook": {
+          "type": "boolean",
+          "x-go-name": "IsSystemWebhook"
         },
         "type": {
           "type": "string",
