@@ -33,9 +33,10 @@ func Repos(ctx *context.Context) {
 	ctx.Data["PageIsAdminRepositories"] = true
 
 	explore.RenderRepoSearch(ctx, &explore.RepoSearchOptions{
-		Private:  true,
-		PageSize: setting.UI.Admin.RepoPagingNum,
-		TplName:  tplRepos,
+		Private:          true,
+		PageSize:         setting.UI.Admin.RepoPagingNum,
+		TplName:          tplRepos,
+		OnlyShowRelevant: false,
 	})
 }
 

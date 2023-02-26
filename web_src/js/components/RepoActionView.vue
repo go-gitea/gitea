@@ -3,7 +3,10 @@
     <div class="action-view-header">
       <div class="action-info-summary">
         {{ run.title }}
-        <button class="run_cancel" @click="cancelRun()" v-if="run.canCancel">
+        <button class="run_approve" @click="approveRun()" v-if="run.canApprove">
+          <i class="play circle outline icon"/>
+        </button>
+        <button class="run_cancel" @click="cancelRun()" v-else-if="run.canCancel">
           <i class="stop circle outline icon"/>
         </button>
       </div>
@@ -97,6 +100,7 @@ const sfc = {
         link: '',
         title: '',
         canCancel: false,
+        canApprove: false,
         done: false,
         jobs: [
           // {
@@ -172,6 +176,10 @@ const sfc = {
     // cancel a run
     cancelRun() {
       this.fetchPost(`${this.run.link}/cancel`);
+    },
+    // approve a run
+    approveRun() {
+      this.fetchPost(`${this.run.link}/approve`);
     },
 
     createLogLine(line) {
@@ -303,7 +311,15 @@ export function initRepositoryActionView() {
     cursor: pointer;
     transition:transform 0.2s;
   };
-  .run_cancel:hover{
+  .run_approve {
+    border: none;
+    color: var(--color-green);
+    background-color: transparent;
+    outline: none;
+    cursor: pointer;
+    transition:transform 0.2s;
+  };
+  .run_cancel:hover, .run_approve:hover {
     transform:scale(130%);
   };
 }
