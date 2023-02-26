@@ -5,7 +5,6 @@ package common
 
 import (
 	"fmt"
-	"github.com/go-chi/chi/v5"
 	"net/http"
 	"strings"
 
@@ -17,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/web/routing"
 
 	"github.com/chi-middleware/proxy"
+	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
