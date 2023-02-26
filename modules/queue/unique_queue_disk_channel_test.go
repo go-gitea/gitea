@@ -21,10 +21,10 @@ func TestPersistableChannelUniqueQueue(t *testing.T) {
 	_ = log.NewLogger(1000, "console", "console", `{"level":"trace","stacktracelevel":"NONE","stderr":true}`)
 
 	// Common function to create the Queue
-	newQueue := func(handle func(data ...Data) []Data) Queue {
+	newQueue := func(name string, handle func(data ...Data) []Data) Queue {
 		q, err := NewPersistableChannelUniqueQueue(handle,
 			PersistableChannelUniqueQueueConfiguration{
-				Name:         "TestPersistableChannelUniqueQueue",
+				Name:         name,
 				DataDir:      tmpDir,
 				QueueLength:  200,
 				MaxWorkers:   1,
@@ -95,130 +95,141 @@ func TestPersistableChannelUniqueQueue(t *testing.T) {
 		}
 	}
 
-	executedTasks1 := []string{}
-	hasTasks1 := []string{}
+	executedInitial := map[string][]string{}
+	hasInitial := map[string][]string{}
 
-	t.Run("Initial Filling", func(t *testing.T) {
-		lock := sync.Mutex{}
+	fillQueue := func(name string, done chan struct{}) {
+		t.Run("Initial Filling: "+name, func(t *testing.T) {
+			lock := sync.Mutex{}
 
-		startAt100Queued := make(chan struct{})
-		stopAt20Shutdown := make(chan struct{}) // stop and shutdown at the 20th item
+			startAt100Queued := make(chan struct{})
+			stopAt20Shutdown := make(chan struct{}) // stop and shutdown at the 20th item
 
-		handle := func(data ...Data) []Data {
-			<-startAt100Queued
-			for _, datum := range data {
-				s := datum.(string)
+			handle := func(data ...Data) []Data {
+				<-startAt100Queued
+				for _, datum := range data {
+					s := datum.(string)
+					lock.Lock()
+					executedInitial[name] = append(executedInitial[name], s)
+					lock.Unlock()
+					if s == "task-20" {
+						close(stopAt20Shutdown)
+					}
+				}
+				return nil
+			}
+
+			q := newQueue(name, handle)
+
+			// add 100 tasks to the queue
+			for i := 0; i < 100; i++ {
+				_ = q.Push("task-" + strconv.Itoa(i))
+			}
+			close(startAt100Queued)
+
+			chans := runQueue(q, &lock)
+
+			<-chans.readyForShutdown
+			<-stopAt20Shutdown
+			shutdownAndTerminate(chans, &lock)
+
+			// check which tasks are still in the queue
+			for i := 0; i < 100; i++ {
+				if has, _ := q.(UniqueQueue).Has("task-" + strconv.Itoa(i)); has {
+					hasInitial[name] = append(hasInitial[name], "task-"+strconv.Itoa(i))
+				}
+			}
+			assert.Equal(t, 100, len(executedInitial[name])+len(hasInitial[name]))
+		})
+		close(done)
+	}
+
+	doneA := make(chan struct{})
+	doneB := make(chan struct{})
+
+	go fillQueue("QueueA", doneA)
+	go fillQueue("QueueB", doneB)
+
+	<-doneA
+	<-doneB
+
+	executedEmpty := map[string][]string{}
+	hasEmpty := map[string][]string{}
+	emptyQueue := func(name string, done chan struct{}) {
+		t.Run("Empty Queue: "+name, func(t *testing.T) {
+			lock := sync.Mutex{}
+			stop := make(chan struct{})
+
+			// collect the tasks that have been executed
+			handle := func(data ...Data) []Data {
 				lock.Lock()
-				executedTasks1 = append(executedTasks1, s)
+				for _, datum := range data {
+					t.Logf("executed %s", datum.(string))
+					executedEmpty[name] = append(executedEmpty[name], datum.(string))
+					if datum.(string) == "task-99" {
+						close(stop)
+					}
+				}
 				lock.Unlock()
-				if s == "task-20" {
-					close(stopAt20Shutdown)
+				return nil
+			}
+
+			q := newQueue(name, handle)
+			chans := runQueue(q, &lock)
+
+			<-chans.readyForShutdown
+			<-stop
+			shutdownAndTerminate(chans, &lock)
+
+			// check which tasks are still in the queue
+			for i := 0; i < 100; i++ {
+				if has, _ := q.(UniqueQueue).Has("task-" + strconv.Itoa(i)); has {
+					hasEmpty[name] = append(hasEmpty[name], "task-"+strconv.Itoa(i))
 				}
 			}
-			return nil
-		}
 
-		q := newQueue(handle)
+			assert.Equal(t, 100, len(executedInitial[name])+len(executedEmpty[name]))
+			assert.Equal(t, 0, len(hasEmpty[name]))
+		})
+		close(done)
+	}
 
-		// add 100 tasks to the queue
-		for i := 0; i < 100; i++ {
-			_ = q.Push("task-" + strconv.Itoa(i))
-		}
-		close(startAt100Queued)
+	doneA = make(chan struct{})
+	doneB = make(chan struct{})
 
-		chans := runQueue(q, &lock)
+	go emptyQueue("QueueA", doneA)
+	go emptyQueue("QueueB", doneB)
 
-		<-chans.readyForShutdown
-		<-stopAt20Shutdown
-		shutdownAndTerminate(chans, &lock)
+	<-doneA
+	<-doneB
 
-		// check which tasks are still in the queue
-		for i := 0; i < 100; i++ {
-			if has, _ := q.(UniqueQueue).Has("task-" + strconv.Itoa(i)); has {
-				hasTasks1 = append(hasTasks1, "task-"+strconv.Itoa(i))
-			}
-		}
-		assert.Equal(t, 100, len(executedTasks1)+len(hasTasks1))
-	})
+	t.Logf("TestPersistableChannelUniqueQueue executedInitiallyA=%v, executedInitiallyB=%v, executedToEmptyA=%v, executedToEmptyB=%v",
+		len(executedInitial["QueueA"]), len(executedInitial["QueueB"]), len(executedEmpty["QueueA"]), len(executedEmpty["QueueB"]))
 
-	executedTasks2 := []string{}
-	hasTasks2 := []string{}
-	t.Run("Ensure that things will empty on restart", func(t *testing.T) {
-		lock := sync.Mutex{}
-		stop := make(chan struct{})
+	// reset and rerun
+	executedInitial = map[string][]string{}
+	hasInitial = map[string][]string{}
+	executedEmpty = map[string][]string{}
+	hasEmpty = map[string][]string{}
 
-		// collect the tasks that have been executed
-		handle := func(data ...Data) []Data {
-			lock.Lock()
-			for _, datum := range data {
-				t.Logf("executed %s", datum.(string))
-				executedTasks2 = append(executedTasks2, datum.(string))
-				if datum.(string) == "task-99" {
-					close(stop)
-				}
-			}
-			lock.Unlock()
-			return nil
-		}
+	doneA = make(chan struct{})
+	doneB = make(chan struct{})
 
-		q := newQueue(handle)
-		chans := runQueue(q, &lock)
+	go fillQueue("QueueA", doneA)
+	go fillQueue("QueueB", doneB)
 
-		<-chans.readyForShutdown
-		<-stop
-		shutdownAndTerminate(chans, &lock)
+	<-doneA
+	<-doneB
 
-		// check which tasks are still in the queue
-		for i := 0; i < 100; i++ {
-			if has, _ := q.(UniqueQueue).Has("task-" + strconv.Itoa(i)); has {
-				hasTasks2 = append(hasTasks2, "task-"+strconv.Itoa(i))
-			}
-		}
+	doneA = make(chan struct{})
+	doneB = make(chan struct{})
 
-		assert.Equal(t, 100, len(executedTasks1)+len(executedTasks2))
-		assert.Equal(t, 0, len(hasTasks2))
-	})
+	go emptyQueue("QueueA", doneA)
+	go emptyQueue("QueueB", doneB)
 
-	executedTasks3 := []string{}
-	hasTasks3 := []string{}
+	<-doneA
+	<-doneB
 
-	t.Run("refill", func(t *testing.T) {
-		lock := sync.Mutex{}
-		stop := make(chan struct{})
-
-		handle := func(data ...Data) []Data {
-			lock.Lock()
-			for _, datum := range data {
-				executedTasks3 = append(executedTasks3, datum.(string))
-			}
-			lock.Unlock()
-			return nil
-		}
-
-		q := newQueue(handle)
-		chans := runQueue(q, &lock)
-
-		// re-run all tasks
-		for i := 0; i < 100; i++ {
-			_ = q.Push("task-" + strconv.Itoa(i))
-		}
-
-		// wait for a while
-		time.Sleep(1 * time.Second)
-
-		close(stop)
-		<-chans.readyForShutdown
-		shutdownAndTerminate(chans, &lock)
-
-		// check whether the tasks are still in the queue
-		for i := 0; i < 100; i++ {
-			if has, _ := q.(UniqueQueue).Has("task-" + strconv.Itoa(i)); has {
-				hasTasks3 = append(hasTasks3, "task-"+strconv.Itoa(i))
-			}
-		}
-		assert.Equal(t, 100, len(executedTasks3)+len(hasTasks3))
-	})
-
-	t.Logf("TestPersistableChannelUniqueQueue completed1=%v, executed2=%v, has2=%v, executed3=%v, has3=%v",
-		len(executedTasks1), len(executedTasks2), len(hasTasks2), len(executedTasks3), len(hasTasks3))
+	t.Logf("TestPersistableChannelUniqueQueue executedInitiallyA=%v, executedInitiallyB=%v, executedToEmptyA=%v, executedToEmptyB=%v",
+		len(executedInitial["QueueA"]), len(executedInitial["QueueB"]), len(executedEmpty["QueueA"]), len(executedEmpty["QueueB"]))
 }
