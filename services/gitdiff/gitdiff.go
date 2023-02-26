@@ -14,7 +14,6 @@ import (
 	"io"
 	"net/url"
 	"os"
-	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -582,23 +581,17 @@ parsingLoop:
 				strings.HasPrefix(line, "new mode "):
 
 				if strings.HasPrefix(line, "old mode ") {
-					r := regexp.MustCompile(`old mode (\d{6})`)
-					matched := r.FindStringSubmatch(line)
-					curFile.OldMode = matched[1]
+					curFile.OldMode = strings.Replace(line, "old mode ", "", -1)
 				}
 				if strings.HasPrefix(line, "new mode ") {
-					r := regexp.MustCompile(`new mode (\d{6})`)
-					matched := r.FindStringSubmatch(line)
-					curFile.Mode = matched[1]
+					curFile.Mode = strings.Replace(line, "new mode ", "", -1)
 				}
 
 				if strings.HasSuffix(line, " 160000\n") {
 					curFile.IsSubmodule = true
 				}
 			case strings.HasPrefix(line, "new file mode "):
-				r := regexp.MustCompile(`new file mode (\d{6})`)
-				matched := r.FindStringSubmatch(line)
-				curFile.Mode = matched[1]
+				curFile.Mode = strings.Replace(line, "new file mode ", "", -1)
 			case strings.HasPrefix(line, "rename from "):
 				curFile.IsRenamed = true
 				curFile.Type = DiffFileRename
