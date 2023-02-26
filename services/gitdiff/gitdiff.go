@@ -14,6 +14,7 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -358,6 +359,8 @@ type DiffFile struct {
 	IsViewed                  bool // User specific
 	HasChangedSinceLastReview bool // User specific
 	Language                  string
+	Mode                      string
+	OldMode                   string
 }
 
 // GetType returns type of diff file.
@@ -577,9 +580,25 @@ parsingLoop:
 				break curFileLoop
 			case strings.HasPrefix(line, "old mode ") ||
 				strings.HasPrefix(line, "new mode "):
+
+				if strings.HasPrefix(line, "old mode ") {
+					r := regexp.MustCompile(`old mode (\d{6})`)
+					matched := r.FindStringSubmatch(line)
+					curFile.OldMode = matched[1]
+				}
+				if strings.HasPrefix(line, "new mode ") {
+					r := regexp.MustCompile(`new mode (\d{6})`)
+					matched := r.FindStringSubmatch(line)
+					curFile.Mode = matched[1]
+				}
+
 				if strings.HasSuffix(line, " 160000\n") {
 					curFile.IsSubmodule = true
 				}
+			case strings.HasPrefix(line, "new file mode "):
+				r := regexp.MustCompile(`new file mode (\d{6})`)
+				matched := r.FindStringSubmatch(line)
+				curFile.Mode = matched[1]
 			case strings.HasPrefix(line, "rename from "):
 				curFile.IsRenamed = true
 				curFile.Type = DiffFileRename
