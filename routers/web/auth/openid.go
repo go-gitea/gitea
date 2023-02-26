@@ -197,7 +197,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 	log.Trace("User has email=%s and nickname=%s", email, nickname)
 
 	if email != "" {
-		u, err = user_model.GetUserByEmail(email)
+		u, err = user_model.GetUserByEmail(ctx, email)
 		if err != nil {
 			if !user_model.IsErrUserNotExist(err) {
 				ctx.RenderWithErr(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{

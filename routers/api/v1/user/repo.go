@@ -119,8 +119,8 @@ func ListMyRepos(ctx *context.APIContext) {
 
 	results := make([]*api.Repository, len(repos))
 	for i, repo := range repos {
-		if err = repo.GetOwner(ctx); err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetOwner", err)
+		if err = repo.LoadOwner(ctx); err != nil {
+			ctx.Error(http.StatusInternalServerError, "LoadOwner", err)
 			return
 		}
 		accessMode, err := access_model.AccessLevel(ctx, ctx.Doer, repo)

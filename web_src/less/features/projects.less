@@ -72,6 +72,10 @@
   margin-right: auto !important;
 }
 
+.board-column .ui.cards > .card > .content {
+  border: none;
+}
+
 .board-card {
   margin: 4px 2px !important;
   border-radius: 5px !important;
@@ -88,6 +92,25 @@
 .board-card .header {
   margin-top: 0 !important;
   font-size: 16px !important;
+}
+
+.board-card .card-attachment-images {
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-align: center;
+}
+
+.board-card .card-attachment-images img {
+  display: inline-block;
+  max-height: 50px;
+  border-radius: var(--border-radius);
+  margin-right: 2px;
+}
+
+.board-card .card-attachment-images img:only-child {
+  max-height: 90px;
+  margin: auto;
 }
 
 .card-ghost {

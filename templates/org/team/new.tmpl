@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content organization new team">
+<div role="main" aria-label="{{.Title}}" class="page-content organization new team">
 	{{template "org/header" .}}
 	<div class="ui container">
 		<div class="ui grid">
@@ -71,18 +71,18 @@
 							</div>
 							<div class="ui divider"></div>
 
-							<div class="team-units required grouped field"{{if eq .Team.AccessMode 3}} style="display: none"{{end}}>
+							<div class="team-units required grouped field {{if eq .Team.AccessMode 3}}gt-hidden{{end}}">
 								<label>{{.locale.Tr "org.team_unit_desc"}}</label>
 								<table class="ui celled table">
 									<thead>
 										<tr>
 											<th>{{.locale.Tr "units.unit"}}</th>
 											<th class="center aligned">{{.locale.Tr "org.teams.none_access"}}
-											<span class="tooltip vm" data-content="{{.locale.Tr "org.teams.none_access_helper"}}">{{svg "octicon-question" 16 "ml-2"}}</th>
+											<span class="tooltip gt-vm" data-content="{{.locale.Tr "org.teams.none_access_helper"}}">{{svg "octicon-question" 16 "gt-ml-2"}}</span></th>
 											<th class="center aligned">{{.locale.Tr "org.teams.read_access"}}
-											<span class="tooltip vm" data-content="{{.locale.Tr "org.teams.read_access_helper"}}">{{svg "octicon-question" 16 "ml-2"}}</span></th>
+											<span class="tooltip gt-vm" data-content="{{.locale.Tr "org.teams.read_access_helper"}}">{{svg "octicon-question" 16 "gt-ml-2"}}</span></th>
 											<th class="center aligned">{{.locale.Tr "org.teams.write_access"}}
-											<span class="tooltip vm" data-content="{{.locale.Tr "org.teams.write_access_helper"}}">{{svg "octicon-question" 16 "ml-2"}}</span></th>
+											<span class="tooltip gt-vm" data-content="{{.locale.Tr "org.teams.write_access_helper"}}">{{svg "octicon-question" 16 "gt-ml-2"}}</span></th>
 										</tr>
 									</thead>
 									<tbody>
@@ -99,17 +99,17 @@
 													</td>
 													<td class="center aligned">
 														<div class="ui radio checkbox">
-															<input type="radio" class="hidden" name="unit_{{$unit.Type.Value}}" value="0"{{if or ($unit.Type.UnitGlobalDisabled) (eq ($.Team.UnitAccessMode $.Context $unit.Type) 0)}} checked{{end}}>
+															<input type="radio" name="unit_{{$unit.Type.Value}}" value="0"{{if or ($unit.Type.UnitGlobalDisabled) (eq ($.Team.UnitAccessMode $.Context $unit.Type) 0)}} checked{{end}} title="{{$.locale.Tr "org.teams.none_access"}}">
 														</div>
 													</td>
 													<td class="center aligned">
 														<div class="ui radio checkbox">
-															<input type="radio" class="hidden" name="unit_{{$unit.Type.Value}}" value="1"{{if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $.Context $unit.Type) 1)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}}>
+															<input type="radio" name="unit_{{$unit.Type.Value}}" value="1"{{if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $.Context $unit.Type) 1)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}} title="{{$.locale.Tr "org.teams.read_access"}}">
 														</div>
 													</td>
 													<td class="center aligned">
 														<div class="ui radio checkbox">
-															<input type="radio" class="hidden" name="unit_{{$unit.Type.Value}}" value="2"{{if (eq ($.Team.UnitAccessMode $.Context $unit.Type) 2)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}}>
+															<input type="radio" name="unit_{{$unit.Type.Value}}" value="2"{{if (eq ($.Team.UnitAccessMode $.Context $unit.Type) 2)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}} title="{{$.locale.Tr "org.teams.write_access"}}">
 														</div>
 													</td>
 												</tr>
@@ -121,7 +121,7 @@
 									{{if lt $unit.MaxPerm 2}}
 										<div {{if $unit.Type.UnitGlobalDisabled}}class="field tooltip" data-content="{{$.locale.Tr "repo.unit_disabled"}}"{{else}}class="field"{{end}}>
 											<div class="ui checkbox">
-												<input type="checkbox" class="hidden" name="unit_{{$unit.Type.Value}}" value="1"{{if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $.Context $unit.Type) 1)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}}>
+												<input type="checkbox" name="unit_{{$unit.Type.Value}}" value="1"{{if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $.Context $unit.Type) 1)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}}>
 												<label>{{$.locale.Tr $unit.NameKey}}{{if $unit.Type.UnitGlobalDisabled}} {{$.locale.Tr "org.team_unit_disabled"}}{{end}}</label>
 												<span class="help">{{$.locale.Tr $unit.DescKey}}</span>
 											</div>

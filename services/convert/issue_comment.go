@@ -14,10 +14,10 @@ import (
 )
 
 // ToComment converts a issues_model.Comment to the api.Comment format
-func ToComment(c *issues_model.Comment) *api.Comment {
+func ToComment(ctx context.Context, c *issues_model.Comment) *api.Comment {
 	return &api.Comment{
 		ID:          c.ID,
-		Poster:      ToUser(c.Poster, nil),
+		Poster:      ToUser(ctx, c.Poster, nil),
 		HTMLURL:     c.HTMLURL(),
 		IssueURL:    c.IssueURL(),
 		PRURL:       c.PRURL(),
@@ -69,7 +69,7 @@ func ToTimelineComment(ctx context.Context, c *issues_model.Comment, doer *user_
 	comment := &api.TimelineComment{
 		ID:       c.ID,
 		Type:     c.Type.String(),
-		Poster:   ToUser(c.Poster, nil),
+		Poster:   ToUser(ctx, c.Poster, nil),
 		HTMLURL:  c.HTMLURL(),
 		IssueURL: c.IssueURL(),
 		PRURL:    c.PRURL(),
@@ -131,7 +131,7 @@ func ToTimelineComment(ctx context.Context, c *issues_model.Comment, doer *user_
 			log.Error("LoadPoster: %v", err)
 			return nil
 		}
-		comment.RefComment = ToComment(com)
+		comment.RefComment = ToComment(ctx, com)
 	}
 
 	if c.Label != nil {
@@ -157,14 +157,14 @@ func ToTimelineComment(ctx context.Context, c *issues_model.Comment, doer *user_
 	}
 
 	if c.Assignee != nil {
-		comment.Assignee = ToUser(c.Assignee, nil)
+		comment.Assignee = ToUser(ctx, c.Assignee, nil)
 	}
 	if c.AssigneeTeam != nil {
-		comment.AssigneeTeam, _ = ToTeam(c.AssigneeTeam)
+		comment.AssigneeTeam, _ = ToTeam(ctx, c.AssigneeTeam)
 	}
 
 	if c.ResolveDoer != nil {
-		comment.ResolveDoer = ToUser(c.ResolveDoer, nil)
+		comment.ResolveDoer = ToUser(ctx, c.ResolveDoer, nil)
 	}
 
 	if c.DependentIssue != nil {

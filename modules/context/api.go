@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
-	auth_service "code.gitea.io/gitea/services/auth"
 )
 
 // APIContext is a specific context for API service
@@ -212,35 +211,6 @@ func (ctx *APIContext) CheckForOTP() {
 	if !ok {
 		ctx.Context.Error(http.StatusUnauthorized)
 		return
-	}
-}
-
-// APIAuth converts auth_service.Auth as a middleware
-func APIAuth(authMethod auth_service.Method) func(*APIContext) {
-	return func(ctx *APIContext) {
-		// Get user from session if logged in.
-		var err error
-		ctx.Doer, err = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
-		if err != nil {
-			ctx.Error(http.StatusUnauthorized, "APIAuth", err)
-			return
-		}
-
-		if ctx.Doer != nil {
-			if ctx.Locale.Language() != ctx.Doer.Language {
-				ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
-			}
-			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == auth_service.BasicMethodName
-			ctx.IsSigned = true
-			ctx.Data["IsSigned"] = ctx.IsSigned
-			ctx.Data["SignedUser"] = ctx.Doer
-			ctx.Data["SignedUserID"] = ctx.Doer.ID
-			ctx.Data["SignedUserName"] = ctx.Doer.Name
-			ctx.Data["IsAdmin"] = ctx.Doer.IsAdmin
-		} else {
-			ctx.Data["SignedUserID"] = int64(0)
-			ctx.Data["SignedUserName"] = ""
-		}
 	}
 }
 

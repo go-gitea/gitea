@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import {hideElem, showElem} from '../utils/dom.js';
 
 const {appSubUrl} = window.config;
 
@@ -7,9 +8,9 @@ export function initOrgTeamSettings() {
   $('.organization.new.team input[name=permission]').on('change', () => {
     const val = $('input[name=permission]:checked', '.organization.new.team').val();
     if (val === 'admin') {
-      $('.organization.new.team .team-units').hide();
+      hideElem($('.organization.new.team .team-units'));
     } else {
-      $('.organization.new.team .team-units').show();
+      showElem($('.organization.new.team .team-units'));
     }
   });
 }

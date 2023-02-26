@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content user settings profile">
+<div role="main" aria-label="{{.Title}}" class="page-content user settings profile">
 	{{template "user/settings/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -12,8 +12,8 @@
 				{{.CsrfTokenHtml}}
 				<div class="required field {{if .Err_Name}}error{{end}}">
 					<label for="username">{{.locale.Tr "username"}}
-						<span class="text red hide" id="name-change-prompt"> {{.locale.Tr "settings.change_username_prompt"}}</span>
-						<span class="text red hide" id="name-change-redirect-prompt"> {{.locale.Tr "settings.change_username_redirect_prompt"}}</span>
+						<span class="text red gt-hidden" id="name-change-prompt"> {{.locale.Tr "settings.change_username_prompt"}}</span>
+						<span class="text red gt-hidden" id="name-change-redirect-prompt"> {{.locale.Tr "settings.change_username_redirect_prompt"}}</span>
 					</label>
 					<input id="username" name="name" value="{{.SignedUser.Name}}" data-name="{{.SignedUser.Name}}" autofocus required {{if or (not .SignedUser.IsLocal) .IsReverseProxy}}disabled{{end}}>
 					{{if or (not .SignedUser.IsLocal) .IsReverseProxy}}
@@ -101,7 +101,7 @@
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
 				{{.CsrfTokenHtml}}
-				{{if not DisableGravatar}}
+				{{if not (DisableGravatar $.Context)}}
 				<div class="inline field">
 					<div class="ui radio checkbox">
 						<input name="source" value="lookup" type="radio" {{if not .SignedUser.UseCustomAvatar}}checked{{end}}>
