@@ -5,6 +5,7 @@ package common
 
 import (
 	"fmt"
+	"github.com/go-chi/chi/v5"
 	"net/http"
 	"strings"
 
@@ -49,6 +50,28 @@ func Middlewares() []func(http.Handler) http.Handler {
 	}
 
 	handlers = append(handlers, middleware.StripSlashes)
+
+	handlers = append(handlers, func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			var path string
+			rctx := chi.RouteContext(req.Context())
+			if rctx != nil && rctx.RoutePath != "" {
+				path = rctx.RoutePath
+			} else {
+				path = req.URL.Path
+			}
+			fmt.Println(strings.HasPrefix(path, "//"))
+			if len(path) > 1 && strings.HasPrefix(path, "//") {
+				newPath := path[1:]
+				if rctx == nil {
+					req.URL.Path = newPath
+				} else {
+					rctx.RoutePath = newPath
+				}
+			}
+			next.ServeHTTP(resp, req)
+		})
+	})
 
 	if !setting.Log.DisableRouterLog {
 		handlers = append(handlers, routing.NewLoggerHandler())
