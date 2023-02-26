@@ -220,7 +220,9 @@ func (q *PersistableChannelUniqueQueue) Run(atShutdown, atTerminate func(func())
 				select {
 				case <-time.After(100 * time.Millisecond):
 				case <-luq.shutdownCtx.Done():
-					log.Warn("LevelUniqueQueue: %s shut down before completely flushed", luq.Name())
+					if luq.byteFIFO.Len(luq.terminateCtx) > 0 {
+						log.Warn("LevelUniqueQueue: %s shut down before completely flushed", luq.Name())
+					}
 					return
 				}
 			}
@@ -296,8 +298,20 @@ func (q *PersistableChannelUniqueQueue) Shutdown() {
 	// Redirect all remaining data in the chan to the internal channel
 	close(q.channelQueue.dataChan)
 	log.Trace("PersistableChannelUniqueQueue: %s Redirecting remaining data", q.delayedStarter.name)
+	countOK, countLost := 0, 0
 	for data := range q.channelQueue.dataChan {
-		_ = q.internal.(*LevelUniqueQueue).Push(data)
+		err := q.internal.(*LevelUniqueQueue).Push(data)
+		if err != nil {
+			log.Error("PersistableChannelUniqueQueue: %s Unable redirect %v due to: %v", q.delayedStarter.name, data, err)
+			countLost++
+		} else {
+			countOK++
+		}
+	}
+	if countLost > 0 {
+		log.Warn("PersistableChannelUniqueQueue: %s %d will be restored on restart, %d lost", q.delayedStarter.name, countOK, countLost)
+	} else if countOK > 0 {
+		log.Warn("PersistableChannelUniqueQueue: %s %d will be restored on restart", q.delayedStarter.name, countOK)
 	}
 	log.Trace("PersistableChannelUniqueQueue: %s Done Redirecting remaining data", q.delayedStarter.name)
 
