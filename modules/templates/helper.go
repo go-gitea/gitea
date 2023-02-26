@@ -859,12 +859,10 @@ func RenderLabel(label *issues_model.Label) string {
 
 	return fmt.Sprintf("<span class='ui label scope-parent' title='%s'>"+
 		"<div class='ui label scope-left' style='color: %s !important; background-color: %s !important'>%s</div>"+
-		"<div class='ui label scope-middle' style='background: linear-gradient(-80deg, %s 48%%, %s 52%% 0%%);'>&nbsp;</div>"+
 		"<div class='ui label scope-right' style='color: %s !important; background-color: %s !important''>%s</div>"+
 		"</span>",
 		description,
 		textColor, scopeColor, scopeText,
-		itemColor, scopeColor,
 		textColor, itemColor, itemText)
 }
 
