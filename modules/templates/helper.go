@@ -809,7 +809,7 @@ func RenderIssueTitle(ctx context.Context, text, urlPrefix string, metas map[str
 
 // RenderLabel renders a label
 func RenderLabel(label *issues_model.Label) string {
-	labelScope := label.ExclusiveScope()
+	labelScope := label.Scope()
 
 	textColor := "#111"
 	if label.UseLightTextColor() {

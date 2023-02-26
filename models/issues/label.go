@@ -190,15 +190,20 @@ func (label *Label) UseLightTextColor() bool {
 }
 
 // Return scope substring of label name, or empty string if none exists
-func (label *Label) ExclusiveScope() string {
-	if !label.Exclusive {
-		return ""
-	}
+func (label *Label) Scope() string {
 	lastIndex := strings.LastIndex(label.Name, "/")
 	if lastIndex == -1 || lastIndex == 0 || lastIndex == len(label.Name)-1 {
 		return ""
 	}
 	return label.Name[:lastIndex]
+}
+
+// Return scope for exclusive labels, or empty string if none exists
+func (label *Label) ExclusiveScope() string {
+	if !label.Exclusive {
+		return ""
+	}
+	return label.Scope()
 }
 
 // NewLabel creates a new label
