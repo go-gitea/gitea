@@ -60,7 +60,6 @@ func Middlewares() []func(http.Handler) http.Handler {
 			} else {
 				path = req.URL.Path
 			}
-			fmt.Println(strings.HasPrefix(path, "//"))
 			if len(path) > 1 && strings.HasPrefix(path, "//") {
 				newPath := path[1:]
 				if rctx == nil {
