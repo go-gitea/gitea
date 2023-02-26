@@ -581,17 +581,17 @@ parsingLoop:
 				strings.HasPrefix(line, "new mode "):
 
 				if strings.HasPrefix(line, "old mode ") {
-					curFile.OldMode = strings.Replace(line, "old mode ", "", -1)
+					curFile.OldMode = strings.ReplaceAll(line, "old mode ", "")
 				}
 				if strings.HasPrefix(line, "new mode ") {
-					curFile.Mode = strings.Replace(line, "new mode ", "", -1)
+					curFile.Mode = strings.ReplaceAll(line, "new mode ", "")
 				}
 
 				if strings.HasSuffix(line, " 160000\n") {
 					curFile.IsSubmodule = true
 				}
 			case strings.HasPrefix(line, "new file mode "):
-				curFile.Mode = strings.Replace(line, "new file mode ", "", -1)
+				curFile.Mode = strings.ReplaceAll(line, "new file mode ", "")
 			case strings.HasPrefix(line, "rename from "):
 				curFile.IsRenamed = true
 				curFile.Type = DiffFileRename
