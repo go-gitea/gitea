@@ -18,7 +18,7 @@ import (
 func TestPersistableChannelUniqueQueue(t *testing.T) {
 	tmpDir := t.TempDir()
 	fmt.Printf("TempDir %s\n", tmpDir)
-	_ = log.NewLogger(1000, "console", "console", `{"level":"trace","stacktracelevel":"NONE","stderr":true}`)
+	_ = log.NewLogger(1000, "console", "console", `{"level":"warn","stacktracelevel":"NONE","stderr":true}`)
 
 	// Common function to create the Queue
 	newQueue := func(name string, handle func(data ...Data) []Data) Queue {
@@ -95,6 +95,7 @@ func TestPersistableChannelUniqueQueue(t *testing.T) {
 		}
 	}
 
+	mapLock := sync.Mutex{}
 	executedInitial := map[string][]string{}
 	hasInitial := map[string][]string{}
 
@@ -109,9 +110,9 @@ func TestPersistableChannelUniqueQueue(t *testing.T) {
 				<-startAt100Queued
 				for _, datum := range data {
 					s := datum.(string)
-					lock.Lock()
+					mapLock.Lock()
 					executedInitial[name] = append(executedInitial[name], s)
-					lock.Unlock()
+					mapLock.Unlock()
 					if s == "task-20" {
 						close(stopAt20Shutdown)
 					}
@@ -136,10 +137,14 @@ func TestPersistableChannelUniqueQueue(t *testing.T) {
 			// check which tasks are still in the queue
 			for i := 0; i < 100; i++ {
 				if has, _ := q.(UniqueQueue).Has("task-" + strconv.Itoa(i)); has {
+					mapLock.Lock()
 					hasInitial[name] = append(hasInitial[name], "task-"+strconv.Itoa(i))
+					mapLock.Unlock()
 				}
 			}
+			mapLock.Lock()
 			assert.Equal(t, 100, len(executedInitial[name])+len(hasInitial[name]))
+			mapLock.Unlock()
 		})
 		close(done)
 	}
@@ -164,8 +169,9 @@ func TestPersistableChannelUniqueQueue(t *testing.T) {
 			handle := func(data ...Data) []Data {
 				lock.Lock()
 				for _, datum := range data {
-					t.Logf("executed %s", datum.(string))
+					mapLock.Lock()
 					executedEmpty[name] = append(executedEmpty[name], datum.(string))
+					mapLock.Unlock()
 					if datum.(string) == "task-99" {
 						close(stop)
 					}
@@ -184,12 +190,16 @@ func TestPersistableChannelUniqueQueue(t *testing.T) {
 			// check which tasks are still in the queue
 			for i := 0; i < 100; i++ {
 				if has, _ := q.(UniqueQueue).Has("task-" + strconv.Itoa(i)); has {
+					mapLock.Lock()
 					hasEmpty[name] = append(hasEmpty[name], "task-"+strconv.Itoa(i))
+					mapLock.Unlock()
 				}
 			}
 
+			mapLock.Lock()
 			assert.Equal(t, 100, len(executedInitial[name])+len(executedEmpty[name]))
 			assert.Equal(t, 0, len(hasEmpty[name]))
+			mapLock.Unlock()
 		})
 		close(done)
 	}
@@ -203,6 +213,7 @@ func TestPersistableChannelUniqueQueue(t *testing.T) {
 	<-doneA
 	<-doneB
 
+	mapLock.Lock()
 	t.Logf("TestPersistableChannelUniqueQueue executedInitiallyA=%v, executedInitiallyB=%v, executedToEmptyA=%v, executedToEmptyB=%v",
 		len(executedInitial["QueueA"]), len(executedInitial["QueueB"]), len(executedEmpty["QueueA"]), len(executedEmpty["QueueB"]))
 
@@ -211,6 +222,7 @@ func TestPersistableChannelUniqueQueue(t *testing.T) {
 	hasInitial = map[string][]string{}
 	executedEmpty = map[string][]string{}
 	hasEmpty = map[string][]string{}
+	mapLock.Unlock()
 
 	doneA = make(chan struct{})
 	doneB = make(chan struct{})
@@ -230,6 +242,8 @@ func TestPersistableChannelUniqueQueue(t *testing.T) {
 	<-doneA
 	<-doneB
 
+	mapLock.Lock()
 	t.Logf("TestPersistableChannelUniqueQueue executedInitiallyA=%v, executedInitiallyB=%v, executedToEmptyA=%v, executedToEmptyB=%v",
 		len(executedInitial["QueueA"]), len(executedInitial["QueueB"]), len(executedEmpty["QueueA"]), len(executedEmpty["QueueB"]))
+	mapLock.Unlock()
 }
