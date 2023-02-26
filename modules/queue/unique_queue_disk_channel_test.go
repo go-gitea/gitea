@@ -46,7 +46,7 @@ func TestPersistableChannelUniqueQueue(t *testing.T) {
 		queueTerminate    []func()      // list of atTerminate functions to call atTerminate - need to be accessed with lock
 	}
 	runQueue := func(q Queue, lock *sync.Mutex) *channels {
-		returnable := &channels{
+		chans := &channels{
 			readyForShutdown:  make(chan struct{}),
 			readyForTerminate: make(chan struct{}),
 			signalShutdown:    make(chan struct{}),
@@ -56,33 +56,31 @@ func TestPersistableChannelUniqueQueue(t *testing.T) {
 			go func() {
 				lock.Lock()
 				select {
-				case <-returnable.readyForShutdown:
+				case <-chans.readyForShutdown:
 				default:
-					close(returnable.readyForShutdown)
+					close(chans.readyForShutdown)
 				}
 				lock.Unlock()
-				<-returnable.signalShutdown
+				<-chans.signalShutdown
 				atShutdown()
-				close(returnable.doneShutdown)
+				close(chans.doneShutdown)
 			}()
 		}, func(atTerminate func()) {
 			lock.Lock()
 			defer lock.Unlock()
 			select {
-			case <-returnable.readyForTerminate:
+			case <-chans.readyForTerminate:
 			default:
-				close(returnable.readyForTerminate)
+				close(chans.readyForTerminate)
 			}
-			returnable.queueTerminate = append(returnable.queueTerminate, atTerminate)
+			chans.queueTerminate = append(chans.queueTerminate, atTerminate)
 		})
 
-		return returnable
+		return chans
 	}
 
 	// call to shutdown and terminate the queue associated with the channels
-	shutdownAndTerminate := func(chans *channels, lock *sync.Mutex) {
-		close(chans.signalShutdown)
-		<-chans.doneShutdown
+	doTerminate := func(chans *channels, lock *sync.Mutex) {
 		<-chans.readyForTerminate
 
 		lock.Lock()
@@ -132,7 +130,9 @@ func TestPersistableChannelUniqueQueue(t *testing.T) {
 
 			<-chans.readyForShutdown
 			<-stopAt20Shutdown
-			shutdownAndTerminate(chans, &lock)
+			close(chans.signalShutdown)
+			<-chans.doneShutdown
+			_ = q.Push("final")
 
 			// check which tasks are still in the queue
 			for i := 0; i < 100; i++ {
@@ -142,8 +142,16 @@ func TestPersistableChannelUniqueQueue(t *testing.T) {
 					mapLock.Unlock()
 				}
 			}
+			if has, _ := q.(UniqueQueue).Has("final"); has {
+				mapLock.Lock()
+				hasInitial[name] = append(hasInitial[name], "final")
+				mapLock.Unlock()
+			} else {
+				assert.Fail(t, "UnqueQueue %s should have \"final\"", name)
+			}
+			doTerminate(chans, &lock)
 			mapLock.Lock()
-			assert.Equal(t, 100, len(executedInitial[name])+len(hasInitial[name]))
+			assert.Equal(t, 101, len(executedInitial[name])+len(hasInitial[name]))
 			mapLock.Unlock()
 		})
 		close(done)
@@ -172,7 +180,7 @@ func TestPersistableChannelUniqueQueue(t *testing.T) {
 					mapLock.Lock()
 					executedEmpty[name] = append(executedEmpty[name], datum.(string))
 					mapLock.Unlock()
-					if datum.(string) == "task-99" {
+					if datum.(string) == "final" {
 						close(stop)
 					}
 				}
@@ -185,7 +193,8 @@ func TestPersistableChannelUniqueQueue(t *testing.T) {
 
 			<-chans.readyForShutdown
 			<-stop
-			shutdownAndTerminate(chans, &lock)
+			close(chans.signalShutdown)
+			<-chans.doneShutdown
 
 			// check which tasks are still in the queue
 			for i := 0; i < 100; i++ {
@@ -195,9 +204,10 @@ func TestPersistableChannelUniqueQueue(t *testing.T) {
 					mapLock.Unlock()
 				}
 			}
+			doTerminate(chans, &lock)
 
 			mapLock.Lock()
-			assert.Equal(t, 100, len(executedInitial[name])+len(executedEmpty[name]))
+			assert.Equal(t, 101, len(executedInitial[name])+len(executedEmpty[name]))
 			assert.Equal(t, 0, len(hasEmpty[name]))
 			mapLock.Unlock()
 		})
