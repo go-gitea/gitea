@@ -94,7 +94,8 @@ func NewPersistableChannelUniqueQueue(handle HandlerFunc, cfg, exemplar interfac
 			},
 			Workers: 0,
 		},
-		DataDir: config.DataDir,
+		DataDir:   config.DataDir,
+		QueueName: config.Name + "-level",
 	}
 
 	queue.channelQueue = channelUniqueQueue.(*ChannelUniqueQueue)

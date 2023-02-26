@@ -94,7 +94,8 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 			},
 			Workers: 0,
 		},
-		DataDir: config.DataDir,
+		DataDir:   config.DataDir,
+		QueueName: config.Name + "-level",
 	}
 
 	levelQueue, err := NewLevelQueue(wrappedHandle, levelCfg, exemplar)
