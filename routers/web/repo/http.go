@@ -228,7 +228,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 				}
 
 				if !p.CanAccess(accessMode, unitType) {
-					ctx.PlainText(http.StatusForbidden, "User permission denied")
+					ctx.PlainText(http.StatusNotFound, "Repository not found")
 					return
 				}
 			}
