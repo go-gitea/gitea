@@ -1634,3 +1634,16 @@
   is_private: true
   num_issues: 1
   status: 0
+
+-
+  id: 56
+  owner_id: 2
+  owner_name: user2
+  lower_name: readme-test
+  name: readme-test
+  default_branch: master
+  is_empty: false
+  is_archived: false
+  is_private: true
+  status: 0
+  num_issues: 0
