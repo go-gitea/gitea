@@ -33,7 +33,6 @@ type RepoSearchOptions struct {
 
 // RenderRepoSearch render repositories search page
 // This function is also used to render the Admin Repository Management page.
-// The isAdmin param should be set to true when rendering the Admin page.
 func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	// Sitemap index for sitemap paths
 	page := int(ctx.ParamsInt64("idx"))
