@@ -2540,37 +2540,45 @@ func (issue *Issue) TimeEstimateFromStr(timeStr string) int64 {
 	timeTotal := 0
 
 	// Time match regex
+	rOnlyHours := regexp.MustCompile(`^([\d]+)$`)
 	rWeeks := regexp.MustCompile(`([\d]+)w`)
 	rDays := regexp.MustCompile(`([\d]+)d`)
 	rHours := regexp.MustCompile(`([\d]+)h`)
 	rMinutes := regexp.MustCompile(`([\d]+)m`)
 
-	// Find time weeks
-	timeStrMatches := rWeeks.FindStringSubmatch(timeStr)
-	if len(timeStrMatches) > 0 {
-		raw, _ := strconv.Atoi(timeStrMatches[1])
-		timeTotal += raw * (60 * 60 * 24 * 7)
-	}
-
-	// Find time days
-	timeStrMatches = rDays.FindStringSubmatch(timeStr)
-	if len(timeStrMatches) > 0 {
-		raw, _ := strconv.Atoi(timeStrMatches[1])
-		timeTotal += raw * (60 * 60 * 24)
-	}
-
-	// Find time hours
-	timeStrMatches = rHours.FindStringSubmatch(timeStr)
+	// If single number entered, assume hours
+	timeStrMatches := rOnlyHours.FindStringSubmatch(timeStr)
 	if len(timeStrMatches) > 0 {
 		raw, _ := strconv.Atoi(timeStrMatches[1])
 		timeTotal += raw * (60 * 60)
-	}
+	} else {
+		// Find time weeks
+		timeStrMatches = rWeeks.FindStringSubmatch(timeStr)
+		if len(timeStrMatches) > 0 {
+			raw, _ := strconv.Atoi(timeStrMatches[1])
+			timeTotal += raw * (60 * 60 * 24 * 7)
+		}
 
-	// Find time minutes
-	timeStrMatches = rMinutes.FindStringSubmatch(timeStr)
-	if len(timeStrMatches) > 0 {
-		raw, _ := strconv.Atoi(timeStrMatches[1])
-		timeTotal += raw * (60)
+		// Find time days
+		timeStrMatches = rDays.FindStringSubmatch(timeStr)
+		if len(timeStrMatches) > 0 {
+			raw, _ := strconv.Atoi(timeStrMatches[1])
+			timeTotal += raw * (60 * 60 * 24)
+		}
+
+		// Find time hours
+		timeStrMatches = rHours.FindStringSubmatch(timeStr)
+		if len(timeStrMatches) > 0 {
+			raw, _ := strconv.Atoi(timeStrMatches[1])
+			timeTotal += raw * (60 * 60)
+		}
+
+		// Find time minutes
+		timeStrMatches = rMinutes.FindStringSubmatch(timeStr)
+		if len(timeStrMatches) > 0 {
+			raw, _ := strconv.Atoi(timeStrMatches[1])
+			timeTotal += raw * (60)
+		}
 	}
 
 	return int64(timeTotal)
