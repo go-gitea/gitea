@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -28,7 +29,7 @@ func Middlewares() []func(http.Handler) http.Handler {
 
 				ctx, _, finished := process.GetManager().AddTypedContext(req.Context(), fmt.Sprintf("%s: %s", req.Method, req.RequestURI), process.RequestProcessType, true)
 				defer finished()
-				next.ServeHTTP(context.NewResponse(resp), req.WithContext(ctx))
+				next.ServeHTTP(context.NewResponse(resp), req.WithContext(cache.WithCacheContext(ctx)))
 			})
 		},
 	}
@@ -50,11 +51,11 @@ func Middlewares() []func(http.Handler) http.Handler {
 	// Strip slashes.
 	handlers = append(handlers, stripSlashesMiddleware)
 
-	if !setting.DisableRouterLog {
+	if !setting.Log.DisableRouterLog {
 		handlers = append(handlers, routing.NewLoggerHandler())
 	}
 
-	if setting.EnableAccessLog {
+	if setting.Log.EnableAccessLog {
 		handlers = append(handlers, context.AccessLogger())
 	}
 

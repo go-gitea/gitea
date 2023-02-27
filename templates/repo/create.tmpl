@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content repository new repo">
+<div role="main" aria-label="{{.Title}}" class="page-content repository new repo">
 	<div class="ui middle very relaxed page one column grid">
 		<div class="column">
 			<form class="ui form" action="{{.Link}}" method="post">
@@ -21,18 +21,18 @@
 						<div class="ui selection owner dropdown">
 							<input type="hidden" id="uid" name="uid" value="{{.ContextUser.ID}}" required>
 							<span class="text truncated-item-container" title="{{.ContextUser.Name}}">
-								{{avatar .ContextUser 28 "mini"}}
+								{{avatar $.Context .ContextUser 28 "mini"}}
 								<span class="truncated-item-name">{{.ContextUser.ShortName 40}}</span>
 							</span>
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">
 								<div class="item truncated-item-container" data-value="{{.SignedUser.ID}}" title="{{.SignedUser.Name}}">
-									{{avatar .SignedUser 28 "mini"}}
+									{{avatar $.Context .SignedUser 28 "mini"}}
 									<span class="truncated-item-name">{{.SignedUser.ShortName 40}}</span>
 								</div>
 								{{range .Orgs}}
 									<div class="item truncated-item-container" data-value="{{.ID}}" title="{{.Name}}">
-										{{avatar . 28 "mini"}}
+										{{avatar $.Context . 28 "mini"}}
 										<span class="truncated-item-name">{{.ShortName 40}}</span>
 									</div>
 								{{end}}
@@ -73,37 +73,37 @@
 						</div>
 					</div>
 
-					<div id="template_units" style="display: none;">
+					<div id="template_units" class="gt-hidden">
 						<div class="inline field">
 							<label>{{.locale.Tr "repo.template.items"}}</label>
 							<div class="ui checkbox">
-								<input class="hidden" name="git_content" type="checkbox" tabindex="0" {{if .git_content}}checked{{end}}>
+								<input name="git_content" type="checkbox" tabindex="0" {{if .git_content}}checked{{end}}>
 								<label>{{.locale.Tr "repo.template.git_content"}}</label>
 							</div>
 							<div class="ui checkbox{{if not .SignedUser.CanEditGitHook}} tooltip{{end}}"{{if not .SignedUser.CanEditGitHook}} data-content="{{.locale.Tr "repo.template.git_hooks_tooltip"}}"{{end}}>
-								<input class="hidden" name="git_hooks" type="checkbox" tabindex="0" {{if .git_hooks}}checked{{end}}>
+								<input name="git_hooks" type="checkbox" tabindex="0" {{if .git_hooks}}checked{{end}}>
 								<label>{{.locale.Tr "repo.template.git_hooks"}}</label>
 							</div>
 						</div>
 						<div class="inline field">
 							<label></label>
 							<div class="ui checkbox">
-								<input class="hidden" name="webhooks" type="checkbox" tabindex="0" {{if .webhooks}}checked{{end}}>
+								<input name="webhooks" type="checkbox" tabindex="0" {{if .webhooks}}checked{{end}}>
 								<label>{{.locale.Tr "repo.template.webhooks"}}</label>
 							</div>
 							<div class="ui checkbox">
-								<input class="hidden" name="topics" type="checkbox" tabindex="0" {{if .topics}}checked{{end}}>
+								<input name="topics" type="checkbox" tabindex="0" {{if .topics}}checked{{end}}>
 								<label>{{.locale.Tr "repo.template.topics"}}</label>
 							</div>
 						</div>
 						<div class="inline field">
 							<label></label>
 							<div class="ui checkbox">
-								<input class="hidden" name="avatar" type="checkbox" tabindex="0" {{if .avatar}}checked{{end}}>
+								<input name="avatar" type="checkbox" tabindex="0" {{if .avatar}}checked{{end}}>
 								<label>{{.locale.Tr "repo.template.avatar"}}</label>
 							</div>
 							<div class="ui checkbox">
-								<input class="hidden" name="labels" type="checkbox" tabindex="0" {{if .labels}}checked{{end}}>
+								<input name="labels" type="checkbox" tabindex="0" {{if .labels}}checked{{end}}>
 								<label>{{.locale.Tr "repo.template.issue_labels"}}</label>
 							</div>
 						</div>
@@ -169,7 +169,7 @@
 						</div>
 						<div class="inline field">
 							<div class="ui checkbox" id="auto-init">
-								<input class="hidden" name="auto_init" type="checkbox" tabindex="0" {{if .auto_init}}checked{{end}}>
+								<input name="auto_init" type="checkbox" tabindex="0" {{if .auto_init}}checked{{end}}>
 								<label>{{.locale.Tr "repo.auto_init"}}</label>
 							</div>
 						</div>
@@ -204,7 +204,7 @@
 						<div class="inline field">
 							<label>{{.locale.Tr "repo.template"}}</label>
 							<div class="ui checkbox">
-								<input class="hidden" name="template" type="checkbox" tabindex="0">
+								<input name="template" type="checkbox" tabindex="0">
 								<label>{{.locale.Tr "repo.template_helper"}}</label>
 							</div>
 						</div>

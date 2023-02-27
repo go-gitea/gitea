@@ -79,9 +79,9 @@ func IsErrDataExpired(err error) bool {
 	return ok
 }
 
-// GetSettingNoCache returns specific setting without using the cache
-func GetSettingNoCache(key string) (*Setting, error) {
-	v, err := GetSettings([]string{key})
+// GetSetting returns specific setting without using the cache
+func GetSetting(ctx context.Context, key string) (*Setting, error) {
+	v, err := GetSettings(ctx, []string{key})
 	if err != nil {
 		return nil, err
 	}
@@ -91,32 +91,45 @@ func GetSettingNoCache(key string) (*Setting, error) {
 	return v[strings.ToLower(key)], nil
 }
 
-// GetSetting returns the setting value via the key
-func GetSetting(key string) (string, error) {
-	return cache.GetString(genSettingCacheKey(key), func() (string, error) {
-		res, err := GetSettingNoCache(key)
-		if err != nil {
-			return "", err
-		}
-		return res.SettingValue, nil
+const contextCacheKey = "system_setting"
+
+// GetSettingWithCache returns the setting value via the key
+func GetSettingWithCache(ctx context.Context, key string) (string, error) {
+	return cache.GetWithContextCache(ctx, contextCacheKey, key, func() (string, error) {
+		return cache.GetString(genSettingCacheKey(key), func() (string, error) {
+			res, err := GetSetting(ctx, key)
+			if err != nil {
+				return "", err
+			}
+			return res.SettingValue, nil
+		})
 	})
 }
 
 // GetSettingBool return bool value of setting,
 // none existing keys and errors are ignored and result in false
-func GetSettingBool(key string) bool {
-	s, _ := GetSetting(key)
+func GetSettingBool(ctx context.Context, key string) bool {
+	s, _ := GetSetting(ctx, key)
+	if s == nil {
+		return false
+	}
+	v, _ := strconv.ParseBool(s.SettingValue)
+	return v
+}
+
+func GetSettingWithCacheBool(ctx context.Context, key string) bool {
+	s, _ := GetSettingWithCache(ctx, key)
 	v, _ := strconv.ParseBool(s)
 	return v
 }
 
 // GetSettings returns specific settings
-func GetSettings(keys []string) (map[string]*Setting, error) {
+func GetSettings(ctx context.Context, keys []string) (map[string]*Setting, error) {
 	for i := 0; i < len(keys); i++ {
 		keys[i] = strings.ToLower(keys[i])
 	}
 	settings := make([]*Setting, 0, len(keys))
-	if err := db.GetEngine(db.DefaultContext).
+	if err := db.GetEngine(ctx).
 		Where(builder.In("setting_key", keys)).
 		Find(&settings); err != nil {
 		return nil, err
@@ -147,9 +160,9 @@ func (settings AllSettings) GetVersion(key string) int {
 }
 
 // GetAllSettings returns all settings from user
-func GetAllSettings() (AllSettings, error) {
+func GetAllSettings(ctx context.Context) (AllSettings, error) {
 	settings := make([]*Setting, 0, 5)
-	if err := db.GetEngine(db.DefaultContext).
+	if err := db.GetEngine(ctx).
 		Find(&settings); err != nil {
 		return nil, err
 	}
@@ -161,16 +174,17 @@ func GetAllSettings() (AllSettings, error) {
 }
 
 // DeleteSetting deletes a specific setting for a user
-func DeleteSetting(setting *Setting) error {
+func DeleteSetting(ctx context.Context, setting *Setting) error {
+	cache.RemoveContextData(ctx, contextCacheKey, setting.SettingKey)
 	cache.Remove(genSettingCacheKey(setting.SettingKey))
-	_, err := db.GetEngine(db.DefaultContext).Delete(setting)
+	_, err := db.GetEngine(ctx).Delete(setting)
 	return err
 }
 
-func SetSettingNoVersion(key, value string) error {
-	s, err := GetSettingNoCache(key)
+func SetSettingNoVersion(ctx context.Context, key, value string) error {
+	s, err := GetSetting(ctx, key)
 	if IsErrSettingIsNotExist(err) {
-		return SetSetting(&Setting{
+		return SetSetting(ctx, &Setting{
 			SettingKey:   key,
 			SettingValue: value,
 		})
@@ -179,12 +193,12 @@ func SetSettingNoVersion(key, value string) error {
 		return err
 	}
 	s.SettingValue = value
-	return SetSetting(s)
+	return SetSetting(ctx, s)
 }
 
 // SetSetting updates a users' setting for a specific key
-func SetSetting(setting *Setting) error {
-	if err := upsertSettingValue(strings.ToLower(setting.SettingKey), setting.SettingValue, setting.Version); err != nil {
+func SetSetting(ctx context.Context, setting *Setting) error {
+	if err := upsertSettingValue(ctx, strings.ToLower(setting.SettingKey), setting.SettingValue, setting.Version); err != nil {
 		return err
 	}
 
@@ -192,14 +206,16 @@ func SetSetting(setting *Setting) error {
 
 	cc := cache.GetCache()
 	if cc != nil {
-		return cc.Put(genSettingCacheKey(setting.SettingKey), setting.SettingValue, setting_module.CacheService.TTLSeconds())
+		if err := cc.Put(genSettingCacheKey(setting.SettingKey), setting.SettingValue, setting_module.CacheService.TTLSeconds()); err != nil {
+			return err
+		}
 	}
-
+	cache.SetContextData(ctx, contextCacheKey, setting.SettingKey, setting.SettingValue)
 	return nil
 }
 
-func upsertSettingValue(key, value string, version int) error {
-	return db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+func upsertSettingValue(parentCtx context.Context, key, value string, version int) error {
+	return db.WithTx(parentCtx, func(ctx context.Context) error {
 		e := db.GetEngine(ctx)
 
 		// here we use a general method to do a safe upsert for different databases (and most transaction levels)
@@ -242,9 +258,9 @@ var (
 	LibravatarService *libravatar.Libravatar
 )
 
-func Init() error {
+func Init(ctx context.Context) error {
 	var disableGravatar bool
-	disableGravatarSetting, err := GetSettingNoCache(KeyPictureDisableGravatar)
+	disableGravatarSetting, err := GetSetting(ctx, KeyPictureDisableGravatar)
 	if IsErrSettingIsNotExist(err) {
 		disableGravatar = setting_module.GetDefaultDisableGravatar()
 		disableGravatarSetting = &Setting{SettingValue: strconv.FormatBool(disableGravatar)}
@@ -255,7 +271,7 @@ func Init() error {
 	}
 
 	var enableFederatedAvatar bool
-	enableFederatedAvatarSetting, err := GetSettingNoCache(KeyPictureEnableFederatedAvatar)
+	enableFederatedAvatarSetting, err := GetSetting(ctx, KeyPictureEnableFederatedAvatar)
 	if IsErrSettingIsNotExist(err) {
 		enableFederatedAvatar = setting_module.GetDefaultEnableFederatedAvatar(disableGravatar)
 		enableFederatedAvatarSetting = &Setting{SettingValue: strconv.FormatBool(enableFederatedAvatar)}
@@ -268,13 +284,13 @@ func Init() error {
 	if setting_module.OfflineMode {
 		disableGravatar = true
 		enableFederatedAvatar = false
-		if !GetSettingBool(KeyPictureDisableGravatar) {
-			if err := SetSettingNoVersion(KeyPictureDisableGravatar, "true"); err != nil {
+		if !GetSettingBool(ctx, KeyPictureDisableGravatar) {
+			if err := SetSettingNoVersion(ctx, KeyPictureDisableGravatar, "true"); err != nil {
 				return fmt.Errorf("Failed to set setting %q: %w", KeyPictureDisableGravatar, err)
 			}
 		}
-		if GetSettingBool(KeyPictureEnableFederatedAvatar) {
-			if err := SetSettingNoVersion(KeyPictureEnableFederatedAvatar, "false"); err != nil {
+		if GetSettingBool(ctx, KeyPictureEnableFederatedAvatar) {
+			if err := SetSettingNoVersion(ctx, KeyPictureEnableFederatedAvatar, "false"); err != nil {
 				return fmt.Errorf("Failed to set setting %q: %w", KeyPictureEnableFederatedAvatar, err)
 			}
 		}

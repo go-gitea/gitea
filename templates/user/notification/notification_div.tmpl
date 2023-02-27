@@ -1,11 +1,11 @@
-<div class="page-content user notification" id="notification_div" data-params="{{.Page.GetParams}}" data-sequence-number="{{.SequenceNumber}}">
+<div role="main" aria-label="{{.Title}}" class="page-content user notification" id="notification_div" data-params="{{.Page.GetParams}}" data-sequence-number="{{.SequenceNumber}}">
 	<div class="ui container">
 		<h1 class="ui dividing header">{{.locale.Tr "notification.notifications"}}</h1>
 		<div class="ui top attached tabular menu">
 			{{$notificationUnreadCount := call .NotificationUnreadCount}}
 			<a href="{{AppSubUrl}}/notifications?q=unread" class="{{if eq .Status 1}}active {{end}}item">
 				{{.locale.Tr "notification.unread"}}
-				<div class="ui label {{if not $notificationUnreadCount}}hidden{{end}}">{{$notificationUnreadCount}}</div>
+				<div class="ui label {{if not $notificationUnreadCount}}gt-hidden{{end}}">{{$notificationUnreadCount}}</div>
 			</a>
 			<a href="{{AppSubUrl}}/notifications?q=read" class="{{if eq .Status 2}}active {{end}}item">
 				{{.locale.Tr "notification.read"}}
@@ -13,7 +13,7 @@
 			{{if and (eq .Status 1)}}
 				<form action="{{AppSubUrl}}/notifications/purge" method="POST" style="margin-left: auto;">
 					{{$.CsrfTokenHtml}}
-					<div class="{{if not $notificationUnreadCount}}hide{{end}}">
+					<div class="{{if not $notificationUnreadCount}}gt-hidden{{end}}">
 						<button class="ui mini button primary" title='{{$.locale.Tr "notification.mark_all_as_read"}}'>
 							{{svg "octicon-checklist"}}
 						</button>
@@ -35,7 +35,7 @@
 							{{$issue := .Issue}}
 							{{$repo := .Repository}}
 							<tr id="notification_{{.ID}}">
-								<td class="collapsing" data-href="{{.HTMLURL}}">
+								<td class="collapsing" data-href="{{.Link}}">
 									{{if eq .Status 3}}
 										<span class="blue">{{svg "octicon-pin"}}</span>
 									{{else if not $issue}}
@@ -58,8 +58,8 @@
 										{{end}}
 									{{end}}
 								</td>
-								<td class="eleven wide" data-href="{{.HTMLURL}}">
-									<a class="item" href="{{.HTMLURL}}">
+								<td class="eleven wide" data-href="{{.Link}}">
+									<a class="item" href="{{.Link}}">
 										{{if $issue}}
 											#{{$issue.Index}} - {{$issue.Title}}
 										{{else}}

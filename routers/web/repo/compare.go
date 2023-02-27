@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -42,8 +43,8 @@ const (
 )
 
 // setCompareContext sets context data.
-func setCompareContext(ctx *context.Context, base, head *git.Commit, headOwner, headName string) {
-	ctx.Data["BaseCommit"] = base
+func setCompareContext(ctx *context.Context, before, head *git.Commit, headOwner, headName string) {
+	ctx.Data["BeforeCommit"] = before
 	ctx.Data["HeadCommit"] = head
 
 	ctx.Data["GetBlobByPathForCommit"] = func(commit *git.Commit, path string) *git.Blob {
@@ -58,7 +59,7 @@ func setCompareContext(ctx *context.Context, base, head *git.Commit, headOwner, 
 		return blob
 	}
 
-	setPathsCompareContext(ctx, base, head, headOwner, headName)
+	setPathsCompareContext(ctx, before, head, headOwner, headName)
 	setImageCompareContext(ctx)
 	setCsvCompareContext(ctx)
 }
@@ -278,7 +279,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 				}
 				return nil
 			}
-			if err := ci.HeadRepo.GetOwner(ctx); err != nil {
+			if err := ci.HeadRepo.LoadOwner(ctx); err != nil {
 				if user_model.IsErrUserNotExist(err) {
 					ctx.NotFound("GetUserByName", nil)
 				} else {
@@ -559,7 +560,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 func PrepareCompareDiff(
 	ctx *context.Context,
 	ci *CompareInfo,
-	whitespaceBehavior git.CmdArg,
+	whitespaceBehavior git.TrustedCmdArgs,
 ) bool {
 	var (
 		repo  = ctx.Repo.Repository
@@ -628,9 +629,8 @@ func PrepareCompareDiff(
 	}
 
 	baseGitRepo := ctx.Repo.GitRepo
-	baseCommitID := ci.CompareInfo.BaseCommitID
 
-	baseCommit, err := baseGitRepo.GetCommit(baseCommitID)
+	beforeCommit, err := baseGitRepo.GetCommit(beforeCommitID)
 	if err != nil {
 		ctx.ServerError("GetCommit", err)
 		return false
@@ -667,7 +667,7 @@ func PrepareCompareDiff(
 	ctx.Data["Username"] = ci.HeadUser.Name
 	ctx.Data["Reponame"] = ci.HeadRepo.Name
 
-	setCompareContext(ctx, baseCommit, headCommit, ci.HeadUser.Name, repo.Name)
+	setCompareContext(ctx, beforeCommit, headCommit, ci.HeadUser.Name, repo.Name)
 
 	return false
 }
@@ -789,15 +789,28 @@ func CompareDiff(ctx *context.Context) {
 		ctx.Flash.Warning(renderErrorOfTemplates(ctx, templateErrs), true)
 	}
 
-	// If a template content is set, prepend the "content". In this case that's only
-	// applicable if you have one commit to compare and that commit has a message.
-	// In that case the commit message will be prepend to the template body.
-	if templateContent, ok := ctx.Data[pullRequestTemplateKey].(string); ok && templateContent != "" {
-		if content, ok := ctx.Data["content"].(string); ok && content != "" {
+	if content, ok := ctx.Data["content"].(string); ok && content != "" {
+		// If a template content is set, prepend the "content". In this case that's only
+		// applicable if you have one commit to compare and that commit has a message.
+		// In that case the commit message will be prepend to the template body.
+		if templateContent, ok := ctx.Data[pullRequestTemplateKey].(string); ok && templateContent != "" {
 			// Re-use the same key as that's priortized over the "content" key.
 			// Add two new lines between the content to ensure there's always at least
 			// one empty line between them.
 			ctx.Data[pullRequestTemplateKey] = content + "\n\n" + templateContent
+		}
+
+		// When using form fields, also add content to field with id "body".
+		if fields, ok := ctx.Data["Fields"].([]*api.IssueFormField); ok {
+			for _, field := range fields {
+				if field.ID == "body" {
+					if fieldValue, ok := field.Attributes["value"].(string); ok && fieldValue != "" {
+						field.Attributes["value"] = content + "\n\n" + fieldValue
+					} else {
+						field.Attributes["value"] = content
+					}
+				}
+			}
 		}
 	}
 
@@ -805,6 +818,13 @@ func CompareDiff(ctx *context.Context) {
 	upload.AddUploadContext(ctx, "comment")
 
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(unit.TypePullRequests)
+
+	if unit, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypePullRequests); err == nil {
+		config := unit.PullRequestsConfig()
+		ctx.Data["AllowMaintainerEdit"] = config.DefaultAllowMaintainerEdit
+	} else {
+		ctx.Data["AllowMaintainerEdit"] = false
+	}
 
 	ctx.HTML(http.StatusOK, tplCompare)
 }

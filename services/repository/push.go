@@ -110,9 +110,13 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 		}
 		if opts.IsTag() { // If is tag reference
 			if pusher == nil || pusher.ID != opts.PusherID {
-				var err error
-				if pusher, err = user_model.GetUserByID(ctx, opts.PusherID); err != nil {
-					return err
+				if opts.PusherID == user_model.ActionsUserID {
+					pusher = user_model.NewActionsUser()
+				} else {
+					var err error
+					if pusher, err = user_model.GetUserByID(ctx, opts.PusherID); err != nil {
+						return err
+					}
 				}
 			}
 			tagName := opts.TagName()
@@ -150,9 +154,13 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 			}
 		} else if opts.IsBranch() { // If is branch reference
 			if pusher == nil || pusher.ID != opts.PusherID {
-				var err error
-				if pusher, err = user_model.GetUserByID(ctx, opts.PusherID); err != nil {
-					return err
+				if opts.PusherID == user_model.ActionsUserID {
+					pusher = user_model.NewActionsUser()
+				} else {
+					var err error
+					if pusher, err = user_model.GetUserByID(ctx, opts.PusherID); err != nil {
+						return err
+					}
 				}
 			}
 
@@ -347,7 +355,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 			var ok bool
 			author, ok = emailToUser[sig.Email]
 			if !ok {
-				author, err = user_model.GetUserByEmailContext(ctx, sig.Email)
+				author, err = user_model.GetUserByEmail(ctx, sig.Email)
 				if err != nil && !user_model.IsErrUserNotExist(err) {
 					return fmt.Errorf("GetUserByEmail: %w", err)
 				}
