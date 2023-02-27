@@ -467,7 +467,6 @@ export function initRepoPullRequestReview() {
     }
     $textarea.focus();
     easyMDE.codemirror.focus();
-    easyMDE.codemirror.setCursor(easyMDE.codemirror.lineCount(), 0);
     assignMenuAttributes(form.find('.menu'));
   });
 
