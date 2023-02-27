@@ -418,7 +418,8 @@ function assignMenuAttributes(menu) {
   return id;
 }
 
-export async function generateMDE(_this) {
+export async function handleReply(_this) {
+  hideElem(_this);
   const form = _this.closest('.comment-code-cloud').find('.comment-form');
   form.removeClass('gt-hidden');
   const $textarea = form.find('textarea');
@@ -470,9 +471,7 @@ export function initRepoPullRequestReview() {
 
   $(document).on('click', 'button.comment-form-reply', async function (e) {
     e.preventDefault();
-
-    hideElem($(this));
-    await generateMDE($(this));
+    await handleReply($(this));
   });
 
   const $reviewBox = $('.review-box-panel');
