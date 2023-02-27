@@ -1184,6 +1184,7 @@ type IssuesOptions struct { //nolint
 	PosterID           int64
 	MentionedID        int64
 	ReviewRequestedID  int64
+	ReviewedID         int64
 	SubscriberID       int64
 	MilestoneIDs       []int64
 	ProjectID          int64
@@ -1296,6 +1297,10 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 
 	if opts.ReviewRequestedID > 0 {
 		applyReviewRequestedCondition(sess, opts.ReviewRequestedID)
+	}
+
+	if opts.ReviewedID > 0 {
+		applyReviewedCondition(sess, opts.ReviewedID)
 	}
 
 	if opts.SubscriberID > 0 {
@@ -1468,6 +1473,36 @@ func applyReviewRequestedCondition(sess *xorm.Session, reviewRequestedID int64) 
 			reviewRequestedID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest, reviewRequestedID)
 }
 
+func applyReviewedCondition(sess *xorm.Session, reviewedID int64) *xorm.Session {
+	// Query for pull requests where you are a reviewer or commenter, excluding
+	// any pull requests already returned by the the review requested filter.
+	notPoster := builder.Neq{"issue.poster_id": reviewedID}
+	reviewed := builder.In("issue.id", builder.
+		Select("issue_id").
+		From("review").
+		Where(builder.And(
+			builder.Neq{"type": ReviewTypeRequest},
+			builder.Or(
+				builder.Eq{"reviewer_id": reviewedID},
+				builder.In("reviewer_team_id", builder.
+					Select("team_id").
+					From("team_user").
+					Where(builder.Eq{"uid": reviewedID}),
+				),
+			),
+		)),
+	)
+	commented := builder.In("issue.id", builder.
+		Select("issue_id").
+		From("comment").
+		Where(builder.And(
+			builder.Eq{"poster_id": reviewedID},
+			builder.In("type", CommentTypeComment, CommentTypeCode, CommentTypeReview),
+		)),
+	)
+	return sess.And(notPoster, builder.Or(reviewed, commented))
+}
+
 func applySubscribedCondition(sess *xorm.Session, subscriberID int64) *xorm.Session {
 	return sess.And(
 		builder.
@@ -1622,6 +1657,7 @@ type IssueStats struct {
 	CreateCount            int64
 	MentionCount           int64
 	ReviewRequestedCount   int64
+	ReviewedCount          int64
 }
 
 // Filter modes.
@@ -1631,6 +1667,7 @@ const (
 	FilterModeCreate
 	FilterModeMention
 	FilterModeReviewRequested
+	FilterModeReviewed
 	FilterModeYourRepositories
 )
 
@@ -1644,6 +1681,7 @@ type IssueStatsOptions struct {
 	MentionedID       int64
 	PosterID          int64
 	ReviewRequestedID int64
+	ReviewedID        int64
 	IsPull            util.OptionalBool
 	IssueIDs          []int64
 }
@@ -1682,6 +1720,7 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 		accum.CreateCount += stats.CreateCount
 		accum.OpenCount += stats.MentionCount
 		accum.ReviewRequestedCount += stats.ReviewRequestedCount
+		accum.ReviewedCount += stats.ReviewedCount
 		i = chunk
 	}
 	return accum, nil
@@ -1737,6 +1776,10 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 
 		if opts.ReviewRequestedID > 0 {
 			applyReviewRequestedCondition(sess, opts.ReviewRequestedID)
+		}
+
+		if opts.ReviewedID > 0 {
+			applyReviewedCondition(sess, opts.ReviewedID)
 		}
 
 		switch opts.IsPull {
@@ -1879,6 +1922,19 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 		if err != nil {
 			return nil, err
 		}
+	case FilterModeReviewed:
+		stats.OpenCount, err = applyReviewedCondition(sess(cond), opts.UserID).
+			And("issue.is_closed = ?", false).
+			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
+		stats.ClosedCount, err = applyReviewedCondition(sess(cond), opts.UserID).
+			And("issue.is_closed = ?", true).
+			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	cond = cond.And(builder.Eq{"issue.is_closed": opts.IsClosed})
@@ -1903,6 +1959,11 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	}
 
 	stats.ReviewRequestedCount, err = applyReviewRequestedCondition(sess(cond), opts.UserID).Count(new(Issue))
+	if err != nil {
+		return nil, err
+	}
+
+	stats.ReviewedCount, err = applyReviewedCondition(sess(cond), opts.UserID).Count(new(Issue))
 	if err != nil {
 		return nil, err
 	}
