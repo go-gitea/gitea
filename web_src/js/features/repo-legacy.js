@@ -6,7 +6,7 @@ import {
   initRepoIssueBranchSelect, initRepoIssueCodeCommentCancel, initRepoIssueCommentDelete,
   initRepoIssueComments, initRepoIssueDependencyDelete, initRepoIssueReferenceIssue,
   initRepoIssueStatusButton, initRepoIssueTitleEdit, initRepoIssueWipToggle,
-  initRepoPullRequestUpdate, updateIssuesMeta,
+  initRepoPullRequestUpdate, updateIssuesMeta, generateMDE
 } from './repo-issue.js';
 import {initUnicodeEscapeButton} from './repo-unicode-escape.js';
 import {svg} from '../svg.js';
@@ -614,8 +614,8 @@ function initRepoIssueCommentEdit() {
     let easyMDE;
     if ($(this).hasClass('quote-reply-diff')) {
       const $parent = $(this).closest('.comment-code-cloud');
-      await $.when($parent.find('button.comment-form-reply').trigger('click'));
-      easyMDE = getAttachedEasyMDE($parent.find('[name="content"]'));
+      hideElem($parent.find('button.comment-form-reply'));
+      easyMDE = await generateMDE($(this));
     } else {
       // for normal issue/comment page
       easyMDE = getAttachedEasyMDE($('#comment-form .edit_area'));
