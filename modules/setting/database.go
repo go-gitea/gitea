@@ -56,9 +56,9 @@ var (
 	}
 )
 
-// InitDBConfig loads the database settings
-func InitDBConfig() {
-	sec := Cfg.Section("database")
+// LoadDBSetting loads the database settings
+func LoadDBSetting() {
+	sec := CfgProvider.Section("database")
 	Database.Type = sec.Key("DB_TYPE").String()
 	defaultCharset := "utf8"
 	Database.UseMySQL = false

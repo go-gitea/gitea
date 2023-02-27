@@ -33,7 +33,7 @@
 					{{end}}
 					<a class="ui mini basic button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{PathEscapeSegments .TreePath}}">{{.locale.Tr "repo.file_history"}}</a>
 					{{if .EscapeStatus.Escaped}}
-						<a class="ui mini basic button unescape-button" style="display: none;">{{.locale.Tr "repo.unescape_control_characters"}}</a>
+						<a class="ui mini basic button unescape-button gt-hidden">{{.locale.Tr "repo.unescape_control_characters"}}</a>
 						<a class="ui mini basic button escape-button">{{.locale.Tr "repo.escape_control_characters"}}</a>
 					{{end}}
 				</div>
@@ -52,7 +52,7 @@
 					{{end}}
 				{{end}}
 			{{else if .EscapeStatus.Escaped}}
-				<a class="ui mini basic button unescape-button gt-mr-2" style="display: none;">{{.locale.Tr "repo.unescape_control_characters"}}</a>
+				<a class="ui mini basic button unescape-button gt-mr-2 gt-hidden">{{.locale.Tr "repo.unescape_control_characters"}}</a>
 				<a class="ui mini basic button escape-button gt-mr-2">{{.locale.Tr "repo.escape_control_characters"}}</a>
 			{{end}}
 		</div>

@@ -134,7 +134,7 @@ func Find[T any](ctx context.Context, opts FindOptions, objects *[]T) error {
 	if !opts.IsListAll() {
 		sess.Limit(opts.GetSkipTake())
 	}
-	return sess.Find(&objects)
+	return sess.Find(objects)
 }
 
 // Count represents a common count function which accept an options interface
@@ -148,5 +148,5 @@ func FindAndCount[T any](ctx context.Context, opts FindOptions, objects *[]T) (i
 	if !opts.IsListAll() {
 		sess.Limit(opts.GetSkipTake())
 	}
-	return sess.FindAndCount(&objects)
+	return sess.FindAndCount(objects)
 }

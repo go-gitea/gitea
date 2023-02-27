@@ -192,6 +192,7 @@ func (f *RepoSettingForm) Validate(req *http.Request, errs binding.Errors) bindi
 // ProtectBranchForm form for changing protected branch settings
 type ProtectBranchForm struct {
 	RuleName                      string `binding:"Required"`
+	RuleID                        int64
 	EnablePush                    string
 	WhitelistUsers                string
 	WhitelistTeams                string
@@ -566,6 +567,7 @@ func (f *CreateMilestoneForm) Validate(req *http.Request, errs binding.Errors) b
 type CreateLabelForm struct {
 	ID          int64
 	Title       string `binding:"Required;MaxSize(50)" locale:"repo.issues.label_title"`
+	Exclusive   bool   `form:"exclusive"`
 	Description string `binding:"MaxSize(200)" locale:"repo.issues.label_description"`
 	Color       string `binding:"Required;MaxSize(7)" locale:"repo.issues.label_color"`
 }
@@ -604,7 +606,7 @@ type MergePullRequestForm struct {
 	MergeMessageField      string
 	MergeCommitID          string // only used for manually-merged
 	HeadCommitID           string `json:"head_commit_id,omitempty"`
-	ForceMerge             *bool  `json:"force_merge,omitempty"`
+	ForceMerge             bool   `json:"force_merge,omitempty"`
 	MergeWhenChecksSucceed bool   `json:"merge_when_checks_succeed,omitempty"`
 	DeleteBranchAfterMerge bool   `json:"delete_branch_after_merge,omitempty"`
 }

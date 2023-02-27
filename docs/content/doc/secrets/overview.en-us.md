@@ -9,7 +9,7 @@ menu:
     parent: "secrets"
     name: "Overview"
     weight: 1
-    identifier: "overview"
+    identifier: "secrets-overview"
 ---
 
 # Secrets
