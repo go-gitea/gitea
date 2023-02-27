@@ -607,14 +607,14 @@ function initRepoIssueCommentEdit() {
   $(document).on('click', '.edit-content', onEditContent);
 
   // Quote reply
-  $(document).on('click', '.quote-reply', function (event) {
+  $(document).on('click', '.quote-reply', async function (event) {
     const target = $(this).data('target');
     const quote = $(`#${target}`).text().replace(/\n/g, '\n> ');
     const content = `> ${quote}\n\n`;
     let easyMDE;
     if ($(this).hasClass('quote-reply-diff')) {
       const $parent = $(this).closest('.comment-code-cloud');
-      $parent.find('button.comment-form-reply').trigger('click', [content]);
+      await $.when($parent.find('button.comment-form-reply').trigger('click'))
       easyMDE = getAttachedEasyMDE($parent.find('[name="content"]'));
     } else {
       // for normal issue/comment page
