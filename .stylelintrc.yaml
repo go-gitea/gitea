@@ -1,6 +1,9 @@
 plugins:
   - stylelint-declaration-strict-value
 
+ignoreFiles:
+  - "**/*.go"
+
 overrides:
   - files: ["**/*.less"]
     customSyntax: postcss-less
