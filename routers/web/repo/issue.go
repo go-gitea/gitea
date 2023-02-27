@@ -12,6 +12,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/url"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -1987,7 +1988,24 @@ func UpdateIssueTimeEstimate(ctx *context.Context) {
 		return
 	}
 
-	total := issue.TimeEstimateFromStr(ctx.FormString("time_estimate"))
+	timeStr := ctx.FormString("time_estimate")
+
+	// Validate input
+	rTimeStr := regexp.MustCompile(`^([\d]+w)?\s?([\d]+d)?\s?([\d]+h)?\s?([\d]+m)?$`)
+	if !rTimeStr.MatchString(timeStr) {
+		ctx.JSON(http.StatusOK, map[string]interface{}{
+			"status": "ok",
+		})
+	}
+
+	total := issue.TimeEstimateFromStr(timeStr)
+
+	// User entered something wrong
+	if total == 0 && len(timeStr) != 0 {
+		ctx.JSON(http.StatusOK, map[string]interface{}{
+			"status": "ok",
+		})
+	}
 
 	if issue.TimeEstimate == total {
 		ctx.JSON(http.StatusOK, map[string]interface{}{
