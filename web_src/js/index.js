@@ -90,7 +90,7 @@ import {initFormattingReplacements} from './features/formatting.js';
 import {initCopyContent} from './features/copycontent.js';
 import {initCaptcha} from './features/captcha.js';
 import {initRepositoryActionView} from './components/RepoActionView.vue';
-import {initTagNameEditor} from './features/tag-editor.js';
+import {initTagNameEditor} from './features/tag-name-editor.js';
 
 // Run time-critical code as soon as possible. This is safe to do because this
 // script appears at the end of <body> and rendered HTML is accessible at that point.
