@@ -455,7 +455,7 @@ export function initRepoPullRequestReview() {
 
   $(document).on('click', 'button.comment-form-reply', async function (e) {
     e.preventDefault();
-    
+
     hideElem($(this));
     const form = $(this).closest('.comment-code-cloud').find('.comment-form');
     form.removeClass('gt-hidden');
