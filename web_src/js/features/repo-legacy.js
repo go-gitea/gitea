@@ -85,12 +85,18 @@ export function initRepoCommentForm() {
   }
 
   (async () => {
+    const $statusButton = $('#status-button');
     for (const textarea of $commentForm.find('textarea:not(.review-textarea, .no-easymde)')) {
       // Don't initialize EasyMDE for the dormant #edit-content-form
       if (textarea.closest('#edit-content-form')) {
         continue;
       }
-      const easyMDE = await createCommentEasyMDE(textarea);
+      const easyMDE = await createCommentEasyMDE(textarea, {
+        'onChange': () => {
+          const value = easyMDE?.value().trim();
+          $statusButton.text($statusButton.attr(value.length === 0 ? 'data-status' : 'data-status-and-comment'));
+        },
+      });
       initEasyMDEImagePaste(easyMDE, $commentForm.find('.dropzone'));
     }
   })();

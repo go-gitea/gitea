@@ -854,6 +854,7 @@ Default templates for project boards:
 - `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket only available when STORAGE_TYPE is `minio`
 - `MINIO_BASE_PATH`: **attachments/**: Minio base path on the bucket only available when STORAGE_TYPE is `minio`
 - `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when STORAGE_TYPE is `minio`
+- `MINIO_INSECURE_SKIP_VERIFY`: **false**: Minio skip SSL verification available when STORAGE_TYPE is `minio`
 
 ## Log (`log`)
 
@@ -1268,6 +1269,7 @@ is `data/lfs` and the default of `MINIO_BASE_PATH` is `lfs/`.
 - `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket only available when `STORAGE_TYPE` is `minio`
 - `MINIO_BASE_PATH`: **lfs/**: Minio base path on the bucket only available when `STORAGE_TYPE` is `minio`
 - `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when `STORAGE_TYPE` is `minio`
+- `MINIO_INSECURE_SKIP_VERIFY`: **false**: Minio skip SSL verification available when STORAGE_TYPE is `minio`
 
 ## Storage (`storage`)
 
@@ -1280,6 +1282,7 @@ Default storage configuration for attachments, lfs, avatars and etc.
 - `MINIO_BUCKET`: **gitea**: Minio bucket to store the data only available when `STORAGE_TYPE` is `minio`
 - `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket only available when `STORAGE_TYPE` is `minio`
 - `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when `STORAGE_TYPE` is `minio`
+- `MINIO_INSECURE_SKIP_VERIFY`: **false**: Minio skip SSL verification available when STORAGE_TYPE is `minio`
 
 And you can also define a customize storage like below:
 
@@ -1298,6 +1301,8 @@ MINIO_BUCKET = gitea
 MINIO_LOCATION = us-east-1
 ; Minio enabled ssl only available when STORAGE_TYPE is `minio`
 MINIO_USE_SSL = false
+; Minio skip SSL verification available when STORAGE_TYPE is `minio`
+MINIO_INSECURE_SKIP_VERIFY = false
 ```
 
 And used by `[attachment]`, `[lfs]` and etc. as `STORAGE_TYPE`.
@@ -1318,6 +1323,7 @@ is `data/repo-archive` and the default of `MINIO_BASE_PATH` is `repo-archive/`.
 - `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket only available when `STORAGE_TYPE` is `minio`
 - `MINIO_BASE_PATH`: **repo-archive/**: Minio base path on the bucket only available when `STORAGE_TYPE` is `minio`
 - `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when `STORAGE_TYPE` is `minio`
+- `MINIO_INSECURE_SKIP_VERIFY`: **false**: Minio skip SSL verification available when STORAGE_TYPE is `minio`
 
 ## Proxy (`proxy`)
 
