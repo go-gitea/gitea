@@ -2535,16 +2535,18 @@ func (issue *Issue) HasOriginalAuthor() bool {
 	return issue.OriginalAuthor != "" && issue.OriginalAuthorID != 0
 }
 
+var (
+	// Time match regex
+	rOnlyHours = regexp.MustCompile(`^([\d]+)$`)
+	rWeeks = regexp.MustCompile(`([\d]+)w`)
+	rDays = regexp.MustCompile(`([\d]+)d`)
+	rHours = regexp.MustCompile(`([\d]+)h`)
+	rMinutes = regexp.MustCompile(`([\d]+)m`)
+)
+
 // TimeEstimateFromStr returns time estimate in seconds from formatted string
 func (issue *Issue) TimeEstimateFromStr(timeStr string) int64 {
 	timeTotal := 0
-
-	// Time match regex
-	rOnlyHours := regexp.MustCompile(`^([\d]+)$`)
-	rWeeks := regexp.MustCompile(`([\d]+)w`)
-	rDays := regexp.MustCompile(`([\d]+)d`)
-	rHours := regexp.MustCompile(`([\d]+)h`)
-	rMinutes := regexp.MustCompile(`([\d]+)m`)
 
 	// If single number entered, assume hours
 	timeStrMatches := rOnlyHours.FindStringSubmatch(timeStr)
