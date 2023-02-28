@@ -1988,29 +1988,31 @@ func UpdateIssueTimeEstimate(ctx *context.Context) {
 		return
 	}
 
+	url := issue.Link()
+
 	timeStr := ctx.FormString("time_estimate")
 
 	// Validate input
 	rTimeStr := regexp.MustCompile(`^([\d]+w)?\s?([\d]+d)?\s?([\d]+h)?\s?([\d]+m)?$`)
-	if !rTimeStr.MatchString(timeStr) {
-		ctx.JSON(http.StatusOK, map[string]interface{}{
-			"status": "ok",
-		})
+	rTimeStrHoursOnly := regexp.MustCompile(`^([\d]+)$`)
+	if !rTimeStr.MatchString(timeStr) && !rTimeStrHoursOnly.MatchString(timeStr) {
+		ctx.Flash.Error(ctx.Tr("repo.issues.time_estimate_invalid"))
+		ctx.Redirect(url, http.StatusSeeOther)
+		return
 	}
 
 	total := issue.TimeEstimateFromStr(timeStr)
 
 	// User entered something wrong
 	if total == 0 && len(timeStr) != 0 {
-		ctx.JSON(http.StatusOK, map[string]interface{}{
-			"status": "ok",
-		})
+		ctx.Flash.Error(ctx.Tr("repo.issues.time_estimate_invalid"))
+		ctx.Redirect(url, http.StatusSeeOther)
+		return
 	}
 
+	// No time changed
 	if issue.TimeEstimate == total {
-		ctx.JSON(http.StatusOK, map[string]interface{}{
-			"status": "ok",
-		})
+		ctx.Redirect(url, http.StatusSeeOther)
 		return
 	}
 
@@ -2019,9 +2021,7 @@ func UpdateIssueTimeEstimate(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"status": "ok",
-	})
+	ctx.Redirect(url, http.StatusSeeOther)
 }
 
 // UpdateIssueRef change issue's ref (branch)

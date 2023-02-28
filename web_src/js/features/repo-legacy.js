@@ -4,7 +4,7 @@ import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 import {initEasyMDEImagePaste} from './comp/ImagePaste.js';
 import {
   initRepoIssueBranchSelect, initRepoIssueCodeCommentCancel, initRepoIssueCommentDelete,
-  initRepoIssueComments, initRepoIssueDependencyDelete, initRepoIssueTimeEstimateEdit, initRepoIssueReferenceIssue,
+  initRepoIssueComments, initRepoIssueDependencyDelete, initRepoIssueReferenceIssue,
   initRepoIssueStatusButton, initRepoIssueTitleEdit, initRepoIssueWipToggle,
   initRepoPullRequestUpdate, updateIssuesMeta,
 } from './repo-issue.js';
@@ -562,7 +562,6 @@ export function initRepository() {
     initRepoIssueTitleEdit();
     initRepoIssueWipToggle();
     initRepoIssueComments();
-    initRepoIssueTimeEstimateEdit();
 
     initRepoDiffConversationNav();
     initRepoIssueReferenceIssue();

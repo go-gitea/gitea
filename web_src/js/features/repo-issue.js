@@ -639,23 +639,6 @@ export function initRepoIssueTitleEdit() {
   });
 }
 
-export function initRepoIssueTimeEstimateEdit() {
-  $('#set_time_estimate_form').on('submit', function(e) {
-    e.preventDefault();
-
-    const timeEstimate = $(this).find('[name=time_estimate]').val();
-
-    $.post($(this).attr('action'), {
-      _csrf: csrfToken,
-      time_estimate: timeEstimate,
-    }).always(() => {
-      window.location.reload();
-    });
-
-    return false;
-  });
-}
-
 export function initRepoIssueBranchSelect() {
   const changeBranchSelect = function () {
     const selectionTextField = $('#pull-target-branch');
