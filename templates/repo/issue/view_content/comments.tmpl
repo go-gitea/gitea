@@ -1,5 +1,6 @@
 {{template "base/alert"}}
-{{range .Issue.Comments}}
+<div>
+{{range $idx, $comment := .Issue.Comments}}
 	{{if call $.ShouldShowCommentType .Type}}
 		{{$createdStr:= TimeSinceUnix .CreatedUnix $.locale}}
 
@@ -117,6 +118,9 @@
 					{{end}}
 				</span>
 			</div>
+			{{if and .Issue.IsClosed (eq $.LatestCloseCommentIndex $idx)}}
+				{{break}}
+			{{end}}
 		{{else if eq .Type 28}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge gt-bg-purple gt-text-white">{{svg "octicon-git-merge"}}</span>
@@ -796,3 +800,4 @@
 		{{end}}
 	{{end}}
 {{end}}
+</div>

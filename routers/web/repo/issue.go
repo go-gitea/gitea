@@ -1420,11 +1420,11 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	var (
-		role         issues_model.RoleDescriptor
-		ok           bool
-		marked       = make(map[int64]issues_model.RoleDescriptor)
-		comment      *issues_model.Comment
-		participants = make([]*user_model.User, 1, 10)
+		role                    issues_model.RoleDescriptor
+		ok                      bool
+		marked                  = make(map[int64]issues_model.RoleDescriptor)
+		participants            = make([]*user_model.User, 1, 10)
+		latestCloseCommentIndex int
 	)
 	if ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
 		if ctx.IsSigned {
@@ -1468,7 +1468,7 @@ func ViewIssue(ctx *context.Context) {
 
 	// Render comments and and fetch participants.
 	participants[0] = issue.Poster
-	for _, comment = range issue.Comments {
+	for i, comment := range issue.Comments {
 		comment.Issue = issue
 
 		if err := comment.LoadPoster(ctx); err != nil {
@@ -1622,8 +1622,13 @@ func ViewIssue(ctx *context.Context) {
 			comment.Type == issues_model.CommentTypeStopTracking {
 			// drop error since times could be pruned from DB..
 			_ = comment.LoadTime()
+		} else if comment.Type == issues_model.CommentTypeClose {
+			// record latest index of close comment.
+			latestCloseCommentIndex = i
 		}
 	}
+
+	ctx.Data["LatestCloseCommentIndex"] = latestCloseCommentIndex
 
 	// Combine multiple label assignments into a single comment
 	combineLabelComments(issue)
