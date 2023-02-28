@@ -2536,12 +2536,12 @@ func (issue *Issue) HasOriginalAuthor() bool {
 }
 
 var (
-	// Time match regex
-	rOnlyHours = regexp.MustCompile(`^([\d]+)$`)
-	rWeeks = regexp.MustCompile(`([\d]+)w`)
-	rDays = regexp.MustCompile(`([\d]+)d`)
-	rHours = regexp.MustCompile(`([\d]+)h`)
-	rMinutes = regexp.MustCompile(`([\d]+)m`)
+	// Time estimate match regex
+	rTimeEstimateOnlyHours = regexp.MustCompile(`^([\d]+)$`)
+	rTimeEstimateWeeks     = regexp.MustCompile(`([\d]+)w`)
+	rTimeEstimateDays      = regexp.MustCompile(`([\d]+)d`)
+	rTimeEstimateHours     = regexp.MustCompile(`([\d]+)h`)
+	rTimeEstimateMinutes   = regexp.MustCompile(`([\d]+)m`)
 )
 
 // TimeEstimateFromStr returns time estimate in seconds from formatted string
@@ -2549,34 +2549,34 @@ func (issue *Issue) TimeEstimateFromStr(timeStr string) int64 {
 	timeTotal := 0
 
 	// If single number entered, assume hours
-	timeStrMatches := rOnlyHours.FindStringSubmatch(timeStr)
+	timeStrMatches := rTimeEstimateOnlyHours.FindStringSubmatch(timeStr)
 	if len(timeStrMatches) > 0 {
 		raw, _ := strconv.Atoi(timeStrMatches[1])
 		timeTotal += raw * (60 * 60)
 	} else {
 		// Find time weeks
-		timeStrMatches = rWeeks.FindStringSubmatch(timeStr)
+		timeStrMatches = rTimeEstimateWeeks.FindStringSubmatch(timeStr)
 		if len(timeStrMatches) > 0 {
 			raw, _ := strconv.Atoi(timeStrMatches[1])
 			timeTotal += raw * (60 * 60 * 24 * 7)
 		}
 
 		// Find time days
-		timeStrMatches = rDays.FindStringSubmatch(timeStr)
+		timeStrMatches = rTimeEstimateDays.FindStringSubmatch(timeStr)
 		if len(timeStrMatches) > 0 {
 			raw, _ := strconv.Atoi(timeStrMatches[1])
 			timeTotal += raw * (60 * 60 * 24)
 		}
 
 		// Find time hours
-		timeStrMatches = rHours.FindStringSubmatch(timeStr)
+		timeStrMatches = rTimeEstimateHours.FindStringSubmatch(timeStr)
 		if len(timeStrMatches) > 0 {
 			raw, _ := strconv.Atoi(timeStrMatches[1])
 			timeTotal += raw * (60 * 60)
 		}
 
 		// Find time minutes
-		timeStrMatches = rMinutes.FindStringSubmatch(timeStr)
+		timeStrMatches = rTimeEstimateMinutes.FindStringSubmatch(timeStr)
 		if len(timeStrMatches) > 0 {
 			raw, _ := strconv.Atoi(timeStrMatches[1])
 			timeTotal += raw * (60)
