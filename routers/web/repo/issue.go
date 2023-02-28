@@ -1977,6 +1977,11 @@ func UpdateIssueTitle(ctx *context.Context) {
 }
 
 // UpdateIssueTimeEstimate change issue's planned time
+var (
+	rTimeEstimateStr          = regexp.MustCompile(`^([\d]+w)?\s?([\d]+d)?\s?([\d]+h)?\s?([\d]+m)?$`)
+	rTimeEstimateStrHoursOnly = regexp.MustCompile(`^([\d]+)$`)
+)
+
 func UpdateIssueTimeEstimate(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
 	if ctx.Written() {
@@ -1993,9 +1998,7 @@ func UpdateIssueTimeEstimate(ctx *context.Context) {
 	timeStr := ctx.FormString("time_estimate")
 
 	// Validate input
-	rTimeStr := regexp.MustCompile(`^([\d]+w)?\s?([\d]+d)?\s?([\d]+h)?\s?([\d]+m)?$`)
-	rTimeStrHoursOnly := regexp.MustCompile(`^([\d]+)$`)
-	if !rTimeStr.MatchString(timeStr) && !rTimeStrHoursOnly.MatchString(timeStr) {
+	if !rTimeEstimateStr.MatchString(timeStr) && !rTimeEstimateStrHoursOnly.MatchString(timeStr) {
 		ctx.Flash.Error(ctx.Tr("repo.issues.time_estimate_invalid"))
 		ctx.Redirect(url, http.StatusSeeOther)
 		return
