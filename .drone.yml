@@ -1006,6 +1006,9 @@ trigger:
   event:
     exclude:
     - cron
+  paths:
+    exclude:
+      - docs/**
 
 steps:
   - name: fetch-tags
@@ -1070,6 +1073,9 @@ trigger:
   event:
     exclude:
     - cron
+  paths:
+    exclude:
+      - docs/**
 
 steps:
   - name: fetch-tags
@@ -1298,6 +1304,9 @@ trigger:
   event:
     exclude:
     - cron
+  paths:
+    exclude:
+      - docs/**
 
 steps:
   - name: fetch-tags
@@ -1362,6 +1371,9 @@ trigger:
   event:
     exclude:
     - cron
+  paths:
+    exclude:
+      - docs/**
 
 steps:
   - name: fetch-tags
@@ -1424,6 +1436,9 @@ trigger:
   event:
     exclude:
     - cron
+  paths:
+    exclude:
+      - docs/**
 
 steps:
   - name: fetch-tags
@@ -1571,6 +1586,9 @@ trigger:
   event:
     exclude:
     - cron
+  paths:
+    exclude:
+      - docs/**
 
 depends_on:
   - docker-linux-amd64-release-version
@@ -1619,6 +1637,9 @@ trigger:
   event:
     exclude:
     - cron
+  paths:
+    exclude:
+      - docs/**
 
 depends_on:
   - docker-linux-amd64-release
