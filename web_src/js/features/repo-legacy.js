@@ -614,6 +614,7 @@ function initRepoIssueCommentEdit() {
 
   // Quote reply
   $(document).on('click', '.quote-reply', async function (event) {
+    event.preventDefault();
     const target = $(this).data('target');
     const quote = $(`#${target}`).text().replace(/\n/g, '\n> ');
     const content = `> ${quote}\n\n`;
@@ -636,6 +637,5 @@ function initRepoIssueCommentEdit() {
         easyMDE.codemirror.setCursor(easyMDE.codemirror.lineCount(), 0);
       });
     }
-    event.preventDefault();
   });
 }

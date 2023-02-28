@@ -418,15 +418,15 @@ function assignMenuAttributes(menu) {
   return id;
 }
 
-export async function handleReply(_this) {
-  hideElem(_this);
-  const form = _this.closest('.comment-code-cloud').find('.comment-form');
+export async function handleReply($el) {
+  hideElem($el);
+  const form = $el.closest('.comment-code-cloud').find('.comment-form');
   form.removeClass('gt-hidden');
   const $textarea = form.find('textarea');
   let easyMDE = getAttachedEasyMDE($textarea);
   if (!easyMDE) {
     await attachTribute($textarea.get(), {mentions: true, emoji: true});
-    easyMDE = await createCommentEasyMDE($textarea);
+    easyMDE = await createCommentEasyMDE($textarea, {'onChange': () => {}});
   }
   $textarea.focus();
   easyMDE.codemirror.focus();
