@@ -67,23 +67,14 @@ func (repos RepositoryList) loadAttributes(ctx context.Context) error {
 		return nil
 	}
 
-	set := make(container.Set[int64])
 	repoIDs := make([]int64, len(repos))
 	for i := range repos {
-		set.Add(repos[i].OwnerID)
 		repoIDs[i] = repos[i].ID
 	}
 
-	// Load owners.
-	users := make(map[int64]*user_model.User, len(set))
-	if err := db.GetEngine(ctx).
-		Where("id > 0").
-		In("id", set.Values()).
-		Find(&users); err != nil {
-		return fmt.Errorf("find users: %w", err)
-	}
-	for i := range repos {
-		repos[i].Owner = users[repos[i].OwnerID]
+	err := repos.LoadOwners(ctx)
+	if err != nil {
+		return err
 	}
 
 	// Load primary language.
@@ -102,6 +93,27 @@ func (repos RepositoryList) loadAttributes(ctx context.Context) error {
 				break
 			}
 		}
+	}
+
+	return nil
+}
+
+func (repos RepositoryList) LoadOwners(ctx context.Context) error {
+
+	set := make(container.Set[int64])
+	for i := range repos {
+		set.Add(repos[i].OwnerID)
+	}
+
+	users := make(map[int64]*user_model.User, len(set))
+	if err := db.GetEngine(ctx).
+		Where("id > 0").
+		In("id", set.Values()).
+		Find(&users); err != nil {
+		return fmt.Errorf("find users: %w", err)
+	}
+	for i := range repos {
+		repos[i].Owner = users[repos[i].OwnerID]
 	}
 
 	return nil

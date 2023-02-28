@@ -200,22 +200,26 @@ func Search(ctx *context.APIContext) {
 	}
 
 	results := make([]*api.Repository, len(repos))
+
+	if err = repos.LoadOwners(ctx); err != nil {
+		ctx.JSON(http.StatusInternalServerError, api.SearchError{
+			OK:    false,
+			Error: err.Error(),
+		})
+		return
+	}
+
+	var accessModes map[int64]perm.AccessMode
+	if accessModes, err = access_model.AccessLevels(ctx, ctx.Doer, repos); err != nil {
+		ctx.JSON(http.StatusInternalServerError, api.SearchError{
+			OK:    false,
+			Error: err.Error(),
+		})
+		return
+	}
+
 	for i, repo := range repos {
-		if err = repo.LoadOwner(ctx); err != nil {
-			ctx.JSON(http.StatusInternalServerError, api.SearchError{
-				OK:    false,
-				Error: err.Error(),
-			})
-			return
-		}
-		accessMode, err := access_model.AccessLevel(ctx, ctx.Doer, repo)
-		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, api.SearchError{
-				OK:    false,
-				Error: err.Error(),
-			})
-		}
-		results[i] = convert.ToRepo(ctx, repo, accessMode)
+		results[i] = convert.ToRepo(ctx, repo, accessModes[repo.ID])
 	}
 	ctx.SetLinkHeader(int(count), opts.PageSize)
 	ctx.SetTotalCountHeader(count)
