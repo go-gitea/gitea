@@ -92,6 +92,16 @@ func index(ctx context.Context, indexer Indexer, repoID int64) error {
 		return err
 	}
 
+	// skip forks from being indexed if setting is enabled
+	if setting.Indexer.RepoIndexerSkipForks && repo.IsFork {
+		return nil
+	}
+
+	// skip mirrors from being indexed if setting is enabled
+	if setting.Indexer.RepoIndexerSkipMirrors && repo.IsMirror {
+		return nil
+	}
+
 	sha, err := getDefaultBranchSha(ctx, repo)
 	if err != nil {
 		return err

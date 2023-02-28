@@ -21,28 +21,32 @@ var Indexer = struct {
 	IssueIndexerName string
 	StartupTimeout   time.Duration
 
-	RepoIndexerEnabled bool
-	RepoType           string
-	RepoPath           string
-	RepoConnStr        string
-	RepoIndexerName    string
-	MaxIndexerFileSize int64
-	IncludePatterns    []glob.Glob
-	ExcludePatterns    []glob.Glob
-	ExcludeVendored    bool
+	RepoIndexerEnabled     bool
+	RepoIndexerSkipForks   bool
+	RepoIndexerSkipMirrors bool
+	RepoType               string
+	RepoPath               string
+	RepoConnStr            string
+	RepoIndexerName        string
+	MaxIndexerFileSize     int64
+	IncludePatterns        []glob.Glob
+	ExcludePatterns        []glob.Glob
+	ExcludeVendored        bool
 }{
 	IssueType:        "bleve",
 	IssuePath:        "indexers/issues.bleve",
 	IssueConnStr:     "",
 	IssueIndexerName: "gitea_issues",
 
-	RepoIndexerEnabled: false,
-	RepoType:           "bleve",
-	RepoPath:           "indexers/repos.bleve",
-	RepoConnStr:        "",
-	RepoIndexerName:    "gitea_codes",
-	MaxIndexerFileSize: 1024 * 1024,
-	ExcludeVendored:    true,
+	RepoIndexerEnabled:     false,
+	RepoIndexerSkipForks:   false,
+	RepoIndexerSkipMirrors: false,
+	RepoType:               "bleve",
+	RepoPath:               "indexers/repos.bleve",
+	RepoConnStr:            "",
+	RepoIndexerName:        "gitea_codes",
+	MaxIndexerFileSize:     1024 * 1024,
+	ExcludeVendored:        true,
 }
 
 func loadIndexerFrom(rootCfg ConfigProvider) {
@@ -65,6 +69,8 @@ func loadIndexerFrom(rootCfg ConfigProvider) {
 	deprecatedSetting(rootCfg, "indexer", "UPDATE_BUFFER_LEN", "queue.issue_indexer", "LENGTH", "v1.19.0")
 
 	Indexer.RepoIndexerEnabled = sec.Key("REPO_INDEXER_ENABLED").MustBool(false)
+	Indexer.RepoIndexerEnabled = sec.Key("REPO_INDEXER_SKIP_FORKS").MustBool(false)
+	Indexer.RepoIndexerEnabled = sec.Key("REPO_INDEXER_SKIP_MIRRORS").MustBool(false)
 	Indexer.RepoType = sec.Key("REPO_INDEXER_TYPE").MustString("bleve")
 	Indexer.RepoPath = filepath.ToSlash(sec.Key("REPO_INDEXER_PATH").MustString(filepath.ToSlash(filepath.Join(AppDataPath, "indexers/repos.bleve"))))
 	if !filepath.IsAbs(Indexer.RepoPath) {
