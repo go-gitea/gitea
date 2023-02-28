@@ -99,7 +99,6 @@ func (repos RepositoryList) loadAttributes(ctx context.Context) error {
 }
 
 func (repos RepositoryList) LoadOwners(ctx context.Context) error {
-
 	set := make(container.Set[int64])
 	for i := range repos {
 		set.Add(repos[i].OwnerID)
