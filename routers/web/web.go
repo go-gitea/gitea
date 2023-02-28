@@ -1069,7 +1069,6 @@ func RegisterRoutes(m *web.Route) {
 		// So they can apply their own enable/disable logic on routers.
 		m.Group("/{type:issues|pulls}", func() {
 			m.Group("/{index}", func() {
-				m.Post("/time_estimate", repo.UpdateIssueTimeEstimate)
 				m.Post("/title", repo.UpdateIssueTitle)
 				m.Post("/content", repo.UpdateIssueContent)
 				m.Post("/deadline", web.Bind(structs.EditDeadlineOption{}), repo.UpdateIssueDeadline)
@@ -1089,6 +1088,7 @@ func RegisterRoutes(m *web.Route) {
 						m.Post("/cancel", repo.CancelStopwatch)
 					})
 				})
+				m.Post("/time_estimate", repo.UpdateIssueTimeEstimate)
 				m.Post("/reactions/{action}", web.Bind(forms.ReactionForm{}), repo.ChangeIssueReaction)
 				m.Post("/lock", reqRepoIssuesOrPullsWriter, web.Bind(forms.IssueLockForm{}), repo.LockIssue)
 				m.Post("/unlock", reqRepoIssuesOrPullsWriter, repo.UnlockIssue)
