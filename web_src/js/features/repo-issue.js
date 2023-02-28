@@ -426,7 +426,7 @@ export async function handleReply($el) {
   let easyMDE = getAttachedEasyMDE($textarea);
   if (!easyMDE) {
     await attachTribute($textarea.get(), {mentions: true, emoji: true});
-    easyMDE = await createCommentEasyMDE($textarea, {'onChange': () => {}});
+    easyMDE = await createCommentEasyMDE($textarea);
   }
   $textarea.focus();
   easyMDE.codemirror.focus();
