@@ -9,7 +9,7 @@ import (
 
 func AddTimeEstimateColumnToIssueTable(x *xorm.Engine) error {
 	type Issue struct {
-		TimeEstimate int64
+		TimeEstimate int64 `xorm:"NOT NULL DEFAULT 0"`
 	}
 
 	return x.Sync(new(Issue))
@@ -17,8 +17,8 @@ func AddTimeEstimateColumnToIssueTable(x *xorm.Engine) error {
 
 func AddColumnsToCommentTable(x *xorm.Engine) error {
 	type Comment struct {
-		TimeTracked  int64
-		TimeEstimate int64
+		TimeTracked  int64 `xorm:"NOT NULL DEFAULT 0"`
+		TimeEstimate int64 `xorm:"NOT NULL DEFAULT 0"`
 	}
 
 	return x.Sync(new(Comment))

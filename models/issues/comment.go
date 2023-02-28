@@ -247,7 +247,7 @@ type Comment struct {
 	Milestone        *Milestone `xorm:"-"`
 	TimeID           int64
 	Time             *TrackedTime `xorm:"-"`
-	TimeTracked      int64
+	TimeTracked      int64        `xorm:"NOT NULL DEFAULT 0"`
 	AssigneeID       int64
 	RemovedAssignee  bool
 	Assignee         *user_model.User   `xorm:"-"`
@@ -306,7 +306,7 @@ type Comment struct {
 	CommitsNum  int64                               `xorm:"-"`
 	IsForcePush bool                                `xorm:"-"`
 
-	TimeEstimate int64
+	TimeEstimate int64 `xorm:"NOT NULL DEFAULT 0"`
 }
 
 func init() {

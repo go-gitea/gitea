@@ -150,7 +150,7 @@ type Issue struct {
 	ShowRole RoleDescriptor `xorm:"-"`
 
 	// Time estimate
-	TimeEstimate int64
+	TimeEstimate int64 `xorm:"NOT NULL DEFAULT 0"`
 }
 
 var (
