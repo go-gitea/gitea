@@ -24,16 +24,3 @@ func mustMapSetting(rootCfg ConfigProvider, sectionName string, setting interfac
 		log.Fatal("Failed to map %s settings: %v", sectionName, err)
 	}
 }
-
-func deprecatedSetting(rootCfg ConfigProvider, oldSection, oldKey, newSection, newKey, version string) {
-	if rootCfg.Section(oldSection).HasKey(oldKey) {
-		log.Error("Deprecated fallback `[%s]` `%s` present. Use `[%s]` `%s` instead. This fallback will be/has been removed in %s", oldSection, oldKey, newSection, newKey, version)
-	}
-}
-
-// deprecatedSettingDB add a hint that the configuration has been moved to database but still kept in app.ini
-func deprecatedSettingDB(rootCfg ConfigProvider, oldSection, oldKey string) {
-	if rootCfg.Section(oldSection).HasKey(oldKey) {
-		log.Error("Deprecated `[%s]` `%s` present which has been copied to database table sys_setting", oldSection, oldKey)
-	}
-}

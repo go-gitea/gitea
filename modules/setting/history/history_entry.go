@@ -45,5 +45,5 @@ func (e *historyEntry) getReplacementHint() string {
 // - %[4]s: new settings value
 // - %[5]s: new setting source
 func (e *historyEntry) getTemplateLogMessage() string {
-	return "The setting %[1]s in %[2]s is no longer used since Gitea %[3]s. " + e.getReplacementHint()
+	return "The setting %[1]s in %[2]s is no longer used starting with Gitea %[3]s. " + e.getReplacementHint()
 }

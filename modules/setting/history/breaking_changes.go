@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 package history
+
 // This file is the only file that should be changed frequently in this package
 
 var currentGiteaVersion = getVersion("1.19")
@@ -44,7 +45,7 @@ func init() {
 
 	PurgeIniSettings("1.18", "U2F", "APP_ID")
 	MoveIniSettingsToDB("1.18", "picture", "ENABLE_FEDERATED_AVATAR", "DISABLE_GRAVATAR")
-	MoveIniSettingInSection("1.18", "mailer", "HOST", "SMTP_ADDR+SMTP_PORT")
+	MoveIniSettingInSection("1.18", "mailer", "HOST", "SMTP_ADDR")
 	MoveIniSettingInSection("1.18", "mailer", "MAILER_TYPE", "PROTOCOL")
 	MoveIniSettingInSection("1.18", "mailer", "IS_TLS_ENABLED", "PROTOCOL")
 	MoveIniSettingInSection("1.18", "mailer", "DISABLE_HELO", "ENABLE_HELO")
@@ -52,6 +53,15 @@ func init() {
 	MoveIniSettingInSection("1.18", "mailer", "USE_CERTIFICATE", "USE_CLIENT_CERT")
 	MoveIniSettingInSection("1.18", "mailer", "CERT_FILE", "CLIENT_CERT_FILE")
 	MoveIniSettingInSection("1.18", "mailer", "KEY_FILE", "CLIENT_KEY_FILE")
+	MoveIniSettingInSection("1.18", "server", "ENABLE_LETSENCRYPT", "ENABLE_ACME")
+	MoveIniSettingInSection("1.18", "server", "LETSENCRYPT_ACCEPTTOS", "ACME_ACCEPTTOS")
+	MoveIniSettingInSection("1.18", "server", "LETSENCRYPT_DIRECTORY", "ACME_DIRECTORY")
+	MoveIniSettingInSection("1.18", "server", "LETSENCRYPT_EMAIL", "ACME_EMAIL")
+	MoveIniSetting("1.18", "server", "LFS_CONTENT_PATH", "lfs", "PATH")
+	MoveIniSetting("1.18", "task", "QUEUE_TYPE", "queue.task", "TYPE")
+	MoveIniSetting("1.18", "task", "QUEUE_CONN_STR", "queue.task", "CONN_STR")
+	MoveIniSetting("1.18", "task", "QUEUE_LENGTH", "queue.task", "LENGTH")
+	MoveIniSetting("1.18", "repository", "DISABLE_MIRRORS", "mirror", "ENABLED")
 
 	PurgeIniSettings("1.19", "ui", "ONLY_SHOW_RELEVANT_REPOS")
 }

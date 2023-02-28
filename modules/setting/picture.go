@@ -60,9 +60,7 @@ func loadPictureFrom(rootCfg ConfigProvider) {
 	}
 
 	DisableGravatar = sec.Key("DISABLE_GRAVATAR").MustBool(GetDefaultDisableGravatar())
-	deprecatedSettingDB(rootCfg, "", "DISABLE_GRAVATAR")
 	EnableFederatedAvatar = sec.Key("ENABLE_FEDERATED_AVATAR").MustBool(GetDefaultEnableFederatedAvatar(DisableGravatar))
-	deprecatedSettingDB(rootCfg, "", "ENABLE_FEDERATED_AVATAR")
 
 	loadRepoAvatarFrom(rootCfg)
 }

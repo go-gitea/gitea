@@ -179,40 +179,16 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	case "https":
 		Protocol = HTTPS
 
-		// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
-		// if these are removed, the warning will not be shown
-		if sec.HasKey("ENABLE_ACME") {
-			EnableAcme = sec.Key("ENABLE_ACME").MustBool(false)
-		} else {
-			deprecatedSetting(rootCfg, "server", "ENABLE_LETSENCRYPT", "server", "ENABLE_ACME", "v1.19.0")
-			EnableAcme = sec.Key("ENABLE_LETSENCRYPT").MustBool(false)
-		}
+		EnableAcme = sec.Key("ENABLE_ACME").MustBool(false)
 		if EnableAcme {
 			AcmeURL = sec.Key("ACME_URL").MustString("")
 			AcmeCARoot = sec.Key("ACME_CA_ROOT").MustString("")
+			AcmeLiveDirectory = sec.Key("ACME_DIRECTORY").MustString("https")
+			AcmeEmail = sec.Key("ACME_EMAIL").MustString("")
 
-			if sec.HasKey("ACME_ACCEPTTOS") {
-				AcmeTOS = sec.Key("ACME_ACCEPTTOS").MustBool(false)
-			} else {
-				deprecatedSetting(rootCfg, "server", "LETSENCRYPT_ACCEPTTOS", "server", "ACME_ACCEPTTOS", "v1.19.0")
-				AcmeTOS = sec.Key("LETSENCRYPT_ACCEPTTOS").MustBool(false)
-			}
+			AcmeTOS = sec.Key("ACME_ACCEPTTOS").MustBool(false)
 			if !AcmeTOS {
 				log.Fatal("ACME TOS is not accepted (ACME_ACCEPTTOS).")
-			}
-
-			if sec.HasKey("ACME_DIRECTORY") {
-				AcmeLiveDirectory = sec.Key("ACME_DIRECTORY").MustString("https")
-			} else {
-				deprecatedSetting(rootCfg, "server", "LETSENCRYPT_DIRECTORY", "server", "ACME_DIRECTORY", "v1.19.0")
-				AcmeLiveDirectory = sec.Key("LETSENCRYPT_DIRECTORY").MustString("https")
-			}
-
-			if sec.HasKey("ACME_EMAIL") {
-				AcmeEmail = sec.Key("ACME_EMAIL").MustString("")
-			} else {
-				deprecatedSetting(rootCfg, "server", "LETSENCRYPT_EMAIL", "server", "ACME_EMAIL", "v1.19.0")
-				AcmeEmail = sec.Key("LETSENCRYPT_EMAIL").MustString("")
 			}
 		} else {
 			CertFile = sec.Key("CERT_FILE").String()
