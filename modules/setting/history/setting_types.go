@@ -7,14 +7,22 @@ import (
 	"strings"
 )
 
+type settingsSource string
+
+const (
+	settingsSourceINI settingsSource = "ini config file"
+	settingsSourceDB settingsSource = "database table 'system setting'"
+)
+
 type setting interface {
 	String() string // Returns a string representation of the given setting that can be found like that in the given settings source
 	Section() string //  If a type doesn't support sectioning, use "" as the global scope
- // Returns the un-normalized section this setting belongs to as passed in the init method below.
+ // Returns the un-normalized section this setting belongs to as passed in the init method of this package.
  // There might be settings that don't conform with the normalization (which is why they are replaced)
 	Key() string // The un-normalized key of this setting
 	IsNormalized() bool
 	Normalize()
+	Source() settingsSource // What type is it contained in? app.ini, db, …
 }
 
 // A setting that is contained in the app.ini
@@ -54,6 +62,10 @@ func (s *iniSetting) Key() string {
 	return s.key
 }
 
+func (_ *iniSetting) Source() settingsSource {
+	return settingsSourceINI
+}
+
 // A setting that is stored in the database
 type dbSetting struct {
 	section, key string
@@ -91,3 +103,6 @@ func (s *dbSetting) Key() string {
 	return s.key
 }
 
+func (_ *dbSetting) Source() settingsSource {
+	return settingsSourceDB
+}
