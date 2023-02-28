@@ -10,7 +10,7 @@ tasks:
   - name: Run backend
     command: |
       gp sync-await setup
-      if [[ ! -f custom/conf/app.ini ]]
+      if [ ! -f custom/conf/app.ini ]
       then
         mkdir -p custom/conf/
         echo -e "[server]\nROOT_URL=$(gp url 3000)/" > custom/conf/app.ini
