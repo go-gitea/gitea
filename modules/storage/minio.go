@@ -5,7 +5,9 @@ package storage
 
 import (
 	"context"
+	"crypto/tls"
 	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"path"
@@ -42,13 +44,14 @@ const MinioStorageType Type = "minio"
 
 // MinioStorageConfig represents the configuration for a minio storage
 type MinioStorageConfig struct {
-	Endpoint        string `ini:"MINIO_ENDPOINT"`
-	AccessKeyID     string `ini:"MINIO_ACCESS_KEY_ID"`
-	SecretAccessKey string `ini:"MINIO_SECRET_ACCESS_KEY"`
-	Bucket          string `ini:"MINIO_BUCKET"`
-	Location        string `ini:"MINIO_LOCATION"`
-	BasePath        string `ini:"MINIO_BASE_PATH"`
-	UseSSL          bool   `ini:"MINIO_USE_SSL"`
+	Endpoint           string `ini:"MINIO_ENDPOINT"`
+	AccessKeyID        string `ini:"MINIO_ACCESS_KEY_ID"`
+	SecretAccessKey    string `ini:"MINIO_SECRET_ACCESS_KEY"`
+	Bucket             string `ini:"MINIO_BUCKET"`
+	Location           string `ini:"MINIO_LOCATION"`
+	BasePath           string `ini:"MINIO_BASE_PATH"`
+	UseSSL             bool   `ini:"MINIO_USE_SSL"`
+	InsecureSkipVerify bool   `ini:"MINIO_INSECURE_SKIP_VERIFY"`
 }
 
 // MinioStorage returns a minio bucket storage
@@ -90,8 +93,9 @@ func NewMinioStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error
 	log.Info("Creating Minio storage at %s:%s with base path %s", config.Endpoint, config.Bucket, config.BasePath)
 
 	minioClient, err := minio.New(config.Endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(config.AccessKeyID, config.SecretAccessKey, ""),
-		Secure: config.UseSSL,
+		Creds:     credentials.NewStaticV4(config.AccessKeyID, config.SecretAccessKey, ""),
+		Secure:    config.UseSSL,
+		Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.InsecureSkipVerify}},
 	})
 	if err != nil {
 		return nil, convertMinioErr(err)
