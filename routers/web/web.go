@@ -203,7 +203,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 	}
 
 	// Get user from session if logged in.
-	common = append(common, context.Auth(group))
+	common = append(common, auth_service.Auth(group))
 
 	// GetHead allows a HEAD request redirect to GET if HEAD method is not defined for that route
 	common = append(common, middleware.GetHead)
@@ -472,6 +472,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/initialize", user_setting.InitializeCargoIndex)
 				m.Post("/rebuild", user_setting.RebuildCargoIndex)
 			})
+			m.Post("/chef/regenerate_keypair", user_setting.RegenerateChefKeyPair)
 		}, packagesEnabled)
 		m.Group("/secrets", func() {
 			m.Get("", user_setting.Secrets)
@@ -1285,6 +1286,7 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
 				})
 				m.Post("/cancel", reqRepoActionsWriter, actions.Cancel)
+				m.Post("/approve", reqRepoActionsWriter, actions.Approve)
 			})
 		}, reqRepoActionsReader, actions.MustEnableActions)
 

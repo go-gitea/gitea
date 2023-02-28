@@ -143,7 +143,7 @@ func ChangeRepositoryName(doer *user_model.User, repo *Repository, newRepoName s
 		return err
 	}
 
-	if err := repo.GetOwner(db.DefaultContext); err != nil {
+	if err := repo.LoadOwner(db.DefaultContext); err != nil {
 		return err
 	}
 

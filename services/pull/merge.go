@@ -98,6 +98,9 @@ func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr
 				}
 				for _, ref := range refs {
 					if ref.RefAction == references.XRefActionCloses {
+						if err := ref.LoadIssue(ctx); err != nil {
+							return "", "", err
+						}
 						closeIssueIndexes = append(closeIssueIndexes, fmt.Sprintf("%s %s%d", closeWord, issueReference, ref.Issue.Index))
 					}
 				}
@@ -196,8 +199,8 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	if err := pr.Issue.LoadRepo(hammerCtx); err != nil {
 		log.Error("LoadRepo for issue [%d]: %v", pr.ID, err)
 	}
-	if err := pr.Issue.Repo.GetOwner(hammerCtx); err != nil {
-		log.Error("GetOwner for PR [%d]: %v", pr.ID, err)
+	if err := pr.Issue.Repo.LoadOwner(hammerCtx); err != nil {
+		log.Error("LoadOwner for PR [%d]: %v", pr.ID, err)
 	}
 
 	if wasAutoMerged {
@@ -530,7 +533,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 		if err := git.NewCommand(ctx, "commit").
 			AddArguments(signArgs...).
 			AddOptionFormat("--author='%s <%s>'", sig.Name, sig.Email).
-			AddOptionValues("-m", message).
+			AddOptionFormat("--message=%s", message).
 			Run(&git.RunOpts{
 				Env:    env,
 				Dir:    tmpBasePath,
@@ -570,7 +573,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 	}
 
 	var headUser *user_model.User
-	err = pr.HeadRepo.GetOwner(ctx)
+	err = pr.HeadRepo.LoadOwner(ctx)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("Can't find user: %d for head repository - %v", pr.HeadRepo.OwnerID, err)
@@ -638,7 +641,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 
 func commitAndSignNoAuthor(ctx context.Context, pr *issues_model.PullRequest, message string, signArgs git.TrustedCmdArgs, tmpBasePath string, env []string) error {
 	var outbuf, errbuf strings.Builder
-	if err := git.NewCommand(ctx, "commit").AddArguments(signArgs...).AddOptionValues("-m", message).
+	if err := git.NewCommand(ctx, "commit").AddArguments(signArgs...).AddOptionFormat("--message=%s", message).
 		Run(&git.RunOpts{
 			Env:    env,
 			Dir:    tmpBasePath,

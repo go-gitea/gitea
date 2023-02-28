@@ -25,6 +25,21 @@ var (
 	logDescriptions = make(map[string]*LogDescription)
 )
 
+// Log settings
+var Log struct {
+	Level              log.Level
+	StacktraceLogLevel string
+	RootPath           string
+	EnableSSHLog       bool
+	EnableXORMLog      bool
+
+	DisableRouterLog bool
+
+	EnableAccessLog   bool
+	AccessLogTemplate string
+	BufferLength      int64
+}
+
 // GetLogDescriptions returns a race safe set of descriptions
 func GetLogDescriptions() map[string]*LogDescription {
 	descriptionLock.RLock()
@@ -94,9 +109,9 @@ type defaultLogOptions struct {
 
 func newDefaultLogOptions() defaultLogOptions {
 	return defaultLogOptions{
-		levelName:      LogLevel.String(),
+		levelName:      Log.Level.String(),
 		flags:          "stdflags",
-		filename:       filepath.Join(LogRootPath, "gitea.log"),
+		filename:       filepath.Join(Log.RootPath, "gitea.log"),
 		bufferLength:   10000,
 		disableConsole: false,
 	}
@@ -125,10 +140,33 @@ func getStacktraceLogLevel(section *ini.Section, key, defaultValue string) strin
 	return log.FromString(value).String()
 }
 
+func loadLogFrom(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("log")
+	Log.Level = getLogLevel(sec, "LEVEL", log.INFO)
+	Log.StacktraceLogLevel = getStacktraceLogLevel(sec, "STACKTRACE_LEVEL", "None")
+	Log.RootPath = sec.Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
+	forcePathSeparator(Log.RootPath)
+	Log.BufferLength = sec.Key("BUFFER_LEN").MustInt64(10000)
+
+	Log.EnableSSHLog = sec.Key("ENABLE_SSH_LOG").MustBool(false)
+	Log.EnableAccessLog = sec.Key("ENABLE_ACCESS_LOG").MustBool(false)
+	Log.AccessLogTemplate = sec.Key("ACCESS_LOG_TEMPLATE").MustString(
+		`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`,
+	)
+	// the `MustString` updates the default value, and `log.ACCESS` is used by `generateNamedLogger("access")` later
+	_ = rootCfg.Section("log").Key("ACCESS").MustString("file")
+
+	sec.Key("ROUTER").MustString("console")
+	// Allow [log]  DISABLE_ROUTER_LOG to override [server] DISABLE_ROUTER_LOG
+	Log.DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool(Log.DisableRouterLog)
+
+	Log.EnableXORMLog = rootCfg.Section("log").Key("ENABLE_XORM_LOG").MustBool(true)
+}
+
 func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions) (mode, jsonConfig, levelName string) {
-	level := getLogLevel(sec, "LEVEL", LogLevel)
+	level := getLogLevel(sec, "LEVEL", Log.Level)
 	levelName = level.String()
-	stacktraceLevelName := getStacktraceLogLevel(sec, "STACKTRACE_LEVEL", StacktraceLogLevel)
+	stacktraceLevelName := getStacktraceLogLevel(sec, "STACKTRACE_LEVEL", Log.StacktraceLogLevel)
 	stacktraceLevel := log.FromString(stacktraceLevelName)
 	mode = name
 	keys := sec.Keys()
@@ -144,7 +182,7 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 			logPath = key.MustString(defaults.filename)
 			forcePathSeparator(logPath)
 			if !filepath.IsAbs(logPath) {
-				logPath = path.Join(LogRootPath, logPath)
+				logPath = path.Join(Log.RootPath, logPath)
 			}
 		case "FLAGS":
 			flags = log.FlagsFromString(key.MustString(defaults.flags))
@@ -213,12 +251,12 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 	return mode, jsonConfig, levelName
 }
 
-func generateNamedLogger(key string, options defaultLogOptions) *LogDescription {
+func generateNamedLogger(rootCfg ConfigProvider, key string, options defaultLogOptions) *LogDescription {
 	description := LogDescription{
 		Name: key,
 	}
 
-	sections := strings.Split(Cfg.Section("log").Key(strings.ToUpper(key)).MustString(""), ",")
+	sections := strings.Split(rootCfg.Section("log").Key(strings.ToUpper(key)).MustString(""), ",")
 
 	for i := 0; i < len(sections); i++ {
 		sections[i] = strings.TrimSpace(sections[i])
@@ -228,9 +266,9 @@ func generateNamedLogger(key string, options defaultLogOptions) *LogDescription 
 		if len(name) == 0 || (name == "console" && options.disableConsole) {
 			continue
 		}
-		sec, err := Cfg.GetSection("log." + name + "." + key)
+		sec, err := rootCfg.GetSection("log." + name + "." + key)
 		if err != nil {
-			sec, _ = Cfg.NewSection("log." + name + "." + key)
+			sec, _ = rootCfg.NewSection("log." + name + "." + key)
 		}
 
 		provider, config, levelName := generateLogConfig(sec, name, options)
@@ -253,46 +291,17 @@ func generateNamedLogger(key string, options defaultLogOptions) *LogDescription 
 	return &description
 }
 
-func newAccessLogService() {
-	EnableAccessLog = Cfg.Section("log").Key("ENABLE_ACCESS_LOG").MustBool(false)
-	AccessLogTemplate = Cfg.Section("log").Key("ACCESS_LOG_TEMPLATE").MustString(
-		`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`,
-	)
-	// the `MustString` updates the default value, and `log.ACCESS` is used by `generateNamedLogger("access")` later
-	_ = Cfg.Section("log").Key("ACCESS").MustString("file")
-	if EnableAccessLog {
-		options := newDefaultLogOptions()
-		options.filename = filepath.Join(LogRootPath, "access.log")
-		options.flags = "" // For the router we don't want any prefixed flags
-		options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
-		generateNamedLogger("access", options)
-	}
-}
-
-func newRouterLogService() {
-	Cfg.Section("log").Key("ROUTER").MustString("console")
-	// Allow [log]  DISABLE_ROUTER_LOG to override [server] DISABLE_ROUTER_LOG
-	DisableRouterLog = Cfg.Section("log").Key("DISABLE_ROUTER_LOG").MustBool(DisableRouterLog)
-
-	if !DisableRouterLog {
-		options := newDefaultLogOptions()
-		options.filename = filepath.Join(LogRootPath, "router.log")
-		options.flags = "date,time" // For the router we don't want any prefixed flags
-		options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
-		generateNamedLogger("router", options)
-	}
-}
-
-func newLogService() {
+// initLogFrom initializes logging with settings from configuration provider
+func initLogFrom(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("log")
 	options := newDefaultLogOptions()
-	options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
-	EnableSSHLog = Cfg.Section("log").Key("ENABLE_SSH_LOG").MustBool(false)
+	options.bufferLength = Log.BufferLength
 
 	description := LogDescription{
 		Name: log.DEFAULT,
 	}
 
-	sections := strings.Split(Cfg.Section("log").Key("MODE").MustString("console"), ",")
+	sections := strings.Split(sec.Key("MODE").MustString("console"), ",")
 
 	useConsole := false
 	for _, name := range sections {
@@ -304,11 +313,11 @@ func newLogService() {
 			useConsole = true
 		}
 
-		sec, err := Cfg.GetSection("log." + name + ".default")
+		sec, err := rootCfg.GetSection("log." + name + ".default")
 		if err != nil {
-			sec, err = Cfg.GetSection("log." + name)
+			sec, err = rootCfg.GetSection("log." + name)
 			if err != nil {
-				sec, _ = Cfg.NewSection("log." + name)
+				sec, _ = rootCfg.NewSection("log." + name)
 			}
 		}
 
@@ -340,27 +349,45 @@ func newLogService() {
 // RestartLogsWithPIDSuffix restarts the logs with a PID suffix on files
 func RestartLogsWithPIDSuffix() {
 	filenameSuffix = fmt.Sprintf(".%d", os.Getpid())
-	NewLogServices(false)
+	InitLogs(false)
 }
 
-// NewLogServices creates all the log services
-func NewLogServices(disableConsole bool) {
-	newLogService()
-	newRouterLogService()
-	newAccessLogService()
-	NewXORMLogService(disableConsole)
-}
+// InitLogs creates all the log services
+func InitLogs(disableConsole bool) {
+	initLogFrom(CfgProvider)
 
-// NewXORMLogService initializes xorm logger service
-func NewXORMLogService(disableConsole bool) {
-	EnableXORMLog = Cfg.Section("log").Key("ENABLE_XORM_LOG").MustBool(true)
-	if EnableXORMLog {
+	if !Log.DisableRouterLog {
 		options := newDefaultLogOptions()
-		options.filename = filepath.Join(LogRootPath, "xorm.log")
-		options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
+		options.filename = filepath.Join(Log.RootPath, "router.log")
+		options.flags = "date,time" // For the router we don't want any prefixed flags
+		options.bufferLength = Log.BufferLength
+		generateNamedLogger(CfgProvider, "router", options)
+	}
+
+	if Log.EnableAccessLog {
+		options := newDefaultLogOptions()
+		options.filename = filepath.Join(Log.RootPath, "access.log")
+		options.flags = "" // For the router we don't want any prefixed flags
+		options.bufferLength = Log.BufferLength
+		generateNamedLogger(CfgProvider, "access", options)
+	}
+
+	initSQLLogFrom(CfgProvider, disableConsole)
+}
+
+// InitSQLLog initializes xorm logger setting
+func InitSQLLog(disableConsole bool) {
+	initSQLLogFrom(CfgProvider, disableConsole)
+}
+
+func initSQLLogFrom(rootCfg ConfigProvider, disableConsole bool) {
+	if Log.EnableXORMLog {
+		options := newDefaultLogOptions()
+		options.filename = filepath.Join(Log.RootPath, "xorm.log")
+		options.bufferLength = Log.BufferLength
 		options.disableConsole = disableConsole
 
-		Cfg.Section("log").Key("XORM").MustString(",")
-		generateNamedLogger("xorm", options)
+		rootCfg.Section("log").Key("XORM").MustString(",")
+		generateNamedLogger(rootCfg, "xorm", options)
 	}
 }
