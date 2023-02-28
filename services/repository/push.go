@@ -34,11 +34,8 @@ var pushQueue queue.Queue
 // handle passed PR IDs and test the PRs
 func handle(data ...queue.Data) []queue.Data {
 	for _, datum := range data {
-		// use new context every loop, to avoid keeping cache data forever
-		ctx := cache.WithCacheContext(db.DefaultContext)
-
 		opts := datum.([]*repo_module.PushUpdateOptions)
-		if err := pushUpdates(ctx, opts); err != nil {
+		if err := pushUpdates(opts); err != nil {
 			log.Error("pushUpdate failed: %v", err)
 		}
 	}
@@ -76,7 +73,7 @@ func PushUpdates(opts []*repo_module.PushUpdateOptions) error {
 }
 
 // pushUpdates generates push action history feeds for push updating multiple refs
-func pushUpdates(ctx context.Context, optsList []*repo_module.PushUpdateOptions) error {
+func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	if len(optsList) == 0 {
 		return nil
 	}
@@ -125,7 +122,7 @@ func pushUpdates(ctx context.Context, optsList []*repo_module.PushUpdateOptions)
 			tagName := opts.TagName()
 			if opts.IsDelRef() {
 				notification.NotifyPushCommits(
-					ctx, pusher, repo,
+					db.DefaultContext, pusher, repo,
 					&repo_module.PushUpdateOptions{
 						RefFullName: git.TagPrefix + tagName,
 						OldCommitID: opts.OldCommitID,
@@ -133,7 +130,7 @@ func pushUpdates(ctx context.Context, optsList []*repo_module.PushUpdateOptions)
 					}, repo_module.NewPushCommits())
 
 				delTags = append(delTags, tagName)
-				notification.NotifyDeleteRef(ctx, pusher, repo, "tag", opts.RefFullName)
+				notification.NotifyDeleteRef(db.DefaultContext, pusher, repo, "tag", opts.RefFullName)
 			} else { // is new tag
 				newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
 				if err != nil {
@@ -145,7 +142,7 @@ func pushUpdates(ctx context.Context, optsList []*repo_module.PushUpdateOptions)
 				commits.CompareURL = repo.ComposeCompareURL(git.EmptySHA, opts.NewCommitID)
 
 				notification.NotifyPushCommits(
-					ctx, pusher, repo,
+					db.DefaultContext, pusher, repo,
 					&repo_module.PushUpdateOptions{
 						RefFullName: git.TagPrefix + tagName,
 						OldCommitID: git.EmptySHA,
@@ -153,7 +150,7 @@ func pushUpdates(ctx context.Context, optsList []*repo_module.PushUpdateOptions)
 					}, commits)
 
 				addTags = append(addTags, tagName)
-				notification.NotifyCreateRef(ctx, pusher, repo, "tag", opts.RefFullName, opts.NewCommitID)
+				notification.NotifyCreateRef(db.DefaultContext, pusher, repo, "tag", opts.RefFullName, opts.NewCommitID)
 			}
 		} else if opts.IsBranch() { // If is branch reference
 			if pusher == nil || pusher.ID != opts.PusherID {
@@ -193,7 +190,7 @@ func pushUpdates(ctx context.Context, optsList []*repo_module.PushUpdateOptions)
 							}
 						}
 						// Update the is empty and default_branch columns
-						if err := repo_model.UpdateRepositoryCols(ctx, repo, "default_branch", "is_empty"); err != nil {
+						if err := repo_model.UpdateRepositoryCols(db.DefaultContext, repo, "default_branch", "is_empty"); err != nil {
 							return fmt.Errorf("UpdateRepositoryCols: %w", err)
 						}
 					}
@@ -202,7 +199,7 @@ func pushUpdates(ctx context.Context, optsList []*repo_module.PushUpdateOptions)
 					if err != nil {
 						return fmt.Errorf("newCommit.CommitsBeforeLimit: %w", err)
 					}
-					notification.NotifyCreateRef(ctx, pusher, repo, "branch", opts.RefFullName, opts.NewCommitID)
+					notification.NotifyCreateRef(db.DefaultContext, pusher, repo, "branch", opts.RefFullName, opts.NewCommitID)
 				} else {
 					l, err = newCommit.CommitsBeforeUntil(opts.OldCommitID)
 					if err != nil {
@@ -262,7 +259,7 @@ func pushUpdates(ctx context.Context, optsList []*repo_module.PushUpdateOptions)
 					commits.Commits = commits.Commits[:setting.UI.FeedMaxCommitNum]
 				}
 
-				notification.NotifyPushCommits(ctx, pusher, repo, opts, commits)
+				notification.NotifyPushCommits(db.DefaultContext, pusher, repo, opts, commits)
 
 				if err = git_model.RemoveDeletedBranchByName(ctx, repo.ID, branch); err != nil {
 					log.Error("models.RemoveDeletedBranch %s/%s failed: %v", repo.ID, branch, err)
@@ -273,7 +270,7 @@ func pushUpdates(ctx context.Context, optsList []*repo_module.PushUpdateOptions)
 					log.Error("repo_module.CacheRef %s/%s failed: %v", repo.ID, branch, err)
 				}
 			} else {
-				notification.NotifyDeleteRef(ctx, pusher, repo, "branch", opts.RefFullName)
+				notification.NotifyDeleteRef(db.DefaultContext, pusher, repo, "branch", opts.RefFullName)
 				if err = pull_service.CloseBranchPulls(pusher, repo.ID, branch); err != nil {
 					// close all related pulls
 					log.Error("close related pull request failed: %v", err)
@@ -281,14 +278,14 @@ func pushUpdates(ctx context.Context, optsList []*repo_module.PushUpdateOptions)
 			}
 
 			// Even if user delete a branch on a repository which he didn't watch, he will be watch that.
-			if err = repo_model.WatchIfAuto(ctx, opts.PusherID, repo.ID, true); err != nil {
+			if err = repo_model.WatchIfAuto(db.DefaultContext, opts.PusherID, repo.ID, true); err != nil {
 				log.Warn("Fail to perform auto watch on user %v for repo %v: %v", opts.PusherID, repo.ID, err)
 			}
 		} else {
 			log.Trace("Non-tag and non-branch commits pushed.")
 		}
 	}
-	if err := PushUpdateAddDeleteTags(ctx, repo, gitRepo, addTags, delTags); err != nil {
+	if err := PushUpdateAddDeleteTags(repo, gitRepo, addTags, delTags); err != nil {
 		return fmt.Errorf("PushUpdateAddDeleteTags: %w", err)
 	}
 
@@ -301,8 +298,8 @@ func pushUpdates(ctx context.Context, optsList []*repo_module.PushUpdateOptions)
 }
 
 // PushUpdateAddDeleteTags updates a number of added and delete tags
-func PushUpdateAddDeleteTags(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, addTags, delTags []string) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
+func PushUpdateAddDeleteTags(repo *repo_model.Repository, gitRepo *git.Repository, addTags, delTags []string) error {
+	return db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		if err := repo_model.PushUpdateDeleteTagsContext(ctx, repo, delTags); err != nil {
 			return err
 		}
