@@ -587,9 +587,6 @@ func SubmitInstall(ctx *context.Context) {
 		// Sleep for a while to make sure the user's browser has loaded the post-install page and its assets (images, css, js)
 		// What if this duration is not long enough? That's impossible -- if the user can't load the simple page in time, how could they install or use Gitea in the future ....
 		time.Sleep(3 * time.Second)
-		if !setting.IsProd {
-			time.Sleep(5 * time.Second) // sleep more for dev mode, to debug the "post-install" page
-		}
 
 		// Now get the http.Server from this request and shut it down
 		// NB: This is not our hammerable graceful shutdown this is http.Server.Shutdown
@@ -597,6 +594,8 @@ func SubmitInstall(ctx *context.Context) {
 		if err := srv.Shutdown(graceful.GetManager().HammerContext()); err != nil {
 			log.Error("Unable to shutdown the install server! Error: %v", err)
 		}
+
+		// After the HTTP server for "install" shuts down, the `runWeb()` will continue to run the "normal" server
 	}()
 }
 
