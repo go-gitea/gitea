@@ -80,7 +80,7 @@ We do not believe that all conflict is bad; healthy debate and disagreement ofte
 
 If you see someone violating the code of conduct, you are encouraged to address the behavior directly with those involved. Many issues can be resolved quickly and easily, and this gives people more control over the outcome of their dispute. If you are unable to resolve the matter for any reason, or if the behavior is threatening or harassing, report it. We are dedicated to providing an environment where participants feel welcome and safe.
 
-Reports should be directed to the Gitea Project Stewards at conduct@gitea.com. It is the Project Stewards’ duty to receive and address reported violations of the code of conduct. They will then work with a committee consisting of representatives from technical of technical-oversight-committee.
+Reports should be directed to the Gitea Project Stewards at conduct@gitea.com. It is the Project Stewards’ duty to receive and address reported violations of the code of conduct. They will then work with a committee consisting of representatives from the technical-oversight-committee.
 
 We will investigate every complaint, but you may not receive a direct response. We will use our discretion in determining when and how to follow up on reported incidents, which may range from not taking action to permanent expulsion from the project and project-sponsored spaces. We will notify the accused of the report and provide them an opportunity to discuss it before any action is taken. The identity of the reporter will be omitted from the details of the report supplied to the accused. In potentially harmful situations, such as ongoing harassment or threats to anyone’s safety, we may take action without notice.
 
