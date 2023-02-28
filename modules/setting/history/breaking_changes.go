@@ -3,6 +3,8 @@
 
 package history
 
+import "code.gitea.io/gitea/modules/log"
+
 // This file is the only file that should be changed frequently in this package
 
 var currentGiteaVersion = getVersion("1.19")
@@ -10,6 +12,7 @@ var currentGiteaVersion = getVersion("1.19")
 // Adds all previously removed settings
 // It should declare all breaking configuration changes in chronological order to ensure a monotone increasing error log
 func init() {
+	log.Trace("Start checking settings for if they are outdated")
 	MoveIniSettingInSection("1.6", "api", "ENABLE_SWAGGER_ENDPOINT", "ENABLE_SWAGGER")
 
 	PurgeIniSettings("1.9", "log.database", "LEVEL", "DRIVER", "CONN")
@@ -64,4 +67,6 @@ func init() {
 	MoveIniSetting("1.18", "repository", "DISABLE_MIRRORS", "mirror", "ENABLED")
 
 	PurgeIniSettings("1.19", "ui", "ONLY_SHOW_RELEVANT_REPOS")
+
+	log.Trace("Finish checking settings for if they are outdated")
 }

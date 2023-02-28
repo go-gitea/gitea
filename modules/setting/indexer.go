@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting/base"
 
 	"github.com/gobwas/glob"
 )
@@ -45,7 +46,7 @@ var Indexer = struct {
 	ExcludeVendored:    true,
 }
 
-func loadIndexerFrom(rootCfg ConfigProvider) {
+func loadIndexerFrom(rootCfg base.ConfigProvider) {
 	sec := rootCfg.Section("indexer")
 	Indexer.IssueType = sec.Key("ISSUE_INDEXER_TYPE").MustString("bleve")
 	Indexer.IssuePath = filepath.ToSlash(sec.Key("ISSUE_INDEXER_PATH").MustString(filepath.ToSlash(filepath.Join(AppDataPath, "indexers/issues.bleve"))))

@@ -3,6 +3,8 @@
 
 package setting
 
+import "code.gitea.io/gitea/modules/setting/base"
+
 // settings
 var (
 	// Picture settings
@@ -32,7 +34,7 @@ var (
 	}{}
 )
 
-func loadPictureFrom(rootCfg ConfigProvider) {
+func loadPictureFrom(rootCfg base.ConfigProvider) {
 	sec := rootCfg.Section("picture")
 
 	avatarSec := rootCfg.Section("avatar")
@@ -80,7 +82,7 @@ func GetDefaultEnableFederatedAvatar(disableGravatar bool) bool {
 	return v
 }
 
-func loadRepoAvatarFrom(rootCfg ConfigProvider) {
+func loadRepoAvatarFrom(rootCfg base.ConfigProvider) {
 	sec := rootCfg.Section("picture")
 
 	repoAvatarSec := rootCfg.Section("repo-avatar")

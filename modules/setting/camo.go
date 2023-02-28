@@ -3,7 +3,10 @@
 
 package setting
 
-import "code.gitea.io/gitea/modules/log"
+import (
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting/base"
+)
 
 var Camo = struct {
 	Enabled   bool
@@ -12,8 +15,8 @@ var Camo = struct {
 	Allways   bool
 }{}
 
-func loadCamoFrom(rootCfg ConfigProvider) {
-	mustMapSetting(rootCfg, "camo", &Camo)
+func loadCamoFrom(rootCfg base.ConfigProvider) {
+	base.MustMapSetting(rootCfg, "camo", &Camo)
 	if Camo.Enabled {
 		if Camo.ServerURL == "" || Camo.HMACKey == "" {
 			log.Fatal(`Camo settings require "SERVER_URL" and HMAC_KEY`)

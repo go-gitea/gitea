@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting/base"
 )
 
 var IncomingEmail = struct {
@@ -31,8 +32,8 @@ var IncomingEmail = struct {
 	MaximumMessageSize:   10485760,
 }
 
-func loadIncomingEmailFrom(rootCfg ConfigProvider) {
-	mustMapSetting(rootCfg, "email.incoming", &IncomingEmail)
+func loadIncomingEmailFrom(rootCfg base.ConfigProvider) {
+	base.MustMapSetting(rootCfg, "email.incoming", &IncomingEmail)
 
 	if !IncomingEmail.Enabled {
 		return

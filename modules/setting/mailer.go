@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting/base"
 
 	shellquote "github.com/kballard/go-shellquote"
 )
@@ -49,14 +50,14 @@ type Mailer struct {
 // MailService the global mailer
 var MailService *Mailer
 
-func loadMailsFrom(rootCfg ConfigProvider) {
+func loadMailsFrom(rootCfg base.ConfigProvider) {
 	loadMailerFrom(rootCfg)
 	loadRegisterMailFrom(rootCfg)
 	loadNotifyMailFrom(rootCfg)
 	loadIncomingEmailFrom(rootCfg)
 }
 
-func loadMailerFrom(rootCfg ConfigProvider) {
+func loadMailerFrom(rootCfg base.ConfigProvider) {
 	sec := rootCfg.Section("mailer")
 	// Check mailer setting.
 	if !sec.Key("ENABLED").MustBool() {
@@ -177,7 +178,7 @@ func loadMailerFrom(rootCfg ConfigProvider) {
 	log.Info("Mail Service Enabled")
 }
 
-func loadRegisterMailFrom(rootCfg ConfigProvider) {
+func loadRegisterMailFrom(rootCfg base.ConfigProvider) {
 	if !rootCfg.Section("service").Key("REGISTER_EMAIL_CONFIRM").MustBool() {
 		return
 	} else if MailService == nil {
@@ -188,7 +189,7 @@ func loadRegisterMailFrom(rootCfg ConfigProvider) {
 	log.Info("Register Mail Service Enabled")
 }
 
-func loadNotifyMailFrom(rootCfg ConfigProvider) {
+func loadNotifyMailFrom(rootCfg base.ConfigProvider) {
 	if !rootCfg.Section("service").Key("ENABLE_NOTIFY_MAIL").MustBool() {
 		return
 	} else if MailService == nil {

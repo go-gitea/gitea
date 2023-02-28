@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting/base"
 	"code.gitea.io/gitea/modules/util"
 
 	ini "gopkg.in/ini.v1"
@@ -140,7 +141,7 @@ func getStacktraceLogLevel(section *ini.Section, key, defaultValue string) strin
 	return log.FromString(value).String()
 }
 
-func loadLogFrom(rootCfg ConfigProvider) {
+func loadLogFrom(rootCfg base.ConfigProvider) {
 	sec := rootCfg.Section("log")
 	Log.Level = getLogLevel(sec, "LEVEL", log.INFO)
 	Log.StacktraceLogLevel = getStacktraceLogLevel(sec, "STACKTRACE_LEVEL", "None")
@@ -251,7 +252,7 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 	return mode, jsonConfig, levelName
 }
 
-func generateNamedLogger(rootCfg ConfigProvider, key string, options defaultLogOptions) *LogDescription {
+func generateNamedLogger(rootCfg base.ConfigProvider, key string, options defaultLogOptions) *LogDescription {
 	description := LogDescription{
 		Name: key,
 	}
@@ -292,7 +293,7 @@ func generateNamedLogger(rootCfg ConfigProvider, key string, options defaultLogO
 }
 
 // initLogFrom initializes logging with settings from configuration provider
-func initLogFrom(rootCfg ConfigProvider) {
+func initLogFrom(rootCfg base.ConfigProvider) {
 	sec := rootCfg.Section("log")
 	options := newDefaultLogOptions()
 	options.bufferLength = Log.BufferLength
@@ -380,7 +381,7 @@ func InitSQLLog(disableConsole bool) {
 	initSQLLogFrom(CfgProvider, disableConsole)
 }
 
-func initSQLLogFrom(rootCfg ConfigProvider, disableConsole bool) {
+func initSQLLogFrom(rootCfg base.ConfigProvider, disableConsole bool) {
 	if Log.EnableXORMLog {
 		options := newDefaultLogOptions()
 		options.filename = filepath.Join(Log.RootPath, "xorm.log")

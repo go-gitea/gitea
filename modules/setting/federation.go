@@ -5,6 +5,7 @@ package setting
 
 import (
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting/base"
 
 	"github.com/go-fed/httpsig"
 )
@@ -33,7 +34,7 @@ var (
 // HttpsigAlgs is a constant slice of httpsig algorithm objects
 var HttpsigAlgs []httpsig.Algorithm
 
-func loadFederationFrom(rootCfg ConfigProvider) {
+func loadFederationFrom(rootCfg base.ConfigProvider) {
 	if err := rootCfg.Section("federation").MapTo(&Federation); err != nil {
 		log.Fatal("Failed to map Federation settings: %v", err)
 	} else if !httpsig.IsSupportedDigestAlgorithm(Federation.DigestAlgorithm) {

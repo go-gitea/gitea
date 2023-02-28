@@ -3,7 +3,11 @@
 
 package setting
 
-import "strings"
+import (
+	"strings"
+
+	"code.gitea.io/gitea/modules/setting/base"
+)
 
 // MimeTypeMap defines custom mime type mapping settings
 var MimeTypeMap = struct {
@@ -14,7 +18,7 @@ var MimeTypeMap = struct {
 	Map:     map[string]string{},
 }
 
-func loadMimeTypeMapFrom(rootCfg ConfigProvider) {
+func loadMimeTypeMapFrom(rootCfg base.ConfigProvider) {
 	sec := rootCfg.Section("repository.mimetype_mapping")
 	keys := sec.Keys()
 	m := make(map[string]string, len(keys))

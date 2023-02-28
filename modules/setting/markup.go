@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting/base"
 
 	"gopkg.in/ini.v1"
 )
@@ -60,8 +61,8 @@ type MarkupSanitizerRule struct {
 	AllowDataURIImages bool
 }
 
-func loadMarkupFrom(rootCfg ConfigProvider) {
-	mustMapSetting(rootCfg, "markdown", &Markdown)
+func loadMarkupFrom(rootCfg base.ConfigProvider) {
+	base.MustMapSetting(rootCfg, "markdown", &Markdown)
 
 	MermaidMaxSourceCharacters = rootCfg.Section("markup").Key("MERMAID_MAX_SOURCE_CHARACTERS").MustInt(5000)
 	ExternalMarkupRenderers = make([]*MarkupRenderer, 0, 10)

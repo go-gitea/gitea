@@ -3,14 +3,16 @@
 
 package setting
 
+import "code.gitea.io/gitea/modules/setting/base"
+
 // Admin settings
 var Admin struct {
 	DisableRegularOrgCreation bool
 	DefaultEmailNotification  string
 }
 
-func loadAdminFrom(rootCfg ConfigProvider) {
-	mustMapSetting(rootCfg, "admin", &Admin)
+func loadAdminFrom(rootCfg base.ConfigProvider) {
+	base.MustMapSetting(rootCfg, "admin", &Admin)
 	sec := rootCfg.Section("admin")
 	Admin.DefaultEmailNotification = sec.Key("DEFAULT_EMAIL_NOTIFICATIONS").MustString("enabled")
 }

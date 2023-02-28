@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting/base"
 
 	"github.com/dustin/go-humanize"
 	ini "gopkg.in/ini.v1"
@@ -46,7 +47,7 @@ var (
 	}
 )
 
-func loadPackagesFrom(rootCfg ConfigProvider) {
+func loadPackagesFrom(rootCfg base.ConfigProvider) {
 	sec := rootCfg.Section("packages")
 	if err := sec.MapTo(&Packages); err != nil {
 		log.Fatal("Failed to map Packages settings: %v", err)

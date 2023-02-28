@@ -3,6 +3,8 @@
 
 package setting
 
+import "code.gitea.io/gitea/modules/setting/base"
+
 var (
 	// Other settings
 	ShowFooterBranding         bool
@@ -12,7 +14,7 @@ var (
 	EnableSitemap              bool
 )
 
-func loadOtherFrom(rootCfg ConfigProvider) {
+func loadOtherFrom(rootCfg base.ConfigProvider) {
 	sec := rootCfg.Section("other")
 	ShowFooterBranding = sec.Key("SHOW_FOOTER_BRANDING").MustBool(false)
 	ShowFooterVersion = sec.Key("SHOW_FOOTER_VERSION").MustBool(true)

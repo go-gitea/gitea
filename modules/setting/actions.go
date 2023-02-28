@@ -5,6 +5,7 @@ package setting
 
 import (
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting/base"
 )
 
 // Actions settings
@@ -19,7 +20,7 @@ var (
 	}
 )
 
-func loadActionsFrom(rootCfg ConfigProvider) {
+func loadActionsFrom(rootCfg base.ConfigProvider) {
 	sec := rootCfg.Section("actions")
 	if err := sec.MapTo(&Actions); err != nil {
 		log.Fatal("Failed to map Actions settings: %v", err)

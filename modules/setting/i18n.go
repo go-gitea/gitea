@@ -3,6 +3,8 @@
 
 package setting
 
+import "code.gitea.io/gitea/modules/setting/base"
+
 // defaultI18nLangNames must be a slice, we need the order
 var defaultI18nLangNames = []string{
 	"en-US", "English",
@@ -54,7 +56,7 @@ var (
 	Names []string
 )
 
-func loadI18nFrom(rootCfg ConfigProvider) {
+func loadI18nFrom(rootCfg base.ConfigProvider) {
 	Langs = rootCfg.Section("i18n").Key("LANGS").Strings(",")
 	if len(Langs) == 0 {
 		Langs = defaultI18nLangs()

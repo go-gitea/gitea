@@ -3,6 +3,8 @@
 
 package setting
 
+import "code.gitea.io/gitea/modules/setting/base"
+
 // Attachment settings
 var Attachment = struct {
 	Storage
@@ -20,7 +22,7 @@ var Attachment = struct {
 	Enabled:      true,
 }
 
-func loadAttachmentFrom(rootCfg ConfigProvider) {
+func loadAttachmentFrom(rootCfg base.ConfigProvider) {
 	sec := rootCfg.Section("attachment")
 	storageType := sec.Key("STORAGE_TYPE").MustString("")
 

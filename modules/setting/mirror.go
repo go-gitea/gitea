@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting/base"
 )
 
 // Mirror settings
@@ -24,8 +25,7 @@ var Mirror = struct {
 	DefaultInterval: 8 * time.Hour,
 }
 
-func loadMirrorFrom(rootCfg ConfigProvider) {
-
+func loadMirrorFrom(rootCfg base.ConfigProvider) {
 	if err := rootCfg.Section("mirror").MapTo(&Mirror); err != nil {
 		log.Fatal("Failed to map Mirror settings: %v", err)
 	}

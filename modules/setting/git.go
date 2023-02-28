@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting/base"
 )
 
 // Git settings
@@ -67,7 +68,7 @@ var Git = struct {
 	},
 }
 
-func loadGitFrom(rootCfg ConfigProvider) {
+func loadGitFrom(rootCfg base.ConfigProvider) {
 	sec := rootCfg.Section("git")
 	if err := sec.MapTo(&Git); err != nil {
 		log.Fatal("Failed to map Git settings: %v", err)

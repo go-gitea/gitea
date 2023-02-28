@@ -3,6 +3,8 @@
 
 package setting
 
+import "code.gitea.io/gitea/modules/setting/base"
+
 // Project settings
 var (
 	Project = struct {
@@ -14,6 +16,6 @@ var (
 	}
 )
 
-func loadProjectFrom(rootCfg ConfigProvider) {
-	mustMapSetting(rootCfg, "project", &Project)
+func loadProjectFrom(rootCfg base.ConfigProvider) {
+	base.MustMapSetting(rootCfg, "project", &Project)
 }

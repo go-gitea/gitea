@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting/base"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -165,7 +166,7 @@ func MakeAbsoluteAssetURL(appURL, staticURLPrefix string) string {
 	return strings.TrimSuffix(staticURLPrefix, "/")
 }
 
-func loadServerFrom(rootCfg ConfigProvider) {
+func loadServerFrom(rootCfg base.ConfigProvider) {
 	sec := rootCfg.Section("server")
 	AppName = rootCfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")
 

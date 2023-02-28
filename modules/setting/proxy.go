@@ -7,6 +7,7 @@ import (
 	"net/url"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting/base"
 )
 
 // Proxy settings
@@ -21,7 +22,7 @@ var Proxy = struct {
 	ProxyHosts: []string{},
 }
 
-func loadProxyFrom(rootCfg ConfigProvider) {
+func loadProxyFrom(rootCfg base.ConfigProvider) {
 	sec := rootCfg.Section("proxy")
 	Proxy.Enabled = sec.Key("PROXY_ENABLED").MustBool(false)
 	Proxy.ProxyURL = sec.Key("PROXY_URL").MustString("")

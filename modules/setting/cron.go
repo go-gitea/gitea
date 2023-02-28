@@ -3,14 +3,18 @@
 
 package setting
 
-import "reflect"
+import (
+	"reflect"
+
+	"code.gitea.io/gitea/modules/setting/base"
+)
 
 // GetCronSettings maps the cron subsection to the provided config
 func GetCronSettings(name string, config interface{}) (interface{}, error) {
 	return getCronSettings(CfgProvider, name, config)
 }
 
-func getCronSettings(rootCfg ConfigProvider, name string, config interface{}) (interface{}, error) {
+func getCronSettings(rootCfg base.ConfigProvider, name string, config interface{}) (interface{}, error) {
 	if err := rootCfg.Section("cron." + name).MapTo(config); err != nil {
 		return config, err
 	}

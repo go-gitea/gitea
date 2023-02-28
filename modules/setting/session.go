@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting/base"
 )
 
 // SessionConfig defines Session settings
@@ -40,7 +41,7 @@ var SessionConfig = struct {
 	SameSite:    http.SameSiteLaxMode,
 }
 
-func loadSessionFrom(rootCfg ConfigProvider) {
+func loadSessionFrom(rootCfg base.ConfigProvider) {
 	sec := rootCfg.Section("session")
 	SessionConfig.Provider = sec.Key("PROVIDER").In("memory",
 		[]string{"memory", "file", "redis", "mysql", "postgres", "couchbase", "memcache", "db"})

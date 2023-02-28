@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting/base"
 )
 
 // enumerates all the policy repository creating
@@ -270,7 +271,7 @@ var (
 	}{}
 )
 
-func loadRepositoryFrom(rootCfg ConfigProvider) {
+func loadRepositoryFrom(rootCfg base.ConfigProvider) {
 	var err error
 	// Determine and create root git repository path.
 	sec := rootCfg.Section("repository")

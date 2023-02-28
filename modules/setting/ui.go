@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/setting/base"
 )
 
 // UI settings
@@ -132,8 +133,8 @@ var UI = struct {
 	},
 }
 
-func loadUIFrom(rootCfg ConfigProvider) {
-	mustMapSetting(rootCfg, "ui", &UI)
+func loadUIFrom(rootCfg base.ConfigProvider) {
+	base.MustMapSetting(rootCfg, "ui", &UI)
 	sec := rootCfg.Section("ui")
 	UI.ShowUserEmail = sec.Key("SHOW_USER_EMAIL").MustBool(true)
 	UI.DefaultShowFullName = sec.Key("DEFAULT_SHOW_FULL_NAME").MustBool(false)

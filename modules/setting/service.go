@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting/base"
 	"code.gitea.io/gitea/modules/structs"
 )
 
@@ -114,7 +115,7 @@ func (a AllowedVisibility) ToVisibleTypeSlice() (result []structs.VisibleType) {
 	return result
 }
 
-func loadServiceFrom(rootCfg ConfigProvider) {
+func loadServiceFrom(rootCfg base.ConfigProvider) {
 	sec := rootCfg.Section("service")
 	Service.ActiveCodeLives = sec.Key("ACTIVE_CODE_LIVE_MINUTES").MustInt(180)
 	Service.ResetPwdCodeLives = sec.Key("RESET_PASSWD_CODE_LIVE_MINUTES").MustInt(180)
@@ -193,12 +194,12 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	}
 	Service.ValidSiteURLSchemes = schemes
 
-	mustMapSetting(rootCfg, "service.explore", &Service.Explore)
+	base.MustMapSetting(rootCfg, "service.explore", &Service.Explore)
 
 	loadOpenIDSetting(rootCfg)
 }
 
-func loadOpenIDSetting(rootCfg ConfigProvider) {
+func loadOpenIDSetting(rootCfg base.ConfigProvider) {
 	sec := rootCfg.Section("openid")
 	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(!InstallLock)
 	Service.EnableOpenIDSignUp = sec.Key("ENABLE_OPENID_SIGNUP").MustBool(!Service.DisableRegistration && Service.EnableOpenIDSignIn)

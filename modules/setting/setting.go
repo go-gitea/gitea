@@ -18,6 +18,7 @@ import (
 
 	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting/base"
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
 
@@ -42,7 +43,7 @@ var (
 	AppWorkPath string
 
 	// Global setting objects
-	CfgProvider  ConfigProvider
+	CfgProvider  base.ConfigProvider
 	CustomPath   string // Custom directory path
 	CustomConf   string
 	PIDFile      = "/run/gitea.pid"
@@ -276,7 +277,7 @@ func LoadCommonSettings() {
 }
 
 // loadCommonSettingsFrom loads common configurations from a configuration provider.
-func loadCommonSettingsFrom(cfg ConfigProvider) {
+func loadCommonSettingsFrom(cfg base.ConfigProvider) {
 	// WARNNING: don't change the sequence except you know what you are doing.
 	loadRunModeFrom(cfg)
 	loadLogFrom(cfg)
@@ -303,7 +304,7 @@ func loadCommonSettingsFrom(cfg ConfigProvider) {
 	loadOtherFrom(cfg)
 }
 
-func loadRunModeFrom(rootCfg ConfigProvider) {
+func loadRunModeFrom(rootCfg base.ConfigProvider) {
 	rootSec := rootCfg.Section("")
 	RunUser = rootSec.Key("RUN_USER").MustString(user.CurrentUsername())
 	// The following is a purposefully undocumented option. Please do not run Gitea as root. It will only cause future headaches.

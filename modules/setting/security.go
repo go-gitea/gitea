@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting/base"
 
 	ini "gopkg.in/ini.v1"
 )
@@ -96,7 +97,7 @@ func generateSaveInternalToken() {
 	})
 }
 
-func loadSecurityFrom(rootCfg ConfigProvider) {
+func loadSecurityFrom(rootCfg base.ConfigProvider) {
 	sec := rootCfg.Section("security")
 	InstallLock = sec.Key("INSTALL_LOCK").MustBool(false)
 	LogInRememberDays = sec.Key("LOGIN_REMEMBER_DAYS").MustInt(7)

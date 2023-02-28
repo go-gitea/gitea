@@ -7,6 +7,7 @@ import (
 	"net/url"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting/base"
 )
 
 // Webhook settings
@@ -29,7 +30,7 @@ var Webhook = struct {
 	ProxyHosts:     []string{},
 }
 
-func loadWebhookFrom(rootCfg ConfigProvider) {
+func loadWebhookFrom(rootCfg base.ConfigProvider) {
 	sec := rootCfg.Section("webhook")
 	Webhook.QueueLength = sec.Key("QUEUE_LENGTH").MustInt(1000)
 	Webhook.DeliverTimeout = sec.Key("DELIVER_TIMEOUT").MustInt(5)

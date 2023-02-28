@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting/base"
 )
 
 var (
@@ -16,7 +17,7 @@ var (
 	DefaultUILocation = time.Local
 )
 
-func loadTimeFrom(rootCfg ConfigProvider) {
+func loadTimeFrom(rootCfg base.ConfigProvider) {
 	timeFormatKey := rootCfg.Section("time").Key("FORMAT").MustString("")
 	if timeFormatKey != "" {
 		TimeFormat = map[string]string{

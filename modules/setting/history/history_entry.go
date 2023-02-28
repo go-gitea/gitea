@@ -24,6 +24,21 @@ type historyEntry struct {
 	event     eventType
 }
 
+// getTemplateLogMessage returns an unformatted log message for this history entry.
+// The returned template accepts the following commands:
+// - %[1]s: old settings value ([section].key)
+// - %[2]s: old setting source (ini, db, …)
+// - %[3]s: gitea version of the change (1.19.0)
+// - %[4]s: new settings value (if present)
+// - %[5]s: new setting source (if present)
+func (e *historyEntry) getTemplateLogMessage() string {
+	return "The setting %[1]s in your %[2]s is no longer used starting with Gitea %[3]s. " + e.getReplacementHint()
+}
+
+// getReplacementHint returns an unformatted string on how to replace the setting with its new value
+// Parameters are:
+// - %[4]s: new settings value (if present)
+// - %[5]s: new setting source (if present)
 func (e *historyEntry) getReplacementHint() string {
 	switch e.event {
 	case typeRemoved:
@@ -35,15 +50,4 @@ func (e *historyEntry) getReplacementHint() string {
 	default:
 		panic("Unimplemented history event type: " + strconv.Itoa(int(e.event)))
 	}
-}
-
-// getTemplateLogMessage returns an unformatted log message for this history entry.
-// The returned template accepts the following commands:
-// - %[1]s: old settings value ([section].key)
-// - %[2]s: old setting source (ini, db, …)
-// - %[3]s: gitea version of the change (1.19.0)
-// - %[4]s: new settings value
-// - %[5]s: new setting source
-func (e *historyEntry) getTemplateLogMessage() string {
-	return "The setting %[1]s in %[2]s is no longer used starting with Gitea %[3]s. " + e.getReplacementHint()
 }

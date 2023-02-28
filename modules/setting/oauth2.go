@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting/base"
 
 	"gopkg.in/ini.v1"
 )
@@ -62,7 +63,7 @@ var OAuth2Client struct {
 	AccountLinking         OAuth2AccountLinkingType
 }
 
-func loadOAuth2ClientFrom(rootCfg ConfigProvider) {
+func loadOAuth2ClientFrom(rootCfg base.ConfigProvider) {
 	sec := rootCfg.Section("oauth2_client")
 	OAuth2Client.RegisterEmailConfirm = sec.Key("REGISTER_EMAIL_CONFIRM").MustBool(Service.RegisterEmailConfirm)
 	OAuth2Client.OpenIDConnectScopes = parseScopes(sec, "OPENID_CONNECT_SCOPES")
@@ -110,7 +111,7 @@ var OAuth2 = struct {
 	MaxTokenLength:             math.MaxInt16,
 }
 
-func loadOAuth2From(rootCfg ConfigProvider) {
+func loadOAuth2From(rootCfg base.ConfigProvider) {
 	if err := rootCfg.Section("oauth2").MapTo(&OAuth2); err != nil {
 		log.Fatal("Failed to OAuth2 settings: %v", err)
 		return

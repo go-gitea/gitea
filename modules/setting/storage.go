@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"reflect"
 
+	"code.gitea.io/gitea/modules/setting/base"
+
 	ini "gopkg.in/ini.v1"
 )
 
@@ -30,7 +32,7 @@ func (s *Storage) MapTo(v interface{}) error {
 	return nil
 }
 
-func getStorage(rootCfg ConfigProvider, name, typ string, targetSec *ini.Section) Storage {
+func getStorage(rootCfg base.ConfigProvider, name, typ string, targetSec *ini.Section) Storage {
 	const sectionName = "storage"
 	sec := rootCfg.Section(sectionName)
 

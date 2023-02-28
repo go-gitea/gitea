@@ -8,6 +8,7 @@ import (
 	"path"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting/base"
 )
 
 // API settings
@@ -27,8 +28,8 @@ var API = struct {
 	DefaultMaxBlobSize:     10485760,
 }
 
-func loadAPIFrom(rootCfg ConfigProvider) {
-	mustMapSetting(rootCfg, "api", &API)
+func loadAPIFrom(rootCfg base.ConfigProvider) {
+	base.MustMapSetting(rootCfg, "api", &API)
 
 	defaultAppURL := string(Protocol) + "://" + Domain + ":" + HTTPPort
 	u, err := url.Parse(rootCfg.Section("server").Key("ROOT_URL").MustString(defaultAppURL))

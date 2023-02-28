@@ -3,6 +3,8 @@
 
 package setting
 
+import "code.gitea.io/gitea/modules/setting/base"
+
 // Metrics settings
 var Metrics = struct {
 	Enabled                  bool
@@ -16,6 +18,6 @@ var Metrics = struct {
 	EnabledIssueByRepository: false,
 }
 
-func loadMetricsFrom(rootCfg ConfigProvider) {
-	mustMapSetting(rootCfg, "metrics", &Metrics)
+func loadMetricsFrom(rootCfg base.ConfigProvider) {
+	base.MustMapSetting(rootCfg, "metrics", &Metrics)
 }

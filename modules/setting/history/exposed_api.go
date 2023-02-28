@@ -6,25 +6,30 @@ package history
 // This file contains the methods that will be exposed to other packages
 import (
 	"code.gitea.io/gitea/modules/log"
-	ini "gopkg.in/ini.v1"
+	"code.gitea.io/gitea/modules/setting/base"
 )
 
+var removedSettings map[settingsSource]map[string][]*historyEntry = make(map[settingsSource]map[string][]*historyEntry) // ordered by old source and then by old section (for performance)
 
-var removedSettings map[settingsSource]map[string][]*historyEntry // ordered by old source and then by old section (for performance)
-
-func removeSetting(entry *historyEntry) {
+func addHistoryEntry(entry *historyEntry) {
 	source := entry.oldValue.Source()
 	section := entry.oldValue.Section()
 	sections := removedSettings[source]
+
+	if sections == nil {
+		sections = make(map[string][]*historyEntry)
+		removedSettings[source] = sections
+	}
+
 	entriesInSection := sections[section]
 	entriesInSection = append(entriesInSection, entry)
 	sections[section] = entriesInSection
 }
 
-// Adds a notice that the given setting under "[section].key" has been replaced by "[replacementSection].replacementKey" inside the ini configuration file
+// MoveIniSetting adds a notice that the given setting under "[section].key" has been replaced by "[replacementSection].replacementKey" inside the ini configuration file
 // Everything should be exactly like it is in the configuration file
 func MoveIniSetting(version, section, key, replacementSection, replacementKey string) {
-	removeSetting(&historyEntry{
+	addHistoryEntry(&historyEntry{
 		happensIn: getVersion(version),
 		oldValue: &iniSetting{
 			section: section,
@@ -38,17 +43,17 @@ func MoveIniSetting(version, section, key, replacementSection, replacementKey st
 	})
 }
 
-// Adds a notice that the given setting under "[section].key" has been replaced by "[section].replacementKey"
+// MoveIniSettingInSection adds a notice that the given setting under "[section].key" has been replaced by "[section].replacementKey"
 // Everything should be exactly like it is in the app.ini
 func MoveIniSettingInSection(version, section, key, replacementKey string) {
 	MoveIniSetting(version, section, key, section, replacementKey)
 }
 
-// Adds a notice that the given settings under "[section].key(s)" have been removed without any replacement
+// PurgeIniSettings adds a notice that the given settings under "[section].key(s)" have been removed without any replacement
 // Everything should be exactly like it is in the app.ini
 func PurgeIniSettings(version, section string, keys ...string) {
 	for _, key := range keys {
-		removeSetting(&historyEntry{
+		addHistoryEntry(&historyEntry{
 			happensIn: getVersion(version),
 			oldValue: &iniSetting{
 				section: section,
@@ -59,11 +64,11 @@ func PurgeIniSettings(version, section string, keys ...string) {
 	}
 }
 
-// Marks all given setting keys in the given section as moved to the database.
+// MoveIniSettingsToDB marks all given setting keys in the given section as moved to the database.
 // keys should be formatted exactly like they are in the app.ini
 func MoveIniSettingsToDB(version, section string, keys ...string) {
 	for _, key := range keys {
-		removeSetting(&historyEntry{
+		addHistoryEntry(&historyEntry{
 			happensIn: getVersion(version),
 			oldValue: &iniSetting{
 				section: section,
@@ -78,26 +83,33 @@ func MoveIniSettingsToDB(version, section string, keys ...string) {
 	}
 }
 
-// Adds a warning in the logs for all settings that are still present despite not being used anymore
+// PrintRemovedSettings adds a warning in the logs for all settings that are still present despite not being used anymore
 // Pass action to specify what will be done when an invalid setting has been found. Defaults to "log.Error(template, args)"
-//
-func PrintRemovedSettings(cfg *ini.File, action ...func(template string, args ...string) error) error {
-
-	onInvalid := func(template string, args ...string) error {
-		log.Error(template, args)
+// Template arguments are
+// - %[1]s: old settings value ([section].key)
+// - %[2]s: old setting source (ini, db, …)
+// - %[3]s: gitea version of the change (1.19.0)
+// - %[4]s: new settings value (if present)
+// - %[5]s: new setting source (if present)
+func PrintRemovedSettings(iniFile base.ConfigProvider, action ...func(template string, args ...interface{}) error) error {
+	onInvalid := func(template string, args ...interface{}) error {
+		log.Error(template, args...)
 		return nil
 	}
 	if len(action) > 0 {
 		onInvalid = action[0]
 	}
 
-	return printRemovedIniSettings(cfg, onInvalid) // At the moment, there are only breaking changes in the ini configurations, will probably be adapted in the future
+	return printRemovedIniSettings(iniFile, onInvalid) // At the moment, there are only breaking changes in the ini configurations, will probably be adapted in the future
 }
 
-func printRemovedIniSettings(cfg *ini.File, action func(template string, args ...string) error) error {
+func printRemovedIniSettings(iniFile base.ConfigProvider, action func(template string, args ...interface{}) error) error {
 	iniChanges := removedSettings[settingsSourceINI]
 	for sectionName, removedList := range iniChanges {
-		section, err := cfg.GetSection(sectionName)
+		if !iniFile.HasSection(sectionName) {
+			continue
+		}
+		section, err := iniFile.GetSection(sectionName)
 		if err != nil {
 			return err
 		}
@@ -106,7 +118,11 @@ func printRemovedIniSettings(cfg *ini.File, action func(template string, args ..
 		}
 		for _, removed := range removedList {
 			if section.HasKey(removed.oldValue.Key()) {
-				action(removed.getTemplateLogMessage(), removed.oldValue.String(), string(removed.oldValue.Source()), removed.happensIn.String(), removed.newValue.String(), string(removed.newValue.Source()))
+				if removed.newValue == nil {
+					action(removed.getTemplateLogMessage(), removed.oldValue.String(), string(removed.oldValue.Source()), removed.happensIn.String())
+				} else {
+					action(removed.getTemplateLogMessage(), removed.oldValue.String(), string(removed.oldValue.Source()), removed.happensIn.String(), removed.newValue.String(), string(removed.newValue.Source()))
+				}
 			}
 		}
 	}

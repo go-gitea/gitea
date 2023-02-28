@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting/base"
 
 	ini "gopkg.in/ini.v1"
 )
@@ -25,7 +26,7 @@ var LFS = struct {
 	Storage
 }{}
 
-func loadLFSFrom(rootCfg ConfigProvider) {
+func loadLFSFrom(rootCfg base.ConfigProvider) {
 	sec := rootCfg.Section("server")
 	if err := sec.MapTo(&LFS); err != nil {
 		log.Fatal("Failed to map LFS settings: %v", err)

@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting/base"
 
 	ini "gopkg.in/ini.v1"
 )
@@ -42,7 +43,7 @@ func GetQueueSettings(name string) QueueSettings {
 	return getQueueSettings(CfgProvider, name)
 }
 
-func getQueueSettings(rootCfg ConfigProvider, name string) QueueSettings {
+func getQueueSettings(rootCfg base.ConfigProvider, name string) QueueSettings {
 	q := QueueSettings{}
 	sec := rootCfg.Section("queue." + name)
 	q.Name = name
@@ -92,7 +93,7 @@ func LoadQueueSettings() {
 	loadQueueFrom(CfgProvider)
 }
 
-func loadQueueFrom(rootCfg ConfigProvider) {
+func loadQueueFrom(rootCfg base.ConfigProvider) {
 	sec := rootCfg.Section("queue")
 	Queue.DataDir = filepath.ToSlash(sec.Key("DATADIR").MustString("queues/"))
 	if !filepath.IsAbs(Queue.DataDir) {
@@ -174,7 +175,7 @@ func loadQueueFrom(rootCfg ConfigProvider) {
 
 // handleOldLengthConfiguration allows fallback to older configuration. `[queue.name]` `LENGTH` will override this configuration, but
 // if that is left unset then we should fallback to the older configuration. (Except where the new length woul be <=0)
-func handleOldLengthConfiguration(rootCfg ConfigProvider, queueName, oldSection, oldKey string, defaultValue int) {
+func handleOldLengthConfiguration(rootCfg base.ConfigProvider, queueName, oldSection, oldKey string, defaultValue int) {
 	if rootCfg.Section(oldSection).HasKey(oldKey) {
 		log.Error("Deprecated fallback for %s queue length `[%s]` `%s` present. Use `[queue.%s]` `LENGTH`. This will be removed in v1.18.0", queueName, queueName, oldSection, oldKey)
 	}

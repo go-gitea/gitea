@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting/base"
 	"code.gitea.io/gitea/modules/util"
 
 	gossh "golang.org/x/crypto/ssh"
@@ -99,7 +100,7 @@ func parseAuthorizedPrincipalsAllow(values []string) ([]string, bool) {
 	return authorizedPrincipalsAllow, true
 }
 
-func loadSSHFrom(rootCfg ConfigProvider) {
+func loadSSHFrom(rootCfg base.ConfigProvider) {
 	sec := rootCfg.Section("server")
 	if len(SSH.Domain) == 0 {
 		SSH.Domain = Domain
