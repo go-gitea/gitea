@@ -12,7 +12,7 @@ The third goal of the Code of Conduct is to make our community welcoming to peop
 
 We believe that healthy debate and disagreement are essential to a healthy project and community. However, it is never ok to be disrespectful. We value diverse opinions, but we value respectful behavior more.
 
-## Giteaer values
+## Community values
 
 These are the values to which people in the Gitea community should aspire.
 
