@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -290,17 +291,21 @@ func runServ(c *cli.Context) error {
 		return nil
 	}
 
-	// Special handle for Windows.
-	if setting.IsWindows {
-		verb = strings.Replace(verb, "-", " ", 1)
-	}
-
 	var gitcmd *exec.Cmd
-	verbs := strings.Split(verb, " ")
-	if len(verbs) == 2 {
-		gitcmd = exec.CommandContext(ctx, verbs[0], verbs[1], repoPath)
-	} else {
-		gitcmd = exec.CommandContext(ctx, verb, repoPath)
+	gitBinPath := filepath.Dir(git.GitExecutable) // e.g. /usr/bin
+	gitBinVerb := filepath.Join(gitBinPath, verb) // e.g. /usr/bin/git-upload-pack
+	if _, err := os.Stat(gitBinVerb); err != nil {
+		// if the command "git-upload-pack" doesn't exist, try to split "git-upload-pack" to use the sub-command with git
+		// ps: Windows only has "git.exe" in the bin path, so Windows always uses this way
+		verbFields := strings.SplitN(verb, "-", 2)
+		if len(verbFields) == 2 {
+			// use git binary with the sub-command part: "C:\...\bin\git.exe", "upload-pack", ...
+			gitcmd = exec.CommandContext(ctx, git.GitExecutable, verbFields[1], repoPath)
+		}
+	}
+	if gitcmd == nil {
+		// by default, use the verb (it has been checked above by allowedCommands)
+		gitcmd = exec.CommandContext(ctx, gitBinVerb, repoPath)
 	}
 
 	process.SetSysProcAttribute(gitcmd)
