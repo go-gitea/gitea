@@ -119,6 +119,15 @@ func (repo *Repository) getCommitFromBatchReader(rd *bufio.Reader, id SHA1) (*Co
 		}
 
 		return commit, nil
+	case "blob", "tree":
+		_, err = rd.Discard(int(size) + 1)
+		if err != nil {
+			return nil, err
+		}
+		return nil, ErrWrongType{
+			ID:   id.String(),
+			Type: typ,
+		}
 	default:
 		log.Debug("Unknown typ: %s", typ)
 		_, err = rd.Discard(int(size) + 1)

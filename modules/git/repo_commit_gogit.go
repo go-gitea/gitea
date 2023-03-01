@@ -9,6 +9,8 @@ package git
 import (
 	"strings"
 
+	"code.gitea.io/gitea/modules/log"
+
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
@@ -66,24 +68,55 @@ func (repo *Repository) IsCommitExist(name string) bool {
 	return err == nil
 }
 
-func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
-	var tagObject *object.Tag
-
-	gogitCommit, err := repo.gogitRepo.CommitObject(id)
-	if err == plumbing.ErrObjectNotFound {
-		tagObject, err = repo.gogitRepo.TagObject(id)
-		if err == plumbing.ErrObjectNotFound {
-			return nil, ErrNotExist{
-				ID: id.String(),
-			}
-		}
-		if err == nil {
-			gogitCommit, err = repo.gogitRepo.CommitObject(tagObject.Target)
-		}
-		// if we get a plumbing.ErrObjectNotFound here then the repository is broken and it should be 500
-	}
+func (repo *Repository) getGoGitTagDeepestObject(tag *object.Tag) (object.Object, error) {
+	obj, err := tag.Object()
 	if err != nil {
 		return nil, err
+	}
+	if subTag, ok := obj.(*object.Tag); ok {
+		obj, err = repo.getGoGitTagDeepestObject(subTag)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return obj, nil
+}
+
+func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
+	var gogitCommit *object.Commit
+
+	obj, err := repo.gogitRepo.Object(plumbing.AnyObject, id)
+	if err != nil {
+		return nil, err
+	}
+
+	switch o := obj.(type) {
+	case *object.Commit:
+		gogitCommit = o
+	case *object.Tag:
+		var ok bool
+
+		obj, err := repo.getGoGitTagDeepestObject(o)
+		if err != nil {
+			return nil, err
+		}
+		if gogitCommit, ok = obj.(*object.Commit); !ok {
+			return nil, ErrWrongType{
+				ID:   obj.ID().String(),
+				Type: obj.Type().String(),
+			}
+		}
+
+	case *object.Blob, *object.Tree:
+		return nil, ErrWrongType{
+			ID:   id.String(),
+			Type: o.Type().String(),
+		}
+	default:
+		log.Debug("Unknown typ: %s", o.Type())
+		return nil, ErrNotExist{
+			ID: id.String(),
+		}
 	}
 
 	commit := convertCommit(gogitCommit)

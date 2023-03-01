@@ -135,6 +135,10 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 			} else { // is new tag
 				newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
 				if err != nil {
+					if git.IsErrWrongType(err) {
+						log.Info("ignore special ref push update: %v", err)
+						continue
+					}
 					return fmt.Errorf("gitRepo.GetCommit(%s) in %s/%s[%d]: %w", opts.NewCommitID, repo.OwnerName, repo.Name, repo.ID, err)
 				}
 

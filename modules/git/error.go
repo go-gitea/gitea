@@ -46,6 +46,22 @@ func (err ErrNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
+// ErrWrongType git object with wrong type
+type ErrWrongType struct {
+	ID   string
+	Type string
+}
+
+// IsErrWrongType if some error is ErrWrongType
+func IsErrWrongType(err error) bool {
+	_, ok := err.(ErrWrongType)
+	return ok
+}
+
+func (err ErrWrongType) Error() string {
+	return fmt.Sprintf("git object type is invalid [id: %s, type: %s]", err.ID, err.Type)
+}
+
 // ErrBadLink entry.FollowLink error
 type ErrBadLink struct {
 	Name    string
