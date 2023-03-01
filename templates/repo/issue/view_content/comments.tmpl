@@ -117,9 +117,6 @@
 					{{end}}
 				</span>
 			</div>
-			{{if and .Issue.IsClosed (eq $.LatestCloseCommentID .ID)}}
-				{{break}}
-			{{end}}
 		{{else if eq .Type 28}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge gt-bg-purple gt-text-white">{{svg "octicon-git-merge"}}</span>
@@ -700,6 +697,9 @@
 				</span>
 			</div>
 		{{else if and (eq .Type 29) (or (gt .CommitsNum 0) .IsForcePush)}}
+			{{if and .Issue.IsClosed (gt .ID $.LatestCloseCommentID)}}
+				{{continue}}
+			{{end}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-repo-push"}}</span>
 				<span class="text grey muted-links">
