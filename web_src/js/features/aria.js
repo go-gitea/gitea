@@ -81,7 +81,8 @@ function attachOneDropdownAria($dropdown) {
   $dropdown.on('keydown', (e) => {
     // here it must use keydown event before dropdown's keyup handler, otherwise there is no Enter event in our keyup handler
     if (e.key === 'Enter') {
-      const $item = $dropdown.dropdown('get item', $dropdown.dropdown('get value'));
+      let $item = $dropdown.dropdown('get item', $dropdown.dropdown('get value'));
+      if (!$item) $item = $menu.find('> .item.selected'); // when dropdown filters items by input, there is no "value", so query the "selected" item
       // if the selected item is clickable, then trigger the click event. in the future there could be a special CSS class for it.
       if ($item && $item.is('a')) $item[0].click();
     }

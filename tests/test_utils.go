@@ -13,6 +13,8 @@ import (
 	"runtime"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
+	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
@@ -203,6 +205,18 @@ func PrepareTestEnv(t testing.TB, skip ...int) func() {
 		_, err := storage.Copy(storage.LFS, path, lfsFixtures, path)
 		return err
 	}))
+
+	// clear all package data
+	assert.NoError(t, db.TruncateBeans(db.DefaultContext,
+		&packages_model.Package{},
+		&packages_model.PackageVersion{},
+		&packages_model.PackageFile{},
+		&packages_model.PackageBlob{},
+		&packages_model.PackageProperty{},
+		&packages_model.PackageBlobUpload{},
+		&packages_model.PackageCleanupRule{},
+	))
+	assert.NoError(t, storage.Clean(storage.Packages))
 
 	return deferFn
 }

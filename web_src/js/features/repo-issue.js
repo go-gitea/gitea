@@ -470,7 +470,7 @@ export function initRepoPullRequestReview() {
     assignMenuAttributes(form.find('.menu'));
   });
 
-  const $reviewBox = $('.review-box');
+  const $reviewBox = $('.review-box-panel');
   if ($reviewBox.length === 1) {
     (async () => {
       // the editor's height is too large in some cases, and the panel cannot be scrolled with page now because there is `.repository .diff-detail-box.sticky { position: sticky; }`
@@ -487,12 +487,12 @@ export function initRepoPullRequestReview() {
     return;
   }
 
-  $('.btn-review').on('click', function (e) {
+  $('.js-btn-review').on('click', function (e) {
     e.preventDefault();
-    $(this).closest('.dropdown').find('.menu').toggle('visible'); // eslint-disable-line
-  }).closest('.dropdown').find('.close').on('click', function (e) {
+    toggleElem($(this).parent().find('.review-box-panel'));
+  }).parent().find('.review-box-panel .close').on('click', function (e) {
     e.preventDefault();
-    $(this).closest('.menu').toggle('visible'); // eslint-disable-line
+    hideElem($(this).closest('.review-box-panel'));
   });
 
   $(document).on('click', 'a.add-code-comment', async function (e) {

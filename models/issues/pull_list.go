@@ -111,6 +111,7 @@ func GetUnmergedPullRequestsByBaseInfo(repoID int64, branch string) ([]*PullRequ
 	return prs, db.GetEngine(db.DefaultContext).
 		Where("base_repo_id=? AND base_branch=? AND has_merged=? AND issue.is_closed=?",
 			repoID, branch, false, false).
+		OrderBy("issue.updated_unix DESC").
 		Join("INNER", "issue", "issue.id=pull_request.issue_id").
 		Find(&prs)
 }

@@ -138,7 +138,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	var err error
 	viewType := ctx.FormString("type")
 	sortType := ctx.FormString("sort")
-	types := []string{"all", "your_repositories", "assigned", "created_by", "mentioned", "review_requested"}
+	types := []string{"all", "your_repositories", "assigned", "created_by", "mentioned", "review_requested", "reviewed_by"}
 	if !util.SliceContainsString(types, viewType, true) {
 		viewType = "all"
 	}
@@ -148,6 +148,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		posterID          = ctx.FormInt64("poster")
 		mentionedID       int64
 		reviewRequestedID int64
+		reviewedID        int64
 		forceEmpty        bool
 	)
 
@@ -161,6 +162,8 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			assigneeID = ctx.Doer.ID
 		case "review_requested":
 			reviewRequestedID = ctx.Doer.ID
+		case "reviewed_by":
+			reviewedID = ctx.Doer.ID
 		}
 	}
 
@@ -208,6 +211,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			MentionedID:       mentionedID,
 			PosterID:          posterID,
 			ReviewRequestedID: reviewRequestedID,
+			ReviewedID:        reviewedID,
 			IsPull:            isPullOption,
 			IssueIDs:          issueIDs,
 		})
@@ -255,6 +259,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			PosterID:          posterID,
 			MentionedID:       mentionedID,
 			ReviewRequestedID: reviewRequestedID,
+			ReviewedID:        reviewedID,
 			MilestoneIDs:      mileIDs,
 			ProjectID:         projectID,
 			IsClosed:          util.OptionalBoolOf(isShowClosed),
@@ -584,7 +589,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 			return
 		}
 
-		teamReviewers, err = repo_service.GetReviewerTeams(repo)
+		teamReviewers, err = repo_service.GetReviewerTeams(ctx, repo)
 		if err != nil {
 			ctx.ServerError("GetReviewerTeams", err)
 			return
@@ -1427,25 +1432,16 @@ func ViewIssue(ctx *context.Context) {
 			ctx.Data["IsStopwatchRunning"] = issues_model.StopwatchExists(ctx.Doer.ID, issue.ID)
 			if !ctx.Data["IsStopwatchRunning"].(bool) {
 				var exists bool
-				var sw *issues_model.Stopwatch
-				if exists, sw, err = issues_model.HasUserStopwatch(ctx, ctx.Doer.ID); err != nil {
+				var swIssue *issues_model.Issue
+				if exists, _, swIssue, err = issues_model.HasUserStopwatch(ctx, ctx.Doer.ID); err != nil {
 					ctx.ServerError("HasUserStopwatch", err)
 					return
 				}
 				ctx.Data["HasUserStopwatch"] = exists
 				if exists {
 					// Add warning if the user has already a stopwatch
-					var otherIssue *issues_model.Issue
-					if otherIssue, err = issues_model.GetIssueByID(ctx, sw.IssueID); err != nil {
-						ctx.ServerError("GetIssueByID", err)
-						return
-					}
-					if err = otherIssue.LoadRepo(ctx); err != nil {
-						ctx.ServerError("LoadRepo", err)
-						return
-					}
 					// Add link to the issue of the already running stopwatch
-					ctx.Data["OtherStopwatchURL"] = otherIssue.Link()
+					ctx.Data["OtherStopwatchURL"] = swIssue.Link()
 				}
 			}
 			ctx.Data["CanUseTimetracker"] = ctx.Repo.CanUseTimetracker(issue, ctx.Doer)
@@ -2424,6 +2420,9 @@ func SearchIssues(ctx *context.Context) {
 		}
 		if ctx.FormBool("review_requested") {
 			issuesOpt.ReviewRequestedID = ctxUserID
+		}
+		if ctx.FormBool("reviewed") {
+			issuesOpt.ReviewedID = ctxUserID
 		}
 
 		if issues, err = issues_model.Issues(ctx, issuesOpt); err != nil {
