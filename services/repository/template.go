@@ -40,7 +40,7 @@ func GenerateIssueLabels(ctx context.Context, templateRepo, generateRepo *repo_m
 }
 
 // GenerateRepository generates a repository from a template
-func GenerateRepository(doer, owner *user_model.User, templateRepo *repo_model.Repository, opts repo_module.GenerateRepoOptions) (_ *repo_model.Repository, err error) {
+func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templateRepo *repo_model.Repository, opts repo_module.GenerateRepoOptions) (_ *repo_model.Repository, err error) {
 	if !doer.IsAdmin && !owner.CanCreateRepo() {
 		return nil, repo_model.ErrReachLimitOfRepo{
 			Limit: owner.MaxRepoCreation,
@@ -48,7 +48,7 @@ func GenerateRepository(doer, owner *user_model.User, templateRepo *repo_model.R
 	}
 
 	var generateRepo *repo_model.Repository
-	if err = db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+	if err = db.WithTx(ctx, func(ctx context.Context) error {
 		generateRepo, err = repo_module.GenerateRepository(ctx, doer, owner, templateRepo, opts)
 		if err != nil {
 			return err
@@ -101,7 +101,7 @@ func GenerateRepository(doer, owner *user_model.User, templateRepo *repo_model.R
 		return nil, err
 	}
 
-	notification.NotifyCreateRepository(db.DefaultContext, doer, owner, generateRepo)
+	notification.NotifyCreateRepository(ctx, doer, owner, generateRepo)
 
 	return generateRepo, nil
 }
