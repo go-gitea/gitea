@@ -105,8 +105,8 @@ export function initRepoEditor() {
       $section.last().remove();
       $divider.last().remove();
     }
-    if (e.keyCode === 191) {
-      parts = $(this).val().split('/');
+    parts = $(this).val().split('/');
+    if (e.keyCode === 191 || parts.length > 1) {
       for (let i = 0; i < parts.length; ++i) {
         value = parts[i];
         if (i < parts.length - 1) {
