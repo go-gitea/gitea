@@ -1625,7 +1625,7 @@ func ViewIssue(ctx *context.Context) {
 			_ = comment.LoadTime()
 		} else if comment.Type == issues_model.CommentTypeClose {
 			// record ID of latest closed comment.
-			// if PR is closed, the comments after it won't be rendered.
+			// if PR is closed, the comments whose type is CommentTypePullRequestPush(29) after latestCloseCommentID won't be rendered.
 			latestCloseCommentID = comment.ID
 		}
 	}
