@@ -67,7 +67,7 @@
 					<input id="password" name="password" type="password" autocomplete="new-password" value="{{.password}}" {{if eq .login_type "0-0"}}required{{end}}>
 				</div>
 
-				<div class="inline field local{{if ne .login_type "0-0"}} hide{{end}}">
+				<div class="inline field local{{if ne .login_type "0-0"}}gt-hidden{{end}}">
 					<div class="ui checkbox">
 						<label><strong>{{.locale.Tr "auth.allow_password_change"}}</strong></label>
 						<input name="must_change_password" type="checkbox" checked>
