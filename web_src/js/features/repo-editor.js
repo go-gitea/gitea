@@ -132,6 +132,7 @@ export function initRepoEditor() {
     if ($(this).val()) parts.push($(this).val());
     $('#tree_path').val(parts.join('/'));
   })
+  
   const $editArea = $('.repository.editor textarea#edit_area');
   if (!$editArea.length) return;
 
