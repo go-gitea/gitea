@@ -10,12 +10,15 @@
 		const sshBtn = document.getElementById('repo-clone-ssh');
 		const value = localStorage.getItem('repo-clone-protocol') || 'https';
 		const isSSH = value === 'ssh' && sshBtn || value !== 'ssh' && !httpsBtn;
+		const methodDesc = document.getElementById("repo-clone-method-description");
 
 		if (httpsBtn) httpsBtn.classList[!isSSH ? 'add' : 'remove']('primary');
 		if (sshBtn) sshBtn.classList[isSSH ? 'add' : 'remove']('primary');
 
 		const btn = isSSH ? sshBtn : httpsBtn;
 		if (!btn) return;
+
+		methodDesc.innerText = btn.dataset.description;
 
 		let link = btn.getAttribute('data-link');
 		if (link.startsWith('http://') || link.startsWith('https://')) {

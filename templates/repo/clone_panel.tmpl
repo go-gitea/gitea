@@ -1,0 +1,38 @@
+<div class="menu gt-mt-3 clone dropdown">
+    <div class="ui input">
+        {{svg "octicon-terminal" 16}}
+        <strong id="clone-heading" class="gt-ml-3">Clone</strong>
+    </div>
+    <div class="ui input gt-mb-0">
+        <!-- there is always at least one button (by context/repo.go) -->
+        {{if $.CloneButtonShowHTTPS}}
+        <div class="ui clone tabs gt-no-transition" id="repo-clone-https" data-link="{{$.CloneButtonOriginLink.HTTPS}}" data-description="{{.locale.Tr "repo.clone_https_description"}}">
+            {{if UseHTTPS}}HTTPS{{else}}HTTP{{end}}
+        </div>
+        {{end}}
+        {{if $.CloneButtonShowSSH}}
+        <div class="ui clone tabs gt-no-transition" id="repo-clone-ssh" data-link="{{$.CloneButtonOriginLink.SSH}}" data-description="{{.locale.Tr "repo.clone_ssh_description"}}">
+            SSH
+        </div>
+        {{end}}
+    </div>
+    <div class="ui input tiny action gt-mt-4 gt-mb-0">
+        <input id="repo-clone-url" size="20" class="js-clone-url" value="{{$.CloneButtonOriginLink.HTTPS}}" readonly>
+        <div class="ui basic small compact icon button tooltip" id="clipboard-btn" data-content="{{.locale.Tr "copy_url"}}" data-clipboard-target="#repo-clone-url" aria-label="{{.locale.Tr "copy_url"}}">
+            {{svg "octicon-copy" 14}}
+        </div>
+    </div>
+    <div id="repo-clone-method-description" class="ui input text tiny grey gt-mt-3"></div>
+    <div class="ui text input gt-my-3">{{.locale.Tr "repo.editor.or"}}</div>
+    <a class="item js-clone-url-vsc" href="vscode://vscode.git/clone?url={{.CloneButtonOriginLink.HTTPS}}">{{svg "gitea-vscode" 16 "gt-mr-3"}}{{.locale.Tr "repo.clone_in_vsc"}}</a>
+
+    {{if not $.DisableDownloadSourceArchives}}
+        <div class="ui divider"></div>
+        <a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16 "gt-mr-3"}}{{.locale.Tr "repo.download_zip"}}</a>
+        <a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip" 16 "gt-mr-3"}}{{.locale.Tr "repo.download_tar"}}</a>
+        <a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.bundle" rel="nofollow">{{svg "octicon-package" 16 "gt-mr-3"}}{{.locale.Tr "repo.download_bundle"}}</a>
+        {{if .CitiationExist}}
+            <a class="item" id="cite-repo-button">{{svg "octicon-cross-reference" 16 "gt-mr-3"}}{{.locale.Tr "repo.cite_this_repo"}}</a>
+        {{end}}
+    {{end}}
+</div>
