@@ -119,29 +119,13 @@ func (run *ActionRun) Duration() time.Duration {
 
 func (run *ActionRun) GetPushEventPayload() (*api.PushPayload, error) {
 	if run.Event == webhook_module.HookEventPush {
-		return nil, fmt.Errorf("event %s is not a push event", run.Event)
+		var payload api.PushPayload
+		if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
+			return nil, err
+		}
+		return &payload, nil
 	}
-
-	payload := &api.PushPayload{}
-	if err := json.Unmarshal([]byte(run.EventPayload), payload); err != nil {
-		return nil, err
-	}
-
-	// Since it comes from json unmarshal, we should check if it's broken
-	if payload.HeadCommit == nil {
-		return nil, fmt.Errorf("nil HeadCommit")
-	}
-	if payload.Repo == nil {
-		return nil, fmt.Errorf("nil Repo")
-	}
-	if payload.Pusher == nil {
-		return nil, fmt.Errorf("nil Pusher")
-	}
-	if payload.Sender == nil {
-		return nil, fmt.Errorf("nil Sender")
-	}
-
-	return payload, nil
+	return nil, fmt.Errorf("event %s is not a push event", run.Event)
 }
 
 func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) error {
