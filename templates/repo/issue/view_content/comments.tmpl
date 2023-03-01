@@ -1,6 +1,5 @@
 {{template "base/alert"}}
-<div>
-{{range $idx, $comment := .Issue.Comments}}
+{{range .Issue.Comments}}
 	{{if call $.ShouldShowCommentType .Type}}
 		{{$createdStr:= TimeSinceUnix .CreatedUnix $.locale}}
 
@@ -118,7 +117,7 @@
 					{{end}}
 				</span>
 			</div>
-			{{if and .Issue.IsClosed (eq $.LatestCloseCommentIndex $idx)}}
+			{{if and .Issue.IsClosed (eq $.LatestCloseCommentID .ID)}}
 				{{break}}
 			{{end}}
 		{{else if eq .Type 28}}
@@ -800,4 +799,3 @@
 		{{end}}
 	{{end}}
 {{end}}
-</div>
