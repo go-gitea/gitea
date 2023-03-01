@@ -49,12 +49,12 @@ func TestYamlParser(t *testing.T) {
 	assert.Equal(t, "Bug", labels[3].Description)
 }
 
-func TestDefaultParser(t *testing.T) {
+func TestLegacyParser(t *testing.T) {
 	data := []byte(`#ee0701 bug   ;   Something is not working
 #cccccc   duplicate ; This issue or pull request already exists
 #84b6eb enhancement`)
 
-	labels, err := parseDefaultFormat("test", data)
+	labels, err := parseLegacyFormat("test", data)
 	require.NoError(t, err)
 	require.Len(t, labels, 3)
 	assert.Equal(t, "bug", labels[0].Name)

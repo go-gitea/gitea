@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-// colorPattern is a regexp witch can validate label color
+// colorPattern is a regexp which can validate label color
 var colorPattern = regexp.MustCompile("^#?(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})$")
 
 // Label represents label information loaded from template

@@ -51,7 +51,7 @@ func GetTemplateFile(name string) ([]*Label, error) {
 		return nil, ErrTemplateLoad{name, fmt.Errorf("GetRepoInitFile: %w", err)}
 	}
 
-	return parseDefaultFormat(name, data)
+	return parseLegacyFormat(name, data)
 }
 
 func parseYamlFormat(name string, data []byte) ([]*Label, error) {
@@ -69,7 +69,7 @@ func parseYamlFormat(name string, data []byte) ([]*Label, error) {
 		}
 		color, err := NormalizeColor(l.Color)
 		if err != nil {
-			return nil, ErrTemplateLoad{name, fmt.Errorf("bad HTML color code in label: %s", l.Name)}
+			return nil, ErrTemplateLoad{name, fmt.Errorf("bad HTML color code '%s' in label: %s", l.Color, l.Name)}
 		}
 		l.Color = color
 	}
@@ -77,7 +77,7 @@ func parseYamlFormat(name string, data []byte) ([]*Label, error) {
 	return lf.Labels, nil
 }
 
-func parseDefaultFormat(name string, data []byte) ([]*Label, error) {
+func parseLegacyFormat(name string, data []byte) ([]*Label, error) {
 	lines := strings.Split(string(data), "\n")
 	list := make([]*Label, 0, len(lines))
 	for i := 0; i < len(lines); i++ {
@@ -95,7 +95,7 @@ func parseDefaultFormat(name string, data []byte) ([]*Label, error) {
 
 		color, err := NormalizeColor(color)
 		if err != nil {
-			return nil, ErrTemplateLoad{name, fmt.Errorf("bad HTML color code in line: %s", line)}
+			return nil, ErrTemplateLoad{name, fmt.Errorf("bad HTML color code '%s' in line: %s", color, line)}
 		}
 
 		list = append(list, &Label{
