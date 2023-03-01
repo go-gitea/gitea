@@ -11,13 +11,13 @@
         </button>
       </div>
       <div class="action-commit-summary">
-        {{run.commit.localeCommit}}
-        <a :href="run.commit.link">{{run.commit.shortSHA}}</a>
+        {{ run.commit.localeCommit }}
+        <a :href="run.commit.link">{{ run.commit.shortSHA }}</a>
         &nbsp;<span class="ui label">
-          <a :href="run.commit.branch.link">{{run.commit.branch.name}}</a>
+          <a :href="run.commit.branch.link">{{ run.commit.branch.name }}</a>
         </span>
-        &nbsp;{{run.commit.localePushedBy}}
-        <a :href="run.commit.pusher.link">{{run.commit.pusher.displayName}}</a>
+        &nbsp;{{ run.commit.localePushedBy }}
+        <a :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
       </div>
     </div>
     <div class="action-view-body">
