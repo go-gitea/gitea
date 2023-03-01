@@ -132,6 +132,8 @@ func createDefaultPolicy() *bluemonday.Policy {
 
 	policy.AllowAttrs(generalSafeAttrs...).OnElements(generalSafeElements...)
 
+	policy.AllowAttrs("src", "autoplay", "controls").OnElements("video")
+
 	policy.AllowAttrs("itemscope", "itemtype").OnElements("div")
 
 	// FIXME: Need to handle longdesc in img but there is no easy way to do it
