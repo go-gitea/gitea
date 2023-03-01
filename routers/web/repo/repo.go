@@ -248,14 +248,14 @@ func CreatePost(ctx *context.Context) {
 			return
 		}
 
-		repo, err = repo_service.GenerateRepository(ctx.Doer, ctxUser, templateRepo, opts)
+		repo, err = repo_service.GenerateRepository(ctx, ctx.Doer, ctxUser, templateRepo, opts)
 		if err == nil {
 			log.Trace("Repository generated [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
 			ctx.Redirect(repo.Link())
 			return
 		}
 	} else {
-		repo, err = repo_service.CreateRepository(ctx.Doer, ctxUser, repo_module.CreateRepoOptions{
+		repo, err = repo_service.CreateRepository(ctx, ctx.Doer, ctxUser, repo_module.CreateRepoOptions{
 			Name:          form.RepoName,
 			Description:   form.Description,
 			Gitignores:    form.Gitignores,
@@ -302,7 +302,7 @@ func Action(ctx *context.Context) {
 
 		ctx.Repo.Repository.Description = ctx.FormString("desc")
 		ctx.Repo.Repository.Website = ctx.FormString("site")
-		err = repo_service.UpdateRepository(ctx.Repo.Repository, false)
+		err = repo_service.UpdateRepository(ctx, ctx.Repo.Repository, false)
 	}
 
 	if err != nil {
