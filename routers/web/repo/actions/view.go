@@ -123,7 +123,10 @@ func ViewPost(ctx *context_module.Context) {
 		return
 	}
 	run := current.Run
-	run.LoadAttributes(ctx)
+	if err := run.LoadAttributes(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
 
 	resp := &ViewResponse{}
 
