@@ -92,7 +92,7 @@ export function initRepoEditor() {
   });
 
   const $editFilename = $('#file-name');
-  $editFilename.on('input', function (e) {
+  $editFilename.on('keyup input', function (e) {
     const $section = $('.breadcrumb span.section');
     const $divider = $('.breadcrumb div.divider');
     let value;
