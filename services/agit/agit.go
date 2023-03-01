@@ -206,7 +206,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		if err != nil {
 			return nil, fmt.Errorf("Failed to load pull issue. Error: %w", err)
 		}
-		comment, err := issues_model.CreatePushPullComment(ctx, pusher, pr, oldCommitID, opts.NewCommitIDs[i])
+		comment, err := pull_service.CreatePushPullComment(ctx, pusher, pr, oldCommitID, opts.NewCommitIDs[i])
 		if err == nil && comment != nil {
 			notification.NotifyPullRequestPushCommits(ctx, pusher, pr, comment)
 		}

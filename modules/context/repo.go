@@ -119,14 +119,15 @@ type CanCommitToBranchResults struct {
 //
 // and branch is not protected for push
 func (r *Repository) CanCommitToBranch(ctx context.Context, doer *user_model.User) (CanCommitToBranchResults, error) {
-	protectedBranch, err := git_model.GetProtectedBranchBy(ctx, r.Repository.ID, r.BranchName)
+	protectedBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, r.Repository.ID, r.BranchName)
 	if err != nil {
 		return CanCommitToBranchResults{}, err
 	}
 	userCanPush := true
 	requireSigned := false
 	if protectedBranch != nil {
-		userCanPush = protectedBranch.CanUserPush(doer.ID)
+		protectedBranch.Repo = r.Repository
+		userCanPush = protectedBranch.CanUserPush(ctx, doer)
 		requireSigned = protectedBranch.RequireSignedCommits
 	}
 
@@ -163,13 +164,13 @@ func (r *Repository) CanUseTimetracker(issue *issues_model.Issue, user *user_mod
 	// 1. Is timetracker enabled
 	// 2. Is the user a contributor, admin, poster or assignee and do the repository policies require this?
 	isAssigned, _ := issues_model.IsUserAssignedToIssue(db.DefaultContext, issue, user)
-	return r.Repository.IsTimetrackerEnabled() && (!r.Repository.AllowOnlyContributorsToTrackTime() ||
+	return r.Repository.IsTimetrackerEnabled(db.DefaultContext) && (!r.Repository.AllowOnlyContributorsToTrackTime(db.DefaultContext) ||
 		r.Permission.CanWriteIssuesOrPulls(issue.IsPull) || issue.IsPoster(user.ID) || isAssigned)
 }
 
 // CanCreateIssueDependencies returns whether or not a user can create dependencies.
 func (r *Repository) CanCreateIssueDependencies(user *user_model.User, isPull bool) bool {
-	return r.Repository.IsDependenciesEnabled() && r.Permission.CanWriteIssuesOrPulls(isPull)
+	return r.Repository.IsDependenciesEnabled(db.DefaultContext) && r.Permission.CanWriteIssuesOrPulls(isPull)
 }
 
 // GetCommitsCount returns cached commit count for current view
@@ -272,8 +273,8 @@ func RetrieveBaseRepo(ctx *Context, repo *repo_model.Repository) {
 		}
 		ctx.ServerError("GetBaseRepo", err)
 		return
-	} else if err = repo.BaseRepo.GetOwner(ctx); err != nil {
-		ctx.ServerError("BaseRepo.GetOwner", err)
+	} else if err = repo.BaseRepo.LoadOwner(ctx); err != nil {
+		ctx.ServerError("BaseRepo.LoadOwner", err)
 		return
 	}
 }
@@ -289,8 +290,8 @@ func RetrieveTemplateRepo(ctx *Context, repo *repo_model.Repository) {
 		}
 		ctx.ServerError("GetTemplateRepo", err)
 		return
-	} else if err = templateRepo.GetOwner(ctx); err != nil {
-		ctx.ServerError("TemplateRepo.GetOwner", err)
+	} else if err = templateRepo.LoadOwner(ctx); err != nil {
+		ctx.ServerError("TemplateRepo.LoadOwner", err)
 		return
 	}
 
@@ -355,8 +356,8 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 
 func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 	var err error
-	if err = repo.GetOwner(ctx); err != nil {
-		ctx.ServerError("GetOwner", err)
+	if err = repo.LoadOwner(ctx); err != nil {
+		ctx.ServerError("LoadOwner", err)
 		return
 	}
 
@@ -528,12 +529,12 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["RepoLink"] = ctx.Repo.RepoLink
 	ctx.Data["RepoRelPath"] = ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name
 
-	unit, err := ctx.Repo.Repository.GetUnit(unit_model.TypeExternalTracker)
+	unit, err := ctx.Repo.Repository.GetUnit(ctx, unit_model.TypeExternalTracker)
 	if err == nil {
 		ctx.Data["RepoExternalIssuesLink"] = unit.ExternalTrackerConfig().ExternalTrackerURL
 	}
 
-	ctx.Data["NumTags"], err = repo_model.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, repo_model.FindReleasesOptions{
+	ctx.Data["NumTags"], err = repo_model.GetReleaseCountByRepoID(ctx, ctx.Repo.Repository.ID, repo_model.FindReleasesOptions{
 		IncludeDrafts: true,
 		IncludeTags:   true,
 		HasSha1:       util.OptionalBoolTrue, // only draft releases which are created with existing tags
@@ -542,7 +543,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		ctx.ServerError("GetReleaseCountByRepoID", err)
 		return
 	}
-	ctx.Data["NumReleases"], err = repo_model.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, repo_model.FindReleasesOptions{})
+	ctx.Data["NumReleases"], err = repo_model.GetReleaseCountByRepoID(ctx, ctx.Repo.Repository.ID, repo_model.FindReleasesOptions{})
 	if err != nil {
 		ctx.ServerError("GetReleaseCountByRepoID", err)
 		return
@@ -723,13 +724,13 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["PullRequestCtx"] = ctx.Repo.PullRequest
 
 	if ctx.Repo.Repository.Status == repo_model.RepositoryPendingTransfer {
-		repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository)
+		repoTransfer, err := models.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
 		if err != nil {
 			ctx.ServerError("GetPendingRepositoryTransfer", err)
 			return
 		}
 
-		if err := repoTransfer.LoadAttributes(); err != nil {
+		if err := repoTransfer.LoadAttributes(ctx); err != nil {
 			ctx.ServerError("LoadRecipient", err)
 			return
 		}
@@ -742,9 +743,9 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 
 	if ctx.FormString("go-get") == "1" {
 		ctx.Data["GoGetImport"] = ComposeGoGetImport(owner.Name, repo.Name)
-		prefix := repo.HTMLURL() + "/src/branch/" + util.PathEscapeSegments(ctx.Repo.BranchName)
-		ctx.Data["GoDocDirectory"] = prefix + "{/dir}"
-		ctx.Data["GoDocFile"] = prefix + "{/dir}/{file}#L{line}"
+		fullURLPrefix := repo.HTMLURL() + "/src/branch/" + util.PathEscapeSegments(ctx.Repo.BranchName)
+		ctx.Data["GoDocDirectory"] = fullURLPrefix + "{/dir}"
+		ctx.Data["GoDocFile"] = fullURLPrefix + "{/dir}/{file}#L{line}"
 	}
 	return cancel
 }
@@ -817,7 +818,7 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 		}
 		// For legacy and API support only full commit sha
 		parts := strings.Split(path, "/")
-		if len(parts) > 0 && len(parts[0]) == 40 {
+		if len(parts) > 0 && len(parts[0]) == git.SHAFullLength {
 			ctx.Repo.TreePath = strings.Join(parts[1:], "/")
 			return parts[0]
 		}
@@ -831,7 +832,7 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 		if len(ref) == 0 {
 			// maybe it's a renamed branch
 			return getRefNameFromPath(ctx, path, func(s string) bool {
-				b, exist, err := git_model.FindRenamedBranch(ctx.Repo.Repository.ID, s)
+				b, exist, err := git_model.FindRenamedBranch(ctx, ctx.Repo.Repository.ID, s)
 				if err != nil {
 					log.Error("FindRenamedBranch", err)
 					return false
@@ -853,7 +854,7 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 		return getRefNameFromPath(ctx, path, ctx.Repo.GitRepo.IsTagExist)
 	case RepoRefCommit:
 		parts := strings.Split(path, "/")
-		if len(parts) > 0 && len(parts[0]) >= 7 && len(parts[0]) <= 40 {
+		if len(parts) > 0 && len(parts[0]) >= 7 && len(parts[0]) <= git.SHAFullLength {
 			ctx.Repo.TreePath = strings.Join(parts[1:], "/")
 			return parts[0]
 		}
@@ -962,7 +963,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 					return
 				}
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-			} else if len(refName) >= 7 && len(refName) <= 40 {
+			} else if len(refName) >= 7 && len(refName) <= git.SHAFullLength {
 				ctx.Repo.IsViewCommit = true
 				ctx.Repo.CommitID = refName
 
@@ -972,7 +973,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 					return
 				}
 				// If short commit ID add canonical link header
-				if len(refName) < 40 {
+				if len(refName) < git.SHAFullLength {
 					ctx.RespHeader().Set("Link", fmt.Sprintf("<%s>; rel=\"canonical\"",
 						util.URLJoin(setting.AppURL, strings.Replace(ctx.Req.URL.RequestURI(), util.PathEscapeSegments(refName), url.PathEscape(ctx.Repo.Commit.ID.String()), 1))))
 				}
@@ -1042,6 +1043,7 @@ func UnitTypes() func(ctx *Context) {
 		ctx.Data["UnitTypeExternalTracker"] = unit_model.TypeExternalTracker
 		ctx.Data["UnitTypeProjects"] = unit_model.TypeProjects
 		ctx.Data["UnitTypePackages"] = unit_model.TypePackages
+		ctx.Data["UnitTypeActions"] = unit_model.TypeActions
 	}
 }
 

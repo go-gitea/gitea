@@ -164,6 +164,7 @@ var defaultProcessors = []processor{
 	linkProcessor,
 	mentionProcessor,
 	issueIndexPatternProcessor,
+	commitCrossReferencePatternProcessor,
 	sha1CurrentPatternProcessor,
 	emailAddressProcessor,
 	emojiProcessor,
@@ -190,6 +191,7 @@ var commitMessageProcessors = []processor{
 	linkProcessor,
 	mentionProcessor,
 	issueIndexPatternProcessor,
+	commitCrossReferencePatternProcessor,
 	sha1CurrentPatternProcessor,
 	emailAddressProcessor,
 	emojiProcessor,
@@ -221,6 +223,7 @@ var commitMessageSubjectProcessors = []processor{
 	linkProcessor,
 	mentionProcessor,
 	issueIndexPatternProcessor,
+	commitCrossReferencePatternProcessor,
 	sha1CurrentPatternProcessor,
 	emojiShortCodeProcessor,
 	emojiProcessor,
@@ -257,6 +260,7 @@ func RenderIssueTitle(
 ) (string, error) {
 	return renderProcessString(ctx, []processor{
 		issueIndexPatternProcessor,
+		commitCrossReferencePatternProcessor,
 		sha1CurrentPatternProcessor,
 		emojiShortCodeProcessor,
 		emojiProcessor,
@@ -305,18 +309,15 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 		return err
 	}
 
-	res := bytes.NewBuffer(make([]byte, 0, len(rawHTML)+50))
-	// prepend "<html><body>"
-	_, _ = res.WriteString("<html><body>")
-
-	// Strip out nuls - they're always invalid
-	_, _ = res.Write(tagCleaner.ReplaceAll([]byte(nulCleaner.Replace(string(rawHTML))), []byte("&lt;$1")))
-
-	// close the tags
-	_, _ = res.WriteString("</body></html>")
-
 	// parse the HTML
-	node, err := html.Parse(res)
+	node, err := html.Parse(io.MultiReader(
+		// prepend "<html><body>"
+		strings.NewReader("<html><body>"),
+		// Strip out nuls - they're always invalid
+		bytes.NewReader(tagCleaner.ReplaceAll([]byte(nulCleaner.Replace(string(rawHTML))), []byte("&lt;$1"))),
+		// close the tags
+		strings.NewReader("</body></html>"),
+	))
 	if err != nil {
 		return &postProcessError{"invalid HTML", err}
 	}
@@ -357,10 +358,17 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 }
 
 func visitNode(ctx *RenderContext, procs, textProcs []processor, node *html.Node) {
-	// Add user-content- to IDs if they don't already have them
+	// Add user-content- to IDs and "#" links if they don't already have them
 	for idx, attr := range node.Attr {
-		if attr.Key == "id" && !(strings.HasPrefix(attr.Val, "user-content-") || blackfridayExtRegex.MatchString(attr.Val)) {
+		val := strings.TrimPrefix(attr.Val, "#")
+		notHasPrefix := !(strings.HasPrefix(val, "user-content-") || blackfridayExtRegex.MatchString(val))
+
+		if attr.Key == "id" && notHasPrefix {
 			node.Attr[idx].Val = "user-content-" + attr.Val
+		}
+
+		if attr.Key == "href" && strings.HasPrefix(attr.Val, "#") && notHasPrefix {
+			node.Attr[idx].Val = "#user-content-" + val
 		}
 
 		if attr.Key == "class" && attr.Val == "emoji" {
@@ -907,6 +915,23 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 		}
 		replaceContentList(node, ref.ActionLocation.Start, ref.RefLocation.End, []*html.Node{keyword, spaces, link})
 		node = node.NextSibling.NextSibling.NextSibling.NextSibling
+	}
+}
+
+func commitCrossReferencePatternProcessor(ctx *RenderContext, node *html.Node) {
+	next := node.NextSibling
+
+	for node != nil && node != next {
+		found, ref := references.FindRenderizableCommitCrossReference(node.Data)
+		if !found {
+			return
+		}
+
+		reftext := ref.Owner + "/" + ref.Name + "@" + base.ShortSha(ref.CommitSha)
+		link := createLink(util.URLJoin(setting.AppSubURL, ref.Owner, ref.Name, "commit", ref.CommitSha), reftext, "commit")
+
+		replaceContent(node, ref.RefLocation.Start, ref.RefLocation.End, link)
+		node = node.NextSibling.NextSibling
 	}
 }
 

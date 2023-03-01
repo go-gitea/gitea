@@ -5,14 +5,14 @@ package repository
 
 import (
 	"bytes"
-	"crypto/md5"
-	"fmt"
 	"image"
 	"image/png"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/avatar"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -26,9 +26,9 @@ func TestUploadAvatar(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
 
-	err := UploadAvatar(repo, buff.Bytes())
+	err := UploadAvatar(db.DefaultContext, repo, buff.Bytes())
 	assert.NoError(t, err)
-	assert.Equal(t, fmt.Sprintf("%d-%x", 10, md5.Sum(buff.Bytes())), repo.Avatar)
+	assert.Equal(t, avatar.HashAvatar(10, buff.Bytes()), repo.Avatar)
 }
 
 func TestUploadBigAvatar(t *testing.T) {
@@ -40,7 +40,7 @@ func TestUploadBigAvatar(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
 
-	err := UploadAvatar(repo, buff.Bytes())
+	err := UploadAvatar(db.DefaultContext, repo, buff.Bytes())
 	assert.Error(t, err)
 }
 
@@ -53,10 +53,10 @@ func TestDeleteAvatar(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
 
-	err := UploadAvatar(repo, buff.Bytes())
+	err := UploadAvatar(db.DefaultContext, repo, buff.Bytes())
 	assert.NoError(t, err)
 
-	err = DeleteAvatar(repo)
+	err = DeleteAvatar(db.DefaultContext, repo)
 	assert.NoError(t, err)
 
 	assert.Equal(t, "", repo.Avatar)

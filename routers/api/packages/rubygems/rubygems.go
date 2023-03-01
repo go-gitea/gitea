@@ -6,6 +6,7 @@ package rubygems
 import (
 	"compress/gzip"
 	"compress/zlib"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -217,7 +218,11 @@ func UploadPackageFile(ctx *context.Context) {
 
 	rp, err := rubygems_module.ParsePackageMetaData(buf)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		if errors.Is(err, util.ErrInvalidArgument) {
+			apiError(ctx, http.StatusBadRequest, err)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
 		return
 	}
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {

@@ -19,7 +19,7 @@ Gitea provides automatically updated Docker images within its Docker Hub organiz
 possible to always use the latest stable tag or to use another service that handles updating
 Docker images.
 
-The rootless image use Gitea internal SSH to provide Git protocol and doesn't support OpenSSH.
+The rootless image uses Gitea internal SSH to provide Git protocol and doesn't support OpenSSH.
 
 This reference setup guides users through the setup based on `docker-compose`, but the installation
 of `docker-compose` is out of scope of this documentation. To install `docker-compose` itself, follow
@@ -82,7 +82,7 @@ services:
     restart: always
     volumes:
       - ./data:/var/lib/gitea
-      - ./config:/etc/gitea  
+      - ./config:/etc/gitea
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
@@ -112,7 +112,7 @@ services:
     restart: always
     volumes:
       - ./data:/var/lib/gitea
-      - ./config:/etc/gitea  
+      - ./config:/etc/gitea
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
@@ -153,7 +153,7 @@ services:
     restart: always
     volumes:
       - ./data:/var/lib/gitea
-      - ./config:/etc/gitea  
+      - ./config:/etc/gitea
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
@@ -293,13 +293,13 @@ These environment variables can be passed to the docker container in `docker-com
 services:
   server:
     environment:
-    - GITEA__mailer__ENABLED=true
-    - GITEA__mailer__FROM=${GITEA__mailer__FROM:?GITEA__mailer__FROM not set}
-    - GITEA__mailer__MAILER_TYPE=smtp
-    - GITEA__mailer__HOST=${GITEA__mailer__HOST:?GITEA__mailer__HOST not set}
-    - GITEA__mailer__IS_TLS_ENABLED=true
-    - GITEA__mailer__USER=${GITEA__mailer__USER:-apikey}
-    - GITEA__mailer__PASSWD="""${GITEA__mailer__PASSWD:?GITEA__mailer__PASSWD not set}"""
+      - GITEA__mailer__ENABLED=true
+      - GITEA__mailer__FROM=${GITEA__mailer__FROM:?GITEA__mailer__FROM not set}
+      - GITEA__mailer__MAILER_TYPE=smtp
+      - GITEA__mailer__HOST=${GITEA__mailer__HOST:?GITEA__mailer__HOST not set}
+      - GITEA__mailer__IS_TLS_ENABLED=true
+      - GITEA__mailer__USER=${GITEA__mailer__USER:-apikey}
+      - GITEA__mailer__PASSWD="""${GITEA__mailer__PASSWD:?GITEA__mailer__PASSWD not set}"""
 ```
 
 To set required TOKEN and SECRET values, consider using Gitea's built-in [generate utility functions](https://docs.gitea.io/en-us/command-line/#generate).

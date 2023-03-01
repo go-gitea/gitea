@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"strings"
 
-	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 )
 
 type (
@@ -117,7 +117,7 @@ func (f *FeishuPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, e
 }
 
 // Review implements PayloadConvertor Review method
-func (f *FeishuPayload) Review(p *api.PullRequestPayload, event webhook_model.HookEventType) (api.Payloader, error) {
+func (f *FeishuPayload) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (api.Payloader, error) {
 	action, err := parseHookPullRequestEventType(event)
 	if err != nil {
 		return nil, err
@@ -159,6 +159,6 @@ func (f *FeishuPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 }
 
 // GetFeishuPayload converts a ding talk webhook into a FeishuPayload
-func GetFeishuPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
+func GetFeishuPayload(p api.Payloader, event webhook_module.HookEventType, _ string) (api.Payloader, error) {
 	return convertPayloader(new(FeishuPayload), p, event)
 }

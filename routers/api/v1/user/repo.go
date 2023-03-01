@@ -11,9 +11,9 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // listUserRepos - List the repositories owned by the given user.
@@ -119,8 +119,8 @@ func ListMyRepos(ctx *context.APIContext) {
 
 	results := make([]*api.Repository, len(repos))
 	for i, repo := range repos {
-		if err = repo.GetOwner(ctx); err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetOwner", err)
+		if err = repo.LoadOwner(ctx); err != nil {
+			ctx.Error(http.StatusInternalServerError, "LoadOwner", err)
 			return
 		}
 		accessMode, err := access_model.AccessLevel(ctx, ctx.Doer, repo)

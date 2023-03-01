@@ -11,10 +11,10 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // ListLabels list all the labels of an organization
@@ -94,6 +94,7 @@ func CreateLabel(ctx *context.APIContext) {
 
 	label := &issues_model.Label{
 		Name:        form.Name,
+		Exclusive:   form.Exclusive,
 		Color:       form.Color,
 		OrgID:       ctx.Org.Organization.ID,
 		Description: form.Description,
@@ -194,6 +195,9 @@ func EditLabel(ctx *context.APIContext) {
 
 	if form.Name != nil {
 		label.Name = *form.Name
+	}
+	if form.Exclusive != nil {
+		label.Exclusive = *form.Exclusive
 	}
 	if form.Color != nil {
 		label.Color = strings.Trim(*form.Color, " ")

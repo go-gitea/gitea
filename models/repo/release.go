@@ -6,7 +6,6 @@ package repo
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -131,6 +130,11 @@ func (r *Release) HTMLURL() string {
 	return r.Repo.HTMLURL() + "/releases/tag/" + util.PathEscapeSegments(r.TagName)
 }
 
+// Link the relative url for a release on the web UI. release must have attributes loaded
+func (r *Release) Link() string {
+	return r.Repo.Link() + "/releases/tag/" + util.PathEscapeSegments(r.TagName)
+}
+
 // IsReleaseExist returns true if release with given tag name already exists.
 func IsReleaseExist(ctx context.Context, repoID int64, tagName string) (bool, error) {
 	if len(tagName) == 0 {
@@ -156,7 +160,7 @@ func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs
 
 	for i := range attachments {
 		if attachments[i].ReleaseID != 0 {
-			return errors.New("release permission denied")
+			return util.NewPermissionDeniedErrorf("release permission denied")
 		}
 		attachments[i].ReleaseID = releaseID
 		// No assign value could be 0, so ignore AllCols().
@@ -286,8 +290,8 @@ func GetReleasesByRepoIDAndNames(ctx context.Context, repoID int64, tagNames []s
 }
 
 // GetReleaseCountByRepoID returns the count of releases of repository
-func GetReleaseCountByRepoID(repoID int64, opts FindReleasesOptions) (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(opts.toConds(repoID)).Count(&Release{})
+func GetReleaseCountByRepoID(ctx context.Context, repoID int64, opts FindReleasesOptions) (int64, error) {
+	return db.GetEngine(ctx).Where(opts.toConds(repoID)).Count(&Release{})
 }
 
 type releaseMetaSearch struct {

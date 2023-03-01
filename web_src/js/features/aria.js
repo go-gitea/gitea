@@ -81,7 +81,8 @@ function attachOneDropdownAria($dropdown) {
   $dropdown.on('keydown', (e) => {
     // here it must use keydown event before dropdown's keyup handler, otherwise there is no Enter event in our keyup handler
     if (e.key === 'Enter') {
-      const $item = $dropdown.dropdown('get item', $dropdown.dropdown('get value'));
+      let $item = $dropdown.dropdown('get item', $dropdown.dropdown('get value'));
+      if (!$item) $item = $menu.find('> .item.selected'); // when dropdown filters items by input, there is no "value", so query the "selected" item
       // if the selected item is clickable, then trigger the click event. in the future there could be a special CSS class for it.
       if ($item && $item.is('a')) $item[0].click();
     }
@@ -97,4 +98,21 @@ function attachOneDropdownAria($dropdown) {
 
 export function attachDropdownAria($dropdowns) {
   $dropdowns.each((_, e) => attachOneDropdownAria($(e)));
+}
+
+export function attachCheckboxAria($checkboxes) {
+  $checkboxes.checkbox();
+
+  // Fomantic UI checkbox needs to be something like: <div class="ui checkbox"><label /><input /></div>
+  // It doesn't work well with <label><input />...</label>
+  // To make it work with aria, the "id"/"for" attributes are necessary, so add them automatically if missing.
+  // In the future, refactor to use native checkbox directly, then this patch could be removed.
+  for (const el of $checkboxes) {
+    const label = el.querySelector('label');
+    const input = el.querySelector('input');
+    if (!label || !input || input.getAttribute('id')) continue;
+    const id = generateAriaId();
+    input.setAttribute('id', id);
+    label.setAttribute('for', id);
+  }
 }

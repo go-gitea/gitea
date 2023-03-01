@@ -58,6 +58,12 @@ func GetPropertiesByName(ctx context.Context, refType PropertyType, refID int64,
 	return pps, db.GetEngine(ctx).Where("ref_type = ? AND ref_id = ? AND name = ?", refType, refID, name).Find(&pps)
 }
 
+// UpdateProperty updates a property
+func UpdateProperty(ctx context.Context, pp *PackageProperty) error {
+	_, err := db.GetEngine(ctx).ID(pp.ID).Update(pp)
+	return err
+}
+
 // DeleteAllProperties deletes all properties of a ref
 func DeleteAllProperties(ctx context.Context, refType PropertyType, refID int64) error {
 	_, err := db.GetEngine(ctx).Where("ref_type = ? AND ref_id = ?", refType, refID).Delete(&PackageProperty{})

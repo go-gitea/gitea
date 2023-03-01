@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strconv"
-	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 )
@@ -19,7 +17,7 @@ import (
 type CheckAttributeOpts struct {
 	CachedOnly    bool
 	AllAttributes bool
-	Attributes    []CmdArg
+	Attributes    []string
 	Filenames     []string
 	IndexFile     string
 	WorkTree      string
@@ -50,7 +48,7 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 	} else {
 		for _, attribute := range opts.Attributes {
 			if attribute != "" {
-				cmd.AddArguments(attribute)
+				cmd.AddDynamicArguments(attribute)
 			}
 		}
 	}
@@ -97,7 +95,7 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 // CheckAttributeReader provides a reader for check-attribute content that can be long running
 type CheckAttributeReader struct {
 	// params
-	Attributes []CmdArg
+	Attributes []string
 	Repo       *Repository
 	IndexFile  string
 	WorkTree   string
@@ -113,19 +111,6 @@ type CheckAttributeReader struct {
 
 // Init initializes the CheckAttributeReader
 func (c *CheckAttributeReader) Init(ctx context.Context) error {
-	cmdArgs := []CmdArg{"check-attr", "--stdin", "-z"}
-
-	if len(c.IndexFile) > 0 {
-		cmdArgs = append(cmdArgs, "--cached")
-		c.env = append(c.env, "GIT_INDEX_FILE="+c.IndexFile)
-	}
-
-	if len(c.WorkTree) > 0 {
-		c.env = append(c.env, "GIT_WORK_TREE="+c.WorkTree)
-	}
-
-	c.env = append(c.env, "GIT_FLUSH=1")
-
 	if len(c.Attributes) == 0 {
 		lw := new(nulSeparatedAttributeWriter)
 		lw.attributes = make(chan attributeTriple)
@@ -136,11 +121,21 @@ func (c *CheckAttributeReader) Init(ctx context.Context) error {
 		return fmt.Errorf("no provided Attributes to check")
 	}
 
-	cmdArgs = append(cmdArgs, c.Attributes...)
-	cmdArgs = append(cmdArgs, "--")
-
 	c.ctx, c.cancel = context.WithCancel(ctx)
-	c.cmd = NewCommand(c.ctx, cmdArgs...)
+	c.cmd = NewCommand(c.ctx, "check-attr", "--stdin", "-z")
+
+	if len(c.IndexFile) > 0 {
+		c.cmd.AddArguments("--cached")
+		c.env = append(c.env, "GIT_INDEX_FILE="+c.IndexFile)
+	}
+
+	if len(c.WorkTree) > 0 {
+		c.env = append(c.env, "GIT_WORK_TREE="+c.WorkTree)
+	}
+
+	c.env = append(c.env, "GIT_FLUSH=1")
+
+	c.cmd.AddDynamicArguments(c.Attributes...)
 
 	var err error
 
@@ -288,102 +283,6 @@ func (wr *nulSeparatedAttributeWriter) Close() error {
 	return nil
 }
 
-type lineSeparatedAttributeWriter struct {
-	tmp        []byte
-	attributes chan attributeTriple
-	closed     chan struct{}
-}
-
-func (wr *lineSeparatedAttributeWriter) Write(p []byte) (n int, err error) {
-	l := len(p)
-
-	nlIdx := bytes.IndexByte(p, '\n')
-	for nlIdx >= 0 {
-		wr.tmp = append(wr.tmp, p[:nlIdx]...)
-
-		if len(wr.tmp) == 0 {
-			// This should not happen
-			if len(p) > nlIdx+1 {
-				wr.tmp = wr.tmp[:0]
-				p = p[nlIdx+1:]
-				nlIdx = bytes.IndexByte(p, '\n')
-				continue
-			} else {
-				return l, nil
-			}
-		}
-
-		working := attributeTriple{}
-		if wr.tmp[0] == '"' {
-			sb := new(strings.Builder)
-			remaining := string(wr.tmp[1:])
-			for len(remaining) > 0 {
-				rn, _, tail, err := strconv.UnquoteChar(remaining, '"')
-				if err != nil {
-					if len(remaining) > 2 && remaining[0] == '"' && remaining[1] == ':' && remaining[2] == ' ' {
-						working.Filename = sb.String()
-						wr.tmp = []byte(remaining[3:])
-						break
-					}
-					return l, fmt.Errorf("unexpected tail %s", remaining)
-				}
-				_, _ = sb.WriteRune(rn)
-				remaining = tail
-			}
-		} else {
-			idx := bytes.IndexByte(wr.tmp, ':')
-			if idx < 0 {
-				return l, fmt.Errorf("unexpected input %s", string(wr.tmp))
-			}
-			working.Filename = string(wr.tmp[:idx])
-			if len(wr.tmp) < idx+2 {
-				return l, fmt.Errorf("unexpected input %s", string(wr.tmp))
-			}
-			wr.tmp = wr.tmp[idx+2:]
-		}
-
-		idx := bytes.IndexByte(wr.tmp, ':')
-		if idx < 0 {
-			return l, fmt.Errorf("unexpected input %s", string(wr.tmp))
-		}
-
-		working.Attribute = string(wr.tmp[:idx])
-		if len(wr.tmp) < idx+2 {
-			return l, fmt.Errorf("unexpected input %s", string(wr.tmp))
-		}
-
-		working.Value = string(wr.tmp[idx+2:])
-
-		wr.attributes <- working
-		wr.tmp = wr.tmp[:0]
-		if len(p) > nlIdx+1 {
-			p = p[nlIdx+1:]
-			nlIdx = bytes.IndexByte(p, '\n')
-			continue
-		} else {
-			return l, nil
-		}
-	}
-
-	wr.tmp = append(wr.tmp, p...)
-	return l, nil
-}
-
-func (wr *lineSeparatedAttributeWriter) ReadAttribute() <-chan attributeTriple {
-	return wr.attributes
-}
-
-func (wr *lineSeparatedAttributeWriter) Close() error {
-	select {
-	case <-wr.closed:
-		return nil
-	default:
-	}
-	close(wr.attributes)
-	close(wr.closed)
-	return nil
-}
-
 // Create a check attribute reader for the current repository and provided commit ID
 func (repo *Repository) CheckAttributeReader(commitID string) (*CheckAttributeReader, context.CancelFunc) {
 	indexFilename, worktree, deleteTemporaryFile, err := repo.ReadTreeToTemporaryIndex(commitID)
@@ -392,7 +291,7 @@ func (repo *Repository) CheckAttributeReader(commitID string) (*CheckAttributeRe
 	}
 
 	checker := &CheckAttributeReader{
-		Attributes: []CmdArg{"linguist-vendored", "linguist-generated", "linguist-language", "gitlab-language"},
+		Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language", "gitlab-language"},
 		Repo:       repo,
 		IndexFile:  indexFilename,
 		WorkTree:   worktree,

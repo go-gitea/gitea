@@ -158,7 +158,7 @@ func (r *Review) LoadReviewer(ctx context.Context) (err error) {
 	if r.ReviewerID == 0 || r.Reviewer != nil {
 		return
 	}
-	r.Reviewer, err = user_model.GetUserByID(ctx, r.ReviewerID)
+	r.Reviewer, err = user_model.GetPossibleUserByID(ctx, r.ReviewerID)
 	return err
 }
 
@@ -263,15 +263,17 @@ func IsOfficialReviewer(ctx context.Context, issue *Issue, reviewers ...*user_mo
 	if err != nil {
 		return false, err
 	}
-	if err = pr.LoadProtectedBranch(ctx); err != nil {
+
+	rule, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+	if err != nil {
 		return false, err
 	}
-	if pr.ProtectedBranch == nil {
+	if rule == nil {
 		return false, nil
 	}
 
 	for _, reviewer := range reviewers {
-		official, err := git_model.IsUserOfficialReviewer(ctx, pr.ProtectedBranch, reviewer)
+		official, err := git_model.IsUserOfficialReviewer(ctx, rule, reviewer)
 		if official || err != nil {
 			return official, err
 		}
@@ -286,18 +288,19 @@ func IsOfficialReviewerTeam(ctx context.Context, issue *Issue, team *organizatio
 	if err != nil {
 		return false, err
 	}
-	if err = pr.LoadProtectedBranch(ctx); err != nil {
+	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+	if err != nil {
 		return false, err
 	}
-	if pr.ProtectedBranch == nil {
+	if pb == nil {
 		return false, nil
 	}
 
-	if !pr.ProtectedBranch.EnableApprovalsWhitelist {
-		return team.UnitAccessModeCtx(ctx, unit.TypeCode) >= perm.AccessModeWrite, nil
+	if !pb.EnableApprovalsWhitelist {
+		return team.UnitAccessMode(ctx, unit.TypeCode) >= perm.AccessModeWrite, nil
 	}
 
-	return base.Int64sContains(pr.ProtectedBranch.ApprovalsWhitelistTeamIDs, team.ID), nil
+	return base.Int64sContains(pb.ApprovalsWhitelistTeamIDs, team.ID), nil
 }
 
 // CreateReview creates a new review based on opts
@@ -436,7 +439,7 @@ func SubmitReview(doer *user_model.User, issue *Issue, reviewType ReviewType, co
 		}
 	}
 
-	comm, err := CreateCommentCtx(ctx, &CreateCommentOptions{
+	comm, err := CreateComment(ctx, &CreateCommentOptions{
 		Type:        CommentTypeReview,
 		Doer:        doer,
 		Content:     review.Content,
@@ -692,7 +695,7 @@ func AddReviewRequest(issue *Issue, reviewer, doer *user_model.User) (*Comment, 
 		return nil, err
 	}
 
-	comment, err := CreateCommentCtx(ctx, &CreateCommentOptions{
+	comment, err := CreateComment(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -733,20 +736,12 @@ func RemoveReviewRequest(issue *Issue, reviewer, doer *user_model.User) (*Commen
 	if err != nil {
 		return nil, err
 	} else if official {
-		// recalculate the latest official review for reviewer
-		review, err := GetReviewByIssueIDAndUserID(ctx, issue.ID, reviewer.ID)
-		if err != nil && !IsErrReviewNotExist(err) {
+		if err := restoreLatestOfficialReview(ctx, issue.ID, reviewer.ID); err != nil {
 			return nil, err
-		}
-
-		if review != nil {
-			if _, err := db.Exec(ctx, "UPDATE `review` SET official=? WHERE id=?", true, review.ID); err != nil {
-				return nil, err
-			}
 		}
 	}
 
-	comment, err := CreateCommentCtx(ctx, &CreateCommentOptions{
+	comment, err := CreateComment(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -759,6 +754,22 @@ func RemoveReviewRequest(issue *Issue, reviewer, doer *user_model.User) (*Commen
 	}
 
 	return comment, committer.Commit()
+}
+
+// Recalculate the latest official review for reviewer
+func restoreLatestOfficialReview(ctx context.Context, issueID, reviewerID int64) error {
+	review, err := GetReviewByIssueIDAndUserID(ctx, issueID, reviewerID)
+	if err != nil && !IsErrReviewNotExist(err) {
+		return err
+	}
+
+	if review != nil {
+		if _, err := db.Exec(ctx, "UPDATE `review` SET official=? WHERE id=?", true, review.ID); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // AddTeamReviewRequest add a review request from one team
@@ -804,7 +815,7 @@ func AddTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *user_
 		}
 	}
 
-	comment, err := CreateCommentCtx(ctx, &CreateCommentOptions{
+	comment, err := CreateComment(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -814,7 +825,7 @@ func AddTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *user_
 		ReviewID:        review.ID,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("CreateCommentCtx(): %w", err)
+		return nil, fmt.Errorf("CreateComment(): %w", err)
 	}
 
 	return comment, committer.Commit()
@@ -864,7 +875,7 @@ func RemoveTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *us
 		return nil, committer.Commit()
 	}
 
-	comment, err := CreateCommentCtx(ctx, &CreateCommentOptions{
+	comment, err := CreateComment(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -873,7 +884,7 @@ func RemoveTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *us
 		AssigneeTeamID:  reviewer.ID, // Use AssigneeTeamID as reviewer team ID
 	})
 	if err != nil {
-		return nil, fmt.Errorf("CreateCommentCtx(): %w", err)
+		return nil, fmt.Errorf("CreateComment(): %w", err)
 	}
 
 	return comment, committer.Commit()
@@ -961,7 +972,7 @@ func DeleteReview(r *Review) error {
 		ReviewID: r.ID,
 	}
 
-	if _, err := sess.Where(opts.toConds()).Delete(new(Comment)); err != nil {
+	if _, err := sess.Where(opts.ToConds()).Delete(new(Comment)); err != nil {
 		return err
 	}
 
@@ -971,12 +982,18 @@ func DeleteReview(r *Review) error {
 		ReviewID: r.ID,
 	}
 
-	if _, err := sess.Where(opts.toConds()).Delete(new(Comment)); err != nil {
+	if _, err := sess.Where(opts.ToConds()).Delete(new(Comment)); err != nil {
 		return err
 	}
 
 	if _, err := sess.ID(r.ID).Delete(new(Review)); err != nil {
 		return err
+	}
+
+	if r.Official {
+		if err := restoreLatestOfficialReview(ctx, r.IssueID, r.ReviewerID); err != nil {
+			return err
+		}
 	}
 
 	return committer.Commit()
@@ -989,7 +1006,7 @@ func (r *Review) GetCodeCommentsCount() int {
 		IssueID:  r.IssueID,
 		ReviewID: r.ID,
 	}
-	conds := opts.toConds()
+	conds := opts.ToConds()
 	if r.ID == 0 {
 		conds = conds.And(builder.Eq{"invalidated": false})
 	}
@@ -1009,7 +1026,7 @@ func (r *Review) HTMLURL() string {
 		ReviewID: r.ID,
 	}
 	comment := new(Comment)
-	has, err := db.GetEngine(db.DefaultContext).Where(opts.toConds()).Get(comment)
+	has, err := db.GetEngine(db.DefaultContext).Where(opts.ToConds()).Get(comment)
 	if err != nil || !has {
 		return ""
 	}

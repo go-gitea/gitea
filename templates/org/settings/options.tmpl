@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content organization settings options">
+<div role="main" aria-label="{{.Title}}" class="page-content organization settings options">
 	{{template "org/header" .}}
 	<div class="ui container">
 		<div class="ui grid">
@@ -14,8 +14,8 @@
 						{{.CsrfTokenHtml}}
 						<div class="required field {{if .Err_Name}}error{{end}}">
 							<label for="org_name">{{.locale.Tr "org.org_name_holder"}}
-								<span class="text red hide" id="org-name-change-prompt"> {{.locale.Tr "org.settings.change_orgname_prompt"}}</span>
-								<span class="text red hide" id="org-name-change-redirect-prompt"> {{.locale.Tr "org.settings.change_orgname_redirect_prompt"}}</span>
+								<span class="text red gt-hidden" id="org-name-change-prompt"> {{.locale.Tr "org.settings.change_orgname_prompt"}}</span>
+								<span class="text red gt-hidden" id="org-name-change-redirect-prompt"> {{.locale.Tr "org.settings.change_orgname_redirect_prompt"}}</span>
 							</label>
 							<input id="org_name" name="name" value="{{.Org.Name}}" data-org-name="{{.Org.Name}}" autofocus required>
 						</div>
@@ -41,19 +41,19 @@
 							<label for="visibility">{{.locale.Tr "org.settings.visibility"}}</label>
 							<div class="field">
 								<div class="ui radio checkbox">
-									<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="0" {{if eq .CurrentVisibility 0}}checked{{end}}/>
+									<input class="enable-system-radio" tabindex="0" name="visibility" type="radio" value="0" {{if eq .CurrentVisibility 0}}checked{{end}}/>
 									<label>{{.locale.Tr "org.settings.visibility.public"}}</label>
 								</div>
 							</div>
 							<div class="field">
 								<div class="ui radio checkbox">
-									<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="1" {{if eq .CurrentVisibility 1}}checked{{end}}/>
+									<input class="enable-system-radio" tabindex="0" name="visibility" type="radio" value="1" {{if eq .CurrentVisibility 1}}checked{{end}}/>
 									<label>{{.locale.Tr "org.settings.visibility.limited"}}</label>
 								</div>
 							</div>
 							<div class="field">
 								<div class="ui radio checkbox">
-									<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="2" {{if eq .CurrentVisibility 2}}checked{{end}}/>
+									<input class="enable-system-radio" tabindex="0" name="visibility" type="radio" value="2" {{if eq .CurrentVisibility 2}}checked{{end}}/>
 									<label>{{.locale.Tr "org.settings.visibility.private"}}</label>
 								</div>
 							</div>
@@ -63,7 +63,7 @@
 							<label>{{.locale.Tr "org.settings.permission"}}</label>
 							<div class="field">
 								<div class="ui checkbox">
-									<input class="hidden" type="checkbox" name="repo_admin_change_team_access" {{if .RepoAdminChangeTeamAccess}}checked{{end}}/>
+									<input type="checkbox" name="repo_admin_change_team_access" {{if .RepoAdminChangeTeamAccess}}checked{{end}}/>
 									<label>{{.locale.Tr "org.settings.repoadminchangeteam"}}</label>
 								</div>
 							</div>

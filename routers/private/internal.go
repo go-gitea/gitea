@@ -6,7 +6,6 @@ package private
 
 import (
 	"net/http"
-	"reflect"
 	"strings"
 
 	"code.gitea.io/gitea/modules/context"
@@ -39,13 +38,9 @@ func CheckInternalToken(next http.Handler) http.Handler {
 }
 
 // bind binding an obj to a handler
-func bind(obj interface{}) http.HandlerFunc {
-	tp := reflect.TypeOf(obj)
-	for tp.Kind() == reflect.Ptr {
-		tp = tp.Elem()
-	}
+func bind[T any](obj T) http.HandlerFunc {
 	return web.Wrap(func(ctx *context.PrivateContext) {
-		theObj := reflect.New(tp).Interface() // create a new form obj for every request but not use obj directly
+		theObj := new(T) // create a new form obj for every request but not use obj directly
 		binding.Bind(ctx.Req, theObj)
 		web.SetForm(ctx, theObj)
 	})

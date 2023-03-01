@@ -4,6 +4,7 @@
 package external
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -132,11 +133,13 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 	if !p.IsInputFile {
 		cmd.Stdin = input
 	}
+	var stderr bytes.Buffer
 	cmd.Stdout = output
+	cmd.Stderr = &stderr
 	process.SetSysProcAttribute(cmd)
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("%s render run command %s %v failed: %w", p.Name(), commands[0], args, err)
+		return fmt.Errorf("%s render run command %s %v failed: %w\nStderr: %s", p.Name(), commands[0], args, err, stderr.String())
 	}
 	return nil
 }

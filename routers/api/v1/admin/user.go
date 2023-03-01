@@ -15,17 +15,18 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/mailer"
 	user_service "code.gitea.io/gitea/services/user"
 )
@@ -120,6 +121,14 @@ func CreateUser(ctx *context.APIContext) {
 		overwriteDefault.Visibility = &visibility
 	}
 
+	// Update the user creation timestamp. This can only be done after the user
+	// record has been inserted into the database; the insert intself will always
+	// set the creation timestamp to "now".
+	if form.Created != nil {
+		u.CreatedUnix = timeutil.TimeStamp(form.Created.Unix())
+		u.UpdatedUnix = u.CreatedUnix
+	}
+
 	if err := user_model.CreateUser(u, overwriteDefault); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) ||
 			user_model.IsErrEmailAlreadyUsed(err) ||
@@ -140,7 +149,7 @@ func CreateUser(ctx *context.APIContext) {
 	if form.SendNotify {
 		mailer.SendRegisterNotifyMail(u)
 	}
-	ctx.JSON(http.StatusCreated, convert.ToUser(u, ctx.Doer))
+	ctx.JSON(http.StatusCreated, convert.ToUser(ctx, u, ctx.Doer))
 }
 
 // EditUser api for modifying a user's information
@@ -280,7 +289,7 @@ func EditUser(ctx *context.APIContext) {
 	}
 	log.Trace("Account profile updated by admin (%s): %s", ctx.Doer.Name, ctx.ContextUser.Name)
 
-	ctx.JSON(http.StatusOK, convert.ToUser(ctx.ContextUser, ctx.Doer))
+	ctx.JSON(http.StatusOK, convert.ToUser(ctx, ctx.ContextUser, ctx.Doer))
 }
 
 // DeleteUser api for deleting a user
@@ -441,7 +450,7 @@ func GetAllUsers(ctx *context.APIContext) {
 
 	results := make([]*api.User, len(users))
 	for i := range users {
-		results[i] = convert.ToUser(users[i], ctx.Doer)
+		results[i] = convert.ToUser(ctx, users[i], ctx.Doer)
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)

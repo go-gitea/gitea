@@ -9,15 +9,15 @@ import (
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 )
 
 func responseAPIUsers(ctx *context.APIContext, users []*user_model.User) {
 	apiUsers := make([]*api.User, len(users))
 	for i := range users {
-		apiUsers[i] = convert.ToUser(users[i], ctx.Doer)
+		apiUsers[i] = convert.ToUser(ctx, users[i], ctx.Doer)
 	}
 	ctx.JSON(http.StatusOK, &apiUsers)
 }

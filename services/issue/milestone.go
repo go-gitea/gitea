@@ -54,7 +54,7 @@ func changeMilestoneAssign(ctx context.Context, doer *user_model.User, issue *is
 			OldMilestoneID: oldMilestoneID,
 			MilestoneID:    issue.MilestoneID,
 		}
-		if _, err := issues_model.CreateCommentCtx(ctx, opts); err != nil {
+		if _, err := issues_model.CreateComment(ctx, opts); err != nil {
 			return err
 		}
 	}

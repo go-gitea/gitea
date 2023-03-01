@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -34,7 +36,7 @@ func TestUserOrgs(t *testing.T) {
 			Name:        user17.Name,
 			UserName:    user17.Name,
 			FullName:    user17.FullName,
-			AvatarURL:   user17.AvatarLink(),
+			AvatarURL:   user17.AvatarLink(db.DefaultContext),
 			Description: "",
 			Website:     "",
 			Location:    "",
@@ -45,7 +47,7 @@ func TestUserOrgs(t *testing.T) {
 			Name:        user3.Name,
 			UserName:    user3.Name,
 			FullName:    user3.FullName,
-			AvatarURL:   user3.AvatarLink(),
+			AvatarURL:   user3.AvatarLink(db.DefaultContext),
 			Description: "",
 			Website:     "",
 			Location:    "",
@@ -61,21 +63,26 @@ func TestUserOrgs(t *testing.T) {
 	orgs = getUserOrgs(t, unrelatedUsername, privateMemberUsername)
 	assert.Len(t, orgs, 0)
 
-	// not authenticated call also should hide org membership
-	orgs = getUserOrgs(t, "", privateMemberUsername)
-	assert.Len(t, orgs, 0)
+	// not authenticated call should not be allowed
+	testUserOrgsUnauthenticated(t, privateMemberUsername)
 }
 
 func getUserOrgs(t *testing.T, userDoer, userCheck string) (orgs []*api.Organization) {
 	token := ""
 	if len(userDoer) != 0 {
-		token = getUserToken(t, userDoer)
+		token = getUserToken(t, userDoer, auth_model.AccessTokenScopeReadOrg)
 	}
 	urlStr := fmt.Sprintf("/api/v1/users/%s/orgs?token=%s", userCheck, token)
 	req := NewRequest(t, "GET", urlStr)
 	resp := MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &orgs)
 	return orgs
+}
+
+func testUserOrgsUnauthenticated(t *testing.T, userCheck string) {
+	session := emptyTestSession(t)
+	req := NewRequestf(t, "GET", "/api/v1/users/%s/orgs", userCheck)
+	session.MakeRequest(t, req, http.StatusUnauthorized)
 }
 
 func TestMyOrgs(t *testing.T) {
@@ -85,7 +92,7 @@ func TestMyOrgs(t *testing.T) {
 	MakeRequest(t, req, http.StatusUnauthorized)
 
 	normalUsername := "user2"
-	token := getUserToken(t, normalUsername)
+	token := getUserToken(t, normalUsername, auth_model.AccessTokenScopeReadOrg)
 	req = NewRequest(t, "GET", "/api/v1/user/orgs?token="+token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	var orgs []*api.Organization
@@ -99,7 +106,7 @@ func TestMyOrgs(t *testing.T) {
 			Name:        user17.Name,
 			UserName:    user17.Name,
 			FullName:    user17.FullName,
-			AvatarURL:   user17.AvatarLink(),
+			AvatarURL:   user17.AvatarLink(db.DefaultContext),
 			Description: "",
 			Website:     "",
 			Location:    "",
@@ -110,7 +117,7 @@ func TestMyOrgs(t *testing.T) {
 			Name:        user3.Name,
 			UserName:    user3.Name,
 			FullName:    user3.FullName,
-			AvatarURL:   user3.AvatarLink(),
+			AvatarURL:   user3.AvatarLink(db.DefaultContext),
 			Description: "",
 			Website:     "",
 			Location:    "",

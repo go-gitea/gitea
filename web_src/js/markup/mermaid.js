@@ -1,4 +1,6 @@
 import {isDarkTheme} from '../utils.js';
+import {makeCodeCopyButton} from './codecopy.js';
+
 const {mermaidMaxSourceCharacters} = window.config;
 
 const iframeCss = `
@@ -10,7 +12,7 @@ const iframeCss = `
 function displayError(el, err) {
   el.closest('pre').classList.remove('is-loading');
   const errorNode = document.createElement('div');
-  errorNode.setAttribute('class', 'ui message error markup-block-error mono');
+  errorNode.setAttribute('class', 'ui message error markup-block-error gt-mono');
   errorNode.textContent = err.str || err.message || String(err);
   el.closest('pre').before(errorNode);
 }
@@ -58,7 +60,13 @@ export async function renderMermaid() {
         iframe.sandbox = 'allow-scripts';
         iframe.style.height = `${Math.ceil(parseFloat(heightStr))}px`;
         iframe.srcdoc = `<html><head><style>${iframeCss}</style></head><body>${svgStr}</body></html>`;
-        el.closest('pre').replaceWith(iframe);
+        const mermaidBlock = document.createElement('div');
+        mermaidBlock.classList.add('mermaid-block');
+        mermaidBlock.append(iframe);
+        const btn = makeCodeCopyButton();
+        btn.setAttribute('data-clipboard-text', source);
+        mermaidBlock.append(btn);
+        el.closest('pre').replaceWith(mermaidBlock);
       });
     } catch (err) {
       displayError(el, err);

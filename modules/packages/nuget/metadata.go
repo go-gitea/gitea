@@ -5,13 +5,15 @@ package nuget
 
 import (
 	"archive/zip"
+	"bytes"
 	"encoding/xml"
-	"errors"
+	"fmt"
 	"io"
 	"path/filepath"
 	"regexp"
 	"strings"
 
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 
 	"github.com/hashicorp/go-version"
@@ -19,13 +21,13 @@ import (
 
 var (
 	// ErrMissingNuspecFile indicates a missing Nuspec file
-	ErrMissingNuspecFile = errors.New("Nuspec file is missing")
+	ErrMissingNuspecFile = util.NewInvalidArgumentErrorf("Nuspec file is missing")
 	// ErrNuspecFileTooLarge indicates a Nuspec file which is too large
-	ErrNuspecFileTooLarge = errors.New("Nuspec file is too large")
+	ErrNuspecFileTooLarge = util.NewInvalidArgumentErrorf("Nuspec file is too large")
 	// ErrNuspecInvalidID indicates an invalid id in the Nuspec file
-	ErrNuspecInvalidID = errors.New("Nuspec file contains an invalid id")
+	ErrNuspecInvalidID = util.NewInvalidArgumentErrorf("Nuspec file contains an invalid id")
 	// ErrNuspecInvalidVersion indicates an invalid version in the Nuspec file
-	ErrNuspecInvalidVersion = errors.New("Nuspec file contains an invalid version")
+	ErrNuspecInvalidVersion = util.NewInvalidArgumentErrorf("Nuspec file contains an invalid version")
 )
 
 // PackageType specifies the package type the metadata describes
@@ -182,7 +184,23 @@ func ParseNuspecMetaData(r io.Reader) (*Package, error) {
 	return &Package{
 		PackageType: packageType,
 		ID:          p.Metadata.ID,
-		Version:     v.String(),
+		Version:     toNormalizedVersion(v),
 		Metadata:    m,
 	}, nil
+}
+
+// https://learn.microsoft.com/en-us/nuget/concepts/package-versioning#normalized-version-numbers
+// https://github.com/NuGet/NuGet.Client/blob/dccbd304b11103e08b97abf4cf4bcc1499d9235a/src/NuGet.Core/NuGet.Versioning/VersionFormatter.cs#L121
+func toNormalizedVersion(v *version.Version) string {
+	var buf bytes.Buffer
+	segments := v.Segments64()
+	fmt.Fprintf(&buf, "%d.%d.%d", segments[0], segments[1], segments[2])
+	if len(segments) > 3 && segments[3] > 0 {
+		fmt.Fprintf(&buf, ".%d", segments[3])
+	}
+	pre := v.Prerelease()
+	if pre != "" {
+		fmt.Fprint(&buf, "-", pre)
+	}
+	return buf.String()
 }

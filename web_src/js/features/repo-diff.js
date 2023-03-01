@@ -35,8 +35,8 @@ export function initRepoDiffFileViewToggle() {
     $this.addClass('active');
 
     const $target = $($this.data('toggle-selector'));
-    $target.parent().children().addClass('hide');
-    $target.removeClass('hide');
+    $target.parent().children().addClass('gt-hidden');
+    $target.removeClass('gt-hidden');
   });
 }
 
@@ -92,7 +92,7 @@ export function initRepoDiffConversationNav() {
   // Previous/Next code review conversation
   $(document).on('click', '.previous-conversation', (e) => {
     const $conversation = $(e.currentTarget).closest('.comment-code-cloud');
-    const $conversations = $('.comment-code-cloud:not(.hide)');
+    const $conversations = $('.comment-code-cloud:not(.gt-hidden)');
     const index = $conversations.index($conversation);
     const previousIndex = index > 0 ? index - 1 : $conversations.length - 1;
     const $previousConversation = $conversations.eq(previousIndex);
@@ -101,7 +101,7 @@ export function initRepoDiffConversationNav() {
   });
   $(document).on('click', '.next-conversation', (e) => {
     const $conversation = $(e.currentTarget).closest('.comment-code-cloud');
-    const $conversations = $('.comment-code-cloud:not(.hide)');
+    const $conversations = $('.comment-code-cloud:not(.gt-hidden)');
     const index = $conversations.index($conversation);
     const nextIndex = index < $conversations.length - 1 ? index + 1 : 0;
     const $nextConversation = $conversations.eq(nextIndex);
@@ -119,26 +119,47 @@ function onShowMoreFiles() {
 
 export function doLoadMoreFiles(link, diffEnd, callback) {
   const url = `${link}?skip-to=${diffEnd}&file-only=true`;
+  loadMoreFiles(url, callback);
+}
+
+function loadMoreFiles(url, callback) {
+  const $target = $('a#diff-show-more-files');
+  if ($target.hasClass('disabled')) {
+    callback();
+    return;
+  }
+  $target.addClass('disabled');
   $.ajax({
     type: 'GET',
     url,
   }).done((resp) => {
     if (!resp) {
+      $target.removeClass('disabled');
       callback(resp);
       return;
     }
+    $('#diff-incomplete').replaceWith($(resp).find('#diff-file-boxes').children());
     // By simply rerunning the script we add the new data to our existing
     // pagedata object. this triggers vue and the filetree and filelist will
     // render the new elements.
     $('body').append($(resp).find('script#diff-data-script'));
+    onShowMoreFiles();
     callback(resp);
   }).fail(() => {
+    $target.removeClass('disabled');
     callback();
   });
 }
 
 export function initRepoDiffShowMore() {
-  $(document).on('click', 'a.diff-show-more-button', (e) => {
+  $(document).on('click', 'a#diff-show-more-files', (e) => {
+    e.preventDefault();
+
+    const $target = $(e.target);
+    loadMoreFiles($target.data('href'), () => {});
+  });
+
+  $(document).on('click', 'a.diff-load-button', (e) => {
     e.preventDefault();
     const $target = $(e.target);
 

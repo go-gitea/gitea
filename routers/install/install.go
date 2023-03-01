@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/models/migrations"
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/generate"
@@ -79,7 +80,7 @@ func Init(ctx goctx.Context) func(next http.Handler) http.Handler {
 					"AllLangs":      translation.AllLangs(),
 					"PageStartTime": startTime,
 
-					"PasswordHashAlgorithms": user_model.AvailableHashAlgorithms,
+					"PasswordHashAlgorithms": hash.RecommendedHashAlgorithms,
 				},
 			}
 			defer ctx.Close()
@@ -133,7 +134,7 @@ func Install(ctx *context.Context) {
 	form.SSHPort = setting.SSH.Port
 	form.HTTPPort = setting.HTTPPort
 	form.AppURL = setting.AppURL
-	form.LogRootPath = setting.LogRootPath
+	form.LogRootPath = setting.Log.RootPath
 
 	// E-mail service settings
 	if setting.MailService != nil {
@@ -148,8 +149,8 @@ func Install(ctx *context.Context) {
 
 	// Server and other services settings
 	form.OfflineMode = setting.OfflineMode
-	form.DisableGravatar = false       // when installing, there is no database connection so that given a default value
-	form.EnableFederatedAvatar = false // when installing, there is no database connection so that given a default value
+	form.DisableGravatar = setting.DisableGravatar             // when installing, there is no database connection so that given a default value
+	form.EnableFederatedAvatar = setting.EnableFederatedAvatar // when installing, there is no database connection so that given a default value
 
 	form.EnableOpenIDSignIn = setting.Service.EnableOpenIDSignIn
 	form.EnableOpenIDSignUp = setting.Service.EnableOpenIDSignUp
@@ -441,11 +442,14 @@ func SubmitInstall(ctx *context.Context) {
 
 	cfg.Section("server").Key("OFFLINE_MODE").SetValue(fmt.Sprint(form.OfflineMode))
 	// if you are reinstalling, this maybe not right because of missing version
-	if err := system_model.SetSettingNoVersion(system_model.KeyPictureDisableGravatar, strconv.FormatBool(form.DisableGravatar)); err != nil {
-		ctx.RenderWithErr(ctx.Tr("install.secret_key_failed", err), tplInstall, &form)
+	if err := system_model.SetSettingNoVersion(ctx, system_model.KeyPictureDisableGravatar, strconv.FormatBool(form.DisableGravatar)); err != nil {
+		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 		return
 	}
-	cfg.Section("picture").Key("ENABLE_FEDERATED_AVATAR").SetValue(fmt.Sprint(form.EnableFederatedAvatar))
+	if err := system_model.SetSettingNoVersion(ctx, system_model.KeyPictureEnableFederatedAvatar, strconv.FormatBool(form.EnableFederatedAvatar)); err != nil {
+		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
+		return
+	}
 	cfg.Section("openid").Key("ENABLE_OPENID_SIGNIN").SetValue(fmt.Sprint(form.EnableOpenIDSignIn))
 	cfg.Section("openid").Key("ENABLE_OPENID_SIGNUP").SetValue(fmt.Sprint(form.EnableOpenIDSignUp))
 	cfg.Section("service").Key("DISABLE_REGISTRATION").SetValue(fmt.Sprint(form.DisableRegistration))
@@ -463,7 +467,7 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("session").Key("PROVIDER").SetValue("file")
 
 	cfg.Section("log").Key("MODE").SetValue("console")
-	cfg.Section("log").Key("LEVEL").SetValue(setting.LogLevel.String())
+	cfg.Section("log").Key("LEVEL").SetValue(setting.Log.Level.String())
 	cfg.Section("log").Key("ROOT_PATH").SetValue(form.LogRootPath)
 	cfg.Section("log").Key("ROUTER").SetValue("console")
 

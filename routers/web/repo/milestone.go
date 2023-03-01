@@ -73,7 +73,7 @@ func Milestones(ctx *context.Context) {
 		ctx.ServerError("GetMilestones", err)
 		return
 	}
-	if ctx.Repo.Repository.IsTimetrackerEnabled() {
+	if ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
 		if err := miles.LoadTotalTrackedTimes(); err != nil {
 			ctx.ServerError("LoadTotalTrackedTimes", err)
 			return

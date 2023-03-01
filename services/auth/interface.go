@@ -24,8 +24,9 @@ type Method interface {
 	// If verification is successful returns either an existing user object (with id > 0)
 	// or a new user object (with id = 0) populated with the information that was found
 	// in the authentication data (username or email).
-	// Returns nil if verification fails.
-	Verify(http *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *user_model.User
+	// Second argument returns err if verification fails, otherwise
+	// First return argument returns nil if no matched verification condition
+	Verify(http *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error)
 }
 
 // Initializable represents a structure that requires initialization

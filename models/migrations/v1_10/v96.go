@@ -30,19 +30,19 @@ func DeleteOrphanedAttachments(x *xorm.Engine) error {
 	}
 
 	for {
-		attachements := make([]Attachment, 0, limit)
+		attachments := make([]Attachment, 0, limit)
 		if err := sess.Where("`issue_id` = 0 and (`release_id` = 0 or `release_id` not in (select `id` from `release`))").
 			Cols("id, uuid").Limit(limit).
 			Asc("id").
-			Find(&attachements); err != nil {
+			Find(&attachments); err != nil {
 			return err
 		}
-		if len(attachements) == 0 {
+		if len(attachments) == 0 {
 			return nil
 		}
 
 		ids := make([]int64, 0, limit)
-		for _, attachment := range attachements {
+		for _, attachment := range attachments {
 			ids = append(ids, attachment.ID)
 		}
 		if len(ids) > 0 {
@@ -51,13 +51,13 @@ func DeleteOrphanedAttachments(x *xorm.Engine) error {
 			}
 		}
 
-		for _, attachment := range attachements {
+		for _, attachment := range attachments {
 			uuid := attachment.UUID
 			if err := util.RemoveAll(filepath.Join(setting.Attachment.Path, uuid[0:1], uuid[1:2], uuid)); err != nil {
 				return err
 			}
 		}
-		if len(attachements) < limit {
+		if len(attachments) < limit {
 			return nil
 		}
 	}

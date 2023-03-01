@@ -68,6 +68,10 @@ func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, 
 		orderBy = "`user`.updated_unix ASC"
 	case "reversealphabetically":
 		orderBy = "`user`.name DESC"
+	case "lastlogin":
+		orderBy = "`user`.last_login_unix ASC"
+	case "reverselastlogin":
+		orderBy = "`user`.last_login_unix DESC"
 	case UserSearchDefaultSortType: // "alphabetically"
 	default:
 		orderBy = "`user`.name ASC"

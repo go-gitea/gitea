@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	// register supported doc types
+	_ "code.gitea.io/gitea/modules/markup/asciicast"
 	_ "code.gitea.io/gitea/modules/markup/console"
 	_ "code.gitea.io/gitea/modules/markup/csv"
 	_ "code.gitea.io/gitea/modules/markup/markdown"
@@ -111,6 +112,8 @@ arguments - which can alternatively be run by running the subcommand web.`
 	for i := range app.Commands {
 		setFlagsAndBeforeOnSubcommands(&app.Commands[i], defaultFlags, establishCustomPath)
 	}
+
+	app.EnableBashCompletion = true
 
 	err := app.Run(os.Args)
 	if err != nil {

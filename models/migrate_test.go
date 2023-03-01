@@ -4,11 +4,9 @@
 package models
 
 import (
-	"strconv"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/foreignreference"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -48,7 +46,6 @@ func assertCreateIssues(t *testing.T, isPull bool) {
 		UserID: owner.ID,
 	}
 
-	foreignIndex := int64(12345)
 	title := "issuetitle1"
 	is := &issues_model.Issue{
 		RepoID:      repo.ID,
@@ -62,20 +59,11 @@ func assertCreateIssues(t *testing.T, isPull bool) {
 		IsClosed:    true,
 		Labels:      []*issues_model.Label{label},
 		Reactions:   []*issues_model.Reaction{reaction},
-		ForeignReference: &foreignreference.ForeignReference{
-			ForeignIndex: strconv.FormatInt(foreignIndex, 10),
-			RepoID:       repo.ID,
-			Type:         foreignreference.TypeIssue,
-		},
 	}
 	err := InsertIssues(is)
 	assert.NoError(t, err)
 
 	i := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: title})
-	assert.Nil(t, i.ForeignReference)
-	err = i.LoadAttributes(db.DefaultContext)
-	assert.NoError(t, err)
-	assert.EqualValues(t, strconv.FormatInt(foreignIndex, 10), i.ForeignReference.ForeignIndex)
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Reaction{Type: "heart", UserID: owner.ID, IssueID: i.ID})
 }
 

@@ -102,7 +102,7 @@ func toggleIssueAssignee(ctx context.Context, issue *Issue, doer *user_model.Use
 		AssigneeID:      assigneeID,
 	}
 	// Comment
-	comment, err = CreateCommentCtx(ctx, opts)
+	comment, err = CreateComment(ctx, opts)
 	if err != nil {
 		return false, nil, fmt.Errorf("createComment: %w", err)
 	}
@@ -155,7 +155,7 @@ func MakeIDsFromAPIAssigneesToAdd(ctx context.Context, oneAssignee string, multi
 	var requestAssignees []string
 
 	// Keeping the old assigning method for compatibility reasons
-	if oneAssignee != "" && !util.IsStringInSlice(oneAssignee, multipleAssignees) {
+	if oneAssignee != "" && !util.SliceContainsString(multipleAssignees, oneAssignee) {
 		requestAssignees = append(requestAssignees, oneAssignee)
 	}
 

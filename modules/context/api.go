@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
-	auth_service "code.gitea.io/gitea/services/auth"
 )
 
 // APIContext is a specific context for API service
@@ -215,29 +214,6 @@ func (ctx *APIContext) CheckForOTP() {
 	}
 }
 
-// APIAuth converts auth_service.Auth as a middleware
-func APIAuth(authMethod auth_service.Method) func(*APIContext) {
-	return func(ctx *APIContext) {
-		// Get user from session if logged in.
-		ctx.Doer = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
-		if ctx.Doer != nil {
-			if ctx.Locale.Language() != ctx.Doer.Language {
-				ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
-			}
-			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == auth_service.BasicMethodName
-			ctx.IsSigned = true
-			ctx.Data["IsSigned"] = ctx.IsSigned
-			ctx.Data["SignedUser"] = ctx.Doer
-			ctx.Data["SignedUserID"] = ctx.Doer.ID
-			ctx.Data["SignedUserName"] = ctx.Doer.Name
-			ctx.Data["IsAdmin"] = ctx.Doer.IsAdmin
-		} else {
-			ctx.Data["SignedUserID"] = int64(0)
-			ctx.Data["SignedUserName"] = ""
-		}
-	}
-}
-
 // APIContexter returns apicontext as middleware
 func APIContexter() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -387,7 +363,7 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 				return
 			}
 			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-		} else if len(refName) == 40 {
+		} else if len(refName) == git.SHAFullLength {
 			ctx.Repo.CommitID = refName
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refName)
 			if err != nil {

@@ -11,10 +11,10 @@ import (
 	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 	releaseservice "code.gitea.io/gitea/services/release"
 )
 
@@ -107,7 +107,7 @@ func GetAnnotatedTag(ctx *context.APIContext) {
 		if err != nil {
 			ctx.Error(http.StatusBadRequest, "GetAnnotatedTag", err)
 		}
-		ctx.JSON(http.StatusOK, convert.ToAnnotatedTag(ctx.Repo.Repository, tag, commit))
+		ctx.JSON(http.StatusOK, convert.ToAnnotatedTag(ctx, ctx.Repo.Repository, tag, commit))
 	}
 }
 

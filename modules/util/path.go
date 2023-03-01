@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strings"
 )
 
 // EnsureAbsolutePath ensure that a path is absolute, making it
@@ -20,20 +21,6 @@ func EnsureAbsolutePath(path, absoluteBase string) string {
 		return path
 	}
 	return filepath.Join(absoluteBase, path)
-}
-
-const notRegularFileMode os.FileMode = os.ModeSymlink | os.ModeNamedPipe | os.ModeSocket | os.ModeDevice | os.ModeCharDevice | os.ModeIrregular
-
-// GetDirectorySize returns the disk consumption for a given path
-func GetDirectorySize(path string) (int64, error) {
-	var size int64
-	err := filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
-		if info != nil && (info.Mode()&notRegularFileMode) == 0 {
-			size += info.Size()
-		}
-		return err
-	})
-	return size, err
 }
 
 // IsDir returns true if given path is a directory,
@@ -214,4 +201,42 @@ func CommonSkip(name string) bool {
 	}
 
 	return false
+}
+
+// IsReadmeFileName reports whether name looks like a README file
+// based on its name.
+func IsReadmeFileName(name string) bool {
+	name = strings.ToLower(name)
+	if len(name) < 6 {
+		return false
+	} else if len(name) == 6 {
+		return name == "readme"
+	}
+	return name[:7] == "readme."
+}
+
+// IsReadmeFileExtension reports whether name looks like a README file
+// based on its name. It will look through the provided extensions and check if the file matches
+// one of the extensions and provide the index in the extension list.
+// If the filename is `readme.` with an unmatched extension it will match with the index equaling
+// the length of the provided extension list.
+// Note that the '.' should be provided in ext, e.g ".md"
+func IsReadmeFileExtension(name string, ext ...string) (int, bool) {
+	name = strings.ToLower(name)
+	if len(name) < 6 || name[:6] != "readme" {
+		return 0, false
+	}
+
+	for i, extension := range ext {
+		extension = strings.ToLower(extension)
+		if name[6:] == extension {
+			return i, true
+		}
+	}
+
+	if name[6] == '.' {
+		return len(ext), true
+	}
+
+	return 0, false
 }

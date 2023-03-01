@@ -9,7 +9,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // Search search users
@@ -38,6 +38,6 @@ func Search(ctx *context.Context) {
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok":   true,
-		"data": convert.ToUsers(ctx.Doer, users),
+		"data": convert.ToUsers(ctx, ctx.Doer, users),
 	})
 }
