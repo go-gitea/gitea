@@ -26,11 +26,11 @@ func TestManager_AddContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	p1Ctx, _, finished := pm.AddContext(ctx, "foo")
+	p1Ctx, _, finished := pm.AddContext(ctx, "foo", "")
 	defer finished()
 	assert.NotEmpty(t, GetContext(p1Ctx).GetPID(), "expected to get non-empty pid")
 
-	p2Ctx, _, finished := pm.AddContext(p1Ctx, "bar")
+	p2Ctx, _, finished := pm.AddContext(p1Ctx, "bar", "")
 	defer finished()
 
 	assert.NotEmpty(t, GetContext(p2Ctx).GetPID(), "expected to get non-empty pid")
@@ -42,7 +42,7 @@ func TestManager_AddContext(t *testing.T) {
 func TestManager_Cancel(t *testing.T) {
 	pm := Manager{processMap: make(map[IDType]*process), next: 1}
 
-	ctx, _, finished := pm.AddContext(context.Background(), "foo")
+	ctx, _, finished := pm.AddContext(context.Background(), "foo", "")
 	defer finished()
 
 	pm.Cancel(GetPID(ctx))
@@ -54,7 +54,7 @@ func TestManager_Cancel(t *testing.T) {
 	}
 	finished()
 
-	ctx, cancel, finished := pm.AddContext(context.Background(), "foo")
+	ctx, cancel, finished := pm.AddContext(context.Background(), "foo", "")
 	defer finished()
 
 	cancel()
@@ -73,11 +73,11 @@ func TestManager_Remove(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	p1Ctx, _, finished := pm.AddContext(ctx, "foo")
+	p1Ctx, _, finished := pm.AddContext(ctx, "foo", "")
 	defer finished()
 	assert.NotEmpty(t, GetContext(p1Ctx).GetPID(), "expected to have non-empty PID")
 
-	p2Ctx, _, finished := pm.AddContext(p1Ctx, "bar")
+	p2Ctx, _, finished := pm.AddContext(p1Ctx, "bar", "")
 	defer finished()
 
 	assert.NotEqual(t, GetContext(p1Ctx).GetPID(), GetContext(p2Ctx).GetPID(), "expected to get different pids got %s == %s", GetContext(p2Ctx).GetPID(), GetContext(p1Ctx).GetPID())

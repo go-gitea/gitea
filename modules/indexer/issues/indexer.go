@@ -101,7 +101,7 @@ var (
 // InitIssueIndexer initialize issue indexer, syncReindex is true then reindex until
 // all issue index done.
 func InitIssueIndexer(syncReindex bool) {
-	ctx, _, finished := process.GetManager().AddTypedContext(context.Background(), "Service: IssueIndexer", process.SystemProcessType, false)
+	ctx, _, finished := process.GetManager().AddTypedContext(context.Background(), "Service: IssueIndexer", "", process.SystemProcessType, false)
 
 	waitChannel := make(chan time.Duration, 1)
 
@@ -281,7 +281,7 @@ func InitIssueIndexer(syncReindex bool) {
 
 // populateIssueIndexer populate the issue indexer with issue data
 func populateIssueIndexer(ctx context.Context) {
-	ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Service: PopulateIssueIndexer", process.SystemProcessType, true)
+	ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Service: PopulateIssueIndexer", "", process.SystemProcessType, true)
 	defer finished()
 	for page := 1; ; page++ {
 		select {

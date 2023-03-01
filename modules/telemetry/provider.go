@@ -26,7 +26,7 @@ import (
 )
 
 func InitProvider(parentCtx context.Context) (func(context.Context) error, error) {
-	ctx, _, finished := process.GetManager().AddTypedContext(parentCtx, "Service: OpenTelemetry Exporter", process.SystemProcessType, false)
+	ctx, _, finished := process.GetManager().AddTypedContext(parentCtx, "Service: OpenTelemetry Exporter", "", process.SystemProcessType, false)
 	pprof.SetGoroutineLabels(ctx)
 	defer pprof.SetGoroutineLabels(parentCtx)
 
@@ -138,7 +138,7 @@ func InitProvider(parentCtx context.Context) (func(context.Context) error, error
 	return func(ctx context.Context) error {
 		defer finished()
 
-		ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Service: OpenTelemetry Exporter", process.SystemProcessType, true)
+		ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Service: OpenTelemetry Exporter", "", process.SystemProcessType, true)
 		defer finished()
 
 		return tracerProvider.Shutdown(ctx)

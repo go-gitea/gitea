@@ -294,7 +294,7 @@ func Init() error {
 }
 
 func populateWebhookSendingQueue(ctx context.Context) {
-	ctx, _, finished := process.GetManager().AddContext(ctx, "Webhook: Populate sending queue")
+	ctx, _, finished := process.GetManager().AddContext(ctx, "Webhook: Populate sending queue", "")
 	defer finished()
 
 	lowerID := int64(0)

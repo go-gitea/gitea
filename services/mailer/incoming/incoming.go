@@ -49,7 +49,7 @@ func Init(ctx context.Context) error {
 	}
 
 	go func() {
-		ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Incoming Email", process.SystemProcessType, true)
+		ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Service: Incoming Email", "", process.SystemProcessType, true)
 		defer finished()
 
 		// This background job processes incoming emails. It uses the IMAP IDLE command to get notified about incoming emails.

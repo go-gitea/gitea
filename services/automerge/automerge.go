@@ -164,7 +164,8 @@ func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.
 
 func handlePull(pullID int64, sha string) {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(),
-		fmt.Sprintf("Handle AutoMerge of PR[%d] with sha[%s]", pullID, sha))
+		"Automerge",
+		fmt.Sprintf("PR[%d] with sha[%s]", pullID, sha))
 	defer finished()
 
 	pr, err := issues_model.GetPullRequestByID(ctx, pullID)

@@ -20,6 +20,7 @@ type process struct {
 	PID         IDType // Process ID, not system one.
 	ParentPID   IDType
 	Description string
+	Detail      string
 	Start       time.Time
 	Cancel      context.CancelFunc
 	Type        string
@@ -33,6 +34,9 @@ func (p *process) toProcess() *Process {
 		Description: p.Description,
 		Start:       p.Start,
 		Type:        p.Type,
+	}
+	if p.Detail != "" {
+		process.Description += ": " + p.Detail
 	}
 	return process
 }

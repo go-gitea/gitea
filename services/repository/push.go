@@ -78,7 +78,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 		return nil
 	}
 
-	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("PushUpdates: %s/%s", optsList[0].RepoUserName, optsList[0].RepoName))
+	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), "PushUpdates", fmt.Sprintf("%s/%s", optsList[0].RepoUserName, optsList[0].RepoName))
 	defer finished()
 	ctx = cache.WithCacheContext(ctx)
 

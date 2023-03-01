@@ -100,7 +100,7 @@ func runMigrateTask(t *admin_model.Task) (err error) {
 	opts.MigrateToRepoID = t.RepoID
 
 	pm := process.GetManager()
-	ctx, _, finished := pm.AddContext(graceful.GetManager().ShutdownContext(), fmt.Sprintf("MigrateTask: %s/%s", t.Owner.Name, opts.RepoName))
+	ctx, _, finished := pm.AddContext(graceful.GetManager().ShutdownContext(), "MigrateTask", fmt.Sprintf("%s/%s", t.Owner.Name, opts.RepoName))
 	defer finished()
 
 	t.StartTime = timeutil.TimeStampNow()

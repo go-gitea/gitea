@@ -46,7 +46,7 @@ func (pm *Manager) ExecDirEnvStdIn(ctx context.Context, timeout time.Duration, d
 	stdOut := new(bytes.Buffer)
 	stdErr := new(bytes.Buffer)
 
-	ctx, _, finished := pm.AddContextTimeout(ctx, timeout, desc)
+	ctx, _, finished := pm.AddContextTimeout(ctx, timeout, cmdName, desc)
 	defer finished()
 
 	cmd := exec.CommandContext(ctx, cmdName, args...)

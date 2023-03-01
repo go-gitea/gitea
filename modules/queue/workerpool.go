@@ -61,7 +61,7 @@ type WorkerPoolConfiguration struct {
 
 // NewWorkerPool creates a new worker pool
 func NewWorkerPool(handle HandlerFunc, config WorkerPoolConfiguration) *WorkerPool {
-	ctx, cancel, finished := process.GetManager().AddTypedContext(context.Background(), fmt.Sprintf("Queue: %s", config.Name), process.SystemProcessType, false)
+	ctx, cancel, finished := process.GetManager().AddTypedContext(context.Background(), fmt.Sprintf("Queue: %s", config.Name), "", process.SystemProcessType, false)
 
 	dataChan := make(chan Data, config.QueueLength)
 	pool := &WorkerPool{

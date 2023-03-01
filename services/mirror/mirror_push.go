@@ -103,7 +103,7 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 
 	m.LastError = ""
 
-	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("Syncing PushMirror %s/%s to %s", m.Repo.OwnerName, m.Repo.Name, m.RemoteName))
+	ctx, _, finished := process.GetManager().AddContext(ctx, "Sync Push Mirror", fmt.Sprintf("%s to %s", m.Repo.FullName(), m.RemoteName))
 	defer finished()
 
 	log.Trace("SyncPushMirror [mirror: %d][repo: %-v]: Running Sync", m.ID, m.Repo)

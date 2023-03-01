@@ -50,7 +50,7 @@ func init() {
 // GetManager returns a Manager and initializes one as singleton is there's none yet
 func GetManager() *Manager {
 	if manager == nil {
-		ctx, _, finished := process.GetManager().AddTypedContext(context.Background(), "Service: NoSQL", process.SystemProcessType, false)
+		ctx, _, finished := process.GetManager().AddTypedContext(context.Background(), "Service: NoSQL", "", process.SystemProcessType, false)
 		manager = &Manager{
 			ctx:                ctx,
 			finished:           finished,

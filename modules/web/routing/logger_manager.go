@@ -41,7 +41,7 @@ type requestRecordsManager struct {
 
 func (manager *requestRecordsManager) startSlowQueryDetector(threshold time.Duration) {
 	go graceful.GetManager().RunWithShutdownContext(func(ctx context.Context) {
-		ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Service: SlowQueryDetector", process.SystemProcessType, true)
+		ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Service: SlowQueryDetector", "", process.SystemProcessType, true)
 		defer finished()
 		// This go-routine checks all active requests every second.
 		// If a request has been running for a long time (eg: /user/events), we also print a log with "still-executing" message

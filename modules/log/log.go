@@ -287,7 +287,10 @@ func (l *LoggerAsWriter) Log(msg string) {
 }
 
 func init() {
-	process.Trace = func(start bool, pid process.IDType, description string, parentPID process.IDType, typ string) {
+	process.Trace = func(start bool, pid process.IDType, description, detail string, parentPID process.IDType, typ string) {
+		if detail != "" {
+			description += ": " + detail
+		}
 		if start && parentPID != "" {
 			Log(1, TRACE, "Start %s: %s (from %s) (%s)", NewColoredValue(pid, FgHiYellow), description, NewColoredValue(parentPID, FgYellow), NewColoredValue(typ, Reset))
 		} else if start {

@@ -117,7 +117,7 @@ func Init() {
 		return
 	}
 
-	ctx, cancel, finished := process.GetManager().AddTypedContext(context.Background(), "Service: CodeIndexer", process.SystemProcessType, false)
+	ctx, cancel, finished := process.GetManager().AddTypedContext(context.Background(), "Service: CodeIndexer", "", process.SystemProcessType, false)
 
 	graceful.GetManager().RunAtTerminate(func() {
 		select {

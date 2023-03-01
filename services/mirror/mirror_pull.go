@@ -406,7 +406,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	}
 	_ = m.GetRepository() // force load repository of mirror
 
-	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("Syncing Mirror %s/%s", m.Repo.OwnerName, m.Repo.Name))
+	ctx, _, finished := process.GetManager().AddContext(ctx, "Sync Pull Mirror", m.Repo.FullName())
 	defer finished()
 
 	log.Trace("SyncMirrors [repo: %-v]: Running Sync", m.Repo)

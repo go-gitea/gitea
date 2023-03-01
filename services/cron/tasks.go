@@ -93,7 +93,7 @@ func (t *Task) RunWithUser(doer *user_model.User, config Config) {
 			doerName = doer.Name
 		}
 
-		ctx, _, finished := pm.AddContext(baseCtx, config.FormatMessage(translation.NewLocale("en-US"), t.Name, "process", doerName))
+		ctx, _, finished := pm.AddContext(baseCtx, config.FormatMessage(translation.NewLocale("en-US"), t.Name, "process", doerName), "")
 		defer finished()
 
 		if err := t.fun(ctx, doer, config); err != nil {

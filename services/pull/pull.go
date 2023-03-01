@@ -63,7 +63,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 	// Now - even if the request context has been cancelled as the PR has been created
 	// in the db and there is no way to cancel that transaction we have to proceed - therefore
 	// create new context and work from there
-	prCtx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("NewPullRequest: %s:%d", repo.FullName(), pr.Index))
+	prCtx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), "NewPullRequest", fmt.Sprintf("%s#%d", repo.FullName(), pr.Index))
 	defer finished()
 
 	if pr.Flow == issues_model.PullRequestFlowGithub {

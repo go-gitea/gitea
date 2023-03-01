@@ -279,9 +279,9 @@ func (c *Command) Run(opts *RunOpts) error {
 	var finished context.CancelFunc
 
 	if opts.UseContextTimeout {
-		ctx, cancel, finished = process.GetManager().AddContext(c.parentContext, desc)
+		ctx, cancel, finished = process.GetManager().AddContext(c.parentContext, "git "+c.args[c.globalArgsLength], desc)
 	} else {
-		ctx, cancel, finished = process.GetManager().AddContextTimeout(c.parentContext, timeout, desc)
+		ctx, cancel, finished = process.GetManager().AddContextTimeout(c.parentContext, timeout, "git "+c.args[c.globalArgsLength], desc)
 	}
 	defer finished()
 

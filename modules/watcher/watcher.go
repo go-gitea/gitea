@@ -42,7 +42,7 @@ func run(ctx context.Context, desc string, opts *CreateWatcherOpts) {
 	if opts.AfterCallback != nil {
 		defer opts.AfterCallback()
 	}
-	ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Watcher: "+desc, process.SystemProcessType, true)
+	ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Watcher: "+desc, "", process.SystemProcessType, true)
 	defer finished()
 
 	log.Trace("Watcher loop starting for %s", desc)

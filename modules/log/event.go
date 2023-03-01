@@ -64,7 +64,7 @@ func NewChannelledLog(parent context.Context, name, provider, config string, buf
 		}
 		l.name = name
 		l.provider = provider
-		l.ctx, _, l.finished = process.GetManager().AddTypedContext(parent, fmt.Sprintf("Logger: %s(%s)", l.name, l.provider), process.SystemProcessType, false)
+		l.ctx, _, l.finished = process.GetManager().AddTypedContext(parent, fmt.Sprintf("Logger: %s(%s)", l.name, l.provider), "", process.SystemProcessType, false)
 		go l.Start()
 		return l, nil
 	}
@@ -183,7 +183,7 @@ type MultiChannelledLog struct {
 
 // NewMultiChannelledLog a new logger instance with given logger provider and config.
 func NewMultiChannelledLog(name string, bufferLength int64) *MultiChannelledLog {
-	ctx, _, finished := process.GetManager().AddTypedContext(context.Background(), fmt.Sprintf("Logger: %s", name), process.SystemProcessType, false)
+	ctx, _, finished := process.GetManager().AddTypedContext(context.Background(), fmt.Sprintf("Logger: %s", name), "", process.SystemProcessType, false)
 
 	m := &MultiChannelledLog{
 		ctx:             ctx,

@@ -178,7 +178,7 @@ func doArchive(r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
 		return nil, err
 	}
 	defer committer.Close()
-	ctx, _, finished := process.GetManager().AddContext(txCtx, fmt.Sprintf("ArchiveRequest[%d]: %s", r.RepoID, r.GetArchiveName()))
+	ctx, _, finished := process.GetManager().AddContext(txCtx, "ArchiveRequest", fmt.Sprintf("Repo[%d]: %s", r.RepoID, r.GetArchiveName()))
 	defer finished()
 
 	archiver, err := repo_model.GetRepoArchiver(ctx, r.RepoID, r.Type, r.CommitID)

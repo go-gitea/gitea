@@ -121,7 +121,7 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 		ctx.Ctx = graceful.GetManager().ShutdownContext()
 	}
 
-	processCtx, _, finished := process.GetManager().AddContext(ctx.Ctx, fmt.Sprintf("Render [%s] for %s", commands[0], ctx.URLPrefix))
+	processCtx, _, finished := process.GetManager().AddContext(ctx.Ctx, fmt.Sprintf("Render [%s]", commands[0]), fmt.Sprintf("for %s", ctx.URLPrefix))
 	defer finished()
 
 	cmd := exec.CommandContext(processCtx, commands[0], args...)
