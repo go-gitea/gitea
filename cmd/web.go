@@ -4,8 +4,6 @@
 package cmd
 
 import (
-	"code.gitea.io/gitea/modules/setting/base"
-	"code.gitea.io/gitea/modules/setting/history"
 	"context"
 	"fmt"
 	"net"
@@ -19,6 +17,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/setting/base"
+	"code.gitea.io/gitea/modules/setting/history"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/install"
 
