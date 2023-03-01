@@ -4,6 +4,8 @@
 package cmd
 
 import (
+	"code.gitea.io/gitea/modules/setting/base"
+	"code.gitea.io/gitea/modules/setting/history"
 	"context"
 	"fmt"
 	"net"
@@ -17,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/setting/history"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/install"
 
@@ -158,8 +159,13 @@ func runWeb(ctx *cli.Context) error {
 	}
 
 	log.Info("Global init")
+
 	// Perform global initialization
 	setting.InitProviderFromExistingFile()
+
+	// Print now outdated settings - is before any other setting action to prevent accidental initialization of other keys
+	history.PrintRemovedSettings(map[history.SettingsSource]base.ConfigProvider{history.SettingsSourceINI: setting.CfgProvider}) // TODO: modules/setting/setting.go#loadCommonSettingsFrom would be more fitting as a place for this call, but it is called twice during initialization for some reason
+
 	setting.LoadCommonSettings()
 	routers.GlobalInitInstalled(graceful.GetManager().HammerContext())
 
@@ -218,8 +224,6 @@ func listen(m http.Handler, handleRedirector bool) error {
 	}
 	_, _, finished := process.GetManager().AddTypedContext(graceful.GetManager().HammerContext(), "Web: Gitea Server", process.SystemProcessType, true)
 	defer finished()
-
-	history.PrintRemovedSettings(setting.CfgProvider) // TODO: modules/setting/setting.go#loadCommonSettingsFrom would be more fitting as a place for this call, but it is called twice during initialization for some reason
 
 	log.Info("Listen: %v://%s%s", setting.Protocol, listenAddr, setting.AppSubURL)
 	// This can be useful for users, many users do wrong to their config and get strange behaviors behind a reverse-proxy.

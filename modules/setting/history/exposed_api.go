@@ -9,7 +9,7 @@ import (
 	"code.gitea.io/gitea/modules/setting/base"
 )
 
-var removedSettings map[settingsSource]map[string][]*historyEntry = make(map[settingsSource]map[string][]*historyEntry) // ordered by old source and then by old section (for performance)
+var removedSettings map[SettingsSource]map[string][]*historyEntry = make(map[SettingsSource]map[string][]*historyEntry) // ordered by old source and then by old section (for performance)
 
 func addHistoryEntry(entry *historyEntry) {
 	source := entry.oldValue.Source()
@@ -84,6 +84,7 @@ func MoveIniSettingsToDB(version, section string, keys ...string) {
 }
 
 // PrintRemovedSettings adds a warning in the logs for all settings that are still present despite not being used anymore
+// settingsProviders maps each settings source to its "physical" counterpart providing the actual settings, i.e. maps SettingsSourceINI to an *ini.File
 // Pass action to specify what will be done when an invalid setting has been found. Defaults to "log.Error(template, args)"
 // Template arguments are
 // - %[1]s: old settings value ([section].key)
@@ -91,7 +92,7 @@ func MoveIniSettingsToDB(version, section string, keys ...string) {
 // - %[3]s: gitea version of the change (1.19.0)
 // - %[4]s: new settings value (if present)
 // - %[5]s: new setting source (if present)
-func PrintRemovedSettings(iniFile base.ConfigProvider, action ...func(template string, args ...interface{}) error) error {
+func PrintRemovedSettings(settingsProviders map[SettingsSource]base.ConfigProvider, action ...func(template string, args ...interface{}) error) error {
 	onInvalid := func(template string, args ...interface{}) error {
 		log.Error(template, args...)
 		return nil
@@ -99,22 +100,22 @@ func PrintRemovedSettings(iniFile base.ConfigProvider, action ...func(template s
 	if len(action) > 0 {
 		onInvalid = action[0]
 	}
-
-	return printRemovedIniSettings(iniFile, onInvalid) // At the moment, there are only breaking changes in the ini configurations, will probably be adapted in the future
-}
-
-func printRemovedIniSettings(iniFile base.ConfigProvider, action func(template string, args ...interface{}) error) error {
-	iniChanges := removedSettings[settingsSourceINI]
-	for sectionName, removedList := range iniChanges {
-		if !iniFile.HasSection(sectionName) {
-			continue
-		}
-		section, err := iniFile.GetSection(sectionName)
-		if err != nil {
+	for source, provider := range settingsProviders {
+		if err := printBreakingSettingChanges(provider, removedSettings[source], onInvalid); err != nil {
 			return err
 		}
-		if section == nil {
+	}
+	return nil
+}
+
+func printBreakingSettingChanges(settingProvider base.ConfigProvider, outdatedSettings map[string][]*historyEntry, action func(template string, args ...interface{}) error) error {
+	for sectionName, removedList := range outdatedSettings {
+		if !settingProvider.HasSection(sectionName) {
 			continue
+		}
+		section, err := settingProvider.GetSection(sectionName)
+		if err != nil {
+			return err
 		}
 		for _, removed := range removedList {
 			if section.HasKey(removed.oldValue.Key()) {
