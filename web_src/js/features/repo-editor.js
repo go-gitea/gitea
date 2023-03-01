@@ -92,7 +92,7 @@ export function initRepoEditor() {
   });
 
   const $editFilename = $('#file-name');
-  $editFilename.on('keyup', function (e) {
+  $editFilename.on('input', function (e) {
     const $section = $('.breadcrumb span.section');
     const $divider = $('.breadcrumb div.divider');
     let value;
@@ -106,7 +106,7 @@ export function initRepoEditor() {
       $divider.last().remove();
     }
     parts = $(this).val().split('/');
-    if (e.keyCode === 191 || parts.length > 1) {
+    if (parts.length > 1) {
       for (let i = 0; i < parts.length; ++i) {
         value = parts[i];
         if (i < parts.length - 1) {
@@ -131,8 +131,7 @@ export function initRepoEditor() {
     });
     if ($(this).val()) parts.push($(this).val());
     $('#tree_path').val(parts.join('/'));
-  }).trigger('keyup');
-
+  })
   const $editArea = $('.repository.editor textarea#edit_area');
   if (!$editArea.length) return;
 
