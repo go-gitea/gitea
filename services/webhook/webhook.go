@@ -11,6 +11,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	webhook_model "code.gitea.io/gitea/models/webhook"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -107,6 +108,7 @@ type EventSource struct {
 // handle delivers hook tasks
 func handle(data ...queue.Data) []queue.Data {
 	ctx := graceful.GetManager().HammerContext()
+	ctx = cache.WithCacheContext(ctx)
 
 	for _, taskID := range data {
 		task, err := webhook_model.GetHookTaskByID(ctx, taskID.(int64))

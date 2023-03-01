@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -102,6 +103,7 @@ func runMigrateTask(t *admin_model.Task) (err error) {
 	pm := process.GetManager()
 	ctx, _, finished := pm.AddContext(graceful.GetManager().ShutdownContext(), fmt.Sprintf("MigrateTask: %s/%s", t.Owner.Name, opts.RepoName))
 	defer finished()
+	ctx = cache.WithCacheContext(ctx)
 
 	t.StartTime = timeutil.TimeStampNow()
 	t.Status = structs.TaskStatusRunning

@@ -10,6 +10,7 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/queue"
 
@@ -34,6 +35,7 @@ func EmitJobsIfReady(runID int64) error {
 
 func jobEmitterQueueHandle(data ...queue.Data) []queue.Data {
 	ctx := graceful.GetManager().ShutdownContext()
+	ctx = cache.WithCacheContext(ctx)
 	var ret []queue.Data
 	for _, d := range data {
 		update := d.(*jobUpdate)

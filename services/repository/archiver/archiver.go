@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -180,6 +181,7 @@ func doArchive(r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
 	defer committer.Close()
 	ctx, _, finished := process.GetManager().AddContext(txCtx, fmt.Sprintf("ArchiveRequest[%d]: %s", r.RepoID, r.GetArchiveName()))
 	defer finished()
+	ctx = cache.WithCacheContext(ctx)
 
 	archiver, err := repo_model.GetRepoArchiver(ctx, r.RepoID, r.Type, r.CommitID)
 	if err != nil {

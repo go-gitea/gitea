@@ -19,6 +19,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -340,6 +341,7 @@ func testPR(id int64) {
 	defer pullWorkingPool.CheckOut(fmt.Sprint(id))
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("Test PR[%d] from patch checking queue", id))
 	defer finished()
+	ctx = cache.WithCacheContext(ctx)
 
 	pr, err := issues_model.GetPullRequestByID(ctx, id)
 	if err != nil {

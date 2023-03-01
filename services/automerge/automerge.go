@@ -16,6 +16,7 @@ import (
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -166,6 +167,7 @@ func handlePull(pullID int64, sha string) {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(),
 		fmt.Sprintf("Handle AutoMerge of PR[%d] with sha[%s]", pullID, sha))
 	defer finished()
+	ctx = cache.WithCacheContext(ctx)
 
 	pr, err := issues_model.GetPullRequestByID(ctx, pullID)
 	if err != nil {

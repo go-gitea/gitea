@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	mirror_module "code.gitea.io/gitea/modules/mirror"
@@ -123,7 +124,7 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 func queueHandle(data ...queue.Data) []queue.Data {
 	for _, datum := range data {
 		req := datum.(*mirror_module.SyncRequest)
-		doMirrorSync(graceful.GetManager().ShutdownContext(), req)
+		doMirrorSync(cache.WithCacheContext(graceful.GetManager().ShutdownContext()), req)
 	}
 	return nil
 }
