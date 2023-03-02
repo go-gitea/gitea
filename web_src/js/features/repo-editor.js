@@ -92,7 +92,7 @@ export function initRepoEditor() {
   });
 
   const $editFilename = $('#file-name');
-  $editFilename.on('input', function (e) {
+  $editFilename.on('input', function () {
     let value;
     let parts;
 
