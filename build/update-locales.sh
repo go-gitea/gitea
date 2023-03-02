@@ -1,16 +1,18 @@
 #!/bin/bash
 
-set -e
-
-cd -- "$(dirname -- "${BASH_SOURCE[0]}")"/.. # cd into parent folder
-
 set +e
 if sed --version 2>/dev/null | grep -q GNU; then
   SED_INPLACE="sed -i"
 else
   SED_INPLACE="sed -i ''"
 fi
+
 set -e
+
+if [ ! -f ./options/locale/locale_en-US.ini ]; then
+  echo "please run this script in the root directory of the project"
+  exit 1
+fi
 
 mv ./options/locale/locale_en-US.ini ./options/
 
