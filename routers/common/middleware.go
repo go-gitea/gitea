@@ -93,32 +93,19 @@ func stripSlashesMiddleware(next http.Handler) http.Handler {
 			urlPath = req.URL.Path
 		}
 
-		// var sanitizedPath string
-		if len(urlPath) > 1 {
-			sanitizedPath := make([]rune, 0, len(urlPath))
-
-			prevWasSlash := false
-			for _, chr := range urlPath {
-				if chr != '/' {
-					sanitizedPath = append(sanitizedPath, chr)
-					prevWasSlash = false
-					continue
-				}
-				if prevWasSlash {
-					continue
-				}
-				sanitizedPath = append(sanitizedPath, chr)
-				prevWasSlash = true
+		sanitizedPath := &strings.Builder{}
+		prevWasSlash := false
+		for _, chr := range strings.TrimRight(urlPath, "/") {
+			if chr != '/' || !prevWasSlash {
+				sanitizedPath.WriteRune(chr)
 			}
+			prevWasSlash = chr == '/'
+		}
 
-			// Always remove the leading slash.
-			modifiedPath := strings.TrimSuffix(string(sanitizedPath), "/")
-
-			if rctx == nil {
-				req.URL.Path = modifiedPath
-			} else {
-				rctx.RoutePath = modifiedPath
-			}
+		if rctx == nil {
+			req.URL.Path = sanitizedPath.String()
+		} else {
+			rctx.RoutePath = sanitizedPath.String()
 		}
 		next.ServeHTTP(resp, req)
 	})
