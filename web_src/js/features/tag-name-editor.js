@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import {hideElem, showElem} from '../utils/dom.js';
 
 export function initTagNameEditor() {
@@ -12,18 +11,18 @@ export function initTagNameEditor() {
   const newTagHelperText = el.getAttribute('data-tag-helper-new');
   const existingTagHelperText = el.getAttribute('data-tag-helper-existing');
 
-  $('#tag-name').on('keyup', (e) => {
+  document.getElementById('tag-name').addEventListener('keyup', (e) => {
     const value = e.target.value;
     if (existingTags.includes(value)) {
       // If the tag already exists, hide the target branch selector.
-      hideElem($('#tag-target-selector'));
-      $('#tag-helper').text(existingTagHelperText);
+      hideElem('#tag-target-selector');
+      document.getElementById('tag-helper').innerText = existingTagHelperText;
     } else {
-      showElem($('#tag-target-selector'));
-      if (typeof value === 'string' && value.length > 0) {
-        $('#tag-helper').text(newTagHelperText);
+      showElem('#tag-target-selector');
+      if (value) {
+        document.getElementById('tag-helper').innerText = newTagHelperText;
       } else {
-        $('#tag-helper').text(defaultTagHelperText);
+        document.getElementById('tag-helper').innerText = defaultTagHelperText;
       }
     }
   });
