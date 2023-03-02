@@ -92,19 +92,10 @@ export function initRepoEditor() {
   });
 
   const $editFilename = $('#file-name');
-  $editFilename.on('keyup input', function (e) {
-    const $section = $('.breadcrumb span.section');
-    const $divider = $('.breadcrumb div.divider');
+  $editFilename.on('input', function (e) {
     let value;
     let parts;
 
-    if (e.keyCode === 8 && getCursorPosition($(this)) === 0 && $section.length > 0) {
-      value = $section.last().find('a').text();
-      $(this).val(value + $(this).val());
-      $(this)[0].setSelectionRange(value.length, value.length);
-      $section.last().remove();
-      $divider.last().remove();
-    }
     parts = $(this).val().split('/');
     if (parts.length > 1) {
       for (let i = 0; i < parts.length; ++i) {
@@ -131,6 +122,20 @@ export function initRepoEditor() {
     });
     if ($(this).val()) parts.push($(this).val());
     $('#tree_path').val(parts.join('/'));
+  });
+
+  $editFilename.on('keyup', function (e) {
+    const $section = $('.breadcrumb span.section');
+    const $divider = $('.breadcrumb div.divider');
+    let value;
+
+    if (e.keyCode === 8 && getCursorPosition($(this)) === 0 && $section.length > 0) {
+      value = $section.last().find('a').text();
+      $(this).val(value + $(this).val());
+      $(this)[0].setSelectionRange(value.length, value.length);
+      $section.last().remove();
+      $divider.last().remove();
+    }
   });
 
   const $editArea = $('.repository.editor textarea#edit_area');
