@@ -18961,6 +18961,22 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "RenameUserOption": {
+      "description": "CreateKeyOption options when creating a key",
+      "type": "object",
+      "required": [
+        "new_username"
+      ],
+      "properties": {
+        "new_username": {
+          "description": "New username",
+          "type": "string",
+          "uniqueItems": true,
+          "x-go-name": "NewName"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "RepoCollaboratorPermission": {
       "description": "RepoCollaboratorPermission to get repository permission for a collaborator",
       "type": "object",
