@@ -107,12 +107,11 @@ export function initRepoEditor() {
 
   const $editFilename = $('#file-name');
   $editFilename.on('input', function () {
-    let value;
     const parts = $(this).val().split('/');
 
     if (parts.length > 1) {
       for (let i = 0; i < parts.length; ++i) {
-        value = parts[i];
+        const value = parts[i];
         if (i < parts.length - 1) {
           if (value.length) {
             $(`<span class="section"><a href="#">${htmlEscape(value)}</a></span>`).insertBefore($(this));
@@ -130,18 +129,16 @@ export function initRepoEditor() {
 
   $editFilename.on('keyup', function (e) {
     const $section = $('.breadcrumb span.section');
-    const $divider = $('.breadcrumb div.divider');
-    let value;
 
     if (e.keyCode === 8 && getCursorPosition($(this)) === 0 && $section.length > 0) {
-      value = $section.last().find('a').text();
+      const $divider = $('.breadcrumb div.divider');
+      const value = $section.last().find('a').text();
       $(this).val(value + $(this).val());
       $(this)[0].setSelectionRange(value.length, value.length);
       $section.last().remove();
       $divider.last().remove();
+      joinTreePath($(this));
     }
-
-    joinTreePath($(this));
   });
 
   const $editArea = $('.repository.editor textarea#edit_area');
