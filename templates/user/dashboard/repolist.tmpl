@@ -46,56 +46,38 @@
 					<div class="ui dropdown icon button" title="{{.locale.Tr "home.filter"}}">
 						<i class="icon gt-df gt-ac gt-jc gt-m-0">{{svg "octicon-filter" 16}}</i>
 						<div class="menu">
-							<div class="item">
-								<a @click="toggleArchivedFilter()">
-									<div class="ui checkbox" id="archivedFilterCheckbox" title="{{.locale.Tr "home.show_both_archived_unarchived"}}" v-if="archivedFilter === 'both'">
-										<input type="checkbox">
-										<label>
-											{{svg "octicon-archive" 16 "gt-mr-2"}}
-											{{.locale.Tr "home.show_archived"}}
-										</label>
-									</div>
-									<div class="ui checkbox" id="archivedFilterCheckbox" title="{{.locale.Tr "home.show_only_unarchived"}}" v-if="archivedFilter === 'unarchived'">
-										<input type="checkbox">
-										<label>
-											{{svg "octicon-archive" 16 "gt-mr-2"}}
-											{{.locale.Tr "home.show_archived"}}
-										</label>
-									</div>
-									<div class="ui checkbox" id="archivedFilterCheckbox" title="{{.locale.Tr "home.show_only_archived"}}" v-if="archivedFilter === 'archived'">
-										<input type="checkbox">
-										<label>
-											{{svg "octicon-archive" 16 "gt-mr-2"}}
-											{{.locale.Tr "home.show_archived"}}
-										</label>
-									</div>
-								</a>
-							</div>
-							<div class="item">
-								<a @click="togglePrivateFilter()">
-									<div class="ui checkbox" id="privateFilterCheckbox" title="{{.locale.Tr "home.show_both_private_public"}}" v-if="privateFilter === 'both'">
-										<input type="checkbox">
-										<label>
-											{{svg "octicon-lock" 16 "gt-mr-2"}}
-											{{.locale.Tr "home.show_private"}}
-										</label>
-									</div>
-									<div class="ui checkbox" id="privateFilterCheckbox" title="{{.locale.Tr "home.show_only_public"}}" v-if="privateFilter === 'public'">
-										<input type="checkbox">
-										<label>
-											{{svg "octicon-lock" 16 "gt-mr-2"}}
-											{{.locale.Tr "home.show_private"}}
-										</label>
-									</div>
-									<div class="ui checkbox" id="privateFilterCheckbox" title="{{.locale.Tr "home.show_only_private"}}" v-if="privateFilter === 'private'">
-										<input type="checkbox">
-											<label>
-												{{svg "octicon-lock" 16 "gt-mr-2"}}
-												{{.locale.Tr "home.show_private"}}
-											</label>
-									</div>
-								</a>
-							</div>
+							<a class="item" @click="toggleArchivedFilter()">
+								<div class="ui checkbox"
+											ref="checkboxArchivedFilter"
+											data-title-both="{{.locale.Tr "home.show_both_archived_unarchived"}}"
+											data-title-unarchived="{{.locale.Tr "home.show_only_unarchived"}}"
+											data-title-archived="{{.locale.Tr "home.show_only_archived"}}"
+											:title="checkboxArchivedFilterTitle"
+								>
+									<!--the "hidden" is necessary to make the checkbox work without Fomantic UI js,
+											otherwise if the "input" handles click event for intermediate status, it breaks the internal state-->
+									<input type="checkbox" class="hidden" v-bind.prop="checkboxArchivedFilterProps">
+									<label>
+										{{svg "octicon-archive" 16 "gt-mr-2"}}
+										{{.locale.Tr "home.show_archived"}}
+									</label>
+								</div>
+							</a>
+							<a class="item" @click="togglePrivateFilter()">
+								<div class="ui checkbox"
+											ref="checkboxPrivateFilter"
+											data-title-both="{{.locale.Tr "home.show_both_private_public"}}"
+											data-title-public="{{.locale.Tr "home.show_only_public"}}"
+											data-title-private="{{.locale.Tr "home.show_only_private"}}"
+											:title="checkboxPrivateFilterTitle"
+								>
+									<input type="checkbox" class="hidden" v-bind.prop="checkboxPrivateFilterProps">
+									<label>
+										{{svg "octicon-lock" 16 "gt-mr-2"}}
+										{{.locale.Tr "home.show_private"}}
+									</label>
+								</div>
+							</a>
 						</div>
 					</div>
 				</div>

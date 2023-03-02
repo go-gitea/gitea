@@ -1,4 +1,4 @@
-{{if .ctx.IsSigned}}
+{{if .ctxData.IsSigned}}
 <div class="item action ui pointing custom dropdown top right context-dropdown">
 	<a class="context-menu">
 		{{svg "octicon-kebab-horizontal"}}
@@ -6,20 +6,20 @@
 	<div class="menu">
 		{{$referenceUrl := ""}}
 		{{if .issue}}
-			{{$referenceUrl = Printf "%s#%s" .ctx.Issue.Link .item.HashTag}}
+			{{$referenceUrl = Printf "%s#%s" .ctxData.Issue.Link .item.HashTag}}
 		{{else}}
-			{{$referenceUrl = Printf "%s/files#%s" .ctx.Issue.Link .item.HashTag}}
+			{{$referenceUrl = Printf "%s/files#%s" .ctxData.Issue.Link .item.HashTag}}
 		{{end}}
-		<a class="item context" data-clipboard-text-type="url" data-clipboard-text="{{AppSubUrl}}{{$referenceUrl}}">{{.ctx.locale.Tr "repo.issues.context.copy_link"}}</a>
-		<a class="item context quote-reply {{if .diff}}quote-reply-diff{{end}}" data-target="{{.item.HashTag}}-raw">{{.ctx.locale.Tr "repo.issues.context.quote_reply"}}</a>
-		{{if not .ctx.UnitIssuesGlobalDisabled}}
-			<a class="item context reference-issue" data-target="{{.item.HashTag}}-raw" data-modal="#reference-issue-modal" data-poster="{{.item.Poster.GetDisplayName}}" data-poster-username="{{.item.Poster.Name}}" data-reference="{{$referenceUrl}}">{{.ctx.locale.Tr "repo.issues.context.reference_issue"}}</a>
+		<a class="item context" data-clipboard-text-type="url" data-clipboard-text="{{AppSubUrl}}{{$referenceUrl}}">{{.ctxData.locale.Tr "repo.issues.context.copy_link"}}</a>
+		<a class="item context quote-reply {{if .diff}}quote-reply-diff{{end}}" data-target="{{.item.HashTag}}-raw">{{.ctxData.locale.Tr "repo.issues.context.quote_reply"}}</a>
+		{{if not .ctxData.UnitIssuesGlobalDisabled}}
+			<a class="item context reference-issue" data-target="{{.item.HashTag}}-raw" data-modal="#reference-issue-modal" data-poster="{{.item.Poster.GetDisplayName}}" data-poster-username="{{.item.Poster.Name}}" data-reference="{{$referenceUrl}}">{{.ctxData.locale.Tr "repo.issues.context.reference_issue"}}</a>
 		{{end}}
-		{{if or .ctx.Permission.IsAdmin .IsCommentPoster .ctx.HasIssuesOrPullsWritePermission}}
+		{{if or .ctxData.Permission.IsAdmin .IsCommentPoster .ctxData.HasIssuesOrPullsWritePermission}}
 			<div class="divider"></div>
-			<a class="item context edit-content">{{.ctx.locale.Tr "repo.issues.context.edit"}}</a>
+			<a class="item context edit-content">{{.ctxData.locale.Tr "repo.issues.context.edit"}}</a>
 			{{if .delete}}
-				<a class="item context delete-comment" data-comment-id={{.item.HashTag}} data-url="{{.ctx.RepoLink}}/comments/{{.item.ID}}/delete" data-locale="{{.ctx.locale.Tr "repo.issues.delete_comment_confirm"}}">{{.ctx.locale.Tr "repo.issues.context.delete"}}</a>
+				<a class="item context delete-comment" data-comment-id={{.item.HashTag}} data-url="{{.ctxData.RepoLink}}/comments/{{.item.ID}}/delete" data-locale="{{.ctxData.locale.Tr "repo.issues.delete_comment_confirm"}}">{{.ctxData.locale.Tr "repo.issues.context.delete"}}</a>
 			{{end}}
 		{{end}}
 	</div>
