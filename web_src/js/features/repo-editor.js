@@ -91,12 +91,25 @@ export function initRepoEditor() {
     $('#commit-button').text($(this).attr('button_text'));
   });
 
+  const joinTreePath = ($fileNameEl) => {
+    const parts = [];
+    $('.breadcrumb span.section').each(function () {
+      const element = $(this);
+      if (element.find('a').length) {
+        parts.push(element.find('a').text());
+      } else {
+        parts.push(element.text());
+      }
+    });
+    if ($fileNameEl.val()) parts.push($fileNameEl.val());
+    $('#tree_path').val(parts.join('/'));
+  };
+
   const $editFilename = $('#file-name');
   $editFilename.on('input', function () {
     let value;
-    let parts;
+    const parts = $(this).val().split('/');
 
-    parts = $(this).val().split('/');
     if (parts.length > 1) {
       for (let i = 0; i < parts.length; ++i) {
         value = parts[i];
@@ -111,17 +124,8 @@ export function initRepoEditor() {
         $(this)[0].setSelectionRange(0, 0);
       }
     }
-    parts = [];
-    $('.breadcrumb span.section').each(function () {
-      const element = $(this);
-      if (element.find('a').length) {
-        parts.push(element.find('a').text());
-      } else {
-        parts.push(element.text());
-      }
-    });
-    if ($(this).val()) parts.push($(this).val());
-    $('#tree_path').val(parts.join('/'));
+
+    joinTreePath($(this));
   });
 
   $editFilename.on('keyup', function (e) {
@@ -136,6 +140,8 @@ export function initRepoEditor() {
       $section.last().remove();
       $divider.last().remove();
     }
+
+    joinTreePath($(this));
   });
 
   const $editArea = $('.repository.editor textarea#edit_area');
