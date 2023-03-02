@@ -242,6 +242,13 @@ func syncGitConfig() (err error) {
 		}
 	}
 
+	if CheckGitVersionAtLeast("1.8.2") == nil {
+		// The `histogram` algorithm itself was added in 1.7.7, but `diff.algorithm` was supported in Git 1.8.2.
+		if err := configSet("diff.algorithm", "histogram"); err != nil {
+			return err
+		}
+	}
+
 	if SupportProcReceive {
 		// set support for AGit flow
 		if err := configAddNonExist("receive.procReceiveRefs", "refs/for"); err != nil {
