@@ -2,7 +2,7 @@ import $ from 'jquery';
 
 const {pageData} = window.config;
 
-const initInputCitationValue = async ($citationCopyBibtex, $citationCopyApa) => {
+const initInputCitationValue = async ($citationCopyApa, $citationCopyBibtex) => {
   const [{Cite, plugins}] = await Promise.all([
     import(/* webpackChunkName: "citation-js-core" */'@citation-js/core'),
     import(/* webpackChunkName: "citation-js-formats" */'@citation-js/plugin-software-formats'),

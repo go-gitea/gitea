@@ -2952,7 +2952,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 	}
 
 	html, err := ctx.RenderToString(tplReactions, map[string]interface{}{
-		"ctx":       ctx.Data,
+		"ctxData":   ctx.Data,
 		"ActionURL": fmt.Sprintf("%s/issues/%d/reactions", ctx.Repo.RepoLink, issue.Index),
 		"Reactions": issue.Reactions.GroupByType(),
 	})
@@ -3054,7 +3054,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 	}
 
 	html, err := ctx.RenderToString(tplReactions, map[string]interface{}{
-		"ctx":       ctx.Data,
+		"ctxData":   ctx.Data,
 		"ActionURL": fmt.Sprintf("%s/comments/%d/reactions", ctx.Repo.RepoLink, comment.ID),
 		"Reactions": comment.Reactions.GroupByType(),
 	})
@@ -3176,7 +3176,7 @@ func updateAttachments(ctx *context.Context, item interface{}, files []string) e
 
 func attachmentsHTML(ctx *context.Context, attachments []*repo_model.Attachment, content string) string {
 	attachHTML, err := ctx.RenderToString(tplAttachment, map[string]interface{}{
-		"ctx":         ctx.Data,
+		"ctxData":     ctx.Data,
 		"Attachments": attachments,
 		"Content":     content,
 	})
