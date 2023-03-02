@@ -89,6 +89,8 @@ func stripSlashesMiddleware(next http.Handler) http.Handler {
 		rctx := chi.RouteContext(req.Context())
 		if rctx != nil && rctx.RoutePath != "" {
 			urlPath = rctx.RoutePath
+		} else if req.URL.RawPath != "" {
+			urlPath = req.URL.RawPath
 		} else {
 			urlPath = req.URL.Path
 		}
