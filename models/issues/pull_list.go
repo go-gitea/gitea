@@ -52,12 +52,12 @@ func listPullRequestStatement(baseRepoID int64, opts *PullRequestsOptions) (*xor
 
 // GetUnmergedPullRequestsByHeadInfo returns all pull requests that are open and has not been merged
 // by given head information (repo and branch).
-func GetUnmergedPullRequestsByHeadInfo(repoID int64, branch string, mustOpenedPR bool) ([]*PullRequest, error) {
+func GetUnmergedPullRequestsByHeadInfo(repoID int64, branch string, notForceClose bool) ([]*PullRequest, error) {
 	prs := make([]*PullRequest, 0, 2)
 	sess := db.GetEngine(db.DefaultContext).
 		Join("INNER", "issue", "issue.id = pull_request.issue_id").
 		Where("head_repo_id = ? AND head_branch = ? AND has_merged = ? AND flow = ?", repoID, branch, false, PullRequestFlowGithub)
-	if mustOpenedPR {
+	if !notForceClose {
 		sess.Where("issue.is_closed = ?", false)
 	}
 	return prs, sess.Find(&prs)
@@ -73,7 +73,7 @@ func CanMaintainerWriteToBranch(p access_model.Permission, branch string, user *
 		return false
 	}
 
-	prs, err := GetUnmergedPullRequestsByHeadInfo(p.Units[0].RepoID, branch, true)
+	prs, err := GetUnmergedPullRequestsByHeadInfo(p.Units[0].RepoID, branch, false)
 	if err != nil {
 		return false
 	}
