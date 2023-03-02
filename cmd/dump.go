@@ -272,6 +272,7 @@ func runDump(ctx *cli.Context) error {
 		fatal("Failed to create tmp file: %v", err)
 	}
 	defer func() {
+		_ = dbDump.Close()
 		if err := util.Remove(dbDump.Name()); err != nil {
 			log.Warn("Unable to remove temporary file: %s: Error: %v", dbDump.Name(), err)
 		}

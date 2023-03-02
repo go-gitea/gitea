@@ -192,6 +192,7 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 		if len(needs) > 0 || run.NeedApproval {
 			status = StatusBlocked
 		}
+		job.Name, _ = util.SplitStringAtByteN(job.Name, 255)
 		runJobs = append(runJobs, &ActionRunJob{
 			RunID:             run.ID,
 			RepoID:            run.RepoID,
