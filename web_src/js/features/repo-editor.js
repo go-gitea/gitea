@@ -127,7 +127,7 @@ export function initRepoEditor() {
     joinTreePath($(this));
   });
 
-  $editFilename.on('keyup', function (e) {
+  $editFilename.on('keydown', function (e) {
     const $section = $('.breadcrumb span.section');
 
     if (e.keyCode === 8 && getCursorPosition($(this)) === 0 && $section.length > 0) {
