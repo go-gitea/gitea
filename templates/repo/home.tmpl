@@ -106,8 +106,8 @@
 			<div class="gt-df gt-ac">
 				{{if eq $n 0}}
 					{{if .Repository.IsTemplate}}
-						<div class="ui tiny primary buttons">
-							<a href="{{AppSubUrl}}/repo/create?template_id={{.Repository.ID}}" class="ui button">
+						<div class="ui tiny primary buttons gt-mr-2">
+							<a href="{{AppSubUrl}}/repo/create?template_id={{.Repository.ID}}" class="ui small button">
 								{{.locale.Tr "repo.use_template"}}
 							</a>
 						</div>
