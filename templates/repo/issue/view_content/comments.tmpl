@@ -707,6 +707,11 @@
 						{{$.locale.TrN (len .Commits) "repo.issues.push_commit_1" "repo.issues.push_commits_n" (len .Commits) $createdStr | Safe}}
 					{{end}}
 				</span>
+				{{if and .IsForcePush $.Issue.PullRequest.BaseRepo.Name}}
+				<span class="ui float right comparebox">
+					<a href="{{$.Issue.PullRequest.BaseRepo.Link}}/compare/{{PathEscape .OldCommit}}..{{PathEscape .NewCommit}}" rel="nofollow" class="ui compare label">{{$.locale.Tr "repo.issues.force_push_compare"}}</a>
+				</span>
+				{{end}}
 			</div>
 			{{if not .IsForcePush}}
 				{{template "repo/commits_list_small" dict "comment" . "root" $}}
