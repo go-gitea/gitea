@@ -1,4 +1,4 @@
-// Copyright 2022 The Gitea Authors. All rights reserved.
+// Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package pull
@@ -27,7 +27,7 @@ type mergeContext struct {
 	doer      *user_model.User
 	sig       *git.Signature
 	committer *git.Signature
-	signArg   git.CmdArg
+	signArg   git.TrustedCmdArgs
 	env       []string
 }
 
@@ -84,12 +84,12 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 	// Determine if we should sign
 	sign, keyID, signer, _ := asymkey_service.SignMerge(ctx, mergeCtx.pr, mergeCtx.doer, mergeCtx.tmpBasePath, "HEAD", trackingBranch)
 	if sign {
-		mergeCtx.signArg = git.CmdArg("-S" + keyID)
+		mergeCtx.signArg = git.ToTrustedCmdArgs([]string{"-S" + keyID})
 		if pr.BaseRepo.GetTrustModel() == repo_model.CommitterTrustModel || pr.BaseRepo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			mergeCtx.committer = signer
 		}
 	} else {
-		mergeCtx.signArg = git.CmdArg("--no-gpg-sign")
+		mergeCtx.signArg = git.ToTrustedCmdArgs([]string{"--no-gpg-sign"})
 	}
 
 	commitTimeStr := time.Now().Format(time.RFC3339)
@@ -108,25 +108,25 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 }
 
 // prepareTemporaryRepoForMerge takes a repository that has been created using createTemporaryRepo
-// it then sets up the sparse-checkout and other thngs
+// it then sets up the sparse-checkout and other things
 func prepareTemporaryRepoForMerge(ctx *mergeContext) error {
 	// Enable sparse-checkout
 	sparseCheckoutList, err := getDiffTree(ctx, ctx.tmpBasePath, baseBranch, trackingBranch, ctx.outbuf)
 	if err != nil {
-		log.Error("getDiffTree(%s, %s, %s): %v", ctx.tmpBasePath, baseBranch, trackingBranch, err)
+		log.Error("%-v getDiffTree(%s, %s, %s): %v", ctx.pr, ctx.tmpBasePath, baseBranch, trackingBranch, err)
 		return fmt.Errorf("getDiffTree: %w", err)
 	}
 	ctx.outbuf.Reset()
 
 	infoPath := filepath.Join(ctx.tmpBasePath, ".git", "info")
 	if err := os.MkdirAll(infoPath, 0o700); err != nil {
-		log.Error("Unable to create .git/info in %s: %v", ctx.tmpBasePath, err)
+		log.Error("%-v Unable to create .git/info in %s: %v", ctx.pr, ctx.tmpBasePath, err)
 		return fmt.Errorf("Unable to create .git/info in tmpBasePath: %w", err)
 	}
 
 	sparseCheckoutListPath := filepath.Join(infoPath, "sparse-checkout")
 	if err := os.WriteFile(sparseCheckoutListPath, []byte(sparseCheckoutList), 0o600); err != nil {
-		log.Error("Unable to write .git/info/sparse-checkout file in %s: %v", ctx.tmpBasePath, err)
+		log.Error("%-v Unable to write .git/info/sparse-checkout file in %s: %v", ctx.pr, ctx.tmpBasePath, err)
 		return fmt.Errorf("Unable to write .git/info/sparse-checkout file in tmpBasePath: %w", err)
 	}
 
@@ -134,8 +134,8 @@ func prepareTemporaryRepoForMerge(ctx *mergeContext) error {
 		return git.NewCommand(ctx, "config", "--local")
 	}
 
-	setConfig := func(key, value git.CmdArg) error {
-		if err := gitConfigCommand().AddArguments(key, value).
+	setConfig := func(key, value string) error {
+		if err := gitConfigCommand().AddArguments(git.ToTrustedCmdArgs([]string{key, value})...).
 			Run(ctx.RunOpts()); err != nil {
 			if value == "" {
 				value = "<>"

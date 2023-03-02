@@ -64,12 +64,12 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 		return nil, nil, &repo_model.ErrRepoNotExist{
 			ID: pr.BaseRepoID,
 		}
-	} else if err := pr.HeadRepo.GetOwner(ctx); err != nil {
-		log.Error("%-v HeadRepo.GetOwner: %v", pr, err)
-		return nil, nil, fmt.Errorf("%v HeadRepo.GetOwner: %w", pr, err)
-	} else if err := pr.BaseRepo.GetOwner(ctx); err != nil {
-		log.Error("%-v BaseRepo.GetOwner: %v", pr, err)
-		return nil, nil, fmt.Errorf("%v BaseRepo.GetOwner: %w", pr, err)
+	} else if err := pr.HeadRepo.LoadOwner(ctx); err != nil {
+		log.Error("%-v HeadRepo.LoadOwner: %v", pr, err)
+		return nil, nil, fmt.Errorf("%v HeadRepo.LoadOwner: %w", pr, err)
+	} else if err := pr.BaseRepo.LoadOwner(ctx); err != nil {
+		log.Error("%-v BaseRepo.LoadOwner: %v", pr, err)
+		return nil, nil, fmt.Errorf("%v BaseRepo.LoadOwner: %w", pr, err)
 	}
 
 	// Clone base repo.
@@ -103,6 +103,12 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 	remoteRepoName := "head_repo"
 	baseBranch := "base"
 
+	fetchArgs := git.TrustedCmdArgs{"--no-tags"}
+	if git.CheckGitVersionAtLeast("2.25.0") == nil {
+		// Writing the commit graph can be slow and is not needed here
+		fetchArgs = append(fetchArgs, "--no-write-commit-graph")
+	}
+
 	// addCacheRepo adds git alternatives for the cacheRepoPath in the repoPath
 	addCacheRepo := func(repoPath, cacheRepoPath string) error {
 		p := filepath.Join(repoPath, ".git", "objects", "info", "alternates")
@@ -134,7 +140,7 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 		return nil, nil, fmt.Errorf("Unable to add base repository as origin [%s -> tmpBasePath]: %w\n%s\n%s", pr.BaseRepo.FullName(), err, prCtx.outbuf.String(), prCtx.errbuf.String())
 	}
 
-	if err := git.NewCommand(ctx, "fetch", "origin", "--no-tags").AddDashesAndList(pr.BaseBranch+":"+baseBranch, pr.BaseBranch+":original_"+baseBranch).
+	if err := git.NewCommand(ctx, "fetch", "origin").AddArguments(fetchArgs...).AddDashesAndList(pr.BaseBranch+":"+baseBranch, pr.BaseBranch+":original_"+baseBranch).
 		Run(prCtx.RunOpts()); err != nil {
 		log.Error("Unable to fetch origin base branch [%s:%s -> base, original_base in %s]: %v:\n%s\n%s", pr.BaseRepo.FullName(), pr.BaseBranch, tmpBasePath, err, prCtx.outbuf.String(), prCtx.errbuf.String())
 		cancel()
@@ -171,7 +177,7 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 	} else {
 		headBranch = pr.GetGitRefName()
 	}
-	if err := git.NewCommand(ctx, "fetch", "--no-tags").AddDynamicArguments(remoteRepoName, headBranch+":"+trackingBranch).
+	if err := git.NewCommand(ctx, "fetch").AddArguments(fetchArgs...).AddDynamicArguments(remoteRepoName, headBranch+":"+trackingBranch).
 		Run(prCtx.RunOpts()); err != nil {
 		cancel()
 		if !git.IsBranchExist(ctx, pr.HeadRepo.RepoPath(), pr.HeadBranch) {

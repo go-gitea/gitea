@@ -591,7 +591,7 @@ func checkWebhook(ctx *context.Context) (*orgRepoCtx, *webhook.Webhook) {
 	} else if orCtx.OrgID > 0 {
 		w, err = webhook.GetWebhookByOrgID(ctx.Org.Organization.ID, ctx.ParamsInt64(":id"))
 	} else if orCtx.IsAdmin {
-		w, err = webhook.GetSystemOrDefaultWebhook(ctx.ParamsInt64(":id"))
+		w, err = webhook.GetSystemOrDefaultWebhook(ctx, ctx.ParamsInt64(":id"))
 	}
 	if err != nil || w == nil {
 		if webhook.IsErrWebhookNotExist(err) {
@@ -660,7 +660,7 @@ func TestWebhook(ctx *context.Context) {
 		}
 	}
 
-	apiUser := convert.ToUserWithAccessMode(ctx.Doer, perm.AccessModeNone)
+	apiUser := convert.ToUserWithAccessMode(ctx, ctx.Doer, perm.AccessModeNone)
 
 	apiCommit := &api.PayloadCommit{
 		ID:      commit.ID.String(),

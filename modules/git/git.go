@@ -312,7 +312,7 @@ func CheckGitVersionAtLeast(atLeast string) error {
 }
 
 func configSet(key, value string) error {
-	stdout, _, err := NewCommand(DefaultContext, "config", "--get").AddDynamicArguments(key).RunStdString(nil)
+	stdout, _, err := NewCommand(DefaultContext, "config", "--global", "--get").AddDynamicArguments(key).RunStdString(nil)
 	if err != nil && !err.IsExitCode(1) {
 		return fmt.Errorf("failed to get git config %s, err: %w", key, err)
 	}
@@ -331,7 +331,7 @@ func configSet(key, value string) error {
 }
 
 func configSetNonExist(key, value string) error {
-	_, _, err := NewCommand(DefaultContext, "config", "--get").AddDynamicArguments(key).RunStdString(nil)
+	_, _, err := NewCommand(DefaultContext, "config", "--global", "--get").AddDynamicArguments(key).RunStdString(nil)
 	if err == nil {
 		// already exist
 		return nil
@@ -349,7 +349,7 @@ func configSetNonExist(key, value string) error {
 }
 
 func configAddNonExist(key, value string) error {
-	_, _, err := NewCommand(DefaultContext, "config", "--get").AddDynamicArguments(key, regexp.QuoteMeta(value)).RunStdString(nil)
+	_, _, err := NewCommand(DefaultContext, "config", "--global", "--get").AddDynamicArguments(key, regexp.QuoteMeta(value)).RunStdString(nil)
 	if err == nil {
 		// already exist
 		return nil
@@ -366,7 +366,7 @@ func configAddNonExist(key, value string) error {
 }
 
 func configUnsetAll(key, value string) error {
-	_, _, err := NewCommand(DefaultContext, "config", "--get").AddDynamicArguments(key).RunStdString(nil)
+	_, _, err := NewCommand(DefaultContext, "config", "--global", "--get").AddDynamicArguments(key).RunStdString(nil)
 	if err == nil {
 		// exist, need to remove
 		_, _, err = NewCommand(DefaultContext, "config", "--global", "--unset-all").AddDynamicArguments(key, regexp.QuoteMeta(value)).RunStdString(nil)
@@ -383,6 +383,6 @@ func configUnsetAll(key, value string) error {
 }
 
 // Fsck verifies the connectivity and validity of the objects in the database
-func Fsck(ctx context.Context, repoPath string, timeout time.Duration, args ...CmdArg) error {
+func Fsck(ctx context.Context, repoPath string, timeout time.Duration, args TrustedCmdArgs) error {
 	return NewCommand(ctx, "fsck").AddArguments(args...).Run(&RunOpts{Timeout: timeout, Dir: repoPath})
 }

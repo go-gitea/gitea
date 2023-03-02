@@ -6,7 +6,6 @@ package context
 
 import (
 	"context"
-	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -36,11 +35,11 @@ import (
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/services/auth"
 
 	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
 	chi "github.com/go-chi/chi/v5"
+	"github.com/minio/sha256-simd"
 	"github.com/unrolled/render"
 	"golang.org/x/crypto/pbkdf2"
 )
@@ -659,37 +658,6 @@ func getCsrfOpts() CsrfOptions {
 	}
 }
 
-// Auth converts auth.Auth as a middleware
-func Auth(authMethod auth.Method) func(*Context) {
-	return func(ctx *Context) {
-		var err error
-		ctx.Doer, err = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
-		if err != nil {
-			log.Error("Failed to verify user %v: %v", ctx.Req.RemoteAddr, err)
-			ctx.Error(http.StatusUnauthorized, "Verify")
-			return
-		}
-		if ctx.Doer != nil {
-			if ctx.Locale.Language() != ctx.Doer.Language {
-				ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
-			}
-			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == auth.BasicMethodName
-			ctx.IsSigned = true
-			ctx.Data["IsSigned"] = ctx.IsSigned
-			ctx.Data["SignedUser"] = ctx.Doer
-			ctx.Data["SignedUserID"] = ctx.Doer.ID
-			ctx.Data["SignedUserName"] = ctx.Doer.Name
-			ctx.Data["IsAdmin"] = ctx.Doer.IsAdmin
-		} else {
-			ctx.Data["SignedUserID"] = int64(0)
-			ctx.Data["SignedUserName"] = ""
-
-			// ensure the session uid is deleted
-			_ = ctx.Session.Delete("uid")
-		}
-	}
-}
-
 // Contexter initializes a classic context for a request.
 func Contexter(ctx context.Context) func(next http.Handler) http.Handler {
 	_, rnd := templates.HTMLRenderer(ctx)
@@ -805,6 +773,7 @@ func Contexter(ctx context.Context) func(next http.Handler) http.Handler {
 			ctx.Data["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 			ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 			ctx.Data["DisableStars"] = setting.Repository.DisableStars
+			ctx.Data["EnableActions"] = setting.Actions.Enabled
 
 			ctx.Data["ManifestData"] = setting.ManifestData
 
@@ -812,6 +781,7 @@ func Contexter(ctx context.Context) func(next http.Handler) http.Handler {
 			ctx.Data["UnitIssuesGlobalDisabled"] = unit.TypeIssues.UnitGlobalDisabled()
 			ctx.Data["UnitPullsGlobalDisabled"] = unit.TypePullRequests.UnitGlobalDisabled()
 			ctx.Data["UnitProjectsGlobalDisabled"] = unit.TypeProjects.UnitGlobalDisabled()
+			ctx.Data["UnitActionsGlobalDisabled"] = unit.TypeActions.UnitGlobalDisabled()
 
 			ctx.Data["locale"] = locale
 			ctx.Data["AllLangs"] = translation.AllLangs()

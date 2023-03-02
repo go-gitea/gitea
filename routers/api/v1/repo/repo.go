@@ -201,7 +201,7 @@ func Search(ctx *context.APIContext) {
 
 	results := make([]*api.Repository, len(repos))
 	for i, repo := range repos {
-		if err = repo.GetOwner(ctx); err != nil {
+		if err = repo.LoadOwner(ctx); err != nil {
 			ctx.JSON(http.StatusInternalServerError, api.SearchError{
 				OK:    false,
 				Error: err.Error(),
@@ -230,7 +230,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 	if opt.AutoInit && opt.Readme == "" {
 		opt.Readme = "Default"
 	}
-	repo, err := repo_service.CreateRepository(ctx.Doer, owner, repo_module.CreateRepoOptions{
+	repo, err := repo_service.CreateRepository(ctx, ctx.Doer, owner, repo_module.CreateRepoOptions{
 		Name:          opt.Name,
 		Description:   opt.Description,
 		IssueLabels:   opt.IssueLabels,
@@ -393,7 +393,7 @@ func Generate(ctx *context.APIContext) {
 		}
 	}
 
-	repo, err := repo_service.GenerateRepository(ctx.Doer, ctxUser, ctx.Repo.Repository, opts)
+	repo, err := repo_service.GenerateRepository(ctx, ctx.Doer, ctxUser, ctx.Repo.Repository, opts)
 	if err != nil {
 		if repo_model.IsErrRepoAlreadyExist(err) {
 			ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
@@ -468,7 +468,7 @@ func CreateOrgRepo(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	opt := web.GetForm(ctx).(*api.CreateRepoOption)
-	org, err := organization.GetOrgByName(ctx.Params(":org"))
+	org, err := organization.GetOrgByName(ctx, ctx.Params(":org"))
 	if err != nil {
 		if organization.IsErrOrgNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
@@ -637,7 +637,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	}
 	// Check if repository name has been changed and not just a case change
 	if repo.LowerName != strings.ToLower(newRepoName) {
-		if err := repo_service.ChangeRepositoryName(ctx.Doer, repo, newRepoName); err != nil {
+		if err := repo_service.ChangeRepositoryName(ctx, ctx.Doer, repo, newRepoName); err != nil {
 			switch {
 			case repo_model.IsErrRepoAlreadyExist(err):
 				ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("repo name is already taken [name: %s]", newRepoName), err)
@@ -714,7 +714,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 		repo.DefaultBranch = *opts.DefaultBranch
 	}
 
-	if err := repo_service.UpdateRepository(repo, visibilityChanged); err != nil {
+	if err := repo_service.UpdateRepository(ctx, repo, visibilityChanged); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateRepository", err)
 		return err
 	}
@@ -863,6 +863,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 					AllowRebaseUpdate:             true,
 					DefaultDeleteBranchAfterMerge: false,
 					DefaultMergeStyle:             repo_model.MergeStyleMerge,
+					DefaultAllowMaintainerEdit:    false,
 				}
 			} else {
 				config = unit.PullRequestsConfig()
@@ -897,6 +898,9 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			}
 			if opts.DefaultMergeStyle != nil {
 				config.DefaultMergeStyle = repo_model.MergeStyle(*opts.DefaultMergeStyle)
+			}
+			if opts.DefaultAllowMaintainerEdit != nil {
+				config.DefaultAllowMaintainerEdit = *opts.DefaultAllowMaintainerEdit
 			}
 
 			units = append(units, repo_model.RepoUnit{

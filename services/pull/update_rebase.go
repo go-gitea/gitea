@@ -1,4 +1,4 @@
-// Copyright 2022 The Gitea Authors. All rights reserved.
+// Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package pull
@@ -51,7 +51,7 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 
 	// Now determine who the pushing author should be
 	var headUser *user_model.User
-	if err := pr.HeadRepo.GetOwner(ctx); err != nil {
+	if err := pr.HeadRepo.LoadOwner(ctx); err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("Can't find user: %d for head repository in %-v - %v", pr.HeadRepo.OwnerID, pr, err)
 			return err

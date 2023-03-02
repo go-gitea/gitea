@@ -90,6 +90,9 @@ func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr
 				}
 				for _, ref := range refs {
 					if ref.RefAction == references.XRefActionCloses {
+						if err := ref.LoadIssue(ctx); err != nil {
+							return "", "", err
+						}
 						closeIssueIndexes = append(closeIssueIndexes, fmt.Sprintf("%s %s%d", closeWord, issueReference, ref.Issue.Index))
 					}
 				}
@@ -189,8 +192,8 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	if err := pr.Issue.LoadRepo(hammerCtx); err != nil {
 		log.Error("pr.Issue.LoadRepo %-v: %v", pr, err)
 	}
-	if err := pr.Issue.Repo.GetOwner(hammerCtx); err != nil {
-		log.Error("GetOwner for %-v: %v", pr, err)
+	if err := pr.Issue.Repo.LoadOwner(hammerCtx); err != nil {
+		log.Error("LoadOwner for PR [%d]: %v", pr.ID, err)
 	}
 
 	if wasAutoMerged {
@@ -280,7 +283,7 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 	}
 
 	var headUser *user_model.User
-	err = pr.HeadRepo.GetOwner(ctx)
+	err = pr.HeadRepo.LoadOwner(ctx)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("Can't find user: %d for head repository in %-v: %v", pr.HeadRepo.OwnerID, pr, err)
@@ -329,20 +332,11 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 }
 
 func commitAndSignNoAuthor(ctx *mergeContext, message string) error {
-	if ctx.signArg == "" {
-		if err := git.NewCommand(ctx, "commit", "-m").AddDynamicArguments(message).
-			Run(ctx.RunOpts()); err != nil {
-			log.Error("git commit %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
-			return fmt.Errorf("git commit %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
-		}
-	} else {
-		if err := git.NewCommand(ctx, "commit").AddArguments(ctx.signArg).AddArguments("-m").AddDynamicArguments(message).
-			Run(ctx.RunOpts()); err != nil {
-			log.Error("git commit %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
-			return fmt.Errorf("git commit %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
-		}
+	if err := git.NewCommand(ctx, "commit").AddArguments(ctx.signArg...).AddOptionFormat("--message=%s", message).
+		Run(ctx.RunOpts()); err != nil {
+		log.Error("git commit %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
+		return fmt.Errorf("git commit %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
 	}
-
 	return nil
 }
 

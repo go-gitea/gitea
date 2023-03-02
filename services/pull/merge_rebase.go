@@ -1,4 +1,4 @@
-// Copyright 2022 The Gitea Authors. All rights reserved.
+// Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package pull
@@ -21,7 +21,7 @@ func doMergeStyleRebase(ctx *mergeContext, mergeStyle repo_model.MergeStyle, mes
 	if err := git.NewCommand(ctx, "checkout").AddDynamicArguments(baseBranch).
 		Run(ctx.RunOpts()); err != nil {
 		log.Error("git checkout base prior to merge post staging rebase %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
-		return fmt.Errorf("git checkout base prior to merge post staging rebase  [%s:%s -> %s:%s]: %w\n%s\n%s", ctx.pr.HeadRepo.FullName(), ctx.pr.HeadBranch, ctx.pr.BaseRepo.FullName(), ctx.pr.BaseBranch, err, ctx.outbuf.String(), ctx.errbuf.String())
+		return fmt.Errorf("git checkout base prior to merge post staging rebase  %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
 	}
 	ctx.outbuf.Reset()
 	ctx.errbuf.Reset()
