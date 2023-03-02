@@ -514,7 +514,6 @@ func RenameUser(ctx *context.APIContext) {
 		}
 	} else {
 		if err := repo_model.UpdateRepositoryOwnerNames(ctx.ContextUser.ID, newName); err != nil {
-			fmt.Println("RenameUser 6")
 			ctx.ServerError("UpdateRepository", err)
 			return
 		}
