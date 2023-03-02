@@ -43,12 +43,13 @@ func TestGetTagCommitWithSignature(t *testing.T) {
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
-	commit, err := bareRepo1.GetCommit("3ad28a9149a2864384548f3d17ed7f38014c9e8a")
+	// both the tag and the commit are signed here, this validates only the commit signature
+	commit, err := bareRepo1.GetCommit("28b55526e7100924d864dd89e35c1ea62e7a5a32")
 	assert.NoError(t, err)
 	assert.NotNil(t, commit)
 	assert.NotNil(t, commit.Signature)
 	// test that signature is not in message
-	assert.Equal(t, "tag", commit.CommitMessage)
+	assert.Equal(t, "signed-commit\n", commit.CommitMessage)
 }
 
 func TestGetCommitWithBadCommitID(t *testing.T) {
