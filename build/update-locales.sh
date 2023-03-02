@@ -24,7 +24,7 @@ mv ./options/locale/locale_en-US.ini ./options/
 #  * `a="foo` gets `"foo` (although the quote is not closed)
 #  * 'a=`foo`' works like single-quote
 # crowdin needs the strings to be quoted correctly and doesn't like incomplete quotes
-# crowdin always outputs quoted strings
+# crowdin always outputs quoted strings if there are quotes in the strings.
 
 # this script helps to unquote the crowdin outputs for the quirky ini library
 # * find all `key="...\"..."` lines
