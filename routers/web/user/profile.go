@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"io"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
@@ -92,10 +93,19 @@ func Profile(ctx *context.Context) {
 	}
 
 	gitRepo, err := git.OpenRepository(ctx, repo_model.RepoPath("npease", ".public"))
-
+	resp, err := http.Get("http://localhost:3000/npease/.profile/raw/branch/main/README.md")
+	if err != nil {
+		ctx.ServerError("RenderString", err)
+		return
+	}
+	bytes, err := io.ReadAll(resp.Body)
+    if err != nil {
+        ctx.ServerError("RenderString", err)
+		return
+    }
    	profileContent, err := markdown.RenderString(&markup.RenderContext{
       	GitRepo: gitRepo,
-    }, "http://127.0.0.1:3000/npease/.profile/raw/branch/main/README.md")
+    }, string(bytes))
 	
 	ctx.Data["RenderedProfile"] = profileContent
 	
