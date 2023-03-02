@@ -463,7 +463,7 @@ func GetAllUsers(ctx *context.APIContext) {
 
 // RenameUser api for renaming a user
 func RenameUser(ctx *context.APIContext) {
-	// swagger:operation POST /admin/users/{username} admin adminRenameUser
+	// swagger:operation POST /admin/users/{username}/rename admin adminRenameUser
 	// ---
 	// summary: Rename a user
 	// produces:
