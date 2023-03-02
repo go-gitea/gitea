@@ -169,7 +169,7 @@ func GetDiverging(ctx context.Context, pr *issues_model.PullRequest) (*git.Diver
 	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
 	if err != nil {
 		if !models.IsErrBranchDoesNotExist(err) {
-			log.Error("CreateTemporaryRepo: %v", err)
+			log.Error("CreateTemporaryRepoForPR %-v: %v", pr, err)
 		}
 		return nil, err
 	}

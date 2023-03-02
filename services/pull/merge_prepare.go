@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -110,24 +111,29 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 // prepareTemporaryRepoForMerge takes a repository that has been created using createTemporaryRepo
 // it then sets up the sparse-checkout and other things
 func prepareTemporaryRepoForMerge(ctx *mergeContext) error {
-	// Enable sparse-checkout
-	sparseCheckoutList, err := getDiffTree(ctx, ctx.tmpBasePath, baseBranch, trackingBranch, ctx.outbuf)
-	if err != nil {
-		log.Error("%-v getDiffTree(%s, %s, %s): %v", ctx.pr, ctx.tmpBasePath, baseBranch, trackingBranch, err)
-		return fmt.Errorf("getDiffTree: %w", err)
-	}
-	ctx.outbuf.Reset()
-
 	infoPath := filepath.Join(ctx.tmpBasePath, ".git", "info")
 	if err := os.MkdirAll(infoPath, 0o700); err != nil {
 		log.Error("%-v Unable to create .git/info in %s: %v", ctx.pr, ctx.tmpBasePath, err)
 		return fmt.Errorf("Unable to create .git/info in tmpBasePath: %w", err)
 	}
 
-	sparseCheckoutListPath := filepath.Join(infoPath, "sparse-checkout")
-	if err := os.WriteFile(sparseCheckoutListPath, []byte(sparseCheckoutList), 0o600); err != nil {
+	// Enable sparse-checkout
+	// Here we use the .git/info/sparse-checkout file as described in the git documentation
+	sparseCheckoutListFile, err := os.OpenFile(filepath.Join(infoPath, "sparse-checkout"), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+	if err != nil {
 		log.Error("%-v Unable to write .git/info/sparse-checkout file in %s: %v", ctx.pr, ctx.tmpBasePath, err)
 		return fmt.Errorf("Unable to write .git/info/sparse-checkout file in tmpBasePath: %w", err)
+	}
+	defer sparseCheckoutListFile.Close() // we will close it earlier but we need to ensure it is closed if there is an error
+
+	if err := getDiffTree(ctx, ctx.tmpBasePath, baseBranch, trackingBranch, sparseCheckoutListFile); err != nil {
+		log.Error("%-v getDiffTree(%s, %s, %s): %v", ctx.pr, ctx.tmpBasePath, baseBranch, trackingBranch, err)
+		return fmt.Errorf("getDiffTree: %w", err)
+	}
+
+	if err := sparseCheckoutListFile.Close(); err != nil {
+		log.Error("%-v Unable to close .git/info/sparse-checkout file in %s: %v", ctx.pr, ctx.tmpBasePath, err)
+		return fmt.Errorf("Unable to close .git/info/sparse-checkout file in tmpBasePath: %w", err)
 	}
 
 	gitConfigCommand := func() *git.Command {
@@ -183,14 +189,12 @@ func prepareTemporaryRepoForMerge(ctx *mergeContext) error {
 }
 
 // getDiffTree returns a string containing all the files that were changed between headBranch and baseBranch
-func getDiffTree(ctx context.Context, repoPath, baseBranch, headBranch string, out *strings.Builder) (string, error) {
-	out.Reset()
-	defer out.Reset()
-
+// the filenames are escaped so as to fit the format required for .git/info/sparse-checkout
+func getDiffTree(ctx context.Context, repoPath, baseBranch, headBranch string, out io.Writer) error {
 	diffOutReader, diffOutWriter, err := os.Pipe()
 	if err != nil {
 		log.Error("Unable to create os.Pipe for %s", repoPath)
-		return "", err
+		return err
 	}
 	defer func() {
 		_ = diffOutReader.Close()
@@ -235,7 +239,7 @@ func getDiffTree(ctx context.Context, repoPath, baseBranch, headBranch string, o
 				return scanner.Err()
 			},
 		})
-	return out.String(), err
+	return err
 }
 
 // rebaseTrackingOnToBase checks out the tracking branch as staging and rebases it on to the base branch
