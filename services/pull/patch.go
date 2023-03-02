@@ -65,7 +65,7 @@ func TestPatch(pr *issues_model.PullRequest) error {
 	// Clone base repo.
 	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
 	if err != nil {
-		log.Error("CreateTemporaryPath: %v", err)
+		log.Error("createTemporaryRepoForPR %-v: %v", pr, err)
 		return err
 	}
 	defer cancel()
