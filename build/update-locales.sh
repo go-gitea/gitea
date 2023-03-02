@@ -2,16 +2,12 @@
 
 set -e
 
-SED=sed
+cd -- "$(dirname -- "${BASH_SOURCE[0]}")"/.. # cd into parent folder
 
-if [[ $OSTYPE == 'darwin'* ]]; then
-  # for macOS developers, use "brew install gnu-sed"
-  SED=gsed
-fi
-
-if [ ! -f ./options/locale/locale_en-US.ini ]; then
-  echo "please run this script in the root directory of the project"
-  exit 1
+if sed --version 2>/dev/null | grep -q GNU; then
+  SED_INPLACE="sed -i"
+else
+  SED_INPLACE="sed -i ''"
 fi
 
 mv ./options/locale/locale_en-US.ini ./options/
@@ -32,7 +28,7 @@ mv ./options/locale/locale_en-US.ini ./options/
 # * remove the trailing quote
 # * unescape the quotes
 # * eg: key="...\"..." => key=..."...
-$SED -i -r -e '/^[-.A-Za-z0-9_]+[ ]*=[ ]*".*"$/ {
+$SED_INPLACE -r -e '/^[-.A-Za-z0-9_]+[ ]*=[ ]*".*"$/ {
 	s/^([-.A-Za-z0-9_]+)[ ]*=[ ]*"/\1=/
 	s/"$//
 	s/\\"/"/g
@@ -41,8 +37,8 @@ $SED -i -r -e '/^[-.A-Za-z0-9_]+[ ]*=[ ]*".*"$/ {
 # * if the escaped line is incomplete like `key="...` or `key=..."`, quote it with backticks
 # * eg: key="... => key=`"...`
 # * eg: key=..." => key=`..."`
-$SED -i -r -e 's/^([-.A-Za-z0-9_]+)[ ]*=[ ]*(".*[^"])$/\1=`\2`/' ./options/locale/*.ini
-$SED -i -r -e 's/^([-.A-Za-z0-9_]+)[ ]*=[ ]*([^"].*")$/\1=`\2`/' ./options/locale/*.ini
+$SED_INPLACE -r -e 's/^([-.A-Za-z0-9_]+)[ ]*=[ ]*(".*[^"])$/\1=`\2`/' ./options/locale/*.ini
+$SED_INPLACE -r -e 's/^([-.A-Za-z0-9_]+)[ ]*=[ ]*([^"].*")$/\1=`\2`/' ./options/locale/*.ini
 
 # Remove translation under 25% of en_us
 baselines=$(wc -l "./options/locale_en-US.ini" | cut -d" " -f1)
