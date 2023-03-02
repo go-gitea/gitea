@@ -6,7 +6,6 @@ if sed --version 2>/dev/null | grep -q GNU; then
 else
   SED_INPLACE="sed -i ''"
 fi
-
 set -e
 
 if [ ! -f ./options/locale/locale_en-US.ini ]; then
