@@ -4,11 +4,13 @@ set -e
 
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")"/.. # cd into parent folder
 
+set +e
 if sed --version 2>/dev/null | grep -q GNU; then
   SED_INPLACE="sed -i"
 else
   SED_INPLACE="sed -i ''"
 fi
+set -e
 
 mv ./options/locale/locale_en-US.ini ./options/
 
