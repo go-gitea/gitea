@@ -340,6 +340,10 @@ export function initRepositoryActionView() {
 
   .action-status {
     margin-left: 5px;
+  
+    span {
+      vertical-align: middle;
+    }
   }
 
   .action-title {
