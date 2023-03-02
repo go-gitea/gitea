@@ -131,6 +131,7 @@ export function initRepoEditor() {
     const $section = $('.breadcrumb span.section');
 
     if (e.keyCode === 8 && getCursorPosition($(this)) === 0 && $section.length > 0) {
+      e.preventDefault();
       const $divider = $('.breadcrumb div.divider');
       const value = $section.last().find('a').text();
       $(this).val(value + $(this).val());
