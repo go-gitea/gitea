@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
 	"code.gitea.io/gitea/routers/web/org"
+	"code.gitea.io/gitea/modules/git"
 )
 
 // Profile render user's profile page
@@ -90,6 +91,14 @@ func Profile(ctx *context.Context) {
 		ctx.Data["RenderedDescription"] = content
 	}
 
+	gitRepo, err := git.OpenRepository(ctx, repo_model.RepoPath("npease", ".public"))
+
+   	profileContent, err := markdown.RenderString(&markup.RenderContext{
+      	GitRepo: gitRepo,
+    }, "http://127.0.0.1:3000/npease/.profile/raw/branch/main/README.md")
+	
+	ctx.Data["RenderedProfile"] = profileContent
+	
 	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
 
 	orgs, err := organization.FindOrgs(organization.FindOrgOptions{
