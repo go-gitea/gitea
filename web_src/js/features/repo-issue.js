@@ -418,6 +418,22 @@ function assignMenuAttributes(menu) {
   return id;
 }
 
+export async function handleReply($el) {
+  hideElem($el);
+  const form = $el.closest('.comment-code-cloud').find('.comment-form');
+  form.removeClass('gt-hidden');
+  const $textarea = form.find('textarea');
+  let easyMDE = getAttachedEasyMDE($textarea);
+  if (!easyMDE) {
+    await attachTribute($textarea.get(), {mentions: true, emoji: true});
+    easyMDE = await createCommentEasyMDE($textarea);
+  }
+  $textarea.focus();
+  easyMDE.codemirror.focus();
+  assignMenuAttributes(form.find('.menu'));
+  return easyMDE;
+}
+
 export function initRepoPullRequestReview() {
   if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
     const commentDiv = $(window.location.hash);
@@ -455,19 +471,7 @@ export function initRepoPullRequestReview() {
 
   $(document).on('click', 'button.comment-form-reply', async function (e) {
     e.preventDefault();
-
-    hideElem($(this));
-    const form = $(this).closest('.comment-code-cloud').find('.comment-form');
-    form.removeClass('gt-hidden');
-    const $textarea = form.find('textarea');
-    let easyMDE = getAttachedEasyMDE($textarea);
-    if (!easyMDE) {
-      await attachTribute($textarea.get(), {mentions: true, emoji: true});
-      easyMDE = await createCommentEasyMDE($textarea);
-    }
-    $textarea.focus();
-    easyMDE.codemirror.focus();
-    assignMenuAttributes(form.find('.menu'));
+    await handleReply($(this));
   });
 
   const $reviewBox = $('.review-box-panel');

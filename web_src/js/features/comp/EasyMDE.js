@@ -78,7 +78,7 @@ export async function createCommentEasyMDE(textarea, easyMDEOptions = {}) {
   const inputField = easyMDE.codemirror.getInputField();
 
   easyMDE.codemirror.on('change', (...args) => {
-    easyMDEOptions?.onChange(...args);
+    easyMDEOptions?.onChange?.(...args);
   });
   easyMDE.codemirror.setOption('extraKeys', {
     'Cmd-Enter': codeMirrorQuickSubmit,
