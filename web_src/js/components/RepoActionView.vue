@@ -2,12 +2,10 @@
   <div class="action-view-container">
     <div class="action-view-header">
       <div class="action-info-summary">
-        <div class="action-status">
-          <SvgIcon name="octicon-check-circle-fill" class="green" v-if="run.status === 'success'"/>
-          <SvgIcon name="octicon-clock" class="ui text yellow" v-else-if="run.status === 'waiting'"/>
-          <SvgIcon name="octicon-meter" class="ui text yellow" class-name="job-status-rotate" v-else-if="run.status === 'running'"/>
-          <SvgIcon name="octicon-x-circle-fill" class="red" v-else/>
-        </div>
+        <SvgIcon name="octicon-check-circle-fill" size="20" class="green" v-if="run.status === 'success'"/>
+        <SvgIcon name="octicon-clock" size="20" class="ui text yellow" v-else-if="run.status === 'waiting'"/>
+        <SvgIcon name="octicon-meter" size="20" class="ui text yellow" class-name="job-status-rotate" v-else-if="run.status === 'running'"/>
+        <SvgIcon name="octicon-x-circle-fill" size="20" class="red" v-else/>
         <div class="action-title">
           {{ run.title }}
         </div>
@@ -337,14 +335,6 @@ export function initRepositoryActionView() {
   font-size: 150%;
   height: 20px;
   display: flex;
-
-  .action-status {
-    margin-left: 5px;
-  
-    span {
-      vertical-align: middle;
-    }
-  }
 
   .action-title {
     padding: 0 5px;
