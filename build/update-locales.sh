@@ -28,7 +28,7 @@ mv ./options/locale/locale_en-US.ini ./options/
 
 # this script helps to unquote the crowdin outputs for the quirky ini library
 # * find all `key="...\"..."` lines
-# * remote the leading quote
+# * remove the leading quote
 # * remove the trailing quote
 # * unescape the quotes
 # * eg: key="...\"..." => key=..."...
