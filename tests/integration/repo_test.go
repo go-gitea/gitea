@@ -272,7 +272,7 @@ func TestViewRepoDirectoryReadme(t *testing.T) {
 
 	session := loginUser(t, "user2")
 
-	check := func(name, url, filename, content string) {
+	check := func(name, url, expectedFilename, expectedReadmeType, expectedContent string) {
 		t.Run(name, func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
@@ -282,36 +282,38 @@ func TestViewRepoDirectoryReadme(t *testing.T) {
 			htmlDoc := NewHTMLParser(t, resp.Body)
 			readmeName := htmlDoc.doc.Find("h4.file-header")
 			readmeContent := htmlDoc.doc.Find(".file-view") // TODO: add a id="readme" to the output to make this test more precise
+			readmeType, _ := readmeContent.Attr("class")
 
-			assert.Equal(t, filename, strings.TrimSpace(readmeName.Text()))
-			assert.Contains(t, readmeContent.Text(), content)
+			assert.Equal(t, expectedFilename, strings.TrimSpace(readmeName.Text()))
+			assert.Contains(t, readmeType, expectedReadmeType)
+			assert.Contains(t, readmeContent.Text(), expectedContent)
 		})
 	}
 
 	// viewing the top level
-	check("Home", "/user2/readme-test/", "README.md", "The cake is a lie.")
+	check("Home", "/user2/readme-test/", "README.md", "markdown", "The cake is a lie.")
 
 	// viewing different file extensions
-	check("md", "/user2/readme-test/src/branch/master/", "README.md", "The cake is a lie.")
-	check("txt", "/user2/readme-test/src/branch/txt/", "README.txt", "My spoon is too big.")
-	check("plain", "/user2/readme-test/src/branch/plain/", "README", "Birken my stocks gee howdy")
-	check("i18n", "/user2/readme-test/src/branch/i18n/", "README.zh.md", "蛋糕是一个谎言")
+	check("md", "/user2/readme-test/src/branch/master/", "README.md", "markdown", "The cake is a lie.")
+	check("txt", "/user2/readme-test/src/branch/txt/", "README.txt", "plain-text", "My spoon is too big.")
+	check("plain", "/user2/readme-test/src/branch/plain/", "README", "plain-text", "Birken my stocks gee howdy")
+	check("i18n", "/user2/readme-test/src/branch/i18n/", "README.zh.md", "markdown", "蛋糕是一个谎言")
 
 	// viewing different subdirectories
-	check("subdir", "/user2/readme-test/src/branch/subdir/libcake", "README.md", "Four pints of sugar.")
-	check("docs-direct", "/user2/readme-test/src/branch/special-subdir-docs/docs/", "README.md", "This is in docs/")
-	check("docs", "/user2/readme-test/src/branch/special-subdir-docs/", "docs/README.md", "This is in docs/")
-	check(".gitea", "/user2/readme-test/src/branch/special-subdir-.gitea/", ".gitea/README.md", "This is in .gitea/")
-	check(".github", "/user2/readme-test/src/branch/special-subdir-.github/", ".github/README.md", "This is in .github/")
+	check("subdir", "/user2/readme-test/src/branch/subdir/libcake", "README.md", "markdown", "Four pints of sugar.")
+	check("docs-direct", "/user2/readme-test/src/branch/special-subdir-docs/docs/", "README.md", "markdown", "This is in docs/")
+	check("docs", "/user2/readme-test/src/branch/special-subdir-docs/", "docs/README.md", "markdown", "This is in docs/")
+	check(".gitea", "/user2/readme-test/src/branch/special-subdir-.gitea/", ".gitea/README.md", "markdown", "This is in .gitea/")
+	check(".github", "/user2/readme-test/src/branch/special-subdir-.github/", ".github/README.md", "markdown", "This is in .github/")
 
 	// symlinks
 	// symlinks are subtle:
 	// - they should be able to handle going a reasonable number of times up and down in the tree
 	// - they shouldn't get stuck on link cycles
 	// - they should determine the filetype based on the name of the link, not the target
-	check("symlink", "/user2/readme-test/src/branch/symlink/", "README.md", "This is in some/other/path")
-	check("symlink-multiple", "/user2/readme-test/src/branch/symlink/some/", "README.txt", "This is in some/other/path")
-	check("symlink-up-and-down", "/user2/readme-test/src/branch/symlink/up/back/down/down", "README.md", "It's a me, mario")
+	check("symlink", "/user2/readme-test/src/branch/symlink/", "README.md", "markdown", "This is in some/other/path")
+	check("symlink-multiple", "/user2/readme-test/src/branch/symlink/some/", "README.txt", "plain-text", "This is in some/other/path")
+	check("symlink-up-and-down", "/user2/readme-test/src/branch/symlink/up/back/down/down", "README.md", "markdown", "It's a me, mario")
 
 	// testing fallback rules
 	// READMEs are searched in this order:
@@ -322,18 +324,18 @@ func TestViewRepoDirectoryReadme(t *testing.T) {
 	//     .github/README.zh-cn.md, .github/README.zh_cn.md, .github/README.zh.md, .github/README_zh.md, .github/README.md, .github/README.txt, .github/README]
 	// and a broken/looped symlink counts as not existing at all and should be skipped.
 	// again, this doesn't cover all cases, but it covers a few
-	check("fallback/top", "/user2/readme-test/src/branch/fallbacks/", "README.en.md", "This is README.en.md")
-	check("fallback/2", "/user2/readme-test/src/branch/fallbacks2/", "README.md", "This is README.md")
-	check("fallback/3", "/user2/readme-test/src/branch/fallbacks3/", "README", "This is README")
-	check("fallback/4", "/user2/readme-test/src/branch/fallbacks4/", "docs/README.en.md", "This is docs/README.en.md")
-	check("fallback/5", "/user2/readme-test/src/branch/fallbacks5/", "docs/README.md", "This is docs/README.md")
-	check("fallback/6", "/user2/readme-test/src/branch/fallbacks6/", "docs/README", "This is docs/README")
-	check("fallback/7", "/user2/readme-test/src/branch/fallbacks7/", ".gitea/README.en.md", "This is .gitea/README.en.md")
-	check("fallback/8", "/user2/readme-test/src/branch/fallbacks8/", ".gitea/README.md", "This is .gitea/README.md")
-	check("fallback/9", "/user2/readme-test/src/branch/fallbacks9/", ".gitea/README", "This is .gitea/README")
+	check("fallback/top", "/user2/readme-test/src/branch/fallbacks/", "README.en.md", "markdown", "This is README.en.md")
+	check("fallback/2", "/user2/readme-test/src/branch/fallbacks2/", "README.md", "markdown", "This is README.md")
+	check("fallback/3", "/user2/readme-test/src/branch/fallbacks3/", "README", "plain-text", "This is README")
+	check("fallback/4", "/user2/readme-test/src/branch/fallbacks4/", "docs/README.en.md", "markdown", "This is docs/README.en.md")
+	check("fallback/5", "/user2/readme-test/src/branch/fallbacks5/", "docs/README.md", "markdown", "This is docs/README.md")
+	check("fallback/6", "/user2/readme-test/src/branch/fallbacks6/", "docs/README", "plain-text", "This is docs/README")
+	check("fallback/7", "/user2/readme-test/src/branch/fallbacks7/", ".gitea/README.en.md", "markdown", "This is .gitea/README.en.md")
+	check("fallback/8", "/user2/readme-test/src/branch/fallbacks8/", ".gitea/README.md", "markdown", "This is .gitea/README.md")
+	check("fallback/9", "/user2/readme-test/src/branch/fallbacks9/", ".gitea/README", "plain-text", "This is .gitea/README")
 
 	// this case tests that broken symlinks count as missing files, instead of rendering their contents
-	check("fallbacks-broken-symlinks", "/user2/readme-test/src/branch/fallbacks-broken-symlinks/", "docs/README", "This is docs/README")
+	check("fallbacks-broken-symlinks", "/user2/readme-test/src/branch/fallbacks-broken-symlinks/", "docs/README", "plain-text", "This is docs/README")
 
 	// some cases that should NOT render a README
 	// - /readme
