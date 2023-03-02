@@ -83,6 +83,9 @@ It's not recommended to use `async` event listeners, which may lead to problems.
 The reason is that the code after await is executed outside the event dispatch.
 Reference: https://github.com/github/eslint-plugin-github/blob/main/docs/rules/async-preventdefault.md
 
+If an event listener must be `async`, the `e.preventDefault()` should be before any `await`,
+it's recommended to put it at the beginning of the function.
+
 If we want to call an `async` function in a non-async context,
 it's recommended to use `const _promise = asyncFoo()` to tell readers
 that this is done by purpose, we want to call the async function and ignore the Promise.
