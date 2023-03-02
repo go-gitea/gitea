@@ -267,6 +267,8 @@ func TestViewRepoDirectoryReadme(t *testing.T) {
 	// - READMEs can be stored in docs/, .gitea/, or .github/
 	// - READMEs can be symlinks to other files
 	// - READMEs can be broken symlinks which should not render
+	//
+	// this doesn't cover all possible cases, just the major branches of the code
 
 	session := loginUser(t, "user2")
 
@@ -285,8 +287,6 @@ func TestViewRepoDirectoryReadme(t *testing.T) {
 			assert.Contains(t, readmeContent.Text(), content)
 		})
 	}
-
-	// this doesn't cover all possible cases, just the major branches of the code
 
 	// viewing the top level
 	check("Home", "/user2/readme-test/", "README.md", "The cake is a lie.")
