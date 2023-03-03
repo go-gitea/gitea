@@ -92,12 +92,14 @@ func Profile(ctx *context.Context) {
 		ctx.Data["RenderedDescription"] = content
 	}
 
+	// Fetches user's .profile/README.md and adds it to the users profile (if it exists)
 	gitRepo, err := git.OpenRepository(ctx, repo_model.RepoPath(ctx.ContextUser.Name, ".profile"))
 	resp, err := http.Get(setting.AppURL + ctx.ContextUser.Name + "/.profile/raw/branch/main/README.md")
 	if err != nil {
 		ctx.ServerError("RenderString", err)
 		return
 	}
+	defer resp.Body.Close()
 	bytes, err := io.ReadAll(resp.Body)
     if err != nil {
         ctx.ServerError("RenderString", err)
@@ -107,7 +109,7 @@ func Profile(ctx *context.Context) {
       	GitRepo: gitRepo,
     }, string(bytes))
 	if resp.StatusCode == 200  {
-		ctx.Data["RenderedProfile"] = profileContent
+		ctx.Data["ReadmeProfile"] = profileContent
 	}
 
 	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
