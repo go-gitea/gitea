@@ -408,6 +408,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 	switch mergeStyle {
 	case repo_model.MergeStyleMerge:
 		// Do the merge
+		log.Info("Starting a merge")
 		cmd := git.NewCommand(ctx, "merge", "--no-ff", "--no-commit").AddDynamicArguments(trackingBranch)
 		if err := runMergeCommand(pr, mergeStyle, cmd, tmpBasePath); err != nil {
 			// If the error was from a merge conflict, that's okay. The strategy might fix it
@@ -418,13 +419,14 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 		}
 
 		// Apply the strategy
+		log.Info("Beginning to apply strategies: %v", strategy)
 		for _, strat := range strategy {
 			// TODO: This doesn't work if the file was deleted or added.
 			// Need to add more strategies. "add" and "delete"
 
 			if strat.Strategy == "ours" || strat.Strategy == "theirs" {
 				strategyFlag := fmt.Sprintf("--%s", strat.Strategy)
-				log.Debug("Running %s on file %s", strategyFlag, strat.Path)
+				log.Info("Running %s on file %s", strategyFlag, strat.Path)
 
 				// First checkout one or the other
 				if err := git.NewCommand(ctx, "checkout").AddDynamicArguments(strategyFlag, strat.Path).Run(&git.RunOpts{
