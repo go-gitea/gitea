@@ -35,13 +35,13 @@ import (
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
-	"go.opentelemetry.io/otel/trace"
 
 	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
 	chi "github.com/go-chi/chi/v5"
 	"github.com/minio/sha256-simd"
 	"github.com/unrolled/render"
+	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/crypto/pbkdf2"
 )
 
