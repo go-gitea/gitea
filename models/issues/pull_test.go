@@ -118,7 +118,7 @@ func TestHasUnmergedPullRequestsByHeadInfo(t *testing.T) {
 
 func TestGetUnmergedPullRequestsByHeadInfo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(1, "branch2")
+	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(1, "branch2", false)
 	assert.NoError(t, err)
 	assert.Len(t, prs, 1)
 	for _, pr := range prs {
