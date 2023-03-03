@@ -3,7 +3,7 @@ import {attachTribute} from './tribute.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 import {initEasyMDEImagePaste} from './comp/ImagePaste.js';
 import {createCommentEasyMDE} from './comp/EasyMDE.js';
-import {hideElem,showElem} from '../utils/dom.js';
+import {hideElem, showElem} from '../utils/dom.js';
 
 export function initRepoRelease() {
   $(document).on('click', '.remove-rel-attach', function() {
@@ -18,8 +18,8 @@ export function initRepoReleaseNew() {
   const $repoReleaseNew = $('.repository.new.release');
   if (!$repoReleaseNew.length) return;
 
-  initTagNameEditor()
-  initRepoReleaseEditor()
+  initTagNameEditor();
+  initRepoReleaseEditor();
 }
 
 function initTagNameEditor() {
