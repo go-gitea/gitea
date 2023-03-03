@@ -143,7 +143,12 @@ func (pm *Manager) AddContextTimeout(parent context.Context, timeout time.Durati
 // Add create a new process
 func (pm *Manager) Add(ctx context.Context, description, detail string, cancel context.CancelFunc, processType string, currentlyRunning bool) (context.Context, IDType, FinishedFunc) {
 	parentPID := GetParentPID(ctx)
-	traceCtx, span := pm.tracer.Start(ctx, description, trace.WithAttributes(attribute.String("description", detail)))
+
+	var span trace.Span
+	traceCtx := ctx
+	if processType == NormalProcessType {
+		traceCtx, span = pm.tracer.Start(ctx, description, trace.WithAttributes(attribute.String("description", detail)))
+	}
 
 	pm.mutex.Lock()
 	start, pid := pm.nextPID()
@@ -168,13 +173,17 @@ func (pm *Manager) Add(ctx context.Context, description, detail string, cancel c
 		finished = func() {
 			cancel()
 			pm.remove(process)
-			span.End()
+			if span != nil {
+				span.End()
+			}
 			pprof.SetGoroutineLabels(ctx)
 		}
 	} else {
 		finished = func() {
 			cancel()
-			span.End()
+			if span != nil {
+				span.End()
+			}
 			pm.remove(process)
 		}
 	}
