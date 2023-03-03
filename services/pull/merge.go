@@ -426,12 +426,23 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 				strategyFlag := fmt.Sprintf("--%s", strat.Strategy)
 				log.Debug("Running %s on file %s", strategyFlag, strat.Path)
 
+				// First checkout one or the other
 				if err := git.NewCommand(ctx, "checkout").AddDynamicArguments(strategyFlag, strat.Path).Run(&git.RunOpts{
 					Dir:    tmpBasePath,
 					Stdout: &outbuf,
 					Stderr: &errbuf,
 				}); err != nil {
 					log.Error("Could not checkout file: %v", err)
+					return "", err
+				}
+
+				// Then add the changes
+				if err := git.NewCommand(ctx, "add").AddDynamicArguments(strat.Path).Run(&git.RunOpts{
+					Dir:    tmpBasePath,
+					Stdout: &outbuf,
+					Stderr: &errbuf,
+				}); err != nil {
+					log.Error("Could not add file: %v", err)
 					return "", err
 				}
 			} else if strat.Strategy == "add" {

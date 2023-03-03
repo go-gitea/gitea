@@ -38,7 +38,7 @@ GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1.5.0
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@latest
 
 DOCKER_IMAGE ?= ghcr.io/shapeci/gitea
-DOCKER_TAG ?= latest
+DOCKER_TAG ?= 1
 DOCKER_REF := $(DOCKER_IMAGE):$(DOCKER_TAG)
 
 ifeq ($(HAS_GO), GO)
