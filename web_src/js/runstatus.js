@@ -4,34 +4,35 @@ import {svg} from './svg.js';
 function runstatus(status, size = 16, className = '') {
   switch (status) {
     case 'success':
-      return svg('octicon-check-circle-fill', size, className);
+      return [
+        svg('octicon-check-circle-fill', size, className),
+        'green'
+      ];
     case 'skipped':
-      return svg('octicon-skip', size, className);
+      return [
+        svg('octicon-skip', size, className),
+        'ui text grey'
+      ];
     case 'waiting':
-      return svg('octicon-clock', size, className);
+      return [
+        svg('octicon-clock', size, className),
+        'ui text yellow'
+      ];
     case 'blocked':
-      return svg('octicon-blocked', size, className);
+      return [
+        svg('octicon-blocked', size, className),
+        'ui text yellow'
+      ];
     case 'running':
-      return svg('octicon-meter', size, className);
+      return [
+        svg('octicon-meter', size, className),
+        'ui text yellow'
+      ];
     default:
-      return svg('octicon-x-circle-fill', size, className);
-  }
-}
-
-function spanclass(status) {
-  switch (status) {
-    case 'success':
-      return 'green';
-    case 'skipped':
-      return 'ui text grey';
-    case 'waiting':
-      return 'ui text yellow';
-    case 'blocked':
-      return 'ui text yellow';
-    case 'running':
-      return 'ui text yellow';
-    default:
-      return 'red';
+      return [
+        svg('octicon-x-circle-fill', size, className),
+        'red'
+      ];
   }
 }
 
@@ -47,10 +48,7 @@ export const RunStatus = {
     runstatus() {
       return runstatus(this.status, this.size, this.className);
     },
-    spanclass() {
-      return spanclass(this.status);
-    }
   },
 
-  template: `<span v-html="runstatus" :class="spanclass"/>`
+  template: `<span v-html="runstatus[0]" :class="runstatus[1]"/>`
 };
