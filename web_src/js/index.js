@@ -76,7 +76,7 @@ import {
 import {initViewedCheckboxListenerFor} from './features/pull-view-file.js';
 import {initOrgTeamSearchRepoBox, initOrgTeamSettings} from './features/org-team.js';
 import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.js';
-import {initRepoRelease, initRepoReleaseEditor} from './features/repo-release.js';
+import {initRepoRelease, initRepoReleaseNew} from './features/repo-release.js';
 import {initRepoEditor} from './features/repo-editor.js';
 import {initCompSearchUserBox} from './features/comp/SearchUserBox.js';
 import {initInstall} from './features/install.js';
@@ -90,7 +90,6 @@ import {initFormattingReplacements} from './features/formatting.js';
 import {initCopyContent} from './features/copycontent.js';
 import {initCaptcha} from './features/captcha.js';
 import {initRepositoryActionView} from './components/RepoActionView.vue';
-import {initTagNameEditor} from './features/tag-name-editor.js';
 
 // Run time-critical code as soon as possible. This is safe to do because this
 // script appears at the end of <body> and rendered HTML is accessible at that point.
@@ -180,7 +179,7 @@ $(document).ready(() => {
   initRepoPullRequestAllowMaintainerEdit();
   initRepoPullRequestReview();
   initRepoRelease();
-  initRepoReleaseEditor();
+  initRepoReleaseNew();
   initRepoSettingGitHook();
   initRepoSettingSearchTeamBox();
   initRepoSettingsCollaboration();
@@ -199,6 +198,4 @@ $(document).ready(() => {
   initUserAuthWebAuthnRegister();
   initUserSettings();
   initViewedCheckboxListenerFor();
-
-  initTagNameEditor();
 });
