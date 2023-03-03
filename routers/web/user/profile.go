@@ -94,8 +94,7 @@ func Profile(ctx *context.Context) {
 	// Fetches user's .profile/README.md and adds it to the users profile (if it exists)
 	resp, err := http.Get(setting.AppURL + ctx.ContextUser.Name + "/.profile/raw/README.md")
 	if err != nil {
-		ctx.ServerError("RenderString", err)
-		return
+		ctx.ServerError("GetProfileReadme", err)
 	}
 	defer resp.Body.Close()
 	bytes, err := io.ReadAll(resp.Body)
