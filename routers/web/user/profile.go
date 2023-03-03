@@ -98,12 +98,12 @@ func Profile(ctx *context.Context) {
 			ctx.ServerError("OpenRepository", err)
 		}
 		defer gitRepo.Close()
-		defaultBranch := "main" // TODO: get default branch from repo module
-		commintId, err := gitRepo.GetBranchCommitID(defaultBranch)
+		defaultBranch := repo.DefaultBranch // TODO: get default branch from repo module
+		commitID, err := gitRepo.GetBranchCommitID(defaultBranch)
 		if err != nil {
 			ctx.ServerError("GetBranchCommitID", err)
 		}
-		commit, err := gitRepo.GetCommit(commintId)
+		commit, err := gitRepo.GetCommit(commitID)
 		if err != nil {
 			ctx.ServerError("GetCommit", err)
 		}
@@ -123,7 +123,7 @@ func Profile(ctx *context.Context) {
 		profileContent, err := markdown.RenderString(&markup.RenderContext{
 			Ctx:     ctx,
 			GitRepo: gitRepo,
-		}, string(bytes))
+		}, bytes)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
 			return
