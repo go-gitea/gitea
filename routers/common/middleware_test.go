@@ -21,22 +21,22 @@ func TestStripSlashesMiddleware(t *testing.T) {
 		{
 			name:         "path with multiple slashes",
 			inputPath:    "https://github.com///go-gitea//gitea.git",
-			expectedPath: "https://github.com/go-gitea/gitea.git",
+			expectedPath: "/go-gitea/gitea.git",
 		},
 		{
 			name:         "path with no slashes",
 			inputPath:    "https://github.com/go-gitea/gitea.git",
-			expectedPath: "https://github.com/go-gitea/gitea.git",
+			expectedPath: "/go-gitea/gitea.git",
 		},
 		{
 			name:         "path with slashes in the middle",
 			inputPath:    "https://git.data.coop//halfd/new-website.git",
-			expectedPath: "https://git.data.coop/halfd/new-website.git",
+			expectedPath: "/halfd/new-website.git",
 		},
 		{
 			name:         "path with slashes in the middle",
 			inputPath:    "https://git.data.coop//halfd/new-website.git",
-			expectedPath: "https://git.data.coop/halfd/new-website.git",
+			expectedPath: "/halfd/new-website.git",
 		},
 		{
 			name:         "path with slashes in the end",
@@ -46,13 +46,18 @@ func TestStripSlashesMiddleware(t *testing.T) {
 		{
 			name:         "path with slashes and query params",
 			inputPath:    "/repo//migrate?service_type=3",
-			expectedPath: "/repo/migrate?service_type=3",
+			expectedPath: "/repo/migrate",
+		},
+		{
+			name:         "path with encoded slash",
+			inputPath:    "/user2/%2F%2Frepo1",
+			expectedPath: "/user2/%2F%2Frepo1",
 		},
 	}
 
 	for _, tt := range tests {
 		testMiddleware := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			assert.Equal(t, tt.expectedPath, r.URL.String())
+			assert.Equal(t, tt.expectedPath, r.URL.Path)
 		})
 
 		// pass the test middleware to validate the changes
