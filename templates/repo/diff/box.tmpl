@@ -24,7 +24,7 @@
 					{{svg "octicon-diff" 16 "gt-mr-2"}}{{.locale.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
 				</div>
 			</div>
-			<div class="diff-detail-actions gt-df gt-ac gt-w-100">
+			<div class="diff-detail-actions gt-df gt-ac">
 				{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
 					<progress id="viewed-files-summary" class="gt-mr-2" value="{{.Diff.NumViewedFiles}}" max="{{.Diff.NumFiles}}"></progress>
 					<label for="viewed-files-summary" id="viewed-files-summary-label" class="gt-mr-3 gt-f1" data-text-changed-template="{{.locale.Tr "repo.pulls.viewed_files_label"}}">
