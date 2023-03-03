@@ -690,6 +690,21 @@ func RegisterRoutes(m *web.Route) {
 		}
 	}
 
+	reqUnitAccess := func(unitType unit.Type, accessMode perm.AccessMode) func(ctx *context.Context) {
+		return func(ctx *context.Context) {
+			if ctx.ContextUser == nil {
+				ctx.NotFound(unitType.String(), nil)
+				return
+			}
+			if ctx.ContextUser.IsOrganization() {
+				if ctx.Org.Organization.UnitPermission(ctx, ctx.Doer, unitType) < accessMode {
+					ctx.NotFound(unitType.String(), nil)
+					return
+				}
+			}
+		}
+	}
+
 	// ***** START: Organization *****
 	m.Group("/org", func() {
 		m.Group("/{org}", func() {
@@ -872,18 +887,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Group("", func() {
 				m.Get("", org.Projects)
 				m.Get("/{id}", org.ViewProject)
-			}, func(ctx *context.Context) {
-				if ctx.ContextUser == nil {
-					ctx.NotFound("Project", nil)
-					return
-				}
-				if ctx.ContextUser.IsOrganization() {
-					if !ctx.Org.CanReadUnit(ctx, unit.TypeProjects) {
-						ctx.NotFound("Project", nil)
-						return
-					}
-				}
-			})
+			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead))
 			m.Group("", func() { //nolint:dupl
 				m.Get("/new", org.NewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
@@ -903,17 +907,8 @@ func RegisterRoutes(m *web.Route) {
 						m.Post("/move", org.MoveIssues)
 					})
 				})
-			}, reqSignIn, func(ctx *context.Context) {
-				if ctx.ContextUser == nil {
-					ctx.NotFound("NewProject", nil)
-					return
-				}
-				if ctx.ContextUser.IsOrganization() {
-					if !ctx.Org.CanWriteUnit(ctx, unit.TypeProjects) {
-						ctx.NotFound("NewProject", nil)
-						return
-					}
-				} else if ctx.ContextUser.ID != ctx.Doer.ID {
+			}, reqSignIn, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite), func(ctx *context.Context) {
+				if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
 					ctx.NotFound("NewProject", nil)
 					return
 				}
@@ -922,18 +917,7 @@ func RegisterRoutes(m *web.Route) {
 
 		m.Group("", func() {
 			m.Get("/code", user.CodeSearch)
-		}, func(ctx *context.Context) {
-			if ctx.ContextUser == nil {
-				ctx.NotFound("Code", nil)
-				return
-			}
-			if ctx.ContextUser.IsOrganization() {
-				if !ctx.Org.CanReadUnit(ctx, unit.TypeCode) {
-					ctx.NotFound("Code", nil)
-					return
-				}
-			}
-		})
+		}, reqUnitAccess(unit.TypeCode, perm.AccessModeRead))
 	}, context_service.UserAssignmentWeb())
 
 	// ***** Release Attachment Download without Signin
