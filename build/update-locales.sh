@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/bin/sh
+
+# this script runs in alpine image which only has `sh` shell
 
 set +e
 if sed --version 2>/dev/null | grep -q GNU; then
