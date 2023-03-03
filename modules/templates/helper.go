@@ -92,7 +92,7 @@ func NewFuncMap() []template.FuncMap {
 			return setting.AssetVersion
 		},
 		"DisableGravatar": func(ctx context.Context) bool {
-			return system_model.GetSettingBool(ctx, system_model.KeyPictureDisableGravatar)
+			return system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar)
 		},
 		"DefaultShowFullName": func() bool {
 			return setting.UI.DefaultShowFullName
@@ -174,8 +174,9 @@ func NewFuncMap() []template.FuncMap {
 		"RenderEmojiPlain":               emoji.ReplaceAliases,
 		"ReactionToEmoji":                ReactionToEmoji,
 		"RenderNote":                     RenderNote,
-		"RenderMarkdownToHtml": func(input string) template.HTML {
+		"RenderMarkdownToHtml": func(ctx context.Context, input string) template.HTML {
 			output, err := markdown.RenderString(&markup.RenderContext{
+				Ctx:       ctx,
 				URLPrefix: setting.AppSubURL,
 			}, input)
 			if err != nil {

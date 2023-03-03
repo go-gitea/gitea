@@ -67,6 +67,12 @@ func createTemporaryRepo(ctx context.Context, pr *issues_model.PullRequest) (str
 	remoteRepoName := "head_repo"
 	baseBranch := "base"
 
+	fetchArgs := git.TrustedCmdArgs{"--no-tags"}
+	if git.CheckGitVersionAtLeast("2.25.0") == nil {
+		// Writing the commit graph can be slow and is not needed here
+		fetchArgs = append(fetchArgs, "--no-write-commit-graph")
+	}
+
 	// Add head repo remote.
 	addCacheRepo := func(staging, cache string) error {
 		p := filepath.Join(staging, ".git", "objects", "info", "alternates")
@@ -108,7 +114,7 @@ func createTemporaryRepo(ctx context.Context, pr *issues_model.PullRequest) (str
 	outbuf.Reset()
 	errbuf.Reset()
 
-	if err := git.NewCommand(ctx, "fetch", "origin", "--no-tags").AddDashesAndList(pr.BaseBranch+":"+baseBranch, pr.BaseBranch+":original_"+baseBranch).
+	if err := git.NewCommand(ctx, "fetch", "origin").AddArguments(fetchArgs...).AddDashesAndList(pr.BaseBranch+":"+baseBranch, pr.BaseBranch+":original_"+baseBranch).
 		Run(&git.RunOpts{
 			Dir:    tmpBasePath,
 			Stdout: &outbuf,
@@ -171,7 +177,7 @@ func createTemporaryRepo(ctx context.Context, pr *issues_model.PullRequest) (str
 	} else {
 		headBranch = pr.GetGitRefName()
 	}
-	if err := git.NewCommand(ctx, "fetch", "--no-tags").AddDynamicArguments(remoteRepoName, headBranch+":"+trackingBranch).
+	if err := git.NewCommand(ctx, "fetch").AddArguments(fetchArgs...).AddDynamicArguments(remoteRepoName, headBranch+":"+trackingBranch).
 		Run(&git.RunOpts{
 			Dir:    tmpBasePath,
 			Stdout: &outbuf,
