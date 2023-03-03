@@ -1,37 +1,37 @@
 import {svg} from './svg.js';
 
 // retrieve a HTML string for given run status, size and additional classes
-export function runstatus(status, size = 16, className = '') {
+function runstatus(status, size = 16, className = '') {
   switch (status) {
-    case "success":
+    case 'success':
       return svg('octicon-check-circle-fill', size, className);
-    case "skipped":
+    case 'skipped':
       return svg('octicon-skip', size, className);
-    case "waiting":
+    case 'waiting':
       return svg('octicon-clock', size, className);
-    case "blocked":
+    case 'blocked':
       return svg('octicon-blocked', size, className);
-    case "running":
+    case 'running':
       return svg('octicon-meter', size, className);
     default:
       return svg('octicon-x-circle-fill', size, className);
   }
 }
 
-function spanclass(status){
+function spanclass(status) {
   switch (status) {
-    case "success":
-      return "green";
-    case "skipped":
-      return "ui text grey";
-    case "waiting":
-      return "ui text yellow";
-    case "blocked":
-      return "ui text yellow";
-    case "running":
-      return "ui text yellow";
+    case 'success':
+      return 'green';
+    case 'skipped':
+      return 'ui text grey';
+    case 'waiting':
+      return 'ui text yellow';
+    case 'blocked':
+      return 'ui text yellow';
+    case 'running':
+      return 'ui text yellow';
     default:
-      return "red";
+      return 'red';
   }
 }
 
@@ -48,7 +48,7 @@ export const RunStatus = {
       return runstatus(this.status, this.size, this.className);
     },
     spanclass() {
-      return spanclass(this.status)
+      return spanclass(this.status);
     }
   },
 
