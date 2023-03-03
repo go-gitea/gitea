@@ -120,7 +120,7 @@ export function initRepoEditor() {
         } else {
           $(this).val(value);
         }
-        $(this)[0].setSelectionRange(0, 0);
+        this.setSelectionRange(0, 0);
       }
     }
 
@@ -135,7 +135,7 @@ export function initRepoEditor() {
       const $divider = $('.breadcrumb div.divider');
       const value = $section.last().find('a').text();
       $(this).val(value + $(this).val());
-      $(this)[0].setSelectionRange(value.length, value.length);
+      this.setSelectionRange(value.length, value.length);
       $section.last().remove();
       $divider.last().remove();
       joinTreePath($(this));
