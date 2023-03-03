@@ -385,10 +385,10 @@ func NewFuncMap() []template.FuncMap {
 			// the table is NOT sorted with this header
 			return ""
 		},
-		"RenderLabel": func(label *issues_model.Label) template.HTML {
-			return template.HTML(RenderLabel(label))
+		"RenderLabel": func(ctx context.Context, label *issues_model.Label) template.HTML {
+			return template.HTML(RenderLabel(ctx, label))
 		},
-		"RenderLabels": func(labels []*issues_model.Label, repoLink string) template.HTML {
+		"RenderLabels": func(ctx context.Context, labels []*issues_model.Label, repoLink string) template.HTML {
 			htmlCode := `<span class="labels-list">`
 			for _, label := range labels {
 				// Protect against nil value in labels - shouldn't happen but would cause a panic if so
@@ -396,7 +396,7 @@ func NewFuncMap() []template.FuncMap {
 					continue
 				}
 				htmlCode += fmt.Sprintf("<a href='%s/issues?labels=%d'>%s</a> ",
-					repoLink, label.ID, RenderLabel(label))
+					repoLink, label.ID, RenderLabel(ctx, label))
 			}
 			htmlCode += "</span>"
 			return template.HTML(htmlCode)
@@ -808,7 +808,7 @@ func RenderIssueTitle(ctx context.Context, text, urlPrefix string, metas map[str
 }
 
 // RenderLabel renders a label
-func RenderLabel(label *issues_model.Label) string {
+func RenderLabel(ctx context.Context, label *issues_model.Label) string {
 	labelScope := label.ExclusiveScope()
 
 	textColor := "#111"
@@ -821,12 +821,12 @@ func RenderLabel(label *issues_model.Label) string {
 	if labelScope == "" {
 		// Regular label
 		return fmt.Sprintf("<div class='ui label' style='color: %s !important; background-color: %s !important' title='%s'>%s</div>",
-			textColor, label.Color, description, RenderEmoji(label.Name))
+			textColor, label.Color, description, RenderEmoji(ctx, label.Name))
 	}
 
 	// Scoped label
-	scopeText := RenderEmoji(labelScope)
-	itemText := RenderEmoji(label.Name[len(labelScope)+1:])
+	scopeText := RenderEmoji(ctx, labelScope)
+	itemText := RenderEmoji(ctx, label.Name[len(labelScope)+1:])
 
 	itemColor := label.Color
 	scopeColor := label.Color
@@ -869,8 +869,9 @@ func RenderLabel(label *issues_model.Label) string {
 }
 
 // RenderEmoji renders html text with emoji post processors
-func RenderEmoji(text string) template.HTML {
-	renderedText, err := markup.RenderEmoji(template.HTMLEscapeString(text))
+func RenderEmoji(ctx context.Context, text string) template.HTML {
+	renderedText, err := markup.RenderEmoji(&markup.RenderContext{Ctx: ctx},
+		template.HTMLEscapeString(text))
 	if err != nil {
 		log.Error("RenderEmoji: %v", err)
 		return template.HTML("")
