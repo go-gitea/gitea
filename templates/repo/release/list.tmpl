@@ -5,10 +5,10 @@
 		{{template "base/alert" .}}
 		<h2 class="ui compact small menu header">
 			{{if .Permission.CanRead $.UnitTypeReleases}}
-				<a class="{{if (not .PageIsTagList)}}active {{end}}item" href="{{.RepoLink}}/releases">{{.locale.Tr "repo.release.releases"}}</a>
+				<a class="{{if (and (not .PageIsSingleTag) (not .PageIsTagList))}}active {{end}}item" href="{{.RepoLink}}/releases">{{.locale.Tr "repo.release.releases"}}</a>
 			{{end}}
 			{{if .Permission.CanRead $.UnitTypeCode}}
-				<a class="{{if .PageIsTagList}}active {{end}}item" href="{{.RepoLink}}/tags">{{.locale.Tr "repo.release.tags"}}</a>
+				<a class="{{if (or .PageIsSingleTag .PageIsTagList)}}active {{end}}item" href="{{.RepoLink}}/tags">{{.locale.Tr "repo.release.tags"}}</a>
 			{{end}}
 		</h2>
 		{{if .EnableFeed}}
@@ -105,14 +105,14 @@
 									<a href="{{.Publisher.HomeLink}}">{{.Publisher.Name}}</a>
 								</span>
 								<span class="released">
-									{{$.locale.Tr "repo.released_this"}}
+									{{$.locale.Tr "repo.tagged_this"}}
 								</span>
 								{{if .CreatedUnix}}
 									<span class="time">{{TimeSinceUnix .CreatedUnix $.locale}}</span>
 								{{end}}
 								|
 								{{end}}
-								<span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | PathEscapeSegments}}{{if .Target}}...{{.Target | PathEscapeSegments}}{{end}}">{{$.locale.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{$.locale.Tr "repo.release.ahead.target" $.DefaultBranch}}</span>
+								<span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | PathEscapeSegments}}{{if .Target}}...{{.Target | PathEscapeSegments}}{{end}}">{{$.locale.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{$.locale.Tr "repo.tag.ahead.target" $.DefaultBranch}}</span>
 							</p>
 						{{else}}
 							<p class="text grey">
