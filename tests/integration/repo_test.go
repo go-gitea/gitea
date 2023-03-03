@@ -266,7 +266,7 @@ func TestMarkDownImage(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	_, exists := htmlDoc.doc.Find("img[src=\"/user2/repo1/media/branch/home-md-img-check/test-fake-img.jpg\"]").Attr("src")
+	_, exists := htmlDoc.doc.Find(`img[src="/user2/repo1/media/branch/home-md-img-check/test-fake-img.jpg"]`).Attr("src")
 	assert.True(t, exists, "Repo home page markdown image link check failed")
 
 	req = NewRequest(t, "GET", "/user2/repo1/src/branch/home-md-img-check/README.md")
