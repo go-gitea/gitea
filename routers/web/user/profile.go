@@ -6,7 +6,6 @@ package user
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 
@@ -17,6 +16,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -91,26 +91,44 @@ func Profile(ctx *context.Context) {
 		ctx.Data["RenderedDescription"] = content
 	}
 
-	// Fetches user's .profile/README.md and adds it to the users profile (if it exists)
-	resp, err := http.Get(setting.AppURL + ctx.ContextUser.Name + "/.profile/raw/README.md")
-	if err != nil {
-		ctx.ServerError("GetProfileReadme", err)
-	}
-	defer resp.Body.Close()
-	bytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		ctx.ServerError("RenderString", err)
-		return
-	}
-	profileContent, err := markdown.RenderString(&markup.RenderContext{
-		Ctx: ctx,
-	}, string(bytes))
-	if err != nil {
-		ctx.ServerError("RenderString", err)
-		return
-	}
-	if resp.StatusCode == 200 {
-		ctx.Data["ReadmeProfile"] = profileContent
+	repo, err := repo_model.GetRepositoryByName(ctx.ContextUser.ID, ".profile")
+	if err == nil && !repo.IsEmpty {
+		gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+		if err != nil {
+			ctx.ServerError("OpenRepository", err)
+		}
+		defer gitRepo.Close()
+		defaultBranch := "main" // TODO: get default branch from repo module
+		commintId, err := gitRepo.GetBranchCommitID(defaultBranch)
+		if err != nil {
+			ctx.ServerError("GetBranchCommitID", err)
+		}
+		commit, err := gitRepo.GetCommit(commintId)
+		if err != nil {
+			ctx.ServerError("GetCommit", err)
+		}
+		tree, err := commit.SubTree("")
+
+		if err != nil || tree == nil {
+			ctx.ServerError("SubTree", err)
+		}
+		blob, err := tree.GetBlobByPath("README.md")
+		if err != nil {
+			ctx.ServerError("GetBlobByPath", err)
+		}
+		bytes, err := blob.GetBlobContent()
+		if err != nil {
+			ctx.ServerError("GetBlobContent", err)
+		}
+		profileContent, err := markdown.RenderString(&markup.RenderContext{
+			Ctx:     ctx,
+			GitRepo: gitRepo,
+		}, string(bytes))
+		if err != nil {
+			ctx.ServerError("RenderString", err)
+			return
+		}
+		ctx.Data["ProfileReadme"] = profileContent
 	}
 
 	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
