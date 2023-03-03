@@ -6,9 +6,9 @@ package user
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
-	"io"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
@@ -17,13 +17,13 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
 	"code.gitea.io/gitea/routers/web/org"
-	"code.gitea.io/gitea/modules/git"
 )
 
 // Profile render user's profile page
@@ -94,6 +94,10 @@ func Profile(ctx *context.Context) {
 
 	// Fetches user's .profile/README.md and adds it to the users profile (if it exists)
 	gitRepo, err := git.OpenRepository(ctx, repo_model.RepoPath(ctx.ContextUser.Name, ".profile"))
+	if err != nil {
+		ctx.ServerError("OpenRepository", err)
+		return
+	}
 	resp, err := http.Get(setting.AppURL + ctx.ContextUser.Name + "/.profile/raw/branch/main/README.md")
 	if err != nil {
 		ctx.ServerError("RenderString", err)
@@ -101,14 +105,18 @@ func Profile(ctx *context.Context) {
 	}
 	defer resp.Body.Close()
 	bytes, err := io.ReadAll(resp.Body)
-    if err != nil {
-        ctx.ServerError("RenderString", err)
+	if err != nil {
+		ctx.ServerError("RenderString", err)
 		return
-    }
-   	profileContent, err := markdown.RenderString(&markup.RenderContext{
-      	GitRepo: gitRepo,
-    }, string(bytes))
-	if resp.StatusCode == 200  {
+	}
+	profileContent, err := markdown.RenderString(&markup.RenderContext{
+		GitRepo: gitRepo,
+	}, string(bytes))
+	if err != nil {
+		ctx.ServerError("RenderString", err)
+		return
+	}
+	if resp.StatusCode == 200 {
 		ctx.Data["ReadmeProfile"] = profileContent
 	}
 
