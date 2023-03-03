@@ -17,7 +17,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -93,11 +92,6 @@ func Profile(ctx *context.Context) {
 	}
 
 	// Fetches user's .profile/README.md and adds it to the users profile (if it exists)
-	gitRepo, err := git.OpenRepository(ctx, repo_model.RepoPath(ctx.ContextUser.Name, ".profile"))
-	if err != nil {
-		ctx.ServerError("OpenRepository", err)
-		return
-	}
 	resp, err := http.Get(setting.AppURL + ctx.ContextUser.Name + "/.profile/raw/branch/main/README.md")
 	if err != nil {
 		ctx.ServerError("RenderString", err)
@@ -110,7 +104,7 @@ func Profile(ctx *context.Context) {
 		return
 	}
 	profileContent, err := markdown.RenderString(&markup.RenderContext{
-		GitRepo: gitRepo,
+		Ctx: ctx,
 	}, string(bytes))
 	if err != nil {
 		ctx.ServerError("RenderString", err)
