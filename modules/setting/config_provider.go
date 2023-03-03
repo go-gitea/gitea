@@ -25,9 +25,9 @@ func mustMapSetting(rootCfg ConfigProvider, sectionName string, setting interfac
 	}
 }
 
-func deprecatedSetting(rootCfg ConfigProvider, oldSection, oldKey, newSection, newKey string) {
+func deprecatedSetting(rootCfg ConfigProvider, oldSection, oldKey, newSection, newKey, version string) {
 	if rootCfg.Section(oldSection).HasKey(oldKey) {
-		log.Error("Deprecated fallback `[%s]` `%s` present. Use `[%s]` `%s` instead. This fallback will be removed in v1.19.0", oldSection, oldKey, newSection, newKey)
+		log.Error("Deprecated fallback `[%s]` `%s` present. Use `[%s]` `%s` instead. This fallback will be/has been removed in %s", oldSection, oldKey, newSection, newKey, version)
 	}
 }
 
