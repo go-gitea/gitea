@@ -92,8 +92,8 @@ func Profile(ctx *context.Context) {
 		ctx.Data["RenderedDescription"] = content
 	}
 
-	gitRepo, err := git.OpenRepository(ctx, repo_model.RepoPath("npease", ".public"))
-	resp, err := http.Get("http://localhost:3000/npease/.profile/raw/branch/main/README.md")
+	gitRepo, err := git.OpenRepository(ctx, repo_model.RepoPath(ctx.ContextUser.Name, ".profile"))
+	resp, err := http.Get(setting.AppURL + ctx.ContextUser.Name + "/.profile/raw/branch/main/README.md")
 	if err != nil {
 		ctx.ServerError("RenderString", err)
 		return
@@ -106,9 +106,10 @@ func Profile(ctx *context.Context) {
    	profileContent, err := markdown.RenderString(&markup.RenderContext{
       	GitRepo: gitRepo,
     }, string(bytes))
-	
-	ctx.Data["RenderedProfile"] = profileContent
-	
+	if resp.StatusCode == 200  {
+		ctx.Data["RenderedProfile"] = profileContent
+	}
+
 	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
 
 	orgs, err := organization.FindOrgs(organization.FindOrgOptions{

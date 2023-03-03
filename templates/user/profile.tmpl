@@ -101,10 +101,13 @@
 					</div>
 				</div>
 			</div>
+			
 			<div class="ui eleven wide column">
+			{{if .RenderedProfile}}
 				<div id="README_PROFILE">
 					<div class="render-content markup"> {{$.RenderedProfile|Str2html}} </div>
 				</div>
+			{{end}}
 				<div class="ui secondary stackable pointing tight menu">
 					<a class='{{if and (ne .TabName "activity") (ne .TabName "following") (ne .TabName "followers") (ne .TabName "stars") (ne .TabName "watching") (ne .TabName "projects") (ne .TabName "code")}}active {{end}}item' href="{{.Owner.HomeLink}}">
 						{{svg "octicon-repo"}} {{.locale.Tr "user.repositories"}}
