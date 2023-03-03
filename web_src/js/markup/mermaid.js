@@ -37,14 +37,10 @@ export async function renderMermaid() {
       continue;
     }
 
-    let valid;
     try {
-      valid = await mermaid.parse(source);
+      await mermaid.parse(source);
     } catch (err) {
       displayError(el, err);
-    }
-
-    if (!valid) {
       el.closest('pre').classList.remove('is-loading');
       continue;
     }
