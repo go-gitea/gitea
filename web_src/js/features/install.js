@@ -50,13 +50,13 @@ function initPreInstall() {
 
   const $appUrl = $('#app_url');
   const configAppUrl = $appUrl.val();
-  if (configAppUrl.includes('://localhost') || configAppUrl.includes('://127.0.0.1')) {
+  if (configAppUrl.includes('://localhost')) {
     $appUrl.val(window.location.href);
   }
 
   const $domain = $('#domain');
   const configDomain = $domain.val().trim();
-  if (configDomain === 'localhost' || configDomain === '127.0.0.1') {
+  if (configDomain === 'localhost') {
     $domain.val(window.location.hostname);
   }
 
