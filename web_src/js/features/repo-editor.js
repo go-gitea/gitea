@@ -130,7 +130,8 @@ export function initRepoEditor() {
   $editFilename.on('keydown', function (e) {
     const $section = $('.breadcrumb span.section');
 
-    if (e.keyCode === 8 && getCursorPosition($(this)) === 0 && $section.length > 0) {
+    // Jump back to last directory once the filename is empty
+    if (e.code === 'Backspace' && getCursorPosition($(this)) === 0 && $section.length > 0) {
       e.preventDefault();
       const $divider = $('.breadcrumb div.divider');
       const value = $section.last().find('a').text();
