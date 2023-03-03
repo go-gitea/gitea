@@ -38,12 +38,12 @@ func createTemporaryRepo(ctx context.Context, pr *issues_model.PullRequest) (str
 		return "", &repo_model.ErrRepoNotExist{
 			ID: pr.BaseRepoID,
 		}
-	} else if err := pr.HeadRepo.GetOwner(ctx); err != nil {
-		log.Error("HeadRepo.GetOwner: %v", err)
-		return "", fmt.Errorf("HeadRepo.GetOwner: %w", err)
-	} else if err := pr.BaseRepo.GetOwner(ctx); err != nil {
-		log.Error("BaseRepo.GetOwner: %v", err)
-		return "", fmt.Errorf("BaseRepo.GetOwner: %w", err)
+	} else if err := pr.HeadRepo.LoadOwner(ctx); err != nil {
+		log.Error("HeadRepo.LoadOwner: %v", err)
+		return "", fmt.Errorf("HeadRepo.LoadOwner: %w", err)
+	} else if err := pr.BaseRepo.LoadOwner(ctx); err != nil {
+		log.Error("BaseRepo.LoadOwner: %v", err)
+		return "", fmt.Errorf("BaseRepo.LoadOwner: %w", err)
 	}
 
 	// Clone base repo.
@@ -66,6 +66,12 @@ func createTemporaryRepo(ctx context.Context, pr *issues_model.PullRequest) (str
 
 	remoteRepoName := "head_repo"
 	baseBranch := "base"
+
+	fetchArgs := git.TrustedCmdArgs{"--no-tags"}
+	if git.CheckGitVersionAtLeast("2.25.0") == nil {
+		// Writing the commit graph can be slow and is not needed here
+		fetchArgs = append(fetchArgs, "--no-write-commit-graph")
+	}
 
 	// Add head repo remote.
 	addCacheRepo := func(staging, cache string) error {
@@ -108,7 +114,7 @@ func createTemporaryRepo(ctx context.Context, pr *issues_model.PullRequest) (str
 	outbuf.Reset()
 	errbuf.Reset()
 
-	if err := git.NewCommand(ctx, "fetch", "origin", "--no-tags").AddDashesAndList(pr.BaseBranch+":"+baseBranch, pr.BaseBranch+":original_"+baseBranch).
+	if err := git.NewCommand(ctx, "fetch", "origin").AddArguments(fetchArgs...).AddDashesAndList(pr.BaseBranch+":"+baseBranch, pr.BaseBranch+":original_"+baseBranch).
 		Run(&git.RunOpts{
 			Dir:    tmpBasePath,
 			Stdout: &outbuf,
@@ -171,7 +177,7 @@ func createTemporaryRepo(ctx context.Context, pr *issues_model.PullRequest) (str
 	} else {
 		headBranch = pr.GetGitRefName()
 	}
-	if err := git.NewCommand(ctx, "fetch", "--no-tags").AddDynamicArguments(remoteRepoName, headBranch+":"+trackingBranch).
+	if err := git.NewCommand(ctx, "fetch").AddArguments(fetchArgs...).AddDynamicArguments(remoteRepoName, headBranch+":"+trackingBranch).
 		Run(&git.RunOpts{
 			Dir:    tmpBasePath,
 			Stdout: &outbuf,

@@ -99,6 +99,13 @@ Admin operations:
         - `--password value`, `-p value`: New password. Required.
       - Examples:
         - `gitea admin user change-password --username myname --password asecurepassword`
+    - `must-change-password`:
+      - Args:
+        - `[username...]`: Users that must change their passwords
+      - Options:
+        - `--all`, `-A`: Force a password change for all users
+        - `--exclude username`, `-e username`: Exclude the given user. Can be set multiple times.
+        - `--unset`: Revoke forced password change for the given users
   - `regenerate`
     - Options:
       - `hooks`: Regenerate Git Hooks for all repositories
@@ -137,6 +144,8 @@ Admin operations:
         - `--group-claim-name`: Claim name providing group names for this source. (Optional)
         - `--admin-group`: Group Claim value for administrator users. (Optional)
         - `--restricted-group`: Group Claim value for restricted users. (Optional)
+        - `--group-team-map`: JSON mapping between groups and org teams. (Optional)
+        - `--group-team-map-removal`: Activate automatic team membership removal depending on groups. (Optional)
       - Examples:
         - `gitea admin auth add-oauth --name external-github --provider github --key OBTAIN_FROM_SOURCE --secret OBTAIN_FROM_SOURCE`
     - `update-oauth`:
