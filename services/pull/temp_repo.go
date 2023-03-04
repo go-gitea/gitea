@@ -68,7 +68,7 @@ func createTemporaryRepo(ctx context.Context, pr *issues_model.PullRequest) (str
 	remoteRepoName := "head_repo"
 	baseBranch := "base"
 
-	fetchArgs := git.TrustedCmdArgs{"--no-tags"}
+	fetchArgs := []git.CmdArg{"--no-tags"}
 	if git.CheckGitVersionAtLeast("2.25.0") == nil {
 		// Writing the commit graph can be slow and is not needed here
 		fetchArgs = append(fetchArgs, "--no-write-commit-graph")
